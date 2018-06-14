@@ -13,8 +13,9 @@
 
 #include <display-plugins/CompositorHelper.h>
 #include <FramebufferCache.h>
-#include "ui/Stats.h"
+#include <plugins/PluginManager.h>
 #include <SceneScriptingInterface.h>
+#include "ui/Stats.h"
 #include "Util.h"
 
 
@@ -29,9 +30,6 @@ void Application::editRenderArgs(RenderArgsEditor editor) {
 
 void Application::paintGL() {
     // Some plugins process message events, allowing paintGL to be called reentrantly.
-    if (_aboutToQuit || _window->isMinimized()) {
-        return;
-    }
 
     _renderFrameCount++;
     _lastTimeRendered.start();
@@ -104,7 +102,7 @@ void Application::paintGL() {
         PerformanceTimer perfTimer("renderOverlay");
         // NOTE: There is no batch associated with this renderArgs
         // the ApplicationOverlay class assumes it's viewport is setup to be the device size
-        renderArgs._viewport = glm::ivec4(0, 0, getDeviceSize());
+        renderArgs._viewport = glm::ivec4(0, 0, getDeviceSize() * getRenderResolutionScale());
         _applicationOverlay.renderOverlay(&renderArgs);
     }
 
@@ -233,3 +231,4 @@ void Application::runRenderFrame(RenderArgs* renderArgs) {
         _renderEngine->run();
     }
 }
+

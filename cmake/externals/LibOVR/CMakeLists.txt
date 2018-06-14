@@ -17,8 +17,8 @@ if (WIN32)
 
   ExternalProject_Add(
     ${EXTERNAL_NAME}
-    URL https://static.oculus.com/sdk-downloads/1.11.0/Public/1486063832/ovr_sdk_win_1.11.0_public.zip
-    URL_MD5 ea484403757cbfdfa743b6577fb1f9d2
+    URL http://hifi-public.s3.amazonaws.com/dependencies/ovr_sdk_win_1.26.0_public.zip
+    URL_MD5 06804ff9727b910dcd04a37c800053b5
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
     PATCH_COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/LibOVRCMakeLists.txt" <SOURCE_DIR>/CMakeLists.txt
     LOG_DOWNLOAD 1

@@ -36,16 +36,17 @@ Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right 
               
-            spacing: 20
+            spacing: 5
             Column { 
-                spacing: 10
+                spacing: 5
            // padding: 10
                 Repeater {
                     model: [
                          "Unlit:LightingModel:enableUnlit", 
                          "Emissive:LightingModel:enableEmissive", 
                          "Lightmap:LightingModel:enableLightmap",
-                         "Background:LightingModel:enableBackground",                      
+                         "Background:LightingModel:enableBackground",      
+                         "Haze:LightingModel:enableHaze",                
                          "ssao:AmbientOcclusion:enabled",                      
                          "Textures:LightingModel:enableMaterialTexturing"                     
                     ]
@@ -60,7 +61,7 @@ Rectangle {
 
 
             Column {
-                spacing: 10
+                spacing: 5
                 Repeater {
                     model: [
                          "Obscurance:LightingModel:enableObscurance",
@@ -80,7 +81,7 @@ Rectangle {
             }
 
             Column {
-                spacing: 10
+                spacing: 5
                 Repeater {
                     model: [
                          "Ambient:LightingModel:enableAmbientLight",
@@ -104,7 +105,7 @@ Rectangle {
         Column {
             anchors.left: parent.left
             anchors.right: parent.right 
-            spacing: 10 
+            spacing: 5 
             Repeater {
                 model: [ "Tone Mapping Exposure:ToneMapping:exposure:5.0:-5.0"
                               ]
@@ -210,9 +211,9 @@ Rectangle {
 
         Separator {}          
         Row {
-            spacing: 10 
+            spacing: 5 
             Column {
-                spacing: 10 
+                spacing: 5 
 
                 HifiControls.CheckBox {
                     boxSize: 20
@@ -253,7 +254,7 @@ Rectangle {
 
             }
             Column {
-                spacing: 10 
+                spacing: 5 
                 HifiControls.CheckBox {
                     boxSize: 20
                     text: "Metas"
@@ -274,6 +275,13 @@ Rectangle {
                 }
             }
         }
+        Separator {}
+        HifiControls.Button {
+            text: "Engine"
+           // activeFocusOnPress: false
+            onClicked: {
+               sendToScript({method: "openEngineView"}); 
+            }
+        }
     }
-    //}
 }

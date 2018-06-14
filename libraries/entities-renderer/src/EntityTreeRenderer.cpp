@@ -44,6 +44,19 @@ size_t std::hash<EntityItemID>::operator()(const EntityItemID& id) const { retur
 std::function<bool()> EntityTreeRenderer::_entitiesShouldFadeFunction;
 std::function<bool()> EntityTreeRenderer::_renderDebugHullsOperator = [] { return false; };
 
+QString resolveScriptURL(const QString& scriptUrl) {
+    auto normalizedScriptUrl = DependencyManager::get<ResourceManager>()->normalizeURL(scriptUrl);
+    QUrl url { normalizedScriptUrl };
+    if (url.isLocalFile()) {
+        // Outside of the ScriptEngine, /~/ resolves to the /resources directory.
+        // Inside of the ScriptEngine, /~/ resolves to the /scripts directory.
+        // Here we expand local paths in case they are /~/ paths, so they aren't
+        // incorrectly recognized as being located in /scripts when utilized in ScriptEngine.
+        return PathUtils::expandToLocalDataAbsolutePath(url).toString();
+    }
+    return normalizedScriptUrl;
+}
+
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState,
                                             AbstractScriptingServicesInterface* scriptingServices) :
     _wantScripts(wantScripts),
@@ -221,7 +234,7 @@ void EntityTreeRenderer::reloadEntityScripts() {
         const auto& renderer = entry.second;
         const auto& entity = renderer->getEntity();
         if (!entity->getScript().isEmpty()) {
-            _entitiesScriptEngine->loadEntityScript(entity->getEntityItemID(), entity->getScript(), true);
+            _entitiesScriptEngine->loadEntityScript(entity->getEntityItemID(), resolveScriptURL(entity->getScript()), true);
         }
     }
 }
@@ -296,7 +309,7 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
     }
 }
 
-void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene, const ViewFrustum& view, render::Transaction& transaction) {
+void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene, render::Transaction& transaction) {
     PROFILE_RANGE_EX(simulation_physics, "ChangeInScene", 0xffff00ff, (uint64_t)_changedEntities.size());
     PerformanceTimer pt("change");
     std::unordered_set<EntityItemID> changedEntities;
@@ -357,7 +370,9 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
 
         // prioritize and sort the renderables
         uint64_t sortStart = usecTimestampNow();
-        PrioritySortUtil::PriorityQueue<SortableRenderer> sortedRenderables(view);
+
+        const auto& views = _viewState->getConicalViews();
+        PrioritySortUtil::PriorityQueue<SortableRenderer> sortedRenderables(views);
         {
             PROFILE_RANGE_EX(simulation_physics, "SortRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
             std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr = _renderablesToUpdate.begin();
@@ -415,9 +430,8 @@ void EntityTreeRenderer::update(bool simulate) {
             if (scene) {
                 render::Transaction transaction;
                 addPendingEntities(scene, transaction);
-                ViewFrustum view;
-                _viewState->copyCurrentViewFrustum(view);
-                updateChangedEntities(scene, view, transaction);
+
+                updateChangedEntities(scene, transaction);
                 scene->enqueueTransaction(transaction);
             }
         }
@@ -913,8 +927,7 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, bool 
             entity->scriptHasUnloaded();
         }
         if (shouldLoad) {
-            scriptUrl = DependencyManager::get<ResourceManager>()->normalizeURL(scriptUrl);
-            _entitiesScriptEngine->loadEntityScript(entityID, scriptUrl, reload);
+            _entitiesScriptEngine->loadEntityScript(entityID, resolveScriptURL(scriptUrl), reload);
             entity->scriptHasPreloaded();
         }
     }

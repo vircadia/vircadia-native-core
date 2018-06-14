@@ -9,7 +9,7 @@
 //
 
 /* global Tablet, Script, HMD, UserActivityLogger, Entities, Account, Wallet, ContextOverlay, Settings, Camera, Vec3,
-   Quat, MyAvatar, Clipboard, Menu, Grid, Uuid, GlobalServices, openLoginWindow, Overlays, SoundCache,
+   Quat, MyAvatar, Clipboard, Menu, Grid, Uuid, GlobalServices, openLoginWindow, getConnectionData, Overlays, SoundCache,
    DesktopPreviewProvider */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
@@ -19,6 +19,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
 
     Script.include("/~/system/libraries/WebTablet.js");
     Script.include("/~/system/libraries/gridTool.js");
+    Script.include("/~/system/libraries/connectionUtils.js");
 
     var METAVERSE_SERVER_URL = Account.metaverseServerURL;
     var MARKETPLACE_URL = METAVERSE_SERVER_URL + "/marketplace";
@@ -61,8 +62,6 @@ var selectionDisplay = null; // for gridTool.js to ignore
         }
     }
 
-    Window.messageBoxClosed.connect(onMessageBoxClosed);
-
     var onMarketplaceScreen = false;
     var onCommerceScreen = false;
 
@@ -74,7 +73,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
             tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
         } else {
             tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
-            tablet.sendToQml({
+            sendToQml({
                 method: 'updateCheckoutQML', params: {
                     itemId: '424611a2-73d0-4c03-9087-26a6a279257b',
                     itemName: '2018-02-15 Finnegon',
@@ -86,23 +85,13 @@ var selectionDisplay = null; // for gridTool.js to ignore
         }
     }
 
-    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-    var NORMAL_ICON = "icons/tablet-icons/market-i.svg";
-    var NORMAL_ACTIVE = "icons/tablet-icons/market-a.svg";
-    var WAITING_ICON = "icons/tablet-icons/market-i-msg.svg";
-    var WAITING_ACTIVE = "icons/tablet-icons/market-a-msg.svg";
-    var marketplaceButton = tablet.addButton({
-        icon: NORMAL_ICON,
-        activeIcon: NORMAL_ACTIVE,
-        text: "MARKET",
-        sortOrder: 9
-    });
-
     function messagesWaiting(isWaiting) {
-        marketplaceButton.editProperties({
-            icon: (isWaiting ? WAITING_ICON : NORMAL_ICON),
-            activeIcon: (isWaiting ? WAITING_ACTIVE : NORMAL_ACTIVE)
-        });
+        if (marketplaceButton) {
+            marketplaceButton.editProperties({
+                icon: (isWaiting ? WAITING_ICON : NORMAL_ICON),
+                activeIcon: (isWaiting ? WAITING_ACTIVE : NORMAL_ACTIVE)
+            });
+        }
     }
 
     function onCanWriteAssetsChanged() {
@@ -110,26 +99,8 @@ var selectionDisplay = null; // for gridTool.js to ignore
         tablet.emitScriptEvent(message);
     }
 
-    function onClick() {
-        if (onMarketplaceScreen || onCommerceScreen) {
-            // for toolbar-mode: go back to home screen, this will close the window.
-            tablet.gotoHomeScreen();
-        } else {
-            Wallet.refreshWalletStatus();
-            if (HMD.tabletID) {
-                Entities.editEntity(HMD.tabletID, { textures: JSON.stringify({ "tex.close": HOME_BUTTON_TEXTURE }) });
-            }
-            showMarketplace();
-        }
-    }
 
-    var referrerURL; // Used for updating Purchases QML
-    var filterText; // Used for updating Purchases QML
-
-    var onWalletScreen = false;
-    var onCommerceScreen = false;
     var tabletShouldBeVisibleInSecondaryCamera = false;
-
     function setTabletVisibleInSecondaryCamera(visibleInSecondaryCam) {
         if (visibleInSecondaryCam) {
             // if we're potentially showing the tablet, only do so if it was visible before
@@ -143,50 +114,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
 
         Overlays.editOverlay(HMD.tabletID, { isVisibleInSecondaryCamera : visibleInSecondaryCam });
         Overlays.editOverlay(HMD.homeButtonID, { isVisibleInSecondaryCamera : visibleInSecondaryCam });
-        Overlays.editOverlay(HMD.homeButtonHighlightIDtabletID, { isVisibleInSecondaryCamera : visibleInSecondaryCam });
         Overlays.editOverlay(HMD.tabletScreenID, { isVisibleInSecondaryCamera : visibleInSecondaryCam });
-    }
-
-    function onScreenChanged(type, url) {
-        onMarketplaceScreen = type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1;
-        var onWalletScreenNow = url.indexOf(MARKETPLACE_WALLET_QML_PATH) !== -1;
-        var onCommerceScreenNow = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH
-            || url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1);
-
-        if ((!onWalletScreenNow && onWalletScreen) || (!onCommerceScreenNow && onCommerceScreen)) { // exiting wallet or commerce screen
-            if (isHmdPreviewDisabledBySecurity) {
-                DesktopPreviewProvider.setPreviewDisabledReason("USER");
-                Menu.setIsOptionChecked("Disable Preview", false);
-                setTabletVisibleInSecondaryCamera(true);
-                isHmdPreviewDisabledBySecurity = false;
-            }
-        }
-
-        onCommerceScreen = onCommerceScreenNow;
-        onWalletScreen = onWalletScreenNow;
-        wireEventBridge(onMarketplaceScreen || onCommerceScreen || onWalletScreen);
-
-        if (url === MARKETPLACE_PURCHASES_QML_PATH) {
-            tablet.sendToQml({
-                method: 'updatePurchases',
-                referrerURL: referrerURL,
-                filterText: filterText
-            });
-        }
-
-        // for toolbar mode: change button to active when window is first openend, false otherwise.
-        marketplaceButton.editProperties({ isActive: (onMarketplaceScreen || onCommerceScreen) && !onWalletScreen });
-        if (type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1) {
-            ContextOverlay.isInMarketplaceInspectionMode = true;
-        } else {
-            ContextOverlay.isInMarketplaceInspectionMode = false;
-        }
-
-        if (!onCommerceScreen) {
-            tablet.sendToQml({
-                method: 'inspectionCertificate_resetCert'
-            });
-        }
     }
 
     function openWallet() {
@@ -196,7 +124,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
     function setCertificateInfo(currentEntityWithContextOverlay, itemCertificateId) {
         wireEventBridge(true);
         var certificateId = itemCertificateId || (Entities.getEntityProperties(currentEntityWithContextOverlay, ['certificateID']).certificateID);
-        tablet.sendToQml({
+        sendToQml({
             method: 'inspectionCertificate_setCertificateId',
             entityId: currentEntityWithContextOverlay,
             certificateId: certificateId
@@ -223,6 +151,285 @@ var selectionDisplay = null; // for gridTool.js to ignore
             }
         }));
     }
+
+    // BEGIN AVATAR SELECTOR LOGIC
+    var UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6 };
+    var SELECTED_COLOR = { red: 0xF3, green: 0x91, blue: 0x29 };
+    var HOVER_COLOR = { red: 0xD0, green: 0xD0, blue: 0xD0 };
+
+    var overlays = {}; // Keeps track of all our extended overlay data objects, keyed by target identifier.
+
+    function ExtendedOverlay(key, type, properties) { // A wrapper around overlays to store the key it is associated with.
+        overlays[key] = this;
+        this.key = key;
+        this.selected = false;
+        this.hovering = false;
+        this.activeOverlay = Overlays.addOverlay(type, properties); // We could use different overlays for (un)selected...
+    }
+    // Instance methods:
+    ExtendedOverlay.prototype.deleteOverlay = function () { // remove display and data of this overlay
+        Overlays.deleteOverlay(this.activeOverlay);
+        delete overlays[this.key];
+    };
+
+    ExtendedOverlay.prototype.editOverlay = function (properties) { // change display of this overlay
+        Overlays.editOverlay(this.activeOverlay, properties);
+    };
+
+    function color(selected, hovering) {
+        var base = hovering ? HOVER_COLOR : selected ? SELECTED_COLOR : UNSELECTED_COLOR;
+        function scale(component) {
+            var delta = 0xFF - component;
+            return component;
+        }
+        return { red: scale(base.red), green: scale(base.green), blue: scale(base.blue) };
+    }
+    // so we don't have to traverse the overlays to get the last one
+    var lastHoveringId = 0;
+    ExtendedOverlay.prototype.hover = function (hovering) {
+        this.hovering = hovering;
+        if (this.key === lastHoveringId) {
+            if (hovering) {
+                return;
+            }
+            lastHoveringId = 0;
+        }
+        this.editOverlay({ color: color(this.selected, hovering) });
+        if (hovering) {
+            // un-hover the last hovering overlay
+            if (lastHoveringId && lastHoveringId !== this.key) {
+                ExtendedOverlay.get(lastHoveringId).hover(false);
+            }
+            lastHoveringId = this.key;
+        }
+    };
+    ExtendedOverlay.prototype.select = function (selected) {
+        if (this.selected === selected) {
+            return;
+        }
+
+        this.editOverlay({ color: color(selected, this.hovering) });
+        this.selected = selected;
+    };
+    // Class methods:
+    var selectedId = false;
+    ExtendedOverlay.isSelected = function (id) {
+        return selectedId === id;
+    };
+    ExtendedOverlay.get = function (key) { // answer the extended overlay data object associated with the given avatar identifier
+        return overlays[key];
+    };
+    ExtendedOverlay.some = function (iterator) { // Bails early as soon as iterator returns truthy.
+        var key;
+        for (key in overlays) {
+            if (iterator(ExtendedOverlay.get(key))) {
+                return;
+            }
+        }
+    };
+    ExtendedOverlay.unHover = function () { // calls hover(false) on lastHoveringId (if any)
+        if (lastHoveringId) {
+            ExtendedOverlay.get(lastHoveringId).hover(false);
+        }
+    };
+
+    // hit(overlay) on the one overlay intersected by pickRay, if any.
+    // noHit() if no ExtendedOverlay was intersected (helps with hover)
+    ExtendedOverlay.applyPickRay = function (pickRay, hit, noHit) {
+        var pickedOverlay = Overlays.findRayIntersection(pickRay); // Depends on nearer coverOverlays to extend closer to us than farther ones.
+        if (!pickedOverlay.intersects) {
+            if (noHit) {
+                return noHit();
+            }
+            return;
+        }
+        ExtendedOverlay.some(function (overlay) { // See if pickedOverlay is one of ours.
+            if ((overlay.activeOverlay) === pickedOverlay.overlayID) {
+                hit(overlay);
+                return true;
+            }
+        });
+    };
+
+    function addAvatarNode(id) {
+        return new ExtendedOverlay(id, "sphere", {
+            drawInFront: true,
+            solid: true,
+            alpha: 0.8,
+            color: color(false, false),
+            ignoreRayIntersection: false
+        });
+    }
+
+    var pingPong = true;
+    function updateOverlays() {
+        var eye = Camera.position;
+        AvatarList.getAvatarIdentifiers().forEach(function (id) {
+            if (!id) {
+                return; // don't update ourself, or avatars we're not interested in
+            }
+            var avatar = AvatarList.getAvatar(id);
+            if (!avatar) {
+                return; // will be deleted below if there had been an overlay.
+            }
+            var overlay = ExtendedOverlay.get(id);
+            if (!overlay) { // For now, we're treating this as a temporary loss, as from the personal space bubble. Add it back.
+                overlay = addAvatarNode(id);
+            }
+            var target = avatar.position;
+            var distance = Vec3.distance(target, eye);
+            var offset = 0.2;
+            var diff = Vec3.subtract(target, eye); // get diff between target and eye (a vector pointing to the eye from avatar position)
+            var headIndex = avatar.getJointIndex("Head"); // base offset on 1/2 distance from hips to head if we can
+            if (headIndex > 0) {
+                offset = avatar.getAbsoluteJointTranslationInObjectFrame(headIndex).y / 2;
+            }
+
+            // move a bit in front, towards the camera
+            target = Vec3.subtract(target, Vec3.multiply(Vec3.normalize(diff), offset));
+
+            // now bump it up a bit
+            target.y = target.y + offset;
+
+            overlay.ping = pingPong;
+            overlay.editOverlay({
+                color: color(ExtendedOverlay.isSelected(id), overlay.hovering),
+                position: target,
+                dimensions: 0.032 * distance
+            });
+        });
+        pingPong = !pingPong;
+        ExtendedOverlay.some(function (overlay) { // Remove any that weren't updated. (User is gone.)
+            if (overlay.ping === pingPong) {
+                overlay.deleteOverlay();
+            }
+        });
+    }
+    function removeOverlays() {
+        selectedId = false;
+        lastHoveringId = 0;
+        ExtendedOverlay.some(function (overlay) {
+            overlay.deleteOverlay();
+        });
+    }
+
+    //
+    // Clicks.
+    //
+    function usernameFromIDReply(id, username, machineFingerprint, isAdmin) {
+        if (selectedId === id) {
+            var message = {
+                method: 'updateSelectedRecipientUsername',
+                userName: username === "" ? "unknown username" : username
+            };
+            sendToQml(message);
+        }
+    }
+    function handleClick(pickRay) {
+        ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
+            var nextSelectedStatus = !overlay.selected;
+            var avatarId = overlay.key;
+            selectedId = nextSelectedStatus ? avatarId : false;
+            if (nextSelectedStatus) {
+                Users.requestUsernameFromID(avatarId);
+            }
+            var message = {
+                method: 'selectRecipient',
+                id: avatarId,
+                isSelected: nextSelectedStatus,
+                displayName: '"' + AvatarList.getAvatar(avatarId).sessionDisplayName + '"',
+                userName: ''
+            };
+            sendToQml(message);
+
+            ExtendedOverlay.some(function (overlay) {
+                var id = overlay.key;
+                var selected = ExtendedOverlay.isSelected(id);
+                overlay.select(selected);
+            });
+
+            return true;
+        });
+    }
+    function handleMouseEvent(mousePressEvent) { // handleClick if we get one.
+        if (!mousePressEvent.isLeftButton) {
+            return;
+        }
+        handleClick(Camera.computePickRay(mousePressEvent.x, mousePressEvent.y));
+    }
+    function handleMouseMove(pickRay) { // given the pickRay, just do the hover logic
+        ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
+            overlay.hover(true);
+        }, function () {
+            ExtendedOverlay.unHover();
+        });
+    }
+
+    // handy global to keep track of which hand is the mouse (if any)
+    var currentHandPressed = 0;
+    var TRIGGER_CLICK_THRESHOLD = 0.85;
+    var TRIGGER_PRESS_THRESHOLD = 0.05;
+
+    function handleMouseMoveEvent(event) { // find out which overlay (if any) is over the mouse position
+        var pickRay;
+        if (HMD.active) {
+            if (currentHandPressed !== 0) {
+                pickRay = controllerComputePickRay(currentHandPressed);
+            } else {
+                // nothing should hover, so
+                ExtendedOverlay.unHover();
+                return;
+            }
+        } else {
+            pickRay = Camera.computePickRay(event.x, event.y);
+        }
+        handleMouseMove(pickRay);
+    }
+    function handleTriggerPressed(hand, value) {
+        // The idea is if you press one trigger, it is the one
+        // we will consider the mouse.  Even if the other is pressed,
+        // we ignore it until this one is no longer pressed.
+        var isPressed = value > TRIGGER_PRESS_THRESHOLD;
+        if (currentHandPressed === 0) {
+            currentHandPressed = isPressed ? hand : 0;
+            return;
+        }
+        if (currentHandPressed === hand) {
+            currentHandPressed = isPressed ? hand : 0;
+            return;
+        }
+        // otherwise, the other hand is still triggered
+        // so do nothing.
+    }
+
+    // We get mouseMoveEvents from the handControllers, via handControllerPointer.
+    // But we don't get mousePressEvents.
+    var triggerMapping = Controller.newMapping(Script.resolvePath('') + '-click');
+    var triggerPressMapping = Controller.newMapping(Script.resolvePath('') + '-press');
+    function controllerComputePickRay(hand) {
+        var controllerPose = getControllerWorldLocation(hand, true);
+        if (controllerPose.valid) {
+            return { origin: controllerPose.position, direction: Quat.getUp(controllerPose.orientation) };
+        }
+    }
+    function makeClickHandler(hand) {
+        return function (clicked) {
+            if (clicked > TRIGGER_CLICK_THRESHOLD) {
+                var pickRay = controllerComputePickRay(hand);
+                handleClick(pickRay);
+            }
+        };
+    }
+    function makePressHandler(hand) {
+        return function (value) {
+            handleTriggerPressed(hand, value);
+        };
+    }
+    triggerMapping.from(Controller.Standard.RTClick).peek().to(makeClickHandler(Controller.Standard.RightHand));
+    triggerMapping.from(Controller.Standard.LTClick).peek().to(makeClickHandler(Controller.Standard.LeftHand));
+    triggerPressMapping.from(Controller.Standard.RT).peek().to(makePressHandler(Controller.Standard.RightHand));
+    triggerPressMapping.from(Controller.Standard.LT).peek().to(makePressHandler(Controller.Standard.LeftHand));
+    // END AVATAR SELECTOR LOGIC
 
     var grid = new Grid();
     function adjustPositionPerBoundingBox(position, direction, registration, dimensions, orientation) {
@@ -415,16 +622,9 @@ var selectionDisplay = null; // for gridTool.js to ignore
         }
     }
 
-    marketplaceButton.clicked.connect(onClick);
-    tablet.screenChanged.connect(onScreenChanged);
-    Entities.canWriteAssetsChanged.connect(onCanWriteAssetsChanged);
-    ContextOverlay.contextOverlayClicked.connect(setCertificateInfo);
-    GlobalServices.myUsernameChanged.connect(onUsernameChanged);
-    Wallet.walletStatusChanged.connect(sendCommerceSettings);
-    Wallet.refreshWalletStatus();
-
+    var referrerURL; // Used for updating Purchases QML
+    var filterText; // Used for updating Purchases QML
     function onMessage(message) {
-
         if (message === GOTO_DIRECTORY) {
             tablet.gotoWebScreen(MARKETPLACES_URL, MARKETPLACES_INJECT_SCRIPT_URL);
         } else if (message === QUERY_CAN_WRITE_ASSETS) {
@@ -456,7 +656,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
             if (parsedJsonMessage.type === "CHECKOUT") {
                 wireEventBridge(true);
                 tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
-                tablet.sendToQml({
+                sendToQml({
                     method: 'updateCheckoutQML',
                     params: parsedJsonMessage
                 });
@@ -470,7 +670,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 openLoginWindow();
             } else if (parsedJsonMessage.type === "WALLET_SETUP") {
                 wireEventBridge(true);
-                tablet.sendToQml({
+                sendToQml({
                     method: 'updateWalletReferrer',
                     referrer: "marketplace cta"
                 });
@@ -480,55 +680,123 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 filterText = "";
                 tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
                 wireEventBridge(true);
-                tablet.sendToQml({
+                sendToQml({
                     method: 'purchases_showMyItems'
                 });
             }
         }
     }
 
-    tablet.webEventReceived.connect(onMessage);
-
-    Script.scriptEnding.connect(function () {
-        if (onMarketplaceScreen || onCommerceScreen) {
-            tablet.gotoHomeScreen();
-        }
-        tablet.removeButton(marketplaceButton);
-        tablet.screenChanged.disconnect(onScreenChanged);
-        ContextOverlay.contextOverlayClicked.disconnect(setCertificateInfo);
-        tablet.webEventReceived.disconnect(onMessage);
-        Entities.canWriteAssetsChanged.disconnect(onCanWriteAssetsChanged);
-        GlobalServices.myUsernameChanged.disconnect(onUsernameChanged);
-        Wallet.walletStatusChanged.disconnect(sendCommerceSettings);
-    });
-
-
-
-    // Function Name: wireEventBridge()
-    //
-    // Description:
-    //   -Used to connect/disconnect the script's response to the tablet's "fromQml" signal. Set the "on" argument to enable or
-    //    disable to event bridge.
-    //
-    // Relevant Variables:
-    //   -hasEventBridge: true/false depending on whether we've already connected the event bridge.
-    var hasEventBridge = false;
-    function wireEventBridge(on) {
+    function onButtonClicked() {
         if (!tablet) {
-            print("Warning in wireEventBridge(): 'tablet' undefined!");
+            print("Warning in buttonClicked(): 'tablet' undefined!");
             return;
         }
-        if (on) {
-            if (!hasEventBridge) {
-                tablet.fromQml.connect(fromQml);
-                hasEventBridge = true;
-            }
+        if (onMarketplaceScreen || onCommerceScreen) {
+            // for toolbar-mode: go back to home screen, this will close the window.
+            tablet.gotoHomeScreen();
         } else {
-            if (hasEventBridge) {
-                tablet.fromQml.disconnect(fromQml);
-                hasEventBridge = false;
+            if (HMD.tabletID) {
+                Entities.editEntity(HMD.tabletID, { textures: JSON.stringify({ "tex.close": HOME_BUTTON_TEXTURE }) });
             }
+            showMarketplace();
         }
+    }
+
+    // Function Name: sendToQml()
+    //
+    // Description:
+    //   -Use this function to send a message to the QML (i.e. to change appearances). The "message" argument is what is sent to
+    //    the QML in the format "{method, params}", like json-rpc. See also fromQml().
+    function sendToQml(message) {
+        tablet.sendToQml(message);
+    }
+
+    var sendAssetRecipient;
+    var sendAssetParticleEffectUpdateTimer;
+    var particleEffectTimestamp;
+    var sendAssetParticleEffect;
+    var SEND_ASSET_PARTICLE_TIMER_UPDATE = 250;
+    var SEND_ASSET_PARTICLE_EMITTING_DURATION = 3000;
+    var SEND_ASSET_PARTICLE_LIFETIME_SECONDS = 8;
+    var SEND_ASSET_PARTICLE_PROPERTIES = {
+        accelerationSpread: { x: 0, y: 0, z: 0 },
+        alpha: 1,
+        alphaFinish: 1,
+        alphaSpread: 0,
+        alphaStart: 1,
+        azimuthFinish: 0,
+        azimuthStart: -6,
+        color: { red: 255, green: 222, blue: 255 },
+        colorFinish: { red: 255, green: 229, blue: 225 },
+        colorSpread: { red: 0, green: 0, blue: 0 },
+        colorStart: { red: 243, green: 255, blue: 255 },
+        emitAcceleration: { x: 0, y: 0, z: 0 }, // Immediately gets updated to be accurate
+        emitDimensions: { x: 0, y: 0, z: 0 },
+        emitOrientation: { x: 0, y: 0, z: 0 },
+        emitRate: 4,
+        emitSpeed: 2.1,
+        emitterShouldTrail: true,
+        isEmitting: 1,
+        lifespan: SEND_ASSET_PARTICLE_LIFETIME_SECONDS + 1, // Immediately gets updated to be accurate
+        lifetime: SEND_ASSET_PARTICLE_LIFETIME_SECONDS + 1,
+        maxParticles: 20,
+        name: 'asset-particles',
+        particleRadius: 0.2,
+        polarFinish: 0,
+        polarStart: 0,
+        radiusFinish: 0.05,
+        radiusSpread: 0,
+        radiusStart: 0.2,
+        speedSpread: 0,
+        textures: "http://hifi-content.s3.amazonaws.com/alan/dev/Particles/Bokeh-Particle-HFC.png",
+        type: 'ParticleEffect'
+    };
+
+    function updateSendAssetParticleEffect() {
+        var timestampNow = Date.now();
+        if ((timestampNow - particleEffectTimestamp) > (SEND_ASSET_PARTICLE_LIFETIME_SECONDS * 1000)) {
+            deleteSendAssetParticleEffect();
+            return;
+        } else if ((timestampNow - particleEffectTimestamp) > SEND_ASSET_PARTICLE_EMITTING_DURATION) {
+            Entities.editEntity(sendAssetParticleEffect, {
+                isEmitting: 0
+            });
+        } else if (sendAssetParticleEffect) {
+            var recipientPosition = AvatarList.getAvatar(sendAssetRecipient).position;
+            var distance = Vec3.distance(recipientPosition, MyAvatar.position);
+            var accel = Vec3.subtract(recipientPosition, MyAvatar.position);
+            accel.y -= 3.0;
+            var life = Math.sqrt(2 * distance / Vec3.length(accel));
+            Entities.editEntity(sendAssetParticleEffect, {
+                emitAcceleration: accel,
+                lifespan: life
+            });
+        }
+    }
+
+    function deleteSendAssetParticleEffect() {
+        if (sendAssetParticleEffectUpdateTimer) {
+            Script.clearInterval(sendAssetParticleEffectUpdateTimer);
+            sendAssetParticleEffectUpdateTimer = null;
+        }
+        if (sendAssetParticleEffect) {
+            sendAssetParticleEffect = Entities.deleteEntity(sendAssetParticleEffect);
+        }
+        sendAssetRecipient = null;
+    }
+    
+    var savedDisablePreviewOptionLocked = false;
+    var savedDisablePreviewOption = Menu.isOptionChecked("Disable Preview");;
+    function maybeEnableHMDPreview() {
+        // Set a small timeout to prevent sensitive data from being shown during
+        // UI fade
+        Script.setTimeout(function () {
+            setTabletVisibleInSecondaryCamera(true);
+            DesktopPreviewProvider.setPreviewDisabledReason("USER");
+            Menu.setIsOptionChecked("Disable Preview", savedDisablePreviewOption);
+            savedDisablePreviewOptionLocked = false;
+        }, 150);
     }
 
     // Function Name: fromQml()
@@ -536,7 +804,6 @@ var selectionDisplay = null; // for gridTool.js to ignore
     // Description:
     //   -Called when a message is received from Checkout.qml. The "message" argument is what is sent from the Checkout QML
     //    in the format "{method, params}", like json-rpc.
-    var isHmdPreviewDisabledBySecurity = false;
     function fromQml(message) {
         switch (message.method) {
             case 'purchases_openWallet':
@@ -546,7 +813,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 break;
             case 'purchases_walletNotSetUp':
                 wireEventBridge(true);
-                tablet.sendToQml({
+                sendToQml({
                     method: 'updateWalletReferrer',
                     referrer: "purchases"
                 });
@@ -554,7 +821,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 break;
             case 'checkout_walletNotSetUp':
                 wireEventBridge(true);
-                tablet.sendToQml({
+                sendToQml({
                     method: 'updateWalletReferrer',
                     referrer: message.referrer === "itemPage" ? message.itemId : message.referrer
                 });
@@ -600,6 +867,9 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 tablet.gotoWebScreen(message.upgradeUrl + "?edition=" + message.itemEdition,
                     MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
+            case 'giftAsset':
+
+                break;
             case 'passphrasePopup_cancelClicked':
             case 'needsLogIn_cancelClicked':
                 tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
@@ -608,21 +878,19 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 openLoginWindow();
                 break;
             case 'disableHmdPreview':
-                var isHmdPreviewDisabled = Menu.isOptionChecked("Disable Preview");
-                if (!isHmdPreviewDisabled) {
+                if (!savedDisablePreviewOption) {
+                    savedDisablePreviewOption = Menu.isOptionChecked("Disable Preview");
+                    savedDisablePreviewOptionLocked = true;
+                }
+
+                if (!savedDisablePreviewOption) {
                     DesktopPreviewProvider.setPreviewDisabledReason("SECURE_SCREEN");
                     Menu.setIsOptionChecked("Disable Preview", true);
                     setTabletVisibleInSecondaryCamera(false);
-                    isHmdPreviewDisabledBySecurity = true;
                 }
                 break;
             case 'maybeEnableHmdPreview':
-                if (isHmdPreviewDisabledBySecurity) {
-                    DesktopPreviewProvider.setPreviewDisabledReason("USER");
-                    Menu.setIsOptionChecked("Disable Preview", false);
-                    setTabletVisibleInSecondaryCamera(true);
-                    isHmdPreviewDisabledBySecurity = false;
-                }
+                maybeEnableHMDPreview();
                 break;
             case 'purchases_openGoTo':
                 tablet.loadQMLSource("hifi/tablet/TabletAddressDialog.qml");
@@ -644,24 +912,250 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 filterText = "";
                 tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
                 wireEventBridge(true);
-                tablet.sendToQml({
+                sendToQml({
                     method: 'purchases_showMyItems'
                 });
                 break;
             case 'refreshConnections':
+                // Guard to prevent this code from being executed while sending money --
+                // we only want to execute this while sending non-HFC gifts
+                if (!onWalletScreen) {
+                    print('Refreshing Connections...');
+                    getConnectionData(false);
+                }
+                break;
             case 'enable_ChooseRecipientNearbyMode':
+                // Guard to prevent this code from being executed while sending money --
+                // we only want to execute this while sending non-HFC gifts
+                if (!onWalletScreen) {
+                    if (!isUpdateOverlaysWired) {
+                        Script.update.connect(updateOverlays);
+                        isUpdateOverlaysWired = true;
+                    }
+                }
+                break;
             case 'disable_ChooseRecipientNearbyMode':
-            case 'sendMoney_sendPublicly':
-                // NOP
+                // Guard to prevent this code from being executed while sending money --
+                // we only want to execute this while sending non-HFC gifts
+                if (!onWalletScreen) {
+                    if (isUpdateOverlaysWired) {
+                        Script.update.disconnect(updateOverlays);
+                        isUpdateOverlaysWired = false;
+                    }
+                    removeOverlays();
+                }
                 break;
             case 'wallet_availableUpdatesReceived':
             case 'purchases_availableUpdatesReceived':
                 userHasUpdates = message.numUpdates > 0;
                 messagesWaiting(userHasUpdates);
                 break;
+            case 'purchases_updateWearables':
+                var currentlyWornWearables = [];
+                var ATTACHMENT_SEARCH_RADIUS = 100; // meters (just in case)
+
+                var nearbyEntities = Entities.findEntitiesByType('Model', MyAvatar.position, ATTACHMENT_SEARCH_RADIUS);
+
+                for (var i = 0; i < nearbyEntities.length; i++) {
+                    var currentProperties = Entities.getEntityProperties(nearbyEntities[i], ['certificateID', 'editionNumber', 'parentID']);
+                    if (currentProperties.parentID === MyAvatar.sessionUUID) {
+                        currentlyWornWearables.push({
+                            entityID: nearbyEntities[i],
+                            entityCertID: currentProperties.certificateID,
+                            entityEdition: currentProperties.editionNumber
+                        });
+                    }
+                }
+
+                sendToQml({ method: 'updateWearables', wornWearables: currentlyWornWearables });
+                break;
+            case 'sendAsset_sendPublicly':
+                if (message.assetName !== "") {
+                    deleteSendAssetParticleEffect();
+                    sendAssetRecipient = message.recipient;
+                    var amount = message.amount;
+                    var props = SEND_ASSET_PARTICLE_PROPERTIES;
+                    props.parentID = MyAvatar.sessionUUID;
+                    props.position = MyAvatar.position;
+                    props.position.y += 0.2;
+                    if (message.effectImage) {
+                        props.textures = message.effectImage;
+                    }
+                    sendAssetParticleEffect = Entities.addEntity(props, true);
+                    particleEffectTimestamp = Date.now();
+                    updateSendAssetParticleEffect();
+                    sendAssetParticleEffectUpdateTimer = Script.setInterval(updateSendAssetParticleEffect, SEND_ASSET_PARTICLE_TIMER_UPDATE);
+                }
+                break;
+            case 'http.request':
+                // Handled elsewhere, don't log.
+                break;
+            case 'goToPurchases_fromWalletHome': // HRS FIXME What's this about?
+                break;
             default:
                 print('Unrecognized message from Checkout.qml or Purchases.qml: ' + JSON.stringify(message));
         }
     }
+
+    // Function Name: wireEventBridge()
+    //
+    // Description:
+    //   -Used to connect/disconnect the script's response to the tablet's "fromQml" signal. Set the "on" argument to enable or
+    //    disable to event bridge.
+    //
+    // Relevant Variables:
+    //   -hasEventBridge: true/false depending on whether we've already connected the event bridge.
+    var hasEventBridge = false;
+    function wireEventBridge(on) {
+        if (!tablet) {
+            print("Warning in wireEventBridge(): 'tablet' undefined!");
+            return;
+        }
+        if (on) {
+            if (!hasEventBridge) {
+                tablet.fromQml.connect(fromQml);
+                hasEventBridge = true;
+            }
+        } else {
+            if (hasEventBridge) {
+                tablet.fromQml.disconnect(fromQml);
+                hasEventBridge = false;
+            }
+        }
+    }
+
+    // Function Name: onTabletScreenChanged()
+    //
+    // Description:
+    //   -Called when the TabletScriptingInterface::screenChanged() signal is emitted. The "type" argument can be either the string
+    //    value of "Home", "Web", "Menu", "QML", or "Closed". The "url" argument is only valid for Web and QML.
+    var onWalletScreen = false;
+    var onCommerceScreen = false;
+    function onTabletScreenChanged(type, url) {
+        onMarketplaceScreen = type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1;
+        var onWalletScreenNow = url.indexOf(MARKETPLACE_WALLET_QML_PATH) !== -1;
+        var onCommerceScreenNow = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH
+            || url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1);
+
+        if ((!onWalletScreenNow && onWalletScreen) || (!onCommerceScreenNow && onCommerceScreen)) { // exiting wallet or commerce screen
+            maybeEnableHMDPreview();
+        }
+
+        onCommerceScreen = onCommerceScreenNow;
+        onWalletScreen = onWalletScreenNow;
+        wireEventBridge(onMarketplaceScreen || onCommerceScreen || onWalletScreen);
+
+        if (url === MARKETPLACE_PURCHASES_QML_PATH) {
+            sendToQml({
+                method: 'updatePurchases',
+                referrerURL: referrerURL,
+                filterText: filterText
+            });
+        }
+
+        // for toolbar mode: change button to active when window is first openend, false otherwise.
+        if (marketplaceButton) {
+            marketplaceButton.editProperties({ isActive: (onMarketplaceScreen || onCommerceScreen) && !onWalletScreen });
+        }
+        if (type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1) {
+            ContextOverlay.isInMarketplaceInspectionMode = true;
+        } else {
+            ContextOverlay.isInMarketplaceInspectionMode = false;
+        }
+
+        if (onCommerceScreen) {
+            if (!isWired) {
+                Users.usernameFromIDReply.connect(usernameFromIDReply);
+                Controller.mousePressEvent.connect(handleMouseEvent);
+                Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
+                triggerMapping.enable();
+                triggerPressMapping.enable();
+            }
+            isWired = true;
+            Wallet.refreshWalletStatus();
+        } else {
+            off();
+            sendToQml({
+                method: 'inspectionCertificate_resetCert'
+            });
+        }
+    }
+
+    //
+    // Manage the connection between the button and the window.
+    //
+    var marketplaceButton;
+    var buttonName = "MARKET";
+    var tablet = null;
+    var NORMAL_ICON = "icons/tablet-icons/market-i.svg";
+    var NORMAL_ACTIVE = "icons/tablet-icons/market-a.svg";
+    var WAITING_ICON = "icons/tablet-icons/market-i-msg.svg";
+    var WAITING_ACTIVE = "icons/tablet-icons/market-a-msg.svg";
+    function startup() {
+        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        marketplaceButton = tablet.addButton({
+            icon: NORMAL_ICON,
+            activeIcon: NORMAL_ACTIVE,
+            text: buttonName,
+            sortOrder: 9
+        });
+
+        ContextOverlay.contextOverlayClicked.connect(setCertificateInfo);
+        Entities.canWriteAssetsChanged.connect(onCanWriteAssetsChanged);
+        GlobalServices.myUsernameChanged.connect(onUsernameChanged);
+        marketplaceButton.clicked.connect(onButtonClicked);
+        tablet.screenChanged.connect(onTabletScreenChanged);
+        tablet.webEventReceived.connect(onMessage);
+        Wallet.walletStatusChanged.connect(sendCommerceSettings);
+        Window.messageBoxClosed.connect(onMessageBoxClosed);
+
+        Wallet.refreshWalletStatus();
+    }
+    var isWired = false;
+    var isUpdateOverlaysWired = false;
+    function off() {
+        if (isWired) {
+            Users.usernameFromIDReply.disconnect(usernameFromIDReply);
+            Controller.mousePressEvent.disconnect(handleMouseEvent);
+            Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
+            triggerMapping.disable();
+            triggerPressMapping.disable();
+
+            isWired = false;
+        }
+        if (isUpdateOverlaysWired) {
+            Script.update.disconnect(updateOverlays);
+            isUpdateOverlaysWired = false;
+        }
+        removeOverlays();
+    }
+    function shutdown() {
+        maybeEnableHMDPreview();
+        deleteSendAssetParticleEffect();
+
+        ContextOverlay.contextOverlayClicked.disconnect(setCertificateInfo);
+        Entities.canWriteAssetsChanged.disconnect(onCanWriteAssetsChanged);
+        GlobalServices.myUsernameChanged.disconnect(onUsernameChanged);
+        marketplaceButton.clicked.disconnect(onButtonClicked);
+        tablet.removeButton(marketplaceButton);
+        tablet.webEventReceived.disconnect(onMessage);
+        Wallet.walletStatusChanged.disconnect(sendCommerceSettings);
+        Window.messageBoxClosed.disconnect(onMessageBoxClosed);
+
+        if (tablet) {
+            tablet.screenChanged.disconnect(onTabletScreenChanged);
+            if (onMarketplaceScreen) {
+                tablet.gotoHomeScreen();
+            }
+        }
+
+        off();
+    }
+
+    //
+    // Run the functions.
+    //
+    startup();
+    Script.scriptEnding.connect(shutdown);
 
 }()); // END LOCAL_SCOPE

@@ -31,6 +31,20 @@ unsigned int PickScriptingInterface::createPick(const PickQuery::PickType type, 
     }
 }
 
+/**jsdoc
+ * A set of properties that can be passed to {@link Picks.createPick} to create a new Ray Pick.
+ * @typedef {object} Picks.RayPickProperties
+ * @property {boolean} [enabled=false] If this Pick should start enabled or not.  Disabled Picks do not updated their pick results.
+ * @property {number} [filter=Picks.PICK_NOTHING] The filter for this Pick to use, constructed using filter flags combined using bitwise OR.
+ * @property {number} [maxDistance=0.0] The max distance at which this Pick will intersect.  0.0 = no max.  < 0.0 is invalid.
+ * @property {string} [joint] Only for Joint or Mouse Ray Picks.  If "Mouse", it will create a Ray Pick that follows the system mouse, in desktop or HMD.
+ *   If "Avatar", it will create a Joint Ray Pick that follows your avatar's head.  Otherwise, it will create a Joint Ray Pick that follows the given joint, if it
+ *   exists on your current avatar.
+ * @property {Vec3} [posOffset=Vec3.ZERO] Only for Joint Ray Picks.  A local joint position offset, in meters.  x = upward, y = forward, z = lateral
+ * @property {Vec3} [dirOffset=Vec3.UP] Only for Joint Ray Picks.  A local joint direction offset.  x = upward, y = forward, z = lateral
+ * @property {Vec3} [position] Only for Static Ray Picks.  The world-space origin of the ray.
+ * @property {Vec3} [direction=-Vec3.UP] Only for Static Ray Picks.  The world-space direction of the ray.
+ */
 unsigned int PickScriptingInterface::createRayPick(const QVariant& properties) {
     QVariantMap propMap = properties.toMap();
 
@@ -83,6 +97,14 @@ unsigned int PickScriptingInterface::createRayPick(const QVariant& properties) {
     return PickManager::INVALID_PICK_ID;
 }
 
+/**jsdoc
+ * A set of properties that can be passed to {@link Picks.createPick} to create a new Stylus Pick.
+ * @typedef {object} Picks.StylusPickProperties
+ * @property {number} [hand=-1] An integer.  0 == left, 1 == right.  Invalid otherwise.
+ * @property {boolean} [enabled=false] If this Pick should start enabled or not.  Disabled Picks do not updated their pick results.
+ * @property {number} [filter=Picks.PICK_NOTHING] The filter for this Pick to use, constructed using filter flags combined using bitwise OR.
+ * @property {number} [maxDistance=0.0] The max distance at which this Pick will intersect.  0.0 = no max.  < 0.0 is invalid.
+ */
 unsigned int PickScriptingInterface::createStylusPick(const QVariant& properties) {
     QVariantMap propMap = properties.toMap();
 

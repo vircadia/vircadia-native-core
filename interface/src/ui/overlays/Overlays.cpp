@@ -118,7 +118,7 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     auto textureCache = DependencyManager::get<TextureCache>();
 
-    auto size = qApp->getUiSize();
+    auto size = glm::uvec2(glm::vec2(qApp->getUiSize()) * qApp->getRenderResolutionScale());
     int width = size.x;
     int height = size.y;
     mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
@@ -554,7 +554,7 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionVector(const PickRay
             glm::vec3 thisSurfaceNormal;
             QVariantMap thisExtraInfo;
             if (thisOverlay->findRayIntersectionExtraInfo(ray.origin, ray.direction, thisDistance,
-                                                          thisFace, thisSurfaceNormal, thisExtraInfo)) {
+                                                          thisFace, thisSurfaceNormal, thisExtraInfo, precisionPicking)) {
                 bool isDrawInFront = thisOverlay->getDrawInFront();
                 if ((bestIsFront && isDrawInFront && thisDistance < bestDistance)
                     || (!bestIsFront && (isDrawInFront || thisDistance < bestDistance))) {

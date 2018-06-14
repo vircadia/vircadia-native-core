@@ -9,15 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "HTTPConnection.h"
+
+#include <assert.h>
 
 #include <QBuffer>
 #include <QCryptographicHash>
 #include <QTcpSocket>
+#include <QUrlQuery>
 
-#include "HTTPConnection.h"
 #include "EmbeddedWebserverLogging.h"
 #include "HTTPManager.h"
-#include <QUrlQuery>
 
 const char* HTTPConnection::StatusCode200 = "200 OK";
 const char* HTTPConnection::StatusCode301 = "301 Moved Permanently";
@@ -29,11 +31,92 @@ const char* HTTPConnection::StatusCode404 = "404 Not Found";
 const char* HTTPConnection::StatusCode500 = "500 Internal server error";
 const char* HTTPConnection::DefaultContentType = "text/plain; charset=ISO-8859-1";
 
-HTTPConnection::HTTPConnection (QTcpSocket* socket, HTTPManager* parentManager) :
+
+class MemoryStorage : public HTTPConnection::Storage {
+public:
+    static std::unique_ptr<MemoryStorage> make(qint64 size);
+    virtual ~MemoryStorage() = default;
+
+    const QByteArray& content() const override { return _array; }
+    qint64 bytesLeftToWrite() const override { return _array.size() - _bytesWritten; }
+    void write(const QByteArray& data) override;
+
+private:
+    MemoryStorage(qint64 size) { _array.resize(size); }
+
+    QByteArray _array;
+    qint64 _bytesWritten { 0 };
+};
+
+std::unique_ptr<MemoryStorage> MemoryStorage::make(qint64 size) {
+    return std::unique_ptr<MemoryStorage>(new MemoryStorage(size));
+}
+
+void MemoryStorage::write(const QByteArray& data) {
+    assert(data.size() <= bytesLeftToWrite());
+    memcpy(_array.data() + _bytesWritten, data.data(), data.size());
+    _bytesWritten += data.size();
+}
+
+
+class FileStorage : public HTTPConnection::Storage {
+public:
+    static std::unique_ptr<FileStorage> make(qint64 size);
+    virtual ~FileStorage();
+
+    const QByteArray& content() const override { return _wrapperArray; };
+    qint64 bytesLeftToWrite() const override { return _mappedMemorySize - _bytesWritten; }
+    void write(const QByteArray& data) override;
+
+private:
+    FileStorage(std::unique_ptr<QTemporaryFile> file, uchar* mapped, qint64 size);
+
+    // Byte array is const because any edit will trigger a deep copy
+    // and pull all the data we want to keep on disk in memory.
+    const QByteArray _wrapperArray;
+    std::unique_ptr<QTemporaryFile> _file;
+
+    uchar* const _mappedMemoryAddress { nullptr };
+    const qint64 _mappedMemorySize { 0 };
+    qint64 _bytesWritten { 0 };
+};
+
+std::unique_ptr<FileStorage> FileStorage::make(qint64 size) {
+    auto file = std::unique_ptr<QTemporaryFile>(new QTemporaryFile());
+    file->open(); // Open for resize
+    file->resize(size);
+    auto mapped = file->map(0, size); // map the entire file
+
+    return std::unique_ptr<FileStorage>(new FileStorage(std::move(file), mapped, size));
+}
+
+// Use QByteArray::fromRawData to avoid a new allocation and access the already existing
+// memory directly as long as all operations on the array are const.
+FileStorage::FileStorage(std::unique_ptr<QTemporaryFile> file, uchar* mapped, qint64 size) :
+    _wrapperArray(QByteArray::fromRawData(reinterpret_cast<char*>(mapped), size)),
+    _file(std::move(file)),
+    _mappedMemoryAddress(mapped),
+    _mappedMemorySize(size)
+{
+}
+
+FileStorage::~FileStorage() {
+    _file->unmap(_mappedMemoryAddress);
+    _file->close();
+}
+
+void FileStorage::write(const QByteArray& data) {
+    assert(data.size() <= bytesLeftToWrite());
+    // We write directly to the mapped memory
+    memcpy(_mappedMemoryAddress + _bytesWritten, data.data(), data.size());
+    _bytesWritten += data.size();
+}
+
+
+HTTPConnection::HTTPConnection(QTcpSocket* socket, HTTPManager* parentManager) :
     QObject(parentManager),
     _parentManager(parentManager),
     _socket(socket),
-    _stream(socket),
     _address(socket->peerAddress())
 {
     // take over ownership of the socket
@@ -62,7 +145,7 @@ QHash<QString, QString> HTTPConnection::parseUrlEncodedForm() {
         return QHash<QString, QString>();
     }
 
-    QUrlQuery form { _requestContent };
+    QUrlQuery form { _requestContent->content() };
     QHash<QString, QString> pairs;
     for (auto pair : form.queryItems()) {
         auto key = QUrl::fromPercentEncoding(pair.first.toLatin1().replace('+', ' '));
@@ -97,7 +180,7 @@ QList<FormData> HTTPConnection::parseFormData() const {
     QByteArray end = "\r\n--" + boundary + "--\r\n";
 
     QList<FormData> data;
-    QBuffer buffer(const_cast<QByteArray*>(&_requestContent));
+    QBuffer buffer(const_cast<QByteArray*>(&_requestContent->content()));
     buffer.open(QIODevice::ReadOnly);
     while (buffer.canReadLine()) {
         QByteArray line = buffer.readLine().trimmed();
@@ -107,12 +190,13 @@ QList<FormData> HTTPConnection::parseFormData() const {
                 QByteArray line = buffer.readLine().trimmed();
                 if (line.isEmpty()) {
                     // content starts after this line
-                    int idx = _requestContent.indexOf(end, buffer.pos());
+                    int idx = _requestContent->content().indexOf(end, buffer.pos());
                     if (idx == -1) {
                         qWarning() << "Missing end boundary." << _address;
                         return data;
                     }
-                    datum.second = _requestContent.mid(buffer.pos(), idx - buffer.pos());
+                    datum.second = QByteArray::fromRawData(_requestContent->content().data() + buffer.pos(),
+                                                           idx - buffer.pos());
                     data.append(datum);
                     buffer.seek(idx + end.length());
 
@@ -256,7 +340,24 @@ void HTTPConnection::readHeaders() {
                 _parentManager->handleHTTPRequest(this, _requestUrl);
 
             } else {
-                _requestContent.resize(clength.toInt());
+                bool success = false;
+                auto length = clength.toInt(&success);
+                if (!success) {
+                    qWarning() << "Invalid header." << _address << trimmed;
+                    respond("400 Bad Request", "The header was malformed.");
+                    return;
+                }
+
+                // Storing big requests in memory gets expensive, especially on servers
+                // with limited memory. So we store big requests in a temporary file on disk
+                // and map it to faster read/write access.
+                static const int MAX_CONTENT_SIZE_IN_MEMORY = 10 * 1000 * 1000;
+                if (length < MAX_CONTENT_SIZE_IN_MEMORY) {
+                    _requestContent = MemoryStorage::make(length);
+                } else {
+                    _requestContent = FileStorage::make(length);
+                }
+
                 connect(_socket, SIGNAL(readyRead()), SLOT(readContent()));
 
                 // read any content immediately available
@@ -285,12 +386,13 @@ void HTTPConnection::readHeaders() {
 }
 
 void HTTPConnection::readContent() {
-    int size = _requestContent.size();
-    if (_socket->bytesAvailable() < size) {
-        return;
-    }
-    _socket->read(_requestContent.data(), size);
-    _socket->disconnect(this, SLOT(readContent()));
+    auto size = std::min(_socket->bytesAvailable(), _requestContent->bytesLeftToWrite());
 
-    _parentManager->handleHTTPRequest(this, _requestUrl.path());
+    _requestContent->write(_socket->read(size));
+
+    if (_requestContent->bytesLeftToWrite() == 0) {
+        _socket->disconnect(this, SLOT(readContent()));
+
+        _parentManager->handleHTTPRequest(this, _requestUrl.path());
+    }
 }

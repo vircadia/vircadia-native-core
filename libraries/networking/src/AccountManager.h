@@ -88,6 +88,7 @@ public:
     void requestProfile();
 
     DataServerAccountInfo& getAccountInfo() { return _accountInfo; }
+    void setAccountInfo(const DataServerAccountInfo &newAccountInfo);
 
     static QJsonObject dataObjectFromResponse(QNetworkReply& requestReply);
 
@@ -127,7 +128,7 @@ signals:
 private slots:
     void processReply();
     void handleKeypairGenerationError();
-    void processGeneratedKeypair();
+    void processGeneratedKeypair(QByteArray publicKey, QByteArray privateKey);
     void publicKeyUploadSucceeded(QNetworkReply& reply);
     void publicKeyUploadFailed(QNetworkReply& reply);
     void generateNewKeypair(bool isUserKeypair = true, const QUuid& domainID = QUuid());

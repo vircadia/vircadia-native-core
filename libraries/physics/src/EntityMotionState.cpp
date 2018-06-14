@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "EntityMotionState.h"
+
 #include <glm/gtx/norm.hpp>
 
 #include <EntityItem.h>
@@ -19,7 +21,6 @@
 #include <Profile.h>
 
 #include "BulletUtil.h"
-#include "EntityMotionState.h"
 #include "PhysicsEngine.h"
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"
@@ -251,10 +252,8 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
 
         uint32_t thisStep = ObjectMotionState::getWorldSimulationStep();
         float dt = (thisStep - _lastKinematicStep) * PHYSICS_ENGINE_FIXED_SUBSTEP;
+        _lastKinematicStep = thisStep;
         _entity->stepKinematicMotion(dt);
-
-        // bypass const-ness so we can remember the step
-        const_cast<EntityMotionState*>(this)->_lastKinematicStep = thisStep;
 
         // and set the acceleration-matches-gravity count high so that if we send an update
         // it will use the correct acceleration for remote simulations
@@ -348,7 +347,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
 
     if (_numInactiveUpdates > 0) {
         const uint8_t MAX_NUM_INACTIVE_UPDATES = 20;
-        if (_numInactiveUpdates > MAX_NUM_INACTIVE_UPDATES) {
+        if (_numInactiveUpdates > MAX_NUM_INACTIVE_UPDATES || isServerlessMode()) {
             // clear local ownership (stop sending updates) and let the server clear itself
             _entity->clearSimulationOwnership();
             return false;
@@ -362,6 +361,11 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
 
     if (!_body->isActive()) {
         // object has gone inactive but our last send was moving --> send non-moving update immediately
+        return true;
+    }
+
+    if (usecTimestampNow() > _entity->getSimulationOwnershipExpiry()) {
+        // send update every so often else server will revoke our ownership
         return true;
     }
 
@@ -442,12 +446,13 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
     // this case is prevented by setting _ownershipState to UNOWNABLE in EntityMotionState::ctor
     assert(!(_entity->getClientOnly() && _entity->getOwningAvatarID() != Physics::getSessionUUID()));
 
-    if (_entity->dynamicDataNeedsTransmit() || _entity->queryAACubeNeedsUpdate()) {
+    if (_entity->dynamicDataNeedsTransmit()) {
         return true;
     }
-
     if (_entity->shouldSuppressLocationEdits()) {
-        return false;
+        // "shouldSuppressLocationEdits" really means: "the entity has a 'Hold' action therefore
+        // we don't need send an update unless the entity is not contained by its queryAACube"
+        return _entity->queryAACubeNeedsUpdate();
     }
 
     return remoteSimulationOutOfSync(simulationStep);
@@ -525,8 +530,6 @@ void EntityMotionState::sendBid(OctreeEditPacketSender* packetSender, uint32_t s
     properties.setSimulationOwner(Physics::getSessionUUID(), bidPriority);
     // copy _bidPriority into pendingPriority...
     _entity->setPendingOwnershipPriority(_bidPriority, now);
-    // don't forget to remember that we have made a bid
-    _entity->rememberHasSimulationOwnershipBid();
 
     EntityTreeElementPointer element = _entity->getElement();
     EntityTreePointer tree = element ? element->getTree() : nullptr;
@@ -585,6 +588,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     // set the LastEdited of the properties but NOT the entity itself
     quint64 now = usecTimestampNow();
     properties.setLastEdited(now);
+    _entity->setSimulationOwnershipExpiry(now + MAX_OUTGOING_SIMULATION_UPDATE_PERIOD);
 
     if (_numInactiveUpdates > 0) {
         // the entity is stopped and inactive so we tell the server we're clearing simulatorID
@@ -721,7 +725,9 @@ void EntityMotionState::measureBodyAcceleration() {
         // hence the equation for acceleration is: a = (v1 / (1 - D)^dt - v0) / dt
         glm::vec3 velocity = getBodyLinearVelocityGTSigma();
 
-        _measuredAcceleration = (velocity / powf(1.0f - _body->getLinearDamping(), dt) - _lastVelocity) * invDt;
+        const float MIN_DAMPING_FACTOR = 0.01f;
+        float invDampingAttenuationFactor = 1.0f / glm::max(powf(1.0f - _body->getLinearDamping(), dt), MIN_DAMPING_FACTOR);
+        _measuredAcceleration = (velocity * invDampingAttenuationFactor - _lastVelocity) * invDt;
         _lastVelocity = velocity;
         if (numSubsteps > PHYSICS_ENGINE_MAX_NUM_SUBSTEPS) {
             // we fall in here when _lastMeasureStep is old: the body has just become active
@@ -767,7 +773,7 @@ QString EntityMotionState::getName() const {
 }
 
 // virtual
-void EntityMotionState::computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const {
+void EntityMotionState::computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const {
     _entity->computeCollisionGroupAndFinalMask(group, mask);
 }
 
@@ -822,4 +828,10 @@ void EntityMotionState::clearObjectVelocities() const {
         }
     }
     _entity->setAcceleration(glm::vec3(0.0f));
+}
+
+bool EntityMotionState::isServerlessMode() {
+    EntityTreeElementPointer element = _entity->getElement();
+    EntityTreePointer tree = element ? element->getTree() : nullptr;
+    return tree ? tree->isServerlessMode() : false;
 }

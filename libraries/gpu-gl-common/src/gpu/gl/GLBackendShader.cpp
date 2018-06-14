@@ -11,26 +11,7 @@
 
 using namespace gpu;
 using namespace gpu::gl;
-
-// GLSL version
-std::string GLBackend::getBackendShaderHeader() const {
-
-#if defined(USE_GLES)
-    static const std::string header(
-R"SHADER(#version 310 es
-#extension GL_EXT_texture_buffer : enable
-precision lowp float; // check precision 2
-precision lowp samplerBuffer;
-precision lowp sampler2DShadow;
-)SHADER");
-#else
-    static const std::string header(
-R"SHADER(#version 410 core
-)SHADER");
-#endif
-
-    return header;
-}
+using CachedShader = ::gl::CachedShader;
 
 
 // Shader domain
@@ -89,9 +70,45 @@ static const std::array<std::string, GLShader::NumVersions> VERSION_DEFINES { {
     stereoVersion
 } };
 
+static std::string getShaderTypeString(Shader::Type type) {
+    switch (type) {
+    case Shader::Type::VERTEX:
+        return "vertex";
+    case Shader::Type::PIXEL:
+        return "pixel";
+    case Shader::Type::GEOMETRY:
+        return "geometry";
+    case Shader::Type::PROGRAM:
+        return "program";
+    default:
+        qFatal("Unexpected shader type %d", type);
+        Q_UNREACHABLE();
+    }
+}
+
+std::string GLBackend::getShaderSource(const Shader& shader, int version) {
+    if (shader.isProgram()) {
+        std::string result;
+        result.append("// VERSION " + std::to_string(version));
+        for (const auto& subShader : shader.getShaders()) {
+            result.append("//-------- ");
+            result.append(getShaderTypeString(subShader->getType()));
+            result.append("\n");
+            result.append(subShader->getSource().getCode());
+        }
+        return result;
+    } 
+
+    std::string shaderDefines = getBackendShaderHeader() + "\n"
+        + (supportsBindless() ? textureTableVersion : "\n")
+        + DOMAIN_DEFINES[shader.getType()] + "\n"
+        + VERSION_DEFINES[version];
+
+    return shaderDefines + "\n" + shader.getSource().getCode();
+}
+
 GLShader* GLBackend::compileBackendShader(const Shader& shader, const Shader::CompilationHandler& handler) {
     // Any GLSLprogram ? normally yes...
-    const std::string& shaderSource = shader.getSource().getCode();
     GLenum shaderDomain = SHADER_DOMAINS[shader.getType()];
     GLShader::ShaderObjects shaderObjects;
     Shader::CompilationLogs compilationLogs(GLShader::NumVersions);
@@ -99,11 +116,7 @@ GLShader* GLBackend::compileBackendShader(const Shader& shader, const Shader::Co
 
     for (int version = 0; version < GLShader::NumVersions; version++) {
         auto& shaderObject = shaderObjects[version];
-
-        std::string shaderDefines = getBackendShaderHeader() + "\n"
-            + (supportsBindless() ? textureTableVersion : "\n")
-            + DOMAIN_DEFINES[shader.getType()] + "\n"
-            + VERSION_DEFINES[version];
+        auto shaderSource = getShaderSource(shader, version);
         if (handler) {
             bool retest = true;
             std::string currentSrc = shaderSource;
@@ -111,7 +124,7 @@ GLShader* GLBackend::compileBackendShader(const Shader& shader, const Shader::Co
             // The retest bool is set to false as soon as the compilation succeed to wexit the while loop.
             // The handler tells us if we should retry or not while returning a modified version of the source.
             while (retest) {
-                bool result = ::gl::compileShader(shaderDomain, currentSrc, shaderDefines, shaderObject.glshader, compilationLogs[version].message);
+                bool result = ::gl::compileShader(shaderDomain, currentSrc, shaderObject.glshader, compilationLogs[version].message);
                 compilationLogs[version].compiled = result;
                 if (!result) {
                     std::string newSrc;
@@ -122,7 +135,7 @@ GLShader* GLBackend::compileBackendShader(const Shader& shader, const Shader::Co
                 }
             }
         } else {
-            compilationLogs[version].compiled = ::gl::compileShader(shaderDomain, shaderSource, shaderDefines, shaderObject.glshader, compilationLogs[version].message);
+            compilationLogs[version].compiled = ::gl::compileShader(shaderDomain, shaderSource, shaderObject.glshader, compilationLogs[version].message);
         }
 
         if (!compilationLogs[version].compiled) {
@@ -141,43 +154,80 @@ GLShader* GLBackend::compileBackendShader(const Shader& shader, const Shader::Co
     return object;
 }
 
+std::atomic<size_t> gpuBinaryShadersLoaded;
+
 GLShader* GLBackend::compileBackendProgram(const Shader& program, const Shader::CompilationHandler& handler) {
     if (!program.isProgram()) {
         return nullptr;
     }
 
     GLShader::ShaderObjects programObjects;
-
     program.incrementCompilationAttempt();
     Shader::CompilationLogs compilationLogs(GLShader::NumVersions);
 
     for (int version = 0; version < GLShader::NumVersions; version++) {
         auto& programObject = programObjects[version];
+        auto programSource = getShaderSource(program, version);
+        auto hash = ::gl::getShaderHash(programSource);
 
-        // Let's go through every shaders and make sure they are ready to go
-        std::vector< GLuint > shaderGLObjects;
-        for (auto subShader : program.getShaders()) {
-            auto object = GLShader::sync((*this), *subShader, handler);
-            if (object) {
-                shaderGLObjects.push_back(object->_shaderObjects[version].glshader);
-            } else {
-                qCWarning(gpugllogging) << "GLBackend::compileBackendProgram - One of the shaders of the program is not compiled?";
-                compilationLogs[version].compiled = false;
-                compilationLogs[version].message = std::string("Failed to compile, one of the shaders of the program is not compiled ?");
-                program.setCompilationLogs(compilationLogs);
-                return nullptr;
+        CachedShader cachedBinary;
+        {
+            Lock shaderCacheLock{ _shaderBinaryCache._mutex };
+            if (_shaderBinaryCache._binaries.count(hash) != 0) {
+                cachedBinary = _shaderBinaryCache._binaries[hash];
             }
         }
 
-        GLuint glprogram = ::gl::compileProgram(shaderGLObjects, compilationLogs[version].message, compilationLogs[version].binary);
+
+        GLuint glprogram = 0;
+
+        // If we have a cached binary program, try to load it instead of compiling the individual shaders
+        if (cachedBinary) {
+            glprogram = ::gl::compileProgram({}, compilationLogs[version].message, cachedBinary);
+            if (0 != glprogram) {
+                ++gpuBinaryShadersLoaded;
+            }
+        }
+
+        // If we have no program, then either no cached binary, or the binary failed to load (perhaps a GPU driver update invalidated the cache)
+        if (0 == glprogram) {
+            cachedBinary = CachedShader();
+            {
+                std::unique_lock<std::mutex> shaderCacheLock{ _shaderBinaryCache._mutex };
+                _shaderBinaryCache._binaries.erase(hash);
+            }
+            // Let's go through every shaders and make sure they are ready to go
+            std::vector<GLuint> shaderGLObjects;
+            shaderGLObjects.reserve(program.getShaders().size());
+            for (auto subShader : program.getShaders()) {
+                auto object = GLShader::sync((*this), *subShader, handler);
+                if (object) {
+                    shaderGLObjects.push_back(object->_shaderObjects[version].glshader);
+                } else {
+                    qCWarning(gpugllogging) << "GLBackend::compileBackendProgram - One of the shaders of the program is not compiled?";
+                    compilationLogs[version].compiled = false;
+                    compilationLogs[version].message = std::string("Failed to compile, one of the shaders of the program is not compiled ?");
+                    program.setCompilationLogs(compilationLogs);
+                    return nullptr;
+                }
+            }
+
+            glprogram = ::gl::compileProgram(shaderGLObjects, compilationLogs[version].message, cachedBinary);
+            if (cachedBinary) {
+                cachedBinary.source = programSource;
+                std::unique_lock<std::mutex> shaderCacheLock{ _shaderBinaryCache._mutex };
+                _shaderBinaryCache._binaries[hash] = cachedBinary;
+            }
+        }
+
         if (glprogram == 0) {
             qCWarning(gpugllogging) << "GLBackend::compileBackendProgram - Program didn't link:\n" << compilationLogs[version].message.c_str(); 
             program.setCompilationLogs(compilationLogs);
             return nullptr;
         }
+
         compilationLogs[version].compiled = true;
         programObject.glprogram = glprogram;
-
         makeProgramBindings(programObject);
     }
     // Compilation feedback
@@ -359,20 +409,15 @@ GLBackend::ElementResource GLBackend::getFormatFromGLUniform(GLenum gltype) {
 
 };
 
-int GLBackend::makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,
+int GLBackend::makeUniformSlots(const ShaderObject& shaderProgram, const Shader::BindingSet& slotBindings,
     Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers) {
-    GLint uniformsCount = 0;
+    auto& glprogram = shaderProgram.glprogram;
 
-    glGetProgramiv(glprogram, GL_ACTIVE_UNIFORMS, &uniformsCount);
-
-    for (int i = 0; i < uniformsCount; i++) {
-        const GLint NAME_LENGTH = 256;
-        GLchar name[NAME_LENGTH];
-        GLint length = 0;
-        GLint size = 0;
-        GLenum type = 0;
-        glGetActiveUniform(glprogram, i, NAME_LENGTH, &length, &size, &type, name);
-        GLint location = glGetUniformLocation(glprogram, name);
+    for (const auto& uniform : shaderProgram.uniforms) {
+        const auto& type = uniform.type;
+        const auto& location = uniform.location;
+        const auto& size = uniform.size;
+        const auto& name = uniform.name;
         const GLint INVALID_UNIFORM_LOCATION = -1;
 
         // Try to make sense of the gltype
@@ -380,8 +425,8 @@ int GLBackend::makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slot
 
         // The uniform as a standard var type
         if (location != INVALID_UNIFORM_LOCATION) {
+            auto sname = uniform.name;
             // Let's make sure the name doesn't contains an array element
-            std::string sname(name);
             auto foundBracket = sname.find_first_of('[');
             if (foundBracket != std::string::npos) {
                 //  std::string arrayname = sname.substr(0, foundBracket);
@@ -418,10 +463,11 @@ int GLBackend::makeUniformSlots(GLuint glprogram, const Shader::BindingSet& slot
         }
     }
 
-    return uniformsCount;
+    return static_cast<uint32_t>(shaderProgram.uniforms.size());
 }
 
-int GLBackend::makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& buffers) {
+int GLBackend::makeUniformBlockSlots(const ShaderObject& shaderProgram, const Shader::BindingSet& slotBindings, Shader::SlotSet& buffers) {
+    const auto& glprogram = shaderProgram.glprogram;
     GLint buffersCount = 0;
 
     glGetProgramiv(glprogram, GL_ACTIVE_UNIFORM_BLOCKS, &buffersCount);
@@ -500,7 +546,8 @@ int GLBackend::makeUniformBlockSlots(GLuint glprogram, const Shader::BindingSet&
     return buffersCount;
 }
 
-int GLBackend::makeInputSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& inputs) {
+int GLBackend::makeInputSlots(const ShaderObject& shaderProgram, const Shader::BindingSet& slotBindings, Shader::SlotSet& inputs) {
+    const auto& glprogram = shaderProgram.glprogram;
     GLint inputsCount = 0;
 
     glGetProgramiv(glprogram, GL_ACTIVE_ATTRIBUTES, &inputsCount);
@@ -522,7 +569,7 @@ int GLBackend::makeInputSlots(GLuint glprogram, const Shader::BindingSet& slotBi
     return inputsCount;
 }
 
-int GLBackend::makeOutputSlots(GLuint glprogram, const Shader::BindingSet& slotBindings, Shader::SlotSet& outputs) {
+int GLBackend::makeOutputSlots(const ShaderObject& shaderProgram, const Shader::BindingSet& slotBindings, Shader::SlotSet& outputs) {
     /*   GLint outputsCount = 0;
 
     glGetProgramiv(glprogram, GL_ACTIVE_, &outputsCount);
@@ -546,67 +593,19 @@ void GLBackend::makeProgramBindings(ShaderObject& shaderObject) {
     if (!shaderObject.glprogram) {
         return;
     }
-    GLuint glprogram = shaderObject.glprogram;
-    GLint loc = -1;
+}
 
-    //Check for gpu specific attribute slotBindings
-    loc = glGetAttribLocation(glprogram, "inPosition");
-    if (loc >= 0 && loc != gpu::Stream::POSITION) {
-        glBindAttribLocation(glprogram, gpu::Stream::POSITION, "inPosition");
+
+void GLBackend::initShaderBinaryCache() {
+    GLint numBinFormats = 0;
+    glGetIntegerv(GL_NUM_PROGRAM_BINARY_FORMATS, &numBinFormats);
+    if (numBinFormats > 0) {
+        _shaderBinaryCache._formats.resize(numBinFormats);
+        glGetIntegerv(GL_PROGRAM_BINARY_FORMATS, _shaderBinaryCache._formats.data());
     }
+    ::gl::loadShaderCache(_shaderBinaryCache._binaries);
+}
 
-    loc = glGetAttribLocation(glprogram, "inNormal");
-    if (loc >= 0 && loc != gpu::Stream::NORMAL) {
-        glBindAttribLocation(glprogram, gpu::Stream::NORMAL, "inNormal");
-    }
-
-    loc = glGetAttribLocation(glprogram, "inColor");
-    if (loc >= 0 && loc != gpu::Stream::COLOR) {
-        glBindAttribLocation(glprogram, gpu::Stream::COLOR, "inColor");
-    }
-
-    loc = glGetAttribLocation(glprogram, "inTexCoord0");
-    if (loc >= 0 && loc != gpu::Stream::TEXCOORD) {
-        glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD, "inTexCoord0");
-    }
-
-    loc = glGetAttribLocation(glprogram, "inTangent");
-    if (loc >= 0 && loc != gpu::Stream::TANGENT) {
-        glBindAttribLocation(glprogram, gpu::Stream::TANGENT, "inTangent");
-    }
-
-    char attribName[] = "inTexCoordn";
-    for (auto i = 0; i < 4; i++) {
-        auto streamId = gpu::Stream::TEXCOORD1 + i;
-
-        attribName[strlen(attribName) - 1] = '1' + i;
-        loc = glGetAttribLocation(glprogram, attribName);
-        if (loc >= 0 && loc != streamId) {
-            glBindAttribLocation(glprogram, streamId, attribName);
-        }
-    }
-
-    loc = glGetAttribLocation(glprogram, "inSkinClusterIndex");
-    if (loc >= 0 && loc != gpu::Stream::SKIN_CLUSTER_INDEX) {
-        glBindAttribLocation(glprogram, gpu::Stream::SKIN_CLUSTER_INDEX, "inSkinClusterIndex");
-    }
-
-    loc = glGetAttribLocation(glprogram, "inSkinClusterWeight");
-    if (loc >= 0 && loc != gpu::Stream::SKIN_CLUSTER_WEIGHT) {
-        glBindAttribLocation(glprogram, gpu::Stream::SKIN_CLUSTER_WEIGHT, "inSkinClusterWeight");
-    }
-
-    loc = glGetAttribLocation(glprogram, "_drawCallInfo");
-    if (loc >= 0 && loc != gpu::Stream::DRAW_CALL_INFO) {
-        glBindAttribLocation(glprogram, gpu::Stream::DRAW_CALL_INFO, "_drawCallInfo");
-    }
-
-    // Link again to take into account the assigned attrib location
-    glLinkProgram(glprogram);
-
-    GLint linked = 0;
-    glGetProgramiv(glprogram, GL_LINK_STATUS, &linked);
-    if (!linked) {
-        qCWarning(gpugllogging) << "GLShader::makeBindings - failed to link after assigning slotBindings?";
-    }
+void GLBackend::killShaderBinaryCache() {
+    ::gl::saveShaderCache(_shaderBinaryCache._binaries);
 }

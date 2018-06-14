@@ -60,8 +60,8 @@ double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) co
 
             // Collect pixels into linear arrays
             int i{ 0 };
-            for (int xx = 0; xx < WIN_SIZE; ++xx) {
-                for (int yy = 0; yy < WIN_SIZE; ++yy) {
+            for (int xx = 0; xx < WIN_SIZE && x + xx < expectedImage.width(); ++xx) {
+                for (int yy = 0; yy < WIN_SIZE && y + yy < expectedImage.height(); ++yy) {
                     // Get pixels
                     QRgb pixelP = expectedImage.pixel(QPoint(x + xx, y + yy));
                     QRgb pixelQ = resultImage.pixel(QPoint(x + xx, y + yy));

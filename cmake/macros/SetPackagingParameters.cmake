@@ -17,14 +17,13 @@ macro(SET_PACKAGING_PARAMETERS)
   set(DEV_BUILD 0)
   set(BUILD_GLOBAL_SERVICES "DEVELOPMENT")
   set(USE_STABLE_GLOBAL_SERVICES 0)
+  set(BUILD_NUMBER 0)
+  set(APP_USER_MODEL_ID "com.highfidelity.sandbox-dev")
 
   set_from_env(RELEASE_TYPE RELEASE_TYPE "DEV")
   set_from_env(RELEASE_NUMBER RELEASE_NUMBER "")
-  set_from_env(BUILD_BRANCH BRANCH "")
-  string(TOLOWER "${BUILD_BRANCH}" BUILD_BRANCH)
+  set_from_env(STABLE_BUILD STABLE_BUILD 0)
 
-  message(STATUS "The BUILD_BRANCH variable is: ${BUILD_BRANCH}")
-  message(STATUS "The BRANCH environment variable is: $ENV{BRANCH}")
   message(STATUS "The RELEASE_TYPE variable is: ${RELEASE_TYPE}")
 
   # setup component categories for installer
@@ -46,17 +45,17 @@ macro(SET_PACKAGING_PARAMETERS)
 
     # if the build is a PRODUCTION_BUILD from the "stable" branch
     # then use the STABLE gobal services
-    if (BUILD_BRANCH STREQUAL "stable")
-      message(STATUS "The RELEASE_TYPE is PRODUCTION and the BUILD_BRANCH is stable...")
+    if (STABLE_BUILD)
+      message(STATUS "The RELEASE_TYPE is PRODUCTION and STABLE_BUILD is 1")
       set(BUILD_GLOBAL_SERVICES "STABLE")
       set(USE_STABLE_GLOBAL_SERVICES 1)
-    endif()
+    endif ()
 
   elseif (RELEASE_TYPE STREQUAL "PR")
     set(DEPLOY_PACKAGE TRUE)
     set(PR_BUILD 1)
     set(BUILD_VERSION "PR${RELEASE_NUMBER}")
-    set(BUILD_ORGANIZATION "High Fidelity - ${BUILD_VERSION}")
+    set(BUILD_ORGANIZATION "High Fidelity - PR${RELEASE_NUMBER}")
     set(INTERFACE_BUNDLE_NAME "Interface")
     set(INTERFACE_ICON_PREFIX "interface-beta")
 
@@ -71,6 +70,56 @@ macro(SET_PACKAGING_PARAMETERS)
 
     # add definition for this release type
     add_definitions(-DDEV_BUILD)
+  endif ()
+
+  string(TIMESTAMP BUILD_TIME "%d/%m/%Y")
+
+  # if STABLE_BUILD is 1, PRODUCTION_BUILD must be 1 and
+  # DEV_BUILD and PR_BUILD must be 0
+  if (STABLE_BUILD)
+    if ((NOT PRODUCTION_BUILD) OR PR_BUILD OR DEV_BUILD)
+      message(FATAL_ERROR "Cannot produce STABLE_BUILD without PRODUCTION_BUILD")
+    endif ()
+  endif ()
+
+  if ((PRODUCTION_BUILD OR PR_BUILD) AND NOT STABLE_BUILD)
+    # append the abbreviated commit SHA to the build version
+    # since this is a PR build or master/nightly builds
+
+    # for PR_BUILDS, we need to grab the abbreviated SHA
+    # for the second parent of HEAD (not HEAD) since that is the
+    # SHA of the commit merged to master for the build
+    if (PR_BUILD)
+      set(_GIT_LOG_FORMAT "%p")
+    else ()
+      set(_GIT_LOG_FORMAT "%h")
+    endif ()
+
+    execute_process(
+      COMMAND git log -1 --abbrev=7 --format=${_GIT_LOG_FORMAT}
+      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+      OUTPUT_VARIABLE _GIT_LOG_OUTPUT
+      ERROR_VARIABLE _GIT_LOG_ERROR
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+    if (PR_BUILD)
+      separate_arguments(_COMMIT_PARENTS UNIX_COMMAND ${_GIT_LOG_OUTPUT})
+      list(GET _COMMIT_PARENTS 1 GIT_COMMIT_HASH)
+    else ()
+      set(GIT_COMMIT_HASH ${_GIT_LOG_OUTPUT})
+    endif ()
+
+    if (_GIT_LOG_ERROR OR NOT GIT_COMMIT_HASH)
+      message(FATAL_ERROR "Could not retreive abbreviated SHA for PR or production master build")
+    endif ()
+
+    set(BUILD_VERSION_NO_SHA ${BUILD_VERSION})
+    set(BUILD_VERSION "${BUILD_VERSION}-${GIT_COMMIT_HASH}")
+
+    # pass along a release number without the SHA in case somebody
+    # wants to compare master or PR builds as integers
+    set(BUILD_NUMBER ${RELEASE_NUMBER})
   endif ()
 
   if (DEPLOY_PACKAGE)
@@ -124,9 +173,10 @@ macro(SET_PACKAGING_PARAMETERS)
     if (PRODUCTION_BUILD)
       set(INTERFACE_SHORTCUT_NAME "High Fidelity Interface")
       set(CONSOLE_SHORTCUT_NAME "Sandbox")
+      set(APP_USER_MODEL_ID "com.highfidelity.sandbox")
     else ()
-      set(INTERFACE_SHORTCUT_NAME "High Fidelity Interface - ${BUILD_VERSION}")
-      set(CONSOLE_SHORTCUT_NAME "Sandbox - ${BUILD_VERSION}")
+      set(INTERFACE_SHORTCUT_NAME "High Fidelity Interface - ${BUILD_VERSION_NO_SHA}")
+      set(CONSOLE_SHORTCUT_NAME "Sandbox - ${BUILD_VERSION_NO_SHA}")
     endif ()
 
     set(INTERFACE_HF_SHORTCUT_NAME "${INTERFACE_SHORTCUT_NAME}")

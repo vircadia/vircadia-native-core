@@ -45,6 +45,9 @@ public:
     const QUuid& getUUID() const { return _uuid; }
     void setUUID(const QUuid& uuid);
 
+    Node::LocalID getLocalID() const { return _localID; }
+    void setLocalID(Node::LocalID localID) { _localID = localID; }
+
     QString getHostname() const { return _domainURL.host(); }
 
     const QHostAddress& getIP() const { return _sockAddr.getAddress(); }
@@ -76,6 +79,10 @@ public:
     void setIsConnected(bool isConnected);
     bool isServerless() const { return _domainURL.scheme() != URL_SCHEME_HIFI; }
 
+    void connectedToServerless(std::map<QString, QString> namedPaths);
+
+    QString getViewPointFromNamedPath(QString namedPath);
+
     bool hasSettings() const { return !_settingsObject.isEmpty(); }
     void requestDomainSettings();
     const QJsonObject& getSettingsObject() const { return _settingsObject; }
@@ -90,7 +97,7 @@ public:
 
     int getCheckInPacketsSinceLastReply() const { return _checkInPacketsSinceLastReply; }
     void sentCheckInPacket();
-    void domainListReceived() { _checkInPacketsSinceLastReply = 0; }
+    void clearPendingCheckins() { _checkInPacketsSinceLastReply = 0; }
 
     /**jsdoc
      * <p>The reasons that you may be refused connection to a domain are defined by numeric values:</p>
@@ -130,7 +137,7 @@ public:
      *     </tr>
      *   </tbody>
      * </table>
-     * @typedef Window.ConnectionRefusedReason
+     * @typedef {number} Window.ConnectionRefusedReason
      */
     enum class ConnectionRefusedReason : uint8_t {
         Unknown,
@@ -181,6 +188,7 @@ private:
     void hardReset();
 
     QUuid _uuid;
+    Node::LocalID _localID;
     QUrl _domainURL;
     HifiSockAddr _sockAddr;
     QUuid _assignmentUUID;
@@ -200,9 +208,11 @@ private:
     int _checkInPacketsSinceLastReply { 0 };
 
     QTimer _apiRefreshTimer;
+
+    std::map<QString, QString> _namedPaths;
 };
 
 const QString DOMAIN_SPAWNING_POINT { "/0, -10, 0" };
-
+const QString DEFAULT_NAMED_PATH { "/" };
 
 #endif // hifi_DomainHandler_h

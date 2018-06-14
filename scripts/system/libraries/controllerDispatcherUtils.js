@@ -7,6 +7,7 @@
 
 
 /* global module, Camera, HMD, MyAvatar, controllerDispatcherPlugins:true, Quat, Vec3, Overlays, Xform,
+   Selection, Uuid,
    MSECS_PER_SEC:true , LEFT_HAND:true, RIGHT_HAND:true, FORBIDDEN_GRAB_TYPES:true,
    HAPTIC_PULSE_STRENGTH:true, HAPTIC_PULSE_DURATION:true, ZERO_VEC:true, ONE_VEC:true,
    DEFAULT_REGISTRATION_POINT:true, INCHES_TO_METERS:true,
@@ -22,6 +23,8 @@
    DISPATCHER_PROPERTIES:true,
    HAPTIC_PULSE_STRENGTH:true,
    HAPTIC_PULSE_DURATION:true,
+   DISPATCHER_HOVERING_LIST:true,
+   DISPATCHER_HOVERING_STYLE:true,
    Entities,
    makeDispatcherModuleParameters:true,
    makeRunningValues:true,
@@ -31,11 +34,12 @@
    getGrabbableData:true,
    entityIsGrabbable:true,
    entityIsDistanceGrabbable:true,
+   getControllerJointIndexCacheTime:true,
+   getControllerJointIndexCache:true,
    getControllerJointIndex:true,
    propsArePhysical:true,
    controllerDispatcherPluginsNeedSort:true,
    projectOntoXYPlane:true,
-   getChildrenProps:true,
    projectOntoEntityXYPlane:true,
    projectOntoOverlayXYPlane:true,
    makeLaserLockInfo:true,
@@ -49,7 +53,12 @@
    TEAR_AWAY_DISTANCE:true,
    TEAR_AWAY_COUNT:true,
    TEAR_AWAY_CHECK_TIME:true,
-   distanceBetweenPointAndEntityBoundingBox:true
+   distanceBetweenPointAndEntityBoundingBox:true,
+   entityIsEquipped:true,
+   entityIsFarGrabbedByOther:true,
+   highlightTargetEntity:true,
+   clearHighlightedEntities:true,
+   unhighlightTargetEntity:true
 */
 
 MSECS_PER_SEC = 1000.0;
@@ -88,6 +97,19 @@ NEAR_GRAB_RADIUS = 1.0;
 TEAR_AWAY_DISTANCE = 0.1; // ungrab an entity if its bounding-box moves this far from the hand
 TEAR_AWAY_COUNT = 2; // multiply by TEAR_AWAY_CHECK_TIME to know how long the item must be away
 TEAR_AWAY_CHECK_TIME = 0.15; // seconds, duration between checks
+DISPATCHER_HOVERING_LIST = "dispactherHoveringList";
+DISPATCHER_HOVERING_STYLE = {
+    isOutlineSmooth: true,
+    outlineWidth: 0,
+    outlineUnoccludedColor: {red: 255, green: 128, blue: 128},
+    outlineUnoccludedAlpha: 0.0,
+    outlineOccludedColor: {red: 255, green: 128, blue: 128},
+    outlineOccludedAlpha:0.0,
+    fillUnoccludedColor: {red: 255, green: 255, blue: 255},
+    fillUnoccludedAlpha: 0.12,
+    fillOccludedColor: {red: 255, green: 255, blue: 255},
+    fillOccludedAlpha: 0.0
+};
 
 DISPATCHER_PROPERTIES = [
     "position",
@@ -106,7 +128,9 @@ DISPATCHER_PROPERTIES = [
     "dimensions",
     "userData",
     "type",
-    "href"
+    "href",
+    "cloneable",
+    "cloneDynamic"
 ];
 
 // priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step
@@ -220,6 +244,18 @@ entityIsGrabbable = function (props) {
     return true;
 };
 
+clearHighlightedEntities = function() {
+    Selection.clearSelectedItemsList(DISPATCHER_HOVERING_LIST);
+};
+
+highlightTargetEntity = function(entityID) {
+    Selection.addToSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity", entityID);
+};
+
+unhighlightTargetEntity = function(entityID) {
+    Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity", entityID);
+};
+
 entityIsDistanceGrabbable = function(props) {
     if (!entityIsGrabbable(props)) {
         return false;
@@ -234,20 +270,32 @@ entityIsDistanceGrabbable = function(props) {
     return true;
 };
 
-getControllerJointIndex = function (hand) {
-    if (HMD.isHandControllerAvailable()) {
-        var controllerJointIndex = -1;
-        if (Camera.mode === "first person") {
-            controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
-                "_CONTROLLER_RIGHTHAND" :
-                "_CONTROLLER_LEFTHAND");
-        } else if (Camera.mode === "third person") {
-            controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
-                "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
-                "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND");
-        }
+getControllerJointIndexCacheTime = [0, 0];
+getControllerJointIndexCache = [-1, -1];
 
-        return controllerJointIndex;
+getControllerJointIndex = function (hand) {
+    var GET_CONTROLLERJOINTINDEX_CACHE_REFRESH_TIME = 3000; // msecs
+
+    var now = Date.now();
+    if (now - getControllerJointIndexCacheTime[hand] > GET_CONTROLLERJOINTINDEX_CACHE_REFRESH_TIME) {
+        if (HMD.isHandControllerAvailable()) {
+            var controllerJointIndex = -1;
+            if (Camera.mode === "first person") {
+                controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
+                                                              "_CONTROLLER_RIGHTHAND" :
+                                                              "_CONTROLLER_LEFTHAND");
+            } else if (Camera.mode === "third person") {
+                controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
+                                                              "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
+                                                              "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND");
+            }
+
+            getControllerJointIndexCacheTime[hand] = now;
+            getControllerJointIndexCache[hand] = controllerJointIndex;
+            return controllerJointIndex;
+        }
+    } else {
+        return getControllerJointIndexCache[hand];
     }
 
     return -1;
@@ -384,12 +432,44 @@ distanceBetweenPointAndEntityBoundingBox = function(point, entityProps) {
     return Vec3.distance(v, localPoint);
 };
 
+entityIsEquipped = function(entityID) {
+    var rightEquipEntity = getEnabledModuleByName("RightEquipEntity");
+    var leftEquipEntity = getEnabledModuleByName("LeftEquipEntity");
+    var equippedInRightHand = rightEquipEntity ? rightEquipEntity.targetEntityID === entityID : false;
+    var equippedInLeftHand = leftEquipEntity ? leftEquipEntity.targetEntityID === entityID : false;
+    return equippedInRightHand || equippedInLeftHand;
+};
+
+entityIsFarGrabbedByOther = function(entityID) {
+    // by convention, a far grab sets the tag of its action to be far-grab-*owner-session-id*.
+    var actionIDs = Entities.getActionIDs(entityID);
+    var myFarGrabTag = "far-grab-" + MyAvatar.sessionUUID;
+    for (var actionIndex = 0; actionIndex < actionIDs.length; actionIndex++) {
+        var actionID = actionIDs[actionIndex];
+        var actionArguments = Entities.getActionArguments(entityID, actionID);
+        var tag = actionArguments.tag;
+        if (tag == myFarGrabTag) {
+            // we see a far-grab-*uuid* shaped tag, but it's our tag, so that's okay.
+            continue;
+        }
+        if (tag.slice(0, 9) == "far-grab-") {
+            // we see a far-grab-*uuid* shaped tag and it's not ours, so someone else is grabbing it.
+            return true;
+        }
+    }
+    return false;
+};
+
 if (typeof module !== 'undefined') {
     module.exports = {
         makeDispatcherModuleParameters: makeDispatcherModuleParameters,
         enableDispatcherModule: enableDispatcherModule,
         disableDispatcherModule: disableDispatcherModule,
+        highlightTargetEntity: highlightTargetEntity,
+        unhighlightTargetEntity: unhighlightTargetEntity,
+        clearHighlightedEntities: clearHighlightedEntities,
         makeRunningValues: makeRunningValues,
+        findGroupParent: findGroupParent,
         LEFT_HAND: LEFT_HAND,
         RIGHT_HAND: RIGHT_HAND,
         BUMPER_ON_VALUE: BUMPER_ON_VALUE,
@@ -400,6 +480,7 @@ if (typeof module !== 'undefined') {
         projectOntoOverlayXYPlane: projectOntoOverlayXYPlane,
         projectOntoEntityXYPlane: projectOntoEntityXYPlane,
         TRIGGER_OFF_VALUE: TRIGGER_OFF_VALUE,
-        TRIGGER_ON_VALUE: TRIGGER_ON_VALUE
+        TRIGGER_ON_VALUE: TRIGGER_ON_VALUE,
+        DISPATCHER_HOVERING_LIST: DISPATCHER_HOVERING_LIST
     };
 }

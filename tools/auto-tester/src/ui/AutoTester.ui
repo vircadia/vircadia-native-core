@@ -17,8 +17,8 @@
    <widget class="QPushButton" name="closeButton">
     <property name="geometry">
      <rect>
-      <x>20</x>
-      <y>420</y>
+      <x>360</x>
+      <y>400</y>
       <width>220</width>
       <height>40</height>
      </rect>
@@ -27,7 +27,7 @@
      <string>Close</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="createTestButton">
+   <widget class="QPushButton" name="createTestsButton">
     <property name="geometry">
      <rect>
       <x>20</x>
@@ -37,14 +37,14 @@
      </rect>
     </property>
     <property name="text">
-     <string>Create Test</string>
+     <string>Create Tests</string>
     </property>
    </widget>
    <widget class="QPushButton" name="evaluateTestsButton">
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>255</y>
+      <y>285</y>
       <width>220</width>
       <height>40</height>
      </rect>
@@ -57,7 +57,7 @@
     <property name="geometry">
      <rect>
       <x>360</x>
-      <y>75</y>
+      <y>35</y>
       <width>220</width>
       <height>40</height>
      </rect>
@@ -70,7 +70,7 @@
     <property name="geometry">
      <rect>
       <x>23</x>
-      <y>220</y>
+      <y>250</y>
       <width>131</width>
       <height>20</height>
      </rect>
@@ -86,7 +86,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>310</y>
+      <y>340</y>
       <width>255</width>
       <height>23</height>
      </rect>
@@ -95,30 +95,82 @@
      <number>24</number>
     </property>
    </widget>
-   <widget class="QPushButton" name="createRecursiveScriptsRecursivelyButton">
+   <widget class="QPushButton" name="createAllRecursiveScriptsButton">
     <property name="geometry">
      <rect>
       <x>360</x>
-      <y>140</y>
+      <y>100</y>
       <width>220</width>
       <height>40</height>
      </rect>
     </property>
     <property name="text">
-     <string>Create Recursive Scripts Recursively</string>
+     <string>Create all  Recursive Scripts</string>
     </property>
    </widget>
    <widget class="QPushButton" name="createMDFileButton">
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>90</y>
+      <y>80</y>
       <width>220</width>
       <height>40</height>
      </rect>
     </property>
     <property name="text">
      <string>Create MD file</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="createAllMDFilesButton">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>130</y>
+      <width>220</width>
+      <height>40</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Create all  MD files</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="createTestsOutlineButton">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>180</y>
+      <width>220</width>
+      <height>40</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Create Tests Outline</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="showTaskbarButton">
+    <property name="geometry">
+     <rect>
+      <x>490</x>
+      <y>280</y>
+      <width>91</width>
+      <height>40</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Show Taskbar</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="hideTaskbarButton">
+    <property name="geometry">
+     <rect>
+      <x>490</x>
+      <y>230</y>
+      <width>91</width>
+      <height>40</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Hide Taskbar</string>
     </property>
    </widget>
   </widget>
@@ -131,6 +183,20 @@
      <height>21</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionClose"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionAbout"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuHelp"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
    <attribute name="toolBarArea">
@@ -141,6 +207,16 @@
    </attribute>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
+  <action name="actionClose">
+   <property name="text">
+    <string>Close</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources/>

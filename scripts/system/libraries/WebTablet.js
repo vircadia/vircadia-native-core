@@ -15,7 +15,8 @@ Script.include(Script.resolvePath("../libraries/controllers.js"));
 Script.include(Script.resolvePath("../libraries/Xform.js"));
 
 var Y_AXIS = {x: 0, y: 1, z: 0};
-var DEFAULT_DPI = 34;
+var X_AXIS = {x: 1, y: 0, z: 0};
+var DEFAULT_DPI = 31;
 var DEFAULT_WIDTH = 0.4375;
 var DEFAULT_VERTICAL_FIELD_OF_VIEW = 45; // degrees
 var SENSOR_TO_ROOM_MATRIX = -2;
@@ -31,12 +32,18 @@ var DELAY_FOR_30HZ = 33; // milliseconds
 
 
 // will need to be recaclulated if dimensions of fbx model change.
-var TABLET_NATURAL_DIMENSIONS = {x: 33.797, y: 50.129, z: 2.269};
+var TABLET_NATURAL_DIMENSIONS = {x: 32.083, y: 48.553, z: 2.269};
 
-var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-close.png";
+var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "images/button-close.png";
 // var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-close.png";
 // var TABLET_MODEL_PATH = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx";
-var LOCAL_TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx";
+var LOCAL_BEZEL_HIGHLIGHT = Script.resourcesPath() + "images/buttonBezel_highlight.png";
+var LOCAL_NORMAL_BEZEL = Script.resourcesPath() + "images/buttonBezel.png";
+
+var LOCAL_TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-button-small-bezel.fbx";
+var HIGH_PRIORITY = 1;
+var LOW_PRIORITY = 0;
+var SUBMESH = 2;
 
 // returns object with two fields:
 //    * position - position in front of the user
@@ -44,14 +51,28 @@ var LOCAL_TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-
 function calcSpawnInfo(hand, landscape) {
     var finalPosition;
 
+    var LEFT_HAND = Controller.Standard.LeftHand;
+    var sensorToWorldScale = MyAvatar.sensorToWorldScale;
     var headPos = (HMD.active && Camera.mode === "first person") ? HMD.position : Camera.position;
-    var headRot = (HMD.active && Camera.mode === "first person") ? HMD.orientation : Camera.orientation;
-    var dominantHandRotation =  MyAvatar.getDominantHand() === "right" ? -20 : 20;
-    var offsetRotation = Quat.fromPitchYawRollDegrees(0, dominantHandRotation, 0);
-    var forward = Vec3.multiplyQbyV(offsetRotation, Quat.getForward(Quat.cancelOutRollAndPitch(headRot)));
-    var FORWARD_OFFSET = 0.5 * MyAvatar.sensorToWorldScale;
-    finalPosition = Vec3.sum(headPos, Vec3.multiply(FORWARD_OFFSET, forward));
-    var orientation = Quat.lookAt({x: 0, y: 0, z: 0}, forward, Vec3.multiplyQbyV(MyAvatar.orientation, Vec3.UNIT_Y));
+    var headRot = Quat.cancelOutRollAndPitch((HMD.active && Camera.mode === "first person") ?
+        HMD.orientation : Camera.orientation);
+
+    var right = Quat.getRight(headRot);
+    var forward = Quat.getForward(headRot);
+    var up = Quat.getUp(headRot);
+
+    var FORWARD_OFFSET = 0.5 * sensorToWorldScale;
+    var UP_OFFSET = -0.16 * sensorToWorldScale;
+    var RIGHT_OFFSET = ((hand === LEFT_HAND) ? -0.18 : 0.18) * sensorToWorldScale;
+
+    var forwardPosition = Vec3.sum(headPos, Vec3.multiply(FORWARD_OFFSET, forward));
+    var lateralPosition = Vec3.sum(forwardPosition, Vec3.multiply(RIGHT_OFFSET, right));
+    finalPosition = Vec3.sum(lateralPosition, Vec3.multiply(UP_OFFSET, up));
+
+    var MY_EYES = { x: 0.0, y: 0.15, z: 0.0 };
+    var lookAtEndPosition = Vec3.sum(Vec3.multiply(RIGHT_OFFSET, right), Vec3.multiply(FORWARD_OFFSET, forward));
+    var orientation = Quat.lookAt(MY_EYES, lookAtEndPosition, Vec3.multiplyQbyV(MyAvatar.orientation, Vec3.UNIT_Y));
+
     return {
         position: finalPosition,
         rotation: landscape ? Quat.multiply(orientation, ROT_LANDSCAPE) : Quat.multiply(orientation, ROT_Y_180)
@@ -101,7 +122,8 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         }),
         dimensions: { x: tabletWidth, y: tabletHeight, z: tabletDepth },
         parentID: MyAvatar.SELF_ID,
-        visible: visible
+        visible: visible,
+        isGroupCulled: true
     };
 
     // compute position, rotation & parentJointIndex of the tablet
@@ -119,11 +141,10 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         Overlays.deleteOverlay(this.webOverlayID);
     }
 
-    var RAYPICK_OFFSET = 0.0001; // Sufficient for raypick to reliably intersect tablet screen before tablet model.
-    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2.0) / sensorScaleFactor + RAYPICK_OFFSET;
-    var WEB_ENTITY_Y_OFFSET = 0.004;
-    var screenWidth = 0.82 * tabletWidth;
-    var screenHeight = 0.81 * tabletHeight;
+    var WEB_ENTITY_Z_OFFSET = (tabletDepth / 2.5) * sensorScaleFactor;
+    var WEB_ENTITY_Y_OFFSET = 1.25 * tabletScaleFactor;
+    var screenWidth = 0.9367 * tabletWidth;
+    var screenHeight = 0.9000 * tabletHeight;
     this.webOverlayID = Overlays.addOverlay("web3d", {
         name: "WebTablet Web",
         url: url,
@@ -139,12 +160,14 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         visible: visible
     });
 
-    var HOME_BUTTON_Y_OFFSET = ((tabletHeight / 2) - (tabletHeight / 20)) * (1 / sensorScaleFactor) - 0.003;
     // FIXME: Circle3D overlays currently at the wrong dimensions, so we need to account for that here
     var homeButtonDim = 4.0 * tabletScaleFactor / 3.0;
+    var HOME_BUTTON_X_OFFSET = 0.00079 * sensorScaleFactor;
+    var HOME_BUTTON_Y_OFFSET = -1 * ((tabletHeight / 2) - (4.0 * tabletScaleFactor / 2));
+    var HOME_BUTTON_Z_OFFSET = (tabletDepth / 1.9) * sensorScaleFactor;
     this.homeButtonID = Overlays.addOverlay("circle3d", {
         name: "homeButton",
-        localPosition: { x: 0.0, y: -HOME_BUTTON_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
+        localPosition: { x: HOME_BUTTON_X_OFFSET, y: HOME_BUTTON_Y_OFFSET, z: -HOME_BUTTON_Z_OFFSET },
         localRotation: { x: 0, y: 1, z: 0, w: 0},
         dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim },
         solid: true,
@@ -155,24 +178,46 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         parentJointIndex: -1
     });
 
-    this.homeButtonHighlightID = Overlays.addOverlay("circle3d", {
-        name: "homeButtonHighlight",
-        localPosition: { x: 0, y: -HOME_BUTTON_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
-        localRotation: { x: 0, y: 1, z: 0, w: 0 },
-        dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim },
-        color: { red: 255, green: 255, blue: 255 },
-        solid: true,
-        innerRadius: 0.9,
-        ignoreIntersection: true,
-        alpha: 1.0,
-        visible: visible,
-        drawInFront: false,
-        parentID: this.tabletEntityID,
-        parentJointIndex: -1
-     });
+    this.homeButtonUnhighlightMaterial = Entities.addEntity({
+        type: "Material",
+        materialURL: "materialData",
+        localPosition: { x: 0.0, y: 0.0, z: 0.0 },
+        priority: HIGH_PRIORITY,
+        materialData: JSON.stringify({
+            materials: {
+                albedoMap: LOCAL_NORMAL_BEZEL
+            }
+
+        }),
+        userData: JSON.stringify({
+            "grabbableKey": {"grabbable": false}
+        }),
+        visible: false,
+        parentMaterialName: SUBMESH,
+        parentID: this.tabletEntityID
+    }, true);
+
+    this.homeButtonHighlightMaterial = Entities.addEntity({
+        type: "Material",
+        materialURL: "materialData",
+        localPosition: { x: 0.0, y: 0.0, z: 0.0 },
+        priority: LOW_PRIORITY,
+        visible: false,
+        materialData: JSON.stringify({
+            materials: {
+                emissiveMap: LOCAL_BEZEL_HIGHLIGHT
+            }
+
+        }),
+        userData: JSON.stringify({
+            "grabbableKey": {"grabbable": false}
+        }),
+        parentMaterialName: SUBMESH,
+        parentID: this.tabletEntityID
+    }, true);
 
     this.receive = function (channel, senderID, senderUUID, localOnly) {
-        if (_this.homeButtonID == senderID) {
+        if (_this.homeButtonID === senderID) {
             var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
             var onHomeScreen = tablet.onHomeScreen();
             var isMessageOpen;
@@ -277,8 +322,8 @@ WebTablet.prototype.setLandscape = function(newLandscapeValue) {
     var tabletWidth = getTabletWidthFromSettings() * MyAvatar.sensorToWorldScale;
     var tabletScaleFactor = tabletWidth / TABLET_NATURAL_DIMENSIONS.x;
     var tabletHeight = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
-    var screenWidth = 0.82 * tabletWidth;
-    var screenHeight = 0.81 * tabletHeight;
+    var screenWidth = 0.9275 * tabletWidth;
+    var screenHeight = 0.8983 * tabletHeight;
     Overlays.editOverlay(this.webOverlayID, {
         rotation: Quat.multiply(cameraOrientation, ROT_LANDSCAPE_WINDOW),
         dimensions: {x: this.landscape ? screenHeight : screenWidth, y: this.landscape ? screenWidth : screenHeight, z: 0.1}
@@ -324,7 +369,8 @@ WebTablet.prototype.destroy = function () {
     Overlays.deleteOverlay(this.webOverlayID);
     Overlays.deleteOverlay(this.tabletEntityID);
     Overlays.deleteOverlay(this.homeButtonID);
-    Overlays.deleteOverlay(this.homeButtonHighlightID);
+    Entities.deleteEntity(this.homeButtonUnhighlightMaterial);
+    Entities.deleteEntity(this.homeButtonHighlightMaterial);
     HMD.displayModeChanged.disconnect(this.myOnHmdChanged);
 
     Controller.mousePressEvent.disconnect(this.myMousePressEvent);
@@ -418,21 +464,24 @@ WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function (windowPos
 
 WebTablet.prototype.onHoverEnterOverlay = function (overlayID, pointerEvent) {
     if (overlayID === this.homeButtonID) {
-        Overlays.editOverlay(this.homeButtonHighlightID, { alpha: 1.0 });
+        Entities.editEntity(this.homeButtonUnhighlightMaterial, {priority: LOW_PRIORITY});
+        Entities.editEntity(this.homeButtonHighlightMaterial, {priority: HIGH_PRIORITY});
     }
-}
+};
 
 WebTablet.prototype.onHoverOverOverlay = function (overlayID, pointerEvent) {
     if (overlayID !== this.homeButtonID) {
-        Overlays.editOverlay(this.homeButtonHighlightID, { alpha: 0.0 });
+        Entities.editEntity(this.homeButtonUnhighlightMaterial, {priority: HIGH_PRIORITY});
+        Entities.editEntity(this.homeButtonHighlightMaterial, {priority: LOW_PRIORITY});
     }
-}
+};
 
 WebTablet.prototype.onHoverLeaveOverlay = function (overlayID, pointerEvent) {
     if (overlayID === this.homeButtonID) {
-        Overlays.editOverlay(this.homeButtonHighlightID, { alpha: 0.0 });
+        Entities.editEntity(this.homeButtonUnhighlightMaterial, {priority: HIGH_PRIORITY});
+        Entities.editEntity(this.homeButtonHighlightMaterial, {priority: LOW_PRIORITY});
     }
-}
+};
 
 // compute position, rotation & parentJointIndex of the tablet
 WebTablet.prototype.calculateTabletAttachmentProperties = function (hand, useMouse, tabletProperties) {
@@ -560,22 +609,6 @@ WebTablet.prototype.scheduleMouseMoveProcessor = function() {
     }
 };
 
-WebTablet.prototype.handleHomeButtonHover = function(x, y) {
-    var pickRay = Camera.computePickRay(x, y);
-    var entityPickResults;
-    var homebuttonHovered = false;
-    entityPickResults = Overlays.findRayIntersection(pickRay, true, [this.tabletEntityID]);
-    if (entityPickResults.intersects && (entityPickResults.entityID === this.tabletEntityID ||
-        entityPickResults.overlayID === this.tabletEntityID)) {
-        var overlayPickResults = Overlays.findRayIntersection(pickRay, true, [this.homeButtonID], []);
-        if (overlayPickResults.intersects && overlayPickResults.overlayID === this.homeButtonID) {
-            homebuttonHovered = true;
-        }
-    }
-
-    Overlays.editOverlay(this.homeButtonHighlightID, { alpha: homebuttonHovered ? 1.0 : 0.0 });
-}
-
 WebTablet.prototype.mouseMoveEvent = function (event) {
     if (this.dragging) {
         this.currentMouse = {
@@ -583,8 +616,6 @@ WebTablet.prototype.mouseMoveEvent = function (event) {
             y: event.y
         };
         this.scheduleMouseMoveProcessor();
-    } else {
-        this.handleHomeButtonHover(event.x, event.y);
     }
 };
 
@@ -611,8 +642,6 @@ WebTablet.prototype.mouseMoveProcessor = function () {
             });
         }
         this.scheduleMouseMoveProcessor();
-    } else {
-        this.handleHomeButtonHover(this.currentMouse.x, this.currentMouse.y);
     }
 };
 

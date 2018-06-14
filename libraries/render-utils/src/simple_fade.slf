@@ -13,18 +13,24 @@
 //
 
 <@include DeferredBufferWrite.slh@>
-<@include graphics/Material.slh@>
 
 <@include Fade.slh@>
 <$declareFadeFragmentInstanced()$>
 
 // the interpolated normal
-in vec3 _normal;
-in vec3 _modelNormal;
+in vec3 _normalWS;
+in vec3 _normalMS;
 in vec4 _color;
 in vec2 _texCoord0;
-in vec4 _position;
-in vec4 _worldPosition;
+in vec4 _positionMS;
+in vec4 _positionES;
+in vec4 _positionWS;
+
+// For retro-compatibility
+#define _normal      _normalWS
+#define _modelNormal _normalMS
+#define _position    _positionMS
+#define _eyePosition _positionES
 
 //PROCEDURAL_COMMON_BLOCK
 
@@ -37,10 +43,9 @@ void main(void) {
     FadeObjectParams fadeParams;
 
     <$fetchFadeObjectParamsInstanced(fadeParams)$>
-    applyFade(fadeParams, _worldPosition.xyz, fadeEmissive);
+    applyFade(fadeParams, _positionWS.xyz, fadeEmissive);
 
-    Material material = getMaterial();
-    vec3 normal = normalize(_normal.xyz); 
+    vec3 normal = normalize(_normalWS.xyz); 
     vec3 diffuse = _color.rgb; 
     vec3 specular = DEFAULT_SPECULAR;
     float shininess = DEFAULT_SHININESS;

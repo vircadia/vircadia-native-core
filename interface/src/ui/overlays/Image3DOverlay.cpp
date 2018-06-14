@@ -51,11 +51,6 @@ void Image3DOverlay::update(float deltatime) {
         _texture = DependencyManager::get<TextureCache>()->getTexture(_url);
         _textureIsLoaded = false;
     }
-    if (usecTimestampNow() > _transformExpiry) {
-        Transform transform = getTransform();
-        applyTransformTo(transform);
-        setTransform(transform);
-    }
     Parent::update(deltatime);
 }
 
@@ -263,7 +258,7 @@ void Image3DOverlay::setURL(const QString& url) {
 }
 
 bool Image3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                            float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
+                                         float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking) {
     if (_texture && _texture->isLoaded()) {
         // Make sure position and rotation is updated.
         Transform transform = getTransform();

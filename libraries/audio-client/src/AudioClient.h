@@ -189,13 +189,13 @@ public slots:
     void reset();
     void audioMixerKilled();
 
-    void toggleMute();
+    void setMuted(bool muted, bool emitSignal = true);
     bool isMuted() { return _muted; }
 
     virtual bool setIsStereoInput(bool stereo) override;
     virtual bool isStereoInput() override { return _isStereoInput; }
 
-    void setNoiseReduction(bool isNoiseGateEnabled);
+    void setNoiseReduction(bool isNoiseGateEnabled, bool emitSignal = true);
     bool isNoiseReductionEnabled() const { return _isNoiseGateEnabled; }
 
     bool getLocalEcho() { return _shouldEchoLocally; }
@@ -218,7 +218,7 @@ public slots:
     bool switchAudioDevice(QAudio::Mode mode, const QString& deviceName);
 
     float getInputVolume() const { return (_audioInput) ? (float)_audioInput->volume() : 0.0f; }
-    void setInputVolume(float volume);
+    void setInputVolume(float volume, bool emitSignal = true);
     void setReverb(bool reverb);
     void setReverbOptions(const AudioEffectOptions* options);
 
@@ -229,8 +229,8 @@ public slots:
 
 signals:
     void inputVolumeChanged(float volume);
-    void muteToggled();
-    void noiseReductionChanged();
+    void muteToggled(bool muted);
+    void noiseReductionChanged(bool noiseReductionEnabled);
     void mutedByMixer();
     void inputReceived(const QByteArray& inputSamples);
     void inputLoudnessChanged(float loudness);

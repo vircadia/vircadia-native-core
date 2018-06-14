@@ -10,14 +10,32 @@
 //
 #include "AutoTester.h"
 
+#ifdef Q_OS_WIN
+#include <windows.h>
+#include <shellapi.h>
+#endif
+
 AutoTester::AutoTester(QWidget *parent) : QMainWindow(parent) {
     ui.setupUi(this);
     ui.checkBoxInteractiveMode->setChecked(true);
     ui.progressBar->setVisible(false);
 
-    test = new Test();
-
     signalMapper = new QSignalMapper();
+
+    connect(ui.actionClose, &QAction::triggered, this, &AutoTester::on_closeButton_clicked);
+    connect(ui.actionAbout, &QAction::triggered, this, &AutoTester::about);
+
+#ifndef Q_OS_WIN
+    ui.hideTaskbarButton->setVisible(false);
+    ui.showTaskbarButton->setVisible(false);
+#endif
+
+    test = new Test();
+}
+
+void AutoTester::runFromCommandLine(const QString& testFolder) {
+    isRunningFromCommandline = true;
+    test->startTestsEvaluation(testFolder);
 }
 
 void AutoTester::on_evaluateTestsButton_clicked() {
@@ -28,16 +46,48 @@ void AutoTester::on_createRecursiveScriptButton_clicked() {
     test->createRecursiveScript();
 }
 
-void AutoTester::on_createRecursiveScriptsRecursivelyButton_clicked() {
-    test->createRecursiveScriptsRecursively();
+void AutoTester::on_createAllRecursiveScriptsButton_clicked() {
+    test->createAllRecursiveScripts();
 }
 
-void AutoTester::on_createTestButton_clicked() {
-	test->createTest();
+void AutoTester::on_createTestsButton_clicked() {
+	test->createTests();
 }
 
 void AutoTester::on_createMDFileButton_clicked() {
-	test->createMDFile();
+    test->createMDFile();
+}
+
+void AutoTester::on_createAllMDFilesButton_clicked() {
+    test->createAllMDFiles();
+}
+
+void AutoTester::on_createTestsOutlineButton_clicked() {
+    test->createTestsOutline();
+}
+
+// To toggle between show and hide
+//   if (uState & ABS_AUTOHIDE) on_showTaskbarButton_clicked();
+//   else on_hideTaskbarButton_clicked();
+//
+void AutoTester::on_hideTaskbarButton_clicked() {
+#ifdef Q_OS_WIN
+    APPBARDATA abd = { sizeof abd };
+    UINT uState = (UINT)SHAppBarMessage(ABM_GETSTATE, &abd);
+    LPARAM param = uState & ABS_ALWAYSONTOP;
+    abd.lParam = ABS_AUTOHIDE | param;
+    SHAppBarMessage(ABM_SETSTATE, &abd);
+#endif
+}
+
+void AutoTester::on_showTaskbarButton_clicked() {
+#ifdef Q_OS_WIN
+    APPBARDATA abd = { sizeof abd };
+    UINT uState = (UINT)SHAppBarMessage(ABM_GETSTATE, &abd);
+    LPARAM param = uState & ABS_ALWAYSONTOP;
+    abd.lParam = param;
+    SHAppBarMessage(ABM_SETSTATE, &abd);
+#endif
 }
 
 void AutoTester::on_closeButton_clicked() {
@@ -82,13 +132,21 @@ void AutoTester::saveImage(int index) {
     image = image.convertToFormat(QImage::Format_ARGB32);
 
     QString fullPathname = _directoryName + "/" + _filenames[index];
-    image.save(fullPathname, 0, 100);
+    if (!image.save(fullPathname, 0, 100)) {
+        QMessageBox::information(0, "Test Aborted", "Failed to save image: " + _filenames[index]);
+        ui.progressBar->setVisible(false);
+        return;
+    }
 
     ++_numberOfImagesDownloaded;
 
     if (_numberOfImagesDownloaded == _numberOfImagesToDownload) {
-        test->finishTestsEvaluation(ui.checkBoxInteractiveMode->isChecked(), ui.progressBar);
+        test->finishTestsEvaluation(isRunningFromCommandline, ui.checkBoxInteractiveMode->isChecked(), ui.progressBar);
     } else {
         ui.progressBar->setValue(_numberOfImagesDownloaded);
     }
+}
+
+void AutoTester::about() {
+    QMessageBox::information(0, "About", QString("Built ") + __DATE__ + " : " + __TIME__);
 }

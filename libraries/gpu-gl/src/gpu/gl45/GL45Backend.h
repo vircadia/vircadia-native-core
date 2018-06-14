@@ -54,6 +54,8 @@ public:
     static const std::string GL45_VERSION;
     const std::string& getVersion() const override { return GL45_VERSION; }
 
+    bool supportedTextureFormat(const gpu::Element& format) override;
+
     class GL45Texture : public GLTexture {
         using Parent = GLTexture;
         friend class GL45Backend;
@@ -185,9 +187,9 @@ public:
         GL45ResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture);
 
         void syncSampler() const override;
-        void promote() override;
-        void demote() override;
-        void populateTransferQueue() override;
+        size_t promote() override;
+        size_t demote() override;
+        void populateTransferQueue(TransferQueue& pendingTransfers) override;
         
 
         void allocateStorage(uint16 mip);
@@ -272,7 +274,7 @@ protected:
     // Shader Stage
     std::string getBackendShaderHeader() const override;
     void makeProgramBindings(ShaderObject& shaderObject) override;
-    int makeResourceBufferSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) override;
+    int makeResourceBufferSlots(const ShaderObject& shaderProgram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) override;
 
     // Texture Management Stage
     void initTextureManagementStage() override;

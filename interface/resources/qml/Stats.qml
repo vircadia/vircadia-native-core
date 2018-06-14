@@ -1,6 +1,5 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.3
-import QtQuick.Controls 1.2
 import '.'
 
 Item {
@@ -282,10 +281,12 @@ Item {
                         text: "  Pressure State: " + root.gpuTextureMemoryPressureState;
                     }
                     StatText {
-                        text: "  Resource Allocated / Populated / Pending: ";
+                        property bool showIdeal: (root.gpuTextureResourceIdealMemory != root.gpuTextureResourceMemory);
+                        text: "  Resource Allocated " + (showIdeal ? "(Ideal)" : "") + " / Populated / Pending: ";
                     }
                     StatText {
-                        text: "       " + root.gpuTextureResourceMemory + " / " + root.gpuTextureResourcePopulatedMemory + " / " + root.texturePendingTransfers + " MB";
+                        property bool showIdeal: (root.gpuTextureResourceIdealMemory != root.gpuTextureResourceMemory);
+                        text: "       " + root.gpuTextureResourceMemory + (showIdeal ? ("(" +  root.gpuTextureResourceIdealMemory + ")") : "") + " / " + root.gpuTextureResourcePopulatedMemory + " / " + root.texturePendingTransfers + " MB";
                     }
                     StatText {
                         text: "  Resident Memory: " + root.gpuTextureResidentMemory + " MB";

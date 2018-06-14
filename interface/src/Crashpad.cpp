@@ -11,20 +11,27 @@
 
 #include "Crashpad.h"
 
+#include <assert.h>
+
 #include <QDebug>
 
 #if HAS_CRASHPAD
 
+#include <mutex>
+#include <string>
+
 #include <QStandardPaths>
 #include <QDir>
 
-#include <BuildInfo.h>
+#include <Windows.h>
 
 #include <client/crashpad_client.h>
 #include <client/crash_report_database.h>
 #include <client/settings.h>
-// #include <client/annotation_list.h>
-// #include <client/crashpad_info.h>
+#include <client/annotation_list.h>
+#include <client/crashpad_info.h>
+
+#include <BuildInfo.h>
 
 using namespace crashpad;
 
@@ -33,20 +40,38 @@ static const std::string BACKTRACE_TOKEN { CMAKE_BACKTRACE_TOKEN };
 
 extern QString qAppFileName();
 
-// crashpad::AnnotationList* crashpadAnnotations { nullptr };
+CrashpadClient* client { nullptr };
+std::mutex annotationMutex;
+crashpad::SimpleStringDictionary* crashpadAnnotations { nullptr };
+
+LONG WINAPI vectoredExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo) {
+    if (!client) {
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
+
+    if (pExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_HEAP_CORRUPTION ||
+        pExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_STACK_BUFFER_OVERRUN) {
+        client->DumpAndCrash(pExceptionInfo);
+    }
+
+    return EXCEPTION_CONTINUE_SEARCH;
+}
 
 bool startCrashHandler() {
     if (BACKTRACE_URL.empty() || BACKTRACE_TOKEN.empty()) {
         return false;
     }
 
-    CrashpadClient client;
+    assert(!client);
+    client = new CrashpadClient();
     std::vector<std::string> arguments;
 
     std::map<std::string, std::string> annotations;
     annotations["token"] = BACKTRACE_TOKEN;
     annotations["format"] = "minidump";
     annotations["version"] = BuildInfo::VERSION.toStdString();
+    annotations["build_number"] = BuildInfo::BUILD_NUMBER.toStdString();
+    annotations["build_type"] = BuildInfo::BUILD_TYPE_STRING.toStdString();
 
     arguments.push_back("--no-rate-limit");
 
@@ -76,16 +101,20 @@ bool startCrashHandler() {
     // Enable automated uploads.
     database->GetSettings()->SetUploadsEnabled(true);
 
-    return client.StartHandler(handler, db, db, BACKTRACE_URL, annotations, arguments, true, true);
+    AddVectoredExceptionHandler(0, vectoredExceptionHandler);
+
+    return client->StartHandler(handler, db, db, BACKTRACE_URL, annotations, arguments, true, true);
 }
 
 void setCrashAnnotation(std::string name, std::string value) {
-    // if (!crashpadAnnotations) {
-    //     crashpadAnnotations = new crashpad::AnnotationList(); // don't free this, let it leak
-    //     crashpad::CrashpadInfo* crashpad_info = crashpad::GetCrashpadInfo();
-    //     crashpad_info->set_simple_annotations(crashpadAnnotations);
-    // }
-    // crashpadAnnotations->SetKeyValue(name, value);
+    std::lock_guard<std::mutex> guard(annotationMutex);
+    if (!crashpadAnnotations) {
+        crashpadAnnotations = new crashpad::SimpleStringDictionary(); // don't free this, let it leak
+        crashpad::CrashpadInfo* crashpad_info = crashpad::CrashpadInfo::GetCrashpadInfo();
+        crashpad_info->set_simple_annotations(crashpadAnnotations);
+    }
+    std::replace(value.begin(), value.end(), ',', ';');
+    crashpadAnnotations->SetKeyValue(name, value);
 }
 
 #else

@@ -9,10 +9,6 @@
 //
 
 import QtQuick 2.5
-import QtQuick.Controls 1.4
-import QtQuick.Controls.Styles 1.4
-import QtGraphicalEffects 1.0
-
 
 import "."
 import "./preferences"
@@ -23,6 +19,7 @@ Item {
     id: dialog
     width: parent.width
     height: parent.height
+    anchors.fill: parent
 
     HifiConstants { id: hifi }
     property var sections: []
@@ -162,14 +159,15 @@ Item {
 
     Rectangle {
         id: footer
-        height: 40
+        height: dialog.height * 0.15
+        anchors.bottom: dialog.bottom
 
         anchors {
             bottom: keyboard.top
             left: parent.left
             right: parent.right
         }
-            
+
         color: hifi.colors.baseGray
 
         Row {

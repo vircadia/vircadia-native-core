@@ -53,14 +53,14 @@ const OverlayID UNKNOWN_OVERLAY_ID = OverlayID();
  * @property {number} distance - The distance from the {@link PickRay} origin to the intersection point.
  * @property {Vec3} surfaceNormal - The normal of the overlay surface at the intersection point.
  * @property {Vec3} intersection - The position of the intersection point.
- * @property {Object} extraInfo Additional intersection details, if available.
+ * @property {object} extraInfo Additional intersection details, if available.
  */
 class RayToOverlayIntersectionResult {
 public:
     bool intersects { false };
     OverlayID overlayID { UNKNOWN_OVERLAY_ID };
     float distance { 0 };
-    BoxFace face;
+    BoxFace face { UNKNOWN_FACE };
     glm::vec3 surfaceNormal;
     glm::vec3 intersection;
     QVariantMap extraInfo;
@@ -76,6 +76,10 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
  * The Overlays API provides facilities to create and interact with overlays. Overlays are 2D and 3D objects visible only to
  * yourself and that aren't persisted to the domain. They are used for UI.
  * @namespace Overlays
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
  * @property {Uuid} keyboardFocusOverlay - Get or set the {@link Overlays.OverlayType|web3d} overlay that has keyboard focus.
  *     If no overlay has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid|Uuid.NULL} to 
  *     clear keyboard focus.
@@ -478,7 +482,7 @@ public slots:
 
     /**jsdoc
      * Check if there is an overlay of a given ID.
-     * @function Overlays.isAddedOverly
+     * @function Overlays.isAddedOverlay
      * @param {Uuid} overlayID - The ID to check.
      * @returns {boolean} <code>true</code> if an overlay with the given ID exists, <code>false</code> otherwise.
      */

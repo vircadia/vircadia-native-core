@@ -84,7 +84,7 @@ public:
 
     virtual QString getName() const override;
 
-    virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const override;
+    virtual void computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const override;
 
     bool shouldSendBid();
     bool isLocallyOwned() const override;
@@ -132,7 +132,7 @@ protected:
     //
     // (2) For locally owned simulation: we store the last values sent to the server, integrated forward over time
     //     according to how we think the server doing it.  We calculate the error between the true local transform
-    //     and the remote to decide when to send another update.
+    //     and the remote to decide whether to send another update or not.
     //
     glm::vec3 _serverPosition;    // in simulation-frame (not world-frame)
     glm::quat _serverRotation;
@@ -156,6 +156,8 @@ protected:
     uint8_t _numInactiveUpdates { 1 };
     uint8_t _bidPriority { 0 };
     bool _serverVariablesSet { false };
+
+    bool isServerlessMode();
 };
 
 #endif // hifi_EntityMotionState_h

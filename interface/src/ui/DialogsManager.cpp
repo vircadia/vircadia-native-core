@@ -80,7 +80,6 @@ void DialogsManager::showFeed() {
 }
 
 void DialogsManager::setDomainConnectionFailureVisibility(bool visible) {
-    qDebug() << "DialogsManager::setDomainConnectionFailureVisibility: visible" << visible;
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
 
@@ -94,10 +93,18 @@ void DialogsManager::setDomainConnectionFailureVisibility(bool visible) {
         static const QUrl url("dialogs/TabletConnectionFailureDialog.qml");
         auto hmd = DependencyManager::get<HMDScriptingInterface>();
         if (visible) {
+            _dialogCreatedWhileShown = tablet->property("tabletShown").toBool();
             tablet->initialScreen(url);
             if (!hmd->getShouldShowTablet()) {
                 hmd->openTablet();
             }
+        } else if (tablet->isPathLoaded(url)) {
+            tablet->closeDialog();
+            tablet->gotoHomeScreen();
+            if (!_dialogCreatedWhileShown) {
+                hmd->closeTablet();
+            }
+            _dialogCreatedWhileShown = false;
         }
     }
 }

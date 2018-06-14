@@ -94,6 +94,12 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
  * Interface has displayed and so knows about.
  *
  * @namespace Entities
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
+ *
  * @property {Uuid} keyboardFocusEntity - Get or set the {@link Entities.EntityType|Web} entity that has keyboard focus.
  *     If no entity has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid|Uuid.NULL} to 
  *     clear keyboard focus.
@@ -217,6 +223,16 @@ public slots:
     /// Deliberately not adding jsdoc, only used internally.
     Q_INVOKABLE QUuid addModelEntity(const QString& name, const QString& modelUrl, const QString& textures, const QString& shapeType, bool dynamic,
                                      bool collisionless, const glm::vec3& position, const glm::vec3& gravity);
+
+    /**jsdoc
+     * Create a clone of an entity. A clone can be created by a client that doesn't have rez permissions in the current domain.
+     * The entity must have its <code>cloneable</code> property set to <code>true</code>. The clone has a modified name, other 
+     * properties set per its clone related-properties, and its clone-related properties are set to defaults. 
+     * @function Entities.cloneEntity
+     * @param {Uuid} entityID - The ID of the entity to clone.
+     * @returns {Uuid} The ID of the new entity if successfully cloned, otherwise {@link Uuid|Uuid.NULL}.
+     */
+    Q_INVOKABLE QUuid cloneEntity(QUuid entityIDToClone);
 
     /**jsdoc
      * Get the properties of an entity.
@@ -388,6 +404,22 @@ public slots:
     Q_INVOKABLE QVector<QUuid> findEntitiesByType(const QString entityType, const glm::vec3& center, float radius) const;
 
     /**jsdoc
+    * Find all entities of a particular name that intersect a sphere defined by a center point and radius.
+    * @function Entities.findEntitiesByName
+    * @param {string} entityName - The name of the entity to search for.
+    * @param {Vec3} center - The point about which to search.
+    * @param {number} radius - The radius within which to search.
+    * @param {boolean} [caseSensitive=false] - If <code>true</code> then the search is case-sensitive.
+    * @returns {Uuid[]} An array of entity IDs that have the specified name and intersect the search sphere. The array is empty 
+    *     if no entities could be found.
+    * @example <caption>Report the number of entities with the name, "Light-Target".</caption>
+    * var entityIDs = Entities.findEntitiesByName("Light-Target", MyAvatar.position, 10, false);
+    * print("Number of entities with the name "Light-Target": " + entityIDs.length);
+    */
+    Q_INVOKABLE QVector<QUuid> findEntitiesByName(const QString entityName, const glm::vec3& center, float radius, 
+        bool caseSensitiveSearch = false ) const;
+
+    /**jsdoc
      * Find the first entity intersected by a {@link PickRay}. <code>Light</code> and <code>Zone</code> entities are not 
      * intersected unless they've been configured as pickable using {@link Entities.setLightsArePickable|setLightsArePickable}
      * and {@link Entities.setZonesArePickable|setZonesArePickable}, respectively.<br />
@@ -459,8 +491,8 @@ public slots:
     /**jsdoc
      * Gets the status of server entity script attached to an entity
      * @function Entities.getServerScriptStatus
-     * @property {Uuid} entityID - The ID of the entity to get the server entity script status for.
-     * @property {Entities~getServerScriptStatusCallback} callback - The function to call upon completion.
+     * @param {Uuid} entityID - The ID of the entity to get the server entity script status for.
+     * @param {Entities~getServerScriptStatusCallback} callback - The function to call upon completion.
      * @returns {boolean} <code>true</code> always.
      */
     /**jsdoc
@@ -694,7 +726,7 @@ public slots:
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|PolyVox} entity.
      * @param {Vec3} voxelCoords - The voxel coordinates. May be fractional and outside the entity's bounding box.
      * @returns {Vec3} The world coordinates of the <code>voxelCoords</code> if the <code>entityID</code> is a 
-     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3|Vec3.ZERO}.
+     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3(0)|Vec3.ZERO}.
      * @example <caption>Create a PolyVox cube with the 0,0,0 voxel replaced by a sphere.</caption>
      * // Cube PolyVox with 0,0,0 voxel missing.
      * var polyVox = Entities.addEntity({
@@ -729,7 +761,7 @@ public slots:
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|PolyVox} entity.
      * @param {Vec3} worldCoords - The world coordinates. May be outside the entity's bounding box.
      * @returns {Vec3} The voxel coordinates of the <code>worldCoords</code> if the <code>entityID</code> is a 
-     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3|Vec3.ZERO}. The value may be fractional.
+     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3(0)|Vec3.ZERO}. The value may be fractional.
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE glm::vec3 worldCoordsToVoxelCoords(const QUuid& entityID, glm::vec3 worldCoords);
@@ -741,7 +773,7 @@ public slots:
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|PolyVox} entity.
      * @param {Vec3} voxelCoords - The voxel coordinates. May be fractional and outside the entity's bounding box.
      * @returns {Vec3} The local coordinates of the <code>voxelCoords</code> if the <code>entityID</code> is a 
-     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3|Vec3.ZERO}.
+     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3(0)|Vec3.ZERO}.
      * @example <caption>Get the world dimensions of a voxel in a PolyVox entity.</caption>
      * var polyVox = Entities.addEntity({
      *     type: "PolyVox",
@@ -763,7 +795,7 @@ public slots:
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|PolyVox} entity.
      * @param {Vec3} localCoords - The local coordinates. May be outside the entity's bounding box.
      * @returns {Vec3} The voxel coordinates of the <code>worldCoords</code> if the <code>entityID</code> is a 
-     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3|Vec3.ZERO}. The value may be fractional.
+     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3(0)|Vec3.ZERO}. The value may be fractional.
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE glm::vec3 localCoordsToVoxelCoords(const QUuid& entityID, glm::vec3 localCoords);
@@ -1194,12 +1226,11 @@ public slots:
 
 
     /**jsdoc
-     * Get the IDs of entities, overlays, and avatars that are directly parented to an entity. To get all descendants of an 
-     * entity, recurse on the IDs returned by the function.
+     * Get the IDs of entities, overlays, and avatars that are directly parented to an entity, overlay, or avatar model. Recurse on the IDs returned by the function to get all descendants of an entity, overlay, or avatar. 
      * @function Entities.getChildrenIDs
-     * @param {Uuid} parentID - The ID of the entity to get the children IDs of.
+     * @param {Uuid} parentID - The ID of the entity, overlay, or avatar to get the children IDs of.
      * @returns {Uuid[]} An array of entity, overlay, and avatar IDs that are parented directly to the <code>parentID</code> 
-     *     entity. Does not include children's children, etc. The array is empty if no children can be found or 
+     *     entity, overlay, or avatar. Does not include children's children, etc. The array is empty if no children can be found or 
      *     <code>parentID</code> cannot be found.
      * @example <caption>Report the children of an entity.</caption>
      * function createEntity(description, position, parent) {
@@ -1649,7 +1680,7 @@ signals:
 
     /**jsdoc
      * Triggered when a mouse button is double-clicked while the mouse cursor is on an entity.
-     * @function Entities.mousePressOnEntity
+     * @function Entities.mouseDoublePressOnEntity
      * @param {Uuid} entityID - The ID of the entity that was double-pressed.
      * @param {PointerEvent} event - Details of the event.
      * @returns {Signal}
@@ -1853,6 +1884,7 @@ private:
     bool polyVoxWorker(QUuid entityID, std::function<bool(PolyVoxEntityItem&)> actor);
     bool setPoints(QUuid entityID, std::function<bool(LineEntityItem&)> actor);
     void queueEntityMessage(PacketType packetType, EntityItemID entityID, const EntityItemProperties& properties);
+    bool addLocalEntityCopy(EntityItemProperties& propertiesWithSimID, EntityItemID& id, bool isClone = false);
 
     EntityItemPointer checkForTreeEntityAndTypeMatch(const QUuid& entityID,
                                                      EntityTypes::EntityType entityType = EntityTypes::Unknown);

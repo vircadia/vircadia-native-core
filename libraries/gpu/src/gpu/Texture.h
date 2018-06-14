@@ -37,6 +37,10 @@ namespace ktx {
     using KeyValues = std::list<KeyValue>;
 }
 
+namespace khronos { namespace gl { namespace texture {
+    enum class InternalFormat: uint32_t;
+}}}
+
 namespace gpu {
 
 
@@ -128,6 +132,7 @@ public:
         uint8 _wrapModeV = WRAP_REPEAT;
         uint8 _wrapModeW = WRAP_REPEAT;
             
+        uint8 _mipOffset = 0;
         uint8 _minMip = 0;
         uint8 _maxMip = MAX_MIP_LEVEL;
 
@@ -142,6 +147,7 @@ public:
                 _wrapModeU == other._wrapModeU &&
                 _wrapModeV == other._wrapModeV &&
                 _wrapModeW == other._wrapModeW &&
+                _mipOffset == other._mipOffset &&
                 _minMip == other._minMip &&
                 _maxMip == other._maxMip;
         }
@@ -164,6 +170,7 @@ public:
     ComparisonFunction getComparisonFunction() const { return ComparisonFunction(_desc._comparisonFunc); }
     bool doComparison() const { return getComparisonFunction() != ALWAYS; }
 
+    uint8 getMipOffset() const { return _desc._mipOffset; }
     uint8 getMinMip() const { return _desc._minMip; }
     uint8 getMaxMip() const { return _desc._maxMip; }
 
@@ -562,6 +569,7 @@ public:
 
     static bool evalKTXFormat(const Element& mipFormat, const Element& texelFormat, ktx::Header& header);
     static bool evalTextureFormat(const ktx::Header& header, Element& mipFormat, Element& texelFormat);
+    static bool getCompressedFormat(khronos::gl::texture::InternalFormat format, Element& elFormat);
 
 protected:
     const TextureUsageType _usageType;

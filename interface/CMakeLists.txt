@@ -133,13 +133,7 @@ if (APPLE)
   # set where in the bundle to put the resources file
   set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 
-  set(DISCOVERED_RESOURCES "")
-
-  # use the add_resources_to_os_x_bundle macro to recurse into resources
-  add_resources_to_os_x_bundle("${CMAKE_CURRENT_SOURCE_DIR}/resources")
-
   # append the discovered resources to our list of interface sources
-  list(APPEND INTERFACE_SRCS ${DISCOVERED_RESOURCES})
   list(APPEND INTERFACE_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME})
 endif()
 
@@ -180,8 +174,9 @@ else ()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 endif ()
 
+
 if (BUILD_TOOLS AND NPM_EXECUTABLE)
-  # require JSDoc to be build before interface is deployed (Console Auto-complete)
+  # require JSDoc to be build before interface is deployed
   add_dependencies(resources jsdoc)
 endif()
 
@@ -315,11 +310,27 @@ if (APPLE)
   set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_APP_PATH}/Contents/Resources")
   set(RESOURCES_DEV_DIR "$<TARGET_FILE_DIR:${TARGET_NAME}>/../Resources")
 
-  # copy script files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+    # copy script files beside the executable
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
-    "${CMAKE_SOURCE_DIR}/scripts"
-    "${RESOURCES_DEV_DIR}/scripts"
+      "${CMAKE_SOURCE_DIR}/scripts"
+      "${RESOURCES_DEV_DIR}/scripts"
+    # copy JSDoc files beside the executable
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+      "${CMAKE_SOURCE_DIR}/tools/jsdoc/out"
+      "${RESOURCES_DEV_DIR}/jsdoc"
+    # copy the resources files beside the executable
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+      "${RESOURCES_RCC}"
+      "${RESOURCES_DEV_DIR}"
+    # FIXME, the edit script code loads HTML from the scripts folder
+    # which in turn relies on CSS that refers to the fonts.  In theory
+    # we should be able to modify the CSS to reference the QRC path to
+    # the ttf files, but doing so generates a CORS policy violation,
+    # so we have to retain a copy of the fonts outside of the resources binary
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+      "${PROJECT_SOURCE_DIR}/resources/fonts"
+      "${RESOURCES_DEV_DIR}/fonts"
   )
 
   # call the fixup_interface macro to add required bundling commands for installation
@@ -348,6 +359,10 @@ else()
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
       "${PROJECT_SOURCE_DIR}/resources/serverless/tutorial.json"
       "${RESOURCES_DEV_DIR}/serverless/tutorial.json"
+    # copy JSDoc files beside the executable
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+      "${CMAKE_SOURCE_DIR}/tools/jsdoc/out"
+      "${INTERFACE_EXEC_DIR}/jsdoc"
   )
 
   # link target to external libraries

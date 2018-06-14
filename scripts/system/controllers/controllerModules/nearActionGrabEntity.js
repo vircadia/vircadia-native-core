@@ -10,7 +10,7 @@
    propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, entityIsGrabbable,
    Quat, Vec3, MSECS_PER_SEC, getControllerWorldLocation, makeDispatcherModuleParameters, makeRunningValues,
    TRIGGER_OFF_VALUE, NEAR_GRAB_RADIUS, findGroupParent, entityIsCloneable, propsAreCloneDynamic, cloneEntity,
-   HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE
+   HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE, unhighlightTargetEntity, Uuid
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -114,6 +114,13 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.targetEntityID, "startNearGrab", args);
+            unhighlightTargetEntity(this.targetEntityID);
+            var message = {
+                hand: this.hand,
+                entityID: this.targetEntityID
+            };
+
+            Messages.sendLocalMessage('Hifi-unhighlight-entity', JSON.stringify(message));
         };
 
         // this is for when the action is going to time-out
@@ -228,8 +235,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                         // switch to grabbing
                         var targetCloneable = entityIsCloneable(targetProps);
                         if (targetCloneable) {
-                            var worldEntityProps = controllerData.nearbyEntityProperties[this.hand];
-                            var cloneID = cloneEntity(targetProps, worldEntityProps);
+                            var cloneID = cloneEntity(targetProps);
                             var cloneProps = Entities.getEntityProperties(cloneID);
                             this.targetEntityID = cloneID;
                             this.startNearGrabAction(controllerData, cloneProps);

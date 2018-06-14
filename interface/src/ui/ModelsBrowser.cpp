@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ModelsBrowser.h"
+
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QGridLayout>
@@ -26,8 +28,6 @@
 #include <ThreadHelpers.h>
 #include <NetworkAccessManager.h>
 #include <SharedUtil.h>
-
-#include "ModelsBrowser.h"
 
 const char* MODEL_TYPE_NAMES[] = { "entities", "heads", "skeletons", "skeletons", "attachments" };
 

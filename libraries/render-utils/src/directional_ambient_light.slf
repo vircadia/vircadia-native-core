@@ -36,8 +36,8 @@ void main(void) {
     } else if (frag.mode == FRAG_MODE_LIGHTMAPPED) {
         discard;
     } else {
-        vec4 midNormalCurvature;
-        vec4 lowNormalCurvature;
+        vec4 midNormalCurvature = vec4(0);
+        vec4 lowNormalCurvature = vec4(0);
         if (frag.mode == FRAG_MODE_SCATTERING) {
             unpackMidLowNormalCurvature(_texCoord0, midNormalCurvature, lowNormalCurvature);
         }

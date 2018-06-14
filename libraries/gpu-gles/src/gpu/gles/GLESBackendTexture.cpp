@@ -20,9 +20,21 @@ using namespace gpu::gl;
 using namespace gpu::gles;
 
 bool GLESBackend::supportedTextureFormat(const gpu::Element& format) {
-    // FIXME distinguish between GLES and GL compressed formats after support 
-    // for the former is added to gpu::Element
-    return !format.isCompressed();
+    switch (format.getSemantic()) {
+        case gpu::Semantic::COMPRESSED_ETC2_RGB:
+        case gpu::Semantic::COMPRESSED_ETC2_SRGB:
+        case gpu::Semantic::COMPRESSED_ETC2_RGB_PUNCHTHROUGH_ALPHA:
+        case gpu::Semantic::COMPRESSED_ETC2_SRGB_PUNCHTHROUGH_ALPHA:
+        case gpu::Semantic::COMPRESSED_ETC2_RGBA:
+        case gpu::Semantic::COMPRESSED_ETC2_SRGBA:
+        case gpu::Semantic::COMPRESSED_EAC_RED:
+        case gpu::Semantic::COMPRESSED_EAC_RED_SIGNED:
+        case gpu::Semantic::COMPRESSED_EAC_XY:
+        case gpu::Semantic::COMPRESSED_EAC_XY_SIGNED:
+            return true;
+        default:
+            return !format.isCompressed();
+    }
 }
 
 GLTexture* GLESBackend::syncGPUObject(const TexturePointer& texturePointer) {
@@ -78,7 +90,6 @@ GLTexture* GLESBackend::syncGPUObject(const TexturePointer& texturePointer) {
                 auto minAvailableMip = texture.minAvailableMipLevel();
                 if (minAvailableMip < varTex->_minAllocatedMip) {
                     varTex->_minAllocatedMip = minAvailableMip;
-                    GLESVariableAllocationTexture::_memoryPressureStateStale = true;
                 }
             }
         }
@@ -231,6 +242,29 @@ GLESFixedAllocationTexture::GLESFixedAllocationTexture(const std::weak_ptr<GLBac
 GLESFixedAllocationTexture::~GLESFixedAllocationTexture() {
 }
 
+GLsizei getCompressedImageSize(int width, int height, GLenum internalFormat) {
+    GLsizei blockSize;
+    switch (internalFormat) {
+        case GL_COMPRESSED_R11_EAC:
+        case GL_COMPRESSED_SIGNED_R11_EAC:
+        case GL_COMPRESSED_RGB8_ETC2:
+        case GL_COMPRESSED_SRGB8_ETC2:
+        case GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+        case GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+            blockSize = 8;
+            break;
+        case GL_COMPRESSED_RG11_EAC:
+        case GL_COMPRESSED_SIGNED_RG11_EAC:
+        case GL_COMPRESSED_RGBA8_ETC2_EAC:
+        case GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
+        default:
+            blockSize = 16;
+    }
+
+    // See https://www.khronos.org/registry/OpenGL-Refpages/es3.0/html/glCompressedTexImage2D.xhtml
+    return (GLsizei)ceil(width / 4.0f) * (GLsizei)ceil(height / 4.0f) * blockSize;
+}
+
 void GLESFixedAllocationTexture::allocateStorage() const {
     const GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
     const auto numMips = _gpuObject.getNumMips();
@@ -239,7 +273,12 @@ void GLESFixedAllocationTexture::allocateStorage() const {
     for (GLint level = 0; level < numMips; level++) {
         Vec3u dimensions = _gpuObject.evalMipDimensions(level);
         for (GLenum target : getFaceTargets(_target)) {
-            glTexImage2D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, texelFormat.format, texelFormat.type, nullptr);
+            if (texelFormat.isCompressed()) {
+                glCompressedTexImage2D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, 0,
+                                       getCompressedImageSize(dimensions.x, dimensions.y, texelFormat.internalFormat), nullptr);
+            } else {
+                glTexImage2D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, texelFormat.format, texelFormat.type, nullptr);
+            }
         }
     }
 
@@ -302,8 +341,6 @@ using GLESVariableAllocationTexture = GLESBackend::GLESVariableAllocationTexture
 GLESVariableAllocationTexture::GLESVariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) :
      GLESTexture(backend, texture)
 {
-    Backend::textureResourceCount.increment();
-
     auto mipLevels = texture.getNumMips();
     _allocatedMip = mipLevels;
     _maxAllocatedMip = _populatedMip = mipLevels;
@@ -321,16 +358,12 @@ GLESVariableAllocationTexture::GLESVariableAllocationTexture(const std::weak_ptr
     uint16_t allocatedMip = std::max<uint16_t>(_minAllocatedMip, targetMip);
 
     allocateStorage(allocatedMip);
-    _memoryPressureStateStale = true;
     copyMipsFromTexture();
 
     syncSampler();
 }
 
 GLESVariableAllocationTexture::~GLESVariableAllocationTexture() {
-    Backend::textureResourceCount.decrement();
-    Backend::textureResourceGPUMemSize.update(_size, 0);
-    Backend::textureResourcePopulatedGPUMemSize.update(_populatedSize, 0);
 }
 
 void GLESVariableAllocationTexture::allocateStorage(uint16 allocatedMip) {
@@ -363,8 +396,7 @@ Size GLESVariableAllocationTexture::copyMipsFromTexture() {
             amount += copyMipFaceFromTexture(sourceMip, targetMip, face);
         }
     }
-
-
+    incrementPopulatedSize(amount);
     return amount;
 }
 
@@ -373,7 +405,6 @@ Size GLESVariableAllocationTexture::copyMipFaceLinesFromTexture(uint16_t mip, ui
     withPreservedTexture([&] {
         amountCopied = Parent::copyMipFaceLinesFromTexture(mip, face, size, yOffset, internalFormat, format, type, sourceSize, sourcePointer);
     });
-    incrementPopulatedSize(amountCopied);
     return amountCopied;
 }
 
@@ -519,7 +550,7 @@ void GLESVariableAllocationTexture::copyTextureMipsInGPUMem(GLuint srcId, GLuint
     });
 }
 
-void GLESVariableAllocationTexture::promote() {
+size_t GLESVariableAllocationTexture::promote() {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     Q_ASSERT(_allocatedMip > 0);
 
@@ -547,12 +578,11 @@ void GLESVariableAllocationTexture::promote() {
 
     // update the memory usage
     Backend::textureResourceGPUMemSize.update(oldSize, 0);
-    // no change to Backend::textureResourcePopulatedGPUMemSize
 
-    populateTransferQueue();
+    return _size - oldSize;
 }
 
-void GLESVariableAllocationTexture::demote() {
+size_t GLESVariableAllocationTexture::demote() {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     Q_ASSERT(_allocatedMip < _maxAllocatedMip);
     auto oldId = _id;
@@ -586,16 +616,16 @@ void GLESVariableAllocationTexture::demote() {
         }
         decrementPopulatedSize(amountUnpopulated);
     }
-    populateTransferQueue();
+
+    return oldSize - _size;
 }
 
 
-void GLESVariableAllocationTexture::populateTransferQueue() {
+void GLESVariableAllocationTexture::populateTransferQueue(TransferJob::Queue& queue) {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     if (_populatedMip <= _allocatedMip) {
         return;
     }
-    _pendingTransfers = TransferQueue();
 
     const uint8_t maxFace = GLTexture::getFaceCount(_target);
     uint16_t sourceMip = _populatedMip;
@@ -611,7 +641,7 @@ void GLESVariableAllocationTexture::populateTransferQueue() {
             // If the mip is less than the max transfer size, then just do it in one transfer
             if (glm::all(glm::lessThanEqual(mipDimensions, MAX_TRANSFER_DIMENSIONS))) {
                 // Can the mip be transferred in one go
-                _pendingTransfers.emplace(new TransferJob(*this, sourceMip, targetMip, face));
+                queue.emplace(new TransferJob(_gpuObject, sourceMip, targetMip, face));
                 continue;
             }
 
@@ -628,14 +658,16 @@ void GLESVariableAllocationTexture::populateTransferQueue() {
             uint32_t lineOffset = 0;
             while (lineOffset < lines) {
                 uint32_t linesToCopy = std::min<uint32_t>(lines - lineOffset, linesPerTransfer);
-                _pendingTransfers.emplace(new TransferJob(*this, sourceMip, targetMip, face, linesToCopy, lineOffset));
+                queue.emplace(new TransferJob(_gpuObject, sourceMip, targetMip, face, linesToCopy, lineOffset));
                 lineOffset += linesToCopy;
             }
         }
 
         // queue up the sampler and populated mip change for after the transfer has completed
-        _pendingTransfers.emplace(new TransferJob(*this, [=] {
+        queue.emplace(new TransferJob(sourceMip, [=] {
             _populatedMip = sourceMip;
+            incrementPopulatedSize(_gpuObject.evalMipSize(sourceMip));
+            sanityCheck();
             syncSampler();
         }));
     } while (sourceMip != _allocatedMip);

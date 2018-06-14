@@ -36,8 +36,8 @@ QmlCommerce::QmlCommerce() {
     connect(ledger.data(), &Ledger::certificateInfoResult, this, &QmlCommerce::certificateInfoResult);
     connect(ledger.data(), &Ledger::alreadyOwnedResult, this, &QmlCommerce::alreadyOwnedResult);
     connect(ledger.data(), &Ledger::updateCertificateStatus, this, &QmlCommerce::updateCertificateStatus);
-    connect(ledger.data(), &Ledger::transferHfcToNodeResult, this, &QmlCommerce::transferHfcToNodeResult);
-    connect(ledger.data(), &Ledger::transferHfcToUsernameResult, this, &QmlCommerce::transferHfcToUsernameResult);
+    connect(ledger.data(), &Ledger::transferAssetToNodeResult, this, &QmlCommerce::transferAssetToNodeResult);
+    connect(ledger.data(), &Ledger::transferAssetToUsernameResult, this, &QmlCommerce::transferAssetToUsernameResult);
     connect(ledger.data(), &Ledger::availableUpdatesResult, this, &QmlCommerce::availableUpdatesResult);
     connect(ledger.data(), &Ledger::updateItemResult, this, &QmlCommerce::updateItemResult);
     
@@ -105,21 +105,21 @@ void QmlCommerce::balance() {
     }
 }
 
-void QmlCommerce::inventory() {
+void QmlCommerce::inventory(const QString& editionFilter, const QString& typeFilter, const QString& titleFilter, const int& page, const int& perPage) {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     QStringList cachedPublicKeys = wallet->listPublicKeys();
     if (!cachedPublicKeys.isEmpty()) {
-        ledger->inventory(cachedPublicKeys);
+        ledger->inventory(editionFilter, typeFilter, titleFilter, page, perPage);
     }
 }
 
-void QmlCommerce::history(const int& pageNumber) {
+void QmlCommerce::history(const int& pageNumber, const int& itemsPerPage) {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     QStringList cachedPublicKeys = wallet->listPublicKeys();
     if (!cachedPublicKeys.isEmpty()) {
-        ledger->history(cachedPublicKeys, pageNumber);
+        ledger->history(cachedPublicKeys, pageNumber, itemsPerPage);
     }
 }
 
@@ -166,28 +166,28 @@ void QmlCommerce::certificateInfo(const QString& certificateId) {
     ledger->certificateInfo(certificateId);
 }
 
-void QmlCommerce::transferHfcToNode(const QString& nodeID, const int& amount, const QString& optionalMessage) {
+void QmlCommerce::transferAssetToNode(const QString& nodeID, const QString& certificateID, const int& amount, const QString& optionalMessage) {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     QStringList keys = wallet->listPublicKeys();
     if (keys.count() == 0) {
         QJsonObject result{ { "status", "fail" },{ "message", "Uninitialized Wallet." } };
-        return emit buyResult(result);
+        return emit transferAssetToNodeResult(result);
     }
     QString key = keys[0];
-    ledger->transferHfcToNode(key, nodeID, amount, optionalMessage);
+    ledger->transferAssetToNode(key, nodeID, certificateID, amount, optionalMessage);
 }
 
-void QmlCommerce::transferHfcToUsername(const QString& username, const int& amount, const QString& optionalMessage) {
+void QmlCommerce::transferAssetToUsername(const QString& username, const QString& certificateID, const int& amount, const QString& optionalMessage) {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     QStringList keys = wallet->listPublicKeys();
     if (keys.count() == 0) {
         QJsonObject result{ { "status", "fail" },{ "message", "Uninitialized Wallet." } };
-        return emit buyResult(result);
+        return emit transferAssetToUsernameResult(result);
     }
     QString key = keys[0];
-    ledger->transferHfcToUsername(key, username, amount, optionalMessage);
+    ledger->transferAssetToUsername(key, username, certificateID, amount, optionalMessage);
 }
 
 void QmlCommerce::replaceContentSet(const QString& itemHref, const QString& certificateID) {
@@ -227,10 +227,13 @@ QString QmlCommerce::getInstalledApps() {
             QString scriptURL = appFileJsonObject["scriptURL"].toString();
 
             // If the script .app.json is on the user's local disk but the associated script isn't running
-            // for some reason, start that script again.
+            // for some reason (i.e. the user stopped it from Running Scripts),
+            // delete the .app.json from the user's local disk.
             if (!runningScripts.contains(scriptURL)) {
-                if ((DependencyManager::get<ScriptEngines>()->loadScript(scriptURL.trimmed())).isNull()) {
-                    qCDebug(commerce) << "Couldn't start script while checking installed apps.";
+                if (!appFile.remove()) {
+                    qCWarning(commerce)
+                        << "Couldn't delete local .app.json file (app's script isn't running). App filename is:"
+                        << appFileName;
                 }
             }
         } else {
@@ -301,7 +304,7 @@ bool QmlCommerce::uninstallApp(const QString& itemHref) {
     // Read from the file to know what .js script to stop
     QFile appFile(_appsPath + "/" + appHref.fileName());
     if (!appFile.open(QIODevice::ReadOnly)) {
-        qCDebug(commerce) << "Couldn't open local .app.json file for deletion.";
+        qCDebug(commerce) << "Couldn't open local .app.json file for deletion. Cannot continue with app uninstallation. App filename is:" << appHref.fileName();
         return false;
     }
     QJsonDocument appFileJsonDocument = QJsonDocument::fromJson(appFile.readAll());
@@ -309,15 +312,13 @@ bool QmlCommerce::uninstallApp(const QString& itemHref) {
     QString scriptUrl = appFileJsonObject["scriptURL"].toString();
 
     if (!DependencyManager::get<ScriptEngines>()->stopScript(scriptUrl.trimmed(), false)) {
-        qCDebug(commerce) << "Couldn't stop script.";
-        return false;
+        qCWarning(commerce) << "Couldn't stop script during app uninstall. Continuing anyway. ScriptURL is:" << scriptUrl.trimmed();
     }
 
     // Delete the .app.json from the filesystem
     // remove() closes the file first.
     if (!appFile.remove()) {
-        qCDebug(commerce) << "Couldn't delete local .app.json file.";
-        return false;
+        qCWarning(commerce) << "Couldn't delete local .app.json file during app uninstall. Continuing anyway. App filename is:" << appHref.fileName();
     }
 
     emit appUninstalled(itemHref);

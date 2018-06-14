@@ -62,7 +62,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
 EntityItem::~EntityItem() {
     // these pointers MUST be correct at delete, else we probably have a dangling backpointer
     // to this EntityItem in the corresponding data structure.
-    assert(!_simulated);
+    assert(!_simulated || (!_element && !_physicsInfo));
     assert(!_element);
     assert(!_physicsInfo);
 }
@@ -123,6 +123,13 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_OWNING_AVATAR_ID;
 
     requestedProperties += PROP_LAST_EDITED_BY;
+
+    requestedProperties += PROP_CLONEABLE;
+    requestedProperties += PROP_CLONE_LIFETIME;
+    requestedProperties += PROP_CLONE_LIMIT;
+    requestedProperties += PROP_CLONE_DYNAMIC;
+    requestedProperties += PROP_CLONE_AVATAR_ENTITY;
+    requestedProperties += PROP_CLONE_ORIGIN_ID;
 
     return requestedProperties;
 }
@@ -287,6 +294,13 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, getParentJointIndex());
         APPEND_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, getQueryAACube());
         APPEND_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, getLastEditedBy());
+
+        APPEND_ENTITY_PROPERTY(PROP_CLONEABLE, getCloneable());
+        APPEND_ENTITY_PROPERTY(PROP_CLONE_LIFETIME, getCloneLifetime());
+        APPEND_ENTITY_PROPERTY(PROP_CLONE_LIMIT, getCloneLimit());
+        APPEND_ENTITY_PROPERTY(PROP_CLONE_DYNAMIC, getCloneDynamic());
+        APPEND_ENTITY_PROPERTY(PROP_CLONE_AVATAR_ENTITY, getCloneAvatarEntity());
+        APPEND_ENTITY_PROPERTY(PROP_CLONE_ORIGIN_ID, getCloneOriginID()); 
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -693,7 +707,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 // the entity-server is awarding us ownership which is what we want
                 _simulationOwner.set(newSimOwner);
             }
-        } else if (newSimOwner.matchesValidID(myNodeID) && !_hasBidOnSimulation) {
+        } else if (newSimOwner.matchesValidID(myNodeID) && !_simulationOwner.pendingTake(now)) {
             // entity-server tells us that we have simulation ownership while we never requested this for this EntityItem,
             // this could happen when the user reloads the cache and entity tree.
             markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
@@ -803,7 +817,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, setVisible);
     READ_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
     READ_ENTITY_PROPERTY(PROP_COLLISIONLESS, bool, setCollisionless);
-    READ_ENTITY_PROPERTY(PROP_COLLISION_MASK, uint8_t, setCollisionMask);
+    READ_ENTITY_PROPERTY(PROP_COLLISION_MASK, uint16_t, setCollisionMask);
     READ_ENTITY_PROPERTY(PROP_DYNAMIC, bool, setDynamic);
     READ_ENTITY_PROPERTY(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
@@ -847,6 +861,13 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     }
 
     READ_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, QUuid, setLastEditedBy);
+
+    READ_ENTITY_PROPERTY(PROP_CLONEABLE, bool, setCloneable);
+    READ_ENTITY_PROPERTY(PROP_CLONE_LIFETIME, float, setCloneLifetime);
+    READ_ENTITY_PROPERTY(PROP_CLONE_LIMIT, float, setCloneLimit);
+    READ_ENTITY_PROPERTY(PROP_CLONE_DYNAMIC, bool, setCloneDynamic);
+    READ_ENTITY_PROPERTY(PROP_CLONE_AVATAR_ENTITY, bool, setCloneAvatarEntity);
+    READ_ENTITY_PROPERTY(PROP_CLONE_ORIGIN_ID, QUuid, setCloneOriginID); 
 
     bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                                                   propertyFlags, overwriteLocalData, somethingChanged);
@@ -942,11 +963,10 @@ void EntityItem::setMass(float mass) {
     float volume = _volumeMultiplier * dimensions.x * dimensions.y * dimensions.z;
 
     // compute new density
-    const float MIN_VOLUME = 1.0e-6f; // 0.001mm^3
     float newDensity = 1.0f;
-    if (volume < 1.0e-6f) {
+    if (volume < ENTITY_ITEM_MIN_VOLUME) {
         // avoid divide by zero
-        newDensity = glm::min(mass / MIN_VOLUME, ENTITY_ITEM_MAX_DENSITY);
+        newDensity = glm::min(mass / ENTITY_ITEM_MIN_VOLUME, ENTITY_ITEM_MAX_DENSITY);
     } else {
         newDensity = glm::max(glm::min(mass / volume, ENTITY_ITEM_MAX_DENSITY), ENTITY_ITEM_MIN_DENSITY);
     }
@@ -1071,7 +1091,7 @@ bool EntityItem::stepKinematicMotion(float timeElapsed) {
 
     const float MAX_TIME_ELAPSED = 1.0f; // seconds
     if (timeElapsed > MAX_TIME_ELAPSED) {
-        qCWarning(entities) << "kinematic timestep = " << timeElapsed << " truncated to " << MAX_TIME_ELAPSED;
+        qCDebug(entities) << "kinematic timestep = " << timeElapsed << " truncated to " << MAX_TIME_ELAPSED;
     }
     timeElapsed = glm::min(timeElapsed, MAX_TIME_ELAPSED);
 
@@ -1276,6 +1296,13 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lastEditedBy, getLastEditedBy);
 
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneable, getCloneable);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneLifetime, getCloneLifetime);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneLimit, getCloneLimit);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneDynamic, getCloneDynamic);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneAvatarEntity, getCloneAvatarEntity);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneOriginID, getCloneOriginID);
+
     properties._defaultSettings = false;
 
     return properties;
@@ -1356,6 +1383,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(canCastShadow, setCanCastShadow);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(isVisibleInSecondaryCamera, setIsVisibleInSecondaryCamera);
 
     // Certifiable Properties
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(itemName, setItemName);
@@ -1382,6 +1410,13 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(owningAvatarID, setOwningAvatarID);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lastEditedBy, setLastEditedBy);
+
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneable, setCloneable);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneLifetime, setCloneLifetime);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneLimit, setCloneLimit);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneDynamic, setCloneDynamic);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneAvatarEntity, setCloneAvatarEntity);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneOriginID, setCloneOriginID);
 
     if (updateQueryAACube()) {
         somethingChanged = true;
@@ -1688,7 +1723,7 @@ void EntityItem::setScaledDimensions(const glm::vec3& value) {
 }
 
 void EntityItem::setUnscaledDimensions(const glm::vec3& value) {
-    glm::vec3 newDimensions = glm::max(value, glm::vec3(0.0f)); // can never have negative dimensions
+    glm::vec3 newDimensions = glm::max(value, glm::vec3(ENTITY_ITEM_MIN_DIMENSION));
     if (getUnscaledDimensions() != newDimensions) {
         withWriteLock([&] {
             _unscaledDimensions = newDimensions;
@@ -1815,7 +1850,7 @@ void EntityItem::setCollisionless(bool value) {
     });
 }
 
-void EntityItem::setCollisionMask(uint8_t value) {
+void EntityItem::setCollisionMask(uint16_t value) {
     withWriteLock([&] {
         if ((_collisionMask & ENTITY_COLLISION_MASK_DEFAULT) != (value & ENTITY_COLLISION_MASK_DEFAULT)) {
             _collisionMask = (value & ENTITY_COLLISION_MASK_DEFAULT);
@@ -1880,7 +1915,7 @@ void EntityItem::setCreated(quint64 value) {
     });
 }
 
-void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask) const {
+void EntityItem::computeCollisionGroupAndFinalMask(int32_t& group, int32_t& mask) const {
     if (_collisionless) {
         group = BULLET_COLLISION_GROUP_COLLISIONLESS;
         mask = 0;
@@ -1893,7 +1928,7 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
             group = BULLET_COLLISION_GROUP_STATIC;
         }
 
-        uint8_t userMask = getCollisionMask();
+        uint16_t userMask = getCollisionMask();
 
         if ((bool)(userMask & USER_COLLISION_GROUP_MY_AVATAR) !=
                 (bool)(userMask & USER_COLLISION_GROUP_OTHER_AVATAR)) {
@@ -1907,7 +1942,7 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
         if ((bool)(_flags & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING)) {
             userMask &= ~USER_COLLISION_GROUP_MY_AVATAR;
         }
-        mask = Physics::getDefaultCollisionMask(group) & (int16_t)(userMask);
+        mask = Physics::getDefaultCollisionMask(group) & (int32_t)(userMask);
     }
 }
 
@@ -1944,10 +1979,6 @@ void EntityItem::clearSimulationOwnership() {
 
 void EntityItem::setPendingOwnershipPriority(uint8_t priority, const quint64& timestamp) {
     _simulationOwner.setPendingPriority(priority, timestamp);
-}
-
-void EntityItem::rememberHasSimulationOwnershipBid() const {
-    _hasBidOnSimulation = true;
 }
 
 QString EntityItem::actionsToDebugString() {
@@ -2197,10 +2228,8 @@ void EntityItem::deserializeActionsInternal() {
                 entity->addActionInternal(simulation, action);
                 updated << actionID;
             } else {
-                static QString repeatedMessage =
-                    LogHandler::getInstance().addRepeatedMessageRegex(".*action creation failed for.*");
-                qCDebug(entities) << "EntityItem::deserializeActionsInternal -- action creation failed for"
-                        << getID() << _name; // getName();
+                HIFI_FCDEBUG(entities(), "EntityItem::deserializeActionsInternal -- action creation failed for"
+                        << getID() << _name); // getName();
                 removeActionInternal(actionID, nullptr);
             }
         }
@@ -2732,6 +2761,28 @@ void EntityItem::setVisible(bool value) {
     }
 }
 
+bool EntityItem::isVisibleInSecondaryCamera() const {
+    bool result;
+    withReadLock([&] {
+        result = _isVisibleInSecondaryCamera;
+    });
+    return result;
+}
+
+void EntityItem::setIsVisibleInSecondaryCamera(bool value) {
+    bool changed = false;
+    withWriteLock([&] {
+        if (_isVisibleInSecondaryCamera != value) {
+            changed = true;
+            _isVisibleInSecondaryCamera = value;
+        }
+    });
+
+    if (changed) {
+        emit requestRenderUpdate();
+    }
+}
+
 bool EntityItem::getCanCastShadow() const {
     bool result;
     withReadLock([&] {
@@ -2767,8 +2818,8 @@ bool EntityItem::getCollisionless() const {
     return result;
 }
 
-uint8_t EntityItem::getCollisionMask() const {
-    uint8_t result;
+uint16_t EntityItem::getCollisionMask() const {
+    uint16_t result;
     withReadLock([&] {
         result = _collisionMask;
     });
@@ -2981,4 +3032,119 @@ std::unordered_map<std::string, graphics::MultiMaterial> EntityItem::getMaterial
         toReturn = _materials;
     }
     return toReturn;
+}
+
+bool EntityItem::getCloneable() const {
+    bool result;
+    withReadLock([&] {
+        result = _cloneable;
+    });
+    return result;
+}
+
+void EntityItem::setCloneable(bool value) {
+    withWriteLock([&] {
+        _cloneable = value;
+    });
+}
+
+float EntityItem::getCloneLifetime() const {
+    float result;
+    withReadLock([&] {
+        result = _cloneLifetime;
+    });
+    return result;
+}
+
+void EntityItem::setCloneLifetime(float value) {
+    withWriteLock([&] {
+        _cloneLifetime = value;
+    });
+}
+
+float EntityItem::getCloneLimit() const {
+    float result;
+    withReadLock([&] {
+        result = _cloneLimit;
+    });
+    return result;
+}
+
+void EntityItem::setCloneLimit(float value) {
+    withWriteLock([&] {
+        _cloneLimit = value;
+    });
+}
+
+bool EntityItem::getCloneDynamic() const {
+    bool result;
+    withReadLock([&] {
+        result = _cloneDynamic;
+    });
+    return result;
+}
+
+void EntityItem::setCloneDynamic(bool value) {
+    withWriteLock([&] {
+        _cloneDynamic = value;
+    });
+}
+
+bool EntityItem::getCloneAvatarEntity() const {
+    bool result;
+    withReadLock([&] {
+        result = _cloneAvatarEntity;
+    });
+    return result;
+}
+
+void EntityItem::setCloneAvatarEntity(bool value) {
+    withWriteLock([&] {
+        _cloneAvatarEntity = value;
+    });
+}
+
+const QUuid EntityItem::getCloneOriginID() const {
+    QUuid result;
+    withReadLock([&] {
+        result = _cloneOriginID;
+    });
+    return result;
+}
+
+void EntityItem::setCloneOriginID(const QUuid& value) {
+    withWriteLock([&] {
+        _cloneOriginID = value;
+    });
+}
+
+void EntityItem::addCloneID(const QUuid& cloneID) {
+    withWriteLock([&] {
+        if (!_cloneIDs.contains(cloneID)) {
+            _cloneIDs.append(cloneID);
+        }
+    });
+}
+
+void EntityItem::removeCloneID(const QUuid& cloneID) {
+    withWriteLock([&] {
+        int index = _cloneIDs.indexOf(cloneID);
+        if (index >= 0) {
+            _cloneIDs.removeAt(index);
+        }
+    });
+}
+
+const QVector<QUuid> EntityItem::getCloneIDs() const {
+    QVector<QUuid> result;
+    withReadLock([&] {
+        result = _cloneIDs;
+    });
+    return result;
+}
+
+void EntityItem::setCloneIDs(const QVector<QUuid>& cloneIDs) {
+    withWriteLock([&] {
+        _cloneIDs = cloneIDs;
+    });
 }

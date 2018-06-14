@@ -46,6 +46,7 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
 
     const auto& inItems = inputs.get0();
     const auto& lightingModel = inputs.get1();
+	const auto jitter = inputs.get2();
     
     config->setNumDrawn((int)inItems.size());
     emit config->numDrawnChanged();
@@ -75,7 +76,8 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
             args->getViewFrustum().evalViewTransform(viewMat);
 
             batch.setProjectionTransform(projMat);
-            batch.setViewTransform(viewMat);
+			batch.setProjectionJitter(jitter.x, jitter.y);
+			batch.setViewTransform(viewMat);
 
             // Setup lighting model for all items;
             batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());

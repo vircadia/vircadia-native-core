@@ -30,6 +30,7 @@
 const float HALF_SIMULATION_EXTENT = 512.0f; // meters
 
 class CharacterController;
+class PhysicsDebugDraw;
 
 // simple class for keeping track of contacts
 class ContactKey {
@@ -51,7 +52,7 @@ public:
     ~PhysicsEngine();
     void init();
 
-    uint32_t getNumSubsteps();
+    uint32_t getNumSubsteps() const;
 
     void removeObjects(const VectorOfMotionStates& objects);
     void removeSetOfObjects(const SetOfMotionStates& objects); // only called during teardown
@@ -96,6 +97,12 @@ public:
     void removeDynamic(const QUuid dynamicID);
     void forEachDynamic(std::function<void(EntityDynamicPointer)> actor);
 
+    void setShowBulletWireframe(bool value);
+    void setShowBulletAABBs(bool value);
+    void setShowBulletContactPoints(bool value);
+    void setShowBulletConstraints(bool value);
+    void setShowBulletConstraintLimits(bool value);
+
 private:
     QList<EntityDynamicPointer> removeDynamicsForBody(btRigidBody* body);
     void addObjectToDynamicsWorld(ObjectMotionState* motionState);
@@ -114,6 +121,7 @@ private:
     btSequentialImpulseConstraintSolver* _constraintSolver = NULL;
     ThreadSafeDynamicsWorld* _dynamicsWorld = NULL;
     btGhostPairCallback* _ghostPairCallback = NULL;
+    std::unique_ptr<PhysicsDebugDraw> _physicsDebugDraw;
 
     ContactMap _contactMap;
     CollisionEvents _collisionEvents;
@@ -127,7 +135,6 @@ private:
     CharacterController* _myAvatarController;
 
     uint32_t _numContactFrames = 0;
-    uint32_t _numSubsteps;
 
     bool _dumpNextStats { false };
     bool _saveNextStats { false };

@@ -9,9 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "EntitySimulation.h"
-
 #include "ObjectDynamic.h"
+
+#include "EntitySimulation.h"
 
 #include "PhysicsLogging.h"
 
@@ -157,6 +157,13 @@ void ObjectDynamic::removeFromSimulation(EntitySimulationPointer simulation) con
         myID = _id;
     });
     simulation->removeDynamic(myID);
+}
+
+void ObjectDynamic::setOwnerEntity(const EntityItemPointer ownerEntity) {
+    if (!ownerEntity) {
+        activateBody();
+    }
+    _ownerEntity = ownerEntity;
 }
 
 EntityItemPointer ObjectDynamic::getEntityByID(EntityItemID entityID) const {

@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AvatarManager.h"
+
 #include <string>
 
 #include <QScriptEngine>
@@ -35,9 +37,9 @@
 #include <UsersScriptingInterface.h>
 #include <UUID.h>
 #include <avatars-renderer/OtherAvatar.h>
+#include <shared/ConicalViewFrustum.h>
 
 #include "Application.h"
-#include "AvatarManager.h"
 #include "InterfaceLogging.h"
 #include "Menu.h"
 #include "MyAvatar.h"
@@ -102,6 +104,9 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     PerformanceWarning warn(showWarnings, "AvatarManager::updateMyAvatar()");
 
     _myAvatar->update(deltaTime);
+    render::Transaction transaction;
+    _myAvatar->updateRenderItem(transaction);
+    qApp->getMain3DScene()->enqueueTransaction(transaction);
 
     quint64 now = usecTimestampNow();
     quint64 dt = now - _lastSendAvatarDataTime;
@@ -155,9 +160,9 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         AvatarSharedPointer _avatar;
     };
 
-    ViewFrustum cameraView;
-    qApp->copyDisplayViewFrustum(cameraView);
-    PrioritySortUtil::PriorityQueue<SortableAvatar> sortedAvatars(cameraView,
+
+    const auto& views = qApp->getConicalViews();
+    PrioritySortUtil::PriorityQueue<SortableAvatar> sortedAvatars(views,
             AvatarData::_avatarSortCoefficientSize,
             AvatarData::_avatarSortCoefficientCenter,
             AvatarData::_avatarSortCoefficientAge);
@@ -463,13 +468,14 @@ void AvatarManager::updateAvatarRenderStatus(bool shouldRenderAvatars) {
     _shouldRender = shouldRenderAvatars;
     const render::ScenePointer& scene = qApp->getMain3DScene();
     render::Transaction transaction;
+    auto avatarHashCopy = getHashCopy();
     if (_shouldRender) {
-        for (auto avatarData : _avatarHash) {
+        for (auto avatarData : avatarHashCopy) {
             auto avatar = std::static_pointer_cast<Avatar>(avatarData);
             avatar->addToScene(avatar, scene, transaction);
         }
     } else {
-        for (auto avatarData : _avatarHash) {
+        for (auto avatarData : avatarHashCopy) {
             auto avatar = std::static_pointer_cast<Avatar>(avatarData);
             avatar->removeFromScene(avatar, scene, transaction);
         }
@@ -509,7 +515,8 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
 
     glm::vec3 normDirection = glm::normalize(ray.direction);
 
-    for (auto avatarData : _avatarHash) {
+    auto avatarHashCopy = getHashCopy();
+    for (auto avatarData : avatarHashCopy) {
         auto avatar = std::static_pointer_cast<Avatar>(avatarData);
         if ((avatarsToInclude.size() > 0 && !avatarsToInclude.contains(avatar->getID())) ||
             (avatarsToDiscard.size() > 0 && avatarsToDiscard.contains(avatar->getID()))) {

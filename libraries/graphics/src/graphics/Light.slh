@@ -29,19 +29,12 @@ vec3 getLightColor(Light l) { return lightIrradiance_getColor(l.irradiance); }
 float getLightIntensity(Light l) { return lightIrradiance_getIntensity(l.irradiance); }
 vec3 getLightIrradiance(Light l) { return lightIrradiance_getIrradiance(l.irradiance); }
 
-// AMbient lighting needs extra info provided from a different Buffer
+// Ambient lighting needs extra info provided from a different Buffer
 <@include graphics/SphericalHarmonics.shared.slh@>
 // Light Ambient
-#ifndef PRECISIONQ
-#ifdef GL_ES
-#define PRECISIONQ highp
-#else
-#define PRECISIONQ
-#endif
-#endif
 
 struct LightAmbient {
-    PRECISIONQ vec4 _ambient;
+    vec4 _ambient;
     SphericalHarmonics _ambientSphere;
     mat4 transform;
 };

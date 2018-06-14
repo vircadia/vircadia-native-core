@@ -9,11 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "DependencyManager.h"
-#include "Logging.h"
 #include "ShapePipeline.h"
 
 #include <PerfStat.h>
+
+#include "DependencyManager.h"
+#include "Logging.h"
 
 using namespace render;
 
@@ -89,9 +90,9 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
         slotBindings.insert(gpu::Shader::Binding(std::string("occlusionMap"), Slot::MAP::OCCLUSION));
         slotBindings.insert(gpu::Shader::Binding(std::string("scatteringMap"), Slot::MAP::SCATTERING));
         slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), Slot::BUFFER::KEY_LIGHT));
-        slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), Slot::BUFFER::LIGHT));
+        slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), Slot::BUFFER::LIGHT_ARRAY_BUFFER));
         slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), Slot::BUFFER::LIGHT_AMBIENT_BUFFER));
-        slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), Slot::MAP::LIGHT_AMBIENT));
+        slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), Slot::MAP::LIGHT_AMBIENT_MAP));
         slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), Slot::MAP::FADE_MASK));
         slotBindings.insert(gpu::Shader::Binding(std::string("fadeParametersBuffer"), Slot::BUFFER::FADE_PARAMETERS));
         slotBindings.insert(gpu::Shader::Binding(std::string("hazeBuffer"), Slot::BUFFER::HAZE_MODEL));
@@ -123,7 +124,7 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     locations->lightAmbientMapUnit = program->getTextures().findLocation("skyboxMap");
     locations->fadeMaskTextureUnit = program->getTextures().findLocation("fadeMaskMap");
     locations->fadeParameterBufferUnit = program->getUniformBuffers().findLocation("fadeParametersBuffer");
-    locations->hazeParameterBufferUnit = program->getUniformBuffers().findLocation("hazeParametersBuffer");
+    locations->hazeParameterBufferUnit = program->getUniformBuffers().findLocation("hazeBuffer");
     if (key.isTranslucent()) {
         locations->lightClusterGridBufferUnit = program->getUniformBuffers().findLocation("clusterGridBuffer");
         locations->lightClusterContentBufferUnit = program->getUniformBuffers().findLocation("clusterContentBuffer");
@@ -134,9 +135,12 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
         locations->lightClusterFrustumBufferUnit = -1;
     }
 
-    auto gpuPipeline = gpu::Pipeline::create(program, state);
-    auto shapePipeline = std::make_shared<Pipeline>(gpuPipeline, locations, batchSetter, itemSetter);
-    addPipelineHelper(filter, key, 0, shapePipeline);
+    {
+        PROFILE_RANGE(app, "Pipeline::create");
+        auto gpuPipeline = gpu::Pipeline::create(program, state);
+        auto shapePipeline = std::make_shared<Pipeline>(gpuPipeline, locations, batchSetter, itemSetter);
+        addPipelineHelper(filter, key, 0, shapePipeline);
+    }
 }
 
 const ShapePipelinePointer ShapePlumber::pickPipeline(RenderArgs* args, const Key& key) const {

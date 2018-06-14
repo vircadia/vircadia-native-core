@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
 #ifndef hifi_AvatarHashMap_h
 #define hifi_AvatarHashMap_h
 
@@ -29,6 +30,15 @@
 
 #include "AvatarData.h"
 
+/**jsdoc
+ * <strong>Note:</strong> An <code>AvatarList</code> API is also provided for Interface and client entity scripts: it is a 
+ * synonym for the {@link AvatarManager} API.
+ *
+ * @namespace AvatarList
+ *
+ * @hifi-assignment-client
+ */
+
 class AvatarHashMap : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -36,12 +46,29 @@ class AvatarHashMap : public QObject, public Dependency {
 public:
     AvatarHash getHashCopy() { QReadLocker lock(&_hashLock); return _avatarHash; }
     const AvatarHash getHashCopy() const { QReadLocker lock(&_hashLock); return _avatarHash; }
-    int size() { return _avatarHash.size(); }
+    int size() { QReadLocker lock(&_hashLock); return _avatarHash.size(); }
 
     // Currently, your own avatar will be included as the null avatar id.
+    
+    /**jsdoc
+     * @function AvatarList.getAvatarIdentifiers
+     * @returns {Uuid[]}
+     */
     Q_INVOKABLE QVector<QUuid> getAvatarIdentifiers();
+
+    /**jsdoc
+     * @function AvatarList.getAvatarsInRange
+     * @param {Vec3} position
+     * @param {number} range
+     * @returns {Uuid[]} 
+     */
     Q_INVOKABLE QVector<QUuid> getAvatarsInRange(const glm::vec3& position, float rangeMeters) const;
 
+    /**jsdoc
+     * @function AvatarList.getAvatar
+     * @param {Uuid} avatarID
+     * @returns {AvatarData}
+     */
     // Null/Default-constructed QUuids will return MyAvatar
     Q_INVOKABLE virtual ScriptAvatarData* getAvatar(QUuid avatarID) { return new ScriptAvatarData(getAvatarBySessionID(avatarID)); }
 
@@ -49,18 +76,67 @@ public:
     int numberOfAvatarsInRange(const glm::vec3& position, float rangeMeters);
 
 signals:
+
+    /**jsdoc
+     * @function AvatarList.avatarAddedEvent
+     * @param {Uuid} sessionUUID
+     * @returns {Signal}
+     */
     void avatarAddedEvent(const QUuid& sessionUUID);
+
+    /**jsdoc
+     * @function AvatarList.avatarRemovedEvent
+     * @param {Uuid} sessionUUID
+     * @returns {Signal}
+     */
     void avatarRemovedEvent(const QUuid& sessionUUID);
+
+    /**jsdoc
+     * @function AvatarList.avatarSessionChangedEvent
+     * @param {Uuid} sessionUUID
+     * @param {Uuid} oldSessionUUID
+     * @returns {Signal}
+     */
     void avatarSessionChangedEvent(const QUuid& sessionUUID,const QUuid& oldUUID);
 
 public slots:
+
+    /**jsdoc
+     * @function AvatarList.isAvatarInRange
+     * @param {string} position
+     * @param {string} range
+     * @returns {boolean}
+     */
     bool isAvatarInRange(const glm::vec3 & position, const float range);
 
 protected slots:
+
+    /**jsdoc
+     * @function AvatarList.sessionUUIDChanged
+     * @param {Uuid} sessionUUID
+     * @param {Uuid} oldSessionUUID
+     */
     void sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID);
 
+    /**jsdoc
+     * @function AvatarList.processAvatarDataPacket
+     * @param {} message
+     * @param {} sendingNode
+     */
     void processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
+   
+    /**jsdoc
+     * @function AvatarList.processAvatarIdentityPacket
+     * @param {} message
+     * @param {} sendingNode
+     */
     void processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
+    
+    /**jsdoc
+     * @function AvatarList.processKillAvatar
+     * @param {} message
+     * @param {} sendingNode
+     */
     void processKillAvatar(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
 
 protected:
@@ -76,8 +152,6 @@ protected:
     virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason);
 
     AvatarHash _avatarHash;
-    // "Case-based safety": Most access to the _avatarHash is on the same thread. Write access is protected by a write-lock.
-    // If you read from a different thread, you must read-lock the _hashLock. (Scripted write access is not supported).
     mutable QReadWriteLock _hashLock;
 
 private:

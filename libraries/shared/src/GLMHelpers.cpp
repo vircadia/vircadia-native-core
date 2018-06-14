@@ -76,13 +76,15 @@ glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float proportion) {
 
 // Allows sending of fixed-point numbers: radix 1 makes 15.1 number, radix 8 makes 8.8 number, etc
 int packFloatScalarToSignedTwoByteFixed(unsigned char* buffer, float scalar, int radix) {
-    int16_t outVal = (int16_t)(scalar * (float)(1 << radix));
-    memcpy(buffer, &outVal, sizeof(uint16_t));
-    return sizeof(uint16_t);
+    int16_t twoByteFixed = (int16_t)(scalar * (float)(1 << radix));
+    memcpy(buffer, &twoByteFixed, sizeof(int16_t));
+    return sizeof(int16_t);
 }
 
 int unpackFloatScalarFromSignedTwoByteFixed(const int16_t* byteFixedPointer, float* destinationPointer, int radix) {
-    *destinationPointer = *byteFixedPointer / (float)(1 << radix);
+    int16_t twoByteFixed;
+    memcpy(&twoByteFixed, byteFixedPointer, sizeof(int16_t));
+    *destinationPointer = twoByteFixed / (float)(1 << radix);
     return sizeof(int16_t);
 }
 
@@ -102,18 +104,19 @@ int unpackFloatVec3FromSignedTwoByteFixed(const unsigned char* sourceBuffer, glm
     return sourceBuffer - startPosition;
 }
 
-
 int packFloatAngleToTwoByte(unsigned char* buffer, float degrees) {
     const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.0f);
 
-    uint16_t angleHolder = floorf((degrees + 180.0f) * ANGLE_CONVERSION_RATIO);
-    memcpy(buffer, &angleHolder, sizeof(uint16_t));
+    uint16_t twoByteAngle = floorf((degrees + 180.0f) * ANGLE_CONVERSION_RATIO);
+    memcpy(buffer, &twoByteAngle, sizeof(uint16_t));
 
     return sizeof(uint16_t);
 }
 
 int unpackFloatAngleFromTwoByte(const uint16_t* byteAnglePointer, float* destinationPointer) {
-    *destinationPointer = (*byteAnglePointer / (float) std::numeric_limits<uint16_t>::max()) * 360.0f - 180.0f;
+    uint16_t twoByteAngle;
+    memcpy(&twoByteAngle, byteAnglePointer, sizeof(uint16_t));
+    *destinationPointer = (twoByteAngle / (float) std::numeric_limits<uint16_t>::max()) * 360.0f - 180.0f;
     return sizeof(uint16_t);
 }
 
@@ -222,6 +225,12 @@ int unpackOrientationQuatFromSixBytes(const unsigned char* buffer, glm::quat& qu
     return 6;
 }
 
+bool closeEnough(float a, float b, float relativeError) {
+    assert(relativeError >= 0.0f);
+    // NOTE: we add EPSILON to the denominator so we can avoid checking for division by zero.
+    // This method works fine when: fabsf(a + b) >> EPSILON
+    return fabsf(a - b) / (0.5f * fabsf(a + b) + EPSILON) < relativeError;
+}
 
 //  Safe version of glm::eulerAngles; uses the factorization method described in David Eberly's
 //  http://www.geometrictools.com/Documentation/EulerAngles.pdf (via Clyde,
@@ -565,8 +574,9 @@ void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& seconda
     vAxisOut = glm::cross(wAxisOut, uAxisOut);
 }
 
+// assumes z-forward and y-up
 glm::vec2 getFacingDir2D(const glm::quat& rot) {
-    glm::vec3 facing3D = rot * Vectors::UNIT_NEG_Z;
+    glm::vec3 facing3D = rot * Vectors::UNIT_Z;
     glm::vec2 facing2D(facing3D.x, facing3D.z);
     const float ALMOST_ZERO = 0.0001f;
     if (glm::length(facing2D) < ALMOST_ZERO) {
@@ -576,8 +586,9 @@ glm::vec2 getFacingDir2D(const glm::quat& rot) {
     }
 }
 
+// assumes z-forward and y-up
 glm::vec2 getFacingDir2D(const glm::mat4& m) {
-    glm::vec3 facing3D = transformVectorFast(m, Vectors::UNIT_NEG_Z);
+    glm::vec3 facing3D = transformVectorFast(m, Vectors::UNIT_Z);
     glm::vec2 facing2D(facing3D.x, facing3D.z);
     const float ALMOST_ZERO = 0.0001f;
     if (glm::length(facing2D) < ALMOST_ZERO) {

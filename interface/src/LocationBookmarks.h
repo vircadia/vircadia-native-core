@@ -13,7 +13,15 @@
 #define hifi_LocationBookmarks_h
 
 #include <DependencyManager.h>
+
 #include "Bookmarks.h"
+
+/**jsdoc
+ * @namespace LocationBookmarks
+ *
+ * @hifi-client-entity
+ * @hifi-interface
+ */
 
 class LocationBookmarks : public Bookmarks, public  Dependency  {
     Q_OBJECT
@@ -26,7 +34,16 @@ public:
     static const QString HOME_BOOKMARK;
 
 public slots:
+
+    /**jsdoc
+     * @function LocationBookmarks.addBookmark
+     */
     void addBookmark();
+
+    /**jsdoc
+     * @function LocationBookmarks.setHomeLocationToAddress
+     * @param {string} address
+     */
     void setHomeLocationToAddress(const QVariant& address);
 
 protected:

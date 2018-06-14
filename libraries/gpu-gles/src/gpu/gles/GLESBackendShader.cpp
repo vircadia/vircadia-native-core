@@ -14,23 +14,26 @@ using namespace gpu::gles;
 
 // GLSL version
 std::string GLESBackend::getBackendShaderHeader() const {
-    return Parent::getBackendShaderHeader();
+    static const std::string header(
+        R"SHADER(#version 310 es
+        #extension GL_EXT_texture_buffer : enable
+        precision highp float;
+        precision highp samplerBuffer;
+        precision highp sampler2DShadow;
+        #define BITFIELD highp int
+        )SHADER");
+    return header;
 }
 
-int GLESBackend::makeResourceBufferSlots(GLuint glprogram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) {
+int GLESBackend::makeResourceBufferSlots(const ShaderObject& shaderObject, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) {
     GLint ssboCount = 0;
-       GLint uniformsCount = 0;
+    GLint uniformsCount = 0;
+    const auto& glprogram = shaderObject.glprogram;
 
-    glGetProgramiv(glprogram, GL_ACTIVE_UNIFORMS, &uniformsCount);
-
-    for (int i = 0; i < uniformsCount; i++) {
-        const GLint NAME_LENGTH = 256;
-        GLchar name[NAME_LENGTH];
-        GLint length = 0;
-        GLint size = 0;
-        GLenum type = 0;
-        glGetActiveUniform(glprogram, i, NAME_LENGTH, &length, &size, &type, name);
-        GLint location = glGetUniformLocation(glprogram, name);
+    for (const auto& uniform : shaderObject.uniforms) {
+        const auto& type = uniform.type;
+        const auto& location = uniform.location;
+        const auto& name = uniform.name;
         const GLint INVALID_UNIFORM_LOCATION = -1;
 
         // Try to make sense of the gltype

@@ -9,7 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "DomainHandler.h"
+
 #include <math.h>
+
+#include <PathUtils.h>
 
 #include <QtCore/QJsonDocument>
 #include <QtCore/QDataStream>
@@ -24,8 +28,6 @@
 #include "SharedUtil.h"
 #include "UserActivityLogger.h"
 #include "NetworkLogging.h"
-
-#include "DomainHandler.h"
 
 DomainHandler::DomainHandler(QObject* parent) :
     QObject(parent),
@@ -157,24 +159,34 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
 
     if (domainURL.scheme() != URL_SCHEME_HIFI) {
         _sockAddr.clear();
+
+        // if this is a file URL we need to see if it has a ~ for us to expand
+        if (domainURL.scheme() == URL_SCHEME_FILE) {
+            domainURL = PathUtils::expandToLocalDataAbsolutePath(domainURL);
+        }
     }
 
-    if (_domainURL != domainURL || _sockAddr.getPort() != domainURL.port()) {
+    auto domainPort = domainURL.port();
+    if (domainPort == -1) {
+        domainPort = DEFAULT_DOMAIN_SERVER_PORT;
+    }
+
+    if (_domainURL != domainURL || _sockAddr.getPort() != domainPort) {
         // re-set the domain info so that auth information is reloaded
         hardReset();
 
         QString previousHost = _domainURL.host();
         _domainURL = domainURL;
 
-        if (domainURL.scheme() != URL_SCHEME_HIFI) {
-            setIsConnected(true);
-        } else if (previousHost != domainURL.host()) {
+        if (previousHost != domainURL.host()) {
             qCDebug(networking) << "Updated domain hostname to" << domainURL.host();
 
             if (!domainURL.host().isEmpty()) {
-                // re-set the sock addr to null and fire off a lookup of the IP address for this domain-server's hostname
-                qCDebug(networking, "Looking up DS hostname %s.", domainURL.host().toLocal8Bit().constData());
-                QHostInfo::lookupHost(domainURL.host(), this, SLOT(completedHostnameLookup(const QHostInfo&)));
+                if (domainURL.scheme() == URL_SCHEME_HIFI) {
+                    // re-set the sock addr to null and fire off a lookup of the IP address for this domain-server's hostname
+                    qCDebug(networking, "Looking up DS hostname %s.", domainURL.host().toLocal8Bit().constData());
+                    QHostInfo::lookupHost(domainURL.host(), this, SLOT(completedHostnameLookup(const QHostInfo&)));
+                }
 
                 DependencyManager::get<NodeList>()->flagTimeForConnectionStep(
                     LimitedNodeList::ConnectionStep::SetDomainHostname);
@@ -185,12 +197,10 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
 
         emit domainURLChanged(_domainURL);
 
-        if (_sockAddr.getPort() != domainURL.port()) {
-            qCDebug(networking) << "Updated domain port to" << domainURL.port();
+        if (_sockAddr.getPort() != domainPort) {
+            qCDebug(networking) << "Updated domain port to" << domainPort;
+            _sockAddr.setPort(domainPort);
         }
-
-        // grab the port by reading the string after the colon
-        _sockAddr.setPort(domainURL.port());
     }
 }
 
@@ -243,6 +253,17 @@ void DomainHandler::activateICEPublicSocket() {
     emit completedSocketDiscovery();
 }
 
+QString DomainHandler::getViewPointFromNamedPath(QString namedPath) {
+    auto lookup = _namedPaths.find(namedPath);
+    if (lookup != _namedPaths.end()) {
+        return lookup->second;
+    }
+    if (namedPath == DEFAULT_NAMED_PATH) {
+        return DOMAIN_SPAWNING_POINT;
+    }
+    return "";
+}
+
 void DomainHandler::completedHostnameLookup(const QHostInfo& hostInfo) {
     for (int i = 0; i < hostInfo.addresses().size(); i++) {
         if (hostInfo.addresses()[i].protocol() == QAbstractSocket::IPv4Protocol) {
@@ -288,6 +309,11 @@ void DomainHandler::setIsConnected(bool isConnected) {
             emit disconnectedFromDomain();
         }
     }
+}
+
+void DomainHandler::connectedToServerless(std::map<QString, QString> namedPaths) {
+    _namedPaths = namedPaths;
+    setIsConnected(true);
 }
 
 void DomainHandler::requestDomainSettings() {

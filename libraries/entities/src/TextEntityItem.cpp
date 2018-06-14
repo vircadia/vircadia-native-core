@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "TextEntityItem.h"
 
 #include <glm/gtx/transform.hpp>
 
@@ -21,7 +22,6 @@
 #include "EntitiesLogging.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
-#include "TextEntityItem.h"
 
 const QString TextEntityItem::DEFAULT_TEXT("");
 const float TextEntityItem::DEFAULT_LINE_HEIGHT = 0.1f;
@@ -98,8 +98,6 @@ int TextEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     return bytesRead;
 }
 
-
-// TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
 EntityPropertyFlags TextEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_TEXT;

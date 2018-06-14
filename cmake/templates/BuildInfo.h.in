@@ -24,6 +24,26 @@ namespace BuildInfo {
     const QString MODIFIED_ORGANIZATION = "@BUILD_ORGANIZATION@";
     const QString ORGANIZATION_DOMAIN = "highfidelity.io";
     const QString VERSION = "@BUILD_VERSION@";
-    const QString BUILD_BRANCH = "@BUILD_BRANCH@";
+    const QString BUILD_NUMBER = "@BUILD_NUMBER@";
     const QString BUILD_GLOBAL_SERVICES = "@BUILD_GLOBAL_SERVICES@";
+    const QString BUILD_TIME = "@BUILD_TIME@";
+
+    enum BuildType {
+        Dev,
+        PR,
+        Master,
+        Stable
+    };
+
+#if defined(PR_BUILD)
+    const BuildType BUILD_TYPE = PR;
+    const QString BUILD_TYPE_STRING = "pr";
+#elif defined(PRODUCTION_BUILD)
+    const BuildType BUILD_TYPE = @STABLE_BUILD@ ? Stable : Master;
+    const QString BUILD_TYPE_STRING = @STABLE_BUILD@ ? "stable" : "master";
+#else
+    const BuildType BUILD_TYPE = Dev;
+    const QString BUILD_TYPE_STRING = "dev";
+#endif
+
 }

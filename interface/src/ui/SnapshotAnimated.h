@@ -49,6 +49,7 @@ private:
 
     static void captureFrames();
     static void processFrames();
+    static void clearTempVariables();
 public:
     static void saveSnapshotAnimated(QString pathStill, float aspectRatio, Application* app, QSharedPointer<WindowScriptingInterface> dm);
     static bool isAlreadyTakingSnapshotAnimated() { return snapshotAnimatedFirstFrameTimestamp != 0; };

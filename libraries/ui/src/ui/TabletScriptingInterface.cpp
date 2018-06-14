@@ -387,6 +387,8 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
             offscreenUi->hide("RunningScripts");
             _showRunningScripts = true;
         }
+
+        offscreenUi->hideDesktopWindows();
         // destroy desktop window
         if (_desktopWindow) {
             _desktopWindow->deleteLater();
@@ -429,6 +431,19 @@ bool TabletProxy::isMessageDialogOpen() {
     return result.toBool();
 }
 
+void TabletProxy::closeDialog() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "closeDialog");
+        return;
+    }
+
+    if (!_qmlTabletRoot) {
+        return;
+    }
+
+    QMetaObject::invokeMethod(_qmlTabletRoot, "closeDialog");
+}
+
 void TabletProxy::emitWebEvent(const QVariant& msg) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "emitWebEvent", Q_ARG(QVariant, msg));
@@ -439,7 +454,11 @@ void TabletProxy::emitWebEvent(const QVariant& msg) {
 
 void TabletProxy::onTabletShown() {
     if (_tabletShown) {
-        static_cast<TabletScriptingInterface*>(parent())->playSound(TabletScriptingInterface::TabletOpen);
+        Setting::Handle<bool> notificationSounds{ QStringLiteral("play_notification_sounds"), true};
+        Setting::Handle<bool> notificationSoundTablet{ QStringLiteral("play_notification_sounds_tablet"), true};
+        if (notificationSounds.get() && notificationSoundTablet.get()) {
+            dynamic_cast<TabletScriptingInterface*>(parent())->playSound(TabletScriptingInterface::TabletOpen);
+        }
         if (_showRunningScripts) {
             _showRunningScripts = false;
             pushOntoStack("hifi/dialogs/TabletRunningScripts.qml");

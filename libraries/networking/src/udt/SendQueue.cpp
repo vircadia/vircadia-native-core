@@ -479,8 +479,7 @@ bool SendQueue::maybeResendPacket() {
                         debugString = debugString.arg(QString::number(resendPacket.getMessageNumber()),
                                                       QString::number(resendPacket.getMessagePartNumber()));
                     }
-                    static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("^Obfuscating packet .*");
-                    qCritical() << qPrintable(debugString);
+                    HIFI_FDEBUG(debugString);
 #endif
 
                     // Create copy of the packet

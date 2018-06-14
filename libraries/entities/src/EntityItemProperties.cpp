@@ -9,24 +9,28 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QDebug>
-#include <QHash>
-#include <QObject>
-#include <QtCore/QJsonDocument>
+#include "EntityItemProperties.h"
+
 #include <openssl/err.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <openssl/ecdsa.h>
-#include <NetworkAccessManager.h>
+
+#include <QDebug>
+#include <QHash>
+#include <QObject>
+#include <QtCore/QJsonDocument>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
+
+#include <NetworkAccessManager.h>
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
 #include <Extents.h>
+
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
-#include "EntityItemProperties.h"
 #include "ModelEntityItem.h"
 #include "PolyLineEntityItem.h"
 
@@ -126,7 +130,7 @@ void buildStringToMaterialMappingModeLookup() {
     addMaterialMappingMode(PROJECTED);
 }
 
-QString getCollisionGroupAsString(uint8_t group) {
+QString getCollisionGroupAsString(uint16_t group) {
     switch (group) {
         case USER_COLLISION_GROUP_DYNAMIC:
             return "dynamic";
@@ -142,7 +146,7 @@ QString getCollisionGroupAsString(uint8_t group) {
     return "";
 }
 
-uint8_t getCollisionGroupAsBitMask(const QStringRef& name) {
+uint16_t getCollisionGroupAsBitMask(const QStringRef& name) {
     if (0 == name.compare(QString("dynamic"))) {
         return USER_COLLISION_GROUP_DYNAMIC;
     } else if (0 == name.compare(QString("static"))) {
@@ -160,7 +164,7 @@ uint8_t getCollisionGroupAsBitMask(const QStringRef& name) {
 QString EntityItemProperties::getCollisionMaskAsString() const {
     QString maskString("");
     for (int i = 0; i < NUM_USER_COLLISION_GROUPS; ++i) {
-        uint8_t group = 0x01 << i;
+        uint16_t group = 0x0001 << i;
         if (group & _collisionMask) {
             maskString.append(getCollisionGroupAsString(group));
             maskString.append(',');
@@ -171,7 +175,7 @@ QString EntityItemProperties::getCollisionMaskAsString() const {
 
 void EntityItemProperties::setCollisionMaskFromString(const QString& maskString) {
     QVector<QStringRef> groups = maskString.splitRef(',');
-    uint8_t mask = 0x00;
+    uint16_t mask = 0x0000;
     for (auto groupName : groups) {
         mask |= getCollisionGroupAsBitMask(groupName);
     }
@@ -363,6 +367,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_POS, materialMappingPos);
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_SCALE, materialMappingScale);
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_ROT, materialMappingRot);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_DATA, materialData);
+    CHECK_PROPERTY_CHANGE(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
 
     // Certifiable Properties
     CHECK_PROPERTY_CHANGE(PROP_ITEM_NAME, itemName);
@@ -431,6 +437,13 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_DPI, dpi);
     CHECK_PROPERTY_CHANGE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
 
+    CHECK_PROPERTY_CHANGE(PROP_CLONEABLE, cloneable);
+    CHECK_PROPERTY_CHANGE(PROP_CLONE_LIFETIME, cloneLifetime);
+    CHECK_PROPERTY_CHANGE(PROP_CLONE_LIMIT, cloneLimit);
+    CHECK_PROPERTY_CHANGE(PROP_CLONE_DYNAMIC, cloneDynamic);
+    CHECK_PROPERTY_CHANGE(PROP_CLONE_AVATAR_ENTITY, cloneAvatarEntity);
+    CHECK_PROPERTY_CHANGE(PROP_CLONE_ORIGIN_ID, cloneOriginID);
+
     changedProperties += _animation.getChangedProperties();
     changedProperties += _keyLight.getChangedProperties();
     changedProperties += _ambientLight.getChangedProperties();
@@ -474,20 +487,22 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {boolean} locked=false - Whether or not the entity can be edited or deleted. If <code>true</code> then the 
  *     entity's properties other than <code>locked</code> cannot be changed, and the entity cannot be deleted.
  * @property {boolean} visible=true - Whether or not the entity is rendered. If <code>true</code> then the entity is rendered.
- * @property {boolean} canCastShadows=true - Whether or not the entity casts shadows. Currently applicable only to 
+ * @property {boolean} canCastShadow=true - Whether or not the entity can cast a shadow. Currently applicable only to 
  *     {@link Entities.EntityType|Model} and {@link Entities.EntityType|Shape} entities. Shadows are cast if inside a 
- *     {@link Entities.EntityType|Zone} entity with <code>castShadows</code> enabled in its {@link Entities.EntityProperties-Zone|keyLight} property.
+ *     {@link Entities.EntityType|Zone} entity with <code>castShadows</code> enabled in its 
+ *     {@link Entities.EntityProperties-Zone|keyLight} property.
+ * @property {boolean} isVisibleInSecondaryCamera=true - Whether or not the entity is rendered in the secondary camera. If <code>true</code> then the entity is rendered.
  *
  * @property {Vec3} position=0,0,0 - The position of the entity.
  * @property {Quat} rotation=0,0,0,1 - The orientation of the entity with respect to world coordinates.
  * @property {Vec3} registrationPoint=0.5,0.5,0.5 - The point in the entity that is set to the entity's position and is rotated 
- *      about, {@link Vec3|Vec3.ZERO} &ndash; {@link Vec3|Vec3.ONE}. A value of {@link Vec3|Vec3.ZERO} is the entity's
- *      minimum x, y, z corner; a value of {@link Vec3|Vec3.ONE} is the entity's maximum x, y, z corner.
+ *      about, {@link Vec3(0)|Vec3.ZERO} &ndash; {@link Vec3(0)|Vec3.ONE}. A value of {@link Vec3(0)|Vec3.ZERO} is the entity's
+ *      minimum x, y, z corner; a value of {@link Vec3(0)|Vec3.ONE} is the entity's maximum x, y, z corner.
  *
  * @property {Vec3} naturalPosition=0,0,0 - The center of the entity's unscaled mesh model if it has one, otherwise
- *     {@link Vec3|Vec3.ZERO}. <em>Read-only.</em>
+ *     {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
  * @property {Vec3} naturalDimensions - The dimensions of the entity's unscaled mesh model if it has one, otherwise 
- *     {@link Vec3|Vec3.ONE}. <em>Read-only.</em>
+ *     {@link Vec3(0)|Vec3.ONE}. <em>Read-only.</em>
  *
  * @property {Vec3} velocity=0,0,0 - The linear velocity of the entity in m/s with respect to world coordinates.
  * @property {number} damping=0.39347 - How much to slow down the linear velocity of an entity over time, <code>0.0</code> 
@@ -504,13 +519,13 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Vec3} gravity=0,0,0 - The acceleration due to gravity in m/s<sup>2</sup> that the entity should move with, in 
  *     world coordinates. Set to <code>{ x: 0, y: -9.8, z: 0 }</code> to simulate Earth's gravity. Gravity is applied to an 
  *     entity's motion only if its <code>dynamic</code> property is <code>true</code>. If changing an entity's 
- *     <code>gravity</code> from {@link Vec3|Vec3.ZERO}, you need to give it a small <code>velocity</code> in order to kick off 
- *     physics simulation.
+ *     <code>gravity</code> from {@link Vec3(0)|Vec3.ZERO}, you need to give it a small <code>velocity</code> in order to kick 
+ *     off physics simulation.
  *     The <code>gravity</code> value is applied in addition to the <code>acceleration</code> value.
  * @property {Vec3} acceleration=0,0,0 - A general acceleration in m/s<sup>2</sup> that the entity should move with, in world 
  *     coordinates. The acceleration is applied to an entity's motion only if its <code>dynamic</code> property is 
- *     <code>true</code>. If changing an entity's <code>acceleration</code> from {@link Vec3|Vec3.ZERO}, you need to give it a 
- *     small <code>velocity</code> in order to kick off physics simulation.
+ *     <code>true</code>. If changing an entity's <code>acceleration</code> from {@link Vec3(0)|Vec3.ZERO}, you need to give it 
+ *     a small <code>velocity</code> in order to kick off physics simulation.
  *     The <code>acceleration</code> value is applied in addition to the <code>gravity</code> value.
  * @property {number} restitution=0.5 - The "bounciness" of an entity when it collides, <code>0.0</code> &ndash; 
  *     <code>0.99</code>. The higher the value, the more bouncy.
@@ -581,6 +596,15 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <em>Read-only.</em>
  * @property {Entities.RenderInfo} renderInfo - Information on the cost of rendering the entity. Currently information is only 
  *     provided for <code>Model</code> entities. <em>Read-only.</em>
+ *
+ * @property {boolean} cloneable=false - If <code>true</code> then the entity can be cloned via {@link Entities.cloneEntity}.
+ * @property {number} cloneLifetime=300 - The entity lifetime for clones created from this entity.
+ * @property {number} cloneLimit=0 - The total number of clones of this entity that can exist in the domain at any given time.
+ * @property {boolean} cloneDynamic=false - If <code>true</code> then clones created from this entity will have their 
+ *     <code>dynamic</code> property set to <code>true</code>.
+ * @property {boolean} cloneAvatarEntity=false - If <code>true</code> then clones created from this entity will be created as 
+ *     avatar entities: their <code>clientOnly</code> property will be set to <code>true</code>.
+ * @property {Uuid} cloneOriginID - The ID of the entity that this entity was cloned from.
  *
  * @property {string} itemName="" - Certifiable name of the Marketplace item.
  * @property {string} itemDescription="" - Certifiable description of the Marketplace item.
@@ -693,8 +717,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @typedef {object} Entities.EntityProperties-Material
  * @property {string} materialURL="" - URL to a {@link MaterialResource}. If you append <code>?name</code> to the URL, the 
  *     material with that name in the {@link MaterialResource} will be applied to the entity. <br />
- *     Alternatively, set the property value to <code>"userData"</code> to use the {@link Entities.EntityProperties|userData} 
- *     entity property to live edit the material resource values.
+ *     Alternatively, set the property value to <code>"materialData"</code> to use the <code>materialData</code> property  
+ *     for the {@link MaterialResource} values.
  * @property {number} priority=0 - The priority for applying the material to its parent. Only the highest priority material is 
  *     applied, with materials of the same priority randomly assigned. Materials that come with the model have a priority of 
  *     <code>0</code>.
@@ -708,6 +732,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <code>{ x: 0, y: 0 }</code> &ndash; <code>{ x: 1, y: 1 }</code>.
  * @property {Vec2} materialMappingScale=1,1 - How much to scale the material within the parent's UV-space.
  * @property {number} materialMappingRot=0 - How much to rotate the material within the parent's UV-space, in degrees.
+ * @property {string} materialData="" - Used to store {@link MaterialResource} data as a JSON string. You can use 
+ *     <code>JSON.parse()</code> to parse the string into a JavaScript object which you can manipulate the properties of, and 
+ *     use <code>JSON.stringify()</code> to convert the object into a string to put in the property.
  * @example <caption>Color a sphere using a Material entity.</caption>
  * var entityID = Entities.addEntity({
  *     type: "Sphere",
@@ -720,13 +747,14 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * var materialID = Entities.addEntity({
  *     type: "Material",
  *     parentID: entityID,
- *     materialURL: "userData",
+ *     materialURL: "materialData",
  *     priority: 1,
- *     userData: JSON.stringify({
+ *     materialData: JSON.stringify({
+ *         materialVersion: 1,
  *         materials: {
  *             // Can only set albedo on a Shape entity.
  *             // Value overrides entity's "color" property.
- *             albedo: [1.0, 0, 0]
+ *             albedo: [1.0, 1.0, 0]  // Yellow
  *         }
  *     }),
  * });
@@ -1208,6 +1236,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ACTION_DATA, actionData);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCKED, locked);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_USER_DATA, userData);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
 
     // Certifiable Properties
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ITEM_NAME, itemName);
@@ -1252,7 +1282,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLOR_SPREAD, colorSpread);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLOR_START, colorStart);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLOR_FINISH, colorFinish);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_SPREAD, alphaSpread);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_START, alphaStart);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_FINISH, alphaFinish);
@@ -1376,11 +1405,12 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_MAPPING_POS, materialMappingPos);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_MAPPING_SCALE, materialMappingScale);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_MAPPING_ROT, materialMappingRot);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_DATA, materialData);
     }
 
     /**jsdoc
      * The axis-aligned bounding box of an entity.
-     * @typedef Entities.BoundingBox
+     * @typedef {object} Entities.BoundingBox
      * @property {Vec3} brn - The bottom right near (minimum axes values) corner of the AA box.
      * @property {Vec3} tfl - The top far left (maximum axes values) corner of the AA box.
      * @property {Vec3} center - The center of the AA box.
@@ -1418,6 +1448,13 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLIENT_ONLY, clientOnly);  // Gettable but not settable except at entity creation
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);  // Gettable but not settable
+
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONEABLE, cloneable);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_LIFETIME, cloneLifetime);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_LIMIT, cloneLimit);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_DYNAMIC, cloneDynamic);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_AVATAR_ENTITY, cloneAvatarEntity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_ORIGIN_ID, cloneOriginID);
 
     // Rendering info
     if (!skipDefaults && !strictSemantics) {
@@ -1495,7 +1532,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localRenderAlpha, float, setLocalRenderAlpha);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionless, bool, setCollisionless);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(ignoreForCollisions, bool, setCollisionless, getCollisionless); // legacy support
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionMask, uint8_t, setCollisionMask);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionMask, uint16_t, setCollisionMask);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(collidesWith, CollisionMask);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(collisionsWillMove, bool, setDynamic, getDynamic); // legacy support
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dynamic, bool, setDynamic);
@@ -1539,6 +1576,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingPos, glmVec2, setMaterialMappingPos);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingScale, glmVec2, setMaterialMappingScale);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingRot, float, setMaterialMappingRot);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialData, QString, setMaterialData);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(isVisibleInSecondaryCamera, bool, setIsVisibleInSecondaryCamera);
 
     // Certifiable Properties
     COPY_PROPERTY_FROM_QSCRIPTVALUE(itemName, QString, setItemName);
@@ -1629,6 +1668,13 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(owningAvatarID, QUuid, setOwningAvatarID);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dpi, uint16_t, setDPI);
+
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneable, bool, setCloneable);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneLifetime, float, setCloneLifetime);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneLimit, float, setCloneLimit);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneDynamic, bool, setCloneDynamic);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneAvatarEntity, bool, setCloneAvatarEntity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneOriginID, QUuid, setCloneOriginID);
 
     _lastEdited = usecTimestampNow();
 }
@@ -1781,6 +1827,13 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
 
     COPY_PROPERTY_IF_CHANGED(dpi);
 
+    COPY_PROPERTY_IF_CHANGED(cloneable);
+    COPY_PROPERTY_IF_CHANGED(cloneLifetime);
+    COPY_PROPERTY_IF_CHANGED(cloneLimit);
+    COPY_PROPERTY_IF_CHANGED(cloneDynamic);
+    COPY_PROPERTY_IF_CHANGED(cloneAvatarEntity);
+    COPY_PROPERTY_IF_CHANGED(cloneOriginID);
+
     _lastEdited = usecTimestampNow();
 }
 
@@ -1856,7 +1909,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_ANGULAR_DAMPING, AngularDamping, angularDamping, float);
         ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, Collisionless, collisionless, bool);
-        ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, ignoreForCollisions, unused); // legacy support
+        ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, unused, ignoreForCollisions, unused); // legacy support
         ADD_PROPERTY_TO_MAP(PROP_COLLISION_MASK, unused, collisionMask, unused);
         ADD_PROPERTY_TO_MAP(PROP_COLLISION_MASK, unused, collidesWith, unused);
         ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, collisionsWillMove, unused); // legacy support
@@ -1902,6 +1955,9 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_POS, MaterialMappingPos, materialMappingPos, glmVec2);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale, glmVec2);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_ROT, MaterialMappingRot, materialMappingRot, float);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_DATA, MaterialData, materialData, QString);
+
+        ADD_PROPERTY_TO_MAP(PROP_VISIBLE_IN_SECONDARY_CAMERA, IsVisibleInSecondaryCamera, isVisibleInSecondaryCamera, bool);
 
         // Certifiable Properties
         ADD_PROPERTY_TO_MAP(PROP_ITEM_NAME, ItemName, itemName, QString);
@@ -2003,6 +2059,13 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_SKYBOX_MODE, SkyboxMode, skyboxMode, uint32_t);
 
         ADD_PROPERTY_TO_MAP(PROP_DPI, DPI, dpi, uint16_t);
+
+        ADD_PROPERTY_TO_MAP(PROP_CLONEABLE, Cloneable, cloneable, bool);
+        ADD_PROPERTY_TO_MAP(PROP_CLONE_LIFETIME, CloneLifetime, cloneLifetime, float);
+        ADD_PROPERTY_TO_MAP(PROP_CLONE_LIMIT, CloneLimit, cloneLimit, float);
+        ADD_PROPERTY_TO_MAP(PROP_CLONE_DYNAMIC, CloneDynamic, cloneDynamic, bool);
+        ADD_PROPERTY_TO_MAP(PROP_CLONE_AVATAR_ENTITY, CloneAvatarEntity, cloneAvatarEntity, bool);
+        ADD_PROPERTY_TO_MAP(PROP_CLONE_ORIGIN_ID, CloneOriginID, cloneOriginID, QUuid);
 
         // FIXME - these are not yet handled
         //ADD_PROPERTY_TO_MAP(PROP_CREATED, Created, created, quint64);
@@ -2298,6 +2361,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_POS, properties.getMaterialMappingPos());
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_SCALE, properties.getMaterialMappingScale());
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_ROT, properties.getMaterialMappingRot());
+                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_DATA, properties.getMaterialData());
             }
 
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
@@ -2317,6 +2381,12 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             APPEND_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, properties.getEntityInstanceNumber());
             APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, properties.getCertificateID());
             APPEND_ENTITY_PROPERTY(PROP_STATIC_CERTIFICATE_VERSION, properties.getStaticCertificateVersion());
+
+            APPEND_ENTITY_PROPERTY(PROP_CLONEABLE, properties.getCloneable());
+            APPEND_ENTITY_PROPERTY(PROP_CLONE_LIFETIME, properties.getCloneLifetime());
+            APPEND_ENTITY_PROPERTY(PROP_CLONE_LIMIT, properties.getCloneLimit());
+            APPEND_ENTITY_PROPERTY(PROP_CLONE_DYNAMIC, properties.getCloneDynamic());
+            APPEND_ENTITY_PROPERTY(PROP_CLONE_AVATAR_ENTITY, properties.getCloneAvatarEntity());
         }
 
         if (propertyCount > 0) {
@@ -2521,7 +2591,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE, bool, setVisible);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONLESS, bool, setCollisionless);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_MASK, uint8_t, setCollisionMask);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_MASK, uint16_t, setCollisionMask);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DYNAMIC, bool, setDynamic);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_USER_DATA, QString, setUserData);
@@ -2666,6 +2736,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_POS, glmVec2, setMaterialMappingPos);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_SCALE, glmVec2, setMaterialMappingScale);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_ROT, float, setMaterialMappingRot);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_DATA, QString, setMaterialData);
     }
 
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NAME, QString, setName);
@@ -2685,6 +2756,12 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ENTITY_INSTANCE_NUMBER, quint32, setEntityInstanceNumber);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CERTIFICATE_ID, QString, setCertificateID);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STATIC_CERTIFICATE_VERSION, quint32, setStaticCertificateVersion);
+
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONEABLE, bool, setCloneable);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONE_LIFETIME, float, setCloneLifetime);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONE_LIMIT, float, setCloneLimit);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONE_DYNAMIC, bool, setCloneDynamic);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONE_AVATAR_ENTITY, bool, setCloneAvatarEntity);
 
     return valid;
 }
@@ -2761,6 +2838,52 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
     outputLength += NUM_BYTES_RFC4122_UUID;
 
     buffer.resize(outputLength);
+
+    return true;
+}
+
+bool EntityItemProperties::encodeCloneEntityMessage(const EntityItemID& entityIDToClone, const EntityItemID& newEntityID, QByteArray& buffer) {
+    char* copyAt = buffer.data();
+    int outputLength = 0;
+
+    if (buffer.size() < (int)(NUM_BYTES_RFC4122_UUID * 2)) {
+        qCDebug(entities) << "ERROR - encodeCloneEntityMessage() called with buffer that is too small!";
+        return false;
+    }
+
+    memcpy(copyAt, entityIDToClone.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
+    copyAt += NUM_BYTES_RFC4122_UUID;
+    outputLength += NUM_BYTES_RFC4122_UUID;
+
+    memcpy(copyAt, newEntityID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
+    copyAt += NUM_BYTES_RFC4122_UUID;
+    outputLength += NUM_BYTES_RFC4122_UUID;
+
+    buffer.resize(outputLength);
+
+    return true;
+}
+
+bool EntityItemProperties::decodeCloneEntityMessage(const QByteArray& buffer, int& processedBytes, EntityItemID& entityIDToClone, EntityItemID& newEntityID) {
+    const unsigned char* packetData = (const unsigned char*)buffer.constData();
+    const unsigned char* dataAt = packetData;
+    size_t packetLength = buffer.size();
+    processedBytes = 0;
+
+    if (NUM_BYTES_RFC4122_UUID * 2 > packetLength) {
+        qCDebug(entities) << "EntityItemProperties::processEraseMessageDetails().... bailing because not enough bytes in buffer";
+        return false; // bail to prevent buffer overflow
+    }
+
+    QByteArray encodedID = buffer.mid((int)processedBytes, NUM_BYTES_RFC4122_UUID);
+    entityIDToClone = QUuid::fromRfc4122(encodedID);
+    dataAt += encodedID.size();
+    processedBytes += encodedID.size();
+
+    encodedID = buffer.mid((int)processedBytes, NUM_BYTES_RFC4122_UUID);
+    newEntityID = QUuid::fromRfc4122(encodedID);
+    dataAt += encodedID.size();
+    processedBytes += encodedID.size();
 
     return true;
 }
@@ -2849,6 +2972,7 @@ void EntityItemProperties::markAllChanged() {
     _materialMappingPosChanged = true;
     _materialMappingScaleChanged = true;
     _materialMappingRotChanged = true;
+    _materialDataChanged = true;
 
     // Certifiable Properties
     _itemNameChanged = true;
@@ -2925,6 +3049,15 @@ void EntityItemProperties::markAllChanged() {
 
     _dpiChanged = true;
     _relayParentJointsChanged = true;
+
+    _cloneableChanged = true;
+    _cloneLifetimeChanged = true;
+    _cloneLimitChanged = true;
+    _cloneDynamicChanged = true;
+    _cloneAvatarEntityChanged = true;
+    _cloneOriginIDChanged = true;
+
+    _isVisibleInSecondaryCameraChanged = true;
 }
 
 // The minimum bounding box for the entity.
@@ -3200,6 +3333,12 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (materialMappingRotChanged()) {
         out += "materialMappingRot";
     }
+    if (materialDataChanged()) {
+        out += "materialData";
+    }
+    if (isVisibleInSecondaryCameraChanged()) {
+        out += "isVisibleInSecondaryCamera";
+    }
 
     // Certifiable Properties
     if (itemNameChanged()) {
@@ -3352,6 +3491,25 @@ QList<QString> EntityItemProperties::listChangedProperties() {
 
     if (isUVModeStretchChanged()) {
         out += "isUVModeStretch";
+    }
+
+    if (cloneableChanged()) {
+        out += "cloneable";
+    }
+    if (cloneLifetimeChanged()) {
+        out += "cloneLifetime";
+    }
+    if (cloneLimitChanged()) {
+        out += "cloneLimit";
+    }
+    if (cloneDynamicChanged()) {
+        out += "cloneDynamic";
+    }
+    if (cloneAvatarEntityChanged()) {
+        out += "cloneAvatarEntity";
+    }
+    if (cloneOriginIDChanged()) {
+        out += "cloneOriginID";
     }
 
     getAnimation().listChangedProperties(out);
@@ -3516,4 +3674,19 @@ bool EntityItemProperties::verifyStaticCertificateProperties() {
     // True IFF a non-empty certificateID matches the static certificate json.
     // I.e., if we can verify that the certificateID was produced by High Fidelity signing the static certificate hash.
     return verifySignature(EntityItem::_marketplacePublicKey, getStaticCertificateHash(), QByteArray::fromBase64(getCertificateID().toUtf8()));
+}
+
+void EntityItemProperties::convertToCloneProperties(const EntityItemID& entityIDToClone) {
+    setName(getName() + "-clone-" + entityIDToClone.toString());
+    setLocked(false);
+    setLifetime(getCloneLifetime());
+    setDynamic(getCloneDynamic());
+    setClientOnly(getCloneAvatarEntity());
+    setCreated(usecTimestampNow());
+    setLastEdited(usecTimestampNow());
+    setCloneable(ENTITY_ITEM_DEFAULT_CLONEABLE);
+    setCloneLifetime(ENTITY_ITEM_DEFAULT_CLONE_LIFETIME);
+    setCloneLimit(ENTITY_ITEM_DEFAULT_CLONE_LIMIT);
+    setCloneDynamic(ENTITY_ITEM_DEFAULT_CLONE_DYNAMIC);
+    setCloneAvatarEntity(ENTITY_ITEM_DEFAULT_CLONE_AVATAR_ENTITY);
 }

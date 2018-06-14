@@ -116,10 +116,18 @@ var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
 var MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE = "Show Lights and Particle Systems in Create Mode";
 var MENU_SHOW_ZONES_IN_EDIT_MODE = "Show Zones in Create Mode";
 
+var MENU_CREATE_ENTITIES_GRABBABLE = "Create Entities As Grabbable (except Zones, Particles, and Lights)";
+var MENU_ALLOW_SELECTION_LARGE = "Allow Selecting of Large Models";
+var MENU_ALLOW_SELECTION_SMALL = "Allow Selecting of Small Models";
+var MENU_ALLOW_SELECTION_LIGHTS = "Allow Selecting of Lights";
+
 var SETTING_AUTO_FOCUS_ON_SELECT = "autoFocusOnSelect";
 var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
 var SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE = "showLightsAndParticlesInEditMode";
 var SETTING_SHOW_ZONES_IN_EDIT_MODE = "showZonesInEditMode";
+
+var SETTING_EDIT_PREFIX = "Edit/";
+
 
 var CREATE_ENABLED_ICON = "icons/tablet-icons/edit-i.svg";
 var CREATE_DISABLED_ICON = "icons/tablet-icons/edit-disabled.svg";
@@ -226,7 +234,25 @@ function adjustPositionPerBoundingBox(position, direction, registration, dimensi
 
 var TOOLS_PATH = Script.resolvePath("assets/images/tools/");
 var GRABBABLE_ENTITIES_MENU_CATEGORY = "Edit";
-var GRABBABLE_ENTITIES_MENU_ITEM = "Create Entities As Grabbable (except Zones, Particles, and Lights)";
+
+// Handles any edit mode updates required when domains have switched
+function checkEditPermissionsAndUpdate() {
+    if ((createButton === null) || (createButton === undefined)) {
+        //--EARLY EXIT--( nothing to safely update )
+        return;
+    }
+
+    var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
+    createButton.editProperties({
+        icon: (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON),
+        captionColor: (hasRezPermissions ? "#ffffff" : "#888888"),
+    });
+
+    if (!hasRezPermissions && isActive) {
+        that.setActive(false);
+        tablet.gotoHomeScreen();
+    }
+}
 
 var toolBar = (function () {
     var EDIT_SETTING = "io.highfidelity.isEditing"; // for communication with other scripts
@@ -280,7 +306,7 @@ var toolBar = (function () {
 
             position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions);
             properties.position = position;
-            if (Menu.isOptionChecked(GRABBABLE_ENTITIES_MENU_ITEM) &&
+            if (Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE) &&
                 !(properties.type === "Zone" || properties.type === "Light" || properties.type === "ParticleEffect")) {
                 properties.userData = JSON.stringify({ grabbableKey: { grabbable: true } });
             } else {
@@ -338,7 +364,6 @@ var toolBar = (function () {
         if (systemToolbar) {
             systemToolbar.removeButton(EDIT_TOGGLE_BUTTON);
         }
-        Menu.removeMenuItem(GRABBABLE_ENTITIES_MENU_CATEGORY, GRABBABLE_ENTITIES_MENU_ITEM);
     }
 
     var buttonHandlers = {}; // only used to tablet mode
@@ -409,6 +434,12 @@ var toolBar = (function () {
             //    default:
             //        shapeType = "uv";
             //}
+            var materialData = "";
+            if (materialURL.startsWith("materialData")) {
+                materialData = JSON.stringify({
+                    "materials": {}
+                })
+            }
 
             var DEFAULT_LAYERED_MATERIAL_PRIORITY = 1;
             if (materialURL) {
@@ -416,7 +447,8 @@ var toolBar = (function () {
                     type: "Material",
                     materialURL: materialURL,
                     //materialMappingMode: materialMappingMode,
-                    priority: DEFAULT_LAYERED_MATERIAL_PRIORITY
+                    priority: DEFAULT_LAYERED_MATERIAL_PRIORITY,
+                    materialData: materialData
                 });
             }
         }
@@ -438,20 +470,51 @@ var toolBar = (function () {
         }
     }
 
+    var entitiesToDelete = [];
+    var deletedEntityTimer = null;
+    var DELETE_ENTITY_TIMER_TIMEOUT = 100;
+
+    function checkDeletedEntityAndUpdate(entityID) {
+        // Allow for multiple entity deletes before updating the entity list.
+        entitiesToDelete.push(entityID);
+        if (deletedEntityTimer !== null) {
+            Script.clearTimeout(deletedEntityTimer);
+        }
+        deletedEntityTimer = Script.setTimeout(function () {
+            selectionManager.removeEntities(entitiesToDelete);
+            entityListTool.clearEntityList();
+            entityListTool.sendUpdate();
+            entitiesToDelete = [];
+            deletedEntityTimer = null;
+        }, DELETE_ENTITY_TIMER_TIMEOUT);
+    }
+
     function initialize() {
         Script.scriptEnding.connect(cleanup);
         Window.domainChanged.connect(function () {
+            if (isActive) {
+                tablet.gotoHomeScreen();
+            }
             that.setActive(false);
             that.clearEntityList();
+            checkEditPermissionsAndUpdate();
         });
 
         Entities.canAdjustLocksChanged.connect(function (canAdjustLocks) {
             if (isActive && !canAdjustLocks) {
                 that.setActive(false);
             }
+            checkEditPermissionsAndUpdate();
         });
 
+        Entities.canRezChanged.connect(checkEditPermissionsAndUpdate);
+        Entities.canRezTmpChanged.connect(checkEditPermissionsAndUpdate);
+        Entities.canRezCertifiedChanged.connect(checkEditPermissionsAndUpdate);
+        Entities.canRezTmpCertifiedChanged.connect(checkEditPermissionsAndUpdate);
         var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
+
+        Entities.deletingEntity.connect(checkDeletedEntityAndUpdate);
+
         var createButtonIconRsrc = (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON);
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         activeButton = tablet.addButton({
@@ -714,7 +777,6 @@ var toolBar = (function () {
             selectionDisplay.triggerMapping.enable();
             print("starting tablet in landscape mode");
             tablet.landscape = true;
-            entityIconOverlayManager.setIconsSelectable(null,false);
             // Not sure what the following was meant to accomplish, but it currently causes
             // everybody else to think that Interface has lost focus overall. fogbugzid:558
             // Window.setFocus();
@@ -836,28 +898,10 @@ function handleOverlaySelectionToolUpdates(channel, message, sender) {
     }
 }
 
-// Handles any edit mode updates required when domains have switched
-function handleDomainChange() {
-    if ( (createButton === null) || (createButton === undefined) ){
-        //--EARLY EXIT--( nothing to safely update )
-        return;
-    }
-
-    var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp() || Entities.canRezCertified() || Entities.canRezTmpCertified());
-    createButton.editProperties({
-        icon: (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON),
-        captionColor: (hasRezPermissions ? "#ffffff" : "#888888"),
-    });
-}
-
 function handleMessagesReceived(channel, message, sender) {
     switch( channel ){
         case 'entityToolUpdates': {
             handleOverlaySelectionToolUpdates( channel, message, sender );
-            break;
-        }
-        case 'Toolbar-DomainChanged': {
-            handleDomainChange();
             break;
         }
         default: {
@@ -866,7 +910,6 @@ function handleMessagesReceived(channel, message, sender) {
     }
 }
 
-Messages.subscribe('Toolbar-DomainChanged');
 Messages.subscribe("entityToolUpdates");
 Messages.messageReceived.connect(handleMessagesReceived);
 
@@ -1105,8 +1148,7 @@ function setupModelMenus() {
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Entities",
-        isSeparator: true,
-        grouping: "Advanced"
+        isSeparator: true
     });
     if (!Menu.menuItemExists("Edit", "Delete")) {
         Menu.addMenuItem({
@@ -1116,125 +1158,104 @@ function setupModelMenus() {
                 text: "delete"
             },
             afterItem: "Entities",
-            grouping: "Advanced"
         });
         modelMenuAddedDelete = true;
     }
-    Menu.addMenuItem({
-        menuName: "Edit",
-        menuItemName: "Entity List...",
-        afterItem: "Entities",
-        grouping: "Advanced"
-    });
 
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Parent Entity to Last",
-        afterItem: "Entity List...",
-        grouping: "Advanced"
+        afterItem: "Entities"
     });
 
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Unparent Entity",
-        afterItem: "Parent Entity to Last",
-        grouping: "Advanced"
+        afterItem: "Parent Entity to Last"
     });
 
     Menu.addMenuItem({
         menuName: GRABBABLE_ENTITIES_MENU_CATEGORY,
-        menuItemName: GRABBABLE_ENTITIES_MENU_ITEM,
+        menuItemName: MENU_CREATE_ENTITIES_GRABBABLE,
         afterItem: "Unparent Entity",
         isCheckable: true,
-        isChecked: true,
-        grouping: "Advanced"
+        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_CREATE_ENTITIES_GRABBABLE, true)
     });
 
     Menu.addMenuItem({
         menuName: "Edit",
-        menuItemName: "Allow Selecting of Large Models",
-        afterItem: GRABBABLE_ENTITIES_MENU_ITEM,
+        menuItemName: MENU_ALLOW_SELECTION_LARGE,
+        afterItem: MENU_CREATE_ENTITIES_GRABBABLE,
         isCheckable: true,
-        isChecked: true,
-        grouping: "Advanced"
+        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LARGE, true)
     });
     Menu.addMenuItem({
         menuName: "Edit",
-        menuItemName: "Allow Selecting of Small Models",
-        afterItem: "Allow Selecting of Large Models",
+        menuItemName: MENU_ALLOW_SELECTION_SMALL,
+        afterItem: MENU_ALLOW_SELECTION_LARGE,
         isCheckable: true,
-        isChecked: true,
-        grouping: "Advanced"
+        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_SMALL, true)
     });
     Menu.addMenuItem({
         menuName: "Edit",
-        menuItemName: "Allow Selecting of Lights",
-        afterItem: "Allow Selecting of Small Models",
+        menuItemName: MENU_ALLOW_SELECTION_LIGHTS,
+        afterItem: MENU_ALLOW_SELECTION_SMALL,
         isCheckable: true,
-        grouping: "Advanced"
+        isChecked: Settings.getValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LIGHTS, false)
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Select All Entities In Box",
-        afterItem: "Allow Selecting of Lights",
-        grouping: "Advanced"
+        afterItem: "Allow Selecting of Lights"
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Select All Entities Touching Box",
-        afterItem: "Select All Entities In Box",
-        grouping: "Advanced"
+        afterItem: "Select All Entities In Box"
     });
 
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Export Entities",
-        afterItem: "Entities",
-        grouping: "Advanced"
+        afterItem: "Entities"
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Import Entities",
-        afterItem: "Export Entities",
-        grouping: "Advanced"
+        afterItem: "Export Entities"
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Import Entities from URL",
-        afterItem: "Import Entities",
-        grouping: "Advanced"
+        afterItem: "Import Entities"
     });
 
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: MENU_AUTO_FOCUS_ON_SELECT,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_AUTO_FOCUS_ON_SELECT) === "true",
-        grouping: "Advanced"
+        isChecked: Settings.getValue(SETTING_AUTO_FOCUS_ON_SELECT) === "true"
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: MENU_EASE_ON_FOCUS,
         afterItem: MENU_AUTO_FOCUS_ON_SELECT,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) === "true",
-        grouping: "Advanced"
+        isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) === "true"
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE,
         afterItem: MENU_EASE_ON_FOCUS,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE) !== "false",
-        grouping: "Advanced"
+        isChecked: Settings.getValue(SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE) !== "false"
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: MENU_SHOW_ZONES_IN_EDIT_MODE,
         afterItem: MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_SHOW_ZONES_IN_EDIT_MODE) !== "false",
-        grouping: "Advanced"
+        isChecked: Settings.getValue(SETTING_SHOW_ZONES_IN_EDIT_MODE) !== "false"
     });
 
     Entities.setLightsArePickable(false);
@@ -1251,7 +1272,6 @@ function cleanupModelMenus() {
 
     Menu.removeMenuItem("Edit", "Parent Entity to Last");
     Menu.removeMenuItem("Edit", "Unparent Entity");
-    Menu.removeMenuItem("Edit", "Entity List...");
     Menu.removeMenuItem("Edit", "Allow Selecting of Large Models");
     Menu.removeMenuItem("Edit", "Allow Selecting of Small Models");
     Menu.removeMenuItem("Edit", "Allow Selecting of Lights");
@@ -1266,6 +1286,7 @@ function cleanupModelMenus() {
     Menu.removeMenuItem("Edit", MENU_EASE_ON_FOCUS);
     Menu.removeMenuItem("Edit", MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE);
     Menu.removeMenuItem("Edit", MENU_SHOW_ZONES_IN_EDIT_MODE);
+    Menu.removeMenuItem("Edit", MENU_CREATE_ENTITIES_GRABBABLE);
 }
 
 Script.scriptEnding.connect(function () {
@@ -1274,6 +1295,12 @@ Script.scriptEnding.connect(function () {
     Settings.setValue(SETTING_EASE_ON_FOCUS, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
     Settings.setValue(SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
     Settings.setValue(SETTING_SHOW_ZONES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
+
+    Settings.setValue(SETTING_EDIT_PREFIX + MENU_CREATE_ENTITIES_GRABBABLE, Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE));
+    Settings.setValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LARGE, Menu.isOptionChecked(MENU_ALLOW_SELECTION_LARGE));
+    Settings.setValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_SMALL, Menu.isOptionChecked(MENU_ALLOW_SELECTION_SMALL));
+    Settings.setValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LIGHTS, Menu.isOptionChecked(MENU_ALLOW_SELECTION_LIGHTS));
+
 
     progressDialog.cleanup();
     cleanupModelMenus();
@@ -1293,8 +1320,6 @@ Script.scriptEnding.connect(function () {
 
     Messages.messageReceived.disconnect(handleMessagesReceived);
     Messages.unsubscribe("entityToolUpdates");
-    // Messages.unsubscribe("Toolbar-DomainChanged"); // Do not unsubscribe because the shapes.js app also subscribes and 
-    // Messages.subscribe works script engine-wide which would mess things up if they're both run in the same engine.
     createButton = null;
 });
 
@@ -1608,8 +1633,6 @@ function handeMenuEvent(menuItem) {
             Window.promptTextChanged.connect(onPromptTextChanged);
             Window.promptAsync("URL of SVO to import", "");
         }
-    } else if (menuItem === "Entity List...") {
-        entityListTool.toggleVisible();
     } else if (menuItem === "Select All Entities In Box") {
         selectAllEtitiesInCurrentSelectionBox(false);
     } else if (menuItem === "Select All Entities Touching Box") {
@@ -2047,7 +2070,7 @@ var PropertiesTool = function (opts) {
             parentSelectedEntities();
         } else if (data.type === 'unparent') {
             unparentSelectedEntities();
-        } else if (data.type === 'saveUserData') {
+        } else if (data.type === 'saveUserData' || data.type === 'saveMaterialData') {
             //the event bridge and json parsing handle our avatar id string differently.
             var actualID = data.id.split('"')[1];
             Entities.editEntity(actualID, data.properties);
@@ -2310,6 +2333,11 @@ var PopupMenu = function () {
         Controller.mousePressEvent.disconnect(self.mousePressEvent);
         Controller.mouseMoveEvent.disconnect(self.mouseMoveEvent);
         Controller.mouseReleaseEvent.disconnect(self.mouseReleaseEvent);
+
+        Entities.canRezChanged.disconnect(checkEditPermissionsAndUpdate);
+        Entities.canRezTmpChanged.disconnect(checkEditPermissionsAndUpdate);
+        Entities.canRezCertifiedChanged.disconnect(checkEditPermissionsAndUpdate);
+        Entities.canRezTmpCertifiedChanged.disconnect(checkEditPermissionsAndUpdate);
     }
 
     Controller.mousePressEvent.connect(self.mousePressEvent);
@@ -2334,26 +2362,21 @@ var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 
 var propertiesTool = new PropertiesTool();
 var particleExplorerTool = new ParticleExplorerTool();
-var selectedParticleEntity = 0;
 var selectedParticleEntityID = null;
 
 function selectParticleEntity(entityID) {
-    var properties = Entities.getEntityProperties(entityID);
     selectedParticleEntityID = entityID;
+
+    var properties = Entities.getEntityProperties(entityID);
     if (properties.emitOrientation) {
         properties.emitOrientation = Quat.safeEulerAngles(properties.emitOrientation);
     }
-    var particleData = {
-        messageType: "particle_settings",
-        currentProperties: properties
-    };
+
     particleExplorerTool.destroyWebView();
     particleExplorerTool.createWebView();
 
-    selectedParticleEntity = entityID;
     particleExplorerTool.setActiveParticleEntity(entityID);
-
-    particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
+    particleExplorerTool.setActiveParticleProperties(properties);
 
     // Switch to particle explorer
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
@@ -2376,13 +2399,13 @@ entityListTool.webView.webEventReceived.connect(function (data) {
         var ids = data.entityIds;
         if (ids.length === 1) {
             if (Entities.getEntityProperties(ids[0], "type").type === "ParticleEffect") {
-                if (JSON.stringify(selectedParticleEntity) === JSON.stringify(ids[0])) {
+                if (JSON.stringify(selectedParticleEntityID) === JSON.stringify(ids[0])) {
                     // This particle entity is already selected, so return
                     return;
                 }
                 // Destroy the old particles web view first
             } else {
-                selectedParticleEntity = 0;
+                selectedParticleEntityID = 0;
                 particleExplorerTool.destroyWebView();
             }
         }

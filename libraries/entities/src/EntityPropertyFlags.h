@@ -204,6 +204,13 @@ enum EntityPropertyList {
     PROP_CERTIFICATE_ID,
     PROP_STATIC_CERTIFICATE_VERSION,
 
+    PROP_CLONEABLE,
+    PROP_CLONE_LIFETIME,
+    PROP_CLONE_LIMIT,
+    PROP_CLONE_DYNAMIC,
+    PROP_CLONE_AVATAR_ENTITY,
+    PROP_CLONE_ORIGIN_ID,
+
     PROP_HAZE_MODE,
 
     PROP_KEYLIGHT_COLOR,
@@ -240,6 +247,9 @@ enum EntityPropertyList {
     PROP_MATERIAL_MAPPING_POS,
     PROP_MATERIAL_MAPPING_SCALE,
     PROP_MATERIAL_MAPPING_ROT,
+    PROP_MATERIAL_DATA,
+
+    PROP_VISIBLE_IN_SECONDARY_CAMERA, // not sent over the wire, only used locally
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line

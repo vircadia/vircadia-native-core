@@ -38,21 +38,22 @@ Rectangle {
                 id: fxaaOnOff
                 property bool debugFXAA: false
                 HifiControls.Button {
-                    text: {
-                        if (fxaaOnOff.debugFXAA) {
-                            return "FXAA"
-                        } else {
-                            return "TAA"
+                    function getTheText() {
+                            if (Render.getConfig("RenderMainView.Antialiasing").fxaaOnOff) {
+                                return "FXAA"
+                            } else {
+                                return "TAA"
+                            }
                         }
-                        }
+                    text: getTheText()
                     onClicked: {
-                        fxaaOnOff.debugFXAA = !fxaaOnOff.debugFXAA
-                         if (fxaaOnOff.debugFXAA) {
+                        var onOff = !Render.getConfig("RenderMainView.Antialiasing").fxaaOnOff;
+                         if (onOff) {
                             Render.getConfig("RenderMainView.JitterCam").none();
-                            Render.getConfig("RenderMainView.Antialiasing").debugFXAAX = 0;
+                            Render.getConfig("RenderMainView.Antialiasing").fxaaOnOff = true;
                          } else {
                             Render.getConfig("RenderMainView.JitterCam").play();
-                            Render.getConfig("RenderMainView.Antialiasing").debugFXAAX = 1.0;
+                            Render.getConfig("RenderMainView.Antialiasing").fxaaOnOff = false;
                          }
                          
                     }
@@ -98,6 +99,7 @@ Rectangle {
                 property: "covarianceGamma"
                 max: 1.5
                 min: 0.5
+                height: 38
             }                          
             Separator {}          
             HifiControls.CheckBox {
@@ -114,6 +116,7 @@ Rectangle {
                 property: "blend"
                 max: 1.0
                 min: 0.0
+                height: 38
             }
     
             ConfigSlider {
@@ -162,6 +165,7 @@ Rectangle {
                 property: "debugShowVelocityThreshold"
                 max: 50
                 min: 0.0
+                height: 38
             }
             ConfigSlider {
                 label: qsTr("Debug Orb Zoom")
@@ -170,6 +174,7 @@ Rectangle {
                 property: "debugOrbZoom"
                 max: 32.0
                 min: 1.0
+                height: 38
             }    
         }
     }

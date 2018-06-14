@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AvatarMixerSlave.h"
+
 #include <algorithm>
 #include <random>
 
@@ -28,10 +30,8 @@
 #include <StDev.h>
 #include <UUID.h>
 
-
 #include "AvatarMixer.h"
 #include "AvatarMixerClientData.h"
-#include "AvatarMixerSlave.h"
 
 void AvatarMixerSlave::configure(ConstIter begin, ConstIter end) {
     _begin = begin;
@@ -222,8 +222,8 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     };
 
     // prepare to sort
-    ViewFrustum cameraView = nodeData->getViewFrustum();
-    PrioritySortUtil::PriorityQueue<SortableAvatar> sortedAvatars(cameraView,
+    const auto& cameraViews = nodeData->getViewFrustums();
+    PrioritySortUtil::PriorityQueue<SortableAvatar> sortedAvatars(cameraViews,
             AvatarData::_avatarSortCoefficientSize,
             AvatarData::_avatarSortCoefficientCenter,
             AvatarData::_avatarSortCoefficientAge);
@@ -271,8 +271,9 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
                 if (glm::any(glm::lessThan(otherNodeBoxScale, minBubbleSize))) {
                     otherNodeBox.setScaleStayCentered(minBubbleSize);
                 }
-                // Quadruple the scale of both bounding boxes
-                otherNodeBox.embiggen(4.0f);
+                // Change the scale of both bounding boxes
+                // (This is an arbitrary number determined empirically)
+                otherNodeBox.embiggen(2.4f);
 
                 // Perform the collision check between the two bounding boxes
                 if (nodeBox.touches(otherNodeBox)) {
@@ -381,6 +382,9 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         bool includeThisAvatar = true;
         auto lastEncodeForOther = nodeData->getLastOtherAvatarEncodeTime(otherNode->getUUID());
         QVector<JointData>& lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getUUID());
+
+        lastSentJointsForOther.resize(otherAvatar->getJointCount());
+
         bool distanceAdjust = true;
         glm::vec3 viewerPosition = myPosition;
         AvatarDataPacket::HasFlags hasFlagsOut; // the result of the toByteArray
@@ -392,21 +396,26 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         quint64 end = usecTimestampNow();
         _stats.toByteArrayElapsedTime += (end - start);
 
-        static const int MAX_ALLOWED_AVATAR_DATA = (1400 - NUM_BYTES_RFC4122_UUID);
-        if (bytes.size() > MAX_ALLOWED_AVATAR_DATA) {
-            qCWarning(avatars) << "otherAvatar.toByteArray() resulted in very large buffer:" << bytes.size() << "... attempt to drop facial data";
+        auto maxAvatarDataBytes = avatarPacketList->getMaxSegmentSize() - NUM_BYTES_RFC4122_UUID;
+        if (bytes.size() > maxAvatarDataBytes) {
+            qCWarning(avatars) << "otherAvatar.toByteArray() for" << otherNode->getUUID()
+                << "resulted in very large buffer of" << bytes.size() << "bytes - dropping facial data";
 
             dropFaceTracking = true; // first try dropping the facial data
             bytes = otherAvatar->toByteArray(detail, lastEncodeForOther, lastSentJointsForOther,
                                              hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition, &lastSentJointsForOther);
 
-            if (bytes.size() > MAX_ALLOWED_AVATAR_DATA) {
-                qCWarning(avatars) << "otherAvatar.toByteArray() without facial data resulted in very large buffer:" << bytes.size() << "... reduce to MinimumData";
+            if (bytes.size() > maxAvatarDataBytes) {
+                qCWarning(avatars) << "otherAvatar.toByteArray() for" << otherNode->getUUID()
+                    << "without facial data resulted in very large buffer of" << bytes.size()
+                    << "bytes - reducing to MinimumData";
                 bytes = otherAvatar->toByteArray(AvatarData::MinimumData, lastEncodeForOther, lastSentJointsForOther,
                                                  hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition, &lastSentJointsForOther);
 
-                if (bytes.size() > MAX_ALLOWED_AVATAR_DATA) {
-                    qCWarning(avatars) << "otherAvatar.toByteArray() MinimumData resulted in very large buffer:" << bytes.size() << "... FAIL!!";
+                if (bytes.size() > maxAvatarDataBytes) {
+                    qCWarning(avatars) << "otherAvatar.toByteArray() for" << otherNode->getUUID()
+                        << "MinimumData resulted in very large buffer of" << bytes.size()
+                        << "bytes - refusing to send avatar";
                     includeThisAvatar = false;
                 }
             }

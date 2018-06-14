@@ -45,6 +45,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::gl::GLBackend::do_setModelTransform),
     (&::gpu::gl::GLBackend::do_setViewTransform),
     (&::gpu::gl::GLBackend::do_setProjectionTransform),
+    (&::gpu::gl::GLBackend::do_setProjectionJitter),
     (&::gpu::gl::GLBackend::do_setViewportTransform),
     (&::gpu::gl::GLBackend::do_setDepthRangeTransform),
 
@@ -117,24 +118,22 @@ void GLBackend::init() {
 #if !defined(USE_GLES)
         qCDebug(gpugllogging, "V-Sync is %s\n", (::gl::getSwapInterval() > 0 ? "ON" : "OFF"));
 #endif
-#if THREADED_TEXTURE_BUFFERING
-        // This has to happen on the main thread in order to give the thread 
-        // pool a reasonable parent object
-        GLVariableAllocationSupport::TransferJob::startBufferingThread();
-#endif
-
     });
 }
 
 GLBackend::GLBackend() {
     _pipeline._cameraCorrectionBuffer._buffer->flush();
     glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &_uboAlignment);
+    initShaderBinaryCache();
 }
 
+GLBackend::~GLBackend() {}
 
-GLBackend::~GLBackend() {
+void GLBackend::shutdown() {
     killInput();
     killTransform();
+    killTextureManagementStage();
+    killShaderBinaryCache();
 }
 
 void GLBackend::renderPassTransfer(const Batch& batch) {
@@ -166,7 +165,18 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
                 case Batch::COMMAND_drawIndexedInstanced:
                 case Batch::COMMAND_multiDrawIndirect:
                 case Batch::COMMAND_multiDrawIndexedIndirect:
-                    _transform.preUpdate(_commandIndex, _stereo);
+                {
+                    Vec2u outputSize{ 1,1 };
+
+                    if (_output._framebuffer) {
+                        outputSize.x = _output._framebuffer->getWidth();
+                        outputSize.y = _output._framebuffer->getHeight();
+                    } else if (glm::dot(_transform._projectionJitter, _transform._projectionJitter)>0.0f) {
+                        qCWarning(gpugllogging) << "Jittering needs to have a frame buffer to be set";
+                    }
+
+                    _transform.preUpdate(_commandIndex, _stereo, outputSize);
+                }
                     break;
 
                 case Batch::COMMAND_disableContextStereo:
@@ -179,7 +189,9 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
 
                 case Batch::COMMAND_setViewportTransform:
                 case Batch::COMMAND_setViewTransform:
-                case Batch::COMMAND_setProjectionTransform: {
+                case Batch::COMMAND_setProjectionTransform:
+                case Batch::COMMAND_setProjectionJitter:
+                {
                     CommandCall call = _commandCalls[(*command)];
                     (this->*(call))(batch, *offset);
                     break;
@@ -254,6 +266,8 @@ void GLBackend::render(const Batch& batch) {
     if (!batch.isStereoEnabled()) {
         _stereo._enable = false;
     }
+    // Reset jitter
+    _transform._projectionJitter = Vec2(0.0f, 0.0f);
     
     {
         PROFILE_RANGE(render_gpu_gl_detail, "Transfer");
@@ -713,9 +727,8 @@ void GLBackend::recycle() const {
             glDeleteQueries((GLsizei)ids.size(), ids.data());
         }
     }
-
-    GLVariableAllocationSupport::manageMemory();
-    GLVariableAllocationSupport::_frameTexturesCreated = 0;
+    
+    _textureManagement._transferEngine->manageMemory();
     Texture::KtxStorage::releaseOpenKtxFiles();
 }
 

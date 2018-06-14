@@ -216,6 +216,72 @@ controller::Input KeyboardMouseDevice::InputDevice::makeInput(KeyboardMouseDevic
     return controller::Input(_deviceID, button, controller::ChannelType::BUTTON);
 }
 
+/**jsdoc
+ * <p>The <code>Controller.Hardware.Keyboard</code> object has properties representing keyboard, mouse, and display touch 
+ * events. The property values are integer IDs, uniquely identifying each output. <em>Read-only.</em> These can be mapped to 
+ * actions or functions or <code>Controller.Standard</code> items in a {@link RouteObject} mapping. For presses, each data 
+ * value is either <code>1.0</code> for "true" or <code>0.0</code> for "false".</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Property</th><th>Type</th><td>Data</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>0</code> &ndash; <code>9</code></td><td>number</td><td>number</td><td>A "0" &ndash; "1" key on the 
+ *       keyboard or keypad is pressed.</td></tr>
+ *     <tr><td><code>A</code> &ndash; <code>Z</code></td><td>number</td><td>number</td><td>A "A" &ndash; "Z" key on the 
+ *       keyboard is pressed.</td></tr>
+ *     <tr><td><code>Space</code></td><td>number</td><td>number</td><td>The space bar on the keyboard is pressed.</td></tr>
+ *     <tr><td><code>Tab</code></td><td>number</td><td>number</td><td>The tab key on the keyboard is pressed.</td></tr>
+ *     <tr><td><code>Shift</code></td><td>number</td><td>number</td><td>The shift key on the keyboard is pressed.</td></tr>
+ *     <tr><td><code>Control</code></td><td>number</td><td>number</td><td>The control key on the keyboard is pressed. (The 
+ *       "Command" key on OSX.)</td></tr>
+ *     <tr><td><code>Left</code></td><td>number</td><td>number</td><td>The left arrow key on the keyboard or keypad is pressed.
+ *       </td></tr>
+ *     <tr><td><code>Right</code></td><td>number</td><td>number</td><td>The right arrow key on the keyboard or keypad is 
+ *       pressed.</td></tr>
+ *     <tr><td><code>Up</code></td><td>number</td><td>number</td><td>The up arrow key on the keyboard or keypad is pressed.
+ *       </td></tr>
+ *     <tr><td><code>Down</code></td><td>number</td><td>number</td><td>The down arrow key on the keyboard or keypad is pressed.
+ *       </td></tr>
+ *     <tr><td><code>PgUp</code></td><td>number</td><td>number</td><td>The page up key on the keyboard or keypad is pressed.
+ *       </td></tr>
+ *     <tr><td><code>PgDown</code></td><td>number</td><td>number</td><td>The page down key on the keyboard or keypad is pressed.
+ *       </td></tr>
+ *     <tr><td><code>LeftMouseButton</code></td><td>number</td><td>number</td><td>The left mouse button pressed.</td></tr>
+ *     <tr><td><code>MiddleMouseButton</code></td><td>number</td><td>number</td><td>The middle mouse button pressed.</td></tr>
+ *     <tr><td><code>RightMouseButton</code></td><td>number</td><td>number</td><td>The right mouse button pressed.</td></tr>
+ *     <tr><td><code>LeftMouseClicked</code></td><td>number</td><td>number</td><td>The left mouse button clicked.</td></tr>
+ *     <tr><td><code>MiddleMouseClicked</code></td><td>number</td><td>number</td><td>The middle mouse button clicked.</td></tr>
+ *     <tr><td><code>RightMouseClicked</code></td><td>number</td><td>number</td><td>The right mouse button clicked.</td></tr>
+ *     <tr><td><code>MouseMoveRight</code></td><td>number</td><td>number</td><td>The mouse moved right.</td></tr>
+ *     <tr><td><code>MouseMoveLeft</code></td><td>number</td><td>number</td><td>The mouse moved left.</td></tr>
+ *     <tr><td><code>MouseMoveUp</code></td><td>number</td><td>number</td><td>The mouse moved up.</td></tr>
+ *     <tr><td><code>MouseMoveDown</code></td><td>number</td><td>number</td><td>The mouse moved down.</td></tr>
+ *     <tr><td><code>MouseX</code></td><td>number</td><td>number</td><td>The mouse x-coordinate changed. The data value is its 
+ *       new x-coordinate value.</td></tr>
+ *     <tr><td><code>MouseY</code></td><td>number</td><td>number</td><td>The mouse y-coordinate changed. The data value is its 
+ *       new y-coordinate value.</td></tr>
+ *     <tr><td><code>MouseWheelRight</code></td><td>number</td><td>number</td><td>The mouse wheel rotated left. The data value 
+ *       is the number of units rotated (typically <code>1.0</code>).</td></tr>
+ *     <tr><td><code>MouseWheelLeft</code></td><td>number</td><td>number</td><td>The mouse wheel rotated left. The data value 
+ *       is the number of units rotated (typically <code>1.0</code>).</td></tr>
+ *     <tr><td><code>MouseWheelUp</code></td><td>number</td><td>number</td><td>The mouse wheel rotated up. The data value 
+ *       is the number of units rotated (typically <code>1.0</code>).</td></tr>
+ *     <tr><td><code>MouseWheelDown</code></td><td>number</td><td>number</td><td>The mouse wheel rotated down. The data value 
+ *       is the number of units rotated (typically <code>1.0</code>).</td></tr>
+  *     <tr><td><code>TouchpadRight</code></td><td>number</td><td>number</td><td>The average touch on a touch-enabled device 
+ *       moved right. The data value is how far the average position of all touch points moved.</td></tr>
+ *     <tr><td><code>TouchpadLeft</code></td><td>number</td><td>number</td><td>The average touch on a touch-enabled device 
+ *       moved left. The data value is how far the average position of all touch points moved.</td></tr>
+ *     <tr><td><code>TouchpadUp</code></td><td>number</td><td>number</td><td>The average touch on a touch-enabled device 
+ *       moved up. The data value is how far the average position of all touch points moved.</td></tr>
+ *     <tr><td><code>TouchpadDown</code></td><td>number</td><td>number</td><td>The average touch on a touch-enabled device 
+ *       moved down. The data value is how far the average position of all touch points moved.</td></tr>
+  *   </tbody>
+ * </table>
+ * @typedef {object} Controller.Hardware-Keyboard
+ * @todo <em>Currently, the mouse wheel in an ordinary mouse generates left/right wheel events instead of up/down.</em>
+ */
 controller::Input::NamedVector KeyboardMouseDevice::InputDevice::getAvailableInputs() const {
     using namespace controller;
     static QVector<Input::NamedPair> availableInputs;

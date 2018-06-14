@@ -241,46 +241,26 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
 
     _activityTracking.addedEntityCount++;
 
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto sessionID = nodeList->getSessionUUID();
+
     EntityItemProperties propertiesWithSimID = properties;
     if (clientOnly) {
-        auto nodeList = DependencyManager::get<NodeList>();
-        const QUuid myNodeID = nodeList->getSessionUUID();
+        const QUuid myNodeID = sessionID;
         propertiesWithSimID.setClientOnly(clientOnly);
         propertiesWithSimID.setOwningAvatarID(myNodeID);
     }
+
+    propertiesWithSimID.setLastEditedBy(sessionID);
 
     bool scalesWithParent = propertiesWithSimID.getScalesWithParent();
 
     propertiesWithSimID = convertPropertiesFromScriptSemantics(propertiesWithSimID, scalesWithParent);
     propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());
 
-    EntityItemID id = EntityItemID(QUuid::createUuid());
-
+    EntityItemID id;
     // If we have a local entity tree set, then also update it.
-    bool success = true;
-    if (_entityTree) {
-        _entityTree->withWriteLock([&] {
-            EntityItemPointer entity = _entityTree->addEntity(id, propertiesWithSimID);
-            if (entity) {
-                if (propertiesWithSimID.queryAACubeRelatedPropertyChanged()) {
-                    // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
-                    bool success;
-                    AACube queryAACube = entity->getQueryAACube(success);
-                    if (success) {
-                        propertiesWithSimID.setQueryAACube(queryAACube);
-                    }
-                }
-
-                entity->setLastBroadcast(usecTimestampNow());
-                // since we're creating this object we will immediately volunteer to own its simulation
-                entity->flagForOwnershipBid(VOLUNTEER_SIMULATION_PRIORITY);
-                propertiesWithSimID.setLastEdited(entity->getLastEdited());
-            } else {
-                qCDebug(entities) << "script failed to add new Entity to local Octree";
-                success = false;
-            }
-        });
-    }
+    bool success = addLocalEntityCopy(propertiesWithSimID, id);
 
     // queue the packet
     if (success) {
@@ -289,6 +269,37 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     } else {
         return QUuid();
     }
+}
+
+bool EntityScriptingInterface::addLocalEntityCopy(EntityItemProperties& properties, EntityItemID& id, bool isClone) {
+    bool success = true;
+    id = EntityItemID(QUuid::createUuid());
+
+    if (_entityTree) {
+        _entityTree->withWriteLock([&] {
+            EntityItemPointer entity = _entityTree->addEntity(id, properties, isClone);
+            if (entity) {
+                if (properties.queryAACubeRelatedPropertyChanged()) {
+                    // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
+                    bool success;
+                    AACube queryAACube = entity->getQueryAACube(success);
+                    if (success) {
+                        properties.setQueryAACube(queryAACube);
+                    }
+                }
+
+                entity->setLastBroadcast(usecTimestampNow());
+                // since we're creating this object we will immediately volunteer to own its simulation
+                entity->flagForOwnershipBid(VOLUNTEER_SIMULATION_PRIORITY);
+                properties.setLastEdited(entity->getLastEdited());
+            } else {
+                qCDebug(entities) << "script failed to add new Entity to local Octree";
+                success = false;
+            }
+        });
+    }
+
+    return success;
 }
 
 QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const QString& textures,
@@ -308,7 +319,34 @@ QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QStrin
     if (!textures.isEmpty()) {
         properties.setTextures(textures);
     }
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto sessionID = nodeList->getSessionUUID();
+    properties.setLastEditedBy(sessionID);
+
     return addEntity(properties);
+}
+
+QUuid EntityScriptingInterface::cloneEntity(QUuid entityIDToClone) {
+    EntityItemID newEntityID;
+    EntityItemProperties properties = getEntityProperties(entityIDToClone);
+    bool cloneAvatarEntity = properties.getCloneAvatarEntity();
+    properties.convertToCloneProperties(entityIDToClone);
+
+    if (cloneAvatarEntity) {
+        return addEntity(properties, true);
+    } else {
+        // setLastEdited timestamp to 0 to ensure this entity gets updated with the properties 
+        // from the server-created entity, don't change this unless you know what you are doing
+        properties.setLastEdited(0);
+        bool success = addLocalEntityCopy(properties, newEntityID, true);
+        if (success) {
+            getEntityPacketSender()->queueCloneEntityMessage(entityIDToClone, newEntityID);
+            return newEntityID;
+        } else {
+            return QUuid();
+        }
+    }
 }
 
 EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identity) {
@@ -363,7 +401,11 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 
     _activityTracking.editedEntityCount++;
 
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto sessionID = nodeList->getSessionUUID();
+
     EntityItemProperties properties = scriptSideProperties;
+    properties.setLastEditedBy(sessionID);
 
     EntityItemID entityID(id);
     if (!_entityTree) {
@@ -379,7 +421,6 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             return;
         }
 
-        auto nodeList = DependencyManager::get<NodeList>();
         if (entity->getClientOnly() && entity->getOwningAvatarID() != nodeList->getSessionUUID()) {
             // don't edit other avatar's avatarEntities
             return;
@@ -454,7 +495,6 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                     // we make a bid for simulation ownership
                     properties.setSimulationOwner(myNodeID, SCRIPT_POKE_SIMULATION_PRIORITY);
                     entity->flagForOwnershipBid(SCRIPT_POKE_SIMULATION_PRIORITY);
-                    entity->rememberHasSimulationOwnershipBid();
                 }
             }
             if (properties.queryAACubeRelatedPropertyChanged()) {
@@ -477,6 +517,27 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                     }
                 }
             });
+        } else {
+            // Sometimes ESS don't have the entity they are trying to edit in their local tree.  In this case,
+            // convertPropertiesFromScriptSemantics doesn't get called and local* edits will get dropped.
+            // This is because, on the script side, "position" is in world frame, but in the network
+            // protocol and in the internal data-structures, "position" is "relative to parent".
+            // Compensate here.  The local* versions will get ignored during the edit-packet encoding.
+            if (properties.localPositionChanged()) {
+                properties.setPosition(properties.getLocalPosition());
+            }
+            if (properties.localRotationChanged()) {
+                properties.setRotation(properties.getLocalRotation());
+            }
+            if (properties.localVelocityChanged()) {
+                properties.setVelocity(properties.getLocalVelocity());
+            }
+            if (properties.localAngularVelocityChanged()) {
+                properties.setAngularVelocity(properties.getLocalAngularVelocity());
+            }
+            if (properties.localDimensionsChanged()) {
+                properties.setDimensions(properties.getLocalDimensions());
+            }
         }
     });
     if (!entityFound) {
@@ -727,7 +788,37 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesByType(const QString entity
 
         foreach(EntityItemPointer entity, entities) {
             if (entity->getType() == type) {
-                result << entity->getEntityItemID();
+                result << entity->getEntityItemID().toString();
+            }
+        }
+    }
+    return result;
+}
+
+QVector<QUuid> EntityScriptingInterface::findEntitiesByName(const QString entityName, const glm::vec3& center, float radius, bool caseSensitiveSearch) const {
+    
+    QVector<QUuid> result;
+    if (_entityTree) {
+        QVector<EntityItemPointer> entities;
+        _entityTree->withReadLock([&] {
+            _entityTree->findEntities(center, radius, entities);
+        });
+
+        if (caseSensitiveSearch) {
+            foreach(EntityItemPointer entity, entities) {
+                if (entity->getName() == entityName) {
+                    result << entity->getEntityItemID();
+                }
+            }
+
+        } else {
+            QString entityNameLowerCase = entityName.toLower();
+
+            foreach(EntityItemPointer entity, entities) {
+                QString entityItemLowerCase = entity->getName().toLower();
+                if (entityItemLowerCase == entityNameLowerCase) {
+                    result << entity->getEntityItemID();
+                }
             }
         }
     }
@@ -1597,15 +1688,21 @@ QVector<QUuid> EntityScriptingInterface::getChildrenIDs(const QUuid& parentID) {
     if (!_entityTree) {
         return result;
     }
-
-    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(parentID);
-    if (!entity) {
-        qCDebug(entities) << "EntityScriptingInterface::getChildrenIDs - no entity with ID" << parentID;
-        return result;
-    }
-
     _entityTree->withReadLock([&] {
-        entity->forEachChild([&](SpatiallyNestablePointer child) {
+        QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
+        if (!parentFinder) {
+            return;
+        }
+        bool success;
+        SpatiallyNestableWeakPointer parentWP = parentFinder->find(parentID, success);
+        if (!success) {
+            return;
+        }
+        SpatiallyNestablePointer parent = parentWP.lock();
+        if (!parent) {
+            return;
+        }
+        parent->forEachChild([&](SpatiallyNestablePointer child) {
             result.push_back(child->getID());
         });
     });

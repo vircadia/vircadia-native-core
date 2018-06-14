@@ -47,6 +47,17 @@ Context::Context(const Context& context) {
 }
 
 Context::~Context() {
+    for (auto batch : _batchPool) {
+        delete batch;
+    }
+    _batchPool.clear();
+}
+
+void Context::shutdown() {
+    if (_backend) {
+        _backend->shutdown();
+        _backend.reset();
+    }
 }
 
 const std::string& Context::getBackendVersion() const {
@@ -65,7 +76,7 @@ void Context::beginFrame(const glm::mat4& renderView, const glm::mat4& renderPos
     }
 }
 
-void Context::appendFrameBatch(Batch& batch) {
+void Context::appendFrameBatch(const BatchPointer& batch) {
     if (!_frameActive) {
         qWarning() << "Batch executed outside of frame boundaries";
         return;
@@ -115,7 +126,7 @@ void Context::executeFrame(const FramePointer& frame) const {
 
         // Execute the frame rendering commands
         for (auto& batch : frame->batches) {
-            _backend->render(batch);
+            _backend->render(*batch);
         }
 
         Batch endBatch("Context::executeFrame::end");
@@ -129,6 +140,7 @@ void Context::executeFrame(const FramePointer& frame) const {
 }
 
 bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings, const Shader::CompilationHandler& handler) {
+    PROFILE_RANGE_EX(app, "makeProgram", 0xff4040c0, shader.getID());
     // If we're running in another DLL context, we need to fetch the program callback out of the application
     // FIXME find a way to do this without reliance on Qt app properties
     if (!_makeProgramCallback) {
@@ -221,7 +233,7 @@ const Backend::TransformCamera& Backend::TransformCamera::recomputeDerived(const
     return *this;
 }
 
-Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const StereoState& _stereo, const Transform& xformView) const {
+Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const StereoState& _stereo, const Transform& xformView, Vec2 normalizedJitter) const {
     TransformCamera result = *this;
     Transform offsetTransform = xformView;
     if (!_stereo._skybox) {
@@ -230,10 +242,21 @@ Backend::TransformCamera Backend::TransformCamera::getEyeCamera(int eye, const S
         // FIXME: If "skybox" the ipd is set to 0 for now, let s try to propose a better solution for this in the future
     }
     result._projection = _stereo._eyeProjections[eye];
+    normalizedJitter.x *= 2.0f;
+    result._projection[2][0] += normalizedJitter.x;
+    result._projection[2][1] += normalizedJitter.y;
     result.recomputeDerived(offsetTransform);
 
     result._stereoInfo = Vec4(1.0f, (float)eye, 0.0f, 0.0f);
 
+    return result;
+}
+
+Backend::TransformCamera Backend::TransformCamera::getMonoCamera(const Transform& xformView, Vec2 normalizedJitter) const {
+    TransformCamera result = *this;
+    result._projection[2][0] += normalizedJitter.x;
+    result._projection[2][1] += normalizedJitter.y;
+    result.recomputeDerived(xformView);
     return result;
 }
 
@@ -258,6 +281,7 @@ ContextMetricCount Backend::texturePendingGPUTransferCount;
 ContextMetricSize  Backend::texturePendingGPUTransferMemSize;
 
 ContextMetricSize  Backend::textureResourcePopulatedGPUMemSize;
+ContextMetricSize  Backend::textureResourceIdealGPUMemSize;
 
 Size Context::getFreeGPUMemSize() {
     return Backend::freeGPUMemSize.getValue();
@@ -310,10 +334,46 @@ Size Context::getTextureExternalGPUMemSize() {
 uint32_t Context::getTexturePendingGPUTransferCount() {
     return Backend::texturePendingGPUTransferCount.getValue();
 }
+
 Size Context::getTexturePendingGPUTransferMemSize() {
     return Backend::texturePendingGPUTransferMemSize.getValue();
 }
 
 Size Context::getTextureResourcePopulatedGPUMemSize() {
     return Backend::textureResourcePopulatedGPUMemSize.getValue();
+}
+
+Size Context::getTextureResourceIdealGPUMemSize() {
+    return Backend::textureResourceIdealGPUMemSize.getValue();
+}
+
+
+BatchPointer Context::acquireBatch(const char* name) {
+    Batch* rawBatch = nullptr;
+    {
+        Lock lock(_batchPoolMutex);
+        if (!_batchPool.empty()) {
+            rawBatch = _batchPool.front();
+            _batchPool.pop_front();
+        }
+    }
+    if (!rawBatch) {
+        rawBatch = new Batch();
+    }
+    rawBatch->setName(name);
+    return BatchPointer(rawBatch, [this](Batch* batch) { releaseBatch(batch); });
+}
+
+void Context::releaseBatch(Batch* batch) {
+    batch->clear();
+    Lock lock(_batchPoolMutex);
+    _batchPool.push_back(batch);
+}
+
+void gpu::doInBatch(const char* name,
+                    const std::shared_ptr<gpu::Context>& context,
+                    const std::function<void(Batch& batch)>& f) {
+    auto batch = context->acquireBatch(name);
+    f(*batch);
+    context->appendFrameBatch(batch);
 }

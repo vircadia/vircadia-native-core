@@ -13,9 +13,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global HIFI_PUBLIC_BUCKET, SPACE_LOCAL, Script, SelectionManager */
-
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+/* global SPACE_LOCAL, SelectionManager */
 
 SPACE_LOCAL = "local";
 SPACE_WORLD = "world";
@@ -50,6 +48,7 @@ SelectionManager = (function() {
             messageParsed = JSON.parse(message);
         } catch (err) {
             print("ERROR: entitySelectionTool.handleEntitySelectionToolUpdates - got malformed message: " + message);
+            return;
         }
 
         if (messageParsed.method === "selectEntity") {
@@ -57,6 +56,8 @@ SelectionManager = (function() {
                 print("setting selection to " + messageParsed.entityID);
             }
             that.setSelections([messageParsed.entityID]);
+        } else if (messageParsed.method === "clearSelection") {
+            that.clearSelections();
         }
     }
 
@@ -141,11 +142,22 @@ SelectionManager = (function() {
         that._update(true);
     };
 
-    that.removeEntity = function(entityID) {
+    function removeEntityByID(entityID) {
         var idx = that.selections.indexOf(entityID);
         if (idx >= 0) {
             that.selections.splice(idx, 1);
             Selection.removeFromSelectedItemsList(HIGHLIGHT_LIST_NAME, "entity", entityID);
+        }
+    }
+
+    that.removeEntity = function (entityID) {
+        removeEntityByID(entityID);
+        that._update(true);
+    };
+
+    that.removeEntities = function(entityIDs) {
+        for (var i = 0, length = entityIDs.length; i < length; i++) {
+            removeEntityByID(entityIDs[i]);
         }
         that._update(true);
     };
@@ -154,6 +166,20 @@ SelectionManager = (function() {
         that.selections = [];
         that._update(true);
     };
+
+    that.duplicateSelection = function() {
+        var duplicatedEntityIDs = [];
+        Object.keys(that.savedProperties).forEach(function(otherEntityID) {
+            var properties = that.savedProperties[otherEntityID];
+            if (!properties.locked && (!properties.clientOnly || properties.owningAvatarID === MyAvatar.sessionUUID)) {
+                duplicatedEntityIDs.push({
+                    entityID: Entities.addEntity(properties),
+                    properties: properties
+                });
+            }
+        });
+        return duplicatedEntityIDs;
+    }
 
     that._update = function(selectionUpdated) {
         var properties = null;
@@ -174,6 +200,8 @@ SelectionManager = (function() {
             that.worldPosition = properties.boundingBox.center;
             that.worldRotation = properties.boundingBox.rotation;
 
+            that.entityType = properties.type;
+
             SelectionDisplay.setSpaceMode(SPACE_LOCAL);
         } else {
             that.localRotation = null;
@@ -181,6 +209,8 @@ SelectionManager = (function() {
             that.localPosition = null;
 
             properties = Entities.getEntityProperties(that.selections[0]);
+
+            that.entityType = properties.type;
 
             var brn = properties.boundingBox.brn;
             var tfl = properties.boundingBox.tfl;
@@ -443,7 +473,7 @@ SelectionDisplay = (function() {
         solid: true,
         visible: false,
         ignoreRayIntersection: true,
-        drawInFront: true,
+        drawInFront: true
     }
     var handleStretchXPanel = Overlays.addOverlay("shape", handlePropertiesStretchPanel);
     Overlays.editOverlay(handleStretchXPanel, { color : COLOR_RED });
@@ -511,6 +541,17 @@ SelectionDisplay = (function() {
         dashed: false
     });
 
+    // Handle for x-z translation of particle effect and light entities while inside the bounding box.
+    // Limitation: If multiple entities are selected, only the first entity's icon translates the selection.
+    var iconSelectionBox = Overlays.addOverlay("cube", {
+        size: 0.3, // Match entity icon size.
+        color: COLOR_RED,
+        alpha: 0,
+        solid: false,
+        visible: false,
+        dashed: false
+    });
+
     var allOverlays = [
         handleTranslateXCone,
         handleTranslateXCylinder,
@@ -550,7 +591,8 @@ SelectionDisplay = (function() {
         handleScaleFREdge,
         handleScaleFLEdge,
         handleCloner,
-        selectionBox
+        selectionBox,
+        iconSelectionBox
     ];
 
     overlayNames[handleTranslateXCone] = "handleTranslateXCone";
@@ -597,6 +639,7 @@ SelectionDisplay = (function() {
 
     overlayNames[handleCloner] = "handleCloner";
     overlayNames[selectionBox] = "selectionBox";
+    overlayNames[iconSelectionBox] = "iconSelectionBox";
 
     var activeTool = null;
     var handleTools = {};
@@ -667,6 +710,13 @@ SelectionDisplay = (function() {
         return intersectObj;
     }
 
+    function isPointInsideBox(point, box) {
+        var position = Vec3.subtract(point, box.position);
+        position = Vec3.multiplyQbyV(Quat.inverse(box.rotation), position);
+        return Math.abs(position.x) <= box.dimensions.x / 2 && Math.abs(position.y) <= box.dimensions.y / 2
+            && Math.abs(position.z) <= box.dimensions.z / 2;
+    }
+
     // FUNCTION: MOUSE PRESS EVENT
     that.mousePressEvent = function (event) {
         var wantDebug = false;
@@ -698,8 +748,6 @@ SelectionDisplay = (function() {
                 // EARLY EXIT-(mouse clicks on the tablet should override the edit affordances)
                 return false;
             }
-
-            entityIconOverlayManager.setIconsSelectable(SelectionManager.selections, true);
 
             var hitTool = handleTools[ hitOverlayID ];
             if (hitTool) {
@@ -749,6 +797,7 @@ SelectionDisplay = (function() {
         } else if (overlay === handleTranslateZCylinder) {
             return handleTranslateZCone;
         }
+        return Uuid.NULL;
     };
 
     // FUNCTION: MOUSE MOVE EVENT
@@ -987,6 +1036,29 @@ SelectionDisplay = (function() {
         }
     };
 
+    // FUNCTION: TOGGLE SPACE MODE
+    that.toggleSpaceMode = function() {
+        var wantDebug = false;
+        if (wantDebug) {
+            print("========> ToggleSpaceMode called. =========");
+        }
+        if ((spaceMode === SPACE_WORLD) && (SelectionManager.selections.length > 1)) {
+            if (wantDebug) {
+                print("Local space editing is not available with multiple selections");
+            }
+            return;
+        }
+        if (wantDebug) {
+            print("PreToggle: " + spaceMode);
+        }
+        spaceMode = (spaceMode === SPACE_LOCAL) ? SPACE_WORLD : SPACE_LOCAL;
+        that.updateHandles();
+        if (wantDebug) {
+            print("PostToggle: " + spaceMode);        
+            print("======== ToggleSpaceMode called. <=========");
+        }
+    };
+
     function addHandleTool(overlay, tool) {
         handleTools[overlay] = tool;
         return tool;
@@ -1038,13 +1110,13 @@ SelectionDisplay = (function() {
             var toCameraDistance = getDistanceToCamera(position);
 
             var localRotationX = Quat.fromPitchYawRollDegrees(0, 0, -90);
-            rotationX = Quat.multiply(rotation, localRotationX);
+            var rotationX = Quat.multiply(rotation, localRotationX);
             worldRotationX = rotationX;
             var localRotationY = Quat.fromPitchYawRollDegrees(0, 90, 0);
-            rotationY = Quat.multiply(rotation, localRotationY);
+            var rotationY = Quat.multiply(rotation, localRotationY);
             worldRotationY = rotationY;
             var localRotationZ = Quat.fromPitchYawRollDegrees(90, 0, 0);
-            rotationZ = Quat.multiply(rotation, localRotationZ);
+            var rotationZ = Quat.multiply(rotation, localRotationZ);
             worldRotationZ = rotationZ;
 
             // in HMD we clamp the overlays to the bounding box for now so lasers can hit them
@@ -1260,10 +1332,9 @@ SelectionDisplay = (function() {
                 dimensions: stretchPanelXDimensions
             });
             var stretchPanelYDimensions = Vec3.subtract(scaleLTNCubePositionRotated, scaleRTFCubePositionRotated);
-            var tempX = Math.abs(stretchPanelYDimensions.x);
             stretchPanelYDimensions.x = Math.abs(stretchPanelYDimensions.z);
             stretchPanelYDimensions.y = STRETCH_PANEL_WIDTH;
-            stretchPanelYDimensions.z = tempX;
+            stretchPanelYDimensions.z = Math.abs(stretchPanelYDimensions.x);
             var stretchPanelYPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x:0, y:dimensions.y / 2, z:0 }));
             Overlays.editOverlay(handleStretchYPanel, { 
                 position: stretchPanelYPosition, 
@@ -1271,9 +1342,8 @@ SelectionDisplay = (function() {
                 dimensions: stretchPanelYDimensions
             });
             var stretchPanelZDimensions = Vec3.subtract(scaleLTNCubePositionRotated, scaleRBFCubePositionRotated);
-            var tempX = Math.abs(stretchPanelZDimensions.x);
             stretchPanelZDimensions.x = Math.abs(stretchPanelZDimensions.y);
-            stretchPanelZDimensions.y = tempX;
+            stretchPanelZDimensions.y = Math.abs(stretchPanelZDimensions.x);
             stretchPanelZDimensions.z = STRETCH_PANEL_WIDTH;
             var stretchPanelZPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x:0, y:0, z:dimensions.z / 2 }));
             Overlays.editOverlay(handleStretchZPanel, { 
@@ -1286,12 +1356,26 @@ SelectionDisplay = (function() {
             var inModeRotate = isActiveTool(handleRotatePitchRing) || 
                                isActiveTool(handleRotateYawRing) || 
                                isActiveTool(handleRotateRollRing);
-            Overlays.editOverlay(selectionBox, {
+            var selectionBoxGeometry = {
                 position: position,
                 rotation: rotation,
-                dimensions: dimensions,
-                visible: !inModeRotate
-            });
+                dimensions: dimensions
+            };
+            var isCameraInsideBox = isPointInsideBox(Camera.position, selectionBoxGeometry);
+            selectionBoxGeometry.visible = !inModeRotate && !isCameraInsideBox;
+            Overlays.editOverlay(selectionBox, selectionBoxGeometry);
+
+            // UPDATE ICON TRANSLATE HANDLE
+            if (SelectionManager.entityType === "ParticleEffect" || SelectionManager.entityType === "Light") {
+                var iconSelectionBoxGeometry = {
+                    position: position,
+                    rotation: rotation
+                };
+                iconSelectionBoxGeometry.visible = !inModeRotate && isCameraInsideBox;
+                Overlays.editOverlay(iconSelectionBox, iconSelectionBoxGeometry);
+            } else {
+                Overlays.editOverlay(iconSelectionBox, { visible: false });
+            }
 
             // UPDATE CLONER (CURRENTLY HIDDEN FOR NOW)
             var handleClonerOffset =  { 
@@ -1363,7 +1447,7 @@ SelectionDisplay = (function() {
 
     // FUNCTION: SET OVERLAYS VISIBLE
     that.setOverlaysVisible = function(isVisible) {
-        for (var i = 0; i < allOverlays.length; i++) {
+        for (var i = 0, length = allOverlays.length; i < length; i++) {
             Overlays.editOverlay(allOverlays[i], { visible: isVisible });
         }
     };
@@ -1519,17 +1603,7 @@ SelectionDisplay = (function() {
             // copy of the selected entities and move the _original_ entities, not
             // the new ones.
             if (event.isAlt || doClone) {
-                duplicatedEntityIDs = [];
-                for (var otherEntityID in SelectionManager.savedProperties) {
-                    var properties = SelectionManager.savedProperties[otherEntityID];
-                    if (!properties.locked) {
-                        var entityID = Entities.addEntity(properties);
-                        duplicatedEntityIDs.push({
-                            entityID: entityID,
-                            properties: properties
-                        });
-                    }
-                }
+                duplicatedEntityIDs = SelectionManager.duplicateSelection();
             } else {
                 duplicatedEntityIDs = null;
             }
@@ -1690,17 +1764,7 @@ SelectionDisplay = (function() {
                 // copy of the selected entities and move the _original_ entities, not
                 // the new ones.
                 if (event.isAlt) {
-                    duplicatedEntityIDs = [];
-                    for (var otherEntityID in SelectionManager.savedProperties) {
-                        var properties = SelectionManager.savedProperties[otherEntityID];
-                        if (!properties.locked) {
-                            var entityID = Entities.addEntity(properties);
-                            duplicatedEntityIDs.push({
-                                entityID: entityID,
-                                properties: properties
-                            });
-                        }
-                    }
+                    duplicatedEntityIDs = SelectionManager.duplicateSelection();
                 } else {
                     duplicatedEntityIDs = null;
                 }
@@ -2391,6 +2455,22 @@ SelectionDisplay = (function() {
             translateXZTool.onEnd(event);
         },
     
+        onMove: function (event) {
+            translateXZTool.onMove(event);
+        }
+    });
+
+    addHandleTool(iconSelectionBox, {
+        mode: "TRANSLATE_XZ",
+        onBegin: function (event, pickRay, pickResult) {
+            translateXZTool.onBegin(event, pickRay, pickResult, false);
+        },
+        elevation: function (event) {
+            translateXZTool.elevation(event);
+        },
+        onEnd: function (event) {
+            translateXZTool.onEnd(event);
+        },
         onMove: function (event) {
             translateXZTool.onMove(event);
         }

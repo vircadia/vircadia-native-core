@@ -9,14 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "BakerCLI.h"
+
 #include <QObject>
 #include <QImageReader>
 #include <QtCore/QDebug>
 #include <QFile>
 
+#include <unordered_map>
+
 #include "OvenCLIApplication.h"
 #include "ModelBakingLoggingCategory.h"
-#include "BakerCLI.h"
 #include "FBXBaker.h"
 #include "JSBaker.h"
 #include "TextureBaker.h"
@@ -37,17 +40,15 @@ void BakerCLI::bakeFile(QUrl inputUrl, const QString& outputPath, const QString&
     static const QString MODEL_EXTENSION { "fbx" };
     static const QString SCRIPT_EXTENSION { "js" };
 
-    QString extension = type;
-
-    if (extension.isNull()) {
-        auto url = inputUrl.toDisplayString();
-        extension = url.mid(url.lastIndexOf('.'));
-    }
-
     // check what kind of baker we should be creating
-    bool isFBX = extension == MODEL_EXTENSION;
-    bool isScript = extension == SCRIPT_EXTENSION;
+    bool isFBX = type == MODEL_EXTENSION;
+    bool isScript = type == SCRIPT_EXTENSION;
 
+    // If the type doesn't match the above, we assume we have a texture, and the type specified is the
+    // texture usage type (albedo, cubemap, normals, etc.)
+    auto url = inputUrl.toDisplayString();
+    auto idx = url.lastIndexOf('.');
+    auto extension = idx >= 0 ? url.mid(idx + 1).toLower() : "";
     bool isSupportedImage = QImageReader::supportedImageFormats().contains(extension.toLatin1());
 
     _outputPath = outputPath;
@@ -64,7 +65,29 @@ void BakerCLI::bakeFile(QUrl inputUrl, const QString& outputPath, const QString&
         _baker = std::unique_ptr<Baker> { new JSBaker(inputUrl, outputPath) };
         _baker->moveToThread(Oven::instance().getNextWorkerThread());
     } else if (isSupportedImage) {
-        _baker = std::unique_ptr<Baker> { new TextureBaker(inputUrl, image::TextureUsage::CUBE_TEXTURE, outputPath) };
+        static const std::unordered_map<QString, image::TextureUsage::Type> STRING_TO_TEXTURE_USAGE_TYPE_MAP {
+            { "default", image::TextureUsage::DEFAULT_TEXTURE },
+            { "strict", image::TextureUsage::STRICT_TEXTURE },
+            { "albedo", image::TextureUsage::ALBEDO_TEXTURE },
+            { "normal", image::TextureUsage::NORMAL_TEXTURE },
+            { "bump", image::TextureUsage::BUMP_TEXTURE },
+            { "specular", image::TextureUsage::SPECULAR_TEXTURE },
+            { "metallic", image::TextureUsage::METALLIC_TEXTURE },
+            { "roughness", image::TextureUsage::ROUGHNESS_TEXTURE },
+            { "gloss", image::TextureUsage::GLOSS_TEXTURE },
+            { "emissive", image::TextureUsage::EMISSIVE_TEXTURE },
+            { "cube", image::TextureUsage::CUBE_TEXTURE },
+            { "occlusion", image::TextureUsage::OCCLUSION_TEXTURE },
+            { "scattering", image::TextureUsage::SCATTERING_TEXTURE },
+            { "lightmap", image::TextureUsage::LIGHTMAP_TEXTURE },
+        };
+
+        auto it = STRING_TO_TEXTURE_USAGE_TYPE_MAP.find(type);
+        if (it == STRING_TO_TEXTURE_USAGE_TYPE_MAP.end()) {
+            qCDebug(model_baking) << "Unknown texture usage type:" << type;
+            QCoreApplication::exit(OVEN_STATUS_CODE_FAIL);
+        }
+        _baker = std::unique_ptr<Baker> { new TextureBaker(inputUrl, it->second, outputPath) };
         _baker->moveToThread(Oven::instance().getNextWorkerThread());
     } else {
         qCDebug(model_baking) << "Failed to determine baker type for file" << inputUrl;

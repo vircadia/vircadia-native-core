@@ -40,8 +40,6 @@ var HOVER_TEXTURES = {
 var UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6};
 var SELECTED_COLOR = {red: 0xF3, green: 0x91, blue: 0x29};
 var HOVER_COLOR = {red: 0xD0, green: 0xD0, blue: 0xD0}; // almost white for now
-var PAL_QML_SOURCE = "hifi/Pal.qml";
-var conserveResources = true;
 
 Script.include("/~/system/libraries/controllers.js");
 
@@ -252,6 +250,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
             });
         }
         break;
+    case 'refresh': // old name for refreshNearby
     case 'refreshNearby':
         data = {};
         ExtendedOverlay.some(function (overlay) { // capture the audio data
@@ -317,6 +316,8 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
             }
         );
         break;
+    case 'http.request':
+	break; // Handled by request-service.
     default:
         print('Unrecognized message from Pal.qml:', JSON.stringify(message));
     }
@@ -429,7 +430,7 @@ function addAvatarNode(id) {
         alpha: 0.8,
         color: color(selected, false, 0.0),
         ignoreRayIntersection: false
-    }, selected, !conserveResources);
+    }, selected, true);
 }
 // Each open/refresh will capture a stable set of avatarsOfInterest, within the specified filter.
 var avatarsOfInterest = {};
@@ -494,7 +495,6 @@ function populateNearbyUserList(selectData, oldAudioData) {
         print('PAL data:', JSON.stringify(avatarPalDatum));
     });
     getConnectionData(false, location.domainID); // Even admins don't get relationship data in requestUsernameFromID (which is still needed for admin status, which comes from domain).
-    conserveResources = Object.keys(avatarsOfInterest).length > 20;
     sendToQml({ method: 'nearbyUsers', params: data });
     if (selectData) {
         selectData[2] = true;
@@ -668,57 +668,6 @@ triggerMapping.from(Controller.Standard.RTClick).peek().to(makeClickHandler(Cont
 triggerMapping.from(Controller.Standard.LTClick).peek().to(makeClickHandler(Controller.Standard.LeftHand));
 triggerPressMapping.from(Controller.Standard.RT).peek().to(makePressHandler(Controller.Standard.RightHand));
 triggerPressMapping.from(Controller.Standard.LT).peek().to(makePressHandler(Controller.Standard.LeftHand));
-//
-// Manage the connection between the button and the window.
-//
-var button;
-var buttonName = "PEOPLE";
-var tablet = null;
-
-function startup() {
-    tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-    button = tablet.addButton({
-        text: buttonName,
-        icon: "icons/tablet-icons/people-i.svg",
-        activeIcon: "icons/tablet-icons/people-a.svg",
-        sortOrder: 7
-    });
-    button.clicked.connect(onTabletButtonClicked);
-    tablet.screenChanged.connect(onTabletScreenChanged);
-    Window.domainChanged.connect(clearLocalQMLDataAndClosePAL);
-    Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);
-    Messages.subscribe(CHANNEL);
-    Messages.messageReceived.connect(receiveMessage);
-    Users.avatarDisconnected.connect(avatarDisconnected);
-    AvatarList.avatarAddedEvent.connect(avatarAdded);
-    AvatarList.avatarRemovedEvent.connect(avatarRemoved);
-    AvatarList.avatarSessionChangedEvent.connect(avatarSessionChanged);
-}
-
-startup();
-
-var isWired = false;
-var audioTimer;
-var AUDIO_LEVEL_UPDATE_INTERVAL_MS = 100; // 10hz for now (change this and change the AVERAGING_RATIO too)
-var AUDIO_LEVEL_CONSERVED_UPDATE_INTERVAL_MS = 300;
-function off() {
-    if (isWired) { // It is not ok to disconnect these twice, hence guard.
-        Script.update.disconnect(updateOverlays);
-        Controller.mousePressEvent.disconnect(handleMouseEvent);
-        Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
-        tablet.tabletShownChanged.disconnect(tabletVisibilityChanged);
-        Users.usernameFromIDReply.disconnect(usernameFromIDReply);
-        isWired = false;
-        ContextOverlay.enabled = true
-    }
-    if (audioTimer) {
-        Script.clearInterval(audioTimer);
-    }
-    triggerMapping.disable(); // It's ok if we disable twice.
-    triggerPressMapping.disable(); // see above
-    removeOverlays();
-    Users.requestsDomainListData = false;
-}
 
 function tabletVisibilityChanged() {
     if (!tablet.tabletShown) {
@@ -728,26 +677,17 @@ function tabletVisibilityChanged() {
 }
 
 var onPalScreen = false;
-
+var PAL_QML_SOURCE = "hifi/Pal.qml";
 function onTabletButtonClicked() {
+    if (!tablet) {
+        print("Warning in onTabletButtonClicked(): 'tablet' undefined!");
+        return;
+    }
     if (onPalScreen) {
-        // for toolbar-mode: go back to home screen, this will close the window.
+        // In Toolbar Mode, `gotoHomeScreen` will close the app window.
         tablet.gotoHomeScreen();
-        ContextOverlay.enabled = true;
     } else {
-        ContextOverlay.enabled = false;
         tablet.loadQMLSource(PAL_QML_SOURCE);
-        tablet.tabletShownChanged.connect(tabletVisibilityChanged);
-        Users.requestsDomainListData = true;
-        populateNearbyUserList();
-        isWired = true;
-        Script.update.connect(updateOverlays);
-        Controller.mousePressEvent.connect(handleMouseEvent);
-        Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
-        Users.usernameFromIDReply.connect(usernameFromIDReply);
-        triggerMapping.enable();
-        triggerPressMapping.enable();
-        audioTimer = createAudioInterval(conserveResources ? AUDIO_LEVEL_CONSERVED_UPDATE_INTERVAL_MS : AUDIO_LEVEL_UPDATE_INTERVAL_MS);
     }
 }
 var hasEventBridge = false;
@@ -771,9 +711,25 @@ function onTabletScreenChanged(type, url) {
     // for toolbar mode: change button to active when window is first openend, false otherwise.
     button.editProperties({isActive: onPalScreen});
 
-    // disable sphere overlays when not on pal screen.
-    if (!onPalScreen) {
+    if (onPalScreen) {
+        isWired = true;
+
+        ContextOverlay.enabled = false;
+        Users.requestsDomainListData = true;
+
+        audioTimer = createAudioInterval(AUDIO_LEVEL_UPDATE_INTERVAL_MS);
+
+        tablet.tabletShownChanged.connect(tabletVisibilityChanged);
+        Script.update.connect(updateOverlays);
+        Controller.mousePressEvent.connect(handleMouseEvent);
+        Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
+        Users.usernameFromIDReply.connect(usernameFromIDReply);
+        triggerMapping.enable();
+        triggerPressMapping.enable();
+        populateNearbyUserList();
+    } else {
         off();
+        ContextOverlay.enabled = true;
     }
 }
 
@@ -788,10 +744,13 @@ function receiveMessage(channel, messageString, senderID) {
     var message = JSON.parse(messageString);
     switch (message.method) {
     case 'select':
-        sendToQml(message); // Accepts objects, not just strings.
+        if (!onPalScreen) {
+            tablet.loadQMLSource(PAL_QML_SOURCE);
+            Script.setTimeout(function () { sendToQml(message); }, 1000);
+        } else {
+            sendToQml(message); // Accepts objects, not just strings.
+        }
         break;
-    default:
-        print('Unrecognized PAL message', messageString);
     }
 }
 
@@ -884,6 +843,57 @@ function avatarSessionChanged(avatarID) {
     sendToQml({ method: 'palIsStale', params: [avatarID, 'avatarSessionChanged'] });
 }
 
+
+var button;
+var buttonName = "PEOPLE";
+var tablet = null;
+function startup() {
+    tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    button = tablet.addButton({
+        text: buttonName,
+        icon: "icons/tablet-icons/people-i.svg",
+        activeIcon: "icons/tablet-icons/people-a.svg",
+        sortOrder: 7
+    });
+    button.clicked.connect(onTabletButtonClicked);
+    tablet.screenChanged.connect(onTabletScreenChanged);
+    Window.domainChanged.connect(clearLocalQMLDataAndClosePAL);
+    Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);
+    Messages.subscribe(CHANNEL);
+    Messages.messageReceived.connect(receiveMessage);
+    Users.avatarDisconnected.connect(avatarDisconnected);
+    AvatarList.avatarAddedEvent.connect(avatarAdded);
+    AvatarList.avatarRemovedEvent.connect(avatarRemoved);
+    AvatarList.avatarSessionChangedEvent.connect(avatarSessionChanged);
+}
+startup();
+
+
+var isWired = false;
+var audioTimer;
+var AUDIO_LEVEL_UPDATE_INTERVAL_MS = 100; // 10hz for now (change this and change the AVERAGING_RATIO too)
+function off() {
+    if (isWired) {
+        Script.update.disconnect(updateOverlays);
+        Controller.mousePressEvent.disconnect(handleMouseEvent);
+        Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
+        tablet.tabletShownChanged.disconnect(tabletVisibilityChanged);
+        Users.usernameFromIDReply.disconnect(usernameFromIDReply);
+        ContextOverlay.enabled = true
+        triggerMapping.disable();
+        triggerPressMapping.disable();
+        Users.requestsDomainListData = false;
+
+        isWired = false;
+
+        if (audioTimer) {
+            Script.clearInterval(audioTimer);
+        }
+    }
+
+    removeOverlays();
+}
+
 function shutdown() {
     if (onPalScreen) {
         tablet.gotoHomeScreen();
@@ -901,10 +911,6 @@ function shutdown() {
     AvatarList.avatarSessionChangedEvent.disconnect(avatarSessionChanged);
     off();
 }
-
-//
-// Cleanup.
-//
 Script.scriptEnding.connect(shutdown);
 
 }()); // END LOCAL_SCOPE

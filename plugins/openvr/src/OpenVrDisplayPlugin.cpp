@@ -36,8 +36,6 @@
 
 Q_DECLARE_LOGGING_CATEGORY(displayplugins)
 
-const char* OpenVrDisplayPlugin::NAME { "OpenVR (Vive)" };
-const char* StandingHMDSensorMode { "Standing HMD Sensor Mode" }; // this probably shouldn't be hardcoded here
 const char* OpenVrThreadedSubmit { "OpenVR Threaded Submit" }; // this probably shouldn't be hardcoded here
 
 PoseData _nextRenderPoseData;
@@ -200,9 +198,9 @@ public:
             std::string fsSource = HMD_REPROJECTION_FRAG;
             GLuint vertexShader { 0 }, fragmentShader { 0 };
             std::string error;
-            std::vector<char> binary;
-            ::gl::compileShader(GL_VERTEX_SHADER, vsSource, "", vertexShader, error);
-            ::gl::compileShader(GL_FRAGMENT_SHADER, fsSource, "", fragmentShader, error);
+            ::gl::CachedShader binary;
+            ::gl::compileShader(GL_VERTEX_SHADER, vsSource, vertexShader, error);
+            ::gl::compileShader(GL_FRAGMENT_SHADER, fsSource, fragmentShader, error);
             _program = ::gl::compileProgram({ { vertexShader, fragmentShader } }, error, binary);
             glDeleteShader(vertexShader);
             glDeleteShader(fragmentShader);
@@ -410,6 +408,15 @@ void OpenVrDisplayPlugin::init() {
     emit deviceConnected(getName());
 }
 
+const QString OpenVrDisplayPlugin::getName() const {
+    std::string headsetName = getOpenVrDeviceName();
+    if (headsetName == "HTC") {
+        headsetName += " Vive";
+    }
+
+    return QString::fromStdString(headsetName);
+}
+
 bool OpenVrDisplayPlugin::internalActivate() {
     if (!_system) {
         _system = acquireOpenVrSystem();
@@ -443,8 +450,6 @@ bool OpenVrDisplayPlugin::internalActivate() {
     qDebug() << "OpenVR Threaded submit enabled:  " << _threadedSubmit;
 
     _openVrDisplayActive = true;
-    _container->setIsOptionChecked(StandingHMDSensorMode, true);
-
     _system->GetRecommendedRenderTargetSize(&_renderTargetSize.x, &_renderTargetSize.y);
     // Recommended render target size is per-eye, so double the X size for 
     // left + right eyes
@@ -500,7 +505,6 @@ void OpenVrDisplayPlugin::internalDeactivate() {
     Parent::internalDeactivate();
 
     _openVrDisplayActive = false;
-    _container->setIsOptionChecked(StandingHMDSensorMode, false);
     if (_system) {
         // TODO: Invalidate poses. It's fine if someone else sets these shared values, but we're about to stop updating them, and
         // we don't want ViveControllerManager to consider old values to be valid.

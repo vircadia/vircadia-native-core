@@ -380,7 +380,7 @@ void Agent::executeScript() {
 
     using namespace recording;
     static const FrameType AVATAR_FRAME_TYPE = Frame::registerFrameType(AvatarData::FRAME_NAME);
-    Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [this, scriptedAvatar](Frame::ConstPointer frame) {
+    Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [scriptedAvatar](Frame::ConstPointer frame) {
 
         auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
         bool useFrameSkeleton = recordingInterface->getPlayerUseSkeletonModel();
@@ -548,16 +548,21 @@ void Agent::setIsAvatar(bool isAvatar) {
     if (_isAvatar && !_avatarIdentityTimer) {
         // set up the avatar timers
         _avatarIdentityTimer = new QTimer(this);
+        _avatarQueryTimer = new QTimer(this);
 
         // connect our slot
         connect(_avatarIdentityTimer, &QTimer::timeout, this, &Agent::sendAvatarIdentityPacket);
+        connect(_avatarQueryTimer, &QTimer::timeout, this, &Agent::queryAvatars);
+
+        static const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
+        static const int AVATAR_VIEW_PACKET_SEND_INTERVAL_MSECS = 1000;
 
         // start the timers
         _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);  // FIXME - we shouldn't really need to constantly send identity packets
+        _avatarQueryTimer->start(AVATAR_VIEW_PACKET_SEND_INTERVAL_MSECS);
 
         // tell the avatarAudioTimer to start ticking
         QMetaObject::invokeMethod(&_avatarAudioTimer, "start");
-
     }
 
     if (!_isAvatar) {
@@ -566,6 +571,10 @@ void Agent::setIsAvatar(bool isAvatar) {
             _avatarIdentityTimer->stop();
             delete _avatarIdentityTimer;
             _avatarIdentityTimer = nullptr;
+
+            _avatarQueryTimer->stop();
+            delete _avatarQueryTimer;
+            _avatarQueryTimer = nullptr;
 
             // The avatar mixer never times out a connection (e.g., based on identity or data packets)
             // but rather keeps avatars in its list as long as "connected". As a result, clients timeout
@@ -585,6 +594,7 @@ void Agent::setIsAvatar(bool isAvatar) {
                 nodeList->sendPacket(std::move(packet), *node);
             });
         }
+
         QMetaObject::invokeMethod(&_avatarAudioTimer, "stop");
     }
 }
@@ -595,6 +605,31 @@ void Agent::sendAvatarIdentityPacket() {
         scriptedAvatar->markIdentityDataChanged();
         scriptedAvatar->sendIdentityPacket();
     }
+}
+
+void Agent::queryAvatars() {
+    auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
+
+    ViewFrustum view;
+    view.setPosition(scriptedAvatar->getWorldPosition());
+    view.setOrientation(scriptedAvatar->getHeadOrientation());
+    view.calculate();
+    ConicalViewFrustum conicalView { view };
+
+    auto avatarPacket = NLPacket::create(PacketType::AvatarQuery);
+    auto destinationBuffer = reinterpret_cast<unsigned char*>(avatarPacket->getPayload());
+    auto bufferStart = destinationBuffer;
+
+    uint8_t numFrustums = 1;
+    memcpy(destinationBuffer, &numFrustums, sizeof(numFrustums));
+    destinationBuffer += sizeof(numFrustums);
+
+    destinationBuffer += conicalView.serialize(destinationBuffer);
+
+    avatarPacket->setPayloadSize(destinationBuffer - bufferStart);
+
+    DependencyManager::get<NodeList>()->broadcastToNodes(std::move(avatarPacket),
+                                                         { NodeType::AvatarMixer });
 }
 
 void Agent::processAgentAvatar() {

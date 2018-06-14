@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AvatarHashMap.h"
+
 #include <QtCore/QDataStream>
 
 #include <NodeList.h>
@@ -17,7 +19,6 @@
 #include <SharedUtil.h>
 
 #include "AvatarLogging.h"
-#include "AvatarHashMap.h"
 
 AvatarHashMap::AvatarHashMap() {
     auto nodeList = DependencyManager::get<NodeList>();
@@ -81,6 +82,7 @@ AvatarSharedPointer AvatarHashMap::addAvatar(const QUuid& sessionUUID, const QWe
     avatar->setSessionUUID(sessionUUID);
     avatar->setOwningAvatarMixer(mixerWeakPointer);
 
+    // addAvatar is only called from newOrExistingAvatar, which already locks _hashLock
     _avatarHash.insert(sessionUUID, avatar);
     emit avatarAddedEvent(sessionUUID);
 

@@ -55,8 +55,8 @@ public:
 
     bool isReady() const;
     bool isEnabled() const { return _enabled; }
-    void prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size, const glm::quat& orientation);
-    const gpu::ShaderPointer& getShader() const { return _shader; }
+    void prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size, const glm::quat& orientation, const glm::vec4& color = glm::vec4(1));
+    const gpu::ShaderPointer& getOpaqueShader() const { return _opaqueShader; }
 
     glm::vec4 getColor(const glm::vec4& entityColor);
     quint64 getFadeStartTime() const { return _fadeStartTime; }
@@ -65,7 +65,8 @@ public:
     void setDoesFade(bool doesFade) { _doesFade = doesFade; }
 
     std::string _vertexSource;
-    std::string _fragmentSource;
+    std::string _opaquefragmentSource;
+    std::string _transparentfragmentSource;
 
     gpu::StatePointer _opaqueState { std::make_shared<gpu::State>() };
     gpu::StatePointer _transparentState { std::make_shared<gpu::State>() };
@@ -101,13 +102,16 @@ protected:
 
     // Rendering objects
     UniformLambdas _uniforms;
-    int32_t _standardUniformSlots[NUM_STANDARD_UNIFORMS];
+    int32_t _standardOpaqueUniformSlots[NUM_STANDARD_UNIFORMS];
+    int32_t _standardTransparentUniformSlots[NUM_STANDARD_UNIFORMS];
     NetworkTexturePointer _channels[MAX_PROCEDURAL_TEXTURE_CHANNELS];
     gpu::PipelinePointer _opaquePipeline;
     gpu::PipelinePointer _transparentPipeline;
     gpu::ShaderPointer _vertexShader;
-    gpu::ShaderPointer _fragmentShader;
-    gpu::ShaderPointer _shader;
+    gpu::ShaderPointer _opaqueFragmentShader;
+    gpu::ShaderPointer _transparentFragmentShader;
+    gpu::ShaderPointer _opaqueShader;
+    gpu::ShaderPointer _transparentShader;
 
     // Entity metadata
     glm::vec3 _entityDimensions;
@@ -116,13 +120,16 @@ protected:
 
 private:
     // This should only be called from the render thread, as it shares data with Procedural::prepare
-    void setupUniforms();
-    void setupChannels(bool shouldCreate);
+    void setupUniforms(bool transparent);
+    void setupChannels(bool shouldCreate, bool transparent);
+
+    std::string replaceProceduralBlock(const std::string& fragmentSource);
 
     mutable quint64 _fadeStartTime { 0 };
     mutable bool _hasStartedFade { false };
     mutable bool _isFading { false };
     bool _doesFade { true };
+    bool _prevTransparent { false };
 };
 
 #endif

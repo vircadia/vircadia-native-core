@@ -30,10 +30,6 @@ using StepList = std::vector<Step*>;
 class ExtractedText {
 public:
     QString title;
-    QString platform;
-    QString display;
-    QString cpu;
-    QString gpu;
     StepList stepList;
 };
 
@@ -41,42 +37,44 @@ class Test {
 public: 
     Test();
 
-    void startTestsEvaluation();
-    void finishTestsEvaluation(bool interactiveMode, QProgressBar* progressBar);
+    void startTestsEvaluation(const QString& testFolder = QString());
+    void finishTestsEvaluation(bool isRunningFromCommandline, bool interactiveMode, QProgressBar* progressBar);
 
     void createRecursiveScript();
-    void createRecursiveScriptsRecursively();
-    void createRecursiveScript(QString topLevelDirectory, bool interactiveMode);
+    void createAllRecursiveScripts();
+    void createRecursiveScript(const QString& topLevelDirectory, bool interactiveMode);
 
-    void createTest();
+    void createTests();
     void createMDFile();
+    void createAllMDFiles();
+    void createMDFile(const QString& topLevelDirectory);
+
+    void createTestsOutline();
 
     bool compareImageLists(bool isInteractiveMode, QProgressBar* progressBar);
 
-    QStringList createListOfAll_imagesInDirectory(QString imageFormat, QString pathToImageDirectory);
+    QStringList createListOfAll_imagesInDirectory(const QString& imageFormat, const QString& pathToImageDirectory);
 
-    bool isInSnapshotFilenameFormat(QString imageFormat, QString filename);
+    bool isInSnapshotFilenameFormat(const QString& imageFormat, const QString& filename);
 
-    void importTest(QTextStream& textStream, const QString& testPathname);
+    void includeTest(QTextStream& textStream, const QString& testPathname);
 
-    void appendTestResultsToFile(QString testResultsFolderPath, TestFailure testFailure, QPixmap comparisonImage);
+    void appendTestResultsToFile(const QString& testResultsFolderPath, TestFailure testFailure, QPixmap comparisonImage);
 
-    bool createTestResultsFolderPath(QString directory);
+    bool createTestResultsFolderPath(const QString& directory);
     void zipAndDeleteTestResultsFolder();
 
-    bool isAValidDirectory(QString pathname);
-	QString extractPathFromTestsDown(QString fullPath);
-    QString getExpectedImageDestinationDirectory(QString filename);
-    QString getExpectedImagePartialSourceDirectory(QString filename);
+    bool isAValidDirectory(const QString& pathname);
+	QString extractPathFromTestsDown(const QString& fullPath);
+    QString getExpectedImageDestinationDirectory(const QString& filename);
+    QString getExpectedImagePartialSourceDirectory(const QString& filename);
 
-    void copyJPGtoPNG(QString sourceJPGFullFilename, QString destinationPNGFullFilename);
+    void copyJPGtoPNG(const QString& sourceJPGFullFilename, const QString& destinationPNGFullFilename);
 
 private:
     const QString TEST_FILENAME { "test.js" };
     const QString TEST_RESULTS_FOLDER { "TestResults" };
     const QString TEST_RESULTS_FILENAME { "TestResults.txt" };
-
-    QMessageBox messageBox;
 
     QDir imageDirectory;
 
@@ -84,24 +82,39 @@ private:
 
     ImageComparer imageComparer;
 
-    QString testResultsFolderPath { "" };
+    QString testResultsFolderPath;
     int index { 1 };
 
     // Expected images are in the format ExpectedImage_dddd.jpg (d == decimal digit)
     const int NUM_DIGITS { 5 };
     const QString EXPECTED_IMAGE_PREFIX { "ExpectedImage_" };
 
-    QString pathToTestResultsDirectory;
+    // We have two directories to work with.
+    // The first is the directory containing the test we are working with
+    // The second is the root directory of all tests
+    // The third contains the snapshots taken for test runs that need to be evaluated
+    QString testDirectory;
+    QString testsRootDirectory;
+    QString snapshotDirectory;
+
     QStringList expectedImagesFilenames;
     QStringList expectedImagesFullFilenames;
     QStringList resultImagesFullFilenames;
 
     // Used for accessing GitHub
-    const QString githubUser{ "highfidelity" };
-    const QString gitHubBranch { "master" };
-	const QString DATETIME_FORMAT { "yyyy-MM-dd_hh-mm-ss" };
+    const QString GIT_HUB_USER{ "highfidelity" };
+    const QString GIT_HUB_REPOSITORY{ "hifi_tests" };
+    const QString GIT_HUB_BRANCH{ "master" };
+
+    const QString DATETIME_FORMAT{ "yyyy-MM-dd_hh-mm-ss" };
 
 	ExtractedText getTestScriptLines(QString testFileName);
+
+    // NOTE: these need to match the appropriate var's in autoTester.js
+    //    var advanceKey = "n";
+    //    var pathSeparator = ".";
+    const QString ADVANCE_KEY{ "n" };
+    const QString PATH_SEPARATOR{ "." };
 };
 
 #endif // hifi_test_h

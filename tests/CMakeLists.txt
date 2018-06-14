@@ -1,7 +1,3 @@
-
-# Turn on testing (so that add_test works)
-enable_testing()
-
 # add the test directories
 file(GLOB TEST_SUBDIRS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/*")
 list(REMOVE_ITEM TEST_SUBDIRS "CMakeFiles" "mocha")
@@ -27,9 +23,9 @@ set_target_properties("test-extensions" PROPERTIES FOLDER "Tests")
 #   set (ALL_TEST_TARGETS "${ALL_TEST_TARGETS}" PARENT_SCOPE) # copies this back to parent scope
 #
 add_custom_target("all-tests"
-    COMMAND ctest .
     DEPENDS "${ALL_TEST_TARGETS}")
-set_target_properties("all-tests" PROPERTIES FOLDER "hidden/test-targets")
+
 set_target_properties("all-tests" PROPERTIES
+    FOLDER "hidden/test-targets"
     EXCLUDE_FROM_DEFAULT_BUILD TRUE
     EXCLUDE_FROM_ALL TRUE)

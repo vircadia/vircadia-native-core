@@ -39,7 +39,7 @@ enum LightClusterGridShader_MapSlot {
 enum LightClusterGridShader_BufferSlot {
     DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT = 0,
     CAMERA_CORRECTION_BUFFER_SLOT = 1,
-    LIGHT_GPU_SLOT = render::ShapePipeline::Slot::LIGHT,
+    LIGHT_GPU_SLOT = render::ShapePipeline::Slot::LIGHT_ARRAY_BUFFER,
     LIGHT_INDEX_GPU_SLOT = 7,
     LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT = 8,
     LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT = 9,
@@ -707,85 +707,83 @@ void DebugLightClusters::run(const render::RenderContextPointer& renderContext, 
 
     auto args = renderContext->args;
 
-    gpu::Batch batch;
+    
+    gpu::doInBatch(nullptr, args->_context, [&](gpu::Batch& batch) { 
+        batch.enableStereo(false);
 
-    batch.enableStereo(false);
-
-
-    // Assign the camera transform
-    batch.setViewportTransform(args->_viewport);
-    glm::mat4 projMat;
-    Transform viewMat;
-    args->getViewFrustum().evalProjectionMatrix(projMat);
-    args->getViewFrustum().evalViewTransform(viewMat);
-    batch.setProjectionTransform(projMat);
-    batch.setViewTransform(viewMat, true);
-
-
-    // Then the actual ClusterGrid attributes
-    batch.setModelTransform(Transform());
-
-    // Bind the Light CLuster data strucutre
-    batch.setUniformBuffer(LIGHT_GPU_SLOT, lightClusters->_lightStage->getLightArrayBuffer());
-    batch.setUniformBuffer(LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT, lightClusters->_frustumGridBuffer);
-    batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, lightClusters->_clusterGridBuffer);
-    batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, lightClusters->_clusterContentBuffer);
+        // Assign the camera transform
+        batch.setViewportTransform(args->_viewport);
+        glm::mat4 projMat;
+        Transform viewMat;
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
+        batch.setProjectionTransform(projMat);
+        batch.setViewTransform(viewMat, true);
 
 
+        // Then the actual ClusterGrid attributes
+        batch.setModelTransform(Transform());
 
-    if (doDrawClusterFromDepth) {
-        batch.setPipeline(getDrawClusterFromDepthPipeline());
-        batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, deferredTransform->getFrameTransformBuffer());
+        // Bind the Light CLuster data strucutre
+        batch.setUniformBuffer(LIGHT_GPU_SLOT, lightClusters->_lightStage->getLightArrayBuffer());
+        batch.setUniformBuffer(LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT, lightClusters->_frustumGridBuffer);
+        batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, lightClusters->_clusterGridBuffer);
+        batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, lightClusters->_clusterContentBuffer);
 
-        if (linearDepthTarget) {
-            batch.setResourceTexture(DEFERRED_BUFFER_LINEAR_DEPTH_UNIT, linearDepthTarget->getLinearDepthTexture());
+
+
+        if (doDrawClusterFromDepth) {
+            batch.setPipeline(getDrawClusterFromDepthPipeline());
+            batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, deferredTransform->getFrameTransformBuffer());
+
+            if (linearDepthTarget) {
+                batch.setResourceTexture(DEFERRED_BUFFER_LINEAR_DEPTH_UNIT, linearDepthTarget->getLinearDepthTexture());
+            }
+
+            batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
+              
+            batch.setResourceTexture(DEFERRED_BUFFER_LINEAR_DEPTH_UNIT, nullptr);
+            batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, nullptr);
         }
 
-        batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
+        if (doDrawContent) {
+
+            // bind the one gpu::Pipeline we need
+            batch.setPipeline(getDrawClusterContentPipeline());
+            batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, deferredTransform->getFrameTransformBuffer());
+
+            if (linearDepthTarget) {
+                batch.setResourceTexture(DEFERRED_BUFFER_LINEAR_DEPTH_UNIT, linearDepthTarget->getLinearDepthTexture());
+            }
+
+            batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
               
-        batch.setResourceTexture(DEFERRED_BUFFER_LINEAR_DEPTH_UNIT, nullptr);
-        batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, nullptr);
-    }
+            batch.setResourceTexture(DEFERRED_BUFFER_LINEAR_DEPTH_UNIT, nullptr);
+            batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, nullptr);
+        }
+    });
 
-    if (doDrawContent) {
 
-        // bind the one gpu::Pipeline we need
-        batch.setPipeline(getDrawClusterContentPipeline());
-        batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, deferredTransform->getFrameTransformBuffer());
 
-        if (linearDepthTarget) {
-            batch.setResourceTexture(DEFERRED_BUFFER_LINEAR_DEPTH_UNIT, linearDepthTarget->getLinearDepthTexture());
+    gpu::doInBatch(nullptr, args->_context, [&](gpu::Batch& batch) { 
+        auto& drawGridAndCleanBatch = batch;
+        if (doDrawGrid) {
+            // bind the one gpu::Pipeline we need
+            drawGridAndCleanBatch.setPipeline(getDrawClusterGridPipeline());
+
+            auto dims = lightClusters->_frustumGridBuffer->dims;
+            glm::ivec3 summedDims(dims.x * dims.y * dims.z, dims.x * dims.y, dims.x);
+            drawGridAndCleanBatch.drawInstanced(summedDims.x, gpu::LINES, 24, 0);
         }
 
-        batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
-              
-        batch.setResourceTexture(DEFERRED_BUFFER_LINEAR_DEPTH_UNIT, nullptr);
-        batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, nullptr);
-    }
+        drawGridAndCleanBatch.setUniformBuffer(LIGHT_GPU_SLOT, nullptr);
+        drawGridAndCleanBatch.setUniformBuffer(LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT, nullptr);
+        drawGridAndCleanBatch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, nullptr);
+        drawGridAndCleanBatch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, nullptr);
 
-
-
-    gpu::Batch drawGridAndCleanBatch;
-
-    if (doDrawGrid) {
-        // bind the one gpu::Pipeline we need
-        drawGridAndCleanBatch.setPipeline(getDrawClusterGridPipeline());
-
-        auto dims = lightClusters->_frustumGridBuffer->dims;
-        glm::ivec3 summedDims(dims.x*dims.y * dims.z, dims.x*dims.y, dims.x);
-        drawGridAndCleanBatch.drawInstanced(summedDims.x, gpu::LINES, 24, 0);
-    }
-
-    drawGridAndCleanBatch.setUniformBuffer(LIGHT_GPU_SLOT, nullptr);
-    drawGridAndCleanBatch.setUniformBuffer(LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT, nullptr);
-    drawGridAndCleanBatch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, nullptr);
-    drawGridAndCleanBatch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, nullptr);
-
-    drawGridAndCleanBatch.setResourceTexture(DEFERRED_BUFFER_COLOR_UNIT, nullptr);
-    drawGridAndCleanBatch.setResourceTexture(DEFERRED_BUFFER_NORMAL_UNIT, nullptr);
-    drawGridAndCleanBatch.setResourceTexture(DEFERRED_BUFFER_EMISSIVE_UNIT, nullptr);
-    drawGridAndCleanBatch.setResourceTexture(DEFERRED_BUFFER_DEPTH_UNIT, nullptr);
-
-    args->_context->appendFrameBatch(batch);
-    args->_context->appendFrameBatch(drawGridAndCleanBatch);
+        drawGridAndCleanBatch.setResourceTexture(DEFERRED_BUFFER_COLOR_UNIT, nullptr);
+        drawGridAndCleanBatch.setResourceTexture(DEFERRED_BUFFER_NORMAL_UNIT, nullptr);
+        drawGridAndCleanBatch.setResourceTexture(DEFERRED_BUFFER_EMISSIVE_UNIT, nullptr);
+        drawGridAndCleanBatch.setResourceTexture(DEFERRED_BUFFER_DEPTH_UNIT, nullptr);
+    });
 }

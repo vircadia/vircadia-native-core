@@ -677,7 +677,6 @@ window.onload = function () {
                             shareForUrl("p1");
                             appendShareBar("p1", messageOptions.isLoggedIn, messageOptions.canShare, true, false, false, messageOptions.canBlast);
                             document.getElementById("p1").classList.remove("processingGif");
-                            document.getElementById("snap-button").disabled = false;
                         }
                     } else {
                         imageCount = message.image_data.length;
@@ -685,6 +684,7 @@ window.onload = function () {
                             addImage(element, messageOptions.isLoggedIn, messageOptions.canShare, false, false, false, false, true);
                         });
                     }
+                    document.getElementById("snap-button").disabled = false;
                     break;
                 case 'captureSettings':
                     handleCaptureSetting(message.setting);
@@ -728,9 +728,7 @@ function takeSnapshot() {
         type: "snapshot",
         action: "takeSnapshot"
     }));
-    if (document.getElementById('stillAndGif').checked === true) {
-        document.getElementById("snap-button").disabled = true;
-    }
+    document.getElementById("snap-button").disabled = true;
 }
 
 function isPrintDisabled() { 
