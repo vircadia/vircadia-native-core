@@ -43,8 +43,8 @@
    <widget class="QPushButton" name="evaluateTestsButton">
     <property name="geometry">
      <rect>
-      <x>20</x>
-      <y>285</y>
+      <x>340</x>
+      <y>275</y>
       <width>220</width>
       <height>40</height>
      </rect>
@@ -56,8 +56,8 @@
    <widget class="QPushButton" name="createRecursiveScriptButton">
     <property name="geometry">
      <rect>
-      <x>360</x>
-      <y>35</y>
+      <x>340</x>
+      <y>95</y>
       <width>220</width>
       <height>40</height>
      </rect>
@@ -69,8 +69,8 @@
    <widget class="QCheckBox" name="checkBoxInteractiveMode">
     <property name="geometry">
      <rect>
-      <x>23</x>
-      <y>250</y>
+      <x>343</x>
+      <y>240</y>
       <width>131</width>
       <height>20</height>
      </rect>
@@ -85,8 +85,8 @@
    <widget class="QProgressBar" name="progressBar">
     <property name="geometry">
      <rect>
-      <x>20</x>
-      <y>340</y>
+      <x>340</x>
+      <y>330</y>
       <width>255</width>
       <height>23</height>
      </rect>
@@ -98,8 +98,8 @@
    <widget class="QPushButton" name="createAllRecursiveScriptsButton">
     <property name="geometry">
      <rect>
-      <x>360</x>
-      <y>100</y>
+      <x>340</x>
+      <y>160</y>
       <width>220</width>
       <height>40</height>
      </rect>
@@ -150,8 +150,8 @@
    <widget class="QPushButton" name="showTaskbarButton">
     <property name="geometry">
      <rect>
-      <x>490</x>
-      <y>280</y>
+      <x>10</x>
+      <y>410</y>
       <width>91</width>
       <height>40</height>
      </rect>
@@ -163,14 +163,42 @@
    <widget class="QPushButton" name="hideTaskbarButton">
     <property name="geometry">
      <rect>
-      <x>490</x>
-      <y>230</y>
+      <x>10</x>
+      <y>360</y>
       <width>91</width>
       <height>40</height>
      </rect>
     </property>
     <property name="text">
      <string>Hide Taskbar</string>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="branchComboBox">
+    <property name="geometry">
+     <rect>
+      <x>428</x>
+      <y>41</y>
+      <width>131</width>
+      <height>31</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label">
+    <property name="geometry">
+     <rect>
+      <x>340</x>
+      <y>30</y>
+      <width>81</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>GitHub Branch</string>
     </property>
    </widget>
   </widget>

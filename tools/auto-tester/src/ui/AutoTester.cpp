@@ -29,13 +29,15 @@ AutoTester::AutoTester(QWidget *parent) : QMainWindow(parent) {
     ui.hideTaskbarButton->setVisible(false);
     ui.showTaskbarButton->setVisible(false);
 #endif
+}
 
+void AutoTester::setup() {
     test = new Test();
 }
 
-void AutoTester::runFromCommandLine(const QString& testFolder) {
+void AutoTester::runFromCommandLine(const QString& testFolder, const QString& branch) {
     isRunningFromCommandline = true;
-    test->startTestsEvaluation(testFolder);
+    test->startTestsEvaluation(testFolder, branch);
 }
 
 void AutoTester::on_evaluateTestsButton_clicked() {
@@ -149,4 +151,12 @@ void AutoTester::saveImage(int index) {
 
 void AutoTester::about() {
     QMessageBox::information(0, "About", QString("Built ") + __DATE__ + " : " + __TIME__);
+}
+
+void AutoTester::loadBranchCombo(const QStringList& items) {
+    ui.branchComboBox->addItems(items);
+}
+
+QString AutoTester::getSelectedBranch() {
+    return ui.branchComboBox->currentText();
 }

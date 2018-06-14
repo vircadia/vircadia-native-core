@@ -25,6 +25,10 @@ extern AutoTester* autoTester;
 
 Test::Test() {
     mismatchWindow.setModal(true);
+
+    if (autoTester) {
+        autoTester->loadBranchCombo(GIT_HUB_BRANCHES);
+    }
 }
 
 bool Test::createTestResultsFolderPath(const QString& directory) {
@@ -177,7 +181,7 @@ void Test::appendTestResultsToFile(const QString& testResultsFolderPath, TestFai
     comparisonImage.save(failureFolderPath + "/" + "Difference Image.png");
 }
 
-void Test::startTestsEvaluation(const QString& testFolder) {
+void Test::startTestsEvaluation(const QString& testFolder, const QString& branchFromCommandLine) {
     if (testFolder.isNull()) {
         // Get list of JPEG images in folder, sorted by name
         QString previousSelection = snapshotDirectory;
@@ -225,6 +229,8 @@ void Test::startTestsEvaluation(const QString& testFolder) {
     expectedImagesFilenames.clear();
     expectedImagesFullFilenames.clear();
 
+    QString branch = (branchFromCommandLine.isNull()) ? autoTester->getSelectedBranch() : branchFromCommandLine ;
+
     foreach(QString currentFilename, sortedTestResultsFilenames) {
         QString fullCurrentFilename = snapshotDirectory + "/" + currentFilename;
         if (isInSnapshotFilenameFormat("png", currentFilename)) {
@@ -237,7 +243,7 @@ void Test::startTestsEvaluation(const QString& testFolder) {
             QString expectedImageFilenameTail = currentFilename.left(currentFilename.length() - 4).right(NUM_DIGITS);
             QString expectedImageStoredFilename = EXPECTED_IMAGE_PREFIX + expectedImageFilenameTail + ".png";
 
-            QString imageURLString("https://raw.githubusercontent.com/" + GIT_HUB_USER + "/hifi_tests/" + GIT_HUB_BRANCH + "/" + 
+            QString imageURLString("https://raw.githubusercontent.com/" + GIT_HUB_USER + "/hifi_tests/" + branch + "/" + 
                 expectedImagePartialSourceDirectory + "/" + expectedImageStoredFilename);
 
             expectedImagesURLs << imageURLString;
@@ -406,7 +412,9 @@ void Test::createRecursiveScript(const QString& topLevelDirectory, bool interact
 
     textStream << "user = \"" + GIT_HUB_USER + "/\";" << endl;
     textStream << "repository = \"" + GIT_HUB_REPOSITORY + "/\";" << endl;
-    textStream << "branch = \"" + GIT_HUB_BRANCH + "/\";" << endl << endl;
+
+    QString branch = autoTester->getSelectedBranch();
+    textStream << "branch = \"" + branch + "/\";" << endl << endl;
 
     // Wait 10 seconds before starting
     textStream << "Test.wait(10000);" << endl << endl;

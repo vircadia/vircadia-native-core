@@ -37,7 +37,7 @@ class Test {
 public: 
     Test();
 
-    void startTestsEvaluation(const QString& testFolder = QString());
+    void startTestsEvaluation(const QString& testFolder = QString(), const QString& branchFromCommandLine = QString());
     void finishTestsEvaluation(bool isRunningFromCommandline, bool interactiveMode, QProgressBar* progressBar);
 
     void createRecursiveScript();
@@ -106,7 +106,9 @@ private:
     // Used for accessing GitHub
     const QString GIT_HUB_USER{ "highfidelity" };
     const QString GIT_HUB_REPOSITORY{ "hifi_tests" };
-    const QString GIT_HUB_BRANCH{ "master" };
+
+    // The branch is user-selected
+    const QStringList GIT_HUB_BRANCHES{ "master", "RC69" };
 
     const QString DATETIME_FORMAT{ "yyyy-MM-dd_hh-mm-ss" };
 

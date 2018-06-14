@@ -23,10 +23,15 @@ class AutoTester : public QMainWindow {
 public:
     AutoTester(QWidget *parent = Q_NULLPTR);
 
-    void runFromCommandLine(const QString& testFolder);
+    void setup();
+
+    void runFromCommandLine(const QString& testFolder, const QString& branch);
 
     void downloadImage(const QUrl& url);
     void downloadImages(const QStringList& URLs, const QString& directoryName, const QStringList& filenames);
+
+    void loadBranchCombo(const QStringList& items);
+    QString getSelectedBranch();
 
 private slots:
     void on_evaluateTestsButton_clicked();
