@@ -283,7 +283,9 @@ public:
 
 private:
     void initialize() {
+        setObjectName("Render");
         PROFILE_SET_THREAD_NAME("Render");
+        setCrashAnnotation("render_thread_id", std::to_string((size_t)QThread::currentThreadId()));
         if (!_renderContext->makeCurrent()) {
             qFatal("Unable to make rendering context current on render thread");
         }
@@ -1099,6 +1101,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _logger->setSessionID(accountManager->getSessionID());
 
     setCrashAnnotation("metaverse_session_id", accountManager->getSessionID().toString().toStdString());
+    setCrashAnnotation("main_thread_id", std::to_string((size_t)QThread::currentThreadId()));
 
     if (steamClient) {
         qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << steamClient->getSteamVRBuildID();
@@ -1440,6 +1443,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     Setting::Handle<bool> firstRun { Settings::firstRun, true };
 
     QString machineFingerPrint = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
+    setCrashAnnotation("machine_fingerprint", machineFingerPrint.toStdString());
 
     auto& userActivityLogger = UserActivityLogger::getInstance();
     if (userActivityLogger.isEnabled()) {
