@@ -69,7 +69,6 @@ Item {
             id: stack
             initialItem: inputConfiguration
             property alias messageVisible: imageMessageBox.visible
-            property alias selectedPlugin: box.textAt(box.currentIndex)
             Rectangle {
                 id: inputConfiguration
                 anchors {
