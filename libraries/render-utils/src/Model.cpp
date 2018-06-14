@@ -725,14 +725,6 @@ void Model::updateRenderItemsKey(const render::ScenePointer& scene) {
             data.updateKey(renderItemsKey);
         });
     }
-    //TODO: Remove
-#ifdef RENDER_MODEL_BOUNDING_BOXES
-    foreach(auto item, _collisionRenderItemsMap.keys()) {
-        transaction.updateItem<ModelMeshPartPayload>(item, [renderItemsKey](ModelMeshPartPayload& data) {
-            data.updateKey(renderItemsKey);
-        });
-    }
-#endif
     scene->enqueueTransaction(transaction);
 }
 
