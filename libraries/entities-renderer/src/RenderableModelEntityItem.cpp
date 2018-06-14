@@ -23,7 +23,6 @@
 #include <QtCore/QUrlQuery>
 
 #include <AbstractViewStateInterface.h>
-#include <CollisionRenderMeshCache.h>
 #include <Model.h>
 #include <PerfStat.h>
 #include <render/Scene.h>
@@ -34,8 +33,6 @@
 #include "EntityTreeRenderer.h"
 #include "EntitiesRendererLogging.h"
 
-
-static CollisionRenderMeshCache collisionMeshCache;
 
 void ModelEntityWrapper::setModel(const ModelPointer& model) {
     withWriteLock([&] {
@@ -1052,11 +1049,7 @@ using namespace render;
 using namespace render::entities;
 
 ModelEntityRenderer::ModelEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {
-    // TODO: Re-add menu item in Menu.ccp/Menu.h when collision model updates in doRenderUpdateSynchronousTyped(...) are re-implemented
-    connect(DependencyManager::get<EntityTreeRenderer>().data(), &EntityTreeRenderer::setRenderDebugHulls, this, [&] {
-        _needsCollisionGeometryUpdate = true;
-        emit requestRenderUpdate();
-    });
+
 }
 
 void ModelEntityRenderer::setKey(bool didVisualGeometryRequestSucceed) {
@@ -1216,10 +1209,6 @@ bool ModelEntityRenderer::needsRenderUpdate() const {
         if (model->getRenderItemsNeedUpdate()) {
             return true;
         }
-
-        if (_needsCollisionGeometryUpdate) {
-            return true;
-        }
     }
     return Parent::needsRenderUpdate();
 }
@@ -1286,12 +1275,7 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
 }
 
 void ModelEntityRenderer::setCollisionMeshKey(const void*key) {
-    if (key != _collisionMeshKey) {
-        if (_collisionMeshKey) {
-            collisionMeshCache.releaseMesh(_collisionMeshKey);
-        }
-        _collisionMeshKey = key;
-    }
+    _collisionMeshKey = key;
 }
 
 void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
@@ -1340,7 +1324,6 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             _didLastVisualGeometryRequestSucceed = didVisualGeometryRequestSucceed;
         });
         connect(model.get(), &Model::requestRenderUpdate, this, &ModelEntityRenderer::requestRenderUpdate);
-        connect(entity.get(), &RenderableModelEntityItem::requestCollisionGeometryUpdate, this, &ModelEntityRenderer::flagForCollisionGeometryUpdate);
         model->setLoadingPriority(EntityTreeRenderer::getEntityLoadingPriority(*entity));
         entity->setModel(model);
         withWriteLock([&] { _model = model; });
@@ -1413,25 +1396,6 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         model->setCanCastShadow(_canCastShadow, scene);
     }
 
-    if (_needsCollisionGeometryUpdate) {
-        setCollisionMeshKey(entity->getCollisionMeshKey());
-        _needsCollisionGeometryUpdate = false;
-        ShapeType type = entity->getShapeType();
-        if (DependencyManager::get<EntityTreeRenderer>()->shouldRenderDebugHulls() && type != SHAPE_TYPE_NONE) {
-            // NOTE: it is OK if _collisionMeshKey is nullptr
-            graphics::MeshPointer mesh = collisionMeshCache.getMesh(_collisionMeshKey);
-            // TODO: Start displaying collision model
-
-        } else {
-            if (_collisionMeshKey) {
-                // release mesh
-                collisionMeshCache.releaseMesh(_collisionMeshKey);
-            }
-            // TODO: Stop displaying collision model
-
-        }
-    }
-
     {
         DETAILED_PROFILE_RANGE(simulation_physics, "Fixup");
         if (model->needsFixupInScene()) {
@@ -1485,11 +1449,6 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 void ModelEntityRenderer::setIsVisibleInSecondaryCamera(bool value) {
     Parent::setIsVisibleInSecondaryCamera(value);
     setKey(_didLastVisualGeometryRequestSucceed);
-}
-
-void ModelEntityRenderer::flagForCollisionGeometryUpdate() {
-    _needsCollisionGeometryUpdate = true;
-    emit requestRenderUpdate();
 }
 
 // NOTE: this only renders the "meta" portion of the Model, namely it renders debugging items
