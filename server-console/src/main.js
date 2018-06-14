@@ -65,9 +65,9 @@ function getBuildInfo() {
         buildIdentifier: "dev",
         buildNumber: "0",
         stableBuild: "0",
-        organization: "High Fidelity - dev"
+        organization: "High Fidelity - dev",
+        appUserModelId: "com.highfidelity.sandbox-dev"
     };
-
     var buildInfo = DEFAULT_BUILD_INFO;
 
     if (buildInfoPath) {
@@ -257,6 +257,8 @@ function deleteOldFiles(directoryPath, maxAgeInSeconds, filenameRegex) {
         }
     }
 }
+
+app.setAppUserModelId(buildInfo.appUserModelId);
 
 // print out uncaught exceptions in the console
 process.on('uncaughtException', function(err) {
@@ -780,6 +782,7 @@ function onContentLoaded() {
     // maybeShowSplash();
 
     if (buildInfo.releaseType == 'PRODUCTION' && !argv.noUpdater) {
+
         const CHECK_FOR_UPDATES_INTERVAL_SECONDS = 60 * 30;
         var hasShownUpdateNotification = false;
         const updateChecker = new updater.UpdateChecker(buildInfo, CHECK_FOR_UPDATES_INTERVAL_SECONDS);
@@ -790,6 +793,7 @@ function onContentLoaded() {
                     title: 'An update is available!',
                     message: 'High Fidelity version ' + latestVersion + ' is available',
                     wait: true,
+                    appID: buildInfo.appUserModelId,
                     url: url
                 });
                 hasShownUpdateNotification = true;
