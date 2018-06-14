@@ -115,16 +115,42 @@ const UPDATER_LOCK_FULL_PATH = getRootHifiDataDirectory() + "/" + UPDATER_LOCK_F
 
 // Configure log
 global.log = require('electron-log');
-const logFile = getApplicationDataDirectory(true) + '/log.txt';
+const oldLogFile = path.join(getApplicationDataDirectory(), '/log.txt');
+const logFile = path.join(getApplicationDataDirectory(true), '/log.txt');
+if (oldLogFile != logFile && fs.existsSync(oldLogFile)) {
+    if (!fs.existsSync(oldLogFile)) {
+        fs.moveSync(oldLogFile, logFile);
+    } else {
+        fs.remove(oldLogFile);
+    }
+}
 fs.ensureFileSync(logFile); // Ensure file exists
 log.transports.file.maxSize = 5 * 1024 * 1024;
 log.transports.file.file = logFile;
 
 log.debug("build info", buildInfo);
 log.debug("Root hifi directory is: ", getRootHifiDataDirectory());
+log.debug("App Data directory:", getApplicationDataDirectory());
+fs.ensureDirSync(getApplicationDataDirectory());
+
+var oldLogPath = path.join(getApplicationDataDirectory(), '/logs');
+var logPath = path.join(getApplicationDataDirectory(true), '/logs');
+if (oldLogPath != logPath && fs.existsSync(oldLogPath)) {
+    if (!fs.existsSync(oldLogPath)) {
+        fs.moveSync(oldLogPath, logPath);
+    } else {
+        fs.remove(oldLogPath);
+    }
+}
+fs.ensureDirSync(logPath);
+log.debug("Log directory:", logPath);
+
+const configPath = path.join(getApplicationDataDirectory(), 'config.json');
+var userConfig = new Config();
+userConfig.load(configPath);
+
 
 const ipcMain = electron.ipcMain;
-
 
 var isShuttingDown = false;
 function shutdown() {
@@ -231,27 +257,6 @@ function deleteOldFiles(directoryPath, maxAgeInSeconds, filenameRegex) {
         }
     }
 }
-
-var oldLogPath = path.join(getApplicationDataDirectory(), '/logs');
-var logPath = path.join(getApplicationDataDirectory(true), '/logs');
-
-if (oldLogPath != logPath) {
-    console.log("Migrating old logs from " + oldLogPath + " to " + logPath);
-    fs.copy(oldLogPath, logPath, err => {
-        if (err) {
-            console.error(err);
-        } else {
-            console.log('success!');
-        }
-    })
-}
-
-log.debug("Log directory:", logPath);
-log.debug("Data directory:", getRootHifiDataDirectory());
-
-const configPath = path.join(getApplicationDataDirectory(), 'config.json');
-var userConfig = new Config();
-userConfig.load(configPath);
 
 app.setAppUserModelId(buildInfo.appUserModelId);
 
