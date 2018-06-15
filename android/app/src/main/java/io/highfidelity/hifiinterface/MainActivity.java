@@ -126,7 +126,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void loadHomeFragment() {
         Fragment fragment = HomeFragment.newInstance();
-        loadFragment(fragment, getString(R.string.home), false);
+        loadFragment(fragment, getString(R.string.home), true);
     }
 
     private void loadLoginFragment() {
@@ -152,7 +152,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         FragmentTransaction ft = fragmentManager.beginTransaction();
         ft.replace(R.id.content_frame, fragment);
         if (addToBackStack) {
-            ft.addToBackStack(null);
+            ft.addToBackStack(title);
         }
         ft.commit();
         setTitle(title);
@@ -298,8 +298,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     public void onBackPressed() {
         int index = getFragmentManager().getBackStackEntryCount() - 1;
-        if (index > -1) {
+        if (index > 0) {
             super.onBackPressed();
+            index--;
+            if (index > -1) {
+                setTitle(getFragmentManager().getBackStackEntryAt(index).getName());
+            }
             if (backToScene) {
                 backToScene = false;
                 goToLastLocation();
