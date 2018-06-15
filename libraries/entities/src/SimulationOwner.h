@@ -67,11 +67,12 @@
 //         when multiple participants (with variable ping-times to the server) bid simultaneously for a
 //         recently activated entity.
 //
-//     (9) When a participant changes an entity's transform/velocity it will bid at priority = POKE (=127)
+//     (9) When a participant changes an entity's transform/velocity (via script) it will bid at
+//         priority = POKE (=127).
 //
-//    (10) When an entity touches MyAvatar the participant it will bid at priority = POKE.
+//    (10) When an entity collides with MyAvatar the participant it will bid at priority = POKE.
 //
-//    (11) When a participant grabs an entity it will bid at priority = GRAB (=128).
+//    (11) When a participant grabs (via script) an entity it will bid at priority = GRAB (=128).
 //
 //    (12) When entityA, locally owned at priority = N, collides with an unowned entityB the owner will
 //         also bid for entityB at priority = N-1 (or VOLUNTEER, whichever is larger).
@@ -79,7 +80,7 @@
 //    (13) When an entity comes to rest and is deactivated in the physics simulation the owner will
 //         send an update to: clear their ownerhsip, set priority to zero, and set the object's
 //         velocities to be zero.  As per a normal bid, the owner does NOT assume that its ownership
-//         has been cleared until it hears from the entity-server.  This, if the packet is lost the
+//         has been cleared until it hears from the entity-server.  Thus, if the packet is lost the
 //         owner will re-send after some period.
 //
 //    (14) When an entity's ownership priority drops below VOLUNTEER other participants may bid for it
