@@ -23,6 +23,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -31,6 +33,7 @@ public class BreakpadUploaderService extends Service {
     private static final String ANNOTATIONS_JSON = "annotations.json";
     private static final String TAG = "Interface";
     public static final String EXT_DMP = "dmp";
+    private static final long DUMP_DELAY = 5000;
 
     private FileObserver fileObserver;
 
@@ -66,7 +69,12 @@ public class BreakpadUploaderService extends Service {
                 if (FileObserver.CREATE == event && EXT_DMP.equals(getExtension(path))) {
                     URL baseUrl = getUrl();
                     if (baseUrl != null) {
-                        new Thread(() -> uploadDumpAndDelete(new File(path), baseUrl)).start();
+                        new Timer().schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                uploadDumpAndDelete(new File(getObbDir(), path), baseUrl);
+                            }
+                        }, DUMP_DELAY);
                     }
                 }
             }
