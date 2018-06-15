@@ -124,7 +124,7 @@ Size Sysmem::setData( Size size, const Byte* bytes ) {
 }
 
 Size Sysmem::setSubData( Size offset, Size size, const Byte* bytes) {
-    if (size && ((offset + size) <= getSize()) && bytes) {
+    if (_data && size && ((offset + size) <= getSize()) && bytes) {
         memcpy( _data + offset, bytes, size );
         return size;
     }
