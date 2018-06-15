@@ -1,28 +1,31 @@
 //
-//  Breakpad.cpp
+//  Crashpad.cpp
 //  interface/src
 //
-//  Created by Gabriel Calero & Cristian Duarte on 06/06/18
+//  Created by Clement Brisset on 01/19/18.
 //  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "Crashpad.h"
+#include "CrashHandler.h"
 
-#if defined(HAS_BREAKPAD)
-#include <QDebug>
+#if HAS_BREAKPAD
+
+#include <mutex>
 
 #include <client/linux/handler/exception_handler.h>
 #include <client/linux/handler/minidump_descriptor.h>
+
+#include <QDebug>
+#include <QMap>
 #include <QtCore/QFileInfo>
 #include <QtAndroidExtras/QAndroidJniObject>
-#include <QMap>
-#include <SettingHelpers.h>
-#include <mutex>
 
-google_breakpad::ExceptionHandler *gBreakpadHandler;
+#include <SettingHelpers.h>
+
+google_breakpad::ExceptionHandler* gBreakpadHandler;
 
 std::mutex annotationMutex;
 QMap<QString, QString> annotations;
@@ -52,11 +55,7 @@ void setCrashAnnotation(std::string name, std::string value) {
     std::lock_guard<std::mutex> guard(annotationMutex);
     QString qName = QString::fromStdString(name);
     QString qValue = QString::fromStdString(value);
-    if(!annotations.contains(qName)) {
-        annotations.insert(qName, qValue);
-    } else {
-        annotations[qName] = qValue;
-    }
+    annotations[qName] = qValue;
 
     QSettings settings(obbDir() + "/annotations.json", JSON_FORMAT);
     settings.clear();

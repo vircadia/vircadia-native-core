@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "Crashpad.h"
+#include "CrashHandler.h"
 
 #include <assert.h>
 
@@ -112,16 +112,6 @@ void setCrashAnnotation(std::string name, std::string value) {
     }
     std::replace(value.begin(), value.end(), ',', ';');
     crashpadAnnotations->SetKeyValue(name, value);
-}
-
-#elif !defined(HAS_BREAKPAD)
-
-bool startCrashHandler() {
-    qDebug() << "No crash handler available.";
-    return false;
-}
-
-void setCrashAnnotation(std::string name, std::string value) {
 }
 
 #endif
