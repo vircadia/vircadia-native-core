@@ -37,6 +37,7 @@ class PathUtils : public QObject, public Dependency {
     Q_PROPERTY(QString resources READ resourcesPath CONSTANT)
     Q_PROPERTY(QUrl defaultScripts READ defaultScriptsLocation CONSTANT)
 public:
+    static const QString& getRccPath();
     static const QString& resourcesUrl();
     static QUrl resourcesUrl(const QString& relative);
     static const QString& resourcesPath();

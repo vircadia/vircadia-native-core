@@ -1034,6 +1034,29 @@ SelectionDisplay = (function() {
         }
     };
 
+    // FUNCTION: TOGGLE SPACE MODE
+    that.toggleSpaceMode = function() {
+        var wantDebug = false;
+        if (wantDebug) {
+            print("========> ToggleSpaceMode called. =========");
+        }
+        if ((spaceMode === SPACE_WORLD) && (SelectionManager.selections.length > 1)) {
+            if (wantDebug) {
+                print("Local space editing is not available with multiple selections");
+            }
+            return;
+        }
+        if (wantDebug) {
+            print("PreToggle: " + spaceMode);
+        }
+        spaceMode = (spaceMode === SPACE_LOCAL) ? SPACE_WORLD : SPACE_LOCAL;
+        that.updateHandles();
+        if (wantDebug) {
+            print("PostToggle: " + spaceMode);        
+            print("======== ToggleSpaceMode called. <=========");
+        }
+    };
+
     function addHandleTool(overlay, tool) {
         handleTools[overlay] = tool;
         return tool;

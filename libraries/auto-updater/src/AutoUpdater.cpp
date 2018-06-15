@@ -11,11 +11,16 @@
 
 #include "AutoUpdater.h"
 
-#include <NetworkAccessManager.h>
-#include <SharedUtil.h>
 #include <unordered_map>
 
-AutoUpdater::AutoUpdater() {
+#include <ApplicationVersion.h>
+#include <BuildInfo.h>
+#include <NetworkAccessManager.h>
+#include <SharedUtil.h>
+
+AutoUpdater::AutoUpdater() :
+    _currentVersion(BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? BuildInfo::VERSION : BuildInfo::BUILD_NUMBER)
+{
 #if defined Q_OS_WIN32
     _operatingSystem = "windows";
 #elif defined Q_OS_MAC
@@ -31,9 +36,22 @@ void AutoUpdater::checkForUpdate() {
     this->getLatestVersionData();
 }
 
+const QUrl BUILDS_XML_URL("https://highfidelity.com/builds.xml");
+const QUrl MASTER_BUILDS_XML_URL("https://highfidelity.com/dev-builds.xml");
+
 void AutoUpdater::getLatestVersionData() {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-    QNetworkRequest latestVersionRequest(BUILDS_XML_URL);
+
+    QUrl buildsURL;
+
+    if (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable) {
+        buildsURL = BUILDS_XML_URL;
+    } else if (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Master) {
+        buildsURL = MASTER_BUILDS_XML_URL;
+    }
+    
+    QNetworkRequest latestVersionRequest(buildsURL);
+
     latestVersionRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     latestVersionRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
     QNetworkReply* reply = networkAccessManager.get(latestVersionRequest);
@@ -50,12 +68,22 @@ void AutoUpdater::parseLatestVersionData() {
         QString clientOnly;
     };
     
-    int version { 0 };
+    QString version;
     QString downloadUrl;
     QString releaseTime;
     QString releaseNotes;
     QString commitSha;
     QString pullRequestNumber;
+
+    QString versionKey;
+
+    // stable builds look at the stable_version node (semantic version)
+    // master builds look at the version node (build number)
+    if (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable) {
+        versionKey = "stable_version";
+    } else if (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Master) {
+        versionKey = "version";
+    }
     
     while (xml.readNextStartElement()) {
         if (xml.name() == "projects") {
@@ -75,8 +103,8 @@ void AutoUpdater::parseLatestVersionData() {
                                     QHash<QString, InstallerURLs> campaignInstallers;
 
                                     while (xml.readNextStartElement()) {
-                                        if (xml.name() == "version") {
-                                            version = xml.readElementText().toInt();
+                                        if (xml.name() == versionKey) {
+                                            version = xml.readElementText();
                                         } else if (xml.name() == "url") {
                                             downloadUrl = xml.readElementText();
                                         } else if (xml.name() == "installers") {
@@ -157,33 +185,31 @@ void AutoUpdater::parseLatestVersionData() {
 }
 
 void AutoUpdater::checkVersionAndNotify() {
-    if (QCoreApplication::applicationVersion() == "dev" ||
-        QCoreApplication::applicationVersion().contains("PR") ||
-        _builds.empty()) {
-        // No version checking is required in dev builds or when no build
-        // data was found for the platform
+    if (_builds.empty()) {
+        // no build data was found for this platform
         return;
     }
-    int latestVersionAvailable = _builds.lastKey();
-    if (QCoreApplication::applicationVersion().toInt() < latestVersionAvailable) {
+
+    qDebug() << "Checking if update version" << _builds.lastKey().versionString
+        << "is newer than current version" << _currentVersion.versionString;
+
+    if (_builds.lastKey() > _currentVersion) {
         emit newVersionIsAvailable();
     }
 }
 
-void AutoUpdater::performAutoUpdate(int version) {
-    // NOTE: This is not yet auto updating - however this is a checkpoint towards that end
-    // Next PR will handle the automatic download, upgrading and application restart
-    const QMap<QString, QString>& chosenVersion = _builds.value(version);
+void AutoUpdater::openLatestUpdateURL() {
+    const QMap<QString, QString>& chosenVersion = _builds.last();
     const QUrl& downloadUrl = chosenVersion.value("downloadUrl");
     QDesktopServices::openUrl(downloadUrl);
     QCoreApplication::quit();
 }
 
-void AutoUpdater::downloadUpdateVersion(int version) {
+void AutoUpdater::downloadUpdateVersion(const QString& version) {
     emit newVersionIsDownloaded();
 }
 
-void AutoUpdater::appendBuildData(int versionNumber,
+void AutoUpdater::appendBuildData(const QString& versionNumber,
                                  const QString& downloadURL,
                                  const QString& releaseTime,
                                  const QString& releaseNotes,
@@ -194,6 +220,6 @@ void AutoUpdater::appendBuildData(int versionNumber,
     thisBuildDetails.insert("releaseTime", releaseTime);
     thisBuildDetails.insert("releaseNotes", releaseNotes);
     thisBuildDetails.insert("pullRequestNumber", pullRequestNumber);
-    _builds.insert(versionNumber, thisBuildDetails);
+    _builds.insert(ApplicationVersion(versionNumber), thisBuildDetails);
     
 }

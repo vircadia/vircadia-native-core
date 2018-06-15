@@ -18,7 +18,7 @@
 #include <GenericThread.h>
 #include "Octree.h"
 
-class OctreePersistThread : public GenericThread {
+class OctreePersistThread : public QObject {
     Q_OBJECT
 public:
     class BackupRule {
@@ -30,37 +30,37 @@ public:
         quint64 lastBackup;
     };
 
-    static const int DEFAULT_PERSIST_INTERVAL;
+    static const std::chrono::seconds DEFAULT_PERSIST_INTERVAL;
 
-    OctreePersistThread(OctreePointer tree, const QString& filename, const QString& backupDirectory,
-                        int persistInterval = DEFAULT_PERSIST_INTERVAL, bool wantBackup = false,
-                        const QJsonObject& settings = QJsonObject(), bool debugTimestampNow = false,
-                        QString persistAsFileType = "json.gz", const QByteArray& replacementData = QByteArray());
+    OctreePersistThread(OctreePointer tree,
+                        const QString& filename,
+                        std::chrono::milliseconds persistInterval = DEFAULT_PERSIST_INTERVAL,
+                        bool debugTimestampNow = false,
+                        QString persistAsFileType = "json.gz");
 
     bool isInitialLoadComplete() const { return _initialLoadComplete; }
     quint64 getLoadElapsedTime() const { return _loadTimeUSecs; }
-
-    void aboutToFinish(); /// call this to inform the persist thread that the owner is about to finish to support final persist
 
     QString getPersistFilename() const { return _filename; }
     QString getPersistFileMimeType() const;
     QByteArray getPersistFileContents() const;
 
+    void aboutToFinish(); /// call this to inform the persist thread that the owner is about to finish to support final persist
+
+public slots:
+    void start();
+
 signals:
     void loadCompleted();
 
-protected:
-    /// Implements generic processing behavior for this thread.
-    virtual bool process() override;
+protected slots:
+    void process();
+    void handleOctreeDataFileReply(QSharedPointer<ReceivedMessage> message);
 
+protected:
     void persist();
-    void backup();
-    void rollOldBackupVersions(const BackupRule& rule);
-    void restoreFromMostRecentBackup();
-    bool getMostRecentBackup(const QString& format, QString& mostRecentBackupFileName, QDateTime& mostRecentBackupTime);
-    quint64 getMostRecentBackupTimeInUsecs(const QString& format);
-    void parseSettings(const QJsonObject& settings);
     bool backupCurrentFile();
+    void cleanupOldReplacementBackups();
 
     void replaceData(QByteArray data);
     void sendLatestEntityDataToDS();
@@ -68,17 +68,11 @@ protected:
 private:
     OctreePointer _tree;
     QString _filename;
-    QString _backupDirectory;
-    int _persistInterval;
+    std::chrono::milliseconds _persistInterval;
+    std::chrono::steady_clock::time_point _lastPersistCheck;
     bool _initialLoadComplete;
-    QByteArray _replacementData;
 
     quint64 _loadTimeUSecs;
-
-    time_t _lastPersistTime;
-    quint64 _lastCheck;
-    bool _wantBackup;
-    QVector<BackupRule> _backupRules;
 
     bool _debugTimestampNow;
     quint64 _lastTimeDebug;

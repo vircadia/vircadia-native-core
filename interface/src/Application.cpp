@@ -198,7 +198,6 @@
 
 #include <GPUIdent.h>
 #include <gl/GLHelpers.h>
-#include <src/scripting/LimitlessVoiceRecognitionScriptingInterface.h>
 #include <src/scripting/GooglePolyScriptingInterface.h>
 #include <EntityScriptClient.h>
 #include <ModelScriptingInterface.h>
@@ -334,7 +333,11 @@ static const QString RENDER_FORWARD{ "HIFI_RENDER_FORWARD" };
 static bool DISABLE_DEFERRED = QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
 #endif
 
+#if !defined(Q_OS_ANDROID)
 static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
+#else
+static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 4;
+#endif
 
 // For processing on QThreadPool, we target a number of threads after reserving some
 // based on how many are being consumed by the application and the display plugin.  However,
@@ -693,8 +696,8 @@ private:
 };
 
 /**jsdoc
- * <p>The <code>Controller.Hardware.Application</code> object has properties representing Interface's state. The property 
- * values are integer IDs, uniquely identifying each output. <em>Read-only.</em> These can be mapped to actions or functions or 
+ * <p>The <code>Controller.Hardware.Application</code> object has properties representing Interface's state. The property
+ * values are integer IDs, uniquely identifying each output. <em>Read-only.</em> These can be mapped to actions or functions or
  * <code>Controller.Standard</code> items in a {@link RouteObject} mapping (e.g., using the {@link RouteObject#when} method).
  * Each data value is either <code>1.0</code> for "true" or <code>0.0</code> for "false".</p>
  * <table>
@@ -776,7 +779,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     static const auto SUPPRESS_SETTINGS_RESET = "--suppress-settings-reset";
     bool suppressPrompt = cmdOptionExists(argc, const_cast<const char**>(argv), SUPPRESS_SETTINGS_RESET);
 
-    // Ignore any previous crashes if running from command line with a test script.  
+    // Ignore any previous crashes if running from command line with a test script.
     bool inTestMode { false };
     for (int i = 0; i < argc; ++i) {
         QString parameter(argv[i]);
@@ -798,15 +801,8 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
         qApp->setProperty(hifi::properties::APP_LOCAL_DATA_PATH, cacheDir);
     }
 
-    // FIXME fix the OSX installer to install the resources.rcc binary instead of resource files and remove
-    // this conditional exclusion
-#if !defined(Q_OS_OSX)
     {
-#if defined(Q_OS_ANDROID)
-        const QString resourcesBinaryFile = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/resources.rcc";
-#else
-        const QString resourcesBinaryFile = QCoreApplication::applicationDirPath() + "/resources.rcc";
-#endif
+        const QString resourcesBinaryFile = PathUtils::getRccPath();
         if (!QFile::exists(resourcesBinaryFile)) {
             throw std::runtime_error("Unable to find primary resources");
         }
@@ -814,7 +810,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
             throw std::runtime_error("Unable to load primary resources");
         }
     }
-#endif
 
     // Tell the plugin manager about our statically linked plugins
     auto pluginManager = PluginManager::getInstance();
@@ -909,7 +904,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<DiscoverabilityManager>();
     DependencyManager::set<SceneScriptingInterface>();
     DependencyManager::set<OffscreenUi>();
-    DependencyManager::set<AutoUpdater>();
     DependencyManager::set<Midi>();
     DependencyManager::set<PathUtils>();
     DependencyManager::set<InterfaceDynamicFactory>();
@@ -926,7 +920,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<OffscreenQmlSurfaceCache>();
     DependencyManager::set<EntityScriptClient>();
     DependencyManager::set<EntityScriptServerLogClient>();
-    DependencyManager::set<LimitlessVoiceRecognitionScriptingInterface>();
     DependencyManager::set<GooglePolyScriptingInterface>();
     DependencyManager::set<OctreeStatsProvider>(nullptr, qApp->getOcteeSceneStats());
     DependencyManager::set<AvatarBookmarks>();
@@ -1112,7 +1105,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     qCDebug(interfaceapp) << "[VERSION] Build sequence:" << qPrintable(applicationVersion());
     qCDebug(interfaceapp) << "[VERSION] MODIFIED_ORGANIZATION:" << BuildInfo::MODIFIED_ORGANIZATION;
     qCDebug(interfaceapp) << "[VERSION] VERSION:" << BuildInfo::VERSION;
-    qCDebug(interfaceapp) << "[VERSION] BUILD_BRANCH:" << BuildInfo::BUILD_BRANCH;
+    qCDebug(interfaceapp) << "[VERSION] BUILD_TYPE_STRING:" << BuildInfo::BUILD_TYPE_STRING;
     qCDebug(interfaceapp) << "[VERSION] BUILD_GLOBAL_SERVICES:" << BuildInfo::BUILD_GLOBAL_SERVICES;
 #if USE_STABLE_GLOBAL_SERVICES
     qCDebug(interfaceapp) << "[VERSION] We will use STABLE global services.";
@@ -1369,11 +1362,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     initializeGL();
     qCDebug(interfaceapp, "Initialized GL");
 
-    // Initialize the display plugin architecture 
+    // Initialize the display plugin architecture
     initializeDisplayPlugins();
     qCDebug(interfaceapp, "Initialized Display");
 
-    // Create the rendering engine.  This can be slow on some machines due to lots of 
+    // Create the rendering engine.  This can be slow on some machines due to lots of
     // GPU pipeline creation.
     initializeRenderEngine();
     qCDebug(interfaceapp, "Initialized Render Engine.");
@@ -1417,7 +1410,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // In practice we shouldn't run across installs that don't have a known installer type.
     // Client or Client+Server installs should always have the installer.ini next to their
     // respective interface.exe, and Steam installs will be detected as such. If a user were
-    // to delete the installer.ini, though, and as an example, we won't know the context of the 
+    // to delete the installer.ini, though, and as an example, we won't know the context of the
     // original install.
     constexpr auto INSTALLER_KEY_TYPE = "type";
     constexpr auto INSTALLER_KEY_CAMPAIGN = "campaign";
@@ -1443,17 +1436,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // add firstRun flag from settings to launch event
     Setting::Handle<bool> firstRun { Settings::firstRun, true };
 
-    // once the settings have been loaded, check if we need to flip the default for UserActivityLogger
-    auto& userActivityLogger = UserActivityLogger::getInstance();
-    if (!userActivityLogger.isDisabledSettingSet()) {
-        // the user activity logger is opt-out for Interface
-        // but it's defaulted to disabled for other targets
-        // so we need to enable it here if it has never been disabled by the user
-        userActivityLogger.disable(false);
-    }
-
     QString machineFingerPrint = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
 
+    auto& userActivityLogger = UserActivityLogger::getInstance();
     if (userActivityLogger.isEnabled()) {
         // sessionRunTime will be reset soon by loadSettings. Grab it now to get previous session value.
         // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
@@ -1465,6 +1450,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             { "tester", QProcessEnvironment::systemEnvironment().contains(TESTER) },
             { "installer_campaign", installerCampaign },
             { "installer_type", installerType },
+            { "build_type", BuildInfo::BUILD_TYPE_STRING },
             { "previousSessionCrashed", _previousSessionCrashed },
             { "previousSessionRuntime", sessionRunTime.get() },
             { "cpu_architecture", QSysInfo::currentCpuArchitecture() },
@@ -1787,10 +1773,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // If launched from Steam, let it handle updates
     const QString HIFI_NO_UPDATER_COMMAND_LINE_KEY = "--no-updater";
     bool noUpdater = arguments().indexOf(HIFI_NO_UPDATER_COMMAND_LINE_KEY) != -1;
-    if (!noUpdater) {
+    bool buildCanUpdate = BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable
+        || BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Master;
+    if (!noUpdater && buildCanUpdate) {
         constexpr auto INSTALLER_TYPE_CLIENT_ONLY = "client_only";
 
-        auto applicationUpdater = DependencyManager::get<AutoUpdater>();
+        auto applicationUpdater = DependencyManager::set<AutoUpdater>();
 
         AutoUpdater::InstallerType type = installerType == INSTALLER_TYPE_CLIENT_ONLY
             ? AutoUpdater::InstallerType::CLIENT_ONLY : AutoUpdater::InstallerType::FULL;
@@ -2182,7 +2170,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     if (testProperty.isValid()) {
         auto scriptEngines = DependencyManager::get<ScriptEngines>();
         const auto testScript = property(hifi::properties::TEST).toUrl();
-       
+
         // Set last parameter to exit interface when the test script finishes, if so requested
         scriptEngines->loadScript(testScript, false, false, false, false, quitWhenFinished);
 
@@ -2252,9 +2240,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
     DependencyManager::get<EntityTreeRenderer>()->setSetPrecisionPickingOperator([&](unsigned int rayPickID, bool value) {
         DependencyManager::get<PickManager>()->setPrecisionPicking(rayPickID, value);
-    });
-    EntityTreeRenderer::setRenderDebugHullsOperator([] {
-        return Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowHulls);
     });
 
     // Preload Tablet sounds
@@ -2399,7 +2384,7 @@ void Application::onAboutToQuit() {
         }
     }
 
-    // The active display plugin needs to be loaded before the menu system is active, 
+    // The active display plugin needs to be loaded before the menu system is active,
     // so its persisted explicitly here
     Setting::Handle<QString>{ ACTIVE_DISPLAY_PLUGIN_SETTING_NAME }.set(getActiveDisplayPlugin()->getName());
 
@@ -2610,10 +2595,55 @@ void Application::initializeGL() {
         _isGLInitialized = true;
     }
 
-    _glWidget->makeCurrent();
-    glClearColor(0.2f, 0.2f, 0.2f, 1);
-    glClear(GL_COLOR_BUFFER_BIT);
-    _glWidget->swapBuffers();
+    if (!_glWidget->makeCurrent()) {
+        qCWarning(interfaceapp, "Unable to make window context current");
+    }
+
+#if !defined(DISABLE_QML)
+    // Build a shared canvas / context for the Chromium processes
+    {
+        // Disable signed distance field font rendering on ATI/AMD GPUs, due to
+        // https://highfidelity.manuscript.com/f/cases/13677/Text-showing-up-white-on-Marketplace-app
+        std::string vendor{ (const char*)glGetString(GL_VENDOR) };
+        if ((vendor.find("AMD") != std::string::npos) || (vendor.find("ATI") != std::string::npos)) {
+            qputenv("QTWEBENGINE_CHROMIUM_FLAGS", QByteArray("--disable-distance-field-text"));
+        }
+
+        // Chromium rendering uses some GL functions that prevent nSight from capturing
+        // frames, so we only create the shared context if nsight is NOT active.
+        if (!nsightActive()) {
+            _chromiumShareContext = new OffscreenGLCanvas();
+            _chromiumShareContext->setObjectName("ChromiumShareContext");
+            _chromiumShareContext->create(_glWidget->qglContext());
+            if (!_chromiumShareContext->makeCurrent()) {
+                qCWarning(interfaceapp, "Unable to make chromium shared context current");
+            }
+            qt_gl_set_global_share_context(_chromiumShareContext->getContext());
+            _chromiumShareContext->doneCurrent();
+            // Restore the GL widget context
+            if (!_glWidget->makeCurrent()) {
+                qCWarning(interfaceapp, "Unable to make window context current");
+            }
+        } else {
+            qCWarning(interfaceapp) << "nSight detected, disabling chrome rendering";
+        }
+    }
+#endif
+
+    // Build a shared canvas / context for the QML rendering
+    {
+        _qmlShareContext = new OffscreenGLCanvas();
+        _qmlShareContext->setObjectName("QmlShareContext");
+        _qmlShareContext->create(_glWidget->qglContext());
+        if (!_qmlShareContext->makeCurrent()) {
+            qCWarning(interfaceapp, "Unable to make QML shared context current");
+        }
+        OffscreenQmlSurface::setSharedContext(_qmlShareContext->getContext());
+        _qmlShareContext->doneCurrent();
+        if (!_glWidget->makeCurrent()) {
+            qCWarning(interfaceapp, "Unable to make window context current");
+        }
+    }
 
     // Build an offscreen GL context for the main thread.
     _offscreenContext = new OffscreenGLCanvas();
@@ -2625,6 +2655,11 @@ void Application::initializeGL() {
     _offscreenContext->doneCurrent();
     _offscreenContext->setThreadContext();
 
+    _glWidget->makeCurrent();
+    glClearColor(0.2f, 0.2f, 0.2f, 1);
+    glClear(GL_COLOR_BUFFER_BIT);
+    _glWidget->swapBuffers();
+
     // Move the GL widget context to the render event handler thread
     _renderEventHandler = new RenderEventHandler(_glWidget->qglContext());
     if (!_offscreenContext->makeCurrent()) {
@@ -2634,7 +2669,7 @@ void Application::initializeGL() {
     // Create the GPU backend
 
     // Requires the window context, because that's what's used in the actual rendering
-    // and the GPU backend will make things like the VAO which cannot be shared across 
+    // and the GPU backend will make things like the VAO which cannot be shared across
     // contexts
     _glWidget->makeCurrent();
     gpu::Context::init<gpu::gl::GLBackend>();
@@ -2657,7 +2692,7 @@ void Application::initializeDisplayPlugins() {
     auto lastActiveDisplayPluginName = activeDisplayPluginSetting.get();
 
     auto defaultDisplayPlugin = displayPlugins.at(0);
-    // Once time initialization code 
+    // Once time initialization code
     DisplayPluginPointer targetDisplayPlugin;
     foreach(auto displayPlugin, displayPlugins) {
         displayPlugin->setContext(_gpuContext);
@@ -2670,7 +2705,7 @@ void Application::initializeDisplayPlugins() {
     }
 
     // The default display plugin needs to be activated first, otherwise the display plugin thread
-    // may be launched by an external plugin, which is bad 
+    // may be launched by an external plugin, which is bad
     setDisplayPlugin(defaultDisplayPlugin);
 
     // Now set the desired plugin if it's not the same as the default plugin
@@ -2747,40 +2782,6 @@ extern void setupPreferences();
 static void addDisplayPluginToMenu(const DisplayPluginPointer& displayPlugin, int index, bool active = false);
 
 void Application::initializeUi() {
-    // Build a shared canvas / context for the Chromium processes
-#if !defined(DISABLE_QML)
-    // Chromium rendering uses some GL functions that prevent nSight from capturing
-    // frames, so we only create the shared context if nsight is NOT active.
-    if (!nsightActive()) {
-        _chromiumShareContext = new OffscreenGLCanvas();
-        _chromiumShareContext->setObjectName("ChromiumShareContext");
-        _chromiumShareContext->create(_offscreenContext->getContext());
-        if (!_chromiumShareContext->makeCurrent()) {
-            qCWarning(interfaceapp, "Unable to make chromium shared context current");
-        }
-        qt_gl_set_global_share_context(_chromiumShareContext->getContext());
-        _chromiumShareContext->doneCurrent();
-        // Restore the GL widget context
-        _offscreenContext->makeCurrent();
-    } else {
-        qCWarning(interfaceapp) << "nSIGHT detected, disabling chrome rendering";
-    }
-#endif
-
-    // Build a shared canvas / context for the QML rendering
-    _qmlShareContext = new OffscreenGLCanvas();
-    _qmlShareContext->setObjectName("QmlShareContext");
-    _qmlShareContext->create(_offscreenContext->getContext());
-    if (!_qmlShareContext->makeCurrent()) {
-        qCWarning(interfaceapp, "Unable to make QML shared context current");
-    }
-    OffscreenQmlSurface::setSharedContext(_qmlShareContext->getContext());
-    _qmlShareContext->doneCurrent();
-    // Restore the GL widget context
-    _offscreenContext->makeCurrent();
-    // Make sure all QML surfaces share the main thread GL context
-    OffscreenQmlSurface::setSharedContext(_offscreenContext->getContext());
-
     AddressBarDialog::registerType();
     ErrorDialog::registerType();
     LoginDialog::registerType();
@@ -3645,7 +3646,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
     _keysPressed.insert(event->key());
 
     _controllerScriptingInterface->emitKeyPressEvent(event); // send events to any registered scripts
-
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface->isKeyCaptured(event)) {
         return;
@@ -3671,9 +3671,21 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
-            case Qt::Key_1:
-            case Qt::Key_2:
-            case Qt::Key_3:
+            case Qt::Key_1: {
+                Menu* menu = Menu::getInstance();
+                menu->triggerOption(MenuOption::FirstPerson);
+                break;
+            }
+            case Qt::Key_2: {
+                Menu* menu = Menu::getInstance();
+                menu->triggerOption(MenuOption::FullscreenMirror);
+                break;
+            }
+            case Qt::Key_3: {
+                Menu* menu = Menu::getInstance();
+                menu->triggerOption(MenuOption::ThirdPerson);
+                break;
+            }
             case Qt::Key_4:
             case Qt::Key_5:
             case Qt::Key_6:
@@ -3727,6 +3739,13 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     dialogsManager->toggleAddressBar();
                 } else if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::LodTools);
+                }
+                break;
+
+            case Qt::Key_R:
+                if (isMeta && !event->isAutoRepeat()) {
+                    DependencyManager::get<ScriptEngines>()->reloadAllScripts();
+                    DependencyManager::get<OffscreenUi>()->clearCache();
                 }
                 break;
 
@@ -3794,68 +3813,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Backslash:
                 Menu::getInstance()->triggerOption(MenuOption::Chat);
                 break;
-
-#if 0
-            case Qt::Key_I:
-                if (isShifted) {
-                    _myCamera.setEyeOffsetOrientation(glm::normalize(
-                                                                     glm::quat(glm::vec3(0.002f, 0, 0)) * _myCamera.getEyeOffsetOrientation()));
-                } else {
-                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0.001, 0));
-                }
-                updateProjectionMatrix();
-                break;
-
-            case Qt::Key_K:
-                if (isShifted) {
-                    _myCamera.setEyeOffsetOrientation(glm::normalize(
-                                                                     glm::quat(glm::vec3(-0.002f, 0, 0)) * _myCamera.getEyeOffsetOrientation()));
-                } else {
-                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, -0.001, 0));
-                }
-                updateProjectionMatrix();
-                break;
-
-            case Qt::Key_J:
-                if (isShifted) {
-                    QMutexLocker viewLocker(&_viewMutex);
-                    _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() - 0.1f);
-                } else {
-                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
-                }
-                updateProjectionMatrix();
-                break;
-
-            case Qt::Key_M:
-                if (isShifted) {
-                    QMutexLocker viewLocker(&_viewMutex);
-                    _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() + 0.1f);
-                } else {
-                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0.001, 0, 0));
-                }
-                updateProjectionMatrix();
-                break;
-
-            case Qt::Key_U:
-                if (isShifted) {
-                    _myCamera.setEyeOffsetOrientation(glm::normalize(
-                                                                     glm::quat(glm::vec3(0, 0, -0.002f)) * _myCamera.getEyeOffsetOrientation()));
-                } else {
-                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, -0.001));
-                }
-                updateProjectionMatrix();
-                break;
-
-            case Qt::Key_Y:
-                if (isShifted) {
-                    _myCamera.setEyeOffsetOrientation(glm::normalize(
-                                                                     glm::quat(glm::vec3(0, 0, 0.002f)) * _myCamera.getEyeOffsetOrientation()));
-                } else {
-                    _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, 0.001));
-                }
-                updateProjectionMatrix();
-                break;
-#endif
 
             case Qt::Key_Slash:
                 Menu::getInstance()->triggerOption(MenuOption::Stats);
@@ -4239,7 +4196,7 @@ bool Application::acceptSnapshot(const QString& urlString) {
 static uint32_t _renderedFrameIndex { INVALID_FRAME };
 
 bool Application::shouldPaint() const {
-    if (_aboutToQuit) {
+    if (_aboutToQuit || _window->isMinimized()) {
         return false;
     }
 
@@ -4799,12 +4756,15 @@ void Application::loadSettings() {
     // DONT CHECK IN
     //DependencyManager::get<LODManager>()->setAutomaticLODAdjust(false);
 
-    Menu::getInstance()->loadSettings();
+    auto menu = Menu::getInstance();
+    menu->loadSettings();
+
+    // override the menu option show overlays to always be true on startup
+    menu->setIsOptionChecked(MenuOption::Overlays, true);
 
     // If there is a preferred plugin, we probably messed it up with the menu settings, so fix it.
     auto pluginManager = PluginManager::getInstance();
     auto plugins = pluginManager->getPreferredDisplayPlugins();
-    auto menu = Menu::getInstance();
     if (plugins.size() > 0) {
         for (auto plugin : plugins) {
             if (auto action = menu->getActionForOption(plugin->getName())) {
@@ -5474,7 +5434,7 @@ void Application::update(float deltaTime) {
             // process octree stats packets are sent in between full sends of a scene (this isn't currently true).
             // We keep physics disabled until we've received a full scene and everything near the avatar in that
             // scene is ready to compute its collision shape.
-            if (nearbyEntitiesAreReadyForPhysics()) {
+            if (nearbyEntitiesAreReadyForPhysics() && getMyAvatar()->isReadyForPhysics()) {
                 _physicsEnabled = true;
                 getMyAvatar()->updateMotionBehaviorFromMenu();
             }
@@ -5832,7 +5792,7 @@ void Application::update(float deltaTime) {
             viewIsDifferentEnough = true;
         }
 
-        
+
         // if it's been a while since our last query or the view has significantly changed then send a query, otherwise suppress it
         static const std::chrono::seconds MIN_PERIOD_BETWEEN_QUERIES { 3 };
         auto now = SteadyClock::now();
@@ -5893,14 +5853,10 @@ void Application::update(float deltaTime) {
 
 
     {
-        PerformanceTimer perfTimer("limitless");
+        PerformanceTimer perfTimer("AnimDebugDraw");
         AnimDebugDraw::getInstance().update();
     }
 
-    {
-        PerformanceTimer perfTimer("limitless");
-        DependencyManager::get<LimitlessVoiceRecognitionScriptingInterface>()->update();
-    }
 
     { // Game loop is done, mark the end of the frame for the scene transactions and the render loop to take over
         PerformanceTimer perfTimer("enqueueFrame");
@@ -6200,7 +6156,9 @@ void Application::updateWindowTitle() const {
     auto nodeList = DependencyManager::get<NodeList>();
     auto accountManager = DependencyManager::get<AccountManager>();
 
-    QString buildVersion = " (build " + applicationVersion() + ")";
+    QString buildVersion = " - "
+        + (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? QString("Version") : QString("Build"))
+        + " " + applicationVersion();
 
     QString loginStatus = accountManager->isLoggedIn() ? "" : " (NOT LOGGED IN)";
 
@@ -6607,7 +6565,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
 
-    scriptEngine->registerGlobalObject("LimitlessSpeechRecognition", DependencyManager::get<LimitlessVoiceRecognitionScriptingInterface>().data());
     scriptEngine->registerGlobalObject("GooglePoly", DependencyManager::get<GooglePolyScriptingInterface>().data());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
@@ -7646,18 +7603,18 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
     });
 }
 
-void Application::takeSecondaryCameraSnapshot(const QString& filename) {
-    postLambdaEvent([filename, this] {
+void Application::takeSecondaryCameraSnapshot(const bool& notify, const QString& filename) {
+    postLambdaEvent([notify, filename, this] {
         QString snapshotPath = DependencyManager::get<Snapshot>()->saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot(), filename,
                                                       TestScriptingInterface::getInstance()->getTestResultsLocation());
 
-        emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, true);
+        emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, notify);
     });
 }
 
-void Application::takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat, const QString& filename) {
-    postLambdaEvent([filename, cubemapOutputFormat, cameraPosition] {
-        DependencyManager::get<Snapshot>()->save360Snapshot(cameraPosition, cubemapOutputFormat, filename);
+void Application::takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat, const bool& notify, const QString& filename) {
+    postLambdaEvent([notify, filename, cubemapOutputFormat, cameraPosition] {
+        DependencyManager::get<Snapshot>()->save360Snapshot(cameraPosition, cubemapOutputFormat, notify, filename);
     });
 }
 
@@ -7761,7 +7718,7 @@ void Application::sendLambdaEvent(const std::function<void()>& f) {
     } else {
         LambdaEvent event(f);
         QCoreApplication::sendEvent(this, &event);
-    } 
+    }
 }
 
 void Application::initPlugins(const QStringList& arguments) {
@@ -7984,7 +7941,7 @@ void Application::setDisplayPlugin(DisplayPluginPointer newDisplayPlugin) {
     }
 
     // FIXME don't have the application directly set the state of the UI,
-    // instead emit a signal that the display plugin is changing and let 
+    // instead emit a signal that the display plugin is changing and let
     // the desktop lock itself.  Reduces coupling between the UI and display
     // plugins
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
@@ -8093,7 +8050,6 @@ void Application::switchDisplayMode() {
             setActiveDisplayPlugin(DESKTOP_DISPLAY_PLUGIN_NAME);
             startHMDStandBySession();
         }
-        emit activeDisplayPluginChanged();
     }
     _previousHMDWornStatus = currentHMDWornStatus;
 }

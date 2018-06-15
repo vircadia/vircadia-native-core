@@ -136,7 +136,7 @@ public:
      * Sets the length of this Pointer.  No effect on Stylus Pointers.
      * @function Pointers.setLength
      * @param {number} uid The ID of the Pointer, as returned by {@link Pointers.createPointer}.
-     * @param {float} length The desired length of the Pointer.
+     * @param {number} length The desired length of the Pointer.
      */
     Q_INVOKABLE void setLength(unsigned int uid, float length) const { DependencyManager::get<PointerManager>()->setLength(uid, length); }
 

@@ -161,8 +161,11 @@ protected:
     virtual bool needsRenderUpdate() const override;
     virtual void doRender(RenderArgs* args) override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
-    void flagForCollisionGeometryUpdate();
     void setCollisionMeshKey(const void* key);
+
+    render::hifi::Tag getTagMask() const override;
+
+    void setIsVisibleInSecondaryCamera(bool value) override;
 
 private:
     void animate(const TypedEntityPointer& entity);
@@ -185,7 +188,6 @@ private:
 #endif
 
     bool _needsJointSimulation { false };
-    bool _needsCollisionGeometryUpdate { false };
     const void* _collisionMeshKey { nullptr };
 
     // used on client side
@@ -201,6 +203,8 @@ private:
     uint64_t _lastAnimated { 0 };
 
     render::ItemKey _itemKey { render::ItemKey::Builder().withTypeMeta() };
+
+    bool _didLastVisualGeometryRequestSucceed { true };
 
     void processMaterials();
 };

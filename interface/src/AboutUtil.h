@@ -15,28 +15,41 @@
 
 #include <QObject>
 
-class AboutUtil : public QObject {
+/**jsdoc
+ * @namespace HifiAbout
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * 
+ * @property {string} buildDate
+ * @property {string} buildVersion
+ * @property {string} qtVersion
+ */
 
+class AboutUtil : public QObject {
     Q_OBJECT
 
-    Q_PROPERTY(QString buildDate READ buildDate CONSTANT)
-    Q_PROPERTY(QString buildVersion READ buildVersion CONSTANT)
-    Q_PROPERTY(QString qtVersion READ qtVersion CONSTANT)
-
-    AboutUtil(QObject* parent = nullptr);
+    Q_PROPERTY(QString buildDate READ getBuildDate CONSTANT)
+    Q_PROPERTY(QString buildVersion READ getBuildVersion CONSTANT)
+    Q_PROPERTY(QString qtVersion READ getQtVersion CONSTANT)
 public:
     static AboutUtil* getInstance();
     ~AboutUtil() {}
 
-    QString buildDate() const;
-    QString buildVersion() const;
-    QString qtVersion() const;
+    QString getBuildDate() const;
+    QString getBuildVersion() const;
+    QString getQtVersion() const;
 
 public slots:
+
+    /**jsdoc
+     * @function HifiAbout.openUrl
+     * @param {string} url
+     */
     void openUrl(const QString &url) const;
 private:
-
-    QString m_DateConverted;
+    AboutUtil(QObject* parent = nullptr);
+    QString _dateConverted;
 };
 
 #endif // hifi_AboutUtil_h

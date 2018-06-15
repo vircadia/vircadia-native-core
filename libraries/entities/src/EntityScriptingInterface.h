@@ -225,12 +225,12 @@ public slots:
                                      bool collisionless, const glm::vec3& position, const glm::vec3& gravity);
 
     /**jsdoc
-     * Request a clone of an entity. Only entities that have been marked as 'cloneable' will be able to be cloned using this method.
-     * A cloned entity has most of the properties of the orignal entity, and can be requested from clients that do not have rez permissions.
-     * The client requests a clone from the entity server, which returns back the entityID of a valid clone if the operation was allowed.
+     * Create a clone of an entity. A clone can be created by a client that doesn't have rez permissions in the current domain.
+     * The entity must have its <code>cloneable</code> property set to <code>true</code>. The clone has a modified name, other 
+     * properties set per its clone related-properties, and its clone-related properties are set to defaults. 
      * @function Entities.cloneEntity
-     * @param {Uuid} entityIDToClone - the ID of the entity to clone
-     * @returns {Entities.EntityID} The ID of the newly created clone
+     * @param {Uuid} entityID - The ID of the entity to clone.
+     * @returns {Uuid} The ID of the new entity if successfully cloned, otherwise {@link Uuid|Uuid.NULL}.
      */
     Q_INVOKABLE QUuid cloneEntity(QUuid entityIDToClone);
 
@@ -1226,12 +1226,11 @@ public slots:
 
 
     /**jsdoc
-     * Get the IDs of entities, overlays, and avatars that are directly parented to an entity. To get all descendants of an 
-     * entity, recurse on the IDs returned by the function.
+     * Get the IDs of entities, overlays, and avatars that are directly parented to an entity, overlay, or avatar model. Recurse on the IDs returned by the function to get all descendants of an entity, overlay, or avatar. 
      * @function Entities.getChildrenIDs
-     * @param {Uuid} parentID - The ID of the entity to get the children IDs of.
+     * @param {Uuid} parentID - The ID of the entity, overlay, or avatar to get the children IDs of.
      * @returns {Uuid[]} An array of entity, overlay, and avatar IDs that are parented directly to the <code>parentID</code> 
-     *     entity. Does not include children's children, etc. The array is empty if no children can be found or 
+     *     entity, overlay, or avatar. Does not include children's children, etc. The array is empty if no children can be found or 
      *     <code>parentID</code> cannot be found.
      * @example <caption>Report the children of an entity.</caption>
      * function createEntity(description, position, parent) {

@@ -18,6 +18,7 @@
 #include "AbstractViewStateInterface.h"
 #include "EntitiesRendererLogging.h"
 #include <graphics-scripting/Forward.h>
+#include <RenderHifi.h>
 
 class EntityTreeRenderer;
 
@@ -74,6 +75,7 @@ protected:
     virtual Item::Bound getBound() override;
     virtual void render(RenderArgs* args) override final;
     virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) override;
+    virtual render::hifi::Tag getTagMask() const;
 
     // Returns true if the item in question needs to have updateInScene called because of internal rendering state changes
     virtual bool needsRenderUpdate() const;
@@ -97,6 +99,8 @@ protected:
     bool isFading() const { return _isFading; }
     virtual bool isTransparent() const { return _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f : false; }
     inline bool isValidRenderItem() const { return _renderItemID != Item::INVALID_ITEM_ID; }
+
+    virtual void setIsVisibleInSecondaryCamera(bool value) { _isVisibleInSecondaryCamera = value; }
     
     template <typename F, typename T>
     T withReadLockResult(const std::function<T()>& f) {
@@ -129,6 +133,7 @@ protected:
     bool _isFading{ _entitiesShouldFadeFunction() };
     bool _prevIsTransparent { false };
     bool _visible { false };
+    bool _isVisibleInSecondaryCamera { false };
     bool _canCastShadow { false };
     bool _cauterized { false };
     bool _moving { false };

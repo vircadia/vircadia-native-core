@@ -297,14 +297,23 @@ void setAtBit(unsigned char& byte, int bitIndex) {
     byte |= (1 << (7 - bitIndex));
 }
 
+bool oneAtBit16(unsigned short word, int bitIndex) {
+    return (word >> (15 - bitIndex) & 1);
+}
+
+void setAtBit16(unsigned short& word, int bitIndex) {
+    word |= (1 << (15 - bitIndex));
+}
+
+
 void clearAtBit(unsigned char& byte, int bitIndex) {
     if (oneAtBit(byte, bitIndex)) {
         byte -= (1 << (7 - bitIndex));
     }
 }
 
-int  getSemiNibbleAt(unsigned char byte, int bitIndex) {
-    return (byte >> (6 - bitIndex) & 3); // semi-nibbles store 00, 01, 10, or 11
+int  getSemiNibbleAt(unsigned short word, int bitIndex) {
+    return (word >> (14 - bitIndex) & 3); // semi-nibbles store 00, 01, 10, or 11
 }
 
 int getNthBit(unsigned char byte, int ordinal) {
@@ -326,9 +335,9 @@ int getNthBit(unsigned char byte, int ordinal) {
     return ERROR_RESULT;
 }
 
-void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value) {
+void setSemiNibbleAt(unsigned short& word, int bitIndex, int value) {
     //assert(value <= 3 && value >= 0);
-    byte |= ((value & 3) << (6 - bitIndex)); // semi-nibbles store 00, 01, 10, or 11
+    word |= ((value & 3) << (14 - bitIndex)); // semi-nibbles store 00, 01, 10, or 11
 }
 
 bool isInEnvironment(const char* environment) {

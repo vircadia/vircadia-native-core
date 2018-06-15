@@ -309,6 +309,12 @@ public:
     Q_INVOKABLE bool isMessageDialogOpen();
 
     /**jsdoc
+    * Close any open dialogs.
+    * @function TabletProxy#closeDialog
+    */
+    Q_INVOKABLE void closeDialog();
+
+    /**jsdoc
      * Creates a new button, adds it to this and returns it.
      * @function TabletProxy#addButton
      * @param {object} properties - Button properties.
