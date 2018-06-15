@@ -1443,7 +1443,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     Setting::Handle<bool> firstRun { Settings::firstRun, true };
 
     QString machineFingerPrint = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
-    setCrashAnnotation("machine_fingerprint", machineFingerPrint.toStdString());
 
     auto& userActivityLogger = UserActivityLogger::getInstance();
     if (userActivityLogger.isEnabled()) {
