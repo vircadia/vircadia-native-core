@@ -30,3 +30,5 @@ bool startCrashHandler();
 void setCrashAnnotation(std::string name, std::string value);
 
 #endif // hifi_Crashpad_h
+
+#endif
