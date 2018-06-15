@@ -6176,6 +6176,8 @@ void Application::updateWindowTitle() const {
     QString connectionStatus = nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED)";
     QString username = accountManager->getAccountInfo().getUsername();
 
+    setCrashAnnotation("username", username.toStdString());
+
     QString currentPlaceName;
     if (isServerlessMode()) {
         currentPlaceName = "serverless: " + DependencyManager::get<AddressManager>()->getDomainURL().toString();
