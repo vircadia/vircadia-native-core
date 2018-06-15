@@ -1566,6 +1566,7 @@ private:
     glm::quat _goToOrientation;
 
     std::unordered_set<int> _headBoneSet;
+    std::unordered_set<SpatiallyNestablePointer> _cauterizedChildrenOfHead;
     bool _prevShouldDrawHead;
     bool _rigEnabled { true };
 
@@ -1621,7 +1622,7 @@ private:
     // height of user in sensor space, when standing erect.
     ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
 
-    void updateChildCauterization(SpatiallyNestablePointer object);
+    void updateChildCauterization(SpatiallyNestablePointer object, bool cauterize);
 
     // max unscaled forward movement speed
     ThreadSafeValueCache<float> _walkSpeed { DEFAULT_AVATAR_MAX_WALKING_SPEED };

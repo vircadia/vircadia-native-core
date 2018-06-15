@@ -531,10 +531,10 @@ void MyAvatar::forgetChild(SpatiallyNestablePointer newChild) const {
     SpatiallyNestable::forgetChild(newChild);
 }
 
-void MyAvatar::updateChildCauterization(SpatiallyNestablePointer object) {
+void MyAvatar::updateChildCauterization(SpatiallyNestablePointer object, bool cauterize) {
     if (object->getNestableType() == NestableType::Entity) {
         EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
-        entity->setCauterized(!_prevShouldDrawHead);
+        entity->setCauterized(cauterize);
     }
 }
 
@@ -544,16 +544,41 @@ void MyAvatar::simulate(float deltaTime) {
     animateScaleChanges(deltaTime);
 
     if (_cauterizationNeedsUpdate) {
-        const std::unordered_set<int>& headBoneSet = _skeletonModel->getCauterizeBoneSet();
+
+        // Redisplay cauterized entities that are no longer children of the avatar.
+        auto cauterizedChild = _cauterizedChildrenOfHead.begin();
+        if (cauterizedChild != _cauterizedChildrenOfHead.end()) {
+            auto children = getChildren();
+            while (cauterizedChild != _cauterizedChildrenOfHead.end()) {
+                if (!children.contains(*cauterizedChild)) {
+                    updateChildCauterization(*cauterizedChild, false);
+                    _cauterizedChildrenOfHead.erase(*cauterizedChild);
+                }
+                ++cauterizedChild;
+            }
+        }
+
+        // Update cauterization of entities that are children of the avatar.
+        auto headBoneSet = _skeletonModel->getCauterizeBoneSet();
         forEachChild([&](SpatiallyNestablePointer object) {
             bool isChildOfHead = headBoneSet.find(object->getParentJointIndex()) != headBoneSet.end();
             if (isChildOfHead) {
-                updateChildCauterization(object);
+                // Cauterize or display children of head per head drawing state.
+                updateChildCauterization(object, !_prevShouldDrawHead);
                 object->forEachDescendant([&](SpatiallyNestablePointer descendant) {
-                    updateChildCauterization(descendant);
+                    updateChildCauterization(descendant, !_prevShouldDrawHead);
                 });
+                _cauterizedChildrenOfHead.insert(object);
+            } else if (_cauterizedChildrenOfHead.find(object) != _cauterizedChildrenOfHead.end()) {
+                // Redisplay cauterized children that are not longer children of the head.
+                updateChildCauterization(object, false);
+                object->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+                    updateChildCauterization(descendant, false);
+                });
+                _cauterizedChildrenOfHead.erase(object);
             }
         });
+
         _cauterizationNeedsUpdate = false;
     }
 
