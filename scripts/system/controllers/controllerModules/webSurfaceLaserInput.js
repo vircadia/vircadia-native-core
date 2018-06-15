@@ -52,18 +52,18 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.isPointingAtTabletOrWeb = function(controllerData, triggerPressed) {
             var intersection = controllerData.rayPicks[this.hand];
-			if (intersection.type === Picks.INTERSECTED_OVERLAY) {
-				var objectID = intersection.objectID;
-				if ((HMD.tabletScreenID && objectID === HMD.tabletScreenID) || 
-					(HMD.homeButtonID && objectID === HMD.homeButtonID)) {
-					return true;
-				} else {
-					var overlayType = Overlays.getOverlayType(objectID);
-					if (overlayType === "web3d") {
-						return true;
-					}
-				}
-			} else if (intersection.type === Picks.INTERSECTED_ENTITY) {
+            if (intersection.type === Picks.INTERSECTED_OVERLAY) {
+                var objectID = intersection.objectID;
+                if ((HMD.tabletScreenID && objectID === HMD.tabletScreenID) || 
+                    (HMD.homeButtonID && objectID === HMD.homeButtonID)) {
+                    return true;
+                } else {
+                    var overlayType = Overlays.getOverlayType(objectID);
+                    if (overlayType === "web3d") {
+                        return true;
+                    }
+                }
+            } else if (intersection.type === Picks.INTERSECTED_ENTITY) {
                 var entityProperty = Entities.getEntityProperties(intersection.objectID);
                 var entityType = entityProperty.type;
                 var isLocked = entityProperty.locked;
@@ -100,8 +100,8 @@ Script.include("/~/system/libraries/controllers.js");
             var otherModuleRunning = this.getOtherModule().running;
             otherModuleRunning = otherModuleRunning && this.getDominantHand() !== this.hand; // Auto-swap to dominant hand.
             var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE &&
-								   controllerData.triggerValues[this.otherHand] <= TRIGGER_OFF_VALUE;
-			var allowThisModule = !otherModuleRunning || isTriggerPressed;
+                                   controllerData.triggerValues[this.otherHand] <= TRIGGER_OFF_VALUE;
+            var allowThisModule = !otherModuleRunning || isTriggerPressed;
             if (allowThisModule && this.isPointingAtTabletOrWeb(controllerData, isTriggerPressed)) {
                 this.updateAllwaysOn();
                 if (isTriggerPressed) {
@@ -120,9 +120,9 @@ Script.include("/~/system/libraries/controllers.js");
             otherModuleRunning = otherModuleRunning && this.getDominantHand() !== this.hand; // Auto-swap to dominant hand.
             otherModuleRunning = otherModuleRunning || this.getOtherModule().dominantHandOverride; // Override dominant hand.
             var grabModuleNeedsToRun = this.grabModuleWantsNearbyOverlay(controllerData);
-			var allowThisModule = !otherModuleRunning && !grabModuleNeedsToRun;
-			var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE;
-			var laserOn = isTriggerPressed || this.parameters.handLaser.allwaysOn;
+            var allowThisModule = !otherModuleRunning && !grabModuleNeedsToRun;
+            var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE;
+            var laserOn = isTriggerPressed || this.parameters.handLaser.allwaysOn;
             if (allowThisModule && (laserOn && this.isPointingAtTabletOrWeb(controllerData, isTriggerPressed))) {
                 this.running = true;
                 return makeRunningValues(true, [], []);
