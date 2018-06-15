@@ -18,13 +18,13 @@ Script.include("/~/system/libraries/controllers.js");
 Script.include("/~/system/libraries/utils.js");
 
 (function () {
-	var MARGIN = 25;
-	
+    var MARGIN = 25;
+    
     function InEditMode(hand) {
         this.hand = hand;
         this.triggerClicked = false;
         this.selectedTarget = null;
-		this.reticleMinX = MARGIN;
+        this.reticleMinX = MARGIN;
         this.reticleMaxX;
         this.reticleMinY = MARGIN;
         this.reticleMaxY;
@@ -53,7 +53,7 @@ Script.include("/~/system/libraries/utils.js");
             return (HMD.tabletScreenID && objectID === HMD.tabletScreenID)
                 || (HMD.homeButtonID && objectID === HMD.homeButtonID);
         };
-		
+        
         this.calculateNewReticlePosition = function(intersection) {
             var dims = Controller.getViewportDimensions();
             this.reticleMaxX = dims.x - MARGIN;
@@ -88,24 +88,24 @@ Script.include("/~/system/libraries/utils.js");
 
                 this.triggerClicked = true;
             }
-			
-			this.sendPointingAtData(controllerData);
+            
+            this.sendPointingAtData(controllerData);
         };
-		
-		this.sendPointingAtData = function(controllerData) {
-			var rayPick = controllerData.rayPicks[this.hand];
-			var hudRayPick = controllerData.hudRayPicks[this.hand];
-			var point2d = this.calculateNewReticlePosition(hudRayPick.intersection);
-			var desktopWindow = Window.isPointOnDesktopWindow(point2d);
-			var tablet = this.pointingAtTablet(rayPick.objectID);
-			var rightHand = this.hand === RIGHT_HAND;
-			Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
-				method: "pointingAt",
-				desktopWindow: desktopWindow,
-				tablet: tablet,
-				rightHand: rightHand
+        
+        this.sendPointingAtData = function(controllerData) {
+            var rayPick = controllerData.rayPicks[this.hand];
+            var hudRayPick = controllerData.hudRayPicks[this.hand];
+            var point2d = this.calculateNewReticlePosition(hudRayPick.intersection);
+            var desktopWindow = Window.isPointOnDesktopWindow(point2d);
+            var tablet = this.pointingAtTablet(rayPick.objectID);
+            var rightHand = this.hand === RIGHT_HAND;
+            Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                method: "pointingAt",
+                desktopWindow: desktopWindow,
+                tablet: tablet,
+                rightHand: rightHand
             }));
-		};
+        };
 
         this.exitModule = function() {
             return makeRunningValues(false, [], []);
@@ -137,7 +137,7 @@ Script.include("/~/system/libraries/utils.js");
             if (overlayLaser) {
                 var overlayLaserReady = overlayLaser.isReady(controllerData);
                 var target = controllerData.rayPicks[this.hand].objectID;
-				this.sendPointingAtData(controllerData);
+                this.sendPointingAtData(controllerData);
                 if (overlayLaserReady.active && this.pointingAtTablet(target)) {
                     return this.exitModule();
                 }

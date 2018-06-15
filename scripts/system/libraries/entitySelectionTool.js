@@ -59,13 +59,13 @@ SelectionManager = (function() {
         } else if (messageParsed.method === "clearSelection") {
             that.clearSelections();
         } else if (messageParsed.method === "pointingAt") {
-			if (messageParsed.rightHand) {
-				that.pointingAtDesktopWindowRight = messageParsed.desktopWindow;
-				that.pointingAtTabletRight = messageParsed.tablet;
-			} else {
-				that.pointingAtDesktopWindowLeft = messageParsed.desktopWindow;
-				that.pointingAtTabletLeft = messageParsed.tablet;
-			}
+            if (messageParsed.rightHand) {
+                that.pointingAtDesktopWindowRight = messageParsed.desktopWindow;
+                that.pointingAtTabletRight = messageParsed.tablet;
+            } else {
+                that.pointingAtDesktopWindowLeft = messageParsed.desktopWindow;
+                that.pointingAtTabletLeft = messageParsed.tablet;
+            }
         }
     }
 
@@ -101,11 +101,11 @@ SelectionManager = (function() {
     that.worldDimensions = Vec3.ZERO;
     that.worldRegistrationPoint = Vec3.HALF;
     that.centerPosition = Vec3.ZERO;
-	
-	that.pointingAtDesktopWindowLeft = false;
-	that.pointingAtDesktopWindowRight = false;
-	that.pointingAtTabletLeft = false;
-	that.pointingAtTabletRight = false;
+    
+    that.pointingAtDesktopWindowLeft = false;
+    that.pointingAtDesktopWindowRight = false;
+    that.pointingAtTabletLeft = false;
+    that.pointingAtTabletRight = false;
 
     that.saveProperties = function() {
         that.savedProperties = {};
@@ -680,16 +680,16 @@ SelectionDisplay = (function() {
                     activeHand = (activeHand === Controller.Standard.RightHand) ?
                         Controller.Standard.LeftHand : Controller.Standard.RightHand;
                 }
-				var pointingAtDesktopWindow = (hand === Controller.Standard.RightHand && 
-											   SelectionManager.pointingAtDesktopWindowRight) ||
-											  (hand === Controller.Standard.LeftHand && 
-											   SelectionManager.pointingAtDesktopWindowLeft);
-				var pointingAtTablet = (hand === Controller.Standard.RightHand && SelectionManager.pointingAtTabletRight) ||
-									   (hand === Controller.Standard.LeftHand && SelectionManager.pointingAtTabletLeft);
+                var pointingAtDesktopWindow = (hand === Controller.Standard.RightHand && 
+                                               SelectionManager.pointingAtDesktopWindowRight) ||
+                                              (hand === Controller.Standard.LeftHand && 
+                                               SelectionManager.pointingAtDesktopWindowLeft);
+                var pointingAtTablet = (hand === Controller.Standard.RightHand && SelectionManager.pointingAtTabletRight) ||
+                                       (hand === Controller.Standard.LeftHand && SelectionManager.pointingAtTabletLeft);
                 if (pointingAtDesktopWindow || pointingAtTablet) {
-					return;
+                    return;
                 }
-				that.mousePressEvent({});
+                that.mousePressEvent({});
             } else if (that.triggered && (value < that.TRIGGER_OFF_VALUE)) {
                 that.triggered = false;
                 that.mouseReleaseEvent({});
