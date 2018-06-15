@@ -95,9 +95,6 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
     auto newParticleProperties = entity->getParticleProperties();
     if (!newParticleProperties.valid()) {
         qCWarning(entitiesrenderer) << "Bad particle properties";
-        if (!entity->getParticleProperties().valid()) {
-            qCWarning(entitiesrenderer) << "Bad particle properties";
-        }
     }
     
     if (resultWithReadLock<bool>([&]{ return _particleProperties != newParticleProperties; })) {
@@ -308,7 +305,6 @@ void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
     if (!_visible) {
         return;
     }
-
 
     // FIXME migrate simulation to a compute stage
     stepSimulation();

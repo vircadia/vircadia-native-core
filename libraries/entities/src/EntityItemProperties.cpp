@@ -879,28 +879,28 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} azimuthStart=-Math.PI - The angle in radians from the entity's local x-axis about the entity's local 
  *     z-axis at which particles start being emitted; range <code>-Math.PI</code> &ndash; <code>Math.PI</code>. Particles are 
  *     emitted from the portion of the ellipsoid that lies between <code>azimuthStart<code> and <code>azimuthFinish</code>.
- * @property {number} azimuthFinish=Math.PI - The angle in radians from the entity's local x-axis about the entity's local 
- *     z-axis at which particles stop being emitted; range <code>-Math.PI</code> &ndash; <code>Math.PI</code>. Particles are 
+ * @property {number} azimuthFinish=Math.PI - The angle in radians from the entity's local x-axis about the entity's local
+ *     z-axis at which particles stop being emitted; range <code>-Math.PI</code> &ndash; <code>Math.PI</code>. Particles are
  *     emitted from the portion of the ellipsoid that lies between <code>azimuthStart<code> and <code>azimuthFinish</code>.
  *
- * @property {string} textures="" - The URL of a JPG or PNG image file to display for each particle. If you want transparency, 
+ * @property {string} textures="" - The URL of a JPG or PNG image file to display for each particle. If you want transparency,
  *     use PNG format.
  * @property {number} particleRadius=0.025 - The radius of each particle at the middle of its life.
- * @property {number} radiusStart=0.025 - The radius of each particle at the start of its life. If not explicitly set, the 
+ * @property {number} radiusStart=0.025 - The radius of each particle at the start of its life. If not explicitly set, the
  *     <code>particleRadius</code> value is used.
- * @property {number} radiusFinish=0.025 - The radius of each particle at the end of its life. If not explicitly set, the 
+ * @property {number} radiusFinish=0.025 - The radius of each particle at the end of its life. If not explicitly set, the
  *     <code>particleRadius</code> value is used.
  * @property {number} radiusSpread=0 - <em>Currently not used.</em>
  * @property {Color} color=255,255,255 - The color of each particle at the middle of its life.
- * @property {Color} colorStart=255,255,255 - The color of each particle at the start of its life. If not explicitly set, the 
+ * @property {Color} colorStart=255,255,255 - The color of each particle at the start of its life. If not explicitly set, the
  *     <code>color</code> value is used.
- * @property {Color} colorFinish=255,255,255 - The color of each particle at the end of its life. If not explicitly set, the 
+ * @property {Color} colorFinish=255,255,255 - The color of each particle at the end of its life. If not explicitly set, the
  *     <code>color</code> value is used.
  * @property {Color} colorSpread=0,0,0 - <em>Currently not used.</em>
  * @property {number} alpha=1 - The alpha of each particle at the middle of its life.
- * @property {number} alphaStart=1 - The alpha of each particle at the start of its life. If not explicitly set, the 
+ * @property {number} alphaStart=1 - The alpha of each particle at the start of its life. If not explicitly set, the
  *     <code>alpha</code> value is used.
- * @property {number} alphaFinish=1 - The alpha of each particle at the end of its life. If not explicitly set, the 
+ * @property {number} alphaFinish=1 - The alpha of each particle at the end of its life. If not explicitly set, the
  *     <code>alpha</code> value is used.
  * @property {number} alphaSpread=0 - <em>Currently not used.</em>
  *
@@ -1520,8 +1520,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(canCastShadow, bool, setCanCastShadow);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(color, xColor, setColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(colorSpread, xColor, setColorSpread);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorStart, xColor, setColorStart);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorFinish, xColor, setColorFinish);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorStart, glmVec3, setColorStart);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorFinish, glmVec3, setColorFinish);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alpha, float, setAlpha);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaSpread, float, setAlphaSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaStart, float, setAlphaStart);
@@ -1896,8 +1896,8 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_COLOR, Color, color, xColor);
         ADD_PROPERTY_TO_MAP(PROP_COLOR_SPREAD, ColorSpread, colorSpread, xColor);
-        ADD_PROPERTY_TO_MAP(PROP_COLOR_START, ColorStart, colorStart, xColor);
-        ADD_PROPERTY_TO_MAP(PROP_COLOR_FINISH, ColorFinish, colorFinish, xColor);
+        ADD_PROPERTY_TO_MAP(PROP_COLOR_START, ColorStart, colorStart, vec3);
+        ADD_PROPERTY_TO_MAP(PROP_COLOR_FINISH, ColorFinish, colorFinish, vec3);
         ADD_PROPERTY_TO_MAP(PROP_ALPHA, Alpha, alpha, float);
         ADD_PROPERTY_TO_MAP(PROP_ALPHA_SPREAD, AlphaSpread, alphaSpread, float);
         ADD_PROPERTY_TO_MAP(PROP_ALPHA_START, AlphaStart, alphaStart, float);
@@ -2660,8 +2660,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_START, float, setRadiusStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_FINISH, float, setRadiusFinish);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_SPREAD, xColor, setColorSpread);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_START, xColor, setColorStart);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_FINISH, xColor, setColorFinish);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_START, vec3, setColorStart);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_FINISH, vec3, setColorFinish);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_SPREAD, float, setAlphaSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_START, float, setAlphaStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_FINISH, float, setAlphaFinish);
@@ -2955,15 +2955,12 @@ void EntityItemProperties::markAllChanged() {
     _radiusSpreadChanged = true;
     _colorSpreadChanged = true;
     _alphaSpreadChanged = true;
-
-    // Only mark the following as changed if their values are specified in the properties when the particle is created. If their
-    // values are specified then they are marked as changed in getChangedProperties().
-    //_radiusStartChanged = true;
-    //_radiusFinishChanged = true;
-    //_colorStartChanged = true;
-    //_colorFinishChanged = true;
-    //_alphaStartChanged = true;
-    //_alphaFinishChanged = true;
+    _radiusStartChanged = true;
+    _radiusFinishChanged = true;
+    _colorStartChanged = true;
+    _colorFinishChanged = true;
+    _alphaStartChanged = true;
+    _alphaFinishChanged = true;
 
     _materialURLChanged = true;
     _materialMappingModeChanged = true;

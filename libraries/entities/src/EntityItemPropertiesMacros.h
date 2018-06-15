@@ -246,6 +246,15 @@ inline glmVec3 glmVec3_convertFromScriptValue(const QScriptValue& v, bool& isVal
     QScriptValue x = v.property("x");
     QScriptValue y = v.property("y");
     QScriptValue z = v.property("z");
+    if (!x.isValid()) {
+        x = v.property("red");
+    }
+    if (!y.isValid()) {
+        y = v.property("green");
+    }
+    if (!z.isValid()) {
+        z = v.property("blue");
+    }
     if (x.isValid() && y.isValid() && z.isValid()) {
         glm::vec3 newValue(0);
         newValue.x = x.toVariant().toFloat();
@@ -317,6 +326,15 @@ inline xColor xColor_convertFromScriptValue(const QScriptValue& v, bool& isValid
     QScriptValue r = v.property("red");
     QScriptValue g = v.property("green");
     QScriptValue b = v.property("blue");
+    if (!r.isValid()) {
+        r = v.property("x");
+    }
+    if (!g.isValid()) {
+        g = v.property("y");
+    }
+    if (!b.isValid()) {
+        b = v.property("z");
+    }
     if (r.isValid() && g.isValid() && b.isValid()) {
         newValue.red = r.toVariant().toInt();
         newValue.green = g.toVariant().toInt();
