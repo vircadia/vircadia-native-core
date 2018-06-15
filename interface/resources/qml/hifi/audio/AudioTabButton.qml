@@ -11,8 +11,8 @@
 
 import QtQuick 2.7
 import QtQuick.Controls 2.2
-import "../../controls-uit" as HifiControls
-import "../../styles-uit"
+import controlsUit 1.0 as HifiControls
+import stylesUit 1.0
 
 TabButton {
     id: control
