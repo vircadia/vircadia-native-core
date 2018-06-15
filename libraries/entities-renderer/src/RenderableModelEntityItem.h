@@ -161,7 +161,6 @@ protected:
     virtual bool needsRenderUpdate() const override;
     virtual void doRender(RenderArgs* args) override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
-    void flagForCollisionGeometryUpdate();
     void setCollisionMeshKey(const void* key);
 
     render::hifi::Tag getTagMask() const override;
@@ -186,7 +185,6 @@ private:
     bool _hasTransitioned{ false };
 #endif
 
-    bool _needsCollisionGeometryUpdate { false };
     const void* _collisionMeshKey { nullptr };
 
     // used on client side

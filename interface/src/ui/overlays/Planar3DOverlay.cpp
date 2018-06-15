@@ -71,7 +71,7 @@ QVariant Planar3DOverlay::getProperty(const QString& property) {
 }
 
 bool Planar3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                        float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
+                                          float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking) {
     // FIXME - face and surfaceNormal not being returned
     return findRayRectangleIntersection(origin, direction, getWorldOrientation(), getWorldPosition(), getDimensions(), distance);
 }
