@@ -1185,10 +1185,6 @@ bool ModelEntityRenderer::needsRenderUpdate() const {
             return true;
         }
 
-        if (_needsCollisionGeometryUpdate) {
-            return true;
-        }
-
         if (!_prevModelLoaded) {
             return true;
         }
