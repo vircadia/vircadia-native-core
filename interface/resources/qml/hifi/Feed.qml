@@ -87,8 +87,8 @@ Column {
             description: description,
             online_users: data.details.connections || data.details.concurrency || 0,
             // Server currently doesn't give isStacked (undefined). Could give bool.
-            drillDownToPlace: (data.isStacked === undefined) ? (data.action !== 'concurrency') : data.isStacked,
-            isStacked: !!data.isStacked
+            drillDownToPlace: data.is_stacked || (data.action === 'concurrency'),
+            isStacked: !!data.is_stacked
         };
     }
 
