@@ -65,9 +65,9 @@ function getBuildInfo() {
         buildIdentifier: "dev",
         buildNumber: "0",
         stableBuild: "0",
-        organization: "High Fidelity - dev"
+        organization: "High Fidelity - dev",
+        appUserModelId: "com.highfidelity.sandbox-dev"
     };
-
     var buildInfo = DEFAULT_BUILD_INFO;
 
     if (buildInfoPath) {
@@ -115,16 +115,42 @@ const UPDATER_LOCK_FULL_PATH = getRootHifiDataDirectory() + "/" + UPDATER_LOCK_F
 
 // Configure log
 global.log = require('electron-log');
-const logFile = getApplicationDataDirectory(true) + '/log.txt';
+const oldLogFile = path.join(getApplicationDataDirectory(), '/log.txt');
+const logFile = path.join(getApplicationDataDirectory(true), '/log.txt');
+if (oldLogFile != logFile && fs.existsSync(oldLogFile)) {
+    if (!fs.existsSync(oldLogFile)) {
+        fs.moveSync(oldLogFile, logFile);
+    } else {
+        fs.remove(oldLogFile);
+    }
+}
 fs.ensureFileSync(logFile); // Ensure file exists
 log.transports.file.maxSize = 5 * 1024 * 1024;
 log.transports.file.file = logFile;
 
 log.debug("build info", buildInfo);
 log.debug("Root hifi directory is: ", getRootHifiDataDirectory());
+log.debug("App Data directory:", getApplicationDataDirectory());
+fs.ensureDirSync(getApplicationDataDirectory());
+
+var oldLogPath = path.join(getApplicationDataDirectory(), '/logs');
+var logPath = path.join(getApplicationDataDirectory(true), '/logs');
+if (oldLogPath != logPath && fs.existsSync(oldLogPath)) {
+    if (!fs.existsSync(oldLogPath)) {
+        fs.moveSync(oldLogPath, logPath);
+    } else {
+        fs.remove(oldLogPath);
+    }
+}
+fs.ensureDirSync(logPath);
+log.debug("Log directory:", logPath);
+
+const configPath = path.join(getApplicationDataDirectory(), 'config.json');
+var userConfig = new Config();
+userConfig.load(configPath);
+
 
 const ipcMain = electron.ipcMain;
-
 
 var isShuttingDown = false;
 function shutdown() {
@@ -232,26 +258,7 @@ function deleteOldFiles(directoryPath, maxAgeInSeconds, filenameRegex) {
     }
 }
 
-var oldLogPath = path.join(getApplicationDataDirectory(), '/logs');
-var logPath = path.join(getApplicationDataDirectory(true), '/logs');
-
-if (oldLogPath != logPath) {
-    console.log("Migrating old logs from " + oldLogPath + " to " + logPath);
-    fs.copy(oldLogPath, logPath, err => {
-        if (err) {
-            console.error(err);
-        } else {
-            console.log('success!');
-        }
-    })
-}
-
-log.debug("Log directory:", logPath);
-log.debug("Data directory:", getRootHifiDataDirectory());
-
-const configPath = path.join(getApplicationDataDirectory(), 'config.json');
-var userConfig = new Config();
-userConfig.load(configPath);
+app.setAppUserModelId(buildInfo.appUserModelId);
 
 // print out uncaught exceptions in the console
 process.on('uncaughtException', function(err) {
@@ -775,6 +782,7 @@ function onContentLoaded() {
     // maybeShowSplash();
 
     if (buildInfo.releaseType == 'PRODUCTION' && !argv.noUpdater) {
+
         const CHECK_FOR_UPDATES_INTERVAL_SECONDS = 60 * 30;
         var hasShownUpdateNotification = false;
         const updateChecker = new updater.UpdateChecker(buildInfo, CHECK_FOR_UPDATES_INTERVAL_SECONDS);
@@ -785,6 +793,7 @@ function onContentLoaded() {
                     title: 'An update is available!',
                     message: 'High Fidelity version ' + latestVersion + ' is available',
                     wait: true,
+                    appID: buildInfo.appUserModelId,
                     url: url
                 });
                 hasShownUpdateNotification = true;

@@ -17,6 +17,10 @@ import "../controls-uit" as HifiControls
 SpinBox {
     id: spinBox
 
+    HifiConstants {
+        id: hifi
+    }
+
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme === hifi.colorSchemes.light
     property string label: ""
@@ -31,8 +35,8 @@ SpinBox {
     property real maximumValue: 0.0
 
     property real realValue: 0.0
-    property real realFrom: 0.0
-    property real realTo: 100.0
+    property real realFrom: minimumValue
+    property real realTo: maximumValue
     property real realStepSize: 1.0
 
     signal editingFinished()
@@ -53,7 +57,8 @@ SpinBox {
     onValueChanged: realValue = value/factor
 
     stepSize: realStepSize*factor
-    value: realValue*factor
+    value: Math.round(realValue*factor)
+
     to : realTo*factor
     from : realFrom*factor
 
@@ -81,6 +86,7 @@ SpinBox {
     }
 
     valueFromText: function(text, locale) {
+        spinBox.value = 0; // Force valueChanged signal to be emitted so that validator fires.
         return Number.fromLocaleString(locale, text)*factor;
     }
 
@@ -110,7 +116,7 @@ SpinBox {
             anchors.centerIn: parent
             text: hifi.glyphs.caratUp
             size: hifi.dimensions.spinnerSize
-            color: spinBox.down.pressed || spinBox.up.hovered ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
+            color: spinBox.up.pressed || spinBox.up.hovered ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
         }
     }
 
@@ -149,26 +155,14 @@ SpinBox {
         visible: spinBox.labelInside != ""
     }
 
-//    MouseArea {
-//        anchors.fill: parent
-//        propagateComposedEvents: true
-//        onWheel: {
-//            if(spinBox.activeFocus)
-//                wheel.accepted = false
-//            else
-//                wheel.accepted = true
-//        }
-//        onPressed: {
-//            mouse.accepted = false
-//        }
-//        onReleased: {
-//            mouse.accepted = false
-//        }
-//        onClicked: {
-//            mouse.accepted = false
-//        }
-//        onDoubleClicked: {
-//            mouse.accepted = false
-//        }
-//    }
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.NoButton
+        onWheel: {
+            if (wheel.angleDelta.y > 0)
+                value += stepSize
+            else
+                value -= stepSize
+        }
+    }
 }
