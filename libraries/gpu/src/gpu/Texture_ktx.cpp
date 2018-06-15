@@ -140,7 +140,6 @@ struct IrradianceKTXPayload {
         data += sizeof(Version);
 
         memcpy(&_irradianceSH, data, sizeof(SphericalHarmonics));
-        data += sizeof(SphericalHarmonics);
 
         return true;
     }
