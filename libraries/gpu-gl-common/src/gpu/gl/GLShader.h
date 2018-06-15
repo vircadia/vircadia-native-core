@@ -9,14 +9,17 @@
 #define hifi_gpu_gl_GLShader_h
 
 #include "GLShared.h"
+#include <gl/GLShaders.h>
 
 namespace gpu { namespace gl {
 
 struct ShaderObject {
+    using Uniforms = ::gl::Uniforms;
     GLuint glshader { 0 };
     GLuint glprogram { 0 };
     GLint transformCameraSlot { -1 };
     GLint transformObjectSlot { -1 };
+    Uniforms uniforms;
 };
 
 class GLShader : public GPUObject {

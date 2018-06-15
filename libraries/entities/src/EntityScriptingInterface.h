@@ -225,6 +225,16 @@ public slots:
                                      bool collisionless, const glm::vec3& position, const glm::vec3& gravity);
 
     /**jsdoc
+     * Create a clone of an entity. A clone can be created by a client that doesn't have rez permissions in the current domain.
+     * The entity must have its <code>cloneable</code> property set to <code>true</code>. The clone has a modified name, other 
+     * properties set per its clone related-properties, and its clone-related properties are set to defaults. 
+     * @function Entities.cloneEntity
+     * @param {Uuid} entityID - The ID of the entity to clone.
+     * @returns {Uuid} The ID of the new entity if successfully cloned, otherwise {@link Uuid|Uuid.NULL}.
+     */
+    Q_INVOKABLE QUuid cloneEntity(QUuid entityIDToClone);
+
+    /**jsdoc
      * Get the properties of an entity.
      * @function Entities.getEntityProperties
      * @param {Uuid} entityID - The ID of the entity to get the properties of.
@@ -1216,12 +1226,11 @@ public slots:
 
 
     /**jsdoc
-     * Get the IDs of entities, overlays, and avatars that are directly parented to an entity. To get all descendants of an 
-     * entity, recurse on the IDs returned by the function.
+     * Get the IDs of entities, overlays, and avatars that are directly parented to an entity, overlay, or avatar model. Recurse on the IDs returned by the function to get all descendants of an entity, overlay, or avatar. 
      * @function Entities.getChildrenIDs
-     * @param {Uuid} parentID - The ID of the entity to get the children IDs of.
+     * @param {Uuid} parentID - The ID of the entity, overlay, or avatar to get the children IDs of.
      * @returns {Uuid[]} An array of entity, overlay, and avatar IDs that are parented directly to the <code>parentID</code> 
-     *     entity. Does not include children's children, etc. The array is empty if no children can be found or 
+     *     entity, overlay, or avatar. Does not include children's children, etc. The array is empty if no children can be found or 
      *     <code>parentID</code> cannot be found.
      * @example <caption>Report the children of an entity.</caption>
      * function createEntity(description, position, parent) {
@@ -1875,6 +1884,7 @@ private:
     bool polyVoxWorker(QUuid entityID, std::function<bool(PolyVoxEntityItem&)> actor);
     bool setPoints(QUuid entityID, std::function<bool(LineEntityItem&)> actor);
     void queueEntityMessage(PacketType packetType, EntityItemID entityID, const EntityItemProperties& properties);
+    bool addLocalEntityCopy(EntityItemProperties& propertiesWithSimID, EntityItemID& id, bool isClone = false);
 
     EntityItemPointer checkForTreeEntityAndTypeMatch(const QUuid& entityID,
                                                      EntityTypes::EntityType entityType = EntityTypes::Unknown);

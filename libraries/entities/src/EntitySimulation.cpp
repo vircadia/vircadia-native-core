@@ -65,6 +65,7 @@ void EntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
         removeEntityInternal(entity);
         if (entity->getElement()) {
             _deadEntities.insert(entity);
+            _entityTree->cleanupCloneIDs(entity->getEntityItemID());
         }
     }
 }

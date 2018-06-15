@@ -35,7 +35,7 @@ public:
     virtual Grid3DOverlay* createClone() const override;
 
     // Grids are UI tools, and may not be intersected (pickable)
-    virtual bool findRayIntersection(const glm::vec3&, const glm::vec3&, float&, BoxFace&, glm::vec3&) override { return false; }
+    virtual bool findRayIntersection(const glm::vec3&, const glm::vec3&, float&, BoxFace&, glm::vec3&, bool precisionPicking = false) override { return false; }
 
 protected:
     Transform evalRenderTransform() override;

@@ -282,7 +282,7 @@ Script.include("/~/system/libraries/Xform.js");
             this.previousRoomControllerPosition = roomControllerPosition;
         };
 
-        this.endNearGrabAction = function () {
+        this.endFarGrabAction = function () {
             ensureDynamic(this.grabbedThingID);
             this.distanceHolding = false;
             this.distanceRotating = false;
@@ -402,7 +402,7 @@ Script.include("/~/system/libraries/Xform.js");
         this.run = function (controllerData) {
             if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE ||
                 this.notPointingAtEntity(controllerData) || this.targetIsNull()) {
-                this.endNearGrabAction();
+                this.endFarGrabAction();
                 Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity",
                     this.highlightedEntity);
                 this.highlightedEntity = null;
@@ -430,11 +430,12 @@ Script.include("/~/system/libraries/Xform.js");
             }
 
             if (this.actionID) {
-                // if we are doing a distance grab and the object gets close enough to the controller,
+                // if we are doing a distance grab and the object or tablet gets close enough to the controller,
                 // stop the far-grab so the near-grab or equip can take over.
                 for (var k = 0; k < nearGrabReadiness.length; k++) {
-                    if (nearGrabReadiness[k].active && nearGrabReadiness[k].targets[0] === this.grabbedThingID) {
-                        this.endNearGrabAction();
+                    if (nearGrabReadiness[k].active && (nearGrabReadiness[k].targets[0] === this.grabbedThingID
+                        || HMD.tabletID && nearGrabReadiness[k].targets[0] === HMD.tabletID)) {
+                        this.endFarGrabAction();
                         return makeRunningValues(false, [], []);
                     }
                 }
@@ -445,7 +446,7 @@ Script.include("/~/system/libraries/Xform.js");
                 // where it could near-grab something, stop searching.
                 for (var j = 0; j < nearGrabReadiness.length; j++) {
                     if (nearGrabReadiness[j].active) {
-                        this.endNearGrabAction();
+                        this.endFarGrabAction();
                         return makeRunningValues(false, [], []);
                     }
                 }
@@ -577,7 +578,7 @@ Script.include("/~/system/libraries/Xform.js");
             var disableModule = getEnabledModuleByName(moduleName);
             if (disableModule) {
                 if (disableModule.disableModules) {
-                    this.endNearGrabAction();
+                    this.endFarGrabAction();
                     Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity",
                         this.highlightedEntity);
                     this.highlightedEntity = null;

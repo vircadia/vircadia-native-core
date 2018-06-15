@@ -36,7 +36,7 @@ unsigned int PickScriptingInterface::createPick(const PickQuery::PickType type, 
  * @typedef {object} Picks.RayPickProperties
  * @property {boolean} [enabled=false] If this Pick should start enabled or not.  Disabled Picks do not updated their pick results.
  * @property {number} [filter=Picks.PICK_NOTHING] The filter for this Pick to use, constructed using filter flags combined using bitwise OR.
- * @property {float} [maxDistance=0.0] The max distance at which this Pick will intersect.  0.0 = no max.  < 0.0 is invalid.
+ * @property {number} [maxDistance=0.0] The max distance at which this Pick will intersect.  0.0 = no max.  < 0.0 is invalid.
  * @property {string} [joint] Only for Joint or Mouse Ray Picks.  If "Mouse", it will create a Ray Pick that follows the system mouse, in desktop or HMD.
  *   If "Avatar", it will create a Joint Ray Pick that follows your avatar's head.  Otherwise, it will create a Joint Ray Pick that follows the given joint, if it
  *   exists on your current avatar.
@@ -103,7 +103,7 @@ unsigned int PickScriptingInterface::createRayPick(const QVariant& properties) {
  * @property {number} [hand=-1] An integer.  0 == left, 1 == right.  Invalid otherwise.
  * @property {boolean} [enabled=false] If this Pick should start enabled or not.  Disabled Picks do not updated their pick results.
  * @property {number} [filter=Picks.PICK_NOTHING] The filter for this Pick to use, constructed using filter flags combined using bitwise OR.
- * @property {float} [maxDistance=0.0] The max distance at which this Pick will intersect.  0.0 = no max.  < 0.0 is invalid.
+ * @property {number} [maxDistance=0.0] The max distance at which this Pick will intersect.  0.0 = no max.  < 0.0 is invalid.
  */
 unsigned int PickScriptingInterface::createStylusPick(const QVariant& properties) {
     QVariantMap propMap = properties.toMap();

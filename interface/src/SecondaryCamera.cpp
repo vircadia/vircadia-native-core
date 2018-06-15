@@ -9,11 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "Application.h"
 #include "SecondaryCamera.h"
-#include <TextureCache.h>
-#include <gpu/Context.h>
+
 #include <glm/gtx/transform.hpp>
+#include <gpu/Context.h>
+#include <TextureCache.h>
+
+#include "Application.h"
 
 using RenderArgsPointer = std::shared_ptr<RenderArgs>;
 

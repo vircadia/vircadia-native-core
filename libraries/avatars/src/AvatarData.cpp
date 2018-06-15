@@ -300,14 +300,15 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             tranlationChangedSince(lastSentTime) ||
             parentInfoChangedSince(lastSentTime));
 
-        hasFaceTrackerInfo = !dropFaceTracking && hasFaceTracker() && (sendAll || faceTrackerInfoChangedSince(lastSentTime));
+        hasFaceTrackerInfo = !dropFaceTracking && (hasFaceTracker() || getHasScriptedBlendshapes()) &&
+            (sendAll || faceTrackerInfoChangedSince(lastSentTime));
         hasJointData = sendAll || !sendMinimum;
         hasJointDefaultPoseFlags = hasJointData;
     }
 
 
     const size_t byteArraySize = AvatarDataPacket::MAX_CONSTANT_HEADER_SIZE +
-        (hasFaceTrackerInfo ? AvatarDataPacket::maxFaceTrackerInfoSize(_headData->getNumSummedBlendshapeCoefficients()) : 0) +
+        (hasFaceTrackerInfo ? AvatarDataPacket::maxFaceTrackerInfoSize(_headData->getBlendshapeCoefficients().size()) : 0) +
         (hasJointData ? AvatarDataPacket::maxJointDataSize(_jointData.size()) : 0) +
         (hasJointDefaultPoseFlags ? AvatarDataPacket::maxJointDefaultPoseFlagsSize(_jointData.size()) : 0);
 
@@ -442,7 +443,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         auto startSection = destinationBuffer;
         auto data = reinterpret_cast<AvatarDataPacket::AdditionalFlags*>(destinationBuffer);
 
-        uint8_t flags { 0 };
+        uint16_t flags { 0 };
 
         setSemiNibbleAt(flags, KEY_STATE_START_BIT, _keyState);
 
@@ -450,20 +451,33 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         bool isFingerPointing = _handState & IS_FINGER_POINTING_FLAG;
         setSemiNibbleAt(flags, HAND_STATE_START_BIT, _handState & ~IS_FINGER_POINTING_FLAG);
         if (isFingerPointing) {
-            setAtBit(flags, HAND_STATE_FINGER_POINTING_BIT);
+            setAtBit16(flags, HAND_STATE_FINGER_POINTING_BIT);
         }
         // face tracker state
         if (_headData->_isFaceTrackerConnected) {
-            setAtBit(flags, IS_FACE_TRACKER_CONNECTED);
+            setAtBit16(flags, IS_FACE_TRACKER_CONNECTED);
         }
         // eye tracker state
         if (_headData->_isEyeTrackerConnected) {
-            setAtBit(flags, IS_EYE_TRACKER_CONNECTED);
+            setAtBit16(flags, IS_EYE_TRACKER_CONNECTED);
         }
         // referential state
         if (!parentID.isNull()) {
-            setAtBit(flags, HAS_REFERENTIAL);
+            setAtBit16(flags, HAS_REFERENTIAL);
         }
+        // audio face movement
+        if (_headData->getHasAudioEnabledFaceMovement()) {
+            setAtBit16(flags, AUDIO_ENABLED_FACE_MOVEMENT);
+        }
+        // procedural eye face movement
+        if (_headData->getHasProceduralEyeFaceMovement()) {
+            setAtBit16(flags, PROCEDURAL_EYE_FACE_MOVEMENT);
+        }
+        // procedural blink face movement
+        if (_headData->getHasProceduralBlinkFaceMovement()) {
+            setAtBit16(flags, PROCEDURAL_BLINK_FACE_MOVEMENT);
+        }
+
         data->flags = flags;
         destinationBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
 
@@ -506,8 +520,9 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     if (hasFaceTrackerInfo) {
         auto startSection = destinationBuffer;
         auto faceTrackerInfo = reinterpret_cast<AvatarDataPacket::FaceTrackerInfo*>(destinationBuffer);
-        const auto& blendshapeCoefficients = _headData->getSummedBlendshapeCoefficients();
-
+        const auto& blendshapeCoefficients = _headData->getBlendshapeCoefficients();
+        // note: we don't use the blink and average loudness, we just use the numBlendShapes and
+        // compute the procedural info on the client side.
         faceTrackerInfo->leftEyeBlink = _headData->_leftEyeBlink;
         faceTrackerInfo->rightEyeBlink = _headData->_rightEyeBlink;
         faceTrackerInfo->averageLoudness = _headData->_averageLoudness;
@@ -972,7 +987,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         PACKET_READ_CHECK(AdditionalFlags, sizeof(AvatarDataPacket::AdditionalFlags));
         auto data = reinterpret_cast<const AvatarDataPacket::AdditionalFlags*>(sourceBuffer);
-        uint8_t bitItems = data->flags;
+        uint16_t bitItems = data->flags;
 
         // key state, stored as a semi-nibble in the bitItems
         auto newKeyState = (KeyState)getSemiNibbleAt(bitItems, KEY_STATE_START_BIT);
@@ -980,26 +995,38 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         // hand state, stored as a semi-nibble plus a bit in the bitItems
         // we store the hand state as well as other items in a shared bitset. The hand state is an octal, but is split
         // into two sections to maintain backward compatibility. The bits are ordered as such (0-7 left to right).
-        //     +---+-----+-----+--+
-        //     |x,x|H0,H1|x,x,x|H2|
-        //     +---+-----+-----+--+
+        // AA 6/1/18 added three more flags bits 8,9, and 10 for procedural audio, blink, and eye saccade enabled
+        //     +---+-----+-----+--+--+--+--+-----+
+        //     |x,x|H0,H1|x,x,x|H2|Au|Bl|Ey|xxxxx|
+        //     +---+-----+-----+--+--+--+--+-----+
         // Hand state - H0,H1,H2 is found in the 3rd, 4th, and 8th bits
         auto newHandState = getSemiNibbleAt(bitItems, HAND_STATE_START_BIT)
-            + (oneAtBit(bitItems, HAND_STATE_FINGER_POINTING_BIT) ? IS_FINGER_POINTING_FLAG : 0);
+            + (oneAtBit16(bitItems, HAND_STATE_FINGER_POINTING_BIT) ? IS_FINGER_POINTING_FLAG : 0);
 
-        auto newFaceTrackerConnected = oneAtBit(bitItems, IS_FACE_TRACKER_CONNECTED);
-        auto newEyeTrackerConnected = oneAtBit(bitItems, IS_EYE_TRACKER_CONNECTED);
+        auto newFaceTrackerConnected = oneAtBit16(bitItems, IS_FACE_TRACKER_CONNECTED);
+        auto newEyeTrackerConnected = oneAtBit16(bitItems, IS_EYE_TRACKER_CONNECTED);
 
+        auto newHasAudioEnabledFaceMovement = oneAtBit16(bitItems, AUDIO_ENABLED_FACE_MOVEMENT);
+        auto newHasProceduralEyeFaceMovement = oneAtBit16(bitItems, PROCEDURAL_EYE_FACE_MOVEMENT);
+        auto newHasProceduralBlinkFaceMovement = oneAtBit16(bitItems, PROCEDURAL_BLINK_FACE_MOVEMENT);
+
+        
         bool keyStateChanged = (_keyState != newKeyState);
         bool handStateChanged = (_handState != newHandState);
         bool faceStateChanged = (_headData->_isFaceTrackerConnected != newFaceTrackerConnected);
         bool eyeStateChanged = (_headData->_isEyeTrackerConnected != newEyeTrackerConnected);
-        bool somethingChanged = keyStateChanged || handStateChanged || faceStateChanged || eyeStateChanged;
+        bool audioEnableFaceMovementChanged = (_headData->getHasAudioEnabledFaceMovement() != newHasAudioEnabledFaceMovement);
+        bool proceduralEyeFaceMovementChanged = (_headData->getHasProceduralEyeFaceMovement() != newHasProceduralEyeFaceMovement);
+        bool proceduralBlinkFaceMovementChanged = (_headData->getHasProceduralBlinkFaceMovement() != newHasProceduralBlinkFaceMovement);
+        bool somethingChanged = keyStateChanged || handStateChanged || faceStateChanged || eyeStateChanged || audioEnableFaceMovementChanged || proceduralEyeFaceMovementChanged || proceduralBlinkFaceMovementChanged;
 
         _keyState = newKeyState;
         _handState = newHandState;
         _headData->_isFaceTrackerConnected = newFaceTrackerConnected;
         _headData->_isEyeTrackerConnected = newEyeTrackerConnected;
+        _headData->setHasAudioEnabledFaceMovement(newHasAudioEnabledFaceMovement);
+        _headData->setHasProceduralEyeFaceMovement(newHasProceduralEyeFaceMovement);
+        _headData->setHasProceduralBlinkFaceMovement(newHasProceduralBlinkFaceMovement);
 
         sourceBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
 
@@ -1060,23 +1087,21 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         PACKET_READ_CHECK(FaceTrackerInfo, sizeof(AvatarDataPacket::FaceTrackerInfo));
         auto faceTrackerInfo = reinterpret_cast<const AvatarDataPacket::FaceTrackerInfo*>(sourceBuffer);
-        sourceBuffer += sizeof(AvatarDataPacket::FaceTrackerInfo);
-
-        _headData->_leftEyeBlink = faceTrackerInfo->leftEyeBlink;
-        _headData->_rightEyeBlink = faceTrackerInfo->rightEyeBlink;
-        _headData->_averageLoudness = faceTrackerInfo->averageLoudness;
-        _headData->_browAudioLift = faceTrackerInfo->browAudioLift;
-
         int numCoefficients = faceTrackerInfo->numBlendshapeCoefficients;
         const int coefficientsSize = sizeof(float) * numCoefficients;
+        sourceBuffer += sizeof(AvatarDataPacket::FaceTrackerInfo);
+
         PACKET_READ_CHECK(FaceTrackerCoefficients, coefficientsSize);
         _headData->_blendshapeCoefficients.resize(numCoefficients);  // make sure there's room for the copy!
-        _headData->_transientBlendshapeCoefficients.resize(numCoefficients);
+        //only copy the blendshapes to headData, not the procedural face info
         memcpy(_headData->_blendshapeCoefficients.data(), sourceBuffer, coefficientsSize);
         sourceBuffer += coefficientsSize;
+
         int numBytesRead = sourceBuffer - startSection;
         _faceTrackerRate.increment(numBytesRead);
         _faceTrackerUpdateRate.increment();
+    } else {
+        _headData->_blendshapeCoefficients.fill(0, _headData->_blendshapeCoefficients.size());
     }
 
     if (hasJointData) {
@@ -2363,7 +2388,7 @@ glm::vec3 AvatarData::getAbsoluteJointTranslationInObjectFrame(int index) const 
 }
 
 /**jsdoc
- * @typedef AttachmentData
+ * @typedef {object} AttachmentData
  * @property {string} modelUrl
  * @property {string} jointName
  * @property {Vec3} translation

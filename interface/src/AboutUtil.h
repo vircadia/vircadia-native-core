@@ -15,6 +15,17 @@
 
 #include <QObject>
 
+/**jsdoc
+ * @namespace HifiAbout
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * 
+ * @property {string} buildDate
+ * @property {string} buildVersion
+ * @property {string} qtVersion
+ */
+
 class AboutUtil : public QObject {
     Q_OBJECT
 
@@ -30,6 +41,11 @@ public:
     QString getQtVersion() const;
 
 public slots:
+
+    /**jsdoc
+     * @function HifiAbout.openUrl
+     * @param {string} url
+     */
     void openUrl(const QString &url) const;
 private:
     AboutUtil(QObject* parent = nullptr);

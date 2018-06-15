@@ -594,7 +594,7 @@ void ScriptEngines::onScriptFinished(const QString& rawScriptURL, ScriptEnginePo
         }
     }
 
-    if (removed) {
+    if (removed && !_isReloading) {
         // Update settings with removed script
         saveScripts();
         emit scriptCountChanged();

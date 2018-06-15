@@ -283,7 +283,7 @@ QVariant Base3DOverlay::getProperty(const QString& property) {
 }
 
 bool Base3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                        float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
+                                        float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking) {
     return false;
 }
 
@@ -348,4 +348,24 @@ SpatialParentTree* Base3DOverlay::getParentTree() const {
 void Base3DOverlay::setVisible(bool visible) {
     Parent::setVisible(visible);
     notifyRenderVariableChange();
+}
+
+render::ItemKey Base3DOverlay::getKey() {
+    auto builder = render::ItemKey::Builder(Overlay::getKey());
+
+    if (getDrawInFront()) {
+        builder.withLayer(render::hifi::LAYER_3D_FRONT);
+    } else if (getDrawHUDLayer()) {
+        builder.withLayer(render::hifi::LAYER_3D_HUD);
+    } else {
+        builder.withoutLayer();
+    }
+
+    builder.withoutViewSpace();
+
+    if (isTransparent()) {
+        builder.withTransparent();
+    }
+
+    return builder.build();
 }

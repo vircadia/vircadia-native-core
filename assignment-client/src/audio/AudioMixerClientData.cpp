@@ -624,8 +624,8 @@ AudioMixerClientData::IgnoreZone& AudioMixerClientData::IgnoreZoneMemo::get(unsi
             scale = MIN_IGNORE_BOX_SCALE;
         }
 
-        // quadruple the scale (this is arbitrary number chosen for comfort)
-        const float IGNORE_BOX_SCALE_FACTOR = 4.0f;
+        // (this is arbitrary number determined empirically for comfort)
+        const float IGNORE_BOX_SCALE_FACTOR = 2.4f;
         scale *= IGNORE_BOX_SCALE_FACTOR;
 
         // create the box (we use a box for the zone for convenience)

@@ -30,6 +30,7 @@ namespace MenuOption {
     const QString AddressBar = "Show Address Bar";
     const QString Animations = "Animations...";
     const QString AnimDebugDrawAnimPose = "Debug Draw Animation";
+    const QString AnimDebugDrawBaseOfSupport = "Debug Draw Base of Support";
     const QString AnimDebugDrawDefaultPose = "Debug Draw Default Pose";
     const QString AnimDebugDrawPosition= "Debug Draw Position";
     const QString AskToResetSettings = "Ask To Reset Settings on Start";
@@ -140,7 +141,6 @@ namespace MenuOption {
     const QString Overlays = "Show Overlays";
     const QString PackageModel = "Package Model as .fst...";
     const QString Pair = "Pair";
-    const QString PhysicsShowHulls = "Draw Collision Shapes";
     const QString PhysicsShowOwned = "Highlight Simulation Ownership";
     const QString VerboseLogging = "Verbose Logging";
     const QString PhysicsShowBulletWireframe = "Show Bullet Collision";
@@ -202,6 +202,7 @@ namespace MenuOption {
     const QString ThirdPerson = "Third Person";
     const QString ThreePointCalibration = "3 Point Calibration";
     const QString ThrottleFPSIfNotFocus = "Throttle FPS If Not Focus"; // FIXME - this value duplicated in Basic2DWindowOpenGLDisplayPlugin.cpp
+    const QString ToggleHipsFollowing = "Toggle Hips Following";
     const QString ToolWindow = "Tool Window";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString TurnWithHead = "Turn using Head";

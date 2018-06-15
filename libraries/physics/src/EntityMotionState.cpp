@@ -252,10 +252,8 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
 
         uint32_t thisStep = ObjectMotionState::getWorldSimulationStep();
         float dt = (thisStep - _lastKinematicStep) * PHYSICS_ENGINE_FIXED_SUBSTEP;
+        _lastKinematicStep = thisStep;
         _entity->stepKinematicMotion(dt);
-
-        // bypass const-ness so we can remember the step
-        const_cast<EntityMotionState*>(this)->_lastKinematicStep = thisStep;
 
         // and set the acceleration-matches-gravity count high so that if we send an update
         // it will use the correct acceleration for remote simulations
@@ -448,17 +446,13 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
     // this case is prevented by setting _ownershipState to UNOWNABLE in EntityMotionState::ctor
     assert(!(_entity->getClientOnly() && _entity->getOwningAvatarID() != Physics::getSessionUUID()));
 
-    // shouldSendUpdate() sould NOT be triggering updates to maintain the queryAACube of dynamic entities.
-    // The server is supposed to predict the transform of such moving things.  The client performs a "double prediction"
-    // where it predicts what the the server is doing, and only sends updates whent the entity's true transform
-    // differs significantly.  That is what the remoteSimulationOutOfSync() logic is all about.
-    if (_entity->dynamicDataNeedsTransmit() ||
-            (!_entity->getDynamic() && _entity->queryAACubeNeedsUpdate())) {
+    if (_entity->dynamicDataNeedsTransmit()) {
         return true;
     }
-
     if (_entity->shouldSuppressLocationEdits()) {
-        return false;
+        // "shouldSuppressLocationEdits" really means: "the entity has a 'Hold' action therefore
+        // we don't need send an update unless the entity is not contained by its queryAACube"
+        return _entity->queryAACubeNeedsUpdate();
     }
 
     return remoteSimulationOutOfSync(simulationStep);
@@ -779,7 +773,7 @@ QString EntityMotionState::getName() const {
 }
 
 // virtual
-void EntityMotionState::computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const {
+void EntityMotionState::computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const {
     _entity->computeCollisionGroupAndFinalMask(group, mask);
 }
 

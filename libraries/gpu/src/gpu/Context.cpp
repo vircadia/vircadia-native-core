@@ -53,6 +53,13 @@ Context::~Context() {
     _batchPool.clear();
 }
 
+void Context::shutdown() {
+    if (_backend) {
+        _backend->shutdown();
+        _backend.reset();
+    }
+}
+
 const std::string& Context::getBackendVersion() const {
     return _backend->getVersion();
 }

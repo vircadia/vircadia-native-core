@@ -198,9 +198,9 @@ public:
             std::string fsSource = HMD_REPROJECTION_FRAG;
             GLuint vertexShader { 0 }, fragmentShader { 0 };
             std::string error;
-            std::vector<char> binary;
-            ::gl::compileShader(GL_VERTEX_SHADER, vsSource, "", vertexShader, error);
-            ::gl::compileShader(GL_FRAGMENT_SHADER, fsSource, "", fragmentShader, error);
+            ::gl::CachedShader binary;
+            ::gl::compileShader(GL_VERTEX_SHADER, vsSource, vertexShader, error);
+            ::gl::compileShader(GL_FRAGMENT_SHADER, fsSource, fragmentShader, error);
             _program = ::gl::compileProgram({ { vertexShader, fragmentShader } }, error, binary);
             glDeleteShader(vertexShader);
             glDeleteShader(fragmentShader);

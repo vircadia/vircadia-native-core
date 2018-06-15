@@ -83,7 +83,8 @@
             "position": cameraPosition,
             "shapeType": "simple-compound",
             "type": "Model",
-            "userData": "{\"grabbableKey\":{\"grabbable\":true}}"
+            "userData": "{\"grabbableKey\":{\"grabbable\":true}}",
+            "isVisibleInSecondaryCamera": false
         }, true);
         spectatorCameraConfig.attachedEntityId = camera;
         updateOverlay();
@@ -96,7 +97,7 @@
         if (button) {
             button.editProperties({ isActive: onSpectatorCameraScreen || camera });
         }
-        Audio.playSound(CAMERA_ON_SOUND, {
+        Audio.playSound(SOUND_CAMERA_ON, {
             volume: 0.15,
             position: cameraPosition,
             localOnly: true
@@ -112,8 +113,14 @@
     var WAIT_AFTER_DOMAIN_SWITCH_BEFORE_CAMERA_DELETE_MS = 1 * 1000;
     function spectatorCameraOff(isChangingDomains) {
         function deleteCamera() {
-            Entities.deleteEntity(camera);
-            camera = false;
+            if (flash) {
+                Entities.deleteEntity(flash);
+                flash = false;
+            }
+            if (camera) {
+                Entities.deleteEntity(camera);
+                camera = false;
+            }
             if (button) {
                 // Change button to active when window is first openend OR if the camera is on, false otherwise.
                 button.editProperties({ isActive: onSpectatorCameraScreen || camera });
@@ -390,21 +397,81 @@
     }
     var takeSnapshotControllerMapping;
     var takeSnapshotControllerMappingName = 'Hifi-SpectatorCamera-Mapping-TakeSnapshot';
+
+    var flash = false;
+    function setFlashStatus(enabled) {
+        var cameraPosition = Entities.getEntityProperties(camera, ["positon"]).position;
+        if (enabled) {
+            if (camera) {
+                Audio.playSound(SOUND_FLASH_ON, {
+                    position: cameraPosition,
+                    localOnly: true,
+                    volume: 0.8
+                });
+                flash = Entities.addEntity({
+                    "collidesWith": "",
+                    "collisionMask": 0,
+                    "color": {
+                        "blue": 173,
+                        "green": 252,
+                        "red": 255
+                    },
+                    "cutoff": 90,
+                    "dimensions": {
+                        "x": 4,
+                        "y": 4,
+                        "z": 4
+                    },
+                    "dynamic": false,
+                    "falloffRadius": 0.20000000298023224,
+                    "intensity": 37,
+                    "isSpotlight": true,
+                    "localRotation": { w: 1, x: 0, y: 0, z: 0 },
+                    "localPosition": { x: 0, y: -0.005, z: -0.08 },
+                    "name": "Camera Flash",
+                    "type": "Light",
+                    "parentID": camera,
+                }, true);
+            }
+        } else {
+            if (flash) {
+                Audio.playSound(SOUND_FLASH_OFF, {
+                    position: cameraPosition,
+                    localOnly: true,
+                    volume: 0.8
+                });
+                Entities.deleteEntity(flash);
+                flash = false;
+            }
+        }
+    }
+
     function onStillSnapshotTaken() {
         Render.getConfig("SecondaryCameraJob.ToneMapping").curve = 1;
+        sendToQml({
+            method: 'finishedProcessingStillSnapshot'
+        });
     }
     function maybeTakeSnapshot() {
         if (camera) {
+            sendToQml({
+                method: 'startedProcessingStillSnapshot'
+            });
+
             Render.getConfig("SecondaryCameraJob.ToneMapping").curve = 0;
             // Wait a moment before taking the snapshot for the tonemapping curve to update
             Script.setTimeout(function () {
-                Audio.playSound(SNAPSHOT_SOUND, {
+                Audio.playSound(SOUND_SNAPSHOT, {
                     position: { x: MyAvatar.position.x, y: MyAvatar.position.y, z: MyAvatar.position.z },
                     localOnly: true,
                     volume: 1.0
                 });
                 Window.takeSecondaryCameraSnapshot();
             }, 250);
+        } else {
+            sendToQml({
+                method: 'finishedProcessingStillSnapshot'
+            });
         }
     }
     function on360SnapshotTaken() {
@@ -417,7 +484,7 @@
     }
     function maybeTake360Snapshot() {
         if (camera) {
-            Audio.playSound(SNAPSHOT_SOUND, {
+            Audio.playSound(SOUND_SNAPSHOT, {
                 position: { x: MyAvatar.position.x, y: MyAvatar.position.y, z: MyAvatar.position.z },
                 localOnly: true,
                 volume: 1.0
@@ -507,18 +574,8 @@
     }
 
     function updateSpectatorCameraQML() {
-        sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });
-        sendToQml({ method: 'updateMonitorShowsSwitch', params: monitorShowsCameraView });
-        if (!switchViewControllerMapping || !takeSnapshotControllerMapping) {
-            registerButtonMappings();
-        } else {
-            sendToQml({
-                method: 'updateControllerMappingCheckbox',
-                switchViewSetting: switchViewFromController,
-                takeSnapshotSetting: takeSnapshotFromController,
-                controller: controllerType
-            });
-        }
+        sendToQml({ method: 'initializeUI', masterSwitchOn: !!camera, flashCheckboxChecked: !!flash, monitorShowsCamView: monitorShowsCameraView });
+        registerButtonMappings();
         Menu.setIsOptionChecked("Disable Preview", false);
         Menu.setIsOptionChecked("Mono Preview", true);
     }
@@ -536,9 +593,13 @@
             button.editProperties({ isActive: onSpectatorCameraScreen || camera });
         }
 
-        if (onSpectatorCameraScreen) {
-            updateSpectatorCameraQML();
-        }
+        // In the case of a remote QML app, it takes a bit of time
+        // for the event bridge to actually connect, so we have to wait...
+        Script.setTimeout(function () {
+            if (onSpectatorCameraScreen) {
+                updateSpectatorCameraQML();
+            }
+        }, 700);
     }
 
     // Function Name: sendToQml()
@@ -575,6 +636,9 @@
             case 'updateCameravFoV':
                 spectatorCameraConfig.vFoV = message.vFoV;
                 break;
+            case 'setFlashStatus':
+                setFlashStatus(message.enabled);
+                break;
             case 'takeSecondaryCameraSnapshot':
                 maybeTakeSnapshot();
                 break;
@@ -599,9 +663,7 @@
     // Description:
     //   -Called from C++ when HMD mode is changed. The argument "isHMDMode" is true if HMD is on; false otherwise.
     function onHMDChanged(isHMDMode) {
-        if (!switchViewControllerMapping || !takeSnapshotControllerMapping) {
-            registerButtonMappings();
-        }
+        registerButtonMappings();
         if (!isHMDMode) {
             setMonitorShowsCameraView(false);
         } else {
@@ -645,8 +707,10 @@
     }
 
     // These functions will be called when the script is loaded.
-    var CAMERA_ON_SOUND = SoundCache.getSound(Script.resolvePath("cameraOn.wav"));
-    var SNAPSHOT_SOUND = SoundCache.getSound(Script.resourcesPath() + "sounds/snapshot/snap.wav");
+    var SOUND_CAMERA_ON = SoundCache.getSound(Script.resolvePath("cameraOn.wav"));
+    var SOUND_SNAPSHOT = SoundCache.getSound(Script.resolvePath("snap.wav"));
+    var SOUND_FLASH_ON = SoundCache.getSound(Script.resolvePath("flashOn.wav"));
+    var SOUND_FLASH_OFF = SoundCache.getSound(Script.resolvePath("flashOff.wav"));
     startup();
     Script.scriptEnding.connect(shutdown);
 

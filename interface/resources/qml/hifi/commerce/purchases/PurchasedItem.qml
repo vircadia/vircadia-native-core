@@ -163,7 +163,6 @@ Item {
 
             Rectangle {
                 id: contextCard;
-                z: 2;
                 anchors.left: parent.left;
                 anchors.leftMargin: 30;
                 anchors.top: parent.top;
@@ -337,7 +336,6 @@ Item {
 
             Rectangle {
                 id: permissionExplanationCard;
-                z: 1;
                 anchors.left: parent.left;
                 anchors.leftMargin: 30;
                 anchors.top: parent.top;
@@ -596,8 +594,8 @@ Item {
                 anchors.fill: parent;
                 hoverEnabled: enabled;
                 onClicked: {
-                    contextCard.z = 1;
-                    permissionExplanationCard.z = 0;
+                    contextCard.visible = true;
+                    permissionExplanationCard.visible = false;
                     root.sendToPurchases({ method: 'flipCard' });
                 }
                 onEntered: {
@@ -779,8 +777,8 @@ Item {
                     noPermissionGlyph.color = hifi.colors.redAccent;
                 }
                 onClicked: {
-                    contextCard.z = 0;
-                    permissionExplanationCard.z = 1;
+                    contextCard.visible = false;
+                    permissionExplanationCard.visible = true;
                     root.sendToPurchases({ method: 'flipCard' });
                 }
             }

@@ -38,6 +38,7 @@ public:
 
 
     void queueEraseEntityMessage(const EntityItemID& entityItemID);
+    void queueCloneEntityMessage(const EntityItemID& entityIDToClone, const EntityItemID& newEntityID);
 
     // My server type is the model server
     virtual char getMyNodeType() const override { return NodeType::EntityServer; }
