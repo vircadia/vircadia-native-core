@@ -2028,8 +2028,7 @@ SelectionDisplay = (function() {
                 Overlays.editOverlay(scaleHandle, { color: COLOR_SCALE_CUBE_SELECTED });
             }
             
-            var myAvatarIndex = properties.collidesWith.indexOf("myAvatar");
-            if (myAvatarIndex > -1) {
+            if (properties.collidesWith.indexOf("myAvatar") > -1) {
                 var newCollidesWith = properties.collidesWith.replace("myAvatar", "");
                 Entities.editEntity(SelectionManager.selections[0], {collidesWith: newCollidesWith});
                 that.replaceCollisionsAfterStretch = true;
