@@ -475,18 +475,18 @@ var toolBar = (function () {
     var DELETE_ENTITY_TIMER_TIMEOUT = 100;
 
     function checkDeletedEntityAndUpdate(entityID) {
-        // Allow for multiple entity deletes before updating the entity list.
-        entitiesToDelete.push(entityID);
-        if (deletedEntityTimer !== null) {
-            Script.clearTimeout(deletedEntityTimer);
+        if (selectionManager.selections.indexOf(entityID) !== -1) {
+            // Allow for multiple entity deletes before updating the entities selected.
+            entitiesToDelete.push(entityID);
+            if (deletedEntityTimer !== null) {
+                Script.clearTimeout(deletedEntityTimer);
+            }
+            deletedEntityTimer = Script.setTimeout(function () {
+                selectionManager.removeEntities(entitiesToDelete);
+                entitiesToDelete = [];
+                deletedEntityTimer = null;
+            }, DELETE_ENTITY_TIMER_TIMEOUT);
         }
-        deletedEntityTimer = Script.setTimeout(function () {
-            selectionManager.removeEntities(entitiesToDelete);
-            entityListTool.clearEntityList();
-            entityListTool.sendUpdate();
-            entitiesToDelete = [];
-            deletedEntityTimer = null;
-        }, DELETE_ENTITY_TIMER_TIMEOUT);
     }
 
     function initialize() {
