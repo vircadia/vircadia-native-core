@@ -2937,6 +2937,7 @@ void EntityItemProperties::markAllChanged() {
     _shapeTypeChanged = true;
 
     _isEmittingChanged = true;
+    _emitterShouldTrail = true;
     _maxParticlesChanged = true;
     _lifespanChanged = true;
     _emitRateChanged = true;

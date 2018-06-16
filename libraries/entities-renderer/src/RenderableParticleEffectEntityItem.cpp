@@ -186,7 +186,7 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
     if (polarStart == 0.0f && polarFinish == 0.0f && emitDimensions.z == 0.0f) {
         // Emit along z-axis from position
 
-        particle.velocity = (emitSpeed + 0.2f * speedSpread) * (emitOrientation * Vectors::UNIT_Z);
+        particle.velocity = (emitSpeed + randFloatInRange(-1.0f, 1.0f) * speedSpread) * (emitOrientation * Vectors::UNIT_Z);
         particle.acceleration = emitAcceleration + randFloatInRange(-1.0f, 1.0f) * accelerationSpread;
 
     } else {
@@ -197,8 +197,7 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
 
         float elevationMinZ = sin(PI_OVER_TWO - polarFinish);
         float elevationMaxZ = sin(PI_OVER_TWO - polarStart);
-        //  float elevation = asin(elevationMinZ + (elevationMaxZ - elevationMinZ) * randFloat());
-        float elevation = asin(elevationMinZ + (elevationMaxZ - elevationMinZ) *randFloat());
+        float elevation = asin(elevationMinZ + (elevationMaxZ - elevationMinZ) * randFloat());
 
         float azimuth;
         if (azimuthFinish >= azimuthStart) {

@@ -168,13 +168,13 @@ void ParticleEffectEntityItem::setAlpha(float alpha) {
 
 void ParticleEffectEntityItem::setAlphaStart(float alphaStart) {
     withWriteLock([&] {
-        _particleProperties.alpha.range.start = isnan(alphaStart) ? alphaStart : glm::clamp(alphaStart, MINIMUM_ALPHA, MAXIMUM_ALPHA);
+        _particleProperties.alpha.range.start = glm::isnan(alphaStart) ? alphaStart : glm::clamp(alphaStart, MINIMUM_ALPHA, MAXIMUM_ALPHA);
     });
 }
 
 void ParticleEffectEntityItem::setAlphaFinish(float alphaFinish) {
     withWriteLock([&] {
-        _particleProperties.alpha.range.finish = isnan(alphaFinish) ? alphaFinish : glm::clamp(alphaFinish, MINIMUM_ALPHA, MAXIMUM_ALPHA);
+        _particleProperties.alpha.range.finish = glm::isnan(alphaFinish) ? alphaFinish : glm::clamp(alphaFinish, MINIMUM_ALPHA, MAXIMUM_ALPHA);
     });
 }
 
@@ -292,13 +292,13 @@ void ParticleEffectEntityItem::setParticleRadius(float particleRadius) {
 
 void ParticleEffectEntityItem::setRadiusStart(float radiusStart) {
     withWriteLock([&] {
-        _particleProperties.radius.range.start = isnan(radiusStart) ? radiusStart : glm::clamp(radiusStart, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
+        _particleProperties.radius.range.start = glm::isnan(radiusStart) ? radiusStart : glm::clamp(radiusStart, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
     });
 }
 
 void ParticleEffectEntityItem::setRadiusFinish(float radiusFinish) {
     withWriteLock([&] {
-        _particleProperties.radius.range.finish = isnan(radiusFinish) ? radiusFinish : glm::clamp(radiusFinish, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
+        _particleProperties.radius.range.finish = glm::isnan(radiusFinish) ? radiusFinish : glm::clamp(radiusFinish, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
     });
 }
 

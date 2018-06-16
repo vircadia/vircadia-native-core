@@ -21,10 +21,10 @@ namespace particle {
     static const float SCRIPT_MAXIMUM_PI = 3.1416f;  // Round up so that reasonable property values work
     static const float UNINITIALIZED = NAN;
     static const vec3 DEFAULT_COLOR = { 255, 255, 255 };
-    static const xColor DEFAULT_XCOLOR = { DEFAULT_COLOR.r, DEFAULT_COLOR.g, DEFAULT_COLOR.b };
+    static const xColor DEFAULT_XCOLOR = { (unsigned int)DEFAULT_COLOR.r, (unsigned int)DEFAULT_COLOR.g, (unsigned int)DEFAULT_COLOR.b };
     static const vec3 DEFAULT_COLOR_UNINITIALIZED = { UNINITIALIZED, UNINITIALIZED, UNINITIALIZED };
     static const vec3 DEFAULT_COLOR_SPREAD = { 0, 0, 0 };
-    static const xColor DEFAULT_XCOLOR_SPREAD = { DEFAULT_COLOR_SPREAD.r, DEFAULT_COLOR_SPREAD.g, DEFAULT_COLOR_SPREAD.b };
+    static const xColor DEFAULT_XCOLOR_SPREAD = { (unsigned int)DEFAULT_COLOR_SPREAD.r, (unsigned int)DEFAULT_COLOR_SPREAD.g, (unsigned int)DEFAULT_COLOR_SPREAD.b };
     static const float DEFAULT_ALPHA = 1.0f;
     static const float DEFAULT_ALPHA_SPREAD = 0.0f;
     static const float DEFAULT_ALPHA_START = UNINITIALIZED;
@@ -226,10 +226,10 @@ public:
     void setColor(const xColor& value);
 
     void setColorStart(const vec3& colorStart);
-    vec3 getColorStart() const { return any(isnan(_particleProperties.color.range.start)) ? getColor() : _particleProperties.color.range.start; }
+    vec3 getColorStart() const { return glm::any(glm::isnan(_particleProperties.color.range.start)) ? getColor() : _particleProperties.color.range.start; }
 
     void setColorFinish(const vec3& colorFinish);
-    vec3 getColorFinish() const { return any(isnan(_particleProperties.color.range.finish)) ? getColor() : _particleProperties.color.range.finish; }
+    vec3 getColorFinish() const { return glm::any(glm::isnan(_particleProperties.color.range.finish)) ? getColor() : _particleProperties.color.range.finish; }
 
     void setColorSpread(const xColor& colorSpread);
     xColor getColorSpread() const;
@@ -238,10 +238,10 @@ public:
     float getAlpha() const { return _particleProperties.alpha.gradient.target; }
 
     void setAlphaStart(float alphaStart);
-    float getAlphaStart() const { return isnan(_particleProperties.alpha.range.start) ? _particleProperties.alpha.gradient.target : _particleProperties.alpha.range.start; }
+    float getAlphaStart() const { return glm::isnan(_particleProperties.alpha.range.start) ? _particleProperties.alpha.gradient.target : _particleProperties.alpha.range.start; }
 
     void setAlphaFinish(float alphaFinish);
-    float getAlphaFinish() const { return isnan(_particleProperties.alpha.range.finish) ? _particleProperties.alpha.gradient.target : _particleProperties.alpha.range.finish; }
+    float getAlphaFinish() const { return glm::isnan(_particleProperties.alpha.range.finish) ? _particleProperties.alpha.gradient.target : _particleProperties.alpha.range.finish; }
 
     void setAlphaSpread(float alphaSpread);
     float getAlphaSpread() const { return _particleProperties.alpha.gradient.spread; }
@@ -300,10 +300,10 @@ public:
     float getParticleRadius() const { return _particleProperties.radius.gradient.target; }
 
     void setRadiusStart(float radiusStart);
-    float getRadiusStart() const { return isnan(_particleProperties.radius.range.start) ? _particleProperties.radius.gradient.target : _particleProperties.radius.range.start; }
+    float getRadiusStart() const { return glm::isnan(_particleProperties.radius.range.start) ? _particleProperties.radius.gradient.target : _particleProperties.radius.range.start; }
 
     void setRadiusFinish(float radiusFinish);
-    float getRadiusFinish() const { return isnan(_particleProperties.radius.range.finish) ? _particleProperties.radius.gradient.target : _particleProperties.radius.range.finish; }
+    float getRadiusFinish() const { return glm::isnan(_particleProperties.radius.range.finish) ? _particleProperties.radius.gradient.target : _particleProperties.radius.range.finish; }
 
     void setRadiusSpread(float radiusSpread);
     float getRadiusSpread() const { return _particleProperties.radius.gradient.spread; }
@@ -311,7 +311,7 @@ public:
     void computeAndUpdateDimensions();
 
     void setTextures(const QString& textures);
-    QString ParticleEffectEntityItem::getTextures() const { return _particleProperties.textures; }
+    QString getTextures() const { return _particleProperties.textures; }
 
     bool getEmitterShouldTrail() const { return _particleProperties.emission.shouldTrail; }
     void setEmitterShouldTrail(bool emitterShouldTrail);

@@ -46,7 +46,7 @@ private:
     // CPU particles
     // FIXME either switch to GPU compute particles or switch to simd updating of the particles
     struct CpuParticle {
-        float seed{ 0.0f };
+        float seed { 0.0f };
         uint64_t expiration { 0 };
         float lifetime { 0.0f };
         glm::vec3 position;
