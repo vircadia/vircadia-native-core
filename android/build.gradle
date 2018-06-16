@@ -37,7 +37,7 @@ task clean(type: Delete) {
 ext {
     RELEASE_NUMBER = project.hasProperty('RELEASE_NUMBER') ? project.getProperty('RELEASE_NUMBER') : '0'
     RELEASE_TYPE = project.hasProperty('RELEASE_TYPE') ? project.getProperty('RELEASE_TYPE') : 'DEV'
-    BUILD_BRANCH = project.hasProperty('BUILD_BRANCH') ? project.getProperty('BUILD_BRANCH') : ''
+    STABLE_BUILD = project.hasProperty('STABLE_BUILD') ? project.getProperty('STABLE_BUILD') : '0'
     EXEC_SUFFIX = Os.isFamily(Os.FAMILY_WINDOWS) ? '.exe' : ''
     QT5_DEPS = [
         'Qt5Concurrent',
@@ -551,7 +551,7 @@ task cleanDependencies(type: Delete) {
 
 
 
-// FIXME this code is prototyping the desired functionality for doing build time binary dependency resolution.  
+// FIXME this code is prototyping the desired functionality for doing build time binary dependency resolution.
 // See the comment on the qtBundle task above
 /*
 // FIXME derive the path from the gradle environment

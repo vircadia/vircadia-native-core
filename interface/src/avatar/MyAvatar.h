@@ -86,6 +86,10 @@ class MyAvatar : public Avatar {
      * @property {number} audioListenerModeCamera=1 - The audio listening position is at the camera. <em>Read-only.</em>
      * @property {number} audioListenerModeCustom=2 - The audio listening position is at a the position specified by set by the 
      *     <code>customListenPosition</code> and <code>customListenOrientation</code> property values. <em>Read-only.</em>
+     * @property {boolean} hasScriptedBlendshapes=false - Blendshapes will be transmitted over the network if set to true.
+     * @property {boolean} hasProceduralBlinkFaceMovement=true - procedural blinking will be turned on if set to true.
+     * @property {boolean} hasProceduralEyeFaceMovement=true - procedural eye movement will be turned on if set to true.
+     * @property {boolean} hasAudioEnabledFaceMovement=true - If set to true, voice audio will move the mouth Blendshapes while MyAvatar.hasScriptedBlendshapes is enabled.
      * @property {Vec3} customListenPosition=Vec3.ZERO - The listening position used when the <code>audioListenerMode</code>
      *     property value is <code>audioListenerModeCustom</code>.
      * @property {Quat} customListenOrientation=Quat.IDENTITY - The listening orientation used when the 
@@ -105,6 +109,9 @@ class MyAvatar : public Avatar {
      *     by 30cm. <em>Read-only.</em>
      * @property {Pose} rightHandTipPose - The pose of the right hand as determined by the hand controllers, with the position
      *     by 30cm. <em>Read-only.</em>
+     * @property {boolean} centerOfGravityModelEnabled=true - If <code>true</code> then the avatar hips are placed according to the center of
+     *     gravity model that balance the center of gravity over the base of support of the feet.  Setting the value <code>false</code> 
+     *     will result in the default behaviour where the hips are placed under the head.
      * @property {boolean} hmdLeanRecenterEnabled=true - If <code>true</code> then the avatar is re-centered to be under the 
      *     head's position. In room-scale VR, this behavior is what causes your avatar to follow your HMD as you walk around 
      *     the room. Setting the value <code>false</code> is useful if you want to pin the avatar to a fixed position.
@@ -184,6 +191,10 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(AudioListenerMode audioListenerModeHead READ getAudioListenerModeHead)
     Q_PROPERTY(AudioListenerMode audioListenerModeCamera READ getAudioListenerModeCamera)
     Q_PROPERTY(AudioListenerMode audioListenerModeCustom READ getAudioListenerModeCustom)
+    Q_PROPERTY(bool hasScriptedBlendshapes READ getHasScriptedBlendshapes WRITE setHasScriptedBlendshapes)
+    Q_PROPERTY(bool hasProceduralBlinkFaceMovement READ getHasProceduralBlinkFaceMovement WRITE setHasProceduralBlinkFaceMovement)
+    Q_PROPERTY(bool hasProceduralEyeFaceMovement READ getHasProceduralEyeFaceMovement WRITE setHasProceduralEyeFaceMovement)
+    Q_PROPERTY(bool hasAudioEnabledFaceMovement READ getHasAudioEnabledFaceMovement WRITE setHasAudioEnabledFaceMovement)
     //TODO: make gravity feature work Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setGravity)
 
     Q_PROPERTY(glm::vec3 leftHandPosition READ getLeftHandPosition)
@@ -199,6 +210,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float energy READ getEnergy WRITE setEnergy)
     Q_PROPERTY(bool isAway READ getIsAway WRITE setAway)
 
+    Q_PROPERTY(bool centerOfGravityModelEnabled READ getCenterOfGravityModelEnabled WRITE setCenterOfGravityModelEnabled)
     Q_PROPERTY(bool hmdLeanRecenterEnabled READ getHMDLeanRecenterEnabled WRITE setHMDLeanRecenterEnabled)
     Q_PROPERTY(bool collisionsEnabled READ getCollisionsEnabled WRITE setCollisionsEnabled)
     Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
@@ -480,7 +492,16 @@ public:
      */
     Q_INVOKABLE QString getDominantHand() const { return _dominantHand; }
 
-
+    /**jsdoc
+    * @function MyAvatar.setCenterOfGravityModelEnabled
+    * @param {boolean} enabled
+    */
+    Q_INVOKABLE void setCenterOfGravityModelEnabled(bool value) { _centerOfGravityModelEnabled = value; }
+    /**jsdoc
+    * @function MyAvatar.getCenterOfGravityModelEnabled
+    * @returns {boolean}
+    */
+    Q_INVOKABLE bool getCenterOfGravityModelEnabled() const { return _centerOfGravityModelEnabled; }
     /**jsdoc
      * @function MyAvatar.setHMDLeanRecenterEnabled
      * @param {boolean} enabled
@@ -564,6 +585,13 @@ public:
      */
     Q_INVOKABLE void triggerRotationRecenter();
 
+    /**jsdoc
+    *The isRecenteringHorizontally function returns true if MyAvatar
+    *is translating the root of the Avatar to keep the center of gravity under the head.
+    *isActive(Horizontal) is returned.
+    *@function MyAvatar.isRecenteringHorizontally
+    */
+    Q_INVOKABLE bool isRecenteringHorizontally() const;
 
     eyeContactTarget getEyeContactTarget();
 
@@ -956,9 +984,17 @@ public:
     void removeHoldAction(AvatarActionHold* holdAction);  // thread-safe
     void updateHoldActions(const AnimPose& prePhysicsPose, const AnimPose& postUpdatePose);
 
+
     // derive avatar body position and orientation from the current HMD Sensor location.
-    // results are in HMD frame
+    // results are in sensor frame (-z forward)
     glm::mat4 deriveBodyFromHMDSensor() const;
+
+    glm::vec3 computeCounterBalance() const;
+
+    // derive avatar body position and orientation from using the current HMD Sensor location in relation to the previous
+    // location of the base of support of the avatar.
+    // results are in sensor frame (-z foward)
+    glm::mat4 deriveBodyUsingCgModel() const;
 
     /**jsdoc
      * @function MyAvatar.isUp
@@ -986,6 +1022,8 @@ public:
     float getWalkSpeed() const;
 
     QVector<QString> getScriptUrls();
+
+    bool isReadyForPhysics() const;
 
 public slots:
 
@@ -1107,7 +1145,16 @@ public slots:
      */
     Q_INVOKABLE void updateMotionBehaviorFromMenu();
 
-
+    /**jsdoc
+    * @function MyAvatar.setToggleHips
+    * @param {boolean} enabled
+    */
+    void setToggleHips(bool followHead);
+    /**jsdoc
+    * @function MyAvatar.setEnableDebugDrawBaseOfSupport
+    * @param {boolean} enabled
+    */
+    void setEnableDebugDrawBaseOfSupport(bool isEnabled);
     /**jsdoc
      * @function MyAvatar.setEnableDebugDrawDefaultPose
      * @param {boolean} enabled
@@ -1341,6 +1388,14 @@ private:
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const override;
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; setEnableMeshVisible(shouldRender); }
     bool getShouldRenderLocally() const { return _shouldRender; }
+    void setHasScriptedBlendshapes(bool hasScriptedBlendshapes);
+    bool getHasScriptedBlendshapes() const override { return _hasScriptedBlendShapes; }
+    void setHasProceduralBlinkFaceMovement(bool hasProceduralBlinkFaceMovement);
+    bool getHasProceduralBlinkFaceMovement() const override { return _headData->getHasProceduralBlinkFaceMovement(); }
+    void setHasProceduralEyeFaceMovement(bool hasProceduralEyeFaceMovement);
+    bool getHasProceduralEyeFaceMovement() const override { return _headData->getHasProceduralEyeFaceMovement(); }
+    void setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement);
+    bool getHasAudioEnabledFaceMovement() const override { return _headData->getHasAudioEnabledFaceMovement(); }
     bool isMyAvatar() const override { return true; }
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
     virtual glm::vec3 getSkeletonPosition() const override;
@@ -1449,6 +1504,7 @@ private:
     bool _hmdRollControlEnabled { true };
     float _hmdRollControlDeadZone { ROLL_CONTROL_DEAD_ZONE_DEFAULT };
     float _hmdRollControlRate { ROLL_CONTROL_RATE_DEFAULT };
+    std::atomic<bool> _hasScriptedBlendShapes { false };
 
     // working copy -- see AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
     glm::mat4 _sensorToWorldMatrix { glm::mat4() };
@@ -1458,8 +1514,8 @@ private:
     glm::quat _hmdSensorOrientation;
     glm::vec3 _hmdSensorPosition;
     // cache head controller pose in sensor space
-    glm::vec2 _headControllerFacing;  // facing vector in xz plane
-    glm::vec2 _headControllerFacingMovingAverage { 0, 0 };   // facing vector in xz plane
+    glm::vec2 _headControllerFacing;  // facing vector in xz plane (sensor space)
+    glm::vec2 _headControllerFacingMovingAverage { 0.0f, 0.0f };   // facing vector in xz plane (sensor space)
 
     // cache of the current body position and orientation of the avatar's body,
     // in sensor space.
@@ -1495,9 +1551,12 @@ private:
         void setForceActivateVertical(bool val);
         bool getForceActivateHorizontal() const;
         void setForceActivateHorizontal(bool val);
-        std::atomic<bool> _forceActivateRotation{ false };
-        std::atomic<bool> _forceActivateVertical{ false };
-        std::atomic<bool> _forceActivateHorizontal{ false };
+        bool getToggleHipsFollowing() const;
+        void setToggleHipsFollowing(bool followHead);
+        std::atomic<bool> _forceActivateRotation { false };
+        std::atomic<bool> _forceActivateVertical { false };
+        std::atomic<bool> _forceActivateHorizontal { false };
+        std::atomic<bool> _toggleHipsFollowing { true };
     };
     FollowHelper _follow;
 
@@ -1510,6 +1569,7 @@ private:
     bool _prevShouldDrawHead;
     bool _rigEnabled { true };
 
+    bool _enableDebugDrawBaseOfSupport { false };
     bool _enableDebugDrawDefaultPose { false };
     bool _enableDebugDrawAnimPose { false };
     bool _enableDebugDrawHandControllers { false };
@@ -1532,6 +1592,7 @@ private:
     std::map<controller::Action, controller::Pose> _controllerPoseMap;
     mutable std::mutex _controllerPoseMapMutex;
 
+    bool _centerOfGravityModelEnabled { true };
     bool _hmdLeanRecenterEnabled { true };
     bool _sprint { false };
 
@@ -1568,6 +1629,8 @@ private:
 
     // load avatar scripts once when rig is ready
     bool _shouldLoadScripts { false };
+
+    bool _haveReceivedHeightLimitsFromDomain = { false };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

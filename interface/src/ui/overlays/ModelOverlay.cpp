@@ -100,29 +100,40 @@ void ModelOverlay::update(float deltatime) {
         processMaterials();
         emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelAddedToScene(getID(), NestableType::Overlay, _model);
     }
+    bool metaDirty = false;
     if (_visibleDirty) {
         _visibleDirty = false;
         // don't show overlays in mirrors or spectator-cam unless _isVisibleInSecondaryCamera is true
         uint8_t modelRenderTagMask = (_isVisibleInSecondaryCamera ? render::hifi::TAG_ALL_VIEWS : render::hifi::TAG_MAIN_VIEW);
         _model->setTagMask(modelRenderTagMask, scene);
         _model->setVisibleInScene(getVisible(), scene);
+        metaDirty = true;
     }
     if (_drawInFrontDirty) {
         _drawInFrontDirty = false;
         _model->setLayeredInFront(getDrawInFront(), scene);
+        metaDirty = true;
     }
     if (_drawInHUDDirty) {
         _drawInHUDDirty = false;
         _model->setLayeredInHUD(getDrawHUDLayer(), scene);
+        metaDirty = true;
     }
     if (_groupCulledDirty) {
         _groupCulledDirty = false;
-        _model->setGroupCulled(_isGroupCulled);
+        _model->setGroupCulled(_isGroupCulled, scene);
+        metaDirty = true;
+    }
+    if (metaDirty) {
+        transaction.updateItem<Overlay>(getRenderItemID(), [](Overlay& data) {});
     }
     scene->enqueueTransaction(transaction);
 
     if (!_texturesLoaded && _model->getGeometry() && _model->getGeometry()->areTexturesLoaded()) {
         _texturesLoaded = true;
+        if (!_modelTextures.isEmpty()) {
+            _model->setTextures(_modelTextures);
+        }
         _model->updateRenderItems();
     }
 }
@@ -221,8 +232,7 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
     if (texturesValue.isValid() && texturesValue.canConvert(QVariant::Map)) {
         _texturesLoaded = false;
         QVariantMap textureMap = texturesValue.toMap();
-        QMetaObject::invokeMethod(_model.get(), "setTextures", Qt::AutoConnection,
-                                  Q_ARG(const QVariantMap&, textureMap));
+        _modelTextures = textureMap;
     }
 
     auto groupCulledValue = properties["isGroupCulled"];
@@ -499,16 +509,16 @@ QVariant ModelOverlay::getProperty(const QString& property) {
 }
 
 bool ModelOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                        float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
+                                       float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking) {
 
     QVariantMap extraInfo;
-    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, surfaceNormal, extraInfo);
+    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, surfaceNormal, extraInfo, precisionPicking);
 }
 
 bool ModelOverlay::findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction,
-                                        float& distance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo) {
+                                                float& distance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking) {
 
-    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, surfaceNormal, extraInfo);
+    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, surfaceNormal, extraInfo, precisionPicking);
 }
 
 ModelOverlay* ModelOverlay::createClone() const {

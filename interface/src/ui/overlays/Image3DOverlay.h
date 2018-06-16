@@ -43,7 +43,7 @@ public:
     bool isTransparent() override { return Base3DOverlay::isTransparent() || _alphaTexture; }
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
-                                        BoxFace& face, glm::vec3& surfaceNormal) override;
+                                     BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking = false) override;
 
     virtual Image3DOverlay* createClone() const override;
 

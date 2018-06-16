@@ -124,7 +124,7 @@ Menu::Menu() {
     });
 
     // Edit > Delete
-    auto deleteAction =addActionToQMenuAndActionHash(editMenu, "Delete", QKeySequence::Delete);
+    auto deleteAction = addActionToQMenuAndActionHash(editMenu, "Delete", QKeySequence::Delete);
     connect(deleteAction, &QAction::triggered, [] {
             QKeyEvent* keyEvent = new QKeyEvent(QEvent::KeyPress, Qt::Key_Delete, Qt::ControlModifier);
             QCoreApplication::postEvent(QCoreApplication::instance(), keyEvent);
@@ -588,6 +588,10 @@ Menu::Menu() {
         });
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::FixGaze, 0, false);
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ToggleHipsFollowing, 0, false,
+        avatar.get(), SLOT(setToggleHips(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawBaseOfSupport, 0, false,
+        avatar.get(), SLOT(setEnableDebugDrawBaseOfSupport(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawDefaultPose, 0, false,
         avatar.get(), SLOT(setEnableDebugDrawDefaultPose(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawAnimPose, 0, false,
@@ -721,7 +725,6 @@ Menu::Menu() {
         addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowOwned,
             0, false, drawStatusConfig, SLOT(setShowNetwork(bool)));
     }
-    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowHulls, 0, false, qApp->getEntities().data(), SIGNAL(setRenderDebugHulls()));
 
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletWireframe, 0, false, qApp, SLOT(setShowBulletWireframe(bool)));
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletAABBs, 0, false, qApp, SLOT(setShowBulletAABBs(bool)));

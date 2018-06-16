@@ -18,6 +18,7 @@
 #if HAS_CRASHPAD
 
 #include <mutex>
+#include <string>
 
 #include <QStandardPaths>
 #include <QDir>
@@ -69,6 +70,8 @@ bool startCrashHandler() {
     annotations["token"] = BACKTRACE_TOKEN;
     annotations["format"] = "minidump";
     annotations["version"] = BuildInfo::VERSION.toStdString();
+    annotations["build_number"] = BuildInfo::BUILD_NUMBER.toStdString();
+    annotations["build_type"] = BuildInfo::BUILD_TYPE_STRING.toStdString();
 
     arguments.push_back("--no-rate-limit");
 
