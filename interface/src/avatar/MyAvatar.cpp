@@ -552,9 +552,10 @@ void MyAvatar::simulate(float deltaTime) {
             while (cauterizedChild != _cauterizedChildrenOfHead.end()) {
                 if (!children.contains(*cauterizedChild)) {
                     updateChildCauterization(*cauterizedChild, false);
-                    _cauterizedChildrenOfHead.erase(*cauterizedChild);
+                    cauterizedChild = _cauterizedChildrenOfHead.erase(cauterizedChild);
+                } else {
+                    ++cauterizedChild;
                 }
-                ++cauterizedChild;
             }
         }
 
