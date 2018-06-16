@@ -2027,13 +2027,13 @@ SelectionDisplay = (function() {
             if (scaleHandle != null) {
                 Overlays.editOverlay(scaleHandle, { color: COLOR_SCALE_CUBE_SELECTED });
             }
-			
-			var myAvatarIndex = properties.collidesWith.indexOf("myAvatar");
-			if (myAvatarIndex > -1) {
-				var newCollidesWith = properties.collidesWith.replace("myAvatar", "");
-				Entities.editEntity(SelectionManager.selections[0], {collidesWith: newCollidesWith});
-				that.replaceCollisionsAfterStretch = true;
-			}
+            
+            var myAvatarIndex = properties.collidesWith.indexOf("myAvatar");
+            if (myAvatarIndex > -1) {
+                var newCollidesWith = properties.collidesWith.replace("myAvatar", "");
+                Entities.editEntity(SelectionManager.selections[0], {collidesWith: newCollidesWith});
+                that.replaceCollisionsAfterStretch = true;
+            }
         };
 
         var onEnd = function(event, reason) {    
@@ -2043,13 +2043,13 @@ SelectionDisplay = (function() {
             if (scaleHandle != null) {
                 Overlays.editOverlay(scaleHandle, { color: COLOR_SCALE_CUBE });
             }
-			
-			if (that.replaceCollisionsAfterStretch) {
-				var newCollidesWith = SelectionManager.savedProperties[SelectionManager.selections[0]].collidesWith;
-				Entities.editEntity(SelectionManager.selections[0], {collidesWith: newCollidesWith});
-				that.replaceCollisionsAfterStretch = false;
-			}
-			
+            
+            if (that.replaceCollisionsAfterStretch) {
+                var newCollidesWith = SelectionManager.savedProperties[SelectionManager.selections[0]].collidesWith;
+                Entities.editEntity(SelectionManager.selections[0], {collidesWith: newCollidesWith});
+                that.replaceCollisionsAfterStretch = false;
+            }
+            
             pushCommandForSelections();
         };
 
@@ -2135,7 +2135,7 @@ SelectionDisplay = (function() {
             }
             var newPosition = Vec3.sum(initialPosition, changeInPosition);
     
-			Entities.editEntity(SelectionManager.selections[0], {
+            Entities.editEntity(SelectionManager.selections[0], {
                 position: newPosition,
                 dimensions: newDimensions
             });
