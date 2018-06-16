@@ -1374,6 +1374,7 @@ private slots:
 protected:
     virtual void beParentOfChild(SpatiallyNestablePointer newChild) const override;
     virtual void forgetChild(SpatiallyNestablePointer newChild) const override;
+    virtual void recalculateChildCauterization() const override;
 
 private:
 

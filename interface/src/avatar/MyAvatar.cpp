@@ -531,6 +531,10 @@ void MyAvatar::forgetChild(SpatiallyNestablePointer newChild) const {
     SpatiallyNestable::forgetChild(newChild);
 }
 
+void MyAvatar::recalculateChildCauterization() const {
+    _cauterizationNeedsUpdate = true;
+}
+
 void MyAvatar::updateChildCauterization(SpatiallyNestablePointer object, bool cauterize) {
     if (object->getNestableType() == NestableType::Entity) {
         EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
