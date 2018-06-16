@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_CrashHandler_h
-#define hifi_CrashHandler_h
+#ifndef hifi_CrashRecoveryHandler_h
+#define hifi_CrashRecoveryHandler_h
 
 #include <QString>
 
@@ -30,4 +30,4 @@ private:
     static void handleCrash(Action action);
 };
 
-#endif // hifi_CrashHandler_h
+#endif // hifi_CrashRecoveryHandler_h

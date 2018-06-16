@@ -1,5 +1,5 @@
 //
-//  Crashpad.cpp
+//  CrashHandler_Breakpad.cpp
 //  interface/src
 //
 //  Created by Clement Brisset on 01/19/18.

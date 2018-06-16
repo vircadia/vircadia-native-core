@@ -14,21 +14,8 @@
 
 #include <string>
 
-#if HAS_CRASHPAD
-
 bool startCrashHandler();
 void setCrashAnnotation(std::string name, std::string value);
 
-#elif HAS_BREAKPAD
-
-bool startCrashHandler();
-void setCrashAnnotation(std::string name, std::string value);
-
-#else
-
-bool startCrashHandler();
-void setCrashAnnotation(std::string name, std::string value);
-
-#endif // hifi_Crashpad_h
 
 #endif
