@@ -434,7 +434,7 @@ void Snapshot::uploadSnapshot(const QString& filename, const QUrl& href) {
     const QString SNAPSHOT_UPLOAD_URL = "/api/v1/snapshots";
     QUrl url = href;
     if (url.isEmpty()) {
-        SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(filename);
+        SnapshotMetaData* snapshotData = parseSnapshotData(filename);
         if (snapshotData) {
             url = snapshotData->getURL();
         }
