@@ -114,7 +114,6 @@ var selectionDisplay = null; // for gridTool.js to ignore
 
         Overlays.editOverlay(HMD.tabletID, { isVisibleInSecondaryCamera : visibleInSecondaryCam });
         Overlays.editOverlay(HMD.homeButtonID, { isVisibleInSecondaryCamera : visibleInSecondaryCam });
-        Overlays.editOverlay(HMD.homeButtonHighlightIDtabletID, { isVisibleInSecondaryCamera : visibleInSecondaryCam });
         Overlays.editOverlay(HMD.tabletScreenID, { isVisibleInSecondaryCamera : visibleInSecondaryCam });
     }
 

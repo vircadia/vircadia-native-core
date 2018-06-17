@@ -25,6 +25,8 @@ Rectangle {
     HifiStylesUit.HifiConstants { id: hifi; }
 
     id: root;
+    property bool uiReady: false;
+    property bool processingStillSnapshot: false;
     property bool processing360Snapshot: false;
     // Style
     color: "#404040";
@@ -58,7 +60,7 @@ Rectangle {
         // "Spectator" text
         HifiStylesUit.RalewaySemiBold {
             id: titleBarText;
-            text: "Spectator Camera";
+            text: "Spectator Camera 2.2";
             // Anchors
             anchors.left: parent.left;
             anchors.leftMargin: 30;
@@ -91,13 +93,16 @@ Rectangle {
             }
 
             onClicked: {
+                if (!checked) {
+                    flashCheckBox.checked = false;
+                }
                 sendToScript({method: (checked ? 'spectatorCameraOn' : 'spectatorCameraOff')});
                 sendToScript({method: 'updateCameravFoV', vFoV: fieldOfViewSlider.value});
             }
 
             background: Rectangle {
                 color: parent.checked ? "#1FC6A6" : hifi.colors.white;
-                implicitWidth: masterSwitch.switchWidth;
+                implicitWidth: masterSwitch.width;
                 implicitHeight: masterSwitch.height;
                 radius: height/2;
             }
@@ -127,7 +132,7 @@ Rectangle {
         z: 999;
         id: processingSnapshot;
         anchors.fill: parent;
-        visible: root.processing360Snapshot;
+        visible: root.processing360Snapshot || !root.uiReady;
         color: Qt.rgba(0.0, 0.0, 0.0, 0.85);        
 
         // This object is always used in a popup.
@@ -149,7 +154,7 @@ Rectangle {
         }
 
         HifiStylesUit.RalewaySemiBold {
-            text: "Processing...";
+            text: root.uiReady ? "Processing..." : "";
             // Anchors
             anchors.top: processingImage.bottom;
             anchors.topMargin: 4;
@@ -202,10 +207,20 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter;
             }
 
+            HifiStylesUit.FiraSansRegular {
+                text: ":)";
+                size: 28;
+                color: hifi.colors.white;
+                visible: root.processing360Snapshot || root.processingStillSnapshot;
+                anchors.fill: parent;
+                horizontalAlignment: Text.AlignHCenter;
+                verticalAlignment: Text.AlignVCenter;
+            }
+
             // Spectator Camera Preview
             Hifi.ResourceImageItem {
                 id: spectatorCameraPreview;
-                visible: masterSwitch.checked && !root.processing360Snapshot;
+                visible: masterSwitch.checked && !root.processing360Snapshot && !root.processingStillSnapshot;
                 url: showCameraView.checked || !HMD.active ? "resource://spectatorCameraFrame" : "resource://hmdPreviewFrame";
                 ready: masterSwitch.checked;
                 mirrorVertically: true;
@@ -311,7 +326,30 @@ Rectangle {
                     }
                 }
             }
-
+            
+            HifiStylesUit.HiFiGlyphs {
+                id: flashGlyph;
+                visible: flashCheckBox.visible;
+                text: hifi.glyphs.lightning;
+                size: 26;
+                color: hifi.colors.white;
+                anchors.verticalCenter: flashCheckBox.verticalCenter;
+                anchors.right: flashCheckBox.left;
+                anchors.rightMargin: -2;
+            }
+            HifiControlsUit.CheckBox {
+                id: flashCheckBox;
+                visible: masterSwitch.checked;
+                color: hifi.colors.white;
+                colorScheme: hifi.colorSchemes.dark;
+                anchors.right: takeSnapshotButton.left;
+                anchors.rightMargin: -8;
+                anchors.verticalCenter: takeSnapshotButton.verticalCenter;
+                boxSize: 22;
+                onClicked: {
+                    sendToScript({method: 'setFlashStatus', enabled: checked});
+                }
+            }
             HifiControlsUit.Button {
                 id: takeSnapshotButton;
                 enabled: masterSwitch.checked;
@@ -325,6 +363,7 @@ Rectangle {
                 width: 135;
                 height: 35;
                 onClicked: {
+                    root.processingStillSnapshot = true;
                     sendToScript({method: 'takeSecondaryCameraSnapshot'});
                 }
             }
@@ -582,8 +621,12 @@ Rectangle {
     //
     function fromScript(message) {
         switch (message.method) {
-        case 'updateSpectatorCameraCheckbox':
-            masterSwitch.checked = message.params;
+        case 'initializeUI':
+            masterSwitch.checked = message.masterSwitchOn;
+            flashCheckBox.checked = message.flashCheckboxChecked;
+            showCameraView.checked = message.monitorShowsCamView;
+            showHmdPreview.checked = !message.monitorShowsCamView;
+            root.uiReady = true;
         break;
         case 'updateMonitorShowsSwitch':
             showCameraView.checked = message.params;
@@ -610,6 +653,12 @@ Rectangle {
         break;
         case 'finishedProcessing360Snapshot':
             root.processing360Snapshot = false;
+        break;
+        case 'startedProcessingStillSnapshot':
+            root.processingStillSnapshot = true;
+        break;
+        case 'finishedProcessingStillSnapshot':
+            root.processingStillSnapshot = false;
         break;
         default:
             console.log('Unrecognized message from spectatorCamera.js:', JSON.stringify(message));

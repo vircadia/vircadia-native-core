@@ -521,7 +521,7 @@ QVariant Circle3DOverlay::getProperty(const QString& property) {
 }
 
 bool Circle3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
-                                            BoxFace& face, glm::vec3& surfaceNormal) {
+                                          BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking) {
 
     // Scale the dimensions by the diameter
     glm::vec2 dimensions = getOuterRadius() * 2.0f * getDimensions();

@@ -1,3 +1,5 @@
+print("Loading hf-entity")
+
 -- create the entity protocol
 p_hf_entity = Proto("hf-entity", "HF Entity Protocol")
 
