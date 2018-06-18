@@ -106,6 +106,10 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
         }
         case MOTION_TYPE_DYNAMIC: {
             mass = motionState->getMass();
+            if (mass != mass || mass < 1.0f) {
+                qCDebug(physics) << "mass is too low, setting to 1.0 Kg --" << mass;
+                mass = 1.0f;
+            }
             btCollisionShape* shape = const_cast<btCollisionShape*>(motionState->getShape());
             assert(shape);
             shape->calculateLocalInertia(mass, inertia);

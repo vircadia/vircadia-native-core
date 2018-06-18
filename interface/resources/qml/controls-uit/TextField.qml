@@ -165,11 +165,11 @@ TextField {
         anchors.left: parent.left
 
         Binding on anchors.right {
-            when: parent.right
-            value: parent.right
+            when: textField.right
+            value: textField.right
         }
         Binding on wrapMode {
-            when: parent.right
+            when: textField.right
             value: Text.WordWrap
         }
 

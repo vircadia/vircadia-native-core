@@ -1,3 +1,5 @@
+print("Loading hf-avatar")
+
 -- create the avatar protocol
 p_hf_avatar = Proto("hf-avatar", "HF Avatar Protocol")
 

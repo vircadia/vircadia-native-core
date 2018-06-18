@@ -41,44 +41,11 @@
         sortOrder: 8
     });
     
-    function fromQml(message) {
-        console.debug('tablet-goto::fromQml: message = ', JSON.stringify(message));
-
-        var response = {id: message.id, jsonrpc: "2.0"};
-        switch (message.method) {
-        case 'request':
-            request(message.params, function (error, data) {
-                debug('rpc', request, 'error:', error, 'data:', data);
-                response.error = error;
-                response.result = data;
-                tablet.sendToQml(response);
-            });
-            return;
-        default:
-            response.error = {message: 'Unrecognized message', data: message};
-        }
-        tablet.sendToQml(response);
-    }
     function messagesWaiting(isWaiting) {
         button.editProperties({
             icon: isWaiting ? WAITING_ICON : NORMAL_ICON
             // No need for a different activeIcon, because we issue messagesWaiting(false) when the button goes active anyway.
         });
-    }
-
-    var hasEventBridge = false;
-    function wireEventBridge(on) {
-        if (on) {
-            if (!hasEventBridge) {
-                tablet.fromQml.connect(fromQml);
-                hasEventBridge = true;
-            }
-        } else {
-            if (hasEventBridge) {
-                tablet.fromQml.disconnect(fromQml);
-                hasEventBridge = false;
-            }
-        }
     }
 
     function onClicked() {
@@ -98,15 +65,11 @@
             onGotoScreen = true;
             shouldActivateButton = true;
             button.editProperties({isActive: shouldActivateButton});
-            wireEventBridge(true);
             messagesWaiting(false);
-            tablet.sendToQml({ method: 'refreshFeeds', protocolSignature: Window.protocolSignature() })
-
         } else {
             shouldActivateButton = false;
             onGotoScreen = false;
             button.editProperties({isActive: shouldActivateButton});
-            wireEventBridge(false);
         }
     }
     button.clicked.connect(onClicked);

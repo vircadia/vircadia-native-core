@@ -19,6 +19,7 @@ import "../../../../styles-uit"
 import "../../../../controls-uit" as HifiControlsUit
 import "../../../../controls" as HifiControls
 import "../" as HifiCommerceCommon
+import "qrc:////qml//hifi//models" as HifiModels  // Absolute path so the same code works everywhere.
 
 Item {
     HifiConstants { id: hifi; }
@@ -36,6 +37,8 @@ Item {
     property string assetName: "";
     property string assetCertID: "";
     property string sendingPubliclyEffectImage;
+    property var http;
+    property var listModelName;
         
     // This object is always used in a popup or full-screen Wallet section.
     // This MouseArea is used to prevent a user from being
@@ -118,9 +121,7 @@ Item {
 
         if (root.currentActiveView === 'chooseRecipientConnection') {
             // Refresh connections model
-            connectionsLoading.visible = false;
-            connectionsLoading.visible = true;
-            sendSignalToParent({method: 'refreshConnections'});
+            connectionsModel.getFirstPage();
         } else if (root.currentActiveView === 'sendAssetHome') {
             Commerce.balance();
         } else if (root.currentActiveView === 'chooseRecipientNearby') {
@@ -392,11 +393,17 @@ Item {
             hoverEnabled: true;
         }
         
-        ListModel {
+        HifiModels.PSFListModel {
             id: connectionsModel;
-        }
-        ListModel {
-            id: filteredConnectionsModel;
+            http: root.http;
+            listModelName: root.listModelName;
+            endpoint: "/api/v1/users?filter=connections";
+            itemsPerPage: 8;
+            listView: connectionsList;
+            processPage: function (data) {
+                return data.users;
+            };
+            searchFilter: filterBar.text;
         }
 
         Rectangle {
@@ -472,10 +479,6 @@ Item {
                     anchors.fill: parent;
                     centerPlaceholderGlyph: hifi.glyphs.search;
 
-                    onTextChanged: {
-                        buildFilteredConnectionsModel();
-                    }
-
                     onAccepted: {
                         focus = false;
                     }
@@ -495,6 +498,7 @@ Item {
                 
                 AnimatedImage {
                     id: connectionsLoading;
+                    visible: !connectionsModel.retrievedAtLeastOnePage;
                     source: "../../../../../icons/profilePicLoading.gif"
                     width: 120;
                     height: width;
@@ -515,14 +519,15 @@ Item {
                     }
                     visible: !connectionsLoading.visible;
                     clip: true;
-                    model: filteredConnectionsModel;
+                    model: connectionsModel;
+                    onAtYEndChanged: if (connectionsList.atYEnd && !connectionsList.atYBeginning) { connectionsModel.getNextPage(); }
                     snapMode: ListView.SnapToItem;
                     // Anchors
                     anchors.fill: parent;
                     delegate: ConnectionItem {
                         isSelected: connectionsList.currentIndex === index;
-                        userName: model.userName;
-                        profilePicUrl: model.profileUrl;
+                        userName: model.username;
+                        profilePicUrl: model.images.thumbnail;
                         anchors.topMargin: 6;
                         anchors.bottomMargin: 6;
 
@@ -553,7 +558,7 @@ Item {
                 // "Make a Connection" instructions
                 Rectangle {
                     id: connectionInstructions;
-                    visible: connectionsModel.count === 0 && !connectionsLoading.visible;
+                    visible: connectionsModel.count === 0 && !connectionsModel.searchFilter && !connectionsLoading.visible;
                     anchors.fill: parent;
                     color: "white";
 
@@ -1805,22 +1810,6 @@ Item {
     //
     // FUNCTION DEFINITIONS START
     //
-
-    function updateConnections(connections) {
-        connectionsModel.clear();
-        connectionsModel.append(connections);
-        buildFilteredConnectionsModel();
-        connectionsLoading.visible = false;
-    }
-
-    function buildFilteredConnectionsModel() {
-        filteredConnectionsModel.clear();
-        for (var i = 0; i < connectionsModel.count; i++) {
-            if (connectionsModel.get(i).userName.toLowerCase().indexOf(filterBar.text.toLowerCase()) !== -1) {
-                filteredConnectionsModel.append(connectionsModel.get(i));
-            }
-        }
-    }
 
     function resetSendAssetData() {
         amountTextField.focus = false;

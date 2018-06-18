@@ -350,6 +350,8 @@ void TouchscreenVirtualPadDevice::touchUpdateEvent(const QTouchEvent* event) {
         if (idxMoveStartingPointCandidate != -1) {
             _moveCurrentTouchId = tPoints[idxMoveStartingPointCandidate].id();
             _unusedTouches.erase(_moveCurrentTouchId);
+            thisPoint.x = tPoints[idxMoveStartingPointCandidate].pos().x();
+            thisPoint.y = tPoints[idxMoveStartingPointCandidate].pos().y();
             moveTouchBegin(thisPoint);
         } else {
             moveTouchEnd();
@@ -359,6 +361,8 @@ void TouchscreenVirtualPadDevice::touchUpdateEvent(const QTouchEvent* event) {
         if (idxViewStartingPointCandidate != -1) {
             _viewCurrentTouchId = tPoints[idxViewStartingPointCandidate].id();
             _unusedTouches.erase(_viewCurrentTouchId);
+            thisPoint.x = tPoints[idxViewStartingPointCandidate].pos().x();
+            thisPoint.y = tPoints[idxViewStartingPointCandidate].pos().y();
             viewTouchBegin(thisPoint);
         } else {
             viewTouchEnd();
@@ -368,6 +372,8 @@ void TouchscreenVirtualPadDevice::touchUpdateEvent(const QTouchEvent* event) {
         if (idxJumpStartingPointCandidate != -1) {
             _jumpCurrentTouchId = tPoints[idxJumpStartingPointCandidate].id();
             _unusedTouches.erase(_jumpCurrentTouchId);
+            thisPoint.x = tPoints[idxJumpStartingPointCandidate].pos().x();
+            thisPoint.y = tPoints[idxJumpStartingPointCandidate].pos().y();
             jumpTouchBegin(thisPoint);
         } else {
             if (_jumpHasValidTouch) {
@@ -424,6 +430,7 @@ void TouchscreenVirtualPadDevice::moveTouchBegin(glm::vec2 touchPoint) {
         } else {
             _moveRefTouchPoint = touchPoint;
         }
+        _moveCurrentTouchPoint = touchPoint;
         _moveHasValidTouch = true;
     }
 }

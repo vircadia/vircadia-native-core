@@ -69,10 +69,15 @@ Item {
             id: stack
             initialItem: inputConfiguration
             property alias messageVisible: imageMessageBox.visible
-            property alias selectedPlugin: box.currentText
             Rectangle {
                 id: inputConfiguration
-                anchors.fill: parent
+                anchors {
+                    top: parent.top
+                    left: parent.left
+                    right: parent.right
+                }
+
+                height: 230
 
                 HifiConstants { id: hifi }
 
@@ -168,7 +173,7 @@ Item {
                         text: "show all input devices"
 
                         onClicked: {
-                            inputPlugins();
+                            box.model = inputPlugins();
                             changeSource();
                         }
                     }
@@ -208,25 +213,28 @@ Item {
                     anchors.leftMargin: 10
                     anchors.topMargin: 30
                 }
+            }
 
+            Rectangle {
+                id: loaderRectangle
+                z: -1
+                color: hifi.colors.baseGray
+                width: parent.width
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: inputConfiguration.bottom
+                anchors.bottom: parent.bottom
                 Loader {
                     id: loader
                     asynchronous: false
-
-                    width: inputConfiguration.width
-                    anchors.left: inputConfiguration.left
-                    anchors.right: inputConfiguration.right
-                    anchors.top: configurationHeader.bottom
-                    anchors.topMargin: 10
-                    anchors.bottom: inputConfiguration.bottom
-
-                    source: InputConfiguration.configurationLayout(box.currentText);
+                    anchors.fill: parent
+                    source: InputConfiguration.configurationLayout(box.textAt(box.currentIndex));
                     onLoaded: {
                         if (loader.item.hasOwnProperty("pluginName")) {
-                    if (box.currentText === "HTC Vive") {
+                            if (box.textAt(box.currentIndex) === "HTC Vive") {
                                 loader.item.pluginName = "OpenVR";
                             } else {
-                                loader.item.pluginName = box.currentText;
+                                loader.item.pluginName = box.textAt(box.currentIndex);
                             }
                         }
 
@@ -252,11 +260,12 @@ Item {
 
             function changeSource() {
                 loader.source = "";
+                var selectedDevice = box.textAt(box.currentIndex);
                 var source = "";
-                if (box.currentText == "Vive") {
+                if (selectedDevice == "HTC Vive") {
                     source = InputConfiguration.configurationLayout("OpenVR");
                 } else {
-                    source = InputConfiguration.configurationLayout(box.currentText);
+                    source = InputConfiguration.configurationLayout(selectedDevice);
                 }
 
                 loader.source = source;

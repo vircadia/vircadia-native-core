@@ -31,18 +31,24 @@ using namespace gpu;
 #define CPU_MIPMAPS 1
 #include <nvtt/nvtt.h>
 
+#ifdef USE_GLES
+#include <Etc.h>
+#include <EtcFilter.h>
+#endif
+
 static const glm::uvec2 SPARSE_PAGE_SIZE(128);
+#ifdef Q_OS_ANDROID
+static const glm::uvec2 MAX_TEXTURE_SIZE(2048);
+#else
 static const glm::uvec2 MAX_TEXTURE_SIZE(4096);
+#endif
 bool DEV_DECIMATE_TEXTURES = false;
 std::atomic<size_t> DECIMATED_TEXTURE_COUNT{ 0 };
 std::atomic<size_t> RECTIFIED_TEXTURE_COUNT{ 0 };
 
-static const auto HDR_FORMAT = gpu::Element::COLOR_R11G11B10;
-
-static std::atomic<bool> compressColorTextures { false };
-static std::atomic<bool> compressNormalTextures { false };
-static std::atomic<bool> compressGrayscaleTextures { false };
-static std::atomic<bool> compressCubeTextures { false };
+// we use a ref here to work around static order initialization
+// possibly causing the element not to be constructed yet
+static const auto& HDR_FORMAT = gpu::Element::COLOR_R11G11B10;
 
 uint rectifyDimension(const uint& dimension) {
     if (dimension == 0) {
@@ -75,7 +81,13 @@ const QStringList getSupportedFormats() {
     return stringFormats;
 }
 
+
+// On GLES, we don't use HDR skyboxes
+#ifndef USE_GLES
 QImage::Format QIMAGE_HDR_FORMAT = QImage::Format_RGB30;
+#else
+QImage::Format QIMAGE_HDR_FORMAT = QImage::Format_RGB32;
+#endif
 
 TextureUsage::TextureLoader TextureUsage::getTextureLoaderForType(Type type, const QVariantMap& options) {
     switch (type) {
@@ -111,112 +123,63 @@ TextureUsage::TextureLoader TextureUsage::getTextureLoaderForType(Type type, con
 }
 
 gpu::TexturePointer TextureUsage::createStrict2DTextureFromImage(QImage&& srcImage, const std::string& srcImageName,
-                                                                 const std::atomic<bool>& abortProcessing) {
-    return process2DTextureColorFromImage(std::move(srcImage), srcImageName, true, abortProcessing);
+                                                                 bool compress, const std::atomic<bool>& abortProcessing) {
+    return process2DTextureColorFromImage(std::move(srcImage), srcImageName, compress, true, abortProcessing);
 }
 
 gpu::TexturePointer TextureUsage::create2DTextureFromImage(QImage&& srcImage, const std::string& srcImageName,
-                                                           const std::atomic<bool>& abortProcessing) {
-    return process2DTextureColorFromImage(std::move(srcImage), srcImageName, false, abortProcessing);
+                                                           bool compress, const std::atomic<bool>& abortProcessing) {
+    return process2DTextureColorFromImage(std::move(srcImage), srcImageName, compress, false, abortProcessing);
 }
 
 gpu::TexturePointer TextureUsage::createAlbedoTextureFromImage(QImage&& srcImage, const std::string& srcImageName,
-                                                               const std::atomic<bool>& abortProcessing) {
-    return process2DTextureColorFromImage(std::move(srcImage), srcImageName, false, abortProcessing);
+                                                               bool compress, const std::atomic<bool>& abortProcessing) {
+    return process2DTextureColorFromImage(std::move(srcImage), srcImageName, compress, false, abortProcessing);
 }
 
 gpu::TexturePointer TextureUsage::createEmissiveTextureFromImage(QImage&& srcImage, const std::string& srcImageName,
-                                                                 const std::atomic<bool>& abortProcessing) {
-    return process2DTextureColorFromImage(std::move(srcImage), srcImageName, false, abortProcessing);
+                                                                 bool compress, const std::atomic<bool>& abortProcessing) {
+    return process2DTextureColorFromImage(std::move(srcImage), srcImageName, compress, false, abortProcessing);
 }
 
 gpu::TexturePointer TextureUsage::createLightmapTextureFromImage(QImage&& srcImage, const std::string& srcImageName,
-                                                                 const std::atomic<bool>& abortProcessing) {
-    return process2DTextureColorFromImage(std::move(srcImage), srcImageName, false, abortProcessing);
+                                                                 bool compress, const std::atomic<bool>& abortProcessing) {
+    return process2DTextureColorFromImage(std::move(srcImage), srcImageName, compress, false, abortProcessing);
 }
 
 gpu::TexturePointer TextureUsage::createNormalTextureFromNormalImage(QImage&& srcImage, const std::string& srcImageName,
-                                                                     const std::atomic<bool>& abortProcessing) {
-    return process2DTextureNormalMapFromImage(std::move(srcImage), srcImageName, false, abortProcessing);
+                                                                     bool compress, const std::atomic<bool>& abortProcessing) {
+    return process2DTextureNormalMapFromImage(std::move(srcImage), srcImageName, compress, false, abortProcessing);
 }
 
 gpu::TexturePointer TextureUsage::createNormalTextureFromBumpImage(QImage&& srcImage, const std::string& srcImageName,
-                                                                   const std::atomic<bool>& abortProcessing) {
-    return process2DTextureNormalMapFromImage(std::move(srcImage), srcImageName, true, abortProcessing);
+                                                                   bool compress, const std::atomic<bool>& abortProcessing) {
+    return process2DTextureNormalMapFromImage(std::move(srcImage), srcImageName, compress, true, abortProcessing);
 }
 
 gpu::TexturePointer TextureUsage::createRoughnessTextureFromImage(QImage&& srcImage, const std::string& srcImageName,
-                                                                  const std::atomic<bool>& abortProcessing) {
-    return process2DTextureGrayscaleFromImage(std::move(srcImage), srcImageName, false, abortProcessing);
+                                                                  bool compress, const std::atomic<bool>& abortProcessing) {
+    return process2DTextureGrayscaleFromImage(std::move(srcImage), srcImageName, compress, false, abortProcessing);
 }
 
 gpu::TexturePointer TextureUsage::createRoughnessTextureFromGlossImage(QImage&& srcImage, const std::string& srcImageName,
-                                                                       const std::atomic<bool>& abortProcessing) {
-    return process2DTextureGrayscaleFromImage(std::move(srcImage), srcImageName, true, abortProcessing);
+                                                                       bool compress, const std::atomic<bool>& abortProcessing) {
+    return process2DTextureGrayscaleFromImage(std::move(srcImage), srcImageName, compress, true, abortProcessing);
 }
 
 gpu::TexturePointer TextureUsage::createMetallicTextureFromImage(QImage&& srcImage, const std::string& srcImageName,
-                                                                 const std::atomic<bool>& abortProcessing) {
-    return process2DTextureGrayscaleFromImage(std::move(srcImage), srcImageName, false, abortProcessing);
+                                                                 bool compress, const std::atomic<bool>& abortProcessing) {
+    return process2DTextureGrayscaleFromImage(std::move(srcImage), srcImageName, compress, false, abortProcessing);
 }
 
 gpu::TexturePointer TextureUsage::createCubeTextureFromImage(QImage&& srcImage, const std::string& srcImageName,
-                                                             const std::atomic<bool>& abortProcessing) {
-    return processCubeTextureColorFromImage(std::move(srcImage), srcImageName, true, abortProcessing);
+                                                             bool compress, const std::atomic<bool>& abortProcessing) {
+    return processCubeTextureColorFromImage(std::move(srcImage), srcImageName, compress, true, abortProcessing);
 }
 
 gpu::TexturePointer TextureUsage::createCubeTextureFromImageWithoutIrradiance(QImage&& srcImage, const std::string& srcImageName,
-                                                                              const std::atomic<bool>& abortProcessing) {
-    return processCubeTextureColorFromImage(std::move(srcImage), srcImageName, false, abortProcessing);
-}
-
-
-bool isColorTexturesCompressionEnabled() {
-#if CPU_MIPMAPS
-    return compressColorTextures.load();
-#else
-    return false;
-#endif
-}
-
-bool isNormalTexturesCompressionEnabled() {
-#if CPU_MIPMAPS
-    return compressNormalTextures.load();
-#else
-    return false;
-#endif
-}
-
-bool isGrayscaleTexturesCompressionEnabled() {
-#if CPU_MIPMAPS
-    return compressGrayscaleTextures.load();
-#else
-    return false;
-#endif
-}
-
-bool isCubeTexturesCompressionEnabled() {
-#if CPU_MIPMAPS
-    return compressCubeTextures.load();
-#else
-    return false;
-#endif
-}
-
-void setColorTexturesCompressionEnabled(bool enabled) {
-    compressColorTextures.store(enabled);
-}
-
-void setNormalTexturesCompressionEnabled(bool enabled) {
-    compressNormalTextures.store(enabled);
-}
-
-void setGrayscaleTexturesCompressionEnabled(bool enabled) {
-    compressGrayscaleTextures.store(enabled);
-}
-
-void setCubeTexturesCompressionEnabled(bool enabled) {
-    compressCubeTextures.store(enabled);
+                                                                              bool compress, const std::atomic<bool>& abortProcessing) {
+    return processCubeTextureColorFromImage(std::move(srcImage), srcImageName, compress, false, abortProcessing);
 }
 
 static float denormalize(float value, const float minValue) {
@@ -238,17 +201,11 @@ uint32 packR11G11B10F(const glm::vec3& color) {
     return glm::packF2x11_1x10(ucolor);
 }
 
-QImage processRawImageData(QByteArray&& content, const std::string& filename) {
-    // Take a local copy to force move construction
-    // https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#f18-for-consume-parameters-pass-by-x-and-stdmove-the-parameter
-    QByteArray localCopy = std::move(content);
-
+QImage processRawImageData(QIODevice& content, const std::string& filename) {
     // Help the QImage loader by extracting the image file format from the url filename ext.
     // Some tga are not created properly without it.
     auto filenameExtension = filename.substr(filename.find_last_of('.') + 1);
-    QBuffer buffer;
-    buffer.setData(localCopy);
-    QImageReader imageReader(&buffer, filenameExtension.c_str());
+    QImageReader imageReader(&content, filenameExtension.c_str());
 
     if (imageReader.canRead()) {
         return imageReader.read();
@@ -256,8 +213,8 @@ QImage processRawImageData(QByteArray&& content, const std::string& filename) {
         // Extension could be incorrect, try to detect the format from the content
         QImageReader newImageReader;
         newImageReader.setDecideFormatFromContent(true);
-        buffer.setData(localCopy);
-        newImageReader.setDevice(&buffer);
+        content.reset();
+        newImageReader.setDevice(&content);
 
         if (newImageReader.canRead()) {
             qCWarning(imagelogging) << "Image file" << filename.c_str() << "has extension" << filenameExtension.c_str()
@@ -269,11 +226,14 @@ QImage processRawImageData(QByteArray&& content, const std::string& filename) {
     return QImage();
 }
 
-gpu::TexturePointer processImage(QByteArray&& content, const std::string& filename,
+gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::string& filename,
                                  int maxNumPixels, TextureUsage::Type textureType,
-                                 const std::atomic<bool>& abortProcessing) {
+                                 bool compress, const std::atomic<bool>& abortProcessing) {
 
-    QImage image = processRawImageData(std::move(content), filename);
+    QImage image = processRawImageData(*content.get(), filename);
+    // Texture content can take up a lot of memory. Here we release our ownership of that content
+    // in case it can be released.
+    content.reset();
 
     int imageWidth = image.width();
     int imageHeight = image.height();
@@ -299,7 +259,7 @@ gpu::TexturePointer processImage(QByteArray&& content, const std::string& filena
     }
     
     auto loader = TextureUsage::getTextureLoaderForType(textureType);
-    auto texture = loader(std::move(image), filename, abortProcessing);
+    auto texture = loader(std::move(image), filename, compress, abortProcessing);
 
     return texture;
 }
@@ -548,13 +508,15 @@ void generateLDRMips(gpu::Texture* texture, QImage&& image, const std::atomic<bo
     // https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#f18-for-consume-parameters-pass-by-x-and-stdmove-the-parameter
     QImage localCopy = std::move(image);
 
-    if (localCopy.format() != QImage::Format_ARGB32) {
+    if (localCopy.format() != QImage::Format_ARGB32 && localCopy.format() != QIMAGE_HDR_FORMAT) {
         localCopy = localCopy.convertToFormat(QImage::Format_ARGB32);
     }
 
     const int width = localCopy.width(), height = localCopy.height();
-    const void* data = static_cast<const void*>(localCopy.constBits());
+    auto mipFormat = texture->getStoredMipFormat();
 
+#ifndef USE_GLES
+    const void* data = static_cast<const void*>(localCopy.constBits());
     nvtt::TextureType textureType = nvtt::TextureType_2D;
     nvtt::InputFormat inputFormat = nvtt::InputFormat_BGRA_8UB;
     nvtt::WrapMode wrapMode = nvtt::WrapMode_Mirror;
@@ -584,8 +546,6 @@ void generateLDRMips(gpu::Texture* texture, QImage&& image, const std::atomic<bo
     nvtt::CompressionOptions compressionOptions;
     compressionOptions.setQuality(nvtt::Quality_Production);
 
-    // TODO: gles: generate ETC mips instead?
-    auto mipFormat = texture->getStoredMipFormat();
     if (mipFormat == gpu::Element::COLOR_COMPRESSED_BCX_SRGB) {
         compressionOptions.setFormat(nvtt::Format_BC1);
     } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_BCX_SRGBA_MASK) {
@@ -669,21 +629,94 @@ void generateLDRMips(gpu::Texture* texture, QImage&& image, const std::atomic<bo
     nvtt::Compressor compressor;
     compressor.setTaskDispatcher(&dispatcher);
     compressor.process(inputOptions, compressionOptions, outputOptions);
+
+#else
+    int numMips = 1 + (int)log2(std::max(width, height));
+    Etc::RawImage *mipMaps = new Etc::RawImage[numMips];
+    Etc::Image::Format etcFormat = Etc::Image::Format::DEFAULT;
+
+    if (mipFormat == gpu::Element::COLOR_COMPRESSED_ETC2_RGB) {
+        etcFormat = Etc::Image::Format::RGB8;
+    } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_ETC2_SRGB) {
+        etcFormat = Etc::Image::Format::SRGB8;
+    } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_ETC2_RGB_PUNCHTHROUGH_ALPHA) {
+        etcFormat = Etc::Image::Format::RGB8A1;
+    } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_ETC2_SRGB_PUNCHTHROUGH_ALPHA) {
+        etcFormat = Etc::Image::Format::SRGB8A1;
+    } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_ETC2_RGBA) {
+        etcFormat = Etc::Image::Format::RGBA8;
+    } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_ETC2_SRGBA) {
+        etcFormat = Etc::Image::Format::SRGBA8;
+    } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_EAC_RED) {
+        etcFormat = Etc::Image::Format::R11;
+    } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_EAC_RED_SIGNED) {
+        etcFormat = Etc::Image::Format::SIGNED_R11;
+    } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_EAC_XY) {
+        etcFormat = Etc::Image::Format::RG11;
+    } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_EAC_XY_SIGNED) {
+        etcFormat = Etc::Image::Format::SIGNED_RG11;
+    } else {
+        qCWarning(imagelogging) << "Unknown mip format";
+        Q_UNREACHABLE();
+        return;
+    }
+
+    const Etc::ErrorMetric errorMetric = Etc::ErrorMetric::RGBA;
+    const float effort = 1.0f;
+    const int numEncodeThreads = 4;
+    int encodingTime;
+    const float MAX_COLOR = 255.0f;
+
+    std::vector<vec4> floatData;
+    floatData.resize(width * height);
+    for (int y = 0; y < height; y++) {
+        QRgb *line = (QRgb *) localCopy.scanLine(y);
+        for (int x = 0; x < width; x++) {
+            QRgb &pixel = line[x];
+            floatData[x + y * width] = vec4(qRed(pixel), qGreen(pixel), qBlue(pixel), qAlpha(pixel)) / MAX_COLOR;
+        }
+    }
+
+    // free up the memory afterward to avoid bloating the heap
+    localCopy = QImage(); // QImage doesn't have a clear function, so override it with an empty one.
+
+    Etc::EncodeMipmaps(
+        (float *)floatData.data(), width, height,
+        etcFormat, errorMetric, effort,
+        numEncodeThreads, numEncodeThreads,
+        numMips, Etc::FILTER_WRAP_NONE,
+        mipMaps, &encodingTime
+    );
+
+    for (int i = 0; i < numMips; i++) {
+        if (mipMaps[i].paucEncodingBits.get()) {
+            if (face >= 0) {
+                texture->assignStoredMipFace(i, face, mipMaps[i].uiEncodingBitsBytes, static_cast<const gpu::Byte*>(mipMaps[i].paucEncodingBits.get()));
+            } else {
+                texture->assignStoredMip(i, mipMaps[i].uiEncodingBitsBytes, static_cast<const gpu::Byte*>(mipMaps[i].paucEncodingBits.get()));
+            }
+        }
+    }
+
+    delete[] mipMaps;
+#endif
 }
 
 #endif
-
-
 
 void generateMips(gpu::Texture* texture, QImage&& image, const std::atomic<bool>& abortProcessing = false, int face = -1) {
 #if CPU_MIPMAPS
     PROFILE_RANGE(resource_parse, "generateMips");
 
+#ifndef USE_GLES
     if (image.format() == QIMAGE_HDR_FORMAT) {
         generateHDRMips(texture, std::move(image), abortProcessing, face);
     } else  {
         generateLDRMips(texture, std::move(image), abortProcessing, face);
     }
+#else
+    generateLDRMips(texture, std::move(image), abortProcessing, face);
+#endif
 #else
     texture->setAutoGenerateMips(true);
 #endif
@@ -716,7 +749,7 @@ void processTextureAlpha(const QImage& srcImage, bool& validAlpha, bool& alphaAs
     validAlpha = (numOpaques != NUM_PIXELS);
 }
 
-gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(QImage&& srcImage, const std::string& srcImageName,
+gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(QImage&& srcImage, const std::string& srcImageName, bool compress,
                                                                  bool isStrict, const std::atomic<bool>& abortProcessing) {
     PROFILE_RANGE(resource_parse, "process2DTextureColorFromImage");
     QImage image = processSourceImage(std::move(srcImage), false);
@@ -737,8 +770,7 @@ gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(QImage&& srcIma
     if ((image.width() > 0) && (image.height() > 0)) {
         gpu::Element formatMip;
         gpu::Element formatGPU;
-        if (isColorTexturesCompressionEnabled()) {
-#ifndef USE_GLES
+        if (compress) {
             if (validAlpha) {
                 // NOTE: This disables BC1a compression because it was producing odd artifacts on text textures
                 // for the tutorial. Instead we use BC3 (which is larger) but doesn't produce the same artifacts).
@@ -746,22 +778,16 @@ gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(QImage&& srcIma
             } else {
                 formatGPU = gpu::Element::COLOR_COMPRESSED_BCX_SRGB;
             }
-#else
-            if (validAlpha) {
-                formatGPU = gpu::Element::COLOR_COMPRESSED_ETC2_SRGBA;
-            } else {
-                formatGPU = gpu::Element::COLOR_COMPRESSED_ETC2_SRGB;
-            }
-#endif
             formatMip = formatGPU;
         } else {
 #ifdef USE_GLES
             // GLES does not support GL_BGRA
-            formatMip = gpu::Element::COLOR_SRGBA_32;
+            formatGPU = gpu::Element::COLOR_COMPRESSED_ETC2_SRGBA;
+            formatMip = formatGPU;
 #else
+            formatGPU = gpu::Element::COLOR_SRGBA_32;
             formatMip = gpu::Element::COLOR_SBGRA_32;
 #endif
-            formatGPU = gpu::Element::COLOR_SRGBA_32;
         }
 
         if (isStrict) {
@@ -861,7 +887,8 @@ QImage processBumpMap(QImage&& image) {
     return result;
 }
 gpu::TexturePointer TextureUsage::process2DTextureNormalMapFromImage(QImage&& srcImage, const std::string& srcImageName,
-                                                                     bool isBumpMap, const std::atomic<bool>& abortProcessing) {
+                                                                     bool compress, bool isBumpMap,
+                                                                     const std::atomic<bool>& abortProcessing) {
     PROFILE_RANGE(resource_parse, "process2DTextureNormalMapFromImage");
     QImage image = processSourceImage(std::move(srcImage), false);
 
@@ -876,16 +903,18 @@ gpu::TexturePointer TextureUsage::process2DTextureNormalMapFromImage(QImage&& sr
 
     gpu::TexturePointer theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
-        gpu::Element formatMip = gpu::Element::VEC2NU8_XY;
-        gpu::Element formatGPU = gpu::Element::VEC2NU8_XY;
-        if (isNormalTexturesCompressionEnabled()) {
-#ifndef USE_GLES
+        gpu::Element formatMip;
+        gpu::Element formatGPU;
+        if (compress) {
             formatGPU = gpu::Element::COLOR_COMPRESSED_BCX_XY;
-#else
+        } else {
+#ifdef USE_GLES
             formatGPU = gpu::Element::COLOR_COMPRESSED_EAC_XY;
+#else
+            formatGPU = gpu::Element::VEC2NU8_XY;
 #endif
-            formatMip = formatGPU;
         }
+        formatMip = formatGPU;
 
         theTexture = gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
         theTexture->setSource(srcImageName);
@@ -898,7 +927,7 @@ gpu::TexturePointer TextureUsage::process2DTextureNormalMapFromImage(QImage&& sr
 }
 
 gpu::TexturePointer TextureUsage::process2DTextureGrayscaleFromImage(QImage&& srcImage, const std::string& srcImageName,
-                                                                     bool isInvertedPixels,
+                                                                     bool compress, bool isInvertedPixels,
                                                                      const std::atomic<bool>& abortProcessing) {
     PROFILE_RANGE(resource_parse, "process2DTextureGrayscaleFromImage");
     QImage image = processSourceImage(std::move(srcImage), false);
@@ -916,17 +945,16 @@ gpu::TexturePointer TextureUsage::process2DTextureGrayscaleFromImage(QImage&& sr
     if ((image.width() > 0) && (image.height() > 0)) {
         gpu::Element formatMip;
         gpu::Element formatGPU;
-        if (isGrayscaleTexturesCompressionEnabled()) {
-#ifndef USE_GLES
+        if (compress) {
             formatGPU = gpu::Element::COLOR_COMPRESSED_BCX_RED;
-#else
-            formatGPU = gpu::Element::COLOR_COMPRESSED_EAC_RED;
-#endif
-            formatMip = formatGPU;
         } else {
-            formatMip = gpu::Element::COLOR_R_8;
+#ifdef USE_GLES
+            formatGPU = gpu::Element::COLOR_COMPRESSED_EAC_RED;
+#else
             formatGPU = gpu::Element::COLOR_R_8;
+#endif
         }
+        formatMip = formatGPU;
 
         theTexture = gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
         theTexture->setSource(srcImageName);
@@ -1264,7 +1292,7 @@ QImage convertToHDRFormat(QImage&& srcImage, gpu::Element format) {
 }
 
 gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(QImage&& srcImage, const std::string& srcImageName,
-                                                                   bool generateIrradiance,
+                                                                   bool compress, bool generateIrradiance,
                                                                    const std::atomic<bool>& abortProcessing) {
     PROFILE_RANGE(resource_parse, "processCubeTextureColorFromImage");
 
@@ -1283,19 +1311,25 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(QImage&& srcI
     QImage image = processSourceImage(std::move(localCopy), true);
 
     if (image.format() != QIMAGE_HDR_FORMAT) {
+#ifndef USE_GLES
         image = convertToHDRFormat(std::move(image), HDR_FORMAT);
+#else
+        image = image.convertToFormat(QImage::Format_RGB32);
+#endif
     }
 
     gpu::Element formatMip;
     gpu::Element formatGPU;
-    if (isCubeTexturesCompressionEnabled()) {
-        // TODO: gles: pick HDR ETC format
-        formatMip = gpu::Element::COLOR_COMPRESSED_BCX_HDR_RGB;
+    if (compress) {
         formatGPU = gpu::Element::COLOR_COMPRESSED_BCX_HDR_RGB;
     } else {
-        formatMip = HDR_FORMAT;
+#ifdef USE_GLES
+        formatGPU = gpu::Element::COLOR_COMPRESSED_ETC2_SRGB;
+#else
         formatGPU = HDR_FORMAT;
+#endif
     }
+    formatMip = formatGPU;
 
     // Find the layout of the cubemap in the 2D image
     // Use the original image size since processSourceImage may have altered the size / aspect ratio
@@ -1342,9 +1376,16 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(QImage&& srcI
         // Generate irradiance while we are at it
         if (generateIrradiance) {
             PROFILE_RANGE(resource_parse, "generateIrradiance");
-            auto irradianceTexture = gpu::Texture::createCube(HDR_FORMAT, faces[0].width(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP));
+            gpu::Element irradianceFormat;
+            // TODO: we could locally compress the irradiance texture on Android, but we don't need to
+#ifndef USE_GLES
+            irradianceFormat = HDR_FORMAT;
+#else
+            irradianceFormat = gpu::Element::COLOR_SRGBA_32;
+#endif
+            auto irradianceTexture = gpu::Texture::createCube(irradianceFormat, faces[0].width(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP));
             irradianceTexture->setSource(srcImageName);
-            irradianceTexture->setStoredMipFormat(HDR_FORMAT);
+            irradianceTexture->setStoredMipFormat(irradianceFormat);
             for (uint8 face = 0; face < faces.size(); ++face) {
                 irradianceTexture->assignStoredMipFace(0, face, faces[face].byteCount(), faces[face].constBits());
             }

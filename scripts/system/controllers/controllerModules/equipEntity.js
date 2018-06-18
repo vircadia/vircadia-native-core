@@ -273,7 +273,6 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         this.shouldSendStart = false;
         this.equipedWithSecondary = false;
         this.handHasBeenRightsideUp = false;
-        this.mouseEquip = false;
 
         this.parameters = makeDispatcherModuleParameters(
             300,
@@ -283,11 +282,10 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
         var equipHotspotBuddy = new EquipHotspotBuddy();
 
-        this.setMessageGrabData = function(entityProperties, mouseEquip) {
+        this.setMessageGrabData = function(entityProperties) {
             if (entityProperties) {
                 this.messageGrabEntity = true;
                 this.grabEntityProps = entityProperties;
-                this.mouseEquip = mouseEquip;
             }
         };
 
@@ -584,7 +582,6 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             this.targetEntityID = null;
             this.messageGrabEntity = false;
             this.grabEntityProps = null;
-            this.mouseEquip = false;
         };
 
         this.updateInputs = function (controllerData) {
@@ -630,14 +627,12 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
             // if the potentialHotspot is cloneable, clone it and return it
             // if the potentialHotspot os not cloneable and locked return null
-
             if (potentialEquipHotspot &&
                 (((this.triggerSmoothedSqueezed() || this.secondarySmoothedSqueezed()) && !this.waitForTriggerRelease) ||
                  this.messageGrabEntity)) {
                 this.grabbedHotspot = potentialEquipHotspot;
                 this.targetEntityID = this.grabbedHotspot.entityID;
                 this.startEquipEntity(controllerData);
-                this.messageGrabEntity = false;
                 this.equipedWithSecondary = this.secondarySmoothedSqueezed();
                 return makeRunningValues(true, [potentialEquipHotspot.entityID], []);
             } else {
@@ -661,7 +656,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             var timestamp = Date.now();
             this.updateInputs(controllerData);
 
-            if (!this.mouseEquip && !this.isTargetIDValid(controllerData)) {
+            if (!this.messageGrabEntity && !this.isTargetIDValid(controllerData)) {
                 this.endEquipEntity();
                 return makeRunningValues(false, [], []);
             }
@@ -762,9 +757,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                     var equipModule = (data.hand === "left") ? leftEquipEntity : rightEquipEntity;
                     var entityProperties = Entities.getEntityProperties(data.entityID, DISPATCHER_PROPERTIES);
                     entityProperties.id = data.entityID;
-                    var mouseEquip = false;
-                    equipModule.setMessageGrabData(entityProperties, mouseEquip);
-
+                    equipModule.setMessageGrabData(entityProperties);
                 } catch (e) {
                     print("WARNING: equipEntity.js -- error parsing Hifi-Hand-Grab message: " + message);
                 }
@@ -812,15 +805,14 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 var distanceToLeftHand = Vec3.distance(entityProperties.position, leftHandPosition);
                 var leftHandAvailable = leftEquipEntity.targetEntityID === null;
                 var rightHandAvailable = rightEquipEntity.targetEntityID === null;          
-                var mouseEquip = true;
                 if (rightHandAvailable && (distanceToRightHand < distanceToLeftHand || !leftHandAvailable)) {
                     // clear any existing grab actions on the entity now (their later removal could affect bootstrapping flags)
                     clearGrabActions(entityID);
-                    rightEquipEntity.setMessageGrabData(entityProperties, mouseEquip);
+                    rightEquipEntity.setMessageGrabData(entityProperties);
                 } else if (leftHandAvailable && (distanceToLeftHand < distanceToRightHand || !rightHandAvailable)) {
                     // clear any existing grab actions on the entity now (their later removal could affect bootstrapping flags)
                     clearGrabActions(entityID);
-                    leftEquipEntity.setMessageGrabData(entityProperties, mouseEquip);
+                    leftEquipEntity.setMessageGrabData(entityProperties);
                 }
             }
         }

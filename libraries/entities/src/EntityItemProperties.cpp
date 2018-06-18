@@ -597,6 +597,15 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Entities.RenderInfo} renderInfo - Information on the cost of rendering the entity. Currently information is only 
  *     provided for <code>Model</code> entities. <em>Read-only.</em>
  *
+ * @property {boolean} cloneable=false - If <code>true</code> then the entity can be cloned via {@link Entities.cloneEntity}.
+ * @property {number} cloneLifetime=300 - The entity lifetime for clones created from this entity.
+ * @property {number} cloneLimit=0 - The total number of clones of this entity that can exist in the domain at any given time.
+ * @property {boolean} cloneDynamic=false - If <code>true</code> then clones created from this entity will have their 
+ *     <code>dynamic</code> property set to <code>true</code>.
+ * @property {boolean} cloneAvatarEntity=false - If <code>true</code> then clones created from this entity will be created as 
+ *     avatar entities: their <code>clientOnly</code> property will be set to <code>true</code>.
+ * @property {Uuid} cloneOriginID - The ID of the entity that this entity was cloned from.
+ *
  * @property {string} itemName="" - Certifiable name of the Marketplace item.
  * @property {string} itemDescription="" - Certifiable description of the Marketplace item.
  * @property {string} itemCategories="" - Certifiable category of the Marketplace item.
@@ -2414,9 +2423,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
         if (appendState != OctreeElement::COMPLETED) {
             didntFitProperties = propertiesDidntFit;
         }
-    }
 
-    if (success) {
         packetData->endSubTree();
 
         const char* finalizedData = reinterpret_cast<const char*>(packetData->getFinalizedData());
@@ -2427,14 +2434,12 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             buffer.resize(finalizedSize);
         } else {
             qCDebug(entities) << "ERROR - encoded edit message doesn't fit in output buffer.";
-            success = false;
             appendState = OctreeElement::NONE; // if we got here, then we didn't include the item
             // maybe we should assert!!!
         }
     } else {
         packetData->discardSubTree();
     }
-
 
     return appendState;
 }
@@ -2825,7 +2830,6 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
     outputLength = sizeof(numberOfIds);
 
     memcpy(copyAt, entityItemID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
-    copyAt += NUM_BYTES_RFC4122_UUID;
     outputLength += NUM_BYTES_RFC4122_UUID;
 
     buffer.resize(outputLength);
@@ -2847,7 +2851,6 @@ bool EntityItemProperties::encodeCloneEntityMessage(const EntityItemID& entityID
     outputLength += NUM_BYTES_RFC4122_UUID;
 
     memcpy(copyAt, newEntityID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
-    copyAt += NUM_BYTES_RFC4122_UUID;
     outputLength += NUM_BYTES_RFC4122_UUID;
 
     buffer.resize(outputLength);

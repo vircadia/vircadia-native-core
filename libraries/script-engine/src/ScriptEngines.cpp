@@ -432,10 +432,13 @@ bool ScriptEngines::stopScript(const QString& rawScriptURL, bool restart) {
                 ScriptEngine::Type type = scriptEngine->getType();
                 auto scriptCache = DependencyManager::get<ScriptCache>();
                 scriptCache->deleteScript(scriptURL);
-                connect(scriptEngine.data(), &ScriptEngine::finished,
-                        this, [this, isUserLoaded, type](QString scriptName, ScriptEnginePointer engine) {
-                    reloadScript(scriptName, isUserLoaded)->setType(type);
-                });
+
+                if (!scriptEngine->isStopping()) {
+                    connect(scriptEngine.data(), &ScriptEngine::finished,
+                            this, [this, isUserLoaded, type](QString scriptName, ScriptEnginePointer engine) {
+                            reloadScript(scriptName, isUserLoaded)->setType(type);
+                    });
+                }
             }
             scriptEngine->stop();
             stoppedScript = true;
@@ -594,7 +597,7 @@ void ScriptEngines::onScriptFinished(const QString& rawScriptURL, ScriptEnginePo
         }
     }
 
-    if (removed) {
+    if (removed && !_isReloading) {
         // Update settings with removed script
         saveScripts();
         emit scriptCountChanged();

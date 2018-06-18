@@ -16,6 +16,8 @@
 #include <openssl/x509.h>
 #include <random>
 
+#include <QDataStream>
+
 #include <AccountManager.h>
 #include <Assignment.h>
 

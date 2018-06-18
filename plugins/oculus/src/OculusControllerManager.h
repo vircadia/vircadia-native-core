@@ -26,10 +26,8 @@ public:
     // Plugin functions
     bool isSupported() const override;
     const QString getName() const override { return NAME; }
-
     bool isHandController() const override { return _touch != nullptr; }
     bool isHeadController() const override { return true; }
-    bool isHeadControllerMounted() const;
     QStringList getSubdeviceNames() override;
 
     bool activate() override;
@@ -105,8 +103,8 @@ private:
 
     void checkForConnectedDevices();
 
-    ovrSession _session { nullptr };
-    ovrInputState _inputState {};
+    ovrInputState _remoteInputState {};
+    ovrInputState _touchInputState {};
     RemoteDevice::Pointer _remote;
     TouchDevice::Pointer _touch;
     static const char* NAME;

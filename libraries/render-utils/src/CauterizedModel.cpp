@@ -47,7 +47,7 @@ bool CauterizedModel::updateGeometry() {
     return needsFullUpdate;
 }
 
-void CauterizedModel::createVisibleRenderItemSet() {
+void CauterizedModel::createRenderItemSet() {
     if (_isCauterized) {
         assert(isLoaded());
         const auto& meshes = _renderGeometry->getMeshes();
@@ -87,19 +87,15 @@ void CauterizedModel::createVisibleRenderItemSet() {
             for (int partIndex = 0; partIndex < numParts; partIndex++) {
                 auto ptr = std::make_shared<CauterizedMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
                 _modelMeshRenderItems << std::static_pointer_cast<ModelMeshPartPayload>(ptr);
-                _modelMeshMaterialNames.push_back(getGeometry()->getShapeMaterial(shapeID)->getName());
+                auto material = getGeometry()->getShapeMaterial(shapeID);
+                _modelMeshMaterialNames.push_back(material ? material->getName() : "");
                 _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)i });
                 shapeID++;
             }
         }
     } else {
-        Model::createVisibleRenderItemSet();
+        Model::createRenderItemSet();
     }
-}
-
-void CauterizedModel::createCollisionRenderItemSet() {
-    // Temporary HACK: use base class method for now
-    Model::createCollisionRenderItemSet();
 }
 
 void CauterizedModel::updateClusterMatrices() {
@@ -184,12 +180,6 @@ void CauterizedModel::updateRenderItems() {
     if (_isCauterized) {
         if (!_addedToScene) {
             return;
-        }
-
-        glm::vec3 scale = getScale();
-        if (_collisionGeometry) {
-            // _collisionGeometry is already scaled
-            scale = glm::vec3(1.0f);
         }
         _needsUpdateClusterMatrices = true;
         _renderItemsNeedUpdate = false;

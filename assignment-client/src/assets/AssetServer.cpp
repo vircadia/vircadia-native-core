@@ -291,18 +291,6 @@ AssetServer::AssetServer(ReceivedMessage& message) :
     _bakingTaskPool(this),
     _filesizeLimit(AssetUtils::MAX_UPLOAD_SIZE)
 {
-    // store the current state of image compression so we can reset it when this assignment is complete
-    _wasColorTextureCompressionEnabled = image::isColorTexturesCompressionEnabled();
-    _wasGrayscaleTextureCompressionEnabled = image::isGrayscaleTexturesCompressionEnabled();
-    _wasNormalTextureCompressionEnabled = image::isNormalTexturesCompressionEnabled();
-    _wasCubeTextureCompressionEnabled = image::isCubeTexturesCompressionEnabled();
-
-    // enable compression in image library
-    image::setColorTexturesCompressionEnabled(true);
-    image::setGrayscaleTexturesCompressionEnabled(true);
-    image::setNormalTexturesCompressionEnabled(true);
-    image::setCubeTexturesCompressionEnabled(true);
-
     BAKEABLE_TEXTURE_EXTENSIONS = image::getSupportedFormats();
     qDebug() << "Supported baking texture formats:" << BAKEABLE_MODEL_EXTENSIONS;
 
@@ -354,12 +342,6 @@ void AssetServer::aboutToFinish() {
     while (_pendingBakes.size() > 0) {
         QCoreApplication::processEvents();
     }
-
-    // re-set defaults in image library
-    image::setColorTexturesCompressionEnabled(_wasCubeTextureCompressionEnabled);
-    image::setGrayscaleTexturesCompressionEnabled(_wasGrayscaleTextureCompressionEnabled);
-    image::setNormalTexturesCompressionEnabled(_wasNormalTextureCompressionEnabled);
-    image::setCubeTexturesCompressionEnabled(_wasCubeTextureCompressionEnabled);
 }
 
 void AssetServer::run() {

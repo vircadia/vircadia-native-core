@@ -76,7 +76,7 @@ QVariant Volume3DOverlay::getProperty(const QString& property) {
 }
 
 bool Volume3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                            float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
+                                          float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking) {
     // extents is the entity relative, scaled, centered extents of the entity
     glm::mat4 worldToEntityMatrix;
     Transform transform = getTransform();

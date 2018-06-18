@@ -1,0 +1,102 @@
+//
+//  fbx.bt
+//  tools/010-templates
+//
+//  Created by Ryan Huffman
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  FBX file template
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+local char use64BitAddresses = 1;
+
+struct Header {
+    char prefix[23];
+    int32 version;
+};
+
+struct Property {
+    char type;
+    if (type == 'Y') {
+        int16 value;
+    } else if (type == 'C') {
+        char value;
+    } else if (type == 'I') {
+        int32 value;
+    } else if (type == 'F') {
+        float value;
+    } else if (type == 'D') {
+        double value;
+    } else if (type == 'L') {
+        int64 value;
+    } else if (type == 'S' || type == 'R') {
+        uint32 size;
+        char value[size];
+    } else {
+        uint32 length;
+        uint32 encoding;
+        uint32 compressedLength;
+        if (encoding == 1) {
+            char compressedData[compressedLength];
+        } else if (type == 'f') {
+            float values[this.length];
+        } else if (type == 'd') {
+            double values[this.length];
+        } else if (type == 'l') {
+            int64 values[this.length];
+        } else if (type == 'i') {
+            int32 values[this.length];
+        } else if (type == 'b') {
+            char values[this.length];
+        } else {
+            Printf("%c", type);
+            Assert(false, "Error, unknown property type");
+        }
+    }
+};
+
+struct Node;
+
+string nodeName(Node& node) {
+    if (!exists(node.name)) {
+        return "Node ----- ";
+    }
+    local string s;
+    SPrintf(s, "Node (%s) ", node.name);
+    return s;
+}
+
+struct Node {
+    if (use64BitAddresses) {
+        int64 endOffset;
+        uint64 propertyCount;
+        uint64 propertyListLength;
+    } else {
+        int32 endOffset;
+        uint32 propertyCount;
+        uint32 propertyListLength;
+    }
+    uchar nameLength;
+    char name[this.nameLength];
+    Property properties[this.propertyCount]<optimize=false>;
+    while (FTell() < endOffset) {
+        Node children<optimize=false, name=nodeName>;
+    }
+};
+
+struct File {
+    Header header;
+    use64BitAddresses = header.version >= 7500;
+    local int i = 0;
+    Node node<name=nodeName>;
+    local string name = node.name;
+    while (name != "") {
+        Node node<name=nodeName>;
+        i++;
+        name = exists(node[i].name) ? node[i].name : "";
+    }
+
+} file;
