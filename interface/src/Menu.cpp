@@ -725,7 +725,6 @@ Menu::Menu() {
         addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowOwned,
             0, false, drawStatusConfig, SLOT(setShowNetwork(bool)));
     }
-    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowHulls, 0, false, qApp->getEntities().data(), SIGNAL(setRenderDebugHulls()));
 
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletWireframe, 0, false, qApp, SLOT(setShowBulletWireframe(bool)));
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletAABBs, 0, false, qApp, SLOT(setShowBulletAABBs(bool)));
@@ -813,7 +812,7 @@ Menu::Menu() {
     });
     essLogAction->setEnabled(nodeList->getThisNodeCanRez());
 
-    action = addActionToQMenuAndActionHash(developerMenu, "Script Log (HMD friendly)...", Qt::NoButton,
+    addActionToQMenuAndActionHash(developerMenu, "Script Log (HMD friendly)...", Qt::NoButton,
                                            qApp, SLOT(showScriptLogs()));
 
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::VerboseLogging, 0, false,

@@ -2423,9 +2423,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
         if (appendState != OctreeElement::COMPLETED) {
             didntFitProperties = propertiesDidntFit;
         }
-    }
 
-    if (success) {
         packetData->endSubTree();
 
         const char* finalizedData = reinterpret_cast<const char*>(packetData->getFinalizedData());
@@ -2436,14 +2434,12 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             buffer.resize(finalizedSize);
         } else {
             qCDebug(entities) << "ERROR - encoded edit message doesn't fit in output buffer.";
-            success = false;
             appendState = OctreeElement::NONE; // if we got here, then we didn't include the item
             // maybe we should assert!!!
         }
     } else {
         packetData->discardSubTree();
     }
-
 
     return appendState;
 }
@@ -2834,7 +2830,6 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
     outputLength = sizeof(numberOfIds);
 
     memcpy(copyAt, entityItemID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
-    copyAt += NUM_BYTES_RFC4122_UUID;
     outputLength += NUM_BYTES_RFC4122_UUID;
 
     buffer.resize(outputLength);
@@ -2856,7 +2851,6 @@ bool EntityItemProperties::encodeCloneEntityMessage(const EntityItemID& entityID
     outputLength += NUM_BYTES_RFC4122_UUID;
 
     memcpy(copyAt, newEntityID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
-    copyAt += NUM_BYTES_RFC4122_UUID;
     outputLength += NUM_BYTES_RFC4122_UUID;
 
     buffer.resize(outputLength);

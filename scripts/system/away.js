@@ -177,6 +177,10 @@ function goActive() {
 
     UserActivityLogger.toggledAway(false);
     MyAvatar.isAway = false;
+
+    if (!Window.hasFocus()) {
+        Window.setFocus();
+    }
 }
 
 MyAvatar.wentAway.connect(setAwayProperties);
