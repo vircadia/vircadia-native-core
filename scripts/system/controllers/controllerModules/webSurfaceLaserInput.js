@@ -54,7 +54,8 @@ Script.include("/~/system/libraries/controllers.js");
             var intersection = controllerData.rayPicks[this.hand];
             if (intersection.type === Picks.INTERSECTED_OVERLAY) {
                 var objectID = intersection.objectID;
-                if ((HMD.tabletScreenID && objectID === HMD.tabletScreenID) || 
+                if ((HMD.tabletID && objectID === HMD.tabletID) ||
+					(HMD.tabletScreenID && objectID === HMD.tabletScreenID) || 
                     (HMD.homeButtonID && objectID === HMD.homeButtonID)) {
                     return true;
                 } else {
