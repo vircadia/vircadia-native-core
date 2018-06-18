@@ -171,6 +171,10 @@ FocusScope {
         }
     }
 
+    function textAt(index) {
+        return comboBox.textAt(index);
+    }
+
     HifiControls.Label {
         id: comboBoxLabel
         text: root.label
