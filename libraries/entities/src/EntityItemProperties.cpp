@@ -854,7 +854,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     default is Earth's gravity value.
  * @property {vec3} accelerationSpread=0,0,0 - The spread in accelerations that each particle is given. If
  *     <code>emitAccelerations == {x: 0, y: -9.8, z: 0}</code> and <code>accelerationSpread ==
- *     {x: 0, y: 1, z: 0}</code>, each particle will have an acceleration in the range, <code>{x: 0, y: -10.8, z: 0}</code> 
+ *     {x: 0, y: 1, z: 0}</code>, each particle will have an acceleration in the range <code>{x: 0, y: -10.8, z: 0}</code>
  *     &ndash; <code>{x: 0, y: -8.8, z: 0}</code>.
  * @property {Vec3} dimensions - The dimensions of the particle effect, i.e., a bounding box containing all the particles
  *     during their lifetimes, assuming that <code>emitterShouldTrail</code> is <code>false</code>. <em>Read-only.</em>
@@ -890,19 +890,24 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <code>particleRadius</code> value is used.
  * @property {number} radiusFinish=0.025 - The radius of each particle at the end of its life. If not explicitly set, the
  *     <code>particleRadius</code> value is used.
- * @property {number} radiusSpread=0 - <em>Currently not used.</em>
+ * @property {number} radiusSpread=0 - The spread in radius that each particle is given. If <code>particleRadius == 0.5</code>
+ *     and <code>radiusSpread == 0.25</code>, each particle will have a radius in the range <code>0.25</code> &ndash; <code>0.75</code>.
  * @property {Color} color=255,255,255 - The color of each particle at the middle of its life.
  * @property {Color} colorStart=255,255,255 - The color of each particle at the start of its life. If not explicitly set, the
  *     <code>color</code> value is used.
  * @property {Color} colorFinish=255,255,255 - The color of each particle at the end of its life. If not explicitly set, the
  *     <code>color</code> value is used.
- * @property {Color} colorSpread=0,0,0 - <em>Currently not used.</em>
+ * @property {Color} colorSpread=0,0,0 - The spread in color that each particle is given. If
+ *     <code>color == {red: 100, green: 100, blue: 100}</code> and <code>colorSpread ==
+ *     {red: 10, green: 25, blue: 50}</code>, each particle will have an acceleration in the range <code>{red: 90, green: 75, blue: 50}</code>
+ *     &ndash; <code>{red: 110, green: 125, blue: 150}</code>.
  * @property {number} alpha=1 - The alpha of each particle at the middle of its life.
  * @property {number} alphaStart=1 - The alpha of each particle at the start of its life. If not explicitly set, the
  *     <code>alpha</code> value is used.
  * @property {number} alphaFinish=1 - The alpha of each particle at the end of its life. If not explicitly set, the
  *     <code>alpha</code> value is used.
- * @property {number} alphaSpread=0 - <em>Currently not used.</em>
+ * @property {number} alphaSpread=0 - The spread in alpha that each particle is given. If <code>alpha == 0.5</code>
+ *     and <code>alphaSpread == 0.25</code>, each particle will have an alpha in the range <code>0.25</code> &ndash; <code>0.75</code>.
  *
  * @property {ShapeType} shapeType="none" - <em>Currently not used.</em> <em>Read-only.</em>
  *

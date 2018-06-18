@@ -21,10 +21,10 @@ namespace particle {
     static const float SCRIPT_MAXIMUM_PI = 3.1416f;  // Round up so that reasonable property values work
     static const float UNINITIALIZED = NAN;
     static const vec3 DEFAULT_COLOR = { 255, 255, 255 };
-    static const xColor DEFAULT_XCOLOR = { (unsigned int)DEFAULT_COLOR.r, (unsigned int)DEFAULT_COLOR.g, (unsigned int)DEFAULT_COLOR.b };
+    static const xColor DEFAULT_XCOLOR = { static_cast<unsigned char>(DEFAULT_COLOR.r), static_cast<unsigned char>(DEFAULT_COLOR.g), static_cast<unsigned char>(DEFAULT_COLOR.b) };
     static const vec3 DEFAULT_COLOR_UNINITIALIZED = { UNINITIALIZED, UNINITIALIZED, UNINITIALIZED };
     static const vec3 DEFAULT_COLOR_SPREAD = { 0, 0, 0 };
-    static const xColor DEFAULT_XCOLOR_SPREAD = { (unsigned int)DEFAULT_COLOR_SPREAD.r, (unsigned int)DEFAULT_COLOR_SPREAD.g, (unsigned int)DEFAULT_COLOR_SPREAD.b };
+    static const xColor DEFAULT_XCOLOR_SPREAD = { static_cast<unsigned char>(DEFAULT_COLOR_SPREAD.r), static_cast<unsigned char>(DEFAULT_COLOR_SPREAD.g), static_cast<unsigned char>(DEFAULT_COLOR_SPREAD.b) };
     static const float DEFAULT_ALPHA = 1.0f;
     static const float DEFAULT_ALPHA_SPREAD = 0.0f;
     static const float DEFAULT_ALPHA_START = UNINITIALIZED;
