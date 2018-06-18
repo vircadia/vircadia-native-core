@@ -185,9 +185,13 @@ void ParticleEffectEntityItem::setAlphaSpread(float alphaSpread) {
 }
 
 void ParticleEffectEntityItem::setLifespan(float lifespan) {
-    withWriteLock([&] {
-        _particleProperties.lifespan = glm::clamp(lifespan, MINIMUM_LIFESPAN, MAXIMUM_LIFESPAN);
-    });
+    lifespan = glm::clamp(lifespan, MINIMUM_LIFESPAN, MAXIMUM_LIFESPAN);
+    if (lifespan != _particleProperties.lifespan) {
+        withWriteLock([&] {
+            _particleProperties.lifespan = lifespan;
+        });
+        computeAndUpdateDimensions();
+    }
 }
 
 void ParticleEffectEntityItem::setEmitRate(float emitRate) {
@@ -218,10 +222,12 @@ void ParticleEffectEntityItem::setSpeedSpread(float speedSpread) {
 
 void ParticleEffectEntityItem::setEmitOrientation(const glm::quat& emitOrientation_) {
     auto emitOrientation = glm::normalize(emitOrientation_);
-    withWriteLock([&] {
-        _particleProperties.emission.orientation = emitOrientation; 
-    });
-    computeAndUpdateDimensions();
+    if (emitOrientation != _particleProperties.emission.orientation) {
+        withWriteLock([&] {
+            _particleProperties.emission.orientation = emitOrientation;
+        });
+        computeAndUpdateDimensions();
+    }
 }
 
 void ParticleEffectEntityItem::setEmitDimensions(const glm::vec3& emitDimensions_) {
@@ -285,27 +291,43 @@ void ParticleEffectEntityItem::setAccelerationSpread(const glm::vec3& accelerati
 }
 
 void ParticleEffectEntityItem::setParticleRadius(float particleRadius) {
-    withWriteLock([&] {
-        _particleProperties.radius.gradient.target = glm::clamp(particleRadius, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
-    });
+    particleRadius = glm::clamp(particleRadius, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
+    if (particleRadius != _particleProperties.radius.gradient.target) {
+        withWriteLock([&] {
+            _particleProperties.radius.gradient.target = particleRadius;
+        });
+        computeAndUpdateDimensions();
+    }
 }
 
 void ParticleEffectEntityItem::setRadiusStart(float radiusStart) {
-    withWriteLock([&] {
-        _particleProperties.radius.range.start = glm::isnan(radiusStart) ? radiusStart : glm::clamp(radiusStart, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
-    });
+    radiusStart = glm::isnan(radiusStart) ? radiusStart : glm::clamp(radiusStart, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
+    if (radiusStart != _particleProperties.radius.range.start) {
+        withWriteLock([&] {
+            _particleProperties.radius.range.start = radiusStart;
+        });
+        computeAndUpdateDimensions();
+    }
 }
 
 void ParticleEffectEntityItem::setRadiusFinish(float radiusFinish) {
-    withWriteLock([&] {
-        _particleProperties.radius.range.finish = glm::isnan(radiusFinish) ? radiusFinish : glm::clamp(radiusFinish, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
-    });
+    radiusFinish = glm::isnan(radiusFinish) ? radiusFinish : glm::clamp(radiusFinish, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
+    if (radiusFinish != _particleProperties.radius.range.finish) {
+        withWriteLock([&] {
+            _particleProperties.radius.range.finish = radiusFinish;
+        });
+        computeAndUpdateDimensions();
+    }
 }
 
-void ParticleEffectEntityItem::setRadiusSpread(float radiusSpread) { 
-    withWriteLock([&] {
-        _particleProperties.radius.gradient.spread = glm::clamp(radiusSpread, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
-    });
+void ParticleEffectEntityItem::setRadiusSpread(float radiusSpread) {
+    radiusSpread = glm::clamp(radiusSpread, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
+    if (radiusSpread != _particleProperties.radius.gradient.spread) {
+        withWriteLock([&] {
+            _particleProperties.radius.gradient.spread = radiusSpread;
+        });
+        computeAndUpdateDimensions();
+    }
 }
 
 
@@ -320,8 +342,15 @@ void ParticleEffectEntityItem::computeAndUpdateDimensions() {
     glm::vec3 velocity = particleProperties.emission.speed.target * direction;
     glm::vec3 velocitySpread = particleProperties.emission.speed.spread * direction;
     glm::vec3 maxVelocity = glm::abs(velocity) + velocitySpread;
-    glm::vec3 maxAccleration = glm::abs(_acceleration) + particleProperties.emission.acceleration.spread;
-    glm::vec3 maxDistance = 0.5f * particleProperties.emission.dimensions + time * maxVelocity + (0.5f * time * time) * maxAccleration;
+    glm::vec3 maxAccleration = particleProperties.emission.acceleration.target + particleProperties.emission.acceleration.spread;
+    float maxRadius = particleProperties.radius.gradient.target;
+    if (!glm::isnan(particleProperties.radius.range.start)) {
+        maxRadius = glm::max(maxRadius, particleProperties.radius.range.start);
+    }
+    if (!glm::isnan(particleProperties.radius.range.finish)) {
+        maxRadius = glm::max(maxRadius, particleProperties.radius.range.finish);
+    }
+    glm::vec3 maxDistance = 0.5f * particleProperties.emission.dimensions + time * maxVelocity + (0.5f * time * time) * maxAccleration + vec3(maxRadius + particleProperties.radius.gradient.spread);
     if (isNaN(maxDistance)) {
         qCWarning(entities) << "Bad particle data";
         return;
