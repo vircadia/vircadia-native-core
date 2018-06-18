@@ -63,13 +63,13 @@ Sysmem& Sysmem::operator=(const Sysmem& sysmem) {
 
 Sysmem::~Sysmem() {
     deallocateMemory( _data, _size );
-    _data = NULL;
+    _data = nullptr;
     _size = 0;
 }
 
 Size Sysmem::allocate(Size size) {
     if (size != _size) {
-        Byte* newData = NULL;
+        Byte* newData = nullptr;
         Size newSize = 0;
         if (size > 0) {
             Size allocated = allocateMemory(&newData, size);
@@ -90,7 +90,7 @@ Size Sysmem::allocate(Size size) {
 
 Size Sysmem::resize(Size size) {
     if (size != _size) {
-        Byte* newData = NULL;
+        Byte* newData = nullptr;
         Size newSize = 0;
         if (size > 0) {
             Size allocated = allocateMemory(&newData, size);
@@ -124,7 +124,7 @@ Size Sysmem::setData( Size size, const Byte* bytes ) {
 }
 
 Size Sysmem::setSubData( Size offset, Size size, const Byte* bytes) {
-    if (size && ((offset + size) <= getSize()) && bytes) {
+    if (_data && size && ((offset + size) <= getSize()) && bytes) {
         memcpy( _data + offset, bytes, size );
         return size;
     }

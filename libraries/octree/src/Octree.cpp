@@ -401,7 +401,6 @@ int Octree::readElementData(const OctreeElementPointer& destinationElement, cons
         // tell the element to read the subsequent data
         int rootDataSize = _rootElement->readElementDataFromBuffer(nodeData + bytesRead, bytesLeftToRead, args);
         bytesRead += rootDataSize;
-        bytesLeftToRead -= rootDataSize;
     }
 
     return bytesRead;
