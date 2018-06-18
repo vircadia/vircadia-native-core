@@ -63,8 +63,15 @@ ScriptAudioInjector* AudioScriptingInterface::playSound(SharedSoundPointer sound
 bool AudioScriptingInterface::setStereoInput(bool stereo) {
     bool stereoInputChanged = false;
     if (_localAudioInterface) {
-        stereoInputChanged = _localAudioInterface->setIsStereoInput(stereo);
+        if (QThread::currentThread() != _localAudioInterface->thread()) {
+            // TODO: This can block the main thread which is not ideal, make this function and the UI calling it async
+            BLOCKING_INVOKE_METHOD(_localAudioInterface, "setIsStereoInput", Q_RETURN_ARG(bool, stereoInputChanged),
+                                   Q_ARG(bool, stereo));
+        } else {
+            stereoInputChanged = _localAudioInterface->setIsStereoInput(stereo);
+        }
     }
+    
     return stereoInputChanged;
 }
 
