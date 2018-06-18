@@ -81,12 +81,7 @@ bool Test::compareImageLists(bool isInteractiveMode, QProgressBar* progressBar) 
             QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Images are not the same size");
             similarityIndex = -100.0;
         } else {
-            try {
-                similarityIndex = imageComparer.compareImages(resultImage, expectedImage);
-            } catch (...) {
-                QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Image not in expected format");
-                exit(-1);
-            }
+            similarityIndex = imageComparer.compareImages(resultImage, expectedImage);
         }
 
         if (similarityIndex < THRESHOLD) {

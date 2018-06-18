@@ -127,14 +127,12 @@ void AutoTester::downloadImages(const QStringList& URLs, const QString& director
 }
 
 void AutoTester::saveImage(int index) {
-    QPixmap pixmap;
-    pixmap.loadFromData(downloaders[index]->downloadedData());
-
-    QImage image = pixmap.toImage();
-    image = image.convertToFormat(QImage::Format_ARGB32);
-
-    QString fullPathname = _directoryName + "/" + _filenames[index];
-    if (!image.save(fullPathname, 0, 100)) {
+    try {
+        QFile file(_directoryName + "/" + _filenames[index]);
+        file.open(QIODevice::WriteOnly);
+        file.write(downloaders[index]->downloadedData());
+        file.close();
+    } catch (...) {
         QMessageBox::information(0, "Test Aborted", "Failed to save image: " + _filenames[index]);
         ui.progressBar->setVisible(false);
         return;
