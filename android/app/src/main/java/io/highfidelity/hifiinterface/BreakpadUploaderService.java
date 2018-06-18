@@ -54,8 +54,7 @@ public class BreakpadUploaderService extends Service {
 
         new Thread(() -> {
             File[] matchingFiles = getFilesByExtension(getObbDir(), EXT_DMP);
-            for (File file : matchingFiles)
-            {
+            for (File file : matchingFiles) {
                 uploadDumpAndDelete(file, baseUrl);
             }
         }).start();
@@ -98,25 +97,25 @@ public class BreakpadUploaderService extends Service {
         int size = (int) file.length();
         byte[] bytes = new byte[size];
         try {
-        BufferedInputStream buf = new BufferedInputStream(new FileInputStream(file));
-            buf.read(bytes, 0, bytes.length);
-        buf.close();
-        HttpsURLConnection urlConnection = (HttpsURLConnection) url.openConnection();
-        urlConnection.setRequestMethod("POST");
-        urlConnection.setDoOutput(true);
-        urlConnection.setChunkedStreamingMode(0);
+            BufferedInputStream buf = new BufferedInputStream(new FileInputStream(file));
+                buf.read(bytes, 0, bytes.length);
+            buf.close();
+            HttpsURLConnection urlConnection = (HttpsURLConnection) url.openConnection();
+            urlConnection.setRequestMethod("POST");
+            urlConnection.setDoOutput(true);
+            urlConnection.setChunkedStreamingMode(0);
 
-        OutputStream ostream = urlConnection.getOutputStream();
+            OutputStream ostream = urlConnection.getOutputStream();
 
-        OutputStream out = new BufferedOutputStream(ostream);
-        out.write(bytes, 0, size);
+            OutputStream out = new BufferedOutputStream(ostream);
+            out.write(bytes, 0, size);
 
-        InputStream in = new BufferedInputStream(urlConnection.getInputStream());
-        in.read();
-        if (urlConnection.getResponseCode() == 200) {
-            file.delete();
-        }
-        urlConnection.disconnect();
+            InputStream in = new BufferedInputStream(urlConnection.getInputStream());
+            in.read();
+            if (urlConnection.getResponseCode() == 200) {
+                file.delete();
+            }
+            urlConnection.disconnect();
         } catch (IOException e) {
             Log.e(TAG, "Error uploading file " + file.getAbsolutePath(), e);
         }
@@ -128,20 +127,17 @@ public class BreakpadUploaderService extends Service {
         return null;
     }
 
-    private File[] getFilesByExtension(File dir, final String extension)
-    {
+    private File[] getFilesByExtension(File dir, final String extension) {
         return dir.listFiles(pathName -> getExtension(pathName.getName()).equals(extension));
     }
 
-    private String getExtension(String fileName)
-    {
+    private String getExtension(String fileName) {
         String extension = "";
 
         int i = fileName.lastIndexOf('.');
         int p = Math.max(fileName.lastIndexOf('/'), fileName.lastIndexOf('\\'));
 
-        if (i > p)
-        {
+        if (i > p) {
             extension = fileName.substring(i+1);
         }
 

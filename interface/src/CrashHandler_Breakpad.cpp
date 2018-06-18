@@ -60,7 +60,7 @@ void setCrashAnnotation(std::string name, std::string value) {
     QSettings settings(obbDir() + "/annotations.json", JSON_FORMAT);
     settings.clear();
     settings.beginGroup("Annotations");
-    for(auto k : annotations.keys()) {
+    for (auto k : annotations.keys()) {
         settings.setValue(k, annotations.value(k));
     }
     settings.endGroup();
