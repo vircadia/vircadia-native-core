@@ -67,6 +67,12 @@
             android:name=".SplashActivity"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.AppCompat.Translucent.NoActionBar" />
+
+        <service
+            android:name=".BreakpadUploaderService"
+            android:enabled="true"
+            android:exported="false"
+            android:process=":breakpad_uploader"/>
     </application>
 
     <uses-feature android:name="android.software.vr.mode" android:required="true"/>

@@ -150,8 +150,8 @@
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
 #include "avatar/MyHead.h"
+#include "CrashRecoveryHandler.h"
 #include "CrashHandler.h"
-#include "Crashpad.h"
 #include "devices/DdeFaceTracker.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
@@ -282,7 +282,9 @@ public:
 
 private:
     void initialize() {
+        setObjectName("Render");
         PROFILE_SET_THREAD_NAME("Render");
+        setCrashAnnotation("render_thread_id", std::to_string((size_t)QThread::currentThreadId()));
         if (!_renderContext->makeCurrent()) {
             qFatal("Unable to make rendering context current on render thread");
         }
@@ -791,7 +793,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
 
     bool previousSessionCrashed { false };
     if (!inTestMode) {
-        previousSessionCrashed = CrashHandler::checkForResetSettings(runningMarkerExisted, suppressPrompt);
+        previousSessionCrashed = CrashRecoveryHandler::checkForResetSettings(runningMarkerExisted, suppressPrompt);
     }
 
     // get dir to use for cache
@@ -1096,6 +1098,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _logger->setSessionID(accountManager->getSessionID());
 
     setCrashAnnotation("metaverse_session_id", accountManager->getSessionID().toString().toStdString());
+    setCrashAnnotation("main_thread_id", std::to_string((size_t)QThread::currentThreadId()));
 
     if (steamClient) {
         qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << steamClient->getSteamVRBuildID();
@@ -1241,9 +1244,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(accountManager.data(), &AccountManager::authRequired, dialogsManager.data(), &DialogsManager::showLoginDialog);
 #endif
     connect(accountManager.data(), &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
-    connect(accountManager.data(), &AccountManager::usernameChanged, [](QString username){
-        setCrashAnnotation("username", username.toStdString());
-    });
 
     // set the account manager's root URL and trigger a login request if we don't have the access token
     accountManager->setIsAgent(true);
@@ -6164,6 +6164,8 @@ void Application::updateWindowTitle() const {
 
     QString connectionStatus = nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED)";
     QString username = accountManager->getAccountInfo().getUsername();
+
+    setCrashAnnotation("username", username.toStdString());
 
     QString currentPlaceName;
     if (isServerlessMode()) {
