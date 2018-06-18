@@ -144,9 +144,10 @@ HifiEntityUI.prototype = {
                     vector.z = z.value;
                 }
                 json[key] = vector;
+            } else if (el.className.indexOf("radian") !== -1) {
+                json[key] = document.getElementById(key).value * RADIANS_PER_DEGREE;
             } else if (el.className.length > 0) {
-                json[key] = document.getElementById(key)
-                    .value;
+                json[key] = document.getElementById(key).value;
             }
         }
 
@@ -543,12 +544,11 @@ HifiEntityUI.prototype = {
             slider.setAttribute("step", 1);
 
             inputField.oninput = function (event) {
-
+                // TODO: Remove this functionality?  Alan finds it confusing
                 if (parseInt(event.target.value) > parseInt(slider.getAttribute("max")) && group.max !== 1) {
                     slider.setAttribute("max", event.target.value);
                 }
                 slider.value = event.target.value;
-
                 self.webBridgeSync(group.id, slider.value);
             };
             inputField.onchange = inputField.oninput;
@@ -599,6 +599,7 @@ HifiEntityUI.prototype = {
             slider.setAttribute("step", 0.01);
 
             inputField.oninput = function (event) {
+                // TODO: Remove this functionality?  Alan finds it confusing
                 if (parseFloat(event.target.value) > parseFloat(slider.getAttribute("max")) && group.max !== 1) {
                     slider.setAttribute("max", event.target.value);
                 }

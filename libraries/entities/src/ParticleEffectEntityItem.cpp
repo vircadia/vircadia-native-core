@@ -145,6 +145,8 @@ uint64_t Properties::emitIntervalUsecs() const {
     return 0;
 }
 
+const xColor ParticleEffectEntityItem::DEFAULT_XCOLOR = xColor(static_cast<unsigned char>(DEFAULT_COLOR.r), static_cast<unsigned char>(DEFAULT_COLOR.g), static_cast<unsigned char>(DEFAULT_COLOR.b));
+const xColor ParticleEffectEntityItem::DEFAULT_XCOLOR_SPREAD = xColor(static_cast<unsigned char>(DEFAULT_COLOR_SPREAD.r), static_cast<unsigned char>(DEFAULT_COLOR_SPREAD.g), static_cast<unsigned char>(DEFAULT_COLOR_SPREAD.b));
 
 EntityItemPointer ParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity(new ParticleEffectEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
@@ -342,7 +344,7 @@ void ParticleEffectEntityItem::computeAndUpdateDimensions() {
     glm::vec3 velocity = particleProperties.emission.speed.target * direction;
     glm::vec3 velocitySpread = particleProperties.emission.speed.spread * direction;
     glm::vec3 maxVelocity = glm::abs(velocity) + velocitySpread;
-    glm::vec3 maxAccleration = particleProperties.emission.acceleration.target + particleProperties.emission.acceleration.spread;
+    glm::vec3 maxAccleration = glm::abs(particleProperties.emission.acceleration.target) + particleProperties.emission.acceleration.spread;
     float maxRadius = particleProperties.radius.gradient.target;
     if (!glm::isnan(particleProperties.radius.range.start)) {
         maxRadius = glm::max(maxRadius, particleProperties.radius.range.start);
