@@ -98,10 +98,10 @@ public:
     JobConfig() = default;
     JobConfig(bool enabled) : alwaysEnabled{ false }, enabled{ enabled } {}
 
-    bool isEnabled() { return alwaysEnabled || enabled; }
-    void setEnabled(bool enable) { enabled = alwaysEnabled || enable; emit dirtyEnabled(); }
+    bool isEnabled() { return /*alwaysEnabled ||*/ enabled; }
+    void setEnabled(bool enable) { enabled = /*alwaysEnabled ||*/ enable; emit dirtyEnabled(); }
 
-    bool alwaysEnabled{ true };
+    bool alwaysEnabled{ false };
     bool enabled{ true };
 
     virtual void setPresetList(const QJsonObject& object);
