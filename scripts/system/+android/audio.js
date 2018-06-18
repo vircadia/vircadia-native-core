@@ -46,6 +46,7 @@ function init() {
 
 function onMuteClicked() {
     Audio.muted = !Audio.muted;
+    Menu.triggerOption("Out of Bounds Vector Access");
 }
 
 function onMutePressed() {
