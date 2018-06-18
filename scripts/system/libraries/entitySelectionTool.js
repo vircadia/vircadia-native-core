@@ -201,10 +201,10 @@ SelectionManager = (function() {
             that.worldRotation = properties.boundingBox.rotation;
 
             that.entityType = properties.type;
-			
-			if (selectionUpdated) {
-				SelectionDisplay.setSpaceMode(SPACE_LOCAL);
-			}
+            
+            if (selectionUpdated) {
+                SelectionDisplay.setSpaceMode(SPACE_LOCAL);
+            }
         } else {
             that.localRotation = null;
             that.localDimensions = null;
