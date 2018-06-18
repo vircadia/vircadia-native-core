@@ -28,7 +28,7 @@ android {
                     '-DSTABLE_BUILD=' + STABLE_BUILD,
                     '-DDISABLE_QML=OFF',
                     '-DDISABLE_KTX_CACHE=OFF',
-                    '-DUSE_BREAKPAD=' + (project.hasProperty("BACKTRACE_URL") && project.hasProperty("BACKTRACE_TOKEN") ? 'ON' : 'OFF');
+                    '-DUSE_BREAKPAD=' + (System.getenv("BACKTRACE_URL") && System.getenv("BACKTRACE_TOKEN") ? 'ON' : 'OFF');
             }
         }
         signingConfigs {
@@ -48,8 +48,8 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField "String", "BACKTRACE_URL", "\"" + (project.hasProperty("BACKTRACE_URL") ? BACKTRACE_URL : '') + "\""
-            buildConfigField "String", "BACKTRACE_TOKEN", "\"" + (project.hasProperty("BACKTRACE_TOKEN") ? BACKTRACE_TOKEN : '') + "\""
+            buildConfigField "String", "BACKTRACE_URL", "\"" + (System.getenv("BACKTRACE_URL") ? System.getenv("BACKTRACE_URL") : '') + "\""
+            buildConfigField "String", "BACKTRACE_TOKEN", "\"" + (System.getenv("BACKTRACE_TOKEN") ? System.getenv("BACKTRACE_TOKEN") : '') + "\""
         }
         release {
             minifyEnabled false
@@ -58,8 +58,8 @@ android {
                     project.hasProperty("HIFI_ANDROID_KEYSTORE_PASSWORD") &&
                     project.hasProperty("HIFI_ANDROID_KEY_ALIAS") &&
                     project.hasProperty("HIFI_ANDROID_KEY_PASSWORD")? signingConfigs.release : null
-            buildConfigField "String", "BACKTRACE_URL", "\"" + (project.hasProperty("BACKTRACE_URL") ? BACKTRACE_URL : '') + "\""
-            buildConfigField "String", "BACKTRACE_TOKEN", "\"" + (project.hasProperty("BACKTRACE_TOKEN") ? BACKTRACE_TOKEN : '') + "\""
+            buildConfigField "String", "BACKTRACE_URL", "\"" + (System.getenv("BACKTRACE_URL") ? System.getenv("BACKTRACE_URL") : '') + "\""
+            buildConfigField "String", "BACKTRACE_TOKEN", "\"" + (System.getenv("BACKTRACE_TOKEN") ? System.getenv("BACKTRACE_TOKEN") : '') + "\""
         }
     }
 
