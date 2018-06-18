@@ -2241,9 +2241,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     DependencyManager::get<EntityTreeRenderer>()->setSetPrecisionPickingOperator([&](unsigned int rayPickID, bool value) {
         DependencyManager::get<PickManager>()->setPrecisionPicking(rayPickID, value);
     });
-    EntityTreeRenderer::setRenderDebugHullsOperator([] {
-        return Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowHulls);
-    });
 
     // Preload Tablet sounds
     DependencyManager::get<TabletScriptingInterface>()->preloadSounds();
