@@ -133,9 +133,9 @@ Rectangle {
                 }
                 Repeater {
                     model: [ 
-                        "R1:r1Back:50.0:0.0",
-                        "R2:r2Back:50.0:0.0",
-                        "R3:r3Back:50.0:0.0"
+                        "R1:r1Back:250.0:0.0",
+                        "R2:r2Back:250.0:0.0",
+                        "R3:r3Back:250.0:0.0"
                     ]
                     ConfigSlider {
                         label: qsTr(modelData.split(":")[0])
@@ -160,9 +160,9 @@ Rectangle {
                 }
                 Repeater {
                     model: [ 
-                        "r1Front:300:1.0",
-                        "r2Front:300:1.0",
-                        "r3Front:300:1.0"
+                        "r1Front:500:1.0",
+                        "r2Front:500:1.0",
+                        "r3Front:500:1.0"
                     ]
                     ConfigSlider {
                         showLabel: false
