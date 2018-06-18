@@ -29,6 +29,8 @@
 #include <VrMenu.h>
 #include <ScriptEngines.h>
 #include <MenuItemProperties.h>
+#include <ui/types/FileTypeProfile.h>
+#include <ui/types/HFWebEngineProfile.h>
 
 #include "Application.h"
 #include "AccountManager.h"
@@ -635,8 +637,12 @@ Menu::Menu() {
 
 	action = addActionToQMenuAndActionHash(networkMenu, MenuOption::ClearDiskCaches);
     connect(action, &QAction::triggered, [] {
-        // This cache is cleared immediately
+        // The following caches are cleared immediately
         DependencyManager::get<AssetClient>()->clearCache();
+#ifndef Q_OS_ANDROID
+        FileTypeProfile::clearCache();
+        HFWebEngineProfile::clearCache();
+#endif
 
         // Clear the KTX cache on the next restart. It can't be cleared immediately because its files might be in use.
         Setting::Handle<int>(KTXCache::SETTING_VERSION_NAME, KTXCache::INVALID_VERSION).set(KTXCache::INVALID_VERSION);
