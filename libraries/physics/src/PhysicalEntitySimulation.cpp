@@ -328,13 +328,7 @@ void PhysicalEntitySimulation::handleChangedMotionStates(const VectorOfMotionSta
 }
 
 void PhysicalEntitySimulation::addOwnershipBid(EntityMotionState* motionState) {
-    if (getEntityTree()->isServerlessMode()) {
-        EntityItemPointer entity = motionState->getEntity();
-        auto nodeList = DependencyManager::get<NodeList>();
-        auto sessionID = nodeList->getSessionUUID();
-        entity->setSimulationOwner(SimulationOwner(sessionID, SCRIPT_GRAB_SIMULATION_PRIORITY));
-        _owned.push_back(motionState);
-    } else {
+    if (!getEntityTree()->isServerlessMode()) {
         motionState->initForBid();
         motionState->sendBid(_entityPacketSender, _physicsEngine->getNumSubsteps());
         _bids.push_back(motionState);
@@ -343,8 +337,10 @@ void PhysicalEntitySimulation::addOwnershipBid(EntityMotionState* motionState) {
 }
 
 void PhysicalEntitySimulation::addOwnership(EntityMotionState* motionState) {
-    motionState->initForOwned();
-    _owned.push_back(motionState);
+    if (!getEntityTree()->isServerlessMode()) {
+        motionState->initForOwned();
+        _owned.push_back(motionState);
+    }
 }
 
 void PhysicalEntitySimulation::sendOwnershipBids(uint32_t numSubsteps) {
