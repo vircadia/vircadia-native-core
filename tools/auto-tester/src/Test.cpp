@@ -411,13 +411,15 @@ void Test::createRecursiveScript(const QString& topLevelDirectory, bool interact
     textStream << "// This is an automatically generated file, created by auto-tester on " << QDateTime::currentDateTime().toString(DATE_TIME_FORMAT) << endl << endl;
 
     textStream << "user = \"" + GIT_HUB_USER + "/\";" << endl;
-    textStream << "repository = \"" + GIT_HUB_REPOSITORY + "/\";" << endl;
+    textStream << "repository = \"" + GIT_HUB_REPOSITORY + "/\";" << endl << endl;
 
-    QString branch = autoTester->getSelectedBranch();
-    textStream << "branch = \"" + branch + "/\";" << endl << endl;
+    textStream << "Script.include(\"https://github.com/highfidelity/hifi_tests/blob/RC69/tests/utils/branchUtils.js?raw=true\");" << endl;
+    textStream << "branch = getBranch(Script.resolvePath(\".\"), repository) +\"/\";" << endl << endl;
 
     // Wait 10 seconds before starting
-    textStream << "Test.wait(10000);" << endl << endl;
+    textStream << "if (typeof Test !== 'undefined') {" << endl;
+    textStream << "    Test.wait(10000);" << endl;
+    textStream << "};" << endl << endl;
 
     textStream << "var repositoryPath = \"https://github.com/\" + user + repository + \"blob/\" + branch;" << endl;
     textStream << "var autoTester = Script.require(repositoryPath + \"tests/utils/autoTester.js?raw=true\");" << endl << endl;
