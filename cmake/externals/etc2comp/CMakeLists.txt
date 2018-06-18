@@ -40,14 +40,20 @@ if (WIN32)
   set(_LIB_FOLDER "$<$<CONFIG:RelWithDebInfo>:build/EtcLib/RelWithDebInfo>")
   set(_LIB_FOLDER "${_LIB_FOLDER}$<$<CONFIG:MinSizeRel>:build/EtcLib/MinSizeRel>")
   set(_LIB_FOLDER "${_LIB_FOLDER}$<$<OR:$<CONFIG:Release>,$<CONFIG:Debug>>:build/EtcLib/Release>")
-
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/${_LIB_FOLDER}/EtcLib.lib CACHE FILEPATH "Path to Etc2Comp release library")
+
 elseif (APPLE)
-    set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${INSTALL_DIR}/build/EtcLib/Debug/libEtcLib.a CACHE FILEPATH "Path to EtcLib debug library")
-    set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/build/EtcLib/Release/libEtcLib.a CACHE FILEPATH "Path to EtcLib release library")
+  set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${INSTALL_DIR}/build/EtcLib/Debug/libEtcLib.a CACHE FILEPATH "Path to EtcLib debug library")
+
+  set(_LIB_FOLDER "$<$<CONFIG:RelWithDebInfo>:build/EtcLib/RelWithDebInfo>")
+  set(_LIB_FOLDER "${_LIB_FOLDER}$<$<CONFIG:MinSizeRel>:build/EtcLib/MinSizeRel>")
+  set(_LIB_FOLDER "${_LIB_FOLDER}$<$<OR:$<CONFIG:Release>,$<CONFIG:Debug>>:build/EtcLib/Release>")
+  set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/${_LIB_FOLDER}/libEtcLib.a CACHE FILEPATH "Path to Etc2Comp release library")
+
 else ()
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG "" CACHE FILEPATH "Path to EtcLib debug library")
   set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/build/EtcLib/libEtcLib.a CACHE FILEPATH "Path to EtcLib release library")
+
 endif ()
 
 set(ETC_INCLUDE_DIR ${SOURCE_DIR}/EtcLib/Etc CACHE FILEPATH "Path to Etc2Comp/Etc include directory")
