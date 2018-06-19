@@ -346,7 +346,7 @@ function loaded() {
                   if (notFound) {
                       refreshEntities();
                   }
-              } else if (data.type == "update") {
+              } else if (data.type == "update" && data.selectedIDs !== undefined) {
                   var newEntities = data.entities;
                   if (newEntities && newEntities.length == 0) {
                       elNoEntitiesMessage.style.display = "block";
