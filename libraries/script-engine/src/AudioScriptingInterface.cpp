@@ -23,6 +23,21 @@ void registerAudioMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, soundSharedPointerToScriptValue, soundSharedPointerFromScriptValue);
 }
 
+
+void AudioScriptingInterface::setLocalAudioInterface(AbstractAudioInterface* audioInterface) {
+    if (_localAudioInterface) {
+        disconnect(_localAudioInterface, &AbstractAudioInterface::isStereoInputChanged,
+                   this, &AudioScriptingInterface::isStereoInputChanged);
+    }
+    
+    _localAudioInterface = audioInterface;
+
+    if (_localAudioInterface) {
+        connect(_localAudioInterface, &AbstractAudioInterface::isStereoInputChanged,
+                this, &AudioScriptingInterface::isStereoInputChanged);
+    }
+}
+
 ScriptAudioInjector* AudioScriptingInterface::playSystemSound(SharedSoundPointer sound, const QVector3D& position) {
     AudioInjectorOptions options;
     options.position = glm::vec3(position.x(), position.y(), position.z());
@@ -60,19 +75,10 @@ ScriptAudioInjector* AudioScriptingInterface::playSound(SharedSoundPointer sound
     }
 }
 
-bool AudioScriptingInterface::setStereoInput(bool stereo) {
-    bool stereoInputChanged = false;
+void AudioScriptingInterface::setStereoInput(bool stereo) {
     if (_localAudioInterface) {
-        if (QThread::currentThread() != _localAudioInterface->thread()) {
-            // TODO: This can block the main thread which is not ideal, make this function and the UI calling it async
-            BLOCKING_INVOKE_METHOD(_localAudioInterface, "setIsStereoInput", Q_RETURN_ARG(bool, stereoInputChanged),
-                                   Q_ARG(bool, stereo));
-        } else {
-            stereoInputChanged = _localAudioInterface->setIsStereoInput(stereo);
-        }
+        QMetaObject::invokeMethod(_localAudioInterface, "setIsStereoInput", Q_ARG(bool, stereo));
     }
-    
-    return stereoInputChanged;
 }
 
 bool AudioScriptingInterface::isStereoInput() {

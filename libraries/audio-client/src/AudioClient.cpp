@@ -1426,6 +1426,8 @@ bool AudioClient::setIsStereoInput(bool isStereoInput) {
 
         // restart the input device
         switchInputToAudioDevice(_inputDeviceInfo);
+
+        emit isStereoInputChanged(_isStereoInput);
     }
 
     return stereoInputChanged;
