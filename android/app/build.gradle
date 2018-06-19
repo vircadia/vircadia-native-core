@@ -76,7 +76,9 @@ android {
             variant.mergeResources.dependsOn(task)
             def uploadDumpSymsTask = rootProject.getTasksByName("uploadBreakpadDumpSyms${variant.name.capitalize()}", false).first()
             def runDumpSymsTask = rootProject.getTasksByName("runBreakpadDumpSyms${variant.name.capitalize()}", false).first()
+            println (runDumpSymsTask.name + " dependsOn " + task.name)
             runDumpSymsTask.dependsOn(task)
+            println (variant.assemble.name + " dependsOn " + uploadDumpSymsTask.name)
             variant.assemble.dependsOn(uploadDumpSymsTask)
         }
 
