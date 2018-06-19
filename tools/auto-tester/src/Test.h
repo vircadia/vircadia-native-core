@@ -69,14 +69,12 @@ public:
     QString getExpectedImageDestinationDirectory(const QString& filename);
     QString getExpectedImagePartialSourceDirectory(const QString& filename);
 
-    void copyJPGtoPNG(const QString& sourceJPGFullFilename, const QString& destinationPNGFullFilename);
-
 private:
     const QString TEST_FILENAME { "test.js" };
     const QString TEST_RESULTS_FOLDER { "TestResults" };
     const QString TEST_RESULTS_FILENAME { "TestResults.txt" };
 
-    const double THRESHOLD{ 0.999 };
+    const double THRESHOLD{ 0.96 };
 
     QDir imageDirectory;
 

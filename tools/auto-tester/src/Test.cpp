@@ -202,17 +202,6 @@ void Test::startTestsEvaluation(const QString& testFolder, const QString& branch
         return;
     }
 
-    // Before any processing - all images are converted to PNGs, as this is the format stored on GitHub
-    QStringList sortedSnapshotFilenames = createListOfAll_imagesInDirectory("jpg", snapshotDirectory);
-    foreach(QString filename, sortedSnapshotFilenames) {
-        QString filenameWithoutExtension = filename.left(filename.length() - 4);
-        copyJPGtoPNG(snapshotDirectory + "/" + filenameWithoutExtension + ".jpg", 
-            snapshotDirectory + "/" + filenameWithoutExtension + ".png"
-        );
-
-        QFile::remove(snapshotDirectory + "/" + filenameWithoutExtension + ".jpg");
-    }
-
     // Create two lists.  The first is the test results,  the second is the expected images
     // The expected images are represented as a URL to enable download from GitHub
     // Images that are in the wrong format are ignored.
@@ -513,13 +502,13 @@ void Test::createTests() {
         return;
     }
 
-    QStringList sortedImageFilenames = createListOfAll_imagesInDirectory("jpg", snapshotDirectory);
+    QStringList sortedImageFilenames = createListOfAll_imagesInDirectory("png", snapshotDirectory);
 
     int i = 1; 
     const int maxImages = pow(10, NUM_DIGITS);
     foreach (QString currentFilename, sortedImageFilenames) {
         QString fullCurrentFilename = snapshotDirectory + "/" + currentFilename;
-        if (isInSnapshotFilenameFormat("jpg", currentFilename)) {
+        if (isInSnapshotFilenameFormat("png", currentFilename)) {
             if (i >= maxImages) {
                 QMessageBox::critical(0, "Error", "More than " + QString::number(maxImages) + " images not supported");
                 exit(-1);
@@ -543,9 +532,12 @@ void Test::createTests() {
             fullNewFileName += "/" + newFilename;
 
             try {
-                copyJPGtoPNG(fullCurrentFilename, fullNewFileName);
+                if (QFile::exists(fullNewFileName)) {
+                    QFile::remove(fullNewFileName);
+                }               
+                QFile::copy(fullCurrentFilename, fullNewFileName);
             } catch (...) {
-                QMessageBox::critical(0, "Error", "Could not delete existing file: " + currentFilename + "\nTest creation aborted");
+                QMessageBox::critical(0, "Error", "Could not copy file: " + fullCurrentFilename + " to " + fullNewFileName + "\n");
                 exit(-1);
             }
             ++i;
@@ -822,19 +814,6 @@ void Test::createTestsOutline() {
     mdFile.close();
 
     QMessageBox::information(0, "Success", "Test outline file " + testsOutlineFilename + " has been created");
-}
-
-void Test::copyJPGtoPNG(const QString& sourceJPGFullFilename, const QString& destinationPNGFullFilename) {
-    QFile::remove(destinationPNGFullFilename);
-
-    QImageReader reader;
-    reader.setFileName(sourceJPGFullFilename);
-
-    QImage image = reader.read();
-
-    QImageWriter writer;
-    writer.setFileName(destinationPNGFullFilename);
-    writer.write(image);
 }
 
 QStringList Test::createListOfAll_imagesInDirectory(const QString& imageFormat, const QString& pathToImageDirectory) {
