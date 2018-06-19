@@ -83,6 +83,7 @@ public:
         connect(qApp, &QCoreApplication::aboutToQuit, [this] {
             shutdown();
         });
+        setObjectName("Present");
     }
 
     ~PresentThread() {
