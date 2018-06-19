@@ -1332,9 +1332,10 @@ SelectionDisplay = (function() {
                 dimensions: stretchPanelXDimensions
             });
             var stretchPanelYDimensions = Vec3.subtract(scaleLTNCubePositionRotated, scaleRTFCubePositionRotated);
+            var tempX = Math.abs(stretchPanelYDimensions.x);
             stretchPanelYDimensions.x = Math.abs(stretchPanelYDimensions.z);
             stretchPanelYDimensions.y = STRETCH_PANEL_WIDTH;
-            stretchPanelYDimensions.z = Math.abs(stretchPanelYDimensions.x);
+            stretchPanelYDimensions.z = tempX;
             var stretchPanelYPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x:0, y:dimensions.y / 2, z:0 }));
             Overlays.editOverlay(handleStretchYPanel, { 
                 position: stretchPanelYPosition, 
@@ -1342,8 +1343,9 @@ SelectionDisplay = (function() {
                 dimensions: stretchPanelYDimensions
             });
             var stretchPanelZDimensions = Vec3.subtract(scaleLTNCubePositionRotated, scaleRBFCubePositionRotated);
+            var tempX = Math.abs(stretchPanelZDimensions.x);
             stretchPanelZDimensions.x = Math.abs(stretchPanelZDimensions.y);
-            stretchPanelZDimensions.y = Math.abs(stretchPanelZDimensions.x);
+            stretchPanelZDimensions.y = tempX;
             stretchPanelZDimensions.z = STRETCH_PANEL_WIDTH;
             var stretchPanelZPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x:0, y:0, z:dimensions.z / 2 }));
             Overlays.editOverlay(handleStretchZPanel, { 
