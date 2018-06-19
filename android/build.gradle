@@ -569,8 +569,11 @@ def runBreakpadDumpSyms = { buildType ->
                 commandLine './dump_syms'
                 args cmdArgs
                 standardOutput = new BufferedOutputStream(new FileOutputStream(new File(outputDir, output)))
+                errorOutput  = new ByteArrayOutputStream()
+                doLast {
+                    println ("Exec error output: " + errorOutput.toString())
+                }
             }
-
         }
     }
 }
