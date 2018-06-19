@@ -103,8 +103,8 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     // Render background
     glm::vec3 minCorner = glm::vec3(0.0f, -dimensions.y, SLIGHTLY_BEHIND);
     glm::vec3 maxCorner = glm::vec3(dimensions.x, 0.0f, SLIGHTLY_BEHIND);
-    
-    
+
+
     // Batch render calls
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
@@ -120,7 +120,7 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     }
     transformToTopLeft.postTranslate(dimensions * glm::vec3(-0.5f, 0.5f, 0.0f)); // Go to the top left
     transformToTopLeft.setScale(1.0f); // Use a scale of one so that the text is not deformed
-    
+
     batch.setModelTransform(transformToTopLeft);
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (!_geometryID) {
@@ -128,11 +128,11 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     }
     geometryCache->bindSimpleProgram(batch, false, transparent, false, false, false);
     geometryCache->renderQuad(batch, minCorner, maxCorner, backgroundColor, _geometryID);
-    
+
     float scale = _lineHeight / _textRenderer->getFontSize();
     transformToTopLeft.setScale(scale); // Scale to have the correct line height
     batch.setModelTransform(transformToTopLeft);
-    
+
     float leftMargin = 0.1f * _lineHeight, topMargin = 0.1f * _lineHeight;
     glm::vec2 bounds = glm::vec2(dimensions.x - 2.0f * leftMargin,
                                  dimensions.y - 2.0f * topMargin);
