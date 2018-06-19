@@ -9,11 +9,17 @@
 
 #include <QObject>
 
+#include <DependencyManager.h>
+
 #include "Forward.h"
 
-class PluginManager : public QObject {
+
+class PluginManager;
+using PluginManagerPointer = QSharedPointer<PluginManager>;
+
+class PluginManager : public QObject, public Dependency {
 public:
-    static PluginManager* getInstance();
+    static PluginManagerPointer getInstance();
     PluginManager();
 
     const DisplayPluginList& getDisplayPlugins();

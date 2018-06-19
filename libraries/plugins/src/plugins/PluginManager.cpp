@@ -40,9 +40,8 @@ void PluginManager::setInputPluginSettingsPersister(const InputPluginSettingsPer
     _inputSettingsPersister = persister;
 }
 
-PluginManager* PluginManager::getInstance() {
-    static PluginManager _manager;
-    return &_manager;
+PluginManagerPointer PluginManager::getInstance() {
+    return DependencyManager::get<PluginManager>();
 }
 
 QString getPluginNameFromMetaData(QJsonObject object) {

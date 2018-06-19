@@ -814,6 +814,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     }
 
     // Tell the plugin manager about our statically linked plugins
+    DependencyManager::set<PluginManager>();
     auto pluginManager = PluginManager::getInstance();
     pluginManager->setInputPluginProvider([] { return getInputPlugins(); });
     pluginManager->setDisplayPluginProvider([] { return getDisplayPlugins(); });
@@ -1375,6 +1376,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     initializeRenderEngine();
     qCDebug(interfaceapp, "Initialized Render Engine.");
 
+    // Overlays need to exist before we set the ContextOverlayInterface dependency
+    _overlays.init(); // do this before scripts load
+    DependencyManager::set<ContextOverlayInterface>();
+
     // Initialize the user interface and menu system
     // Needs to happen AFTER the render engine initialization to access its configuration
     initializeUi();
@@ -1510,10 +1515,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // probably not the right long term solution. But for now, we're going to do this to
     // allow you to move an entity around in your hand
     _entityEditSender.setPacketsPerSecond(3000); // super high!!
-
-    // Overlays need to exist before we set the ContextOverlayInterface dependency
-    _overlays.init(); // do this before scripts load
-    DependencyManager::set<ContextOverlayInterface>();
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
@@ -2552,12 +2553,18 @@ Application::~Application() {
     _octreeProcessor.terminate();
     _entityEditSender.terminate();
 
+    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+        steamClient->shutdown();
+    }
+    DependencyManager::destroy<PluginManager>();
+
+    DependencyManager::destroy<CompositorHelper>(); // must be destroyed before the FramebufferCache
+
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<FramebufferCache>();
     DependencyManager::destroy<TextureCache>();
     DependencyManager::destroy<ModelCache>();
-    DependencyManager::destroy<GeometryCache>();
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
     DependencyManager::destroy<OctreeStatsProvider>();
@@ -2566,10 +2573,6 @@ Application::~Application() {
 
     // remove the NodeList from the DependencyManager
     DependencyManager::destroy<NodeList>();
-
-    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
-        steamClient->shutdown();
-    }
 
 #if 0
     ConnexionClient::getInstance().destroy();
@@ -2890,6 +2893,7 @@ void Application::initializeUi() {
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
     connect(compositorHelper.data(), &CompositorHelper::allowMouseCaptureChanged, this, [=] {
         if (isHMDMode()) {
+            auto compositorHelper = DependencyManager::get<CompositorHelper>(); // don't capture outer smartpointer
             showCursor(compositorHelper->getAllowMouseCapture() ?
                        Cursor::Manager::lookupIcon(_preferredCursor.get()) :
                        Cursor::Icon::SYSTEM);
