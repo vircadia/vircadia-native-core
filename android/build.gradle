@@ -153,9 +153,9 @@ def packages = [
         checksum: '14b02795d774457a33bbc60e00a786bc'
     ],
     breakpad: [
-        file: 'breakpad_dump_syms.zip',
-        versionId: 'yIIByczdMWGm.1f9DztIUoa6Sn3NM3IN',
-        checksum: '6440dbb25d0e86c8d32ad8b9fa74991c',
+        file: 'breakpad.tgz',
+        versionId: '8VrYXz7oyc.QBxNia0BVJOUBvrFO61jI',
+        checksum: 'ddcb23df336b08017042ba4786db1d9e',
         sharedLibFolder: 'lib',
         includeLibs: ['libbreakpad_client.a']
     ]
@@ -568,16 +568,12 @@ def runBreakpadDumpSyms = { buildType ->
                     file.toString(),
                     stripDebugSymbol
             ]
-            println ("Executing " + HIFI_ANDROID_PRECOMPILED + '/breakpad/bin' + "/dump_syms")
-            println ("Arguments "  + cmdArgs)
             def result = exec {
                 workingDir HIFI_ANDROID_PRECOMPILED + '/breakpad/bin'
                 commandLine './dump_syms'
                 args cmdArgs
                 standardOutput = new BufferedOutputStream(new FileOutputStream(new File(outputDir, output)))
             }
-            println ("Done "  + result)
-            println ("E:[" + new File(outputDir, output+".err").text+ "]")
         }
     }
 }
@@ -586,7 +582,7 @@ def uploadDumpSyms = { buildType ->
     def tmpDir = "${appDir}/build/tmp/breakpadDumpSyms/${buildType}/"
     def zipFilename = "symbols-${RELEASE_NUMBER}.zip"
     def zipDir = "${appDir}/build/tmp/breakpadDumpSyms/"
-    zip {
+    Zip {
         from tmpDir
         include '*/*'
         archiveName zipFilename
