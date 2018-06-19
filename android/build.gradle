@@ -572,6 +572,7 @@ def runBreakpadDumpSyms = { buildType ->
                 workingDir HIFI_ANDROID_PRECOMPILED + '/breakpad/bin'
                 commandLine './dump_syms'
                 args cmdArgs
+                ignoreExitValue true
                 standardOutput = new BufferedOutputStream(new FileOutputStream(new File(outputDir, output)))
             }
         }
