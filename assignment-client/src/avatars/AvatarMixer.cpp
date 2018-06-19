@@ -53,6 +53,7 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
     packetReceiver.registerListener(PacketType::RadiusIgnoreRequest, this, "handleRadiusIgnoreRequestPacket");
     packetReceiver.registerListener(PacketType::RequestsDomainListData, this, "handleRequestsDomainListDataPacket");
+    packetReceiver.registerListener(PacketType::AvatarIdentityRequest, this, "handleAvatarIdentityRequestPacket");
 
     packetReceiver.registerListenerForTypes({
         PacketType::ReplicatedAvatarIdentity,
@@ -600,6 +601,36 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
     }
     auto end = usecTimestampNow();
     _handleAvatarIdentityPacketElapsedTime += (end - start);
+}
+
+void AvatarMixer::handleAvatarIdentityRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    if (message->getSize() < NUM_BYTES_RFC4122_UUID) {
+        qCDebug(avatars) << "Malformed AvatarIdentityRequest received from" << message->getSenderSockAddr().toString();
+        return;
+    }
+
+    QUuid avatarID(QUuid::fromRfc4122(message->getMessage()) );
+    if (!avatarID.isNull()) {
+        auto nodeList = DependencyManager::get<NodeList>();
+
+        nodeList->eachNode([&](SharedNodePointer node) {
+                QMutexLocker lock(&node->getMutex());
+                if (node->getType() == NodeType::Agent && node->getLinkedData()) {
+                    AvatarMixerClientData* avatarClientData = dynamic_cast<AvatarMixerClientData*>(node->getLinkedData());
+                    if (avatarClientData) {
+                        const AvatarData& avatarData = avatarClientData->getAvatar();
+                        if (avatarData.getID() == avatarID) {
+                            QByteArray serializedAvatar = avatarData.identityByteArray();
+                            auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
+                            identityPackets->write(serializedAvatar);
+                            nodeList->sendPacketList(std::move(identityPackets), *senderNode);
+                        }
+                    }
+                }
+            }
+        );
+
+    }
 }
 
 void AvatarMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {

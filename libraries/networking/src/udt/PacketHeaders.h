@@ -61,6 +61,7 @@ public:
         AssignmentClientStatus,
         NoisyMute,
         AvatarIdentity,
+        AvatarIdentityRequest,
         NodeIgnoreRequest,
         DomainConnectRequest,
         DomainServerRequireDTLS,
