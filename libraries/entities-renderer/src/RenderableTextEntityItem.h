@@ -35,7 +35,7 @@ private:
     bool _faceCamera;
     glm::vec3 _dimensions;
     glm::vec3 _textColor;
-    glm::vec3 _position;
+    Transform _renderTransform;
     glm::vec3 _backgroundColor;
     QString _text;
     float _lineHeight;
