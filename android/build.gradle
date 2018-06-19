@@ -151,11 +151,11 @@ def packages = [
         checksum: '14b02795d774457a33bbc60e00a786bc'
     ],
     breakpad: [
-        file: 'breakpad.zip',
-        versionId: '2OwvCCZrF171wnte5T44AnjTYFhhJsGJ',
-        checksum: 'a46062a3167dfedd4fb4916136e204d2',
+        file: 'breakpad_dump_syms.zip',
+        versionId: 'udimLCwfB7tMbfGdE1CcLRt5p0.ehtoM',
+        checksum: '92b6ace2edb95ea82dca257cf0fe522b',
         sharedLibFolder: 'lib',
-        includeLibs: ['libbreakpad_client.a','libbreakpad.a']
+        includeLibs: ['libbreakpad_client.a']
     ]
 ]
 
@@ -547,6 +547,44 @@ task cleanDependencies(type: Delete) {
     delete 'app/src/main/jniLibs/arm64-v8a'
     delete 'app/src/main/assets/--Added-by-androiddeployqt--'
     delete 'app/src/main/res/values/libs.xml'
+}
+
+def runBreakpadDumpSyms = { buildType ->
+    def objDir = new File("${appDir}/build/intermediates/cmake/${buildType}/obj/arm64-v8a")
+    def stripDebugSymbol = "${appDir}/build/intermediates/transforms/stripDebugSymbol/${buildType}/0/lib/arm64-v8a/"
+    def outputDir = new File("${appDir}/build/tmp/breakpadDumpSyms")
+    if (!outputDir.exists()) {
+        outputDir.mkdirs()
+    }
+
+    objDir.eachFileRecurse (FileType.FILES) { file ->
+        if (file.name.endsWith('.so')) {
+            def output = file.name + ".sym"
+            def cmdArgs = [
+                    file.toString(),
+                    stripDebugSymbol
+            ]
+            exec {
+                workingDir HIFI_ANDROID_PRECOMPILED + '/breakpad/bin'
+                commandLine './dump_syms'
+                args cmdArgs
+                standardOutput = new BufferedOutputStream(new FileOutputStream(new File(outputDir, output)))
+            }
+
+        }
+    }
+}
+
+task runBreakpadDumpSymsRelease() {
+    doLast {
+        runBreakpadDumpSyms("release");
+    }
+}
+
+task runBreakpadDumpSymsDebug() {
+    doLast {
+        runBreakpadDumpSyms("debug");
+    }
 }
 
 

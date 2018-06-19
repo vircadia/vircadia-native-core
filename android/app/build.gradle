@@ -74,6 +74,10 @@ android {
         // so our merge has to depend on the external native build
         variant.externalNativeBuildTasks.each { task ->
             variant.mergeResources.dependsOn(task)
+            def dumpSymsTaskName = "runBreakpadDumpSyms${variant.name.capitalize()}";
+            def dumpSymsTask = rootProject.getTasksByName(dumpSymsTaskName, false).first()
+            dumpSymsTask.dependsOn(task)
+            variant.assemble.dependsOn(dumpSymsTask)
         }
 
         variant.mergeAssets.doLast {
