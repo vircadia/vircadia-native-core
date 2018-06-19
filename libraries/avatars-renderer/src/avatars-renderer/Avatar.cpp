@@ -551,10 +551,18 @@ void Avatar::measureMotionDerivatives(float deltaTime) {
 
     // angular
     glm::quat orientation = getWorldOrientation();
-    glm::quat delta = glm::inverse(_lastOrientation) * orientation;
-    glm::vec3 angularVelocity = glm::axis(delta) * glm::angle(delta) * invDeltaTime;
-    setWorldAngularVelocity(angularVelocity);
-    _lastOrientation = getWorldOrientation();
+    float changeDot = glm::abs(glm::dot(orientation, _lastOrientation));
+    float CHANGE_DOT_THRESHOLD = 0.9999f;
+    if (changeDot < CHANGE_DOT_THRESHOLD) {
+        float angle = 2.0f * acosf(changeDot);
+        glm::quat delta = glm::inverse(_lastOrientation) * orientation;
+        glm::vec3 angularVelocity = (angle * invDeltaTime) * glm::axis(delta);
+        if (glm::any(glm::isnan(angularVelocity))) { crashHere(); }
+        setWorldAngularVelocity(angularVelocity);
+        _lastOrientation = orientation;
+    } else {
+        setWorldAngularVelocity(glm::vec3(0.0f));
+    }
 }
 
 enum TextRendererType {
