@@ -61,6 +61,7 @@ function HifiEntityUI(parent) {
 
     var self = this;
     this.webBridgeSync = _.debounce(function (id, val) {
+        console.log(id + " " + val + " " + self.webBridgeSync);
         if (self.EventBridge) {
             var sendPackage = {};
             sendPackage[id] = val;
@@ -256,10 +257,10 @@ HifiEntityUI.prototype = {
                 if (!currentProperties.radiusFinish) {
                     currentProperties.radiusFinish = currentProperties.particleRadius;
                 }
-                if (!currentProperties.colorStart.red) {
+                if (!currentProperties.colorStart || !currentProperties.colorStart.red) {
                     currentProperties.colorStart = currentProperties.color;
                 }
-                if (!currentProperties.colorFinish.red) {
+                if (!currentProperties.colorFinish || !currentProperties.colorFinish.red) {
                     currentProperties.colorFinish = currentProperties.color;
                 }
                 self.fillFields(currentProperties);
@@ -573,7 +574,7 @@ HifiEntityUI.prototype = {
             inputField.onchange = inputField.oninput;
             slider.oninput = function (event) {
                 inputField.value = event.target.value;
-                self.webBridgeSync(group.id, slider.value);
+                self.webBridgeSync(group.id, inputField.value);
             };
 
             inputField.id = group.id;
@@ -598,7 +599,7 @@ HifiEntityUI.prototype = {
                 } else {
                     inputField.value = Math.ceil(event.target.value);
                 }
-                self.webBridgeSync(group.id, slider.value * RADIANS_PER_DEGREE);
+                self.webBridgeSync(group.id, inputField.value * RADIANS_PER_DEGREE);
             };
             var degrees = document.createElement("label");
             degrees.innerHTML = "&#176;";
