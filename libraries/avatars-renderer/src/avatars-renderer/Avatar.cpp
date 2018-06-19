@@ -557,7 +557,6 @@ void Avatar::measureMotionDerivatives(float deltaTime) {
         float angle = 2.0f * acosf(changeDot);
         glm::quat delta = glm::inverse(_lastOrientation) * orientation;
         glm::vec3 angularVelocity = (angle * invDeltaTime) * glm::axis(delta);
-        if (glm::any(glm::isnan(angularVelocity))) { crashHere(); }
         setWorldAngularVelocity(angularVelocity);
         _lastOrientation = orientation;
     } else {
