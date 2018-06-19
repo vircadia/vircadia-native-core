@@ -2129,10 +2129,19 @@ SelectionDisplay = (function() {
             }
     
             var minimumDimension = directionEnum === STRETCH_DIRECTION.ALL ? STRETCH_ALL_MINIMUM_DIMENSION : 
-                                                                             STRETCH_MINIMUM_DIMENSION;
-            newDimensions.x = Math.max(newDimensions.x, minimumDimension);
-            newDimensions.y = Math.max(newDimensions.y, minimumDimension);
-            newDimensions.z = Math.max(newDimensions.z, minimumDimension);
+                                                                             STRETCH_MINIMUM_DIMENSION; 
+            if (newDimensions.x <= minimumDimension) {
+                newDimensions.x = minimumDimension;
+                changeInDimensions.x = minimumDimension - initialDimensions.x;
+            }
+            if (newDimensions.y <= minimumDimension) {
+                newDimensions.y = minimumDimension;
+                changeInDimensions.y = minimumDimension - initialDimensions.y;
+            }
+            if (newDimensions.z <= minimumDimension) {
+                newDimensions.z = minimumDimension;
+                changeInDimensions.z = minimumDimension - initialDimensions.z;
+            }
     
             var changeInPosition = Vec3.multiplyQbyV(rotation, vec3Mult(localDeltaPivot, changeInDimensions));
             if (directionEnum === STRETCH_DIRECTION.ALL) {
