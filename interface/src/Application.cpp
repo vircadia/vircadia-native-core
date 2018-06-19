@@ -2289,6 +2289,7 @@ void Application::domainConnectionRefused(const QString& reasonMessage, int reas
             QString message = "Unable to connect to the location you are visiting.\n";
             message += reasonMessage;
             OffscreenUi::asyncWarning("", message);
+            getMyAvatar()->setWorldVelocity(glm::vec3(0.0f));
             break;
         }
         default:
