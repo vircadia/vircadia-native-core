@@ -11,7 +11,6 @@ Item {
     height: parent !== null ? parent.height : undefined
     property var parentStackItem: null
     property int headerHeight: 70
-    property string url
     property string scriptURL
     property bool keyboardEnabled: false
     property bool keyboardRaised: false
@@ -23,6 +22,7 @@ Item {
     property bool punctuationMode: false
     property bool passwordField: false
     property bool isDesktop: false
+    property alias url: web.url
     property alias webView: web.webViewCore
     property alias profile: web.webViewCoreProfile
     property bool remove: false
@@ -81,7 +81,7 @@ Item {
             color: hifi.colors.baseGray
             font.pixelSize: 12
             verticalAlignment: Text.AlignLeft
-            text: root.url
+            text: web.url
             anchors {
                 top: nav.bottom
                 horizontalCenter: parent.horizontalCenter;
@@ -131,11 +131,11 @@ Item {
 
     function loadUrl(url) {
         web.webViewCore.url = url
-        root.url = web.webViewCore.url;
     }
 
-    onUrlChanged: {
-        loadUrl(url);
+    Rectangle {
+        anchors.fill: web;
+        color: hifi.colors.white;
     }
 
     FlickableWebViewCore {
