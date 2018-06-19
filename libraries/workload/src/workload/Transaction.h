@@ -55,6 +55,7 @@ namespace workload {
                     _nextNewIndex++;
                     return index;
                 } else {
+                    // TODO: sort _freeIndices when neccessary to help keep used allocated indices more tightly packed
                     Index index = _freeIndices.back();
                     _freeIndices.pop_back();
                     return index;
@@ -64,7 +65,6 @@ namespace workload {
             void freeIndex(Index index) {
                 if (checkIndex(index)) {
                     _freeIndices.push_back(index);
-                    //std::sort(_freeIndices.begin(), _freeIndices.end());
                 }
             }
 
