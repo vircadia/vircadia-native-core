@@ -667,16 +667,28 @@ void ParticleEffectEntityItem::setEmitterShouldTrail(bool emitterShouldTrail) {
 
 particle::Properties ParticleEffectEntityItem::getParticleProperties() const {
     particle::Properties result;  
-    withReadLock([&] { 
-        result = _particleProperties; 
+    withReadLock([&] {
+        result = _particleProperties;
 
         // Special case the properties that get treated differently if they're unintialized
-        result.color.range.start = getColorStart();
-        result.color.range.finish = getColorFinish();
-        result.alpha.range.start = getAlphaStart();
-        result.alpha.range.finish = getAlphaFinish();
-        result.radius.range.start = getRadiusStart();
-        result.radius.range.finish = getRadiusFinish();
+        if (glm::any(glm::isnan(result.color.range.start))) {
+            result.color.range.start = getColor();
+        }
+        if (glm::any(glm::isnan(result.color.range.finish))) {
+            result.color.range.finish = getColor();
+        }
+        if (glm::isnan(result.alpha.range.start)) {
+            result.alpha.range.start = getAlpha();
+        }
+        if (glm::isnan(result.alpha.range.finish)) {
+            result.alpha.range.finish = getAlpha();
+        }
+        if (glm::isnan(result.radius.range.start)) {
+            result.radius.range.start = getParticleRadius();
+        }
+        if (glm::isnan(result.radius.range.finish)) {
+            result.radius.range.finish = getParticleRadius();
+        }
     });
 
     if (!result.valid()) {

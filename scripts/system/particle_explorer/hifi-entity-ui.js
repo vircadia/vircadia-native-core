@@ -243,6 +243,25 @@ HifiEntityUI.prototype = {
             if (data.messageType === 'particle_settings') {
                 // Update settings
                 var currentProperties = data.currentProperties;
+                // Update uninitialized variables
+                if (!currentProperties.alphaStart) {
+                    currentProperties.alphaStart = currentProperties.alpha;
+                }
+                if (!currentProperties.alphaFinish) {
+                    currentProperties.alphaFinish = currentProperties.alpha;
+                }
+                if (!currentProperties.radiusStart) {
+                    currentProperties.radiusStart = currentProperties.particleRadius;
+                }
+                if (!currentProperties.radiusFinish) {
+                    currentProperties.radiusFinish = currentProperties.particleRadius;
+                }
+                if (!currentProperties.colorStart.red) {
+                    currentProperties.colorStart = currentProperties.color;
+                }
+                if (!currentProperties.colorFinish.red) {
+                    currentProperties.colorFinish = currentProperties.color;
+                }
                 self.fillFields(currentProperties);
                 // Do expected property match with structure;
             } else if (data.messageType === 'particle_close') {

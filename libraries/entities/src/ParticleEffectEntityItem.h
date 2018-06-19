@@ -224,10 +224,10 @@ public:
     void setColor(const xColor& value);
 
     void setColorStart(const vec3& colorStart);
-    vec3 getColorStart() const { return glm::any(glm::isnan(_particleProperties.color.range.start)) ? getColor() : _particleProperties.color.range.start; }
+    vec3 getColorStart() const { return _particleProperties.color.range.start; }
 
     void setColorFinish(const vec3& colorFinish);
-    vec3 getColorFinish() const { return glm::any(glm::isnan(_particleProperties.color.range.finish)) ? getColor() : _particleProperties.color.range.finish; }
+    vec3 getColorFinish() const { return _particleProperties.color.range.finish; }
 
     void setColorSpread(const xColor& colorSpread);
     xColor getColorSpread() const;
@@ -236,10 +236,10 @@ public:
     float getAlpha() const { return _particleProperties.alpha.gradient.target; }
 
     void setAlphaStart(float alphaStart);
-    float getAlphaStart() const { return glm::isnan(_particleProperties.alpha.range.start) ? _particleProperties.alpha.gradient.target : _particleProperties.alpha.range.start; }
+    float getAlphaStart() const { return _particleProperties.alpha.range.start; }
 
     void setAlphaFinish(float alphaFinish);
-    float getAlphaFinish() const { return glm::isnan(_particleProperties.alpha.range.finish) ? _particleProperties.alpha.gradient.target : _particleProperties.alpha.range.finish; }
+    float getAlphaFinish() const { return _particleProperties.alpha.range.finish; }
 
     void setAlphaSpread(float alphaSpread);
     float getAlphaSpread() const { return _particleProperties.alpha.gradient.spread; }
@@ -298,10 +298,10 @@ public:
     float getParticleRadius() const { return _particleProperties.radius.gradient.target; }
 
     void setRadiusStart(float radiusStart);
-    float getRadiusStart() const { return glm::isnan(_particleProperties.radius.range.start) ? _particleProperties.radius.gradient.target : _particleProperties.radius.range.start; }
+    float getRadiusStart() const { return _particleProperties.radius.range.start; }
 
     void setRadiusFinish(float radiusFinish);
-    float getRadiusFinish() const { return glm::isnan(_particleProperties.radius.range.finish) ? _particleProperties.radius.gradient.target : _particleProperties.radius.range.finish; }
+    float getRadiusFinish() const { return _particleProperties.radius.range.finish; }
 
     void setRadiusSpread(float radiusSpread);
     float getRadiusSpread() const { return _particleProperties.radius.gradient.spread; }
