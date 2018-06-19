@@ -21,6 +21,8 @@ buildscript {
 plugins {
     id 'de.undercouch.download' version '3.3.0'
     id "cz.malohlava" version "1.0.3"
+    id "io.github.http-builder-ng.http-plugin" version "0.1.1"
+
 }
 
 allprojects {
@@ -550,9 +552,11 @@ task cleanDependencies(type: Delete) {
 }
 
 def runBreakpadDumpSyms = { buildType ->
+    gradle.startParameter.showStacktrace = ShowStacktrace.ALWAYS
+
     def objDir = new File("${appDir}/build/intermediates/cmake/${buildType}/obj/arm64-v8a")
     def stripDebugSymbol = "${appDir}/build/intermediates/transforms/stripDebugSymbol/${buildType}/0/lib/arm64-v8a/"
-    def outputDir = new File("${appDir}/build/tmp/breakpadDumpSyms")
+    def outputDir = new File("${appDir}/build/tmp/breakpadDumpSyms/${buildType}")
     if (!outputDir.exists()) {
         outputDir.mkdirs()
     }
@@ -564,18 +568,44 @@ def runBreakpadDumpSyms = { buildType ->
                     file.toString(),
                     stripDebugSymbol
             ]
-            exec {
+            println ("Executing " + HIFI_ANDROID_PRECOMPILED + '/breakpad/bin' + "/dump_syms")
+            println ("Arguments "  + cmdArgs)
+            def result = exec {
                 workingDir HIFI_ANDROID_PRECOMPILED + '/breakpad/bin'
                 commandLine './dump_syms'
                 args cmdArgs
                 standardOutput = new BufferedOutputStream(new FileOutputStream(new File(outputDir, output)))
-                errorOutput  = new ByteArrayOutputStream()
-                doLast {
-                    println ("Exec error output: " + errorOutput.toString())
-                }
+            }
+            println ("Done "  + result)
+            println ("E:[" + new File(outputDir, output+".err").text+ "]")
+        }
+    }
+}
+
+def uploadDumpSyms = { buildType ->
+    def tmpDir = "${appDir}/build/tmp/breakpadDumpSyms/${buildType}/"
+    def zipFilename = "symbols-${RELEASE_NUMBER}.zip"
+    def zipDir = "${appDir}/build/tmp/breakpadDumpSyms/"
+    zip {
+        from tmpDir
+        include '*/*'
+        archiveName zipFilename
+        destinationDir(file(zipDir))
+    }
+
+    httpTask {
+        config {
+            request.uri = 'https://gcalero998.sp.backtrace.io:6098/post?format=symbols&token=d65d0d184789ac40c121952001fd91dfba7e149899b1eeccd68ccffe91dd2fd0'
+        }
+        post {
+            request.uri.path = '/notify'
+            request.body = new File(zipDir, zipFilename).bytes
+            response.success {
+                println 'Symbols upload successful'
             }
         }
     }
+
 }
 
 task runBreakpadDumpSymsRelease() {
@@ -590,7 +620,17 @@ task runBreakpadDumpSymsDebug() {
     }
 }
 
+task uploadBreakpadDumpSymsRelease(dependsOn: runBreakpadDumpSymsRelease) {
+    doLast {
+        uploadDumpSyms("release")
+    }
+}
 
+task uploadBreakpadDumpSymsDebug(dependsOn: runBreakpadDumpSymsDebug) {
+    doLast {
+        uploadDumpSyms("debug")
+    }
+}
 
 // FIXME this code is prototyping the desired functionality for doing build time binary dependency resolution.
 // See the comment on the qtBundle task above
