@@ -163,8 +163,6 @@ protected:
     // Thread safe elements that can be accessed from anywhere
     indexed_container::Allocator<> _IDAllocator;
 
-    //std::atomic<unsigned int> _IDAllocator{ 1 }; // first valid itemID will be One
-    //std::atomic<unsigned int> _numAllocatedItems{ 1 }; // num of allocated items, matching the _items.size()
     std::mutex _transactionQueueMutex;
     TransactionQueue _transactionQueue;
 

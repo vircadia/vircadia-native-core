@@ -77,7 +77,6 @@ void main(void) {
     vec3 dirZ = -normalize(proxyPosEye.xyz);
     vec3 dirX = normalize(cross(vec3(0.0, 1.0, 0.0), dirZ));
     vec3 dirY = vec3(0.0, 1.0, 0.0);
-   // vec3 dirY = normalize(cross(dirZ, vec3(1.0, 0.0, 0.0)));
 
     vec4 pos = vec4(proxyPosEye.xyz + proxy.sphere.w * ( dirX * spriteVert.x + dirY * spriteVert.y /* + dirZ * spriteVert.z*/), 1.0);
     varTexcoord = spriteVert.xyz;

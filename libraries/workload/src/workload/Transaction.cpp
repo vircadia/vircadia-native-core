@@ -106,7 +106,6 @@ void Transaction::clear() {
 
 
 Collection::Collection() {
-    //_items.push_back(Item()); // add the ProxyID #0 to nothing
 }
 
 Collection::~Collection() {
@@ -165,73 +164,3 @@ void Collection::processTransactionQueue() {
 
     queuedFrames.clear();
 }
-
-//void Collection::processTransactionFrame(const Transaction& transaction) {
-   /**
-        std::unique_lock<std::mutex> lock(_itemsMutex);
-        // Here we should be able to check the value of last ProxyID allocated 
-        // and allocate new items accordingly
-        ProxyID maxID = _IDAllocator.getNumAllocatedIndices();
-        if (maxID > _items.size()) {
-            _items.resize(maxID + 100); // allocate the maxId and more
-        }
-        // Now we know for sure that we have enough items in the array to
-        // capture anything coming from the transaction
-
-        // resets and potential NEW items
-        resetItems(transaction._resetItems);
-
-        // Update the numItemsAtomic counter AFTER the reset changes went through
-        _numAllocatedItems.exchange(maxID);
-
-        // updates
-        updateItems(transaction._updatedItems);
-
-        // removes
-        removeItems(transaction._removedItems);
-
-        // add transitions
-        transitionItems(transaction._addedTransitions);
-        reApplyTransitions(transaction._reAppliedTransitions);
-        queryTransitionItems(transaction._queriedTransitions);
-
-        // Update the numItemsAtomic counter AFTER the pending changes went through
-        _numAllocatedItems.exchange(maxID);
-    }*/
-//}
-
-//void Collection::resetItems(const Transaction::Resets& transactions) {
- /*   for (auto& reset : transactions) {
-        // Access the true item
-        auto ProxyID = std::get<0>(reset);
-        auto& item = _items[ProxyID];
-
-        // Reset the item with a new payload
-        item.resetPayload(std::get<1>(reset));
-    }*/
-//}
-
-//void Collection::removeItems(const Transaction::Removes& transactions) {
-  /*  for (auto removedID : transactions) {
-        // Access the true item
-        auto& item = _items[removedID];
-
-        // Kill it
-        item.kill();
-    }*/
-//}
-
-//void Collection::updateItems(const Transaction::Updates& transactions) {
-  /*  for (auto& update : transactions) {
-        auto updateID = std::get<0>(update);
-        if (updateID == Item::INVALID_ITEM_ID) {
-            continue;
-        }
-
-        // Access the true item
-        auto& item = _items[updateID];
-
-        // Update the item
-        item.update(std::get<1>(update));
-    }*/
-//}

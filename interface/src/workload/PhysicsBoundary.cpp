@@ -28,7 +28,6 @@ void PhysicsBoundary::run(const workload::WorkloadContextPointer& context, const
         auto entity = space->getOwner(change.proxyId).get<EntityItemPointer>();
         if (entity) {
             simulation->changeEntity(entity);
-           // qCDebug(physics) << change.proxyId << " : " << "'" << entity->getName() << "' " << (uint32_t)(change.prevRegion) << " --> " << (uint32_t)(change.region);
         }
     }
 }

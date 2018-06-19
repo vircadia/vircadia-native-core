@@ -17,7 +17,6 @@
 
 class WorkloadEngineBuilder {
 public:
-public:
     using Inputs = workload::VaryingSet2<workload::Views, workload::Timings>;
     using Outputs = workload::RegionTracker::Outputs;
     using JobModel = workload::Task::ModelIO<WorkloadEngineBuilder, Inputs, Outputs>;

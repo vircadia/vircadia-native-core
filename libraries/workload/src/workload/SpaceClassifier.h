@@ -27,8 +27,8 @@ namespace workload {
     class PerformSpaceTransactionConfig : public Job::Config {
         Q_OBJECT
     public:
-        signals :
-                void dirty();
+    signals :
+        void dirty();
 
     protected:
     };
