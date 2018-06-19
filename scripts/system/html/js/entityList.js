@@ -195,6 +195,18 @@ function loaded() {
           }
       }
 
+      function removeEntities(deletedIDs, selectedIDs) {
+          for (i = 0, length = deletedIDs.length; i < length; i++) {
+              delete entities[deletedIDs[i]];
+              entityList.remove("id", deletedIDs[i]);
+          }
+          if (refreshEntityListTimer) {
+              clearTimeout(refreshEntityListTimer);
+          }
+          refreshEntityListTimer = setTimeout(refreshEntityListObject, 50);
+          updateSelectedEntities(selectedIDs);
+      }
+
       function clearEntities() {
           entities = {};
           entityList.clear();
@@ -346,7 +358,7 @@ function loaded() {
                   if (notFound) {
                       refreshEntities();
                   }
-              } else if (data.type == "update" && data.selectedIDs !== undefined) {
+              } else if (data.type === "update" && data.selectedIDs !== undefined) {
                   var newEntities = data.entities;
                   if (newEntities && newEntities.length == 0) {
                       elNoEntitiesMessage.style.display = "block";
@@ -367,6 +379,8 @@ function loaded() {
                       updateSelectedEntities(data.selectedIDs);
                       resize();
                   }
+              } else if (data.type === "removeEntities" && data.deletedIDs !== undefined) {
+                  removeEntities(data.deletedIDs, data.selectedIDs);
               } else if (data.type === "deleted") {
                   for (i = 0, length = data.ids.length; i < length; i++) {
                       delete entities[data.ids[i]];
