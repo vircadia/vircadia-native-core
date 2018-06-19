@@ -27,6 +27,7 @@ public:
     ~TextEntityRenderer();
 private:
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
+    virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
     virtual void doRender(RenderArgs* args) override;
     int _geometryID{ 0 };
@@ -34,6 +35,7 @@ private:
     bool _faceCamera;
     glm::vec3 _dimensions;
     glm::vec3 _textColor;
+    glm::vec3 _position;
     glm::vec3 _backgroundColor;
     QString _text;
     float _lineHeight;

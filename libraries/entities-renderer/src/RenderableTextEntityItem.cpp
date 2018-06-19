@@ -20,6 +20,7 @@
 
 #include "GLMHelpers.h"
 
+using namespace render;
 using namespace render::entities;
 
 static const int FIXED_FONT_POINT_SIZE = 40;
@@ -62,6 +63,17 @@ bool TextEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoint
         return true;
     }
     return false;
+}
+
+void TextEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
+    void* key = (void*)this;
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this] () {
+        withWriteLock([&] {
+            auto entity = getEntity();
+            _position = entity->getWorldPosition();
+            updateModelTransform();
+        });
+    });
 }
 
 void TextEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
