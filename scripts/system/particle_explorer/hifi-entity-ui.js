@@ -530,13 +530,13 @@ HifiEntityUI.prototype = {
                 textureImage.classList.remove("no-preview");
                 textureImage.classList.add("no-texture");
             }
-            self.webBridgeSync(group.id, url);
         }, 250);
 
         textureUrl.oninput = function (event) {
             // Add throttle
             var url = event.target.value;
             imageLoad(url);
+            self.webBridgeSync(group.id, url);
         };
         textureUrl.onchange = textureUrl.oninput;
         textureImage.appendChild(image);
