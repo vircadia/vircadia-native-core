@@ -60,9 +60,10 @@ function HifiEntityUI(parent) {
     this.parent = parent;
 
     var self = this;
+    this.settingsUpdateLock = false;
     this.webBridgeSync = _.debounce(function (id, val) {
         console.log(id + " " + val + " " + self.webBridgeSync);
-        if (self.EventBridge) {
+        if (self.EventBridge && !self.settingsUpdateLock) {
             var sendPackage = {};
             sendPackage[id] = val;
             self.submitChanges(sendPackage);
@@ -113,7 +114,6 @@ HifiEntityUI.prototype = {
         var self = this;
         var json = {};
         var keys = Object.keys(self.builtRows);
-
         for (var i = 0; i < keys.length; i++) {
             var key = keys[i];
             var el = self.builtRows[key];
@@ -151,6 +151,7 @@ HifiEntityUI.prototype = {
                 json[key] = document.getElementById(key).value;
             }
         }
+        
 
         return json;
     },
@@ -158,6 +159,7 @@ HifiEntityUI.prototype = {
         var self = this;
         var fields = document.getElementsByTagName("input");
 
+        self.settingsUpdateLock = true;
         if (!currentProperties.locked) {
             for (var i = 0; i < fields.length; i++) {
                 fields[i].removeAttribute("disabled");
@@ -228,6 +230,8 @@ HifiEntityUI.prototype = {
                 }
             }
         }
+        
+        self.settingsUpdateLock = false;
     },
     connect: function (EventBridge) {
         this.EventBridge = EventBridge;
