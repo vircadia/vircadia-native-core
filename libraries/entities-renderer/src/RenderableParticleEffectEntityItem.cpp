@@ -195,9 +195,9 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
         // - Distribute points relatively evenly over ellipsoid surface
         // - Distribute points relatively evenly within ellipsoid volume
 
-        float elevationMinZ = sin(PI_OVER_TWO - polarFinish);
-        float elevationMaxZ = sin(PI_OVER_TWO - polarStart);
-        float elevation = asin(elevationMinZ + (elevationMaxZ - elevationMinZ) * randFloat());
+        float elevationMinZ = sinf(PI_OVER_TWO - polarFinish);
+        float elevationMaxZ = sinf(PI_OVER_TWO - polarStart);
+        float elevation = asinf(elevationMinZ + (elevationMaxZ - elevationMinZ) * randFloat());
 
         float azimuth;
         if (azimuthFinish >= azimuthStart) {

@@ -739,15 +739,15 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInFrustum(QVariantMap frust
 
     const QString POSITION_PROPERTY = "position";
     bool positionOK = frustum.contains(POSITION_PROPERTY);
-    glm::vec3 position = positionOK ? qMapToGlmVec3(frustum[POSITION_PROPERTY]) : glm::vec3();
+    glm::vec3 position = positionOK ? qMapToVec3(frustum[POSITION_PROPERTY]) : glm::vec3();
 
     const QString ORIENTATION_PROPERTY = "orientation";
     bool orientationOK = frustum.contains(ORIENTATION_PROPERTY);
-    glm::quat orientation = orientationOK ? qMapToGlmQuat(frustum[ORIENTATION_PROPERTY]) : glm::quat();
+    glm::quat orientation = orientationOK ? qMapToQuat(frustum[ORIENTATION_PROPERTY]) : glm::quat();
 
     const QString PROJECTION_PROPERTY = "projection";
     bool projectionOK = frustum.contains(PROJECTION_PROPERTY);
-    glm::mat4 projection = projectionOK ? qMapToGlmMat4(frustum[PROJECTION_PROPERTY]) : glm::mat4();
+    glm::mat4 projection = projectionOK ? qMapToMat4(frustum[PROJECTION_PROPERTY]) : glm::mat4();
 
     const QString CENTER_RADIUS_PROPERTY = "centerRadius";
     bool centerRadiusOK = frustum.contains(CENTER_RADIUS_PROPERTY);

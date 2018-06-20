@@ -185,9 +185,6 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const AACube& v) { retu
         properties.setProperty(#P, V); \
     }
 
-typedef glm::vec2 glmVec2;
-typedef glm::vec3 glmVec3;
-typedef glm::quat glmQuat;
 typedef QVector<glm::vec3> qVectorVec3;
 typedef QVector<glm::quat> qVectorQuat;
 typedef QVector<bool> qVectorBool;
@@ -224,7 +221,7 @@ inline QByteArray QByteArray_convertFromScriptValue(const QScriptValue& v, bool&
     return QByteArray::fromBase64(b64.toUtf8());
 }
 
-inline glmVec2 glmVec2_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+inline glm::vec2 vec2_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = false; /// assume it can't be converted
     QScriptValue x = v.property("x");
     QScriptValue y = v.property("y");
@@ -241,7 +238,7 @@ inline glmVec2 glmVec2_convertFromScriptValue(const QScriptValue& v, bool& isVal
     return glm::vec2(0);
 }
 
-inline glmVec3 glmVec3_convertFromScriptValue(const QScriptValue& v, bool& isValid) { 
+inline glm::vec3 vec3_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = false; /// assume it can't be converted
     QScriptValue x = v.property("x");
     QScriptValue y = v.property("y");
@@ -297,7 +294,7 @@ inline qVectorBool qVectorBool_convertFromScriptValue(const QScriptValue& v, boo
     return qVectorBoolFromScriptValue(v);
 }
 
-inline glmQuat glmQuat_convertFromScriptValue(const QScriptValue& v, bool& isValid) { 
+inline glm::quat quat_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = false; /// assume it can't be converted
     QScriptValue x = v.property("x");
     QScriptValue y = v.property("y");

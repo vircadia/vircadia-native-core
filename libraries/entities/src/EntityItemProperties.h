@@ -228,8 +228,8 @@ public:
     DEFINE_PROPERTY_REF_ENUM(PROP_MATERIAL_MAPPING_MODE, MaterialMappingMode, materialMappingMode, MaterialMappingMode, UV);
     DEFINE_PROPERTY_REF(PROP_MATERIAL_PRIORITY, Priority, priority, quint16, 0);
     DEFINE_PROPERTY_REF(PROP_PARENT_MATERIAL_NAME, ParentMaterialName, parentMaterialName, QString, "0");
-    DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_POS, MaterialMappingPos, materialMappingPos, glmVec2, glm::vec2(0, 0));
-    DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale, glmVec2, glm::vec2(1, 1));
+    DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_POS, MaterialMappingPos, materialMappingPos, vec2, glm::vec2(0, 0));
+    DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale, vec2, glm::vec2(1, 1));
     DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_ROT, MaterialMappingRot, materialMappingRot, float, 0);
     DEFINE_PROPERTY_REF(PROP_MATERIAL_DATA, MaterialData, materialData, QString, "");
 
@@ -249,11 +249,11 @@ public:
     DEFINE_PROPERTY_REF(PROP_STATIC_CERTIFICATE_VERSION, StaticCertificateVersion, staticCertificateVersion, quint32, ENTITY_ITEM_DEFAULT_STATIC_CERTIFICATE_VERSION);
 
     // these are used when bouncing location data into and out of scripts
-    DEFINE_PROPERTY_REF(PROP_LOCAL_POSITION, LocalPosition, localPosition, glmVec3, ENTITY_ITEM_ZERO_VEC3);
-    DEFINE_PROPERTY_REF(PROP_LOCAL_ROTATION, LocalRotation, localRotation, glmQuat, ENTITY_ITEM_DEFAULT_ROTATION);
-    DEFINE_PROPERTY_REF(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, glmVec3, ENTITY_ITEM_ZERO_VEC3);
-    DEFINE_PROPERTY_REF(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, glmVec3, ENTITY_ITEM_ZERO_VEC3);
-    DEFINE_PROPERTY_REF(PROP_LOCAL_DIMENSIONS, LocalDimensions, localDimensions, glmVec3, ENTITY_ITEM_ZERO_VEC3);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_POSITION, LocalPosition, localPosition, vec3, ENTITY_ITEM_ZERO_VEC3);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_ROTATION, LocalRotation, localRotation, quat, ENTITY_ITEM_DEFAULT_ROTATION);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, vec3, ENTITY_ITEM_ZERO_VEC3);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, vec3, ENTITY_ITEM_ZERO_VEC3);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_DIMENSIONS, LocalDimensions, localDimensions, vec3, ENTITY_ITEM_ZERO_VEC3);
 
     DEFINE_PROPERTY_REF(PROP_JOINT_ROTATIONS_SET, JointRotationsSet, jointRotationsSet, QVector<bool>, QVector<bool>());
     DEFINE_PROPERTY_REF(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<glm::quat>, QVector<glm::quat>());
