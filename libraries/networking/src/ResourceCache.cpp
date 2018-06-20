@@ -95,6 +95,11 @@ void ResourceCacheSharedItems::removeRequest(QWeakPointer<Resource> resource) {
     }
 }
 
+void ResourceCacheSharedItems::clearPendingRequests() {
+    Lock lock(_mutex);
+    _pendingRequests.clear();
+}
+
 QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
     // look for the highest priority pending request
     int highestIndex = -1;
@@ -465,6 +470,10 @@ QList<QSharedPointer<Resource>> ResourceCache::getLoadingRequests() {
 
 int ResourceCache::getPendingRequestCount() {
     return DependencyManager::get<ResourceCacheSharedItems>()->getPendingRequestsCount();
+}
+
+void ResourceCache::clearPendingRequests() {
+    return DependencyManager::get<ResourceCacheSharedItems>()->clearPendingRequests();
 }
 
 int ResourceCache::getLoadingRequestCount() {

@@ -71,6 +71,7 @@ public:
     void removeRequest(QWeakPointer<Resource> doneRequest);
     QList<QSharedPointer<Resource>> getPendingRequests();
     uint32_t getPendingRequestsCount() const;
+    void clearPendingRequests();
     QList<QSharedPointer<Resource>> getLoadingRequests();
     QSharedPointer<Resource> getHighestPendingRequest();
     uint32_t getLoadingRequestsCount() const;
@@ -225,6 +226,7 @@ public:
     static QList<QSharedPointer<Resource>> getLoadingRequests();
 
     static int getPendingRequestCount();
+    static void clearPendingRequests();
 
     static int getLoadingRequestCount();
 

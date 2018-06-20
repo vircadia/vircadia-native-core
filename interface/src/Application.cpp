@@ -8271,6 +8271,10 @@ void Application::enterBackground() {
     if (getActiveDisplayPlugin()->isActive()) {
         getActiveDisplayPlugin()->deactivate();
     }
+    // Clear caches
+    clearDomainOctreeDetails();
+    // Clear the pending request list to avoid extra downloads to happen
+    ResourceCache::clearPendingRequests();
 }
 
 void Application::enterForeground() {
