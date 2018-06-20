@@ -125,6 +125,14 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
             });
         }
     }
+
+    void* key = (void*)this;
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this] () {
+        withWriteLock([&] {
+            updateModelTransform();
+            _renderTransform = getModelTransform();
+        });
+    });
 }
 
 void ParticleEffectEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
@@ -324,7 +332,10 @@ void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
     // In trail mode, the particles are created in world space.
     // so we only set a transform if they're not in trail mode
     if (!_particleProperties.emission.shouldTrail) {
-        transform = getModelTransform();
+
+        withReadLock([&] {
+            transform = _renderTransform;
+        });
         transform.setScale(vec3(1));
     }
     batch.setModelTransform(transform);
