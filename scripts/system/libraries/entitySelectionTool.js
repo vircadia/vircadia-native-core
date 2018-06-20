@@ -307,7 +307,7 @@ SelectionDisplay = (function() {
     var STRETCH_PANEL_WIDTH = 0.01;
 
     var SCALE_CUBE_OFFSET = 0.5;
-    var SCALE_CUBE_CAMERA_DISTANCE_MULTIPLE = 0.015;
+    var SCALE_CUBE_CAMERA_DISTANCE_MULTIPLE = 0.0125;
 
     var CLONER_OFFSET = { x:0.9, y:-0.9, z:0.9 };    
     
@@ -1216,61 +1216,73 @@ SelectionDisplay = (function() {
             var scaleCubeOffsetX = SCALE_CUBE_OFFSET * dimensions.x;
             var scaleCubeOffsetY = SCALE_CUBE_OFFSET * dimensions.y;
             var scaleCubeOffsetZ = SCALE_CUBE_OFFSET * dimensions.z;
-            var scaleCubeDimension = rotateDimension * SCALE_CUBE_CAMERA_DISTANCE_MULTIPLE / 
-                                                       ROTATE_RING_CAMERA_DISTANCE_MULTIPLE;
-            var scaleCubeDimensions = { x:scaleCubeDimension, y:scaleCubeDimension, z:scaleCubeDimension };
             var scaleCubeRotation = spaceMode === SPACE_LOCAL ? rotation : Quat.IDENTITY;
             var scaleLBNCubePosition = { x:-scaleCubeOffsetX, y:-scaleCubeOffsetY, z:-scaleCubeOffsetZ };
             scaleLBNCubePosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, scaleLBNCubePosition));
+            var scaleLBNCubeToCamera = getDistanceToCamera(scaleLBNCubePosition);
+            var scaleRBNCubePosition = { x:scaleCubeOffsetX, y:-scaleCubeOffsetY, z:-scaleCubeOffsetZ };
+            scaleRBNCubePosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, scaleRBNCubePosition));
+            var scaleRBNCubeToCamera = getDistanceToCamera(scaleRBNCubePosition);
+            var scaleLBFCubePosition = { x:-scaleCubeOffsetX, y:-scaleCubeOffsetY, z:scaleCubeOffsetZ };
+            scaleLBFCubePosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, scaleLBFCubePosition));
+            var scaleLBFCubeToCamera = getDistanceToCamera(scaleLBFCubePosition);
+            var scaleRBFCubePosition = { x:scaleCubeOffsetX, y:-scaleCubeOffsetY, z:scaleCubeOffsetZ };
+            scaleRBFCubePosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, scaleRBFCubePosition));
+            var scaleRBFCubeToCamera = getDistanceToCamera(scaleRBFCubePosition);
+            var scaleLTNCubePosition = { x:-scaleCubeOffsetX, y:scaleCubeOffsetY, z:-scaleCubeOffsetZ };
+            scaleLTNCubePosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, scaleLTNCubePosition));
+            var scaleLTNCubeToCamera = getDistanceToCamera(scaleLTNCubePosition);
+            var scaleRTNCubePosition = { x:scaleCubeOffsetX, y:scaleCubeOffsetY, z:-scaleCubeOffsetZ };
+            scaleRTNCubePosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, scaleRTNCubePosition));
+            var scaleRTNCubeToCamera = getDistanceToCamera(scaleRTNCubePosition);
+            var scaleLTFCubePosition = { x:-scaleCubeOffsetX, y:scaleCubeOffsetY, z:scaleCubeOffsetZ };
+            scaleLTFCubePosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, scaleLTFCubePosition));
+            var scaleLTFCubeToCamera = getDistanceToCamera(scaleLTFCubePosition);
+            var scaleRTFCubePosition = { x:scaleCubeOffsetX, y:scaleCubeOffsetY, z:scaleCubeOffsetZ };
+            scaleRTFCubePosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, scaleRTFCubePosition));
+            var scaleRTFCubeToCamera = getDistanceToCamera(scaleRTFCubePosition);
+            
+            var scaleCubeToCamera = Math.min(scaleLBNCubeToCamera, scaleRBNCubeToCamera, scaleLBFCubeToCamera, 
+                                             scaleRBFCubeToCamera, scaleLTNCubeToCamera, scaleRTNCubeToCamera, 
+                                             scaleLTFCubeToCamera, scaleRTFCubeToCamera);
+            var scaleCubeDimension = scaleCubeToCamera * SCALE_CUBE_CAMERA_DISTANCE_MULTIPLE;
+            var scaleCubeDimensions = { x:scaleCubeDimension, y:scaleCubeDimension, z:scaleCubeDimension };
+
             Overlays.editOverlay(handleScaleLBNCube, { 
                 position: scaleLBNCubePosition, 
                 rotation: scaleCubeRotation,
                 dimensions: scaleCubeDimensions
             });
-            var scaleRBNCubePosition = { x:scaleCubeOffsetX, y:-scaleCubeOffsetY, z:-scaleCubeOffsetZ };
-            scaleRBNCubePosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, scaleRBNCubePosition));
             Overlays.editOverlay(handleScaleRBNCube, { 
                 position: scaleRBNCubePosition, 
                 rotation: scaleCubeRotation,
                 dimensions: scaleCubeDimensions
             });
-            var scaleLBFCubePosition = { x:-scaleCubeOffsetX, y:-scaleCubeOffsetY, z:scaleCubeOffsetZ };
-            scaleLBFCubePosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, scaleLBFCubePosition));
             Overlays.editOverlay(handleScaleLBFCube, { 
                 position: scaleLBFCubePosition, 
                 rotation: scaleCubeRotation,
                 dimensions: scaleCubeDimensions
             });
-            var scaleRBFCubePosition = { x:scaleCubeOffsetX, y:-scaleCubeOffsetY, z:scaleCubeOffsetZ };
-            scaleRBFCubePosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, scaleRBFCubePosition));
             Overlays.editOverlay(handleScaleRBFCube, { 
                 position: scaleRBFCubePosition, 
                 rotation: scaleCubeRotation,
                 dimensions: scaleCubeDimensions
             });
-            var scaleLTNCubePosition = { x:-scaleCubeOffsetX, y:scaleCubeOffsetY, z:-scaleCubeOffsetZ };
-            scaleLTNCubePosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, scaleLTNCubePosition));
             Overlays.editOverlay(handleScaleLTNCube, { 
                 position: scaleLTNCubePosition, 
                 rotation: scaleCubeRotation,
                 dimensions: scaleCubeDimensions
             });
-            var scaleRTNCubePosition = { x:scaleCubeOffsetX, y:scaleCubeOffsetY, z:-scaleCubeOffsetZ };
-            scaleRTNCubePosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, scaleRTNCubePosition));
             Overlays.editOverlay(handleScaleRTNCube, { 
                 position: scaleRTNCubePosition, 
                 rotation: scaleCubeRotation,
                 dimensions: scaleCubeDimensions
             });
-            var scaleLTFCubePosition = { x:-scaleCubeOffsetX, y:scaleCubeOffsetY, z:scaleCubeOffsetZ };
-            scaleLTFCubePosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, scaleLTFCubePosition));
             Overlays.editOverlay(handleScaleLTFCube, { 
                 position: scaleLTFCubePosition, 
                 rotation: scaleCubeRotation,
                 dimensions: scaleCubeDimensions
             });
-            var scaleRTFCubePosition = { x:scaleCubeOffsetX, y:scaleCubeOffsetY, z:scaleCubeOffsetZ };
-            scaleRTFCubePosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, scaleRTFCubePosition));
             Overlays.editOverlay(handleScaleRTFCube, { 
                 position: scaleRTFCubePosition, 
                 rotation: scaleCubeRotation,
@@ -1794,7 +1806,7 @@ SelectionDisplay = (function() {
                 var dotVector = Vec3.dot(vector, projectionVector);
                 vector = Vec3.multiply(dotVector, projectionVector);
                 vector = grid.snapToGrid(vector);
-                
+
                 var wantDebug = false;
                 if (wantDebug) {
                     print("translateUpDown... ");
@@ -1874,6 +1886,7 @@ SelectionDisplay = (function() {
         var pickRayPosition = null;
         var pickRayPosition3D = null;
         var rotation = null;
+        var previousPickRay = null;
 
         var onBegin = function(event, pickRay, pickResult) {
             var properties = Entities.getEntityProperties(SelectionManager.selections[0]);
@@ -2047,6 +2060,8 @@ SelectionDisplay = (function() {
                 Menu.setIsOptionChecked(AVATAR_COLLISIONS_OPTION, false);
                 handleStretchCollisionOverride = true;
             }
+            
+            previousPickRay = pickRay;
         };
 
         var onEnd = function(event, reason) {    
@@ -2077,6 +2092,10 @@ SelectionDisplay = (function() {
             var localDeltaPivot = deltaPivot;
             var localSigns = signs;
             var pickRay = generalComputePickRay(event.x, event.y);
+            if ((Vec3.dot(pickRay.direction, planeNormal) > 0 && Vec3.dot(previousPickRay.direction, planeNormal) < 0) ||
+                (Vec3.dot(pickRay.direction, planeNormal) < 0 && Vec3.dot(previousPickRay.direction, planeNormal) > 0)) {
+                pickRay = previousPickRay;
+            }
             
             // Are we using handControllers or Mouse - only relevant for 3D tools
             var controllerPose = getControllerWorldLocation(activeHand, true);
@@ -2167,6 +2186,8 @@ SelectionDisplay = (function() {
                 Vec3.print("              changeInPosition:", changeInPosition);
                 Vec3.print("                   newPosition:", newPosition);
             }
+            
+            previousPickRay = pickRay;
     
             SelectionManager._update();
         };// End of onMove def
