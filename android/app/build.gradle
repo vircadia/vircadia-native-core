@@ -48,8 +48,8 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField "String", "BACKTRACE_URL", "\"" + (System.getenv("CMAKE_BACKTRACE_URL") ? System.getenv("CMAKE_BACKTRACE_URL") : '') + "\""
-            buildConfigField "String", "BACKTRACE_TOKEN", "\"" + (System.getenv("CMAKE_BACKTRACE_TOKEN") ? System.getenv("CMAKE_BACKTRACE_TOKEN") : '') + "\""
+            buildConfigField "String", "BACKTRACE_URL", "\"https://gcalero999.sp.backtrace.io:6098\""
+            buildConfigField "String", "BACKTRACE_TOKEN", "\"4ff1f957cd6c357e6e5d5b2fe076f9ca46379a19b7d6baea1707cefb70e7ed15\""
         }
         release {
             minifyEnabled false
