@@ -277,7 +277,7 @@ void PhysicalEntitySimulation::getObjectsToChange(VectorOfMotionStates& result) 
 }
 
 void PhysicalEntitySimulation::handleDeactivatedMotionStates(const VectorOfMotionStates& motionStates) {
-    boolean serverlessMode = getEntityTree()->isServerlessMode();
+    bool serverlessMode = getEntityTree()->isServerlessMode();
     for (auto stateItr : motionStates) {
         ObjectMotionState* state = &(*stateItr);
         assert(state);
@@ -382,7 +382,7 @@ void PhysicalEntitySimulation::sendOwnershipBids(uint32_t numSubsteps) {
 }
 
 void PhysicalEntitySimulation::sendOwnedUpdates(uint32_t numSubsteps) {
-    boolean serverlessMode = getEntityTree()->isServerlessMode();
+    bool serverlessMode = getEntityTree()->isServerlessMode();
     PROFILE_RANGE_EX(simulation_physics, "Update", 0x00000000, (uint64_t)_owned.size());
     uint32_t i = 0;
     while (i < _owned.size()) {
