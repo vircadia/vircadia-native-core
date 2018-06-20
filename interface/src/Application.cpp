@@ -2539,6 +2539,8 @@ Application::~Application() {
     _main3DScene = nullptr;
     _renderEngine = nullptr;
 
+    _gameWorkload.shutdown();
+
     DependencyManager::destroy<Preferences>();
 
     _entityClipboard->eraseAllOctreeElements();
@@ -2995,6 +2997,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     surfaceContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
     surfaceContext->setContextProperty("Render", _renderEngine->getConfiguration().get());
+    surfaceContext->setContextProperty("Workload", _gameWorkload._engine->getConfiguration().get());
     surfaceContext->setContextProperty("Reticle", getApplicationCompositor().getReticleInterface());
     surfaceContext->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
 
@@ -4535,6 +4538,10 @@ void Application::idle() {
     }
 
     {
+        _gameWorkload.updateViews(_viewFrustum, getMyAvatar()->getHeadPosition());
+        _gameWorkload._engine->run();
+    }
+    {
         PerformanceTimer perfTimer("update");
         PerformanceWarning warn(showWarnings, "Application::idle()... update()");
         static const float BIGGEST_DELTA_TIME_SECS = 0.25f;
@@ -4929,6 +4936,9 @@ void Application::init() {
             avatar->setCollisionSound(sound);
         }
     }, Qt::QueuedConnection);
+
+    _gameWorkload.startup(getEntities()->getWorkloadSpace(), _main3DScene, _entitySimulation);
+    _entitySimulation->setWorkloadSpace(getEntities()->getWorkloadSpace());
 }
 
 void Application::loadAvatarScripts(const QVector<QString>& urls) {
@@ -5280,14 +5290,16 @@ void Application::setKeyboardFocusEntity(const EntityItemID& entityItemID) {
             auto entityId = _keyboardFocusedEntity.get();
             if (entities->wantsKeyboardFocus(entityId)) {
                 entities->setProxyWindow(entityId, _window->windowHandle());
-                auto entity = getEntities()->getEntity(entityId);
                 if (_keyboardMouseDevice->isActive()) {
                     _keyboardMouseDevice->pluginFocusOutEvent();
                 }
                 _lastAcceptedKeyPress = usecTimestampNow();
 
-                setKeyboardFocusHighlight(entity->getWorldPosition(), entity->getWorldOrientation(),
-                    entity->getScaledDimensions() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR);
+                auto entity = getEntities()->getEntity(entityId);
+                if (entity) {
+                    setKeyboardFocusHighlight(entity->getWorldPosition(), entity->getWorldOrientation(),
+                        entity->getScaledDimensions() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR);
+                }
             }
         }
     }
@@ -5615,7 +5627,10 @@ void Application::update(float deltaTime) {
     {
         PROFILE_RANGE(simulation_physics, "Simulation");
         PerformanceTimer perfTimer("simulation");
+
         if (_physicsEnabled) {
+            auto t0 = std::chrono::high_resolution_clock::now();
+            auto t1 = t0;
             {
                 PROFILE_RANGE(simulation_physics, "PrePhysics");
                 PerformanceTimer perfTimer("prePhysics)");
@@ -5639,6 +5654,8 @@ void Application::update(float deltaTime) {
 
                 _entitySimulation->applyDynamicChanges();
 
+                t1 = std::chrono::high_resolution_clock::now();
+
                 avatarManager->getObjectsToRemoveFromPhysics(motionStates);
                 _physicsEngine->removeObjects(motionStates);
                 avatarManager->getObjectsToAddToPhysics(motionStates);
@@ -5651,6 +5668,7 @@ void Application::update(float deltaTime) {
                     dynamic->prepareForPhysicsSimulation();
                 });
             }
+            auto t2 = std::chrono::high_resolution_clock::now();
             {
                 PROFILE_RANGE(simulation_physics, "StepPhysics");
                 PerformanceTimer perfTimer("stepPhysics");
@@ -5658,6 +5676,7 @@ void Application::update(float deltaTime) {
                     _physicsEngine->stepSimulation();
                 });
             }
+            auto t3 = std::chrono::high_resolution_clock::now();
             {
                 if (_physicsEngine->hasOutgoingChanges()) {
                     {
@@ -5703,12 +5722,26 @@ void Application::update(float deltaTime) {
                         // NOTE: the PhysicsEngine stats are written to stdout NOT to Qt log framework
                         _physicsEngine->dumpStatsIfNecessary();
                     }
+                    auto t4 = std::chrono::high_resolution_clock::now();
 
                     if (!_aboutToQuit) {
                         // NOTE: the getEntities()->update() call below will wait for lock
                         // and will provide non-physical entity motion
                         getEntities()->update(true); // update the models...
                     }
+
+                    auto t5 = std::chrono::high_resolution_clock::now();
+
+                    workload::Timings timings(6);
+                    timings[0] = (t4 - t0);
+                    timings[1] = (t5 - t4);
+                    timings[2] = (t4 - t3);
+                    timings[3] = (t3 - t2);
+                    timings[4] = (t2 - t1);
+                    timings[5] = (t1 - t0);
+
+                    _gameWorkload.updateSimulationTimings(timings);
+
                 }
             }
         } else {
@@ -6562,6 +6595,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
 
     scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Render", _renderEngine->getConfiguration().get());
+    scriptEngine->registerGlobalObject("Workload", _gameWorkload._engine->getConfiguration().get());
 
     GraphicsScriptingInterface::registerMetaTypes(scriptEngine.data());
     scriptEngine->registerGlobalObject("Graphics", DependencyManager::get<GraphicsScriptingInterface>().data());

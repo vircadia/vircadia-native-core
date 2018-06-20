@@ -1,0 +1,120 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  drawItemBounds.slv
+//  vertex shader
+//
+//  Created by Sam Gateau on 6/29/2015.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Transform.slh@>
+<$declareStandardTransform()$>
+
+<@include gpu/Color.slh@>
+<$declareColorWheel()$>
+
+uniform vec4 inColor;
+
+
+struct WorkloadView {
+    vec4 direction_far;
+    vec4 fov;
+    vec4 origin;
+    vec4 backFront[2];
+    vec4 regions[3];
+};
+
+#if defined(GPU_GL410)
+uniform samplerBuffer workloadViewsBuffer;
+WorkloadView getWorkloadView(int i) {
+    int offset = 2 * i;
+    WorkloadView view;
+    view.origin = texelFetch(workloadViewsBuffer, offset);
+    view.radiuses = texelFetch(workloadViewsBuffer, offset + 1);
+    return view;
+}
+#else
+layout(std140) buffer workloadViewsBuffer {
+    WorkloadView _views[];
+};
+WorkloadView getWorkloadView(int i) {
+    WorkloadView view = _views[i];
+    return view;
+}
+#endif
+
+
+
+
+
+out vec4 varColor;
+out vec3 varTexcoord;
+
+const int NUM_VERTICES_PER_SEGMENT = 2;
+const int NUM_SEGMENT_PER_VIEW_REGION = 65;
+const int NUM_VERTICES_PER_VIEW_REGION = NUM_SEGMENT_PER_VIEW_REGION * NUM_VERTICES_PER_SEGMENT;
+const int NUM_REGIONS_PER_VIEW = 3;
+const int NUM_VERTICES_PER_VIEW = NUM_VERTICES_PER_VIEW_REGION * NUM_REGIONS_PER_VIEW;
+
+
+layout(std140) uniform drawMeshBuffer {
+    vec4 verts[NUM_SEGMENT_PER_VIEW_REGION];
+};
+
+void main(void) {
+    int viewID = gl_VertexID / NUM_VERTICES_PER_VIEW;
+    int viewVertexID = gl_VertexID - viewID * NUM_VERTICES_PER_VIEW;
+
+    int regionID = viewVertexID / NUM_VERTICES_PER_VIEW_REGION;
+    int regionVertexID = viewVertexID - regionID * NUM_VERTICES_PER_VIEW_REGION;
+
+    int segmentID = regionVertexID / NUM_VERTICES_PER_SEGMENT;
+    int segmentVertexID = regionVertexID - segmentID * NUM_VERTICES_PER_SEGMENT;
+
+    vec4 segment = verts[segmentID];
+
+    vec4 spriteVert = vec4(segment.y, 0.0, segment.x, 1.0);
+    vec3 spriteTan = vec3(segment.x, 0.0, -segment.y);
+
+    vec3 lateralDir = vec3(0.0,  -1.0 + 2.0 * float(segmentVertexID), 0.0);
+
+    WorkloadView view = getWorkloadView(viewID);
+    vec4 region = view.regions[regionID];
+    vec4 proxyPosWorld = vec4(region.xyz, 1.0);
+    float regionRadius = region.w;
+
+    // Define the sprite space
+    vec3 dirZ = -normalize(view.direction_far.xyz);
+    vec3 dirY = vec3(0.0, 1.0, 0.0);
+    vec3 dirX = normalize(cross(dirY, dirZ));
+    dirY = normalize(cross(dirZ, dirX));
+
+    spriteVert.xyz *= regionRadius; 
+    vec3 originSpaceVert = (dirX * spriteVert.x + dirY * spriteVert.y + dirZ * spriteVert.z);
+    vec4 pos = vec4(proxyPosWorld.xyz + originSpaceVert, 1.0);
+
+    vec3 originSpaceTan = normalize(dirX * spriteTan.x + dirY * spriteTan.y + dirZ * spriteTan.z);
+
+    // standard transform, bring pos in view space
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    vec4 posEye;
+    <$transformModelToEyePos(cam, obj, pos, posEye)$>
+    vec3 tanEye;
+    <$transformModelToEyeDir(cam, obj, originSpaceTan, tanEye)$>
+
+    lateralDir = normalize(cross(vec3(0.0, 0.0, 1.0), normalize(tanEye)));
+    posEye.xyz += (0.05 * (regionID + 1)) * (-1.0 + 2.0 * float(segmentVertexID)) * lateralDir;
+
+    <$transformEyeToClipPos(cam, posEye, gl_Position)$>
+
+    varTexcoord = spriteVert.xyz;
+
+    // Convert region to color
+    varColor = vec4(colorWheel(float(regionID) / 4.0), -1.0);
+}
