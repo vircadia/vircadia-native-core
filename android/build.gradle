@@ -556,8 +556,9 @@ def runBreakpadDumpSyms = { buildType ->
 
     def objDir = new File("${appDir}/build/intermediates/cmake/${buildType}/obj/arm64-v8a")
     def stripDebugSymbol = "${appDir}/build/intermediates/transforms/stripDebugSymbol/${buildType}/0/lib/arm64-v8a/"
-    if (!breakpadDumpSymsDir.exists()) {
-        breakpadDumpSymsDir.mkdirs()
+    def outputDir = new File(breakpadDumpSymsDir, buildType)
+    if (!outputDir.exists()) {
+        outputDir.mkdirs()
     }
 
     objDir.eachFileRecurse (FileType.FILES) { file ->
@@ -567,21 +568,14 @@ def runBreakpadDumpSyms = { buildType ->
                     file.toString(),
                     stripDebugSymbol
             ]
-            println ("Running dump_syms with arguments " + cmdArgs)
             def result = exec {
                 workingDir HIFI_ANDROID_PRECOMPILED + '/breakpad/bin'
                 commandLine './dump_syms'
                 args cmdArgs
                 ignoreExitValue true
-                standardOutput = new BufferedOutputStream(new FileOutputStream(new File(breakpadDumpSymsDir, output)))
+                standardOutput = new BufferedOutputStream(new FileOutputStream(new File(outputDir, output)))
             }
         }
-    }
-}
-
-task runBreakpadDumpSymsRelease() {
-    doLast {
-        runBreakpadDumpSyms("release");
     }
 }
 
@@ -591,41 +585,59 @@ task runBreakpadDumpSymsDebug() {
     }
 }
 
-task zipDumpSymsDebug(type: Zip, dependsOn: runBreakpadDumpSymsDebug) {
-    doFirst {
-        println ("Zipping " + breakpadDumpSymsDir.absolutePath + " into " + breakpadDumpSymsDir)
-    }
-    from (breakpadDumpSymsDir.absolutePath)
-    archiveName "symbols-${RELEASE_NUMBER}.zip"
-    destinationDir(new File("${appDir}/build/tmp/"))
+task runBreakpadDumpSymsRelease() {
     doLast {
-        println ("Zipped " + breakpadDumpSymsDir.absolutePath + " into " + breakpadDumpSymsDir)
+        runBreakpadDumpSyms("release");
     }
 }
 
-task uploadBreakpadDumpSymsRelease(dependsOn: runBreakpadDumpSymsRelease) {
-    doLast {
-        //uploadDumpSyms("release")
-    }
+task zipDumpSymsDebug(type: Zip, dependsOn: runBreakpadDumpSymsDebug) {
+    from (new File(breakpadDumpSymsDir, "debug").absolutePath)
+    archiveName "symbols-${RELEASE_NUMBER}-debug.zip"
+    destinationDir(new File("${appDir}/build/tmp/"))
+}
+
+task zipDumpSymsRelease(type: Zip, dependsOn: runBreakpadDumpSymsRelease) {
+    from (new File(breakpadDumpSymsDir, "release").absolutePath)
+    archiveName "symbols-${RELEASE_NUMBER}-release.zip"
+    destinationDir(new File("${appDir}/build/tmp/"))
 }
 
 task uploadBreakpadDumpSymsDebug(type:io.github.httpbuilderng.http.HttpTask, dependsOn: zipDumpSymsDebug) {
+    onlyIf {
+        System.getenv("CMAKE_BACKTRACE_URL") && System.getenv("CMAKE_BACKTRACE_SYMBOLS_TOKEN")
+    }
     config {
-        request.uri = 'https://gcalero998.sp.backtrace.io:6098'
+        request.uri = System.getenv("CMAKE_BACKTRACE_URL")
     }
     post {
         request.uri.path = '/post'
-        request.uri.query = [format: 'symbols', token: 'd65d0d184789ac40c121952001fd91dfba7e149899b1eeccd68ccffe91dd2fd0']
-        request.body = new File("${appDir}/build/tmp/", "symbols-${RELEASE_NUMBER}.zip").bytes
+        request.uri.query = [format: 'symbols', token: System.getenv("CMAKE_BACKTRACE_SYMBOLS_TOKEN")]
+        request.body = new File("${appDir}/build/tmp/", "symbols-${RELEASE_NUMBER}-debug.zip").bytes
         request.contentType = 'application/octet-stream'
         response.success {
-            println ("${appDir}/build/tmp/symbols-${RELEASE_NUMBER}.zip uploaded")
+            println ("${appDir}/build/tmp/symbols-${RELEASE_NUMBER}-debug.zip uploaded")
         }
-
     }
 }
 
-
+task uploadBreakpadDumpSymsRelease(type:io.github.httpbuilderng.http.HttpTask, dependsOn: zipDumpSymsRelease) {
+    onlyIf {
+        System.getenv("CMAKE_BACKTRACE_URL") && System.getenv("CMAKE_BACKTRACE_SYMBOLS_TOKEN")
+    }
+    config {
+        request.uri = System.getenv("CMAKE_BACKTRACE_URL")
+    }
+    post {
+        request.uri.path = '/post'
+        request.uri.query = [format: 'symbols', token: System.getenv("CMAKE_BACKTRACE_SYMBOLS_TOKEN")]
+        request.body = new File("${appDir}/build/tmp/", "symbols-${RELEASE_NUMBER}-release.zip").bytes
+        request.contentType = 'application/octet-stream'
+        response.success {
+            println ("${appDir}/build/tmp/symbols-${RELEASE_NUMBER}-release.zip uploaded")
+        }
+    }
+}
 
 // FIXME this code is prototyping the desired functionality for doing build time binary dependency resolution.
 // See the comment on the qtBundle task above
