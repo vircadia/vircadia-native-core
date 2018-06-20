@@ -982,6 +982,11 @@ SelectionDisplay = (function() {
         var toCameraDistance = Vec3.length(Vec3.subtract(cameraPosition, position));
         return toCameraDistance;
     }
+    
+    function usePreviousPickRay(pickRayDirection, previousPickRayDirection, normal) {
+        return (Vec3.dot(pickRayDirection, normal) > 0 && Vec3.dot(previousPickRayDirection, normal) < 0) ||
+               (Vec3.dot(pickRayDirection, normal) < 0 && Vec3.dot(previousPickRayDirection, normal) > 0);
+    }
 
     // @return string - The mode of the currently active tool;
     //                  otherwise, "UNKNOWN" if there's no active tool.
@@ -1782,12 +1787,17 @@ SelectionDisplay = (function() {
                 } else {
                     duplicatedEntityIDs = null;
                 }
+                
+                previousPickRay = pickRay;
             },
             onEnd: function(event, reason) {
                 pushCommandForSelections(duplicatedEntityIDs);
             },
             onMove: function(event) {
                 pickRay = generalComputePickRay(event.x, event.y);
+                if (usePreviousPickRay(pickRay.direction, previousPickRay.direction, pickNormal)) {
+                    pickRay = previousPickRay;
+                }
     
                 var newIntersection = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, pickNormal);
                 var vector = Vec3.subtract(newIntersection, lastPick);
@@ -1806,7 +1816,7 @@ SelectionDisplay = (function() {
                 var dotVector = Vec3.dot(vector, projectionVector);
                 vector = Vec3.multiply(dotVector, projectionVector);
                 vector = grid.snapToGrid(vector);
-
+                
                 var wantDebug = false;
                 if (wantDebug) {
                     print("translateUpDown... ");
@@ -1831,6 +1841,8 @@ SelectionDisplay = (function() {
                     var newPosition = Vec3.sum(properties.position, vector);
                     Entities.editEntity(id, { position: newPosition });
                 }
+                
+                previousPickRay = pickRay;
     
                 SelectionManager._update();
             }
@@ -2092,11 +2104,10 @@ SelectionDisplay = (function() {
             var localDeltaPivot = deltaPivot;
             var localSigns = signs;
             var pickRay = generalComputePickRay(event.x, event.y);
-            if ((Vec3.dot(pickRay.direction, planeNormal) > 0 && Vec3.dot(previousPickRay.direction, planeNormal) < 0) ||
-                (Vec3.dot(pickRay.direction, planeNormal) < 0 && Vec3.dot(previousPickRay.direction, planeNormal) > 0)) {
+            if (usePreviousPickRay(pickRay.direction, previousPickRay.direction, planeNormal)) {
                 pickRay = previousPickRay;
             }
-            
+
             // Are we using handControllers or Mouse - only relevant for 3D tools
             var controllerPose = getControllerWorldLocation(activeHand, true);
             var vector = null;
@@ -2176,7 +2187,7 @@ SelectionDisplay = (function() {
                     dimensions: newDimensions
                 });
             }
-                
+
             var wantDebug = false;
             if (wantDebug) {
                 print(stretchMode);
