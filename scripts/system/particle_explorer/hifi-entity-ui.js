@@ -58,11 +58,12 @@ var roundFloat = function (input, round) {
 
 function HifiEntityUI(parent) {
     this.parent = parent;
-
+    console.log("Creating a new Entity UI instance!");
     var self = this;
+    this.settingsUpdateLock = false;
     this.webBridgeSync = _.debounce(function (id, val) {
-        console.log(id + " " + val + " " + self.webBridgeSync);
-        if (self.EventBridge) {
+        if (self.EventBridge && !self.settingsUpdateLock) {
+            console.log(id + " " + val + " " + self.webBridgeSync);
             var sendPackage = {};
             sendPackage[id] = val;
             self.submitChanges(sendPackage);
@@ -113,7 +114,6 @@ HifiEntityUI.prototype = {
         var self = this;
         var json = {};
         var keys = Object.keys(self.builtRows);
-
         for (var i = 0; i < keys.length; i++) {
             var key = keys[i];
             var el = self.builtRows[key];
@@ -152,17 +152,25 @@ HifiEntityUI.prototype = {
             }
         }
 
+
         return json;
     },
     fillFields: function (currentProperties) {
         var self = this;
         var fields = document.getElementsByTagName("input");
 
+        console.log("Locking Settings Update while filling input Fields.");
+        self.settingsUpdateLock = true;
         if (!currentProperties.locked) {
             for (var i = 0; i < fields.length; i++) {
                 fields[i].removeAttribute("disabled");
+                if (fields[i].hasAttribute("data-max")) {
+                    // Reset Max to original max
+                    fields[i].setAttribute("max", fields[i].getAttribute("data-max"));
+                }
             }
         }
+
         if (self.onSelect) {
             self.onSelect();
         }
@@ -228,6 +236,11 @@ HifiEntityUI.prototype = {
                 }
             }
         }
+        // Now unlocking settings Update lock for sending messages on callbacks.
+        setTimeout(function () {
+            console.log("Unlocking UI");
+            self.settingsUpdateLock = false;
+        }, 50);
     },
     connect: function (EventBridge) {
         this.EventBridge = EventBridge;
@@ -263,6 +276,7 @@ HifiEntityUI.prototype = {
                 if (!currentProperties.colorFinish || !currentProperties.colorFinish.red) {
                     currentProperties.colorFinish = currentProperties.color;
                 }
+                console.log("Got ScriptEvent particle_settings", data);
                 self.fillFields(currentProperties);
                 // Do expected property match with structure;
             } else if (data.messageType === 'particle_close') {
@@ -271,6 +285,7 @@ HifiEntityUI.prototype = {
         });
     },
     build: function () {
+        console.log("Building UI Anew");
         var self = this;
         var sections = Object.keys(this.structure);
         this.builtRows = {};
@@ -293,7 +308,7 @@ HifiEntityUI.prototype = {
         title.innerHTML = section;
         title.appendChild(dropDown);
         sectionDivHeader.appendChild(title);
-        
+
         var collapsed = index !== 0;
 
         dropDown.innerHTML = collapsed ? "L" : "M";
@@ -526,13 +541,13 @@ HifiEntityUI.prototype = {
                 textureImage.classList.remove("no-preview");
                 textureImage.classList.add("no-texture");
             }
-            self.webBridgeSync(group.id, url);
         }, 250);
 
         textureUrl.oninput = function (event) {
             // Add throttle
             var url = event.target.value;
             imageLoad(url);
+            self.webBridgeSync(group.id, url);
         };
         textureUrl.onchange = textureUrl.oninput;
         textureImage.appendChild(image);
@@ -561,6 +576,7 @@ HifiEntityUI.prototype = {
 
             slider.setAttribute("min", group.min !== undefined ? group.min : 0);
             slider.setAttribute("max", group.max !== undefined ? group.max : 10000);
+            slider.setAttribute("data-max", group.max !== undefined ? group.max : 10000);
             slider.setAttribute("step", 1);
 
             inputField.oninput = function (event) {
@@ -616,6 +632,7 @@ HifiEntityUI.prototype = {
 
             slider.setAttribute("min", group.min !== undefined ? group.min : 0);
             slider.setAttribute("max", group.max !== undefined ? group.max : 1);
+            slider.setAttribute("data-max", group.max !== undefined ? group.max : 1);
             slider.setAttribute("step", 0.01);
 
             inputField.oninput = function (event) {
