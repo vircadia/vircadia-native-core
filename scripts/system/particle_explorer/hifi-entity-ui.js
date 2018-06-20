@@ -58,12 +58,12 @@ var roundFloat = function (input, round) {
 
 function HifiEntityUI(parent) {
     this.parent = parent;
-
+    console.log("Creating a new Entity UI instance!");
     var self = this;
     this.settingsUpdateLock = false;
     this.webBridgeSync = _.debounce(function (id, val) {
-        console.log(id + " " + val + " " + self.webBridgeSync);
         if (self.EventBridge && !self.settingsUpdateLock) {
+            console.log(id + " " + val + " " + self.webBridgeSync);
             var sendPackage = {};
             sendPackage[id] = val;
             self.submitChanges(sendPackage);
@@ -276,6 +276,7 @@ HifiEntityUI.prototype = {
                 if (!currentProperties.colorFinish || !currentProperties.colorFinish.red) {
                     currentProperties.colorFinish = currentProperties.color;
                 }
+                console.log("Got ScriptEvent particle_settings", data);
                 self.fillFields(currentProperties);
                 // Do expected property match with structure;
             } else if (data.messageType === 'particle_close') {
@@ -284,6 +285,7 @@ HifiEntityUI.prototype = {
         });
     },
     build: function () {
+        console.log("Building UI Anew");
         var self = this;
         var sections = Object.keys(this.structure);
         this.builtRows = {};
