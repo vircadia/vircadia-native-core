@@ -109,7 +109,7 @@ bool MyCharacterController::testRayShotgun(const glm::vec3& position, const glm:
     if (lengthAxis > FLT_EPSILON) {
         // we're walking sideways
         btScalar cosAngle = lengthAxis / adjustedDirection.length();
-        if (cosAngle < 1) {
+        if (cosAngle < 1.0f) {
             btScalar angle = acosf(cosAngle);
             if (rayDirection.dot(forward) < 0.0f) {
                 angle = PI - angle;
