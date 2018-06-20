@@ -610,7 +610,15 @@ task uploadBreakpadDumpSymsRelease(dependsOn: runBreakpadDumpSymsRelease) {
 
 
 task uploadBreakpadDumpSymsDebug(dependsOn: zipDumpSymsDebug) {
-    def p = ['curl', '--data-binary', "@"+new File("${appDir}/build/tmp/", "symbols-${RELEASE_NUMBER}.zip").absolutePath, "\"https://gcalero998.sp.backtrace.io:6098/post?format=symbols&token=d65d0d184789ac40c121952001fd91dfba7e149899b1eeccd68ccffe91dd2fd0\""].execute()
+    doLast {
+        def p = ['curl', '--data-binary', "@"+new File("${appDir}/build/tmp/", "symbols-${RELEASE_NUMBER}.zip").absolutePath, "\"https://gcalero998.sp.backtrace.io:6098/post?format=symbols&token=d65d0d184789ac40c121952001fd91dfba7e149899b1eeccd68ccffe91dd2fd0\""].execute()
+        p.waitFor()
+        if (p.exitValue() != 0) {
+            println "Upload breakpad symbols: curl exited with status " + p.exitValue()
+            println p.getErrorStream().text
+        }
+
+    }
 }
 
 
