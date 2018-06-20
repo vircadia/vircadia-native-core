@@ -282,7 +282,9 @@ public:
 
 private:
     void initialize() {
+        setObjectName("Render");
         PROFILE_SET_THREAD_NAME("Render");
+        setCrashAnnotation("render_thread_id", std::to_string((size_t)QThread::currentThreadId()));
         if (!_renderContext->makeCurrent()) {
             qFatal("Unable to make rendering context current on render thread");
         }
@@ -1096,6 +1098,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _logger->setSessionID(accountManager->getSessionID());
 
     setCrashAnnotation("metaverse_session_id", accountManager->getSessionID().toString().toStdString());
+    setCrashAnnotation("main_thread_id", std::to_string((size_t)QThread::currentThreadId()));
 
     if (steamClient) {
         qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << steamClient->getSteamVRBuildID();
@@ -1160,24 +1163,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
     audioIO->startThread();
 
-    auto audioScriptingInterface = DependencyManager::set<AudioScriptingInterface, scripting::Audio>();
-    connect(audioIO.data(), &AudioClient::mutedByMixer, audioScriptingInterface.data(), &AudioScriptingInterface::mutedByMixer);
-    connect(audioIO.data(), &AudioClient::receivedFirstPacket, audioScriptingInterface.data(), &AudioScriptingInterface::receivedFirstPacket);
-    connect(audioIO.data(), &AudioClient::disconnected, audioScriptingInterface.data(), &AudioScriptingInterface::disconnected);
-    connect(audioIO.data(), &AudioClient::muteEnvironmentRequested, [](glm::vec3 position, float radius) {
-        auto audioClient = DependencyManager::get<AudioClient>();
-        auto audioScriptingInterface = DependencyManager::get<AudioScriptingInterface>();
-        auto myAvatarPosition = DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldPosition();
-        float distance = glm::distance(myAvatarPosition, position);
-
-        if (distance < radius) {
-            audioClient->setMuted(true);
-            audioScriptingInterface->environmentMuted();
-        }
-    });
-    connect(this, &Application::activeDisplayPluginChanged,
-        reinterpret_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::onContextChanged);
-
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
@@ -1241,9 +1226,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(accountManager.data(), &AccountManager::authRequired, dialogsManager.data(), &DialogsManager::showLoginDialog);
 #endif
     connect(accountManager.data(), &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
-    connect(accountManager.data(), &AccountManager::usernameChanged, [](QString username){
-        setCrashAnnotation("username", username.toStdString());
-    });
 
     // set the account manager's root URL and trigger a login request if we don't have the access token
     accountManager->setIsAgent(true);
@@ -1365,6 +1347,28 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Initialize the display plugin architecture
     initializeDisplayPlugins();
     qCDebug(interfaceapp, "Initialized Display");
+
+    // An audio device changed signal received before the display plugins are set up will cause a crash,
+    // so we defer the setup of the `scripting::Audio` class until this point
+    {
+        auto audioScriptingInterface = DependencyManager::set<AudioScriptingInterface, scripting::Audio>();
+        connect(audioIO.data(), &AudioClient::mutedByMixer, audioScriptingInterface.data(), &AudioScriptingInterface::mutedByMixer);
+        connect(audioIO.data(), &AudioClient::receivedFirstPacket, audioScriptingInterface.data(), &AudioScriptingInterface::receivedFirstPacket);
+        connect(audioIO.data(), &AudioClient::disconnected, audioScriptingInterface.data(), &AudioScriptingInterface::disconnected);
+        connect(audioIO.data(), &AudioClient::muteEnvironmentRequested, [](glm::vec3 position, float radius) {
+            auto audioClient = DependencyManager::get<AudioClient>();
+            auto audioScriptingInterface = DependencyManager::get<AudioScriptingInterface>();
+            auto myAvatarPosition = DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldPosition();
+            float distance = glm::distance(myAvatarPosition, position);
+
+            if (distance < radius) {
+                audioClient->setMuted(true);
+                audioScriptingInterface->environmentMuted();
+            }
+        });
+        connect(this, &Application::activeDisplayPluginChanged,
+            reinterpret_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::onContextChanged);
+    }
 
     // Create the rendering engine.  This can be slow on some machines due to lots of
     // GPU pipeline creation.
@@ -1751,6 +1755,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // set the local loopback interface for local sounds
     AudioInjector::setLocalAudioInterface(audioIO.data());
+    auto audioScriptingInterface = DependencyManager::get<AudioScriptingInterface>();
     audioScriptingInterface->setLocalAudioInterface(audioIO.data());
     connect(audioIO.data(), &AudioClient::noiseGateOpened, audioScriptingInterface.data(), &AudioScriptingInterface::noiseGateOpened);
     connect(audioIO.data(), &AudioClient::noiseGateClosed, audioScriptingInterface.data(), &AudioScriptingInterface::noiseGateClosed);
@@ -6164,6 +6169,8 @@ void Application::updateWindowTitle() const {
 
     QString connectionStatus = nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED)";
     QString username = accountManager->getAccountInfo().getUsername();
+
+    setCrashAnnotation("username", username.toStdString());
 
     QString currentPlaceName;
     if (isServerlessMode()) {
