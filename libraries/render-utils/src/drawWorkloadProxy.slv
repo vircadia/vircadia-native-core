@@ -1,0 +1,94 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  drawItemBounds.slv
+//  vertex shader
+//
+//  Created by Sam Gateau on 6/29/2015.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Transform.slh@>
+<$declareStandardTransform()$>
+
+<@include gpu/Color.slh@>
+<$declareColorWheel()$>
+
+uniform vec4 inColor;
+
+
+struct WorkloadProxy {
+    vec4 sphere;
+    vec4 region;
+};
+
+#if defined(GPU_GL410)
+uniform samplerBuffer workloadProxiesBuffer;
+WorkloadProxy getWorkloadProxy(int i) {
+    int offset = 2 * i;
+    WorkloadProxy proxy;
+    proxy.sphere = texelFetch(workloadProxiesBuffer, offset);
+    proxy.region = texelFetch(workloadProxiesBuffer, offset + 1);
+    return proxy;
+}
+#else
+layout(std140) buffer workloadProxiesBuffer {
+    WorkloadProxy _proxies[];
+};
+WorkloadProxy getWorkloadProxy(int i) {
+    WorkloadProxy proxy = _proxies[i];
+    return proxy;
+}
+#endif
+
+
+
+out vec4 varColor;
+out vec3 varTexcoord;
+
+void main(void) {
+    const vec4 UNIT_SPRITE[3] = vec4[3](
+        vec4(-1.0, -1.0, 0.0, 1.0),
+        vec4(3.0, -1.0, 0.0, 1.0),
+        vec4(-1.0, 3.0, 0.0, 1.0)
+    );
+     const int UNIT_SPRITE_INDICES[3] = int[3](
+        0, 1, 2
+    );
+    int proxyID = gl_VertexID / 3;
+    int vertexID = gl_VertexID - proxyID * 3;
+
+    vec4 spriteVert = UNIT_SPRITE[UNIT_SPRITE_INDICES[vertexID]];
+
+    WorkloadProxy proxy = getWorkloadProxy(proxyID);
+    vec4 proxyPosWorld = vec4(proxy.sphere.xyz, 1.0);
+
+    // standard transform, bring proxy in view space
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    vec4 proxyPosEye;
+    <$transformModelToEyePos(cam, obj, proxyPosWorld, proxyPosEye)$>
+
+    // Define the billboarded space
+    vec3 dirZ = -normalize(proxyPosEye.xyz);
+    vec3 dirX = normalize(cross(vec3(0.0, 1.0, 0.0), dirZ));
+    vec3 dirY = vec3(0.0, 1.0, 0.0);
+
+    vec4 pos = vec4(proxyPosEye.xyz + proxy.sphere.w * ( dirX * spriteVert.x + dirY * spriteVert.y /* + dirZ * spriteVert.z*/), 1.0);
+    varTexcoord = spriteVert.xyz;
+    <$transformEyeToClipPos(cam, pos, gl_Position)$>
+
+    // Convert region to color
+    int region = floatBitsToInt(proxy.region.x);
+    region = (0x000000FF & region);
+
+    varColor = vec4(colorWheel(float(region) / 4.0), proxy.sphere.w);
+
+    if (region == 4) {
+        gl_Position = vec4(0.0);
+    }
+}
