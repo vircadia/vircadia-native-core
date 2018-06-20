@@ -277,12 +277,15 @@ void PhysicalEntitySimulation::getObjectsToChange(VectorOfMotionStates& result) 
 }
 
 void PhysicalEntitySimulation::handleDeactivatedMotionStates(const VectorOfMotionStates& motionStates) {
+    boolean serverlessMode = getEntityTree()->isServerlessMode();
     for (auto stateItr : motionStates) {
         ObjectMotionState* state = &(*stateItr);
         assert(state);
         if (state->getType() == MOTIONSTATE_TYPE_ENTITY) {
             EntityMotionState* entityState = static_cast<EntityMotionState*>(state);
-            entityState->handleDeactivation();
+            if (!serverlessMode) {
+                entityState->handleDeactivation();
+            }
             EntityItemPointer entity = entityState->getEntity();
             _entitiesToSort.insert(entity);
         }
@@ -379,6 +382,7 @@ void PhysicalEntitySimulation::sendOwnershipBids(uint32_t numSubsteps) {
 }
 
 void PhysicalEntitySimulation::sendOwnedUpdates(uint32_t numSubsteps) {
+    boolean serverlessMode = getEntityTree()->isServerlessMode();
     PROFILE_RANGE_EX(simulation_physics, "Update", 0x00000000, (uint64_t)_owned.size());
     uint32_t i = 0;
     while (i < _owned.size()) {
@@ -390,7 +394,7 @@ void PhysicalEntitySimulation::sendOwnedUpdates(uint32_t numSubsteps) {
             }
             _owned.remove(i);
         } else {
-            if (_owned[i]->shouldSendUpdate(numSubsteps)) {
+            if (!serverlessMode && _owned[i]->shouldSendUpdate(numSubsteps)) {
                 _owned[i]->sendUpdate(_entityPacketSender, numSubsteps);
             }
             ++i;
