@@ -89,11 +89,15 @@ AvatarSharedPointer AvatarHashMap::addAvatar(const QUuid& sessionUUID, const QWe
     return avatar;
 }
 
-AvatarSharedPointer AvatarHashMap::newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
+AvatarSharedPointer AvatarHashMap::newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer,
+    bool& isNew) {
     QWriteLocker locker(&_hashLock);
     auto avatar = _avatarHash.value(sessionUUID);
     if (!avatar) {
         avatar = addAvatar(sessionUUID, mixerWeakPointer);
+        isNew = true;
+    } else {
+        isNew = false;
     }
     return avatar;
 }
@@ -125,8 +129,13 @@ AvatarSharedPointer AvatarHashMap::parseAvatarData(QSharedPointer<ReceivedMessag
     // make sure this isn't our own avatar data or for a previously ignored node
     auto nodeList = DependencyManager::get<NodeList>();
 
+    bool isNewAvatar;
     if (sessionUUID != _lastOwnerSessionUUID && (!nodeList->isIgnoringNode(sessionUUID) || nodeList->getRequestsDomainListData())) {
-        auto avatar = newOrExistingAvatar(sessionUUID, sendingNode);
+        auto avatar = newOrExistingAvatar(sessionUUID, sendingNode, isNewAvatar);
+        if (isNewAvatar) {
+            QWriteLocker locker(&_hashLock);
+            _pendingAvatars.insert(sessionUUID, avatar);
+        }
 
         // have the matching (or new) avatar parse the data from the packet
         int bytesRead = avatar->parseDataFromBuffer(byteArray);
@@ -157,6 +166,7 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
 
     {
         QReadLocker locker(&_hashLock);
+        _pendingAvatars.remove(identityUUID);
         auto me = _avatarHash.find(EMPTY);
         if ((me != _avatarHash.end()) && (identityUUID == me.value()->getSessionUUID())) {
             // We add MyAvatar to _avatarHash with an empty UUID. Code relies on this. In order to correctly handle an
@@ -168,7 +178,8 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
     
     if (!nodeList->isIgnoringNode(identityUUID) || nodeList->getRequestsDomainListData()) {
         // mesh URL for a UUID, find avatar in our list
-        auto avatar = newOrExistingAvatar(identityUUID, sendingNode);
+        bool isNewAvatar;
+        auto avatar = newOrExistingAvatar(identityUUID, sendingNode, isNewAvatar);
         bool identityChanged = false;
         bool displayNameChanged = false;
         bool skeletonModelUrlChanged = false;
@@ -189,6 +200,7 @@ void AvatarHashMap::processKillAvatar(QSharedPointer<ReceivedMessage> message, S
 void AvatarHashMap::removeAvatar(const QUuid& sessionUUID, KillAvatarReason removalReason) {
     QWriteLocker locker(&_hashLock);
 
+    _pendingAvatars.remove(sessionUUID);
     auto removedAvatar = _avatarHash.take(sessionUUID);
 
     if (removedAvatar) {

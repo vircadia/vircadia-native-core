@@ -54,6 +54,9 @@ static const quint64 MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS = USECS_PER_SECOND / 
 // We add _myAvatar into the hash with all the other AvatarData, and we use the default NULL QUid as the key.
 const QUuid MY_AVATAR_KEY;  // NULL key
 
+// For an unknown avatar-data packet, wait this long before requesting the identity (in µs).
+const quint64 AvatarManager::REQUEST_UNKNOWN_IDENTITY_DELAY = 500 * 1000;
+
 AvatarManager::AvatarManager(QObject* parent) :
     _avatarsToFade(),
     _myAvatar(new MyAvatar(qApp->thread()), [](MyAvatar* ptr) { ptr->deleteLater(); })
@@ -118,6 +121,7 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
         _lastSendAvatarDataTime = now;
         _myAvatarSendRate.increment();
     }
+
 }
 
 
@@ -275,6 +279,19 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     _numAvatarsNotUpdated = numAVatarsNotUpdated;
 
     simulateAvatarFades(deltaTime);
+
+    const quint64 now = usecTimestampNow();
+    QWriteLocker writeLock(&_hashLock);
+    for (auto avatarData = _pendingAvatars.begin(); avatarData != _pendingAvatars.end(); ++avatarData) {
+        Avatar* pendingAvatar = dynamic_cast<Avatar*>(avatarData->get());
+        if (now - pendingAvatar->getLastRenderUpdateTime() >= REQUEST_UNKNOWN_IDENTITY_DELAY) {
+            pendingAvatar->sendIdentityRequest();
+            avatarData = _pendingAvatars.erase(avatarData);
+            if (avatarData == _pendingAvatars.end()) {
+                break;
+            }
+        }
+    }
 
     _avatarSimulationTime = (float)(usecTimestampNow() - startTime) / (float)USECS_PER_MSEC;
 }

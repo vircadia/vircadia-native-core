@@ -639,6 +639,7 @@ void AvatarMixer::handleAvatarIdentityRequestPacket(QSharedPointer<ReceivedMessa
                         auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
                         identityPackets->write(serializedAvatar);
                         nodeList->sendPacketList(std::move(identityPackets), *senderNode);
+                        ++_sumIdentityPackets;
                     }
                 }
             }
