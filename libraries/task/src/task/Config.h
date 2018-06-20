@@ -123,7 +123,7 @@ public:
 
     // Running Time measurement
     // The new stats signal is emitted once per run time of a job when stats  (cpu runtime) are updated
-    void setCPURunTime(const std::chrono::nanoseconds& runtime) { _msCPURunTime = std::chrono::duration<double, std::milli>(runtime).count(); emit newStats(); }
+    void setCPURunTime(const std::chrono::nanoseconds& runtime) { _msCPURunTime = std::chrono::duration<double, std::milli>(runtime).count(); /* emit newStats();*/ }
     double getCPURunTime() const { return _msCPURunTime; }
 
     // Describe the node graph data connections of the associated Job/Task
@@ -230,7 +230,8 @@ public:
         auto tokens = path.split('.', QString::SkipEmptyParts);
 
         if (tokens.empty()) {
-            tokens.push_back(QString());
+            return dynamic_cast<typename T::Config*>(const_cast<TaskConfig*> (root));
+          //  tokens.push_back(QString());
         } else {
             while (tokens.size() > 1) {
                 auto name = tokens.front();
