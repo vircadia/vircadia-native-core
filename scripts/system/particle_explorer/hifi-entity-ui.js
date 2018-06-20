@@ -44,6 +44,7 @@ and If there is any changes to either the Entities or properties of
 **/
 
 var RADIANS_PER_DEGREE = Math.PI / 180;
+var DEBOUNCE_TIMEOUT = 125;
 
 var roundFloat = function (input, round) {
     round = round ? round : 1000;
@@ -58,17 +59,16 @@ var roundFloat = function (input, round) {
 
 function HifiEntityUI(parent) {
     this.parent = parent;
-    console.log("Creating a new Entity UI instance!");
+
     var self = this;
     this.settingsUpdateLock = false;
     this.webBridgeSync = _.debounce(function (id, val) {
         if (self.EventBridge && !self.settingsUpdateLock) {
-            console.log(id + " " + val + " " + self.webBridgeSync);
             var sendPackage = {};
             sendPackage[id] = val;
             self.submitChanges(sendPackage);
         }
-    }, 125);
+    }, DEBOUNCE_TIMEOUT);
 }
 
 HifiEntityUI.prototype = {
@@ -159,7 +159,6 @@ HifiEntityUI.prototype = {
         var self = this;
         var fields = document.getElementsByTagName("input");
 
-        console.log("Locking Settings Update while filling input Fields.");
         self.settingsUpdateLock = true;
         if (!currentProperties.locked) {
             for (var i = 0; i < fields.length; i++) {
@@ -238,9 +237,8 @@ HifiEntityUI.prototype = {
         }
         // Now unlocking settings Update lock for sending messages on callbacks.
         setTimeout(function () {
-            console.log("Unlocking UI");
             self.settingsUpdateLock = false;
-        }, 50);
+        }, DEBOUNCE_TIMEOUT * 2.5);
     },
     connect: function (EventBridge) {
         this.EventBridge = EventBridge;
@@ -276,7 +274,6 @@ HifiEntityUI.prototype = {
                 if (!currentProperties.colorFinish || !currentProperties.colorFinish.red) {
                     currentProperties.colorFinish = currentProperties.color;
                 }
-                console.log("Got ScriptEvent particle_settings", data);
                 self.fillFields(currentProperties);
                 // Do expected property match with structure;
             } else if (data.messageType === 'particle_close') {
@@ -285,7 +282,6 @@ HifiEntityUI.prototype = {
         });
     },
     build: function () {
-        console.log("Building UI Anew");
         var self = this;
         var sections = Object.keys(this.structure);
         this.builtRows = {};
@@ -541,7 +537,7 @@ HifiEntityUI.prototype = {
                 textureImage.classList.remove("no-preview");
                 textureImage.classList.add("no-texture");
             }
-        }, 250);
+        }, DEBOUNCE_TIMEOUT * 2);
 
         textureUrl.oninput = function (event) {
             // Add throttle

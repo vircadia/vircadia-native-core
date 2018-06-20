@@ -54,7 +54,6 @@ ParticleExplorerTool = function() {
             Entities.editEntity(that.activeParticleEntity, data.updatedSettings);
 
             for (var key in data.updatedSettings) {
-                print(key + " " + that.activeParticleProperties.hasOwnProperty(key) + " " + data.updatedSettings[key])
                 if (that.activeParticleProperties.hasOwnProperty(key)) {
                     that.activeParticleProperties[key] = data.updatedSettings[key];
                 }
@@ -65,10 +64,11 @@ ParticleExplorerTool = function() {
             var entityProps = Entities.getEntityProperties(that.activeParticleProperties, optionalProps);
             var needsUpdate = false;
             for (var i = 0; i < optionalProps.length; i++) {
-                if (data.updatedSettings[fallbackProps[Math.floor(i / 2)]]) {
-                    var prop = optionalProps[i * 2];
-                    if (!that.activeParticleProperties[prop] || !that.activeParticleProperties[prop].red) {
-                        that.activeParticleProperties[prop] = entityProps[fallbackProps[Math.floor(i / 2)]];
+                var fallback = fallbackProps[Math.floor(i / 2)];
+                if (data.updatedSettings[fallback]) {
+                    var prop = optionalProps[i];
+                    if (!that.activeParticleProperties[prop] || (fallback === "color" && !that.activeParticleProperties[prop].red)) {
+                        that.activeParticleProperties[prop] = entityProps[fallback];
                         needsUpdate = true;
                     }
                 }
