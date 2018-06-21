@@ -42,7 +42,6 @@
 
 size_t std::hash<EntityItemID>::operator()(const EntityItemID& id) const { return qHash(id); }
 std::function<bool()> EntityTreeRenderer::_entitiesShouldFadeFunction;
-std::function<bool()> EntityTreeRenderer::_renderDebugHullsOperator = [] { return false; };
 
 QString resolveScriptURL(const QString& scriptUrl) {
     auto normalizedScriptUrl = DependencyManager::get<ResourceManager>()->normalizeURL(scriptUrl);
@@ -207,6 +206,7 @@ void EntityTreeRenderer::clear() {
     }
 
     // remove all entities from the scene
+    _space->clear();
     auto scene = _viewState->getMain3DScene();
     if (scene) {
         render::Transaction transaction;
@@ -291,6 +291,16 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
             if (!entity->isParentPathComplete()) {
                 continue;
             }
+            if (entity->getSpaceIndex() == -1) {
+                std::unique_lock<std::mutex> lock(_spaceLock);
+                auto spaceIndex = _space->allocateID();
+                workload::Sphere sphere(entity->getWorldPosition(), entity->getBoundingRadius());
+                workload::Transaction transaction;
+                transaction.reset(spaceIndex, sphere, workload::Owner(entity));
+                _space->enqueueTransaction(transaction);
+                entity->setSpaceIndex(spaceIndex);
+                connect(entity.get(), &EntityItem::spaceUpdate, this, &EntityTreeRenderer::handleSpaceUpdate, Qt::QueuedConnection);
+            }
 
             auto entityID = entity->getEntityItemID();
             processedIds.insert(entityID);
@@ -299,7 +309,6 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
                 _entitiesInScene.insert({ entityID, renderable });
             }
         }
-
 
         if (!processedIds.empty()) {
             for (const auto& processedId : processedIds) {
@@ -420,10 +429,12 @@ void EntityTreeRenderer::update(bool simulate) {
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
 
         // here we update _currentFrame and _lastAnimated and sync with the server properties.
-        tree->update(simulate);
-
-        // Update the rendereable entities as needed
         {
+            PerformanceTimer perfTimer("tree::update");
+            tree->update(simulate);
+        }
+
+        {   // Update the rendereable entities as needed
             PROFILE_RANGE(simulation_physics, "Scene");
             PerformanceTimer sceneTimer("scene");
             auto scene = _viewState->getMain3DScene();
@@ -433,6 +444,24 @@ void EntityTreeRenderer::update(bool simulate) {
 
                 updateChangedEntities(scene, transaction);
                 scene->enqueueTransaction(transaction);
+            }
+        }
+        {
+            PerformanceTimer perfTimer("workload::transaction");
+            workload::Transaction spaceTransaction;
+            {   // update proxies in the workload::Space
+                std::unique_lock<std::mutex> lock(_spaceLock);
+                spaceTransaction.update(_spaceUpdates);
+                _spaceUpdates.clear();
+            }
+            {
+                std::vector<int32_t> staleProxies;
+                tree->swapStaleProxies(staleProxies);
+                spaceTransaction.remove(staleProxies);
+                {
+                    std::unique_lock<std::mutex> lock(_spaceLock);
+                    _space->enqueueTransaction(spaceTransaction);
+                }
             }
         }
 
@@ -449,6 +478,11 @@ void EntityTreeRenderer::update(bool simulate) {
         }
 
     }
+}
+
+void EntityTreeRenderer::handleSpaceUpdate(std::pair<int32_t, glm::vec4> proxyUpdate) {
+    std::unique_lock<std::mutex> lock(_spaceLock);
+    _spaceUpdates.emplace_back(proxyUpdate.first, proxyUpdate.second);
 }
 
 bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(QVector<EntityItemID>* entitiesContainingAvatar) {

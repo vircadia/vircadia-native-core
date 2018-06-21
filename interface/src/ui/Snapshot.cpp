@@ -50,6 +50,7 @@ const QString DATETIME_FORMAT = "yyyy-MM-dd_hh-mm-ss";
 const QString SNAPSHOTS_DIRECTORY = "Snapshots";
 const QString URL = "highfidelity_url";
 static const int SNAPSHOT_360_TIMER_INTERVAL = 350;
+static const QList<QString> SUPPORTED_IMAGE_FORMATS = { "jpg", "jpeg", "png" };
 
 Snapshot::Snapshot() {
     _snapshotTimer.setSingleShot(false);
@@ -67,7 +68,6 @@ Snapshot::Snapshot() {
 }
 
 SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
-
     if (!QFile(snapshotPath).exists()) {
         return NULL;
     }
@@ -95,7 +95,6 @@ SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
 }
 
 QString Snapshot::saveSnapshot(QImage image, const QString& filename, const QString& pathname) {
-
     QFile* snapshotFile = savedFileForSnapshot(image, false, filename, pathname);
 
     if (snapshotFile) {
@@ -122,11 +121,15 @@ static const glm::quat CAMERA_ORIENTATION_LEFT(glm::quat(glm::radians(glm::vec3(
 static const glm::quat CAMERA_ORIENTATION_BACK(glm::quat(glm::radians(glm::vec3(0.0f, 180.0f, 0.0f))));
 static const glm::quat CAMERA_ORIENTATION_RIGHT(glm::quat(glm::radians(glm::vec3(0.0f, 270.0f, 0.0f))));
 static const glm::quat CAMERA_ORIENTATION_UP(glm::quat(glm::radians(glm::vec3(90.0f, 0.0f, 0.0f))));
-void Snapshot::save360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat, const bool& notify, const QString& filename) {
+void Snapshot::save360Snapshot(const glm::vec3& cameraPosition,
+                               const bool& cubemapOutputFormat,
+                               const bool& notify,
+                               const QString& filename) {
     _snapshotFilename = filename;
     _notify360 = notify;
     _cubemapOutputFormat = cubemapOutputFormat;
-    SecondaryCameraJobConfig* secondaryCameraRenderConfig = static_cast<SecondaryCameraJobConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCamera"));
+    SecondaryCameraJobConfig* secondaryCameraRenderConfig =
+        static_cast<SecondaryCameraJobConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCamera"));
 
     // Save initial values of secondary camera render config
     _oldEnabled = secondaryCameraRenderConfig->isEnabled();
@@ -141,9 +144,11 @@ void Snapshot::save360Snapshot(const glm::vec3& cameraPosition, const bool& cube
     }
 
     // Initialize some secondary camera render config options for 360 snapshot capture
-    static_cast<ToneMappingConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCameraJob.ToneMapping"))->setCurve(0);
+    static_cast<ToneMappingConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCameraJob.ToneMapping"))
+        ->setCurve(0);
 
-    secondaryCameraRenderConfig->resetSizeSpectatorCamera(static_cast<int>(CUBEMAP_SIDE_PIXEL_DIMENSION), static_cast<int>(CUBEMAP_SIDE_PIXEL_DIMENSION));
+    secondaryCameraRenderConfig->resetSizeSpectatorCamera(static_cast<int>(CUBEMAP_SIDE_PIXEL_DIMENSION),
+                                                          static_cast<int>(CUBEMAP_SIDE_PIXEL_DIMENSION));
     secondaryCameraRenderConfig->setProperty("attachedEntityId", "");
     secondaryCameraRenderConfig->setPosition(cameraPosition);
     secondaryCameraRenderConfig->setProperty("vFoV", SNAPSHOT_360_FOV);
@@ -159,7 +164,8 @@ void Snapshot::save360Snapshot(const glm::vec3& cameraPosition, const bool& cube
 }
 
 void Snapshot::takeNextSnapshot() {
-    SecondaryCameraJobConfig* config = static_cast<SecondaryCameraJobConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCamera"));
+    SecondaryCameraJobConfig* config =
+        static_cast<SecondaryCameraJobConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCamera"));
 
     // Order is:
     // 0. Down
@@ -191,7 +197,9 @@ void Snapshot::takeNextSnapshot() {
         _snapshotTimer.stop();
 
         // Reset secondary camera render config
-        static_cast<ToneMappingConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCameraJob.ToneMapping"))->setCurve(1);
+        static_cast<ToneMappingConfig*>(
+            qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCameraJob.ToneMapping"))
+            ->setCurve(1);
         config->resetSizeSpectatorCamera(qApp->getWindow()->geometry().width(), qApp->getWindow()->geometry().height());
         config->setProperty("attachedEntityId", _oldAttachedEntityId);
         config->setProperty("vFoV", _oldvFoV);
@@ -338,8 +346,10 @@ QTemporaryFile* Snapshot::saveTempSnapshot(QImage image) {
     return static_cast<QTemporaryFile*>(savedFileForSnapshot(image, true));
 }
 
-QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QString& userSelectedFilename, const QString& userSelectedPathname) {
-
+QFile* Snapshot::savedFileForSnapshot(QImage& shot,
+                                      bool isTemporary,
+                                      const QString& userSelectedFilename,
+                                      const QString& userSelectedPathname) {
     // adding URL to snapshot
     QUrl currentURL = DependencyManager::get<AddressManager>()->currentPublicAddress();
     shot.setText(URL, currentURL.toString());
@@ -350,17 +360,34 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QSt
 
     QDateTime now = QDateTime::currentDateTime();
 
-    // If user has requested specific filename then use it, else create the filename
-	// 'jpg" is appended, as the image is saved in jpg format.  This is the case for all snapshots
-	//       (see definition of FILENAME_PATH_FORMAT)
+    // If user has supplied a specific filename for the snapshot:
+    //     If the user's requested filename has a suffix that's contained within SUPPORTED_IMAGE_FORMATS,
+    //         DON'T append ".jpg" to the filename. QT will save the image in the format associated with the
+    //         filename's suffix.
+    //         If you want lossless Snapshots, supply a `.png` filename. Otherwise, use `.jpeg` or `.jpg`.
+    //         For PNGs, we use a "quality" of "50". The output image quality is the same as "100"
+    //             is the same as "0" -- the difference lies in the amount of compression applied to the PNG,
+    //             which slightly affects the time it takes to save the image.
+    //     Otherwise, ".jpg" is appended to the user's requested filename so that the image is saved in JPG format.
+    // If the user hasn't supplied a specific filename for the snapshot:
+    //     Save the snapshot in JPG format at "100" quality according to FILENAME_PATH_FORMAT
+    int imageQuality = 100;
     QString filename;
     if (!userSelectedFilename.isNull()) {
-        filename = userSelectedFilename + ".jpg";
+        QFileInfo snapshotFileInfo(userSelectedFilename);
+        QString userSelectedFilenameSuffix = snapshotFileInfo.suffix();
+        userSelectedFilenameSuffix = userSelectedFilenameSuffix.toLower();
+        if (SUPPORTED_IMAGE_FORMATS.contains(userSelectedFilenameSuffix)) {
+            filename = userSelectedFilename;
+            if (userSelectedFilenameSuffix == "png") {
+                imageQuality = 50;
+            }
+        } else {
+            filename = userSelectedFilename + ".jpg";
+        }
     } else {
         filename = FILENAME_PATH_FORMAT.arg(username, now.toString(DATETIME_FORMAT));
     }
-
-    const int IMAGE_QUALITY = 100;
 
     if (!isTemporary) {
         // If user has requested specific path then use it, else use the application value
@@ -372,11 +399,13 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QSt
         }
 
         if (snapshotFullPath.isEmpty()) {
-            snapshotFullPath = OffscreenUi::getExistingDirectory(nullptr, "Choose Snapshots Directory", QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
+            snapshotFullPath =
+                OffscreenUi::getExistingDirectory(nullptr, "Choose Snapshots Directory",
+                                                  QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
             _snapshotsLocation.set(snapshotFullPath);
         }
 
-        if (!snapshotFullPath.isEmpty()) { // not cancelled
+        if (!snapshotFullPath.isEmpty()) {  // not cancelled
 
             if (!snapshotFullPath.endsWith(QDir::separator())) {
                 snapshotFullPath.append(QDir::separator());
@@ -393,7 +422,9 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QSt
                 qApp->getApplicationCompositor().getReticleInterface()->setVisible(true);
                 qApp->getApplicationCompositor().getReticleInterface()->setAllowMouseCapture(true);
 
-                snapshotFullPath = OffscreenUi::getExistingDirectory(nullptr, "Write Error - Choose New Snapshots Directory", QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
+                snapshotFullPath =
+                    OffscreenUi::getExistingDirectory(nullptr, "Write Error - Choose New Snapshots Directory",
+                                                      QStandardPaths::writableLocation(QStandardPaths::DesktopLocation));
                 if (snapshotFullPath.isEmpty()) {
                     return NULL;
                 }
@@ -407,12 +438,11 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QSt
                 imageFile = new QFile(snapshotFullPath);
             }
 
-            shot.save(imageFile, 0, IMAGE_QUALITY);
+            shot.save(imageFile, 0, imageQuality);
             imageFile->close();
 
             return imageFile;
         }
-
     }
     // Either we were asked for a tempororary, or the user didn't set a directory.
     QTemporaryFile* imageTempFile = new QTemporaryFile(QDir::tempPath() + "/XXXXXX-" + filename);
@@ -423,18 +453,17 @@ QFile* Snapshot::savedFileForSnapshot(QImage & shot, bool isTemporary, const QSt
     }
     imageTempFile->setAutoRemove(isTemporary);
 
-    shot.save(imageTempFile, 0, IMAGE_QUALITY);
+    shot.save(imageTempFile, 0, imageQuality);
     imageTempFile->close();
 
     return imageTempFile;
 }
 
 void Snapshot::uploadSnapshot(const QString& filename, const QUrl& href) {
-
     const QString SNAPSHOT_UPLOAD_URL = "/api/v1/snapshots";
     QUrl url = href;
     if (url.isEmpty()) {
-        SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(filename);
+        SnapshotMetaData* snapshotData = parseSnapshotData(filename);
         if (snapshotData) {
             url = snapshotData->getURL();
         }
@@ -444,7 +473,7 @@ void Snapshot::uploadSnapshot(const QString& filename, const QUrl& href) {
         url = QUrl(DependencyManager::get<AddressManager>()->currentShareableAddress());
     }
     SnapshotUploader* uploader = new SnapshotUploader(url, filename);
-    
+
     QFile* file = new QFile(filename);
     Q_ASSERT(file->exists());
     file->open(QIODevice::ReadOnly);
@@ -458,20 +487,16 @@ void Snapshot::uploadSnapshot(const QString& filename, const QUrl& href) {
     imagePart.setHeader(QNetworkRequest::ContentDispositionHeader,
                         QVariant("form-data; name=\"image\"; filename=\"" + file->fileName() + "\""));
     imagePart.setBodyDevice(file);
-    
+
     QHttpMultiPart* multiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
-    file->setParent(multiPart); // we cannot delete the file now, so delete it with the multiPart
+    file->setParent(multiPart);  // we cannot delete the file now, so delete it with the multiPart
     multiPart->append(imagePart);
-    
+
     auto accountManager = DependencyManager::get<AccountManager>();
     JSONCallbackParameters callbackParams(uploader, "uploadSuccess", uploader, "uploadFailure");
 
-    accountManager->sendRequest(SNAPSHOT_UPLOAD_URL,
-                                AccountManagerAuth::Required,
-                                QNetworkAccessManager::PostOperation,
-                                callbackParams,
-                                nullptr,
-                                multiPart);
+    accountManager->sendRequest(SNAPSHOT_UPLOAD_URL, AccountManagerAuth::Required, QNetworkAccessManager::PostOperation,
+                                callbackParams, nullptr, multiPart);
 }
 
 QString Snapshot::getSnapshotsLocation() {
