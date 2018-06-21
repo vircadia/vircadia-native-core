@@ -23,17 +23,11 @@ Rectangle {
         modified = false;
     }
 
-    onModifiedChanged: {
-        console.debug('modified: ', modified)
-    }
-
     property var jointNames;
     property string avatarName: ''
     property var wearablesModel;
 
     function open(avatar) {
-        console.debug('AdjustWearables.qml: open: *', JSON.stringify(avatar, null, '\t'));
-
         adjustWearablesOpened(avatar.name);
 
         visible = true;
@@ -43,21 +37,12 @@ Rectangle {
     }
 
     function refresh(avatar) {
-        console.debug('refresh: ');
-        for(var i = 0; i < avatar.wearables.count; ++i) {
-            console.debug('wearable: ', avatar.wearables.get(i).properties.id);
-        }
-
         wearablesCombobox.model.clear();
-        console.debug('AdjustWearables.qml: open: avatar.wearables.count: ', avatar.wearables.count);
         for(var i = 0; i < avatar.wearables.count; ++i) {
             var wearable = avatar.wearables.get(i).properties;
-            console.debug('wearable: ', JSON.stringify(wearable, null, '\t'))
-
             for(var j = (wearable.modelURL.length - 1); j >= 0; --j) {
                 if(wearable.modelURL[j] === '/') {
                     wearable.text = wearable.modelURL.substring(j + 1) + ' [%jointIndex%]'.replace('%jointIndex%', jointNames[wearable.parentJointIndex]);
-                    console.debug('wearable.text = ', wearable.text);
                     break;
                 }
             }
@@ -73,7 +58,6 @@ Rectangle {
         }
 
         var wearable = wearablesCombobox.model.get(wearableIndex);
-        console.debug('refreshWearable: ', wearableID, JSON.stringify(wearable, 0, 4));
 
         if(!wearable) {
             return;
@@ -82,10 +66,6 @@ Rectangle {
         var wearableModelItemProperties = wearablesModel.get(wearableIndex).properties;
 
         for(var prop in properties) {
-            console.debug('updated wearable', prop,
-                          'old = ', JSON.stringify(wearable[prop], 0, 4),
-                          'new = ', JSON.stringify(properties[prop], 0, 4));
-
             wearable[prop] = properties[prop];
             wearableModelItemProperties[prop] = wearable[prop];
 
@@ -100,10 +80,7 @@ Rectangle {
             }
         }
 
-        console.debug('wearableModelItemProperties: ', JSON.stringify(wearableModelItemProperties, 0, 4))
-
         wearablesModel.setProperty(wearableIndex, 'properties', wearableModelItemProperties);
-        console.debug('wearablesModel.get(wearableIndex).properties: ', JSON.stringify(wearablesModel.get(wearableIndex).properties, 0, 4))
     }
 
     function getCurrentWearable() {
@@ -165,8 +142,6 @@ Rectangle {
             }
 
             comboBox.onCurrentIndexChanged: {
-                console.debug('wearable index changed: ', currentIndex);
-
                 var currentWearable = getCurrentWearable();
 
                 if(currentWearable) {
@@ -207,8 +182,6 @@ Rectangle {
                     yvalue = localPosition.y
                     zvalue = localPosition.z
                     notify = true;
-
-                    console.debug('position.set: localPosition = ', JSON.stringify(localPosition, 0, 4))
                 }
 
                 function notifyPositionChanged() {
@@ -261,8 +234,6 @@ Rectangle {
                     yvalue = localRotationAngles.y
                     zvalue = localRotationAngles.z
                     notify = true;
-
-                    console.debug('localRotationAngles = ', JSON.stringify(localRotationAngles, 0, 4))
                 }
 
                 function notifyRotationChanged() {
@@ -317,8 +288,6 @@ Rectangle {
                         notify = false;
                         realValue = value
                         notify = true;
-
-                        console.debug('scale = ', realValue)
                     }
 
                     function notifyScaleChanged() {

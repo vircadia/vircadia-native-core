@@ -8,9 +8,7 @@ ListModel {
 
         var regexp = new RegExp(guidRegexp,["i"]);
         var match = regexp.exec(avatarUrl);
-        if (match !== null)
-        {
-            console.debug('marketplaceId guid', match[1]);
+        if (match !== null) {
             return match[1];
         }
 
@@ -36,10 +34,7 @@ ListModel {
     }
 
     function makeAvatarObject(avatar, avatarName) {
-        console.debug('makeAvatarEntry: ', avatarName, JSON.stringify(avatar));
-
         var avatarThumbnailUrl = makeThumbnailUrl(avatar.avatarUrl);
-        console.debug('avatarThumbnailUrl:', avatarThumbnailUrl);
 
         return {
             'name' : avatarName,
@@ -55,8 +50,6 @@ ListModel {
     }
 
     function addAvatarEntry(avatar, avatarName) {
-        console.debug('addAvatarEntry: ', avatarName);
-
         var avatarEntry = makeAvatarObject(avatar, avatarName);
         append(avatarEntry);
 
@@ -138,8 +131,6 @@ ListModel {
     }
 
     function compareObjects(o1, o2, props, arrayProp) {
-
-        console.debug('compare ojects: o1 = ', JSON.stringify(o1, null, 4), 'o2 = ', JSON.stringify(o2, null, 4));
         for(var i = 0; i < props.length; ++i) {
             var prop = props[i];
             var propertyName = prop.propertyName;
@@ -148,21 +139,13 @@ ListModel {
             var o1Value = arrayProp ? o1[arrayProp][propertyName] : o1[propertyName];
             var o2Value = arrayProp ? o2[arrayProp][propertyName] : o2[propertyName];
 
-            console.debug('compare values for key: ', propertyName, comparer ? 'using specified comparer' : 'using default comparer', ', o1 = ', JSON.stringify(o1Value, null, 4), 'o2 = ', JSON.stringify(o2Value, null, 4));
-
             if(comparer) {
                 if(comparer(o1Value, o2Value) === false) {
-                    console.debug('comparer: not equal');
                     return false;
-                } else {
-                    console.debug('comparer: equal');
                 }
             } else {
                 if(JSON.stringify(o1Value) !== JSON.stringify(o2Value)) {
-                    console.debug('not equal');
                     return false;
-                } else {
-                    console.debug('equal');
                 }
             }
         }
@@ -192,10 +175,8 @@ ListModel {
     function findAvatarIndexByValue(avatar) {
 
         var index = -1;
-        console.debug('findAvatarIndexByValue: ', 'name = ', avatar.name);
 
         // 2DO: find better way of determining selected avatar in bookmarks
-        console.debug('allAvatars.count: ', allAvatars.count);
         for(var i = 0; i < allAvatars.count; ++i) {
             var thesame = true;
             var bookmarkedAvatar = allAvatars.get(i);
@@ -226,7 +207,6 @@ ListModel {
     function findAvatarIndex(avatarName) {
         for(var i = 0; i < count; ++i) {
             if(get(i).name === avatarName) {
-                console.debug('avatar found by index: ', i)
                 return i;
             }
         }
@@ -234,8 +214,6 @@ ListModel {
     }
 
     function findAvatar(avatarName) {
-        console.debug('AvatarsModel: find avatar by', avatarName);
-
         var avatarIndex = findAvatarIndex(avatarName);
         if(avatarIndex === -1)
             return undefined;

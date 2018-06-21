@@ -33,7 +33,6 @@ Rectangle {
 
     signal sendToScript(var message);
     function emitSendToScript(message) {
-        console.debug('AvatarApp.qml: emitting sendToScript: ', JSON.stringify(message, null, '\t'));
         sendToScript(message);
     }
 
@@ -56,9 +55,7 @@ Rectangle {
         xmlhttp.onreadystatechange = function() {
             if (xmlhttp.readyState === XMLHttpRequest.DONE && xmlhttp.status === 200) {
                 try {
-                    console.debug('xmlhttp: ', xmlhttp.status, 'got responseText: ', xmlhttp.responseText);
                     var marketResponse = JSON.parse(xmlhttp.responseText.trim())
-                    console.debug('got market response: ', JSON.stringify(marketResponse));
 
                     if(marketResponse.status === 'success') {
                         avatar.modelName = marketResponse.data.title;
@@ -74,7 +71,6 @@ Rectangle {
     }
 
     function getAvatarModelName() {
-        console.debug('executing getAvatarModelName()');
 
         if(currentAvatar === null) {
             return '';
@@ -100,19 +96,13 @@ Rectangle {
     property int avatarWearablesCount: currentAvatar ? currentAvatar.wearables.count : 0
     property var currentAvatar: null;
     function setCurrentAvatar(avatar, bookmarkName) {
-
         var currentAvatarObject = allAvatars.makeAvatarObject(avatar, bookmarkName);
         currentAvatar = currentAvatarModel.makeAvatarEntry(currentAvatarObject);
-
-        console.debug('AvatarApp.qml: currentAvatarObject: ', currentAvatarObject, 'currentAvatar: ', currentAvatar, JSON.stringify(currentAvatar.wearables, 0, 4));
-        console.debug('currentAvatar.wearables: ', currentAvatar.wearables);
     }
 
     property url externalAvatarThumbnailUrl: '../../images/avatarapp/guy-in-circle.svg'
 
     function fromScript(message) {
-        console.debug('AvatarApp.qml: fromScript: ', JSON.stringify(message, null, '\t'))
-
         if(message.method === 'initialize') {
             jointNames = message.data.jointNames;
             emitSendToScript({'method' : getAvatarsMethod});
@@ -129,12 +119,10 @@ Rectangle {
             currentAvatar.avatarScale = message.value;
             updateCurrentAvatarInBookmarks(currentAvatar);
         } else if(message.method === 'externalAvatarApplied') {
-            console.debug('externalAvatarApplied...');
             currentAvatar.avatarUrl = message.avatarURL;
             currentAvatar.thumbnailUrl = allAvatars.makeThumbnailUrl(message.avatarURL);
             currentAvatar.entry.avatarUrl = currentAvatar.avatarUrl;
             currentAvatar.modelName = undefined;
-            console.debug('externalAvatarApplied: ', currentAvatar.avatarUrl, currentAvatar.thumbnailUrl);
             updateCurrentAvatarInBookmarks(currentAvatar);
         } else if(message.method === 'settingChanged') {
             currentAvatarSettings[message.name] = message.value;
@@ -164,16 +152,12 @@ Rectangle {
 
             var index = pageOfAvatars.findAvatarIndex(message.name);
             var absoluteIndex = view.currentPage * view.itemsPerPage + index
-            console.debug('removed ', absoluteIndex, 'view.currentPage', view.currentPage,
-                          'view.itemsPerPage: ', view.itemsPerPage, 'index', index, 'pageOfAvatars', pageOfAvatars, 'pageOfAvatars.count', pageOfAvatars)
 
             allAvatars.remove(absoluteIndex)
             pageOfAvatars.remove(index);
 
             var itemsOnPage = pageOfAvatars.count;
             var newItemIndex = view.currentPage * view.itemsPerPage + itemsOnPage;
-
-            console.debug('newItemIndex: ', newItemIndex, 'allAvatars.count - 1: ', allAvatars.count - 1, 'pageOfAvatars.count:', pageOfAvatars.count);
 
             if(newItemIndex <= (allAvatars.count - 1)) {
                 pageOfAvatars.append(allAvatars.get(newItemIndex));
@@ -182,7 +166,6 @@ Rectangle {
                     pageOfAvatars.appendGetAvatars();
             }
 
-            console.debug('removed ', absoluteIndex, 'newItemIndex: ', newItemIndex, 'allAvatars.count:', allAvatars.count, 'pageOfAvatars.count:', pageOfAvatars.count)
             pageOfAvatars.isUpdating = false;
         } else if(message.method === getAvatarsMethod) {
             var getAvatarsData = message.data;
@@ -191,7 +174,6 @@ Rectangle {
             displayNameInput.text = getAvatarsData.displayName;
             currentAvatarSettings = getAvatarsData.currentAvatarSettings;
 
-            console.debug('currentAvatar: ', JSON.stringify(currentAvatar, null, '\t'));
             updateCurrentAvatarInBookmarks(currentAvatar);
         } else if(message.method === 'updateAvatarInBookmarks') {
             updateCurrentAvatarInBookmarks(currentAvatar);
@@ -201,16 +183,11 @@ Rectangle {
     }
 
     function updateCurrentAvatarInBookmarks(avatar) {
-        console.debug('searching avatar in bookmarks... ');
-
         var bookmarkAvatarIndex = allAvatars.findAvatarIndexByValue(avatar);
-
         if(bookmarkAvatarIndex === -1) {
-            console.debug('bookmarkAvatarIndex = -1, avatar is not favorite')
             avatar.name = '';
             view.setPage(0);
         } else {
-            console.debug('bookmarkAvatarIndex = ', bookmarkAvatarIndex, 'avatar is among favorites!')
             var bookmarkAvatar = allAvatars.get(bookmarkAvatarIndex);
             avatar.name = bookmarkAvatar.name;
             view.selectAvatar(bookmarkAvatar);
@@ -282,7 +259,6 @@ Rectangle {
         }
 
         onScaleChanged: {
-            console.debug('AvatarApp.qml: onScaleChanged: ', scale);
             emitSendToScript({'method' : 'setScale', 'avatarScale' : scale})
         }
     }
@@ -434,7 +410,6 @@ Rectangle {
             onClicked: {
                 createFavorite.onSaveClicked = function() {
                     var entry = currentAvatar.entry;
-                    console.debug('was: ', JSON.stringify(entry, 0, 4));
 
                     var wearables = [];
                     for(var i = 0; i < currentAvatar.wearables.count; ++i) {
@@ -443,7 +418,6 @@ Rectangle {
 
                     entry.avatarEntites = wearables;
                     currentAvatar.name = createFavorite.favoriteNameText;
-                    console.debug('became: ', JSON.stringify(entry, 0, 4));
 
                     emitSendToScript({'method': 'addAvatar', 'name' : currentAvatar.name});
                     createFavorite.close();
@@ -500,7 +474,6 @@ Rectangle {
                         var url = popup.inputText.text;
                         emitSendToScript({'method' : 'applyExternalAvatar', 'avatarURL' : url})
                     }, function(link) {
-                        console.debug('link clicked', link);
                         Qt.openUrlExternally(link);
                     });
                 }
@@ -517,7 +490,6 @@ Rectangle {
             MouseArea {
                 anchors.fill: parent
                 onClicked: {
-                    console.debug('adjustWearables.open');
                     adjustWearables.open(currentAvatar);
                 }
             }
@@ -537,7 +509,6 @@ Rectangle {
                     popup.showGetWearables(function() {
                         emitSendToScript({'method' : 'navigate', 'url' : 'hifi://AvatarIsland/11.5848,-8.10862,-2.80195'})
                     }, function(link) {
-                        console.debug('link clicked', link);
                         emitSendToScript({'method' : 'navigate', 'url' : link})
                     });
                 }
@@ -618,25 +589,13 @@ Rectangle {
 
                 property int itemsPerPage: 8
                 property int totalPages: Math.ceil((allAvatars.count + 1) / itemsPerPage)
-                onTotalPagesChanged: {
-                    console.debug('total pages: ', totalPages)
-                }
-
                 property int currentPage: 0;
                 onCurrentPageChanged: {
-                    console.debug('currentPage: ', currentPage)
                     currentIndex = Qt.binding(currentAvatarIndexInBookmarksPage);
                 }
 
                 property bool hasNext: currentPage < (totalPages - 1)
-                onHasNextChanged: {
-                    console.debug('hasNext: ', hasNext)
-                }
-
                 property bool hasPrev: currentPage > 0
-                onHasPrevChanged: {
-                    console.debug('hasPrev: ', hasPrev)
-                }
 
                 function setPage(pageIndex) {
                     pageOfAvatars.isUpdating = true;
@@ -646,7 +605,6 @@ Rectangle {
 
                     for(var itemIndex = 0; start < end; ++start, ++itemIndex) {
                         var avatarItem = allAvatars.get(start)
-                        console.debug('getting ', start, avatarItem)
                         pageOfAvatars.append(avatarItem);
                     }
 
@@ -654,7 +612,6 @@ Rectangle {
                         pageOfAvatars.appendGetAvatars();
 
                     currentPage = pageIndex;
-                    console.debug('switched to the page with', pageOfAvatars.count, 'items')
                     pageOfAvatars.isUpdating = false;
                 }
 
@@ -675,7 +632,6 @@ Rectangle {
                     function removeGetAvatars() {
                         if(hasGetAvatars()) {
                             remove(count - 1)
-                            console.debug('removed get avatars...');
                         }
                     }
                 }
@@ -721,11 +677,7 @@ Rectangle {
                             border.color: container.highlighted ? style.colors.blueHighlight : 'transparent'
                             border.width: container.highlighted ? 4 : 0
                             wearablesCount: {
-                                console.debug('getMoreAvatars: ', getMoreAvatars, 'name: ', name);
                                 return !getMoreAvatars ? wearables.count : 0
-                            }
-                            onWearablesCountChanged: {
-                                console.debug('delegate: AvatarThumbnail.wearablesCount: ', wearablesCount)
                             }
 
                             visible: !getMoreAvatars
@@ -793,7 +745,6 @@ Rectangle {
                                     popup.showBuyAvatars(function() {
                                         emitSendToScript({'method' : 'navigate', 'url' : 'hifi://BodyMart'})
                                     }, function(link) {
-                                        console.debug('link clicked', link);
                                         emitSendToScript({'method' : 'navigate', 'url' : link})
                                     });
                                 }
