@@ -1902,8 +1902,6 @@ void MyAvatar::clearScriptableSettings() {
 }
 
 void MyAvatar::setCollisionSoundURL(const QString& url) {
-    qDebug() << "setCollisionSoundURL: " << url << _collisionSoundURL;
-
     if (url != _collisionSoundURL) {
         _collisionSoundURL = url;
 
@@ -1985,8 +1983,6 @@ QUrl MyAvatar::getAnimGraphUrl() const {
 }
 
 void MyAvatar::setAnimGraphUrl(const QUrl& url) {
-    qDebug() << "setAnimGraphUrl" << url.toString();
-
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "setAnimGraphUrl", Q_ARG(QUrl, url));
         return;
