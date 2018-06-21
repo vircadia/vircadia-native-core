@@ -253,8 +253,12 @@ Item {
             anchors.left: parent.left;
             anchors.right: parent.right;
 
-            Item {  // On empty history. We don't want to flash and then replace, so don't show until we know we're zero.
-                visible: transactionHistoryModel.count === 0 && transactionHistoryModel.currentPageToRetrieve < 0;
+            Item {
+                // On empty history. We don't want to flash and then replace, so don't show until we know we should.
+                // The history is empty when it contains 1 item (the pending item count) AND there are no pending items.
+                visible: transactionHistoryModel.count === 1 &&
+                    transactionHistoryModel.retrievedAtLeastOnePage &&
+                    transactionHistoryModel.get(0).count === 0;
                 anchors.centerIn: parent;
                 width: parent.width - 12;
                 height: parent.height;
