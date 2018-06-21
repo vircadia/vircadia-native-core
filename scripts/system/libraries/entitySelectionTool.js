@@ -2187,7 +2187,7 @@ SelectionDisplay = (function() {
                     dimensions: newDimensions
                 });
             }
-
+                
             var wantDebug = false;
             if (wantDebug) {
                 print(stretchMode);
