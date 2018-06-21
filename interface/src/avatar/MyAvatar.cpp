@@ -3325,11 +3325,15 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
             activate(Vertical);
         }
     } else {
+        // this is where we put the code for the stepping.
+        // we do not have hmd lean enabled and we are looking for a step via our criteria.
+
         if (!isActive(Rotation) && getForceActivateRotation()) {
             activate(Rotation);
             setForceActivateRotation(false);
         }
-        if (!isActive(Horizontal) && getForceActivateHorizontal()) {
+        if (!isActive(Horizontal) && (getForceActivateHorizontal() || 
+            !withinTheBaseOfSupport() {
             activate(Horizontal);
             setForceActivateHorizontal(false);
         }
