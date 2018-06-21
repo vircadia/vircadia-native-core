@@ -46,8 +46,28 @@ public slots:
     QVariantMap getBookmarks() { return _bookmarks; }
 
 signals:
+    /**jsdoc
+     * Notifies about avatar bookmark loading
+     * @function AvatarBookmarks.bookmarkLoaded
+     * @param {string} bookmarkName
+     * @returns {Signal}
+     */
     void bookmarkLoaded(const QString& bookmarkName);
+
+    /**jsdoc
+     * Notifies about avatar bookmark removal
+     * @function AvatarBookmarks.bookmarkDeleted
+     * @param {string} bookmarkName
+     * @returns {Signal}
+     */
     void bookmarkDeleted(const QString& bookmarkName);
+
+    /**jsdoc
+     * Notifies about avatar bookmark adding
+     * @function AvatarBookmarks.bookmarkAdded
+     * @param {string} bookmarkName
+     * @returns {Signal}
+     */
     void bookmarkAdded(const QString& bookmarkName);
 
 protected:
