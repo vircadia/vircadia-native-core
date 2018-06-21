@@ -280,11 +280,13 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 
     simulateAvatarFades(deltaTime);
 
+    // Check on avatars with pending identities:
     const quint64 now = usecTimestampNow();
     QWriteLocker writeLock(&_hashLock);
     for (auto avatarData = _pendingAvatars.begin(); avatarData != _pendingAvatars.end(); ++avatarData) {
         Avatar* pendingAvatar = dynamic_cast<Avatar*>(avatarData->get());
         if (now - pendingAvatar->getLastRenderUpdateTime() >= REQUEST_UNKNOWN_IDENTITY_DELAY) {
+            // Too long without an ID
             pendingAvatar->sendIdentityRequest();
             avatarData = _pendingAvatars.erase(avatarData);
             if (avatarData == _pendingAvatars.end()) {
