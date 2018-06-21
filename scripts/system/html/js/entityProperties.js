@@ -911,7 +911,7 @@ function loaded() {
                         elID.value = "";
                         elPropertiesList.className = '';
                         disableProperties();
-                    } else if (data.selections && data.selections.length > 1) {
+                    } else if (data.selections.length > 1) {
                         deleteJSONEditor();
                         deleteJSONMaterialEditor();
                         var selections = data.selections;
