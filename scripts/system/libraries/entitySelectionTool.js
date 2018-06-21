@@ -1795,6 +1795,8 @@ SelectionDisplay = (function() {
             },
             onMove: function(event) {
                 pickRay = generalComputePickRay(event.x, event.y);
+                
+                // Use previousPickRay if new pickRay will cause resulting rayPlaneIntersection values to wrap around
                 if (usePreviousPickRay(pickRay.direction, previousPickRay.direction, pickNormal)) {
                     pickRay = previousPickRay;
                 }
@@ -2104,6 +2106,8 @@ SelectionDisplay = (function() {
             var localDeltaPivot = deltaPivot;
             var localSigns = signs;
             var pickRay = generalComputePickRay(event.x, event.y);
+            
+            // Use previousPickRay if new pickRay will cause resulting rayPlaneIntersection values to wrap around
             if (usePreviousPickRay(pickRay.direction, previousPickRay.direction, planeNormal)) {
                 pickRay = previousPickRay;
             }
