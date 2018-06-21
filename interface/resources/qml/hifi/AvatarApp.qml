@@ -298,14 +298,18 @@ Rectangle {
         anchors.top: header.bottom
         anchors.bottom: favoritesBlock.top
 
-        TextStyle1 {
+        // TextStyle1
+        RalewaySemiBold {
+            size: 24;
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.topMargin: 34
         }
 
-        TextStyle1 {
+        // TextStyle1
+        RalewaySemiBold {
             id: displayNameLabel
+            size: 24;
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.topMargin: 25
@@ -396,7 +400,9 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
             }
 
-            TextStyle5 {
+            // TextStyle5
+            FiraSansSemiBold {
+                size: 22;
                 Layout.fillWidth: true
                 text: isAvatarInFavorites ? avatarName : "Add to Favorites"
                 elide: Qt.ElideRight
@@ -430,8 +436,10 @@ Rectangle {
             }
         }
 
-        TextStyle3 {
+        // TextStyle3
+        RalewayRegular {
             id: avatarNameLabel
+            size: 22;
             text: getAvatarModelName();
             elide: Qt.ElideRight
 
@@ -450,8 +458,10 @@ Rectangle {
             color: hasMarketId ? style.colors.blueHighlight : 'black'
         }
 
-        TextStyle3 {
+        // TextStyle3
+        RalewayRegular {
             id: wearablesLabel
+            size: 22;
             anchors.left: avatarImage.right
             anchors.leftMargin: 30
             anchors.top: avatarNameLabel.bottom
@@ -495,7 +505,9 @@ Rectangle {
             }
         }
 
-        TextStyle3 {
+        // TextStyle3
+        RalewayRegular {
+            size: 22;
             anchors.right: parent.right
             anchors.verticalCenter: wearablesLabel.verticalCenter
             font.underline: true
@@ -526,8 +538,10 @@ Rectangle {
 
         color: style.colors.lightGrayBackground
 
-        TextStyle1 {
+        // TextStyle1
+        RalewaySemiBold {
             id: favoritesLabel
+            size: 24;
             anchors.top: parent.top
             anchors.topMargin: 15
             anchors.left: parent.left
@@ -535,8 +549,11 @@ Rectangle {
             text: "Favorites"
         }
 
-        TextStyle8 {
+        // TextStyle8
+        RalewaySemiBold {
             id: manageLabel
+            color: style.colors.blueHighlight
+            size: 20;
             anchors.top: parent.top
             anchors.topMargin: 20
             anchors.right: parent.right
@@ -752,8 +769,12 @@ Rectangle {
                         }
                     }
 
-                    TextStyle7 {
+                    // TextStyle7
+                    FiraSansRegular {
                         id: text
+                        size: 18;
+                        lineHeightMode: Text.FixedHeight
+                        lineHeight: 16.9;
                         width: view.thumbnailWidth
                         height: view.verticalSpacing
                         elide: Qt.ElideRight

@@ -36,7 +36,9 @@ ShadowRectangle {
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 2.76
 
-        TextStyle2 {
+        // TextStyle2
+        RalewayBold {
+            size: 15;
             anchors.horizontalCenter: parent.horizontalCenter
             text: wearablesCount
         }

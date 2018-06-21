@@ -30,8 +30,10 @@ ShadowRectangle {
         text: "<"
     }
 
-    TextStyle6 {
+    // TextStyle6
+    RalewaySemiBold {
         id: title
+        size: 22;
         anchors.left: avatarIcon.visible ? avatarIcon.right : avatarIcon.left
         anchors.leftMargin: 4
         anchors.verticalCenter: avatarIcon.verticalCenter

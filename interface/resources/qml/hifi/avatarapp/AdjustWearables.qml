@@ -161,12 +161,18 @@ Rectangle {
             Row {
                 spacing: 20
 
-                TextStyle5 {
+                // TextStyle5
+                FiraSansSemiBold {
                     id: positionLabel
+                    size: 22;
                     text: "Position"
                 }
 
-                TextStyle7 {
+                // TextStyle7
+                FiraSansRegular {
+                    size: 18;
+                    lineHeightMode: Text.FixedHeight
+                    lineHeight: 16.9;
                     text: "m"
                     anchors.verticalCenter: positionLabel.verticalCenter
                 }
@@ -213,12 +219,18 @@ Rectangle {
             Row {
                 spacing: 20
 
-                TextStyle5 {
+                // TextStyle5
+                FiraSansSemiBold {
                     id: rotationLabel
+                    size: 22;
                     text: "Rotation"
                 }
 
-                TextStyle7 {
+                // TextStyle7
+                FiraSansRegular {
+                    size: 18;
+                    lineHeightMode: Text.FixedHeight
+                    lineHeight: 16.9;
                     text: "deg"
                     anchors.verticalCenter: rotationLabel.verticalCenter
                 }
@@ -262,7 +274,9 @@ Rectangle {
             width: parent.width
             spacing: 5
 
-            TextStyle5 {
+            // TextStyle5
+            FiraSansSemiBold {
+                size: 22;
                 text: "Scale"
             }
 

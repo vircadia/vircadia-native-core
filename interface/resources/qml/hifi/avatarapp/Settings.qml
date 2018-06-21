@@ -80,7 +80,9 @@ Rectangle {
 
             spacing: 17
 
-            TextStyle9 {
+            // TextStyle9
+            RalewaySemiBold {
+                size: 17;
                 text: "Avatar Scale"
                 verticalAlignment: Text.AlignVCenter
                 anchors.verticalCenter: parent.verticalCenter
@@ -118,7 +120,9 @@ Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                     Layout.fillWidth: true
 
-                    TextStyle9 {
+                    // TextStyle9
+                    RalewaySemiBold {
+                        size: 17;
                         anchors.left: scaleSlider.left
                         anchors.leftMargin: 5
                         anchors.top: scaleSlider.bottom
@@ -126,7 +130,9 @@ Rectangle {
                         text: String(scaleSlider.from / 10) + 'x'
                     }
 
-                    TextStyle9 {
+                    // TextStyle9
+                    RalewaySemiBold {
+                        size: 17;
                         anchors.right: scaleSlider.right
                         anchors.rightMargin: 5
                         anchors.top: scaleSlider.bottom
@@ -186,7 +192,9 @@ Rectangle {
 
             columns: 3
 
-            TextStyle9 {
+            // TextStyle9
+            RalewaySemiBold {
+                size: 17;
                 Layout.row: 0
                 Layout.column: 0
 
@@ -230,7 +238,9 @@ Rectangle {
                 boxSize: 20
             }
 
-            TextStyle9 {
+            // TextStyle9
+            RalewaySemiBold {
+                size: 17;
                 Layout.row: 1
                 Layout.column: 0
 
@@ -288,7 +298,9 @@ Rectangle {
 
             spacing: 4
 
-            TextStyle9 {
+            // TextStyle9
+            RalewaySemiBold {
+                size: 17;
                 text: "Avatar Animation JSON"
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignLeft
@@ -312,7 +324,9 @@ Rectangle {
 
             spacing: 4
 
-            TextStyle9 {
+            // TextStyle9
+            RalewaySemiBold {
+                size: 17;
                 text: "Avatar collision sound URL (optional)"
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignLeft

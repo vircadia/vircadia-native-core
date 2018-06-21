@@ -67,8 +67,10 @@ Rectangle {
 
         color: "white"
 
-        TextStyle1 {
+        // TextStyle1
+        RalewaySemiBold {
             id: title
+            size: 24;
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
