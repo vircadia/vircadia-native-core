@@ -55,7 +55,7 @@ static const quint64 MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS = USECS_PER_SECOND / 
 const QUuid MY_AVATAR_KEY;  // NULL key
 
 // For an unknown avatar-data packet, wait this long before requesting the identity (in µs).
-const quint64 AvatarManager::REQUEST_UNKNOWN_IDENTITY_DELAY = 500 * 1000;
+const quint64 AvatarManager::REQUEST_UNKNOWN_IDENTITY_DELAY = 5 * 1'000'000;
 
 AvatarManager::AvatarManager(QObject* parent) :
     _avatarsToFade(),
@@ -287,7 +287,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         Avatar* pendingAvatar = dynamic_cast<Avatar*>(avatarData->get());
         if (now - pendingAvatar->getLastRenderUpdateTime() >= REQUEST_UNKNOWN_IDENTITY_DELAY) {
             // Too long without an ID
-            pendingAvatar->sendIdentityRequest();
+            sendIdentityRequest(pendingAvatar->getID());
             avatarData = _pendingAvatars.erase(avatarData);
             if (avatarData == _pendingAvatars.end()) {
                 break;
@@ -305,6 +305,19 @@ void AvatarManager::postUpdate(float deltaTime, const render::ScenePointer& scen
         auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
         avatar->postUpdate(deltaTime, scene);
     }
+}
+
+void AvatarManager::sendIdentityRequest(const QUuid& avatarID) const {
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->eachMatchingNode(
+        [&](const SharedNodePointer& node)->bool {
+        return node->getType() == NodeType::AvatarMixer && node->getActiveSocket();
+    },
+        [&](const SharedNodePointer& node) {
+        auto packet = NLPacket::create(PacketType::AvatarIdentityRequest, NUM_BYTES_RFC4122_UUID, true);
+        packet->write(avatarID.toRfc4122());
+        nodeList->sendPacket(std::move(packet), *node);
+    });
 }
 
 void AvatarManager::simulateAvatarFades(float deltaTime) {

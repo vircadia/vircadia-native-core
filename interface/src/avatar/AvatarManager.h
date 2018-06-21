@@ -82,6 +82,7 @@ public:
 
     void updateMyAvatar(float deltaTime);
     void updateOtherAvatars(float deltaTime);
+    void sendIdentityRequest(const QUuid& avatarID) const;
 
     void postUpdate(float deltaTime, const render::ScenePointer& scene);
 

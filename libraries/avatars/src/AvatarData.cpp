@@ -1919,19 +1919,6 @@ void AvatarData::sendIdentityPacket() {
     _identityDataChanged = false;
 }
 
-void AvatarData::sendIdentityRequest() const {
-    auto nodeList = DependencyManager::get<NodeList>();
-    auto packet = NLPacket::create(PacketType::AvatarIdentityRequest, NUM_BYTES_RFC4122_UUID, true);
-    packet->write(getID().toRfc4122());
-    nodeList->eachMatchingNode(
-        [&](const SharedNodePointer& node)->bool {
-        return node->getType() == NodeType::AvatarMixer && node->getActiveSocket();
-    },
-        [&](const SharedNodePointer& node) {
-        nodeList->sendPacket(std::move(packet), *node);
-    });
-}
-
 void AvatarData::updateJointMappings() {
     {
         QWriteLocker writeLock(&_jointDataLock);
