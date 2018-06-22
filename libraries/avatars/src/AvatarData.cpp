@@ -2400,8 +2400,8 @@ QVariant AttachmentData::toVariant() const {
     QVariantMap result;
     result["modelUrl"] = modelURL;
     result["jointName"] = jointName;
-    result["translation"] = glmToQMap(translation);
-    result["rotation"] = glmToQMap(glm::degrees(safeEulerAngles(rotation)));
+    result["translation"] = vec3ToQMap(translation);
+    result["rotation"] = vec3ToQMap(glm::degrees(safeEulerAngles(rotation)));
     result["scale"] = scale;
     result["soft"] = isSoft;
     return result;
