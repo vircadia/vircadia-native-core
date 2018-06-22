@@ -47,7 +47,7 @@ public slots:
 
 signals:
     /**jsdoc
-     * Notifies about avatar bookmark loading
+     * This function gets triggered after avatar loaded from bookmark
      * @function AvatarBookmarks.bookmarkLoaded
      * @param {string} bookmarkName
      * @returns {Signal}
@@ -55,7 +55,7 @@ signals:
     void bookmarkLoaded(const QString& bookmarkName);
 
     /**jsdoc
-     * Notifies about avatar bookmark removal
+     * This function gets triggered after avatar bookmark deleted
      * @function AvatarBookmarks.bookmarkDeleted
      * @param {string} bookmarkName
      * @returns {Signal}
@@ -63,7 +63,7 @@ signals:
     void bookmarkDeleted(const QString& bookmarkName);
 
     /**jsdoc
-     * Notifies about avatar bookmark adding
+     * This function gets triggered after avatar bookmark added
      * @function AvatarBookmarks.bookmarkAdded
      * @param {string} bookmarkName
      * @returns {Signal}
