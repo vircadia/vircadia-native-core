@@ -25,6 +25,14 @@ void GL41Backend::resetInputStage() {
 }
 
 void GL41Backend::updateInput() {
+    bool isStereoNow = isStereo();
+    // track stereo state change potentially happening wihtout changing the input format
+    // this is a rare case requesting to invalid the format
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
+    _input._invalidFormat |= (isStereoNow != _input._lastUpdateStereoState);
+#endif
+    _input._lastUpdateStereoState = isStereoNow;
+
     if (_input._invalidFormat || _input._invalidBuffers.any()) {
 
         if (_input._invalidFormat) {
@@ -111,7 +119,7 @@ void GL41Backend::updateInput() {
                                         reinterpret_cast<GLvoid*>(pointer + perLocationStride * (GLuint)locNum));
                                 }
 #ifdef GPU_STEREO_DRAWCALL_INSTANCED
-                                glVertexAttribDivisor(slot + (GLuint)locNum, attrib._frequency * (isStereo() ? 2 : 1));
+                                glVertexAttribDivisor(slot + (GLuint)locNum, attrib._frequency * (isStereoNow ? 2 : 1));
 #else
                                 glVertexAttribDivisor(slot + (GLuint)locNum, attrib._frequency);
 #endif
