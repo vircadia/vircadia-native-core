@@ -888,6 +888,11 @@ public:
 
     bool hasDriveInput() const;
 
+    /**jsdoc
+    * Function returns list of avatar entities
+    * @function MyAvatar.getAvatarEntitiesVariant()
+    * @returns {object[]}
+    */
     Q_INVOKABLE QVariantList getAvatarEntitiesVariant();
     void removeAvatarEntities();
 
@@ -1295,6 +1300,7 @@ signals:
     void collisionWithEntity(const Collision& collision);
 
     /**jsdoc
+     * Triggered when collisions with avatar enabled or disabled
      * @function MyAvatar.collisionsEnabledChanged
      * @param {boolean} enabled
      * @returns {Signal}
@@ -1302,6 +1308,7 @@ signals:
     void collisionsEnabledChanged(bool enabled);
 
     /**jsdoc
+     * Triggered when avatar's animation url changes
      * @function MyAvatar.animGraphUrlChanged
      * @param {url} url
      * @returns {Signal}
