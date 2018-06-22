@@ -202,14 +202,6 @@ void AvatarBookmarks::readFromFile() {
     Bookmarks::readFromFile();
 }
 
-void AvatarBookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
-
-}
-
-void AvatarBookmarks::addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& bookmark) {
-
-}
-
 QVariantMap AvatarBookmarks::getBookmark(const QString &bookmarkName)
 {
     if (QThread::currentThread() != thread()) {
