@@ -3105,6 +3105,29 @@ glm::mat4 MyAvatar::deriveBodyUsingCgModel() const {
     return worldToSensorMat * avatarToWorldMat * avatarHipsMat;
 }
 
+static bool isInsideLine(glm::vec3 a, glm::vec3 b, glm::vec3 c) {
+    return (((b.x - a.x)*(c.z - a.z) - (b.z - a.z)*(c.x - a.x)) > 0);
+}
+
+static bool withinBaseOfSupport(glm::vec3 position) {
+    float userScale = 1.0f;
+
+    const float DEFAULT_LATERAL = 1.10f;
+    const float DEFAULT_ANTERIOR = 1.04f;
+    const float DEFAULT_POSTERIOR = 1.06f;
+
+    glm::vec3 frontLeft(-DEFAULT_LATERAL, 0.0f, -DEFAULT_ANTERIOR);
+    glm::vec3 frontRight(DEFAULT_LATERAL, 0.0f, -DEFAULT_ANTERIOR);
+    glm::vec3 backLeft(-DEFAULT_LATERAL, 0.0f, DEFAULT_POSTERIOR);
+    glm::vec3 backRight(DEFAULT_LATERAL, 0.0f, DEFAULT_POSTERIOR);
+
+    bool withinFrontBase = isInsideLine(userScale * frontLeft, userScale * frontRight, position);
+    bool withinBackBase = isInsideLine(userScale * backRight, userScale * backLeft, position);
+    bool withinLateralBase = (isInsideLine(userScale * frontRight, userScale * backRight, position) && 
+                                isInsideLine(userScale * backLeft, userScale * frontLeft, position));
+    return (withinFrontBase && withinBackBase && withinLateralBase);
+}
+
 float MyAvatar::getUserHeight() const {
     return _userHeight.get();
 }
@@ -3327,13 +3350,21 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
     } else {
         // this is where we put the code for the stepping.
         // we do not have hmd lean enabled and we are looking for a step via our criteria.
-
+        qCDebug(interfaceapp) << "hmd lean is off";
         if (!isActive(Rotation) && getForceActivateRotation()) {
             activate(Rotation);
             setForceActivateRotation(false);
         }
+        glm::vec3 temp = myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation();
+        qCDebug(interfaceapp) << temp;
+        qCDebug(interfaceapp) << "zero within base " << withinBaseOfSupport(glm::vec3(0.0f,0.0f,0.0f));
+        qCDebug(interfaceapp) << "10 meters within base " << withinBaseOfSupport(glm::vec3(1.0f, 0.0f, 0.0f));
+        qCDebug(interfaceapp) << "head within base " << withinBaseOfSupport(temp);
+        qCDebug(interfaceapp) << "force activate horizontal " << getForceActivateHorizontal();
+        qCDebug(interfaceapp) << "is active horizontal " << isActive(Horizontal);
         if (!isActive(Horizontal) && (getForceActivateHorizontal() || 
-            !withinTheBaseOfSupport() {
+            !withinBaseOfSupport(temp))) {
+            qCDebug(interfaceapp) << "----------------------------------------over the base of support";
             activate(Horizontal);
             setForceActivateHorizontal(false);
         }
