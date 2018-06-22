@@ -1,5 +1,5 @@
 //
-//  CrashHandler.cpp
+//  CrashRecoveryHandler.cpp
 //  interface/src
 //
 //  Created by David Rowe on 24 Aug 2015.
@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "CrashHandler.h"
+#include "CrashRecoveryHandler.h"
 
 #include <QCoreApplication>
 #include <QDialog>
@@ -30,7 +30,7 @@
 #include <SettingHelpers.h>
 
 
-bool CrashHandler::checkForResetSettings(bool wasLikelyCrash, bool suppressPrompt) {
+bool CrashRecoveryHandler::checkForResetSettings(bool wasLikelyCrash, bool suppressPrompt) {
     QSettings::setDefaultFormat(JSON_FORMAT);
     QSettings settings;
     settings.beginGroup("Developer");
@@ -59,7 +59,7 @@ bool CrashHandler::checkForResetSettings(bool wasLikelyCrash, bool suppressPromp
     return wasLikelyCrash;
 }
 
-CrashHandler::Action CrashHandler::promptUserForAction(bool showCrashMessage) {
+CrashRecoveryHandler::Action CrashRecoveryHandler::promptUserForAction(bool showCrashMessage) {
     QDialog crashDialog;
     QLabel* label;
     if (showCrashMessage) {
@@ -94,20 +94,20 @@ CrashHandler::Action CrashHandler::promptUserForAction(bool showCrashMessage) {
 
     if (result == QDialog::Accepted) {
         if (option1->isChecked()) {
-            return CrashHandler::DELETE_INTERFACE_INI;
+            return CrashRecoveryHandler::DELETE_INTERFACE_INI;
         }
         if (option2->isChecked()) {
-            return CrashHandler::RETAIN_IMPORTANT_INFO;
+            return CrashRecoveryHandler::RETAIN_IMPORTANT_INFO;
         }
     }
 
     // Dialog cancelled or "do nothing" option chosen
-    return CrashHandler::DO_NOTHING;
+    return CrashRecoveryHandler::DO_NOTHING;
 }
 
-void CrashHandler::handleCrash(CrashHandler::Action action) {
-    if (action != CrashHandler::DELETE_INTERFACE_INI && action != CrashHandler::RETAIN_IMPORTANT_INFO) {
-        // CrashHandler::DO_NOTHING or unexpected value
+void CrashRecoveryHandler::handleCrash(CrashRecoveryHandler::Action action) {
+    if (action != CrashRecoveryHandler::DELETE_INTERFACE_INI && action != CrashRecoveryHandler::RETAIN_IMPORTANT_INFO) {
+        // CrashRecoveryHandler::DO_NOTHING or unexpected value
         return;
     }
 
@@ -126,7 +126,7 @@ void CrashHandler::handleCrash(CrashHandler::Action action) {
     QUrl address;
     bool tutorialComplete = false;
 
-    if (action == CrashHandler::RETAIN_IMPORTANT_INFO) {
+    if (action == CrashRecoveryHandler::RETAIN_IMPORTANT_INFO) {
         // Read avatar info
 
         // Location and orientation
@@ -151,7 +151,7 @@ void CrashHandler::handleCrash(CrashHandler::Action action) {
         settingsFile.remove();
     }
 
-    if (action == CrashHandler::RETAIN_IMPORTANT_INFO) {
+    if (action == CrashRecoveryHandler::RETAIN_IMPORTANT_INFO) {
         // Write avatar info
 
         // Location and orientation

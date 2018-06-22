@@ -61,7 +61,6 @@ PointerFrameHeaderList parseFrameHeaders(uchar* const start, const size_t& size)
         current += sizeof(FrameSize);
         header.fileOffset = current - start;
         if (end - current < header.size) {
-            current = end;
             break;
         }
         current += header.size;

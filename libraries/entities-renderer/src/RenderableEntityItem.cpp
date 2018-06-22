@@ -284,8 +284,8 @@ bool EntityRenderer::addToScene(const ScenePointer& scene, Transaction& transact
     makeStatusGetters(_entity, statusGetters);
     renderPayload->addStatusGetters(statusGetters);
     transaction.resetItem(_renderItemID, renderPayload);
-    updateInScene(scene, transaction);
     onAddToScene(_entity);
+    updateInScene(scene, transaction);
     return true;
 }
 
