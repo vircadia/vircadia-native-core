@@ -24,6 +24,7 @@ Preference {
     property bool isLast: false
     property string name: "Header"
     property real spacing: 8
+    property var sectionProperties: ({})
     default property alias preferences: contentContainer.children
 
     HifiConstants { id: hifi }
@@ -165,7 +166,7 @@ Preference {
                 preferences.push(builder.createObject(contentContainer, { preference: preference, isFirstCheckBox: (checkBoxCount === 1) , z: zpos}));
 
                 var preferenceObject = preferences[preferences.length - 1];
-                var props = preference.properties;
+                var props = sectionProperties.hasOwnProperty(preference.name) ? sectionProperties[preference.name] : {};
 
                 for(var prop in props) {
                     var value = props[prop];

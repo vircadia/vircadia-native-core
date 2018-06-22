@@ -44,7 +44,6 @@ class Preference : public QObject {
     Q_PROPERTY(QString name READ getName CONSTANT)
     Q_PROPERTY(Type type READ getType CONSTANT)
     Q_PROPERTY(bool enabled READ isEnabled NOTIFY enabledChanged)
-    Q_PROPERTY(QVariantMap properties READ getProperties);
     Q_ENUMS(Type)
 
 public:
@@ -82,15 +81,6 @@ public:
     }
 
     void setEnabler(BoolPreference* enabler, bool inverse = false);
-
-    const QVariantMap& getProperties() {
-        return _properties;
-    }
-
-    void setProperties(const QVariantMap& properties) {
-        _properties = properties;
-    }
-
     virtual Type getType() { return Invalid; };
 
     Q_INVOKABLE virtual void load() {};
@@ -110,7 +100,6 @@ protected:
     const QString _name;
     bool _enabled { true };
     bool _enablerInverted { false };
-    QVariantMap _properties;
 };
 
 class ButtonPreference : public Preference {

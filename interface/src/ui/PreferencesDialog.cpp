@@ -298,21 +298,12 @@ void setupPreferences() {
         preference->setMax(2.2f);
         preference->setDecimals(3);
         preference->setStep(0.001f);
-
-        QVariantMap properties;
-        properties["anchors.right"] = "undefined";
-        preference->setProperties(properties);
-
         preferences->addPreference(preference);
     }
     {
         auto preference = new ButtonPreference(MOVEMENT, "RESET SENSORS", [] {
             qApp->resetSensors();
         });
-        QVariantMap properties;
-        properties["width"] = "180";
-        properties["anchors.left"] = "undefined";
-        preference->setProperties(properties);
         preferences->addPreference(preference);
     }
 
