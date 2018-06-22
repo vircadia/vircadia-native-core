@@ -279,11 +279,11 @@ bool ObjectConstraintConeTwist::updateArguments(QVariantMap arguments) {
 QVariantMap ObjectConstraintConeTwist::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
-        arguments["pivot"] = glmToQMap(_pivotInA);
-        arguments["axis"] = glmToQMap(_axisInA);
+        arguments["pivot"] = vec3ToQMap(_pivotInA);
+        arguments["axis"] = vec3ToQMap(_axisInA);
         arguments["otherEntityID"] = _otherID;
-        arguments["otherPivot"] = glmToQMap(_pivotInB);
-        arguments["otherAxis"] = glmToQMap(_axisInB);
+        arguments["otherPivot"] = vec3ToQMap(_pivotInB);
+        arguments["otherAxis"] = vec3ToQMap(_axisInB);
         arguments["swingSpan1"] = _swingSpan1;
         arguments["swingSpan2"] = _swingSpan2;
         arguments["twistSpan"] = _twistSpan;
