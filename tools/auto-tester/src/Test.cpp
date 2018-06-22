@@ -299,7 +299,9 @@ QString Test::extractPathFromTestsDown(const QString& fullPath) {
 
 void Test::includeTest(QTextStream& textStream, const QString& testPathname) {
     QString partialPath = extractPathFromTestsDown(testPathname);
-    textStream << "Script.include(repositoryPath + \"" << partialPath + "?raw=true\");" << endl;
+    QString partialPathWithoutTests = partialPath.right(partialPath.length() - 7);
+
+    textStream << "Script.include(repositoryPath + \"" << partialPathWithoutTests + "\");" << endl;
 }
 
 // Creates a single script in a user-selected folder.
@@ -394,19 +396,16 @@ void Test::createRecursiveScript(const QString& topLevelDirectory, bool interact
     const QString DATE_TIME_FORMAT("MMM d yyyy, h:mm");
     textStream << "// This is an automatically generated file, created by auto-tester on " << QDateTime::currentDateTime().toString(DATE_TIME_FORMAT) << endl << endl;
 
-    textStream << "user = \"" + GIT_HUB_USER + "/\";" << endl;
-    textStream << "repository = \"" + GIT_HUB_REPOSITORY + "/\";" << endl << endl;
+    // Include 'autoTest.js'
+    textStream << "Script.include(\"https://raw.githubusercontent.com/highfidelity/hifi_tests/master/tests/utils/branchUtils.js\");" << endl;
+    textStream << "var autoTester = createAutoTester(Script.resolvePath(\".\"));" << endl << endl;
 
-    textStream << "Script.include(\"https://github.com/highfidelity/hifi_tests/blob/RC69/tests/utils/branchUtils.js?raw=true\");" << endl;
-    textStream << "branch = getBranch(Script.resolvePath(\".\"), repository) +\"/\";" << endl << endl;
+    textStream << "var repositoryPath = autoTester.getRepositoryPath();" << endl << endl;
 
     // Wait 10 seconds before starting
     textStream << "if (typeof Test !== 'undefined') {" << endl;
     textStream << "    Test.wait(10000);" << endl;
     textStream << "};" << endl << endl;
-
-    textStream << "var repositoryPath = \"https://github.com/\" + user + repository + \"blob/\" + branch;" << endl;
-    textStream << "var autoTester = Script.require(repositoryPath + \"tests/utils/autoTester.js?raw=true\");" << endl << endl;
 
     textStream << "autoTester.enableRecursive();" << endl;
     textStream << "autoTester.enableAuto();" << endl << endl;
