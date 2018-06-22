@@ -59,6 +59,25 @@ ParticleExplorerTool = function() {
                 }
             }
 
+            var optionalProps = ["alphaStart", "alphaFinish", "radiusStart", "radiusFinish", "colorStart", "colorFinish"];
+            var fallbackProps = ["alpha", "particleRadius", "color"];
+            var entityProps = Entities.getEntityProperties(that.activeParticleProperties, optionalProps);
+            var needsUpdate = false;
+            for (var i = 0; i < optionalProps.length; i++) {
+                var fallback = fallbackProps[Math.floor(i / 2)];
+                if (data.updatedSettings[fallback]) {
+                    var prop = optionalProps[i];
+                    if (!that.activeParticleProperties[prop] || (fallback === "color" && !that.activeParticleProperties[prop].red)) {
+                        that.activeParticleProperties[prop] = entityProps[fallback];
+                        needsUpdate = true;
+                    }
+                }
+            }
+
+            if (needsUpdate) {
+                sendActiveParticleProperties();
+            }
+
         } else if (data.messageType === "page_loaded") {
             sendActiveParticleProperties();
         }

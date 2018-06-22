@@ -44,6 +44,7 @@ and If there is any changes to either the Entities or properties of
 **/
 
 var RADIANS_PER_DEGREE = Math.PI / 180;
+var DEBOUNCE_TIMEOUT = 125;
 
 var roundFloat = function (input, round) {
     round = round ? round : 1000;
@@ -60,13 +61,14 @@ function HifiEntityUI(parent) {
     this.parent = parent;
 
     var self = this;
+    this.settingsUpdateLock = false;
     this.webBridgeSync = _.debounce(function (id, val) {
-        if (self.EventBridge) {
+        if (self.EventBridge && !self.settingsUpdateLock) {
             var sendPackage = {};
             sendPackage[id] = val;
             self.submitChanges(sendPackage);
         }
-    }, 125);
+    }, DEBOUNCE_TIMEOUT);
 }
 
 HifiEntityUI.prototype = {
@@ -112,7 +114,6 @@ HifiEntityUI.prototype = {
         var self = this;
         var json = {};
         var keys = Object.keys(self.builtRows);
-
         for (var i = 0; i < keys.length; i++) {
             var key = keys[i];
             var el = self.builtRows[key];
@@ -144,11 +145,13 @@ HifiEntityUI.prototype = {
                     vector.z = z.value;
                 }
                 json[key] = vector;
+            } else if (el.className.indexOf("radian") !== -1) {
+                json[key] = document.getElementById(key).value * RADIANS_PER_DEGREE;
             } else if (el.className.length > 0) {
-                json[key] = document.getElementById(key)
-                    .value;
+                json[key] = document.getElementById(key).value;
             }
         }
+
 
         return json;
     },
@@ -156,11 +159,17 @@ HifiEntityUI.prototype = {
         var self = this;
         var fields = document.getElementsByTagName("input");
 
+        self.settingsUpdateLock = true;
         if (!currentProperties.locked) {
             for (var i = 0; i < fields.length; i++) {
                 fields[i].removeAttribute("disabled");
+                if (fields[i].hasAttribute("data-max")) {
+                    // Reset Max to original max
+                    fields[i].setAttribute("max", fields[i].getAttribute("data-max"));
+                }
             }
         }
+
         if (self.onSelect) {
             self.onSelect();
         }
@@ -226,6 +235,10 @@ HifiEntityUI.prototype = {
                 }
             }
         }
+        // Now unlocking settings Update lock for sending messages on callbacks.
+        setTimeout(function () {
+            self.settingsUpdateLock = false;
+        }, DEBOUNCE_TIMEOUT * 2.5);
     },
     connect: function (EventBridge) {
         this.EventBridge = EventBridge;
@@ -242,6 +255,25 @@ HifiEntityUI.prototype = {
             if (data.messageType === 'particle_settings') {
                 // Update settings
                 var currentProperties = data.currentProperties;
+                // Update uninitialized variables
+                if (!currentProperties.alphaStart) {
+                    currentProperties.alphaStart = currentProperties.alpha;
+                }
+                if (!currentProperties.alphaFinish) {
+                    currentProperties.alphaFinish = currentProperties.alpha;
+                }
+                if (!currentProperties.radiusStart) {
+                    currentProperties.radiusStart = currentProperties.particleRadius;
+                }
+                if (!currentProperties.radiusFinish) {
+                    currentProperties.radiusFinish = currentProperties.particleRadius;
+                }
+                if (!currentProperties.colorStart || !currentProperties.colorStart.red) {
+                    currentProperties.colorStart = currentProperties.color;
+                }
+                if (!currentProperties.colorFinish || !currentProperties.colorFinish.red) {
+                    currentProperties.colorFinish = currentProperties.color;
+                }
                 self.fillFields(currentProperties);
                 // Do expected property match with structure;
             } else if (data.messageType === 'particle_close') {
@@ -272,7 +304,7 @@ HifiEntityUI.prototype = {
         title.innerHTML = section;
         title.appendChild(dropDown);
         sectionDivHeader.appendChild(title);
-        
+
         var collapsed = index !== 0;
 
         dropDown.innerHTML = collapsed ? "L" : "M";
@@ -505,13 +537,13 @@ HifiEntityUI.prototype = {
                 textureImage.classList.remove("no-preview");
                 textureImage.classList.add("no-texture");
             }
-            self.webBridgeSync(group.id, url);
-        }, 250);
+        }, DEBOUNCE_TIMEOUT * 2);
 
         textureUrl.oninput = function (event) {
             // Add throttle
             var url = event.target.value;
             imageLoad(url);
+            self.webBridgeSync(group.id, url);
         };
         textureUrl.onchange = textureUrl.oninput;
         textureImage.appendChild(image);
@@ -540,21 +572,21 @@ HifiEntityUI.prototype = {
 
             slider.setAttribute("min", group.min !== undefined ? group.min : 0);
             slider.setAttribute("max", group.max !== undefined ? group.max : 10000);
+            slider.setAttribute("data-max", group.max !== undefined ? group.max : 10000);
             slider.setAttribute("step", 1);
 
             inputField.oninput = function (event) {
-
+                // TODO: Remove this functionality?  Alan finds it confusing
                 if (parseInt(event.target.value) > parseInt(slider.getAttribute("max")) && group.max !== 1) {
                     slider.setAttribute("max", event.target.value);
                 }
                 slider.value = event.target.value;
-
                 self.webBridgeSync(group.id, slider.value);
             };
             inputField.onchange = inputField.oninput;
             slider.oninput = function (event) {
                 inputField.value = event.target.value;
-                self.webBridgeSync(group.id, slider.value);
+                self.webBridgeSync(group.id, inputField.value);
             };
 
             inputField.id = group.id;
@@ -579,7 +611,7 @@ HifiEntityUI.prototype = {
                 } else {
                     inputField.value = Math.ceil(event.target.value);
                 }
-                self.webBridgeSync(group.id, slider.value * RADIANS_PER_DEGREE);
+                self.webBridgeSync(group.id, inputField.value * RADIANS_PER_DEGREE);
             };
             var degrees = document.createElement("label");
             degrees.innerHTML = "&#176;";
@@ -596,9 +628,11 @@ HifiEntityUI.prototype = {
 
             slider.setAttribute("min", group.min !== undefined ? group.min : 0);
             slider.setAttribute("max", group.max !== undefined ? group.max : 1);
+            slider.setAttribute("data-max", group.max !== undefined ? group.max : 1);
             slider.setAttribute("step", 0.01);
 
             inputField.oninput = function (event) {
+                // TODO: Remove this functionality?  Alan finds it confusing
                 if (parseFloat(event.target.value) > parseFloat(slider.getAttribute("max")) && group.max !== 1) {
                     slider.setAttribute("max", event.target.value);
                 }
