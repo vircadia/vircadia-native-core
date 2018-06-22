@@ -15,6 +15,8 @@
 
 #include <QScriptEngine>
 
+#include "AvatarLogging.h"
+
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
@@ -55,7 +57,7 @@ static const quint64 MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS = USECS_PER_SECOND / 
 const QUuid MY_AVATAR_KEY;  // NULL key
 
 // For an unknown avatar-data packet, wait this long before requesting the identity (in µs).
-constexpr quint64 AvatarManager::REQUEST_UNKNOWN_IDENTITY_DELAY = 5 * 1000000;
+constexpr quint64 AvatarManager::REQUEST_UNKNOWN_IDENTITY_DELAY = 5 * 1000 * 1000;
 
 AvatarManager::AvatarManager(QObject* parent) :
     _avatarsToFade(),
@@ -283,13 +285,13 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     // Check on avatars with pending identities:
     const quint64 now = usecTimestampNow();
     QWriteLocker writeLock(&_hashLock);
-    for (auto avatarData = _pendingAvatars.begin(); avatarData != _pendingAvatars.end(); ++avatarData) {
-        Avatar* pendingAvatar = dynamic_cast<Avatar*>(avatarData->get());
-        if (now - pendingAvatar->getLastRenderUpdateTime() >= REQUEST_UNKNOWN_IDENTITY_DELAY) {
+    for (auto pendingAvatar = _pendingAvatars.begin(); pendingAvatar != _pendingAvatars.end(); ++pendingAvatar) {
+        if (now - pendingAvatar->creationTime >= REQUEST_UNKNOWN_IDENTITY_DELAY) {
             // Too long without an ID
-            sendIdentityRequest(pendingAvatar->getID());
-            avatarData = _pendingAvatars.erase(avatarData);
-            if (avatarData == _pendingAvatars.end()) {
+            sendIdentityRequest(pendingAvatar->avatar->getID());
+            qCDebug(avatars) << "Requesting identity for unknown avatar" << pendingAvatar->avatar->getID().toString();
+            pendingAvatar = _pendingAvatars.erase(pendingAvatar);
+            if (pendingAvatar == _pendingAvatars.end()) {
                 break;
             }
         }

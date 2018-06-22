@@ -153,7 +153,12 @@ protected:
     virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason);
 
     AvatarHash _avatarHash;
-    AvatarHash _pendingAvatars;
+    struct PendingAvatar {
+        quint64 creationTime;
+        AvatarSharedPointer avatar;
+    };
+    using AvatarPendingHash = QHash<QUuid, PendingAvatar>;
+    AvatarPendingHash _pendingAvatars;
     mutable QReadWriteLock _hashLock;
 
 private:
