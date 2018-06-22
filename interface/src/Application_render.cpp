@@ -205,10 +205,6 @@ void Application::runRenderFrame(RenderArgs* renderArgs) {
 
         RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE;
 
-        if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowHulls)) {
-            renderDebugFlags = static_cast<RenderArgs::DebugFlags>(renderDebugFlags |
-                static_cast<int>(RenderArgs::RENDER_DEBUG_HULLS));
-        }
         renderArgs->_debugFlags = renderDebugFlags;
     }
 

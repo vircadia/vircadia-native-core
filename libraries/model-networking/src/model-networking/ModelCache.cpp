@@ -422,7 +422,7 @@ bool Geometry::areTexturesLoaded() const {
                 }
                 // Failed texture downloads need to be considered as 'loaded' 
                 // or the object will never fade in
-                bool finished = texture->isLoaded() || texture->isFailed();
+                bool finished = texture->isFailed() || (texture->isLoaded() && texture->getGPUTexture() && texture->getGPUTexture()->isDefined());
                 if (!finished) {
                     return true;
                 }
@@ -434,8 +434,11 @@ bool Geometry::areTexturesLoaded() const {
             }
 
             // If material textures are loaded, check the material translucency
+            // FIXME: This should not be done here.  The opacity map should already be reset in Material::setTextureMap.
+            // However, currently that code can be called before the albedo map is defined, so resetOpacityMap will fail.
+            // Geometry::areTexturesLoaded() is called repeatedly until it returns true, so we do the check here for now
             const auto albedoTexture = material->_textures[NetworkMaterial::MapChannel::ALBEDO_MAP];
-            if (albedoTexture.texture && albedoTexture.texture->getGPUTexture()) {
+            if (albedoTexture.texture) {
                 material->resetOpacityMap();
             }
         }

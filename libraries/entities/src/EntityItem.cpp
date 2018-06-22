@@ -367,6 +367,10 @@ int EntityItem::expectedBytes() {
     return MINIMUM_HEADER_BYTES;
 }
 
+const uint8_t PENDING_STATE_NOTHING = 0;
+const uint8_t PENDING_STATE_TAKE = 1;
+const uint8_t PENDING_STATE_RELEASE = 2;
+
 // clients use this method to unpack FULL updates from entity-server
 int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args) {
     setSourceUUID(args.sourceUUID);
@@ -678,7 +682,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // setters to ignore what the server says.
         filterRejection = newSimOwner.getID().isNull();
         if (weOwnSimulation) {
-            if (newSimOwner.getID().isNull() && !_simulationOwner.pendingRelease(lastEditedFromBufferAdjusted)) {
+            if (newSimOwner.getID().isNull() && !pendingRelease(lastEditedFromBufferAdjusted)) {
                 // entity-server is trying to clear our ownership (probably at our own request)
                 // but we actually want to own it, therefore we ignore this clear event
                 // and pretend that we own it (e.g. we assume we'll receive ownership soon)
@@ -693,32 +697,53 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 // recompute weOwnSimulation for later
                 weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
             }
-        } else if (_simulationOwner.pendingTake(now - maxPingRoundTrip)) {
-            // we sent a bid already but maybe before this packet was sent from the server
-            weOwnSimulation = true;
+        } else if (_pendingOwnershipState == PENDING_STATE_TAKE) {
+            // we're waiting to receive acceptance of a bid
+            // this ownership data either satisifies our bid or does not
+            bool bidIsSatisfied = newSimOwner.getID() == myNodeID &&
+                (newSimOwner.getPriority() == _pendingOwnershipPriority ||
+                 (_pendingOwnershipPriority == VOLUNTEER_SIMULATION_PRIORITY &&
+                  newSimOwner.getPriority() == RECRUIT_SIMULATION_PRIORITY));
+
             if (newSimOwner.getID().isNull()) {
-                // the entity-server is trying to clear someone else's ownership
+                // the entity-server is clearing someone else's ownership
                 if (!_simulationOwner.isNull()) {
                     markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
                     somethingChanged = true;
                     _simulationOwner.clearCurrentOwner();
                 }
-            } else if (newSimOwner.getID() == myNodeID) {
-                // the entity-server is awarding us ownership which is what we want
-                _simulationOwner.set(newSimOwner);
+            } else {
+                if (newSimOwner.getID() != _simulationOwner.getID()) {
+                    markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
+                }
+                if (_simulationOwner.set(newSimOwner)) {
+                    // the entity-server changed ownership
+                    somethingChanged = true;
+                }
             }
-        } else if (newSimOwner.matchesValidID(myNodeID) && !_simulationOwner.pendingTake(now)) {
-            // entity-server tells us that we have simulation ownership while we never requested this for this EntityItem,
-            // this could happen when the user reloads the cache and entity tree.
-            markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
-            somethingChanged = true;
-            _simulationOwner.clearCurrentOwner();
-            weOwnSimulation = false;
-        } else if (_simulationOwner.set(newSimOwner)) {
-            markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
-            somethingChanged = true;
-            // recompute weOwnSimulation for later
-            weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
+            if (bidIsSatisfied || (somethingChanged && _pendingOwnershipTimestamp < now - maxPingRoundTrip)) {
+                // the bid has been satisfied, or it has been invalidated by data sent AFTER the bid should have been received
+                // in either case: accept our fate and clear pending state
+                _pendingOwnershipState = PENDING_STATE_NOTHING;
+                _pendingOwnershipPriority = 0;
+            }
+            weOwnSimulation = bidIsSatisfied || (_simulationOwner.getID() == myNodeID);
+        } else {
+            // we are not waiting to take ownership
+            if (newSimOwner.getID() != _simulationOwner.getID()) {
+                markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
+            }
+            if (_simulationOwner.set(newSimOwner)) {
+                // the entity-server changed ownership...
+                somethingChanged = true;
+                if (newSimOwner.getID() == myNodeID) {
+                    // we have recieved ownership
+                    weOwnSimulation = true;
+                    // accept our fate and clear pendingState (just in case)
+                    _pendingOwnershipState = PENDING_STATE_NOTHING;
+                    _pendingOwnershipPriority = 0;
+                }
+            }
         }
     }
 
@@ -1333,16 +1358,37 @@ void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) c
     properties._accelerationChanged = true;
 }
 
-void EntityItem::flagForOwnershipBid(uint8_t priority) {
-    markDirtyFlags(Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY);
-    auto nodeList = DependencyManager::get<NodeList>();
-    if (_simulationOwner.matchesValidID(nodeList->getSessionUUID())) {
-        // we already own it
-        _simulationOwner.promotePriority(priority);
-    } else {
-        // we don't own it yet
-        _simulationOwner.setPendingPriority(priority, usecTimestampNow());
+void EntityItem::setScriptSimulationPriority(uint8_t priority) {
+    uint8_t newPriority = stillHasGrabActions() ? glm::max(priority, SCRIPT_GRAB_SIMULATION_PRIORITY) : priority;
+    if (newPriority != _scriptSimulationPriority) {
+        // set the dirty flag to trigger a bid or ownership update
+        markDirtyFlags(Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY);
+        _scriptSimulationPriority = newPriority;
     }
+}
+
+void EntityItem::clearScriptSimulationPriority() {
+    // DO NOT markDirtyFlags(Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY) here, because this
+    // is only ever called from the code that actually handles the dirty flags, and it knows best.
+    _scriptSimulationPriority = stillHasGrabActions() ? SCRIPT_GRAB_SIMULATION_PRIORITY : 0;
+}
+
+void EntityItem::setPendingOwnershipPriority(uint8_t priority) {
+    _pendingOwnershipTimestamp = usecTimestampNow();
+    _pendingOwnershipPriority = priority;
+    _pendingOwnershipState = (_pendingOwnershipPriority == 0) ? PENDING_STATE_RELEASE : PENDING_STATE_TAKE;
+}
+
+bool EntityItem::pendingRelease(uint64_t timestamp) const {
+    return _pendingOwnershipPriority == 0 &&
+        _pendingOwnershipState == PENDING_STATE_RELEASE &&
+        _pendingOwnershipTimestamp >= timestamp;
+}
+
+bool EntityItem::stillWaitingToTakeOwnership(uint64_t timestamp) const {
+    return _pendingOwnershipPriority > 0 &&
+        _pendingOwnershipState == PENDING_STATE_TAKE &&
+        _pendingOwnershipTimestamp >= timestamp;
 }
 
 bool EntityItem::setProperties(const EntityItemProperties& properties) {
@@ -1977,10 +2023,6 @@ void EntityItem::clearSimulationOwnership() {
 
 }
 
-void EntityItem::setPendingOwnershipPriority(uint8_t priority, const quint64& timestamp) {
-    _simulationOwner.setPendingPriority(priority, timestamp);
-}
-
 QString EntityItem::actionsToDebugString() {
     QString result;
     QVector<QByteArray> serializedActions;
@@ -2076,6 +2118,7 @@ bool EntityItem::updateAction(EntitySimulationPointer simulation, const QUuid& a
 }
 
 bool EntityItem::removeAction(EntitySimulationPointer simulation, const QUuid& actionID) {
+    // TODO: some action
     bool success = false;
     withWriteLock([&] {
         checkWaitingToRemove(simulation);
@@ -2403,12 +2446,17 @@ void EntityItem::locationChanged(bool tellPhysics) {
         }
     }
     SpatiallyNestable::locationChanged(tellPhysics); // tell all the children, also
+    std::pair<int32_t, glm::vec4> data(_spaceIndex, glm::vec4(getWorldPosition(), _boundingRadius));
+    emit spaceUpdate(data);
     somethingChangedNotification();
 }
 
 void EntityItem::dimensionsChanged() {
     requiresRecalcBoxes();
     SpatiallyNestable::dimensionsChanged(); // Do what you have to do
+    _boundingRadius = 0.5f * glm::length(getScaledDimensions());
+    std::pair<int32_t, glm::vec4> data(_spaceIndex, glm::vec4(getWorldPosition(), _boundingRadius));
+    emit spaceUpdate(data);
     somethingChangedNotification();
 }
 
@@ -3010,6 +3058,11 @@ void EntityItem::retrieveMarketplacePublicKey() {
 
         networkReply->deleteLater();
     });
+}
+
+void EntityItem::setSpaceIndex(int32_t index) {
+    assert(_spaceIndex == -1);
+    _spaceIndex = index;
 }
 
 void EntityItem::preDelete() {

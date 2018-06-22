@@ -150,8 +150,8 @@
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
 #include "avatar/MyHead.h"
+#include "CrashRecoveryHandler.h"
 #include "CrashHandler.h"
-#include "Crashpad.h"
 #include "devices/DdeFaceTracker.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
@@ -198,7 +198,6 @@
 
 #include <GPUIdent.h>
 #include <gl/GLHelpers.h>
-#include <src/scripting/LimitlessVoiceRecognitionScriptingInterface.h>
 #include <src/scripting/GooglePolyScriptingInterface.h>
 #include <EntityScriptClient.h>
 #include <ModelScriptingInterface.h>
@@ -283,7 +282,9 @@ public:
 
 private:
     void initialize() {
+        setObjectName("Render");
         PROFILE_SET_THREAD_NAME("Render");
+        setCrashAnnotation("render_thread_id", std::to_string((size_t)QThread::currentThreadId()));
         if (!_renderContext->makeCurrent()) {
             qFatal("Unable to make rendering context current on render thread");
         }
@@ -792,7 +793,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
 
     bool previousSessionCrashed { false };
     if (!inTestMode) {
-        previousSessionCrashed = CrashHandler::checkForResetSettings(runningMarkerExisted, suppressPrompt);
+        previousSessionCrashed = CrashRecoveryHandler::checkForResetSettings(runningMarkerExisted, suppressPrompt);
     }
 
     // get dir to use for cache
@@ -921,7 +922,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<OffscreenQmlSurfaceCache>();
     DependencyManager::set<EntityScriptClient>();
     DependencyManager::set<EntityScriptServerLogClient>();
-    DependencyManager::set<LimitlessVoiceRecognitionScriptingInterface>();
     DependencyManager::set<GooglePolyScriptingInterface>();
     DependencyManager::set<OctreeStatsProvider>(nullptr, qApp->getOcteeSceneStats());
     DependencyManager::set<AvatarBookmarks>();
@@ -1098,6 +1098,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _logger->setSessionID(accountManager->getSessionID());
 
     setCrashAnnotation("metaverse_session_id", accountManager->getSessionID().toString().toStdString());
+    setCrashAnnotation("main_thread_id", std::to_string((size_t)QThread::currentThreadId()));
 
     if (steamClient) {
         qCDebug(interfaceapp) << "[VERSION] SteamVR buildID:" << steamClient->getSteamVRBuildID();
@@ -1162,24 +1163,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
     audioIO->startThread();
 
-    auto audioScriptingInterface = DependencyManager::set<AudioScriptingInterface, scripting::Audio>();
-    connect(audioIO.data(), &AudioClient::mutedByMixer, audioScriptingInterface.data(), &AudioScriptingInterface::mutedByMixer);
-    connect(audioIO.data(), &AudioClient::receivedFirstPacket, audioScriptingInterface.data(), &AudioScriptingInterface::receivedFirstPacket);
-    connect(audioIO.data(), &AudioClient::disconnected, audioScriptingInterface.data(), &AudioScriptingInterface::disconnected);
-    connect(audioIO.data(), &AudioClient::muteEnvironmentRequested, [](glm::vec3 position, float radius) {
-        auto audioClient = DependencyManager::get<AudioClient>();
-        auto audioScriptingInterface = DependencyManager::get<AudioScriptingInterface>();
-        auto myAvatarPosition = DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldPosition();
-        float distance = glm::distance(myAvatarPosition, position);
-
-        if (distance < radius) {
-            audioClient->setMuted(true);
-            audioScriptingInterface->environmentMuted();
-        }
-    });
-    connect(this, &Application::activeDisplayPluginChanged,
-        reinterpret_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::onContextChanged);
-
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
@@ -1243,9 +1226,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(accountManager.data(), &AccountManager::authRequired, dialogsManager.data(), &DialogsManager::showLoginDialog);
 #endif
     connect(accountManager.data(), &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
-    connect(accountManager.data(), &AccountManager::usernameChanged, [](QString username){
-        setCrashAnnotation("username", username.toStdString());
-    });
 
     // set the account manager's root URL and trigger a login request if we don't have the access token
     accountManager->setIsAgent(true);
@@ -1367,6 +1347,28 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Initialize the display plugin architecture
     initializeDisplayPlugins();
     qCDebug(interfaceapp, "Initialized Display");
+
+    // An audio device changed signal received before the display plugins are set up will cause a crash,
+    // so we defer the setup of the `scripting::Audio` class until this point
+    {
+        auto audioScriptingInterface = DependencyManager::set<AudioScriptingInterface, scripting::Audio>();
+        connect(audioIO.data(), &AudioClient::mutedByMixer, audioScriptingInterface.data(), &AudioScriptingInterface::mutedByMixer);
+        connect(audioIO.data(), &AudioClient::receivedFirstPacket, audioScriptingInterface.data(), &AudioScriptingInterface::receivedFirstPacket);
+        connect(audioIO.data(), &AudioClient::disconnected, audioScriptingInterface.data(), &AudioScriptingInterface::disconnected);
+        connect(audioIO.data(), &AudioClient::muteEnvironmentRequested, [](glm::vec3 position, float radius) {
+            auto audioClient = DependencyManager::get<AudioClient>();
+            auto audioScriptingInterface = DependencyManager::get<AudioScriptingInterface>();
+            auto myAvatarPosition = DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldPosition();
+            float distance = glm::distance(myAvatarPosition, position);
+
+            if (distance < radius) {
+                audioClient->setMuted(true);
+                audioScriptingInterface->environmentMuted();
+            }
+        });
+        connect(this, &Application::activeDisplayPluginChanged,
+            reinterpret_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::onContextChanged);
+    }
 
     // Create the rendering engine.  This can be slow on some machines due to lots of
     // GPU pipeline creation.
@@ -1753,6 +1755,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // set the local loopback interface for local sounds
     AudioInjector::setLocalAudioInterface(audioIO.data());
+    auto audioScriptingInterface = DependencyManager::get<AudioScriptingInterface>();
     audioScriptingInterface->setLocalAudioInterface(audioIO.data());
     connect(audioIO.data(), &AudioClient::noiseGateOpened, audioScriptingInterface.data(), &AudioScriptingInterface::noiseGateOpened);
     connect(audioIO.data(), &AudioClient::noiseGateClosed, audioScriptingInterface.data(), &AudioScriptingInterface::noiseGateClosed);
@@ -2243,9 +2246,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     DependencyManager::get<EntityTreeRenderer>()->setSetPrecisionPickingOperator([&](unsigned int rayPickID, bool value) {
         DependencyManager::get<PickManager>()->setPrecisionPicking(rayPickID, value);
     });
-    EntityTreeRenderer::setRenderDebugHullsOperator([] {
-        return Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowHulls);
-    });
 
     // Preload Tablet sounds
     DependencyManager::get<TabletScriptingInterface>()->preloadSounds();
@@ -2538,6 +2538,8 @@ Application::~Application() {
     // shutdown render engine
     _main3DScene = nullptr;
     _renderEngine = nullptr;
+
+    _gameWorkload.shutdown();
 
     DependencyManager::destroy<Preferences>();
 
@@ -2995,6 +2997,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     surfaceContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
     surfaceContext->setContextProperty("Render", _renderEngine->getConfiguration().get());
+    surfaceContext->setContextProperty("Workload", _gameWorkload._engine->getConfiguration().get());
     surfaceContext->setContextProperty("Reticle", getApplicationCompositor().getReticleInterface());
     surfaceContext->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
 
@@ -4535,6 +4538,10 @@ void Application::idle() {
     }
 
     {
+        _gameWorkload.updateViews(_viewFrustum, getMyAvatar()->getHeadPosition());
+        _gameWorkload._engine->run();
+    }
+    {
         PerformanceTimer perfTimer("update");
         PerformanceWarning warn(showWarnings, "Application::idle()... update()");
         static const float BIGGEST_DELTA_TIME_SECS = 0.25f;
@@ -4929,6 +4936,9 @@ void Application::init() {
             avatar->setCollisionSound(sound);
         }
     }, Qt::QueuedConnection);
+
+    _gameWorkload.startup(getEntities()->getWorkloadSpace(), _main3DScene, _entitySimulation);
+    _entitySimulation->setWorkloadSpace(getEntities()->getWorkloadSpace());
 }
 
 void Application::loadAvatarScripts(const QVector<QString>& urls) {
@@ -5280,14 +5290,16 @@ void Application::setKeyboardFocusEntity(const EntityItemID& entityItemID) {
             auto entityId = _keyboardFocusedEntity.get();
             if (entities->wantsKeyboardFocus(entityId)) {
                 entities->setProxyWindow(entityId, _window->windowHandle());
-                auto entity = getEntities()->getEntity(entityId);
                 if (_keyboardMouseDevice->isActive()) {
                     _keyboardMouseDevice->pluginFocusOutEvent();
                 }
                 _lastAcceptedKeyPress = usecTimestampNow();
 
-                setKeyboardFocusHighlight(entity->getWorldPosition(), entity->getWorldOrientation(),
-                    entity->getScaledDimensions() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR);
+                auto entity = getEntities()->getEntity(entityId);
+                if (entity) {
+                    setKeyboardFocusHighlight(entity->getWorldPosition(), entity->getWorldOrientation(),
+                        entity->getScaledDimensions() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR);
+                }
             }
         }
     }
@@ -5615,7 +5627,10 @@ void Application::update(float deltaTime) {
     {
         PROFILE_RANGE(simulation_physics, "Simulation");
         PerformanceTimer perfTimer("simulation");
+
         if (_physicsEnabled) {
+            auto t0 = std::chrono::high_resolution_clock::now();
+            auto t1 = t0;
             {
                 PROFILE_RANGE(simulation_physics, "PrePhysics");
                 PerformanceTimer perfTimer("prePhysics)");
@@ -5639,6 +5654,8 @@ void Application::update(float deltaTime) {
 
                 _entitySimulation->applyDynamicChanges();
 
+                t1 = std::chrono::high_resolution_clock::now();
+
                 avatarManager->getObjectsToRemoveFromPhysics(motionStates);
                 _physicsEngine->removeObjects(motionStates);
                 avatarManager->getObjectsToAddToPhysics(motionStates);
@@ -5651,6 +5668,7 @@ void Application::update(float deltaTime) {
                     dynamic->prepareForPhysicsSimulation();
                 });
             }
+            auto t2 = std::chrono::high_resolution_clock::now();
             {
                 PROFILE_RANGE(simulation_physics, "StepPhysics");
                 PerformanceTimer perfTimer("stepPhysics");
@@ -5658,6 +5676,7 @@ void Application::update(float deltaTime) {
                     _physicsEngine->stepSimulation();
                 });
             }
+            auto t3 = std::chrono::high_resolution_clock::now();
             {
                 if (_physicsEngine->hasOutgoingChanges()) {
                     {
@@ -5703,12 +5722,26 @@ void Application::update(float deltaTime) {
                         // NOTE: the PhysicsEngine stats are written to stdout NOT to Qt log framework
                         _physicsEngine->dumpStatsIfNecessary();
                     }
+                    auto t4 = std::chrono::high_resolution_clock::now();
 
                     if (!_aboutToQuit) {
                         // NOTE: the getEntities()->update() call below will wait for lock
                         // and will provide non-physical entity motion
                         getEntities()->update(true); // update the models...
                     }
+
+                    auto t5 = std::chrono::high_resolution_clock::now();
+
+                    workload::Timings timings(6);
+                    timings[0] = (t4 - t0);
+                    timings[1] = (t5 - t4);
+                    timings[2] = (t4 - t3);
+                    timings[3] = (t3 - t2);
+                    timings[4] = (t2 - t1);
+                    timings[5] = (t1 - t0);
+
+                    _gameWorkload.updateSimulationTimings(timings);
+
                 }
             }
         } else {
@@ -5858,14 +5891,10 @@ void Application::update(float deltaTime) {
 
 
     {
-        PerformanceTimer perfTimer("limitless");
+        PerformanceTimer perfTimer("AnimDebugDraw");
         AnimDebugDraw::getInstance().update();
     }
 
-    {
-        PerformanceTimer perfTimer("limitless");
-        DependencyManager::get<LimitlessVoiceRecognitionScriptingInterface>()->update();
-    }
 
     { // Game loop is done, mark the end of the frame for the scene transactions and the render loop to take over
         PerformanceTimer perfTimer("enqueueFrame");
@@ -6173,6 +6202,8 @@ void Application::updateWindowTitle() const {
 
     QString connectionStatus = nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED)";
     QString username = accountManager->getAccountInfo().getUsername();
+
+    setCrashAnnotation("username", username.toStdString());
 
     QString currentPlaceName;
     if (isServerlessMode()) {
@@ -6564,6 +6595,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
 
     scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Render", _renderEngine->getConfiguration().get());
+    scriptEngine->registerGlobalObject("Workload", _gameWorkload._engine->getConfiguration().get());
 
     GraphicsScriptingInterface::registerMetaTypes(scriptEngine.data());
     scriptEngine->registerGlobalObject("Graphics", DependencyManager::get<GraphicsScriptingInterface>().data());
@@ -6574,7 +6606,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
 
-    scriptEngine->registerGlobalObject("LimitlessSpeechRecognition", DependencyManager::get<LimitlessVoiceRecognitionScriptingInterface>().data());
     scriptEngine->registerGlobalObject("GooglePoly", DependencyManager::get<GooglePolyScriptingInterface>().data());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {

@@ -237,6 +237,7 @@ enum class EntityVersion : PacketVersion {
     MaterialData,
     CloneableData,
     CollisionMask16Bytes,
+    YieldSimulationOwnership,
     ParticleEntityFix
 };
 

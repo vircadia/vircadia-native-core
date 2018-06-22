@@ -31,7 +31,7 @@ public:
     QVariant getProperty(const QString& property) override;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                     BoxFace& face, glm::vec3& surfaceNormal) override;
+                                     BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking = false) override;
 
 protected:
     // Centered local bounding box

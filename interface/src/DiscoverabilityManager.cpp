@@ -23,7 +23,7 @@
 #include <UserActivityLogger.h>
 #include <UUID.h>
 
-#include "Crashpad.h"
+#include "CrashHandler.h"
 #include "Menu.h"
 
 const Discoverability::Mode DEFAULT_DISCOVERABILITY_MODE = Discoverability::Connections;

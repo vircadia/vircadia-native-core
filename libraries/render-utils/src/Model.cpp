@@ -47,51 +47,9 @@ int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
 float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
 #define HTTP_INVALID_COM "http://invalid.com"
 
-const int NUM_COLLISION_HULL_COLORS = 24;
-std::vector<graphics::MaterialPointer> _collisionMaterials;
-
-void initCollisionMaterials() {
-    // generates bright colors in red, green, blue, yellow, magenta, and cyan spectrums
-    // (no browns, greys, or dark shades)
-    float component[NUM_COLLISION_HULL_COLORS] = {
-        0.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 0.0f, 0.0f,
-        0.2f, 0.4f, 0.6f, 0.8f,
-        1.0f, 1.0f, 1.0f, 1.0f,
-        1.0f, 1.0f, 1.0f, 1.0f,
-        0.8f, 0.6f, 0.4f, 0.2f
-    };
-    _collisionMaterials.reserve(NUM_COLLISION_HULL_COLORS);
-
-    // each component gets the same cuve
-    // but offset by a multiple of one third the full width
-    int numComponents = 3;
-    int sectionWidth = NUM_COLLISION_HULL_COLORS / numComponents;
-    int greenPhase = sectionWidth;
-    int bluePhase = 2 * sectionWidth;
-
-    // we stride through the colors to scatter adjacent shades
-    // so they don't tend to group together for large models
-    for (int i = 0; i < sectionWidth; ++i) {
-        for (int j = 0; j < numComponents; ++j) {
-            graphics::MaterialPointer material;
-            material = std::make_shared<graphics::Material>();
-            int index = j * sectionWidth + i;
-            float red = component[index % NUM_COLLISION_HULL_COLORS];
-            float green = component[(index + greenPhase) % NUM_COLLISION_HULL_COLORS];
-            float blue = component[(index + bluePhase) % NUM_COLLISION_HULL_COLORS];
-            material->setAlbedo(glm::vec3(red, green, blue));
-            material->setMetallic(0.02f);
-            material->setRoughness(0.5f);
-            _collisionMaterials.push_back(material);
-        }
-    }
-}
-
 Model::Model(QObject* parent, SpatiallyNestable* spatiallyNestableOverride) :
     QObject(parent),
     _renderGeometry(),
-    _collisionGeometry(),
     _renderWatcher(_renderGeometry),
     _spatiallyNestableOverride(spatiallyNestableOverride),
     _translation(0.0f),
@@ -307,16 +265,6 @@ void Model::updateRenderItems() {
 
                 data.updateKey(renderItemKeyGlobalFlags);
                 data.setShapeKey(invalidatePayloadShapeKey, isWireframe, useDualQuaternionSkinning);
-            });
-        }
-
-        Transform collisionMeshOffset;
-        collisionMeshOffset.setIdentity();
-        foreach(auto itemID, self->_collisionRenderItemsMap.keys()) {
-            transaction.updateItem<MeshPartPayload>(itemID, [renderItemKeyGlobalFlags, modelTransform, collisionMeshOffset](MeshPartPayload& data) {
-                // update the model transform for this render item.
-                data.updateKey(renderItemKeyGlobalFlags);
-                data.updateTransform(modelTransform, collisionMeshOffset);
             });
         }
 
@@ -777,11 +725,6 @@ void Model::updateRenderItemsKey(const render::ScenePointer& scene) {
             data.updateKey(renderItemsKey);
         });
     }
-    foreach(auto item, _collisionRenderItemsMap.keys()) {
-        transaction.updateItem<ModelMeshPartPayload>(item, [renderItemsKey](ModelMeshPartPayload& data) {
-            data.updateKey(renderItemsKey);
-        });
-    }
     scene->enqueueTransaction(transaction);
 }
 
@@ -862,49 +805,37 @@ const render::ItemKey Model::getRenderItemKeyGlobalFlags() const {
 bool Model::addToScene(const render::ScenePointer& scene,
                        render::Transaction& transaction,
                        render::Item::Status::Getters& statusGetters) {
-    bool readyToRender = _collisionGeometry || isLoaded();
-    if (!_addedToScene && readyToRender) {
-        createRenderItemSet();
+    if (!_addedToScene && isLoaded()) {
+        updateClusterMatrices();
+        if (_modelMeshRenderItems.empty()) {
+            createRenderItemSet();
+        }
     }
 
     bool somethingAdded = false;
-    if (_collisionGeometry) {
-        if (_collisionRenderItemsMap.empty()) {
-            foreach (auto renderItem, _collisionRenderItems) {
-                auto item = scene->allocateID();
-                auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
-                if (_collisionRenderItems.empty() && statusGetters.size()) {
-                    renderPayload->addStatusGetters(statusGetters);
-                }
-                transaction.resetItem(item, renderPayload);
-                _collisionRenderItemsMap.insert(item, renderPayload);
+
+    if (_modelMeshRenderItemsMap.empty()) {
+
+        bool hasTransparent = false;
+        size_t verticesCount = 0;
+        foreach(auto renderItem, _modelMeshRenderItems) {
+            auto item = scene->allocateID();
+            auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
+            if (_modelMeshRenderItemsMap.empty() && statusGetters.size()) {
+                renderPayload->addStatusGetters(statusGetters);
             }
-            somethingAdded = !_collisionRenderItemsMap.empty();
+            transaction.resetItem(item, renderPayload);
+
+            hasTransparent = hasTransparent || renderItem.get()->getShapeKey().isTranslucent();
+            verticesCount += renderItem.get()->getVerticesCount();
+            _modelMeshRenderItemsMap.insert(item, renderPayload);
+            _modelMeshRenderItemIDs.emplace_back(item);
         }
-    } else {
-        if (_modelMeshRenderItemsMap.empty()) {
+        somethingAdded = !_modelMeshRenderItemsMap.empty();
 
-            bool hasTransparent = false;
-            size_t verticesCount = 0;
-            foreach(auto renderItem, _modelMeshRenderItems) {
-                auto item = scene->allocateID();
-                auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
-                if (_modelMeshRenderItemsMap.empty() && statusGetters.size()) {
-                    renderPayload->addStatusGetters(statusGetters);
-                }
-                transaction.resetItem(item, renderPayload);
-
-                hasTransparent = hasTransparent || renderItem.get()->getShapeKey().isTranslucent();
-                verticesCount += renderItem.get()->getVerticesCount();
-                _modelMeshRenderItemsMap.insert(item, renderPayload);
-                _modelMeshRenderItemIDs.emplace_back(item);
-            }
-            somethingAdded = !_modelMeshRenderItemsMap.empty();
-
-            _renderInfoVertexCount = verticesCount;
-            _renderInfoDrawCalls = _modelMeshRenderItemsMap.count();
-            _renderInfoHasTransparent = hasTransparent;
-        }
+        _renderInfoVertexCount = verticesCount;
+        _renderInfoDrawCalls = _modelMeshRenderItemsMap.count();
+        _renderInfoHasTransparent = hasTransparent;
     }
 
     if (somethingAdded) {
@@ -926,11 +857,6 @@ void Model::removeFromScene(const render::ScenePointer& scene, render::Transacti
     _modelMeshMaterialNames.clear();
     _modelMeshRenderItemShapes.clear();
 
-    foreach(auto item, _collisionRenderItemsMap.keys()) {
-        transaction.removeItem(item);
-    }
-    _collisionRenderItems.clear();
-    _collisionRenderItemsMap.clear();
     _addedToScene = false;
 
     _renderInfoVertexCount = 0;
@@ -1504,7 +1430,6 @@ void Model::deleteGeometry() {
     _rig.destroyAnimGraph();
     _blendedBlendshapeCoefficients.clear();
     _renderGeometry.reset();
-    _collisionGeometry.reset();
 }
 
 void Model::overrideModelTransformAndOffset(const Transform& transform, const glm::vec3& offset) {
@@ -1533,19 +1458,6 @@ const render::ItemIDs& Model::fetchRenderItemIDs() const {
 }
 
 void Model::createRenderItemSet() {
-    updateClusterMatrices();
-    if (_collisionGeometry) {
-        if (_collisionRenderItems.empty()) {
-            createCollisionRenderItemSet();
-        }
-    } else {
-        if (_modelMeshRenderItems.empty()) {
-            createVisibleRenderItemSet();
-        }
-    }
-};
-
-void Model::createVisibleRenderItemSet() {
     assert(isLoaded());
     const auto& meshes = _renderGeometry->getMeshes();
 
@@ -1587,41 +1499,6 @@ void Model::createVisibleRenderItemSet() {
             _modelMeshMaterialNames.push_back(material ? material->getName() : "");
             _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)i });
             shapeID++;
-        }
-    }
-}
-
-void Model::createCollisionRenderItemSet() {
-    assert((bool)_collisionGeometry);
-    if (_collisionMaterials.empty()) {
-        initCollisionMaterials();
-    }
-
-    const auto& meshes = _collisionGeometry->getMeshes();
-
-    // We should not have any existing renderItems if we enter this section of code
-    Q_ASSERT(_collisionRenderItems.isEmpty());
-
-    Transform identity;
-    identity.setIdentity();
-    Transform offset;
-    offset.postTranslate(_offset);
-
-    // Run through all of the meshes, and place them into their segregated, but unsorted buckets
-    uint32_t numMeshes = (uint32_t)meshes.size();
-    for (uint32_t i = 0; i < numMeshes; i++) {
-        const auto& mesh = meshes.at(i);
-        if (!mesh) {
-            continue;
-        }
-
-        // Create the render payloads
-        int numParts = (int)mesh->getNumParts();
-        for (int partIndex = 0; partIndex < numParts; partIndex++) {
-            graphics::MaterialPointer& material = _collisionMaterials[partIndex % NUM_COLLISION_HULL_COLORS];
-            auto payload = std::make_shared<MeshPartPayload>(mesh, partIndex, material);
-            payload->updateTransform(identity, offset);
-            _collisionRenderItems << payload;
         }
     }
 }
@@ -1708,15 +1585,6 @@ public:
         _meshParts = std::shared_ptr<const GeometryMeshParts>();
     }
 };
-
-void Model::setCollisionMesh(graphics::MeshPointer mesh) {
-    if (mesh) {
-        _collisionGeometry = std::make_shared<CollisionRenderGeometry>(mesh);
-    } else {
-        _collisionGeometry.reset();
-    }
-    _needsFixupInScene = true;
-}
 
 ModelBlender::ModelBlender() :
     _pendingBlenders(0) {
