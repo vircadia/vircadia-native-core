@@ -260,7 +260,7 @@ function Grabber() {
 
     this.mouseRayOverlays = Picks.createPick(PickType.Ray, {
         joint: "Mouse",
-        filter: Picks.PICK_OVERLAYS,
+        filter: Picks.PICK_OVERLAYS | Picks.PICK_INCLUDE_NONCOLLIDABLE,
         enabled: true
     });
     var tabletItems = getMainTabletIDs();
