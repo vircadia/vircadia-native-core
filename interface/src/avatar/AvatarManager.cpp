@@ -55,7 +55,7 @@ static const quint64 MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS = USECS_PER_SECOND / 
 const QUuid MY_AVATAR_KEY;  // NULL key
 
 // For an unknown avatar-data packet, wait this long before requesting the identity (in µs).
-const quint64 AvatarManager::REQUEST_UNKNOWN_IDENTITY_DELAY = 5 * 1'000'000;
+constexpr quint64 AvatarManager::REQUEST_UNKNOWN_IDENTITY_DELAY = 5 * 1000000;
 
 AvatarManager::AvatarManager(QObject* parent) :
     _avatarsToFade(),
