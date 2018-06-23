@@ -158,6 +158,7 @@ public:
     Q_INVOKABLE void setAvatarSortCoefficient(const QString& name, const QScriptValue& value);
 
     float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
+    int getIdentityRequestsSent() const { return _identityRequestsSent; }
 
 public slots:
 
@@ -195,6 +196,7 @@ private:
     int _numAvatarsNotUpdated { 0 };
     float _avatarSimulationTime { 0.0f };
     bool _shouldRender { true };
+    int _identityRequestsSent { 0 };
 
     static const quint64 REQUEST_UNKNOWN_IDENTITY_DELAY;
 };
