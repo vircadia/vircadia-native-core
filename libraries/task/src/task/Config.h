@@ -201,8 +201,6 @@ public:
 class TaskConfig : public JobConfig {
     Q_OBJECT
 public:
-    using QConfigPointer = std::shared_ptr<QObject>;
-
     using Persistent = PersistentConfig<TaskConfig>;
 
     TaskConfig() = default;
@@ -230,8 +228,8 @@ public:
         auto tokens = path.split('.', QString::SkipEmptyParts);
 
         if (tokens.empty()) {
-            return dynamic_cast<typename T::Config*>(const_cast<TaskConfig*> (root));
-          //  tokens.push_back(QString());
+           // return dynamic_cast<typename T::Config*>(const_cast<TaskConfig*> (root));
+            tokens.push_back(QString());
         } else {
             while (tokens.size() > 1) {
                 auto name = tokens.front();

@@ -48,12 +48,17 @@ void PhysicalEntitySimulation::addEntityInternal(EntityItemPointer entity) {
     QMutexLocker lock(&_mutex);
     assert(entity);
     assert(!entity->isDead());
-    if (entity->shouldBePhysical()) {
+    uint8_t region = _space->getRegion(entity->getSpaceIndex());
+    bool shouldBePhysical = region < workload::Region::R3 && entity->shouldBePhysical();
+    bool canBeKinematic = region <= workload::Region::R3;
+    if (shouldBePhysical) {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
-        if (!motionState) {
+        if (motionState) {
+            motionState->setRegion(region);
+        } else {
             _entitiesToAddToPhysics.insert(entity);
         }
-    } else if (entity->isMovingRelativeToParent()) {
+    } else if (canBeKinematic && entity->isMovingRelativeToParent()) {
         _simpleKinematicEntities.insert(entity);
     }
 }
@@ -120,25 +125,43 @@ void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
     QMutexLocker lock(&_mutex);
     assert(entity);
     EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
+    uint8_t region = _space->getRegion(entity->getSpaceIndex());
+    bool shouldBePhysical = region < workload::Region::R3 && entity->shouldBePhysical();
+    bool canBeKinematic = region <= workload::Region::R3;
     if (motionState) {
-        if (!entity->shouldBePhysical()) {
-            // the entity should be removed from the physical simulation
+        if (!shouldBePhysical) {
+            if (motionState->isLocallyOwned()) {
+                // zero velocities by first deactivating the RigidBody
+                btRigidBody* body = motionState->getRigidBody();
+                if (body) {
+                    body->forceActivationState(ISLAND_SLEEPING);
+                    motionState->updateSendVelocities(); // has side-effect of zeroing entity velocities for inactive body
+                }
+
+                // send packet to remove ownership
+                // NOTE: this packet will NOT be resent if lost, but the good news is:
+                // the entity-server will eventually clear velocity and ownership for timeout
+                motionState->sendUpdate(_entityPacketSender, _physicsEngine->getNumSubsteps());
+            }
+
+            // remove from the physical simulation
             _incomingChanges.remove(motionState);
             _physicalObjects.remove(motionState);
             removeOwnershipData(motionState);
             _entitiesToRemoveFromPhysics.insert(entity);
-            if (entity->isMovingRelativeToParent()) {
+            if (canBeKinematic && entity->isMovingRelativeToParent()) {
                 _simpleKinematicEntities.insert(entity);
             }
         } else {
             _incomingChanges.insert(motionState);
         }
-    } else if (entity->shouldBePhysical()) {
+        motionState->setRegion(region);
+    } else if (shouldBePhysical) {
         // The intent is for this object to be in the PhysicsEngine, but it has no MotionState yet.
         // Perhaps it's shape has changed and it can now be added?
         _entitiesToAddToPhysics.insert(entity);
         _simpleKinematicEntities.remove(entity); // just in case it's non-physical-kinematic
-    } else if (entity->isMovingRelativeToParent()) {
+    } else if (canBeKinematic && entity->isMovingRelativeToParent()) {
         _simpleKinematicEntities.insert(entity);
     } else {
         _simpleKinematicEntities.remove(entity); // just in case it's non-physical-kinematic
@@ -187,18 +210,21 @@ const VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToRemoveFromPhys
     for (auto entity: _entitiesToRemoveFromPhysics) {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
         assert(motionState);
+      // TODO CLEan this, just a n extra check to avoid the crash that shouldn;t happen
+      if (motionState) {
 
-        _entitiesToAddToPhysics.remove(entity);
-        if (entity->isDead() && entity->getElement()) {
-            _deadEntities.insert(entity);
+            _entitiesToAddToPhysics.remove(entity);
+            if (entity->isDead() && entity->getElement()) {
+                _deadEntities.insert(entity);
+            }
+
+            _incomingChanges.remove(motionState);
+            removeOwnershipData(motionState);
+            _physicalObjects.remove(motionState);
+
+            // remember this motionState and delete it later (after removing its RigidBody from the PhysicsEngine)
+            _objectsToDelete.push_back(motionState);
         }
-
-        _incomingChanges.remove(motionState);
-        removeOwnershipData(motionState);
-        _physicalObjects.remove(motionState);
-
-        // remember this motionState and delete it later (after removing its RigidBody from the PhysicsEngine)
-        _objectsToDelete.push_back(motionState);
     }
     _entitiesToRemoveFromPhysics.clear();
     return _objectsToDelete;
@@ -249,6 +275,9 @@ void PhysicalEntitySimulation::getObjectsToAddToPhysics(VectorOfMotionStates& re
                 _physicalObjects.insert(motionState);
                 result.push_back(motionState);
                 entityItr = _entitiesToAddToPhysics.erase(entityItr);
+
+                // make sure the motionState's region is up-to-date before it is actually added to physics
+                motionState->setRegion(_space->getRegion(entity->getSpaceIndex()));
             } else {
                 //qWarning() << "Failed to generate new shape for entity." << entity->getName();
                 ++entityItr;

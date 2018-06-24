@@ -19,6 +19,7 @@
 
 #include <EntityItem.h>
 #include <EntitySimulation.h>
+#include <workload/Space.h>
 
 #include "PhysicsEngine.h"
 #include "EntityMotionState.h"
@@ -45,6 +46,7 @@ public:
     ~PhysicalEntitySimulation();
 
     void init(EntityTreePointer tree, PhysicsEnginePointer engine, EntityEditPacketSender* packetSender);
+    void setWorkloadSpace(const workload::SpacePointer space) { _space = space; }
 
     virtual void addDynamic(EntityDynamicPointer dynamic) override;
     virtual void applyDynamicChanges() override;
@@ -102,6 +104,7 @@ private:
 
     VectorOfEntityMotionStates _owned;
     VectorOfEntityMotionStates _bids;
+    workload::SpacePointer _space;
     uint64_t _nextBidExpiry;
     uint32_t _lastStepSendPackets { 0 };
 };
