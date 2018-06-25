@@ -11,6 +11,12 @@
 #include "AndroidHelper.h"
 #include <QDebug>
 #include <AccountManager.h>
+#include "Application.h"
+
+#if defined(qApp)
+#undef qApp
+#endif
+#define qApp (static_cast<Application*>(QCoreApplication::instance()))
 
 AndroidHelper::AndroidHelper() {
 }
@@ -37,8 +43,8 @@ void AndroidHelper::init() {
     _accountManager->moveToThread(&workerThread);
 }
 
-void AndroidHelper::requestActivity(const QString &activityName, const bool backToScene) {
-    emit androidActivityRequested(activityName, backToScene);
+void AndroidHelper::requestActivity(const QString &activityName, const bool backToScene, QList<QString> args) {
+    emit androidActivityRequested(activityName, backToScene, args);
 }
 
 void AndroidHelper::notifyLoadComplete() {
@@ -59,4 +65,10 @@ void AndroidHelper::performHapticFeedback(int duration) {
 
 void AndroidHelper::showLoginDialog() {
     emit androidActivityRequested("Login", true);
+}
+
+void AndroidHelper::processURL(const QString &url) {
+    if (qApp->canAcceptURL(url)) {
+        qApp->acceptURL(url);
+    }
 }

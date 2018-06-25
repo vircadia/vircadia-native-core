@@ -12,32 +12,31 @@
 package io.highfidelity.hifiinterface;
 
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
+import android.content.res.Configuration;
+import android.graphics.Point;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.Vibrator;
-import android.view.HapticFeedbackConstants;
-import android.view.WindowManager;
 import android.util.Log;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.FrameLayout;
 
 import org.qtproject.qt5.android.QtLayout;
 import org.qtproject.qt5.android.QtSurface;
 import org.qtproject.qt5.android.bindings.QtActivity;
 
+import java.lang.reflect.Field;
+import java.util.HashMap;
+
 /*import com.google.vr.cardboard.DisplaySynchronizer;
 import com.google.vr.cardboard.DisplayUtils;
 import com.google.vr.ndk.base.GvrApi;*/
-import android.graphics.Point;
-import android.content.res.Configuration;
-import android.content.pm.ActivityInfo;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.view.View;
-import android.widget.FrameLayout;
-
-import java.lang.reflect.Field;
 
 public class InterfaceActivity extends QtActivity {
 
@@ -244,6 +243,10 @@ public class InterfaceActivity extends QtActivity {
     }
 
     public void openAndroidActivity(String activityName, boolean backToScene) {
+        openAndroidActivity(activityName, backToScene, null);
+    }
+
+    public void openAndroidActivity(String activityName, boolean backToScene, HashMap args) {
         switch (activityName) {
             case "Home":
             case "Privacy Policy":
@@ -254,6 +257,13 @@ public class InterfaceActivity extends QtActivity {
                 startActivity(intent);
                 break;
             }
+            case "WebView":
+                Intent intent = new Intent(this, WebViewActivity.class);
+                if (args != null && args.containsKey(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL)) {
+                    intent.putExtra(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL, (String) args.get(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL));
+                }
+                startActivity(intent);
+                break;
             default: {
                 Log.w(TAG, "Could not open activity by name " + activityName);
                 break;

@@ -8,8 +8,6 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
-//package hifiinterface.highfidelity.io.mybrowserapplication;
 package io.highfidelity.hifiinterface;
 
 import android.app.ActionBar;
@@ -36,9 +34,6 @@ import android.webkit.WebViewClient;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 import android.widget.Toolbar;
-import android.os.Looper;
-import java.lang.Thread;
-import java.lang.Runnable;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -73,14 +68,13 @@ public class WebViewActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_web_view);
 
-        setActionBar((Toolbar) findViewById(R.id.toolbar_actionbar));
+        setActionBar(findViewById(R.id.toolbar_actionbar));
         mActionBar = getActionBar();
         mActionBar.setDisplayHomeAsUpEnabled(true);
 
-        mProgressBar = (ProgressBar) findViewById(R.id.toolbarProgressBar);
-
+        mProgressBar = findViewById(R.id.toolbarProgressBar);
         mUrl = getIntent().getStringExtra(WEB_VIEW_ACTIVITY_EXTRA_URL);
-        myWebView = (WebView) findViewById(R.id.web_view);
+        myWebView = findViewById(R.id.web_view);
         myWebView.setWebViewClient(new HiFiWebViewClient());
         myWebView.setWebChromeClient(new HiFiWebChromeClient());
         WebSettings webSettings = myWebView.getSettings();
@@ -203,11 +197,7 @@ public class WebViewActivity extends Activity {
             // managing avatar selections
             if (isFst(request)) {
                 final String url = request.getUrl().toString();
-                new Thread(new Runnable() {
-                    public void run() {
-                        nativeProcessURL(url);
-                    }
-                }).start(); // Avoid deadlock in Qt dialog
+                new Thread(() -> nativeProcessURL(url)).start(); // Avoid deadlock in Qt dialog
                 WebViewActivity.this.finish();
                 return true;
             }
