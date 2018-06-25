@@ -549,6 +549,7 @@ void MyAvatar::simulate(float deltaTime) {
     animateScaleChanges(deltaTime);
 
     if (_cauterizationNeedsUpdate) {
+        _cauterizationNeedsUpdate = false;
 
         // Redisplay cauterized entities that are no longer children of the avatar.
         auto cauterizedChild = _cauterizedChildrenOfHead.begin();
@@ -584,8 +585,6 @@ void MyAvatar::simulate(float deltaTime) {
                 _cauterizedChildrenOfHead.erase(object);
             }
         });
-
-        _cauterizationNeedsUpdate = false;
     }
 
     {
