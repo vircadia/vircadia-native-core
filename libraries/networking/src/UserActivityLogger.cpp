@@ -75,8 +75,8 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
                                params, NULL, multipart);
 }
 
-void UserActivityLogger::requestError(QNetworkReply& errorReply) {
-    qCDebug(networking) << errorReply.error() << "-" << errorReply.errorString();
+void UserActivityLogger::requestError(QNetworkReply* errorReply) {
+    qCDebug(networking) << errorReply->error() << "-" << errorReply->errorString();
 }
 
 void UserActivityLogger::launch(QString applicationVersion, bool previousSessionCrashed, int previousSessionRuntime) {

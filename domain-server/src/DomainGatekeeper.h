@@ -51,14 +51,14 @@ public slots:
     void processICEPingReplyPacket(QSharedPointer<ReceivedMessage> message);
     void processICEPeerInformationPacket(QSharedPointer<ReceivedMessage> message);
 
-    void publicKeyJSONCallback(QNetworkReply& requestReply);
-    void publicKeyJSONErrorCallback(QNetworkReply& requestReply);
+    void publicKeyJSONCallback(QNetworkReply* requestReply);
+    void publicKeyJSONErrorCallback(QNetworkReply* requestReply);
 
-    void getIsGroupMemberJSONCallback(QNetworkReply& requestReply);
-    void getIsGroupMemberErrorCallback(QNetworkReply& requestReply);
+    void getIsGroupMemberJSONCallback(QNetworkReply* requestReply);
+    void getIsGroupMemberErrorCallback(QNetworkReply* requestReply);
 
-    void getDomainOwnerFriendsListJSONCallback(QNetworkReply& requestReply);
-    void getDomainOwnerFriendsListErrorCallback(QNetworkReply& requestReply);
+    void getDomainOwnerFriendsListJSONCallback(QNetworkReply* requestReply);
+    void getDomainOwnerFriendsListErrorCallback(QNetworkReply* requestReply);
 
     void refreshGroupsCache();
 

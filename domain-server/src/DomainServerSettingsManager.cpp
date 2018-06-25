@@ -1826,7 +1826,7 @@ void DomainServerSettingsManager::apiGetGroupID(const QString& groupName) {
                                                           QNetworkAccessManager::GetOperation, callbackParams);
 }
 
-void DomainServerSettingsManager::apiGetGroupIDJSONCallback(QNetworkReply& requestReply) {
+void DomainServerSettingsManager::apiGetGroupIDJSONCallback(QNetworkReply* requestReply) {
     // {
     //     "data":{
     //         "groups":[{
@@ -1857,7 +1857,7 @@ void DomainServerSettingsManager::apiGetGroupIDJSONCallback(QNetworkReply& reque
     //     },
     //     "status":"success"
     // }
-    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply->readAll()).object();
     if (jsonObject["status"].toString() == "success") {
         QJsonArray groups = jsonObject["data"].toObject()["groups"].toArray();
         for (int i = 0; i < groups.size(); i++) {
@@ -1876,8 +1876,8 @@ void DomainServerSettingsManager::apiGetGroupIDJSONCallback(QNetworkReply& reque
     }
 }
 
-void DomainServerSettingsManager::apiGetGroupIDErrorCallback(QNetworkReply& requestReply) {
-    qDebug() << "******************** getGroupID api call failed:" << requestReply.error();
+void DomainServerSettingsManager::apiGetGroupIDErrorCallback(QNetworkReply* requestReply) {
+    qDebug() << "******************** getGroupID api call failed:" << requestReply->error();
 }
 
 void DomainServerSettingsManager::apiGetGroupRanks(const QUuid& groupID) {
@@ -1893,7 +1893,7 @@ void DomainServerSettingsManager::apiGetGroupRanks(const QUuid& groupID) {
                                                           QNetworkAccessManager::GetOperation, callbackParams);
 }
 
-void DomainServerSettingsManager::apiGetGroupRanksJSONCallback(QNetworkReply& requestReply) {
+void DomainServerSettingsManager::apiGetGroupRanksJSONCallback(QNetworkReply* requestReply) {
     // {
     //     "data":{
     //         "groups":{
@@ -1926,7 +1926,7 @@ void DomainServerSettingsManager::apiGetGroupRanksJSONCallback(QNetworkReply& re
     // }
 
     bool changed = false;
-    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply->readAll()).object();
 
     if (jsonObject["status"].toString() == "success") {
         QJsonObject groups = jsonObject["data"].toObject()["groups"].toObject();
@@ -1972,8 +1972,8 @@ void DomainServerSettingsManager::apiGetGroupRanksJSONCallback(QNetworkReply& re
     }
 }
 
-void DomainServerSettingsManager::apiGetGroupRanksErrorCallback(QNetworkReply& requestReply) {
-    qDebug() << "******************** getGroupRanks api call failed:" << requestReply.error();
+void DomainServerSettingsManager::apiGetGroupRanksErrorCallback(QNetworkReply* requestReply) {
+    qDebug() << "******************** getGroupRanks api call failed:" << requestReply->error();
 }
 
 void DomainServerSettingsManager::recordGroupMembership(const QString& name, const QUuid groupID, QUuid rankID) {

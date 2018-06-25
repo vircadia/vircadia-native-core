@@ -25,6 +25,7 @@
 #include <QtCore/QThreadPool>
 #include <QtNetwork/QHttpMultiPart>
 #include <QtNetwork/QNetworkRequest>
+#include <QtNetwork/QNetworkReply>
 #include <qthread.h>
 
 #include <SettingHandle.h>
@@ -53,14 +54,14 @@ JSONCallbackParameters::JSONCallbackParameters(QObject* jsonCallbackReceiver, co
     jsonCallbackMethod(jsonCallbackMethod),
     errorCallbackReceiver(errorCallbackReceiver),
     errorCallbackMethod(errorCallbackMethod),
-    updateReciever(updateReceiver),
+    updateReceiver(updateReceiver),
     updateSlot(updateSlot)
 {
 
 }
 
-QJsonObject AccountManager::dataObjectFromResponse(QNetworkReply &requestReply) {
-    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+QJsonObject AccountManager::dataObjectFromResponse(QNetworkReply* requestReply) {
+    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply->readAll()).object();
 
     static const QString STATUS_KEY = "status";
     static const QString DATA_KEY = "data";
@@ -74,8 +75,7 @@ QJsonObject AccountManager::dataObjectFromResponse(QNetworkReply &requestReply) 
 
 AccountManager::AccountManager(UserAgentGetter userAgentGetter) :
     _userAgentGetter(userAgentGetter),
-    _authURL(),
-    _pendingCallbackMap()
+    _authURL()
 {
     qRegisterMetaType<OAuthAccessToken>("OAuthAccessToken");
     qRegisterMetaTypeStreamOperators<OAuthAccessToken>("OAuthAccessToken");
@@ -325,73 +325,76 @@ void AccountManager::sendRequest(const QString& path,
 
 
         if (!callbackParams.isEmpty()) {
-            // if we have information for a callback, insert the callbackParams into our local map
-            _pendingCallbackMap.insert(networkReply, callbackParams);
-
-            if (callbackParams.updateReciever && !callbackParams.updateSlot.isEmpty()) {
-                callbackParams.updateReciever->connect(networkReply, SIGNAL(uploadProgress(qint64, qint64)),
+            if (callbackParams.updateReceiver && !callbackParams.updateSlot.isEmpty()) {
+                callbackParams.updateReceiver->connect(networkReply, SIGNAL(uploadProgress(qint64, qint64)),
                                                        callbackParams.updateSlot.toStdString().c_str());
             }
         }
 
-        // if we ended up firing of a request, hook up to it now
-        connect(networkReply, SIGNAL(finished()), SLOT(processReply()));
-    }
-}
+        // There's a cleaner way to fire the JSON/error callbacks below and ensure that deleteLater is called for the
+        // request reply - unfortunately it requires Qt 5.10 which the Android build does not support as of 06/26/18
 
-void AccountManager::processReply() {
-    QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
+        if (callbackParams.jsonCallbackReceiver) {
+            connect(networkReply, &QNetworkReply::finished, callbackParams.jsonCallbackReceiver, [callbackParams, networkReply] {
+                    if (networkReply->error() == QNetworkReply::NoError) {
+                        if (callbackParams.jsonCallbackReceiver && !callbackParams.jsonCallbackMethod.isEmpty()) {
+                            bool invoked = QMetaObject::invokeMethod(callbackParams.jsonCallbackReceiver,
+                                                                     qPrintable(callbackParams.jsonCallbackMethod),
+                                                                     Q_ARG(QNetworkReply*, networkReply));
 
-    if (requestReply->error() == QNetworkReply::NoError) {
-        if (requestReply->hasRawHeader(METAVERSE_SESSION_ID_HEADER)) {
-            _sessionID = requestReply->rawHeader(METAVERSE_SESSION_ID_HEADER);
-        }
-        passSuccessToCallback(requestReply);
-    } else {
-        passErrorToCallback(requestReply);
-    }
-    requestReply->deleteLater();
-}
+                            if (!invoked) {
+                                QString error = "Could not invoke " + callbackParams.jsonCallbackMethod + " with QNetworkReply* "
+                                    + "on errorCallbackReceiver.";
+                                Q_ASSERT_X(invoked, "AccountManager::passErrorToCallback", qPrintable(error));
+                            }
+                        } else {
+                            if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
+                                qCDebug(networking) << "Received JSON response from metaverse API that has no matching callback.";
+                                qCDebug(networking) << QJsonDocument::fromJson(networkReply->readAll());
+                            }
+                        }
 
-void AccountManager::passSuccessToCallback(QNetworkReply* requestReply) {
-    JSONCallbackParameters callbackParams = _pendingCallbackMap.value(requestReply);
-
-    if (callbackParams.jsonCallbackReceiver) {
-        // invoke the right method on the callback receiver
-        QMetaObject::invokeMethod(callbackParams.jsonCallbackReceiver, qPrintable(callbackParams.jsonCallbackMethod),
-                                  Q_ARG(QNetworkReply&, *requestReply));
-
-        // remove the related reply-callback group from the map
-        _pendingCallbackMap.remove(requestReply);
-
-    } else {
-        if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
-            qCDebug(networking) << "Received JSON response from metaverse API that has no matching callback.";
-            qCDebug(networking) << QJsonDocument::fromJson(requestReply->readAll());
+                        networkReply->deleteLater();
+                    }
+            });
         }
 
-        requestReply->deleteLater();
-    }
-}
+        if (callbackParams.errorCallbackReceiver) {
+            connect(networkReply, &QNetworkReply::finished, callbackParams.errorCallbackReceiver, [callbackParams, networkReply]{
+                if (networkReply->error() != QNetworkReply::NoError) {
+                    if (callbackParams.errorCallbackReceiver && !callbackParams.errorCallbackMethod.isEmpty()) {
+                        bool invoked = QMetaObject::invokeMethod(callbackParams.errorCallbackReceiver,
+                                                                 qPrintable(callbackParams.errorCallbackMethod),
+                                                                 Q_ARG(QNetworkReply*, networkReply));
 
-void AccountManager::passErrorToCallback(QNetworkReply* requestReply) {
-    JSONCallbackParameters callbackParams = _pendingCallbackMap.value(requestReply);
+                        if (!invoked) {
+                            QString error = "Could not invoke " + callbackParams.errorCallbackMethod + " with QNetworkReply* "
+                                + "on errorCallbackReceiver.";
+                            Q_ASSERT_X(invoked, "AccountManager::passErrorToCallback", qPrintable(error));
+                        }
 
-    if (callbackParams.errorCallbackReceiver) {
-        // invoke the right method on the callback receiver
-        QMetaObject::invokeMethod(callbackParams.errorCallbackReceiver, qPrintable(callbackParams.errorCallbackMethod),
-                                  Q_ARG(QNetworkReply&, *requestReply));
+                    } else {
+                        if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
+                            qCDebug(networking) << "Received error response from metaverse API that has no matching callback.";
+                            qCDebug(networking) << "Error" << networkReply->error() << "-" << networkReply->errorString();
+                            qCDebug(networking) << networkReply->readAll();
+                        }
+                    }
 
-        // remove the related reply-callback group from the map
-        _pendingCallbackMap.remove(requestReply);
-    } else {
-        if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
-            qCDebug(networking) << "Received error response from metaverse API that has no matching callback.";
-            qCDebug(networking) << "Error" << requestReply->error() << "-" << requestReply->errorString();
-            qCDebug(networking) << requestReply->readAll();
+                    networkReply->deleteLater();
+                }
+            });
         }
 
-        requestReply->deleteLater();
+        // double check if the finished network reply had a session ID in the header and make
+        // sure that our session ID matches that value if so
+        connect(networkReply, &QNetworkReply::finished, this, [this, networkReply]{
+            if (networkReply->error() == QNetworkReply::NoError) {
+                if (networkReply->hasRawHeader(METAVERSE_SESSION_ID_HEADER)) {
+                    _sessionID = networkReply->rawHeader(METAVERSE_SESSION_ID_HEADER);
+                }
+            }
+        });
     }
 }
 
@@ -826,7 +829,7 @@ void AccountManager::processGeneratedKeypair(QByteArray publicKey, QByteArray pr
                 callbackParameters, QByteArray(), requestMultiPart);
 }
 
-void AccountManager::publicKeyUploadSucceeded(QNetworkReply& reply) {
+void AccountManager::publicKeyUploadSucceeded(QNetworkReply* reply) {
     qCDebug(networking) << "Uploaded public key to Metaverse API. RSA keypair generation is completed.";
 
     // public key upload complete - store the matching private key and persist the account to settings
@@ -838,23 +841,17 @@ void AccountManager::publicKeyUploadSucceeded(QNetworkReply& reply) {
     _isWaitingForKeypairResponse = false;
 
     emit newKeypair();
-
-    // delete the reply object now that we are done with it
-    reply.deleteLater();
 }
 
-void AccountManager::publicKeyUploadFailed(QNetworkReply& reply) {
+void AccountManager::publicKeyUploadFailed(QNetworkReply* reply) {
     // the public key upload has failed
-    qWarning() << "Public key upload failed from AccountManager" << reply.errorString();
+    qWarning() << "Public key upload failed from AccountManager" << reply->errorString();
 
     // we aren't waiting for a response any longer
     _isWaitingForKeypairResponse = false;
 
     // clear our pending private key
     _pendingPrivateKey.clear();
-
-    // delete the reply object now that we are done with it
-    reply.deleteLater();
 }
 
 void AccountManager::handleKeypairGenerationError() {

@@ -136,7 +136,7 @@ void DiscoverabilityManager::updateLocation() {
     setCrashAnnotation("address", currentAddress.toString().toStdString());
 }
 
-void DiscoverabilityManager::handleHeartbeatResponse(QNetworkReply& requestReply) {
+void DiscoverabilityManager::handleHeartbeatResponse(QNetworkReply* requestReply) {
     auto dataObject = AccountManager::dataObjectFromResponse(requestReply);
 
     if (!dataObject.isEmpty()) {

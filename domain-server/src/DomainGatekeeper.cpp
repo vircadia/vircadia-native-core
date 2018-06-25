@@ -675,19 +675,19 @@ void DomainGatekeeper::requestUserPublicKey(const QString& username, bool isOpti
                                               QNetworkAccessManager::GetOperation, callbackParams);
 }
 
-QString extractUsernameFromPublicKeyRequest(QNetworkReply& requestReply) {
+QString extractUsernameFromPublicKeyRequest(QNetworkReply* requestReply) {
     // extract the username from the request url
     QString username;
     const QString PUBLIC_KEY_URL_REGEX_STRING = "api\\/v1\\/users\\/([A-Za-z0-9_\\.]+)\\/public_key";
     QRegExp usernameRegex(PUBLIC_KEY_URL_REGEX_STRING);
-    if (usernameRegex.indexIn(requestReply.url().toString()) != -1) {
+    if (usernameRegex.indexIn(requestReply->url().toString()) != -1) {
         username = usernameRegex.cap(1);
     }
     return username.toLower();
 }
 
-void DomainGatekeeper::publicKeyJSONCallback(QNetworkReply& requestReply) {
-    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+void DomainGatekeeper::publicKeyJSONCallback(QNetworkReply* requestReply) {
+    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply->readAll()).object();
     QString username = extractUsernameFromPublicKeyRequest(requestReply);
 
     bool isOptimisticKey = _inFlightPublicKeyRequests.take(username);
@@ -707,8 +707,8 @@ void DomainGatekeeper::publicKeyJSONCallback(QNetworkReply& requestReply) {
     }
 }
 
-void DomainGatekeeper::publicKeyJSONErrorCallback(QNetworkReply& requestReply) {
-    qDebug() << "publicKey api call failed:" << requestReply.error();
+void DomainGatekeeper::publicKeyJSONErrorCallback(QNetworkReply* requestReply) {
+    qDebug() << "publicKey api call failed:" << requestReply->error();
     QString username = extractUsernameFromPublicKeyRequest(requestReply);
     _inFlightPublicKeyRequests.remove(username);
 }
@@ -906,18 +906,18 @@ void DomainGatekeeper::getGroupMemberships(const QString& username) {
 
 }
 
-QString extractUsernameFromGroupMembershipsReply(QNetworkReply& requestReply) {
+QString extractUsernameFromGroupMembershipsReply(QNetworkReply* requestReply) {
     // extract the username from the request url
     QString username;
     const QString GROUP_MEMBERSHIPS_URL_REGEX_STRING = "api\\/v1\\/groups\\/members\\/([A-Za-z0-9_\\.]+)";
     QRegExp usernameRegex(GROUP_MEMBERSHIPS_URL_REGEX_STRING);
-    if (usernameRegex.indexIn(requestReply.url().toString()) != -1) {
+    if (usernameRegex.indexIn(requestReply->url().toString()) != -1) {
         username = usernameRegex.cap(1);
     }
     return username.toLower();
 }
 
-void DomainGatekeeper::getIsGroupMemberJSONCallback(QNetworkReply& requestReply) {
+void DomainGatekeeper::getIsGroupMemberJSONCallback(QNetworkReply* requestReply) {
     // {
     //     "data":{
     //         "username":"sethalves",
@@ -934,7 +934,7 @@ void DomainGatekeeper::getIsGroupMemberJSONCallback(QNetworkReply& requestReply)
     //     "status":"success"
     // }
 
-    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply->readAll()).object();
     if (jsonObject["status"].toString() == "success") {
         QJsonObject data = jsonObject["data"].toObject();
         QJsonObject groups = data["groups"].toObject();
@@ -953,8 +953,8 @@ void DomainGatekeeper::getIsGroupMemberJSONCallback(QNetworkReply& requestReply)
     _inFlightGroupMembershipsRequests.remove(extractUsernameFromGroupMembershipsReply(requestReply));
 }
 
-void DomainGatekeeper::getIsGroupMemberErrorCallback(QNetworkReply& requestReply) {
-    qDebug() << "getIsGroupMember api call failed:" << requestReply.error();
+void DomainGatekeeper::getIsGroupMemberErrorCallback(QNetworkReply* requestReply) {
+    qDebug() << "getIsGroupMember api call failed:" << requestReply->error();
     _inFlightGroupMembershipsRequests.remove(extractUsernameFromGroupMembershipsReply(requestReply));
 }
 
@@ -974,7 +974,7 @@ void DomainGatekeeper::getDomainOwnerFriendsList() {
     
 }
 
-void DomainGatekeeper::getDomainOwnerFriendsListJSONCallback(QNetworkReply& requestReply) {
+void DomainGatekeeper::getDomainOwnerFriendsListJSONCallback(QNetworkReply* requestReply) {
     // {
     //     status: "success",
     //     data: {
@@ -991,7 +991,7 @@ void DomainGatekeeper::getDomainOwnerFriendsListJSONCallback(QNetworkReply& requ
     //         ]
     //     }
     // }
-    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply->readAll()).object();
     if (jsonObject["status"].toString() == "success") {
         _domainOwnerFriends.clear();
         QJsonArray friends = jsonObject["data"].toObject()["friends"].toArray();
@@ -1003,8 +1003,8 @@ void DomainGatekeeper::getDomainOwnerFriendsListJSONCallback(QNetworkReply& requ
     }
 }
 
-void DomainGatekeeper::getDomainOwnerFriendsListErrorCallback(QNetworkReply& requestReply) {
-    qDebug() << "getDomainOwnerFriendsList api call failed:" << requestReply.error();
+void DomainGatekeeper::getDomainOwnerFriendsListErrorCallback(QNetworkReply* requestReply) {
+    qDebug() << "getDomainOwnerFriendsList api call failed:" << requestReply->error();
 }
 
 void DomainGatekeeper::refreshGroupsCache() {

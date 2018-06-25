@@ -38,7 +38,7 @@ public:
     QString jsonCallbackMethod;
     QObject* errorCallbackReceiver;
     QString errorCallbackMethod;
-    QObject* updateReciever;
+    QObject* updateReceiver;
     QString updateSlot;
 };
 
@@ -90,7 +90,7 @@ public:
     DataServerAccountInfo& getAccountInfo() { return _accountInfo; }
     void setAccountInfo(const DataServerAccountInfo &newAccountInfo);
 
-    static QJsonObject dataObjectFromResponse(QNetworkReply& requestReply);
+    static QJsonObject dataObjectFromResponse(QNetworkReply* requestReply);
 
     QUuid getSessionID() const { return _sessionID; }
     void setSessionID(const QUuid& sessionID);
@@ -126,11 +126,10 @@ signals:
     void newKeypair();
 
 private slots:
-    void processReply();
     void handleKeypairGenerationError();
     void processGeneratedKeypair(QByteArray publicKey, QByteArray privateKey);
-    void publicKeyUploadSucceeded(QNetworkReply& reply);
-    void publicKeyUploadFailed(QNetworkReply& reply);
+    void publicKeyUploadSucceeded(QNetworkReply* reply);
+    void publicKeyUploadFailed(QNetworkReply* reply);
     void generateNewKeypair(bool isUserKeypair = true, const QUuid& domainID = QUuid());
 
 private:
@@ -146,8 +145,6 @@ private:
     UserAgentGetter _userAgentGetter;
 
     QUrl _authURL;
-    
-    QMap<QNetworkReply*, JSONCallbackParameters> _pendingCallbackMap;
 
     DataServerAccountInfo _accountInfo;
     bool _isWaitingForTokenRefresh { false };

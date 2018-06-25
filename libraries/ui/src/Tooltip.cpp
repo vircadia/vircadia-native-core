@@ -94,9 +94,9 @@ void Tooltip::requestHyperlinkImage() {
     }
 }
 
-void Tooltip::handleAPIResponse(QNetworkReply& requestReply) {
+void Tooltip::handleAPIResponse(QNetworkReply* requestReply) {
     // did a preview image come back?
-    QJsonObject responseObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+    QJsonObject responseObject = QJsonDocument::fromJson(requestReply->readAll()).object();
     QJsonObject dataObject = responseObject["data"].toObject();
 
     const QString PLACE_KEY = "place";

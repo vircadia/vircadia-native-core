@@ -185,20 +185,20 @@ void LoginDialog::openUrl(const QString& url) const {
     }
 }
 
-void LoginDialog::linkCompleted(QNetworkReply& reply) {
+void LoginDialog::linkCompleted(QNetworkReply* reply) {
     emit handleLinkCompleted();
 }
 
-void LoginDialog::linkFailed(QNetworkReply& reply) {
-    emit handleLinkFailed(reply.errorString());
+void LoginDialog::linkFailed(QNetworkReply* reply) {
+    emit handleLinkFailed(reply->errorString());
 }
 
-void LoginDialog::createCompleted(QNetworkReply& reply) {
+void LoginDialog::createCompleted(QNetworkReply* reply) {
     emit handleCreateCompleted();
 }
 
-void LoginDialog::createFailed(QNetworkReply& reply) {
-    emit handleCreateFailed(reply.errorString());
+void LoginDialog::createFailed(QNetworkReply* reply) {
+    emit handleCreateFailed(reply->errorString());
 }
 
 void LoginDialog::signup(const QString& email, const QString& username, const QString& password) {
@@ -228,7 +228,7 @@ void LoginDialog::signup(const QString& email, const QString& username, const QS
                                 QJsonDocument(payload).toJson());
 }
 
-void LoginDialog::signupCompleted(QNetworkReply& reply) {
+void LoginDialog::signupCompleted(QNetworkReply* reply) {
     emit handleSignupCompleted();
 }
 
@@ -242,10 +242,10 @@ QString errorStringFromAPIObject(const QJsonValue& apiObject) {
     }
 }
 
-void LoginDialog::signupFailed(QNetworkReply& reply) {
+void LoginDialog::signupFailed(QNetworkReply* reply) {
     
     // parse the returned JSON to see what the problem was
-    auto jsonResponse = QJsonDocument::fromJson(reply.readAll());
+    auto jsonResponse = QJsonDocument::fromJson(reply->readAll());
     
     static const QString RESPONSE_DATA_KEY = "data";
     
