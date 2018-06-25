@@ -19,11 +19,17 @@ int main(int argc, char *argv[]) {
     // Parameter --testFolder <folder containing the test images>
     // Parameter --branch <branch on GitHub>
     //      default is "master"
-    //
+    // Parameter --user <GitHub user>
+    //      default is "highfidelity"
+    // Parameter --repository <repository on GitHub>
+    //      default is "highfidelity"
+
     QString testFolder;
-    QString branch;
-    if (argc > 2) {
-        for (int i = 1; i < argc - 1; ++i)
+
+    QString branch{ "master" };
+    QString user{ "highfidelity" };
+
+    for (int i = 1; i < argc - 1; ++i) {
         if (QString(argv[i]) == "--testFolder") {
             ++i;
             if (i < argc) {
@@ -40,6 +46,14 @@ int main(int argc, char *argv[]) {
                 std::cout << "Missing parameter after --branch" << endl;
                 exit(-1);
             }
+        } else if (QString(argv[i]) == "--user") {
+            ++i;
+            if (i < argc) {
+                user = QString(argv[i]);
+            } else {
+                std::cout << "Missing parameter after --user" << endl;
+                exit(-1);
+            }
         } else {
             std::cout << "Unknown parameter" << endl;
             exit(-1);
@@ -52,7 +66,7 @@ int main(int argc, char *argv[]) {
     autoTester->setup();
 
     if (!testFolder.isNull()) {
-        autoTester->runFromCommandLine(testFolder, branch);
+        autoTester->runFromCommandLine(testFolder, branch, user);
     } else {
         autoTester->show();
     }

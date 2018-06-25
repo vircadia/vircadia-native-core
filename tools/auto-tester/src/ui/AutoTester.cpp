@@ -35,9 +35,9 @@ void AutoTester::setup() {
     test = new Test();
 }
 
-void AutoTester::runFromCommandLine(const QString& testFolder, const QString& branch) {
+void AutoTester::runFromCommandLine(const QString& testFolder, const QString& branch, const QString& user) {
     isRunningFromCommandline = true;
-    test->startTestsEvaluation(testFolder, branch);
+    test->startTestsEvaluation(testFolder, branch, user);
 }
 
 void AutoTester::on_evaluateTestsButton_clicked() {
@@ -118,6 +118,7 @@ void AutoTester::downloadImages(const QStringList& URLs, const QString& director
     ui.progressBar->setValue(0);
     ui.progressBar->setVisible(true);
 
+    downloaders.clear();
     for (int i = 0; i < _numberOfImagesToDownload; ++i) {
         QUrl imageURL(URLs[i]);
         downloadImage(imageURL);
@@ -141,6 +142,7 @@ void AutoTester::saveImage(int index) {
     ++_numberOfImagesDownloaded;
 
     if (_numberOfImagesDownloaded == _numberOfImagesToDownload) {
+        disconnect(signalMapper, SIGNAL (mapped(int)), this, SLOT (saveImage(int)));
         test->finishTestsEvaluation(isRunningFromCommandline, ui.checkBoxInteractiveMode->isChecked(), ui.progressBar);
     } else {
         ui.progressBar->setValue(_numberOfImagesDownloaded);
@@ -151,10 +153,19 @@ void AutoTester::about() {
     QMessageBox::information(0, "About", QString("Built ") + __DATE__ + " : " + __TIME__);
 }
 
-void AutoTester::loadBranchCombo(const QStringList& items) {
-    ui.branchComboBox->addItems(items);
+void AutoTester::setUserText(const QString& user) {
+    ui.userTextEdit->setText(user);
+}
+
+QString AutoTester::getSelectedUser()
+{
+    return ui.userTextEdit->toPlainText();
+}
+
+void AutoTester::setBranchText(const QString& branch) {
+    ui.branchTextEdit->setText(branch);
 }
 
 QString AutoTester::getSelectedBranch() {
-    return ui.branchComboBox->currentText();
+    return ui.branchTextEdit->toPlainText();
 }

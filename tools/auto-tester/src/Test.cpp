@@ -27,7 +27,8 @@ Test::Test() {
     mismatchWindow.setModal(true);
 
     if (autoTester) {
-        autoTester->loadBranchCombo(GIT_HUB_BRANCHES);
+        autoTester->setUserText("highfidelity");
+        autoTester->setBranchText("master");
     }
 }
 
@@ -176,7 +177,7 @@ void Test::appendTestResultsToFile(const QString& testResultsFolderPath, TestFai
     comparisonImage.save(failureFolderPath + "/" + "Difference Image.png");
 }
 
-void Test::startTestsEvaluation(const QString& testFolder, const QString& branchFromCommandLine) {
+void Test::startTestsEvaluation(const QString& testFolder, const QString& branchFromCommandLine, const QString& userFromCommandLine) {
     if (testFolder.isNull()) {
         // Get list of JPEG images in folder, sorted by name
         QString previousSelection = snapshotDirectory;
@@ -213,7 +214,8 @@ void Test::startTestsEvaluation(const QString& testFolder, const QString& branch
     expectedImagesFilenames.clear();
     expectedImagesFullFilenames.clear();
 
-    QString branch = (branchFromCommandLine.isNull()) ? autoTester->getSelectedBranch() : branchFromCommandLine ;
+    QString branch = (branchFromCommandLine.isNull()) ? autoTester->getSelectedBranch() : branchFromCommandLine;
+    QString user = (userFromCommandLine.isNull()) ? autoTester->getSelectedUser() : userFromCommandLine;
 
     foreach(QString currentFilename, sortedTestResultsFilenames) {
         QString fullCurrentFilename = snapshotDirectory + "/" + currentFilename;
@@ -227,7 +229,7 @@ void Test::startTestsEvaluation(const QString& testFolder, const QString& branch
             QString expectedImageFilenameTail = currentFilename.left(currentFilename.length() - 4).right(NUM_DIGITS);
             QString expectedImageStoredFilename = EXPECTED_IMAGE_PREFIX + expectedImageFilenameTail + ".png";
 
-            QString imageURLString("https://raw.githubusercontent.com/" + GIT_HUB_USER + "/hifi_tests/" + branch + "/" + 
+            QString imageURLString("https://raw.githubusercontent.com/" + user + "/" + GIT_HUB_REPOSITORY  + "/" + branch + "/" +
                 expectedImagePartialSourceDirectory + "/" + expectedImageStoredFilename);
 
             expectedImagesURLs << imageURLString;
@@ -301,7 +303,7 @@ void Test::includeTest(QTextStream& textStream, const QString& testPathname) {
     QString partialPath = extractPathFromTestsDown(testPathname);
     QString partialPathWithoutTests = partialPath.right(partialPath.length() - 7);
 
-    textStream << "Script.include(repositoryPath + \"" << partialPathWithoutTests + "\");" << endl;
+    textStream << "Script.include(testsRootPath + \"" << partialPathWithoutTests + "\");" << endl;
 }
 
 // Creates a single script in a user-selected folder.
@@ -397,10 +399,14 @@ void Test::createRecursiveScript(const QString& topLevelDirectory, bool interact
     textStream << "// This is an automatically generated file, created by auto-tester on " << QDateTime::currentDateTime().toString(DATE_TIME_FORMAT) << endl << endl;
 
     // Include 'autoTest.js'
-    textStream << "Script.include(\"https://raw.githubusercontent.com/highfidelity/hifi_tests/master/tests/utils/branchUtils.js\");" << endl;
+    QString branch = autoTester->getSelectedBranch();
+    QString user = autoTester->getSelectedUser();
+
+    textStream << "PATH_TO_THE_REPO_PATH_UTILS_FILE = \"https://raw.githubusercontent.com/" + user + "/hifi_tests/" + branch + "/tests/utils/branchUtils.js\";" << endl;
+    textStream << "Script.include(PATH_TO_THE_REPO_PATH_UTILS_FILE);" << endl;
     textStream << "var autoTester = createAutoTester(Script.resolvePath(\".\"));" << endl << endl;
 
-    textStream << "var repositoryPath = autoTester.getRepositoryPath();" << endl << endl;
+    textStream << "var testsRootPath = autoTester.getTestsRootPath();" << endl << endl;
 
     // Wait 10 seconds before starting
     textStream << "if (typeof Test !== 'undefined') {" << endl;

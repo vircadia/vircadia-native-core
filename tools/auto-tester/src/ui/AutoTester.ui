@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>583</width>
-    <height>514</height>
+    <width>612</width>
+    <height>537</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,8 +17,8 @@
    <widget class="QPushButton" name="closeButton">
     <property name="geometry">
      <rect>
-      <x>460</x>
-      <y>410</y>
+      <x>380</x>
+      <y>430</y>
       <width>101</width>
       <height>40</height>
      </rect>
@@ -43,9 +43,9 @@
    <widget class="QPushButton" name="evaluateTestsButton">
     <property name="geometry">
      <rect>
-      <x>330</x>
-      <y>275</y>
-      <width>220</width>
+      <x>430</x>
+      <y>270</y>
+      <width>101</width>
       <height>40</height>
      </rect>
     </property>
@@ -57,7 +57,7 @@
     <property name="geometry">
      <rect>
       <x>330</x>
-      <y>30</y>
+      <y>110</y>
       <width>220</width>
       <height>40</height>
      </rect>
@@ -69,8 +69,8 @@
    <widget class="QCheckBox" name="checkBoxInteractiveMode">
     <property name="geometry">
      <rect>
-      <x>330</x>
-      <y>250</y>
+      <x>320</x>
+      <y>280</y>
       <width>131</width>
       <height>20</height>
      </rect>
@@ -85,7 +85,7 @@
    <widget class="QProgressBar" name="progressBar">
     <property name="geometry">
      <rect>
-      <x>330</x>
+      <x>320</x>
       <y>330</y>
       <width>255</width>
       <height>23</height>
@@ -99,7 +99,7 @@
     <property name="geometry">
      <rect>
       <x>330</x>
-      <y>80</y>
+      <y>170</y>
       <width>220</width>
       <height>40</height>
      </rect>
@@ -112,7 +112,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>100</y>
+      <y>110</y>
       <width>220</width>
       <height>40</height>
      </rect>
@@ -125,7 +125,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>150</y>
+      <y>160</y>
       <width>220</width>
       <height>40</height>
      </rect>
@@ -138,7 +138,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>220</y>
+      <y>250</y>
       <width>220</width>
       <height>40</height>
      </rect>
@@ -151,43 +151,33 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>410</y>
-      <width>91</width>
+      <y>440</y>
+      <width>211</width>
       <height>40</height>
      </rect>
     </property>
     <property name="text">
-     <string>Show Taskbar</string>
+     <string>Show Windows Taskbar</string>
     </property>
    </widget>
    <widget class="QPushButton" name="hideTaskbarButton">
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>360</y>
-      <width>91</width>
+      <y>390</y>
+      <width>211</width>
       <height>40</height>
      </rect>
     </property>
     <property name="text">
-     <string>Hide Taskbar</string>
-    </property>
-   </widget>
-   <widget class="QComboBox" name="branchComboBox">
-    <property name="geometry">
-     <rect>
-      <x>418</x>
-      <y>211</y>
-      <width>131</width>
-      <height>31</height>
-     </rect>
+     <string>Hide Windows Taskbar</string>
     </property>
    </widget>
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
       <x>330</x>
-      <y>220</y>
+      <y>55</y>
       <width>81</width>
       <height>16</height>
      </rect>
@@ -201,13 +191,51 @@
      <string>GitHub Branch</string>
     </property>
    </widget>
+   <widget class="QLabel" name="label_2">
+    <property name="geometry">
+     <rect>
+      <x>330</x>
+      <y>15</y>
+      <width>81</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>GitHub User</string>
+    </property>
+   </widget>
+   <widget class="QTextEdit" name="userTextEdit">
+    <property name="geometry">
+     <rect>
+      <x>420</x>
+      <y>12</y>
+      <width>140</width>
+      <height>24</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QTextEdit" name="branchTextEdit">
+    <property name="geometry">
+     <rect>
+      <x>420</x>
+      <y>50</y>
+      <width>140</width>
+      <height>24</height>
+     </rect>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>583</width>
+     <width>612</width>
      <height>21</height>
     </rect>
    </property>

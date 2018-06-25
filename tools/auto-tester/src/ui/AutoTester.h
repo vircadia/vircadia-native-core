@@ -12,6 +12,7 @@
 
 #include <QtWidgets/QMainWindow>
 #include <QSignalMapper>
+#include <QTextEdit>
 #include "ui_AutoTester.h"
 
 #include "../Downloader.h"
@@ -25,12 +26,15 @@ public:
 
     void setup();
 
-    void runFromCommandLine(const QString& testFolder, const QString& branch);
+    void runFromCommandLine(const QString& testFolder, const QString& branch, const QString& user);
 
     void downloadImage(const QUrl& url);
     void downloadImages(const QStringList& URLs, const QString& directoryName, const QStringList& filenames);
 
-    void loadBranchCombo(const QStringList& items);
+    void setUserText(const QString& user);
+    QString getSelectedUser();
+
+    void setBranchText(const QString& branch);
     QString getSelectedBranch();
 
 private slots:
