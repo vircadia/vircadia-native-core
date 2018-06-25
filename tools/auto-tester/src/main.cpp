@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
             if (i < argc) {
                 testFolder = QString(argv[i]);
             } else {
-                std::cout << "Missing parameter after --testFolder" << endl;
+                std::cout << "Missing parameter after --testFolder" << std::endl;
                 exit(-1);
             }
         } else if (QString(argv[i]) == "--branch") {
@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
             if (i < argc) {
                 branch = QString(argv[i]);
             } else {
-                std::cout << "Missing parameter after --branch" << endl;
+                std::cout << "Missing parameter after --branch" << std::endl;
                 exit(-1);
             }
         } else if (QString(argv[i]) == "--user") {
@@ -51,11 +51,11 @@ int main(int argc, char *argv[]) {
             if (i < argc) {
                 user = QString(argv[i]);
             } else {
-                std::cout << "Missing parameter after --user" << endl;
+                std::cout << "Missing parameter after --user" << std::endl;
                 exit(-1);
             }
         } else {
-            std::cout << "Unknown parameter" << endl;
+            std::cout << "Unknown parameter" << std::endl;
             exit(-1);
         }
     }
