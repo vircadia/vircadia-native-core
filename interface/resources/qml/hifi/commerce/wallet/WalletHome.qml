@@ -76,7 +76,7 @@ Item {
         anchors.top: parent.top;
         anchors.left: parent.left;
         anchors.leftMargin: 20;
-        width: parent.width/2;
+        width: parent.width/2 - anchors.leftMargin;
         height: 80;
     }
 
