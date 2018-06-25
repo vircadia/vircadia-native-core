@@ -267,8 +267,6 @@ bool PacketSender::nonThreadedProcess() {
             // Keep average packets and time for "second half" of check interval
             _lastPPSCheck += (elapsedSinceLastCheck / 2);
             _packetsOverCheckInterval = (_packetsOverCheckInterval / 2);
-
-            elapsedSinceLastCheck = now - _lastPPSCheck;
         }
     }
 
@@ -296,11 +294,9 @@ bool PacketSender::nonThreadedProcess() {
             DependencyManager::get<NodeList>()->sendPacketList(std::move(packetPair.second.second), *packetPair.first);
         }
 
-
         packetsSentThisCall += packetCount;
         _packetsOverCheckInterval += packetCount;
         _totalPacketsSent += packetCount;
-
 
         _totalBytesSent += packetSize;
         emit packetSent(packetSize); // FIXME should include number of packets?

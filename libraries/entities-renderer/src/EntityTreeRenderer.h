@@ -24,6 +24,7 @@
 #include <TextureCache.h>
 #include <OctreeProcessor.h>
 #include <render/Forward.h>
+#include <workload/Space.h>
 
 class AbstractScriptingServicesInterface;
 class AbstractViewStateInterface;
@@ -116,14 +117,13 @@ public:
     EntityItemPointer getEntity(const EntityItemID& id);
     void onEntityChanged(const EntityItemID& id);
 
-    static void setRenderDebugHullsOperator(std::function<bool()> renderDebugHullsOperator) { _renderDebugHullsOperator = renderDebugHullsOperator; }
-    static bool shouldRenderDebugHulls() { return _renderDebugHullsOperator(); }
+    // Access the workload Space
+    workload::SpacePointer getWorkloadSpace() const { return _space; }
 
 signals:
     void enterEntity(const EntityItemID& entityItemID);
     void leaveEntity(const EntityItemID& entityItemID);
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
-    void setRenderDebugHulls();
 
 public slots:
     void addingEntity(const EntityItemID& entityID);
@@ -138,6 +138,8 @@ public slots:
     void setPrecisionPicking(bool value) { _setPrecisionPickingOperator(_mouseRayPickID, value); }
     EntityRendererPointer renderableForEntityId(const EntityItemID& id) const;
     render::ItemID renderableIdForEntityId(const EntityItemID& id) const;
+
+    void handleSpaceUpdate(std::pair<int32_t, glm::vec4> proxyUpdate);
 
 protected:
     virtual OctreePointer createTree() override {
@@ -260,7 +262,9 @@ private:
     static CalculateEntityLoadingPriority _calculateEntityLoadingPriorityFunc;
     static std::function<bool()> _entitiesShouldFadeFunction;
 
-    static std::function<bool()> _renderDebugHullsOperator;
+    mutable std::mutex _spaceLock;
+    workload::SpacePointer _space{ new workload::Space() };
+    workload::Transaction::Updates _spaceUpdates;
 };
 
 

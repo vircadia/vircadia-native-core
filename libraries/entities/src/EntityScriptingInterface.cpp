@@ -290,7 +290,7 @@ bool EntityScriptingInterface::addLocalEntityCopy(EntityItemProperties& properti
 
                 entity->setLastBroadcast(usecTimestampNow());
                 // since we're creating this object we will immediately volunteer to own its simulation
-                entity->flagForOwnershipBid(VOLUNTEER_SIMULATION_PRIORITY);
+                entity->setScriptSimulationPriority(VOLUNTEER_SIMULATION_PRIORITY);
                 properties.setLastEdited(entity->getLastEdited());
             } else {
                 qCDebug(entities) << "script failed to add new Entity to local Octree";
@@ -494,7 +494,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                 } else {
                     // we make a bid for simulation ownership
                     properties.setSimulationOwner(myNodeID, SCRIPT_POKE_SIMULATION_PRIORITY);
-                    entity->flagForOwnershipBid(SCRIPT_POKE_SIMULATION_PRIORITY);
+                    entity->setScriptSimulationPriority(SCRIPT_POKE_SIMULATION_PRIORITY);
                 }
             }
             if (properties.queryAACubeRelatedPropertyChanged()) {
@@ -739,15 +739,15 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInFrustum(QVariantMap frust
 
     const QString POSITION_PROPERTY = "position";
     bool positionOK = frustum.contains(POSITION_PROPERTY);
-    glm::vec3 position = positionOK ? qMapToGlmVec3(frustum[POSITION_PROPERTY]) : glm::vec3();
+    glm::vec3 position = positionOK ? qMapToVec3(frustum[POSITION_PROPERTY]) : glm::vec3();
 
     const QString ORIENTATION_PROPERTY = "orientation";
     bool orientationOK = frustum.contains(ORIENTATION_PROPERTY);
-    glm::quat orientation = orientationOK ? qMapToGlmQuat(frustum[ORIENTATION_PROPERTY]) : glm::quat();
+    glm::quat orientation = orientationOK ? qMapToQuat(frustum[ORIENTATION_PROPERTY]) : glm::quat();
 
     const QString PROJECTION_PROPERTY = "projection";
     bool projectionOK = frustum.contains(PROJECTION_PROPERTY);
-    glm::mat4 projection = projectionOK ? qMapToGlmMat4(frustum[PROJECTION_PROPERTY]) : glm::mat4();
+    glm::mat4 projection = projectionOK ? qMapToMat4(frustum[PROJECTION_PROPERTY]) : glm::mat4();
 
     const QString CENTER_RADIUS_PROPERTY = "centerRadius";
     bool centerRadiusOK = frustum.contains(CENTER_RADIUS_PROPERTY);
@@ -1363,7 +1363,7 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
         }
         action->setIsMine(true);
         success = entity->addAction(simulation, action);
-        entity->flagForOwnershipBid(SCRIPT_GRAB_SIMULATION_PRIORITY);
+        entity->setScriptSimulationPriority(SCRIPT_GRAB_SIMULATION_PRIORITY);
         return false; // Physics will cause a packet to be sent, so don't send from here.
     });
     if (success) {
@@ -1379,7 +1379,7 @@ bool EntityScriptingInterface::updateAction(const QUuid& entityID, const QUuid& 
     return actionWorker(entityID, [&](EntitySimulationPointer simulation, EntityItemPointer entity) {
         bool success = entity->updateAction(simulation, actionID, arguments);
         if (success) {
-            entity->flagForOwnershipBid(SCRIPT_GRAB_SIMULATION_PRIORITY);
+            entity->setScriptSimulationPriority(SCRIPT_GRAB_SIMULATION_PRIORITY);
         }
         return success;
     });
@@ -1393,7 +1393,7 @@ bool EntityScriptingInterface::deleteAction(const QUuid& entityID, const QUuid& 
         success = entity->removeAction(simulation, actionID);
         if (success) {
             // reduce from grab to poke
-            entity->flagForOwnershipBid(SCRIPT_POKE_SIMULATION_PRIORITY);
+            entity->setScriptSimulationPriority(SCRIPT_POKE_SIMULATION_PRIORITY);
         }
         return false; // Physics will cause a packet to be sent, so don't send from here.
     });

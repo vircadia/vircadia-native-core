@@ -14,7 +14,7 @@
 #include "RenderUtilsLogging.h"
 
 using namespace render;
-extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest = false);
+extern void initForwardPipelines(ShapePlumber& plumber);
 
 void BeginGPURangeTimer::run(const render::RenderContextPointer& renderContext, gpu::RangeTimerPointer& timer) {
     timer = _gpuTimer;
@@ -35,7 +35,7 @@ void EndGPURangeTimer::run(const render::RenderContextPointer& renderContext, co
 DrawOverlay3D::DrawOverlay3D(bool opaque) :
     _shapePlumber(std::make_shared<ShapePlumber>()),
     _opaquePass(opaque) {
-    initOverlay3DPipelines(*_shapePlumber);
+    initForwardPipelines(*_shapePlumber);
 }
 
 void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
@@ -60,7 +60,7 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
         if (_opaquePass) {
             gpu::doInBatch("DrawOverlay3D::run::clear", args->_context, [&](gpu::Batch& batch){
                 batch.enableStereo(false);
-                batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0, false);
+                batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTHSTENCIL, glm::vec4(), 1.f, 0, false);
             });
         }
 

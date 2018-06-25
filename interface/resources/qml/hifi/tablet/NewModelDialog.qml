@@ -24,6 +24,7 @@ Rectangle {
     color: hifi.colors.baseGray;
     signal sendToScript(var message);
     property bool keyboardEnabled: false
+    property bool keyboardRaised: false
     property bool punctuationMode: false
     property bool keyboardRasied: false
 
@@ -235,10 +236,11 @@ Rectangle {
 
     Keyboard {
         id: keyboard
-        raised: parent.keyboardEnabled
+        raised: parent.keyboardEnabled && parent.keyboardRaised
         numeric: parent.punctuationMode
         anchors {
             bottom: parent.bottom
+            bottomMargin: 40
             left: parent.left
             right: parent.right
         }
