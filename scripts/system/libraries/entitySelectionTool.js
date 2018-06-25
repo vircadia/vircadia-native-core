@@ -313,8 +313,6 @@ SelectionDisplay = (function() {
     
     var CTRL_KEY_CODE = 16777249;
 
-    var AVATAR_COLLISIONS_OPTION = "Enable Avatar Collisions";
-
     var TRANSLATE_DIRECTION = {
         X : 0,
         Y : 1,
@@ -368,7 +366,7 @@ SelectionDisplay = (function() {
 
     var ctrlPressed = false;
 
-    var handleStretchCollisionOverride = false;
+    var replaceCollisionsAfterStretch = false;
 
     var handlePropertiesTranslateArrowCones = {
         shape: "Cone",
@@ -643,11 +641,6 @@ SelectionDisplay = (function() {
 
     var activeTool = null;
     var handleTools = {};
-
-    that.shutdown = function() {
-        that.restoreAvatarCollisionsFromStretch();
-    }
-    Script.scriptEnding.connect(that.shutdown);
 
     // We get mouseMoveEvents from the handControllers, via handControllerPointer.
     // But we dont' get mousePressEvents.
@@ -1832,13 +1825,6 @@ SelectionDisplay = (function() {
         };
     };
 
-    that.restoreAvatarCollisionsFromStretch = function() {
-        if (handleStretchCollisionOverride) {
-            Menu.setIsOptionChecked(AVATAR_COLLISIONS_OPTION, true);
-            handleStretchCollisionOverride = false;
-        }
-    }
-
     // TOOL DEFINITION: HANDLE STRETCH TOOL   
     function makeStretchTool(stretchMode, directionEnum, directionVec, pivot, offset, stretchPanel, scaleHandle) {
         var directionFor3DStretch = directionVec;
@@ -2041,9 +2027,12 @@ SelectionDisplay = (function() {
             if (scaleHandle != null) {
                 Overlays.editOverlay(scaleHandle, { color: COLOR_SCALE_CUBE_SELECTED });
             }
-            if (Menu.isOptionChecked(AVATAR_COLLISIONS_OPTION)) {
-                Menu.setIsOptionChecked(AVATAR_COLLISIONS_OPTION, false);
-                handleStretchCollisionOverride = true;
+            
+            var collisionToRemove = "myAvatar";
+            if (properties.collidesWith.indexOf(collisionToRemove) > -1) {
+                var newCollidesWith = properties.collidesWith.replace(collisionToRemove, "");
+                Entities.editEntity(SelectionManager.selections[0], {collidesWith: newCollidesWith});
+                that.replaceCollisionsAfterStretch = true;
             }
         };
 
@@ -2054,7 +2043,13 @@ SelectionDisplay = (function() {
             if (scaleHandle != null) {
                 Overlays.editOverlay(scaleHandle, { color: COLOR_SCALE_CUBE });
             }
-            that.restoreAvatarCollisionsFromStretch();
+            
+            if (that.replaceCollisionsAfterStretch) {
+                var newCollidesWith = SelectionManager.savedProperties[SelectionManager.selections[0]].collidesWith;
+                Entities.editEntity(SelectionManager.selections[0], {collidesWith: newCollidesWith});
+                that.replaceCollisionsAfterStretch = false;
+            }
+            
             pushCommandForSelections();
         };
 
@@ -2140,12 +2135,10 @@ SelectionDisplay = (function() {
             }
             var newPosition = Vec3.sum(initialPosition, changeInPosition);
     
-            for (var i = 0; i < SelectionManager.selections.length; i++) {
-                Entities.editEntity(SelectionManager.selections[i], {
-                    position: newPosition,
-                    dimensions: newDimensions
-                });
-            }
+            Entities.editEntity(SelectionManager.selections[0], {
+                position: newPosition,
+                dimensions: newDimensions
+            });
                 
             var wantDebug = false;
             if (wantDebug) {
