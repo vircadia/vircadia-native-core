@@ -657,11 +657,6 @@ SelectionDisplay = (function() {
     var activeTool = null;
     var handleTools = {};
 
-    that.shutdown = function() {
-        that.restoreAvatarCollisionsFromStretch();
-    };
-    Script.scriptEnding.connect(that.shutdown);
-
     // We get mouseMoveEvents from the handControllers, via handControllerPointer.
     // But we dont' get mousePressEvents.
     that.triggerMapping = Controller.newMapping(Script.resolvePath('') + '-click');
@@ -1880,13 +1875,6 @@ SelectionDisplay = (function() {
             y: v1.y * v2.y,
             z: v1.z * v2.z
         };
-    };
-
-    that.restoreAvatarCollisionsFromStretch = function() {
-        if (handleStretchCollisionOverride) {
-            Menu.setIsOptionChecked(AVATAR_COLLISIONS_OPTION, true);
-            handleStretchCollisionOverride = false;
-        }
     };
 
     // TOOL DEFINITION: HANDLE STRETCH TOOL   
