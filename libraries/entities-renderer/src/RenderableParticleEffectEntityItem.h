@@ -45,9 +45,8 @@ private:
 
     // CPU particles
     // FIXME either switch to GPU compute particles or switch to simd updating of the particles
-#if 1
     struct CpuParticle {
-        float seed{ 0.0f };
+        float seed { 0.0f };
         uint64_t expiration { 0 };
         float lifetime { 0.0f };
         glm::vec3 position;
@@ -62,19 +61,6 @@ private:
         }
     };
     using CpuParticles = std::deque<CpuParticle>;
-#else
-    struct CpuParticles {
-        std::vector<float> seeds;
-        std::vector<float> lifetimes;
-        std::vector<vec4> positions;
-        std::vector<vec4> velocities;
-        std::vector<vec4> accelerations;
-
-        size_t size() const;
-        void resize(size_t size);
-        void integrate(float deltaTime);
-    };
-#endif
 
 
     template<typename T>
