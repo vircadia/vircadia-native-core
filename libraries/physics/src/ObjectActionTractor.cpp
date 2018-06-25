@@ -333,9 +333,9 @@ QVariantMap ObjectActionTractor::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
         arguments["linearTimeScale"] = _linearTimeScale;
-        arguments["targetPosition"] = glmToQMap(_desiredPositionalTarget);
+        arguments["targetPosition"] = vec3ToQMap(_desiredPositionalTarget);
 
-        arguments["targetRotation"] = glmToQMap(_desiredRotationalTarget);
+        arguments["targetRotation"] = quatToQMap(_desiredRotationalTarget);
         arguments["angularTimeScale"] = _angularTimeScale;
 
         arguments["otherID"] = _otherID;
