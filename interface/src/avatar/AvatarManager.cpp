@@ -186,6 +186,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     uint64_t updateExpiry = startTime + UPDATE_BUDGET;
     int numAvatarsUpdated = 0;
     int numAVatarsNotUpdated = 0;
+    bool physicsEnabled = qApp->isPhysicsEnabled();
 
     render::Transaction transaction;
     while (!sortedAvatars.empty()) {
@@ -202,7 +203,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         if (_shouldRender) {
             avatar->ensureInScene(avatar, qApp->getMain3DScene());
         }
-        if (!avatar->isInPhysicsSimulation()) {
+        if (physicsEnabled && !avatar->isInPhysicsSimulation()) {
             ShapeInfo shapeInfo;
             avatar->computeShapeInfo(shapeInfo);
             btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
