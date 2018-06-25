@@ -32,7 +32,7 @@ var pickID = Picks.createPick(PickType.Ray, {
 var blacklist = [ overlayID ]; // exclude hover text from ray pick results
 Picks.setIgnoreItems(pickID, blacklist);
 Script.scriptEnding.connect(function() {
-    RayPick.removeRayPick(pickID);
+    Picks.removePick(pickID);
 });
 
 // query object materials (using the Graphics.* API)
@@ -68,6 +68,6 @@ function updateOverlay(overlayID, result) {
 
 // monitor for enw results at 30fps
 Script.setInterval(function() {
-    var result = RayPick.getPrevRayPickResult(pickID);
+    var result = Picks.getPrevPickResult(pickID);
     updateOverlay(overlayID, result);
 }, UPDATE_MS);
