@@ -305,7 +305,8 @@ void NodeList::sendDomainServerCheckIn() {
     } else if (_domainHandler.getIP().isNull() && _domainHandler.requiresICE()) {
         qCDebug(networking) << "Waiting for ICE discovered domain-server socket. Will not send domain-server check in.";
         handleICEConnectionToDomainServer();
-    } else if (!_domainHandler.getIP().isNull()) {
+        // let the domain handler know we are due to send a checkin packet
+    } else if (!_domainHandler.getIP().isNull() && _domainHandler.checkInPacketTimeout()) {
 
         PacketType domainPacketType = !_domainHandler.isConnected()
             ? PacketType::DomainConnectRequest : PacketType::DomainListRequest;
@@ -419,16 +420,15 @@ void NodeList::sendDomainServerCheckIn() {
 
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendDSCheckIn);
 
+        // Send duplicate check-ins in the exponentially increasing sequence 1, 1, 2, 4, ...
         int outstandingCheckins = _domainHandler.getCheckInPacketsSinceLastReply();
-        int checkinCount = outstandingCheckins > 1 ? std::pow(2, outstandingCheckins - 1) : 1;
+        int checkinCount = outstandingCheckins > 1 ? std::pow(2, outstandingCheckins - 2) : 1;
         for (int i = 1; i < checkinCount; ++i) {
             auto packetCopy = domainPacket->createCopy(*domainPacket);
             sendPacket(std::move(packetCopy), _domainHandler.getSockAddr());
         }
         sendPacket(std::move(domainPacket), _domainHandler.getSockAddr());
-
-        // let the domain handler know we sent another check in or connect packet
-        _domainHandler.sentCheckInPacket();
+        
     }
 }
 
