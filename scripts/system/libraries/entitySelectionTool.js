@@ -58,6 +58,14 @@ SelectionManager = (function() {
             that.setSelections([messageParsed.entityID]);
         } else if (messageParsed.method === "clearSelection") {
             that.clearSelections();
+        } else if (messageParsed.method === "pointingAt") {
+            if (messageParsed.rightHand) {
+                that.pointingAtDesktopWindowRight = messageParsed.desktopWindow;
+                that.pointingAtTabletRight = messageParsed.tablet;
+            } else {
+                that.pointingAtDesktopWindowLeft = messageParsed.desktopWindow;
+                that.pointingAtTabletLeft = messageParsed.tablet;
+            }
         }
     }
 
@@ -93,6 +101,11 @@ SelectionManager = (function() {
     that.worldDimensions = Vec3.ZERO;
     that.worldRegistrationPoint = Vec3.HALF;
     that.centerPosition = Vec3.ZERO;
+    
+    that.pointingAtDesktopWindowLeft = false;
+    that.pointingAtDesktopWindowRight = false;
+    that.pointingAtTabletLeft = false;
+    that.pointingAtTabletRight = false;
 
     that.saveProperties = function() {
         that.savedProperties = {};
@@ -660,7 +673,13 @@ SelectionDisplay = (function() {
                     activeHand = (activeHand === Controller.Standard.RightHand) ?
                         Controller.Standard.LeftHand : Controller.Standard.RightHand;
                 }
-                if (Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(Reticle.position)) {
+                var pointingAtDesktopWindow = (hand === Controller.Standard.RightHand && 
+                                               SelectionManager.pointingAtDesktopWindowRight) ||
+                                              (hand === Controller.Standard.LeftHand && 
+                                               SelectionManager.pointingAtDesktopWindowLeft);
+                var pointingAtTablet = (hand === Controller.Standard.RightHand && SelectionManager.pointingAtTabletRight) ||
+                                       (hand === Controller.Standard.LeftHand && SelectionManager.pointingAtTabletLeft);
+                if (pointingAtDesktopWindow || pointingAtTablet) {
                     return;
                 }
                 that.mousePressEvent({});
