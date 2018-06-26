@@ -646,6 +646,7 @@ Item {
             height: 40;
             enabled: root.hasPermissionToRezThis &&
                 MyAvatar.skeletonModelURL !== root.itemHref &&
+                !root.wornEntityID &&
                 root.valid;
 
             onHoveredChanged: {

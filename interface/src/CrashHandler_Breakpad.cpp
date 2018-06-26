@@ -24,6 +24,7 @@
 #include <QtAndroidExtras/QAndroidJniObject>
 
 #include <SettingHelpers.h>
+#include <BuildInfo.h>
 
 google_breakpad::ExceptionHandler* gBreakpadHandler;
 
@@ -43,7 +44,23 @@ QString obbDir() {
     return dataAbsPath;
 }
 
+void flushAnnotations() {
+    QSettings settings(obbDir() + "/annotations.json", JSON_FORMAT);
+    settings.clear();
+    settings.beginGroup("Annotations");
+    for (auto k : annotations.keys()) {
+        settings.setValue(k, annotations.value(k));
+    }
+    settings.endGroup();
+    settings.sync();
+}
+
 bool startCrashHandler() {
+    annotations["version"] = BuildInfo::VERSION;
+    annotations["build_number"] = BuildInfo::BUILD_NUMBER;
+    annotations["build_type"] = BuildInfo::BUILD_TYPE_STRING;
+
+    flushAnnotations();
 
     gBreakpadHandler = new google_breakpad::ExceptionHandler(
             google_breakpad::MinidumpDescriptor(obbDir().toStdString()),
@@ -56,15 +73,7 @@ void setCrashAnnotation(std::string name, std::string value) {
     QString qName = QString::fromStdString(name);
     QString qValue = QString::fromStdString(value);
     annotations[qName] = qValue;
-
-    QSettings settings(obbDir() + "/annotations.json", JSON_FORMAT);
-    settings.clear();
-    settings.beginGroup("Annotations");
-    for (auto k : annotations.keys()) {
-        settings.setValue(k, annotations.value(k));
-    }
-    settings.endGroup();
-    settings.sync();
+    flushAnnotations();
 }
 
 #endif

@@ -37,6 +37,14 @@ public:
         }
         pop_back();
     }
+    void removeFirst(EntityMotionState* state) {
+        for (uint32_t i = 0; i < size(); ++i) {
+            if ((*this)[i] == state) {
+                remove(i);
+                break;
+            }
+        }
+    }
 };
 
 class PhysicalEntitySimulation : public EntitySimulation {
