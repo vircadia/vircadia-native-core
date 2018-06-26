@@ -7,7 +7,7 @@
 //
 
 #include "OtherAvatar.h"
-#include "../../interface/src/Application.h"	
+#include "Application.h"
 
 OtherAvatar::OtherAvatar(QThread* thread) : Avatar(thread) {
     // give the pointer to our head to inherited _headData variable from AvatarData
@@ -20,8 +20,6 @@ OtherAvatar::OtherAvatar(QThread* thread) : Avatar(thread) {
 
     //add the purple orb
     createOrb();
-    
-    
 }
 
 void OtherAvatar::removeOrb() {

@@ -29,28 +29,24 @@
 #include "../../interface/src/ui/overlays/Overlays.h"
 #include "../../interface/src/ui/overlays/Sphere3DOverlay.h"
 
-#include "Logging.h"
 
 #include <ThreadSafeValueCache.h>
 
 namespace render {
-template <>
-const ItemKey payloadGetKey(const AvatarSharedPointer& avatar);
-template <>
-const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar);
-template <>
-void payloadRender(const AvatarSharedPointer& avatar, RenderArgs* args);
-template <>
-uint32_t metaFetchMetaSubItems(const AvatarSharedPointer& avatar, ItemIDs& subItems);
-}  // namespace render
+    template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar);
+    template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar);
+    template <> void payloadRender(const AvatarSharedPointer& avatar, RenderArgs* args);
+    template <> uint32_t metaFetchMetaSubItems(const AvatarSharedPointer& avatar, ItemIDs& subItems);
+}  
+
+// namespace render
 
 static const float SCALING_RATIO = .05f;
 
 extern const float CHAT_MESSAGE_SCALE;
 extern const float CHAT_MESSAGE_HEIGHT;
 
-enum ScreenTintLayer
-{
+enum ScreenTintLayer {
     SCREEN_TINT_BEFORE_LANDSCAPE = 0,
     SCREEN_TINT_BEFORE_AVATARS,
     SCREEN_TINT_BEFORE_MY_AVATAR,
@@ -90,9 +86,11 @@ public:
 
     virtual void render(RenderArgs* renderArgs);
 
-    void addToScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction);
+    void addToScene(AvatarSharedPointer self, const render::ScenePointer& scene,
+                            render::Transaction& transaction);
 
-    void removeFromScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction);
+    void removeFromScene(AvatarSharedPointer self, const render::ScenePointer& scene,
+                                 render::Transaction& transaction);
 
     void updateRenderItem(render::Transaction& transaction);
 
@@ -115,7 +113,7 @@ public:
     float getLODDistance() const;
 
     virtual bool isMyAvatar() const override { return false; }
-    virtual void createOrb() { qCDebug(avatars_renderer) << "we are in create orb avatar.h"; }
+    virtual void createOrb() {}
 
     virtual QVector<glm::quat> getJointRotations() const override;
     using AvatarData::getJointRotation;
@@ -170,7 +168,7 @@ public:
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
 
     void updateDisplayNameAlpha(bool showDisplayName);
-    virtual void setSessionDisplayName(const QString& sessionDisplayName) override{};  // no-op
+    virtual void setSessionDisplayName(const QString& sessionDisplayName) override { };  // no-op
 
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
 
@@ -181,7 +179,7 @@ public:
                                           float radius2,
                                           const glm::vec4& color);
 
-    virtual void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) {}
+    virtual void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) { }
 
     /**jsdoc
      * Set the offset applied to the current avatar. The offset adjusts the position that the avatar is rendered. For example, 
@@ -330,8 +328,7 @@ public:
     bool hasNewJointData() const { return _hasNewJointData; }
 
     float getBoundingRadius() const;
-    AABox getRenderBounds()
-        const;  // THis call is accessible from rendering thread only to report the bounding box of the avatar during the frame.
+    AABox getRenderBounds() const;  // THis call is accessible from rendering thread only to report the bounding box of the avatar during the frame.
 
     void addToScene(AvatarSharedPointer self, const render::ScenePointer& scene);
     void ensureInScene(AvatarSharedPointer self, const render::ScenePointer& scene);

@@ -201,7 +201,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         } else {
             otherAvatar->updateOrbPosition();
         }
-								
+
         bool ignoring = DependencyManager::get<NodeList>()->isPersonalMutingNode(avatar->getID());
         if (ignoring) {
             sortedAvatars.pop();
@@ -326,10 +326,8 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
-    
-    auto newOtherAvatar = AvatarSharedPointer(new OtherAvatar(qApp->thread()), [](OtherAvatar* ptr) { ptr->deleteLater(); }); 
 
-    return newOtherAvatar;
+    return AvatarSharedPointer(new OtherAvatar(qApp->thread()), [](OtherAvatar* ptr) { ptr->deleteLater(); });
 }
 
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
@@ -625,7 +623,3 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
         DependencyManager::get<NodeList>()->broadcastToNodes(std::move(packet), NodeSet() << NodeType::AvatarMixer);
     }
 }
-
-
-
-

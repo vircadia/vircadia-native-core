@@ -33,8 +33,7 @@
 #include <SoftAttachmentModel.h>
 #include <render/TransitionStage.h>
 #include "ModelEntityItem.h"
-#include "RenderableModelEntityItem.h"
-#include "../../interface/src/Application.h"											
+#include "RenderableModelEntityItem.h"											
 
 #include <graphics-scripting/Forward.h>
 
@@ -1339,9 +1338,9 @@ void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
 }
 
 void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
-	if (!isMyAvatar()) {
+    if (!isMyAvatar()) {
         createOrb();
-    } 
+    }
     AvatarData::setSkeletonModelURL(skeletonModelURL);
     if (QThread::currentThread() == thread()) {
         _skeletonModel->setURL(_skeletonModelURL);
