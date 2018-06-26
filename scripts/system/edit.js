@@ -2027,12 +2027,8 @@ var PropertiesTool = function (opts) {
         } else if (data.type === "update") {
             selectionManager.saveProperties();
             if (selectionManager.selections.length > 1) {
-                properties = {
-                    locked: data.properties.locked,
-                    visible: data.properties.visible
-                };
                 for (i = 0; i < selectionManager.selections.length; i++) {
-                    Entities.editEntity(selectionManager.selections[i], properties);
+                    Entities.editEntity(selectionManager.selections[i], data.properties);
                 }
             } else if (data.properties) {
                 if (data.properties.dynamic === false) {
