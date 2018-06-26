@@ -390,10 +390,18 @@ void AccountManager::sendRequest(const QString& path,
 
         // double check if the finished network reply had a session ID in the header and make
         // sure that our session ID matches that value if so
-        connect(networkReply, &QNetworkReply::finished, this, [this, networkReply]{
+        connect(networkReply, &QNetworkReply::finished, this, [this, callbackParams, networkReply]{
             if (networkReply->error() == QNetworkReply::NoError) {
                 if (networkReply->hasRawHeader(METAVERSE_SESSION_ID_HEADER)) {
                     _sessionID = networkReply->rawHeader(METAVERSE_SESSION_ID_HEADER);
+                }
+
+                if (!callbackParams.jsonCallbackReceiver) {
+                    networkReply->deleteLater();
+                }
+            } else {
+                if (!callbackParams.errorCallbackReceiver) {
+                    networkReply->deleteLater();
                 }
             }
         });
