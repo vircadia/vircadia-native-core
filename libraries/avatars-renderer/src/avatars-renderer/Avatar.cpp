@@ -1891,16 +1891,11 @@ void Avatar::processMaterials() {
         }
     }
 }
-void Avatar::removeOrb() {
-    if (qApp->getOverlays().isAddedOverlay(_purpleOrbMeshPlaceholderID)) {
-        qApp->getOverlays().deleteOverlay(_purpleOrbMeshPlaceholderID);
-        qCWarning(avatars_renderer) << "remove the purple orb***************************";
-    }
-}
 
 void Avatar::updateOrbPosition() {
     _purpleOrbMeshPlaceholder->setWorldPosition(getHead()->getPosition());
-}							  
+}
+
 scriptable::ScriptableModelBase Avatar::getScriptableModel() {
     if (!_skeletonModel || !_skeletonModel->isLoaded()) {
         return scriptable::ScriptableModelBase();

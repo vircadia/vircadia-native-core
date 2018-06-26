@@ -196,7 +196,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 	    //if the geometry is loaded then turn off the orb
         if (avatar->getSkeletonModel()->isLoaded()) {
             //remove the orb if it is there
-            avatar->removeOrb();
+            removeOrb(avatar->_purpleOrbMeshPlaceholderID);
         } else {
             avatar->updateOrbPosition();
         }
@@ -325,7 +325,34 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
-    return AvatarSharedPointer(new OtherAvatar(qApp->thread()), [](OtherAvatar* ptr) { ptr->deleteLater(); });
+    
+    auto newOtherAvatar = AvatarSharedPointer(new OtherAvatar(qApp->thread()), [](OtherAvatar* ptr) { ptr->deleteLater(); }); 
+    
+    //add the purple orb
+    /*
+    if (newOtherAvatar->_purpleOrbMeshPlaceholderID == UNKNOWN_OVERLAY_ID ||
+        !qApp->getOverlays().isAddedOverlay(newOtherAvatar->_purpleOrbMeshPlaceholderID)) {
+        newOtherAvatar->_purpleOrbMeshPlaceholder = std::make_shared<Sphere3DOverlay>();
+        newOtherAvatar->_purpleOrbMeshPlaceholder->setAlpha(1.0f);
+        newOtherAvatar->_purpleOrbMeshPlaceholder->setColor({ 0xFF, 0x00, 0xFF });
+        newOtherAvatar->_purpleOrbMeshPlaceholder->setIsSolid(false);
+        newOtherAvatar->_purpleOrbMeshPlaceholder->setPulseMin(0.5);
+        newOtherAvatar->_purpleOrbMeshPlaceholder->setPulseMax(1.0);
+        newOtherAvatar->_purpleOrbMeshPlaceholder->setColorPulse(1.0);
+        newOtherAvatar->_purpleOrbMeshPlaceholder->setIgnoreRayIntersection(true);
+        newOtherAvatar->_purpleOrbMeshPlaceholder->setDrawInFront(false);
+        newOtherAvatar->_purpleOrbMeshPlaceholderID = qApp->getOverlays().addOverlay(newOtherAvatar->_purpleOrbMeshPlaceholder);
+        // Position focus
+        newOtherAvatar->_purpleOrbMeshPlaceholder->setWorldOrientation(glm::quat(0.0f, 0.0f, 0.0f, 1.0));
+        newOtherAvatar->_purpleOrbMeshPlaceholder->setWorldPosition(glm::vec3(476.0f, 500.0f, 493.0f));
+        newOtherAvatar->_purpleOrbMeshPlaceholder->setDimensions(glm::vec3(0.5f, 0.5f, 0.5f));
+        newOtherAvatar->_purpleOrbMeshPlaceholder->setVisible(true);
+    }
+    */
+
+    
+
+    return newOtherAvatar;
 }
 
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
@@ -621,3 +648,12 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
         DependencyManager::get<NodeList>()->broadcastToNodes(std::move(packet), NodeSet() << NodeType::AvatarMixer);
     }
 }
+
+void AvatarManager::removeOrb(OverlayID orbID) {
+    if (qApp->getOverlays().isAddedOverlay(orbID)) {
+        qApp->getOverlays().deleteOverlay(orbID);
+        //qCWarning(avatars_renderer) << "remove the purple orb***************************";
+    }
+}
+
+

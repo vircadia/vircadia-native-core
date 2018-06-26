@@ -158,6 +158,8 @@ public:
 
     float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
 
+    void removeOrb(OverlayID orbID);
+
 public slots:
 
     /**jsdoc

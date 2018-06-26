@@ -55,6 +55,8 @@
 #include "PathUtils.h"
 
 #include <graphics/Material.h>
+//#include "Overlays.h"
+//#include "Sphere3DOverlay.h"
 
 using AvatarSharedPointer = std::shared_ptr<AvatarData>;
 using AvatarWeakPointer = std::weak_ptr<AvatarData>;
