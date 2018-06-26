@@ -123,7 +123,6 @@ private:
     bool _pendingSkyboxTexture{ false };
 
     QString _proceduralUserData;
-    Transform _renderTransform;
 };
 
 } } // namespace 
