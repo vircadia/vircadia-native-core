@@ -1433,7 +1433,7 @@ private:
     std::array<float, MAX_DRIVE_KEYS> _driveKeys;
     std::bitset<MAX_DRIVE_KEYS> _disabledDriveKeys;
 
-    bool _enableFlying { true };
+    bool _enableFlying { false };
     bool _wasPushing { false };
     bool _isPushing { false };
     bool _isBeingPushed { false };

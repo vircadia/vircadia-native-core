@@ -1070,6 +1070,7 @@ void MyAvatar::saveData() {
     settings.setValue("useSnapTurn", _useSnapTurn);
     settings.setValue("clearOverlayWhenMoving", _clearOverlayWhenMoving);
     settings.setValue("userHeight", getUserHeight());
+    settings.setValue("enabledFlying", getFlyingEnabled());
 
     settings.endGroup();
 }
@@ -1219,7 +1220,7 @@ void MyAvatar::loadData() {
         settings.remove("avatarEntityData");
     }
     setAvatarEntityDataChanged(true);
-
+    setFlyingEnabled(settings.value("enabledFlying").toBool());
     setDisplayName(settings.value("displayName").toString());
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
     setSnapTurn(settings.value("useSnapTurn", _useSnapTurn).toBool());
