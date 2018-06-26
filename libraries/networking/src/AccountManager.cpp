@@ -345,6 +345,7 @@ void AccountManager::sendRequest(const QString& path,
                             if (!invoked) {
                                 QString error = "Could not invoke " + callbackParams.jsonCallbackMethod + " with QNetworkReply* "
                                     + "on errorCallbackReceiver.";
+                                qCWarning(networking) << error;
                                 Q_ASSERT_X(invoked, "AccountManager::passErrorToCallback", qPrintable(error));
                             }
                         } else {
@@ -370,6 +371,7 @@ void AccountManager::sendRequest(const QString& path,
                         if (!invoked) {
                             QString error = "Could not invoke " + callbackParams.errorCallbackMethod + " with QNetworkReply* "
                                 + "on errorCallbackReceiver.";
+                            qCWarning(networking) << error;
                             Q_ASSERT_X(invoked, "AccountManager::passErrorToCallback", qPrintable(error));
                         }
 
