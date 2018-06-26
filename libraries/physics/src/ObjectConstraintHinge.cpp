@@ -264,11 +264,11 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
 QVariantMap ObjectConstraintHinge::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
-        arguments["pivot"] = glmToQMap(_pivotInA);
-        arguments["axis"] = glmToQMap(_axisInA);
+        arguments["pivot"] = vec3ToQMap(_pivotInA);
+        arguments["axis"] = vec3ToQMap(_axisInA);
         arguments["otherEntityID"] = _otherID;
-        arguments["otherPivot"] = glmToQMap(_pivotInB);
-        arguments["otherAxis"] = glmToQMap(_axisInB);
+        arguments["otherPivot"] = vec3ToQMap(_pivotInB);
+        arguments["otherAxis"] = vec3ToQMap(_axisInB);
         arguments["low"] = _low;
         arguments["high"] = _high;
         if (_constraint) {

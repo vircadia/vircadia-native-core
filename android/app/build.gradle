@@ -27,7 +27,8 @@ android {
                     '-DRELEASE_TYPE=' + RELEASE_TYPE,
                     '-DSTABLE_BUILD=' + STABLE_BUILD,
                     '-DDISABLE_QML=OFF',
-                    '-DDISABLE_KTX_CACHE=OFF'
+                    '-DDISABLE_KTX_CACHE=OFF',
+                    '-DUSE_BREAKPAD=' + (System.getenv("CMAKE_BACKTRACE_URL") && System.getenv("CMAKE_BACKTRACE_TOKEN") ? 'ON' : 'OFF');
             }
         }
         signingConfigs {
@@ -46,6 +47,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField "String", "BACKTRACE_URL", "\"" + (System.getenv("CMAKE_BACKTRACE_URL") ? System.getenv("CMAKE_BACKTRACE_URL") : '') + "\""
+            buildConfigField "String", "BACKTRACE_TOKEN", "\"" + (System.getenv("CMAKE_BACKTRACE_TOKEN") ? System.getenv("CMAKE_BACKTRACE_TOKEN") : '') + "\""
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
@@ -53,6 +58,8 @@ android {
                     project.hasProperty("HIFI_ANDROID_KEYSTORE_PASSWORD") &&
                     project.hasProperty("HIFI_ANDROID_KEY_ALIAS") &&
                     project.hasProperty("HIFI_ANDROID_KEY_PASSWORD")? signingConfigs.release : null
+            buildConfigField "String", "BACKTRACE_URL", "\"" + (System.getenv("CMAKE_BACKTRACE_URL") ? System.getenv("CMAKE_BACKTRACE_URL") : '') + "\""
+            buildConfigField "String", "BACKTRACE_TOKEN", "\"" + (System.getenv("CMAKE_BACKTRACE_TOKEN") ? System.getenv("CMAKE_BACKTRACE_TOKEN") : '') + "\""
         }
     }
 
@@ -67,6 +74,10 @@ android {
         // so our merge has to depend on the external native build
         variant.externalNativeBuildTasks.each { task ->
             variant.mergeResources.dependsOn(task)
+            def uploadDumpSymsTask = rootProject.getTasksByName("uploadBreakpadDumpSyms${variant.name.capitalize()}", false).first()
+            def runDumpSymsTask = rootProject.getTasksByName("runBreakpadDumpSyms${variant.name.capitalize()}", false).first()
+            runDumpSymsTask.dependsOn(task)
+            variant.assemble.dependsOn(uploadDumpSymsTask)
         }
 
         variant.mergeAssets.doLast {
