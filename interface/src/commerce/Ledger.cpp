@@ -68,7 +68,7 @@ Handler(updateItem)
 void Ledger::send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, AccountManagerAuth::Type authType, QJsonObject request) {
     auto accountManager = DependencyManager::get<AccountManager>();
     const QString URL = "/api/v1/commerce/";
-    JSONCallbackParameters callbackParams(this, success, this, fail);
+    JSONCallbackParameters callbackParams(this, success, fail);
     qCInfo(commerce) << "Sending" << endpoint << QJsonDocument(request).toJson(QJsonDocument::Compact);
     accountManager->sendRequest(URL + endpoint,
         authType,

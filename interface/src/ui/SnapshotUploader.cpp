@@ -60,7 +60,7 @@ void SnapshotUploader::uploadSuccess(QNetworkReply* reply) {
         rootObject.insert("user_story", userStoryObject);
 
         auto accountManager = DependencyManager::get<AccountManager>();
-        JSONCallbackParameters callbackParams(this, "createStorySuccess", this, "createStoryFailure");
+        JSONCallbackParameters callbackParams(this, "createStorySuccess", "createStoryFailure");
 
         accountManager->sendRequest(STORY_UPLOAD_URL,
             AccountManagerAuth::Required,

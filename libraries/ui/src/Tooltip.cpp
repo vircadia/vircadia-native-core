@@ -83,7 +83,7 @@ void Tooltip::requestHyperlinkImage() {
             auto accountManager = DependencyManager::get<AccountManager>();
 
             JSONCallbackParameters callbackParams;
-            callbackParams.jsonCallbackReceiver = this;
+            callbackParams.callbackReceiver = this;
             callbackParams.jsonCallbackMethod = "handleAPIResponse";
 
             accountManager->sendRequest(GET_PLACE.arg(_title),

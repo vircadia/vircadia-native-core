@@ -97,7 +97,7 @@ void DiscoverabilityManager::updateLocation() {
         locationObject.insert(AVAILABILITY_KEY_IN_LOCATION, findableByString(static_cast<Discoverability::Mode>(_mode.get())));
 
         JSONCallbackParameters callbackParameters;
-        callbackParameters.jsonCallbackReceiver = this;
+        callbackParameters.callbackReceiver = this;
         callbackParameters.jsonCallbackMethod = "handleHeartbeatResponse";
 
         // figure out if we'll send a fresh location or just a simple heartbeat
@@ -121,7 +121,7 @@ void DiscoverabilityManager::updateLocation() {
         // we still send a heartbeat to the metaverse server for stats collection
 
         JSONCallbackParameters callbackParameters;
-        callbackParameters.jsonCallbackReceiver = this;
+        callbackParameters.callbackReceiver = this;
         callbackParameters.jsonCallbackMethod = "handleHeartbeatResponse";
 
         accountManager->sendRequest(API_USER_HEARTBEAT_PATH, AccountManagerAuth::Optional,

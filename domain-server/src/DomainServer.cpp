@@ -514,7 +514,7 @@ void DomainServer::getTemporaryName(bool force) {
 
     // request a temporary name from the metaverse
     auto accountManager = DependencyManager::get<AccountManager>();
-    JSONCallbackParameters callbackParameters { this, "handleTempDomainSuccess", this, "handleTempDomainError" };
+    JSONCallbackParameters callbackParameters { this, "handleTempDomainSuccess", "handleTempDomainError" };
     accountManager->sendRequest("/api/v1/domains/temporary", AccountManagerAuth::None,
                                 QNetworkAccessManager::PostOperation, callbackParameters);
 }
@@ -1345,7 +1345,7 @@ void DomainServer::sendPendingTransactionsToServer() {
 
         JSONCallbackParameters transactionCallbackParams;
 
-        transactionCallbackParams.jsonCallbackReceiver = this;
+        transactionCallbackParams.callbackReceiver = this;
         transactionCallbackParams.jsonCallbackMethod = "transactionJSONCallback";
 
         while (i != _pendingAssignmentCredits.end()) {
@@ -1449,7 +1449,7 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
     DependencyManager::get<AccountManager>()->sendRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(getID())),
                                               AccountManagerAuth::Optional,
                                               QNetworkAccessManager::PutOperation,
-                                              JSONCallbackParameters(nullptr, QString(), this, "handleMetaverseHeartbeatError"),
+                                              JSONCallbackParameters(this, QString(), "handleMetaverseHeartbeatError"),
                                               domainUpdateJSON.toUtf8());
 }
 
@@ -1531,9 +1531,8 @@ void DomainServer::sendICEServerAddressToMetaverseAPI() {
 
     // make sure we hear about failure so we can retry
     JSONCallbackParameters callbackParameters;
-    callbackParameters.errorCallbackReceiver = this;
+    callbackParameters.callbackReceiver = this;
     callbackParameters.errorCallbackMethod = "handleFailedICEServerAddressUpdate";
-    callbackParameters.jsonCallbackReceiver = this;
     callbackParameters.jsonCallbackMethod = "handleSuccessfulICEServerAddressUpdate";
 
     static bool printedIceServerMessage = false;

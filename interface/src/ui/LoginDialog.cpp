@@ -113,9 +113,8 @@ void LoginDialog::linkSteam() {
             }
 
             JSONCallbackParameters callbackParams;
-            callbackParams.jsonCallbackReceiver = this;
+            callbackParams.callbackReceiver = this;
             callbackParams.jsonCallbackMethod = "linkCompleted";
-            callbackParams.errorCallbackReceiver = this;
             callbackParams.errorCallbackMethod = "linkFailed";
 
             const QString LINK_STEAM_PATH = "api/v1/user/steam/link";
@@ -141,9 +140,8 @@ void LoginDialog::createAccountFromStream(QString username) {
             }
 
             JSONCallbackParameters callbackParams;
-            callbackParams.jsonCallbackReceiver = this;
+            callbackParams.callbackReceiver = this;
             callbackParams.jsonCallbackMethod = "createCompleted";
-            callbackParams.errorCallbackReceiver = this;
             callbackParams.errorCallbackMethod = "createFailed";
 
             const QString CREATE_ACCOUNT_FROM_STEAM_PATH = "api/v1/user/steam/create";
@@ -204,9 +202,8 @@ void LoginDialog::createFailed(QNetworkReply* reply) {
 void LoginDialog::signup(const QString& email, const QString& username, const QString& password) {
     
     JSONCallbackParameters callbackParams;
-    callbackParams.jsonCallbackReceiver = this;
+    callbackParams.callbackReceiver = this;
     callbackParams.jsonCallbackMethod = "signupCompleted";
-    callbackParams.errorCallbackReceiver = this;
     callbackParams.errorCallbackMethod = "signupFailed";
     
     QJsonObject payload;

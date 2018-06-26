@@ -1815,9 +1815,8 @@ void DomainServerSettingsManager::apiRefreshGroupInformation() {
 
 void DomainServerSettingsManager::apiGetGroupID(const QString& groupName) {
     JSONCallbackParameters callbackParams;
-    callbackParams.jsonCallbackReceiver = this;
+    callbackParams.callbackReceiver = this;
     callbackParams.jsonCallbackMethod = "apiGetGroupIDJSONCallback";
-    callbackParams.errorCallbackReceiver = this;
     callbackParams.errorCallbackMethod = "apiGetGroupIDErrorCallback";
 
     const QString GET_GROUP_ID_PATH = "api/v1/groups/names/%1";
@@ -1882,9 +1881,8 @@ void DomainServerSettingsManager::apiGetGroupIDErrorCallback(QNetworkReply* requ
 
 void DomainServerSettingsManager::apiGetGroupRanks(const QUuid& groupID) {
     JSONCallbackParameters callbackParams;
-    callbackParams.jsonCallbackReceiver = this;
+    callbackParams.callbackReceiver = this;
     callbackParams.jsonCallbackMethod = "apiGetGroupRanksJSONCallback";
-    callbackParams.errorCallbackReceiver = this;
     callbackParams.errorCallbackMethod = "apiGetGroupRanksErrorCallback";
 
     const QString GET_GROUP_RANKS_PATH = "api/v1/groups/%1/ranks";

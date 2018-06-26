@@ -215,9 +215,8 @@ const JSONCallbackParameters& AddressManager::apiCallbackParameters() {
     static JSONCallbackParameters callbackParams;
 
     if (!hasSetupParameters) {
-        callbackParams.jsonCallbackReceiver = this;
+        callbackParams.callbackReceiver = this;
         callbackParams.jsonCallbackMethod = "handleAPIResponse";
-        callbackParams.errorCallbackReceiver = this;
         callbackParams.errorCallbackMethod = "handleAPIError";
     }
 
@@ -917,7 +916,7 @@ void AddressManager::lookupShareableNameForDomainID(const QUuid& domainID) {
 
         // no error callback handling
         // in the case of an error we simply assume there is no default place name
-        callbackParams.jsonCallbackReceiver = this;
+        callbackParams.callbackReceiver = this;
         callbackParams.jsonCallbackMethod = "handleShareableNameAPIResponse";
 
         DependencyManager::get<AccountManager>()->sendRequest(GET_DOMAIN_ID.arg(uuidStringWithoutCurlyBraces(domainID)),

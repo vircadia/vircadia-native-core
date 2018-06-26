@@ -65,7 +65,7 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
     
     // if no callbacks specified, call our owns
     if (params.isEmpty()) {
-        params.errorCallbackReceiver = this;
+        params.callbackReceiver = this;
         params.errorCallbackMethod = "requestError";
     }
     

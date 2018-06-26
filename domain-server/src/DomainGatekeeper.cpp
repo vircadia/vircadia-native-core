@@ -660,9 +660,8 @@ void DomainGatekeeper::requestUserPublicKey(const QString& username, bool isOpti
 
     // even if we have a public key for them right now, request a new one in case it has just changed
     JSONCallbackParameters callbackParams;
-    callbackParams.jsonCallbackReceiver = this;
+    callbackParams.callbackReceiver = this;
     callbackParams.jsonCallbackMethod = "publicKeyJSONCallback";
-    callbackParams.errorCallbackReceiver = this;
     callbackParams.errorCallbackMethod = "publicKeyJSONErrorCallback";
 
 
@@ -893,9 +892,8 @@ void DomainGatekeeper::getGroupMemberships(const QString& username) {
 
 
     JSONCallbackParameters callbackParams;
-    callbackParams.jsonCallbackReceiver = this;
+    callbackParams.callbackReceiver = this;
     callbackParams.jsonCallbackMethod = "getIsGroupMemberJSONCallback";
-    callbackParams.errorCallbackReceiver = this;
     callbackParams.errorCallbackMethod = "getIsGroupMemberErrorCallback";
 
     const QString GET_IS_GROUP_MEMBER_PATH = "api/v1/groups/members/%2";
@@ -960,9 +958,8 @@ void DomainGatekeeper::getIsGroupMemberErrorCallback(QNetworkReply* requestReply
 
 void DomainGatekeeper::getDomainOwnerFriendsList() {
     JSONCallbackParameters callbackParams;
-    callbackParams.jsonCallbackReceiver = this;
+    callbackParams.callbackReceiver = this;
     callbackParams.jsonCallbackMethod = "getDomainOwnerFriendsListJSONCallback";
-    callbackParams.errorCallbackReceiver = this;
     callbackParams.errorCallbackMethod = "getDomainOwnerFriendsListErrorCallback";
 
     const QString GET_FRIENDS_LIST_PATH = "api/v1/user/friends";

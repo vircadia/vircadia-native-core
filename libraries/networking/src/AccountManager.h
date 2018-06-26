@@ -28,18 +28,14 @@
 
 class JSONCallbackParameters {
 public:
-    JSONCallbackParameters(QObject* jsonCallbackReceiver = nullptr, const QString& jsonCallbackMethod = QString(),
-                           QObject* errorCallbackReceiver = nullptr, const QString& errorCallbackMethod = QString(),
-                           QObject* updateReceiver = nullptr, const QString& updateSlot = QString());
+    JSONCallbackParameters(QObject* callbackReceiver = nullptr, const QString& jsonCallbackMethod = QString(),
+                           const QString& errorCallbackMethod = QString());
 
-    bool isEmpty() const { return !jsonCallbackReceiver && !errorCallbackReceiver; }
+    bool isEmpty() const { return !callbackReceiver; }
 
-    QObject* jsonCallbackReceiver;
+    QObject* callbackReceiver;
     QString jsonCallbackMethod;
-    QObject* errorCallbackReceiver;
     QString errorCallbackMethod;
-    QObject* updateReceiver;
-    QString updateSlot;
 };
 
 namespace AccountManagerAuth {
