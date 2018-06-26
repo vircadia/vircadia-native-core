@@ -685,7 +685,8 @@ void MyAvatar::simulate(float deltaTime) {
                 entityTree->recurseTreeWithOperator(&moveOperator);
             }
         });
-        _characterController.setFlyingAllowed(zoneAllowsFlying && _enableFlying);
+        bool isPhysicsEnabled = qApp->isPhysicsEnabled();
+        _characterController.setFlyingAllowed(zoneAllowsFlying && (_enableFlying || !isPhysicsEnabled));
         _characterController.setCollisionlessAllowed(collisionlessAllowed);
     }
 
