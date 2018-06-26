@@ -1,6 +1,6 @@
 "use strict";
 //
-//  clickOverlays.js
+//  clickWeb.js
 //  scripts/system/+android
 //
 //  Created by Gabriel Calero & Cristian Duarte on Jun 22, 2018
@@ -18,7 +18,7 @@ var touchEntityID;
 
 function printd(str) {
     if (logEnabled)
-        print("[clickOverlays.js] " + str);
+        print("[clickWeb.js] " + str);
 }
 
 
