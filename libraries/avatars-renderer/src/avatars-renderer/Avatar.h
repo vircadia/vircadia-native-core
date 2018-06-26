@@ -27,6 +27,9 @@
 #include "Head.h"
 #include "SkeletonModel.h"
 #include "Rig.h"
+#include "../../interface/src/ui/overlays/Overlays.h"
+#include "../../interface/src/ui/overlays/Sphere3DOverlay.h"
+
 #include <ThreadSafeValueCache.h>
 
 namespace render {
@@ -364,7 +367,10 @@ public:
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) override;
 
     virtual scriptable::ScriptableModelBase getScriptableModel() override;
-
+	void removeOrb();
+    void updateOrbPosition();
+    std::shared_ptr<Sphere3DOverlay> _purpleOrbMeshPlaceholder{ nullptr };
+    OverlayID _purpleOrbMeshPlaceholderID{ UNKNOWN_OVERLAY_ID };				 
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead

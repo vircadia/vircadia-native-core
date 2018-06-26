@@ -193,6 +193,14 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         const SortableAvatar& sortData = sortedAvatars.top();
         const auto avatar = std::static_pointer_cast<Avatar>(sortData.getAvatar());
 
+	    //if the geometry is loaded then turn off the orb
+        if (avatar->getSkeletonModel()->isLoaded()) {
+            //remove the orb if it is there
+            avatar->removeOrb();
+        } else {
+            avatar->updateOrbPosition();
+        }
+								
         bool ignoring = DependencyManager::get<NodeList>()->isPersonalMutingNode(avatar->getID());
         if (ignoring) {
             sortedAvatars.pop();

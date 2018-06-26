@@ -34,6 +34,7 @@
 #include <render/TransitionStage.h>
 #include "ModelEntityItem.h"
 #include "RenderableModelEntityItem.h"
+#include "../../interface/src/Application.h"											
 
 #include <graphics-scripting/Forward.h>
 
@@ -1338,6 +1339,27 @@ void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
 }
 
 void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
+	if (!isMyAvatar()) {
+        if (_purpleOrbMeshPlaceholderID == UNKNOWN_OVERLAY_ID ||
+            !qApp->getOverlays().isAddedOverlay(_purpleOrbMeshPlaceholderID)) {
+            qCWarning(avatars_renderer) << "change model add the purple orb************************";
+            _purpleOrbMeshPlaceholder = std::make_shared<Sphere3DOverlay>();
+            _purpleOrbMeshPlaceholder->setAlpha(1.0f);
+            _purpleOrbMeshPlaceholder->setColor({ 0xFF, 0x00, 0xFF });
+            _purpleOrbMeshPlaceholder->setIsSolid(false);
+            _purpleOrbMeshPlaceholder->setPulseMin(0.5);
+            _purpleOrbMeshPlaceholder->setPulseMax(1.0);
+            _purpleOrbMeshPlaceholder->setColorPulse(1.0);
+            _purpleOrbMeshPlaceholder->setIgnoreRayIntersection(true);
+            _purpleOrbMeshPlaceholder->setDrawInFront(false);
+            _purpleOrbMeshPlaceholderID = qApp->getOverlays().addOverlay(_purpleOrbMeshPlaceholder);
+            // Position focus
+            _purpleOrbMeshPlaceholder->setWorldOrientation(glm::quat(0.0f, 0.0f, 0.0f, 1.0));
+            _purpleOrbMeshPlaceholder->setWorldPosition(getHead()->getPosition());
+            _purpleOrbMeshPlaceholder->setDimensions(glm::vec3(0.5f, 0.5f, 0.5f));
+            _purpleOrbMeshPlaceholder->setVisible(true);
+        }
+    } 
     AvatarData::setSkeletonModelURL(skeletonModelURL);
     if (QThread::currentThread() == thread()) {
         _skeletonModel->setURL(_skeletonModelURL);
@@ -1869,7 +1891,16 @@ void Avatar::processMaterials() {
         }
     }
 }
+void Avatar::removeOrb() {
+    if (qApp->getOverlays().isAddedOverlay(_purpleOrbMeshPlaceholderID)) {
+        qApp->getOverlays().deleteOverlay(_purpleOrbMeshPlaceholderID);
+        qCWarning(avatars_renderer) << "remove the purple orb***************************";
+    }
+}
 
+void Avatar::updateOrbPosition() {
+    _purpleOrbMeshPlaceholder->setWorldPosition(getHead()->getPosition());
+}							  
 scriptable::ScriptableModelBase Avatar::getScriptableModel() {
     if (!_skeletonModel || !_skeletonModel->isLoaded()) {
         return scriptable::ScriptableModelBase();
