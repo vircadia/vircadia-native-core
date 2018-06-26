@@ -16,7 +16,8 @@
 (function() { // BEGIN LOCAL_SCOPE
 
 
-var EMOTE_ANIMATIONS = ['Crying', 'Surprised', 'Dancing', 'Cheering', 'Waving', 'Fall', 'Pointing', 'Clapping', 'Sit1', 'Sit2', 'Sit3', 'Love'];
+var EMOTE_ANIMATIONS = 
+    ['Crying', 'Surprised', 'Dancing', 'Cheering', 'Waving', 'Fall', 'Pointing', 'Clapping', 'Sit1', 'Sit2', 'Sit3', 'Love'];
 var ANIMATIONS = Array();
 
 var eventMappingName = "io.highfidelity.away"; // restoreAnimation on hand controller button events, too
@@ -80,17 +81,17 @@ function onWebEventReceived(event) {
         var emoteName = event.data;
         
         if (emoteName === "Sit"){
-            emoteName = event.data + randSit; // "Sit1, Sit2, Sit3"
+            emoteName = event.data + randSit; // Sit1, Sit2, Sit3
         }
         
-        if (ANIMATIONS[emoteName].resource.state == FINISHED) {
+        if (ANIMATIONS[emoteName].resource.state =+= FINISHED) {
             
             if (activeTimer !== false) {
                 Script.clearTimeout(activeTimer);
             }
             
-            // If the activeEmote is different from the chosen emote, then play the new emote. Other wise, 
-            // This is a second click on the same emote as the activeEmote, and we will just stop it.
+            // If the activeEmote is different from the chosen emote, then play the new emote
+            // This is a second click on the same emote as the activeEmote, and we will just stop it
             if (activeEmote !== emoteName) {
                 activeEmote = emoteName;
                 
@@ -98,6 +99,7 @@ function onWebEventReceived(event) {
                 // Sit is the only animation currently that plays and then ends at the last frame
                 if (emoteName.match(/^Sit.*$/)) {
                 
+                    // If user provides input during a sit, the avatar animation state should be restored
                     Controller.keyPressEvent.connect(restoreAnimation);
                     MyAvatar.overrideAnimation(ANIMATIONS[emoteName].url, FPS, false, 0, frameCount);
                 
@@ -124,9 +126,11 @@ function onWebEventReceived(event) {
     }
 }
 
-// If a user provides input, end the emote animation and restore the navigation animation states (idle, walk, run)
+// Restore the navigation animation states (idle, walk, run)
 function restoreAnimation() {
     MyAvatar.restoreAnimation();
+    
+    // Make sure the input is disconnected after animations are restored so it doesn't affect any emotes other than sit
     Controller.keyPressEvent.disconnect(restoreAnimation);
 }
                     
