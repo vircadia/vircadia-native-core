@@ -36,13 +36,13 @@
 #include <SettingHandle.h>
 #include <UsersScriptingInterface.h>
 #include <UUID.h>
-#include <avatars-renderer/OtherAvatar.h>
 #include <shared/ConicalViewFrustum.h>
 
 #include "Application.h"
 #include "InterfaceLogging.h"
 #include "Menu.h"
 #include "MyAvatar.h"
+#include "OtherAvatar.h"
 #include "SceneScriptingInterface.h"
 
 // 50 times per second - target is 45hz, but this helps account for any small deviations
@@ -192,13 +192,14 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     while (!sortedAvatars.empty()) {
         const SortableAvatar& sortData = sortedAvatars.top();
         const auto avatar = std::static_pointer_cast<Avatar>(sortData.getAvatar());
+        const auto otherAvatar = std::static_pointer_cast<OtherAvatar>(sortData.getAvatar());
 
 	    //if the geometry is loaded then turn off the orb
         if (avatar->getSkeletonModel()->isLoaded()) {
             //remove the orb if it is there
-            removeOrb(avatar->_purpleOrbMeshPlaceholderID);
+            otherAvatar->removeOrb();
         } else {
-            avatar->updateOrbPosition();
+            otherAvatar->updateOrbPosition();
         }
 								
         bool ignoring = DependencyManager::get<NodeList>()->isPersonalMutingNode(avatar->getID());
@@ -327,30 +328,6 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
     
     auto newOtherAvatar = AvatarSharedPointer(new OtherAvatar(qApp->thread()), [](OtherAvatar* ptr) { ptr->deleteLater(); }); 
-    
-    //add the purple orb
-    /*
-    if (newOtherAvatar->_purpleOrbMeshPlaceholderID == UNKNOWN_OVERLAY_ID ||
-        !qApp->getOverlays().isAddedOverlay(newOtherAvatar->_purpleOrbMeshPlaceholderID)) {
-        newOtherAvatar->_purpleOrbMeshPlaceholder = std::make_shared<Sphere3DOverlay>();
-        newOtherAvatar->_purpleOrbMeshPlaceholder->setAlpha(1.0f);
-        newOtherAvatar->_purpleOrbMeshPlaceholder->setColor({ 0xFF, 0x00, 0xFF });
-        newOtherAvatar->_purpleOrbMeshPlaceholder->setIsSolid(false);
-        newOtherAvatar->_purpleOrbMeshPlaceholder->setPulseMin(0.5);
-        newOtherAvatar->_purpleOrbMeshPlaceholder->setPulseMax(1.0);
-        newOtherAvatar->_purpleOrbMeshPlaceholder->setColorPulse(1.0);
-        newOtherAvatar->_purpleOrbMeshPlaceholder->setIgnoreRayIntersection(true);
-        newOtherAvatar->_purpleOrbMeshPlaceholder->setDrawInFront(false);
-        newOtherAvatar->_purpleOrbMeshPlaceholderID = qApp->getOverlays().addOverlay(newOtherAvatar->_purpleOrbMeshPlaceholder);
-        // Position focus
-        newOtherAvatar->_purpleOrbMeshPlaceholder->setWorldOrientation(glm::quat(0.0f, 0.0f, 0.0f, 1.0));
-        newOtherAvatar->_purpleOrbMeshPlaceholder->setWorldPosition(glm::vec3(476.0f, 500.0f, 493.0f));
-        newOtherAvatar->_purpleOrbMeshPlaceholder->setDimensions(glm::vec3(0.5f, 0.5f, 0.5f));
-        newOtherAvatar->_purpleOrbMeshPlaceholder->setVisible(true);
-    }
-    */
-
-    
 
     return newOtherAvatar;
 }
@@ -649,11 +626,6 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
     }
 }
 
-void AvatarManager::removeOrb(OverlayID orbID) {
-    if (qApp->getOverlays().isAddedOverlay(orbID)) {
-        qApp->getOverlays().deleteOverlay(orbID);
-        //qCWarning(avatars_renderer) << "remove the purple orb***************************";
-    }
-}
+
 
 
