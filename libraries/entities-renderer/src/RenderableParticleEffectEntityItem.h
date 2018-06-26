@@ -89,7 +89,6 @@ private:
     BufferPointer _particleBuffer{ std::make_shared<Buffer>() };
     BufferView _uniformBuffer;
     quint64 _lastSimulated { 0 };
-    Transform _renderTransform;
 
     NetworkTexturePointer _networkTexture;
     ScenePointer _scene;

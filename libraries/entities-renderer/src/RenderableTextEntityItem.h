@@ -35,12 +35,11 @@ private:
     bool _faceCamera;
     glm::vec3 _dimensions;
     glm::vec3 _textColor;
-    Transform _renderTransform;
     glm::vec3 _backgroundColor;
     QString _text;
     float _lineHeight;
 };
 
-} } 
+} }
 
 #endif // hifi_RenderableTextEntityItem_h

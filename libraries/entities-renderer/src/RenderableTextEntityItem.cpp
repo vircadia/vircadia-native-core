@@ -77,11 +77,11 @@ void TextEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
 }
 
 void TextEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
-      _textColor = toGlm(entity->getTextColorX());
-      _backgroundColor = toGlm(entity->getBackgroundColorX());
-      _faceCamera = entity->getFaceCamera();
-      _lineHeight = entity->getLineHeight();
-      _text = entity->getText();
+    _textColor = toGlm(entity->getTextColorX());
+    _backgroundColor = toGlm(entity->getBackgroundColorX());
+    _faceCamera = entity->getFaceCamera();
+    _lineHeight = entity->getLineHeight();
+    _text = entity->getText();
 }
 
 
