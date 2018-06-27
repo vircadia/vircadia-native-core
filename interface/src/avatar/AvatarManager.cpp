@@ -194,9 +194,9 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         const auto avatar = std::static_pointer_cast<Avatar>(sortData.getAvatar());
         const auto otherAvatar = std::static_pointer_cast<OtherAvatar>(sortData.getAvatar());
 
-        //if the geometry is loaded then turn off the orb
+        // if the geometry is loaded then turn off the orb
         if (avatar->getSkeletonModel()->isLoaded()) {
-            //remove the orb if it is there
+            // remove the orb if it is there
             otherAvatar->removeOrb();
         } else {
             otherAvatar->updateOrbPosition();
