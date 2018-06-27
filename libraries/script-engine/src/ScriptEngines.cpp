@@ -191,6 +191,7 @@ void ScriptEngines::shutdownScripting() {
 
             // Gracefully stop the engine's scripting thread
             scriptEngine->stop();
+            removeScriptEngine(scriptEngine);
 
             // We need to wait for the engine to be done running before we proceed, because we don't
             // want any of the scripts final "scriptEnding()" or pending "update()" methods from accessing
@@ -394,6 +395,7 @@ void ScriptEngines::stopAllScripts(bool restart) {
         // stop all scripts
         qCDebug(scriptengine) << "stopping script..." << it.key();
         scriptEngine->stop();
+        removeScriptEngine(scriptEngine);
     }
     // wait for engines to stop (ie: providing time for .scriptEnding cleanup handlers to run) before
     // triggering reload of any Client scripts / Entity scripts
@@ -441,6 +443,7 @@ bool ScriptEngines::stopScript(const QString& rawScriptURL, bool restart) {
                 }
             }
             scriptEngine->stop();
+            removeScriptEngine(scriptEngine);
             stoppedScript = true;
             qCDebug(scriptengine) << "stopping script..." << scriptURL;
         }
