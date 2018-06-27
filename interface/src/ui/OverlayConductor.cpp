@@ -88,13 +88,10 @@ void OverlayConductor::update(float dt) {
         _hmdMode = false;
     }
 
-    bool isAtRest = updateAvatarIsAtRest();
-    bool isMoving = !isAtRest;
-
     bool shouldRecenter = false;
 
     if (_suppressedByHead) {
-        if (isAtRest) {
+        if (updateAvatarIsAtRest()) {
             _suppressedByHead = false;
             shouldRecenter = true;
         }
