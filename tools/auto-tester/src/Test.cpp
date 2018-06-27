@@ -25,6 +25,11 @@ extern AutoTester* autoTester;
 
 Test::Test() {
     mismatchWindow.setModal(true);
+
+    if (autoTester) {
+        autoTester->setUserText("highfidelity");
+        autoTester->setBranchText("master");
+    }
 }
 
 bool Test::createTestResultsFolderPath(const QString& directory) {
@@ -63,7 +68,6 @@ bool Test::compareImageLists(bool isInteractiveMode, QProgressBar* progressBar) 
 
     // Loop over both lists and compare each pair of images
     // Quit loop if user has aborted due to a failed test.
-    const double THRESHOLD { 0.9995 };
     bool success{ true };
     bool keepOn{ true };
     for (int i = 0; keepOn && i < expectedImagesFullFilenames.length(); ++i) {
@@ -71,17 +75,14 @@ bool Test::compareImageLists(bool isInteractiveMode, QProgressBar* progressBar) 
         QImage resultImage(resultImagesFullFilenames[i]);
         QImage expectedImage(expectedImagesFullFilenames[i]);
 
+        double similarityIndex;  // in [-1.0 .. 1.0], where 1.0 means images are identical
+                                 
+        // similarityIndex is set to -100.0 to indicate images are not the same size
         if (isInteractiveMode && (resultImage.width() != expectedImage.width() || resultImage.height() != expectedImage.height())) {
             QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Images are not the same size");
-            exit(-1);
-        }
-
-        double similarityIndex;  // in [-1.0 .. 1.0], where 1.0 means images are identical
-        try {
+            similarityIndex = -100.0;
+        } else {
             similarityIndex = imageComparer.compareImages(resultImage, expectedImage);
-        } catch (...) {
-            QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Image not in expected format");
-            exit(-1);
         }
 
         if (similarityIndex < THRESHOLD) {
@@ -176,36 +177,30 @@ void Test::appendTestResultsToFile(const QString& testResultsFolderPath, TestFai
     comparisonImage.save(failureFolderPath + "/" + "Difference Image.png");
 }
 
-void Test::startTestsEvaluation(const QString& testFolder) {
-    // Get list of JPEG images in folder, sorted by name
-    QString previousSelection = snapshotDirectory;
-    QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
-    if (!parent.isNull() && parent.right(1) != "/") {
-        parent += "/";
-    }
-    snapshotDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", parent,
-                                                          QFileDialog::ShowDirsOnly);
+void Test::startTestsEvaluation(const QString& testFolder, const QString& branchFromCommandLine, const QString& userFromCommandLine) {
+    if (testFolder.isNull()) {
+        // Get list of JPEG images in folder, sorted by name
+        QString previousSelection = snapshotDirectory;
+        QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
+        if (!parent.isNull() && parent.right(1) != "/") {
+            parent += "/";
+        }
+        snapshotDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", parent,
+            QFileDialog::ShowDirsOnly);
 
-    // If user cancelled then restore previous selection and return
-    if (snapshotDirectory == "") {
-        snapshotDirectory = previousSelection;
-        return;
+        // If user cancelled then restore previous selection and return
+        if (snapshotDirectory == "") {
+            snapshotDirectory = previousSelection;
+            return;
+        }
+    } else {
+        snapshotDirectory = testFolder;
+        exitWhenComplete = true;
     }
 
     // Quit if test results folder could not be created
     if (!createTestResultsFolderPath(snapshotDirectory)) {
         return;
-    }
-
-    // Before any processing - all images are converted to PNGs, as this is the format stored on GitHub
-    QStringList sortedSnapshotFilenames = createListOfAll_imagesInDirectory("jpg", snapshotDirectory);
-    foreach(QString filename, sortedSnapshotFilenames) {
-        QString filenameWithoutExtension = filename.left(filename.length() - 4);
-        copyJPGtoPNG(snapshotDirectory + "/" + filenameWithoutExtension + ".jpg", 
-            snapshotDirectory + "/" + filenameWithoutExtension + ".png"
-        );
-
-        QFile::remove(snapshotDirectory + "/" + filenameWithoutExtension + ".jpg");
     }
 
     // Create two lists.  The first is the test results,  the second is the expected images
@@ -219,6 +214,9 @@ void Test::startTestsEvaluation(const QString& testFolder) {
     expectedImagesFilenames.clear();
     expectedImagesFullFilenames.clear();
 
+    QString branch = (branchFromCommandLine.isNull()) ? autoTester->getSelectedBranch() : branchFromCommandLine;
+    QString user = (userFromCommandLine.isNull()) ? autoTester->getSelectedUser() : userFromCommandLine;
+
     foreach(QString currentFilename, sortedTestResultsFilenames) {
         QString fullCurrentFilename = snapshotDirectory + "/" + currentFilename;
         if (isInSnapshotFilenameFormat("png", currentFilename)) {
@@ -231,7 +229,7 @@ void Test::startTestsEvaluation(const QString& testFolder) {
             QString expectedImageFilenameTail = currentFilename.left(currentFilename.length() - 4).right(NUM_DIGITS);
             QString expectedImageStoredFilename = EXPECTED_IMAGE_PREFIX + expectedImageFilenameTail + ".png";
 
-            QString imageURLString("https://raw.githubusercontent.com/" + GIT_HUB_USER + "/hifi_tests/" + GIT_HUB_BRANCH + "/" + 
+            QString imageURLString("https://raw.githubusercontent.com/" + user + "/" + GIT_HUB_REPOSITORY  + "/" + branch + "/" +
                 expectedImagePartialSourceDirectory + "/" + expectedImageStoredFilename);
 
             expectedImagesURLs << imageURLString;
@@ -259,6 +257,10 @@ void Test::finishTestsEvaluation(bool isRunningFromCommandline, bool interactive
     }
 
     zipAndDeleteTestResultsFolder();
+
+    if (exitWhenComplete) {
+        exit(0);
+    }
 }
 
 bool Test::isAValidDirectory(const QString& pathname) {
@@ -299,10 +301,9 @@ QString Test::extractPathFromTestsDown(const QString& fullPath) {
 
 void Test::includeTest(QTextStream& textStream, const QString& testPathname) {
     QString partialPath = extractPathFromTestsDown(testPathname);
-    textStream << "Script.include(\""
-               << "https://github.com/" << GIT_HUB_USER << "/hifi_tests/blob/" << GIT_HUB_BRANCH
-               << partialPath + "?raw=true\");"
-               << endl;
+    QString partialPathWithoutTests = partialPath.right(partialPath.length() - 7);
+
+    textStream << "Script.include(testsRootPath + \"" << partialPathWithoutTests + "\");" << endl;
 }
 
 // Creates a single script in a user-selected folder.
@@ -397,12 +398,20 @@ void Test::createRecursiveScript(const QString& topLevelDirectory, bool interact
     const QString DATE_TIME_FORMAT("MMM d yyyy, h:mm");
     textStream << "// This is an automatically generated file, created by auto-tester on " << QDateTime::currentDateTime().toString(DATE_TIME_FORMAT) << endl << endl;
 
-    textStream << "user = \"" + GIT_HUB_USER + "/\";" << endl;
-    textStream << "repository = \"" + GIT_HUB_REPOSITORY + "/\";" << endl;
-    textStream << "branch = \"" + GIT_HUB_BRANCH + "/\";" << endl << endl;
+    // Include 'autoTest.js'
+    QString branch = autoTester->getSelectedBranch();
+    QString user = autoTester->getSelectedUser();
 
-    textStream << "var autoTester = Script.require(\"https://github.com/" + GIT_HUB_USER + "/hifi_tests/blob/" 
-        + GIT_HUB_BRANCH + "/tests/utils/autoTester.js?raw=true\");" << endl << endl;
+    textStream << "PATH_TO_THE_REPO_PATH_UTILS_FILE = \"https://raw.githubusercontent.com/" + user + "/hifi_tests/" + branch + "/tests/utils/branchUtils.js\";" << endl;
+    textStream << "Script.include(PATH_TO_THE_REPO_PATH_UTILS_FILE);" << endl;
+    textStream << "var autoTester = createAutoTester(Script.resolvePath(\".\"));" << endl << endl;
+
+    textStream << "var testsRootPath = autoTester.getTestsRootPath();" << endl << endl;
+
+    // Wait 10 seconds before starting
+    textStream << "if (typeof Test !== 'undefined') {" << endl;
+    textStream << "    Test.wait(10000);" << endl;
+    textStream << "};" << endl << endl;
 
     textStream << "autoTester.enableRecursive();" << endl;
     textStream << "autoTester.enableAuto();" << endl << endl;
@@ -498,13 +507,13 @@ void Test::createTests() {
         return;
     }
 
-    QStringList sortedImageFilenames = createListOfAll_imagesInDirectory("jpg", snapshotDirectory);
+    QStringList sortedImageFilenames = createListOfAll_imagesInDirectory("png", snapshotDirectory);
 
     int i = 1; 
     const int maxImages = pow(10, NUM_DIGITS);
     foreach (QString currentFilename, sortedImageFilenames) {
         QString fullCurrentFilename = snapshotDirectory + "/" + currentFilename;
-        if (isInSnapshotFilenameFormat("jpg", currentFilename)) {
+        if (isInSnapshotFilenameFormat("png", currentFilename)) {
             if (i >= maxImages) {
                 QMessageBox::critical(0, "Error", "More than " + QString::number(maxImages) + " images not supported");
                 exit(-1);
@@ -528,9 +537,12 @@ void Test::createTests() {
             fullNewFileName += "/" + newFilename;
 
             try {
-                copyJPGtoPNG(fullCurrentFilename, fullNewFileName);
+                if (QFile::exists(fullNewFileName)) {
+                    QFile::remove(fullNewFileName);
+                }               
+                QFile::copy(fullCurrentFilename, fullNewFileName);
             } catch (...) {
-                QMessageBox::critical(0, "Error", "Could not delete existing file: " + currentFilename + "\nTest creation aborted");
+                QMessageBox::critical(0, "Error", "Could not copy file: " + fullCurrentFilename + " to " + fullNewFileName + "\n");
                 exit(-1);
             }
             ++i;
@@ -560,9 +572,7 @@ ExtractedText Test::getTestScriptLines(QString testFileName) {
     const QString ws("\\h*");    //white-space character
     const QString functionPerformName(ws + "autoTester" + ws + "\\." + ws + "perform");
     const QString quotedString("\\\".+\\\"");
-    const QString ownPath("Script" + ws + "\\." + ws + "resolvePath" + ws + "\\(" + ws + "\\\"\\.\\\"" + ws + "\\)");
-    const QString functionParameter("function" + ws + "\\(testType" + ws + "\\)");
-    QString regexTestTitle(ws + functionPerformName + "\\(" + quotedString + "\\," + ws + ownPath + "\\," + ws + functionParameter + ws + "{" + ".*");
+    QString regexTestTitle(ws + functionPerformName + "\\(" + quotedString);
     QRegularExpression lineContainingTitle = QRegularExpression(regexTestTitle);
 
 
@@ -809,19 +819,6 @@ void Test::createTestsOutline() {
     mdFile.close();
 
     QMessageBox::information(0, "Success", "Test outline file " + testsOutlineFilename + " has been created");
-}
-
-void Test::copyJPGtoPNG(const QString& sourceJPGFullFilename, const QString& destinationPNGFullFilename) {
-    QFile::remove(destinationPNGFullFilename);
-
-    QImageReader reader;
-    reader.setFileName(sourceJPGFullFilename);
-
-    QImage image = reader.read();
-
-    QImageWriter writer;
-    writer.setFileName(destinationPNGFullFilename);
-    writer.write(image);
 }
 
 QStringList Test::createListOfAll_imagesInDirectory(const QString& imageFormat, const QString& pathToImageDirectory) {

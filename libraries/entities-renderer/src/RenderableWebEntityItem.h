@@ -68,7 +68,6 @@ private:
     bool _lastLocked;
     QTimer _timer;
     uint64_t _lastRenderTime { 0 };
-    Transform _renderTransform;
 };
 
 } } // namespace 

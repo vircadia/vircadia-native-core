@@ -184,15 +184,25 @@ function loaded() {
                       currentElement.onclick = onRowClicked;
                       currentElement.ondblclick = onRowDoubleClicked;
               });
-
-              if (refreshEntityListTimer) {
-                  clearTimeout(refreshEntityListTimer);
-              }
-              refreshEntityListTimer = setTimeout(refreshEntityListObject, 50);
           } else {
               var item = entities[id].item;
               item.values({ name: name, url: filename, locked: locked, visible: visible });
           }
+      }
+
+      function removeEntities(deletedIDs) {
+          for (i = 0, length = deletedIDs.length; i < length; i++) {
+              delete entities[deletedIDs[i]];
+              entityList.remove("id", deletedIDs[i]);
+          }
+      }
+
+      function scheduleRefreshEntityList() {
+          var REFRESH_DELAY = 50;
+          if (refreshEntityListTimer) {
+              clearTimeout(refreshEntityListTimer);
+          }
+          refreshEntityListTimer = setTimeout(refreshEntityListObject, REFRESH_DELAY);
       }
 
       function clearEntities() {
@@ -346,7 +356,7 @@ function loaded() {
                   if (notFound) {
                       refreshEntities();
                   }
-              } else if (data.type == "update") {
+              } else if (data.type === "update" && data.selectedIDs !== undefined) {
                   var newEntities = data.entities;
                   if (newEntities && newEntities.length == 0) {
                       elNoEntitiesMessage.style.display = "block";
@@ -365,13 +375,15 @@ function loaded() {
                               newEntities[i].hasScript ? SCRIPT_GLYPH : null);
                       }
                       updateSelectedEntities(data.selectedIDs);
+                      scheduleRefreshEntityList();
                       resize();
                   }
-              } else if (data.type === "deleted") {
-                  for (i = 0, length = data.ids.length; i < length; i++) {
-                      delete entities[data.ids[i]];
-                      entityList.remove("id", data.ids[i]);
-                  }
+              } else if (data.type === "removeEntities" && data.deletedIDs !== undefined && data.selectedIDs !== undefined) {
+                  removeEntities(data.deletedIDs);
+                  updateSelectedEntities(data.selectedIDs);
+                  scheduleRefreshEntityList();
+              } else if (data.type === "deleted" && data.ids) {
+                  removeEntities(data.ids);
                   refreshFooter();
               }
           });
