@@ -17,6 +17,8 @@
 class OtherAvatar : public Avatar {
 public:
     explicit OtherAvatar(QThread* thread);
+    ~OtherAvatar();
+
     virtual void instantiableAvatar() override { };
     void createOrb() override;
     void updateOrbPosition();

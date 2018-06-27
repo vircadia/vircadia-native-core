@@ -22,6 +22,10 @@ OtherAvatar::OtherAvatar(QThread* thread) : Avatar(thread) {
     createOrb();
 }
 
+OtherAvatar::~OtherAvatar() {
+    removeOrb();
+}
+
 void OtherAvatar::removeOrb() {
     if (qApp->getOverlays().isAddedOverlay(_otherAvatarOrbMeshPlaceholderID)) {
         qApp->getOverlays().deleteOverlay(_otherAvatarOrbMeshPlaceholderID);
@@ -29,7 +33,9 @@ void OtherAvatar::removeOrb() {
 }
 
 void OtherAvatar::updateOrbPosition() {
-    _otherAvatarOrbMeshPlaceholder->setWorldPosition(getHead()->getPosition());
+    if (_otherAvatarOrbMeshPlaceholder != nullptr) {
+        _otherAvatarOrbMeshPlaceholder->setWorldPosition(getHead()->getPosition());
+    }
 }
 
 void OtherAvatar::createOrb() {
