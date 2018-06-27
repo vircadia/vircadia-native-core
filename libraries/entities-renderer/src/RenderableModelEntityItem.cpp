@@ -279,18 +279,16 @@ EntityItemProperties RenderableModelEntityItem::getProperties(EntityPropertyFlag
 }
 
 bool RenderableModelEntityItem::supportsDetailedRayIntersection() const {
-    return isModelLoaded();
+    return true;
 }
 
 bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          OctreeElementPointer& element, float& distance, BoxFace& face,
                          glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking) const {
     auto model = getModel();
-    if (!model) {
-        return true;
+    if (!model || !isModelLoaded()) {
+        return false;
     }
-    // qCDebug(entitiesrenderer) << "RenderableModelEntityItem::findDetailedRayIntersection() precisionPicking:"
-    //                           << precisionPicking;
 
     return model->findRayIntersectionAgainstSubMeshes(origin, direction, distance,
                face, surfaceNormal, extraInfo, precisionPicking, false);
