@@ -67,7 +67,7 @@ public:
     static void setShowNamesAboveHeads(bool show);
 
     explicit Avatar(QThread* thread);
-    ~Avatar();
+    virtual ~Avatar();
 
     virtual void instantiableAvatar() = 0;
 
