@@ -475,15 +475,16 @@ var toolBar = (function () {
     var DELETE_ENTITY_TIMER_TIMEOUT = 100;
 
     function checkDeletedEntityAndUpdate(entityID) {
-        // Allow for multiple entity deletes before updating the entity list.
+        // Allow for multiple entity deletes before updating the entities selected.
         entitiesToDelete.push(entityID);
         if (deletedEntityTimer !== null) {
             Script.clearTimeout(deletedEntityTimer);
         }
         deletedEntityTimer = Script.setTimeout(function () {
-            selectionManager.removeEntities(entitiesToDelete);
-            entityListTool.clearEntityList();
-            entityListTool.sendUpdate();
+            if (entitiesToDelete.length > 0) {
+                selectionManager.removeEntities(entitiesToDelete);
+            }
+            entityListTool.removeEntities(entitiesToDelete, selectionManager.selections);
             entitiesToDelete = [];
             deletedEntityTimer = null;
         }, DELETE_ENTITY_TIMER_TIMEOUT);
