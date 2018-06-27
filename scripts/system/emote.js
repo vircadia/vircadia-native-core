@@ -84,7 +84,7 @@ function onWebEventReceived(event) {
             emoteName = event.data + randSit; // Sit1, Sit2, Sit3
         }
         
-        if (ANIMATIONS[emoteName].resource.state =+= FINISHED) {
+        if (ANIMATIONS[emoteName].resource.state === FINISHED) {
             
             if (activeTimer !== false) {
                 Script.clearTimeout(activeTimer);
