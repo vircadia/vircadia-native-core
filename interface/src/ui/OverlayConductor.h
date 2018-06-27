@@ -29,7 +29,7 @@ private:
         SuppressedByHead = 0x01
     };
 
-    uint8_t _flags { SuppressedByHead };
+    bool _suppressedByHead { false };
     bool _hmdMode { false };
 
     // used by updateAvatarIsAtRest

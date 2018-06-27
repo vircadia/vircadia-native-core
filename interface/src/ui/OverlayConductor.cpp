@@ -93,22 +93,22 @@ void OverlayConductor::update(float dt) {
 
     bool shouldRecenter = false;
 
-    if (_flags & SuppressedByHead) {
+    if (_suppressedByHead) {
         if (isAtRest) {
-            _flags &= ~SuppressedByHead;
+            _suppressedByHead = false;
             shouldRecenter = true;
         }
     } else {
         if (_hmdMode && headOutsideOverlay()) {
-            _flags |= SuppressedByHead;
+            _suppressedByHead = true;
         }
     }
 
-    bool targetVisible = Menu::getInstance()->isOptionChecked(MenuOption::Overlays) && (0 == (_flags & SuppressedByHead));
+    bool targetVisible = Menu::getInstance()->isOptionChecked(MenuOption::Overlays) && !_suppressedByHead;
     if (targetVisible != currentVisible) {
         offscreenUi->setPinned(!targetVisible);
     }
-    if (shouldRecenter && !_flags) {
+    if (shouldRecenter && !_suppressedByHead) {
         centerUI();
     }
 }
