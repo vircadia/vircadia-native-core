@@ -3129,6 +3129,14 @@ static bool withinBaseOfSupport(glm::vec3 position) {
     return (withinFrontBase && withinBackBase && withinLateralBase);
 }
 
+static bool headAngularVelocityBelowThreshold(glm::vec3 angularVelocity) {
+    const float ANGULAR_VELOCITY_THRESHOLD = 0.3f;
+    float xzPlaneAngularVelocity = glm::vec3(angularVelocity.x, 0.0f, angularVelocity.z).length();
+    bool isBelowThreshold = xzPlaneAngularVelocity < ANGULAR_VELOCITY_THRESHOLD;
+    qCDebug(interfaceapp) << "head velocity below threshold is: " << isBelowThreshold;
+    return isBelowThreshold;
+}
+
 float MyAvatar::getUserHeight() const {
     return _userHeight.get();
 }
@@ -3356,15 +3364,12 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
             activate(Rotation);
             setForceActivateRotation(false);
         }
-        glm::vec3 temp = myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation();
-        qCDebug(interfaceapp) << temp;
-        qCDebug(interfaceapp) << "zero within base " << withinBaseOfSupport(glm::vec3(0.0f,0.0f,0.0f));
-        qCDebug(interfaceapp) << "10 meters within base " << withinBaseOfSupport(glm::vec3(1.0f, 0.0f, 0.0f));
-        qCDebug(interfaceapp) << "head within base " << withinBaseOfSupport(temp);
-        qCDebug(interfaceapp) << "force activate horizontal " << getForceActivateHorizontal();
-        qCDebug(interfaceapp) << "is active horizontal " << isActive(Horizontal);
+
+        headAngularVelocityBelowThreshold(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getAngularVelocity());
+
         if (!isActive(Horizontal) && (getForceActivateHorizontal() ||
-            !withinBaseOfSupport(temp))) {
+            (!withinBaseOfSupport(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation()) &&
+            headAngularVelocityBelowThreshold(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getAngularVelocity())))) {
             qCDebug(interfaceapp) << "----------------------------------------over the base of support";
             activate(Horizontal);
             setForceActivateHorizontal(false);
