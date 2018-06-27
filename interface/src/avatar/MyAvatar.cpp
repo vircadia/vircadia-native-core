@@ -3124,7 +3124,7 @@ static bool withinBaseOfSupport(glm::vec3 position) {
 
     bool withinFrontBase = isInsideLine(userScale * frontLeft, userScale * frontRight, position);
     bool withinBackBase = isInsideLine(userScale * backRight, userScale * backLeft, position);
-    bool withinLateralBase = (isInsideLine(userScale * frontRight, userScale * backRight, position) && 
+    bool withinLateralBase = (isInsideLine(userScale * frontRight, userScale * backRight, position) &&
                                 isInsideLine(userScale * backLeft, userScale * frontLeft, position));
     return (withinFrontBase && withinBackBase && withinLateralBase);
 }
@@ -3363,7 +3363,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
         qCDebug(interfaceapp) << "head within base " << withinBaseOfSupport(temp);
         qCDebug(interfaceapp) << "force activate horizontal " << getForceActivateHorizontal();
         qCDebug(interfaceapp) << "is active horizontal " << isActive(Horizontal);
-        if (!isActive(Horizontal) && (getForceActivateHorizontal() || 
+        if (!isActive(Horizontal) && (getForceActivateHorizontal() ||
             !withinBaseOfSupport(temp))) {
             qCDebug(interfaceapp) << "----------------------------------------over the base of support";
             activate(Horizontal);
