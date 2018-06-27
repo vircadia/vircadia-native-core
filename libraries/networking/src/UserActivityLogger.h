@@ -50,7 +50,7 @@ public slots:
     void wentTo(AddressManager::LookupTrigger trigger, QString destinationType, QString destinationName);
     
 private slots:
-    void requestError(QNetworkReply& errorReply);
+    void requestError(QNetworkReply* errorReply);
     
 private:
     UserActivityLogger();

@@ -493,7 +493,7 @@ void Snapshot::uploadSnapshot(const QString& filename, const QUrl& href) {
     multiPart->append(imagePart);
 
     auto accountManager = DependencyManager::get<AccountManager>();
-    JSONCallbackParameters callbackParams(uploader, "uploadSuccess", uploader, "uploadFailure");
+    JSONCallbackParameters callbackParams(uploader, "uploadSuccess", "uploadFailure");
 
     accountManager->sendRequest(SNAPSHOT_UPLOAD_URL, AccountManagerAuth::Required, QNetworkAccessManager::PostOperation,
                                 callbackParams, nullptr, multiPart);
