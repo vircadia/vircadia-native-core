@@ -3131,10 +3131,17 @@ static bool withinBaseOfSupport(glm::vec3 position) {
 
 static bool headAngularVelocityBelowThreshold(glm::vec3 angularVelocity) {
     const float ANGULAR_VELOCITY_THRESHOLD = 0.3f;
-    float xzPlaneAngularVelocity = glm::vec3(angularVelocity.x, 0.0f, angularVelocity.z).length();
-    bool isBelowThreshold = xzPlaneAngularVelocity < ANGULAR_VELOCITY_THRESHOLD;
-    qCDebug(interfaceapp) << "head velocity below threshold is: " << isBelowThreshold;
+    glm::vec3 xzPlaneAngularVelocity(angularVelocity.x, 0.0f, angularVelocity.z);
+    float magnitudeAngularVelocity = glm::length(xzPlaneAngularVelocity);
+    bool isBelowThreshold = (magnitudeAngularVelocity < ANGULAR_VELOCITY_THRESHOLD);
+    qCDebug(interfaceapp) << "magnitude " << magnitudeAngularVelocity << "head velocity below threshold is: " << isBelowThreshold;
+    qCDebug(interfaceapp) << "ang vel values x: " << angularVelocity.x << " y: " << angularVelocity.y << " z: "  << angularVelocity.z;
     return isBelowThreshold;
+}
+
+static bool withinThresholdOfStandingHeightMode(float diffFromMode) {
+    const float MODE_HEIGHT_THRESHOLD = 0.3f;
+    return (diffFromMode < MODE_HEIGHT_THRESHOLD);
 }
 
 float MyAvatar::getUserHeight() const {
@@ -3369,7 +3376,8 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
 
         if (!isActive(Horizontal) && (getForceActivateHorizontal() ||
             (!withinBaseOfSupport(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation()) &&
-            headAngularVelocityBelowThreshold(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getAngularVelocity())))) {
+            headAngularVelocityBelowThreshold(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getAngularVelocity()))) &&
+            withinThresholdOfStandingHeightMode(0.01f)) {
             qCDebug(interfaceapp) << "----------------------------------------over the base of support";
             activate(Horizontal);
             setForceActivateHorizontal(false);
