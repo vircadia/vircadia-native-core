@@ -166,7 +166,7 @@ public:
 
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
 
-    static void renderJointConnectingCone(gpu::Batch& batch, glm::vec3 position1, glm::vec3 position2, 
+    static void renderJointConnectingCone(gpu::Batch& batch, glm::vec3 position1, glm::vec3 position2,
                                                float radius1, float radius2, const glm::vec4& color);
 
     virtual void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) { }
@@ -234,9 +234,9 @@ public:
 
     /// Scales a world space position vector relative to the avatar position and scale
     /// \param vector position to be scaled. Will store the result
-    void scaleVectorRelativeToPosition(glm::vec3& positionToScale) const;
+    void scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const;
 
-    void slamPosition(const glm::vec3 &position);
+    void slamPosition(const glm::vec3& position);
     virtual void updateAttitude(const glm::quat& orientation) override;
 
     // Call this when updating Avatar position with a delta.  This will allow us to
@@ -427,7 +427,7 @@ protected:
     void clearUnscaledEyeHeightCache();
     virtual const QString& getSessionDisplayNameForTransport() const override { return _empty; } // Save a tiny bit of bandwidth. Mixer won't look at what we send.
     QString _empty{};
-    virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) override { _sessionDisplayName = sessionDisplayName; }  // don't use no-op setter!
+    virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) override { _sessionDisplayName = sessionDisplayName; } // don't use no-op setter!
 
     SkeletonModelPointer _skeletonModel;
 
@@ -460,7 +460,7 @@ protected:
     glm::quat _lastOrientation;
 
     glm::vec3 _worldUpDirection { Vectors::UP };
-    bool _moving { false };  ///< set when position is changing
+    bool _moving { false }; ///< set when position is changing
 
     // protected methods...
     bool isLookingAtMe(AvatarSharedPointer avatar) const;
