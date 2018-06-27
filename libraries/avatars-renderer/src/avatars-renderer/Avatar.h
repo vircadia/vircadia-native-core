@@ -234,7 +234,7 @@ public:
 
     /// Scales a world space position vector relative to the avatar position and scale
     /// \param vector position to be scaled. Will store the result
-    void scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const;
+    void scaleVectorRelativeToPosition(glm::vec3& positionToScale) const;
 
     void slamPosition(const glm::vec3& position);
     virtual void updateAttitude(const glm::quat& orientation) override;
@@ -361,9 +361,6 @@ public:
 
     virtual scriptable::ScriptableModelBase getScriptableModel() override;
 
-    //void updateOrbPosition();
-    //std::shared_ptr<Sphere3DOverlay> _purpleOrbMeshPlaceholder{ nullptr };
-    //OverlayID _purpleOrbMeshPlaceholderID{ UNKNOWN_OVERLAY_ID };
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead

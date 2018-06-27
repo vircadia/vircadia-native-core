@@ -18,14 +18,13 @@ OtherAvatar::OtherAvatar(QThread* thread) : Avatar(thread) {
     connect(_skeletonModel.get(), &Model::rigReady, this, &Avatar::rigReady);
     connect(_skeletonModel.get(), &Model::rigReset, this, &Avatar::rigReset);
 
-    //add the purple orb
+    // add the purple orb
     createOrb();
 }
 
 void OtherAvatar::removeOrb() {
     if (qApp->getOverlays().isAddedOverlay(_otherAvatarOrbMeshPlaceholderID)) {
         qApp->getOverlays().deleteOverlay(_otherAvatarOrbMeshPlaceholderID);
-        //qCWarning(avatars_renderer) << "remove the purple orb***************************";
     }
 }
 
@@ -34,7 +33,6 @@ void OtherAvatar::updateOrbPosition() {
 }
 
 void OtherAvatar::createOrb() {
-    qCDebug(interfaceapp) << "we are in create orb otherAvatar.h";
     if (_otherAvatarOrbMeshPlaceholderID == UNKNOWN_OVERLAY_ID ||
         !qApp->getOverlays().isAddedOverlay(_otherAvatarOrbMeshPlaceholderID)) {
         _otherAvatarOrbMeshPlaceholder = std::make_shared<Sphere3DOverlay>();
@@ -49,7 +47,7 @@ void OtherAvatar::createOrb() {
         _otherAvatarOrbMeshPlaceholderID = qApp->getOverlays().addOverlay(_otherAvatarOrbMeshPlaceholder);
         // Position focus
         _otherAvatarOrbMeshPlaceholder->setWorldOrientation(glm::quat(0.0f, 0.0f, 0.0f, 1.0));
-        _otherAvatarOrbMeshPlaceholder->setWorldPosition(glm::vec3(476.0f, 500.0f, 493.0f));
+        _otherAvatarOrbMeshPlaceholder->setWorldPosition(getHead()->getPosition());
         _otherAvatarOrbMeshPlaceholder->setDimensions(glm::vec3(0.5f, 0.5f, 0.5f));
         _otherAvatarOrbMeshPlaceholder->setVisible(true);
     }

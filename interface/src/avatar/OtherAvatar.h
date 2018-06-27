@@ -17,12 +17,14 @@
 class OtherAvatar : public Avatar {
 public:
     explicit OtherAvatar(QThread* thread);
-    virtual void instantiableAvatar() override{};
+    virtual void instantiableAvatar() override { };
     void createOrb() override;
     void updateOrbPosition();
     void removeOrb();
-    std::shared_ptr<Sphere3DOverlay> _otherAvatarOrbMeshPlaceholder{ nullptr };
-    OverlayID _otherAvatarOrbMeshPlaceholderID{ UNKNOWN_OVERLAY_ID };
+
+protected:
+    std::shared_ptr<Sphere3DOverlay> _otherAvatarOrbMeshPlaceholder { nullptr };
+    OverlayID _otherAvatarOrbMeshPlaceholderID { UNKNOWN_OVERLAY_ID };
 };
 
 #endif  // hifi_OtherAvatar_h
