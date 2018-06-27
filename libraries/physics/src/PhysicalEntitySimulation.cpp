@@ -312,11 +312,26 @@ void PhysicalEntitySimulation::handleDeactivatedMotionStates(const VectorOfMotio
         assert(state);
         if (state->getType() == MOTIONSTATE_TYPE_ENTITY) {
             EntityMotionState* entityState = static_cast<EntityMotionState*>(state);
-            if (!serverlessMode) {
-                entityState->handleDeactivation();
-            }
             EntityItemPointer entity = entityState->getEntity();
             _entitiesToSort.insert(entity);
+            if (!serverlessMode) {
+                if (entity->getClientOnly()) {
+                    switch (entityState->getOwnershipState()) {
+                        case EntityMotionState::OwnershipState::PendingBid:
+                            _bids.removeFirst(entityState);
+                            entityState->clearOwnershipState();
+                            break;
+                        case EntityMotionState::OwnershipState::LocallyOwned:
+                            _owned.removeFirst(entityState);
+                            entityState->clearOwnershipState();
+                            break;
+                        default:
+                            break;
+                    }
+                } else {
+                    entityState->handleDeactivation();
+                }
+            }
         }
     }
 }

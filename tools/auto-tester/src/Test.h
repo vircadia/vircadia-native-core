@@ -37,7 +37,7 @@ class Test {
 public: 
     Test();
 
-    void startTestsEvaluation(const QString& testFolder = QString());
+    void startTestsEvaluation(const QString& testFolder = QString(), const QString& branchFromCommandLine = QString(), const QString& userFromCommandLine = QString());
     void finishTestsEvaluation(bool isRunningFromCommandline, bool interactiveMode, QProgressBar* progressBar);
 
     void createRecursiveScript();
@@ -69,12 +69,12 @@ public:
     QString getExpectedImageDestinationDirectory(const QString& filename);
     QString getExpectedImagePartialSourceDirectory(const QString& filename);
 
-    void copyJPGtoPNG(const QString& sourceJPGFullFilename, const QString& destinationPNGFullFilename);
-
 private:
     const QString TEST_FILENAME { "test.js" };
     const QString TEST_RESULTS_FOLDER { "TestResults" };
     const QString TEST_RESULTS_FILENAME { "TestResults.txt" };
+
+    const double THRESHOLD{ 0.96 };
 
     QDir imageDirectory;
 
@@ -102,9 +102,7 @@ private:
     QStringList resultImagesFullFilenames;
 
     // Used for accessing GitHub
-    const QString GIT_HUB_USER{ "highfidelity" };
     const QString GIT_HUB_REPOSITORY{ "hifi_tests" };
-    const QString GIT_HUB_BRANCH{ "master" };
 
     const QString DATETIME_FORMAT{ "yyyy-MM-dd_hh-mm-ss" };
 
@@ -115,6 +113,8 @@ private:
     //    var pathSeparator = ".";
     const QString ADVANCE_KEY{ "n" };
     const QString PATH_SEPARATOR{ "." };
+
+    bool exitWhenComplete{ false };
 };
 
 #endif // hifi_test_h

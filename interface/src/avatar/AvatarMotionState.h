@@ -59,6 +59,7 @@ public:
 
     virtual const QUuid getObjectID() const override;
 
+    virtual QString getName() const override;
     virtual QUuid getSimulatorID() const override;
 
     void setBoundingBox(const glm::vec3& corner, const glm::vec3& diagonal);
