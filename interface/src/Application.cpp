@@ -269,9 +269,6 @@ public:
         }
         _renderContext->doneCurrent();
 
-        // Deleting the object with automatically shutdown the thread
-        connect(qApp, &QCoreApplication::aboutToQuit, this, &QObject::deleteLater);
-
         // Transfer to a new thread
         moveToNewNamedThread(this, "RenderThread", [this](QThread* renderThread) {
             hifi::qt::addBlockingForbiddenThread("Render", renderThread);
@@ -2590,6 +2587,8 @@ Application::~Application() {
 
     // Can't log to file passed this point, FileLogger about to be deleted
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
+    
+    _renderEventHandler->deleteLater();
 }
 
 void Application::initializeGL() {
