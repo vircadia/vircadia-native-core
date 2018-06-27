@@ -153,6 +153,12 @@
                     max: 5
                 },
                 {
+                    id: "speedSpread",
+                    name: "Speed Spread",
+                    type: "SliderFloat",
+                    max: 5
+                },
+                {
                     type: "Row"
                 },
                 {

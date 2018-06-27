@@ -64,8 +64,8 @@ void RenderDeferredTask::configure(const Config& config)
 }
 
 const render::Varying RenderDeferredTask::addSelectItemJobs(JobModel& task, const char* selectionName,
-                                                            const render::Varying& metas, 
-                                                            const render::Varying& opaques, 
+                                                            const render::Varying& metas,
+                                                            const render::Varying& opaques,
                                                             const render::Varying& transparents) {
     const auto selectMetaInput = SelectItems::Inputs(metas, Varying(), std::string()).asVarying();
     const auto selectedMetas = task.addJob<SelectItems>("MetaSelection", selectMetaInput, selectionName);
@@ -75,7 +75,7 @@ const render::Varying RenderDeferredTask::addSelectItemJobs(JobModel& task, cons
     return task.addJob<SelectItems>("TransparentSelection", selectItemInput, selectionName);
 }
 
-void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
+void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output, bool renderShadows) {
     const auto& items = input.get<Input>();
     auto fadeEffect = DependencyManager::get<FadeEffect>();
 
@@ -168,7 +168,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto deferredLightingInputs = RenderDeferred::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
         surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource, lightClusters, hazeModel).asVarying();
     
-    task.addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
+    task.addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs, renderShadows);
 
 
     // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job

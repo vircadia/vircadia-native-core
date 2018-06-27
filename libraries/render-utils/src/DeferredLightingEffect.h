@@ -127,7 +127,8 @@ public:
         const graphics::HazePointer& haze,
         const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
         const AmbientOcclusionFramebufferPointer& ambientOcclusionFramebuffer,
-        const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource);
+        const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource,
+        bool renderShadows);
 };
 
 class RenderDeferredLocals {
@@ -166,7 +167,8 @@ public:
     using Config = RenderDeferredConfig;
     using JobModel = render::Job::ModelI<RenderDeferred, Inputs, Config>;
 
-    RenderDeferred();
+    RenderDeferred() {}
+    RenderDeferred(bool renderShadows) : _renderShadows(renderShadows) {}
 
     void configure(const Config& config);
 
@@ -178,6 +180,9 @@ public:
 
 protected:
     gpu::RangeTimerPointer _gpuTimer;
+
+private:
+    bool _renderShadows { false };
 };
 
 class DefaultLightingSetup {
