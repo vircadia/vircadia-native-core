@@ -26,10 +26,6 @@
 #include "Head.h"
 #include "SkeletonModel.h"
 #include "Rig.h"
-#include "../../interface/src/ui/overlays/Overlays.h"
-#include "../../interface/src/ui/overlays/Sphere3DOverlay.h"
-
-
 #include <ThreadSafeValueCache.h>
 
 namespace render {
@@ -37,9 +33,7 @@ namespace render {
     template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar);
     template <> void payloadRender(const AvatarSharedPointer& avatar, RenderArgs* args);
     template <> uint32_t metaFetchMetaSubItems(const AvatarSharedPointer& avatar, ItemIDs& subItems);
-}  
-
-// namespace render
+}
 
 static const float SCALING_RATIO = .05f;
 
@@ -90,7 +84,7 @@ public:
                             render::Transaction& transaction);
 
     void removeFromScene(AvatarSharedPointer self, const render::ScenePointer& scene,
-                                 render::Transaction& transaction);
+                                render::Transaction& transaction);
 
     void updateRenderItem(render::Transaction& transaction);
 
@@ -113,7 +107,7 @@ public:
     float getLODDistance() const;
 
     virtual bool isMyAvatar() const override { return false; }
-    virtual void createOrb() {}
+    virtual void createOrb() { }
 
     virtual QVector<glm::quat> getJointRotations() const override;
     using AvatarData::getJointRotation;
@@ -168,16 +162,12 @@ public:
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
 
     void updateDisplayNameAlpha(bool showDisplayName);
-    virtual void setSessionDisplayName(const QString& sessionDisplayName) override { };  // no-op
+    virtual void setSessionDisplayName(const QString& sessionDisplayName) override { }; // no-op
 
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
 
-    static void renderJointConnectingCone(gpu::Batch& batch,
-                                          glm::vec3 position1,
-                                          glm::vec3 position2,
-                                          float radius1,
-                                          float radius2,
-                                          const glm::vec4& color);
+    static void renderJointConnectingCone(gpu::Batch& batch, glm::vec3 position1, glm::vec3 position2, 
+                                               float radius1, float radius2, const glm::vec4& color);
 
     virtual void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) { }
 
@@ -246,7 +236,7 @@ public:
     /// \param vector position to be scaled. Will store the result
     void scaleVectorRelativeToPosition(glm::vec3& positionToScale) const;
 
-    void slamPosition(const glm::vec3& position);
+    void slamPosition(const glm::vec3 &position);
     virtual void updateAttitude(const glm::quat& orientation) override;
 
     // Call this when updating Avatar position with a delta.  This will allow us to
@@ -328,7 +318,7 @@ public:
     bool hasNewJointData() const { return _hasNewJointData; }
 
     float getBoundingRadius() const;
-    AABox getRenderBounds() const;  // THis call is accessible from rendering thread only to report the bounding box of the avatar during the frame.
+    AABox getRenderBounds() const; // THis call is accessible from rendering thread only to report the bounding box of the avatar during the frame.
 
     void addToScene(AvatarSharedPointer self, const render::ScenePointer& scene);
     void ensureInScene(AvatarSharedPointer self, const render::ScenePointer& scene);
@@ -435,13 +425,9 @@ protected:
     float getUnscaledEyeHeightFromSkeleton() const;
     void buildUnscaledEyeHeightCache();
     void clearUnscaledEyeHeightCache();
-    virtual const QString& getSessionDisplayNameForTransport() const override {
-        return _empty;
-    }  // Save a tiny bit of bandwidth. Mixer won't look at what we send.
+    virtual const QString& getSessionDisplayNameForTransport() const override { return _empty; } // Save a tiny bit of bandwidth. Mixer won't look at what we send.
     QString _empty{};
-    virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) override {
-        _sessionDisplayName = sessionDisplayName;
-    }  // don't use no-op setter!
+    virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) override { _sessionDisplayName = sessionDisplayName; }  // don't use no-op setter!
 
     SkeletonModelPointer _skeletonModel;
 
@@ -449,7 +435,7 @@ protected:
     void withValidJointIndicesCache(std::function<void()> const& worker) const;
     mutable QHash<QString, int> _modelJointIndicesCache;
     mutable QReadWriteLock _modelJointIndicesCacheLock;
-    mutable bool _modelJointsCached{ false };
+    mutable bool _modelJointsCached { false };
 
     glm::vec3 _skeletonOffset;
     std::vector<std::shared_ptr<Model>> _attachmentModels;
@@ -457,7 +443,7 @@ protected:
     std::vector<std::shared_ptr<Model>> _attachmentsToRemove;
     std::vector<std::shared_ptr<Model>> _attachmentsToDelete;
 
-    float _bodyYawDelta{ 0.0f };  // degrees/sec
+    float _bodyYawDelta { 0.0f };  // degrees/sec
 
     // These position histories and derivatives are in the world-frame.
     // The derivatives are the MEASURED results of all external and internal forces
@@ -473,8 +459,8 @@ protected:
     glm::vec3 _angularAcceleration;
     glm::quat _lastOrientation;
 
-    glm::vec3 _worldUpDirection{ Vectors::UP };
-    bool _moving{ false };  ///< set when position is changing
+    glm::vec3 _worldUpDirection { Vectors::UP };
+    bool _moving { false };  ///< set when position is changing
 
     // protected methods...
     bool isLookingAtMe(AvatarSharedPointer avatar) const;
@@ -500,10 +486,10 @@ protected:
 
     render::ItemID _renderItemID{ render::Item::INVALID_ITEM_ID };
 
-    ThreadSafeValueCache<glm::vec3> _leftPalmPositionCache{ glm::vec3() };
-    ThreadSafeValueCache<glm::quat> _leftPalmRotationCache{ glm::quat() };
-    ThreadSafeValueCache<glm::vec3> _rightPalmPositionCache{ glm::vec3() };
-    ThreadSafeValueCache<glm::quat> _rightPalmRotationCache{ glm::quat() };
+    ThreadSafeValueCache<glm::vec3> _leftPalmPositionCache { glm::vec3() };
+    ThreadSafeValueCache<glm::quat> _leftPalmRotationCache { glm::quat() };
+    ThreadSafeValueCache<glm::vec3> _rightPalmPositionCache { glm::vec3() };
+    ThreadSafeValueCache<glm::quat> _rightPalmRotationCache { glm::quat() };
 
     // Some rate tracking support
     RateCounter<> _simulationRate;
@@ -514,36 +500,36 @@ protected:
 protected:
     class AvatarEntityDataHash {
     public:
-        AvatarEntityDataHash(uint32_t h) : hash(h){};
-        uint32_t hash{ 0 };
-        bool success{ false };
+        AvatarEntityDataHash(uint32_t h) : hash(h) {};
+        uint32_t hash { 0 };
+        bool success { false };
     };
 
     using MapOfAvatarEntityDataHashes = QMap<QUuid, AvatarEntityDataHash>;
     MapOfAvatarEntityDataHashes _avatarEntityDataHashes;
 
-    uint64_t _lastRenderUpdateTime{ 0 };
-    int _leftPointerGeometryID{ 0 };
-    int _rightPointerGeometryID{ 0 };
-    int _nameRectGeometryID{ 0 };
-    bool _initialized{ false };
-    bool _isLookAtTarget{ false };
-    bool _isAnimatingScale{ false };
-    bool _mustFadeIn{ false };
-    bool _isFading{ false };
-    bool _reconstructSoftEntitiesJointMap{ false };
-    float _modelScale{ 1.0f };
+    uint64_t _lastRenderUpdateTime { 0 };
+    int _leftPointerGeometryID { 0 };
+    int _rightPointerGeometryID { 0 };
+    int _nameRectGeometryID { 0 };
+    bool _initialized { false };
+    bool _isLookAtTarget { false };
+    bool _isAnimatingScale { false };
+    bool _mustFadeIn { false };
+    bool _isFading { false };
+    bool _reconstructSoftEntitiesJointMap { false };
+    float _modelScale { 1.0f };
 
     static int _jointConesID;
 
     int _voiceSphereID;
 
-    AvatarPhysicsCallback _physicsCallback{ nullptr };
+    AvatarPhysicsCallback _physicsCallback { nullptr };
 
-    float _displayNameTargetAlpha{ 1.0f };
-    float _displayNameAlpha{ 1.0f };
+    float _displayNameTargetAlpha { 1.0f };
+    float _displayNameAlpha { 1.0f };
 
-    ThreadSafeValueCache<float> _unscaledEyeHeightCache{ DEFAULT_AVATAR_EYE_HEIGHT };
+    ThreadSafeValueCache<float> _unscaledEyeHeightCache { DEFAULT_AVATAR_EYE_HEIGHT };
 
     std::unordered_map<std::string, graphics::MultiMaterial> _materials;
     std::mutex _materialsLock;
@@ -559,4 +545,4 @@ protected:
     static const float ATTACHMENT_LOADING_PRIORITY;
 };
 
-#endif  // hifi_Avatar_h
+#endif // hifi_Avatar_h
