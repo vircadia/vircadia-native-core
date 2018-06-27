@@ -70,9 +70,9 @@ def jniFolder = new File(appDir, 'src/main/jniLibs/arm64-v8a')
 def baseUrl = 'https://hifi-public.s3.amazonaws.com/dependencies/android/'
 def breakpadDumpSymsDir = new File("${appDir}/build/tmp/breakpadDumpSyms")
 
-def qtFile='qt-5.9.3_linux_armv8-libcpp_openssl.tgz'
-def qtChecksum='04599670ccca84bd2b15f6915568eb2d'
-def qtVersionId='8QbCma4ryEPgBYn_8kgYgB10IvNx9I1W'
+def qtFile='qt-5.11.1_linux_armv8-libcpp_openssl.tgz'
+def qtChecksum='f312c47cd8b8dbca824c32af4eec5e66'
+def qtVersionId='nyCGcb91S4QbYeJhUkawO5x1lrLdSNB_'
 if (Os.isFamily(Os.FAMILY_MAC)) {
     qtFile = 'qt-5.9.3_osx_armv8-libcpp_openssl.tgz'
     qtChecksum='4b02de9d67d6bfb202355a808d2d9c59'
