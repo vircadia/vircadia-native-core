@@ -250,7 +250,7 @@ public:
     Q_ENUM(DriveKeys)
 
     explicit MyAvatar(QThread* thread);
-    ~MyAvatar() override;
+    virtual ~MyAvatar();
 
     void instantiableAvatar() override {};
     void registerMetaTypes(ScriptEnginePointer engine);
