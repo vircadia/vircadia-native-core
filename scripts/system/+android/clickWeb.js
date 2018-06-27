@@ -21,59 +21,59 @@ function printd(str) {
         print("[clickWeb.js] " + str);
 }
 
+function intersectsWebOverlay(intersection) {
+    return intersection && intersection.intersects && intersection.overlayID && 
+            Overlays.getOverlayType(intersection.overlayID) == "web3d";
+}
 
-function findOverlayIDRayIntersection(pickRay) {
-    // Check 3D overlays and entities. Argument is an object with origin and direction.
-    var rayIntersection = Overlays.findRayIntersection(pickRay);
-    if (rayIntersection && rayIntersection.intersects && rayIntersection.overlayID &&
-        Overlays.getOverlayType(rayIntersection.overlayID) == "web3d") {
-        return rayIntersection.overlayID;
+function intersectsWebEntity(intersection) {
+    if (intersection && intersection.intersects && intersection.entityID) {
+        var properties = Entities.getEntityProperties(intersection.entityID, ["type", "sourceUrl"]);
+        return properties.type && properties.type == "Web" && properties.sourceUrl;
     }
     return false;
 }
 
-
-function findEntityIDRayIntersection(pickRay) {
+function findRayIntersection(pickRay) {
     // Check 3D overlays and entities. Argument is an object with origin and direction.
-    var rayIntersection = Entities.findRayIntersection(pickRay, true);
-    if (rayIntersection.entityID) {
-        var properties = Entities.getEntityProperties(rayIntersection.entityID, ["type", "sourceUrl"]);
-        if (properties.type && properties.type == "Web" && properties.sourceUrl) {
-            return rayIntersection.entityID;
-        }
+    var overlayRayIntersection = Overlays.findRayIntersection(pickRay);
+    var entityRayIntersection = Entities.findRayIntersection(pickRay, true);
+    var isOverlayInters = intersectsWebOverlay(overlayRayIntersection);
+    var isEntityInters = intersectsWebEntity(entityRayIntersection);
+    if (isOverlayInters && 
+        (!isEntityInters || 
+          overlayRayIntersection.distance < entityRayIntersection.distance)) {
+        return { type: 'overlay', obj: overlayRayIntersection };
+    } else if (isEntityInters &&
+        (!isOverlayInters ||
+          entityRayIntersection.distance < overlayRayIntersection.distance)) {
+        return { type: 'entity', obj: entityRayIntersection };
     }
     return false;
 }
 
 function touchBegin(event) {
-    var overlayID = findOverlayIDRayIntersection(Camera.computePickRay(event.x, event.y));
-    if (overlayID) {
-        touchOverlayID = overlayID;
+    var intersection = findRayIntersection(Camera.computePickRay(event.x, event.y));
+    if (intersection && intersection.type == 'overlay') {
+        touchOverlayID = intersection.obj.overlayID;
         touchEntityID = null;
-        return;
-    }
-    var entityID = findEntityIDRayIntersection(Camera.computePickRay(event.x, event.y));
-    if (entityID) {
-        touchEntityID = entityID;
+    } else if (intersection && intersection.type == 'entity') {
+        touchEntityID = intersection.obj.entityID;
         touchOverlayID = null;
-        return;
     }
 }
 
 function touchEnd(event) {
-    var overlayID = findOverlayIDRayIntersection(Camera.computePickRay(event.x, event.y));
-    if (touchOverlayID && overlayID == touchOverlayID) {
+    var intersection = findRayIntersection(Camera.computePickRay(event.x, event.y));
+    if (intersection && intersection.type == 'overlay' && touchOverlayID == intersection.obj.overlayID) {
         var propertiesToGet = {};
         propertiesToGet[overlayID] = ['url'];
         var properties = Overlays.getOverlaysProperties(propertiesToGet);
         if (properties[overlayID].url) {
             Window.openUrl(properties[overlayID].url);
         }
-    }
-
-    var entityID = findEntityIDRayIntersection(Camera.computePickRay(event.x, event.y));
-    if (touchEntityID && entityID == touchEntityID) {
-        var properties = Entities.getEntityProperties(entityID, ["sourceUrl"]);
+    } else if (intersection && intersection.type == 'entity' && touchEntityID == intersection.obj.entityID) {
+        var properties = Entities.getEntityProperties(touchEntityID, ["sourceUrl"]);
         if (properties.sourceUrl) {
             Window.openUrl(properties.sourceUrl);
         }
