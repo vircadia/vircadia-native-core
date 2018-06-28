@@ -46,7 +46,7 @@ void Space::processResets(const Transaction::Resets& transactions) {
         auto proxyID = std::get<0>(reset);
 
         // Guard against proxyID being past the end of the list.
-        if (proxyID >= _proxies.size() || proxyID >= _owners.size()) {
+        if (proxyID < 0 || proxyID >= (int32_t)_proxies.size() || proxyID >= (int32_t)_owners.size()) {
             continue;
         }
         auto& item = _proxies[proxyID];
