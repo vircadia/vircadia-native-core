@@ -220,30 +220,56 @@ void Head::calculateMouthShapes(float deltaTime) {
 
 void Head::applyEyelidOffset(glm::quat headOrientation) {
     // Adjusts the eyelid blendshape coefficients so that the eyelid follows the iris as the head pitches.
-
-    if (disableEyelidAdjustment) {
+    bool isBlinking = (_rightEyeBlinkVelocity != 0.0f && _rightEyeBlinkVelocity != 0.0f);
+    if (disableEyelidAdjustment || isBlinking) {
         return;
     }
+
+    const std::vector<QString> eyeBlinkBlendShapes = { "EyeBlink_L", "EyeBlink_R" };
+    const std::vector<QString> eyeOpenBlendShapes = { "EyeOpen_L", "EyeOpen_R" };
+    const std::vector<QString> browsBlendShapes = { "BrowsU_L", "BrowsU_R" };
+
+    const float EYE_PITCH_TO_COEFFICIENT = 3.5f;  // Empirically determined
+    const float MAX_EYELID_OFFSET = 1.5f;
+    const float BLINK_DOWN_MULTIPLIER = 0.25f;
+    const float OPEN_DOWN_MULTIPLIER = 0.3f;
+    const float BROW_UP_MULTIPLIER = 0.5f;
 
     glm::quat eyeRotation = rotationBetween(headOrientation * IDENTITY_FORWARD, getLookAtPosition() - _eyePosition);
     eyeRotation = eyeRotation * glm::angleAxis(safeEulerAngles(headOrientation).y, IDENTITY_UP);  // Rotation w.r.t. head
     float eyePitch = safeEulerAngles(eyeRotation).x;
+    float eyelidOffset = glm::clamp(abs(eyePitch * EYE_PITCH_TO_COEFFICIENT), 0.0f, MAX_EYELID_OFFSET);
 
-    const float EYE_PITCH_TO_COEFFICIENT = 1.6f;  // Empirically determined
-    const float MAX_EYELID_OFFSET = 0.8f;  // So that don't fully close eyes when looking way down
-    float eyelidOffset = glm::clamp(-eyePitch * EYE_PITCH_TO_COEFFICIENT, -1.0f, MAX_EYELID_OFFSET);
+    std::vector<int> eyeBlinkIndices, eyeOpenIndices, browsIndices;
 
-    for (int i = 0; i < 2; i++) {
-        const int LEFT_EYE = 8;
-        float eyeCoefficient = _transientBlendshapeCoefficients[i] - _transientBlendshapeCoefficients[LEFT_EYE + i];
-        eyeCoefficient = glm::clamp(eyelidOffset + eyeCoefficient * (1.0f - eyelidOffset), -1.0f, 1.0f);
-        if (eyeCoefficient > 0.0f) {
-            _transientBlendshapeCoefficients[i] = eyeCoefficient;
-            _transientBlendshapeCoefficients[LEFT_EYE + i] = 0.0f;
+    getBlendshapeIndices(eyeBlinkBlendShapes, eyeBlinkIndices);
+    getBlendshapeIndices(eyeOpenBlendShapes, eyeOpenIndices);
+    getBlendshapeIndices(browsBlendShapes, browsIndices);
 
-        } else {
-            _transientBlendshapeCoefficients[i] = 0.0f;
-            _transientBlendshapeCoefficients[LEFT_EYE + i] = -eyeCoefficient;
+    bool isLookingUp = (eyePitch > 0);
+
+    for (auto& blinkIndex : eyeBlinkIndices) {
+        float lookingUpCoefficient = -eyelidOffset;
+        float lookingDownCoefficient = BLINK_DOWN_MULTIPLIER * eyelidOffset;
+        if (blinkIndex >= 0 && blinkIndex < _transientBlendshapeCoefficients.size()) {
+            _transientBlendshapeCoefficients[blinkIndex] = isLookingUp ? lookingUpCoefficient : lookingDownCoefficient;
+        }
+        
+    }
+
+    for (auto& openIndex : eyeOpenIndices) {
+        float lookingUpCoefficient = eyelidOffset;
+        float lookingDownCoefficient = OPEN_DOWN_MULTIPLIER * eyelidOffset;
+        if (openIndex >= 0 && openIndex < _transientBlendshapeCoefficients.size()) {
+            _transientBlendshapeCoefficients[openIndex] = isLookingUp ? lookingUpCoefficient : lookingDownCoefficient;
+        }
+    }
+    
+    for (auto& browIndex : browsIndices) {
+        float lookingUpCoefficient = BROW_UP_MULTIPLIER * eyelidOffset;
+        float lookingDownCoefficient = 0.0f;
+        if (browIndex >= 0 && browIndex < _transientBlendshapeCoefficients.size()) {
+            _transientBlendshapeCoefficients[browIndex] = isLookingUp ? lookingUpCoefficient : lookingDownCoefficient;
         }
     }
 }

@@ -55,6 +55,8 @@ public:
     void setOrientation(const glm::quat& orientation);
 
     void setBlendshape(QString name, float val);
+    int getBlendshapeIndex(const QString& name);
+    void getBlendshapeIndices(const std::vector<QString>& blendShapeNames, std::vector<int>& indexes);
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
     const QVector<float>& getSummedBlendshapeCoefficients();
     int getNumSummedBlendshapeCoefficients() const;
@@ -114,6 +116,7 @@ protected:
     QVector<float> _blendshapeCoefficients;
     QVector<float> _transientBlendshapeCoefficients;
     QVector<float> _summedBlendshapeCoefficients;
+    QMap<QString, int> _blendshapeLookupMap;
     AvatarData* _owningAvatar;
 
 private:
@@ -122,6 +125,7 @@ private:
     HeadData& operator= (const HeadData&);
 
     void setHeadOrientation(const glm::quat& orientation);
+    void computeBlendshapesLookupMap();
 };
 
 #endif // hifi_HeadData_h
