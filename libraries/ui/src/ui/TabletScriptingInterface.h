@@ -443,6 +443,9 @@ protected:
     bool _showRunningScripts { false };
 
     TabletButtonListModel _buttons;
+
+private:
+    void stopQMLSource();
 };
 
 Q_DECLARE_METATYPE(TabletProxy*);

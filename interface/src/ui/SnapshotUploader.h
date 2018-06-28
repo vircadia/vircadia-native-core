@@ -21,10 +21,10 @@ class SnapshotUploader : public QObject {
 public:
     SnapshotUploader(QUrl inWorldLocation, QString pathname);
 public slots:
-    void uploadSuccess(QNetworkReply& reply);
-    void uploadFailure(QNetworkReply& reply);
-    void createStorySuccess(QNetworkReply& reply);
-    void createStoryFailure(QNetworkReply& reply);
+    void uploadSuccess(QNetworkReply* reply);
+    void uploadFailure(QNetworkReply* reply);
+    void createStorySuccess(QNetworkReply* reply);
+    void createStoryFailure(QNetworkReply* reply);
 private:
     QUrl _inWorldLocation;
     QString _pathname;

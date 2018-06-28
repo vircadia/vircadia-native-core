@@ -315,7 +315,7 @@ Grabber.prototype.pressEvent = function(event) {
         return;
     }
 
-    if (event.isLeftButton !== true || event.isRightButton === true || event.isMiddleButton === true) {
+    if (event.button !== "LEFT") {
         return;
     }
 
@@ -419,7 +419,7 @@ Grabber.prototype.pressEvent = function(event) {
 };
 
 Grabber.prototype.releaseEvent = function(event) {
-    if ((event.isLeftButton!==true || event.isRightButton===true || event.isMiddleButton===true) && !HMD.active) {
+    if (event.button !== "LEFT" && !HMD.active) {
         return;
     }
 

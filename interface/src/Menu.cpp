@@ -283,7 +283,7 @@ Menu::Menu() {
     MenuWrapper* settingsMenu = addMenu("Settings");
 
     // Settings > General...
-    action = addActionToQMenuAndActionHash(settingsMenu, MenuOption::Preferences, Qt::CTRL | Qt::Key_G, nullptr, nullptr, QAction::PreferencesRole);
+    action = addActionToQMenuAndActionHash(settingsMenu, MenuOption::Preferences, Qt::CTRL | Qt::Key_G, nullptr, nullptr);
     connect(action, &QAction::triggered, [] {
         qApp->showDialog(QString("hifi/dialogs/GeneralPreferencesDialog.qml"),
             QString("hifi/tablet/TabletGeneralPreferences.qml"), "GeneralPreferencesDialog");

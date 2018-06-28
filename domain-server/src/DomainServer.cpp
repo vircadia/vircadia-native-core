@@ -514,13 +514,13 @@ void DomainServer::getTemporaryName(bool force) {
 
     // request a temporary name from the metaverse
     auto accountManager = DependencyManager::get<AccountManager>();
-    JSONCallbackParameters callbackParameters { this, "handleTempDomainSuccess", this, "handleTempDomainError" };
+    JSONCallbackParameters callbackParameters { this, "handleTempDomainSuccess", "handleTempDomainError" };
     accountManager->sendRequest("/api/v1/domains/temporary", AccountManagerAuth::None,
                                 QNetworkAccessManager::PostOperation, callbackParameters);
 }
 
-void DomainServer::handleTempDomainSuccess(QNetworkReply& requestReply) {
-    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+void DomainServer::handleTempDomainSuccess(QNetworkReply* requestReply) {
+    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply->readAll()).object();
 
     // grab the information for the new domain
     static const QString DATA_KEY = "data";
@@ -565,7 +565,7 @@ void DomainServer::handleTempDomainSuccess(QNetworkReply& requestReply) {
     }
 }
 
-void DomainServer::handleTempDomainError(QNetworkReply& requestReply) {
+void DomainServer::handleTempDomainError(QNetworkReply* requestReply) {
     qWarning() << "A temporary name was requested but there was an error creating one. Please try again via domain-server relaunch"
         << "or from the domain-server settings.";
 }
@@ -1345,7 +1345,7 @@ void DomainServer::sendPendingTransactionsToServer() {
 
         JSONCallbackParameters transactionCallbackParams;
 
-        transactionCallbackParams.jsonCallbackReceiver = this;
+        transactionCallbackParams.callbackReceiver = this;
         transactionCallbackParams.jsonCallbackMethod = "transactionJSONCallback";
 
         while (i != _pendingAssignmentCredits.end()) {
@@ -1449,11 +1449,11 @@ void DomainServer::sendHeartbeatToMetaverse(const QString& networkAddress) {
     DependencyManager::get<AccountManager>()->sendRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(getID())),
                                               AccountManagerAuth::Optional,
                                               QNetworkAccessManager::PutOperation,
-                                              JSONCallbackParameters(nullptr, QString(), this, "handleMetaverseHeartbeatError"),
+                                              JSONCallbackParameters(this, QString(), "handleMetaverseHeartbeatError"),
                                               domainUpdateJSON.toUtf8());
 }
 
-void DomainServer::handleMetaverseHeartbeatError(QNetworkReply& requestReply) {
+void DomainServer::handleMetaverseHeartbeatError(QNetworkReply* requestReply) {
     if (!_metaverseHeartbeatTimer) {
         // avoid rehandling errors from the same issue
         return;
@@ -1462,13 +1462,13 @@ void DomainServer::handleMetaverseHeartbeatError(QNetworkReply& requestReply) {
     // only attempt to grab a new temporary name if we're already a temporary domain server
     if (_type == MetaverseTemporaryDomain) {
         // check if we need to force a new temporary domain name
-        switch (requestReply.error()) {
+        switch (requestReply->error()) {
                 // if we have a temporary domain with a bad token, we get a 401
             case QNetworkReply::NetworkError::AuthenticationRequiredError: {
                 static const QString DATA_KEY = "data";
                 static const QString TOKEN_KEY = "api_key";
 
-                QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+                QJsonObject jsonObject = QJsonDocument::fromJson(requestReply->readAll()).object();
                 auto tokenFailure = jsonObject[DATA_KEY].toObject()[TOKEN_KEY];
 
                 if (!tokenFailure.isNull()) {
@@ -1531,9 +1531,8 @@ void DomainServer::sendICEServerAddressToMetaverseAPI() {
 
     // make sure we hear about failure so we can retry
     JSONCallbackParameters callbackParameters;
-    callbackParameters.errorCallbackReceiver = this;
+    callbackParameters.callbackReceiver = this;
     callbackParameters.errorCallbackMethod = "handleFailedICEServerAddressUpdate";
-    callbackParameters.jsonCallbackReceiver = this;
     callbackParameters.jsonCallbackMethod = "handleSuccessfulICEServerAddressUpdate";
 
     static bool printedIceServerMessage = false;
@@ -1552,7 +1551,7 @@ void DomainServer::sendICEServerAddressToMetaverseAPI() {
                                                           domainUpdateJSON.toUtf8());
 }
 
-void DomainServer::handleSuccessfulICEServerAddressUpdate(QNetworkReply& requestReply) {
+void DomainServer::handleSuccessfulICEServerAddressUpdate(QNetworkReply* requestReply) {
     _sendICEServerAddressToMetaverseAPIInProgress = false;
     if (_sendICEServerAddressToMetaverseAPIRedo) {
         qDebug() << "ice-server address updated with metaverse, but has since changed.  redoing update...";
@@ -1563,7 +1562,7 @@ void DomainServer::handleSuccessfulICEServerAddressUpdate(QNetworkReply& request
     }
 }
 
-void DomainServer::handleFailedICEServerAddressUpdate(QNetworkReply& requestReply) {
+void DomainServer::handleFailedICEServerAddressUpdate(QNetworkReply* requestReply) {
     _sendICEServerAddressToMetaverseAPIInProgress = false;
     if (_sendICEServerAddressToMetaverseAPIRedo) {
         // if we have new data, retry right away, even though the previous attempt didn't go well.
@@ -1573,7 +1572,7 @@ void DomainServer::handleFailedICEServerAddressUpdate(QNetworkReply& requestRepl
         const int ICE_SERVER_UPDATE_RETRY_MS = 2 * 1000;
 
         qWarning() << "Failed to update ice-server address with High Fidelity Metaverse - error was"
-                   << requestReply.errorString();
+                   << requestReply->errorString();
         qWarning() << "\tRe-attempting in" << ICE_SERVER_UPDATE_RETRY_MS / 1000 << "seconds";
 
         QTimer::singleShot(ICE_SERVER_UPDATE_RETRY_MS, this, SLOT(sendICEServerAddressToMetaverseAPI()));
