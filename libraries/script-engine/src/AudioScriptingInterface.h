@@ -23,9 +23,11 @@ class AudioScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
+    Q_PROPERTY(bool isStereoInput READ isStereoInput WRITE setStereoInput NOTIFY isStereoInputChanged)
+
 public:
     virtual ~AudioScriptingInterface() {}
-    void setLocalAudioInterface(AbstractAudioInterface* audioInterface) { _localAudioInterface = audioInterface; }
+    void setLocalAudioInterface(AbstractAudioInterface* audioInterface);
 
 protected:
     AudioScriptingInterface() {}
@@ -52,7 +54,7 @@ protected:
     /**jsdoc
      * @function Audio.setStereoInput
      * @param {boolean} stereo
-     * @returns {boolean} 
+     * @returns {boolean}
      */
     Q_INVOKABLE bool setStereoInput(bool stereo);
 
@@ -113,6 +115,13 @@ signals:
      * @returns {Signal} 
      */
     void inputReceived(const QByteArray& inputSamples);
+
+    /**jsdoc
+    * @function Audio.isStereoInputChanged
+    * @param {boolean} isStereo
+    * @returns {Signal}
+    */
+    void isStereoInputChanged(bool isStereo);
 
 private:
     AbstractAudioInterface* _localAudioInterface { nullptr };
