@@ -285,6 +285,7 @@ function printToPolaroid(image_url) {
     var polaroid_url = image_url;                  
 
     var model_pos = Vec3.sum(MyAvatar.position, Vec3.multiply(1.25, Quat.getForward(MyAvatar.orientation)));
+    model_pos.y += 0.2; // Print a bit closer to the head
     
     var model_q1 = MyAvatar.orientation;
     var model_q2 = Quat.angleAxis(90, Quat.getRight(model_q1));
@@ -294,11 +295,11 @@ function printToPolaroid(image_url) {
         "type": 'Model',
         "shapeType": 'box',
 
-        "name": "New Snapshot",
-        "description": "Printed from Snaps",                               
+        "name": "Snapshot by " + MyAvatar.sessionDisplayName,
+        "description": "Printed from SNAP app",                               
         "modelURL": POLAROID_MODEL_URL,
 
-        "dimensions": { "x": 0.5667, "y": 0.0212, "z": 0.4176 },
+        "dimensions": { "x": 0.5667, "y": 0.042, "z": 0.4176 },
         "position": model_pos,
         "rotation": model_rot,
 
@@ -306,9 +307,9 @@ function printToPolaroid(image_url) {
 
         "density": 200,
         "restitution": 0.15,                            
-        "gravity": { "x": 0, "y": -4.5, "z": 0 },
+        "gravity": { "x": 0, "y": -2.5, "z": 0 },
         
-        "velocity": { "x": 0, "y": 3.5, "z": 0 },
+        "velocity": { "x": 0, "y": 1.95, "z": 0 },
         "angularVelocity": { "x": -1.0, "y": 0, "z": -1.3 },
 
         "dynamic": true, 
