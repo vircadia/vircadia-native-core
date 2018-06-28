@@ -17,7 +17,6 @@ var SNAPSHOT_DELAY = 500; // 500ms
 var FINISH_SOUND_DELAY = 350;
 var resetOverlays;
 var reticleVisible;
-var clearOverlayWhenMoving;
 
 var buttonName = "SNAP";
 var buttonConnected = false;
@@ -438,11 +437,6 @@ function takeSnapshot() {
     isUploadingPrintableStill = true;
     updatePrintPermissions();
 
-    // Raising the desktop for the share dialog at end will interact badly with clearOverlayWhenMoving.
-    // Turn it off now, before we start futzing with things (and possibly moving).
-    clearOverlayWhenMoving = MyAvatar.getClearOverlayWhenMoving(); // Do not use Settings. MyAvatar keeps a separate copy.
-    MyAvatar.setClearOverlayWhenMoving(false);
-
     // We will record snapshots based on the starting location. That could change, e.g., when recording a .gif.
     // Even the domainID could change (e.g., if the user falls into a teleporter while recording).
     href = location.href;
@@ -544,9 +538,6 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
     // last element in data array tells dialog whether we can share or not
     Settings.setValue("previousStillSnapPath", pathStillSnapshot);
 
-    if (clearOverlayWhenMoving) {
-        MyAvatar.setClearOverlayWhenMoving(true); // not until after the share dialog
-    }
     HMD.openTablet();
 
     isDomainOpen(domainID, function (canShare) {
@@ -590,9 +581,6 @@ function processingGifStarted(pathStillSnapshot) {
     }
     Settings.setValue("previousStillSnapPath", pathStillSnapshot);
 
-    if (clearOverlayWhenMoving) {
-        MyAvatar.setClearOverlayWhenMoving(true); // not until after the share dialog
-    }
     HMD.openTablet();
     
     isDomainOpen(domainID, function (canShare) {
