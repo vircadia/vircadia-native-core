@@ -3112,11 +3112,17 @@ static bool headAngularVelocityBelowThreshold(glm::vec3 angularVelocity) {
                           << " z: " << angularVelocity.z;
     return isBelowThreshold;
 }
+
 /*
-bool MyAvatar::withinThresholdOfStandingHeightMode(float newReading) {
+bool MyAvatar::isWithinThresholdHeightMode(float newMode, float newReading) {
+    const float MODE_HEIGHT_THRESHOLD = 0.3f;
+    return newMode <
+}
+*/
+float MyAvatar::computeStandingHeightMode(float newReading) {
     const float CENTIMETERS_PER_METER = 100.0f;
     const float MODE_CORRECTION_FACTOR = 0.02f;
-    const float MODE_HEIGHT_THRESHOLD = 0.3f;
+    
 
     //first add the number to the mode array
     for (int i = 0; i < (SIZE_OF_MODE_ARRAY - 1); i++) {
@@ -3143,9 +3149,9 @@ bool MyAvatar::withinThresholdOfStandingHeightMode(float newReading) {
             return (newReading - MODE_CORRECTION_FACTOR);
         }
     }
-    //return (diffFromMode < MODE_HEIGHT_THRESHOLD);
+    return _currentMode;
 }
-*/
+
 float MyAvatar::getUserHeight() const {
     return _userHeight.get();
 }
@@ -3377,7 +3383,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar,
         }
 
         headAngularVelocityBelowThreshold(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getAngularVelocity());
-
+        float temp = myAvatar.computeStandingHeightMode(0.01f);
         if (!isActive(Horizontal) && (getForceActivateHorizontal() ||
              (!withinBaseOfSupport(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation()) &&
              headAngularVelocityBelowThreshold(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getAngularVelocity())))){ //&&
