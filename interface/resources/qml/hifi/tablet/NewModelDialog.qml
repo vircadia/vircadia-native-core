@@ -29,12 +29,16 @@ Rectangle {
     property bool keyboardRasied: false
 
     function errorMessageBox(message) {
-        return desktop.messageBox({
-            icon: hifi.icons.warning,
-            defaultButton: OriginalDialogs.StandardButton.Ok,
-            title: "Error",
-            text: message
-        });
+        try {
+            return desktop.messageBox({
+                icon: hifi.icons.warning,
+                defaultButton: OriginalDialogs.StandardButton.Ok,
+                title: "Error",
+                text: message
+            });
+        } catch(e) {
+            Window.alert(message);
+        }
     }
 
     Item {

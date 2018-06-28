@@ -9,12 +9,12 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/* global window, alert, ParticleExplorerTool, EventBridge, dat, listenForSettingsUpdates,createVec3Folder,createQuatFolder,writeVec3ToInterface,writeDataToInterface*/
+/* global ParticleExplorerTool */
 
 
 var PARTICLE_EXPLORER_HTML_URL = Script.resolvePath('particleExplorer.html');
 
-ParticleExplorerTool = function() {
+ParticleExplorerTool = function (createToolsWindow) {
     var that = {};
     that.activeParticleEntity = 0;
     that.activeParticleProperties = {};
@@ -23,7 +23,14 @@ ParticleExplorerTool = function() {
         that.webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         that.webView.setVisible = function(value) {};
         that.webView.webEventReceived.connect(that.webEventReceived);
+        createToolsWindow.webEventReceived.addListener(this, that.webEventReceived);
     };
+
+    function emitScriptEvent(data) {
+        var messageData = JSON.stringify(data);
+        that.webView.emitScriptEvent(messageData);
+        createToolsWindow.emitScriptEvent(messageData);
+    }
 
     that.destroyWebView = function() {
         if (!that.webView) {
@@ -32,17 +39,16 @@ ParticleExplorerTool = function() {
         that.activeParticleEntity = 0;
         that.activeParticleProperties = {};
 
-        var messageData = {
+        emitScriptEvent({
             messageType: "particle_close"
-        };
-        that.webView.emitScriptEvent(JSON.stringify(messageData));
+        });
     };
 
     function sendActiveParticleProperties() {
-        that.webView.emitScriptEvent(JSON.stringify({
+        emitScriptEvent({
             messageType: "particle_settings",
             currentProperties: that.activeParticleProperties
-        }));
+        });
     }
 
     that.webEventReceived = function(message) {
@@ -58,7 +64,6 @@ ParticleExplorerTool = function() {
                     that.activeParticleProperties[key] = data.updatedSettings[key];
                 }
             }
-
             var optionalProps = ["alphaStart", "alphaFinish", "radiusStart", "radiusFinish", "colorStart", "colorFinish"];
             var fallbackProps = ["alpha", "particleRadius", "color"];
             var entityProps = Entities.getEntityProperties(that.activeParticleProperties, optionalProps);

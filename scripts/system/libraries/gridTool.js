@@ -240,6 +240,7 @@ GridTool = function(opts) {
 
     var horizontalGrid = opts.horizontalGrid;
     var verticalGrid = opts.verticalGrid;
+    var createToolsWindow = opts.createToolsWindow;
     var listeners = [];
 
     var webView = null;
@@ -247,13 +248,15 @@ GridTool = function(opts) {
     webView.setVisible = function(value) { };
 
     horizontalGrid.addListener(function(data) {
-        webView.emitScriptEvent(JSON.stringify(data));
+        var dataString = JSON.stringify(data);
+        webView.emitScriptEvent(dataString);
+        createToolsWindow.emitScriptEvent(dataString);
         if (selectionDisplay) {
             selectionDisplay.updateHandles();
         }
     });
 
-    webView.webEventReceived.connect(function(data) {
+    var webEventReceived = function(data) {
         try {
             data = JSON.parse(data);
         } catch (e) {
@@ -282,14 +285,17 @@ GridTool = function(opts) {
                 grid.setPosition(newPosition);
             }
         }
-    });
+    };
+
+    webView.webEventReceived.connect(webEventReceived);
+    createToolsWindow.webEventReceived.addListener(webEventReceived);
 
     that.addListener = function(callback) {
         listeners.push(callback);
     };
 
     that.setVisible = function(visible) {
-        webView.setVisible(visible);
+        webView.setVisible(HMD.active && visible);
     };
 
     return that;
