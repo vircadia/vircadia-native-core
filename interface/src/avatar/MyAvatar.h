@@ -49,6 +49,8 @@ enum AudioListenerMode {
     CUSTOM
 };
 
+const int SIZE_OF_MODE_ARRAY = 50;
+
 Q_DECLARE_METATYPE(AudioListenerMode);
 
 class MyAvatar : public Avatar {
@@ -1025,6 +1027,8 @@ public:
 
     bool isReadyForPhysics() const;
 
+    bool withinThresholdOfStandingHeightMode(float newReading);
+
 public slots:
 
     /**jsdoc
@@ -1631,6 +1635,10 @@ private:
     bool _shouldLoadScripts { false };
 
     bool _haveReceivedHeightLimitsFromDomain = { false };
+    int _heightModeArray[SIZE_OF_MODE_ARRAY];
+    int _currentMode = 0;
+    bool _resetMode = false;
+
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
