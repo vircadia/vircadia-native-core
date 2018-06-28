@@ -108,7 +108,7 @@ ParticleExplorerTool = function() {
                 var fallbackValue = updatedSettings[fallbackProp];
                 if (fallbackValue) {
                     var optionalProp = optionalProps[i];
-                    if (isNaN(entityProps[optionalProp]) || (fallbackProp === "color" && isNaN(entityProps[optionalProp].red))) {
+                    if ((fallbackProp !== "color" && isNaN(entityProps[optionalProp])) || (fallbackProp === "color" && isNaN(entityProps[optionalProp].red))) {
                         that.updatedActiveParticleProperties[optionalProp] = fallbackValue;
                         needsUpdate = true;
                     }
