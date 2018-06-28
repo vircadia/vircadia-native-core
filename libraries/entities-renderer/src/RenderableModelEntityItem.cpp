@@ -188,7 +188,7 @@ bool RenderableModelEntityItem::needsUpdateModelBounds() const {
         }
     }
 
-    return model->needsReload();
+    return false;
 }
 
 void RenderableModelEntityItem::updateModelBounds() {
@@ -279,18 +279,16 @@ EntityItemProperties RenderableModelEntityItem::getProperties(EntityPropertyFlag
 }
 
 bool RenderableModelEntityItem::supportsDetailedRayIntersection() const {
-    return isModelLoaded();
+    return true;
 }
 
 bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          OctreeElementPointer& element, float& distance, BoxFace& face,
                          glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking) const {
     auto model = getModel();
-    if (!model) {
-        return true;
+    if (!model || !isModelLoaded()) {
+        return false;
     }
-    // qCDebug(entitiesrenderer) << "RenderableModelEntityItem::findDetailedRayIntersection() precisionPicking:"
-    //                           << precisionPicking;
 
     return model->findRayIntersectionAgainstSubMeshes(origin, direction, distance,
                face, surfaceNormal, extraInfo, precisionPicking, false);
@@ -1176,19 +1174,8 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
 }
 
 bool ModelEntityRenderer::needsRenderUpdate() const {
-    ModelPointer model;
-    withReadLock([&] {
-        model = _model;
-    });
-
-    if (model) {
-        if (_needsJointSimulation || _moving || _animating) {
-            return true;
-        }
-
-        // When the individual mesh parts of a model finish fading, they will mark their Model as needing updating
-        // we will watch for that and ask the model to update it's render items
-        if (_parsedModelURL != model->getURL()) {
+    if (resultWithReadLock<bool>([&] {
+        if (_moving || _animating) {
             return true;
         }
 
@@ -1196,16 +1183,37 @@ bool ModelEntityRenderer::needsRenderUpdate() const {
             return true;
         }
 
+        if (!_prevModelLoaded) {
+            return true;
+        }
+
+        return false;
+    })) {
+        return true;
+    }
+
+    ModelPointer model;
+    QUrl parsedModelURL;
+    withReadLock([&] {
+        model = _model;
+        parsedModelURL = _parsedModelURL;
+    });
+
+    if (model) {
+        // When the individual mesh parts of a model finish fading, they will mark their Model as needing updating
+        // we will watch for that and ask the model to update it's render items
+        if (parsedModelURL != model->getURL()) {
+            return true;
+        }
+
         if (model->needsReload()) {
             return true;
         }
 
-        // FIXME what is the difference between these two?
         if (model->needsFixupInScene()) {
             return true;
         }
 
-        // FIXME what is the difference between these two? ^^^^
         if (model->getRenderItemsNeedUpdate()) {
             return true;
         }
@@ -1219,7 +1227,7 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
             return true;
         }
 
-        if (_lastModelURL != entity->getModelURL()) {
+        if (_parsedModelURL != entity->getModelURL()) {
             return true;
         }
 
@@ -1229,10 +1237,6 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
         }
 
         if (_lastTextures != entity->getTextures()) {
-            return true;
-        }
-
-        if (_renderAnimationProperties != entity->getAnimationProperties()) {
             return true;
         }
 
@@ -1249,7 +1253,7 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
     });
 
     if (model && model->isLoaded()) {
-        if (!entity->_dimensionsInitialized || entity->_needsInitialSimulation) {
+        if (!entity->_dimensionsInitialized || entity->_needsInitialSimulation || !entity->_originalTexturesRead) {
             return true;
        } 
 
@@ -1281,16 +1285,15 @@ void ModelEntityRenderer::setCollisionMeshKey(const void*key) {
 void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
     DETAILED_PROFILE_RANGE(simulation_physics, __FUNCTION__);
     if (_hasModel != entity->hasModel()) {
-        _hasModel = entity->hasModel();
+        withWriteLock([&] {
+            _hasModel = entity->hasModel();
+        });
     }
 
-    _marketplaceEntity = entity->getMarketplaceID().length() != 0;
-    _animating = entity->isAnimatingSomething();
-
     withWriteLock([&] {
-        if (_lastModelURL != entity->getModelURL()) {
-            _lastModelURL = entity->getModelURL();
-            _parsedModelURL = QUrl(_lastModelURL);
+        _animating = entity->isAnimatingSomething();
+        if (_parsedModelURL != entity->getModelURL()) {
+            _parsedModelURL = QUrl(entity->getModelURL());
         }
     });
 
@@ -1298,7 +1301,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     ModelPointer model;
     withReadLock([&] { model = _model; });
     if (!_hasModel) {
-        if ((bool)model) {
+        if (model) {
             model->removeFromScene(scene, transaction);
             withWriteLock([&] { _model.reset(); });
             transaction.updateItem<PayloadProxyInterface>(getRenderItemID(), [](PayloadProxyInterface& data) {
@@ -1312,8 +1315,9 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     }
 
     // Check for addition
-    if (_hasModel && !(bool)_model) {
+    if (_hasModel && !model) {
         model = std::make_shared<Model>(nullptr, entity.get());
+        connect(model.get(), &Model::requestRenderUpdate, this, &ModelEntityRenderer::requestRenderUpdate);
         connect(model.get(), &Model::setURLFinished, this, [&](bool didVisualGeometryRequestSucceed) {
             setKey(didVisualGeometryRequestSucceed);
             emit requestRenderUpdate();
@@ -1323,26 +1327,34 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             }
             _didLastVisualGeometryRequestSucceed = didVisualGeometryRequestSucceed;
         });
-        connect(model.get(), &Model::requestRenderUpdate, this, &ModelEntityRenderer::requestRenderUpdate);
         model->setLoadingPriority(EntityTreeRenderer::getEntityLoadingPriority(*entity));
         entity->setModel(model);
         withWriteLock([&] { _model = model; });
     }
 
     // From here on, we are guaranteed a populated model
-    withWriteLock([&] {
-        if (_parsedModelURL != model->getURL()) {
+    if (_parsedModelURL != model->getURL()) {
+        withWriteLock([&] {
             _texturesLoaded = false;
             model->setURL(_parsedModelURL);
-        }
-    });
+        });
+    }
 
     // Nothing else to do unless the model is loaded
     if (!model->isLoaded()) {
+        withWriteLock([&] {
+            _prevModelLoaded = false;
+        });
+        emit requestRenderUpdate();
         return;
+    } else if (!_prevModelLoaded) {
+        withWriteLock([&] {
+            _prevModelLoaded = true;
+        });
     }
 
     // Check for initializing the model
+    // FIXME: There are several places below here where we are modifying the entity, which we should not be doing from the renderable
     if (!entity->_dimensionsInitialized) {
         EntityItemProperties properties;
         properties.setLastEdited(usecTimestampNow()); // we must set the edit time since we're editing it
@@ -1360,16 +1372,16 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         // Default to _originalTextures to avoid remapping immediately and lagging on load
         entity->_originalTextures = model->getTextures();
         entity->_originalTexturesRead = true;
-        _currentTextures = entity->_originalTextures;
     }
 
     if (_lastTextures != entity->getTextures()) {
-        _texturesLoaded = false;
-        _lastTextures = entity->getTextures();
+        withWriteLock([&] {
+            _texturesLoaded = false;
+            _lastTextures = entity->getTextures();
+        });
         auto newTextures = parseTexturesToMap(_lastTextures, entity->_originalTextures);
-        if (newTextures != _currentTextures) {
+        if (newTextures != model->getTextures()) {
             model->setTextures(newTextures);
-            _currentTextures = newTextures;
         }
     }
     if (entity->_needsJointSimulation) {
@@ -1378,14 +1390,11 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     entity->updateModelBounds();
     entity->stopModelOverrideIfNoParent();
 
-    render::hifi::Tag tagMask = getTagMask();
     if (model->isVisible() != _visible) {
-        // FIXME: this seems like it could be optimized if we tracked our last known visible state in
-        //        the renderable item. As it stands now the model checks it's visible/invisible state
-        //        so most of the time we don't do anything in this function.
         model->setVisibleInScene(_visible, scene);
     }
 
+    render::hifi::Tag tagMask = getTagMask();
     if (model->getTagMask() != tagMask) {
         model->setTagMask(tagMask, scene);
     }
@@ -1414,7 +1423,9 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     }
 
     if (!_texturesLoaded && model->getGeometry() && model->getGeometry()->areTexturesLoaded()) {
-        _texturesLoaded = true;
+        withWriteLock([&] {
+            _texturesLoaded = true;
+        });
         model->updateRenderItems();
     } else if (!_texturesLoaded) {
         emit requestRenderUpdate();
@@ -1462,15 +1473,15 @@ void ModelEntityRenderer::doRender(RenderArgs* args) {
     batch.setModelTransform(getModelTransform()); // we want to include the scale as well
     DependencyManager::get<GeometryCache>()->renderWireCubeInstance(args, batch, greenColor);
 
-    // Enqueue updates for the next frame
 #if WANT_EXTRA_DEBUGGING
-    // debugging...
-    gpu::Batch& batch = *args->_batch;
-    _model->renderDebugMeshBoxes(batch);
+    ModelPointer model;
+    withReadLock([&] {
+        model = _model;
+    });
+    if (model) {
+        model->renderDebugMeshBoxes(batch);
+    }
 #endif
-
-    // Remap textures for the next frame to avoid flicker
-    // remapTextures();
 }
 
 void ModelEntityRenderer::mapJoints(const TypedEntityPointer& entity, const QStringList& modelJointNames) {

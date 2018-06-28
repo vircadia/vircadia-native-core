@@ -161,12 +161,6 @@ void setupPreferences() {
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Use reticle cursor instead of arrow", getter, setter));
     }
 
-    {
-        auto getter = [=]()->bool { return myAvatar->getClearOverlayWhenMoving(); };
-        auto setter = [=](bool value) { myAvatar->setClearOverlayWhenMoving(value); };
-        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Clear overlays when moving", getter, setter));
-    }
-
     static const QString VIEW_CATEGORY{ "View" };
     {
         auto getter = [=]()->float { return myAvatar->getRealWorldFieldOfView(); };

@@ -95,9 +95,6 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
     auto newParticleProperties = entity->getParticleProperties();
     if (!newParticleProperties.valid()) {
         qCWarning(entitiesrenderer) << "Bad particle properties";
-        if (!entity->getParticleProperties().valid()) {
-            qCWarning(entitiesrenderer) << "Bad particle properties";
-        }
     }
     
     if (resultWithReadLock<bool>([&]{ return _particleProperties != newParticleProperties; })) {
@@ -125,6 +122,14 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
             });
         }
     }
+
+    void* key = (void*)this;
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this] () {
+        withWriteLock([&] {
+            updateModelTransform();
+            _renderTransform = getModelTransform();
+        });
+    });
 }
 
 void ParticleEffectEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
@@ -189,7 +194,7 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
     if (polarStart == 0.0f && polarFinish == 0.0f && emitDimensions.z == 0.0f) {
         // Emit along z-axis from position
 
-        particle.velocity = (emitSpeed + 0.2f * speedSpread) * (emitOrientation * Vectors::UNIT_Z);
+        particle.velocity = (emitSpeed + randFloatInRange(-1.0f, 1.0f) * speedSpread) * (emitOrientation * Vectors::UNIT_Z);
         particle.acceleration = emitAcceleration + randFloatInRange(-1.0f, 1.0f) * accelerationSpread;
 
     } else {
@@ -198,10 +203,9 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
         // - Distribute points relatively evenly over ellipsoid surface
         // - Distribute points relatively evenly within ellipsoid volume
 
-        float elevationMinZ = sin(PI_OVER_TWO - polarFinish);
-        float elevationMaxZ = sin(PI_OVER_TWO - polarStart);
-        //  float elevation = asin(elevationMinZ + (elevationMaxZ - elevationMinZ) * randFloat());
-        float elevation = asin(elevationMinZ + (elevationMaxZ - elevationMinZ) *randFloat());
+        float elevationMinZ = sinf(PI_OVER_TWO - polarFinish);
+        float elevationMaxZ = sinf(PI_OVER_TWO - polarStart);
+        float elevation = asinf(elevationMinZ + (elevationMaxZ - elevationMinZ) * randFloat());
 
         float azimuth;
         if (azimuthFinish >= azimuthStart) {
@@ -309,7 +313,6 @@ void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
         return;
     }
 
-
     // FIXME migrate simulation to a compute stage
     stepSimulation();
 
@@ -324,7 +327,10 @@ void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
     // In trail mode, the particles are created in world space.
     // so we only set a transform if they're not in trail mode
     if (!_particleProperties.emission.shouldTrail) {
-        transform = getModelTransform();
+
+        withReadLock([&] {
+            transform = _renderTransform;
+        });
         transform.setScale(vec3(1));
     }
     batch.setModelTransform(transform);

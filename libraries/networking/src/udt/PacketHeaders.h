@@ -236,7 +236,9 @@ enum class EntityVersion : PacketVersion {
     ShadowControl,
     MaterialData,
     CloneableData,
-    CollisionMask16Bytes
+    CollisionMask16Bytes,
+    YieldSimulationOwnership,
+    ParticleEntityFix
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {

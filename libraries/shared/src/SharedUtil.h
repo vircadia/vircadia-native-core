@@ -92,6 +92,8 @@ inline QDebug& operator<<(QDebug& dbg, const rgbColor& c) {
 }
 
 struct xColor {
+    xColor() {}
+    xColor(unsigned char r, unsigned char g, unsigned char b) : red(r), green(g), blue(b) {}
     unsigned char red;
     unsigned char green;
     unsigned char blue;

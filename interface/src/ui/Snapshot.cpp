@@ -365,23 +365,29 @@ QFile* Snapshot::savedFileForSnapshot(QImage& shot,
     //         DON'T append ".jpg" to the filename. QT will save the image in the format associated with the
     //         filename's suffix.
     //         If you want lossless Snapshots, supply a `.png` filename. Otherwise, use `.jpeg` or `.jpg`.
+    //         For PNGs, we use a "quality" of "50". The output image quality is the same as "100"
+    //             is the same as "0" -- the difference lies in the amount of compression applied to the PNG,
+    //             which slightly affects the time it takes to save the image.
     //     Otherwise, ".jpg" is appended to the user's requested filename so that the image is saved in JPG format.
     // If the user hasn't supplied a specific filename for the snapshot:
-    //     Save the snapshot in JPG format according to FILENAME_PATH_FORMAT
+    //     Save the snapshot in JPG format at "100" quality according to FILENAME_PATH_FORMAT
+    int imageQuality = 100;
     QString filename;
     if (!userSelectedFilename.isNull()) {
         QFileInfo snapshotFileInfo(userSelectedFilename);
         QString userSelectedFilenameSuffix = snapshotFileInfo.suffix();
+        userSelectedFilenameSuffix = userSelectedFilenameSuffix.toLower();
         if (SUPPORTED_IMAGE_FORMATS.contains(userSelectedFilenameSuffix)) {
             filename = userSelectedFilename;
+            if (userSelectedFilenameSuffix == "png") {
+                imageQuality = 50;
+            }
         } else {
             filename = userSelectedFilename + ".jpg";
         }
     } else {
         filename = FILENAME_PATH_FORMAT.arg(username, now.toString(DATETIME_FORMAT));
     }
-
-    const int IMAGE_QUALITY = 100;
 
     if (!isTemporary) {
         // If user has requested specific path then use it, else use the application value
@@ -432,7 +438,7 @@ QFile* Snapshot::savedFileForSnapshot(QImage& shot,
                 imageFile = new QFile(snapshotFullPath);
             }
 
-            shot.save(imageFile, 0, IMAGE_QUALITY);
+            shot.save(imageFile, 0, imageQuality);
             imageFile->close();
 
             return imageFile;
@@ -447,7 +453,7 @@ QFile* Snapshot::savedFileForSnapshot(QImage& shot,
     }
     imageTempFile->setAutoRemove(isTemporary);
 
-    shot.save(imageTempFile, 0, IMAGE_QUALITY);
+    shot.save(imageTempFile, 0, imageQuality);
     imageTempFile->close();
 
     return imageTempFile;
@@ -487,7 +493,7 @@ void Snapshot::uploadSnapshot(const QString& filename, const QUrl& href) {
     multiPart->append(imagePart);
 
     auto accountManager = DependencyManager::get<AccountManager>();
-    JSONCallbackParameters callbackParams(uploader, "uploadSuccess", uploader, "uploadFailure");
+    JSONCallbackParameters callbackParams(uploader, "uploadSuccess", "uploadFailure");
 
     accountManager->sendRequest(SNAPSHOT_UPLOAD_URL, AccountManagerAuth::Required, QNetworkAccessManager::PostOperation,
                                 callbackParams, nullptr, multiPart);
