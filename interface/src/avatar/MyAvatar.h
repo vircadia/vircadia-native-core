@@ -1026,6 +1026,7 @@ public:
     bool isReadyForPhysics() const;
 
     float computeStandingHeightMode(float newReading);
+    bool isHeadLevel(controller::Pose head);
     //bool  isWithinThresholdHeightMode(float newReading);
 
 public slots:
@@ -1638,6 +1639,7 @@ private:
     int _heightModeArray[SIZE_OF_MODE_ARRAY];
     int _currentMode = 0;
     bool _resetMode = false;
+    glm::quat _averageHeadRotation = glm::quat(0.0f,0.0f,0.0f,0.0f);
 
 };
 

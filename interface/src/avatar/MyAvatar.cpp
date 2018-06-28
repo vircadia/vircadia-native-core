@@ -3152,6 +3152,51 @@ float MyAvatar::computeStandingHeightMode(float newReading) {
     return _currentMode;
 }
 
+static bool handDirectionMatchesHeadDirection(controller::Pose leftHand, controller::Pose rightHand, controller::Pose head) {
+    const float HANDS_VELOCITY_DIRECTION_THRESHOLD = 0.4f;
+    const float VELOCITY_EPSILON = 0.02f;
+    leftHand.velocity.y = 0.0f;
+    rightHand.velocity.y = 0.0f;
+    head.velocity.y = 0.0f;
+    float handDotHeadLeft = glm::dot(glm::normalize(leftHand.getVelocity()), glm::normalize(head.getVelocity()));
+    float handDotHeadRight = glm::dot(glm::normalize(rightHand.getVelocity()), glm::normalize(head.getVelocity()));
+
+    return ((!leftHand.isValid() || ((handDotHeadLeft > HANDS_VELOCITY_DIRECTION_THRESHOLD) && (glm::length(leftHand.getVelocity()) > VELOCITY_EPSILON))) &&
+        (!rightHand.isValid() || ((handDotHeadRight > HANDS_VELOCITY_DIRECTION_THRESHOLD) && (glm::length(rightHand.getVelocity()) > VELOCITY_EPSILON))));
+}
+
+static bool handAngularVelocityBelowThreshold(controller::Pose leftHand, controller::Pose rightHand) {
+    const float HANDS_ANGULAR_VELOCITY_THRESHOLD = 0.4f;
+    leftHand.angularVelocity.y = 0.0f;
+    rightHand.angularVelocity.y = 0.0f;
+    float leftHandXZAngularVelocity = glm::length(leftHand.getAngularVelocity());
+    float rightHandXZAngularVelocity = glm::length(rightHand.getAngularVelocity());
+    
+    return ((!leftHand.isValid() || (leftHandXZAngularVelocity < HANDS_ANGULAR_VELOCITY_THRESHOLD)) &&
+        (!rightHand.isValid() || (rightHandXZAngularVelocity < HANDS_ANGULAR_VELOCITY_THRESHOLD)));
+}
+
+static bool headVelocityGreaterThanThreshold(glm::vec3 headVelocity) {
+    const float VELOCITY_EPSILON = 0.02f;
+    const float HEAD_VELOCITY_THRESHOLD = 0.14f;
+    float headVelocityMagnitude = glm::length(headVelocity);
+    return headVelocityMagnitude > HEAD_VELOCITY_THRESHOLD;
+}
+
+bool MyAvatar::isHeadLevel(controller::Pose head) {
+    const float AVERAGING_RATE = 0.03f;
+    const float HEAD_PITCH_TOLERANCE = 7.0f;
+    const float HEAD_ROLL_TOLERANCE = 7.0f;
+
+    _averageHeadRotation = slerp(_averageHeadRotation, head.getRotation(), AVERAGING_RATE);
+    glm::vec3 averageHeadEulers = glm::degrees(safeEulerAngles(_averageHeadRotation));
+    glm::vec3 currentHeadEulers = glm::degrees(safeEulerAngles(head.getRotation()));
+    glm::vec3 diffFromAverageEulers = averageHeadEulers - currentHeadEulers;
+
+    return ((fabs(diffFromAverageEulers.x) < HEAD_PITCH_TOLERANCE) && (fabs(diffFromAverageEulers.z) < HEAD_ROLL_TOLERANCE));
+
+}
+
 float MyAvatar::getUserHeight() const {
     return _userHeight.get();
 }
@@ -3387,7 +3432,13 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar,
         if (!isActive(Horizontal) && (getForceActivateHorizontal() ||
              (!withinBaseOfSupport(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation()) &&
              headAngularVelocityBelowThreshold(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getAngularVelocity()) &&
-             isWithinThresholdHeightMode(myAvatar.computeStandingHeightMode(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation().y), myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation().y)))) {
+             isWithinThresholdHeightMode(myAvatar.computeStandingHeightMode(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation().y), myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation().y) &&
+             handDirectionMatchesHeadDirection(myAvatar.getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND), myAvatar.getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND), myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD)) &&
+             handAngularVelocityBelowThreshold(myAvatar.getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND), myAvatar.getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND)) &&
+             headVelocityGreaterThanThreshold(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getVelocity()) &&
+             myAvatar.isHeadLevel(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD))))) {
+
+
             qCDebug(interfaceapp) << "----------------------------------------over the base of support";
             activate(Horizontal);
             setForceActivateHorizontal(false);
