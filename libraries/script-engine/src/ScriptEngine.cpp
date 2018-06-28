@@ -1639,22 +1639,24 @@ QVariantMap ScriptEngine::fetchModuleSource(const QString& modulePath, const boo
     loader->start(MAX_RETRIES);
 
     if (!loader->isFinished()) {
-        QTimer monitor;
-        QEventLoop loop;
-        QObject::connect(loader, &BatchLoader::finished, this, [&monitor, &loop]{
-            monitor.stop();
-            loop.quit();
+        // This lambda can get called AFTER this local scope has completed.
+        // This is why we pass smart ptrs to the lambda instead of references to local variables.
+        auto monitor = std::make_shared<QTimer>();
+        auto loop = std::make_shared<QEventLoop>();
+        QObject::connect(loader, &BatchLoader::finished, this, [monitor, loop] {
+            monitor->stop();
+            loop->quit();
         });
 
         // this helps detect the case where stop() is invoked during the download
         //  but not seen in time to abort processing in onload()...
-        connect(&monitor, &QTimer::timeout, this, [this, &loop]{
+        connect(monitor.get(), &QTimer::timeout, this, [this, loop] {
             if (isStopping()) {
-                loop.exit(-1);
+                loop->exit(-1);
             }
         });
-        monitor.start(500);
-        loop.exec();
+        monitor->start(500);
+        loop->exec();
     }
     loader->deleteLater();
     return req;
