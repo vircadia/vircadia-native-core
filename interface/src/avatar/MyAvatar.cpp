@@ -3113,12 +3113,12 @@ static bool headAngularVelocityBelowThreshold(glm::vec3 angularVelocity) {
     return isBelowThreshold;
 }
 
-/*
-bool MyAvatar::isWithinThresholdHeightMode(float newMode, float newReading) {
-    const float MODE_HEIGHT_THRESHOLD = 0.3f;
-    return newMode <
+
+static bool isWithinThresholdHeightMode(float newReading, float newMode) {
+    const float MODE_HEIGHT_THRESHOLD = -0.02f;
+    return (newReading - newMode) > MODE_HEIGHT_THRESHOLD;
 }
-*/
+
 float MyAvatar::computeStandingHeightMode(float newReading) {
     const float CENTIMETERS_PER_METER = 100.0f;
     const float MODE_CORRECTION_FACTOR = 0.02f;
@@ -3386,8 +3386,8 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar,
         float temp = myAvatar.computeStandingHeightMode(0.01f);
         if (!isActive(Horizontal) && (getForceActivateHorizontal() ||
              (!withinBaseOfSupport(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation()) &&
-             headAngularVelocityBelowThreshold(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getAngularVelocity())))){ //&&
-             //withinThresholdOfStandingHeightMode(0.01f)))) {
+             headAngularVelocityBelowThreshold(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getAngularVelocity()) &&
+             isWithinThresholdHeightMode(myAvatar.computeStandingHeightMode(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation().y), myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation().y)))) {
             qCDebug(interfaceapp) << "----------------------------------------over the base of support";
             activate(Horizontal);
             setForceActivateHorizontal(false);
