@@ -129,6 +129,7 @@
 #include <SoundCache.h>
 #include <ui/TabletScriptingInterface.h>
 #include <ui/ToolbarScriptingInterface.h>
+#include <InteractiveWindow.h>
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
@@ -2826,6 +2827,8 @@ void Application::initializeUi() {
     qmlRegisterType<ResourceImageItem>("Hifi", 1, 0, "ResourceImageItem");
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
     qmlRegisterType<WebBrowserSuggestionsEngine>("HifiWeb", 1, 0, "WebBrowserSuggestionsEngine");
+
+    InteractiveWindowEnums::declareQML();
 
     {
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
@@ -6631,6 +6634,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("HifiAbout", AboutUtil::getInstance());
 
     qScriptRegisterMetaType(scriptEngine.data(), OverlayIDtoScriptValue, OverlayIDfromScriptValue);
+
+    registerInteractiveWindowMetaType(scriptEngine.data());
 
     DependencyManager::get<PickScriptingInterface>()->registerMetaTypes(scriptEngine.data());
 

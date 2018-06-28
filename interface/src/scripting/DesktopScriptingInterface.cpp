@@ -14,6 +14,8 @@
 #include <QWindow>
 #include <QScreen>
 
+#include <shared/QtHelpers.h>
+
 #include "Application.h"
 #include "MainWindow.h"
 #include <display-plugins/CompositorHelper.h>
@@ -41,3 +43,14 @@ void DesktopScriptingInterface::show(const QString& path, const QString&  title)
     DependencyManager::get<OffscreenUi>()->show(path, title);
 }
 
+InteractiveWindowPointer DesktopScriptingInterface::createWindow(const QString& sourceUrl, const QVariantMap& properties) {
+    if (QThread::currentThread() != thread()) {
+        InteractiveWindowPointer interactiveWindow = nullptr;
+        BLOCKING_INVOKE_METHOD(this, "createWindow",
+            Q_RETURN_ARG(InteractiveWindowPointer, interactiveWindow),
+            Q_ARG(QString, sourceUrl),
+            Q_ARG(QVariantMap, properties));
+        return interactiveWindow;
+    }
+    return new InteractiveWindow(sourceUrl, properties);;
+}
