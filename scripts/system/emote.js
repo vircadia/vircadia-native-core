@@ -84,7 +84,7 @@ function onWebEventReceived(event) {
             emoteName = event.data + randSit; // Sit1, Sit2, Sit3
         }
         
-        if (ANIMATIONS[emoteName].resource.state =+= FINISHED) {
+        if (ANIMATIONS[emoteName].resource.state === FINISHED) {
             
             if (activeTimer !== false) {
                 Script.clearTimeout(activeTimer);
@@ -101,6 +101,7 @@ function onWebEventReceived(event) {
                 
                     // If user provides input during a sit, the avatar animation state should be restored
                     Controller.keyPressEvent.connect(restoreAnimation);
+                    Controller.enableMapping(eventMappingName);
                     MyAvatar.overrideAnimation(ANIMATIONS[emoteName].url, FPS, false, 0, frameCount);
                 
                 } else {
@@ -132,6 +133,7 @@ function restoreAnimation() {
     
     // Make sure the input is disconnected after animations are restored so it doesn't affect any emotes other than sit
     Controller.keyPressEvent.disconnect(restoreAnimation);
+    Controller.disableMapping(eventMappingName);
 }
                     
 // Note peek() so as to not interfere with other mappings.
@@ -151,7 +153,7 @@ eventMapping.from(Controller.Standard.RS).peek().to(restoreAnimation);
 eventMapping.from(Controller.Standard.RightGrip).peek().to(restoreAnimation);
 eventMapping.from(Controller.Standard.Back).peek().to(restoreAnimation);
 eventMapping.from(Controller.Standard.Start).peek().to(restoreAnimation);
-Controller.enableMapping(eventMappingName);
+
 
 button.clicked.connect(onClicked);
 tablet.screenChanged.connect(onScreenChanged);
