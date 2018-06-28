@@ -29,6 +29,7 @@
             </intent-filter>
         </activity>
         <activity android:name="io.highfidelity.hifiinterface.WebViewActivity"
+            android:supportsPictureInPicture="true"
             android:configChanges="orientation"
             android:theme="@android:style/Theme.Material.Light.NoActionBar"/>
         <!-- We don't want to show this on Daydream yet (we need to fix the turn-around problem on this screen)
