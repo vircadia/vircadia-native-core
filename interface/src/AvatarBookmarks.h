@@ -30,7 +30,7 @@ class AvatarBookmarks: public Bookmarks, public  Dependency {
 
 public:
     AvatarBookmarks();
-    void setupMenus(Menu* menubar, MenuWrapper* menu) {};
+    void setupMenus(Menu* menubar, MenuWrapper* menu) override {};
     Q_INVOKABLE QVariantMap getBookmark(const QString& bookmarkName);
 
 public slots:
@@ -71,7 +71,7 @@ signals:
     void bookmarkAdded(const QString& bookmarkName);
 
 protected:
-    void addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& bookmark) {};
+    void addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& bookmark) override {};
     void readFromFile() override;
     QVariantMap getAvatarDataToBookmark();
 
