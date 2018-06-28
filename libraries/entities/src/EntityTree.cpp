@@ -2523,8 +2523,8 @@ bool EntityTree::readFromMap(QVariantMap& map) {
 
         // Zero out the spread values that were fixed in version ParticleEntityFix so they behave the same as before
         if (contentVersion < (int)EntityVersion::ParticleEntityFix) {
-            properties.setRadiusSpread(0.f);
-            properties.setAlphaSpread(0.f);
+            properties.setRadiusSpread(0.0f);
+            properties.setAlphaSpread(0.0f);
             properties.setColorSpread({0, 0, 0});
         }
 
