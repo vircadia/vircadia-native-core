@@ -218,6 +218,7 @@ protected:
 
     virtual void beParentOfChild(SpatiallyNestablePointer newChild) const;
     virtual void forgetChild(SpatiallyNestablePointer newChild) const;
+    virtual void recalculateChildCauterization() const { }
 
     mutable ReadWriteLockable _childrenLock;
     mutable QHash<QUuid, SpatiallyNestableWeakPointer> _children;

@@ -129,12 +129,10 @@ Rectangle {
                     id: stereoMic
                     spacing: muteMic.spacing;
                     text: qsTr("Enable stereo input");
-                    checked: AudioScriptingInterface.isStereoInput();
+                    checked: AudioScriptingInterface.isStereoInput;
                     onClicked: {
-                        var success = AudioScriptingInterface.setStereoInput(checked);
-                        if (!success) {
-                            checked = !checked;
-                        }
+                        AudioScriptingInterface.isStereoInput = checked;
+                        checked = Qt.binding(function() { return AudioScriptingInterface.isStereoInput; }); // restore binding
                     }
                 }
             }

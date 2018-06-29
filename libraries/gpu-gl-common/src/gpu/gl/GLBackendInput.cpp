@@ -156,6 +156,14 @@ void GLBackend::do_setIndirectBuffer(const Batch& batch, size_t paramOffset) {
 }
 
 void GLBackend::updateInput() {
+    bool isStereoNow = isStereo();
+    // track stereo state change potentially happening wihtout changing the input format
+    // this is a rare case requesting to invalid the format
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
+    _input._invalidFormat |= (isStereoNow != _input._lastUpdateStereoState);
+#endif
+    _input._lastUpdateStereoState = isStereoNow;
+ 
     if (_input._invalidFormat) {
         InputStageState::ActivationCache newActivation;
 
@@ -213,7 +221,7 @@ void GLBackend::updateInput() {
                     (void)CHECK_GL_ERROR();
                 }
 #ifdef GPU_STEREO_DRAWCALL_INSTANCED
-                glVertexBindingDivisor(bufferChannelNum, frequency * (isStereo() ? 2 : 1));
+                glVertexBindingDivisor(bufferChannelNum, frequency * (isStereoNow ? 2 : 1));
 #else
                 glVertexBindingDivisor(bufferChannelNum, frequency);
 #endif

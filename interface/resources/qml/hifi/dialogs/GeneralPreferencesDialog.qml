@@ -17,7 +17,7 @@ PreferencesDialog {
     id: root
     objectName: "GeneralPreferencesDialog"
     title: "General Settings"
-    showCategories: ["User Interface", "HMD", "Snapshots", "Privacy"]
+    showCategories: ["User Interface", "Mouse Sensitivity", "HMD", "Snapshots", "Privacy"]
     property var settings: Settings {
         category: root.objectName
         property alias x: root.x

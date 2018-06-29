@@ -42,14 +42,14 @@ signals:
     void handleSignupFailed(QString errorString);
 
 public slots:
-    void linkCompleted(QNetworkReply& reply);
-    void linkFailed(QNetworkReply& reply);
+    void linkCompleted(QNetworkReply* reply);
+    void linkFailed(QNetworkReply* reply);
 
-    void createCompleted(QNetworkReply& reply);
-    void createFailed(QNetworkReply& reply);
+    void createCompleted(QNetworkReply* reply);
+    void createFailed(QNetworkReply* reply);
     
-    void signupCompleted(QNetworkReply& reply);
-    void signupFailed(QNetworkReply& reply);
+    void signupCompleted(QNetworkReply* reply);
+    void signupFailed(QNetworkReply* reply);
 
 protected slots:
     Q_INVOKABLE bool isSteamRunning() const;

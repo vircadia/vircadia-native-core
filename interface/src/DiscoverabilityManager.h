@@ -51,7 +51,7 @@ public:
     static QString findableByString(Discoverability::Mode discoverabilityMode);
 
 private slots:
-    void handleHeartbeatResponse(QNetworkReply& requestReply);
+    void handleHeartbeatResponse(QNetworkReply* requestReply);
     
 private:
     DiscoverabilityManager();

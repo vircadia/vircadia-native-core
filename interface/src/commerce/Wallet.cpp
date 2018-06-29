@@ -127,31 +127,40 @@ EC_KEY* readKeys(const char* filename) {
 bool Wallet::writeBackupInstructions() {
     QString inputFilename(PathUtils::resourcesPath() + "html/commerce/backup_instructions.html");
     QString outputFilename = PathUtils::getAppDataFilePath(INSTRUCTIONS_FILE);
+    QFile inputFile(inputFilename);
     QFile outputFile(outputFilename);
     bool retval = false;
 
-    if (QFile::exists(outputFilename) || getKeyFilePath() == "")
+    if (getKeyFilePath() == "")
     {
         return false;
     }
-    QFile::copy(inputFilename, outputFilename);
 
-    if (QFile::exists(outputFilename) && outputFile.open(QIODevice::ReadWrite)) {
+    if (QFile::exists(inputFilename) && inputFile.open(QIODevice::ReadOnly)) {
+        if (outputFile.open(QIODevice::ReadWrite)) {
+            // Read the data from the original file, then close it
+            QByteArray fileData = inputFile.readAll();
+            inputFile.close();
 
-        QByteArray fileData = outputFile.readAll();
-        QString text(fileData);
+            // Translate the data from the original file into a QString
+            QString text(fileData);
 
-        text.replace(QString("HIFIKEY_PATH_REPLACEME"), keyFilePath());
+            // Replace the necessary string
+            text.replace(QString("HIFIKEY_PATH_REPLACEME"), keyFilePath());
 
-        outputFile.seek(0); // go to the beginning of the file
-        outputFile.write(text.toUtf8()); // write the new text back to the file
+            // Write the new text back to the file
+            outputFile.write(text.toUtf8());
 
-        outputFile.close(); // close the file handle.
+            // Close the output file
+            outputFile.close();  
 
-        retval = true;
-        qCDebug(commerce) << "wrote html file successfully";
+            retval = true;
+            qCDebug(commerce) << "wrote html file successfully";
+        } else {
+            qCDebug(commerce) << "failed to open output html file" << outputFilename;
+        }
     } else {
-        qCDebug(commerce) << "failed to open output html file" << outputFilename;
+        qCDebug(commerce) << "failed to open input html file" << inputFilename;
     }
     return retval;
 }
