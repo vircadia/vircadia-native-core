@@ -34,9 +34,6 @@ static const char* const INTERACTIVE_WINDOW_VISIBLE_PROPERTY = "interactiveWindo
 static const char* const EVENT_BRIDGE_PROPERTY = "eventBridge";
 static const char* const WINDOW_MODE_TEXT_PROPERTY = "windowModeText";
 
-static const uvec2 MAX_QML_WINDOW_SIZE{ 1280, 720 };
-static const uvec2 MIN_QML_WINDOW_SIZE{ 120, 80 };
-
 static const QStringList KNOWN_SCHEMES = QStringList() << "http" << "https" << "file" << "about" << "atp" << "qrc";
 
 void registerInteractiveWindowMetaType(QScriptEngine* engine) {
