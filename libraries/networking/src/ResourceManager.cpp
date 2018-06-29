@@ -41,7 +41,7 @@ ResourceManager::ResourceManager(bool atpSupportEnabled) : _atpSupportEnabled(at
 ResourceManager::~ResourceManager() {
     if (_thread.isRunning()) {
         _thread.quit();
-        static const auto MAX_RESOURCE_MANAGER_THREAD_QUITTING_TIME = 0.5 * MSECS_PER_SECOND;
+        static const auto MAX_RESOURCE_MANAGER_THREAD_QUITTING_TIME = MSECS_PER_SECOND / 2;
         if (!_thread.wait(MAX_RESOURCE_MANAGER_THREAD_QUITTING_TIME)) {
             _thread.terminate();
         }
