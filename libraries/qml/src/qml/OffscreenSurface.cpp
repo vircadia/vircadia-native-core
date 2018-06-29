@@ -66,7 +66,7 @@ OffscreenSurface::OffscreenSurface()
 }
 
 OffscreenSurface::~OffscreenSurface() {
-    delete _sharedObject;
+    _sharedObject->deleteLater();
 }
 
 bool OffscreenSurface::fetchTexture(TextureAndFence& textureAndFence) {
