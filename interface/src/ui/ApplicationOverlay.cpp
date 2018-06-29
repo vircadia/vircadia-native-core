@@ -50,8 +50,6 @@ ApplicationOverlay::~ApplicationOverlay() {
         geometryCache->releaseID(_magnifierBorder);
         geometryCache->releaseID(_qmlGeometryId);
     }
-
-    DependencyManager::destroy<GeometryCache>();
 }
 
 // Renders the overlays either to a texture or to the screen

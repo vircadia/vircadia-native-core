@@ -2565,6 +2565,7 @@ Application::~Application() {
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
     DependencyManager::destroy<OctreeStatsProvider>();
+    DependencyManager::destroy<GeometryCache>();
 
     DependencyManager::get<ResourceManager>()->cleanup();
 
