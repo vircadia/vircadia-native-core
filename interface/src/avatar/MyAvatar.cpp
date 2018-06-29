@@ -395,7 +395,8 @@ void MyAvatar::reset(bool andRecenter, bool andReload, bool andHead) {
 
 void MyAvatar::update(float deltaTime) {
     // update moving average of HMD facing in xz plane.
-    const float HMD_FACING_TIMESCALE = 4.0f;  // very slow average
+    const float HMD_FACING_TIMESCALE = getRotationRecenterFilterLength(); //4.0f;  // very slow average
+    qCDebug(interfaceapp) << "rotation recenter value is " << HMD_FACING_TIMESCALE;
     float tau = deltaTime / HMD_FACING_TIMESCALE;
     _headControllerFacingMovingAverage = lerp(_headControllerFacingMovingAverage, _headControllerFacing, tau);
 
@@ -2112,6 +2113,14 @@ void MyAvatar::setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement) 
     _headData->setHasAudioEnabledFaceMovement(hasAudioEnabledFaceMovement);
 }
 
+void MyAvatar::setRotationRecenterFilterLength(float length) {
+    _rotationRecenterFilterLength = length;
+}
+
+void MyAvatar::setRotationThreshold(float angleRadians) {
+    _rotationThreshold = angleRadians;
+}
+
 void MyAvatar::updateOrientation(float deltaTime) {
     //  Smoothly rotate body with arrow keys
     float targetSpeed = getDriveKey(YAW) * _yawSpeed;
@@ -3410,7 +3419,8 @@ void MyAvatar::FollowHelper::decrementTimeRemaining(float dt) {
 bool MyAvatar::FollowHelper::shouldActivateRotation(const MyAvatar& myAvatar,
                                                     const glm::mat4& desiredBodyMatrix,
                                                     const glm::mat4& currentBodyMatrix) const {
-    const float FOLLOW_ROTATION_THRESHOLD = cosf(PI / 6.0f);  // 30 degrees
+    qCDebug(interfaceapp) << "rotation threshold is " << myAvatar.getRotationThreshold();
+    const float FOLLOW_ROTATION_THRESHOLD = cosf(myAvatar.getRotationThreshold());    //cosf(PI / 6.0f);  // 30 degrees
     glm::vec2 bodyFacing = getFacingDir2D(currentBodyMatrix);
     return glm::dot(-myAvatar.getHeadControllerFacingMovingAverage(), bodyFacing) < FOLLOW_ROTATION_THRESHOLD;
 }
