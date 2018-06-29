@@ -64,10 +64,10 @@ ParticleExplorerTool = function() {
         if (isNaN(properties.radiusFinish)) {
             properties.radiusFinish = properties.particleRadius;
         }
-        if (isNaN(properties.colorStart) || isNaN(properties.colorStart.red)) {
+        if (isNaN(properties.colorStart.red)) {
             properties.colorStart = properties.color;
         }
-        if (isNaN(properties.colorFinish) || isNaN(properties.colorFinish.red)) {
+        if (isNaN(properties.colorFinish.red)) {
             properties.colorFinish = properties.color;
         }
         sendParticleProperties(properties);
