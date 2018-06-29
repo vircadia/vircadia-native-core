@@ -11,6 +11,8 @@
 
 package io.highfidelity.hifiinterface;
 
+import android.app.Fragment;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageInfo;
@@ -23,9 +25,11 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Vibrator;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
+import android.widget.SlidingDrawer;
 
 import org.qtproject.qt5.android.QtLayout;
 import org.qtproject.qt5.android.QtSurface;
@@ -34,11 +38,13 @@ import org.qtproject.qt5.android.bindings.QtActivity;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 
+import io.highfidelity.hifiinterface.fragment.WebViewFragment;
+
 /*import com.google.vr.cardboard.DisplaySynchronizer;
 import com.google.vr.cardboard.DisplayUtils;
 import com.google.vr.ndk.base.GvrApi;*/
 
-public class InterfaceActivity extends QtActivity {
+public class InterfaceActivity extends QtActivity implements WebViewFragment.OnWebViewInteractionListener {
 
     public static final String DOMAIN_URL = "url";
     private static final String TAG = "Interface";
@@ -57,6 +63,7 @@ public class InterfaceActivity extends QtActivity {
     private static boolean inVrMode;
 
     private boolean nativeEnterBackgroundCallEnqueued = false;
+    private SlidingDrawer webSlidingDrawer;
 //    private GvrApi gvrApi;
     // Opaque native pointer to the Application C++ object.
     // This object is owned by the InterfaceActivity instance and passed to the native methods.
@@ -117,6 +124,12 @@ public class InterfaceActivity extends QtActivity {
         });
         startActivity(new Intent(this, SplashActivity.class));
         mVibrator = (Vibrator) this.getSystemService(VIBRATOR_SERVICE);
+
+        FrameLayout mainLayout = findViewById(android.R.id.content);
+        LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        webSlidingDrawer = (SlidingDrawer) inflater.inflate(R.layout.web_drawer, mainLayout, false);
+        mainLayout.addView(webSlidingDrawer);
+        webSlidingDrawer.setVisibility(View.GONE);
     }
 
     @Override
@@ -258,11 +271,15 @@ public class InterfaceActivity extends QtActivity {
                 break;
             }
             case "WebView":
-                Intent intent = new Intent(this, WebViewActivity.class);
-                if (args != null && args.containsKey(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL)) {
-                    intent.putExtra(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL, (String) args.get(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL));
-                }
-                startActivity(intent);
+                runOnUiThread(() -> {
+                    webSlidingDrawer.setVisibility(View.VISIBLE);
+                    webSlidingDrawer.animateOpen();
+                    if (args != null && args.containsKey(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL)) {
+                        WebViewFragment webViewFragment = (WebViewFragment) getFragmentManager().findFragmentByTag("webViewFragment");
+                        webViewFragment.loadUrl((String) args.get(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL));
+                        webViewFragment.setToolbarVisible(true);
+                    }
+                });
                 break;
             default: {
                 Log.w(TAG, "Could not open activity by name " + activityName);
@@ -288,4 +305,13 @@ public class InterfaceActivity extends QtActivity {
     public void onBackPressed() {
         openAndroidActivity("Home", false);
     }
+
+    @Override
+    public void processURL(String url) { }
+
+    @Override
+    public void onWebLoaded(String url, WebViewFragment.SafenessLevel safenessLevel) { }
+
+    @Override
+    public void onTitleReceived(String title) { }
 }

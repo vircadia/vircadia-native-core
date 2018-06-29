@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-
     <Toolbar
         android:id="@+id/toolbar_actionbar"
         android:layout_width="match_parent"
@@ -16,19 +17,9 @@
         android:contentInsetStartWithNavigation="0dp"
         android:title="">
     </Toolbar>
-
-    <WebView
-        android:id="@+id/web_view"
+    <FrameLayout
+        android:id="@+id/content_frame"
         android:layout_below="@id/toolbar_actionbar"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
-    <ProgressBar
-        android:id="@+id/toolbarProgressBar"
-        android:layout_below="@id/toolbar_actionbar"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:visibility="gone"
-        android:layout_width="match_parent"
-        android:layout_height="3dp"
-        android:indeterminate="false"
-        android:padding="0dp" />
+        android:layout_height="match_parent" />
 </RelativeLayout>
