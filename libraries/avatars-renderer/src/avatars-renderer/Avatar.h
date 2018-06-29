@@ -23,7 +23,6 @@
 #include <graphics-scripting/Forward.h>
 #include <GLMHelpers.h>
 
-
 #include "Head.h"
 #include "SkeletonModel.h"
 #include "Rig.h"
@@ -40,7 +39,6 @@ static const float SCALING_RATIO = .05f;
 
 extern const float CHAT_MESSAGE_SCALE;
 extern const float CHAT_MESSAGE_HEIGHT;
-
 
 enum ScreenTintLayer {
     SCREEN_TINT_BEFORE_LANDSCAPE = 0,
@@ -69,7 +67,7 @@ public:
     static void setShowNamesAboveHeads(bool show);
 
     explicit Avatar(QThread* thread);
-    ~Avatar();
+    virtual ~Avatar();
 
     virtual void instantiableAvatar() = 0;
 
@@ -109,6 +107,7 @@ public:
     float getLODDistance() const;
 
     virtual bool isMyAvatar() const override { return false; }
+    virtual void createOrb() { }
 
     virtual QVector<glm::quat> getJointRotations() const override;
     using AvatarData::getJointRotation;
@@ -167,8 +166,8 @@ public:
 
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
 
-    static void renderJointConnectingCone( gpu::Batch& batch, glm::vec3 position1, glm::vec3 position2,
-                                                float radius1, float radius2, const glm::vec4& color);
+    static void renderJointConnectingCone(gpu::Batch& batch, glm::vec3 position1, glm::vec3 position2,
+                                               float radius1, float radius2, const glm::vec4& color);
 
     virtual void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) { }
 
@@ -235,7 +234,7 @@ public:
 
     /// Scales a world space position vector relative to the avatar position and scale
     /// \param vector position to be scaled. Will store the result
-    void scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const;
+    void scaleVectorRelativeToPosition(glm::vec3& positionToScale) const;
 
     void slamPosition(const glm::vec3& position);
     virtual void updateAttitude(const glm::quat& orientation) override;
@@ -253,7 +252,6 @@ public:
 
     void setPositionViaScript(const glm::vec3& position) override;
     void setOrientationViaScript(const glm::quat& orientation) override;
-
 
     /**jsdoc
      * @function MyAvatar.getParentID
@@ -282,7 +280,6 @@ public:
      */
     // This calls through to the SpatiallyNestable versions, but is here to expose these to JavaScript.
     Q_INVOKABLE virtual void setParentJointIndex(quint16 parentJointIndex) override;
-
 
     /**jsdoc
      * Returns an array of joints, where each joint is an object containing name, index, and parentIndex fields.
@@ -348,7 +345,6 @@ public:
     // returns true, if an acurate eye height estimage can be obtained by inspecting the avatar model skeleton and geometry,
     // not all subclasses of AvatarData have access to this data.
     virtual bool canMeasureEyeHeight() const override { return true; }
-
 
     virtual float getModelScale() const { return _modelScale; }
     virtual void setModelScale(float scale) { _modelScale = scale; }
