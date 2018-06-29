@@ -13,8 +13,6 @@
 #define hifi_Android_Helper_h
 
 #include <QObject>
-#include <QThread>
-#include <AccountManager.h>
 
 class AndroidHelper : public QObject {
     Q_OBJECT
@@ -23,7 +21,6 @@ public:
             static AndroidHelper instance;
             return instance;
     }
-    void init();
     void requestActivity(const QString &activityName, const bool backToScene);
     void notifyLoadComplete();
     void notifyEnterForeground();
@@ -31,7 +28,6 @@ public:
 
     void performHapticFeedback(int duration);
 
-    QSharedPointer<AccountManager> getAccountManager() { return _accountManager; }
     AndroidHelper(AndroidHelper const&)  = delete;
     void operator=(AndroidHelper const&) = delete;
 
@@ -49,8 +45,6 @@ signals:
 private:
     AndroidHelper();
     ~AndroidHelper();
-    QSharedPointer<AccountManager> _accountManager;
-    QThread workerThread;
 };
 
 #endif

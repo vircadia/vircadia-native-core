@@ -44,6 +44,11 @@ void Space::processResets(const Transaction::Resets& transactions) {
     for (auto& reset : transactions) {
         // Access the true item
         auto proxyID = std::get<0>(reset);
+
+        // Guard against proxyID being past the end of the list.
+        if (proxyID < 0 || proxyID >= (int32_t)_proxies.size() || proxyID >= (int32_t)_owners.size()) {
+            continue;
+        }
         auto& item = _proxies[proxyID];
 
         // Reset the item with a new payload
