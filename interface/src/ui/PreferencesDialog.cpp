@@ -288,7 +288,6 @@ void setupPreferences() {
         preferences->addPreference(new CheckPreference(MOVEMENT, "Flying & jumping", getter, setter));
     }
     {
-        
         auto getter = [=]()->int { return myAvatar->getSnapTurn() ? 0 : 1; };
         auto setter = [=](int value) { myAvatar->setSnapTurn(value == 0); };
         auto preference = new RadioButtonsPreference(MOVEMENT, "Snap turn / Smooth turn", getter, setter);
