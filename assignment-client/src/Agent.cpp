@@ -76,12 +76,6 @@ Agent::Agent(ReceivedMessage& message) :
     DependencyManager::set<recording::Recorder>();
     DependencyManager::set<recording::ClipCache>();
 
-    DependencyManager::set<ScriptCache>();
-    DependencyManager::set<ScriptEngines>(ScriptEngine::AGENT_SCRIPT);
-
-    DependencyManager::set<RecordingScriptingInterface>();
-    DependencyManager::set<UsersScriptingInterface>();
-
     // Needed to ensure the creation of the DebugDraw instance on the main thread
     DebugDraw::getInstance();
 
@@ -157,6 +151,11 @@ void Agent::handleAudioPacket(QSharedPointer<ReceivedMessage> message) {
 static const QString AGENT_LOGGING_NAME = "agent";
 
 void Agent::run() {
+    DependencyManager::set<ScriptCache>();
+    DependencyManager::set<ScriptEngines>(ScriptEngine::AGENT_SCRIPT);
+
+    DependencyManager::set<RecordingScriptingInterface>();
+    DependencyManager::set<UsersScriptingInterface>();
 
     // make sure we request our script once the agent connects to the domain
     auto nodeList = DependencyManager::get<NodeList>();
