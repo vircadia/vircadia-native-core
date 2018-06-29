@@ -133,10 +133,10 @@ signals:
     void settingsUpdated();
 
 public slots:
-    void apiGetGroupIDJSONCallback(QNetworkReply& requestReply);
-    void apiGetGroupIDErrorCallback(QNetworkReply& requestReply);
-    void apiGetGroupRanksJSONCallback(QNetworkReply& requestReply);
-    void apiGetGroupRanksErrorCallback(QNetworkReply& requestReply);
+    void apiGetGroupIDJSONCallback(QNetworkReply* requestReply);
+    void apiGetGroupIDErrorCallback(QNetworkReply* requestReply);
+    void apiGetGroupRanksJSONCallback(QNetworkReply* requestReply);
+    void apiGetGroupRanksErrorCallback(QNetworkReply* requestReply);
 
 private slots:
     void processSettingsRequestPacket(QSharedPointer<ReceivedMessage> message);

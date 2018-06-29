@@ -423,8 +423,7 @@ protected:
     bool _overrideModelTransform { false };
     bool _triangleSetsValid { false };
     void calculateTriangleSets(const FBXGeometry& geometry);
-    QVector<TriangleSet> _modelSpaceMeshTriangleSets; // model space triangles for all sub meshes
-
+    std::vector<std::vector<TriangleSet>> _modelSpaceMeshTriangleSets; // model space triangles for all sub meshes
 
     virtual void createRenderItemSet();
 

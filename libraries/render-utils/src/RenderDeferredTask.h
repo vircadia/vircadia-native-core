@@ -126,7 +126,7 @@ public:
     RenderDeferredTask();
 
     void configure(const Config& config);
-    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, bool renderShadows);
 
 private:
     static const render::Varying addSelectItemJobs(JobModel& task,

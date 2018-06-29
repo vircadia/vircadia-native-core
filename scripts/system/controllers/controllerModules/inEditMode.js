@@ -18,10 +18,16 @@ Script.include("/~/system/libraries/controllers.js");
 Script.include("/~/system/libraries/utils.js");
 
 (function () {
+    var MARGIN = 25;
+    
     function InEditMode(hand) {
         this.hand = hand;
         this.triggerClicked = false;
         this.selectedTarget = null;
+        this.reticleMinX = MARGIN;
+        this.reticleMaxX;
+        this.reticleMinY = MARGIN;
+        this.reticleMaxY;
 
         this.parameters = makeDispatcherModuleParameters(
             160,
@@ -46,6 +52,16 @@ Script.include("/~/system/libraries/utils.js");
         this.pointingAtTablet = function(objectID) {
             return (HMD.tabletScreenID && objectID === HMD.tabletScreenID)
                 || (HMD.homeButtonID && objectID === HMD.homeButtonID);
+        };
+        
+        this.calculateNewReticlePosition = function(intersection) {
+            var dims = Controller.getViewportDimensions();
+            this.reticleMaxX = dims.x - MARGIN;
+            this.reticleMaxY = dims.y - MARGIN;
+            var point2d = HMD.overlayFromWorldPoint(intersection);
+            point2d.x = Math.max(this.reticleMinX, Math.min(point2d.x, this.reticleMaxX));
+            point2d.y = Math.max(this.reticleMinY, Math.min(point2d.y, this.reticleMaxY));
+            return point2d;
         };
 
         this.sendPickData = function(controllerData) {
@@ -72,6 +88,23 @@ Script.include("/~/system/libraries/utils.js");
 
                 this.triggerClicked = true;
             }
+            
+            this.sendPointingAtData(controllerData);
+        };
+        
+        this.sendPointingAtData = function(controllerData) {
+            var rayPick = controllerData.rayPicks[this.hand];
+            var hudRayPick = controllerData.hudRayPicks[this.hand];
+            var point2d = this.calculateNewReticlePosition(hudRayPick.intersection);
+            var desktopWindow = Window.isPointOnDesktopWindow(point2d);
+            var tablet = this.pointingAtTablet(rayPick.objectID);
+            var rightHand = this.hand === RIGHT_HAND;
+            Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                method: "pointingAt",
+                desktopWindow: desktopWindow,
+                tablet: tablet,
+                rightHand: rightHand
+            }));
         };
 
         this.exitModule = function() {
@@ -104,6 +137,7 @@ Script.include("/~/system/libraries/utils.js");
             if (overlayLaser) {
                 var overlayLaserReady = overlayLaser.isReady(controllerData);
                 var target = controllerData.rayPicks[this.hand].objectID;
+                this.sendPointingAtData(controllerData);
                 if (overlayLaserReady.active && this.pointingAtTablet(target)) {
                     return this.exitModule();
                 }

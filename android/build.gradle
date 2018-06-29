@@ -21,6 +21,7 @@ buildscript {
 plugins {
     id 'de.undercouch.download' version '3.3.0'
     id "cz.malohlava" version "1.0.3"
+    id "io.github.http-builder-ng.http-plugin" version "0.1.1"
 }
 
 allprojects {
@@ -67,6 +68,7 @@ def baseFolder = new File(HIFI_ANDROID_PRECOMPILED)
 def appDir = new File(projectDir, 'app')
 def jniFolder = new File(appDir, 'src/main/jniLibs/arm64-v8a')
 def baseUrl = 'https://hifi-public.s3.amazonaws.com/dependencies/android/'
+def breakpadDumpSymsDir = new File("${appDir}/build/tmp/breakpadDumpSyms")
 
 def qtFile='qt-5.9.3_linux_armv8-libcpp_openssl.tgz'
 def qtChecksum='04599670ccca84bd2b15f6915568eb2d'
@@ -149,6 +151,13 @@ def packages = [
         file: 'etc2comp-patched-armv8-libcpp.tgz',
         versionId: 'bHhGECRAQR1vkpshBcK6ByNc1BQIM8gU',
         checksum: '14b02795d774457a33bbc60e00a786bc'
+    ],
+    breakpad: [
+        file: 'breakpad.tgz',
+        versionId: '8VrYXz7oyc.QBxNia0BVJOUBvrFO61jI',
+        checksum: 'ddcb23df336b08017042ba4786db1d9e',
+        sharedLibFolder: 'lib',
+        includeLibs: ['libbreakpad_client.a']
     ]
 ]
 
@@ -367,6 +376,7 @@ task verifyPolyvox(type: Verify) { def p = packages['polyvox']; src new File(bas
 task verifyTBB(type: Verify) { def p = packages['tbb']; src new File(baseFolder, p['file']); checksum p['checksum'] }
 task verifyHifiAC(type: Verify) { def p = packages['hifiAC']; src new File(baseFolder, p['file']); checksum p['checksum'] }
 task verifyEtc2Comp(type: Verify) { def p = packages['etc2comp']; src new File(baseFolder, p['file']); checksum p['checksum'] }
+task verifyBreakpad(type: Verify) { def p = packages['breakpad']; src new File(baseFolder, p['file']); checksum p['checksum'] }
 
 task verifyDependencyDownloads(dependsOn: downloadDependencies) { }
 verifyDependencyDownloads.dependsOn verifyQt
@@ -378,6 +388,7 @@ verifyDependencyDownloads.dependsOn verifyPolyvox
 verifyDependencyDownloads.dependsOn verifyTBB
 verifyDependencyDownloads.dependsOn verifyHifiAC
 verifyDependencyDownloads.dependsOn verifyEtc2Comp
+verifyDependencyDownloads.dependsOn verifyBreakpad
 
 task extractDependencies(dependsOn: verifyDependencyDownloads) {
     doLast {
@@ -540,7 +551,93 @@ task cleanDependencies(type: Delete) {
     delete 'app/src/main/res/values/libs.xml'
 }
 
+def runBreakpadDumpSyms = { buildType ->
+    gradle.startParameter.showStacktrace = ShowStacktrace.ALWAYS
 
+    def objDir = new File("${appDir}/build/intermediates/cmake/${buildType}/obj/arm64-v8a")
+    def stripDebugSymbol = "${appDir}/build/intermediates/transforms/stripDebugSymbol/${buildType}/0/lib/arm64-v8a/"
+    def outputDir = new File(breakpadDumpSymsDir, buildType)
+    if (!outputDir.exists()) {
+        outputDir.mkdirs()
+    }
+
+    objDir.eachFileRecurse (FileType.FILES) { file ->
+        if (file.name.endsWith('.so')) {
+            def output = file.name + ".sym"
+            def cmdArgs = [
+                    file.toString(),
+                    stripDebugSymbol
+            ]
+            def result = exec {
+                workingDir HIFI_ANDROID_PRECOMPILED + '/breakpad/bin'
+                commandLine './dump_syms'
+                args cmdArgs
+                ignoreExitValue true
+                standardOutput = new BufferedOutputStream(new FileOutputStream(new File(outputDir, output)))
+            }
+        }
+    }
+}
+
+task runBreakpadDumpSymsDebug() {
+    doLast {
+        runBreakpadDumpSyms("debug");
+    }
+}
+
+task runBreakpadDumpSymsRelease() {
+    doLast {
+        runBreakpadDumpSyms("release");
+    }
+}
+
+task zipDumpSymsDebug(type: Zip, dependsOn: runBreakpadDumpSymsDebug) {
+    from (new File(breakpadDumpSymsDir, "debug").absolutePath)
+    archiveName "symbols-${RELEASE_NUMBER}-debug.zip"
+    destinationDir(new File("${appDir}/build/tmp/"))
+}
+
+task zipDumpSymsRelease(type: Zip, dependsOn: runBreakpadDumpSymsRelease) {
+    from (new File(breakpadDumpSymsDir, "release").absolutePath)
+    archiveName "symbols-${RELEASE_NUMBER}-release.zip"
+    destinationDir(new File("${appDir}/build/tmp/"))
+}
+
+task uploadBreakpadDumpSymsDebug(type:io.github.httpbuilderng.http.HttpTask, dependsOn: zipDumpSymsDebug) {
+    onlyIf {
+        System.getenv("CMAKE_BACKTRACE_URL") && System.getenv("CMAKE_BACKTRACE_SYMBOLS_TOKEN")
+    }
+    config {
+        request.uri = System.getenv("CMAKE_BACKTRACE_URL")
+    }
+    post {
+        request.uri.path = '/post'
+        request.uri.query = [format: 'symbols', token: System.getenv("CMAKE_BACKTRACE_SYMBOLS_TOKEN")]
+        request.body = new File("${appDir}/build/tmp/", "symbols-${RELEASE_NUMBER}-debug.zip").bytes
+        request.contentType = 'application/octet-stream'
+        response.success {
+            println ("${appDir}/build/tmp/symbols-${RELEASE_NUMBER}-debug.zip uploaded")
+        }
+    }
+}
+
+task uploadBreakpadDumpSymsRelease(type:io.github.httpbuilderng.http.HttpTask, dependsOn: zipDumpSymsRelease) {
+    onlyIf {
+        System.getenv("CMAKE_BACKTRACE_URL") && System.getenv("CMAKE_BACKTRACE_SYMBOLS_TOKEN")
+    }
+    config {
+        request.uri = System.getenv("CMAKE_BACKTRACE_URL")
+    }
+    post {
+        request.uri.path = '/post'
+        request.uri.query = [format: 'symbols', token: System.getenv("CMAKE_BACKTRACE_SYMBOLS_TOKEN")]
+        request.body = new File("${appDir}/build/tmp/", "symbols-${RELEASE_NUMBER}-release.zip").bytes
+        request.contentType = 'application/octet-stream'
+        response.success {
+            println ("${appDir}/build/tmp/symbols-${RELEASE_NUMBER}-release.zip uploaded")
+        }
+    }
+}
 
 // FIXME this code is prototyping the desired functionality for doing build time binary dependency resolution.
 // See the comment on the qtBundle task above

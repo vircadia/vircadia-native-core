@@ -149,8 +149,8 @@ void WebEntityRenderer::onTimeout() {
 }
 
 void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
-    // If the content type has changed, or the old content type was QML, we need to 
-    // destroy the existing surface (because surfaces don't support changing the root 
+    // If the content type has changed, or the old content type was QML, we need to
+    // destroy the existing surface (because surfaces don't support changing the root
     // object, so subsequent loads of content just overlap the existing content
     bool urlChanged = false;
     {
@@ -187,24 +187,30 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
         if (!hasWebSurface() && !buildWebSurface(entity)) {
             return;
         }
-        
+
         if (urlChanged && _contentType == ContentType::HtmlContent) {
             _webSurface->getRootItem()->setProperty(URL_PROPERTY, _lastSourceUrl);
         }
 
-        if (_contextPosition != entity->getWorldPosition()) {
-            // update globalPosition
-            _contextPosition = entity->getWorldPosition();
-            _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(_contextPosition));
-        }
+        void* key = (void*)this;
+        AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] () {
+            withWriteLock([&] {
+                if (_contextPosition != entity->getWorldPosition()) {
+                    // update globalPosition
+                    _contextPosition = entity->getWorldPosition();
+                    _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(_contextPosition));
+                }
 
-        _lastDPI = entity->getDPI();
-        _lastLocked = entity->getLocked();
+                _lastDPI = entity->getDPI();
+                _lastLocked = entity->getLocked();
 
-        glm::vec2 windowSize = getWindowSize(entity);
-        _webSurface->resize(QSize(windowSize.x, windowSize.y));
-        _renderTransform = getModelTransform();
-        _renderTransform.postScale(entity->getScaledDimensions());
+                glm::vec2 windowSize = getWindowSize(entity);
+                _webSurface->resize(QSize(windowSize.x, windowSize.y));
+                updateModelTransform();
+                _renderTransform = getModelTransform();
+                _renderTransform.postScale(entity->getScaledDimensions());
+            });
+        });
     });
 }
 
@@ -297,7 +303,7 @@ bool WebEntityRenderer::buildWebSurface(const TypedEntityPointer& entity) {
 
     if (_contentType == ContentType::HtmlContent) {
         // We special case YouTube URLs since we know they are videos that we should play with at least 30 FPS.
-        // FIXME this doesn't handle redirects or shortened URLs, consider using a signaling method from the 
+        // FIXME this doesn't handle redirects or shortened URLs, consider using a signaling method from the
         // web entity
         if (QUrl(_lastSourceUrl).host().endsWith("youtube.com", Qt::CaseInsensitive)) {
             _webSurface->setMaxFps(YOUTUBE_MAX_FPS);

@@ -126,10 +126,12 @@ Item {
             activeFocusOnPress: true
 
             ShortcutText {
+                z: 10
                 anchors {
-                    verticalCenter: usernameField.textFieldLabel.verticalCenter
-                    left: usernameField.textFieldLabel.right
-                    leftMargin: 10
+                    left: usernameField.left
+                    top: usernameField.top
+                    leftMargin: usernameField.textFieldLabel.contentWidth + 10
+                    topMargin: -19
                 }
 
                 text: "<a href='https://highfidelity.com/users/password/new'>Forgot Username?</a>"
@@ -154,10 +156,12 @@ Item {
             activeFocusOnPress: true
 
             ShortcutText {
+                z: 10
                 anchors {
-                    verticalCenter: passwordField.textFieldLabel.verticalCenter
-                    left: passwordField.textFieldLabel.right
-                    leftMargin: 10
+                    left: passwordField.left
+                    top: passwordField.top
+                    leftMargin: passwordField.textFieldLabel.contentWidth + 10
+                    topMargin: -19
                 }
 
                 text: "<a href='https://highfidelity.com/users/password/new'>Forgot Password?</a>"
@@ -168,6 +172,7 @@ Item {
 
                 onLinkActivated: loginDialog.openUrl(link)
             }
+
             onFocusChanged: {
                 root.text = "";
                 root.isPassword = true;

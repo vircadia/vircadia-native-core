@@ -15,39 +15,17 @@
 #ifndef hifi_workload_Space_h
 #define hifi_workload_Space_h
 
+#include <memory>
 #include <vector>
 #include <glm/glm.hpp>
 
+#include "Transaction.h"
+
 namespace workload {
 
-class Space {
+class Space : public Collection {
 public:
-    static const uint8_t REGION_NEAR = 0;
-    static const uint8_t REGION_MIDDLE = 1;
-    static const uint8_t REGION_FAR = 2;
-    static const uint8_t REGION_UNKNOWN = 3;
-    static const uint8_t REGION_INVALID = 4;
-
-    using Sphere = glm::vec4; // <x,y,z> = center, w = radius
-
-    class Proxy {
-    public:
-        Proxy(const Sphere& s) : sphere(s) {}
-        Sphere sphere;
-        uint8_t region { REGION_UNKNOWN };
-        uint8_t prevRegion { REGION_UNKNOWN };
-    };
-
-    class View {
-    public:
-        View(const glm::vec3& pos, float nearRadius, float midRadius, float farRadius) : center(pos) {
-            radiuses[0] = nearRadius;
-            radiuses[1] = midRadius;
-            radiuses[2] = farRadius;
-        }
-        glm::vec3 center { 0.0f, 0.0f, 0.0f };
-        float radiuses[3] { 0.0f, 0.0f, 0.0f };
-    };
+    using ProxyUpdate = std::pair<int32_t, Sphere>;
 
     class Change {
     public:
@@ -57,22 +35,42 @@ public:
         uint8_t prevRegion { 0 };
     };
 
-    Space() {}
+    Space();
 
-    int32_t createProxy(const Sphere& sphere);
-    void deleteProxy(int32_t proxyId);
-    void updateProxy(int32_t proxyId, const Sphere& sphere);
-    void setViews(const std::vector<View>& views);
+    void setViews(const Views& views);
 
-    uint32_t getNumObjects() const { return (uint32_t)(_proxies.size() - _freeIndices.size()); }
+    uint32_t getNumViews() const { return (uint32_t)(_views.size()); }
+    void copyViews(std::vector<View>& copy) const;
+
+    uint32_t getNumObjects() const { return _IDAllocator.getNumLiveIndices(); } // (uint32_t)(_proxies.size() - _freeIndices.size()); }
+    uint32_t getNumAllocatedProxies() const { return (uint32_t)(_IDAllocator.getNumAllocatedIndices()); }
 
     void categorizeAndGetChanges(std::vector<Change>& changes);
+    uint32_t copyProxyValues(Proxy* proxies, uint32_t numDestProxies) const;
 
+    const Owner getOwner(int32_t proxyID) const;
+    uint8_t getRegion(int32_t proxyID) const;
+
+    void clear();
 private:
-    std::vector<Proxy> _proxies;
-    std::vector<View> _views;
-    std::vector<int32_t> _freeIndices;
+
+    void processTransactionFrame(const Transaction& transaction) override;
+    void processResets(const Transaction::Resets& transactions);
+    void processRemoves(const Transaction::Removes& transactions);
+    void processUpdates(const Transaction::Updates& transactions);
+
+    // The database of proxies is protected for editing by a mutex
+    mutable std::mutex _proxiesMutex;
+    Proxy::Vector _proxies;
+    std::vector<Owner> _owners;
+
+    Views _views;
 };
+
+using SpacePointer = std::shared_ptr<Space>;
+using Changes = std::vector<Space::Change>;
+using IndexVectors = std::vector<IndexVector>;
+using Timings = std::vector<std::chrono::nanoseconds>;
 
 } // namespace workload
 

@@ -319,6 +319,15 @@ public slots:
      * {@link Window.processingGifStarted|processingGifStarted} and {@link Window.processingGifCompleted|processingGifCompleted}
      * are emitted. The path to store the snapshots and the length of the animated GIF to capture are specified in Settings >
      * General > Snapshots.
+     *
+     * If user has supplied a specific filename for the snapshot:
+     *     If the user's requested filename has a suffix that's contained within SUPPORTED_IMAGE_FORMATS,
+     *         DON'T append ".jpg" to the filename. QT will save the image in the format associated with the
+     *         filename's suffix.
+     *         If you want lossless Snapshots, supply a `.png` filename. Otherwise, use `.jpeg` or `.jpg`.
+     *     Otherwise, ".jpg" is appended to the user's requested filename so that the image is saved in JPG format.
+     * If the user hasn't supplied a specific filename for the snapshot:
+     *     Save the snapshot in JPG format according to FILENAME_PATH_FORMAT
      * @function Window.takeSnapshot
      * @param {boolean} [notify=true] - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
      *     signal.

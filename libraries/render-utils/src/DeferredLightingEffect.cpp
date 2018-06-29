@@ -472,7 +472,8 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
     const graphics::HazePointer& haze,
     const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
     const AmbientOcclusionFramebufferPointer& ambientOcclusionFramebuffer,
-    const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource) {
+    const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource,
+    bool renderShadows) {
 
     auto args = renderContext->args;
     auto& batch = (*args->_batch);
@@ -554,7 +555,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
             // Check if keylight casts shadows
             bool keyLightCastShadows { false };
 
-            if (lightStage && lightStage->_currentFrame._sunLights.size()) {
+            if (renderShadows && lightStage && lightStage->_currentFrame._sunLights.size()) {
                 graphics::LightPointer keyLight = lightStage->getLight(lightStage->_currentFrame._sunLights.front());
                 if (keyLight) {
                     keyLightCastShadows = keyLight->getCastShadows();
@@ -711,11 +712,6 @@ void RenderDeferredCleanup::run(const render::RenderContextPointer& renderContex
     }
 }
 
-RenderDeferred::RenderDeferred() {
-
-}
-
-
 void RenderDeferred::configure(const Config& config) {
 }
 
@@ -742,7 +738,7 @@ void RenderDeferred::run(const RenderContextPointer& renderContext, const Inputs
         args->_batch = &batch;
          _gpuTimer->begin(batch);
 
-        setupJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, haze, surfaceGeometryFramebuffer, ssaoFramebuffer, subsurfaceScatteringResource);
+        setupJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, haze, surfaceGeometryFramebuffer, ssaoFramebuffer, subsurfaceScatteringResource, _renderShadows);
     
         lightsJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, lightClusters);
 

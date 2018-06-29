@@ -72,6 +72,8 @@
 #include "ui/overlays/Overlays.h"
 #include "UndoStackScriptingInterface.h"
 
+#include "workload/GameWorkload.h"
+
 #include <procedural/ProceduralSkybox.h>
 #include <graphics/Skybox.h>
 #include <ModelScriptingInterface.h>
@@ -273,6 +275,8 @@ public:
     const render::ScenePointer& getMain3DScene() const { return _main3DScene; }
     render::EnginePointer getRenderEngine() override { return _renderEngine; }
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
+
+    const GameWorkload& getGameWorkload() const { return _gameWorkload; }
 
     virtual void pushPostUpdateLambda(void* key, const std::function<void()>& func) override;
 
@@ -656,6 +660,8 @@ private:
     render::ScenePointer _main3DScene{ new render::Scene(glm::vec3(-0.5f * (float)TREE_SCALE), (float)TREE_SCALE) };
     render::EnginePointer _renderEngine{ new render::RenderEngine() };
     gpu::ContextPointer _gpuContext; // initialized during window creation
+
+    GameWorkload _gameWorkload;
 
     mutable QMutex _renderArgsMutex{ QMutex::Recursive };
     struct AppRenderArgs {

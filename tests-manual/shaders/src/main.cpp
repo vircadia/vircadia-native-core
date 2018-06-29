@@ -57,9 +57,6 @@
 #include <entities-renderer/textured_particle_frag.h>
 #include <entities-renderer/textured_particle_vert.h>
 
-#include <render-utils/overlay3D_vert.h>
-#include <render-utils/overlay3D_frag.h>
-
 #include <graphics/skybox_vert.h>
 #include <graphics/skybox_frag.h>
 
@@ -194,8 +191,6 @@ void QTestWindow::draw() {
         testShaderBuild(ambient_occlusion_vert::getSource(), ambient_occlusion_frag::getSource());
         testShaderBuild(ambient_occlusion_vert::getSource(), occlusion_blend_frag::getSource());
 */
-
-        testShaderBuild(overlay3D_vert::getSource(), overlay3D_frag::getSource());
 
         testShaderBuild(paintStroke_vert::getSource(),paintStroke_frag::getSource());
         testShaderBuild(polyvox_vert::getSource(), polyvox_frag::getSource());

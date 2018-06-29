@@ -20,6 +20,7 @@
 
 #include "GLMHelpers.h"
 
+using namespace render;
 using namespace render::entities;
 
 static const int FIXED_FONT_POINT_SIZE = 40;
@@ -64,10 +65,20 @@ bool TextEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoint
     return false;
 }
 
+void TextEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
+    void* key = (void*)this;
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] () {
+        withWriteLock([&] {
+            _dimensions = entity->getScaledDimensions();
+            updateModelTransform();
+            _renderTransform = getModelTransform();
+        });
+    });
+}
+
 void TextEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     _textColor = toGlm(entity->getTextColorX());
     _backgroundColor = toGlm(entity->getBackgroundColorX());
-    _dimensions = entity->getScaledDimensions();
     _faceCamera = entity->getFaceCamera();
     _lineHeight = entity->getLineHeight();
     _text = entity->getText();
@@ -76,24 +87,28 @@ void TextEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointe
 
 void TextEntityRenderer::doRender(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableTextEntityItem::render");
-   
+
+    Transform modelTransform;
+    glm::vec3 dimensions;
+    withReadLock([&] {
+        modelTransform = _renderTransform;
+        dimensions = _dimensions;
+    });
     static const float SLIGHTLY_BEHIND = -0.005f;
     float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
     bool transparent = fadeRatio < 1.0f;
     glm::vec4 textColor = glm::vec4(_textColor, fadeRatio);
     glm::vec4 backgroundColor = glm::vec4(_backgroundColor, fadeRatio);
-    const glm::vec3& dimensions = _dimensions;
-    
+
     // Render background
     glm::vec3 minCorner = glm::vec3(0.0f, -dimensions.y, SLIGHTLY_BEHIND);
     glm::vec3 maxCorner = glm::vec3(dimensions.x, 0.0f, SLIGHTLY_BEHIND);
-    
-    
+
+
     // Batch render calls
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
 
-    const auto& modelTransform = getModelTransform();
     auto transformToTopLeft = modelTransform;
     if (_faceCamera) {
         //rotate about vertical to face the camera
@@ -105,7 +120,7 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     }
     transformToTopLeft.postTranslate(dimensions * glm::vec3(-0.5f, 0.5f, 0.0f)); // Go to the top left
     transformToTopLeft.setScale(1.0f); // Use a scale of one so that the text is not deformed
-    
+
     batch.setModelTransform(transformToTopLeft);
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (!_geometryID) {
@@ -113,11 +128,11 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     }
     geometryCache->bindSimpleProgram(batch, false, transparent, false, false, false);
     geometryCache->renderQuad(batch, minCorner, maxCorner, backgroundColor, _geometryID);
-    
+
     float scale = _lineHeight / _textRenderer->getFontSize();
     transformToTopLeft.setScale(scale); // Scale to have the correct line height
     batch.setModelTransform(transformToTopLeft);
-    
+
     float leftMargin = 0.1f * _lineHeight, topMargin = 0.1f * _lineHeight;
     glm::vec2 bounds = glm::vec2(dimensions.x - 2.0f * leftMargin,
                                  dimensions.y - 2.0f * topMargin);
