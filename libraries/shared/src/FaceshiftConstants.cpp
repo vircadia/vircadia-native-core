@@ -64,3 +64,18 @@ const char* FACESHIFT_BLENDSHAPES[] = {
 };
 
 const int NUM_FACESHIFT_BLENDSHAPES = sizeof(FACESHIFT_BLENDSHAPES) / sizeof(char*);
+
+const int EYE_BLINK_L_INDEX = 0;
+const int EYE_BLINK_R_INDEX = 1;
+const int EYE_SQUINT_L_INDEX = 2;
+const int EYE_SQUINT_R_INDEX = 3;
+const int EYE_OPEN_L_INDEX = 8;
+const int EYE_OPEN_R_INDEX = 9;
+const int BROWS_U_L_INDEX = 17;
+const int BROWS_U_R_INDEX = 18;
+
+
+const int EYE_BLINK_INDICES[] = { EYE_BLINK_L_INDEX, EYE_BLINK_R_INDEX };
+const int EYE_SQUINT_INDICES[] = { EYE_SQUINT_L_INDEX, EYE_SQUINT_R_INDEX };
+const int EYE_OPEN_INDICES[] = { EYE_OPEN_L_INDEX, EYE_OPEN_R_INDEX };
+const int BROWS_U_INDICES[] = { BROWS_U_L_INDEX, BROWS_U_R_INDEX };

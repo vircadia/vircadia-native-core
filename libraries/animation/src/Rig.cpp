@@ -1434,9 +1434,9 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
 
         glm::quat deltaQuat = desiredQuat * glm::inverse(headQuat);
 
-        // limit swing rotation of the deltaQuat by a 30 degree cone.
+        // limit swing rotation of the deltaQuat by a 25 degree cone.
         // TODO: use swing twist decomposition constraint instead, for off axis rotation clamping.
-        const float MAX_ANGLE = 30.0f * RADIANS_PER_DEGREE;
+        const float MAX_ANGLE = 25.0f * RADIANS_PER_DEGREE;
         if (fabsf(glm::angle(deltaQuat)) > MAX_ANGLE) {
             deltaQuat = glm::angleAxis(glm::clamp(glm::angle(deltaQuat), -MAX_ANGLE, MAX_ANGLE), glm::axis(deltaQuat));
         }

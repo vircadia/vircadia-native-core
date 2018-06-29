@@ -17,7 +17,6 @@
 #include <QtCore/QJsonArray>
 #include <QVector>
 
-#include <FaceshiftConstants.h>
 #include <GLMHelpers.h>
 #include <shared/JSONHelpers.h>
 
