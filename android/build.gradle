@@ -74,9 +74,9 @@ def qtFile='qt-5.11.1_linux_armv8-libcpp_openssl.tgz'
 def qtChecksum='f312c47cd8b8dbca824c32af4eec5e66'
 def qtVersionId='nyCGcb91S4QbYeJhUkawO5x1lrLdSNB_'
 if (Os.isFamily(Os.FAMILY_MAC)) {
-    qtFile = 'qt-5.9.3_osx_armv8-libcpp_openssl.tgz'
-    qtChecksum='4b02de9d67d6bfb202355a808d2d9c59'
-    qtVersionId='2gfgoYCggJGyXxKiazaPGsMs1Gn9j4og'
+    qtFile = 'qt-5.11.1_osx_armv8-libcpp_openssl.tgz'
+    qtChecksum='a0c8b394aec5b0fcd46714ca3a53278a'
+    qtVersionId='QNa.lwNJaPc0eGuIL.xZ8ebeTuLL7rh8'
 } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
     qtFile = 'qt-5.9.3_win_armv8-libcpp_openssl.tgz'
     qtChecksum='c3e25db64002d0f43cf565e0ef708911'
