@@ -1,0 +1,171 @@
+
+
+<html>
+  <head>
+    <title>Rotate App</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="../../../../../system/html/css/edit-style.css">
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.2/css/bootstrap-slider.min.css">
+    <style>
+      body {
+          margin: 0;
+          padding: 0;
+          width: 100%;
+          color: purple;
+      }
+
+      .top-bar {
+          height: 90px;
+          background: linear-gradient(#2b2b2b, #1e1e1e);
+          font-family: Raleway-Bold;
+          padding-left: 30px;
+          padding-right: 30px;
+          display: flex;
+          align-items: center;
+          position: fixed;
+          width: 480px;
+          top: 0;
+          z-index: 1;
+          font-size: 16px;
+      }
+
+      .content {
+          margin-top: 90px;
+          padding: 30px;
+      }
+
+      .slider {
+        margin-left: 70px;
+      }
+
+    </style> 
+  </head>
+  <body>
+    <div class="top-bar">
+      <div style="font-size:300%;color:grey;"><b>Rotate App</b></div>
+    </div>
+    <div class="content">
+      <div id="properties-list">
+        <div class="property">
+          <label>Filter Length&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp</label>
+            <input
+              id="anteriorBase-slider"
+              type="text"
+              data-provide="slider"
+              data-slider-ticks="[0, 15, 30]"
+              data-slider-ticks-labels='["zero", "15cm", "30cm"]'
+              data-slider-min="0"
+              data-slider-max="30"
+              data-slider-step="1"
+              data-slider-value="14"
+              data-slider-tooltip="show"
+            >
+        </div>
+		<br>
+		<div class="property">
+          <label>Angle Threshold</label>
+            <input
+              id="posteriorBase-slider"
+              type="text"
+              data-provide="slider"
+              data-slider-ticks="[0, 15, 30]"
+              data-slider-ticks-labels='["zero", "15cm", "30cm"]'
+              data-slider-min="0"
+              data-slider-max="30"
+              data-slider-step="1"
+              data-slider-value="14"
+              data-slider-tooltip="show"
+            >
+        </div>
+		<br>
+		 <audio id="audio" src="http://hifi-content.s3.amazonaws.com/angus/stepApp/create.wav" autostart="false" ></audio>
+      </div>
+    </div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.2/bootstrap-slider.min.js"></script>
+    <script>
+	    //
+        //  Created by Angus Antley on 6/28/18
+        //  
+        //
+        //
+        //  Distributed under the Apache License, Version 2.0.
+        //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+        //
+
+        /* jslint bitwise: true */
+
+        /* global $, EventBridge
+        */
+		function changeColor(id, shade) {
+		    document.getElementById(id).setAttribute("fill", shade);
+		}
+		
+		function emit(eventType, eventData) {
+            var eventObject = {
+            "app": "step",
+            "type": eventType,
+            "data": eventData
+            };
+            EventBridge.emitWebEvent(JSON.stringify(eventObject));
+        }
+		
+		EventBridge.scriptEventReceived.connect(function (msg) {
+            var message = JSON.parse(msg);
+			if (message.type === "failsafe") {
+			    console.log("fail safe called");
+				changeColor(message.id,message.data.value);
+				if (message.data.value === "green") {
+				   var sound = document.getElementById("audio");
+				   if (sound.paused) {
+				       sound.volume = 0.25;
+                       sound.play();
+                   } else {
+                       sound.currentTime = 0;
+                   }		   
+				}
+			}
+            if (message.type === "trigger") {
+               changeColor(message.id,message.data.value);
+            }			
+            if (message.type === "frontBase") {
+				$("#anteriorBase-slider").data("slider").setValue(message.data.value);
+				var curState = $("#anteriorBase-slider").data("slider").getValue();
+				console.log("the anterior base slider value is " + JSON.stringify(curState));
+            }
+			if (message.type === "backBase") {
+				$("#posteriorBase-slider").data("slider").setValue(message.data.value);
+				var curState = $("#posteriorBase-slider").data("slider").getValue();
+				console.log("the posterior base slider value is " + JSON.stringify(curState));
+            }
+			
+        });
+		
+		
+        $(document).ready(function () {
+		    emit("ready", null);
+            
+			
+			$("#anteriorBase-slider").slider().on("change", function(e){
+			            console.log("anterior " + e.value.newValue);
+					    emit("onAnteriorBaseSlider",{value: e.value.newValue});
+            });
+			
+			$("#posteriorBase-slider").slider().on("change", function(e){
+			            console.log("posterior " + e.value.newValue);
+					    emit("onPosteriorBaseSlider",{value: e.value.newValue});
+            });
+			
+			
+			
+			
+            emit("onCreateRotateApp", {value: 10.0});		
+
+        });
+   
+	  </script>
+  </body>
+</html>
