@@ -1025,7 +1025,7 @@ public:
 
     bool isReadyForPhysics() const;
 
-    float computeStandingHeightMode(float newReading);
+    float computeStandingHeightMode(controller::Pose head);
     bool isHeadLevel(controller::Pose head);
     //bool  isWithinThresholdHeightMode(float newReading);
 
@@ -1637,7 +1637,7 @@ private:
     static const int SIZE_OF_MODE_ARRAY = 50;
     bool _haveReceivedHeightLimitsFromDomain = { false };
     int _heightModeArray[SIZE_OF_MODE_ARRAY];
-    int _currentMode = 0;
+    float _currentMode = 0;
     bool _resetMode = false;
     glm::quat _averageHeadRotation = glm::quat(0.0f,0.0f,0.0f,0.0f);
 

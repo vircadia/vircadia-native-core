@@ -3082,104 +3082,147 @@ static bool isInsideLine(glm::vec3 a, glm::vec3 b, glm::vec3 c) {
     return (((b.x - a.x) * (c.z - a.z) - (b.z - a.z) * (c.x - a.x)) > 0);
 }
 
-static bool withinBaseOfSupport(glm::vec3 position) {
+static bool withinBaseOfSupport(controller::Pose head) {
     float userScale = 1.0f;
 
-    const float DEFAULT_LATERAL = 1.10f;
-    const float DEFAULT_ANTERIOR = 1.04f;
-    const float DEFAULT_POSTERIOR = 1.06f;
+    const float DEFAULT_LATERAL = 0.10f;
+    const float DEFAULT_ANTERIOR = 0.04f;
+    const float DEFAULT_POSTERIOR = 0.06f;
 
     glm::vec3 frontLeft(-DEFAULT_LATERAL, 0.0f, -DEFAULT_ANTERIOR);
     glm::vec3 frontRight(DEFAULT_LATERAL, 0.0f, -DEFAULT_ANTERIOR);
     glm::vec3 backLeft(-DEFAULT_LATERAL, 0.0f, DEFAULT_POSTERIOR);
     glm::vec3 backRight(DEFAULT_LATERAL, 0.0f, DEFAULT_POSTERIOR);
 
-    bool withinFrontBase = isInsideLine(userScale * frontLeft, userScale * frontRight, position);
-    bool withinBackBase = isInsideLine(userScale * backRight, userScale * backLeft, position);
-    bool withinLateralBase = (isInsideLine(userScale * frontRight, userScale * backRight, position) &&
-                              isInsideLine(userScale * backLeft, userScale * frontLeft, position));
-    return (withinFrontBase && withinBackBase && withinLateralBase);
+    bool isWithinSupport = false;
+    if (head.isValid()) {
+        bool withinFrontBase = isInsideLine(userScale * frontLeft, userScale * frontRight, head.getTranslation());
+        bool withinBackBase = isInsideLine(userScale * backRight, userScale * backLeft, head.getTranslation());
+        bool withinLateralBase = (isInsideLine(userScale * frontRight, userScale * backRight, head.getTranslation()) &&
+            isInsideLine(userScale * backLeft, userScale * frontLeft, head.getTranslation()));
+        isWithinSupport = (withinFrontBase && withinBackBase && withinLateralBase);
+    }
+    qCDebug(interfaceapp) << "within base of support " << isWithinSupport;
+    return isWithinSupport;
 }
 
-static bool headAngularVelocityBelowThreshold(glm::vec3 angularVelocity) {
+static bool headAngularVelocityBelowThreshold(controller::Pose head) {
     const float ANGULAR_VELOCITY_THRESHOLD = 0.3f;
-    glm::vec3 xzPlaneAngularVelocity(angularVelocity.x, 0.0f, angularVelocity.z);
+    glm::vec3 xzPlaneAngularVelocity(0.0f, 0.0f, 0.0f);
+    if (head.isValid()) {
+        xzPlaneAngularVelocity.x = head.getAngularVelocity().x;
+        xzPlaneAngularVelocity.z = head.getAngularVelocity().z;
+    }
     float magnitudeAngularVelocity = glm::length(xzPlaneAngularVelocity);
     bool isBelowThreshold = (magnitudeAngularVelocity < ANGULAR_VELOCITY_THRESHOLD);
-    qCDebug(interfaceapp) << "magnitude " << magnitudeAngularVelocity
-                          << "head velocity below threshold is: " << isBelowThreshold;
-    qCDebug(interfaceapp) << "ang vel values x: " << angularVelocity.x << " y: " << angularVelocity.y
-                          << " z: " << angularVelocity.z;
+
+    qCDebug(interfaceapp) << "head angular velocity " << isBelowThreshold;
     return isBelowThreshold;
 }
 
 
-static bool isWithinThresholdHeightMode(float newReading, float newMode) {
+static bool isWithinThresholdHeightMode(controller::Pose head, float newMode) {
+    
     const float MODE_HEIGHT_THRESHOLD = -0.02f;
-    return (newReading - newMode) > MODE_HEIGHT_THRESHOLD;
+    bool isWithinThreshold = true;
+    if (head.isValid()) {
+        isWithinThreshold = (head.getTranslation().y - newMode) > MODE_HEIGHT_THRESHOLD;
+    }
+    qCDebug(interfaceapp) << "height threshold " << isWithinThreshold;
+    return isWithinThreshold;
 }
 
-float MyAvatar::computeStandingHeightMode(float newReading) {
+float MyAvatar::computeStandingHeightMode(controller::Pose head) {
     const float CENTIMETERS_PER_METER = 100.0f;
     const float MODE_CORRECTION_FACTOR = 0.02f;
     
+    //qCDebug(interfaceapp) << "new reading is " << newReading << " as an integer " << (int)(newReading * CENTIMETERS_PER_METER);
+    if (head.isValid()) {
+        float newReading = head.getTranslation().y;
+        //first add the number to the mode array
+        for (int i = 0; i < (SIZE_OF_MODE_ARRAY - 1); i++) {
+            _heightModeArray[i] = _heightModeArray[i + 1];
+        }
+        _heightModeArray[SIZE_OF_MODE_ARRAY - 1] = (int)(newReading * CENTIMETERS_PER_METER);
 
-    //first add the number to the mode array
-    for (int i = 0; i < (SIZE_OF_MODE_ARRAY - 1); i++) {
-        _heightModeArray[i] = _heightModeArray[i + 1];
-    }
-    _heightModeArray[SIZE_OF_MODE_ARRAY - 1] = (int)(newReading * CENTIMETERS_PER_METER);
-
-    int greatestFrequency = 0;
-    int mode = 0;
-    std::map<int, int> freq;
-    for (int j = 0; j < SIZE_OF_MODE_ARRAY; j++) {
-        freq[_heightModeArray[j]] += 1;
-        if ((freq[_heightModeArray[j]] > greatestFrequency) ||
-            ((freq[_heightModeArray[j]] == SIZE_OF_MODE_ARRAY) && (_heightModeArray[j] > _currentMode))) {
-            greatestFrequency = freq[_heightModeArray[j]];
-            mode = _heightModeArray[j];
+        int greatestFrequency = 0;
+        int mode = 0;
+        std::map<int, int> freq;
+        for (int j = 0; j < SIZE_OF_MODE_ARRAY; j++) {
+            freq[_heightModeArray[j]] += 1;
+            if ((freq[_heightModeArray[j]] > greatestFrequency) ||
+                ((freq[_heightModeArray[j]] == SIZE_OF_MODE_ARRAY) && (_heightModeArray[j] > mode))) {
+                greatestFrequency = freq[_heightModeArray[j]];
+                mode = _heightModeArray[j];
+            }
+        }
+        float modeInMeters = ((float)mode) / CENTIMETERS_PER_METER;
+        if (modeInMeters > _currentMode) {
+            qCDebug(interfaceapp) << "new mode value set";
+            _currentMode = modeInMeters;
+        }
+        else {
+            if (!_resetMode && qApp->isHMDMode()) {
+                _resetMode = true;
+                qCDebug(interfaceapp) << "reset mode value occurred";
+                _currentMode = (newReading - MODE_CORRECTION_FACTOR);
+            }
         }
     }
-    if (mode > _currentMode) {
-        return mode;
-    } else {
-        if (!_resetMode && qApp->isHMDMode()) {
-            _resetMode = true;
-            return (newReading - MODE_CORRECTION_FACTOR);
-        }
-    }
+    //qCDebug(interfaceapp) << "_current mode is " << _currentMode;
     return _currentMode;
 }
 
 static bool handDirectionMatchesHeadDirection(controller::Pose leftHand, controller::Pose rightHand, controller::Pose head) {
+    
     const float HANDS_VELOCITY_DIRECTION_THRESHOLD = 0.4f;
     const float VELOCITY_EPSILON = 0.02f;
-    leftHand.velocity.y = 0.0f;
-    rightHand.velocity.y = 0.0f;
-    head.velocity.y = 0.0f;
-    float handDotHeadLeft = glm::dot(glm::normalize(leftHand.getVelocity()), glm::normalize(head.getVelocity()));
-    float handDotHeadRight = glm::dot(glm::normalize(rightHand.getVelocity()), glm::normalize(head.getVelocity()));
+    bool leftHandDirectionMatchesHead = true;
+    bool rightHandDirectionMatchesHead = true;
+    if (leftHand.isValid() && head.isValid()) {
+        leftHand.velocity.y = 0.0f;
+        float handDotHeadLeft = glm::dot(glm::normalize(leftHand.getVelocity()), glm::normalize(head.getVelocity()));
+        leftHandDirectionMatchesHead = ((handDotHeadLeft > HANDS_VELOCITY_DIRECTION_THRESHOLD) && (glm::length(leftHand.getVelocity()) > VELOCITY_EPSILON));
+        qCDebug(interfaceapp) << "hand dot head left " << handDotHeadLeft;
+    } 
+    if (rightHand.isValid() && head.isValid()) {
+        rightHand.velocity.y = 0.0f;
+        float handDotHeadRight = glm::dot(glm::normalize(rightHand.getVelocity()), glm::normalize(head.getVelocity()));
+        rightHandDirectionMatchesHead = ((handDotHeadRight > HANDS_VELOCITY_DIRECTION_THRESHOLD) && (glm::length(rightHand.getVelocity()) > VELOCITY_EPSILON));
+    }
+    
+    qCDebug(interfaceapp) << "left right hand velocity "<< (leftHandDirectionMatchesHead && rightHandDirectionMatchesHead);
+    
 
-    return ((!leftHand.isValid() || ((handDotHeadLeft > HANDS_VELOCITY_DIRECTION_THRESHOLD) && (glm::length(leftHand.getVelocity()) > VELOCITY_EPSILON))) &&
-        (!rightHand.isValid() || ((handDotHeadRight > HANDS_VELOCITY_DIRECTION_THRESHOLD) && (glm::length(rightHand.getVelocity()) > VELOCITY_EPSILON))));
+    return leftHandDirectionMatchesHead && rightHandDirectionMatchesHead;
 }
 
 static bool handAngularVelocityBelowThreshold(controller::Pose leftHand, controller::Pose rightHand) {
     const float HANDS_ANGULAR_VELOCITY_THRESHOLD = 0.4f;
-    leftHand.angularVelocity.y = 0.0f;
-    rightHand.angularVelocity.y = 0.0f;
-    float leftHandXZAngularVelocity = glm::length(leftHand.getAngularVelocity());
-    float rightHandXZAngularVelocity = glm::length(rightHand.getAngularVelocity());
-    
-    return ((!leftHand.isValid() || (leftHandXZAngularVelocity < HANDS_ANGULAR_VELOCITY_THRESHOLD)) &&
-        (!rightHand.isValid() || (rightHandXZAngularVelocity < HANDS_ANGULAR_VELOCITY_THRESHOLD)));
+    float leftHandXZAngularVelocity = 0.0f;
+    float rightHandXZAngularVelocity = 0.0f;
+    if (leftHand.isValid()) {
+        leftHand.angularVelocity.y = 0.0f;
+        leftHandXZAngularVelocity = glm::length(leftHand.getAngularVelocity());
+    }
+    if (rightHand.isValid()) {
+        rightHand.angularVelocity.y = 0.0f;
+        rightHandXZAngularVelocity = glm::length(rightHand.getAngularVelocity());
+    }
+    qCDebug(interfaceapp) << " hands angular velocity left " << (leftHandXZAngularVelocity < HANDS_ANGULAR_VELOCITY_THRESHOLD) << " and right " << (rightHandXZAngularVelocity < HANDS_ANGULAR_VELOCITY_THRESHOLD);
+    return ((leftHandXZAngularVelocity < HANDS_ANGULAR_VELOCITY_THRESHOLD) &&
+        (rightHandXZAngularVelocity < HANDS_ANGULAR_VELOCITY_THRESHOLD));
 }
 
-static bool headVelocityGreaterThanThreshold(glm::vec3 headVelocity) {
+static bool headVelocityGreaterThanThreshold(controller::Pose head) {
     const float VELOCITY_EPSILON = 0.02f;
     const float HEAD_VELOCITY_THRESHOLD = 0.14f;
-    float headVelocityMagnitude = glm::length(headVelocity);
+    float headVelocityMagnitude = 0.0f;
+    if (head.isValid()) {
+        //qCDebug(interfaceapp) << " head velocity " << head.getVelocity();
+        headVelocityMagnitude = glm::length(head.getVelocity());
+    }
+    qCDebug(interfaceapp) << " head velocity " << (headVelocityMagnitude > HEAD_VELOCITY_THRESHOLD);
     return headVelocityMagnitude > HEAD_VELOCITY_THRESHOLD;
 }
 
@@ -3187,14 +3230,17 @@ bool MyAvatar::isHeadLevel(controller::Pose head) {
     const float AVERAGING_RATE = 0.03f;
     const float HEAD_PITCH_TOLERANCE = 7.0f;
     const float HEAD_ROLL_TOLERANCE = 7.0f;
+    glm::vec3 diffFromAverageEulers(0.0f, 0.0f, 0.0f);
 
-    _averageHeadRotation = slerp(_averageHeadRotation, head.getRotation(), AVERAGING_RATE);
-    glm::vec3 averageHeadEulers = glm::degrees(safeEulerAngles(_averageHeadRotation));
-    glm::vec3 currentHeadEulers = glm::degrees(safeEulerAngles(head.getRotation()));
-    glm::vec3 diffFromAverageEulers = averageHeadEulers - currentHeadEulers;
+    if (head.isValid()) {
+        _averageHeadRotation = slerp(_averageHeadRotation, head.getRotation(), AVERAGING_RATE);
+        glm::vec3 averageHeadEulers = glm::degrees(safeEulerAngles(_averageHeadRotation));
+        glm::vec3 currentHeadEulers = glm::degrees(safeEulerAngles(head.getRotation()));
+        diffFromAverageEulers = averageHeadEulers - currentHeadEulers;
+    }
+    qCDebug(interfaceapp) << " diff from average eulers x " << (fabs(diffFromAverageEulers.x) < HEAD_PITCH_TOLERANCE) << " and z " << (fabs(diffFromAverageEulers.z) < HEAD_ROLL_TOLERANCE);
 
     return ((fabs(diffFromAverageEulers.x) < HEAD_PITCH_TOLERANCE) && (fabs(diffFromAverageEulers.z) < HEAD_ROLL_TOLERANCE));
-
 }
 
 float MyAvatar::getUserHeight() const {
@@ -3421,25 +3467,30 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar,
     } else {
         // this is where we put the code for the stepping.
         // we do not have hmd lean enabled and we are looking for a step via our criteria.
-        qCDebug(interfaceapp) << "hmd lean is off";
+        //qCDebug(interfaceapp) << "hmd lean is off";
         if (!isActive(Rotation) && getForceActivateRotation()) {
             activate(Rotation);
             setForceActivateRotation(false);
         }
 
-        headAngularVelocityBelowThreshold(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getAngularVelocity());
-        float temp = myAvatar.computeStandingHeightMode(0.01f);
+        //compute the mode each frame
+        float theMode = myAvatar.computeStandingHeightMode(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD));
+        
+        //qCDebug(interfaceapp) << " y value head " << headPositionYAvatarFrame;
+        //headAngularVelocityBelowThreshold(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getAngularVelocity());
+        //float temp = myAvatar.computeStandingHeightMode(0.01f);
         if (!isActive(Horizontal) && (getForceActivateHorizontal() ||
-             (!withinBaseOfSupport(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation()) &&
-             headAngularVelocityBelowThreshold(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getAngularVelocity()) &&
-             isWithinThresholdHeightMode(myAvatar.computeStandingHeightMode(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation().y), myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation().y) &&
+             (!withinBaseOfSupport(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD)) &&
+             headAngularVelocityBelowThreshold(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD)) &&
+             isWithinThresholdHeightMode(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD), theMode) &&
              handDirectionMatchesHeadDirection(myAvatar.getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND), myAvatar.getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND), myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD)) &&
              handAngularVelocityBelowThreshold(myAvatar.getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND), myAvatar.getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND)) &&
-             headVelocityGreaterThanThreshold(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD).getVelocity()) &&
-             myAvatar.isHeadLevel(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD))))) {
+             headVelocityGreaterThanThreshold(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD)) &&
+             myAvatar.isHeadLevel(myAvatar.getControllerPoseInAvatarFrame(controller::Action::HEAD))
+                 ))) {
 
 
-            qCDebug(interfaceapp) << "----------------------------------------over the base of support";
+            qCDebug(interfaceapp) << "----------------------------------------take a step--------------------------------------";
             activate(Horizontal);
             setForceActivateHorizontal(false);
         }
