@@ -82,6 +82,7 @@ public class WebViewActivity extends Activity {
         webSettings.setBuiltInZoomControls(true);
         webSettings.setDisplayZoomControls(false);
         myWebView.loadUrl(mUrl);
+        enterPictureInPictureMode();
     }
 
     @Override
