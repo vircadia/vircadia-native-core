@@ -135,9 +135,6 @@ const LoaderList& getLoadedPlugins() {
     return loadedPlugins;
 }
 
-PluginManager::PluginManager() {
-}
-
 const CodecPluginList& PluginManager::getCodecPlugins() {
     static CodecPluginList codecPlugins;
     static std::once_flag once;

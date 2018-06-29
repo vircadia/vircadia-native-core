@@ -18,9 +18,10 @@ class PluginManager;
 using PluginManagerPointer = QSharedPointer<PluginManager>;
 
 class PluginManager : public QObject, public Dependency {
+    SINGLETON_DEPENDENCY
+
 public:
     static PluginManagerPointer getInstance();
-    PluginManager();
 
     const DisplayPluginList& getDisplayPlugins();
     const InputPluginList& getInputPlugins();
@@ -45,6 +46,8 @@ public:
     void setInputPluginSettingsPersister(const InputPluginSettingsPersister& persister);
     
 private:
+    PluginManager() = default;
+
     DisplayPluginProvider _displayPluginProvider { []()->DisplayPluginList { return {}; } };
     InputPluginProvider _inputPluginProvider { []()->InputPluginList { return {}; } };
     CodecPluginProvider _codecPluginProvider { []()->CodecPluginList { return {}; } };
