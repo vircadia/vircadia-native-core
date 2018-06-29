@@ -374,8 +374,13 @@ void GL45FixedAllocationTexture::allocateStorage() const {
     const GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
     const auto dimensions = _gpuObject.getDimensions();
     const auto mips = _gpuObject.getNumMips();
+    const auto numSlices = _gpuObject.getNumSlices();
 
-    glTextureStorage2D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y);
+    if (!_gpuObject.isArray()) {
+        glTextureStorage2D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y);
+    } else {
+        glTextureStorage3D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y, numSlices);
+    }
 
     glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, 0);
     glTextureParameteri(_id, GL_TEXTURE_MAX_LEVEL, mips - 1);
