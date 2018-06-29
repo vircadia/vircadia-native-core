@@ -679,7 +679,7 @@ void OffscreenUi::createDesktop(const QUrl& url) {
             menuInitializer(_vrMenu);
         }
 
-        //new KeyboardFocusHack();
+        new KeyboardFocusHack();
         connect(_desktop, SIGNAL(showDesktop()), this, SIGNAL(showDesktop()));
     });
 }

@@ -225,12 +225,12 @@ FocusScope {
         }
 
         Component.onCompleted: {
-            offscreenWindow.activeFocusItemChanged.connect(onWindowFocusChanged);
-            //focusHack.start();
+            //offscreenWindow.activeFocusItemChanged.connect(onWindowFocusChanged);
+            focusHack.start();
         }
 
         function onWindowFocusChanged() {
-            console.log("Focus item is " + offscreenWindow.activeFocusItem);
+            //console.log("Focus item is " + offscreenWindow.activeFocusItem);
 
             // FIXME this needs more testing before it can go into production
             // and I already cant produce any way to have a modal dialog lose focus
