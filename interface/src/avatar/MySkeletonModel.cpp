@@ -109,6 +109,11 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
     AnimPose avatarToRigPose(glm::vec3(1.0f), Quaternions::Y_180, glm::vec3(0.0f));
 
+    glm::mat4 rigToAvatarMatrix = Matrices::Y_180;
+    glm::mat4 avatarToWorldMatrix = createMatFromQuatAndPos(myAvatar->getWorldOrientation(), myAvatar->getWorldPosition());
+    glm::mat4 sensorToWorldMatrix = myAvatar->getSensorToWorldMatrix();
+    params.rigToSensorMatrix = glm::inverse(sensorToWorldMatrix) * avatarToWorldMatrix * rigToAvatarMatrix;
+
     // input action is the highest priority source for head orientation.
     auto avatarHeadPose = myAvatar->getControllerPoseInAvatarFrame(controller::Action::HEAD);
     if (avatarHeadPose.isValid()) {
