@@ -231,10 +231,9 @@ void Head::applyEyelidOffset(glm::quat headOrientation) {
     const float OPEN_DOWN_MULTIPLIER = 0.3f;
     const float BROW_UP_MULTIPLIER = 0.5f;
 
-    glm::quat eyeRotation = rotationBetween(headOrientation * IDENTITY_FORWARD, getLookAtPosition() - _eyePosition);
-    auto worldUpDirection = _owningAvatar->getWorldOrientation() * Vectors::UNIT_Y;
-    eyeRotation = eyeRotation * glm::angleAxis(safeEulerAngles(headOrientation).y, worldUpDirection);  // Rotation w.r.t. head
-    float eyePitch = safeEulerAngles(eyeRotation).x;
+    glm::vec3 lookAt = glm::normalize(getLookAtPosition() - _eyePosition);
+    glm::vec3 headUp = headOrientation * Vectors::UNIT_Y;
+    float eyePitch = (PI / 2.0f) - acos(glm::dot(lookAt, headUp));
     float eyelidOffset = glm::clamp(abs(eyePitch * EYE_PITCH_TO_COEFFICIENT), 0.0f, MAX_EYELID_OFFSET);
 
     float blinkUpCoefficient = -eyelidOffset;
