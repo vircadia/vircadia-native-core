@@ -207,7 +207,7 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
 #endif
 
             // if this user is a friend of the domain-owner, give them friend's permissions
-            if (_domainOwnerFriends.contains(verifiedUsername)) {
+            if (_domainOwnerFriends.contains(verifiedUsername.toLower())) {
                 userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameFriends);
 #ifdef WANT_DEBUG
                 qDebug() << "|  user-permissions: user is friends with domain-owner, so:" << userPerms;
@@ -993,7 +993,7 @@ void DomainGatekeeper::getDomainOwnerFriendsListJSONCallback(QNetworkReply* requ
         _domainOwnerFriends.clear();
         QJsonArray friends = jsonObject["data"].toObject()["friends"].toArray();
         for (int i = 0; i < friends.size(); i++) {
-            _domainOwnerFriends += friends.at(i).toString();
+            _domainOwnerFriends += friends.at(i).toString().toLower();
         }
     } else {
         qDebug() << "getDomainOwnerFriendsList api call returned:" << QJsonDocument(jsonObject).toJson(QJsonDocument::Compact);
