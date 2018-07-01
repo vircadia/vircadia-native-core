@@ -38,7 +38,7 @@ MessageBox {
         popup.button1text = 'CANCEL'
         popup.titleText = 'Get Wearables'
         popup.bodyText = 'Buy wearables from <a href="app://marketplace">Marketplace</a>' + '<br/>' +
-                         'Wear wearable from <a href="app://purchases">My Purchases</a>' + '<br/>' +
+                         'Wear wearables from <a href="app://purchases">My Purchases</a>' + '<br/>' +
                          'You can visit the domain “AvatarIsland” to get wearables'
 
         popup.imageSource = getWearablesUrl;
