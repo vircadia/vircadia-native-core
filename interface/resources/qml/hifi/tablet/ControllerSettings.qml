@@ -69,6 +69,7 @@ Item {
             id: stack
             initialItem: inputConfiguration
             property alias messageVisible: imageMessageBox.visible
+            property string selectedPlugin: ""
             Rectangle {
                 id: inputConfiguration
                 anchors {
@@ -274,6 +275,8 @@ Item {
                 } else {
                     box.label = "";
                 }
+
+                stack.selectedPlugin = selectedDevice;
             }
 
             Timer {
