@@ -1364,7 +1364,7 @@ void Rig::updateFeet(bool leftFootEnabled, bool rightFootEnabled, const AnimPose
         int kneeJointIndex = _animSkeleton->nameToJointIndex("LeftLeg");
         int upLegJointIndex = _animSkeleton->nameToJointIndex("LeftUpLeg");
         glm::vec3 poleVector = calculateKneePoleVector(footJointIndex, kneeJointIndex, upLegJointIndex, hipsIndex, leftFootPose);
-        glm::vec3 sensorPoleVector = transformVectorFast(rigToSensorMatrix, sensorPoleVector);
+        glm::vec3 sensorPoleVector = transformVectorFast(rigToSensorMatrix, poleVector);
 
         // smooth toward desired pole vector from previous pole vector...  to reduce jitter, but in sensor space.
         if (!_prevLeftFootPoleVectorValid) {
@@ -1395,7 +1395,7 @@ void Rig::updateFeet(bool leftFootEnabled, bool rightFootEnabled, const AnimPose
         int kneeJointIndex = _animSkeleton->nameToJointIndex("RightLeg");
         int upLegJointIndex = _animSkeleton->nameToJointIndex("RightUpLeg");
         glm::vec3 poleVector = calculateKneePoleVector(footJointIndex, kneeJointIndex, upLegJointIndex, hipsIndex, rightFootPose);
-        glm::vec3 sensorPoleVector = transformVectorFast(rigToSensorMatrix, sensorPoleVector);
+        glm::vec3 sensorPoleVector = transformVectorFast(rigToSensorMatrix, poleVector);
 
         // smooth toward desired pole vector from previous pole vector...  to reduce jitter
         if (!_prevRightFootPoleVectorValid) {
