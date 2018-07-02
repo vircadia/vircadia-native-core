@@ -207,7 +207,7 @@ NodePermissions DomainGatekeeper::setPermissionsForUser(bool isLocalUser, QStrin
 #endif
 
             // if this user is a friend of the domain-owner, give them friend's permissions
-            if (_domainOwnerFriends.contains(verifiedUsername.toLower())) {
+            if (_domainOwnerFriends.contains(verifiedUsername)) {
                 userPerms |= _server->_settingsManager.getStandardPermissionsForName(NodePermissions::standardNameFriends);
 #ifdef WANT_DEBUG
                 qDebug() << "|  user-permissions: user is friends with domain-owner, so:" << userPerms;
@@ -412,7 +412,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         } else if (verifyUserSignature(username, usernameSignature, nodeConnection.senderSockAddr)) {
             // they sent us a username and the signature verifies it
             getGroupMemberships(username);
-            verifiedUsername = username;
+            verifiedUsername = username.toLower();
         } else {
             // they sent us a username, but it didn't check out
             requestUserPublicKey(username);
