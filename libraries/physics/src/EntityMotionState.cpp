@@ -837,5 +837,11 @@ void EntityMotionState::clearObjectVelocities() const {
 
 void EntityMotionState::saveKinematicState(btScalar timeStep) {
     _body->saveKinematicState(timeStep);
+
+    // This is a WORKAROUND for a quirk in Bullet: due to floating point error slow spinning kinematic objects will
+    // have a measured angular velocity of zero.  This probably isn't a bug that the Bullet team is interested in
+    // fixing since there is one very simple workaround: use double-precision math for the physics simulation.
+    // We're not ready migrate to double-precision yet so we explicitly work around it by slamming the RigidBody's
+    // angular velocity with the value in the entity.
     _body->setAngularVelocity(glmToBullet(_entity->getWorldAngularVelocity()));
 }
