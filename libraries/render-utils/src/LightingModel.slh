@@ -314,6 +314,9 @@ void evalFragShadingGloss(out vec3 diffuse, out vec3 specular,
     specular = shading.xyz;
 }
 
+vec3 evalSpecularWithOpacity(vec3 specular, float opacity) {
+    return specular / max(opacity, 1e-6);
+}
 
 <@if not GETFRESNEL0@>
 <@def GETFRESNEL0@>
