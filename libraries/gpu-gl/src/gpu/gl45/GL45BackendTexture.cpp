@@ -152,7 +152,7 @@ public:
             glSamplerParameteri(result, GL_TEXTURE_MIN_FILTER, fm.minFilter);
             glSamplerParameteri(result, GL_TEXTURE_MAG_FILTER, fm.magFilter);
             if (sampler.doComparison()) {
-                glSamplerParameteri(result, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE_ARB);
+                glSamplerParameteri(result, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
                 glSamplerParameteri(result, GL_TEXTURE_COMPARE_FUNC, COMPARISON_TO_GL[sampler.getComparisonFunction()]);
             } else {
                 glSamplerParameteri(result, GL_TEXTURE_COMPARE_MODE, GL_NONE);
@@ -341,7 +341,7 @@ void GL45Texture::syncSampler() const {
     glTextureParameteri(_id, GL_TEXTURE_MAG_FILTER, fm.magFilter);
 
     if (sampler.doComparison()) {
-        glTextureParameteri(_id, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE_ARB);
+        glTextureParameteri(_id, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
         glTextureParameteri(_id, GL_TEXTURE_COMPARE_FUNC, COMPARISON_TO_GL[sampler.getComparisonFunction()]);
     } else {
         glTextureParameteri(_id, GL_TEXTURE_COMPARE_MODE, GL_NONE);
@@ -374,8 +374,13 @@ void GL45FixedAllocationTexture::allocateStorage() const {
     const GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
     const auto dimensions = _gpuObject.getDimensions();
     const auto mips = _gpuObject.getNumMips();
+    const auto numSlices = _gpuObject.getNumSlices();
 
-    glTextureStorage2D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y);
+    if (!_gpuObject.isArray()) {
+        glTextureStorage2D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y);
+    } else {
+        glTextureStorage3D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y, numSlices);
+    }
 
     glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, 0);
     glTextureParameteri(_id, GL_TEXTURE_MAX_LEVEL, mips - 1);

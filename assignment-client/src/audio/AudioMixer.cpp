@@ -65,7 +65,8 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
 
     // hash the available codecs (on the mixer)
     _availableCodecs.clear(); // Make sure struct is clean
-    auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
+    auto pluginManager = DependencyManager::set<PluginManager>();
+    auto codecPlugins = pluginManager->getCodecPlugins();
     std::for_each(codecPlugins.cbegin(), codecPlugins.cend(),
         [&](const CodecPluginPointer& codec) {
             _availableCodecs[codec->getName()] = codec;
@@ -104,6 +105,10 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     );
 
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
+}
+
+void AudioMixer::aboutToFinish() {
+    DependencyManager::destroy<PluginManager>();
 }
 
 void AudioMixer::queueAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
