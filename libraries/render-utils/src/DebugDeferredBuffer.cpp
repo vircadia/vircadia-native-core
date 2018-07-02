@@ -60,7 +60,8 @@ enum TextureSlot {
 enum ParamSlot {
     CameraCorrection = 0,
     DeferredFrameTransform,
-    ShadowTransform
+    ShadowTransform,
+    DebugParametersBuffer
 };
 
 static const std::string DEFAULT_ALBEDO_SHADER {
@@ -139,12 +140,11 @@ static const std::string DEFAULT_LIGHTING_SHADER {
     " }"
 };
 
-static const std::string DEFAULT_SHADOW_SHADER{
-    "uniform sampler2DShadow shadowMap;"
+static const std::string DEFAULT_SHADOW_DEPTH_SHADER{
     "vec4 getFragmentColor() {"
     "    for (int i = 255; i >= 0; --i) {"
     "        float depth = i / 255.0;"
-    "        if (texture(shadowMap, vec3(uv, depth)) > 0.5) {"
+    "        if (texture(shadowMaps, vec4(uv, parameters._shadowCascadeIndex, depth)) > 0.5) {"
     "            return vec4(vec3(depth), 1.0);"
     "        }"
     "    }"
@@ -323,7 +323,7 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string cust
         case ShadowCascade1Mode:
         case ShadowCascade2Mode:
         case ShadowCascade3Mode:
-            return DEFAULT_SHADOW_SHADER;
+            return DEFAULT_SHADOW_DEPTH_SHADER;
         case ShadowCascadeIndicesMode:
             return DEFAULT_SHADOW_CASCADE_SHADER;
         case LinearDepthMode:
@@ -396,6 +396,7 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Mode mode, std::str
         slotBindings.insert(gpu::Shader::Binding("cameraCorrectionBuffer", CameraCorrection));
         slotBindings.insert(gpu::Shader::Binding("deferredFrameTransformBuffer", DeferredFrameTransform));
         slotBindings.insert(gpu::Shader::Binding("shadowTransformBuffer", ShadowTransform));
+        slotBindings.insert(gpu::Shader::Binding("parametersBuffer", DebugParametersBuffer));
 
         slotBindings.insert(gpu::Shader::Binding("albedoMap", Albedo));
         slotBindings.insert(gpu::Shader::Binding("normalMap", Normal));
@@ -403,7 +404,7 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Mode mode, std::str
         slotBindings.insert(gpu::Shader::Binding("depthMap", Depth));
         slotBindings.insert(gpu::Shader::Binding("obscuranceMap", AmbientOcclusion));
         slotBindings.insert(gpu::Shader::Binding("lightingMap", Lighting));
-        slotBindings.insert(gpu::Shader::Binding("shadowMap", Shadow));
+        slotBindings.insert(gpu::Shader::Binding("shadowMaps", Shadow));
         slotBindings.insert(gpu::Shader::Binding("linearDepthMap", LinearDepth));
         slotBindings.insert(gpu::Shader::Binding("halfLinearDepthMap", HalfLinearDepth));
         slotBindings.insert(gpu::Shader::Binding("halfNormalMap", HalfNormal));
@@ -432,8 +433,11 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Mode mode, std::str
 }
 
 void DebugDeferredBuffer::configure(const Config& config) {
+    auto& parameters = _parameters.edit();
+
     _mode = (Mode)config.mode;
     _size = config.size;
+    parameters._shadowCascadeIndex = glm::clamp(_mode - Mode::ShadowCascade0Mode, 0, (int)SHADOW_CASCADE_MAX_COUNT - 1);
 }
 
 void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
@@ -483,14 +487,15 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
             batch.setResourceTexture(Velocity, velocityFramebuffer->getVelocityTexture());
         }
 
+        batch.setUniformBuffer(DebugParametersBuffer, _parameters);
+
         auto lightStage = renderContext->_scene->getStage<LightStage>();
         assert(lightStage);
         assert(lightStage->getNumLights() > 0);
         auto lightAndShadow = lightStage->getCurrentKeyLightAndShadow();
         const auto& globalShadow = lightAndShadow.second;
         if (globalShadow) {
-            const auto cascadeIndex = glm::clamp(_mode - Mode::ShadowCascade0Mode, 0, (int)globalShadow->getCascadeCount() - 1);
-            batch.setResourceTexture(Shadow, globalShadow->getCascade(cascadeIndex).map);
+            batch.setResourceTexture(Shadow, globalShadow->map);
             batch.setUniformBuffer(ShadowTransform, globalShadow->getBuffer());
             batch.setUniformBuffer(DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
         }

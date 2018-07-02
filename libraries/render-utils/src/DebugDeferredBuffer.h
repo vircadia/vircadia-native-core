@@ -30,7 +30,7 @@ public:
     DebugDeferredBufferConfig() : render::Job::Config(false) {}
 
     void setMode(int newMode);
- 
+
     int mode{ 0 };
     glm::vec4 size{ 0.0f, -1.0f, 1.0f, 1.0f };
 signals:
@@ -39,20 +39,26 @@ signals:
 
 class DebugDeferredBuffer {
 public:
-    using Inputs = render::VaryingSet6<DeferredFramebufferPointer, LinearDepthFramebufferPointer, SurfaceGeometryFramebufferPointer, AmbientOcclusionFramebufferPointer, VelocityFramebufferPointer, DeferredFrameTransformPointer>;
+    using Inputs = render::VaryingSet6<DeferredFramebufferPointer,
+                                       LinearDepthFramebufferPointer,
+                                       SurfaceGeometryFramebufferPointer,
+                                       AmbientOcclusionFramebufferPointer,
+                                       VelocityFramebufferPointer,
+                                       DeferredFrameTransformPointer>;
     using Config = DebugDeferredBufferConfig;
     using JobModel = render::Job::ModelI<DebugDeferredBuffer, Inputs, Config>;
-    
+
     DebugDeferredBuffer();
     ~DebugDeferredBuffer();
 
     void configure(const Config& config);
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
-    
+
 protected:
     friend class DebugDeferredBufferConfig;
 
-    enum Mode : uint8_t {
+    enum Mode : uint8_t
+    {
         // Use Mode suffix to avoid collisions
         Off = 0,
         DepthMode,
@@ -83,7 +89,7 @@ protected:
         AmbientOcclusionMode,
         AmbientOcclusionBlurredMode,
         VelocityMode,
-        CustomMode, // Needs to stay last
+        CustomMode,  // Needs to stay last
 
         NumModes,
     };
@@ -92,20 +98,25 @@ private:
     Mode _mode{ Off };
     glm::vec4 _size;
 
+#include "debug_deferred_buffer_shared.slh"
+
+    using ParametersBuffer = gpu::StructBuffer<DebugParameters>;
+
     struct CustomPipeline {
         gpu::PipelinePointer pipeline;
         mutable QFileInfo info;
     };
     using StandardPipelines = std::array<gpu::PipelinePointer, NumModes>;
     using CustomPipelines = std::unordered_map<std::string, CustomPipeline>;
-    
+
     bool pipelineNeedsUpdate(Mode mode, std::string customFile = std::string()) const;
     const gpu::PipelinePointer& getPipeline(Mode mode, std::string customFile = std::string());
     std::string getShaderSourceCode(Mode mode, std::string customFile = std::string());
-    
+
+    ParametersBuffer _parameters;
     StandardPipelines _pipelines;
     CustomPipelines _customPipelines;
-    int _geometryId { 0 };
+    int _geometryId{ 0 };
 };
 
-#endif // hifi_DebugDeferredBuffer_h
+#endif  // hifi_DebugDeferredBuffer_h
