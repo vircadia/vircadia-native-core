@@ -17,19 +17,11 @@
 #define SHADOW_SCREEN_SPACE_DITHER      1
 
 // the shadow texture
-#if SHADOW_CASCADE_MAX_COUNT>1
-uniform sampler2DShadow shadowMaps[SHADOW_CASCADE_MAX_COUNT];
-#else
-uniform sampler2DShadow shadowMaps;
-#endif
+uniform sampler2DArrayShadow shadowMaps;
 
 // Sample the shadowMap with PCF (built-in)
 float fetchShadow(int cascadeIndex, vec3 shadowTexcoord) {
-#if SHADOW_CASCADE_MAX_COUNT>1
-    return texture(shadowMaps[cascadeIndex], shadowTexcoord);
-#else
-    return texture(shadowMaps, shadowTexcoord);
-#endif
+    return texture(shadowMaps, vec4(shadowTexcoord.xy, cascadeIndex, shadowTexcoord.z));
 }
 
 vec2 PCFkernel[4] = vec2[4](
@@ -97,7 +89,6 @@ float evalShadowCascadeAttenuation(int cascadeIndex, ShadowSampleOffsets offsets
 
 float evalShadowAttenuation(vec3 worldLightDir, vec4 worldPosition, float viewDepth, vec3 worldNormal) {
     ShadowSampleOffsets offsets = evalShadowFilterOffsets(worldPosition);
-#if 0
     vec4 cascadeShadowCoords[2];
     cascadeShadowCoords[0] = vec4(0);
     cascadeShadowCoords[1] = vec4(0);
@@ -114,11 +105,6 @@ float evalShadowAttenuation(vec3 worldLightDir, vec4 worldPosition, float viewDe
     float attenuation = mix(cascadeAttenuations.x, cascadeAttenuations.y, cascadeMix);
     // Falloff to max distance
     return mix(1.0, attenuation, evalShadowFalloff(viewDepth));
-#else
-vec4 shadowTexcoord = evalShadowTexcoord(0, worldPosition);
-float attenuation = fetchShadow(0, shadowTexcoord.xyz);
-return attenuation;
-#endif
 }
 
 <@endif@>

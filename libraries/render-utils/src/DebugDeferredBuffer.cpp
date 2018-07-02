@@ -140,11 +140,12 @@ static const std::string DEFAULT_LIGHTING_SHADER {
 };
 
 static const std::string DEFAULT_SHADOW_SHADER{
-    "uniform sampler2DShadow shadowMap;"
+    "uniform sampler2DArrayShadow shadowMaps;"
+    "uniform int shadowCascadeIndex;"
     "vec4 getFragmentColor() {"
     "    for (int i = 255; i >= 0; --i) {"
     "        float depth = i / 255.0;"
-    "        if (texture(shadowMap, vec3(uv, depth)) > 0.5) {"
+    "        if (texture(shadowMaps, vec4(uv, shadowCascadeIndex, depth)) > 0.5) {"
     "            return vec4(vec3(depth), 1.0);"
     "        }"
     "    }"
@@ -403,7 +404,7 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Mode mode, std::str
         slotBindings.insert(gpu::Shader::Binding("depthMap", Depth));
         slotBindings.insert(gpu::Shader::Binding("obscuranceMap", AmbientOcclusion));
         slotBindings.insert(gpu::Shader::Binding("lightingMap", Lighting));
-        slotBindings.insert(gpu::Shader::Binding("shadowMap", Shadow));
+        slotBindings.insert(gpu::Shader::Binding("shadowMaps", Shadow));
         slotBindings.insert(gpu::Shader::Binding("linearDepthMap", LinearDepth));
         slotBindings.insert(gpu::Shader::Binding("halfLinearDepthMap", HalfLinearDepth));
         slotBindings.insert(gpu::Shader::Binding("halfNormalMap", HalfNormal));
@@ -490,7 +491,11 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
         const auto& globalShadow = lightAndShadow.second;
         if (globalShadow) {
             const auto cascadeIndex = glm::clamp(_mode - Mode::ShadowCascade0Mode, 0, (int)globalShadow->getCascadeCount() - 1);
-            batch.setResourceTexture(Shadow, globalShadow->getCascade(cascadeIndex).map);
+            const auto cascadeIndexLocation = pipeline->getProgram()->getUniforms().findLocation("shadowCascadeIndex");
+            batch.setResourceTexture(Shadow, globalShadow->map);
+            if (cascadeIndexLocation >= 0) {
+                batch._glUniform1i(cascadeIndexLocation, cascadeIndex);
+            }
             batch.setUniformBuffer(ShadowTransform, globalShadow->getBuffer());
             batch.setUniformBuffer(DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
         }
