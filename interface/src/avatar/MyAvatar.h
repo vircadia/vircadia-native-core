@@ -892,6 +892,12 @@ public:
     virtual void rebuildCollisionShape() override;
 
     const glm::vec2& getHeadControllerFacingMovingAverage() const { return _headControllerFacingMovingAverage; }
+    const float getStandingHeightMode() const { return _standingHeightMode; }
+    void setStandingHeightMode(float newMode) { _standingHeightMode = newMode; }
+    const glm::quat getAverageHeadRotation() const { return _averageHeadRotation; }
+    void setAverageHeadRotation(glm::quat rotation) { _averageHeadRotation = rotation; }
+    bool getResetMode() const { return _resetMode; }
+    void setResetMode(bool hasBeenReset) { _resetMode = hasBeenReset; }
 
     void setControllerPoseInSensorFrame(controller::Action action, const controller::Pose& pose);
     controller::Pose getControllerPoseInSensorFrame(controller::Action action) const;
@@ -1028,8 +1034,7 @@ public:
     bool isReadyForPhysics() const;
 
     float computeStandingHeightMode(controller::Pose head);
-    bool isHeadLevel(controller::Pose head);
-    //bool  isWithinThresholdHeightMode(float newReading);
+    glm::quat computeAverageHeadRotation(controller::Pose head);
 
 public slots:
 
@@ -1528,6 +1533,12 @@ private:
     // cache head controller pose in sensor space
     glm::vec2 _headControllerFacing;  // facing vector in xz plane (sensor space)
     glm::vec2 _headControllerFacingMovingAverage { 0.0f, 0.0f };   // facing vector in xz plane (sensor space)
+    glm::quat _averageHeadRotation { 0.0f, 0.0f, 0.0f, 1.0f };
+
+    static const int SIZE_OF_MODE_ARRAY { 50 };
+    int _heightModeArray[SIZE_OF_MODE_ARRAY];
+    float _standingHeightMode { 0.0f };
+    bool _resetMode { true };
 
     // cache of the current body position and orientation of the avatar's body,
     // in sensor space.
@@ -1555,6 +1566,7 @@ private:
         bool shouldActivateRotation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
         bool shouldActivateVertical(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
         bool shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
+        bool shouldActivateHorizontalCG(MyAvatar& myAvatar) const;
         void prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& bodySensorMatrix, const glm::mat4& currentBodyMatrix, bool hasDriveInput);
         glm::mat4 postPhysicsUpdate(const MyAvatar& myAvatar, const glm::mat4& currentBodyMatrix);
         bool getForceActivateRotation() const;
@@ -1605,7 +1617,7 @@ private:
     mutable std::mutex _controllerPoseMapMutex;
 
     bool _centerOfGravityModelEnabled { true };
-    bool _hmdLeanRecenterEnabled { true };
+    bool _hmdLeanRecenterEnabled { false };
     bool _sprint { false };
 
     AnimPose _prePhysicsRoomPose;
@@ -1642,12 +1654,7 @@ private:
     // load avatar scripts once when rig is ready
     bool _shouldLoadScripts { false };
 
-    static const int SIZE_OF_MODE_ARRAY = 50;
-    bool _haveReceivedHeightLimitsFromDomain = { false };
-    int _heightModeArray[SIZE_OF_MODE_ARRAY];
-    float _currentMode = 0;
-    bool _resetMode = false;
-    glm::quat _averageHeadRotation = glm::quat(0.0f,0.0f,0.0f,0.0f);
+    bool _haveReceivedHeightLimitsFromDomain { false };
 
 };
 

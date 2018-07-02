@@ -51,7 +51,7 @@
         <div class="property">
           <label>Filter Length&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp</label>
             <input
-              id="anteriorBase-slider"
+              id="filterLength-slider"
               type="text"
               data-provide="slider"
               data-slider-ticks="[0, 15, 30]"
@@ -67,7 +67,7 @@
 		<div class="property">
           <label>Angle Threshold</label>
             <input
-              id="posteriorBase-slider"
+              id="angleThreshold-slider"
               type="text"
               data-provide="slider"
               data-slider-ticks="[0, 15, 30]"
@@ -132,14 +132,14 @@
                changeColor(message.id,message.data.value);
             }			
             if (message.type === "frontBase") {
-				$("#anteriorBase-slider").data("slider").setValue(message.data.value);
-				var curState = $("#anteriorBase-slider").data("slider").getValue();
-				console.log("the anterior base slider value is " + JSON.stringify(curState));
+				$("#filterLength-slider").data("slider").setValue(message.data.value);
+				var curState = $("#filterLength-slider").data("slider").getValue();
+				console.log("the filter length slider value is " + JSON.stringify(curState));
             }
 			if (message.type === "backBase") {
-				$("#posteriorBase-slider").data("slider").setValue(message.data.value);
-				var curState = $("#posteriorBase-slider").data("slider").getValue();
-				console.log("the posterior base slider value is " + JSON.stringify(curState));
+				$("#angleThreshold-slider").data("slider").setValue(message.data.value);
+				var curState = $("#angleThreshold-slider").data("slider").getValue();
+				console.log("the angle threshold slider value is " + JSON.stringify(curState));
             }
 			
         });
@@ -149,14 +149,14 @@
 		    emit("ready", null);
             
 			
-			$("#anteriorBase-slider").slider().on("change", function(e){
-			            console.log("anterior " + e.value.newValue);
-					    emit("onAnteriorBaseSlider",{value: e.value.newValue});
+			$("#filterLength-slider").slider().on("change", function(e){
+			            console.log("filter length " + e.value.newValue);
+					    emit("onFilterLengthSlider",{value: e.value.newValue});
             });
 			
-			$("#posteriorBase-slider").slider().on("change", function(e){
-			            console.log("posterior " + e.value.newValue);
-					    emit("onPosteriorBaseSlider",{value: e.value.newValue});
+			$("#angleThreshold-slider").slider().on("change", function(e){
+			            console.log("angle threshold " + e.value.newValue);
+					    emit("onAngleThresholdSlider",{value: e.value.newValue});
             });
 			
 			
