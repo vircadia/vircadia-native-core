@@ -1269,6 +1269,8 @@ bool EntityScriptingInterface::appendPoint(QUuid entityID, const glm::vec3& poin
     EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
     if (!entity) {
         qCDebug(entities) << "EntityScriptingInterface::setPoints no entity with ID" << entityID;
+        // There is no entity
+        return false;
     }
 
     EntityTypes::EntityType entityType = entity->getType();

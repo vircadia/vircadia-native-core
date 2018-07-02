@@ -215,9 +215,8 @@ const JSONCallbackParameters& AddressManager::apiCallbackParameters() {
     static JSONCallbackParameters callbackParams;
 
     if (!hasSetupParameters) {
-        callbackParams.jsonCallbackReceiver = this;
+        callbackParams.callbackReceiver = this;
         callbackParams.jsonCallbackMethod = "handleAPIResponse";
-        callbackParams.errorCallbackReceiver = this;
         callbackParams.errorCallbackMethod = "handleAPIError";
     }
 
@@ -377,8 +376,8 @@ void AddressManager::handleLookupString(const QString& lookupString, bool fromSu
 const QString DATA_OBJECT_DOMAIN_KEY = "domain";
 
 
-void AddressManager::handleAPIResponse(QNetworkReply& requestReply) {
-    QJsonObject responseObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+void AddressManager::handleAPIResponse(QNetworkReply* requestReply) {
+    QJsonObject responseObject = QJsonDocument::fromJson(requestReply->readAll()).object();
     QJsonObject dataObject = responseObject["data"].toObject();
 
     // Lookup succeeded, don't keep re-trying it (especially on server restarts)
@@ -396,7 +395,7 @@ void AddressManager::handleAPIResponse(QNetworkReply& requestReply) {
 const char OVERRIDE_PATH_KEY[] = "override_path";
 const char LOOKUP_TRIGGER_KEY[] = "lookup_trigger";
 
-void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const QNetworkReply& reply) {
+void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const QNetworkReply* reply) {
 
     const QString DATA_OBJECT_PLACE_KEY = "place";
     const QString DATA_OBJECT_USER_LOCATION_KEY = "location";
@@ -461,7 +460,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                     emit possibleDomainChangeRequiredViaICEForID(iceServerAddress, domainID);
                 }
 
-                LookupTrigger trigger = (LookupTrigger) reply.property(LOOKUP_TRIGGER_KEY).toInt();
+                LookupTrigger trigger = (LookupTrigger) reply->property(LOOKUP_TRIGGER_KEY).toInt();
 
 
                 // set our current root place id to the ID that came back
@@ -495,7 +494,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 }
 
                 // check if we had a path to override the path returned
-                QString overridePath = reply.property(OVERRIDE_PATH_KEY).toString();
+                QString overridePath = reply->property(OVERRIDE_PATH_KEY).toString();
 
                 if (!overridePath.isEmpty() && overridePath != "/") {
                     // make sure we don't re-handle an overriden path if this was a refresh of info from API
@@ -543,10 +542,10 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
     }
 }
 
-void AddressManager::handleAPIError(QNetworkReply& errorReply) {
-    qCDebug(networking) << "AddressManager API error -" << errorReply.error() << "-" << errorReply.errorString();
+void AddressManager::handleAPIError(QNetworkReply* errorReply) {
+    qCDebug(networking) << "AddressManager API error -" << errorReply->error() << "-" << errorReply->errorString();
 
-    if (errorReply.error() == QNetworkReply::ContentNotFoundError) {
+    if (errorReply->error() == QNetworkReply::ContentNotFoundError) {
         // if this is a lookup that has no result, don't keep re-trying it
         _previousLookup.clear();
 
@@ -874,14 +873,14 @@ QString AddressManager::getDomainID() const {
     return DependencyManager::get<NodeList>()->getDomainHandler().getUUID().toString();
 }
 
-void AddressManager::handleShareableNameAPIResponse(QNetworkReply& requestReply) {
+void AddressManager::handleShareableNameAPIResponse(QNetworkReply* requestReply) {
     // make sure that this response is for the domain we're currently connected to
     auto domainID = DependencyManager::get<NodeList>()->getDomainHandler().getUUID();
 
-    if (requestReply.url().toString().contains(uuidStringWithoutCurlyBraces(domainID))) {
+    if (requestReply->url().toString().contains(uuidStringWithoutCurlyBraces(domainID))) {
         // check for a name or default name in the API response
 
-        QJsonObject responseObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+        QJsonObject responseObject = QJsonDocument::fromJson(requestReply->readAll()).object();
         QJsonObject domainObject = responseObject["domain"].toObject();
 
         const QString DOMAIN_NAME_KEY = "name";
@@ -917,7 +916,7 @@ void AddressManager::lookupShareableNameForDomainID(const QUuid& domainID) {
 
         // no error callback handling
         // in the case of an error we simply assume there is no default place name
-        callbackParams.jsonCallbackReceiver = this;
+        callbackParams.callbackReceiver = this;
         callbackParams.jsonCallbackMethod = "handleShareableNameAPIResponse";
 
         DependencyManager::get<AccountManager>()->sendRequest(GET_DOMAIN_ID.arg(uuidStringWithoutCurlyBraces(domainID)),

@@ -252,7 +252,7 @@ public:
     Q_ENUM(DriveKeys)
 
     explicit MyAvatar(QThread* thread);
-    ~MyAvatar();
+    virtual ~MyAvatar();
 
     void instantiableAvatar() override {};
     void registerMetaTypes(ScriptEnginePointer engine);
@@ -471,16 +471,6 @@ public:
      * @param {boolean} on
      */
     Q_INVOKABLE void setSnapTurn(bool on) { _useSnapTurn = on; }
-    /**jsdoc
-     * @function MyAvatar.getClearOverlayWhenMoving
-     * @returns {boolean} 
-     */
-    Q_INVOKABLE bool getClearOverlayWhenMoving() const { return _clearOverlayWhenMoving; }
-    /**jsdoc
-     * @function MyAvatar.setClearOverlayWhenMoving
-     * @param {boolean} on
-     */
-    Q_INVOKABLE void setClearOverlayWhenMoving(bool on) { _clearOverlayWhenMoving = on; }
 
 
     /**jsdoc
@@ -1385,6 +1375,7 @@ private slots:
 protected:
     virtual void beParentOfChild(SpatiallyNestablePointer newChild) const override;
     virtual void forgetChild(SpatiallyNestablePointer newChild) const override;
+    virtual void recalculateChildCauterization() const override;
 
 private:
 
@@ -1448,7 +1439,7 @@ private:
     std::array<float, MAX_DRIVE_KEYS> _driveKeys;
     std::bitset<MAX_DRIVE_KEYS> _disabledDriveKeys;
 
-    bool _enableFlying { true };
+    bool _enableFlying { false };
     bool _wasPushing { false };
     bool _isPushing { false };
     bool _isBeingPushed { false };
@@ -1510,7 +1501,6 @@ private:
     ThreadSafeValueCache<QUrl> _prefOverrideAnimGraphUrl;
     QUrl _fstAnimGraphOverrideUrl;
     bool _useSnapTurn { true };
-    bool _clearOverlayWhenMoving { true };
     QString _dominantHand { DOMINANT_RIGHT_HAND };
 
     const float ROLL_CONTROL_DEAD_ZONE_DEFAULT = 8.0f; // degrees
@@ -1590,6 +1580,7 @@ private:
     glm::quat _goToOrientation;
 
     std::unordered_set<int> _headBoneSet;
+    std::unordered_set<SpatiallyNestablePointer> _cauterizedChildrenOfHead;
     bool _prevShouldDrawHead;
     bool _rigEnabled { true };
 
@@ -1645,7 +1636,7 @@ private:
     // height of user in sensor space, when standing erect.
     ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
 
-    void updateChildCauterization(SpatiallyNestablePointer object);
+    void updateChildCauterization(SpatiallyNestablePointer object, bool cauterize);
 
     // max unscaled forward movement speed
     ThreadSafeValueCache<float> _walkSpeed { DEFAULT_AVATAR_MAX_WALKING_SPEED };

@@ -269,9 +269,6 @@ public:
         }
         _renderContext->doneCurrent();
 
-        // Deleting the object with automatically shutdown the thread
-        connect(qApp, &QCoreApplication::aboutToQuit, this, &QObject::deleteLater);
-
         // Transfer to a new thread
         moveToNewNamedThread(this, "RenderThread", [this](QThread* renderThread) {
             hifi::qt::addBlockingForbiddenThread("Render", renderThread);
@@ -814,6 +811,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     }
 
     // Tell the plugin manager about our statically linked plugins
+    DependencyManager::set<PluginManager>();
     auto pluginManager = PluginManager::getInstance();
     pluginManager->setInputPluginProvider([] { return getInputPlugins(); });
     pluginManager->setDisplayPluginProvider([] { return getDisplayPlugins(); });
@@ -1081,6 +1079,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->startThread();
 
+    // move the AddressManager to the NodeList thread so that domain resets due to domain changes always occur
+    // before we tell MyAvatar to go to a new location in the new domain
+    auto addressManager = DependencyManager::get<AddressManager>();
+    addressManager->moveToThread(nodeList->thread());
+
     const char** constArgv = const_cast<const char**>(argv);
     if (cmdOptionExists(argc, constArgv, "--disableWatchdog")) {
         DISABLE_WATCHDOG = true;
@@ -1231,8 +1234,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     accountManager->setIsAgent(true);
     accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
 
-    auto addressManager = DependencyManager::get<AddressManager>();
-
     // use our MyAvatar position and quat for address manager path
     addressManager->setPositionGetter([this]{ return getMyAvatar()->getWorldPosition(); });
     addressManager->setOrientationGetter([this]{ return getMyAvatar()->getWorldOrientation(); });
@@ -1375,6 +1376,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     initializeRenderEngine();
     qCDebug(interfaceapp, "Initialized Render Engine.");
 
+    // Overlays need to exist before we set the ContextOverlayInterface dependency
+    _overlays.init(); // do this before scripts load
+    DependencyManager::set<ContextOverlayInterface>();
+
     // Initialize the user interface and menu system
     // Needs to happen AFTER the render engine initialization to access its configuration
     initializeUi();
@@ -1510,10 +1515,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // probably not the right long term solution. But for now, we're going to do this to
     // allow you to move an entity around in your hand
     _entityEditSender.setPacketsPerSecond(3000); // super high!!
-
-    // Overlays need to exist before we set the ContextOverlayInterface dependency
-    _overlays.init(); // do this before scripts load
-    DependencyManager::set<ContextOverlayInterface>();
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
@@ -2256,7 +2257,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
 
 #if defined(Q_OS_ANDROID)
-    AndroidHelper::instance().init();
     connect(&AndroidHelper::instance(), &AndroidHelper::enterBackground, this, &Application::enterBackground);
     connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
     AndroidHelper::instance().notifyLoadComplete();
@@ -2294,6 +2294,7 @@ void Application::domainConnectionRefused(const QString& reasonMessage, int reas
             QString message = "Unable to connect to the location you are visiting.\n";
             message += reasonMessage;
             OffscreenUi::asyncWarning("", message);
+            getMyAvatar()->setWorldVelocity(glm::vec3(0.0f));
             break;
         }
         default:
@@ -2552,24 +2553,27 @@ Application::~Application() {
     _octreeProcessor.terminate();
     _entityEditSender.terminate();
 
+    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+        steamClient->shutdown();
+    }
+    DependencyManager::destroy<PluginManager>();
+
+    DependencyManager::destroy<CompositorHelper>(); // must be destroyed before the FramebufferCache
+
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<FramebufferCache>();
     DependencyManager::destroy<TextureCache>();
     DependencyManager::destroy<ModelCache>();
-    DependencyManager::destroy<GeometryCache>();
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
     DependencyManager::destroy<OctreeStatsProvider>();
+    DependencyManager::destroy<GeometryCache>();
 
     DependencyManager::get<ResourceManager>()->cleanup();
 
     // remove the NodeList from the DependencyManager
     DependencyManager::destroy<NodeList>();
-
-    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
-        steamClient->shutdown();
-    }
 
 #if 0
     ConnexionClient::getInstance().destroy();
@@ -2590,6 +2594,8 @@ Application::~Application() {
 
     // Can't log to file passed this point, FileLogger about to be deleted
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
+    
+    _renderEventHandler->deleteLater();
 }
 
 void Application::initializeGL() {
@@ -2716,7 +2722,7 @@ void Application::initializeDisplayPlugins() {
     setDisplayPlugin(defaultDisplayPlugin);
 
     // Now set the desired plugin if it's not the same as the default plugin
-    if (targetDisplayPlugin != defaultDisplayPlugin) {
+    if (!targetDisplayPlugin && (targetDisplayPlugin != defaultDisplayPlugin)) {
         setDisplayPlugin(targetDisplayPlugin);
     }
 
@@ -2890,6 +2896,7 @@ void Application::initializeUi() {
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
     connect(compositorHelper.data(), &CompositorHelper::allowMouseCaptureChanged, this, [=] {
         if (isHMDMode()) {
+            auto compositorHelper = DependencyManager::get<CompositorHelper>(); // don't capture outer smartpointer
             showCursor(compositorHelper->getAllowMouseCapture() ?
                        Cursor::Manager::lookupIcon(_preferredCursor.get()) :
                        Cursor::Icon::SYSTEM);
