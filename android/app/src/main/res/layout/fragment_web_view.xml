@@ -15,7 +15,7 @@
         android:layout_alignParentRight="true"
         android:layout_marginTop="6dp"
         android:layout_marginRight="5dp"
-        android:visibility="visible">
+        android:visibility="gone">
         <ImageView
             android:id="@+id/viewFullScreen"
             android:layout_width="25dp"

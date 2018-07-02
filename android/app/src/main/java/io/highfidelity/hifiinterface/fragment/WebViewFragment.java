@@ -56,9 +56,14 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
 
     public void loadUrl(String url) {
         mUrl = url;
-        myWebView.getSettings().setLoadWithOverviewMode(true);
-        myWebView.getSettings().setUseWideViewPort(true);
-        myWebView.loadUrl(mUrl);
+        loadUrl(myWebView, url);
+    }
+
+    private void loadUrl(WebView webView, String url) {
+        webView.setVisibility(View.GONE);
+        webView.getSettings().setLoadWithOverviewMode(true);
+        webView.getSettings().setUseWideViewPort(true);
+        webView.loadUrl(url);
     }
 
     public void setToolbarVisible(boolean visible) {
@@ -165,7 +170,6 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
         webSettings.setBuiltInZoomControls(true);
         webSettings.setDisplayZoomControls(false);
 
-        // TODO: add a toolbar (close, ...)
         mToolbar = rootView.findViewById(R.id.toolbar);
         mToolbar.findViewById(R.id.viewFullScreen).setOnClickListener(view -> {
             openInFullScreen();
@@ -175,11 +179,9 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
                 mCloseAction.run();
             }
         });
-
+        mToolbar.setVisibility(mToolbarVisible ? View.VISIBLE : View.GONE);
         if (mUrl != null) {
-            myWebView.getSettings().setLoadWithOverviewMode(true);
-            myWebView.getSettings().setUseWideViewPort(true);
-            myWebView.loadUrl(mUrl);
+            loadUrl(myWebView, mUrl);
         }
         return rootView;
     }
@@ -227,6 +229,7 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
                 }
             }
             if (mListener != null) {
+                myWebView.setVisibility(View.VISIBLE);
                 mListener.onWebLoaded(url, safenessLevel);
             }
         }
@@ -238,6 +241,7 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
             mProgressBar.setVisibility(View.VISIBLE);
             mProgressBar.setProgress(0);
             if (mListener != null) {
+                myWebView.setVisibility(View.VISIBLE);
                 mListener.onWebLoaded(url, safenessLevel);
             }
         }

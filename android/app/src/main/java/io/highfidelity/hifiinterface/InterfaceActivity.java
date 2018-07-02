@@ -11,7 +11,6 @@
 
 package io.highfidelity.hifiinterface;
 
-import android.app.Fragment;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
@@ -273,7 +272,9 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
             case "WebView":
                 runOnUiThread(() -> {
                     webSlidingDrawer.setVisibility(View.VISIBLE);
-                    webSlidingDrawer.animateOpen();
+                    if (!webSlidingDrawer.isOpened()) {
+                        webSlidingDrawer.animateOpen();
+                    }
                     if (args != null && args.containsKey(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL)) {
                         WebViewFragment webViewFragment = (WebViewFragment) getFragmentManager().findFragmentByTag("webViewFragment");
                         webViewFragment.loadUrl((String) args.get(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL));
