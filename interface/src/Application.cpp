@@ -8305,10 +8305,8 @@ void Application::enterBackground() {
     if (getActiveDisplayPlugin()->isActive()) {
         getActiveDisplayPlugin()->deactivate();
     }
-    // Clear caches
+    DependencyManager::get<ResourceCacheSharedItems>()->pausePendingRequests();
     clearDomainOctreeDetails();
-    // Clear the pending request list to avoid extra downloads to happen
-    ResourceCache::clearPendingRequests();
 }
 
 void Application::enterForeground() {
@@ -8317,6 +8315,7 @@ void Application::enterForeground() {
     if (!getActiveDisplayPlugin() || getActiveDisplayPlugin()->isActive() || !getActiveDisplayPlugin()->activate()) {
         qWarning() << "Could not re-activate display plugin";
     }
+    DependencyManager::get<ResourceCacheSharedItems>()->resumePendingRequests();
 }
 #endif
 
