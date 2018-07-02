@@ -5,7 +5,7 @@
 #   define MAT4 mat4
 #endif
 
-#define SHADOW_CASCADE_MAX_COUNT    1
+#define SHADOW_CASCADE_MAX_COUNT    4
 
 struct ShadowTransform {
 	MAT4 reprojection;
