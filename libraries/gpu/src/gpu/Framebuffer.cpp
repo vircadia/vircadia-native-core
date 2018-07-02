@@ -61,7 +61,7 @@ Framebuffer* Framebuffer::createShadowmap(uint16 width) {
     samplerDesc._borderColor = glm::vec4(1.0f);
     samplerDesc._wrapModeU = Sampler::WRAP_BORDER;
     samplerDesc._wrapModeV = Sampler::WRAP_BORDER;
-    samplerDesc._filter = Sampler::FILTER_MIN_MAG_LINEAR;
+    samplerDesc._filter = Sampler::FILTER_MIN_MAG_POINT;
     samplerDesc._comparisonFunc = LESS;
 
     depthTexture->setSampler(Sampler(samplerDesc));
