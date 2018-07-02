@@ -834,3 +834,8 @@ void EntityMotionState::clearObjectVelocities() const {
     }
     _entity->setAcceleration(glm::vec3(0.0f));
 }
+
+void EntityMotionState::saveKinematicState(btScalar timeStep) {
+    _body->saveKinematicState(timeStep);
+    _body->setAngularVelocity(glmToBullet(_entity->getWorldAngularVelocity()));
+}

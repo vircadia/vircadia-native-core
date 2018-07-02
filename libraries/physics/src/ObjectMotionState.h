@@ -165,6 +165,7 @@ public:
 
     virtual bool isLocallyOwned() const { return false; }
     virtual bool isLocallyOwnedOrShouldBe() const { return false; } // aka shouldEmitCollisionEvents()
+    virtual void saveKinematicState(btScalar timeStep);
 
     friend class PhysicsEngine;
 

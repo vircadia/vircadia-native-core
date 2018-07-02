@@ -97,6 +97,7 @@ public:
     OwnershipState getOwnershipState() const { return _ownershipState; }
 
     void setRegion(uint8_t region);
+    void saveKinematicState(btScalar timeStep) override;
 
 protected:
     void updateSendVelocities();
