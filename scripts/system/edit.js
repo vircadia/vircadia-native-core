@@ -2373,7 +2373,6 @@ function selectParticleEntity(entityID) {
     particleExplorerTool.createWebView();
 
     particleExplorerTool.setActiveParticleEntity(entityID);
-    particleExplorerTool.setActiveParticleProperties(properties);
 
     // Switch to particle explorer
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
