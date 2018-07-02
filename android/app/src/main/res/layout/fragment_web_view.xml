@@ -1,21 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
     <WebView
         android:id="@+id/web_view"
-        android:layout_below="@id/toolbar_actionbar"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
-    <ImageView
-        android:id="@+id/viewFullScreen"
+    <android.support.constraint.ConstraintLayout
+        android:id="@+id/toolbar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:layout_alignParentRight="true"
-        android:visibility="gone"
-        android:src="@drawable/ic_full_screen_24dp"
-        />
+        android:layout_marginTop="6dp"
+        android:layout_marginRight="5dp"
+        android:visibility="visible">
+        <ImageView
+            android:id="@+id/viewFullScreen"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            android:src="@drawable/ic_expand" />
+        <ImageView
+            android:id="@+id/close"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            app:layout_constraintLeft_toRightOf="@id/viewFullScreen"
+            android:layout_marginLeft="5dp"
+            android:src="@drawable/ic_close" />
+
+    </android.support.constraint.ConstraintLayout>
     <ProgressBar
         android:id="@+id/toolbarProgressBar"
         android:layout_below="@id/toolbar_actionbar"

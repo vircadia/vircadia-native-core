@@ -59,7 +59,6 @@ public class WebViewActivity extends Activity implements WebViewFragment.OnWebVi
         FragmentManager fragmentManager = getFragmentManager();
         FragmentTransaction ft = fragmentManager.beginTransaction();
         ft.replace(R.id.content_frame, fragment, FRAGMENT_TAG);
-        ft.addToBackStack(null);
         ft.commit();
     }
 

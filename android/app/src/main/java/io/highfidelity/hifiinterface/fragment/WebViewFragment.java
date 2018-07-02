@@ -6,8 +6,10 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.http.SslError;
 import android.os.Bundle;
+import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.SslErrorHandler;
@@ -24,18 +26,20 @@ import android.widget.Toast;
 import io.highfidelity.hifiinterface.R;
 import io.highfidelity.hifiinterface.WebViewActivity;
 
-public class WebViewFragment extends Fragment {
+public class WebViewFragment extends Fragment implements GestureDetector.OnGestureListener {
 
     public static final String URL = "url";
     public static final String TOOLBAR_VISIBLE = "toolbar_visible";
 
     private WebView myWebView;
+    private GestureDetector gestureDetector;
     private View mToolbar;
     private ProgressBar mProgressBar;
     private String mUrl;
     private boolean mToolbarVisible;
 
     private OnWebViewInteractionListener mListener;
+    private Runnable mCloseAction;
 
     public boolean onKeyDown(int keyCode) {
         // Check if the key event was the Back button and if there's history
@@ -52,11 +56,47 @@ public class WebViewFragment extends Fragment {
 
     public void loadUrl(String url) {
         mUrl = url;
+        myWebView.getSettings().setLoadWithOverviewMode(true);
+        myWebView.getSettings().setUseWideViewPort(true);
         myWebView.loadUrl(mUrl);
     }
 
     public void setToolbarVisible(boolean visible) {
         mToolbar.setVisibility(visible ? View.VISIBLE : View.GONE);
+    }
+
+    public void setCloseAction(Runnable closeAction) {
+        this.mCloseAction = closeAction;
+    }
+
+    @Override
+    public boolean onDown(MotionEvent motionEvent) {
+        return false;
+    }
+
+    @Override
+    public void onShowPress(MotionEvent motionEvent) {
+
+    }
+
+    @Override
+    public boolean onSingleTapUp(MotionEvent motionEvent) {
+        return false;
+    }
+
+    @Override
+    public boolean onScroll(MotionEvent motionEvent, MotionEvent motionEvent1, float v, float v1) {
+        return false;
+    }
+
+    @Override
+    public void onLongPress(MotionEvent motionEvent) {
+
+    }
+
+    @Override
+    public boolean onFling(MotionEvent motionEvent, MotionEvent motionEvent1, float v, float v1) {
+        return false;
     }
 
     public enum SafenessLevel {
@@ -98,6 +138,26 @@ public class WebViewFragment extends Fragment {
         View rootView = inflater.inflate(R.layout.fragment_web_view, container, false);
         mProgressBar = rootView.findViewById(R.id.toolbarProgressBar);
         myWebView = rootView.findViewById(R.id.web_view);
+        gestureDetector = new GestureDetector(this);
+        gestureDetector.setOnDoubleTapListener(new GestureDetector.OnDoubleTapListener() {
+            @Override
+            public boolean onSingleTapConfirmed(MotionEvent motionEvent) {
+                return false;
+            }
+
+            @Override
+            public boolean onDoubleTap(MotionEvent motionEvent) {
+                openInFullScreen();
+                return false;
+            }
+
+            @Override
+            public boolean onDoubleTapEvent(MotionEvent motionEvent) {
+                return false;
+            }
+        });
+        myWebView.setOnTouchListener((v, event) -> gestureDetector.onTouchEvent(event));
+
         myWebView.setWebViewClient(new HiFiWebViewClient());
         myWebView.setWebChromeClient(new HiFiWebChromeClient());
         WebSettings webSettings = myWebView.getSettings();
@@ -106,12 +166,19 @@ public class WebViewFragment extends Fragment {
         webSettings.setDisplayZoomControls(false);
 
         // TODO: add a toolbar (close, ...)
-        mToolbar = rootView.findViewById(R.id.viewFullScreen);
-        mToolbar.setOnClickListener(view -> {
+        mToolbar = rootView.findViewById(R.id.toolbar);
+        mToolbar.findViewById(R.id.viewFullScreen).setOnClickListener(view -> {
             openInFullScreen();
+        });
+        mToolbar.findViewById(R.id.close).setOnClickListener(view -> {
+            if (mCloseAction != null) {
+                mCloseAction.run();
+            }
         });
 
         if (mUrl != null) {
+            myWebView.getSettings().setLoadWithOverviewMode(true);
+            myWebView.getSettings().setUseWideViewPort(true);
             myWebView.loadUrl(mUrl);
         }
         return rootView;
