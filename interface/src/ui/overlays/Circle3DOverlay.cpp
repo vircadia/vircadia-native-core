@@ -201,13 +201,12 @@ void Circle3DOverlay::render(RenderArgs* args) {
                 
                 float tickMarkAngle = getMajorTickMarksAngle();
                 float angle = _startAt - fmodf(_startAt, tickMarkAngle) + tickMarkAngle;
-                float angleInRadians = glm::radians(angle);
                 float tickMarkLength = getMajorTickMarksLength();
                 float startRadius = (tickMarkLength > 0.0f) ? _innerRadius : _outerRadius;
                 float endRadius = startRadius + tickMarkLength;
                 
                 while (angle <= _endAt) {
-                    angleInRadians = glm::radians(angle);
+                    float angleInRadians = glm::radians(angle);
                     
                     glm::vec2 thisPointA(cosf(angleInRadians) * startRadius, sinf(angleInRadians) * startRadius);
                     glm::vec2 thisPointB(cosf(angleInRadians) * endRadius, sinf(angleInRadians) * endRadius);
@@ -223,13 +222,12 @@ void Circle3DOverlay::render(RenderArgs* args) {
                 
                 float tickMarkAngle = getMinorTickMarksAngle();
                 float angle = _startAt - fmodf(_startAt, tickMarkAngle) + tickMarkAngle;
-                float angleInRadians = glm::radians(angle);
                 float tickMarkLength = getMinorTickMarksLength();
                 float startRadius = (tickMarkLength > 0.0f) ? _innerRadius : _outerRadius;
                 float endRadius = startRadius + tickMarkLength;
                 
                 while (angle <= _endAt) {
-                    angleInRadians = glm::radians(angle);
+                    float angleInRadians = glm::radians(angle);
                     
                     glm::vec2 thisPointA(cosf(angleInRadians) * startRadius, sinf(angleInRadians) * startRadius);
                     glm::vec2 thisPointB(cosf(angleInRadians) * endRadius, sinf(angleInRadians) * endRadius);

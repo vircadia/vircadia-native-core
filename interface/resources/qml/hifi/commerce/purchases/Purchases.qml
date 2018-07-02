@@ -957,7 +957,7 @@ Rectangle {
     function updateCurrentlyWornWearables(wearables) {
         for (var i = 0; i < purchasesModel.count; i++) {
             for (var j = 0; j < wearables.length; j++) {
-                if (purchasesModel.get(i).itemType === "wearable" &&
+                if (purchasesModel.get(i).item_type === "wearable" &&
                     wearables[j].entityCertID === purchasesModel.get(i).certificate_id &&
                     wearables[j].entityEdition.toString() === purchasesModel.get(i).edition_number) {
                     purchasesModel.setProperty(i, 'wornEntityID', wearables[j].entityID);

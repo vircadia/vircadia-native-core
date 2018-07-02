@@ -140,7 +140,6 @@ struct IrradianceKTXPayload {
         data += sizeof(Version);
 
         memcpy(&_irradianceSH, data, sizeof(SphericalHarmonics));
-        data += sizeof(SphericalHarmonics);
 
         return true;
     }
@@ -516,7 +515,7 @@ TexturePointer Texture::build(const ktx::KTXDescriptor& descriptor) {
         header.getPixelHeight(),
         header.getPixelDepth(),
         1, // num Samples
-        header.getNumberOfSlices(),
+        header.isArray() ? header.getNumberOfSlices() : 0,
         header.getNumberOfLevels(),
         samplerDesc);
     texture->setUsage(gpuktxKeyValue._usage);

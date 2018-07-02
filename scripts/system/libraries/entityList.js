@@ -57,6 +57,15 @@ EntityListTool = function(opts) {
         webView.emitScriptEvent(JSON.stringify(data));
     };
 
+    that.removeEntities = function (deletedIDs, selectedIDs) {
+        var data = {
+            type: 'removeEntities',
+            deletedIDs: deletedIDs,
+            selectedIDs: selectedIDs
+        };
+        webView.emitScriptEvent(JSON.stringify(data));
+    };
+
     function valueIfDefined(value) {
         return value !== undefined ? value : "";
     }
@@ -90,12 +99,17 @@ EntityListTool = function(opts) {
                     url: url,
                     locked: properties.locked,
                     visible: properties.visible,
-                    verticesCount: valueIfDefined(properties.renderInfo.verticesCount),
-                    texturesCount: valueIfDefined(properties.renderInfo.texturesCount),
-                    texturesSize: valueIfDefined(properties.renderInfo.texturesSize),
-                    hasTransparent: valueIfDefined(properties.renderInfo.hasTransparent),
+                    verticesCount: (properties.renderInfo !== undefined ? 
+                        valueIfDefined(properties.renderInfo.verticesCount) : ""),
+                    texturesCount: (properties.renderInfo !== undefined ? 
+                        valueIfDefined(properties.renderInfo.texturesCount) : ""),
+                    texturesSize: (properties.renderInfo !== undefined ? 
+                        valueIfDefined(properties.renderInfo.texturesSize) : ""),
+                    hasTransparent: (properties.renderInfo !== undefined ? 
+                        valueIfDefined(properties.renderInfo.hasTransparent) : ""),
                     isBaked: properties.type == "Model" ? url.toLowerCase().endsWith(".baked.fbx") : false,
-                    drawCalls: valueIfDefined(properties.renderInfo.drawCalls),
+                    drawCalls: (properties.renderInfo !== undefined ? 
+                        valueIfDefined(properties.renderInfo.drawCalls) : ""),
                     hasScript: properties.script !== ""
                 });
             }

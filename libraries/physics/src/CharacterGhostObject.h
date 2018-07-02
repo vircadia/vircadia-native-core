@@ -23,7 +23,7 @@
 
 class CharacterGhostShape;
 
-class CharacterGhostObject : public btPairCachingGhostObject {
+class CharacterGhostObject : public btGhostObject {
 public:
     CharacterGhostObject() { }
     ~CharacterGhostObject();

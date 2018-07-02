@@ -97,6 +97,7 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     if (_simulation) {
         _simulation->clearEntities();
     }
+    _staleProxies.clear();
     QHash<EntityItemID, EntityItemPointer> localMap;
     localMap.swap(_entityMap);
     this->withWriteLock([&] {
@@ -276,10 +277,11 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
     }
 
     _isDirty = true;
-    emit addingEntity(entity->getEntityItemID());
 
     // find and hook up any entities with this entity as a (previously) missing parent
     fixupNeedsParentFixups();
+
+    emit addingEntity(entity->getEntityItemID());
 }
 
 bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
@@ -359,21 +361,34 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
                     // the sender is trying to take or continue ownership
                     if (entity->getSimulatorID().isNull()) {
                         // the sender is taking ownership
-                        properties.promoteSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
+                        if (properties.getSimulationOwner().getPriority() == VOLUNTEER_SIMULATION_PRIORITY) {
+                            // the entity-server always promotes VOLUNTEER to RECRUIT to avoid ownership thrash
+                            // when dynamic objects first activate and multiple participants bid simultaneously
+                            properties.setSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
+                        }
                         simulationBlocked = false;
                     } else if (entity->getSimulatorID() == senderID) {
                         // the sender is asserting ownership, maybe changing priority
                         simulationBlocked = false;
+                        // the entity-server always promotes VOLUNTEER to RECRUIT to avoid ownership thrash
+                        // when dynamic objects first activate and multiple participants bid simultaneously
+                        if (properties.getSimulationOwner().getPriority() == VOLUNTEER_SIMULATION_PRIORITY) {
+                            properties.setSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
+                        }
                     } else {
                         // the sender is trying to steal ownership from another simulator
                         // so we apply the rules for ownership change:
                         // (1) higher priority wins
-                        // (2) equal priority wins if ownership filter has expired except...
+                        // (2) equal priority wins if ownership filter has expired
+                        // (3) VOLUNTEER priority is promoted to RECRUIT
                         uint8_t oldPriority = entity->getSimulationPriority();
                         uint8_t newPriority = properties.getSimulationOwner().getPriority();
                         if (newPriority > oldPriority ||
                              (newPriority == oldPriority && properties.getSimulationOwner().hasExpired())) {
                             simulationBlocked = false;
+                            if (properties.getSimulationOwner().getPriority() == VOLUNTEER_SIMULATION_PRIORITY) {
+                                properties.setSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
+                            }
                         }
                     }
                     if (!simulationBlocked) {
@@ -391,6 +406,7 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
             }
             if (simulationBlocked) {
                 // squash ownership and physics-related changes.
+                // TODO? replace these eight calls with just one?
                 properties.setSimulationOwnerChanged(false);
                 properties.setPositionChanged(false);
                 properties.setRotationChanged(false);
@@ -728,6 +744,12 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
 
         if (theEntity->isSimulated()) {
             _simulation->prepareEntityForDelete(theEntity);
+        }
+
+        // keep a record of valid stale spaceIndices so they can be removed from the Space
+        int32_t spaceIndex = theEntity->getSpaceIndex();
+        if (spaceIndex != -1) {
+            _staleProxies.push_back(spaceIndex);
         }
     }
 }
@@ -1853,6 +1875,7 @@ void EntityTree::addToNeedsParentFixupList(EntityItemPointer entity) {
 
 void EntityTree::update(bool simulate) {
     PROFILE_RANGE(simulation_physics, "UpdateTree");
+    PerformanceTimer perfTimer("updateTree");
     withWriteLock([&] {
         fixupNeedsParentFixups();
         if (simulate && _simulation) {
@@ -2496,6 +2519,13 @@ bool EntityTree::readFromMap(QVariantMap& map) {
                 properties.setCloneDynamic(cloneDynamic.toBool());
                 properties.setCloneAvatarEntity(cloneAvatarEntity.toBool());
             }
+        }
+
+        // Zero out the spread values that were fixed in version ParticleEntityFix so they behave the same as before
+        if (contentVersion < (int)EntityVersion::ParticleEntityFix) {
+            properties.setRadiusSpread(0.0f);
+            properties.setAlphaSpread(0.0f);
+            properties.setColorSpread({0, 0, 0});
         }
 
         EntityItemPointer entity = addEntity(entityItemID, properties);

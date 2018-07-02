@@ -36,13 +36,13 @@
 #include <SettingHandle.h>
 #include <UsersScriptingInterface.h>
 #include <UUID.h>
-#include <avatars-renderer/OtherAvatar.h>
 #include <shared/ConicalViewFrustum.h>
 
 #include "Application.h"
 #include "InterfaceLogging.h"
 #include "Menu.h"
 #include "MyAvatar.h"
+#include "OtherAvatar.h"
 #include "SceneScriptingInterface.h"
 
 // 50 times per second - target is 45hz, but this helps account for any small deviations
@@ -186,11 +186,21 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     uint64_t updateExpiry = startTime + UPDATE_BUDGET;
     int numAvatarsUpdated = 0;
     int numAVatarsNotUpdated = 0;
+    bool physicsEnabled = qApp->isPhysicsEnabled();
 
     render::Transaction transaction;
     while (!sortedAvatars.empty()) {
         const SortableAvatar& sortData = sortedAvatars.top();
         const auto avatar = std::static_pointer_cast<Avatar>(sortData.getAvatar());
+        const auto otherAvatar = std::static_pointer_cast<OtherAvatar>(sortData.getAvatar());
+
+        // if the geometry is loaded then turn off the orb
+        if (avatar->getSkeletonModel()->isLoaded()) {
+            // remove the orb if it is there
+            otherAvatar->removeOrb();
+        } else {
+            otherAvatar->updateOrbPosition();
+        }
 
         bool ignoring = DependencyManager::get<NodeList>()->isPersonalMutingNode(avatar->getID());
         if (ignoring) {
@@ -202,7 +212,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         if (_shouldRender) {
             avatar->ensureInScene(avatar, qApp->getMain3DScene());
         }
-        if (!avatar->isInPhysicsSimulation()) {
+        if (physicsEnabled && !avatar->isInPhysicsSimulation()) {
             ShapeInfo shapeInfo;
             avatar->computeShapeInfo(shapeInfo);
             btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));

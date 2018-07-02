@@ -56,6 +56,8 @@ public class InterfaceActivity extends QtActivity {
     private AssetManager assetManager;
 
     private static boolean inVrMode;
+
+    private boolean nativeEnterBackgroundCallEnqueued = false;
 //    private GvrApi gvrApi;
     // Opaque native pointer to the Application C++ object.
     // This object is owned by the InterfaceActivity instance and passed to the native methods.
@@ -121,13 +123,18 @@ public class InterfaceActivity extends QtActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        nativeEnterBackground();
+        if (super.isLoading) {
+            nativeEnterBackgroundCallEnqueued = true;
+        } else {
+            nativeEnterBackground();
+        }
         //gvrApi.pauseTracking();
     }
 
     @Override
     protected void onStart() {
         super.onStart();
+        nativeEnterBackgroundCallEnqueued = false;
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
     }
 
@@ -256,6 +263,9 @@ public class InterfaceActivity extends QtActivity {
 
     public void onAppLoadedComplete() {
         super.isLoading = false;
+        if (nativeEnterBackgroundCallEnqueued) {
+            nativeEnterBackground();
+        }
     }
 
     public void performHapticFeedback(int duration) {

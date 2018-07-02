@@ -27,7 +27,7 @@ void RenderViewTask::build(JobModel& task, const render::Varying& input, render:
     assert(items.canCast<RenderFetchCullSortTask::Output>());
 
     if (isDeferred) {
-        task.addJob<RenderDeferredTask>("RenderDeferredTask", items);
+        task.addJob<RenderDeferredTask>("RenderDeferredTask", items, true);
     } else {
         task.addJob<RenderForwardTask>("Forward", items);
     }

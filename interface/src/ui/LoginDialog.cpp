@@ -113,9 +113,8 @@ void LoginDialog::linkSteam() {
             }
 
             JSONCallbackParameters callbackParams;
-            callbackParams.jsonCallbackReceiver = this;
+            callbackParams.callbackReceiver = this;
             callbackParams.jsonCallbackMethod = "linkCompleted";
-            callbackParams.errorCallbackReceiver = this;
             callbackParams.errorCallbackMethod = "linkFailed";
 
             const QString LINK_STEAM_PATH = "api/v1/user/steam/link";
@@ -141,9 +140,8 @@ void LoginDialog::createAccountFromStream(QString username) {
             }
 
             JSONCallbackParameters callbackParams;
-            callbackParams.jsonCallbackReceiver = this;
+            callbackParams.callbackReceiver = this;
             callbackParams.jsonCallbackMethod = "createCompleted";
-            callbackParams.errorCallbackReceiver = this;
             callbackParams.errorCallbackMethod = "createFailed";
 
             const QString CREATE_ACCOUNT_FROM_STEAM_PATH = "api/v1/user/steam/create";
@@ -185,28 +183,27 @@ void LoginDialog::openUrl(const QString& url) const {
     }
 }
 
-void LoginDialog::linkCompleted(QNetworkReply& reply) {
+void LoginDialog::linkCompleted(QNetworkReply* reply) {
     emit handleLinkCompleted();
 }
 
-void LoginDialog::linkFailed(QNetworkReply& reply) {
-    emit handleLinkFailed(reply.errorString());
+void LoginDialog::linkFailed(QNetworkReply* reply) {
+    emit handleLinkFailed(reply->errorString());
 }
 
-void LoginDialog::createCompleted(QNetworkReply& reply) {
+void LoginDialog::createCompleted(QNetworkReply* reply) {
     emit handleCreateCompleted();
 }
 
-void LoginDialog::createFailed(QNetworkReply& reply) {
-    emit handleCreateFailed(reply.errorString());
+void LoginDialog::createFailed(QNetworkReply* reply) {
+    emit handleCreateFailed(reply->errorString());
 }
 
 void LoginDialog::signup(const QString& email, const QString& username, const QString& password) {
     
     JSONCallbackParameters callbackParams;
-    callbackParams.jsonCallbackReceiver = this;
+    callbackParams.callbackReceiver = this;
     callbackParams.jsonCallbackMethod = "signupCompleted";
-    callbackParams.errorCallbackReceiver = this;
     callbackParams.errorCallbackMethod = "signupFailed";
     
     QJsonObject payload;
@@ -228,7 +225,7 @@ void LoginDialog::signup(const QString& email, const QString& username, const QS
                                 QJsonDocument(payload).toJson());
 }
 
-void LoginDialog::signupCompleted(QNetworkReply& reply) {
+void LoginDialog::signupCompleted(QNetworkReply* reply) {
     emit handleSignupCompleted();
 }
 
@@ -242,10 +239,10 @@ QString errorStringFromAPIObject(const QJsonValue& apiObject) {
     }
 }
 
-void LoginDialog::signupFailed(QNetworkReply& reply) {
+void LoginDialog::signupFailed(QNetworkReply* reply) {
     
     // parse the returned JSON to see what the problem was
-    auto jsonResponse = QJsonDocument::fromJson(reply.readAll());
+    auto jsonResponse = QJsonDocument::fromJson(reply->readAll());
     
     static const QString RESPONSE_DATA_KEY = "data";
     
