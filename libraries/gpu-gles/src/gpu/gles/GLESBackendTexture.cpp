@@ -268,6 +268,7 @@ GLsizei getCompressedImageSize(int width, int height, GLenum internalFormat) {
 void GLESFixedAllocationTexture::allocateStorage() const {
     const GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
     const auto numMips = _gpuObject.getNumMips();
+    const auto numSlices = _gpuObject.getNumSlices();
 
     // glTextureStorage2D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y);
     for (GLint level = 0; level < numMips; level++) {
