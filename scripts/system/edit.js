@@ -1784,7 +1784,7 @@ var keyReleaseEvent = function (event) {
         deleteSelectedEntities();
     } else if (event.text === "ESC") {
         selectionManager.clearSelections();
-    } else if (event.text === "TAB") {
+    } else if (event.text === "t") {
         selectionDisplay.toggleSpaceMode();
     } else if (event.text === "f") {
         if (isActive) {
