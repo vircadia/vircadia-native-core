@@ -274,10 +274,20 @@ void GLESFixedAllocationTexture::allocateStorage() const {
         Vec3u dimensions = _gpuObject.evalMipDimensions(level);
         for (GLenum target : getFaceTargets(_target)) {
             if (texelFormat.isCompressed()) {
-                glCompressedTexImage2D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, 0,
-                                       getCompressedImageSize(dimensions.x, dimensions.y, texelFormat.internalFormat), nullptr);
+                auto size = getCompressedImageSize(dimensions.x, dimensions.y, texelFormat.internalFormat);
+                if (!_gpuObject.isArray()) {
+                    glCompressedTexImage2D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, size, nullptr);
+                } else {
+                    glCompressedTexImage3D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, numSlices, 0, size * numSlices, nullptr);
+                }
             } else {
-                glTexImage2D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, texelFormat.format, texelFormat.type, nullptr);
+                if (!_gpuObject.isArray()) {
+                    glTexImage2D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, texelFormat.format,
+                                texelFormat.type, nullptr);
+                } else {
+                    glTexImage3D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, numSlices, 0,
+                                texelFormat.format, texelFormat.type, nullptr);
+                }
             }
         }
     }
