@@ -227,7 +227,7 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
     }
 
     const auto setupOutput = task.addJob<RenderShadowSetup>("ShadowSetup");
-    const auto queryResolution = setupOutput.getN<RenderShadowSetup::Outputs>(2);
+    const auto queryResolution = setupOutput.getN<RenderShadowSetup::Outputs>(1);
     // Fetch and cull the items from the scene
 
     static const auto shadowCasterReceiverFilter = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(tagBits, tagMask);
@@ -248,10 +248,12 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
     const auto sortedShapes = task.addJob<DepthSortShapes>("DepthSortShadow", sortedPipelines, true);
 
     render::Varying cascadeFrustums[SHADOW_CASCADE_MAX_COUNT] = {
-        ViewFrustumPointer(),
-        ViewFrustumPointer(),
+        ViewFrustumPointer()
+#if SHADOW_CASCADE_MAX_COUNT>1
+        ,ViewFrustumPointer(),
         ViewFrustumPointer(),
         ViewFrustumPointer()
+#endif
     };
 
     for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
@@ -293,13 +295,15 @@ RenderShadowSetup::RenderShadowSetup() :
 
 void RenderShadowSetup::configure(const Config& configuration) {
     setConstantBias(0, configuration.constantBias0);
-    setConstantBias(1, configuration.constantBias1);
-    setConstantBias(2, configuration.constantBias2);
-    setConstantBias(3, configuration.constantBias3);
     setSlopeBias(0, configuration.slopeBias0);
+#if SHADOW_CASCADE_MAX_COUNT>1
+    setConstantBias(1, configuration.constantBias1);
     setSlopeBias(1, configuration.slopeBias1);
+    setConstantBias(2, configuration.constantBias2);
     setSlopeBias(2, configuration.slopeBias2);
+    setConstantBias(3, configuration.constantBias3);
     setSlopeBias(3, configuration.slopeBias3);
+#endif
 }
 
 void RenderShadowSetup::setConstantBias(int cascadeIndex, float value) {

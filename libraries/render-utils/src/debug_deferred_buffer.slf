@@ -23,10 +23,17 @@ uniform sampler2D occlusionMap;
 uniform sampler2D occlusionBlurredMap;
 uniform sampler2D scatteringMap;
 uniform sampler2D velocityMap;
+uniform sampler2DArrayShadow shadowMaps;
 
 <@include ShadowCore.slh@>
 
 <$declareDeferredCurvature()$>
+
+<@include debug_deferred_buffer_shared.slh@>
+
+layout(std140) uniform parametersBuffer {
+    DebugParameters parameters;
+};
 
 float curvatureAO(float k) {
     return 1.0f - (0.0022f * k * k) + (0.0776f * k) + 0.7369f;

@@ -44,6 +44,9 @@ public slots:
     virtual bool setIsStereoInput(bool stereo) = 0;
 
     virtual bool isStereoInput() = 0;
+
+signals:
+    void isStereoInputChanged(bool isStereo);
 };
 
 Q_DECLARE_METATYPE(AbstractAudioInterface*)

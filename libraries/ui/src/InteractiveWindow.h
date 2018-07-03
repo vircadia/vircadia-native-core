@@ -47,46 +47,19 @@ using namespace InteractiveWindowEnums;
  * @hifi-interface
  * @hifi-client-en
  *
- * @property {string} mode
+ * @property {string} title
+ * @property {Vec2} position
+ * @property {Vec2} size
+ * @property {boolean} visible
+ * @property {Desktop.PresentationMode} presentationMode
+ * 
  */
 class InteractiveWindow : public QObject {
     Q_OBJECT
 
-    /**jsdoc
-     * title of the window
-     *
-     * @name InteractiveWindow#title
-     * @type string
-     * @default "InteractiveWindow"
-     */
     Q_PROPERTY(QString title READ getTitle WRITE setTitle)
-
-    /**jsdoc
-     * window position on current desktop
-     *
-     * @name InteractiveWindow#position
-     * @type Vec2
-     */
     Q_PROPERTY(glm::vec2 position READ getPosition WRITE setPosition)
-
-    /**jsdoc
-     * window size
-     *
-     * @name InteractiveWindow#size
-     * @type Vec2
-     */
     Q_PROPERTY(glm::vec2 size READ getSize WRITE setSize)
-
-    /**jsdoc
-     * visibility of the window
-     *
-     * @name InteractiveWindow#visible
-     * @type boolean
-     * @default true
-     * @example
-     * // Toggle window visiblity;
-     * interactiveWindow.visible = !interactiveWindow.visible;
-     */
     Q_PROPERTY(bool visible READ isVisible WRITE setVisible)
     Q_PROPERTY(int presentationMode READ getPresentationMode WRITE setPresentationMode)
 

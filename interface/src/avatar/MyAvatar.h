@@ -250,7 +250,7 @@ public:
     Q_ENUM(DriveKeys)
 
     explicit MyAvatar(QThread* thread);
-    ~MyAvatar();
+    virtual ~MyAvatar();
 
     void instantiableAvatar() override {};
     void registerMetaTypes(ScriptEnginePointer engine);
@@ -469,16 +469,6 @@ public:
      * @param {boolean} on
      */
     Q_INVOKABLE void setSnapTurn(bool on) { _useSnapTurn = on; }
-    /**jsdoc
-     * @function MyAvatar.getClearOverlayWhenMoving
-     * @returns {boolean} 
-     */
-    Q_INVOKABLE bool getClearOverlayWhenMoving() const { return _clearOverlayWhenMoving; }
-    /**jsdoc
-     * @function MyAvatar.setClearOverlayWhenMoving
-     * @param {boolean} on
-     */
-    Q_INVOKABLE void setClearOverlayWhenMoving(bool on) { _clearOverlayWhenMoving = on; }
 
 
     /**jsdoc
@@ -1496,7 +1486,6 @@ private:
     ThreadSafeValueCache<QUrl> _prefOverrideAnimGraphUrl;
     QUrl _fstAnimGraphOverrideUrl;
     bool _useSnapTurn { true };
-    bool _clearOverlayWhenMoving { true };
     QString _dominantHand { DOMINANT_RIGHT_HAND };
 
     const float ROLL_CONTROL_DEAD_ZONE_DEFAULT = 8.0f; // degrees

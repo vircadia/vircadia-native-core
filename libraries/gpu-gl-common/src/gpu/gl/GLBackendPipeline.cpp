@@ -203,10 +203,11 @@ void GLBackend::releaseResourceTexture(uint32_t slot) {
 }
 
 void GLBackend::resetResourceStage() {
-    for (uint32_t i = 0; i < _resource._buffers.size(); i++) {
+    uint32_t i;
+    for (i = 0; i < _resource._buffers.size(); i++) {
         releaseResourceBuffer(i);
     }
-    for (uint32_t i = 0; i < _resource._textures.size(); i++) {
+    for (i = 0; i < _resource._textures.size(); i++) {
         releaseResourceTexture(i);
     }
 }

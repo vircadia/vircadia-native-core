@@ -2421,7 +2421,6 @@ function selectParticleEntity(entityID) {
     particleExplorerTool.createWebView();
 
     particleExplorerTool.setActiveParticleEntity(entityID);
-    particleExplorerTool.setActiveParticleProperties(properties);
 
     // Switch to particle explorer
     var selectTabMethod = { method: 'selectTab', params: { id: 'particle' } };

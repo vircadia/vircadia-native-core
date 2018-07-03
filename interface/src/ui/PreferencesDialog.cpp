@@ -161,12 +161,6 @@ void setupPreferences() {
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Use reticle cursor instead of arrow", getter, setter));
     }
 
-    {
-        auto getter = [=]()->bool { return myAvatar->getClearOverlayWhenMoving(); };
-        auto setter = [=](bool value) { myAvatar->setClearOverlayWhenMoving(value); };
-        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Clear overlays when moving", getter, setter));
-    }
-
     static const QString VIEW_CATEGORY{ "View" };
     {
         auto getter = [=]()->float { return myAvatar->getRealWorldFieldOfView(); };
@@ -233,6 +227,8 @@ void setupPreferences() {
         auto getter = [=]()->float { return myAvatar->getTargetScale(); };
         auto setter = [=](float value) { myAvatar->setTargetScale(value); };
         auto preference = new SpinnerSliderPreference(AVATAR_TUNING, "Avatar Scale", getter, setter);
+        preference->setMin(0.25);
+        preference->setMax(4);
         preference->setStep(0.05f);
         preference->setDecimals(2);
         preferences->addPreference(preference);
@@ -309,17 +305,21 @@ void setupPreferences() {
     {
         auto getter = [=]()->float { return myAvatar->getPitchSpeed(); };
         auto setter = [=](float value) { myAvatar->setPitchSpeed(value); };
-        auto preference = new SpinnerPreference(AVATAR_CAMERA, "Pitch speed (degrees/second)", getter, setter);
+        auto preference = new SpinnerSliderPreference(AVATAR_CAMERA, "Y input:", getter, setter);
         preference->setMin(1.0f);
         preference->setMax(360.0f);
+        preference->setStep(1);
+        preference->setDecimals(1);
         preferences->addPreference(preference);
     }
     {
         auto getter = [=]()->float { return myAvatar->getYawSpeed(); };
         auto setter = [=](float value) { myAvatar->setYawSpeed(value); };
-        auto preference = new SpinnerPreference(AVATAR_CAMERA, "Yaw speed (degrees/second)", getter, setter);
+        auto preference = new SpinnerSliderPreference(AVATAR_CAMERA, "X input:", getter, setter);
         preference->setMin(1.0f);
         preference->setMax(360.0f);
+        preference->setStep(1);
+        preference->setDecimals(1);
         preferences->addPreference(preference);
     }
 
