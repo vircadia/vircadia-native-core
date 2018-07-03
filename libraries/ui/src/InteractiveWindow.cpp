@@ -32,7 +32,7 @@ static const char* const INTERACTIVE_WINDOW_SIZE_PROPERTY = "interactiveWindowSi
 static const char* const VISIBLE_PROPERTY = "visible";
 static const char* const INTERACTIVE_WINDOW_VISIBLE_PROPERTY = "interactiveWindowVisible";
 static const char* const EVENT_BRIDGE_PROPERTY = "eventBridge";
-static const char* const WINDOW_MODE_TEXT_PROPERTY = "windowModeText";
+static const char* const PRESENTATION_MODE_PROPERTY = "presentationMode";
 
 static const QStringList KNOWN_SCHEMES = QStringList() << "http" << "https" << "file" << "about" << "atp" << "qrc";
 
@@ -60,6 +60,9 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         if (properties.contains(FLAGS_PROPERTY)) {
             object->setProperty(FLAGS_PROPERTY, properties[FLAGS_PROPERTY].toUInt());
         }
+        if (properties.contains(PRESENTATION_MODE_PROPERTY)) {
+            object->setProperty(PRESENTATION_MODE_PROPERTY, properties[PRESENTATION_MODE_PROPERTY].toInt());
+        }
         if (properties.contains(TITLE_PROPERTY)) {
             object->setProperty(TITLE_PROPERTY, properties[TITLE_PROPERTY].toString());
         }
@@ -79,8 +82,9 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         connect(object, SIGNAL(interactiveWindowPositionChanged()), this, SIGNAL(positionChanged()), Qt::QueuedConnection);
         connect(object, SIGNAL(interactiveWindowSizeChanged()), this, SIGNAL(sizeChanged()), Qt::QueuedConnection);
         connect(object, SIGNAL(interactiveWindowVisibleChanged()), this, SIGNAL(visibleChanged()), Qt::QueuedConnection);
-        connect(object, SIGNAL(windowModeChanged()), this, SIGNAL(modeChanged()), Qt::QueuedConnection);
+        connect(object, SIGNAL(presentationModeChanged()), this, SIGNAL(presentationModeChanged()), Qt::QueuedConnection);
         connect(object, SIGNAL(titleChanged()), this, SIGNAL(titleChanged()), Qt::QueuedConnection);
+
 
         QUrl sourceURL{ sourceUrl };
         // If the passed URL doesn't correspond to a known scheme, assume it's a local file path
@@ -188,7 +192,7 @@ bool InteractiveWindow::isVisible() const {
 
 glm::vec2 InteractiveWindow::getPosition() const {
     if (QThread::currentThread() != thread()) {
-        vec2 result;
+        glm::vec2 result;
         BLOCKING_INVOKE_METHOD(const_cast<InteractiveWindow*>(this), "getPosition", Q_RETURN_ARG(glm::vec2, result));
         return result;
     }
@@ -208,12 +212,13 @@ void InteractiveWindow::setPosition(const glm::vec2& position) {
 
     if (!_qmlWindow.isNull()) {
         _qmlWindow->setProperty(INTERACTIVE_WINDOW_POSITION_PROPERTY, QPointF(position.x, position.y));
+        QMetaObject::invokeMethod(_qmlWindow, "updateInteractiveWindowPositionForMode", Qt::DirectConnection);
     }
 }
 
 glm::vec2 InteractiveWindow::getSize() const {
     if (QThread::currentThread() != thread()) {
-        vec2 result;
+        glm::vec2 result;
         BLOCKING_INVOKE_METHOD(const_cast<InteractiveWindow*>(this), "getSize", Q_RETURN_ARG(glm::vec2, result));
         return result;
     }
@@ -232,18 +237,55 @@ void InteractiveWindow::setSize(const glm::vec2& size) {
 
     if (!_qmlWindow.isNull()) {
         _qmlWindow->setProperty(INTERACTIVE_WINDOW_SIZE_PROPERTY, QSize(size.x, size.y));
+        QMetaObject::invokeMethod(_qmlWindow, "updateInteractiveWindowSizeForMode", Qt::DirectConnection);
     }
 }
 
-QString InteractiveWindow::getMode() const {
+QString InteractiveWindow::getTitle() const {
     if (QThread::currentThread() != thread()) {
         QString result;
-        BLOCKING_INVOKE_METHOD(const_cast<InteractiveWindow*>(this), "getMode", Q_RETURN_ARG(QString, result));
+        BLOCKING_INVOKE_METHOD(const_cast<InteractiveWindow*>(this), "getTitle", Q_RETURN_ARG(QString, result));
         return result;
     }
 
     if (_qmlWindow.isNull()) {
         return QString();
     }
-    return _qmlWindow->property(WINDOW_MODE_TEXT_PROPERTY).toString();
+    return _qmlWindow->property(TITLE_PROPERTY).toString();
+}
+
+void InteractiveWindow::setTitle(const QString& title) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setTitle", Q_ARG(const QString&, title));
+        return;
+    }
+
+    if (!_qmlWindow.isNull()) {
+        _qmlWindow->setProperty(TITLE_PROPERTY, title);
+    }
+}
+
+int InteractiveWindow::getPresentationMode() const {
+    if (QThread::currentThread() != thread()) {
+        int result;
+        BLOCKING_INVOKE_METHOD(const_cast<InteractiveWindow*>(this), "getPresentationMode",
+            Q_RETURN_ARG(int, result));
+        return result;
+    }
+
+    if (_qmlWindow.isNull()) {
+        return Virtual;
+    }
+    return _qmlWindow->property(PRESENTATION_MODE_PROPERTY).toInt();
+}
+
+void InteractiveWindow::setPresentationMode(int presentationMode) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setPresentationMode", Q_ARG(int, presentationMode));
+        return;
+    }
+
+    if (!_qmlWindow.isNull()) {
+        _qmlWindow->setProperty(PRESENTATION_MODE_PROPERTY, presentationMode);
+    }
 }

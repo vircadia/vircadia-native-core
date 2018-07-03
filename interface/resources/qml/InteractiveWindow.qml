@@ -9,7 +9,6 @@
 //
 
 import QtQuick 2.3
-import InteractiveWindowFlags 1.0
 
 import "windows" as Windows
 import "controls"
@@ -47,33 +46,9 @@ Windows.Window {
     property bool keyboardRaised: false;
     property bool punctuationMode: false;
 
-    readonly property int modeNotSet: 0;
-    readonly property int modeNative: 1;
-    readonly property int modeVirtual: 2;
+    property int presentationMode: 0;
 
-    property int windowMode: modeNotSet;
-
-    property bool forceNative: false;
-    property bool forceVirtual: false;
-
-    property string windowModeText: getModeString();
-
-    function getModeString() {
-        switch (windowMode) {
-            case modeNotSet:
-                return "none";
-            case modeNative:
-                return "native";
-            case modeVirtual:
-                return "virtual";
-        }
-        return "unknown";
-    }
-
-    onWindowModeChanged: {
-        windowModeText = getModeString();
-    }
-
+    property var initialized: false;
     onSourceChanged: {
         if (dynamicContent) {
             dynamicContent.destroy();
@@ -88,117 +63,108 @@ Windows.Window {
     }
 
     function updateInteractiveWindowPositionForMode() {
-        if (windowMode === modeVirtual) {
+        if (presentationMode === Desktop.PresentationMode.VIRTUAL) {
             x = interactiveWindowPosition.x;
             y = interactiveWindowPosition.y;
-        } else if (windowMode === modeVirtual && nativeWindow) {
+        } else if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow) {
             nativeWindow.x = interactiveWindowPosition.x;
             nativeWindow.y = interactiveWindowPosition.y;
         }
     }
 
     function updateInteractiveWindowSizeForMode() {
-        if (windowMode === modeVirtual) {
+        if (presentationMode === Desktop.PresentationMode.VIRTUAL) {
             width = interactiveWindowSize.width;
             height = interactiveWindowSize.height;
-        } else if (windowMode === modeVirtual && nativeWindow) {
+        } else if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow) {
             nativeWindow.width = interactiveWindowSize.width;
-            nativeWindow.height = interactiveWindowSize.heigth;
+            nativeWindow.height = interactiveWindowSize.height;
         }
     }
 
-    function trySwitchWindowMode() {
-        if (windowMode !== modeVirtual && (HMD.active || (forceVirtual && !forceNative))) {
-            windowMode = modeVirtual;
+    function setupPresentationMode() {
+        console.warn(presentationMode);
+        if (presentationMode === Desktop.PresentationMode.VIRTUAL) {
             if (nativeWindow) {
                 nativeWindow.setVisible(false);
             }
             contentHolder.parent = root;
             updateInteractiveWindowPositionForMode();
             shown = interactiveWindowVisible;
-        } else if (windowMode !== modeNative && (!HMD.active || (forceNative && !forceVirtual))) {
-            windowMode = modeNative;
+        } else if (presentationMode === Desktop.PresentationMode.NATIVE) {
             shown = false;
             if (nativeWindow) {
                 contentHolder.parent = nativeWindow.contentItem;
                 nativeWindow.setVisible(interactiveWindowVisible);
                 updateInteractiveWindowPositionForMode();
             }
-        } else if (windowMode === modeNotSet) {
-            console.error("windowMode should be set.");
+        } else if (presentationMode === modeNotSet) {
+            console.error("presentationMode should be set.");
         }
-    }
-
-    function displayModeChanged(isHMD) {
-        trySwitchWindowMode();
     }
     
     Component.onCompleted: {
-        HMD.displayModeChanged.connect(displayModeChanged);
-
-        forceVirtual = (flags & InteractiveWindowFlags.ForceVirtual) === InteractiveWindowFlags.ForceVirtual;
-        forceNative = (flags & InteractiveWindowFlags.ForceNative) === InteractiveWindowFlags.ForceNative;
 
         x = interactiveWindowPosition.x;
         y = interactiveWindowPosition.y;
         width = interactiveWindowSize.width;
         height = interactiveWindowSize.height;
 
-        if (!forceVirtual || (forceVirtual && forceNative)) {
-            nativeWindow = Qt.createQmlObject('
-                import QtQuick 2.3;
-                import QtQuick.Window 2.3;
+        nativeWindow = Qt.createQmlObject('
+            import QtQuick 2.3;
+            import QtQuick.Window 2.3;
 
-                Window {
-                    id: root;
-                    Rectangle {
-                        color: hifi.colors.baseGray
-                        anchors.fill: parent
-                    }
-                }', root, 'InteractiveWindow.qml->nativeWindow');
-            nativeWindow.title = root.title;
-            var nativeWindowFlags = Qt.Window |
-                Qt.WindowTitleHint |
-                Qt.WindowSystemMenuHint |
-                Qt.WindowCloseButtonHint |
-                Qt.WindowMaximizeButtonHint |
-                Qt.WindowMinimizeButtonHint;
-            if ((flags & InteractiveWindowFlags.AlwaysOnTop) === InteractiveWindowFlags.AlwaysOnTop) {
-                nativeWindowFlags |= Qt.WindowStaysOnTopHint;
-            }
-            nativeWindow.flags = nativeWindowFlags;
-
-            nativeWindow.x = interactiveWindowPosition.x;
-            nativeWindow.y = interactiveWindowPosition.y;
-
-            nativeWindow.width = interactiveWindowSize.width;
-            nativeWindow.height = interactiveWindowSize.height;
-
-            nativeWindow.xChanged.connect(function() {
-                if (windowMode === modeNative && nativeWindow.visible) {
-                    interactiveWindowPosition = Qt.point(nativeWindow.x, interactiveWindowPosition.y);
+            Window {
+                id: root;
+                Rectangle {
+                    color: hifi.colors.baseGray
+                    anchors.fill: parent
                 }
-            });
-            nativeWindow.yChanged.connect(function() {
-                if (windowMode === modeNative && nativeWindow.visible) {
-                    interactiveWindowPosition = Qt.point(interactiveWindowPosition.x, nativeWindow.y);
-                }
-            });
-
-            nativeWindow.widthChanged.connect(function() {
-                if (windowMode === modeNative && nativeWindow.visible) {
-                    interactiveWindowSize = Qt.size(nativeWindow.width, interactiveWindowSize.height);
-                }
-            });
-            nativeWindow.heightChanged.connect(function() {
-                if (windowMode === modeNative && nativeWindow.visible) {
-                    interactiveWindowSize = Qt.size(interactiveWindowSize.width, nativeWindow.height);
-                }
-            });
+            }', root, 'InteractiveWindow.qml->nativeWindow');
+        nativeWindow.title = root.title;
+        var nativeWindowFlags = Qt.Window |
+            Qt.WindowTitleHint |
+            Qt.WindowSystemMenuHint |
+            Qt.WindowCloseButtonHint |
+            Qt.WindowMaximizeButtonHint |
+            Qt.WindowMinimizeButtonHint;
+        if ((flags & Desktop.ALWAYS_ON_TOP) === Desktop.ALWAYS_ON_TOP) {
+            nativeWindowFlags |= Qt.WindowStaysOnTopHint;
         }
+        nativeWindow.flags = nativeWindowFlags;
+
+        nativeWindow.x = interactiveWindowPosition.x;
+        nativeWindow.y = interactiveWindowPosition.y;
+
+        nativeWindow.width = interactiveWindowSize.width;
+        nativeWindow.height = interactiveWindowSize.height;
+
+        nativeWindow.xChanged.connect(function() {
+            if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow.visible) {
+                interactiveWindowPosition = Qt.point(nativeWindow.x, interactiveWindowPosition.y);
+            }
+        });
+        nativeWindow.yChanged.connect(function() {
+            if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow.visible) {
+                interactiveWindowPosition = Qt.point(interactiveWindowPosition.x, nativeWindow.y);
+            }
+        });
+
+        nativeWindow.widthChanged.connect(function() {
+            if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow.visible) {
+                interactiveWindowSize = Qt.size(nativeWindow.width, interactiveWindowSize.height);
+            }
+        });
+        nativeWindow.heightChanged.connect(function() {
+            if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow.visible) {
+                interactiveWindowSize = Qt.size(interactiveWindowSize.width, nativeWindow.height);
+            }
+        });
 
         // finally set the initial window mode:
-        trySwitchWindowMode();
+        setupPresentationMode();
+
+        initialized = true;
     }
 
     // Handle message traffic from the script that launched us to the loaded QML
@@ -214,9 +180,9 @@ Windows.Window {
     }
 
     function raiseWindow() {
-        if (windowMode === modeVirtual) {
+        if (presentationMode === Desktop.PresentationMode.VIRTUAL) {
             raise();
-        } else if (windowMode === modeNative && nativeWindow) {
+        } else if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow) {
             nativeWindow.raise();
         }
     }
@@ -231,9 +197,9 @@ Windows.Window {
     }
 
     onInteractiveWindowVisibleChanged: {
-        if (windowMode === modeVirtual) {
+        if (presentationMode === Desktop.PresentationMode.VIRTUAL) {
             shown = interactiveWindowVisible;
-        } else if (windowMode === modeNative && nativeWindow) {
+        } else if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow) {
             nativeWindow.setVisible(interactiveWindowVisible);
         }
     }
@@ -245,35 +211,42 @@ Windows.Window {
     }
 
     onXChanged: {
-        if (windowMode === modeVirtual) {
+        if (presentationMode === Desktop.PresentationMode.VIRTUAL) {
             interactiveWindowPosition = Qt.point(x, interactiveWindowPosition.y);
         }
     }
 
     onYChanged: {
-        if (windowMode === modeVirtual) {
+        if (presentationMode === Desktop.PresentationMode.VIRTUAL) {
             interactiveWindowPosition = Qt.point(interactiveWindowPosition.x, y);
         }
     }
 
     onWidthChanged: {
-        if (windowMode === modeVirtual) {
+        if (presentationMode === Desktop.PresentationMode.VIRTUAL) {
             interactiveWindowSize = Qt.size(width, interactiveWindowSize.height);
         }
     }
 
     onHeightChanged: {
-        if (windowMode === modeVirtual) {
+        if (presentationMode === Desktop.PresentationMode.VIRTUAL) {
             interactiveWindowSize = Qt.size(interactiveWindowSize.width, height);
         }
     }
 
-    onInteractiveWindowPositionChanged: {
-        updateInteractiveWindowPositionForMode();
+    onPresentationModeChanged: {
+        if (initialized) {
+            setupPresentationMode();
+        }
     }
 
-    onInteractiveWindowSizeChanged: {
-        updateInteractiveWindowSizeForMode();
+    onWindowClosed: {
+        // set invisible on close, to make it not re-appear unintended after switching PresentationMode
+        interactiveWindowVisible = false;
+    }
+
+    onWindowDestroyed: {
+        console.warn("destroyed");
     }
 
     Item {
