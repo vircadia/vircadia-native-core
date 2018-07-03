@@ -2068,7 +2068,7 @@ SelectionDisplay = (function() {
             pushCommandForSelections();
         };
 
-        var onMove = function(event) 
+        var onMove = function(event) {
             if (event.x === undefined || event.y === undefined) {
                 return;
             }
