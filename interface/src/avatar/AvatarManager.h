@@ -196,9 +196,9 @@ private:
     int _numAvatarsNotUpdated { 0 };
     float _avatarSimulationTime { 0.0f };
     bool _shouldRender { true };
-    int _identityRequestsSent { 0 };
+    mutable int _identityRequestsSent { 0 };
 
-    static const quint64 REQUEST_UNKNOWN_IDENTITY_DELAY;
+    static const std::chrono::milliseconds REQUEST_UNKNOWN_IDENTITY_DELAY;
 };
 
 #endif // hifi_AvatarManager_h

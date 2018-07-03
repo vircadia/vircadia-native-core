@@ -612,38 +612,19 @@ void AvatarMixer::handleAvatarIdentityRequestPacket(QSharedPointer<ReceivedMessa
     QUuid avatarID(QUuid::fromRfc4122(message->getMessage()) );
     if (!avatarID.isNull()) {
         auto nodeList = DependencyManager::get<NodeList>();
-
-        nodeList->eachMatchingNode(
-            // Predicate:
-            [&](SharedNodePointer node) -> bool {
-                QMutexLocker lock(&node->getMutex());
-                if (node->getType() == NodeType::Agent && node->getLinkedData()) {
-                    AvatarMixerClientData* avatarClientData = dynamic_cast<AvatarMixerClientData*>(node->getLinkedData());
-                    if (avatarClientData) {
-                        const AvatarData& avatarData = avatarClientData->getAvatar();
-                        if (avatarData.getID() == avatarID) {
-                            return true;
-                        }
-                    }
-                }
-                return false;
-            },
-            // Action:
-            [&](SharedNodePointer node) {
-                QMutexLocker lock(&node->getMutex());
-                AvatarMixerClientData* avatarClientData = dynamic_cast<AvatarMixerClientData*>(node->getLinkedData());
-                if (avatarClientData) {
-                    const AvatarData& avatarData = avatarClientData->getAvatar();
-                    if (avatarData.getID() == avatarID) {
-                        QByteArray serializedAvatar = avatarData.identityByteArray();
-                        auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
-                        identityPackets->write(serializedAvatar);
-                        nodeList->sendPacketList(std::move(identityPackets), *senderNode);
-                        ++_sumIdentityPackets;
-                    }
-                }
+        auto node = nodeList->nodeWithUUID(avatarID);
+        if (node) {
+            QMutexLocker lock(&node->getMutex());
+            AvatarMixerClientData* avatarClientData = dynamic_cast<AvatarMixerClientData*>(node->getLinkedData());
+            if (avatarClientData) {
+                const AvatarData& avatarData = avatarClientData->getAvatar();
+                QByteArray serializedAvatar = avatarData.identityByteArray();
+                auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
+                identityPackets->write(serializedAvatar);
+                nodeList->sendPacketList(std::move(identityPackets), *senderNode);
+                ++_sumIdentityPackets;
             }
-        );
+        }
     }
 }
 

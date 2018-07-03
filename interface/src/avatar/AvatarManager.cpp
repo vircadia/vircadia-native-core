@@ -57,7 +57,8 @@ static const quint64 MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS = USECS_PER_SECOND / 
 const QUuid MY_AVATAR_KEY;  // NULL key
 
 // For an unknown avatar-data packet, wait this long before requesting the identity (in µs).
-constexpr quint64 AvatarManager::REQUEST_UNKNOWN_IDENTITY_DELAY = 5 * 1000 * 1000;
+constexpr std::chrono::milliseconds AvatarManager::REQUEST_UNKNOWN_IDENTITY_DELAY { 5 * 1000 };
+using std::chrono::steady_clock;
 
 AvatarManager::AvatarManager(QObject* parent) :
     _avatarsToFade(),
@@ -283,7 +284,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     simulateAvatarFades(deltaTime);
 
     // Check on avatars with pending identities:
-    const quint64 now = usecTimestampNow();
+    steady_clock::time_point now = steady_clock::now();
     QWriteLocker writeLock(&_hashLock);
     for (auto pendingAvatar = _pendingAvatars.begin(); pendingAvatar != _pendingAvatars.end(); ++pendingAvatar) {
         if (now - pendingAvatar->creationTime >= REQUEST_UNKNOWN_IDENTITY_DELAY) {
@@ -319,6 +320,7 @@ void AvatarManager::sendIdentityRequest(const QUuid& avatarID) const {
         auto packet = NLPacket::create(PacketType::AvatarIdentityRequest, NUM_BYTES_RFC4122_UUID, true);
         packet->write(avatarID.toRfc4122());
         nodeList->sendPacket(std::move(packet), *node);
+        ++_identityRequestsSent;
     });
 }
 

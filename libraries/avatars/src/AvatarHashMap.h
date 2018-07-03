@@ -19,6 +19,7 @@
 
 #include <functional>
 #include <memory>
+#include <chrono>
 
 #include <glm/glm.hpp>
 
@@ -154,7 +155,7 @@ protected:
 
     AvatarHash _avatarHash;
     struct PendingAvatar {
-        quint64 creationTime;
+        std::chrono::steady_clock::time_point creationTime;
         AvatarSharedPointer avatar;
     };
     using AvatarPendingHash = QHash<QUuid, PendingAvatar>;
