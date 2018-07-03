@@ -941,3 +941,17 @@ void generateBoundryLinesForDop14(const std::vector<float>& dots, const glm::vec
         }
     }
 }
+
+bool computeRealQuadraticRoots(float a, float b, float c, std::pair<float, float>& roots) {
+    float discriminant = b * b - 4.0f * a * c;
+    if (discriminant < 0.0f) {
+        return false;
+    } else if (discriminant == 0.0f) {
+        roots.first = (-b + sqrtf(discriminant)) / (2.0f * a);
+    } else {
+        float discriminantRoot = sqrtf(discriminant);
+        roots.first = (-b + discriminantRoot) / (2.0f * a);
+        roots.second = (-b - discriminantRoot) / (2.0f * a);
+    }
+    return true;
+}

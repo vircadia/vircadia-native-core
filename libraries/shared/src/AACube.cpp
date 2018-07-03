@@ -283,6 +283,68 @@ bool AACube::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
     return false;
 }
 
+void AACube::checkPossibleParabolicIntersection(float t, int i, float& minDistance,
+    const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration, bool& hit) const {
+    if (t < minDistance && t > 0.0f &&
+        isWithin(origin[(i + 1) % 3] + velocity[(i + 1) % 3] * t + 0.5f * acceleration[(i + 1) % 3] * t * t, _corner[(i + 1) % 3], _scale) &&
+        isWithin(origin[(i + 2) % 3] + velocity[(i + 2) % 3] * t + 0.5f * acceleration[(i + 2) % 3] * t * t, _corner[(i + 2) % 3], _scale)) {
+        minDistance = t;
+        hit = true;
+    }
+}
+
+bool AACube::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+                                      float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal) const {
+    float minDistance = FLT_MAX;
+    BoxFace minFace;
+    glm::vec3 minNormal;
+    std::pair<float, float> possibleDistances;
+    float a, b, c;
+
+    // Solve the intersection for each face of the cube.  As we go, keep track of the smallest, positive, real distance
+    // that is within the bounds of the other two dimensions
+    for (int i = 0; i < 3; i++) {
+        a = 0.5f * acceleration[i];
+        b = velocity[i];
+        { // min
+            c = origin[i] - _corner[i];
+            possibleDistances = { FLT_MAX, FLT_MAX };
+            if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
+                bool hit = false;
+                checkPossibleParabolicIntersection(possibleDistances.first, i, minDistance, origin, velocity, acceleration, hit);
+                checkPossibleParabolicIntersection(possibleDistances.second, i, minDistance, origin, velocity, acceleration, hit);
+                if (hit) {
+                    minFace = BoxFace(2 * i);
+                    minNormal = glm::vec3(0.0f);
+                    minNormal[i] = -1.0f;
+                }
+            }
+        }
+        { // max
+            c = origin[i] - (_corner[i] + _scale);
+            possibleDistances = { FLT_MAX, FLT_MAX };
+            if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
+                bool hit = false;
+                checkPossibleParabolicIntersection(possibleDistances.first, i, minDistance, origin, velocity, acceleration, hit);
+                checkPossibleParabolicIntersection(possibleDistances.second, i, minDistance, origin, velocity, acceleration, hit);
+                if (hit) {
+                    minFace = BoxFace(2 * i + 1);
+                    minNormal = glm::vec3(0.0f);
+                    minNormal[i] = 1.0f;
+                }
+            }
+        }
+    }
+
+    if (minDistance < FLT_MAX) {
+        parabolicDistance = minDistance;
+        face = minFace;
+        surfaceNormal = minNormal;
+        return true;
+    }
+    return false;
+}
+
 bool AACube::touchesSphere(const glm::vec3& center, float radius) const {
     // Avro's algorithm from this paper: http://www.mrtc.mdh.se/projects/3Dgraphics/paperF.pdf
     glm::vec3 e = glm::max(_corner - center, Vectors::ZERO) + glm::max(center - _corner - glm::vec3(_scale), Vectors::ZERO);

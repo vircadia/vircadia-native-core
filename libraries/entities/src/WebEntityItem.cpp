@@ -121,6 +121,14 @@ bool WebEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const g
     }
 }
 
+bool WebEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+                                                     OctreeElementPointer& element, float& parabolicDistance,
+                                                     BoxFace& face, glm::vec3& surfaceNormal,
+                                                     QVariantMap& extraInfo, bool precisionPicking) const {
+    // TODO
+    return false;
+}
+
 void WebEntityItem::setSourceUrl(const QString& value) {
     withWriteLock([&] {
         if (_sourceUrl != value) {

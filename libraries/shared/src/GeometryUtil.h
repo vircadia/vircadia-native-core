@@ -178,4 +178,6 @@ bool findIntersectionOfThreePlanes(const glm::vec4& planeA, const glm::vec4& pla
 
 void generateBoundryLinesForDop14(const std::vector<float>& dots, const glm::vec3& center, std::vector<glm::vec3>& linesOut);
 
+bool computeRealQuadraticRoots(float a, float b, float c, std::pair<float, float>& roots);
+
 #endif // hifi_GeometryUtil_h

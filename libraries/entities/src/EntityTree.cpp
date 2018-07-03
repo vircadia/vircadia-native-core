@@ -63,6 +63,27 @@ public:
     EntityItemID entityID;
 };
 
+class ParabolaArgs {
+public:
+    // Inputs
+    glm::vec3 origin;
+    glm::vec3 velocity;
+    glm::vec3 acceleration;
+    const QVector<EntityItemID>& entityIdsToInclude;
+    const QVector<EntityItemID>& entityIdsToDiscard;
+    bool visibleOnly;
+    bool collidableOnly;
+    bool precisionPicking;
+
+    // Outputs
+    OctreeElementPointer& element;
+    float& parabolicDistance;
+    BoxFace& face;
+    glm::vec3& surfaceNormal;
+    QVariantMap& extraInfo;
+    EntityItemID entityID;
+};
+
 
 EntityTree::EntityTree(bool shouldReaverage) :
     Octree(shouldReaverage)
@@ -820,8 +841,7 @@ EntityItemID EntityTree::findRayIntersection(const glm::vec3& origin, const glm:
                                     BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
                                     Octree::lockType lockType, bool* accurateResult) {
     RayArgs args = { origin, direction, entityIdsToInclude, entityIdsToDiscard,
-            visibleOnly, collidableOnly, precisionPicking,
-            element, distance, face, surfaceNormal, extraInfo, EntityItemID() };
+            visibleOnly, collidableOnly, precisionPicking, element, distance, face, surfaceNormal, extraInfo, EntityItemID() };
     distance = FLT_MAX;
 
     bool requireLock = lockType == Octree::Lock;
@@ -831,6 +851,47 @@ EntityItemID EntityTree::findRayIntersection(const glm::vec3& origin, const glm:
 
     if (accurateResult) {
         *accurateResult = lockResult; // if user asked to accuracy or result, let them know this is accurate
+    }
+
+    return args.entityID;
+}
+
+bool findParabolaIntersectionOp(const OctreeElementPointer& element, void* extraData) {
+    ParabolaArgs* args = static_cast<ParabolaArgs*>(extraData);
+    bool keepSearching = true;
+    EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
+    EntityItemID entityID = entityTreeElementPointer->findParabolaIntersection(args->origin, args->velocity, args->acceleration, keepSearching,
+        args->element, args->parabolicDistance, args->face, args->surfaceNormal, args->entityIdsToInclude,
+        args->entityIdsToDiscard, args->visibleOnly, args->collidableOnly, args->extraInfo, args->precisionPicking);
+    if (!entityID.isNull()) {
+        args->entityID = entityID;
+    }
+    return keepSearching;
+}
+
+EntityItemID EntityTree::findParabolaIntersection(const PickParabola& parabola,
+                                    QVector<EntityItemID> entityIdsToInclude, QVector<EntityItemID> entityIdsToDiscard,
+                                    bool visibleOnly, bool collidableOnly, bool precisionPicking,
+                                    OctreeElementPointer& element, glm::vec3& intersection, float& distance, float& parabolicDistance,
+                                    BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
+                                    Octree::lockType lockType, bool* accurateResult) {
+    ParabolaArgs args = { parabola.origin, parabola.velocity, parabola.acceleration, entityIdsToInclude, entityIdsToDiscard,
+        visibleOnly, collidableOnly, precisionPicking, element, parabolicDistance, face, surfaceNormal, extraInfo, EntityItemID() };
+    parabolicDistance = FLT_MAX;
+    distance = FLT_MAX;
+
+    bool requireLock = lockType == Octree::Lock;
+    bool lockResult = withReadLock([&] {
+        recurseTreeWithOperation(findParabolaIntersectionOp, &args);
+    }, requireLock);
+
+    if (accurateResult) {
+        *accurateResult = lockResult; // if user asked to accuracy or result, let them know this is accurate
+    }
+
+    if (!args.entityID.isNull()) {
+        intersection = parabola.origin + parabola.velocity * parabolicDistance + 0.5f * parabola.acceleration * parabolicDistance * parabolicDistance;
+        distance = glm::distance(intersection, parabola.origin);
     }
 
     return args.entityID;

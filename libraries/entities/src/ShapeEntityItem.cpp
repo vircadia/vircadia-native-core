@@ -250,7 +250,7 @@ void ShapeEntityItem::setUnscaledDimensions(const glm::vec3& value) {
     }
 }
 
-bool ShapeEntityItem::supportsDetailedRayIntersection() const {
+bool ShapeEntityItem::supportsDetailedIntersection() const {
     return _shape == entity::Sphere;
 }
 
@@ -279,6 +279,14 @@ bool ShapeEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const
         }
         return true;
     }
+    return false;
+}
+
+bool ShapeEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+                                                       OctreeElementPointer& element, float& parabolicDistance,
+                                                       BoxFace& face, glm::vec3& surfaceNormal,
+                                                       QVariantMap& extraInfo, bool precisionPicking) const {
+    // TODO
     return false;
 }
 

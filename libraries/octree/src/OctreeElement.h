@@ -99,7 +99,7 @@ public:
 
     virtual bool deleteApproved() const { return true; }
     
-    virtual bool canRayIntersect() const { return isLeaf(); }
+    virtual bool canPickIntersect() const { return isLeaf(); }
     /// \param center center of sphere in meters
     /// \param radius radius of sphere in meters
     /// \param[out] penetration pointing into cube from sphere

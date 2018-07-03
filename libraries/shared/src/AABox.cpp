@@ -287,6 +287,68 @@ bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direct
     return false;
 }
 
+void AABox::checkPossibleParabolicIntersection(float t, int i, float& minDistance,
+    const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration, bool& hit) const {
+    if (t < minDistance && t > 0.0f &&
+        isWithin(origin[(i + 1) % 3] + velocity[(i + 1) % 3] * t + 0.5f * acceleration[(i + 1) % 3] * t * t, _corner[(i + 1) % 3], _scale[(i + 1) % 3]) &&
+        isWithin(origin[(i + 2) % 3] + velocity[(i + 2) % 3] * t + 0.5f * acceleration[(i + 2) % 3] * t * t, _corner[(i + 2) % 3], _scale[(i + 2) % 3])) {
+        minDistance = t;
+        hit = true;
+    }
+}
+
+bool AABox::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+    float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal) const {
+    float minDistance = FLT_MAX;
+    BoxFace minFace;
+    glm::vec3 minNormal;
+    std::pair<float, float> possibleDistances;
+    float a, b, c;
+
+    // Solve the intersection for each face of the cube.  As we go, keep track of the smallest, positive, real distance
+    // that is within the bounds of the other two dimensions
+    for (int i = 0; i < 3; i++) {
+        a = 0.5f * acceleration[i];
+        b = velocity[i];
+        { // min
+            c = origin[i] - _corner[i];
+            possibleDistances = { FLT_MAX, FLT_MAX };
+            if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
+                bool hit = false;
+                checkPossibleParabolicIntersection(possibleDistances.first, i, minDistance, origin, velocity, acceleration, hit);
+                checkPossibleParabolicIntersection(possibleDistances.second, i, minDistance, origin, velocity, acceleration, hit);
+                if (hit) {
+                    minFace = BoxFace(2 * i);
+                    minNormal = glm::vec3(0.0f);
+                    minNormal[i] = -1.0f;
+                }
+            }
+        }
+        { // max
+            c = origin[i] - (_corner[i] + _scale[i]);
+            possibleDistances = { FLT_MAX, FLT_MAX };
+            if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
+                bool hit = false;
+                checkPossibleParabolicIntersection(possibleDistances.first, i, minDistance, origin, velocity, acceleration, hit);
+                checkPossibleParabolicIntersection(possibleDistances.second, i, minDistance, origin, velocity, acceleration, hit);
+                if (hit) {
+                    minFace = BoxFace(2 * i + 1);
+                    minNormal = glm::vec3(0.0f);
+                    minNormal[i] = 1.0f;
+                }
+            }
+        }
+    }
+
+    if (minDistance < FLT_MAX) {
+        parabolicDistance = minDistance;
+        face = minFace;
+        surfaceNormal = minNormal;
+        return true;
+    }
+    return false;
+}
+
 bool AABox::rayHitsBoundingSphere(const glm::vec3& origin, const glm::vec3& direction) const {
     glm::vec3 localCenter = calcCenter() - origin;
     float distance = glm::dot(localCenter, direction);
@@ -294,6 +356,28 @@ bool AABox::rayHitsBoundingSphere(const glm::vec3& origin, const glm::vec3& dire
     float radiusSquared = ONE_OVER_TWO_SQUARED * glm::length2(_scale);
     return (glm::length2(localCenter) < radiusSquared
             || (glm::abs(distance) > 0.0f && glm::distance2(distance * direction, localCenter) < radiusSquared));
+}
+
+bool AABox::parabolaPlaneIntersectsBoundingSphere(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration) const {
+    glm::vec3 localCenter = calcCenter() - origin;
+    const float ONE_OVER_TWO_SQUARED = 0.25f;
+    float radiusSquared = ONE_OVER_TWO_SQUARED * glm::length2(_scale);
+
+    // origin is inside the sphere
+    if (glm::length2(localCenter) < radiusSquared) {
+        return true;
+    }
+
+    // Get the normal of the plane, the cross product of two vectors on the plane
+    // Assumes: velocity and acceleration != 0 and normalize(velocity) != normalize(acceleration)
+    glm::vec3 normal = glm::normalize(glm::cross(velocity, acceleration));
+
+    // Project vector from plane to sphere center onto the normal
+    float distance = glm::dot(localCenter, normal);
+    if (distance * distance < radiusSquared) {
+        return true;
+    }
+    return false;
 }
 
 bool AABox::touchesSphere(const glm::vec3& center, float radius) const {

@@ -51,7 +51,7 @@ public:
 
     int getOnCount() const override { return _onCount; }
 
-    virtual bool supportsDetailedRayIntersection() const override { return true; }
+    virtual bool supportsDetailedIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                         OctreeElementPointer& element, float& distance,
                         BoxFace& face, glm::vec3& surfaceNormal,

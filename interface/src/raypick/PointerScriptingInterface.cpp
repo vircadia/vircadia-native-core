@@ -134,6 +134,11 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
         scaleWithAvatar = propertyMap["scaleWithAvatar"].toBool();
     }
 
+    bool followNormal = true;
+    if (propertyMap["followNormal"].isValid()) {
+        followNormal = propertyMap["followNormal"].toBool();
+    }
+
     bool enabled = false;
     if (propertyMap["enabled"].isValid()) {
         enabled = propertyMap["enabled"].toBool();
@@ -192,7 +197,8 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
     }
 
     return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<LaserPointer>(properties, renderStates, defaultRenderStates, hover, triggers,
-                                                                                               faceAvatar, centerEndY, lockEnd, distanceScaleEnd, scaleWithAvatar, enabled));
+                                                                                               faceAvatar, followNormal, centerEndY, lockEnd, distanceScaleEnd,
+                                                                                               scaleWithAvatar, enabled));
 }
 
 void PointerScriptingInterface::editRenderState(unsigned int uid, const QString& renderState, const QVariant& properties) const {

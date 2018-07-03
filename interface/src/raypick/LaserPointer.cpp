@@ -19,12 +19,13 @@
 #include "RayPick.h"
 
 LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, bool hover,
-        const PointerTriggers& triggers, bool faceAvatar, bool centerEndY, bool lockEnd, bool distanceScaleEnd, bool scaleWithAvatar, bool enabled) :
+        const PointerTriggers& triggers, bool faceAvatar, bool followNormal, bool centerEndY, bool lockEnd, bool distanceScaleEnd, bool scaleWithAvatar, bool enabled) :
     Pointer(DependencyManager::get<PickScriptingInterface>()->createRayPick(rayProps), enabled, hover),
     _triggers(triggers),
     _renderStates(renderStates),
     _defaultRenderStates(defaultRenderStates),
     _faceAvatar(faceAvatar),
+    _followNormal(followNormal),
     _centerEndY(centerEndY),
     _lockEnd(lockEnd),
     _distanceScaleEnd(distanceScaleEnd),
@@ -77,6 +78,10 @@ void LaserPointer::editRenderState(const std::string& state, const QVariant& sta
         QVariant lineWidth = pathProps.toMap()["lineWidth"];
         if (lineWidth.isValid()) {
             _renderStates[state].setLineWidth(lineWidth.toFloat());
+        }
+        QVariant rotation = pathProps.toMap()["rotation"];
+        if (rotation.isValid()) {
+            _renderStates[state].setEndRot(quatFromVariant(rotation));
         }
     });
 }
@@ -148,7 +153,7 @@ void LaserPointer::updateRenderStateOverlay(const OverlayID& id, const QVariant&
     }
 }
 
-void LaserPointer::updateRenderState(const RenderState& renderState, const IntersectionType type, float distance, const QUuid& objectID, const PickRay& pickRay) {
+void LaserPointer::updateRenderState(const RenderState& renderState, const IntersectionType type, float distance, const glm::vec3& normal, const QUuid& objectID, const PickRay& pickRay) {
     if (!renderState.getStartID().isNull()) {
         QVariantMap startProps;
         startProps.insert("position", vec3toVariant(pickRay.origin));
@@ -182,10 +187,11 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
             endProps.insert("position", end);
         } else {
             glm::vec3 currentUpVector = faceAvatarRotation * Vectors::UP;
-            endProps.insert("position", vec3toVariant(endVec + glm::vec3(currentUpVector.x * 0.5f * dim.y, currentUpVector.y * 0.5f * dim.y, currentUpVector.z * 0.5f * dim.y)));
+            endProps.insert("position", vec3toVariant(endVec + currentUpVector * vec3(0.0f, 0.5f * dim.y, 0.0f)));
         }
         if (_faceAvatar) {
-            endProps.insert("rotation", quatToVariant(faceAvatarRotation));
+            glm::quat rotation = _faceAvatar ? faceAvatarRotation : renderState.getEndRot();
+            endProps.insert("rotation", quatToVariant(rotation));
         }
         endProps.insert("visible", true);
         endProps.insert("ignoreRayIntersection", renderState.doesEndIgnoreRays());
@@ -223,12 +229,12 @@ void LaserPointer::updateVisuals(const PickResultPointer& pickResult) {
         PickRay pickRay = rayPickResult ? PickRay(rayPickResult->pickVariant): PickRay();
         QUuid uid = rayPickResult->objectID;
         float distance = _laserLength > 0.0f ? _laserLength : rayPickResult->distance;
-        updateRenderState(_renderStates[_currentRenderState], type, distance, uid, pickRay);
+        updateRenderState(_renderStates[_currentRenderState], type, distance, rayPickResult->surfaceNormal, uid, pickRay);
         disableRenderState(_defaultRenderStates[_currentRenderState].second);
     } else if (_enabled && !_currentRenderState.empty() && _defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {
         disableRenderState(_renderStates[_currentRenderState]);
         PickRay pickRay = rayPickResult ? PickRay(rayPickResult->pickVariant) : PickRay();
-        updateRenderState(_defaultRenderStates[_currentRenderState].second, IntersectionType::NONE, _defaultRenderStates[_currentRenderState].first, QUuid(), pickRay);
+        updateRenderState(_defaultRenderStates[_currentRenderState].second, IntersectionType::NONE, _defaultRenderStates[_currentRenderState].first, Vectors::UP, QUuid(), pickRay);
     } else if (!_currentRenderState.empty()) {
         disableRenderState(_renderStates[_currentRenderState]);
         disableRenderState(_defaultRenderStates[_currentRenderState].second);
@@ -306,6 +312,7 @@ RenderState::RenderState(const OverlayID& startID, const OverlayID& pathID, cons
     }
     if (!_endID.isNull()) {
         _endDim = vec3FromVariant(qApp->getOverlays().getProperty(_endID, "dimensions").value);
+        _endRot = quatFromVariant(qApp->getOverlays().getProperty(_endID, "rotation").value);
         _endIgnoreRays = qApp->getOverlays().getProperty(_endID, "ignoreRayIntersection").value.toBool();
     }
 }

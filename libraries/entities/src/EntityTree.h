@@ -95,7 +95,14 @@ public:
     virtual EntityItemID findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         QVector<EntityItemID> entityIdsToInclude, QVector<EntityItemID> entityIdsToDiscard,
         bool visibleOnly, bool collidableOnly, bool precisionPicking, 
-        OctreeElementPointer& node, float& distance,
+        OctreeElementPointer& element, float& distance,
+        BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
+        Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
+
+    virtual EntityItemID findParabolaIntersection(const PickParabola& parabola,
+        QVector<EntityItemID> entityIdsToInclude, QVector<EntityItemID> entityIdsToDiscard,
+        bool visibleOnly, bool collidableOnly, bool precisionPicking,
+        OctreeElementPointer& element, glm::vec3& intersection, float& distance, float& parabolicDistance,
         BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
         Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 

@@ -219,6 +219,37 @@ public:
     }
 };
 
+/**jsdoc
+* A PickParabola defines a parabola with a starting point, intitial velocity, and acceleration.
+*
+* @typedef {object} PickParabola
+* @property {Vec3} origin - The starting position of the PickParabola.
+* @property {Vec3} velocity - The starting velocity of the parabola.
+* @property {Vec3} acceleration - The acceleration that the parabola experiences.
+*/
+class PickParabola : public MathPick {
+public:
+    PickParabola() : origin(NAN), velocity(NAN), acceleration(NAN) { }
+    PickParabola(const QVariantMap& pickVariant) : origin(vec3FromVariant(pickVariant["origin"])), velocity(vec3FromVariant(pickVariant["velocity"])), acceleration(vec3FromVariant(pickVariant["acceleration"])) {}
+    PickParabola(const glm::vec3& origin, const glm::vec3 velocity, const glm::vec3 acceleration) : origin(origin), velocity(velocity), acceleration(acceleration) {}
+    glm::vec3 origin;
+    glm::vec3 velocity;
+    glm::vec3 acceleration;
+
+    operator bool() const override {
+        return !(glm::any(glm::isnan(origin)) || glm::any(glm::isnan(velocity)) || glm::any(glm::isnan(acceleration)));
+    }
+    bool operator==(const PickParabola& other) const {
+        return (origin == other.origin && velocity == other.velocity && acceleration == other.acceleration);
+    }
+    QVariantMap toVariantMap() const override {
+        QVariantMap pickParabola;
+        pickParabola["origin"] = vec3toVariant(origin);
+        pickParabola["velocity"] = vec3toVariant(velocity);
+        pickParabola["acceleration"] = vec3toVariant(acceleration);
+        return pickParabola;
+    }
+};
 
 namespace std {
     inline void hash_combine(std::size_t& seed) { }
@@ -269,6 +300,15 @@ namespace std {
         size_t operator()(const StylusTip& a) const {
             size_t result = 0;
             hash_combine(result, a.side, a.position, a.orientation, a.velocity);
+            return result;
+        }
+    };
+
+    template <>
+    struct hash<PickParabola> {
+        size_t operator()(const PickParabola& a) const {
+            size_t result = 0;
+            hash_combine(result, a.origin, a.velocity, a.acceleration);
             return result;
         }
     };

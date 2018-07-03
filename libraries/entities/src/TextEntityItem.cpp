@@ -140,6 +140,14 @@ bool TextEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const 
     return findRayRectangleIntersection(origin, direction, rotation, position, xyDimensions, distance);
 }
 
+bool TextEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+                                                      OctreeElementPointer& element, float& parabolicDistance,
+                                                      BoxFace& face, glm::vec3& surfaceNormal,
+                                                      QVariantMap& extraInfo, bool precisionPicking) const {
+    // TODO
+    return false;
+}
+
 void TextEntityItem::setText(const QString& value) {
     withWriteLock([&] {
         _text = value;

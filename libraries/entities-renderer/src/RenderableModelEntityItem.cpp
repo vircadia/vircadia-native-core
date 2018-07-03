@@ -278,7 +278,7 @@ EntityItemProperties RenderableModelEntityItem::getProperties(EntityPropertyFlag
     return properties;
 }
 
-bool RenderableModelEntityItem::supportsDetailedRayIntersection() const {
+bool RenderableModelEntityItem::supportsDetailedIntersection() const {
     return true;
 }
 

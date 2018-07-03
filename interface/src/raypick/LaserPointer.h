@@ -41,6 +41,9 @@ public:
     void setEndDim(const glm::vec3& endDim) { _endDim = endDim; }
     const glm::vec3& getEndDim() const { return _endDim; }
 
+    void setEndRot(const glm::quat& endRot) { _endRot = endRot; }
+    const glm::quat& getEndRot() const { return _endRot; }
+
     void setLineWidth(const float& lineWidth) { _lineWidth = lineWidth; }
     const float& getLineWidth() const { return _lineWidth; }
 
@@ -55,6 +58,7 @@ private:
     bool _endIgnoreRays;
 
     glm::vec3 _endDim;
+    glm::quat _endRot;
     float _lineWidth;
 };
 
@@ -65,7 +69,7 @@ public:
     typedef std::unordered_map<std::string, std::pair<float, RenderState>> DefaultRenderStateMap;
 
     LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, bool hover, const PointerTriggers& triggers,
-        bool faceAvatar, bool centerEndY, bool lockEnd, bool distanceScaleEnd, bool scaleWithAvatar, bool enabled);
+        bool faceAvatar, bool followNormal, bool centerEndY, bool lockEnd, bool distanceScaleEnd, bool scaleWithAvatar, bool enabled);
     ~LaserPointer();
 
     void setRenderState(const std::string& state) override;
@@ -96,6 +100,7 @@ private:
     RenderStateMap _renderStates;
     DefaultRenderStateMap _defaultRenderStates;
     bool _faceAvatar;
+    bool _followNormal;
     bool _centerEndY;
     bool _lockEnd;
     bool _distanceScaleEnd;
@@ -103,7 +108,7 @@ private:
     LockEndObject _lockEndObject;
 
     void updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
-    void updateRenderState(const RenderState& renderState, const IntersectionType type, float distance, const QUuid& objectID, const PickRay& pickRay);
+    void updateRenderState(const RenderState& renderState, const IntersectionType type, float distance, const glm::vec3& normal, const QUuid& objectID, const PickRay& pickRay);
     void disableRenderState(const RenderState& renderState);
 
     struct TriggerState {

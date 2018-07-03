@@ -65,12 +65,21 @@ public:
     glm::vec3 intersection;
     QVariantMap extraInfo;
 };
-
-
 Q_DECLARE_METATYPE(RayToOverlayIntersectionResult);
-
 QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, const RayToOverlayIntersectionResult& value);
 void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, RayToOverlayIntersectionResult& value);
+
+class ParabolaToOverlayIntersectionResult {
+public:
+    bool intersects { false };
+    OverlayID overlayID { UNKNOWN_OVERLAY_ID };
+    float distance { 0 };
+    float parabolicDistance { 0 };
+    BoxFace face { UNKNOWN_FACE };
+    glm::vec3 surfaceNormal;
+    glm::vec3 intersection;
+    QVariantMap extraInfo;
+};
 
 /**jsdoc
  * The Overlays API provides facilities to create and interact with overlays. Overlays are 2D and 3D objects visible only to

@@ -871,6 +871,30 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
     return result;
 }
 
+ParabolaToEntityIntersectionResult EntityScriptingInterface::findParabolaIntersectionVector(const PickParabola& parabola, bool precisionPicking,
+    const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
+    return findParabolaIntersectionWorker(parabola, Octree::Lock, precisionPicking, entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly);
+}
+
+ParabolaToEntityIntersectionResult EntityScriptingInterface::findParabolaIntersectionWorker(const PickParabola& parabola,
+    Octree::lockType lockType, bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude,
+    const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly) {
+
+
+    ParabolaToEntityIntersectionResult result;
+    if (_entityTree) {
+        OctreeElementPointer element;
+        result.entityID = _entityTree->findParabolaIntersection(parabola,
+            entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly, precisionPicking,
+            element, result.intersection, result.distance, result.parabolicDistance, result.face, result.surfaceNormal,
+            result.extraInfo, lockType, &result.accurate);
+        result.intersects = !result.entityID.isNull();
+    }
+    return result;
+}
+
 bool EntityScriptingInterface::reloadServerScripts(QUuid entityID) {
     auto client = DependencyManager::get<EntityScriptClient>();
     return client->reloadServerScript(entityID);
@@ -1023,15 +1047,6 @@ void EntityScriptingInterface::setDrawZoneBoundaries(bool value) {
 
 bool EntityScriptingInterface::getDrawZoneBoundaries() const {
     return ZoneEntityItem::getDrawZoneBoundaries();
-}
-
-RayToEntityIntersectionResult::RayToEntityIntersectionResult() :
-    intersects(false),
-    accurate(true), // assume it's accurate
-    entityID(),
-    distance(0),
-    face()
-{
 }
 
 QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, const RayToEntityIntersectionResult& value) {
