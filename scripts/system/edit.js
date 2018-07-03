@@ -1782,7 +1782,7 @@ var keyReleaseEvent = function (event) {
     // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
     if (event.text === "DELETE") {
         deleteSelectedEntities();
-    } else if (event.text === "ESC") {
+    } else if (event.text === 'd' && event.isControl) {
         selectionManager.clearSelections();
     } else if (event.text === "TAB") {
         selectionDisplay.toggleSpaceMode();
