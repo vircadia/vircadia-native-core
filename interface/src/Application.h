@@ -73,6 +73,7 @@
 #include "UndoStackScriptingInterface.h"
 
 #include "workload/GameWorkload.h"
+#include "graphics/GraphicsEngine.h"
 
 #include <procedural/ProceduralSkybox.h>
 #include <graphics/Skybox.h>
@@ -157,6 +158,7 @@ public:
     void updateSecondaryCameraViewFrustum();
 
     void updateCamera(RenderArgs& renderArgs, float deltaTime);
+    bool shouldPaint() const;
     void paintGL();
     void resizeGL();
 
@@ -271,10 +273,16 @@ public:
     void setMaxOctreePacketsPerSecond(int maxOctreePPS);
     int getMaxOctreePacketsPerSecond() const;
 
-    render::ScenePointer getMain3DScene() override { return _main3DScene; }
+/*    render::ScenePointer getMain3DScene() override { return _main3DScene; }
     const render::ScenePointer& getMain3DScene() const { return _main3DScene; }
     render::EnginePointer getRenderEngine() override { return _renderEngine; }
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
+    */
+    render::ScenePointer getMain3DScene() override { return _graphicsEngine.getRenderScene(); }
+    const render::ScenePointer& getMain3DScene() const { return _graphicsEngine.getRenderScene(); }
+    render::EnginePointer getRenderEngine() override { return  _graphicsEngine.getRenderEngine(); }
+    gpu::ContextPointer getGPUContext() const { return _graphicsEngine.getGPUContext(); }
+
 
     const GameWorkload& getGameWorkload() const { return _gameWorkload; }
 
@@ -490,7 +498,6 @@ private:
     bool handleFileOpenEvent(QFileOpenEvent* event);
     void cleanupBeforeQuit();
 
-    bool shouldPaint() const;
     void idle();
     void update(float deltaTime);
 
@@ -510,7 +517,7 @@ private:
 
     void initializeAcceptedFiles();
 
-    void runRenderFrame(RenderArgs* renderArgs/*, Camera& whichCamera, bool selfAvatarOnly = false*/);
+  //  void runRenderFrame(RenderArgs* renderArgs/*, Camera& whichCamera, bool selfAvatarOnly = false*/);
 
     bool importJSONFromURL(const QString& urlString);
     bool importSVOFromURL(const QString& urlString);
@@ -551,7 +558,7 @@ private:
 
     bool _previousSessionCrashed;
 
-    OffscreenGLCanvas* _offscreenContext { nullptr };
+  //  OffscreenGLCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
     QMetaObject::Connection _displayPluginPresentConnection;
     mutable std::mutex _displayPluginLock;
@@ -573,7 +580,7 @@ private:
     QTimer _minimizedWindowTimer;
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
-    QElapsedTimer _lastTimeRendered;
+   // QElapsedTimer _lastTimeRendered;
 
     ShapeManager _shapeManager;
     PhysicalEntitySimulationPointer _entitySimulation;
@@ -657,11 +664,13 @@ private:
 
     quint64 _lastFaceTrackerUpdate;
 
-    render::ScenePointer _main3DScene{ new render::Scene(glm::vec3(-0.5f * (float)TREE_SCALE), (float)TREE_SCALE) };
-    render::EnginePointer _renderEngine{ new render::RenderEngine() };
-    gpu::ContextPointer _gpuContext; // initialized during window creation
+   // render::ScenePointer _main3DScene{ new render::Scene(glm::vec3(-0.5f * (float)TREE_SCALE), (float)TREE_SCALE) };
+   // render::EnginePointer _renderEngine{ new render::RenderEngine() };
+  //  gpu::ContextPointer _gpuContext; // initialized during window creation
 
     GameWorkload _gameWorkload;
+
+    GraphicsEngine _graphicsEngine;
 
     mutable QMutex _renderArgsMutex{ QMutex::Recursive };
     struct AppRenderArgs {
@@ -720,8 +729,6 @@ private:
 
     bool _keyboardDeviceHasFocus { true };
 
-    QString _returnFromFullScreenMirrorTo;
-
     ConnectionMonitor _connectionMonitor;
 
     QTimer _addAssetToWorldResizeTimer;
@@ -754,12 +761,12 @@ private:
 
     QUrl _avatarOverrideUrl;
     bool _saveAvatarOverrideUrl { false };
-    QObject* _renderEventHandler{ nullptr };
+  //  QObject* _renderEventHandler{ nullptr };
 
-    friend class RenderEventHandler;
+  //  friend class RenderEventHandler;
 
     std::atomic<bool> _pendingIdleEvent { true };
-    std::atomic<bool> _pendingRenderEvent { true };
+  //  std::atomic<bool> _pendingRenderEvent { true };
 
     bool quitWhenFinished { false };
 };

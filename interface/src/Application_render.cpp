@@ -32,7 +32,8 @@ void Application::paintGL() {
     // Some plugins process message events, allowing paintGL to be called reentrantly.
 
     _renderFrameCount++;
-    _lastTimeRendered.start();
+    // SG: Moved into the RenderEventHandler
+    //_lastTimeRendered.start();
 
     auto lastPaintBegin = usecTimestampNow();
     PROFILE_RANGE_EX(render, __FUNCTION__, 0xff0000ff, (uint64_t)_renderFrameCount);
@@ -88,10 +89,10 @@ void Application::paintGL() {
 
     {
         PROFILE_RANGE(render, "/gpuContextReset");
-        _gpuContext->beginFrame(_appRenderArgs._view, HMDSensorPose);
+        _graphicsEngine.getGPUContext()->beginFrame(_appRenderArgs._view, HMDSensorPose);
         // Reset the gpu::Context Stages
         // Back to the default framebuffer;
-        gpu::doInBatch("Application_render::gpuContextReset", _gpuContext, [&](gpu::Batch& batch) {
+        gpu::doInBatch("Application_render::gpuContextReset", _graphicsEngine.getGPUContext(), [&](gpu::Batch& batch) {
             batch.resetStages();
         });
     }
@@ -132,10 +133,10 @@ void Application::paintGL() {
         renderArgs._hudOperator = displayPlugin->getHUDOperator();
         renderArgs._hudTexture = _applicationOverlay.getOverlayTexture();
         renderArgs._blitFramebuffer = finalFramebuffer;
-        runRenderFrame(&renderArgs);
+        _graphicsEngine.render_runRenderFrame(&renderArgs);
     }
 
-    auto frame = _gpuContext->endFrame();
+    auto frame = _graphicsEngine.getGPUContext()->endFrame();
     frame->frameIndex = _renderFrameCount;
     frame->framebuffer = finalFramebuffer;
     frame->framebufferRecycler = [](const gpu::FramebufferPointer& framebuffer) {
@@ -163,68 +164,68 @@ void Application::paintGL() {
 
 
 // WorldBox Render Data & rendering functions
-
-class WorldBoxRenderData {
-public:
-    typedef render::Payload<WorldBoxRenderData> Payload;
-    typedef Payload::DataPointer Pointer;
-
-    int _val = 0;
-    static render::ItemID _item; // unique WorldBoxRenderData
-};
-
-render::ItemID WorldBoxRenderData::_item{ render::Item::INVALID_ITEM_ID };
-
-namespace render {
-    template <> const ItemKey payloadGetKey(const WorldBoxRenderData::Pointer& stuff) { return ItemKey::Builder::opaqueShape().withTagBits(ItemKey::TAG_BITS_0 | ItemKey::TAG_BITS_1); }
-    template <> const Item::Bound payloadGetBound(const WorldBoxRenderData::Pointer& stuff) { return Item::Bound(); }
-    template <> void payloadRender(const WorldBoxRenderData::Pointer& stuff, RenderArgs* args) {
-        if (Menu::getInstance()->isOptionChecked(MenuOption::WorldAxes)) {
-            PerformanceTimer perfTimer("worldBox");
-
-            auto& batch = *args->_batch;
-            DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch);
-            renderWorldBox(args, batch);
-        }
-    }
-}
-
-void Application::runRenderFrame(RenderArgs* renderArgs) {
-    PROFILE_RANGE(render, __FUNCTION__);
-    PerformanceTimer perfTimer("display");
-    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::runRenderFrame()");
-
-    // The pending changes collecting the changes here
-    render::Transaction transaction;
-
-    if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
-        // render models...
-        PerformanceTimer perfTimer("entities");
-        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-            "Application::runRenderFrame() ... entities...");
-
-        RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE;
-
-        renderArgs->_debugFlags = renderDebugFlags;
-    }
-
-    // Make sure the WorldBox is in the scene
-    // For the record, this one RenderItem is the first one we created and added to the scene.
-    // We could move that code elsewhere but you know...
-    if (!render::Item::isValidID(WorldBoxRenderData::_item)) {
-        auto worldBoxRenderData = std::make_shared<WorldBoxRenderData>();
-        auto worldBoxRenderPayload = std::make_shared<WorldBoxRenderData::Payload>(worldBoxRenderData);
-
-        WorldBoxRenderData::_item = _main3DScene->allocateID();
-
-        transaction.resetItem(WorldBoxRenderData::_item, worldBoxRenderPayload);
-        _main3DScene->enqueueTransaction(transaction);
-    }
-
-    {
-        PerformanceTimer perfTimer("EngineRun");
-        _renderEngine->getRenderContext()->args = renderArgs;
-        _renderEngine->run();
-    }
-}
+//
+//class WorldBoxRenderData {
+//public:
+//    typedef render::Payload<WorldBoxRenderData> Payload;
+//    typedef Payload::DataPointer Pointer;
+//
+//    int _val = 0;
+//    static render::ItemID _item; // unique WorldBoxRenderData
+//};
+//
+//render::ItemID WorldBoxRenderData::_item{ render::Item::INVALID_ITEM_ID };
+//
+//namespace render {
+//    template <> const ItemKey payloadGetKey(const WorldBoxRenderData::Pointer& stuff) { return ItemKey::Builder::opaqueShape().withTagBits(ItemKey::TAG_BITS_0 | ItemKey::TAG_BITS_1); }
+//    template <> const Item::Bound payloadGetBound(const WorldBoxRenderData::Pointer& stuff) { return Item::Bound(); }
+//    template <> void payloadRender(const WorldBoxRenderData::Pointer& stuff, RenderArgs* args) {
+//        if (Menu::getInstance()->isOptionChecked(MenuOption::WorldAxes)) {
+//            PerformanceTimer perfTimer("worldBox");
+//
+//            auto& batch = *args->_batch;
+//            DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch);
+//            renderWorldBox(args, batch);
+//        }
+//    }
+//}
+//
+//void Application::runRenderFrame(RenderArgs* renderArgs) {
+//    PROFILE_RANGE(render, __FUNCTION__);
+//    PerformanceTimer perfTimer("display");
+//    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::runRenderFrame()");
+//
+//    // The pending changes collecting the changes here
+//    render::Transaction transaction;
+//
+//    if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
+//        // render models...
+//        PerformanceTimer perfTimer("entities");
+//        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+//            "Application::runRenderFrame() ... entities...");
+//
+//        RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE;
+//
+//        renderArgs->_debugFlags = renderDebugFlags;
+//    }
+//
+//    // Make sure the WorldBox is in the scene
+//    // For the record, this one RenderItem is the first one we created and added to the scene.
+//    // We could move that code elsewhere but you know...
+//    if (!render::Item::isValidID(WorldBoxRenderData::_item)) {
+//        auto worldBoxRenderData = std::make_shared<WorldBoxRenderData>();
+//        auto worldBoxRenderPayload = std::make_shared<WorldBoxRenderData::Payload>(worldBoxRenderData);
+//
+//        WorldBoxRenderData::_item = _main3DScene->allocateID();
+//
+//        transaction.resetItem(WorldBoxRenderData::_item, worldBoxRenderPayload);
+//        _main3DScene->enqueueTransaction(transaction);
+//    }
+//
+//    {
+//        PerformanceTimer perfTimer("EngineRun");
+//        _renderEngine->getRenderContext()->args = renderArgs;
+//        _renderEngine->run();
+//    }
+//}
 
