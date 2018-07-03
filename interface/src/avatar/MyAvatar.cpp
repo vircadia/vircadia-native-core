@@ -1591,22 +1591,26 @@ void MyAvatar::removeAvatarEntities() {
 QVariantList MyAvatar::getAvatarEntitiesVariant() {
     QVariantList avatarEntitiesData;
     QScriptEngine scriptEngine;
-    forEachChild([&](SpatiallyNestablePointer child) {
-        if (child->getNestableType() == NestableType::Entity) {
-            auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(child);
-            if (modelEntity) {
-                QVariantMap avatarEntityData;
-                EncodeBitstreamParams params;
-                auto desiredProperties = modelEntity->getEntityProperties(params);
-                desiredProperties += PROP_LOCAL_POSITION;
-                desiredProperties += PROP_LOCAL_ROTATION;
-                EntityItemProperties entityProperties = modelEntity->getProperties(desiredProperties);
-                QScriptValue scriptProperties = EntityItemPropertiesToScriptValue(&scriptEngine, entityProperties);
-                avatarEntityData["properties"] = scriptProperties.toVariant();
-                avatarEntitiesData.append(QVariant(avatarEntityData));
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+    if (entityTree) {
+        AvatarEntityMap avatarEntities = getAvatarEntityData();
+        for (auto entityID : avatarEntities.keys()) {
+            auto entity = entityTree->findEntityByID(entityID);
+            if (!entity) {
+                continue;
             }
+            QVariantMap avatarEntityData;
+            EncodeBitstreamParams params;
+            auto desiredProperties = entity->getEntityProperties(params);
+            desiredProperties += PROP_LOCAL_POSITION;
+            desiredProperties += PROP_LOCAL_ROTATION;
+            EntityItemProperties entityProperties = entity->getProperties(desiredProperties);
+            QScriptValue scriptProperties = EntityItemPropertiesToScriptValue(&scriptEngine, entityProperties);
+            avatarEntityData["properties"] = scriptProperties.toVariant();
+            avatarEntitiesData.append(QVariant(avatarEntityData));
         }
-    });
+    }
     return avatarEntitiesData;
 }
 
