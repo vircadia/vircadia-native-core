@@ -17,7 +17,6 @@ var SNAPSHOT_DELAY = 500; // 500ms
 var FINISH_SOUND_DELAY = 350;
 var resetOverlays;
 var reticleVisible;
-var clearOverlayWhenMoving;
 
 var buttonName = "SNAP";
 var buttonConnected = false;
@@ -286,6 +285,7 @@ function printToPolaroid(image_url) {
     var polaroid_url = image_url;                  
 
     var model_pos = Vec3.sum(MyAvatar.position, Vec3.multiply(1.25, Quat.getForward(MyAvatar.orientation)));
+    model_pos.y += 0.2; // Print a bit closer to the head
     
     var model_q1 = MyAvatar.orientation;
     var model_q2 = Quat.angleAxis(90, Quat.getRight(model_q1));
@@ -295,11 +295,11 @@ function printToPolaroid(image_url) {
         "type": 'Model',
         "shapeType": 'box',
 
-        "name": "New Snapshot",
-        "description": "Printed from Snaps",                               
+        "name": "Snapshot by " + MyAvatar.sessionDisplayName,
+        "description": "Printed from SNAP app",                               
         "modelURL": POLAROID_MODEL_URL,
 
-        "dimensions": { "x": 0.5667, "y": 0.0212, "z": 0.4176 },
+        "dimensions": { "x": 0.5667, "y": 0.042, "z": 0.4176 },
         "position": model_pos,
         "rotation": model_rot,
 
@@ -307,9 +307,9 @@ function printToPolaroid(image_url) {
 
         "density": 200,
         "restitution": 0.15,                            
-        "gravity": { "x": 0, "y": -4.5, "z": 0 },
+        "gravity": { "x": 0, "y": -2.5, "z": 0 },
         
-        "velocity": { "x": 0, "y": 3.5, "z": 0 },
+        "velocity": { "x": 0, "y": 1.95, "z": 0 },
         "angularVelocity": { "x": -1.0, "y": 0, "z": -1.3 },
 
         "dynamic": true, 
@@ -438,11 +438,6 @@ function takeSnapshot() {
     isUploadingPrintableStill = true;
     updatePrintPermissions();
 
-    // Raising the desktop for the share dialog at end will interact badly with clearOverlayWhenMoving.
-    // Turn it off now, before we start futzing with things (and possibly moving).
-    clearOverlayWhenMoving = MyAvatar.getClearOverlayWhenMoving(); // Do not use Settings. MyAvatar keeps a separate copy.
-    MyAvatar.setClearOverlayWhenMoving(false);
-
     // We will record snapshots based on the starting location. That could change, e.g., when recording a .gif.
     // Even the domainID could change (e.g., if the user falls into a teleporter while recording).
     href = location.href;
@@ -544,9 +539,6 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
     // last element in data array tells dialog whether we can share or not
     Settings.setValue("previousStillSnapPath", pathStillSnapshot);
 
-    if (clearOverlayWhenMoving) {
-        MyAvatar.setClearOverlayWhenMoving(true); // not until after the share dialog
-    }
     HMD.openTablet();
 
     isDomainOpen(domainID, function (canShare) {
@@ -590,9 +582,6 @@ function processingGifStarted(pathStillSnapshot) {
     }
     Settings.setValue("previousStillSnapPath", pathStillSnapshot);
 
-    if (clearOverlayWhenMoving) {
-        MyAvatar.setClearOverlayWhenMoving(true); // not until after the share dialog
-    }
     HMD.openTablet();
     
     isDomainOpen(domainID, function (canShare) {

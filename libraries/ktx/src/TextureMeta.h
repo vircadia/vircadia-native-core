@@ -35,6 +35,7 @@ struct TextureMeta {
     QByteArray serialize();
 
     QUrl original;
+    QUrl uncompressed;
     std::unordered_map<khronos::gl::texture::InternalFormat, QUrl> availableTextureTypes;
 };
 

@@ -14,6 +14,7 @@
 
 #include <EntityTypes.h>
 #include <AACube.h>
+#include <workload/Region.h>
 
 #include "ObjectMotionState.h"
 
@@ -86,12 +87,17 @@ public:
 
     virtual void computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const override;
 
-    bool shouldSendBid();
+    bool shouldSendBid() const;
+    uint8_t computeFinalBidPriority() const;
+
     bool isLocallyOwned() const override;
     bool isLocallyOwnedOrShouldBe() const override; // aka shouldEmitCollisionEvents()
 
     friend class PhysicalEntitySimulation;
     OwnershipState getOwnershipState() const { return _ownershipState; }
+
+    void setRegion(uint8_t region);
+    void saveKinematicState(btScalar timeStep) override;
 
 protected:
     void updateSendVelocities();
@@ -102,11 +108,7 @@ protected:
     void updateServerPhysicsVariables();
     bool remoteSimulationOutOfSync(uint32_t simulationStep);
 
-    // changes _bidPriority only if priority is larger
-    void upgradeBidPriority(uint8_t priority);
-
-    // upgradeBidPriority to value stored in _entity
-    void slaveBidPriority();
+    void slaveBidPriority(); // computeNewBidPriority() with value stored in _entity
 
     void clearObjectVelocities() const;
 
@@ -154,8 +156,8 @@ protected:
     uint8_t _loopsWithoutOwner;
     mutable uint8_t _accelerationNearlyGravityCount;
     uint8_t _numInactiveUpdates { 1 };
-    uint8_t _bidPriority { 0 };
-    bool _serverVariablesSet { false };
+    uint8_t _bumpedPriority { 0 }; // the target simulation priority according to collision history
+    uint8_t _region { workload::Region::INVALID };
 
     bool isServerlessMode();
 };

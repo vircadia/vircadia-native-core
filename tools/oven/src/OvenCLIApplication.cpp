@@ -15,6 +15,7 @@
 #include <QtCore/QUrl>
 
 #include <image/Image.h>
+#include <TextureBaker.h>
 
 #include "BakerCLI.h"
 
@@ -47,10 +48,7 @@ OvenCLIApplication::OvenCLIApplication(int argc, char* argv[]) :
 
         if (parser.isSet(CLI_DISABLE_TEXTURE_COMPRESSION_PARAMETER)) {
             qDebug() << "Disabling texture compression";
-            image::setColorTexturesCompressionEnabled(false);
-            image::setGrayscaleTexturesCompressionEnabled(false);
-            image::setNormalTexturesCompressionEnabled(false);
-            image::setCubeTexturesCompressionEnabled(false);
+            TextureBaker::setCompressionEnabled(false);
         }
 
         QMetaObject::invokeMethod(cli, "bakeFile", Qt::QueuedConnection, Q_ARG(QUrl, inputUrl),

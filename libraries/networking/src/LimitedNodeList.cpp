@@ -815,8 +815,13 @@ unsigned int LimitedNodeList::broadcastToNodes(std::unique_ptr<NLPacket> packet,
 
     eachNode([&](const SharedNodePointer& node){
         if (node && destinationNodeTypes.contains(node->getType())) {
-            sendUnreliablePacket(*packet, *node);
-            ++n;
+			if (packet->isReliable()) {
+				auto packetCopy = NLPacket::createCopy(*packet);
+				sendPacket(std::move(packetCopy), *node);
+			} else {
+				sendUnreliablePacket(*packet, *node);
+			}
+			++n;
         }
     });
 

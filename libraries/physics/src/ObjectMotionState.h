@@ -110,8 +110,8 @@ public:
     MotionStateType getType() const { return _type; }
     virtual PhysicsMotionType getMotionType() const { return _motionType; }
 
-    void setMass(float mass);
-    float getMass() const;
+    virtual void setMass(float mass);
+    virtual float getMass() const;
 
     void setBodyLinearVelocity(const glm::vec3& velocity) const;
     void setBodyAngularVelocity(const glm::vec3& velocity) const;
@@ -165,6 +165,7 @@ public:
 
     virtual bool isLocallyOwned() const { return false; }
     virtual bool isLocallyOwnedOrShouldBe() const { return false; } // aka shouldEmitCollisionEvents()
+    virtual void saveKinematicState(btScalar timeStep);
 
     friend class PhysicsEngine;
 

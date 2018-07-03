@@ -14,7 +14,7 @@
 #include "RenderUtilsLogging.h"
 
 using namespace render;
-extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest = false);
+extern void initForwardPipelines(ShapePlumber& plumber);
 
 void BeginGPURangeTimer::run(const render::RenderContextPointer& renderContext, gpu::RangeTimerPointer& timer) {
     timer = _gpuTimer;
@@ -35,7 +35,7 @@ void EndGPURangeTimer::run(const render::RenderContextPointer& renderContext, co
 DrawOverlay3D::DrawOverlay3D(bool opaque) :
     _shapePlumber(std::make_shared<ShapePlumber>()),
     _opaquePass(opaque) {
-    initOverlay3DPipelines(*_shapePlumber);
+    initForwardPipelines(*_shapePlumber);
 }
 
 void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs& inputs) {

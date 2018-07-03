@@ -182,7 +182,7 @@ void GL41Texture::syncSampler() const {
     glTexParameteri(_target, GL_TEXTURE_MAG_FILTER, fm.magFilter);
 
     if (sampler.doComparison()) {
-        glTexParameteri(_target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE_ARB);
+        glTexParameteri(_target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
         glTexParameteri(_target, GL_TEXTURE_COMPARE_FUNC, COMPARISON_TO_GL[sampler.getComparisonFunction()]);
     } else {
         glTexParameteri(_target, GL_TEXTURE_COMPARE_MODE, GL_NONE);
@@ -197,7 +197,7 @@ void GL41Texture::syncSampler() const {
     glTexParameterf(_target, GL_TEXTURE_MIN_LOD, (float)sampler.getMinMip());
     glTexParameterf(_target, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.f : sampler.getMaxMip()));
 
-    glTexParameterf(_target, GL_TEXTURE_MAX_ANISOTROPY_EXT, sampler.getMaxAnisotropy());
+    glTexParameterf(_target, GL_TEXTURE_MAX_ANISOTROPY, sampler.getMaxAnisotropy());
 }
 
 using GL41FixedAllocationTexture = GL41Backend::GL41FixedAllocationTexture;
@@ -215,12 +215,19 @@ GL41FixedAllocationTexture::~GL41FixedAllocationTexture() {
 void GL41FixedAllocationTexture::allocateStorage() const {
     const GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
     const auto numMips = _gpuObject.getNumMips();
+    const auto numSlices = _gpuObject.getNumSlices();
 
     // glTextureStorage2D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y);
     for (GLint level = 0; level < numMips; level++) {
         Vec3u dimensions = _gpuObject.evalMipDimensions(level);
         for (GLenum target : getFaceTargets(_target)) {
-            glTexImage2D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, texelFormat.format, texelFormat.type, nullptr);
+            if (!_gpuObject.isArray()) {
+                glTexImage2D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, texelFormat.format,
+                             texelFormat.type, nullptr);
+            } else {
+                glTexImage3D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, numSlices, 0,
+                             texelFormat.format, texelFormat.type, nullptr);
+            }
         }
     }
 

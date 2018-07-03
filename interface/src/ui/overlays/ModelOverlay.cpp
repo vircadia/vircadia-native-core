@@ -509,16 +509,16 @@ QVariant ModelOverlay::getProperty(const QString& property) {
 }
 
 bool ModelOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                        float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
+                                       float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking) {
 
     QVariantMap extraInfo;
-    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, surfaceNormal, extraInfo);
+    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, surfaceNormal, extraInfo, precisionPicking);
 }
 
 bool ModelOverlay::findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction,
-                                        float& distance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo) {
+                                                float& distance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking) {
 
-    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, surfaceNormal, extraInfo);
+    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, surfaceNormal, extraInfo, precisionPicking);
 }
 
 ModelOverlay* ModelOverlay::createClone() const {

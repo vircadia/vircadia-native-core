@@ -121,6 +121,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     _headData = new MyHead(this);
 
     _skeletonModel = std::make_shared<MySkeletonModel>(this, nullptr);
+    _skeletonModel->setLoadingPriority(MYAVATAR_LOADING_PRIORITY);
     connect(_skeletonModel.get(), &Model::setURLFinished, this, &Avatar::setModelURLFinished);
     connect(_skeletonModel.get(), &Model::setURLFinished, this, [this](bool success) {
         if (success) {
@@ -531,10 +532,14 @@ void MyAvatar::forgetChild(SpatiallyNestablePointer newChild) const {
     SpatiallyNestable::forgetChild(newChild);
 }
 
-void MyAvatar::updateChildCauterization(SpatiallyNestablePointer object) {
+void MyAvatar::recalculateChildCauterization() const {
+    _cauterizationNeedsUpdate = true;
+}
+
+void MyAvatar::updateChildCauterization(SpatiallyNestablePointer object, bool cauterize) {
     if (object->getNestableType() == NestableType::Entity) {
         EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
-        entity->setCauterized(!_prevShouldDrawHead);
+        entity->setCauterized(cauterize);
     }
 }
 
@@ -544,17 +549,42 @@ void MyAvatar::simulate(float deltaTime) {
     animateScaleChanges(deltaTime);
 
     if (_cauterizationNeedsUpdate) {
-        const std::unordered_set<int>& headBoneSet = _skeletonModel->getCauterizeBoneSet();
+        _cauterizationNeedsUpdate = false;
+
+        // Redisplay cauterized entities that are no longer children of the avatar.
+        auto cauterizedChild = _cauterizedChildrenOfHead.begin();
+        if (cauterizedChild != _cauterizedChildrenOfHead.end()) {
+            auto children = getChildren();
+            while (cauterizedChild != _cauterizedChildrenOfHead.end()) {
+                if (!children.contains(*cauterizedChild)) {
+                    updateChildCauterization(*cauterizedChild, false);
+                    cauterizedChild = _cauterizedChildrenOfHead.erase(cauterizedChild);
+                } else {
+                    ++cauterizedChild;
+                }
+            }
+        }
+
+        // Update cauterization of entities that are children of the avatar.
+        auto headBoneSet = _skeletonModel->getCauterizeBoneSet();
         forEachChild([&](SpatiallyNestablePointer object) {
             bool isChildOfHead = headBoneSet.find(object->getParentJointIndex()) != headBoneSet.end();
             if (isChildOfHead) {
-                updateChildCauterization(object);
+                // Cauterize or display children of head per head drawing state.
+                updateChildCauterization(object, !_prevShouldDrawHead);
                 object->forEachDescendant([&](SpatiallyNestablePointer descendant) {
-                    updateChildCauterization(descendant);
+                    updateChildCauterization(descendant, !_prevShouldDrawHead);
                 });
+                _cauterizedChildrenOfHead.insert(object);
+            } else if (_cauterizedChildrenOfHead.find(object) != _cauterizedChildrenOfHead.end()) {
+                // Redisplay cauterized children that are not longer children of the head.
+                updateChildCauterization(object, false);
+                object->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+                    updateChildCauterization(descendant, false);
+                });
+                _cauterizedChildrenOfHead.erase(object);
             }
         });
-        _cauterizationNeedsUpdate = false;
     }
 
     {
@@ -684,7 +714,8 @@ void MyAvatar::simulate(float deltaTime) {
                 entityTree->recurseTreeWithOperator(&moveOperator);
             }
         });
-        _characterController.setFlyingAllowed(zoneAllowsFlying && _enableFlying);
+        bool isPhysicsEnabled = qApp->isPhysicsEnabled();
+        _characterController.setFlyingAllowed(zoneAllowsFlying && (_enableFlying || !isPhysicsEnabled));
         _characterController.setCollisionlessAllowed(collisionlessAllowed);
     }
 
@@ -1067,8 +1098,8 @@ void MyAvatar::saveData() {
     settings.setValue("displayName", _displayName);
     settings.setValue("collisionSoundURL", _collisionSoundURL);
     settings.setValue("useSnapTurn", _useSnapTurn);
-    settings.setValue("clearOverlayWhenMoving", _clearOverlayWhenMoving);
     settings.setValue("userHeight", getUserHeight());
+    settings.setValue("enabledFlying", getFlyingEnabled());
 
     settings.endGroup();
 }
@@ -1218,11 +1249,10 @@ void MyAvatar::loadData() {
         settings.remove("avatarEntityData");
     }
     setAvatarEntityDataChanged(true);
-
+    setFlyingEnabled(settings.value("enabledFlying").toBool());
     setDisplayName(settings.value("displayName").toString());
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
     setSnapTurn(settings.value("useSnapTurn", _useSnapTurn).toBool());
-    setClearOverlayWhenMoving(settings.value("clearOverlayWhenMoving", _clearOverlayWhenMoving).toBool());
     setDominantHand(settings.value("dominantHand", _dominantHand).toString().toLower());
     setUserHeight(settings.value("userHeight", DEFAULT_AVATAR_HEIGHT).toDouble());
     settings.endGroup();
@@ -3318,7 +3348,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
         if (!isActive(Rotation) && (shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
             activate(Rotation);
         }
-        if (!isActive(Horizontal) && shouldActivateHorizontal(myAvatar, desiredBodyMatrix, currentBodyMatrix)) {
+        if (!isActive(Horizontal) && (shouldActivateHorizontal(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
             activate(Horizontal);
         }
         if (!isActive(Vertical) && (shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {

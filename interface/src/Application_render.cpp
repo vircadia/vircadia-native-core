@@ -139,7 +139,10 @@ void Application::paintGL() {
     frame->frameIndex = _renderFrameCount;
     frame->framebuffer = finalFramebuffer;
     frame->framebufferRecycler = [](const gpu::FramebufferPointer& framebuffer) {
-        DependencyManager::get<FramebufferCache>()->releaseFramebuffer(framebuffer);
+        auto frameBufferCache = DependencyManager::get<FramebufferCache>();
+        if (frameBufferCache) {
+            frameBufferCache->releaseFramebuffer(framebuffer);
+        }
     };
     // deliver final scene rendering commands to the display plugin
     {
@@ -205,10 +208,6 @@ void Application::runRenderFrame(RenderArgs* renderArgs) {
 
         RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE;
 
-        if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowHulls)) {
-            renderDebugFlags = static_cast<RenderArgs::DebugFlags>(renderDebugFlags |
-                static_cast<int>(RenderArgs::RENDER_DEBUG_HULLS));
-        }
         renderArgs->_debugFlags = renderDebugFlags;
     }
 

@@ -11,6 +11,7 @@
 //
 
 <@include gpu/Transform.slh@>
+<@include gpu/Noise.slh@>
 
 <$declareStandardTransform()$>
 
@@ -119,9 +120,15 @@ void main(void) {
     // Offset for corrected vertex ordering.
     varTexcoord = vec2((UNIT_QUAD[twoTriID].xy -1.0) * vec2(0.5, -0.5)); 
     varColor = interpolate3Vec4(particle.color.start, particle.color.middle, particle.color.finish, age);
+    vec3 colorSpread = 2.0 * vec3(hifi_hash(seed), hifi_hash(seed * 2.0), hifi_hash(seed * 3.0)) - 1.0;
+    varColor.rgb = clamp(varColor.rgb + colorSpread * particle.color.spread.rgb, vec3(0), vec3(1));
+    float alphaSpread = 2.0 * hifi_hash(seed * 4.0) - 1.0;
+    varColor.a = clamp(varColor.a + alphaSpread * particle.color.spread.a, 0.0, 1.0);
 
     // anchor point in eye space
     float radius = interpolate3Points(particle.radius.start, particle.radius.middle, particle.radius.finish, age);
+    float radiusSpread = 2.0 * hifi_hash(seed * 5.0) - 1.0;
+    radius = max(radius + radiusSpread * particle.radius.spread, 0.0);
     vec4 quadPos = radius * UNIT_QUAD[twoTriID];
 
     vec4 anchorPoint;

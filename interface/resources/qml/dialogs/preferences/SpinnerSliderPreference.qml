@@ -56,8 +56,8 @@ Preference {
             id: slider
             value: preference.value
             width: 100
-            minimumValue: MyAvatar.getDomainMinScale()
-            maximumValue: MyAvatar.getDomainMaxScale()
+            minimumValue: preference.min
+            maximumValue: preference.max
             stepSize: preference.step
             onValueChanged: {
                 spinner.realValue = value
@@ -74,8 +74,8 @@ Preference {
             id: spinner
             decimals: preference.decimals
             realValue: preference.value
-            minimumValue: MyAvatar.getDomainMinScale()
-            maximumValue: MyAvatar.getDomainMaxScale()
+            minimumValue: preference.min
+            maximumValue: preference.max
             width: 100
             onValueChanged: {
                 slider.value = realValue;

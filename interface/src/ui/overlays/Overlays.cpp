@@ -41,8 +41,6 @@
 
 Q_LOGGING_CATEGORY(trace_render_overlays, "trace.render.overlays")
 
-extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest = false);
-
 Overlays::Overlays() {
     auto pointerManager = DependencyManager::get<PointerManager>();
     connect(pointerManager.data(), &PointerManager::hoverBeginOverlay, this, &Overlays::hoverEnterPointerEvent);
@@ -554,7 +552,7 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionVector(const PickRay
             glm::vec3 thisSurfaceNormal;
             QVariantMap thisExtraInfo;
             if (thisOverlay->findRayIntersectionExtraInfo(ray.origin, ray.direction, thisDistance,
-                                                          thisFace, thisSurfaceNormal, thisExtraInfo)) {
+                                                          thisFace, thisSurfaceNormal, thisExtraInfo, precisionPicking)) {
                 bool isDrawInFront = thisOverlay->getDrawInFront();
                 if ((bestIsFront && isDrawInFront && thisDistance < bestDistance)
                     || (!bestIsFront && (isDrawInFront || thisDistance < bestDistance))) {

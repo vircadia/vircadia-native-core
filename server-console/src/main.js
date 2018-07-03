@@ -60,7 +60,14 @@ function getBuildInfo() {
         }
     }
 
-    const DEFAULT_BUILD_INFO = { releaseType: "", buildIdentifier: "dev" };
+    const DEFAULT_BUILD_INFO = {
+        releaseType: "",
+        buildIdentifier: "dev",
+        buildNumber: "0",
+        stableBuild: "0",
+        organization: "High Fidelity - dev",
+        appUserModelId: "com.highfidelity.sandbox-dev"
+    };
     var buildInfo = DEFAULT_BUILD_INFO;
 
     if (buildInfoPath) {
@@ -108,16 +115,42 @@ const UPDATER_LOCK_FULL_PATH = getRootHifiDataDirectory() + "/" + UPDATER_LOCK_F
 
 // Configure log
 global.log = require('electron-log');
-const logFile = getApplicationDataDirectory(true) + '/log.txt';
+const oldLogFile = path.join(getApplicationDataDirectory(), '/log.txt');
+const logFile = path.join(getApplicationDataDirectory(true), '/log.txt');
+if (oldLogFile != logFile && fs.existsSync(oldLogFile)) {
+    if (!fs.existsSync(oldLogFile)) {
+        fs.moveSync(oldLogFile, logFile);
+    } else {
+        fs.remove(oldLogFile);
+    }
+}
 fs.ensureFileSync(logFile); // Ensure file exists
 log.transports.file.maxSize = 5 * 1024 * 1024;
 log.transports.file.file = logFile;
 
 log.debug("build info", buildInfo);
 log.debug("Root hifi directory is: ", getRootHifiDataDirectory());
+log.debug("App Data directory:", getApplicationDataDirectory());
+fs.ensureDirSync(getApplicationDataDirectory());
+
+var oldLogPath = path.join(getApplicationDataDirectory(), '/logs');
+var logPath = path.join(getApplicationDataDirectory(true), '/logs');
+if (oldLogPath != logPath && fs.existsSync(oldLogPath)) {
+    if (!fs.existsSync(oldLogPath)) {
+        fs.moveSync(oldLogPath, logPath);
+    } else {
+        fs.remove(oldLogPath);
+    }
+}
+fs.ensureDirSync(logPath);
+log.debug("Log directory:", logPath);
+
+const configPath = path.join(getApplicationDataDirectory(), 'config.json');
+var userConfig = new Config();
+userConfig.load(configPath);
+
 
 const ipcMain = electron.ipcMain;
-
 
 var isShuttingDown = false;
 function shutdown() {
@@ -225,26 +258,7 @@ function deleteOldFiles(directoryPath, maxAgeInSeconds, filenameRegex) {
     }
 }
 
-var oldLogPath = path.join(getApplicationDataDirectory(), '/logs');
-var logPath = path.join(getApplicationDataDirectory(true), '/logs');
-
-if (oldLogPath != logPath) {
-    console.log("Migrating old logs from " + oldLogPath + " to " + logPath);
-    fs.copy(oldLogPath, logPath, err => {
-        if (err) {
-            console.error(err);
-        } else {
-            console.log('success!');
-        }
-    })
-}
-
-log.debug("Log directory:", logPath);
-log.debug("Data directory:", getRootHifiDataDirectory());
-
-const configPath = path.join(getApplicationDataDirectory(), 'config.json');
-var userConfig = new Config();
-userConfig.load(configPath);
+app.setAppUserModelId(buildInfo.appUserModelId);
 
 // print out uncaught exceptions in the console
 process.on('uncaughtException', function(err) {
@@ -768,33 +782,27 @@ function onContentLoaded() {
     // maybeShowSplash();
 
     if (buildInfo.releaseType == 'PRODUCTION' && !argv.noUpdater) {
-        var currentVersion = null;
-        try {
-            currentVersion = parseInt(buildInfo.buildIdentifier);
-        } catch (e) {
-        }
 
-        if (currentVersion !== null) {
-            const CHECK_FOR_UPDATES_INTERVAL_SECONDS = 60 * 30;
-            var hasShownUpdateNotification = false;
-            const updateChecker = new updater.UpdateChecker(currentVersion, CHECK_FOR_UPDATES_INTERVAL_SECONDS);
-            updateChecker.on('update-available', function(latestVersion, url) {
-                if (!hasShownUpdateNotification) {
-                    notifier.notify({
-                        icon: notificationIcon,
-                        title: 'An update is available!',
-                        message: 'High Fidelity version ' + latestVersion + ' is available',
-                        wait: true,
-                        url: url
-                    });
-                    hasShownUpdateNotification = true;
-                }
-            });
-            notifier.on('click', function(notifierObject, options) {
-                log.debug("Got click", options.url);
-                shell.openExternal(options.url);
-            });
-        }
+        const CHECK_FOR_UPDATES_INTERVAL_SECONDS = 60 * 30;
+        var hasShownUpdateNotification = false;
+        const updateChecker = new updater.UpdateChecker(buildInfo, CHECK_FOR_UPDATES_INTERVAL_SECONDS);
+        updateChecker.on('update-available', function(latestVersion, url) {
+            if (!hasShownUpdateNotification) {
+                notifier.notify({
+                    icon: notificationIcon,
+                    title: 'An update is available!',
+                    message: 'High Fidelity version ' + latestVersion + ' is available',
+                    wait: true,
+                    appID: buildInfo.appUserModelId,
+                    url: url
+                });
+                hasShownUpdateNotification = true;
+            }
+        });
+        notifier.on('click', function(notifierObject, options) {
+            log.debug("Got click", options.url);
+            shell.openExternal(options.url);
+        });
     }
 
     deleteOldFiles(logPath, DELETE_LOG_FILES_OLDER_THAN_X_SECONDS, LOG_FILE_REGEX);

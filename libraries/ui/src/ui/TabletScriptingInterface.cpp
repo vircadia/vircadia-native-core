@@ -648,6 +648,26 @@ void TabletProxy::loadQMLSource(const QVariant& path, bool resizable) {
     }
 }
 
+void TabletProxy::stopQMLSource() {
+    // For desktop toolbar mode dialogs.
+    if (!_toolbarMode || !_desktopWindow) {
+        qCDebug(uiLogging) << "tablet cannot clear QML because not desktop toolbar mode";
+        return;
+    }
+
+    auto root = _desktopWindow->asQuickItem();
+    if (root) {
+        QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, ""));
+        if (!_currentPathLoaded.toString().isEmpty()) {
+            emit screenChanged(QVariant("QML"), "");
+        }
+        _currentPathLoaded = "";
+        _state = State::Home;
+    } else {
+        qCDebug(uiLogging) << "tablet cannot clear QML because _desktopWindow is null";
+    }
+}
+
 bool TabletProxy::pushOntoStack(const QVariant& path) {
     if (QThread::currentThread() != thread()) {
         bool result = false;
@@ -719,6 +739,7 @@ void TabletProxy::loadHomeScreen(bool forceOntoHomeScreen) {
             // close desktop window
             if (_desktopWindow->asQuickItem()) {
                 QMetaObject::invokeMethod(_desktopWindow->asQuickItem(), "setShown", Q_ARG(const QVariant&, QVariant(false)));
+                stopQMLSource();  // Stop the currently loaded QML running.
             }
         }
         _state = State::Home;
