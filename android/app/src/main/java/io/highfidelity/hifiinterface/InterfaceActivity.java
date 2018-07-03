@@ -37,7 +37,9 @@ import org.qtproject.qt5.android.QtSurface;
 import org.qtproject.qt5.android.bindings.QtActivity;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import io.highfidelity.hifiinterface.fragment.WebViewFragment;
 
@@ -202,9 +204,16 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         FrameLayout fl = findViewById(android.R.id.content);
         if (fl.getChildCount() > 0) {
             QtLayout qtLayout = (QtLayout) fl.getChildAt(0);
-            if (qtLayout.getChildCount() > 1) {
-                QtSurface s1 = (QtSurface) qtLayout.getChildAt(0);
-                QtSurface s2 = (QtSurface) qtLayout.getChildAt(1);
+            List<QtSurface> surfaces = new ArrayList<>();
+            for (int i=0; i < qtLayout.getChildCount(); i++) {
+                Object ch = qtLayout.getChildAt(i);
+                if (ch instanceof QtSurface) {
+                    surfaces.add((QtSurface) ch);
+                }
+            }
+            if (surfaces.size() > 1) {
+                QtSurface s1 = surfaces.get(0);
+                QtSurface s2 = surfaces.get(1);
                 Integer subLayer1 = 0;
                 Integer subLayer2 = 0;
                 try {
