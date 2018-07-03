@@ -164,6 +164,8 @@ Item {
                 root.text = "";
                 root.isPassword = focus
             }
+
+            Keys.onReturnPressed: signupBody.signup()
         }
 
         Row {
