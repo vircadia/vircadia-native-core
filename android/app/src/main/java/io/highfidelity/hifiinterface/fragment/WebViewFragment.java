@@ -6,6 +6,9 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.http.SslError;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -30,6 +33,7 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
 
     public static final String URL = "url";
     public static final String TOOLBAR_VISIBLE = "toolbar_visible";
+    private static final long DELAY_HIDE_TOOLBAR_MILLIS = 5 * 1000;
 
     private WebView myWebView;
     private GestureDetector gestureDetector;
@@ -40,6 +44,16 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
 
     private OnWebViewInteractionListener mListener;
     private Runnable mCloseAction;
+    private Handler mHandler;
+
+    private Runnable mHideToolbar = new Runnable() {
+        @Override
+        public void run() {
+            if (mToolbar != null) {
+                mToolbar.setVisibility(View.GONE);
+            }
+        }
+    };
 
     public boolean onKeyDown(int keyCode) {
         // Check if the key event was the Back button and if there's history
@@ -54,8 +68,9 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
         return myWebView == null || myWebView.getUrl() == null ? mUrl : myWebView.getUrl();
     }
 
-    public void loadUrl(String url) {
+    public void loadUrl(String url, boolean showToolbar) {
         mUrl = url;
+        mToolbarVisible = showToolbar;
         loadUrl(myWebView, url);
     }
 
@@ -64,6 +79,10 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
         webView.getSettings().setLoadWithOverviewMode(true);
         webView.getSettings().setUseWideViewPort(true);
         webView.loadUrl(url);
+        mToolbar.setVisibility(mToolbarVisible ? View.VISIBLE : View.GONE);
+        if (mToolbarVisible) {
+            mHandler.postDelayed(mHideToolbar, DELAY_HIDE_TOOLBAR_MILLIS);
+        }
     }
 
     public void setToolbarVisible(boolean visible) {
@@ -76,6 +95,11 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
 
     @Override
     public boolean onDown(MotionEvent motionEvent) {
+        mHandler.removeCallbacks(mHideToolbar);
+        if (mToolbarVisible) {
+            mToolbar.setVisibility(mToolbarVisible ? View.VISIBLE : View.GONE);
+            mHandler.postDelayed(mHideToolbar, DELAY_HIDE_TOOLBAR_MILLIS);
+        }
         return false;
     }
 
@@ -143,6 +167,7 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
         View rootView = inflater.inflate(R.layout.fragment_web_view, container, false);
         mProgressBar = rootView.findViewById(R.id.toolbarProgressBar);
         myWebView = rootView.findViewById(R.id.web_view);
+        mHandler = new Handler();
         gestureDetector = new GestureDetector(this);
         gestureDetector.setOnDoubleTapListener(new GestureDetector.OnDoubleTapListener() {
             @Override
@@ -179,7 +204,6 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
                 mCloseAction.run();
             }
         });
-        mToolbar.setVisibility(mToolbarVisible ? View.VISIBLE : View.GONE);
         if (mUrl != null) {
             loadUrl(myWebView, mUrl);
         }

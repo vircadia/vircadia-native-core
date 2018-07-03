@@ -277,7 +277,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
                     }
                     if (args != null && args.containsKey(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL)) {
                         WebViewFragment webViewFragment = (WebViewFragment) getFragmentManager().findFragmentByTag("webViewFragment");
-                        webViewFragment.loadUrl((String) args.get(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL));
+                        webViewFragment.loadUrl((String) args.get(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL), true);
                         webViewFragment.setToolbarVisible(true);
                         webViewFragment.setCloseAction(() -> { webSlidingDrawer.animateClose(); webSlidingDrawer.setVisibility(View.GONE);} );
                     }
