@@ -57,6 +57,7 @@ ListModel {
     }
 
     function populate(bookmarks) {
+        clear();
         for(var avatarName in bookmarks) {
             var avatar = bookmarks[avatarName];
             var avatarEntry = makeAvatarObject(avatar, avatarName);

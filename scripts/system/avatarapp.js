@@ -102,6 +102,12 @@ function onTargetScaleChanged() {
     }
 }
 
+function onSkeletonModelURLChanged() {
+    if(currentAvatar || (currentAvatar.skeletonModelURL !== MyAvatar.skeletonModelURL)) {
+        fromQml({'method' : 'getAvatars'});
+    }
+}
+
 function onDominantHandChanged(dominantHand) {
     if(currentAvatarSettings.dominantHand !== dominantHand) {
         currentAvatarSettings.dominantHand = dominantHand;
@@ -433,6 +439,7 @@ function off() {
     AvatarBookmarks.bookmarkDeleted.disconnect(onBookmarkDeleted);
     AvatarBookmarks.bookmarkAdded.disconnect(onBookmarkAdded);
 
+    MyAvatar.skeletonModelURLChanged.disconnect(onSkeletonModelURLChanged);
     MyAvatar.dominantHandChanged.disconnect(onDominantHandChanged);
     MyAvatar.collisionsEnabledChanged.disconnect(onCollisionsEnabledChanged);
     MyAvatar.newCollisionSoundURL.disconnect(onNewCollisionSoundUrl);
@@ -445,6 +452,7 @@ function on() {
     AvatarBookmarks.bookmarkDeleted.connect(onBookmarkDeleted);
     AvatarBookmarks.bookmarkAdded.connect(onBookmarkAdded);
 
+    MyAvatar.skeletonModelURLChanged.connect(onSkeletonModelURLChanged);
     MyAvatar.dominantHandChanged.connect(onDominantHandChanged);
     MyAvatar.collisionsEnabledChanged.connect(onCollisionsEnabledChanged);
     MyAvatar.newCollisionSoundURL.connect(onNewCollisionSoundUrl);
