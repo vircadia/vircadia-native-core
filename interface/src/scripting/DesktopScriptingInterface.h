@@ -19,16 +19,20 @@
 
 #include "InteractiveWindow.h"
 
-
+/**jsdoc
+ * @namespace Desktop
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ */
 class DesktopScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     Q_PROPERTY(int width READ getWidth)  // Physical width of screen(s) including task bars and system menus
     Q_PROPERTY(int height READ getHeight)  // Physical height of screen(s) including task bars and system menus
 
-    Q_PROPERTY(int ForceNative READ flagForceNative)
-    Q_PROPERTY(int ForceVirtual READ flagForceVirtual)
-    Q_PROPERTY(int AlwaysOnTop READ flagAlwaysOnTop)
-    Q_PROPERTY(int CloseButtonHides READ flagCloseButtonHides)
+    Q_PROPERTY(QVariantMap PresentationMode READ getPresentationMode CONSTANT FINAL)
+    Q_PROPERTY(int ALWAYS_ON_TOP READ flagAlwaysOnTop CONSTANT FINAL)
+    Q_PROPERTY(int CLOSE_BUTTON_HIDES READ flagCloseButtonHides CONSTANT FINAL)
 
 public:
     Q_INVOKABLE void setHUDAlpha(float alpha);
@@ -41,10 +45,11 @@ public:
 
 
 private:
-    int flagForceNative() { return ForceNative; }
-    int flagForceVirtual() { return ForceVirtual; }
-    int flagAlwaysOnTop() { return AlwaysOnTop; }
-    int flagCloseButtonHides() { return CloseButtonHides; }
+    static int flagAlwaysOnTop() { return AlwaysOnTop; }
+    static int flagCloseButtonHides() { return CloseButtonHides; }
+
+    Q_INVOKABLE static QVariantMap getPresentationMode();
 };
+
 
 #endif // hifi_DesktopScriptingInterface_h

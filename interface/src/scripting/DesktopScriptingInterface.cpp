@@ -31,6 +31,14 @@ int DesktopScriptingInterface::getHeight() {
     return size.height();
 }
 
+QVariantMap DesktopScriptingInterface::getPresentationMode() {
+    static QVariantMap presentationModes {
+        { "VIRTUAL", Virtual },
+        { "NATIVE", Native }
+    };
+    return presentationModes;
+}
+
 void DesktopScriptingInterface::setHUDAlpha(float alpha) {
     qApp->getApplicationCompositor().setAlpha(alpha);
 }

@@ -19,33 +19,76 @@
 #include <QtScript/QScriptValue>
 #include <QQmlEngine>
 
+#include <glm/glm.hpp>
 #include <GLMHelpers.h>
 
 namespace InteractiveWindowEnums {
     Q_NAMESPACE
 
     enum InteractiveWindowFlags : uint8_t {
-        ForceNative = 1 << 0,
-        ForceVirtual = 1 << 1,
-        AlwaysOnTop = 1 << 2,
-        CloseButtonHides = 1 << 3
+        AlwaysOnTop = 1 << 0,
+        CloseButtonHides = 1 << 1
     };
     Q_ENUM_NS(InteractiveWindowFlags);
 
-    inline void declareQML() {
-        qmlRegisterUncreatableMetaObject(staticMetaObject, "InteractiveWindowFlags", 1, 0,
-            "InteractiveWindowFlags", "Error: enums only");
-    }
+    enum InteractiveWindowPresentationMode {
+        Virtual,
+        Native
+    };
+    Q_ENUM_NS(InteractiveWindowPresentationMode);
 }
 
 using namespace InteractiveWindowEnums;
 
+/**jsdoc
+ * @class InteractiveWindow
+ * @hideconstructor
+ *
+ * @hifi-interface
+ * @hifi-client-en
+ *
+ * @property {string} mode
+ */
 class InteractiveWindow : public QObject {
     Q_OBJECT
+
+    /**jsdoc
+     * title of the window
+     *
+     * @name InteractiveWindow#title
+     * @type string
+     * @default "InteractiveWindow"
+     */
+    Q_PROPERTY(QString title READ getTitle WRITE setTitle)
+
+    /**jsdoc
+     * window position on current desktop
+     *
+     * @name InteractiveWindow#position
+     * @type Vec2
+     */
     Q_PROPERTY(glm::vec2 position READ getPosition WRITE setPosition)
+
+    /**jsdoc
+     * window size
+     *
+     * @name InteractiveWindow#size
+     * @type Vec2
+     */
     Q_PROPERTY(glm::vec2 size READ getSize WRITE setSize)
+
+    /**jsdoc
+     * visibility of the window
+     *
+     * @name InteractiveWindow#visible
+     * @type boolean
+     * @default true
+     * @example
+     * // Toggle window visiblity;
+     * interactiveWindow.visible = !interactiveWindow.visible;
+     */
     Q_PROPERTY(bool visible READ isVisible WRITE setVisible)
-    Q_PROPERTY(QString mode READ getMode)
+    Q_PROPERTY(int presentationMode READ getPresentationMode WRITE setPresentationMode)
 
 public:
     InteractiveWindow(const QString& sourceUrl, const QVariantMap& properties);
@@ -54,6 +97,9 @@ public:
 
 private:
     // define property getters and setters as private to not expose them to the JS API
+    Q_INVOKABLE QString getTitle() const;
+    Q_INVOKABLE void setTitle(const QString& title);
+
     Q_INVOKABLE glm::vec2 getPosition() const;
     Q_INVOKABLE void setPosition(const glm::vec2& position);
 
@@ -63,7 +109,8 @@ private:
     Q_INVOKABLE void setVisible(bool visible);
     Q_INVOKABLE bool isVisible() const;
 
-    Q_INVOKABLE QString getMode() const;
+    Q_INVOKABLE void setPresentationMode(int presentationMode);
+    Q_INVOKABLE int getPresentationMode() const;
 
 public slots:
 
@@ -123,16 +170,22 @@ signals:
     void sizeChanged();
 
     /**jsdoc
-     * @function InteractiveWindow.modeChanged
+     * @function InteractiveWindow.presentationModeChanged
      * @returns {Signal}
      */
-    void modeChanged();
+    void presentationModeChanged();
 
     /**jsdoc
      * @function InteractiveWindow.titleChanged
      * @returns {Signal}
      */
     void titleChanged();
+
+    /**jsdoc
+     * @function InteractiveWindow.closed
+     * @returns {Signal}
+     */
+    void closed();
 
     /**jsdoc
      * @function InteractiveWindow.fromQml
