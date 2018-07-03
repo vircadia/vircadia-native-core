@@ -1654,10 +1654,10 @@ SelectionDisplay = (function() {
             return (origin.y - intersection.y) / Vec3.distance(origin, intersection);
         },
         onMove: function(event) {
-			if (event.x === undefined || event.y === undefined) {
-				return;
-			}
-			
+            if (event.x === undefined || event.y === undefined) {
+                return;
+            }
+            
             var wantDebug = false;
             var pickRay = generalComputePickRay(event.x, event.y);
 
@@ -1815,9 +1815,9 @@ SelectionDisplay = (function() {
                 pushCommandForSelections(duplicatedEntityIDs);
             },
             onMove: function(event) {
-				if (event.x === undefined || event.y === undefined) {
-					return;
-				}
+                if (event.x === undefined || event.y === undefined) {
+                    return;
+                }
 
                 var pickRay = generalComputePickRay(event.x, event.y);
                 
@@ -2069,10 +2069,10 @@ SelectionDisplay = (function() {
         };
 
         var onMove = function(event) 
-			if (event.x === undefined || event.y === undefined) {
-				return;
-			}
-			
+            if (event.x === undefined || event.y === undefined) {
+                return;
+            }
+            
             var proportional = (spaceMode === SPACE_WORLD) || directionEnum === STRETCH_DIRECTION.ALL;
             
             var position, rotation;
@@ -2405,10 +2405,10 @@ SelectionDisplay = (function() {
                     // EARLY EXIT
                     return;
                 }
-				
-				if (event.x === undefined || event.y === undefined) {
-					return;
-				}
+                
+                if (event.x === undefined || event.y === undefined) {
+                    return;
+                }
                 
                 var wantDebug = false;
                 if (wantDebug) {
