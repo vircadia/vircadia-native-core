@@ -261,6 +261,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         if (intent.hasExtra(DOMAIN_URL)) {
+            webSlidingDrawer.setVisibility(View.GONE);
             nativeGotoUrl(intent.getStringExtra(DOMAIN_URL));
         }
     }

@@ -84,6 +84,7 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
         webView.getSettings().setUseWideViewPort(true);
         webView.loadUrl(url);
         mToolbar.setVisibility(mToolbarVisible ? View.VISIBLE : View.GONE);
+        mToolbar.clearAnimation();
         if (mToolbarVisible) {
             mHandler.postDelayed(mHideToolbar, DELAY_HIDE_TOOLBAR_MILLIS);
         }
