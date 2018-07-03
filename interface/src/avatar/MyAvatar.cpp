@@ -414,8 +414,8 @@ void MyAvatar::reset(bool andRecenter, bool andReload, bool andHead) {
 void MyAvatar::update(float deltaTime) {
 
     // update moving average of HMD facing in xz plane.
-    const float HMD_FACING_TIMESCALE = getRotationRecenterFilterLength(); //4.0f;  // very slow average
-                                                                          //qCDebug(interfaceapp) << "rotation recenter value is " << HMD_FACING_TIMESCALE;
+    const float HMD_FACING_TIMESCALE = getRotationRecenterFilterLength(); 
+    
     float tau = deltaTime / HMD_FACING_TIMESCALE;
     _headControllerFacingMovingAverage = lerp(_headControllerFacingMovingAverage, _headControllerFacing, tau);
 
@@ -2181,6 +2181,7 @@ void MyAvatar::setRotationRecenterFilterLength(float length) {
 
 void MyAvatar::setRotationThreshold(float angleRadians) {
     _rotationThreshold = angleRadians;
+    qCDebug(interfaceapp) << "setting the rotation threshold " << _rotationThreshold;
 }
 
 void MyAvatar::updateOrientation(float deltaTime) {
@@ -3449,7 +3450,7 @@ void MyAvatar::FollowHelper::decrementTimeRemaining(float dt) {
 }
 
 bool MyAvatar::FollowHelper::shouldActivateRotation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
-    const float FOLLOW_ROTATION_THRESHOLD = cosf(PI / 6.0f); // 30 degrees
+    const float FOLLOW_ROTATION_THRESHOLD = cosf(myAvatar.getRotationThreshold());
     glm::vec2 bodyFacing = getFacingDir2D(currentBodyMatrix);
     return glm::dot(-myAvatar.getHeadControllerFacingMovingAverage(), bodyFacing) < FOLLOW_ROTATION_THRESHOLD;
 }
@@ -3533,15 +3534,15 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
             activate(Vertical);
         }
     } else {
-        if (!isActive(Rotation) && (getForceActivateRotation() || shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix))) {
+        if (!isActive(Rotation) && (getForceActivateRotation() || shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
             activate(Rotation);
             setForceActivateRotation(false);
         }
-        if (!isActive(Horizontal) && (getForceActivateHorizontal() || shouldActivateHorizontalCG(myAvatar))) {
+        if (!isActive(Horizontal) && (getForceActivateHorizontal() || shouldActivateHorizontalCG(myAvatar) || hasDriveInput)) {
             activate(Horizontal);
             setForceActivateHorizontal(false);
         }
-        if (!isActive(Vertical) && (getForceActivateVertical() || shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix))) {
+        if (!isActive(Vertical) && (getForceActivateVertical() || shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
             activate(Vertical);
             setForceActivateVertical(false);
         }
