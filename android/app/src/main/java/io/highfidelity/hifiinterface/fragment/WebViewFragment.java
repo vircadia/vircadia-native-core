@@ -7,14 +7,14 @@ import android.graphics.Bitmap;
 import android.net.http.SslError;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
@@ -33,7 +33,8 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
 
     public static final String URL = "url";
     public static final String TOOLBAR_VISIBLE = "toolbar_visible";
-    private static final long DELAY_HIDE_TOOLBAR_MILLIS = 5 * 1000;
+    private static final long DELAY_HIDE_TOOLBAR_MILLIS = 3000;
+    private static final long FADE_OUT_DURATION = 2000;
 
     private WebView myWebView;
     private GestureDetector gestureDetector;
@@ -50,7 +51,10 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
         @Override
         public void run() {
             if (mToolbar != null) {
-                mToolbar.setVisibility(View.GONE);
+                AlphaAnimation anim = new AlphaAnimation(1.0f, 0.0f);
+                anim.setDuration(FADE_OUT_DURATION);
+                anim.setFillAfter(true);
+                mToolbar.startAnimation(anim);
             }
         }
     };
@@ -98,6 +102,7 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
         mHandler.removeCallbacks(mHideToolbar);
         if (mToolbarVisible) {
             mToolbar.setVisibility(mToolbarVisible ? View.VISIBLE : View.GONE);
+            mToolbar.clearAnimation();
             mHandler.postDelayed(mHideToolbar, DELAY_HIDE_TOOLBAR_MILLIS);
         }
         return false;
