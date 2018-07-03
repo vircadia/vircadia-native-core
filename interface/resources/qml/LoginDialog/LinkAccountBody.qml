@@ -177,6 +177,8 @@ Item {
                 root.text = "";
                 root.isPassword = true;
             }
+
+            Keys.onReturnPressed: linkAccountBody.login()
         }
 
         CheckBox {

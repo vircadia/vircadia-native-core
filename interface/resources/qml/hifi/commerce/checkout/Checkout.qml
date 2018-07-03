@@ -92,9 +92,9 @@ Rectangle {
 
         onBuyResult: {
             if (result.status !== 'success') {
-                failureErrorText.text = result.message;
+                failureErrorText.text = result.data.message;
                 root.activeView = "checkoutFailure";
-                UserActivityLogger.commercePurchaseFailure(root.itemId, root.itemAuthor, root.itemPrice, !root.alreadyOwned, result.message);
+                UserActivityLogger.commercePurchaseFailure(root.itemId, root.itemAuthor, root.itemPrice, !root.alreadyOwned, result.data.message);
             } else {
                 root.certificateId = result.data.certificate_id;
                 root.itemHref = result.data.download_url;
