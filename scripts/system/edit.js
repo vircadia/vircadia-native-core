@@ -613,7 +613,7 @@ var toolBar = (function () {
                     closeExistingDialogWindow();
                     dialogWindow = Desktop.createWindow("qml/hifi/tablet/New" + entityType + "Window.qml", {
                         title: "New " + entityType + " Entity",
-                        flags: Desktop.ALWAYS_ON_TOP,
+                        flags: Desktop.ALWAYS_ON_TOP | Desktop.CLOSE_BUTTON_HIDES,
                         presentationMode: Desktop.PresentationMode.NATIVE,
                         size: { x: 500, y: 300 },
                         visible: true
