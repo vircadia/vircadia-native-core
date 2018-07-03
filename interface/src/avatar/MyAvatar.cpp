@@ -3533,7 +3533,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
             activate(Vertical);
         }
     } else {
-        if (!isActive(Rotation) && getForceActivateRotation()) {
+        if (!isActive(Rotation) && (getForceActivateRotation() || shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix))) {
             activate(Rotation);
             setForceActivateRotation(false);
         }
@@ -3541,7 +3541,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
             activate(Horizontal);
             setForceActivateHorizontal(false);
         }
-        if (!isActive(Vertical) && getForceActivateVertical()) {
+        if (!isActive(Vertical) && (getForceActivateVertical() || shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix))) {
             activate(Vertical);
             setForceActivateVertical(false);
         }

@@ -1646,7 +1646,6 @@ private:
     bool _shouldLoadScripts { false };
 
     bool _haveReceivedHeightLimitsFromDomain { false };
-
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
