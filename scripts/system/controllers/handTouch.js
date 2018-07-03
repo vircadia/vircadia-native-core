@@ -605,7 +605,6 @@
             var finger = fingerKeys[i];               
             var LOOKUP_DISTANCE_MULTIPLIER = 1.5;
             var dist = LOOKUP_DISTANCE_MULTIPLIER*data.distance;
-            console.log("distance: " + dist);
             var checkOffset = { 
                 x: data.perpendicular.x * dist, 
                 y: data.perpendicular.y * dist, 
