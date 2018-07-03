@@ -84,7 +84,8 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         connect(object, SIGNAL(interactiveWindowVisibleChanged()), this, SIGNAL(visibleChanged()), Qt::QueuedConnection);
         connect(object, SIGNAL(presentationModeChanged()), this, SIGNAL(presentationModeChanged()), Qt::QueuedConnection);
         connect(object, SIGNAL(titleChanged()), this, SIGNAL(titleChanged()), Qt::QueuedConnection);
-
+        connect(object, SIGNAL(windowClosed()), this, SIGNAL(closed()), Qt::QueuedConnection);
+        connect(object, SIGNAL(selfDestruct()), this, SLOT(close()), Qt::QueuedConnection);
 
         QUrl sourceURL{ sourceUrl };
         // If the passed URL doesn't correspond to a known scheme, assume it's a local file path
@@ -182,7 +183,6 @@ bool InteractiveWindow::isVisible() const {
         return result;
     }
 
-    // The tool window itself has special logic based on whether any tabs are enabled
     if (_qmlWindow.isNull()) {
         return false;
     }

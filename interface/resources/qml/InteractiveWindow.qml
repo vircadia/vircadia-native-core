@@ -28,6 +28,8 @@ Windows.Window {
     // Don't destroy on close... otherwise the JS/C++ will have a dangling pointer
     destroyOnCloseButton: false;
 
+    signal selfDestruct();
+
     property var flags: 0;
 
     property var source;
@@ -67,8 +69,14 @@ Windows.Window {
             x = interactiveWindowPosition.x;
             y = interactiveWindowPosition.y;
         } else if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow) {
-            nativeWindow.x = interactiveWindowPosition.x;
-            nativeWindow.y = interactiveWindowPosition.y;
+            if (interactiveWindowPosition.x === 0 && interactiveWindowPosition.y === 0) {
+                // default position for native window in center of main application window
+                nativeWindow.x = Math.floor(Window.x + (Window.innerWidth / 2) - (interactiveWindowSize.width / 2));
+                nativeWindow.y = Math.floor(Window.y + (Window.innerHeight / 2) - (interactiveWindowSize.height / 2));
+            } else {
+                nativeWindow.x = interactiveWindowPosition.x;
+                nativeWindow.y = interactiveWindowPosition.y;
+            }
         }
     }
 
@@ -83,7 +91,6 @@ Windows.Window {
     }
 
     function setupPresentationMode() {
-        console.warn(presentationMode);
         if (presentationMode === Desktop.PresentationMode.VIRTUAL) {
             if (nativeWindow) {
                 nativeWindow.setVisible(false);
@@ -104,7 +111,6 @@ Windows.Window {
     }
     
     Component.onCompleted: {
-
         x = interactiveWindowPosition.x;
         y = interactiveWindowPosition.y;
         width = interactiveWindowSize.width;
@@ -159,6 +165,11 @@ Windows.Window {
             if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow.visible) {
                 interactiveWindowSize = Qt.size(interactiveWindowSize.width, nativeWindow.height);
             }
+        });
+
+        nativeWindow.closing.connect(function(closeEvent) {
+            closeEvent.accepted = false;
+            windowClosed();
         });
 
         // finally set the initial window mode:
@@ -243,10 +254,10 @@ Windows.Window {
     onWindowClosed: {
         // set invisible on close, to make it not re-appear unintended after switching PresentationMode
         interactiveWindowVisible = false;
-    }
 
-    onWindowDestroyed: {
-        console.warn("destroyed");
+        if ((flags & Desktop.CLOSE_BUTTON_HIDES) !== Desktop.CLOSE_BUTTON_HIDES) {
+            selfDestruct();
+        }
     }
 
     Item {
