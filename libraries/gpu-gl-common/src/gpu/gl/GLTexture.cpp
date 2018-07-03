@@ -59,7 +59,11 @@ const size_t GLVariableAllocationSupport::MAX_BUFFER_SIZE = MAX_TRANSFER_SIZE;
 GLenum GLTexture::getGLTextureType(const Texture& texture) {
     switch (texture.getType()) {
     case Texture::TEX_2D:
-        return GL_TEXTURE_2D;
+        if (!texture.isArray()) {
+            return GL_TEXTURE_2D;
+        } else {
+            return GL_TEXTURE_2D_ARRAY;
+        }
         break;
 
     case Texture::TEX_CUBE:
@@ -77,6 +81,7 @@ GLenum GLTexture::getGLTextureType(const Texture& texture) {
 uint8_t GLTexture::getFaceCount(GLenum target) {
     switch (target) {
         case GL_TEXTURE_2D:
+        case GL_TEXTURE_2D_ARRAY:
             return TEXTURE_2D_NUM_FACES;
         case GL_TEXTURE_CUBE_MAP:
             return TEXTURE_CUBE_NUM_FACES;
@@ -86,17 +91,22 @@ uint8_t GLTexture::getFaceCount(GLenum target) {
     }
 }
 const std::vector<GLenum>& GLTexture::getFaceTargets(GLenum target) {
-    static std::vector<GLenum> cubeFaceTargets {
+    static const std::vector<GLenum> cubeFaceTargets {
         GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
         GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
         GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
     };
-    static std::vector<GLenum> faceTargets {
+    static const std::vector<GLenum> faceTargets {
         GL_TEXTURE_2D
+    };
+    static const std::vector<GLenum> arrayFaceTargets{ 
+        GL_TEXTURE_2D_ARRAY 
     };
     switch (target) {
     case GL_TEXTURE_2D:
         return faceTargets;
+    case GL_TEXTURE_2D_ARRAY:
+        return arrayFaceTargets;
     case GL_TEXTURE_CUBE_MAP:
         return cubeFaceTargets;
     default:

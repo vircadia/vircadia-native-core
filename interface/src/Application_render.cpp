@@ -140,7 +140,10 @@ void Application::paintGL() {
     frame->frameIndex = _renderFrameCount;
     frame->framebuffer = finalFramebuffer;
     frame->framebufferRecycler = [](const gpu::FramebufferPointer& framebuffer) {
-        DependencyManager::get<FramebufferCache>()->releaseFramebuffer(framebuffer);
+        auto frameBufferCache = DependencyManager::get<FramebufferCache>();
+        if (frameBufferCache) {
+            frameBufferCache->releaseFramebuffer(framebuffer);
+        }
     };
     // deliver final scene rendering commands to the display plugin
     {

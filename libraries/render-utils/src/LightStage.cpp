@@ -74,8 +74,6 @@ LightStage::Shadow::Cascade::Cascade() :
     _frustum{ std::make_shared<ViewFrustum>() },
     _minDistance{ 0.0f },
     _maxDistance{ 20.0f } {
-    framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::createShadowmap(MAP_SIZE));
-    map = framebuffer->getDepthStencilBuffer();
 }
 
 const glm::mat4& LightStage::Shadow::Cascade::getView() const {
@@ -127,7 +125,28 @@ LightStage::Shadow::Shadow(graphics::LightPointer light, float maxDistance, unsi
     Schema schema;
     schema.cascadeCount = cascadeCount;
     _schemaBuffer = std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema);
+
+    // Create shadow cascade texture array
+    auto depthFormat = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH);  // Depth32 texel format
+    map = gpu::TexturePointer(gpu::Texture::createRenderBufferArray(depthFormat, MAP_SIZE, MAP_SIZE, cascadeCount));
+    gpu::Sampler::Desc samplerDesc;
+    samplerDesc._borderColor = glm::vec4(1.0f);
+    samplerDesc._wrapModeU = gpu::Sampler::WRAP_BORDER;
+    samplerDesc._wrapModeV = gpu::Sampler::WRAP_BORDER;
+    samplerDesc._filter = gpu::Sampler::FILTER_MIN_MAG_LINEAR;
+    samplerDesc._comparisonFunc = gpu::LESS;
+
+    map->setSampler(gpu::Sampler(samplerDesc));
+
     _cascades.resize(cascadeCount);
+
+    for (uint cascadeIndex=0; cascadeIndex < cascadeCount; cascadeIndex++) {
+        auto& cascade = _cascades[cascadeIndex];
+        std::string name = "Shadowmap Cascade ";
+        name += '0' + cascadeIndex;
+        cascade.framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(name));
+        cascade.framebuffer->setDepthBuffer(map, depthFormat, cascadeIndex);
+    }
 
     setMaxDistance(maxDistance);
 }
