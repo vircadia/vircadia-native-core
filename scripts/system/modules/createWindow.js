@@ -92,7 +92,8 @@ module.exports = (function() {
             var windowRect = getWindowRect(this.settingsKey, defaultRect);
             this.window = Desktop.createWindow(this.qmlPath, {
                 title: this.title,
-                flags: Desktop.AlwaysOnTop | Desktop.ForceNative,
+                flags: Desktop.ALWAYS_ON_TOP,
+                presentationMode: Desktop.PresentationMode.NATIVE,
                 size: windowRect.size,
                 visible: true,
                 position: windowRect.position

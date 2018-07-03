@@ -545,6 +545,13 @@ var toolBar = (function () {
             checkEditPermissionsAndUpdate();
         });
 
+        HMD.displayModeChanged.connect(function () {
+            if (isActive) {
+                tablet.gotoHomeScreen();
+            }
+            that.setActive(false);
+        });
+
         Entities.canAdjustLocksChanged.connect(function (canAdjustLocks) {
             if (isActive && !canAdjustLocks) {
                 that.setActive(false);
@@ -606,7 +613,8 @@ var toolBar = (function () {
                     closeExistingDialogWindow();
                     dialogWindow = Desktop.createWindow("qml/hifi/tablet/New" + entityType + "Window.qml", {
                         title: "New " + entityType + " Entity",
-                        flags: Desktop.AlwaysOnTop | Desktop.ForceNative,
+                        flags: Desktop.ALWAYS_ON_TOP,
+                        presentationMode: Desktop.PresentationMode.NATIVE,
                         size: { x: 500, y: 300 },
                         visible: true
                     });
