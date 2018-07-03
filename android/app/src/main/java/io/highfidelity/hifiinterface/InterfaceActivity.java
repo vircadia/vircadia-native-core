@@ -24,8 +24,10 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Vibrator;
 import android.util.Log;
+import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.SlidingDrawer;
@@ -127,7 +129,16 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         FrameLayout mainLayout = findViewById(android.R.id.content);
         LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         webSlidingDrawer = (SlidingDrawer) inflater.inflate(R.layout.web_drawer, mainLayout, false);
-        mainLayout.addView(webSlidingDrawer);
+        QtLayout qtLayout = (QtLayout) mainLayout.getChildAt(0);
+        QtLayout.LayoutParams layoutParams = new QtLayout.LayoutParams(webSlidingDrawer.getLayoutParams());
+
+        int widthPx = Math.max(size.x, size.y);
+        int heightPx = Math.min(size.x, size.y);
+
+        layoutParams.x = (int) (widthPx - 220 * getResources().getDisplayMetrics().xdpi / 160);
+        layoutParams.y = (int) (heightPx - 182 * getResources().getDisplayMetrics().ydpi / 160);
+        layoutParams.resolveLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        qtLayout.addView(webSlidingDrawer, layoutParams);
         webSlidingDrawer.setVisibility(View.GONE);
     }
 
