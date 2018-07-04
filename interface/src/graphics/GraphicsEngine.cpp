@@ -102,6 +102,8 @@ void GraphicsEngine::shutdown() {
     // shutdown render engine
     _renderScene = nullptr;
     _renderEngine = nullptr;
+
+    _renderEventHandler->deleteLater();
 }
 
 

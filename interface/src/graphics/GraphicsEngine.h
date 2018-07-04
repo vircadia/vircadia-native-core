@@ -36,7 +36,7 @@ public:
     bool checkPendingRenderEvent();
 
 private:
-    // THread specific calls
+    // Thread specific calls
     void render_runRenderFrame(RenderArgs* renderArgs);
 
 protected:

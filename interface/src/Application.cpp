@@ -2536,7 +2536,7 @@ Application::~Application() {
     // Can't log to file passed this point, FileLogger about to be deleted
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
     
-    _renderEventHandler->deleteLater();
+//    _renderEventHandler->deleteLater();
 }
 
 void Application::initializeGL() {
@@ -4178,7 +4178,7 @@ bool Application::shouldPaint() const {
 
     // Throttle if requested
     //if (displayPlugin->isThrottled() && (_graphicsEngine._renderEventHandler->_lastTimeRendered.elapsed() < THROTTLED_SIM_FRAME_PERIOD_MS)) {
-    if (displayPlugin->isThrottled() && _graphicsEngine.shouldPaint()) {
+    if (displayPlugin->isThrottled() && !_graphicsEngine.shouldPaint()) {
         return false;
     }
 
