@@ -101,19 +101,6 @@ void ResourceCacheSharedItems::pausePendingRequests() {
 
 void ResourceCacheSharedItems::resumePendingRequests() {
     _pendingRequestsPaused = false;
-    auto resource = getHighestPendingRequest();
-    qDebug() << "[REQUESTTIMES] ResourceCacheSharedItems::resumePendingRequests resource? " << (resource?"true":"false");
-    // ResourceCache::attemptHighestPriorityRequest() code
-    if (!resource) return;
-    if (ResourceCache::getRequestsActive() >= ResourceCache::getRequestLimit()) {
-        // wait until a slot becomes available
-        appendPendingRequest(resource);
-        return;
-    }
-    // ResourceCache::attemptRequest code
-    ResourceCache::incRequestsActive();
-    appendActiveRequest(resource);
-    resource->makeRequest();
 }
 
 QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
