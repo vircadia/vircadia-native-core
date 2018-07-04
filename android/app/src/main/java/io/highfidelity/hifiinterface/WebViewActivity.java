@@ -128,4 +128,7 @@ public class WebViewActivity extends Activity implements WebViewFragment.OnWebVi
         mActionBar.setTitle(title);
     }
 
+    @Override
+    public void onExpand() { }
+
 }

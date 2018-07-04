@@ -14,7 +14,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AlphaAnimation;
-import android.view.animation.Animation;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
@@ -183,7 +182,7 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
 
             @Override
             public boolean onDoubleTap(MotionEvent motionEvent) {
-                openInFullScreen();
+                expand();
                 return false;
             }
 
@@ -203,7 +202,7 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
 
         mToolbar = rootView.findViewById(R.id.toolbar);
         mToolbar.findViewById(R.id.viewFullScreen).setOnClickListener(view -> {
-            openInFullScreen();
+            expand();
         });
         mToolbar.findViewById(R.id.close).setOnClickListener(view -> {
             if (mCloseAction != null) {
@@ -216,7 +215,10 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
         return rootView;
     }
 
-    private void openInFullScreen() {
+    private void expand() {
+        if (mListener != null) {
+            mListener.onExpand();
+        }
         Intent intent = new Intent(getActivity(), WebViewActivity.class);
         intent.putExtra(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL, intentUrlOrWebUrl());
         getActivity().startActivity(intent);
@@ -243,6 +245,7 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
         void processURL(String url);
         void onWebLoaded(String url, SafenessLevel safenessLevel);
         void onTitleReceived(String title);
+        void onExpand();
     }
 
 

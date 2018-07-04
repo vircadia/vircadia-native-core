@@ -24,10 +24,8 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Vibrator;
 import android.util.Log;
-import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.SlidingDrawer;
@@ -173,6 +171,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         super.onResume();
         nativeEnterForeground();
         surfacesWorkaround();
+        keepInterfaceRunning = false;
         //gvrApi.resumeTracking();
     }
 
@@ -337,4 +336,9 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
 
     @Override
     public void onTitleReceived(String title) { }
+
+    @Override
+    public void onExpand() {
+        keepInterfaceRunning = true;
+    }
 }
