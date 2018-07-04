@@ -50,10 +50,10 @@ public:
         _default = toJsonValue(*this).toObject().toVariantMap();
 
         _presets.unite(list.toVariantMap());
-        if (C::alwaysEnabled || C::enabled) {
+        if (C::enabled) {
             _presets.insert(DEFAULT, _default);
         }
-        if (!C::alwaysEnabled) {
+        if (false) { //!C::alwaysEnabled) {
             _presets.insert(NONE, QVariantMap{{ "enabled", false }});
         }
 
@@ -96,12 +96,11 @@ public:
     using Persistent = PersistentConfig<JobConfig>;
 
     JobConfig() = default;
-    JobConfig(bool enabled) : alwaysEnabled{ false }, enabled{ enabled } {}
+    JobConfig(bool enabled): enabled{ enabled } {}
 
     bool isEnabled() { return /*alwaysEnabled ||*/ enabled; }
     void setEnabled(bool enable) { enabled = /*alwaysEnabled ||*/ enable; emit dirtyEnabled(); }
 
-    bool alwaysEnabled{ false };
     bool enabled{ true };
 
     virtual void setPresetList(const QJsonObject& object);

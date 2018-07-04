@@ -12,10 +12,30 @@
 
 #include <gl/OffscreenGLCanvas.h>
 #include <gl/GLWidget.h>
+#include <qmutex.h>
 
 #include <render/Engine.h>
 
 #include <OctreeConstants.h>
+#include <shared/RateCounter.h>
+
+#include "FrameTimingsScriptingInterface.h"
+
+
+struct AppRenderArgs {
+    render::Args _renderArgs;
+    glm::mat4 _eyeToWorld;
+    glm::mat4 _view;
+    glm::mat4 _eyeOffsets[2];
+    glm::mat4 _eyeProjections[2];
+    glm::mat4 _headPose;
+    glm::mat4 _sensorToWorld;
+    float _sensorToWorldScale{ 1.0f };
+    bool _isStereo{ false };
+};
+
+using RenderArgsEditor = std::function <void(AppRenderArgs&)>;
+
 
 class GraphicsEngine {
 public:
@@ -35,12 +55,25 @@ public:
     bool shouldPaint() const;
     bool checkPendingRenderEvent();
 
+    size_t getRenderFrameCount() const { return _renderFrameCount; }
+    float getRenderLoopRate() const { return _renderLoopCounter.rate(); }
+
+    // Feed GRaphics Engine with new frame configuration
+    void editRenderArgs(RenderArgsEditor editor);
+
 private:
     // Thread specific calls
+    void render_performFrame();
     void render_runRenderFrame(RenderArgs* renderArgs);
 
 protected:
 
+    mutable QMutex _renderArgsMutex{ QMutex::Recursive };
+    AppRenderArgs _appRenderArgs;
+
+    RateCounter<500> _renderLoopCounter;
+
+    uint32_t _renderFrameCount{ 0 };
     render::ScenePointer _renderScene{ new render::Scene(glm::vec3(-0.5f * (float)TREE_SCALE), (float)TREE_SCALE) };
     render::EnginePointer _renderEngine{ new render::RenderEngine() };
 
@@ -50,6 +83,8 @@ protected:
     friend class RenderEventHandler;
 
     OffscreenGLCanvas* _offscreenContext{ nullptr };
+
+    FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
 
     friend class Application;
 };

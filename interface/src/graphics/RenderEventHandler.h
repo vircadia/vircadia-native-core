@@ -27,7 +27,11 @@ class RenderEventHandler : public QObject {
     using Parent = QObject;
     Q_OBJECT
 public:
-    RenderEventHandler(QOpenGLContext* context);
+
+    using RenderCall = std::function <void()>;
+    RenderCall _renderCall;
+
+    RenderEventHandler(QOpenGLContext* context, RenderCall renderCall);
 
     QElapsedTimer _lastTimeRendered;
     std::atomic<bool> _pendingRenderEvent{ true };

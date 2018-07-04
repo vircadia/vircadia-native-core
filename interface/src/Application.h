@@ -78,7 +78,6 @@
 #include <procedural/ProceduralSkybox.h>
 #include <graphics/Skybox.h>
 #include <ModelScriptingInterface.h>
-#include "FrameTimingsScriptingInterface.h"
 
 #include "Sound.h"
 
@@ -159,7 +158,7 @@ public:
 
     void updateCamera(RenderArgs& renderArgs, float deltaTime);
     bool shouldPaint() const;
-    void paintGL();
+//    void paintGL();
     void resizeGL();
 
     bool event(QEvent* event) override;
@@ -208,8 +207,8 @@ public:
 
     Overlays& getOverlays() { return _overlays; }
 
-    size_t getRenderFrameCount() const { return _renderFrameCount; }
-    float getRenderLoopRate() const { return _renderLoopCounter.rate(); }
+    size_t getRenderFrameCount() const { return _graphicsEngine.getRenderFrameCount(); }
+    float getRenderLoopRate() const { return _graphicsEngine.getRenderLoopRate(); }
     float getTargetRenderFrameRate() const; // frames/second
 
     float getFieldOfView() { return _fieldOfView.get(); }
@@ -569,13 +568,9 @@ private:
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;
 
-    uint32_t _renderFrameCount { 0 };
 
     // Frame Rate Measurement
-    RateCounter<500> _renderLoopCounter;
     RateCounter<500> _gameLoopCounter;
-
-    FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
 
     QTimer _minimizedWindowTimer;
     QElapsedTimer _timerStart;
@@ -671,24 +666,6 @@ private:
     GameWorkload _gameWorkload;
 
     GraphicsEngine _graphicsEngine;
-
-    mutable QMutex _renderArgsMutex{ QMutex::Recursive };
-    struct AppRenderArgs {
-        render::Args _renderArgs;
-        glm::mat4 _eyeToWorld;
-        glm::mat4 _view;
-        glm::mat4 _eyeOffsets[2];
-        glm::mat4 _eyeProjections[2];
-        glm::mat4 _headPose;
-        glm::mat4 _sensorToWorld;
-        float _sensorToWorldScale { 1.0f };
-        bool _isStereo{ false };
-    };
-    AppRenderArgs _appRenderArgs;
-
-
-    using RenderArgsEditor = std::function <void (AppRenderArgs&)>;
-    void editRenderArgs(RenderArgsEditor editor);
     void updateRenderArgs(float deltaTime);
 
 
