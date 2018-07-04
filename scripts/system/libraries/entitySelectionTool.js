@@ -1763,6 +1763,7 @@ SelectionDisplay = (function() {
     function addHandleTranslateTool(overlay, mode, direction) {
         var pickNormal = null;
         var lastPick = null;
+        var initialPosition = null;
         var projectionVector = null;
         var previousPickRay = null;
         addHandleTool(overlay, {
@@ -1782,6 +1783,7 @@ SelectionDisplay = (function() {
                 pickNormal = Vec3.cross(Vec3.cross(pickRay.direction, axisVector), axisVector);
 
                 lastPick = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, pickNormal);
+                initialPosition = SelectionManager.worldPosition;
     
                 SelectionManager.saveProperties();
                 that.resetPreviousHandleColor();
@@ -1816,7 +1818,7 @@ SelectionDisplay = (function() {
                     pickRay = previousPickRay;
                 }
     
-                var newIntersection = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, pickNormal);
+                var newIntersection = rayPlaneIntersection(pickRay, initialPosition, pickNormal);
                 var vector = Vec3.subtract(newIntersection, lastPick);
                 
                 if (direction === TRANSLATE_DIRECTION.X) {
