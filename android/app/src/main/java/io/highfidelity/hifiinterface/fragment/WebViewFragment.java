@@ -133,6 +133,13 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
         return false;
     }
 
+    public void close() {
+        myWebView.loadUrl("about:blank");
+        if (mCloseAction != null) {
+            mCloseAction.run();
+        }
+    }
+
     public enum SafenessLevel {
         NOT_ANALYZED_YET(""),
         NOT_SECURE(""),
@@ -205,9 +212,7 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
             expand();
         });
         mToolbar.findViewById(R.id.close).setOnClickListener(view -> {
-            if (mCloseAction != null) {
-                mCloseAction.run();
-            }
+            close();
         });
         if (mUrl != null) {
             loadUrl(myWebView, mUrl);

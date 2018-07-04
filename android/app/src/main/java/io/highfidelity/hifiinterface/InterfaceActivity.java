@@ -131,7 +131,10 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         webSlidingDrawer = (SlidingDrawer) inflater.inflate(R.layout.web_drawer, mainLayout, false);
         QtLayout qtLayout = (QtLayout) mainLayout.getChildAt(0);
         QtLayout.LayoutParams layoutParams = new QtLayout.LayoutParams(webSlidingDrawer.getLayoutParams());
-
+        webSlidingDrawer.setOnDrawerCloseListener(() -> {
+            WebViewFragment webViewFragment = (WebViewFragment) getFragmentManager().findFragmentByTag("webViewFragment");
+            webViewFragment.close();
+        });
         int widthPx = Math.max(size.x, size.y);
         int heightPx = Math.min(size.x, size.y);
 
@@ -299,7 +302,12 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
                         WebViewFragment webViewFragment = (WebViewFragment) getFragmentManager().findFragmentByTag("webViewFragment");
                         webViewFragment.loadUrl((String) args.get(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL), true);
                         webViewFragment.setToolbarVisible(true);
-                        webViewFragment.setCloseAction(() -> { webSlidingDrawer.animateClose(); webSlidingDrawer.setVisibility(View.GONE);} );
+                        webViewFragment.setCloseAction(() -> {
+                            if (webSlidingDrawer.isOpened()) {
+                                webSlidingDrawer.animateClose();
+                            }
+                            webSlidingDrawer.setVisibility(View.GONE);
+                        });
                     }
                 });
                 break;
