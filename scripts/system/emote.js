@@ -16,7 +16,8 @@
 (function() { // BEGIN LOCAL_SCOPE
 
 
-var EMOTE_ANIMATIONS = ['Cry', 'Surprised', 'Dance', 'Cheer', 'Wave', 'Fall', 'Point', 'Clap', 'Sit1', 'Sit2', 'Sit3', 'Love'];
+var EMOTE_ANIMATIONS = 
+    ['Crying', 'Surprised', 'Dancing', 'Cheering', 'Waving', 'Fall', 'Pointing', 'Clapping', 'Sit1', 'Sit2', 'Sit3', 'Love'];
 var ANIMATIONS = Array();
 
 var eventMappingName = "io.highfidelity.away"; // restoreAnimation on hand controller button events, too
@@ -36,6 +37,7 @@ var EMOTE_LABEL = "EMOTE";
 var EMOTE_APP_SORT_ORDER = 12;
 var FPS = 60;
 var MSEC_PER_SEC = 1000;
+var FINISHED = 3; // see ScriptableResource::State
 
 var onEmoteScreen = false;
 var button;
@@ -73,63 +75,67 @@ function onWebEventReceived(event) {
 
     if (event.type === "click") {
         
+        // Allow for a random sitting animation when a user selects sit
+        var randSit = Math.floor(Math.random() * 3) + 1;
+        
         var emoteName = event.data;
         
-        if (activeTimer !== false) {
-            Script.clearTimeout(activeTimer);
+        if (emoteName === "Sit"){
+            emoteName = event.data + randSit; // Sit1, Sit2, Sit3
         }
         
-        // If the activeEmote is different from the chosen emote, then play the new emote. Other wise, 
-        // This is a second click on the same emote as the activeEmote, and we will just stop it.
-        if (activeEmote !== emoteName) {
-            activeEmote = emoteName;
+        if (ANIMATIONS[emoteName].resource.state === FINISHED) {
             
-            // Allow for a random sitting animation when a user selects sit
-            var randSit = Math.floor(Math.random() * 3) + 1;
-            if (emoteName === "Sit"){
-                emoteName = event.data + randSit; // "Sit1, Sit2, Sit3"
+            if (activeTimer !== false) {
+                Script.clearTimeout(activeTimer);
             }
             
-            var frameCount = ANIMATIONS[emoteName].animation.frames.length;
-            
-            // Three types of emotes (non-looping end, non-looping return, looping)
-            if (emoteName.match(/^Sit.*$/) || emoteName === "Fall") { // non-looping end
-            
-                MyAvatar.overrideAnimation(ANIMATIONS[emoteName].url, FPS, false, 0, frameCount);
-            
-            // Non-looping return
-            } else if (emoteName === "Love" || emoteName === "Surprised" || emoteName === "Cry" || emoteName === "Point"){ 
-            
-                MyAvatar.overrideAnimation(ANIMATIONS[emoteName].url, FPS, false, 0, frameCount);
-                var timeOut = MSEC_PER_SEC * frameCount / FPS;
-                activeTimer = Script.setTimeout(function () {
-                    MyAvatar.restoreAnimation();
-                    activeTimer = false;
-                    activeEmote = false;
-                }, timeOut);
+            // If the activeEmote is different from the chosen emote, then play the new emote
+            // This is a second click on the same emote as the activeEmote, and we will just stop it
+            if (activeEmote !== emoteName) {
+                activeEmote = emoteName;
                 
-            } else { // Looping
-            
-                MyAvatar.overrideAnimation(ANIMATIONS[emoteName].url, FPS, true, 0, frameCount);
+                            
+                // Sit is the only animation currently that plays and then ends at the last frame
+                if (emoteName.match(/^Sit.*$/)) {
                 
-            }
-            
-        } else {
-            activeEmote = false;
-            MyAvatar.restoreAnimation();
-        }
+                    // If user provides input during a sit, the avatar animation state should be restored
+                    Controller.keyPressEvent.connect(restoreAnimation);
+                    Controller.enableMapping(eventMappingName);
+                    MyAvatar.overrideAnimation(ANIMATIONS[emoteName].url, FPS, false, 0, frameCount);
+                
+                } else {
+                    
+                    activeEmote = emoteName;
+                    var frameCount = ANIMATIONS[emoteName].animation.frames.length;
+                    MyAvatar.overrideAnimation(ANIMATIONS[emoteName].url, FPS, false, 0, frameCount);
 
-        
+                    var timeOut = MSEC_PER_SEC * frameCount / FPS;
+                    activeTimer = Script.setTimeout(function () {
+                        MyAvatar.restoreAnimation();
+                        activeTimer = false;
+                        activeEmote = false;
+                    }, timeOut);
+                    
+                }
+                
+            } else {
+                activeEmote = false;
+                MyAvatar.restoreAnimation();
+            }
+        }
     }
 }
 
-// If a user provides input, end the emote animation and restore the navigation animation states (idle, walk, run)
+// Restore the navigation animation states (idle, walk, run)
 function restoreAnimation() {
     MyAvatar.restoreAnimation();
+    
+    // Make sure the input is disconnected after animations are restored so it doesn't affect any emotes other than sit
+    Controller.keyPressEvent.disconnect(restoreAnimation);
+    Controller.disableMapping(eventMappingName);
 }
-
-Controller.keyPressEvent.connect(restoreAnimation);
-
+                    
 // Note peek() so as to not interfere with other mappings.
 eventMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(restoreAnimation);
 eventMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(restoreAnimation);
@@ -137,13 +143,17 @@ eventMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(restoreAnima
 eventMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(restoreAnimation);
 eventMapping.from(Controller.Standard.LB).peek().to(restoreAnimation);
 eventMapping.from(Controller.Standard.LS).peek().to(restoreAnimation);
+eventMapping.from(Controller.Standard.RY).peek().to(restoreAnimation);
+eventMapping.from(Controller.Standard.RX).peek().to(restoreAnimation);
+eventMapping.from(Controller.Standard.LY).peek().to(restoreAnimation);
+eventMapping.from(Controller.Standard.LX).peek().to(restoreAnimation);
 eventMapping.from(Controller.Standard.LeftGrip).peek().to(restoreAnimation);
 eventMapping.from(Controller.Standard.RB).peek().to(restoreAnimation);
 eventMapping.from(Controller.Standard.RS).peek().to(restoreAnimation);
 eventMapping.from(Controller.Standard.RightGrip).peek().to(restoreAnimation);
 eventMapping.from(Controller.Standard.Back).peek().to(restoreAnimation);
 eventMapping.from(Controller.Standard.Start).peek().to(restoreAnimation);
-Controller.enableMapping(eventMappingName);
+
 
 button.clicked.connect(onClicked);
 tablet.screenChanged.connect(onScreenChanged);

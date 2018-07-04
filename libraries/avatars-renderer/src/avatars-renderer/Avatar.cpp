@@ -307,7 +307,6 @@ void Avatar::updateAvatarEntities() {
             // NOTE: if this avatar entity is not attached to us, strip its entity script completely...
             auto attachedScript = properties.getScript();
             if (!isMyAvatar() && !attachedScript.isEmpty()) {
-                qCDebug(avatars_renderer) << "removing entity script from avatar attached entity:" << entityID << "old script:" << attachedScript;
                 QString noScript;
                 properties.setScript(noScript);
             }
@@ -1339,6 +1338,9 @@ void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
 }
 
 void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
+    if (!isMyAvatar()) {
+        createOrb();
+    }
     AvatarData::setSkeletonModelURL(skeletonModelURL);
     if (QThread::currentThread() == thread()) {
         _skeletonModel->setURL(_skeletonModelURL);

@@ -893,9 +893,9 @@ function loaded() {
                     } else {
                         elServerScriptStatus.innerText = "Not running";
                     }
-                } else if (data.type === "update") {
+                } else if (data.type === "update" && data.selections) {
 
-                    if (!data.selections || data.selections.length === 0) {
+                    if (data.selections.length === 0) {
                         if (lastEntityID !== null) {
                             if (editor !== null) {
                                 saveJSONUserData(true);
@@ -911,7 +911,7 @@ function loaded() {
                         elID.value = "";
                         elPropertiesList.className = '';
                         disableProperties();
-                    } else if (data.selections && data.selections.length > 1) {
+                    } else if (data.selections.length > 1) {
                         deleteJSONEditor();
                         deleteJSONMaterialEditor();
                         var selections = data.selections;

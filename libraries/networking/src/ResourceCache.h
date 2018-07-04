@@ -71,10 +71,15 @@ public:
     void removeRequest(QWeakPointer<Resource> doneRequest);
     QList<QSharedPointer<Resource>> getPendingRequests();
     uint32_t getPendingRequestsCount() const;
-    void clearPendingRequests();
+
+    void pausePendingRequests();
+    void resumePendingRequests();
+
     QList<QSharedPointer<Resource>> getLoadingRequests();
     QSharedPointer<Resource> getHighestPendingRequest();
     uint32_t getLoadingRequestsCount() const;
+
+    bool pendingRequestsPaused() { return _pendingRequestsPaused; }
 
 private:
     ResourceCacheSharedItems() = default;
@@ -82,6 +87,8 @@ private:
     mutable Mutex _mutex;
     QList<QWeakPointer<Resource>> _pendingRequests;
     QList<QWeakPointer<Resource>> _loadingRequests;
+
+    bool _pendingRequestsPaused { false };
 };
 
 /// Wrapper to expose resources to JS/QML
@@ -219,14 +226,15 @@ public:
     static int getRequestLimit() { return _requestLimit; }
 
     static int getRequestsActive() { return _requestsActive; }
-    
+
+    static void incRequestsActive() { _requestsActive++; }
+
     void setUnusedResourceCacheSize(qint64 unusedResourcesMaxSize);
     qint64 getUnusedResourceCacheSize() const { return _unusedResourcesMaxSize; }
 
     static QList<QSharedPointer<Resource>> getLoadingRequests();
 
     static int getPendingRequestCount();
-    static void clearPendingRequests();
 
     static int getLoadingRequestCount();
 
@@ -482,6 +490,7 @@ public slots:
 private:
     friend class ResourceCache;
     friend class ScriptableResource;
+    friend class ResourceCacheSharedItems;
     
     void setLRUKey(int lruKey) { _lruKey = lruKey; }
     

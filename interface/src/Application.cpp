@@ -1081,6 +1081,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->startThread();
 
+    // move the AddressManager to the NodeList thread so that domain resets due to domain changes always occur
+    // before we tell MyAvatar to go to a new location in the new domain
+    auto addressManager = DependencyManager::get<AddressManager>();
+    addressManager->moveToThread(nodeList->thread());
+
     const char** constArgv = const_cast<const char**>(argv);
     if (cmdOptionExists(argc, constArgv, "--disableWatchdog")) {
         DISABLE_WATCHDOG = true;
@@ -1230,8 +1235,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // set the account manager's root URL and trigger a login request if we don't have the access token
     accountManager->setIsAgent(true);
     accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
-
-    auto addressManager = DependencyManager::get<AddressManager>();
 
     // use our MyAvatar position and quat for address manager path
     addressManager->setPositionGetter([this]{ return getMyAvatar()->getWorldPosition(); });
@@ -2256,7 +2259,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
 
 #if defined(Q_OS_ANDROID)
-    AndroidHelper::instance().init();
     connect(&AndroidHelper::instance(), &AndroidHelper::enterBackground, this, &Application::enterBackground);
     connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
     AndroidHelper::instance().notifyLoadComplete();
@@ -2294,6 +2296,7 @@ void Application::domainConnectionRefused(const QString& reasonMessage, int reas
             QString message = "Unable to connect to the location you are visiting.\n";
             message += reasonMessage;
             OffscreenUi::asyncWarning("", message);
+            getMyAvatar()->setWorldVelocity(glm::vec3(0.0f));
             break;
         }
         default:
@@ -8302,10 +8305,8 @@ void Application::enterBackground() {
     if (getActiveDisplayPlugin()->isActive()) {
         getActiveDisplayPlugin()->deactivate();
     }
-    // Clear caches
+    DependencyManager::get<ResourceCacheSharedItems>()->pausePendingRequests();
     clearDomainOctreeDetails();
-    // Clear the pending request list to avoid extra downloads to happen
-    ResourceCache::clearPendingRequests();
 }
 
 void Application::enterForeground() {
@@ -8314,6 +8315,7 @@ void Application::enterForeground() {
     if (!getActiveDisplayPlugin() || getActiveDisplayPlugin()->isActive() || !getActiveDisplayPlugin()->activate()) {
         qWarning() << "Could not re-activate display plugin";
     }
+    DependencyManager::get<ResourceCacheSharedItems>()->resumePendingRequests();
 }
 #endif
 
