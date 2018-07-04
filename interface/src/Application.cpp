@@ -6928,7 +6928,9 @@ void Application::showAssetServerWidget(QString filePath) {
             DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", startUpload);
         } else {
             static const QUrl url("hifi/dialogs/TabletAssetServer.qml");
-            tablet->pushOntoStack(url);
+            if (!tablet->isPathLoaded(url)) {
+                tablet->pushOntoStack(url);
+            }
         }
     }
 
