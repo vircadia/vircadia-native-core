@@ -24,6 +24,11 @@
  *
  * @hifi-interface
  * @hifi-client-entity
+ * 
+ * @property {number} width
+ * @property {number} height
+ * @property {number} ALWAYS_ON_TOP - InteractiveWindow flag for always showing a window on top
+ * @property {number} CLOSE_BUTTON_HIDES - InteractiveWindow flag for hiding the window instead of closing on window close by user
  */
 class DesktopScriptingInterface : public QObject, public Dependency {
     Q_OBJECT

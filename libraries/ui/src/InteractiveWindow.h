@@ -42,7 +42,6 @@ using namespace InteractiveWindowEnums;
 
 /**jsdoc
  * @class InteractiveWindow
- * @hideconstructor
  *
  * @hifi-interface
  * @hifi-client-en
