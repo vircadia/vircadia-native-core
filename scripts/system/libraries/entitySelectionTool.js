@@ -1768,16 +1768,18 @@ SelectionDisplay = (function() {
         addHandleTool(overlay, {
             mode: mode,
             onBegin: function(event, pickRay, pickResult) {
+                var axisVector;
                 if (direction === TRANSLATE_DIRECTION.X) {
-                    pickNormal = { x: 0, y: 1, z: 1 };
+                    axisVector = { x: 1, y: 0, z: 0 };
                 } else if (direction === TRANSLATE_DIRECTION.Y) {
-                    pickNormal = { x: 1, y: 0, z: 1 };
+                    axisVector = { x: 0, y: 1, z: 0 };
                 } else if (direction === TRANSLATE_DIRECTION.Z) {
-                    pickNormal = { x: 1, y: 1, z: 0 };
+                    axisVector = { x: 0, y: 0, z: 1 };
                 }
 
                 var rotation = spaceMode === SPACE_LOCAL ? SelectionManager.localRotation : SelectionManager.worldRotation;
-                pickNormal = Vec3.multiplyQbyV(rotation, pickNormal);
+                axisVector = Vec3.multiplyQbyV(rotation, axisVector);
+                pickNormal = Vec3.cross(Vec3.cross(pickRay.direction, axisVector), axisVector);
 
                 lastPick = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, pickNormal);
     
