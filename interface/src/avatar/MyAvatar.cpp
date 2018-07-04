@@ -89,6 +89,8 @@ const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 const float MIN_SCALE_CHANGED_DELTA = 0.001f;
 
+//#define DEBUG_DRAW_HMD_MOVING_AVERAGE
+
 MyAvatar::MyAvatar(QThread* thread) :
     Avatar(thread),
     _yawSpeed(YAW_SPEED_DEFAULT),
@@ -414,7 +416,7 @@ void MyAvatar::reset(bool andRecenter, bool andReload, bool andHead) {
 void MyAvatar::update(float deltaTime) {
 
     // update moving average of HMD facing in xz plane.
-    const float HMD_FACING_TIMESCALE = getRotationRecenterFilterLength(); 
+    const float HMD_FACING_TIMESCALE = getRotationRecenterFilterLength();
     
     float tau = deltaTime / HMD_FACING_TIMESCALE;
     _headControllerFacingMovingAverage = lerp(_headControllerFacingMovingAverage, _headControllerFacing, tau);
@@ -2176,12 +2178,15 @@ void MyAvatar::setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement) 
 }
 
 void MyAvatar::setRotationRecenterFilterLength(float length) {
-    _rotationRecenterFilterLength = length;
+    if (length > 0.01f) {
+        _rotationRecenterFilterLength = length;
+    } else {
+        _rotationRecenterFilterLength = 0.01f;
+    }
 }
 
 void MyAvatar::setRotationThreshold(float angleRadians) {
     _rotationThreshold = angleRadians;
-    qCDebug(interfaceapp) << "setting the rotation threshold " << _rotationThreshold;
 }
 
 void MyAvatar::updateOrientation(float deltaTime) {
