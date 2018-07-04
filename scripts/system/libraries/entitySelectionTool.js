@@ -1830,7 +1830,8 @@ SelectionDisplay = (function() {
 
                 var dotVector = Vec3.dot(vector, projectionVector);
                 vector = Vec3.multiply(dotVector, projectionVector);
-                vector = grid.snapToGrid(vector);
+                var gridOrigin = grid.getOrigin();
+                vector = Vec3.subtract(grid.snapToGrid(Vec3.sum(vector, gridOrigin)), gridOrigin);
                 
                 var wantDebug = false;
                 if (wantDebug) {
