@@ -3198,37 +3198,26 @@ static bool isWithinThresholdHeightMode(controller::Pose head, float newMode) {
 float MyAvatar::computeStandingHeightMode(controller::Pose head) {
     const float CENTIMETERS_PER_METER = 100.0f;
     const float MODE_CORRECTION_FACTOR = 0.02f;
+    const int MAX_INT = 2147483647;
     // init mode in meters to the current mode
     float modeInMeters = getStandingHeightMode();
     if (head.isValid()) {
         float newReading = head.getTranslation().y;
-        // first add the number to the mode array
-        for (int i = 0; i < (SIZE_OF_MODE_ARRAY - 1); i++) {
-            _heightModeArray[i] = _heightModeArray[i + 1];
-        }
-        _heightModeArray[SIZE_OF_MODE_ARRAY - 1] = glm::floor(newReading * CENTIMETERS_PER_METER);
-
-        int greatestFrequency = 0;
-        int mode = 0;
-        std::map<int, int> freq;
-        for (int j = 0; j < SIZE_OF_MODE_ARRAY; j++) {
-            freq[_heightModeArray[j]] += 1;
-            if ((freq[_heightModeArray[j]] > greatestFrequency) ||
-                ((freq[_heightModeArray[j]] == SIZE_OF_MODE_ARRAY) && (_heightModeArray[j] > mode))) {
-                greatestFrequency = freq[_heightModeArray[j]];
-                mode = _heightModeArray[j];
-            }
-        }
-        modeInMeters = ((float)mode) / CENTIMETERS_PER_METER;
-        if (!(modeInMeters > getStandingHeightMode())) {
-            // if not greater check for a reset
-            if (getResetMode() && qApp->isHMDMode()) {
-                setResetMode(false);
-                float resetModeInCentimeters = glm::floor((newReading - MODE_CORRECTION_FACTOR)*CENTIMETERS_PER_METER);
-                modeInMeters = (resetModeInCentimeters / CENTIMETERS_PER_METER);
-            } else {
-                // if not greater and no reset, keep the mode as it is
-                modeInMeters = getStandingHeightMode();
+        int newReadingInCentimeters = glm::floor(newReading * CENTIMETERS_PER_METER);
+        _heightFrequencyMap[newReadingInCentimeters] += 1;
+        if (_heightFrequencyMap[newReadingInCentimeters] > _greatestFrequency) {
+            _greatestFrequency = _heightFrequencyMap[newReadingInCentimeters];
+            modeInMeters = ((float)newReadingInCentimeters) / CENTIMETERS_PER_METER;
+            // we need to deal with possible overflow error here
+            if (_greatestFrequency > (MAX_INT/2)) {
+                for (auto & heightValue : _heightFrequencyMap) {
+                    if (heightValue.second == _greatestFrequency) {
+                        heightValue.second = 100;
+                    } else {
+                        heightValue.second = 0;
+                    }
+                }
+                _greatestFrequency = 100;
             }
         }
     }

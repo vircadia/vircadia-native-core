@@ -1525,10 +1525,10 @@ private:
     glm::vec2 _headControllerFacingMovingAverage { 0.0f, 0.0f };   // facing vector in xz plane (sensor space)
     glm::quat _averageHeadRotation { 0.0f, 0.0f, 0.0f, 1.0f };
 
-    static const int SIZE_OF_MODE_ARRAY { 50 };
-    int _heightModeArray[SIZE_OF_MODE_ARRAY];
     float _standingHeightMode { 0.0f };
     bool _resetMode { true };
+    std::map<long int, long int> _heightFrequencyMap;
+    long int _greatestFrequency { 0 };
 
     // cache of the current body position and orientation of the avatar's body,
     // in sensor space.
