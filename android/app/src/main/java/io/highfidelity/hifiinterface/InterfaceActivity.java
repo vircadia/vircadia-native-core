@@ -49,6 +49,10 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
 
     public static final String DOMAIN_URL = "url";
     private static final String TAG = "Interface";
+    private static final int WEB_DRAWER_RIGHT_MARGIN = 262;
+    private static final int WEB_DRAWER_BOTTOM_MARGIN = 217;
+    private static final int NORMAL_DPI = 160;
+
     private Vibrator mVibrator;
 
     //public static native void handleHifiURL(String hifiURLString);
@@ -138,8 +142,8 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         int widthPx = Math.max(size.x, size.y);
         int heightPx = Math.min(size.x, size.y);
 
-        layoutParams.x = (int) (widthPx - 262 * getResources().getDisplayMetrics().xdpi / 160);
-        layoutParams.y = (int) (heightPx - 217 * getResources().getDisplayMetrics().ydpi / 160);
+        layoutParams.x = (int) (widthPx - WEB_DRAWER_RIGHT_MARGIN * getResources().getDisplayMetrics().xdpi / NORMAL_DPI);
+        layoutParams.y = (int) (heightPx - WEB_DRAWER_BOTTOM_MARGIN * getResources().getDisplayMetrics().ydpi / NORMAL_DPI);
         layoutParams.resolveLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         qtLayout.addView(webSlidingDrawer, layoutParams);
         webSlidingDrawer.setVisibility(View.GONE);
@@ -207,7 +211,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         if (fl.getChildCount() > 0) {
             QtLayout qtLayout = (QtLayout) fl.getChildAt(0);
             List<QtSurface> surfaces = new ArrayList<>();
-            for (int i=0; i < qtLayout.getChildCount(); i++) {
+            for (int i = 0; i < qtLayout.getChildCount(); i++) {
                 Object ch = qtLayout.getChildAt(i);
                 if (ch instanceof QtSurface) {
                     surfaces.add((QtSurface) ch);

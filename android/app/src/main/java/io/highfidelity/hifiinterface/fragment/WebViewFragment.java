@@ -309,7 +309,7 @@ public class WebViewFragment extends Fragment implements GestureDetector.OnGestu
         }
 
         private boolean isFst(String url) {
-            return url.endsWith(".fst");
+            return url.contains(".fst");
         }
 
         @Override
