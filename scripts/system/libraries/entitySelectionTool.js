@@ -183,10 +183,10 @@ SelectionManager = (function() {
 
     that.duplicateSelection = function() {
         var duplicatedEntityIDs = [];
-        var entityIDsNeedingNewParent = [];
-        var oldEntityToNewEntityID = [];
-        Object.keys(that.savedProperties).forEach(function(otherEntityID) {
-            var properties = that.savedProperties[otherEntityID];
+        var duplicatedChildrenWithOldParents = [];
+        var originalEntityToNewEntityID = [];
+        Object.keys(that.savedProperties).forEach(function(originalEntityID) {
+            var properties = that.savedProperties[originalEntityID];
             if (!properties.locked && (!properties.clientOnly || properties.owningAvatarID === MyAvatar.sessionUUID)) {
                 var newEntityID = Entities.addEntity(properties);
                 duplicatedEntityIDs.push({
@@ -194,18 +194,18 @@ SelectionManager = (function() {
                     properties: properties
                 });
                 if (properties.parentID !== Uuid.NULL) {
-                    entityIDsNeedingNewParent[newEntityID] = properties.parentID;
+                    duplicatedChildrenWithOldParents[newEntityID] = properties.parentID;
                 }
-                oldEntityToNewEntityID[otherEntityID] = newEntityID;
+                originalEntityToNewEntityID[originalEntityID] = newEntityID;
             }
         });
-        Object.keys(entityIDsNeedingNewParent).forEach(function(entityIDNeedingNewParent) {
-            var oldParentID = entityIDsNeedingNewParent[entityIDNeedingNewParent];
-            var newParentID = oldEntityToNewEntityID[oldParentID];
-            Entities.editEntity(entityIDNeedingNewParent, { parentID: newParentID });
+        Object.keys(duplicatedChildrenWithOldParents).forEach(function(childIDNeedingNewParent) {
+            var originalParentID = duplicatedChildrenWithOldParents[childIDNeedingNewParent];
+            var newParentID = originalEntityToNewEntityID[originalParentID];
+            Entities.editEntity(childIDNeedingNewParent, { parentID: newParentID });
             for (var i = 0; i < duplicatedEntityIDs.length; i++) {
                 var duplicatedEntity = duplicatedEntityIDs[i];
-                if (duplicatedEntity.entityID === entityIDNeedingNewParent) {
+                if (duplicatedEntity.entityID === childIDNeedingNewParent) {
                     duplicatedEntity.properties.parentID = newParentID;
                 }
             }
