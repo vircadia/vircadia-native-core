@@ -226,7 +226,7 @@ public:
     static int getRequestLimit() { return _requestLimit; }
 
     static int getRequestsActive() { return _requestsActive; }
-
+    
     void setUnusedResourceCacheSize(qint64 unusedResourcesMaxSize);
     qint64 getUnusedResourceCacheSize() const { return _unusedResourcesMaxSize; }
 

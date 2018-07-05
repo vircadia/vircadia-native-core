@@ -112,13 +112,11 @@ QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
 
     bool currentHighestIsFile = false;
 
-    int removedCount = 0;
     for (int i = 0; i < _pendingRequests.size();) {
         // Clear any freed resources
         auto resource = _pendingRequests.at(i).lock();
         if (!resource) {
             _pendingRequests.removeAt(i);
-            removedCount++;
             continue;
         }
 
@@ -134,7 +132,6 @@ QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
         i++;
     }
 
-    qDebug() << "[REQUESTTIMES] ::getHighestPendingRequest removedCount " << removedCount << " size(" << _pendingRequests.size() << ") " << (removedCount == 0?"":" ******************** ");
     if (highestIndex >= 0) {
         _pendingRequests.takeAt(highestIndex);
     }
@@ -368,7 +365,6 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
         _resources.insert(url, resource);
     }
     removeUnusedResource(resource);
-    qDebug() << "[REQUESTTIMES] ResourceCache::getResource " << url.toString() << " calling ensureLoading()";
     resource->ensureLoading();
 
     return resource;
@@ -702,7 +698,6 @@ void Resource::makeRequest() {
     _request->setFailOnRedirect(_shouldFailOnRedirect);
 
     qCDebug(resourceLog).noquote() << "Starting request for:" << _url.toDisplayString();
-    qDebug() << "[REQUESTTIMES] " <<  "Starting request for:" << _url.toDisplayString();
     emit loading();
 
     connect(_request, &ResourceRequest::progress, this, &Resource::onProgress);
