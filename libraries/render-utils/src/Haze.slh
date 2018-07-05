@@ -187,7 +187,7 @@ vec4 computeHazeColor(vec3 fragPositionES, vec3 fragPositionWS, vec3 eyePosition
     const float BLEND_DISTANCE = 27000.0f;
     vec4 outFragColor = potentialFragColor;
     if (distance > BLEND_DISTANCE) {
-        outFragColor.a = 1.0 - hazeParams.backgroundBlend;
+        outFragColor.a *= hazeParams.backgroundBlend;
     }
 
     return outFragColor;
