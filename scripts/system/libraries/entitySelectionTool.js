@@ -183,33 +183,33 @@ SelectionManager = (function() {
 
     that.duplicateSelection = function() {
         var duplicatedEntityIDs = [];
-		var entityIDsNeedingNewParent = [];
-		var oldEntityToNewEntityID = [];
+        var entityIDsNeedingNewParent = [];
+        var oldEntityToNewEntityID = [];
         Object.keys(that.savedProperties).forEach(function(otherEntityID) {
             var properties = that.savedProperties[otherEntityID];
             if (!properties.locked && (!properties.clientOnly || properties.owningAvatarID === MyAvatar.sessionUUID)) {
-				var newEntityID = Entities.addEntity(properties);
+                var newEntityID = Entities.addEntity(properties);
                 duplicatedEntityIDs.push({
                     entityID: newEntityID,
                     properties: properties
                 });
-				if (properties.parentID !== Uuid.NULL) {
-					entityIDsNeedingNewParent[newEntityID] = properties.parentID;
-				}
-				oldEntityToNewEntityID[otherEntityID] = newEntityID;
+                if (properties.parentID !== Uuid.NULL) {
+                    entityIDsNeedingNewParent[newEntityID] = properties.parentID;
+                }
+                oldEntityToNewEntityID[otherEntityID] = newEntityID;
             }
         });
-		Object.keys(entityIDsNeedingNewParent).forEach(function(entityIDNeedingNewParent) {
-			var oldParentID = entityIDsNeedingNewParent[entityIDNeedingNewParent];
-			var newParentID = oldEntityToNewEntityID[oldParentID];
-			Entities.editEntity(entityIDNeedingNewParent, { parentID: newParentID });
-			for (var i = 0; i < duplicatedEntityIDs.length; i++) {
-				var duplicatedEntity = duplicatedEntityIDs[i];
-				if (duplicatedEntity.entityID === entityIDNeedingNewParent) {
-					duplicatedEntity.properties.parentID = newParentID;
-				}
-			}
-		});
+        Object.keys(entityIDsNeedingNewParent).forEach(function(entityIDNeedingNewParent) {
+            var oldParentID = entityIDsNeedingNewParent[entityIDNeedingNewParent];
+            var newParentID = oldEntityToNewEntityID[oldParentID];
+            Entities.editEntity(entityIDNeedingNewParent, { parentID: newParentID });
+            for (var i = 0; i < duplicatedEntityIDs.length; i++) {
+                var duplicatedEntity = duplicatedEntityIDs[i];
+                if (duplicatedEntity.entityID === entityIDNeedingNewParent) {
+                    duplicatedEntity.properties.parentID = newParentID;
+                }
+            }
+        });
         return duplicatedEntityIDs;
     };
 
