@@ -39,6 +39,12 @@ CrashpadClient* client { nullptr };
 std::mutex annotationMutex;
 crashpad::SimpleStringDictionary* crashpadAnnotations { nullptr };
 
+#if defined(Q_OS_WIN)
+static const QString CRASHPAD_HANDLER_NAME { "crashpad_handler.exe" };
+#else
+static const QString CRASHPAD_HANDLER_NAME { "crashpad_handler" };
+#endif
+
 #ifdef Q_OS_WIN
 #include <Windows.h>
 
@@ -80,7 +86,6 @@ bool startCrashHandler(std::string appPath) {
     QDir(crashpadDbDir).mkpath(crashpadDbName); // Make sure the directory exists
     const auto crashpadDbPath = crashpadDbDir.toStdString() + "/" + crashpadDbName;
 
-    static const QString CRASHPAD_HANDLER_NAME { "crashpad_handler" };
     // Locate Crashpad handler
     const QFileInfo interfaceBinary { QString::fromStdString(appPath) };
     const QDir interfaceDir = interfaceBinary.dir();
@@ -105,7 +110,9 @@ bool startCrashHandler(std::string appPath) {
     // Enable automated uploads.
     database->GetSettings()->SetUploadsEnabled(true);
 
+#ifdef Q_OS_WIN
     AddVectoredExceptionHandler(0, vectoredExceptionHandler);
+#endif
 
     return client->StartHandler(handler, db, db, BACKTRACE_URL, annotations, arguments, true, true);
 }
