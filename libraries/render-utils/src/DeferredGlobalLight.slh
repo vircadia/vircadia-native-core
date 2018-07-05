@@ -235,15 +235,14 @@ vec3 evalGlobalLightingAlphaBlendedWithHaze(
 
     // Haze
     if ((isHazeEnabled() > 0.0) && (hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE) {
-        vec4 colorV4 = computeHazeColor(
-            vec4(color, 1.0),               // fragment original color
+        vec4 hazeColor = computeHazeColor(
             positionES,                     // fragment position in eye   coordinates
             fragPositionWS,                 // fragment position in world coordinates
             invViewMat[3].xyz,              // eye      position in world coordinates
             lightDirection                  // keylight direction vector in world coordinates
         );
 
-        color = colorV4.rgb;
+        color = mix(color.rgb, hazeColor.rgb, hazeColor.a);
     }
 
     return color;
@@ -273,15 +272,14 @@ vec3 evalGlobalLightingAlphaBlendedWithHaze(
 
     // Haze
     if ((isHazeEnabled() > 0.0) && (hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE) {
-        vec4 colorV4 = computeHazeColor(
-            vec4(color, 1.0),               // fragment original color
+        vec4 hazeColor = computeHazeColor(
             positionES,                     // fragment position in eye   coordinates
             positionWS,                     // fragment position in world coordinates
             invViewMat[3].xyz,              // eye      position in world coordinates
             lightDirection                  // keylight direction vector
         );
 
-        color = colorV4.rgb;
+        color = mix(color.rgb, hazeColor.rgb, hazeColor.a);
     }
 
     return color;

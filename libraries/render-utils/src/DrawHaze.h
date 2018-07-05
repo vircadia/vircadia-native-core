@@ -159,7 +159,7 @@ public:
 
 class DrawHaze {
 public:
-    using Inputs = render::VaryingSet5<graphics::HazePointer, gpu::FramebufferPointer, LinearDepthFramebufferPointer, DeferredFrameTransformPointer, gpu::FramebufferPointer>;
+    using Inputs = render::VaryingSet4<graphics::HazePointer, gpu::FramebufferPointer, LinearDepthFramebufferPointer, DeferredFrameTransformPointer>;
     using Config = HazeConfig;
     using JobModel = render::Job::ModelI<DrawHaze, Inputs, Config>;
 
