@@ -138,8 +138,8 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         int widthPx = Math.max(size.x, size.y);
         int heightPx = Math.min(size.x, size.y);
 
-        layoutParams.x = (int) (widthPx - 220 * getResources().getDisplayMetrics().xdpi / 160);
-        layoutParams.y = (int) (heightPx - 182 * getResources().getDisplayMetrics().ydpi / 160);
+        layoutParams.x = (int) (widthPx - 262 * getResources().getDisplayMetrics().xdpi / 160);
+        layoutParams.y = (int) (heightPx - 217 * getResources().getDisplayMetrics().ydpi / 160);
         layoutParams.resolveLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         qtLayout.addView(webSlidingDrawer, layoutParams);
         webSlidingDrawer.setVisibility(View.GONE);
