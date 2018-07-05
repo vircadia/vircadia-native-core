@@ -1,8 +1,6 @@
 include(ExternalProject)
 set(EXTERNAL_NAME crashpad)
 
-string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
-
 if (WIN32)
     ExternalProject_Add(
       ${EXTERNAL_NAME}
@@ -13,6 +11,9 @@ if (WIN32)
       INSTALL_COMMAND ""
       LOG_DOWNLOAD 1
     )
+
+    string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
+    ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
 
     set(BIN_RELEASE_PATH "${SOURCE_DIR}/out/Release_x64")
     set(BIN_EXT ".exe")
@@ -31,6 +32,9 @@ elseif (APPLE)
     LOG_DOWNLOAD 1
   )
 
+  string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
+  ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
+
   set(BIN_RELEASE_PATH "${SOURCE_DIR}/out/Release")
   set(BIN_EXT "")
   set(LIB_RELEASE_PATH "${SOURCE_DIR}/out/Release/lib")
@@ -40,7 +44,6 @@ elseif (APPLE)
 endif ()
 
 if (WIN32 OR APPLE)
-  ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
 
   set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/include CACHE PATH "List of Crashpad include directories")
 
@@ -48,9 +51,9 @@ if (WIN32 OR APPLE)
   set(${EXTERNAL_NAME_UPPER}_BASE_LIBRARY_RELEASE ${LIB_RELEASE_PATH}/${LIB_PREFIX}base.${LIB_EXT} CACHE FILEPATH "Path to Crashpad base release library")
   set(${EXTERNAL_NAME_UPPER}_UTIL_LIBRARY_RELEASE ${LIB_RELEASE_PATH}/${LIB_PREFIX}crashpad_util.${LIB_EXT} CACHE FILEPATH "Path to Crashpad util release library")
 
-  set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${LIB_RELEASE_PATH}/${LIB_PREFIX}crashpad_client.${LIB_EXT} CACHE FILEPATH "Path to Crashpad debug library")
-  set(${EXTERNAL_NAME_UPPER}_BASE_LIBRARY_DEBUG ${LIB_RELEASE_PATH}/${LIB_PREFIX}base.${LIB_EXT} CACHE FILEPATH "Path to Crashpad base debug library")
-  set(${EXTERNAL_NAME_UPPER}_UTIL_LIBRARY_DEBUG ${LIB_RELEASE_PATH}/${LIB_PREFIX}crashpad_util.${LIB_EXT} CACHE FILEPATH "Path to Crashpad util debug library")
+  set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${LIB_DEBUG_PATH}/${LIB_PREFIX}crashpad_client.${LIB_EXT} CACHE FILEPATH "Path to Crashpad debug library")
+  set(${EXTERNAL_NAME_UPPER}_BASE_LIBRARY_DEBUG ${LIB_DEBUG_PATH}/${LIB_PREFIX}base.${LIB_EXT} CACHE FILEPATH "Path to Crashpad base debug library")
+  set(${EXTERNAL_NAME_UPPER}_UTIL_LIBRARY_DEBUG ${LIB_DEBUG_PATH}/${LIB_PREFIX}crashpad_util.${LIB_EXT} CACHE FILEPATH "Path to Crashpad util debug library")
 
   set(CRASHPAD_HANDLER_EXE_PATH ${BIN_RELEASE_PATH}/crashpad_handler${BIN_EXT} CACHE FILEPATH "Path to the Crashpad handler binary")
 endif ()
