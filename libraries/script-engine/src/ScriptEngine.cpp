@@ -1199,7 +1199,8 @@ void ScriptEngine::run() {
     stopAllTimers(); // make sure all our timers are stopped if the script is ending
     emit scriptEnding();
 
-    if (entityScriptingInterface->getEntityPacketSender()->serversExist()) {
+    if (entityScriptingInterface->getEntityPacketSender() &&
+        entityScriptingInterface->getEntityPacketSender()->serversExist()) {
         // release the queue of edit entity messages.
         entityScriptingInterface->getEntityPacketSender()->releaseQueuedMessages();
 

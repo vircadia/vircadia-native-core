@@ -494,8 +494,6 @@ void Agent::executeScript() {
     Frame::clearFrameHandler(AVATAR_FRAME_TYPE);
 
     DependencyManager::destroy<RecordingScriptingInterface>();
-
-    setFinished(true);
 }
 
 QUuid Agent::getSessionUUID() const {
@@ -829,6 +827,7 @@ void Agent::aboutToFinish() {
 
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(nullptr);
+    DependencyManager::get<EntityScriptingInterface>()->setPacketSender(nullptr);
 
     DependencyManager::get<ResourceManager>()->cleanup();
 
