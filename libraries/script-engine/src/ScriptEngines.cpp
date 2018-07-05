@@ -492,8 +492,7 @@ ScriptEnginePointer ScriptEngines::loadScript(const QUrl& scriptFilename, bool i
         return scriptEngine;
     }
 
-    scriptEngine = ScriptEnginePointer(new ScriptEngine(_context, NO_SCRIPT, "about:" + scriptFilename.fileName()));
-    addScriptEngine(scriptEngine);
+    scriptEngine = scriptEngineFactory(_context, NO_SCRIPT, "about:" + scriptFilename.fileName());
     scriptEngine->setUserLoaded(isUserLoaded);
     scriptEngine->setQuitWhenFinished(quitWhenFinished);
 

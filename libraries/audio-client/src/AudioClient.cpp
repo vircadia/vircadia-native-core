@@ -269,31 +269,14 @@ AudioClient::~AudioClient() {
 }
 
 void AudioClient::customDeleter() {
-    deleteLater();
-}
-
-void AudioClient::cleanupBeforeQuit() {
-    // FIXME: this should be put in customDeleter, but there is still a reference to this when it is called,
-    //        so this must be explicitly, synchronously stopped
-    static ConditionalGuard guard;
-    if (QThread::currentThread() != thread()) {
-        // This will likely be called from the main thread, but we don't want to do blocking queued calls
-        // from the main thread, so we use a normal auto-connection invoke, and then use a conditional to wait
-        // for completion
-        // The effect is the same, yes, but we actually want to avoid the use of Qt::BlockingQueuedConnection
-        // in the code
-        QMetaObject::invokeMethod(this, "cleanupBeforeQuit");
-        guard.wait();
-        return;
-    }
-
 #if defined(Q_OS_ANDROID)
     _shouldRestartInputSetup = false;
 #endif
     stop();
     _checkDevicesTimer->stop();
     _checkPeakValuesTimer->stop();
-    guard.trigger();
+
+    deleteLater();
 }
 
 void AudioClient::handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec) {

@@ -460,14 +460,14 @@ void MyAvatar::update(float deltaTime) {
     //  Get audio loudness data from audio input device
     // Also get the AudioClient so we can update the avatar bounding box data
     // on the AudioClient side.
-    auto audio = DependencyManager::get<AudioClient>();
+    auto audio = DependencyManager::get<AudioClient>().data();
     setAudioLoudness(audio->getLastInputLoudness());
     setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
 
     glm::vec3 halfBoundingBoxDimensions(_characterController.getCapsuleRadius(), _characterController.getCapsuleHalfHeight(), _characterController.getCapsuleRadius());
     // This might not be right! Isn't the capsule local offset in avatar space? -HRS 5/26/17
     halfBoundingBoxDimensions += _characterController.getCapsuleLocalOffset();
-    QMetaObject::invokeMethod(audio.data(), "setAvatarBoundingBoxParameters",
+    QMetaObject::invokeMethod(audio, "setAvatarBoundingBoxParameters",
         Q_ARG(glm::vec3, (getWorldPosition() - halfBoundingBoxDimensions)),
         Q_ARG(glm::vec3, (halfBoundingBoxDimensions*2.0f)));
 

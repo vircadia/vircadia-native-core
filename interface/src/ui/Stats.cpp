@@ -211,7 +211,7 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE_FLOAT(myAvatarSendRate, avatarManager->getMyAvatarSendRate(), 0.1f);
 
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
-        auto audioClient = DependencyManager::get<AudioClient>();
+        auto audioClient = DependencyManager::get<AudioClient>().data();
         if (audioMixerNode || force) {
             STAT_UPDATE(audioMixerKbps, (int)roundf(
                 bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AudioMixer) +
