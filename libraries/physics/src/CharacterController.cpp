@@ -269,7 +269,8 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
         }
         btQuaternion deltaRot = desiredRot * startRot.inverse();
         float angularSpeed = deltaRot.getAngle() / _followTimeRemaining;
-        btQuaternion angularDisplacement = btQuaternion(deltaRot.getAxis(), angularSpeed * dt);
+        glm::vec3 rotationAxis = glm::normalize(glm::axis(bulletToGLM(deltaRot)));  // deltaRot.getAxis() is inaccurate
+        btQuaternion angularDisplacement = btQuaternion(glmToBullet(rotationAxis), angularSpeed * dt);
         btQuaternion endRot = angularDisplacement * startRot;
 
         // in order to accumulate displacement of avatar position, we need to take _shapeLocalOffset into account.
