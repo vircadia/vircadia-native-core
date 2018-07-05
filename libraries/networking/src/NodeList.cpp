@@ -306,7 +306,7 @@ void NodeList::sendDomainServerCheckIn() {
         qCDebug(networking) << "Waiting for ICE discovered domain-server socket. Will not send domain-server check in.";
         handleICEConnectionToDomainServer();
         // let the domain handler know we are due to send a checkin packet
-    } else if (!_domainHandler.getIP().isNull() && _domainHandler.checkInPacketTimeout()) {
+    } else if (!_domainHandler.getIP().isNull() && !_domainHandler.checkInPacketTimeout()) {
 
         PacketType domainPacketType = !_domainHandler.isConnected()
             ? PacketType::DomainConnectRequest : PacketType::DomainListRequest;

@@ -483,8 +483,8 @@ bool DomainHandler::checkInPacketTimeout() {
         // so emit our signal that says that
         qCDebug(networking) << "Limit of silent domain checkins reached";
         emit limitOfSilentDomainCheckInsReached();
-        return false;
-    } else {
         return true;
+    } else {
+        return false;
     }
 }
