@@ -144,7 +144,7 @@ void DependencyManager::destroy() {
     shared.clear();
     // Check that the dependency was actually destroyed.  If it wasn't, it was improperly captured somewhere
     if (weak.lock()) {
-        qWarning() << "DependencyManager::destroy(): Dependency was not properly destroyed!";
+        qWarning() << "DependencyManager::destroy():" << typeid(T).name() << "was not properly destroyed!";
     }
 }
 

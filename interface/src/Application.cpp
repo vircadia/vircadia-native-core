@@ -2474,6 +2474,8 @@ void Application::cleanupBeforeQuit() {
         DependencyManager::destroy<EntityTreeRenderer>();
     }
 
+    // FIXME: Something is still holding on to the ScriptEnginePointers contained in ScriptEngines, and they hold backpointers to ScriptEngines,
+    // so this doesn't shut down properly
     DependencyManager::get<ScriptEngines>()->shutdownScripting(); // stop all currently running global scripts
     DependencyManager::destroy<ScriptEngines>();
 
