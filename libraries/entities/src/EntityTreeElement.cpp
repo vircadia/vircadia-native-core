@@ -168,7 +168,7 @@ EntityItemID EntityTreeElement::findRayIntersection(const glm::vec3& origin, con
     QVariantMap localExtraInfo;
     float distanceToElementDetails = distance;
     EntityItemID entityID = findDetailedRayIntersection(origin, direction, element, distanceToElementDetails,
-            face, localSurfaceNormal, entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly,
+            localFace, localSurfaceNormal, entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly,
             localExtraInfo, precisionPicking);
     if (!entityID.isNull() && distanceToElementDetails < distance) {
         distance = distanceToElementDetails;
@@ -251,6 +251,7 @@ EntityItemID EntityTreeElement::findDetailedRayIntersection(const glm::vec3& ori
                         distance = localDistance;
                         face = localFace;
                         surfaceNormal = glm::vec3(rotation * glm::vec4(localSurfaceNormal, 0.0f));
+                        extraInfo = QVariantMap();
                         entityID = entity->getEntityItemID();
                     }
                 }
@@ -316,7 +317,7 @@ EntityItemID EntityTreeElement::findParabolaIntersection(const glm::vec3& origin
     QVariantMap localExtraInfo;
     float distanceToElementDetails = parabolicDistance;
     EntityItemID entityID = findDetailedParabolaIntersection(origin, velocity, acceleration, element, distanceToElementDetails,
-            face, localSurfaceNormal, entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly,
+            localFace, localSurfaceNormal, entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly,
             localExtraInfo, precisionPicking);
     if (!entityID.isNull() && distanceToElementDetails < parabolicDistance) {
         parabolicDistance = distanceToElementDetails;
@@ -405,6 +406,7 @@ EntityItemID EntityTreeElement::findDetailedParabolaIntersection(const glm::vec3
                         parabolicDistance = localDistance;
                         face = localFace;
                         surfaceNormal = glm::vec3(rotation * glm::vec4(localSurfaceNormal, 0.0f));
+                        extraInfo = QVariantMap();
                         entityID = entity->getEntityItemID();
                     }
                 }

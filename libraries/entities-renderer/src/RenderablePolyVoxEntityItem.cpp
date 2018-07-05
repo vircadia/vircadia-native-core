@@ -605,7 +605,6 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
     voxelBox += result3 + Vectors::HALF;
 
     float voxelDistance;
-
     bool hit = voxelBox.findRayIntersection(glm::vec3(originInVoxel), glm::vec3(directionInVoxel),
                                             voxelDistance, face, surfaceNormal);
 

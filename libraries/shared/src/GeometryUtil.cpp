@@ -711,6 +711,11 @@ bool findRayRectangleIntersection(const glm::vec3& origin, const glm::vec3& dire
     return false;
 }
 
+bool findParabolaRectangleIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+    const glm::quat& rotation, const glm::vec3& position, const glm::vec2& dimensions, float& parabolicDistance) {
+    return false;
+}
+
 void swingTwistDecomposition(const glm::quat& rotation,
         const glm::vec3& direction,
         glm::quat& swing,
