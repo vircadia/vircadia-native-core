@@ -187,8 +187,11 @@ SelectionManager = (function() {
         var duplicatedChildrenWithOldParents = [];
         var originalEntityToNewEntityID = [];
         
+        // build list of entities to duplicate by including any unselected children of selected parent entities
         Object.keys(that.savedProperties).forEach(function(originalEntityID) {
-            entitiesToDuplicate.push(originalEntityID);
+            if (entitiesToDuplicate.indexOf(originalEntityID) < 0) {
+                entitiesToDuplicate.push(originalEntityID);
+            }
             var children = Entities.getChildrenIDs(originalEntityID);
             for (var i = 0; i < children.length; i++) {
                 var childID = children[i];
@@ -198,6 +201,7 @@ SelectionManager = (function() {
             }
         });
         
+        // duplicate entities from above and store their original to new entity mappings and children needing re-parenting
         for (var i = 0; i < entitiesToDuplicate.length; i++) {
             var originalEntityID = entitiesToDuplicate[i];
             var properties = that.savedProperties[originalEntityID];
@@ -217,14 +221,17 @@ SelectionManager = (function() {
             }
         }
         
+        // re-parent duplicated children to the duplicate entities of their original parents (if they were duplicated)
         Object.keys(duplicatedChildrenWithOldParents).forEach(function(childIDNeedingNewParent) {
             var originalParentID = duplicatedChildrenWithOldParents[childIDNeedingNewParent];
             var newParentID = originalEntityToNewEntityID[originalParentID];
-            Entities.editEntity(childIDNeedingNewParent, { parentID: newParentID });
-            for (var i = 0; i < duplicatedEntityIDs.length; i++) {
-                var duplicatedEntity = duplicatedEntityIDs[i];
-                if (duplicatedEntity.entityID === childIDNeedingNewParent) {
-                    duplicatedEntity.properties.parentID = newParentID;
+            if (newParentID) {
+                Entities.editEntity(childIDNeedingNewParent, { parentID: newParentID });
+                for (var i = 0; i < duplicatedEntityIDs.length; i++) {
+                    var duplicatedEntity = duplicatedEntityIDs[i];
+                    if (duplicatedEntity.entityID === childIDNeedingNewParent) {
+                        duplicatedEntity.properties.parentID = newParentID;
+                    }
                 }
             }
         });
