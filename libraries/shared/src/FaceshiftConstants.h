@@ -16,5 +16,10 @@
 extern const char* FACESHIFT_BLENDSHAPES[];
 /// The size of FACESHIFT_BLENDSHAPES
 extern const int NUM_FACESHIFT_BLENDSHAPES;
+// Eyes and Brows indices
+extern const int EYE_BLINK_INDICES[];
+extern const int EYE_OPEN_INDICES[];
+extern const int BROWS_U_INDICES[];
+extern const int EYE_SQUINT_INDICES[];
 
 #endif // hifi_FaceshiftConstants_h
