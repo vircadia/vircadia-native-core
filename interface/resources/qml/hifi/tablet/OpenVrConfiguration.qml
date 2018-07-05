@@ -28,6 +28,7 @@ Flickable {
     onPluginNameChanged: {
         if (page !== null) {
             page.pluginName = flick.pluginName;
+            page.displayConfiguration();
         }
     }
 
