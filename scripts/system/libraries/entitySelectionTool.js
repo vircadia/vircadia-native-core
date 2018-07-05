@@ -182,11 +182,28 @@ SelectionManager = (function() {
     };
 
     that.duplicateSelection = function() {
+        var entitiesToDuplicate = [];
         var duplicatedEntityIDs = [];
         var duplicatedChildrenWithOldParents = [];
         var originalEntityToNewEntityID = [];
+        
         Object.keys(that.savedProperties).forEach(function(originalEntityID) {
+            entitiesToDuplicate.push(originalEntityID);
+            var children = Entities.getChildrenIDs(originalEntityID);
+            for (var i = 0; i < children.length; i++) {
+                var childID = children[i];
+                if (entitiesToDuplicate.indexOf(childID) < 0) {
+                    entitiesToDuplicate.push(childID);
+                }
+            }
+        });
+        
+        for (var i = 0; i < entitiesToDuplicate.length; i++) {
+            var originalEntityID = entitiesToDuplicate[i];
             var properties = that.savedProperties[originalEntityID];
+            if (properties === undefined) {
+                properties = Entities.getEntityProperties(originalEntityID);
+            }
             if (!properties.locked && (!properties.clientOnly || properties.owningAvatarID === MyAvatar.sessionUUID)) {
                 var newEntityID = Entities.addEntity(properties);
                 duplicatedEntityIDs.push({
@@ -198,7 +215,8 @@ SelectionManager = (function() {
                 }
                 originalEntityToNewEntityID[originalEntityID] = newEntityID;
             }
-        });
+        }
+        
         Object.keys(duplicatedChildrenWithOldParents).forEach(function(childIDNeedingNewParent) {
             var originalParentID = duplicatedChildrenWithOldParents[childIDNeedingNewParent];
             var newParentID = originalEntityToNewEntityID[originalParentID];
@@ -210,6 +228,7 @@ SelectionManager = (function() {
                 }
             }
         });
+        
         return duplicatedEntityIDs;
     };
 
