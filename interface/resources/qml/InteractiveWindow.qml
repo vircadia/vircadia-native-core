@@ -102,8 +102,8 @@ Windows.Window {
             shown = false;
             if (nativeWindow) {
                 contentHolder.parent = nativeWindow.contentItem;
-                nativeWindow.setVisible(interactiveWindowVisible);
                 updateInteractiveWindowPositionForMode();
+                nativeWindow.setVisible(interactiveWindowVisible);
             }
         } else if (presentationMode === modeNotSet) {
             console.error("presentationMode should be set.");
