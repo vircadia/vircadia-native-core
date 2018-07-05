@@ -578,7 +578,7 @@ var toolBar = (function () {
         });
         createButton = activeButton;
         tablet.screenChanged.connect(function (type, url) {
-            var isGoingToHomescreenOnDesktop = (!HMD.active && url === 'hifi/tablet/TabletHome.qml');
+            var isGoingToHomescreenOnDesktop = (!HMD.active && (url === 'hifi/tablet/TabletHome.qml' || url === ''));
             if (isActive && (type !== "QML" || url !== "hifi/tablet/Edit.qml") && !isGoingToHomescreenOnDesktop) {
                 that.setActive(false);
             }
@@ -611,7 +611,8 @@ var toolBar = (function () {
                     tablet.pushOntoStack("hifi/tablet/New" + entityType + "Dialog.qml");
                 } else {
                     closeExistingDialogWindow();
-                    dialogWindow = Desktop.createWindow("qml/hifi/tablet/New" + entityType + "Window.qml", {
+                    var qmlPath = Script.resourcesPath() + "qml/hifi/tablet/New" + entityType + "Window.qml";
+                    dialogWindow = Desktop.createWindow(qmlPath, {
                         title: "New " + entityType + " Entity",
                         flags: Desktop.ALWAYS_ON_TOP | Desktop.CLOSE_BUTTON_HIDES,
                         presentationMode: Desktop.PresentationMode.NATIVE,
