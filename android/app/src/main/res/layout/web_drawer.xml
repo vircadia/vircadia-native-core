@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <SlidingDrawer android:id="@+id/drawer"
-    android:layout_width="216dp"
-    android:layout_height="178dp"
+    android:layout_width="244dp"
+    android:layout_height="145dp"
     android:layout_gravity="bottom|right"
     android:layout_marginBottom="11dp"
     android:layout_marginRight="11dp"
