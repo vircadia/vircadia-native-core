@@ -198,7 +198,7 @@ vec3 evalGlobalLightingAlphaBlended(mat4 invViewMat, float shadowAttenuation, fl
     vec3 directionalSpecular;
     evalLightingDirectional(directionalDiffuse, directionalSpecular, lightDirection, lightIrradiance, surfaceWS, metallic, fresnel, albedo, shadowAttenuation);
     color += directionalDiffuse;
-    color += (ambientSpecular + directionalSpecular) / opacity;
+    color += evalSpecularWithOpacity(ambientSpecular + directionalSpecular, opacity);
 
     return color;
 }
@@ -231,7 +231,7 @@ vec3 evalGlobalLightingAlphaBlendedWithHaze(
     vec3 directionalSpecular;
     evalLightingDirectional(directionalDiffuse, directionalSpecular, lightDirection, lightIrradiance, surfaceWS, metallic, fresnel, albedo, shadowAttenuation);
     color += directionalDiffuse;
-    color += (ambientSpecular + directionalSpecular) / opacity;
+    color += evalSpecularWithOpacity(ambientSpecular + directionalSpecular, opacity);
 
     // Haze
     if ((isHazeEnabled() > 0.0) && (hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE) {
@@ -269,7 +269,7 @@ vec3 evalGlobalLightingAlphaBlendedWithHaze(
     evalLightingDirectional(directionalDiffuse, directionalSpecular, lightDirection, lightIrradiance, surface, metallic, fresnel, albedo, shadowAttenuation);
 
     color += ambientDiffuse + directionalDiffuse;
-    color += (ambientSpecular + directionalSpecular) / opacity;
+    color += evalSpecularWithOpacity(ambientSpecular + directionalSpecular, opacity);
 
     // Haze
     if ((isHazeEnabled() > 0.0) && (hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE) {
