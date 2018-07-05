@@ -9,9 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "CrashHandler.h"
-
 #if HAS_BREAKPAD
+
+#include "CrashHandler.h"
 
 #include <mutex>
 
@@ -55,7 +55,7 @@ void flushAnnotations() {
     settings.sync();
 }
 
-bool startCrashHandler() {
+bool startCrashHandler(std::string appPath) {
     annotations["version"] = BuildInfo::VERSION;
     annotations["build_number"] = BuildInfo::BUILD_NUMBER;
     annotations["build_type"] = BuildInfo::BUILD_TYPE_STRING;
