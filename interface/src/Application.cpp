@@ -1669,8 +1669,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return qApp->getMyAvatar()->getSnapTurn() ? 1 : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_ADVANCED_MOVEMENT_CONTROLS, []() -> float {
-        auto isAdvanced = qApp->getMyAvatar()->useAdvancedMovementControls();
-        return isAdvanced ? 1 : 0;
+        return qApp->getMyAvatar()->useAdvancedMovementControls() ? 1 : 0;
     });
 
     _applicationStateDevice->setInputVariant(STATE_GROUNDED, []() -> float {
