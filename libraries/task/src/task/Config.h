@@ -219,30 +219,41 @@ public:
     //    optional sub_parent_names and finally from there looking for the job_name (assuming every job in the path were found)
     //
     // getter for qml integration, prefer the templated getter
+#pragma optimize("", off)
     Q_INVOKABLE QObject* getConfig(const QString& name) { return getConfig<TConfigProxy>(name.toStdString()); }
     // getter for cpp (strictly typed), prefer this getter
     template <class T> typename T::Config* getConfig(std::string job = "") const {
         const TaskConfig* root = this;
-        QString path = (job.empty() ? QString() : QString(job.c_str())); // an empty string is not a null string
-        auto tokens = path.split('.', QString::SkipEmptyParts);
+        std::string jobPath = (job);
+        //QString path = (job.empty() ? QString() : QString(job.c_str())); // an empty string is not a null string
+        //auto tokens = path.split('.', QString::SkipEmptyParts);
+        std::list<std::string> tokens;
+        std::size_t pos = 0, found;
+        while ((found = jobPath.find_first_of('.', pos)) != std::string::npos) {
+            tokens.push_back(jobPath.substr(pos, found - pos));
+            pos = found + 1;
+        }
+        tokens.push_back(jobPath.substr(pos));
 
+        QString jobToken;
         if (tokens.empty()) {
            // return dynamic_cast<typename T::Config*>(const_cast<TaskConfig*> (root));
-            tokens.push_back(QString());
+            //tokens.push_back(std::string());
         } else {
             while (tokens.size() > 1) {
                 auto name = tokens.front();
                 tokens.pop_front();
-                root = QObject::findChild<TaskConfig*>(name);
+                root = root->findChild<TaskConfig*>((name.empty() ? QString() : QString(name.c_str())));
                 if (!root) {
                     return nullptr;
                 }
             }
+            jobToken = QString(tokens.front().c_str());
         }
 
-        return root->findChild<typename T::Config*>(tokens.front());
+        return root->findChild<typename T::Config*>(jobToken);
     }
-
+#pragma optimize("", on)
     Q_INVOKABLE bool isTask() const override { return true; }
     Q_INVOKABLE QObjectList getSubConfigs() const override {
         auto list = findChildren<JobConfig*>(QRegExp(".*"), Qt::FindDirectChildrenOnly);

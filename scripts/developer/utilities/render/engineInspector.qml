@@ -24,13 +24,13 @@ Item {
     property var mainViewTask: Render.getConfig("RenderMainView")
 
 
-    Jet.TaskTimeFrameView {
+  /*  Jet.TaskTimeFrameView {
         rootConfig: Render
         anchors.fill: render        
-    }
-  /*  Jet.TaskListView {
+    }*/
+    Jet.TaskListView {
          rootConfig: Render
         anchors.fill: render        
-    }     */  
+    }     
 
 }

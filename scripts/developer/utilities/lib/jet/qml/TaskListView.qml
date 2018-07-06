@@ -27,29 +27,29 @@ Rectangle {
 
     Component.onCompleted: {
         //var functor = Jet.job_tree_model_functor(jobsModel)
-     /*   var functor = Jet.job_tree_model_functor(jobsModel, 1, function(node) {
+        var functor = Jet.job_tree_model_functor(jobsModel, 3, function(node) {
               node["cpuT"] = 0.0
         })
         Jet.task_traverseTree(rootConfig, functor);
 
-  */
+  
 
-        var tfunctor = Jet.job_tree_model_array_functor(jobsModel.engineJobItemModel, function(node) {
+     /*   var tfunctor = Jet.job_tree_model_array_functor(jobsModel.engineJobItemModel, function(node) {
             node["init"] = (node.level < 3)
             node["fullpath"] = (node.path + "." + node.name)
             node["cpuT"] = 0.0
         })
 
         Jet.task_traverseTree(rootConfig, tfunctor);
-
+*/
       //  var currentParentStach = []
     //    currentParentStach.push(jobsModel);
         
 
-        Jet.job_traverseTreeNodeRoot(jobsModel.engineJobItemModel[0], function(node, depth, index) {
+      /*  Jet.job_traverseTreeNodeRoot(jobsModel.engineJobItemModel[0], function(node, depth, index) {
             print(node.name + depth + " - " + index)
             return true
-        })
+        })*/
     }
         
     
@@ -64,8 +64,7 @@ Rectangle {
             id: objRecursiveColumn
             clip: true
             visible: model.init
-         //   visible: (node.level < 2)
-
+   
             function switchFold() {
                 for(var i = 1; i < children.length - 1; ++i) {
                     children[i].visible = !children[i].visible

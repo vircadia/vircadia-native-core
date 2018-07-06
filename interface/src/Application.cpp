@@ -4444,7 +4444,7 @@ void Application::idle() {
     PROFILE_COUNTER_IF_CHANGED(app, "pendingProcessing", int, DependencyManager::get<StatTracker>()->getStat("PendingProcessing").toInt());
     auto renderConfig = _graphicsEngine.getRenderEngine()->getConfiguration();
     PROFILE_COUNTER_IF_CHANGED(render, "gpuTime", float, (float)_graphicsEngine.getGPUContext()->getFrameTimerGPUAverage());
-    auto opaqueRangeTimer = renderConfig->getConfig("OpaqueRangeTimer");
+/*    auto opaqueRangeTimer = renderConfig->getConfig("OpaqueRangeTimer");
     auto linearDepth = renderConfig->getConfig("LinearDepth");
     auto surfaceGeometry = renderConfig->getConfig("SurfaceGeometry");
     auto renderDeferred = renderConfig->getConfig("RenderDeferred");
@@ -4456,7 +4456,7 @@ void Application::idle() {
         { "SurfaceGeometry", surfaceGeometry ? surfaceGeometry->property("gpuRunTime") : 0 },
         { "RenderDeferred", renderDeferred ? renderDeferred->property("gpuRunTime") : 0 },
         { "ToneAndPostRangeTimer", toneAndPostRangeTimer ? toneAndPostRangeTimer->property("gpuRunTime") : 0 }
-    });
+    });*/
 
     PROFILE_RANGE(app, __FUNCTION__);
 
@@ -5759,7 +5759,7 @@ void Application::update(float deltaTime) {
         // TODO: Fix this by modeling the way the secondary camera works on how the main camera works
         // ie. Use a camera object stored in the game logic and informs the Engine on where the secondary
         // camera should be.
-        updateSecondaryCameraViewFrustum();
+    //    updateSecondaryCameraViewFrustum();
     }
 
     quint64 now = usecTimestampNow();
