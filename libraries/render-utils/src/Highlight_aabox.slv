@@ -40,7 +40,9 @@ ItemBound getItemBound(int i) {
 }
 #endif
 
-uniform vec2 outlineWidth;
+uniform parametersBuffer {
+    vec2 outlineWidth;
+};
 
 void main(void) {
     const vec3 UNIT_BOX_VERTICES[8] = vec3[8](

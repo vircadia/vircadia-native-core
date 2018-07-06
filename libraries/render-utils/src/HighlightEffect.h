@@ -127,6 +127,7 @@ protected:
     render::ShapePlumberPointer _shapePlumber;
     HighlightSharedParametersPointer _sharedParameters;
     gpu::BufferPointer _boundsBuffer;
+    gpu::StructBuffer<glm::vec2> _outlineWidth;
 
     static gpu::PipelinePointer _stencilMaskPipeline;
     static gpu::PipelinePointer _stencilMaskFillPipeline;
