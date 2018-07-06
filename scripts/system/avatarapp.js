@@ -402,7 +402,7 @@ function onBookmarkAdded(bookmarkName) {
 // Manage the connection between the button and the window.
 //
 var button;
-var buttonName = "Avatar";
+var buttonName = "AVATAR";
 var tablet = null;
 
 function startup() {
