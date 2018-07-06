@@ -89,6 +89,7 @@ StackView {
 
         property bool keyboardEnabled: false
         property bool punctuationMode: false
+        property bool keyboardRaised: false
 
         width: parent.width
         height: parent.height
@@ -210,6 +211,8 @@ StackView {
 
             QQC2.TextField {
                 id: addressLine
+
+                focus: true
                 width: addressLineContainer.width - addressLineContainer.anchors.leftMargin - addressLineContainer.anchors.rightMargin;
                 anchors {
                     left: addressLineContainer.left;
@@ -236,24 +239,20 @@ StackView {
                 color: hifi.colors.text
                 background: Item {}
 
-                QQC2.Label {
-                    T.TextField {
-                        id: control
+            }
 
-                        padding: 6 // numbers taken from Qt\5.9.2\Src\qtquickcontrols2\src\imports\controls\TextField.qml
-                        leftPadding: padding + 4
-                    }
+            QQC2.Label {
+                font: addressLine.font
 
-                    font: parent.font
+                x: addressLine.x
+                y: addressLine.y
+                leftPadding: addressLine.leftPadding
+                topPadding: addressLine.topPadding
 
-                    x: control.leftPadding
-                    y: control.topPadding
-
-                    text: parent.placeholderText2
-                    verticalAlignment: "AlignVCenter"
-                    color: 'gray'
-                    visible: parent.text === ''
-                }
+                text: addressLine.placeholderText2
+                verticalAlignment: "AlignVCenter"
+                color: 'gray'
+                visible: addressLine.text === ''
             }
 
             Rectangle {
