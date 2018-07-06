@@ -378,9 +378,6 @@ void CharacterController::setState(State desiredState, const char* reason) {
 #else
 void CharacterController::setState(State desiredState) {
 #endif
-    if (!_flyingAllowed && desiredState == State::Hover) {
-        desiredState = State::InAir;
-    }
 
     if (desiredState != _state) {
 #ifdef DEBUG_STATE_CHANGE
@@ -746,7 +743,7 @@ void CharacterController::updateState() {
             const float JUMP_SPEED = _scaleFactor * DEFAULT_AVATAR_JUMP_SPEED;
             if ((velocity.dot(_currentUp) <= (JUMP_SPEED / 2.0f)) && ((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport)) {
                 SET_STATE(State::Ground, "hit ground");
-            } else {
+            } else if (_flyingAllowed) {
                 btVector3 desiredVelocity = _targetVelocity;
                 if (desiredVelocity.length2() < MIN_TARGET_SPEED_SQUARED) {
                     desiredVelocity = btVector3(0.0f, 0.0f, 0.0f);
@@ -767,6 +764,9 @@ void CharacterController::updateState() {
             btScalar horizontalSpeed = (velocity - velocity.dot(_currentUp) * _currentUp).length();
             bool flyingFast = horizontalSpeed > (MAX_WALKING_SPEED * 0.75f);
 
+            if (!_flyingAllowed && rayHasHit) {
+                SET_STATE(State::InAir, "flying not allowed");
+            }
             if ((_floorDistance < MIN_HOVER_HEIGHT) && !jumpButtonHeld && !flyingFast) {
                 SET_STATE(State::InAir, "near ground");
             } else if (((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport) && !flyingFast) {
