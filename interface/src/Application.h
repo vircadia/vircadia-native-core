@@ -310,6 +310,8 @@ public:
     void loadAvatarScripts(const QVector<QString>& urls);
     void unloadAvatarScripts();
 
+    Q_INVOKABLE void copyToClipboard(const QString& text);
+
 #if defined(Q_OS_ANDROID)
     void enterBackground();
     void enterForeground();
@@ -367,8 +369,6 @@ public slots:
 
     void resetSensors(bool andReload = false);
     void setActiveFaceTracker() const;
-
-    Q_INVOKABLE void copyToClipboard(const QString& text);
 
 #if (PR_BUILD || DEV_BUILD)
     void sendWrongProtocolVersionsSignature(bool checked) { ::sendWrongProtocolVersionsSignature(checked); }
