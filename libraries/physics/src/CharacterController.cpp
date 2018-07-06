@@ -763,8 +763,9 @@ void CharacterController::updateState() {
         case State::Hover:
             btScalar horizontalSpeed = (velocity - velocity.dot(_currentUp) * _currentUp).length();
             bool flyingFast = horizontalSpeed > (MAX_WALKING_SPEED * 0.75f);
-
-            if ((_floorDistance < MIN_HOVER_HEIGHT) && !jumpButtonHeld && !flyingFast) {
+            if (!_flyingAllowed && rayHasHit) {
+                SET_STATE(State::InAir, "flying not allowed");
+            } else if ((_floorDistance < MIN_HOVER_HEIGHT) && !jumpButtonHeld && !flyingFast) {
                 SET_STATE(State::InAir, "near ground");
             } else if (((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport) && !flyingFast) {
                 SET_STATE(State::Ground, "touching ground");
