@@ -17,7 +17,7 @@ EntityListTool = function() {
     var CreateWindow = Script.require('../modules/createWindow.js');
 
     var TITLE_OFFSET = 60;
-    var CREATE_TOOLS_WIDTH = 495;
+    var ENTITY_LIST_WIDTH = 495;
     var MAX_DEFAULT_CREATE_TOOLS_HEIGHT = 778;
     var entityListWindow = new CreateWindow(
         Script.resourcesPath() + "qml/hifi/tablet/EditEntityList.qml",
@@ -30,7 +30,7 @@ EntityListTool = function() {
             }
             return {
                 size: {
-                    x: CREATE_TOOLS_WIDTH,
+                    x: ENTITY_LIST_WIDTH,
                     y: windowHeight
                 },
                 position: {

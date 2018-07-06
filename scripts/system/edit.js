@@ -37,7 +37,7 @@ Script.include([
 var CreateWindow = Script.require('./modules/createWindow.js');
 
 var TITLE_OFFSET = 60;
-var ENTITY_LIST_WIDTH = 470;
+var CREATE_TOOLS_WIDTH = 490;
 var MAX_DEFAULT_ENTITY_LIST_HEIGHT = 942;
 
 var createToolsWindow = new CreateWindow(
@@ -51,11 +51,11 @@ var createToolsWindow = new CreateWindow(
         }
         return {
             size: {
-                x: ENTITY_LIST_WIDTH,
+                x: CREATE_TOOLS_WIDTH,
                 y: windowHeight
             },
             position: {
-                x: Window.x + Window.innerWidth - ENTITY_LIST_WIDTH,
+                x: Window.x + Window.innerWidth - CREATE_TOOLS_WIDTH,
                 y: Window.y + TITLE_OFFSET
             }
         }
