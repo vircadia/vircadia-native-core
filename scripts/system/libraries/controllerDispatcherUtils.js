@@ -130,7 +130,9 @@ DISPATCHER_PROPERTIES = [
     "type",
     "href",
     "cloneable",
-    "cloneDynamic"
+    "cloneDynamic",
+    "localPosition",
+    "localRotation"
 ];
 
 // priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step

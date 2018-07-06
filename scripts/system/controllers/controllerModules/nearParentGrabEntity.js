@@ -173,11 +173,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                 this.lastUnequipCheckTime = now;
                 if (props.parentID === MyAvatar.SELF_ID) {
                     var sensorScaleFactor = MyAvatar.sensorToWorldScale;
-                    var handPosition = controllerData.controllerLocations[this.hand].position;
-                    var dist = distanceBetweenPointAndEntityBoundingBox(handPosition, props);
-                    var distance = Vec3.distance(props.position, handPosition);
-                    if ((dist > TEAR_AWAY_DISTANCE) ||
-                        (distance > NEAR_GRAB_RADIUS * sensorScaleFactor)) {
+                    if ((props.localPosition > TEAR_AWAY_DISTANCE * sensorScaleFactor)) {
                         this.autoUnequipCounter++;
                     } else {
                         this.autoUnequipCounter = 0;
