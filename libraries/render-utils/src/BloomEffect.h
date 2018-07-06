@@ -61,10 +61,11 @@ public:
 
 private:
 
+#include "BloomThreshold.shared.slh"
+
     gpu::FramebufferPointer _outputBuffer;
     gpu::PipelinePointer _pipeline;
-    float _threshold;
-    unsigned int _downsamplingFactor;
+    gpu::StructBuffer<Parameters> _parameters;
 };
 
 
