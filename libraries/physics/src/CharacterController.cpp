@@ -826,9 +826,6 @@ bool CharacterController::getRigidBodyLocation(glm::vec3& avatarRigidBodyPositio
 void CharacterController::setFlyingAllowed(bool value) {
     if (value != _flyingAllowed) {
         _flyingAllowed = value;
-        if (!_flyingAllowed && _state == State::Hover) {
-            SET_STATE(State::InAir, "flying not allowed");
-        }
     }
 }
 
