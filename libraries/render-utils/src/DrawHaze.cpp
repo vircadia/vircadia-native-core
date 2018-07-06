@@ -107,11 +107,11 @@ void MakeHaze::run(const render::RenderContextPointer& renderContext, graphics::
     haze = _haze;
 }
 
+// Buffer slots
 const int HazeEffect_ParamsSlot = 0;
 const int HazeEffect_TransformBufferSlot = 1;
-const int HazeEffect_LightingModelSlot = 2;
-const int HazeEffect_LinearDepthMapSlot = 3;
-const int HazeEffect_LightingMapSlot = 4;
+// Texture slots
+const int HazeEffect_LinearDepthMapSlot = 0;
 
 void DrawHaze::configure(const Config& config) {
 }
@@ -151,9 +151,9 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
                 gpu::Shader::BindingSet slotBindings;
                 slotBindings.insert(gpu::Shader::Binding(std::string("hazeBuffer"), HazeEffect_ParamsSlot));
                 slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), HazeEffect_TransformBufferSlot));
-                slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), HazeEffect_LightingModelSlot));
+                slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), render::ShapePipeline::Slot::LIGHTING_MODEL));
                 slotBindings.insert(gpu::Shader::Binding(std::string("linearDepthMap"), HazeEffect_LinearDepthMapSlot));
-                slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), HazeEffect_LightingMapSlot));
+                slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), render::ShapePipeline::Slot::KEY_LIGHT));
                 gpu::Shader::makeProgram(*program, slotBindings);
             });
         });
@@ -184,14 +184,14 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
         }
 
         batch.setUniformBuffer(HazeEffect_TransformBufferSlot, transformBuffer->getFrameTransformBuffer());
-        batch.setUniformBuffer(HazeEffect_LightingModelSlot, lightingModel->getParametersBuffer());
+        batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
 
 	    auto lightStage = args->_scene->getStage<LightStage>();
 	    if (lightStage) {
 	        graphics::LightPointer keyLight;
 	        keyLight = lightStage->getCurrentKeyLight();
 	        if (keyLight) {
-	            batch.setUniformBuffer(HazeEffect_LightingMapSlot, keyLight->getLightSchemaBuffer());
+	            batch.setUniformBuffer(render::ShapePipeline::Slot::KEY_LIGHT, keyLight->getLightSchemaBuffer());
 	        }
 	    }
 
