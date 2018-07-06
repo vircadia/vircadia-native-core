@@ -157,6 +157,14 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
             'currentAvatarSettings' : currentAvatarSettings
         };
 
+        for(var bookmarkName in message.data.bookmarks) {
+            var bookmark = message.data.bookmarks[bookmarkName];
+
+            bookmark.avatarEntites.forEach(function(avatarEntity) {
+                avatarEntity.properties.localRotationAngles = Quat.safeEulerAngles(avatarEntity.properties.localRotation)
+            })
+        }
+
         sendToQml(message)
         break;
     case 'selectAvatar':
@@ -172,7 +180,14 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         if(message.properties.localRotationAngles) {
             message.properties.localRotation = Quat.fromVec3Degrees(message.properties.localRotationAngles)
         }
+
         Entities.editEntity(message.entityID, message.properties);
+        message.properties = Entities.getEntityProperties(message.entityID, Object.keys(message.properties));
+
+        if(message.properties.localRotation) {
+            message.properties.localRotationAngles = Quat.safeEulerAngles(message.properties.localRotation);
+        }
+
         sendToQml({'method' : 'wearableUpdated', 'entityID' : message.entityID, wearableIndex : message.wearableIndex, properties : message.properties, updateUI : false})
         break;
     case 'adjustWearablesOpened':
@@ -395,7 +410,12 @@ function onBookmarkDeleted(bookmarkName) {
 }
 
 function onBookmarkAdded(bookmarkName) {
-    sendToQml({ 'method': 'bookmarkAdded', 'bookmarkName': bookmarkName, 'bookmark': AvatarBookmarks.getBookmark(bookmarkName) });
+    var bookmark = AvatarBookmarks.getBookmark(bookmarkName);
+    bookmark.avatarEntites.forEach(function(avatarEntity) {
+        avatarEntity.properties.localRotationAngles = Quat.safeEulerAngles(avatarEntity.properties.localRotation)
+    })
+
+    sendToQml({ 'method': 'bookmarkAdded', 'bookmarkName': bookmarkName, 'bookmark': bookmark });
 }
 
 //

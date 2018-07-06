@@ -163,9 +163,8 @@ ListModel {
                                        {'propertyName' : 'marketplaceID'},
                                        {'propertyName' : 'itemName'},
                                        {'propertyName' : 'script'},
-                                       {'propertyName' : 'rotation', 'comparer' : compareNumericObjects},
                                        {'propertyName' : 'localPosition', 'comparer' : compareNumericObjects},
-                                       {'propertyName' : 'localRotation', 'comparer' : compareNumericObjects},
+                                       {'propertyName' : 'localRotationAngles', 'comparer' : compareNumericObjects},
                                        {'propertyName' : 'dimensions', 'comparer' : compareNumericObjects}], 'properties')
     }
 
