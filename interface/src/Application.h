@@ -368,8 +368,7 @@ public slots:
     void resetSensors(bool andReload = false);
     void setActiveFaceTracker() const;
 
-    void copyAddress();
-    void copyPath();
+    Q_INVOKABLE void copyToClipboard(const QString& text);
 
 #if (PR_BUILD || DEV_BUILD)
     void sendWrongProtocolVersionsSignature(bool checked) { ::sendWrongProtocolVersionsSignature(checked); }

@@ -8306,23 +8306,14 @@ void Application::saveNextPhysicsStats(QString filename) {
     _physicsEngine->saveNextPhysicsStats(filename);
 }
 
-void Application::copyAddress() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "copyAddress");
+void Application::copyToClipboard(const QString& text) {
+    if (QThread::currentThread() != qApp->thread()) {
+        QMetaObject::invokeMethod(this, "copyToClipboard");
         return;
     }
 
     // assume that the address is being copied because the user wants a shareable address
-    QApplication::clipboard()->setText(QString("copyAddress worked!"));
-}
-
-void Application::copyPath() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "copyPath");
-        return;
-    }
-
-    QApplication::clipboard()->setText(QString("copyPath worked!"));
+    QApplication::clipboard()->setText(text);
 }
 
 #if defined(Q_OS_ANDROID)

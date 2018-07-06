@@ -268,12 +268,13 @@ Menu::Menu() {
     locationBookmarks->setupMenus(this, navigateMenu);
 
     // Navigate > Copy Address
+    auto addressManager = DependencyManager::get<AddressManager>();
     addActionToQMenuAndActionHash(navigateMenu, MenuOption::CopyAddress, 0,
-        qApp, SLOT(copyAddress()));
+        addressManager.data(), SLOT(copyAddress()));
 
     // Navigate > Copy Path
     addActionToQMenuAndActionHash(navigateMenu, MenuOption::CopyPath, 0,
-        qApp, SLOT(copyPath()));
+        addressManager.data(), SLOT(copyPath()));
 
 
     // Settings menu ----------------------------------
