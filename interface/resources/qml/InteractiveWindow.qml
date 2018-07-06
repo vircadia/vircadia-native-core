@@ -90,18 +90,26 @@ Windows.Window {
         }
     }
 
+    function updateContentParent() {
+        if (presentationMode === Desktop.PresentationMode.VIRTUAL) {
+            contentHolder.parent = root;
+        } else if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow) {
+            contentHolder.parent = nativeWindow.contentItem;
+        }
+    }
+
     function setupPresentationMode() {
         if (presentationMode === Desktop.PresentationMode.VIRTUAL) {
             if (nativeWindow) {
                 nativeWindow.setVisible(false);
             }
-            contentHolder.parent = root;
+            updateContentParent();
             updateInteractiveWindowPositionForMode();
             shown = interactiveWindowVisible;
         } else if (presentationMode === Desktop.PresentationMode.NATIVE) {
             shown = false;
             if (nativeWindow) {
-                contentHolder.parent = nativeWindow.contentItem;
+                updateContentParent();
                 updateInteractiveWindowPositionForMode();
                 nativeWindow.setVisible(interactiveWindowVisible);
             }
@@ -111,6 +119,14 @@ Windows.Window {
     }
     
     Component.onCompleted: {
+        // Fix for parent loss on OSX:
+        parent.heightChanged.connect(function() {
+            updateContentParent();
+        });
+        parent.widthChanged.connect(function() {
+            updateContentParent();
+        });
+
         x = interactiveWindowPosition.x;
         y = interactiveWindowPosition.y;
         width = interactiveWindowSize.width;
@@ -211,7 +227,11 @@ Windows.Window {
         if (presentationMode === Desktop.PresentationMode.VIRTUAL) {
             shown = interactiveWindowVisible;
         } else if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow) {
-            nativeWindow.setVisible(interactiveWindowVisible);
+            if (!nativeWindow.visible && interactiveWindowVisible) {
+                nativeWindow.showNormal();
+            } else {
+                nativeWindow.setVisible(interactiveWindowVisible);
+            }
         }
     }
 
