@@ -26,6 +26,7 @@
 #include <BuildInfo.h>
 #include <FingerprintUtils.h>
 #include <SettingHelpers.h>
+#include <UUID.h>
 
 google_breakpad::ExceptionHandler* gBreakpadHandler;
 
@@ -62,7 +63,7 @@ bool startCrashHandler(std::string appPath) {
     annotations["build_type"] = BuildInfo::BUILD_TYPE_STRING;
 
     auto machineFingerPrint = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
-    annotations["machine_fingerprint"] = machineFingerPrint.toStdString();
+    annotations["machine_fingerprint"] = machineFingerPrint;
 
     flushAnnotations();
 
