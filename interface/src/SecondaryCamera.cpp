@@ -171,7 +171,7 @@ void SecondaryCameraJobConfig::setOrientation(glm::quat orient) {
 }
 
 void SecondaryCameraJobConfig::enableSecondaryCameraRenderConfigs(bool enabled) {
-    qApp->getRenderEngine()->getConfiguration()->getConfig<SecondaryCameraRenderTask>()->setEnabled(enabled);
+    qApp->getRenderEngine()->getConfiguration()->getConfig<SecondaryCameraRenderTask>("SecondaryCameraJob")->setEnabled(enabled);
     setEnabled(enabled);
 }
 

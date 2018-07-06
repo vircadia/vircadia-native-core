@@ -90,19 +90,22 @@
 
     function fromQml(message) {
         switch (message.method) {
-        case "openEngineView":
-            openEngineTaskView();
+        case "openEngineInspector":
+            openEngineInspector();
+            break;  
+        case "openEngineProfiler":
+            openEngineProfiler();
             break;
         }            
     }
 
 
     var engineInspectorView = null 
-    function openEngineTaskView() {
+    function openEngineInspector() {
         if (engineInspectorView == null) {
             var qml = Script.resolvePath('engineInspector.qml');
             var window = new OverlayWindow({
-                title: 'Render Engine',
+                title: 'Render Engine Inspector',
                 source: qml,
                 width: 300, 
                 height: 400
@@ -115,7 +118,23 @@
         }
     }
 
-
+    var engineProfilerView = null 
+    function openEngineProfiler() {
+        if (engineProfilerView == null) {
+            var qml = Script.resolvePath('engineProfiler.qml');
+            var window = new OverlayWindow({
+                title: 'Render Engine Profiler',
+                source: qml,
+                width: 300, 
+                height: 400
+            });
+            window.setPosition(200, 50);
+            engineProfilerView = window
+            window.closed.connect(function() { engineProfilerView = null; });
+        } else {
+            engineProfilerView.setPosition(200, 50);          
+        }
+    }
     
     Script.scriptEnding.connect(function () {
         if (onLuciScreen) {
@@ -127,6 +146,9 @@
 
         if (engineInspectorView !== null) {
             engineInspectorView.close()
+        }
+        if (engineProfilerView !== null) {
+            engineProfilerView.close()
         }
     });
 }()); 

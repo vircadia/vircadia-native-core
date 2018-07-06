@@ -1,5 +1,5 @@
 //
-//  EngineInspector.qml
+//  EngineProfiler.qml
 //
 //  Created by Sam Gateau on 06/07/2018
 //  Copyright 2016 High Fidelity, Inc.
@@ -21,10 +21,11 @@ Item {
     id: root;   
     anchors.fill: parent
 
-    property var rootConfig: Render.getConfig("RenderMainView")
+    property var rootConfig: Render.getConfig("")
 
-    Jet.TaskListView {
+
+    Jet.TaskTimeFrameView {
         rootConfig: root.rootConfig
         anchors.fill: root        
-    }  
+    }
 }

@@ -19,7 +19,7 @@ import "../jet.js" as Jet
 
 Rectangle {
     HifiConstants { id: hifi;}
-    color: hifi.colors.baseGray;
+  //  color: hifi.colors.baseGray;
     id: root;
     
     property var rootConfig : Workload

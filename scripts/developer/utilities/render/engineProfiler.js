@@ -1,20 +1,8 @@
-    /*function openEngineTaskView() {
-    // Set up the qml ui
-        var qml = Script.resolvePath('engineInspector.qml');
-        var window = new OverlayWindow({
-            title: 'Render Engine',
-            source: qml,
-            width: 500, 
-            height: 100
-        });
-        window.setPosition(200, 50);
-        window.closed.connect(function() { Script.stop(); });
-    }
-    openEngineTaskView();*/
+
 
     (function() {
-        var TABLET_BUTTON_NAME = "Render Engine";
-        var QMLAPP_URL = Script.resolvePath("./engineInspector.qml");
+        var TABLET_BUTTON_NAME = "Render Engine Profiler";
+        var QMLAPP_URL = Script.resolvePath("./engineProfiler.qml");
         var ICON_URL = Script.resolvePath("../../../system/assets/images/lod-i.svg");
         var ACTIVE_ICON_URL = Script.resolvePath("../../../system/assets/images/lod-a.svg");
 
@@ -47,7 +35,7 @@
         function createWindow() {
             var qml = Script.resolvePath(QMLAPP_URL);
             window = new OverlayWindow({
-                title: 'Render Engine Inspector',
+                title: 'Render Engine Profiler',
                 source: qml,
                 width: 500, 
                 height: 100

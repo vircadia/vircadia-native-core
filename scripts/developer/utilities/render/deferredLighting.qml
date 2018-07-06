@@ -277,11 +277,20 @@ Rectangle {
             }
         }
         Separator {}
-        HifiControls.Button {
-            text: "Engine"
-           // activeFocusOnPress: false
-            onClicked: {
-               sendToScript({method: "openEngineView"}); 
+        Row {
+            HifiControls.Button {
+                text: "Inspector"
+            // activeFocusOnPress: false
+                onClicked: {
+                sendToScript({method: "openEngineInspector"}); 
+                }
+            }
+            HifiControls.Button {
+                text: "EnProfilergine"
+            // activeFocusOnPress: false
+                onClicked: {
+                sendToScript({method: "openEngineProfiler"}); 
+                }
             }
         }
     }
