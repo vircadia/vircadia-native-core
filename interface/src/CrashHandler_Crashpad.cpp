@@ -22,11 +22,16 @@
 #include <QDir>
 #include <QStandardPaths>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wc++14-extensions"
+
 #include <client/crashpad_client.h>
 #include <client/crash_report_database.h>
 #include <client/settings.h>
 #include <client/annotation_list.h>
 #include <client/crashpad_info.h>
+
+#pragma clang diagnostic pop
 
 #include <BuildInfo.h>
 
