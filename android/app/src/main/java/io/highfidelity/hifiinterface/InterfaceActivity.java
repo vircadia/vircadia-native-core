@@ -49,10 +49,8 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
 
     public static final String DOMAIN_URL = "url";
     private static final String TAG = "Interface";
-    private static final int WEB_DRAWER_RIGHT_MARGIN_DP = 13;
-    private static final int WEB_DRAWER_BOTTOM_MARGIN_DP = 13;
-    private static final int WEB_DRAWER_WIDTH_DP = 244;
-    private static final int WEB_DRAWER_HEIGHT_DP = 145;
+    private static final int WEB_DRAWER_RIGHT_MARGIN = 262;
+    private static final int WEB_DRAWER_BOTTOM_MARGIN = 150;
     private static final int NORMAL_DPI = 160;
 
     private Vibrator mVibrator;
@@ -144,8 +142,9 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         int widthPx = Math.max(size.x, size.y);
         int heightPx = Math.min(size.x, size.y);
 
-        layoutParams.x = (int) (widthPx - (WEB_DRAWER_RIGHT_MARGIN_DP + WEB_DRAWER_WIDTH_DP) *  getResources().getDisplayMetrics().xdpi / NORMAL_DPI);
-        layoutParams.y = (int) (heightPx - (WEB_DRAWER_BOTTOM_MARGIN_DP + WEB_DRAWER_HEIGHT_DP) * getResources().getDisplayMetrics().ydpi / NORMAL_DPI);
+        layoutParams.x = (int) (widthPx - WEB_DRAWER_RIGHT_MARGIN * getResources().getDisplayMetrics().xdpi / NORMAL_DPI);
+        layoutParams.y = (int) (heightPx - WEB_DRAWER_BOTTOM_MARGIN * getResources().getDisplayMetrics().ydpi / NORMAL_DPI);
+
         layoutParams.resolveLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         qtLayout.addView(webSlidingDrawer, layoutParams);
         webSlidingDrawer.setVisibility(View.GONE);
