@@ -120,12 +120,8 @@ Windows.Window {
     
     Component.onCompleted: {
         // Fix for parent loss on OSX:
-        parent.heightChanged.connect(function() {
-            updateContentParent();
-        });
-        parent.widthChanged.connect(function() {
-            updateContentParent();
-        });
+        parent.heightChanged.connect(updateContentParent);
+        parent.widthChanged.connect(updateContentParent);
 
         x = interactiveWindowPosition.x;
         y = interactiveWindowPosition.y;
@@ -192,6 +188,11 @@ Windows.Window {
         setupPresentationMode();
 
         initialized = true;
+    }
+
+    Component.onDestruction: {
+        parent.heightChanged.disconnect(updateContentParent);
+        parent.widthChanged.disconnect(updateContentParent);
     }
 
     // Handle message traffic from the script that launched us to the loaded QML
