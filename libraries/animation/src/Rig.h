@@ -75,6 +75,7 @@ public:
     };
 
     struct ControllerParameters {
+        glm::mat4 rigToSensorMatrix;
         AnimPose primaryControllerPoses[NumPrimaryControllerTypes];  // rig space
         uint8_t primaryControllerFlags[NumPrimaryControllerTypes];
         AnimPose secondaryControllerPoses[NumSecondaryControllerTypes];  // rig space
@@ -231,8 +232,10 @@ protected:
                      bool leftArmEnabled, bool rightArmEnabled, float dt,
                      const AnimPose& leftHandPose, const AnimPose& rightHandPose,
                      const FBXJointShapeInfo& hipsShapeInfo, const FBXJointShapeInfo& spineShapeInfo,
-                     const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo);
-    void updateFeet(bool leftFootEnabled, bool rightFootEnabled, const AnimPose& leftFootPose, const AnimPose& rightFootPose);
+                     const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo,
+                     const glm::mat4& rigToSensorMatrix, const glm::mat4& sensorToRigMatrix);
+    void updateFeet(bool leftFootEnabled, bool rightFootEnabled, const AnimPose& leftFootPose, const AnimPose& rightFootPose,
+                    const glm::mat4& rigToSensorMatrix, const glm::mat4& sensorToRigMatrix);
 
     void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::vec3& lookAt, const glm::vec3& saccade);
     void calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const;
@@ -359,16 +362,16 @@ protected:
     int _nextStateHandlerId { 0 };
     QMutex _stateMutex;
 
-    glm::vec3 _prevRightFootPoleVector { Vectors::UNIT_Z };
+    glm::vec3 _prevRightFootPoleVector { Vectors::UNIT_Z }; // sensor space
     bool _prevRightFootPoleVectorValid { false };
 
-    glm::vec3 _prevLeftFootPoleVector { Vectors::UNIT_Z };
+    glm::vec3 _prevLeftFootPoleVector { Vectors::UNIT_Z }; // sensor space
     bool _prevLeftFootPoleVectorValid { false };
 
-    glm::vec3 _prevRightHandPoleVector { -Vectors::UNIT_Z };
+    glm::vec3 _prevRightHandPoleVector { -Vectors::UNIT_Z }; // sensor space
     bool _prevRightHandPoleVectorValid { false };
 
-    glm::vec3 _prevLeftHandPoleVector { -Vectors::UNIT_Z };
+    glm::vec3 _prevLeftHandPoleVector { -Vectors::UNIT_Z }; // sensor space
     bool _prevLeftHandPoleVectorValid { false };
 
     int _rigId;

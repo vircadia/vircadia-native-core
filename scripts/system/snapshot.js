@@ -310,7 +310,7 @@ function printToPolaroid(image_url) {
         "gravity": { "x": 0, "y": -2.5, "z": 0 },
         
         "velocity": { "x": 0, "y": 1.95, "z": 0 },
-        "angularVelocity": { "x": -1.0, "y": 0, "z": -1.3 },
+        "angularVelocity": Vec3.multiplyQbyV(MyAvatar.orientation, { "x": -1.0, "y": 0, "z": -1.3 }),
 
         "dynamic": true, 
         "collisionsWillMove": true,

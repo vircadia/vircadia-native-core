@@ -2723,7 +2723,7 @@ void Application::initializeDisplayPlugins() {
     setDisplayPlugin(defaultDisplayPlugin);
 
     // Now set the desired plugin if it's not the same as the default plugin
-    if (!targetDisplayPlugin && (targetDisplayPlugin != defaultDisplayPlugin)) {
+    if (targetDisplayPlugin && (targetDisplayPlugin != defaultDisplayPlugin)) {
         setDisplayPlugin(targetDisplayPlugin);
     }
 
@@ -6998,7 +6998,9 @@ void Application::showAssetServerWidget(QString filePath) {
             DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", startUpload);
         } else {
             static const QUrl url("hifi/dialogs/TabletAssetServer.qml");
-            tablet->pushOntoStack(url);
+            if (!tablet->isPathLoaded(url)) {
+                tablet->pushOntoStack(url);
+            }
         }
     }
 
