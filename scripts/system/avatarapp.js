@@ -422,7 +422,6 @@ startup();
 var isWired = false;
 function off() {
     if (isWired) { // It is not ok to disconnect these twice, hence guard.
-        tablet.tabletShownChanged.disconnect(tabletVisibilityChanged);
         isWired = false;
     }
 
@@ -460,12 +459,6 @@ function on() {
     MyAvatar.targetScaleChanged.connect(onTargetScaleChanged);
 }
 
-function tabletVisibilityChanged() {
-    if (!tablet.tabletShown) {
-        tablet.gotoHomeScreen();
-    }
-}
-
 function onTabletButtonClicked() {
     if (onAvatarAppScreen) {
         // for toolbar-mode: go back to home screen, this will close the window.
@@ -473,7 +466,6 @@ function onTabletButtonClicked() {
     } else {
         ContextOverlay.enabled = false;
         tablet.loadQMLSource(AVATARAPP_QML_SOURCE);
-        tablet.tabletShownChanged.connect(tabletVisibilityChanged);
         isWired = true;
     }
 }
