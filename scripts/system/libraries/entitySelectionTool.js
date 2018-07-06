@@ -215,8 +215,10 @@ SelectionManager = (function() {
             that.worldRotation = properties.boundingBox.rotation;
 
             that.entityType = properties.type;
-
-            SelectionDisplay.setSpaceMode(SPACE_LOCAL);
+            
+            if (selectionUpdated) {
+                SelectionDisplay.setSpaceMode(SPACE_LOCAL);
+            }
         } else {
             that.localRotation = null;
             that.localDimensions = null;
@@ -1435,7 +1437,7 @@ SelectionDisplay = (function() {
         that.setHandleRotateYawVisible(!activeTool || isActiveTool(handleRotateYawRing));
         that.setHandleRotateRollVisible(!activeTool || isActiveTool(handleRotateRollRing));
 
-        var showScaleStretch = !activeTool && SelectionManager.selections.length === 1;
+        var showScaleStretch = !activeTool && SelectionManager.selections.length === 1 && spaceMode === SPACE_LOCAL;
         that.setHandleStretchXVisible(showScaleStretch || isActiveTool(handleStretchXSphere));
         that.setHandleStretchYVisible(showScaleStretch || isActiveTool(handleStretchYSphere));
         that.setHandleStretchZVisible(showScaleStretch || isActiveTool(handleStretchZSphere));
@@ -2073,7 +2075,7 @@ SelectionDisplay = (function() {
                 return;
             }
             
-            var proportional = (spaceMode === SPACE_WORLD) || directionEnum === STRETCH_DIRECTION.ALL;
+            var proportional = directionEnum === STRETCH_DIRECTION.ALL;
             
             var position, rotation;
             if (spaceMode === SPACE_LOCAL) {
