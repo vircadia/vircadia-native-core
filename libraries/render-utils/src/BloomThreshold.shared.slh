@@ -1,4 +1,4 @@
-// glsl / C++ compatible source as interface for FadeEffect
+// glsl / C++ compatible source as interface for BloomThreshold
 #ifdef __cplusplus
 #   define BT_VEC2 glm::vec2
 #else

@@ -96,8 +96,10 @@ public:
 
 private:
 
+#include "BloomApply.shared.slh"
+
     gpu::PipelinePointer _pipeline;
-	glm::vec3 _intensities;
+    gpu::StructBuffer<Parameters> _parameters;
 };
 
 class BloomDraw {
