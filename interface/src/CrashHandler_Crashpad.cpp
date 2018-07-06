@@ -34,6 +34,8 @@
 #pragma clang diagnostic pop
 
 #include <BuildInfo.h>
+#include <FingerprintUtils.h>
+#include <UUID.h>
 
 using namespace crashpad;
 
@@ -83,6 +85,10 @@ bool startCrashHandler(std::string appPath) {
     annotations["build_number"] = BuildInfo::BUILD_NUMBER.toStdString();
     annotations["build_type"] = BuildInfo::BUILD_TYPE_STRING.toStdString();
 
+    auto machineFingerPrint = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
+    annotations["machine_fingerprint"] = machineFingerPrint.toStdString();
+
+
     arguments.push_back("--no-rate-limit");
 
     // Setup Crashpad DB directory
@@ -123,14 +129,16 @@ bool startCrashHandler(std::string appPath) {
 }
 
 void setCrashAnnotation(std::string name, std::string value) {
-    std::lock_guard<std::mutex> guard(annotationMutex);
-    if (!crashpadAnnotations) {
-        crashpadAnnotations = new crashpad::SimpleStringDictionary(); // don't free this, let it leak
-        crashpad::CrashpadInfo* crashpad_info = crashpad::CrashpadInfo::GetCrashpadInfo();
-        crashpad_info->set_simple_annotations(crashpadAnnotations);
+    if (client) {
+        std::lock_guard<std::mutex> guard(annotationMutex);
+        if (!crashpadAnnotations) {
+            crashpadAnnotations = new crashpad::SimpleStringDictionary(); // don't free this, let it leak
+            crashpad::CrashpadInfo* crashpad_info = crashpad::CrashpadInfo::GetCrashpadInfo();
+            crashpad_info->set_simple_annotations(crashpadAnnotations);
+        }
+        std::replace(value.begin(), value.end(), ',', ';');
+        crashpadAnnotations->SetKeyValue(name, value);
     }
-    std::replace(value.begin(), value.end(), ',', ';');
-    crashpadAnnotations->SetKeyValue(name, value);
 }
 
 #endif

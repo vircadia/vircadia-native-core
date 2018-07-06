@@ -23,8 +23,9 @@
 #include <QtCore/QFileInfo>
 #include <QtAndroidExtras/QAndroidJniObject>
 
-#include <SettingHelpers.h>
 #include <BuildInfo.h>
+#include <FingerprintUtils.h>
+#include <SettingHelpers.h>
 
 google_breakpad::ExceptionHandler* gBreakpadHandler;
 
@@ -59,6 +60,9 @@ bool startCrashHandler(std::string appPath) {
     annotations["version"] = BuildInfo::VERSION;
     annotations["build_number"] = BuildInfo::BUILD_NUMBER;
     annotations["build_type"] = BuildInfo::BUILD_TYPE_STRING;
+
+    auto machineFingerPrint = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
+    annotations["machine_fingerprint"] = machineFingerPrint.toStdString();
 
     flushAnnotations();
 
