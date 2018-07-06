@@ -383,6 +383,8 @@ SelectionDisplay = (function() {
 
     var ctrlPressed = false;
 
+    that.replaceCollisionsAfterStretch = false;
+
     var handlePropertiesTranslateArrowCones = {
         shape: "Cone",
         solid: true,
@@ -1260,8 +1262,8 @@ SelectionDisplay = (function() {
             var scaleRTFCubeToCamera = getDistanceToCamera(scaleRTFCubePosition);
             
             var scaleCubeToCamera = Math.min(scaleLBNCubeToCamera, scaleRBNCubeToCamera, scaleLBFCubeToCamera, 
-                scaleRBFCubeToCamera, scaleLTNCubeToCamera, scaleRTNCubeToCamera, 
-                scaleLTFCubeToCamera, scaleRTFCubeToCamera);
+                                             scaleRBFCubeToCamera, scaleLTNCubeToCamera, scaleRTNCubeToCamera, 
+                                             scaleLTFCubeToCamera, scaleRTFCubeToCamera);
             var scaleCubeDimension = scaleCubeToCamera * SCALE_CUBE_CAMERA_DISTANCE_MULTIPLE;
             var scaleCubeDimensions = { x: scaleCubeDimension, y: scaleCubeDimension, z: scaleCubeDimension };
 
@@ -1614,7 +1616,8 @@ SelectionDisplay = (function() {
 
             translateXZTool.pickPlanePosition = pickResult.intersection;
             translateXZTool.greatestDimension = Math.max(Math.max(SelectionManager.worldDimensions.x, 
-                SelectionManager.worldDimensions.y), SelectionManager.worldDimensions.z);
+                                                                  SelectionManager.worldDimensions.y),
+                                                                  SelectionManager.worldDimensions.z);
             translateXZTool.startingDistance = Vec3.distance(pickRay.origin, SelectionManager.position);
             translateXZTool.startingElevation = translateXZTool.elevation(pickRay.origin, translateXZTool.pickPlanePosition);
             if (wantDebug) {
@@ -2361,7 +2364,7 @@ SelectionDisplay = (function() {
                 var rotationCenterToZero = Vec3.subtract(rotationZero, rotationCenter);
                 var rotationCenterToZeroLength = Vec3.length(rotationCenterToZero);
                 rotationDegreesPosition = Vec3.sum(rotationCenter, Vec3.multiply(Vec3.normalize(rotationCenterToZero), 
-                    rotationCenterToZeroLength * ROTATE_DISPLAY_DISTANCE_MULTIPLIER));
+                                                   rotationCenterToZeroLength * ROTATE_DISPLAY_DISTANCE_MULTIPLIER));
                 updateRotationDegreesOverlay(0, rotationDegreesPosition);
 
                 if (wantDebug) {
