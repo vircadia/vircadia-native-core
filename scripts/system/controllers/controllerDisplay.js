@@ -108,14 +108,13 @@ createControllerDisplay = function(config) {
                     for (var partName in controller.parts) {
                         overlayID = this.overlays[i++];
                         var part = controller.parts[partName];
-                        localPosition = Vec3.sum(controller.position, Vec3.multiplyQbyV(controller.rotation, part.naturalPosition));
+                        localPosition = Vec3.subtract(part.naturalPosition, controller.naturalPosition);
                         var localRotation;
                         var value = this.partValues[partName];
                         var offset, rotation;
                         if (value !== undefined) {
                             if (part.type === "linear") {
-                                var axis = Vec3.multiplyQbyV(controller.rotation, part.axis);
-                                offset = Vec3.multiply(part.maxTranslation * value, axis);
+                                offset = Vec3.multiply(part.maxTranslation * value, part.axis);
                                 localPosition = Vec3.sum(localPosition, offset);
                                 localRotation = undefined;
                             } else if (part.type === "joystick") {
@@ -126,8 +125,8 @@ createControllerDisplay = function(config) {
                                 } else {
                                     offset = { x: 0, y: 0, z: 0 };
                                 }
-                                localPosition = Vec3.sum(controller.position, Vec3.multiplyQbyV(controller.rotation, Vec3.sum(offset, part.naturalPosition)));
-                                localRotation = Quat.multiply(controller.rotation, rotation);
+                                localPosition = Vec3.sum(offset, localPosition);
+                                localRotation = rotation;
                             } else if (part.type === "rotational") {
                                 value = clamp(value, part.minValue, part.maxValue);
                                 var pct = (value - part.minValue) / part.maxValue;
@@ -139,8 +138,8 @@ createControllerDisplay = function(config) {
                                 } else {
                                     offset = { x: 0, y: 0, z: 0 };
                                 }
-                                localPosition = Vec3.sum(controller.position, Vec3.multiplyQbyV(controller.rotation, Vec3.sum(offset, part.naturalPosition)));
-                                localRotation = Quat.multiply(controller.rotation, rotation);
+                                localPosition = Vec3.sum(offset, localPosition);
+                                localRotation = rotation;
                             }
                         }
                         if (localRotation !== undefined) {
@@ -169,9 +168,11 @@ createControllerDisplay = function(config) {
 
         if (controller.naturalPosition) {
             position = Vec3.sum(Vec3.multiplyQbyV(controller.rotation, controller.naturalPosition), position);
+        } else {
+            controller.naturalPosition = { x: 0, y: 0, z: 0 };
         }
 
-        var overlayID = Overlays.addOverlay("model", {
+        var baseOverlayID = Overlays.addOverlay("model", {
             url: controller.modelURL,
             dimensions: Vec3.multiply(sensorScaleFactor, controller.dimensions),
             localRotation: controller.rotation,
@@ -181,23 +182,21 @@ createControllerDisplay = function(config) {
             ignoreRayIntersection: true
         });
 
-        controllerDisplay.overlays.push(overlayID);
-        overlayID = null;
+        controllerDisplay.overlays.push(baseOverlayID);
 
         if (controller.parts) {
             for (var partName in controller.parts) {
                 var part = controller.parts[partName];
-                var partPosition = Vec3.sum(controller.position, Vec3.multiplyQbyV(controller.rotation, part.naturalPosition));
-                var innerRotation = controller.rotation;
+                var localPosition = Vec3.subtract(part.naturalPosition, controller.naturalPosition);
+                var localRotation = { x: 0, y: 0, z: 0, w: 1 }
 
                 controllerDisplay.parts[partName] = controller.parts[partName];
 
                 var properties = {
                     url: part.modelURL,
-                    localPosition: partPosition,
-                    localRotation: innerRotation,
-                    parentID: MyAvatar.SELF_ID,
-                    parentJointIndex: controller.jointIndex,
+                    localPosition: localPosition,
+                    localRotation: localRotation,
+                    parentID: baseOverlayID,
                     ignoreRayIntersection: true
                 };
 
@@ -207,11 +206,10 @@ createControllerDisplay = function(config) {
                     properties['textures'] = textures;
                 }
 
-                overlayID = Overlays.addOverlay("model", properties);
+                var overlayID = Overlays.addOverlay("model", properties);
 
                 if (part.type === "rotational") {
                     var input = resolveHardware(part.input);
-                    print("Mapping to: ", part.input, input);
                     mapping.from([input]).peek().to(function(partName) {
                         return function(value) {
                             // insert the most recent controller value into controllerDisplay.partValues.
