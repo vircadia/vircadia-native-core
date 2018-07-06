@@ -757,6 +757,8 @@ void CharacterController::updateState() {
                     // Transition to hover if we are above the fall threshold
                     SET_STATE(State::Hover, "above fall threshold");
                 }
+            } else if (!rayHasHit && !_hasSupport) {
+                SET_STATE(State::Hover, "no ground detected");
             }
             break;
         }
