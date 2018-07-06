@@ -121,11 +121,14 @@ ListModel {
             return false;
 
         for(var prop in o1) {
-            var v1 = o1[prop];
-            var v2 = o2[prop];
+            if(o1.hasOwnProperty(prop) && o2.hasOwnProperty(prop)) {
+                var v1 = o1[prop];
+                var v2 = o2[prop];
 
-            if(v1 !== v2 && Math.round(v1 * 1000) != Math.round(v2 * 1000))
-                return false;
+
+                if(v1 !== v2 && Math.round(v1 * 1000) != Math.round(v2 * 1000))
+                    return false;
+            }
         }
 
         return true;
