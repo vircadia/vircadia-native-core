@@ -20,12 +20,6 @@
 
 #include "OctreeLogging.h"
 
-OctreeProcessor::OctreeProcessor() :
-    _tree(NULL),
-    _managedTree(false)
-{
-}
-
 void OctreeProcessor::init() {
     if (!_tree) {
         _tree = createTree();
@@ -34,6 +28,9 @@ void OctreeProcessor::init() {
 }
 
 OctreeProcessor::~OctreeProcessor() {
+    if (_tree) {
+        _tree->eraseAllOctreeElements(false);
+    }
 }
 
 void OctreeProcessor::setTree(OctreePointer newTree) {
