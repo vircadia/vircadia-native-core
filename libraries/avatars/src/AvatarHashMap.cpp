@@ -134,7 +134,7 @@ AvatarSharedPointer AvatarHashMap::parseAvatarData(QSharedPointer<ReceivedMessag
         auto avatar = newOrExistingAvatar(sessionUUID, sendingNode, isNewAvatar);
         if (isNewAvatar) {
             QWriteLocker locker(&_hashLock);
-            _pendingAvatars.insert(sessionUUID, { std::chrono::steady_clock::now(), avatar });
+            _pendingAvatars.insert(sessionUUID, { std::chrono::steady_clock::now(), 0, avatar });
         }
 
         // have the matching (or new) avatar parse the data from the packet

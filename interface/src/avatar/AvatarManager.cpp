@@ -59,6 +59,7 @@ const QUuid MY_AVATAR_KEY;  // NULL key
 namespace {
     // For an unknown avatar-data packet, wait this long before requesting the identity.
     constexpr std::chrono::milliseconds REQUEST_UNKNOWN_IDENTITY_DELAY { 5 * 1000 };
+    constexpr int REQUEST_UNKNOWN_IDENTITY_TRANSMITS = 3;
 }
 using std::chrono::steady_clock;
 
@@ -292,10 +293,17 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         if (now - pendingAvatar->creationTime >= REQUEST_UNKNOWN_IDENTITY_DELAY) {
             // Too long without an ID
             sendIdentityRequest(pendingAvatar->avatar->getID());
-            qCDebug(avatars) << "Requesting identity for unknown avatar" << pendingAvatar->avatar->getID().toString();
-            pendingAvatar = _pendingAvatars.erase(pendingAvatar);
-            if (pendingAvatar == _pendingAvatars.end()) {
-                break;
+            if (++pendingAvatar->transmits >= REQUEST_UNKNOWN_IDENTITY_TRANSMITS) {
+                qCDebug(avatars) << "Requesting identity for unknown avatar (final request)" <<
+                    pendingAvatar->avatar->getID().toString();
+
+                pendingAvatar = _pendingAvatars.erase(pendingAvatar);
+                if (pendingAvatar == _pendingAvatars.end()) {
+                    break;
+                }
+            } else {
+                pendingAvatar->creationTime = now;
+                qCDebug(avatars) << "Requesting identity for unknown avatar" << pendingAvatar->avatar->getID().toString();
             }
         }
     }

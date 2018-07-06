@@ -156,6 +156,7 @@ protected:
     AvatarHash _avatarHash;
     struct PendingAvatar {
         std::chrono::steady_clock::time_point creationTime;
+        int transmits;
         AvatarSharedPointer avatar;
     };
     using AvatarPendingHash = QHash<QUuid, PendingAvatar>;
