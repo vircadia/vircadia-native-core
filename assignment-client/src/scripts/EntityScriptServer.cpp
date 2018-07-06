@@ -571,6 +571,8 @@ void EntityScriptServer::aboutToFinish() {
         entityScriptingInterface->setPacketSender(nullptr);
     }
 
+    DependencyManager::destroy<AssignmentParentFinder>();
+
     DependencyManager::get<ResourceManager>()->cleanup();
 
     DependencyManager::destroy<PluginManager>();

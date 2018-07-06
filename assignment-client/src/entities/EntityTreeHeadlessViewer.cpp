@@ -17,6 +17,9 @@ EntityTreeHeadlessViewer::EntityTreeHeadlessViewer()
 }
 
 EntityTreeHeadlessViewer::~EntityTreeHeadlessViewer() {
+    if (_simulation) {
+        _simulation->setEntityTree(nullptr);  // Break shared_ptr cycle.
+    }
 }
 
 void EntityTreeHeadlessViewer::init() {
