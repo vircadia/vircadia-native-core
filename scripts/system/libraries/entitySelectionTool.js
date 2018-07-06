@@ -180,17 +180,17 @@ SelectionManager = (function() {
         that.selections = [];
         that._update(true);
     };
-	
-	that.addChildrenEntities = function(parentEntityID, entityList) {
-		var children = Entities.getChildrenIDs(parentEntityID);
+    
+    that.addChildrenEntities = function(parentEntityID, entityList) {
+        var children = Entities.getChildrenIDs(parentEntityID);
         for (var i = 0; i < children.length; i++) {
             var childID = children[i];
-			if (entityList.indexOf(childID) < 0) {
-				entityList.push(childID);
+            if (entityList.indexOf(childID) < 0) {
+                entityList.push(childID);
             }
-			that.addChildrenEntities(childID, entityList);
+            that.addChildrenEntities(childID, entityList);
         }
-	};
+    };
 
     that.duplicateSelection = function() {
         var entitiesToDuplicate = [];
@@ -203,7 +203,7 @@ SelectionManager = (function() {
             if (entitiesToDuplicate.indexOf(originalEntityID) < 0) {
                 entitiesToDuplicate.push(originalEntityID);
             }
-			that.addChildrenEntities(originalEntityID, entitiesToDuplicate);
+            that.addChildrenEntities(originalEntityID, entitiesToDuplicate);
         });
         
         // duplicate entities from above and store their original to new entity mappings and children needing re-parenting
