@@ -30,6 +30,7 @@
 #include <QtCore/QFileSelector>
 #include <QtConcurrent/QtConcurrentRun>
 
+#include <QtGui/QClipboard>
 #include <QtGui/QScreen>
 #include <QtGui/QWindow>
 #include <QtGui/QDesktopServices>
@@ -1668,7 +1669,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return qApp->getMyAvatar()->getSnapTurn() ? 1 : 0;
     });
     _applicationStateDevice->setInputVariant(STATE_ADVANCED_MOVEMENT_CONTROLS, []() -> float {
-        return qApp->getMyAvatar()->useAdvancedMovementControls() ? 1 : 0;
+        auto isAdvanced = qApp->getMyAvatar()->useAdvancedMovementControls();
+        return isAdvanced ? 1 : 0;
     });
 
     _applicationStateDevice->setInputVariant(STATE_GROUNDED, []() -> float {
@@ -8302,6 +8304,25 @@ void Application::setAvatarOverrideUrl(const QUrl& url, bool save) {
 
 void Application::saveNextPhysicsStats(QString filename) {
     _physicsEngine->saveNextPhysicsStats(filename);
+}
+
+void Application::copyAddress() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "copyAddress");
+        return;
+    }
+
+    // assume that the address is being copied because the user wants a shareable address
+    QApplication::clipboard()->setText(QString("copyAddress worked!"));
+}
+
+void Application::copyPath() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "copyPath");
+        return;
+    }
+
+    QApplication::clipboard()->setText(QString("copyPath worked!"));
 }
 
 #if defined(Q_OS_ANDROID)
