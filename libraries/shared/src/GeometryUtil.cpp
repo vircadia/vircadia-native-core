@@ -711,8 +711,42 @@ bool findRayRectangleIntersection(const glm::vec3& origin, const glm::vec3& dire
     return false;
 }
 
+// determines whether a value is within the extents
+bool isWithin(float value, float corner, float size) {
+    return value >= corner && value <= corner + size;
+}
+
+void checkPossibleParabolicIntersectionWithZPlane(float t, float& minDistance,
+    const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration, const glm::vec2& corner, const glm::vec2& scale) {
+    if (t < minDistance && t > 0.0f &&
+        isWithin(origin.x + velocity.x * t + 0.5f * acceleration.x * t * t, corner.x, scale.x) &&
+        isWithin(origin.y + velocity.y * t + 0.5f * acceleration.y * t * t, corner.y, scale.y)) {
+        minDistance = t;
+    }
+}
+
 bool findParabolaRectangleIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
     const glm::quat& rotation, const glm::vec3& position, const glm::vec2& dimensions, float& parabolicDistance) {
+    glm::quat inverseRot = glm::inverse(rotation);
+    glm::vec3 localOrigin = inverseRot * (origin - position);
+    glm::vec3 localVelocity = inverseRot * velocity;
+    glm::vec3 localAcceleration = inverseRot * acceleration;
+
+    glm::vec2 localCorner = -0.5f * dimensions;
+
+    float minDistance = FLT_MAX;
+    float a = 0.5f * localAcceleration.z;
+    float b = localVelocity.z;
+    float c = localOrigin.z;
+    std::pair<float, float> possibleDistances = { FLT_MAX, FLT_MAX };
+    if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
+        checkPossibleParabolicIntersectionWithZPlane(possibleDistances.first, minDistance, localOrigin, localVelocity, localAcceleration, localCorner, dimensions);
+        checkPossibleParabolicIntersectionWithZPlane(possibleDistances.second, minDistance, localOrigin, localVelocity, localAcceleration, localCorner, dimensions);
+    }
+    if (minDistance < FLT_MAX) {
+        parabolicDistance = minDistance;
+        return true;
+    }
     return false;
 }
 

@@ -109,11 +109,6 @@ glm::vec3 AABox::getNearestVertex(const glm::vec3& normal) const {
     return result;
 }
 
-// determines whether a value is within the extents
-static bool isWithin(float value, float corner, float size) {
-    return value >= corner && value <= corner + size;
-}
-
 bool AABox::contains(const Triangle& triangle) const {
     return contains(triangle.v0) && contains(triangle.v1) && contains(triangle.v2);
 }
@@ -308,6 +303,7 @@ bool AABox::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& v
     // Solve the intersection for each face of the cube.  As we go, keep track of the smallest, positive, real distance
     // that is within the bounds of the other two dimensions
     for (int i = 0; i < 3; i++) {
+        // TODO: handle case where a is 0
         a = 0.5f * acceleration[i];
         b = velocity[i];
         if (origin[i] < _corner[i]) {

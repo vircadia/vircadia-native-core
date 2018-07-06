@@ -183,4 +183,9 @@ void generateBoundryLinesForDop14(const std::vector<float>& dots, const glm::vec
 
 bool computeRealQuadraticRoots(float a, float b, float c, std::pair<float, float>& roots);
 
+bool isWithin(float value, float corner, float size);
+
+void checkPossibleParabolicIntersectionWithZPlane(float t, float& minDistance,
+    const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration, const glm::vec2& corner, const glm::vec2& scale);
+
 #endif // hifi_GeometryUtil_h

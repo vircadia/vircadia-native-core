@@ -110,11 +110,6 @@ glm::vec3 AACube::getNearestVertex(const glm::vec3& normal) const {
     return result;
 }
 
-// determines whether a value is within the extents
-static bool isWithin(float value, float corner, float size) {
-    return value >= corner && value <= corner + size;
-}
-
 bool AACube::contains(const glm::vec3& point) const {
     return isWithin(point.x, _corner.x, _scale) &&
         isWithin(point.y, _corner.y, _scale) &&
@@ -304,6 +299,7 @@ bool AACube::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& 
     // Solve the intersection for each face of the cube.  As we go, keep track of the smallest, positive, real distance
     // that is within the bounds of the other two dimensions
     for (int i = 0; i < 3; i++) {
+        // TODO: handle case where a is 0
         a = 0.5f * acceleration[i];
         b = velocity[i];
         if (origin[i] < _corner[i]) {
