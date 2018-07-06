@@ -197,8 +197,6 @@ private:
     float _avatarSimulationTime { 0.0f };
     bool _shouldRender { true };
     mutable int _identityRequestsSent { 0 };
-
-    static const std::chrono::milliseconds REQUEST_UNKNOWN_IDENTITY_DELAY;
 };
 
 #endif // hifi_AvatarManager_h

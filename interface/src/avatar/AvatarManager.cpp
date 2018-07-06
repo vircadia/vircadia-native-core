@@ -56,8 +56,10 @@ static const quint64 MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS = USECS_PER_SECOND / 
 // We add _myAvatar into the hash with all the other AvatarData, and we use the default NULL QUid as the key.
 const QUuid MY_AVATAR_KEY;  // NULL key
 
-// For an unknown avatar-data packet, wait this long before requesting the identity (in µs).
-constexpr std::chrono::milliseconds AvatarManager::REQUEST_UNKNOWN_IDENTITY_DELAY { 5 * 1000 };
+namespace {
+    // For an unknown avatar-data packet, wait this long before requesting the identity.
+    constexpr std::chrono::milliseconds REQUEST_UNKNOWN_IDENTITY_DELAY { 5 * 1000 };
+}
 using std::chrono::steady_clock;
 
 AvatarManager::AvatarManager(QObject* parent) :
