@@ -488,12 +488,13 @@ void Agent::executeScript() {
     avatarDataTimer->setTimerType(Qt::PreciseTimer);
     avatarDataTimer->start();
 
-    _scriptEngine->run();
+    connect(_scriptEngine.data(), &ScriptEngine::doneRunning, this, [=]() {
+        Frame::clearFrameHandler(AUDIO_FRAME_TYPE);
+        Frame::clearFrameHandler(AVATAR_FRAME_TYPE);
+        DependencyManager::destroy<RecordingScriptingInterface>();
+        setFinished(true); });
 
-    Frame::clearFrameHandler(AUDIO_FRAME_TYPE);
-    Frame::clearFrameHandler(AVATAR_FRAME_TYPE);
-
-    DependencyManager::destroy<RecordingScriptingInterface>();
+    _scriptEngine->runInThread();
 }
 
 QUuid Agent::getSessionUUID() const {
@@ -823,11 +824,11 @@ void Agent::aboutToFinish() {
 
     if (_scriptEngine) {
         _scriptEngine->stop();
+        _scriptEngine->waitTillDoneRunning();
     }
 
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(nullptr);
-    DependencyManager::get<EntityScriptingInterface>()->setPacketSender(nullptr);
 
     DependencyManager::get<ResourceManager>()->cleanup();
 
