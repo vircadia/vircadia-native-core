@@ -95,14 +95,6 @@ void ResourceCacheSharedItems::removeRequest(QWeakPointer<Resource> resource) {
     }
 }
 
-void ResourceCacheSharedItems::pausePendingRequests() {
-    _pendingRequestsPaused = true;
-}
-
-void ResourceCacheSharedItems::resumePendingRequests() {
-    _pendingRequestsPaused = false;
-}
-
 QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
     // look for the highest priority pending request
     int highestIndex = -1;
@@ -502,9 +494,7 @@ void ResourceCache::requestCompleted(QWeakPointer<Resource> resource) {
     sharedItems->removeRequest(resource);
     --_requestsActive;
 
-    if (!sharedItems->pendingRequestsPaused()) {
-        attemptHighestPriorityRequest();
-    }
+    attemptHighestPriorityRequest();
 }
 
 bool ResourceCache::attemptHighestPriorityRequest() {

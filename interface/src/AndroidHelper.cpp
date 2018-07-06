@@ -29,6 +29,10 @@ void AndroidHelper::notifyEnterForeground() {
     emit enterForeground();
 }
 
+void AndroidHelper::notifyBeforeEnterBackground() {
+    emit beforeEnterBackground();
+}
+
 void AndroidHelper::notifyEnterBackground() {
     emit enterBackground();
 }

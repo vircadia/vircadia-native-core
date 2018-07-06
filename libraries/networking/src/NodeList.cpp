@@ -289,6 +289,12 @@ void NodeList::addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes)
 }
 
 void NodeList::sendDomainServerCheckIn() {
+
+    if (!_sendDomainServerCheckInEnabled) {
+        qCDebug(networking) << "Refusing to send a domain-server check in while it is disabled.";
+        return;
+    }
+
     if (thread() != QThread::currentThread()) {
         QMetaObject::invokeMethod(this, "sendDomainServerCheckIn", Qt::QueuedConnection);
         return;

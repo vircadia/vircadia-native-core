@@ -49,6 +49,7 @@ public class InterfaceActivity extends QtActivity {
     private native long nativeOnCreate(InterfaceActivity instance, AssetManager assetManager);
     private native void nativeOnDestroy();
     private native void nativeGotoUrl(String url);
+    private native void nativeBeforeEnterBackground();
     private native void nativeEnterBackground();
     private native void nativeEnterForeground();
     private native long nativeOnExitVr();
@@ -248,6 +249,7 @@ public class InterfaceActivity extends QtActivity {
             case "Home":
             case "Privacy Policy":
             case "Login": {
+                nativeBeforeEnterBackground();
                 Intent intent = new Intent(this, MainActivity.class);
                 intent.putExtra(MainActivity.EXTRA_FRAGMENT, activityName);
                 intent.putExtra(MainActivity.EXTRA_BACK_TO_SCENE, backToScene);

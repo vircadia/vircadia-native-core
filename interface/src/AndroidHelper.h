@@ -24,6 +24,7 @@ public:
     void requestActivity(const QString &activityName, const bool backToScene);
     void notifyLoadComplete();
     void notifyEnterForeground();
+    void notifyBeforeEnterBackground();
     void notifyEnterBackground();
 
     void performHapticFeedback(int duration);
@@ -38,6 +39,7 @@ signals:
     void androidActivityRequested(const QString &activityName, const bool backToScene);
     void qtAppLoadComplete();
     void enterForeground();
+    void beforeEnterBackground();
     void enterBackground();
 
     void hapticFeedbackRequested(int duration);

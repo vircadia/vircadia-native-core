@@ -311,6 +311,7 @@ public:
     void unloadAvatarScripts();
 
 #if defined(Q_OS_ANDROID)
+    void beforeEnterBackground();
     void enterBackground();
     void enterForeground();
 #endif
