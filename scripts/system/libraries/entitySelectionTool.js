@@ -2074,7 +2074,7 @@ SelectionDisplay = (function() {
             if (event.x === undefined || event.y === undefined) {
                 return;
             }
-            
+
             var proportional = directionEnum === STRETCH_DIRECTION.ALL;
             
             var position, rotation;
