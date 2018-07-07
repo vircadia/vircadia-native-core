@@ -51,13 +51,13 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.isPointingAtTriggerable = function(controllerData, triggerPressed) {
-			// allow pointing at tablet, unlocked web entities, or web overlays automatically without pressing trigger,
-			// but for pointing at locked web entities or non-web overlays user must be pressing trigger
+            // allow pointing at tablet, unlocked web entities, or web overlays automatically without pressing trigger,
+            // but for pointing at locked web entities or non-web overlays user must be pressing trigger
             var intersection = controllerData.rayPicks[this.hand];
             if (intersection.type === Picks.INTERSECTED_OVERLAY) {
                 var objectID = intersection.objectID;
                 if ((HMD.tabletID && objectID === HMD.tabletID) ||
-					(HMD.tabletScreenID && objectID === HMD.tabletScreenID) || 
+                    (HMD.tabletScreenID && objectID === HMD.tabletScreenID) || 
                     (HMD.homeButtonID && objectID === HMD.homeButtonID)) {
                     return true;
                 } else {
