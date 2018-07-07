@@ -715,7 +715,7 @@ void MyAvatar::simulate(float deltaTime) {
             }
         });
         bool isPhysicsEnabled = qApp->isPhysicsEnabled();
-        _characterController.setFlyingAllowed(zoneAllowsFlying && (_enableFlying || !isPhysicsEnabled));
+        _characterController.setFlyingAllowed((zoneAllowsFlying && _enableFlying) || !isPhysicsEnabled);
         _characterController.setCollisionlessAllowed(collisionlessAllowed);
     }
 

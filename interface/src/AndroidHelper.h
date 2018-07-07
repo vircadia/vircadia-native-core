@@ -21,12 +21,13 @@ public:
             static AndroidHelper instance;
             return instance;
     }
-    void requestActivity(const QString &activityName, const bool backToScene);
+    void requestActivity(const QString &activityName, const bool backToScene, QList<QString> args = QList<QString>());
     void notifyLoadComplete();
     void notifyEnterForeground();
     void notifyEnterBackground();
 
     void performHapticFeedback(int duration);
+    void processURL(const QString &url);
 
     AndroidHelper(AndroidHelper const&)  = delete;
     void operator=(AndroidHelper const&) = delete;
@@ -35,7 +36,7 @@ public slots:
     void showLoginDialog();
 
 signals:
-    void androidActivityRequested(const QString &activityName, const bool backToScene);
+    void androidActivityRequested(const QString &activityName, const bool backToScene, QList<QString> args = QList<QString>());
     void qtAppLoadComplete();
     void enterForeground();
     void enterBackground();

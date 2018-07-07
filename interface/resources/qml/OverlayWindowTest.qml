@@ -12,7 +12,7 @@ Rectangle {
     }
 
     Label {
-        text: OverlayWindowTestString
+        text: "OverlayWindowTestString"
         anchors.centerIn: parent
     }
 }
