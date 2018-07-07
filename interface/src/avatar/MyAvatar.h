@@ -31,6 +31,7 @@
 
 #include "AtRestDetector.h"
 #include "MyCharacterController.h"
+#include "RingBufferHistory.h"
 #include <ThreadSafeValueCache.h>
 
 class AvatarActionHold;
@@ -1023,8 +1024,8 @@ public:
 
     bool isReadyForPhysics() const;
 
-    float computeStandingHeightMode(controller::Pose head);
-    glm::quat computeAverageHeadRotation(controller::Pose head);
+    float computeStandingHeightMode(const controller::Pose& head);
+    glm::quat computeAverageHeadRotation(const controller::Pose& head);
 
 public slots:
 
@@ -1527,8 +1528,7 @@ private:
 
     float _standingHeightMode { 0.0f };
     bool _resetMode { true };
-    std::map<long int, long int> _heightFrequencyMap;
-    long int _greatestFrequency { 0 };
+    RingBufferHistory<quint64> _recentModeReadings;
 
     // cache of the current body position and orientation of the avatar's body,
     // in sensor space.
@@ -1608,7 +1608,7 @@ private:
     mutable std::mutex _controllerPoseMapMutex;
 
     bool _centerOfGravityModelEnabled { true };
-    bool _hmdLeanRecenterEnabled { false };
+    bool _hmdLeanRecenterEnabled { true };
     bool _sprint { false };
 
     AnimPose _prePhysicsRoomPose;

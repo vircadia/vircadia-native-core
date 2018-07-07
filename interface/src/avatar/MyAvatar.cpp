@@ -88,6 +88,7 @@ const float MyAvatar::ZOOM_MIN = 0.5f;
 const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 const float MIN_SCALE_CHANGED_DELTA = 0.001f;
+const int MODE_READINGS_RING_BUFFER_SIZE = 500;
 
 //#define DEBUG_DRAW_HMD_MOVING_AVERAGE
 
@@ -116,7 +117,8 @@ MyAvatar::MyAvatar(QThread* thread) :
     _goToOrientation(),
     _prevShouldDrawHead(true),
     _audioListenerMode(FROM_HEAD),
-    _hmdAtRestDetector(glm::vec3(0), glm::quat())
+    _hmdAtRestDetector(glm::vec3(0), glm::quat()),
+    _recentModeReadings(MODE_READINGS_RING_BUFFER_SIZE)
 {
 
     // give the pointer to our head to inherited _headData variable from AvatarData
@@ -2178,7 +2180,8 @@ void MyAvatar::setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement) 
 }
 
 void MyAvatar::setRotationRecenterFilterLength(float length) {
-    if (length > 0.01f) {
+    const float MINIMUM_ROTATION_RECENTER_FILTER_LENGTH = 0.01f;
+    if (length > MINIMUM_ROTATION_RECENTER_FILTER_LENGTH) {
         _rotationRecenterFilterLength = length;
     } else {
         _rotationRecenterFilterLength = 0.01f;
@@ -3152,11 +3155,11 @@ glm::mat4 MyAvatar::deriveBodyUsingCgModel() const {
     return worldToSensorMat * avatarToWorldMat * avatarHipsMat;
 }
 
-static bool isInsideLine(glm::vec3 a, glm::vec3 b, glm::vec3 c) {
+static bool isInsideLine(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c) {
     return (((b.x - a.x) * (c.z - a.z) - (b.z - a.z) * (c.x - a.x)) > 0);
 }
 
-static bool withinBaseOfSupport(controller::Pose head) {
+static bool withinBaseOfSupport(const controller::Pose& head) {
     float userScale = 1.0f;
 
     glm::vec3 frontLeft(-DEFAULT_AVATAR_LATERAL_STEPPING_THRESHOLD, 0.0f, -DEFAULT_AVATAR_ANTERIOR_STEPPING_THRESHOLD);
@@ -3175,7 +3178,7 @@ static bool withinBaseOfSupport(controller::Pose head) {
     return isWithinSupport;
 }
 
-static bool headAngularVelocityBelowThreshold(controller::Pose head) {
+static bool headAngularVelocityBelowThreshold(const controller::Pose& head) {
     glm::vec3 xzPlaneAngularVelocity(0.0f, 0.0f, 0.0f);
     if (head.isValid()) {
         xzPlaneAngularVelocity.x = head.getAngularVelocity().x;
@@ -3187,7 +3190,7 @@ static bool headAngularVelocityBelowThreshold(controller::Pose head) {
     return isBelowThreshold;
 }
 
-static bool isWithinThresholdHeightMode(controller::Pose head, float newMode) {
+static bool isWithinThresholdHeightMode(const controller::Pose& head,const float& newMode) {
     bool isWithinThreshold = true;
     if (head.isValid()) {
         isWithinThreshold = (head.getTranslation().y - newMode) > DEFAULT_AVATAR_MODE_HEIGHT_STEPPING_THRESHOLD;
@@ -3195,68 +3198,84 @@ static bool isWithinThresholdHeightMode(controller::Pose head, float newMode) {
     return isWithinThreshold;
 }
 
-float MyAvatar::computeStandingHeightMode(controller::Pose head) {
+float MyAvatar::computeStandingHeightMode(const controller::Pose& head) {
     const float CENTIMETERS_PER_METER = 100.0f;
     const float MODE_CORRECTION_FACTOR = 0.02f;
-    const int MAX_INT = 2147483647;
+    int greatestFrequency = 0;
+    int mode = 0;
+
     // init mode in meters to the current mode
     float modeInMeters = getStandingHeightMode();
     if (head.isValid()) {
         float newReading = head.getTranslation().y;
         int newReadingInCentimeters = glm::floor(newReading * CENTIMETERS_PER_METER);
-        _heightFrequencyMap[newReadingInCentimeters] += 1;
-        if (_heightFrequencyMap[newReadingInCentimeters] > _greatestFrequency) {
-            _greatestFrequency = _heightFrequencyMap[newReadingInCentimeters];
-            modeInMeters = ((float)newReadingInCentimeters) / CENTIMETERS_PER_METER;
-            // we need to deal with possible overflow error here
-            if (_greatestFrequency > (MAX_INT/2)) {
-                for (auto & heightValue : _heightFrequencyMap) {
-                    if (heightValue.second == _greatestFrequency) {
-                        heightValue.second = 100;
-                    } else {
-                        heightValue.second = 0;
-                    }
-                }
-                _greatestFrequency = 100;
+        _recentModeReadings.insert(newReadingInCentimeters);
+        RingBufferHistory<quint64>::Iterator recentModeReadingsIterator = _recentModeReadings.begin();
+        RingBufferHistory<quint64>::Iterator end = _recentModeReadings.end();
+        std::map<int, int> freq;
+        do {
+            ++recentModeReadingsIterator;
+            freq[*recentModeReadingsIterator] += 1;
+            if ((freq[*recentModeReadingsIterator] > greatestFrequency) ||
+                (freq[*recentModeReadingsIterator] == MODE_READINGS_RING_BUFFER_SIZE)) {
+                greatestFrequency = freq[*recentModeReadingsIterator];
+                mode = *recentModeReadingsIterator;
+
+            }
+        } while (recentModeReadingsIterator != end);
+
+        modeInMeters = ((float)mode) / CENTIMETERS_PER_METER;
+        if (!(modeInMeters > getStandingHeightMode())) {
+            // if not greater check for a reset
+            if (getResetMode() && qApp->isHMDMode()) {
+                setResetMode(false);
+                float resetModeInCentimeters = glm::floor((newReading - MODE_CORRECTION_FACTOR)*CENTIMETERS_PER_METER);
+                modeInMeters = (resetModeInCentimeters / CENTIMETERS_PER_METER);
+
+            } else {
+                // if not greater and no reset, keep the mode as it is
+                modeInMeters = getStandingHeightMode();
+
             }
         }
     }
     return modeInMeters;
 }
 
-static bool handDirectionMatchesHeadDirection(controller::Pose leftHand, controller::Pose rightHand, controller::Pose head) {
+static bool handDirectionMatchesHeadDirection(const controller::Pose& leftHand, const controller::Pose& rightHand, const controller::Pose& head) {
     const float VELOCITY_EPSILON = 0.02f;
     bool leftHandDirectionMatchesHead = true;
     bool rightHandDirectionMatchesHead = true;
+    glm::vec3 xzHeadVelocity(head.velocity.x, 0.0f, head.velocity.z);
     if (leftHand.isValid() && head.isValid()) {
-        leftHand.velocity.y = 0.0f;
-        float handDotHeadLeft = glm::dot(glm::normalize(leftHand.getVelocity()), glm::normalize(head.getVelocity()));
+        glm::vec3 xzLeftHandVelocity(leftHand.velocity.x, 0.0f, leftHand.velocity.z);
+        float handDotHeadLeft = glm::dot(glm::normalize(xzLeftHandVelocity), glm::normalize(xzHeadVelocity));
         leftHandDirectionMatchesHead = ((handDotHeadLeft > DEFAULT_HANDS_VELOCITY_DIRECTION_STEPPING_THRESHOLD) && (glm::length(leftHand.getVelocity()) > VELOCITY_EPSILON));
     }
     if (rightHand.isValid() && head.isValid()) {
-        rightHand.velocity.y = 0.0f;
-        float handDotHeadRight = glm::dot(glm::normalize(rightHand.getVelocity()), glm::normalize(head.getVelocity()));
+        glm::vec3 xzRightHandVelocity(rightHand.velocity.x, 0.0f, rightHand.velocity.z);
+        float handDotHeadRight = glm::dot(glm::normalize(xzRightHandVelocity), glm::normalize(xzHeadVelocity));
         rightHandDirectionMatchesHead = ((handDotHeadRight > DEFAULT_HANDS_VELOCITY_DIRECTION_STEPPING_THRESHOLD) && (glm::length(rightHand.getVelocity()) > VELOCITY_EPSILON));
     }
     return leftHandDirectionMatchesHead && rightHandDirectionMatchesHead;
 }
 
-static bool handAngularVelocityBelowThreshold(controller::Pose leftHand, controller::Pose rightHand) {
+static bool handAngularVelocityBelowThreshold(const controller::Pose& leftHand, const controller::Pose& rightHand) {
     float leftHandXZAngularVelocity = 0.0f;
     float rightHandXZAngularVelocity = 0.0f;
     if (leftHand.isValid()) {
-        leftHand.angularVelocity.y = 0.0f;
-        leftHandXZAngularVelocity = glm::length(leftHand.getAngularVelocity());
+        glm::vec3 xzLeftHandAngularVelocity(leftHand.angularVelocity.x, 0.0f, leftHand.angularVelocity.z);
+        leftHandXZAngularVelocity = glm::length(xzLeftHandAngularVelocity);
     }
     if (rightHand.isValid()) {
-        rightHand.angularVelocity.y = 0.0f;
-        rightHandXZAngularVelocity = glm::length(rightHand.getAngularVelocity());
+        glm::vec3 xzRightHandAngularVelocity(rightHand.angularVelocity.x, 0.0f, rightHand.angularVelocity.z);
+        rightHandXZAngularVelocity = glm::length(xzRightHandAngularVelocity);
     }
     return ((leftHandXZAngularVelocity < DEFAULT_HANDS_ANGULAR_VELOCITY_STEPPING_THRESHOLD) &&
         (rightHandXZAngularVelocity < DEFAULT_HANDS_ANGULAR_VELOCITY_STEPPING_THRESHOLD));
 }
 
-static bool headVelocityGreaterThanThreshold(controller::Pose head) {
+static bool headVelocityGreaterThanThreshold(const controller::Pose& head) {
     float headVelocityMagnitude = 0.0f;
     if (head.isValid()) {
         headVelocityMagnitude = glm::length(head.getVelocity());
@@ -3264,12 +3283,12 @@ static bool headVelocityGreaterThanThreshold(controller::Pose head) {
     return headVelocityMagnitude > DEFAULT_HEAD_VELOCITY_STEPPING_THRESHOLD;
 }
 
-glm::quat MyAvatar::computeAverageHeadRotation(controller::Pose head) {
+glm::quat MyAvatar::computeAverageHeadRotation(const controller::Pose& head) {
     const float AVERAGING_RATE = 0.03f;
-    return slerp(_averageHeadRotation, head.getRotation(), AVERAGING_RATE);
+    return safeLerp(_averageHeadRotation, head.getRotation(), AVERAGING_RATE);
 }
 
-static bool isHeadLevel(controller::Pose head, glm::quat averageHeadRotation) {
+static bool isHeadLevel(const controller::Pose& head, const glm::quat& averageHeadRotation) {
     glm::vec3 diffFromAverageEulers(0.0f, 0.0f, 0.0f);
     if (head.isValid()) {
         glm::vec3 averageHeadEulers = glm::degrees(safeEulerAngles(averageHeadRotation));
@@ -3521,22 +3540,29 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
         if (!isActive(Rotation) && (shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
             activate(Rotation);
         }
-        if (!isActive(Horizontal) && (shouldActivateHorizontal(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
-            activate(Horizontal);
+        if (myAvatar.getCenterOfGravityModelEnabled()){
+            if (!isActive(Horizontal) && (shouldActivateHorizontalCG(myAvatar) || hasDriveInput)) {
+                activate(Horizontal);
+            }
+        } else {
+            if (!isActive(Horizontal) && (shouldActivateHorizontal(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
+                activate(Horizontal);
+            }
         }
+        
         if (!isActive(Vertical) && (shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
             activate(Vertical);
         }
     } else {
-        if (!isActive(Rotation) && (getForceActivateRotation() || shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
+        if (!isActive(Rotation) && getForceActivateRotation()) {
             activate(Rotation);
             setForceActivateRotation(false);
         }
-        if (!isActive(Horizontal) && (getForceActivateHorizontal() || shouldActivateHorizontalCG(myAvatar) || hasDriveInput)) {
+        if (!isActive(Horizontal) && getForceActivateHorizontal()) {
             activate(Horizontal);
             setForceActivateHorizontal(false);
         }
-        if (!isActive(Vertical) && (getForceActivateVertical() || shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
+        if (!isActive(Vertical) && getForceActivateVertical()) {
             activate(Vertical);
             setForceActivateVertical(false);
         }
