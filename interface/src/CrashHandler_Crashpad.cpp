@@ -22,8 +22,11 @@
 #include <QDir>
 #include <QStandardPaths>
 
+
+#if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wc++14-extensions"
+#endif
 
 #include <client/crashpad_client.h>
 #include <client/crash_report_database.h>
@@ -31,7 +34,9 @@
 #include <client/annotation_list.h>
 #include <client/crashpad_info.h>
 
+#if defined(__clang__)
 #pragma clang diagnostic pop
+#endif
 
 #include <BuildInfo.h>
 #include <FingerprintUtils.h>
