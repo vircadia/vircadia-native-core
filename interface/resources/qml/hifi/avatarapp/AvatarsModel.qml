@@ -126,8 +126,9 @@ ListModel {
                 var v2 = o2[prop];
 
 
-                if(v1 !== v2 && Math.round(v1 * 1000) != Math.round(v2 * 1000))
+                if(v1 !== v2 && Math.round(v1 * 500) != Math.round(v2 * 500)) {
                     return false;
+                }
             }
         }
 
