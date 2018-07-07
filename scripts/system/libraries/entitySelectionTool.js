@@ -969,7 +969,7 @@ SelectionDisplay = (function() {
         if (SelectionManager.hasSelection()) {
             var controllerPose = getControllerWorldLocation(activeHand, true);
             var hand = (activeHand === Controller.Standard.LeftHand) ? 0 : 1;
-            if (controllerPose.valid && lastControllerPoses[hand].valid) {
+            if (controllerPose.valid && lastControllerPoses[hand].valid && that.triggered) {
                 if (!Vec3.equal(controllerPose.position, lastControllerPoses[hand].position) ||
                     !Vec3.equal(controllerPose.rotation, lastControllerPoses[hand].rotation)) {
                     that.mouseMoveEvent({});
@@ -1656,10 +1656,6 @@ SelectionDisplay = (function() {
             return (origin.y - intersection.y) / Vec3.distance(origin, intersection);
         },
         onMove: function(event) {
-            if (event.x === undefined || event.y === undefined) {
-                return;
-            }
-            
             var wantDebug = false;
             var pickRay = generalComputePickRay(event.x, event.y);
 
@@ -1817,10 +1813,6 @@ SelectionDisplay = (function() {
                 pushCommandForSelections(duplicatedEntityIDs);
             },
             onMove: function(event) {
-                if (event.x === undefined || event.y === undefined) {
-                    return;
-                }
-
                 var pickRay = generalComputePickRay(event.x, event.y);
                 
                 // Use previousPickRay if new pickRay will cause resulting rayPlaneIntersection values to wrap around
@@ -2071,10 +2063,6 @@ SelectionDisplay = (function() {
         };
 
         var onMove = function(event) {
-            if (event.x === undefined || event.y === undefined) {
-                return;
-            }
-
             var proportional = directionEnum === STRETCH_DIRECTION.ALL;
             
             var position, rotation;
@@ -2405,10 +2393,6 @@ SelectionDisplay = (function() {
                           "Invalid RotationZero Specified (missed rotation target plane?)");
 
                     // EARLY EXIT
-                    return;
-                }
-                
-                if (event.x === undefined || event.y === undefined) {
                     return;
                 }
                 
