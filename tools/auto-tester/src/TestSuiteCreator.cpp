@@ -25,8 +25,7 @@ void TestSuiteCreator::createTestSuite(const QString& testDirectory) {
     document.appendChild(root);
 
     // id (empty seems to be OK)
-    QDomElement idElement = document.createElement("id");
-    root.appendChild(idElement);
+    root.appendChild(document.createElement("id"));
 
     // name - our tests are in "Rendering"
     QDomElement nameElement = document.createElement("name");
@@ -45,9 +44,7 @@ void TestSuiteCreator::createTestSuite(const QString& testDirectory) {
     topLevelSection.appendChild(suiteName);
 
     QDomElement secondLevelSections = document.createElement("sections");
-    QDomElement tests = processDirectory(testDirectory, secondLevelSections);
-    topLevelSection.appendChild(tests);
-
+    topLevelSection.appendChild(processDirectory(testDirectory, secondLevelSections));
 
     topLevelSection.appendChild(secondLevelSections);
     topLevelSections.appendChild(topLevelSection);
@@ -79,7 +76,6 @@ QDomElement TestSuiteCreator::processDirectory(const QString& directory, const Q
         QString directory = it.next();
 
         // Only process directories
-        QDir dir;
         if (Test::isAValidDirectory(directory)) {
             // Ignore the utils directory
             if (directory.right(5) == "utils") {
@@ -96,6 +92,9 @@ QDomElement TestSuiteCreator::processDirectory(const QString& directory, const Q
             QDomText sectionElementNameText = document.createTextNode(directoryName);
             sectionElementName.appendChild(sectionElementNameText);
             sectionElement.appendChild(sectionElementName);
+
+            QDomElement testsElement = document.createElement("sections");
+            sectionElement.appendChild(processDirectory(directory, testsElement));
 
             result.appendChild(sectionElement);
         }
