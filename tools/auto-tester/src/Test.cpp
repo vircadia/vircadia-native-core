@@ -18,6 +18,7 @@
 #include <quazip5/quazip.h>
 #include <quazip5/JlCompress.h>
 
+#include "TestSuiteCreator.h"
 #include "ui/AutoTester.h"
 extern AutoTester* autoTester;
 
@@ -819,6 +820,26 @@ void Test::createTestsOutline() {
     mdFile.close();
 
     QMessageBox::information(0, "Success", "Test outline file " + testsOutlineFilename + " has been created");
+}
+
+void Test::createTestRailTestSuite() {
+    QString previousSelection = testDirectory;
+    QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
+    if (!parent.isNull() && parent.right(1) != "/") {
+        parent += "/";
+    }
+
+    testDirectory =
+        QFileDialog::getExistingDirectory(nullptr, "Please select the tests root folder", parent, QFileDialog::ShowDirsOnly);
+
+    // If user cancelled then restore previous selection and return
+    if (testDirectory == "") {
+        testDirectory = previousSelection;
+        return;
+    }
+
+    TestSuiteCreator testSuiteCreator;
+    testSuiteCreator.createTestSuite(testDirectory);
 }
 
 QStringList Test::createListOfAll_imagesInDirectory(const QString& imageFormat, const QString& pathToImageDirectory) {

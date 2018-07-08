@@ -50,6 +50,7 @@ public:
     void createMDFile(const QString& topLevelDirectory);
 
     void createTestsOutline();
+    void createTestRailTestSuite();
 
     bool compareImageLists(bool isInteractiveMode, QProgressBar* progressBar);
 
@@ -64,7 +65,7 @@ public:
     bool createTestResultsFolderPath(const QString& directory);
     void zipAndDeleteTestResultsFolder();
 
-    bool isAValidDirectory(const QString& pathname);
+    static bool isAValidDirectory(const QString& pathname);
 	QString extractPathFromTestsDown(const QString& fullPath);
     QString getExpectedImageDestinationDirectory(const QString& filename);
     QString getExpectedImagePartialSourceDirectory(const QString& filename);
