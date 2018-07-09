@@ -839,7 +839,7 @@ void Test::createTestRailTestSuite() {
     }
 
     TestSuiteCreator testSuiteCreator;
-    testSuiteCreator.createTestSuite(testDirectory);
+    testSuiteCreator.createTestSuite(testDirectory, autoTester->getSelectedUser(), autoTester->getSelectedBranch());
 }
 
 QStringList Test::createListOfAll_imagesInDirectory(const QString& imageFormat, const QString& pathToImageDirectory) {

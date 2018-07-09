@@ -17,9 +17,10 @@
 
 class TestSuiteCreator {
 public:
-    void createTestSuite(const QString& testDirectory);
-    QDomElement processDirectory(const QString& directory, const QDomElement& element);
-    QDomElement processTest(const QString& fullDirectory, const QString& test, const QDomElement& element);
+    void createTestSuite(const QString& testDirectory, const QString& user, const QString& branch);
+
+    QDomElement processDirectory(const QString& directory, const QString& user, const QString& branch, const QDomElement& element);
+    QDomElement processTest(const QString& fullDirectory, const QString& test, const QString& user, const QString& branch, const QDomElement& element);
 
 private:
     QDomDocument document;

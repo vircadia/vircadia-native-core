@@ -16,7 +16,7 @@
 #include <QMessageBox>
 #include <QTextStream>
 
-void TestSuiteCreator::createTestSuite(const QString& testDirectory) {
+void TestSuiteCreator::createTestSuite(const QString& testDirectory, const QString& user, const QString& branch) {
     QDomProcessingInstruction instruction = document.createProcessingInstruction("xml", "version='1.0' encoding='UTF-8'");
     document.appendChild(instruction);
 
@@ -31,7 +31,7 @@ void TestSuiteCreator::createTestSuite(const QString& testDirectory) {
     topLevelSection.appendChild(suiteName);
 
     QDomElement secondLevelSections = document.createElement("sections");
-    topLevelSection.appendChild(processDirectory(testDirectory, secondLevelSections));
+    topLevelSection.appendChild(processDirectory(testDirectory, user, branch, secondLevelSections));
 
     topLevelSection.appendChild(secondLevelSections);
     root.appendChild(topLevelSection);
@@ -52,7 +52,7 @@ void TestSuiteCreator::createTestSuite(const QString& testDirectory) {
     QMessageBox::information(0, "Success", "TestRail XML file has been created");
 }
 
-QDomElement TestSuiteCreator::processDirectory(const QString& directory, const QDomElement& element) {
+QDomElement TestSuiteCreator::processDirectory(const QString& directory, const QString& user, const QString& branch, const QDomElement& element) {
     QDomElement result = element;
 
     // Loop over all entries in directory
@@ -79,25 +79,23 @@ QDomElement TestSuiteCreator::processDirectory(const QString& directory, const Q
             sectionElement.appendChild(sectionElementName);
 
             QDomElement testsElement = document.createElement("sections");
-            sectionElement.appendChild(processDirectory(nextDirectory, testsElement));
+            sectionElement.appendChild(processDirectory(nextDirectory, user, branch, testsElement));
 
             result.appendChild(sectionElement);
-        } else {
-            if (objectName == "test.js") {
-                QDomElement sectionElement = document.createElement("section");
-                QDomElement sectionElementName = document.createElement("name");
-                sectionElementName.appendChild(document.createTextNode("all"));
-                sectionElement.appendChild(sectionElementName);
-                sectionElement.appendChild(processTest(nextDirectory, objectName, document.createElement("cases")));
-                result.appendChild(sectionElement);
-            }
+        } else if (objectName == "test.js" || objectName == "testStory.js") {
+            QDomElement sectionElement = document.createElement("section");
+            QDomElement sectionElementName = document.createElement("name");
+            sectionElementName.appendChild(document.createTextNode("all"));
+            sectionElement.appendChild(sectionElementName);
+            sectionElement.appendChild(processTest(nextDirectory, objectName, user, branch, document.createElement("cases")));
+            result.appendChild(sectionElement);
         }
     }
 
     return result;
 }
 
-QDomElement TestSuiteCreator::processTest(const QString& fullDirectory, const QString& test, const QDomElement& element) {
+QDomElement TestSuiteCreator::processTest(const QString& fullDirectory, const QString& test, const QString& user, const QString& branch, const QDomElement& element) {
     QDomElement result = element;
    
     QDomElement caseElement = document.createElement("case");
@@ -177,13 +175,15 @@ QDomElement TestSuiteCreator::processTest(const QString& fullDirectory, const QS
     precondsElement.appendChild(document.createTextNode("Tester is in an empty region of a domain in which they have edit rights\n\n*Note: Press 'n' to advance test script"));
     customElement.appendChild(precondsElement);
 
+    QString testMDName = QString("https://github.com/") + user + "/hifi_tests/blob/" + branch + "/tests/content/entity/light/point/create/test.md";
+
     QDomElement steps_seperatedElement = document.createElement("steps_separated");
     QDomElement stepElement = document.createElement("step");
     QDomElement stepIndexElement = document.createElement("index");
     stepIndexElement.appendChild(document.createTextNode("1"));
     stepElement.appendChild(stepIndexElement);
     QDomElement stepContentElement = document.createElement("content");
-    stepContentElement.appendChild(document.createTextNode("Execute instructions in [THIS TEST](https://github.com/highfidelity/hifi_tests/blob/RC70/tests/content/entity/light/point/create/test.md)"));
+    stepContentElement.appendChild(document.createTextNode(QString("Execute instructions in [THIS TEST](") + testMDName + ")"));
     stepElement.appendChild(stepContentElement);
     QDomElement stepExpectedElement = document.createElement("expected");
     stepExpectedElement.appendChild(document.createTextNode("Refer to the expected result in the linked description."));
@@ -192,7 +192,7 @@ QDomElement TestSuiteCreator::processTest(const QString& fullDirectory, const QS
     customElement.appendChild(steps_seperatedElement);
 
     QDomElement notesElement = document.createElement("notes");
-    notesElement.appendChild(document.createTextNode("https://github.com/highfidelity/hifi_tests/blob/RC70/tests/content/entity/light/point/create/test.md"));
+    notesElement.appendChild(document.createTextNode(testMDName));
     customElement.appendChild(notesElement);
 
     caseElement.appendChild(customElement);
