@@ -420,7 +420,7 @@ void MyAvatar::update(float deltaTime) {
 
     // update moving average of HMD facing in xz plane.
     const float HMD_FACING_TIMESCALE = getRotationRecenterFilterLength();
-    
+
     float tau = deltaTime / HMD_FACING_TIMESCALE;
     _headControllerFacingMovingAverage = lerp(_headControllerFacingMovingAverage, _headControllerFacing, tau);
 
@@ -3207,7 +3207,7 @@ float MyAvatar::computeStandingHeightMode(const controller::Pose& head) {
     float modeInMeters = getCurrentStandingHeight();
     if (head.isValid()) {
         std::map<int, int> freq;
-        for(auto recentModeReadingsIterator = _recentModeReadings.begin(); recentModeReadingsIterator != _recentModeReadings.end(); ++recentModeReadingsIterator){
+        for(auto recentModeReadingsIterator = _recentModeReadings.begin(); recentModeReadingsIterator != _recentModeReadings.end(); ++recentModeReadingsIterator) {
             freq[*recentModeReadingsIterator] += 1;
             if (freq[*recentModeReadingsIterator] > greatestFrequency) {
                 greatestFrequency = freq[*recentModeReadingsIterator];
@@ -3541,7 +3541,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
         if (!isActive(Rotation) && (shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
             activate(Rotation);
         }
-        if (myAvatar.getCenterOfGravityModelEnabled()){
+        if (myAvatar.getCenterOfGravityModelEnabled()) {
             if (!isActive(Horizontal) && (shouldActivateHorizontalCG(myAvatar) || hasDriveInput)) {
                 activate(Horizontal);
             }
