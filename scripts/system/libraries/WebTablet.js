@@ -30,6 +30,8 @@ var INCHES_TO_METERS = 1 / 39.3701;
 var NO_HANDS = -1;
 var DELAY_FOR_30HZ = 33; // milliseconds
 
+var TABLET_MATERIAL_ENTITY_NAME = 'Tablet-Material-Entity';
+
 
 // will need to be recaclulated if dimensions of fbx model change.
 var TABLET_NATURAL_DIMENSIONS = {x: 32.083, y: 48.553, z: 2.269};
@@ -78,6 +80,21 @@ function calcSpawnInfo(hand, landscape) {
         rotation: landscape ? Quat.multiply(orientation, ROT_LANDSCAPE) : Quat.multiply(orientation, ROT_Y_180)
     };
 }
+
+
+function cleanUpOldMaterialEntities() {
+    var avatarEntityData = MyAvatar.getAvatarEntityData();
+
+    for (var entityID in avatarEntityData) {
+        var entityName = Entities.getEntityProperties(entityID, ["name"]).name;
+
+        if (entityName === TABLET_MATERIAL_ENTITY_NAME) {
+            Entities.deleteEntity(entityID);
+        }
+    }
+}
+
+cleanUpOldMaterialEntities();
 
 /**
  * WebTablet
@@ -134,6 +151,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
     }
 
     this.cleanUpOldTablets();
+    cleanUpOldMaterialEntities();
 
     this.tabletEntityID = Overlays.addOverlay("model", tabletProperties);
 
@@ -180,6 +198,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
 
     this.homeButtonUnhighlightMaterial = Entities.addEntity({
         type: "Material",
+        name: TABLET_MATERIAL_ENTITY_NAME,
         materialURL: "materialData",
         localPosition: { x: 0.0, y: 0.0, z: 0.0 },
         priority: HIGH_PRIORITY,
@@ -199,6 +218,7 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
 
     this.homeButtonHighlightMaterial = Entities.addEntity({
         type: "Material",
+        name: TABLET_MATERIAL_ENTITY_NAME,
         materialURL: "materialData",
         localPosition: { x: 0.0, y: 0.0, z: 0.0 },
         priority: LOW_PRIORITY,
