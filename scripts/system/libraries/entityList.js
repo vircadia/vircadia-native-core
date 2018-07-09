@@ -44,7 +44,7 @@ EntityListTool = function() {
 
     var webView = null;
     webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-    webView.setVisible = function (value) { };
+    webView.setVisible = function(value){ };
 
     var filterInView = false;
     var searchRadius = 100;

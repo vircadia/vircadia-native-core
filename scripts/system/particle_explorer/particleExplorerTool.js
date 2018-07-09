@@ -14,7 +14,7 @@
 
 var PARTICLE_EXPLORER_HTML_URL = Script.resolvePath('particleExplorer.html');
 
-ParticleExplorerTool = function (createToolsWindow) {
+ParticleExplorerTool = function(createToolsWindow) {
     var that = {};
     that.activeParticleEntity = 0;
     that.updatedActiveParticleProperties = {};
