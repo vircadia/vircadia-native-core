@@ -1186,10 +1186,17 @@ SelectionDisplay = (function() {
             var localRotationZ = Quat.fromPitchYawRollDegrees(rotationDegrees, 0, 0);
             var rotationZ = Quat.multiply(rotation, localRotationZ);
             worldRotationZ = rotationZ;
+            
+            var selectionBoxGeometry = {
+                position: position,
+                rotation: rotation,
+                dimensions: dimensions
+            };
+            var isCameraInsideBox = isPointInsideBox(Camera.position, selectionBoxGeometry);
 
-            // in HMD we clamp the overlays to the bounding box for now so lasers can hit them
+            // in HMD if outside the bounding box clamp the overlays to the bounding box for now so lasers can hit them
             var maxHandleDimension = 0;
-            if (HMD.active) {
+            if (HMD.active && !isCameraInsideBox) {
                 maxHandleDimension = Math.max(dimensions.x, dimensions.y, dimensions.z);
             }
 
@@ -1438,12 +1445,6 @@ SelectionDisplay = (function() {
             var inModeRotate = isActiveTool(handleRotatePitchRing) || 
                                isActiveTool(handleRotateYawRing) || 
                                isActiveTool(handleRotateRollRing);
-            var selectionBoxGeometry = {
-                position: position,
-                rotation: rotation,
-                dimensions: dimensions
-            };
-            var isCameraInsideBox = isPointInsideBox(Camera.position, selectionBoxGeometry);
             selectionBoxGeometry.visible = !inModeRotate && !isCameraInsideBox;
             Overlays.editOverlay(selectionBox, selectionBoxGeometry);
 
