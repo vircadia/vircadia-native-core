@@ -1,11 +1,10 @@
 {
     "name": "Keyboard/Mouse to Actions",
     "channels": [
-        { "from": "Keyboard.A", "when": "Keyboard.RightMouseButton", "to": "Actions.LATERAL_LEFT" },
-        { "from": "Keyboard.D", "when": "Keyboard.RightMouseButton", "to": "Actions.LATERAL_RIGHT" },
-        { "from": "Keyboard.E", "to": "Actions.LATERAL_RIGHT" },
-        { "from": "Keyboard.Q", "to": "Actions.LATERAL_LEFT" },
-
+        { "from": "Keyboard.A", "when": ["Keyboard.RightMouseButton", "!Keyboard.Control"], "to": "Actions.LATERAL_LEFT" },
+        { "from": "Keyboard.D", "when": ["Keyboard.RightMouseButton", "!Keyboard.Control"], "to": "Actions.LATERAL_RIGHT" },
+        { "from": "Keyboard.E", "when": "!Keyboard.Control", "to": "Actions.LATERAL_RIGHT" },
+        { "from": "Keyboard.Q", "when": "!Keyboard.Control", "to": "Actions.LATERAL_LEFT" },
 
         { "comment" : "Mouse turn need to be small continuous increments",
           "from": { "makeAxis" : [
@@ -87,21 +86,41 @@
         },
 
         { "from": { "makeAxis" : [
-                ["Keyboard.A", "Keyboard.TouchpadLeft"],
-                ["Keyboard.D", "Keyboard.TouchpadRight"]
+                ["Keyboard.A"],
+                ["Keyboard.D"]
+            ]
+          },
+          "when": ["Application.CameraFirstPerson", "!Keyboard.Control"],
+          "to": "Actions.Yaw"
+        },
+        
+        { "from": { "makeAxis" : [
+                ["Keyboard.A"],
+                ["Keyboard.D"]
+            ]
+          },
+          "when": ["Application.CameraThirdPerson", "!Keyboard.Control"],
+          "to": "Actions.Yaw"
+        },
+        
+        { "from": { "makeAxis" : [
+                ["Keyboard.TouchpadLeft"],
+                ["Keyboard.TouchpadRight"]
             ]
           },
           "when": "Application.CameraFirstPerson",
           "to": "Actions.Yaw"
         },
+        
         { "from": { "makeAxis" : [
-                ["Keyboard.A", "Keyboard.TouchpadLeft"],
-                ["Keyboard.D", "Keyboard.TouchpadRight"]
+                ["Keyboard.TouchpadLeft"],
+                ["Keyboard.TouchpadRight"]
             ]
           },
           "when": "Application.CameraThirdPerson",
           "to": "Actions.Yaw"
         },
+        
         { "from": { "makeAxis" : ["Keyboard.MouseMoveLeft", "Keyboard.MouseMoveRight"] },
           "when": "Keyboard.RightMouseButton",
           "to": "Actions.Yaw",
