@@ -497,6 +497,7 @@ void Agent::executeScript() {
     DependencyManager::destroy<RecordingScriptingInterface>();
 
     setFinished(true);
+    emit finished();
 }
 
 QUuid Agent::getSessionUUID() const {
@@ -838,7 +839,6 @@ void Agent::aboutToFinish() {
 
     // destroy all other created dependencies
     DependencyManager::destroy<ScriptCache>();
-    DependencyManager::destroy<ScriptEngines>();
 
     DependencyManager::destroy<ResourceCacheSharedItems>();
     DependencyManager::destroy<SoundCache>();
