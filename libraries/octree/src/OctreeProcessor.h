@@ -28,7 +28,6 @@
 class OctreeProcessor : public QObject, public QEnableSharedFromThis<OctreeProcessor> {
     Q_OBJECT
 public:
-    OctreeProcessor();
     virtual ~OctreeProcessor();
 
     virtual char getMyNodeType() const = 0;
@@ -61,7 +60,7 @@ protected:
     virtual OctreePointer createTree() = 0;
 
     OctreePointer _tree;
-    bool _managedTree;
+    bool _managedTree { false };
 
     SimpleMovingAverage _elementsPerPacket;
     SimpleMovingAverage _entitiesPerPacket;

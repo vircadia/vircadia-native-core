@@ -30,6 +30,7 @@
 #include <QtCore/QFileSelector>
 #include <QtConcurrent/QtConcurrentRun>
 
+#include <QtGui/QClipboard>
 #include <QtGui/QScreen>
 #include <QtGui/QWindow>
 #include <QtGui/QDesktopServices>
@@ -129,6 +130,7 @@
 #include <SoundCache.h>
 #include <ui/TabletScriptingInterface.h>
 #include <ui/ToolbarScriptingInterface.h>
+#include <InteractiveWindow.h>
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
@@ -1072,6 +1074,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-Regular.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-Bold.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-SemiBold.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Cairo-SemiBold.ttf");
     _window->setWindowTitle("High Fidelity Interface");
 
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
@@ -2120,6 +2123,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             || ((rightHandPose.valid || lastRightHandPose.valid) && (rightHandPose != lastRightHandPose));
         lastLeftHandPose = leftHandPose;
         lastRightHandPose = rightHandPose;
+        properties["avatar_identity_requests_sent"] = DependencyManager::get<AvatarManager>()->getIdentityRequestsSent();
 
         UserActivityLogger::getInstance().logAction("stats", properties);
     });
@@ -2979,6 +2983,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
 
     surfaceContext->setContextProperty("Overlays", &_overlays);
     surfaceContext->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
+    surfaceContext->setContextProperty("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
     surfaceContext->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
     surfaceContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
     surfaceContext->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
@@ -4019,7 +4024,18 @@ void Application::mousePressEvent(QMouseEvent* event) {
         return;
     }
 
+#if defined(Q_OS_MAC)
+    // Fix for OSX right click dragging on window when coming from a native window
+    bool isFocussed = hasFocus();
+    if (!isFocussed && event->button() == Qt::MouseButton::RightButton) {
+        setFocus();
+        isFocussed = true;
+    }
+
+    if (isFocussed) {
+#else
     if (hasFocus()) {
+#endif
         if (_keyboardMouseDevice->isActive()) {
             _keyboardMouseDevice->mousePressEvent(event);
         }
@@ -6636,6 +6652,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
 
     qScriptRegisterMetaType(scriptEngine.data(), OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 
+    registerInteractiveWindowMetaType(scriptEngine.data());
+
     DependencyManager::get<PickScriptingInterface>()->registerMetaTypes(scriptEngine.data());
 
     // connect this script engines printedMessage signal to the global ScriptEngines these various messages
@@ -6983,7 +7001,9 @@ void Application::showAssetServerWidget(QString filePath) {
             DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", startUpload);
         } else {
             static const QUrl url("hifi/dialogs/TabletAssetServer.qml");
-            tablet->pushOntoStack(url);
+            if (!tablet->isPathLoaded(url)) {
+                tablet->pushOntoStack(url);
+            }
         }
     }
 
@@ -8300,6 +8320,16 @@ void Application::setAvatarOverrideUrl(const QUrl& url, bool save) {
 
 void Application::saveNextPhysicsStats(QString filename) {
     _physicsEngine->saveNextPhysicsStats(filename);
+}
+
+void Application::copyToClipboard(const QString& text) {
+    if (QThread::currentThread() != qApp->thread()) {
+        QMetaObject::invokeMethod(this, "copyToClipboard");
+        return;
+    }
+
+    // assume that the address is being copied because the user wants a shareable address
+    QApplication::clipboard()->setText(text);
 }
 
 #if defined(Q_OS_ANDROID)

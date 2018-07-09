@@ -19,6 +19,7 @@
 
 #include <functional>
 #include <memory>
+#include <chrono>
 
 #include <glm/glm.hpp>
 
@@ -145,13 +146,21 @@ protected:
     virtual AvatarSharedPointer parseAvatarData(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     virtual AvatarSharedPointer newSharedAvatar();
     virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
-    AvatarSharedPointer newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
+    AvatarSharedPointer newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer,
+        bool& isNew);
     virtual AvatarSharedPointer findAvatar(const QUuid& sessionUUID) const; // uses a QReadLocker on the hashLock
     virtual void removeAvatar(const QUuid& sessionUUID, KillAvatarReason removalReason = KillAvatarReason::NoReason);
 
     virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason);
 
     AvatarHash _avatarHash;
+    struct PendingAvatar {
+        std::chrono::steady_clock::time_point creationTime;
+        int transmits;
+        AvatarSharedPointer avatar;
+    };
+    using AvatarPendingHash = QHash<QUuid, PendingAvatar>;
+    AvatarPendingHash _pendingAvatars;
     mutable QReadWriteLock _hashLock;
 
 private:

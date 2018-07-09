@@ -11,38 +11,48 @@
 
 package io.highfidelity.hifiinterface;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
+import android.content.res.Configuration;
+import android.graphics.Point;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.Vibrator;
-import android.view.HapticFeedbackConstants;
-import android.view.WindowManager;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.FrameLayout;
+import android.widget.SlidingDrawer;
 
 import org.qtproject.qt5.android.QtLayout;
 import org.qtproject.qt5.android.QtSurface;
 import org.qtproject.qt5.android.bindings.QtActivity;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+import io.highfidelity.hifiinterface.fragment.WebViewFragment;
+
 /*import com.google.vr.cardboard.DisplaySynchronizer;
 import com.google.vr.cardboard.DisplayUtils;
 import com.google.vr.ndk.base.GvrApi;*/
-import android.graphics.Point;
-import android.content.res.Configuration;
-import android.content.pm.ActivityInfo;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.view.View;
-import android.widget.FrameLayout;
 
-import java.lang.reflect.Field;
-
-public class InterfaceActivity extends QtActivity {
+public class InterfaceActivity extends QtActivity implements WebViewFragment.OnWebViewInteractionListener {
 
     public static final String DOMAIN_URL = "url";
     private static final String TAG = "Interface";
+    private static final int WEB_DRAWER_RIGHT_MARGIN = 262;
+    private static final int WEB_DRAWER_BOTTOM_MARGIN = 150;
+    private static final int NORMAL_DPI = 160;
+
     private Vibrator mVibrator;
 
     //public static native void handleHifiURL(String hifiURLString);
@@ -58,6 +68,7 @@ public class InterfaceActivity extends QtActivity {
     private static boolean inVrMode;
 
     private boolean nativeEnterBackgroundCallEnqueued = false;
+    private SlidingDrawer webSlidingDrawer;
 //    private GvrApi gvrApi;
     // Opaque native pointer to the Application C++ object.
     // This object is owned by the InterfaceActivity instance and passed to the native methods.
@@ -118,6 +129,25 @@ public class InterfaceActivity extends QtActivity {
         });
         startActivity(new Intent(this, SplashActivity.class));
         mVibrator = (Vibrator) this.getSystemService(VIBRATOR_SERVICE);
+
+        FrameLayout mainLayout = findViewById(android.R.id.content);
+        LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        webSlidingDrawer = (SlidingDrawer) inflater.inflate(R.layout.web_drawer, mainLayout, false);
+        QtLayout qtLayout = (QtLayout) mainLayout.getChildAt(0);
+        QtLayout.LayoutParams layoutParams = new QtLayout.LayoutParams(webSlidingDrawer.getLayoutParams());
+        webSlidingDrawer.setOnDrawerCloseListener(() -> {
+            WebViewFragment webViewFragment = (WebViewFragment) getFragmentManager().findFragmentByTag("webViewFragment");
+            webViewFragment.close();
+        });
+        int widthPx = Math.max(size.x, size.y);
+        int heightPx = Math.min(size.x, size.y);
+
+        layoutParams.x = (int) (widthPx - WEB_DRAWER_RIGHT_MARGIN * getResources().getDisplayMetrics().xdpi / NORMAL_DPI);
+        layoutParams.y = (int) (heightPx - WEB_DRAWER_BOTTOM_MARGIN * getResources().getDisplayMetrics().ydpi / NORMAL_DPI);
+
+        layoutParams.resolveLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        qtLayout.addView(webSlidingDrawer, layoutParams);
+        webSlidingDrawer.setVisibility(View.GONE);
     }
 
     @Override
@@ -149,6 +179,7 @@ public class InterfaceActivity extends QtActivity {
         super.onResume();
         nativeEnterForeground();
         surfacesWorkaround();
+        keepInterfaceRunning = false;
         //gvrApi.resumeTracking();
     }
 
@@ -180,9 +211,16 @@ public class InterfaceActivity extends QtActivity {
         FrameLayout fl = findViewById(android.R.id.content);
         if (fl.getChildCount() > 0) {
             QtLayout qtLayout = (QtLayout) fl.getChildAt(0);
-            if (qtLayout.getChildCount() > 1) {
-                QtSurface s1 = (QtSurface) qtLayout.getChildAt(0);
-                QtSurface s2 = (QtSurface) qtLayout.getChildAt(1);
+            List<QtSurface> surfaces = new ArrayList<>();
+            for (int i = 0; i < qtLayout.getChildCount(); i++) {
+                Object ch = qtLayout.getChildAt(i);
+                if (ch instanceof QtSurface) {
+                    surfaces.add((QtSurface) ch);
+                }
+            }
+            if (surfaces.size() > 1) {
+                QtSurface s1 = surfaces.get(0);
+                QtSurface s2 = surfaces.get(1);
                 Integer subLayer1 = 0;
                 Integer subLayer2 = 0;
                 try {
@@ -239,11 +277,16 @@ public class InterfaceActivity extends QtActivity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         if (intent.hasExtra(DOMAIN_URL)) {
+            webSlidingDrawer.setVisibility(View.GONE);
             nativeGotoUrl(intent.getStringExtra(DOMAIN_URL));
         }
     }
 
     public void openAndroidActivity(String activityName, boolean backToScene) {
+        openAndroidActivity(activityName, backToScene, null);
+    }
+
+    public void openAndroidActivity(String activityName, boolean backToScene, HashMap args) {
         switch (activityName) {
             case "Home":
             case "Privacy Policy":
@@ -254,6 +297,25 @@ public class InterfaceActivity extends QtActivity {
                 startActivity(intent);
                 break;
             }
+            case "WebView":
+                runOnUiThread(() -> {
+                    webSlidingDrawer.setVisibility(View.VISIBLE);
+                    if (!webSlidingDrawer.isOpened()) {
+                        webSlidingDrawer.animateOpen();
+                    }
+                    if (args != null && args.containsKey(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL)) {
+                        WebViewFragment webViewFragment = (WebViewFragment) getFragmentManager().findFragmentByTag("webViewFragment");
+                        webViewFragment.loadUrl((String) args.get(WebViewActivity.WEB_VIEW_ACTIVITY_EXTRA_URL), true);
+                        webViewFragment.setToolbarVisible(true);
+                        webViewFragment.setCloseAction(() -> {
+                            if (webSlidingDrawer.isOpened()) {
+                                webSlidingDrawer.animateClose();
+                            }
+                            webSlidingDrawer.setVisibility(View.GONE);
+                        });
+                    }
+                });
+                break;
             default: {
                 Log.w(TAG, "Could not open activity by name " + activityName);
                 break;
@@ -277,5 +339,19 @@ public class InterfaceActivity extends QtActivity {
     @Override
     public void onBackPressed() {
         openAndroidActivity("Home", false);
+    }
+
+    @Override
+    public void processURL(String url) { }
+
+    @Override
+    public void onWebLoaded(String url, WebViewFragment.SafenessLevel safenessLevel) { }
+
+    @Override
+    public void onTitleReceived(String title) { }
+
+    @Override
+    public void onExpand() {
+        keepInterfaceRunning = true;
     }
 }
