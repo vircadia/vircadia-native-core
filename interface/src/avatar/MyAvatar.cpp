@@ -3206,19 +3206,13 @@ float MyAvatar::computeStandingHeightMode(const controller::Pose& head) {
     // init mode in meters to the current mode
     float modeInMeters = getCurrentStandingHeight();
     if (head.isValid()) {
-        float newReading = head.getTranslation().y;
-        int newReadingInCentimeters = glm::floor(newReading * CENTIMETERS_PER_METER);
-        _recentModeReadings.insert(newReadingInCentimeters);
-        RingBufferHistory<int>::Iterator recentModeReadingsIterator = _recentModeReadings.begin();
-        RingBufferHistory<int>::Iterator end = _recentModeReadings.end();
         std::map<int, int> freq;
-        while(recentModeReadingsIterator != end){
+        for(auto recentModeReadingsIterator = _recentModeReadings.begin(); recentModeReadingsIterator != _recentModeReadings.end(); ++recentModeReadingsIterator){
             freq[*recentModeReadingsIterator] += 1;
             if (freq[*recentModeReadingsIterator] > greatestFrequency) {
                 greatestFrequency = freq[*recentModeReadingsIterator];
                 mode = *recentModeReadingsIterator;
             }
-            recentModeReadingsIterator++;
         }
 
         modeInMeters = ((float)mode) / CENTIMETERS_PER_METER;
@@ -3226,7 +3220,7 @@ float MyAvatar::computeStandingHeightMode(const controller::Pose& head) {
             // if not greater check for a reset
             if (getResetMode() && qApp->isHMDMode()) {
                 setResetMode(false);
-                float resetModeInCentimeters = glm::floor((newReading - MODE_CORRECTION_FACTOR)*CENTIMETERS_PER_METER);
+                float resetModeInCentimeters = glm::floor((head.getTranslation().y - MODE_CORRECTION_FACTOR)*CENTIMETERS_PER_METER);
                 modeInMeters = (resetModeInCentimeters / CENTIMETERS_PER_METER);
                 _recentModeReadings.clear();
 
@@ -3237,7 +3231,6 @@ float MyAvatar::computeStandingHeightMode(const controller::Pose& head) {
             }
         }
     }
-    qCDebug(interfaceapp) << "the mode is " << modeInMeters << "the frequency is " << greatestFrequency;
     return modeInMeters;
 }
 
@@ -3557,7 +3550,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
                 activate(Horizontal);
             }
         }
-        
+
         if (!isActive(Vertical) && (shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
             activate(Vertical);
         }
