@@ -76,6 +76,12 @@ Agent::Agent(ReceivedMessage& message) :
     DependencyManager::set<recording::Recorder>();
     DependencyManager::set<recording::ClipCache>();
 
+    DependencyManager::set<ScriptCache>();
+    DependencyManager::set<ScriptEngines>(ScriptEngine::AGENT_SCRIPT);
+
+    DependencyManager::set<RecordingScriptingInterface>();
+    DependencyManager::set<UsersScriptingInterface>();
+
     // Needed to ensure the creation of the DebugDraw instance on the main thread
     DebugDraw::getInstance();
 
@@ -151,11 +157,6 @@ void Agent::handleAudioPacket(QSharedPointer<ReceivedMessage> message) {
 static const QString AGENT_LOGGING_NAME = "agent";
 
 void Agent::run() {
-    DependencyManager::set<ScriptCache>();
-    DependencyManager::set<ScriptEngines>(ScriptEngine::AGENT_SCRIPT);
-
-    DependencyManager::set<RecordingScriptingInterface>();
-    DependencyManager::set<UsersScriptingInterface>();
 
     // make sure we request our script once the agent connects to the domain
     auto nodeList = DependencyManager::get<NodeList>();
@@ -488,13 +489,14 @@ void Agent::executeScript() {
     avatarDataTimer->setTimerType(Qt::PreciseTimer);
     avatarDataTimer->start();
 
-    connect(_scriptEngine.data(), &ScriptEngine::doneRunning, this, [=]() {
-        Frame::clearFrameHandler(AUDIO_FRAME_TYPE);
-        Frame::clearFrameHandler(AVATAR_FRAME_TYPE);
-        DependencyManager::destroy<RecordingScriptingInterface>();
-        setFinished(true); });
+    _scriptEngine->run();
 
-    _scriptEngine->runInThread();
+    Frame::clearFrameHandler(AUDIO_FRAME_TYPE);
+    Frame::clearFrameHandler(AVATAR_FRAME_TYPE);
+
+    DependencyManager::destroy<RecordingScriptingInterface>();
+
+    setFinished(true);
 }
 
 QUuid Agent::getSessionUUID() const {
@@ -824,7 +826,6 @@ void Agent::aboutToFinish() {
 
     if (_scriptEngine) {
         _scriptEngine->stop();
-        _scriptEngine->waitTillDoneRunning();
     }
 
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
