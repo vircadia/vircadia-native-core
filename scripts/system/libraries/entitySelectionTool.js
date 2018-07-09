@@ -13,7 +13,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global SelectionManager, grid, rayPlaneIntersection, rayPlaneIntersection2, pushCommandForSelections,
+/* global SelectionManager, SelectionDisplay, grid, rayPlaneIntersection, rayPlaneIntersection2, pushCommandForSelections,
    getMainTabletIDs, getControllerWorldLocation */
 
 var SPACE_LOCAL = "local";
@@ -72,7 +72,9 @@ SelectionManager = (function() {
 
     subscribeToUpdateMessages();
 
-    var COLOR_ORANGE_HIGHLIGHT = { red: 255, green: 99, blue: 9 }
+    // disabling this for now as it is causing rendering issues with the other handle overlays
+    /*
+    var COLOR_ORANGE_HIGHLIGHT = { red: 255, green: 99, blue: 9 };
     var editHandleOutlineStyle = {
         outlineUnoccludedColor: COLOR_ORANGE_HIGHLIGHT,
         outlineOccludedColor: COLOR_ORANGE_HIGHLIGHT,
@@ -85,8 +87,8 @@ SelectionManager = (function() {
         outlineWidth: 3,
         isOutlineSmooth: true
     };
-    // disabling this for now as it is causing rendering issues with the other handle overlays
-    //Selection.enableListHighlight(HIGHLIGHT_LIST_NAME, editHandleOutlineStyle);
+    Selection.enableListHighlight(HIGHLIGHT_LIST_NAME, editHandleOutlineStyle);
+    */
 
     that.savedProperties = {};
     that.selections = [];
@@ -411,8 +413,6 @@ SelectionDisplay = (function() {
 
     var spaceMode = SPACE_LOCAL;
     var overlayNames = [];
-    var lastCameraPosition = Camera.getPosition();
-    var lastCameraOrientation = Camera.getOrientation();
     var lastControllerPoses = [
         getControllerWorldLocation(Controller.Standard.LeftHand, true),
         getControllerWorldLocation(Controller.Standard.RightHand, true)
@@ -432,7 +432,7 @@ SelectionDisplay = (function() {
 
     var ctrlPressed = false;
 
-    var replaceCollisionsAfterStretch = false;
+    that.replaceCollisionsAfterStretch = false;
 
     var handlePropertiesTranslateArrowCones = {
         shape: "Cone",
@@ -1068,9 +1068,6 @@ SelectionDisplay = (function() {
     that.select = function(entityID, event) {
         var properties = Entities.getEntityProperties(SelectionManager.selections[0]);
 
-        lastCameraPosition = Camera.getPosition();
-        lastCameraOrientation = Camera.getOrientation();
-
         if (event !== false) {
             var wantDebug = false;
             if (wantDebug) {
@@ -1668,7 +1665,7 @@ SelectionDisplay = (function() {
 
             translateXZTool.pickPlanePosition = pickResult.intersection;
             translateXZTool.greatestDimension = Math.max(Math.max(SelectionManager.worldDimensions.x, 
-                                                                  SelectionManager.worldDimensions.y), 
+                                                                  SelectionManager.worldDimensions.y),
                                                                   SelectionManager.worldDimensions.z);
             translateXZTool.startingDistance = Vec3.distance(pickRay.origin, SelectionManager.position);
             translateXZTool.startingElevation = translateXZTool.elevation(pickRay.origin, translateXZTool.pickPlanePosition);
@@ -1818,23 +1815,27 @@ SelectionDisplay = (function() {
     function addHandleTranslateTool(overlay, mode, direction) {
         var pickNormal = null;
         var lastPick = null;
+        var initialPosition = null;
         var projectionVector = null;
         var previousPickRay = null;
         addHandleTool(overlay, {
             mode: mode,
             onBegin: function(event, pickRay, pickResult) {
+                var axisVector;
                 if (direction === TRANSLATE_DIRECTION.X) {
-                    pickNormal = { x: 0, y: 1, z: 1 };
+                    axisVector = { x: 1, y: 0, z: 0 };
                 } else if (direction === TRANSLATE_DIRECTION.Y) {
-                    pickNormal = { x: 1, y: 0, z: 1 };
+                    axisVector = { x: 0, y: 1, z: 0 };
                 } else if (direction === TRANSLATE_DIRECTION.Z) {
-                    pickNormal = { x: 1, y: 1, z: 0 };
+                    axisVector = { x: 0, y: 0, z: 1 };
                 }
 
                 var rotation = spaceMode === SPACE_LOCAL ? SelectionManager.localRotation : SelectionManager.worldRotation;
-                pickNormal = Vec3.multiplyQbyV(rotation, pickNormal);
+                axisVector = Vec3.multiplyQbyV(rotation, axisVector);
+                pickNormal = Vec3.cross(Vec3.cross(pickRay.direction, axisVector), axisVector);
 
                 lastPick = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, pickNormal);
+                initialPosition = SelectionManager.worldPosition;
     
                 SelectionManager.saveProperties();
                 that.resetPreviousHandleColor();
@@ -1869,7 +1870,7 @@ SelectionDisplay = (function() {
                     pickRay = previousPickRay;
                 }
     
-                var newIntersection = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, pickNormal);
+                var newIntersection = rayPlaneIntersection(pickRay, initialPosition, pickNormal);
                 var vector = Vec3.subtract(newIntersection, lastPick);
                 
                 if (direction === TRANSLATE_DIRECTION.X) {
@@ -1885,7 +1886,8 @@ SelectionDisplay = (function() {
 
                 var dotVector = Vec3.dot(vector, projectionVector);
                 vector = Vec3.multiply(dotVector, projectionVector);
-                vector = grid.snapToGrid(vector);
+                var gridOrigin = grid.getOrigin();
+                vector = Vec3.subtract(grid.snapToGrid(Vec3.sum(vector, gridOrigin)), gridOrigin);
                 
                 var wantDebug = false;
                 if (wantDebug) {
@@ -2185,8 +2187,8 @@ SelectionDisplay = (function() {
                 newDimensions = Vec3.sum(initialDimensions, changeInDimensions);
             }
     
-            var minimumDimension = directionEnum === STRETCH_DIRECTION.ALL ? STRETCH_ALL_MINIMUM_DIMENSION : 
-                                                                             STRETCH_MINIMUM_DIMENSION; 
+            var minimumDimension = directionEnum ===
+                STRETCH_DIRECTION.ALL ? STRETCH_ALL_MINIMUM_DIMENSION : STRETCH_MINIMUM_DIMENSION; 
             if (newDimensions.x < minimumDimension) {
                 newDimensions.x = minimumDimension;
                 changeInDimensions.x = minimumDimension - initialDimensions.x;
@@ -2280,8 +2282,7 @@ SelectionDisplay = (function() {
             selectedHandle = handleScaleRTFCube;
         }
         offset = Vec3.multiply(directionVector, NEGATE_VECTOR);
-        var tool = makeStretchTool(mode, STRETCH_DIRECTION.ALL, directionVector, 
-                                   directionVector, offset, null, selectedHandle);
+        var tool = makeStretchTool(mode, STRETCH_DIRECTION.ALL, directionVector, directionVector, offset, null, selectedHandle);
         return addHandleTool(overlay, tool);
     }
 
