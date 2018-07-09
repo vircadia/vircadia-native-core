@@ -180,18 +180,67 @@ SelectionManager = (function() {
         that.selections = [];
         that._update(true);
     };
+    
+    that.addChildrenEntities = function(parentEntityID, entityList) {
+        var children = Entities.getChildrenIDs(parentEntityID);
+        for (var i = 0; i < children.length; i++) {
+            var childID = children[i];
+            if (entityList.indexOf(childID) < 0) {
+                entityList.push(childID);
+            }
+            that.addChildrenEntities(childID, entityList);
+        }
+    };
 
     that.duplicateSelection = function() {
+        var entitiesToDuplicate = [];
         var duplicatedEntityIDs = [];
-        Object.keys(that.savedProperties).forEach(function(otherEntityID) {
-            var properties = that.savedProperties[otherEntityID];
+        var duplicatedChildrenWithOldParents = [];
+        var originalEntityToNewEntityID = [];
+        
+        // build list of entities to duplicate by including any unselected children of selected parent entities
+        Object.keys(that.savedProperties).forEach(function(originalEntityID) {
+            if (entitiesToDuplicate.indexOf(originalEntityID) < 0) {
+                entitiesToDuplicate.push(originalEntityID);
+            }
+            that.addChildrenEntities(originalEntityID, entitiesToDuplicate);
+        });
+        
+        // duplicate entities from above and store their original to new entity mappings and children needing re-parenting
+        for (var i = 0; i < entitiesToDuplicate.length; i++) {
+            var originalEntityID = entitiesToDuplicate[i];
+            var properties = that.savedProperties[originalEntityID];
+            if (properties === undefined) {
+                properties = Entities.getEntityProperties(originalEntityID);
+            }
             if (!properties.locked && (!properties.clientOnly || properties.owningAvatarID === MyAvatar.sessionUUID)) {
+                var newEntityID = Entities.addEntity(properties);
                 duplicatedEntityIDs.push({
-                    entityID: Entities.addEntity(properties),
+                    entityID: newEntityID,
                     properties: properties
                 });
+                if (properties.parentID !== Uuid.NULL) {
+                    duplicatedChildrenWithOldParents[newEntityID] = properties.parentID;
+                }
+                originalEntityToNewEntityID[originalEntityID] = newEntityID;
+            }
+        }
+        
+        // re-parent duplicated children to the duplicate entities of their original parents (if they were duplicated)
+        Object.keys(duplicatedChildrenWithOldParents).forEach(function(childIDNeedingNewParent) {
+            var originalParentID = duplicatedChildrenWithOldParents[childIDNeedingNewParent];
+            var newParentID = originalEntityToNewEntityID[originalParentID];
+            if (newParentID) {
+                Entities.editEntity(childIDNeedingNewParent, { parentID: newParentID });
+                for (var i = 0; i < duplicatedEntityIDs.length; i++) {
+                    var duplicatedEntity = duplicatedEntityIDs[i];
+                    if (duplicatedEntity.entityID === childIDNeedingNewParent) {
+                        duplicatedEntity.properties.parentID = newParentID;
+                    }
+                }
             }
         });
+        
         return duplicatedEntityIDs;
     };
 
