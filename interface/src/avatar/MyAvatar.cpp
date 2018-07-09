@@ -112,14 +112,14 @@ MyAvatar::MyAvatar(QThread* thread) :
     _hmdSensorMatrix(),
     _hmdSensorOrientation(),
     _hmdSensorPosition(),
+    _recentModeReadings(MODE_READINGS_RING_BUFFER_SIZE),
     _bodySensorMatrix(),
     _goToPending(false),
     _goToPosition(),
     _goToOrientation(),
     _prevShouldDrawHead(true),
     _audioListenerMode(FROM_HEAD),
-    _hmdAtRestDetector(glm::vec3(0), glm::quat()),
-    _recentModeReadings(MODE_READINGS_RING_BUFFER_SIZE)
+    _hmdAtRestDetector(glm::vec3(0), glm::quat())
 {
 
     // give the pointer to our head to inherited _headData variable from AvatarData
