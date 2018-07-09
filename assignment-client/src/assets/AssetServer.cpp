@@ -342,6 +342,7 @@ void AssetServer::aboutToFinish() {
     while (_pendingBakes.size() > 0) {
         QCoreApplication::processEvents();
     }
+    emit finished();
 }
 
 void AssetServer::run() {

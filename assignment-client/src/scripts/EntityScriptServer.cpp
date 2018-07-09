@@ -582,4 +582,6 @@ void EntityScriptServer::aboutToFinish() {
         _codec->releaseEncoder(_encoder);
         _encoder = nullptr;
     }
+
+    emit finished();
 }

@@ -335,6 +335,7 @@ void Agent::scriptRequestFinished() {
         }
 
         setFinished(true);
+        emit finished();
     }
 
     request->deleteLater();
@@ -839,6 +840,7 @@ void Agent::aboutToFinish() {
 
     // destroy all other created dependencies
     DependencyManager::destroy<ScriptCache>();
+    DependencyManager::destroy<ScriptEngines>();
 
     DependencyManager::destroy<ResourceCacheSharedItems>();
     DependencyManager::destroy<SoundCache>();

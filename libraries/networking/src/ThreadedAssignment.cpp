@@ -66,8 +66,6 @@ void ThreadedAssignment::setFinished(bool isFinished) {
 
             // call our virtual aboutToFinish method - this gives the ThreadedAssignment subclass a chance to cleanup
             aboutToFinish();
-
-            //emit finished();
         }
     }
 }
