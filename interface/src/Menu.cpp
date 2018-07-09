@@ -158,46 +158,6 @@ Menu::Menu() {
     // Edit > Reload All Content
     addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
 
-
-    MenuWrapper* avatarMenu = addMenu("Avatar");
-    auto avatarManager = DependencyManager::get<AvatarManager>();
-    auto avatar = avatarManager->getMyAvatar();
-
-     // Avatar > Size
-    MenuWrapper* avatarSizeMenu = avatarMenu->addMenu("Size");
-    // Avatar > Size > Increase
-    addActionToQMenuAndActionHash(avatarSizeMenu,
-        MenuOption::IncreaseAvatarSize,
-        0, // QML Qt::Key_Plus,
-        avatar.get(), SLOT(increaseSize()));
-
-    // Avatar > Size > Decrease
-    addActionToQMenuAndActionHash(avatarSizeMenu,
-        MenuOption::DecreaseAvatarSize,
-        0, // QML Qt::Key_Minus,
-        avatar.get(), SLOT(decreaseSize()));
-
-    // Avatar > Size > Reset
-    addActionToQMenuAndActionHash(avatarSizeMenu,
-        MenuOption::ResetAvatarSize,
-        0, // QML Qt::Key_Equal,
-        avatar.get(), SLOT(resetSize()));
-
-    // Avatar > Reset Sensors
-    addActionToQMenuAndActionHash(avatarMenu,
-        MenuOption::ResetSensors,
-        0, // QML Qt::Key_Apostrophe,
-        qApp, SLOT(resetSensors()));
-
-    // Avatar > Attachments...
-    action = addActionToQMenuAndActionHash(avatarMenu, MenuOption::Attachments);
-    connect(action, &QAction::triggered, [] {
-        qApp->showDialog(QString("hifi/dialogs/AttachmentsDialog.qml"),
-                     QString("hifi/tablet/TabletAttachmentsDialog.qml"), "AttachmentsDialog");
-    });
-
-    auto avatarBookmarks = DependencyManager::get<AvatarBookmarks>();
-    avatarBookmarks->setupMenus(this, avatarMenu);
     // Display menu ----------------------------------
     // FIXME - this is not yet matching Alan's spec because it doesn't have
     // menus for "2D"/"3D" - we need to add support for detecting the appropriate
@@ -313,13 +273,6 @@ Menu::Menu() {
     connect(action, &QAction::triggered, [] {
         qApp->showDialog(QString("hifi/dialogs/GraphicsPreferencesDialog.qml"),
             QString("hifi/tablet/TabletGraphicsPreferences.qml"), "GraphicsPreferencesDialog");
-    });
-
-    // Settings > Avatar...
-    action = addActionToQMenuAndActionHash(settingsMenu, "Avatar...");
-    connect(action, &QAction::triggered, [] {
-        qApp->showDialog(QString("hifi/dialogs/AvatarPreferencesDialog.qml"),
-            QString("hifi/tablet/TabletAvatarPreferences.qml"), "AvatarPreferencesDialog");
     });
 
     // Settings > Developer Menu
@@ -579,6 +532,9 @@ Menu::Menu() {
     connect(action, &QAction::triggered, [this]{ Avatar::setShowMyLookAtVectors(isOptionChecked(MenuOption::ShowMyLookAtVectors)); });
     action = addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowOtherLookAtVectors, 0, false);
     connect(action, &QAction::triggered, [this]{ Avatar::setShowOtherLookAtVectors(isOptionChecked(MenuOption::ShowOtherLookAtVectors)); });
+
+    auto avatarManager = DependencyManager::get<AvatarManager>();
+    auto avatar = avatarManager->getMyAvatar();
 
     action = addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableLookAtSnapping, 0, true);
     connect(action, &QAction::triggered, [this, avatar]{

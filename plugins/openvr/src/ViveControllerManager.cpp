@@ -48,7 +48,6 @@ const quint64 CALIBRATION_TIMELAPSE = 1 * USECS_PER_SECOND;
 static const char* MENU_PARENT = "Avatar";
 static const char* MENU_NAME = "Vive Controllers";
 static const char* MENU_PATH = "Avatar" ">" "Vive Controllers";
-static const char* RENDER_CONTROLLERS = "Render Hand Controllers";
 
 static const int MIN_HEAD = 1;
 static const int MIN_PUCK_COUNT = 2;
@@ -205,11 +204,6 @@ bool ViveControllerManager::activate() {
         return false;
     }
 
-    _container->addMenu(MENU_PATH);
-    _container->addMenuItem(PluginType::INPUT_PLUGIN, MENU_PATH, RENDER_CONTROLLERS,
-        [this](bool clicked) { this->setRenderControllers(clicked); },
-        true, true);
-
     enableOpenVrKeyboard(_container);
 
     // register with UserInputMapper
@@ -223,9 +217,6 @@ void ViveControllerManager::deactivate() {
     InputPlugin::deactivate();
 
     disableOpenVrKeyboard();
-
-    _container->removeMenuItem(MENU_NAME, RENDER_CONTROLLERS);
-    _container->removeMenu(MENU_PATH);
 
     if (_system) {
         _container->makeRenderingContextCurrent();

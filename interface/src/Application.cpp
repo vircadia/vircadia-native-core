@@ -7640,7 +7640,6 @@ void Application::toggleEntityScriptServerLogDialog() {
 
 void Application::loadAddAvatarBookmarkDialog() const {
     auto avatarBookmarks = DependencyManager::get<AvatarBookmarks>();
-    avatarBookmarks->addBookmark();
 }
 
 void Application::loadAvatarBrowser() const {

@@ -27,6 +27,9 @@ SpinBox {
     property string suffix: ""
     property string labelInside: ""
     property color colorLabelInside: hifi.colors.white
+    property color backgroundColor: isLightColorScheme
+                                    ? (spinBox.activeFocus ? hifi.colors.white : hifi.colors.lightGray)
+                                    : (spinBox.activeFocus ? hifi.colors.black : hifi.colors.baseGrayShadow)
     property real controlHeight: height + (spinBoxLabel.visible ? spinBoxLabel.height + spinBoxLabel.anchors.bottomMargin : 0)
     property int decimals: 2;
     property real factor: Math.pow(10, decimals)
@@ -55,10 +58,14 @@ SpinBox {
 
     onValueModified: realValue = value/factor
     onValueChanged: realValue = value/factor
+    onRealValueChanged: {
+        var newValue = Math.round(realValue*factor);
+        if(value != newValue) {
+            value = newValue;
+        }
+    }
 
     stepSize: realStepSize*factor
-    value: Math.round(realValue*factor)
-
     to : realTo*factor
     from : realFrom*factor
 
@@ -69,9 +76,7 @@ SpinBox {
     y: spinBoxLabel.visible ? spinBoxLabel.height + spinBoxLabel.anchors.bottomMargin : 0
 
     background: Rectangle {
-        color: isLightColorScheme
-               ? (spinBox.activeFocus ? hifi.colors.white : hifi.colors.lightGray)
-               : (spinBox.activeFocus ? hifi.colors.black : hifi.colors.baseGrayShadow)
+        color: backgroundColor
         border.color: spinBoxLabelInside.visible ? spinBoxLabelInside.color : hifi.colors.primaryHighlight
         border.width: spinBox.activeFocus ? spinBoxLabelInside.visible ? 2 : 1 : 0
     }

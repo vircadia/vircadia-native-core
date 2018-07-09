@@ -1591,18 +1591,26 @@ void MyAvatar::removeAvatarEntities() {
 QVariantList MyAvatar::getAvatarEntitiesVariant() {
     QVariantList avatarEntitiesData;
     QScriptEngine scriptEngine;
-    forEachChild([&](SpatiallyNestablePointer child) {
-        if (child->getNestableType() == NestableType::Entity) {
-            auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(child);
-            if (modelEntity) {
-                QVariantMap avatarEntityData;
-                EntityItemProperties entityProperties = modelEntity->getProperties();
-                QScriptValue scriptProperties = EntityItemPropertiesToScriptValue(&scriptEngine, entityProperties);
-                avatarEntityData["properties"] = scriptProperties.toVariant();
-                avatarEntitiesData.append(QVariant(avatarEntityData));
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+    if (entityTree) {
+        AvatarEntityMap avatarEntities = getAvatarEntityData();
+        for (auto entityID : avatarEntities.keys()) {
+            auto entity = entityTree->findEntityByID(entityID);
+            if (!entity) {
+                continue;
             }
+            QVariantMap avatarEntityData;
+            EncodeBitstreamParams params;
+            auto desiredProperties = entity->getEntityProperties(params);
+            desiredProperties += PROP_LOCAL_POSITION;
+            desiredProperties += PROP_LOCAL_ROTATION;
+            EntityItemProperties entityProperties = entity->getProperties(desiredProperties);
+            QScriptValue scriptProperties = EntityItemPropertiesToScriptValue(&scriptEngine, entityProperties);
+            avatarEntityData["properties"] = scriptProperties.toVariant();
+            avatarEntitiesData.append(QVariant(avatarEntityData));
         }
-    });
+    }
     return avatarEntitiesData;
 }
 
@@ -1979,7 +1987,6 @@ QUrl MyAvatar::getAnimGraphUrl() const {
 }
 
 void MyAvatar::setAnimGraphUrl(const QUrl& url) {
-
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "setAnimGraphUrl", Q_ARG(QUrl, url));
         return;
@@ -1988,6 +1995,9 @@ void MyAvatar::setAnimGraphUrl(const QUrl& url) {
     if (_currentAnimGraphUrl.get() == url) {
         return;
     }
+
+    emit animGraphUrlChanged(url);
+
     destroyAnimGraph();
     _skeletonModel->reset(); // Why is this necessary? Without this, we crash in the next render.
 
@@ -2812,6 +2822,7 @@ void MyAvatar::setCollisionsEnabled(bool enabled) {
     }
 
     _characterController.setCollisionless(!enabled);
+    emit collisionsEnabledChanged(enabled);
 }
 
 bool MyAvatar::getCollisionsEnabled() {
