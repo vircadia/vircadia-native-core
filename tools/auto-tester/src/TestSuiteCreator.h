@@ -19,6 +19,8 @@ class TestSuiteCreator {
 public:
     void createTestSuite(const QString& testDirectory);
     QDomElement processDirectory(const QString& directory, const QDomElement& element);
+    QDomElement processTest(const QString& fullDirectory, const QString& test, const QDomElement& element);
+
 private:
     QDomDocument document;
 };
