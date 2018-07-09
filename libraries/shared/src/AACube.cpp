@@ -293,7 +293,7 @@ bool AACube::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& 
     float minDistance = FLT_MAX;
     BoxFace minFace;
     glm::vec3 minNormal;
-    std::pair<float, float> possibleDistances;
+    glm::vec2 possibleDistances;
     float a, b, c;
 
     // Solve the intersection for each face of the cube.  As we go, keep track of the smallest, positive, real distance
@@ -309,8 +309,8 @@ bool AACube::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& 
                 possibleDistances = { FLT_MAX, FLT_MAX };
                 if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
                     bool hit = false;
-                    checkPossibleParabolicIntersection(possibleDistances.first, i, minDistance, origin, velocity, acceleration, hit);
-                    checkPossibleParabolicIntersection(possibleDistances.second, i, minDistance, origin, velocity, acceleration, hit);
+                    checkPossibleParabolicIntersection(possibleDistances.x, i, minDistance, origin, velocity, acceleration, hit);
+                    checkPossibleParabolicIntersection(possibleDistances.y, i, minDistance, origin, velocity, acceleration, hit);
                     if (hit) {
                         minFace = BoxFace(2 * i);
                         minNormal = glm::vec3(0.0f);
@@ -325,8 +325,8 @@ bool AACube::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& 
                 possibleDistances = { FLT_MAX, FLT_MAX };
                 if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
                     bool hit = false;
-                    checkPossibleParabolicIntersection(possibleDistances.first, i, minDistance, origin, velocity, acceleration, hit);
-                    checkPossibleParabolicIntersection(possibleDistances.second, i, minDistance, origin, velocity, acceleration, hit);
+                    checkPossibleParabolicIntersection(possibleDistances.x, i, minDistance, origin, velocity, acceleration, hit);
+                    checkPossibleParabolicIntersection(possibleDistances.y, i, minDistance, origin, velocity, acceleration, hit);
                     if (hit) {
                         minFace = BoxFace(2 * i + 1);
                         minNormal = glm::vec3(0.0f);
@@ -341,8 +341,8 @@ bool AACube::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& 
                 possibleDistances = { FLT_MAX, FLT_MAX };
                 if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
                     bool hit = false;
-                    checkPossibleParabolicIntersection(possibleDistances.first, i, minDistance, origin, velocity, acceleration, hit);
-                    checkPossibleParabolicIntersection(possibleDistances.second, i, minDistance, origin, velocity, acceleration, hit);
+                    checkPossibleParabolicIntersection(possibleDistances.x, i, minDistance, origin, velocity, acceleration, hit);
+                    checkPossibleParabolicIntersection(possibleDistances.y, i, minDistance, origin, velocity, acceleration, hit);
                     if (hit) {
                         minFace = BoxFace(2 * i);
                         minNormal = glm::vec3(0.0f);
@@ -355,8 +355,8 @@ bool AACube::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& 
                 possibleDistances = { FLT_MAX, FLT_MAX };
                 if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
                     bool hit = false;
-                    checkPossibleParabolicIntersection(possibleDistances.first, i, minDistance, origin, velocity, acceleration, hit);
-                    checkPossibleParabolicIntersection(possibleDistances.second, i, minDistance, origin, velocity, acceleration, hit);
+                    checkPossibleParabolicIntersection(possibleDistances.x, i, minDistance, origin, velocity, acceleration, hit);
+                    checkPossibleParabolicIntersection(possibleDistances.y, i, minDistance, origin, velocity, acceleration, hit);
                     if (hit) {
                         minFace = BoxFace(2 * i + 1);
                         minNormal = glm::vec3(0.0f);

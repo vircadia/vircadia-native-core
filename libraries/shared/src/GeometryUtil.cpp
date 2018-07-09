@@ -1,4 +1,4 @@
-//
+﻿//
 //  GeometryUtil.cpp
 //  libraries/shared/src
 //
@@ -15,6 +15,8 @@
 #include <cstring>
 #include <cmath>
 #include <bitset>
+#include <complex>
+#include <qmath.h>
 #include <glm/gtx/quaternion.hpp>
 
 #include "NumericalConstants.h"
@@ -725,23 +727,68 @@ void checkPossibleParabolicIntersectionWithZPlane(float t, float& minDistance,
     }
 }
 
+// Intersect with the plane z = 0 and make sure the intersection is within dimensions
 bool findParabolaRectangleIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
-    const glm::quat& rotation, const glm::vec3& position, const glm::vec2& dimensions, float& parabolicDistance) {
-    glm::quat inverseRot = glm::inverse(rotation);
-    glm::vec3 localOrigin = inverseRot * (origin - position);
-    glm::vec3 localVelocity = inverseRot * velocity;
-    glm::vec3 localAcceleration = inverseRot * acceleration;
-
+    const glm::vec2& dimensions, float& parabolicDistance) {
     glm::vec2 localCorner = -0.5f * dimensions;
 
     float minDistance = FLT_MAX;
-    float a = 0.5f * localAcceleration.z;
-    float b = localVelocity.z;
-    float c = localOrigin.z;
-    std::pair<float, float> possibleDistances = { FLT_MAX, FLT_MAX };
+    float a = 0.5f * acceleration.z;
+    float b = velocity.z;
+    float c = origin.z;
+    glm::vec2 possibleDistances = { FLT_MAX, FLT_MAX };
     if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
-        checkPossibleParabolicIntersectionWithZPlane(possibleDistances.first, minDistance, localOrigin, localVelocity, localAcceleration, localCorner, dimensions);
-        checkPossibleParabolicIntersectionWithZPlane(possibleDistances.second, minDistance, localOrigin, localVelocity, localAcceleration, localCorner, dimensions);
+        checkPossibleParabolicIntersectionWithZPlane(possibleDistances.x, minDistance, origin, velocity, acceleration, localCorner, dimensions);
+        checkPossibleParabolicIntersectionWithZPlane(possibleDistances.y, minDistance, origin, velocity, acceleration, localCorner, dimensions);
+    }
+    if (minDistance < FLT_MAX) {
+        parabolicDistance = minDistance;
+        return true;
+    }
+    return false;
+}
+
+bool findParabolaSphereIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+    const glm::vec3& center, float radius, float& parabolicDistance) {
+    glm::vec3 localCenter = center - origin;
+    float radiusSquared = radius * radius;
+
+    // Get the normal of the plane, the cross product of two vectors on the plane
+    // Assumes: velocity and acceleration != 0 and normalize(velocity) != normalize(acceleration)
+    glm::vec3 normal = glm::normalize(glm::cross(velocity, acceleration));
+
+    // Project vector from plane to sphere center onto the normal
+    float distance = glm::dot(localCenter, normal);
+    // Exit early if the sphere doesn't intersect the plane defined by the parabola
+    if (fabsf(distance) > radius) {
+        return false;
+    }
+
+    glm::vec3 circleCenter = center - distance * normal;
+    float circleRadius = sqrtf(radiusSquared - distance * distance);
+    glm::vec3 q = glm::normalize(acceleration);
+    glm::vec3 p = glm::cross(normal, q);
+
+    float a1 = glm::length(acceleration) * 0.5f;
+    float b1 = glm::dot(velocity, q);
+    float c1 = glm::dot(origin - circleCenter, q);
+    float a2 = glm::dot(velocity, p);
+    float b2 = glm::dot(origin - circleCenter, p);
+
+    float a = a1 * a1;
+    float b = 2.0f * a1 * b1;
+    float c = 2.0f * a1 * c1 + b1 * b1 + a2 * a2;
+    float d = 2.0f * b1 * c1 + 2.0f * a2 * b2;
+    float e = c1 * c1 + b2 * b2 - circleRadius * circleRadius;
+
+    float minDistance = FLT_MAX;
+    glm::vec4 possibleDistances(FLT_MAX);
+    if (computeRealQuarticRoots(a, b, c, d, e, possibleDistances)) {
+        for (int i = 0; i < 4; i++) {
+            if (possibleDistances[i] < minDistance && possibleDistances[i] > 0.0f) {
+                minDistance = possibleDistances[i];
+            }
+        }
     }
     if (minDistance < FLT_MAX) {
         parabolicDistance = minDistance;
@@ -981,16 +1028,147 @@ void generateBoundryLinesForDop14(const std::vector<float>& dots, const glm::vec
     }
 }
 
-bool computeRealQuadraticRoots(float a, float b, float c, std::pair<float, float>& roots) {
+bool computeRealQuadraticRoots(float a, float b, float c, glm::vec2& roots) {
     float discriminant = b * b - 4.0f * a * c;
     if (discriminant < 0.0f) {
         return false;
     } else if (discriminant == 0.0f) {
-        roots.first = (-b + sqrtf(discriminant)) / (2.0f * a);
+        roots.x = (-b + sqrtf(discriminant)) / (2.0f * a);
     } else {
         float discriminantRoot = sqrtf(discriminant);
-        roots.first = (-b + discriminantRoot) / (2.0f * a);
-        roots.second = (-b - discriminantRoot) / (2.0f * a);
+        roots.x = (-b + discriminantRoot) / (2.0f * a);
+        roots.y = (-b - discriminantRoot) / (2.0f * a);
     }
     return true;
+}
+
+// The following functions provide an analytical solution to a quartic equation, adapted from the solution here: https://github.com/sasamil/Quartic
+unsigned int solveP3(float *x, float a, float b, float c) {
+    float a2 = a * a;
+    float q = (a2 - 3.0f * b) / 9.0f;
+    float r = (a * (2.0f * a2 - 9.0f * b) + 27.0f * c) / 54.0f;
+    float r2 = r * r;
+    float q3 = q * q * q;
+    float A, B;
+    if (r2 < q3) {
+        float t = r / sqrtf(q3);
+        t = glm::clamp(t, -1.0f, 1.0f);
+        t = acosf(t);
+        a /= 3.0f;
+        q = -2.0f * sqrtf(q);
+        x[0] = q * cosf(t / 3.0f) - a;
+        x[1] = q * cosf((t + 2.0f * M_PI) / 3.0f) - a;
+        x[2] = q * cosf((t - 2.0f * M_PI) / 3.0f) - a;
+        return 3;
+    } else {
+        A = -powf(fabsf(r) + sqrtf(r2 - q3), 1.0f / 3.0f);
+        if (r < 0) {
+            A = -A;
+        }
+        B = (A == 0.0f ? 0.0f : q / A);
+
+        a /= 3.0f;
+        x[0] = (A + B) - a;
+        x[1] = -0.5f * (A + B) - a;
+        x[2] = 0.5f * sqrtf(3.0f) * (A - B);
+        if (fabsf(x[2]) < EPSILON) {
+            x[2] = x[1];
+            return 2;
+        }
+
+        return 1;
+    }
+}
+
+bool solve_quartic(float a, float b, float c, float d, glm::vec4& roots) {
+    float a3 = -b;
+    float b3 = a * c - 4.0f *d;
+    float c3 = -a * a * d - c * c + 4.0f * b * d;
+
+    float px3[3];
+    unsigned int iZeroes = solveP3(px3, a3, b3, c3);
+
+    float q1, q2, p1, p2, D, sqD, y;
+
+    y = px3[0];
+    if (iZeroes != 1) {
+        if (fabs(px3[1]) > fabs(y)) {
+            y = px3[1];
+        }
+        if (fabs(px3[2]) > fabs(y)) {
+            y = px3[2];
+        }
+    }
+
+    D = y * y - 4.0f * d;
+    if (fabs(D) < EPSILON) {
+        q1 = q2 = 0.5f * y;
+        D = a * a - 4.0f * (b - y);
+        if (fabs(D) < EPSILON) {
+            p1 = p2 = 0.5f * a;
+        } else {
+            sqD = sqrt(D);
+            p1 = 0.5f * (a + sqD);
+            p2 = 0.5f * (a - sqD);
+        }
+    } else {
+        sqD = sqrt(D);
+        q1 = 0.5f * (y + sqD);
+        q2 = 0.5f * (y - sqD);
+        p1 = (a * q1 - c) / (q1 - q2);
+        p2 = (c - a * q2) / (q1 - q2);
+    }
+
+    std::complex<float> x1, x2, x3, x4;
+    D = p1 * p1 - 4.0f * q1;
+    if (D < 0.0f) {
+        x1.real(-0.5f * p1);
+        x1.imag(0.5f * sqrt(-D));
+        x2 = std::conj(x1);
+    } else {
+        sqD = sqrt(D);
+        x1.real(0.5f * (-p1 + sqD));
+        x2.real(0.5f * (-p1 - sqD));
+    }
+
+    D = p2 * p2 - 4.0f * q2;
+    if (D < 0.0f) {
+        x3.real(-0.5f * p2);
+        x3.imag(0.5f * sqrt(-D));
+        x4 = std::conj(x3);
+    } else {
+        sqD = sqrt(D);
+        x3.real(0.5f * (-p2 + sqD));
+        x4.real(0.5f * (-p2 - sqD));
+    }
+
+    bool hasRealRoot = false;
+    if (fabsf(x1.imag()) < EPSILON) {
+        roots.x = x1.real();
+        hasRealRoot = true;
+    }
+    if (fabsf(x2.imag()) < EPSILON) {
+        roots.y = x2.real();
+        hasRealRoot = true;
+    }
+    if (fabsf(x3.imag()) < EPSILON) {
+        roots.z = x3.real();
+        hasRealRoot = true;
+    }
+    if (fabsf(x4.imag()) < EPSILON) {
+        roots.w = x4.real();
+        hasRealRoot = true;
+    }
+
+    return hasRealRoot;
+}
+
+bool computeRealQuarticRoots(float a, float b, float c, float d, float e, glm::vec4& roots) {
+    a = 1.0f;
+    b = b / a;
+    c = c / a;
+    d = d / a;
+    e = e / a;
+
+    return solve_quartic(b, c, d, e, roots);
 }

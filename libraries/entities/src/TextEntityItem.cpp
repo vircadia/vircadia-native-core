@@ -159,10 +159,12 @@ bool TextEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, c
     glm::quat rotation = getWorldOrientation();
     glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
 
-    if (findParabolaRectangleIntersection(origin, velocity, acceleration, rotation, position, xyDimensions, parabolicDistance)) {
-        glm::quat inverseRot = glm::inverse(rotation);
-        glm::vec3 localVelocity = inverseRot * velocity;
-        glm::vec3 localAcceleration = inverseRot * acceleration;
+    glm::quat inverseRot = glm::inverse(rotation);
+    glm::vec3 localOrigin = inverseRot * (origin - position);
+    glm::vec3 localVelocity = inverseRot * velocity;
+    glm::vec3 localAcceleration = inverseRot * acceleration;
+
+    if (findParabolaRectangleIntersection(localOrigin, localVelocity, localAcceleration, xyDimensions, parabolicDistance)) {
         float localIntersectionVelocityZ = localVelocity.z + localAcceleration.z * parabolicDistance;
         if (localIntersectionVelocityZ > 0.0f) {
             face = MIN_Z_FACE;

@@ -88,8 +88,11 @@ bool findRayRectangleIntersection(const glm::vec3& origin, const glm::vec3& dire
 bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                     const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& distance, bool allowBackface = false);
 
-bool findParabolaRectangleIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration, const glm::quat& rotation,
-    const glm::vec3& position, const glm::vec2& dimensions, float& parabolicDistance);
+bool findParabolaRectangleIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+    const glm::vec2& dimensions, float& parabolicDistance);
+
+bool findParabolaSphereIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+    const glm::vec3& center, float radius, float& distance);
 
 /// \brief decomposes rotation into its components such that: rotation = swing * twist
 /// \param rotation[in] rotation to decompose
@@ -181,7 +184,11 @@ bool findIntersectionOfThreePlanes(const glm::vec4& planeA, const glm::vec4& pla
 
 void generateBoundryLinesForDop14(const std::vector<float>& dots, const glm::vec3& center, std::vector<glm::vec3>& linesOut);
 
-bool computeRealQuadraticRoots(float a, float b, float c, std::pair<float, float>& roots);
+bool computeRealQuadraticRoots(float a, float b, float c, glm::vec2& roots);
+
+unsigned int solveP3(float *x, float a, float b, float c);
+bool solve_quartic(float a, float b, float c, float d, glm::vec4& roots);
+bool computeRealQuarticRoots(float a, float b, float c, float d, float e, glm::vec4& roots);
 
 bool isWithin(float value, float corner, float size);
 
