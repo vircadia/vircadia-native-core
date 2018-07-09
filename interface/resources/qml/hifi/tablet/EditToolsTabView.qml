@@ -14,6 +14,13 @@ TabBar {
     padding: 0
     spacing: 0
 
+    readonly property QtObject tabIndex: QtObject {
+        readonly property int create: 0
+        readonly property int properties: 1
+        readonly property int grid: 2
+        readonly property int particle: 3
+    }
+
     readonly property HifiConstants hifi: HifiConstants {}
 
     EditTabButton {
@@ -79,7 +86,7 @@ TabBar {
                                     method: "newEntityButtonClicked",
                                     params: { buttonName: "newModelButton" }
                                 });
-                                editTabView.currentIndex = 2
+                                editTabView.currentIndex = tabIndex.properties
                             }
                         }
 
@@ -91,7 +98,7 @@ TabBar {
                                     method: "newEntityButtonClicked",
                                     params: { buttonName: "newCubeButton" }
                                 });
-                                editTabView.currentIndex = 2
+                                editTabView.currentIndex = tabIndex.properties
                             }
                         }
 
@@ -103,7 +110,7 @@ TabBar {
                                     method: "newEntityButtonClicked",
                                     params: { buttonName: "newSphereButton" }
                                 });
-                                editTabView.currentIndex = 2
+                                editTabView.currentIndex = tabIndex.properties
                             }
                         }
 
@@ -115,7 +122,7 @@ TabBar {
                                     method: "newEntityButtonClicked",
                                     params: { buttonName: "newLightButton" }
                                 });
-                                editTabView.currentIndex = 2
+                                editTabView.currentIndex = tabIndex.properties
                             }
                         }
 
@@ -127,7 +134,7 @@ TabBar {
                                     method: "newEntityButtonClicked",
                                     params: { buttonName: "newTextButton" }
                                 });
-                                editTabView.currentIndex = 2
+                                editTabView.currentIndex = tabIndex.properties
                             }
                         }
 
@@ -139,7 +146,7 @@ TabBar {
                                     method: "newEntityButtonClicked",
                                     params: { buttonName: "newImageButton" }
                                 });
-                                editTabView.currentIndex = 2
+                                editTabView.currentIndex = tabIndex.properties
                             }
                         }
 
@@ -151,7 +158,7 @@ TabBar {
                                     method: "newEntityButtonClicked",
                                     params: { buttonName: "newWebButton" }
                                 });
-                                editTabView.currentIndex = 2
+                                editTabView.currentIndex = tabIndex.properties
                             }
                         }
 
@@ -163,7 +170,7 @@ TabBar {
                                     method: "newEntityButtonClicked",
                                     params: { buttonName: "newZoneButton" }
                                 });
-                                editTabView.currentIndex = 2
+                                editTabView.currentIndex = tabIndex.properties
                             }
                         }
 
@@ -175,7 +182,7 @@ TabBar {
                                     method: "newEntityButtonClicked",
                                     params: { buttonName: "newParticleButton" }
                                 });
-                                editTabView.currentIndex = 4
+                                editTabView.currentIndex = tabIndex.particle
                             }
                         }
 
@@ -187,7 +194,7 @@ TabBar {
                                     method: "newEntityButtonClicked",
                                     params: { buttonName: "newMaterialButton" }
                                 });
-                                editTabView.currentIndex = 2
+                                editTabView.currentIndex = tabIndex.properties
                             }
                         }
                     }
@@ -231,21 +238,6 @@ TabBar {
                     }
                 }
             } // Flickable
-        }
-    }
-
-    EditTabButton {
-        title: "LIST"
-        active: true
-        enabled: true
-        property string originalUrl: ""
-
-        property Component visualItem: Component {
-            WebView {
-                id: entityListToolWebView
-                url: Paths.defaultScripts + "/system/html/entityList.html"
-                enabled: true
-            }
         }
     }
 
@@ -307,7 +299,7 @@ TabBar {
     // Changes the current tab based on tab index or title as input
     function selectTab(id) {
         if (typeof id === 'number') {
-            if (id >= 0 && id <= 4) {
+            if (id >= tabIndex.create && id <= tabIndex.particle) {
                 editTabView.currentIndex = id;
             } else {
                 console.warn('Attempt to switch to invalid tab:', id);
@@ -315,19 +307,16 @@ TabBar {
         } else if (typeof id === 'string'){
             switch (id.toLowerCase()) {
                 case 'create':
-                    editTabView.currentIndex = 0;
-                    break;
-                case 'list':
-                    editTabView.currentIndex = 1;
+                    editTabView.currentIndex = tabIndex.create;
                     break;
                 case 'properties':
-                    editTabView.currentIndex = 2;
+                    editTabView.currentIndex = tabIndex.properties;
                     break;
                 case 'grid':
-                    editTabView.currentIndex = 3;
+                    editTabView.currentIndex = tabIndex.grid;
                     break;
                 case 'particle':
-                    editTabView.currentIndex = 4;
+                    editTabView.currentIndex = tabIndex.particle;
                     break;
                 default:
                     console.warn('Attempt to switch to invalid tab:', id);
