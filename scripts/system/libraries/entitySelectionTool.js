@@ -1018,7 +1018,7 @@ SelectionDisplay = (function() {
         if (SelectionManager.hasSelection()) {
             var controllerPose = getControllerWorldLocation(activeHand, true);
             var hand = (activeHand === Controller.Standard.LeftHand) ? 0 : 1;
-            if (controllerPose.valid && lastControllerPoses[hand].valid) {
+            if (controllerPose.valid && lastControllerPoses[hand].valid && that.triggered) {
                 if (!Vec3.equal(controllerPose.position, lastControllerPoses[hand].position) ||
                     !Vec3.equal(controllerPose.rotation, lastControllerPoses[hand].rotation)) {
                     that.mouseMoveEvent({});
