@@ -89,6 +89,7 @@ const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 const float MIN_SCALE_CHANGED_DELTA = 0.001f;
 const int MODE_READINGS_RING_BUFFER_SIZE = 500;
+const float CENTIMETERS_PER_METER = 100.0f;
 
 //#define DEBUG_DRAW_HMD_MOVING_AVERAGE
 
@@ -427,7 +428,11 @@ void MyAvatar::update(float deltaTime) {
         _rotationChanged = usecTimestampNow();
         _smoothOrientationTimer += deltaTime;
     }
-    setStandingHeightMode(computeStandingHeightMode(getControllerPoseInAvatarFrame(controller::Action::HEAD)));
+
+    float newHeightReading = getControllerPoseInAvatarFrame(controller::Action::HEAD).getTranslation().y;
+    int newHeightReadingInCentimeters = glm::floor(newHeightReading * CENTIMETERS_PER_METER);
+    _recentModeReadings.insert(newHeightReadingInCentimeters);
+    setCurrentStandingHeight(computeStandingHeightMode(getControllerPoseInAvatarFrame(controller::Action::HEAD)));
     setAverageHeadRotation(computeAverageHeadRotation(getControllerPoseInAvatarFrame(controller::Action::HEAD)));
 
 #ifdef DEBUG_DRAW_HMD_MOVING_AVERAGE
@@ -2181,11 +2186,7 @@ void MyAvatar::setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement) 
 
 void MyAvatar::setRotationRecenterFilterLength(float length) {
     const float MINIMUM_ROTATION_RECENTER_FILTER_LENGTH = 0.01f;
-    if (length > MINIMUM_ROTATION_RECENTER_FILTER_LENGTH) {
-        _rotationRecenterFilterLength = length;
-    } else {
-        _rotationRecenterFilterLength = 0.01f;
-    }
+    _rotationRecenterFilterLength = std::max(MINIMUM_ROTATION_RECENTER_FILTER_LENGTH, length);
 }
 
 void MyAvatar::setRotationThreshold(float angleRadians) {
@@ -3199,46 +3200,44 @@ static bool isWithinThresholdHeightMode(const controller::Pose& head,const float
 }
 
 float MyAvatar::computeStandingHeightMode(const controller::Pose& head) {
-    const float CENTIMETERS_PER_METER = 100.0f;
     const float MODE_CORRECTION_FACTOR = 0.02f;
     int greatestFrequency = 0;
     int mode = 0;
-
     // init mode in meters to the current mode
-    float modeInMeters = getStandingHeightMode();
+    float modeInMeters = getCurrentStandingHeight();
     if (head.isValid()) {
         float newReading = head.getTranslation().y;
         int newReadingInCentimeters = glm::floor(newReading * CENTIMETERS_PER_METER);
         _recentModeReadings.insert(newReadingInCentimeters);
-        RingBufferHistory<quint64>::Iterator recentModeReadingsIterator = _recentModeReadings.begin();
-        RingBufferHistory<quint64>::Iterator end = _recentModeReadings.end();
+        RingBufferHistory<int>::Iterator recentModeReadingsIterator = _recentModeReadings.begin();
+        RingBufferHistory<int>::Iterator end = _recentModeReadings.end();
         std::map<int, int> freq;
-        do {
-            ++recentModeReadingsIterator;
+        while(recentModeReadingsIterator != end){
             freq[*recentModeReadingsIterator] += 1;
-            if ((freq[*recentModeReadingsIterator] > greatestFrequency) ||
-                (freq[*recentModeReadingsIterator] == MODE_READINGS_RING_BUFFER_SIZE)) {
+            if (freq[*recentModeReadingsIterator] > greatestFrequency) {
                 greatestFrequency = freq[*recentModeReadingsIterator];
                 mode = *recentModeReadingsIterator;
-
             }
-        } while (recentModeReadingsIterator != end);
+            recentModeReadingsIterator++;
+        }
 
         modeInMeters = ((float)mode) / CENTIMETERS_PER_METER;
-        if (!(modeInMeters > getStandingHeightMode())) {
+        if (!(modeInMeters > getCurrentStandingHeight())) {
             // if not greater check for a reset
             if (getResetMode() && qApp->isHMDMode()) {
                 setResetMode(false);
                 float resetModeInCentimeters = glm::floor((newReading - MODE_CORRECTION_FACTOR)*CENTIMETERS_PER_METER);
                 modeInMeters = (resetModeInCentimeters / CENTIMETERS_PER_METER);
+                _recentModeReadings.clear();
 
             } else {
                 // if not greater and no reset, keep the mode as it is
-                modeInMeters = getStandingHeightMode();
+                modeInMeters = getCurrentStandingHeight();
 
             }
         }
     }
+    qCDebug(interfaceapp) << "the mode is " << modeInMeters << "the frequency is " << greatestFrequency;
     return modeInMeters;
 }
 
@@ -3249,13 +3248,21 @@ static bool handDirectionMatchesHeadDirection(const controller::Pose& leftHand, 
     glm::vec3 xzHeadVelocity(head.velocity.x, 0.0f, head.velocity.z);
     if (leftHand.isValid() && head.isValid()) {
         glm::vec3 xzLeftHandVelocity(leftHand.velocity.x, 0.0f, leftHand.velocity.z);
-        float handDotHeadLeft = glm::dot(glm::normalize(xzLeftHandVelocity), glm::normalize(xzHeadVelocity));
-        leftHandDirectionMatchesHead = ((handDotHeadLeft > DEFAULT_HANDS_VELOCITY_DIRECTION_STEPPING_THRESHOLD) && (glm::length(leftHand.getVelocity()) > VELOCITY_EPSILON));
+        if ((glm::length(xzLeftHandVelocity) > VELOCITY_EPSILON) && (glm::length(xzHeadVelocity) > VELOCITY_EPSILON)) {
+            float handDotHeadLeft = glm::dot(glm::normalize(xzLeftHandVelocity), glm::normalize(xzHeadVelocity));
+            leftHandDirectionMatchesHead = ((handDotHeadLeft > DEFAULT_HANDS_VELOCITY_DIRECTION_STEPPING_THRESHOLD));
+        } else {
+            leftHandDirectionMatchesHead = false;
+        }
     }
     if (rightHand.isValid() && head.isValid()) {
         glm::vec3 xzRightHandVelocity(rightHand.velocity.x, 0.0f, rightHand.velocity.z);
-        float handDotHeadRight = glm::dot(glm::normalize(xzRightHandVelocity), glm::normalize(xzHeadVelocity));
-        rightHandDirectionMatchesHead = ((handDotHeadRight > DEFAULT_HANDS_VELOCITY_DIRECTION_STEPPING_THRESHOLD) && (glm::length(rightHand.getVelocity()) > VELOCITY_EPSILON));
+        if ((glm::length(xzRightHandVelocity) > VELOCITY_EPSILON) && (glm::length(xzHeadVelocity) > VELOCITY_EPSILON)) {
+            float handDotHeadRight = glm::dot(glm::normalize(xzRightHandVelocity), glm::normalize(xzHeadVelocity));
+            rightHandDirectionMatchesHead = (handDotHeadRight > DEFAULT_HANDS_VELOCITY_DIRECTION_STEPPING_THRESHOLD);
+        } else {
+            rightHandDirectionMatchesHead = false;
+        }
     }
     return leftHandDirectionMatchesHead && rightHandDirectionMatchesHead;
 }
@@ -3297,6 +3304,7 @@ static bool isHeadLevel(const controller::Pose& head, const glm::quat& averageHe
     }
     return ((fabs(diffFromAverageEulers.x) < DEFAULT_HEAD_PITCH_STEPPING_TOLERANCE) && (fabs(diffFromAverageEulers.z) < DEFAULT_HEAD_ROLL_STEPPING_TOLERANCE));
 }
+
 float MyAvatar::getUserHeight() const {
     return _userHeight.get();
 }
@@ -3502,7 +3510,7 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontalCG(MyAvatar& myAvatar) cons
     bool stepDetected = false;
     if (!withinBaseOfSupport(currentHeadPose) &&
             headAngularVelocityBelowThreshold(currentHeadPose) &&
-            isWithinThresholdHeightMode(currentHeadPose, myAvatar.getStandingHeightMode()) &&
+            isWithinThresholdHeightMode(currentHeadPose, myAvatar.getCurrentStandingHeight()) &&
             handDirectionMatchesHeadDirection(currentLeftHandPose, currentRightHandPose, currentHeadPose) &&
             handAngularVelocityBelowThreshold(currentLeftHandPose, currentRightHandPose) &&
             headVelocityGreaterThanThreshold(currentHeadPose) &&

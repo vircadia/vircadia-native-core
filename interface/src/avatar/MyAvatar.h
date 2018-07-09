@@ -883,8 +883,8 @@ public:
     virtual void rebuildCollisionShape() override;
 
     const glm::vec2& getHeadControllerFacingMovingAverage() const { return _headControllerFacingMovingAverage; }
-    const float getStandingHeightMode() const { return _standingHeightMode; }
-    void setStandingHeightMode(float newMode) { _standingHeightMode = newMode; }
+    const float getCurrentStandingHeight() const { return _currentStandingHeight; }
+    void setCurrentStandingHeight(float newMode) { _currentStandingHeight = newMode; }
     const glm::quat getAverageHeadRotation() const { return _averageHeadRotation; }
     void setAverageHeadRotation(glm::quat rotation) { _averageHeadRotation = rotation; }
     bool getResetMode() const { return _resetMode; }
@@ -1526,9 +1526,9 @@ private:
     glm::vec2 _headControllerFacingMovingAverage { 0.0f, 0.0f };   // facing vector in xz plane (sensor space)
     glm::quat _averageHeadRotation { 0.0f, 0.0f, 0.0f, 1.0f };
 
-    float _standingHeightMode { 0.0f };
+    float _currentStandingHeight { 0.0f };
     bool _resetMode { true };
-    RingBufferHistory<quint64> _recentModeReadings;
+    RingBufferHistory<int> _recentModeReadings;
 
     // cache of the current body position and orientation of the avatar's body,
     // in sensor space.
