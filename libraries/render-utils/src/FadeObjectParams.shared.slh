@@ -1,0 +1,25 @@
+// glsl / C++ compatible source as interface for FadeObjectParams
+#ifdef __cplusplus
+#   define FOP_VEC4 glm::vec4
+#   define FOP_VEC2 glm::vec2
+#   define FOP_FLOAT32 glm::float32
+#   define FOP_INT32 glm::int32
+#else
+#   define FOP_VEC4 vec4
+#   define FOP_VEC2 vec2
+#   define FOP_FLOAT32 float
+#   define FOP_INT32 int
+#endif
+
+struct FadeObjectParams {
+    FOP_VEC4 noiseOffset;
+    FOP_VEC4 baseOffset;
+    FOP_VEC4 baseInvSize;
+    FOP_INT32 category;
+    FOP_FLOAT32 threshold;
+};
+
+    // <@if 1@>
+    // Trigger Scribe include 
+    // <@endif@> <!def that !> 
+//
