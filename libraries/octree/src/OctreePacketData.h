@@ -165,7 +165,7 @@ public:
     bool appendValue(float value);
 
     /// appends a vec2 to the end of the stream, may fail if new data stream is too long to fit in packet
-    bool appendValue(const glm::vec2& value);
+    bool appendValue(const ScriptVec2Float& value);
 
     /// appends a non-position vector to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(const glm::vec3& value);
@@ -253,7 +253,7 @@ public:
     static quint64 getTotalBytesOfColor() { return _totalBytesOfColor; } /// total bytes of color
     
     static int unpackDataFromBytes(const unsigned char* dataBytes, float& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
-    static int unpackDataFromBytes(const unsigned char* dataBytes, glm::vec2& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, ScriptVec2Float& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, glm::vec3& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, bool& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, quint64& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }

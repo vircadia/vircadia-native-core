@@ -106,6 +106,36 @@ QJsonValue toJsonValue(const QObject& o) {
     return json;
 }
 
+QJsonValue toJsonValue(const QObject& o, const std::vector<QString>& props) {
+    QJsonObject json {};
+
+    const auto& meta = o.metaObject();
+    // Only add the properties in props
+    for (auto& prop : props) {
+        int i = meta->indexOfProperty(prop.toStdString().c_str());
+        QString name = QString::fromLatin1(meta->property(i).name());
+        auto type = meta->property(i).userType();
+        QVariant variant { meta->property(i).read(&o) };
+        QJsonValue value;
+
+        // User-registered types need explicit conversion
+        if (type == qMetaTypeId<quat>()) {
+            value = toJsonValue(variant.value<quat>());
+        } else if (type == qMetaTypeId<vec3>()) {
+            value = toJsonValue(variant.value<vec3>());
+        } else if (type == qMetaTypeId<vec4>()) {
+            value = toJsonValue(variant.value<vec4>());
+        } else {
+            // Qt types are converted automatically
+            value = QJsonValue::fromVariant(variant);
+        }
+
+        json.insert(name, value);
+    }
+
+    return json;
+}
+
 void qObjectFromJsonValue(const QJsonValue& j, QObject& o) {
     const QJsonObject object = j.toObject();
     for (auto it = object.begin(); it != object.end(); it++) {

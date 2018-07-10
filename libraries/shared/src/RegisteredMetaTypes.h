@@ -23,12 +23,15 @@
 #include "SharedUtil.h"
 #include "shared/Bilateral.h"
 
+#include <QJsonDocument>
+#include <QJsonObject>
+#include "shared/JSONHelpers.h"
+
 class QColor;
 class QUrl;
 
 Q_DECLARE_METATYPE(glm::vec4)
 Q_DECLARE_METATYPE(glm::vec3)
-Q_DECLARE_METATYPE(glm::vec2)
 Q_DECLARE_METATYPE(glm::quat)
 Q_DECLARE_METATYPE(glm::mat4)
 Q_DECLARE_METATYPE(xColor)
@@ -45,6 +48,82 @@ QScriptValue mat4toScriptValue(QScriptEngine* engine, const glm::mat4& mat4);
 void mat4FromScriptValue(const QScriptValue& object, glm::mat4& mat4);
 
 /**jsdoc
+* A 2-dimensional vector.
+*
+* @typedef {object} Vec2
+* @property {number} x - X-coordinate of the vector.
+* @property {number} y - Y-coordinate of the vector.
+*/
+class ScriptVec2Float : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(float x MEMBER x)
+    Q_PROPERTY(float y MEMBER y)
+    Q_PROPERTY(float u MEMBER x)
+    Q_PROPERTY(float v MEMBER y)
+    Q_PROPERTY(float width MEMBER x)
+    Q_PROPERTY(float height MEMBER y)
+public:
+    ScriptVec2Float() {}
+    ScriptVec2Float(float xy) : x(xy), y(xy) {}
+    ScriptVec2Float(float x, float y) : x(x), y(y) {}
+    ScriptVec2Float(const ScriptVec2Float& other) : x(other.x), y(other.y) {}
+    ScriptVec2Float(const glm::vec2& other) : x(other.x), y(other.y) {}
+    void operator=(const ScriptVec2Float& other) { x = other.x; y = other.y; }
+    inline bool operator==(const ScriptVec2Float& other) { return (x == other.x && y == other.y); }
+    inline bool operator!=(const ScriptVec2Float& other) { return !(*this == other); }
+    inline bool operator==(const glm::vec2& other) { return (x == other.x && y == other.y); }
+    inline bool operator!=(const glm::vec2& other) { return !(*this == other); }
+
+    Q_INVOKABLE QVariantMap toJSON() { return toJsonValue(*this, { "x", "y" }).toObject().toVariantMap(); }
+
+    float x { 0.0f };
+    float y { 0.0f };
+private:
+    friend QDebug operator<<(QDebug debug, const ScriptVec2Float& vec2);
+    friend bool operator==(glm::vec2 glmVec2, const ScriptVec2Float& vec2);
+    friend bool operator!=(glm::vec2 glmVec2, const ScriptVec2Float& vec2);
+};
+inline QDebug operator<<(QDebug debug, const ScriptVec2Float& vec2) {
+    debug << "(" << vec2.x << "," << vec2.y << ")";
+    return debug;
+}
+inline bool operator==(glm::vec2 glmVec2, const ScriptVec2Float& vec2) { return (glmVec2.x == vec2.x && glmVec2.y == vec2.y); }
+inline bool operator!=(glm::vec2 glmVec2, const ScriptVec2Float& vec2) { return !(glmVec2 == vec2); }
+Q_DECLARE_METATYPE(ScriptVec2Float)
+QScriptValue vec2toScriptValue(QScriptEngine* engine, const ScriptVec2Float& vec2);
+void vec2FromScriptValue(const QScriptValue& object, ScriptVec2Float& vec2);
+
+QVariant vec2toVariant(const glm::vec2& vec2);
+glm::vec2 vec2FromVariant(const QVariant& object, bool& valid);
+glm::vec2 vec2FromVariant(const QVariant& object);
+
+Q_DECLARE_METATYPE(glm::vec2)
+QScriptValue glmVec2toScriptValue(QScriptEngine* engine, const glm::vec2& vec2);
+void glmVec2FromScriptValue(const QScriptValue& object, glm::vec2& vec2);
+
+/**jsdoc
+* A 3-dimensional vector. See also the {@link Vec3(0)|Vec3} object.
+*
+* @typedef {object} Vec3
+* @property {number} x - X-coordinate of the vector.
+* @property {number} y - Y-coordinate of the vector.
+* @property {number} z - Z-coordinate of the vector.
+*/
+/**jsdoc
+* A color vector. See also the {@link Vec3(0)|Vec3} object.
+*
+* @typedef {object} Vec3Color
+* @property {number} x - Red component value. Integer in the range <code>0</code> - <code>255</code>.
+* @property {number} y - Green component value. Integer in the range <code>0</code> - <code>255</code>.
+* @property {number} z - Blue component value. Integer in the range <code>0</code> - <code>255</code>.
+*/
+QScriptValue vec3toScriptValue(QScriptEngine* engine, const glm::vec3 &vec3);
+void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3);
+QVariant vec3toVariant(const glm::vec3& vec3);
+glm::vec3 vec3FromVariant(const QVariant &object, bool& valid);
+glm::vec3 vec3FromVariant(const QVariant &object);
+
+/**jsdoc
  * A 4-dimensional vector.
  *
  * @typedef {object} Vec4
@@ -53,35 +132,11 @@ void mat4FromScriptValue(const QScriptValue& object, glm::mat4& mat4);
  * @property {number} z - Z-coordinate of the vector.
  * @property {number} w - W-coordinate of the vector.
  */
-// Vec4
 QScriptValue vec4toScriptValue(QScriptEngine* engine, const glm::vec4& vec4);
 void vec4FromScriptValue(const QScriptValue& object, glm::vec4& vec4);
 QVariant vec4toVariant(const glm::vec4& vec4);
 glm::vec4 vec4FromVariant(const QVariant &object, bool& valid);
 glm::vec4 vec4FromVariant(const QVariant &object);
-
-// Vec3
-QScriptValue vec3toScriptValue(QScriptEngine* engine, const glm::vec3 &vec3);
-void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3);
-
-QVariant vec3toVariant(const glm::vec3& vec3);
-glm::vec3 vec3FromVariant(const QVariant &object, bool& valid);
-glm::vec3 vec3FromVariant(const QVariant &object);
-
-/**jsdoc
- * A 2-dimensional vector.
- *
- * @typedef {object} Vec2
- * @property {number} x - X-coordinate of the vector.
- * @property {number} y - Y-coordinate of the vector.
- */
-// Vec2
-QScriptValue vec2toScriptValue(QScriptEngine* engine, const glm::vec2 &vec2);
-void vec2FromScriptValue(const QScriptValue &object, glm::vec2 &vec2);
-
-QVariant vec2toVariant(const glm::vec2 &vec2);
-glm::vec2 vec2FromVariant(const QVariant &object, bool& valid);
-glm::vec2 vec2FromVariant(const QVariant &object);
 
 // Quaternions
 QScriptValue quatToScriptValue(QScriptEngine* engine, const glm::quat& quat);

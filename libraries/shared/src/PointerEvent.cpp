@@ -229,8 +229,7 @@ void PointerEvent::fromScriptValue(const QScriptValue& object, PointerEvent& eve
         QScriptValue id = object.property("id");
         event._id = id.isNumber() ? (uint32_t)id.toNumber() : 0;
 
-        glm::vec2 pos2D;
-        vec2FromScriptValue(object.property("pos2D"), event._pos2D);
+        glm::vec2 pos2D = vec2FromVariant(object.property("pos2D").toVariant());
 
         glm::vec3 pos3D;
         vec3FromScriptValue(object.property("pos3D"), event._pos3D);

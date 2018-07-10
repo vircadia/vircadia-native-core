@@ -81,8 +81,8 @@ int MaterialEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* da
     READ_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_MODE, MaterialMappingMode, setMaterialMappingMode);
     READ_ENTITY_PROPERTY(PROP_MATERIAL_PRIORITY, quint16, setPriority);
     READ_ENTITY_PROPERTY(PROP_PARENT_MATERIAL_NAME, QString, setParentMaterialName);
-    READ_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_POS, glm::vec2, setMaterialMappingPos);
-    READ_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_SCALE, glm::vec2, setMaterialMappingScale);
+    READ_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_POS, ScriptVec2Float, setMaterialMappingPos);
+    READ_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_SCALE, ScriptVec2Float, setMaterialMappingScale);
     READ_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_ROT, float, setMaterialMappingRot);
     READ_ENTITY_PROPERTY(PROP_MATERIAL_DATA, QString, setMaterialData);
 
@@ -208,18 +208,18 @@ void MaterialEntityItem::setMaterialData(const QString& materialData) {
     }
 }
 
-void MaterialEntityItem::setMaterialMappingPos(const glm::vec2& materialMappingPos) {
+void MaterialEntityItem::setMaterialMappingPos(const ScriptVec2Float& materialMappingPos) {
     if (_materialMappingPos != materialMappingPos) {
         removeMaterial();
-        _materialMappingPos = materialMappingPos;
+        _materialMappingPos = glm::vec2(materialMappingPos.x, materialMappingPos.y);
         applyMaterial();
     }
 }
 
-void MaterialEntityItem::setMaterialMappingScale(const glm::vec2& materialMappingScale) {
+void MaterialEntityItem::setMaterialMappingScale(const ScriptVec2Float& materialMappingScale) {
     if (_materialMappingScale != materialMappingScale) {
         removeMaterial();
-        _materialMappingScale = materialMappingScale;
+        _materialMappingScale = glm::vec2(materialMappingScale.x, materialMappingScale.y);
         applyMaterial();
     }
 }
@@ -290,9 +290,9 @@ void MaterialEntityItem::applyMaterial() {
         return;
     }
     Transform textureTransform;
-    textureTransform.setTranslation(glm::vec3(_materialMappingPos, 0));
-    textureTransform.setRotation(glm::vec3(0, 0, glm::radians(_materialMappingRot)));
-    textureTransform.setScale(glm::vec3(_materialMappingScale, 1));
+    textureTransform.setTranslation(glm::vec3(_materialMappingPos, 0.0f));
+    textureTransform.setRotation(glm::vec3(0.0f, 0.0f, glm::radians(_materialMappingRot)));
+    textureTransform.setScale(glm::vec3(_materialMappingScale, 1.0f));
     material->setTextureTransforms(textureTransform);
 
     graphics::MaterialLayer materialLayer = graphics::MaterialLayer(material, getPriority());

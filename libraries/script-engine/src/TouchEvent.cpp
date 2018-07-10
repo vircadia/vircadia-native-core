@@ -14,7 +14,6 @@
 #include <qscriptengine.h>
 #include <qscriptvalue.h>
 
-#include <RegisteredMetaTypes.h>
 #include <NumericalConstants.h>
 
 TouchEvent::TouchEvent() :
@@ -80,7 +79,7 @@ void TouchEvent::initWithQTouchEvent(const QTouchEvent& event) {
             touchAvgY += (float)tPoints[i].pos().y();
 
             // add it to our points vector
-            glm::vec2 thisPoint(tPoints[i].pos().x(), tPoints[i].pos().y());
+            ScriptVec2Float thisPoint(tPoints[i].pos().x(), tPoints[i].pos().y());
             points << thisPoint;
         }
         touchAvgX /= (float)(touchPoints);
@@ -219,7 +218,7 @@ QScriptValue TouchEvent::toScriptValue(QScriptEngine* engine, const TouchEvent& 
 
     QScriptValue pointsObj = engine->newArray();
     int index = 0;
-    foreach (glm::vec2 point, event.points) {
+    foreach (ScriptVec2Float point, event.points) {
         QScriptValue thisPoint = vec2toScriptValue(engine, point);
         pointsObj.setProperty(index, thisPoint);
         index++;

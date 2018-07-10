@@ -101,7 +101,7 @@
         changedProperties += P;    \
     }
 
-inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::vec2& v) { return vec2toScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const ScriptVec2Float& v) { return vec2toScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::vec3& v) { return vec3toScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, float v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, int v) { return QScriptValue(v); }
@@ -221,21 +221,11 @@ inline QByteArray QByteArray_convertFromScriptValue(const QScriptValue& v, bool&
     return QByteArray::fromBase64(b64.toUtf8());
 }
 
-inline glm::vec2 vec2_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
-    isValid = false; /// assume it can't be converted
-    QScriptValue x = v.property("x");
-    QScriptValue y = v.property("y");
-    if (x.isValid() && y.isValid()) {
-        glm::vec4 newValue(0);
-        newValue.x = x.toVariant().toFloat();
-        newValue.y = y.toVariant().toFloat();
-        isValid = !glm::isnan(newValue.x) &&
-            !glm::isnan(newValue.y);
-        if (isValid) {
-            return newValue;
-        }
-    }
-    return glm::vec2(0);
+inline ScriptVec2Float ScriptVec2Float_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = true;
+    ScriptVec2Float vec2;
+    vec2FromScriptValue(v, vec2);
+    return vec2;
 }
 
 inline glm::vec3 vec3_convertFromScriptValue(const QScriptValue& v, bool& isValid) {

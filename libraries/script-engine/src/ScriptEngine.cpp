@@ -666,9 +666,9 @@ void ScriptEngine::init() {
     qScriptRegisterSequenceMetaType<QVector<QUuid>>(this);
     qScriptRegisterSequenceMetaType<QVector<EntityItemID>>(this);
 
-    qScriptRegisterSequenceMetaType<QVector<glm::vec2> >(this);
-    qScriptRegisterSequenceMetaType<QVector<glm::quat> >(this);
-    qScriptRegisterSequenceMetaType<QVector<QString> >(this);
+    qScriptRegisterSequenceMetaType<QVector<ScriptVec2Float>>(this);
+    qScriptRegisterSequenceMetaType<QVector<glm::quat>>(this);
+    qScriptRegisterSequenceMetaType<QVector<QString>>(this);
 
     QScriptValue xmlHttpRequestConstructorValue = newFunction(XMLHttpRequestClass::constructor);
     globalObject().setProperty("XMLHttpRequest", xmlHttpRequestConstructorValue);

@@ -382,7 +382,7 @@ bool OctreePacketData::appendValue(float value) {
     return success;
 }
 
-bool OctreePacketData::appendValue(const glm::vec2& value) {
+bool OctreePacketData::appendValue(const ScriptVec2Float& value) {
     const unsigned char* data = (const unsigned char*)&value;
     int length = sizeof(value);
     bool success = append(data, length);

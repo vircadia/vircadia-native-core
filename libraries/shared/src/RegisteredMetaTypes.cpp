@@ -30,7 +30,8 @@ int vec3MetaTypeId = qRegisterMetaType<glm::vec3>();
 int qVectorVec3MetaTypeId = qRegisterMetaType<QVector<glm::vec3>>();
 int qVectorQuatMetaTypeId = qRegisterMetaType<QVector<glm::quat>>();
 int qVectorBoolMetaTypeId = qRegisterMetaType<QVector<bool>>();
-int vec2MetaTypeId = qRegisterMetaType<glm::vec2>();
+int glmVec2MetaTypeId = qRegisterMetaType<glm::vec2>();
+int vec2FloatMetaTypeId = qRegisterMetaType<ScriptVec2Float>();
 int quatMetaTypeId = qRegisterMetaType<glm::quat>();
 int xColorMetaTypeId = qRegisterMetaType<xColor>();
 int pickRayMetaTypeId = qRegisterMetaType<PickRay>();
@@ -49,6 +50,7 @@ void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, qVectorBoolToScriptValue, qVectorBoolFromScriptValue);
     qScriptRegisterMetaType(engine, qVectorFloatToScriptValue, qVectorFloatFromScriptValue);
     qScriptRegisterMetaType(engine, qVectorIntToScriptValue, qVectorIntFromScriptValue);
+    qScriptRegisterMetaType(engine, glmVec2toScriptValue, glmVec2FromScriptValue);
     qScriptRegisterMetaType(engine, vec2toScriptValue, vec2FromScriptValue);
     qScriptRegisterMetaType(engine, quatToScriptValue, quatFromScriptValue);
     qScriptRegisterMetaType(engine, qRectToScriptValue, qRectFromScriptValue);
@@ -495,14 +497,49 @@ void qVectorBoolFromScriptValue(const QScriptValue& array, QVector<bool>& vector
     }
 }
 
-QScriptValue vec2toScriptValue(QScriptEngine* engine, const glm::vec2 &vec2) {
+QScriptValue vec2toScriptValue(QScriptEngine* engine, const ScriptVec2Float& vec2) {
+    return engine->newQObject(new ScriptVec2Float(vec2), QScriptEngine::ScriptOwnership);
+}
+
+void vec2FromScriptValue(const QScriptValue& object, ScriptVec2Float& vec2) {
+    if (object.isQObject()) {
+        auto qObject = object.toQObject();
+        if (qObject) {
+            vec2 = *qobject_cast<ScriptVec2Float*>(qObject);
+            return;
+        }
+    } else {
+        QScriptValue x = object.property("x");
+        if (!x.isValid()) {
+            x = object.property("u");
+        }
+        if (!x.isValid()) {
+            x = object.property("width");
+        }
+
+        QScriptValue y = object.property("y");
+        if (!y.isValid()) {
+            y = object.property("v");
+        }
+        if (!y.isValid()) {
+            y = object.property("height");
+        }
+
+        vec2.x = x.toVariant().toFloat();
+        vec2.y = y.toVariant().toFloat();
+        return;
+    }
+    vec2 = ScriptVec2Float();
+}
+
+QScriptValue glmVec2toScriptValue(QScriptEngine* engine, const glm::vec2& vec2) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("x", vec2.x);
     obj.setProperty("y", vec2.y);
     return obj;
 }
 
-void vec2FromScriptValue(const QScriptValue &object, glm::vec2 &vec2) {
+void glmVec2FromScriptValue(const QScriptValue& object, glm::vec2& vec2) {
     vec2.x = object.property("x").toVariant().toFloat();
     vec2.y = object.property("y").toVariant().toFloat();
 }
