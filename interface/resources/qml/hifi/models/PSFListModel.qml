@@ -83,8 +83,8 @@ ListModel {
         if (response.current_page && response.current_page !== currentPageToRetrieve) { // Not all endpoints specify this property.
             return fail("Mismatched page, expected:" + currentPageToRetrieve);
         }
-        totalPages = response.total_pages;
-        totalEntries = response.total_entries;
+        totalPages = response.total_pages || 0;
+        totalEntries = response.total_entries || 0;
         processed = processPage(response.data || response);
         if (totalPages && (totalPages === currentPageToRetrieve)) {
             currentPageToRetrieve = -1;
