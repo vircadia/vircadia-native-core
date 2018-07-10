@@ -234,7 +234,7 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
         return;
     }
     assert(entityTreeIsLocked());
-    if (_motionType == MOTION_TYPE_KINEMATIC && !_entity->hasAncestorOfType(NestableType::Avatar)) {
+    if (_motionType == MOTION_TYPE_KINEMATIC) {
         BT_PROFILE("kinematicIntegration");
         // This is physical kinematic motion which steps strictly by the subframe count
         // of the physics simulation and uses full gravity for acceleration.
@@ -327,13 +327,6 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         return true;
     }
 
-    bool parentTransformSuccess;
-    Transform localToWorld = _entity->getParentTransform(parentTransformSuccess);
-    Transform worldToLocal;
-    if (parentTransformSuccess) {
-        localToWorld.evalInverse(worldToLocal);
-    }
-
     int numSteps = simulationStep - _lastStep;
     float dt = (float)(numSteps) * PHYSICS_ENGINE_FIXED_SUBSTEP;
 
@@ -359,6 +352,10 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     if (usecTimestampNow() > _entity->getSimulationOwnershipExpiry()) {
         // send update every so often else server will revoke our ownership
         return true;
+    }
+
+    if (_body->isStaticOrKinematicObject()) {
+        return false;
     }
 
     _lastStep = simulationStep;
@@ -388,6 +385,12 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     // TODO: compensate for _worldOffset offset here
 
     // compute position error
+    bool parentTransformSuccess;
+    Transform localToWorld = _entity->getParentTransform(parentTransformSuccess);
+    Transform worldToLocal;
+    if (parentTransformSuccess) {
+        localToWorld.evalInverse(worldToLocal);
+    }
 
     btTransform worldTrans = _body->getWorldTransform();
     glm::vec3 position = worldToLocal.transform(bulletToGLM(worldTrans.getOrigin()));
@@ -407,20 +410,23 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
 
     if (glm::length2(_serverAngularVelocity) > 0.0f) {
         // compute rotation error
-        float attenuation = powf(1.0f - _body->getAngularDamping(), dt);
-        _serverAngularVelocity *= attenuation;
+        //
 
         // Bullet caps the effective rotation velocity inside its rotation integration step, therefore
         // we must integrate with the same algorithm and timestep in order achieve similar results.
-        for (int i = 0; i < numSteps; ++i) {
-            _serverRotation = glm::normalize(computeBulletRotationStep(_serverAngularVelocity,
-                                                                       PHYSICS_ENGINE_FIXED_SUBSTEP) * _serverRotation);
+        float attenuation = powf(1.0f - _body->getAngularDamping(), PHYSICS_ENGINE_FIXED_SUBSTEP);
+        _serverAngularVelocity *= attenuation;
+        glm::quat rotation = computeBulletRotationStep(_serverAngularVelocity, PHYSICS_ENGINE_FIXED_SUBSTEP);
+        for (int i = 1; i < numSteps; ++i) {
+            _serverAngularVelocity *= attenuation;
+            rotation = computeBulletRotationStep(_serverAngularVelocity, PHYSICS_ENGINE_FIXED_SUBSTEP) * rotation;
         }
+        _serverRotation = glm::normalize(rotation * _serverRotation);
+        const float MIN_ROTATION_DOT = 0.99999f; // This corresponds to about 0.5 degrees of rotation
+        glm::quat actualRotation = worldToLocal.getRotation() * bulletToGLM(worldTrans.getRotation());
+        return (fabsf(glm::dot(actualRotation, _serverRotation)) < MIN_ROTATION_DOT);
     }
-    const float MIN_ROTATION_DOT = 0.99999f; // This corresponds to about 0.5 degrees of rotation
-    glm::quat actualRotation = worldToLocal.getRotation() * bulletToGLM(worldTrans.getRotation());
-
-    return (fabsf(glm::dot(actualRotation, _serverRotation)) < MIN_ROTATION_DOT);
+    return false;
 }
 
 bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
