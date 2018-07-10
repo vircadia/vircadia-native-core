@@ -124,6 +124,7 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     locations->lightAmbientMapUnit = program->getTextures().findLocation("skyboxMap");
     locations->fadeMaskTextureUnit = program->getTextures().findLocation("fadeMaskMap");
     locations->fadeParameterBufferUnit = program->getUniformBuffers().findLocation("fadeParametersBuffer");
+    locations->fadeObjectParameterBufferUnit = program->getUniformBuffers().findLocation("fadeObjectParametersBuffer");
     locations->hazeParameterBufferUnit = program->getUniformBuffers().findLocation("hazeBuffer");
     if (key.isTranslucent()) {
         locations->lightClusterGridBufferUnit = program->getUniformBuffers().findLocation("clusterGridBuffer");

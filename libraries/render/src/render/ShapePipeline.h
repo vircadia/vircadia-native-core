@@ -278,6 +278,7 @@ public:
         int lightAmbientMapUnit;
         int fadeMaskTextureUnit;
         int fadeParameterBufferUnit;
+        int fadeObjectParameterBufferUnit;
         int hazeParameterBufferUnit;
         int lightClusterGridBufferUnit;
         int lightClusterContentBufferUnit;

@@ -41,14 +41,12 @@ render::ShapePipeline::BatchSetter FadeEffect::getBatchSetter() const {
 render::ShapePipeline::ItemSetter FadeEffect::getItemUniformSetter() const {
     return [](const render::ShapePipeline& shapePipeline, render::Args* args, const render::Item& item) {
         if (!render::TransitionStage::isIndexInvalid(item.getTransitionId())) {
-            auto scene = args->_scene;
-            auto batch = args->_batch;
-            auto transitionStage = scene->getStage<render::TransitionStage>(render::TransitionStage::getName());
-            auto& transitionState = transitionStage->getTransition(item.getTransitionId());
-            auto program = shapePipeline.pipeline->getProgram();
-            auto objectParamBufferLocation = program->getUniformBuffers().findLocation("fadeObjectParametersBuffer");
+            if (shapePipeline.locations->fadeObjectParameterBufferUnit >= 0) {
+                auto scene = args->_scene;
+                auto batch = args->_batch;
+                auto transitionStage = scene->getStage<render::TransitionStage>(render::TransitionStage::getName());
+                auto& transitionState = transitionStage->getTransition(item.getTransitionId());
 
-            if (objectParamBufferLocation >= 0) {
                 if (transitionState.paramsBuffer._size != sizeof(gpu::StructBuffer<FadeObjectParams>)) {
                     static_assert(sizeof(transitionState.paramsBuffer) == sizeof(gpu::StructBuffer<FadeObjectParams>), "Assuming gpu::StructBuffer is a helper class for gpu::BufferView");
                     transitionState.paramsBuffer = gpu::StructBuffer<FadeObjectParams>();
@@ -70,7 +68,7 @@ render::ShapePipeline::ItemSetter FadeEffect::getItemUniformSetter() const {
                     params.noiseOffset = glm::vec4(transitionState.noiseOffset, 0.0f);
                     params.baseOffset = glm::vec4(transitionState.baseOffset, 0.0f);
                 }
-                batch->setUniformBuffer(objectParamBufferLocation, transitionState.paramsBuffer);
+                batch->setUniformBuffer(shapePipeline.locations->fadeObjectParameterBufferUnit, transitionState.paramsBuffer);
             }
         }
     };
