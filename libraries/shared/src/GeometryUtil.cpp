@@ -18,6 +18,7 @@
 #include <complex>
 #include <qmath.h>
 #include <glm/gtx/quaternion.hpp>
+#include "glm/gtc/matrix_transform.hpp"
 
 #include "NumericalConstants.h"
 #include "GLMHelpers.h"
@@ -789,6 +790,62 @@ bool findParabolaSphereIntersection(const glm::vec3& origin, const glm::vec3& ve
                 minDistance = possibleDistances[i];
             }
         }
+    }
+    if (minDistance < FLT_MAX) {
+        parabolicDistance = minDistance;
+        return true;
+    }
+    return false;
+}
+
+void checkPossibleParabolicIntersectionWithTriangle(float t, float& minDistance,
+    const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+    const glm::vec3& localVelocity, const glm::vec3& localAcceleration, const glm::vec3& normal,
+    const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, bool allowBackface) {
+    // Check if we're hitting the backface in the rotated coordinate space
+    float localIntersectionVelocityZ = localVelocity.z + localAcceleration.z * t;
+    if (!allowBackface && localIntersectionVelocityZ < 0.0f) {
+        return;
+    }
+
+    // Check that the point is within all three sides
+    glm::vec3 point = origin + velocity * t + 0.5f * acceleration * t * t;
+    if (glm::dot(normal, glm::cross(point - v1, v0 - v1)) > 0.0f &&
+        glm::dot(normal, glm::cross(v2 - v1, point - v1)) > 0.0f &&
+        glm::dot(normal, glm::cross(point - v0, v2 - v0)) > 0.0f) {
+        minDistance = t;
+    }
+}
+
+bool findParabolaTriangleIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+    const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& parabolicDistance, bool allowBackface) {
+    glm::vec3 normal = glm::cross(v2 - v1, v0 - v1);
+
+    // We transform the parabola and triangle so that the triangle is in the plane z = 0, with v0 at the origin
+    glm::quat inverseRot;
+    // Note: OpenGL view matrix is already the inverse of our camera matrix
+    // if the direction is nearly aligned with the Y axis, then use the X axis for 'up'
+    const float MAX_ABS_Y_COMPONENT = 0.9999991f;
+    if (fabsf(normal.y) > MAX_ABS_Y_COMPONENT) {
+        inverseRot = glm::quat_cast(glm::lookAt(glm::vec3(0.0f), normal, Vectors::UNIT_X));
+    } else {
+        inverseRot = glm::quat_cast(glm::lookAt(glm::vec3(0.0f), normal, Vectors::UNIT_Y));
+    }
+
+    glm::vec3 localOrigin = inverseRot * (origin - v0);
+    glm::vec3 localVelocity = inverseRot * velocity;
+    glm::vec3 localAcceleration = inverseRot * acceleration;
+
+    float minDistance = FLT_MAX;
+    float a = 0.5f * localAcceleration.z;
+    float b = localVelocity.z;
+    float c = localOrigin.z;
+    glm::vec2 possibleDistances = { FLT_MAX, FLT_MAX };
+    if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
+        checkPossibleParabolicIntersectionWithTriangle(possibleDistances.x, minDistance, origin, velocity, acceleration,
+            localVelocity, localAcceleration, normal, v0, v1, v2, allowBackface);
+        checkPossibleParabolicIntersectionWithTriangle(possibleDistances.y, minDistance, origin, velocity, acceleration,
+            localVelocity, localAcceleration, normal, v0, v1, v2, allowBackface);
     }
     if (minDistance < FLT_MAX) {
         parabolicDistance = minDistance;

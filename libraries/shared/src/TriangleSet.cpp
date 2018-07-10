@@ -51,6 +51,26 @@ bool TriangleSet::findRayIntersection(const glm::vec3& origin, const glm::vec3& 
     return result;
 }
 
+bool TriangleSet::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+    float& parabolicDistance, BoxFace& face, Triangle& triangle, bool precision, bool allowBackface) {
+    // reset our distance to be the max possible, lower level tests will store best distance here
+    parabolicDistance = FLT_MAX;
+
+    if (!_isBalanced) {
+        balanceOctree();
+    }
+
+    int trianglesTouched = 0;
+    auto result = _triangleOctree.findParabolaIntersection(origin, velocity, acceleration, parabolicDistance, face, triangle, precision, trianglesTouched, allowBackface);
+
+#if WANT_DEBUGGING
+    if (precision) {
+        qDebug() << "trianglesTouched :" << trianglesTouched << "out of:" << _triangleOctree._population << "_triangles.size:" << _triangles.size();
+    }
+#endif
+    return result;
+}
+
 bool TriangleSet::convexHullContains(const glm::vec3& point) const {
     if (!_bounds.contains(point)) {
         return false;
@@ -105,7 +125,7 @@ bool TriangleSet::TriangleOctreeCell::findRayIntersectionInternal(const glm::vec
     if (_bounds.findRayIntersection(origin, direction, boxDistance, face, surfaceNormal)) {
 
         // if our bounding box intersects at a distance greater than the current known
-        // best distance, and our origin isn't inside the boounds, then we can safely 
+        // best distance, and our origin isn't inside the boounds, then we can safely
         // not check any of our triangles
         if (boxDistance > bestDistance && !_bounds.contains(origin)) {
             return false;
@@ -127,7 +147,50 @@ bool TriangleSet::TriangleOctreeCell::findRayIntersectionInternal(const glm::vec
             }
         } else {
             intersectedSomething = true;
+            // FIXME: this needs to set triangle to something or it will carry the previous value
             distance = boxDistance;
+        }
+    }
+
+    return intersectedSomething;
+}
+
+bool TriangleSet::TriangleOctreeCell::findParabolaIntersectionInternal(const glm::vec3& origin, const glm::vec3& velocity,
+    const glm::vec3& acceleration, float& parabolicDistance, BoxFace& face, Triangle& triangle, bool precision,
+    int& trianglesTouched, bool allowBackface) {
+
+    bool intersectedSomething = false;
+    float boxDistance = parabolicDistance;
+    float bestDistance = parabolicDistance;
+    glm::vec3 surfaceNormal;
+
+    if (_bounds.findParabolaIntersection(origin, velocity, acceleration, boxDistance, face, surfaceNormal)) {
+
+        // if our bounding box intersects at a distance greater than the current known
+        // best distance, and our origin isn't inside the boounds, then we can safely
+        // not check any of our triangles
+        if (boxDistance > bestDistance && !_bounds.contains(origin)) {
+            return false;
+        }
+
+        if (precision) {
+            for (const auto& triangleIndex : _triangleIndices) {
+                const auto& thisTriangle = _allTriangles[triangleIndex];
+                float thisTriangleDistance;
+                trianglesTouched++;
+                if (findParabolaTriangleIntersection(origin, velocity, acceleration, thisTriangle, thisTriangleDistance, allowBackface)) {
+                    if (thisTriangleDistance < bestDistance) {
+                        bestDistance = thisTriangleDistance;
+                        intersectedSomething = true;
+                        triangle = thisTriangle;
+                        parabolicDistance = bestDistance;
+                    }
+                }
+            }
+        } else {
+            intersectedSomething = true;
+            // FIXME: this needs to set triangle to something or it will carry the previous value
+            parabolicDistance = boxDistance;
         }
     }
 
@@ -262,6 +325,67 @@ bool TriangleSet::TriangleOctreeCell::findRayIntersection(const glm::vec3& origi
     }
     if (intersects) {
         distance = bestLocalDistance;
+        face = bestLocalFace;
+        triangle = bestLocalTriangle;
+    }
+    return intersects;
+}
+
+bool TriangleSet::TriangleOctreeCell::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
+                const glm::vec3& acceleration, float& parabolicDistance, BoxFace& face, Triangle& triangle, bool precision,
+                int& trianglesTouched, bool allowBackface) {
+    if (_population < 1) {
+        return false; // no triangles below here, so we can't intersect
+    }
+
+    float bestLocalDistance = parabolicDistance;
+    BoxFace bestLocalFace;
+    Triangle bestLocalTriangle;
+    glm::vec3 bestLocalNormal;
+    bool intersects = false;
+
+    // if the ray intersects our bounding box, then continue
+    if (getBounds().findParabolaIntersection(origin, velocity, acceleration, bestLocalDistance, bestLocalFace, bestLocalNormal)) {
+        // if the intersection with our bounding box, is greater than the current best distance (the distance passed in)
+        // then we know that none of our triangles can represent a better intersection and we can return
+        if (bestLocalDistance > parabolicDistance) {
+            return false;
+        }
+
+        bestLocalDistance = parabolicDistance;
+
+        float childDistance = parabolicDistance;
+        BoxFace childFace;
+        Triangle childTriangle;
+
+        // if we're not yet at the max depth, then check which child the triangle fits in
+        if (_depth < MAX_DEPTH) {
+            for (auto& child : _children) {
+                // check each child, if there's an intersection, it will return some distance that we need
+                // to compare against the other results, because there might be multiple intersections and
+                // we will always choose the best (shortest) intersection
+                if (child.second.findParabolaIntersection(origin, velocity, acceleration, childDistance, childFace, childTriangle, precision, trianglesTouched)) {
+                    if (childDistance < bestLocalDistance) {
+                        bestLocalDistance = childDistance;
+                        bestLocalFace = childFace;
+                        bestLocalTriangle = childTriangle;
+                        intersects = true;
+                    }
+                }
+            }
+        }
+        // also check our local triangle set
+        if (findParabolaIntersectionInternal(origin, velocity, acceleration, childDistance, childFace, childTriangle, precision, trianglesTouched, allowBackface)) {
+            if (childDistance < bestLocalDistance) {
+                bestLocalDistance = childDistance;
+                bestLocalFace = childFace;
+                bestLocalTriangle = childTriangle;
+                intersects = true;
+            }
+        }
+    }
+    if (intersects) {
+        parabolicDistance = bestLocalDistance;
         face = bestLocalFace;
         triangle = bestLocalTriangle;
     }

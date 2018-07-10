@@ -94,6 +94,9 @@ bool findParabolaRectangleIntersection(const glm::vec3& origin, const glm::vec3&
 bool findParabolaSphereIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
     const glm::vec3& center, float radius, float& distance);
 
+bool findParabolaTriangleIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+    const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& parabolicDistance, bool allowBackface = false);
+
 /// \brief decomposes rotation into its components such that: rotation = swing * twist
 /// \param rotation[in] rotation to decompose
 /// \param direction[in] normalized axis about which the twist happens (typically original direction before rotation applied)
@@ -116,6 +119,11 @@ public:
 inline bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                     const Triangle& triangle, float& distance, bool allowBackface = false) {
     return findRayTriangleIntersection(origin, direction, triangle.v0, triangle.v1, triangle.v2, distance, allowBackface);
+}
+
+inline bool findParabolaTriangleIntersection(const glm::vec3& origin, const glm::vec3& velocity,
+    const glm::vec3& acceleration, const Triangle& triangle, float& parabolicDistance, bool allowBackface = false) {
+    return findParabolaTriangleIntersection(origin, velocity, acceleration, triangle.v0, triangle.v1, triangle.v2, parabolicDistance, allowBackface);
 }
 
 int clipTriangleWithPlane(const Triangle& triangle, const Plane& plane, Triangle* clippedTriangles, int maxClippedTriangleCount);
@@ -194,5 +202,9 @@ bool isWithin(float value, float corner, float size);
 
 void checkPossibleParabolicIntersectionWithZPlane(float t, float& minDistance,
     const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration, const glm::vec2& corner, const glm::vec2& scale);
+void checkPossibleParabolicIntersectionWithTriangle(float t, float& minDistance,
+    const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+    const glm::vec3& localVelocity, const glm::vec3& localAcceleration, const glm::vec3& normal,
+    const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, bool allowBackface);
 
 #endif // hifi_GeometryUtil_h
