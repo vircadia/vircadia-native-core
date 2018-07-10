@@ -167,7 +167,7 @@ QDomElement TestSuiteCreator::processTest(const QString& fullDirectory, const QS
     QDomElement added_to_releaseElementId = document.createElement("id");
     added_to_releaseElement.appendChild(document.createElement("id"));
     QDomElement added_to_releaseElementValue = document.createElement("value");
-    added_to_releaseElementValue.appendChild(document.createTextNode("RC68"));
+    added_to_releaseElementValue.appendChild(document.createTextNode(branch));
     added_to_releaseElement.appendChild(added_to_releaseElementValue);
     customElement.appendChild(added_to_releaseElement);
 
