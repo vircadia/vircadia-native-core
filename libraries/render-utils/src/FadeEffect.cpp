@@ -33,15 +33,8 @@ void FadeEffect::build(render::Task::TaskConcept& task, const task::Varying& edi
 
 render::ShapePipeline::BatchSetter FadeEffect::getBatchSetter() const {
     return [this](const render::ShapePipeline& shapePipeline, gpu::Batch& batch, render::Args*) {
-        auto program = shapePipeline.pipeline->getProgram();
-        auto maskMapLocation = program->getTextures().findLocation("fadeMaskMap");
-        auto bufferLocation = program->getUniformBuffers().findLocation("fadeParametersBuffer");
-        if (maskMapLocation != -1) {
-            batch.setResourceTexture(maskMapLocation, _maskMap);
-        } 
-        if (bufferLocation != -1) {
-            batch.setUniformBuffer(bufferLocation, _configurations);
-        }
+        batch.setResourceTexture(shapePipeline.locations->fadeMaskTextureUnit, _maskMap);
+        batch.setUniformBuffer(shapePipeline.locations->fadeParameterBufferUnit, _configurations);
     };
 }
 
@@ -56,7 +49,7 @@ render::ShapePipeline::ItemSetter FadeEffect::getItemUniformSetter() const {
             auto objectParamBufferLocation = program->getUniformBuffers().findLocation("fadeObjectParametersBuffer");
 
             if (objectParamBufferLocation >= 0) {
-                if (transitionState.paramsBuffer._size == 0) {
+                if (transitionState.paramsBuffer._size != sizeof(gpu::StructBuffer<FadeObjectParams>)) {
                     static_assert(sizeof(transitionState.paramsBuffer) == sizeof(gpu::StructBuffer<FadeObjectParams>), "Assuming gpu::StructBuffer is a helper class for gpu::BufferView");
                     transitionState.paramsBuffer = gpu::StructBuffer<FadeObjectParams>();
                 }
