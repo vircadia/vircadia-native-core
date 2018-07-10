@@ -24,6 +24,7 @@ Item {
     HifiConstants { id: hifi }
     property var sections: []
     property var showCategories: []
+    property var categoryProperties: ({})
 
     property bool keyboardEnabled: false
     property bool keyboardRaised: false
@@ -100,7 +101,8 @@ Item {
                     // NOTE: the sort order of items in the showCategories array is the same order in the dialog.
                     for (i = 0; i < showCategories.length; i++) {
                         if (categoryMap[showCategories[i]]) {
-                            sections.push(sectionBuilder.createObject(prefControls, {name: showCategories[i]}));
+                            var properties = categoryProperties.hasOwnProperty(showCategories[i]) ? categoryProperties[showCategories[i]] : {};
+                            sections.push(sectionBuilder.createObject(prefControls, {name: showCategories[i], sectionProperties: properties}));
                         }
                     }
 
