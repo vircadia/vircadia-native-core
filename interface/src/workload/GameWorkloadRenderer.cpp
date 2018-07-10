@@ -40,7 +40,6 @@ void GameSpaceToRender::run(const workload::WorkloadContextPointer& runContext, 
     auto visible = _showAllProxies || _showAllViews;
     auto showProxies = _showAllProxies;
     auto showViews = _showAllViews;
-    auto freezeViews = _freezeViews;
 
     render::Transaction transaction;
     auto scene = gameWorkloadContext->_scene;
