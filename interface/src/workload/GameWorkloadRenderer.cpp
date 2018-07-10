@@ -71,7 +71,7 @@ void GameSpaceToRender::run(const workload::WorkloadContextPointer& runContext, 
         transaction.resetItem(_spaceRenderItemID, std::make_shared<GameWorkloadRenderItem::Payload>(renderItem));
     }
     
-    transaction.updateItem<GameWorkloadRenderItem>(_spaceRenderItemID, [visible, showProxies, proxies, freezeViews, showViews, views](GameWorkloadRenderItem& item) {
+    transaction.updateItem<GameWorkloadRenderItem>(_spaceRenderItemID, [visible, showProxies, proxies, showViews, views](GameWorkloadRenderItem& item) {
         item.setVisible(visible);
         item.showProxies(showProxies);
         item.setAllProxies(proxies);
