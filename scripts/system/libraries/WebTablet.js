@@ -82,19 +82,17 @@ function calcSpawnInfo(hand, landscape) {
 }
 
 
-function cleanUpOldMaterialEntities() {
+cleanUpOldMaterialEntities = function() {
     var avatarEntityData = MyAvatar.getAvatarEntityData();
-
     for (var entityID in avatarEntityData) {
         var entityName = Entities.getEntityProperties(entityID, ["name"]).name;
 
-        if (entityName === TABLET_MATERIAL_ENTITY_NAME) {
+        if (entityName === TABLET_MATERIAL_ENTITY_NAME && entityID !== HMD.homeButtonHighlightMaterialID &&
+           entityID !== HMD.homeButtonUnhighlightMaterialID) {
             Entities.deleteEntity(entityID);
         }
     }
-}
-
-cleanUpOldMaterialEntities();
+};
 
 /**
  * WebTablet
