@@ -107,7 +107,6 @@ bool startCrashHandler(std::string appPath) {
     const QDir interfaceDir = interfaceBinary.dir();
     assert(interfaceDir.exists(CRASHPAD_HANDLER_NAME));
     const std::string CRASHPAD_HANDLER_PATH = interfaceDir.filePath(CRASHPAD_HANDLER_NAME).toStdString();
-    qDebug() << "CRASHPAD_HANDLER_PATH:" << CRASHPAD_HANDLER_PATH.c_str();
 
     // Setup different file paths
     base::FilePath::StringType dbPath;

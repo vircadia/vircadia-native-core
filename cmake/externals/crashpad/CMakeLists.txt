@@ -1,6 +1,8 @@
 include(ExternalProject)
 set(EXTERNAL_NAME crashpad)
 
+string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
+
 if (WIN32)
     ExternalProject_Add(
       ${EXTERNAL_NAME}
@@ -12,7 +14,6 @@ if (WIN32)
       LOG_DOWNLOAD 1
     )
 
-    string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
     ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
 
     set(BIN_RELEASE_PATH "${SOURCE_DIR}/out/Release_x64")
@@ -32,7 +33,6 @@ elseif (APPLE)
     LOG_DOWNLOAD 1
   )
 
-  string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
   ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
 
   set(BIN_RELEASE_PATH "${SOURCE_DIR}/out/Release")
