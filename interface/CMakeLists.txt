@@ -127,8 +127,6 @@ if (APPLE)
     endif ()
   endif ()
 
-  set(MACOSX_BUNDLE_BACKTRACE_DOMAIN_NAME highfidelity.sp.backtrace.io)
-
   # set how the icon shows up in the Info.plist file
   set(MACOSX_BUNDLE_ICON_FILE "${INTERFACE_ICON_FILENAME}")
 
