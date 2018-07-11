@@ -75,11 +75,10 @@ ScriptAudioInjector* AudioScriptingInterface::playSound(SharedSoundPointer sound
     }
 }
 
-bool AudioScriptingInterface::setStereoInput(bool stereo) {
+void AudioScriptingInterface::setStereoInput(bool stereo) {
     if (_localAudioInterface) {
         QMetaObject::invokeMethod(_localAudioInterface, "setIsStereoInput", Q_ARG(bool, stereo));
     }
-    return true;
 }
 
 bool AudioScriptingInterface::isStereoInput() {
