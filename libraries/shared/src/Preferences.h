@@ -15,6 +15,7 @@
 #include <QtCore/QVariant>
 #include <QtCore/QList>
 #include <QtCore/QString>
+#include <QtCore/QVariantMap>
 
 #include "DependencyManager.h"
 
@@ -80,7 +81,6 @@ public:
     }
 
     void setEnabler(BoolPreference* enabler, bool inverse = false);
-
     virtual Type getType() { return Invalid; };
 
     Q_INVOKABLE virtual void load() {};

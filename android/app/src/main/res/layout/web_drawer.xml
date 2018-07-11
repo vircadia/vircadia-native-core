@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SlidingDrawer android:id="@+id/drawer"
+    android:layout_width="218dp"
+    android:layout_height="125dp"
+    android:layout_gravity="bottom|right"
+    android:layout_marginBottom="11dp"
+    android:layout_marginRight="11dp"
+    android:handle="@+id/handle"
+    android:content="@+id/content"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <ImageView
+        android:id="@id/handle"
+        android:layout_width="0dp"
+        android:layout_height="0dp"/>
+    <fragment
+        android:id="@id/content"
+        android:name="io.highfidelity.hifiinterface.fragment.WebViewFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:tag="webViewFragment"
+        />
+
+</SlidingDrawer>

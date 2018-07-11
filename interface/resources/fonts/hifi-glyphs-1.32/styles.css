@@ -122,12 +122,6 @@
 .icon-close-small:before {
   content: "\43";
 }
-.icon-backward:before {
-  content: "\45";
-}
-.icon-reload:before {
-  content: "\46";
-}
 .icon-minimize:before {
   content: "\49";
 }
@@ -160,9 +154,6 @@
 }
 .icon-hifi-logo-small:before {
   content: "\53";
-}
-.icon-avatar-1:before {
-  content: "\54";
 }
 .icon-placemark:before {
   content: "\55";
@@ -326,9 +317,6 @@
 .icon-model:before {
   content: "\e008";
 }
-.icon-forward:before {
-  content: "\44";
-}
 .icon-avatar-2:before {
   content: "\e009";
 }
@@ -478,4 +466,16 @@
 }
 .icon-ellipsis-vertical:before {
   content: "\e034";
+}
+.icon-backward:before {
+  content: "\45";
+}
+.icon-40-reload:before {
+  content: "\46";
+}
+.icon-forward:before {
+  content: "\44";
+}
+.icon-avatar-1:before {
+  content: "\54";
 }

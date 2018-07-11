@@ -300,6 +300,12 @@ void setupPreferences() {
         preference->setStep(0.001f);
         preferences->addPreference(preference);
     }
+    {
+        auto preference = new ButtonPreference(MOVEMENT, "RESET SENSORS", [] {
+            qApp->resetSensors();
+        });
+        preferences->addPreference(preference);
+    }
 
     static const QString AVATAR_CAMERA{ "Mouse Sensitivity" };
     {

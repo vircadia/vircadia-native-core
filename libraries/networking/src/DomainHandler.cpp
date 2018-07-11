@@ -475,13 +475,16 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
     }
 }
 
-void DomainHandler::sentCheckInPacket() {
+bool DomainHandler::checkInPacketTimeout() {
     ++_checkInPacketsSinceLastReply;
 
-    if (_checkInPacketsSinceLastReply >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+    if (_checkInPacketsSinceLastReply > MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
         // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
         // so emit our signal that says that
         qCDebug(networking) << "Limit of silent domain checkins reached";
         emit limitOfSilentDomainCheckInsReached();
+        return true;
+    } else {
+        return false;
     }
 }
