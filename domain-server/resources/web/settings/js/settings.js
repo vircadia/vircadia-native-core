@@ -58,7 +58,11 @@ $(document).ready(function(){
   }
 
   Settings.handlePostSettings = function(formJSON) {
-
+      
+      if (!checkAvatarHeights()) {
+          return false;
+      }
+	  
     // check if we've set the basic http password
     if (formJSON["security"]) {
 
@@ -1093,15 +1097,35 @@ $(document).ready(function(){
   }
   
   function checkAvatarHeights() {
-  	var minHeight = Settings.avatars.min_avatar_height;
-	var maxHeight = Settings.avatars.max_avatar_height;
-	  if (maxHeight < minHeight) {
-	  	swal({
-              type: 'error',
-              title: '',
-              text: "Maximum avatar height must not be less than minimum avatar height",
-              html: true
-            }, function(){swal.close();});
-	  }
+    var errorString = '';
+    var minAllowedHeight = 0.009;
+    var maxAllowedHeight = 1755;
+    var currentForm = form2js('settings-form');
+    var minHeight = currentForm.avatars.min_avatar_height;
+    var maxHeight = currentForm.avatars.max_avatar_height;
+    //var minHeight = Number($('input[name="avatars.min_avatar_height"]').attr('value'));
+    //var maxHeight = Number($('input[name="avatars.max_avatar_height"]').attr('value'));
+      
+    if (maxHeight < minHeight) {
+        errorString = 'Maximum avatar height must not be less than minimum avatar height<br>';
+    };
+    if (minHeight < minAllowedHeight) {
+        errorString += 'Minimum avatar height must not be less than ' + minAllowedHeight + '<br>';
+    }
+    if (maxHeight > maxAllowedHeight) {
+        errorString += 'Maximum avatar height must not be greater than ' + maxAllowedHeight + '<br>';
+    }
+    if (errorString.length > 0) {
+	  swal({
+        type: 'error',
+        title: '',
+        text: errorString,
+        html: true
+	  });
+	  return false;
+    } else {
+        return true;
+    }
+
   }
 });
