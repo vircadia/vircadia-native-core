@@ -67,13 +67,13 @@ Item {
         }
 
         onAppInstalled: {
-            if (appHref === root.itemHref) {
+            if (appID === root.itemId) {
                 root.isInstalled = true;
             }
         }
 
         onAppUninstalled: {
-            if (appHref === root.itemHref) {
+            if (appID === root.itemId) {
                 root.isInstalled = false;
             }
         }
