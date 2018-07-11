@@ -66,10 +66,14 @@
         <script>
             var handControllerImageURL = null;
             var index = 0;
-            var count = 4;
+            var count = 5;
 
             function showKbm() {
                 document.getElementById("main_image").setAttribute("src", "img/tablet-help-keyboard.jpg");
+            }
+
+            function showWindowsMR() {
+                document.getElementById("main_image").setAttribute("src", "img/tablet-help-windowsMR.jpg");
             }
 
             function showHandControllers() {
@@ -105,6 +109,9 @@
                         showGamepad();
                         break;
                     case 3:
+                        showWindowsMR();
+                        break;
+                    case 4:
                         showKbm();
                         break;
 
@@ -161,10 +168,15 @@
                         showHandControllers();
                         break;
 
+                    case "windowsMR":
+                        showWindowsMR();
+                        index = 3;
+                        break;
+
                     case "kbm":
                     default:
                         showKbm();
-                        index = 3;
+                        index = 4;
                 }
             }
         </script>
