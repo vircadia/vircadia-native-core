@@ -482,6 +482,12 @@ bool nativeFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
     audioFormat.setSampleType(QAudioFormat::SignedInt);
     audioFormat.setByteOrder(QAudioFormat::LittleEndian);
 
+#if defined(Q_OS_ANDROID)
+    if (audioDevice == QAudioDeviceInfo::defaultInputDevice()) {
+        audioFormat.setSampleRate(44100);
+    }
+#endif
+
     if (!audioDevice.isFormatSupported(audioFormat)) {
         qCWarning(audioclient) << "The native format is" << audioFormat << "but isFormatSupported() failed.";
         return false;
