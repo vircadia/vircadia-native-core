@@ -150,14 +150,18 @@ QDomElement TestSuiteCreator::processTest(const QString& fullDirectory, const QS
     customElement.appendChild(tester_countElement);
 
     QDomElement domain_bot_loadElement = document.createElement("domain_bot_load");
-    domain_bot_loadElement.appendChild(document.createElement("id"));
+    QDomElement domain_bot_loadElementId = document.createElement("id");
+    domain_bot_loadElementId.appendChild(document.createTextNode("1"));
+    domain_bot_loadElement.appendChild(domain_bot_loadElementId);
     QDomElement domain_bot_loadElementValue = document.createElement("value");
-    domain_bot_loadElementValue.appendChild(document.createTextNode(" With Bots (hifiqa-rc-bots / hifi-qa-stable-bots / hifiqa-master-bots)"));
+    domain_bot_loadElementValue.appendChild(document.createTextNode(" Without Bots (hifiqa-rc / hifi-qa-stable / hifiqa-master)"));
     domain_bot_loadElement.appendChild(domain_bot_loadElementValue);
     customElement.appendChild(domain_bot_loadElement);
 
     QDomElement automation_typeElement = document.createElement("automation_type");
-    automation_typeElement.appendChild(document.createElement("id"));
+    QDomElement automation_typeElementId = document.createElement("id");
+    automation_typeElementId.appendChild(document.createTextNode("0"));
+    automation_typeElement.appendChild(automation_typeElementId);
     QDomElement automation_typeElementValue = document.createElement("value");
     automation_typeElementValue.appendChild(document.createTextNode("None"));
     automation_typeElement.appendChild(automation_typeElementValue);
@@ -165,7 +169,8 @@ QDomElement TestSuiteCreator::processTest(const QString& fullDirectory, const QS
 
     QDomElement added_to_releaseElement = document.createElement("added_to_release");
     QDomElement added_to_releaseElementId = document.createElement("id");
-    added_to_releaseElement.appendChild(document.createElement("id"));
+    added_to_releaseElementId.appendChild(document.createTextNode("4"));
+    added_to_releaseElement.appendChild(added_to_releaseElementId);
     QDomElement added_to_releaseElementValue = document.createElement("value");
     added_to_releaseElementValue.appendChild(document.createTextNode(branch));
     added_to_releaseElement.appendChild(added_to_releaseElementValue);
