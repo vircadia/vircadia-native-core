@@ -393,34 +393,42 @@ graphics::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
     return _spotLightMesh;
 }
 
-void PreparePrimaryFramebuffer::run(const RenderContextPointer& renderContext, gpu::FramebufferPointer& primaryFramebuffer) {
+gpu::FramebufferPointer PreparePrimaryFramebuffer::createFramebuffer(const char* name, const glm::uvec2& frameSize) {
+    gpu::FramebufferPointer framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(name));
+    auto colorFormat = gpu::Element::COLOR_SRGBA_32;
+
+    auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
+    auto primaryColorTexture = gpu::Texture::createRenderBuffer(colorFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);
+
+    framebuffer->setRenderBuffer(0, primaryColorTexture);
+
+    auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
+    auto primaryDepthTexture = gpu::Texture::createRenderBuffer(depthFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);
+
+    framebuffer->setDepthStencilBuffer(primaryDepthTexture, depthFormat);
+
+    return framebuffer;
+}
+
+void PreparePrimaryFramebuffer::configure(const Config& config) {
+    _resolutionScale = config.resolutionScale;
+}
+
+void PreparePrimaryFramebuffer::run(const RenderContextPointer& renderContext, Output& primaryFramebuffer) {
     glm::uvec2 frameSize(renderContext->args->_viewport.z, renderContext->args->_viewport.w);
+    glm::uvec2 scaledFrameSize(glm::vec2(frameSize) * _resolutionScale);
 
     // Resizing framebuffers instead of re-building them seems to cause issues with threaded 
     // rendering
-    if (_primaryFramebuffer && _primaryFramebuffer->getSize() != frameSize) {
-        _primaryFramebuffer.reset();
+    if (!_primaryFramebuffer || _primaryFramebuffer->getSize() != scaledFrameSize) {
+        _primaryFramebuffer = createFramebuffer("deferredPrimary", scaledFrameSize);
     }
 
-    if (!_primaryFramebuffer) {
-        _primaryFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("deferredPrimary"));
-        auto colorFormat = gpu::Element::COLOR_SRGBA_32;
-
-        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
-        auto primaryColorTexture = gpu::Texture::createRenderBuffer(colorFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);
-
-
-        _primaryFramebuffer->setRenderBuffer(0, primaryColorTexture);
-
-
-        auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
-        auto primaryDepthTexture = gpu::Texture::createRenderBuffer(depthFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);
-
-        _primaryFramebuffer->setDepthStencilBuffer(primaryDepthTexture, depthFormat);
-    }
-
-    
     primaryFramebuffer = _primaryFramebuffer;
+
+    // Set viewport for the rest of the scaled passes
+    renderContext->args->_viewport.z = scaledFrameSize.x;
+    renderContext->args->_viewport.w = scaledFrameSize.y;
 }
 
 void PrepareDeferred::run(const RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {

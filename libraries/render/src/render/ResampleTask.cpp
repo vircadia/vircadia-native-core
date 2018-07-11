@@ -81,3 +81,69 @@ void HalfDownsample::run(const RenderContextPointer& renderContext, const gpu::F
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
 }
+
+gpu::PipelinePointer Upsample::_pipeline;
+
+void Upsample::configure(const Config& config) {
+    _factor = config.factor;
+}
+
+gpu::FramebufferPointer Upsample::getResampledFrameBuffer(const gpu::FramebufferPointer& sourceFramebuffer) {
+    if (_factor == 1.0f) {
+        return sourceFramebuffer;
+    }
+
+    auto resampledFramebufferSize = glm::uvec2(glm::vec2(sourceFramebuffer->getSize()) * _factor);
+
+    if (!_destinationFrameBuffer || resampledFramebufferSize != _destinationFrameBuffer->getSize()) {
+        _destinationFrameBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("UpsampledOutput"));
+
+        auto sampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
+        auto target = gpu::Texture::createRenderBuffer(sourceFramebuffer->getRenderBuffer(0)->getTexelFormat(), resampledFramebufferSize.x, resampledFramebufferSize.y, gpu::Texture::SINGLE_MIP, sampler);
+        _destinationFrameBuffer->setRenderBuffer(0, target);
+    }
+    return _destinationFrameBuffer;
+}
+
+void Upsample::run(const RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceFramebuffer, gpu::FramebufferPointer& resampledFrameBuffer) {
+    assert(renderContext->args);
+    assert(renderContext->args->hasViewFrustum());
+    RenderArgs* args = renderContext->args;
+
+    resampledFrameBuffer = getResampledFrameBuffer(sourceFramebuffer);
+    if (resampledFrameBuffer != sourceFramebuffer) {
+        if (!_pipeline) {
+            auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
+            auto ps = gpu::StandardShaderLib::getDrawTextureOpaquePS();
+            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+
+            gpu::Shader::BindingSet slotBindings;
+            gpu::Shader::makeProgram(*program, slotBindings);
+
+            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+            state->setDepthTest(gpu::State::DepthTest(false, false));
+            _pipeline = gpu::Pipeline::create(program, state);
+        }
+
+        const auto bufferSize = resampledFrameBuffer->getSize();
+        glm::ivec4 viewport{ 0, 0, bufferSize.x, bufferSize.y };
+
+        gpu::doInBatch("Upsample::run", args->_context, [&](gpu::Batch& batch) {
+            batch.enableStereo(false);
+
+            batch.setFramebuffer(resampledFrameBuffer);
+
+            batch.setViewportTransform(viewport);
+            batch.setProjectionTransform(glm::mat4());
+            batch.resetViewTransform();
+            batch.setPipeline(_pipeline);
+
+            batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(bufferSize, viewport));
+            batch.setResourceTexture(0, sourceFramebuffer->getRenderBuffer(0));
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+        });
+
+        // Set full final viewport
+        args->_viewport = viewport;
+    }
+}
