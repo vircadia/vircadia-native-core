@@ -91,7 +91,7 @@ int main(int argc, const char* argv[]) {
     qDebug() << "UserActivityLogger is enabled:" << ual.isEnabled();
 
     if (ual.isEnabled()) {
-        auto crashHandlerStarted = startCrashHandler();
+        auto crashHandlerStarted = startCrashHandler(argv[0]);
         qDebug() << "Crash handler started:" << crashHandlerStarted;
     }
 

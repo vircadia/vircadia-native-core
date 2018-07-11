@@ -23,7 +23,7 @@ macro(add_crashpad)
     set(CMAKE_BACKTRACE_TOKEN $ENV{CMAKE_BACKTRACE_TOKEN})
   endif()
 
-  if (WIN32 AND USE_CRASHPAD)
+  if ((WIN32 OR APPLE) AND USE_CRASHPAD)
     get_property(CRASHPAD_CHECKED GLOBAL PROPERTY CHECKED_FOR_CRASHPAD_ONCE)
     if (NOT CRASHPAD_CHECKED)
 
@@ -42,6 +42,10 @@ macro(add_crashpad)
 
     if (WIN32)
       set_target_properties(${TARGET_NAME} PROPERTIES LINK_FLAGS "/ignore:4099")
+    elseif (APPLE)
+      find_library(Security Security)
+      target_link_libraries(${TARGET_NAME} ${Security})
+      target_link_libraries(${TARGET_NAME} "-lbsm")
     endif()
 
     add_custom_command(
