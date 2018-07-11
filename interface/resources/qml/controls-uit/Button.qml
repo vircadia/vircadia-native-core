@@ -19,6 +19,8 @@ Original.Button {
 
     property int color: 0
     property int colorScheme: hifi.colorSchemes.light
+    property int fontSize: hifi.fontSizes.buttonLabel
+    property alias implicitTextWidth: buttonText.implicitWidth
     property string buttonGlyph: "";
 
     width: hifi.dimensions.buttonWidth
@@ -108,7 +110,7 @@ Original.Button {
             font.capitalization: Font.AllUppercase
             color: enabled ? hifi.buttons.textColor[control.color]
                            : hifi.buttons.disabledTextColor[control.colorScheme]
-            size: hifi.fontSizes.buttonLabel
+            size: control.fontSize
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignHCenter
             text: control.text

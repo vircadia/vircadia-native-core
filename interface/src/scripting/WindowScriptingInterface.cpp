@@ -137,8 +137,13 @@ void WindowScriptingInterface::openUrl(const QUrl& url) {
         if (url.scheme() == URL_SCHEME_HIFI) {
             DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
         } else {
+#if defined(Q_OS_ANDROID)
+            QList<QString> args = { url.toString() };
+            AndroidHelper::instance().requestActivity("WebView", true, args);
+#else
             // address manager did not handle - ask QDesktopServices to handle
             QDesktopServices::openUrl(url);
+#endif
         }
     }
 }

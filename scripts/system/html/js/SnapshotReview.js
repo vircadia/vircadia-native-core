@@ -668,6 +668,7 @@ window.onload = function () {
                                 addImage(element, messageOptions.isLoggedIn, idx === 0 && messageOptions.canShare, idx === 1, false, false, false, true);
                             });
                             document.getElementById("p1").classList.add("processingGif");
+                            document.getElementById("snap-button").disabled = true;
                         } else {
                             var gifPath = message.image_data[0].localPath,
                                 p1img = document.getElementById('p1img');
@@ -677,14 +678,15 @@ window.onload = function () {
                             shareForUrl("p1");
                             appendShareBar("p1", messageOptions.isLoggedIn, messageOptions.canShare, true, false, false, messageOptions.canBlast);
                             document.getElementById("p1").classList.remove("processingGif");
+                            document.getElementById("snap-button").disabled = false;
                         }
                     } else {
                         imageCount = message.image_data.length;
                         message.image_data.forEach(function (element) {
                             addImage(element, messageOptions.isLoggedIn, messageOptions.canShare, false, false, false, false, true);
                         });
+                        document.getElementById("snap-button").disabled = false;
                     }
-                    document.getElementById("snap-button").disabled = false;
                     break;
                 case 'captureSettings':
                     handleCaptureSetting(message.setting);
@@ -701,7 +703,7 @@ window.onload = function () {
                 case 'snapshotUploadComplete':
                     var isGif = fileExtensionMatches(message.image_url, "gif");
                     updateShareInfo(isGif ? "p1" : "p0", message.story_id);
-                    if (isPrintProcessing()) {                       
+                    if (isPrintProcessing()) {
                         setPrintButtonEnabled();
                     }
                     break;
@@ -724,11 +726,11 @@ function snapshotSettings() {
     }));
 }
 function takeSnapshot() {
+    document.getElementById("snap-button").disabled = true;
     EventBridge.emitWebEvent(JSON.stringify({
         type: "snapshot",
         action: "takeSnapshot"
     }));
-    document.getElementById("snap-button").disabled = true;
 }
 
 function isPrintDisabled() { 
@@ -739,14 +741,14 @@ function isPrintDisabled() {
            document.getElementById('print-button').disabled;
 }
 function isPrintProcessing() { 
-    var printElement = document.getElementById('print-icon');  
+    var printElement = document.getElementById('print-icon');
     
     return printElement.classList.contains("print-icon") &&
            printElement.classList.contains("print-icon-loading") &&
            document.getElementById('print-button').disabled;
 }
 function isPrintEnabled() {
-    var printElement = document.getElementById('print-icon');    
+    var printElement = document.getElementById('print-icon');
     
     return printElement.classList.contains("print-icon") &&
            printElement.classList.contains("print-icon-default") &&
@@ -773,8 +775,8 @@ function requestPrintButtonUpdate() {
     }));
 }
 
-function printToPolaroid() {   
-    if (isPrintEnabled()) {        
+function printToPolaroid() {
+    if (isPrintEnabled()) {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "snapshot",
             action: "printToPolaroid"

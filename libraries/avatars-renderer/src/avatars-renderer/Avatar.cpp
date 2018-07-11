@@ -212,6 +212,8 @@ void Avatar::setTargetScale(float targetScale) {
         _targetScale = newValue;
         _scaleChanged = usecTimestampNow();
         _isAnimatingScale = true;
+
+        emit targetScaleChanged(targetScale);
     }
 }
 

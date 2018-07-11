@@ -46,6 +46,10 @@ void Bookmarks::deleteBookmark() {
         return;
     }
 
+    deleteBookmark(bookmarkName);
+}
+
+void Bookmarks::deleteBookmark(const QString& bookmarkName) {
     removeBookmarkFromMenu(Menu::getInstance(), bookmarkName);
     remove(bookmarkName);
 

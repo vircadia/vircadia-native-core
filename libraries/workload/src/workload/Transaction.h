@@ -137,6 +137,8 @@ public:
     Collection();
     ~Collection();
 
+    virtual void clear();
+
     // This call is thread safe, can be called from anywhere to allocate a new ID
     ProxyID allocateID();
 

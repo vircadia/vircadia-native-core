@@ -361,6 +361,9 @@ public:
 
     virtual scriptable::ScriptableModelBase getScriptableModel() override;
 
+signals:
+    void targetScaleChanged(float targetScale);
+
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead

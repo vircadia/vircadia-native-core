@@ -48,12 +48,12 @@ void GLBackend::do_setPipeline(const Batch& batch, size_t paramOffset) {
             return;
         }
 
-        // check the program cache
-        // pick the program version 
-        // check the program cache
-        // pick the program version 
+            // check the program cache
+            // pick the program version
+            // check the program cache
+            // pick the program version
 #ifdef GPU_STEREO_CAMERA_BUFFER
-        GLuint glprogram = pipelineObject->_program->getProgram((GLShader::Version) isStereo());
+        GLuint glprogram = pipelineObject->_program->getProgram((GLShader::Version)isStereo());
 #else
         GLuint glprogram = pipelineObject->_program->getProgram();
 #endif
@@ -85,10 +85,11 @@ void GLBackend::do_setPipeline(const Batch& batch, size_t paramOffset) {
             } else {
                 cameraCorrectionBuffer = syncGPUObject(*_pipeline._cameraCorrectionBufferIdentity._buffer);
             }
+            // Invalidate uniform buffer cache slot
+            _uniform._buffers[_pipeline._cameraCorrectionLocation].reset();
             glBindBufferRange(GL_UNIFORM_BUFFER, _pipeline._cameraCorrectionLocation, cameraCorrectionBuffer->_id, 0, sizeof(CameraCorrection));
-
         }
-        (void) CHECK_GL_ERROR();
+        (void)CHECK_GL_ERROR();
         _pipeline._invalidProgram = false;
     }
 }
@@ -97,7 +98,7 @@ void GLBackend::updatePipeline() {
     if (_pipeline._invalidProgram) {
         // doing it here is aproblem for calls to glUniform.... so will do it on assing...
         glUseProgram(_pipeline._program);
-        (void) CHECK_GL_ERROR();
+        (void)CHECK_GL_ERROR();
         _pipeline._invalidProgram = false;
     }
 
@@ -106,12 +107,12 @@ void GLBackend::updatePipeline() {
             // first reset to default what should be
             // the fields which were not to default and are default now
             resetPipelineState(_pipeline._state->_signature);
-            
+
             // Update the signature cache with what's going to be touched
             _pipeline._stateSignatureCache |= _pipeline._state->_signature;
 
             // And perform
-            for (auto command: _pipeline._state->_commands) {
+            for (auto command : _pipeline._state->_commands) {
                 command->run(this);
             }
         } else {
@@ -142,8 +143,8 @@ void GLBackend::releaseUniformBuffer(uint32_t slot) {
     if (buf) {
         auto* object = Backend::getGPUObject<GLBuffer>(*buf);
         if (object) {
-            glBindBufferBase(GL_UNIFORM_BUFFER, slot, 0); // RELEASE
-            (void) CHECK_GL_ERROR();
+            glBindBufferBase(GL_UNIFORM_BUFFER, slot, 0);  // RELEASE
+            (void)CHECK_GL_ERROR();
         }
         buf.reset();
     }
@@ -157,8 +158,9 @@ void GLBackend::resetUniformStage() {
 
 void GLBackend::do_setUniformBuffer(const Batch& batch, size_t paramOffset) {
     GLuint slot = batch._params[paramOffset + 3]._uint;
-    if (slot >(GLuint)MAX_NUM_UNIFORM_BUFFERS) {
-        qCDebug(gpugllogging) << "GLBackend::do_setUniformBuffer: Trying to set a uniform Buffer at slot #" << slot << " which doesn't exist. MaxNumUniformBuffers = " << getMaxNumUniformBuffers();
+    if (slot > (GLuint)MAX_NUM_UNIFORM_BUFFERS) {
+        qCDebug(gpugllogging) << "GLBackend::do_setUniformBuffer: Trying to set a uniform Buffer at slot #" << slot
+                              << " which doesn't exist. MaxNumUniformBuffers = " << getMaxNumUniformBuffers();
         return;
     }
     BufferPointer uniformBuffer = batch._buffers.get(batch._params[paramOffset + 2]._uint);
@@ -169,7 +171,7 @@ void GLBackend::do_setUniformBuffer(const Batch& batch, size_t paramOffset) {
         releaseUniformBuffer(slot);
         return;
     }
-    
+
     // check cache before thinking
     if (_uniform._buffers[slot] == uniformBuffer) {
         return;
@@ -181,7 +183,7 @@ void GLBackend::do_setUniformBuffer(const Batch& batch, size_t paramOffset) {
         glBindBufferRange(GL_UNIFORM_BUFFER, slot, object->_buffer, rangeStart, rangeSize);
 
         _uniform._buffers[slot] = uniformBuffer;
-        (void) CHECK_GL_ERROR();
+        (void)CHECK_GL_ERROR();
     } else {
         releaseUniformBuffer(slot);
         return;
@@ -195,8 +197,8 @@ void GLBackend::releaseResourceTexture(uint32_t slot) {
         if (object) {
             GLuint target = object->_target;
             glActiveTexture(GL_TEXTURE0 + slot);
-            glBindTexture(target, 0); // RELEASE
-            (void) CHECK_GL_ERROR();
+            glBindTexture(target, 0);  // RELEASE
+            (void)CHECK_GL_ERROR();
         }
         tex.reset();
     }
@@ -212,11 +214,11 @@ void GLBackend::resetResourceStage() {
     }
 }
 
-
 void GLBackend::do_setResourceBuffer(const Batch& batch, size_t paramOffset) {
     GLuint slot = batch._params[paramOffset + 1]._uint;
     if (slot >= (GLuint)MAX_NUM_RESOURCE_BUFFERS) {
-        qCDebug(gpugllogging) << "GLBackend::do_setResourceBuffer: Trying to set a resource Buffer at slot #" << slot << " which doesn't exist. MaxNumResourceBuffers = " << getMaxNumResourceBuffers();
+        qCDebug(gpugllogging) << "GLBackend::do_setResourceBuffer: Trying to set a resource Buffer at slot #" << slot
+                              << " which doesn't exist. MaxNumResourceBuffers = " << getMaxNumResourceBuffers();
         return;
     }
 
@@ -237,7 +239,7 @@ void GLBackend::do_setResourceBuffer(const Batch& batch, size_t paramOffset) {
     // If successful bind then cache it
     if (bindResourceBuffer(slot, resourceBuffer)) {
         _resource._buffers[slot] = resourceBuffer;
-    } else { // else clear slot and cache
+    } else {  // else clear slot and cache
         releaseResourceBuffer(slot);
         return;
     }
@@ -245,8 +247,9 @@ void GLBackend::do_setResourceBuffer(const Batch& batch, size_t paramOffset) {
 
 void GLBackend::do_setResourceTexture(const Batch& batch, size_t paramOffset) {
     GLuint slot = batch._params[paramOffset + 1]._uint;
-    if (slot >= (GLuint) MAX_NUM_RESOURCE_TEXTURES) {
-        qCDebug(gpugllogging) << "GLBackend::do_setResourceTexture: Trying to set a resource Texture at slot #" << slot << " which doesn't exist. MaxNumResourceTextures = " << getMaxNumResourceTextures();
+    if (slot >= (GLuint)MAX_NUM_RESOURCE_TEXTURES) {
+        qCDebug(gpugllogging) << "GLBackend::do_setResourceTexture: Trying to set a resource Texture at slot #" << slot
+                              << " which doesn't exist. MaxNumResourceTextures = " << getMaxNumResourceTextures();
         return;
     }
 
@@ -265,11 +268,14 @@ void GLBackend::bindResourceTexture(uint32_t slot, const TexturePointer& resourc
 void GLBackend::do_setResourceFramebufferSwapChainTexture(const Batch& batch, size_t paramOffset) {
     GLuint slot = batch._params[paramOffset + 1]._uint;
     if (slot >= (GLuint)MAX_NUM_RESOURCE_TEXTURES) {
-        qCDebug(gpugllogging) << "GLBackend::do_setResourceFramebufferSwapChainTexture: Trying to set a resource Texture at slot #" << slot << " which doesn't exist. MaxNumResourceTextures = " << getMaxNumResourceTextures();
+        qCDebug(gpugllogging)
+            << "GLBackend::do_setResourceFramebufferSwapChainTexture: Trying to set a resource Texture at slot #" << slot
+            << " which doesn't exist. MaxNumResourceTextures = " << getMaxNumResourceTextures();
         return;
     }
 
-    auto swapChain = std::static_pointer_cast<FramebufferSwapChain>(batch._swapChains.get(batch._params[paramOffset + 0]._uint));
+    auto swapChain =
+        std::static_pointer_cast<FramebufferSwapChain>(batch._swapChains.get(batch._params[paramOffset + 0]._uint));
 
     if (!swapChain) {
         releaseResourceTexture(slot);

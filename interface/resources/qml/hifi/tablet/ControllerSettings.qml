@@ -69,6 +69,7 @@ Item {
             id: stack
             initialItem: inputConfiguration
             property alias messageVisible: imageMessageBox.visible
+            property string selectedPlugin: ""
             Rectangle {
                 id: inputConfiguration
                 anchors {
@@ -274,6 +275,8 @@ Item {
                 } else {
                     box.label = "";
                 }
+
+                stack.selectedPlugin = selectedDevice;
             }
 
             Timer {
@@ -297,6 +300,12 @@ Item {
             id: controllerPrefereneces
             objectName: "TabletControllerPreferences"
             showCategories: ["VR Movement", "Game Controller", "Sixense Controllers", "Perception Neuron", "Leap Motion"]
+            categoryProperties: {
+                "VR Movement" : {
+                    "User real-world height (meters)" : { "anchors.right" : "undefined" },
+                    "RESET SENSORS" : { "width" : "180", "anchors.left" : "undefined" }
+                }
+            }
         }
     }
 }
