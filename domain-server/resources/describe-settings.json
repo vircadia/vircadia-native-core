@@ -1223,7 +1223,7 @@
           "name": "max_avatar_height",
           "type": "double",
           "label": "Maximum Avatar Height (meters)",
-          "help": "Limits the scale of avatars in your domain. Cannot be greater than 1755.",
+          "help": "Limits the height of avatars in your domain. Cannot be greater than 1755.",
           "placeholder": 5.2,
           "default": 5.2
         },
