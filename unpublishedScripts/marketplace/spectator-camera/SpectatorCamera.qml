@@ -60,7 +60,7 @@ Rectangle {
         // "Spectator" text
         HifiStylesUit.RalewaySemiBold {
             id: titleBarText;
-            text: "Spectator Camera 2.2";
+            text: "Spectator Camera 2.3";
             // Anchors
             anchors.left: parent.left;
             anchors.leftMargin: 30;

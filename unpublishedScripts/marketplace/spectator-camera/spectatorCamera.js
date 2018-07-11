@@ -74,6 +74,7 @@
             "collisionMask": 7,
             "dynamic": false,
             "modelURL": Script.resolvePath("spectator-camera.fbx"),
+            "name": "Spectator Camera",
             "registrationPoint": {
                 "x": 0.56,
                 "y": 0.545,
@@ -101,6 +102,18 @@
             volume: 0.15,
             position: cameraPosition,
             localOnly: true
+        });
+
+        // Remove the existing camera model from the domain if one exists.
+        // It's easy for this to happen if the user crashes while the Spectator Camera is on.
+        // We do this down here (after the new one is rezzed) so that we don't accidentally delete
+        // the newly-rezzed model.
+        var entityIDs = Entities.findEntitiesByName("Spectator Camera", MyAvatar.position, 100, false);
+        entityIDs.forEach(function (currentEntityID) {
+            var currentEntityOwner = Entities.getEntityProperties(currentEntityID, ['owningAvatarID']).owningAvatarID;
+            if (currentEntityOwner === MyAvatar.sessionUUID && currentEntityID !== camera) {
+                Entities.deleteEntity(currentEntityID);
+            }
         });
     }
 

@@ -117,6 +117,9 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
     assert(renderContext->args->hasViewFrustum());
     auto& inShapes = inputs.get0();
 
+    const int BOUNDS_SLOT = 0;
+    const int PARAMETERS_SLOT = 1;
+
     if (!_stencilMaskPipeline || !_stencilMaskFillPipeline) {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
@@ -135,6 +138,8 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("ssbo0Buffer"), BOUNDS_SLOT));
+        slotBindings.insert(gpu::Shader::Binding(std::string("parametersBuffer"), PARAMETERS_SLOT));
         gpu::Shader::makeProgram(*program, slotBindings);
 
         _stencilMaskPipeline = gpu::Pipeline::create(program, state);
@@ -214,6 +219,15 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
 
         _boundsBuffer->setData(itemBounds.size() * sizeof(render::ItemBound), (const gpu::Byte*) itemBounds.data());
 
+        const auto securityMargin = 2.0f;
+        const float blurPixelWidth = 2.0f * securityMargin * HighlightSharedParameters::getBlurPixelWidth(highlight._style, args->_viewport.w);
+        const auto framebufferSize = ressources->getSourceFrameSize();
+        const glm::vec2 highlightWidth = { blurPixelWidth / framebufferSize.x, blurPixelWidth / framebufferSize.y };
+
+        if (highlightWidth != _outlineWidth.get()) {
+            _outlineWidth.edit() = highlightWidth;
+        }
+
         gpu::doInBatch("DrawHighlightMask::run::end", args->_context, [&](gpu::Batch& batch) {
             // Setup camera, projection and viewport for all items
             batch.setViewportTransform(args->_viewport);
@@ -221,15 +235,10 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
             batch.setViewTransform(viewMat);
 
             // Draw stencil mask with object bounding boxes
-            const auto highlightWidthLoc = _stencilMaskPipeline->getProgram()->getUniforms().findLocation("outlineWidth");
-            const auto securityMargin = 2.0f;
-            const float blurPixelWidth = 2.0f * securityMargin * HighlightSharedParameters::getBlurPixelWidth(highlight._style, args->_viewport.w);
-            const auto framebufferSize = ressources->getSourceFrameSize();
-
             auto stencilPipeline = highlight._style.isFilled() ? _stencilMaskFillPipeline : _stencilMaskPipeline;
             batch.setPipeline(stencilPipeline);
-            batch.setResourceBuffer(0, _boundsBuffer);
-            batch._glUniform2f(highlightWidthLoc, blurPixelWidth / framebufferSize.x, blurPixelWidth / framebufferSize.y);
+            batch.setResourceBuffer(BOUNDS_SLOT, _boundsBuffer);
+            batch.setUniformBuffer(PARAMETERS_SLOT, _outlineWidth);
             static const int NUM_VERTICES_PER_CUBE = 36;
             batch.draw(gpu::TRIANGLES, NUM_VERTICES_PER_CUBE * (gpu::uint32) itemBounds.size(), 0);
         });

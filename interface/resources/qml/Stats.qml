@@ -263,6 +263,12 @@ Item {
                     }
                     StatText {
                         text: "GPU: " + root.gpuFrameTime.toFixed(1) + " ms"
+                    }                    
+                    StatText {
+                        text: "GPU (Per pixel): " + root.gpuFrameTimePerPixel.toFixed(5) + " ns/pp"
+                    }                    
+                    StatText {
+                        text: "GPU frame size: " + root.gpuFrameSize.x + " x " + root.gpuFrameSize.y
                     }
                     StatText {
                         text: "Triangles: " + root.triangles +
