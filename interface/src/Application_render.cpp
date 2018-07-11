@@ -102,7 +102,7 @@ void Application::paintGL() {
         PerformanceTimer perfTimer("renderOverlay");
         // NOTE: There is no batch associated with this renderArgs
         // the ApplicationOverlay class assumes it's viewport is setup to be the device size
-        renderArgs._viewport = glm::ivec4(0, 0, getDeviceSize() * getRenderResolutionScale());
+        renderArgs._viewport = glm::ivec4(0, 0, getDeviceSize());
         _applicationOverlay.renderOverlay(&renderArgs);
     }
 
@@ -118,7 +118,7 @@ void Application::paintGL() {
         // Primary rendering pass
         auto framebufferCache = DependencyManager::get<FramebufferCache>();
         finalFramebufferSize = framebufferCache->getFrameBufferSize();
-        // Final framebuffer that will be handled to the display-plugin
+        // Final framebuffer that will be handed to the display-plugin
         finalFramebuffer = framebufferCache->getFramebuffer();
     }
 

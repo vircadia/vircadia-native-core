@@ -179,7 +179,7 @@ static const auto DEPTH_FORMAT = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPT
 void ApplicationOverlay::buildFramebufferObject() {
     PROFILE_RANGE(app, __FUNCTION__);
 
-    auto uiSize = glm::uvec2(glm::vec2(qApp->getUiSize()) * qApp->getRenderResolutionScale());
+    auto uiSize = glm::uvec2(qApp->getUiSize());
     if (!_overlayFramebuffer || uiSize != _overlayFramebuffer->getSize()) {
         _overlayFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("ApplicationOverlay"));
     }
