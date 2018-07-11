@@ -1091,4 +1091,17 @@ $(document).ready(function(){
 
     $('#settings_backup .panel-body').html(html);
   }
+  
+  function checkAvatarHeights() {
+  	var minHeight = Settings.avatars.min_avatar_height;
+	var maxHeight = Settings.avatars.max_avatar_height;
+	  if (maxHeight < minHeight) {
+	  	swal({
+              type: 'error',
+              title: '',
+              text: "Maximum avatar height must not be less than minimum avatar height",
+              html: true
+            }, function(){swal.close();});
+	  }
+  }
 });
