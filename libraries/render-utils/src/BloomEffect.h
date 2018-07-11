@@ -61,10 +61,11 @@ public:
 
 private:
 
+#include "BloomThreshold.shared.slh"
+
     gpu::FramebufferPointer _outputBuffer;
     gpu::PipelinePointer _pipeline;
-    float _threshold;
-    unsigned int _downsamplingFactor;
+    gpu::StructBuffer<Parameters> _parameters;
 };
 
 
@@ -95,8 +96,10 @@ public:
 
 private:
 
+#include "BloomApply.shared.slh"
+
     gpu::PipelinePointer _pipeline;
-	glm::vec3 _intensities;
+    gpu::StructBuffer<Parameters> _parameters;
 };
 
 class BloomDraw {
