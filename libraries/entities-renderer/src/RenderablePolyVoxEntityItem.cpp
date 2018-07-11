@@ -215,7 +215,7 @@ void RenderablePolyVoxEntityItem::setVoxelSurfaceStyle(PolyVoxSurfaceStyle voxel
 glm::vec3 RenderablePolyVoxEntityItem::getSurfacePositionAdjustment() const {
     glm::vec3 result;
     withReadLock([&] {
-        glm::vec3 scale = getScaledDimensions() / _voxelVolumeSize; // meters / voxel-units
+        glm::vec3 scale = getScaledDimensions() / _voxelVolumeSize.toGlm(); // meters / voxel-units
         if (isEdged(_voxelSurfaceStyle)) {
             result = scale / -2.0f;
         }
@@ -227,7 +227,7 @@ glm::vec3 RenderablePolyVoxEntityItem::getSurfacePositionAdjustment() const {
 glm::mat4 RenderablePolyVoxEntityItem::voxelToLocalMatrix() const {
     glm::vec3 voxelVolumeSize;
     withReadLock([&] {
-        voxelVolumeSize = _voxelVolumeSize;
+        voxelVolumeSize = _voxelVolumeSize.toGlm();
     });
 
     glm::vec3 dimensions = getScaledDimensions();
@@ -313,7 +313,7 @@ bool RenderablePolyVoxEntityItem::setAll(uint8_t toValue) {
     }
 
     withWriteLock([&] {
-        loop3(ivec3(0), ivec3(_voxelVolumeSize), [&](const ivec3& v) {
+        loop3(ivec3(0), ivec3(_voxelVolumeSize.toGlm()), [&](const ivec3& v) {
             result |= setVoxelInternal(v, toValue);
         });
     });
@@ -332,7 +332,7 @@ bool RenderablePolyVoxEntityItem::setCuboid(const glm::vec3& lowPosition, const 
 
     ivec3 iLowPosition = ivec3{ glm::round(lowPosition) };
     ivec3 iCuboidSize = ivec3{ glm::round(cuboidSize) };
-    ivec3 iVoxelVolumeSize = ivec3{ glm::round(_voxelVolumeSize) };
+    ivec3 iVoxelVolumeSize = ivec3{ glm::round(_voxelVolumeSize.toGlm()) };
 
     ivec3 low = glm::max(glm::min(iLowPosition, iVoxelVolumeSize - 1), ivec3(0));
     ivec3 high = glm::max(glm::min(low + iCuboidSize, iVoxelVolumeSize), low);
@@ -368,7 +368,7 @@ bool RenderablePolyVoxEntityItem::setSphereInVolume(const vec3& center, float ra
     float radiusSquared = radius * radius;
     // This three-level for loop iterates over every voxel in the volume
     withWriteLock([&] {
-        loop3(ivec3(0), ivec3(_voxelVolumeSize), [&](const ivec3& v) {
+        loop3(ivec3(0), ivec3(_voxelVolumeSize.toGlm()), [&](const ivec3& v) {
             // Store our current position as a vector...
             glm::vec3 pos = vec3(v) + 0.5f; // consider voxels cenetered on their coordinates
             // And compute how far the current position is from the center of the volume
@@ -396,7 +396,7 @@ bool RenderablePolyVoxEntityItem::setSphere(const vec3& centerWorldCoords, float
     glm::mat4 wtvMatrix = glm::inverse(vtwMatrix);
 
     glm::vec3 dimensions = getScaledDimensions();
-    glm::vec3 voxelSize = dimensions / _voxelVolumeSize;
+    glm::vec3 voxelSize = dimensions / _voxelVolumeSize.toGlm();
     float smallestDimensionSize = voxelSize.x;
     smallestDimensionSize = glm::min(smallestDimensionSize, voxelSize.y);
     smallestDimensionSize = glm::min(smallestDimensionSize, voxelSize.z);
@@ -410,8 +410,8 @@ bool RenderablePolyVoxEntityItem::setSphere(const vec3& centerWorldCoords, float
     glm::vec3 low = glm::floor(centerInVoxelCoords - maxRadiusInVoxelCoords);
     glm::vec3 high = glm::ceil(centerInVoxelCoords + maxRadiusInVoxelCoords);
 
-    glm::ivec3 lowI = glm::clamp(low, glm::vec3(0.0f), _voxelVolumeSize);
-    glm::ivec3 highI = glm::clamp(high, glm::vec3(0.0f), _voxelVolumeSize);
+    glm::ivec3 lowI = glm::clamp(low, glm::vec3(0.0f), _voxelVolumeSize.toGlm());
+    glm::ivec3 highI = glm::clamp(high, glm::vec3(0.0f), _voxelVolumeSize.toGlm());
 
     glm::vec3 radials(radiusWorldCoords / voxelSize.x,
                       radiusWorldCoords / voxelSize.y,
@@ -457,7 +457,7 @@ bool RenderablePolyVoxEntityItem::setCapsule(const vec3& startWorldCoords, const
     glm::mat4 wtvMatrix = glm::inverse(vtwMatrix);
 
     glm::vec3 dimensions = getScaledDimensions();
-    glm::vec3 voxelSize = dimensions / _voxelVolumeSize;
+    glm::vec3 voxelSize = dimensions / _voxelVolumeSize.toGlm();
     float smallestDimensionSize = voxelSize.x;
     smallestDimensionSize = glm::min(smallestDimensionSize, voxelSize.y);
     smallestDimensionSize = glm::min(smallestDimensionSize, voxelSize.z);
@@ -472,8 +472,8 @@ bool RenderablePolyVoxEntityItem::setCapsule(const vec3& startWorldCoords, const
     glm::vec3 high = glm::max(glm::ceil(startInVoxelCoords + maxRadiusInVoxelCoords),
                               glm::ceil(endInVoxelCoords + maxRadiusInVoxelCoords));
 
-    glm::ivec3 lowI = glm::clamp(low, glm::vec3(0.0f), _voxelVolumeSize);
-    glm::ivec3 highI = glm::clamp(high, glm::vec3(0.0f), _voxelVolumeSize);
+    glm::ivec3 lowI = glm::clamp(low, glm::vec3(0.0f), _voxelVolumeSize.toGlm());
+    glm::ivec3 highI = glm::clamp(high, glm::vec3(0.0f), _voxelVolumeSize.toGlm());
 
     // This three-level for loop iterates over every voxel in the volume that might be in the capsule
     withWriteLock([&] {
@@ -703,7 +703,7 @@ bool RenderablePolyVoxEntityItem::updateDependents() {
     return !volDataDirty;
 }
 
-void RenderablePolyVoxEntityItem::setVoxelVolumeSize(const glm::vec3& voxelVolumeSize) {
+void RenderablePolyVoxEntityItem::setVoxelVolumeSize(const ScriptVec3Float& voxelVolumeSize) {
     // This controls how many individual voxels are in the entity.  This is unrelated to
     // the dimentions of the entity -- it defines the sizes of the arrays that hold voxel values.
     // In addition to setting the number of voxels, this is used in a few places for its
@@ -1170,7 +1170,7 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorker() {
 
     withReadLock([&] {
         voxelSurfaceStyle = _voxelSurfaceStyle;
-        voxelVolumeSize = _voxelVolumeSize;
+        voxelVolumeSize = _voxelVolumeSize.toGlm();
         mesh = _mesh;
     });
 

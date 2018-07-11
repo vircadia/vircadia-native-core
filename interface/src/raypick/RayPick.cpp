@@ -65,7 +65,7 @@ glm::vec3 RayPick::intersectRayWithOverlayXYPlane(const QUuid& overlayID, const 
 
 glm::vec3 RayPick::intersectRayWithEntityXYPlane(const QUuid& entityID, const glm::vec3& origin, const glm::vec3& direction) {
     auto props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(entityID);
-    return intersectRayWithXYPlane(origin, direction, props.getPosition(), props.getRotation(), props.getRegistrationPoint());
+    return intersectRayWithXYPlane(origin, direction, props.getPosition().toGlm(), props.getRotation(), props.getRegistrationPoint().toGlm());
 }
 
 glm::vec2 RayPick::projectOntoXYPlane(const glm::vec3& worldPos, const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions, const glm::vec3& registrationPoint, bool unNormalized) {
@@ -91,5 +91,5 @@ glm::vec2 RayPick::projectOntoOverlayXYPlane(const QUuid& overlayID, const glm::
 
 glm::vec2 RayPick::projectOntoEntityXYPlane(const QUuid& entityID, const glm::vec3& worldPos, bool unNormalized) {
     auto props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(entityID);
-    return projectOntoXYPlane(worldPos, props.getPosition(), props.getRotation(), props.getDimensions(), props.getRegistrationPoint(), unNormalized);
+    return projectOntoXYPlane(worldPos, props.getPosition().toGlm(), props.getRotation(), props.getDimensions().toGlm(), props.getRegistrationPoint().toGlm(), unNormalized);
 }

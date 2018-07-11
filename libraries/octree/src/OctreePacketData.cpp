@@ -393,7 +393,7 @@ bool OctreePacketData::appendValue(const ScriptVec2Float& value) {
     return success;
 }
 
-bool OctreePacketData::appendValue(const glm::vec3& value) {
+bool OctreePacketData::appendValue(const ScriptVec3Float& value) {
     const unsigned char* data = (const unsigned char*)&value;
     int length = sizeof(value);
     bool success = append(data, length);
@@ -404,14 +404,14 @@ bool OctreePacketData::appendValue(const glm::vec3& value) {
     return success;
 }
 
-bool OctreePacketData::appendValue(const QVector<glm::vec3>& value) {
+bool OctreePacketData::appendValue(const QVector<ScriptVec3Float>& value) {
     uint16_t qVecSize = value.size();
     bool success = appendValue(qVecSize);
     if (success) {
-        success = append((const unsigned char*)value.constData(), qVecSize * sizeof(glm::vec3));
+        success = append((const unsigned char*)value.constData(), qVecSize * sizeof(ScriptVec3Float));
         if (success) {
-            _bytesOfValues += qVecSize * sizeof(glm::vec3);
-            _totalBytesOfValues += qVecSize * sizeof(glm::vec3);
+            _bytesOfValues += qVecSize * sizeof(ScriptVec3Float);
+            _totalBytesOfValues += qVecSize * sizeof(ScriptVec3Float);
         }
     }
     return success;
@@ -703,19 +703,19 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, xColor
 }
 
 
-int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVector<glm::vec3>& result) {
+int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVector<ScriptVec3Float>& result) {
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
 
     // FIXME - this size check is wrong if we allow larger packets
-    if (length * sizeof(glm::vec3) > MAX_OCTREE_UNCOMRESSED_PACKET_SIZE) {
+    if (length * sizeof(ScriptVec3Float) > MAX_OCTREE_UNCOMRESSED_PACKET_SIZE) {
         result.resize(0);
         return sizeof(uint16_t);
     }
     result.resize(length);
-    memcpy(result.data(), dataBytes, length * sizeof(glm::vec3));
-    return sizeof(uint16_t) + length * sizeof(glm::vec3);
+    memcpy(result.data(), dataBytes, length * sizeof(ScriptVec3Float));
+    return sizeof(uint16_t) + length * sizeof(ScriptVec3Float);
 }
 
 int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVector<glm::quat>& result) {

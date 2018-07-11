@@ -52,17 +52,17 @@ protected:
     };
 
     void updateGeometry(const std::vector<Vertex>& vertices);
-    static std::vector<Vertex> updateVertices(const QVector<glm::vec3>& points, 
-                                              const QVector<glm::vec3>& normals, 
+    static std::vector<Vertex> updateVertices(const QVector<ScriptVec3Float>& points,
+                                              const QVector<ScriptVec3Float>& normals,
                                               const QVector<float>& strokeWidths, 
-                                              const QVector<glm::vec3>& strokeColors, 
+                                              const QVector<ScriptVec3Float>& strokeColors,
                                               const bool isUVModeStretch,
                                               const float textureAspectRatio);
 
     Transform _polylineTransform;
-    QVector<glm::vec3> _lastPoints;
-    QVector<glm::vec3> _lastNormals;
-    QVector<glm::vec3> _lastStrokeColors;
+    QVector<ScriptVec3Float> _lastPoints;
+    QVector<ScriptVec3Float> _lastNormals;
+    QVector<ScriptVec3Float> _lastStrokeColors;
     QVector<float> _lastStrokeWidths;
     gpu::BufferPointer _verticesBuffer;
     gpu::BufferView _uniformBuffer;

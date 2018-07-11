@@ -135,7 +135,7 @@ EntityItemProperties convertPropertiesToScriptSemantics(const EntityItemProperti
     scriptSideProperties.setLocalDimensions(entitySideProperties.getDimensions());
 
     bool success;
-    glm::vec3 worldPosition = SpatiallyNestable::localToWorld(entitySideProperties.getPosition(),
+    glm::vec3 worldPosition = SpatiallyNestable::localToWorld(entitySideProperties.getPosition().toGlm(),
                                                               entitySideProperties.getParentID(),
                                                               entitySideProperties.getParentJointIndex(),
                                                               scalesWithParent,
@@ -145,17 +145,17 @@ EntityItemProperties convertPropertiesToScriptSemantics(const EntityItemProperti
                                                               entitySideProperties.getParentJointIndex(),
                                                               scalesWithParent,
                                                               success);
-    glm::vec3 worldVelocity = SpatiallyNestable::localToWorldVelocity(entitySideProperties.getVelocity(),
+    glm::vec3 worldVelocity = SpatiallyNestable::localToWorldVelocity(entitySideProperties.getVelocity().toGlm(),
                                                                       entitySideProperties.getParentID(),
                                                                       entitySideProperties.getParentJointIndex(),
                                                                       scalesWithParent,
                                                                       success);
-    glm::vec3 worldAngularVelocity = SpatiallyNestable::localToWorldAngularVelocity(entitySideProperties.getAngularVelocity(),
+    glm::vec3 worldAngularVelocity = SpatiallyNestable::localToWorldAngularVelocity(entitySideProperties.getAngularVelocity().toGlm(),
                                                                                     entitySideProperties.getParentID(),
                                                                                     entitySideProperties.getParentJointIndex(),
                                                                                     scalesWithParent,
                                                                                     success);
-    glm::vec3 worldDimensions = SpatiallyNestable::localToWorldDimensions(entitySideProperties.getDimensions(),
+    glm::vec3 worldDimensions = SpatiallyNestable::localToWorldDimensions(entitySideProperties.getDimensions().toGlm(),
                                                                           entitySideProperties.getParentID(),
                                                                           entitySideProperties.getParentJointIndex(),
                                                                           scalesWithParent,
@@ -184,7 +184,7 @@ EntityItemProperties convertPropertiesFromScriptSemantics(const EntityItemProper
     if (scriptSideProperties.localPositionChanged()) {
         entitySideProperties.setPosition(scriptSideProperties.getLocalPosition());
     } else if (scriptSideProperties.positionChanged()) {
-        glm::vec3 localPosition = SpatiallyNestable::worldToLocal(entitySideProperties.getPosition(),
+        glm::vec3 localPosition = SpatiallyNestable::worldToLocal(entitySideProperties.getPosition().toGlm(),
                                                                   entitySideProperties.getParentID(),
                                                                   entitySideProperties.getParentJointIndex(),
                                                                   scalesWithParent, success);
@@ -204,7 +204,7 @@ EntityItemProperties convertPropertiesFromScriptSemantics(const EntityItemProper
     if (scriptSideProperties.localVelocityChanged()) {
         entitySideProperties.setVelocity(scriptSideProperties.getLocalVelocity());
     } else if (scriptSideProperties.velocityChanged()) {
-        glm::vec3 localVelocity = SpatiallyNestable::worldToLocalVelocity(entitySideProperties.getVelocity(),
+        glm::vec3 localVelocity = SpatiallyNestable::worldToLocalVelocity(entitySideProperties.getVelocity().toGlm(),
                                                                           entitySideProperties.getParentID(),
                                                                           entitySideProperties.getParentJointIndex(),
                                                                           scalesWithParent, success);
@@ -215,7 +215,7 @@ EntityItemProperties convertPropertiesFromScriptSemantics(const EntityItemProper
         entitySideProperties.setAngularVelocity(scriptSideProperties.getLocalAngularVelocity());
     } else if (scriptSideProperties.angularVelocityChanged()) {
         glm::vec3 localAngularVelocity =
-            SpatiallyNestable::worldToLocalAngularVelocity(entitySideProperties.getAngularVelocity(),
+            SpatiallyNestable::worldToLocalAngularVelocity(entitySideProperties.getAngularVelocity().toGlm(),
                                                            entitySideProperties.getParentID(),
                                                            entitySideProperties.getParentJointIndex(),
                                                            scalesWithParent, success);
@@ -225,7 +225,7 @@ EntityItemProperties convertPropertiesFromScriptSemantics(const EntityItemProper
     if (scriptSideProperties.localDimensionsChanged()) {
         entitySideProperties.setDimensions(scriptSideProperties.getLocalDimensions());
     } else if (scriptSideProperties.dimensionsChanged()) {
-        glm::vec3 localDimensions = SpatiallyNestable::worldToLocalDimensions(entitySideProperties.getDimensions(),
+        glm::vec3 localDimensions = SpatiallyNestable::worldToLocalDimensions(entitySideProperties.getDimensions().toGlm(),
                                                                               entitySideProperties.getParentID(),
                                                                               entitySideProperties.getParentJointIndex(),
                                                                               scalesWithParent, success);
@@ -1091,10 +1091,10 @@ QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, c
     }
     obj.setProperty("face", faceName);
 
-    QScriptValue intersection = vec3toScriptValue(engine, value.intersection);
+    QScriptValue intersection = vec3ToScriptValue(engine, value.intersection);
     obj.setProperty("intersection", intersection);
 
-    QScriptValue surfaceNormal = vec3toScriptValue(engine, value.surfaceNormal);
+    QScriptValue surfaceNormal = vec3ToScriptValue(engine, value.surfaceNormal);
     obj.setProperty("surfaceNormal", surfaceNormal);
     obj.setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
     return obj;
@@ -1243,7 +1243,7 @@ bool EntityScriptingInterface::setVoxelsInCuboid(QUuid entityID, const glm::vec3
     });
 }
 
-bool EntityScriptingInterface::setAllPoints(QUuid entityID, const QVector<glm::vec3>& points) {
+bool EntityScriptingInterface::setAllPoints(QUuid entityID, const QVector<ScriptVec3Float>& points) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));

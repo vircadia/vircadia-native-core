@@ -58,15 +58,15 @@ class PolyLineEntityItem : public EntityItem {
     void setLineWidth(float lineWidth){ _lineWidth = lineWidth; }
     float getLineWidth() const{ return _lineWidth; }
 
-    bool setLinePoints(const QVector<glm::vec3>& points);
-    bool appendPoint(const glm::vec3& point);
-    QVector<glm::vec3> getLinePoints() const;
+    bool setLinePoints(const QVector<ScriptVec3Float>& points);
+    bool appendPoint(const ScriptVec3Float& point);
+    QVector<ScriptVec3Float> getLinePoints() const;
 
-    bool setNormals(const QVector<glm::vec3>& normals);
-    QVector<glm::vec3> getNormals() const;
+    bool setNormals(const QVector<ScriptVec3Float>& normals);
+    QVector<ScriptVec3Float> getNormals() const;
 
-    bool setStrokeColors(const QVector<glm::vec3>& strokeColors);
-    QVector<glm::vec3> getStrokeColors() const;
+    bool setStrokeColors(const QVector<ScriptVec3Float>& strokeColors);
+    QVector<ScriptVec3Float> getStrokeColors() const;
 
     bool setStrokeWidths(const QVector<float>& strokeWidths);
     QVector<float> getStrokeWidths() const;
@@ -111,9 +111,9 @@ private:
     bool _normalsChanged { true };
     bool _strokeColorsChanged { true };
     bool _strokeWidthsChanged { true };
-    QVector<glm::vec3> _points;
-    QVector<glm::vec3> _normals;
-    QVector<glm::vec3> _strokeColors;
+    QVector<ScriptVec3Float> _points;
+    QVector<ScriptVec3Float> _normals;
+    QVector<ScriptVec3Float> _strokeColors;
     QVector<float> _strokeWidths;
     QString _textures;
     bool _isUVModeStretch;

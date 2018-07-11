@@ -101,12 +101,12 @@ PickResultPointer LaserPointer::getVisualPickResult(const PickResultPointer& pic
                 registrationPoint = glm::vec3(0.5f);
             } else {
                 EntityItemProperties props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(_lockEndObject.id);
-                glm::mat4 entityMat = createMatFromQuatAndPos(props.getRotation(), props.getPosition());
+                glm::mat4 entityMat = createMatFromQuatAndPos(props.getRotation(), props.getPosition().toGlm());
                 glm::mat4 finalPosAndRotMat = entityMat * _lockEndObject.offsetMat;
                 pos = extractTranslation(finalPosAndRotMat);
                 rot = glmExtractRotation(finalPosAndRotMat);
-                dim = props.getDimensions();
-                registrationPoint = props.getRegistrationPoint();
+                dim = props.getDimensions().toGlm();
+                registrationPoint = props.getRegistrationPoint().toGlm();
             }
             const glm::vec3 DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f);
             endVec = pos + rot * (dim * (DEFAULT_REGISTRATION_POINT - registrationPoint));
@@ -119,7 +119,7 @@ PickResultPointer LaserPointer::getVisualPickResult(const PickResultPointer& pic
             rayPickResult->intersection = endVec;
             rayPickResult->distance = distance;
             rayPickResult->surfaceNormal = -normalizedDirection;
-            rayPickResult->pickVariant["direction"] = vec3toVariant(normalizedDirection);
+            rayPickResult->pickVariant["direction"] = vec3ToVariant(normalizedDirection);
         } else if (type != IntersectionType::NONE && _lockEnd) {
             if (type == IntersectionType::ENTITY) {
                 endVec = DependencyManager::get<EntityScriptingInterface>()->getEntityTransform(rayPickResult->objectID)[3];
@@ -134,7 +134,7 @@ PickResultPointer LaserPointer::getVisualPickResult(const PickResultPointer& pic
             rayPickResult->intersection = endVec;
             rayPickResult->distance = distance;
             rayPickResult->surfaceNormal = -normalizedDirection;
-            rayPickResult->pickVariant["direction"] = vec3toVariant(normalizedDirection);
+            rayPickResult->pickVariant["direction"] = vec3ToVariant(normalizedDirection);
         }
     }
     return visualPickResult;
@@ -151,17 +151,17 @@ void LaserPointer::updateRenderStateOverlay(const OverlayID& id, const QVariant&
 void LaserPointer::updateRenderState(const RenderState& renderState, const IntersectionType type, float distance, const QUuid& objectID, const PickRay& pickRay) {
     if (!renderState.getStartID().isNull()) {
         QVariantMap startProps;
-        startProps.insert("position", vec3toVariant(pickRay.origin));
+        startProps.insert("position", vec3ToVariant(pickRay.origin));
         startProps.insert("visible", true);
         startProps.insert("ignoreRayIntersection", renderState.doesStartIgnoreRays());
         qApp->getOverlays().editOverlay(renderState.getStartID(), startProps);
     }
     glm::vec3 endVec = pickRay.origin + pickRay.direction * distance;
 
-    QVariant end = vec3toVariant(endVec);
+    QVariant end = vec3ToVariant(endVec);
     if (!renderState.getPathID().isNull()) {
         QVariantMap pathProps;
-        pathProps.insert("start", vec3toVariant(pickRay.origin));
+        pathProps.insert("start", vec3ToVariant(pickRay.origin));
         pathProps.insert("end", end);
         pathProps.insert("visible", true);
         pathProps.insert("ignoreRayIntersection", renderState.doesPathIgnoreRays());
@@ -176,13 +176,13 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
         glm::vec3 dim = vec3FromVariant(qApp->getOverlays().getProperty(renderState.getEndID(), "dimensions").value);
         if (_distanceScaleEnd) {
             dim = renderState.getEndDim() * glm::distance(pickRay.origin, endVec);
-            endProps.insert("dimensions", vec3toVariant(dim));
+            endProps.insert("dimensions", vec3ToVariant(dim));
         }
         if (_centerEndY) {
             endProps.insert("position", end);
         } else {
             glm::vec3 currentUpVector = faceAvatarRotation * Vectors::UP;
-            endProps.insert("position", vec3toVariant(endVec + glm::vec3(currentUpVector.x * 0.5f * dim.y, currentUpVector.y * 0.5f * dim.y, currentUpVector.z * 0.5f * dim.y)));
+            endProps.insert("position", vec3ToVariant(endVec + glm::vec3(currentUpVector.x * 0.5f * dim.y, currentUpVector.y * 0.5f * dim.y, currentUpVector.z * 0.5f * dim.y)));
         }
         if (_faceAvatar) {
             endProps.insert("rotation", quatToVariant(faceAvatarRotation));

@@ -103,7 +103,7 @@ public:
 
     virtual void setJointRotations(const QVector<glm::quat>& rotations) override;
     virtual void setJointRotationsSet(const QVector<bool>& rotationsSet) override;
-    virtual void setJointTranslations(const QVector<glm::vec3>& translations) override;
+    virtual void setJointTranslations(const QVector<ScriptVec3Float>& translations) override;
     virtual void setJointTranslationsSet(const QVector<bool>& translationsSet) override;
 
     virtual void locationChanged(bool tellPhysics = true) override;

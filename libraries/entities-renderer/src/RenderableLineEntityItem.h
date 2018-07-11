@@ -34,7 +34,7 @@ protected:
 
 private:
     int _lineVerticesID { GeometryCache::UNKNOWN_ID };
-    QVector<glm::vec3> _linePoints;
+    QVector<ScriptVec3Float> _linePoints;
 };
 
 } } // namespace 

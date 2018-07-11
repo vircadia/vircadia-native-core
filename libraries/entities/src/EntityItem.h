@@ -187,8 +187,10 @@ public:
     virtual void setScaledDimensions(const glm::vec3& value);
     virtual glm::vec3 getRaycastDimensions() const { return getScaledDimensions(); }
 
-    inline const glm::vec3 getUnscaledDimensions() const { return _unscaledDimensions; }
+    glm::vec3 getUnscaledDimensions() const;
+    ScriptVec3Float getScriptUnscaledDimensions() const { return getUnscaledDimensions(); }
     virtual void setUnscaledDimensions(const glm::vec3& value);
+    void setUnscaledDimensions(const ScriptVec3Float& value) { setUnscaledDimensions(value.toGlm()); }
 
     float getLocalRenderAlpha() const;
     void setLocalRenderAlpha(float localRenderAlpha);
@@ -203,11 +205,15 @@ public:
     bool hasLocalVelocity() const { return getLocalVelocity() != ENTITY_ITEM_ZERO_VEC3; }
 
     glm::vec3 getGravity() const; /// get gravity in meters
+    ScriptVec3Float getScriptGravity() const { return getGravity(); }
     void setGravity(const glm::vec3& value); /// gravity in meters
+    void setGravity(const ScriptVec3Float& value) { setGravity(value.toGlm()); }
     bool hasGravity() const { return getGravity() != ENTITY_ITEM_ZERO_VEC3; }
 
     glm::vec3 getAcceleration() const; /// get acceleration in meters/second/second
+    ScriptVec3Float getScriptAcceleration() const { return getAcceleration(); }
     void setAcceleration(const glm::vec3& value); /// acceleration in meters/second/second
+    void setAcceleration(const ScriptVec3Float& value) { setAcceleration(value.toGlm()); }
     bool hasAcceleration() const { return getAcceleration() != ENTITY_ITEM_ZERO_VEC3; }
 
     float getDamping() const;
@@ -259,14 +265,16 @@ public:
     void setCollisionSoundURL(const QString& value);
 
     glm::vec3 getRegistrationPoint() const; /// registration point as ratio of entity
-
+    ScriptVec3Float getScriptRegistrationPoint() const { return getRegistrationPoint(); }
     /// registration point as ratio of entity
-    virtual void setRegistrationPoint(const glm::vec3& value); // FIXME: this is suspicious! 
+    virtual void setRegistrationPoint(const glm::vec3& value); // FIXME: this is suspicious!
+    void setRegistrationPoint(const ScriptVec3Float& value) { setRegistrationPoint(value.toGlm()); }
 
     bool hasAngularVelocity() const { return getWorldAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
     bool hasLocalAngularVelocity() const { return getLocalAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
 
     virtual void setAngularVelocity(const glm::vec3& angularVelocity);
+    void setAngularVelocity(const ScriptVec3Float& angularVelocity) { setAngularVelocity(angularVelocity.toGlm()); }
 
     float getAngularDamping() const;
     void setAngularDamping(float value);
@@ -381,11 +389,13 @@ public:
     virtual void setCollisionShape(const btCollisionShape* shape) {}
 
     void setPosition(const glm::vec3& value);
+    void setPosition(const ScriptVec3Float& value) { setPosition(value.toGlm()); }
     virtual void setParentID(const QUuid& parentID) override;
     virtual void setShapeType(ShapeType type) { /* do nothing */ }
 
     void setRotation(glm::quat orientation);
     void setVelocity(const glm::vec3& velocity);
+    void setVelocity(const ScriptVec3Float& velocity) { setVelocity(velocity.toGlm()); }
 
     uint32_t getDirtyFlags() const;
     void markDirtyFlags(uint32_t mask);

@@ -5,10 +5,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include "RegisteredMetaTypes.h"
+
 class EntityJointData {
 public:
     glm::quat rotation;
-    glm::vec3 translation;
+    ScriptVec3Float translation;
     bool rotationSet = false;
     bool translationSet = false;
 };

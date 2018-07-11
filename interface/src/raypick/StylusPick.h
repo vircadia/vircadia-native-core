@@ -44,8 +44,8 @@ public:
         toReturn["intersects"] = intersects;
         toReturn["objectID"] = objectID;
         toReturn["distance"] = distance;
-        toReturn["intersection"] = vec3toVariant(intersection);
-        toReturn["surfaceNormal"] = vec3toVariant(surfaceNormal);
+        toReturn["intersection"] = vec3ToVariant(intersection);
+        toReturn["surfaceNormal"] = vec3ToVariant(surfaceNormal);
         toReturn["stylusTip"] = PickResult::toVariantMap();
         return toReturn;
     }

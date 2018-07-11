@@ -243,7 +243,7 @@ QVariant Image3DOverlay::getProperty(const QString& property) {
         return _fromImage;
     }
     if (property == "offsetPosition") {
-        return vec3toVariant(getOffsetPosition());
+        return vec3ToVariant(getOffsetPosition());
     }
     if (property == "emissive") {
         return _emissive;

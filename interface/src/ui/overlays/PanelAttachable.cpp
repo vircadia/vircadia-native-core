@@ -21,13 +21,13 @@ bool PanelAttachable::getParentVisible() const {
 // No JSDoc because these properties are not actually used.
 QVariant PanelAttachable::getProperty(const QString& property) {
     if (property == "offsetPosition") {
-        return vec3toVariant(getOffsetPosition());
+        return vec3ToVariant(getOffsetPosition());
     }
     if (property == "offsetRotation") {
         return quatToVariant(getOffsetRotation());
     }
     if (property == "offsetScale") {
-        return vec3toVariant(getOffsetScale());
+        return vec3ToVariant(getOffsetScale());
     }
     return QVariant();
 }

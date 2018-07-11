@@ -75,7 +75,7 @@ bool LineEntityItem::setProperties(const EntityItemProperties& properties) {
     return somethingChanged;
 }
 
-bool LineEntityItem::appendPoint(const glm::vec3& point) {
+bool LineEntityItem::appendPoint(const ScriptVec3Float& point) {
     if (_points.size() > MAX_POINTS_PER_LINE - 1) {
         qCDebug(entities) << "MAX POINTS REACHED!";
         return false;
@@ -92,13 +92,13 @@ bool LineEntityItem::appendPoint(const glm::vec3& point) {
     return true;
 }
 
-bool LineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
+bool LineEntityItem::setLinePoints(const QVector<ScriptVec3Float>& points) {
     if (points.size() > MAX_POINTS_PER_LINE) {
         return false;
     }
     glm::vec3 halfBox = getScaledDimensions() * 0.5f;
     for (int i = 0; i < points.size(); i++) {
-        glm::vec3 point = points.at(i);
+        ScriptVec3Float point = points.at(i);
         if ( (point.x < - halfBox.x || point.x > halfBox.x) || (point.y < -halfBox.y || point.y > halfBox.y) || (point.z < - halfBox.z || point.z > halfBox.z) ) {
             qCDebug(entities) << "Point is outside entity's bounding box";
             return false;
@@ -122,7 +122,7 @@ int LineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
 
     READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
     READ_ENTITY_PROPERTY(PROP_LINE_WIDTH, float, setLineWidth);
-    READ_ENTITY_PROPERTY(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
+    READ_ENTITY_PROPERTY(PROP_LINE_POINTS, QVector<ScriptVec3Float>, setLinePoints);
 
     return bytesRead;
 }
@@ -201,8 +201,8 @@ float LineEntityItem::getLineWidth() const {
     return result;
 }
 
-QVector<glm::vec3> LineEntityItem::getLinePoints() const { 
-    QVector<glm::vec3> result;
+QVector<ScriptVec3Float> LineEntityItem::getLinePoints() const { 
+    QVector<ScriptVec3Float> result;
     withReadLock([&] {
         result = _points;
     });

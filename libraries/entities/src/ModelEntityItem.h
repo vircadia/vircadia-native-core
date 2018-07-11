@@ -119,14 +119,14 @@ public:
 
     virtual void setJointRotations(const QVector<glm::quat>& rotations);
     virtual void setJointRotationsSet(const QVector<bool>& rotationsSet);
-    virtual void setJointTranslations(const QVector<glm::vec3>& translations);
+    virtual void setJointTranslations(const QVector<ScriptVec3Float>& translations);
     virtual void setJointTranslationsSet(const QVector<bool>& translationsSet);
 
     virtual void setAnimationJointsData(const QVector<EntityJointData>& jointsData);
 
     QVector<glm::quat> getJointRotations() const;
     QVector<bool> getJointRotationsSet() const;
-    QVector<glm::vec3> getJointTranslations() const;
+    QVector<ScriptVec3Float> getJointTranslations() const;
     QVector<bool> getJointTranslationsSet() const;
 
 private:

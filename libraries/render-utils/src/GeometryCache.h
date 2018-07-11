@@ -346,9 +346,9 @@ public:
 
     void updateVertices(int id, const QVector<glm::vec2>& points, const glm::vec4& color);
     void updateVertices(int id, const QVector<glm::vec2>& points, const QVector<glm::vec4>& colors);
-    void updateVertices(int id, const QVector<glm::vec3>& points, const glm::vec4& color);
-    void updateVertices(int id, const QVector<glm::vec3>& points, const QVector<glm::vec4>& colors);
-    void updateVertices(int id, const QVector<glm::vec3>& points, const QVector<glm::vec2>& texCoords, const glm::vec4& color);
+    void updateVertices(int id, const QVector<ScriptVec3Float>& points, const glm::vec4& color);
+    void updateVertices(int id, const QVector<ScriptVec3Float>& points, const QVector<glm::vec4>& colors);
+    void updateVertices(int id, const QVector<ScriptVec3Float>& points, const QVector<glm::vec2>& texCoords, const glm::vec4& color);
     void renderVertices(gpu::Batch& batch, gpu::Primitive primitiveType, int id);
 
     /// Set a batch to the simple pipeline, returning the previous pipeline

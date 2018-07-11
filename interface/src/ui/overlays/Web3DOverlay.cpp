@@ -186,7 +186,7 @@ void Web3DOverlay::buildWebSurface() {
             _cachedWebSurface = false;
             setupQmlSurface();
         }
-        _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getWorldPosition()));
+        _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3ToVariant(getWorldPosition()));
         onResizeWebSurface();
         _webSurface->resume();
     });
@@ -198,7 +198,7 @@ void Web3DOverlay::buildWebSurface() {
 void Web3DOverlay::update(float deltatime) {
     if (_webSurface) {
         // update globalPosition
-        _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getWorldPosition()));
+        _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3ToVariant(getWorldPosition()));
     }
     Parent::update(deltatime);
 }

@@ -2562,7 +2562,7 @@ QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, c
     QScriptValue avatarIDValue = quuidToScriptValue(engine, value.avatarID);
     obj.setProperty("avatarID", avatarIDValue);
     obj.setProperty("distance", value.distance);
-    QScriptValue intersection = vec3toScriptValue(engine, value.intersection);
+    QScriptValue intersection = vec3ToScriptValue(engine, value.intersection);
     obj.setProperty("intersection", intersection);
     obj.setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
     return obj;

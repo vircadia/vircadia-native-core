@@ -50,10 +50,10 @@ class LineEntityItem : public EntityItem {
     void setLineWidth(float lineWidth);
     float getLineWidth() const;
 
-    bool setLinePoints(const QVector<glm::vec3>& points);
-    bool appendPoint(const glm::vec3& point);
+    bool setLinePoints(const QVector<ScriptVec3Float>& points);
+    bool appendPoint(const ScriptVec3Float& point);
 
-    QVector<glm::vec3> getLinePoints() const;
+    QVector<ScriptVec3Float> getLinePoints() const;
 
     virtual ShapeType getShapeType() const override { return SHAPE_TYPE_NONE; }
 
@@ -73,7 +73,7 @@ class LineEntityItem : public EntityItem {
  private:
     rgbColor _color;
     float _lineWidth { DEFAULT_LINE_WIDTH };
-    QVector<glm::vec3> _points;
+    QVector<ScriptVec3Float> _points;
     bool _pointsChanged { true };
 };
 

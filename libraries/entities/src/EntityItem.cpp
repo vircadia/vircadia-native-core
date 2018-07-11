@@ -238,15 +238,15 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         //      PROP_CUSTOM_PROPERTIES_INCLUDED,
 
         APPEND_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, _simulationOwner.toByteArray());
-        APPEND_ENTITY_PROPERTY(PROP_POSITION, getLocalPosition());
+        APPEND_ENTITY_PROPERTY(PROP_POSITION, getScriptLocalPosition());
         APPEND_ENTITY_PROPERTY(PROP_ROTATION, getLocalOrientation());
-        APPEND_ENTITY_PROPERTY(PROP_VELOCITY, getLocalVelocity());
-        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, getLocalAngularVelocity());
-        APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, getAcceleration());
+        APPEND_ENTITY_PROPERTY(PROP_VELOCITY, getScriptLocalVelocity());
+        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, getScriptLocalAngularVelocity());
+        APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, getScriptAcceleration());
 
-        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getUnscaledDimensions());
+        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getScriptUnscaledDimensions());
         APPEND_ENTITY_PROPERTY(PROP_DENSITY, getDensity());
-        APPEND_ENTITY_PROPERTY(PROP_GRAVITY, getGravity());
+        APPEND_ENTITY_PROPERTY(PROP_GRAVITY, getScriptGravity());
         APPEND_ENTITY_PROPERTY(PROP_DAMPING, getDamping());
         APPEND_ENTITY_PROPERTY(PROP_RESTITUTION, getRestitution());
         APPEND_ENTITY_PROPERTY(PROP_FRICTION, getFriction());
@@ -254,7 +254,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_SCRIPT, getScript());
         APPEND_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, getScriptTimestamp());
         APPEND_ENTITY_PROPERTY(PROP_SERVER_SCRIPTS, getServerScripts());
-        APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, getRegistrationPoint());
+        APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, getScriptRegistrationPoint());
         APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, getAngularDamping());
         APPEND_ENTITY_PROPERTY(PROP_VISIBLE, getVisible());
         APPEND_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, getCanCastShadow());
@@ -766,11 +766,11 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
         // Note: duplicate packets are expected and not wrong. They may be sent for any number of
         // reasons and the contract is that the client handles them in an idempotent manner.
-        auto customUpdatePositionFromNetwork = [this, shouldUpdate, lastEdited](glm::vec3 value){
+        auto customUpdatePositionFromNetwork = [this, shouldUpdate, lastEdited](ScriptVec3Float value){
             if (shouldUpdate(_lastUpdatedPositionTimestamp, value != _lastUpdatedPositionValue)) {
                 setPosition(value);
                 _lastUpdatedPositionTimestamp = lastEdited;
-                _lastUpdatedPositionValue = value;
+                _lastUpdatedPositionValue = value.toGlm();
             }
         };
 
@@ -782,40 +782,40 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             }
         };
 
-        auto customUpdateVelocityFromNetwork = [this, shouldUpdate, lastEdited](glm::vec3 value){
+        auto customUpdateVelocityFromNetwork = [this, shouldUpdate, lastEdited](ScriptVec3Float value){
              if (shouldUpdate(_lastUpdatedVelocityTimestamp, value != _lastUpdatedVelocityValue)) {
                 setVelocity(value);
                 _lastUpdatedVelocityTimestamp = lastEdited;
-                _lastUpdatedVelocityValue = value;
+                _lastUpdatedVelocityValue = value.toGlm();
             }
         };
 
-        auto customUpdateAngularVelocityFromNetwork = [this, shouldUpdate, lastEdited](glm::vec3 value){
+        auto customUpdateAngularVelocityFromNetwork = [this, shouldUpdate, lastEdited](ScriptVec3Float value){
             if (shouldUpdate(_lastUpdatedAngularVelocityTimestamp, value != _lastUpdatedAngularVelocityValue)) {
                 setAngularVelocity(value);
                 _lastUpdatedAngularVelocityTimestamp = lastEdited;
-                _lastUpdatedAngularVelocityValue = value;
+                _lastUpdatedAngularVelocityValue = value.toGlm();
             }
         };
 
-        auto customSetAcceleration = [this, shouldUpdate, lastEdited](glm::vec3 value){
+        auto customSetAcceleration = [this, shouldUpdate, lastEdited](ScriptVec3Float value){
             if (shouldUpdate(_lastUpdatedAccelerationTimestamp, value != _lastUpdatedAccelerationValue)) {
                 setAcceleration(value);
                 _lastUpdatedAccelerationTimestamp = lastEdited;
-                _lastUpdatedAccelerationValue = value;
+                _lastUpdatedAccelerationValue = value.toGlm();
             }
         };
 
-        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, customUpdatePositionFromNetwork);
+        READ_ENTITY_PROPERTY(PROP_POSITION, ScriptVec3Float, customUpdatePositionFromNetwork);
         READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, customUpdateRotationFromNetwork);
-        READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, customUpdateVelocityFromNetwork);
-        READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, customUpdateAngularVelocityFromNetwork);
-        READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, customSetAcceleration);
+        READ_ENTITY_PROPERTY(PROP_VELOCITY, ScriptVec3Float, customUpdateVelocityFromNetwork);
+        READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, ScriptVec3Float, customUpdateAngularVelocityFromNetwork);
+        READ_ENTITY_PROPERTY(PROP_ACCELERATION, ScriptVec3Float, customSetAcceleration);
     }
 
-    READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, setUnscaledDimensions);
+    READ_ENTITY_PROPERTY(PROP_DIMENSIONS, ScriptVec3Float, setUnscaledDimensions);
     READ_ENTITY_PROPERTY(PROP_DENSITY, float, setDensity);
-    READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, setGravity);
+    READ_ENTITY_PROPERTY(PROP_GRAVITY, ScriptVec3Float, setGravity);
 
     READ_ENTITY_PROPERTY(PROP_DAMPING, float, setDamping);
     READ_ENTITY_PROPERTY(PROP_RESTITUTION, float, setRestitution);
@@ -836,7 +836,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_SERVER_SCRIPTS, QString, setServerScripts);
     }
 
-    READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
+    READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, ScriptVec3Float, setRegistrationPoint);
 
     READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, setAngularDamping);
     READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, setVisible);
@@ -1781,6 +1781,14 @@ void EntityItem::setUnscaledDimensions(const glm::vec3& value) {
             _queryAACubeSet = false;
         });
     }
+}
+
+glm::vec3 EntityItem::getUnscaledDimensions() const {
+    glm::vec3 result;
+    withReadLock([&] {
+        result = _unscaledDimensions;
+    });
+    return result;
 }
 
 void EntityItem::setRotation(glm::quat rotation) {

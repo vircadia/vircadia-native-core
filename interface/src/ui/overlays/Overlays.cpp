@@ -606,7 +606,7 @@ QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, 
             break;
     }
     obj.setProperty("face", faceName);
-    auto intersection = vec3toScriptValue(engine, value.intersection);
+    auto intersection = vec3ToScriptValue(engine, value.intersection);
     obj.setProperty("intersection", intersection);
     obj.setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
     return obj;

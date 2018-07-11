@@ -486,8 +486,8 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, setLifespan);
     READ_ENTITY_PROPERTY(PROP_EMIT_RATE, float, setEmitRate);
 
-    READ_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, vec3, setEmitAcceleration);
-    READ_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, vec3, setAccelerationSpread);
+    READ_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, ScriptVec3Float, setEmitAcceleration);
+    READ_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, ScriptVec3Float, setAccelerationSpread);
     READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
 
@@ -496,8 +496,8 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     READ_ENTITY_PROPERTY(PROP_RADIUS_FINISH, float, setRadiusFinish);
 
     READ_ENTITY_PROPERTY(PROP_COLOR_SPREAD, xColor, setColorSpread);
-    READ_ENTITY_PROPERTY(PROP_COLOR_START, vec3, setColorStart);
-    READ_ENTITY_PROPERTY(PROP_COLOR_FINISH, vec3, setColorFinish);
+    READ_ENTITY_PROPERTY(PROP_COLOR_START, ScriptVec3Float, setColorStart);
+    READ_ENTITY_PROPERTY(PROP_COLOR_FINISH, ScriptVec3Float, setColorFinish);
     READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
     READ_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, float, setAlphaSpread);
     READ_ENTITY_PROPERTY(PROP_ALPHA_START, float, setAlphaStart);
@@ -506,7 +506,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     READ_ENTITY_PROPERTY(PROP_EMIT_SPEED, float, setEmitSpeed);
     READ_ENTITY_PROPERTY(PROP_SPEED_SPREAD, float, setSpeedSpread);
     READ_ENTITY_PROPERTY(PROP_EMIT_ORIENTATION, quat, setEmitOrientation);
-    READ_ENTITY_PROPERTY(PROP_EMIT_DIMENSIONS, vec3, setEmitDimensions);
+    READ_ENTITY_PROPERTY(PROP_EMIT_DIMENSIONS, ScriptVec3Float, setEmitDimensions);
     READ_ENTITY_PROPERTY(PROP_EMIT_RADIUS_START, float, setEmitRadiusStart);
     READ_ENTITY_PROPERTY(PROP_POLAR_START, float, setPolarStart);
     READ_ENTITY_PROPERTY(PROP_POLAR_FINISH, float, setPolarFinish);
@@ -570,16 +570,16 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, getMaxParticles());
     APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, getLifespan());
     APPEND_ENTITY_PROPERTY(PROP_EMIT_RATE, getEmitRate());
-    APPEND_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, getEmitAcceleration());
-    APPEND_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, getAccelerationSpread());
+    APPEND_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, getScriptEmitAcceleration());
+    APPEND_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, getScriptAccelerationSpread());
     APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, getParticleRadius());
     APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
     APPEND_ENTITY_PROPERTY(PROP_RADIUS_SPREAD, getRadiusSpread());
     APPEND_ENTITY_PROPERTY(PROP_RADIUS_START, getRadiusStart());
     APPEND_ENTITY_PROPERTY(PROP_RADIUS_FINISH, getRadiusFinish());
     APPEND_ENTITY_PROPERTY(PROP_COLOR_SPREAD, getColorSpread());
-    APPEND_ENTITY_PROPERTY(PROP_COLOR_START, getColorStart());
-    APPEND_ENTITY_PROPERTY(PROP_COLOR_FINISH, getColorFinish());
+    APPEND_ENTITY_PROPERTY(PROP_COLOR_START, getScriptColorStart());
+    APPEND_ENTITY_PROPERTY(PROP_COLOR_FINISH, getScriptColorFinish());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, getAlphaSpread());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA_START, getAlphaStart());
@@ -587,7 +587,7 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_EMIT_SPEED, getEmitSpeed());
     APPEND_ENTITY_PROPERTY(PROP_SPEED_SPREAD, getSpeedSpread());
     APPEND_ENTITY_PROPERTY(PROP_EMIT_ORIENTATION, getEmitOrientation());
-    APPEND_ENTITY_PROPERTY(PROP_EMIT_DIMENSIONS, getEmitDimensions());
+    APPEND_ENTITY_PROPERTY(PROP_EMIT_DIMENSIONS, getScriptEmitDimensions());
     APPEND_ENTITY_PROPERTY(PROP_EMIT_RADIUS_START, getEmitRadiusStart());
     APPEND_ENTITY_PROPERTY(PROP_POLAR_START, getPolarStart());
     APPEND_ENTITY_PROPERTY(PROP_POLAR_FINISH, getPolarFinish());

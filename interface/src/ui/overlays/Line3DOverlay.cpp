@@ -314,10 +314,10 @@ void Line3DOverlay::setProperties(const QVariantMap& originalProperties) {
  */
 QVariant Line3DOverlay::getProperty(const QString& property) {
     if (property == "start" || property == "startPoint" || property == "p1") {
-        return vec3toVariant(getStart());
+        return vec3ToVariant(getStart());
     }
     if (property == "end" || property == "endPoint" || property == "p2") {
-        return vec3toVariant(getEnd());
+        return vec3ToVariant(getEnd());
     }
     if (property == "length") {
         return QVariant(getLength());
@@ -329,10 +329,10 @@ QVariant Line3DOverlay::getProperty(const QString& property) {
         return _endParentJointIndex;
     }
     if (property == "localStart") {
-        return vec3toVariant(getLocalStart());
+        return vec3ToVariant(getLocalStart());
     }
     if (property == "localEnd") {
-        return vec3toVariant(getLocalEnd());
+        return vec3ToVariant(getLocalEnd());
     }
     if (property == "glow") {
         return getGlow();

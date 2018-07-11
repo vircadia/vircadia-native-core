@@ -175,7 +175,7 @@ void PolyLineEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
     }
     if (strokeColorsChanged) {
         _lastStrokeColors = entity->getStrokeColors();
-        _lastStrokeColors = _lastNormals.size() == _lastStrokeColors.size() ? _lastStrokeColors : QVector<glm::vec3>({ toGlm(entity->getXColor()) });
+        _lastStrokeColors = _lastNormals.size() == _lastStrokeColors.size() ? _lastStrokeColors : QVector<ScriptVec3Float>({ toGlm(entity->getXColor()) });
     }
     if (pointsChanged || strokeWidthsChanged || normalsChanged || strokeColorsChanged) {
         _empty = std::min(_lastPoints.size(), std::min(_lastNormals.size(), _lastStrokeWidths.size())) < 2;
@@ -194,10 +194,10 @@ void PolyLineEntityRenderer::updateGeometry(const std::vector<Vertex>& vertices)
     _verticesBuffer->setSubData(0, vertices);
 }
 
-std::vector<PolyLineEntityRenderer::Vertex> PolyLineEntityRenderer::updateVertices(const QVector<glm::vec3>& points, 
-                                                                                   const QVector<glm::vec3>& normals, 
+std::vector<PolyLineEntityRenderer::Vertex> PolyLineEntityRenderer::updateVertices(const QVector<ScriptVec3Float>& points,
+                                                                                   const QVector<ScriptVec3Float>& normals,
                                                                                    const QVector<float>& strokeWidths, 
-                                                                                   const QVector<glm::vec3>& strokeColors, 
+                                                                                   const QVector<ScriptVec3Float>& strokeColors,
                                                                                    const bool isUVModeStretch,
                                                                                    const float textureAspectRatio) {
     // Calculate the minimum vector size out of normals, points, and stroke widths
@@ -230,14 +230,14 @@ std::vector<PolyLineEntityRenderer::Vertex> PolyLineEntityRenderer::updateVertic
 
     for (int i = 0; i <= finalIndex; i++) {
         const float& width = strokeWidths.at(i);
-        const auto& point = points.at(i);
-        const auto& normal = normals.at(i);
-        const auto& color = strokeColors.size() == normals.size() ? strokeColors.at(i) : strokeColors.at(0);
+        const auto& point = points.at(i).toGlm();
+        const auto& normal = normals.at(i).toGlm();
+        const auto& color = strokeColors.size() == normals.size() ? strokeColors.at(i).toGlm() : strokeColors.at(0).toGlm();
         int vertexIndex = i * 2;
         
 
         if (!isUVModeStretch && i >= 1) {
-            distanceToLastPoint = glm::distance(points.at(i), points.at(i - 1));
+            distanceToLastPoint = glm::distance(points.at(i).toGlm(), points.at(i - 1).toGlm());
             accumulatedDistance += distanceToLastPoint;
             strokeWidth = 2 * strokeWidths[i];
 
@@ -263,7 +263,7 @@ std::vector<PolyLineEntityRenderer::Vertex> PolyLineEntityRenderer::updateVertic
 
         // For last point we can assume binormals are the same since it represents the last two vertices of quad
         if (i < finalIndex) {
-            const auto tangent = points.at(i + 1) - point;
+            const auto tangent = points.at(i + 1).toGlm() - point;
             binormal = glm::normalize(glm::cross(tangent, normal)) * width;
 
             // Check to make sure binormal is not a NAN. If it is, don't add to vertices vector
@@ -272,8 +272,8 @@ std::vector<PolyLineEntityRenderer::Vertex> PolyLineEntityRenderer::updateVertic
             }
         }
 
-        const auto v1 = points.at(i) + binormal;
-        const auto v2 = points.at(i) - binormal;
+        const auto v1 = points.at(i).toGlm() + binormal;
+        const auto v2 = points.at(i).toGlm() - binormal;
         vertices.emplace_back(v1, normal, vec2(uCoord, 0.0f), color);
         vertices.emplace_back(v2, normal, vec2(uCoord, 1.0f), color);
     }

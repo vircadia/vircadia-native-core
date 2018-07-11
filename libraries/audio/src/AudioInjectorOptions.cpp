@@ -34,7 +34,7 @@ AudioInjectorOptions::AudioInjectorOptions() :
 
 QScriptValue injectorOptionsToScriptValue(QScriptEngine* engine, const AudioInjectorOptions& injectorOptions) {
     QScriptValue obj = engine->newObject();
-    obj.setProperty("position", vec3toScriptValue(engine, injectorOptions.position));
+    obj.setProperty("position", vec3ToScriptValue(engine, injectorOptions.position));
     obj.setProperty("volume", injectorOptions.volume);
     obj.setProperty("loop", injectorOptions.loop);
     obj.setProperty("orientation", quatToScriptValue(engine, injectorOptions.orientation));

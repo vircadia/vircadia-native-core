@@ -101,8 +101,9 @@
         changedProperties += P;    \
     }
 
-inline QScriptValue convertScriptValue(QScriptEngine* e, const ScriptVec2Float& v) { return vec2toScriptValue(e, v); }
-inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::vec3& v) { return vec3toScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const ScriptVec2Float& v) { return vec2FloatToScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const ScriptVec3Float& v) { return vec3FloatToScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const ScriptVec3UInt& v) { return vec3UIntToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, float v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, int v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, bool v) { return QScriptValue(v); }
@@ -114,7 +115,7 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const QString& v) { ret
 inline QScriptValue convertScriptValue(QScriptEngine* e, const xColor& v) { return xColorToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::quat& v) { return quatToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QScriptValue& v) { return v; }
-inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<glm::vec3>& v) {return qVectorVec3ToScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<ScriptVec3Float>& v) {return qVectorVec3ToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<glm::quat>& v) {return qVectorQuatToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<bool>& v) {return qVectorBoolToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<float>& v) { return qVectorFloatToScriptValue(e, v); }
@@ -185,7 +186,7 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const AACube& v) { retu
         properties.setProperty(#P, V); \
     }
 
-typedef QVector<glm::vec3> qVectorVec3;
+typedef QVector<ScriptVec3Float> qVectorVec3;
 typedef QVector<glm::quat> qVectorQuat;
 typedef QVector<bool> qVectorBool;
 typedef QVector<float> qVectorFloat;
@@ -224,37 +225,22 @@ inline QByteArray QByteArray_convertFromScriptValue(const QScriptValue& v, bool&
 inline ScriptVec2Float ScriptVec2Float_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;
     ScriptVec2Float vec2;
-    vec2FromScriptValue(v, vec2);
+    vec2FloatFromScriptValue(v, vec2);
     return vec2;
 }
 
-inline glm::vec3 vec3_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
-    isValid = false; /// assume it can't be converted
-    QScriptValue x = v.property("x");
-    QScriptValue y = v.property("y");
-    QScriptValue z = v.property("z");
-    if (!x.isValid()) {
-        x = v.property("red");
-    }
-    if (!y.isValid()) {
-        y = v.property("green");
-    }
-    if (!z.isValid()) {
-        z = v.property("blue");
-    }
-    if (x.isValid() && y.isValid() && z.isValid()) {
-        glm::vec3 newValue(0);
-        newValue.x = x.toVariant().toFloat();
-        newValue.y = y.toVariant().toFloat();
-        newValue.z = z.toVariant().toFloat();
-        isValid = !glm::isnan(newValue.x) &&
-                  !glm::isnan(newValue.y) &&
-                  !glm::isnan(newValue.z);
-        if (isValid) {
-            return newValue;
-        }
-    }
-    return glm::vec3(0);
+inline ScriptVec3Float ScriptVec3Float_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = true;
+    ScriptVec3Float vec3;
+    vec3FloatFromScriptValue(v, vec3);
+    return vec3;
+}
+
+inline ScriptVec3UInt ScriptVec3UInt_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = true;
+    ScriptVec3UInt vec3;
+    vec3UIntFromScriptValue(v, vec3);
+    return vec3;
 }
 
 inline AACube AACube_convertFromScriptValue(const QScriptValue& v, bool& isValid) {

@@ -35,13 +35,13 @@ void KeyLightPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desired
 void KeyLightPropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(keyLight, color, xColor, setColor);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(keyLight, intensity, float, setIntensity);
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(keyLight, direction, vec3, setDirection);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(keyLight, direction, ScriptVec3Float, setDirection);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(keyLight, castShadows, bool, setCastShadows);
 
     // legacy property support
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(keyLightColor, xColor, setColor, getColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(keyLightIntensity, float, setIntensity, getIntensity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(keyLightDirection, vec3, setDirection, getDirection);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(keyLightDirection, ScriptVec3Float, setDirection, getDirection);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(keyLightCastShadows, bool, setCastShadows, getCastShadows);
 }
 
@@ -101,7 +101,7 @@ bool KeyLightPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFl
     
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, xColor, setColor);
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY, float, setIntensity);
-    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, glm::vec3, setDirection);
+    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, ScriptVec3Float, setDirection);
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_CAST_SHADOW, bool, setCastShadows);
 
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_KEYLIGHT_COLOR, Color);
@@ -189,7 +189,7 @@ int KeyLightPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char*
     
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, xColor, setColor);
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY, float, setIntensity);
-    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, glm::vec3, setDirection);
+    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, ScriptVec3Float, setDirection);
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_CAST_SHADOW, bool, setCastShadows);
 
     return bytesRead;

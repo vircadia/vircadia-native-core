@@ -4748,7 +4748,7 @@ bool Application::exportEntities(const QString& filename,
                 properties.setParentID(AVATAR_SELF_ID);
             } else {
                 if (parentID.isInvalidID()) {
-                    properties.setPosition(properties.getPosition() - root);
+                    properties.setPosition(properties.getPosition().toGlm() - root);
                 } else if (!entities.contains(parentID)) {
                     entityDatum->globalizeProperties(properties, "Parent %3 of %2 %1 is not selected for export.", -root);
                 } // else valid parent -- don't offset
@@ -5396,9 +5396,9 @@ void Application::updateSecondaryCameraViewFrustum() {
     if (camera->mirrorProjection && !camera->attachedEntityId.isNull()) {
         auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
         auto entityProperties = entityScriptingInterface->getEntityProperties(camera->attachedEntityId);
-        glm::vec3 mirrorPropertiesPosition = entityProperties.getPosition();
+        glm::vec3 mirrorPropertiesPosition = entityProperties.getPosition().toGlm();
         glm::quat mirrorPropertiesRotation = entityProperties.getRotation();
-        glm::vec3 mirrorPropertiesDimensions = entityProperties.getDimensions();
+        glm::vec3 mirrorPropertiesDimensions = entityProperties.getDimensions().toGlm();
         glm::vec3 halfMirrorPropertiesDimensions = 0.5f * mirrorPropertiesDimensions;
 
         // setup mirror from world as inverse of world from mirror transformation using inverted x and z for mirrored image
@@ -5430,7 +5430,7 @@ void Application::updateSecondaryCameraViewFrustum() {
         if (!camera->attachedEntityId.isNull()) {
             auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
             auto entityProperties = entityScriptingInterface->getEntityProperties(camera->attachedEntityId);
-            secondaryViewFrustum.setPosition(entityProperties.getPosition());
+            secondaryViewFrustum.setPosition(entityProperties.getPosition().toGlm());
             secondaryViewFrustum.setOrientation(entityProperties.getRotation());
         } else {
             secondaryViewFrustum.setPosition(camera->position);
@@ -7270,7 +7270,7 @@ void Application::addAssetToWorldCheckModelSize() {
         auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
         auto properties = entityScriptingInterface->getEntityProperties(entityID, propertyFlags);
         auto name = properties.getName();
-        auto dimensions = properties.getDimensions();
+        auto dimensions = properties.getDimensions().toGlm();
 
         const QString GRABBABLE_USER_DATA = "{\"grabbableKey\":{\"grabbable\":true}}";
         bool doResize = false;

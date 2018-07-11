@@ -850,9 +850,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} emitSpeed=5 - The speed, in m/s, that each particle is emitted at.
  * @property {number} speedSpread=1 - The spread in speeds at which particles are emitted at. If <code>emitSpeed == 5</code> 
  *     and <code>speedSpread == 1</code>, particles will be emitted with speeds in the range 4m/s &ndash; 6m/s.
- * @property {vec3} emitAcceleration=0,-9.8,0 - The acceleration that is applied to each particle during its lifetime. The 
+ * @property {Vec3} emitAcceleration=0,-9.8,0 - The acceleration that is applied to each particle during its lifetime. The 
  *     default is Earth's gravity value.
- * @property {vec3} accelerationSpread=0,0,0 - The spread in accelerations that each particle is given. If
+ * @property {Vec3} accelerationSpread=0,0,0 - The spread in accelerations that each particle is given. If
  *     <code>emitAccelerations == {x: 0, y: -9.8, z: 0}</code> and <code>accelerationSpread ==
  *     {x: 0, y: 1, z: 0}</code>, each particle will have an acceleration in the range <code>{x: 0, y: -10.8, z: 0}</code>
  *     &ndash; <code>{x: 0, y: -8.8, z: 0}</code>.
@@ -865,7 +865,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     default, particles emit along the entity's local z-axis, and <code>azimuthStart</code> and <code>azimuthFinish</code> 
  *     are relative to the entity's local x-axis. The default value is a rotation of -90 degrees about the local x-axis, i.e., 
  *     the particles emit vertically.
- * @property {vec3} emitDimensions=0,0,0 - The dimensions of the ellipsoid from which particles are emitted.
+ * @property {Vec3} emitDimensions=0,0,0 - The dimensions of the ellipsoid from which particles are emitted.
  * @property {number} emitRadiusStart=1 - The starting radius within the ellipsoid at which particles start being emitted;
  *     range <code>0.0</code> &ndash; <code>1.0</code> for the ellipsoid center to the ellipsoid surface, respectively.
  *     Particles are emitted from the portion of the ellipsoid that lies between <code>emitRadiusStart</code> and the 
@@ -1424,10 +1424,10 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     if (!skipDefaults && !strictSemantics) {
         AABox aaBox = getAABox();
         QScriptValue boundingBox = engine->newObject();
-        QScriptValue bottomRightNear = vec3toScriptValue(engine, aaBox.getCorner());
-        QScriptValue topFarLeft = vec3toScriptValue(engine, aaBox.calcTopFarLeft());
-        QScriptValue center = vec3toScriptValue(engine, aaBox.calcCenter());
-        QScriptValue boundingBoxDimensions = vec3toScriptValue(engine, aaBox.getDimensions());
+        QScriptValue bottomRightNear = vec3ToScriptValue(engine, aaBox.getCorner());
+        QScriptValue topFarLeft = vec3ToScriptValue(engine, aaBox.calcTopFarLeft());
+        QScriptValue center = vec3ToScriptValue(engine, aaBox.calcCenter());
+        QScriptValue boundingBoxDimensions = vec3ToScriptValue(engine, aaBox.getDimensions());
         boundingBox.setProperty("brn", bottomRightNear);
         boundingBox.setProperty("tfl", topFarLeft);
         boundingBox.setProperty("center", center);
@@ -1504,13 +1504,13 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     }
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lastEditedBy, QUuid, setLastEditedBy);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(position, vec3, setPosition);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(dimensions, vec3, setDimensions);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(position, ScriptVec3Float, setPosition);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(dimensions, ScriptVec3Float, setDimensions);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(rotation, quat, setRotation);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(density, float, setDensity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(velocity, vec3, setVelocity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(gravity, vec3, setGravity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(acceleration, vec3, setAcceleration);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(velocity, ScriptVec3Float, setVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(gravity, ScriptVec3Float, setGravity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(acceleration, ScriptVec3Float, setAcceleration);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(damping, float, setDamping);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(restitution, float, setRestitution);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(friction, float, setFriction);
@@ -1518,15 +1518,15 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(script, QString, setScript);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(scriptTimestamp, quint64, setScriptTimestamp);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(serverScripts, QString, setServerScripts);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(registrationPoint, vec3, setRegistrationPoint);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(angularVelocity, vec3, setAngularVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(registrationPoint, ScriptVec3Float, setRegistrationPoint);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(angularVelocity, ScriptVec3Float, setAngularVelocity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(angularDamping, float, setAngularDamping);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(visible, bool, setVisible);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(canCastShadow, bool, setCanCastShadow);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(color, xColor, setColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(colorSpread, xColor, setColorSpread);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorStart, vec3, setColorStart);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorFinish, vec3, setColorFinish);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorStart, ScriptVec3Float, setColorStart);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorFinish, ScriptVec3Float, setColorFinish);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alpha, float, setAlpha);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaSpread, float, setAlphaSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaStart, float, setAlphaStart);
@@ -1561,14 +1561,14 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitSpeed, float, setEmitSpeed);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(speedSpread, float, setSpeedSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitOrientation, quat, setEmitOrientation);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitDimensions, vec3, setEmitDimensions);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitDimensions, ScriptVec3Float, setEmitDimensions);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitRadiusStart, float, setEmitRadiusStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(polarStart, float, setPolarStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(polarFinish, float, setPolarFinish);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(azimuthStart, float, setAzimuthStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(azimuthFinish, float, setAzimuthFinish);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitAcceleration, vec3, setEmitAcceleration);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(accelerationSpread, vec3, setAccelerationSpread);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitAcceleration, ScriptVec3Float, setEmitAcceleration);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(accelerationSpread, ScriptVec3Float, setAccelerationSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(particleRadius, float, setParticleRadius);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusSpread, float, setRadiusSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusStart, float, setRadiusStart);
@@ -1606,7 +1606,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(skyboxMode, SkyboxMode);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(sourceUrl, QString, setSourceUrl);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, vec3, setVoxelVolumeSize);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, ScriptVec3Float, setVoxelVolumeSize);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelData, QByteArray, setVoxelData);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelSurfaceStyle, uint16_t, setVoxelSurfaceStyle);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lineWidth, float, setLineWidth);
@@ -1653,11 +1653,11 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(parentJointIndex, quint16, setParentJointIndex);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(queryAACube, AACube, setQueryAACube);
 
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localPosition, vec3, setLocalPosition);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localPosition, ScriptVec3Float, setLocalPosition);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localRotation, quat, setLocalRotation);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localVelocity, vec3, setLocalVelocity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localAngularVelocity, vec3, setLocalAngularVelocity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localDimensions, vec3, setLocalDimensions);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localVelocity, ScriptVec3Float, setLocalVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localAngularVelocity, ScriptVec3Float, setLocalAngularVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localDimensions, ScriptVec3Float, setLocalDimensions);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotationsSet, qVectorBool, setJointRotationsSet);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotations, qVectorQuat, setJointRotations);
@@ -2453,7 +2453,7 @@ QByteArray EntityItemProperties::getPackedNormals() const {
     return packNormals(getNormals());
 }
 
-QByteArray EntityItemProperties::packNormals(const QVector<glm::vec3>& normals) const {
+QByteArray EntityItemProperties::packNormals(const QVector<ScriptVec3Float>& normals) const {
     int normalsSize = normals.size();
     QByteArray packedNormals = QByteArray(normalsSize * 6 + 1, '0');
     // add size of the array
@@ -2461,7 +2461,7 @@ QByteArray EntityItemProperties::packNormals(const QVector<glm::vec3>& normals) 
 
     int index = 1;
     for (int i = 0; i < normalsSize; i++) {
-        int numBytes = packFloatVec3ToSignedTwoByteFixed((unsigned char*)packedNormals.data() + index, normals[i], 15);
+        int numBytes = packFloatVec3ToSignedTwoByteFixed((unsigned char*)packedNormals.data() + index, glm::vec3(normals[i].x, normals[i].y, normals[i].z), 15);
         index += numBytes;
     }
     return packedNormals;
@@ -2470,7 +2470,7 @@ QByteArray EntityItemProperties::packNormals(const QVector<glm::vec3>& normals) 
 QByteArray EntityItemProperties::getPackedStrokeColors() const {
     return packStrokeColors(getStrokeColors());
 }
-QByteArray EntityItemProperties::packStrokeColors(const QVector<glm::vec3>& strokeColors) const {
+QByteArray EntityItemProperties::packStrokeColors(const QVector<ScriptVec3Float>& strokeColors) const {
     int strokeColorsSize = strokeColors.size();
     QByteArray packedStrokeColors = QByteArray(strokeColorsSize * 3 + 1, '0');
 
@@ -2480,9 +2480,9 @@ QByteArray EntityItemProperties::packStrokeColors(const QVector<glm::vec3>& stro
 
     for (int i = 0; i < strokeColorsSize; i++) {
         // add the color to the QByteArray
-        packedStrokeColors[i * 3 + 1] = strokeColors[i].r * 255;
-        packedStrokeColors[i * 3 + 2] = strokeColors[i].g * 255;
-        packedStrokeColors[i * 3 + 3] = strokeColors[i].b * 255;
+        packedStrokeColors[i * 3 + 1] = strokeColors[i].x * 255;
+        packedStrokeColors[i * 3 + 2] = strokeColors[i].y * 255;
+        packedStrokeColors[i * 3 + 3] = strokeColors[i].z * 255;
     }
     return packedStrokeColors;
 }
@@ -2571,13 +2571,13 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     processedBytes += propertyFlags.getEncodedLength();
 
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SIMULATION_OWNER, QByteArray, setSimulationOwner);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POSITION, glm::vec3, setPosition);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DIMENSIONS, glm::vec3, setDimensions);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POSITION, ScriptVec3Float, setPosition);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DIMENSIONS, ScriptVec3Float, setDimensions);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ROTATION, glm::quat, setRotation);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DENSITY, float, setDensity);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VELOCITY, glm::vec3, setVelocity);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GRAVITY, glm::vec3, setGravity);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACCELERATION, glm::vec3, setAcceleration);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VELOCITY, ScriptVec3Float, setVelocity);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GRAVITY, ScriptVec3Float, setGravity);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACCELERATION, ScriptVec3Float, setAcceleration);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DAMPING, float, setDamping);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RESTITUTION, float, setRestitution);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FRICTION, float, setFriction);
@@ -2586,8 +2586,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SERVER_SCRIPTS, QString, setServerScripts);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, xColor, setColor);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_VELOCITY, glm::vec3, setAngularVelocity);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_REGISTRATION_POINT, ScriptVec3Float, setRegistrationPoint);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_VELOCITY, ScriptVec3Float, setAngularVelocity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_DAMPING, float, setAngularDamping);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE, bool, setVisible);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
@@ -2626,7 +2626,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_ROTATIONS_SET, QVector<bool>, setJointRotationsSet);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_ROTATIONS, QVector<glm::quat>, setJointRotations);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_TRANSLATIONS_SET, QVector<bool>, setJointTranslationsSet);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_TRANSLATIONS, QVector<glm::vec3>, setJointTranslations);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_TRANSLATIONS, QVector<ScriptVec3Float>, setJointTranslations);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RELAY_PARENT_JOINTS, bool, setRelayParentJoints);
     }
 
@@ -2648,21 +2648,21 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_SPEED, float, setEmitSpeed);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SPEED_SPREAD, float, setSpeedSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_ORIENTATION, glm::quat, setEmitOrientation);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_DIMENSIONS, glm::vec3, setEmitDimensions);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_DIMENSIONS, ScriptVec3Float, setEmitDimensions);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_RADIUS_START, float, setEmitRadiusStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POLAR_START, float, setPolarStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POLAR_FINISH, float, setPolarFinish);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_AZIMUTH_START, float, setAzimuthStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_AZIMUTH_FINISH, float, setAzimuthFinish);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_ACCELERATION, glm::vec3, setEmitAcceleration);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACCELERATION_SPREAD, glm::vec3, setAccelerationSpread);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_ACCELERATION, ScriptVec3Float, setEmitAcceleration);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACCELERATION_SPREAD, ScriptVec3Float, setAccelerationSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARTICLE_RADIUS, float, setParticleRadius);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_SPREAD, float, setRadiusSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_START, float, setRadiusStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_FINISH, float, setRadiusFinish);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_SPREAD, xColor, setColorSpread);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_START, vec3, setColorStart);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_FINISH, vec3, setColorFinish);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_START, ScriptVec3Float, setColorStart);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_FINISH, ScriptVec3Float, setColorFinish);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_SPREAD, float, setAlphaSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_START, float, setAlphaStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_FINISH, float, setAlphaFinish);
@@ -2690,7 +2690,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     }
 
     if (properties.getType() == EntityTypes::PolyVox) {
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_VOLUME_SIZE, glm::vec3, setVoxelVolumeSize);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_VOLUME_SIZE, ScriptVec3Float, setVoxelVolumeSize);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_DATA, QByteArray, setVoxelData);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_SURFACE_STYLE, uint16_t, setVoxelSurfaceStyle);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_X_TEXTURE_URL, QString, setXTextureURL);
@@ -2706,13 +2706,13 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
 
     if (properties.getType() == EntityTypes::Line) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_WIDTH, float, setLineWidth);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<ScriptVec3Float>, setLinePoints);
     }
 
 
     if (properties.getType() == EntityTypes::PolyLine) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_WIDTH, float, setLineWidth);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<ScriptVec3Float>, setLinePoints);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NORMALS, QByteArray, setPackedNormals);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STROKE_COLORS, QByteArray, setPackedStrokeColors);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STROKE_WIDTHS, QVector<float>, setStrokeWidths);
@@ -2771,9 +2771,9 @@ void EntityItemProperties::setPackedNormals(const QByteArray& value) {
     setNormals(unpackNormals(value));
 }
 
-QVector<glm::vec3> EntityItemProperties::unpackNormals(const QByteArray& normals) {
+QVector<ScriptVec3Float> EntityItemProperties::unpackNormals(const QByteArray& normals) {
     // the size of the vector is packed first
-    QVector<glm::vec3> unpackedNormals = QVector<glm::vec3>((int)normals[0]);
+    QVector<ScriptVec3Float> unpackedNormals = QVector<ScriptVec3Float>((int)normals[0]);
 
     if ((int)normals[0] == normals.size() / 6) {
         int j = 0;
@@ -2794,9 +2794,9 @@ void EntityItemProperties::setPackedStrokeColors(const QByteArray& value) {
     setStrokeColors(unpackStrokeColors(value));
 }
 
-QVector<glm::vec3> EntityItemProperties::unpackStrokeColors(const QByteArray& strokeColors) {
+QVector<ScriptVec3Float> EntityItemProperties::unpackStrokeColors(const QByteArray& strokeColors) {
     // the size of the vector is packed first
-    QVector<glm::vec3> unpackedStrokeColors = QVector<glm::vec3>((int)strokeColors[0]);
+    QVector<ScriptVec3Float> unpackedStrokeColors = QVector<ScriptVec3Float>((int)strokeColors[0]);
    
     if ((int)strokeColors[0] == strokeColors.size() / 3) {
         int j = 0;
@@ -3061,15 +3061,17 @@ void EntityItemProperties::markAllChanged() {
 AABox EntityItemProperties::getAABox() const {
 
     // _position represents the position of the registration point.
-    glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
+    glm::vec3 registrationPoint = glm::vec3(_registrationPoint.x, _registrationPoint.y, _registrationPoint.z);
+    glm::vec3 registrationRemainder = glm::vec3(1.0f) - registrationPoint;
 
-    glm::vec3 unrotatedMinRelativeToEntity = - (_dimensions * _registrationPoint);
-    glm::vec3 unrotatedMaxRelativeToEntity = _dimensions * registrationRemainder;
+    glm::vec3 dimensions = glm::vec3(_dimensions.x, _dimensions.y, _dimensions.z);
+    glm::vec3 unrotatedMinRelativeToEntity = - (dimensions * registrationPoint);
+    glm::vec3 unrotatedMaxRelativeToEntity = dimensions * registrationRemainder;
     Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
     Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(_rotation);
 
     // shift the extents to be relative to the position/registration point
-    rotatedExtentsRelativeToRegistrationPoint.shiftBy(_position);
+    rotatedExtentsRelativeToRegistrationPoint.shiftBy(glm::vec3(_position.x, _position.y, _position.z));
 
     return AABox(rotatedExtentsRelativeToRegistrationPoint);
 }

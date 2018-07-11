@@ -913,7 +913,7 @@ void RenderableModelEntityItem::setJointRotationsSet(const QVector<bool>& rotati
     _needsJointSimulation = true;
 }
 
-void RenderableModelEntityItem::setJointTranslations(const QVector<glm::vec3>& translations) {
+void RenderableModelEntityItem::setJointTranslations(const QVector<ScriptVec3Float>& translations) {
     ModelEntityItem::setJointTranslations(translations);
     _needsJointSimulation = true;
 }
@@ -1029,7 +1029,7 @@ void RenderableModelEntityItem::copyAnimationJointDataToModel() {
                 changed = true;
             }
             if (jointData.translationDirty) {
-                model->setJointTranslation(index, true, jointData.joint.translation, 1.0f);
+                model->setJointTranslation(index, true, jointData.joint.translation.toGlm(), 1.0f);
                 jointData.translationDirty = false;
                 changed = true;
             }

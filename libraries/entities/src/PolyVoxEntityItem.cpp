@@ -70,9 +70,9 @@ PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID) : EntityI
     _type = EntityTypes::PolyVox;
 }
 
-void PolyVoxEntityItem::setVoxelVolumeSize(const vec3& voxelVolumeSize) {
+void PolyVoxEntityItem::setVoxelVolumeSize(const ScriptVec3Float& voxelVolumeSize) {
     withWriteLock([&] {
-        assert(!glm::any(glm::isnan(voxelVolumeSize)));
+        assert(!glm::any(glm::isnan(voxelVolumeSize.toGlm())));
 
         _voxelVolumeSize = glm::vec3(roundf(voxelVolumeSize.x), roundf(voxelVolumeSize.y), roundf(voxelVolumeSize.z));
         if (_voxelVolumeSize.x < 1) {
@@ -104,8 +104,8 @@ void PolyVoxEntityItem::setVoxelVolumeSize(const vec3& voxelVolumeSize) {
     });
 }
 
-glm::vec3 PolyVoxEntityItem::getVoxelVolumeSize() const {
-    glm::vec3 voxelVolumeSize;
+ScriptVec3Float PolyVoxEntityItem::getVoxelVolumeSize() const {
+    ScriptVec3Float voxelVolumeSize;
     withReadLock([&] {
         voxelVolumeSize = _voxelVolumeSize;
     });
@@ -167,7 +167,7 @@ int PolyVoxEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* dat
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY(PROP_VOXEL_VOLUME_SIZE, glm::vec3, setVoxelVolumeSize);
+    READ_ENTITY_PROPERTY(PROP_VOXEL_VOLUME_SIZE, ScriptVec3Float, setVoxelVolumeSize);
     READ_ENTITY_PROPERTY(PROP_VOXEL_DATA, QByteArray, setVoxelData);
     READ_ENTITY_PROPERTY(PROP_VOXEL_SURFACE_STYLE, uint16_t, setVoxelSurfaceStyle);
     READ_ENTITY_PROPERTY(PROP_X_TEXTURE_URL, QString, setXTextureURL);
@@ -375,7 +375,7 @@ EntityItemID PolyVoxEntityItem::getZPNeighborID() const {
 glm::vec3 PolyVoxEntityItem::getSurfacePositionAdjustment() const {
     glm::vec3 result;
     withReadLock([&] {
-        glm::vec3 scale = getScaledDimensions() / _voxelVolumeSize; // meters / voxel-units
+        glm::vec3 scale = getScaledDimensions() / _voxelVolumeSize.toGlm(); // meters / voxel-units
         if (isEdged()) {
             result = scale / -2.0f;
         }
@@ -387,7 +387,7 @@ glm::vec3 PolyVoxEntityItem::getSurfacePositionAdjustment() const {
 glm::mat4 PolyVoxEntityItem::voxelToLocalMatrix() const {
     glm::vec3 voxelVolumeSize;
     withReadLock([&] {
-        voxelVolumeSize = _voxelVolumeSize;
+        voxelVolumeSize = _voxelVolumeSize.toGlm();
     });
 
     glm::vec3 dimensions = getScaledDimensions();

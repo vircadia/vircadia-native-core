@@ -333,7 +333,7 @@ void ZoneEntityRenderer::updateKeySunFromEntity(const TypedEntityPointer& entity
     // Set the keylight
     sunLight->setColor(ColorUtils::toVec3(_keyLightProperties.getColor()));
     sunLight->setIntensity(_keyLightProperties.getIntensity());
-    sunLight->setDirection(entity->getTransform().getRotation() * _keyLightProperties.getDirection());
+    sunLight->setDirection(entity->getTransform().getRotation() * _keyLightProperties.getDirection().toGlm());
     sunLight->setCastShadows(_keyLightProperties.getCastShadows());
 }
 

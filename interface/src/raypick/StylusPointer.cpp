@@ -74,9 +74,9 @@ void StylusPointer::show(const StylusTip& tip) {
         auto modelOrientation = tip.orientation * X_ROT_NEG_90;
         auto sensorToWorldScale = DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale();
         auto modelPositionOffset = modelOrientation * (vec3(0.0f, 0.0f, -WEB_STYLUS_LENGTH / 2.0f) * sensorToWorldScale);
-        props["position"] = vec3toVariant(tip.position + modelPositionOffset);
+        props["position"] = vec3ToVariant(tip.position + modelPositionOffset);
         props["rotation"] = quatToVariant(modelOrientation);
-        props["dimensions"] = vec3toVariant(sensorToWorldScale * vec3(0.01f, 0.01f, WEB_STYLUS_LENGTH));
+        props["dimensions"] = vec3ToVariant(sensorToWorldScale * vec3(0.01f, 0.01f, WEB_STYLUS_LENGTH));
         props["visible"] = true;
         qApp->getOverlays().editOverlay(_stylusOverlay, props);
     }

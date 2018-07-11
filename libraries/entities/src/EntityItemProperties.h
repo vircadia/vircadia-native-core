@@ -119,13 +119,13 @@ public:
 
     DEFINE_PROPERTY(PROP_VISIBLE, Visible, visible, bool, ENTITY_ITEM_DEFAULT_VISIBLE);
     DEFINE_PROPERTY(PROP_CAN_CAST_SHADOW, CanCastShadow, canCastShadow, bool, ENTITY_ITEM_DEFAULT_CAN_CAST_SHADOW);
-    DEFINE_PROPERTY_REF_WITH_SETTER(PROP_POSITION, Position, position, glm::vec3, ENTITY_ITEM_ZERO_VEC3);
-    DEFINE_PROPERTY_REF(PROP_DIMENSIONS, Dimensions, dimensions, glm::vec3, ENTITY_ITEM_DEFAULT_DIMENSIONS);
+    DEFINE_PROPERTY_REF_WITH_SETTER(PROP_POSITION, Position, position, ScriptVec3Float, ENTITY_ITEM_ZERO_VEC3);
+    DEFINE_PROPERTY_REF(PROP_DIMENSIONS, Dimensions, dimensions, ScriptVec3Float, ENTITY_ITEM_DEFAULT_DIMENSIONS);
     DEFINE_PROPERTY_REF(PROP_ROTATION, Rotation, rotation, glm::quat, ENTITY_ITEM_DEFAULT_ROTATION);
     DEFINE_PROPERTY(PROP_DENSITY, Density, density, float, ENTITY_ITEM_DEFAULT_DENSITY);
-    DEFINE_PROPERTY_REF(PROP_VELOCITY, Velocity, velocity, glm::vec3, ENTITY_ITEM_DEFAULT_VELOCITY);
-    DEFINE_PROPERTY_REF(PROP_GRAVITY, Gravity, gravity, glm::vec3, ENTITY_ITEM_DEFAULT_GRAVITY);
-    DEFINE_PROPERTY_REF(PROP_ACCELERATION, Acceleration, acceleration, glm::vec3, ENTITY_ITEM_DEFAULT_ACCELERATION);
+    DEFINE_PROPERTY_REF(PROP_VELOCITY, Velocity, velocity, ScriptVec3Float, ENTITY_ITEM_DEFAULT_VELOCITY);
+    DEFINE_PROPERTY_REF(PROP_GRAVITY, Gravity, gravity, ScriptVec3Float, ENTITY_ITEM_DEFAULT_GRAVITY);
+    DEFINE_PROPERTY_REF(PROP_ACCELERATION, Acceleration, acceleration, ScriptVec3Float, ENTITY_ITEM_DEFAULT_ACCELERATION);
     DEFINE_PROPERTY(PROP_DAMPING, Damping, damping, float, ENTITY_ITEM_DEFAULT_DAMPING);
     DEFINE_PROPERTY(PROP_RESTITUTION, Restitution, restitution, float, ENTITY_ITEM_DEFAULT_RESTITUTION);
     DEFINE_PROPERTY(PROP_FRICTION, Friction, friction, float, ENTITY_ITEM_DEFAULT_FRICTION);
@@ -136,16 +136,16 @@ public:
     DEFINE_PROPERTY_REF(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString, ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL);
     DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, xColor, ParticleEffectEntityItem::DEFAULT_XCOLOR);
     DEFINE_PROPERTY_REF(PROP_COLOR_SPREAD, ColorSpread, colorSpread, xColor, ParticleEffectEntityItem::DEFAULT_XCOLOR_SPREAD);
-    DEFINE_PROPERTY_REF(PROP_COLOR_START, ColorStart, colorStart, vec3, particle::DEFAULT_COLOR_UNINITIALIZED);
-    DEFINE_PROPERTY_REF(PROP_COLOR_FINISH, ColorFinish, colorFinish, vec3, particle::DEFAULT_COLOR_UNINITIALIZED);
+    DEFINE_PROPERTY_REF(PROP_COLOR_START, ColorStart, colorStart, ScriptVec3Float, particle::DEFAULT_COLOR_UNINITIALIZED);
+    DEFINE_PROPERTY_REF(PROP_COLOR_FINISH, ColorFinish, colorFinish, ScriptVec3Float, particle::DEFAULT_COLOR_UNINITIALIZED);
     DEFINE_PROPERTY(PROP_ALPHA, Alpha, alpha, float, particle::DEFAULT_ALPHA);
     DEFINE_PROPERTY(PROP_ALPHA_SPREAD, AlphaSpread, alphaSpread, float, particle::DEFAULT_ALPHA_SPREAD);
     DEFINE_PROPERTY(PROP_ALPHA_START, AlphaStart, alphaStart, float, particle::DEFAULT_ALPHA_START);
     DEFINE_PROPERTY(PROP_ALPHA_FINISH, AlphaFinish, alphaFinish, float, particle::DEFAULT_ALPHA_FINISH);
     DEFINE_PROPERTY_REF(PROP_MODEL_URL, ModelURL, modelURL, QString, "");
     DEFINE_PROPERTY_REF(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString, "");
-    DEFINE_PROPERTY_REF(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, glm::vec3, ENTITY_ITEM_DEFAULT_REGISTRATION_POINT);
-    DEFINE_PROPERTY_REF(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, glm::vec3, ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY);
+    DEFINE_PROPERTY_REF(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, ScriptVec3Float, ENTITY_ITEM_DEFAULT_REGISTRATION_POINT);
+    DEFINE_PROPERTY_REF(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, ScriptVec3Float, ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY);
     DEFINE_PROPERTY(PROP_ANGULAR_DAMPING, AngularDamping, angularDamping, float, ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING);
     DEFINE_PROPERTY(PROP_COLLISIONLESS, Collisionless, collisionless, bool, ENTITY_ITEM_DEFAULT_COLLISIONLESS);
     DEFINE_PROPERTY(PROP_COLLISION_MASK, CollisionMask, collisionMask, uint16_t, ENTITY_COLLISION_MASK_DEFAULT);
@@ -171,14 +171,14 @@ public:
     DEFINE_PROPERTY(PROP_EMIT_SPEED, EmitSpeed, emitSpeed, float, particle::DEFAULT_EMIT_SPEED);
     DEFINE_PROPERTY(PROP_SPEED_SPREAD, SpeedSpread, speedSpread, float, particle::DEFAULT_SPEED_SPREAD);
     DEFINE_PROPERTY_REF(PROP_EMIT_ORIENTATION, EmitOrientation, emitOrientation, glm::quat, particle::DEFAULT_EMIT_ORIENTATION);
-    DEFINE_PROPERTY_REF(PROP_EMIT_DIMENSIONS, EmitDimensions, emitDimensions, glm::vec3, particle::DEFAULT_EMIT_DIMENSIONS);
+    DEFINE_PROPERTY_REF(PROP_EMIT_DIMENSIONS, EmitDimensions, emitDimensions, ScriptVec3Float, particle::DEFAULT_EMIT_DIMENSIONS);
     DEFINE_PROPERTY(PROP_EMIT_RADIUS_START, EmitRadiusStart, emitRadiusStart, float, particle::DEFAULT_EMIT_RADIUS_START);
     DEFINE_PROPERTY(PROP_POLAR_START, PolarStart, polarStart, float, particle::DEFAULT_POLAR_START);
     DEFINE_PROPERTY(PROP_POLAR_FINISH, PolarFinish, polarFinish, float, particle::DEFAULT_POLAR_FINISH);
     DEFINE_PROPERTY(PROP_AZIMUTH_START, AzimuthStart, azimuthStart, float, particle::DEFAULT_AZIMUTH_START);
     DEFINE_PROPERTY(PROP_AZIMUTH_FINISH, AzimuthFinish, azimuthFinish, float, particle::DEFAULT_AZIMUTH_FINISH);
-    DEFINE_PROPERTY_REF(PROP_EMIT_ACCELERATION, EmitAcceleration, emitAcceleration, glm::vec3, particle::DEFAULT_EMIT_ACCELERATION);
-    DEFINE_PROPERTY_REF(PROP_ACCELERATION_SPREAD, AccelerationSpread, accelerationSpread, glm::vec3, particle::DEFAULT_ACCELERATION_SPREAD);
+    DEFINE_PROPERTY_REF(PROP_EMIT_ACCELERATION, EmitAcceleration, emitAcceleration, ScriptVec3Float, particle::DEFAULT_EMIT_ACCELERATION);
+    DEFINE_PROPERTY_REF(PROP_ACCELERATION_SPREAD, AccelerationSpread, accelerationSpread, ScriptVec3Float, particle::DEFAULT_ACCELERATION_SPREAD);
     DEFINE_PROPERTY(PROP_PARTICLE_RADIUS, ParticleRadius, particleRadius, float, particle::DEFAULT_PARTICLE_RADIUS);
     DEFINE_PROPERTY(PROP_RADIUS_SPREAD, RadiusSpread, radiusSpread, float, particle::DEFAULT_RADIUS_SPREAD);
     DEFINE_PROPERTY(PROP_RADIUS_START, RadiusStart, radiusStart, float, particle::DEFAULT_RADIUS_START);
@@ -186,7 +186,7 @@ public:
     DEFINE_PROPERTY(PROP_EMITTER_SHOULD_TRAIL, EmitterShouldTrail, emitterShouldTrail, bool, particle::DEFAULT_EMITTER_SHOULD_TRAIL);
     DEFINE_PROPERTY_GROUP(KeyLight, keyLight, KeyLightPropertyGroup);
     DEFINE_PROPERTY_GROUP(AmbientLight, ambientLight, AmbientLightPropertyGroup);
-    DEFINE_PROPERTY_REF(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, glm::vec3, PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE);
+    DEFINE_PROPERTY_REF(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, ScriptVec3Float, PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE);
     DEFINE_PROPERTY_REF(PROP_VOXEL_DATA, VoxelData, voxelData, QByteArray, PolyVoxEntityItem::DEFAULT_VOXEL_DATA);
     DEFINE_PROPERTY_REF(PROP_VOXEL_SURFACE_STYLE, VoxelSurfaceStyle, voxelSurfaceStyle, uint16_t, PolyVoxEntityItem::DEFAULT_VOXEL_SURFACE_STYLE);
     DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString, ENTITY_ITEM_DEFAULT_NAME);
@@ -201,13 +201,13 @@ public:
     DEFINE_PROPERTY_GROUP(Animation, animation, AnimationPropertyGroup);
     DEFINE_PROPERTY_REF(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString, "");
     DEFINE_PROPERTY(PROP_LINE_WIDTH, LineWidth, lineWidth, float, LineEntityItem::DEFAULT_LINE_WIDTH);
-    DEFINE_PROPERTY_REF(LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>, QVector<glm::vec3>());
+    DEFINE_PROPERTY_REF(LINE_POINTS, LinePoints, linePoints, QVector<ScriptVec3Float>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
     DEFINE_PROPERTY_REF(PROP_HREF, Href, href, QString, "");
     DEFINE_PROPERTY_REF(PROP_DESCRIPTION, Description, description, QString, "");
     DEFINE_PROPERTY(PROP_FACE_CAMERA, FaceCamera, faceCamera, bool, TextEntityItem::DEFAULT_FACE_CAMERA);
     DEFINE_PROPERTY_REF(PROP_ACTION_DATA, ActionData, actionData, QByteArray, QByteArray());
-    DEFINE_PROPERTY(PROP_NORMALS, Normals, normals, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
-    DEFINE_PROPERTY(PROP_STROKE_COLORS, StrokeColors, strokeColors, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
+    DEFINE_PROPERTY(PROP_NORMALS, Normals, normals, QVector<ScriptVec3Float>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
+    DEFINE_PROPERTY(PROP_STROKE_COLORS, StrokeColors, strokeColors, QVector<ScriptVec3Float>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
     DEFINE_PROPERTY(PROP_STROKE_WIDTHS, StrokeWidths, strokeWidths, QVector<float>, QVector<float>());
     DEFINE_PROPERTY(PROP_IS_UV_MODE_STRETCH, IsUVModeStretch, isUVModeStretch, bool, true);
     DEFINE_PROPERTY_REF(PROP_X_TEXTURE_URL, XTextureURL, xTextureURL, QString, "");
@@ -249,16 +249,16 @@ public:
     DEFINE_PROPERTY_REF(PROP_STATIC_CERTIFICATE_VERSION, StaticCertificateVersion, staticCertificateVersion, quint32, ENTITY_ITEM_DEFAULT_STATIC_CERTIFICATE_VERSION);
 
     // these are used when bouncing location data into and out of scripts
-    DEFINE_PROPERTY_REF(PROP_LOCAL_POSITION, LocalPosition, localPosition, vec3, ENTITY_ITEM_ZERO_VEC3);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_POSITION, LocalPosition, localPosition, ScriptVec3Float, ENTITY_ITEM_ZERO_VEC3);
     DEFINE_PROPERTY_REF(PROP_LOCAL_ROTATION, LocalRotation, localRotation, quat, ENTITY_ITEM_DEFAULT_ROTATION);
-    DEFINE_PROPERTY_REF(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, vec3, ENTITY_ITEM_ZERO_VEC3);
-    DEFINE_PROPERTY_REF(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, vec3, ENTITY_ITEM_ZERO_VEC3);
-    DEFINE_PROPERTY_REF(PROP_LOCAL_DIMENSIONS, LocalDimensions, localDimensions, vec3, ENTITY_ITEM_ZERO_VEC3);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, ScriptVec3Float, ENTITY_ITEM_ZERO_VEC3);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, ScriptVec3Float, ENTITY_ITEM_ZERO_VEC3);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_DIMENSIONS, LocalDimensions, localDimensions, ScriptVec3Float, ENTITY_ITEM_ZERO_VEC3);
 
     DEFINE_PROPERTY_REF(PROP_JOINT_ROTATIONS_SET, JointRotationsSet, jointRotationsSet, QVector<bool>, QVector<bool>());
     DEFINE_PROPERTY_REF(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<glm::quat>, QVector<glm::quat>());
     DEFINE_PROPERTY_REF(PROP_JOINT_TRANSLATIONS_SET, JointTranslationsSet, jointTranslationsSet, QVector<bool>, QVector<bool>());
-    DEFINE_PROPERTY_REF(PROP_JOINT_TRANSLATIONS, JointTranslations, jointTranslations, QVector<glm::vec3>, QVector<glm::vec3>());
+    DEFINE_PROPERTY_REF(PROP_JOINT_TRANSLATIONS, JointTranslations, jointTranslations, QVector<ScriptVec3Float>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
 
     DEFINE_PROPERTY(PROP_FLYING_ALLOWED, FlyingAllowed, flyingAllowed, bool, ZoneEntityItem::DEFAULT_FLYING_ALLOWED);
     DEFINE_PROPERTY(PROP_GHOSTING_ALLOWED, GhostingAllowed, ghostingAllowed, bool, ZoneEntityItem::DEFAULT_GHOSTING_ALLOWED);
@@ -287,7 +287,7 @@ public:
     std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT>::const_iterator findComponent(const QString& mode);
 
 public:
-    float getMaxDimension() const { return glm::compMax(_dimensions); }
+    float getMaxDimension() const { return glm::compMax(glm::vec3(_dimensions.x, _dimensions.y, _dimensions.z)); }
 
     float getAge() const { return (float)(usecTimestampNow() - _created) / (float)USECS_PER_SECOND; }
     bool hasCreatedTime() const { return (_created != UNKNOWN_CREATED_TIME); }
@@ -314,10 +314,10 @@ public:
     void clearID() { _id = UNKNOWN_ENTITY_ID; _idSet = false; }
     void markAllChanged();
 
-    const glm::vec3& getNaturalDimensions() const { return _naturalDimensions; }
+    const glm::vec3& getNaturalDimensions() const { return glm::vec3(_naturalDimensions.x, _naturalDimensions.y, _naturalDimensions.z); }
     void setNaturalDimensions(const glm::vec3& value) { _naturalDimensions = value; }
     
-    const glm::vec3& getNaturalPosition() const { return _naturalPosition; }
+    const glm::vec3& getNaturalPosition() const { return glm::vec3(_naturalPosition.x, _naturalPosition.y, _naturalPosition.z); }
     void calculateNaturalPosition(const glm::vec3& min, const glm::vec3& max);
     
     const QVariantMap& getTextureNames() const { return _textureNames; }
@@ -364,16 +364,16 @@ public:
     void setRenderInfoHasTransparent(bool value) { _renderInfoHasTransparent = value; }
 
     void setPackedNormals(const QByteArray& value);
-    QVector<glm::vec3> unpackNormals(const QByteArray& normals);
+    QVector<ScriptVec3Float> unpackNormals(const QByteArray& normals);
 
     void setPackedStrokeColors(const QByteArray& value);
-    QVector<glm::vec3> unpackStrokeColors(const QByteArray& strokeColors);
+    QVector<ScriptVec3Float> unpackStrokeColors(const QByteArray& strokeColors);
 
     QByteArray getPackedNormals() const;
-    QByteArray packNormals(const QVector<glm::vec3>& normals) const;
+    QByteArray packNormals(const QVector<ScriptVec3Float>& normals) const;
 
     QByteArray getPackedStrokeColors() const;
-    QByteArray packStrokeColors(const QVector<glm::vec3>& strokeColors) const;
+    QByteArray packStrokeColors(const QVector<ScriptVec3Float>& strokeColors) const;
 
     QByteArray getStaticCertificateJSON() const;
     QByteArray getStaticCertificateHash() const;
@@ -401,8 +401,8 @@ private:
     // NOTE: The following are pseudo client only properties. They are only used in clients which can access
     // properties of model geometry. But these properties are not serialized like other properties.
     QVariantMap _textureNames;
-    glm::vec3 _naturalDimensions;
-    glm::vec3 _naturalPosition;
+    ScriptVec3Float _naturalDimensions;
+    ScriptVec3Float _naturalPosition;
 
     size_t _renderInfoVertexCount { 0 };
     int _renderInfoTextureCount { 0 };
@@ -425,8 +425,8 @@ void EntityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityProper
 
 
 // define these inline here so the macros work
-inline void EntityItemProperties::setPosition(const glm::vec3& value)
-                    { _position = glm::clamp(value, (float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE); _positionChanged = true; }
+inline void EntityItemProperties::setPosition(const ScriptVec3Float& value)
+                    { _position = glm::clamp(glm::vec3(value.x, value.y, value.z), (float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE); _positionChanged = true; }
 
 inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     debug << "EntityItemProperties[" << "\n";

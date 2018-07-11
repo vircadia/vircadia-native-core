@@ -50,8 +50,8 @@ class PolyVoxEntityItem : public EntityItem {
 
     virtual void debugDump() const override;
 
-    virtual void setVoxelVolumeSize(const vec3& voxelVolumeSize);
-    virtual glm::vec3 getVoxelVolumeSize() const;
+    virtual void setVoxelVolumeSize(const ScriptVec3Float& voxelVolumeSize);
+    virtual ScriptVec3Float getVoxelVolumeSize() const;
 
     virtual void setVoxelData(const QByteArray& voxelData);
     virtual QByteArray getVoxelData() const;
@@ -172,7 +172,7 @@ class PolyVoxEntityItem : public EntityItem {
  protected:
     void setVoxelDataDirty(bool value) { withWriteLock([&] { _voxelDataDirty = value; }); }
 
-    glm::vec3 _voxelVolumeSize { DEFAULT_VOXEL_VOLUME_SIZE }; // this is always 3 bytes
+    ScriptVec3Float _voxelVolumeSize { DEFAULT_VOXEL_VOLUME_SIZE }; // this is always 3 bytes
 
     QByteArray _voxelData { DEFAULT_VOXEL_DATA };
     bool _voxelDataDirty { true }; // _voxelData has changed, things that depend on it should be updated

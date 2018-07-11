@@ -194,7 +194,7 @@ class ParticleEffectEntityItem : public EntityItem {
 public:
     ALLOW_INSTANTIATION // This class can be instantiated
 
-    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+        static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     ParticleEffectEntityItem(const EntityItemID& entityItemID);
 
@@ -205,17 +205,17 @@ public:
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                    EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
-                                    EntityPropertyFlags& requestedProperties,
-                                    EntityPropertyFlags& propertyFlags,
-                                    EntityPropertyFlags& propertiesDidntFit,
-                                    int& propertyCount,
-                                    OctreeElement::AppendState& appendState) const override;
+        EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
+        EntityPropertyFlags& requestedProperties,
+        EntityPropertyFlags& propertyFlags,
+        EntityPropertyFlags& propertiesDidntFit,
+        int& propertyCount,
+        OctreeElement::AppendState& appendState) const override;
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
-                                                 ReadBitstreamToTreeParams& args,
-                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
-                                                 bool& somethingChanged) override;
+        ReadBitstreamToTreeParams& args,
+        EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+        bool& somethingChanged) override;
 
     xColor getXColor() const;
     vec3 getColor() const { return _particleProperties.color.gradient.target; }
@@ -224,10 +224,14 @@ public:
     void setColor(const xColor& value);
 
     void setColorStart(const vec3& colorStart);
+    void setColorStart(const ScriptVec3Float& colorStart) { setColorStart(colorStart.toGlm()); }
     vec3 getColorStart() const { return _particleProperties.color.range.start; }
+    ScriptVec3Float getScriptColorStart() const { return getColorStart(); }
 
     void setColorFinish(const vec3& colorFinish);
+    void setColorFinish(const ScriptVec3Float& colorFinish) { setColorFinish(colorFinish.toGlm()); }
     vec3 getColorFinish() const { return _particleProperties.color.range.finish; }
+    ScriptVec3Float getScriptColorFinish() const { return getColorFinish(); }
 
     void setColorSpread(const xColor& colorSpread);
     xColor getColorSpread() const;
@@ -271,7 +275,9 @@ public:
     const glm::quat& getEmitOrientation() const { return _particleProperties.emission.orientation; }
 
     void setEmitDimensions(const glm::vec3& emitDimensions);
+    void setEmitDimensions(const ScriptVec3Float& emitDimensions) { setEmitDimensions(emitDimensions.toGlm()); }
     const glm::vec3& getEmitDimensions() const { return _particleProperties.emission.dimensions; }
+    ScriptVec3Float getScriptEmitDimensions() const { return getEmitDimensions(); }
 
     void setEmitRadiusStart(float emitRadiusStart);
     float getEmitRadiusStart() const { return _particleProperties.radiusStart; }
@@ -289,10 +295,14 @@ public:
     float getAzimuthFinish() const { return _particleProperties.azimuth.finish; }
 
     void setEmitAcceleration(const glm::vec3& emitAcceleration);
+    void setEmitAcceleration(const ScriptVec3Float& emitAcceleration) { setEmitAcceleration(emitAcceleration.toGlm()); }
     const glm::vec3& getEmitAcceleration() const { return _particleProperties.emission.acceleration.target; }
+    ScriptVec3Float getScriptEmitAcceleration() const { return getEmitAcceleration(); }
     
     void setAccelerationSpread(const glm::vec3& accelerationSpread);
+    void setAccelerationSpread(const ScriptVec3Float& accelerationSpread) { setAccelerationSpread(accelerationSpread.toGlm()); }
     const glm::vec3& getAccelerationSpread() const { return _particleProperties.emission.acceleration.spread; }
+    ScriptVec3Float getScriptAccelerationSpread() const { return getAccelerationSpread(); }
 
     void setParticleRadius(float particleRadius);
     float getParticleRadius() const { return _particleProperties.radius.gradient.target; }

@@ -140,7 +140,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS_SET, QVector<bool>, setJointRotationsSet);
     READ_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS, QVector<glm::quat>, setJointRotations);
     READ_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, QVector<bool>, setJointTranslationsSet);
-    READ_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, QVector<glm::vec3>, setJointTranslations);
+    READ_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, QVector<ScriptVec3Float>, setJointTranslations);
 
     return bytesRead;
 }
@@ -428,7 +428,7 @@ void ModelEntityItem::setJointRotationsSet(const QVector<bool>& rotationsSet) {
     });
 }
 
-void ModelEntityItem::setJointTranslations(const QVector<glm::vec3>& translations) {
+void ModelEntityItem::setJointTranslations(const QVector<ScriptVec3Float>& translations) {
     resizeJointArrays(translations.size());
     _jointDataLock.withWriteLock([&] {
         _jointTranslationsExplicitlySet = translations.size() > 0;
@@ -479,8 +479,8 @@ QVector<bool> ModelEntityItem::getJointRotationsSet() const {
     return result;
 }
 
-QVector<glm::vec3> ModelEntityItem::getJointTranslations() const {
-    QVector<glm::vec3> result;
+QVector<ScriptVec3Float> ModelEntityItem::getJointTranslations() const {
+    QVector<ScriptVec3Float> result;
     _jointDataLock.withReadLock([&] {
         if (_jointTranslationsExplicitlySet) {
             result.resize(_localJointData.size());

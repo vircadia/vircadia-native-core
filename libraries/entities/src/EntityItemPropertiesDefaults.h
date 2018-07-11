@@ -24,7 +24,7 @@ const glm::vec3 ENTITY_ITEM_ZERO_VEC3 = glm::vec3(0.0f);
 const glm::vec3 ENTITY_ITEM_ONE_VEC3 = glm::vec3(1.0f);
 const glm::vec3 ENTITY_ITEM_HALF_VEC3 = glm::vec3(0.5f);
 
-const QVector<glm::vec3> ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC = QVector<glm::vec3>();
+const QVector<ScriptVec3Float> ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC = QVector<ScriptVec3Float>();
 
 const bool ENTITY_ITEM_DEFAULT_LOCKED = false;
 const QString ENTITY_ITEM_DEFAULT_USER_DATA = QString("");

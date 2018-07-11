@@ -219,7 +219,7 @@ QScriptValue TouchEvent::toScriptValue(QScriptEngine* engine, const TouchEvent& 
     QScriptValue pointsObj = engine->newArray();
     int index = 0;
     foreach (ScriptVec2Float point, event.points) {
-        QScriptValue thisPoint = vec2toScriptValue(engine, point);
+        QScriptValue thisPoint = vec2FloatToScriptValue(engine, point);
         pointsObj.setProperty(index, thisPoint);
         index++;
     }

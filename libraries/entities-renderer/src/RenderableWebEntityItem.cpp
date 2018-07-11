@@ -198,7 +198,7 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
                 if (_contextPosition != entity->getWorldPosition()) {
                     // update globalPosition
                     _contextPosition = entity->getWorldPosition();
-                    _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(_contextPosition));
+                    _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3ToVariant(_contextPosition));
                 }
 
                 _lastDPI = entity->getDPI();
