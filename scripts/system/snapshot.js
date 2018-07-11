@@ -308,6 +308,7 @@ function printToPolaroid(image_url) {
         "density": 200,
         "restitution": 0.15,                            
         "gravity": { "x": 0, "y": -2.0, "z": 0 },
+        "damping": 0.45,
 
         "dynamic": true, 
         "collisionsWillMove": true,
