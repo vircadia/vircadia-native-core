@@ -21,7 +21,7 @@ Item {
     id: root;   
     anchors.fill: parent
 
-    property var rootConfig: Render.getConfig("RenderMainView")
+    property var rootConfig: Render.getConfig("")
 
     Jet.TaskListView {
         rootConfig: root.rootConfig

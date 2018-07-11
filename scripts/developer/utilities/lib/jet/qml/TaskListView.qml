@@ -19,7 +19,7 @@ import "../jet.js" as Jet
 
 Rectangle {
     HifiConstants { id: hifi;}
-   // color: hifi.colors.baseGray;
+    color: Qt.rgba(hifi.colors.baseGray.r, hifi.colors.baseGray.g, hifi.colors.baseGray.b, 0.8);
     id: root;
     
     property var rootConfig : Workload
@@ -82,8 +82,8 @@ Rectangle {
                     id: objCheck
                     property var config: root.rootConfig.getConfig(model.path + "." + model.name);
                     text: " "
-                    checked: config.enabled
-                    onCheckedChanged: { config.enabled = checked }
+                    checked: root.rootConfig.getConfig(model.path + "." + model.name).enabled
+                    onCheckedChanged: { root.rootConfig.getConfig(model.path + "." + model.name).enabled = checked }
                 }
 
                 MouseArea {
@@ -95,12 +95,12 @@ Rectangle {
 
                     HifiControls.Label {
                         id: objLabel
-                        colorScheme: hifi.colorSchemes.dark
                        // property var config: root.rootConfig.getConfig(model.path + "." + model.name);
+                        colorScheme: (root.rootConfig.getConfig(model.path + "." + model.name) ? hifi.colorSchemes.dark : hifi.colorSchemes.light)
                         text: (objRecursiveColumn.children.length > 2 ?
                                 objRecursiveColumn.children[1].visible ?
                                 qsTr("-  ") : qsTr("+ ") : qsTr("   ")) + model.name
-                                + " ms=" + root.rootConfig.getConfig(model.path + "." + model.name).cpuRunTime.toFixed(3)
+                              //  + " ms=" + config.cpuRunTime.toFixed(3)
                                 + " id=" + model.id
                     }
                 }  

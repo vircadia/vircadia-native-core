@@ -29,7 +29,7 @@
 using namespace render;
 
 void DrawStatusConfig::dirtyHelper() {
-    enabled = showNetwork || showDisplay;
+    _isEnabled = showNetwork || showDisplay;
     emit dirty();
 }
 

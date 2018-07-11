@@ -1,10 +1,10 @@
 
 
     (function() {
-        var TABLET_BUTTON_NAME = "Render Engine Profiler";
+        var TABLET_BUTTON_NAME = "Profiler";
         var QMLAPP_URL = Script.resolvePath("./engineProfiler.qml");
-        var ICON_URL = Script.resolvePath("../../../system/assets/images/lod-i.svg");
-        var ACTIVE_ICON_URL = Script.resolvePath("../../../system/assets/images/lod-a.svg");
+        var ICON_URL = Script.resolvePath("../../../system/assets/images/luci-i.svg");
+        var ACTIVE_ICON_URL = Script.resolvePath("../../../system/assets/images/luci-a.svg");
 
         var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         var button = tablet.addButton({

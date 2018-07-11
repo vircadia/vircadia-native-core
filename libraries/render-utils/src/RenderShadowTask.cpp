@@ -282,7 +282,7 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
 }
 
 void RenderShadowTask::configure(const Config& configuration) {
-    DependencyManager::get<DeferredLightingEffect>()->setShadowMapEnabled(configuration.enabled);
+    DependencyManager::get<DeferredLightingEffect>()->setShadowMapEnabled(configuration.isEnabled());
     // This is a task, so must still propogate configure() to its Jobs
 //    Task::configure(configuration);
 }

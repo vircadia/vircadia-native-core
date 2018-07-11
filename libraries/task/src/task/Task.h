@@ -339,7 +339,7 @@ public:
 
         void run(const ContextPointer& jobContext) override {
             auto config = std::static_pointer_cast<C>(Concept::_config);
-            if (config->enabled) {
+            if (config->isEnabled()) {
                 for (auto job : TaskConcept::_jobs) {
                     job.run(jobContext);
                     if (jobContext->taskFlow.doAbortTask()) {

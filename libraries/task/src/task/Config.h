@@ -50,12 +50,10 @@ public:
         _default = toJsonValue(*this).toObject().toVariantMap();
 
         _presets.unite(list.toVariantMap());
-        if (C::enabled) {
+        if (C::isEnabled()) {
             _presets.insert(DEFAULT, _default);
         }
-        if (false) { //!C::alwaysEnabled) {
-            _presets.insert(NONE, QVariantMap{{ "enabled", false }});
-        }
+        _presets.insert(NONE, QVariantMap{{ "enabled", false }});
 
         auto preset = _preset.get();
         if (preset != _preset.getDefault() && _presets.contains(preset)) {
@@ -92,16 +90,21 @@ class JobConfig : public QObject {
     Q_PROPERTY(bool enabled READ isEnabled WRITE setEnabled NOTIFY dirtyEnabled())
 
     double _msCPURunTime{ 0.0 };
+
+protected:
+    friend class TaskConfig;
+
+    bool _isEnabled{ true };
+
 public:
     using Persistent = PersistentConfig<JobConfig>;
 
     JobConfig() = default;
-    JobConfig(bool enabled): enabled{ enabled } {}
+    JobConfig(bool enabled): _isEnabled{ enabled }  {}
+    ~JobConfig();
 
-    bool isEnabled() { return /*alwaysEnabled ||*/ enabled; }
-    void setEnabled(bool enable) { enabled = /*alwaysEnabled ||*/ enable; emit dirtyEnabled(); }
-
-    bool enabled{ true };
+    bool isEnabled() const { return _isEnabled; }
+    void setEnabled(bool enable);
 
     virtual void setPresetList(const QJsonObject& object);
 
@@ -199,6 +202,7 @@ public:
  */
 class TaskConfig : public JobConfig {
     Q_OBJECT
+
 public:
     using Persistent = PersistentConfig<TaskConfig>;
 

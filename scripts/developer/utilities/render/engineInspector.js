@@ -13,10 +13,10 @@
     openEngineTaskView();*/
 
     (function() {
-        var TABLET_BUTTON_NAME = "Render Engine";
+        var TABLET_BUTTON_NAME = "Inspector";
         var QMLAPP_URL = Script.resolvePath("./engineInspector.qml");
-        var ICON_URL = Script.resolvePath("../../../system/assets/images/lod-i.svg");
-        var ACTIVE_ICON_URL = Script.resolvePath("../../../system/assets/images/lod-a.svg");
+        var ICON_URL = Script.resolvePath("../../../system/assets/images/luci-i.svg");
+        var ACTIVE_ICON_URL = Script.resolvePath("../../../system/assets/images/luci-a.svg");
 
         var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         var button = tablet.addButton({
@@ -49,8 +49,8 @@
             window = new OverlayWindow({
                 title: 'Render Engine Inspector',
                 source: qml,
-                width: 500, 
-                height: 100
+                width: 250, 
+                height: 500
             });
             window.setPosition(200, 50);
             window.closed.connect(killWindow);

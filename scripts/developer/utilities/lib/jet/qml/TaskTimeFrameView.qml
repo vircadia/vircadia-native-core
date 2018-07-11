@@ -19,7 +19,7 @@ import "../jet.js" as Jet
 
 Rectangle {
     HifiConstants { id: hifi;}
-  //  color: hifi.colors.baseGray;
+    color: Qt.rgba(hifi.colors.baseGray.r, hifi.colors.baseGray.g, hifi.colors.baseGray.b, 0.8);
     id: root;
     
     property var rootConfig : Workload
@@ -59,7 +59,8 @@ Rectangle {
     function pullFreshValues() {
 
         for (var j = 0; j <jobsArray.length; j++) {
-            jobsArray[j].cpuT = root.rootConfig.getConfig(jobsArray[j].fullpath).cpuRunTime
+            jobsArray[j].cpuT = Render.getConfig(jobsArray[j].fullpath).cpuRunTime
+           // jobsArray[j].cpuT = root.rootConfig.getConfig(jobsArray[j].fullpath).cpuRunTime 
         }
         mycanvas.requestPaint()
     }
