@@ -72,10 +72,6 @@
                 document.getElementById("main_image").setAttribute("src", "img/tablet-help-keyboard.jpg");
             }
 
-            function showWindowsMR() {
-                document.getElementById("main_image").setAttribute("src", "img/tablet-help-windowsMR.jpg");
-            }
-
             function showHandControllers() {
                 document.getElementById("main_image").setAttribute("src", handControllerImageURL);
             }
@@ -106,10 +102,11 @@
                         showHandControllers();
                         break;
                     case 2:
-                        showGamepad();
+                        handControllerImageURL = "img/tablet-help-windowsMR.jpg";
+                        showHandControllers();
                         break;
                     case 3:
-                        showWindowsMR();
+                        showGamepad();
                         break;
                     case 4:
                         showKbm();
@@ -151,26 +148,25 @@
                         handControllerImageURL = "img/tablet-help-oculus.jpg";
                         index = 0;
                         break;
-
+                    case "windowsMR":
+                        handControllerImageURL = "img/tablet-help-windowsMR.jpg";
+                        index = 2;
+                        break;
                     case "vive":
                     default:
                         handControllerImageURL = "img/tablet-help-vive.jpg";
                         index = 1;
                 }
 
+                print("here");
                 switch (params.defaultTab) {
                     case "gamepad":
                         showGamepad();
-                        index = 2;
+                        index = 3;
                         break;
 
                     case "handControllers":
                         showHandControllers();
-                        break;
-
-                    case "windowsMR":
-                        showWindowsMR();
-                        index = 3;
                         break;
 
                     case "kbm":
@@ -178,6 +174,7 @@
                         showKbm();
                         index = 4;
                 }
+                print("here3");
             }
         </script>
     </head>
