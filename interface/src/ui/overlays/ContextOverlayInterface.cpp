@@ -97,6 +97,10 @@ static const float CONTEXT_OVERLAY_UNHOVERED_COLORPULSE = 1.0f;
 
 void ContextOverlayInterface::setEnabled(bool enabled) {
     _enabled = enabled;
+    if (!enabled) {
+        // Destroy any potentially-active ContextOverlays when disabling the interface
+        createOrDestroyContextOverlay(EntityItemID(), PointerEvent());
+    }
 }
 
 void ContextOverlayInterface::clickDownOnEntity(const EntityItemID& entityItemID, const PointerEvent& event) {
