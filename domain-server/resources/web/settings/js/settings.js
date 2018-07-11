@@ -59,7 +59,7 @@ $(document).ready(function(){
 
   Settings.handlePostSettings = function(formJSON) {
       
-      if (!checkAvatarHeights()) {
+      if (!verifyAvatarHeights()) {
           return false;
       }
 	  
@@ -211,7 +211,7 @@ $(document).ready(function(){
             swal({
               title: '',
               type: 'error',
-              text: "There was a problem retreiving domain information from High Fidelity API.",
+              text: "There was a problem retrieving domain information from High Fidelity API.",
               confirmButtonText: 'Try again',
               showCancelButton: true,
               closeOnConfirm: false
@@ -292,7 +292,7 @@ $(document).ready(function(){
     swal({
       title: 'Create new domain ID',
       type: 'input',
-      text: 'Enter a label this machine.</br></br>This will help you identify which domain ID belongs to which machine.</br></br>',
+      text: 'Enter a label for this machine.</br></br>This will help you identify which domain ID belongs to which machine.</br></br>',
       showCancelButton: true,
       confirmButtonText: "Create",
       closeOnConfirm: false,
@@ -673,7 +673,7 @@ $(document).ready(function(){
     var spinner = createDomainSpinner();
     $('#' + Settings.PLACES_TABLE_ID).after($(spinner));
 
-    var errorEl = createDomainLoadingError("There was an error retreiving your places.");
+    var errorEl = createDomainLoadingError("There was an error retrieving your places.");
     $("#" + Settings.PLACES_TABLE_ID).after(errorEl);
 
     // do we have a domain ID?
@@ -1096,25 +1096,31 @@ $(document).ready(function(){
     $('#settings_backup .panel-body').html(html);
   }
   
-  function checkAvatarHeights() {
+  function verifyAvatarHeights() {
     var errorString = '';
     var minAllowedHeight = 0.009;
     var maxAllowedHeight = 1755;
-    var currentForm = form2js('settings-form');
-    var minHeight = currentForm.avatars.min_avatar_height;
-    var maxHeight = currentForm.avatars.max_avatar_height;
-    //var minHeight = Number($('input[name="avatars.min_avatar_height"]').attr('value'));
-    //var maxHeight = Number($('input[name="avatars.max_avatar_height"]').attr('value'));
-      
+    var alertCss = { backgroundColor: '#ffa0a0' };
+    var minHeightElement = $('input[name="avatars.min_avatar_height"]');
+    var maxHeightElement = $('input[name="avatars.max_avatar_height"]');
+
+    var minHeight = Number(minHeightElement.val());
+    var maxHeight = Number(maxHeightElement.val());
+
     if (maxHeight < minHeight) {
-        errorString = 'Maximum avatar height must not be less than minimum avatar height<br>';
+      errorString = 'Maximum avatar height must not be less than minimum avatar height<br>';
+      minHeightElement.css(alertCss);
+      maxHeightElement.css(alertCss);
     };
     if (minHeight < minAllowedHeight) {
-        errorString += 'Minimum avatar height must not be less than ' + minAllowedHeight + '<br>';
+      errorString += 'Minimum avatar height must not be less than ' + minAllowedHeight + '<br>';
+      minHeightElement.css(alertCss);
     }
     if (maxHeight > maxAllowedHeight) {
-        errorString += 'Maximum avatar height must not be greater than ' + maxAllowedHeight + '<br>';
+      errorString += 'Maximum avatar height must not be greater than ' + maxAllowedHeight + '<br>';
+      maxHeightElement.css(alertCss);
     }
+
     if (errorString.length > 0) {
 	  swal({
         type: 'error',
@@ -1124,7 +1130,7 @@ $(document).ready(function(){
 	  });
 	  return false;
     } else {
-        return true;
+      return true;
     }
 
   }
