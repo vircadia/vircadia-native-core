@@ -1108,7 +1108,7 @@ Rectangle {
     function findNearbySessionIndex(sessionId, optionalData) { // no findIndex in .qml
         var data = optionalData || nearbyUserModelData, length = data.length;
         for (var i = 0; i < length; i++) {
-            if (data[i].sessionId === sessionId) {
+            if (data[i].sessionId === sessionId.toString()) {
                 return i;
             }
         }
@@ -1120,7 +1120,7 @@ Rectangle {
             var data = message.params;
             var index = -1;
             iAmAdmin = Users.canKick;
-            index = findNearbySessionIndex('', data);
+            index = findNearbySessionIndex(MyAvatar.sessionUUID, data);
             if (index !== -1) {
                 myData = data[index];
                 data.splice(index, 1);

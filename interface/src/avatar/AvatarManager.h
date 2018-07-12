@@ -157,6 +157,8 @@ public:
      */
     Q_INVOKABLE void setAvatarSortCoefficient(const QString& name, const QScriptValue& value);
 
+    Q_INVOKABLE QString getPalData(const QList<QString> specificAvatarIdentifiers = QList<QString>());
+
     float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
     int getIdentityRequestsSent() const { return _identityRequestsSent; }
 
