@@ -305,6 +305,11 @@ Java_io_highfidelity_hifiinterface_MainActivity_nativeGetDisplayName(JNIEnv *env
 }
 
 JNIEXPORT void JNICALL
+Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeBeforeEnterBackground(JNIEnv *env, jobject obj) {
+    AndroidHelper::instance().notifyBeforeEnterBackground();
+}
+
+JNIEXPORT void JNICALL
 Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeEnterBackground(JNIEnv *env, jobject obj) {
     AndroidHelper::instance().notifyEnterBackground();
 }
