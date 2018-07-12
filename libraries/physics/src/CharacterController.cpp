@@ -280,7 +280,7 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
         // then the two rotations are effectively adjacent
         const float MIN_DOT_PRODUCT_OF_ADJACENT_QUATERNIONS = 0.99999f; // corresponds to approx 0.5 degrees
         if (fabsf(qDot) < MIN_DOT_PRODUCT_OF_ADJACENT_QUATERNIONS) {
-        if (qDot < 0.0f) {
+            if (qDot < 0.0f) {
                 // the quaternions are actually on opposite hyperhemispheres
                 // so we move one to agree with the other and negate qDot
                 desiredRot = -desiredRot;
@@ -290,16 +290,16 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
 
             // the axis is the imaginary part, but scaled by sin(angle/2)
             btVector3 axis(deltaRot.getX(), deltaRot.getY(), deltaRot.getZ());
-            axis /= sqrtf(1.0f - qDot*qDot); 
+            axis /= sqrtf(1.0f - qDot * qDot);
 
             // compute the angle we will resolve for this dt, but don't overshoot
-            float angle = (2.0f * acosf(qDot)); 
+            float angle = 2.0f * acosf(qDot);
             if ( dt < _followTimeRemaining) {
                 angle *= dt / _followTimeRemaining;
             }
             
             // accumulate rotation
-            deltaRot = btQuaternion(axis, angle); 
+            deltaRot = btQuaternion(axis, angle);
             _followAngularDisplacement = (deltaRot * _followAngularDisplacement).normalize();
             
             // in order to accumulate displacement of avatar position, we need to take _shapeLocalOffset into account.
@@ -307,7 +307,7 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
 
             endRot = deltaRot * startRot;
             btVector3 swingDisplacement = rotateVector(endRot, -shapeLocalOffset) - rotateVector(startRot, -shapeLocalOffset);
-            _followLinearDisplacement += swingDisplacement;        
+            _followLinearDisplacement += swingDisplacement;
         }
         _rigidBody->setWorldTransform(btTransform(endRot, endPos));
     }
