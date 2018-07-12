@@ -140,7 +140,9 @@ Item {
                 horizontalAlignment: Text.AlignHCenter
                 linkColor: hifi.colors.blueAccent
 
-                onLinkActivated: loginDialog.openUrl(link)
+                onLinkActivated: {
+                    loginDialog.openUrl(link);
+                }
             }
             onFocusChanged: {
                 root.text = "";
@@ -170,7 +172,9 @@ Item {
                 horizontalAlignment: Text.AlignHCenter
                 linkColor: hifi.colors.blueAccent
 
-                onLinkActivated: loginDialog.openUrl(link)
+                onLinkActivated: {
+                    loginDialog.openUrl(link);
+                }
             }
 
             onFocusChanged: {
