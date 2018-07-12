@@ -51,19 +51,19 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
     config->setNumDrawn((int)inItems.size());
     emit config->numDrawnChanged();
 
+    RenderArgs* args = renderContext->args;
+
+    // Clear the framebuffer without stereo
+    // Needs to be distinct from the other batch because using the clear call 
+    // while stereo is enabled triggers a warning
+    if (_opaquePass) {
+        gpu::doInBatch("DrawOverlay3D::run::clear", args->_context, [&](gpu::Batch& batch) {
+            batch.enableStereo(false);
+            batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0, false);
+        });
+    }
+
     if (!inItems.empty()) {
-        RenderArgs* args = renderContext->args;
-
-        // Clear the framebuffer without stereo
-        // Needs to be distinct from the other batch because using the clear call 
-        // while stereo is enabled triggers a warning
-        if (_opaquePass) {
-            gpu::doInBatch("DrawOverlay3D::run::clear", args->_context, [&](gpu::Batch& batch){
-                batch.enableStereo(false);
-                batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0, false);
-            });
-        }
-
         // Render the items
         gpu::doInBatch("DrawOverlay3D::main", args->_context, [&](gpu::Batch& batch) {
             args->_batch = &batch;
