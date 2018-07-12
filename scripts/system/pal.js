@@ -525,27 +525,30 @@ function updateAudioLevel(overlay, avatarData) {
     var audioLevel = 0.0;
     var avgAudioLevel = 0.0;
 
-    // we will do exponential moving average by taking some the last loudness and averaging
-    overlay.accumulatedLevel = AVERAGING_RATIO * (overlay.accumulatedLevel || 0) + (1 - AVERAGING_RATIO) * (avatarData.audioLoudness);
+    if (overlay) {
+        // we will do exponential moving average by taking some the last loudness and averaging
+        overlay.accumulatedLevel = AVERAGING_RATIO * (overlay.accumulatedLevel || 0) + (1 - AVERAGING_RATIO) * (avatarData.audioLoudness);
 
-    // add 1 to insure we don't go log() and hit -infinity.  Math.log is
-    // natural log, so to get log base 2, just divide by ln(2).
-    audioLevel = scaleAudio(Math.log(overlay.accumulatedLevel + 1) / LOG2);
+        // add 1 to insure we don't go log() and hit -infinity.  Math.log is
+        // natural log, so to get log base 2, just divide by ln(2).
+        audioLevel = scaleAudio(Math.log(overlay.accumulatedLevel + 1) / LOG2);
 
-    // decay avgAudioLevel
-    avgAudioLevel = Math.max((1 - AUDIO_PEAK_DECAY) * (overlay.avgAudioLevel || 0), audioLevel);
+        // decay avgAudioLevel
+        avgAudioLevel = Math.max((1 - AUDIO_PEAK_DECAY) * (overlay.avgAudioLevel || 0), audioLevel);
 
-    overlay.avgAudioLevel = avgAudioLevel;
-    overlay.audioLevel = audioLevel;
+        overlay.avgAudioLevel = avgAudioLevel;
+        overlay.audioLevel = audioLevel;
 
-    // now scale for the gain.  Also, asked to boost the low end, so one simple way is
-    // to take sqrt of the value.  Lets try that, see how it feels.
-    avgAudioLevel = Math.min(1.0, Math.sqrt(avgAudioLevel * (sessionGains[avatarData.sessionUUID] || 0.75)));
-
+        // now scale for the gain.  Also, asked to boost the low end, so one simple way is
+        // to take sqrt of the value.  Lets try that, see how it feels.
+        avgAudioLevel = Math.min(1.0, Math.sqrt(avgAudioLevel * (sessionGains[avatarData.sessionUUID] || 0.75)));
+    } else {
+        audioLevel = scaleAudio(Math.log(((1 - AVERAGING_RATIO) * (avatarData.audioLoudness)) + 1) / LOG2);
+    }
 
     var param = {};
     var level = [audioLevel, avgAudioLevel];
-    var userId = avatarData.sessionUUID || 0;
+    var userId = avatarData.sessionUUID === MyAvatar.sessionUUID ? 0 : avatarData.sessionUUID;
     param[userId] = level;
     sendToQml({ method: 'updateAudioLevel', params: param });
 }
@@ -557,6 +560,8 @@ function updateOverlays() {
     var avatarData = JSON.parse(AvatarList.getPalData());
 
     avatarData.forEach(function (currentAvatarData) {
+        updateAudioLevel(overlay, currentAvatarData);
+
         if (currentAvatarData.sessionUUID === MyAvatar.sessionUUID || !avatarsOfInterest[currentAvatarData.sessionUUID]) {
             return; // don't update ourself, or avatars we're not interested in
         }
@@ -565,8 +570,6 @@ function updateOverlays() {
             print('Adding non-PAL avatar node', currentAvatarData.sessionUUID);
             overlay = addAvatarNode(currentAvatarData.sessionUUID);
         }
-
-        updateAudioLevel(overlay, currentAvatarData);
 
         var target = currentAvatarData.position;
         var distance = Vec3.distance(target, eye);
