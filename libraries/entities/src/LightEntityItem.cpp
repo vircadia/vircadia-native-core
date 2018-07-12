@@ -213,7 +213,7 @@ void LightEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_FALLOFF_RADIUS, getFalloffRadius());
 }
 
-const ScriptVec3UChar& LightEntityItem::getColor() const {
+ScriptVec3UChar LightEntityItem::getColor() const {
     return resultWithReadLock<ScriptVec3UChar>([&] {
         return _color;
     });

@@ -113,8 +113,27 @@ QScriptValue vec2ToScriptValue(QScriptEngine* engine, const glm::vec2& vec2) {
 }
 
 void vec2FromScriptValue(const QScriptValue& object, glm::vec2& vec2) {
-    vec2.x = object.property("x").toVariant().toFloat();
-    vec2.y = object.property("y").toVariant().toFloat();
+    auto x = object.property("x");
+    if (!x.isValid()) {
+        x = object.property("u");
+    }
+    if (!x.isValid()) {
+        x = object.property("width");
+    }
+    auto y = object.property("y");
+    if (!y.isValid()) {
+        y = object.property("v");
+    }
+    if (!y.isValid()) {
+        y = object.property("height");
+    }
+    if (x.isValid() && y.isValid()) {
+        vec2.x = x.toVariant().toFloat();
+        vec2.y = y.toVariant().toFloat();
+        return;
+    }
+
+    vec2 = glm::vec2();
 }
 
 QVariant vec2ToVariant(const glm::vec2 &vec2) {
@@ -141,9 +160,15 @@ glm::vec2 vec2FromVariant(const QVariant &object, bool& isValid) {
         auto map = object.toMap();
         auto x = map["x"];
         if (!x.isValid()) {
+            x = map["u"];
+        }
+        if (!x.isValid()) {
             x = map["width"];
         }
         auto y = map["y"];
+        if (!y.isValid()) {
+            y = map["v"];
+        }
         if (!y.isValid()) {
             y = map["height"];
         }
@@ -181,6 +206,9 @@ void vec3FloatFromScriptValue(const QScriptValue& object, ScriptVec3Float& vec3)
         if (!x.isValid()) {
             x = object.property("red");
         }
+        if (!x.isValid()) {
+            x = object.property("width");
+        }
 
         QScriptValue y = object.property("y");
         if (!y.isValid()) {
@@ -189,6 +217,9 @@ void vec3FloatFromScriptValue(const QScriptValue& object, ScriptVec3Float& vec3)
         if (!y.isValid()) {
             y = object.property("green");
         }
+        if (!y.isValid()) {
+            y = object.property("height");
+        }
 
         QScriptValue z = object.property("z");
         if (!z.isValid()) {
@@ -196,6 +227,9 @@ void vec3FloatFromScriptValue(const QScriptValue& object, ScriptVec3Float& vec3)
         }
         if (!z.isValid()) {
             z = object.property("blue");
+        }
+        if (!z.isValid()) {
+            z = object.property("depth");
         }
 
         vec3.x = x.toVariant().toFloat();
@@ -233,6 +267,9 @@ void vec3UCharFromScriptValue(const QScriptValue& object, ScriptVec3UChar& vec3)
         if (!x.isValid()) {
             x = object.property("red");
         }
+        if (!x.isValid()) {
+            x = object.property("width");
+        }
 
         QScriptValue y = object.property("y");
         if (!y.isValid()) {
@@ -241,6 +278,9 @@ void vec3UCharFromScriptValue(const QScriptValue& object, ScriptVec3UChar& vec3)
         if (!y.isValid()) {
             y = object.property("green");
         }
+        if (!y.isValid()) {
+            y = object.property("height");
+        }
 
         QScriptValue z = object.property("z");
         if (!z.isValid()) {
@@ -248,6 +288,9 @@ void vec3UCharFromScriptValue(const QScriptValue& object, ScriptVec3UChar& vec3)
         }
         if (!z.isValid()) {
             z = object.property("blue");
+        }
+        if (!z.isValid()) {
+            z = object.property("depth");
         }
 
         vec3.x = x.toVariant().toUInt();
@@ -271,9 +314,45 @@ QScriptValue vec3ToScriptValue(QScriptEngine* engine, const glm::vec3 &vec3) {
 }
 
 void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3) {
-    vec3.x = object.property("x").toVariant().toFloat();
-    vec3.y = object.property("y").toVariant().toFloat();
-    vec3.z = object.property("z").toVariant().toFloat();
+    auto x = object.property("x");
+    if (!x.isValid()) {
+        x = object.property("r");
+    }
+    if (!x.isValid()) {
+        x = object.property("red");
+    }
+    if (!x.isValid()) {
+        x = object.property("width");
+    }
+    auto y = object.property("y");
+    if (!y.isValid()) {
+        y = object.property("g");
+    }
+    if (!y.isValid()) {
+        y = object.property("green");
+    }
+    if (!y.isValid()) {
+        y = object.property("height");
+    }
+    auto z = object.property("z");
+    if (!z.isValid()) {
+        z = object.property("b");
+    }
+    if (!z.isValid()) {
+        z = object.property("blue");
+    }
+    if (!z.isValid()) {
+        z = object.property("depth");
+    }
+    if (x.isValid() && y.isValid() && z.isValid()) {
+        vec3.x = x.toVariant().toFloat();
+        vec3.y = y.toVariant().toFloat();
+        vec3.z = z.toVariant().toFloat();
+        return;
+    }
+
+    vec3 = glm::vec3();
+    return;
 }
 
 QVariant vec3ToVariant(const glm::vec3& vec3) {
@@ -321,15 +400,33 @@ glm::vec3 vec3FromVariant(const QVariant& object, bool& valid) {
     } else {
         auto map = object.toMap();
         auto x = map["x"];
-        auto y = map["y"];
-        auto z = map["z"];
+        if (!x.isValid()) {
+            x = map["r"];
+        }
+        if (!x.isValid()) {
+            x = map["red"];
+        }
         if (!x.isValid()) {
             x = map["width"];
+        }
+        auto y = map["y"];
+        if (!y.isValid()) {
+            y = map["g"];
+        }
+        if (!y.isValid()) {
+            y = map["green"];
         }
         if (!y.isValid()) {
             y = map["height"];
         }
-        if (!y.isValid()) {
+        auto z = map["z"];
+        if (!z.isValid()) {
+            z = map["b"];
+        }
+        if (!z.isValid()) {
+            z = map["blue"];
+        }
+        if (!z.isValid()) {
             z = map["depth"];
         }
 

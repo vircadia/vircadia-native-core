@@ -194,7 +194,7 @@ class ParticleEffectEntityItem : public EntityItem {
 public:
     ALLOW_INSTANTIATION // This class can be instantiated
 
-        static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     ParticleEffectEntityItem(const EntityItemID& entityItemID);
 
@@ -205,17 +205,17 @@ public:
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-        EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
-        EntityPropertyFlags& requestedProperties,
-        EntityPropertyFlags& propertyFlags,
-        EntityPropertyFlags& propertiesDidntFit,
-        int& propertyCount,
-        OctreeElement::AppendState& appendState) const override;
+                                    EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
+                                    EntityPropertyFlags& requestedProperties,
+                                    EntityPropertyFlags& propertyFlags,
+                                    EntityPropertyFlags& propertiesDidntFit,
+                                    int& propertyCount,
+                                    OctreeElement::AppendState& appendState) const override;
 
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
-        ReadBitstreamToTreeParams& args,
-        EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
-        bool& somethingChanged) override;
+                                                 ReadBitstreamToTreeParams& args,
+                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
+                                                 bool& somethingChanged) override;
 
     void setColor(const ScriptVec3UChar& value);
     ScriptVec3UChar getColor() const { return _particleProperties.color.gradient.target; }

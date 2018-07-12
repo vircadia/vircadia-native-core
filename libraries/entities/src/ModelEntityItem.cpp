@@ -147,6 +147,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
+    requestedProperties += PROP_COLOR;
     requestedProperties += PROP_MODEL_URL;
     requestedProperties += PROP_COMPOUND_SHAPE_URL;
     requestedProperties += PROP_TEXTURES;
@@ -542,7 +543,7 @@ void ModelEntityItem::setColor(const ScriptVec3UChar& value) {
     });
 }
 
-const ScriptVec3UChar& ModelEntityItem::getColor() const {
+ScriptVec3UChar ModelEntityItem::getColor() const {
     return resultWithReadLock<ScriptVec3UChar>([&] {
         return _color;
     });

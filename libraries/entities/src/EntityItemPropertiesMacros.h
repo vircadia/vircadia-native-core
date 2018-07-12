@@ -369,10 +369,10 @@ inline glm::quat quat_convertFromScriptValue(const QScriptValue& v, bool& isVali
         T _##n;                                  \
         static T _static##N; 
 
-#define ADD_PROPERTY_TO_MAP(P, n) \
+#define ADD_PROPERTY_TO_MAP(P, N, n, T) \
         _propertyStringsToEnums[#n] = P;
 
-#define ADD_GROUP_PROPERTY_TO_MAP(P, g, n) \
+#define ADD_GROUP_PROPERTY_TO_MAP(P, G, g, N, n) \
         _propertyStringsToEnums[#g "." #n] = P;
 
 #define DEFINE_CORE(N, n, T, V) \

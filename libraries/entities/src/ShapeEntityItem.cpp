@@ -215,10 +215,11 @@ void ShapeEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 void ShapeEntityItem::setColor(const ScriptVec3UChar& value) {
     withWriteLock([&] {
         _color = value;
+        _material->setAlbedo(toGlm(_color));
     });
 }
 
-const ScriptVec3UChar& ShapeEntityItem::getColor() const {
+ScriptVec3UChar ShapeEntityItem::getColor() const {
     return resultWithReadLock<ScriptVec3UChar>([&] {
         return _color;
     });

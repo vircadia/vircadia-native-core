@@ -57,8 +57,6 @@ void Grid3DOverlay::render(RenderArgs* args) {
         return; // do nothing if we're not visible
     }
 
-    const float MAX_COLOR = 255.0f;
-
     float alpha = getAlpha();
     ScriptVec3UChar color = getColor();
     glm::vec4 gridColor(toGlm(color), alpha);

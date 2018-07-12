@@ -250,9 +250,6 @@ public:
     static quint64 getTotalBytesOfColor() { return _totalBytesOfColor; } /// total bytes of color
     
     static int unpackDataFromBytes(const unsigned char* dataBytes, float& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
-    static int unpackDataFromBytes(const unsigned char* dataBytes, ScriptVec2Float& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
-    static int unpackDataFromBytes(const unsigned char* dataBytes, ScriptVec3Float& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
-    static int unpackDataFromBytes(const unsigned char* dataBytes, ScriptVec3UChar& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, bool& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, quint64& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, uint32_t& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
@@ -261,6 +258,9 @@ public:
     static int unpackDataFromBytes(const unsigned char* dataBytes, glm::quat& result) { int bytes = unpackOrientationQuatFromBytes(dataBytes, result); return bytes; }
     static int unpackDataFromBytes(const unsigned char* dataBytes, ShapeType& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, MaterialMappingMode& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, ScriptVec2Float& result);
+    static int unpackDataFromBytes(const unsigned char* dataBytes, ScriptVec3Float& result);
+    static int unpackDataFromBytes(const unsigned char* dataBytes, ScriptVec3UChar& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QString& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QUuid& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QVector<ScriptVec3Float>& result);

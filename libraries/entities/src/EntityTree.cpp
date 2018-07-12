@@ -1159,9 +1159,9 @@ bool EntityTree::filterProperties(EntityItemPointer& existingEntity, EntityItemP
     bool accepted = true;
     auto entityEditFilters = DependencyManager::get<EntityEditFilters>();
     if (entityEditFilters) {
-        auto position = existingEntity ? existingEntity->getWorldPosition() : propertiesIn.getPosition();
+        auto position = existingEntity ? existingEntity->getWorldPosition() : propertiesIn.getPosition().toGlm();
         auto entityID = existingEntity ? existingEntity->getEntityItemID() : EntityItemID();
-        accepted = entityEditFilters->filter(position.toGlm(), propertiesIn, propertiesOut, wasChanged, filterType, entityID, existingEntity);
+        accepted = entityEditFilters->filter(position, propertiesIn, propertiesOut, wasChanged, filterType, entityID, existingEntity);
     }
 
     return accepted;

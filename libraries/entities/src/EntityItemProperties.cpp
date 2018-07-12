@@ -1260,9 +1260,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_NAME, name);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISION_SOUND_URL, collisionSoundURL);
 
-    // Light, Line, Model, ParticleEffect, PolyLine, Shape
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLOR, color);
-
     // Particles only
     if (_type == EntityTypes::ParticleEffect) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMITTING_PARTICLES, isEmitting);
@@ -1284,6 +1281,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RADIUS_SPREAD, radiusSpread);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RADIUS_START, radiusStart);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RADIUS_FINISH, radiusFinish);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLOR, color);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLOR_SPREAD, colorSpread);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLOR_START, colorStart);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLOR_FINISH, colorFinish);
@@ -1302,6 +1300,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_TRANSLATIONS_SET, jointTranslationsSet);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_TRANSLATIONS, jointTranslations);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLOR, color);
     }
 
     if (_type == EntityTypes::Model || _type == EntityTypes::Zone || _type == EntityTypes::ParticleEffect) {
@@ -1318,6 +1317,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     if (_type == EntityTypes::Box || _type == EntityTypes::Sphere || _type == EntityTypes::Shape) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SHAPE, shape);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLOR, color);
     }
 
     // FIXME - it seems like ParticleEffect should also support this
@@ -1332,6 +1332,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     // Lights only
     if (_type == EntityTypes::Light) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLOR, color);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IS_SPOTLIGHT, isSpotlight);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_INTENSITY, intensity);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FALLOFF_RADIUS, falloffRadius);
@@ -1392,6 +1393,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     // Lines & PolyLines
     if (_type == EntityTypes::Line || _type == EntityTypes::PolyLine) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLOR, color);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_WIDTH, lineWidth);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_POINTS, linePoints);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_NORMALS, normals);  // Polyline only.
@@ -1882,198 +1884,198 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
     static std::once_flag initMap;
 
     std::call_once(initMap, [](){
-        ADD_PROPERTY_TO_MAP(PROP_VISIBLE, visible);
-        ADD_PROPERTY_TO_MAP(PROP_CAN_CAST_SHADOW, canCastShadow);
-        ADD_PROPERTY_TO_MAP(PROP_POSITION, position);
-        ADD_PROPERTY_TO_MAP(PROP_DIMENSIONS, dimensions);
-        ADD_PROPERTY_TO_MAP(PROP_ROTATION, rotation);
-        ADD_PROPERTY_TO_MAP(PROP_DENSITY, density);
-        ADD_PROPERTY_TO_MAP(PROP_VELOCITY, velocity);
-        ADD_PROPERTY_TO_MAP(PROP_GRAVITY, gravity);
-        ADD_PROPERTY_TO_MAP(PROP_ACCELERATION, acceleration);
-        ADD_PROPERTY_TO_MAP(PROP_DAMPING, damping);
-        ADD_PROPERTY_TO_MAP(PROP_RESTITUTION, restitution);
-        ADD_PROPERTY_TO_MAP(PROP_FRICTION, friction);
-        ADD_PROPERTY_TO_MAP(PROP_LIFETIME, lifetime);
-        ADD_PROPERTY_TO_MAP(PROP_SCRIPT, script);
-        ADD_PROPERTY_TO_MAP(PROP_SCRIPT_TIMESTAMP, scriptTimestamp);
-        ADD_PROPERTY_TO_MAP(PROP_SERVER_SCRIPTS, serverScripts);
-        ADD_PROPERTY_TO_MAP(PROP_COLLISION_SOUND_URL, collisionSoundURL);
-        ADD_PROPERTY_TO_MAP(PROP_COLOR, color);
-        ADD_PROPERTY_TO_MAP(PROP_COLOR_SPREAD, colorSpread);
-        ADD_PROPERTY_TO_MAP(PROP_COLOR_START, colorStart);
-        ADD_PROPERTY_TO_MAP(PROP_COLOR_FINISH, colorFinish);
-        ADD_PROPERTY_TO_MAP(PROP_ALPHA, alpha);
-        ADD_PROPERTY_TO_MAP(PROP_ALPHA_SPREAD, alphaSpread);
-        ADD_PROPERTY_TO_MAP(PROP_ALPHA_START, alphaStart);
-        ADD_PROPERTY_TO_MAP(PROP_ALPHA_FINISH, alphaFinish);
-        ADD_PROPERTY_TO_MAP(PROP_EMITTER_SHOULD_TRAIL, emitterShouldTrail);
-        ADD_PROPERTY_TO_MAP(PROP_MODEL_URL, modelURL);
-        ADD_PROPERTY_TO_MAP(PROP_COMPOUND_SHAPE_URL, compoundShapeURL);
-        ADD_PROPERTY_TO_MAP(PROP_REGISTRATION_POINT, registrationPoint);
-        ADD_PROPERTY_TO_MAP(PROP_ANGULAR_VELOCITY, angularVelocity);
-        ADD_PROPERTY_TO_MAP(PROP_ANGULAR_DAMPING, angularDamping);
-        ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, collisionless);
-        ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, ignoreForCollisions); // legacy support
-        ADD_PROPERTY_TO_MAP(PROP_COLLISION_MASK, collisionMask);
-        ADD_PROPERTY_TO_MAP(PROP_COLLISION_MASK, collidesWith);
-        ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, collisionsWillMove); // legacy support
-        ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, dynamic);
-        ADD_PROPERTY_TO_MAP(PROP_IS_SPOTLIGHT, isSpotlight);
-        ADD_PROPERTY_TO_MAP(PROP_INTENSITY, intensity);
-        ADD_PROPERTY_TO_MAP(PROP_FALLOFF_RADIUS, falloffRadius);
-        ADD_PROPERTY_TO_MAP(PROP_EXPONENT, exponent);
-        ADD_PROPERTY_TO_MAP(PROP_CUTOFF, cutoff);
-        ADD_PROPERTY_TO_MAP(PROP_LOCKED, locked);
-        ADD_PROPERTY_TO_MAP(PROP_TEXTURES, textures);
-        ADD_PROPERTY_TO_MAP(PROP_USER_DATA, userData);
-        ADD_PROPERTY_TO_MAP(PROP_SIMULATION_OWNER, simulationOwner);
-        ADD_PROPERTY_TO_MAP(PROP_TEXT, text);
-        ADD_PROPERTY_TO_MAP(PROP_LINE_HEIGHT, lineHeight);
-        ADD_PROPERTY_TO_MAP(PROP_TEXT_COLOR, textColor);
-        ADD_PROPERTY_TO_MAP(PROP_BACKGROUND_COLOR, backgroundColor);
-        ADD_PROPERTY_TO_MAP(PROP_SHAPE_TYPE, shapeType);
-        ADD_PROPERTY_TO_MAP(PROP_MAX_PARTICLES, maxParticles);
-        ADD_PROPERTY_TO_MAP(PROP_LIFESPAN, lifespan);
-        ADD_PROPERTY_TO_MAP(PROP_EMITTING_PARTICLES, isEmitting);
-        ADD_PROPERTY_TO_MAP(PROP_EMIT_RATE, emitRate);
-        ADD_PROPERTY_TO_MAP(PROP_EMIT_SPEED, emitSpeed);
-        ADD_PROPERTY_TO_MAP(PROP_SPEED_SPREAD, speedSpread);
-        ADD_PROPERTY_TO_MAP(PROP_EMIT_ORIENTATION, emitOrientation);
-        ADD_PROPERTY_TO_MAP(PROP_EMIT_DIMENSIONS, emitDimensions);
-        ADD_PROPERTY_TO_MAP(PROP_EMIT_RADIUS_START, emitRadiusStart);
-        ADD_PROPERTY_TO_MAP(PROP_POLAR_START, polarStart);
-        ADD_PROPERTY_TO_MAP(PROP_POLAR_FINISH, polarFinish);
-        ADD_PROPERTY_TO_MAP(PROP_AZIMUTH_START, azimuthStart);
-        ADD_PROPERTY_TO_MAP(PROP_AZIMUTH_FINISH, azimuthFinish);
-        ADD_PROPERTY_TO_MAP(PROP_EMIT_ACCELERATION, emitAcceleration);
-        ADD_PROPERTY_TO_MAP(PROP_ACCELERATION_SPREAD, accelerationSpread);
-        ADD_PROPERTY_TO_MAP(PROP_PARTICLE_RADIUS, particleRadius);
-        ADD_PROPERTY_TO_MAP(PROP_RADIUS_SPREAD, radiusSpread);
-        ADD_PROPERTY_TO_MAP(PROP_RADIUS_START, radiusStart);
-        ADD_PROPERTY_TO_MAP(PROP_RADIUS_FINISH, radiusFinish);
+        ADD_PROPERTY_TO_MAP(PROP_VISIBLE, Visible, visible, bool);
+        ADD_PROPERTY_TO_MAP(PROP_CAN_CAST_SHADOW, CanCastShadow, canCastShadow, bool);
+        ADD_PROPERTY_TO_MAP(PROP_POSITION, Position, position, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_DIMENSIONS, Dimensions, dimensions, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_ROTATION, Rotation, rotation, glm::quat);
+        ADD_PROPERTY_TO_MAP(PROP_DENSITY, Density, density, float);
+        ADD_PROPERTY_TO_MAP(PROP_VELOCITY, Velocity, velocity, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_GRAVITY, Gravity, gravity, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_ACCELERATION, Acceleration, acceleration, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_DAMPING, Damping, damping, float);
+        ADD_PROPERTY_TO_MAP(PROP_RESTITUTION, Restitution, restitution, float);
+        ADD_PROPERTY_TO_MAP(PROP_FRICTION, Friction, friction, float);
+        ADD_PROPERTY_TO_MAP(PROP_LIFETIME, Lifetime, lifetime, float);
+        ADD_PROPERTY_TO_MAP(PROP_SCRIPT, Script, script, QString);
+        ADD_PROPERTY_TO_MAP(PROP_SCRIPT_TIMESTAMP, ScriptTimestamp, scriptTimestamp, quint64);
+        ADD_PROPERTY_TO_MAP(PROP_SERVER_SCRIPTS, ServerScripts, serverScripts, QString);
+        ADD_PROPERTY_TO_MAP(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString);
+        ADD_PROPERTY_TO_MAP(PROP_COLOR, Color, color, ScriptVec3UChar);
+        ADD_PROPERTY_TO_MAP(PROP_COLOR_SPREAD, ColorSpread, colorSpread, ScriptVec3UChar);
+        ADD_PROPERTY_TO_MAP(PROP_COLOR_START, ColorStart, colorStart, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_COLOR_FINISH, ColorFinish, colorFinish, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_ALPHA, Alpha, alpha, float);
+        ADD_PROPERTY_TO_MAP(PROP_ALPHA_SPREAD, AlphaSpread, alphaSpread, float);
+        ADD_PROPERTY_TO_MAP(PROP_ALPHA_START, AlphaStart, alphaStart, float);
+        ADD_PROPERTY_TO_MAP(PROP_ALPHA_FINISH, AlphaFinish, alphaFinish, float);
+        ADD_PROPERTY_TO_MAP(PROP_EMITTER_SHOULD_TRAIL, EmitterShouldTrail, emitterShouldTrail, bool);
+        ADD_PROPERTY_TO_MAP(PROP_MODEL_URL, ModelURL, modelURL, QString);
+        ADD_PROPERTY_TO_MAP(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString);
+        ADD_PROPERTY_TO_MAP(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_ANGULAR_DAMPING, AngularDamping, angularDamping, float);
+        ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, Collisionless, collisionless, bool);
+        ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, unused, ignoreForCollisions, unused); // legacy support
+        ADD_PROPERTY_TO_MAP(PROP_COLLISION_MASK, unused, collisionMask, unused);
+        ADD_PROPERTY_TO_MAP(PROP_COLLISION_MASK, unused, collidesWith, unused);
+        ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, collisionsWillMove, unused); // legacy support
+        ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, dynamic, unused);
+        ADD_PROPERTY_TO_MAP(PROP_IS_SPOTLIGHT, IsSpotlight, isSpotlight, bool);
+        ADD_PROPERTY_TO_MAP(PROP_INTENSITY, Intensity, intensity, float);
+        ADD_PROPERTY_TO_MAP(PROP_FALLOFF_RADIUS, FalloffRadius, falloffRadius, float);
+        ADD_PROPERTY_TO_MAP(PROP_EXPONENT, Exponent, exponent, float);
+        ADD_PROPERTY_TO_MAP(PROP_CUTOFF, Cutoff, cutoff, float);
+        ADD_PROPERTY_TO_MAP(PROP_LOCKED, Locked, locked, bool);
+        ADD_PROPERTY_TO_MAP(PROP_TEXTURES, Textures, textures, QString);
+        ADD_PROPERTY_TO_MAP(PROP_USER_DATA, UserData, userData, QString);
+        ADD_PROPERTY_TO_MAP(PROP_SIMULATION_OWNER, SimulationOwner, simulationOwner, SimulationOwner);
+        ADD_PROPERTY_TO_MAP(PROP_TEXT, Text, text, QString);
+        ADD_PROPERTY_TO_MAP(PROP_LINE_HEIGHT, LineHeight, lineHeight, float);
+        ADD_PROPERTY_TO_MAP(PROP_TEXT_COLOR, TextColor, textColor, ScriptVec3UChar);
+        ADD_PROPERTY_TO_MAP(PROP_BACKGROUND_COLOR, BackgroundColor, backgroundColor, ScriptVec3UChar);
+        ADD_PROPERTY_TO_MAP(PROP_SHAPE_TYPE, ShapeType, shapeType, ShapeType);
+        ADD_PROPERTY_TO_MAP(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32);
+        ADD_PROPERTY_TO_MAP(PROP_LIFESPAN, Lifespan, lifespan, float);
+        ADD_PROPERTY_TO_MAP(PROP_EMITTING_PARTICLES, IsEmitting, isEmitting, bool);
+        ADD_PROPERTY_TO_MAP(PROP_EMIT_RATE, EmitRate, emitRate, float);
+        ADD_PROPERTY_TO_MAP(PROP_EMIT_SPEED, EmitSpeed, emitSpeed, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_SPEED_SPREAD, SpeedSpread, speedSpread, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_EMIT_ORIENTATION, EmitOrientation, emitOrientation, glm::quat);
+        ADD_PROPERTY_TO_MAP(PROP_EMIT_DIMENSIONS, EmitDimensions, emitDimensions, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_EMIT_RADIUS_START, EmitRadiusStart, emitRadiusStart, float);
+        ADD_PROPERTY_TO_MAP(PROP_POLAR_START, EmitPolarStart, polarStart, float);
+        ADD_PROPERTY_TO_MAP(PROP_POLAR_FINISH, EmitPolarFinish, polarFinish, float);
+        ADD_PROPERTY_TO_MAP(PROP_AZIMUTH_START, EmitAzimuthStart, azimuthStart, float);
+        ADD_PROPERTY_TO_MAP(PROP_AZIMUTH_FINISH, EmitAzimuthFinish, azimuthFinish, float);
+        ADD_PROPERTY_TO_MAP(PROP_EMIT_ACCELERATION, EmitAcceleration, emitAcceleration, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_ACCELERATION_SPREAD, AccelerationSpread, accelerationSpread, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_PARTICLE_RADIUS, ParticleRadius, particleRadius, float);
+        ADD_PROPERTY_TO_MAP(PROP_RADIUS_SPREAD, RadiusSpread, radiusSpread, float);
+        ADD_PROPERTY_TO_MAP(PROP_RADIUS_START, RadiusStart, radiusStart, float);
+        ADD_PROPERTY_TO_MAP(PROP_RADIUS_FINISH, RadiusFinish, radiusFinish, float);
 
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_URL, materialURL);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_MODE, materialMappingMode);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_PRIORITY, priority);
-        ADD_PROPERTY_TO_MAP(PROP_PARENT_MATERIAL_NAME, parentMaterialName);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_POS, materialMappingPos);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_SCALE, materialMappingScale);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_ROT, materialMappingRot);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_DATA, materialData);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_URL, MaterialURL, materialURL, QString);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_MODE, MaterialMappingMode, materialMappingMode, MaterialMappingMode);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_PRIORITY, Priority, priority, quint16);
+        ADD_PROPERTY_TO_MAP(PROP_PARENT_MATERIAL_NAME, ParentMaterialName, parentMaterialName, QString);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_POS, MaterialMappingPos, materialMappingPos,  ScriptVec2UChar);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale,  ScriptVec2UChar);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_ROT, MaterialMappingRot, materialMappingRot, float);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_DATA, MaterialData, materialData, QString);
 
-        ADD_PROPERTY_TO_MAP(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
+        ADD_PROPERTY_TO_MAP(PROP_VISIBLE_IN_SECONDARY_CAMERA, IsVisibleInSecondaryCamera, isVisibleInSecondaryCamera, bool);
 
         // Certifiable Properties
-        ADD_PROPERTY_TO_MAP(PROP_ITEM_NAME, itemName);
-        ADD_PROPERTY_TO_MAP(PROP_ITEM_DESCRIPTION, itemDescription);
-        ADD_PROPERTY_TO_MAP(PROP_ITEM_CATEGORIES, itemCategories);
-        ADD_PROPERTY_TO_MAP(PROP_ITEM_ARTIST, itemArtist);
-        ADD_PROPERTY_TO_MAP(PROP_ITEM_LICENSE, itemLicense);
-        ADD_PROPERTY_TO_MAP(PROP_LIMITED_RUN, limitedRun);
-        ADD_PROPERTY_TO_MAP(PROP_MARKETPLACE_ID, marketplaceID);
-        ADD_PROPERTY_TO_MAP(PROP_EDITION_NUMBER, editionNumber);
-        ADD_PROPERTY_TO_MAP(PROP_ENTITY_INSTANCE_NUMBER, entityInstanceNumber);
-        ADD_PROPERTY_TO_MAP(PROP_CERTIFICATE_ID, certificateID);
-        ADD_PROPERTY_TO_MAP(PROP_STATIC_CERTIFICATE_VERSION, staticCertificateVersion);
+        ADD_PROPERTY_TO_MAP(PROP_ITEM_NAME, ItemName, itemName, QString);
+        ADD_PROPERTY_TO_MAP(PROP_ITEM_DESCRIPTION, ItemDescription, itemDescription, QString);
+        ADD_PROPERTY_TO_MAP(PROP_ITEM_CATEGORIES, ItemCategories, itemCategories, QString);
+        ADD_PROPERTY_TO_MAP(PROP_ITEM_ARTIST, ItemArtist, itemArtist, QString);
+        ADD_PROPERTY_TO_MAP(PROP_ITEM_LICENSE, ItemLicense, itemLicense, QString);
+        ADD_PROPERTY_TO_MAP(PROP_LIMITED_RUN, LimitedRun, limitedRun, quint32);
+        ADD_PROPERTY_TO_MAP(PROP_MARKETPLACE_ID, MarketplaceID, marketplaceID, QString);
+        ADD_PROPERTY_TO_MAP(PROP_EDITION_NUMBER, EditionNumber, editionNumber, quint32);
+        ADD_PROPERTY_TO_MAP(PROP_ENTITY_INSTANCE_NUMBER, EntityInstanceNumber, entityInstanceNumber, quint32);
+        ADD_PROPERTY_TO_MAP(PROP_CERTIFICATE_ID, CertificateID, certificateID, QString);
+        ADD_PROPERTY_TO_MAP(PROP_STATIC_CERTIFICATE_VERSION, StaticCertificateVersion, staticCertificateVersion, quint32);
 
-        ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_COLOR, keyLightColor);
-        ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_INTENSITY, keyLightIntensity);
-        ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_DIRECTION, keyLightDirection);
-        ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_CAST_SHADOW, keyLightCastShadows);
+        ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_COLOR, KeyLightColor, keyLightColor, ScriptVec3UChar);
+        ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_INTENSITY, KeyLightIntensity, keyLightIntensity, float);
+        ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_DIRECTION, KeyLightDirection, keyLightDirection, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_CAST_SHADOW, KeyLightCastShadows, keyLightCastShadows, bool);
 
-        ADD_PROPERTY_TO_MAP(PROP_VOXEL_VOLUME_SIZE, voxelVolumeSize);
-        ADD_PROPERTY_TO_MAP(PROP_VOXEL_DATA, voxelData);
-        ADD_PROPERTY_TO_MAP(PROP_VOXEL_SURFACE_STYLE, voxelSurfaceStyle);
-        ADD_PROPERTY_TO_MAP(PROP_NAME, name);
-        ADD_PROPERTY_TO_MAP(PROP_SOURCE_URL, sourceUrl);
-        ADD_PROPERTY_TO_MAP(PROP_LINE_WIDTH, lineWidth);
-        ADD_PROPERTY_TO_MAP(PROP_LINE_POINTS, linePoints);
-        ADD_PROPERTY_TO_MAP(PROP_HREF, href);
-        ADD_PROPERTY_TO_MAP(PROP_DESCRIPTION, description);
-        ADD_PROPERTY_TO_MAP(PROP_FACE_CAMERA, faceCamera);
-        ADD_PROPERTY_TO_MAP(PROP_ACTION_DATA, actionData);
-        ADD_PROPERTY_TO_MAP(PROP_NORMALS, normals);
-        ADD_PROPERTY_TO_MAP(PROP_STROKE_COLORS, strokeColors);
-        ADD_PROPERTY_TO_MAP(PROP_STROKE_WIDTHS, strokeWidths);
-        ADD_PROPERTY_TO_MAP(PROP_IS_UV_MODE_STRETCH, isUVModeStretch);
-        ADD_PROPERTY_TO_MAP(PROP_X_TEXTURE_URL, xTextureURL);
-        ADD_PROPERTY_TO_MAP(PROP_Y_TEXTURE_URL, yTextureURL);
-        ADD_PROPERTY_TO_MAP(PROP_Z_TEXTURE_URL, zTextureURL);
-        ADD_PROPERTY_TO_MAP(PROP_X_N_NEIGHBOR_ID, xNNeighborID);
-        ADD_PROPERTY_TO_MAP(PROP_Y_N_NEIGHBOR_ID, yNNeighborID);
-        ADD_PROPERTY_TO_MAP(PROP_Z_N_NEIGHBOR_ID, zNNeighborID);
-        ADD_PROPERTY_TO_MAP(PROP_X_P_NEIGHBOR_ID, xPNeighborID);
-        ADD_PROPERTY_TO_MAP(PROP_Y_P_NEIGHBOR_ID, yPNeighborID);
-        ADD_PROPERTY_TO_MAP(PROP_Z_P_NEIGHBOR_ID, zPNeighborID);
+        ADD_PROPERTY_TO_MAP(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_VOXEL_DATA, VoxelData, voxelData, QByteArray);
+        ADD_PROPERTY_TO_MAP(PROP_VOXEL_SURFACE_STYLE, VoxelSurfaceStyle, voxelSurfaceStyle, uint16_t);
+        ADD_PROPERTY_TO_MAP(PROP_NAME, Name, name, QString);
+        ADD_PROPERTY_TO_MAP(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString);
+        ADD_PROPERTY_TO_MAP(PROP_LINE_WIDTH, LineWidth, lineWidth, float);
+        ADD_PROPERTY_TO_MAP(PROP_LINE_POINTS, LinePoints, linePoints, QVector<ScriptVec3Float>);
+        ADD_PROPERTY_TO_MAP(PROP_HREF, Href, href, QString);
+        ADD_PROPERTY_TO_MAP(PROP_DESCRIPTION, Description, description, QString);
+        ADD_PROPERTY_TO_MAP(PROP_FACE_CAMERA, FaceCamera, faceCamera, bool);
+        ADD_PROPERTY_TO_MAP(PROP_ACTION_DATA, ActionData, actionData, QByteArray);
+        ADD_PROPERTY_TO_MAP(PROP_NORMALS, Normals, normals, QVector<ScriptVec3Float>);
+        ADD_PROPERTY_TO_MAP(PROP_STROKE_COLORS, StrokeColors, strokeColors, QVector<ScriptVec3Float>);
+        ADD_PROPERTY_TO_MAP(PROP_STROKE_WIDTHS, StrokeWidths, strokeWidths, QVector<float>);
+        ADD_PROPERTY_TO_MAP(PROP_IS_UV_MODE_STRETCH, IsUVModeStretch, isUVModeStretch, QVector<float>);
+        ADD_PROPERTY_TO_MAP(PROP_X_TEXTURE_URL, XTextureURL, xTextureURL, QString);
+        ADD_PROPERTY_TO_MAP(PROP_Y_TEXTURE_URL, YTextureURL, yTextureURL, QString);
+        ADD_PROPERTY_TO_MAP(PROP_Z_TEXTURE_URL, ZTextureURL, zTextureURL, QString);
+        ADD_PROPERTY_TO_MAP(PROP_X_N_NEIGHBOR_ID, XNNeighborID, xNNeighborID, EntityItemID);
+        ADD_PROPERTY_TO_MAP(PROP_Y_N_NEIGHBOR_ID, YNNeighborID, yNNeighborID, EntityItemID);
+        ADD_PROPERTY_TO_MAP(PROP_Z_N_NEIGHBOR_ID, ZNNeighborID, zNNeighborID, EntityItemID);
+        ADD_PROPERTY_TO_MAP(PROP_X_P_NEIGHBOR_ID, XPNeighborID, xPNeighborID, EntityItemID);
+        ADD_PROPERTY_TO_MAP(PROP_Y_P_NEIGHBOR_ID, YPNeighborID, yPNeighborID, EntityItemID);
+        ADD_PROPERTY_TO_MAP(PROP_Z_P_NEIGHBOR_ID, ZPNeighborID, zPNeighborID, EntityItemID);
 
-        ADD_PROPERTY_TO_MAP(PROP_PARENT_ID, parentID);
-        ADD_PROPERTY_TO_MAP(PROP_PARENT_JOINT_INDEX, parentJointIndex);
+        ADD_PROPERTY_TO_MAP(PROP_PARENT_ID, ParentID, parentID, QUuid);
+        ADD_PROPERTY_TO_MAP(PROP_PARENT_JOINT_INDEX, ParentJointIndex, parentJointIndex, uint16_t);
 
-        ADD_PROPERTY_TO_MAP(PROP_LOCAL_POSITION, localPosition);
-        ADD_PROPERTY_TO_MAP(PROP_LOCAL_ROTATION, localRotation);
-        ADD_PROPERTY_TO_MAP(PROP_LOCAL_VELOCITY, localVelocity);
-        ADD_PROPERTY_TO_MAP(PROP_LOCAL_ANGULAR_VELOCITY, localAngularVelocity);
-        ADD_PROPERTY_TO_MAP(PROP_LOCAL_DIMENSIONS, localDimensions);
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_POSITION, LocalPosition, localPosition, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_ROTATION, LocalRotation, localRotation, glm::quat);
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_DIMENSIONS, LocalDimensions, localDimensions, ScriptVec3Float);
 
-        ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS_SET, jointRotationsSet);
-        ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS, jointRotations);
-        ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS_SET, jointTranslationsSet);
-        ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS, jointTranslations);
-        ADD_PROPERTY_TO_MAP(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
+        ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS_SET, JointRotationsSet, jointRotationsSet, QVector<bool>);
+        ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<glm::quat>);
+        ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS_SET, JointTranslationsSet, jointTranslationsSet, QVector<bool>);
+        ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS, JointTranslations, jointTranslations, QVector<ScriptVec3Float>);
+        ADD_PROPERTY_TO_MAP(PROP_RELAY_PARENT_JOINTS, RelayParentJoints, relayParentJoints, bool);
 
-        ADD_PROPERTY_TO_MAP(PROP_SHAPE, shape);
+        ADD_PROPERTY_TO_MAP(PROP_SHAPE, Shape, shape, QString);
 
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_URL, animation, url);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_FPS, animation, fps);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_FRAME_INDEX, animation, currentFrame);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_PLAYING, animation, running);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_LOOP, animation, loop);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_FIRST_FRAME, animation, firstFrame);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_LAST_FRAME, animation, lastFrame);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_HOLD, animation, hold);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_ALLOW_TRANSLATION, animation, allowTranslation);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_URL, Animation, animation, URL, url);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_FPS, Animation, animation, FPS, fps);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_FRAME_INDEX, Animation, animation, CurrentFrame, currentFrame);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_PLAYING, Animation, animation, Running, running);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_LOOP, Animation, animation, Loop, loop);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_FIRST_FRAME, Animation, animation, FirstFrame, firstFrame);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_LAST_FRAME, Animation, animation, LastFrame, lastFrame);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_HOLD, Animation, animation, Hold, hold);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_ALLOW_TRANSLATION, Animation, animation, AllowTranslation, allowTranslation);
 
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_COLOR, skybox, color);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_URL, skybox, url);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_COLOR, Skybox, skybox, Color, color);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_URL, Skybox, skybox, URL, url);
 
-        ADD_PROPERTY_TO_MAP(PROP_FLYING_ALLOWED, flyingAllowed);
-        ADD_PROPERTY_TO_MAP(PROP_GHOSTING_ALLOWED, ghostingAllowed);
-        ADD_PROPERTY_TO_MAP(PROP_FILTER_URL, filterURL);
+        ADD_PROPERTY_TO_MAP(PROP_FLYING_ALLOWED, FlyingAllowed, flyingAllowed, bool);
+        ADD_PROPERTY_TO_MAP(PROP_GHOSTING_ALLOWED, GhostingAllowed, ghostingAllowed, bool);
+        ADD_PROPERTY_TO_MAP(PROP_FILTER_URL, FilterURL, filterURL, QString);
 
-        ADD_PROPERTY_TO_MAP(PROP_HAZE_MODE, hazeMode);
+        ADD_PROPERTY_TO_MAP(PROP_HAZE_MODE, HazeMode, hazeMode, uint32_t);
 
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_RANGE, haze, hazeRange);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_COLOR, haze, hazeColor);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_GLARE_COLOR, haze, hazeGlareColor);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ENABLE_GLARE, haze, hazeEnableGlare);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_GLARE_ANGLE, haze, hazeGlareAngle);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_RANGE, Haze, haze, HazeRange, hazeRange);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_COLOR, Haze, haze, HazeColor, hazeColor);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_GLARE_COLOR, Haze, haze, HazeGlareColor, hazeGlareColor);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ENABLE_GLARE, Haze, haze, HazeEnableGlare, hazeEnableGlare);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_GLARE_ANGLE, Haze, haze, HazeGlareAngle, hazeGlareAngle);
 
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ALTITUDE_EFFECT, haze, hazeAltitudeEfect);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_CEILING, haze, hazeCeiling);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_BASE_REF, haze, hazeBaseRef);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ALTITUDE_EFFECT, Haze, haze, HazeAltitudeEffect, hazeAltitudeEfect);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_CEILING, Haze, haze, HazeCeiling, hazeCeiling);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_BASE_REF, Haze, haze, HazeBaseRef, hazeBaseRef);
 
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_BACKGROUND_BLEND, haze, hazeBackgroundBlend);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_BACKGROUND_BLEND, Haze, haze, HazeBackgroundBlend, hazeBackgroundBlend);
 
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ATTENUATE_KEYLIGHT, haze, hazeAttenuateKeyLight);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_RANGE, haze, hazeKeyLightRange);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_ALTITUDE, haze, hazeKeyLightAltitude);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ATTENUATE_KEYLIGHT, Haze, haze, HazeAttenuateKeyLight, hazeAttenuateKeyLight);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_RANGE, Haze, haze, HazeKeyLightRange, hazeKeyLightRange);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_ALTITUDE, Haze, haze, HazeKeyLightAltitude, hazeKeyLightAltitude);
 
-        ADD_PROPERTY_TO_MAP(PROP_KEY_LIGHT_MODE, keyLightMode);
-        ADD_PROPERTY_TO_MAP(PROP_AMBIENT_LIGHT_MODE, ambientLightMode);
-        ADD_PROPERTY_TO_MAP(PROP_SKYBOX_MODE, skyboxMode);
+        ADD_PROPERTY_TO_MAP(PROP_KEY_LIGHT_MODE, KeyLightMode, keyLightMode, uint32_t);
+        ADD_PROPERTY_TO_MAP(PROP_AMBIENT_LIGHT_MODE, AmbientLightMode, ambientLightMode, uint32_t);
+        ADD_PROPERTY_TO_MAP(PROP_SKYBOX_MODE, SkyboxMode, skyboxMode, uint32_t);
 
-        ADD_PROPERTY_TO_MAP(PROP_DPI, dpi);
+        ADD_PROPERTY_TO_MAP(PROP_DPI, DPI, dpi, uint16_t);
 
-        ADD_PROPERTY_TO_MAP(PROP_CLONEABLE, cloneable);
-        ADD_PROPERTY_TO_MAP(PROP_CLONE_LIFETIME, cloneLifetime);
-        ADD_PROPERTY_TO_MAP(PROP_CLONE_LIMIT, cloneLimit);
-        ADD_PROPERTY_TO_MAP(PROP_CLONE_DYNAMIC, cloneDynamic);
-        ADD_PROPERTY_TO_MAP(PROP_CLONE_AVATAR_ENTITY, cloneAvatarEntity);
-        ADD_PROPERTY_TO_MAP(PROP_CLONE_ORIGIN_ID, cloneOriginID);
+        ADD_PROPERTY_TO_MAP(PROP_CLONEABLE, Cloneable, cloneable, bool);
+        ADD_PROPERTY_TO_MAP(PROP_CLONE_LIFETIME, CloneLifetime, cloneLifetime, float);
+        ADD_PROPERTY_TO_MAP(PROP_CLONE_LIMIT, CloneLimit, cloneLimit, float);
+        ADD_PROPERTY_TO_MAP(PROP_CLONE_DYNAMIC, CloneDynamic, cloneDynamic, bool);
+        ADD_PROPERTY_TO_MAP(PROP_CLONE_AVATAR_ENTITY, CloneAvatarEntity, cloneAvatarEntity, bool);
+        ADD_PROPERTY_TO_MAP(PROP_CLONE_ORIGIN_ID, CloneOriginID, cloneOriginID, QUuid);
 
         // FIXME - these are not yet handled
-        //ADD_PROPERTY_TO_MAP(PROP_CREATED, created);
+        //ADD_PROPERTY_TO_MAP(PROP_CREATED, Created, created, quint64);
 
     });
 
@@ -2209,7 +2211,6 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             APPEND_ENTITY_PROPERTY(PROP_SCRIPT, properties.getScript());
             APPEND_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, properties.getScriptTimestamp());
             APPEND_ENTITY_PROPERTY(PROP_SERVER_SCRIPTS, properties.getServerScripts());
-            APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
             APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, properties.getRegistrationPoint());
             APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, properties.getAngularVelocity());
             APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, properties.getAngularDamping());
@@ -2244,6 +2245,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, properties.getCompoundShapeURL());
                 APPEND_ENTITY_PROPERTY(PROP_TEXTURES, properties.getTextures());
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)(properties.getShapeType()));
+                APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
 
                 _staticAnimation.setProperties(properties);
                 _staticAnimation.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -2256,6 +2258,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             }
 
             if (properties.getType() == EntityTypes::Light) {
+                APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
                 APPEND_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, properties.getIsSpotlight());
                 APPEND_ENTITY_PROPERTY(PROP_INTENSITY, properties.getIntensity());
                 APPEND_ENTITY_PROPERTY(PROP_FALLOFF_RADIUS, properties.getFalloffRadius());
@@ -2284,6 +2287,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_RADIUS_SPREAD, properties.getRadiusSpread());
                 APPEND_ENTITY_PROPERTY(PROP_RADIUS_START, properties.getRadiusStart());
                 APPEND_ENTITY_PROPERTY(PROP_RADIUS_FINISH, properties.getRadiusFinish());
+                APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
                 APPEND_ENTITY_PROPERTY(PROP_COLOR_SPREAD, properties.getColorSpread());
                 APPEND_ENTITY_PROPERTY(PROP_COLOR_START, properties.getColorStart());
                 APPEND_ENTITY_PROPERTY(PROP_COLOR_FINISH, properties.getColorFinish());
@@ -2335,11 +2339,13 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             }
 
             if (properties.getType() == EntityTypes::Line) {
+                APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
                 APPEND_ENTITY_PROPERTY(PROP_LINE_WIDTH, properties.getLineWidth());
                 APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, properties.getLinePoints());
             }
 
             if (properties.getType() == EntityTypes::PolyLine) {
+                APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
                 APPEND_ENTITY_PROPERTY(PROP_LINE_WIDTH, properties.getLineWidth());
                 APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, properties.getLinePoints());
                 APPEND_ENTITY_PROPERTY(PROP_NORMALS, properties.getPackedNormals());
@@ -2354,6 +2360,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 properties.getType() == EntityTypes::Box ||
                 properties.getType() == EntityTypes::Sphere) {
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE, properties.getShape());
+                APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
             }
 
             // Materials
@@ -2460,7 +2467,7 @@ QByteArray EntityItemProperties::packNormals(const QVector<ScriptVec3Float>& nor
 
     int index = 1;
     for (int i = 0; i < normalsSize; i++) {
-        int numBytes = packFloatVec3ToSignedTwoByteFixed((unsigned char*)packedNormals.data() + index, glm::vec3(normals[i].x, normals[i].y, normals[i].z), 15);
+        int numBytes = packFloatVec3ToSignedTwoByteFixed((unsigned char*)packedNormals.data() + index, normals[i].toGlm(), 15);
         index += numBytes;
     }
     return packedNormals;
@@ -2584,7 +2591,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SCRIPT, QString, setScript);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SERVER_SCRIPTS, QString, setServerScripts);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, ScriptVec3UChar, setColor);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_REGISTRATION_POINT, ScriptVec3Float, setRegistrationPoint);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_VELOCITY, ScriptVec3Float, setAngularVelocity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_DAMPING, float, setAngularDamping);
@@ -2619,6 +2625,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, ScriptVec3UChar, setColor);
 
         properties.getAnimation().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
@@ -2659,6 +2666,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_SPREAD, float, setRadiusSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_START, float, setRadiusStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_FINISH, float, setRadiusFinish);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, ScriptVec3UChar, setColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_SPREAD, ScriptVec3UChar, setColorSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_START, ScriptVec3Float, setColorStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_FINISH, ScriptVec3Float, setColorFinish);
@@ -2704,12 +2712,14 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     }
 
     if (properties.getType() == EntityTypes::Line) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, ScriptVec3UChar, setColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_WIDTH, float, setLineWidth);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<ScriptVec3Float>, setLinePoints);
     }
 
 
     if (properties.getType() == EntityTypes::PolyLine) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, ScriptVec3UChar, setColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_WIDTH, float, setLineWidth);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<ScriptVec3Float>, setLinePoints);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NORMALS, QByteArray, setPackedNormals);
@@ -2725,6 +2735,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         properties.getType() == EntityTypes::Box ||
         properties.getType() == EntityTypes::Sphere) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE, QString, setShape);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, ScriptVec3UChar, setColor);
     }
 
     // Materials
@@ -2804,7 +2815,7 @@ QVector<ScriptVec3Float> EntityItemProperties::unpackStrokeColors(const QByteArr
             float r = (uint8_t)strokeColors[i++] / 255.0f;
             float g = (uint8_t)strokeColors[i++] / 255.0f;
             float b = (uint8_t)strokeColors[i++] / 255.0f;
-            unpackedStrokeColors[j++] = vec3(r, g, b);
+            unpackedStrokeColors[j++] = ScriptVec3Float(r, g, b);
         }
     } else {
         qCDebug(entities) << "WARNING - Expected received size for stroke colors does not match. Expected: " 
@@ -3060,17 +3071,15 @@ void EntityItemProperties::markAllChanged() {
 AABox EntityItemProperties::getAABox() const {
 
     // _position represents the position of the registration point.
-    glm::vec3 registrationPoint = glm::vec3(_registrationPoint.x, _registrationPoint.y, _registrationPoint.z);
-    glm::vec3 registrationRemainder = glm::vec3(1.0f) - registrationPoint;
+    glm::vec3 registrationRemainder = glm::vec3(1.0f) - _registrationPoint.toGlm();
 
-    glm::vec3 dimensions = glm::vec3(_dimensions.x, _dimensions.y, _dimensions.z);
-    glm::vec3 unrotatedMinRelativeToEntity = - (dimensions * registrationPoint);
-    glm::vec3 unrotatedMaxRelativeToEntity = dimensions * registrationRemainder;
+    glm::vec3 unrotatedMinRelativeToEntity = - (_dimensions.toGlm() * _registrationPoint.toGlm());
+    glm::vec3 unrotatedMaxRelativeToEntity = _dimensions.toGlm() * registrationRemainder;
     Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
     Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(_rotation);
 
     // shift the extents to be relative to the position/registration point
-    rotatedExtentsRelativeToRegistrationPoint.shiftBy(glm::vec3(_position.x, _position.y, _position.z));
+    rotatedExtentsRelativeToRegistrationPoint.shiftBy(_position.toGlm());
 
     return AABox(rotatedExtentsRelativeToRegistrationPoint);
 }

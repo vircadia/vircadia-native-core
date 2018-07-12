@@ -57,7 +57,7 @@ public:
 
     // TODO: Move these to subclasses, or other appropriate abstraction
     // getters/setters applicable to models and particles
-    const ScriptVec3UChar& getColor() const;
+    ScriptVec3UChar getColor() const;
     void setColor(const ScriptVec3UChar& value);
 
     bool hasModel() const;

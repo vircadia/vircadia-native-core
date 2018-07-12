@@ -41,7 +41,7 @@ class LineEntityItem : public EntityItem {
                                                  EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                  bool& somethingChanged) override;
 
-    const ScriptVec3UChar& getColor() const;
+    ScriptVec3UChar getColor() const;
     void setColor(const ScriptVec3UChar& value);
 
     void setLineWidth(float lineWidth);

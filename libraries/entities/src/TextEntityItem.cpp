@@ -174,7 +174,7 @@ void TextEntityItem::setTextColor(const ScriptVec3UChar& value) {
     });
 }
 
-const ScriptVec3UChar& TextEntityItem::getTextColor() const {
+ScriptVec3UChar TextEntityItem::getTextColor() const {
     return resultWithReadLock<ScriptVec3UChar>([&] {
         return _textColor;
     });
@@ -186,7 +186,7 @@ void TextEntityItem::setBackgroundColor(const ScriptVec3UChar& value) {
     });
 }
 
-const ScriptVec3UChar& TextEntityItem::getBackgroundColor() const {
+ScriptVec3UChar TextEntityItem::getBackgroundColor() const {
     return resultWithReadLock<ScriptVec3UChar>([&] {
         return _backgroundColor;
     });

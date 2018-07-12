@@ -154,7 +154,7 @@ void LineEntityItem::debugDump() const {
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
 
-const ScriptVec3UChar& LineEntityItem::getColor() const {
+ScriptVec3UChar LineEntityItem::getColor() const {
     return resultWithReadLock<ScriptVec3UChar>([&] {
         return _color;
     });

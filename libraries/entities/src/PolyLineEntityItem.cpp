@@ -312,7 +312,7 @@ void PolyLineEntityItem::setColor(const ScriptVec3UChar& value) {
     });
 }
 
-const ScriptVec3UChar& PolyLineEntityItem::getColor() const {
+ScriptVec3UChar PolyLineEntityItem::getColor() const {
     return resultWithReadLock<ScriptVec3UChar>([&] {
         return _color;
     });

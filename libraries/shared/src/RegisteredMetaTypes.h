@@ -63,7 +63,7 @@ public:
     ScriptVec2Float() {}
     ScriptVec2Float(float xy) : x(xy), y(xy) {}
     ScriptVec2Float(float x, float y) : x(x), y(y) {}
-    ScriptVec2Float(const ScriptVec2Float& other) : x(other.x), y(other.y) {}
+    ScriptVec2Float(const ScriptVec2Float& other) : QObject(), x(other.x), y(other.y) {}
     ScriptVec2Float(const glm::vec2& other) : x(other.x), y(other.y) {}
     void operator=(const ScriptVec2Float& other) { x = other.x; y = other.y; }
     inline bool operator==(const ScriptVec2Float& other) const { return (x == other.x && y == other.y); }
@@ -103,9 +103,9 @@ glm::vec2 vec2FromVariant(const QVariant& object);
 * A 3-dimensional vector. See also the {@link Vec3(0)|Vec3} object.
 *
 * @typedef {object} Vec3
-* @property {number} x - X-coordinate of the vector. Synonyms: <code>r</code> and <code>red</code>.
-* @property {number} y - Y-coordinate of the vector. Synonyms: <code>g</code> and <code>green</code>.
-* @property {number} z - Z-coordinate of the vector. Synonyms: <code>b</code> and <code>blue</code>.
+* @property {number} x - X-coordinate of the vector. Synonyms: <code>r</code>, <code>red</code>, and <code>width</code>.
+* @property {number} y - Y-coordinate of the vector. Synonyms: <code>g</code>, <code>green</code>, and <code>height</code>.
+* @property {number} z - Z-coordinate of the vector. Synonyms: <code>b</code>, <code>blue</code>, and <code>depth</code>.
 */
 class ScriptVec3Float : public QObject {
     Q_OBJECT
@@ -118,11 +118,14 @@ class ScriptVec3Float : public QObject {
     Q_PROPERTY(float red MEMBER x)
     Q_PROPERTY(float green MEMBER y)
     Q_PROPERTY(float blue MEMBER z)
+    Q_PROPERTY(float width MEMBER x)
+    Q_PROPERTY(float height MEMBER y)
+    Q_PROPERTY(float depth MEMBER z)
 public:
     ScriptVec3Float() {}
     ScriptVec3Float(float xyz) : x(xyz), y(xyz), z(xyz) {}
     ScriptVec3Float(float x, float y, float z) : x(x), y(y), z(z) {}
-    ScriptVec3Float(const ScriptVec3Float& other) : x(other.x), y(other.y), z(other.z) {}
+    ScriptVec3Float(const ScriptVec3Float& other) : QObject(), x(other.x), y(other.y), z(other.z) {}
     ScriptVec3Float(const glm::vec3& other) : x(other.x), y(other.y), z(other.z) {}
     void operator=(const ScriptVec3Float& other) { x = other.x; y = other.y; z = other.z; }
     inline bool operator==(const ScriptVec3Float& other) const { return (x == other.x && y == other.y && z == other.z); }
@@ -155,9 +158,9 @@ void vec3FloatFromScriptValue(const QScriptValue& object, ScriptVec3Float& vec3)
 * A color vector. See also the {@link Vec3(0)|Vec3} object.
 *
 * @typedef {object} Vec3Color
-* @property {number} x - Red component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>r</code> and <code>red</code>.
-* @property {number} y - Green component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>g</code> and <code>green</code>.
-* @property {number} z - Blue component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>b</code> and <code>blue</code>.
+* @property {number} x - Red component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>r</code>, <code>red</code>, and <code>width</code>.
+* @property {number} y - Green component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>g</code>, <code>green</code>, and <code>height</code>.
+* @property {number} z - Blue component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>b</code>, <code>blue</code>, and <code>depth</code>.
 */
 class ScriptVec3UChar : public QObject {
     Q_OBJECT
@@ -170,11 +173,14 @@ class ScriptVec3UChar : public QObject {
     Q_PROPERTY(unsigned int red MEMBER x)
     Q_PROPERTY(unsigned int green MEMBER y)
     Q_PROPERTY(unsigned int blue MEMBER z)
+    Q_PROPERTY(unsigned int width MEMBER x)
+    Q_PROPERTY(unsigned int height MEMBER y)
+    Q_PROPERTY(unsigned int depth MEMBER z)
 public:
     ScriptVec3UChar() {}
     ScriptVec3UChar(unsigned int xyz) : x(xyz), y(xyz), z(xyz) {}
     ScriptVec3UChar(unsigned int x, unsigned int y, unsigned int z) : x(x), y(y), z(z) {}
-    ScriptVec3UChar(const ScriptVec3UChar& other) : x(other.x), y(other.y), z(other.z) {}
+    ScriptVec3UChar(const ScriptVec3UChar& other) : QObject(), x(other.x), y(other.y), z(other.z) {}
     ScriptVec3UChar(const glm::vec3& other) : x(other.x), y(other.y), z(other.z) {}
     void operator=(const ScriptVec3UChar& other) { x = other.x; y = other.y; z = other.z; }
     inline bool operator==(const ScriptVec3UChar& other) const { return (x == other.x && y == other.y && z == other.z); }

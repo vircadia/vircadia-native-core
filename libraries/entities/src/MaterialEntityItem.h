@@ -67,10 +67,8 @@ public:
     void setParentMaterialName(const QString& parentMaterialName);
 
     ScriptVec2Float getMaterialMappingPos() const { return _materialMappingPos; }
-    glm::vec2 getMaterialMappingPosGlm() const { return _materialMappingPos; }
     void setMaterialMappingPos(const ScriptVec2Float& materialMappingPos);
     ScriptVec2Float getMaterialMappingScale() const { return _materialMappingScale; }
-    glm::vec2 getMaterialMappingScaleGlm() const { return _materialMappingScale; }
     void setMaterialMappingScale(const ScriptVec2Float& materialMappingScale);
     float getMaterialMappingRot() const { return _materialMappingRot; }
     void setMaterialMappingRot(const float& materialMappingRot);

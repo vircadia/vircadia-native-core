@@ -137,18 +137,18 @@ public:
     virtual void setLocalTransform(const Transform& transform);
 
     virtual glm::vec3 getLocalPosition() const;
-    virtual ScriptVec3Float getScriptLocalPosition() const;
+    virtual ScriptVec3Float getScriptLocalPosition() const { return getLocalPosition(); }
     virtual void setLocalPosition(const glm::vec3& position, bool tellPhysics = true);
 
     virtual glm::quat getLocalOrientation() const;
     virtual void setLocalOrientation(const glm::quat& orientation);
 
     virtual glm::vec3 getLocalVelocity() const;
-    virtual ScriptVec3Float getScriptLocalVelocity() const;
+    virtual ScriptVec3Float getScriptLocalVelocity() const { return getLocalVelocity(); }
     virtual void setLocalVelocity(const glm::vec3& velocity);
 
     virtual glm::vec3 getLocalAngularVelocity() const;
-    virtual ScriptVec3Float getScriptLocalAngularVelocity() const;
+    virtual ScriptVec3Float getScriptLocalAngularVelocity() const { return getLocalAngularVelocity(); }
     virtual void setLocalAngularVelocity(const glm::vec3& angularVelocity);
 
     virtual glm::vec3 getLocalSNScale() const;

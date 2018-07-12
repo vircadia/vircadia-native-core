@@ -314,10 +314,10 @@ public:
     void clearID() { _id = UNKNOWN_ENTITY_ID; _idSet = false; }
     void markAllChanged();
 
-    const glm::vec3& getNaturalDimensions() const { return _naturalDimensions.toGlm(); }
+    glm::vec3 getNaturalDimensions() const { return _naturalDimensions.toGlm(); }
     void setNaturalDimensions(const glm::vec3& value) { _naturalDimensions = value; }
     
-    const glm::vec3& getNaturalPosition() const { return _naturalPosition.toGlm(); }
+    glm::vec3 getNaturalPosition() const { return _naturalPosition.toGlm(); }
     void calculateNaturalPosition(const glm::vec3& min, const glm::vec3& max);
     
     const QVariantMap& getTextureNames() const { return _textureNames; }

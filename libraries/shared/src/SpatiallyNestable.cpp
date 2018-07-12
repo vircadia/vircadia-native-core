@@ -886,14 +886,6 @@ glm::vec3 SpatiallyNestable::getLocalPosition() const {
     return result;
 }
 
-ScriptVec3Float SpatiallyNestable::getScriptLocalPosition() const {
-    ScriptVec3Float result;
-    _transformLock.withReadLock([&] {
-        result = _transform.getTranslation();
-    });
-    return result;
-}
-
 void SpatiallyNestable::setLocalPosition(const glm::vec3& position, bool tellPhysics) {
     // guard against introducing NaN into the transform
     if (isNaN(position)) {
@@ -948,14 +940,6 @@ glm::vec3 SpatiallyNestable::getLocalVelocity() const {
     return result;
 }
 
-ScriptVec3Float SpatiallyNestable::getScriptLocalVelocity() const {
-    ScriptVec3Float result;
-    _velocityLock.withReadLock([&] {
-        result = _velocity;
-    });
-    return result;
-}
-
 void SpatiallyNestable::setLocalVelocity(const glm::vec3& velocity) {
     _velocityLock.withWriteLock([&] {
         _velocity = velocity;
@@ -964,14 +948,6 @@ void SpatiallyNestable::setLocalVelocity(const glm::vec3& velocity) {
 
 glm::vec3 SpatiallyNestable::getLocalAngularVelocity() const {
     glm::vec3 result;
-    _angularVelocityLock.withReadLock([&] {
-        result = _angularVelocity;
-    });
-    return result;
-}
-
-ScriptVec3Float SpatiallyNestable::getScriptLocalAngularVelocity() const {
-    ScriptVec3Float result;
     _angularVelocityLock.withReadLock([&] {
         result = _angularVelocity;
     });

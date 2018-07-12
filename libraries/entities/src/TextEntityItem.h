@@ -60,11 +60,11 @@ public:
     float getLineHeight() const;
 
     static const ScriptVec3UChar DEFAULT_TEXT_COLOR;
-    const ScriptVec3UChar& getTextColor() const;
+    ScriptVec3UChar getTextColor() const;
     void setTextColor(const ScriptVec3UChar& value);
 
     static const ScriptVec3UChar DEFAULT_BACKGROUND_COLOR;
-    const ScriptVec3UChar& getBackgroundColor() const;
+    ScriptVec3UChar getBackgroundColor() const;
     void setBackgroundColor(const ScriptVec3UChar& value);
 
     static const bool DEFAULT_FACE_CAMERA;

@@ -25,6 +25,23 @@ AtomicUIntStat OctreePacketData::_totalBytesOfValues { 0 };
 AtomicUIntStat OctreePacketData::_totalBytesOfPositions { 0 };
 AtomicUIntStat OctreePacketData::_totalBytesOfRawData { 0 };
 
+struct vec2FloatData {
+    float x;
+    float y;
+};
+
+struct vec3FloatData {
+    float x;
+    float y;
+    float z;
+};
+
+struct vec3UCharData {
+    unsigned char x;
+    unsigned char y;
+    unsigned char z;
+};
+
 struct aaCubeData {
     glm::vec3 corner;
     float scale;
@@ -375,8 +392,9 @@ bool OctreePacketData::appendValue(float value) {
 }
 
 bool OctreePacketData::appendValue(const ScriptVec2Float& value) {
-    const unsigned char* data = (const unsigned char*)&value;
-    int length = sizeof(value);
+    vec2FloatData vec { value.x, value.y };
+    const unsigned char* data = (const unsigned char*)&vec;
+    int length = sizeof(vec2FloatData);
     bool success = append(data, length);
     if (success) {
         _bytesOfValues += length;
@@ -386,8 +404,9 @@ bool OctreePacketData::appendValue(const ScriptVec2Float& value) {
 }
 
 bool OctreePacketData::appendValue(const ScriptVec3Float& value) {
-    const unsigned char* data = (const unsigned char*)&value;
-    int length = sizeof(value);
+    vec3FloatData vec { value.x, value.y, value.z };
+    const unsigned char* data = (const unsigned char*)&vec;
+    int length = sizeof(vec3FloatData);
     bool success = append(data, length);
     if (success) {
         _bytesOfValues += length;
@@ -395,7 +414,6 @@ bool OctreePacketData::appendValue(const ScriptVec3Float& value) {
     }
     return success;
 }
-
 
 bool OctreePacketData::appendValue(const ScriptVec3UChar& color) {
     return appendColor(color.x, color.y, color.z);
@@ -405,10 +423,14 @@ bool OctreePacketData::appendValue(const QVector<ScriptVec3Float>& value) {
     uint16_t qVecSize = value.size();
     bool success = appendValue(qVecSize);
     if (success) {
-        success = append((const unsigned char*)value.constData(), qVecSize * sizeof(ScriptVec3Float));
+        QVector<vec3FloatData> rawVector(qVecSize);
+        for (int i = 0; i < qVecSize; i++) {
+            rawVector[i] = { value[i].x, value[i].y, value[i].z };
+        }
+        success = append((const unsigned char*)rawVector.constData(), qVecSize * sizeof(vec3FloatData));
         if (success) {
-            _bytesOfValues += qVecSize * sizeof(ScriptVec3Float);
-            _totalBytesOfValues += qVecSize * sizeof(ScriptVec3Float);
+            _bytesOfValues += qVecSize * sizeof(vec3FloatData);
+            _totalBytesOfValues += qVecSize * sizeof(vec3FloatData);
         }
     }
     return success;
@@ -670,6 +692,27 @@ void OctreePacketData::debugBytes() {
     qCDebug(octree) << "    _bytesReserved=" << _bytesReserved;
 }
 
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, ScriptVec2Float& result) {
+    vec2FloatData vec;
+    memcpy(&vec, dataBytes, sizeof(vec2FloatData));
+    result = ScriptVec2Float(vec.x, vec.y);
+    return sizeof(vec2FloatData);
+}
+
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, ScriptVec3Float& result) {
+    vec3FloatData vec;
+    memcpy(&vec, dataBytes, sizeof(vec3FloatData));
+    result = ScriptVec3Float(vec.x, vec.y, vec.z);
+    return sizeof(vec3FloatData);
+}
+
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, ScriptVec3UChar& result) {
+    vec3UCharData vec;
+    memcpy(&vec, dataBytes, sizeof(vec3UCharData));
+    result = ScriptVec3UChar(vec.x, vec.y, vec.z);
+    return sizeof(vec3UCharData);
+}
+
 int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QString& result) { 
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(length));
@@ -698,12 +741,17 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVecto
     dataBytes += sizeof(length);
 
     // FIXME - this size check is wrong if we allow larger packets
-    if (length * sizeof(ScriptVec3Float) > MAX_OCTREE_UNCOMRESSED_PACKET_SIZE) {
+    if (length * sizeof(vec3FloatData) > MAX_OCTREE_UNCOMRESSED_PACKET_SIZE) {
         result.resize(0);
         return sizeof(uint16_t);
     }
     result.resize(length);
-    memcpy(result.data(), dataBytes, length * sizeof(ScriptVec3Float));
+    QVector<vec3FloatData> rawVector(length);
+    memcpy(rawVector.data(), dataBytes, length * sizeof(vec3FloatData));
+    for (int i = 0; i < length; i++) {
+        auto v = rawVector[i];
+        result[i] = ScriptVec3Float(v.x, v.y, v.z);
+    }
     return sizeof(uint16_t) + length * sizeof(ScriptVec3Float);
 }
 

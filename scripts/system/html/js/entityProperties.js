@@ -1142,11 +1142,11 @@ function loaded() {
 
                         if (properties.type === "Shape" || properties.type === "Box" || 
                                 properties.type === "Sphere" || properties.type === "ParticleEffect") {
-                            elColorRed.value = properties.color.red;
-                            elColorGreen.value = properties.color.green;
-                            elColorBlue.value = properties.color.blue;
-                            elColorControlVariant2.style.backgroundColor = "rgb(" + properties.color.red + "," + 
-                                                                     properties.color.green + "," + properties.color.blue + ")";
+                            elColorRed.value = properties.color.x;
+                            elColorGreen.value = properties.color.y;
+                            elColorBlue.value = properties.color.z;
+                            elColorControlVariant2.style.backgroundColor = "rgb(" + properties.color.x + "," +
+                                                                     properties.color.y + "," + properties.color.z + ")";
                         }
 
                         if (properties.type === "Model" ||
@@ -1183,22 +1183,22 @@ function loaded() {
                             elTextText.value = properties.text;
                             elTextLineHeight.value = properties.lineHeight.toFixed(4);
                             elTextFaceCamera.checked = properties.faceCamera;
-                            elTextTextColor.style.backgroundColor = "rgb(" + properties.textColor.red + "," + 
-                                                             properties.textColor.green + "," + properties.textColor.blue + ")";
-                            elTextTextColorRed.value = properties.textColor.red;
-                            elTextTextColorGreen.value = properties.textColor.green;
-                            elTextTextColorBlue.value = properties.textColor.blue;
-                            elTextBackgroundColorRed.value = properties.backgroundColor.red;
-                            elTextBackgroundColorGreen.value = properties.backgroundColor.green;
-                            elTextBackgroundColorBlue.value = properties.backgroundColor.blue;
+                            elTextTextColor.style.backgroundColor = "rgb(" + properties.textColor.x + "," +
+                                                             properties.textColor.y + "," + properties.textColor.z + ")";
+                            elTextTextColorRed.value = properties.textColor.x;
+                            elTextTextColorGreen.value = properties.textColor.y;
+                            elTextTextColorBlue.value = properties.textColor.z;
+                            elTextBackgroundColorRed.value = properties.backgroundColor.x;
+                            elTextBackgroundColorGreen.value = properties.backgroundColor.y;
+                            elTextBackgroundColorBlue.value = properties.backgroundColor.z;
                         } else if (properties.type === "Light") {
                             elLightSpotLight.checked = properties.isSpotlight;
 
-                            elLightColor.style.backgroundColor = "rgb(" + properties.color.red + "," + 
-                                                                     properties.color.green + "," + properties.color.blue + ")";
-                            elLightColorRed.value = properties.color.red;
-                            elLightColorGreen.value = properties.color.green;
-                            elLightColorBlue.value = properties.color.blue;
+                            elLightColor.style.backgroundColor = "rgb(" + properties.color.x + "," +
+                                                                     properties.color.y + "," + properties.color.z + ")";
+                            elLightColorRed.value = properties.color.x;
+                            elLightColorGreen.value = properties.color.y;
+                            elLightColorBlue.value = properties.color.z;
 
                             elLightIntensity.value = properties.intensity.toFixed(1);
                             elLightFalloffRadius.value = properties.falloffRadius.toFixed(1);
@@ -1210,11 +1210,11 @@ function loaded() {
                             elZoneKeyLightModeDisabled.checked = (properties.keyLightMode === 'disabled');
                             elZoneKeyLightModeEnabled.checked = (properties.keyLightMode === 'enabled');
 
-                            elZoneKeyLightColor.style.backgroundColor = "rgb(" + properties.keyLight.color.red + "," + 
-                                                   properties.keyLight.color.green + "," + properties.keyLight.color.blue + ")";
-                            elZoneKeyLightColorRed.value = properties.keyLight.color.red;
-                            elZoneKeyLightColorGreen.value = properties.keyLight.color.green;
-                            elZoneKeyLightColorBlue.value = properties.keyLight.color.blue;
+                            elZoneKeyLightColor.style.backgroundColor = "rgb(" + properties.keyLight.color.x + "," +
+                                                   properties.keyLight.color.y + "," + properties.keyLight.color.z + ")";
+                            elZoneKeyLightColorRed.value = properties.keyLight.color.x;
+                            elZoneKeyLightColorGreen.value = properties.keyLight.color.y;
+                            elZoneKeyLightColorBlue.value = properties.keyLight.color.z;
                             elZoneKeyLightIntensity.value = properties.keyLight.intensity.toFixed(2);
                             elZoneKeyLightDirectionX.value = properties.keyLight.direction.x.toFixed(2);
                             elZoneKeyLightDirectionY.value = properties.keyLight.direction.y.toFixed(2);
@@ -1240,24 +1240,24 @@ function loaded() {
                             elZoneHazeModeEnabled.checked = (properties.hazeMode === 'enabled');
 
                             elZoneHazeRange.value = properties.haze.hazeRange.toFixed(0);
-                            elZoneHazeColor.style.backgroundColor = "rgb(" + 
-                                properties.haze.hazeColor.red + "," + 
-                                properties.haze.hazeColor.green + "," + 
-                                properties.haze.hazeColor.blue + ")";
+                            elZoneHazeColor.style.backgroundColor = "rgb(" +
+                                properties.haze.hazeColor.x + "," +
+                                properties.haze.hazeColor.y + "," +
+                                properties.haze.hazeColor.z + ")";
 
-                            elZoneHazeColorRed.value = properties.haze.hazeColor.red;
-                            elZoneHazeColorGreen.value = properties.haze.hazeColor.green;
-                            elZoneHazeColorBlue.value = properties.haze.hazeColor.blue;
+                            elZoneHazeColorRed.value = properties.haze.hazeColor.x;
+                            elZoneHazeColorGreen.value = properties.haze.hazeColor.y;
+                            elZoneHazeColorBlue.value = properties.haze.hazeColor.z;
                             elZoneHazeBackgroundBlend.value = properties.haze.hazeBackgroundBlend.toFixed(2);
 
-                            elZoneHazeGlareColor.style.backgroundColor = "rgb(" + 
-                                properties.haze.hazeGlareColor.red + "," + 
-                                properties.haze.hazeGlareColor.green + "," + 
-                                properties.haze.hazeGlareColor.blue + ")";
+                            elZoneHazeGlareColor.style.backgroundColor = "rgb(" +
+                                properties.haze.hazeGlareColor.x + "," +
+                                properties.haze.hazeGlareColor.y + "," +
+                                properties.haze.hazeGlareColor.z + ")";
 
-                            elZoneHazeGlareColorRed.value = properties.haze.hazeGlareColor.red;
-                            elZoneHazeGlareColorGreen.value = properties.haze.hazeGlareColor.green;
-                            elZoneHazeGlareColorBlue.value = properties.haze.hazeGlareColor.blue;
+                            elZoneHazeGlareColorRed.value = properties.haze.hazeGlareColor.x;
+                            elZoneHazeGlareColorGreen.value = properties.haze.hazeGlareColor.y;
+                            elZoneHazeGlareColorBlue.value = properties.haze.hazeGlareColor.z;
 
                             elZoneHazeEnableGlare.checked = properties.haze.hazeEnableGlare;
                             elZonehazeGlareAngle.value = properties.haze.hazeGlareAngle.toFixed(0);
@@ -1270,11 +1270,11 @@ function loaded() {
                             elShapeType.value = properties.shapeType;
                             elCompoundShapeURL.value = properties.compoundShapeURL;
 
-                            elZoneSkyboxColor.style.backgroundColor = "rgb(" + properties.skybox.color.red + "," + 
-                                                       properties.skybox.color.green + "," + properties.skybox.color.blue + ")";
-                            elZoneSkyboxColorRed.value = properties.skybox.color.red;
-                            elZoneSkyboxColorGreen.value = properties.skybox.color.green;
-                            elZoneSkyboxColorBlue.value = properties.skybox.color.blue;
+                            elZoneSkyboxColor.style.backgroundColor = "rgb(" + properties.skybox.color.x + "," +
+                                                       properties.skybox.color.y + "," + properties.skybox.color.z + ")";
+                            elZoneSkyboxColorRed.value = properties.skybox.color.x;
+                            elZoneSkyboxColorGreen.value = properties.skybox.color.y;
+                            elZoneSkyboxColorBlue.value = properties.skybox.color.z;
                             elZoneSkyboxURL.value = properties.skybox.url;
 
                             elZoneFlyingAllowed.checked = properties.flyingAllowed;

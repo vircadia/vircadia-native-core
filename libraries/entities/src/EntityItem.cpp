@@ -1784,11 +1784,9 @@ void EntityItem::setUnscaledDimensions(const glm::vec3& value) {
 }
 
 glm::vec3 EntityItem::getUnscaledDimensions() const {
-    glm::vec3 result;
-    withReadLock([&] {
-        result = _unscaledDimensions;
+   return resultWithReadLock<glm::vec3>([&] {
+        return _unscaledDimensions;
     });
-    return result;
 }
 
 void EntityItem::setRotation(glm::quat rotation) {

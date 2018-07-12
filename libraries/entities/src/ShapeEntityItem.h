@@ -77,7 +77,7 @@ public:
     float getAlpha() const { return _alpha; };
     void setAlpha(float alpha);
 
-    const ScriptVec3UChar& getColor() const;
+    ScriptVec3UChar getColor() const;
     void setColor(const ScriptVec3UChar& value);
 
     void setUnscaledDimensions(const glm::vec3& value) override;
