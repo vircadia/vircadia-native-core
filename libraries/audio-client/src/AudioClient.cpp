@@ -52,6 +52,10 @@
 #include "AudioLogging.h"
 #include "AudioHelpers.h"
 
+#if defined(Q_OS_ANDROID)
+#include <QtAndroidExtras/QAndroidJniObject>
+#endif
+
 const int AudioClient::MIN_BUFFER_FRAMES = 1;
 
 const int AudioClient::MAX_BUFFER_FRAMES = 20;
@@ -483,8 +487,9 @@ bool nativeFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
     audioFormat.setByteOrder(QAudioFormat::LittleEndian);
 
 #if defined(Q_OS_ANDROID)
-    if (audioDevice == QAudioDeviceInfo::defaultInputDevice()) {
-        audioFormat.setSampleRate(44100);
+    QAndroidJniObject brand =  QAndroidJniObject::getStaticObjectField<jstring>("android/os/Build", "BRAND");
+    if (audioDevice == QAudioDeviceInfo::defaultInputDevice() && brand.toString().contains("samsung", Qt::CaseInsensitive)) {
+        audioFormat.setSampleRate(24000);
     }
 #endif
 
