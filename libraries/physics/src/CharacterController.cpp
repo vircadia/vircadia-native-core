@@ -277,10 +277,14 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
         btVector3 shapeLocalOffset = glmToBullet(_shapeLocalOffset);
         btVector3 swingDisplacement = rotateVector(endRot, -shapeLocalOffset) - rotateVector(startRot, -shapeLocalOffset);
 
-        _followLinearDisplacement = linearDisplacement + swingDisplacement + _followLinearDisplacement;
-        _followAngularDisplacement = angularDisplacement * _followAngularDisplacement;
+        if (!isNaN(bulletToGLM(endPos)) && !isNaN(bulletToGLM(endRot))) {
+            _followLinearDisplacement = linearDisplacement + swingDisplacement + _followLinearDisplacement;
+            _followAngularDisplacement = angularDisplacement * _followAngularDisplacement;
 
-        _rigidBody->setWorldTransform(btTransform(endRot, endPos));
+            _rigidBody->setWorldTransform(btTransform(endRot, endPos));
+        } else {
+            qCWarning(physics) << "CharacterController::playerStep produced NaN.";
+        }
     }
     _followTime += dt;
 
