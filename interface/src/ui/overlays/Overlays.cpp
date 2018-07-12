@@ -116,7 +116,7 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     auto textureCache = DependencyManager::get<TextureCache>();
 
-    auto size = glm::uvec2(glm::vec2(qApp->getUiSize()) * qApp->getRenderResolutionScale());
+    auto size = glm::uvec2(qApp->getUiSize());
     int width = size.x;
     int height = size.y;
     mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
