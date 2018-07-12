@@ -103,7 +103,7 @@
 
 inline QScriptValue convertScriptValue(QScriptEngine* e, const ScriptVec2Float& v) { return vec2FloatToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const ScriptVec3Float& v) { return vec3FloatToScriptValue(e, v); }
-inline QScriptValue convertScriptValue(QScriptEngine* e, const ScriptVec3UInt& v) { return vec3UIntToScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const ScriptVec3UChar& v) { return vec3UCharToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, float v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, int v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, bool v) { return QScriptValue(v); }
@@ -112,7 +112,6 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, quint32 v) { return QSc
 inline QScriptValue convertScriptValue(QScriptEngine* e, quint64 v) { return QScriptValue((qsreal)v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QString& v) { return QScriptValue(v); }
 
-inline QScriptValue convertScriptValue(QScriptEngine* e, const xColor& v) { return xColorToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::quat& v) { return quatToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QScriptValue& v) { return v; }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<ScriptVec3Float>& v) {return qVectorVec3ToScriptValue(e, v); }
@@ -236,10 +235,10 @@ inline ScriptVec3Float ScriptVec3Float_convertFromScriptValue(const QScriptValue
     return vec3;
 }
 
-inline ScriptVec3UInt ScriptVec3UInt_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+inline ScriptVec3UChar ScriptVec3UChar_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;
-    ScriptVec3UInt vec3;
-    vec3UIntFromScriptValue(v, vec3);
+    ScriptVec3UChar vec3;
+    vec3UCharFromScriptValue(v, vec3);
     return vec3;
 }
 
@@ -292,31 +291,6 @@ inline glm::quat quat_convertFromScriptValue(const QScriptValue& v, bool& isVali
     }
     return glm::quat();
 }
-
-inline xColor xColor_convertFromScriptValue(const QScriptValue& v, bool& isValid) { 
-    xColor newValue { 255, 255, 255 };
-    isValid = false; /// assume it can't be converted
-    QScriptValue r = v.property("red");
-    QScriptValue g = v.property("green");
-    QScriptValue b = v.property("blue");
-    if (!r.isValid()) {
-        r = v.property("x");
-    }
-    if (!g.isValid()) {
-        g = v.property("y");
-    }
-    if (!b.isValid()) {
-        b = v.property("z");
-    }
-    if (r.isValid() && g.isValid() && b.isValid()) {
-        newValue.red = r.toVariant().toInt();
-        newValue.green = g.toVariant().toInt();
-        newValue.blue = b.toVariant().toInt();
-        isValid = true;
-    }
-    return newValue;
-}
-
 
 #define COPY_PROPERTY_IF_CHANGED(P) \
 {                                   \
@@ -395,10 +369,10 @@ inline xColor xColor_convertFromScriptValue(const QScriptValue& v, bool& isValid
         T _##n;                                  \
         static T _static##N; 
 
-#define ADD_PROPERTY_TO_MAP(P, N, n, T) \
+#define ADD_PROPERTY_TO_MAP(P, n) \
         _propertyStringsToEnums[#n] = P;
 
-#define ADD_GROUP_PROPERTY_TO_MAP(P, G, g, N, n) \
+#define ADD_GROUP_PROPERTY_TO_MAP(P, g, n) \
         _propertyStringsToEnums[#g "." #n] = P;
 
 #define DEFINE_CORE(N, n, T, V) \

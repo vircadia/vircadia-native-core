@@ -39,7 +39,6 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID) : EntityItem(
     // set the last animated when interface (re)starts
     _type = EntityTypes::Model;
     _lastKnownCurrentFrame = -1;
-    _color[0] = _color[1] = _color[2] = 0;
 }
 
 const QString ModelEntityItem::getTextures() const {
@@ -55,7 +54,7 @@ void ModelEntityItem::setTextures(const QString& textures) {
 
 EntityItemProperties ModelEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(modelURL, getModelURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(compoundShapeURL, getCompoundShapeURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
@@ -114,7 +113,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     const unsigned char* dataAt = data;
     bool animationPropertiesChanged = false;
 
-    READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
+    READ_ENTITY_PROPERTY(PROP_COLOR, ScriptVec3UChar, setColor);
     READ_ENTITY_PROPERTY(PROP_MODEL_URL, QString, setModelURL);
     READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
@@ -506,9 +505,6 @@ QVector<bool> ModelEntityItem::getJointTranslationsSet() const {
 }
 
 
-xColor ModelEntityItem::getXColor() const { 
-    xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; 
-}
 bool ModelEntityItem::hasModel() const { 
     return resultWithReadLock<bool>([&] {
         return !_modelURL.isEmpty();
@@ -540,17 +536,15 @@ QString ModelEntityItem::getCompoundShapeURL() const {
     return _compoundShapeURL.get();
 }
 
-void ModelEntityItem::setColor(const rgbColor& value) { 
+void ModelEntityItem::setColor(const ScriptVec3UChar& value) {
     withWriteLock([&] {
-        memcpy(_color, value, sizeof(_color));
+        _color = value;
     });
 }
 
-void ModelEntityItem::setColor(const xColor& value) {
-    withWriteLock([&] {
-        _color[RED_INDEX] = value.red;
-        _color[GREEN_INDEX] = value.green;
-        _color[BLUE_INDEX] = value.blue;
+const ScriptVec3UChar& ModelEntityItem::getColor() const {
+    return resultWithReadLock<ScriptVec3UChar>([&] {
+        return _color;
     });
 }
 

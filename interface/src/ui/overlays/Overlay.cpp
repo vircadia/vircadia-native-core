@@ -15,7 +15,7 @@
 
 #include "Application.h"
 
-const xColor Overlay::DEFAULT_OVERLAY_COLOR = { 255, 255, 255 };
+const ScriptVec3UChar Overlay::DEFAULT_OVERLAY_COLOR = { 255, 255, 255 };
 const float Overlay::DEFAULT_ALPHA = 0.7f;
 
 Overlay::Overlay() :
@@ -57,7 +57,7 @@ Overlay::~Overlay() {
 
 void Overlay::setProperties(const QVariantMap& properties) {
     bool valid;
-    auto color = xColorFromVariant(properties["color"], valid);
+    auto color = vec3FromVariant(properties["color"], valid);
     if (valid) {
         _color = color;
     }
@@ -95,7 +95,7 @@ void Overlay::setProperties(const QVariantMap& properties) {
 // JSDoc for copying to @typedefs of overlay types that inherit Overlay.
 /**jsdoc
   * @property {string} type=TODO - Has the value <code>"TODO"</code>. <em>Read-only.</em>
-  * @property {Color} color=255,255,255 - The color of the overlay.
+  * @property {Vec3Color} color=255,255,255 - The color of the overlay.
   * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
   * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
   * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
@@ -116,7 +116,7 @@ QVariant Overlay::getProperty(const QString& property) {
         return QVariant(getType());
     }
     if (property == "color") {
-        return xColorToVariant(_color);
+        return vec3ToVariant(_color.toGlm());
     }
     if (property == "alpha") {
         return _alpha;
@@ -143,21 +143,21 @@ QVariant Overlay::getProperty(const QString& property) {
     return QVariant();
 }
 
-xColor Overlay::getColor() { 
+ScriptVec3UChar Overlay::getColor() {
     if (_colorPulse == 0.0f) {
         return _color; 
     }
 
     float pulseLevel = updatePulse();
-    xColor result = _color;
+    ScriptVec3UChar result = _color;
     if (_colorPulse < 0.0f) {
-        result.red *= (1.0f - pulseLevel);
-        result.green *= (1.0f - pulseLevel);
-        result.blue *= (1.0f - pulseLevel);
+        result.x *= (1.0f - pulseLevel);
+        result.y *= (1.0f - pulseLevel);
+        result.z *= (1.0f - pulseLevel);
     } else {
-        result.red *= pulseLevel;
-        result.green *= pulseLevel;
-        result.blue *= pulseLevel;
+        result.x *= pulseLevel;
+        result.y *= pulseLevel;
+        result.z *= pulseLevel;
     }
     return result;
 }

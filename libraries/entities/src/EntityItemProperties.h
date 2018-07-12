@@ -134,8 +134,8 @@ public:
     DEFINE_PROPERTY_REF(PROP_SCRIPT, Script, script, QString, ENTITY_ITEM_DEFAULT_SCRIPT);
     DEFINE_PROPERTY(PROP_SCRIPT_TIMESTAMP, ScriptTimestamp, scriptTimestamp, quint64, ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP);
     DEFINE_PROPERTY_REF(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString, ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL);
-    DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, xColor, ParticleEffectEntityItem::DEFAULT_XCOLOR);
-    DEFINE_PROPERTY_REF(PROP_COLOR_SPREAD, ColorSpread, colorSpread, xColor, ParticleEffectEntityItem::DEFAULT_XCOLOR_SPREAD);
+    DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, ScriptVec3UChar, particle::DEFAULT_COLOR);
+    DEFINE_PROPERTY_REF(PROP_COLOR_SPREAD, ColorSpread, colorSpread, ScriptVec3UChar, particle::DEFAULT_COLOR_SPREAD);
     DEFINE_PROPERTY_REF(PROP_COLOR_START, ColorStart, colorStart, ScriptVec3Float, particle::DEFAULT_COLOR_UNINITIALIZED);
     DEFINE_PROPERTY_REF(PROP_COLOR_FINISH, ColorFinish, colorFinish, ScriptVec3Float, particle::DEFAULT_COLOR_UNINITIALIZED);
     DEFINE_PROPERTY(PROP_ALPHA, Alpha, alpha, float, particle::DEFAULT_ALPHA);
@@ -161,8 +161,8 @@ public:
     DEFINE_PROPERTY_REF(PROP_SIMULATION_OWNER, SimulationOwner, simulationOwner, SimulationOwner, SimulationOwner());
     DEFINE_PROPERTY_REF(PROP_TEXT, Text, text, QString, TextEntityItem::DEFAULT_TEXT);
     DEFINE_PROPERTY(PROP_LINE_HEIGHT, LineHeight, lineHeight, float, TextEntityItem::DEFAULT_LINE_HEIGHT);
-    DEFINE_PROPERTY_REF(PROP_TEXT_COLOR, TextColor, textColor, xColor, TextEntityItem::DEFAULT_TEXT_COLOR);
-    DEFINE_PROPERTY_REF(PROP_BACKGROUND_COLOR, BackgroundColor, backgroundColor, xColor, TextEntityItem::DEFAULT_BACKGROUND_COLOR);
+    DEFINE_PROPERTY_REF(PROP_TEXT_COLOR, TextColor, textColor, ScriptVec3UChar, TextEntityItem::DEFAULT_TEXT_COLOR);
+    DEFINE_PROPERTY_REF(PROP_BACKGROUND_COLOR, BackgroundColor, backgroundColor, ScriptVec3UChar, TextEntityItem::DEFAULT_BACKGROUND_COLOR);
     DEFINE_PROPERTY_REF_ENUM(PROP_SHAPE_TYPE, ShapeType, shapeType, ShapeType, SHAPE_TYPE_NONE);
     DEFINE_PROPERTY(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32, particle::DEFAULT_MAX_PARTICLES);
     DEFINE_PROPERTY(PROP_LIFESPAN, Lifespan, lifespan, float, particle::DEFAULT_LIFESPAN);
@@ -287,7 +287,7 @@ public:
     std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT>::const_iterator findComponent(const QString& mode);
 
 public:
-    float getMaxDimension() const { return glm::compMax(glm::vec3(_dimensions.x, _dimensions.y, _dimensions.z)); }
+    float getMaxDimension() const { return glm::compMax(_dimensions.toGlm()); }
 
     float getAge() const { return (float)(usecTimestampNow() - _created) / (float)USECS_PER_SECOND; }
     bool hasCreatedTime() const { return (_created != UNKNOWN_CREATED_TIME); }
@@ -314,10 +314,10 @@ public:
     void clearID() { _id = UNKNOWN_ENTITY_ID; _idSet = false; }
     void markAllChanged();
 
-    const glm::vec3& getNaturalDimensions() const { return glm::vec3(_naturalDimensions.x, _naturalDimensions.y, _naturalDimensions.z); }
+    const glm::vec3& getNaturalDimensions() const { return _naturalDimensions.toGlm(); }
     void setNaturalDimensions(const glm::vec3& value) { _naturalDimensions = value; }
     
-    const glm::vec3& getNaturalPosition() const { return glm::vec3(_naturalPosition.x, _naturalPosition.y, _naturalPosition.z); }
+    const glm::vec3& getNaturalPosition() const { return _naturalPosition.toGlm(); }
     void calculateNaturalPosition(const glm::vec3& min, const glm::vec3& max);
     
     const QVariantMap& getTextureNames() const { return _textureNames; }
@@ -426,7 +426,7 @@ void EntityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityProper
 
 // define these inline here so the macros work
 inline void EntityItemProperties::setPosition(const ScriptVec3Float& value)
-                    { _position = glm::clamp(glm::vec3(value.x, value.y, value.z), (float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE); _positionChanged = true; }
+                    { _position = glm::clamp(value.toGlm(), (float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE); _positionChanged = true; }
 
 inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     debug << "EntityItemProperties[" << "\n";

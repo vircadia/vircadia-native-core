@@ -149,7 +149,7 @@ void PolyLineEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& 
 
 void PolyLineEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     PolyLineUniforms uniforms;
-    uniforms.color = toGlm(entity->getXColor());
+    uniforms.color = toGlm(entity->getColor());
     memcpy(&_uniformBuffer.edit<PolyLineUniforms>(), &uniforms, sizeof(PolyLineUniforms));
     auto pointsChanged = entity->pointsChanged();
     auto strokeWidthsChanged = entity->strokeWidthsChanged();
@@ -175,7 +175,7 @@ void PolyLineEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
     }
     if (strokeColorsChanged) {
         _lastStrokeColors = entity->getStrokeColors();
-        _lastStrokeColors = _lastNormals.size() == _lastStrokeColors.size() ? _lastStrokeColors : QVector<ScriptVec3Float>({ toGlm(entity->getXColor()) });
+        _lastStrokeColors = _lastNormals.size() == _lastStrokeColors.size() ? _lastStrokeColors : QVector<ScriptVec3Float>({ toGlm(entity->getColor()) });
     }
     if (pointsChanged || strokeWidthsChanged || normalsChanged || strokeColorsChanged) {
         _empty = std::min(_lastPoints.size(), std::min(_lastNormals.size(), _lastStrokeWidths.size())) < 2;

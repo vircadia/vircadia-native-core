@@ -30,7 +30,7 @@ class ReadBitstreamToTreeParams;
 /**jsdoc
  * A key light is defined by the following properties.
  * @typedef {object} Entities.KeyLight
- * @property {Color} color=255,255,255 - The color of the light.
+ * @property {Vec3Color} color=255,255,255 - The color of the light.
  * @property {number} intensity=1 - The intensity of the light.
  * @property {Vec3} direction=0,-1,0 - The direction the light is shining.
  * @property {boolean} castShadows=false - If <code>true</code> then shadows are cast. Shadows are cast by avatars, plus 
@@ -84,13 +84,13 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
-    static const xColor DEFAULT_KEYLIGHT_COLOR;
+    static const ScriptVec3UChar DEFAULT_KEYLIGHT_COLOR;
     static const float DEFAULT_KEYLIGHT_INTENSITY;
     static const float DEFAULT_KEYLIGHT_AMBIENT_INTENSITY;
     static const glm::vec3 DEFAULT_KEYLIGHT_DIRECTION;
     static const bool DEFAULT_KEYLIGHT_CAST_SHADOWS;
 
-    DEFINE_PROPERTY_REF(PROP_KEYLIGHT_COLOR, Color, color, xColor, DEFAULT_KEYLIGHT_COLOR);
+    DEFINE_PROPERTY_REF(PROP_KEYLIGHT_COLOR, Color, color, ScriptVec3UChar, DEFAULT_KEYLIGHT_COLOR);
     DEFINE_PROPERTY(PROP_KEYLIGHT_INTENSITY, Intensity, intensity, float, DEFAULT_KEYLIGHT_INTENSITY);
     DEFINE_PROPERTY_REF(PROP_KEYLIGHT_DIRECTION, Direction, direction, ScriptVec3Float, DEFAULT_KEYLIGHT_DIRECTION);
     DEFINE_PROPERTY(PROP_KEYLIGHT_CAST_SHADOW, CastShadows, castShadows, bool, DEFAULT_KEYLIGHT_CAST_SHADOWS);

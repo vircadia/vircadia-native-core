@@ -39,12 +39,8 @@ PolyLineEntityItem::PolyLineEntityItem(const EntityItemID& entityItemID) : Entit
 EntityItemProperties PolyLineEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     QWriteLocker lock(&_quadReadWriteLock);
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
-
-
-    properties._color = getXColor();
-    properties._colorChanged = false;
     
-
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lineWidth, getLineWidth);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(linePoints, getLinePoints);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(normals, getNormals);
@@ -204,7 +200,7 @@ int PolyLineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* da
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
+    READ_ENTITY_PROPERTY(PROP_COLOR, ScriptVec3UChar, setColor);
     READ_ENTITY_PROPERTY(PROP_LINE_WIDTH, float, setLineWidth);
     READ_ENTITY_PROPERTY(PROP_LINE_POINTS, QVector<ScriptVec3Float>, setLinePoints);
     READ_ENTITY_PROPERTY(PROP_NORMALS, QVector<ScriptVec3Float>, setNormals);
@@ -253,7 +249,7 @@ void PolyLineEntityItem::appendSubclassData(OctreePacketData* packetData, Encode
 void PolyLineEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
     qCDebug(entities) << "   QUAD EntityItem id:" << getEntityItemID() << "---------------------------------------------";
-    qCDebug(entities) << "               color:" << _color[0] << "," << _color[1] << "," << _color[2];
+    qCDebug(entities) << "               color:" << _color;
     qCDebug(entities) << "            position:" << debugTreeVector(getWorldPosition());
     qCDebug(entities) << "          dimensions:" << debugTreeVector(getScaledDimensions());
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
@@ -307,5 +303,17 @@ void PolyLineEntityItem::setTextures(const QString& textures) {
             _textures = textures;
             _texturesChangedFlag = true;
         }
+    });
+}
+
+void PolyLineEntityItem::setColor(const ScriptVec3UChar& value) {
+    withWriteLock([&] {
+        _color = value;
+    });
+}
+
+const ScriptVec3UChar& PolyLineEntityItem::getColor() const {
+    return resultWithReadLock<ScriptVec3UChar>([&] {
+        return _color;
     });
 }

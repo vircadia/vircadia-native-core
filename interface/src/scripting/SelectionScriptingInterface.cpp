@@ -421,7 +421,7 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
     auto colorVariant = properties["outlineUnoccludedColor"];
     if (colorVariant.isValid()) {
         bool isValid;
-        auto color = xColorFromVariant(colorVariant, isValid);
+        auto color = vec3FromVariant(colorVariant, isValid);
         if (isValid) {
             _style._outlineUnoccluded.color = toGlm(color);
         }
@@ -429,7 +429,7 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
     colorVariant = properties["outlineOccludedColor"];
     if (colorVariant.isValid()) {
         bool isValid;
-        auto color = xColorFromVariant(colorVariant, isValid);
+        auto color = vec3FromVariant(colorVariant, isValid);
         if (isValid) {
             _style._outlineOccluded.color = toGlm(color);
         }
@@ -437,7 +437,7 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
     colorVariant = properties["fillUnoccludedColor"];
     if (colorVariant.isValid()) {
         bool isValid;
-        auto color = xColorFromVariant(colorVariant, isValid);
+        auto color = vec3FromVariant(colorVariant, isValid);
         if (isValid) {
             _style._fillUnoccluded.color = toGlm(color);
         }
@@ -445,7 +445,7 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
     colorVariant = properties["fillOccludedColor"];
     if (colorVariant.isValid()) {
         bool isValid;
-        auto color = xColorFromVariant(colorVariant, isValid);
+        auto color = vec3FromVariant(colorVariant, isValid);
         if (isValid) {
             _style._fillOccluded.color = toGlm(color);
         }
@@ -482,10 +482,10 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
 
 /**jsdoc
  * @typedef {object} Selection.HighlightStyle
- * @property {Color} outlineUnoccludedColor - Color of the specified highlight region.
- * @property {Color} outlineOccludedColor - ""
- * @property {Color} fillUnoccludedColor- ""
- * @property {Color} fillOccludedColor- ""
+ * @property {Vec3Color} outlineUnoccludedColor - Color of the specified highlight region.
+ * @property {Vec3Color} outlineOccludedColor - ""
+ * @property {Vec3Color} fillUnoccludedColor- ""
+ * @property {Vec3Color} fillOccludedColor- ""
  * @property {number} outlineUnoccludedAlpha - Alpha value ranging from <code>0.0</code> (not visible) to <code>1.0</code> 
  *     (fully opaque) for the specified highlight region.
  * @property {number} outlineOccludedAlpha - ""
@@ -497,10 +497,11 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
 QVariantMap SelectionHighlightStyle::toVariantMap() const {
     QVariantMap properties;
 
-    properties["outlineUnoccludedColor"] = xColorToVariant(xColorFromGlm(_style._outlineUnoccluded.color));
-    properties["outlineOccludedColor"] = xColorToVariant(xColorFromGlm(_style._outlineOccluded.color));
-    properties["fillUnoccludedColor"] = xColorToVariant(xColorFromGlm(_style._fillUnoccluded.color));
-    properties["fillOccludedColor"] = xColorToVariant(xColorFromGlm(_style._fillOccluded.color));
+    const float MAX_COLOR = 255.0f;
+    properties["outlineUnoccludedColor"] = vec3ToVariant(_style._outlineUnoccluded.color * MAX_COLOR);
+    properties["outlineOccludedColor"] = vec3ToVariant(_style._outlineOccluded.color * MAX_COLOR);
+    properties["fillUnoccludedColor"] = vec3ToVariant(_style._fillUnoccluded.color * MAX_COLOR);
+    properties["fillOccludedColor"] = vec3ToVariant(_style._fillOccluded.color * MAX_COLOR);
 
     properties["outlineUnoccludedAlpha"] = _style._outlineUnoccluded.alpha;
     properties["outlineOccludedAlpha"] = _style._outlineOccluded.alpha;

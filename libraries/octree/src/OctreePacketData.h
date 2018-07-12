@@ -143,12 +143,6 @@ public:
     /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(const nodeColor& color);
 
-    /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
-    bool appendValue(const xColor& color);
-
-    /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
-    bool appendValue(const rgbColor& color);
-
     /// appends a unsigned 8 bit int to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(uint8_t value);
 
@@ -169,6 +163,9 @@ public:
 
     /// appends a non-position vector to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(const ScriptVec3Float& value);
+
+    /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(const ScriptVec3UChar& value);
 
     /// appends a QVector of vec3s to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(const QVector<ScriptVec3Float>& value);
@@ -255,18 +252,17 @@ public:
     static int unpackDataFromBytes(const unsigned char* dataBytes, float& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, ScriptVec2Float& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, ScriptVec3Float& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, ScriptVec3UChar& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, bool& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, quint64& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, uint32_t& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, uint16_t& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, uint8_t& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
-    static int unpackDataFromBytes(const unsigned char* dataBytes, rgbColor& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, glm::quat& result) { int bytes = unpackOrientationQuatFromBytes(dataBytes, result); return bytes; }
     static int unpackDataFromBytes(const unsigned char* dataBytes, ShapeType& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, MaterialMappingMode& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, QString& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QUuid& result);
-    static int unpackDataFromBytes(const unsigned char* dataBytes, xColor& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QVector<ScriptVec3Float>& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QVector<glm::quat>& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QVector<float>& result);

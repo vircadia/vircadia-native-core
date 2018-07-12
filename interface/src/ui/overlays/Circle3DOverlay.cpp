@@ -237,20 +237,15 @@ void Circle3DOverlay::render(RenderArgs* args) {
                     angle += tickMarkAngle;
                 }
             }
-            
-            xColor majorColorX = getMajorTickMarksColor();
-            glm::vec4 majorColor(majorColorX.red / MAX_COLOR, majorColorX.green / MAX_COLOR, majorColorX.blue / MAX_COLOR, alpha);
-            
+
+            glm::vec4 majorColor(toGlm(getMajorTickMarksColor()), alpha);
             geometryCache->updateVertices(_majorTicksVerticesID, majorPoints, majorColor);
-            
-            xColor minorColorX = getMinorTickMarksColor();
-            glm::vec4 minorColor(minorColorX.red / MAX_COLOR, minorColorX.green / MAX_COLOR, minorColorX.blue / MAX_COLOR, alpha);
-            
+            glm::vec4 minorColor(toGlm(getMinorTickMarksColor()), alpha);
             geometryCache->updateVertices(_minorTicksVerticesID, minorPoints, minorColor);
         }
-        
+
         geometryCache->renderVertices(batch, gpu::LINES, _majorTicksVerticesID);
-        
+
         geometryCache->renderVertices(batch, gpu::LINES, _minorTicksVerticesID);
     }
 }
@@ -271,8 +266,8 @@ template<typename T> T fromVariant(const QVariant& v, bool& valid) {
     return qvariant_cast<T>(v);
 }
 
-template<> xColor fromVariant(const QVariant& v, bool& valid) {
-    return xColorFromVariant(v, valid);
+template<> ScriptVec3UChar fromVariant(const QVariant& v, bool& valid) {
+    return vec3FromVariant(v, valid);
 }
 
 template<typename T>
@@ -335,11 +330,11 @@ void Circle3DOverlay::setProperties(const QVariantMap& properties) {
     _dirty |= updateIfValid(properties, "outerStartAlpha", _outerStartAlpha);
     _dirty |= updateIfValid(properties, "outerEndAlpha", _outerEndAlpha);
 
-    _dirty |= updateIfValid<xColor>(properties, "color", { _innerStartColor, _innerEndColor, _outerStartColor, _outerEndColor });
-    _dirty |= updateIfValid<xColor>(properties, "startColor", { _innerStartColor, _outerStartColor } );
-    _dirty |= updateIfValid<xColor>(properties, "endColor", { _innerEndColor, _outerEndColor } );
-    _dirty |= updateIfValid<xColor>(properties, "innerColor", { _innerStartColor, _innerEndColor } );
-    _dirty |= updateIfValid<xColor>(properties, "outerColor", { _outerStartColor, _outerEndColor } );
+    _dirty |= updateIfValid<ScriptVec3UChar>(properties, "color", { _innerStartColor, _innerEndColor, _outerStartColor, _outerEndColor });
+    _dirty |= updateIfValid<ScriptVec3UChar>(properties, "startColor", { _innerStartColor, _outerStartColor } );
+    _dirty |= updateIfValid<ScriptVec3UChar>(properties, "endColor", { _innerEndColor, _outerEndColor } );
+    _dirty |= updateIfValid<ScriptVec3UChar>(properties, "innerColor", { _innerStartColor, _innerEndColor } );
+    _dirty |= updateIfValid<ScriptVec3UChar>(properties, "outerColor", { _outerStartColor, _outerEndColor } );
     _dirty |= updateIfValid(properties, "innerStartColor", _innerStartColor);
     _dirty |= updateIfValid(properties, "innerEndColor", _innerEndColor);
     _dirty |= updateIfValid(properties, "outerStartColor", _outerStartColor);
@@ -413,20 +408,20 @@ void Circle3DOverlay::setProperties(const QVariantMap& properties) {
  * @property {number} endAt=360 - The counter-clockwise angle from the overlay's x-axis that drawing ends at, in degrees.
  * @property {number} outerRadius=1 - The outer radius of the overlay, in meters. Synonym: <code>radius</code>.
  * @property {number} innerRadius=0 - The inner radius of the overlay, in meters.
-  * @property {Color} color=255,255,255 - The color of the overlay. Setting this value also sets the values of 
+  * @property {Vec3Color} color=255,255,255 - The color of the overlay. Setting this value also sets the values of 
  *     <code>innerStartColor</code>, <code>innerEndColor</code>, <code>outerStartColor</code>, and <code>outerEndColor</code>.
- * @property {Color} startColor - Sets the values of <code>innerStartColor</code> and <code>outerStartColor</code>.
+ * @property {Vec3Color} startColor - Sets the values of <code>innerStartColor</code> and <code>outerStartColor</code>.
  *     <em>Write-only.</em>
- * @property {Color} endColor - Sets the values of <code>innerEndColor</code> and <code>outerEndColor</code>.
+ * @property {Vec3Color} endColor - Sets the values of <code>innerEndColor</code> and <code>outerEndColor</code>.
  *     <em>Write-only.</em>
- * @property {Color} innerColor - Sets the values of <code>innerStartColor</code> and <code>innerEndColor</code>.
+ * @property {Vec3Color} innerColor - Sets the values of <code>innerStartColor</code> and <code>innerEndColor</code>.
  *     <em>Write-only.</em>
- * @property {Color} outerColor - Sets the values of <code>outerStartColor</code> and <code>outerEndColor</code>.
+ * @property {Vec3Color} outerColor - Sets the values of <code>outerStartColor</code> and <code>outerEndColor</code>.
  *     <em>Write-only.</em>
- * @property {Color} innerStartcolor - The color at the inner start point of the overlay.
- * @property {Color} innerEndColor - The color at the inner end point of the overlay.
- * @property {Color} outerStartColor - The color at the outer start point of the overlay.
- * @property {Color} outerEndColor - The color at the outer end point of the overlay.
+ * @property {Vec3Color} innerStartcolor - The color at the inner start point of the overlay.
+ * @property {Vec3Color} innerEndColor - The color at the inner end point of the overlay.
+ * @property {Vec3Color} outerStartColor - The color at the outer start point of the overlay.
+ * @property {Vec3Color} outerEndColor - The color at the outer end point of the overlay.
  * @property {number} alpha=0.5 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>. Setting this value also sets
  *     the values of <code>innerStartAlpha</code>, <code>innerEndAlpha</code>, <code>outerStartAlpha</code>, and 
  *     <code>outerEndAlpha</code>. Synonym: <code>Alpha</code>; <em>write-only</em>.
@@ -450,8 +445,8 @@ void Circle3DOverlay::setProperties(const QVariantMap& properties) {
  *     outwards from the inner radius; a negative value draws tick marks inwards from the outer radius.
  * @property {number} minorTickMarksLength=0 - The length of the minor tick marks, in meters. A positive value draws tick marks
  *     outwards from the inner radius; a negative value draws tick marks inwards from the outer radius.
- * @property {Color} majorTickMarksColor=0,0,0 - The color of the major tick marks.
- * @property {Color} minorTickMarksColor=0,0,0 - The color of the minor tick marks.
+ * @property {Vec3Color} majorTickMarksColor=0,0,0 - The color of the major tick marks.
+ * @property {Vec3Color} minorTickMarksColor=0,0,0 - The color of the minor tick marks.
  */
 QVariant Circle3DOverlay::getProperty(const QString& property) {
     if (property == "startAt") {
@@ -470,16 +465,16 @@ QVariant Circle3DOverlay::getProperty(const QString& property) {
         return _innerRadius;
     }
     if (property == "innerStartColor") {
-        return xColorToVariant(_innerStartColor);
+        return vec3ToVariant(_innerStartColor.toGlm());
     }
     if (property == "innerEndColor") {
-        return xColorToVariant(_innerEndColor);
+        return vec3ToVariant(_innerEndColor.toGlm());
     }
     if (property == "outerStartColor") {
-        return xColorToVariant(_outerStartColor);
+        return vec3ToVariant(_outerStartColor.toGlm());
     }
     if (property == "outerEndColor") {
-        return xColorToVariant(_outerEndColor);
+        return vec3ToVariant(_outerEndColor.toGlm());
     }
     if (property == "innerStartAlpha") {
         return _innerStartAlpha;
@@ -509,10 +504,10 @@ QVariant Circle3DOverlay::getProperty(const QString& property) {
         return _minorTickMarksLength;
     }
     if (property == "majorTickMarksColor") {
-        return xColorToVariant(_majorTickMarksColor);
+        return vec3ToVariant(_majorTickMarksColor.toGlm());
     }
     if (property == "minorTickMarksColor") {
-        return xColorToVariant(_minorTickMarksColor);
+        return vec3ToVariant(_minorTickMarksColor.toGlm());
     }
 
     return Planar3DOverlay::getProperty(property);

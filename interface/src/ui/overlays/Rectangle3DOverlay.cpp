@@ -51,9 +51,8 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
     }
 
     float alpha = getAlpha();
-    xColor color = getColor();
-    const float MAX_COLOR = 255.0f;
-    glm::vec4 rectangleColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
+    ScriptVec3UChar color = getColor();
+    glm::vec4 rectangleColor(toGlm(color), alpha);
 
     auto batch = args->_batch;
     if (batch) {
@@ -112,7 +111,7 @@ const render::ShapeKey Rectangle3DOverlay::getShapeKey() {
  * @typedef {object} Overlays.Rectangle3DProperties
  * 
  * @property {string} type=rectangle3d - Has the value <code>"rectangle3d"</code>. <em>Read-only.</em>
- * @property {Color} color=255,255,255 - The color of the overlay.
+ * @property {Vec3Color} color=255,255,255 - The color of the overlay.
  * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
  * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
  * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.

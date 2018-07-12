@@ -73,7 +73,7 @@ namespace entity {
         return Shape::Sphere;
     }
 
-    ::QString stringFromShape(Shape shape) {
+    QString stringFromShape(Shape shape) {
         return shapeStrings[shape];
     }
 }
@@ -117,8 +117,10 @@ ShapeEntityItem::ShapeEntityItem(const EntityItemID& entityItemID) : EntityItem(
 
 EntityItemProperties ShapeEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
+
     properties.setShape(entity::stringFromShape(getShape()));
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
+    properties._shapeChanged = false;
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alpha, getAlpha);
 
     return properties;
@@ -182,7 +184,7 @@ int ShapeEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     const unsigned char* dataAt = data;
 
     READ_ENTITY_PROPERTY(PROP_SHAPE, QString, setShape);
-    READ_ENTITY_PROPERTY(PROP_COLOR, rgbColor, setColor);
+    READ_ENTITY_PROPERTY(PROP_COLOR, ScriptVec3UChar, setColor);
     READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
 
     return bytesRead;
@@ -210,27 +212,16 @@ void ShapeEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
 }
 
-void ShapeEntityItem::setColor(const rgbColor& value) {
-    memcpy(_color, value, sizeof(rgbColor));
-    _material->setAlbedo(glm::vec3(_color[0], _color[1], _color[2]) / 255.0f);
+void ShapeEntityItem::setColor(const ScriptVec3UChar& value) {
+    withWriteLock([&] {
+        _color = value;
+    });
 }
 
-xColor ShapeEntityItem::getXColor() const {
-    return xColor { _color[0], _color[1], _color[2] };
-}
-
-void ShapeEntityItem::setColor(const xColor& value) {
-    setColor(rgbColor { value.red, value.green, value.blue });
-}
-
-QColor ShapeEntityItem::getQColor() const {
-    auto& color = getColor();
-    return QColor(color[0], color[1], color[2], (int)(getAlpha() * 255));
-}
-
-void ShapeEntityItem::setColor(const QColor& value) {
-    setColor(rgbColor { (uint8_t)value.red(), (uint8_t)value.green(), (uint8_t)value.blue() });
-    setAlpha(value.alpha());
+const ScriptVec3UChar& ShapeEntityItem::getColor() const {
+    return resultWithReadLock<ScriptVec3UChar>([&] {
+        return _color;
+    });
 }
 
 void ShapeEntityItem::setAlpha(float alpha) {
@@ -288,7 +279,7 @@ void ShapeEntityItem::debugDump() const {
     qCDebug(entities) << "               name:" << _name;
     qCDebug(entities) << "              shape:" << stringFromShape(_shape) << " (EnumId: " << _shape << " )";
     qCDebug(entities) << " collisionShapeType:" << ShapeInfo::getNameForShapeType(getShapeType());
-    qCDebug(entities) << "              color:" << _color[0] << "," << _color[1] << "," << _color[2];
+    qCDebug(entities) << "              color:" << _color;
     qCDebug(entities) << "           position:" << debugTreeVector(getWorldPosition());
     qCDebug(entities) << "         dimensions:" << debugTreeVector(getScaledDimensions());
     qCDebug(entities) << "      getLastEdited:" << debugTime(getLastEdited(), now);
@@ -395,4 +386,3 @@ void ShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
 ShapeType ShapeEntityItem::getShapeType() const {
     return _collisionShapeType;
 }
-

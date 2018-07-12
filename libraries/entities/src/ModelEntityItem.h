@@ -55,12 +55,11 @@ public:
     void setShapeType(ShapeType type) override;
     virtual ShapeType getShapeType() const override;
 
-
     // TODO: Move these to subclasses, or other appropriate abstraction
     // getters/setters applicable to models and particles
+    const ScriptVec3UChar& getColor() const;
+    void setColor(const ScriptVec3UChar& value);
 
-    const rgbColor& getColor() const { return _color; }
-    xColor getXColor() const;
     bool hasModel() const;
     virtual bool hasCompoundShapeURL() const;
 
@@ -69,9 +68,6 @@ public:
 
     static const QString DEFAULT_COMPOUND_SHAPE_URL;
     QString getCompoundShapeURL() const;
-
-    void setColor(const rgbColor& value);
-    void setColor(const xColor& value);
 
     // model related properties
     virtual void setModelURL(const QString& url);
@@ -157,7 +153,7 @@ protected:
     QVector<ModelJointData> _localJointData;
     int _lastKnownCurrentFrame{-1};
 
-    rgbColor _color;
+    ScriptVec3UChar _color;
     QString _modelURL;
     bool _relayParentJoints;
 

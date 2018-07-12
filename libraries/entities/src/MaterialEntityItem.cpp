@@ -211,7 +211,7 @@ void MaterialEntityItem::setMaterialData(const QString& materialData) {
 void MaterialEntityItem::setMaterialMappingPos(const ScriptVec2Float& materialMappingPos) {
     if (_materialMappingPos != materialMappingPos) {
         removeMaterial();
-        _materialMappingPos = glm::vec2(materialMappingPos.x, materialMappingPos.y);
+        _materialMappingPos = materialMappingPos.toGlm();
         applyMaterial();
     }
 }
@@ -219,7 +219,7 @@ void MaterialEntityItem::setMaterialMappingPos(const ScriptVec2Float& materialMa
 void MaterialEntityItem::setMaterialMappingScale(const ScriptVec2Float& materialMappingScale) {
     if (_materialMappingScale != materialMappingScale) {
         removeMaterial();
-        _materialMappingScale = glm::vec2(materialMappingScale.x, materialMappingScale.y);
+        _materialMappingScale = materialMappingScale.toGlm();
         applyMaterial();
     }
 }

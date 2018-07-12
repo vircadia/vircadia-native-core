@@ -33,7 +33,6 @@ class QUrl;
 Q_DECLARE_METATYPE(glm::vec4)
 Q_DECLARE_METATYPE(glm::quat)
 Q_DECLARE_METATYPE(glm::mat4)
-Q_DECLARE_METATYPE(xColor)
 Q_DECLARE_METATYPE(QVector<float>)
 Q_DECLARE_METATYPE(AACube)
 Q_DECLARE_METATYPE(std::function<void()>);
@@ -67,10 +66,10 @@ public:
     ScriptVec2Float(const ScriptVec2Float& other) : x(other.x), y(other.y) {}
     ScriptVec2Float(const glm::vec2& other) : x(other.x), y(other.y) {}
     void operator=(const ScriptVec2Float& other) { x = other.x; y = other.y; }
-    inline bool operator==(const ScriptVec2Float& other) { return (x == other.x && y == other.y); }
-    inline bool operator!=(const ScriptVec2Float& other) { return !(*this == other); }
-    inline bool operator==(const glm::vec2& other) { return (x == other.x && y == other.y); }
-    inline bool operator!=(const glm::vec2& other) { return !(*this == other); }
+    inline bool operator==(const ScriptVec2Float& other) const { return (x == other.x && y == other.y); }
+    inline bool operator!=(const ScriptVec2Float& other) const { return !(*this == other); }
+    inline bool operator==(const glm::vec2& other) const { return (x == other.x && y == other.y); }
+    inline bool operator!=(const glm::vec2& other) const { return !(*this == other); }
 
     glm::vec2 toGlm() const { return glm::vec2(x, y); }
     Q_INVOKABLE QVariantMap toJSON() { return toJsonValue(*this, { "x", "y" }).toObject().toVariantMap(); }
@@ -128,8 +127,8 @@ public:
     void operator=(const ScriptVec3Float& other) { x = other.x; y = other.y; z = other.z; }
     inline bool operator==(const ScriptVec3Float& other) const { return (x == other.x && y == other.y && z == other.z); }
     inline bool operator!=(const ScriptVec3Float& other) const { return !(*this == other); }
-    inline bool operator==(const glm::vec3& other) { return (x == other.x && y == other.y && z == other.z); }
-    inline bool operator!=(const glm::vec3& other) { return !(*this == other); }
+    inline bool operator==(const glm::vec3& other) const { return (x == other.x && y == other.y && z == other.z); }
+    inline bool operator!=(const glm::vec3& other) const { return !(*this == other); }
 
     glm::vec3 toGlm() const { return glm::vec3(x, y, z); }
     Q_INVOKABLE QVariantMap toJSON() { return toJsonValue(*this, { "x", "y", "z" }).toObject().toVariantMap(); }
@@ -160,7 +159,7 @@ void vec3FloatFromScriptValue(const QScriptValue& object, ScriptVec3Float& vec3)
 * @property {number} y - Green component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>g</code> and <code>green</code>.
 * @property {number} z - Blue component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>b</code> and <code>blue</code>.
 */
-class ScriptVec3UInt : public QObject {
+class ScriptVec3UChar : public QObject {
     Q_OBJECT
     Q_PROPERTY(unsigned int x MEMBER x)
     Q_PROPERTY(unsigned int y MEMBER y)
@@ -172,31 +171,35 @@ class ScriptVec3UInt : public QObject {
     Q_PROPERTY(unsigned int green MEMBER y)
     Q_PROPERTY(unsigned int blue MEMBER z)
 public:
-    ScriptVec3UInt() {}
-    ScriptVec3UInt(unsigned int xyz) : x(xyz), y(xyz), z(xyz) {}
-    ScriptVec3UInt(unsigned int x, unsigned int y, unsigned int z) : x(x), y(y), z(z) {}
-    ScriptVec3UInt(const ScriptVec3UInt& other) : x(other.x), y(other.y), z(other.z) {}
-    void operator=(const ScriptVec3UInt& other) { x = other.x; y = other.y; z = other.z; }
-    inline bool operator==(const ScriptVec3UInt& other) { return (x == other.x && y == other.y && z == other.z); }
-    inline bool operator!=(const ScriptVec3UInt& other) { return !(*this == other); }
+    ScriptVec3UChar() {}
+    ScriptVec3UChar(unsigned int xyz) : x(xyz), y(xyz), z(xyz) {}
+    ScriptVec3UChar(unsigned int x, unsigned int y, unsigned int z) : x(x), y(y), z(z) {}
+    ScriptVec3UChar(const ScriptVec3UChar& other) : x(other.x), y(other.y), z(other.z) {}
+    ScriptVec3UChar(const glm::vec3& other) : x(other.x), y(other.y), z(other.z) {}
+    void operator=(const ScriptVec3UChar& other) { x = other.x; y = other.y; z = other.z; }
+    inline bool operator==(const ScriptVec3UChar& other) const { return (x == other.x && y == other.y && z == other.z); }
+    inline bool operator!=(const ScriptVec3UChar& other) const { return !(*this == other); }
 
+    glm::vec3 toGlm() const { return glm::vec3(x, y, z); }
     Q_INVOKABLE QVariantMap toJSON() { return toJsonValue(*this, { "x", "y", "z" }).toObject().toVariantMap(); }
 
-    unsigned int x { 0 };
-    unsigned int y { 0 };
-    unsigned int z { 0 };
+    unsigned char x { 0 };
+    unsigned char y { 0 };
+    unsigned char z { 0 };
 private:
-    friend QDebug operator<<(QDebug debug, const ScriptVec3UInt& vec3);
+    friend QDebug operator<<(QDebug debug, const ScriptVec3UChar& vec3);
+    friend bool operator==(glm::vec3 glmVec3, const ScriptVec3UChar& vec3);
+    friend bool operator!=(glm::vec3 glmVec3, const ScriptVec3UChar& vec3);
 };
-inline QDebug operator<<(QDebug debug, const ScriptVec3UInt& vec3) {
+inline QDebug operator<<(QDebug debug, const ScriptVec3UChar& vec3) {
     debug << "(" << vec3.x << "," << vec3.y << "," << vec3.z << ")";
     return debug;
 }
-inline bool operator==(glm::vec3 glmVec3, const ScriptVec3UInt& vec3) { return (glmVec3.x == vec3.x && glmVec3.y == vec3.y && glmVec3.z == vec3.z); }
-inline bool operator!=(glm::vec3 glmVec3, const ScriptVec3UInt& vec3) { return !(glmVec3 == vec3); }
-Q_DECLARE_METATYPE(ScriptVec3UInt)
-QScriptValue vec3UIntToScriptValue(QScriptEngine* engine, const ScriptVec3UInt& vec3);
-void vec3UIntFromScriptValue(const QScriptValue& object, ScriptVec3UInt& vec3);
+inline bool operator==(glm::vec3 glmVec3, const ScriptVec3UChar& vec3) { return (glmVec3.x == vec3.x && glmVec3.y == vec3.y && glmVec3.z == vec3.z); }
+inline bool operator!=(glm::vec3 glmVec3, const ScriptVec3UChar& vec3) { return !(glmVec3 == vec3); }
+Q_DECLARE_METATYPE(ScriptVec3UChar)
+QScriptValue vec3UCharToScriptValue(QScriptEngine* engine, const ScriptVec3UChar& vec3);
+void vec3UCharFromScriptValue(const QScriptValue& object, ScriptVec3UChar& vec3);
 
 Q_DECLARE_METATYPE(glm::vec3)
 QScriptValue vec3ToScriptValue(QScriptEngine* engine, const glm::vec3 &vec3);
@@ -235,14 +238,6 @@ void qRectFromScriptValue(const QScriptValue& object, QRect& rect);
 QRect qRectFromVariant(const QVariant& object, bool& isValid);
 QRect qRectFromVariant(const QVariant& object);
 QVariant qRectToVariant(const QRect& rect);
-
-
-// xColor
-QScriptValue xColorToScriptValue(QScriptEngine* engine, const xColor& color);
-void xColorFromScriptValue(const QScriptValue &object, xColor& color);
-
-QVariant xColorToVariant(const xColor& color);
-xColor xColorFromVariant(const QVariant &object, bool& isValid);
 
 // QColor
 QScriptValue qColorToScriptValue(QScriptEngine* engine, const QColor& color);

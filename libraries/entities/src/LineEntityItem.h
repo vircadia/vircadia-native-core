@@ -41,11 +41,8 @@ class LineEntityItem : public EntityItem {
                                                  EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                  bool& somethingChanged) override;
 
-    const rgbColor& getColor() const;
-    xColor getXColor() const;
-
-    void setColor(const rgbColor& value);
-    void setColor(const xColor& value);
+    const ScriptVec3UChar& getColor() const;
+    void setColor(const ScriptVec3UChar& value);
 
     void setLineWidth(float lineWidth);
     float getLineWidth() const;
@@ -71,7 +68,7 @@ class LineEntityItem : public EntityItem {
     static const int MAX_POINTS_PER_LINE;
 
  private:
-    rgbColor _color;
+    ScriptVec3UChar _color;
     float _lineWidth { DEFAULT_LINE_WIDTH };
     QVector<ScriptVec3Float> _points;
     bool _pointsChanged { true };

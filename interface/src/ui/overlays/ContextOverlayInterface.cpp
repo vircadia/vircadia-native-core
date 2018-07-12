@@ -83,7 +83,7 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _challengeOwnershipTimeoutTimer.setSingleShot(true);
 }
 
-static const xColor CONTEXT_OVERLAY_COLOR = { 255, 255, 255 };
+static const ScriptVec3UChar CONTEXT_OVERLAY_COLOR = { 255, 255, 255 };
 static const float CONTEXT_OVERLAY_INSIDE_DISTANCE = 1.0f; // in meters
 static const float CONTEXT_OVERLAY_SIZE = 0.09f; // in meters, same x and y dims
 static const float CONTEXT_OVERLAY_OFFSET_DISTANCE = 0.1f;

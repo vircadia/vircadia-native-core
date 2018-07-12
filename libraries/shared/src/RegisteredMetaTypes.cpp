@@ -30,13 +30,12 @@ int glmVec2MetaTypeId = qRegisterMetaType<glm::vec2>();
 int vec2FloatMetaTypeId = qRegisterMetaType<ScriptVec2Float>();
 int glmVec3MetaTypeId = qRegisterMetaType<glm::vec3>();
 int vec3FloatMetaTypeId = qRegisterMetaType<ScriptVec3Float>();
-int vec3UintMetaTypeId = qRegisterMetaType<ScriptVec3UInt>();
+int vec3UintMetaTypeId = qRegisterMetaType<ScriptVec3UChar>();
 int vec4MetaTypeId = qRegisterMetaType<glm::vec4>();
 int qVectorVec3MetaTypeId = qRegisterMetaType<QVector<ScriptVec3Float>>();
 int qVectorQuatMetaTypeId = qRegisterMetaType<QVector<glm::quat>>();
 int qVectorBoolMetaTypeId = qRegisterMetaType<QVector<bool>>();
 int quatMetaTypeId = qRegisterMetaType<glm::quat>();
-int xColorMetaTypeId = qRegisterMetaType<xColor>();
 int pickRayMetaTypeId = qRegisterMetaType<PickRay>();
 int collisionMetaTypeId = qRegisterMetaType<Collision>();
 int qMapURLStringMetaTypeId = qRegisterMetaType<QMap<QUrl,QString>>();
@@ -49,7 +48,7 @@ void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, vec2FloatToScriptValue, vec2FloatFromScriptValue);
     qScriptRegisterMetaType(engine, vec3ToScriptValue, vec3FromScriptValue);
     qScriptRegisterMetaType(engine, vec3FloatToScriptValue, vec3FloatFromScriptValue);
-    qScriptRegisterMetaType(engine, vec3UIntToScriptValue, vec3UIntFromScriptValue);
+    qScriptRegisterMetaType(engine, vec3UCharToScriptValue, vec3UCharFromScriptValue);
     qScriptRegisterMetaType(engine, vec4toScriptValue, vec4FromScriptValue);
     qScriptRegisterMetaType(engine, quatToScriptValue, quatFromScriptValue);
     qScriptRegisterMetaType(engine, mat4toScriptValue, mat4FromScriptValue);
@@ -65,7 +64,6 @@ void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, qURLToScriptValue, qURLFromScriptValue);
     qScriptRegisterMetaType(engine, qColorToScriptValue, qColorFromScriptValue);
 
-    qScriptRegisterMetaType(engine, xColorToScriptValue, xColorFromScriptValue);
     qScriptRegisterMetaType(engine, pickRayToScriptValue, pickRayFromScriptValue);
     qScriptRegisterMetaType(engine, collisionToScriptValue, collisionFromScriptValue);
     qScriptRegisterMetaType(engine, quuidToScriptValue, quuidFromScriptValue);
@@ -208,15 +206,23 @@ void vec3FloatFromScriptValue(const QScriptValue& object, ScriptVec3Float& vec3)
     vec3 = ScriptVec3Float();
 }
 
-QScriptValue vec3UIntToScriptValue(QScriptEngine* engine, const ScriptVec3UInt& vec3) {
-    return engine->newQObject(new ScriptVec3UInt(vec3), QScriptEngine::ScriptOwnership);
+QScriptValue vec3UCharToScriptValue(QScriptEngine* engine, const ScriptVec3UChar& vec3) {
+    return engine->newQObject(new ScriptVec3UChar(vec3), QScriptEngine::ScriptOwnership);
 }
 
-void vec3UIntFromScriptValue(const QScriptValue& object, ScriptVec3UInt& vec3) {
+void vec3UCharFromScriptValue(const QScriptValue& object, ScriptVec3UChar& vec3) {
     if (object.isQObject()) {
         auto qObject = object.toQObject();
         if (qObject) {
-            vec3 = *qobject_cast<ScriptVec3UInt*>(qObject);
+            vec3 = *qobject_cast<ScriptVec3UChar*>(qObject);
+            return;
+        }
+    } else if (object.isString()) {
+        QColor qColor(object.toString());
+        if (qColor.isValid()) {
+            vec3.x = (uint8_t)qColor.red();
+            vec3.y = (uint8_t)qColor.blue();
+            vec3.z = (uint8_t)qColor.green();
             return;
         }
     } else {
@@ -249,7 +255,7 @@ void vec3UIntFromScriptValue(const QScriptValue& object, ScriptVec3UInt& vec3) {
         vec3.z = z.toVariant().toUInt();
         return;
     }
-    vec3 = ScriptVec3UInt();
+    vec3 = ScriptVec3UChar();
 }
 
 QScriptValue vec3ToScriptValue(QScriptEngine* engine, const glm::vec3 &vec3) {
@@ -296,6 +302,22 @@ glm::vec3 vec3FromVariant(const QVariant& object, bool& valid) {
         v.y = qvec3.y();
         v.z = qvec3.z();
         valid = true;
+    } else if (object.canConvert<QString>()) {
+        QColor qColor(object.toString());
+        if (qColor.isValid()) {
+            v.x = (uint8_t)qColor.red();
+            v.y = (uint8_t)qColor.blue();
+            v.z = (uint8_t)qColor.green();
+            valid = true;
+        }
+    } else if (object.canConvert<QColor>()) {
+        QColor qColor = qvariant_cast<QColor>(object);
+        if (qColor.isValid()) {
+            v.x = (uint8_t)qColor.red();
+            v.y = (uint8_t)qColor.blue();
+            v.z = (uint8_t)qColor.green();
+            valid = true;
+        }
     } else {
         auto map = object.toMap();
         auto x = map["x"];
@@ -684,14 +706,6 @@ void qRectFromScriptValue(const QScriptValue &object, QRect& rect) {
     rect.setHeight(object.property("height").toVariant().toInt());
 }
 
-QScriptValue xColorToScriptValue(QScriptEngine *engine, const xColor& color) {
-    QScriptValue obj = engine->newObject();
-    obj.setProperty("red", color.red);
-    obj.setProperty("green", color.green);
-    obj.setProperty("blue", color.blue);
-    return obj;
-}
-
 /**jsdoc
  * Defines a rectangular portion of an image or screen.
  * @typedef {object} Rect
@@ -730,86 +744,6 @@ QRect qRectFromVariant(const QVariant& object) {
     bool valid;
     return qRectFromVariant(object, valid);
 }
-
-
-void xColorFromScriptValue(const QScriptValue &object, xColor& color) {
-    if (!object.isValid()) {
-        return;
-    }
-    if (object.isNumber()) {
-        color.red = color.green = color.blue = (uint8_t)object.toUInt32();
-    } else if (object.isString()) {
-        QColor qcolor(object.toString());
-        if (qcolor.isValid()) {
-            color.red = (uint8_t)qcolor.red();
-            color.blue = (uint8_t)qcolor.blue();
-            color.green = (uint8_t)qcolor.green();
-        }
-    } else {
-        color.red = object.property("red").toVariant().toInt();
-        color.green = object.property("green").toVariant().toInt();
-        color.blue = object.property("blue").toVariant().toInt();
-    }
-}
-
-/**jsdoc
- * An RGB color value.
- * @typedef {object} Color
- * @property {number} red - Red component value. Integer in the range <code>0</code> - <code>255</code>.
- * @property {number} green - Green component value. Integer in the range <code>0</code> - <code>255</code>.
- * @property {number} blue - Blue component value. Integer in the range <code>0</code> - <code>255</code>.
- */
-QVariant xColorToVariant(const xColor& color) {
-    QVariantMap obj;
-    obj["red"] = color.red;
-    obj["green"] = color.green;
-    obj["blue"] = color.blue;
-    return obj;
-}
-
-xColor xColorFromVariant(const QVariant &object, bool& isValid) {
-    isValid = false;
-    xColor color { 0, 0, 0 };
-    if (!object.isValid()) {
-        return color;
-    }
-    if (object.canConvert<int>()) {
-        isValid = true;
-        color.red = color.green = color.blue = (uint8_t)object.toInt();
-    } else if (object.canConvert<QString>()) {
-        QColor qcolor(object.toString());
-        if (qcolor.isValid()) {
-            isValid = true;
-            color.red = (uint8_t)qcolor.red();
-            color.blue = (uint8_t)qcolor.blue();
-            color.green = (uint8_t)qcolor.green();
-        }
-    } else if (object.canConvert<QColor>()) {
-        QColor qcolor = qvariant_cast<QColor>(object);
-        if (qcolor.isValid()) {
-            isValid = true;
-            color.red = (uint8_t)qcolor.red();
-            color.blue = (uint8_t)qcolor.blue();
-            color.green = (uint8_t)qcolor.green();
-        }
-    } else {
-        QVariantMap map = object.toMap();
-        color.red = map["red"].toInt(&isValid);
-        if (isValid) {
-            color.green = map["green"].toInt(&isValid);
-        }
-        if (isValid) {
-            color.blue = map["blue"].toInt(&isValid);
-        }
-    }
-    return color;
-}
-
-xColor xColorFromVariant(const QVariant &object) {
-    bool valid;
-    return xColorFromVariant(object, valid);
-}
-
 
 QScriptValue qColorToScriptValue(QScriptEngine* engine, const QColor& color) {
     QScriptValue object = engine->newObject();

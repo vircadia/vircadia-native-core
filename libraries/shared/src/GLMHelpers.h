@@ -33,6 +33,8 @@ using glm::vec3;
 using glm::vec4;
 using glm::quat;
 
+class ScriptVec3UChar;
+
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
@@ -174,12 +176,12 @@ bool isSimilarPosition(const glm::vec3& positionA, const glm::vec3& positionB, f
 uvec2 toGlm(const QSize& size);
 ivec2 toGlm(const QPoint& pt);
 vec2 toGlm(const QPointF& pt);
-vec3 toGlm(const xColor& color);
+vec3 toGlm(const ScriptVec3UChar& color);
 vec4 toGlm(const QColor& color);
 ivec4 toGlm(const QRect& rect);
-vec4 toGlm(const xColor& color, float alpha);
+vec4 toGlm(const ScriptVec3UChar& color, float alpha);
 
-xColor xColorFromGlm(const glm::vec3 & c);
+ScriptVec3UChar scriptVec3UCharFromGlm(const glm::vec3 & c);
 
 QSize fromGlm(const glm::ivec2 & v);
 QMatrix4x4 fromGlm(const glm::mat4 & m);

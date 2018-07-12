@@ -31,7 +31,7 @@ namespace entity {
     };
 
     Shape shapeFromString(const ::QString& shapeString);
-    ::QString stringFromShape(Shape shape);
+    QString stringFromShape(Shape shape);
 }
 
 class ShapeEntityItem : public EntityItem {
@@ -77,16 +77,10 @@ public:
     float getAlpha() const { return _alpha; };
     void setAlpha(float alpha);
 
-    const rgbColor& getColor() const { return _color; }
-    void setColor(const rgbColor& value);
+    const ScriptVec3UChar& getColor() const;
+    void setColor(const ScriptVec3UChar& value);
 
     void setUnscaledDimensions(const glm::vec3& value) override;
-
-    xColor getXColor() const;
-    void setColor(const xColor& value);
-
-    QColor getQColor() const;
-    void setColor(const QColor& value);
 
     bool shouldBePhysical() const override { return !isDead(); }
     
@@ -106,7 +100,7 @@ public:
 protected:
 
     float _alpha { 1.0f };
-    rgbColor _color;
+    ScriptVec3UChar _color;
     entity::Shape _shape { entity::Shape::Sphere };
 
     //! This is SHAPE_TYPE_ELLIPSOID rather than SHAPE_TYPE_NONE to maintain

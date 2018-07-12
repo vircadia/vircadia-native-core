@@ -59,21 +59,13 @@ public:
     void setLineHeight(float value);
     float getLineHeight() const;
 
-    static const xColor DEFAULT_TEXT_COLOR;
-    // FIXME should not return a reference because of thread safety, but can't return an array
-    const rgbColor& getTextColor() const;
-    xColor getTextColorX() const;
+    static const ScriptVec3UChar DEFAULT_TEXT_COLOR;
+    const ScriptVec3UChar& getTextColor() const;
+    void setTextColor(const ScriptVec3UChar& value);
 
-    void setTextColor(const rgbColor& value);
-    void setTextColor(const xColor& value);
-
-    static const xColor DEFAULT_BACKGROUND_COLOR;
-    // FIXME should not return a reference because of thread safety, but can't return an array
-    const rgbColor& getBackgroundColor() const;
-    xColor getBackgroundColorX() const;
-
-    void setBackgroundColor(const rgbColor& value);
-    void setBackgroundColor(const xColor& value);
+    static const ScriptVec3UChar DEFAULT_BACKGROUND_COLOR;
+    const ScriptVec3UChar& getBackgroundColor() const;
+    void setBackgroundColor(const ScriptVec3UChar& value);
 
     static const bool DEFAULT_FACE_CAMERA;
     bool getFaceCamera() const;
@@ -82,8 +74,8 @@ public:
 private:
     QString _text;
     float _lineHeight;
-    rgbColor _textColor;
-    rgbColor _backgroundColor;
+    ScriptVec3UChar _textColor;
+    ScriptVec3UChar _backgroundColor;
     bool _faceCamera;
 };
 

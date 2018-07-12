@@ -17,7 +17,7 @@
 #include "EntityItemProperties.h"
 #include "EntityItemPropertiesMacros.h"
 
-const xColor KeyLightPropertyGroup::DEFAULT_KEYLIGHT_COLOR = { 255, 255, 255 };
+const ScriptVec3UChar KeyLightPropertyGroup::DEFAULT_KEYLIGHT_COLOR = { 255, 255, 255 };
 const float KeyLightPropertyGroup::DEFAULT_KEYLIGHT_INTENSITY = 1.0f;
 const float KeyLightPropertyGroup::DEFAULT_KEYLIGHT_AMBIENT_INTENSITY = 0.5f;
 const glm::vec3 KeyLightPropertyGroup::DEFAULT_KEYLIGHT_DIRECTION = { 0.0f, -1.0f, 0.0f };
@@ -33,13 +33,13 @@ void KeyLightPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desired
 }
 
 void KeyLightPropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(keyLight, color, xColor, setColor);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(keyLight, color, ScriptVec3UChar, setColor);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(keyLight, intensity, float, setIntensity);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(keyLight, direction, ScriptVec3Float, setDirection);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(keyLight, castShadows, bool, setCastShadows);
 
     // legacy property support
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(keyLightColor, xColor, setColor, getColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(keyLightColor, ScriptVec3UChar, setColor, getColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(keyLightIntensity, float, setIntensity, getIntensity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(keyLightDirection, ScriptVec3Float, setDirection, getDirection);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(keyLightCastShadows, bool, setCastShadows, getCastShadows);
@@ -99,7 +99,7 @@ bool KeyLightPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFl
     bool overwriteLocalData = true;
     bool somethingChanged = false;
     
-    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, xColor, setColor);
+    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, ScriptVec3UChar, setColor);
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY, float, setIntensity);
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, ScriptVec3Float, setDirection);
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_CAST_SHADOW, bool, setCastShadows);
@@ -187,7 +187,7 @@ int KeyLightPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char*
     int bytesRead = 0;
     const unsigned char* dataAt = data;
     
-    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, xColor, setColor);
+    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_COLOR, ScriptVec3UChar, setColor);
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY, float, setIntensity);
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, ScriptVec3Float, setDirection);
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_CAST_SHADOW, bool, setCastShadows);

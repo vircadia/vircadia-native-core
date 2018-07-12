@@ -94,12 +94,12 @@ inline void BufferParser::readValue(QUuid& result) {
     readUuid(result);
 }
 
-template<>
-inline void BufferParser::readValue(xColor& result) {
-    readValue(result.red);
-    readValue(result.blue);
-    readValue(result.green);
-}
+//template<>
+//inline void BufferParser::readValue(xColor& result) {
+//    readValue(result.red);
+//    readValue(result.blue);
+//    readValue(result.green);
+//}
 
 template<>
 inline void BufferParser::readValue(QVector<glm::vec3>& result) {

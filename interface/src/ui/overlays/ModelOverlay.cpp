@@ -345,7 +345,7 @@ vectorType ModelOverlay::mapJoints(mapFunction<itemType> function) const {
  * @typedef {object} Overlays.ModelProperties
  *
  * @property {string} type=sphere - Has the value <code>"model"</code>. <em>Read-only.</em>
- * @property {Color} color=255,255,255 - The color of the overlay.
+ * @property {Vec3Color} color=255,255,255 - The color of the overlay.
  * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
  * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
  * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.

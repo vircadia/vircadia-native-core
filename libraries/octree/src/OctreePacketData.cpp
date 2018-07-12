@@ -297,14 +297,6 @@ bool OctreePacketData::appendValue(const nodeColor& color) {
     return appendColor(color[RED_INDEX], color[GREEN_INDEX], color[BLUE_INDEX]);
 }
 
-bool OctreePacketData::appendValue(const xColor& color) {
-    return appendColor(color.red, color.green, color.blue);
-}
-
-bool OctreePacketData::appendValue(const rgbColor& color) {
-    return appendColor(color[RED_INDEX], color[GREEN_INDEX], color[BLUE_INDEX]);
-}
-
 bool OctreePacketData::appendColor(colorPart red, colorPart green, colorPart blue) {
     // eventually we can make this use a dictionary...
     bool success = false;
@@ -402,6 +394,11 @@ bool OctreePacketData::appendValue(const ScriptVec3Float& value) {
         _totalBytesOfValues += length;
     }
     return success;
+}
+
+
+bool OctreePacketData::appendValue(const ScriptVec3UChar& color) {
+    return appendColor(color.x, color.y, color.z);
 }
 
 bool OctreePacketData::appendValue(const QVector<ScriptVec3Float>& value) {
@@ -694,14 +691,6 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QUuid&
     }
     return sizeof(length) + length;
 }
-
-int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, xColor& result) { 
-    result.red = dataBytes[RED_INDEX];
-    result.green = dataBytes[GREEN_INDEX];
-    result.blue = dataBytes[BLUE_INDEX];
-    return sizeof(rgbColor);
-}
-
 
 int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVector<ScriptVec3Float>& result) {
     uint16_t length;

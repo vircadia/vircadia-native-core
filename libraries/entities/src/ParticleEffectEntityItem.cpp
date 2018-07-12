@@ -145,9 +145,6 @@ uint64_t Properties::emitIntervalUsecs() const {
     return 0;
 }
 
-const xColor ParticleEffectEntityItem::DEFAULT_XCOLOR = xColor(static_cast<unsigned char>(DEFAULT_COLOR.r), static_cast<unsigned char>(DEFAULT_COLOR.g), static_cast<unsigned char>(DEFAULT_COLOR.b));
-const xColor ParticleEffectEntityItem::DEFAULT_XCOLOR_SPREAD = xColor(static_cast<unsigned char>(DEFAULT_COLOR_SPREAD.r), static_cast<unsigned char>(DEFAULT_COLOR_SPREAD.g), static_cast<unsigned char>(DEFAULT_COLOR_SPREAD.b));
-
 EntityItemPointer ParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity(new ParticleEffectEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
@@ -159,7 +156,6 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     EntityItem(entityItemID)
 {
     _type = EntityTypes::ParticleEffect;
-    setColor(DEFAULT_COLOR);
 }
 
 void ParticleEffectEntityItem::setAlpha(float alpha) {
@@ -368,7 +364,7 @@ void ParticleEffectEntityItem::computeAndUpdateDimensions() {
 EntityItemProperties ParticleEffectEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
 
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alpha, getAlpha);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType); // FIXME - this doesn't appear to get used
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(maxParticles, getMaxParticles);
@@ -449,26 +445,10 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     return somethingChanged;
 }
 
-void ParticleEffectEntityItem::setColor(const vec3& value) {
+void ParticleEffectEntityItem::setColor(const ScriptVec3UChar& value) {
     withWriteLock([&] {
-        _particleProperties.color.gradient.target = value;
+        _particleProperties.color.gradient.target = value.toGlm();
     });
-}
-
-void ParticleEffectEntityItem::setColor(const xColor& value) {
-    withWriteLock([&] {
-        _particleProperties.color.gradient.target.r = value.red;
-        _particleProperties.color.gradient.target.g = value.green;
-        _particleProperties.color.gradient.target.b = value.blue;
-    });
-}
-
-xColor ParticleEffectEntityItem::getXColor() const {
-    xColor color;
-    color.red = _particleProperties.color.gradient.target.r;
-    color.green = _particleProperties.color.gradient.target.g;
-    color.blue = _particleProperties.color.gradient.target.b;
-    return color;
 }
 
 int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
@@ -479,7 +459,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY(PROP_COLOR, xColor, setColor);
+    READ_ENTITY_PROPERTY(PROP_COLOR, ScriptVec3UChar, setColor);
     READ_ENTITY_PROPERTY(PROP_EMITTING_PARTICLES, bool, setIsEmitting);
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
     READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, setMaxParticles);
@@ -495,7 +475,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     READ_ENTITY_PROPERTY(PROP_RADIUS_START, float, setRadiusStart);
     READ_ENTITY_PROPERTY(PROP_RADIUS_FINISH, float, setRadiusFinish);
 
-    READ_ENTITY_PROPERTY(PROP_COLOR_SPREAD, xColor, setColorSpread);
+    READ_ENTITY_PROPERTY(PROP_COLOR_SPREAD, ScriptVec3UChar, setColorSpread);
     READ_ENTITY_PROPERTY(PROP_COLOR_START, ScriptVec3Float, setColorStart);
     READ_ENTITY_PROPERTY(PROP_COLOR_FINISH, ScriptVec3Float, setColorFinish);
     READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
@@ -564,7 +544,7 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
                                                   OctreeElement::AppendState& appendState) const {
 
     bool successPropertyFits = true;
-    APPEND_ENTITY_PROPERTY(PROP_COLOR, getXColor());
+    APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
     APPEND_ENTITY_PROPERTY(PROP_EMITTING_PARTICLES, getIsEmitting());
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
     APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, getMaxParticles());
@@ -643,20 +623,10 @@ void ParticleEffectEntityItem::setColorFinish(const vec3& colorFinish) {
     });
 }
 
-void ParticleEffectEntityItem::setColorSpread(const xColor& value) {
+void ParticleEffectEntityItem::setColorSpread(const ScriptVec3UChar& value) {
     withWriteLock([&] {
-        _particleProperties.color.gradient.spread.r = value.red;
-        _particleProperties.color.gradient.spread.g = value.green;
-        _particleProperties.color.gradient.spread.b = value.blue;
+        _particleProperties.color.gradient.spread = value.toGlm();
     });
-}
-
-xColor ParticleEffectEntityItem::getColorSpread() const {
-    xColor color;
-    color.red = _particleProperties.color.gradient.spread.r;
-    color.green = _particleProperties.color.gradient.spread.g;
-    color.blue = _particleProperties.color.gradient.spread.b;
-    return color;
 }
 
 void ParticleEffectEntityItem::setEmitterShouldTrail(bool emitterShouldTrail) {
@@ -672,10 +642,10 @@ particle::Properties ParticleEffectEntityItem::getParticleProperties() const {
 
         // Special case the properties that get treated differently if they're unintialized
         if (glm::any(glm::isnan(result.color.range.start))) {
-            result.color.range.start = getColor();
+            result.color.range.start = getColor().toGlm();
         }
         if (glm::any(glm::isnan(result.color.range.finish))) {
-            result.color.range.finish = getColor();
+            result.color.range.finish = getColor().toGlm();
         }
         if (glm::isnan(result.alpha.range.start)) {
             result.alpha.range.start = getAlpha();
