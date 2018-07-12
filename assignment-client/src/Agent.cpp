@@ -828,6 +828,8 @@ void Agent::aboutToFinish() {
 
     if (_scriptEngine) {
         _scriptEngine->stop();
+    } else {
+        emit finished();
     }
 
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
