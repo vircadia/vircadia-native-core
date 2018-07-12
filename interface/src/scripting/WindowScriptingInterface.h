@@ -81,13 +81,6 @@ public slots:
     void raise();
 
     /**jsdoc
-     * Raise the Interface window if it is minimized. If raised, the window gains focus.
-     * @function Window.raiseMainWindow
-     * @deprecated Use {@link Window.raise|raise} instead.
-     */
-    void raiseMainWindow();
-
-    /**jsdoc
      * Display a dialog with the specified message and an "OK" button. The dialog is non-modal; the script continues without
      * waiting for a user response.
      * @function Window.alert
