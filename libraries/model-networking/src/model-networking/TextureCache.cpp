@@ -279,7 +279,12 @@ gpu::TexturePointer TextureCache::getImageTexture(const QString& path, image::Te
         return nullptr;
     }
     auto loader = image::TextureUsage::getTextureLoaderForType(type, options);
-    return gpu::TexturePointer(loader(std::move(image), path.toStdString(), false, false));
+#ifdef USE_GLES
+    image::BackendTarget target = image::BackendTarget::GLES;
+#else
+    image::BackendTarget target = image::BackendTarget::GL;
+#endif
+    return gpu::TexturePointer(loader(std::move(image), path.toStdString(), false, target, false));
 }
 
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
@@ -1160,7 +1165,13 @@ void ImageReader::read() {
 
         // IMPORTANT: _content is empty past this point
         auto buffer = std::shared_ptr<QIODevice>((QIODevice*)new OwningBuffer(std::move(_content)));
-        texture = image::processImage(std::move(buffer), _url.toString().toStdString(), _maxNumPixels, networkTexture->getTextureType());
+
+#ifdef USE_GLES
+        constexpr bool shouldCompress = true;
+#else
+        constexpr bool shouldCompress = false;
+#endif
+        texture = image::processImage(std::move(buffer), _url.toString().toStdString(), _maxNumPixels, networkTexture->getTextureType(), shouldCompress);
 
         if (!texture) {
             qCWarning(modelnetworking) << "Could not process:" << _url;
