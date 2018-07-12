@@ -9,6 +9,7 @@
 #define hifi_PickScriptingInterface_h
 
 #include <QtCore/QObject>
+#include <btBulletDynamicsCommon.h>
 
 #include <RegisteredMetaTypes.h>
 #include <DependencyManager.h>
@@ -62,6 +63,7 @@ class PickScriptingInterface : public QObject, public Dependency {
 public:
     unsigned int createRayPick(const QVariant& properties);
     unsigned int createStylusPick(const QVariant& properties);
+    unsigned int createCollisionPick(const QVariant& properties);
 
     void registerMetaTypes(QScriptEngine* engine);
 
@@ -273,6 +275,14 @@ public slots:
      * @returns {number}
      */
     static constexpr unsigned int INTERSECTED_HUD() { return IntersectionType::HUD; }
+
+    // Set to allow CollisionPicks to have access to the physics engine
+    void setCollisionWorld(const btCollisionWorld* collisionWorld) {
+        _collisionWorld = collisionWorld;
+    }
+
+protected:
+    const btCollisionWorld* _collisionWorld;
 };
 
 #endif // hifi_PickScriptingInterface_h

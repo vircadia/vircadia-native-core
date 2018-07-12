@@ -73,6 +73,8 @@ public:
     const VectorOfMotionStates& getChangedMotionStates();
     const VectorOfMotionStates& getDeactivatedMotionStates() const { return _dynamicsWorld->getDeactivatedMotionStates(); }
 
+    const ThreadSafeDynamicsWorld* getDynamicsWorld() { return _dynamicsWorld; }
+
     /// \return reference to list of Collision events.  The list is only valid until beginning of next simulation loop.
     const CollisionEvents& getCollisionEvents();
 

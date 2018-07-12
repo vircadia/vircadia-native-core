@@ -161,6 +161,7 @@ public:
     enum PickType {
         Ray = 0,
         Stylus,
+        Collision,
 
         NUM_PICK_TYPES
     };

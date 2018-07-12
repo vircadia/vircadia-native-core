@@ -17,6 +17,7 @@
 #include "JointRayPick.h"
 #include "MouseRayPick.h"
 #include "StylusPick.h"
+#include "CollisionPick.h"
 
 #include <ScriptEngine.h>
 
@@ -26,6 +27,8 @@ unsigned int PickScriptingInterface::createPick(const PickQuery::PickType type, 
             return createRayPick(properties);
         case PickQuery::PickType::Stylus:
             return createStylusPick(properties);
+        case PickQuery::PickType::Collision:
+            return createCollisionPick(properties);
         default:
             return PickManager::INVALID_PICK_ID;
     }
@@ -132,6 +135,29 @@ unsigned int PickScriptingInterface::createStylusPick(const QVariant& properties
     }
 
     return DependencyManager::get<PickManager>()->addPick(PickQuery::Stylus, std::make_shared<StylusPick>(side, filter, maxDistance, enabled));
+}
+
+unsigned int PickScriptingInterface::createCollisionPick(const QVariant& properties) {
+    QVariantMap propMap = properties.toMap();
+
+    bool enabled = false;
+    if (propMap["enabled"].isValid()) {
+        enabled = propMap["enabled"].toBool();
+    }
+
+    PickFilter filter = PickFilter();
+    if (propMap["filter"].isValid()) {
+        filter = PickFilter(propMap["filter"].toUInt());
+    }
+
+    float maxDistance = 0.0f;
+    if (propMap["maxDistance"].isValid()) {
+        maxDistance = propMap["maxDistance"].toFloat();
+    }
+
+    CollisionRegion collisionRegion(propMap);
+
+    return DependencyManager::get<PickManager>()->addPick(PickQuery::Collision, std::make_shared<CollisionPick>(filter, maxDistance, enabled, collisionRegion, _collisionWorld));
 }
 
 void PickScriptingInterface::enablePick(unsigned int uid) {

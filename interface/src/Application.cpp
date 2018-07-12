@@ -6654,7 +6654,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
 
     registerInteractiveWindowMetaType(scriptEngine.data());
 
-    DependencyManager::get<PickScriptingInterface>()->registerMetaTypes(scriptEngine.data());
+    auto pickScriptingInterface = DependencyManager::get<PickScriptingInterface>();
+    pickScriptingInterface->registerMetaTypes(scriptEngine.data());
+    pickScriptingInterface->setCollisionWorld(_physicsEngine->getDynamicsWorld());
 
     // connect this script engines printedMessage signal to the global ScriptEngines these various messages
     connect(scriptEngine.data(), &ScriptEngine::printedMessage,
