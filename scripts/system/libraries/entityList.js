@@ -93,12 +93,18 @@ EntityListTool = function() {
     };
 
     that.removeEntities = function (deletedIDs, selectedIDs) {
-        var data = {
+        emitJSONScriptEvent({
             type: 'removeEntities',
             deletedIDs: deletedIDs,
             selectedIDs: selectedIDs
-        };
-        webView.emitScriptEvent(JSON.stringify(data));
+        });
+    };
+    
+    that.deleteEntities = function (deletedIDs) {
+        emitJSONScriptEvent({
+            type: "deleted",
+            ids: deletedIDs
+        });
     };
 
     function valueIfDefined(value) {
