@@ -163,13 +163,6 @@ Buffer::Size Buffer::getSize() const {
 
 const Element BufferView::DEFAULT_ELEMENT = Element( gpu::SCALAR, gpu::UINT8, gpu::RAW );
 
-
-BufferPointer _buffer;
-Size _offset{ 0 };
-Size _size{ 0 };
-Element _element{ DEFAULT_ELEMENT };
-uint16 _stride{ 0 };
-
 BufferView::BufferView(const BufferView& view) :
     _buffer(view._buffer),
     _offset(view._offset),
