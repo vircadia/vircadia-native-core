@@ -58,6 +58,7 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
     DependencyManager::set<ResourceManager>();
+    DependencyManager::set<PluginManager>();
 
     DependencyManager::registerInheritance<SpatialParentFinder, AssignmentParentFinder>();
 
@@ -68,9 +69,6 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
     DependencyManager::set<AudioInjectorManager>();
 
     DependencyManager::set<ScriptCache>();
-    DependencyManager::set<ScriptEngines>(ScriptEngine::ENTITY_SERVER_SCRIPT);
-
-    DependencyManager::set<EntityScriptServerServices>();
 
 
     // Needed to ensure the creation of the DebugDraw instance on the main thread
@@ -253,6 +251,9 @@ void EntityScriptServer::handleEntityScriptCallMethodPacket(QSharedPointer<Recei
 
 
 void EntityScriptServer::run() {
+    DependencyManager::set<ScriptEngines>(ScriptEngine::ENTITY_SERVER_SCRIPT);
+    DependencyManager::set<EntityScriptServerServices>();
+
     // make sure we request our script once the agent connects to the domain
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -570,7 +571,11 @@ void EntityScriptServer::aboutToFinish() {
         entityScriptingInterface->setPacketSender(nullptr);
     }
 
+    DependencyManager::destroy<AssignmentParentFinder>();
+
     DependencyManager::get<ResourceManager>()->cleanup();
+
+    DependencyManager::destroy<PluginManager>();
 
     // cleanup the AudioInjectorManager (and any still running injectors)
     DependencyManager::destroy<AudioInjectorManager>();

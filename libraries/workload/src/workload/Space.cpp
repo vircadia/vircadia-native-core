@@ -44,6 +44,11 @@ void Space::processResets(const Transaction::Resets& transactions) {
     for (auto& reset : transactions) {
         // Access the true item
         auto proxyID = std::get<0>(reset);
+
+        // Guard against proxyID being past the end of the list.
+        if (!_IDAllocator.checkIndex(proxyID)) {
+            continue;
+        }
         auto& item = _proxies[proxyID];
 
         // Reset the item with a new payload
@@ -56,6 +61,9 @@ void Space::processResets(const Transaction::Resets& transactions) {
 
 void Space::processRemoves(const Transaction::Removes& transactions) {
     for (auto removedID : transactions) {
+        if (!_IDAllocator.checkIndex(removedID)) {
+            continue;
+        }
         _IDAllocator.freeIndex(removedID);
 
         // Access the true item
@@ -70,7 +78,7 @@ void Space::processRemoves(const Transaction::Removes& transactions) {
 void Space::processUpdates(const Transaction::Updates& transactions) {
     for (auto& update : transactions) {
         auto updateID = std::get<0>(update);
-        if (updateID == INVALID_PROXY_ID) {
+        if (!_IDAllocator.checkIndex(updateID)) {
             continue;
         }
 
@@ -136,6 +144,7 @@ uint8_t Space::getRegion(int32_t proxyID) const {
 }
 
 void Space::clear() {
+    Collection::clear();
     std::unique_lock<std::mutex> lock(_proxiesMutex);
     _IDAllocator.clear();
     _proxies.clear();

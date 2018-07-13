@@ -199,7 +199,9 @@ void NLPacket::readVersion() {
 }
 
 void NLPacket::readSourceID() {
-    if (!PacketTypeEnum::getNonSourcedPackets().contains(_type)) {
+    if (PacketTypeEnum::getNonSourcedPackets().contains(_type)) {
+        _sourceID = NULL_LOCAL_ID;
+    } else {
         _sourceID = sourceIDInHeader(*this);
     }
 }

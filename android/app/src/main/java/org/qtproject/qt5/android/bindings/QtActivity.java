@@ -69,6 +69,7 @@ public class QtActivity extends Activity {
     private QtActivityLoader m_loader = new QtActivityLoader(this);
 
     public boolean isLoading;
+    public boolean keepInterfaceRunning;
 
     public QtActivity() {
     }
@@ -503,7 +504,7 @@ public class QtActivity extends Activity {
         super.onPause();
         // GC: this trick allow us to show a splash activity until Qt app finishes
         // loading
-        if (!isLoading) {
+        if (!isLoading && !keepInterfaceRunning) {
             QtApplication.invokeDelegate();
         }
     }
@@ -644,7 +645,9 @@ public class QtActivity extends Activity {
     @Override
     protected void onStop() {
         super.onStop();
-        QtApplication.invokeDelegate();
+        if (!keepInterfaceRunning) {
+            QtApplication.invokeDelegate();
+        }
     }
 
     //---------------------------------------------------------------------------

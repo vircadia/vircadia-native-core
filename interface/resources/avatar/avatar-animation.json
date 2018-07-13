@@ -566,7 +566,7 @@
                                                         },
                                                         {
                                                             "id": "idleToWalkFwd",
-                                                            "interpTarget": 3,
+                                                            "interpTarget": 10,
                                                             "interpDuration": 3,
                                                             "transitions": [
                                                                 { "var": "idleToWalkFwdOnDone", "state": "walkFwd" },
@@ -603,8 +603,8 @@
                                                         },
                                                         {
                                                             "id": "walkBwd",
-                                                            "interpTarget": 6,
-                                                            "interpDuration": 6,
+                                                            "interpTarget": 8,
+                                                            "interpDuration": 2,
                                                             "transitions": [
                                                                 { "var": "isNotMoving", "state": "idle" },
                                                                 { "var": "isMovingForward", "state": "walkFwd" },
@@ -621,8 +621,8 @@
                                                         },
                                                         {
                                                             "id": "strafeRight",
-                                                            "interpTarget": 6,
-                                                            "interpDuration": 6,
+                                                            "interpTarget": 20,
+                                                            "interpDuration": 1,
                                                             "transitions": [
                                                                 { "var": "isNotMoving", "state": "idle" },
                                                                 { "var": "isMovingForward", "state": "walkFwd" },
@@ -639,8 +639,8 @@
                                                         },
                                                         {
                                                             "id": "strafeLeft",
-                                                            "interpTarget": 6,
-                                                            "interpDuration": 6,
+                                                            "interpTarget": 20,
+                                                            "interpDuration": 1,
                                                             "transitions": [
                                                                 { "var": "isNotMoving", "state": "idle" },
                                                                 { "var": "isMovingForward", "state": "walkFwd" },

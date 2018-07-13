@@ -17,7 +17,9 @@
 #include <QStandardPaths>
 #include <QQmlContext>
 #include <QList>
+#include <QtCore/QThread>
 
+#include <shared/QtHelpers.h>
 #include <Application.h>
 #include <OffscreenUi.h>
 #include <avatar/AvatarManager.h>
@@ -28,7 +30,6 @@
 #include <VariantMapToScriptValue.h>
 
 #include "MainWindow.h"
-#include "Menu.h"
 #include "InterfaceLogging.h"
 
 #include "QVariantGLM.h"
@@ -92,8 +93,94 @@ void addAvatarEntities(const QVariantList& avatarEntities) {
 }
 
 AvatarBookmarks::AvatarBookmarks() {
+    QDir directory(PathUtils::getAppDataPath());
+    if (!directory.exists()) {
+        directory.mkpath(".");
+    }
+
     _bookmarksFilename = PathUtils::getAppDataPath() + "/" + AVATARBOOKMARKS_FILENAME;
+    if(!QFile::exists(_bookmarksFilename)) {
+        auto defaultBookmarksFilename = PathUtils::resourcesPath() + QString("avatar/bookmarks") + "/" + AVATARBOOKMARKS_FILENAME;
+        if (!QFile::exists(defaultBookmarksFilename)) {
+            qDebug() << defaultBookmarksFilename << "doesn't exist!";
+        }
+
+        if (!QFile::copy(defaultBookmarksFilename, _bookmarksFilename)) {
+            qDebug() << "failed to copy" << defaultBookmarksFilename << "to" << _bookmarksFilename;
+        }
+    }
     readFromFile();
+}
+
+void AvatarBookmarks::addBookmark(const QString& bookmarkName) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "addBookmark", Q_ARG(QString, bookmarkName));
+        return;
+    }
+    QVariantMap bookmark = getAvatarDataToBookmark();
+    insert(bookmarkName, bookmark);
+
+    emit bookmarkAdded(bookmarkName);
+}
+
+void AvatarBookmarks::saveBookmark(const QString& bookmarkName) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "saveBookmark", Q_ARG(QString, bookmarkName));
+        return;
+    }
+    if (contains(bookmarkName)) {
+        QVariantMap bookmark = getAvatarDataToBookmark();
+        insert(bookmarkName, bookmark);
+    }
+}
+
+void AvatarBookmarks::removeBookmark(const QString& bookmarkName) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "removeBookmark", Q_ARG(QString, bookmarkName));
+        return;
+    }
+
+    remove(bookmarkName);
+    emit bookmarkDeleted(bookmarkName);
+}
+
+void AvatarBookmarks::updateAvatarEntities(const QVariantList &avatarEntities) {
+    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    myAvatar->removeAvatarEntities();
+
+    addAvatarEntities(avatarEntities);
+}
+
+void AvatarBookmarks::loadBookmark(const QString& bookmarkName) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "loadBookmark", Q_ARG(QString, bookmarkName));
+        return;
+    }
+
+    auto bookmarkEntry = _bookmarks.find(bookmarkName);
+
+    if (bookmarkEntry != _bookmarks.end()) {
+        QVariantMap bookmark = bookmarkEntry.value().toMap();
+        if (!bookmark.empty()) {
+            auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+            myAvatar->removeAvatarEntities();
+            const QString& avatarUrl = bookmark.value(ENTRY_AVATAR_URL, "").toString();
+            myAvatar->useFullAvatarURL(avatarUrl);
+            qCDebug(interfaceapp) << "Avatar On " << avatarUrl;
+            const QList<QVariant>& attachments = bookmark.value(ENTRY_AVATAR_ATTACHMENTS, QList<QVariant>()).toList();
+
+            qCDebug(interfaceapp) << "Attach " << attachments;
+            myAvatar->setAttachmentsVariant(attachments);
+
+            const float& qScale = bookmark.value(ENTRY_AVATAR_SCALE, 1.0f).toFloat();
+            myAvatar->setAvatarScale(qScale);
+
+            const QVariantList& avatarEntities = bookmark.value(ENTRY_AVATAR_ENTITIES, QVariantList()).toList();
+            addAvatarEntities(avatarEntities);
+
+            emit bookmarkLoaded(bookmarkName);
+        }
+    }
 }
 
 void AvatarBookmarks::readFromFile() {
@@ -115,99 +202,37 @@ void AvatarBookmarks::readFromFile() {
     Bookmarks::readFromFile();
 }
 
-void AvatarBookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
-    // Add menus/actions
-    auto bookmarkAction = menubar->addActionToQMenuAndActionHash(menu, MenuOption::BookmarkAvatar);
-    QObject::connect(bookmarkAction, SIGNAL(triggered()), this, SLOT(addBookmark()), Qt::QueuedConnection);
-    _bookmarksMenu = menu->addMenu(MenuOption::AvatarBookmarks);
-    _deleteBookmarksAction = menubar->addActionToQMenuAndActionHash(menu, MenuOption::DeleteAvatarBookmark);
-    QObject::connect(_deleteBookmarksAction, SIGNAL(triggered()), this, SLOT(deleteBookmark()), Qt::QueuedConnection);
-
-    for (auto it = _bookmarks.begin(); it != _bookmarks.end(); ++it) {
-        addBookmarkToMenu(menubar, it.key(), it.value());
+QVariantMap AvatarBookmarks::getBookmark(const QString &bookmarkName)
+{
+    if (QThread::currentThread() != thread()) {
+        QVariantMap result;
+        BLOCKING_INVOKE_METHOD(this, "getBookmark", Q_RETURN_ARG(QVariantMap, result), Q_ARG(QString, bookmarkName));
+        return result;
     }
 
-    Bookmarks::sortActions(menubar, _bookmarksMenu);
+    QVariantMap bookmark;
+
+    auto bookmarkEntry = _bookmarks.find(bookmarkName);
+
+    if (bookmarkEntry != _bookmarks.end()) {
+        bookmark = bookmarkEntry.value().toMap();
+    }
+
+    return bookmark;
 }
 
-void AvatarBookmarks::changeToBookmarkedAvatar() {
-    QAction* action = qobject_cast<QAction*>(sender());
+QVariantMap AvatarBookmarks::getAvatarDataToBookmark() {
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
+    const QString& avatarUrl = myAvatar->getSkeletonModelURL().toString();
+    const QVariant& avatarScale = myAvatar->getAvatarScale();
 
-
-    if (action->data().type() == QVariant::String) {
-        // TODO: Phase this out eventually.
-        // Legacy avatar bookmark.
-
-        myAvatar->useFullAvatarURL(action->data().toString());
-        qCDebug(interfaceapp) << " Using Legacy V1 Avatar Bookmark ";
-    } else {
-
-        const QMap<QString, QVariant> bookmark = action->data().toMap();
-        // Not magic value. This is the current made version, and if it changes this interpreter should be updated to
-        // handle the new one separately.
-        // This is where the avatar bookmark entry is parsed. If adding new Value, make sure to have backward compatability with previous
-        if (bookmark.value(ENTRY_VERSION) == 3) {
-            myAvatar->removeAvatarEntities();
-            const QString& avatarUrl = bookmark.value(ENTRY_AVATAR_URL, "").toString();
-            myAvatar->useFullAvatarURL(avatarUrl);
-            qCDebug(interfaceapp) << "Avatar On " << avatarUrl;
-            const QList<QVariant>& attachments = bookmark.value(ENTRY_AVATAR_ATTACHMENTS, QList<QVariant>()).toList();
-
-            qCDebug(interfaceapp) << "Attach " << attachments;
-            myAvatar->setAttachmentsVariant(attachments);
-
-            const float& qScale = bookmark.value(ENTRY_AVATAR_SCALE, 1.0f).toFloat();
-            myAvatar->setAvatarScale(qScale);
-
-            const QVariantList& avatarEntities = bookmark.value(ENTRY_AVATAR_ENTITIES, QVariantList()).toList();
-            addAvatarEntities(avatarEntities);
-
-        } else {
-            qCDebug(interfaceapp) << " Bookmark entry does not match client version, make sure client has a handler for the new AvatarBookmark";
-        }
-    }
-
-}
-
-void AvatarBookmarks::addBookmark() {
-    ModalDialogListener* dlg = OffscreenUi::getTextAsync(OffscreenUi::ICON_PLACEMARK, "Bookmark Avatar", "Name", QString());
-    connect(dlg, &ModalDialogListener::response, this, [=] (QVariant response) {
-        disconnect(dlg, &ModalDialogListener::response, this, nullptr);
-        auto bookmarkName = response.toString();
-        bookmarkName = bookmarkName.trimmed().replace(QRegExp("(\r\n|[\r\n\t\v ])+"), " ");
-        if (bookmarkName.length() == 0) {
-            return;
-        }
-
-        auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-
-        const QString& avatarUrl = myAvatar->getSkeletonModelURL().toString();
-        const QVariant& avatarScale = myAvatar->getAvatarScale();
-
-        // If Avatar attachments ever change, this is where to update them, when saving remember to also append to AVATAR_BOOKMARK_VERSION
-        QVariantMap bookmark;
-        bookmark.insert(ENTRY_VERSION, AVATAR_BOOKMARK_VERSION);
-        bookmark.insert(ENTRY_AVATAR_URL, avatarUrl);
-        bookmark.insert(ENTRY_AVATAR_SCALE, avatarScale);
-        bookmark.insert(ENTRY_AVATAR_ATTACHMENTS, myAvatar->getAttachmentsVariant());
-        bookmark.insert(ENTRY_AVATAR_ENTITIES, myAvatar->getAvatarEntitiesVariant());
-
-        Bookmarks::addBookmarkToFile(bookmarkName, bookmark);
-    });
-
-}
-
-void AvatarBookmarks::addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& bookmark) {
-    QAction* changeAction = _bookmarksMenu->newAction();
-    changeAction->setData(bookmark);
-    connect(changeAction, SIGNAL(triggered()), this, SLOT(changeToBookmarkedAvatar()));
-    if (!_isMenuSorted) {
-        menubar->addActionToQMenuAndActionHash(_bookmarksMenu, changeAction, name, 0, QAction::NoRole);
-    } else {
-        // TODO: this is aggressive but other alternatives have proved less fruitful so far.
-        menubar->addActionToQMenuAndActionHash(_bookmarksMenu, changeAction, name, 0, QAction::NoRole);
-        Bookmarks::sortActions(menubar, _bookmarksMenu);
-    }
+    // If Avatar attachments ever change, this is where to update them, when saving remember to also append to AVATAR_BOOKMARK_VERSION
+    QVariantMap bookmark;
+    bookmark.insert(ENTRY_VERSION, AVATAR_BOOKMARK_VERSION);
+    bookmark.insert(ENTRY_AVATAR_URL, avatarUrl);
+    bookmark.insert(ENTRY_AVATAR_SCALE, avatarScale);
+    bookmark.insert(ENTRY_AVATAR_ATTACHMENTS, myAvatar->getAttachmentsVariant());
+    bookmark.insert(ENTRY_AVATAR_ENTITIES, myAvatar->getAvatarEntitiesVariant());
+    return bookmark;
 }

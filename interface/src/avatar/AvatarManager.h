@@ -82,6 +82,7 @@ public:
 
     void updateMyAvatar(float deltaTime);
     void updateOtherAvatars(float deltaTime);
+    void sendIdentityRequest(const QUuid& avatarID) const;
 
     void postUpdate(float deltaTime, const render::ScenePointer& scene);
 
@@ -157,6 +158,7 @@ public:
     Q_INVOKABLE void setAvatarSortCoefficient(const QString& name, const QScriptValue& value);
 
     float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
+    int getIdentityRequestsSent() const { return _identityRequestsSent; }
 
 public slots:
 
@@ -194,6 +196,7 @@ private:
     int _numAvatarsNotUpdated { 0 };
     float _avatarSimulationTime { 0.0f };
     bool _shouldRender { true };
+    mutable int _identityRequestsSent { 0 };
 };
 
 #endif // hifi_AvatarManager_h

@@ -98,7 +98,7 @@ Rectangle {
         }
 
         onAppInstalled: {
-            root.installedApps = Commerce.getInstalledApps();
+            root.installedApps = Commerce.getInstalledApps(appID);
         }
 
         onAppUninstalled: {

@@ -46,7 +46,7 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
     }
 
     glm::mat4 hipsMat;
-    if (myAvatar->getCenterOfGravityModelEnabled()) {
+    if (myAvatar->getCenterOfGravityModelEnabled() && !isFlying) {
         // then we use center of gravity model
         hipsMat = myAvatar->deriveBodyUsingCgModel();
     } else {
@@ -108,6 +108,11 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     Rig::ControllerParameters params;
 
     AnimPose avatarToRigPose(glm::vec3(1.0f), Quaternions::Y_180, glm::vec3(0.0f));
+
+    glm::mat4 rigToAvatarMatrix = Matrices::Y_180;
+    glm::mat4 avatarToWorldMatrix = createMatFromQuatAndPos(myAvatar->getWorldOrientation(), myAvatar->getWorldPosition());
+    glm::mat4 sensorToWorldMatrix = myAvatar->getSensorToWorldMatrix();
+    params.rigToSensorMatrix = glm::inverse(sensorToWorldMatrix) * avatarToWorldMatrix * rigToAvatarMatrix;
 
     // input action is the highest priority source for head orientation.
     auto avatarHeadPose = myAvatar->getControllerPoseInAvatarFrame(controller::Action::HEAD);

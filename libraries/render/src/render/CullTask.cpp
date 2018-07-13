@@ -370,10 +370,13 @@ void CullShapeBounds::run(const RenderContextPointer& renderContext, const Input
     const auto& inShapes = inputs.get0();
     const auto& cullFilter = inputs.get1();
     const auto& boundsFilter = inputs.get2();
-    const auto& antiFrustum = inputs.get3();
+    ViewFrustumPointer antiFrustum;
     auto& outShapes = outputs.edit0();
     auto& outBounds = outputs.edit1();
 
+    if (!inputs[3].isNull()) {
+        antiFrustum = inputs.get3();
+    }
     outShapes.clear();
     outBounds = AABox();
 

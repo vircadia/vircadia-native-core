@@ -39,8 +39,13 @@ ResourceManager::ResourceManager(bool atpSupportEnabled) : _atpSupportEnabled(at
 }
 
 ResourceManager::~ResourceManager() {
-    _thread.terminate();
-    _thread.wait();
+    if (_thread.isRunning()) {
+        _thread.quit();
+        static const auto MAX_RESOURCE_MANAGER_THREAD_QUITTING_TIME = MSECS_PER_SECOND / 2;
+        if (!_thread.wait(MAX_RESOURCE_MANAGER_THREAD_QUITTING_TIME)) {
+            _thread.terminate();
+        }
+    }
 }
 
 void ResourceManager::setUrlPrefixOverride(const QString& prefix, const QString& replacement) {

@@ -269,7 +269,8 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
         }
         btQuaternion deltaRot = desiredRot * startRot.inverse();
         float angularSpeed = deltaRot.getAngle() / _followTimeRemaining;
-        btQuaternion angularDisplacement = btQuaternion(deltaRot.getAxis(), angularSpeed * dt);
+        glm::vec3 rotationAxis = glm::normalize(glm::axis(bulletToGLM(deltaRot)));  // deltaRot.getAxis() is inaccurate
+        btQuaternion angularDisplacement = btQuaternion(glmToBullet(rotationAxis), angularSpeed * dt);
         btQuaternion endRot = angularDisplacement * startRot;
 
         // in order to accumulate displacement of avatar position, we need to take _shapeLocalOffset into account.
@@ -378,9 +379,6 @@ void CharacterController::setState(State desiredState, const char* reason) {
 #else
 void CharacterController::setState(State desiredState) {
 #endif
-    if (!_flyingAllowed && desiredState == State::Hover) {
-        desiredState = State::InAir;
-    }
 
     if (desiredState != _state) {
 #ifdef DEBUG_STATE_CHANGE
@@ -746,7 +744,7 @@ void CharacterController::updateState() {
             const float JUMP_SPEED = _scaleFactor * DEFAULT_AVATAR_JUMP_SPEED;
             if ((velocity.dot(_currentUp) <= (JUMP_SPEED / 2.0f)) && ((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport)) {
                 SET_STATE(State::Ground, "hit ground");
-            } else {
+            } else if (_flyingAllowed) {
                 btVector3 desiredVelocity = _targetVelocity;
                 if (desiredVelocity.length2() < MIN_TARGET_SPEED_SQUARED) {
                     desiredVelocity = btVector3(0.0f, 0.0f, 0.0f);
@@ -760,14 +758,17 @@ void CharacterController::updateState() {
                     // Transition to hover if we are above the fall threshold
                     SET_STATE(State::Hover, "above fall threshold");
                 }
+            } else if (!rayHasHit && !_hasSupport) {
+                SET_STATE(State::Hover, "no ground detected");
             }
             break;
         }
         case State::Hover:
             btScalar horizontalSpeed = (velocity - velocity.dot(_currentUp) * _currentUp).length();
             bool flyingFast = horizontalSpeed > (MAX_WALKING_SPEED * 0.75f);
-
-            if ((_floorDistance < MIN_HOVER_HEIGHT) && !jumpButtonHeld && !flyingFast) {
+            if (!_flyingAllowed && rayHasHit) {
+                SET_STATE(State::InAir, "flying not allowed");
+            } else if ((_floorDistance < MIN_HOVER_HEIGHT) && !jumpButtonHeld && !flyingFast) {
                 SET_STATE(State::InAir, "near ground");
             } else if (((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport) && !flyingFast) {
                 SET_STATE(State::Ground, "touching ground");
@@ -826,9 +827,6 @@ bool CharacterController::getRigidBodyLocation(glm::vec3& avatarRigidBodyPositio
 void CharacterController::setFlyingAllowed(bool value) {
     if (value != _flyingAllowed) {
         _flyingAllowed = value;
-        if (!_flyingAllowed && _state == State::Hover) {
-            SET_STATE(State::InAir, "flying not allowed");
-        }
     }
 }
 

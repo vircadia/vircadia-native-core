@@ -412,7 +412,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         } else if (verifyUserSignature(username, usernameSignature, nodeConnection.senderSockAddr)) {
             // they sent us a username and the signature verifies it
             getGroupMemberships(username);
-            verifiedUsername = username;
+            verifiedUsername = username.toLower();
         } else {
             // they sent us a username, but it didn't check out
             requestUserPublicKey(username);
@@ -993,7 +993,7 @@ void DomainGatekeeper::getDomainOwnerFriendsListJSONCallback(QNetworkReply* requ
         _domainOwnerFriends.clear();
         QJsonArray friends = jsonObject["data"].toObject()["friends"].toArray();
         for (int i = 0; i < friends.size(); i++) {
-            _domainOwnerFriends += friends.at(i).toString();
+            _domainOwnerFriends += friends.at(i).toString().toLower();
         }
     } else {
         qDebug() << "getDomainOwnerFriendsList api call returned:" << QJsonDocument(jsonObject).toJson(QJsonDocument::Compact);

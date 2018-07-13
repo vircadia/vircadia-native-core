@@ -61,12 +61,18 @@ function HifiEntityUI(parent) {
     this.parent = parent;
 
     var self = this;
+    this.sendPackage = {};
     this.settingsUpdateLock = false;
-    this.webBridgeSync = _.debounce(function (id, val) {
-        if (self.EventBridge && !self.settingsUpdateLock) {
-            var sendPackage = {};
-            sendPackage[id] = val;
-            self.submitChanges(sendPackage);
+    this.webBridgeSync = function(id, val) {
+        if (!this.settingsUpdateLock) {
+            this.sendPackage[id] = val;
+            this.webBridgeSyncDebounce();
+        }
+    };
+    this.webBridgeSyncDebounce = _.debounce(function () {
+        if (self.EventBridge) {
+            self.submitChanges(self.sendPackage);
+            self.sendPackage = {};
         }
     }, DEBOUNCE_TIMEOUT);
 }
@@ -159,7 +165,6 @@ HifiEntityUI.prototype = {
         var self = this;
         var fields = document.getElementsByTagName("input");
 
-        self.settingsUpdateLock = true;
         if (!currentProperties.locked) {
             for (var i = 0; i < fields.length; i++) {
                 fields[i].removeAttribute("disabled");
@@ -179,7 +184,7 @@ HifiEntityUI.prototype = {
         for (var e in keys) {
             if (keys.hasOwnProperty(e)) {
                 var value = keys[e];
-
+                
                 var property = currentProperties[value];
                 var field = self.builtRows[value];
                 if (field) {
@@ -235,10 +240,6 @@ HifiEntityUI.prototype = {
                 }
             }
         }
-        // Now unlocking settings Update lock for sending messages on callbacks.
-        setTimeout(function () {
-            self.settingsUpdateLock = false;
-        }, DEBOUNCE_TIMEOUT * 2.5);
     },
     connect: function (EventBridge) {
         this.EventBridge = EventBridge;
@@ -253,28 +254,9 @@ HifiEntityUI.prototype = {
             data = JSON.parse(data);
 
             if (data.messageType === 'particle_settings') {
-                // Update settings
-                var currentProperties = data.currentProperties;
-                // Update uninitialized variables
-                if (!currentProperties.alphaStart) {
-                    currentProperties.alphaStart = currentProperties.alpha;
-                }
-                if (!currentProperties.alphaFinish) {
-                    currentProperties.alphaFinish = currentProperties.alpha;
-                }
-                if (!currentProperties.radiusStart) {
-                    currentProperties.radiusStart = currentProperties.particleRadius;
-                }
-                if (!currentProperties.radiusFinish) {
-                    currentProperties.radiusFinish = currentProperties.particleRadius;
-                }
-                if (!currentProperties.colorStart || !currentProperties.colorStart.red) {
-                    currentProperties.colorStart = currentProperties.color;
-                }
-                if (!currentProperties.colorFinish || !currentProperties.colorFinish.red) {
-                    currentProperties.colorFinish = currentProperties.color;
-                }
-                self.fillFields(currentProperties);
+                self.settingsUpdateLock = true;
+                self.fillFields(data.currentProperties);
+                self.settingsUpdateLock = false;
                 // Do expected property match with structure;
             } else if (data.messageType === 'particle_close') {
                 self.disableFields();

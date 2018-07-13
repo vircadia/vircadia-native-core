@@ -184,12 +184,20 @@ TexturePointer Texture::createRenderBuffer(const Element& texelFormat, uint16 wi
     return create(TextureUsageType::RENDERBUFFER, TEX_2D, texelFormat, width, height, 1, 1, 0, numMips, sampler);
 }
 
+TexturePointer Texture::createRenderBufferArray(const Element& texelFormat, uint16 width, uint16 height, uint16 numSlices, uint16 numMips, const Sampler& sampler) {
+    return create(TextureUsageType::RENDERBUFFER, TEX_2D, texelFormat, width, height, 1, 1, numSlices, numMips, sampler);
+}
+
 TexturePointer Texture::create1D(const Element& texelFormat, uint16 width, uint16 numMips, const Sampler& sampler) {
     return create(TextureUsageType::RESOURCE, TEX_1D, texelFormat, width, 1, 1, 1, 0, numMips, sampler);
 }
 
 TexturePointer Texture::create2D(const Element& texelFormat, uint16 width, uint16 height, uint16 numMips, const Sampler& sampler) {
     return create(TextureUsageType::RESOURCE, TEX_2D, texelFormat, width, height, 1, 1, 0, numMips, sampler);
+}
+
+TexturePointer Texture::create2DArray(const Element& texelFormat, uint16 width, uint16 height, uint16 numSlices, uint16 numMips, const Sampler& sampler) {
+    return create(TextureUsageType::STRICT_RESOURCE, TEX_2D, texelFormat, width, height, 1, 1, numSlices, numMips, sampler);
 }
 
 TexturePointer Texture::createStrict(const Element& texelFormat, uint16 width, uint16 height, uint16 numMips, const Sampler& sampler) {

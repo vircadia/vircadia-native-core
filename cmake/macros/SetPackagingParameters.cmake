@@ -90,7 +90,7 @@ macro(SET_PACKAGING_PARAMETERS)
     # for the second parent of HEAD (not HEAD) since that is the
     # SHA of the commit merged to master for the build
     if (PR_BUILD)
-      set(_GIT_LOG_FORMAT "%p")
+      set(_GIT_LOG_FORMAT "%p %h")
     else ()
       set(_GIT_LOG_FORMAT "%h")
     endif ()
