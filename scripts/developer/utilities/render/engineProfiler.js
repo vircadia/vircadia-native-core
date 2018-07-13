@@ -34,11 +34,11 @@
 
         function createWindow() {
             var qml = Script.resolvePath(QMLAPP_URL);
-            window = new OverlayWindow({
+            window = Desktop.createWindow(Script.resolvePath(QMLAPP_URL), {
                 title: 'Render Engine Profiler',
-                source: qml,
-                width: 500, 
-                height: 100
+                flags: Desktop.ALWAYS_ON_TOP,
+                presentationMode: Desktop.PresentationMode.NATIVE,
+                size: {x: 500, y: 100}
             });
             window.setPosition(200, 50);
             window.closed.connect(killWindow);

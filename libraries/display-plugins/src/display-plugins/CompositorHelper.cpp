@@ -275,7 +275,7 @@ bool CompositorHelper::getReticleOverDesktop() const {
     // as being over the desktop.
     if (isHMD()) {
         QMutexLocker locker(&_reticleLock);
-        glm::vec2 maxOverlayPosition = glm::vec2(_currentDisplayPlugin->getRecommendedUiSize()) * _currentDisplayPlugin->getRenderResolutionScale();
+        glm::vec2 maxOverlayPosition = glm::vec2(_currentDisplayPlugin->getRecommendedUiSize());
         static const glm::vec2 minOverlayPosition;
         if (glm::any(glm::lessThan(_reticlePositionInHMD, minOverlayPosition)) ||
             glm::any(glm::greaterThan(_reticlePositionInHMD, maxOverlayPosition))) {
@@ -317,7 +317,7 @@ void CompositorHelper::sendFakeMouseEvent() {
 
 void CompositorHelper::setReticlePosition(const glm::vec2& position, bool sendFakeEvent) {
     if (isHMD()) {
-        glm::vec2 maxOverlayPosition = glm::vec2(_currentDisplayPlugin->getRecommendedUiSize()) * _currentDisplayPlugin->getRenderResolutionScale();
+        glm::vec2 maxOverlayPosition = glm::vec2(_currentDisplayPlugin->getRecommendedUiSize());
         // FIXME don't allow negative mouseExtra
         glm::vec2 mouseExtra = (MOUSE_EXTENTS_PIXELS - maxOverlayPosition) / 2.0f;
         glm::vec2 minMouse = vec2(0) - mouseExtra;

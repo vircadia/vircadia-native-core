@@ -237,7 +237,7 @@ void GraphicsEngine::render_performFrame() {
         PerformanceTimer perfTimer("renderOverlay");
         // NOTE: There is no batch associated with this renderArgs
         // the ApplicationOverlay class assumes it's viewport is setup to be the device size
-        renderArgs._viewport = glm::ivec4(0, 0, qApp->getDeviceSize() * qApp->getRenderResolutionScale());
+        renderArgs._viewport = glm::ivec4(0, 0, qApp->getDeviceSize());
         qApp->getApplicationOverlay().renderOverlay(&renderArgs);
     }
 

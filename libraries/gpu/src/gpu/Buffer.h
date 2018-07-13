@@ -183,8 +183,8 @@ public:
     Element _element { DEFAULT_ELEMENT };
     uint16 _stride { 0 };
 
-    BufferView(const BufferView& view) = default;
-    BufferView& operator=(const BufferView& view) = default;
+    BufferView(const BufferView& view);
+    BufferView& operator=(const BufferView& view);
 
     BufferView();
     BufferView(const Element& element);

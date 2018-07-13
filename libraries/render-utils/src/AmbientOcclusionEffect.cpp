@@ -176,7 +176,7 @@ AmbientOcclusionEffect::AmbientOcclusionEffect() {
 }
 
 void AmbientOcclusionEffect::configure(const Config& config) {
-    DependencyManager::get<DeferredLightingEffect>()->setAmbientOcclusionEnabled(config.enabled);
+    DependencyManager::get<DeferredLightingEffect>()->setAmbientOcclusionEnabled(config.isEnabled());
 
     bool shouldUpdateGaussian = false;
 
