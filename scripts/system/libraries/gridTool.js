@@ -269,8 +269,6 @@ GridTool = function(opts) {
             print("gridTool.js: Error parsing JSON: " + e.name + " data " + data);
             return;
         }
-        
-        print("DBACKTEST webEventReceived " + data.type);
 
         if (data.type == "init") {
             horizontalGrid.emitUpdate();
@@ -280,7 +278,6 @@ GridTool = function(opts) {
                 listeners[i] && listeners[i](data);
             }
         } else if (data.type == "action") {
-            print("DBACKTEST webEventReceived action " + data.action);
             var action = data.action;
             if (action == "moveToAvatar") {
                 var position = MyAvatar.getJointPosition("LeftFoot");
