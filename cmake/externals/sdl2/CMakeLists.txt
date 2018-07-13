@@ -19,6 +19,7 @@ elseif (APPLE)
     ExternalProject_Add(
       ${EXTERNAL_NAME}
       URL https://public.highfidelity.com/dependencies/SDL2-2.0.3.zip
+      URL_MD5 55f1eae5142d20db11c844d8d4d6deed
       CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DVIDEO_OPENGL=OFF
       BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build
       LOG_DOWNLOAD 1
