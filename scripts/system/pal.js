@@ -448,7 +448,7 @@ function populateNearbyUserList(selectData, oldAudioData) {
         horizontalAngleNormal = filter && Quat.getUp(orientation);
     avatarsOfInterest = {};
 
-    var avatarData = JSON.parse(AvatarList.getPalData());
+    var avatarData = AvatarList.getPalData().data;
 
     avatarData.forEach(function (currentAvatarData) {
         var id = currentAvatarData.sessionUUID;
@@ -487,7 +487,7 @@ function populateNearbyUserList(selectData, oldAudioData) {
         };
         // Everyone needs to see admin status. Username and fingerprint returns default constructor output if the requesting user isn't an admin.
         Users.requestUsernameFromID(id);
-        if (id !== MyAvatar.sessionUUID) {
+        if (id !== "") {
             addAvatarNode(id); // No overlay for ourselves
             avatarsOfInterest[id] = true;
         } else {
@@ -548,7 +548,7 @@ function updateAudioLevel(overlay, avatarData) {
 
     var param = {};
     var level = [audioLevel, avgAudioLevel];
-    var userId = avatarData.sessionUUID === MyAvatar.sessionUUID ? 0 : avatarData.sessionUUID;
+    var userId = avatarData.sessionUUID;
     param[userId] = level;
     sendToQml({ method: 'updateAudioLevel', params: param });
 }
@@ -557,12 +557,12 @@ var pingPong = true;
 function updateOverlays() {
     var eye = Camera.position;
 
-    var avatarData = JSON.parse(AvatarList.getPalData());
+    var avatarData = AvatarList.getPalData().data;
 
     avatarData.forEach(function (currentAvatarData) {
         updateAudioLevel(overlay, currentAvatarData);
 
-        if (currentAvatarData.sessionUUID === MyAvatar.sessionUUID || !avatarsOfInterest[currentAvatarData.sessionUUID]) {
+        if (currentAvatarData.sessionUUID === "" || !avatarsOfInterest[currentAvatarData.sessionUUID]) {
             return; // don't update ourself, or avatars we're not interested in
         }
         var overlay = ExtendedOverlay.get(currentAvatarData.sessionUUID);

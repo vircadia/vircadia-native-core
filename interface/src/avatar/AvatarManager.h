@@ -157,7 +157,16 @@ public:
      */
     Q_INVOKABLE void setAvatarSortCoefficient(const QString& name, const QScriptValue& value);
 
-    Q_INVOKABLE QString getPalData(const QList<QString> specificAvatarIdentifiers = QList<QString>());
+    /**jsdoc
+     * Used in the PAL for getting PAL-related data about avatars nearby. Using this method is faster
+     * than iterating over each avatar and obtaining data about them in JavaScript, as that method
+     * locks and unlocks each avatar's data structure potentially hundreds of times per update tick.
+     * @function AvatarManager.getPalData
+     * @param {string list} specificAvatarIdentifiers - A list of specific Avatar Identifiers about which
+     * you want to get PAL data
+     * @returns {string}
+     */
+    Q_INVOKABLE QVariantMap getPalData(const QList<QString> specificAvatarIdentifiers = QList<QString>());
 
     float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
     int getIdentityRequestsSent() const { return _identityRequestsSent; }

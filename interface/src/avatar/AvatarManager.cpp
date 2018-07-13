@@ -670,7 +670,7 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
     }
 }
 
-QString AvatarManager::getPalData(const QList<QString> specificAvatarIdentifiers) {
+ QVariantMap AvatarManager::getPalData(const QList<QString> specificAvatarIdentifiers) {
     QJsonArray palData;
 
     auto avatarMap = getHashCopy();
@@ -680,6 +680,13 @@ QString AvatarManager::getPalData(const QList<QString> specificAvatarIdentifiers
         QString currentSessionUUID = avatar->getSessionUUID().toString();
         if (specificAvatarIdentifiers.isEmpty() || specificAvatarIdentifiers.contains(currentSessionUUID)) {
             QJsonObject thisAvatarPalData;
+            
+            auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+
+            if (currentSessionUUID == myAvatar->getSessionUUID().toString()) {
+                currentSessionUUID = "";
+            }
+            
             thisAvatarPalData.insert("sessionUUID", currentSessionUUID);
             thisAvatarPalData.insert("sessionDisplayName", avatar->getSessionDisplayName());
             thisAvatarPalData.insert("audioLoudness", avatar->getAudioLoudness());
@@ -704,6 +711,7 @@ QString AvatarManager::getPalData(const QList<QString> specificAvatarIdentifiers
         }
         ++itr;
     }
-    QJsonDocument doc(palData);
-    return doc.toJson(QJsonDocument::Compact);
+    QJsonObject doc;
+    doc.insert("data", palData);
+    return doc.toVariantMap();
 }
