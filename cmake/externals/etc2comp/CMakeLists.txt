@@ -15,7 +15,7 @@ include(ExternalProject)
 # that would override CMAKE_CXX_FLAGS
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL https://hifi-public.s3.amazonaws.com/dependencies/etc2comp-patched.zip
+  URL https://public.highfidelity.com/dependencies/etc2comp-patched.zip
   URL_MD5 4c96153eb179acbe619e3d99d3330595
   CMAKE_ARGS ${ANDROID_CMAKE_ARGS} ${EXTRA_CMAKE_FLAGS}
   BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build
