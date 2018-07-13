@@ -154,6 +154,12 @@ Grid = function(opts) {
             that.emitUpdate();
         }
     };
+    
+    that.moveToSelection = function() {
+        var newPosition = SelectionManager.worldPosition;
+        newPosition = Vec3.subtract(newPosition, { x: 0, y: SelectionManager.worldDimensions.y * 0.5, z: 0 });
+        that.setPosition(newPosition);
+    };
 
     that.emitUpdate = function() {
         if (that.onUpdate) {
@@ -263,6 +269,8 @@ GridTool = function(opts) {
             print("gridTool.js: Error parsing JSON: " + e.name + " data " + data);
             return;
         }
+        
+        print("DBACKTEST webEventReceived " + data.type);
 
         if (data.type == "init") {
             horizontalGrid.emitUpdate();
@@ -272,6 +280,7 @@ GridTool = function(opts) {
                 listeners[i] && listeners[i](data);
             }
         } else if (data.type == "action") {
+            print("DBACKTEST webEventReceived action " + data.action);
             var action = data.action;
             if (action == "moveToAvatar") {
                 var position = MyAvatar.getJointPosition("LeftFoot");
@@ -280,9 +289,7 @@ GridTool = function(opts) {
                 }
                 horizontalGrid.setPosition(position);
             } else if (action == "moveToSelection") {
-                var newPosition = selectionManager.worldPosition;
-                newPosition = Vec3.subtract(newPosition, { x: 0, y: selectionManager.worldDimensions.y * 0.5, z: 0 });
-                grid.setPosition(newPosition);
+                horizontalGrid.moveToSelection();
             }
         }
     };

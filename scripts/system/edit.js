@@ -1853,13 +1853,7 @@ var keyReleaseEvent = function (event) {
         }
     } else if (event.text === 'g') {
         if (isActive && selectionManager.hasSelection()) {
-            var newPosition = selectionManager.worldPosition;
-            newPosition = Vec3.subtract(newPosition, {
-                x: 0,
-                y: selectionManager.worldDimensions.y * 0.5,
-                z: 0
-            });
-            grid.setPosition(newPosition);
+            grid.moveToSelection();
         }
     } else if (event.key === KEY_P && event.isControl && !event.isAutoRepeat ) {
         if (event.isShifted) {
