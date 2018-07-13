@@ -518,32 +518,32 @@ function usernameFromIDReply(id, username, machineFingerprint, isAdmin) {
     updateUser(data);
 }
 
-function updateAudioLevel(overlay, avatarData) {
+function updateAudioLevel(avatarData) {
     // the VU meter should work similarly to the one in AvatarInputs: log scale, exponentially averaged
     // But of course it gets the data at a different rate, so we tweak the averaging ratio and frequency
     // of updating (the latter for efficiency too).
     var audioLevel = 0.0;
     var avgAudioLevel = 0.0;
 
-    if (overlay) {
+    var data = avatarData.sessionUUID === "" ? myData : ExtendedOverlay.get(avatarData.sessionUUID);
+
+    if (data) {
         // we will do exponential moving average by taking some the last loudness and averaging
-        overlay.accumulatedLevel = AVERAGING_RATIO * (overlay.accumulatedLevel || 0) + (1 - AVERAGING_RATIO) * (avatarData.audioLoudness);
+        data.accumulatedLevel = AVERAGING_RATIO * (data.accumulatedLevel || 0) + (1 - AVERAGING_RATIO) * (avatarData.audioLoudness);
 
         // add 1 to insure we don't go log() and hit -infinity.  Math.log is
         // natural log, so to get log base 2, just divide by ln(2).
-        audioLevel = scaleAudio(Math.log(overlay.accumulatedLevel + 1) / LOG2);
+        audioLevel = scaleAudio(Math.log(data.accumulatedLevel + 1) / LOG2);
 
         // decay avgAudioLevel
-        avgAudioLevel = Math.max((1 - AUDIO_PEAK_DECAY) * (overlay.avgAudioLevel || 0), audioLevel);
+        avgAudioLevel = Math.max((1 - AUDIO_PEAK_DECAY) * (data.avgAudioLevel || 0), audioLevel);
 
-        overlay.avgAudioLevel = avgAudioLevel;
-        overlay.audioLevel = audioLevel;
+        data.avgAudioLevel = avgAudioLevel;
+        data.audioLevel = audioLevel;
 
         // now scale for the gain.  Also, asked to boost the low end, so one simple way is
         // to take sqrt of the value.  Lets try that, see how it feels.
         avgAudioLevel = Math.min(1.0, Math.sqrt(avgAudioLevel * (sessionGains[avatarData.sessionUUID] || 0.75)));
-    } else {
-        audioLevel = scaleAudio(Math.log(((1 - AVERAGING_RATIO) * (avatarData.audioLoudness)) + 1) / LOG2);
     }
 
     var param = {};
@@ -560,11 +560,11 @@ function updateOverlays() {
     var avatarData = AvatarList.getPalData().data;
 
     avatarData.forEach(function (currentAvatarData) {
-        updateAudioLevel(overlay, currentAvatarData);
 
         if (currentAvatarData.sessionUUID === "" || !avatarsOfInterest[currentAvatarData.sessionUUID]) {
             return; // don't update ourself, or avatars we're not interested in
         }
+        updateAudioLevel(currentAvatarData);
         var overlay = ExtendedOverlay.get(currentAvatarData.sessionUUID);
         if (!overlay) { // For now, we're treating this as a temporary loss, as from the personal space bubble. Add it back.
             print('Adding non-PAL avatar node', currentAvatarData.sessionUUID);
