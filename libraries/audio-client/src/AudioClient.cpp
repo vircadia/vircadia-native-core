@@ -487,6 +487,8 @@ bool nativeFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
     audioFormat.setByteOrder(QAudioFormat::LittleEndian);
 
 #if defined(Q_OS_ANDROID)
+    // Using the HW sample rate (AUDIO_INPUT_FLAG_FAST) in some samsung phones causes a low volume at input stream
+    // Changing the sample rate forces a resampling that (in samsung) amplifies +18 dB
     QAndroidJniObject brand =  QAndroidJniObject::getStaticObjectField<jstring>("android/os/Build", "BRAND");
     if (audioDevice == QAudioDeviceInfo::defaultInputDevice() && brand.toString().contains("samsung", Qt::CaseInsensitive)) {
         audioFormat.setSampleRate(24000);
