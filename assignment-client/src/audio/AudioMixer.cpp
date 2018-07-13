@@ -109,6 +109,7 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
 
 void AudioMixer::aboutToFinish() {
     DependencyManager::destroy<PluginManager>();
+    emit finished();
 }
 
 void AudioMixer::queueAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
