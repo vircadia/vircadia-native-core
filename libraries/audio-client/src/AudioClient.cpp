@@ -664,6 +664,7 @@ void AudioClient::stop() {
     switchOutputToAudioDevice(QAudioDeviceInfo(), true);
 #if defined(Q_OS_ANDROID)
     _checkInputTimer.stop();
+    disconnect(&_checkInputTimer, &QTimer::timeout, 0, 0);
 #endif
 }
 
