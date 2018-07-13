@@ -46,7 +46,6 @@ FocusScope {
         hoverEnabled: true
         visible: true
         height: hifi.fontSizes.textFieldInput + 13  // Match height of TextField control.
-        textRole: "text"
 
         function previousItem() { root.currentHighLightedIndex = (root.currentHighLightedIndex + comboBox.count - 1) % comboBox.count; }
         function nextItem() { root.currentHighLightedIndex = (root.currentHighLightedIndex + comboBox.count + 1) % comboBox.count; }
