@@ -1075,15 +1075,19 @@ function mouseReleaseEvent(event) {
     }
 }
 
-function wasTabletClicked(event) {
+function wasTabletOrEditHandleClicked(event) {
     var rayPick = Camera.computePickRay(event.x, event.y);
-    var tabletIDs = getMainTabletIDs();
-    if (tabletIDs.length === 0) {
-        return false;
-    } else {
-        var result = Overlays.findRayIntersection(rayPick, true, getMainTabletIDs());
-        return result.intersects;
+    var result = Overlays.findRayIntersection(rayPick, true);
+    if (result.intersects) {
+        var overlayID = result.overlayID;
+        var tabletIDs = getMainTabletIDs();
+        if (tabletIDs.indexOf(overlayID) >= 0) {
+            return true;
+        } else if (selectionDisplay.isEditHandle(overlayID)) {
+            return true;
+        }
     }
+    return false;
 }
 
 function mouseClickEvent(event) {
@@ -1091,8 +1095,8 @@ function mouseClickEvent(event) {
     var result, properties, tabletClicked;
     if (isActive && event.isLeftButton) {
         result = findClickedEntity(event);
-        tabletClicked = wasTabletClicked(event);
-        if (tabletClicked) {
+        tabletOrEditHandleClicked = wasTabletOrEditHandleClicked(event);
+        if (tabletOrEditHandleClicked) {
             return;
         }
 
