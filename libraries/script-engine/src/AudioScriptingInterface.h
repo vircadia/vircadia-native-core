@@ -35,91 +35,96 @@ protected:
     // these methods are protected to stop C++ callers from calling, but invokable from script
 
     /**jsdoc
+     * TODO
      * @function Audio.playSound
-     * @param {} sound
-     * @param {} [injectorOptions=null]
-     * @returns {object}
+     * @param {SoundObject} sound - TODO
+     * @param {AudioInjector.AudioInjectorOptions} [injectorOptions={}] - TODO
+     * @returns {AudioInjector} TODO
      */
     Q_INVOKABLE ScriptAudioInjector* playSound(SharedSoundPointer sound, const AudioInjectorOptions& injectorOptions = AudioInjectorOptions());
 
     /**jsdoc
+     * TODO
      * @function Audio.playSystemSound
-     * @param {} sound
-     * @param {} position
-     * @returns {object}
+     * @param {SoundObject} sound - TODO
+     * @param {Vec3} position - TODO
+     * @returns {AudioInjector} TODO
      */
     // FIXME: there is no way to play a positionless sound
     Q_INVOKABLE ScriptAudioInjector* playSystemSound(SharedSoundPointer sound, const QVector3D& position);
 
     /**jsdoc
+     * TODO
      * @function Audio.setStereoInput
-     * @param {boolean} stereo
+     * @param {boolean} stereo - TODO
      */
     Q_INVOKABLE void setStereoInput(bool stereo);
 
     /**jsdoc
+     * TODO
      * @function Audio.isStereoInput
-     * @returns {boolean} 
+     * @returns {boolean} <code>true</code> if TODO, otherwise <code>false</code>. 
      */
     Q_INVOKABLE bool isStereoInput();
 
 signals:
 
     /**jsdoc
-     * The client has been muted by the mixer.
+     * Triggered when the client is muted by the mixer.
      * @function Audio.mutedByMixer
      * @returns {Signal} 
      */
     void mutedByMixer();
 
     /**jsdoc
-     * The entire environment has been muted by the mixer.
+     * Triggered when the entire environment is muted by the mixer. TODO: What is the "whole environment"?
      * @function Audio.environmentMuted
      * @returns {Signal} 
      */
     void environmentMuted();
 
     /**jsdoc
-     * The client has received its first packet from the audio mixer.
+     * Triggered when the client receives its first packet from the audio mixer.
      * @function Audio.receivedFirstPacket
      * @returns {Signal} 
      */
     void receivedFirstPacket();
 
     /**jsdoc
-     * The client has been disconnected from the audio mixer.
+     * Triggered when the client is disconnected from the audio mixer.
      * @function Audio.disconnected
      * @returns {Signal} 
      */
     void disconnected();
 
     /**jsdoc
-     * The noise gate has opened.
+     * Triggered when the noise gate is opened. TODO: Description of noise gate.
      * @function Audio.noiseGateOpened
      * @returns {Signal} 
      */
     void noiseGateOpened();
 
     /**jsdoc
-     * The noise gate has closed.
+     * Triggered when the noise gate is closed. TODO: Description of noise gate.
      * @function Audio.noiseGateClosed
      * @returns {Signal} 
      */
     void noiseGateClosed();
 
     /**jsdoc
-     * A frame of mic input audio has been received and processed.
+     * Triggered when a frame of microphone audio input is processed.
      * @function Audio.inputReceived
-     * @param {} inputSamples
+     * @param {Int16Array} inputSamples - TODO
      * @returns {Signal} 
      */
     void inputReceived(const QByteArray& inputSamples);
 
     /**jsdoc
-    * @function Audio.isStereoInputChanged
-    * @param {boolean} isStereo
-    * @returns {Signal}
-    */
+     * TODO
+     * @function Audio.isStereoInputChanged
+     * @param {boolean} isStereo - TODO
+     * @returns {Signal}
+     */
     void isStereoInputChanged(bool isStereo);
 
 private:

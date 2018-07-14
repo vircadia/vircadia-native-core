@@ -16,6 +16,21 @@
 
 #include <AudioInjector.h>
 
+/**jsdoc
+ * TODO
+ * Used in the {@link Audio} API.
+ *
+ * @class AudioInjector
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
+ *
+ * @property {boolean} playing - <code>true</code> if TODO, otherwise <code>false</code>. <em>Read-only.</em>
+ * @property {number} loudness - TODO <em>Read-only.</em>
+ * @property {AudioInjector.AudioInjectorOptions} options - TODO
+ */
 class ScriptAudioInjector : public QObject {
     Q_OBJECT
 
@@ -26,19 +41,62 @@ public:
     ScriptAudioInjector(const AudioInjectorPointer& injector);
     ~ScriptAudioInjector();
 public slots:
+
+    /**jsdoc
+     * TODO
+     * @function AudioInjector.restart
+     */
     void restart() { _injector->restart(); }
+
+    /**jsdoc
+     * TODO
+     * @function AudioInjector.stop
+     */
     void stop() { _injector->stop(); }
 
+    /**jsdoc
+     * TODO
+     * @function AudioInjector.getOptions
+     * @returns {AudioInjector.AudioInjectorOptions} TODO
+     */
     const AudioInjectorOptions& getOptions() const { return _injector->getOptions(); }
+
+    /**jsdoc
+     * TODO
+     * @function AudioInjector.setOptions
+     * @param {AudioInjector.AudioInjectorOptions} options - TODO
+     */
     void setOptions(const AudioInjectorOptions& options) { _injector->setOptions(options); }
 
+    /**jsdoc
+     * TODO
+     * @function AudioInjector.getLoudness
+     * @returns {number} TODO
+     */
     float getLoudness() const { return _injector->getLoudness(); }
+
+    /**jsdoc
+     * TODO
+     * @function AudioInjector.isPlaying
+     * @returns {boolean} <code>true</code> if TODO, otherwise <code>false</code>.
+     */
     bool isPlaying() const { return _injector->isPlaying(); }
 
 signals:
+
+    /**jsdoc
+     * Triggered when TODO
+     * @function AudioInjector.finished
+     * @returns {Signal}
+     */
     void finished();
 
 protected slots:
+
+    /**jsdoc
+     * TODO
+     * @function AudioInjector.stopInjectorImmediately
+     */
     void stopInjectorImmediately();
 private:
     AudioInjectorPointer _injector;

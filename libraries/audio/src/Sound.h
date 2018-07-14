@@ -79,6 +79,9 @@ private:
 typedef QSharedPointer<Sound> SharedSoundPointer;
 
 /**jsdoc
+ * TODO
+ * Created by {@link SoundCache.getSound}.
+ *
  * @class SoundObject
  * 
  * @hifi-interface
@@ -86,8 +89,8 @@ typedef QSharedPointer<Sound> SharedSoundPointer;
  * @hifi-server-entity
  * @hifi-assignment-client
  *
- * @property {boolean} downloaded
- * @property {number} duration
+ * @property {boolean} downloaded - <code>true</code> if TODO, otherwise <code>false</code>.
+ * @property {number} duration - TODO
  */
 class SoundScriptingInterface : public QObject {
     Q_OBJECT
@@ -103,6 +106,7 @@ public:
     float getDuration() { return _sound->getDuration(); }
 
 /**jsdoc
+ * Triggered when TODO
  * @function SoundObject.ready
  * @returns {Signal}
  */

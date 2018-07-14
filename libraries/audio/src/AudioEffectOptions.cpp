@@ -59,28 +59,29 @@ static void setOption(QScriptValue arguments, const QString name, float defaultV
 }
 
 /**jsdoc
+ * TODO
  * @typedef {object} AudioEffectOptions.ReverbOptions
- * @property {number} bandwidth
- * @property {number} preDelay
- * @property {number} lateDelay
- * @property {number} reverbTime
- * @property {number} earlyDiffusion
- * @property {number} lateDiffusion
- * @property {number} roomSize
- * @property {number} density
- * @property {number} bassMult
- * @property {number} bassFreq
- * @property {number} highGain
- * @property {number} highFreq
- * @property {number} modRate
- * @property {number} modDepth
- * @property {number} earlyGain
- * @property {number} lateGain
- * @property {number} earlyMixLeft
- * @property {number} earlyMixRight
- * @property {number} lateMixLeft
- * @property {number} lateMixRight
- * @property {number} wetDryMix
+ * @property {number} bandwidth - TODO
+ * @property {number} preDelay - TODO
+ * @property {number} lateDelay - TODO
+ * @property {number} reverbTime - TODO
+ * @property {number} earlyDiffusion - TODO
+ * @property {number} lateDiffusion - TODO
+ * @property {number} roomSize - TODO
+ * @property {number} density - TODO
+ * @property {number} bassMult - TODO
+ * @property {number} bassFreq - TODO
+ * @property {number} highGain - TODO
+ * @property {number} highFreq - TODO
+ * @property {number} modRate - TODO
+ * @property {number} modDepth - TODO
+ * @property {number} earlyGain - TODO
+ * @property {number} lateGain - TODO
+ * @property {number} earlyMixLeft - TODO
+ * @property {number} earlyMixRight - TODO
+ * @property {number} lateMixLeft - TODO
+ * @property {number} lateMixRight - TODO
+ * @property {number} wetDryMix - TODO
  */
 AudioEffectOptions::AudioEffectOptions(QScriptValue arguments) {
     setOption(arguments, BANDWIDTH_HANDLE, BANDWIDTH_DEFAULT, _bandwidth);

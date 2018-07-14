@@ -26,7 +26,7 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
     SINGLETON_DEPENDENCY
 
     /**jsdoc
-     * The Audio API features tools to help control audio contexts and settings.
+     * The <code>Audio</code> API ... TODO
      *
      * @namespace Audio
      *
@@ -35,12 +35,13 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
      * @hifi-server-entity
      * @hifi-assignment-client
      *
-     * @property {boolean} muted
-     * @property {boolean} noiseReduction
-     * @property {number} inputVolume
-     * @property {number} inputLevel <em>Read-only.</em>
-     * @property {string} context <em>Read-only.</em>
-     * @property {} devices <em>Read-only.</em>
+     * @property {boolean} muted - <code>true</code> if TODO, otherwise <code>false</code>.
+     * @property {boolean} noiseReduction - <code>true</code> if TODO, otherwise <code>false</code>.
+     * @property {number} inputVolume - TODO
+     * @property {number} inputLevel - TODO <em>Read-only.</em>
+     * @property {string} context - TODO <em>Read-only.</em>
+     * @property {object} devices <em>Read-only.</em> <strong>Deprecated:</strong> This property is deprecated and will be 
+     *     removed.
      */
  
     Q_PROPERTY(bool muted READ isMuted WRITE setMuted NOTIFY mutedChanged)
@@ -69,87 +70,100 @@ public:
 
     /**jsdoc
      * @function Audio.setInputDevice
-     * @param {} device
+     * @param {object} device
      * @param {boolean} isHMD 
+     * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE void setInputDevice(const QAudioDeviceInfo& device, bool isHMD);
 
     /**jsdoc
      * @function Audio.setOutputDevice
-     * @param {} device
+     * @param {object} device
      * @param {boolean} isHMD
+     * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE void setOutputDevice(const QAudioDeviceInfo& device, bool isHMD);
 
     /**jsdoc
+     * TODO
      * @function Audio.setReverb
-     * @param {boolean} enable
+     * @param {boolean} enable - TODO
      */
     Q_INVOKABLE void setReverb(bool enable);
     
     /**jsdoc
+     * TODO
      * @function Audio.setReverbOptions
-     * @param {AudioEffectOptions} options
+     * @param {AudioEffectOptions} options - TODO
      */
     Q_INVOKABLE void setReverbOptions(const AudioEffectOptions* options);
    
     /**jsdoc
+     * TODO
      * @function Audio.startRecording
-     * @param {string} filename
-     * @returns {boolean}
+     * @param {string} filename - TODO
+     * @returns {boolean} <code>true</code> if TODO, otherwise <code>false</code>.
      */
     Q_INVOKABLE bool startRecording(const QString& filename);
     
     /**jsdoc
+     * TODO
      * @function Audio.stopRecording
      */
     Q_INVOKABLE void stopRecording();
 
     /**jsdoc
+     * TODO
      * @function Audio.getRecording
-     * @returns {boolean}
+     * @returns {boolean} <code>true</code> if TODO, otherwise <code>false</code>.
      */
     Q_INVOKABLE bool getRecording();
 
 signals:
 
     /**jsdoc
+     * Triggered when ... TODO
      * @function Audio.nop
      * @returns {Signal}
      */
     void nop();
 
     /**jsdoc
+     * Triggered when ... TODO
      * @function Audio.mutedChanged
-     * @param {boolean} isMuted
+     * @param {boolean} isMuted - TODO
      * @returns {Signal}
      */
     void mutedChanged(bool isMuted);
     
     /**jsdoc
+     * Triggered when ... TODO
      * @function Audio.noiseReductionChanged
-     * @param {boolean} isEnabled
+     * @param {boolean} isEnabled - TODO
      * @returns {Signal}
      */
     void noiseReductionChanged(bool isEnabled);
 
     /**jsdoc
+     * Triggered when ... TODO
      * @function Audio.inputVolumeChanged
-     * @param {number} volume
+     * @param {number} volume - TODO
      * @returns {Signal}
      */
     void inputVolumeChanged(float volume);
 
     /**jsdoc
+     * Triggered when ... TODO
      * @function Audio.inputLevelChanged
-     * @param {number} level
+     * @param {number} level - TODO
      * @returns {Signal}
      */
     void inputLevelChanged(float level);
 
     /**jsdoc
+     * Triggered when ... TODO
      * @function Audio.contextChanged
-     * @param {string} context
+     * @param {string} context - TODO
      * @returns {Signal}
      */
     void contextChanged(const QString& context);
@@ -158,7 +172,7 @@ public slots:
 
     /**jsdoc
      * @function Audio.onContextChanged
-     * @returns {Signal}
+     * @deprecated This function is deprecated and will be removed.
      */
     void onContextChanged();
 

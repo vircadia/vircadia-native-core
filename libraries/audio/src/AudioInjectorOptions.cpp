@@ -45,6 +45,18 @@ QScriptValue injectorOptionsToScriptValue(QScriptEngine* engine, const AudioInje
     return obj;
 }
 
+/**jsdoc
+ * TODO
+ * @typedef {object} AudioInjector.AudioInjectorOptions
+ * @property {Vec3} position=Vec3.ZERO - TODO
+ * @property {Quat} orientation=Quat.IDENTITY - TODO
+ * @property {number} volume=1 - TODO
+ * @property {boolean} loop=false - <code>true</code> if TODO, otherwise <code>false</code>.
+ * @property {boolean} ignorePenumbra=false - <code>true</code> if TODO, otherwise <code>false</code>.
+ * @property {boolean} localOnly=false - <code>true</code> if TODO, otherwise <code>false</code>.
+ * @property {number} secondOffset=0 - TODO
+ * @property {number} pitch=1 - TODO
+ */
 void injectorOptionsFromScriptValue(const QScriptValue& object, AudioInjectorOptions& injectorOptions) {
     if (!object.isObject()) {
         qWarning() << "Audio injector options is not an object.";
