@@ -159,6 +159,9 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
 
         for(var bookmarkName in message.data.bookmarks) {
             var bookmark = message.data.bookmarks[bookmarkName];
+            if (!bookmark.avatarEntites) { // ensure avatarEntites always exist
+                bookmark.avatarEntites = [];
+            }
 
             bookmark.avatarEntites.forEach(function(avatarEntity) {
                 avatarEntity.properties.localRotationAngles = Quat.safeEulerAngles(avatarEntity.properties.localRotation)

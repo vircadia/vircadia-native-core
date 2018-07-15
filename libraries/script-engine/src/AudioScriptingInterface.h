@@ -54,9 +54,8 @@ protected:
     /**jsdoc
      * @function Audio.setStereoInput
      * @param {boolean} stereo
-     * @returns {boolean}
      */
-    Q_INVOKABLE bool setStereoInput(bool stereo);
+    Q_INVOKABLE void setStereoInput(bool stereo);
 
     /**jsdoc
      * @function Audio.isStereoInput

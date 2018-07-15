@@ -6,7 +6,7 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 if (WIN32)
     ExternalProject_Add(
       ${EXTERNAL_NAME}
-      URL http://public.highfidelity.com/dependencies/crashpad_062317.1.zip
+      URL https://public.highfidelity.com/dependencies/crashpad_062317.1.zip
       URL_MD5 9c84b77f5f23daf939da1371825ed2b1
       CONFIGURE_COMMAND ""
       BUILD_COMMAND ""
@@ -25,7 +25,7 @@ if (WIN32)
 elseif (APPLE)
   ExternalProject_Add(
     ${EXTERNAL_NAME}
-    URL http://public.highfidelity.com/dependencies/crashpad_mac_070318.zip
+    URL https://public.highfidelity.com/dependencies/crashpad_mac_070318.zip
     URL_MD5 ba1501dc163591ac2d1be74946967e2a
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
