@@ -280,9 +280,9 @@ gpu::TexturePointer TextureCache::getImageTexture(const QString& path, image::Te
     }
     auto loader = image::TextureUsage::getTextureLoaderForType(type, options);
 #ifdef USE_GLES
-    image::BackendTarget target = image::BackendTarget::GLES;
+    image::BackendTarget target = image::BackendTarget::GLES32;
 #else
-    image::BackendTarget target = image::BackendTarget::GL;
+    image::BackendTarget target = image::BackendTarget::GL45;
 #endif
     return gpu::TexturePointer(loader(std::move(image), path.toStdString(), false, target, false));
 }
@@ -1171,7 +1171,12 @@ void ImageReader::read() {
 #else
         constexpr bool shouldCompress = false;
 #endif
-        texture = image::processImage(std::move(buffer), _url.toString().toStdString(), _maxNumPixels, networkTexture->getTextureType(), shouldCompress);
+    #ifdef USE_GLES
+        image::BackendTarget target = image::BackendTarget::GLES32;
+    #else
+        image::BackendTarget target = image::BackendTarget::GL45;
+    #endif
+        texture = image::processImage(std::move(buffer), _url.toString().toStdString(), _maxNumPixels, networkTexture->getTextureType(), shouldCompress, target);
 
         if (!texture) {
             qCWarning(modelnetworking) << "Could not process:" << _url;

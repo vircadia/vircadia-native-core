@@ -80,7 +80,7 @@ const QStringList getSupportedFormats() {
 
 // On GLES, we don't use HDR skyboxes
 QImage::Format hdrFormatForTarget(BackendTarget target) {
-    if (target == BackendTarget::GLES) {
+    if (target == BackendTarget::GLES32) {
         return QImage::Format_RGB32;
     }
     return QImage::Format_RGB30;
@@ -271,7 +271,7 @@ QImage processSourceImage(QImage&& srcImage, bool cubemap, BackendTarget target)
     const glm::uvec2 srcImageSize = toGlm(localCopy.size());
     glm::uvec2 targetSize = srcImageSize;
 
-    const auto maxTextureSize = target == BackendTarget::GL ? MAX_TEXTURE_SIZE_GL : MAX_TEXTURE_SIZE_GLES;
+    const auto maxTextureSize = target == BackendTarget::GLES32 ? MAX_TEXTURE_SIZE_GLES : MAX_TEXTURE_SIZE_GL;
     while (glm::any(glm::greaterThan(targetSize, maxTextureSize))) {
         targetSize /= 2;
     }
@@ -513,7 +513,7 @@ void generateLDRMips(gpu::Texture* texture, QImage&& image, BackendTarget target
     const int width = localCopy.width(), height = localCopy.height();
     auto mipFormat = texture->getStoredMipFormat();
 
-    if (target != BackendTarget::GLES) {
+    if (target != BackendTarget::GLES32) {
         const void* data = static_cast<const void*>(localCopy.constBits());
         nvtt::TextureType textureType = nvtt::TextureType_2D;
         nvtt::InputFormat inputFormat = nvtt::InputFormat_BGRA_8UB;
@@ -705,7 +705,7 @@ void generateMips(gpu::Texture* texture, QImage&& image, BackendTarget target, c
 #if CPU_MIPMAPS
     PROFILE_RANGE(resource_parse, "generateMips");
 
-    if (target == BackendTarget::GLES) {
+    if (target == BackendTarget::GLES32) {
         generateLDRMips(texture, std::move(image), target, abortProcessing, face);
     } else {
         if (image.format() == hdrFormatForTarget(target)) {
@@ -768,7 +768,7 @@ gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(QImage&& srcIma
         gpu::Element formatMip;
         gpu::Element formatGPU;
         if (compress) {
-            if (target == BackendTarget::GLES) {
+            if (target == BackendTarget::GLES32) {
                 // GLES does not support GL_BGRA
                 formatGPU = gpu::Element::COLOR_COMPRESSED_ETC2_SRGBA;
                 formatMip = formatGPU;
@@ -783,8 +783,7 @@ gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(QImage&& srcIma
                 formatMip = formatGPU;
             }
         } else {
-            if (target == BackendTarget::GLES) {
-                static_assert(false);
+            if (target == BackendTarget::GLES32) {
             } else {
                 formatGPU = gpu::Element::COLOR_SRGBA_32;
                 formatMip = gpu::Element::COLOR_SBGRA_32;
@@ -907,7 +906,7 @@ gpu::TexturePointer TextureUsage::process2DTextureNormalMapFromImage(QImage&& sr
         gpu::Element formatMip;
         gpu::Element formatGPU;
         if (compress) {
-            if (target == BackendTarget::GLES) {
+            if (target == BackendTarget::GLES32) {
                 formatGPU = gpu::Element::COLOR_COMPRESSED_EAC_XY;
             } else {
                 formatGPU = gpu::Element::COLOR_COMPRESSED_BCX_XY;
@@ -947,7 +946,7 @@ gpu::TexturePointer TextureUsage::process2DTextureGrayscaleFromImage(QImage&& sr
         gpu::Element formatMip;
         gpu::Element formatGPU;
         if (compress) {
-            if (target == BackendTarget::GLES) {
+            if (target == BackendTarget::GLES32) {
                 formatGPU = gpu::Element::COLOR_COMPRESSED_EAC_RED;
             } else {
                 formatGPU = gpu::Element::COLOR_COMPRESSED_BCX_RED;
@@ -1312,7 +1311,7 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(QImage&& srcI
     QImage image = processSourceImage(std::move(localCopy), true, target);
 
     if (image.format() != hdrFormatForTarget(target)) {
-        if (target == BackendTarget::GLES) {
+        if (target == BackendTarget::GLES32) {
             image = image.convertToFormat(QImage::Format_RGB32);
         } else {
             image = convertToHDRFormat(std::move(image), HDR_FORMAT, target);
@@ -1322,7 +1321,7 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(QImage&& srcI
     gpu::Element formatMip;
     gpu::Element formatGPU;
     if (compress) {
-        if (target == BackendTarget::GLES) {
+        if (target == BackendTarget::GLES32) {
             formatGPU = gpu::Element::COLOR_COMPRESSED_ETC2_SRGB;
         } else {
             formatGPU = gpu::Element::COLOR_COMPRESSED_BCX_HDR_RGB;
@@ -1380,7 +1379,7 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(QImage&& srcI
             PROFILE_RANGE(resource_parse, "generateIrradiance");
             gpu::Element irradianceFormat;
             // TODO: we could locally compress the irradiance texture on Android, but we don't need to
-            if (target == BackendTarget::GLES) {
+            if (target == BackendTarget::GLES32) {
                 irradianceFormat = gpu::Element::COLOR_SRGBA_32;
             } else {
                 irradianceFormat = HDR_FORMAT;

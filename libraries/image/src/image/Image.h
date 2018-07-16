@@ -22,8 +22,9 @@ class QImage;
 namespace image {
 
 enum class BackendTarget {
-    GL,
-    GLES
+    GL41,
+    GL45,
+    GLES32
 };
 
 namespace TextureUsage {
