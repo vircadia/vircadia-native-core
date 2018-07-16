@@ -1108,7 +1108,7 @@ Rectangle {
     function findNearbySessionIndex(sessionId, optionalData) { // no findIndex in .qml
         var data = optionalData || nearbyUserModelData, length = data.length;
         for (var i = 0; i < length; i++) {
-            if (data[i].sessionId === sessionId) {
+            if (data[i].sessionId === sessionId.toString()) {
                 return i;
             }
         }
@@ -1120,7 +1120,7 @@ Rectangle {
             var data = message.params;
             var index = -1;
             iAmAdmin = Users.canKick;
-            index = findNearbySessionIndex('', data);
+            index = findNearbySessionIndex("", data);
             if (index !== -1) {
                 myData = data[index];
                 data.splice(index, 1);
@@ -1197,8 +1197,8 @@ Rectangle {
             for (var userId in message.params) {
                 var audioLevel = message.params[userId][0];
                 var avgAudioLevel = message.params[userId][1];
-                // If the userId is 0, we're updating "myData".
-                if (userId == 0) {
+                // If the userId is "", we're updating "myData".
+                if (userId === "") {
                     myData.audioLevel = audioLevel;
                     myCard.audioLevel = audioLevel; // Defensive programming
                     myData.avgAudioLevel = avgAudioLevel;
