@@ -1003,7 +1003,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _sampleSound(nullptr)
 
 {
-
+    qDebug() << "[LOADSTUCK] Application::Application started constructor";
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
@@ -1643,7 +1643,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             }
         }
     });
-
+    qDebug() << "[LOADSTUCK] Application::Application 20 user input mapper stuff done";
     _applicationStateDevice = userInputMapper->getStateDevice();
 
     _applicationStateDevice->setInputVariant(STATE_IN_HMD, []() -> float {
@@ -1711,7 +1711,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     updateHeartbeat();
 
     loadSettings();
-
+    qDebug() << "[LOADSTUCK] Application::Application 30 settings loaded";
     updateVerboseLogging();
 
     // Now that we've loaded the menu and thus switched to the previous display plugin
@@ -1763,7 +1763,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(audioIO.data(), &AudioClient::inputReceived, audioScriptingInterface.data(), &AudioScriptingInterface::inputReceived);
 
     this->installEventFilter(this);
-
+    qDebug() << "[LOADSTUCK] Application::Application 40 event filter installed";
 #ifdef HAVE_DDE
     auto ddeTracker = DependencyManager::get<DdeFaceTracker>();
     ddeTracker->init();
@@ -1897,7 +1897,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
         return false;
     });
-
+    qDebug() << "[LOADSTUCK] Application::Application 50 entity tree stuff done";
     // Keyboard focus handling for Web overlays.
     auto overlays = &(qApp->getOverlays());
     connect(overlays, &Overlays::overlayDeleted, [=](const OverlayID& overlayID) {
@@ -2156,7 +2156,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
-
+    qDebug() << "[LOADSTUCK] Application::Application 60 heartbeat updated";
     OctreeEditPacketSender* packetSender = entityScriptingInterface->getPacketSender();
     EntityEditPacketSender* entityPacketSender = static_cast<EntityEditPacketSender*>(packetSender);
     entityPacketSender->setMyAvatar(myAvatar.get());
@@ -2217,7 +2217,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     updateSystemTabletMode();
 
     connect(&_myCamera, &Camera::modeUpdated, this, &Application::cameraModeChanged);
-
+    qDebug() << "[LOADSTUCK] Application::Application 70 camera mode changed connected";
     DependencyManager::get<PickManager>()->setShouldPickHUDOperator([&]() { return DependencyManager::get<HMDScriptingInterface>()->isHMDMode(); });
     DependencyManager::get<PickManager>()->setCalculatePos2DFromHUDOperator([&](const glm::vec3& intersection) {
         const glm::vec2 MARGIN(25.0f);
@@ -2261,6 +2261,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&AndroidHelper::instance(), &AndroidHelper::beforeEnterBackground, this, &Application::beforeEnterBackground);
     connect(&AndroidHelper::instance(), &AndroidHelper::enterBackground, this, &Application::enterBackground);
     connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
+    qDebug() << "[LOADSTUCK] Application::Application before calling notifyLoadComplete()";
     AndroidHelper::instance().notifyLoadComplete();
 #endif
 }
