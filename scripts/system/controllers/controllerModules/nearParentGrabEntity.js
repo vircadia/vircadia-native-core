@@ -239,8 +239,10 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             for (var i = 0; i < nearbyEntityProperties.length; i++) {
                 var props = nearbyEntityProperties[i];
                 var handPosition = controllerData.controllerLocations[this.hand].position;
+                var dist = distanceBetweenPointAndEntityBoundingBox(handPosition, props);
                 var distance = Vec3.distance(handPosition, props.position);
-                if ((distance > NEAR_GRAB_RADIUS * sensorScaleFactor)) {
+                if ((dist > TEAR_AWAY_DISTANCE ||
+                     distance > NEAR_GRAB_RADIUS * sensorScaleFactor)) {
                     continue;
                 }
                 if (entityIsGrabbable(props) || entityIsCloneable(props)) {
