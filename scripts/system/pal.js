@@ -15,9 +15,10 @@
 (function() { // BEGIN LOCAL_SCOPE
 
     var request = Script.require('request').request;
+    var AppUi = Script.require('appUi');
 
 var populateNearbyUserList, color, textures, removeOverlays,
-    controllerComputePickRay, onTabletButtonClicked, onTabletScreenChanged,
+    controllerComputePickRay, off,
     receiveMessage, avatarDisconnected, clearLocalQMLDataAndClosePAL,
     createAudioInterval, tablet, CHANNEL, getConnectionData, findableByChanged,
     avatarAdded, avatarRemoved, avatarSessionChanged; // forward references;
@@ -678,20 +679,7 @@ function tabletVisibilityChanged() {
 
 var wasOnPalScreen = false;
 var onPalScreen = false;
-var PAL_QML_SOURCE = "hifi/Pal.qml";
-function onTabletButtonClicked() {
-    if (!tablet) {
-        print("Warning in onTabletButtonClicked(): 'tablet' undefined!");
-        return;
-    }
-    if (onPalScreen) {
-        // In Toolbar Mode, `gotoHomeScreen` will close the app window.
-        tablet.gotoHomeScreen();
-    } else {
-        tablet.loadQMLSource(PAL_QML_SOURCE);
-    }
-}
-var hasEventBridge = false;
+/*var hasEventBridge = false;
 function wireEventBridge(on) {
     if (on) {
         if (!hasEventBridge) {
@@ -704,38 +692,31 @@ function wireEventBridge(on) {
             hasEventBridge = false;
         }
     }
-}
-
-function onTabletScreenChanged(type, url) {
+}*/
+function captureState() {
     wasOnPalScreen = onPalScreen;
-    onPalScreen = (type === "QML" && url === PAL_QML_SOURCE);
-    wireEventBridge(onPalScreen);
-    // for toolbar mode: change button to active when window is first openend, false otherwise.
-    button.editProperties({isActive: onPalScreen});
-
-    if (onPalScreen) {
-        isWired = true;
-
-        ContextOverlay.enabled = false;
-        Users.requestsDomainListData = true;
-
-        audioTimer = createAudioInterval(AUDIO_LEVEL_UPDATE_INTERVAL_MS);
-
-        tablet.tabletShownChanged.connect(tabletVisibilityChanged);
-        Script.update.connect(updateOverlays);
-        Controller.mousePressEvent.connect(handleMouseEvent);
-        Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
-        Users.usernameFromIDReply.connect(usernameFromIDReply);
-        triggerMapping.enable();
-        triggerPressMapping.enable();
-        populateNearbyUserList();
-    } else {
-        off();
-        if (wasOnPalScreen) {
-            ContextOverlay.enabled = true;
-        }
-    }
+    onPalScreen = ui.isOpen;
+    //wireEventBridge(onPalScreen);
 }
+function on() {
+    captureState();
+    isWired = true;
+
+    ContextOverlay.enabled = false;
+    Users.requestsDomainListData = true;
+
+    audioTimer = createAudioInterval(AUDIO_LEVEL_UPDATE_INTERVAL_MS);
+
+    tablet.tabletShownChanged.connect(tabletVisibilityChanged);
+    Script.update.connect(updateOverlays);
+    Controller.mousePressEvent.connect(handleMouseEvent);
+    Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
+    Users.usernameFromIDReply.connect(usernameFromIDReply);
+    triggerMapping.enable();
+    triggerPressMapping.enable();
+    populateNearbyUserList();
+}
+var button, ui, tablet;
 
 //
 // Message from other scripts, such as edit.js
@@ -749,7 +730,7 @@ function receiveMessage(channel, messageString, senderID) {
     switch (message.method) {
     case 'select':
         if (!onPalScreen) {
-            tablet.loadQMLSource(PAL_QML_SOURCE);
+            tablet.loadQMLSource(ui.home);
             Script.setTimeout(function () { sendToQml(message); }, 1000);
         } else {
             sendToQml(message); // Accepts objects, not just strings.
@@ -847,20 +828,17 @@ function avatarSessionChanged(avatarID) {
     sendToQml({ method: 'palIsStale', params: [avatarID, 'avatarSessionChanged'] });
 }
 
-
-var button;
-var buttonName = "PEOPLE";
-var tablet = null;
 function startup() {
-    tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-    button = tablet.addButton({
-        text: buttonName,
-        icon: "icons/tablet-icons/people-i.svg",
-        activeIcon: "icons/tablet-icons/people-a.svg",
-        sortOrder: 7
+    ui = new AppUi({
+        buttonName: "PEOPLE",
+        sortOrder: 7,
+        home: "hifi/Pal.qml",
+        onOpened: on,
+        onClosed: off,
+        onMessage: fromQml
     });
-    button.clicked.connect(onTabletButtonClicked);
-    tablet.screenChanged.connect(onTabletScreenChanged);
+    tablet = ui.tablet;
+    button = ui.button;
     Window.domainChanged.connect(clearLocalQMLDataAndClosePAL);
     Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);
     Messages.subscribe(CHANNEL);
@@ -877,6 +855,7 @@ var isWired = false;
 var audioTimer;
 var AUDIO_LEVEL_UPDATE_INTERVAL_MS = 100; // 10hz for now (change this and change the AVERAGING_RATIO too)
 function off() {
+    captureState();
     if (isWired) {
         Script.update.disconnect(updateOverlays);
         Controller.mousePressEvent.disconnect(handleMouseEvent);
@@ -896,15 +875,15 @@ function off() {
     }
 
     removeOverlays();
+    if (wasOnPalScreen) {
+        ContextOverlay.enabled = true;
+    }
 }
 
 function shutdown() {
     if (onPalScreen) {
         tablet.gotoHomeScreen();
     }
-    button.clicked.disconnect(onTabletButtonClicked);
-    tablet.removeButton(button);
-    tablet.screenChanged.disconnect(onTabletScreenChanged);
     Window.domainChanged.disconnect(clearLocalQMLDataAndClosePAL);
     Window.domainConnectionRefused.disconnect(clearLocalQMLDataAndClosePAL);
     Messages.subscribe(CHANNEL);
