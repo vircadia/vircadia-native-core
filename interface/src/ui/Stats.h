@@ -276,7 +276,9 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, gpuTextureExternalMemory, 0)
     STATS_PROPERTY(QString, gpuTextureMemoryPressureState, QString())
     STATS_PROPERTY(int, gpuFreeMemory, 0)
+    STATS_PROPERTY(QVector2D, gpuFrameSize, QVector2D(0,0))
     STATS_PROPERTY(float, gpuFrameTime, 0)
+    STATS_PROPERTY(float, gpuFrameTimePerPixel, 0)
     STATS_PROPERTY(float, batchFrameTime, 0)
     STATS_PROPERTY(float, engineFrameTime, 0)
     STATS_PROPERTY(float, avatarSimulationTime, 0)
@@ -961,6 +963,20 @@ signals:
      * @returns {Signal}
      */
     void gpuFrameTimeChanged();
+
+    /**jsdoc
+     * Triggered when the value of the <code>gpuFrameTime</code> property changes.
+     * @function Stats.gpuFrameTimeChanged
+     * @returns {Signal}
+     */
+    void gpuFrameSizeChanged();
+
+    /**jsdoc
+     * Triggered when the value of the <code>gpuFrameTime</code> property changes.
+     * @function Stats.gpuFrameTimeChanged
+     * @returns {Signal}
+     */
+    void gpuFrameTimePerPixelChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>batchFrameTime</code> property changes.

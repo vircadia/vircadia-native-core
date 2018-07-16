@@ -67,13 +67,13 @@ Item {
         }
 
         onAppInstalled: {
-            if (appHref === root.itemHref) {
+            if (appID === root.itemId) {
                 root.isInstalled = true;
             }
         }
 
         onAppUninstalled: {
-            if (appHref === root.itemHref) {
+            if (appID === root.itemId) {
                 root.isInstalled = false;
             }
         }
@@ -328,7 +328,15 @@ Item {
                         item.buttonColor = "#E2334D";
                         item.buttonClicked = function() {
                             sendToPurchases({ method: 'flipCard', closeAll: true });
-                            sendToPurchases({method: 'updateItemClicked', itemId: root.itemId, itemEdition: root.itemEdition, upgradeUrl: root.upgradeUrl});
+                            sendToPurchases({
+                                method: 'updateItemClicked',
+                                itemId: root.itemId,
+                                itemEdition: root.itemEdition,
+                                upgradeUrl: root.upgradeUrl,
+                                itemHref: root.itemHref,
+                                itemType: root.itemType,
+                                isInstalled: root.isInstalled
+                            });
                         }
                     }
                 }

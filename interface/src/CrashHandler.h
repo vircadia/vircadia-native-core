@@ -14,8 +14,7 @@
 
 #include <string>
 
-bool startCrashHandler();
+bool startCrashHandler(std::string appPath);
 void setCrashAnnotation(std::string name, std::string value);
 
-
-#endif
+#endif // hifi_CrashHandler_h
