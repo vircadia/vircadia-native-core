@@ -13,13 +13,16 @@ function AppUi(properties) {
        1. var AppUi = Script.require('appUi');
        2. Put appname-i.svg, appname-a.svg in graphicsDirectory (where non-default graphicsDirectory can be added in #3).
        3. ui = new AppUi({buttonName: "APPNAME", home: "qml-or-html-path"});
-          (and if converting an existing app,
+          (And if converting an existing app,
 	    define var tablet = ui.tablet, button = ui.button; as needed.
 	    remove button.clicked.[dis]connect and tablet.remove(button).)
        4. Define onOpened and onClosed behavior in #3, if any.
-          (and if converting an existing app, remove screenChanged.[dis]connect.)
-       5. Define onMessage in #3, if any.
-          (and if converting an existing app, remove code that [un]wires that message handling.)
+          (And if converting an existing app, remove screenChanged.[dis]connect.)
+       5. Define onMessage and sendMessage in #3, if any.
+          (And if converting an existing app, remove code that [un]wires that message handling such as
+	  fromQml/sendToQml or webEventReceived/emitScriptEvent.)
+       6. (If converting an existing app, cleanup stuff that is no longer necessary, like references to button, tablet,
+           and use isOpen, open(), and close() as needed.)
        x. lint!
      */
     
@@ -36,14 +39,14 @@ function AppUi(properties) {
     that.checkIsOpen = function checkIsOpen(type, tabletUrl) { // Are we active? Value used to set isOpen.
 	return (type === that.type) && (tabletUrl.indexOf(that.home) >= 0); // Actual url may have prefix or suffix.
     }
-    that.toOpen = function toOpen() { // How to open the app.
+    that.open = function open() { // How to open the app.
 	if (that.isQML()) {
 	    that.tablet.loadQMLSource(that.home);
 	} else {
 	    that.tablet.gotoWebScreen(that.home, that.inject);
 	}
     };
-    that.toClose = function toClose() { // How to close the app.
+    that.close = function close() { // How to close the app.
 	// for toolbar-mode: go back to home screen, this will close the window.
 	that.tablet.gotoHomeScreen();
     };
@@ -87,7 +90,7 @@ function AppUi(properties) {
     that.onScreenChanged = function onScreenChanged(type, url) {
 	// Set isOpen, wireEventBridge, set buttonActive as appropriate,
 	// and finally call onOpened() or onClosed() IFF defined.
-	print('hrs fixme onScreenChanged', type, url, that.isOpen);
+	console.debug(that.buttonName, 'onScreenChanged', type, url, that.isOpen);
         if (that.checkIsOpen(type, url)) {
 	    if (!that.isOpen) {
 		that.isOpen = true;
@@ -112,17 +115,17 @@ function AppUi(properties) {
     that.hasEventBridge = false;
     that.wireEventBridge = function wireEventBridge(on) {
 	// Sets hasEventBridge and wires onMessage to eventSignal as appropriate, IFF onMessage defined.
-	print('hrs fixme wireEventBridge', on, that.hasEventBridge);
+	console.debug(that.buttonName, 'wireEventBridge', on, that.hasEventBridge);
 	if (!that.onMessage) { return; }
         if (on) {
             if (!that.hasEventBridge) {
-		print('hrs fixme connecting', that.eventSignal());
+		console.debug(that.buttonName, 'connecting', that.eventSignal());
                 that.eventSignal().connect(that.onMessage);
                 that.hasEventBridge = true;
             }
         } else {
             if (that.hasEventBridge) {
-		print('hrs fixme connecting', that.eventSignal());		
+		console.debug(that.buttonName, 'connecting', that.eventSignal());
                 that.eventSignal().disconnect(that.onMessage);
                 that.hasEventBridge = false;
             }
@@ -132,18 +135,18 @@ function AppUi(properties) {
     // To facilitate incremental development, only wire onClicked to do something when "home" is defined in properties.
     that.onClicked = that.home
 	? function onClicked() {
-	    // Call toOpen() or toClose(), and reset type based on current home property.
+	    // Call open() or close(), and reset type based on current home property.
             if (that.isOpen) {
-		that.toClose();
+		that.close();
             } else {
 		that.type = /.qml$/.test(that.home) ? 'QML' : 'Web'
-		that.toOpen();
+		that.open();
             }
 	} : that.ignore;
     that.onScriptEnding = function onScriptEnding() {
 	// Close if necessary, clean up any remaining handlers, and remove the button.
 	if (that.isOpen) {
-	    that.toClose();
+	    that.close();
 	}
 	that.tablet.screenChanged.disconnect(that.onScreenChanged);
 	if (that.button) {

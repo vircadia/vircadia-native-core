@@ -325,7 +325,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
 }
 
 function sendToQml(message) {
-    tablet.sendToQml(message);
+    ui.tablet.sendToQml(message);
 }
 function updateUser(data) {
     print('PAL update:', JSON.stringify(data));
@@ -670,44 +670,24 @@ triggerMapping.from(Controller.Standard.LTClick).peek().to(makeClickHandler(Cont
 triggerPressMapping.from(Controller.Standard.RT).peek().to(makePressHandler(Controller.Standard.RightHand));
 triggerPressMapping.from(Controller.Standard.LT).peek().to(makePressHandler(Controller.Standard.LeftHand));
 
+var ui;
+// Most apps can have people toggle the tablet closed and open again, and the app should remain "open" even while
+// the tablet is not shown. However, for the pal, we explicitly close the app and return the tablet to it's 
+// home screen (so that the avatar highlighting goes away).
 function tabletVisibilityChanged() {
-    if (!tablet.tabletShown && onPalScreen) {
-        ContextOverlay.enabled = true;
-        tablet.gotoHomeScreen();
+    if (!ui.tablet.tabletShown && ui.isOpen) {
+        ui.close();
     }
 }
 
-var wasOnPalScreen = false;
-var onPalScreen = false;
-/*var hasEventBridge = false;
-function wireEventBridge(on) {
-    if (on) {
-        if (!hasEventBridge) {
-            tablet.fromQml.connect(fromQml);
-            hasEventBridge = true;
-        }
-    } else {
-        if (hasEventBridge) {
-            tablet.fromQml.disconnect(fromQml);
-            hasEventBridge = false;
-        }
-    }
-}*/
-function captureState() {
-    wasOnPalScreen = onPalScreen;
-    onPalScreen = ui.isOpen;
-    //wireEventBridge(onPalScreen);
-}
 function on() {
-    captureState();
-    isWired = true;
 
     ContextOverlay.enabled = false;
     Users.requestsDomainListData = true;
 
     audioTimer = createAudioInterval(AUDIO_LEVEL_UPDATE_INTERVAL_MS);
 
-    tablet.tabletShownChanged.connect(tabletVisibilityChanged);
+    ui.tablet.tabletShownChanged.connect(tabletVisibilityChanged);
     Script.update.connect(updateOverlays);
     Controller.mousePressEvent.connect(handleMouseEvent);
     Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
@@ -716,7 +696,6 @@ function on() {
     triggerPressMapping.enable();
     populateNearbyUserList();
 }
-var button, ui, tablet;
 
 //
 // Message from other scripts, such as edit.js
@@ -729,8 +708,8 @@ function receiveMessage(channel, messageString, senderID) {
     var message = JSON.parse(messageString);
     switch (message.method) {
     case 'select':
-        if (!onPalScreen) {
-            tablet.loadQMLSource(ui.home);
+        if (!ui.isOpen) {
+            ui.open();
             Script.setTimeout(function () { sendToQml(message); }, 1000);
         } else {
             sendToQml(message); // Accepts objects, not just strings.
@@ -810,9 +789,8 @@ function avatarDisconnected(nodeID) {
 
 function clearLocalQMLDataAndClosePAL() {
     sendToQml({ method: 'clearLocalQMLData' });
-    if (onPalScreen) {
-        ContextOverlay.enabled = true;
-        tablet.gotoHomeScreen();
+    if (ui.isOpen) {
+        ui.close();
     }
 }
 
@@ -838,7 +816,6 @@ function startup() {
         onMessage: fromQml
     });
     tablet = ui.tablet;
-    button = ui.button;
     Window.domainChanged.connect(clearLocalQMLDataAndClosePAL);
     Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);
     Messages.subscribe(CHANNEL);
@@ -850,40 +827,28 @@ function startup() {
 }
 startup();
 
-
-var isWired = false;
 var audioTimer;
 var AUDIO_LEVEL_UPDATE_INTERVAL_MS = 100; // 10hz for now (change this and change the AVERAGING_RATIO too)
 function off() {
-    captureState();
-    if (isWired) {
+    if (ui.isOpen) { // i.e., only when connected
         Script.update.disconnect(updateOverlays);
         Controller.mousePressEvent.disconnect(handleMouseEvent);
         Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
-        tablet.tabletShownChanged.disconnect(tabletVisibilityChanged);
+        ui.tablet.tabletShownChanged.disconnect(tabletVisibilityChanged);
         Users.usernameFromIDReply.disconnect(usernameFromIDReply);
-        ContextOverlay.enabled = true
         triggerMapping.disable();
         triggerPressMapping.disable();
         Users.requestsDomainListData = false;
-
-        isWired = false;
-
         if (audioTimer) {
             Script.clearInterval(audioTimer);
         }
     }
 
     removeOverlays();
-    if (wasOnPalScreen) {
-        ContextOverlay.enabled = true;
-    }
+    ContextOverlay.enabled = true;
 }
 
 function shutdown() {
-    if (onPalScreen) {
-        tablet.gotoHomeScreen();
-    }
     Window.domainChanged.disconnect(clearLocalQMLDataAndClosePAL);
     Window.domainConnectionRefused.disconnect(clearLocalQMLDataAndClosePAL);
     Messages.subscribe(CHANNEL);
