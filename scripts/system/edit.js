@@ -1573,15 +1573,11 @@ function deleteSelectedEntities() {
                 Entities.deleteEntity(entityID);
             }
         }
-
+        
         if (savedProperties.length > 0) {
             SelectionManager.clearSelections();
             pushCommandForSelections([], savedProperties);
-
-            entityListTool.webView.emitScriptEvent(JSON.stringify({
-                type: "deleted",
-                ids: deletedIDs
-            }));
+            entityListTool.deleteEntities(deletedIDs);
         }
     }
 }
