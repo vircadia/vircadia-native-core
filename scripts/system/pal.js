@@ -20,7 +20,7 @@
 var populateNearbyUserList, color, textures, removeOverlays,
     controllerComputePickRay, off,
     receiveMessage, avatarDisconnected, clearLocalQMLDataAndClosePAL,
-    createAudioInterval, tablet, CHANNEL, getConnectionData, findableByChanged,
+    createAudioInterval, CHANNEL, getConnectionData, findableByChanged,
     avatarAdded, avatarRemoved, avatarSessionChanged; // forward references;
 
 // hardcoding these as it appears we cannot traverse the originalTextures in overlays???  Maybe I've missed
@@ -325,7 +325,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
 }
 
 function sendToQml(message) {
-    ui.tablet.sendToQml(message);
+    ui.sendMessage(message);
 }
 function updateUser(data) {
     print('PAL update:', JSON.stringify(data));
@@ -680,8 +680,12 @@ function tabletVisibilityChanged() {
     }
 }
 
+var previousContextOverlay = ContextOverlay.enabled;
+var previousRequestsDomainListData = Users.requestsDomainListData;
 function on() {
 
+    previousContextOverlay = ContextOverlay.enabled;
+    previousRequestsDomainListData = Users.requestsDomainListData
     ContextOverlay.enabled = false;
     Users.requestsDomainListData = true;
 
@@ -815,7 +819,6 @@ function startup() {
         onClosed: off,
         onMessage: fromQml
     });
-    tablet = ui.tablet;
     Window.domainChanged.connect(clearLocalQMLDataAndClosePAL);
     Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);
     Messages.subscribe(CHANNEL);
@@ -838,14 +841,14 @@ function off() {
         Users.usernameFromIDReply.disconnect(usernameFromIDReply);
         triggerMapping.disable();
         triggerPressMapping.disable();
-        Users.requestsDomainListData = false;
         if (audioTimer) {
             Script.clearInterval(audioTimer);
         }
     }
 
     removeOverlays();
-    ContextOverlay.enabled = true;
+    ContextOverlay.enabled = previousContextOverlay;
+    Users.requestsDomainListData = previousRequestsDomainListData;
 }
 
 function shutdown() {
