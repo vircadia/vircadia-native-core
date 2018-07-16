@@ -5,7 +5,7 @@ include(SelectLibraryConfigurations)
 
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL https://hifi-public.s3.amazonaws.com/austin/glad/glad41.zip
+  URL https://public.highfidelity.com/dependencies/glad/glad41.zip
   URL_MD5 1324eeec33abe91e67d19ae551ba624d
   CONFIGURE_COMMAND CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DCMAKE_POSITION_INDEPENDENT_CODE=ON
   LOG_DOWNLOAD 1

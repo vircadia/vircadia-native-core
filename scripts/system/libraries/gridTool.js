@@ -154,6 +154,12 @@ Grid = function(opts) {
             that.emitUpdate();
         }
     };
+    
+    that.moveToSelection = function() {
+        var newPosition = SelectionManager.worldPosition;
+        newPosition = Vec3.subtract(newPosition, { x: 0, y: SelectionManager.worldDimensions.y * 0.5, z: 0 });
+        that.setPosition(newPosition);
+    };
 
     that.emitUpdate = function() {
         if (that.onUpdate) {
@@ -240,6 +246,7 @@ GridTool = function(opts) {
 
     var horizontalGrid = opts.horizontalGrid;
     var verticalGrid = opts.verticalGrid;
+    var createToolsWindow = opts.createToolsWindow;
     var listeners = [];
 
     var webView = null;
@@ -247,13 +254,15 @@ GridTool = function(opts) {
     webView.setVisible = function(value) { };
 
     horizontalGrid.addListener(function(data) {
-        webView.emitScriptEvent(JSON.stringify(data));
+        var dataString = JSON.stringify(data);
+        webView.emitScriptEvent(dataString);
+        createToolsWindow.emitScriptEvent(dataString);
         if (selectionDisplay) {
             selectionDisplay.updateHandles();
         }
     });
 
-    webView.webEventReceived.connect(function(data) {
+    var webEventReceived = function(data) {
         try {
             data = JSON.parse(data);
         } catch (e) {
@@ -277,19 +286,20 @@ GridTool = function(opts) {
                 }
                 horizontalGrid.setPosition(position);
             } else if (action == "moveToSelection") {
-                var newPosition = selectionManager.worldPosition;
-                newPosition = Vec3.subtract(newPosition, { x: 0, y: selectionManager.worldDimensions.y * 0.5, z: 0 });
-                grid.setPosition(newPosition);
+                horizontalGrid.moveToSelection();
             }
         }
-    });
+    };
+
+    webView.webEventReceived.connect(webEventReceived);
+    createToolsWindow.webEventReceived.addListener(webEventReceived);
 
     that.addListener = function(callback) {
         listeners.push(callback);
     };
 
     that.setVisible = function(visible) {
-        webView.setVisible(visible);
+        webView.setVisible(HMD.active && visible);
     };
 
     return that;

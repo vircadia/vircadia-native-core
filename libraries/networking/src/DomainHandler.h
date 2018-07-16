@@ -96,7 +96,7 @@ public:
     void softReset();
 
     int getCheckInPacketsSinceLastReply() const { return _checkInPacketsSinceLastReply; }
-    void sentCheckInPacket();
+    bool checkInPacketTimeout();
     void clearPendingCheckins() { _checkInPacketsSinceLastReply = 0; }
 
     /**jsdoc

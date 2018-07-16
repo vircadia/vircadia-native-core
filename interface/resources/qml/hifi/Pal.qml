@@ -765,7 +765,7 @@ Rectangle {
             TableViewColumn {
                 id: connectionsUserNameHeader;
                 role: "userName";
-                title: connectionsTable.rowCount + (connectionsTable.rowCount === 1 ? " NAME" : " NAMES");
+                title: connectionsUserModel.totalEntries + (connectionsUserModel.totalEntries === 1 ? " NAME" : " NAMES");
                 width: connectionsNameCardWidth;
                 movable: false;
                 resizable: false;

@@ -670,12 +670,13 @@ triggerPressMapping.from(Controller.Standard.RT).peek().to(makePressHandler(Cont
 triggerPressMapping.from(Controller.Standard.LT).peek().to(makePressHandler(Controller.Standard.LeftHand));
 
 function tabletVisibilityChanged() {
-    if (!tablet.tabletShown) {
+    if (!tablet.tabletShown && onPalScreen) {
         ContextOverlay.enabled = true;
         tablet.gotoHomeScreen();
     }
 }
 
+var wasOnPalScreen = false;
 var onPalScreen = false;
 var PAL_QML_SOURCE = "hifi/Pal.qml";
 function onTabletButtonClicked() {
@@ -706,6 +707,7 @@ function wireEventBridge(on) {
 }
 
 function onTabletScreenChanged(type, url) {
+    wasOnPalScreen = onPalScreen;
     onPalScreen = (type === "QML" && url === PAL_QML_SOURCE);
     wireEventBridge(onPalScreen);
     // for toolbar mode: change button to active when window is first openend, false otherwise.
@@ -729,7 +731,9 @@ function onTabletScreenChanged(type, url) {
         populateNearbyUserList();
     } else {
         off();
-        ContextOverlay.enabled = true;
+        if (wasOnPalScreen) {
+            ContextOverlay.enabled = true;
+        }
     }
 }
 

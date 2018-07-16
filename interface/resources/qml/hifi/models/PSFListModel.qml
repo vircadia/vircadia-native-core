@@ -51,6 +51,8 @@ ListModel {
         if (!delayedClear) { root.clear(); }
         currentPageToRetrieve = 1;
         retrievedAtLeastOnePage = false;
+        totalPages = 0;
+        totalEntries = 0;
     }
 
     // Page processing.
@@ -59,6 +61,8 @@ ListModel {
     property var processPage: function (data) { return data; }
 
     property var listView; // Optional. For debugging.
+    property int totalPages: 0;
+    property int totalEntries: 0;
     // Check consistency and call processPage.
     function handlePage(error, response) {
         var processed;
@@ -79,8 +83,10 @@ ListModel {
         if (response.current_page && response.current_page !== currentPageToRetrieve) { // Not all endpoints specify this property.
             return fail("Mismatched page, expected:" + currentPageToRetrieve);
         }
+        totalPages = response.total_pages || 0;
+        totalEntries = response.total_entries || 0;
         processed = processPage(response.data || response);
-        if (response.total_pages && (response.total_pages === currentPageToRetrieve)) {
+        if (totalPages && (totalPages === currentPageToRetrieve)) {
             currentPageToRetrieve = -1;
         }
 

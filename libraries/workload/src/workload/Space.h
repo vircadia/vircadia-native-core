@@ -42,7 +42,7 @@ public:
     uint32_t getNumViews() const { return (uint32_t)(_views.size()); }
     void copyViews(std::vector<View>& copy) const;
 
-    uint32_t getNumObjects() const { return _IDAllocator.getNumLiveIndices(); } // (uint32_t)(_proxies.size() - _freeIndices.size()); }
+    uint32_t getNumObjects() const { return _IDAllocator.getNumLiveIndices(); }
     uint32_t getNumAllocatedProxies() const { return (uint32_t)(_IDAllocator.getNumAllocatedIndices()); }
 
     void categorizeAndGetChanges(std::vector<Change>& changes);
@@ -51,7 +51,7 @@ public:
     const Owner getOwner(int32_t proxyID) const;
     uint8_t getRegion(int32_t proxyID) const;
 
-    void clear();
+    void clear() override;
 private:
 
     void processTransactionFrame(const Transaction& transaction) override;

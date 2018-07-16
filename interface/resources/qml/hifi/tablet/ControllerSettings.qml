@@ -300,6 +300,12 @@ Item {
             id: controllerPrefereneces
             objectName: "TabletControllerPreferences"
             showCategories: ["VR Movement", "Game Controller", "Sixense Controllers", "Perception Neuron", "Leap Motion"]
+            categoryProperties: {
+                "VR Movement" : {
+                    "User real-world height (meters)" : { "anchors.right" : "undefined" },
+                    "RESET SENSORS" : { "width" : "180", "anchors.left" : "undefined" }
+                }
+            }
         }
     }
 }

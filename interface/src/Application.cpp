@@ -30,6 +30,7 @@
 #include <QtCore/QFileSelector>
 #include <QtConcurrent/QtConcurrentRun>
 
+#include <QtGui/QClipboard>
 #include <QtGui/QScreen>
 #include <QtGui/QWindow>
 #include <QtGui/QDesktopServices>
@@ -129,6 +130,7 @@
 #include <SoundCache.h>
 #include <ui/TabletScriptingInterface.h>
 #include <ui/ToolbarScriptingInterface.h>
+#include <InteractiveWindow.h>
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
@@ -1072,6 +1074,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-Regular.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-Bold.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-SemiBold.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Cairo-SemiBold.ttf");
     _window->setWindowTitle("High Fidelity Interface");
 
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
@@ -1445,8 +1448,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // add firstRun flag from settings to launch event
     Setting::Handle<bool> firstRun { Settings::firstRun, true };
 
-    QString machineFingerPrint = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
-
     auto& userActivityLogger = UserActivityLogger::getInstance();
     if (userActivityLogger.isEnabled()) {
         // sessionRunTime will be reset soon by loadSettings. Grab it now to get previous session value.
@@ -1498,12 +1499,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["first_run"] = firstRun.get();
 
         // add the user's machine ID to the launch event
+        QString machineFingerPrint = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
         properties["machine_fingerprint"] = machineFingerPrint;
 
         userActivityLogger.logAction("launch", properties);
     }
-
-    setCrashAnnotation("machine_fingerprint", machineFingerPrint.toStdString());
 
     _entityEditSender.setMyAvatar(myAvatar.get());
 
@@ -2120,6 +2120,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             || ((rightHandPose.valid || lastRightHandPose.valid) && (rightHandPose != lastRightHandPose));
         lastLeftHandPose = leftHandPose;
         lastRightHandPose = rightHandPose;
+        properties["avatar_identity_requests_sent"] = DependencyManager::get<AvatarManager>()->getIdentityRequestsSent();
 
         UserActivityLogger::getInstance().logAction("stats", properties);
     });
@@ -2257,6 +2258,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
 
 #if defined(Q_OS_ANDROID)
+    connect(&AndroidHelper::instance(), &AndroidHelper::beforeEnterBackground, this, &Application::beforeEnterBackground);
     connect(&AndroidHelper::instance(), &AndroidHelper::enterBackground, this, &Application::enterBackground);
     connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
     AndroidHelper::instance().notifyLoadComplete();
@@ -2979,6 +2981,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
 
     surfaceContext->setContextProperty("Overlays", &_overlays);
     surfaceContext->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
+    surfaceContext->setContextProperty("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
     surfaceContext->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
     surfaceContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
     surfaceContext->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
@@ -3218,6 +3221,7 @@ void Application::setSettingConstrainToolbarPosition(bool setting) {
 void Application::showHelp() {
     static const QString HAND_CONTROLLER_NAME_VIVE = "vive";
     static const QString HAND_CONTROLLER_NAME_OCULUS_TOUCH = "oculus";
+    static const QString HAND_CONTROLLER_NAME_WINDOWS_MR = "windowsMR";
 
     static const QString TAB_KEYBOARD_MOUSE = "kbm";
     static const QString TAB_GAMEPAD = "gamepad";
@@ -3232,9 +3236,13 @@ void Application::showHelp() {
     } else if (PluginUtils::isOculusTouchControllerAvailable()) {
         defaultTab = TAB_HAND_CONTROLLERS;
         handControllerName = HAND_CONTROLLER_NAME_OCULUS_TOUCH;
+    } else if (qApp->getActiveDisplayPlugin()->getName() == "WindowMS") {
+        defaultTab = TAB_HAND_CONTROLLERS;
+        handControllerName = HAND_CONTROLLER_NAME_WINDOWS_MR;
     } else if (PluginUtils::isXboxControllerAvailable()) {
         defaultTab = TAB_GAMEPAD;
     }
+    // TODO need some way to detect windowsMR to load controls reference default tab in Help > Controls Reference menu.
 
     QUrlQuery queryString;
     queryString.addQueryItem("handControllerName", handControllerName);
@@ -3260,11 +3268,20 @@ void Application::resizeGL() {
     // Set the desired FBO texture size. If it hasn't changed, this does nothing.
     // Otherwise, it must rebuild the FBOs
     uvec2 framebufferSize = displayPlugin->getRecommendedRenderSize();
-    float renderResolutionScale = getRenderResolutionScale();
-    uvec2 renderSize = uvec2(vec2(framebufferSize) * renderResolutionScale);
+    uvec2 renderSize = uvec2(framebufferSize);
     if (_renderResolution != renderSize) {
         _renderResolution = renderSize;
         DependencyManager::get<FramebufferCache>()->setFrameBufferSize(fromGlm(renderSize));
+    }
+
+    auto renderResolutionScale = getRenderResolutionScale();
+    if (displayPlugin->getRenderResolutionScale() != renderResolutionScale) {
+        auto renderConfig = _renderEngine->getConfiguration();
+        assert(renderConfig);
+        auto mainView = renderConfig->getConfig("RenderMainView.RenderDeferredTask");
+        assert(mainView);
+        mainView->setProperty("resolutionScale", renderResolutionScale);
+        displayPlugin->setRenderResolutionScale(renderResolutionScale);
     }
 
     // FIXME the aspect ratio for stereo displays is incorrect based on this.
@@ -3278,7 +3295,6 @@ void Application::resizeGL() {
     }
 
     DependencyManager::get<OffscreenUi>()->resize(fromGlm(displayPlugin->getRecommendedUiSize()));
-    displayPlugin->setRenderResolutionScale(renderResolutionScale);
 }
 
 void Application::handleSandboxStatus(QNetworkReply* reply) {
@@ -4019,7 +4035,18 @@ void Application::mousePressEvent(QMouseEvent* event) {
         return;
     }
 
+#if defined(Q_OS_MAC)
+    // Fix for OSX right click dragging on window when coming from a native window
+    bool isFocussed = hasFocus();
+    if (!isFocussed && event->button() == Qt::MouseButton::RightButton) {
+        setFocus();
+        isFocussed = true;
+    }
+
+    if (isFocussed) {
+#else
     if (hasFocus()) {
+#endif
         if (_keyboardMouseDevice->isActive()) {
             _keyboardMouseDevice->mousePressEvent(event);
         }
@@ -6636,6 +6663,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
 
     qScriptRegisterMetaType(scriptEngine.data(), OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 
+    registerInteractiveWindowMetaType(scriptEngine.data());
+
     DependencyManager::get<PickScriptingInterface>()->registerMetaTypes(scriptEngine.data());
 
     // connect this script engines printedMessage signal to the global ScriptEngines these various messages
@@ -7622,7 +7651,6 @@ void Application::toggleEntityScriptServerLogDialog() {
 
 void Application::loadAddAvatarBookmarkDialog() const {
     auto avatarBookmarks = DependencyManager::get<AvatarBookmarks>();
-    avatarBookmarks->addBookmark();
 }
 
 void Application::loadAvatarBrowser() const {
@@ -8304,7 +8332,24 @@ void Application::saveNextPhysicsStats(QString filename) {
     _physicsEngine->saveNextPhysicsStats(filename);
 }
 
+void Application::copyToClipboard(const QString& text) {
+    if (QThread::currentThread() != qApp->thread()) {
+        QMetaObject::invokeMethod(this, "copyToClipboard");
+        return;
+    }
+
+    // assume that the address is being copied because the user wants a shareable address
+    QApplication::clipboard()->setText(text);
+}
+
 #if defined(Q_OS_ANDROID)
+void Application::beforeEnterBackground() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->setSendDomainServerCheckInEnabled(false);
+    nodeList->reset(true);
+    clearDomainOctreeDetails();
+}
+
 void Application::enterBackground() {
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                               "stop", Qt::BlockingQueuedConnection);
@@ -8319,6 +8364,8 @@ void Application::enterForeground() {
     if (!getActiveDisplayPlugin() || getActiveDisplayPlugin()->isActive() || !getActiveDisplayPlugin()->activate()) {
         qWarning() << "Could not re-activate display plugin";
     }
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->setSendDomainServerCheckInEnabled(true);
 }
 #endif
 

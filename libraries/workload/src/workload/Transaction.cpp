@@ -111,6 +111,12 @@ Collection::Collection() {
 Collection::~Collection() {
 }
 
+void Collection::clear() {
+    std::unique_lock<std::mutex> lock(_transactionQueueMutex);
+    _transactionQueue.clear();
+    _transactionFrames.clear();
+}
+
 ProxyID Collection::allocateID() {
     // Just increment and return the previous value initialized at 0
     return _IDAllocator.allocateIndex();
