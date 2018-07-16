@@ -69,10 +69,10 @@ ParticleExplorerTool = function(createToolsWindow) {
         if (isNaN(properties.radiusFinish)) {
             properties.radiusFinish = properties.particleRadius;
         }
-        if (isNaN(properties.colorStart.red)) {
+        if (isNaN(properties.colorStart.x)) {
             properties.colorStart = properties.color;
         }
-        if (isNaN(properties.colorFinish.red)) {
+        if (isNaN(properties.colorFinish.x)) {
             properties.colorFinish = properties.color;
         }
         sendParticleProperties(properties);
@@ -113,7 +113,7 @@ ParticleExplorerTool = function(createToolsWindow) {
                 var fallbackValue = updatedSettings[fallbackProp];
                 if (fallbackValue) {
                     var optionalProp = optionalProps[i];
-                    if ((fallbackProp !== "color" && isNaN(entityProps[optionalProp])) || (fallbackProp === "color" && isNaN(entityProps[optionalProp].red))) {
+                    if ((fallbackProp !== "color" && isNaN(entityProps[optionalProp])) || (fallbackProp === "color" && isNaN(entityProps[optionalProp].x))) {
                         that.updatedActiveParticleProperties[optionalProp] = fallbackValue;
                         needsUpdate = true;
                     }

@@ -53,17 +53,11 @@ void mat4FromScriptValue(const QScriptValue& object, glm::mat4& mat4);
 */
 class ScriptVec2Float : public QObject {
     Q_OBJECT
-    Q_PROPERTY(float x MEMBER x)
-    Q_PROPERTY(float y MEMBER y)
-    Q_PROPERTY(float u MEMBER x)
-    Q_PROPERTY(float v MEMBER y)
-    Q_PROPERTY(float width MEMBER x)
-    Q_PROPERTY(float height MEMBER y)
 public:
     ScriptVec2Float() {}
     ScriptVec2Float(float xy) : x(xy), y(xy) {}
     ScriptVec2Float(float x, float y) : x(x), y(y) {}
-    ScriptVec2Float(const ScriptVec2Float& other) : QObject(), x(other.x), y(other.y) {}
+    ScriptVec2Float(const ScriptVec2Float& other) : x(other.x), y(other.y) {}
     ScriptVec2Float(const glm::vec2& other) : x(other.x), y(other.y) {}
     void operator=(const ScriptVec2Float& other) { x = other.x; y = other.y; }
     inline bool operator==(const ScriptVec2Float& other) const { return (x == other.x && y == other.y); }
@@ -72,7 +66,7 @@ public:
     inline bool operator!=(const glm::vec2& other) const { return !(*this == other); }
 
     glm::vec2 toGlm() const { return glm::vec2(x, y); }
-    Q_INVOKABLE QVariantMap toJSON() { return toJsonValue(*this, { "x", "y" }).toObject().toVariantMap(); }
+    Q_INVOKABLE QVariant toJSON() const { return toJsonValue(*this, { "x", "y" }).toVariant(); }
 
     float x { 0.0f };
     float y { 0.0f };
@@ -82,7 +76,7 @@ private:
     friend bool operator!=(glm::vec2 glmVec2, const ScriptVec2Float& vec2);
 };
 inline QDebug operator<<(QDebug debug, const ScriptVec2Float& vec2) {
-    debug << "(" << vec2.x << "," << vec2.y << ")";
+    debug << "{" << vec2.x << "," << vec2.y << "}";
     return debug;
 }
 inline bool operator==(glm::vec2 glmVec2, const ScriptVec2Float& vec2) { return (glmVec2.x == vec2.x && glmVec2.y == vec2.y); }
@@ -109,23 +103,11 @@ glm::vec2 vec2FromVariant(const QVariant& object);
 */
 class ScriptVec3Float : public QObject {
     Q_OBJECT
-    Q_PROPERTY(float x MEMBER x)
-    Q_PROPERTY(float y MEMBER y)
-    Q_PROPERTY(float z MEMBER z)
-    Q_PROPERTY(float r MEMBER x)
-    Q_PROPERTY(float g MEMBER y)
-    Q_PROPERTY(float b MEMBER z)
-    Q_PROPERTY(float red MEMBER x)
-    Q_PROPERTY(float green MEMBER y)
-    Q_PROPERTY(float blue MEMBER z)
-    Q_PROPERTY(float width MEMBER x)
-    Q_PROPERTY(float height MEMBER y)
-    Q_PROPERTY(float depth MEMBER z)
 public:
     ScriptVec3Float() {}
     ScriptVec3Float(float xyz) : x(xyz), y(xyz), z(xyz) {}
     ScriptVec3Float(float x, float y, float z) : x(x), y(y), z(z) {}
-    ScriptVec3Float(const ScriptVec3Float& other) : QObject(), x(other.x), y(other.y), z(other.z) {}
+    ScriptVec3Float(const ScriptVec3Float& other) : x(other.x), y(other.y), z(other.z) {}
     ScriptVec3Float(const glm::vec3& other) : x(other.x), y(other.y), z(other.z) {}
     void operator=(const ScriptVec3Float& other) { x = other.x; y = other.y; z = other.z; }
     inline bool operator==(const ScriptVec3Float& other) const { return (x == other.x && y == other.y && z == other.z); }
@@ -134,7 +116,7 @@ public:
     inline bool operator!=(const glm::vec3& other) const { return !(*this == other); }
 
     glm::vec3 toGlm() const { return glm::vec3(x, y, z); }
-    Q_INVOKABLE QVariantMap toJSON() { return toJsonValue(*this, { "x", "y", "z" }).toObject().toVariantMap(); }
+    Q_INVOKABLE QVariant toJSON() const { return toJsonValue(*this, { "x", "y", "z" }).toVariant(); }
 
     float x { 0.0f };
     float y { 0.0f };
@@ -145,7 +127,7 @@ private:
     friend bool operator!=(glm::vec3 glmVec3, const ScriptVec3Float& vec3);
 };
 inline QDebug operator<<(QDebug debug, const ScriptVec3Float& vec3) {
-    debug << "(" << vec3.x << "," << vec3.y << "," << vec3.z << ")";
+    debug << "{" << vec3.x << "," << vec3.y << "," << vec3.z << "}";
     return debug;
 }
 inline bool operator==(glm::vec3 glmVec3, const ScriptVec3Float& vec3) { return (glmVec3.x == vec3.x && glmVec3.y == vec3.y && glmVec3.z == vec3.z); }
@@ -164,30 +146,18 @@ void vec3FloatFromScriptValue(const QScriptValue& object, ScriptVec3Float& vec3)
 */
 class ScriptVec3UChar : public QObject {
     Q_OBJECT
-    Q_PROPERTY(unsigned int x MEMBER x)
-    Q_PROPERTY(unsigned int y MEMBER y)
-    Q_PROPERTY(unsigned int z MEMBER z)
-    Q_PROPERTY(unsigned int r MEMBER x)
-    Q_PROPERTY(unsigned int g MEMBER y)
-    Q_PROPERTY(unsigned int b MEMBER z)
-    Q_PROPERTY(unsigned int red MEMBER x)
-    Q_PROPERTY(unsigned int green MEMBER y)
-    Q_PROPERTY(unsigned int blue MEMBER z)
-    Q_PROPERTY(unsigned int width MEMBER x)
-    Q_PROPERTY(unsigned int height MEMBER y)
-    Q_PROPERTY(unsigned int depth MEMBER z)
 public:
     ScriptVec3UChar() {}
     ScriptVec3UChar(unsigned int xyz) : x(xyz), y(xyz), z(xyz) {}
     ScriptVec3UChar(unsigned int x, unsigned int y, unsigned int z) : x(x), y(y), z(z) {}
-    ScriptVec3UChar(const ScriptVec3UChar& other) : QObject(), x(other.x), y(other.y), z(other.z) {}
+    ScriptVec3UChar(const ScriptVec3UChar& other) : x(other.x), y(other.y), z(other.z) {}
     ScriptVec3UChar(const glm::vec3& other) : x(other.x), y(other.y), z(other.z) {}
     void operator=(const ScriptVec3UChar& other) { x = other.x; y = other.y; z = other.z; }
     inline bool operator==(const ScriptVec3UChar& other) const { return (x == other.x && y == other.y && z == other.z); }
     inline bool operator!=(const ScriptVec3UChar& other) const { return !(*this == other); }
 
     glm::vec3 toGlm() const { return glm::vec3(x, y, z); }
-    Q_INVOKABLE QVariantMap toJSON() { return toJsonValue(*this, { "x", "y", "z" }).toObject().toVariantMap(); }
+    Q_INVOKABLE QVariant toJSON() const { return toJsonValue(*this, { "x", "y", "z" }).toVariant(); }
 
     unsigned char x { 0 };
     unsigned char y { 0 };
@@ -198,7 +168,7 @@ private:
     friend bool operator!=(glm::vec3 glmVec3, const ScriptVec3UChar& vec3);
 };
 inline QDebug operator<<(QDebug debug, const ScriptVec3UChar& vec3) {
-    debug << "(" << vec3.x << "," << vec3.y << "," << vec3.z << ")";
+    debug << "{" << vec3.x << "," << vec3.y << "," << vec3.z << "}";
     return debug;
 }
 inline bool operator==(glm::vec3 glmVec3, const ScriptVec3UChar& vec3) { return (glmVec3.x == vec3.x && glmVec3.y == vec3.y && glmVec3.z == vec3.z); }

@@ -132,9 +132,9 @@ HifiEntityUI.prototype = {
                     var red = document.getElementById(key + "-red");
                     var blue = document.getElementById(key + "-blue");
                     var green = document.getElementById(key + "-green");
-                    vector.red = red.value;
-                    vector.blue = blue.value;
-                    vector.green = green.value;
+                    vector.x = red.value;
+                    vector.y = blue.value;
+                    vector.z = green.value;
                 } else if (el.className.indexOf("pyr") !== -1) {
                     var p = document.getElementById(key + "-Pitch");
                     var y = document.getElementById(key + "-Yaw");
@@ -209,15 +209,12 @@ HifiEntityUI.prototype = {
                     } else if (field.className.indexOf("vector-section") !== -1) {
                         if (field.className.indexOf("rgb") !== -1) {
                             var red = document.getElementById(value + "-red");
-                            var blue = document.getElementById(value + "-blue");
                             var green = document.getElementById(value + "-green");
-                            red.value = parseInt(property.red);
-                            blue.value = parseInt(property.blue);
-                            green.value = parseInt(property.green);
+                            var blue = document.getElementById(value + "-blue");
 
-                            red.oninput({
-                                target: red
-                            });
+                            red.value = parseInt(property.x);
+                            green.value = parseInt(property.y);
+                            blue.value = parseInt(property.z);
                         } else if (field.className.indexOf("xyz") !== -1) {
                             var x = document.getElementById(value + "-x");
                             var y = document.getElementById(value + "-y");
@@ -468,9 +465,9 @@ HifiEntityUI.prototype = {
                 domArray[1].value = rgb.g;
                 domArray[2].value = rgb.b;
                 self.webBridgeSync(group.id, {
-                    red: rgb.r,
-                    green: rgb.g,
-                    blue: rgb.b
+                    x: rgb.r,
+                    y: rgb.g,
+                    z: rgb.b
                 });
             },
             onSubmit: function (hsb, hex, rgb, el) {
@@ -482,9 +479,9 @@ HifiEntityUI.prototype = {
                 domArray[1].value = rgb.g;
                 domArray[2].value = rgb.b;
                 self.webBridgeSync(group.id, {
-                    red: rgb.r,
-                    green: rgb.g,
-                    blue: rgb.b
+                    x: rgb.r,
+                    y: rgb.g,
+                    z: rgb.b
                 });
             }
         });
