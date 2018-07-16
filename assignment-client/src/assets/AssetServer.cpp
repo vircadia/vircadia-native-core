@@ -945,22 +945,14 @@ void AssetServer::sendStatsPacket() {
         upstreamStats["2. Sent Packets"] = stat.second.sentPackets;
         upstreamStats["3. Recvd ACK"] = events[Events::ReceivedACK];
         upstreamStats["4. Procd ACK"] = events[Events::ProcessedACK];
-        upstreamStats["5. Recvd LACK"] = events[Events::ReceivedLightACK];
-        upstreamStats["6. Recvd NAK"] = events[Events::ReceivedNAK];
-        upstreamStats["7. Recvd TNAK"] = events[Events::ReceivedTimeoutNAK];
-        upstreamStats["8. Sent ACK2"] = events[Events::SentACK2];
-        upstreamStats["9. Retransmitted"] = events[Events::Retransmission];
+        upstreamStats["5. Retransmitted"] = events[Events::Retransmission];
         nodeStats["Upstream Stats"] = upstreamStats;
 
         QJsonObject downstreamStats;
         downstreamStats["1. Recvd (P/s)"] = stat.second.receiveRate;
         downstreamStats["2. Recvd Packets"] = stat.second.receivedPackets;
         downstreamStats["3. Sent ACK"] = events[Events::SentACK];
-        downstreamStats["4. Sent LACK"] = events[Events::SentLightACK];
-        downstreamStats["5. Sent NAK"] = events[Events::SentNAK];
-        downstreamStats["6. Sent TNAK"] = events[Events::SentTimeoutNAK];
-        downstreamStats["7. Recvd ACK2"] = events[Events::ReceivedACK2];
-        downstreamStats["8. Duplicates"] = events[Events::Duplicate];
+        downstreamStats["4. Duplicates"] = events[Events::Duplicate];
         nodeStats["Downstream Stats"] = downstreamStats;
 
         QString uuid;

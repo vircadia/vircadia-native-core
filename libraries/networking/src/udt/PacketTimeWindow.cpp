@@ -20,20 +20,16 @@ using namespace udt;
 using namespace std::chrono;
 
 static const int DEFAULT_PACKET_INTERVAL_MICROSECONDS = 1000000; // 1s
-static const int DEFAULT_PROBE_INTERVAL_MICROSECONDS = 1000; // 1ms
 
-PacketTimeWindow::PacketTimeWindow(int numPacketIntervals, int numProbeIntervals) :
+PacketTimeWindow::PacketTimeWindow(int numPacketIntervals) :
     _numPacketIntervals(numPacketIntervals),
-    _numProbeIntervals(numProbeIntervals),
-    _packetIntervals(_numPacketIntervals, DEFAULT_PACKET_INTERVAL_MICROSECONDS),
-    _probeIntervals(_numProbeIntervals, DEFAULT_PROBE_INTERVAL_MICROSECONDS)
+    _packetIntervals(_numPacketIntervals, DEFAULT_PACKET_INTERVAL_MICROSECONDS)
 {
     
 }
 
 void PacketTimeWindow::reset() {
     _packetIntervals.assign(_numPacketIntervals, DEFAULT_PACKET_INTERVAL_MICROSECONDS);
-    _probeIntervals.assign(_numProbeIntervals, DEFAULT_PROBE_INTERVAL_MICROSECONDS);
 }
 
 template <typename Iterator>
@@ -87,11 +83,6 @@ int32_t PacketTimeWindow::getPacketReceiveSpeed() const {
     return meanOfMedianFilteredValues(_packetIntervals, _numPacketIntervals, _numPacketIntervals / 2);
 }
 
-int32_t PacketTimeWindow::getEstimatedBandwidth() const {
-    // return mean value of median filtered values (per second)
-    return meanOfMedianFilteredValues(_probeIntervals, _numProbeIntervals);
-}
-
 void PacketTimeWindow::onPacketArrival() {
     
     // take the current time
@@ -107,19 +98,4 @@ void PacketTimeWindow::onPacketArrival() {
     
     // remember this as the last packet arrival time
     _lastPacketTime = now;
-}
-
-void PacketTimeWindow::onProbePair1Arrival() {
-    // take the current time as the first probe time
-    _firstProbeTime = p_high_resolution_clock::now();
-}
-
-void PacketTimeWindow::onProbePair2Arrival() {
-    // store the interval between the two probes
-    auto now = p_high_resolution_clock::now();
-    
-    _probeIntervals[_currentProbeInterval++] = duration_cast<microseconds>(now - _firstProbeTime).count();
-    
-    // reset the currentProbeInterval index when it wraps
-    _currentProbeInterval %= _numProbeIntervals;
 }

@@ -22,28 +22,21 @@ namespace udt {
     
 class PacketTimeWindow {
 public:
-    PacketTimeWindow(int numPacketIntervals = 16, int numProbeIntervals = 16);
+    PacketTimeWindow(int numPacketIntervals = 16);
     
     void onPacketArrival();
-    void onProbePair1Arrival();
-    void onProbePair2Arrival();
     
     int32_t getPacketReceiveSpeed() const;
-    int32_t getEstimatedBandwidth() const;
     
     void reset();
 private:    
     int _numPacketIntervals { 0 }; // the number of packet intervals to store
-    int _numProbeIntervals { 0 }; // the number of probe intervals to store
     
     int _currentPacketInterval { 0 }; // index for the current packet interval
-    int _currentProbeInterval { 0 }; // index for the current probe interval
     
     std::vector<int> _packetIntervals; // vector of microsecond intervals between packet arrivals
-    std::vector<int> _probeIntervals; // vector of microsecond intervals between probe pair arrivals
     
     p_high_resolution_clock::time_point _lastPacketTime = p_high_resolution_clock::now(); // the time_point when last packet arrived
-    p_high_resolution_clock::time_point _firstProbeTime = p_high_resolution_clock::now(); // the time_point when first probe in pair arrived
 };
     
 }

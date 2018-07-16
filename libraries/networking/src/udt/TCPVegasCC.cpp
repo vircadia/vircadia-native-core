@@ -21,8 +21,6 @@ TCPVegasCC::TCPVegasCC() {
     _packetSendPeriod = 0.0;
     _congestionWindowSize = 2;
 
-    setAckInterval(1); // TCP sends an ACK for every packet received
-
     // set our minimum RTT variables to the maximum possible value
     // we can't do this as a member initializer until our VS has support for constexpr
     _currentMinRTT = std::numeric_limits<int>::max();
