@@ -12,10 +12,10 @@
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-(function() { // BEGIN LOCAL_SCOPE
+(function () { // BEGIN LOCAL_SCOPE
 
-    var request = Script.require('request').request;
-    var AppUi = Script.require('appUi');
+var request = Script.require('request').request;
+var AppUi = Script.require('appUi');
 
 var populateNearbyUserList, color, textures, removeOverlays,
     controllerComputePickRay, off,
@@ -41,6 +41,7 @@ var HOVER_TEXTURES = {
 var UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6};
 var SELECTED_COLOR = {red: 0xF3, green: 0x91, blue: 0x29};
 var HOVER_COLOR = {red: 0xD0, green: 0xD0, blue: 0xD0}; // almost white for now
+var METAVERSE_BASE = Account.metaverseServerURL;
 
 Script.include("/~/system/libraries/controllers.js");
 
@@ -222,7 +223,7 @@ function convertDbToLinear(decibels) {
     return Math.pow(2, decibels / 10.0);
 }
 function fromQml(message) { // messages are {method, params}, like json-rpc. See also sendToQml.
-    var data;
+    var data, connectionUserName, friendUserName;
     switch (message.method) {
     case 'selected':
         selectedIds = message.params;
@@ -282,7 +283,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
             }
             getConnectionData(false);
         });
-        break
+        break;
 
     case 'removeFriend':
         friendUserName = message.params;
@@ -297,7 +298,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
             }
             getConnectionData(friendUserName);
         });
-        break
+        break;
     case 'addFriend':
         friendUserName = message.params;
         print("Adding " + friendUserName + " to friends.");
@@ -308,17 +309,17 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
             body: {
                 username: friendUserName,
             }
-            }, function (error, response) {
-                if (error || (response.status !== 'success')) {
-                    print("Error: unable to friend " + friendUserName, error || response.status);
-                    return;
-                }
-                getConnectionData(friendUserName);
+        }, function (error, response) {
+            if (error || (response.status !== 'success')) {
+                print("Error: unable to friend " + friendUserName, error || response.status);
+                return;
             }
-        );
+            getConnectionData(friendUserName);
+        }
+               );
         break;
     case 'http.request':
-	break; // Handled by request-service.
+        break; // Handled by request-service.
     default:
         print('Unrecognized message from Pal.qml:', JSON.stringify(message));
     }
@@ -335,7 +336,6 @@ function updateUser(data) {
 // User management services
 //
 // These are prototype versions that will be changed when the back end changes.
-var METAVERSE_BASE = Account.metaverseServerURL;
 
 function requestJSON(url, callback) { // callback(data) if successfull. Logs otherwise.
     request({
@@ -363,7 +363,7 @@ function getProfilePicture(username, callback) { // callback(url) if successfull
     });
 }
 function getAvailableConnections(domain, callback) { // callback([{usename, location}...]) if successfull. (Logs otherwise)
-    url = METAVERSE_BASE + '/api/v1/users?per_page=400&'
+    var url = METAVERSE_BASE + '/api/v1/users?per_page=400&';
     if (domain) {
         url += 'status=' + domain.slice(1, -1); // without curly braces
     } else {
@@ -374,7 +374,7 @@ function getAvailableConnections(domain, callback) { // callback([{usename, loca
     });
 }
 function getInfoAboutUser(specificUsername, callback) {
-    url = METAVERSE_BASE + '/api/v1/users?filter=connections'
+    var url = METAVERSE_BASE + '/api/v1/users?filter=connections';
     requestJSON(url, function (connectionsData) {
         for (user in connectionsData.users) {
             if (connectionsData.users[user].username === specificUsername) {
