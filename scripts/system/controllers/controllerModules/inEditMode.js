@@ -30,7 +30,7 @@ Script.include("/~/system/libraries/utils.js");
         this.reticleMaxY;
 
         this.parameters = makeDispatcherModuleParameters(
-            160,
+            200,
             this.hand === RIGHT_HAND ? ["rightHand", "rightHandEquip", "rightHandTrigger"] : ["leftHand", "leftHandEquip", "leftHandTrigger"],
             [],
             100,

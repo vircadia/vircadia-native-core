@@ -39,7 +39,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
         this.cloneAllowed = true;
 
         this.parameters = makeDispatcherModuleParameters(
-            500,
+            140,
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
             [],
             100);
