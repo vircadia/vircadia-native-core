@@ -106,10 +106,8 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             _position = entity->getWorldPosition();
             _dimensions = entity->getScaledDimensions();
             _orientation = entity->getWorldOrientation();
-            bool success = false;
-            auto newModelTransform = entity->getTransformToCenter(success);
-            _renderTransform = success ? newModelTransform : getModelTransform();
-
+            updateModelTransformAndBound();
+            _renderTransform = getModelTransform();
             if (_shape == entity::Sphere) {
                 _renderTransform.postScale(SPHERE_ENTITY_SCALE);
             }

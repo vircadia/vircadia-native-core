@@ -11,7 +11,8 @@
    TRIGGER_OFF_VALUE, makeDispatcherModuleParameters, entityIsGrabbable, makeRunningValues, NEAR_GRAB_RADIUS,
    findGroupParent, Vec3, cloneEntity, entityIsCloneable, propsAreCloneDynamic, HAPTIC_PULSE_STRENGTH,
    HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE, findHandChildEntities, TEAR_AWAY_DISTANCE, MSECS_PER_SEC, TEAR_AWAY_CHECK_TIME,
-   TEAR_AWAY_COUNT, distanceBetweenPointAndEntityBoundingBox, print, Uuid, highlightTargetEntity, unhighlightTargetEntity
+   TEAR_AWAY_COUNT, distanceBetweenPointAndEntityBoundingBox, print, Uuid, highlightTargetEntity, unhighlightTargetEntity,
+   distanceBetweenEntityLocalPositionAndBoundingBox
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -172,12 +173,9 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             if (now - this.lastUnequipCheckTime > MSECS_PER_SEC * TEAR_AWAY_CHECK_TIME) {
                 this.lastUnequipCheckTime = now;
                 if (props.parentID === MyAvatar.SELF_ID) {
-                    var sensorScaleFactor = MyAvatar.sensorToWorldScale;
-                    var handPosition = controllerData.controllerLocations[this.hand].position;
-                    var dist = distanceBetweenPointAndEntityBoundingBox(handPosition, props);
-                    var distance = Vec3.distance(props.position, handPosition);
-                    if ((dist > TEAR_AWAY_DISTANCE) ||
-                        (distance > NEAR_GRAB_RADIUS * sensorScaleFactor)) {
+                    var tearAwayDistance = TEAR_AWAY_DISTANCE * MyAvatar.sensorToWorldScale;
+                    var distance = distanceBetweenEntityLocalPositionAndBoundingBox(props);
+                    if (distance > tearAwayDistance) {
                         this.autoUnequipCounter++;
                     } else {
                         this.autoUnequipCounter = 0;
