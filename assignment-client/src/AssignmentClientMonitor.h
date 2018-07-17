@@ -23,6 +23,7 @@
 #include "AssignmentClientChildData.h"
 #include <HTTPManager.h>
 #include <HTTPConnection.h>
+#include <sys/resource.h>
 
 extern const char* NUM_FORKS_PARAMETER;
 
@@ -55,6 +56,7 @@ public slots:
 private:
     void spawnChildClient();
     void simultaneousWaitOnChildren(int waitMsecs);
+    void adjustOsResources(unsigned int numForks) const;
 
     QTimer _checkSparesTimer; // every few seconds see if it need fewer or more spare children
 
