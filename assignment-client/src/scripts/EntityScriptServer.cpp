@@ -588,5 +588,5 @@ void EntityScriptServer::aboutToFinish() {
         _encoder = nullptr;
     }
 
-    emit finished();
+    ThreadedAssignment::aboutToFinish();
 }
