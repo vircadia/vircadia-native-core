@@ -23,7 +23,6 @@
 #include "AssignmentClientChildData.h"
 #include <HTTPManager.h>
 #include <HTTPConnection.h>
-#include <sys/resource.h>
 
 extern const char* NUM_FORKS_PARAMETER;
 
