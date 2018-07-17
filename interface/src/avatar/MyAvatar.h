@@ -513,6 +513,16 @@ public:
     * @function MyAvatar.requestDisableHandTouch
     */
     Q_INVOKABLE void requestDisableHandTouch();
+    /**jsdoc
+    * @function MyAvatar.disableHandTouchForID
+    * @param {string} entityId
+    */
+    Q_INVOKABLE void disableHandTouchForID(const QString& entityId);
+    /**jsdoc
+    * @function MyAvatar.enableHandTouchForID
+    * @param {string} entityId
+    */
+    Q_INVOKABLE void enableHandTouchForID(const QString& entityId);
 
     bool useAdvancedMovementControls() const { return _useAdvancedMovementControls.get(); }
     void setUseAdvancedMovementControls(bool useAdvancedMovementControls)
@@ -1405,6 +1415,14 @@ signals:
      * @returns {Signal}
      */
     void shouldDisableHandTouchChanged(bool shouldDisable);
+
+    /**jsdoc
+    * @function MyAvatar.handTouchForIDChanged
+    * @param {string} entityID
+    * @param {boolean} disable
+    * @returns {Signal}
+    */
+    void disableHandTouchForIDChanged(const QString& entityID, bool disable);
 
 private slots:
     void leaveDomain();

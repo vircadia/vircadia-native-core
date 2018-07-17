@@ -272,6 +272,14 @@ void MyAvatar::requestEnableHandTouch() {
     emit shouldDisableHandTouchChanged(_disableHandTouchCount > 0);
 }
 
+void MyAvatar::disableHandTouchForID(const QString& entityID) {
+    emit disableHandTouchForIDChanged(entityID, true);
+}
+
+void MyAvatar::enableHandTouchForID(const QString& entityID) {
+    emit disableHandTouchForIDChanged(entityID, false);
+}
+
 void MyAvatar::registerMetaTypes(ScriptEnginePointer engine) {
     QScriptValue value = engine->newQObject(this, QScriptEngine::QtOwnership, QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
     engine->globalObject().setProperty("MyAvatar", value);

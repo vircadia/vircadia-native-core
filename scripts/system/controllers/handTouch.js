@@ -19,8 +19,9 @@
     var handTouchEnabled = true;
     var MSECONDS_AFTER_LOAD = 2000;
     var updateFingerWithIndex = 0;
-
-    // Keys to access finger data
+    var untouchableEntities = [];
+    
+        // Keys to access finger data
     var fingerKeys = ["pinky", "ring", "middle", "index", "thumb"];
 
     // Additionally close the hands to achieve a grabbing effect
@@ -623,6 +624,7 @@
             RayPick.setPrecisionPicking(rayPicks[side][finger], true);
         }
     }
+
     function activateNextRay(side, index) {
         var nextIndex = (index < fingerKeys.length-1) ? index + 1 : 0;
         for (var i = 0; i < fingerKeys.length; i++) {
@@ -683,7 +685,11 @@
 
         // Update the intersection of only one finger at a time
         var finger = fingerKeys[updateFingerWithIndex];
-        var grabbables = Entities.findEntities(spherePos, dist);
+        var nearbyEntities = Entities.findEntities(spherePos, dist);
+        // Filter the entities that are allowed to be touched
+        var touchableEntities = nearbyEntities.filter(function (id) {
+            return untouchableEntities.indexOf(id) == -1;
+        });
         var intersection;
         if (rayPicks[side][finger] !== undefined) {
             intersection = RayPick.getPrevRayPickResult(rayPicks[side][finger]);
@@ -692,8 +698,8 @@
         var animationSteps = defaultAnimationSteps;
         var newFingerData = dataDefault[side][finger];
         var isAbleToGrab = false;
-        if (grabbables.length > 0) {
-            RayPick.setIncludeItems(rayPicks[side][finger], grabbables);
+        if (touchableEntities.length > 0) {
+            RayPick.setIncludeItems(rayPicks[side][finger], touchableEntities);
 
             if (intersection === undefined) {
                 return;
@@ -862,6 +868,19 @@
             }
         }
         handTouchEnabled = !shouldDisable;
+    });
+
+    MyAvatar.disableHandTouchForIDChanged.connect(function (entityID, disable) {
+        var entityIndex = untouchableEntities.indexOf(entityID);
+        if (disable) {
+            if (entityIndex == -1) {
+                untouchableEntities.push(entityID);
+            }
+        } else {
+            if (entityIndex != -1) {
+                untouchableEntities.splice(entityIndex, 1);
+            }
+        }
     });
 
     MyAvatar.onLoadComplete.connect(function () {
