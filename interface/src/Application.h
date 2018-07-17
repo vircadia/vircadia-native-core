@@ -313,6 +313,7 @@ public:
     Q_INVOKABLE void copyToClipboard(const QString& text);
 
 #if defined(Q_OS_ANDROID)
+    void beforeEnterBackground();
     void enterBackground();
     void enterForeground();
 #endif

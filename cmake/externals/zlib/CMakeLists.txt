@@ -5,7 +5,8 @@ include(ExternalProject)
 
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL http://hifi-public.s3.amazonaws.com/dependencies/zlib128.zip
+  URL https://public.highfidelity.com/dependencies/zlib128.zip
+  URL_MD5 126f8676442ffbd97884eb4d6f32afb4
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
   BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build
   LOG_DOWNLOAD 1

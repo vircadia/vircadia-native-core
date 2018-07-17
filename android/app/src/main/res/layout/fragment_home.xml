@@ -63,13 +63,18 @@
         android:visibility="gone"
         />
 
-    <android.support.v7.widget.RecyclerView
-        android:id="@+id/rvDomains"
+    <android.support.v4.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefreshLayout"
         app:layout_constraintTop_toBottomOf="@id/searchView"
         app:layout_constraintBottom_toBottomOf="@id/contentHomeRoot"
         app:layout_constraintStart_toStartOf="@id/contentHomeRoot"
         app:layout_constraintEnd_toEndOf="@id/contentHomeRoot"
         android:layout_width="0dp"
-        android:layout_height="0dp" />
-
+        android:layout_height="0dp">
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/rvDomains"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+        />
+    </android.support.v4.widget.SwipeRefreshLayout>
 </android.support.constraint.ConstraintLayout>

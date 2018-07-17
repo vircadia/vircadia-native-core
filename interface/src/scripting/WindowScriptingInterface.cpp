@@ -86,10 +86,6 @@ void WindowScriptingInterface::raise() {
     });
 }
 
-void WindowScriptingInterface::raiseMainWindow() {
-    raise();
-}
-
 /// Display an alert box
 /// \param const QString& message message to display
 /// \return QScriptValue::UndefinedValue

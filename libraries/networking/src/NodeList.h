@@ -90,6 +90,9 @@ public:
     bool getRequestsDomainListData() { return _requestsDomainListData; }
     void setRequestsDomainListData(bool isRequesting);
 
+    bool getSendDomainServerCheckInEnabled() { return _sendDomainServerCheckInEnabled; }
+    void setSendDomainServerCheckInEnabled(bool enabled) { _sendDomainServerCheckInEnabled = enabled; }
+
     void removeFromIgnoreMuteSets(const QUuid& nodeID);
 
     virtual bool isDomainServer() const override { return false; }
@@ -168,6 +171,8 @@ private:
     bool _isShuttingDown { false };
     QTimer _keepAlivePingTimer;
     bool _requestsDomainListData { false };
+
+    bool _sendDomainServerCheckInEnabled { true };
 
     mutable QReadWriteLock _ignoredSetLock;
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDs;
