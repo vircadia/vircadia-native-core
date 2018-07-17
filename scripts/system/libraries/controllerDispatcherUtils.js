@@ -59,6 +59,7 @@
    highlightTargetEntity:true,
    clearHighlightedEntities:true,
    unhighlightTargetEntity:true
+   distanceBetweenEntityLocalPositionAndBoundingBox: true
 */
 
 MSECS_PER_SEC = 1000.0;
@@ -130,7 +131,9 @@ DISPATCHER_PROPERTIES = [
     "type",
     "href",
     "cloneable",
-    "cloneDynamic"
+    "cloneDynamic",
+    "localPosition",
+    "localRotation"
 ];
 
 // priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step
@@ -411,6 +414,25 @@ findHandChildEntities = function(hand) {
         var childType = Entities.getNestableType(childID);
         return childType == "entity";
     });
+};
+
+distanceBetweenEntityLocalPositionAndBoundingBox = function(entityProps) {
+    var localPoint = entityProps.localPosition;
+    var entityXform = new Xform(entityProps.rotation, entityProps.position);
+    var minOffset = Vec3.multiplyVbyV(entityProps.registrationPoint, entityProps.dimensions);
+    var maxOffset = Vec3.multiplyVbyV(Vec3.subtract(ONE_VEC, entityProps.registrationPoint), entityProps.dimensions);
+    var localMin = Vec3.subtract(entityXform.trans, minOffset);
+    var localMax = Vec3.sum(entityXform.trans, maxOffset);
+
+    var v = {x: localPoint.x, y: localPoint.y, z: localPoint.z};
+    v.x = Math.max(v.x, localMin.x);
+    v.x = Math.min(v.x, localMax.x);
+    v.y = Math.max(v.y, localMin.y);
+    v.y = Math.min(v.y, localMax.y);
+    v.z = Math.max(v.z, localMin.z);
+    v.z = Math.min(v.z, localMax.z);
+
+    return Vec3.distance(v, localPoint);
 };
 
 distanceBetweenPointAndEntityBoundingBox = function(point, entityProps) {
