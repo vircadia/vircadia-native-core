@@ -74,7 +74,7 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::AssignmentClientStatus, this, "handleChildStatusPacket");
 
-    adjustOsResources(_numAssignmentClientForks);
+    adjustOsResources(std::max(_numAssignmentClientForks, _maxAssignmentClientForks));
     // use QProcess to fork off a process for each of the child assignment clients
     for (unsigned int i = 0; i < _numAssignmentClientForks; i++) {
         spawnChildClient();
@@ -380,7 +380,8 @@ bool AssignmentClientMonitor::handleHTTPRequest(HTTPConnection* connection, cons
 void AssignmentClientMonitor::adjustOsResources(unsigned int numForks) const
 {
 #ifdef _POSIX_SOURCE
-    // QProcess on Unix uses six descriptors, some temporarily, for each child proc.
+    // QProcess on Unix uses six (I think) descriptors, some temporarily, for each child proc.
+    // Formula based on tests with a Ubuntu 16.04 VM.
     unsigned requiredDescriptors = 30 + 6 * numForks;
     struct rlimit descLimits;
     if (getrlimit(RLIMIT_NOFILE, &descLimits) == 0) {
@@ -393,6 +394,9 @@ void AssignmentClientMonitor::adjustOsResources(unsigned int numForks) const
                 qDebug() << "Failed to reset descriptor limit to" << requiredDescriptors << ":" << errorString;
             }
         }
+    } else {
+        const char *const errorString = strerror(errno);
+        qDebug() << "Failed to read descriptor limit:" << errorString;
     }
 #endif
 }
