@@ -1424,7 +1424,7 @@ signals:
     /**jsdoc
      * Triggered when hand touch is enabled or disabled for an specific entity
      * @function MyAvatar.disableHandTouchForIDChanged
-     * @param {Uuid} entityID
+     * @param {Uuid} entityID - ID of the entity that will enable hand touch effect
      * @param {boolean} disable
      * @returns {Signal}
      */
