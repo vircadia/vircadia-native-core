@@ -39,19 +39,9 @@ Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::uniq
     
     Q_ASSERT_X(_congestionControl, "Connection::Connection", "Must be called with a valid CongestionControl object");
     _congestionControl->init();
-    
-    // setup default SYN, RTT and RTT Variance based on the SYN interval in CongestionControl object
-    _synInterval = _congestionControl->synInterval();
-    
-    resetRTT();
-    
-    // set the initial RTT and flow window size on congestion control object
-    _congestionControl->setRTT(_rtt);
-    _congestionControl->setMaxCongestionWindowSize(_flowWindowSize);
 
     // Setup packets
-    static const int ACK_PACKET_PAYLOAD_BYTES = sizeof(_lastSentACK)
-                            + sizeof(_rtt) + sizeof(int32_t) + sizeof(int32_t) + sizeof(int32_t);
+    static const int ACK_PACKET_PAYLOAD_BYTES = sizeof(SequenceNumber);
     static const int HANDSHAKE_ACK_PAYLOAD_BYTES = sizeof(SequenceNumber);
 
     _ackPacket = ControlPacket::create(ControlPacket::ACK, ACK_PACKET_PAYLOAD_BYTES);
@@ -95,11 +85,6 @@ void Connection::stopSendQueue() {
     }
 }
 
-void Connection::resetRTT() {
-    _rtt = _synInterval * 10;
-    _rttVariance = _rtt / 2;
-}
-
 void Connection::setMaxBandwidth(int maxBandwidth) {
     _congestionControl->setMaxBandwidth(maxBandwidth);
 }
@@ -133,9 +118,8 @@ SendQueue& Connection::getSendQueue() {
         
         // set defaults on the send queue from our congestion control object and estimatedTimeout()
         _sendQueue->setPacketSendPeriod(_congestionControl->_packetSendPeriod);
-        _sendQueue->setSyncInterval(_synInterval);
-        _sendQueue->setEstimatedTimeout(estimatedTimeout());
-        _sendQueue->setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
+        _sendQueue->setEstimatedTimeout(_congestionControl->estimatedTimeout());
+        _sendQueue->setFlowWindowSize(_congestionControl->_congestionWindowSize);
 
         // give the randomized sequence number to the congestion control object
         _congestionControl->setInitialSendSequenceNumber(_sendQueue->getCurrentSequenceNumber());
@@ -199,23 +183,6 @@ void Connection::queueReceivedMessagePacket(std::unique_ptr<Packet> packet) {
 }
 
 void Connection::sync() {
-    if (_isReceivingData) {
-        
-        // check if we should expire the receive portion of this connection
-        // this occurs if it has been 16 timeouts since the last data received and at least 5 seconds
-        static const int NUM_TIMEOUTS_BEFORE_EXPIRY = 16;
-        static const int MIN_SECONDS_BEFORE_EXPIRY = 5;
-        
-        auto now = p_high_resolution_clock::now();
-        
-        auto sincePacketReceive = now - _lastReceiveTime;
-        
-        if (duration_cast<microseconds>(sincePacketReceive).count() >= NUM_TIMEOUTS_BEFORE_EXPIRY * estimatedTimeout()
-            && duration_cast<seconds>(sincePacketReceive).count() >= MIN_SECONDS_BEFORE_EXPIRY ) {
-            // the receive side of this connection is expired
-            _isReceivingData = false;
-        }
-    }
 }
 
 void Connection::recordSentPackets(int wireSize, int payloadSize,
@@ -231,44 +198,17 @@ void Connection::recordRetransmission(int wireSize, SequenceNumber seqNum, p_hig
     _congestionControl->onPacketSent(wireSize, seqNum, timePoint);
 }
 
-void Connection::sendACK(bool wasCausedBySyncTimeout) {
-    static p_high_resolution_clock::time_point lastACKSendTime;
-    
+void Connection::sendACK() {
     SequenceNumber nextACKNumber = nextACK();
-    Q_ASSERT_X(nextACKNumber >= _lastSentACK, "Connection::sendACK", "Sending lower ACK, something is wrong");
 
     // we have received new packets since the last sent ACK
     // or our congestion control dictates that we always send ACKs
-    
-    // update the last sent ACK
-    _lastSentACK = nextACKNumber;
 
     _ackPacket->reset(); // We need to reset it every time.
 
     // pack in the ACK number
     _ackPacket->writePrimitive(nextACKNumber);
-    
-    // pack in the RTT and variance
-    _ackPacket->writePrimitive(_rtt);
-    
-    // pack the available buffer size, in packets
-    // in our implementation we have no hard limit on receive buffer size, send the default value
-    _ackPacket->writePrimitive((int32_t) udt::MAX_PACKETS_IN_FLIGHT);
 
-    if (wasCausedBySyncTimeout) {
-        // grab the up to date packet receive speed
-        int32_t packetReceiveSpeed = _receiveWindow.getPacketReceiveSpeed();
-
-        // update those values in our connection stats
-        _stats.recordReceiveRate(packetReceiveSpeed);
-        
-        // pack in the receive speed
-        _ackPacket->writePrimitive(packetReceiveSpeed);
-    }
-    
-    // record this as the last ACK send time
-    lastACKSendTime = p_high_resolution_clock::now();
-    
     // have the socket send off our packet
     _parentSocket->writeBasePacket(*_ackPacket, _destination);
     
@@ -304,12 +244,8 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
         return false;
     }
     
-    _isReceivingData = true;
-    
     // mark our last receive time as now (to push the potential expiry farther)
     _lastReceiveTime = p_high_resolution_clock::now();
-
-    _receiveWindow.onPacketArrival();
     
     // If this is not the next sequence number, report loss
     if (sequenceNumber > _lastReceivedSequenceNumber + 1) {
@@ -331,7 +267,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     }
 
     // using a congestion control that ACKs every packet (like TCP Vegas)
-    sendACK(true);
+    sendACK();
     
     if (wasDuplicate) {
         _stats.record(ConnectionStats::Stats::Duplicate);
@@ -397,22 +333,9 @@ void Connection::processACK(ControlPacketPointer controlPacket) {
         return;
     }
     
-    // read the RTT
-    int32_t rtt;
-    controlPacket->readPrimitive(&rtt);
-    
-    if (ack < _lastReceivedACK) {
+    if (ack <= _lastReceivedACK) {
         // this is an out of order ACK, bail
-        return;
-    }
-    
-    // this is a valid ACKed sequence number - update the flow window size and the last received ACK
-    int32_t packedFlowWindow;
-    controlPacket->readPrimitive(&packedFlowWindow);
-    
-    _flowWindowSize = packedFlowWindow;
-    
-    if (ack == _lastReceivedACK) {
+        // or
         // processing an already received ACK, bail
         return;
     }
@@ -421,35 +344,7 @@ void Connection::processACK(ControlPacketPointer controlPacket) {
     
     // ACK the send queue so it knows what was received
     getSendQueue().ack(ack);
-    
-    // update the RTT
-    updateRTT(rtt);
-    
-    // write this RTT to stats
-    _stats.recordRTT(rtt);
-    
-    // set the RTT for congestion control
-    _congestionControl->setRTT(_rtt);
-    
-    if (controlPacket->bytesLeftToRead() > 0) {
-        int32_t receiveRate;
-        
-        Q_ASSERT_X(controlPacket->bytesLeftToRead() == sizeof(receiveRate),
-                   "Connection::processACK", "sync interval ACK packet does not contain expected data");
-        
-        controlPacket->readPrimitive(&receiveRate);
-        
-        // set the delivery rate for congestion control
-        // these are calculated using an EWMA
-        static const int EMWA_ALPHA_NUMERATOR = 8;
-        
-        // record these samples in connection stats
-        _stats.recordSendRate(receiveRate);
-        
-        _deliveryRate = (_deliveryRate * (EMWA_ALPHA_NUMERATOR - 1) + receiveRate) / EMWA_ALPHA_NUMERATOR;
-        
-        _congestionControl->setReceiveRate(_deliveryRate);
-    }
+
     
     // give this ACK to the congestion control and update the send queue parameters
     updateCongestionControlAndSendQueue([this, ack, &controlPacket] {
@@ -478,7 +373,6 @@ void Connection::processHandshake(ControlPacketPointer controlPacket) {
         resetReceiveState();
         _initialReceiveSequenceNumber = initialSequenceNumber;
         _lastReceivedSequenceNumber = initialSequenceNumber - 1;
-        _lastSentACK = initialSequenceNumber - 1;
     }
 
     _handshakeACK->reset();
@@ -516,51 +410,18 @@ void Connection::resetReceiveState() {
     SequenceNumber defaultSequenceNumber;
     
     _lastReceivedSequenceNumber = defaultSequenceNumber;
-
-    _lastSentACK = defaultSequenceNumber;
     
     // clear the loss list
     _lossList.clear();
     
     // clear sync variables
-    _isReceivingData = false;
     _connectionStart = p_high_resolution_clock::now();
-    
-    // reset RTT to initial value
-    resetRTT();
-    
-    // clear the intervals in the receive window
-    _receiveWindow.reset();
     
     // clear any pending received messages
     for (auto& pendingMessage : _pendingReceivedMessages) {
         _parentSocket->messageFailed(this, pendingMessage.first);
     }
     _pendingReceivedMessages.clear();
-}
-
-void Connection::updateRTT(int rtt) {
-    // This updates the RTT using exponential weighted moving average
-    // This is the Jacobson's forumla for RTT estimation
-    // http://www.mathcs.emory.edu/~cheung/Courses/455/Syllabus/7-transport/Jacobson-88.pdf
-    
-    // Estimated RTT = (1 - x)(estimatedRTT) + (x)(sampleRTT)
-    // (where x = 0.125 via Jacobson)
-    
-    // Deviation  = (1 - x)(deviation) + x |sampleRTT - estimatedRTT|
-    // (where x = 0.25 via Jacobson)
-    
-    static const int RTT_ESTIMATION_ALPHA_NUMERATOR = 8;
-    static const int RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR = 4;
-   
-    _rtt = (_rtt * (RTT_ESTIMATION_ALPHA_NUMERATOR - 1) + rtt) / RTT_ESTIMATION_ALPHA_NUMERATOR;
-    
-    _rttVariance = (_rttVariance * (RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR - 1)
-                    + abs(rtt - _rtt)) / RTT_ESTIMATION_VARIANCE_ALPHA_NUMERATOR;
-}
-
-int Connection::estimatedTimeout() const {
-    return _rtt + _rttVariance * 4;
 }
 
 void Connection::updateCongestionControlAndSendQueue(std::function<void ()> congestionCallback) {
@@ -574,8 +435,8 @@ void Connection::updateCongestionControlAndSendQueue(std::function<void ()> cong
     
     // now that we've updated the congestion control, update the packet send period and flow window size
     sendQueue.setPacketSendPeriod(_congestionControl->_packetSendPeriod);
-    sendQueue.setEstimatedTimeout(estimatedTimeout());
-    sendQueue.setFlowWindowSize(std::min(_flowWindowSize, (int) _congestionControl->_congestionWindowSize));
+    sendQueue.setEstimatedTimeout(_congestionControl->estimatedTimeout());
+    sendQueue.setFlowWindowSize(_congestionControl->_congestionWindowSize);
     
     // record connection stats
     _stats.recordPacketSendPeriod(_congestionControl->_packetSendPeriod);

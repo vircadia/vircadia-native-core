@@ -33,17 +33,10 @@ using namespace udt;
 
 Socket::Socket(QObject* parent, bool shouldChangeSocketOptions) :
     QObject(parent),
-    _synTimer(new QTimer(this)),
     _readyReadBackupTimer(new QTimer(this)),
     _shouldChangeSocketOptions(shouldChangeSocketOptions)
 {
     connect(&_udpSocket, &QUdpSocket::readyRead, this, &Socket::readPendingDatagrams);
-
-    // make sure our synchronization method is called every SYN interval
-    connect(_synTimer, &QTimer::timeout, this, &Socket::rateControlSync);
-
-    // start our timer for the synchronization time interval
-    _synTimer->start(_synInterval);
 
     // make sure we hear about errors and state changes from the underlying socket
     connect(&_udpSocket, SIGNAL(error(QAbstractSocket::SocketError)),
@@ -427,49 +420,9 @@ void Socket::connectToSendSignal(const HifiSockAddr& destinationAddr, QObject* r
     }
 }
 
-void Socket::rateControlSync() {
-
-    // enumerate our list of connections and ask each of them to send off periodic ACK packet for rate control
-
-    // the way we do this is a little funny looking - we need to avoid the case where we call sync and
-    // (because of our Qt direct connection to the Connection's signal that it has been deactivated)
-    // an iterator on _connectionsHash would be invalidated by our own call to cleanupConnection
-
-    // collect the sockets for all connections in a vector
-
-    std::vector<HifiSockAddr> sockAddrVector;
-    sockAddrVector.reserve(_connectionsHash.size());
-
-    for (auto& connection : _connectionsHash) {
-        sockAddrVector.emplace_back(connection.first);
-    }
-
-    // enumerate that vector of HifiSockAddr objects
-    for (auto& sockAddr : sockAddrVector) {
-        // pull out the respective connection via a quick find on the unordered_map
-        auto it = _connectionsHash.find(sockAddr);
-
-        if (it != _connectionsHash.end()) {
-            // if the connection is erased while calling sync since we are re-using the iterator that was invalidated
-            // we're good to go
-            auto& connection = _connectionsHash[sockAddr];
-            connection->sync();
-        }
-    }
-
-    if (_synTimer->interval() != _synInterval) {
-        // if the _synTimer interval doesn't match the current _synInterval (changes when the CC factory is changed)
-        // then restart it now with the right interval
-        _synTimer->start(_synInterval);
-    }
-}
-
 void Socket::setCongestionControlFactory(std::unique_ptr<CongestionControlVirtualFactory> ccFactory) {
     // swap the current unique_ptr for the new factory
     _ccFactory.swap(ccFactory);
-
-    // update the _synInterval to the value from the factory
-    _synInterval = _ccFactory->synInterval();
 }
 
 

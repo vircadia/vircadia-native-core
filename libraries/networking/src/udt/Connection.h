@@ -22,7 +22,6 @@
 #include "ConnectionStats.h"
 #include "Constants.h"
 #include "LossList.h"
-#include "PacketTimeWindow.h"
 #include "SendQueue.h"
 #include "../HifiSockAddr.h"
 
@@ -86,26 +85,20 @@ private slots:
     void queueTimeout();
     
 private:
-    void sendACK(bool wasCausedBySyncTimeout = true);
+    void sendACK();
     
     void processACK(ControlPacketPointer controlPacket);
     void processHandshake(ControlPacketPointer controlPacket);
     void processHandshakeACK(ControlPacketPointer controlPacket);
     
     void resetReceiveState();
-    void resetRTT();
     
     SendQueue& getSendQueue();
     SequenceNumber nextACK() const;
-    void updateRTT(int rtt);
-    
-    int estimatedTimeout() const;
     
     void updateCongestionControlAndSendQueue(std::function<void()> congestionCallback);
     
     void stopSendQueue();
-    
-    int _synInterval; // Periodical Rate Control Interval, in microseconds
     
     bool _hasReceivedHandshake { false }; // flag for receipt of handshake from server
     bool _hasReceivedHandshakeACK { false }; // flag for receipt of handshake ACK from client
@@ -113,8 +106,6 @@ private:
    
     p_high_resolution_clock::time_point _connectionStart = p_high_resolution_clock::now(); // holds the time_point for creation of this connection
     p_high_resolution_clock::time_point _lastReceiveTime; // holds the last time we received anything from sender
-    
-    bool _isReceivingData { false }; // flag used for expiry of receipt portion of connection
 
     SequenceNumber _initialSequenceNumber; // Randomized on Connection creation, identifies connection during re-connect requests
     SequenceNumber _initialReceiveSequenceNumber; // Randomized by peer Connection on creation, identifies connection during re-connect requests
@@ -125,18 +116,8 @@ private:
     SequenceNumber _lastReceivedSequenceNumber; // The largest sequence number received from the peer
     SequenceNumber _lastReceivedACK; // The last ACK received
     
-    SequenceNumber _lastSentACK; // The last sent ACK
-    
-    int32_t _rtt; // RTT, in microseconds
-    int32_t _rttVariance; // RTT variance
-    int _flowWindowSize { udt::MAX_PACKETS_IN_FLIGHT }; // Flow control window size
-    
-    int _deliveryRate { 16 }; // Exponential moving average for receiver's receive rate, in packets per second
-    
     Socket* _parentSocket { nullptr };
     HifiSockAddr _destination;
-    
-    PacketTimeWindow _receiveWindow { 16 }; // Window of interval between packets (16)
    
     std::unique_ptr<CongestionControl> _congestionControl;
    

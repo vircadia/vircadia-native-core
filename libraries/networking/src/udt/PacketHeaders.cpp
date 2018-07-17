@@ -95,7 +95,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::AvatarIdentityRequest:
             return 22;
         default:
-            return 21;
+            return 22;
     }
 }
 

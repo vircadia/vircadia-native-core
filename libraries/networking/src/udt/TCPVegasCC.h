@@ -30,6 +30,8 @@ public:
     virtual void onTimeout() override {};
 
     virtual void onPacketSent(int wireSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) override;
+
+    virtual int estimatedTimeout() const override;
     
 protected:
     virtual void performCongestionAvoidance(SequenceNumber ack);
