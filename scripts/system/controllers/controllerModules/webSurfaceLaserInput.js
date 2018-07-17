@@ -64,25 +64,15 @@ Script.include("/~/system/libraries/controllers.js");
             // we are searching for an entity that is not a web entity.  We want to be able to
             // grab a non-web entity if the ray-pick intersects one.
             var intersection = controllerData.rayPicks[this.hand];
-            if(intersection.type === Picks.INTERSECTED_ENTITY) {
+            if (intersection.type === Picks.INTERSECTED_ENTITY) {
                 // is pointing at an entity.
                 var entityProperty = Entities.getEntityProperties(intersection.objectID);
                 var entityType = entityProperty.type;
                 var isGrabbable = entityIsGrabbable(entityProperty);
                 return (isGrabbable && triggerPressed && entityType !== "Web");
-            } else if (intersection.type === Picks.INTERSECTED_OVERLAY) {
-                var objectID = intersection.objectID;
-                if ((HMD.tabletID && objectID === HMD.tabletID) ||
-                    (HMD.tabletScreenID && objectID === HMD.tabletScreenID) || 
-                    (HMD.homeButtonID && objectID === HMD.homeButtonID)) {
-                    return true;
-                } else {
-                    var overlayType = Overlays.getOverlayType(objectID);
-                    return overlayType === "web3d" || triggerPressed;
-                }
             }
             return false;
-        }
+        };
 
         this.isPointingAtTriggerable = function(controllerData, triggerPressed) {
             // allow pointing at tablet, unlocked web entities, or web overlays automatically without pressing trigger,
@@ -137,8 +127,8 @@ Script.include("/~/system/libraries/controllers.js");
             var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE &&
                                    controllerData.triggerValues[this.otherHand] <= TRIGGER_OFF_VALUE;
             var allowThisModule = !otherModuleRunning || isTriggerPressed;
-            if (allowThisModule && this.isPointingAtTriggerable(controllerData, isTriggerPressed)) { 
-                //this.isPointingAtGrabbableEntity(controllerData, isTriggerPressed)) {
+            if (allowThisModule && this.isPointingAtTriggerable(controllerData, isTriggerPressed) &&
+                !this.isPointingAtGrabbableEntity(controllerData, isTriggerPressed)) {
                 this.updateAllwaysOn();
                 if (isTriggerPressed) {
                     this.dominantHandOverride = true; // Override dominant hand.
@@ -159,8 +149,8 @@ Script.include("/~/system/libraries/controllers.js");
             var allowThisModule = !otherModuleRunning && !grabModuleNeedsToRun;
             var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE;
             var laserOn = isTriggerPressed || this.parameters.handLaser.allwaysOn;
-            if (allowThisModule && (laserOn && this.isPointingAtTriggerable(controllerData, isTriggerPressed)) && 
-                this.isPointingAtGrabbableEntity(controllerData, isTriggerPressed)) {
+            if (allowThisModule && (laserOn && this.isPointingAtTriggerable(controllerData, isTriggerPressed)) &&
+                !this.isPointingAtGrabbableEntity(controllerData, isTriggerPressed)) {
                 this.running = true;
                 return makeRunningValues(true, [], []);
             }
