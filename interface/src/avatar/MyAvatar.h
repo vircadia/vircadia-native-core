@@ -506,23 +506,27 @@ public:
      */
     Q_INVOKABLE bool getHMDLeanRecenterEnabled() const { return _hmdLeanRecenterEnabled; }
     /**jsdoc
-    * @function MyAvatar.requestEnableHandTouch
-    */
+     * Request to enable hand touch effect globally
+     * @function MyAvatar.requestEnableHandTouch
+     */
     Q_INVOKABLE void requestEnableHandTouch();
     /**jsdoc
-    * @function MyAvatar.requestDisableHandTouch
-    */
+     * Request to disable hand touch effect globally
+     * @function MyAvatar.requestDisableHandTouch
+     */
     Q_INVOKABLE void requestDisableHandTouch();
     /**jsdoc
-    * @function MyAvatar.disableHandTouchForID
-    * @param {string} entityId
-    */
-    Q_INVOKABLE void disableHandTouchForID(const QString& entityId);
+     * Disables hand touch effect on a specific entity
+     * @function MyAvatar.disableHandTouchForID
+     * @param {Uuid} entityID - ID of the entity that will disable hand touch effect
+     */
+    Q_INVOKABLE void disableHandTouchForID(const QUuid& entityID);
     /**jsdoc
-    * @function MyAvatar.enableHandTouchForID
-    * @param {string} entityId
-    */
-    Q_INVOKABLE void enableHandTouchForID(const QString& entityId);
+     * Enables hand touch effect on a specific entity
+     * @function MyAvatar.enableHandTouchForID
+     * @param {Uuid} entityID - ID of the entity that will enable hand touch effect
+     */
+    Q_INVOKABLE void enableHandTouchForID(const QUuid& entityID);
 
     bool useAdvancedMovementControls() const { return _useAdvancedMovementControls.get(); }
     void setUseAdvancedMovementControls(bool useAdvancedMovementControls)
@@ -1410,6 +1414,7 @@ signals:
     void scaleChanged();
 
     /**jsdoc
+     * Triggered when hand touch is globally enable or disable 
      * @function MyAvatar.shouldDisableHandTouchChanged
      * @param {boolean} shouldDisable
      * @returns {Signal}
@@ -1417,12 +1422,13 @@ signals:
     void shouldDisableHandTouchChanged(bool shouldDisable);
 
     /**jsdoc
-    * @function MyAvatar.handTouchForIDChanged
-    * @param {string} entityID
-    * @param {boolean} disable
-    * @returns {Signal}
-    */
-    void disableHandTouchForIDChanged(const QString& entityID, bool disable);
+     * Triggered when hand touch is enable or disable for an specific entity
+     * @function MyAvatar.disableHandTouchForIDChanged
+     * @param {Uuid} entityID
+     * @param {boolean} disable
+     * @returns {Signal}
+     */
+    void disableHandTouchForIDChanged(const QUuid& entityID, bool disable);
 
 private slots:
     void leaveDomain();
@@ -1700,7 +1706,7 @@ private:
     bool _shouldLoadScripts { false };
 
     bool _haveReceivedHeightLimitsFromDomain { false };
-    int _disableHandTouchCount { 0 };
+    std::atomic<int> _disableHandTouchCount { 0 };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

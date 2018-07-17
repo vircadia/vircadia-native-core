@@ -272,11 +272,11 @@ void MyAvatar::requestEnableHandTouch() {
     emit shouldDisableHandTouchChanged(_disableHandTouchCount > 0);
 }
 
-void MyAvatar::disableHandTouchForID(const QString& entityID) {
+void MyAvatar::disableHandTouchForID(const QUuid& entityID) {
     emit disableHandTouchForIDChanged(entityID, true);
 }
 
-void MyAvatar::enableHandTouchForID(const QString& entityID) {
+void MyAvatar::enableHandTouchForID(const QUuid& entityID) {
     emit disableHandTouchForIDChanged(entityID, false);
 }
 
