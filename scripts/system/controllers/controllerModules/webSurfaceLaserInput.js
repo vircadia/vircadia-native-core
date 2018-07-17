@@ -42,6 +42,16 @@ Script.include("/~/system/libraries/controllers.js");
                         return true;
                     }
                 }
+                nearGrabName = this.hand === RIGHT_HAND ? "RightNearParentingGrabEntity" : "LeftNearParentingGrabEntity";
+                nearGrabModule = getEnabledModuleByName(nearGrabName);
+                if (nearGrabModule) {
+                    return nearGrabModule.isReady(controllerData).active;
+                }
+                nearGrabName = this.hand === RIGHT_HAND ? "RightNearActionGrabEntity" : "LeftNearActionGrabEntity";
+                nearGrabModule = getEnabledModuleByName(nearGrabName);
+                if (nearGrabModule) {
+                    return nearGrabModule.isReady(controllerData).active;
+                }
             }
             return false;
         };
