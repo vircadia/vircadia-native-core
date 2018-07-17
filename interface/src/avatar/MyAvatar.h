@@ -505,6 +505,14 @@ public:
      * @returns {boolean} 
      */
     Q_INVOKABLE bool getHMDLeanRecenterEnabled() const { return _hmdLeanRecenterEnabled; }
+    /**jsdoc
+    * @function MyAvatar.requestEnableHandTouch
+    */
+    Q_INVOKABLE void requestEnableHandTouch();
+    /**jsdoc
+    * @function MyAvatar.requestDisableHandTouch
+    */
+    Q_INVOKABLE void requestDisableHandTouch();
 
     bool useAdvancedMovementControls() const { return _useAdvancedMovementControls.get(); }
     void setUseAdvancedMovementControls(bool useAdvancedMovementControls)
@@ -1391,6 +1399,13 @@ signals:
      */
     void scaleChanged();
 
+    /**jsdoc
+     * @function MyAvatar.shouldDisableHandTouchChanged
+     * @param {boolean} shouldDisable
+     * @returns {Signal}
+     */
+    void shouldDisableHandTouchChanged(bool shouldDisable);
+
 private slots:
     void leaveDomain();
 
@@ -1667,6 +1682,7 @@ private:
     bool _shouldLoadScripts { false };
 
     bool _haveReceivedHeightLimitsFromDomain { false };
+    int _disableHandTouchCount { 0 };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
