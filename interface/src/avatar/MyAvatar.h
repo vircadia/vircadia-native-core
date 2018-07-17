@@ -1414,7 +1414,7 @@ signals:
     void scaleChanged();
 
     /**jsdoc
-     * Triggered when hand touch is globally enable or disable 
+     * Triggered when hand touch is globally enabled or disabled
      * @function MyAvatar.shouldDisableHandTouchChanged
      * @param {boolean} shouldDisable
      * @returns {Signal}
@@ -1422,7 +1422,7 @@ signals:
     void shouldDisableHandTouchChanged(bool shouldDisable);
 
     /**jsdoc
-     * Triggered when hand touch is enable or disable for an specific entity
+     * Triggered when hand touch is enabled or disabled for an specific entity
      * @function MyAvatar.disableHandTouchForIDChanged
      * @param {Uuid} entityID
      * @param {boolean} disable
