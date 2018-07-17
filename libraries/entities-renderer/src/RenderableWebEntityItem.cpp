@@ -206,7 +206,7 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
 
                 glm::vec2 windowSize = getWindowSize(entity);
                 _webSurface->resize(QSize(windowSize.x, windowSize.y));
-                updateModelTransform();
+                updateModelTransformAndBound();
                 _renderTransform = getModelTransform();
                 _renderTransform.postScale(entity->getScaledDimensions());
             });
