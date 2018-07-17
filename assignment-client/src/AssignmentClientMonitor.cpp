@@ -25,7 +25,7 @@
 #include "AssignmentClientChildData.h"
 #include "SharedUtil.h"
 #include <QtCore/QJsonDocument>
-#ifdef POSIX_SOURCE
+#ifdef _POSIX_SOURCE
 #include <sys/resource.h>
 #endif
 
