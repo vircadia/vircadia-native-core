@@ -883,6 +883,7 @@ public:
     virtual void rebuildCollisionShape() override;
 
     const glm::vec2& getHeadControllerFacingMovingAverage() const { return _headControllerFacingMovingAverage; }
+    void setHeadControllerFacingMovingAverage(glm::vec2 currentHeadControllerFacing) { _headControllerFacingMovingAverage = currentHeadControllerFacing; }
     float getCurrentStandingHeight() const { return _currentStandingHeight; }
     void setCurrentStandingHeight(float newMode) { _currentStandingHeight = newMode; }
     const glm::quat getAverageHeadRotation() const { return _averageHeadRotation; }
