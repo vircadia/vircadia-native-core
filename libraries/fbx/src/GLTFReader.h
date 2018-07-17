@@ -762,11 +762,11 @@ private:
     bool readBinary(const QString& url, QByteArray& outdata);
 
     template<typename T, typename L>
-    bool readArray(const QByteArray& bin, int byteOffset, int byteLength, 
+    bool readArray(const QByteArray& bin, int byteOffset, int count, 
                    QVector<L>& outarray, int accessorType);
     
     template<typename T>
-    bool addArrayOfType(const QByteArray& bin, int byteOffset, int byteLength, 
+    bool addArrayOfType(const QByteArray& bin, int byteOffset, int count, 
                         QVector<T>& outarray, int accessorType, int componentType);
 
     void retriangulate(const QVector<int>& in_indices, const QVector<glm::vec3>& in_vertices, 
