@@ -254,7 +254,8 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                         this.hapticTargetID = props.id;
                     }
                     // if we've attempted to grab a child, roll up to the root of the tree
-                    var groupRootProps = findGroupParent(controllerData, props);
+                    var stopAtCloneable = true;
+                    var groupRootProps = findGroupParent(controllerData, props, stopAtCloneable);
                     if (entityIsGrabbable(groupRootProps)) {
                         return groupRootProps;
                     }

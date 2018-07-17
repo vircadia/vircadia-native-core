@@ -47,7 +47,7 @@
             var canGrabEntity = false;
             if (dispatcherUtils.entityIsGrabbable(props) || entityIsCloneable(props)) {
                 // if we've attempted to grab a child, roll up to the root of the tree
-                var groupRootProps = dispatcherUtils.findGroupParent(controllerData, props);
+                var groupRootProps = dispatcherUtils.findGroupParent(controllerData, props, false);
                 canGrabEntity = true;
                 if (!dispatcherUtils.entityIsGrabbable(groupRootProps)) {
                     canGrabEntity = false;

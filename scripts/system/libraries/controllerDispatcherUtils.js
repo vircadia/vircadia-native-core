@@ -355,10 +355,13 @@ ensureDynamic = function (entityID) {
     }
 };
 
-findGroupParent = function (controllerData, targetProps) {
+findGroupParent = function (controllerData, targetProps, stopAtCloneable) {
     while (targetProps.parentID &&
            targetProps.parentID !== Uuid.NULL &&
            Entities.getNestableType(targetProps.parentID) == "entity") {
+        if (stopAtCloneable && entityIsCloneable(targetProps)) {
+            break;
+        }
         var parentProps = Entities.getEntityProperties(targetProps.parentID, DISPATCHER_PROPERTIES);
         if (!parentProps) {
             break;
