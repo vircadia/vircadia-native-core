@@ -734,13 +734,21 @@ bool findParabolaRectangleIntersection(const glm::vec3& origin, const glm::vec3&
     glm::vec2 localCorner = -0.5f * dimensions;
 
     float minDistance = FLT_MAX;
-    float a = 0.5f * acceleration.z;
-    float b = velocity.z;
-    float c = origin.z;
-    glm::vec2 possibleDistances = { FLT_MAX, FLT_MAX };
-    if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
-        checkPossibleParabolicIntersectionWithZPlane(possibleDistances.x, minDistance, origin, velocity, acceleration, localCorner, dimensions);
-        checkPossibleParabolicIntersectionWithZPlane(possibleDistances.y, minDistance, origin, velocity, acceleration, localCorner, dimensions);
+    if (fabsf(acceleration.z) < EPSILON) {
+        // Handle the degenerate case where we only have a line in the z-axis
+        if (fabsf(velocity.z) > EPSILON) {
+            float possibleDistance = -origin.z / velocity.z;
+            checkPossibleParabolicIntersectionWithZPlane(possibleDistance, minDistance, origin, velocity, acceleration, localCorner, dimensions);
+        }
+    } else {
+        float a = 0.5f * acceleration.z;
+        float b = velocity.z;
+        float c = origin.z;
+        glm::vec2 possibleDistances = { FLT_MAX, FLT_MAX };
+        if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
+            checkPossibleParabolicIntersectionWithZPlane(possibleDistances.x, minDistance, origin, velocity, acceleration, localCorner, dimensions);
+            checkPossibleParabolicIntersectionWithZPlane(possibleDistances.y, minDistance, origin, velocity, acceleration, localCorner, dimensions);
+        }
     }
     if (minDistance < FLT_MAX) {
         parabolicDistance = minDistance;
@@ -754,43 +762,72 @@ bool findParabolaSphereIntersection(const glm::vec3& origin, const glm::vec3& ve
     glm::vec3 localCenter = center - origin;
     float radiusSquared = radius * radius;
 
-    // Get the normal of the plane, the cross product of two vectors on the plane
-    // Assumes: velocity and acceleration != 0 and normalize(velocity) != normalize(acceleration)
-    glm::vec3 normal = glm::normalize(glm::cross(velocity, acceleration));
-
-    // Project vector from plane to sphere center onto the normal
-    float distance = glm::dot(localCenter, normal);
-    // Exit early if the sphere doesn't intersect the plane defined by the parabola
-    if (fabsf(distance) > radius) {
-        return false;
-    }
-
-    glm::vec3 circleCenter = center - distance * normal;
-    float circleRadius = sqrtf(radiusSquared - distance * distance);
-    glm::vec3 q = glm::normalize(acceleration);
-    glm::vec3 p = glm::cross(normal, q);
-
-    float a1 = glm::length(acceleration) * 0.5f;
-    float b1 = glm::dot(velocity, q);
-    float c1 = glm::dot(origin - circleCenter, q);
-    float a2 = glm::dot(velocity, p);
-    float b2 = glm::dot(origin - circleCenter, p);
-
-    float a = a1 * a1;
-    float b = 2.0f * a1 * b1;
-    float c = 2.0f * a1 * c1 + b1 * b1 + a2 * a2;
-    float d = 2.0f * b1 * c1 + 2.0f * a2 * b2;
-    float e = c1 * c1 + b2 * b2 - circleRadius * circleRadius;
-
+    float velocityLength2 = glm::length2(velocity);
+    float accelerationLength = glm::length(acceleration);
     float minDistance = FLT_MAX;
-    glm::vec4 possibleDistances(FLT_MAX);
-    if (computeRealQuarticRoots(a, b, c, d, e, possibleDistances)) {
-        for (int i = 0; i < 4; i++) {
-            if (possibleDistances[i] < minDistance && possibleDistances[i] > 0.0f) {
-                minDistance = possibleDistances[i];
+
+    if (accelerationLength < EPSILON) {
+        if (velocityLength2 < EPSILON) {
+            // No intersection if velocity == acceleration == (0, 0, 0)
+            return false;
+        }
+        // Handle the degenerate case where acceleration == (0, 0, 0)
+        glm::vec3 offset = origin - center;
+        float a = glm::dot(velocity, velocity);
+        float b = 2.0f * glm::dot(velocity, offset);
+        float c = glm::dot(offset, offset) - radius * radius;
+        glm::vec2 possibleDistances(FLT_MAX);
+        if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
+            for (int i = 0; i < 2; i++) {
+                if (possibleDistances[i] < minDistance && possibleDistances[i] > 0.0f) {
+                    minDistance = possibleDistances[i];
+                }
+            }
+        }
+    } else {
+        glm::vec3 vectorOnPlane = velocity;
+        if (fabsf(glm::dot(glm::normalize(velocity), glm::normalize(acceleration))) > 1.0f - EPSILON) {
+            // Handle the degenerate case where velocity is parallel to acceleration
+            // We pick t = 1 and calculate a second point on the plane
+            vectorOnPlane = velocity + 0.5f * acceleration;
+        }
+        // Get the normal of the plane, the cross product of two vectors on the plane
+        glm::vec3 normal = glm::normalize(glm::cross(vectorOnPlane, acceleration));
+
+        // Project vector from plane to sphere center onto the normal
+        float distance = glm::dot(localCenter, normal);
+        // Exit early if the sphere doesn't intersect the plane defined by the parabola
+        if (fabsf(distance) > radius) {
+            return false;
+        }
+
+        glm::vec3 circleCenter = center - distance * normal;
+        float circleRadius = sqrtf(radiusSquared - distance * distance);
+        glm::vec3 q = glm::normalize(acceleration);
+        glm::vec3 p = glm::cross(normal, q);
+
+        float a1 = accelerationLength * 0.5f;
+        float b1 = glm::dot(velocity, q);
+        float c1 = glm::dot(origin - circleCenter, q);
+        float a2 = glm::dot(velocity, p);
+        float b2 = glm::dot(origin - circleCenter, p);
+
+        float a = a1 * a1;
+        float b = 2.0f * a1 * b1;
+        float c = 2.0f * a1 * c1 + b1 * b1 + a2 * a2;
+        float d = 2.0f * b1 * c1 + 2.0f * a2 * b2;
+        float e = c1 * c1 + b2 * b2 - circleRadius * circleRadius;
+
+        glm::vec4 possibleDistances(FLT_MAX);
+        if (computeRealQuarticRoots(a, b, c, d, e, possibleDistances)) {
+            for (int i = 0; i < 4; i++) {
+                if (possibleDistances[i] < minDistance && possibleDistances[i] > 0.0f) {
+                    minDistance = possibleDistances[i];
+                }
             }
         }
     }
+
     if (minDistance < FLT_MAX) {
         parabolicDistance = minDistance;
         return true;
@@ -837,21 +874,109 @@ bool findParabolaTriangleIntersection(const glm::vec3& origin, const glm::vec3& 
     glm::vec3 localAcceleration = inverseRot * acceleration;
 
     float minDistance = FLT_MAX;
-    float a = 0.5f * localAcceleration.z;
-    float b = localVelocity.z;
-    float c = localOrigin.z;
-    glm::vec2 possibleDistances = { FLT_MAX, FLT_MAX };
-    if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
-        checkPossibleParabolicIntersectionWithTriangle(possibleDistances.x, minDistance, origin, velocity, acceleration,
+    if (fabsf(localAcceleration.z) < EPSILON) {
+        if (fabsf(localVelocity.z) < EPSILON) {
+            return false;
+        }
+        float possibleDistance = -localOrigin.z / localVelocity.z;
+        checkPossibleParabolicIntersectionWithTriangle(possibleDistance, minDistance, origin, velocity, acceleration,
             localVelocity, localAcceleration, normal, v0, v1, v2, allowBackface);
-        checkPossibleParabolicIntersectionWithTriangle(possibleDistances.y, minDistance, origin, velocity, acceleration,
-            localVelocity, localAcceleration, normal, v0, v1, v2, allowBackface);
+    } else {
+        float a = 0.5f * localAcceleration.z;
+        float b = localVelocity.z;
+        float c = localOrigin.z;
+        glm::vec2 possibleDistances = { FLT_MAX, FLT_MAX };
+        if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
+            checkPossibleParabolicIntersectionWithTriangle(possibleDistances.x, minDistance, origin, velocity, acceleration,
+                localVelocity, localAcceleration, normal, v0, v1, v2, allowBackface);
+            checkPossibleParabolicIntersectionWithTriangle(possibleDistances.y, minDistance, origin, velocity, acceleration,
+                localVelocity, localAcceleration, normal, v0, v1, v2, allowBackface);
+        }
     }
     if (minDistance < FLT_MAX) {
         parabolicDistance = minDistance;
         return true;
     }
     return false;
+}
+
+bool findParabolaCapsuleIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+    const glm::vec3& start, const glm::vec3& end, float radius, const glm::quat& rotation, float& parabolicDistance) {
+    if (start == end) {
+        return findParabolaSphereIntersection(origin, velocity, acceleration, start, radius, parabolicDistance); // handle degenerate case
+    }
+    if (glm::distance2(origin, start) < radius * radius) { // inside start sphere
+        float startDistance;
+        bool intersectsStart = findParabolaSphereIntersection(origin, velocity, acceleration, start, radius, startDistance);
+        if (glm::distance2(origin, end) < radius * radius) { // also inside end sphere
+            float endDistance;
+            bool intersectsEnd = findParabolaSphereIntersection(origin, velocity, acceleration, end, radius, endDistance);
+            if (endDistance < startDistance) {
+                parabolicDistance = endDistance;
+                return intersectsEnd;
+            }
+        }
+        parabolicDistance = startDistance;
+        return intersectsStart;
+    } else if (glm::distance2(origin, end) < radius * radius) { // inside end sphere (and not start sphere)
+        return findParabolaSphereIntersection(origin, velocity, acceleration, end, radius, parabolicDistance);
+    }
+
+    // We are either inside the middle of the capsule or outside it completely
+    // Either way, we need to check all three parts of the capsule and find the closest intersection
+    glm::vec3 results(FLT_MAX);
+    findParabolaSphereIntersection(origin, velocity, acceleration, start, radius, results[0]);
+    findParabolaSphereIntersection(origin, velocity, acceleration, end, radius, results[1]);
+
+    // We rotate the infinite cylinder to be aligned with the y-axis and then cap the values at the end
+    glm::quat inverseRot = glm::inverse(rotation);
+    glm::vec3 localOrigin = inverseRot * (origin - start);
+    glm::vec3 localVelocity = inverseRot * velocity;
+    glm::vec3 localAcceleration = inverseRot * acceleration;
+    float capsuleLength = glm::length(end - start);
+
+    const float MIN_ACCELERATION_PRODUCT = 0.00001f;
+    if (fabsf(localAcceleration.x * localAcceleration.z) < MIN_ACCELERATION_PRODUCT) {
+        // Handle the degenerate case where we only have a line in the XZ plane
+        float a = localVelocity.x * localVelocity.x + localVelocity.z * localVelocity.z;
+        float b = 2.0f * (localVelocity.x * localOrigin.x + localVelocity.z * localOrigin.z);
+        float c = localOrigin.x * localOrigin.x + localOrigin.z * localOrigin.z - radius * radius;
+        glm::vec2 possibleDistances = { FLT_MAX, FLT_MAX };
+        if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
+            for (int i = 0; i < 2; i++) {
+                if (possibleDistances[i] < results[2] && possibleDistances[i] > 0.0f) {
+                    float y = localOrigin.y + localVelocity.y * possibleDistances[i] + 0.5f * localAcceleration.y * possibleDistances[i] * possibleDistances[i];
+                    if (y > 0.0f && y < capsuleLength) {
+                        results[2] = possibleDistances[i];
+                    }
+                }
+            }
+        }
+    } else {
+        float a = 0.25f * (localAcceleration.x * localAcceleration.x + localAcceleration.z * localAcceleration.z);
+        float b = localVelocity.x * localAcceleration.x + localVelocity.z * localAcceleration.z;
+        float c = localOrigin.x * localAcceleration.x + localOrigin.z * localAcceleration.z + localVelocity.x * localVelocity.x + localVelocity.z * localVelocity.z;
+        float d = 2.0f * (localOrigin.x * localVelocity.x + localOrigin.z * localVelocity.z);
+        float e = localOrigin.x * localOrigin.x + localOrigin.z * localOrigin.z - radius * radius;
+        glm::vec4 possibleDistances(FLT_MAX);
+        if (computeRealQuarticRoots(a, b, c, d, e, possibleDistances)) {
+            for (int i = 0; i < 4; i++) {
+                if (possibleDistances[i] < results[2] && possibleDistances[i] > 0.0f) {
+                    float y = localOrigin.y + localVelocity.y * possibleDistances[i] + 0.5f * localAcceleration.y * possibleDistances[i] * possibleDistances[i];
+                    if (y > 0.0f && y < capsuleLength) {
+                        results[2] = possibleDistances[i];
+                    }
+                }
+            }
+        }
+    }
+
+    float minDistance = FLT_MAX;
+    for (int i = 0; i < 3; i++) {
+        minDistance = glm::min(minDistance, results[i]);
+    }
+    parabolicDistance = minDistance;
+    return minDistance != FLT_MAX;
 }
 
 void swingTwistDecomposition(const glm::quat& rotation,
@@ -1100,7 +1225,7 @@ bool computeRealQuadraticRoots(float a, float b, float c, glm::vec2& roots) {
 }
 
 // The following functions provide an analytical solution to a quartic equation, adapted from the solution here: https://github.com/sasamil/Quartic
-unsigned int solveP3(float *x, float a, float b, float c) {
+unsigned int solveP3(float* x, float a, float b, float c) {
     float a2 = a * a;
     float q = (a2 - 3.0f * b) / 9.0f;
     float r = (a * (2.0f * a2 - 9.0f * b) + 27.0f * c) / 54.0f;
@@ -1221,11 +1346,5 @@ bool solve_quartic(float a, float b, float c, float d, glm::vec4& roots) {
 }
 
 bool computeRealQuarticRoots(float a, float b, float c, float d, float e, glm::vec4& roots) {
-    a = 1.0f;
-    b = b / a;
-    c = c / a;
-    d = d / a;
-    e = e / a;
-
-    return solve_quartic(b, c, d, e, roots);
+    return solve_quartic(b / a, c / a, d / a, e / a, roots);
 }

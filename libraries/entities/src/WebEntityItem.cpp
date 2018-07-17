@@ -116,10 +116,10 @@ bool WebEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const g
         glm::vec3 forward = rotation * Vectors::FRONT;
         if (glm::dot(forward, direction) > 0.0f) {
             face = MAX_Z_FACE;
-            surfaceNormal = rotation * -Vectors::FRONT;
+            surfaceNormal = -forward;
         } else {
             face = MIN_Z_FACE;
-            surfaceNormal = rotation * Vectors::FRONT;
+            surfaceNormal = forward;
         }
         return true;
     } else {

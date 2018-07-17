@@ -546,7 +546,7 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionVector(const PickRay
             continue;
         }
 
-        if (thisOverlay && thisOverlay->getVisible() && !thisOverlay->getIgnoreRayIntersection() && thisOverlay->isLoaded()) {
+        if (thisOverlay && thisOverlay->getVisible() && !thisOverlay->getIgnorePickIntersection() && thisOverlay->isLoaded()) {
             float thisDistance;
             BoxFace thisFace;
             glm::vec3 thisSurfaceNormal;
@@ -565,6 +565,54 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionVector(const PickRay
                     result.surfaceNormal = thisSurfaceNormal;
                     result.overlayID = thisID;
                     result.intersection = ray.origin + (ray.direction * thisDistance);
+                    result.extraInfo = thisExtraInfo;
+                }
+            }
+        }
+    }
+    return result;
+}
+
+ParabolaToOverlayIntersectionResult Overlays::findParabolaIntersectionVector(const PickParabola& parabola, bool precisionPicking,
+                                                                             const QVector<OverlayID>& overlaysToInclude,
+                                                                             const QVector<OverlayID>& overlaysToDiscard,
+                                                                             bool visibleOnly, bool collidableOnly) {
+    float bestDistance = std::numeric_limits<float>::max();
+    bool bestIsFront = false;
+
+    QMutexLocker locker(&_mutex);
+    ParabolaToOverlayIntersectionResult result;
+    QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysWorld);
+    while (i.hasNext()) {
+        i.next();
+        OverlayID thisID = i.key();
+        auto thisOverlay = std::dynamic_pointer_cast<Base3DOverlay>(i.value());
+
+        if ((overlaysToDiscard.size() > 0 && overlaysToDiscard.contains(thisID)) ||
+            (overlaysToInclude.size() > 0 && !overlaysToInclude.contains(thisID))) {
+            continue;
+        }
+
+        if (thisOverlay && thisOverlay->getVisible() && !thisOverlay->getIgnorePickIntersection() && thisOverlay->isLoaded()) {
+            float thisDistance;
+            BoxFace thisFace;
+            glm::vec3 thisSurfaceNormal;
+            QVariantMap thisExtraInfo;
+            if (thisOverlay->findParabolaIntersectionExtraInfo(parabola.origin, parabola.velocity, parabola.acceleration, thisDistance,
+                thisFace, thisSurfaceNormal, thisExtraInfo, precisionPicking)) {
+                bool isDrawInFront = thisOverlay->getDrawInFront();
+                if ((bestIsFront && isDrawInFront && thisDistance < bestDistance)
+                    || (!bestIsFront && (isDrawInFront || thisDistance < bestDistance))) {
+
+                    bestIsFront = isDrawInFront;
+                    bestDistance = thisDistance;
+                    result.intersects = true;
+                    result.parabolicDistance = thisDistance;
+                    result.face = thisFace;
+                    result.surfaceNormal = thisSurfaceNormal;
+                    result.overlayID = thisID;
+                    result.intersection = parabola.origin + parabola.velocity * thisDistance + 0.5f * parabola.acceleration * thisDistance * thisDistance;
+                    result.distance = glm::distance(result.intersection, parabola.origin);
                     result.extraInfo = thisExtraInfo;
                 }
             }
@@ -1046,7 +1094,8 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
         i.next();
         OverlayID thisID = i.key();
         auto overlay = std::dynamic_pointer_cast<Volume3DOverlay>(i.value());
-        if (overlay && overlay->getVisible() && !overlay->getIgnoreRayIntersection() && overlay->isLoaded()) {
+        // FIXME: this ignores overlays with ignorePickIntersection == true, which seems wrong
+        if (overlay && overlay->getVisible() && !overlay->getIgnorePickIntersection() && overlay->isLoaded()) {
             // get AABox in frame of overlay
             glm::vec3 dimensions = overlay->getDimensions();
             glm::vec3 low = dimensions * -0.5f;

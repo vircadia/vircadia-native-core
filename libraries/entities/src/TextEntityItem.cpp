@@ -139,15 +139,14 @@ bool TextEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const 
         glm::vec3 forward = rotation * Vectors::FRONT;
         if (glm::dot(forward, direction) > 0.0f) {
             face = MAX_Z_FACE;
-            surfaceNormal = rotation * -Vectors::FRONT;
+            surfaceNormal = -forward;
         } else {
             face = MIN_Z_FACE;
-            surfaceNormal = rotation * Vectors::FRONT;
+            surfaceNormal = forward;
         }
         return true;
-    } else {
-        return false;
     }
+    return false;
 }
 
 bool TextEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
@@ -174,9 +173,8 @@ bool TextEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, c
             surfaceNormal = rotation * -Vectors::FRONT;
         }
         return true;
-    } else {
-        return false;
     }
+    return false;
 }
 
 void TextEntityItem::setText(const QString& value) {

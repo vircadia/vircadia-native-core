@@ -58,11 +58,11 @@ public:
     }
 
     bool doesIntersect() const override { return intersects; }
-    bool checkOrFilterAgainstMaxDistance(float maxDistance) override { return distance < maxDistance; }
+    bool checkOrFilterAgainstMaxDistance(float maxDistance) override { return parabolicDistance < maxDistance; }
 
     PickResultPointer compareAndProcessNewResult(const PickResultPointer& newRes) override {
         auto newParabolaRes = std::static_pointer_cast<ParabolaPickResult>(newRes);
-        if (newParabolaRes->distance < distance) {
+        if (newParabolaRes->parabolicDistance < parabolicDistance) {
             return std::make_shared<ParabolaPickResult>(*newParabolaRes);
         } else {
             return std::make_shared<ParabolaPickResult>(*this);

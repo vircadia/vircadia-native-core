@@ -303,68 +303,123 @@ bool AABox::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& v
     // Solve the intersection for each face of the cube.  As we go, keep track of the smallest, positive, real distance
     // that is within the bounds of the other two dimensions
     for (int i = 0; i < 3; i++) {
-        // TODO: handle case where a is 0
-        a = 0.5f * acceleration[i];
-        b = velocity[i];
-        if (origin[i] < _corner[i]) {
-            // If we're below _corner, we only need to check the min face
-            { // min
-                c = origin[i] - _corner[i];
-                possibleDistances = { FLT_MAX, FLT_MAX };
-                if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
-                    bool hit = false;
-                    checkPossibleParabolicIntersection(possibleDistances.x, i, minDistance, origin, velocity, acceleration, hit);
-                    checkPossibleParabolicIntersection(possibleDistances.y, i, minDistance, origin, velocity, acceleration, hit);
-                    if (hit) {
-                        minFace = BoxFace(2 * i);
-                        minNormal = glm::vec3(0.0f);
-                        minNormal[i] = -1.0f;
+        if (fabsf(acceleration[i]) < EPSILON) {
+            // Handle the degenerate case where we only have a line in this axis
+            if (origin[i] < _corner[i]) {
+                { // min
+                    if (velocity[i] > 0.0f) {
+                        float possibleDistance = (_corner[i] - origin[i]) / velocity[i];
+                        bool hit = false;
+                        checkPossibleParabolicIntersection(possibleDistance, i, minDistance, origin, velocity, acceleration, hit);
+                        if (hit) {
+                            minFace = BoxFace(2 * i);
+                            minNormal = glm::vec3(0.0f);
+                            minNormal[i] = -1.0f;
+                        }
                     }
                 }
-            }
-        } else if (origin[i] > _corner[i] + _scale[i]) {
-            // If we're above _corner + _scale, we only need to check the max face
-            { // max
-                c = origin[i] - (_corner[i] + _scale[i]);
-                possibleDistances = { FLT_MAX, FLT_MAX };
-                if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
-                    bool hit = false;
-                    checkPossibleParabolicIntersection(possibleDistances.x, i, minDistance, origin, velocity, acceleration, hit);
-                    checkPossibleParabolicIntersection(possibleDistances.y, i, minDistance, origin, velocity, acceleration, hit);
-                    if (hit) {
-                        minFace = BoxFace(2 * i + 1);
-                        minNormal = glm::vec3(0.0f);
-                        minNormal[i] = 1.0f;
+            } else if (origin[i] > _corner[i] + _scale[i]) {
+                { // max
+                    if (velocity[i] < 0.0f) {
+                        float possibleDistance = (_corner[i] + _scale[i] - origin[i]) / velocity[i];
+                        bool hit = false;
+                        checkPossibleParabolicIntersection(possibleDistance, i, minDistance, origin, velocity, acceleration, hit);
+                        if (hit) {
+                            minFace = BoxFace(2 * i + 1);
+                            minNormal = glm::vec3(0.0f);
+                            minNormal[i] = 1.0f;
+                        }
+                    }
+                }
+            } else {
+                { // min
+                    if (velocity[i] < 0.0f) {
+                        float possibleDistance = (_corner[i] - origin[i]) / velocity[i];
+                        bool hit = false;
+                        checkPossibleParabolicIntersection(possibleDistance, i, minDistance, origin, velocity, acceleration, hit);
+                        if (hit) {
+                            minFace = BoxFace(2 * i + 1);
+                            minNormal = glm::vec3(0.0f);
+                            minNormal[i] = 1.0f;
+                        }
+                    }
+                }
+                { // max
+                    if (velocity[i] > 0.0f) {
+                        float possibleDistance = (_corner[i] + _scale[i] - origin[i]) / velocity[i];
+                        bool hit = false;
+                        checkPossibleParabolicIntersection(possibleDistance, i, minDistance, origin, velocity, acceleration, hit);
+                        if (hit) {
+                            minFace = BoxFace(2 * i);
+                            minNormal = glm::vec3(0.0f);
+                            minNormal[i] = -1.0f;
+                        }
                     }
                 }
             }
         } else {
-            // If we're inside on this axis, we could hit either face depending on our velocity and acceleration, so we need to check both
-            { // min
-                c = origin[i] - _corner[i];
-                possibleDistances = { FLT_MAX, FLT_MAX };
-                if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
-                    bool hit = false;
-                    checkPossibleParabolicIntersection(possibleDistances.x, i, minDistance, origin, velocity, acceleration, hit);
-                    checkPossibleParabolicIntersection(possibleDistances.y, i, minDistance, origin, velocity, acceleration, hit);
-                    if (hit) {
-                        minFace = BoxFace(2 * i);
-                        minNormal = glm::vec3(0.0f);
-                        minNormal[i] = -1.0f;
+            a = 0.5f * acceleration[i];
+            b = velocity[i];
+            if (origin[i] < _corner[i]) {
+                // If we're below _corner, we only need to check the min face
+                { // min
+                    c = origin[i] - _corner[i];
+                    possibleDistances = { FLT_MAX, FLT_MAX };
+                    if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
+                        bool hit = false;
+                        checkPossibleParabolicIntersection(possibleDistances.x, i, minDistance, origin, velocity, acceleration, hit);
+                        checkPossibleParabolicIntersection(possibleDistances.y, i, minDistance, origin, velocity, acceleration, hit);
+                        if (hit) {
+                            minFace = BoxFace(2 * i);
+                            minNormal = glm::vec3(0.0f);
+                            minNormal[i] = -1.0f;
+                        }
                     }
                 }
-            }
-            { // max
-                c = origin[i] - (_corner[i] + _scale[i]);
-                possibleDistances = { FLT_MAX, FLT_MAX };
-                if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
-                    bool hit = false;
-                    checkPossibleParabolicIntersection(possibleDistances.x, i, minDistance, origin, velocity, acceleration, hit);
-                    checkPossibleParabolicIntersection(possibleDistances.y, i, minDistance, origin, velocity, acceleration, hit);
-                    if (hit) {
-                        minFace = BoxFace(2 * i + 1);
-                        minNormal = glm::vec3(0.0f);
-                        minNormal[i] = 1.0f;
+            } else if (origin[i] > _corner[i] + _scale[i]) {
+                // If we're above _corner + _scale, we only need to check the max face
+                { // max
+                    c = origin[i] - (_corner[i] + _scale[i]);
+                    possibleDistances = { FLT_MAX, FLT_MAX };
+                    if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
+                        bool hit = false;
+                        checkPossibleParabolicIntersection(possibleDistances.x, i, minDistance, origin, velocity, acceleration, hit);
+                        checkPossibleParabolicIntersection(possibleDistances.y, i, minDistance, origin, velocity, acceleration, hit);
+                        if (hit) {
+                            minFace = BoxFace(2 * i + 1);
+                            minNormal = glm::vec3(0.0f);
+                            minNormal[i] = 1.0f;
+                        }
+                    }
+                }
+            } else {
+                // If we're inside on this axis, we could hit either face depending on our velocity and acceleration, so we need to check both
+                { // min
+                    c = origin[i] - _corner[i];
+                    possibleDistances = { FLT_MAX, FLT_MAX };
+                    if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
+                        bool hit = false;
+                        checkPossibleParabolicIntersection(possibleDistances.x, i, minDistance, origin, velocity, acceleration, hit);
+                        checkPossibleParabolicIntersection(possibleDistances.y, i, minDistance, origin, velocity, acceleration, hit);
+                        if (hit) {
+                            minFace = BoxFace(2 * i + 1);
+                            minNormal = glm::vec3(0.0f);
+                            minNormal[i] = 1.0f;
+                        }
+                    }
+                }
+                { // max
+                    c = origin[i] - (_corner[i] + _scale[i]);
+                    possibleDistances = { FLT_MAX, FLT_MAX };
+                    if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
+                        bool hit = false;
+                        checkPossibleParabolicIntersection(possibleDistances.x, i, minDistance, origin, velocity, acceleration, hit);
+                        checkPossibleParabolicIntersection(possibleDistances.y, i, minDistance, origin, velocity, acceleration, hit);
+                        if (hit) {
+                            minFace = BoxFace(2 * i);
+                            minNormal = glm::vec3(0.0f);
+                            minNormal[i] = -1.0f;
+                        }
                     }
                 }
             }
@@ -399,14 +454,29 @@ bool AABox::parabolaPlaneIntersectsBoundingSphere(const glm::vec3& origin, const
         return true;
     }
 
-    // Get the normal of the plane, the cross product of two vectors on the plane
-    // Assumes: velocity and acceleration != 0 and normalize(velocity) != normalize(acceleration)
-    glm::vec3 normal = glm::normalize(glm::cross(velocity, acceleration));
+    float velocityLength2 = glm::length2(velocity);
+    if (glm::length2(acceleration) < EPSILON) {
+        if (velocityLength2 < EPSILON) {
+            // No intersection if velocity == acceleration == (0, 0, 0)
+            return false;
+        }
+        // Handle the degenerate case where acceleration == (0, 0, 0)
+        return rayHitsBoundingSphere(origin, glm::normalize(velocity));
+    } else {
+        glm::vec3 vectorOnPlane = velocity;
+        if (glm::dot(glm::normalize(velocity), glm::normalize(acceleration)) > 1.0f - EPSILON) {
+            // Handle the degenerate case where velocity is parallel to acceleration
+            // We pick t = 1 and calculate a second point on the plane
+            vectorOnPlane = velocity + 0.5f * acceleration;
+        }
+        // Get the normal of the plane, the cross product of two vectors on the plane
+        glm::vec3 normal = glm::normalize(glm::cross(vectorOnPlane, acceleration));
 
-    // Project vector from plane to sphere center onto the normal
-    float distance = glm::dot(localCenter, normal);
-    if (distance * distance < radiusSquared) {
-        return true;
+        // Project vector from plane to sphere center onto the normal
+        float distance = glm::dot(localCenter, normal);
+        if (distance * distance < radiusSquared) {
+            return true;
+        }
     }
     return false;
 }

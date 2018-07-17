@@ -119,6 +119,11 @@ public:
         const QVector<OverlayID>& overlaysToDiscard,
         bool visibleOnly = false, bool collidableOnly = false);
 
+    ParabolaToOverlayIntersectionResult findParabolaIntersectionVector(const PickParabola& parabola, bool precisionPicking,
+        const QVector<OverlayID>& overlaysToInclude,
+        const QVector<OverlayID>& overlaysToDiscard,
+        bool visibleOnly = false, bool collidableOnly = false);
+
     bool mousePressEvent(QMouseEvent* event);
     bool mouseDoublePressEvent(QMouseEvent* event);
     bool mouseReleaseEvent(QMouseEvent* event);
