@@ -63,6 +63,15 @@ var createToolsWindow = new CreateWindow(
     false
 );
 
+/**
+ * @description Returns true in case we should use the tablet version of the CreateApp
+ * @returns boolean
+ */
+var shouldUseEditTabletApp = function() {
+    return HMD.active || (!HMD.active && !Settings.getValue("desktopTabletBecomesToolbar", true));
+};
+
+
 var selectionDisplay = SelectionDisplay;
 var selectionManager = SelectionManager;
 
@@ -88,11 +97,12 @@ var cameraManager = new CameraManager();
 var grid = new Grid();
 var gridTool = new GridTool({
     horizontalGrid: grid,
-    createToolsWindow: createToolsWindow
+    createToolsWindow: createToolsWindow,
+    shouldUseEditTabletApp: shouldUseEditTabletApp
 });
 gridTool.setVisible(false);
 
-var entityListTool = new EntityListTool();
+var entityListTool = new EntityListTool(shouldUseEditTabletApp);
 
 selectionManager.addEventListener(function () {
     selectionDisplay.updateHandles();
@@ -578,7 +588,8 @@ var toolBar = (function () {
         });
         createButton = activeButton;
         tablet.screenChanged.connect(function (type, url) {
-            var isGoingToHomescreenOnDesktop = (!HMD.active && (url === 'hifi/tablet/TabletHome.qml' || url === ''));
+            var isGoingToHomescreenOnDesktop = (!shouldUseEditTabletApp() &&
+                (url === 'hifi/tablet/TabletHome.qml' || url === ''));
             if (isActive && (type !== "QML" || url !== "hifi/tablet/Edit.qml") && !isGoingToHomescreenOnDesktop) {
                 that.setActive(false);
             }
@@ -605,7 +616,7 @@ var toolBar = (function () {
         });
         function createNewEntityDialogButtonCallback(entityType) {
             return function() {
-                if (HMD.active) {
+                if (shouldUseEditTabletApp()) {
                     // tablet version of new-model dialog
                     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
                     tablet.pushOntoStack("hifi/tablet/New" + entityType + "Dialog.qml");
@@ -837,7 +848,7 @@ var toolBar = (function () {
             selectionDisplay.triggerMapping.disable();
             tablet.landscape = false;
         } else {
-            if (HMD.active) {
+            if (shouldUseEditTabletApp()) {
                 tablet.loadQMLSource("hifi/tablet/Edit.qml", true);
             } else {
                 // make other apps inactive while in desktop mode
@@ -1573,15 +1584,11 @@ function deleteSelectedEntities() {
                 Entities.deleteEntity(entityID);
             }
         }
-
+        
         if (savedProperties.length > 0) {
             SelectionManager.clearSelections();
             pushCommandForSelections([], savedProperties);
-
-            entityListTool.webView.emitScriptEvent(JSON.stringify({
-                type: "deleted",
-                ids: deletedIDs
-            }));
+            entityListTool.deleteEntities(deletedIDs);
         }
     }
 }
@@ -1853,13 +1860,7 @@ var keyReleaseEvent = function (event) {
         }
     } else if (event.text === 'g') {
         if (isActive && selectionManager.hasSelection()) {
-            var newPosition = selectionManager.worldPosition;
-            newPosition = Vec3.subtract(newPosition, {
-                x: 0,
-                y: selectionManager.worldDimensions.y * 0.5,
-                z: 0
-            });
-            grid.setPosition(newPosition);
+            grid.moveToSelection();
         }
     } else if (event.key === KEY_P && event.isControl && !event.isAutoRepeat ) {
         if (event.isShifted) {
@@ -1999,8 +2000,8 @@ var PropertiesTool = function (opts) {
 
     that.setVisible = function (newVisible) {
         visible = newVisible;
-        webView.setVisible(HMD.active && visible);
-        createToolsWindow.setVisible(!HMD.active && visible);
+        webView.setVisible(shouldUseEditTabletApp() && visible);
+        createToolsWindow.setVisible(!shouldUseEditTabletApp() && visible);
     };
 
     that.setVisible(false);
@@ -2426,7 +2427,7 @@ function selectParticleEntity(entityID) {
 
     // Switch to particle explorer
     var selectTabMethod = { method: 'selectTab', params: { id: 'particle' } };
-    if (HMD.active) {
+    if (shouldUseEditTabletApp()) {
         var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         tablet.sendToQml(selectTabMethod);
     } else {

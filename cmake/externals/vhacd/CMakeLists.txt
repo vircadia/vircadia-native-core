@@ -7,7 +7,7 @@ endif ()
 include(ExternalProject)
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL http://hifi-public.s3.amazonaws.com/dependencies/v-hacd-master.zip
+  URL https://public.highfidelity.com/dependencies/v-hacd-master.zip
   URL_MD5 3bfc94f8dd3dfbfe8f4dc088f4820b3e
   CMAKE_ARGS ${ANDROID_CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
   BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build

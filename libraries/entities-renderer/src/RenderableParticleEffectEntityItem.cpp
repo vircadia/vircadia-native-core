@@ -126,7 +126,7 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
     void* key = (void*)this;
     AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this] () {
         withWriteLock([&] {
-            updateModelTransform();
+            updateModelTransformAndBound();
             _renderTransform = getModelTransform();
         });
     });
