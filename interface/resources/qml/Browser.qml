@@ -26,6 +26,7 @@ ScrollingWindow {
     y: 100
 
     Component.onCompleted: {
+        focus = true
         shown = true
         addressBar.text = webview.url
     }
