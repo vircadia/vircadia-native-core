@@ -750,7 +750,7 @@ Item {
                         text: root.isInstalled ? "OPEN" : (MyAvatar.skeletonModelURL === root.itemHref ? "CURRENT" : (root.buttonTextNormal)[itemTypesArray.indexOf(root.itemType)]);
                         anchors.verticalCenter: parent.verticalCenter;
                         width: rezIconLabelTextMetrics.width;
-                        x: parent.width/2 - rezIconLabelTextMetrics.width/2 + (rezIcon.text === "" ? 0 : rezIconTextMetrics.width/2);
+                        x: parent.width/2 - rezIconLabelTextMetrics.width/2 + rezIconTextMetrics.width/2;
                         size: 15;
                         font.capitalization: Font.AllUppercase;
                         verticalAlignment: Text.AlignVCenter;
