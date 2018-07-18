@@ -33,7 +33,6 @@ ListModel {
 
     // QML fires the following changed handlers even when first instantiating the Item. So we need a guard against firing them too early.
     property bool initialized: false;
-    Component.onCompleted: initialized = true;
     onEndpointChanged: if (initialized) { getFirstPage('delayClear'); }
     onSortKeyChanged:  if (initialized) { getFirstPage('delayClear'); }
     onSearchFilterChanged: if (initialized) { getFirstPage('delayClear'); }
@@ -60,7 +59,37 @@ ListModel {
     // Override to return one property of data, and/or to transform the elements. Must return an array of model elements.
     property var processPage: function (data) { return data; }
 
-    property var listView; // Optional. For debugging.
+    property var listView; // Optional. For debugging, or for having the scroll handler automatically call getNextPage.
+    property var flickable: listView && (listView.flickableItem || listView);
+    // 2: get two pages before you need it (i.e. one full page before you reach the end).
+    // 1: equivalent to paging when reaching end (and not before).
+    // 0: don't getNextPage on scroll at all here. The application code will do it.
+    property real pageAhead: 2.0;
+    function needsEarlyYFetch() {
+         return flickable
+            && !flickable.atYBeginning
+            && (flickable.contentY - flickable.originY) >= (flickable.contentHeight - (pageAhead * flickable.height));
+    }
+    function needsEarlyXFetch() {
+        return flickable
+            && !flickable.atXBeginning
+            && (flickable.contentX - flickable.originX) >= (flickable.contentWidth - (pageAhead * flickable.width));
+    }
+    function getNextPageIfHorizontalScroll() {
+        if (needsEarlyXFetch()) { getNextPage(); }
+    }
+    function getNextPageIfVerticalScroll() {
+        if (needsEarlyYFetch()) { getNextPage(); }
+    }
+    Component.onCompleted: {
+        initialized = true;
+        if (flickable && pageAhead > 0.0) {
+            // Pun: Scrollers are usually one direction or another, such that only one of the following will actually fire.
+            flickable.contentXChanged.connect(getNextPageIfHorizontalScroll);
+            flickable.contentYChanged.connect(getNextPageIfVerticalScroll);
+        }
+    }
+
     property int totalPages: 0;
     property int totalEntries: 0;
     // Check consistency and call processPage.
