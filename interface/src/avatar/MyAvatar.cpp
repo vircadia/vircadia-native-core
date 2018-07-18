@@ -262,6 +262,26 @@ void MyAvatar::setDominantHand(const QString& hand) {
     }
 }
 
+void MyAvatar::requestDisableHandTouch() {
+    std::lock_guard<std::mutex> guard(_disableHandTouchMutex);
+    _disableHandTouchCount++;
+    emit shouldDisableHandTouchChanged(_disableHandTouchCount > 0);
+}
+
+void MyAvatar::requestEnableHandTouch() {
+    std::lock_guard<std::mutex> guard(_disableHandTouchMutex);
+    _disableHandTouchCount = std::max(_disableHandTouchCount - 1, 0);
+    emit shouldDisableHandTouchChanged(_disableHandTouchCount > 0);
+}
+
+void MyAvatar::disableHandTouchForID(const QUuid& entityID) {
+    emit disableHandTouchForIDChanged(entityID, true);
+}
+
+void MyAvatar::enableHandTouchForID(const QUuid& entityID) {
+    emit disableHandTouchForIDChanged(entityID, false);
+}
+
 void MyAvatar::registerMetaTypes(ScriptEnginePointer engine) {
     QScriptValue value = engine->newQObject(this, QScriptEngine::QtOwnership, QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
     engine->globalObject().setProperty("MyAvatar", value);
@@ -3551,6 +3571,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
         qApp->getCamera().getMode() != CAMERA_MODE_MIRROR) {
         if (!isActive(Rotation) && (shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
             activate(Rotation);
+            myAvatar.setHeadControllerFacingMovingAverage(myAvatar._headControllerFacing);
         }
         if (myAvatar.getCenterOfGravityModelEnabled()) {
             if (!isActive(Horizontal) && (shouldActivateHorizontalCG(myAvatar) || hasDriveInput)) {
@@ -3568,6 +3589,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
     } else {
         if (!isActive(Rotation) && getForceActivateRotation()) {
             activate(Rotation);
+            myAvatar.setHeadControllerFacingMovingAverage(myAvatar._headControllerFacing);
             setForceActivateRotation(false);
         }
         if (!isActive(Horizontal) && getForceActivateHorizontal()) {

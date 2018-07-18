@@ -658,6 +658,7 @@ SelectionDisplay = (function() {
         selectionBox,
         iconSelectionBox
     ];
+    var maximumHandleInAllOverlays = handleCloner;
 
     overlayNames[handleTranslateXCone] = "handleTranslateXCone";
     overlayNames[handleTranslateXCylinder] = "handleTranslateXCylinder";
@@ -781,6 +782,12 @@ SelectionDisplay = (function() {
         return Math.abs(position.x) <= box.dimensions.x / 2 && Math.abs(position.y) <= box.dimensions.y / 2
             && Math.abs(position.z) <= box.dimensions.z / 2;
     }
+    
+    that.isEditHandle = function(overlayID) {
+        var overlayIndex = allOverlays.indexOf(overlayID);
+        var maxHandleIndex = allOverlays.indexOf(maximumHandleInAllOverlays);
+        return overlayIndex >= 0 && overlayIndex <= maxHandleIndex;
+    };
 
     // FUNCTION: MOUSE PRESS EVENT
     that.mousePressEvent = function (event) {
