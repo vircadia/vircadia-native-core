@@ -78,8 +78,9 @@ public:
 
 
     /**jsdoc 
+     * Loads the content of an audio file into an object, ready for playback by {@link Audio.playSound}.
      * @function SoundCache.getSound
-     * @param {string} url
+     * @param {string} url - The URL of the audio file to load. See {@link SoundObject} for supported formats.
      * @returns {SoundObject}
      */
     Q_INVOKABLE SharedSoundPointer getSound(const QUrl& url);
