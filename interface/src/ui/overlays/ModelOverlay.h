@@ -128,6 +128,7 @@ private:
 
     void processMaterials();
 
+    render::ScenePointer _scene;
 };
 
 #endif // hifi_ModelOverlay_h
