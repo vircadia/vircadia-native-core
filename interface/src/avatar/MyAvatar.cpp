@@ -262,6 +262,26 @@ void MyAvatar::setDominantHand(const QString& hand) {
     }
 }
 
+void MyAvatar::requestDisableHandTouch() {
+    std::lock_guard<std::mutex> guard(_disableHandTouchMutex);
+    _disableHandTouchCount++;
+    emit shouldDisableHandTouchChanged(_disableHandTouchCount > 0);
+}
+
+void MyAvatar::requestEnableHandTouch() {
+    std::lock_guard<std::mutex> guard(_disableHandTouchMutex);
+    _disableHandTouchCount = std::max(_disableHandTouchCount - 1, 0);
+    emit shouldDisableHandTouchChanged(_disableHandTouchCount > 0);
+}
+
+void MyAvatar::disableHandTouchForID(const QUuid& entityID) {
+    emit disableHandTouchForIDChanged(entityID, true);
+}
+
+void MyAvatar::enableHandTouchForID(const QUuid& entityID) {
+    emit disableHandTouchForIDChanged(entityID, false);
+}
+
 void MyAvatar::registerMetaTypes(ScriptEnginePointer engine) {
     QScriptValue value = engine->newQObject(this, QScriptEngine::QtOwnership, QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
     engine->globalObject().setProperty("MyAvatar", value);
