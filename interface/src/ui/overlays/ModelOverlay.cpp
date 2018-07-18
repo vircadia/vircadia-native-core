@@ -136,6 +136,9 @@ void ModelOverlay::update(float deltatime) {
         }
         _model->updateRenderItems();
     }
+
+    // Only show overlay if textures have loaded
+    _model->setVisibleInScene(_texturesLoaded, scene);
 }
 
 bool ModelOverlay::addToScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) {
