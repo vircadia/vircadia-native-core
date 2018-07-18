@@ -505,6 +505,28 @@ public:
      * @returns {boolean} 
      */
     Q_INVOKABLE bool getHMDLeanRecenterEnabled() const { return _hmdLeanRecenterEnabled; }
+    /**jsdoc
+     * Request to enable hand touch effect globally
+     * @function MyAvatar.requestEnableHandTouch
+     */
+    Q_INVOKABLE void requestEnableHandTouch();
+    /**jsdoc
+     * Request to disable hand touch effect globally
+     * @function MyAvatar.requestDisableHandTouch
+     */
+    Q_INVOKABLE void requestDisableHandTouch();
+    /**jsdoc
+     * Disables hand touch effect on a specific entity
+     * @function MyAvatar.disableHandTouchForID
+     * @param {Uuid} entityID - ID of the entity that will disable hand touch effect
+     */
+    Q_INVOKABLE void disableHandTouchForID(const QUuid& entityID);
+    /**jsdoc
+     * Enables hand touch effect on a specific entity
+     * @function MyAvatar.enableHandTouchForID
+     * @param {Uuid} entityID - ID of the entity that will enable hand touch effect
+     */
+    Q_INVOKABLE void enableHandTouchForID(const QUuid& entityID);
 
     bool useAdvancedMovementControls() const { return _useAdvancedMovementControls.get(); }
     void setUseAdvancedMovementControls(bool useAdvancedMovementControls)
@@ -1392,6 +1414,23 @@ signals:
      */
     void scaleChanged();
 
+    /**jsdoc
+     * Triggered when hand touch is globally enabled or disabled
+     * @function MyAvatar.shouldDisableHandTouchChanged
+     * @param {boolean} shouldDisable
+     * @returns {Signal}
+     */
+    void shouldDisableHandTouchChanged(bool shouldDisable);
+
+    /**jsdoc
+     * Triggered when hand touch is enabled or disabled for an specific entity
+     * @function MyAvatar.disableHandTouchForIDChanged
+     * @param {Uuid} entityID - ID of the entity that will enable hand touch effect
+     * @param {boolean} disable
+     * @returns {Signal}
+     */
+    void disableHandTouchForIDChanged(const QUuid& entityID, bool disable);
+
 private slots:
     void leaveDomain();
 
@@ -1630,6 +1669,7 @@ private:
     // all poses are in sensor-frame
     std::map<controller::Action, controller::Pose> _controllerPoseMap;
     mutable std::mutex _controllerPoseMapMutex;
+    mutable std::mutex _disableHandTouchMutex;
 
     bool _centerOfGravityModelEnabled { true };
     bool _hmdLeanRecenterEnabled { true };
@@ -1670,6 +1710,7 @@ private:
     bool _shouldLoadScripts { false };
 
     bool _haveReceivedHeightLimitsFromDomain { false };
+    int _disableHandTouchCount { 0 };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
