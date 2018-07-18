@@ -263,11 +263,13 @@ void MyAvatar::setDominantHand(const QString& hand) {
 }
 
 void MyAvatar::requestDisableHandTouch() {
+    std::lock_guard<std::mutex> guard(_disableHandTouchMutex);
     _disableHandTouchCount++;
     emit shouldDisableHandTouchChanged(_disableHandTouchCount > 0);
 }
 
 void MyAvatar::requestEnableHandTouch() {
+    std::lock_guard<std::mutex> guard(_disableHandTouchMutex);
     _disableHandTouchCount = std::max(_disableHandTouchCount - 1, 0);
     emit shouldDisableHandTouchChanged(_disableHandTouchCount > 0);
 }

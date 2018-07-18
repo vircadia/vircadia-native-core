@@ -1666,6 +1666,7 @@ private:
     // all poses are in sensor-frame
     std::map<controller::Action, controller::Pose> _controllerPoseMap;
     mutable std::mutex _controllerPoseMapMutex;
+    mutable std::mutex _disableHandTouchMutex;
 
     bool _centerOfGravityModelEnabled { true };
     bool _hmdLeanRecenterEnabled { true };
@@ -1706,7 +1707,7 @@ private:
     bool _shouldLoadScripts { false };
 
     bool _haveReceivedHeightLimitsFromDomain { false };
-    std::atomic<int> _disableHandTouchCount { 0 };
+    int _disableHandTouchCount { 0 };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
