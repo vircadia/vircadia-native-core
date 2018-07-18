@@ -1546,6 +1546,8 @@ private:
     // cache head controller pose in sensor space
     glm::vec2 _headControllerFacing;  // facing vector in xz plane (sensor space)
     glm::vec2 _headControllerFacingMovingAverage { 0.0f, 0.0f };   // facing vector in xz plane (sensor space)
+    RingBufferHistory<vec2> _headFacingBuffer;
+    vec2 _averageFacing { 0.0f, 0.0f };
     glm::quat _averageHeadRotation { 0.0f, 0.0f, 0.0f, 1.0f };
 
     float _currentStandingHeight { 0.0f };
