@@ -1918,7 +1918,11 @@ function applyEntityProperties(data) {
         Entities.deleteEntity(entityID);
     }
 
-    selectionManager.setSelections(selectedEntityIDs);
+    // We might be getting an undo while edit.js is disabled. If that is the case, don't set
+    // our selections, causing the edit widgets to display.
+    if (isActive) {
+        selectionManager.setSelections(selectedEntityIDs);
+    }
 }
 
 // For currently selected entities, push a command to the UndoStack that uses the current entity properties for the
