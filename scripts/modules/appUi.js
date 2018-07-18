@@ -20,7 +20,8 @@ function AppUi(properties) {
             remove button.clicked.[dis]connect and tablet.remove(button).)
        4. Define onOpened and onClosed behavior in #3, if any.
           (And if converting an existing app, remove screenChanged.[dis]connect.)
-       5. Define onMessage and sendMessage in #3, if any.
+       5. Define onMessage and sendMessage in #3, if any. onMessage is wired/unwired on open/close. If you
+          want a handler to be "always on", connect it yourself at script startup.
           (And if converting an existing app, remove code that [un]wires that message handling such as
           fromQml/sendToQml or webEventReceived/emitScriptEvent.)
        6. (If converting an existing app, cleanup stuff that is no longer necessary, like references to button, tablet,
@@ -38,16 +39,23 @@ function AppUi(properties) {
     that.inject = "";
     that.graphicsDirectory = "icons/tablet-icons/"; // Where to look for button svgs. See below.
     that.checkIsOpen = function checkIsOpen(type, tabletUrl) { // Are we active? Value used to set isOpen.
-        return (type === that.type) && (tabletUrl.indexOf(that.home) >= 0); // Actual url may have prefix or suffix.
+        return (type === that.type) && that.currentUrl && (tabletUrl.indexOf(that.currentUrl) >= 0); // Actual url may have prefix or suffix.
     };
-    that.open = function open() { // How to open the app.
+    that.setCurrentData = function setCurrentData(url) {
+        that.currentUrl = url;
+        that.type = /.qml$/.test(url) ? 'QML' : 'Web';
+    }
+    that.open = function open(optionalUrl) { // How to open the app.
+        var url = optionalUrl || that.home;
+        that.setCurrentData(url);
         if (that.isQML()) {
-            that.tablet.loadQMLSource(that.home);
+            that.tablet.loadQMLSource(url);
         } else {
-            that.tablet.gotoWebScreen(that.home, that.inject);
+            that.tablet.gotoWebScreen(url, that.inject);
         }
     };
     that.close = function close() { // How to close the app.
+        that.currentUrl = "";
         // for toolbar-mode: go back to home screen, this will close the window.
         that.tablet.gotoHomeScreen();
     };
@@ -122,7 +130,6 @@ function AppUi(properties) {
         // Uniquivocally sets that.sendMessage(messageObject) to do the right thing.
         // Sets hasEventBridge and wires onMessage to eventSignal as appropriate, IFF onMessage defined.
         var handler, isQml = that.isQML();
-        console.debug(that.buttonName, 'wireEventBridge', on, that.hasEventBridge);
         // Outbound (always, regardless of whether there is an inbound handler).
         if (on) {
             that.sendMessage = isQml ? that.tablet.sendToQml : that.sendToHtml;
@@ -156,7 +163,6 @@ function AppUi(properties) {
             if (that.isOpen) {
                 that.close();
             } else {
-                that.type = /.qml$/.test(that.home) ? 'QML' : 'Web';
                 that.open();
             }
         } : that.ignore;

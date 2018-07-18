@@ -315,8 +315,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
                 return;
             }
             getConnectionData(friendUserName);
-        }
-               );
+        });
         break;
     case 'http.request':
         break; // Handled by request-service.
