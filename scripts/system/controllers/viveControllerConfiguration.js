@@ -78,7 +78,8 @@ VIVE_CONTROLLER_CONFIGURATION_LEFT = {
 
             parts: {
                 // DISABLED FOR NOW
-                /*tips: {
+                /*
+                tips: {
                     type: "static",
                     modelURL: viveTipsModelURL,
                     naturalPosition: {"x":-0.004377640783786774,"y":-0.034371938556432724,"z":0.06769277155399323},
@@ -103,7 +104,8 @@ VIVE_CONTROLLER_CONFIGURATION_LEFT = {
                             defaultTextureURL: TIP_TEXTURE_BASE_URL + "/Teleport.png"
                         }
                     }
-                },*/
+                },
+                */
 
                 // The touchpad type draws a dot indicating the current touch/thumb position
                 // and swaps in textures based on the thumb position.
