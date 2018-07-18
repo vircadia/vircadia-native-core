@@ -425,8 +425,11 @@ protected:
                 return offset == other.offset && size == other.size && buffer == other.buffer;
             }
         };
-        std::array<BufferState, MAX_NUM_UNIFORM_BUFFERS> _buffers;
-        //Buffers _buffers {  };
+
+        // MAX_NUM_UNIFORM_BUFFERS-1 is the max uniform index BATCHES are allowed to set, but
+        // MIN_REQUIRED_UNIFORM_BUFFER_BINDINGS is used here because the backend sets some 
+        // internal UBOs for things like camera correction 
+        std::array<BufferState, MIN_REQUIRED_UNIFORM_BUFFER_BINDINGS> _buffers;
     } _uniform;
 
     // Helper function that provides common code 
