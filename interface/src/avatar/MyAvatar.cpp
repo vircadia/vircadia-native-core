@@ -2822,7 +2822,6 @@ void MyAvatar::setFlyingEnabled(bool enabled) {
         return;
     }
 
-    // Flying should always be enabled for desktop users, preference may be set for HMD.
     _enableFlying = enabled;
 }
 
