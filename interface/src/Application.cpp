@@ -4838,7 +4838,7 @@ void Application::loadSettings() {
             }
         }
 
-        isFirstPerson = (qApp->isHMDMode())
+        isFirstPerson = (qApp->isHMDMode());
 
         // Flying should be disabled by default in HMD mode on first run, and it
         // should be enabled by default in desktop mode, always.
