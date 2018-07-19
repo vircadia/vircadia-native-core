@@ -27,7 +27,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::StunResponse:
             return 17;
         case PacketType::DomainList:
-            return static_cast<PacketVersion>(DomainListVersion::GetMachineFingerprintFromUUIDSupport);
+            return static_cast<PacketVersion>(DomainListVersion::AuthenticationOptional);
         case PacketType::EntityAdd:
         case PacketType::EntityClone:
         case PacketType::EntityEdit:
