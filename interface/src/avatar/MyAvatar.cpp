@@ -89,7 +89,6 @@ const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 const float MIN_SCALE_CHANGED_DELTA = 0.001f;
 const int MODE_READINGS_RING_BUFFER_SIZE = 500;
-const int HEAD_FACING_RING_BUFFER_SIZE = 250;
 const float CENTIMETERS_PER_METER = 100.0f;
 
 #define DEBUG_DRAW_HMD_MOVING_AVERAGE
@@ -113,7 +112,6 @@ MyAvatar::MyAvatar(QThread* thread) :
     _hmdSensorMatrix(),
     _hmdSensorOrientation(),
     _hmdSensorPosition(),
-    _headFacingBuffer(HEAD_FACING_RING_BUFFER_SIZE),
     _recentModeReadings(MODE_READINGS_RING_BUFFER_SIZE),
     _bodySensorMatrix(),
     _goToPending(false),
@@ -457,25 +455,14 @@ void MyAvatar::update(float deltaTime) {
     setCurrentStandingHeight(computeStandingHeightMode(getControllerPoseInAvatarFrame(controller::Action::HEAD)));
     setAverageHeadRotation(computeAverageHeadRotation(getControllerPoseInAvatarFrame(controller::Action::HEAD)));
 
-    glm::vec2 bodyFacing = getFacingDir2D(_bodySensorMatrix);
-    _headFacingBuffer.insert(_headControllerFacing);
-    //qCDebug(interfaceapp) << "the body facing is " << -bodyFacing.x << " " << -bodyFacing.y << " the head controller facing is " << _headControllerFacing.x << " " << _headControllerFacing.y;
 
-    float sumHeadFacingX = 0.0f;
-    float sumHeadFacingY = 0.0f;
-    for (auto headFacingIterator = _headFacingBuffer.begin(); headFacingIterator != _headFacingBuffer.end(); ++headFacingIterator) {
-        sumHeadFacingX += (*headFacingIterator).x;
-        sumHeadFacingY += (*headFacingIterator).y;
-    }
-    _averageFacing.x = sumHeadFacingX / (float)_headFacingBuffer.getNumEntries();
-    _averageFacing.y= sumHeadFacingY / (float)_headFacingBuffer.getNumEntries();
+
 
 #ifdef DEBUG_DRAW_HMD_MOVING_AVERAGE
     if (_drawAverageFacingEnabled) {
         auto sensorHeadPose = getControllerPoseInSensorFrame(controller::Action::HEAD);
         glm::vec3 worldHeadPos = transformPoint(getSensorToWorldMatrix(), sensorHeadPose.getTranslation());
         glm::vec3 worldFacingAverage = transformVectorFast(getSensorToWorldMatrix(), glm::vec3(_headControllerFacingMovingAverage.x, 0.0f, _headControllerFacingMovingAverage.y));
-        //glm::vec3 worldFacingAverage = transformVectorFast(getSensorToWorldMatrix(), glm::vec3(_averageFacing.x, 0.0f, _averageFacing.y));
         glm::vec3 worldFacing = transformVectorFast(getSensorToWorldMatrix(), glm::vec3(_headControllerFacing.x, 0.0f, _headControllerFacing.y));
         DebugDraw::getInstance().drawRay(worldHeadPos, worldHeadPos + worldFacing, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
         DebugDraw::getInstance().drawRay(worldHeadPos, worldHeadPos + worldFacingAverage, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
@@ -3516,8 +3503,6 @@ bool MyAvatar::FollowHelper::shouldActivateRotation(const MyAvatar& myAvatar, co
     const float FOLLOW_ROTATION_THRESHOLD = cosf(myAvatar.getRotationThreshold());
     glm::vec2 bodyFacing = getFacingDir2D(currentBodyMatrix);
     return glm::dot(-myAvatar.getHeadControllerFacingMovingAverage(), bodyFacing) < FOLLOW_ROTATION_THRESHOLD;
-
-    //return glm::dot(myAvatar._averageFacing, -bodyFacing) < FOLLOW_ROTATION_THRESHOLD;
 }
 
 bool MyAvatar::FollowHelper::shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
