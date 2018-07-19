@@ -4838,7 +4838,13 @@ void Application::loadSettings() {
             }
         }
 
-        isFirstPerson = (qApp->isHMDMode());
+        isFirstPerson = (qApp->isHMDMode())
+
+        // Flying should be disabled by default in HMD mode on first run, and it
+        // should be enabled by default in desktop mode, always.
+        auto myAvatar = getMyAvatar();
+        myAvatar->setFlyingEnabled((isFirstPerson)?false:true);
+
     } else {
         // if this is not the first run, the camera will be initialized differently depending on user settings
 
