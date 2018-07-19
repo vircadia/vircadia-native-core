@@ -6190,6 +6190,9 @@ PickRay Application::computePickRay(float x, float y) const {
         getApplicationCompositor().computeHmdPickRay(pickPoint, result.origin, result.direction);
     } else {
         pickPoint /= getCanvasSize();
+        if (_myCamera.getMode() == CameraMode::CAMERA_MODE_MIRROR) {
+            pickPoint.x = 1.0f - pickPoint.x;
+        }
         QMutexLocker viewLocker(&_viewMutex);
         _viewFrustum.computePickRay(pickPoint.x, pickPoint.y, result.origin, result.direction);
     }
