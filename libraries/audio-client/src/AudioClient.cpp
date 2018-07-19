@@ -64,7 +64,7 @@ static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 100;
 
 #if defined(Q_OS_ANDROID)
 static const int CHECK_INPUT_READS_MSECS = 2000;
-static const int MIN_READS_TO_CONSIDER_INPUT_ALIVE = 100;
+static const int MIN_READS_TO_CONSIDER_INPUT_ALIVE = 10;
 #endif
 
 static const auto DEFAULT_POSITION_GETTER = []{ return Vectors::ZERO; };
@@ -239,7 +239,7 @@ AudioClient::AudioClient() :
     
     // start a thread to detect any device changes
     _checkDevicesTimer = new QTimer(this);
-    connect(_checkDevicesTimer, &QTimer::timeout, [this] {
+    connect(_checkDevicesTimer, &QTimer::timeout, this, [this] {
         QtConcurrent::run(QThreadPool::globalInstance(), [this] { checkDevices(); });
     });
     const unsigned long DEVICE_CHECK_INTERVAL_MSECS = 2 * 1000;
@@ -247,7 +247,7 @@ AudioClient::AudioClient() :
 
     // start a thread to detect peak value changes
     _checkPeakValuesTimer = new QTimer(this);
-    connect(_checkPeakValuesTimer, &QTimer::timeout, [this] {
+    connect(_checkPeakValuesTimer, &QTimer::timeout, this, [this] {
         QtConcurrent::run(QThreadPool::globalInstance(), [this] { checkPeakValues(); });
     });
     const unsigned long PEAK_VALUES_CHECK_INTERVAL_MSECS = 50;
@@ -648,9 +648,7 @@ void AudioClient::start() {
         qCDebug(audioclient) << "The closest format available is" << outputDeviceInfo.nearestFormat(_desiredOutputFormat);
     }
 #if defined(Q_OS_ANDROID)
-    connect(&_checkInputTimer, &QTimer::timeout, [this] {
-        checkInputTimeout();
-    });
+    connect(&_checkInputTimer, &QTimer::timeout, this, &AudioClient::checkInputTimeout);
     _checkInputTimer.start(CHECK_INPUT_READS_MSECS);
 #endif
 }
@@ -1572,9 +1570,7 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInf
 #if defined(Q_OS_ANDROID)
                 if (_audioInput) {
                     _shouldRestartInputSetup = true;
-                    connect(_audioInput, &QAudioInput::stateChanged, [this](QAudio::State state) {
-                        audioInputStateChanged(state);
-                    });
+                    connect(_audioInput, &QAudioInput::stateChanged, this, &AudioClient::audioInputStateChanged);
                 }
 #endif
                 _inputDevice = _audioInput->start();
