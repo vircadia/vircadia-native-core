@@ -490,7 +490,7 @@ bool nativeFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
     // Using the HW sample rate (AUDIO_INPUT_FLAG_FAST) in some samsung phones causes a low volume at input stream
     // Changing the sample rate forces a resampling that (in samsung) amplifies +18 dB
     QAndroidJniObject brand =  QAndroidJniObject::getStaticObjectField<jstring>("android/os/Build", "BRAND");
-    if (audioDevice == QAudioDeviceInfo::defaultInputDevice() && brand.toString().contains("samsung", Qt::CaseInsensitive)) {
+    if (brand.toString().contains("samsung", Qt::CaseInsensitive)) {
         audioFormat.setSampleRate(24000);
     }
 #endif
@@ -1774,7 +1774,7 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceI
                     _outputScratchBuffer = new int16_t[_outputPeriod];
 
                     // size local output mix buffer based on resampled network frame size
-                    int networkPeriod = _localToOutputResampler->getMaxOutput(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
+                    int networkPeriod = _localToOutputResampler ?  _localToOutputResampler->getMaxOutput(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO) : AudioConstants::NETWORK_FRAME_SAMPLES_STEREO;
                     _localOutputMixBuffer = new float[networkPeriod];
 
                     // local period should be at least twice the output period,
