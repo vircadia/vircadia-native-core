@@ -471,13 +471,15 @@ void MyAvatar::update(float deltaTime) {
     _averageFacing.y= sumHeadFacingY / (float)_headFacingBuffer.getNumEntries();
 
 #ifdef DEBUG_DRAW_HMD_MOVING_AVERAGE
-    auto sensorHeadPose = getControllerPoseInSensorFrame(controller::Action::HEAD);
-    glm::vec3 worldHeadPos = transformPoint(getSensorToWorldMatrix(), sensorHeadPose.getTranslation());
-    glm::vec3 worldFacingAverage = transformVectorFast(getSensorToWorldMatrix(), glm::vec3(_headControllerFacingMovingAverage.x, 0.0f, _headControllerFacingMovingAverage.y));
-    //glm::vec3 worldFacingAverage = transformVectorFast(getSensorToWorldMatrix(), glm::vec3(_averageFacing.x, 0.0f, _averageFacing.y));
-    glm::vec3 worldFacing = transformVectorFast(getSensorToWorldMatrix(), glm::vec3(_headControllerFacing.x, 0.0f, _headControllerFacing.y));
-    DebugDraw::getInstance().drawRay(worldHeadPos, worldHeadPos + worldFacing, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
-    DebugDraw::getInstance().drawRay(worldHeadPos, worldHeadPos + worldFacingAverage, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+    if (_drawAverageFacingEnabled) {
+        auto sensorHeadPose = getControllerPoseInSensorFrame(controller::Action::HEAD);
+        glm::vec3 worldHeadPos = transformPoint(getSensorToWorldMatrix(), sensorHeadPose.getTranslation());
+        glm::vec3 worldFacingAverage = transformVectorFast(getSensorToWorldMatrix(), glm::vec3(_headControllerFacingMovingAverage.x, 0.0f, _headControllerFacingMovingAverage.y));
+        //glm::vec3 worldFacingAverage = transformVectorFast(getSensorToWorldMatrix(), glm::vec3(_averageFacing.x, 0.0f, _averageFacing.y));
+        glm::vec3 worldFacing = transformVectorFast(getSensorToWorldMatrix(), glm::vec3(_headControllerFacing.x, 0.0f, _headControllerFacing.y));
+        DebugDraw::getInstance().drawRay(worldHeadPos, worldHeadPos + worldFacing, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+        DebugDraw::getInstance().drawRay(worldHeadPos, worldHeadPos + worldFacingAverage, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+    }
 #endif
 
     if (_goToPending) {
@@ -3594,10 +3596,16 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
         if (myAvatar.getCenterOfGravityModelEnabled()) {
             if (!isActive(Horizontal) && (shouldActivateHorizontalCG(myAvatar) || hasDriveInput)) {
                 activate(Horizontal);
+                if (myAvatar.getEnableStepResetRotation()) {
+                    myAvatar.setHeadControllerFacingMovingAverage(myAvatar._headControllerFacing);
+                }
             }
         } else {
             if (!isActive(Horizontal) && (shouldActivateHorizontal(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
                 activate(Horizontal);
+                if (myAvatar.getEnableStepResetRotation()) {
+                    myAvatar.setHeadControllerFacingMovingAverage(myAvatar._headControllerFacing);
+                }
             }
         }
 

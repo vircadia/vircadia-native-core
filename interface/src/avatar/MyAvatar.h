@@ -198,6 +198,8 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(bool hasAudioEnabledFaceMovement READ getHasAudioEnabledFaceMovement WRITE setHasAudioEnabledFaceMovement)
     Q_PROPERTY(float rotationRecenterFilterLength READ getRotationRecenterFilterLength WRITE setRotationRecenterFilterLength)
     Q_PROPERTY(float rotationThreshold READ getRotationThreshold WRITE setRotationThreshold)
+    Q_PROPERTY(bool enableStepResetRotation READ getEnableStepResetRotation WRITE setEnableStepResetRotation)
+    Q_PROPERTY(bool enableDrawAverageFacing READ getEnableDrawAverageFacing WRITE setEnableDrawAverageFacing)
     //TODO: make gravity feature work Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setGravity)
 
     Q_PROPERTY(glm::vec3 leftHandPosition READ getLeftHandPosition)
@@ -1464,6 +1466,10 @@ private:
     float getRotationRecenterFilterLength() const { return _rotationRecenterFilterLength; }
     void setRotationThreshold(float angleRadians);
     float getRotationThreshold() const { return _rotationThreshold; }
+    void setEnableStepResetRotation(bool stepReset) { _stepResetRotationEnabled = stepReset; }
+    bool getEnableStepResetRotation() const { return _stepResetRotationEnabled; }
+    void setEnableDrawAverageFacing(bool drawAverage) { _drawAverageFacingEnabled = drawAverage; }
+    bool getEnableDrawAverageFacing() const { return _drawAverageFacingEnabled; }
     bool isMyAvatar() const override { return true; }
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
     virtual glm::vec3 getSkeletonPosition() const override;
@@ -1574,6 +1580,8 @@ private:
     std::atomic<bool> _hasScriptedBlendShapes { false };
     std::atomic<float> _rotationRecenterFilterLength { 4.0f };
     std::atomic<float> _rotationThreshold { 0.5235f };  // 30 degrees in radians
+    std::atomic<bool> _stepResetRotationEnabled { false };
+    std::atomic<bool> _drawAverageFacingEnabled { false };
 
     // working copy -- see AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
     glm::mat4 _sensorToWorldMatrix { glm::mat4() };
