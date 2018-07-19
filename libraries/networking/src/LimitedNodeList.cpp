@@ -328,9 +328,10 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
 
         if (sourceNode) {
             bool verifiedPacket = !PacketTypeEnum::getNonVerifiedPackets().contains(headerType);
-            bool ignoreVerification = isDomainServer() && PacketTypeEnum::getDomainIgnoredVerificationPackets().contains(headerType);
+            bool verificationEnabled = !(isDomainServer() && PacketTypeEnum::getDomainIgnoredVerificationPackets().contains(headerType))
+                && _useAuthentication;
 
-            if (verifiedPacket && !ignoreVerification) {
+            if (verifiedPacket && verificationEnabled) {
 
                 QByteArray packetHeaderHash = NLPacket::verificationHashInHeader(packet);
                 QByteArray expectedHash;
@@ -383,7 +384,7 @@ void LimitedNodeList::fillPacketHeader(const NLPacket& packet, HMACAuth* hmacAut
         packet.writeSourceID(getSessionLocalID());
     }
 
-    if (hmacAuth
+    if (_useAuthentication && hmacAuth
         && !PacketTypeEnum::getNonSourcedPackets().contains(packet.getType())
         && !PacketTypeEnum::getNonVerifiedPackets().contains(packet.getType())) {
         packet.writeVerificationHash(*hmacAuth);
