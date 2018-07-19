@@ -61,7 +61,7 @@ Rectangle {
                 'username';
         }
         sortAscending: connectionsTable.sortIndicatorOrder === Qt.AscendingOrder;
-        itemsPerPage: 9;
+        itemsPerPage: 10;
         listView: connectionsTable;
         processPage: function (data) {
             return data.users.map(function (user) {
@@ -786,14 +786,6 @@ Rectangle {
             }
 
             model: connectionsUserModel;
-            Connections {
-                target: connectionsTable.flickableItem;
-                onAtYEndChanged: {
-                    if (connectionsTable.flickableItem.atYEnd && !connectionsTable.flickableItem.atYBeginning) {
-                        connectionsUserModel.getNextPage();
-                    }
-                }
-            }
 
             // This Rectangle refers to each Row in the connectionsTable.
             rowDelegate: Rectangle {

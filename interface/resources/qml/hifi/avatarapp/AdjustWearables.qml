@@ -125,6 +125,7 @@ Rectangle {
             id: wearablesCombobox
             anchors.left: parent.left
             anchors.right: parent.right
+            comboBox.textRole: "text"
 
             model: ListModel {
                 function findIndexById(id) {
