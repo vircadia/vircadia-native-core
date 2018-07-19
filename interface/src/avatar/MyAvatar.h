@@ -33,6 +33,7 @@
 #include "MyCharacterController.h"
 #include "RingBufferHistory.h"
 #include <ThreadSafeValueCache.h>
+#include <EntityItem.h>
 
 class AvatarActionHold;
 class ModelItemID;
@@ -926,7 +927,7 @@ public:
     * @returns {object[]}
     */
     Q_INVOKABLE QVariantList getAvatarEntitiesVariant();
-    void removeAvatarEntities();
+    void removeAvatarEntities(const std::function<bool(const EntityTreePointer& entityTree, const QUuid& entityID)>& condition = {});
 
     /**jsdoc
      * @function MyAvatar.isFlying

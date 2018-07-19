@@ -1607,14 +1607,16 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     emit skeletonModelURLChanged();
 }
 
-void MyAvatar::removeAvatarEntities() {
+void MyAvatar::removeAvatarEntities(const std::function<bool(const EntityTreePointer& entityTree, const QUuid& entityID)>& condition) {
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (entityTree) {
         entityTree->withWriteLock([&] {
             AvatarEntityMap avatarEntities = getAvatarEntityData();
             for (auto entityID : avatarEntities.keys()) {
-                entityTree->deleteEntity(entityID, true, true);
+                if(!condition || condition(entityTree, entityID)) {
+                    entityTree->deleteEntity(entityID, true, true);
+                }
             }
         });
     }
