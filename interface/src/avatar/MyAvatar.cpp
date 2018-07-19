@@ -456,11 +456,11 @@ void MyAvatar::update(float deltaTime) {
     _recentModeReadings.insert(newHeightReadingInCentimeters);
     setCurrentStandingHeight(computeStandingHeightMode(getControllerPoseInAvatarFrame(controller::Action::HEAD)));
     setAverageHeadRotation(computeAverageHeadRotation(getControllerPoseInAvatarFrame(controller::Action::HEAD)));
-    
+
     glm::vec2 bodyFacing = getFacingDir2D(_bodySensorMatrix);
     _headFacingBuffer.insert(_headControllerFacing);
     //qCDebug(interfaceapp) << "the body facing is " << -bodyFacing.x << " " << -bodyFacing.y << " the head controller facing is " << _headControllerFacing.x << " " << _headControllerFacing.y;
-    
+
     float sumHeadFacingX = 0.0f;
     float sumHeadFacingY = 0.0f;
     for (auto headFacingIterator = _headFacingBuffer.begin(); headFacingIterator != _headFacingBuffer.end(); ++headFacingIterator) {
