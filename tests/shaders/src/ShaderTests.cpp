@@ -129,7 +129,7 @@ void ShaderTests::testShaderLoad() {
                     const auto& uniformRemap = shaderObject.uniformRemap;
 #endif
                     auto uniforms = gl::Uniform::load(program);
-                    auto expectedUniforms = expectedBindings[gpu::Shader::BindingType::PUSH_CONSTANT];
+                    auto expectedUniforms = expectedBindings[gpu::Shader::BindingType::UNIFORM];
                     if (uniforms.size() != expectedUniforms.size()) {
                         qDebug() << "Found" << toStringList(uniforms, [](const auto& v) { return v.name.c_str(); });
                         qDebug() << "Expected" << toStringList(expectedUniforms, [](const auto& v) { return v.first.c_str(); });

@@ -253,10 +253,10 @@ void Procedural::prepare(gpu::Batch& batch,
         // Build the fragment shader
         std::string opaqueShaderSource = replaceProceduralBlock(_opaquefragmentSource.getCode());
         auto opaqueReflection = _opaquefragmentSource.getReflection();
-        auto& opaqueUniforms = opaqueReflection[gpu::Shader::BindingType::PUSH_CONSTANT];
+        auto& opaqueUniforms = opaqueReflection[gpu::Shader::BindingType::UNIFORM];
         std::string transparentShaderSource = replaceProceduralBlock(_transparentfragmentSource.getCode());
         auto transparentReflection = _transparentfragmentSource.getReflection();
-        auto& transparentUniforms = transparentReflection[gpu::Shader::BindingType::PUSH_CONSTANT];
+        auto& transparentUniforms = transparentReflection[gpu::Shader::BindingType::UNIFORM];
 
         // Set any userdata specified uniforms
         int customSlot = procedural::slot::uniform::Custom;

@@ -82,8 +82,8 @@ Shader::Pointer Shader::createOrReuseDomainShader(Type type, const Source& sourc
     if (0 != reflection.count(BindingType::UNIFORM_BUFFER)) {
         populateSlotSet(shader->_uniformBuffers, reflection.find(BindingType::UNIFORM_BUFFER)->second);
     }
-    if (0 != reflection.count(BindingType::STORAGE_BUFFER)) {
-        populateSlotSet(shader->_resourceBuffers, reflection.find(BindingType::STORAGE_BUFFER)->second);
+    if (0 != reflection.count(BindingType::RESOURCE_BUFFER)) {
+        populateSlotSet(shader->_resourceBuffers, reflection.find(BindingType::RESOURCE_BUFFER)->second);
     }
     if (0 != reflection.count(BindingType::TEXTURE)) {
         populateSlotSet(shader->_textures, reflection.find(BindingType::TEXTURE)->second);
@@ -91,8 +91,8 @@ Shader::Pointer Shader::createOrReuseDomainShader(Type type, const Source& sourc
     if (0 != reflection.count(BindingType::SAMPLER)) {
         populateSlotSet(shader->_samplers, reflection.find(BindingType::SAMPLER)->second);
     }
-    if (0 != reflection.count(BindingType::PUSH_CONSTANT)) {
-        populateSlotSet(shader->_uniforms, reflection.find(BindingType::PUSH_CONSTANT)->second);
+    if (0 != reflection.count(BindingType::UNIFORM)) {
+        populateSlotSet(shader->_uniforms, reflection.find(BindingType::UNIFORM)->second);
     }
     _domainShaderMaps[type].emplace(source, std::weak_ptr<Shader>(shader));
     return shader;
@@ -144,8 +144,8 @@ ShaderPointer Shader::createOrReuseProgramShader(Type type, const Pointer& verte
         if (0 != reflection.count(BindingType::UNIFORM_BUFFER)) {
             populateSlotSet(program->_uniformBuffers, reflection.find(BindingType::UNIFORM_BUFFER)->second);
         }
-        if (0 != reflection.count(BindingType::STORAGE_BUFFER)) {
-            populateSlotSet(program->_resourceBuffers, reflection.find(BindingType::STORAGE_BUFFER)->second);
+        if (0 != reflection.count(BindingType::RESOURCE_BUFFER)) {
+            populateSlotSet(program->_resourceBuffers, reflection.find(BindingType::RESOURCE_BUFFER)->second);
         }
         if (0 != reflection.count(BindingType::TEXTURE)) {
             populateSlotSet(program->_textures, reflection.find(BindingType::TEXTURE)->second);
@@ -153,8 +153,8 @@ ShaderPointer Shader::createOrReuseProgramShader(Type type, const Pointer& verte
         if (0 != reflection.count(BindingType::SAMPLER)) {
             populateSlotSet(program->_samplers, reflection.find(BindingType::SAMPLER)->second);
         }
-        if (0 != reflection.count(BindingType::PUSH_CONSTANT)) {
-            populateSlotSet(program->_uniforms, reflection.find(BindingType::PUSH_CONSTANT)->second);
+        if (0 != reflection.count(BindingType::UNIFORM)) {
+            populateSlotSet(program->_uniforms, reflection.find(BindingType::UNIFORM)->second);
         }
 
     }
@@ -215,6 +215,13 @@ Shader::ReflectionMap getShaderReflection(const std::string& reflectionJson) {
         return {};
     }
 
+#define REFLECT_KEY_INPUTS "inputs"
+#define REFLECT_KEY_OUTPUTS "outputs"
+#define REFLECT_KEY_UBOS "uniformBuffers"
+#define REFLECT_KEY_SSBOS "storageBuffers"
+#define REFLECT_KEY_UNIFORMS "uniforms"
+#define REFLECT_KEY_TEXTURES "textures"
+
     auto doc = QJsonDocument::fromJson(reflectionJson.c_str());
     if (doc.isNull()) {
         qWarning() << "Invalid shader reflection JSON" << reflectionJson.c_str();
@@ -223,21 +230,26 @@ Shader::ReflectionMap getShaderReflection(const std::string& reflectionJson) {
 
     Shader::ReflectionMap result;
     auto json = doc.object();
-    if (json.contains("inputs")) {
-        updateBindingsFromJsonObject(result[Shader::BindingType::INPUT], json["inputs"].toObject());
+    if (json.contains(REFLECT_KEY_INPUTS)) {
+        updateBindingsFromJsonObject(result[Shader::BindingType::INPUT], json[REFLECT_KEY_INPUTS].toObject());
     }
-    if (json.contains("outputs")) {
-        updateBindingsFromJsonObject(result[Shader::BindingType::OUTPUT], json["outputs"].toObject());
+    if (json.contains(REFLECT_KEY_OUTPUTS)) {
+        updateBindingsFromJsonObject(result[Shader::BindingType::OUTPUT], json[REFLECT_KEY_OUTPUTS].toObject());
     }
-    if (json.contains("uniformBuffers")) {
-        updateBindingsFromJsonObject(result[Shader::BindingType::UNIFORM_BUFFER], json["uniformBuffers"].toObject());
+    if (json.contains(REFLECT_KEY_UBOS)) {
+        updateBindingsFromJsonObject(result[Shader::BindingType::UNIFORM_BUFFER], json[REFLECT_KEY_UBOS].toObject());
     }
-    if (json.contains("textures")) {
-        updateBindingsFromJsonObject(result[Shader::BindingType::TEXTURE], json["textures"].toObject());
+    if (json.contains(REFLECT_KEY_TEXTURES)) {
+        updateBindingsFromJsonObject(result[Shader::BindingType::TEXTURE], json[REFLECT_KEY_TEXTURES].toObject());
     }
-    if (json.contains("uniforms")) {
-        updateBindingsFromJsonObject(result[Shader::BindingType::PUSH_CONSTANT], json["uniforms"].toObject());
+    if (json.contains(REFLECT_KEY_UNIFORMS)) {
+        updateBindingsFromJsonObject(result[Shader::BindingType::UNIFORM], json[REFLECT_KEY_UNIFORMS].toObject());
     }
+    if (json.contains(REFLECT_KEY_SSBOS)) {
+        updateBindingsFromJsonObject(result[Shader::BindingType::UNIFORM], json[REFLECT_KEY_SSBOS].toObject());
+    }
+
+    
     return result;
 }
 

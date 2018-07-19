@@ -51,9 +51,8 @@ public:
         TEXTURE,
         SAMPLER,
         UNIFORM_BUFFER,
-        STORAGE_BUFFER,
-        PUSH_CONSTANT,  // Equivalent to uniforms in GL
-        SPECIALIZATION_CONSTANT,
+        RESOURCE_BUFFER,
+        UNIFORM,
     };
 
     using LocationMap = std::unordered_map<std::string, int32_t>;
