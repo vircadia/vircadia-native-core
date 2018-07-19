@@ -31,6 +31,7 @@
 
 #include "AtRestDetector.h"
 #include "MyCharacterController.h"
+#include "RingBufferHistory.h"
 #include <ThreadSafeValueCache.h>
 
 class AvatarActionHold;
@@ -195,6 +196,8 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(bool hasProceduralBlinkFaceMovement READ getHasProceduralBlinkFaceMovement WRITE setHasProceduralBlinkFaceMovement)
     Q_PROPERTY(bool hasProceduralEyeFaceMovement READ getHasProceduralEyeFaceMovement WRITE setHasProceduralEyeFaceMovement)
     Q_PROPERTY(bool hasAudioEnabledFaceMovement READ getHasAudioEnabledFaceMovement WRITE setHasAudioEnabledFaceMovement)
+    Q_PROPERTY(float rotationRecenterFilterLength READ getRotationRecenterFilterLength WRITE setRotationRecenterFilterLength)
+    Q_PROPERTY(float rotationThreshold READ getRotationThreshold WRITE setRotationThreshold)
     //TODO: make gravity feature work Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setGravity)
 
     Q_PROPERTY(glm::vec3 leftHandPosition READ getLeftHandPosition)
@@ -250,7 +253,7 @@ public:
     Q_ENUM(DriveKeys)
 
     explicit MyAvatar(QThread* thread);
-    ~MyAvatar();
+    virtual ~MyAvatar();
 
     void instantiableAvatar() override {};
     void registerMetaTypes(ScriptEnginePointer engine);
@@ -469,16 +472,6 @@ public:
      * @param {boolean} on
      */
     Q_INVOKABLE void setSnapTurn(bool on) { _useSnapTurn = on; }
-    /**jsdoc
-     * @function MyAvatar.getClearOverlayWhenMoving
-     * @returns {boolean} 
-     */
-    Q_INVOKABLE bool getClearOverlayWhenMoving() const { return _clearOverlayWhenMoving; }
-    /**jsdoc
-     * @function MyAvatar.setClearOverlayWhenMoving
-     * @param {boolean} on
-     */
-    Q_INVOKABLE void setClearOverlayWhenMoving(bool on) { _clearOverlayWhenMoving = on; }
 
 
     /**jsdoc
@@ -512,6 +505,28 @@ public:
      * @returns {boolean} 
      */
     Q_INVOKABLE bool getHMDLeanRecenterEnabled() const { return _hmdLeanRecenterEnabled; }
+    /**jsdoc
+     * Request to enable hand touch effect globally
+     * @function MyAvatar.requestEnableHandTouch
+     */
+    Q_INVOKABLE void requestEnableHandTouch();
+    /**jsdoc
+     * Request to disable hand touch effect globally
+     * @function MyAvatar.requestDisableHandTouch
+     */
+    Q_INVOKABLE void requestDisableHandTouch();
+    /**jsdoc
+     * Disables hand touch effect on a specific entity
+     * @function MyAvatar.disableHandTouchForID
+     * @param {Uuid} entityID - ID of the entity that will disable hand touch effect
+     */
+    Q_INVOKABLE void disableHandTouchForID(const QUuid& entityID);
+    /**jsdoc
+     * Enables hand touch effect on a specific entity
+     * @function MyAvatar.enableHandTouchForID
+     * @param {Uuid} entityID - ID of the entity that will enable hand touch effect
+     */
+    Q_INVOKABLE void enableHandTouchForID(const QUuid& entityID);
 
     bool useAdvancedMovementControls() const { return _useAdvancedMovementControls.get(); }
     void setUseAdvancedMovementControls(bool useAdvancedMovementControls)
@@ -890,6 +905,13 @@ public:
     virtual void rebuildCollisionShape() override;
 
     const glm::vec2& getHeadControllerFacingMovingAverage() const { return _headControllerFacingMovingAverage; }
+    void setHeadControllerFacingMovingAverage(glm::vec2 currentHeadControllerFacing) { _headControllerFacingMovingAverage = currentHeadControllerFacing; }
+    float getCurrentStandingHeight() const { return _currentStandingHeight; }
+    void setCurrentStandingHeight(float newMode) { _currentStandingHeight = newMode; }
+    const glm::quat getAverageHeadRotation() const { return _averageHeadRotation; }
+    void setAverageHeadRotation(glm::quat rotation) { _averageHeadRotation = rotation; }
+    bool getResetMode() const { return _resetMode; }
+    void setResetMode(bool hasBeenReset) { _resetMode = hasBeenReset; }
 
     void setControllerPoseInSensorFrame(controller::Action action, const controller::Pose& pose);
     controller::Pose getControllerPoseInSensorFrame(controller::Action action) const;
@@ -898,7 +920,12 @@ public:
 
     bool hasDriveInput() const;
 
-    QVariantList getAvatarEntitiesVariant();
+    /**jsdoc
+    * Function returns list of avatar entities
+    * @function MyAvatar.getAvatarEntitiesVariant()
+    * @returns {object[]}
+    */
+    Q_INVOKABLE QVariantList getAvatarEntitiesVariant();
     void removeAvatarEntities();
 
     /**jsdoc
@@ -1024,6 +1051,9 @@ public:
     QVector<QString> getScriptUrls();
 
     bool isReadyForPhysics() const;
+
+    float computeStandingHeightMode(const controller::Pose& head);
+    glm::quat computeAverageHeadRotation(const controller::Pose& head);
 
 public slots:
 
@@ -1305,6 +1335,22 @@ signals:
     void collisionWithEntity(const Collision& collision);
 
     /**jsdoc
+     * Triggered when collisions with avatar enabled or disabled
+     * @function MyAvatar.collisionsEnabledChanged
+     * @param {boolean} enabled
+     * @returns {Signal}
+     */
+    void collisionsEnabledChanged(bool enabled);
+
+    /**jsdoc
+     * Triggered when avatar's animation url changes
+     * @function MyAvatar.animGraphUrlChanged
+     * @param {url} url
+     * @returns {Signal}
+     */
+    void animGraphUrlChanged(const QUrl& url);
+
+    /**jsdoc
      * @function MyAvatar.energyChanged
      * @param {number} energy
      * @returns {Signal} 
@@ -1368,6 +1414,23 @@ signals:
      */
     void scaleChanged();
 
+    /**jsdoc
+     * Triggered when hand touch is globally enabled or disabled
+     * @function MyAvatar.shouldDisableHandTouchChanged
+     * @param {boolean} shouldDisable
+     * @returns {Signal}
+     */
+    void shouldDisableHandTouchChanged(bool shouldDisable);
+
+    /**jsdoc
+     * Triggered when hand touch is enabled or disabled for an specific entity
+     * @function MyAvatar.disableHandTouchForIDChanged
+     * @param {Uuid} entityID - ID of the entity that will enable hand touch effect
+     * @param {boolean} disable
+     * @returns {Signal}
+     */
+    void disableHandTouchForIDChanged(const QUuid& entityID, bool disable);
+
 private slots:
     void leaveDomain();
 
@@ -1397,6 +1460,10 @@ private:
     bool getHasProceduralEyeFaceMovement() const override { return _headData->getHasProceduralEyeFaceMovement(); }
     void setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement);
     bool getHasAudioEnabledFaceMovement() const override { return _headData->getHasAudioEnabledFaceMovement(); }
+    void setRotationRecenterFilterLength(float length);
+    float getRotationRecenterFilterLength() const { return _rotationRecenterFilterLength; }
+    void setRotationThreshold(float angleRadians);
+    float getRotationThreshold() const { return _rotationThreshold; }
     bool isMyAvatar() const override { return true; }
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
     virtual glm::vec3 getSkeletonPosition() const override;
@@ -1434,7 +1501,7 @@ private:
     std::array<float, MAX_DRIVE_KEYS> _driveKeys;
     std::bitset<MAX_DRIVE_KEYS> _disabledDriveKeys;
 
-    bool _enableFlying { true };
+    bool _enableFlying { false };
     bool _wasPushing { false };
     bool _isPushing { false };
     bool _isBeingPushed { false };
@@ -1496,7 +1563,6 @@ private:
     ThreadSafeValueCache<QUrl> _prefOverrideAnimGraphUrl;
     QUrl _fstAnimGraphOverrideUrl;
     bool _useSnapTurn { true };
-    bool _clearOverlayWhenMoving { true };
     QString _dominantHand { DOMINANT_RIGHT_HAND };
 
     const float ROLL_CONTROL_DEAD_ZONE_DEFAULT = 8.0f; // degrees
@@ -1506,6 +1572,8 @@ private:
     float _hmdRollControlDeadZone { ROLL_CONTROL_DEAD_ZONE_DEFAULT };
     float _hmdRollControlRate { ROLL_CONTROL_RATE_DEFAULT };
     std::atomic<bool> _hasScriptedBlendShapes { false };
+    std::atomic<float> _rotationRecenterFilterLength { 4.0f };
+    std::atomic<float> _rotationThreshold { 0.5235f };  // 30 degrees in radians
 
     // working copy -- see AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
     glm::mat4 _sensorToWorldMatrix { glm::mat4() };
@@ -1517,6 +1585,11 @@ private:
     // cache head controller pose in sensor space
     glm::vec2 _headControllerFacing;  // facing vector in xz plane (sensor space)
     glm::vec2 _headControllerFacingMovingAverage { 0.0f, 0.0f };   // facing vector in xz plane (sensor space)
+    glm::quat _averageHeadRotation { 0.0f, 0.0f, 0.0f, 1.0f };
+
+    float _currentStandingHeight { 0.0f };
+    bool _resetMode { true };
+    RingBufferHistory<int> _recentModeReadings;
 
     // cache of the current body position and orientation of the avatar's body,
     // in sensor space.
@@ -1544,6 +1617,7 @@ private:
         bool shouldActivateRotation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
         bool shouldActivateVertical(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
         bool shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
+        bool shouldActivateHorizontalCG(MyAvatar& myAvatar) const;
         void prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& bodySensorMatrix, const glm::mat4& currentBodyMatrix, bool hasDriveInput);
         glm::mat4 postPhysicsUpdate(const MyAvatar& myAvatar, const glm::mat4& currentBodyMatrix);
         bool getForceActivateRotation() const;
@@ -1593,6 +1667,7 @@ private:
     // all poses are in sensor-frame
     std::map<controller::Action, controller::Pose> _controllerPoseMap;
     mutable std::mutex _controllerPoseMapMutex;
+    mutable std::mutex _disableHandTouchMutex;
 
     bool _centerOfGravityModelEnabled { true };
     bool _hmdLeanRecenterEnabled { true };
@@ -1632,7 +1707,8 @@ private:
     // load avatar scripts once when rig is ready
     bool _shouldLoadScripts { false };
 
-    bool _haveReceivedHeightLimitsFromDomain = { false };
+    bool _haveReceivedHeightLimitsFromDomain { false };
+    int _disableHandTouchCount { 0 };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

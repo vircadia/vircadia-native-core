@@ -64,6 +64,7 @@ Agent::Agent(ReceivedMessage& message) :
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
     DependencyManager::set<ResourceManager>();
+    DependencyManager::set<PluginManager>();
 
     DependencyManager::registerInheritance<SpatialParentFinder, AssignmentParentFinder>();
 
@@ -832,6 +833,8 @@ void Agent::aboutToFinish() {
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(nullptr);
 
     DependencyManager::get<ResourceManager>()->cleanup();
+
+    DependencyManager::destroy<PluginManager>();
 
     // cleanup the AudioInjectorManager (and any still running injectors)
     DependencyManager::destroy<AudioInjectorManager>();

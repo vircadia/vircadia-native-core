@@ -98,7 +98,7 @@ Rectangle {
         }
 
         onAppInstalled: {
-            root.installedApps = Commerce.getInstalledApps();
+            root.installedApps = Commerce.getInstalledApps(appID);
         }
 
         onAppUninstalled: {
@@ -551,8 +551,9 @@ Rectangle {
 
         HifiModels.PSFListModel {
             id: purchasesModel;
-            itemsPerPage: 6;
+            itemsPerPage: 7;
             listModelName: 'purchases';
+            listView: purchasesContentsList;
             getPage: function () {
                 console.debug('getPage', purchasesModel.listModelName, root.isShowingMyItems, filterBar.primaryFilter_filterName, purchasesModel.currentPageToRetrieve, purchasesModel.itemsPerPage);
                 Commerce.inventory(
@@ -706,7 +707,23 @@ Rectangle {
                                 }
                             }
                         } else if (msg.method === "updateItemClicked") {
-                            sendToScript(msg);
+                            if (msg.itemType === "app" && msg.isInstalled) {
+                                lightboxPopup.titleText = "Uninstall App";
+                                lightboxPopup.bodyText = "The app that you are trying to update is installed.<br><br>" +
+                                "If you proceed, the current version of the app will be uninstalled.";
+                                lightboxPopup.button1text = "CANCEL";
+                                lightboxPopup.button1method = function() {
+                                    lightboxPopup.visible = false;
+                                }
+                                lightboxPopup.button2text = "CONFIRM";
+                                lightboxPopup.button2method = function() {
+                                    Commerce.uninstallApp(msg.itemHref);
+                                    sendToScript(msg);
+                                };
+                                lightboxPopup.visible = true;
+                            } else {
+                                sendToScript(msg);
+                            }
                         } else if (msg.method === "giftAsset") {
                             sendAsset.assetName = msg.itemName;
                             sendAsset.assetCertID = msg.certId;
@@ -763,14 +780,6 @@ Rectangle {
                             }
                         }
                     }
-                }
-            }
-
-            
-            onAtYEndChanged: {
-                if (purchasesContentsList.atYEnd && !purchasesContentsList.atYBeginning) {
-                    console.log("User scrolled to the bottom of 'Purchases'.");
-                    purchasesModel.getNextPage();
                 }
             }
         }

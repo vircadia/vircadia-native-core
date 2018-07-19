@@ -42,6 +42,7 @@
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
 #include <Preferences.h>
+#include <AvatarBookmarks.h>
 #include <ScriptEngines.h>
 #include "FileDialogHelper.h"
 #include "avatar/AvatarManager.h"
@@ -137,11 +138,8 @@ void Web3DOverlay::destroyWebSurface() {
     // Fix for crash in QtWebEngineCore when rapidly switching domains
     // Call stop on the QWebEngineView before destroying OffscreenQMLSurface.
     if (rootItem) {
-        QObject* obj = rootItem->findChild<QObject*>("webEngineView");
-        if (obj) {
-            // stop loading
-            QMetaObject::invokeMethod(obj, "stop");
-        }
+        // stop loading
+        QMetaObject::invokeMethod(rootItem, "stop");
     }
 
     _webSurface->pause();
@@ -151,6 +149,11 @@ void Web3DOverlay::destroyWebSurface() {
 
     // If the web surface was fetched out of the cache, release it back into the cache
     if (_cachedWebSurface) {
+        // If it's going back into the cache make sure to explicitly set the URL to a blank page
+        // in order to stop any resource consumption or audio related to the page.
+        if (rootItem) {
+            rootItem->setProperty("url", "about:blank");
+        }
         auto offscreenCache = DependencyManager::get<OffscreenQmlSurfaceCache>();
         // FIXME prevents crash on shutdown, but we shoudln't have to do this check
         if (offscreenCache) {
@@ -253,6 +256,7 @@ void Web3DOverlay::setupQmlSurface() {
         _webSurface->getSurfaceContext()->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
         _webSurface->getSurfaceContext()->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
+        _webSurface->getSurfaceContext()->setContextProperty("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
         _webSurface->getSurfaceContext()->setContextProperty("Render", AbstractViewStateInterface::instance()->getRenderEngine()->getConfiguration().get());
         _webSurface->getSurfaceContext()->setContextProperty("Workload", qApp->getGameWorkload()._engine->getConfiguration().get());
         _webSurface->getSurfaceContext()->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());

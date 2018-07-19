@@ -30,6 +30,7 @@
 #include <QtCore/QFileSelector>
 #include <QtConcurrent/QtConcurrentRun>
 
+#include <QtGui/QClipboard>
 #include <QtGui/QScreen>
 #include <QtGui/QWindow>
 #include <QtGui/QDesktopServices>
@@ -129,6 +130,7 @@
 #include <SoundCache.h>
 #include <ui/TabletScriptingInterface.h>
 #include <ui/ToolbarScriptingInterface.h>
+#include <InteractiveWindow.h>
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
@@ -268,9 +270,6 @@ public:
             qFatal("Unable to make rendering context current");
         }
         _renderContext->doneCurrent();
-
-        // Deleting the object with automatically shutdown the thread
-        connect(qApp, &QCoreApplication::aboutToQuit, this, &QObject::deleteLater);
 
         // Transfer to a new thread
         moveToNewNamedThread(this, "RenderThread", [this](QThread* renderThread) {
@@ -814,6 +813,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     }
 
     // Tell the plugin manager about our statically linked plugins
+    DependencyManager::set<PluginManager>();
     auto pluginManager = PluginManager::getInstance();
     pluginManager->setInputPluginProvider([] { return getInputPlugins(); });
     pluginManager->setDisplayPluginProvider([] { return getDisplayPlugins(); });
@@ -1074,12 +1074,18 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-Regular.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-Bold.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-SemiBold.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Cairo-SemiBold.ttf");
     _window->setWindowTitle("High Fidelity Interface");
 
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
 
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->startThread();
+
+    // move the AddressManager to the NodeList thread so that domain resets due to domain changes always occur
+    // before we tell MyAvatar to go to a new location in the new domain
+    auto addressManager = DependencyManager::get<AddressManager>();
+    addressManager->moveToThread(nodeList->thread());
 
     const char** constArgv = const_cast<const char**>(argv);
     if (cmdOptionExists(argc, constArgv, "--disableWatchdog")) {
@@ -1231,8 +1237,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     accountManager->setIsAgent(true);
     accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
 
-    auto addressManager = DependencyManager::get<AddressManager>();
-
     // use our MyAvatar position and quat for address manager path
     addressManager->setPositionGetter([this]{ return getMyAvatar()->getWorldPosition(); });
     addressManager->setOrientationGetter([this]{ return getMyAvatar()->getWorldOrientation(); });
@@ -1375,6 +1379,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     initializeRenderEngine();
     qCDebug(interfaceapp, "Initialized Render Engine.");
 
+    // Overlays need to exist before we set the ContextOverlayInterface dependency
+    _overlays.init(); // do this before scripts load
+    DependencyManager::set<ContextOverlayInterface>();
+
     // Initialize the user interface and menu system
     // Needs to happen AFTER the render engine initialization to access its configuration
     initializeUi();
@@ -1440,8 +1448,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // add firstRun flag from settings to launch event
     Setting::Handle<bool> firstRun { Settings::firstRun, true };
 
-    QString machineFingerPrint = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
-
     auto& userActivityLogger = UserActivityLogger::getInstance();
     if (userActivityLogger.isEnabled()) {
         // sessionRunTime will be reset soon by loadSettings. Grab it now to get previous session value.
@@ -1493,12 +1499,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["first_run"] = firstRun.get();
 
         // add the user's machine ID to the launch event
+        QString machineFingerPrint = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
         properties["machine_fingerprint"] = machineFingerPrint;
 
         userActivityLogger.logAction("launch", properties);
     }
-
-    setCrashAnnotation("machine_fingerprint", machineFingerPrint.toStdString());
 
     _entityEditSender.setMyAvatar(myAvatar.get());
 
@@ -1510,10 +1515,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // probably not the right long term solution. But for now, we're going to do this to
     // allow you to move an entity around in your hand
     _entityEditSender.setPacketsPerSecond(3000); // super high!!
-
-    // Overlays need to exist before we set the ContextOverlayInterface dependency
-    _overlays.init(); // do this before scripts load
-    DependencyManager::set<ContextOverlayInterface>();
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
@@ -2119,6 +2120,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             || ((rightHandPose.valid || lastRightHandPose.valid) && (rightHandPose != lastRightHandPose));
         lastLeftHandPose = leftHandPose;
         lastRightHandPose = rightHandPose;
+        properties["avatar_identity_requests_sent"] = DependencyManager::get<AvatarManager>()->getIdentityRequestsSent();
 
         UserActivityLogger::getInstance().logAction("stats", properties);
     });
@@ -2256,7 +2258,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
 
 #if defined(Q_OS_ANDROID)
-    AndroidHelper::instance().init();
+    connect(&AndroidHelper::instance(), &AndroidHelper::beforeEnterBackground, this, &Application::beforeEnterBackground);
     connect(&AndroidHelper::instance(), &AndroidHelper::enterBackground, this, &Application::enterBackground);
     connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
     AndroidHelper::instance().notifyLoadComplete();
@@ -2553,24 +2555,27 @@ Application::~Application() {
     _octreeProcessor.terminate();
     _entityEditSender.terminate();
 
+    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+        steamClient->shutdown();
+    }
+    DependencyManager::destroy<PluginManager>();
+
+    DependencyManager::destroy<CompositorHelper>(); // must be destroyed before the FramebufferCache
+
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<FramebufferCache>();
     DependencyManager::destroy<TextureCache>();
     DependencyManager::destroy<ModelCache>();
-    DependencyManager::destroy<GeometryCache>();
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
     DependencyManager::destroy<OctreeStatsProvider>();
+    DependencyManager::destroy<GeometryCache>();
 
     DependencyManager::get<ResourceManager>()->cleanup();
 
     // remove the NodeList from the DependencyManager
     DependencyManager::destroy<NodeList>();
-
-    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
-        steamClient->shutdown();
-    }
 
 #if 0
     ConnexionClient::getInstance().destroy();
@@ -2591,6 +2596,8 @@ Application::~Application() {
 
     // Can't log to file passed this point, FileLogger about to be deleted
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
+    
+    _renderEventHandler->deleteLater();
 }
 
 void Application::initializeGL() {
@@ -2717,7 +2724,7 @@ void Application::initializeDisplayPlugins() {
     setDisplayPlugin(defaultDisplayPlugin);
 
     // Now set the desired plugin if it's not the same as the default plugin
-    if (targetDisplayPlugin != defaultDisplayPlugin) {
+    if (targetDisplayPlugin && (targetDisplayPlugin != defaultDisplayPlugin)) {
         setDisplayPlugin(targetDisplayPlugin);
     }
 
@@ -2891,6 +2898,7 @@ void Application::initializeUi() {
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
     connect(compositorHelper.data(), &CompositorHelper::allowMouseCaptureChanged, this, [=] {
         if (isHMDMode()) {
+            auto compositorHelper = DependencyManager::get<CompositorHelper>(); // don't capture outer smartpointer
             showCursor(compositorHelper->getAllowMouseCapture() ?
                        Cursor::Manager::lookupIcon(_preferredCursor.get()) :
                        Cursor::Icon::SYSTEM);
@@ -2973,6 +2981,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
 
     surfaceContext->setContextProperty("Overlays", &_overlays);
     surfaceContext->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
+    surfaceContext->setContextProperty("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
     surfaceContext->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
     surfaceContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
     surfaceContext->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
@@ -3212,6 +3221,7 @@ void Application::setSettingConstrainToolbarPosition(bool setting) {
 void Application::showHelp() {
     static const QString HAND_CONTROLLER_NAME_VIVE = "vive";
     static const QString HAND_CONTROLLER_NAME_OCULUS_TOUCH = "oculus";
+    static const QString HAND_CONTROLLER_NAME_WINDOWS_MR = "windowsMR";
 
     static const QString TAB_KEYBOARD_MOUSE = "kbm";
     static const QString TAB_GAMEPAD = "gamepad";
@@ -3226,9 +3236,13 @@ void Application::showHelp() {
     } else if (PluginUtils::isOculusTouchControllerAvailable()) {
         defaultTab = TAB_HAND_CONTROLLERS;
         handControllerName = HAND_CONTROLLER_NAME_OCULUS_TOUCH;
+    } else if (qApp->getActiveDisplayPlugin()->getName() == "WindowMS") {
+        defaultTab = TAB_HAND_CONTROLLERS;
+        handControllerName = HAND_CONTROLLER_NAME_WINDOWS_MR;
     } else if (PluginUtils::isXboxControllerAvailable()) {
         defaultTab = TAB_GAMEPAD;
     }
+    // TODO need some way to detect windowsMR to load controls reference default tab in Help > Controls Reference menu.
 
     QUrlQuery queryString;
     queryString.addQueryItem("handControllerName", handControllerName);
@@ -3254,11 +3268,20 @@ void Application::resizeGL() {
     // Set the desired FBO texture size. If it hasn't changed, this does nothing.
     // Otherwise, it must rebuild the FBOs
     uvec2 framebufferSize = displayPlugin->getRecommendedRenderSize();
-    float renderResolutionScale = getRenderResolutionScale();
-    uvec2 renderSize = uvec2(vec2(framebufferSize) * renderResolutionScale);
+    uvec2 renderSize = uvec2(framebufferSize);
     if (_renderResolution != renderSize) {
         _renderResolution = renderSize;
         DependencyManager::get<FramebufferCache>()->setFrameBufferSize(fromGlm(renderSize));
+    }
+
+    auto renderResolutionScale = getRenderResolutionScale();
+    if (displayPlugin->getRenderResolutionScale() != renderResolutionScale) {
+        auto renderConfig = _renderEngine->getConfiguration();
+        assert(renderConfig);
+        auto mainView = renderConfig->getConfig("RenderMainView.RenderDeferredTask");
+        assert(mainView);
+        mainView->setProperty("resolutionScale", renderResolutionScale);
+        displayPlugin->setRenderResolutionScale(renderResolutionScale);
     }
 
     // FIXME the aspect ratio for stereo displays is incorrect based on this.
@@ -3272,7 +3295,6 @@ void Application::resizeGL() {
     }
 
     DependencyManager::get<OffscreenUi>()->resize(fromGlm(displayPlugin->getRecommendedUiSize()));
-    displayPlugin->setRenderResolutionScale(renderResolutionScale);
 }
 
 void Application::handleSandboxStatus(QNetworkReply* reply) {
@@ -4013,7 +4035,18 @@ void Application::mousePressEvent(QMouseEvent* event) {
         return;
     }
 
+#if defined(Q_OS_MAC)
+    // Fix for OSX right click dragging on window when coming from a native window
+    bool isFocussed = hasFocus();
+    if (!isFocussed && event->button() == Qt::MouseButton::RightButton) {
+        setFocus();
+        isFocussed = true;
+    }
+
+    if (isFocussed) {
+#else
     if (hasFocus()) {
+#endif
         if (_keyboardMouseDevice->isActive()) {
             _keyboardMouseDevice->mousePressEvent(event);
         }
@@ -6630,6 +6663,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
 
     qScriptRegisterMetaType(scriptEngine.data(), OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 
+    registerInteractiveWindowMetaType(scriptEngine.data());
+
     DependencyManager::get<PickScriptingInterface>()->registerMetaTypes(scriptEngine.data());
 
     // connect this script engines printedMessage signal to the global ScriptEngines these various messages
@@ -6977,7 +7012,9 @@ void Application::showAssetServerWidget(QString filePath) {
             DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", startUpload);
         } else {
             static const QUrl url("hifi/dialogs/TabletAssetServer.qml");
-            tablet->pushOntoStack(url);
+            if (!tablet->isPathLoaded(url)) {
+                tablet->pushOntoStack(url);
+            }
         }
     }
 
@@ -7614,7 +7651,6 @@ void Application::toggleEntityScriptServerLogDialog() {
 
 void Application::loadAddAvatarBookmarkDialog() const {
     auto avatarBookmarks = DependencyManager::get<AvatarBookmarks>();
-    avatarBookmarks->addBookmark();
 }
 
 void Application::loadAvatarBrowser() const {
@@ -8296,7 +8332,24 @@ void Application::saveNextPhysicsStats(QString filename) {
     _physicsEngine->saveNextPhysicsStats(filename);
 }
 
+void Application::copyToClipboard(const QString& text) {
+    if (QThread::currentThread() != qApp->thread()) {
+        QMetaObject::invokeMethod(this, "copyToClipboard");
+        return;
+    }
+
+    // assume that the address is being copied because the user wants a shareable address
+    QApplication::clipboard()->setText(text);
+}
+
 #if defined(Q_OS_ANDROID)
+void Application::beforeEnterBackground() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->setSendDomainServerCheckInEnabled(false);
+    nodeList->reset(true);
+    clearDomainOctreeDetails();
+}
+
 void Application::enterBackground() {
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                               "stop", Qt::BlockingQueuedConnection);
@@ -8311,6 +8364,8 @@ void Application::enterForeground() {
     if (!getActiveDisplayPlugin() || getActiveDisplayPlugin()->isActive() || !getActiveDisplayPlugin()->activate()) {
         qWarning() << "Could not re-activate display plugin";
     }
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->setSendDomainServerCheckInEnabled(true);
 }
 #endif
 

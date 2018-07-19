@@ -82,6 +82,7 @@ public:
 
     void updateMyAvatar(float deltaTime);
     void updateOtherAvatars(float deltaTime);
+    void sendIdentityRequest(const QUuid& avatarID) const;
 
     void postUpdate(float deltaTime, const render::ScenePointer& scene);
 
@@ -160,7 +161,19 @@ public:
      */
     Q_INVOKABLE void setAvatarSortCoefficient(const QString& name, const QScriptValue& value);
 
+    /**jsdoc
+     * Used in the PAL for getting PAL-related data about avatars nearby. Using this method is faster
+     * than iterating over each avatar and obtaining data about them in JavaScript, as that method
+     * locks and unlocks each avatar's data structure potentially hundreds of times per update tick.
+     * @function AvatarManager.getPalData
+     * @param {string[]} specificAvatarIdentifiers - A list of specific Avatar Identifiers about
+     * which you want to get PAL data
+     * @returns {object}
+     */
+    Q_INVOKABLE QVariantMap getPalData(const QList<QString> specificAvatarIdentifiers = QList<QString>());
+
     float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
+    int getIdentityRequestsSent() const { return _identityRequestsSent; }
 
 public slots:
 
@@ -198,6 +211,7 @@ private:
     int _numAvatarsNotUpdated { 0 };
     float _avatarSimulationTime { 0.0f };
     bool _shouldRender { true };
+    mutable int _identityRequestsSent { 0 };
 };
 
 #endif // hifi_AvatarManager_h

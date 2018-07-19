@@ -42,6 +42,8 @@ namespace render {
         glm::vec3 baseInvSize{ 1.f, 1.f, 1.f };
         float threshold{ 0.f };
         uint8_t isFinished{ 0 };
+
+        mutable gpu::BufferView paramsBuffer;
     };
 
     typedef std::shared_ptr<Transition> TransitionPointer;

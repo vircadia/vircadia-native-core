@@ -53,7 +53,6 @@ public:
             Cascade();
 
             gpu::FramebufferPointer framebuffer;
-            gpu::TexturePointer map;
 
             const std::shared_ptr<ViewFrustum>& getFrustum() const { return _frustum; }
 
@@ -92,6 +91,8 @@ public:
         void setMaxDistance(float value);
 
         const graphics::LightPointer& getLight() const { return _light; }
+
+        gpu::TexturePointer map;
 
     protected:
 

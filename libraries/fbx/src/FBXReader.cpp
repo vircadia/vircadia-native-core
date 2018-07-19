@@ -1816,7 +1816,6 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     }
                 }
 
-                float clusterScale = extractUniformScale(fbxCluster.inverseBindMatrix);
                 glm::mat4 meshToJoint = glm::inverse(joint.bindTransform) * modelTransform;
                 ShapeVertices& points = shapeVertices.at(jointIndex);
 
@@ -1832,7 +1831,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                         if (weight >= EXPANSION_WEIGHT_THRESHOLD) {
                             // transform to joint-frame and save for later
                             const glm::mat4 vertexTransform = meshToJoint * glm::translate(extracted.mesh.vertices.at(newIndex));
-                            points.push_back(extractTranslation(vertexTransform) * clusterScale);
+                            points.push_back(extractTranslation(vertexTransform));
                         }
 
                         // look for an unused slot in the weights vector
@@ -1886,12 +1885,11 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
             FBXJoint& joint = geometry.joints[jointIndex];
 
             // transform cluster vertices to joint-frame and save for later
-            float clusterScale = extractUniformScale(firstFBXCluster.inverseBindMatrix);
             glm::mat4 meshToJoint = glm::inverse(joint.bindTransform) * modelTransform;
             ShapeVertices& points = shapeVertices.at(jointIndex);
             foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
                 const glm::mat4 vertexTransform = meshToJoint * glm::translate(vertex);
-                points.push_back(extractTranslation(vertexTransform) * clusterScale);
+                points.push_back(extractTranslation(vertexTransform));
             }
 
             // Apply geometric offset, if present, by transforming the vertices directly

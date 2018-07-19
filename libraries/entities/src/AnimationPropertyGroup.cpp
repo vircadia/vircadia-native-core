@@ -22,13 +22,14 @@ const float AnimationPropertyGroup::MAXIMUM_POSSIBLE_FRAME = 100000.0f;
 
 bool operator==(const AnimationPropertyGroup& a, const AnimationPropertyGroup& b) {
     return
-
         (a._currentFrame == b._currentFrame) &&
         (a._running == b._running) &&
         (a._loop == b._loop) &&
         (a._hold == b._hold) &&
         (a._firstFrame == b._firstFrame) &&
         (a._lastFrame == b._lastFrame) &&
+        (a._fps == b._fps) &&
+        (a._allowTranslation == b._allowTranslation) &&
         (a._url == b._url);
 }
 
@@ -40,6 +41,8 @@ bool operator!=(const AnimationPropertyGroup& a, const AnimationPropertyGroup& b
         (a._hold != b._hold) ||
         (a._firstFrame != b._firstFrame) ||
         (a._lastFrame != b._lastFrame) ||
+        (a._fps != b._fps) ||
+        (a._allowTranslation != b._allowTranslation) ||
         (a._url != b._url);
 }
 

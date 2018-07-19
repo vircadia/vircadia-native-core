@@ -239,7 +239,7 @@ void Connection::sync() {
             sendACK();
         }
         
-        if (_lossList.getLength() > 0) {
+        if (_congestionControl->shouldNAK() && _lossList.getLength() > 0) {
             // check if we need to re-transmit a loss list
             // we do this if it has been longer than the current nakInterval since we last sent
             auto now = p_high_resolution_clock::now();
@@ -271,10 +271,13 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
     
     SequenceNumber nextACKNumber = nextACK();
     Q_ASSERT_X(nextACKNumber >= _lastSentACK, "Connection::sendACK", "Sending lower ACK, something is wrong");
-    
-    if (nextACKNumber == _lastSentACK) {
-        // We already sent this ACK, but check if we should re-send it.
-        if (nextACKNumber < _lastReceivedAcknowledgedACK) {
+
+    // if our congestion control doesn't want to send an ACK for every packet received
+    // check if we already sent this ACK
+    if (_congestionControl->_ackInterval > 1 && nextACKNumber == _lastSentACK) {
+
+        // if we use ACK2s, check if the receiving side already confirmed receipt of this ACK
+        if (_congestionControl->shouldACK2() && nextACKNumber < _lastReceivedAcknowledgedACK) {
             // we already got an ACK2 for this ACK we would be sending, don't bother
             return;
         }
@@ -287,10 +290,10 @@ void Connection::sendACK(bool wasCausedBySyncTimeout) {
         }
     }
     // we have received new packets since the last sent ACK
+    // or our congestion control dictates that we always send ACKs
     
     // update the last sent ACK
     _lastSentACK = nextACKNumber;
-
 
     _ackPacket->reset(); // We need to reset it every time.
     
@@ -448,20 +451,22 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     
     // mark our last receive time as now (to push the potential expiry farther)
     _lastReceiveTime = p_high_resolution_clock::now();
-    
-    // check if this is a packet pair we should estimate bandwidth from, or just a regular packet
-    if (((uint32_t) sequenceNumber & 0xF) == 0) {
-        _receiveWindow.onProbePair1Arrival();
-    } else if (((uint32_t) sequenceNumber & 0xF) == 1) {
-        // only use this packet for bandwidth estimation if we didn't just receive a control packet in its place
-        if (!_receivedControlProbeTail) {
-            _receiveWindow.onProbePair2Arrival();
-        } else {
-            // reset our control probe tail marker so the next probe that comes with data can be used
-            _receivedControlProbeTail = false;
+
+    if (_congestionControl->shouldProbe()) {
+        // check if this is a packet pair we should estimate bandwidth from, or just a regular packet
+        if (((uint32_t) sequenceNumber & 0xF) == 0) {
+            _receiveWindow.onProbePair1Arrival();
+        } else if (((uint32_t) sequenceNumber & 0xF) == 1) {
+            // only use this packet for bandwidth estimation if we didn't just receive a control packet in its place
+            if (!_receivedControlProbeTail) {
+                _receiveWindow.onProbePair2Arrival();
+            } else {
+                // reset our control probe tail marker so the next probe that comes with data can be used
+                _receivedControlProbeTail = false;
+            }
         }
-        
     }
+
     _receiveWindow.onPacketArrival();
     
     // If this is not the next sequence number, report loss

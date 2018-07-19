@@ -1,10 +1,12 @@
+import org.apache.tools.ant.taskdefs.condition.Os
+
 apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 26
     //buildToolsVersion '27.0.3'
 
-    def appVersionCode = Integer.valueOf(RELEASE_NUMBER ?: 1)
+    def appVersionCode = Integer.valueOf(VERSION_CODE ?: 1)
     def appVersionName = RELEASE_NUMBER ?: "1.0"
 
     defaultConfig {
@@ -74,10 +76,12 @@ android {
         // so our merge has to depend on the external native build
         variant.externalNativeBuildTasks.each { task ->
             variant.mergeResources.dependsOn(task)
-            def uploadDumpSymsTask = rootProject.getTasksByName("uploadBreakpadDumpSyms${variant.name.capitalize()}", false).first()
-            def runDumpSymsTask = rootProject.getTasksByName("runBreakpadDumpSyms${variant.name.capitalize()}", false).first()
-            runDumpSymsTask.dependsOn(task)
-            variant.assemble.dependsOn(uploadDumpSymsTask)
+            if (Os.isFamily(Os.FAMILY_UNIX)) {
+                def uploadDumpSymsTask = rootProject.getTasksByName("uploadBreakpadDumpSyms${variant.name.capitalize()}", false).first()
+                def runDumpSymsTask = rootProject.getTasksByName("runBreakpadDumpSyms${variant.name.capitalize()}", false).first()
+                runDumpSymsTask.dependsOn(task)
+                variant.assemble.dependsOn(uploadDumpSymsTask)
+            }
         }
 
         variant.mergeAssets.doLast {

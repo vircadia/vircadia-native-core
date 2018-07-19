@@ -25,13 +25,7 @@ private:
     bool headOutsideOverlay() const;
     bool updateAvatarIsAtRest();
 
-    enum SupressionFlags {
-        SuppressedByMove = 0x01,
-        SuppressedByHead = 0x02,
-        SuppressMask = 0x03,
-    };
-
-    uint8_t _flags { SuppressedByMove };
+    bool _suppressedByHead { false };
     bool _hmdMode { false };
 
     // used by updateAvatarIsAtRest

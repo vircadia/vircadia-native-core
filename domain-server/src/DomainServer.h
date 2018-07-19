@@ -108,10 +108,10 @@ private slots:
     void sendHeartbeatToIceServer();
 
     void handleConnectedNode(SharedNodePointer newNode); 
-    void handleTempDomainSuccess(QNetworkReply& requestReply);
-    void handleTempDomainError(QNetworkReply& requestReply);
+    void handleTempDomainSuccess(QNetworkReply* requestReply);
+    void handleTempDomainError(QNetworkReply* requestReply);
 
-    void handleMetaverseHeartbeatError(QNetworkReply& requestReply);
+    void handleMetaverseHeartbeatError(QNetworkReply* requestReply);
 
     void queuedQuit(QString quitMessage, int exitCode);
 
@@ -121,8 +121,8 @@ private slots:
     void handleICEHostInfo(const QHostInfo& hostInfo);
 
     void sendICEServerAddressToMetaverseAPI();
-    void handleSuccessfulICEServerAddressUpdate(QNetworkReply& requestReply);
-    void handleFailedICEServerAddressUpdate(QNetworkReply& requestReply);
+    void handleSuccessfulICEServerAddressUpdate(QNetworkReply* requestReply);
+    void handleFailedICEServerAddressUpdate(QNetworkReply* requestReply);
 
     void updateReplicatedNodes();
     void updateDownstreamNodes();

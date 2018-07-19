@@ -53,8 +53,8 @@ signals:
 
     void contentSetChanged(const QString& contentSetHref);
 
-    void appInstalled(const QString& appHref);
-    void appUninstalled(const QString& appHref);
+    void appInstalled(const QString& appID);
+    void appUninstalled(const QString& appID);
 
 protected:
     Q_INVOKABLE void getWalletStatus();
@@ -86,7 +86,7 @@ protected:
 
     Q_INVOKABLE void replaceContentSet(const QString& itemHref, const QString& certificateID);
 
-    Q_INVOKABLE QString getInstalledApps();
+    Q_INVOKABLE QString getInstalledApps(const QString& justInstalledAppID = "");
     Q_INVOKABLE bool installApp(const QString& appHref);
     Q_INVOKABLE bool uninstallApp(const QString& appHref);
     Q_INVOKABLE bool openApp(const QString& appHref);

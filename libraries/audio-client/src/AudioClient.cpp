@@ -1426,6 +1426,8 @@ bool AudioClient::setIsStereoInput(bool isStereoInput) {
 
         // restart the input device
         switchInputToAudioDevice(_inputDeviceInfo);
+
+        emit isStereoInputChanged(_isStereoInput);
     }
 
     return stereoInputChanged;
@@ -1463,6 +1465,8 @@ void AudioClient::outputFormatChanged() {
 }
 
 bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInfo, bool isShutdownRequest) {
+    Q_ASSERT_X(QThread::currentThread() == thread(), Q_FUNC_INFO, "Function invoked on wrong thread");
+
     qCDebug(audioclient) << __FUNCTION__ << "inputDeviceInfo: [" << inputDeviceInfo.deviceName() << "]";
     bool supportedFormat = false;
 
@@ -1663,6 +1667,8 @@ void AudioClient::outputNotify() {
 }
 
 bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceInfo, bool isShutdownRequest) {
+    Q_ASSERT_X(QThread::currentThread() == thread(), Q_FUNC_INFO, "Function invoked on wrong thread");
+
     qCDebug(audioclient) << "AudioClient::switchOutputToAudioDevice() outputDeviceInfo: [" << outputDeviceInfo.deviceName() << "]";
     bool supportedFormat = false;
 
@@ -2021,7 +2027,7 @@ void AudioClient::setAvatarBoundingBoxParameters(glm::vec3 corner, glm::vec3 sca
 
 
 void AudioClient::startThread() {
-    moveToNewNamedThread(this, "Audio Thread", [this] { start(); });
+    moveToNewNamedThread(this, "Audio Thread", [this] { start(); }, QThread::TimeCriticalPriority);
 }
 
 void AudioClient::setInputVolume(float volume, bool emitSignal) {

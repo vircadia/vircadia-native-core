@@ -153,10 +153,29 @@ JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnCrea
     unpackAndroidAssets();
     qInstallMessageHandler(oldMessageHandler);
 
-    QObject::connect(&AndroidHelper::instance(), &AndroidHelper::androidActivityRequested, [](const QString& a, const bool backToScene) {
+    JavaVM* jvm;
+    env->GetJavaVM(&jvm);
+
+    QObject::connect(&AndroidHelper::instance(), &AndroidHelper::androidActivityRequested, [jvm](const QString& a, const bool backToScene, QList<QString> args) {
+        JNIEnv* myNewEnv;
+        JavaVMAttachArgs jvmArgs;
+        jvmArgs.version = JNI_VERSION_1_6; // choose your JNI version
+        jvmArgs.name = NULL; // you might want to give the java thread a name
+        jvmArgs.group = NULL; // you might want to assign the java thread to a ThreadGroup
+        jvm->AttachCurrentThread(reinterpret_cast<JNIEnv **>(&myNewEnv), &jvmArgs);
+
         QAndroidJniObject string = QAndroidJniObject::fromString(a);
         jboolean jBackToScene = (jboolean) backToScene;
-        __interfaceActivity.callMethod<void>("openAndroidActivity", "(Ljava/lang/String;Z)V", string.object<jstring>(), jBackToScene);
+        jclass hashMapClass = myNewEnv->FindClass("java/util/HashMap");
+        jmethodID mapClassConstructor =  myNewEnv->GetMethodID(hashMapClass, "<init>", "()V");
+        jobject hashmap = myNewEnv->NewObject(hashMapClass, mapClassConstructor);
+        jmethodID mapClassPut = myNewEnv->GetMethodID(hashMapClass, "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+        for (const QString& arg: args) {
+            QAndroidJniObject jArg = QAndroidJniObject::fromString(arg);
+            myNewEnv->CallObjectMethod(hashmap, mapClassPut, QAndroidJniObject::fromString("url").object<jstring>(), jArg.object<jstring>());
+        }
+        __interfaceActivity.callMethod<void>("openAndroidActivity", "(Ljava/lang/String;ZLjava/util/HashMap;)V", string.object<jstring>(), jBackToScene, hashmap);
+        jvm->DetachCurrentThread();
     });
 
     QObject::connect(&AndroidHelper::instance(), &AndroidHelper::hapticFeedbackRequested, [](int duration) {
@@ -228,7 +247,7 @@ Java_io_highfidelity_hifiinterface_fragment_LoginFragment_nativeLogin(JNIEnv *en
     env->ReleaseStringUTFChars(username_, c_username);
     env->ReleaseStringUTFChars(password_, c_password);
 
-    auto accountManager = AndroidHelper::instance().getAccountManager();
+    auto accountManager = DependencyManager::get<AccountManager>();
 
     __loginCompletedListener = QAndroidJniObject(instance);
     __usernameChangedListener = QAndroidJniObject(usernameChangedListener);
@@ -270,19 +289,24 @@ Java_io_highfidelity_hifiinterface_SplashActivity_registerLoadCompleteListener(J
 }
 JNIEXPORT jboolean JNICALL
 Java_io_highfidelity_hifiinterface_MainActivity_nativeIsLoggedIn(JNIEnv *env, jobject instance) {
-    return AndroidHelper::instance().getAccountManager()->isLoggedIn();
+    return DependencyManager::get<AccountManager>()->isLoggedIn();
 }
 
 JNIEXPORT void JNICALL
 Java_io_highfidelity_hifiinterface_MainActivity_nativeLogout(JNIEnv *env, jobject instance) {
-    AndroidHelper::instance().getAccountManager()->logout();
+    DependencyManager::get<AccountManager>()->logout();
 }
 
 JNIEXPORT jstring JNICALL
 Java_io_highfidelity_hifiinterface_MainActivity_nativeGetDisplayName(JNIEnv *env,
                                                                      jobject instance) {
-    QString username = AndroidHelper::instance().getAccountManager()->getAccountInfo().getUsername();
+    QString username = DependencyManager::get<AccountManager>()->getAccountInfo().getUsername();
     return env->NewStringUTF(username.toLatin1().data());
+}
+
+JNIEXPORT void JNICALL
+Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeBeforeEnterBackground(JNIEnv *env, jobject obj) {
+    AndroidHelper::instance().notifyBeforeEnterBackground();
 }
 
 JNIEXPORT void JNICALL
@@ -294,5 +318,11 @@ JNIEXPORT void JNICALL
 Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeEnterForeground(JNIEnv *env, jobject obj) {
     AndroidHelper::instance().notifyEnterForeground();
 }
+
+JNIEXPORT void Java_io_highfidelity_hifiinterface_WebViewActivity_nativeProcessURL(JNIEnv* env, jobject obj, jstring url_str) {
+    const char *nativeString = env->GetStringUTFChars(url_str, 0);
+    AndroidHelper::instance().processURL(QString::fromUtf8(nativeString));
+}
+
 
 }

@@ -9,37 +9,35 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+<@include BloomThreshold.shared.slh@>
 
 uniform sampler2D colorMap;
-uniform float threshold;
+layout(std140) uniform parametersBuffer {
+    Parameters parameters;
+};
 
 in vec2 varTexCoord0;
 out vec4 outFragColor;
 
-#define DOWNSAMPLING_FACTOR     4
-#define SAMPLE_COUNT            (DOWNSAMPLING_FACTOR/2)
-
 void main(void) {
-    vec2 deltaX = dFdx(varTexCoord0) / SAMPLE_COUNT;
-    vec2 deltaY = dFdy(varTexCoord0) / SAMPLE_COUNT;
     vec2 startUv = varTexCoord0;
     vec4 maskedColor = vec4(0,0,0,0);
 
-    for (int y=0 ; y<SAMPLE_COUNT ; y++) {
+    for (int y=0 ; y<parameters._sampleCount ; y++) {
         vec2 uv = startUv;
 
-        for (int x=0 ; x<SAMPLE_COUNT ; x++) {
+        for (int x=0 ; x<parameters._sampleCount ; x++) {
             vec4 color = texture(colorMap, uv);
             float luminance = (color.r+color.g+color.b) / 3.0;
-            float mask = clamp((luminance-threshold)*0.25, 0, 1);
+            float mask = clamp((luminance-parameters._threshold)*0.25, 0, 1);
 
             color *= mask;
             maskedColor += color;
-            uv += deltaX;
+            uv.x += parameters._deltaUV.x;
         }
 
-        startUv += deltaY;
+        startUv.y += parameters._deltaUV.y;
     }
-    maskedColor /= SAMPLE_COUNT*SAMPLE_COUNT;
+    maskedColor /= parameters._sampleCount * parameters._sampleCount;
     outFragColor = vec4(maskedColor.rgb, 1.0);
 }

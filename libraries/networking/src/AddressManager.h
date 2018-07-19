@@ -417,13 +417,13 @@ signals:
     void goForwardPossible(bool isPossible);
 
 private slots:
-    void handleAPIResponse(QNetworkReply& requestReply);
-    void handleAPIError(QNetworkReply& errorReply);
+    void handleAPIResponse(QNetworkReply* requestReply);
+    void handleAPIError(QNetworkReply* errorReply);
 
-    void handleShareableNameAPIResponse(QNetworkReply& requestReply);
+    void handleShareableNameAPIResponse(QNetworkReply* requestReply);
 
 private:
-    void goToAddressFromObject(const QVariantMap& addressMap, const QNetworkReply& reply);
+    void goToAddressFromObject(const QVariantMap& addressMap, const QNetworkReply*  reply);
 
     // Set host and port, and return `true` if it was changed.
     bool setHost(const QString& host, LookupTrigger trigger, quint16 port = 0);

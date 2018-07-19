@@ -347,12 +347,16 @@ void ObjectMotionState::updateLastKinematicStep() {
 }
 
 void ObjectMotionState::updateBodyMassProperties() {
-    float mass = getMass();
+    btScalar mass = getMass();
     btVector3 inertia(1.0f, 1.0f, 1.0f);
     if (mass > 0.0f) {
         _body->getCollisionShape()->calculateLocalInertia(mass, inertia);
     }
     _body->setMassProps(mass, inertia);
     _body->updateInertiaTensor();
+}
+
+void ObjectMotionState::saveKinematicState(btScalar timeStep) {
+    _body->saveKinematicState(timeStep);
 }
 

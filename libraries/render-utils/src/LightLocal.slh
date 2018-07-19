@@ -143,6 +143,6 @@ vec4 evalLocalLighting(ivec3 cluster, int numLights, vec3 fragWorldPos, SurfaceD
     fragSpecular *= isSpecularEnabled();
 
     fragColor.rgb += fragDiffuse;
-    fragColor.rgb += fragSpecular / opacity;
+    fragColor.rgb += evalSpecularWithOpacity(fragSpecular, opacity);
     return fragColor;
 }

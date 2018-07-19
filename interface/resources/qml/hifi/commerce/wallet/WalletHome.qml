@@ -212,6 +212,7 @@ Item {
         HifiModels.PSFListModel {
             id: transactionHistoryModel;
             listModelName: "transaction history"; // For debugging. Alternatively, we could specify endpoint for that purpose, even though it's not used directly.
+            listView: transactionHistory;
             itemsPerPage: 6;
             getPage: function () {
                 console.debug('getPage', transactionHistoryModel.listModelName, transactionHistoryModel.currentPageToRetrieve);
@@ -344,12 +345,6 @@ Item {
                             anchors.right: parent.right;
                             anchors.bottom: parent.bottom;
                         }
-                    }
-                }
-                onAtYEndChanged: {
-                    if (transactionHistory.atYEnd && !transactionHistory.atYBeginning) {
-                        console.log("User scrolled to the bottom of 'Recent Activity'.");
-                        transactionHistoryModel.getNextPage();
                     }
                 }
             }

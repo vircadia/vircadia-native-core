@@ -100,7 +100,7 @@ void SimpleEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
                 }
             } else if (entity->isMovingRelativeToParent()) {
                 SetOfEntities::iterator itr = _simpleKinematicEntities.find(entity);
-                if (itr != _simpleKinematicEntities.end()) {
+                if (itr == _simpleKinematicEntities.end()) {
                     _simpleKinematicEntities.insert(entity);
                     entity->setLastSimulated(usecTimestampNow());
                 }
@@ -118,7 +118,7 @@ void SimpleEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
 
             if (entity->isMovingRelativeToParent()) {
                 SetOfEntities::iterator itr = _simpleKinematicEntities.find(entity);
-                if (itr != _simpleKinematicEntities.end()) {
+                if (itr == _simpleKinematicEntities.end()) {
                     _simpleKinematicEntities.insert(entity);
                     entity->setLastSimulated(usecTimestampNow());
                 }

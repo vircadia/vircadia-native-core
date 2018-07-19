@@ -162,7 +162,13 @@ void ThreadSafeDynamicsWorld::saveKinematicState(btScalar timeStep) {
     for (int i=0;i<m_nonStaticRigidBodies.size();i++) {
         btRigidBody* body = m_nonStaticRigidBodies[i];
         if (body && body->isKinematicObject() && body->getActivationState() != ISLAND_SLEEPING) {
-            body->saveKinematicState(timeStep);
+            if (body->getMotionState()) {
+                btMotionState* motionState = body->getMotionState();
+                ObjectMotionState* objectMotionState = static_cast<ObjectMotionState*>(motionState);
+                objectMotionState->saveKinematicState(timeStep);
+            } else {
+                body->saveKinematicState(timeStep);
+            }
         }
     }
 }

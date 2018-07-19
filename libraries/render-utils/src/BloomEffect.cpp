@@ -21,13 +21,15 @@
 
 #define BLOOM_BLUR_LEVEL_COUNT  3
 
-BloomThreshold::BloomThreshold(unsigned int downsamplingFactor) :
-    _downsamplingFactor(downsamplingFactor) {
+BloomThreshold::BloomThreshold(unsigned int downsamplingFactor) {
     assert(downsamplingFactor > 0);
+    _parameters.edit()._sampleCount = downsamplingFactor;
 }
 
 void BloomThreshold::configure(const Config& config) {
-    _threshold = config.threshold;
+    if (_parameters.get()._threshold != config.threshold) {
+        _parameters.edit()._threshold = config.threshold;
+    }
 }
 
 void BloomThreshold::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
@@ -43,10 +45,11 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
 
     auto inputBuffer = inputFrameBuffer->getRenderBuffer(0);
     auto bufferSize = gpu::Vec2u(inputBuffer->getDimensions());
+    const auto downSamplingFactor = _parameters.get()._sampleCount;
 
     // Downsample resolution
-    bufferSize.x /= _downsamplingFactor;
-    bufferSize.y /= _downsamplingFactor;
+    bufferSize.x /= downSamplingFactor;
+    bufferSize.y /= downSamplingFactor;
 
     if (!_outputBuffer || _outputBuffer->getSize() != bufferSize) {
         auto colorTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(inputBuffer->getTexelFormat(), bufferSize.x, bufferSize.y,
@@ -54,10 +57,12 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
 
         _outputBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("BloomThreshold"));
         _outputBuffer->setRenderBuffer(0, colorTexture);
+
+        _parameters.edit()._deltaUV = { 1.0f / bufferSize.x, 1.0f / bufferSize.y };
     }
 
     static const int COLOR_MAP_SLOT = 0;
-    static const int THRESHOLD_SLOT = 1;
+    static const int PARAMETERS_SLOT = 1;
 
     if (!_pipeline) {
         auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
@@ -66,7 +71,7 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding("colorMap", COLOR_MAP_SLOT));
-        slotBindings.insert(gpu::Shader::Binding("threshold", THRESHOLD_SLOT));
+        slotBindings.insert(gpu::Shader::Binding("parametersBuffer", PARAMETERS_SLOT));
         gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
@@ -86,21 +91,26 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
 
         batch.setFramebuffer(_outputBuffer);
         batch.setResourceTexture(COLOR_MAP_SLOT, inputBuffer);
-        batch._glUniform1f(THRESHOLD_SLOT, _threshold);
+        batch.setUniformBuffer(PARAMETERS_SLOT, _parameters);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
 
     outputs = _outputBuffer;
 }
 
-BloomApply::BloomApply() : _intensities{ 1.0f, 1.0f, 1.0f } {
+BloomApply::BloomApply() {
 
 }
 
 void BloomApply::configure(const Config& config) {
-	_intensities.x = config.intensity / 3.0f;
-	_intensities.y = _intensities.x;
-	_intensities.z = _intensities.x;
+    const auto newIntensity = config.intensity / 3.0f;
+
+    if (_parameters.get()._intensities.x != newIntensity) {
+        auto& parameters = _parameters.edit();
+        parameters._intensities.x = newIntensity;
+        parameters._intensities.y = newIntensity;
+        parameters._intensities.z = newIntensity;
+    }
 }
 
 void BloomApply::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
@@ -111,7 +121,7 @@ void BloomApply::run(const render::RenderContextPointer& renderContext, const In
     static const auto BLUR0_SLOT = 0;
     static const auto BLUR1_SLOT = 1;
     static const auto BLUR2_SLOT = 2;
-    static const auto INTENSITY_SLOT = 3;
+    static const auto PARAMETERS_SLOT = 0;
 
     if (!_pipeline) {
         auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
@@ -122,7 +132,7 @@ void BloomApply::run(const render::RenderContextPointer& renderContext, const In
         slotBindings.insert(gpu::Shader::Binding("blurMap0", BLUR0_SLOT));
         slotBindings.insert(gpu::Shader::Binding("blurMap1", BLUR1_SLOT));
         slotBindings.insert(gpu::Shader::Binding("blurMap2", BLUR2_SLOT));
-        slotBindings.insert(gpu::Shader::Binding("intensity", INTENSITY_SLOT));
+        slotBindings.insert(gpu::Shader::Binding("parametersBuffer", PARAMETERS_SLOT));
         gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
@@ -151,7 +161,7 @@ void BloomApply::run(const render::RenderContextPointer& renderContext, const In
         batch.setResourceTexture(BLUR0_SLOT, blur0FB->getRenderBuffer(0));
         batch.setResourceTexture(BLUR1_SLOT, blur1FB->getRenderBuffer(0));
         batch.setResourceTexture(BLUR2_SLOT, blur2FB->getRenderBuffer(0));
-		batch._glUniform3f(INTENSITY_SLOT, _intensities.x, _intensities.y, _intensities.z);
+		batch.setUniformBuffer(PARAMETERS_SLOT, _parameters);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
 }
