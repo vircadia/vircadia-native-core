@@ -27,6 +27,12 @@ ModelOverlay::ModelOverlay()
 {
     _model->setLoadingPriority(_loadPriority);
     _isLoaded = false;
+
+    // Don't show overlay until textures have loaded
+    _visible = false;
+
+    render::ScenePointer scene = qApp->getMain3DScene();
+    _model->setVisibleInScene(false, scene);
 }
 
 ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
@@ -101,10 +107,11 @@ void ModelOverlay::update(float deltatime) {
         emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelAddedToScene(getID(), NestableType::Overlay, _model);
     }
     bool metaDirty = false;
-    if (_visibleDirty) {
+    if (_visibleDirty && _texturesLoaded) {
         _visibleDirty = false;
         // don't show overlays in mirrors or spectator-cam unless _isVisibleInSecondaryCamera is true
         uint8_t modelRenderTagMask = (_isVisibleInSecondaryCamera ? render::hifi::TAG_ALL_VIEWS : render::hifi::TAG_MAIN_VIEW);
+
         _model->setTagMask(modelRenderTagMask, scene);
         _model->setVisibleInScene(getVisible(), scene);
         metaDirty = true;
@@ -134,6 +141,8 @@ void ModelOverlay::update(float deltatime) {
         if (!_modelTextures.isEmpty()) {
             _model->setTextures(_modelTextures);
         }
+
+        _model->setVisibleInScene(getVisible(), scene);
         _model->updateRenderItems();
     }
 }
