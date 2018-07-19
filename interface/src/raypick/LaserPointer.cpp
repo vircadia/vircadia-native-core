@@ -14,8 +14,6 @@
 #include "avatar/AvatarManager.h"
 
 #include <DependencyManager.h>
-#include <PickManager.h>
-#include "PickScriptingInterface.h"
 #include "RayPick.h"
 
 LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, bool hover,
@@ -69,12 +67,14 @@ QUuid LaserPointer::getPickedObjectID(const PickResultPointer& pickResult) {
 void LaserPointer::setVisualPickResultInternal(PickResultPointer pickResult, IntersectionType type, const QUuid& id,
                                                const glm::vec3& intersection, float distance, const glm::vec3& surfaceNormal) {
     auto rayPickResult = std::static_pointer_cast<RayPickResult>(pickResult);
-    rayPickResult->type = type;
-    rayPickResult->objectID = id;
-    rayPickResult->intersection = intersection;
-    rayPickResult->distance = distance;
-    rayPickResult->surfaceNormal = surfaceNormal;
-    rayPickResult->pickVariant["direction"] = vec3toVariant(-surfaceNormal);
+    if (rayPickResult) {
+        rayPickResult->type = type;
+        rayPickResult->objectID = id;
+        rayPickResult->intersection = intersection;
+        rayPickResult->distance = distance;
+        rayPickResult->surfaceNormal = surfaceNormal;
+        rayPickResult->pickVariant["direction"] = vec3toVariant(-surfaceNormal);
+    }
 }
 
 LaserPointer::RenderState::RenderState(const OverlayID& startID, const OverlayID& pathID, const OverlayID& endID) :
@@ -103,8 +103,9 @@ void LaserPointer::RenderState::disable() {
     }
 }
 
-void LaserPointer::RenderState::update(const glm::vec3& origin, const glm::vec3& end, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY, bool faceAvatar, bool followNormal) {
-    StartEndRenderState::update(origin, end, scaleWithAvatar, distanceScaleEnd, centerEndY, faceAvatar, followNormal);
+void LaserPointer::RenderState::update(const glm::vec3& origin, const glm::vec3& end, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
+                                       bool faceAvatar, bool followNormal, float distance, const PickResultPointer& pickResult) {
+    StartEndRenderState::update(origin, end, scaleWithAvatar, distanceScaleEnd, centerEndY, faceAvatar, followNormal, distance, pickResult);
     QVariant endVariant = vec3toVariant(end);
     if (!getPathID().isNull()) {
         QVariantMap pathProps;
@@ -188,11 +189,11 @@ PointerEvent LaserPointer::buildPointerEvent(const PickedObject& target, const P
 
 glm::vec3 LaserPointer::findIntersection(const PickedObject& pickedObject, const glm::vec3& origin, const glm::vec3& direction) {
     switch (pickedObject.type) {
-    case ENTITY:
-        return RayPick::intersectRayWithEntityXYPlane(pickedObject.objectID, origin, direction);
-    case OVERLAY:
-        return RayPick::intersectRayWithOverlayXYPlane(pickedObject.objectID, origin, direction);
-    default:
-        return glm::vec3(NAN);
+        case ENTITY:
+            return RayPick::intersectRayWithEntityXYPlane(pickedObject.objectID, origin, direction);
+        case OVERLAY:
+            return RayPick::intersectRayWithOverlayXYPlane(pickedObject.objectID, origin, direction);
+        default:
+            return glm::vec3(NAN);
     }
 }

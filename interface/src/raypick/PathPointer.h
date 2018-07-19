@@ -44,7 +44,8 @@ public:
 
     virtual void cleanup();
     virtual void disable();
-    virtual void update(const glm::vec3& origin, const glm::vec3& end, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY, bool faceAvatar, bool followNormal);
+    virtual void update(const glm::vec3& origin, const glm::vec3& end, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
+                        bool faceAvatar, bool followNormal, float distance, const PickResultPointer& pickResult);
 
 protected:
     OverlayID _startID;
@@ -69,7 +70,7 @@ public:
     virtual ~PathPointer();
 
     void setRenderState(const std::string& state) override;
-    // You cannot use editRenderState to change the overlay type of any part of the laser pointer.  You can only edit the properties of the existing overlays.
+    // You cannot use editRenderState to change the type of any part of the pointer.  You can only edit the properties of the existing overlays.
     void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) override;
 
     void setLength(float length) override;

@@ -78,6 +78,8 @@ void PathPointer::setLockEndUUID(const QUuid& objectID, const bool isOverlay, co
     });
 }
 
+#include "ParabolaPick.h"
+
 PickResultPointer PathPointer::getVisualPickResult(const PickResultPointer& pickResult) {
     PickResultPointer visualPickResult = pickResult;
     glm::vec3 origin = getPickOrigin(pickResult);
@@ -144,10 +146,11 @@ PickResultPointer PathPointer::getVisualPickResult(const PickResultPointer& pick
 void PathPointer::updateVisuals(const PickResultPointer& pickResult) {
     IntersectionType type = getPickedObjectType(pickResult);
     if (_enabled && !_currentRenderState.empty() && _renderStates.find(_currentRenderState) != _renderStates.end() &&
-        (type != IntersectionType::NONE || _pathLength > 0.0f || !_lockEndObject.id.isNull())) {
+        (type != IntersectionType::NONE || _pathLength > 0.0f)) {
         glm::vec3 origin = getPickOrigin(pickResult);
         glm::vec3 end = getPickEnd(pickResult, _pathLength);
-        _renderStates[_currentRenderState]->update(origin, end, _scaleWithAvatar, _distanceScaleEnd, _centerEndY, _faceAvatar, _followNormal);
+        _renderStates[_currentRenderState]->update(origin, end, _scaleWithAvatar, _distanceScaleEnd, _centerEndY, _faceAvatar,
+                                                   _followNormal, _pathLength, pickResult);
         if (_defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {
             _defaultRenderStates[_currentRenderState].second->disable();
         }
@@ -157,7 +160,8 @@ void PathPointer::updateVisuals(const PickResultPointer& pickResult) {
         }
         glm::vec3 origin = getPickOrigin(pickResult);
         glm::vec3 end = getPickEnd(pickResult, _defaultRenderStates[_currentRenderState].first);
-        _defaultRenderStates[_currentRenderState].second->update(origin, end, _scaleWithAvatar, _distanceScaleEnd, _centerEndY, _faceAvatar, _followNormal);
+        _defaultRenderStates[_currentRenderState].second->update(origin, end, _scaleWithAvatar, _distanceScaleEnd, _centerEndY,
+                                                                _faceAvatar, _followNormal, _defaultRenderStates[_currentRenderState].first, pickResult);
     } else if (!_currentRenderState.empty()) {
         if (_renderStates.find(_currentRenderState) != _renderStates.end()) {
             _renderStates[_currentRenderState]->disable();
@@ -180,7 +184,7 @@ void PathPointer::editRenderState(const std::string& state, const QVariant& star
         if (endDim.isValid()) {
             _renderStates[state]->setEndDim(vec3FromVariant(endDim));
         }
-        QVariant rotation = pathProps.toMap()["rotation"];
+        QVariant rotation = endProps.toMap()["rotation"];
         if (rotation.isValid()) {
             _renderStates[state]->setEndRot(quatFromVariant(rotation));
         }
@@ -271,7 +275,8 @@ void StartEndRenderState::disable() {
     }
 }
 
-void StartEndRenderState::update(const glm::vec3& origin, const glm::vec3& end, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY, bool faceAvatar, bool followNormal) {
+void StartEndRenderState::update(const glm::vec3& origin, const glm::vec3& end, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
+                                 bool faceAvatar, bool followNormal, float distance, const PickResultPointer& pickResult) {
     if (!getStartID().isNull()) {
         QVariantMap startProps;
         startProps.insert("position", vec3toVariant(origin));

@@ -29,7 +29,8 @@ public:
 
         void cleanup() override;
         void disable() override;
-        void update(const glm::vec3& origin, const glm::vec3& end, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY, bool faceAvatar, bool followNormal) override;
+        void update(const glm::vec3& origin, const glm::vec3& end, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
+                    bool faceAvatar, bool followNormal, float distance, const PickResultPointer& pickResult) override;
 
     private:
         OverlayID _pathID;

@@ -62,49 +62,37 @@ Script.include("/~/system/libraries/controllers.js");
     };
 
     var cancelPath = {
-        type: "line3d",
         color: COLORS_TELEPORT_CANCEL,
-        ignoreRayIntersection: true,
         alpha: 1,
-        solid: true,
-        drawInFront: true,
-        glow: 1.0
+        width: 0.025
     };
     var teleportPath = {
-        type: "line3d",
         color: COLORS_TELEPORT_CAN_TELEPORT,
-        ignoreRayIntersection: true,
         alpha: 1,
-        solid: true,
-        drawInFront: true,
-        glow: 1.0
+        width: 0.025
     };
     var seatPath = {
-        type: "line3d",
         color: COLORS_TELEPORT_SEAT,
-        ignoreRayIntersection: true,
         alpha: 1,
-        solid: true,
-        drawInFront: true,
-        glow: 1.0
+        width: 0.025
     };
     var cancelEnd = {
         type: "model",
         url: TOO_CLOSE_MODEL_URL,
         dimensions: TARGET_MODEL_DIMENSIONS,
-        ignoreRayIntersection: true
+        ignoreParabolaIntersection: true
     };
     var teleportEnd = {
         type: "model",
         url: TARGET_MODEL_URL,
         dimensions: TARGET_MODEL_DIMENSIONS,
-        ignoreRayIntersection: true
+        ignoreParabolaIntersection: true
     };
     var seatEnd = {
         type: "model",
         url: SEAT_MODEL_URL,
         dimensions: TARGET_MODEL_DIMENSIONS,
-        ignoreRayIntersection: true
+        ignoreParabolaIntersection: true
     };
 
 
@@ -112,7 +100,7 @@ Script.include("/~/system/libraries/controllers.js");
         {name: "teleport", path: teleportPath, end: teleportEnd},
         {name: "seat", path: seatPath, end: seatEnd}];
 
-    var DEFAULT_DISTANCE = 50;
+    var DEFAULT_DISTANCE = 10;
     var teleportDefaultRenderStates = [{name: "cancel", distance: DEFAULT_DISTANCE, path: cancelPath}];
 
     var coolInTimeout = null;
@@ -134,6 +122,9 @@ Script.include("/~/system/libraries/controllers.js");
         SEAT: 'seat' // The current target is a seat
     };
 
+    var speed = 7.0;
+    var accelerationAxis = {x: 0.0, y: -5.0, z: 0.0};
+
     function Teleporter(hand) {
         var _this = this;
         this.hand = hand;
@@ -149,46 +140,58 @@ Script.include("/~/system/libraries/controllers.js");
             return otherModule;
         };
 
-        this.teleportRayHandVisible = Pointers.createPointer(PickType.Ray, {
+        this.teleportParabolaHandVisible = Pointers.createPointer(PickType.Parabola, {
             joint: (_this.hand === RIGHT_HAND) ? "RightHand" : "LeftHand",
             filter: Picks.PICK_ENTITIES,
             faceAvatar: true,
             scaleWithAvatar: true,
             centerEndY: false,
+            followNormal: true,
+            speed: speed,
+            accelerationAxis: accelerationAxis,
             renderStates: teleportRenderStates,
             defaultRenderStates: teleportDefaultRenderStates
         });
-        this.teleportRayHandInvisible = Pointers.createPointer(PickType.Ray, {
+        this.teleportParabolaHandInvisible = Pointers.createPointer(PickType.Parabola, {
             joint: (_this.hand === RIGHT_HAND) ? "RightHand" : "LeftHand",
             filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_INVISIBLE,
             faceAvatar: true,
             scaleWithAvatar: true,
             centerEndY: false,
+            followNormal: true,
+            speed: speed,
+            accelerationAxis: accelerationAxis,
             renderStates: teleportRenderStates
         });
-        this.teleportRayHeadVisible = Pointers.createPointer(PickType.Ray, {
+        this.teleportParabolaHeadVisible = Pointers.createPointer(PickType.Parabola, {
             joint: "Avatar",
             filter: Picks.PICK_ENTITIES,
             faceAvatar: true,
             scaleWithAvatar: true,
             centerEndY: false,
+            followNormal: true,
+            speed: speed,
+            accelerationAxis: accelerationAxis,
             renderStates: teleportRenderStates,
             defaultRenderStates: teleportDefaultRenderStates
         });
-        this.teleportRayHeadInvisible = Pointers.createPointer(PickType.Ray, {
+        this.teleportParabolaHeadInvisible = Pointers.createPointer(PickType.Parabola, {
             joint: "Avatar",
             filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_INVISIBLE,
             faceAvatar: true,
             scaleWithAvatar: true,
             centerEndY: false,
+            followNormal: true,
+            speed: speed,
+            accelerationAxis: accelerationAxis,
             renderStates: teleportRenderStates
         });
 
         this.cleanup = function() {
-            Pointers.removePointer(this.teleportRayHandVisible);
-            Pointers.removePointer(this.teleportRayHandInvisible);
-            Pointers.removePointer(this.teleportRayHeadVisible);
-            Pointers.removePointer(this.teleportRayHeadInvisible);
+            Pointers.removePointer(this.teleportParabolaHandVisible);
+            Pointers.removePointer(this.teleportParabolaHandInvisible);
+            Pointers.removePointer(this.teleportParabolaHeadVisible);
+            Pointers.removePointer(this.teleportParabolaHeadInvisible);
         };
 
         this.buttonPress = function(value) {
@@ -225,20 +228,20 @@ Script.include("/~/system/libraries/controllers.js");
                     {name: "teleport", path: teleportPath, end: teleportEnd},
                     {name: "seat", path: seatPath, end: seatEnd}];
 
-                Pointers.editRenderState(this.teleportRayHandVisible, "cancel", teleportRenderStates[0]);
-                Pointers.editRenderState(this.teleportRayHandInvisible, "cancel", teleportRenderStates[0]);
-                Pointers.editRenderState(this.teleportRayHeadVisible, "cancel", teleportRenderStates[0]);
-                Pointers.editRenderState(this.teleportRayHeadInvisible, "cancel", teleportRenderStates[0]);
+                Pointers.editRenderState(this.teleportParabolaHandVisible, "cancel", teleportRenderStates[0]);
+                Pointers.editRenderState(this.teleportParabolaHandInvisible, "cancel", teleportRenderStates[0]);
+                Pointers.editRenderState(this.teleportParabolaHeadVisible, "cancel", teleportRenderStates[0]);
+                Pointers.editRenderState(this.teleportParabolaHeadInvisible, "cancel", teleportRenderStates[0]);
 
-                Pointers.editRenderState(this.teleportRayHandVisible, "teleport", teleportRenderStates[1]);
-                Pointers.editRenderState(this.teleportRayHandInvisible, "teleport", teleportRenderStates[1]);
-                Pointers.editRenderState(this.teleportRayHeadVisible, "teleport", teleportRenderStates[1]);
-                Pointers.editRenderState(this.teleportRayHeadInvisible, "teleport", teleportRenderStates[1]);
+                Pointers.editRenderState(this.teleportParabolaHandVisible, "teleport", teleportRenderStates[1]);
+                Pointers.editRenderState(this.teleportParabolaHandInvisible, "teleport", teleportRenderStates[1]);
+                Pointers.editRenderState(this.teleportParabolaHeadVisible, "teleport", teleportRenderStates[1]);
+                Pointers.editRenderState(this.teleportParabolaHeadInvisible, "teleport", teleportRenderStates[1]);
 
-                Pointers.editRenderState(this.teleportRayHandVisible, "seat", teleportRenderStates[2]);
-                Pointers.editRenderState(this.teleportRayHandInvisible, "seat", teleportRenderStates[2]);
-                Pointers.editRenderState(this.teleportRayHeadVisible, "seat", teleportRenderStates[2]);
-                Pointers.editRenderState(this.teleportRayHeadInvisible, "seat", teleportRenderStates[2]);
+                Pointers.editRenderState(this.teleportParabolaHandVisible, "seat", teleportRenderStates[2]);
+                Pointers.editRenderState(this.teleportParabolaHandInvisible, "seat", teleportRenderStates[2]);
+                Pointers.editRenderState(this.teleportParabolaHeadVisible, "seat", teleportRenderStates[2]);
+                Pointers.editRenderState(this.teleportParabolaHeadInvisible, "seat", teleportRenderStates[2]);
             }
         };
 
@@ -258,18 +261,18 @@ Script.include("/~/system/libraries/controllers.js");
             var pose = Controller.getPoseValue(handInfo[(_this.hand === RIGHT_HAND) ? 'right' : 'left'].controllerInput);
             var mode = pose.valid ? _this.hand : 'head';
             if (!pose.valid) {
-                Pointers.disablePointer(_this.teleportRayHandVisible);
-                Pointers.disablePointer(_this.teleportRayHandInvisible);
-                Pointers.enablePointer(_this.teleportRayHeadVisible);
-                Pointers.enablePointer(_this.teleportRayHeadInvisible);
+                Pointers.disablePointer(_this.teleportParabolaHandVisible);
+                Pointers.disablePointer(_this.teleportParabolaHandInvisible);
+                Pointers.enablePointer(_this.teleportParabolaHeadVisible);
+                Pointers.enablePointer(_this.teleportParabolaHeadInvisible);
             } else {
-                Pointers.enablePointer(_this.teleportRayHandVisible);
-                Pointers.enablePointer(_this.teleportRayHandInvisible);
-                Pointers.disablePointer(_this.teleportRayHeadVisible);
-                Pointers.disablePointer(_this.teleportRayHeadInvisible);
+                Pointers.enablePointer(_this.teleportParabolaHandVisible);
+                Pointers.enablePointer(_this.teleportParabolaHandInvisible);
+                Pointers.disablePointer(_this.teleportParabolaHeadVisible);
+                Pointers.disablePointer(_this.teleportParabolaHeadInvisible);
             }
 
-            // We do up to 2 ray picks to find a teleport location.
+            // We do up to 2 picks to find a teleport location.
             // There are 2 types of teleport locations we are interested in:
             //   1. A visible floor. This can be any entity surface that points within some degree of "up"
             //   2. A seat. The seat can be visible or invisible.
@@ -280,17 +283,17 @@ Script.include("/~/system/libraries/controllers.js");
             //
             var result;
             if (mode === 'head') {
-                result = Pointers.getPrevPickResult(_this.teleportRayHeadInvisible);
+                result = Pointers.getPrevPickResult(_this.teleportParabolaHeadInvisible);
             } else {
-                result = Pointers.getPrevPickResult(_this.teleportRayHandInvisible);
+                result = Pointers.getPrevPickResult(_this.teleportParabolaHandInvisible);
             }
 
             var teleportLocationType = getTeleportTargetType(result);
             if (teleportLocationType === TARGET.INVISIBLE) {
                 if (mode === 'head') {
-                    result = Pointers.getPrevPickResult(_this.teleportRayHeadVisible);
+                    result = Pointers.getPrevPickResult(_this.teleportParabolaHeadVisible);
                 } else {
-                    result = Pointers.getPrevPickResult(_this.teleportRayHandVisible);
+                    result = Pointers.getPrevPickResult(_this.teleportParabolaHandVisible);
                 }
                 teleportLocationType = getTeleportTargetType(result);
             }
@@ -336,27 +339,27 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.disableLasers = function() {
-            Pointers.disablePointer(_this.teleportRayHandVisible);
-            Pointers.disablePointer(_this.teleportRayHandInvisible);
-            Pointers.disablePointer(_this.teleportRayHeadVisible);
-            Pointers.disablePointer(_this.teleportRayHeadInvisible);
+            Pointers.disablePointer(_this.teleportParabolaHandVisible);
+            Pointers.disablePointer(_this.teleportParabolaHandInvisible);
+            Pointers.disablePointer(_this.teleportParabolaHeadVisible);
+            Pointers.disablePointer(_this.teleportParabolaHeadInvisible);
         };
 
         this.setTeleportState = function(mode, visibleState, invisibleState) {
             if (mode === 'head') {
-                Pointers.setRenderState(_this.teleportRayHeadVisible, visibleState);
-                Pointers.setRenderState(_this.teleportRayHeadInvisible, invisibleState);
+                Pointers.setRenderState(_this.teleportParabolaHeadVisible, visibleState);
+                Pointers.setRenderState(_this.teleportParabolaHeadInvisible, invisibleState);
             } else {
-                Pointers.setRenderState(_this.teleportRayHandVisible, visibleState);
-                Pointers.setRenderState(_this.teleportRayHandInvisible, invisibleState);
+                Pointers.setRenderState(_this.teleportParabolaHandVisible, visibleState);
+                Pointers.setRenderState(_this.teleportParabolaHandInvisible, invisibleState);
             }
         };
 
         this.setIgnoreEntities = function(entitiesToIgnore) {
-            Pointers.setIgnoreItems(this.teleportRayHandVisible, entitiesToIgnore);
-            Pointers.setIgnoreItems(this.teleportRayHandInvisible, entitiesToIgnore);
-            Pointers.setIgnoreItems(this.teleportRayHeadVisible, entitiesToIgnore);
-            Pointers.setIgnoreItems(this.teleportRayHeadInvisible, entitiesToIgnore);
+            Pointers.setIgnoreItems(this.teleportParabolaHandVisible, entitiesToIgnore);
+            Pointers.setIgnoreItems(this.teleportParabolaHandInvisible, entitiesToIgnore);
+            Pointers.setIgnoreItems(this.teleportParabolaHeadVisible, entitiesToIgnore);
+            Pointers.setIgnoreItems(this.teleportParabolaHeadInvisible, entitiesToIgnore);
         };
     }
 

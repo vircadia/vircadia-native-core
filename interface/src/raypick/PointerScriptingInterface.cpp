@@ -15,6 +15,7 @@
 #include "Application.h"
 #include "LaserPointer.h"
 #include "StylusPointer.h"
+#include "ParabolaPointer.h"
 
 void PointerScriptingInterface::setIgnoreItems(unsigned int uid, const QScriptValue& ignoreItems) const {
     DependencyManager::get<PointerManager>()->setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
@@ -239,8 +240,6 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
 * @property {Pointers.Trigger[]} [triggers] A list of different triggers mechanisms that control this Pointer's click event generation.
 */
 unsigned int PointerScriptingInterface::createParabolaPointer(const QVariant& properties) const {
-    return 0;
-#if 0
     QVariantMap propertyMap = properties.toMap();
 
     bool faceAvatar = false;
@@ -278,7 +277,7 @@ unsigned int PointerScriptingInterface::createParabolaPointer(const QVariant& pr
         enabled = propertyMap["enabled"].toBool();
     }
 
-    ParabolaPointer::RenderStateMap renderStates;
+    RenderStateMap renderStates;
     if (propertyMap["renderStates"].isValid()) {
         QList<QVariant> renderStateVariants = propertyMap["renderStates"].toList();
         for (const QVariant& renderStateVariant : renderStateVariants) {
@@ -292,7 +291,7 @@ unsigned int PointerScriptingInterface::createParabolaPointer(const QVariant& pr
         }
     }
 
-    ParabolaPointer::DefaultRenderStateMap defaultRenderStates;
+    DefaultRenderStateMap defaultRenderStates;
     if (propertyMap["defaultRenderStates"].isValid()) {
         QList<QVariant> renderStateVariants = propertyMap["defaultRenderStates"].toList();
         for (const QVariant& renderStateVariant : renderStateVariants) {
@@ -301,7 +300,7 @@ unsigned int PointerScriptingInterface::createParabolaPointer(const QVariant& pr
                 if (renderStateMap["name"].isValid() && renderStateMap["distance"].isValid()) {
                     std::string name = renderStateMap["name"].toString().toStdString();
                     float distance = renderStateMap["distance"].toFloat();
-                    defaultRenderStates[name] = std::pair<float, ParabolaPointer::RenderState>(distance, ParabolaPointer::buildRenderState(renderStateMap));
+                    defaultRenderStates[name] = std::pair<float, std::shared_ptr<StartEndRenderState>>(distance, ParabolaPointer::buildRenderState(renderStateMap));
                 }
             }
         }
@@ -333,7 +332,6 @@ unsigned int PointerScriptingInterface::createParabolaPointer(const QVariant& pr
     return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<ParabolaPointer>(properties, renderStates, defaultRenderStates, hover, triggers,
                                                                                                   faceAvatar, followNormal, centerEndY, lockEnd, distanceScaleEnd,
                                                                                                   scaleWithAvatar, enabled));
-#endif
 }
 
 void PointerScriptingInterface::editRenderState(unsigned int uid, const QString& renderState, const QVariant& properties) const {
