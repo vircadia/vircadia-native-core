@@ -2837,7 +2837,8 @@ bool MyAvatar::isInAir() {
 
 bool MyAvatar::getFlyingEnabled() {
     // May return true even if client is not allowed to fly in the zone.
-    return _enableFlying;
+    // Should always return true if in desktop mode.
+    return (qApp->isHMDMode()) ? _enableFlying : true;
 }
 
 // Public interface for targetscale
