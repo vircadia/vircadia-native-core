@@ -36,9 +36,9 @@ bool OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     if (ovr::reorientRequested(status)) {
         emit resetSensorsRequested();
     }
-    if (ovr::hmdMounted(status) != _isHmdMounted) {
-        _isHmdMounted = !_isHmdMounted;
-        emit isHmdMountedChanged();
+    if (ovr::hmdMounted(status) != _hmdMounted) {
+        _hmdMounted = !_hmdMounted;
+        emit hmdMountedChanged();
     }
 
     _currentRenderFrameInfo = FrameInfo();

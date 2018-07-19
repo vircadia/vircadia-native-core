@@ -701,9 +701,9 @@ void OpenVrDisplayPlugin::postPreview() {
         _nextRenderPoseData = nextRender;
     }
 
-    if (isHmdMounted() != _isHmdMounted) {
-        _isHmdMounted = !_isHmdMounted;
-        emit isHmdMountedChanged();
+    if (isHmdMounted() != _hmdMounted) {
+        _hmdMounted = !_hmdMounted;
+        emit hmdMountedChanged();
     }
 }
 

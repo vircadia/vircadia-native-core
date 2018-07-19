@@ -91,5 +91,5 @@ private:
 
     bool _asyncReprojectionActive { false };
 
-    bool _isHmdMounted { false };
+    bool _hmdMounted { false };
 };

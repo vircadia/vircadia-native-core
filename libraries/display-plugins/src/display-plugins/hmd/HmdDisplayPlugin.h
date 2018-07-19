@@ -47,7 +47,7 @@ public:
     virtual bool onDisplayTextureReset() override { _clearPreviewFlag = true; return true; };
 
 signals:
-    void isHmdMountedChanged();
+    void hmdMountedChanged();
 
 protected:
     virtual void hmdPresent() = 0;
