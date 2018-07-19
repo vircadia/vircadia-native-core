@@ -83,7 +83,6 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        Log.d("[LOADSTUCK]", "InterfaceActivity::onCreate starting Interface Activity");
         super.isLoading = true;
         Intent intent = getIntent();
         if (intent.hasExtra(DOMAIN_URL) && !intent.getStringExtra(DOMAIN_URL).isEmpty()) {
@@ -129,7 +128,6 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
                 getActionBar().hide();
             }
         });
-        Log.d("[LOADSTUCK]", "InterfaceActivity::onCreate starting Loading Screen");
         startActivity(new Intent(this, SplashActivity.class));
         mVibrator = (Vibrator) this.getSystemService(VIBRATOR_SERVICE);
 
@@ -151,7 +149,6 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         layoutParams.resolveLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         qtLayout.addView(webSlidingDrawer, layoutParams);
         webSlidingDrawer.setVisibility(View.GONE);
-        Log.d("[LOADSTUCK]", "InterfaceActivity::onCreate done");
     }
 
     @Override

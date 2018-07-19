@@ -14,11 +14,9 @@ public class SplashActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Log.d("[LOADSTUCK]", "SplashActivity::onCreate Creating loading screen");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
         registerLoadCompleteListener();
-        Log.d("[LOADSTUCK]", "SplashActivity::onCreate registered as loaded listener");
     }
 
     @Override
@@ -41,7 +39,6 @@ public class SplashActivity extends Activity {
     }
 
     public void onAppLoadedComplete() {
-        Log.d("[LOADSTUCK]", "SplashActivity::onAppLoadedComplete received");
         startActivity(new Intent(this, MainActivity.class));
         SplashActivity.this.finish();
     }
