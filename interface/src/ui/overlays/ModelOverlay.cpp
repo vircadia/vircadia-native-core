@@ -28,10 +28,11 @@ ModelOverlay::ModelOverlay()
     _model->setLoadingPriority(_loadPriority);
     _isLoaded = false;
 
-    _scene = qApp->getMain3DScene();
-
     // Don't show overlay until textures have loaded
-    _model->setVisibleInScene(false, _scene);
+    _visible = false;
+
+    render::ScenePointer scene = qApp->getMain3DScene();
+    _model->setVisibleInScene(false, scene);
 }
 
 ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
@@ -90,11 +91,12 @@ void ModelOverlay::update(float deltatime) {
 
     // check to see if when we added our model to the scene they were ready, if they were not ready, then
     // fix them up in the scene
+    render::ScenePointer scene = qApp->getMain3DScene();
     render::Transaction transaction;
     if (_model->needsFixupInScene()) {
         emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelRemovedFromScene(getID(), NestableType::Overlay, _model);
-        _model->removeFromScene(_scene, transaction);
-        _model->addToScene(_scene, transaction);
+        _model->removeFromScene(scene, transaction);
+        _model->addToScene(scene, transaction);
 
         auto newRenderItemIDs{ _model->fetchRenderItemIDs() };
         transaction.updateItem<Overlay>(getRenderItemID(), [newRenderItemIDs](Overlay& data) {
@@ -105,32 +107,34 @@ void ModelOverlay::update(float deltatime) {
         emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelAddedToScene(getID(), NestableType::Overlay, _model);
     }
     bool metaDirty = false;
-    if (_visibleDirty) {
+    if (_visibleDirty && _texturesLoaded) {
         _visibleDirty = false;
         // don't show overlays in mirrors or spectator-cam unless _isVisibleInSecondaryCamera is true
         uint8_t modelRenderTagMask = (_isVisibleInSecondaryCamera ? render::hifi::TAG_ALL_VIEWS : render::hifi::TAG_MAIN_VIEW);
-        _model->setTagMask(modelRenderTagMask, _scene);
+
+        _model->setTagMask(modelRenderTagMask, scene);
+        _model->setVisibleInScene(getVisible(), scene);
         metaDirty = true;
     }
     if (_drawInFrontDirty) {
         _drawInFrontDirty = false;
-        _model->setLayeredInFront(getDrawInFront(), _scene);
+        _model->setLayeredInFront(getDrawInFront(), scene);
         metaDirty = true;
     }
     if (_drawInHUDDirty) {
         _drawInHUDDirty = false;
-        _model->setLayeredInHUD(getDrawHUDLayer(), _scene);
+        _model->setLayeredInHUD(getDrawHUDLayer(), scene);
         metaDirty = true;
     }
     if (_groupCulledDirty) {
         _groupCulledDirty = false;
-        _model->setGroupCulled(_isGroupCulled, _scene);
+        _model->setGroupCulled(_isGroupCulled, scene);
         metaDirty = true;
     }
     if (metaDirty) {
         transaction.updateItem<Overlay>(getRenderItemID(), [](Overlay& data) {});
     }
-    _scene->enqueueTransaction(transaction);
+    scene->enqueueTransaction(transaction);
 
     if (!_texturesLoaded && _model->getGeometry() && _model->getGeometry()->areTexturesLoaded()) {
         _texturesLoaded = true;
@@ -138,7 +142,7 @@ void ModelOverlay::update(float deltatime) {
             _model->setTextures(_modelTextures);
         }
 
-        _model->setVisibleInScene(true, _scene);
+        _model->setVisibleInScene(getVisible(), scene);
         _model->updateRenderItems();
     }
 }
