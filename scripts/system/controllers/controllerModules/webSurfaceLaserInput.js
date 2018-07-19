@@ -44,12 +44,12 @@ Script.include("/~/system/libraries/controllers.js");
                 }
                 nearGrabName = this.hand === RIGHT_HAND ? "RightNearParentingGrabEntity" : "LeftNearParentingGrabEntity";
                 nearGrabModule = getEnabledModuleByName(nearGrabName);
-                if (nearGrabModule) {
+                if (nearGrabModule && nearGrabModule.isReady(controllerData)) {
                     return nearGrabModule.isReady(controllerData).active;
                 }
                 nearGrabName = this.hand === RIGHT_HAND ? "RightNearActionGrabEntity" : "LeftNearActionGrabEntity";
                 nearGrabModule = getEnabledModuleByName(nearGrabName);
-                if (nearGrabModule) {
+                if (nearGrabModule && nearGrabModule.isReady(controllerData)) {
                     return nearGrabModule.isReady(controllerData).active;
                 }
             }
