@@ -14,6 +14,7 @@
 
 #include <glm/glm.hpp>
 #include <vector>
+#include "BoxBase.h"
 
 class Plane;
 
@@ -73,6 +74,11 @@ bool findCapsulePlanePenetration(const glm::vec3& capsuleStart, const glm::vec3&
 
 glm::vec3 addPenetrations(const glm::vec3& currentPenetration, const glm::vec3& newPenetration);
 
+bool findIntersection(float origin, float direction, float corner, float size, float& distance);
+bool findInsideOutIntersection(float origin, float direction, float corner, float size, float& distance);
+bool findRayAABoxIntersection(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& corner, const glm::vec3& scale, float& distance,
+                              BoxFace& face, glm::vec3& surfaceNormal);
+
 bool findRaySphereIntersection(const glm::vec3& origin, const glm::vec3& direction,
     const glm::vec3& center, float radius, float& distance);
 
@@ -99,6 +105,9 @@ bool findParabolaTriangleIntersection(const glm::vec3& origin, const glm::vec3& 
 
 bool findParabolaCapsuleIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
     const glm::vec3& start, const glm::vec3& end, float radius, const glm::quat& rotation, float& parabolicDistance);
+
+bool findParabolaAABoxIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+    const glm::vec3& corner, const glm::vec3& scale, float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal);
 
 /// \brief decomposes rotation into its components such that: rotation = swing * twist
 /// \param rotation[in] rotation to decompose
@@ -202,6 +211,7 @@ bool solve_quartic(float a, float b, float c, float d, glm::vec4& roots);
 bool computeRealQuarticRoots(float a, float b, float c, float d, float e, glm::vec4& roots);
 
 bool isWithin(float value, float corner, float size);
+bool aaBoxContains(const glm::vec3& point, const glm::vec3& corner, const glm::vec3& scale);
 
 void checkPossibleParabolicIntersectionWithZPlane(float t, float& minDistance,
     const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration, const glm::vec2& corner, const glm::vec2& scale);

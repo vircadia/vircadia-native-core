@@ -78,9 +78,6 @@ private:
 
     static BoxFace getOppositeFace(BoxFace face);
 
-    void checkPossibleParabolicIntersection(float t, int i, float& minDistance,
-        const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration, bool& hit) const;
-
     glm::vec3 _corner;
     float _scale;
 };
