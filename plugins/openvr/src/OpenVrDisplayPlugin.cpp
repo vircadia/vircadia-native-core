@@ -699,7 +699,11 @@ void OpenVrDisplayPlugin::postPreview() {
             _nextSimPoseData = nextSim;
         });
         _nextRenderPoseData = nextRender;
+    }
 
+    if (isHmdMounted() != _isHmdMounted) {
+        _isHmdMounted = !_isHmdMounted;
+        emit isHmdMountedChanged();
     }
 }
 
