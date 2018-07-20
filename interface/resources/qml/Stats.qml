@@ -168,6 +168,10 @@ Item {
                             root.position.y.toFixed(1) + ", " + root.position.z.toFixed(1)
                     }
                     StatText {
+                        text: "Animation Stack: " + root.position.x.toFixed(1) + ", " +
+                            root.position.y.toFixed(1) + ", " + root.position.z.toFixed(1)
+                    }
+                    StatText {
                         text: "Speed: " + root.speed.toFixed(1)
                     }
                     StatText {
