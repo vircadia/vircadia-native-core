@@ -14,64 +14,64 @@
 /* global Script, Overlays, Controller, Vec3, MyAvatar, Entities
 */
 
-(function() {
-    
-    var MSECONDS_AFTER_LOAD = 2000;
+(function () {
 
+    var handTouchEnabled = true;
+    var MSECONDS_AFTER_LOAD = 2000;
     var updateFingerWithIndex = 0;
+    var untouchableEntities = [];
     
-    
-    // Keys to access finger data
+        // Keys to access finger data
     var fingerKeys = ["pinky", "ring", "middle", "index", "thumb"];
-    
-    // Additionally close the hands to achieve a grabbing effect 
+
+    // Additionally close the hands to achieve a grabbing effect
     var grabPercent = { left: 0, right: 0 };
-    
+
     var Palm = function() {
         this.position = {x: 0, y: 0, z: 0};
         this.perpendicular = {x: 0, y: 0, z: 0};
         this.distance = 0;
         this.fingers = {
-            pinky: {x: 0, y: 0, z: 0}, 
-            middle: {x: 0, y: 0, z: 0}, 
-            ring: {x: 0, y: 0, z: 0}, 
-            thumb: {x: 0, y: 0, z: 0}, 
+            pinky: {x: 0, y: 0, z: 0},
+            middle: {x: 0, y: 0, z: 0},
+            ring: {x: 0, y: 0, z: 0},
+            thumb: {x: 0, y: 0, z: 0},
             index: {x: 0, y: 0, z: 0}
         };
         this.set = false;
     };
-    
+
     var palmData = {
         left: new Palm(),
         right: new Palm()
     };
     
     var handJointNames = {left: "LeftHand", right: "RightHand"};
-    
-    // Store which fingers are touching - if all false restate the default poses 
+
+    // Store which fingers are touching - if all false restate the default poses
     var isTouching = {
         left: {
-            pinky: false, 
-            middle: false, 
-            ring: false, 
-            thumb: false, 
-            index: false          
+            pinky: false,
+            middle: false,
+            ring: false,
+            thumb: false,
+            index: false
         }, right: {
-            pinky: false, 
-            middle: false, 
-            ring: false, 
-            thumb: false, 
+            pinky: false,
+            middle: false,
+            ring: false,
+            thumb: false,
             index: false
         }
     };
-        
+
     // frame count for transition to default pose
-    
+
     var countToDefault = {
         left: 0,
         right: 0
     };
-    
+
     // joint data for open pose
     var dataOpen = {
         left: {
@@ -128,7 +128,7 @@
             ]
         }
     };
-	
+
     // joint data for close pose
     var dataClose = {
         left: {
@@ -185,78 +185,78 @@
             ]
         }
     };
-    
+
     // snapshot for the default pose
     var dataDefault = {
         left: {
-            pinky: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
-            middle: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
-            ring: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
-            thumb: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
+            pinky: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
+            middle: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
+            ring: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
+            thumb: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
             index: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
             set: false
         },
         right: {
-            pinky: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
-            middle: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
-            ring: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
-            thumb: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
+            pinky: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
+            middle: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
+            ring: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
+            thumb: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
             index: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
             set: false
         }
     };
-    
+
     // joint data for the current frame
     var dataCurrent = {
         left: {
-            pinky: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
-            middle: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
-            ring: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
-            thumb: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
+            pinky: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
+            middle: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
+            ring: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
+            thumb: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
             index: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}]
         },
         right: {
-            pinky: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
-            middle: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
-            ring: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
-            thumb: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
+            pinky: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
+            middle: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
+            ring: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
+            thumb: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
             index: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}]
         }
     };
-    
-    // interpolated values on joint data to smooth movement 
+
+    // interpolated values on joint data to smooth movement
     var dataDelta = {
         left: {
-            pinky: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
-            middle: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
-            ring: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
-            thumb: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
+            pinky: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
+            middle: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
+            ring: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
+            thumb: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
             index: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}]
         },
         right: {
-            pinky: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
-            middle: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
-            ring: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
-            thumb: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}], 
+            pinky: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
+            middle: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
+            ring: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
+            thumb: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}],
             index: [{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0},{x: 0, y: 0, z: 0, w: 0}]
         }
     };
-    
+
     // Acquire an updated value per hand every 5 frames when finger is touching (faster in)
     var touchAnimationSteps = 5;
-    
-    // Acquire an updated value per hand every 20 frames when finger is returning to default position (slower out) 
+
+    // Acquire an updated value per hand every 20 frames when finger is returning to default position (slower out)
     var defaultAnimationSteps = 10;
-    
+
     // Debugging info
     var showSphere = false;
     var showLines = false;
-    
+
     // This get setup on creation
     var linesCreated = false;
     var sphereCreated = false;
-    
-    // Register object with API Debugger 
+
+    // Register object with API Debugger
     var varsToDebug = {
         scriptLoaded: false,
         toggleDebugSphere: function() {
@@ -275,17 +275,17 @@
         },
         fingerPercent: {
             left: {
-                pinky: 0.38, 
-                middle: 0.38, 
-                ring: 0.38, 
-                thumb: 0.38, 
+                pinky: 0.38,
+                middle: 0.38,
+                ring: 0.38,
+                thumb: 0.38,
                 index: 0.38
-            } , 
+            } ,
             right: {
-                pinky: 0.38, 
-                middle: 0.38, 
-                ring: 0.38, 
-                thumb: 0.38, 
+                pinky: 0.38,
+                middle: 0.38,
+                ring: 0.38,
+                thumb: 0.38,
                 index: 0.38
             }
         },
@@ -300,12 +300,11 @@
         palmData: {
             left: new Palm(),
             right: new Palm()
-        }, 
+        },
         offset: {x: 0, y: 0, z: 0},
         avatarLoaded: false
     };
-    
-    
+
     // Add/Subtract the joint data - per finger joint
     function addVals(val1, val2, sign) {
         var val = [];
@@ -321,7 +320,7 @@
         }
         return val;
     }
-    
+
     // Multiply/Divide  the joint data - per finger joint
     function multiplyValsBy(val1, num) {
         var val = [];
@@ -334,7 +333,7 @@
         }
         return val;
     }
-    
+
     // Calculate the finger lengths by adding its joint lengths
     function getJointDistances(jointNamesArray) {
         var result = {distances: [], totalDistance: 0};
@@ -349,13 +348,12 @@
         }
         return result;
     }
-    
-    function dataRelativeToWorld(side, dataIn, dataOut) {
 
+    function dataRelativeToWorld(side, dataIn, dataOut) {
         var handJoint = handJointNames[side];
         var jointIndex = MyAvatar.getJointIndex(handJoint);
         var worldPosHand = MyAvatar.jointToWorldPoint({x: 0, y: 0, z: 0}, jointIndex);
-        
+
         dataOut.position = MyAvatar.jointToWorldPoint(dataIn.position, jointIndex);
         var localPerpendicular = side === "right" ? {x: 0.2, y: 0, z: 1} : {x: -0.2, y: 0, z: 1};
         dataOut.perpendicular = Vec3.normalize(
@@ -365,15 +363,14 @@
         for (var i = 0; i < fingerKeys.length; i++) {
             var finger = fingerKeys[i];
             dataOut.fingers[finger] = MyAvatar.jointToWorldPoint(dataIn.fingers[finger], jointIndex);
-        }   
+        }
     }
-    
-    function dataRelativeToHandJoint(side, dataIn, dataOut) {
 
+    function dataRelativeToHandJoint(side, dataIn, dataOut) {
         var handJoint = handJointNames[side];
         var jointIndex = MyAvatar.getJointIndex(handJoint);
         var worldPosHand = MyAvatar.jointToWorldPoint({x: 0, y: 0, z: 0}, jointIndex);
-        
+
         dataOut.position = MyAvatar.worldToJointPoint(dataIn.position, jointIndex);
         dataOut.perpendicular = MyAvatar.worldToJointPoint(Vec3.sum(worldPosHand, dataIn.perpendicular), jointIndex);
         dataOut.distance = dataIn.distance;
@@ -382,46 +379,44 @@
             dataOut.fingers[finger] = MyAvatar.worldToJointPoint(dataIn.fingers[finger], jointIndex);
         }
     }
-    
-    // Calculate touch field; Sphere at the center of the palm, 
+
+    // Calculate touch field; Sphere at the center of the palm,
     // perpendicular vector from the palm plane and origin of the the finger rays
-    
     function estimatePalmData(side) {
         // Return data object
-        var data = new Palm();        
-        
-        var jointOffset = { x: 0, y: 0, z: 0 }; 
-        
+        var data = new Palm();
+
+        var jointOffset = { x: 0, y: 0, z: 0 };
+
         var upperSide = side[0].toUpperCase() + side.substring(1);
         var jointIndexHand = MyAvatar.getJointIndex(upperSide + "Hand");
-        
+
         // Store position of the hand joint
         var worldPosHand = MyAvatar.jointToWorldPoint(jointOffset, jointIndexHand);
         var minusWorldPosHand = {x: -worldPosHand.x, y: -worldPosHand.y, z: -worldPosHand.z};
-        
+
         // Data for finger rays
         var directions = {pinky: undefined, middle: undefined, ring: undefined, thumb: undefined, index: undefined};
         var positions = {pinky: undefined, middle: undefined, ring: undefined, thumb: undefined, index: undefined};
-        
+
         var thumbLength = 0;
         var weightCount = 0;
-        
+
         // Calculate palm center
-        
         var handJointWeight = 1;
         var fingerJointWeight = 2;
-        
+
         var palmCenter = {x: 0, y: 0, z: 0};
         palmCenter = Vec3.sum(worldPosHand, palmCenter);
-        
+
         weightCount += handJointWeight;
-        
+
         for (var i = 0; i < fingerKeys.length; i++) {
             var finger = fingerKeys[i];
             var jointSuffixes = 4; // Get 4 joint names with suffix numbers (0, 1, 2, 3)
             var jointNames = getJointNames(side, finger, jointSuffixes);
             var fingerLength = getJointDistances(jointNames).totalDistance;
-            
+
             var jointIndex = MyAvatar.getJointIndex(jointNames[0]);
             positions[finger] = MyAvatar.jointToWorldPoint(jointOffset, jointIndex);
             directions[finger] = Vec3.normalize(Vec3.sum(positions[finger], minusWorldPosHand));
@@ -429,66 +424,63 @@
             if (finger !== "thumb") {
                 // finger joints have double the weight than the hand joint
                 // This would better position the palm estimation
-                
-                palmCenter = Vec3.sum(Vec3.multiply(fingerJointWeight, positions[finger]), palmCenter); 
+
+                palmCenter = Vec3.sum(Vec3.multiply(fingerJointWeight, positions[finger]), palmCenter);
                 weightCount += fingerJointWeight;
             } else {
                 thumbLength = fingerLength;
             }
         }
-        
+
         // perpendicular change direction depending on the side
-        data.perpendicular = (side === "right") ? 
-            Vec3.normalize(Vec3.cross(directions.index, directions.pinky)): 
+        data.perpendicular = (side === "right") ?
+            Vec3.normalize(Vec3.cross(directions.index, directions.pinky)):
             Vec3.normalize(Vec3.cross(directions.pinky, directions.index));
-        
+
         data.position = Vec3.multiply(1.0/weightCount, palmCenter);
-        
+
         if (side === "right") {
             varsToDebug.offset = MyAvatar.worldToJointPoint(worldPosHand, jointIndexHand);
         }
-        
+
         var palmDistanceMultiplier = 1.55; // 1.55 based on test/error for the sphere radius that best fits the hand
-        data.distance = palmDistanceMultiplier*Vec3.distance(data.position, positions.index); 
+        data.distance = palmDistanceMultiplier*Vec3.distance(data.position, positions.index);
 
         // move back thumb ray origin
         var thumbBackMultiplier = 0.2;
         data.fingers.thumb = Vec3.sum(
             data.fingers.thumb, Vec3.multiply( -thumbBackMultiplier * thumbLength, data.perpendicular));
-        
+
         // return getDataRelativeToHandJoint(side, data);
         dataRelativeToHandJoint(side, data, palmData[side]);
         palmData[side].set = true;
-        // return palmData[side];
     }
-    
+
     // Register GlobalDebugger for API Debugger
     Script.registerValue("GlobalDebugger", varsToDebug);
 
     // store the rays for the fingers - only for debug purposes
-    var fingerRays = {  
+    var fingerRays = {
         left: {
-            pinky: undefined, 
-            middle: undefined, 
-            ring: undefined, 
-            thumb: undefined, 
+            pinky: undefined,
+            middle: undefined,
+            ring: undefined,
+            thumb: undefined,
             index: undefined
-        }, 
+        },
         right: {
-            pinky: undefined, 
-            middle: undefined, 
-            ring: undefined, 
-            thumb: undefined, 
+            pinky: undefined,
+            middle: undefined,
+            ring: undefined,
+            thumb: undefined,
             index: undefined
         }
     };
-    
+
     // Create debug overlays - finger rays + palm rays + spheres
-    
     var palmRay, sphereHand;
-    
+
     function createDebugLines() {
-    
         for (var i = 0; i < fingerKeys.length; i++) {
             fingerRays.left[fingerKeys[i]] = Overlays.addOverlay("line3d", {
                 color: { red: 0, green: 0, blue: 255 },
@@ -503,7 +495,7 @@
                 visible: showLines
             });
         }
-        
+
         palmRay = {
             left: Overlays.addOverlay("line3d", {
                 color: { red: 255, green: 0, blue: 0 },
@@ -520,9 +512,8 @@
         };
         linesCreated = true;
     }
-    
+
     function createDebugSphere() {
-            
         sphereHand = {
             right: Overlays.addOverlay("sphere", {
                 position: MyAvatar.position,
@@ -536,10 +527,10 @@
                 scale: { x: 0.01, y: 0.01, z: 0.01 },
                 visible: showSphere
             })
-        }; 
+        };
         sphereCreated = true;
     }
-    
+
     function acquireDefaultPose(side) {
         for (var i = 0; i < fingerKeys.length; i++) {
             var finger = fingerKeys[i];
@@ -553,86 +544,87 @@
         }
         dataDefault[side].set = true;
     }
-    
-    var rayPicks = {  
-        left: { 
-            pinky: undefined, 
-            middle: undefined, 
-            ring: undefined, 
-            thumb: undefined, 
+
+    var rayPicks = {
+        left: {
+            pinky: undefined,
+            middle: undefined,
+            ring: undefined,
+            thumb: undefined,
             index: undefined
         },
-        right: { 
-            pinky: undefined, 
-            middle: undefined, 
-            ring: undefined, 
-            thumb: undefined, 
+        right: {
+            pinky: undefined,
+            middle: undefined,
+            ring: undefined,
+            thumb: undefined,
             index: undefined
         }
     };
-    
-    var dataFailed = {  
-        left: { 
-            pinky: 0, 
-            middle: 0, 
-            ring: 0, 
-            thumb: 0, 
+
+    var dataFailed = {
+        left: {
+            pinky: 0,
+            middle: 0,
+            ring: 0,
+            thumb: 0,
             index: 0
         },
-        right: { 
-            pinky: 0, 
-            middle: 0, 
-            ring: 0, 
-            thumb: 0, 
+        right: {
+            pinky: 0,
+            middle: 0,
+            ring: 0,
+            thumb: 0,
             index: 0
         }
     };
-    
+
     function clearRayPicks(side) {
         for (var i = 0; i < fingerKeys.length; i++) {
             var finger = fingerKeys[i];
             if (rayPicks[side][finger] !== undefined) {
                 RayPick.removeRayPick(rayPicks[side][finger]);
                 rayPicks[side][finger] = undefined;
-            }      
+            }
         }
     }
-    
+
     function createRayPicks(side) {
         var data = palmData[side];
         clearRayPicks(side);
         for (var i = 0; i < fingerKeys.length; i++) {
-            var finger = fingerKeys[i];               
+            var finger = fingerKeys[i];
             var LOOKUP_DISTANCE_MULTIPLIER = 1.5;
             var dist = LOOKUP_DISTANCE_MULTIPLIER*data.distance;
-            var checkOffset = { 
-                x: data.perpendicular.x * dist, 
-                y: data.perpendicular.y * dist, 
-                z: data.perpendicular.z * dist 
+            var checkOffset = {
+                x: data.perpendicular.x * dist,
+                y: data.perpendicular.y * dist,
+                z: data.perpendicular.z * dist
             };
-            
+
             var checkPoint = Vec3.sum(data.position, Vec3.multiply(2, checkOffset));
             var sensorToWorldScale = MyAvatar.getSensorToWorldScale();
-            
+
             var origin = data.fingers[finger];
-            
+
             var direction = Vec3.normalize(Vec3.subtract(checkPoint, origin));
-            
+
             origin = Vec3.multiply(1/sensorToWorldScale, origin);
-            
+
             rayPicks[side][finger] = RayPick.createRayPick(
-                {   
-                    "enabled": false, 
+                {
+                    "enabled": false,
                     "joint": handJointNames[side],
                     "posOffset": origin,
                     "dirOffset": direction,
                     "filter": RayPick.PICK_ENTITIES
                 }
-            );         
-            
-            RayPick.setPrecisionPicking(rayPicks[side][finger], true);            
-        }       
+            );
+
+            RayPick.setPrecisionPicking(rayPicks[side][finger], true);
+        }
     }
+
     function activateNextRay(side, index) {
         var nextIndex = (index < fingerKeys.length-1) ? index + 1 : 0;
         for (var i = 0; i < fingerKeys.length; i++) {
@@ -641,46 +633,44 @@
                 RayPick.enableRayPick(rayPicks[side][finger]);
             } else {
                 RayPick.disableRayPick(rayPicks[side][finger]);
-            } 
+            }
         }
     }
-    
-    function updateSphereHand(side) {
 
+    function updateSphereHand(side) {
         var data = new Palm();
         dataRelativeToWorld(side, palmData[side], data);
         varsToDebug.palmData[side] = palmData[side];
-        
+
         var palmPoint = data.position;
         var LOOKUP_DISTANCE_MULTIPLIER = 1.5;
         var dist = LOOKUP_DISTANCE_MULTIPLIER*data.distance;
-        
-        // Situate the debugging overlays 
-        
-        var checkOffset = { 
-            x: data.perpendicular.x * dist, 
-            y: data.perpendicular.y * dist, 
-            z: data.perpendicular.z * dist 
+
+        // Situate the debugging overlays
+        var checkOffset = {
+            x: data.perpendicular.x * dist,
+            y: data.perpendicular.y * dist,
+            z: data.perpendicular.z * dist
         };
-                
+
         var spherePos = Vec3.sum(palmPoint, checkOffset);
         var checkPoint = Vec3.sum(palmPoint, Vec3.multiply(2, checkOffset));
-        
+
         if (showLines) {
             Overlays.editOverlay(palmRay[side], {
                 start: palmPoint,
                 end: checkPoint,
                 visible: showLines
-            }); 
+            });
             for (var i = 0; i < fingerKeys.length; i++) {
                 Overlays.editOverlay(fingerRays[side][fingerKeys[i]], {
                     start: data.fingers[fingerKeys[i]],
                     end: checkPoint,
                     visible: showLines
                 });
-            }  
+            }
         }
-        
+
         if (showSphere) {
             Overlays.editOverlay(sphereHand[side], {
                 position: spherePos,
@@ -690,16 +680,16 @@
                     z: 2*dist
                 },
                 visible: showSphere
-            }); 
+            });
         }
-        
+
         // Update the intersection of only one finger at a time
-
-        var finger = fingerKeys[updateFingerWithIndex];       
-
-        
-        var grabbables = Entities.findEntities(spherePos, dist);
-        
+        var finger = fingerKeys[updateFingerWithIndex];
+        var nearbyEntities = Entities.findEntities(spherePos, dist);
+        // Filter the entities that are allowed to be touched
+        var touchableEntities = nearbyEntities.filter(function (id) {
+            return untouchableEntities.indexOf(id) == -1;
+        });
         var intersection;
         if (rayPicks[side][finger] !== undefined) {
             intersection = RayPick.getPrevRayPickResult(rayPicks[side][finger]);
@@ -708,11 +698,10 @@
         var animationSteps = defaultAnimationSteps;
         var newFingerData = dataDefault[side][finger];
         var isAbleToGrab = false;
-        if (grabbables.length > 0) {    
-        
-            RayPick.setIncludeItems(rayPicks[side][finger], grabbables);
+        if (touchableEntities.length > 0) {
+            RayPick.setIncludeItems(rayPicks[side][finger], touchableEntities);
 
-            if (intersection === undefined) { 
+            if (intersection === undefined) {
                 return;
             }
 
@@ -725,28 +714,27 @@
             // Store if this finger is touching something
             isTouching[side][finger] = isAbleToGrab;
             if (isAbleToGrab) {
-                // update the open/close percentage for this finger 
-                
+                // update the open/close percentage for this finger
                 var FINGER_REACT_MULTIPLIER = 2.8;
-                
+
                 percent = intersection.distance/(FINGER_REACT_MULTIPLIER*dist);
-                
+
                 var THUMB_FACTOR = 0.2;
                 var FINGER_FACTOR = 0.05;
-                
+
                 // Amount of grab coefficient added to the fingers - thumb is higher
-                var grabMultiplier = finger === "thumb" ? THUMB_FACTOR : FINGER_FACTOR; 
+                var grabMultiplier = finger === "thumb" ? THUMB_FACTOR : FINGER_FACTOR;
                 percent += grabMultiplier * grabPercent[side];
-                
+
                 // Calculate new interpolation data
                 var totalDistance = addVals(dataClose[side][finger], dataOpen[side][finger], -1);
                 // Assign close/open ratio to finger to simulate touch
-                newFingerData = addVals(dataOpen[side][finger], multiplyValsBy(totalDistance, percent), 1); 
+                newFingerData = addVals(dataOpen[side][finger], multiplyValsBy(totalDistance, percent), 1);
                 animationSteps = touchAnimationSteps;
-            } 
+            }
             varsToDebug.fingerPercent[side][finger] = percent;
-            
-        }         
+
+        }
         if (!isAbleToGrab) {
             dataFailed[side][finger] = dataFailed[side][finger] === 0 ? 1 : 2;
         } else {
@@ -755,13 +743,12 @@
         // If it only fails once it will not update increments
         if (dataFailed[side][finger] !== 1) {
             // Calculate animation increments
-            dataDelta[side][finger] = 
-                multiplyValsBy(addVals(newFingerData, dataCurrent[side][finger], -1), 1.0/animationSteps);  
+            dataDelta[side][finger] =
+                multiplyValsBy(addVals(newFingerData, dataCurrent[side][finger], -1), 1.0/animationSteps);
         }
     }
-    
+
     // Recreate the finger joint names
-    
     function getJointNames(side, finger, count) {
         var names = [];
         for (var i = 1; i < count+1; i++) {
@@ -772,30 +759,34 @@
     }
 
     // Capture the controller values
-    
     var leftTriggerPress = function (value) {
         varsToDebug.triggerValues.leftTriggerValue = value;
-        // the value for the trigger increments the hand-close percentage 
+        // the value for the trigger increments the hand-close percentage
         grabPercent.left = value;
     };
+
     var leftTriggerClick = function (value) {
         varsToDebug.triggerValues.leftTriggerClicked = value;
     };
+
     var rightTriggerPress = function (value) {
         varsToDebug.triggerValues.rightTriggerValue = value;
-        // the value for the trigger increments the hand-close percentage 
+        // the value for the trigger increments the hand-close percentage
         grabPercent.right = value;
     };
+
     var rightTriggerClick = function (value) {
         varsToDebug.triggerValues.rightTriggerClicked = value;
     };
+
     var leftSecondaryPress = function (value) {
         varsToDebug.triggerValues.leftSecondaryValue = value;
     };
+
     var rightSecondaryPress = function (value) {
         varsToDebug.triggerValues.rightSecondaryValue = value;
     };
-    
+
     var MAPPING_NAME = "com.highfidelity.handTouch";
     var mapping = Controller.newMapping(MAPPING_NAME);
     mapping.from([Controller.Standard.RT]).peek().to(rightTriggerPress);
@@ -809,16 +800,17 @@
     mapping.from([Controller.Standard.RightGrip]).peek().to(rightSecondaryPress);
 
     Controller.enableMapping(MAPPING_NAME);
-    
+
     if (showLines && !linesCreated) {
         createDebugLines();
         linesCreated = true;
     }
+
     if (showSphere && !sphereCreated) {
         createDebugSphere();
         sphereCreated = true;
     }
-    
+
     function getTouching(side) {
         var animating = false;
         for (var i = 0; i < fingerKeys.length; i++) {
@@ -827,19 +819,70 @@
         }
         return animating; // return false only if none of the fingers are touching
     }
-    
+
     function reEstimatePalmData() {
         ["right", "left"].forEach(function(side) {
             estimatePalmData(side);
         });
     }
-    
+
     function recreateRayPicks() {
         ["right", "left"].forEach(function(side) {
             createRayPicks(side);
         });
     }
-    
+
+    function cleanUp() {
+        ["right", "left"].forEach(function (side) {
+            if (linesCreated) {
+                Overlays.deleteOverlay(palmRay[side]);
+            }
+            if (sphereCreated) {
+                Overlays.deleteOverlay(sphereHand[side]);
+            }
+            clearRayPicks(side);
+            for (var i = 0; i < fingerKeys.length; i++) {
+                var finger = fingerKeys[i];
+                var jointSuffixes = 3; // We need to clear the joints 0, 1 and 2 joints
+                var names = getJointNames(side, finger, jointSuffixes);
+                for (var j = 0; j < names.length; j++) {
+                    var index = MyAvatar.getJointIndex(names[j]);
+                    MyAvatar.clearJointData(index);
+                }
+                if (linesCreated) {
+                    Overlays.deleteOverlay(fingerRays[side][finger]);
+                }
+            }
+        });
+    }
+
+    MyAvatar.shouldDisableHandTouchChanged.connect(function (shouldDisable) {
+        if (shouldDisable) {
+            if (handTouchEnabled) {
+                cleanUp();
+            }
+        } else {
+            if (!handTouchEnabled) {
+                reEstimatePalmData();
+                recreateRayPicks();
+            }
+        }
+        handTouchEnabled = !shouldDisable;
+    });
+
+    MyAvatar.disableHandTouchForIDChanged.connect(function (entityID, disable) {
+        var entityIndex = untouchableEntities.indexOf(entityID);
+        if (disable) {
+            if (entityIndex == -1) {
+                untouchableEntities.push(entityID);
+            }
+        } else {
+            if (entityIndex != -1) {
+                untouchableEntities.splice(entityIndex, 1);
+            }
+        }
+    });
+
     MyAvatar.onLoadComplete.connect(function () {
         // Sometimes the rig is not ready when this signal is trigger
         console.log("avatar loaded");
@@ -848,78 +891,55 @@
             recreateRayPicks();
         }, MSECONDS_AFTER_LOAD);
     });
-    
+
     MyAvatar.sensorToWorldScaleChanged.connect(function() {
         reEstimatePalmData();
     });
-    
-    Script.scriptEnding.connect(function () {
-        ["right", "left"].forEach(function(side) {
-            if (linesCreated) {
-                Overlays.deleteOverlay(palmRay[side]); 
-            }
-            if (sphereCreated) {
-                Overlays.deleteOverlay(sphereHand[side]); 
-            }
-            clearRayPicks(side);
-            for (var i = 0; i < fingerKeys.length; i++) {
 
-                var finger = fingerKeys[i];
-                var jointSuffixes = 3; // We need to clear the joints 0, 1 and 2 joints
-                var names = getJointNames(side, finger, jointSuffixes); 
-                
-                for (var j = 0; j < names.length; j++) {
-                    var index = MyAvatar.getJointIndex(names[j]);
-                    MyAvatar.clearJointData(index);
-                }
-                
-                if (linesCreated) {
-                    Overlays.deleteOverlay(fingerRays[side][finger]);
-                }  
-            }
-        });
+    Script.scriptEnding.connect(function () {
+        cleanUp();
     });
-    
-    Script.update.connect(function() {
-        
+
+    Script.update.connect(function () {
+
+        if (!handTouchEnabled) {
+            return;
+        }
+
         // index of the finger that needs to be updated this frame
-        
         updateFingerWithIndex = (updateFingerWithIndex < fingerKeys.length-1) ? updateFingerWithIndex + 1 : 0;
-        
+
         ["right", "left"].forEach(function(side) {
-            
+
             if (!palmData[side].set) {
                 reEstimatePalmData();
                 recreateRayPicks();
             }
-            
+
             // recalculate the base data
             updateSphereHand(side);
             activateNextRay(side, updateFingerWithIndex);
-            
+
             // this vars manage the transition to default pose
             var isHandTouching = getTouching(side);
             countToDefault[side] = isHandTouching ? 0 : countToDefault[side] + 1;
-            
-            
+
             for (var i = 0; i < fingerKeys.length; i++) {
                 var finger = fingerKeys[i];
                 var jointSuffixes = 3; // We need to update rotation of the 0, 1 and 2 joints
-                var names = getJointNames(side, finger, jointSuffixes); 
-                
+                var names = getJointNames(side, finger, jointSuffixes);
+
                 // Add the animation increments
-                
-                dataCurrent[side][finger] = addVals(dataCurrent[side][finger], dataDelta[side][finger], 1); 
-                
+                dataCurrent[side][finger] = addVals(dataCurrent[side][finger], dataDelta[side][finger], 1);
+
                 // update every finger joint
-                
                 for (var j = 0; j < names.length; j++) {
                     var index = MyAvatar.getJointIndex(names[j]);
                     // if no finger is touching restate the default poses
-                    if (isHandTouching || (dataDefault[side].set && 
+                    if (isHandTouching || (dataDefault[side].set &&
                     countToDefault[side] < fingerKeys.length*touchAnimationSteps)) {
                         var quatRot = dataCurrent[side][finger][j];
-                        MyAvatar.setJointRotation(index, quatRot);  
+                        MyAvatar.setJointRotation(index, quatRot);
                     } else {
                         MyAvatar.clearJointData(index);
                     }

@@ -11,7 +11,7 @@
 /* global EntityListTool, Tablet, selectionManager, Entities, Camera, MyAvatar, Vec3, Menu, Messages,
    cameraManager, MENU_EASE_ON_FOCUS, deleteSelectedEntities, toggleSelectedEntitiesLocked, toggleSelectedEntitiesVisible */
 
-EntityListTool = function() {
+EntityListTool = function(shouldUseEditTabletApp) {
     var that = {};
 
     var CreateWindow = Script.require('../modules/createWindow.js');
@@ -55,8 +55,8 @@ EntityListTool = function() {
 
     that.setVisible = function(newVisible) {
         visible = newVisible;
-        webView.setVisible(HMD.active && visible);
-        entityListWindow.setVisible(!HMD.active && visible);
+        webView.setVisible(shouldUseEditTabletApp() && visible);
+        entityListWindow.setVisible(!shouldUseEditTabletApp() && visible);
     };
 
     that.setVisible(false);
@@ -93,12 +93,18 @@ EntityListTool = function() {
     };
 
     that.removeEntities = function (deletedIDs, selectedIDs) {
-        var data = {
+        emitJSONScriptEvent({
             type: 'removeEntities',
             deletedIDs: deletedIDs,
             selectedIDs: selectedIDs
-        };
-        webView.emitScriptEvent(JSON.stringify(data));
+        });
+    };
+    
+    that.deleteEntities = function (deletedIDs) {
+        emitJSONScriptEvent({
+            type: "deleted",
+            ids: deletedIDs
+        });
     };
 
     function valueIfDefined(value) {
