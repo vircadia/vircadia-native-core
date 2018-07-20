@@ -5,11 +5,12 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* global Script, Entities, Controller, RIGHT_HAND, LEFT_HAND, enableDispatcherModule, disableDispatcherModule,
-   makeRunningValues, Messages, Quat, Vec3, makeDispatcherModuleParameters, Overlays, ZERO_VEC, HMD,
-   INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, getGrabPointSphereOffset, COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
-   COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_ON_VALUE,
-   TRIGGER_OFF_VALUE, getEnabledModuleByName, PICK_MAX_DISTANCE, ContextOverlay, Picks, makeLaserParams
+/* global Script, Entities, Controller, RIGHT_HAND, LEFT_HAND, getControllerWorldLocation,
+   enableDispatcherModule, disableDispatcherModule, makeRunningValues, Messages, Quat, Vec3,
+   makeDispatcherModuleParameters, Overlays, ZERO_VEC, HMD, INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT,
+   getGrabPointSphereOffset, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
+   COLORS_GRAB_DISTANCE_HOLD, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_ON_VALUE, TRIGGER_OFF_VALUE,
+   getEnabledModuleByName, PICK_MAX_DISTANCE, ContextOverlay, Picks, makeLaserParams
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -19,6 +20,8 @@ Script.include("/~/system/libraries/controllers.js");
     function WebSurfaceLaserInput(hand) {
         this.hand = hand;
         this.otherHand = this.hand === RIGHT_HAND ? LEFT_HAND : RIGHT_HAND;
+        this.ignoredEntities = [];
+        this.lastObjectID = null;
         this.running = false;
 
         this.parameters = makeDispatcherModuleParameters(
@@ -60,16 +63,20 @@ Script.include("/~/system/libraries/controllers.js");
             return this.hand === RIGHT_HAND ? leftOverlayLaserInput : rightOverlayLaserInput;
         };
 
-        this.isPointingAtGrabbableEntity = function(controllerData, triggerPressed) {
+        this.isPointingAtNearGrabbableEntity = function(controllerData, triggerPressed) {
             // we are searching for an entity that is not a web entity.  We want to be able to
             // grab a non-web entity if the ray-pick intersects one.
             var intersection = controllerData.rayPicks[this.hand];
             if (intersection.type === Picks.INTERSECTED_ENTITY) {
                 // is pointing at an entity.
-                var entityProperty = Entities.getEntityProperties(intersection.objectID);
-                var entityType = entityProperty.type;
-                var isGrabbable = entityIsGrabbable(entityProperty);
-                return (isGrabbable && triggerPressed && entityType !== "Web");
+                var entityProperties = Entities.getEntityProperties(intersection.objectID);
+                var entityType = entityProperties.type;
+                if (entityIsGrabbable(entityProperties)) {
+                    // check if entity is near grabbable.
+                    var distance = Vec3.distance(entityProperties.position, controllerData.controllerLocations[this.hand].position);
+                    if (distance <= NEAR_GRAB_RADIUS * MyAvatar.sensorToWorldScale)
+                        return (triggerPressed && entityType !== "Web");
+                }
             }
             return false;
         };
@@ -78,21 +85,30 @@ Script.include("/~/system/libraries/controllers.js");
             // allow pointing at tablet, unlocked web entities, or web overlays automatically without pressing trigger,
             // but for pointing at locked web entities or non-web overlays user must be pressing trigger
             var intersection = controllerData.rayPicks[this.hand];
+            var objectID = intersection.objectID;
             if (intersection.type === Picks.INTERSECTED_OVERLAY) {
-                var objectID = intersection.objectID;
                 if ((HMD.tabletID && objectID === HMD.tabletID) ||
                     (HMD.tabletScreenID && objectID === HMD.tabletScreenID) || 
                     (HMD.homeButtonID && objectID === HMD.homeButtonID)) {
+                    this.lastObjectID = objectID;
                     return true;
                 } else {
                     var overlayType = Overlays.getOverlayType(objectID);
+                    this.lastObjectID = objectID;
                     return overlayType === "web3d" || triggerPressed;
                 }
             } else if (intersection.type === Picks.INTERSECTED_ENTITY) {
-                var entityProperty = Entities.getEntityProperties(intersection.objectID);
-                var entityType = entityProperty.type;
-                var isLocked = entityProperty.locked;
-                return entityType === "Web" && (!isLocked || triggerPressed);
+                var entityProperty = Entities.getEntityProperties(objectID);
+                if (entityProperty.type === "Web") {
+                    var isLocked = entityProperty.locked;
+                    this.lastObjectID = objectID;
+                    return (!isLocked || triggerPressed);
+                } else if (this.ignoredEntities.indexOf(objectID) === -1 && triggerPressed && this.lastObjectID !== objectID) {
+                    // ignore, preserve whether it's running or not.
+                    console.log("I'm here");
+                    Pointers.setIgnoreItems(controllerData.pointers[this.hand], [objectID]);
+                    this.ignoredEntities.push(objectID);
+                }
             }
             return false;
         };
@@ -109,6 +125,11 @@ Script.include("/~/system/libraries/controllers.js");
                 }
             }
         };
+
+        this.reAddIgnoredEntities = function(controllerData) {
+            Pointers.setIncludeItems(controllerData.pointers[this.hand], this.ignoredEntities); 
+            this.ignoredEntities = [];
+        }
 
         this.updateAllwaysOn = function() {
             var PREFER_STYLUS_OVER_LASER = "preferStylusOverLaser";
@@ -128,7 +149,7 @@ Script.include("/~/system/libraries/controllers.js");
                                    controllerData.triggerValues[this.otherHand] <= TRIGGER_OFF_VALUE;
             var allowThisModule = !otherModuleRunning || isTriggerPressed;
             if (allowThisModule && this.isPointingAtTriggerable(controllerData, isTriggerPressed) &&
-                !this.isPointingAtGrabbableEntity(controllerData, isTriggerPressed)) {
+                !this.isPointingAtNearGrabbableEntity(controllerData, isTriggerPressed)) {
                 this.updateAllwaysOn();
                 if (isTriggerPressed) {
                     this.dominantHandOverride = true; // Override dominant hand.
@@ -150,11 +171,12 @@ Script.include("/~/system/libraries/controllers.js");
             var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE;
             var laserOn = isTriggerPressed || this.parameters.handLaser.allwaysOn;
             if (allowThisModule && (laserOn && this.isPointingAtTriggerable(controllerData, isTriggerPressed)) &&
-                !this.isPointingAtGrabbableEntity(controllerData, isTriggerPressed)) {
+                !this.isPointingAtNearGrabbableEntity(controllerData, isTriggerPressed)) {
                 this.running = true;
                 return makeRunningValues(true, [], []);
             }
             this.deleteContextOverlay();
+            this.reAddIgnoredEntities(controllerData);
             this.running = false;
             this.dominantHandOverride = false;
             return makeRunningValues(false, [], []);

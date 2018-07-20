@@ -298,6 +298,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 triggerValues: [_this.leftTriggerValue, _this.rightTriggerValue],
                 triggerClicks: [_this.leftTriggerClicked, _this.rightTriggerClicked],
                 secondaryValues: [_this.leftSecondaryValue, _this.rightSecondaryValue],
+                pointers: [_this.leftPointer, _this.rightPointer ],
                 controllerLocations: controllerLocations,
                 nearbyEntityProperties: nearbyEntityProperties,
                 nearbyEntityPropertiesByID: nearbyEntityPropertiesByID,
