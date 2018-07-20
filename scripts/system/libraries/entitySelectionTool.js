@@ -915,7 +915,6 @@ SelectionDisplay = (function() {
     // FUNCTION: MOUSE MOVE EVENT
     var lastMouseEvent = null;
     that.mouseMoveEvent = function(event) {
-		print("Got mouse move event", JSON.stringify(event));
         var wantDebug = false;
         if (wantDebug) {
             print("=============== eST::MouseMoveEvent BEG =======================");
