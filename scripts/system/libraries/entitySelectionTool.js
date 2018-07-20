@@ -381,6 +381,8 @@ SelectionDisplay = (function() {
     
     var CTRL_KEY_CODE = 16777249;
 
+    var RAIL_AXIS_LENGTH = 10000;
+
     var TRANSLATE_DIRECTION = {
         X: 0,
         Y: 1,
@@ -1834,24 +1836,24 @@ SelectionDisplay = (function() {
                 }
                 if (!isConstrained) {
                     var xStart = Vec3.sum(startPosition, {
-                        x: -10000,
+                        x: -RAIL_AXIS_LENGTH,
                         y: 0,
                         z: 0
                     });
                     var xEnd = Vec3.sum(startPosition, {
-                        x: 10000,
+                        x: RAIL_AXIS_LENGTH,
                         y: 0,
                         z: 0
                     });
                     var zStart = Vec3.sum(startPosition, {
                         x: 0,
                         y: 0,
-                        z: -10000
+                        z: -RAIL_AXIS_LENGTH
                     });
                     var zEnd = Vec3.sum(startPosition, {
                         x: 0,
                         y: 0,
-                        z: 10000
+                        z: RAIL_AXIS_LENGTH
                     });
                     Overlays.editOverlay(xRailOverlay, {
                         start: xStart,
