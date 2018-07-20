@@ -20,8 +20,6 @@ Script.include("/~/system/libraries/controllers.js");
     function WebSurfaceLaserInput(hand) {
         this.hand = hand;
         this.otherHand = this.hand === RIGHT_HAND ? LEFT_HAND : RIGHT_HAND;
-        this.ignoredEntities = [];
-        this.lastObjectID = null;
         this.running = false;
 
         this.parameters = makeDispatcherModuleParameters(
@@ -71,11 +69,15 @@ Script.include("/~/system/libraries/controllers.js");
                 // is pointing at an entity.
                 var entityProperties = Entities.getEntityProperties(intersection.objectID);
                 var entityType = entityProperties.type;
-                if (entityIsGrabbable(entityProperties)) {
+                if (entityIsGrabbable(entityProperties) && entityType !== "Web") {
                     // check if entity is near grabbable.
                     var distance = Vec3.distance(entityProperties.position, controllerData.controllerLocations[this.hand].position);
-                    if (distance <= NEAR_GRAB_RADIUS * MyAvatar.sensorToWorldScale)
-                        return (triggerPressed && entityType !== "Web");
+                    if (distance <= NEAR_GRAB_RADIUS * MyAvatar.sensorToWorldScale) {
+                        return triggerPressed;
+                    } else {
+                        // far-grabbable, but still return it as true anyway
+                        return false;
+                    }
                 }
             }
             return false;
@@ -90,25 +92,15 @@ Script.include("/~/system/libraries/controllers.js");
                 if ((HMD.tabletID && objectID === HMD.tabletID) ||
                     (HMD.tabletScreenID && objectID === HMD.tabletScreenID) || 
                     (HMD.homeButtonID && objectID === HMD.homeButtonID)) {
-                    this.lastObjectID = objectID;
                     return true;
                 } else {
                     var overlayType = Overlays.getOverlayType(objectID);
-                    this.lastObjectID = objectID;
                     return overlayType === "web3d" || triggerPressed;
                 }
             } else if (intersection.type === Picks.INTERSECTED_ENTITY) {
                 var entityProperty = Entities.getEntityProperties(objectID);
-                if (entityProperty.type === "Web") {
-                    var isLocked = entityProperty.locked;
-                    this.lastObjectID = objectID;
-                    return (!isLocked || triggerPressed);
-                } else if (this.ignoredEntities.indexOf(objectID) === -1 && triggerPressed && this.lastObjectID !== objectID) {
-                    // ignore, preserve whether it's running or not.
-                    console.log("I'm here");
-                    Pointers.setIgnoreItems(controllerData.pointers[this.hand], [objectID]);
-                    this.ignoredEntities.push(objectID);
-                }
+                var isLocked = entityProperty.locked;
+                return (!isLocked || triggerPressed || entityProperty.type === "Web");
             }
             return false;
         };
@@ -125,11 +117,6 @@ Script.include("/~/system/libraries/controllers.js");
                 }
             }
         };
-
-        this.reAddIgnoredEntities = function(controllerData) {
-            Pointers.setIncludeItems(controllerData.pointers[this.hand], this.ignoredEntities); 
-            this.ignoredEntities = [];
-        }
 
         this.updateAllwaysOn = function() {
             var PREFER_STYLUS_OVER_LASER = "preferStylusOverLaser";
@@ -148,8 +135,7 @@ Script.include("/~/system/libraries/controllers.js");
             var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE &&
                                    controllerData.triggerValues[this.otherHand] <= TRIGGER_OFF_VALUE;
             var allowThisModule = !otherModuleRunning || isTriggerPressed;
-            if (allowThisModule && this.isPointingAtTriggerable(controllerData, isTriggerPressed) &&
-                !this.isPointingAtNearGrabbableEntity(controllerData, isTriggerPressed)) {
+            if (allowThisModule && this.isPointingAtTriggerable(controllerData, isTriggerPressed)) {
                 this.updateAllwaysOn();
                 if (isTriggerPressed) {
                     this.dominantHandOverride = true; // Override dominant hand.
@@ -176,7 +162,6 @@ Script.include("/~/system/libraries/controllers.js");
                 return makeRunningValues(true, [], []);
             }
             this.deleteContextOverlay();
-            this.reAddIgnoredEntities(controllerData);
             this.running = false;
             this.dominantHandOverride = false;
             return makeRunningValues(false, [], []);
