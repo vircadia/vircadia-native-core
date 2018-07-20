@@ -145,7 +145,8 @@ void AvatarBookmarks::removeBookmark(const QString& bookmarkName) {
 }
 
 bool isWearableEntity(const EntityItemPointer& entity) {
-    return entity->isVisible() && entity->getParentJointIndex() != INVALID_JOINT_INDEX && entity->getParentID() == DependencyManager::get<NodeList>()->getSessionUUID();
+    return entity->isVisible() && entity->getParentJointIndex() != INVALID_JOINT_INDEX &&
+        (entity->getParentID() == DependencyManager::get<NodeList>()->getSessionUUID() || entity->getParentID() == DependencyManager::get<AvatarManager>()->getMyAvatar()->getSelfID());
 }
 
 void AvatarBookmarks::updateAvatarEntities(const QVariantList &avatarEntities) {
