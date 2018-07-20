@@ -160,11 +160,11 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         for(var bookmarkName in message.data.bookmarks) {
             var bookmark = message.data.bookmarks[bookmarkName];
 
-	    if (bookmark.avatarEntites) {
-		bookmark.avatarEntites.forEach(function(avatarEntity) {
-                    avatarEntity.properties.localRotationAngles = Quat.safeEulerAngles(avatarEntity.properties.localRotation)
-		});
-	    }
+            if (bookmark.avatarEntites) {
+                bookmark.avatarEntites.forEach(function(avatarEntity) {
+                    avatarEntity.properties.localRotationAngles = Quat.safeEulerAngles(avatarEntity.properties.localRotation);
+                });
+            }
         }
 
         sendToQml(message)
