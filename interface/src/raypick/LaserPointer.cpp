@@ -103,9 +103,9 @@ void LaserPointer::RenderState::disable() {
     }
 }
 
-void LaserPointer::RenderState::update(const glm::vec3& origin, const glm::vec3& end, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
+void LaserPointer::RenderState::update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
                                        bool faceAvatar, bool followNormal, float distance, const PickResultPointer& pickResult) {
-    StartEndRenderState::update(origin, end, scaleWithAvatar, distanceScaleEnd, centerEndY, faceAvatar, followNormal, distance, pickResult);
+    StartEndRenderState::update(origin, end, surfaceNormal, scaleWithAvatar, distanceScaleEnd, centerEndY, faceAvatar, followNormal, distance, pickResult);
     QVariant endVariant = vec3toVariant(end);
     if (!getPathID().isNull()) {
         QVariantMap pathProps;

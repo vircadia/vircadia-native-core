@@ -52,6 +52,8 @@ PickResultPointer ParabolaPick::getHUDIntersection(const PickParabola& pick) {
 }
 
 glm::vec3 ParabolaPick::getAcceleration() const {
-    // TODO: use rotateWithAvatar
+    if (_rotateAccelerationWithAvatar) {
+        return DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldOrientation() * _accelerationAxis;
+    }
     return _accelerationAxis;
 }

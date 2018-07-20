@@ -184,9 +184,9 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
         accelerationAxis = vec3FromVariant(propMap["accelerationAxis"]);
     }
 
-    bool rotateWithAvatar = true;
-    if (propMap["rotateWithAvatar"].isValid()) {
-        rotateWithAvatar = propMap["rotateWithAvatar"].toBool();
+    bool rotateAccelerationWithAvatar = true;
+    if (propMap["rotateAccelerationWithAvatar"].isValid()) {
+        rotateAccelerationWithAvatar = propMap["rotateAccelerationWithAvatar"].toBool();
     }
 
     if (propMap["joint"].isValid()) {
@@ -205,10 +205,10 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
             }
 
             return DependencyManager::get<PickManager>()->addPick(PickQuery::Parabola, std::make_shared<JointParabolaPick>(jointName, posOffset, dirOffset,
-                speed, accelerationAxis, rotateWithAvatar, filter, maxDistance, enabled));
+                speed, accelerationAxis, rotateAccelerationWithAvatar, filter, maxDistance, enabled));
 
         } else {
-            return DependencyManager::get<PickManager>()->addPick(PickQuery::Parabola, std::make_shared<MouseParabolaPick>(speed, accelerationAxis, rotateWithAvatar, filter, maxDistance, enabled));
+            return DependencyManager::get<PickManager>()->addPick(PickQuery::Parabola, std::make_shared<MouseParabolaPick>(speed, accelerationAxis, rotateAccelerationWithAvatar, filter, maxDistance, enabled));
         }
     } else if (propMap["position"].isValid()) {
         glm::vec3 position = vec3FromVariant(propMap["position"]);
@@ -218,7 +218,7 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
             direction = vec3FromVariant(propMap["direction"]);
         }
 
-        return DependencyManager::get<PickManager>()->addPick(PickQuery::Parabola, std::make_shared<StaticParabolaPick>(position, direction, speed, accelerationAxis, rotateWithAvatar, filter, maxDistance, enabled));
+        return DependencyManager::get<PickManager>()->addPick(PickQuery::Parabola, std::make_shared<StaticParabolaPick>(position, direction, speed, accelerationAxis, rotateAccelerationWithAvatar, filter, maxDistance, enabled));
     }
 
     return PickManager::INVALID_PICK_ID;

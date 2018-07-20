@@ -840,8 +840,9 @@ bool findParabolaRectangleIntersection(const glm::vec3& origin, const glm::vec3&
         float c = origin.z;
         glm::vec2 possibleDistances = { FLT_MAX, FLT_MAX };
         if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
-            checkPossibleParabolicIntersectionWithZPlane(possibleDistances.x, minDistance, origin, velocity, acceleration, localCorner, dimensions);
-            checkPossibleParabolicIntersectionWithZPlane(possibleDistances.y, minDistance, origin, velocity, acceleration, localCorner, dimensions);
+            for (int i = 0; i < 2; i++) {
+                checkPossibleParabolicIntersectionWithZPlane(possibleDistances[i], minDistance, origin, velocity, acceleration, localCorner, dimensions);
+            }
         }
     }
     if (minDistance < FLT_MAX) {
@@ -941,7 +942,8 @@ void checkPossibleParabolicIntersectionWithTriangle(float t, float& minDistance,
 
     // Check that the point is within all three sides
     glm::vec3 point = origin + velocity * t + 0.5f * acceleration * t * t;
-    if (glm::dot(normal, glm::cross(point - v1, v0 - v1)) > 0.0f &&
+    if (t < minDistance && t > 0.0f &&
+        glm::dot(normal, glm::cross(point - v1, v0 - v1)) > 0.0f &&
         glm::dot(normal, glm::cross(v2 - v1, point - v1)) > 0.0f &&
         glm::dot(normal, glm::cross(point - v0, v2 - v0)) > 0.0f) {
         minDistance = t;
@@ -981,10 +983,10 @@ bool findParabolaTriangleIntersection(const glm::vec3& origin, const glm::vec3& 
         float c = localOrigin.z;
         glm::vec2 possibleDistances = { FLT_MAX, FLT_MAX };
         if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
-            checkPossibleParabolicIntersectionWithTriangle(possibleDistances.x, minDistance, origin, velocity, acceleration,
-                localVelocity, localAcceleration, normal, v0, v1, v2, allowBackface);
-            checkPossibleParabolicIntersectionWithTriangle(possibleDistances.y, minDistance, origin, velocity, acceleration,
-                localVelocity, localAcceleration, normal, v0, v1, v2, allowBackface);
+            for (int i = 0; i < 2; i++) {
+                checkPossibleParabolicIntersectionWithTriangle(possibleDistances[i], minDistance, origin, velocity, acceleration,
+                    localVelocity, localAcceleration, normal, v0, v1, v2, allowBackface);
+            }
         }
     }
     if (minDistance < FLT_MAX) {
@@ -1374,8 +1376,8 @@ bool findParabolaAABoxIntersection(const glm::vec3& origin, const glm::vec3& vel
                         { // min
                             c = origin[i] - corner[i];
                             possibleDistances = { FLT_MAX, FLT_MAX };
-                            bool hit = false;
                             if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
+                                bool hit = false;
                                 for (int j = 0; j < 2; j++) {
                                     if (parabolaVelocityAtT(velocity[i], acceleration[i], possibleDistances[j]) < 0.0f) {
                                         checkPossibleParabolicIntersection(possibleDistances[j], i, minDistance, origin, velocity, acceleration, corner, scale, hit);
@@ -1391,8 +1393,8 @@ bool findParabolaAABoxIntersection(const glm::vec3& origin, const glm::vec3& vel
                         { // max
                             c = origin[i] - (corner[i] + scale[i]);
                             possibleDistances = { FLT_MAX, FLT_MAX };
-                            bool hit = false;
                             if (computeRealQuadraticRoots(a, b, c, possibleDistances)) {
+                                bool hit = false;
                                 for (int j = 0; j < 2; j++) {
                                     if (parabolaVelocityAtT(velocity[i], acceleration[i], possibleDistances[j]) > 0.0f) {
                                         checkPossibleParabolicIntersection(possibleDistances[j], i, minDistance, origin, velocity, acceleration, corner, scale, hit);

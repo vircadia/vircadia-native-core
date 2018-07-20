@@ -80,19 +80,19 @@ Script.include("/~/system/libraries/controllers.js");
         type: "model",
         url: TOO_CLOSE_MODEL_URL,
         dimensions: TARGET_MODEL_DIMENSIONS,
-        ignoreParabolaIntersection: true
+        ignorePickIntersection: true
     };
     var teleportEnd = {
         type: "model",
         url: TARGET_MODEL_URL,
         dimensions: TARGET_MODEL_DIMENSIONS,
-        ignoreParabolaIntersection: true
+        ignorePickIntersection: true
     };
     var seatEnd = {
         type: "model",
         url: SEAT_MODEL_URL,
         dimensions: TARGET_MODEL_DIMENSIONS,
-        ignoreParabolaIntersection: true
+        ignorePickIntersection: true
     };
 
 
@@ -149,6 +149,7 @@ Script.include("/~/system/libraries/controllers.js");
             followNormal: true,
             speed: speed,
             accelerationAxis: accelerationAxis,
+            rotateAccelerationWithAvatar: true,
             renderStates: teleportRenderStates,
             defaultRenderStates: teleportDefaultRenderStates
         });
@@ -161,6 +162,7 @@ Script.include("/~/system/libraries/controllers.js");
             followNormal: true,
             speed: speed,
             accelerationAxis: accelerationAxis,
+            rotateAccelerationWithAvatar: true,
             renderStates: teleportRenderStates
         });
         this.teleportParabolaHeadVisible = Pointers.createPointer(PickType.Parabola, {
@@ -172,6 +174,7 @@ Script.include("/~/system/libraries/controllers.js");
             followNormal: true,
             speed: speed,
             accelerationAxis: accelerationAxis,
+            rotateAccelerationWithAvatar: true,
             renderStates: teleportRenderStates,
             defaultRenderStates: teleportDefaultRenderStates
         });
@@ -184,6 +187,7 @@ Script.include("/~/system/libraries/controllers.js");
             followNormal: true,
             speed: speed,
             accelerationAxis: accelerationAxis,
+            rotateAccelerationWithAvatar: true,
             renderStates: teleportRenderStates
         });
 
@@ -402,7 +406,7 @@ Script.include("/~/system/libraries/controllers.js");
     }
     // When determininig whether you can teleport to a location, the normal of the
     // point that is being intersected with is looked at. If this normal is more
-    // than MAX_ANGLE_FROM_UP_TO_TELEPORT degrees from <0, 1, 0> (straight up), then
+    // than MAX_ANGLE_FROM_UP_TO_TELEPORT degrees from your avatar's up, then
     // you can't teleport there.
     var MAX_ANGLE_FROM_UP_TO_TELEPORT = 70;
     function getTeleportTargetType(result) {
@@ -426,11 +430,9 @@ Script.include("/~/system/libraries/controllers.js");
         }
 
         var surfaceNormal = result.surfaceNormal;
-        var adj = Math.sqrt(surfaceNormal.x * surfaceNormal.x + surfaceNormal.z * surfaceNormal.z);
-        var angleUp = Math.atan2(surfaceNormal.y, adj) * (180 / Math.PI);
+        var angle = Math.abs(Math.acos(Vec3.dot(surfaceNormal, Quat.getUp(MyAvatar.orientation)))) * (180.0 / Math.PI);
 
-        if (angleUp < (90 - MAX_ANGLE_FROM_UP_TO_TELEPORT) ||
-            angleUp > (90 + MAX_ANGLE_FROM_UP_TO_TELEPORT) ||
+        if (angle > MAX_ANGLE_FROM_UP_TO_TELEPORT ||
             Vec3.distance(MyAvatar.position, result.intersection) <= TELEPORT_CANCEL_RANGE * MyAvatar.sensorToWorldScale) {
             return TARGET.INVALID;
         } else {

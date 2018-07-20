@@ -7,9 +7,9 @@
 //
 #include "StaticParabolaPick.h"
 
-StaticParabolaPick::StaticParabolaPick(const glm::vec3& position, const glm::vec3& direction, float speed, const glm::vec3& accelerationAxis, bool rotateWithAvatar,
+StaticParabolaPick::StaticParabolaPick(const glm::vec3& position, const glm::vec3& direction, float speed, const glm::vec3& accelerationAxis, bool rotateAccelerationWithAvatar,
     const PickFilter& filter, float maxDistance, bool enabled) :
-    ParabolaPick(speed, accelerationAxis, rotateWithAvatar, filter, maxDistance, enabled),
+    ParabolaPick(speed, accelerationAxis, rotateAccelerationWithAvatar, filter, maxDistance, enabled),
     _position(position), _velocity(speed * direction)
 {
 }

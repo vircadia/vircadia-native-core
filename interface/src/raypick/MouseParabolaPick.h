@@ -13,7 +13,7 @@
 class MouseParabolaPick : public ParabolaPick {
 
 public:
-    MouseParabolaPick(float speed, const glm::vec3& accelerationAxis, bool rotateWithAvatar, const PickFilter& filter, float maxDistance = 0.0f, bool enabled = false);
+    MouseParabolaPick(float speed, const glm::vec3& accelerationAxis, bool rotateAccelerationWithAvatar, const PickFilter& filter, float maxDistance = 0.0f, bool enabled = false);
 
     PickParabola getMathematicalPick() const override;
 

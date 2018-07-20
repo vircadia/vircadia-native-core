@@ -74,8 +74,8 @@ public:
 class ParabolaPick : public Pick<PickParabola> {
 
 public:
-    ParabolaPick(float speed, const glm::vec3& accelerationAxis, bool rotateWithAvatar, const PickFilter& filter, float maxDistance, bool enabled) :
-        Pick(filter, maxDistance, enabled), _speed(speed), _accelerationAxis(accelerationAxis), _rotateWithAvatar(rotateWithAvatar) {}
+    ParabolaPick(float speed, const glm::vec3& accelerationAxis, bool rotateAccelerationWithAvatar, const PickFilter& filter, float maxDistance, bool enabled) :
+        Pick(filter, maxDistance, enabled), _speed(speed), _accelerationAxis(accelerationAxis), _rotateAccelerationWithAvatar(rotateAccelerationWithAvatar) {}
 
     PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const override { return std::make_shared<ParabolaPickResult>(pickVariant); }
     PickResultPointer getEntityIntersection(const PickParabola& pick) override;
@@ -86,7 +86,7 @@ public:
 protected:
     float _speed;
     glm::vec3 _accelerationAxis;
-    bool _rotateWithAvatar;
+    bool _rotateAccelerationWithAvatar;
 
     glm::vec3 getAcceleration() const;
 };

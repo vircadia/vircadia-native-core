@@ -51,6 +51,7 @@ void ParabolaPointer::editRenderStatePath(const std::string& state, const QVaria
             }
             if (pathMap["width"].isValid()) {
                 width = pathMap["width"].toFloat();
+                renderState->setPathWidth(width);
             }
             if (pathMap["isVisibleInSecondaryCamera"].isValid()) {
                 isVisibleInSecondaryCamera = pathMap["isVisibleInSecondaryCamera"].toBool();
@@ -112,6 +113,7 @@ ParabolaPointer::RenderState::RenderState(const OverlayID& startID, const Overla
     render::Transaction transaction;
     auto scene = qApp->getMain3DScene();
     _pathID = scene->allocateID();
+    _pathWidth = pathWidth;
     if (render::Item::isValidID(_pathID)) {
         auto renderItem = std::make_shared<ParabolaRenderItem>(pathColor, pathAlpha, pathWidth, isVisibleInSecondaryCamera, pathEnabled);
         // TODO: update bounds properly
@@ -160,9 +162,9 @@ void ParabolaPointer::RenderState::editParabola(const glm::vec3& color, float al
     }
 }
 
-void ParabolaPointer::RenderState::update(const glm::vec3& origin, const glm::vec3& end, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
+void ParabolaPointer::RenderState::update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
                                           bool faceAvatar, bool followNormal, float distance, const PickResultPointer& pickResult) {
-    StartEndRenderState::update(origin, end, scaleWithAvatar, distanceScaleEnd, centerEndY, faceAvatar, followNormal, distance, pickResult);
+    StartEndRenderState::update(origin, end, surfaceNormal, scaleWithAvatar, distanceScaleEnd, centerEndY, faceAvatar, followNormal, distance, pickResult);
     auto parabolaPickResult = std::static_pointer_cast<ParabolaPickResult>(pickResult);
     if (parabolaPickResult && render::Item::isValidID(_pathID)) {
         render::Transaction transaction;
@@ -172,12 +174,14 @@ void ParabolaPointer::RenderState::update(const glm::vec3& origin, const glm::ve
         glm::vec3 velocity = parabola.velocity;
         glm::vec3 acceleration = parabola.acceleration;
         float parabolicDistance = distance > 0.0f ? distance : parabolaPickResult->parabolicDistance;
-        transaction.updateItem<ParabolaRenderItem>(_pathID, [origin, velocity, acceleration, parabolicDistance](ParabolaRenderItem& item) {
+        float width = scaleWithAvatar ? getPathWidth() * DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale() : getPathWidth();
+        transaction.updateItem<ParabolaRenderItem>(_pathID, [origin, velocity, acceleration, parabolicDistance, width](ParabolaRenderItem& item) {
             item.setVisible(true);
             item.setOrigin(origin);
             item.setVelocity(velocity);
             item.setAcceleration(acceleration);
             item.setParabolicDistance(parabolicDistance);
+            item.setWidth(width);
             item.updateUniformBuffer();
         });
         scene->enqueueTransaction(transaction);
@@ -364,6 +368,7 @@ void ParabolaPointer::RenderState::ParabolaRenderItem::render(RenderArgs* args) 
 
     batch.setUniformBuffer(0, _uniformBuffer);
 
+    // TODO: variable number of sections, depending on ? (acceleration?, parabolicDistance?)
     const int NUM_SECTIONS = 25; // must match value in parabola.slv
     // We draw 2 * n + 2 vertices for a triangle strip
     batch.draw(gpu::TRIANGLE_STRIP, 2 * NUM_SECTIONS + 2, 0);

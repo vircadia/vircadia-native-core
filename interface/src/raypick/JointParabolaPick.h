@@ -14,7 +14,7 @@ class JointParabolaPick : public ParabolaPick {
 
 public:
     JointParabolaPick(const std::string& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset,
-        float speed, const glm::vec3& accelerationAxis, bool rotateWithAvatar, PickFilter& filter, float maxDistance = 0.0f, bool enabled = false);
+        float speed, const glm::vec3& accelerationAxis, bool rotateAccelerationWithAvatar, PickFilter& filter, float maxDistance = 0.0f, bool enabled = false);
 
     PickParabola getMathematicalPick() const override;
 

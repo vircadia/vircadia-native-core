@@ -10,8 +10,8 @@
 #include "avatar/AvatarManager.h"
 
 JointParabolaPick::JointParabolaPick(const std::string& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset,
-    float speed, const glm::vec3& accelerationAxis, bool rotateWithAvatar, PickFilter& filter, float maxDistance, bool enabled) :
-    ParabolaPick(speed, accelerationAxis, rotateWithAvatar, filter, maxDistance, enabled),
+    float speed, const glm::vec3& accelerationAxis, bool rotateAccelerationWithAvatar, PickFilter& filter, float maxDistance, bool enabled) :
+    ParabolaPick(speed, accelerationAxis, rotateAccelerationWithAvatar, filter, maxDistance, enabled),
     _jointName(jointName),
     _posOffset(posOffset),
     _dirOffset(dirOffset)

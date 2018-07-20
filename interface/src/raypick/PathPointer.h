@@ -44,7 +44,7 @@ public:
 
     virtual void cleanup();
     virtual void disable();
-    virtual void update(const glm::vec3& origin, const glm::vec3& end, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
+    virtual void update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
                         bool faceAvatar, bool followNormal, float distance, const PickResultPointer& pickResult);
 
 protected:

@@ -10,8 +10,8 @@
 #include "Application.h"
 #include "display-plugins/CompositorHelper.h"
 
-MouseParabolaPick::MouseParabolaPick(float speed, const glm::vec3& accelerationAxis, bool rotateWithAvatar, const PickFilter& filter, float maxDistance, bool enabled) :
-    ParabolaPick(speed, accelerationAxis, rotateWithAvatar, filter, maxDistance, enabled)
+MouseParabolaPick::MouseParabolaPick(float speed, const glm::vec3& accelerationAxis, bool rotateAccelerationWithAvatar, const PickFilter& filter, float maxDistance, bool enabled) :
+    ParabolaPick(speed, accelerationAxis, rotateAccelerationWithAvatar, filter, maxDistance, enabled)
 {
 }
 
