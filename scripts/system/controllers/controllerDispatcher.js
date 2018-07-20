@@ -31,6 +31,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
     var PROFILE = false;
     var DEBUG = false;
+    var DEBUG_OVERLAY = true;
 
     if (typeof Test !== "undefined") {
         PROFILE = true;
@@ -48,6 +49,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.tabletID = null;
         this.blacklist = [];
         this.pointerManager = new PointerManager();
+        this.debugOverlayID = null;
 
         // a module can occupy one or more "activity" slots while it's running.  If all the required slots for a module are
         // not set to false (not in use), a module cannot start.  When a module is using a slot, that module's name
@@ -298,7 +300,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 triggerValues: [_this.leftTriggerValue, _this.rightTriggerValue],
                 triggerClicks: [_this.leftTriggerClicked, _this.rightTriggerClicked],
                 secondaryValues: [_this.leftSecondaryValue, _this.rightSecondaryValue],
-                pointers: [_this.leftPointer, _this.rightPointer ],
                 controllerLocations: controllerLocations,
                 nearbyEntityProperties: nearbyEntityProperties,
                 nearbyEntityPropertiesByID: nearbyEntityPropertiesByID,
@@ -378,6 +379,48 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 }
             }
             _this.pointerManager.updatePointersRenderState(controllerData.triggerClicks, controllerData.triggerValues);
+
+            if (DEBUG_OVERLAY) {
+                if (!_this.debugOverlayID) {
+
+                    var textWidth = 0.4;
+                    var textHeight = 0.3;
+                    var numberOfLines = 15;
+                    var textMargin = 0.02;
+                    var lineHeight = (textHeight - (2 * textMargin)) / numberOfLines;
+
+                    _this.debugOverlayID = Overlays.addOverlay("text3d", {
+                        localPosition: { x: 0.3, y: 0.2, z: 1.1 },
+                        localRotation: { x: 0.0, y: 0.0, z: 0.0, w: 1.0 },
+                        parentID: MyAvatar.sessionUUID,
+                        parentJointIndex: MyAvatar.getJointIndex("Head"),
+                        dimensions: { x: textWidth, y: textHeight },
+                        backgroundColor: { red: 0, green: 0, blue: 0 },
+                        color: { red: 255, green: 255, blue: 255 },
+                        topMargin: textMargin,
+                        leftMargin: textMargin,
+                        bottomMargin: textMargin,
+                        rightMargin: textMargin,
+                        text: "",
+                        lineHeight: lineHeight,
+                        alpha: 0.9,
+                        backgroundAlpha: 0.9,
+                        ignoreRayIntersection: true,
+                        visible: true,
+                        isFacingAvatar: true
+                    });
+                }
+
+                var debugText = "";
+                Object.keys(_this.runningPluginNames).forEach(function (pluginName) {
+                    if (_this.runningPluginNames[pluginName]) {
+                        var plugin = controllerDispatcherPlugins[pluginName];
+                        debugText += pluginName + ": " + plugin.parameters.priority + "\n";
+                    }
+                });
+                Overlays.editOverlay(_this.debugOverlayID, { text: debugText });
+            }
+
             if (PROFILE) {
                 Script.endProfileRange("dispatch.run");
             }
@@ -481,6 +524,9 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.cleanup = function () {
             Controller.disableMapping(MAPPING_NAME);
             _this.pointerManager.removePointers();
+            if (_this.debugOverlayID) {
+                Overlays.deleteOverlay(_this.debugOverlayID);
+            }
             Pointers.removePointer(this.mouseRayPick);
             Selection.disableListHighlight(DISPATCHER_HOVERING_LIST);
         };

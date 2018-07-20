@@ -5,12 +5,11 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* global Script, Entities, Controller, RIGHT_HAND, LEFT_HAND, getControllerWorldLocation,
-   enableDispatcherModule, disableDispatcherModule, makeRunningValues, Messages, Quat, Vec3,
-   makeDispatcherModuleParameters, Overlays, ZERO_VEC, HMD, INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT,
-   getGrabPointSphereOffset, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
-   COLORS_GRAB_DISTANCE_HOLD, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_ON_VALUE, TRIGGER_OFF_VALUE,
-   getEnabledModuleByName, PICK_MAX_DISTANCE, ContextOverlay, Picks, makeLaserParams
+/* global Script, Entities, Controller, RIGHT_HAND, LEFT_HAND, enableDispatcherModule, disableDispatcherModule,
+   makeRunningValues, Messages, Quat, Vec3, makeDispatcherModuleParameters, Overlays, ZERO_VEC, HMD,
+   INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, getGrabPointSphereOffset, COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
+   COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_ON_VALUE,
+   TRIGGER_OFF_VALUE, getEnabledModuleByName, PICK_MAX_DISTANCE, ContextOverlay, Picks, makeLaserParams
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -76,7 +75,7 @@ Script.include("/~/system/libraries/controllers.js");
                         return triggerPressed;
                     } else {
                         // far-grabbable, but still return it as true anyway
-                        return false;
+                        return true;
                     }
                 }
             }
@@ -99,8 +98,9 @@ Script.include("/~/system/libraries/controllers.js");
                 }
             } else if (intersection.type === Picks.INTERSECTED_ENTITY) {
                 var entityProperty = Entities.getEntityProperties(objectID);
+                var entityType = entityProperty.type;
                 var isLocked = entityProperty.locked;
-                return (!isLocked || triggerPressed || entityProperty.type === "Web");
+                return (!isLocked || triggerPressed || entityType === "Web");
             }
             return false;
         };
@@ -135,7 +135,8 @@ Script.include("/~/system/libraries/controllers.js");
             var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE &&
                                    controllerData.triggerValues[this.otherHand] <= TRIGGER_OFF_VALUE;
             var allowThisModule = !otherModuleRunning || isTriggerPressed;
-            if (allowThisModule && this.isPointingAtTriggerable(controllerData, isTriggerPressed)) {
+            if (allowThisModule && this.isPointingAtTriggerable(controllerData, isTriggerPressed) && 
+                !this.isPointingAtNearGrabbableEntity(controllerData, isTriggerPressed)) {
                 this.updateAllwaysOn();
                 if (isTriggerPressed) {
                     this.dominantHandOverride = true; // Override dominant hand.
