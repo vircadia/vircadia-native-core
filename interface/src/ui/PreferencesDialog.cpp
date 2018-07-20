@@ -315,7 +315,7 @@ void setupPreferences() {
     {
         auto getter = [=]()->bool { return myAvatar->getFlyingEnabled(); };
         auto setter = [=](bool value) { myAvatar->setFlyingEnabled(value); };
-        preferences->addPreference(new CheckPreference(VR_MOVEMENT, "Flying", getter, setter));
+        preferences->addPreference(new CheckPreference(VR_MOVEMENT, "Flying & jumping", getter, setter));
     }
     {
         auto getter = [=]()->int { return myAvatar->getSnapTurn() ? 0 : 1; };
