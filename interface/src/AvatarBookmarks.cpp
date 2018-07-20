@@ -150,7 +150,9 @@ bool isWearableEntity(const EntityItemPointer& entity) {
 
 void AvatarBookmarks::updateAvatarEntities(const QVariantList &avatarEntities) {
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    myAvatar->removeAvatarEntities([&](const EntityTreePointer& entityTree, const QUuid& entityID) {
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+    myAvatar->removeAvatarEntities([&](const QUuid& entityID) {
         auto entity = entityTree->findEntityByID(entityID);
         return entity && isWearableEntity(entity);
     });
@@ -170,7 +172,9 @@ void AvatarBookmarks::loadBookmark(const QString& bookmarkName) {
         QVariantMap bookmark = bookmarkEntry.value().toMap();
         if (!bookmark.empty()) {
             auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-            myAvatar->removeAvatarEntities([&](const EntityTreePointer& entityTree, const QUuid& entityID) {
+            auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+            EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+            myAvatar->removeAvatarEntities([&](const QUuid& entityID) {
                 auto entity = entityTree->findEntityByID(entityID);
                 return entity && isWearableEntity(entity);
             });
