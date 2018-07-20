@@ -637,7 +637,7 @@ bool Rig::getRelativeDefaultJointTranslation(int index, glm::vec3& translationOu
 }
 
 // animation reference speeds.
-static const std::vector<float> FORWARD_SPEEDS = { 0.4f, 1.4f, 4.5f }; // m/s
+static const std::vector<float> FORWARD_SPEEDS = { 0.4f, 2.8f, 4.5f }; // m/s
 static const std::vector<float> BACKWARD_SPEEDS = { 0.6f, 1.45f }; // m/s
 static const std::vector<float> LATERAL_SPEEDS = { 0.2f, 0.65f, 2.6f }; // m/s
 
