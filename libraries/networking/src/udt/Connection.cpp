@@ -309,12 +309,6 @@ void Connection::processControl(ControlPacketPointer controlPacket) {
                 stopSendQueue();
             }
             break;
-        case ControlPacket::LightACK:
-        case ControlPacket::ACK2:
-        case ControlPacket::NAK:
-        case ControlPacket::TimeoutNAK:
-        case ControlPacket::ProbeTail:
-            break;
     }
 }
 
