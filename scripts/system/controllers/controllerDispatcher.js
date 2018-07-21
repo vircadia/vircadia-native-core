@@ -380,46 +380,46 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             }
             _this.pointerManager.updatePointersRenderState(controllerData.triggerClicks, controllerData.triggerValues);
 
-            if (DEBUG_OVERLAY) {
-                if (!_this.debugOverlayID) {
+/*            if (DEBUG_OVERLAY) {*/
+                //if (!_this.debugOverlayID) {
 
-                    var textWidth = 0.4;
-                    var textHeight = 0.3;
-                    var numberOfLines = 15;
-                    var textMargin = 0.02;
-                    var lineHeight = (textHeight - (2 * textMargin)) / numberOfLines;
+                    //var textWidth = 0.4;
+                    //var textHeight = 0.3;
+                    //var numberOfLines = 15;
+                    //var textMargin = 0.02;
+                    //var lineHeight = (textHeight - (2 * textMargin)) / numberOfLines;
 
-                    _this.debugOverlayID = Overlays.addOverlay("text3d", {
-                        localPosition: { x: 0.3, y: 0.2, z: 1.1 },
-                        localRotation: { x: 0.0, y: 0.0, z: 0.0, w: 1.0 },
-                        parentID: MyAvatar.sessionUUID,
-                        parentJointIndex: MyAvatar.getJointIndex("Head"),
-                        dimensions: { x: textWidth, y: textHeight },
-                        backgroundColor: { red: 0, green: 0, blue: 0 },
-                        color: { red: 255, green: 255, blue: 255 },
-                        topMargin: textMargin,
-                        leftMargin: textMargin,
-                        bottomMargin: textMargin,
-                        rightMargin: textMargin,
-                        text: "",
-                        lineHeight: lineHeight,
-                        alpha: 0.9,
-                        backgroundAlpha: 0.9,
-                        ignoreRayIntersection: true,
-                        visible: true,
-                        isFacingAvatar: true
-                    });
-                }
+                    //_this.debugOverlayID = Overlays.addOverlay("text3d", {
+                        //localPosition: { x: 0.3, y: 0.2, z: 1.1 },
+                        //localRotation: { x: 0.0, y: 0.0, z: 0.0, w: 1.0 },
+                        //parentID: MyAvatar.sessionUUID,
+                        //parentJointIndex: MyAvatar.getJointIndex("Head"),
+                        //dimensions: { x: textWidth, y: textHeight },
+                        //backgroundColor: { red: 0, green: 0, blue: 0 },
+                        //color: { red: 255, green: 255, blue: 255 },
+                        //topMargin: textMargin,
+                        //leftMargin: textMargin,
+                        //bottomMargin: textMargin,
+                        //rightMargin: textMargin,
+                        //text: "",
+                        //lineHeight: lineHeight,
+                        //alpha: 0.9,
+                        //backgroundAlpha: 0.9,
+                        //ignoreRayIntersection: true,
+                        //visible: true,
+                        //isFacingAvatar: true
+                    //});
+                //}
 
-                var debugText = "";
-                Object.keys(_this.runningPluginNames).forEach(function (pluginName) {
-                    if (_this.runningPluginNames[pluginName]) {
-                        var plugin = controllerDispatcherPlugins[pluginName];
-                        debugText += pluginName + ": " + plugin.parameters.priority + "\n";
-                    }
-                });
-                Overlays.editOverlay(_this.debugOverlayID, { text: debugText });
-            }
+                //var debugText = "";
+                //Object.keys(_this.runningPluginNames).forEach(function (pluginName) {
+                    //if (_this.runningPluginNames[pluginName]) {
+                        //var plugin = controllerDispatcherPlugins[pluginName];
+                        //debugText += pluginName + ": " + plugin.parameters.priority + "\n";
+                    //}
+                //});
+                //Overlays.editOverlay(_this.debugOverlayID, { text: debugText });
+            /*}*/
 
             if (PROFILE) {
                 Script.endProfileRange("dispatch.run");
