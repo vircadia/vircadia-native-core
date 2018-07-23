@@ -952,7 +952,7 @@ void checkPossibleParabolicIntersectionWithTriangle(float t, float& minDistance,
 
 bool findParabolaTriangleIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
     const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& parabolicDistance, bool allowBackface) {
-    glm::vec3 normal = glm::cross(v2 - v1, v0 - v1);
+    glm::vec3 normal = glm::normalize(glm::cross(v2 - v1, v0 - v1));
 
     // We transform the parabola and triangle so that the triangle is in the plane z = 0, with v0 at the origin
     glm::quat inverseRot;
@@ -1092,7 +1092,7 @@ inline float parabolaVelocityAtT(float velocity, float acceleration, float t) {
 bool findParabolaAABoxIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
                                    const glm::vec3& corner, const glm::vec3& scale, float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal) {
     float minDistance = FLT_MAX;
-    BoxFace minFace;
+    BoxFace minFace = UNKNOWN_FACE;
     glm::vec3 minNormal;
     glm::vec2 possibleDistances;
     float a, b, c;
@@ -1720,8 +1720,8 @@ unsigned int solveP3(float* x, float a, float b, float c) {
         a /= 3.0f;
         q = -2.0f * sqrtf(q);
         x[0] = q * cosf(t / 3.0f) - a;
-        x[1] = q * cosf((t + 2.0f * M_PI) / 3.0f) - a;
-        x[2] = q * cosf((t - 2.0f * M_PI) / 3.0f) - a;
+        x[1] = q * cosf((t + 2.0f * (float)M_PI) / 3.0f) - a;
+        x[2] = q * cosf((t - 2.0f * (float)M_PI) / 3.0f) - a;
         return 3;
     } else {
         A = -powf(fabsf(r) + sqrtf(r2 - q3), 1.0f / 3.0f);
@@ -1755,27 +1755,27 @@ bool solve_quartic(float a, float b, float c, float d, glm::vec4& roots) {
 
     y = px3[0];
     if (iZeroes != 1) {
-        if (fabs(px3[1]) > fabs(y)) {
+        if (fabsf(px3[1]) > fabsf(y)) {
             y = px3[1];
         }
-        if (fabs(px3[2]) > fabs(y)) {
+        if (fabsf(px3[2]) > fabsf(y)) {
             y = px3[2];
         }
     }
 
     D = y * y - 4.0f * d;
-    if (fabs(D) < EPSILON) {
+    if (fabsf(D) < EPSILON) {
         q1 = q2 = 0.5f * y;
         D = a * a - 4.0f * (b - y);
-        if (fabs(D) < EPSILON) {
+        if (fabsf(D) < EPSILON) {
             p1 = p2 = 0.5f * a;
         } else {
-            sqD = sqrt(D);
+            sqD = sqrtf(D);
             p1 = 0.5f * (a + sqD);
             p2 = 0.5f * (a - sqD);
         }
     } else {
-        sqD = sqrt(D);
+        sqD = sqrtf(D);
         q1 = 0.5f * (y + sqD);
         q2 = 0.5f * (y - sqD);
         p1 = (a * q1 - c) / (q1 - q2);
@@ -1786,10 +1786,10 @@ bool solve_quartic(float a, float b, float c, float d, glm::vec4& roots) {
     D = p1 * p1 - 4.0f * q1;
     if (D < 0.0f) {
         x1.real(-0.5f * p1);
-        x1.imag(0.5f * sqrt(-D));
+        x1.imag(0.5f * sqrtf(-D));
         x2 = std::conj(x1);
     } else {
-        sqD = sqrt(D);
+        sqD = sqrtf(D);
         x1.real(0.5f * (-p1 + sqD));
         x2.real(0.5f * (-p1 - sqD));
     }
@@ -1797,10 +1797,10 @@ bool solve_quartic(float a, float b, float c, float d, glm::vec4& roots) {
     D = p2 * p2 - 4.0f * q2;
     if (D < 0.0f) {
         x3.real(-0.5f * p2);
-        x3.imag(0.5f * sqrt(-D));
+        x3.imag(0.5f * sqrtf(-D));
         x4 = std::conj(x3);
     } else {
-        sqD = sqrt(D);
+        sqD = sqrtf(D);
         x3.real(0.5f * (-p2 + sqD));
         x4.real(0.5f * (-p2 - sqD));
     }

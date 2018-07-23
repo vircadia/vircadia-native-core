@@ -618,6 +618,8 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
             result.intersects = true;
             result.avatarID = avatar->getID();
             result.distance = distance;
+            result.face = face;
+            result.surfaceNormal = surfaceNormal;
             result.extraInfo = extraInfo;
         }
     }
@@ -688,6 +690,8 @@ ParabolaToAvatarIntersectionResult AvatarManager::findParabolaIntersectionVector
             result.intersects = true;
             result.avatarID = avatar->getID();
             result.parabolicDistance = parabolicDistance;
+            result.face = face;
+            result.surfaceNormal = surfaceNormal;
             result.extraInfo = extraInfo;
         }
     }

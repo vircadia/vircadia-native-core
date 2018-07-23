@@ -57,6 +57,7 @@ public:
 
             glm::vec3 _origin { 0.0f };
             bool _isVisibleInSecondaryCamera { DEFAULT_PARABOLA_ISVISIBLEINSECONDARYCAMERA };
+            bool _visible { false };
             bool _enabled { false };
 
             struct ParabolaData {
@@ -65,6 +66,8 @@ public:
                 vec3 acceleration { 0.0f };
                 float width { DEFAULT_PARABOLA_WIDTH };
                 vec4 color { vec4(DEFAULT_PARABOLA_COLOR)};
+                int numSections { 0 };
+                ivec3 spare;
             };
 
             ParabolaData _parabolaData;

@@ -18,6 +18,8 @@ layout(std140) uniform parabolaData {
     vec3 acceleration;
     float width;
     vec4 color;
+    int numSections;
+    ivec3 spare;
 };
 
 out vec4 _color;
@@ -25,8 +27,7 @@ out vec4 _color;
 void main(void) {
     _color = color;
 
-    const int NUM_SECTIONS = 25; // must match value in ParabolaPointer.cpp
-    float t = parabolicDistance * (floor(gl_VertexID / 2) / float(NUM_SECTIONS));
+    float t = parabolicDistance * (floor(gl_VertexID / 2) / float(numSections));
 
     vec4 pos = vec4(velocity * t + 0.5 * acceleration * t * t, 1);
     const float EPSILON = 0.00001;

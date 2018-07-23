@@ -622,75 +622,37 @@ ParabolaToOverlayIntersectionResult Overlays::findParabolaIntersectionVector(con
 }
 
 QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, const RayToOverlayIntersectionResult& value) {
-    auto obj = engine->newObject();
+    QScriptValue obj = engine->newObject();
     obj.setProperty("intersects", value.intersects);
-    obj.setProperty("overlayID", OverlayIDtoScriptValue(engine, value.overlayID));
+    QScriptValue overlayIDValue = quuidToScriptValue(engine, value.overlayID);
+    obj.setProperty("overlayID", overlayIDValue);
     obj.setProperty("distance", value.distance);
+    obj.setProperty("face", boxFaceToString(value.face));
 
-    QString faceName = "";
-    // handle BoxFace
-    switch (value.face) {
-        case MIN_X_FACE:
-            faceName = "MIN_X_FACE";
-            break;
-        case MAX_X_FACE:
-            faceName = "MAX_X_FACE";
-            break;
-        case MIN_Y_FACE:
-            faceName = "MIN_Y_FACE";
-            break;
-        case MAX_Y_FACE:
-            faceName = "MAX_Y_FACE";
-            break;
-        case MIN_Z_FACE:
-            faceName = "MIN_Z_FACE";
-            break;
-        case MAX_Z_FACE:
-            faceName = "MAX_Z_FACE";
-            break;
-        default:
-        case UNKNOWN_FACE:
-            faceName = "UNKNOWN_FACE";
-            break;
-    }
-    obj.setProperty("face", faceName);
-    auto intersection = vec3toScriptValue(engine, value.intersection);
+    QScriptValue intersection = vec3toScriptValue(engine, value.intersection);
     obj.setProperty("intersection", intersection);
+    QScriptValue surfaceNormal = vec3toScriptValue(engine, value.surfaceNormal);
+    obj.setProperty("surfaceNormal", surfaceNormal);
     obj.setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
     return obj;
 }
 
-void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& objectVar, RayToOverlayIntersectionResult& value) {
-    QVariantMap object = objectVar.toVariant().toMap();
-    value.intersects = object["intersects"].toBool();
-    value.overlayID = OverlayID(QUuid(object["overlayID"].toString()));
-    value.distance = object["distance"].toFloat();
+void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, RayToOverlayIntersectionResult& value) {
+    value.intersects = object.property("intersects").toVariant().toBool();
+    QScriptValue overlayIDValue = object.property("overlayID");
+    quuidFromScriptValue(overlayIDValue, value.overlayID);
+    value.distance = object.property("distance").toVariant().toFloat();
+    value.face = boxFaceFromString(object.property("face").toVariant().toString());
 
-    QString faceName = object["face"].toString();
-    if (faceName == "MIN_X_FACE") {
-        value.face = MIN_X_FACE;
-    } else if (faceName == "MAX_X_FACE") {
-        value.face = MAX_X_FACE;
-    } else if (faceName == "MIN_Y_FACE") {
-        value.face = MIN_Y_FACE;
-    } else if (faceName == "MAX_Y_FACE") {
-        value.face = MAX_Y_FACE;
-    } else if (faceName == "MIN_Z_FACE") {
-        value.face = MIN_Z_FACE;
-    } else if (faceName == "MAX_Z_FACE") {
-        value.face = MAX_Z_FACE;
-    } else {
-        value.face = UNKNOWN_FACE;
-    };
-    auto intersection = object["intersection"];
+    QScriptValue intersection = object.property("intersection");
     if (intersection.isValid()) {
-        bool valid;
-        auto newIntersection = vec3FromVariant(intersection, valid);
-        if (valid) {
-            value.intersection = newIntersection;
-        }
+        vec3FromScriptValue(intersection, value.intersection);
     }
-    value.extraInfo = object["extraInfo"].toMap();
+    QScriptValue surfaceNormal = object.property("surfaceNormal");
+    if (surfaceNormal.isValid()) {
+        vec3FromScriptValue(surfaceNormal, value.surfaceNormal);
+    }
+    value.extraInfo = object.property("extraInfo").toVariant().toMap();
 }
 
 bool Overlays::isLoaded(OverlayID id) {

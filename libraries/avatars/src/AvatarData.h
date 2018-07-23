@@ -1527,7 +1527,9 @@ public:
     bool intersects { false };
     QUuid avatarID;
     float distance { 0.0f };
+    BoxFace face;
     glm::vec3 intersection;
+    glm::vec3 surfaceNormal;
     QVariantMap extraInfo;
 };
 Q_DECLARE_METATYPE(RayToAvatarIntersectionResult)
@@ -1540,7 +1542,9 @@ public:
     QUuid avatarID;
     float distance { 0.0f };
     float parabolicDistance { 0.0f };
+    BoxFace face;
     glm::vec3 intersection;
+    glm::vec3 surfaceNormal;
     QVariantMap extraInfo;
 };
 

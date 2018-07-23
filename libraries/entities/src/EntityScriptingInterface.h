@@ -80,9 +80,7 @@ public:
     glm::vec3 surfaceNormal;
     QVariantMap extraInfo;
 };
-
 Q_DECLARE_METATYPE(RayToEntityIntersectionResult)
-
 QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, const RayToEntityIntersectionResult& results);
 void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, RayToEntityIntersectionResult& results);
 

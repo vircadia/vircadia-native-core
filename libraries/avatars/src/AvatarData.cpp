@@ -2555,15 +2555,18 @@ glm::mat4 AvatarData::getControllerRightHandMatrix() const {
     return _controllerRightHandMatrixCache.get();
 }
 
-
 QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, const RayToAvatarIntersectionResult& value) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("intersects", value.intersects);
     QScriptValue avatarIDValue = quuidToScriptValue(engine, value.avatarID);
     obj.setProperty("avatarID", avatarIDValue);
     obj.setProperty("distance", value.distance);
+    obj.setProperty("face", boxFaceToString(value.face));
+
     QScriptValue intersection = vec3toScriptValue(engine, value.intersection);
     obj.setProperty("intersection", intersection);
+    QScriptValue surfaceNormal = vec3toScriptValue(engine, value.surfaceNormal);
+    obj.setProperty("surfaceNormal", surfaceNormal);
     obj.setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
     return obj;
 }
@@ -2573,9 +2576,15 @@ void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, Ra
     QScriptValue avatarIDValue = object.property("avatarID");
     quuidFromScriptValue(avatarIDValue, value.avatarID);
     value.distance = object.property("distance").toVariant().toFloat();
+    value.face = boxFaceFromString(object.property("face").toVariant().toString());
+
     QScriptValue intersection = object.property("intersection");
     if (intersection.isValid()) {
         vec3FromScriptValue(intersection, value.intersection);
+    }
+    QScriptValue surfaceNormal = object.property("surfaceNormal");
+    if (surfaceNormal.isValid()) {
+        vec3FromScriptValue(surfaceNormal, value.surfaceNormal);
     }
     value.extraInfo = object.property("extraInfo").toVariant().toMap();
 }

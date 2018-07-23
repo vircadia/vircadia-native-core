@@ -516,9 +516,9 @@ bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, co
                         face = triangleSetFace;
                         bestModelTriangle = triangleSetTriangle;
                         bestWorldTriangle = triangleSetTriangle * meshToWorldMatrix;
-                        glm::vec3 worldIntersectionPoint = meshFrameOrigin + meshFrameVelocity * triangleSetDistance +
+                        glm::vec3 meshIntersectionPoint = meshFrameOrigin + meshFrameVelocity * triangleSetDistance +
                             0.5f * meshFrameAcceleration * triangleSetDistance * triangleSetDistance;
-                        glm::vec3 meshIntersectionPoint = origin + velocity * triangleSetDistance +
+                        glm::vec3 worldIntersectionPoint = origin + velocity * triangleSetDistance +
                             0.5f * acceleration * triangleSetDistance * triangleSetDistance;
                         extraInfo["worldIntersectionPoint"] = vec3toVariant(worldIntersectionPoint);
                         extraInfo["meshIntersectionPoint"] = vec3toVariant(meshIntersectionPoint);

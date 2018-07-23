@@ -79,11 +79,11 @@ public:
     void updateVisuals(const PickResultPointer& prevRayPickResult) override;
 
 protected:
-    PointerTriggers _triggers;
-    float _pathLength { 0.0f };
     RenderStateMap _renderStates;
     DefaultRenderStateMap _defaultRenderStates;
     std::string _currentRenderState { "" };
+    PointerTriggers _triggers;
+    float _pathLength { 0.0f };
     bool _faceAvatar;
     bool _followNormal;
     bool _centerEndY;

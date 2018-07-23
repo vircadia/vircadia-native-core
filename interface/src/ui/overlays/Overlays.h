@@ -59,7 +59,7 @@ class RayToOverlayIntersectionResult {
 public:
     bool intersects { false };
     OverlayID overlayID { UNKNOWN_OVERLAY_ID };
-    float distance { 0 };
+    float distance { 0.0f };
     BoxFace face { UNKNOWN_FACE };
     glm::vec3 surfaceNormal;
     glm::vec3 intersection;
@@ -73,8 +73,8 @@ class ParabolaToOverlayIntersectionResult {
 public:
     bool intersects { false };
     OverlayID overlayID { UNKNOWN_OVERLAY_ID };
-    float distance { 0 };
-    float parabolicDistance { 0 };
+    float distance { 0.0f };
+    float parabolicDistance { 0.0f };
     BoxFace face { UNKNOWN_FACE };
     glm::vec3 surfaceNormal;
     glm::vec3 intersection;

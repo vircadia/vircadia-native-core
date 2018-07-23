@@ -50,7 +50,7 @@ class PolyVoxEntityItem : public EntityItem {
     virtual bool findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
                                                   const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
                                                   BoxFace& face, glm::vec3& surfaceNormal,
-                                                  QVariantMap& extraInfo, bool precisionPicking) const { return false; }
+                                                  QVariantMap& extraInfo, bool precisionPicking) const override { return false; }
 
     virtual void debugDump() const override;
 

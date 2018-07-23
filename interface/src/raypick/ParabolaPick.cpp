@@ -39,7 +39,7 @@ PickResultPointer ParabolaPick::getOverlayIntersection(const PickParabola& pick)
 PickResultPointer ParabolaPick::getAvatarIntersection(const PickParabola& pick) {
     ParabolaToAvatarIntersectionResult avatarRes = DependencyManager::get<AvatarManager>()->findParabolaIntersectionVector(pick, getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>());
     if (avatarRes.intersects) {
-        return std::make_shared<ParabolaPickResult>(IntersectionType::AVATAR, avatarRes.avatarID, avatarRes.distance, avatarRes.parabolicDistance, avatarRes.intersection, pick, glm::vec3(NAN), avatarRes.extraInfo);
+        return std::make_shared<ParabolaPickResult>(IntersectionType::AVATAR, avatarRes.avatarID, avatarRes.distance, avatarRes.parabolicDistance, avatarRes.intersection, pick, avatarRes.surfaceNormal, avatarRes.extraInfo);
     } else {
         return std::make_shared<ParabolaPickResult>(pick.toVariantMap());
     }

@@ -156,7 +156,6 @@ void ParabolaPointer::RenderState::editParabola(const glm::vec3& color, float al
             item.setIsVisibleInSecondaryCamera(isVisibleInSecondaryCamera);
             item.setEnabled(enabled);
             item.updateKey();
-            item.updateUniformBuffer();
         });
         scene->enqueueTransaction(transaction);
     }
@@ -182,7 +181,6 @@ void ParabolaPointer::RenderState::update(const glm::vec3& origin, const glm::ve
             item.setAcceleration(acceleration);
             item.setParabolicDistance(parabolicDistance);
             item.setWidth(width);
-            item.updateUniformBuffer();
         });
         scene->enqueueTransaction(transaction);
     }
@@ -293,7 +291,6 @@ ParabolaPointer::RenderState::ParabolaRenderItem::ParabolaRenderItem(const glm::
     setAlpha(alpha);
     setWidth(width);
     updateKey();
-    updateUniformBuffer();
 }
 
 void ParabolaPointer::RenderState::ParabolaRenderItem::setVisible(bool visible) {
@@ -302,12 +299,16 @@ void ParabolaPointer::RenderState::ParabolaRenderItem::setVisible(bool visible) 
     } else {
         _key = render::ItemKey::Builder(_key).withInvisible();
     }
+    _visible = visible;
 }
 
 void ParabolaPointer::RenderState::ParabolaRenderItem::updateKey() {
-    auto builder = _parabolaData.color.a < 1.0f ? render::ItemKey::Builder::transparentShape() : render::ItemKey::Builder::opaqueShape();
+    // FIXME: There's no way to designate a render item as non-shadow-reciever, and since a parabola's bounding box covers the entire domain,
+    // it seems to block all shadows.  I think this is a bug with shadows.
+    //auto builder = _parabolaData.color.a < 1.0f ? render::ItemKey::Builder::transparentShape() : render::ItemKey::Builder::opaqueShape();
+    auto builder = render::ItemKey::Builder::transparentShape();
 
-    if (_enabled) {
+    if (_enabled && _visible) {
         builder.withVisible();
     } else {
         builder.withInvisible();
@@ -358,6 +359,10 @@ const gpu::PipelinePointer ParabolaPointer::RenderState::ParabolaRenderItem::get
 }
 
 void ParabolaPointer::RenderState::ParabolaRenderItem::render(RenderArgs* args) {
+    if (!_visible) {
+        return;
+    }
+
     gpu::Batch& batch = *(args->_batch);
 
     Transform transform;
@@ -366,12 +371,17 @@ void ParabolaPointer::RenderState::ParabolaRenderItem::render(RenderArgs* args) 
 
     batch.setPipeline(getParabolaPipeline());
 
+    const int MAX_SECTIONS = 100;
+    if (glm::length2(_parabolaData.acceleration) < EPSILON) {
+        _parabolaData.numSections = 1;
+    } else {
+        _parabolaData.numSections = glm::clamp((int)(_parabolaData.parabolicDistance + 1) * 10, 1, MAX_SECTIONS);
+    }
+    updateUniformBuffer();
     batch.setUniformBuffer(0, _uniformBuffer);
 
-    // TODO: variable number of sections, depending on ? (acceleration?, parabolicDistance?)
-    const int NUM_SECTIONS = 25; // must match value in parabola.slv
     // We draw 2 * n + 2 vertices for a triangle strip
-    batch.draw(gpu::TRIANGLE_STRIP, 2 * NUM_SECTIONS + 2, 0);
+    batch.draw(gpu::TRIANGLE_STRIP, 2 * _parabolaData.numSections + 2, 0);
 }
 
 namespace render {

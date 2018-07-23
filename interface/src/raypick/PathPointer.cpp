@@ -113,13 +113,12 @@ PickResultPointer PathPointer::getVisualPickResult(const PickResultPointer& pick
             const glm::vec3 DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f);
             endVec = pos + rot * (dim * (DEFAULT_REGISTRATION_POINT - registrationPoint));
             glm::vec3 direction = endVec - origin;
-            float distance = glm::distance(origin, endVec);
+            distance = glm::distance(origin, endVec);
             glm::vec3 normalizedDirection = glm::normalize(direction);
 
             type = _lockEndObject.isOverlay ? IntersectionType::OVERLAY : IntersectionType::ENTITY;
             id = _lockEndObject.id;
             intersection = endVec;
-            distance = distance;
             surfaceNormal = -normalizedDirection;
             setVisualPickResultInternal(visualPickResult, type, id, intersection, distance, surfaceNormal);
         } else if (type != IntersectionType::NONE && _lockEnd) {
@@ -134,7 +133,6 @@ PickResultPointer PathPointer::getVisualPickResult(const PickResultPointer& pick
             glm::vec3 direction = endVec - origin;
             distance = glm::distance(origin, endVec);
             glm::vec3 normalizedDirection = glm::normalize(direction);
-            type = type;
             intersection = endVec;
             surfaceNormal = -normalizedDirection;
             setVisualPickResultInternal(visualPickResult, type, id, intersection, distance, surfaceNormal);

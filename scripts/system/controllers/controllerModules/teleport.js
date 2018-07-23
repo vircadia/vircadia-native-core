@@ -100,7 +100,7 @@ Script.include("/~/system/libraries/controllers.js");
         {name: "teleport", path: teleportPath, end: teleportEnd},
         {name: "seat", path: seatPath, end: seatEnd}];
 
-    var DEFAULT_DISTANCE = 10;
+    var DEFAULT_DISTANCE = 4.0;
     var teleportDefaultRenderStates = [{name: "cancel", distance: DEFAULT_DISTANCE, path: cancelPath}];
 
     var coolInTimeout = null;
@@ -151,7 +151,8 @@ Script.include("/~/system/libraries/controllers.js");
             accelerationAxis: accelerationAxis,
             rotateAccelerationWithAvatar: true,
             renderStates: teleportRenderStates,
-            defaultRenderStates: teleportDefaultRenderStates
+            defaultRenderStates: teleportDefaultRenderStates,
+            maxDistance: 4.0
         });
         this.teleportParabolaHandInvisible = Pointers.createPointer(PickType.Parabola, {
             joint: (_this.hand === RIGHT_HAND) ? "RightHand" : "LeftHand",
@@ -163,7 +164,8 @@ Script.include("/~/system/libraries/controllers.js");
             speed: speed,
             accelerationAxis: accelerationAxis,
             rotateAccelerationWithAvatar: true,
-            renderStates: teleportRenderStates
+            renderStates: teleportRenderStates,
+            maxDistance: 4.0
         });
         this.teleportParabolaHeadVisible = Pointers.createPointer(PickType.Parabola, {
             joint: "Avatar",
@@ -176,7 +178,8 @@ Script.include("/~/system/libraries/controllers.js");
             accelerationAxis: accelerationAxis,
             rotateAccelerationWithAvatar: true,
             renderStates: teleportRenderStates,
-            defaultRenderStates: teleportDefaultRenderStates
+            defaultRenderStates: teleportDefaultRenderStates,
+            maxDistance: 4.0
         });
         this.teleportParabolaHeadInvisible = Pointers.createPointer(PickType.Parabola, {
             joint: "Avatar",
@@ -188,7 +191,8 @@ Script.include("/~/system/libraries/controllers.js");
             speed: speed,
             accelerationAxis: accelerationAxis,
             rotateAccelerationWithAvatar: true,
-            renderStates: teleportRenderStates
+            renderStates: teleportRenderStates,
+            maxDistance: 4.0
         });
 
         this.cleanup = function() {
@@ -430,7 +434,7 @@ Script.include("/~/system/libraries/controllers.js");
         }
 
         var surfaceNormal = result.surfaceNormal;
-        var angle = Math.abs(Math.acos(Vec3.dot(surfaceNormal, Quat.getUp(MyAvatar.orientation)))) * (180.0 / Math.PI);
+        var angle = Math.acos(Vec3.dot(surfaceNormal, Quat.getUp(MyAvatar.orientation))) * (180.0 / Math.PI);
 
         if (angle > MAX_ANGLE_FROM_UP_TO_TELEPORT ||
             Vec3.distance(MyAvatar.position, result.intersection) <= TELEPORT_CANCEL_RANGE * MyAvatar.sensorToWorldScale) {
