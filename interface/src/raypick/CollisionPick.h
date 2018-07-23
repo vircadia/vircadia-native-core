@@ -136,22 +136,9 @@ protected:
 
 // Callback for checking the motion states of all colliding rigid bodies for candidacy to be added to a list
 struct RigidBodyFilterResultCallback : public btCollisionWorld::ContactResultCallback {
-    RigidBodyFilterResultCallback(const ShapeInfo& shapeInfo, const Transform& transform) :
-        btCollisionWorld::ContactResultCallback(), collisionObject() {
-        const btCollisionShape* collisionShape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
+    RigidBodyFilterResultCallback(const ShapeInfo& shapeInfo, const Transform& transform);
 
-        collisionObject.setCollisionShape(const_cast<btCollisionShape*>(collisionShape));
-
-        btTransform bulletTransform;
-        bulletTransform.setOrigin(glmToBullet(transform.getTranslation()));
-        bulletTransform.setRotation(glmToBullet(transform.getRotation()));
-
-        collisionObject.setWorldTransform(bulletTransform);
-    }
-
-    ~RigidBodyFilterResultCallback() {
-        ObjectMotionState::getShapeManager()->releaseShape(collisionObject.getCollisionShape());
-    }
+    ~RigidBodyFilterResultCallback();
 
     RigidBodyFilterResultCallback(btCollisionObject& testCollisionObject) :
         btCollisionWorld::ContactResultCallback(), collisionObject(testCollisionObject) {
@@ -162,30 +149,7 @@ struct RigidBodyFilterResultCallback : public btCollisionWorld::ContactResultCal
     // Check candidacy for adding to a list
     virtual void checkOrAddCollidingState(const btMotionState* otherMotionState, btVector3& point, btVector3& otherPoint) = 0;
 
-    btScalar addSingleResult(btManifoldPoint& cp, const btCollisionObjectWrapper* colObj0, int partId0, int index0, const btCollisionObjectWrapper* colObj1, int partId1, int index1) override {
-        const btCollisionObject* otherBody;
-        btVector3 point;
-        btVector3 otherPoint;
-        if (colObj0->m_collisionObject == &collisionObject) {
-            otherBody = colObj1->m_collisionObject;
-            point = cp.m_localPointA;
-            otherPoint = cp.m_localPointB;
-        }
-        else {
-            otherBody = colObj0->m_collisionObject;
-            point = cp.m_localPointB;
-            otherPoint = cp.m_localPointA;
-        }
-        const btRigidBody* collisionCandidate = dynamic_cast<const btRigidBody*>(otherBody);
-        if (!collisionCandidate) {
-            return 0;
-        }
-        const btMotionState* motionStateCandidate = collisionCandidate->getMotionState();
-
-        checkOrAddCollidingState(motionStateCandidate, point, otherPoint);
-
-        return 0;
-    }
+    btScalar addSingleResult(btManifoldPoint& cp, const btCollisionObjectWrapper* colObj0, int partId0, int index0, const btCollisionObjectWrapper* colObj1, int partId1, int index1) override;
 };
 
 // Callback for getting colliding ObjectMotionStates in the world, or optionally a more specific type.
@@ -195,15 +159,7 @@ struct AllObjectMotionStatesCallback : public RigidBodyFilterResultCallback {
 
     std::vector<CollisionPickResult::EntityIntersection> intersectingObjects;
 
-    void checkOrAddCollidingState(const btMotionState* otherMotionState, btVector3& point, btVector3& otherPoint) override {
-        const T* candidate = dynamic_cast<const T*>(otherMotionState);
-        if (!candidate) {
-            return;
-        }
-
-        // This is the correct object type. Add it to the list.
-        intersectingObjects.emplace_back(candidate->getObjectID(), bulletToGLM(point), bulletToGLM(otherPoint));
-    }
+    void checkOrAddCollidingState(const btMotionState* otherMotionState, btVector3& point, btVector3& otherPoint) override;
 };
 
 #endif // hifi_CollisionPick_h

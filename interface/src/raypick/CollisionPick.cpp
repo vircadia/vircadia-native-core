@@ -299,3 +299,59 @@ PickResultPointer CollisionPick::getAvatarIntersection(const CollisionRegion& pi
 PickResultPointer CollisionPick::getHUDIntersection(const CollisionRegion& pick) {
     return getDefaultResult(QVariantMap());
 }
+
+template <typename T = ObjectMotionState>
+RigidBodyFilterResultCallback::RigidBodyFilterResultCallback(const ShapeInfo& shapeInfo, const Transform& transform) :
+    btCollisionWorld::ContactResultCallback(), collisionObject() {
+    const btCollisionShape* collisionShape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
+
+    collisionObject.setCollisionShape(const_cast<btCollisionShape*>(collisionShape));
+
+    btTransform bulletTransform;
+    bulletTransform.setOrigin(glmToBullet(transform.getTranslation()));
+    bulletTransform.setRotation(glmToBullet(transform.getRotation()));
+
+    collisionObject.setWorldTransform(bulletTransform);
+}
+
+template <typename T = ObjectMotionState>
+RigidBodyFilterResultCallback::~RigidBodyFilterResultCallback() {
+    ObjectMotionState::getShapeManager()->releaseShape(collisionObject.getCollisionShape());
+}
+
+template <typename T = ObjectMotionState>
+btScalar RigidBodyFilterResultCallback::addSingleResult(btManifoldPoint& cp, const btCollisionObjectWrapper* colObj0, int partId0, int index0, const btCollisionObjectWrapper* colObj1, int partId1, int index1) {
+    const btCollisionObject* otherBody;
+    btVector3 point;
+    btVector3 otherPoint;
+    if (colObj0->m_collisionObject == &collisionObject) {
+        otherBody = colObj1->m_collisionObject;
+        point = cp.m_localPointA;
+        otherPoint = cp.m_localPointB;
+    }
+    else {
+        otherBody = colObj0->m_collisionObject;
+        point = cp.m_localPointB;
+        otherPoint = cp.m_localPointA;
+    }
+    const btRigidBody* collisionCandidate = dynamic_cast<const btRigidBody*>(otherBody);
+    if (!collisionCandidate) {
+        return 0;
+    }
+    const btMotionState* motionStateCandidate = collisionCandidate->getMotionState();
+
+    checkOrAddCollidingState(motionStateCandidate, point, otherPoint);
+
+    return 0;
+}
+
+template <typename T = ObjectMotionState>
+void AllObjectMotionStatesCallback::checkOrAddCollidingState(const btMotionState* otherMotionState, btVector3& point, btVector3& otherPoint) {
+    const T* candidate = dynamic_cast<const T*>(otherMotionState);
+    if (!candidate) {
+        return;
+    }
+
+    // This is the correct object type. Add it to the list.
+    intersectingObjects.emplace_back(candidate->getObjectID(), bulletToGLM(point), bulletToGLM(otherPoint));
+}
