@@ -194,11 +194,40 @@ SelectionManager = (function() {
         }
     };
 
+    // Return true if the given entity with `properties` is being grabbed by an avatar.
+    // This is mostly a heuristic - there is no perfect way to know if an entity is being
+    // grabbed.
+    function nonDynamicEntityIsBeingGrabbedByAvatar(properties) {
+        if (properties.dynamic || properties.parentID === null) {
+            return false;
+        }
+
+        var avatar = AvatarList.getAvatar(properties.parentID);
+        if (avatar.sessionUUID === null) {
+            return false;
+        }
+
+        var grabJointNames = [
+            'RightHand', 'LeftHand',
+            '_CONTROLLER_RIGHTHAND', '_CONTROLLER_LEFTHAND',
+            '_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND', '_CAMERA_RELATIVE_CONTROLLER_LEFTHAND'];
+
+        for (var i = 0; i < grabJointNames.length; ++i) {
+            if (avatar.getJointIndex(grabJointNames[i]) === properties.parentJointIndex) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     that.duplicateSelection = function() {
         var entitiesToDuplicate = [];
         var duplicatedEntityIDs = [];
         var duplicatedChildrenWithOldParents = [];
         var originalEntityToNewEntityID = [];
+
+        SelectionManager.saveProperties();
         
         // build list of entities to duplicate by including any unselected children of selected parent entities
         Object.keys(that.savedProperties).forEach(function(originalEntityID) {
@@ -216,10 +245,33 @@ SelectionManager = (function() {
                 properties = Entities.getEntityProperties(originalEntityID);
             }
             if (!properties.locked && (!properties.clientOnly || properties.owningAvatarID === MyAvatar.sessionUUID)) {
+                if (nonDynamicEntityIsBeingGrabbedByAvatar(properties)) {
+                    properties.parentID = null;
+                    properties.parentJointIndex = null;
+                    properties.localPosition = properties.position;
+                    properties.localRotation = properties.rotation;
+                }
+                delete properties.actionData;
                 var newEntityID = Entities.addEntity(properties);
+
+                // Re-apply actions from the original entity
+                var actionIDs = Entities.getActionIDs(properties.id);
+                for (var i = 0; i < actionIDs.length; ++i) {
+                    var actionID = actionIDs[i];
+                    var actionArguments = Entities.getActionArguments(properties.id, actionID);
+                    if (actionArguments) {
+                        var type = actionArguments.type;
+                        if (type == 'hold' || type == 'far-grab') {
+                            continue;
+                        }
+                        delete actionArguments.ttl;
+                        Entities.addAction(type, newEntityID, actionArguments);
+                    }
+                }
+
                 duplicatedEntityIDs.push({
                     entityID: newEntityID,
-                    properties: properties
+                    properties: properties,
                 });
                 if (properties.parentID !== Uuid.NULL) {
                     duplicatedChildrenWithOldParents[newEntityID] = properties.parentID;
@@ -255,7 +307,8 @@ SelectionManager = (function() {
             that.worldPosition = null;
             that.worldRotation = null;
         } else if (that.selections.length === 1) {
-            properties = Entities.getEntityProperties(that.selections[0]);
+            properties = Entities.getEntityProperties(that.selections[0],
+                ['dimensions', 'position', 'rotation', 'registrationPoint', 'boundingBox', 'type']);
             that.localDimensions = properties.dimensions;
             that.localPosition = properties.position;
             that.localRotation = properties.rotation;
@@ -271,7 +324,7 @@ SelectionManager = (function() {
                 SelectionDisplay.setSpaceMode(SPACE_LOCAL);
             }
         } else {
-            properties = Entities.getEntityProperties(that.selections[0]);
+            properties = Entities.getEntityProperties(that.selections[0], ['type', 'boundingBox']);
 
             that.entityType = properties.type;
 
@@ -279,7 +332,7 @@ SelectionManager = (function() {
             var tfl = properties.boundingBox.tfl;
 
             for (var i = 1; i < that.selections.length; i++) {
-                properties = Entities.getEntityProperties(that.selections[i]);
+                properties = Entities.getEntityProperties(that.selections[i], 'boundingBox');
                 var bb = properties.boundingBox;
                 brn.x = Math.min(bb.brn.x, brn.x);
                 brn.y = Math.min(bb.brn.y, brn.y);
@@ -1716,6 +1769,20 @@ SelectionDisplay = (function() {
                 Vec3.print("    pickResult.intersection", pickResult.intersection);
             }
 
+            // Duplicate entities if alt is pressed.  This will make a
+            // copy of the selected entities and move the _original_ entities, not
+            // the new ones.
+            if (event.isAlt || doClone) {
+                duplicatedEntityIDs = SelectionManager.duplicateSelection();
+                var ids = [];
+                for (var i = 0; i < duplicatedEntityIDs.length; ++i) {
+                    ids.push(duplicatedEntityIDs[i].entityID);
+                }
+                SelectionManager.setSelections(ids);
+            } else {
+                duplicatedEntityIDs = null;
+            }
+
             SelectionManager.saveProperties();
             that.resetPreviousHandleColor();
 
@@ -1744,15 +1811,6 @@ SelectionDisplay = (function() {
                 y: 1,
                 z: 0
             });
-
-            // Duplicate entities if alt is pressed.  This will make a
-            // copy of the selected entities and move the _original_ entities, not
-            // the new ones.
-            if (event.isAlt || doClone) {
-                duplicatedEntityIDs = SelectionManager.duplicateSelection();
-            } else {
-                duplicatedEntityIDs = null;
-            }
 
             isConstrained = false;
             if (wantDebug) {
@@ -1929,6 +1987,20 @@ SelectionDisplay = (function() {
         addHandleTool(overlay, {
             mode: mode,
             onBegin: function(event, pickRay, pickResult) {
+                // Duplicate entities if alt is pressed.  This will make a
+                // copy of the selected entities and move the _original_ entities, not
+                // the new ones.
+                if (event.isAlt) {
+                    duplicatedEntityIDs = SelectionManager.duplicateSelection();
+                    var ids = [];
+                    for (var i = 0; i < duplicatedEntityIDs.length; ++i) {
+                        ids.push(duplicatedEntityIDs[i].entityID);
+                    }
+                    SelectionManager.setSelections(ids);
+                } else {
+                    duplicatedEntityIDs = null;
+                }
+
                 var axisVector;
                 if (direction === TRANSLATE_DIRECTION.X) {
                     axisVector = { x: 1, y: 0, z: 0 };
@@ -1955,15 +2027,6 @@ SelectionDisplay = (function() {
                 that.setHandleStretchVisible(false);
                 that.setHandleScaleCubeVisible(false);
                 that.setHandleClonerVisible(false);
-    
-                // Duplicate entities if alt is pressed.  This will make a
-                // copy of the selected entities and move the _original_ entities, not
-                // the new ones.
-                if (event.isAlt) {
-                    duplicatedEntityIDs = SelectionManager.duplicateSelection();
-                } else {
-                    duplicatedEntityIDs = null;
-                }
                 
                 previousPickRay = pickRay;
             },
