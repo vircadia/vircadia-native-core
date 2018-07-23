@@ -1500,8 +1500,6 @@ bool Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, 
     }
 
     glm::vec3 armToHandDir = armToHand / armToHandDistance;
-    glm::vec3 armToElbowDir = armToElbow / armToElbowDistance;
-
     glm::vec3 armToHeadPlaneNormal = glm::cross(armToHead, armToHandDir);
 
     // The strenght of the resulting pole determined by the arm flex.
