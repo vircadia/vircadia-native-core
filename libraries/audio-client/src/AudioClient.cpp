@@ -1639,6 +1639,7 @@ void AudioClient::audioInputStateChanged(QAudio::State state) {
 void AudioClient::checkInputTimeout() {
 #if defined(Q_OS_ANDROID)
     if (_audioInput && _inputReadsSinceLastCheck < MIN_READS_TO_CONSIDER_INPUT_ALIVE) {
+        qDebug() << "[CHOPPY-AUDIO] " << _inputReadsSinceLastCheck << " < MIN_READS_TO_CONSIDER_INPUT_ALIVE";
         _audioInput->stop();
     } else {
         _inputReadsSinceLastCheck = 0;
