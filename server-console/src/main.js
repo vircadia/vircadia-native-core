@@ -405,7 +405,7 @@ LogWindow.prototype = {
     }
 };
 
-function goHomeClicked() {
+function visitSandboxClicked() {
     if (interfacePath) {
         startInterface('hifi://localhost');
     } else {
@@ -439,8 +439,8 @@ var labels = {
         }
     },
     goHome: {
-        label: 'Go Home',
-        click: goHomeClicked,
+        label: 'Visit Sandbox',
+        click: visitSandboxClicked,
         enabled: false
     },
     quit: {
