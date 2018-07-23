@@ -3650,6 +3650,10 @@ bool Application::event(QEvent* event) {
 
 bool Application::eventFilter(QObject* object, QEvent* event) {
 
+    if (_aboutToQuit) {
+        return true;
+    }
+
     if (event->type() == QEvent::Leave) {
         getApplicationCompositor().handleLeaveEvent();
     }
