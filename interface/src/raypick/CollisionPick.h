@@ -188,37 +188,6 @@ struct RigidBodyFilterResultCallback : public btCollisionWorld::ContactResultCal
     }
 };
 
-// Callback for getting colliding avatars in the world.
-struct AllAvatarsCallback : public RigidBodyFilterResultCallback {
-    std::vector<CollisionPickResult::EntityIntersection> intersectingAvatars;
-
-    void checkOrAddCollidingState(const btMotionState* otherMotionState, btVector3& point, btVector3& otherPoint) override {
-        const AvatarMotionState* avatarCandidate = dynamic_cast<const AvatarMotionState*>(otherMotionState);
-        if (!avatarCandidate) {
-            return;
-        }
-
-        // This is the correct object type. Add it to the list.
-        intersectingAvatars.emplace_back(avatarCandidate->getObjectID(), bulletToGLM(point), bulletToGLM(otherPoint));
-    }
-};
-
-// Callback for getting colliding entities in the world.
-struct AllEntitiesCallback : public RigidBodyFilterResultCallback {
-    std::vector<CollisionPickResult::EntityIntersection> intersectingEntities;
-
-    void checkOrAddCollidingState(const btMotionState* otherMotionState, btVector3& point, btVector3& otherPoint) override {
-        const EntityMotionState* entityCandidate = dynamic_cast<const EntityMotionState*>(otherMotionState);
-        if (!entityCandidate) {
-            return;
-        }
-
-        // This is the correct object type. Add it to the list.
-        intersectingEntities.emplace_back(entityCandidate->getObjectID(), bulletToGLM(point), bulletToGLM(otherPoint));
-    }
-};
-
-// TODO: Test if this works. Revert to above code if it doesn't
 // Callback for getting colliding ObjectMotionStates in the world, or optionally a more specific type.
 template <typename T = ObjectMotionState>
 struct AllObjectMotionStatesCallback : public RigidBodyFilterResultCallback {
