@@ -22,6 +22,7 @@ Original.Button {
     property int fontSize: hifi.fontSizes.buttonLabel
     property alias implicitTextWidth: buttonText.implicitWidth
     property string buttonGlyph: "";
+    property int fontCapitalization: Font.AllUppercase
 
     width: hifi.dimensions.buttonWidth
     height: hifi.dimensions.controlLineHeight
@@ -107,7 +108,7 @@ Original.Button {
         RalewayBold {
             id: buttonText;
             anchors.centerIn: parent;
-            font.capitalization: Font.AllUppercase
+            font.capitalization: control.fontCapitalization
             color: enabled ? hifi.buttons.textColor[control.color]
                            : hifi.buttons.disabledTextColor[control.colorScheme]
             size: control.fontSize
