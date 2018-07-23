@@ -1614,7 +1614,7 @@ void MyAvatar::removeAvatarEntities(const std::function<bool(const QUuid& entity
         entityTree->withWriteLock([&] {
             AvatarEntityMap avatarEntities = getAvatarEntityData();
             for (auto entityID : avatarEntities.keys()) {
-                if(!condition || condition(entityID)) {
+                if (!condition || condition(entityID)) {
                     entityTree->deleteEntity(entityID, true, true);
                 }
             }
