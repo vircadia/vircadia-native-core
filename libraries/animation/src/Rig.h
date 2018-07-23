@@ -218,8 +218,6 @@ public:
     // input assumed to be in rig space
     void computeHeadFromHMD(const AnimPose& hmdPose, glm::vec3& headPositionOut, glm::quat& headOrientationOut) const;
 
-    void toggleHandPoleVectors() { _enablePoleVectors = !_enablePoleVectors; };
-
 signals:
     void onLoadComplete();
 
@@ -369,8 +367,6 @@ protected:
 
     glm::vec3 _prevLeftFootPoleVector { Vectors::UNIT_Z }; // sensor space
     bool _prevLeftFootPoleVectorValid { false };
-
-    bool _enablePoleVectors{ true };
 
     int _rigId;
 };

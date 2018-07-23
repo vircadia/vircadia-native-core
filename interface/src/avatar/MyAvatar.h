@@ -612,8 +612,6 @@ public:
 
     const MyHead* getMyHead() const;
 
-    Q_INVOKABLE void toggleHandPoleVectors() { _skeletonModel->getRig().toggleHandPoleVectors(); }
-
     /**jsdoc
      * Get the current position of the avatar's "Head" joint.
      * @function MyAvatar.getHeadPosition

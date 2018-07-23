@@ -1247,10 +1247,6 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
                       const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo,
                       const glm::mat4& rigToSensorMatrix, const glm::mat4& sensorToRigMatrix) {
 
-    float avatarScale = extractUniformScale(_modelOffset);
-
-    int hipsIndex = indexOfJoint("Hips");
-
     if (leftHandEnabled) {
 
         glm::vec3 handPosition = leftHandPose.trans();
@@ -1270,7 +1266,7 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         int armJointIndex = _animSkeleton->nameToJointIndex("LeftArm");
         int elbowJointIndex = _animSkeleton->nameToJointIndex("LeftForeArm");
         int oppositeArmJointIndex = _animSkeleton->nameToJointIndex("RightArm");
-        if (_enablePoleVectors && handJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0 && oppositeArmJointIndex >= 0) {
+        if (handJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0 && oppositeArmJointIndex >= 0) {
             glm::vec3 poleVector;
             bool usePoleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, oppositeArmJointIndex, poleVector);
             if (usePoleVector) {
@@ -1313,7 +1309,7 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         int elbowJointIndex = _animSkeleton->nameToJointIndex("RightForeArm");
         int oppositeArmJointIndex = _animSkeleton->nameToJointIndex("LeftArm");
 
-        if (_enablePoleVectors && handJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0 && oppositeArmJointIndex >= 0) {
+        if (handJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0 && oppositeArmJointIndex >= 0) {
             glm::vec3 poleVector;
             bool usePoleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, oppositeArmJointIndex, poleVector);
             if (usePoleVector) {
@@ -1508,11 +1504,8 @@ bool Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, 
 
     glm::vec3 armToHandDir = armToHand / armToHandDistance;
     glm::vec3 armToElbowDir = armToElbow / armToElbowDistance;
-    glm::vec3 armToHeadDir = armToHead / armToHeadDistance;
     
     glm::vec3 armToHandPlaneNormal = glm::cross(armToHandDir, armToElbowDir);
-    glm::vec3 currentPoleVector = glm::normalize(glm::cross(armToHandPlaneNormal, armToHandDir));
-
     glm::vec3 armToHeadPlaneNormal = glm::cross(armToHead, armToHandDir);
 
     // The strenght of the resulting pole determined by the arm flex.
