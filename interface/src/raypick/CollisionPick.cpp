@@ -300,7 +300,6 @@ PickResultPointer CollisionPick::getHUDIntersection(const CollisionRegion& pick)
     return getDefaultResult(QVariantMap());
 }
 
-template <typename T = ObjectMotionState>
 RigidBodyFilterResultCallback::RigidBodyFilterResultCallback(const ShapeInfo& shapeInfo, const Transform& transform) :
     btCollisionWorld::ContactResultCallback(), collisionObject() {
     const btCollisionShape* collisionShape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
@@ -314,12 +313,10 @@ RigidBodyFilterResultCallback::RigidBodyFilterResultCallback(const ShapeInfo& sh
     collisionObject.setWorldTransform(bulletTransform);
 }
 
-template <typename T = ObjectMotionState>
 RigidBodyFilterResultCallback::~RigidBodyFilterResultCallback() {
     ObjectMotionState::getShapeManager()->releaseShape(collisionObject.getCollisionShape());
 }
 
-template <typename T = ObjectMotionState>
 btScalar RigidBodyFilterResultCallback::addSingleResult(btManifoldPoint& cp, const btCollisionObjectWrapper* colObj0, int partId0, int index0, const btCollisionObjectWrapper* colObj1, int partId1, int index1) {
     const btCollisionObject* otherBody;
     btVector3 point;
