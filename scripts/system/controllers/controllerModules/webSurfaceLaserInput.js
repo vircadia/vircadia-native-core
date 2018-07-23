@@ -60,25 +60,14 @@ Script.include("/~/system/libraries/controllers.js");
             return this.hand === RIGHT_HAND ? leftOverlayLaserInput : rightOverlayLaserInput;
         };
 
-        this.isPointingAtFarGrabbableEntity = function(controllerData, triggerPressed) {
-            // we are searching for an entity that is not a web entity.  We want to be able to
-            // grab a non-web entity if the ray-pick intersects one.
+        this.isPointingAtNearGrabbableEntity = function(controllerData, triggerPressed) {
             var intersection = controllerData.rayPicks[this.hand];
-            if (intersection.type === Picks.INTERSECTED_ENTITY) {
-                // is pointing at an entity.
-                var entityProperties = Entities.getEntityProperties(intersection.objectID);
-                var entityType = entityProperties.type;
-                if (entityIsGrabbable(entityProperties) && entityType !== "Web") {
-                    // check if entity is near grabbable.
-                    var distance = Vec3.distance(entityProperties.position, controllerData.controllerLocations[this.hand].position);
-                    if (distance >= NEAR_GRAB_RADIUS * MyAvatar.sensorToWorldScale) {
-                        // far-grabbable, but still return it as true anyway
-                        return true;
-                    }
-                }
+            var objectID = intersection.objectID;
+            if(intersection.type === Picks.INTERSECTED_ENTITY) {
+                return (controllerData.nearbyEntityPropertiesByID[objectID] !== null && triggerPressed);
             }
             return false;
-        };
+        }
 
         this.isPointingAtTriggerable = function(controllerData, triggerPressed) {
             // allow pointing at tablet, unlocked web entities, or web overlays automatically without pressing trigger,
@@ -98,7 +87,7 @@ Script.include("/~/system/libraries/controllers.js");
                 var entityProperty = Entities.getEntityProperties(objectID);
                 var entityType = entityProperty.type;
                 var isLocked = entityProperty.locked;
-                return (!isLocked || triggerPressed || entityType === "Web");
+                return entityType === "Web" && (!isLocked || triggerPressed);
             }
             return false;
         };
@@ -156,7 +145,7 @@ Script.include("/~/system/libraries/controllers.js");
             var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE;
             var laserOn = isTriggerPressed || this.parameters.handLaser.allwaysOn;
             if (allowThisModule && (laserOn && this.isPointingAtTriggerable(controllerData, isTriggerPressed)) &&
-                (controllerData.nearbyEntityProperties[this.hand] !== [] || !(this.isPointingAtFarGrabbableEntity(controllerData, isTriggerPressed)))) {
+                (controllerData.nearbyEntityProperties[this.hand] !== [])) {
                 this.running = true;
                 return makeRunningValues(true, [], []);
             }
