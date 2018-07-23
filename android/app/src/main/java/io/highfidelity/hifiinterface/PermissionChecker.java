@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -134,5 +135,14 @@ public class PermissionChecker extends Activity {
             System.out.println("User has deliberately denied Permissions. Launching anyways");
             launchActivityWithPermissions();
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        View decorView = getWindow().getDecorView();
+        // Hide the status bar.
+        int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
+        decorView.setSystemUiVisibility(uiOptions);
     }
 }
