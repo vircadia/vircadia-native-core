@@ -48,7 +48,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.tabletID = null;
         this.blacklist = [];
         this.pointerManager = new PointerManager();
-        this.debugOverlayID = null;
 
         // a module can occupy one or more "activity" slots while it's running.  If all the required slots for a module are
         // not set to false (not in use), a module cannot start.  When a module is using a slot, that module's name
@@ -378,7 +377,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 }
             }
             _this.pointerManager.updatePointersRenderState(controllerData.triggerClicks, controllerData.triggerValues);
-
             if (PROFILE) {
                 Script.endProfileRange("dispatch.run");
             }
