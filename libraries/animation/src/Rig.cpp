@@ -1464,8 +1464,6 @@ bool Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, 
     // pointing forward and with height aprox to the avatar head. The position of the horizontal point will be determined by the hands Y component.
     // The third vector apply a weighted correction to the resulting pole vector to avoid interpenetration and force a more natural pose.
 
-    float avatarScale = extractUniformScale(_modelOffset);
-
     AnimPose oppositeArmPose = _externalPoseSet._absolutePoses[oppositeArmIndex];
     AnimPose handPose = _externalPoseSet._absolutePoses[handIndex];
     AnimPose armPose = _externalPoseSet._absolutePoses[armIndex];
@@ -1492,7 +1490,6 @@ bool Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, 
 
     float armToHandDistance = glm::length(armToHand);
     float armToElbowDistance = glm::length(armToElbow);
-    float armToHeadDistance = glm::length(armToHead);
     float elbowToHandDistance = glm::length(elbowToHand);
 
     float armTotalDistance = armToElbowDistance + elbowToHandDistance;
@@ -1504,8 +1501,7 @@ bool Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, 
 
     glm::vec3 armToHandDir = armToHand / armToHandDistance;
     glm::vec3 armToElbowDir = armToElbow / armToElbowDistance;
-    
-    glm::vec3 armToHandPlaneNormal = glm::cross(armToHandDir, armToElbowDir);
+
     glm::vec3 armToHeadPlaneNormal = glm::cross(armToHead, armToHandDir);
 
     // The strenght of the resulting pole determined by the arm flex.
