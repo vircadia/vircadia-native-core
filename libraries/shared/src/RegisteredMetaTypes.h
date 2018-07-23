@@ -243,6 +243,8 @@ public:
                 if (shape["dimensions"].isValid()) {
                     transform.setScale(vec3FromVariant(shape["dimensions"]));
                 }
+
+                shapeInfo.setParams(shapeType, transform.getScale() / 2.0f, modelURL.toString());
             }
         }
 
@@ -260,7 +262,7 @@ public:
         QVariantMap shape;
         shape["shapeType"] = ShapeInfo::getNameForShapeType(shapeInfo.getType());
         shape["modelURL"] = modelURL.toString();
-        shape["dimensions"] = vec3toVariant(shapeInfo.getHalfExtents());
+        shape["dimensions"] = vec3toVariant(transform.getScale());
 
         collisionRegion["shape"] = shape;
 

@@ -103,6 +103,8 @@ public:
             intersectingAvatars.push_back(intersectingAvatar);
         }
 
+        intersects = intersectingEntities.size() || intersectingAvatars.size();
+
         return std::make_shared<CollisionPickResult>(*this);
     }
 };
