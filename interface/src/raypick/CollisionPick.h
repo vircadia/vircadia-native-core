@@ -146,6 +146,8 @@ struct RigidBodyFilterResultCallback : public btCollisionWorld::ContactResultCal
 
     btCollisionObject collisionObject;
 
+    virtual bool needsCollision(btBroadphaseProxy* proxy) const;
+
     // Check candidacy for adding to a list
     virtual void checkOrAddCollidingState(const btMotionState* otherMotionState, btVector3& point, btVector3& otherPoint) = 0;
 

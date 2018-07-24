@@ -317,6 +317,10 @@ RigidBodyFilterResultCallback::~RigidBodyFilterResultCallback() {
     ObjectMotionState::getShapeManager()->releaseShape(collisionObject.getCollisionShape());
 }
 
+bool RigidBodyFilterResultCallback::needsCollision(btBroadphaseProxy* proxy) const {
+    return true;
+}
+
 btScalar RigidBodyFilterResultCallback::addSingleResult(btManifoldPoint& cp, const btCollisionObjectWrapper* colObj0, int partId0, int index0, const btCollisionObjectWrapper* colObj1, int partId1, int index1) {
     const btCollisionObject* otherBody;
     btVector3 point;
@@ -331,10 +335,10 @@ btScalar RigidBodyFilterResultCallback::addSingleResult(btManifoldPoint& cp, con
         point = cp.m_localPointB;
         otherPoint = cp.m_localPointA;
     }
-    const btRigidBody* collisionCandidate = dynamic_cast<const btRigidBody*>(otherBody);
-    if (!collisionCandidate) {
+    if (!(otherBody->getInternalType() & btCollisionObject::CO_RIGID_BODY)) {
         return 0;
     }
+    const btRigidBody* collisionCandidate = static_cast<const btRigidBody*>(otherBody);
     const btMotionState* motionStateCandidate = collisionCandidate->getMotionState();
 
     checkOrAddCollidingState(motionStateCandidate, point, otherPoint);
@@ -343,7 +347,7 @@ btScalar RigidBodyFilterResultCallback::addSingleResult(btManifoldPoint& cp, con
 }
 
 template <typename T = ObjectMotionState>
-void AllObjectMotionStatesCallback::checkOrAddCollidingState(const btMotionState* otherMotionState, btVector3& point, btVector3& otherPoint) {
+void AllObjectMotionStatesCallback<T>::checkOrAddCollidingState(const btMotionState* otherMotionState, btVector3& point, btVector3& otherPoint) {
     const T* candidate = dynamic_cast<const T*>(otherMotionState);
     if (!candidate) {
         return;
