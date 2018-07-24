@@ -65,7 +65,7 @@ class PathPointer : public Pointer {
     using Parent = Pointer;
 public:
     PathPointer(PickQuery::PickType type, const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates,
-                bool hover, const PointerTriggers& triggers, bool faceAvatar, bool followNormal, bool centerEndY, bool lockEnd,
+                bool hover, const PointerTriggers& triggers, bool faceAvatar, bool followNormal, float followNormalStrength, bool centerEndY, bool lockEnd,
                 bool distanceScaleEnd, bool scaleWithAvatar, bool enabled);
     virtual ~PathPointer();
 
@@ -86,6 +86,8 @@ protected:
     float _pathLength { 0.0f };
     bool _faceAvatar;
     bool _followNormal;
+    float _followNormalStrength;
+    glm::vec3 _avgNormal { NAN };
     bool _centerEndY;
     bool _lockEnd;
     bool _distanceScaleEnd;

@@ -17,8 +17,9 @@
 #include "RayPick.h"
 
 LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, bool hover,
-        const PointerTriggers& triggers, bool faceAvatar, bool followNormal, bool centerEndY, bool lockEnd, bool distanceScaleEnd, bool scaleWithAvatar, bool enabled) :
-    PathPointer(PickQuery::Ray, rayProps, renderStates, defaultRenderStates, hover, triggers, faceAvatar, followNormal,
+                           const PointerTriggers& triggers, bool faceAvatar, bool followNormal, float followNormalTime, bool centerEndY, bool lockEnd,
+                           bool distanceScaleEnd, bool scaleWithAvatar, bool enabled) :
+    PathPointer(PickQuery::Ray, rayProps, renderStates, defaultRenderStates, hover, triggers, faceAvatar, followNormal, followNormalTime,
                 centerEndY, lockEnd, distanceScaleEnd, scaleWithAvatar, enabled)
 {
 }

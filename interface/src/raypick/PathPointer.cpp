@@ -16,7 +16,7 @@
 #include "RayPick.h"
 
 PathPointer::PathPointer(PickQuery::PickType type, const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates,
-                         bool hover, const PointerTriggers& triggers, bool faceAvatar, bool followNormal, bool centerEndY, bool lockEnd,
+                         bool hover, const PointerTriggers& triggers, bool faceAvatar, bool followNormal, float followNormalStrength, bool centerEndY, bool lockEnd,
                          bool distanceScaleEnd, bool scaleWithAvatar, bool enabled) :
     Pointer(DependencyManager::get<PickScriptingInterface>()->createPick(type, rayProps), enabled, hover),
     _renderStates(renderStates),
@@ -24,6 +24,7 @@ PathPointer::PathPointer(PickQuery::PickType type, const QVariant& rayProps, con
     _triggers(triggers),
     _faceAvatar(faceAvatar),
     _followNormal(followNormal),
+    _followNormalStrength(followNormalStrength),
     _centerEndY(centerEndY),
     _lockEnd(lockEnd),
     _distanceScaleEnd(distanceScaleEnd),
@@ -148,6 +149,16 @@ void PathPointer::updateVisuals(const PickResultPointer& pickResult) {
         glm::vec3 origin = getPickOrigin(pickResult);
         glm::vec3 end = getPickEnd(pickResult, _pathLength);
         glm::vec3 surfaceNormal = getPickedObjectNormal(pickResult);
+        if (_followNormal && _followNormalStrength > 0.0f && _followNormalStrength < 1.0f) {
+            if (glm::any(glm::isnan(_avgNormal))) {
+                _avgNormal = surfaceNormal;
+            } else {
+                glm::quat a = Quat().lookAtSimple(glm::vec3(0.0f), _avgNormal);
+                glm::quat b = Quat().lookAtSimple(glm::vec3(0.0f), surfaceNormal);
+                surfaceNormal = glm::normalize(glm::slerp(a, b, _followNormalStrength) * Vectors::FRONT);
+                _avgNormal = surfaceNormal;
+            }
+        }
         _renderStates[_currentRenderState]->update(origin, end, surfaceNormal, _scaleWithAvatar, _distanceScaleEnd, _centerEndY, _faceAvatar,
                                                    _followNormal, _pathLength, pickResult);
         if (_defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {

@@ -25,8 +25,9 @@ gpu::PipelinePointer ParabolaPointer::RenderState::ParabolaRenderItem::_parabola
 gpu::PipelinePointer ParabolaPointer::RenderState::ParabolaRenderItem::_transparentParabolaPipeline { nullptr };
 
 ParabolaPointer::ParabolaPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, bool hover,
-        const PointerTriggers& triggers, bool faceAvatar, bool followNormal, bool centerEndY, bool lockEnd, bool distanceScaleEnd, bool scaleWithAvatar, bool enabled) :
-    PathPointer(PickQuery::Parabola, rayProps, renderStates, defaultRenderStates, hover, triggers, faceAvatar, followNormal,
+                                 const PointerTriggers& triggers, bool faceAvatar, bool followNormal, float followNormalStrength, bool centerEndY, bool lockEnd, bool distanceScaleEnd,
+                                 bool scaleWithAvatar, bool enabled) :
+    PathPointer(PickQuery::Parabola, rayProps, renderStates, defaultRenderStates, hover, triggers, faceAvatar, followNormal, followNormalStrength,
                 centerEndY, lockEnd, distanceScaleEnd, scaleWithAvatar, enabled)
 {
 }

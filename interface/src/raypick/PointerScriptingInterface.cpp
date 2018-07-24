@@ -96,6 +96,8 @@ unsigned int PointerScriptingInterface::createStylus(const QVariant& properties)
  * @property {boolean} [distanceScaleEnd=false] If true, the dimensions of the end of the Pointer will scale linearly with distance.
  * @property {boolean} [scaleWithAvatar=false] If true, the width of the Pointer's path will scale linearly with your avatar's scale.
  * @property {boolean} [followNormal=false] If true, the end of the Pointer will rotate to follow the normal of the intersected surface.
+ * @property {number} [followNormalStrength=0.0] The strength of the interpolation between the real normal and the visual normal if followNormal is true. <code>0-1</code>.  If 0 or 1,
+ * the normal will follow exactly.
  * @property {boolean} [enabled=false]
  * @property {Pointers.RayPointerRenderState[]} [renderStates] A list of different visual states to switch between.
  * @property {Pointers.DefaultRayPointerRenderState[]} [defaultRenderStates] A list of different visual states to use if there is no intersection.
@@ -133,6 +135,10 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
     bool followNormal = true;
     if (propertyMap["followNormal"].isValid()) {
         followNormal = propertyMap["followNormal"].toBool();
+    }
+    float followNormalStrength = 0.0f;
+    if (propertyMap["followNormalStrength"].isValid()) {
+        followNormalStrength = propertyMap["followNormalStrength"].toFloat();
     }
 
     bool enabled = false;
@@ -193,8 +199,8 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
     }
 
     return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<LaserPointer>(properties, renderStates, defaultRenderStates, hover, triggers,
-                                                                                               faceAvatar, followNormal, centerEndY, lockEnd, distanceScaleEnd,
-                                                                                               scaleWithAvatar, enabled));
+                                                                                               faceAvatar, followNormal, followNormalStrength, centerEndY, lockEnd,
+                                                                                               distanceScaleEnd, scaleWithAvatar, enabled));
 }
 
 /**jsdoc
@@ -233,6 +239,8 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
 * @property {boolean} [distanceScaleEnd=false] If true, the dimensions of the end of the Pointer will scale linearly with distance.
 * @property {boolean} [scaleWithAvatar=false] If true, the width of the Pointer's path will scale linearly with your avatar's scale.
 * @property {boolean} [followNormal=false] If true, the end of the Pointer will rotate to follow the normal of the intersected surface.
+* @property {number} [followNormalStrength=0.0] The strength of the interpolation between the real normal and the visual normal if followNormal is true. <code>0-1</code>.  If 0 or 1,
+* the normal will follow exactly.
 * @property {boolean} [enabled=false]
 * @property {Pointers.ParabolaPointerRenderState[]} [renderStates] A list of different visual states to switch between.
 * @property {Pointers.DefaultParabolaPointerRenderState[]} [defaultRenderStates] A list of different visual states to use if there is no intersection.
@@ -270,6 +278,10 @@ unsigned int PointerScriptingInterface::createParabolaPointer(const QVariant& pr
     bool followNormal = true;
     if (propertyMap["followNormal"].isValid()) {
         followNormal = propertyMap["followNormal"].toBool();
+    }
+    float followNormalStrength = 0.0f;
+    if (propertyMap["followNormalStrength"].isValid()) {
+        followNormalStrength = propertyMap["followNormalStrength"].toFloat();
     }
 
     bool enabled = false;
@@ -330,7 +342,7 @@ unsigned int PointerScriptingInterface::createParabolaPointer(const QVariant& pr
     }
 
     return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<ParabolaPointer>(properties, renderStates, defaultRenderStates, hover, triggers,
-                                                                                                  faceAvatar, followNormal, centerEndY, lockEnd, distanceScaleEnd,
+                                                                                                  faceAvatar, followNormal, followNormalStrength, centerEndY, lockEnd, distanceScaleEnd,
                                                                                                   scaleWithAvatar, enabled));
 }
 
