@@ -149,10 +149,10 @@ void TextureBaker::processTexture() {
 
     // Compressed KTX
     if (_compressionEnabled) {
-        constexpr std::array<image::BackendTarget, 2> BACKEND_TARGETS {
+        constexpr std::array<image::BackendTarget, 2> BACKEND_TARGETS {{
             image::BackendTarget::GL45,
             image::BackendTarget::GLES32
-        };
+        }};
         for (auto target : BACKEND_TARGETS) {
             auto processedTexture = image::processImage(buffer, _textureURL.toString().toStdString(),
                                                         ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType, true,
