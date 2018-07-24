@@ -455,10 +455,6 @@ startup();
 
 var isWired = false;
 function off() {
-    if (isWired) { // It is not ok to disconnect these twice, hence guard.
-        isWired = false;
-    }
-
     if(adjustWearables.opened) {
         adjustWearables.setOpened(false);
         ensureWearableSelected(null);
@@ -468,16 +464,20 @@ function off() {
         Messages.unsubscribe('Hifi-Object-Manipulation');
     }
 
-    AvatarBookmarks.bookmarkLoaded.disconnect(onBookmarkLoaded);
-    AvatarBookmarks.bookmarkDeleted.disconnect(onBookmarkDeleted);
-    AvatarBookmarks.bookmarkAdded.disconnect(onBookmarkAdded);
+    if (isWired) { // It is not ok to disconnect these twice, hence guard.
+        isWired = false;
 
-    MyAvatar.skeletonModelURLChanged.disconnect(onSkeletonModelURLChanged);
-    MyAvatar.dominantHandChanged.disconnect(onDominantHandChanged);
-    MyAvatar.collisionsEnabledChanged.disconnect(onCollisionsEnabledChanged);
-    MyAvatar.newCollisionSoundURL.disconnect(onNewCollisionSoundUrl);
-    MyAvatar.animGraphUrlChanged.disconnect(onAnimGraphUrlChanged);
-    MyAvatar.targetScaleChanged.disconnect(onTargetScaleChanged);
+        AvatarBookmarks.bookmarkLoaded.disconnect(onBookmarkLoaded);
+        AvatarBookmarks.bookmarkDeleted.disconnect(onBookmarkDeleted);
+        AvatarBookmarks.bookmarkAdded.disconnect(onBookmarkAdded);
+
+        MyAvatar.skeletonModelURLChanged.disconnect(onSkeletonModelURLChanged);
+        MyAvatar.dominantHandChanged.disconnect(onDominantHandChanged);
+        MyAvatar.collisionsEnabledChanged.disconnect(onCollisionsEnabledChanged);
+        MyAvatar.newCollisionSoundURL.disconnect(onNewCollisionSoundUrl);
+        MyAvatar.animGraphUrlChanged.disconnect(onAnimGraphUrlChanged);
+        MyAvatar.targetScaleChanged.disconnect(onTargetScaleChanged);
+    }
 }
 
 function on() {
