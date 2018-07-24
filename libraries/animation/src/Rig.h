@@ -217,7 +217,7 @@ public:
 
     // input assumed to be in rig space
     void computeHeadFromHMD(const AnimPose& hmdPose, glm::vec3& headPositionOut, glm::quat& headOrientationOut) const;
-
+    void toggleSmoothPoleVectors() { _smoothPoleVectors = !_smoothPoleVectors; };
 signals:
     void onLoadComplete();
 
@@ -244,6 +244,7 @@ protected:
     glm::vec3 calculateKneePoleVector(int footJointIndex, int kneeJoint, int upLegIndex, int hipsIndex, const AnimPose& targetFootPose) const;
     glm::vec3 deflectHandFromTorso(const glm::vec3& handPosition, const FBXJointShapeInfo& hipsShapeInfo, const FBXJointShapeInfo& spineShapeInfo,
                                    const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo) const;
+
 
     AnimPose _modelOffset;  // model to rig space
     AnimPose _geometryOffset; // geometry to model space (includes unit offset & fst offsets)
@@ -367,6 +368,14 @@ protected:
 
     glm::vec3 _prevLeftFootPoleVector { Vectors::UNIT_Z }; // sensor space
     bool _prevLeftFootPoleVectorValid { false };
+
+    glm::vec3 _prevRightHandPoleVector{ -Vectors::UNIT_Z }; // sensor space
+    bool _prevRightHandPoleVectorValid{ false };
+
+    glm::vec3 _prevLeftHandPoleVector{ -Vectors::UNIT_Z }; // sensor space
+    bool _prevLeftHandPoleVectorValid{ false };
+
+    bool _smoothPoleVectors { false };
 
     int _rigId;
 };
