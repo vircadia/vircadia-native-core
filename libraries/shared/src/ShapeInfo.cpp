@@ -68,7 +68,7 @@ const float MIN_HALF_EXTENT = 0.005f; // 0.5 cm
 
 QString ShapeInfo::getNameForShapeType(ShapeType type) {
     if (((int)type <= 0) || ((int)type >= (int)SHAPETYPE_NAME_COUNT)) {
-        type = (ShapeType)0;
+        type = SHAPE_TYPE_NONE;
     }
 
     return shapeTypeNames[(int)type];
@@ -82,7 +82,7 @@ ShapeType ShapeInfo::getShapeTypeForName(QString string) {
         }
     }
 
-    return (ShapeType)0;
+    return SHAPE_TYPE_NONE;
 }
 
 void ShapeInfo::clear() {
