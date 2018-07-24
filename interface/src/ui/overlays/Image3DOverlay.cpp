@@ -306,12 +306,13 @@ bool Image3DOverlay::findParabolaIntersection(const glm::vec3& origin, const glm
 
         if (findParabolaRectangleIntersection(localOrigin, localVelocity, localAcceleration, dimensions, parabolicDistance)) {
             float localIntersectionVelocityZ = localVelocity.z + localAcceleration.z * parabolicDistance;
+            glm::vec3 forward = rotation * Vectors::FRONT;
             if (localIntersectionVelocityZ > 0.0f) {
                 face = MIN_Z_FACE;
-                surfaceNormal = rotation * Vectors::FRONT;
+                surfaceNormal = forward;
             } else {
                 face = MAX_Z_FACE;
-                surfaceNormal = rotation * -Vectors::FRONT;
+                surfaceNormal = -forward;
             }
             return true;
         }

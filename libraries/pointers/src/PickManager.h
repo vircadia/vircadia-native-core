@@ -67,7 +67,7 @@ protected:
     PickCacheOptimizer<StylusTip> _stylusPickCacheOptimizer;
     PickCacheOptimizer<PickParabola> _parabolaPickCacheOptimizer;
 
-    static const unsigned int DEFAULT_PER_FRAME_TIME_BUDGET = 2 * USECS_PER_MSEC;
+    static const unsigned int DEFAULT_PER_FRAME_TIME_BUDGET = 3 * USECS_PER_MSEC;
     unsigned int _perFrameTimeBudget { DEFAULT_PER_FRAME_TIME_BUDGET };
 };
 
