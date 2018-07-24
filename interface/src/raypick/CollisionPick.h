@@ -8,44 +8,13 @@
 #ifndef hifi_CollisionPick_h
 #define hifi_CollisionPick_h
 
-#include <btBulletDynamicsCommon.h>
-
-#include <avatar/AvatarMotionState.h>
-#include <EntityMotionState.h>
-#include <BulletUtil.h>
+#include <PhysicsEngine.h>
+#include <model-networking/ModelCache.h>
 #include <RegisteredMetaTypes.h>
 #include <Pick.h>
 
 class CollisionPickResult : public PickResult {
 public:
-    struct EntityIntersection {
-        EntityIntersection() { }
-
-        EntityIntersection(const EntityIntersection& entityIntersection) :
-            id(entityIntersection.id),
-            pickCollisionPoint(entityIntersection.pickCollisionPoint),
-            entityCollisionPoint(entityIntersection.entityCollisionPoint) {
-        }
-
-        EntityIntersection(QUuid id, glm::vec3 pickCollisionPoint, glm::vec3 entityCollisionPoint) :
-            id(id),
-            pickCollisionPoint(pickCollisionPoint),
-            entityCollisionPoint(entityCollisionPoint) {
-        }
-
-        QVariantMap toVariantMap() {
-            QVariantMap variantMap;
-            variantMap["objectID"] = id;
-            variantMap["pickCollisionPoint"] = vec3toVariant(pickCollisionPoint);
-            variantMap["entityCollisionPoint"] = vec3toVariant(entityCollisionPoint);
-            return variantMap;
-        }
-
-        QUuid id;
-        glm::vec3 pickCollisionPoint;
-        glm::vec3 entityCollisionPoint;
-    };
-
     CollisionPickResult() {}
     CollisionPickResult(const QVariantMap& pickVariant) : PickResult(pickVariant) {}
 
@@ -73,13 +42,21 @@ public:
         
         QVariantList qIntersectingEntities;
         for (auto intersectingEntity : intersectingEntities) {
-            qIntersectingEntities.append(intersectingEntity.toVariantMap());
+            QVariantMap qIntersectingEntity;
+            qIntersectingEntity["objectID"] = intersectingEntity.id;
+            qIntersectingEntity["pickCollisionPoint"] = vec3toVariant(intersectingEntity.pickCollisionPoint);
+            qIntersectingEntity["entityCollisionPoint"] = vec3toVariant(intersectingEntity.entityCollisionPoint);
+            qIntersectingEntities.append(qIntersectingEntity);
         }
         variantMap["intersectingEntities"] = qIntersectingEntities;
 
         QVariantList qIntersectingAvatars;
         for (auto intersectingAvatar : intersectingAvatars) {
-            qIntersectingAvatars.append(intersectingAvatar.toVariantMap());
+            QVariantMap qIntersectingAvatar;
+            qIntersectingAvatar["objectID"] = intersectingAvatar.id;
+            qIntersectingAvatar["pickCollisionPoint"] = vec3toVariant(intersectingAvatar.pickCollisionPoint);
+            qIntersectingAvatar["entityCollisionPoint"] = vec3toVariant(intersectingAvatar.entityCollisionPoint);
+            qIntersectingAvatars.append(qIntersectingAvatar);
         }
         variantMap["intersectingAvatars"] = qIntersectingAvatars;
 
@@ -111,10 +88,10 @@ public:
 
 class CollisionPick : public Pick<CollisionRegion> {
 public:
-    CollisionPick(const PickFilter& filter, float maxDistance, bool enabled, CollisionRegion collisionRegion, const btCollisionWorld* collisionWorld) :
+    CollisionPick(const PickFilter& filter, float maxDistance, bool enabled, CollisionRegion collisionRegion, PhysicsEnginePointer physicsEngine) :
         Pick(filter, maxDistance, enabled),
         _mathPick(collisionRegion),
-        _collisionWorld(collisionWorld) {
+        _physicsEngine(physicsEngine) {
     }
 
     CollisionRegion getMathematicalPick() const override;
@@ -130,38 +107,8 @@ protected:
     void computeShapeInfo(CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<GeometryResource> resource);
 
     CollisionRegion _mathPick;
-    const btCollisionWorld* _collisionWorld;
+    PhysicsEnginePointer _physicsEngine;
     QSharedPointer<GeometryResource> _cachedResource;
-};
-
-// Callback for checking the motion states of all colliding rigid bodies for candidacy to be added to a list
-struct RigidBodyFilterResultCallback : public btCollisionWorld::ContactResultCallback {
-    RigidBodyFilterResultCallback(const ShapeInfo& shapeInfo, const Transform& transform);
-
-    ~RigidBodyFilterResultCallback();
-
-    RigidBodyFilterResultCallback(btCollisionObject& testCollisionObject) :
-        btCollisionWorld::ContactResultCallback(), collisionObject(testCollisionObject) {
-    }
-
-    btCollisionObject collisionObject;
-
-    virtual bool needsCollision(btBroadphaseProxy* proxy) const;
-
-    // Check candidacy for adding to a list
-    virtual void checkOrAddCollidingState(const btMotionState* otherMotionState, btVector3& point, btVector3& otherPoint) = 0;
-
-    btScalar addSingleResult(btManifoldPoint& cp, const btCollisionObjectWrapper* colObj0, int partId0, int index0, const btCollisionObjectWrapper* colObj1, int partId1, int index1) override;
-};
-
-// Callback for getting colliding ObjectMotionStates in the world, or optionally a more specific type.
-template <typename T = ObjectMotionState>
-struct AllObjectMotionStatesCallback : public RigidBodyFilterResultCallback {
-    AllObjectMotionStatesCallback(const ShapeInfo& shapeInfo, const Transform& transform) : RigidBodyFilterResultCallback(shapeInfo, transform) { }
-
-    std::vector<CollisionPickResult::EntityIntersection> intersectingObjects;
-
-    void checkOrAddCollidingState(const btMotionState* otherMotionState, btVector3& point, btVector3& otherPoint) override;
 };
 
 #endif // hifi_CollisionPick_h

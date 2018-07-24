@@ -9,10 +9,10 @@
 #define hifi_PickScriptingInterface_h
 
 #include <QtCore/QObject>
-#include <btBulletDynamicsCommon.h>
 
 #include <RegisteredMetaTypes.h>
 #include <DependencyManager.h>
+#include <PhysicsEngine.h>
 #include <Pick.h>
 
 /**jsdoc
@@ -277,12 +277,12 @@ public slots:
     static constexpr unsigned int INTERSECTED_HUD() { return IntersectionType::HUD; }
 
     // Set to allow CollisionPicks to have access to the physics engine
-    void setCollisionWorld(const btCollisionWorld* collisionWorld) {
-        _collisionWorld = collisionWorld;
+    void setPhysicsEngine(PhysicsEnginePointer physicsEngine) {
+        _physicsEngine = physicsEngine;
     }
 
 protected:
-    const btCollisionWorld* _collisionWorld;
+    PhysicsEnginePointer _physicsEngine;
 };
 
 #endif // hifi_PickScriptingInterface_h

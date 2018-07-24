@@ -840,3 +840,75 @@ void PhysicsEngine::setShowBulletConstraintLimits(bool value) {
     }
 }
 
+struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
+    AllContactsCallback(MotionStateType desiredObjectType, const ShapeInfo& shapeInfo, const Transform& transform) :
+        desiredObjectType(desiredObjectType),
+        btCollisionWorld::ContactResultCallback(),
+        collisionObject() {
+        const btCollisionShape* collisionShape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
+
+        collisionObject.setCollisionShape(const_cast<btCollisionShape*>(collisionShape));
+
+        btTransform bulletTransform;
+        bulletTransform.setOrigin(glmToBullet(transform.getTranslation()));
+        bulletTransform.setRotation(glmToBullet(transform.getRotation()));
+
+        collisionObject.setWorldTransform(bulletTransform);
+    }
+
+    ~AllContactsCallback() {
+        ObjectMotionState::getShapeManager()->releaseShape(collisionObject.getCollisionShape());
+    }
+
+    AllContactsCallback(btCollisionObject& testCollisionObject) :
+        btCollisionWorld::ContactResultCallback(), collisionObject(testCollisionObject) {
+    }
+
+    MotionStateType desiredObjectType;
+    btCollisionObject collisionObject;
+    std::vector<EntityIntersection> intersectingObjects;
+
+    virtual bool needsCollision(btBroadphaseProxy* proxy) const {
+        return true;
+    }
+
+    btScalar addSingleResult(btManifoldPoint& cp, const btCollisionObjectWrapper* colObj0, int partId0, int index0, const btCollisionObjectWrapper* colObj1, int partId1, int index1) override {
+        const btCollisionObject* otherBody;
+        btVector3 point;
+        btVector3 otherPoint;
+        if (colObj0->m_collisionObject == &collisionObject) {
+            otherBody = colObj1->m_collisionObject;
+            point = cp.m_localPointA;
+            otherPoint = cp.m_localPointB;
+        }
+        else {
+            otherBody = colObj0->m_collisionObject;
+            point = cp.m_localPointB;
+            otherPoint = cp.m_localPointA;
+        }
+
+        if (!(otherBody->getInternalType() & btCollisionObject::CO_RIGID_BODY)) {
+            return 0;
+        }
+        const btRigidBody* collisionCandidate = static_cast<const btRigidBody*>(otherBody);
+        const btMotionState* motionStateCandidate = collisionCandidate->getMotionState();
+
+        const ObjectMotionState* candidate = dynamic_cast<const ObjectMotionState*>(motionStateCandidate);
+        if (!candidate || candidate->getType() != desiredObjectType) {
+            return 0;
+        }
+
+        // This is the correct object type. Add it to the list.
+        intersectingObjects.emplace_back(candidate->getObjectID(), bulletToGLM(point), bulletToGLM(otherPoint));
+
+        return 0;
+    }
+};
+
+std::vector<EntityIntersection> PhysicsEngine::getCollidingInRegion(MotionStateType desiredObjectType, const ShapeInfo& regionShapeInfo, const Transform& regionTransform) const {
+    auto contactCallback = AllContactsCallback(desiredObjectType, regionShapeInfo, regionTransform);
+    _dynamicsWorld->contactTest(&contactCallback.collisionObject, contactCallback);
+
+    return contactCallback.intersectingObjects;
+}
+

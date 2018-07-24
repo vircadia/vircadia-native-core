@@ -43,6 +43,26 @@ public:
     void* _b; // ObjectMotionState pointer
 };
 
+struct EntityIntersection {
+    EntityIntersection() { }
+
+    EntityIntersection(const EntityIntersection& entityIntersection) :
+        id(entityIntersection.id),
+        pickCollisionPoint(entityIntersection.pickCollisionPoint),
+        entityCollisionPoint(entityIntersection.entityCollisionPoint) {
+    }
+
+    EntityIntersection(QUuid id, glm::vec3 selfCollisionPoint, glm::vec3 otherCollisionPoint) :
+        id(id),
+        pickCollisionPoint(selfCollisionPoint),
+        entityCollisionPoint(otherCollisionPoint) {
+    }
+
+    QUuid id;
+    glm::vec3 pickCollisionPoint;
+    glm::vec3 entityCollisionPoint;
+};
+
 using ContactMap = std::map<ContactKey, ContactInfo>;
 using CollisionEvents = std::vector<Collision>;
 
@@ -104,6 +124,9 @@ public:
     void setShowBulletContactPoints(bool value);
     void setShowBulletConstraints(bool value);
     void setShowBulletConstraintLimits(bool value);
+
+    // Function for getting colliding ObjectMotionStates in the world of specified type
+    std::vector<EntityIntersection> getCollidingInRegion(MotionStateType desiredObjectType, const ShapeInfo& regionShapeInfo, const Transform& regionTransform) const;
 
 private:
     QList<EntityDynamicPointer> removeDynamicsForBody(btRigidBody* body);

@@ -157,7 +157,7 @@ unsigned int PickScriptingInterface::createCollisionPick(const QVariant& propert
 
     CollisionRegion collisionRegion(propMap);
 
-    return DependencyManager::get<PickManager>()->addPick(PickQuery::Collision, std::make_shared<CollisionPick>(filter, maxDistance, enabled, collisionRegion, _collisionWorld));
+    return DependencyManager::get<PickManager>()->addPick(PickQuery::Collision, std::make_shared<CollisionPick>(filter, maxDistance, enabled, collisionRegion, _physicsEngine));
 }
 
 void PickScriptingInterface::enablePick(unsigned int uid) {
