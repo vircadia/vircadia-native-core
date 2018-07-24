@@ -124,6 +124,7 @@ Script.include("/~/system/libraries/controllers.js");
             var allowThisModule = !otherModuleRunning || isTriggerPressed;
             if (allowThisModule && this.isPointingAtTriggerable(controllerData, isTriggerPressed) &&
                 !this.isPointingAtNearGrabbableEntity(controllerData, isTriggerPressed)) {
+                //(controllerData.nearbyEntityProperties[this.hand] !== [])) {
                 this.updateAllwaysOn();
                 if (isTriggerPressed) {
                     this.dominantHandOverride = true; // Override dominant hand.
@@ -146,6 +147,7 @@ Script.include("/~/system/libraries/controllers.js");
             var laserOn = isTriggerPressed || this.parameters.handLaser.allwaysOn;
             if (allowThisModule && (laserOn && this.isPointingAtTriggerable(controllerData, isTriggerPressed)) &&
                 !this.isPointingAtNearGrabbableEntity(controllerData, isTriggerPressed)) {
+                //(controllerData.nearbyEntityProperties[this.hand] !== [])) {
                 this.running = true;
                 return makeRunningValues(true, [], []);
             }
