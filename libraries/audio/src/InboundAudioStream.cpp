@@ -138,7 +138,6 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
     // handle this packet based on its arrival status.
     switch (arrivalInfo._status) {
         case SequenceNumberStats::Unreasonable: {
-            qDebug() << "[CHOPPY-AUDIO] Unreasonable lostAudioData";
             lostAudioData(1);
             break;
         }
@@ -148,7 +147,6 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
             // also result in allowing the codec to interpolate lost data. Then
             // fall through to the "on time" logic to actually handle this packet
             int packetsDropped = arrivalInfo._seqDiffFromExpected;
-            qDebug() << "[CHOPPY-AUDIO] Early lostAudioData " << packetsDropped;
             lostAudioData(packetsDropped);
 
             // fall through to OnTime case
@@ -183,7 +181,6 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
                         // Since the data in the stream is using a codec that we aren't prepared for,
                         // we need to let the codec know that we don't have data for it, this will
                         // allow the codec to interpolate missing data and produce a fade to silence.
-                        qDebug() << "[CHOPPY-AUDIO] !pcm lostAudioData 1";
                         lostAudioData(1);
                     }
 
