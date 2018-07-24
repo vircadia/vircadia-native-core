@@ -23,6 +23,7 @@ bool CollisionPick::isShapeInfoReady(CollisionRegion& pick) {
 
         if (_cachedResource->isLoaded()) {
             computeShapeInfo(pick, pick.shapeInfo, _cachedResource);
+            return true;
         }
 
         return false;
