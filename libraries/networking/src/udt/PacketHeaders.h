@@ -126,6 +126,7 @@ public:
         EntityScriptCallMethod,
         ChallengeOwnershipRequest,
         ChallengeOwnershipReply,
+        EntityQueryInitialResultsComplete,
 
         OctreeDataFileRequest,
         OctreeDataFileReply,

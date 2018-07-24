@@ -144,3 +144,8 @@ int ConicalViewFrustum::deserialize(const unsigned char* sourceBuffer) {
 
     return sourceBuffer - startPosition;
 }
+
+void ConicalViewFrustum::setSimpleRadius(float radius) {
+    _radius = radius;
+    _farClip = radius / 2.0f;
+}

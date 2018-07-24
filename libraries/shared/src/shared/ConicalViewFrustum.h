@@ -54,6 +54,9 @@ public:
     int serialize(unsigned char* destinationBuffer) const;
     int deserialize(const unsigned char* sourceBuffer);
 
+    // Just test for within radius.
+    void setSimpleRadius(float radius);
+
 private:
     glm::vec3 _position { 0.0f, 0.0f, 0.0f };
     glm::vec3 _direction { 0.0f, 0.0f, 1.0f };

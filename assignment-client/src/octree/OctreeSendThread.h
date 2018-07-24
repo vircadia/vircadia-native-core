@@ -60,6 +60,7 @@ protected:
     QWeakPointer<Node> _node;
     OctreeServer* _myServer { nullptr };
     QUuid _nodeUuid;
+    udt::SequenceNumber::Type _lastSequenceNumber { 0 };
     
 private:
     /// Called before a packetDistributor pass to allow for pre-distribution processing

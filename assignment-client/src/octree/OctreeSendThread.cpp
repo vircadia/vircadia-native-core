@@ -195,6 +195,7 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
             // actually send it
             OctreeServer::didCallWriteDatagram(this);
             DependencyManager::get<NodeList>()->sendUnreliablePacket(statsPacket, *node);
+            _lastSequenceNumber = (decltype(_lastSequenceNumber)) statsPacket.getSequenceNumber();
         } else {
             // not enough room in the packet, send two packets
 
@@ -211,10 +212,9 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
             //_totalWastedBytes += 0;
             _trueBytesSent += numBytes;
             numPackets++;
+            NLPacket& sentPacket = nodeData->getPacket();
 
             if (debug) {
-                NLPacket& sentPacket = nodeData->getPacket();
-
                 sentPacket.seek(sizeof(OCTREE_PACKET_FLAGS));
 
                 OCTREE_PACKET_SEQUENCE sequence;
@@ -231,9 +231,10 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
 
             // second packet
             OctreeServer::didCallWriteDatagram(this);
-            DependencyManager::get<NodeList>()->sendUnreliablePacket(nodeData->getPacket(), *node);
+            DependencyManager::get<NodeList>()->sendUnreliablePacket(sentPacket, *node);
+            _lastSequenceNumber = (decltype(_lastSequenceNumber)) sentPacket.getSequenceNumber();
 
-            numBytes = nodeData->getPacket().getDataSize();
+            numBytes = sentPacket.getDataSize();
             _totalBytes += numBytes;
             _totalPackets++;
             // we count wasted bytes here because we were unable to fit the stats packet
@@ -243,8 +244,6 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
             numPackets++;
 
             if (debug) {
-                NLPacket& sentPacket = nodeData->getPacket();
-
                 sentPacket.seek(sizeof(OCTREE_PACKET_FLAGS));
 
                 OCTREE_PACKET_SEQUENCE sequence;
@@ -265,9 +264,11 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
         if (nodeData->isPacketWaiting() && !nodeData->isShuttingDown()) {
             // just send the octree packet
             OctreeServer::didCallWriteDatagram(this);
-            DependencyManager::get<NodeList>()->sendUnreliablePacket(nodeData->getPacket(), *node);
+            NLPacket& sentPacket = nodeData->getPacket();
+            DependencyManager::get<NodeList>()->sendUnreliablePacket(sentPacket, *node);
+            _lastSequenceNumber = (decltype(_lastSequenceNumber)) sentPacket.getSequenceNumber();
 
-            int numBytes = nodeData->getPacket().getDataSize();
+            int numBytes = sentPacket.getDataSize();
             _totalBytes += numBytes;
             _totalPackets++;
             int thisWastedBytes = udt::MAX_PACKET_SIZE - numBytes;
@@ -276,8 +277,6 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
             _trueBytesSent += numBytes;
 
             if (debug) {
-                NLPacket& sentPacket = nodeData->getPacket();
-
                 sentPacket.seek(sizeof(OCTREE_PACKET_FLAGS));
 
                 OCTREE_PACKET_SEQUENCE sequence;
@@ -510,6 +509,17 @@ void OctreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, Octre
         OctreeServer::trackCompressAndWriteTime(compressAndWriteElapsedUsec);
         OctreeServer::trackPacketSendingTime(packetSendingElapsedUsec);
         OctreeServer::trackInsideTime((float)(usecTimestampNow() - startInside));
+    }
+
+    if (params.stopReason == EncodeBitstreamParams::FINISHED && nodeData->wantReportInitialResult()) {
+        // Dealt with nearby entities.
+        nodeData->setReportInitialResult(false);
+
+        // send EntityQueryInitialResultsComplete reliable packet ...
+        auto initialCompletion = NLPacket::create(PacketType::EntityQueryInitialResultsComplete, -1, true);
+        QDataStream initialCompletionStream(initialCompletion.get());
+        initialCompletionStream << _lastSequenceNumber;
+        DependencyManager::get<NodeList>()->sendPacket(std::move(initialCompletion), *node.data());
     }
 
     if (somethingToSend && _myServer->wantsVerboseDebug()) {
