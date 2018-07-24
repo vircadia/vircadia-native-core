@@ -135,6 +135,8 @@ private: \
  * @property {number} batchFrameTime - <em>Read-only.</em>
  * @property {number} engineFrameTime - <em>Read-only.</em>
  * @property {number} avatarSimulationTime - <em>Read-only.</em>
+ * @property {number} animationWeight - <em>Read-only.</em>
+ * @property {number} animationName - <em>Read-only.</em>
  *
  *
  * @property {number} x
@@ -282,6 +284,8 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(float, batchFrameTime, 0)
     STATS_PROPERTY(float, engineFrameTime, 0)
     STATS_PROPERTY(float, avatarSimulationTime, 0)
+    STATS_PROPERTY(float, animationWeight, 0)
+    STATS_PROPERTY(QString, animationName, QString())
 
 public:
     static Stats* getInstance();
@@ -998,6 +1002,20 @@ signals:
      * @returns {Signal}
      */
     void avatarSimulationTimeChanged();
+
+    /**jsdoc
+    * Triggered when the value of the <code>animationWeight</code> property changes.
+    * @function Stats.animationWeightChanged
+    * @returns {Signal}
+    */
+    void animationWeightChanged();
+
+    /**jsdoc
+    * Triggered when the value of the <code>animationName</code> property changes.
+    * @function Stats.animationNameChanged
+    * @returns {Signal}
+    */
+    void animationNameChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>rectifiedTextureCount</code> property changes.

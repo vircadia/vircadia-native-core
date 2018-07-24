@@ -218,6 +218,10 @@ public:
     // input assumed to be in rig space
     void computeHeadFromHMD(const AnimPose& hmdPose, glm::vec3& headPositionOut, glm::quat& headOrientationOut) const;
 
+    const float getFwdAlpha() const { return _fwdAlpha; }
+    const float getBwdAlpha() const { return _bwdAlpha; }
+    const float getLateralAlpha() { return _lateralAlpha; }
+
 signals:
     void onLoadComplete();
 
@@ -292,6 +296,9 @@ protected:
     std::shared_ptr<AnimSkeleton> _animSkeleton;
     std::unique_ptr<AnimNodeLoader> _animLoader;
     AnimVariantMap _animVars;
+    float _fwdAlpha { 0.0f };
+    float _bwdAlpha { 0.0f };
+    float _lateralAlpha { 0.0f };
     enum class RigRole {
         Idle = 0,
         Turn,

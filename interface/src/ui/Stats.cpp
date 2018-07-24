@@ -191,6 +191,12 @@ void Stats::updateStats(bool force) {
 
     // Third column, avatar stats
     auto myAvatar = avatarManager->getMyAvatar();
+    auto rigCopy = myAvatar->getSkeletonModel();
+    auto forwardAlpha = rigCopy->getRig().getFwdAlpha();
+    auto backwardAlpha = rigCopy->getRig().getBwdAlpha();
+    auto lateralAlpha = rigCopy->getRig().getLateralAlpha();
+    QString animName("anim number 1");
+
     glm::vec3 avatarPos = myAvatar->getWorldPosition();
     STAT_UPDATE(position, QVector3D(avatarPos.x, avatarPos.y, avatarPos.z));
     STAT_UPDATE_FLOAT(speed, glm::length(myAvatar->getWorldVelocity()), 0.01f);
@@ -346,6 +352,8 @@ void Stats::updateStats(bool force) {
     auto config = qApp->getRenderEngine()->getConfiguration().get();
     STAT_UPDATE(engineFrameTime, (float) config->getCPURunTime());
     STAT_UPDATE(avatarSimulationTime, (float)avatarManager->getAvatarSimulationTime());
+    STAT_UPDATE(animationWeight, (float)forwardAlpha);
+    STAT_UPDATE(animationName, (QString)animName);
     
 
     STAT_UPDATE(gpuBuffers, (int)gpu::Context::getBufferGPUCount());

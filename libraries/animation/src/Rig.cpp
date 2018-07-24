@@ -672,12 +672,15 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
         _animVars.set("moveForwardSpeed", _averageForwardSpeed.getAverage());
         _animVars.set("moveForwardAlpha", moveForwardAlpha);
+        _fwdAlpha = moveForwardAlpha;
 
         _animVars.set("moveBackwardSpeed", -_averageForwardSpeed.getAverage());
         _animVars.set("moveBackwardAlpha", moveBackwardAlpha);
+        _bwdAlpha = moveBackwardAlpha;
 
         _animVars.set("moveLateralSpeed", fabsf(_averageLateralSpeed.getAverage()));
         _animVars.set("moveLateralAlpha", moveLateralAlpha);
+        _lateralAlpha = moveLateralAlpha;
 
         const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec
         const float MOVE_EXIT_SPEED_THRESHOLD = 0.07f;  // m/sec
