@@ -26,12 +26,42 @@ AnimBlendLinearMove::~AnimBlendLinearMove() {
 
 }
 
+static float calculateAlpha(const float speed, const std::vector<float>& characteristicSpeeds) {
+
+    assert(characteristicSpeeds.size() > 0);
+    // calculate alpha from linear combination of referenceSpeeds.
+    float alpha = 0.0f;
+    if (speed <= characteristicSpeeds.front()) {
+        alpha = 0.0f;
+    } else if (speed > characteristicSpeeds.back()) {
+        alpha = (float)(characteristicSpeeds.size() - 1);
+    } else {
+        for (size_t i = 0; i < characteristicSpeeds.size() - 1; i++) {
+            if (characteristicSpeeds[i] < speed && speed < characteristicSpeeds[i + 1]) {
+                alpha = (float)i + ((speed - characteristicSpeeds[i]) / (characteristicSpeeds[i + 1] - characteristicSpeeds[i]));
+                break;
+            }
+        }
+    }
+    return alpha;
+}
+
 const AnimPoseVec& AnimBlendLinearMove::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
 
     assert(_children.size() == _characteristicSpeeds.size());
 
-    _alpha = animVars.lookup(_alphaVar, _alpha);
     _desiredSpeed = animVars.lookup(_desiredSpeedVar, _desiredSpeed);
+
+    float speed = 0.0f;
+    if (_alphaVar.contains("Lateral")) {
+        speed = animVars.lookup("moveLateralSpeed", speed);
+    } else if (_alphaVar.contains("Backward")) {
+        speed = animVars.lookup("moveBackwardSpeed", speed);
+    } else {
+        //this is forward movement
+        speed = animVars.lookup("moveForwardSpeed", speed);
+    }
+    _alpha = calculateAlpha(speed, _characteristicSpeeds);
 
     if (_children.size() == 0) {
         for (auto&& pose : _poses) {

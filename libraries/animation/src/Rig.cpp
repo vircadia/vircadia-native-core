@@ -636,11 +636,6 @@ bool Rig::getRelativeDefaultJointTranslation(int index, glm::vec3& translationOu
     }
 }
 
-// animation reference speeds.
-static const std::vector<float> FORWARD_SPEEDS = { 0.4f, 2.8f, 4.5f }; // m/s
-static const std::vector<float> BACKWARD_SPEEDS = { 0.6f, 1.45f }; // m/s
-static const std::vector<float> LATERAL_SPEEDS = { 0.2f, 0.65f, 2.6f }; // m/s
-
 void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation, CharacterControllerState ccState) {
 
     glm::vec3 forward = worldRotation * IDENTITY_FORWARD;
@@ -660,27 +655,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         // sine wave LFO var for testing.
         static float t = 0.0f;
         _animVars.set("sine", 2.0f * 0.5f * sinf(t) + 0.5f);
-
-        float moveForwardAlpha = 0.0f;
-        float moveBackwardAlpha = 0.0f;
-        float moveLateralAlpha = 0.0f;
-
-        // calcuate the animation alpha and timeScale values based on current speeds and animation reference speeds.
-        calcAnimAlpha(_averageForwardSpeed.getAverage(), FORWARD_SPEEDS, &moveForwardAlpha);
-        calcAnimAlpha(-_averageForwardSpeed.getAverage(), BACKWARD_SPEEDS, &moveBackwardAlpha);
-        calcAnimAlpha(fabsf(_averageLateralSpeed.getAverage()), LATERAL_SPEEDS, &moveLateralAlpha);
-
         _animVars.set("moveForwardSpeed", _averageForwardSpeed.getAverage());
-        _animVars.set("moveForwardAlpha", moveForwardAlpha);
-        _fwdAlpha = moveForwardAlpha;
-
         _animVars.set("moveBackwardSpeed", -_averageForwardSpeed.getAverage());
-        _animVars.set("moveBackwardAlpha", moveBackwardAlpha);
-        _bwdAlpha = moveBackwardAlpha;
-
         _animVars.set("moveLateralSpeed", fabsf(_averageLateralSpeed.getAverage()));
-        _animVars.set("moveLateralAlpha", moveLateralAlpha);
-        _lateralAlpha = moveLateralAlpha;
 
         const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec
         const float MOVE_EXIT_SPEED_THRESHOLD = 0.07f;  // m/sec
