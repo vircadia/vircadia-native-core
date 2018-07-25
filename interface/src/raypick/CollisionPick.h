@@ -40,25 +40,25 @@ public:
 
         variantMap["intersects"] = intersects;
         
-        QVariantList qIntersectingEntities;
+        QVariantList qEntityIntersections;
         for (auto intersectingEntity : intersectingEntities) {
-            QVariantMap qIntersectingEntity;
-            qIntersectingEntity["objectID"] = intersectingEntity.id;
-            qIntersectingEntity["pickCollisionPoint"] = vec3toVariant(intersectingEntity.pickCollisionPoint);
-            qIntersectingEntity["entityCollisionPoint"] = vec3toVariant(intersectingEntity.entityCollisionPoint);
-            qIntersectingEntities.append(qIntersectingEntity);
+            QVariantMap qEntityIntersection;
+            qEntityIntersection["objectID"] = intersectingEntity.id;
+            qEntityIntersection["pickCollisionPoint"] = vec3toVariant(intersectingEntity.testCollisionPoint);
+            qEntityIntersection["entityCollisionPoint"] = vec3toVariant(intersectingEntity.foundCollisionPoint);
+            qEntityIntersections.append(qEntityIntersection);
         }
-        variantMap["intersectingEntities"] = qIntersectingEntities;
+        variantMap["entityIntersections"] = qEntityIntersections;
 
-        QVariantList qIntersectingAvatars;
+        QVariantList qAvatarIntersections;
         for (auto intersectingAvatar : intersectingAvatars) {
-            QVariantMap qIntersectingAvatar;
-            qIntersectingAvatar["objectID"] = intersectingAvatar.id;
-            qIntersectingAvatar["pickCollisionPoint"] = vec3toVariant(intersectingAvatar.pickCollisionPoint);
-            qIntersectingAvatar["entityCollisionPoint"] = vec3toVariant(intersectingAvatar.entityCollisionPoint);
-            qIntersectingAvatars.append(qIntersectingAvatar);
+            QVariantMap qAvatarIntersection;
+            qAvatarIntersection["objectID"] = intersectingAvatar.id;
+            qAvatarIntersection["pickCollisionPoint"] = vec3toVariant(intersectingAvatar.testCollisionPoint);
+            qAvatarIntersection["entityCollisionPoint"] = vec3toVariant(intersectingAvatar.foundCollisionPoint);
+            qAvatarIntersections.append(qAvatarIntersection);
         }
-        variantMap["intersectingAvatars"] = qIntersectingAvatars;
+        variantMap["avatarIntersections"] = qAvatarIntersections;
 
         variantMap["collisionRegion"] = pickVariant;
 

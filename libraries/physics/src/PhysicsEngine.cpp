@@ -874,17 +874,17 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
 
     btScalar addSingleResult(btManifoldPoint& cp, const btCollisionObjectWrapper* colObj0, int partId0, int index0, const btCollisionObjectWrapper* colObj1, int partId1, int index1) override {
         const btCollisionObject* otherBody;
-        btVector3 point;
-        btVector3 otherPoint;
+        btVector3 penetrationPoint;
+        btVector3 otherPenetrationPoint;
         if (colObj0->m_collisionObject == &collisionObject) {
             otherBody = colObj1->m_collisionObject;
-            point = cp.m_localPointA;
-            otherPoint = cp.m_localPointB;
+            penetrationPoint = getWorldPoint(cp.m_localPointB, colObj1->getWorldTransform());
+            otherPenetrationPoint = getWorldPoint(cp.m_localPointA, colObj0->getWorldTransform());
         }
         else {
             otherBody = colObj0->m_collisionObject;
-            point = cp.m_localPointB;
-            otherPoint = cp.m_localPointA;
+            penetrationPoint = getWorldPoint(cp.m_localPointA, colObj0->getWorldTransform());
+            otherPenetrationPoint = getWorldPoint(cp.m_localPointB, colObj1->getWorldTransform());
         }
 
         if (!(otherBody->getInternalType() & btCollisionObject::CO_RIGID_BODY)) {
@@ -899,9 +899,14 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
         }
 
         // This is the correct object type. Add it to the list.
-        intersectingObjects.emplace_back(candidate->getObjectID(), bulletToGLM(point), bulletToGLM(otherPoint));
+        intersectingObjects.emplace_back(candidate->getObjectID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint));
 
         return 0;
+    }
+
+protected:
+    static btVector3 getWorldPoint(const btVector3& localPoint, const btTransform& transform) {
+        return quatRotate(transform.getRotation(), localPoint) + transform.getOrigin();
     }
 };
 

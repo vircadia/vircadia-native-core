@@ -48,19 +48,21 @@ struct EntityIntersection {
 
     EntityIntersection(const EntityIntersection& entityIntersection) :
         id(entityIntersection.id),
-        pickCollisionPoint(entityIntersection.pickCollisionPoint),
-        entityCollisionPoint(entityIntersection.entityCollisionPoint) {
+        testCollisionPoint(entityIntersection.testCollisionPoint),
+        foundCollisionPoint(entityIntersection.foundCollisionPoint) {
     }
 
-    EntityIntersection(QUuid id, glm::vec3 selfCollisionPoint, glm::vec3 otherCollisionPoint) :
+    EntityIntersection(QUuid id, glm::vec3 testCollisionPoint, glm::vec3 otherCollisionPoint) :
         id(id),
-        pickCollisionPoint(selfCollisionPoint),
-        entityCollisionPoint(otherCollisionPoint) {
+        testCollisionPoint(testCollisionPoint),
+        foundCollisionPoint(otherCollisionPoint) {
     }
 
     QUuid id;
-    glm::vec3 pickCollisionPoint;
-    glm::vec3 entityCollisionPoint;
+    // The deepest point of an intersection within the volume of the test shape, in world space.
+    glm::vec3 testCollisionPoint;
+    // The deepest point of an intersection within the volume of the found object, in world space.
+    glm::vec3 foundCollisionPoint;
 };
 
 using ContactMap = std::map<ContactKey, ContactInfo>;
