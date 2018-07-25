@@ -70,6 +70,8 @@ public:
     QString getExpectedImageDestinationDirectory(const QString& filename);
     QString getExpectedImagePartialSourceDirectory(const QString& filename);
 
+    ExtractedText getTestScriptLines(QString testFileName);
+
 private:
     const QString TEST_FILENAME { "test.js" };
     const QString TEST_RESULTS_FOLDER { "TestResults" };
@@ -77,14 +79,14 @@ private:
 
     const double THRESHOLD{ 0.96 };
 
-    QDir imageDirectory;
+    QDir _imageDirectory;
 
-    MismatchWindow mismatchWindow;
+    MismatchWindow _mismatchWindow;
 
-    ImageComparer imageComparer;
+    ImageComparer _imageComparer;
 
-    QString testResultsFolderPath;
-    int index { 1 };
+    QString _testResultsFolderPath;
+    int _index { 1 };
 
     // Expected images are in the format ExpectedImage_dddd.jpg (d == decimal digit)
     const int NUM_DIGITS { 5 };
@@ -94,20 +96,18 @@ private:
     // The first is the directory containing the test we are working with
     // The second is the root directory of all tests
     // The third contains the snapshots taken for test runs that need to be evaluated
-    QString testDirectory;
-    QString testsRootDirectory;
-    QString snapshotDirectory;
+    QString _testDirectory;
+    QString _testsRootDirectory;
+    QString _snapshotDirectory;
 
-    QStringList expectedImagesFilenames;
-    QStringList expectedImagesFullFilenames;
-    QStringList resultImagesFullFilenames;
+    QStringList _expectedImagesFilenames;
+    QStringList _expectedImagesFullFilenames;
+    QStringList _resultImagesFullFilenames;
 
     // Used for accessing GitHub
     const QString GIT_HUB_REPOSITORY{ "hifi_tests" };
 
     const QString DATETIME_FORMAT{ "yyyy-MM-dd_hh-mm-ss" };
-
-	ExtractedText getTestScriptLines(QString testFileName);
 
     // NOTE: these need to match the appropriate var's in autoTester.js
     //    var advanceKey = "n";
@@ -115,7 +115,7 @@ private:
     const QString ADVANCE_KEY{ "n" };
     const QString PATH_SEPARATOR{ "." };
 
-    bool exitWhenComplete{ false };
+    bool _exitWhenComplete{ false };
 };
 
 #endif // hifi_test_h

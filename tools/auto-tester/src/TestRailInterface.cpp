@@ -1,5 +1,5 @@
 //
-//  TestSuiteCreator.cpp
+//  TestRailInterface.cpp
 //
 //  Created by Nissim Hadar on 6 Jul 2018.
 //  Copyright 2013 High Fidelity, Inc.
@@ -8,7 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "TestSuiteCreator.h"
+#include "TestRailInterface.h"
 #include "Test.h"
 
 #include <QDateTime>
@@ -16,7 +16,10 @@
 #include <QMessageBox>
 #include <QTextStream>
 
-void TestSuiteCreator::createTestSuite(const QString& testDirectory, const QString& user, const QString& branch) {
+void TestRailInterface::createTestSuite(const QString& testDirectory,
+                                        const QString& outputDirectory,
+                                        const QString& user,
+                                        const QString& branch) {
     QDomProcessingInstruction instruction = document.createProcessingInstruction("xml", "version='1.0' encoding='UTF-8'");
     document.appendChild(instruction);
 
@@ -37,7 +40,7 @@ void TestSuiteCreator::createTestSuite(const QString& testDirectory, const QStri
     root.appendChild(topLevelSection);
 
     // Write to file
-    const QString testRailsFilename{ "D:/t/TestRailSuite.xml" };
+    const QString testRailsFilename{ outputDirectory  + "/TestRailSuite.xml" };
     QFile file(testRailsFilename);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Could not create XML file");
@@ -52,7 +55,7 @@ void TestSuiteCreator::createTestSuite(const QString& testDirectory, const QStri
     QMessageBox::information(0, "Success", "TestRail XML file has been created");
 }
 
-QDomElement TestSuiteCreator::processDirectory(const QString& directory, const QString& user, const QString& branch, const QDomElement& element) {
+QDomElement TestRailInterface::processDirectory(const QString& directory, const QString& user, const QString& branch, const QDomElement& element) {
     QDomElement result = element;
 
     // Loop over all entries in directory
@@ -95,7 +98,7 @@ QDomElement TestSuiteCreator::processDirectory(const QString& directory, const Q
     return result;
 }
 
-QDomElement TestSuiteCreator::processTest(const QString& fullDirectory, const QString& test, const QString& user, const QString& branch, const QDomElement& element) {
+QDomElement TestRailInterface::processTest(const QString& fullDirectory, const QString& test, const QString& user, const QString& branch, const QDomElement& element) {
     QDomElement result = element;
    
     QDomElement caseElement = document.createElement("case");
