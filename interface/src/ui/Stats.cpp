@@ -192,9 +192,9 @@ void Stats::updateStats(bool force) {
     // Third column, avatar stats
     auto myAvatar = avatarManager->getMyAvatar();
     auto rigCopy = myAvatar->getSkeletonModel();
-    auto forwardAlpha = rigCopy->getRig().getFwdAlpha();
-    auto backwardAlpha = rigCopy->getRig().getBwdAlpha();
-    auto lateralAlpha = rigCopy->getRig().getLateralAlpha();
+    auto forwardAlpha = 0.2f;//rigCopy->getRig().getFwdAlpha();
+    //auto backwardAlpha = rigCopy->getRig().getBwdAlpha();
+    //auto lateralAlpha = rigCopy->getRig().getLateralAlpha();
     QString animName("anim number 1");
 
     glm::vec3 avatarPos = myAvatar->getWorldPosition();
