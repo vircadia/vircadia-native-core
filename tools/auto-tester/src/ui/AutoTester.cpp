@@ -68,6 +68,10 @@ void AutoTester::on_createTestsOutlineButton_clicked() {
     test->createTestsOutline();
 }
 
+void AutoTester::on_createTestRailTestSuiteButton_clicked() {
+    test->createTestRailTestSuite();
+}
+
 // To toggle between show and hide
 //   if (uState & ABS_AUTOHIDE) on_showTaskbarButton_clicked();
 //   else on_hideTaskbarButton_clicked();

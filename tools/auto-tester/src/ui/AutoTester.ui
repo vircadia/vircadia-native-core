@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>612</width>
-    <height>537</height>
+    <height>553</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,7 +18,7 @@
     <property name="geometry">
      <rect>
       <x>380</x>
-      <y>430</y>
+      <y>450</y>
       <width>101</width>
       <height>40</height>
      </rect>
@@ -44,7 +44,7 @@
     <property name="geometry">
      <rect>
       <x>430</x>
-      <y>270</y>
+      <y>320</y>
       <width>101</width>
       <height>40</height>
      </rect>
@@ -57,7 +57,7 @@
     <property name="geometry">
      <rect>
       <x>330</x>
-      <y>110</y>
+      <y>170</y>
       <width>220</width>
       <height>40</height>
      </rect>
@@ -70,7 +70,7 @@
     <property name="geometry">
      <rect>
       <x>320</x>
-      <y>280</y>
+      <y>330</y>
       <width>131</width>
       <height>20</height>
      </rect>
@@ -86,7 +86,7 @@
     <property name="geometry">
      <rect>
       <x>320</x>
-      <y>330</y>
+      <y>380</y>
       <width>255</width>
       <height>23</height>
      </rect>
@@ -99,7 +99,7 @@
     <property name="geometry">
      <rect>
       <x>330</x>
-      <y>170</y>
+      <y>230</y>
       <width>220</width>
       <height>40</height>
      </rect>
@@ -227,6 +227,19 @@
       <width>140</width>
       <height>24</height>
      </rect>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="createTestRailTestSuiteButton">
+    <property name="geometry">
+     <rect>
+      <x>330</x>
+      <y>90</y>
+      <width>220</width>
+      <height>40</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Create TestRail Test Suite</string>
     </property>
    </widget>
   </widget>

@@ -45,7 +45,7 @@ private slots:
     void on_createMDFileButton_clicked();
     void on_createAllMDFilesButton_clicked();
     void on_createTestsOutlineButton_clicked();
-
+    void on_createTestRailTestSuiteButton_clicked();
     void on_hideTaskbarButton_clicked();
     void on_showTaskbarButton_clicked();
 
