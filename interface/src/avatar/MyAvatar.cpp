@@ -3042,7 +3042,7 @@ static glm::vec3 dampenCgMovement(glm::vec3 cgUnderHeadHandsAvatarSpace, float b
 }
 
 // computeCounterBalance returns the center of gravity in Avatar space
-glm::vec3 MyAvatar::computeCounterBalance() const {
+glm::vec3 MyAvatar::computeCounterBalance() {
     struct JointMass {
         QString name;
         float weight;
@@ -3061,6 +3061,7 @@ glm::vec3 MyAvatar::computeCounterBalance() const {
     JointMass cgRightHandMass(QString("RightHand"), DEFAULT_AVATAR_RIGHTHAND_MASS, glm::vec3(0.0f, 0.0f, 0.0f));
     glm::vec3 tposeHead = DEFAULT_AVATAR_HEAD_POS;
     glm::vec3 tposeHips = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 tposeRightFoot = glm::vec3(0.0f, -1.0f, 0.0f);
 
     if (_skeletonModel->getRig().indexOfJoint(cgHeadMass.name) != -1) {
         cgHeadMass.position = getAbsoluteJointTranslationInObjectFrame(_skeletonModel->getRig().indexOfJoint(cgHeadMass.name));
@@ -3078,6 +3079,9 @@ glm::vec3 MyAvatar::computeCounterBalance() const {
     }
     if (_skeletonModel->getRig().indexOfJoint("Hips") != -1) {
         tposeHips = getAbsoluteDefaultJointTranslationInObjectFrame(_skeletonModel->getRig().indexOfJoint("Hips"));
+    }
+    if (_skeletonModel->getRig().indexOfJoint("RightFoot") != -1) {
+        tposeRightFoot = getAbsoluteDefaultJointTranslationInObjectFrame(_skeletonModel->getRig().indexOfJoint("RightFoot"));
     }
 
     // find the current center of gravity position based on head and hand moments
@@ -3102,6 +3106,8 @@ glm::vec3 MyAvatar::computeCounterBalance() const {
     glm::vec3 xzDiff((cgHeadMass.position.x - counterBalancedCg.x), 0.0f, (cgHeadMass.position.z - counterBalancedCg.z));
     float headMinusHipXz = glm::length(xzDiff);
     float headHipDefault = glm::length(tposeHead - tposeHips);
+    float hipFootDefault = glm::length(tposeHips - tposeRightFoot);
+    float sitSquatThreshold = tposeHips.y - (0.333f)*hipFootDefault;
     float hipHeight = 0.0f;
     if (headHipDefault > headMinusHipXz) {
         hipHeight = sqrtf((headHipDefault * headHipDefault) - (headMinusHipXz * headMinusHipXz));
@@ -3113,6 +3119,12 @@ glm::vec3 MyAvatar::computeCounterBalance() const {
     if (counterBalancedCg.y > (tposeHips.y + 0.05f)) {
         // if the height is higher than default hips, clamp to default hips
         counterBalancedCg.y = tposeHips.y + 0.05f;
+    } else if (counterBalancedCg.y < sitSquatThreshold) {
+        //do a height reset 
+        setResetMode(true);
+        _follow.activate(FollowHelper::Vertical);
+        qCDebug(interfaceapp) << "doing a reset for sitting";
+
     }
     return counterBalancedCg;
 }
@@ -3162,7 +3174,7 @@ static void drawBaseOfSupport(float baseOfSupportScale, float footLocal, glm::ma
 // this function finds the hips position using a center of gravity model that
 // balances the head and hands with the hips over the base of support
 // returns the rotation (-z forward) and position of the Avatar in Sensor space
-glm::mat4 MyAvatar::deriveBodyUsingCgModel() const {
+glm::mat4 MyAvatar::deriveBodyUsingCgModel() {
     glm::mat4 sensorToWorldMat = getSensorToWorldMatrix();
     glm::mat4 worldToSensorMat = glm::inverse(sensorToWorldMat);
     auto headPose = getControllerPoseInSensorFrame(controller::Action::HEAD);
@@ -3180,7 +3192,7 @@ glm::mat4 MyAvatar::deriveBodyUsingCgModel() const {
     }
 
     // get the new center of gravity
-    const glm::vec3 cgHipsPosition = computeCounterBalance();
+    glm::vec3 cgHipsPosition = computeCounterBalance();
 
     // find the new hips rotation using the new head-hips axis as the up axis
     glm::mat4 avatarHipsMat = computeNewHipsMatrix(glmExtractRotation(avatarHeadMat), extractTranslation(avatarHeadMat), cgHipsPosition);
