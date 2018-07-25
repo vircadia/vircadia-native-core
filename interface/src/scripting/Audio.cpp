@@ -56,6 +56,7 @@ Audio::Audio() : _devices(_contextIsHMD) {
     connect(client, &AudioClient::inputVolumeChanged, this, &Audio::setInputVolume);
     connect(this, &Audio::contextChanged, &_devices, &AudioDevices::onContextChanged);
     enableNoiseReduction(enableNoiseReductionSetting.get());
+    onContextChanged();
 }
 
 bool Audio::startRecording(const QString& filepath) {
