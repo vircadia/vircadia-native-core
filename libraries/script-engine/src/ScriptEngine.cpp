@@ -74,6 +74,7 @@
 #include "WebSocketClass.h"
 #include "RecordingScriptingInterface.h"
 #include "ScriptEngines.h"
+#include "StackTestScriptingInterface.h"
 #include "ModelScriptingInterface.h"
 
 
@@ -748,6 +749,10 @@ void ScriptEngine::init() {
     qScriptRegisterMetaType(this, meshesToScriptValue, meshesFromScriptValue);
 
     registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
+
+#if DEV_BUILD || PR_BUILD
+    registerGlobalObject("StackTest", new StackTestScriptingInterface());
+#endif
 }
 
 void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {
