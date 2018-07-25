@@ -132,7 +132,7 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
         scaleWithAvatar = propertyMap["scaleWithAvatar"].toBool();
     }
 
-    bool followNormal = true;
+    bool followNormal = false;
     if (propertyMap["followNormal"].isValid()) {
         followNormal = propertyMap["followNormal"].toBool();
     }
@@ -275,7 +275,7 @@ unsigned int PointerScriptingInterface::createParabolaPointer(const QVariant& pr
         scaleWithAvatar = propertyMap["scaleWithAvatar"].toBool();
     }
 
-    bool followNormal = true;
+    bool followNormal = false;
     if (propertyMap["followNormal"].isValid()) {
         followNormal = propertyMap["followNormal"].toBool();
     }

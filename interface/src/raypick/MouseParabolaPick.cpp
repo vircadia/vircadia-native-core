@@ -10,8 +10,9 @@
 #include "Application.h"
 #include "display-plugins/CompositorHelper.h"
 
-MouseParabolaPick::MouseParabolaPick(float speed, const glm::vec3& accelerationAxis, bool rotateAccelerationWithAvatar, const PickFilter& filter, float maxDistance, bool enabled) :
-    ParabolaPick(speed, accelerationAxis, rotateAccelerationWithAvatar, filter, maxDistance, enabled)
+MouseParabolaPick::MouseParabolaPick(float speed, const glm::vec3& accelerationAxis, bool rotateAccelerationWithAvatar,
+                                     bool scaleWithAvatar, const PickFilter& filter, float maxDistance, bool enabled) :
+    ParabolaPick(speed, accelerationAxis, rotateAccelerationWithAvatar, scaleWithAvatar, filter, maxDistance, enabled)
 {
 }
 
@@ -20,7 +21,7 @@ PickParabola MouseParabolaPick::getMathematicalPick() const {
     if (position.isValid()) {
         QVariantMap posMap = position.toMap();
         PickRay pickRay = qApp->getCamera().computePickRay(posMap["x"].toFloat(), posMap["y"].toFloat());
-        return PickParabola(pickRay.origin, _speed * pickRay.direction, getAcceleration());
+        return PickParabola(pickRay.origin, getSpeed() * pickRay.direction, getAcceleration());
     }
 
     return PickParabola();

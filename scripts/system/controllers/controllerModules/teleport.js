@@ -49,7 +49,6 @@ Script.include("/~/system/libraries/controllers.js");
         blue: 73
     };
 
-    var TELEPORT_CANCEL_RANGE = 1;
     var COOL_IN_DURATION = 300;
 
     var handInfo = {
@@ -146,8 +145,6 @@ Script.include("/~/system/libraries/controllers.js");
             faceAvatar: true,
             scaleWithAvatar: true,
             centerEndY: false,
-            followNormal: true,
-            followNormalStrength: 0.1,
             speed: speed,
             accelerationAxis: accelerationAxis,
             rotateAccelerationWithAvatar: true,
@@ -161,8 +158,6 @@ Script.include("/~/system/libraries/controllers.js");
             faceAvatar: true,
             scaleWithAvatar: true,
             centerEndY: false,
-            followNormal: true,
-            followNormalStrength: 0.1,
             speed: speed,
             accelerationAxis: accelerationAxis,
             rotateAccelerationWithAvatar: true,
@@ -175,8 +170,6 @@ Script.include("/~/system/libraries/controllers.js");
             faceAvatar: true,
             scaleWithAvatar: true,
             centerEndY: false,
-            followNormal: true,
-            followNormalStrength: 0.1,
             speed: speed,
             accelerationAxis: accelerationAxis,
             rotateAccelerationWithAvatar: true,
@@ -190,8 +183,6 @@ Script.include("/~/system/libraries/controllers.js");
             faceAvatar: true,
             scaleWithAvatar: true,
             centerEndY: false,
-            followNormal: true,
-            followNormalStrength: 0.1,
             speed: speed,
             accelerationAxis: accelerationAxis,
             rotateAccelerationWithAvatar: true,
@@ -440,8 +431,7 @@ Script.include("/~/system/libraries/controllers.js");
         var surfaceNormal = result.surfaceNormal;
         var angle = Math.acos(Vec3.dot(surfaceNormal, Quat.getUp(MyAvatar.orientation))) * (180.0 / Math.PI);
 
-        if (angle > MAX_ANGLE_FROM_UP_TO_TELEPORT ||
-            Vec3.distance(MyAvatar.position, result.intersection) <= TELEPORT_CANCEL_RANGE * MyAvatar.sensorToWorldScale) {
+        if (angle > MAX_ANGLE_FROM_UP_TO_TELEPORT) {
             return TARGET.INVALID;
         } else {
             return TARGET.SURFACE;

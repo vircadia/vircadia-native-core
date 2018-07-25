@@ -45,7 +45,7 @@ public:
     virtual void cleanup();
     virtual void disable();
     virtual void update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
-                        bool faceAvatar, bool followNormal, float distance, const PickResultPointer& pickResult);
+                        bool faceAvatar, bool followNormal, float followNormalStrength, float distance, const PickResultPointer& pickResult);
 
 protected:
     OverlayID _startID;
@@ -56,6 +56,9 @@ protected:
     glm::vec3 _startDim;
     glm::vec3 _endDim;
     glm::quat _endRot;
+
+    glm::quat _avgEndRot;
+    bool _avgEndRotInitialized { false };
 };
 
 typedef std::unordered_map<std::string, std::shared_ptr<StartEndRenderState>> RenderStateMap;
@@ -87,7 +90,6 @@ protected:
     bool _faceAvatar;
     bool _followNormal;
     float _followNormalStrength;
-    glm::vec3 _avgNormal { NAN };
     bool _centerEndY;
     bool _lockEnd;
     bool _distanceScaleEnd;

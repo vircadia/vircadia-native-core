@@ -14,7 +14,7 @@ class StaticParabolaPick : public ParabolaPick {
 
 public:
     StaticParabolaPick(const glm::vec3& position, const glm::vec3& direction, float speed, const glm::vec3& accelerationAxis, bool rotateAccelerationWithAvatar,
-        const PickFilter& filter, float maxDistance = 0.0f, bool enabled = false);
+                       bool scaleWithAvatar, const PickFilter& filter, float maxDistance = 0.0f, bool enabled = false);
 
     PickParabola getMathematicalPick() const override;
 

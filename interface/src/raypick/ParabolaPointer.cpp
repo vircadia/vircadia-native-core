@@ -163,8 +163,8 @@ void ParabolaPointer::RenderState::editParabola(const glm::vec3& color, float al
 }
 
 void ParabolaPointer::RenderState::update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
-                                          bool faceAvatar, bool followNormal, float distance, const PickResultPointer& pickResult) {
-    StartEndRenderState::update(origin, end, surfaceNormal, scaleWithAvatar, distanceScaleEnd, centerEndY, faceAvatar, followNormal, distance, pickResult);
+                                          bool faceAvatar, bool followNormal, float followNormalStrength, float distance, const PickResultPointer& pickResult) {
+    StartEndRenderState::update(origin, end, surfaceNormal, scaleWithAvatar, distanceScaleEnd, centerEndY, faceAvatar, followNormal, followNormalStrength, distance, pickResult);
     auto parabolaPickResult = std::static_pointer_cast<ParabolaPickResult>(pickResult);
     if (parabolaPickResult && render::Item::isValidID(_pathID)) {
         render::Transaction transaction;

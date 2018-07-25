@@ -10,8 +10,8 @@
 #include "avatar/AvatarManager.h"
 
 JointParabolaPick::JointParabolaPick(const std::string& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset,
-    float speed, const glm::vec3& accelerationAxis, bool rotateAccelerationWithAvatar, PickFilter& filter, float maxDistance, bool enabled) :
-    ParabolaPick(speed, accelerationAxis, rotateAccelerationWithAvatar, filter, maxDistance, enabled),
+    float speed, const glm::vec3& accelerationAxis, bool rotateAccelerationWithAvatar, bool scaleWithAvatar, PickFilter& filter, float maxDistance, bool enabled) :
+    ParabolaPick(speed, accelerationAxis, rotateAccelerationWithAvatar, scaleWithAvatar, filter, maxDistance, enabled),
     _jointName(jointName),
     _posOffset(posOffset),
     _dirOffset(dirOffset)
@@ -36,7 +36,7 @@ PickParabola JointParabolaPick::getMathematicalPick() const {
         pos = pos + (rot * (myAvatar->getSensorToWorldScale() * _posOffset));
         glm::vec3 dir = rot * glm::normalize(_dirOffset);
 
-        return PickParabola(pos, _speed * dir, getAcceleration());
+        return PickParabola(pos, getSpeed() * dir, getAcceleration());
     }
 
     return PickParabola();

@@ -154,7 +154,8 @@ unsigned int PickScriptingInterface::createStylusPick(const QVariant& properties
  * @property {Vec3} [direction=-Vec3.FRONT] Only for Static Parabola Picks.  The world-space direction of the parabola segment.
  * @property {number} [speed=1] The initial speed of the parabola, i.e. the initial speed of the projectile whose trajectory defines the parabola.
  * @property {Vec3} [accelerationAxis=-Vec3.UP] The acceleration of the parabola, i.e. the acceleration of the projectile whose trajectory defines the parabola, both magnitude and direction.
- * @property {boolean} [rotateWithAvatar=true] Whether or not the acceleration axis should rotate with your avatar's local Y axis.
+ * @property {boolean} [rotateAccelerationWithAvatar=true] Whether or not the acceleration axis should rotate with your avatar's local Y axis.
+ * @property {boolean} [scaleWithAvatar=false] If true, the velocity and acceleration of the Pick will scale linearly with your avatar.
  */
 unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properties) {
     QVariantMap propMap = properties.toMap();
@@ -189,6 +190,11 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
         rotateAccelerationWithAvatar = propMap["rotateAccelerationWithAvatar"].toBool();
     }
 
+    bool scaleWithAvatar = false;
+    if (propMap["scaleWithAvatar"].isValid()) {
+        scaleWithAvatar = propMap["scaleWithAvatar"].toBool();
+    }
+
     if (propMap["joint"].isValid()) {
         std::string jointName = propMap["joint"].toString().toStdString();
 
@@ -205,10 +211,12 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
             }
 
             return DependencyManager::get<PickManager>()->addPick(PickQuery::Parabola, std::make_shared<JointParabolaPick>(jointName, posOffset, dirOffset,
-                speed, accelerationAxis, rotateAccelerationWithAvatar, filter, maxDistance, enabled));
+                                                                                                                           speed, accelerationAxis, rotateAccelerationWithAvatar,
+                                                                                                                           scaleWithAvatar, filter, maxDistance, enabled));
 
         } else {
-            return DependencyManager::get<PickManager>()->addPick(PickQuery::Parabola, std::make_shared<MouseParabolaPick>(speed, accelerationAxis, rotateAccelerationWithAvatar, filter, maxDistance, enabled));
+            return DependencyManager::get<PickManager>()->addPick(PickQuery::Parabola, std::make_shared<MouseParabolaPick>(speed, accelerationAxis, rotateAccelerationWithAvatar,
+                                                                                                                           scaleWithAvatar, filter, maxDistance, enabled));
         }
     } else if (propMap["position"].isValid()) {
         glm::vec3 position = vec3FromVariant(propMap["position"]);
@@ -218,7 +226,9 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
             direction = vec3FromVariant(propMap["direction"]);
         }
 
-        return DependencyManager::get<PickManager>()->addPick(PickQuery::Parabola, std::make_shared<StaticParabolaPick>(position, direction, speed, accelerationAxis, rotateAccelerationWithAvatar, filter, maxDistance, enabled));
+        return DependencyManager::get<PickManager>()->addPick(PickQuery::Parabola, std::make_shared<StaticParabolaPick>(position, direction, speed, accelerationAxis,
+                                                                                                                        rotateAccelerationWithAvatar, scaleWithAvatar,
+                                                                                                                        filter, maxDistance, enabled));
     }
 
     return PickManager::INVALID_PICK_ID;

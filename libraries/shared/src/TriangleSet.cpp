@@ -135,7 +135,6 @@ bool TriangleSet::TriangleOctreeCell::findRayIntersectionInternal(const glm::vec
         }
     } else {
         intersectedSomething = true;
-        // FIXME: this needs to set triangle to something or it will carry the previous value
         bestDistance = distance;
     }
 
@@ -168,7 +167,6 @@ bool TriangleSet::TriangleOctreeCell::findParabolaIntersectionInternal(const glm
         }
     } else {
         intersectedSomething = true;
-        // FIXME: this needs to set triangle to something or it will carry the previous value
         bestDistance = parabolicDistance;
     }
 
@@ -263,29 +261,28 @@ bool TriangleSet::TriangleOctreeCell::findRayIntersection(const glm::vec3& origi
     bool intersects = false;
 
     float boxDistance = FLT_MAX;
-    // if the ray intersects our bounding box, then continue
+    // if the pick intersects our bounding box, then continue
     if (getBounds().findRayIntersection(origin, direction, boxDistance, bestLocalFace, bestLocalNormal)) {
         // if the intersection with our bounding box, is greater than the current best distance (the distance passed in)
         // then we know that none of our triangles can represent a better intersection and we can return
-        if (bestLocalDistance > distance) {
+        if (boxDistance > distance) {
             return false;
         }
 
-        bestLocalDistance = distance;
-
-        float childDistance = distance;
-        BoxFace childFace;
-        Triangle childTriangle;
-
         // if we're not yet at the max depth, then check which child the triangle fits in
         if (_depth < MAX_DEPTH) {
+            float bestChildDistance = FLT_MAX;
             for (auto& child : _children) {
                 // check each child, if there's an intersection, it will return some distance that we need
                 // to compare against the other results, because there might be multiple intersections and
                 // we will always choose the best (shortest) intersection
+                float childDistance = bestChildDistance;
+                BoxFace childFace;
+                Triangle childTriangle;
                 if (child.second.findRayIntersection(origin, direction, childDistance, childFace, childTriangle, precision, trianglesTouched)) {
                     if (childDistance < bestLocalDistance) {
                         bestLocalDistance = childDistance;
+                        bestChildDistance = childDistance;
                         bestLocalFace = childFace;
                         bestLocalTriangle = childTriangle;
                         intersects = true;
@@ -298,7 +295,7 @@ bool TriangleSet::TriangleOctreeCell::findRayIntersection(const glm::vec3& origi
         BoxFace internalFace;
         Triangle internalTriangle;
         if (findRayIntersectionInternal(origin, direction, internalDistance, internalFace, internalTriangle, precision, trianglesTouched, allowBackface)) {
-            if (internalDistance < childDistance) {
+            if (internalDistance < bestLocalDistance) {
                 bestLocalDistance = internalDistance;
                 bestLocalFace = internalFace;
                 bestLocalTriangle = internalTriangle;
@@ -329,29 +326,28 @@ bool TriangleSet::TriangleOctreeCell::findParabolaIntersection(const glm::vec3& 
     bool intersects = false;
 
     float boxDistance = FLT_MAX;
-    // if the ray intersects our bounding box, then continue
+    // if the pick intersects our bounding box, then continue
     if (getBounds().findParabolaIntersection(origin, velocity, acceleration, boxDistance, bestLocalFace, bestLocalNormal)) {
         // if the intersection with our bounding box, is greater than the current best distance (the distance passed in)
         // then we know that none of our triangles can represent a better intersection and we can return
-        if (bestLocalDistance > parabolicDistance) {
+        if (boxDistance > parabolicDistance) {
             return false;
         }
 
-        bestLocalDistance = parabolicDistance;
-
-        float childDistance = parabolicDistance;
-        BoxFace childFace;
-        Triangle childTriangle;
-
         // if we're not yet at the max depth, then check which child the triangle fits in
         if (_depth < MAX_DEPTH) {
+            float bestChildDistance = FLT_MAX;
             for (auto& child : _children) {
                 // check each child, if there's an intersection, it will return some distance that we need
                 // to compare against the other results, because there might be multiple intersections and
                 // we will always choose the best (shortest) intersection
+                float childDistance = bestChildDistance;
+                BoxFace childFace;
+                Triangle childTriangle;
                 if (child.second.findParabolaIntersection(origin, velocity, acceleration, childDistance, childFace, childTriangle, precision, trianglesTouched)) {
                     if (childDistance < bestLocalDistance) {
                         bestLocalDistance = childDistance;
+                        bestChildDistance = childDistance;
                         bestLocalFace = childFace;
                         bestLocalTriangle = childTriangle;
                         intersects = true;
@@ -364,7 +360,7 @@ bool TriangleSet::TriangleOctreeCell::findParabolaIntersection(const glm::vec3& 
         BoxFace internalFace;
         Triangle internalTriangle;
         if (findParabolaIntersectionInternal(origin, velocity, acceleration, internalDistance, internalFace, internalTriangle, precision, trianglesTouched, allowBackface)) {
-            if (internalDistance < childDistance) {
+            if (internalDistance < bestLocalDistance) {
                 bestLocalDistance = internalDistance;
                 bestLocalFace = internalFace;
                 bestLocalTriangle = internalTriangle;

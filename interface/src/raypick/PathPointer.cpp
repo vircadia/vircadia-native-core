@@ -149,18 +149,8 @@ void PathPointer::updateVisuals(const PickResultPointer& pickResult) {
         glm::vec3 origin = getPickOrigin(pickResult);
         glm::vec3 end = getPickEnd(pickResult, _pathLength);
         glm::vec3 surfaceNormal = getPickedObjectNormal(pickResult);
-        if (_followNormal && _followNormalStrength > 0.0f && _followNormalStrength < 1.0f) {
-            if (glm::any(glm::isnan(_avgNormal))) {
-                _avgNormal = surfaceNormal;
-            } else {
-                glm::quat a = Quat().lookAtSimple(glm::vec3(0.0f), _avgNormal);
-                glm::quat b = Quat().lookAtSimple(glm::vec3(0.0f), surfaceNormal);
-                surfaceNormal = glm::normalize(glm::slerp(a, b, _followNormalStrength) * Vectors::FRONT);
-                _avgNormal = surfaceNormal;
-            }
-        }
         _renderStates[_currentRenderState]->update(origin, end, surfaceNormal, _scaleWithAvatar, _distanceScaleEnd, _centerEndY, _faceAvatar,
-                                                   _followNormal, _pathLength, pickResult);
+                                                   _followNormal, _followNormalStrength, _pathLength, pickResult);
         if (_defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {
             _defaultRenderStates[_currentRenderState].second->disable();
         }
@@ -171,7 +161,7 @@ void PathPointer::updateVisuals(const PickResultPointer& pickResult) {
         glm::vec3 origin = getPickOrigin(pickResult);
         glm::vec3 end = getPickEnd(pickResult, _defaultRenderStates[_currentRenderState].first);
         _defaultRenderStates[_currentRenderState].second->update(origin, end, Vectors::UP, _scaleWithAvatar, _distanceScaleEnd, _centerEndY,
-                                                                _faceAvatar, _followNormal, _defaultRenderStates[_currentRenderState].first, pickResult);
+                                                                _faceAvatar, _followNormal, _followNormalStrength, _defaultRenderStates[_currentRenderState].first, pickResult);
     } else if (!_currentRenderState.empty()) {
         if (_renderStates.find(_currentRenderState) != _renderStates.end()) {
             _renderStates[_currentRenderState]->disable();
@@ -286,7 +276,7 @@ void StartEndRenderState::disable() {
 }
 
 void StartEndRenderState::update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
-                                 bool faceAvatar, bool followNormal, float distance, const PickResultPointer& pickResult) {
+                                 bool faceAvatar, bool followNormal, float followNormalStrength, float distance, const PickResultPointer& pickResult) {
     if (!getStartID().isNull()) {
         QVariantMap startProps;
         startProps.insert("position", vec3toVariant(origin));
@@ -321,22 +311,29 @@ void StartEndRenderState::update(const glm::vec3& origin, const glm::vec3& end, 
                 position = end + 0.5f * dim.y * avatarUp;
             }
         }
-        endProps.insert("position", vec3toVariant(position));
         if (faceAvatar) {
-            if (followNormal) {
-                glm::quat lookAtWorld = Quat().lookAt(position, DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldPosition(), surfaceNormal);
-                glm::quat lookAtModel = glm::inverse(normalQuat) * lookAtWorld;
-                glm::quat lookAtFlatModel = Quat().cancelOutRollAndPitch(lookAtModel);
-                glm::quat lookAtFlatWorld = normalQuat * lookAtFlatModel;
-                rotation = lookAtFlatWorld;
+            glm::quat orientation = followNormal ? normalQuat : DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldOrientation();
+            glm::quat lookAtWorld = Quat().lookAt(position, DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldPosition(), surfaceNormal);
+            glm::quat lookAtModel = glm::inverse(orientation) * lookAtWorld;
+            glm::quat lookAtFlatModel = Quat().cancelOutRollAndPitch(lookAtModel);
+            glm::quat lookAtFlatWorld = orientation * lookAtFlatModel;
+            rotation = lookAtFlatWorld;
+        } else if (followNormal) {
+            rotation = normalQuat;
+        }
+        if (followNormal && followNormalStrength > 0.0f && followNormalStrength < 1.0f) {
+            if (!_avgEndRotInitialized) {
+                _avgEndRot = rotation;
+                _avgEndRotInitialized = true;
             } else {
-                glm::quat lookAtWorld = Quat().lookAt(position, DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldPosition(), surfaceNormal);
-                glm::quat lookAtModel = glm::inverse(DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldOrientation()) * lookAtWorld;
-                glm::quat lookAtFlatModel = Quat().cancelOutRollAndPitch(lookAtModel);
-                glm::quat lookAtFlatWorld = DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldOrientation() * lookAtFlatModel;
-                rotation = lookAtFlatWorld;
+                rotation = glm::slerp(_avgEndRot, rotation, followNormalStrength);
+                if (!centerEndY) {
+                    position = end + 0.5f * dim.y * (rotation * Vectors::UP);
+                }
+                _avgEndRot = rotation;
             }
         }
+        endProps.insert("position", vec3toVariant(position));
         endProps.insert("rotation", quatToVariant(rotation));
         endProps.insert("visible", true);
         endProps.insert("ignoreRayIntersection", doesEndIgnoreRays());
