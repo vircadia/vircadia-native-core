@@ -94,6 +94,7 @@ private:
     ModelPointer _model;
     QVariantMap _modelTextures;
     bool _texturesLoaded { false };
+    bool _texturesDirty{ false };
 
     render::ItemIDs _subRenderItemIDs;
 

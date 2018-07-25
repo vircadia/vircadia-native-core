@@ -27,10 +27,6 @@ ModelOverlay::ModelOverlay()
 {
     _model->setLoadingPriority(_loadPriority);
     _isLoaded = false;
-
-    // Don't show overlay until textures have loaded
-    _visible = false;
-
     render::ScenePointer scene = qApp->getMain3DScene();
     _model->setVisibleInScene(false, scene);
 }
@@ -135,6 +131,11 @@ void ModelOverlay::update(float deltatime) {
         transaction.updateItem<Overlay>(getRenderItemID(), [](Overlay& data) {});
     }
     scene->enqueueTransaction(transaction);
+
+    if (_texturesDirty && !_modelTextures.isEmpty()) {
+        _texturesDirty = false;
+        _model->setTextures(_modelTextures);
+    }
 
     if (!_texturesLoaded && _model->getGeometry() && _model->getGeometry()->areTexturesLoaded()) {
         _texturesLoaded = true;
@@ -242,6 +243,7 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
         _texturesLoaded = false;
         QVariantMap textureMap = texturesValue.toMap();
         _modelTextures = textureMap;
+        _texturesDirty = true;
     }
 
     auto groupCulledValue = properties["isGroupCulled"];
