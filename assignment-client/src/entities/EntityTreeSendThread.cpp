@@ -310,6 +310,7 @@ void EntityTreeSendThread::startNewTraversal(const DiffTraversal::View& view, En
 
 bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstreamParams& params, const QJsonObject& jsonFilters) {
     if (_sendQueue.empty()) {
+        params.stopReason = EncodeBitstreamParams::FINISHED;
         OctreeServer::trackEncodeTime(OctreeServer::SKIP_TIME);
         return false;
     }
