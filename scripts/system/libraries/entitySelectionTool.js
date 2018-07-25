@@ -263,7 +263,7 @@ SelectionManager = (function() {
 
             that.worldDimensions = properties.boundingBox.dimensions;
             that.worldPosition = properties.boundingBox.center;
-            that.worldRotation = properties.boundingBox.rotation;
+            that.worldRotation = Quat.IDENTITY;
 
             that.entityType = properties.type;
             
@@ -271,10 +271,6 @@ SelectionManager = (function() {
                 SelectionDisplay.setSpaceMode(SPACE_LOCAL);
             }
         } else {
-            that.localRotation = null;
-            that.localDimensions = null;
-            that.localPosition = null;
-
             properties = Entities.getEntityProperties(that.selections[0]);
 
             that.entityType = properties.type;
@@ -293,6 +289,7 @@ SelectionManager = (function() {
                 tfl.z = Math.max(bb.tfl.z, tfl.z);
             }
 
+            that.localRotation = null;
             that.localDimensions = null;
             that.localPosition = null;
             that.worldDimensions = {
@@ -300,6 +297,7 @@ SelectionManager = (function() {
                 y: tfl.y - brn.y,
                 z: tfl.z - brn.z
             };
+            that.worldRotation = Quat.IDENTITY;
             that.worldPosition = {
                 x: brn.x + (that.worldDimensions.x / 2),
                 y: brn.y + (that.worldDimensions.y / 2),

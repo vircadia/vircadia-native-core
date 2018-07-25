@@ -52,6 +52,10 @@
 #include "AudioLogging.h"
 #include "AudioHelpers.h"
 
+#if defined(Q_OS_ANDROID)
+#include <QtAndroidExtras/QAndroidJniObject>
+#endif
+
 const int AudioClient::MIN_BUFFER_FRAMES = 1;
 
 const int AudioClient::MAX_BUFFER_FRAMES = 20;
@@ -60,7 +64,7 @@ static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 100;
 
 #if defined(Q_OS_ANDROID)
 static const int CHECK_INPUT_READS_MSECS = 2000;
-static const int MIN_READS_TO_CONSIDER_INPUT_ALIVE = 100;
+static const int MIN_READS_TO_CONSIDER_INPUT_ALIVE = 10;
 #endif
 
 static const auto DEFAULT_POSITION_GETTER = []{ return Vectors::ZERO; };
@@ -235,7 +239,7 @@ AudioClient::AudioClient() :
     
     // start a thread to detect any device changes
     _checkDevicesTimer = new QTimer(this);
-    connect(_checkDevicesTimer, &QTimer::timeout, [this] {
+    connect(_checkDevicesTimer, &QTimer::timeout, this, [this] {
         QtConcurrent::run(QThreadPool::globalInstance(), [this] { checkDevices(); });
     });
     const unsigned long DEVICE_CHECK_INTERVAL_MSECS = 2 * 1000;
@@ -243,7 +247,7 @@ AudioClient::AudioClient() :
 
     // start a thread to detect peak value changes
     _checkPeakValuesTimer = new QTimer(this);
-    connect(_checkPeakValuesTimer, &QTimer::timeout, [this] {
+    connect(_checkPeakValuesTimer, &QTimer::timeout, this, [this] {
         QtConcurrent::run(QThreadPool::globalInstance(), [this] { checkPeakValues(); });
     });
     const unsigned long PEAK_VALUES_CHECK_INTERVAL_MSECS = 50;
@@ -482,6 +486,15 @@ bool nativeFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
     audioFormat.setSampleType(QAudioFormat::SignedInt);
     audioFormat.setByteOrder(QAudioFormat::LittleEndian);
 
+#if defined(Q_OS_ANDROID)
+    // Using the HW sample rate (AUDIO_INPUT_FLAG_FAST) in some samsung phones causes a low volume at input stream
+    // Changing the sample rate forces a resampling that (in samsung) amplifies +18 dB
+    QAndroidJniObject brand =  QAndroidJniObject::getStaticObjectField<jstring>("android/os/Build", "BRAND");
+    if (audioDevice == QAudioDeviceInfo::defaultInputDevice() && brand.toString().contains("samsung", Qt::CaseInsensitive)) {
+        audioFormat.setSampleRate(24000);
+    }
+#endif
+
     if (!audioDevice.isFormatSupported(audioFormat)) {
         qCWarning(audioclient) << "The native format is" << audioFormat << "but isFormatSupported() failed.";
         return false;
@@ -635,9 +648,7 @@ void AudioClient::start() {
         qCDebug(audioclient) << "The closest format available is" << outputDeviceInfo.nearestFormat(_desiredOutputFormat);
     }
 #if defined(Q_OS_ANDROID)
-    connect(&_checkInputTimer, &QTimer::timeout, [this] {
-        checkInputTimeout();
-    });
+    connect(&_checkInputTimer, &QTimer::timeout, this, &AudioClient::checkInputTimeout);
     _checkInputTimer.start(CHECK_INPUT_READS_MSECS);
 #endif
 }
@@ -651,6 +662,7 @@ void AudioClient::stop() {
     switchOutputToAudioDevice(QAudioDeviceInfo(), true);
 #if defined(Q_OS_ANDROID)
     _checkInputTimer.stop();
+    disconnect(&_checkInputTimer, &QTimer::timeout, 0, 0);
 #endif
 }
 
@@ -1558,9 +1570,7 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInf
 #if defined(Q_OS_ANDROID)
                 if (_audioInput) {
                     _shouldRestartInputSetup = true;
-                    connect(_audioInput, &QAudioInput::stateChanged, [this](QAudio::State state) {
-                        audioInputStateChanged(state);
-                    });
+                    connect(_audioInput, &QAudioInput::stateChanged, this, &AudioClient::audioInputStateChanged);
                 }
 #endif
                 _inputDevice = _audioInput->start();
@@ -1764,7 +1774,7 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceI
                     _outputScratchBuffer = new int16_t[_outputPeriod];
 
                     // size local output mix buffer based on resampled network frame size
-                    int networkPeriod = _localToOutputResampler->getMaxOutput(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
+                    int networkPeriod = _localToOutputResampler ?  _localToOutputResampler->getMaxOutput(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO) : AudioConstants::NETWORK_FRAME_SAMPLES_STEREO;
                     _localOutputMixBuffer = new float[networkPeriod];
 
                     // local period should be at least twice the output period,

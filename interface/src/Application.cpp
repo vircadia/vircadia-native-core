@@ -3650,6 +3650,10 @@ bool Application::event(QEvent* event) {
 
 bool Application::eventFilter(QObject* object, QEvent* event) {
 
+    if (_aboutToQuit) {
+        return true;
+    }
+
     if (event->type() == QEvent::Leave) {
         getApplicationCompositor().handleLeaveEvent();
     }
@@ -4839,6 +4843,13 @@ void Application::loadSettings() {
         }
 
         isFirstPerson = (qApp->isHMDMode());
+
+        // Flying should be disabled by default in HMD mode on first run, and it
+        // should be enabled by default in desktop mode.
+
+        auto myAvatar = getMyAvatar();
+        myAvatar->setFlyingEnabled(!isFirstPerson);
+
     } else {
         // if this is not the first run, the camera will be initialized differently depending on user settings
 
