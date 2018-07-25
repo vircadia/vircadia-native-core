@@ -139,9 +139,6 @@ void ModelOverlay::update(float deltatime) {
 
     if (!_texturesLoaded && _model->getGeometry() && _model->getGeometry()->areTexturesLoaded()) {
         _texturesLoaded = true;
-        if (!_modelTextures.isEmpty()) {
-            _model->setTextures(_modelTextures);
-        }
 
         _model->setVisibleInScene(getVisible(), scene);
         _model->updateRenderItems();
