@@ -73,7 +73,7 @@ public:
      *   with PickType.Ray, depending on which optional parameters you pass, you could create a Static Ray Pick, a Mouse Ray Pick, or a Joint Ray Pick.
      * @function Picks.createPick
      * @param {PickType} type A PickType that specifies the method of picking to use
-     * @param {Picks.RayPickProperties|Picks.StylusPickProperties} properties A PickProperties object, containing all the properties for initializing this Pick
+     * @param {Picks.RayPickProperties|Picks.StylusPickProperties|Picks.CollisionPickProperties} properties A PickProperties object, containing all the properties for initializing this Pick
      * @returns {number} The ID of the created Pick.  Used for managing the Pick.  0 if invalid.
      */
     Q_INVOKABLE unsigned int createPick(const PickQuery::PickType type, const QVariant& properties);
@@ -127,11 +127,30 @@ public:
      * @property {StylusTip} stylusTip The StylusTip that was used.  Valid even if there was no intersection.
      */
 
+     /**jsdoc
+     * An intersection result for a Collision Pick.
+     *
+     * @typedef {object} CollisionPickResult
+     * @property {boolean} intersects If there was at least one valid intersection (entityIntersections.length + avatarIntersections.length > 0)
+     * @property {EntityItersection[]} entityIntersections The collision information of entities which intersect with the CollisionRegion. There may be multiple intersections with the same entity which represent distinct collision points.
+     * @property {EntityItersection[]} avatarIntersections The collision information of avatars which intersect with the CollisionRegion. There may be multiple intersections with the same entity which represent distinct collision points.
+     * @property {CollisionRegion} collisionRegion The CollisionRegion that was used. Valid even if there was no intersection.
+     */
+
+     /**jsdoc
+     * A pair of intersection points between a CollisionPick and an entity/avatar.
+     *
+     * @typedef {object} EntityIntersection
+     * @property {QUuid} id The ID of the object.
+     * @property {Vec3} pickCollisionPoint A point within the volume of the CollisionPick which corresponds to a point on the surface of the collided entity, in world space.
+     * @property {Vec3} entityCollisionPoint A point within the volume of the collided entity which corresponds to a point on the surface of the CollisionPick, in world space.
+     */
+
     /**jsdoc
      * Get the most recent pick result from this Pick.  This will be updated as long as the Pick is enabled.
      * @function Picks.getPrevPickResult
      * @param {number} uid The ID of the Pick, as returned by {@link Picks.createPick}.
-     * @returns {RayPickResult|StylusPickResult} The most recent intersection result.  This will be different for different PickTypes.
+     * @returns {RayPickResult|StylusPickResult|CollisionPickResult} The most recent intersection result.  This will be different for different PickTypes.
      */
     Q_INVOKABLE QVariantMap getPrevPickResult(unsigned int uid);
 

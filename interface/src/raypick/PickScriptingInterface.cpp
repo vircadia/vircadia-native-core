@@ -137,6 +137,23 @@ unsigned int PickScriptingInterface::createStylusPick(const QVariant& properties
     return DependencyManager::get<PickManager>()->addPick(PickQuery::Stylus, std::make_shared<StylusPick>(side, filter, maxDistance, enabled));
 }
 
+/**jsdoc
+* A Shape defines a physical volume.
+*
+* @typedef {object} Shape
+* @property {ShapeType} shapeType The type of shape to use.
+* @property {string} modelURL - If shapeType is one of: "compound", "simple-hull", "simple-compound", or "static-mesh", this defines the model to load to generate the collision volume.
+* @property {Vec3} dimensions - The size to scale the shape to.
+*/
+
+/**jsdoc
+* A set of properties that can be passed to {@link Picks.createPick} to create a new Collision Pick.
+
+* @typedef {object} Picks.CollisionPickProperties
+* @property {Shape} shape - The information about the collision region's size and shape.
+* @property {Vec3} position - The position of the collision region.
+* @property {Quat} orientation - The orientation of the collision region.
+*/
 unsigned int PickScriptingInterface::createCollisionPick(const QVariant& properties) {
     QVariantMap propMap = properties.toMap();
 
