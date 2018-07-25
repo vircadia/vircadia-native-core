@@ -10,7 +10,7 @@ import io.highfidelity.hifiinterface.view.DomainAdapter;
 
 public interface DomainProvider {
 
-    void retrieve(String filterText, DomainCallback domainCallback);
+    void retrieve(String filterText, DomainCallback domainCallback, boolean forceRefresh);
 
     interface DomainCallback {
         void retrieveOk(List<DomainAdapter.Domain> domain);

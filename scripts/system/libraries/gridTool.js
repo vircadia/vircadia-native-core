@@ -1,6 +1,6 @@
 var GRID_CONTROLS_HTML_URL = Script.resolvePath('../html/gridControls.html');
 
-Grid = function(opts) {
+Grid = function() {
     var that = {};
     var gridColor = { red: 0, green: 0, blue: 0 };
     var gridAlpha = 0.6;
@@ -247,6 +247,7 @@ GridTool = function(opts) {
     var horizontalGrid = opts.horizontalGrid;
     var verticalGrid = opts.verticalGrid;
     var createToolsWindow = opts.createToolsWindow;
+    var shouldUseEditTabletApp = opts.shouldUseEditTabletApp;
     var listeners = [];
 
     var webView = null;
@@ -299,7 +300,7 @@ GridTool = function(opts) {
     };
 
     that.setVisible = function(visible) {
-        webView.setVisible(HMD.active && visible);
+        webView.setVisible(shouldUseEditTabletApp() && visible);
     };
 
     return that;

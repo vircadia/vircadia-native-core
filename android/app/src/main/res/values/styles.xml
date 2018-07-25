@@ -19,6 +19,9 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
     </style>
+    <style name="Theme.AppCompat.Translucent.NoActionBar.Launcher" parent="Theme.AppCompat.Translucent.NoActionBar">
+        <item name="android:windowBackground">@drawable/launch_screen</item>
+    </style>
 
     <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
 
@@ -62,4 +65,7 @@
         <item name="android:background">@color/white_opaque</item>
     </style>
 
+    <style name="HifiCircularProgress" parent="Theme.AppCompat.Light">
+        <item name="colorAccent">@color/hifiLogoColor</item>
+    </style>
 </resources>

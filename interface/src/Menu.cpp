@@ -275,6 +275,13 @@ Menu::Menu() {
             QString("hifi/tablet/TabletGraphicsPreferences.qml"), "GraphicsPreferencesDialog");
     });
 
+    // Settings > Attachments...
+    action = addActionToQMenuAndActionHash(settingsMenu, MenuOption::Attachments);
+    connect(action, &QAction::triggered, [] {
+        qApp->showDialog(QString("hifi/dialogs/AttachmentsDialog.qml"),
+                         QString("hifi/tablet/TabletAttachmentsDialog.qml"), "AttachmentsDialog");
+    });
+
     // Settings > Developer Menu
     addCheckableActionToQMenuAndActionHash(settingsMenu, "Developer Menu", 0, false, this, SLOT(toggleDeveloperMenus()));
 

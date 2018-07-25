@@ -381,7 +381,7 @@ public slots:
     /**jsdoc
      * Get the rotation of the left palm in world coordinates.
      * @function MyAvatar.getLeftPalmRotation
-     * @returns {Vec3} The rotation of the left palm in world coordinates.
+     * @returns {Quat} The rotation of the left palm in world coordinates.
      * @example <caption>Report the rotation of your avatar's left palm.</caption>
      * print(JSON.stringify(MyAvatar.getLeftPalmRotation()));
      */
@@ -398,7 +398,7 @@ public slots:
     /**jsdoc
      * Get the rotation of the right palm in world coordinates.
      * @function MyAvatar.getRightPalmRotation
-     * @returns {Vec3} The rotation of the right palm in world coordinates.
+     * @returns {Quat} The rotation of the right palm in world coordinates.
      * @example <caption>Report the rotation of your avatar's right palm.</caption>
      * print(JSON.stringify(MyAvatar.getRightPalmRotation()));
      */

@@ -29,13 +29,25 @@ function executeLater(callback) {
     Script.setTimeout(callback, 300);
 }
 
-function getMyAvatarWearables() {
-    var wearablesArray = MyAvatar.getAvatarEntitiesVariant();
+var INVALID_JOINT_INDEX = -1
+function isWearable(avatarEntity) {
+    return avatarEntity.properties.visible === true && avatarEntity.properties.parentJointIndex !== INVALID_JOINT_INDEX &&
+        (avatarEntity.properties.parentID === MyAvatar.sessionUUID || avatarEntity.properties.parentID === MyAvatar.SELF_ID);
+}
 
-    for(var i = 0; i < wearablesArray.length; ++i) {
-        var wearable = wearablesArray[i];
-        var localRotation = wearable.properties.localRotation;
-        wearable.properties.localRotationAngles = Quat.safeEulerAngles(localRotation)
+function getMyAvatarWearables() {
+    var entitiesArray = MyAvatar.getAvatarEntitiesVariant();
+    var wearablesArray = [];
+
+    for (var i = 0; i < entitiesArray.length; ++i) {
+        var entity = entitiesArray[i];
+        if (!isWearable(entity)) {
+            continue;
+        }
+
+        var localRotation = entity.properties.localRotation;
+        entity.properties.localRotationAngles = Quat.safeEulerAngles(localRotation)
+        wearablesArray.push(entity);
     }
 
     return wearablesArray;
@@ -159,13 +171,12 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
 
         for(var bookmarkName in message.data.bookmarks) {
             var bookmark = message.data.bookmarks[bookmarkName];
-            if (!bookmark.avatarEntites) { // ensure avatarEntites always exist
-                bookmark.avatarEntites = [];
-            }
 
-            bookmark.avatarEntites.forEach(function(avatarEntity) {
-                avatarEntity.properties.localRotationAngles = Quat.safeEulerAngles(avatarEntity.properties.localRotation)
-            })
+            if (bookmark.avatarEntites) {
+                bookmark.avatarEntites.forEach(function(avatarEntity) {
+                    avatarEntity.properties.localRotationAngles = Quat.safeEulerAngles(avatarEntity.properties.localRotation);
+                });
+            }
         }
 
         sendToQml(message)

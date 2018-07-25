@@ -1916,14 +1916,16 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
         // don't handle if we don't have a matching node
         if (!matchingNode) {
-            return false;
+            connection->respond(HTTPConnection::StatusCode404, "Resource not found.");
+            return true;
         }
 
         auto nodeData = static_cast<DomainServerNodeData*>(matchingNode->getLinkedData());
 
         // don't handle if we don't have node data for this node
         if (!nodeData) {
-            return false;
+            connection->respond(HTTPConnection::StatusCode404, "Resource not found.");
+            return true;
         }
 
         SharedAssignmentPointer matchingAssignment = _allAssignments.value(nodeData->getAssignmentUUID());
@@ -1944,7 +1946,8 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         }
 
         // request not handled
-        return false;
+        connection->respond(HTTPConnection::StatusCode404, "Resource not found.");
+        return true;
     }
 
     // check if this is a request for our domain ID

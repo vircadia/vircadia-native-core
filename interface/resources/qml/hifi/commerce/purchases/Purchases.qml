@@ -551,8 +551,9 @@ Rectangle {
 
         HifiModels.PSFListModel {
             id: purchasesModel;
-            itemsPerPage: 6;
+            itemsPerPage: 7;
             listModelName: 'purchases';
+            listView: purchasesContentsList;
             getPage: function () {
                 console.debug('getPage', purchasesModel.listModelName, root.isShowingMyItems, filterBar.primaryFilter_filterName, purchasesModel.currentPageToRetrieve, purchasesModel.itemsPerPage);
                 Commerce.inventory(
@@ -779,14 +780,6 @@ Rectangle {
                             }
                         }
                     }
-                }
-            }
-
-            
-            onAtYEndChanged: {
-                if (purchasesContentsList.atYEnd && !purchasesContentsList.atYBeginning) {
-                    console.log("User scrolled to the bottom of 'Purchases'.");
-                    purchasesModel.getNextPage();
                 }
             }
         }
