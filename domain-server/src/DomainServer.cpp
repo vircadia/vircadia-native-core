@@ -630,7 +630,7 @@ bool DomainServer::isPacketVerified(const udt::Packet& packet) {
 
 void DomainServer::setupNodeListAndAssignments() {
     const QString CUSTOM_LOCAL_PORT_OPTION = "metaverse.local_port";
-    static const QString ENABLE_PACKET_AUTHENTICATION = "metaverse.enable_authentication";
+    static const QString ENABLE_PACKET_AUTHENTICATION = "metaverse.enable_packet_verification";
 
     QVariant localPortValue = _settingsManager.valueOrDefaultValueForKeyPath(CUSTOM_LOCAL_PORT_OPTION);
     int domainServerPort = localPortValue.toInt();
