@@ -335,7 +335,8 @@ Item {
                                 upgradeUrl: root.upgradeUrl,
                                 itemHref: root.itemHref,
                                 itemType: root.itemType,
-                                isInstalled: root.isInstalled
+                                isInstalled: root.isInstalled,
+                                wornEntityID: root.wornEntityID
                             });
                         }
                     }
