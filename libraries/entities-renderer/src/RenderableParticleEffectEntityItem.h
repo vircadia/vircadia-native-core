@@ -74,6 +74,7 @@ private:
     struct ParticleUniforms {
         InterpolationData<float> radius;
         InterpolationData<glm::vec4> color; // rgba
+        InterpolationData<float> spin;
         float lifespan;
         glm::vec3 spare;
     };

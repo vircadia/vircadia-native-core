@@ -144,6 +144,10 @@ void ParticleEffectEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEn
         particleUniforms.color.middle = _particleProperties.getColorMiddle();
         particleUniforms.color.finish = _particleProperties.getColorFinish();
         particleUniforms.color.spread = _particleProperties.getColorSpread();
+        particleUniforms.spin.start = _particleProperties.spin.range.start;
+        particleUniforms.spin.middle = _particleProperties.spin.gradient.target;
+        particleUniforms.spin.finish = _particleProperties.spin.range.finish;
+        particleUniforms.spin.spread = _particleProperties.spin.gradient.spread;
         particleUniforms.lifespan = _particleProperties.lifespan;
     });
     // Update particle uniforms

@@ -235,6 +235,11 @@ public:
 
     DEFINE_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, IsVisibleInSecondaryCamera, isVisibleInSecondaryCamera, bool, ENTITY_ITEM_DEFAULT_VISIBLE_IN_SECONDARY_CAMERA);
 
+    DEFINE_PROPERTY(PROP_PARTICLE_SPIN, ParticleSpin, particleSpin, float, particle::DEFAULT_PARTICLE_SPIN);
+    DEFINE_PROPERTY(PROP_SPIN_SPREAD, SpinSpread, spinSpread, float, particle::DEFAULT_SPIN_SPREAD);
+    DEFINE_PROPERTY(PROP_SPIN_START, SpinStart, spinStart, float, particle::DEFAULT_SPIN_START);
+    DEFINE_PROPERTY(PROP_SPIN_FINISH, SpinFinish, spinFinish, float, particle::DEFAULT_SPIN_FINISH)
+
     // Certifiable Properties - related to Proof of Purchase certificates
     DEFINE_PROPERTY_REF(PROP_ITEM_NAME, ItemName, itemName, QString, ENTITY_ITEM_DEFAULT_ITEM_NAME);
     DEFINE_PROPERTY_REF(PROP_ITEM_DESCRIPTION, ItemDescription, itemDescription, QString, ENTITY_ITEM_DEFAULT_ITEM_DESCRIPTION);
