@@ -361,7 +361,7 @@
                     type: "Row"
                 }
             ],
-            Spim: [
+            Spin: [
                 {
                     id: "particleSpin",
                     name: "Particle Spin",
