@@ -19,6 +19,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <QThread>
 
+#include <AnimationCacheScriptingInterface.h>
 #include <AssetClient.h>
 #include <AvatarHashMap.h>
 #include <AudioInjectorManager.h>
@@ -31,6 +32,7 @@
 #include <udt/PacketHeaders.h>
 #include <ResourceCache.h>
 #include <ScriptCache.h>
+#include <SoundCacheScriptingInterface.h>
 #include <ScriptEngines.h>
 #include <SoundCache.h>
 #include <UsersScriptingInterface.h>
@@ -454,8 +456,8 @@ void Agent::executeScript() {
     // register ourselves to the script engine
     _scriptEngine->registerGlobalObject("Agent", this);
 
-    _scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
-    _scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
+    _scriptEngine->registerGlobalObject("SoundCache", new SoundCacheScriptingInterface(DependencyManager::get<SoundCache>().data()));
+    _scriptEngine->registerGlobalObject("AnimationCache", new AnimationCacheScriptingInterface(DependencyManager::get<AnimationCache>().data()));
 
     QScriptValue webSocketServerConstructorValue = _scriptEngine->newFunction(WebSocketServerClass::constructor);
     _scriptEngine->globalObject().setProperty("WebSocketServer", webSocketServerConstructorValue);

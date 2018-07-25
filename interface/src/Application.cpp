@@ -63,6 +63,7 @@
 #include <AddressManager.h>
 #include <AnimDebugDraw.h>
 #include <BuildInfo.h>
+#include <AnimationCacheScriptingInterface.h>
 #include <AssetClient.h>
 #include <AssetUpload.h>
 #include <AutoUpdater.h>
@@ -98,6 +99,8 @@
 #include <MainWindow.h>
 #include <MappingRequest.h>
 #include <MessagesClient.h>
+#include <model-networking/ModelCacheScriptingInterface.h>
+#include <model-networking/TextureCacheScriptingInterface.h>
 #include <ModelEntityItem.h>
 #include <NetworkAccessManager.h>
 #include <NetworkingConstants.h>
@@ -127,7 +130,7 @@
 #include <ScriptEngines.h>
 #include <ScriptCache.h>
 #include <ShapeEntityItem.h>
-#include <SoundCache.h>
+#include <SoundCacheScriptingInterface.h>
 #include <ui/TabletScriptingInterface.h>
 #include <ui/ToolbarScriptingInterface.h>
 #include <InteractiveWindow.h>
@@ -2989,10 +2992,10 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("LocationBookmarks", DependencyManager::get<LocationBookmarks>().data());
 
     // Caches
-    surfaceContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
-    surfaceContext->setContextProperty("TextureCache", DependencyManager::get<TextureCache>().data());
-    surfaceContext->setContextProperty("ModelCache", DependencyManager::get<ModelCache>().data());
-    surfaceContext->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
+    surfaceContext->setContextProperty("AnimationCache", new AnimationCacheScriptingInterface(DependencyManager::get<AnimationCache>().data()));
+    surfaceContext->setContextProperty("TextureCache", new TextureCacheScriptingInterface(DependencyManager::get<TextureCache>().data()));
+    surfaceContext->setContextProperty("ModelCache", new ModelCacheScriptingInterface(DependencyManager::get<ModelCache>().data()));
+    surfaceContext->setContextProperty("SoundCache", new SoundCacheScriptingInterface(DependencyManager::get<SoundCache>().data()));
     surfaceContext->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
 
     surfaceContext->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
@@ -6612,10 +6615,10 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("Pointers", DependencyManager::get<PointerScriptingInterface>().data());
 
     // Caches
-    scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
-    scriptEngine->registerGlobalObject("TextureCache", DependencyManager::get<TextureCache>().data());
-    scriptEngine->registerGlobalObject("ModelCache", DependencyManager::get<ModelCache>().data());
-    scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
+    scriptEngine->registerGlobalObject("AnimationCache", new AnimationCacheScriptingInterface(DependencyManager::get<AnimationCache>().data()));
+    scriptEngine->registerGlobalObject("TextureCache", new TextureCacheScriptingInterface(DependencyManager::get<TextureCache>().data()));
+    scriptEngine->registerGlobalObject("ModelCache", new ModelCacheScriptingInterface(DependencyManager::get<ModelCache>().data()));
+    scriptEngine->registerGlobalObject("SoundCache", new SoundCacheScriptingInterface(DependencyManager::get<SoundCache>().data()));
 
     scriptEngine->registerGlobalObject("DialogsManager", _dialogsManagerScriptingInterface);
 
