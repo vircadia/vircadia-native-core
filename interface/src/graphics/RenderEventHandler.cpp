@@ -15,7 +15,8 @@
 
 #include "CrashHandler.h"
 
-RenderEventHandler::RenderEventHandler(QOpenGLContext* context, RenderCall renderCall) :
+RenderEventHandler::RenderEventHandler(QOpenGLContext* context, CheckCall checkCall, RenderCall renderCall) :
+    _checkCall(checkCall),
     _renderCall(renderCall)
 {
     _renderContext = new OffscreenGLCanvas();
@@ -52,7 +53,7 @@ void RenderEventHandler::resumeThread() {
 }
 
 void RenderEventHandler::render() {
-    if (qApp->shouldPaint()) {
+    if (_checkCall()) {
         _lastTimeRendered.start();
         _renderCall();
     }

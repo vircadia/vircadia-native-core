@@ -157,7 +157,7 @@ public:
     void updateSecondaryCameraViewFrustum();
 
     void updateCamera(RenderArgs& renderArgs, float deltaTime);
-    bool shouldPaint() const;
+ //   bool shouldPaint() const;
 //    void paintGL();
     void resizeGL();
 

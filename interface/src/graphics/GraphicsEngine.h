@@ -16,6 +16,8 @@
 
 #include <render/Engine.h>
 
+#include "RenderThread.h"
+
 #include <OctreeConstants.h>
 #include <shared/RateCounter.h>
 
@@ -51,6 +53,8 @@ public:
     render::EnginePointer getRenderEngine() const { return _renderEngine; }
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
+    FrameQueuePointer getFrameQueue() const { return _frameQueue; }
+
     // Same as the one in application
     bool shouldPaint() const;
     bool checkPendingRenderEvent();
@@ -78,6 +82,8 @@ protected:
     render::EnginePointer _renderEngine{ new render::RenderEngine() };
 
     gpu::ContextPointer _gpuContext; // initialized during window creation
+
+    FrameQueuePointer _frameQueue{ new FrameQueue() };
 
     QObject* _renderEventHandler{ nullptr };
     friend class RenderEventHandler;

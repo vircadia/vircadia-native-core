@@ -28,10 +28,13 @@ class RenderEventHandler : public QObject {
     Q_OBJECT
 public:
 
+    using CheckCall = std::function <bool()>;
     using RenderCall = std::function <void()>;
+
+    CheckCall _checkCall;
     RenderCall _renderCall;
 
-    RenderEventHandler(QOpenGLContext* context, RenderCall renderCall);
+    RenderEventHandler(QOpenGLContext* context, CheckCall checkCall, RenderCall renderCall);
 
     QElapsedTimer _lastTimeRendered;
     std::atomic<bool> _pendingRenderEvent{ true };

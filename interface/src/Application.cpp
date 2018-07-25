@@ -2425,6 +2425,7 @@ void Application::cleanupBeforeQuit() {
     }
 
     _window->saveGeometry();
+
    // _gpuContext->shutdown();
 
     // Destroy third party processes after scripts have finished using them.
@@ -4178,41 +4179,37 @@ bool Application::acceptSnapshot(const QString& urlString) {
     }
     return true;
 }
-
-static uint32_t _renderedFrameIndex { INVALID_FRAME };
-
-bool Application::shouldPaint() const {
-    if (_aboutToQuit || _window->isMinimized()) {
-        return false;
-    }
-
-
-    auto displayPlugin = getActiveDisplayPlugin();
-
-#ifdef DEBUG_PAINT_DELAY
-    static uint64_t paintDelaySamples{ 0 };
-    static uint64_t paintDelayUsecs{ 0 };
-
-    paintDelayUsecs += displayPlugin->getPaintDelayUsecs();
-
-    static const int PAINT_DELAY_THROTTLE = 1000;
-    if (++paintDelaySamples % PAINT_DELAY_THROTTLE == 0) {
-        qCDebug(interfaceapp).nospace() <<
-            "Paint delay (" << paintDelaySamples << " samples): " <<
-            (float)paintDelaySamples / paintDelayUsecs << "us";
-    }
-#endif
-
-    // Throttle if requested
-    //if (displayPlugin->isThrottled() && (_graphicsEngine._renderEventHandler->_lastTimeRendered.elapsed() < THROTTLED_SIM_FRAME_PERIOD_MS)) {
-    if (displayPlugin->isThrottled() && !_graphicsEngine.shouldPaint()) {
-        return false;
-    }
-
-    // Sync up the _renderedFrameIndex
-    _renderedFrameIndex = displayPlugin->presentCount();
-    return true;
-}
+//
+//bool Application::shouldPaint() const {
+//    if (_aboutToQuit || _window->isMinimized()) {
+//        return false;
+//    }
+//
+//
+//    auto displayPlugin = getActiveDisplayPlugin();
+//
+//#ifdef DEBUG_PAINT_DELAY
+//    static uint64_t paintDelaySamples{ 0 };
+//    static uint64_t paintDelayUsecs{ 0 };
+//
+//    paintDelayUsecs += displayPlugin->getPaintDelayUsecs();
+//
+//    static const int PAINT_DELAY_THROTTLE = 1000;
+//    if (++paintDelaySamples % PAINT_DELAY_THROTTLE == 0) {
+//        qCDebug(interfaceapp).nospace() <<
+//            "Paint delay (" << paintDelaySamples << " samples): " <<
+//            (float)paintDelaySamples / paintDelayUsecs << "us";
+//    }
+//#endif
+//
+//    // Throttle if requested
+//    //if (displayPlugin->isThrottled() && (_graphicsEngine._renderEventHandler->_lastTimeRendered.elapsed() < THROTTLED_SIM_FRAME_PERIOD_MS)) {
+//    if (displayPlugin->isThrottled() && !_graphicsEngine.shouldPaint()) {
+//        return false;
+//    }
+//
+//    return true;
+//}
 
 #ifdef Q_OS_WIN
 #include <Windows.h>
