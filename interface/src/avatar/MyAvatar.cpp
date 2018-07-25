@@ -3103,11 +3103,12 @@ glm::vec3 MyAvatar::computeCounterBalance() {
     glm::vec3 counterBalancedCg = (1.0f / DEFAULT_AVATAR_HIPS_MASS) * counterBalancedForHead;
 
     // find the height of the hips
+    const float UPPER_LEG_FRACTION = 0.3333f;
     glm::vec3 xzDiff((cgHeadMass.position.x - counterBalancedCg.x), 0.0f, (cgHeadMass.position.z - counterBalancedCg.z));
     float headMinusHipXz = glm::length(xzDiff);
     float headHipDefault = glm::length(tposeHead - tposeHips);
     float hipFootDefault = glm::length(tposeHips - tposeRightFoot);
-    float sitSquatThreshold = tposeHips.y - (0.333f)*hipFootDefault;
+    float sitSquatThreshold = tposeHips.y - (UPPER_LEG_FRACTION*hipFootDefault);
     float hipHeight = 0.0f;
     if (headHipDefault > headMinusHipXz) {
         hipHeight = sqrtf((headHipDefault * headHipDefault) - (headMinusHipXz * headMinusHipXz));
@@ -3120,11 +3121,9 @@ glm::vec3 MyAvatar::computeCounterBalance() {
         // if the height is higher than default hips, clamp to default hips
         counterBalancedCg.y = tposeHips.y + 0.05f;
     } else if (counterBalancedCg.y < sitSquatThreshold) {
-        //do a height reset 
+        //do a height reset
         setResetMode(true);
         _follow.activate(FollowHelper::Vertical);
-        qCDebug(interfaceapp) << "doing a reset for sitting";
-
     }
     return counterBalancedCg;
 }
