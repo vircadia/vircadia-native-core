@@ -912,12 +912,12 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <code>alpha</code> value is used.
  * @property {number} alphaSpread=0 - The spread in alpha that each particle is given. If <code>alpha == 0.5</code>
  *     and <code>alphaSpread == 0.25</code>, each particle will have an alpha in the range <code>0.25</code> &ndash; <code>0.75</code>.
- * @property {number} particleSpin=0 - The spin of each particle at the middle of its life. <code>-2*PI - 2*PI</code>.
+ * @property {number} particleSpin=0 - The spin of each particle at the middle of its life. In the range <code>-2*PI</code> &ndash; <code>2*PI</code>.
  * @property {number} spinStart=null - The spin of each particle at the start of its life. In the range <code>-2*PI</code> &ndash; <code>2*PI</code>.
  *     If <code>null</code>, the <code>particleSpin</code> value is used.
  * @property {number} spinFinish=null - The spin of each particle at the end of its life. In the range <code>-2*PI</code> &ndash; <code>2*PI</code>.
  *     If <code>null</code>, the <code>particleSpin</code> value is used.
- * @property {number} spinSpread=0 - The spread in spin that each particle is given. <code>-2*PI - 2*PI</code>.  If <code>particleSpin == PI</code>
+ * @property {number} spinSpread=0 - The spread in spin that each particle is given. In the range <code>0</code> &ndash; <code>2*PI</code>.  If <code>particleSpin == PI</code>
  *     and <code>spinSpread == PI/2</code>, each particle will have a spin in the range <code>PI/2</code> &ndash; <code>3*PI/2</code>.
  *
  * @property {ShapeType} shapeType="none" - <em>Currently not used.</em> <em>Read-only.</em>
