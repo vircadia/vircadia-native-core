@@ -886,9 +886,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {string} textures="" - The URL of a JPG or PNG image file to display for each particle. If you want transparency,
  *     use PNG format.
  * @property {number} particleRadius=0.025 - The radius of each particle at the middle of its life.
- * @property {number} radiusStart=null - The radius of each particle at the start of its life. If <code>null</code>, the
+ * @property {number} radiusStart=NaN - The radius of each particle at the start of its life. If <code>NaN</code>, the
  *     <code>particleRadius</code> value is used.
- * @property {number} radiusFinish=null - The radius of each particle at the end of its life. If <code>null</code>, the
+ * @property {number} radiusFinish=NaN - The radius of each particle at the end of its life. If <code>NaN</code>, the
  *     <code>particleRadius</code> value is used.
  * @property {number} radiusSpread=0 - The spread in radius that each particle is given. If <code>particleRadius == 0.5</code>
  *     and <code>radiusSpread == 0.25</code>, each particle will have a radius in the range <code>0.25</code> &ndash; 
@@ -903,9 +903,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     {red: 10, green: 25, blue: 50}</code>, each particle will have a color in the range 
  *     <code>{red: 90, green: 75, blue: 50}</code> &ndash; <code>{red: 110, green: 125, blue: 150}</code>.
  * @property {number} alpha=1 - The alpha of each particle at the middle of its life.
- * @property {number} alphaStart=null - The alpha of each particle at the start of its life. If <code>null</code>, the
+ * @property {number} alphaStart=NaN - The alpha of each particle at the start of its life. If <code>NaN</code>, the
  *     <code>alpha</code> value is used.
- * @property {number} alphaFinish=null - The alpha of each particle at the end of its life. If <code>null</code>, the
+ * @property {number} alphaFinish=NaN - The alpha of each particle at the end of its life. If <code>NaN</code>, the
  *     <code>alpha</code> value is used.
  * @property {number} alphaSpread=0 - The spread in alpha that each particle is given. If <code>alpha == 0.5</code>
  *     and <code>alphaSpread == 0.25</code>, each particle will have an alpha in the range <code>0.25</code> &ndash; 
