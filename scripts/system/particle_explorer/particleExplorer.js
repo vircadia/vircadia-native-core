@@ -376,7 +376,6 @@
                     id: "spinSpread",
                     name: "Spin Spread",
                     type: "SliderRadian",
-                    min: -360.0,
                     max: 360.0
                 },
                 {
