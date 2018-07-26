@@ -6134,7 +6134,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType) {
     auto lodManager = DependencyManager::get<LODManager>();
     _octreeQuery.setOctreeSizeScale(lodManager->getOctreeSizeScale());
     _octreeQuery.setBoundaryLevelAdjust(lodManager->getBoundaryLevelAdjust());
-    _octreeQuery.setReportInitialResult(true);
+    _octreeQuery.setReportInitialCompletion(true);
 
     auto nodeList = DependencyManager::get<NodeList>();
 
