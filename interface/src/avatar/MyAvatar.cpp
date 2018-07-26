@@ -3060,8 +3060,8 @@ glm::vec3 MyAvatar::computeCounterBalance() {
     JointMass cgLeftHandMass(QString("LeftHand"), DEFAULT_AVATAR_LEFTHAND_MASS, glm::vec3(0.0f, 0.0f, 0.0f));
     JointMass cgRightHandMass(QString("RightHand"), DEFAULT_AVATAR_RIGHTHAND_MASS, glm::vec3(0.0f, 0.0f, 0.0f));
     glm::vec3 tposeHead = DEFAULT_AVATAR_HEAD_POS;
-    glm::vec3 tposeHips = glm::vec3(0.0f, 0.0f, 0.0f);
-    glm::vec3 tposeRightFoot = glm::vec3(0.0f, -1.0f, 0.0f);
+    glm::vec3 tposeHips = DEFAULT_AVATAR_HIPS_POS;
+    glm::vec3 tposeRightFoot = DEFAULT_AVATAR_RIGHTFOOT_POS;
 
     if (_skeletonModel->getRig().indexOfJoint(cgHeadMass.name) != -1) {
         cgHeadMass.position = getAbsoluteJointTranslationInObjectFrame(_skeletonModel->getRig().indexOfJoint(cgHeadMass.name));
@@ -3107,8 +3107,8 @@ glm::vec3 MyAvatar::computeCounterBalance() {
     glm::vec3 xzDiff((cgHeadMass.position.x - counterBalancedCg.x), 0.0f, (cgHeadMass.position.z - counterBalancedCg.z));
     float headMinusHipXz = glm::length(xzDiff);
     float headHipDefault = glm::length(tposeHead - tposeHips);
-    float hipFootDefault = glm::length(tposeHips - tposeRightFoot);
-    float sitSquatThreshold = tposeHips.y - (UPPER_LEG_FRACTION*hipFootDefault);
+    float hipFootDefault = tposeHips.y - tposeRightFoot.y;
+    float sitSquatThreshold = tposeHips.y - (UPPER_LEG_FRACTION * hipFootDefault);
     float hipHeight = 0.0f;
     if (headHipDefault > headMinusHipXz) {
         hipHeight = sqrtf((headHipDefault * headHipDefault) - (headMinusHipXz * headMinusHipXz));
