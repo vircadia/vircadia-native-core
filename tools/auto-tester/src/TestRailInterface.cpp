@@ -17,15 +17,122 @@
 #include <QTextStream>
 
 void TestRailInterface::createTestSuitePython(const QString& testDirectory,
-                                           const QString& outputDirectory,
-                                           const QString& user,
-                                           const QString& branch) {
+                                              const QString& outputDirectory,
+                                              const QString& user,
+                                              const QString& branch) {
+    
+    // Create the testrail.py script
+    // This is the file linked to from http://docs.gurock.com/testrail-api2/bindings-python
+    QFile file(outputDirectory + "/testrail.py");
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not create \'testrail.py\'");
+        exit(-1);
+    }
+
+    QTextStream stream(&file);
+
+    stream << "#\n";
+    stream << "# TestRail API binding for Python 3.x (API v2, available since \n";
+    stream << "# TestRail 3.0)\n";
+    stream << "#\n";
+    stream << "# Learn more:\n";
+    stream << "#\n";
+    stream << "# http://docs.gurock.com/testrail-api2/start\n";
+    stream << "# http://docs.gurock.com/testrail-api2/accessing\n";
+    stream << "#\n";
+    stream << "# Copyright Gurock Software GmbH. See license.md for details.\n";
+    stream << "#\n";
+    stream << "\n";
+    stream << "import urllib.request, urllib.error\n";
+    stream << "import json, base64\n";
+    stream << "\n";
+    stream << "class APIClient:\n";
+    stream << "\tdef __init__(self, base_url):\n";
+    stream << "\t\tself.user = ''\n";
+    stream << "\t\tself.password = ''\n";
+    stream << "\t\tif not base_url.endswith('/'):\n";
+    stream << "\t\t\tbase_url += '/'\n";
+    stream << "\t\tself.__url = base_url + 'index.php?/api/v2/'\n";
+    stream << "\n";
+    stream << "\t#\n";
+    stream << "\t# Send Get\n";
+    stream << "\t#\n";
+    stream << "\t# Issues a GET request (read) against the API and returns the result\n";
+    stream << "\t# (as Python dict).\n";
+    stream << "\t#\n";
+    stream << "\t# Arguments:\n";
+    stream << "\t#\n";
+    stream << "\t# uri                 The API method to call including parameters\n";
+    stream << "\t#                     (e.g. get_case/1)\n";
+    stream << "\t#\n";
+    stream << "\tdef send_get(self, uri):\n";
+    stream << "\t\treturn self.__send_request('GET', uri, None)\n";
+    stream << "\n";
+    stream << "\t#\n";
+    stream << "\t# Send POST\n";
+    stream << "\t#\n";
+    stream << "\t# Issues a POST request (write) against the API and returns the result\n";
+    stream << "\t# (as Python dict).\n";
+    stream << "\t#\n";
+    stream << "\t# Arguments:\n";
+    stream << "\t#\n";
+    stream << "\t# uri                 The API method to call including parameters\n";
+    stream << "\t#                     (e.g. add_case/1)\n";
+    stream << "\t# data                The data to submit as part of the request (as\n";
+    stream << "\t#                     Python dict, strings must be UTF-8 encoded)\n";
+    stream << "\t#\n";
+    stream << "\tdef send_post(self, uri, data):\n";
+    stream << "\t\treturn self.__send_request('POST', uri, data)\n";
+    stream << "\n";
+    stream << "\tdef __send_request(self, method, uri, data):\n";
+    stream << "\t\turl = self.__url + uri\n";
+    stream << "\t\trequest = urllib.request.Request(url)\n";
+    stream << "\t\tif (method == 'POST'):\n";
+    stream << "\t\t\trequest.data = bytes(json.dumps(data), 'utf-8')\n";
+    stream << "\t\tauth = str(\n";
+    stream << "\t\t\tbase64.b64encode(\n";
+    stream << "\t\t\t\tbytes('%s:%s' % (self.user, self.password), 'utf-8')\n";
+    stream << "\t\t\t),\n";
+    stream << "\t\t\t'ascii'\n";
+    stream << "\t\t).strip()\n";
+    stream << "\t\trequest.add_header('Authorization', 'Basic %s' % auth)\n";
+    stream << "\t\trequest.add_header('Content-Type', 'application/json')\n";
+    stream << "\n";
+    stream << "\t\te = None\n";
+    stream << "\t\ttry:\n";
+    stream << "\t\t\tresponse = urllib.request.urlopen(request).read()\n";
+    stream << "\t\texcept urllib.error.HTTPError as ex:\n";
+    stream << "\t\t\tresponse = ex.read()\n";
+    stream << "\t\t\te = ex\n";
+    stream << "\n";
+    stream << "\t\tif response:\n";
+    stream << "\t\t\tresult = json.loads(response.decode())\n";
+    stream << "\t\telse:\n";
+    stream << "\t\t\tresult = {}\n";
+    stream << "\n";
+    stream << "\t\tif e != None:\n";
+    stream << "\t\t\tif result and 'error' in result:\n";
+    stream << "\t\t\t\terror = \'\"\' + result[\'error\'] + \'\"\'\n";
+    stream << "\t\t\telse:\n";
+    stream << "\t\t\t\terror = \'No additional error message received\'\n";
+    stream << "\t\t\traise APIError(\'TestRail API returned HTTP %s (%s)\' % \n";
+    stream << "\t\t\t\t(e.code, error))\n";
+    stream << "\n";
+    stream << "\t\treturn result\n";
+    stream << "\n";
+    stream << "class APIError(Exception):\n";
+    stream << "\tpass\n";
+
+    file.close();
+
  }
 
  void TestRailInterface::createTestSuiteXML(const QString& testDirectory,
-                                           const QString& outputDirectory,
-                                           const QString& user,
-                                           const QString& branch) {
+                                            const QString& outputDirectory,
+                                            const QString& user,
+                                            const QString& branch) {
+
     QDomProcessingInstruction instruction = document.createProcessingInstruction("xml", "version='1.0' encoding='UTF-8'");
     document.appendChild(instruction);
 
