@@ -22,7 +22,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
     // XXX this.ignoreIK = (grabbableData.ignoreIK !== undefined) ? grabbableData.ignoreIK : true;
     // XXX this.kinematicGrab = (grabbableData.kinematic !== undefined) ? grabbableData.kinematic : NEAR_GRABBING_KINEMATIC;
-
+    Script.include("/~/system/libraries/controllers");
     function NearParentingGrabEntity(hand) {
         this.hand = hand;
         this.targetEntityID = null;
@@ -174,7 +174,7 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                 this.lastUnequipCheckTime = now;
                 if (props.parentID === MyAvatar.SELF_ID) {
                     var tearAwayDistance = TEAR_AWAY_DISTANCE * MyAvatar.sensorToWorldScale;
-                    var distance = distanceBetweenEntityLocalPositionAndBoundingBox(props);
+                    var distance = distanceBetweenPointAndEntityBoundingBox(props);
                     if (distance > tearAwayDistance) {
                         this.autoUnequipCounter++;
                     } else {
