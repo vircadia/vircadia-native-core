@@ -47,7 +47,7 @@ static float calculateAlpha(const float speed, const std::vector<float>& charact
 }
 
 const AnimPoseVec& AnimBlendLinearMove::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
-
+    qCDebug(animation) << "in blend linear move " << _alphaVar << ": " << _alpha;
     assert(_children.size() == _characteristicSpeeds.size());
 
     _desiredSpeed = animVars.lookup(_desiredSpeedVar, _desiredSpeed);

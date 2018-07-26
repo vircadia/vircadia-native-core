@@ -25,7 +25,7 @@ AnimBlendLinear::~AnimBlendLinear() {
 }
 
 const AnimPoseVec& AnimBlendLinear::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
-
+    qCDebug(animation) << "in blend linear ++++++++++++++++" << _alphaVar << ": " << _alpha;
     _alpha = animVars.lookup(_alphaVar, _alpha);
 
     if (_children.size() == 0) {

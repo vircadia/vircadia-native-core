@@ -22,7 +22,7 @@ AnimStateMachine::~AnimStateMachine() {
 }
 
 const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
-
+    qCDebug(animation) << "in anim state machine " << _currentState->getID() << ": " << _alpha;
     QString desiredStateID = animVars.lookup(_currentStateVar, _currentState->getID());
     if (_currentState->getID() != desiredStateID) {
         // switch states

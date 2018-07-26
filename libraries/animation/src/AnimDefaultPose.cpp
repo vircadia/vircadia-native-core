@@ -21,6 +21,7 @@ AnimDefaultPose::~AnimDefaultPose() {
 }
 
 const AnimPoseVec& AnimDefaultPose::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
+    qCDebug(animation) << "in animation default pose";
     if (_skeleton) {
         _poses = _skeleton->getRelativeDefaultPoses();
     } else {
