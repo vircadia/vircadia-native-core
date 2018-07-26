@@ -433,7 +433,7 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
     return _truePacketsSent;
 }
 
-void OctreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData, bool viewFrustumChanged, bool isFullScene) {
+bool OctreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData, bool viewFrustumChanged, bool isFullScene) {
     // calculate max number of packets that can be sent during this interval
     int clientMaxPacketsPerInterval = std::max(1, (nodeData->getMaxQueryPacketsPerSecond() / INTERVALS_PER_SECOND));
     int maxPacketsPerInterval = std::min(clientMaxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval());
@@ -511,20 +511,11 @@ void OctreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, Octre
         OctreeServer::trackInsideTime((float)(usecTimestampNow() - startInside));
     }
 
-    if (params.stopReason == EncodeBitstreamParams::FINISHED && nodeData->wantReportInitialResult()) {
-        // Dealt with nearby entities.
-        nodeData->setReportInitialResult(false);
-
-        // send EntityQueryInitialResultsComplete reliable packet ...
-        auto initialCompletion = NLPacket::create(PacketType::EntityQueryInitialResultsComplete, -1, true);
-        QDataStream initialCompletionStream(initialCompletion.get());
-        initialCompletionStream << _lastSequenceNumber;
-        DependencyManager::get<NodeList>()->sendPacket(std::move(initialCompletion), *node.data());
-    }
-
     if (somethingToSend && _myServer->wantsVerboseDebug()) {
         qCDebug(octree) << "Hit PPS Limit, packetsSentThisInterval =" << _packetsSentThisInterval
                         << "  maxPacketsPerInterval = " << maxPacketsPerInterval
                         << "  clientMaxPacketsPerInterval = " << clientMaxPacketsPerInterval;
     }
+
+    return params.stopReason == EncodeBitstreamParams::FINISHED;
 }

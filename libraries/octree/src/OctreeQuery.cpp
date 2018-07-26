@@ -82,7 +82,7 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
     }
 
     OctreeQueryFlags queryFlags { NoFlags };
-    queryFlags |= (_reportInitialResult ? OctreeQuery::WantInitialResult : 0);
+    queryFlags |= (_reportInitialCompletion ? OctreeQuery::WantInitialCompletion : 0);
     memcpy(destinationBuffer, &queryFlags, sizeof(queryFlags));
     destinationBuffer += sizeof(queryFlags);
 
@@ -164,7 +164,7 @@ int OctreeQuery::parseData(ReceivedMessage& message) {
     memcpy(&queryFlags, sourceBuffer, sizeof(queryFlags));
     sourceBuffer += sizeof(queryFlags);
 
-    _reportInitialResult = bool(queryFlags & OctreeQueryFlags::WantInitialResult);
+    _reportInitialCompletion = bool(queryFlags & OctreeQueryFlags::WantInitialCompletion);
 
     return sourceBuffer - startPosition;
 }

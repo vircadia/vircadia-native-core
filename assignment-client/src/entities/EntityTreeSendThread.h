@@ -31,7 +31,7 @@ public:
     EntityTreeSendThread(OctreeServer* myServer, const SharedNodePointer& node);
 
 protected:
-    void traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData,
+    bool traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData,
             bool viewFrustumChanged, bool isFullScene) override;
 
 private slots:

@@ -18,7 +18,7 @@
 #include "EntityServer.h"
 
 // Initially just send all items within this distance.
-const float EntityTreeSendThread::INITIAL_RADIUS = 50.0f;
+const float EntityTreeSendThread::INITIAL_RADIUS = 10.0f;
 
 EntityTreeSendThread::EntityTreeSendThread(OctreeServer* myServer, const SharedNodePointer& node) :
     OctreeSendThread(myServer, node)
@@ -102,7 +102,7 @@ void EntityTreeSendThread::preDistributionProcessing() {
     }
 }
 
-void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData,
+bool EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData,
             bool viewFrustumChanged, bool isFullScene) {
     if (viewFrustumChanged || _traversal.finished()) {
         EntityTreeElementPointer root = std::dynamic_pointer_cast<EntityTreeElement>(_myServer->getOctree()->getRoot());
@@ -114,7 +114,7 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
         int32_t lodLevelOffset = nodeData->getBoundaryLevelAdjust() + (viewFrustumChanged ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
         newView.lodScaleFactor = powf(2.0f, lodLevelOffset);
 
-        if (nodeData->wantReportInitialResult() && !newView.viewFrustums.empty()) {
+        if (nodeData->wantReportInitialCompletion() && !newView.viewFrustums.empty()) {
             auto& mainView = newView.viewFrustums[0];
             // Force acceptance within INITIAL_RADIUS.
             mainView.setSimpleRadius(INITIAL_RADIUS);
@@ -165,7 +165,20 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
         OctreeServer::trackTreeTraverseTime((float)(usecTimestampNow() - startTime));
     }
 
-    OctreeSendThread::traverseTreeAndSendContents(node, nodeData, viewFrustumChanged, isFullScene);
+    bool sendComplete = OctreeSendThread::traverseTreeAndSendContents(node, nodeData, viewFrustumChanged, isFullScene);
+
+    if (sendComplete && nodeData->wantReportInitialCompletion() && _traversal.finished()) {
+        // Dealt with all nearby entities.
+        nodeData->setReportInitialCompletion(false);
+
+        // Send EntityQueryInitialResultsComplete reliable packet ...
+        auto initialCompletion = NLPacket::create(PacketType::EntityQueryInitialResultsComplete, -1, true);
+        QDataStream initialCompletionStream(initialCompletion.get());
+        initialCompletionStream << _lastSequenceNumber;
+        DependencyManager::get<NodeList>()->sendPacket(std::move(initialCompletion), *node.data());
+    }
+
+    return sendComplete;
 }
 
 bool EntityTreeSendThread::addAncestorsToExtraFlaggedEntities(const QUuid& filteredEntityID,
