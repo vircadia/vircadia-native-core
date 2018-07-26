@@ -218,34 +218,6 @@ Script.include("/~/system/libraries/controllers.js");
                     _this.state = TELEPORTER_STATES.TARGETTING;
                 }
             }, COOL_IN_DURATION);
-
-            // pad scale with avatar size
-            var AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS = Vec3.multiply(MyAvatar.sensorToWorldScale, TARGET_MODEL_DIMENSIONS);
-
-            if (!Vec3.equal(AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS, cancelEnd.dimensions)) {
-                cancelEnd.dimensions = AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS;
-                teleportEnd.dimensions = AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS;
-                seatEnd.dimensions = AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS;
-
-                teleportRenderStates = [{name: "cancel", path: cancelPath, end: cancelEnd},
-                    {name: "teleport", path: teleportPath, end: teleportEnd},
-                    {name: "seat", path: seatPath, end: seatEnd}];
-
-                Pointers.editRenderState(this.teleportParabolaHandVisible, "cancel", teleportRenderStates[0]);
-                Pointers.editRenderState(this.teleportParabolaHandInvisible, "cancel", teleportRenderStates[0]);
-                Pointers.editRenderState(this.teleportParabolaHeadVisible, "cancel", teleportRenderStates[0]);
-                Pointers.editRenderState(this.teleportParabolaHeadInvisible, "cancel", teleportRenderStates[0]);
-
-                Pointers.editRenderState(this.teleportParabolaHandVisible, "teleport", teleportRenderStates[1]);
-                Pointers.editRenderState(this.teleportParabolaHandInvisible, "teleport", teleportRenderStates[1]);
-                Pointers.editRenderState(this.teleportParabolaHeadVisible, "teleport", teleportRenderStates[1]);
-                Pointers.editRenderState(this.teleportParabolaHeadInvisible, "teleport", teleportRenderStates[1]);
-
-                Pointers.editRenderState(this.teleportParabolaHandVisible, "seat", teleportRenderStates[2]);
-                Pointers.editRenderState(this.teleportParabolaHandInvisible, "seat", teleportRenderStates[2]);
-                Pointers.editRenderState(this.teleportParabolaHeadVisible, "seat", teleportRenderStates[2]);
-                Pointers.editRenderState(this.teleportParabolaHeadInvisible, "seat", teleportRenderStates[2]);
-            }
         };
 
         this.isReady = function(controllerData, deltaTime) {
