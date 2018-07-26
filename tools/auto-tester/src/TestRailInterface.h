@@ -31,7 +31,11 @@ public:
                                  const QString& user,
                                  const QString& branch,
                                  const QDomElement& element);
+
     QDomElement processTest(const QString& fullDirectory, const QString& test, const QString& user, const QString& branch, const QDomElement& element);
+
+    void createTestRailDotPyScript(const QString& outputDirectory);
+    void requestDataFromUser();
 
 private:
     QDomDocument document;

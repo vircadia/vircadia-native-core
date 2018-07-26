@@ -16,11 +16,7 @@
 #include <QMessageBox>
 #include <QTextStream>
 
-void TestRailInterface::createTestSuitePython(const QString& testDirectory,
-                                              const QString& outputDirectory,
-                                              const QString& user,
-                                              const QString& branch) {
-    
+void TestRailInterface::createTestRailDotPyScript(const QString& outputDirectory) {
     // Create the testrail.py script
     // This is the file linked to from http://docs.gurock.com/testrail-api2/bindings-python
     QFile file(outputDirectory + "/testrail.py");
@@ -125,7 +121,18 @@ void TestRailInterface::createTestSuitePython(const QString& testDirectory,
     stream << "\tpass\n";
 
     file.close();
+}
 
+void TestRailInterface::requestDataFromUser() {
+}
+
+void TestRailInterface::createTestSuitePython(const QString& testDirectory,
+                                              const QString& outputDirectory,
+                                              const QString& user,
+                                              const QString& branch) {
+    
+    createTestRailDotPyScript(outputDirectory);
+    requestDataFromUser();
  }
 
  void TestRailInterface::createTestSuiteXML(const QString& testDirectory,
