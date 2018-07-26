@@ -360,7 +360,7 @@ function getProfilePicture(username, callback) { // callback(url) if successfull
         callback(matched[1]);
     });
 }
-var SAFETY_LIMIT = 600;
+var SAFETY_LIMIT = 400;
 function getAvailableConnections(domain, callback) { // callback([{usename, location}...]) if successfull. (Logs otherwise)
     var url = METAVERSE_BASE + '/api/v1/users?per_page=' + SAFETY_LIMIT + '&';
     if (domain) {
@@ -411,7 +411,7 @@ function getConnectionData(specificUsername, domain) { // Update all the usernam
     } else if (domain) {
         getAvailableConnections(domain, function (users) {
             users.forEach(function (user) {
-                pdateUser(frob(user));
+                updateUser(frob(user));
             });
         });
     } else {
