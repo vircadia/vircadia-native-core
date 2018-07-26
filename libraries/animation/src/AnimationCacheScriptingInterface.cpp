@@ -15,6 +15,6 @@ AnimationCacheScriptingInterface::AnimationCacheScriptingInterface() :
     ScriptableResourceCache::ScriptableResourceCache(DependencyManager::get<AnimationCache>())
 { }
 
-AnimationPointer AnimationCacheScriptingInterface::getAnimation(const QUrl& url) {
-    return DependencyManager::get<AnimationCache>()->getAnimation(url);
+AnimationPointer AnimationCacheScriptingInterface::getAnimation(const QString& url) {
+    return DependencyManager::get<AnimationCache>()->getAnimation(QUrl(url));
 }

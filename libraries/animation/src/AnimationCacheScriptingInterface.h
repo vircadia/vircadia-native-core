@@ -52,8 +52,7 @@ public:
      * @param {string} url - URL to load.
      * @returns {AnimationObject} animation
      */
-    Q_INVOKABLE AnimationPointer getAnimation(const QString& url) { return getAnimation(QUrl(url)); }
-    Q_INVOKABLE AnimationPointer getAnimation(const QUrl& url);
+    Q_INVOKABLE AnimationPointer getAnimation(const QString& url);
 };
 
 #endif // hifi_AnimationCacheScriptingInterface_h
