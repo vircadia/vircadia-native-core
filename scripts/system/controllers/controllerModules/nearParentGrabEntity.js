@@ -22,7 +22,6 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
 
     // XXX this.ignoreIK = (grabbableData.ignoreIK !== undefined) ? grabbableData.ignoreIK : true;
     // XXX this.kinematicGrab = (grabbableData.kinematic !== undefined) ? grabbableData.kinematic : NEAR_GRABBING_KINEMATIC;
-    Script.include("/~/system/libraries/controllers");
     function NearParentingGrabEntity(hand) {
         this.hand = hand;
         this.targetEntityID = null;
