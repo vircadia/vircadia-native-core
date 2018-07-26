@@ -16,10 +16,10 @@
 #include <QMessageBox>
 #include <QTextStream>
 
-void TestRailInterface::createTestSuite(const QString& testDirectory,
-                                        const QString& outputDirectory,
-                                        const QString& user,
-                                        const QString& branch) {
+void TestRailInterface::createTestSuiteXML(const QString& testDirectory,
+                                           const QString& outputDirectory,
+                                           const QString& user,
+                                           const QString& branch) {
     QDomProcessingInstruction instruction = document.createProcessingInstruction("xml", "version='1.0' encoding='UTF-8'");
     document.appendChild(instruction);
 

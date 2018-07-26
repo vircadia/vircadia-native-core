@@ -18,6 +18,7 @@
 
 #include "ImageComparer.h"
 #include "ui/MismatchWindow.h"
+#include "TestRailInterface.h"
 
 class Step {
 public:
@@ -31,6 +32,11 @@ class ExtractedText {
 public:
     QString title;
     StepList stepList;
+};
+
+enum TestRailCreateMode {
+    PYTHON,
+    XML
 };
 
 class Test {
@@ -50,6 +56,7 @@ public:
     void createMDFile(const QString& topLevelDirectory);
 
     void createTestsOutline();
+
     void createTestRailTestSuite();
 
     bool compareImageLists(bool isInteractiveMode, QProgressBar* progressBar);
@@ -71,6 +78,8 @@ public:
     QString getExpectedImagePartialSourceDirectory(const QString& filename);
 
     ExtractedText getTestScriptLines(QString testFileName);
+
+    void setTestRailCreateMode(TestRailCreateMode testRailCreateMode);
 
 private:
     const QString TEST_FILENAME { "test.js" };
@@ -116,6 +125,10 @@ private:
     const QString PATH_SEPARATOR{ "." };
 
     bool _exitWhenComplete{ false };
+
+    TestRailInterface _testRailInterface;
+
+    TestRailCreateMode _testRailCreateMode { PYTHON };
 };
 
 #endif // hifi_test_h

@@ -17,10 +17,10 @@
 
 class TestRailInterface {
 public:
-    void createTestSuite(const QString& testDirectory,
-                         const QString& outputDirectory,
-                         const QString& user,
-                         const QString& branch);
+    void createTestSuiteXML(const QString& testDirectory,
+                            const QString& outputDirectory,
+                            const QString& user,
+                            const QString& branch);
 
     QDomElement processDirectory(const QString& directory, const QString& user, const QString& branch, const QDomElement& element);
     QDomElement processTest(const QString& fullDirectory, const QString& test, const QString& user, const QString& branch, const QDomElement& element);

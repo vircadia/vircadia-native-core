@@ -100,6 +100,14 @@ void AutoTester::on_closeButton_clicked() {
     exit(0);
 }
 
+void AutoTester::on_createPythonScriptRadioButton_clicked() {
+    _test->setTestRailCreateMode(PYTHON);
+}
+
+void AutoTester::on_createXMLScriptRadioButton_clicked() {
+    _test->setTestRailCreateMode(XML);
+}
+
 void AutoTester::downloadImage(const QUrl& url) {
     _downloaders.emplace_back(new Downloader(url, this));
     connect(_downloaders[_index], SIGNAL (downloaded()), _signalMapper, SLOT (map()));

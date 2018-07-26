@@ -18,7 +18,6 @@
 #include <quazip5/quazip.h>
 #include <quazip5/JlCompress.h>
 
-#include "TestRailInterface.h"
 #include "ui/AutoTester.h"
 extern AutoTester* autoTester;
 
@@ -839,16 +838,19 @@ void Test::createTestRailTestSuite() {
     }
 
     QString outputDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select a folder to store generated files in",
-                                                                 parent, QFileDialog::ShowDirsOnly);
+                                                                parent, QFileDialog::ShowDirsOnly);
 
-    // If user cancelled then restore previous selection and return
+    // If user cancelled then return
     if (outputDirectory == "") {
         return;
     }
 
-    TestRailInterface testRailInterface;
-    testRailInterface.createTestSuite(_testDirectory, outputDirectory, autoTester->getSelectedUser(),
-                                      autoTester->getSelectedBranch());
+    if (_testRailCreateMode == PYTHON) {
+        ////createTestRailPythonTestSuite();
+    } else {
+        _testRailInterface.createTestSuiteXML(_testDirectory, outputDirectory, autoTester->getSelectedUser(),
+                                           autoTester->getSelectedBranch());
+    }
 }
 
 QStringList Test::createListOfAll_imagesInDirectory(const QString& imageFormat, const QString& pathToImageDirectory) {
@@ -918,4 +920,8 @@ QString Test::getExpectedImagePartialSourceDirectory(const QString& filename) {
     }
 
     return result;
+}
+
+void Test::setTestRailCreateMode(TestRailCreateMode testRailCreateMode) {
+    _testRailCreateMode = testRailCreateMode;
 }

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>612</width>
-    <height>553</height>
+    <width>645</width>
+    <height>570</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -232,14 +232,43 @@
    <widget class="QPushButton" name="createTestRailTestSuiteButton">
     <property name="geometry">
      <rect>
-      <x>330</x>
-      <y>90</y>
-      <width>220</width>
+      <x>409</x>
+      <y>100</y>
+      <width>141</width>
       <height>40</height>
      </rect>
     </property>
     <property name="text">
      <string>Create TestRail Test Suite</string>
+    </property>
+   </widget>
+   <widget class="QRadioButton" name="createPythonScriptRadioButton">
+    <property name="geometry">
+     <rect>
+      <x>310</x>
+      <y>100</y>
+      <width>95</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Python</string>
+    </property>
+    <property name="checked">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QRadioButton" name="createXMLScriptRadioButton">
+    <property name="geometry">
+     <rect>
+      <x>310</x>
+      <y>120</y>
+      <width>95</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>XML</string>
     </property>
    </widget>
   </widget>
@@ -248,7 +277,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>612</width>
+     <width>645</width>
      <height>21</height>
     </rect>
    </property>
