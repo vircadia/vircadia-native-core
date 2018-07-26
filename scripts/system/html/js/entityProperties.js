@@ -929,6 +929,10 @@ function loaded() {
                         elPositionY.value = "";
                         elPositionZ.value = "";
                         
+                        elRotationX.value = "";
+                        elRotationY.value = "";
+                        elRotationZ.value = "";
+                        
                         elDimensionsX.value = "";
                         elDimensionsY.value = "";
                         elDimensionsZ.value = "";   
@@ -936,10 +940,6 @@ function loaded() {
                         elRegistrationX.value = "";
                         elRegistrationY.value = "";
                         elRegistrationZ.value = "";
-                        
-                        elRotationX.value = "";
-                        elRotationY.value = "";
-                        elRotationZ.value = "";
 
                         elLinearVelocityX.value = "";
                         elLinearVelocityY.value = "";
@@ -999,9 +999,22 @@ function loaded() {
                         showSaveUserDataButton();
                         showNewJSONEditorButton();
                         
+                        // Shape Properties
                         elShape.value = "Cube";
                         setDropdownText(elShape);
                         
+                        // Light Properties
+                        elLightSpotLight.checked = false;
+                        elLightColor.style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+                        elLightColorRed.value = "";
+                        elLightColorGreen.value = "";
+                        elLightColorBlue.value = "";
+                        elLightIntensity.value = "";
+                        elLightFalloffRadius.value = "";
+                        elLightExponent.value = "";
+                        elLightCutoff.value = "";
+                        
+                        // Model Properties
                         elModelURL.value = "";
                         elCompoundShapeURL.value = "";
                         elShapeType.value = "none";
@@ -1017,23 +1030,8 @@ function loaded() {
                         elModelAnimationAllowTranslation.checked = false;
                         elModelTextures.value = "";
                         elModelOriginalTextures.value = "";
-                        
-                        elMaterialURL.value = "";
-                        elParentMaterialNameNumber.value = 0;
-                        elParentMaterialNameCheckbox.checked = false;
-                        elPriority.value = "";
-                        elMaterialMappingPosX.value = "";
-                        elMaterialMappingPosY.value = "";
-                        elMaterialMappingScaleX.value = "";
-                        elMaterialMappingScaleY.value = "";
-                        elMaterialMappingRot.value = "";
-                        
-                        deleteJSONMaterialEditor();
-                        elMaterialData.value = "";
-                        showMaterialDataTextArea();
-                        showSaveMaterialDataButton();
-                        showNewJSONMaterialEditorButton();
-                        
+                                                
+                        // Zone Properties
                         elZoneFlyingAllowed.checked = false;
                         elZoneGhostingAllowed.checked = false;
                         elZoneFilterURL.value = "";
@@ -1072,11 +1070,7 @@ function loaded() {
                         showElements(document.getElementsByClassName('ambient-section'), true);
                         showElements(document.getElementsByClassName('haze-section'), true);
                         
-                        elWebSourceURL.value = "";
-                        elWebDPI.value = "";
-                        
-                        elImageURL.value = "";
-
+                        // Text Properties
                         elTextText.value = "";
                         elTextLineHeight.value = "";
                         elTextFaceCamera.checked = false;
@@ -1088,16 +1082,30 @@ function loaded() {
                         elTextBackgroundColorRed.value = "";
                         elTextBackgroundColorGreen.value = "";
                         elTextBackgroundColorBlue.value = "";
-
-                        elLightSpotLight.checked = false;
-                        elLightColor.style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
-                        elLightColorRed.value = "";
-                        elLightColorGreen.value = "";
-                        elLightColorBlue.value = "";
-                        elLightIntensity.value = "";
-                        elLightFalloffRadius.value = "";
-                        elLightExponent.value = "";
-                        elLightCutoff.value = "";
+                                                
+                        // Image Properties
+                        elImageURL.value = "";
+                        
+                        // Web Properties
+                        elWebSourceURL.value = "";
+                        elWebDPI.value = "";
+                        
+                        // Material Properties
+                        elMaterialURL.value = "";
+                        elParentMaterialNameNumber.value = "";
+                        elParentMaterialNameCheckbox.checked = false;
+                        elPriority.value = "";
+                        elMaterialMappingPosX.value = "";
+                        elMaterialMappingPosY.value = "";
+                        elMaterialMappingScaleX.value = "";
+                        elMaterialMappingScaleY.value = "";
+                        elMaterialMappingRot.value = "";
+                        
+                        deleteJSONMaterialEditor();
+                        elMaterialData.value = "";
+                        showMaterialDataTextArea();
+                        showSaveMaterialDataButton();
+                        showNewJSONMaterialEditorButton();
                         
                         disableProperties();
                     } else if (data.selections.length > 1) {
