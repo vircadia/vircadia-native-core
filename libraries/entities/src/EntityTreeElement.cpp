@@ -316,7 +316,16 @@ EntityItemID EntityTreeElement::findParabolaIntersection(const glm::vec3& origin
     // for any details inside the cube to be closer so we don't need to consider them.
     QVariantMap localExtraInfo;
     float distanceToElementDetails = parabolicDistance;
-    EntityItemID entityID = findDetailedParabolaIntersection(origin, velocity, acceleration, element, distanceToElementDetails,
+    // We can precompute the world-space parabola normal and reuse it for the parabola plane intersects AABox sphere check
+    glm::vec3 vectorOnPlane = velocity;
+    if (glm::dot(glm::normalize(velocity), glm::normalize(acceleration)) > 1.0f - EPSILON) {
+        // Handle the degenerate case where velocity is parallel to acceleration
+        // We pick t = 1 and calculate a second point on the plane
+        vectorOnPlane = velocity + 0.5f * acceleration;
+    }
+    // Get the normal of the plane, the cross product of two vectors on the plane
+    glm::vec3 normal = glm::normalize(glm::cross(vectorOnPlane, acceleration));
+    EntityItemID entityID = findDetailedParabolaIntersection(origin, velocity, acceleration, normal, element, distanceToElementDetails,
             localFace, localSurfaceNormal, entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly,
             localExtraInfo, precisionPicking);
     if (!entityID.isNull() && distanceToElementDetails < parabolicDistance) {
@@ -330,7 +339,7 @@ EntityItemID EntityTreeElement::findParabolaIntersection(const glm::vec3& origin
 }
 
 EntityItemID EntityTreeElement::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
-                                    OctreeElementPointer& element, float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
+                                    const glm::vec3& normal, OctreeElementPointer& element, float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
                                     const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIDsToDiscard,
                                     bool visibleOnly, bool collidableOnly, QVariantMap& extraInfo, bool precisionPicking) {
 
@@ -350,7 +359,7 @@ EntityItemID EntityTreeElement::findDetailedParabolaIntersection(const glm::vec3
         // defined by the parabola slices the sphere.  The solution to parabolaIntersectsBoundingSphere is cubic,
         // the solution to which is more computationally expensive than the quadratic AABox::findParabolaIntersection
         // below
-        if (!entityBox.parabolaPlaneIntersectsBoundingSphere(origin, velocity, acceleration)) {
+        if (!entityBox.parabolaPlaneIntersectsBoundingSphere(origin, velocity, acceleration, normal)) {
             return;
         }
 

@@ -88,7 +88,12 @@ bool Volume3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::ve
 
     // we can use the AABox's ray intersection by mapping our origin and direction into the overlays frame
     // and testing intersection there.
-    return _localBoundingBox.findRayIntersection(overlayFrameOrigin, overlayFrameDirection, distance, face, surfaceNormal);
+    bool hit = _localBoundingBox.findRayIntersection(overlayFrameOrigin, overlayFrameDirection, distance, face, surfaceNormal);
+
+    if (hit) {
+        surfaceNormal = transform.getRotation() * surfaceNormal;
+    }
+    return hit;
 }
 
 bool Volume3DOverlay::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,

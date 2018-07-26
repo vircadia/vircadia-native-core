@@ -154,7 +154,7 @@ public:
         const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
         QVariantMap& extraInfo, bool precisionPicking = false);
     virtual EntityItemID findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
-        const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
+        const glm::vec3& normal, const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
         BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
         const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
         QVariantMap& extraInfo, bool precisionPicking);

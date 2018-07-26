@@ -15,40 +15,46 @@
 #include "DependencyManager.h"
 
 PickResultPointer ParabolaPick::getEntityIntersection(const PickParabola& pick) {
-    ParabolaToEntityIntersectionResult entityRes =
-        DependencyManager::get<EntityScriptingInterface>()->findParabolaIntersectionVector(pick, !getFilter().doesPickCoarse(),
-            getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>(), !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());
-    if (entityRes.intersects) {
-        return std::make_shared<ParabolaPickResult>(IntersectionType::ENTITY, entityRes.entityID, entityRes.distance, entityRes.parabolicDistance, entityRes.intersection, pick, entityRes.surfaceNormal, entityRes.extraInfo);
-    } else {
-        return std::make_shared<ParabolaPickResult>(pick.toVariantMap());
+    if (glm::length2(pick.acceleration) > EPSILON && glm::length2(pick.velocity) > EPSILON) {
+        ParabolaToEntityIntersectionResult entityRes =
+            DependencyManager::get<EntityScriptingInterface>()->findParabolaIntersectionVector(pick, !getFilter().doesPickCoarse(),
+                getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>(), !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());
+        if (entityRes.intersects) {
+            return std::make_shared<ParabolaPickResult>(IntersectionType::ENTITY, entityRes.entityID, entityRes.distance, entityRes.parabolicDistance, entityRes.intersection, pick, entityRes.surfaceNormal, entityRes.extraInfo);
+        }
     }
+    return std::make_shared<ParabolaPickResult>(pick.toVariantMap());
 }
 
 PickResultPointer ParabolaPick::getOverlayIntersection(const PickParabola& pick) {
-    ParabolaToOverlayIntersectionResult overlayRes =
-        qApp->getOverlays().findParabolaIntersectionVector(pick, !getFilter().doesPickCoarse(),
-            getIncludeItemsAs<OverlayID>(), getIgnoreItemsAs<OverlayID>(), !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());
-    if (overlayRes.intersects) {
-        return std::make_shared<ParabolaPickResult>(IntersectionType::OVERLAY, overlayRes.overlayID, overlayRes.distance, overlayRes.parabolicDistance, overlayRes.intersection, pick, overlayRes.surfaceNormal, overlayRes.extraInfo);
-    } else {
-        return std::make_shared<ParabolaPickResult>(pick.toVariantMap());
+    if (glm::length2(pick.acceleration) > EPSILON && glm::length2(pick.velocity) > EPSILON) {
+        ParabolaToOverlayIntersectionResult overlayRes =
+            qApp->getOverlays().findParabolaIntersectionVector(pick, !getFilter().doesPickCoarse(),
+                getIncludeItemsAs<OverlayID>(), getIgnoreItemsAs<OverlayID>(), !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());
+        if (overlayRes.intersects) {
+            return std::make_shared<ParabolaPickResult>(IntersectionType::OVERLAY, overlayRes.overlayID, overlayRes.distance, overlayRes.parabolicDistance, overlayRes.intersection, pick, overlayRes.surfaceNormal, overlayRes.extraInfo);
+        }
     }
+    return std::make_shared<ParabolaPickResult>(pick.toVariantMap());
 }
 
 PickResultPointer ParabolaPick::getAvatarIntersection(const PickParabola& pick) {
-    ParabolaToAvatarIntersectionResult avatarRes = DependencyManager::get<AvatarManager>()->findParabolaIntersectionVector(pick, getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>());
-    if (avatarRes.intersects) {
-        return std::make_shared<ParabolaPickResult>(IntersectionType::AVATAR, avatarRes.avatarID, avatarRes.distance, avatarRes.parabolicDistance, avatarRes.intersection, pick, avatarRes.surfaceNormal, avatarRes.extraInfo);
-    } else {
-        return std::make_shared<ParabolaPickResult>(pick.toVariantMap());
+    if (glm::length2(pick.acceleration) > EPSILON && glm::length2(pick.velocity) > EPSILON) {
+        ParabolaToAvatarIntersectionResult avatarRes = DependencyManager::get<AvatarManager>()->findParabolaIntersectionVector(pick, getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>());
+        if (avatarRes.intersects) {
+            return std::make_shared<ParabolaPickResult>(IntersectionType::AVATAR, avatarRes.avatarID, avatarRes.distance, avatarRes.parabolicDistance, avatarRes.intersection, pick, avatarRes.surfaceNormal, avatarRes.extraInfo);
+        }
     }
+    return std::make_shared<ParabolaPickResult>(pick.toVariantMap());
 }
 
 PickResultPointer ParabolaPick::getHUDIntersection(const PickParabola& pick) {
-    float parabolicDistance;
-    glm::vec3 hudRes = DependencyManager::get<HMDScriptingInterface>()->calculateParabolaUICollisionPoint(pick.origin, pick.velocity, pick.acceleration, parabolicDistance);
-    return std::make_shared<ParabolaPickResult>(IntersectionType::HUD, QUuid(), glm::distance(pick.origin, hudRes), parabolicDistance, hudRes, pick);
+    if (glm::length2(pick.acceleration) > EPSILON && glm::length2(pick.velocity) > EPSILON) {
+        float parabolicDistance;
+        glm::vec3 hudRes = DependencyManager::get<HMDScriptingInterface>()->calculateParabolaUICollisionPoint(pick.origin, pick.velocity, pick.acceleration, parabolicDistance);
+        return std::make_shared<ParabolaPickResult>(IntersectionType::HUD, QUuid(), glm::distance(pick.origin, hudRes), parabolicDistance, hudRes, pick);
+    }
+    return std::make_shared<ParabolaPickResult>(pick.toVariantMap());
 }
 
 float ParabolaPick::getSpeed() const {

@@ -829,8 +829,8 @@ bool findParabolaRectangleIntersection(const glm::vec3& origin, const glm::vec3&
 
     float minDistance = FLT_MAX;
     if (fabsf(acceleration.z) < EPSILON) {
-        // Handle the degenerate case where we only have a line in the z-axis
         if (fabsf(velocity.z) > EPSILON) {
+            // Handle the degenerate case where we only have a line in the z-axis
             float possibleDistance = -origin.z / velocity.z;
             checkPossibleParabolicIntersectionWithZPlane(possibleDistance, minDistance, origin, velocity, acceleration, localCorner, dimensions);
         }
@@ -853,19 +853,14 @@ bool findParabolaRectangleIntersection(const glm::vec3& origin, const glm::vec3&
 }
 
 bool findParabolaSphereIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
-    const glm::vec3& center, float radius, float& parabolicDistance) {
+                                    const glm::vec3& center, float radius, float& parabolicDistance) {
     glm::vec3 localCenter = center - origin;
     float radiusSquared = radius * radius;
 
-    float velocityLength2 = glm::length2(velocity);
     float accelerationLength = glm::length(acceleration);
     float minDistance = FLT_MAX;
 
     if (accelerationLength < EPSILON) {
-        if (velocityLength2 < EPSILON) {
-            // No intersection if velocity == acceleration == (0, 0, 0)
-            return false;
-        }
         // Handle the degenerate case where acceleration == (0, 0, 0)
         glm::vec3 offset = origin - center;
         float a = glm::dot(velocity, velocity);
@@ -971,12 +966,11 @@ bool findParabolaTriangleIntersection(const glm::vec3& origin, const glm::vec3& 
 
     float minDistance = FLT_MAX;
     if (fabsf(localAcceleration.z) < EPSILON) {
-        if (fabsf(localVelocity.z) < EPSILON) {
-            return false;
+        if (fabsf(localVelocity.z) > EPSILON) {
+            float possibleDistance = -localOrigin.z / localVelocity.z;
+            checkPossibleParabolicIntersectionWithTriangle(possibleDistance, minDistance, origin, velocity, acceleration,
+                localVelocity, localAcceleration, normal, v0, v1, v2, allowBackface);
         }
-        float possibleDistance = -localOrigin.z / localVelocity.z;
-        checkPossibleParabolicIntersectionWithTriangle(possibleDistance, minDistance, origin, velocity, acceleration,
-            localVelocity, localAcceleration, normal, v0, v1, v2, allowBackface);
     } else {
         float a = 0.5f * localAcceleration.z;
         float b = localVelocity.z;

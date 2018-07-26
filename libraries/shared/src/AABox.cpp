@@ -211,7 +211,7 @@ bool AABox::rayHitsBoundingSphere(const glm::vec3& origin, const glm::vec3& dire
             || (glm::abs(distance) > 0.0f && glm::distance2(distance * direction, localCenter) < radiusSquared));
 }
 
-bool AABox::parabolaPlaneIntersectsBoundingSphere(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration) const {
+bool AABox::parabolaPlaneIntersectsBoundingSphere(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration, const glm::vec3& normal) const {
     glm::vec3 localCenter = calcCenter() - origin;
     const float ONE_OVER_TWO_SQUARED = 0.25f;
     float radiusSquared = ONE_OVER_TWO_SQUARED * glm::length2(_scale);
@@ -221,24 +221,10 @@ bool AABox::parabolaPlaneIntersectsBoundingSphere(const glm::vec3& origin, const
         return true;
     }
 
-    float velocityLength2 = glm::length2(velocity);
     if (glm::length2(acceleration) < EPSILON) {
-        if (velocityLength2 < EPSILON) {
-            // No intersection if velocity == acceleration == (0, 0, 0)
-            return false;
-        }
         // Handle the degenerate case where acceleration == (0, 0, 0)
         return rayHitsBoundingSphere(origin, glm::normalize(velocity));
     } else {
-        glm::vec3 vectorOnPlane = velocity;
-        if (glm::dot(glm::normalize(velocity), glm::normalize(acceleration)) > 1.0f - EPSILON) {
-            // Handle the degenerate case where velocity is parallel to acceleration
-            // We pick t = 1 and calculate a second point on the plane
-            vectorOnPlane = velocity + 0.5f * acceleration;
-        }
-        // Get the normal of the plane, the cross product of two vectors on the plane
-        glm::vec3 normal = glm::normalize(glm::cross(vectorOnPlane, acceleration));
-
         // Project vector from plane to sphere center onto the normal
         float distance = glm::dot(localCenter, normal);
         if (distance * distance < radiusSquared) {
