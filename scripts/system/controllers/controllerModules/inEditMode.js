@@ -73,6 +73,9 @@ Script.include("/~/system/libraries/utils.js");
                             method: "clearSelection"
                         }));
                     }
+                    Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                        method: "triggerClicked"
+                    }));
                 }
                 if (this.selectedTarget.type === Picks.INTERSECTED_ENTITY) {
                     if (!this.isTabletMaterialEntity(this.selectedTarget.objectID)) {
@@ -89,6 +92,14 @@ Script.include("/~/system/libraries/utils.js");
                 }
 
                 this.triggerClicked = true;
+            } else {
+                if (this.triggerClicked) {
+                    Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                        method: "triggerUnClicked"
+                    }));
+                }
+                
+                this.triggerClicked = false;
             }
 
             this.sendPointingAtData(controllerData);

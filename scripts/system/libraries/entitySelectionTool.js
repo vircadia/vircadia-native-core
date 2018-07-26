@@ -14,13 +14,14 @@
 //
 
 /* global SelectionManager, SelectionDisplay, grid, rayPlaneIntersection, rayPlaneIntersection2, pushCommandForSelections,
-   getMainTabletIDs, getControllerWorldLocation */
+   getMainTabletIDs, getControllerWorldLocation, TRIGGER_ON_VALUE, TRIGGER_OFF_VALUE */
 
 var SPACE_LOCAL = "local";
 var SPACE_WORLD = "world";
 var HIGHLIGHT_LIST_NAME = "editHandleHighlightList";
 
 Script.include([
+    "./controllerDispatcherUtils.js",
     "./controllers.js",
     "./utils.js"
 ]);
@@ -67,6 +68,10 @@ SelectionManager = (function() {
                 that.pointingAtDesktopWindowLeft = messageParsed.desktopWindow;
                 that.pointingAtTabletLeft = messageParsed.tablet;
             }
+        } else if (messageParsed.method === "triggerClicked") {
+            that.triggerClicked = true;
+        } else if (messageParsed.method === "triggerUnClicked") {
+            that.triggerClicked = false;
         }
     }
 
@@ -109,6 +114,8 @@ SelectionManager = (function() {
     that.pointingAtDesktopWindowRight = false;
     that.pointingAtTabletLeft = false;
     that.pointingAtTabletRight = false;
+    
+    that.triggerClicked = false;
 
     that.saveProperties = function() {
         that.savedProperties = {};
@@ -751,14 +758,11 @@ SelectionDisplay = (function() {
     // But we dont' get mousePressEvents.
     that.triggerMapping = Controller.newMapping(Script.resolvePath('') + '-click');
     Script.scriptEnding.connect(that.triggerMapping.disable);
-    that.TRIGGER_GRAB_VALUE = 0.85; //  From handControllerGrab/Pointer.js. Should refactor.
-    that.TRIGGER_ON_VALUE = 0.4;
-    that.TRIGGER_OFF_VALUE = 0.15;
     that.triggered = false;
     var activeHand = Controller.Standard.RightHand;
     function makeTriggerHandler(hand) {
-        return function (value) {
-            if (!that.triggered && (value > that.TRIGGER_GRAB_VALUE)) { // should we smooth?
+        return function () {
+            if (!that.triggered && SelectionManager.triggerClicked) { 
                 that.triggered = true;
                 if (activeHand !== hand) {
                     // No switching while the other is already triggered, so no need to release.
@@ -775,7 +779,7 @@ SelectionDisplay = (function() {
                     return;
                 }
                 that.mousePressEvent({});
-            } else if (that.triggered && (value < that.TRIGGER_OFF_VALUE)) {
+            } else if (that.triggered && !SelectionManager.triggerClicked) {
                 that.triggered = false;
                 that.mouseReleaseEvent({});
             }
