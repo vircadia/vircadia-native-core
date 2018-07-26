@@ -793,6 +793,7 @@ function loaded() {
         var elTextTextColorRed = document.getElementById("property-text-text-color-red");
         var elTextTextColorGreen = document.getElementById("property-text-text-color-green");
         var elTextTextColorBlue = document.getElementById("property-text-text-color-blue");
+        var elTextBackgroundColor = document.getElementById("property-text-background-color");
         var elTextBackgroundColorRed = document.getElementById("property-text-background-color-red");
         var elTextBackgroundColorGreen = document.getElementById("property-text-background-color-green");
         var elTextBackgroundColorBlue = document.getElementById("property-text-background-color-blue");
@@ -842,7 +843,7 @@ function loaded() {
         var elZoneHazeGlareColorGreen = document.getElementById("property-zone-haze-glare-color-green");
         var elZoneHazeGlareColorBlue = document.getElementById("property-zone-haze-glare-color-blue");
         var elZoneHazeEnableGlare = document.getElementById("property-zone-haze-enable-light-blend");
-        var elZonehazeGlareAngle = document.getElementById("property-zone-haze-blend-angle");
+        var elZoneHazeGlareAngle = document.getElementById("property-zone-haze-blend-angle");
         
         var elZoneHazeAltitudeEffect = document.getElementById("property-zone-haze-altitude-effect");
         var elZoneHazeBaseRef = document.getElementById("property-zone-haze-base");
@@ -906,10 +907,198 @@ function loaded() {
                                 deleteJSONMaterialEditor();
                             }
                         }
+                        
                         elTypeIcon.style.display = "none";
                         elType.innerHTML = "<i>No selection</i>";
-                        elID.value = "";
                         elPropertiesList.className = '';
+                        
+                        elID.value = "";
+                        elName.value = "";
+                        elLocked.checked = false;
+                        elVisible.checked = false;
+                        
+                        elParentID.value = "";
+                        elParentJointIndex.value = "";
+                        
+                        elColorRed.value = "";
+                        elColorGreen.value = "";
+                        elColorBlue.value = "";
+                        elColorControlVariant2.style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+
+                        elPositionX.value = "";
+                        elPositionY.value = "";
+                        elPositionZ.value = "";
+                        
+                        elDimensionsX.value = "";
+                        elDimensionsY.value = "";
+                        elDimensionsZ.value = "";   
+                        
+                        elRegistrationX.value = "";
+                        elRegistrationY.value = "";
+                        elRegistrationZ.value = "";
+                        
+                        elRotationX.value = "";
+                        elRotationY.value = "";
+                        elRotationZ.value = "";
+
+                        elLinearVelocityX.value = "";
+                        elLinearVelocityY.value = "";
+                        elLinearVelocityZ.value = "";
+                        elLinearDamping.value = "";
+
+                        elAngularVelocityX.value = "";
+                        elAngularVelocityY.value = "";
+                        elAngularVelocityZ.value = "";
+                        elAngularDamping.value = "";
+
+                        elGravityX.value = "";
+                        elGravityY.value = "";
+                        elGravityZ.value = "";
+
+                        elAccelerationX.value = "";
+                        elAccelerationY.value = "";
+                        elAccelerationZ.value = "";
+                        
+                        elRestitution.value = "";
+                        elFriction.value = "";
+                        elDensity.value = "";
+                        
+                        elCollisionless.checked = false;
+                        elDynamic.checked = false;
+                        
+                        elCollideStatic.checked = false;
+                        elCollideKinematic.checked = false;
+                        elCollideDynamic.checked = false;
+                        elCollideMyAvatar.checked = false;
+                        elCollideOtherAvatar.checked = false;
+
+                        elGrabbable.checked = false;
+                        elWantsTrigger.checked = false;
+                        elIgnoreIK.checked = false;
+
+                        elCloneable.checked = false;
+                        elCloneableDynamic.checked = false;
+                        elCloneableAvatarEntity.checked = false;
+                        elCloneableGroup.style.display = "none";
+                        elCloneableLimit.value = "";
+                        elCloneableLifetime.value = "";
+                                            
+                        showElements(document.getElementsByClassName('can-cast-shadow-section'), true);                                 
+                        elCanCastShadow.checked = false;
+                        
+                        elCollisionSoundURL.value = "";
+                        elLifetime.value = "";
+                        elScriptURL.value = "";
+                        elServerScripts.value = "";
+                        elHyperlinkHref.value = "";
+                        elDescription.value = "";
+                        
+                        deleteJSONEditor();
+                        elUserData.value = "";
+                        showUserDataTextArea();
+                        showSaveUserDataButton();
+                        showNewJSONEditorButton();
+                        
+                        elShape.value = "Cube";
+                        setDropdownText(elShape);
+                        
+                        elModelURL.value = "";
+                        elCompoundShapeURL.value = "";
+                        elShapeType.value = "none";
+                        setDropdownText(elShapeType);
+                        elModelAnimationURL.value = ""
+                        elModelAnimationPlaying.checked = false;
+                        elModelAnimationFPS.value = "";
+                        elModelAnimationFrame.value = "";
+                        elModelAnimationFirstFrame.value = "";
+                        elModelAnimationLastFrame.value = "";
+                        elModelAnimationLoop.checked = false;
+                        elModelAnimationHold.checked = false;
+                        elModelAnimationAllowTranslation.checked = false;
+                        elModelTextures.value = "";
+                        elModelOriginalTextures.value = "";
+                        
+                        elMaterialURL.value = "";
+                        elParentMaterialNameNumber.value = 0;
+                        elParentMaterialNameCheckbox.checked = false;
+                        elPriority.value = "";
+                        elMaterialMappingPosX.value = "";
+                        elMaterialMappingPosY.value = "";
+                        elMaterialMappingScaleX.value = "";
+                        elMaterialMappingScaleY.value = "";
+                        elMaterialMappingRot.value = "";
+                        
+                        deleteJSONMaterialEditor();
+                        elMaterialData.value = "";
+                        showMaterialDataTextArea();
+                        showSaveMaterialDataButton();
+                        showNewJSONMaterialEditorButton();
+                        
+                        elZoneFlyingAllowed.checked = false;
+                        elZoneGhostingAllowed.checked = false;
+                        elZoneFilterURL.value = "";
+                        elZoneKeyLightColor.style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+                        elZoneKeyLightColorRed.value = "";
+                        elZoneKeyLightColorGreen.value = "";
+                        elZoneKeyLightColorBlue.value = "";
+                        elZoneKeyLightIntensity.value = "";
+                        elZoneKeyLightDirectionX.value = "";
+                        elZoneKeyLightDirectionY.value = "";
+                        elZoneKeyLightCastShadows.checked = false;
+                        elZoneAmbientLightIntensity.value = "";
+                        elZoneAmbientLightURL.value = "";
+                        elZoneHazeRange.value = "";
+                        elZoneHazeColor.style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+                        elZoneHazeColorRed.value = "";
+                        elZoneHazeColorGreen.value = "";
+                        elZoneHazeColorBlue.value = "";
+                        elZoneHazeBackgroundBlend.value = 0;
+                        elZoneHazeGlareColor.style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+                        elZoneHazeGlareColorRed.value = "";
+                        elZoneHazeGlareColorGreen.value = "";
+                        elZoneHazeGlareColorBlue.value = "";
+                        elZoneHazeEnableGlare.checked = false;
+                        elZoneHazeGlareAngle.value = "";
+                        elZoneHazeAltitudeEffect.checked = false;
+                        elZoneHazeBaseRef.value = "";
+                        elZoneHazeCeiling.value = "";
+                        elZoneSkyboxColor.style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+                        elZoneSkyboxColorRed.value = "";
+                        elZoneSkyboxColorGreen.value = "";
+                        elZoneSkyboxColorBlue.value = "";
+                        elZoneSkyboxURL.value = "";
+                        showElements(document.getElementsByClassName('keylight-section'), true);
+                        showElements(document.getElementsByClassName('skybox-section'), true);
+                        showElements(document.getElementsByClassName('ambient-section'), true);
+                        showElements(document.getElementsByClassName('haze-section'), true);
+                        
+                        elWebSourceURL.value = "";
+                        elWebDPI.value = "";
+                        
+                        elImageURL.value = "";
+
+                        elTextText.value = "";
+                        elTextLineHeight.value = "";
+                        elTextFaceCamera.checked = false;
+                        elTextTextColor.style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+                        elTextTextColorRed.value = "";
+                        elTextTextColorGreen.value = "";
+                        elTextTextColorBlue.value = "";
+                        elTextBackgroundColor.style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+                        elTextBackgroundColorRed.value = "";
+                        elTextBackgroundColorGreen.value = "";
+                        elTextBackgroundColorBlue.value = "";
+
+                        elLightSpotLight.checked = false;
+                        elLightColor.style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+                        elLightColorRed.value = "";
+                        elLightColorGreen.value = "";
+                        elLightColorBlue.value = "";
+                        elLightIntensity.value = "";
+                        elLightFalloffRadius.value = "";
+                        elLightExponent.value = "";
+                        elLightCutoff.value = "";
+                        
                         disableProperties();
                     } else if (data.selections.length > 1) {
                         deleteJSONEditor();
@@ -1184,10 +1373,14 @@ function loaded() {
                             elTextLineHeight.value = properties.lineHeight.toFixed(4);
                             elTextFaceCamera.checked = properties.faceCamera;
                             elTextTextColor.style.backgroundColor = "rgb(" + properties.textColor.red + "," + 
-                                                             properties.textColor.green + "," + properties.textColor.blue + ")";
+                                                                    properties.textColor.green + "," + 
+                                                                    properties.textColor.blue + ")";
                             elTextTextColorRed.value = properties.textColor.red;
                             elTextTextColorGreen.value = properties.textColor.green;
                             elTextTextColorBlue.value = properties.textColor.blue;
+                            elTextBackgroundColor.style.backgroundColor = "rgb(" + properties.backgroundColor.red + "," + 
+                                                                          properties.backgroundColor.green + "," + 
+                                                                          properties.backgroundColor.blue + ")";
                             elTextBackgroundColorRed.value = properties.backgroundColor.red;
                             elTextBackgroundColorGreen.value = properties.backgroundColor.green;
                             elTextBackgroundColorBlue.value = properties.backgroundColor.blue;
@@ -1260,13 +1453,12 @@ function loaded() {
                             elZoneHazeGlareColorBlue.value = properties.haze.hazeGlareColor.blue;
 
                             elZoneHazeEnableGlare.checked = properties.haze.hazeEnableGlare;
-                            elZonehazeGlareAngle.value = properties.haze.hazeGlareAngle.toFixed(0);
+                            elZoneHazeGlareAngle.value = properties.haze.hazeGlareAngle.toFixed(0);
 
                             elZoneHazeAltitudeEffect.checked = properties.haze.hazeAltitudeEffect;
                             elZoneHazeBaseRef.value = properties.haze.hazeBaseRef.toFixed(0);
                             elZoneHazeCeiling.value = properties.haze.hazeCeiling.toFixed(0);
 
-                            elZoneHazeBackgroundBlend.value = properties.haze.hazeBackgroundBlend.toFixed(2);
                             elShapeType.value = properties.shapeType;
                             elCompoundShapeURL.value = properties.compoundShapeURL;
 
@@ -1848,7 +2040,7 @@ function loaded() {
 
         elZoneHazeEnableGlare.addEventListener('change', 
             createEmitGroupCheckedPropertyUpdateFunction('haze', 'hazeEnableGlare'));
-        elZonehazeGlareAngle.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeGlareAngle'));
+        elZoneHazeGlareAngle.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeGlareAngle'));
 
         elZoneHazeAltitudeEffect.addEventListener('change', 
             createEmitGroupCheckedPropertyUpdateFunction('haze', 'hazeAltitudeEffect'));
