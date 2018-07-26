@@ -280,9 +280,9 @@ gpu::TexturePointer TextureCache::getImageTexture(const QString& path, image::Te
     }
     auto loader = image::TextureUsage::getTextureLoaderForType(type, options);
 #ifdef USE_GLES
-    image::BackendTarget target = image::BackendTarget::GLES32;
+    gpu::BackendTarget target = gpu::BackendTarget::GLES32;
 #else
-    image::BackendTarget target = image::BackendTarget::GL45;
+    gpu::BackendTarget target = gpu::BackendTarget::GL45;
 #endif
     return gpu::TexturePointer(loader(std::move(image), path.toStdString(), false, target, false));
 }
@@ -1172,9 +1172,9 @@ void ImageReader::read() {
         constexpr bool shouldCompress = false;
 #endif
     #ifdef USE_GLES
-        image::BackendTarget target = image::BackendTarget::GLES32;
+        gpu::BackendTarget target = gpu::BackendTarget::GLES32;
     #else
-        image::BackendTarget target = image::BackendTarget::GL45;
+        gpu::BackendTarget target = gpu::BackendTarget::GL45;
     #endif
         texture = image::processImage(std::move(buffer), _url.toString().toStdString(), _maxNumPixels, networkTexture->getTextureType(), shouldCompress, target);
 

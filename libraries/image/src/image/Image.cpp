@@ -1392,7 +1392,7 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(QImage&& srcI
                 irradianceTexture->assignStoredMipFace(0, face, faces[face].byteCount(), faces[face].constBits());
             }
 
-            irradianceTexture->generateIrradiance();
+            irradianceTexture->generateIrradiance(target);
 
             auto irradiance = irradianceTexture->getIrradiance();
             theTexture->overrideIrradiance(irradiance);

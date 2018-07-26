@@ -21,12 +21,6 @@ class QImage;
 
 namespace image {
 
-enum class BackendTarget {
-    GL41,
-    GL45,
-    GLES32
-};
-
 namespace TextureUsage {
 
 enum Type {
@@ -47,41 +41,41 @@ enum Type {
     UNUSED_TEXTURE
 };
 
-using TextureLoader = std::function<gpu::TexturePointer(QImage&&, const std::string&, bool, BackendTarget, const std::atomic<bool>&)>;
+using TextureLoader = std::function<gpu::TexturePointer(QImage&&, const std::string&, bool, gpu::BackendTarget, const std::atomic<bool>&)>;
 TextureLoader getTextureLoaderForType(Type type, const QVariantMap& options = QVariantMap());
 
 gpu::TexturePointer create2DTextureFromImage(QImage&& image, const std::string& srcImageName,
-                                             bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing);
+                                             bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer createStrict2DTextureFromImage(QImage&& image, const std::string& srcImageName,
-                                                   bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing);
+                                                   bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer createAlbedoTextureFromImage(QImage&& image, const std::string& srcImageName,
-                                                 bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing);
+                                                 bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer createEmissiveTextureFromImage(QImage&& image, const std::string& srcImageName,
-                                                   bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing);
+                                                   bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer createNormalTextureFromNormalImage(QImage&& image, const std::string& srcImageName,
-                                                       bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing);
+                                                       bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer createNormalTextureFromBumpImage(QImage&& image, const std::string& srcImageName,
-                                                     bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing);
+                                                     bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer createRoughnessTextureFromImage(QImage&& image, const std::string& srcImageName,
-                                                    bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing);
+                                                    bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer createRoughnessTextureFromGlossImage(QImage&& image, const std::string& srcImageName,
-                                                         bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing);
+                                                         bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer createMetallicTextureFromImage(QImage&& image, const std::string& srcImageName,
-                                                   bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing);
+                                                   bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer createCubeTextureFromImage(QImage&& image, const std::string& srcImageName,
-                                               bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing);
+                                               bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer createCubeTextureFromImageWithoutIrradiance(QImage&& image, const std::string& srcImageName,
-                                                                bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing);
+                                                                bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer createLightmapTextureFromImage(QImage&& image, const std::string& srcImageName,
-                                                   bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing); 
+                                                   bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing); 
 gpu::TexturePointer process2DTextureColorFromImage(QImage&& srcImage, const std::string& srcImageName, bool compress,
-                                                   BackendTarget target, bool isStrict, const std::atomic<bool>& abortProcessing);
+                                                   gpu::BackendTarget target, bool isStrict, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer process2DTextureNormalMapFromImage(QImage&& srcImage, const std::string& srcImageName, bool compress,
-                                                       BackendTarget target, bool isBumpMap, const std::atomic<bool>& abortProcessing);
+                                                       gpu::BackendTarget target, bool isBumpMap, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer process2DTextureGrayscaleFromImage(QImage&& srcImage, const std::string& srcImageName, bool compress,
-                                                       BackendTarget target, bool isInvertedPixels, const std::atomic<bool>& abortProcessing);
+                                                       gpu::BackendTarget target, bool isInvertedPixels, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer processCubeTextureColorFromImage(QImage&& srcImage, const std::string& srcImageName, bool compress,
-                                                     BackendTarget target, bool generateIrradiance, const std::atomic<bool>& abortProcessing);
+                                                     gpu::BackendTarget target, bool generateIrradiance, const std::atomic<bool>& abortProcessing);
 
 } // namespace TextureUsage
 
@@ -89,7 +83,7 @@ const QStringList getSupportedFormats();
 
 gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::string& url,
                                  int maxNumPixels, TextureUsage::Type textureType,
-                                 bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing = false);
+                                 bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing = false);
 
 } // namespace image
 

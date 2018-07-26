@@ -149,9 +149,9 @@ void TextureBaker::processTexture() {
 
     // Compressed KTX
     if (_compressionEnabled) {
-        constexpr std::array<image::BackendTarget, 2> BACKEND_TARGETS {{
-            image::BackendTarget::GL45,
-            image::BackendTarget::GLES32
+        constexpr std::array<gpu::BackendTarget, 2> BACKEND_TARGETS {{
+            gpu::BackendTarget::GL45,
+            gpu::BackendTarget::GLES32
         }};
         for (auto target : BACKEND_TARGETS) {
             auto processedTexture = image::processImage(buffer, _textureURL.toString().toStdString(),
@@ -198,7 +198,7 @@ void TextureBaker::processTexture() {
     if (_textureType == image::TextureUsage::Type::CUBE_TEXTURE) {
         buffer->reset();
         auto processedTexture = image::processImage(std::move(buffer), _textureURL.toString().toStdString(),
-                                                    ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType, false, image::BackendTarget::GL45, _abortProcessing);
+                                                    ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType, false, gpu::BackendTarget::GL45, _abortProcessing);
         if (!processedTexture) {
             handleError("Could not process texture " + _textureURL.toString());
             return;
