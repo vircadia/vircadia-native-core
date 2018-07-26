@@ -11,12 +11,15 @@
 #ifndef hifi_test_testrail_interface_h
 #define hifi_test_testrail_interface_h
 
+#include "ui/TestRailSelectorWindow.h"
 #include <QDirIterator>
 #include <QtXml/QDomDocument>
 #include <QString>
 
 class TestRailInterface {
 public:
+    TestRailInterface();
+
     void createTestSuiteXML(const QString& testDirectory,
                             const QString& outputDirectory,
                             const QString& user,
@@ -36,9 +39,16 @@ public:
 
     void createTestRailDotPyScript(const QString& outputDirectory);
     void requestDataFromUser();
+    void createAddSectionsPythonScript(const QString& outputDirectory);
 
 private:
-    QDomDocument document;
+    QDomDocument _document;
+
+    TestRailSelectorWindow _testRailSelectorWindow;
+
+    QString _url;
+    QString _user;
+    QString _password;
 };
 
 #endif

@@ -11,10 +11,19 @@
 #include "TestRailInterface.h"
 #include "Test.h"
 
+#include "ui/TestRailSelectorWindow.h"
+
 #include <QDateTime>
 #include <QFile>
 #include <QMessageBox>
 #include <QTextStream>
+
+TestRailInterface::TestRailInterface() {
+    _testRailSelectorWindow.setModal(true);
+
+    _testRailSelectorWindow.setURL("https://highfidelity.testrail.net/");
+    _testRailSelectorWindow.setUser("@highfidelity.io");
+}
 
 void TestRailInterface::createTestRailDotPyScript(const QString& outputDirectory) {
     // Create the testrail.py script
@@ -124,6 +133,34 @@ void TestRailInterface::createTestRailDotPyScript(const QString& outputDirectory
 }
 
 void TestRailInterface::requestDataFromUser() {
+    _testRailSelectorWindow.exec();
+
+    if (_testRailSelectorWindow.getUserCancelled()) {
+        return;
+    }
+
+    _url = _testRailSelectorWindow.getURL();
+    _user = _testRailSelectorWindow.getUser();
+    _password = _testRailSelectorWindow.getPassword();
+}
+
+void TestRailInterface::createAddSectionsPythonScript(const QString& outputDirectory) {
+    QFile file(outputDirectory + "/addSections.py");
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not create \'addSections.py\'");
+        exit(-1);
+    }
+
+    QTextStream stream(&file);
+
+    // Code to access TestRail
+    stream << "from testrail import *\n";
+    stream << "client = APIClient(\'" << _url.toStdString().c_str() << "\')\n";
+    stream << "client.user = \'" << _user << "\'\n";
+    stream << "client.password = \'" << _password << "\'\n\n";
+
+    file.close();
 }
 
 void TestRailInterface::createTestSuitePython(const QString& testDirectory,
@@ -133,6 +170,7 @@ void TestRailInterface::createTestSuitePython(const QString& testDirectory,
     
     createTestRailDotPyScript(outputDirectory);
     requestDataFromUser();
+    createAddSectionsPythonScript(outputDirectory);
  }
 
  void TestRailInterface::createTestSuiteXML(const QString& testDirectory,
@@ -140,20 +178,20 @@ void TestRailInterface::createTestSuitePython(const QString& testDirectory,
                                             const QString& user,
                                             const QString& branch) {
 
-    QDomProcessingInstruction instruction = document.createProcessingInstruction("xml", "version='1.0' encoding='UTF-8'");
-    document.appendChild(instruction);
+    QDomProcessingInstruction instruction = _document.createProcessingInstruction("xml", "version='1.0' encoding='UTF-8'");
+    _document.appendChild(instruction);
 
     // We create a single section, within sections
-    QDomElement root = document.createElement("sections");
-    document.appendChild(root);
+    QDomElement root = _document.createElement("sections");
+    _document.appendChild(root);
 
-    QDomElement topLevelSection = document.createElement("section");
+    QDomElement topLevelSection = _document.createElement("section");
 
-    QDomElement suiteName = document.createElement("name");
-    suiteName.appendChild(document.createTextNode("Test Suite - " + QDateTime::currentDateTime().toString()));
+    QDomElement suiteName = _document.createElement("name");
+    suiteName.appendChild(_document.createTextNode("Test Suite - " + QDateTime::currentDateTime().toString()));
     topLevelSection.appendChild(suiteName);
 
-    QDomElement secondLevelSections = document.createElement("sections");
+    QDomElement secondLevelSections = _document.createElement("sections");
     topLevelSection.appendChild(processDirectory(testDirectory, user, branch, secondLevelSections));
 
     topLevelSection.appendChild(secondLevelSections);
@@ -168,7 +206,7 @@ void TestRailInterface::createTestSuitePython(const QString& testDirectory,
     }
 
     QTextStream stream(&file);
-    stream << document.toString();
+    stream << _document.toString();
 
     file.close();
 
@@ -195,22 +233,22 @@ QDomElement TestRailInterface::processDirectory(const QString& directory, const 
 
             // Create a section and process it
 
-            QDomElement sectionElement = document.createElement("section");
+            QDomElement sectionElement = _document.createElement("section");
 
-            QDomElement sectionElementName = document.createElement("name");
-            sectionElementName.appendChild(document.createTextNode(objectName));
+            QDomElement sectionElementName = _document.createElement("name");
+            sectionElementName.appendChild(_document.createTextNode(objectName));
             sectionElement.appendChild(sectionElementName);
 
-            QDomElement testsElement = document.createElement("sections");
+            QDomElement testsElement = _document.createElement("sections");
             sectionElement.appendChild(processDirectory(nextDirectory, user, branch, testsElement));
 
             result.appendChild(sectionElement);
         } else if (objectName == "test.js" || objectName == "testStory.js") {
-            QDomElement sectionElement = document.createElement("section");
-            QDomElement sectionElementName = document.createElement("name");
-            sectionElementName.appendChild(document.createTextNode("all"));
+            QDomElement sectionElement = _document.createElement("section");
+            QDomElement sectionElementName = _document.createElement("name");
+            sectionElementName.appendChild(_document.createTextNode("all"));
             sectionElement.appendChild(sectionElementName);
-            sectionElement.appendChild(processTest(nextDirectory, objectName, user, branch, document.createElement("cases")));
+            sectionElement.appendChild(processTest(nextDirectory, objectName, user, branch, _document.createElement("cases")));
             result.appendChild(sectionElement);
         }
     }
@@ -221,9 +259,9 @@ QDomElement TestRailInterface::processDirectory(const QString& directory, const 
 QDomElement TestRailInterface::processTest(const QString& fullDirectory, const QString& test, const QString& user, const QString& branch, const QDomElement& element) {
     QDomElement result = element;
    
-    QDomElement caseElement = document.createElement("case");
+    QDomElement caseElement = _document.createElement("case");
 
-    caseElement.appendChild(document.createElement("id"));
+    caseElement.appendChild(_document.createElement("id"));
 
     // The name of the test is derived from the full path.
     // The first term is the first word after "tests"
@@ -244,83 +282,83 @@ QDomElement TestRailInterface::processTest(const QString& fullDirectory, const Q
         title += " / " + words[i];
     }
 
-    QDomElement titleElement = document.createElement("title");
-    titleElement.appendChild(document.createTextNode(title));
+    QDomElement titleElement = _document.createElement("title");
+    titleElement.appendChild(_document.createTextNode(title));
     caseElement.appendChild(titleElement);
 
-    QDomElement templateElement = document.createElement("template");
-    templateElement.appendChild(document.createTextNode("Test Case (Steps)"));
+    QDomElement templateElement = _document.createElement("template");
+    templateElement.appendChild(_document.createTextNode("Test Case (Steps)"));
     caseElement.appendChild(templateElement);
 
-    QDomElement typeElement = document.createElement("type");
-    typeElement.appendChild(document.createTextNode("3 - Regression"));
+    QDomElement typeElement = _document.createElement("type");
+    typeElement.appendChild(_document.createTextNode("3 - Regression"));
     caseElement.appendChild(typeElement);
 
-    QDomElement priorityElement = document.createElement("priority");
-    priorityElement.appendChild(document.createTextNode("Medium"));
+    QDomElement priorityElement = _document.createElement("priority");
+    priorityElement.appendChild(_document.createTextNode("Medium"));
     caseElement.appendChild(priorityElement);
 
-    QDomElement estimateElementName = document.createElement("estimate");
-    estimateElementName.appendChild(document.createTextNode("60"));
+    QDomElement estimateElementName = _document.createElement("estimate");
+    estimateElementName.appendChild(_document.createTextNode("60"));
     caseElement.appendChild(estimateElementName);
 
-    caseElement.appendChild(document.createElement("references"));
+    caseElement.appendChild(_document.createElement("references"));
 
-    QDomElement customElement = document.createElement("custom");
+    QDomElement customElement = _document.createElement("custom");
 
-    QDomElement tester_countElement = document.createElement("tester_count");
-    tester_countElement.appendChild(document.createTextNode("1"));
+    QDomElement tester_countElement = _document.createElement("tester_count");
+    tester_countElement.appendChild(_document.createTextNode("1"));
     customElement.appendChild(tester_countElement);
 
-    QDomElement domain_bot_loadElement = document.createElement("domain_bot_load");
-    QDomElement domain_bot_loadElementId = document.createElement("id");
-    domain_bot_loadElementId.appendChild(document.createTextNode("1"));
+    QDomElement domain_bot_loadElement = _document.createElement("domain_bot_load");
+    QDomElement domain_bot_loadElementId = _document.createElement("id");
+    domain_bot_loadElementId.appendChild(_document.createTextNode("1"));
     domain_bot_loadElement.appendChild(domain_bot_loadElementId);
-    QDomElement domain_bot_loadElementValue = document.createElement("value");
-    domain_bot_loadElementValue.appendChild(document.createTextNode(" Without Bots (hifiqa-rc / hifi-qa-stable / hifiqa-master)"));
+    QDomElement domain_bot_loadElementValue = _document.createElement("value");
+    domain_bot_loadElementValue.appendChild(_document.createTextNode(" Without Bots (hifiqa-rc / hifi-qa-stable / hifiqa-master)"));
     domain_bot_loadElement.appendChild(domain_bot_loadElementValue);
     customElement.appendChild(domain_bot_loadElement);
 
-    QDomElement automation_typeElement = document.createElement("automation_type");
-    QDomElement automation_typeElementId = document.createElement("id");
-    automation_typeElementId.appendChild(document.createTextNode("0"));
+    QDomElement automation_typeElement = _document.createElement("automation_type");
+    QDomElement automation_typeElementId = _document.createElement("id");
+    automation_typeElementId.appendChild(_document.createTextNode("0"));
     automation_typeElement.appendChild(automation_typeElementId);
-    QDomElement automation_typeElementValue = document.createElement("value");
-    automation_typeElementValue.appendChild(document.createTextNode("None"));
+    QDomElement automation_typeElementValue = _document.createElement("value");
+    automation_typeElementValue.appendChild(_document.createTextNode("None"));
     automation_typeElement.appendChild(automation_typeElementValue);
     customElement.appendChild(automation_typeElement);
 
-    QDomElement added_to_releaseElement = document.createElement("added_to_release");
-    QDomElement added_to_releaseElementId = document.createElement("id");
-    added_to_releaseElementId.appendChild(document.createTextNode("4"));
+    QDomElement added_to_releaseElement = _document.createElement("added_to_release");
+    QDomElement added_to_releaseElementId = _document.createElement("id");
+    added_to_releaseElementId.appendChild(_document.createTextNode("4"));
     added_to_releaseElement.appendChild(added_to_releaseElementId);
-    QDomElement added_to_releaseElementValue = document.createElement("value");
-    added_to_releaseElementValue.appendChild(document.createTextNode(branch));
+    QDomElement added_to_releaseElementValue = _document.createElement("value");
+    added_to_releaseElementValue.appendChild(_document.createTextNode(branch));
     added_to_releaseElement.appendChild(added_to_releaseElementValue);
     customElement.appendChild(added_to_releaseElement);
 
-    QDomElement precondsElement = document.createElement("preconds");
-    precondsElement.appendChild(document.createTextNode("Tester is in an empty region of a domain in which they have edit rights\n\n*Note: Press 'n' to advance test script"));
+    QDomElement precondsElement = _document.createElement("preconds");
+    precondsElement.appendChild(_document.createTextNode("Tester is in an empty region of a domain in which they have edit rights\n\n*Note: Press 'n' to advance test script"));
     customElement.appendChild(precondsElement);
 
     QString testMDName = QString("https://github.com/") + user + "/hifi_tests/blob/" + branch + "/tests/content/entity/light/point/create/test.md";
 
-    QDomElement steps_seperatedElement = document.createElement("steps_separated");
-    QDomElement stepElement = document.createElement("step");
-    QDomElement stepIndexElement = document.createElement("index");
-    stepIndexElement.appendChild(document.createTextNode("1"));
+    QDomElement steps_seperatedElement = _document.createElement("steps_separated");
+    QDomElement stepElement = _document.createElement("step");
+    QDomElement stepIndexElement = _document.createElement("index");
+    stepIndexElement.appendChild(_document.createTextNode("1"));
     stepElement.appendChild(stepIndexElement);
-    QDomElement stepContentElement = document.createElement("content");
-    stepContentElement.appendChild(document.createTextNode(QString("Execute instructions in [THIS TEST](") + testMDName + ")"));
+    QDomElement stepContentElement = _document.createElement("content");
+    stepContentElement.appendChild(_document.createTextNode(QString("Execute instructions in [THIS TEST](") + testMDName + ")"));
     stepElement.appendChild(stepContentElement);
-    QDomElement stepExpectedElement = document.createElement("expected");
-    stepExpectedElement.appendChild(document.createTextNode("Refer to the expected result in the linked description."));
+    QDomElement stepExpectedElement = _document.createElement("expected");
+    stepExpectedElement.appendChild(_document.createTextNode("Refer to the expected result in the linked description."));
     stepElement.appendChild(stepExpectedElement);
     steps_seperatedElement.appendChild(stepElement);
     customElement.appendChild(steps_seperatedElement);
 
-    QDomElement notesElement = document.createElement("notes");
-    notesElement.appendChild(document.createTextNode(testMDName));
+    QDomElement notesElement = _document.createElement("notes");
+    notesElement.appendChild(_document.createTextNode(testMDName));
     customElement.appendChild(notesElement);
 
     caseElement.appendChild(customElement);
