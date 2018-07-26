@@ -92,6 +92,7 @@ bool operator==(const Properties& a, const Properties& b) {
         (a.alpha == b.alpha) &&
         (a.radius == b.radius) &&
         (a.spin == b.spin) &&
+        (a.rotateWithEntity == b.rotateWithEntity) &&
         (a.radiusStart == b.radiusStart) &&
         (a.lifespan == b.lifespan) &&
         (a.maxParticles == b.maxParticles) &&
@@ -444,6 +445,7 @@ EntityItemProperties ParticleEffectEntityItem::getProperties(EntityPropertyFlags
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(spinSpread, getSpinSpread);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(spinStart, getSpinStart);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(spinFinish, getSpinFinish);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(rotateWithEntity, getRotateWithEntity);
 
     return properties;
 }
@@ -485,6 +487,7 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(spinSpread, setSpinSpread);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(spinStart, setSpinStart);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(spinFinish, setSpinFinish);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotateWithEntity, setRotateWithEntity);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -569,6 +572,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     READ_ENTITY_PROPERTY(PROP_SPIN_SPREAD, float, setSpinSpread);
     READ_ENTITY_PROPERTY(PROP_SPIN_START, float, setSpinStart);
     READ_ENTITY_PROPERTY(PROP_SPIN_FINISH, float, setSpinFinish);
+    READ_ENTITY_PROPERTY(PROP_PARTICLE_ROTATE_WITH_ENTITY, bool, setRotateWithEntity);
 
     return bytesRead;
 }
@@ -610,6 +614,7 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     requestedProperties += PROP_SPIN_SPREAD;
     requestedProperties += PROP_SPIN_START;
     requestedProperties += PROP_SPIN_FINISH;
+    requestedProperties += PROP_PARTICLE_ROTATE_WITH_ENTITY;
 
     return requestedProperties;
 }
@@ -657,6 +662,7 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_SPIN_SPREAD, getSpinSpread());
     APPEND_ENTITY_PROPERTY(PROP_SPIN_START, getSpinStart());
     APPEND_ENTITY_PROPERTY(PROP_SPIN_FINISH, getSpinFinish());
+    APPEND_ENTITY_PROPERTY(PROP_PARTICLE_ROTATE_WITH_ENTITY, getRotateWithEntity());
 }
 
 
@@ -725,6 +731,12 @@ xColor ParticleEffectEntityItem::getColorSpread() const {
 void ParticleEffectEntityItem::setEmitterShouldTrail(bool emitterShouldTrail) {
     withWriteLock([&] {
         _particleProperties.emission.shouldTrail = emitterShouldTrail;
+    });
+}
+
+void ParticleEffectEntityItem::setRotateWithEntity(bool rotateWithEntity) {
+    withWriteLock([&] {
+        _particleProperties.rotateWithEntity = rotateWithEntity;
     });
 }
 

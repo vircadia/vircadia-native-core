@@ -255,6 +255,7 @@ enum EntityPropertyList {
     PROP_SPIN_START,
     PROP_SPIN_FINISH,
     PROP_SPIN_SPREAD,
+    PROP_PARTICLE_ROTATE_WITH_ENTITY,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line

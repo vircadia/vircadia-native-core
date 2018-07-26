@@ -373,6 +373,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_SPIN_SPREAD, spinSpread);
     CHECK_PROPERTY_CHANGE(PROP_SPIN_START, spinStart);
     CHECK_PROPERTY_CHANGE(PROP_SPIN_FINISH, spinFinish);
+    CHECK_PROPERTY_CHANGE(PROP_PARTICLE_ROTATE_WITH_ENTITY, rotateWithEntity);
 
     // Certifiable Properties
     CHECK_PROPERTY_CHANGE(PROP_ITEM_NAME, itemName);
@@ -913,12 +914,14 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} alphaSpread=0 - The spread in alpha that each particle is given. If <code>alpha == 0.5</code>
  *     and <code>alphaSpread == 0.25</code>, each particle will have an alpha in the range <code>0.25</code> &ndash; <code>0.75</code>.
  * @property {number} particleSpin=0 - The spin of each particle at the middle of its life. In the range <code>-2*PI</code> &ndash; <code>2*PI</code>.
- * @property {number} spinStart=null - The spin of each particle at the start of its life. In the range <code>-2*PI</code> &ndash; <code>2*PI</code>.
- *     If <code>null</code>, the <code>particleSpin</code> value is used.
- * @property {number} spinFinish=null - The spin of each particle at the end of its life. In the range <code>-2*PI</code> &ndash; <code>2*PI</code>.
- *     If <code>null</code>, the <code>particleSpin</code> value is used.
+ * @property {number} spinStart=NaN - The spin of each particle at the start of its life. In the range <code>-2*PI</code> &ndash; <code>2*PI</code>.
+ *     If <code>NaN</code>, the <code>particleSpin</code> value is used.
+ * @property {number} spinFinish=NaN - The spin of each particle at the end of its life. In the range <code>-2*PI</code> &ndash; <code>2*PI</code>.
+ *     If <code>NaN</code>, the <code>particleSpin</code> value is used.
  * @property {number} spinSpread=0 - The spread in spin that each particle is given. In the range <code>0</code> &ndash; <code>2*PI</code>.  If <code>particleSpin == PI</code>
  *     and <code>spinSpread == PI/2</code>, each particle will have a spin in the range <code>PI/2</code> &ndash; <code>3*PI/2</code>.
+ * @property {boolean} rotateWithEntity=false - Whether or not the particles' spin will rotate with the entity.  If false, when <code>particleSpin == 0</code>, the particles will point
+ * up in the world.  If true, they will point towards the entity's up vector, based on its orientation.
  *
  * @property {ShapeType} shapeType="none" - <em>Currently not used.</em> <em>Read-only.</em>
  *
@@ -1306,6 +1309,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SPIN_SPREAD, spinSpread);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SPIN_START, spinStart);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SPIN_FINISH, spinFinish);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARTICLE_ROTATE_WITH_ENTITY, rotateWithEntity);
     }
 
     // Models only
@@ -1602,6 +1606,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(spinSpread, float, setSpinSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(spinStart, float, setSpinStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(spinFinish, float, setSpinFinish);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(rotateWithEntity, bool, setRotateWithEntity);
 
     // Certifiable Properties
     COPY_PROPERTY_FROM_QSCRIPTVALUE(itemName, QString, setItemName);
@@ -1774,6 +1779,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(spinSpread);
     COPY_PROPERTY_IF_CHANGED(spinStart);
     COPY_PROPERTY_IF_CHANGED(spinFinish);
+    COPY_PROPERTY_IF_CHANGED(rotateWithEntity);
 
     // Certifiable Properties
     COPY_PROPERTY_IF_CHANGED(itemName);
@@ -1991,6 +1997,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_SPIN_SPREAD, SpinSpread, spinSpread, float);
         ADD_PROPERTY_TO_MAP(PROP_SPIN_START, SpinStart, spinStart, float);
         ADD_PROPERTY_TO_MAP(PROP_SPIN_FINISH, SpinFinish, spinFinish, float);
+        ADD_PROPERTY_TO_MAP(PROP_PARTICLE_ROTATE_WITH_ENTITY, RotateWithEntity, rotateWithEntity, float);
 
         // Certifiable Properties
         ADD_PROPERTY_TO_MAP(PROP_ITEM_NAME, ItemName, itemName, QString);
@@ -2324,6 +2331,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_SPIN_SPREAD, properties.getSpinSpread());
                 APPEND_ENTITY_PROPERTY(PROP_SPIN_START, properties.getSpinStart());
                 APPEND_ENTITY_PROPERTY(PROP_SPIN_FINISH, properties.getSpinFinish());
+                APPEND_ENTITY_PROPERTY(PROP_PARTICLE_ROTATE_WITH_ENTITY, properties.getRotateWithEntity())
             }
 
             if (properties.getType() == EntityTypes::Zone) {
@@ -2703,6 +2711,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SPIN_SPREAD, float, setSpinSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SPIN_START, float, setSpinStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SPIN_FINISH, float, setSpinFinish);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARTICLE_ROTATE_WITH_ENTITY, bool, setRotateWithEntity);
     }
 
     if (properties.getType() == EntityTypes::Zone) {
@@ -2972,7 +2981,7 @@ void EntityItemProperties::markAllChanged() {
     _shapeTypeChanged = true;
 
     _isEmittingChanged = true;
-    _emitterShouldTrail = true;
+    _emitterShouldTrailChanged = true;
     _maxParticlesChanged = true;
     _lifespanChanged = true;
     _emitRateChanged = true;
@@ -3001,6 +3010,7 @@ void EntityItemProperties::markAllChanged() {
     _spinStartChanged = true;
     _spinFinishChanged = true;
     _spinSpreadChanged = true;
+    _rotateWithEntityChanged = true;
 
     _materialURLChanged = true;
     _materialMappingModeChanged = true;
@@ -3360,6 +3370,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (spinFinishChanged()) {
         out += "spinFinish";
+    }
+    if (rotateWithEntityChanged()) {
+        out += "rotateWithEntity";
     }
     if (materialURLChanged()) {
         out += "materialURL";

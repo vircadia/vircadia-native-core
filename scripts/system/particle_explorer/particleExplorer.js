@@ -400,6 +400,14 @@
                 },
                 {
                     type: "Row"
+                },
+                {
+                    id: "rotateWithEntity",
+                    name: "Rotate with Entity",
+                    type: "Boolean"
+                },
+                {
+                    type: "Row"
                 }
             ],
             Polar: [

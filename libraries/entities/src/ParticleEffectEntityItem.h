@@ -77,6 +77,7 @@ namespace particle {
     static const float MAXIMUM_PARTICLE_SPIN = 2.0f * SCRIPT_MAXIMUM_PI;
     static const QString DEFAULT_TEXTURES = "";
     static const bool DEFAULT_EMITTER_SHOULD_TRAIL = false;
+    static const bool DEFAULT_ROTATE_WITH_ENTITY = false;
 
     template <typename T>
     struct Range {
@@ -158,6 +159,7 @@ namespace particle {
         float radiusStart { DEFAULT_EMIT_RADIUS_START };
         RangeGradient<float> radius { DEFAULT_PARTICLE_RADIUS, DEFAULT_RADIUS_START, DEFAULT_RADIUS_FINISH, DEFAULT_RADIUS_SPREAD };
         RangeGradient<float> spin { DEFAULT_PARTICLE_SPIN, DEFAULT_SPIN_START, DEFAULT_SPIN_FINISH, DEFAULT_SPIN_SPREAD };
+        bool rotateWithEntity { DEFAULT_ROTATE_WITH_ENTITY };
         float lifespan { DEFAULT_LIFESPAN };
         uint32_t maxParticles { DEFAULT_MAX_PARTICLES };
         EmitProperties emission;
@@ -176,6 +178,7 @@ namespace particle {
             color = other.color;
             alpha = other.alpha;
             spin = other.spin;
+            rotateWithEntity = other.rotateWithEntity;
             radius = other.radius;
             lifespan = other.lifespan;
             maxParticles = other.maxParticles;
@@ -325,6 +328,9 @@ public:
 
     void setSpinSpread(float spinSpread);
     float getSpinSpread() const { return _particleProperties.spin.gradient.spread; }
+
+    void setRotateWithEntity(bool rotateWithEntity);
+    bool getRotateWithEntity() const { return _particleProperties.rotateWithEntity; }
 
     void computeAndUpdateDimensions();
 
