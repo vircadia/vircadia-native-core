@@ -270,6 +270,8 @@ private:
     static int _iceServerPort;
     static bool _overrideDomainID; // should we override the domain-id from settings?
     static QUuid _overridingDomainID; // what should we override it with?
+    static bool _getTempName;
+    static QString _userConfigFilename;
     static int _parentPID;
 
     bool _sendICEServerAddressToMetaverseAPIInProgress { false };
