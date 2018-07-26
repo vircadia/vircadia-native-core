@@ -577,8 +577,10 @@ void MyAvatar::updateChildCauterization(SpatiallyNestablePointer object, bool ca
 
 void MyAvatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
-
+    
     animateScaleChanges(deltaTime);
+
+    setFlyingEnabled(getFlyingEnabled());
 
     if (_cauterizationNeedsUpdate) {
         _cauterizationNeedsUpdate = false;
@@ -1131,6 +1133,8 @@ void MyAvatar::saveData() {
     settings.setValue("collisionSoundURL", _collisionSoundURL);
     settings.setValue("useSnapTurn", _useSnapTurn);
     settings.setValue("userHeight", getUserHeight());
+    settings.setValue("flyingDesktop", getFlyingDesktopPref());
+    settings.setValue("flyingHMD", getFlyingHMDPref());
     settings.setValue("enabledFlying", getFlyingEnabled());
 
     settings.endGroup();
@@ -1281,8 +1285,13 @@ void MyAvatar::loadData() {
         settings.remove("avatarEntityData");
     }
     setAvatarEntityDataChanged(true);
+
+    // Flying preferences must be loaded before calling setFlyingEnabled()
     Setting::Handle<bool> firstRunVal { Settings::firstRun, true };
-    setFlyingEnabled(firstRunVal.get() ? getFlyingEnabled() : settings.value("enabledFlying").toBool());
+    setFlyingDesktopPref(firstRunVal.get() ? true : settings.value("flyingDesktop").toBool());
+    setFlyingHMDPref(firstRunVal.get() ? false : settings.value("flyingHMD").toBool());
+    setFlyingEnabled(getFlyingEnabled());
+
     setDisplayName(settings.value("displayName").toString());
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
     setSnapTurn(settings.value("useSnapTurn", _useSnapTurn).toBool());
@@ -2825,6 +2834,12 @@ void MyAvatar::setFlyingEnabled(bool enabled) {
         return;
     }
 
+    if (qApp->isHMDMode()) {
+        setFlyingHMDPref(enabled);
+    } else {
+        setFlyingDesktopPref(enabled);
+    }
+
     _enableFlying = enabled;
 }
 
@@ -2840,7 +2855,37 @@ bool MyAvatar::isInAir() {
 
 bool MyAvatar::getFlyingEnabled() {
     // May return true even if client is not allowed to fly in the zone.
-    return _enableFlying;
+    return (qApp->isHMDMode() ? getFlyingHMDPref() : getFlyingDesktopPref());
+}
+
+void MyAvatar::setFlyingDesktopPref(bool enabled) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setFlyingDesktopPref", Q_ARG(bool, enabled));
+        return;
+    }
+
+    //if (!(qApp->isHMDMode())) { _enableFlying = enabled; }
+
+    _flyingPrefDesktop = enabled;
+}
+
+bool MyAvatar::getFlyingDesktopPref() {
+    return _flyingPrefDesktop;
+}
+
+void MyAvatar::setFlyingHMDPref(bool enabled) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setFlyingHMDPref", Q_ARG(bool, enabled));
+        return;
+    }
+
+    //if ((qApp->isHMDMode())) { _enableFlying = enabled; }
+
+    _flyingPrefHMD = enabled;
+}
+
+bool MyAvatar::getFlyingHMDPref() {
+    return _flyingPrefHMD;
 }
 
 // Public interface for targetscale
