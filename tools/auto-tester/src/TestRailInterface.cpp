@@ -160,6 +160,10 @@ void TestRailInterface::createAddSectionsPythonScript(const QString& outputDirec
     stream << "client.user = \'" << _user << "\'\n";
     stream << "client.password = \'" << _password << "\'\n\n";
 
+    // top-level section
+    stream << "data = { \'name\': \'"
+           << "Test Suite - " << QDateTime::currentDateTime().toString("yyyy-MM-ddTHH:mm") << "\'}\n";
+
     file.close();
 }
 
@@ -188,7 +192,7 @@ void TestRailInterface::createTestSuitePython(const QString& testDirectory,
     QDomElement topLevelSection = _document.createElement("section");
 
     QDomElement suiteName = _document.createElement("name");
-    suiteName.appendChild(_document.createTextNode("Test Suite - " + QDateTime::currentDateTime().toString()));
+    suiteName.appendChild(_document.createTextNode("Test Suite - " + QDateTime::currentDateTime().toString("yyyy-MM-ddTHH:mm")));
     topLevelSection.appendChild(suiteName);
 
     QDomElement secondLevelSections = _document.createElement("sections");

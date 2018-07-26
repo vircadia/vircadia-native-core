@@ -15,6 +15,8 @@
 
 TestRailSelectorWindow::TestRailSelectorWindow(QWidget *parent) {
     setupUi(this);
+
+    projectLineEdit->setValidator(new QIntValidator(1, 999, this));
 }
 
 void TestRailSelectorWindow::on_OKButton_clicked() {
@@ -40,13 +42,21 @@ QString TestRailSelectorWindow::getURL() {
 }
 
 void TestRailSelectorWindow::setUser(const QString& user) {
-    UserTextEdit->setText(user);
+    userTextEdit->setText(user);
 }
 
 QString TestRailSelectorWindow::getUser() {
-    return UserTextEdit->toPlainText();
+    return userTextEdit->toPlainText();
 }
 
 QString TestRailSelectorWindow::getPassword() {
     return passwordLineEdit->text();
+}
+
+void TestRailSelectorWindow::setProject(const int project) {
+    projectLineEdit->setText(QString::number(project));
+}
+
+int TestRailSelectorWindow::getProject() {
+    return projectLineEdit->getText().toInt();
 }

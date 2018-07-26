@@ -28,6 +28,9 @@ public:
 
     QString getPassword();
 
+    void setProject(const int project);
+    int getProject();
+
     bool userCancelled{ false };
 
 private slots:
