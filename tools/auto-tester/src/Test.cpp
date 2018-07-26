@@ -846,7 +846,8 @@ void Test::createTestRailTestSuite() {
     }
 
     if (_testRailCreateMode == PYTHON) {
-        ////createTestRailPythonTestSuite();
+        _testRailInterface.createTestSuitePython(_testDirectory, outputDirectory, autoTester->getSelectedUser(),
+                                              autoTester->getSelectedBranch());
     } else {
         _testRailInterface.createTestSuiteXML(_testDirectory, outputDirectory, autoTester->getSelectedUser(),
                                            autoTester->getSelectedBranch());

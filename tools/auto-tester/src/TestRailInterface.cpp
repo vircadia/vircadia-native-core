@@ -16,7 +16,13 @@
 #include <QMessageBox>
 #include <QTextStream>
 
-void TestRailInterface::createTestSuiteXML(const QString& testDirectory,
+void TestRailInterface::createTestSuitePython(const QString& testDirectory,
+                                           const QString& outputDirectory,
+                                           const QString& user,
+                                           const QString& branch) {
+ }
+
+ void TestRailInterface::createTestSuiteXML(const QString& testDirectory,
                                            const QString& outputDirectory,
                                            const QString& user,
                                            const QString& branch) {
