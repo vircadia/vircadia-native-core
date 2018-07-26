@@ -14,14 +14,13 @@
 //
 
 /* global SelectionManager, SelectionDisplay, grid, rayPlaneIntersection, rayPlaneIntersection2, pushCommandForSelections,
-   getMainTabletIDs, getControllerWorldLocation, TRIGGER_ON_VALUE, TRIGGER_OFF_VALUE */
+   getMainTabletIDs, getControllerWorldLocation */
 
 var SPACE_LOCAL = "local";
 var SPACE_WORLD = "world";
 var HIGHLIGHT_LIST_NAME = "editHandleHighlightList";
 
 Script.include([
-    "./controllerDispatcherUtils.js",
     "./controllers.js",
     "./utils.js"
 ]);
