@@ -19,7 +19,7 @@
 
 #include "AnimationCache.h"
 
-class AnimationCacheScriptingInterface : public ScriptableResourceCache {
+class AnimationCacheScriptingInterface : public ScriptableResourceCache, public Dependency {
     Q_OBJECT
 
     // Properties are copied over from ResourceCache (see ResourceCache.h for reason).
@@ -44,7 +44,7 @@ class AnimationCacheScriptingInterface : public ScriptableResourceCache {
      */
 
 public:
-    AnimationCacheScriptingInterface(AnimationCache* animationCache);
+    AnimationCacheScriptingInterface();
 
     /**jsdoc
      * Returns animation resource for particular animation.
@@ -54,9 +54,6 @@ public:
      */
     Q_INVOKABLE AnimationPointer getAnimation(const QString& url) { return getAnimation(QUrl(url)); }
     Q_INVOKABLE AnimationPointer getAnimation(const QUrl& url);
-
-private:
-    AnimationCache* _animationCache;
 };
 
 #endif // hifi_AnimationCacheScriptingInterface_h

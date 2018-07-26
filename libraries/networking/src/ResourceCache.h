@@ -303,7 +303,7 @@ private:
 class ScriptableResourceCache : public QObject {
     Q_OBJECT
 
-    // JSDoc 3.5.5 doesn't augment namespaces with @property definitions so the following properties JSDoc is copied to the 
+    // JSDoc 3.5.5 doesn't augment name spaces with @property definitions so the following properties JSDoc is copied to the 
     // different exposed cache classes.
 
     /**jsdoc
@@ -318,7 +318,7 @@ class ScriptableResourceCache : public QObject {
     Q_PROPERTY(size_t sizeCached READ getSizeCachedResources NOTIFY dirty)
 
 public:
-    ScriptableResourceCache(ResourceCache* resourceCache);
+    ScriptableResourceCache(QSharedPointer<ResourceCache> resourceCache);
 
     /**jsdoc
      * Get the list of all resource URLs.
@@ -351,7 +351,7 @@ signals:
     void dirty();
 
 private:
-    ResourceCache * _resourceCache;
+    QSharedPointer<ResourceCache> _resourceCache;
 
     size_t getNumTotalResources() const { return _resourceCache->getNumTotalResources(); }
     size_t getSizeTotalResources() const { return _resourceCache->getSizeTotalResources(); }

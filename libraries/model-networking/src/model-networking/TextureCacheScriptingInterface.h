@@ -19,7 +19,7 @@
 
 #include "TextureCache.h"
 
-class TextureCacheScriptingInterface : public ScriptableResourceCache {
+class TextureCacheScriptingInterface : public ScriptableResourceCache, public Dependency {
     Q_OBJECT
 
     // Properties are copied over from ResourceCache (see ResourceCache.h for reason).
@@ -43,7 +43,7 @@ class TextureCacheScriptingInterface : public ScriptableResourceCache {
      */
 
 public:
-    TextureCacheScriptingInterface(TextureCache* textureCache);
+    TextureCacheScriptingInterface();
 
     /**jsdoc
      * @function TextureCache.prefetch
@@ -60,9 +60,6 @@ signals:
      * @returns {Signal}
      */
     void spectatorCameraFramebufferReset();
-
-private:
-    TextureCache* _textureCache;
 };
 
 #endif // hifi_TextureCacheScriptingInterface_h

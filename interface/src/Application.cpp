@@ -869,16 +869,20 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<recording::ClipCache>();
     DependencyManager::set<GeometryCache>();
     DependencyManager::set<ModelCache>();
+    DependencyManager::set<ModelCacheScriptingInterface>();
     DependencyManager::set<ScriptCache>();
     DependencyManager::set<SoundCache>();
+    DependencyManager::set<SoundCacheScriptingInterface>();
     DependencyManager::set<DdeFaceTracker>();
     DependencyManager::set<EyeTracker>();
     DependencyManager::set<AudioClient>();
     DependencyManager::set<AudioScope>();
     DependencyManager::set<DeferredLightingEffect>();
     DependencyManager::set<TextureCache>();
+    DependencyManager::set<TextureCacheScriptingInterface>();
     DependencyManager::set<FramebufferCache>();
     DependencyManager::set<AnimationCache>();
+    DependencyManager::set<AnimationCacheScriptingInterface>();
     DependencyManager::set<ModelBlender>();
     DependencyManager::set<UsersScriptingInterface>();
     DependencyManager::set<AvatarManager>();
@@ -2565,12 +2569,18 @@ Application::~Application() {
 
     DependencyManager::destroy<CompositorHelper>(); // must be destroyed before the FramebufferCache
 
+    DependencyManager::destroy<SoundCacheScriptingInterface>();
+
     DependencyManager::destroy<AvatarManager>();
+    DependencyManager::destroy<AnimationCacheScriptingInterface>();
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<FramebufferCache>();
+    DependencyManager::destroy<TextureCacheScriptingInterface>();
     DependencyManager::destroy<TextureCache>();
+    DependencyManager::destroy<ModelCacheScriptingInterface>();
     DependencyManager::destroy<ModelCache>();
     DependencyManager::destroy<ScriptCache>();
+    DependencyManager::destroy<SoundCacheScriptingInterface>();
     DependencyManager::destroy<SoundCache>();
     DependencyManager::destroy<OctreeStatsProvider>();
     DependencyManager::destroy<GeometryCache>();
@@ -2992,10 +3002,11 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("LocationBookmarks", DependencyManager::get<LocationBookmarks>().data());
 
     // Caches
-    surfaceContext->setContextProperty("AnimationCache", new AnimationCacheScriptingInterface(DependencyManager::get<AnimationCache>().data()));
-    surfaceContext->setContextProperty("TextureCache", new TextureCacheScriptingInterface(DependencyManager::get<TextureCache>().data()));
-    surfaceContext->setContextProperty("ModelCache", new ModelCacheScriptingInterface(DependencyManager::get<ModelCache>().data()));
-    surfaceContext->setContextProperty("SoundCache", new SoundCacheScriptingInterface(DependencyManager::get<SoundCache>().data()));
+    surfaceContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCacheScriptingInterface>().data());
+    surfaceContext->setContextProperty("TextureCache", DependencyManager::get<TextureCacheScriptingInterface>().data());
+    surfaceContext->setContextProperty("ModelCache", DependencyManager::get<ModelCacheScriptingInterface>().data());
+    surfaceContext->setContextProperty("SoundCache", DependencyManager::get<SoundCacheScriptingInterface>().data());
+
     surfaceContext->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
 
     surfaceContext->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
@@ -6615,10 +6626,10 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("Pointers", DependencyManager::get<PointerScriptingInterface>().data());
 
     // Caches
-    scriptEngine->registerGlobalObject("AnimationCache", new AnimationCacheScriptingInterface(DependencyManager::get<AnimationCache>().data()));
-    scriptEngine->registerGlobalObject("TextureCache", new TextureCacheScriptingInterface(DependencyManager::get<TextureCache>().data()));
-    scriptEngine->registerGlobalObject("ModelCache", new ModelCacheScriptingInterface(DependencyManager::get<ModelCache>().data()));
-    scriptEngine->registerGlobalObject("SoundCache", new SoundCacheScriptingInterface(DependencyManager::get<SoundCache>().data()));
+    scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCacheScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("TextureCache", DependencyManager::get<TextureCacheScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("ModelCache", DependencyManager::get<ModelCacheScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCacheScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("DialogsManager", _dialogsManagerScriptingInterface);
 

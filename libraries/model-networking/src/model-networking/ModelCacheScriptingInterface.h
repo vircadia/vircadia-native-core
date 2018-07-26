@@ -19,7 +19,7 @@
 
 #include "ModelCache.h"
 
-class ModelCacheScriptingInterface : public ScriptableResourceCache {
+class ModelCacheScriptingInterface : public ScriptableResourceCache, public Dependency {
     Q_OBJECT
 
     // Properties are copied over from ResourceCache (see ResourceCache.h for reason).
@@ -43,10 +43,7 @@ class ModelCacheScriptingInterface : public ScriptableResourceCache {
      */
 
 public:
-    ModelCacheScriptingInterface(ModelCache* modelCache);
-
-private:
-    ModelCache* _ModelCache;
+    ModelCacheScriptingInterface();
 };
 
 #endif // hifi_ModelCacheScriptingInterface_h

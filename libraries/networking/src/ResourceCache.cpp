@@ -132,7 +132,7 @@ QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
 }
 
 
-ScriptableResourceCache::ScriptableResourceCache(ResourceCache* resourceCache) {
+ScriptableResourceCache::ScriptableResourceCache(QSharedPointer<ResourceCache> resourceCache) {
     _resourceCache = resourceCache;
 }
 

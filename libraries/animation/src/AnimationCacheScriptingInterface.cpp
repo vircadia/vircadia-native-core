@@ -11,11 +11,10 @@
 
 #include "AnimationCacheScriptingInterface.h"
 
-AnimationCacheScriptingInterface::AnimationCacheScriptingInterface(AnimationCache* animationCache) :
-    _animationCache(animationCache),
-    ScriptableResourceCache::ScriptableResourceCache(animationCache)
+AnimationCacheScriptingInterface::AnimationCacheScriptingInterface() :
+    ScriptableResourceCache::ScriptableResourceCache(DependencyManager::get<AnimationCache>())
 { }
 
 AnimationPointer AnimationCacheScriptingInterface::getAnimation(const QUrl& url) {
-    return _animationCache->getAnimation(url);
+    return DependencyManager::get<AnimationCache>()->getAnimation(url);
 }

@@ -11,11 +11,10 @@
 
 #include "SoundCacheScriptingInterface.h"
 
-SoundCacheScriptingInterface::SoundCacheScriptingInterface(SoundCache* soundCache) :
-    _soundCache(soundCache),
-    ScriptableResourceCache::ScriptableResourceCache(soundCache)
+SoundCacheScriptingInterface::SoundCacheScriptingInterface() :
+    ScriptableResourceCache::ScriptableResourceCache(DependencyManager::get<SoundCache>())
 { }
 
 SharedSoundPointer SoundCacheScriptingInterface::getSound(const QUrl& url) {
-    return _soundCache->getSound(url);
+    return DependencyManager::get<SoundCache>()->getSound(url);
 }

@@ -11,7 +11,6 @@
 
 #include "ModelCacheScriptingInterface.h"
 
-ModelCacheScriptingInterface::ModelCacheScriptingInterface(ModelCache* modelCache) :
-    _ModelCache(modelCache),
-    ScriptableResourceCache::ScriptableResourceCache(modelCache)
+ModelCacheScriptingInterface::ModelCacheScriptingInterface() :
+    ScriptableResourceCache::ScriptableResourceCache(DependencyManager::get<ModelCache>())
 { }

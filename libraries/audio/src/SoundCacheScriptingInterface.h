@@ -19,7 +19,7 @@
 
 #include "SoundCache.h"
 
-class SoundCacheScriptingInterface : public ScriptableResourceCache {
+class SoundCacheScriptingInterface : public ScriptableResourceCache, public Dependency {
     Q_OBJECT
 
     // Properties are copied over from ResourceCache (see ResourceCache.h for reason).
@@ -45,7 +45,7 @@ class SoundCacheScriptingInterface : public ScriptableResourceCache {
      */
 
 public:
-    SoundCacheScriptingInterface(SoundCache* soundCache);
+    SoundCacheScriptingInterface();
 
     /**jsdoc
      * @function SoundCache.getSound
@@ -53,9 +53,6 @@ public:
      * @returns {SoundObject}
      */
     Q_INVOKABLE SharedSoundPointer getSound(const QUrl& url);
-
-private:
-    SoundCache* _soundCache;
 };
 
 #endif // hifi_SoundCacheScriptingInterface_h

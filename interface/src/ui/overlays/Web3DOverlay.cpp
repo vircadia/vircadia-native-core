@@ -253,7 +253,7 @@ void Web3DOverlay::setupQmlSurface() {
         _webSurface->getSurfaceContext()->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
         _webSurface->getSurfaceContext()->setContextProperty("DialogsManager", DialogsManagerScriptingInterface::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
-        _webSurface->getSurfaceContext()->setContextProperty("SoundCache", new SoundCacheScriptingInterface(DependencyManager::get<SoundCache>().data()));
+        _webSurface->getSurfaceContext()->setContextProperty("SoundCache", DependencyManager::get<SoundCacheScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
