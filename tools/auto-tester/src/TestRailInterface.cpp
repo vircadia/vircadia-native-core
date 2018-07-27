@@ -21,11 +21,14 @@
 TestRailInterface::TestRailInterface() {
     _testRailSelectorWindow.setModal(true);
 
-    _testRailSelectorWindow.setURL("https://highfidelity.testrail.net/");
-    _testRailSelectorWindow.setUser("@highfidelity.io");
+    ////_testRailSelectorWindow.setURL("https://highfidelity.testrail.net");
+    _testRailSelectorWindow.setURL("https://nissimhadar.testrail.io");
+    ////_testRailSelectorWindow.setUser("@highfidelity.io");
+    _testRailSelectorWindow.setUser("nissim.hadar@gmail.com");
 
     // 24 is the HighFidelity Interface project id in TestRail
-    _testRailSelectorWindow.setProject(24);
+    ////_testRailSelectorWindow.setProject(24);
+    _testRailSelectorWindow.setProject(1);
 }
 
 // Creates the testrail.py script
@@ -152,7 +155,7 @@ void TestRailInterface::createStackDotPyScript(const QString& outputDirectory) {
     stream << "\t\tself.items = []\n";
     stream << "\n";
 
-    stream << "\tdef isEmpty(self):\n";
+    stream << "\tdef is_empty(self):\n";
     stream << "\t\treturn self.items == []\n";
     stream << "\n";
 
@@ -182,13 +185,54 @@ void TestRailInterface::requestDataFromUser() {
         return;
     }
 
-    _url = _testRailSelectorWindow.getURL();
+    _url = _testRailSelectorWindow.getURL() + "/";
     _user = _testRailSelectorWindow.getUser();
-    _password = _testRailSelectorWindow.getPassword();
-    _project = _testRailSelectorWindow.getProject();
+    ////_password = _testRailSelectorWindow.getPassword();
+    _password = "tutKA76";
+    _project = QString::number(_testRailSelectorWindow.getProject());
 }
 
-void TestRailInterface::createAddSectionsPythonScript(const QString& outputDirectory) {
+bool TestRailInterface::isAValidTestDirectory(const QString& directory) {
+    if (Test::isAValidDirectory(directory)) {
+        // Ignore the utils and preformance directories
+        if (directory.right(QString("utils").length()) == "utils" ||
+            directory.right(QString("performance").length()) == "performance") {
+            return false;
+        }
+        return true;
+    }
+
+    return false;
+}
+
+void TestRailInterface::processDirecoryPython(const QString& directory, QTextStream& stream) {
+    // Loop over all entries in directory
+    QDirIterator it(directory.toStdString().c_str());
+    while (it.hasNext()) {
+        QString nextDirectory = it.next();
+
+        // Only process directories
+        if (!isAValidTestDirectory(nextDirectory)) {
+            continue;
+        }
+
+        // The name of the section is the directory at the end of the path
+        stream << "parent_id = parent_ids.peek()\n";
+        QString name = nextDirectory.right(nextDirectory.length() - nextDirectory.lastIndexOf("/") - 1);
+        stream << "data = { \'name\': \'" << name << "\', \'parent_id\': parent_id }\n";
+
+        stream << "section = client.send_post(\'add_section/\' + str(" << _project << "), data)\n";
+    }
+}
+
+    // A suite of TestRail test cases contains trees.
+//    The nodes of the trees are sections
+//    The leaves are the test cases
+//
+// Each node and leaf have an ID and a parent ID.
+// Therefore, the tree is built top-down, using a stack to store the IDs of each node
+//
+void TestRailInterface::createAddSectionsPythonScript(const QString& testDirectory, const QString& outputDirectory) {
     QFile file(outputDirectory + "/addSections.py");
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
@@ -204,12 +248,18 @@ void TestRailInterface::createAddSectionsPythonScript(const QString& outputDirec
     stream << "client.user = \'" << _user << "\'\n";
     stream << "client.password = \'" << _password << "\'\n\n";
 
+    stream << "from stack import *\n";
+    stream << "parent_ids = Stack()\n\n";
 
     // top-level section
     stream << "data = { \'name\': \'"
            << "Test Suite - " << QDateTime::currentDateTime().toString("yyyy-MM-ddTHH:mm") << "\'}\n";
 
-    stream << "section = client.send_post(\'add_section/\' + str(" << QString::number(_project) << "), data)";
+    stream << "section = client.send_post(\'add_section/\' + str(" << _project << "), data)\n";
+    stream << "parent_ids.push(section[\'id\'])\n\n";
+
+    // Now recursively process each directory
+    processDirecoryPython(testDirectory, stream);
 
     file.close();
 }
@@ -222,7 +272,7 @@ void TestRailInterface::createTestSuitePython(const QString& testDirectory,
     createTestRailDotPyScript(outputDirectory);
     createStackDotPyScript(outputDirectory);
     requestDataFromUser();
-    createAddSectionsPythonScript(outputDirectory);
+    createAddSectionsPythonScript(testDirectory, outputDirectory);
  }
 
  void TestRailInterface::createTestSuiteXML(const QString& testDirectory,
@@ -243,8 +293,9 @@ void TestRailInterface::createTestSuitePython(const QString& testDirectory,
     suiteName.appendChild(_document.createTextNode("Test Suite - " + QDateTime::currentDateTime().toString("yyyy-MM-ddTHH:mm")));
     topLevelSection.appendChild(suiteName);
 
+    // This is the first call to 'process'.  This is then called recursively to build the full XML tree
     QDomElement secondLevelSections = _document.createElement("sections");
-    topLevelSection.appendChild(processDirectory(testDirectory, user, branch, secondLevelSections));
+    topLevelSection.appendChild(processDirectoryXML(testDirectory, user, branch, secondLevelSections));
 
     topLevelSection.appendChild(secondLevelSections);
     root.appendChild(topLevelSection);
@@ -265,7 +316,7 @@ void TestRailInterface::createTestSuitePython(const QString& testDirectory,
     QMessageBox::information(0, "Success", "TestRail XML file has been created");
 }
 
-QDomElement TestRailInterface::processDirectory(const QString& directory, const QString& user, const QString& branch, const QDomElement& element) {
+QDomElement TestRailInterface::processDirectoryXML(const QString& directory, const QString& user, const QString& branch, const QDomElement& element) {
     QDomElement result = element;
 
     // Loop over all entries in directory
@@ -277,14 +328,8 @@ QDomElement TestRailInterface::processDirectory(const QString& directory, const 
         QString objectName = nextDirectory.right(nextDirectory.length() - nextDirectory.lastIndexOf("/") - 1);
 
         // Only process directories
-        if (Test::isAValidDirectory(nextDirectory)) {
-            // Ignore the utils and preformance directories
-            if (nextDirectory.right(QString("utils").length()) == "utils" || nextDirectory.right(QString("performance").length()) == "performance") {
-                continue;
-            }
-
+        if (isAValidTestDirectory(nextDirectory)) {
             // Create a section and process it
-
             QDomElement sectionElement = _document.createElement("section");
 
             QDomElement sectionElementName = _document.createElement("name");
@@ -292,7 +337,7 @@ QDomElement TestRailInterface::processDirectory(const QString& directory, const 
             sectionElement.appendChild(sectionElementName);
 
             QDomElement testsElement = _document.createElement("sections");
-            sectionElement.appendChild(processDirectory(nextDirectory, user, branch, testsElement));
+            sectionElement.appendChild(processDirectoryXML(nextDirectory, user, branch, testsElement));
 
             result.appendChild(sectionElement);
         } else if (objectName == "test.js" || objectName == "testStory.js") {
