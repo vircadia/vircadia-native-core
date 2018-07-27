@@ -11,20 +11,28 @@
 
 #include "HFWebEngineProfile.h"
 
-#include "HFWebEngineRequestInterceptor.h"
+#include <QtQml/QQmlContext>
+
+#include "RequestFilters.h"
 
 #if !defined(Q_OS_ANDROID)
 
 static const QString QML_WEB_ENGINE_STORAGE_NAME = "qmlWebEngine";
 
-HFWebEngineProfile::HFWebEngineProfile(QObject* parent) :
-    QQuickWebEngineProfile(parent)
+HFWebEngineProfile::HFWebEngineProfile(QQmlContext* parent) : Parent(parent)
 {
     setStorageName(QML_WEB_ENGINE_STORAGE_NAME);
 
     // we use the HFWebEngineRequestInterceptor to make sure that web requests are authenticated for the interface user
-    auto requestInterceptor = new HFWebEngineRequestInterceptor(this);
-    setRequestInterceptor(requestInterceptor);
+    setRequestInterceptor(new RequestInterceptor(this));
+}
+
+void HFWebEngineProfile::RequestInterceptor::interceptRequest(QWebEngineUrlRequestInfo& info) {
+    RequestFilters::interceptHFWebEngineRequest(info, getContext());
+}
+
+void HFWebEngineProfile::registerWithContext(QQmlContext* context) {
+    context->setContextProperty("HFWebEngineProfile", new HFWebEngineProfile(context));
 }
 
 #endif

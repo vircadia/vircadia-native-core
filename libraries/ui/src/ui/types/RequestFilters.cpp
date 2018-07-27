@@ -10,12 +10,15 @@
 //
 
 #include "RequestFilters.h"
-#include "NetworkingConstants.h"
 
 #include <QtCore/QDebug>
-#include <SettingHandle.h>
+#include <QtCore/QFileInfo>
 
-#include "AccountManager.h"
+#include <SettingHandle.h>
+#include <NetworkingConstants.h>
+#include <AccountManager.h>
+
+#include "ContextAwareProfile.h"
 
 #if !defined(Q_OS_ANDROID)
 
@@ -42,9 +45,28 @@ namespace {
         return filename.endsWith(".json", Qt::CaseInsensitive);
      }
 
+     bool blockLocalFiles(QWebEngineUrlRequestInfo& info) {
+         auto requestUrl = info.requestUrl();
+         if (!requestUrl.isLocalFile()) {
+             // Not a local file, do not block
+             return false;
+         }
+
+         QString targetFilePath = QFileInfo(requestUrl.toLocalFile()).canonicalFilePath();
+
+         // If we get here, then it's a local file that isn't whitelisted and the 
+         // developer mode environment variable is not enabled.  Block access to the file
+         qWarning() << "Blocking web access to local file path" << targetFilePath;
+         info.block(true);
+         return true;
+     }
 }
 
-void RequestFilters::interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info) {
+void RequestFilters::interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info, QQmlContext* context) {
+    if (ContextAwareProfile::isRestricted(context) && blockLocalFiles(info)) {
+        return;
+    }
+
     // check if this is a request to a highfidelity URL
     bool isAuthable = isAuthableHighFidelityURL(info.requestUrl());
     if (isAuthable) {
@@ -71,7 +93,7 @@ void RequestFilters::interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info)
     info.setHttpHeader(USER_AGENT.toLocal8Bit(), tokenString.toLocal8Bit());
 }
 
-void RequestFilters::interceptFileType(QWebEngineUrlRequestInfo& info) {
+void RequestFilters::interceptFileType(QWebEngineUrlRequestInfo& info, QQmlContext* context) {
     QString filename = info.requestUrl().fileName();
     if (isScript(filename) || isJSON(filename)) {
         static const QString CONTENT_HEADER = "Accept";
