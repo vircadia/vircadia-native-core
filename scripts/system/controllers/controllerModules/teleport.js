@@ -61,19 +61,31 @@ Script.include("/~/system/libraries/controllers.js");
     };
 
     var cancelPath = {
+        type: "line3d",
         color: COLORS_TELEPORT_CANCEL,
+        ignorePickIntersection: true,
         alpha: 1,
-        width: 0.025
+        solid: true,
+        drawInFront: true,
+        glow: 1.0
     };
     var teleportPath = {
+        type: "line3d",
         color: COLORS_TELEPORT_CAN_TELEPORT,
+        ignorePickIntersection: true,
         alpha: 1,
-        width: 0.025
+        solid: true,
+        drawInFront: true,
+        glow: 1.0
     };
     var seatPath = {
+        type: "line3d",
         color: COLORS_TELEPORT_SEAT,
+        ignorePickIntersection: true,
         alpha: 1,
-        width: 0.025
+        solid: true,
+        drawInFront: true,
+        glow: 1.0
     };
     var cancelEnd = {
         type: "model",
@@ -99,7 +111,7 @@ Script.include("/~/system/libraries/controllers.js");
         {name: "teleport", path: teleportPath, end: teleportEnd},
         {name: "seat", path: seatPath, end: seatEnd}];
 
-    var DEFAULT_DISTANCE = 4.0;
+    var DEFAULT_DISTANCE = 50;
     var teleportDefaultRenderStates = [{name: "cancel", distance: DEFAULT_DISTANCE, path: cancelPath}];
 
     var coolInTimeout = null;
@@ -139,8 +151,8 @@ Script.include("/~/system/libraries/controllers.js");
             return otherModule;
         };
 
-        this.teleportParabolaHandVisible = Pointers.createPointer(PickType.Parabola, {
-            joint: (_this.hand === RIGHT_HAND) ? "RightHand" : "LeftHand",
+        this.teleportParabolaHandVisible = Pointers.createPointer(PickType.Ray, {
+            joint: (_this.hand === RIGHT_HAND) ? "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" : "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
             filter: Picks.PICK_ENTITIES,
             faceAvatar: true,
             scaleWithAvatar: true,
@@ -149,11 +161,10 @@ Script.include("/~/system/libraries/controllers.js");
             accelerationAxis: accelerationAxis,
             rotateAccelerationWithAvatar: true,
             renderStates: teleportRenderStates,
-            defaultRenderStates: teleportDefaultRenderStates,
-            maxDistance: 4.0
+            defaultRenderStates: teleportDefaultRenderStates
         });
-        this.teleportParabolaHandInvisible = Pointers.createPointer(PickType.Parabola, {
-            joint: (_this.hand === RIGHT_HAND) ? "RightHand" : "LeftHand",
+        this.teleportParabolaHandInvisible = Pointers.createPointer(PickType.Ray, {
+            joint: (_this.hand === RIGHT_HAND) ? "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" : "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
             filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_INVISIBLE,
             faceAvatar: true,
             scaleWithAvatar: true,
@@ -161,10 +172,9 @@ Script.include("/~/system/libraries/controllers.js");
             speed: speed,
             accelerationAxis: accelerationAxis,
             rotateAccelerationWithAvatar: true,
-            renderStates: teleportRenderStates,
-            maxDistance: 4.0
+            renderStates: teleportRenderStates
         });
-        this.teleportParabolaHeadVisible = Pointers.createPointer(PickType.Parabola, {
+        this.teleportParabolaHeadVisible = Pointers.createPointer(PickType.Ray, {
             joint: "Avatar",
             filter: Picks.PICK_ENTITIES,
             faceAvatar: true,
@@ -174,10 +184,9 @@ Script.include("/~/system/libraries/controllers.js");
             accelerationAxis: accelerationAxis,
             rotateAccelerationWithAvatar: true,
             renderStates: teleportRenderStates,
-            defaultRenderStates: teleportDefaultRenderStates,
-            maxDistance: 4.0
+            defaultRenderStates: teleportDefaultRenderStates
         });
-        this.teleportParabolaHeadInvisible = Pointers.createPointer(PickType.Parabola, {
+        this.teleportParabolaHeadInvisible = Pointers.createPointer(PickType.Ray, {
             joint: "Avatar",
             filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_INVISIBLE,
             faceAvatar: true,
@@ -186,8 +195,7 @@ Script.include("/~/system/libraries/controllers.js");
             speed: speed,
             accelerationAxis: accelerationAxis,
             rotateAccelerationWithAvatar: true,
-            renderStates: teleportRenderStates,
-            maxDistance: 4.0
+            renderStates: teleportRenderStates
         });
 
         this.cleanup = function() {
