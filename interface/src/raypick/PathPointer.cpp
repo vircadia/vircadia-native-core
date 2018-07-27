@@ -79,8 +79,6 @@ void PathPointer::setLockEndUUID(const QUuid& objectID, const bool isOverlay, co
     });
 }
 
-#include "ParabolaPick.h"
-
 PickResultPointer PathPointer::getVisualPickResult(const PickResultPointer& pickResult) {
     PickResultPointer visualPickResult = pickResult;
     glm::vec3 origin = getPickOrigin(pickResult);

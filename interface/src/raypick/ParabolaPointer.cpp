@@ -62,12 +62,12 @@ void ParabolaPointer::editRenderStatePath(const std::string& state, const QVaria
     }
 }
 
-glm::vec3 ParabolaPointer::getPickOrigin(const PickResultPointer& pickResult) {
+glm::vec3 ParabolaPointer::getPickOrigin(const PickResultPointer& pickResult) const {
     auto parabolaPickResult = std::static_pointer_cast<ParabolaPickResult>(pickResult);
-    return (parabolaPickResult ? vec3FromVariant(parabolaPickResult->pickVariant["origin"]) : glm::vec3());
+    return (parabolaPickResult ? vec3FromVariant(parabolaPickResult->pickVariant["origin"]) : glm::vec3(0.0f));
 }
 
-glm::vec3 ParabolaPointer::getPickEnd(const PickResultPointer& pickResult, float distance) {
+glm::vec3 ParabolaPointer::getPickEnd(const PickResultPointer& pickResult, float distance) const {
     auto parabolaPickResult = std::static_pointer_cast<ParabolaPickResult>(pickResult);
     if (distance > 0.0f) {
         PickParabola pick = PickParabola(parabolaPickResult->pickVariant);
@@ -77,17 +77,17 @@ glm::vec3 ParabolaPointer::getPickEnd(const PickResultPointer& pickResult, float
     }
 }
 
-glm::vec3 ParabolaPointer::getPickedObjectNormal(const PickResultPointer& pickResult) {
+glm::vec3 ParabolaPointer::getPickedObjectNormal(const PickResultPointer& pickResult) const {
     auto parabolaPickResult = std::static_pointer_cast<ParabolaPickResult>(pickResult);
-    return (parabolaPickResult ? parabolaPickResult->surfaceNormal : glm::vec3());
+    return (parabolaPickResult ? parabolaPickResult->surfaceNormal : glm::vec3(0.0f));
 }
 
-IntersectionType ParabolaPointer::getPickedObjectType(const PickResultPointer& pickResult) {
+IntersectionType ParabolaPointer::getPickedObjectType(const PickResultPointer& pickResult) const {
     auto parabolaPickResult = std::static_pointer_cast<ParabolaPickResult>(pickResult);
     return (parabolaPickResult ? parabolaPickResult->type : IntersectionType::NONE);
 }
 
-QUuid ParabolaPointer::getPickedObjectID(const PickResultPointer& pickResult) {
+QUuid ParabolaPointer::getPickedObjectID(const PickResultPointer& pickResult) const {
     auto parabolaPickResult = std::static_pointer_cast<ParabolaPickResult>(pickResult);
     return (parabolaPickResult ? parabolaPickResult->objectID : QUuid());
 }

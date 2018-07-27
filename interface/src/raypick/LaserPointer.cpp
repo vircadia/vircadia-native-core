@@ -35,12 +35,12 @@ void LaserPointer::editRenderStatePath(const std::string& state, const QVariant&
     }
 }
 
-glm::vec3 LaserPointer::getPickOrigin(const PickResultPointer& pickResult) {
+glm::vec3 LaserPointer::getPickOrigin(const PickResultPointer& pickResult) const {
     auto rayPickResult = std::static_pointer_cast<RayPickResult>(pickResult);
-    return (rayPickResult ? vec3FromVariant(rayPickResult->pickVariant["origin"]) : glm::vec3());
+    return (rayPickResult ? vec3FromVariant(rayPickResult->pickVariant["origin"]) : glm::vec3(0.0f));
 }
 
-glm::vec3 LaserPointer::getPickEnd(const PickResultPointer& pickResult, float distance) {
+glm::vec3 LaserPointer::getPickEnd(const PickResultPointer& pickResult, float distance) const {
     auto rayPickResult = std::static_pointer_cast<RayPickResult>(pickResult);
     if (distance > 0.0f) {
         PickRay pick = PickRay(rayPickResult->pickVariant);
@@ -50,17 +50,17 @@ glm::vec3 LaserPointer::getPickEnd(const PickResultPointer& pickResult, float di
     }
 }
 
-glm::vec3 LaserPointer::getPickedObjectNormal(const PickResultPointer& pickResult) {
+glm::vec3 LaserPointer::getPickedObjectNormal(const PickResultPointer& pickResult) const {
     auto rayPickResult = std::static_pointer_cast<RayPickResult>(pickResult);
-    return (rayPickResult ? rayPickResult->surfaceNormal : glm::vec3());
+    return (rayPickResult ? rayPickResult->surfaceNormal : glm::vec3(0.0f));
 }
 
-IntersectionType LaserPointer::getPickedObjectType(const PickResultPointer& pickResult) {
+IntersectionType LaserPointer::getPickedObjectType(const PickResultPointer& pickResult) const {
     auto rayPickResult = std::static_pointer_cast<RayPickResult>(pickResult);
     return (rayPickResult ? rayPickResult->type : IntersectionType::NONE);
 }
 
-QUuid LaserPointer::getPickedObjectID(const PickResultPointer& pickResult) {
+QUuid LaserPointer::getPickedObjectID(const PickResultPointer& pickResult) const {
     auto rayPickResult = std::static_pointer_cast<RayPickResult>(pickResult);
     return (rayPickResult ? rayPickResult->objectID : QUuid());
 }

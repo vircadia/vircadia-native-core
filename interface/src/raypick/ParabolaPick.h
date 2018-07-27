@@ -20,7 +20,7 @@ public:
     ParabolaPickResult(const QVariantMap& pickVariant) : PickResult(pickVariant) {}
     ParabolaPickResult(const IntersectionType type, const QUuid& objectID, float distance, float parabolicDistance, const glm::vec3& intersection, const PickParabola& parabola,
                        const glm::vec3& surfaceNormal = glm::vec3(NAN), const QVariantMap& extraInfo = QVariantMap()) :
-        PickResult(parabola.toVariantMap()), type(type), intersects(type != NONE), objectID(objectID), distance(distance), parabolicDistance(parabolicDistance), intersection(intersection), surfaceNormal(surfaceNormal), extraInfo(extraInfo) {
+        PickResult(parabola.toVariantMap()), extraInfo(extraInfo), objectID(objectID), intersection(intersection), surfaceNormal(surfaceNormal), type(type), distance(distance), parabolicDistance(parabolicDistance), intersects(type != NONE) {
     }
 
     ParabolaPickResult(const ParabolaPickResult& parabolaPickResult) : PickResult(parabolaPickResult.pickVariant) {
@@ -34,14 +34,14 @@ public:
         extraInfo = parabolaPickResult.extraInfo;
     }
 
-    IntersectionType type { NONE };
-    bool intersects { false };
+    QVariantMap extraInfo;
     QUuid objectID;
-    float distance { FLT_MAX };
-    float parabolicDistance { FLT_MAX };
     glm::vec3 intersection { NAN };
     glm::vec3 surfaceNormal { NAN };
-    QVariantMap extraInfo;
+    IntersectionType type { NONE };
+    float distance { FLT_MAX };
+    float parabolicDistance { FLT_MAX };
+    bool intersects { false };
 
     virtual QVariantMap toVariantMap() const override {
         QVariantMap toReturn;

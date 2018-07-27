@@ -121,11 +121,11 @@ protected:
     Pointer::Buttons getPressedButtons(const PickResultPointer& pickResult) override;
 
     PickResultPointer getVisualPickResult(const PickResultPointer& pickResult) override;
-    virtual glm::vec3 getPickOrigin(const PickResultPointer& pickResult) = 0;
-    virtual glm::vec3 getPickEnd(const PickResultPointer& pickResult, float distance = 0.0f) = 0;
-    virtual glm::vec3 getPickedObjectNormal(const PickResultPointer& pickResult) = 0;
-    virtual IntersectionType getPickedObjectType(const PickResultPointer& pickResult) = 0;
-    virtual QUuid getPickedObjectID(const PickResultPointer& pickResult) = 0;
+    virtual glm::vec3 getPickOrigin(const PickResultPointer& pickResult) const = 0;
+    virtual glm::vec3 getPickEnd(const PickResultPointer& pickResult, float distance = 0.0f) const = 0;
+    virtual glm::vec3 getPickedObjectNormal(const PickResultPointer& pickResult) const = 0;
+    virtual IntersectionType getPickedObjectType(const PickResultPointer& pickResult) const = 0;
+    virtual QUuid getPickedObjectID(const PickResultPointer& pickResult) const = 0;
     virtual void setVisualPickResultInternal(PickResultPointer pickResult, IntersectionType type, const QUuid& id,
                                              const glm::vec3& intersection, float distance, const glm::vec3& surfaceNormal) = 0;
 

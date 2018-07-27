@@ -101,11 +101,11 @@ public:
 protected:
     void editRenderStatePath(const std::string& state, const QVariant& pathProps) override;
 
-    glm::vec3 getPickOrigin(const PickResultPointer& pickResult) override;
-    glm::vec3 getPickEnd(const PickResultPointer& pickResult, float distance) override;
-    glm::vec3 getPickedObjectNormal(const PickResultPointer& pickResult) override;
-    IntersectionType getPickedObjectType(const PickResultPointer& pickResult) override;
-    QUuid getPickedObjectID(const PickResultPointer& pickResult) override;
+    glm::vec3 getPickOrigin(const PickResultPointer& pickResult) const override;
+    glm::vec3 getPickEnd(const PickResultPointer& pickResult, float distance) const override;
+    glm::vec3 getPickedObjectNormal(const PickResultPointer& pickResult) const override;
+    IntersectionType getPickedObjectType(const PickResultPointer& pickResult) const override;
+    QUuid getPickedObjectID(const PickResultPointer& pickResult) const override;
     void setVisualPickResultInternal(PickResultPointer pickResult, IntersectionType type, const QUuid& id,
                                      const glm::vec3& intersection, float distance, const glm::vec3& surfaceNormal) override;
 
