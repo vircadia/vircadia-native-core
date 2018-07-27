@@ -58,13 +58,13 @@ PickResultPointer ParabolaPick::getHUDIntersection(const PickParabola& pick) {
 }
 
 float ParabolaPick::getSpeed() const {
-    return _scaleWithAvatar ? DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale() * _speed : _speed;
+    return (_scaleWithAvatar ? DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale() * _speed : _speed);
 }
 
 glm::vec3 ParabolaPick::getAcceleration() const {
-    float scale = _scaleWithAvatar ? DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale() : 1.0f;
+    float scale = (_scaleWithAvatar ? DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale() : 1.0f);
     if (_rotateAccelerationWithAvatar) {
-        return scale * DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldOrientation() * _accelerationAxis;
+        return scale * (DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldOrientation() * _accelerationAxis);
     }
     return scale * _accelerationAxis;
 }
