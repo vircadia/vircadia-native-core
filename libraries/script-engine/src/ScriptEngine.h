@@ -71,6 +71,15 @@ public:
     //bool forceRedownload;
 };
 
+struct EntityScriptContentAvailable {
+    EntityItemID entityID;
+    QString scriptOrURL;
+    QString contents;
+    bool isURL;
+    bool success;
+    QString status;
+};
+
 typedef QList<CallbackData> CallbackList;
 typedef QHash<QString, CallbackList> RegisteredEventHandlers;
 
@@ -762,6 +771,7 @@ protected:
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
     QHash<QString, EntityItemID> _occupiedScriptURLs;
     QList<DeferredLoadEntity> _deferredEntityLoads;
+    QMap<EntityItemID, EntityScriptContentAvailable> _contentAvailableQueue;
 
     bool _isThreaded { false };
     QScriptEngineDebugger* _debugger { nullptr };
