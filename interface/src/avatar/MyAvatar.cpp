@@ -726,16 +726,18 @@ void MyAvatar::simulate(float deltaTime) {
                         properties.setQueryAACubeDirty();
                         properties.setLastEdited(now);
 
-                        packetSender->queueEditEntityMessage(PacketType::EntityEdit, entityTree, entity->getID(), properties);
+                        packetSender->queueEditEntityMessage(PacketType::EntityEdit, entityTree,
+                                                             entity->getID(), properties);
                         entity->setLastBroadcast(usecTimestampNow());
 
                         entity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
-                            EntityItemPointer entityDescendant = std::static_pointer_cast<EntityItem>(descendant);
-                            if (!entityDescendant->getClientOnly() && descendant->updateQueryAACube()) {
+                            EntityItemPointer entityDescendant = std::dynamic_pointer_cast<EntityItem>(descendant);
+                            if (entityDescendant && !entityDescendant->getClientOnly() && descendant->updateQueryAACube()) {
                                 EntityItemProperties descendantProperties;
                                 descendantProperties.setQueryAACube(descendant->getQueryAACube());
                                 descendantProperties.setLastEdited(now);
-                                packetSender->queueEditEntityMessage(PacketType::EntityEdit, entityTree, entityDescendant->getID(), descendantProperties);
+                                packetSender->queueEditEntityMessage(PacketType::EntityEdit, entityTree,
+                                                                     entityDescendant->getID(), descendantProperties);
                                 entityDescendant->setLastBroadcast(now); // for debug/physics status icons
                             }
                         });
