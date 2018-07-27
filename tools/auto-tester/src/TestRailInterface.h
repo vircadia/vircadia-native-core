@@ -38,6 +38,7 @@ public:
     QDomElement processTest(const QString& fullDirectory, const QString& test, const QString& user, const QString& branch, const QDomElement& element);
 
     void createTestRailDotPyScript(const QString& outputDirectory);
+    void createStackDotPyScript(const QString& outputDirectory);
     void requestDataFromUser();
     void createAddSectionsPythonScript(const QString& outputDirectory);
 
@@ -49,6 +50,7 @@ private:
     QString _url;
     QString _user;
     QString _password;
+    int _project;
 };
 
 #endif

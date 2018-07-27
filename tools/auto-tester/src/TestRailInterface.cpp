@@ -28,9 +28,9 @@ TestRailInterface::TestRailInterface() {
     _testRailSelectorWindow.setProject(24);
 }
 
+// Creates the testrail.py script
+// This is the file linked to from http://docs.gurock.com/testrail-api2/bindings-python
 void TestRailInterface::createTestRailDotPyScript(const QString& outputDirectory) {
-    // Create the testrail.py script
-    // This is the file linked to from http://docs.gurock.com/testrail-api2/bindings-python
     QFile file(outputDirectory + "/testrail.py");
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
@@ -135,6 +135,46 @@ void TestRailInterface::createTestRailDotPyScript(const QString& outputDirectory
     file.close();
 }
 
+// Creates a Stack class
+void TestRailInterface::createStackDotPyScript(const QString& outputDirectory) {
+    QFile file(outputDirectory + "/stack.py");
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not create \'stack.py\'");
+        exit(-1);
+    }
+
+    QTextStream stream(&file);
+
+    stream << "class Stack:\n";
+
+    stream << "\tdef __init__(self):\n";
+    stream << "\t\tself.items = []\n";
+    stream << "\n";
+
+    stream << "\tdef isEmpty(self):\n";
+    stream << "\t\treturn self.items == []\n";
+    stream << "\n";
+
+    stream << "\tdef push(self, item):\n";
+    stream << "\t\tself.items.append(item)\n";
+    stream << "\n";
+
+    stream << "\tdef pop(self):\n";
+    stream << "\t\treturn self.items.pop()\n";
+    stream << "\n";
+
+    stream << "\tdef peek(self):\n";
+    stream << "\t\treturn self.items[len(self.items)-1]\n";
+    stream << "\n";
+
+    stream << "\tdef size(self):\n";
+    stream << "\t\treturn len(self.items)\n";
+    stream << "\n";
+
+    file.close();
+}
+
 void TestRailInterface::requestDataFromUser() {
     _testRailSelectorWindow.exec();
 
@@ -145,6 +185,7 @@ void TestRailInterface::requestDataFromUser() {
     _url = _testRailSelectorWindow.getURL();
     _user = _testRailSelectorWindow.getUser();
     _password = _testRailSelectorWindow.getPassword();
+    _project = _testRailSelectorWindow.getProject();
 }
 
 void TestRailInterface::createAddSectionsPythonScript(const QString& outputDirectory) {
@@ -163,9 +204,12 @@ void TestRailInterface::createAddSectionsPythonScript(const QString& outputDirec
     stream << "client.user = \'" << _user << "\'\n";
     stream << "client.password = \'" << _password << "\'\n\n";
 
+
     // top-level section
     stream << "data = { \'name\': \'"
            << "Test Suite - " << QDateTime::currentDateTime().toString("yyyy-MM-ddTHH:mm") << "\'}\n";
+
+    stream << "section = client.send_post(\'add_section/\' + str(" << QString::number(_project) << "), data)";
 
     file.close();
 }
@@ -176,6 +220,7 @@ void TestRailInterface::createTestSuitePython(const QString& testDirectory,
                                               const QString& branch) {
     
     createTestRailDotPyScript(outputDirectory);
+    createStackDotPyScript(outputDirectory);
     requestDataFromUser();
     createAddSectionsPythonScript(outputDirectory);
  }
