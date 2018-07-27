@@ -955,6 +955,30 @@ public:
      */
     Q_INVOKABLE bool getFlyingEnabled();
 
+    /**jsdoc
+     * @function MyAvatar.setFlyingDesktopPref
+     * @param {boolean} enabled
+     */
+    Q_INVOKABLE void setFlyingDesktopPref(bool enabled);
+
+    /**jsdoc
+     * @function MyAvatar.getFlyingDesktopPref
+     * @returns {boolean}
+     */
+    Q_INVOKABLE bool getFlyingDesktopPref();
+
+    /**jsdoc
+     * @function MyAvatar.setFlyingDesktopPref
+     * @param {boolean} enabled
+     */
+    Q_INVOKABLE void setFlyingHMDPref(bool enabled);
+
+    /**jsdoc
+     * @function MyAvatar.getFlyingDesktopPref
+     * @returns {boolean}
+     */
+    Q_INVOKABLE bool getFlyingHMDPref();
+
 
     /**jsdoc
      * @function MyAvatar.getAvatarScale
@@ -1505,6 +1529,8 @@ private:
     std::bitset<MAX_DRIVE_KEYS> _disabledDriveKeys;
 
     bool _enableFlying { false };
+    bool _flyingPrefDesktop { true };
+    bool _flyingPrefHMD { false };
     bool _wasPushing { false };
     bool _isPushing { false };
     bool _isBeingPushed { false };
