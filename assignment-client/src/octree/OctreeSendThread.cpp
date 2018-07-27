@@ -195,7 +195,6 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
             // actually send it
             OctreeServer::didCallWriteDatagram(this);
             DependencyManager::get<NodeList>()->sendUnreliablePacket(statsPacket, *node);
-            _lastSequenceNumber = (decltype(_lastSequenceNumber)) statsPacket.getSequenceNumber();
         } else {
             // not enough room in the packet, send two packets
 
@@ -232,7 +231,6 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
             // second packet
             OctreeServer::didCallWriteDatagram(this);
             DependencyManager::get<NodeList>()->sendUnreliablePacket(sentPacket, *node);
-            _lastSequenceNumber = (decltype(_lastSequenceNumber)) sentPacket.getSequenceNumber();
 
             numBytes = sentPacket.getDataSize();
             _totalBytes += numBytes;
@@ -266,7 +264,6 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
             OctreeServer::didCallWriteDatagram(this);
             NLPacket& sentPacket = nodeData->getPacket();
             DependencyManager::get<NodeList>()->sendUnreliablePacket(sentPacket, *node);
-            _lastSequenceNumber = (decltype(_lastSequenceNumber)) sentPacket.getSequenceNumber();
 
             int numBytes = sentPacket.getDataSize();
             _totalBytes += numBytes;

@@ -174,7 +174,7 @@ bool EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
         // Send EntityQueryInitialResultsComplete reliable packet ...
         auto initialCompletion = NLPacket::create(PacketType::EntityQueryInitialResultsComplete, -1, true);
         QDataStream initialCompletionStream(initialCompletion.get());
-        initialCompletionStream << _lastSequenceNumber;
+        initialCompletionStream << OCTREE_PACKET_SEQUENCE(nodeData->getSequenceNumber() - 1U);
         DependencyManager::get<NodeList>()->sendPacket(std::move(initialCompletion), *node.data());
     }
 

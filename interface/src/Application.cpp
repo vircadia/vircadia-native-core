@@ -5476,8 +5476,9 @@ void Application::update(float deltaTime) {
         // for nearby entities before starting bullet up.
         quint64 now = usecTimestampNow();
         const int PHYSICS_CHECK_TIMEOUT = 2 * USECS_PER_SECOND;
-
-        if (now - _lastPhysicsCheckTime > PHYSICS_CHECK_TIMEOUT || _fullSceneReceivedCounter > _fullSceneCounterAtLastPhysicsCheck) {
+        auto entityTreeRenderer = getEntities();
+        if (entityTreeRenderer && _octreeProcessor.octreeSequenceIsComplete(entityTreeRenderer->getLastOctreeMessageSequence()) ) {
+        /*if (now - _lastPhysicsCheckTime > PHYSICS_CHECK_TIMEOUT || _fullSceneReceivedCounter > _fullSceneCounterAtLastPhysicsCheck) {*/
             // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
             _lastPhysicsCheckTime = now;
             _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
@@ -6134,7 +6135,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType) {
     auto lodManager = DependencyManager::get<LODManager>();
     _octreeQuery.setOctreeSizeScale(lodManager->getOctreeSizeScale());
     _octreeQuery.setBoundaryLevelAdjust(lodManager->getBoundaryLevelAdjust());
-    _octreeQuery.setReportInitialCompletion(true);
+    _octreeQuery.setReportInitialCompletion(!_physicsEnabled);
 
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -6279,6 +6280,7 @@ void Application::clearDomainOctreeDetails() {
         _octreeServerSceneStats.clear();
     });
 
+    _octreeProcessor.resetCompletionSequenceNumber();
     // reset the model renderer
     getEntities()->clear();
 
