@@ -79,7 +79,7 @@ protected:
     int _packetsInLastWindow = 0;
     int _elementsInLastWindow = 0;
     int _entitiesInLastWindow = 0;
-    std::atomic<OCTREE_PACKET_SEQUENCE> _lastOctreeMessageSequence = 0;
+    std::atomic<OCTREE_PACKET_SEQUENCE> _lastOctreeMessageSequence;
 
 };
 

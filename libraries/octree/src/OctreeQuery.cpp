@@ -27,7 +27,7 @@ OctreeQuery::OctreeQuery(bool randomizeConnectionID) {
     }
 }
 
-const OctreeQuery::OctreeQueryFlags operator|=(OctreeQuery::OctreeQueryFlags& lhs, int rhs) {
+OctreeQuery::OctreeQueryFlags operator|=(OctreeQuery::OctreeQueryFlags& lhs, int rhs) {
     return lhs = OctreeQuery::OctreeQueryFlags(lhs | rhs);
 }
 

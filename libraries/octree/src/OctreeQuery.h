@@ -79,7 +79,7 @@ protected:
     QReadWriteLock _jsonParametersLock;
     
     enum OctreeQueryFlags : uint16_t { NoFlags = 0x0, WantInitialCompletion = 0x1 };
-    friend const OctreeQuery::OctreeQueryFlags operator|=(OctreeQuery::OctreeQueryFlags& lhs, const int rhs);
+    friend OctreeQuery::OctreeQueryFlags operator|=(OctreeQuery::OctreeQueryFlags& lhs, const int rhs);
 
     bool _hasReceivedFirstQuery { false };
     bool _reportInitialCompletion { false };
