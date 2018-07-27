@@ -37,8 +37,10 @@ private slots:
     void handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
 
 private:
+    mutable std::mutex _completionMutex;
+    using Locker = std::lock_guard<std::mutex>;
     bool _completionSequenceNumberValid { false };
-    std::atomic<int> _completionSequenceNumber { 0 };
+    int _completionSequenceNumber { 0 };
 
 };
 #endif // hifi_OctreePacketProcessor_h
