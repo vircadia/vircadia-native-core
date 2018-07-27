@@ -1043,12 +1043,12 @@ public:
     // results are in sensor frame (-z forward)
     glm::mat4 deriveBodyFromHMDSensor() const;
 
-    glm::vec3 computeCounterBalance() const;
+    glm::vec3 computeCounterBalance();
 
     // derive avatar body position and orientation from using the current HMD Sensor location in relation to the previous
     // location of the base of support of the avatar.
     // results are in sensor frame (-z foward)
-    glm::mat4 deriveBodyUsingCgModel() const;
+    glm::mat4 deriveBodyUsingCgModel();
 
     /**jsdoc
      * @function MyAvatar.isUp
