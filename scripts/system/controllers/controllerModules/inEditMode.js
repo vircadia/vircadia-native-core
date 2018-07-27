@@ -74,7 +74,9 @@ Script.include("/~/system/libraries/utils.js");
                         }));
                     }
                     Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
-                        method: "triggerClicked"
+                        method: "triggerClicked",
+                        clicked: true,
+                        rightHand: this.hand === RIGHT_HAND
                     }));
                 }
                 if (this.selectedTarget.type === Picks.INTERSECTED_ENTITY) {
@@ -95,7 +97,9 @@ Script.include("/~/system/libraries/utils.js");
             } else {
                 if (this.triggerClicked) {
                     Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
-                        method: "triggerUnClicked"
+                        method: "triggerClicked",
+                        clicked: false,
+                        rightHand: this.hand === RIGHT_HAND
                     }));
                 }
                 

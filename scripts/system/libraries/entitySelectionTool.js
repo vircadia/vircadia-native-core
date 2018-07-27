@@ -68,9 +68,11 @@ SelectionManager = (function() {
                 that.pointingAtTabletLeft = messageParsed.tablet;
             }
         } else if (messageParsed.method === "triggerClicked") {
-            that.triggerClicked = true;
-        } else if (messageParsed.method === "triggerUnClicked") {
-            that.triggerClicked = false;
+            if (messageParsed.rightHand) {
+                that.triggerClickedRight = messageParsed.clicked;
+            } else {
+                that.triggerClickedLeft = messageParsed.clicked;
+            }
         }
     }
 
@@ -114,7 +116,8 @@ SelectionManager = (function() {
     that.pointingAtTabletLeft = false;
     that.pointingAtTabletRight = false;
     
-    that.triggerClicked = false;
+    that.triggerClickedRight = false;
+    that.triggerClickedLeft = false;
 
     that.saveProperties = function() {
         that.savedProperties = {};
@@ -416,6 +419,8 @@ SelectionDisplay = (function() {
         YAW: 1,
         ROLL: 2
     };
+    
+    var NO_TRIGGER_HAND = -1;
 
     var spaceMode = SPACE_LOCAL;
     var overlayNames = [];
@@ -757,30 +762,47 @@ SelectionDisplay = (function() {
     // But we dont' get mousePressEvents.
     that.triggerMapping = Controller.newMapping(Script.resolvePath('') + '-click');
     Script.scriptEnding.connect(that.triggerMapping.disable);
-    that.triggered = false;
-    var activeHand = Controller.Standard.RightHand;
+    that.triggeredHand = NO_TRIGGER_HAND;
+    that.triggered = function() {
+        return that.triggeredHand !== NO_TRIGGER_HAND;
+    }
+    function triggerPress(hand)  {
+        that.triggeredHand = hand;
+        var pointingAtDesktopWindow = (hand === Controller.Standard.RightHand && 
+                                       SelectionManager.pointingAtDesktopWindowRight) ||
+                                      (hand === Controller.Standard.LeftHand && 
+                                       SelectionManager.pointingAtDesktopWindowLeft);
+        var pointingAtTablet = (hand === Controller.Standard.RightHand && SelectionManager.pointingAtTabletRight) ||
+                               (hand === Controller.Standard.LeftHand && SelectionManager.pointingAtTabletLeft);
+        if (pointingAtDesktopWindow || pointingAtTablet) {
+            return;
+        }
+        that.mousePressEvent({});
+    }
+    function triggerRelease(hand) {
+        that.triggeredHand = NO_TRIGGER_HAND;
+        that.mouseReleaseEvent({});
+        var otherTriggerClicked = hand == Controller.Standard.RightHand ? SelectionManager.triggerClickedLeft : 
+                                                                          SelectionManager.triggerClickedRight;
+        // When one hand is released check if the other hand is clicked and should then trigger a press
+        if (otherTriggerClicked) {
+            var otherHand = hand == Controller.Standard.RightHand ? Controller.Standard.LeftHand :
+                                                                    Controller.Standard.RightHand;
+            triggerPress(otherHand);
+        }
+    }
     function makeTriggerHandler(hand) {
         return function () {
-            if (!that.triggered && SelectionManager.triggerClicked) { 
-                that.triggered = true;
-                if (activeHand !== hand) {
-                    // No switching while the other is already triggered, so no need to release.
-                    activeHand = (activeHand === Controller.Standard.RightHand) ?
-                        Controller.Standard.LeftHand : Controller.Standard.RightHand;
-                }
-                var pointingAtDesktopWindow = (hand === Controller.Standard.RightHand && 
-                                               SelectionManager.pointingAtDesktopWindowRight) ||
-                                              (hand === Controller.Standard.LeftHand && 
-                                               SelectionManager.pointingAtDesktopWindowLeft);
-                var pointingAtTablet = (hand === Controller.Standard.RightHand && SelectionManager.pointingAtTabletRight) ||
-                                       (hand === Controller.Standard.LeftHand && SelectionManager.pointingAtTabletLeft);
-                if (pointingAtDesktopWindow || pointingAtTablet) {
-                    return;
-                }
-                that.mousePressEvent({});
-            } else if (that.triggered && !SelectionManager.triggerClicked) {
-                that.triggered = false;
-                that.mouseReleaseEvent({});
+            // Don't allow both hands to trigger at the same time
+            if (that.triggered() && hand !== that.triggeredHand) {
+                return;
+            }
+            var triggerClicked = hand == Controller.Standard.RightHand ? SelectionManager.triggerClickedRight : 
+                                                                         SelectionManager.triggerClickedLeft;
+            if (!that.triggered() && triggerClicked) { 
+                triggerPress(hand);
+            } else if (that.triggered() && !triggerClicked) {
+                triggerRelease(hand);
             }
         };
     }
@@ -836,7 +858,7 @@ SelectionDisplay = (function() {
         if (wantDebug) {
             print("=============== eST::MousePressEvent BEG =======================");
         }
-        if (!event.isLeftButton && !that.triggered) {
+        if (!event.isLeftButton && !that.triggered()) {
             // EARLY EXIT-(if another mouse button than left is pressed ignore it)
             return false;
         }
@@ -1082,9 +1104,9 @@ SelectionDisplay = (function() {
 
     that.checkControllerMove = function() {
         if (SelectionManager.hasSelection()) {
-            var controllerPose = getControllerWorldLocation(activeHand, true);
-            var hand = (activeHand === Controller.Standard.LeftHand) ? 0 : 1;
-            if (controllerPose.valid && lastControllerPoses[hand].valid && that.triggered) {
+            var controllerPose = getControllerWorldLocation(that.triggeredHand, true);
+            var hand = (that.triggeredHand === Controller.Standard.LeftHand) ? 0 : 1;
+            if (controllerPose.valid && lastControllerPoses[hand].valid && that.triggered()) {
                 if (!Vec3.equal(controllerPose.position, lastControllerPoses[hand].position) ||
                     !Vec3.equal(controllerPose.rotation, lastControllerPoses[hand].rotation)) {
                     that.mouseMoveEvent({});
@@ -1095,8 +1117,8 @@ SelectionDisplay = (function() {
     };
 
     function controllerComputePickRay() {
-        var controllerPose = getControllerWorldLocation(activeHand, true);
-        if (controllerPose.valid && that.triggered) {
+        var controllerPose = getControllerWorldLocation(that.triggeredHand, true);
+        if (controllerPose.valid && that.triggered()) {
             var controllerPosition = controllerPose.translation;
             // This gets point direction right, but if you want general quaternion it would be more complicated:
             var controllerDirection = Quat.getUp(controllerPose.rotation);
@@ -2246,11 +2268,11 @@ SelectionDisplay = (function() {
             }
 
             // Are we using handControllers or Mouse - only relevant for 3D tools
-            var controllerPose = getControllerWorldLocation(activeHand, true);
+            var controllerPose = getControllerWorldLocation(that.triggeredHand, true);
             var vector = null;
             var newPick = null;
             if (HMD.isHMDAvailable() && HMD.isHandControllerAvailable() && 
-                    controllerPose.valid && that.triggered && directionFor3DStretch) {
+                    controllerPose.valid && that.triggered() && directionFor3DStretch) {
                 localDeltaPivot = deltaPivot3D;
                 newPick = pickRay.origin;
                 vector = Vec3.subtract(newPick, lastPick3D);
