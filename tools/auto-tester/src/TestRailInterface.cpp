@@ -31,13 +31,17 @@ TestRailInterface::TestRailInterface() {
     _testRailSelectorWindow.setProject(1);
 }
 
+QString TestRailInterface::getObject(const QString& path) {
+    return path.right(path.length() - path.lastIndexOf("/") - 1);
+}
+
 // Creates the testrail.py script
 // This is the file linked to from http://docs.gurock.com/testrail-api2/bindings-python
 void TestRailInterface::createTestRailDotPyScript(const QString& outputDirectory) {
     QFile file(outputDirectory + "/testrail.py");
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "Could not create \'testrail.py\'");
+                              "Could not create 'testrail.py'");
         exit(-1);
     }
 
@@ -124,10 +128,10 @@ void TestRailInterface::createTestRailDotPyScript(const QString& outputDirectory
     stream << "\n";
     stream << "\t\tif e != None:\n";
     stream << "\t\t\tif result and 'error' in result:\n";
-    stream << "\t\t\t\terror = \'\"\' + result[\'error\'] + \'\"\'\n";
+    stream << "\t\t\t\terror = '\"' + result['error'] + '\"'\n";
     stream << "\t\t\telse:\n";
-    stream << "\t\t\t\terror = \'No additional error message received\'\n";
-    stream << "\t\t\traise APIError(\'TestRail API returned HTTP %s (%s)\' % \n";
+    stream << "\t\t\t\terror = 'No additional error message received'\n";
+    stream << "\t\t\traise APIError('TestRail API returned HTTP %s (%s)' % \n";
     stream << "\t\t\t\t(e.code, error))\n";
     stream << "\n";
     stream << "\t\treturn result\n";
@@ -143,7 +147,7 @@ void TestRailInterface::createStackDotPyScript(const QString& outputDirectory) {
     QFile file(outputDirectory + "/stack.py");
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "Could not create \'stack.py\'");
+                              "Could not create 'stack.py'");
         exit(-1);
     }
 
@@ -205,27 +209,27 @@ bool TestRailInterface::isAValidTestDirectory(const QString& directory) {
     return false;
 }
 
-void TestRailInterface::processDirecoryPython(const QString& directory, QTextStream& stream) {
+void TestRailInterface::processDirectoryPython(const QString& directory, QTextStream& stream) {
     // Loop over all entries in directory
     QDirIterator it(directory.toStdString().c_str());
     while (it.hasNext()) {
         QString nextDirectory = it.next();
 
-        // Only process directories
-        if (!isAValidTestDirectory(nextDirectory)) {
-            continue;
+        QString objectName = getObject(nextDirectory);
+
+        if (isAValidTestDirectory(nextDirectory)) {
+            // The name of the section is the directory at the end of the path
+            stream << "parent_id = parent_ids.peek()\n";
+            stream << "data = { 'name': '" << objectName << "', 'parent_id': parent_id }\n";
+
+            stream << "section = client.send_post('add_section/' + str(" << _project << "), data)\n";
+
+            // Now we push the parent_id, and recursively process each directory
+            stream << "parent_ids.push(section['id'])\n\n";
+            processDirectoryPython(nextDirectory, stream);
+        } else if (objectName == "test.js" || objectName == "testStory.js") {
+            processTestPython(nextDirectory, stream);
         }
-
-        // The name of the section is the directory at the end of the path
-        stream << "parent_id = parent_ids.peek()\n";
-        QString name = nextDirectory.right(nextDirectory.length() - nextDirectory.lastIndexOf("/") - 1);
-        stream << "data = { \'name\': \'" << name << "\', \'parent_id\': parent_id }\n";
-
-        stream << "section = client.send_post(\'add_section/\' + str(" << _project << "), data)\n";
-
-        // Now we push the parent_id, and recursively process each directory
-        stream << "parent_ids.push(section[\'id\'])\n\n";
-        processDirecoryPython(nextDirectory, stream);
     }
 
     // pop the parent directory before leaving
@@ -243,7 +247,7 @@ void TestRailInterface::createAddSectionsPythonScript(const QString& testDirecto
     QFile file(outputDirectory + "/addSections.py");
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "Could not create \'addSections.py\'");
+                              "Could not create 'addSections.py'");
         exit(-1);
     }
 
@@ -251,24 +255,26 @@ void TestRailInterface::createAddSectionsPythonScript(const QString& testDirecto
 
     // Code to access TestRail
     stream << "from testrail import *\n";
-    stream << "client = APIClient(\'" << _url.toStdString().c_str() << "\')\n";
-    stream << "client.user = \'" << _user << "\'\n";
-    stream << "client.password = \'" << _password << "\'\n\n";
+    stream << "client = APIClient('" << _url.toStdString().c_str() << "')\n";
+    stream << "client.user = '" << _user << "'\n";
+    stream << "client.password = '" << _password << "'\n\n";
 
     stream << "from stack import *\n";
     stream << "parent_ids = Stack()\n\n";
 
     // top-level section
-    stream << "data = { \'name\': \'"
-           << "Test Suite - " << QDateTime::currentDateTime().toString("yyyy-MM-ddTHH:mm") << "\'}\n";
+    stream << "data = { 'name': '"
+           << "Test Suite - " << QDateTime::currentDateTime().toString("yyyy-MM-ddTHH:mm") << "'}\n";
 
-    stream << "section = client.send_post(\'add_section/\' + str(" << _project << "), data)\n";
+    stream << "section = client.send_post('add_section/' + str(" << _project << "), data)\n";
 
     // Now we push the parent_id, and recursively process each directory
-    stream << "parent_ids.push(section[\'id\'])\n\n";
-    processDirecoryPython(testDirectory, stream);
+    stream << "parent_ids.push(section['id'])\n\n";
+    processDirectoryPython(testDirectory, stream);
 
     file.close();
+
+    QMessageBox::information(0, "Success", "TestRail Python script has been created");
 }
 
 void TestRailInterface::createTestSuitePython(const QString& testDirectory,
@@ -332,7 +338,7 @@ QDomElement TestRailInterface::processDirectoryXML(const QString& directory, con
          QString nextDirectory = it.next();
 
        // The object name appears after the last slash (we are assured there is at least 1).
-        QString objectName = nextDirectory.right(nextDirectory.length() - nextDirectory.lastIndexOf("/") - 1);
+         QString objectName = getObject(nextDirectory);
 
         // Only process directories
         if (isAValidTestDirectory(nextDirectory)) {
@@ -352,7 +358,7 @@ QDomElement TestRailInterface::processDirectoryXML(const QString& directory, con
             QDomElement sectionElementName = _document.createElement("name");
             sectionElementName.appendChild(_document.createTextNode("all"));
             sectionElement.appendChild(sectionElementName);
-            sectionElement.appendChild(processTest(nextDirectory, objectName, user, branch, _document.createElement("cases")));
+            sectionElement.appendChild(processTestXML(nextDirectory, objectName, user, branch, _document.createElement("cases")));
             result.appendChild(sectionElement);
         }
     }
@@ -360,7 +366,7 @@ QDomElement TestRailInterface::processDirectoryXML(const QString& directory, con
     return result;
 }
 
-QDomElement TestRailInterface::processTest(const QString& fullDirectory, const QString& test, const QString& user, const QString& branch, const QDomElement& element) {
+QDomElement TestRailInterface::processTestXML(const QString& fullDirectory, const QString& test, const QString& user, const QString& branch, const QDomElement& element) {
     QDomElement result = element;
    
     QDomElement caseElement = _document.createElement("case");
@@ -470,4 +476,35 @@ QDomElement TestRailInterface::processTest(const QString& fullDirectory, const Q
     result.appendChild(caseElement);
  
     return result;
+}
+
+void TestRailInterface::processTestPython(const QString& fullDirectory, QTextStream& stream) {
+    // The name of the test is derived from the full path.
+    // The first term is the first word after "tests"
+    // The last word is the penultimate word
+    QStringList words = fullDirectory.split('/');
+    int i = 0;
+    while (words[i] != "tests") {
+        ++i;
+        if (i >= words.length() - 1) {
+            QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                                  "Folder \"tests\" not found  in " + fullDirectory);
+            exit(-1);
+        }
+    }
+
+    ++i;
+    QString title{ words[i] };
+    for (++i; i < words.length() - 1; ++i) {
+        title += " / " + words[i];
+    }
+
+    stream << "section_id = parent_ids.peek()\n";
+    stream << "data = {" 
+        << "'title': '" << title << "', " 
+        << "'template': '" << "Test Case (Steps)" << "', " 
+        << "'custom_preconds': '" << "Tester is in an empty region of a domain in which they have edit rights\\n\\n*Note: Press \\'n\\' to advance test script'"
+        << " }\n";
+
+    stream << "case = client.send_post('add_case/' + str(section_id), data)\n";
 }

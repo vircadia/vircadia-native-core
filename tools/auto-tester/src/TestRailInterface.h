@@ -35,17 +35,23 @@ public:
                                     const QString& branch,
                                     const QDomElement& element);
 
-    QDomElement processTest(const QString& fullDirectory, const QString& test, const QString& user, const QString& branch, const QDomElement& element);
+    QDomElement processTestXML(const QString& fullDirectory,
+                               const QString& test,
+                               const QString& user,
+                               const QString& branch,
+                               const QDomElement& element);
+
+    void processTestPython(const QString& fullDirectory, QTextStream& stream);
 
     void createTestRailDotPyScript(const QString& outputDirectory);
     void createStackDotPyScript(const QString& outputDirectory);
     void requestDataFromUser();
     void createAddSectionsPythonScript(const QString& testDirectory, const QString& outputDirectory);
 
-    void processDirecoryPython(const QString& directory, QTextStream& stream);
+    void processDirectoryPython(const QString& directory, QTextStream& stream);
 
     bool isAValidTestDirectory(const QString& directory);
-
+    QString getObject(const QString& path);
 
 private:
     QDomDocument _document;
