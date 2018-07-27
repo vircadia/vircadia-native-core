@@ -192,10 +192,14 @@ void Stats::updateStats(bool force) {
     // Third column, avatar stats
     auto myAvatar = avatarManager->getMyAvatar();
     auto rigCopy = myAvatar->getSkeletonModel();
-    auto forwardAlpha = 0.2f;//rigCopy->getRig().getFwdAlpha();
+    auto forwardAlpha = rigCopy->getRig().getFwdAlpha();
+    auto animStack = rigCopy->getRig().getAnimStack();
+    for (auto animStackIterator = animStack.begin(); animStackIterator != animStack.end(); ++animStackIterator) {
+        //animStackIterator->first
+    }
     //auto backwardAlpha = rigCopy->getRig().getBwdAlpha();
     //auto lateralAlpha = rigCopy->getRig().getLateralAlpha();
-    QString animName("anim number 1");
+    QString animName(rigCopy->getRig().getAnimation1Name());
 
     glm::vec3 avatarPos = myAvatar->getWorldPosition();
     STAT_UPDATE(position, QVector3D(avatarPos.x, avatarPos.y, avatarPos.z));
@@ -352,9 +356,12 @@ void Stats::updateStats(bool force) {
     auto config = qApp->getRenderEngine()->getConfiguration().get();
     STAT_UPDATE(engineFrameTime, (float) config->getCPURunTime());
     STAT_UPDATE(avatarSimulationTime, (float)avatarManager->getAvatarSimulationTime());
-    STAT_UPDATE(animationWeight, (float)forwardAlpha);
-    STAT_UPDATE(animationName, (QString)animName);
-    
+    STAT_UPDATE(animationWeight1, (float)forwardAlpha);
+    STAT_UPDATE(animationName1, (QString)animName);
+    STAT_UPDATE(animationWeight2, (float)forwardAlpha);
+    STAT_UPDATE(animationName2, (QString)animName);
+    STAT_UPDATE(animationWeight3, (float)forwardAlpha);
+    STAT_UPDATE(animationName3, (QString)animName);
 
     STAT_UPDATE(gpuBuffers, (int)gpu::Context::getBufferGPUCount());
     STAT_UPDATE(gpuBufferMemory, (int)BYTES_TO_MB(gpu::Context::getBufferGPUMemSize()));

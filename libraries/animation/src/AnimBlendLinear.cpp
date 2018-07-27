@@ -24,7 +24,7 @@ AnimBlendLinear::~AnimBlendLinear() {
 
 }
 
-const AnimPoseVec& AnimBlendLinear::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
+const AnimPoseVec& AnimBlendLinear::evaluate(AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
     qCDebug(animation) << "in blend linear ++++++++++++++++" << _alphaVar << ": " << _alpha;
     _alpha = animVars.lookup(_alphaVar, _alpha);
 
@@ -51,7 +51,7 @@ const AnimPoseVec& AnimBlendLinear::getPosesInternal() const {
     return _poses;
 }
 
-void AnimBlendLinear::evaluateAndBlendChildren(const AnimVariantMap& animVars, const AnimContext& context, Triggers& triggersOut, float alpha,
+void AnimBlendLinear::evaluateAndBlendChildren(AnimVariantMap& animVars, const AnimContext& context, Triggers& triggersOut, float alpha,
                                                size_t prevPoseIndex, size_t nextPoseIndex, float dt) {
     if (prevPoseIndex == nextPoseIndex) {
         // this can happen if alpha is on an integer boundary

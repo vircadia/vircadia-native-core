@@ -174,7 +174,13 @@ Item {
                         text: "Yaw: " + root.yaw.toFixed(1)
                     }
                     StatText {
-                        text: "Animation Name: " + root.animationName + " Weight: " + root.animationWeight.toFixed(1)
+                        text: "Animation1 Name: " + root.animationName1 + " Weight: " + root.animationWeight1.toFixed(1)
+                    }
+                    StatText {
+                        text: "Animation2 Name: " + root.animationName2 + " Weight: " + root.animationWeight2.toFixed(1)
+                    }
+                    StatText {
+                        text: "Animation3 Name: " + root.animationName3 + " Weight: " + root.animationWeight3.toFixed(1)
                     }
                     StatText {
                         visible: root.expanded;

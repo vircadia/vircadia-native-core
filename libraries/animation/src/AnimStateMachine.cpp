@@ -21,14 +21,22 @@ AnimStateMachine::~AnimStateMachine() {
 
 }
 
-const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
+const AnimPoseVec& AnimStateMachine::evaluate(AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
     qCDebug(animation) << "in anim state machine " << _currentState->getID() << ": " << _alpha;
+    animVars.set("Animation1", _currentState->getID());
+    _animStack[_currentState->getID()] = _alpha;
+    //setMyNum(getMyNum() + 1.0f);
+
     QString desiredStateID = animVars.lookup(_currentStateVar, _currentState->getID());
     if (_currentState->getID() != desiredStateID) {
         // switch states
         bool foundState = false;
         for (auto& state : _states) {
             if (state->getID() == desiredStateID) {
+                if (_animStack.count(_currentState->getID()) > 0) {
+                    _animStack.erase(_currentState->getID());
+                }
+                _animStack[desiredStateID] = _alpha;
                 switchState(animVars, context, state);
                 foundState = true;
                 break;
@@ -92,7 +100,7 @@ void AnimStateMachine::addState(State::Pointer state) {
     _states.push_back(state);
 }
 
-void AnimStateMachine::switchState(const AnimVariantMap& animVars, const AnimContext& context, State::Pointer desiredState) {
+void AnimStateMachine::switchState(AnimVariantMap& animVars, const AnimContext& context, State::Pointer desiredState) {
 
     const float FRAMES_PER_SECOND = 30.0f;
 

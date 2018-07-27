@@ -74,13 +74,16 @@ public:
 
     AnimSkeleton::ConstPointer getSkeleton() const { return _skeleton; }
 
-    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) = 0;
-    virtual const AnimPoseVec& overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut,
+    virtual const AnimPoseVec& evaluate(AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) = 0;
+    virtual const AnimPoseVec& overlay(AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut,
                                        const AnimPoseVec& underPoses) {
         return evaluate(animVars, context, dt, triggersOut);
     }
 
     void setCurrentFrame(float frame);
+    const int getMyNum() { return _myNum; }
+    void setMyNum(float num) { _myNum = num; }
+    const std::map<QString, float> getAnimStack() { return _animStack; }
 
     template <typename F>
     bool traverse(F func) {
@@ -119,6 +122,10 @@ protected:
     std::vector<AnimNode::Pointer> _children;
     AnimSkeleton::ConstPointer _skeleton;
     std::weak_ptr<AnimNode> _parent;
+
+    //global available to rig
+    static float _myNum;
+    static std::map<QString, float> _animStack;
 
     // no copies
     AnimNode(const AnimNode&) = delete;

@@ -221,6 +221,8 @@ public:
     const float getFwdAlpha() const { return _fwdAlpha; }
     const float getBwdAlpha() const { return _bwdAlpha; }
     const float getLateralAlpha() { return _lateralAlpha; }
+    const QString getAnimation1Name() { return _animationName1; }
+    const std::map<QString, float> getAnimStack() { return _animNode->getAnimStack(); }
 
 signals:
     void onLoadComplete();
@@ -299,6 +301,7 @@ protected:
     float _fwdAlpha { 0.0f };
     float _bwdAlpha { 0.0f };
     float _lateralAlpha { 0.0f };
+    QString _animationName1 { "none" };
     enum class RigRole {
         Idle = 0,
         Turn,

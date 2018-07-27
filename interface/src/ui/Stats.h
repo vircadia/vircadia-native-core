@@ -135,8 +135,12 @@ private: \
  * @property {number} batchFrameTime - <em>Read-only.</em>
  * @property {number} engineFrameTime - <em>Read-only.</em>
  * @property {number} avatarSimulationTime - <em>Read-only.</em>
- * @property {number} animationWeight - <em>Read-only.</em>
- * @property {number} animationName - <em>Read-only.</em>
+ * @property {number} animationWeight1 - <em>Read-only.</em>
+ * @property {number} animationName1 - <em>Read-only.</em>
+ * @property {number} animationWeight2 - <em>Read-only.</em>
+ * @property {number} animationName2 - <em>Read-only.</em>
+ * @property {number} animationWeight3 - <em>Read-only.</em>
+ * @property {number} animationName3 - <em>Read-only.</em>
  *
  *
  * @property {number} x
@@ -284,8 +288,12 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(float, batchFrameTime, 0)
     STATS_PROPERTY(float, engineFrameTime, 0)
     STATS_PROPERTY(float, avatarSimulationTime, 0)
-    STATS_PROPERTY(float, animationWeight, 0)
-    STATS_PROPERTY(QString, animationName, QString())
+    STATS_PROPERTY(float, animationWeight1, 0)
+    STATS_PROPERTY(QString, animationName1, QString())
+    STATS_PROPERTY(float, animationWeight2, 0)
+    STATS_PROPERTY(QString, animationName2, QString())
+    STATS_PROPERTY(float, animationWeight3, 0)
+    STATS_PROPERTY(QString, animationName3, QString())
 
 public:
     static Stats* getInstance();
@@ -1008,14 +1016,43 @@ signals:
     * @function Stats.animationWeightChanged
     * @returns {Signal}
     */
-    void animationWeightChanged();
+    void animationWeight1Changed();
 
     /**jsdoc
     * Triggered when the value of the <code>animationName</code> property changes.
     * @function Stats.animationNameChanged
     * @returns {Signal}
     */
-    void animationNameChanged();
+    void animationName1Changed();
+
+    /**jsdoc
+    * Triggered when the value of the <code>animationWeight</code> property changes.
+    * @function Stats.animationWeightChanged
+    * @returns {Signal}
+    */
+    void animationWeight2Changed();
+
+    /**jsdoc
+    * Triggered when the value of the <code>animationName</code> property changes.
+    * @function Stats.animationNameChanged
+    * @returns {Signal}
+    */
+
+    void animationName2Changed();
+    /**jsdoc
+    * Triggered when the value of the <code>animationWeight</code> property changes.
+    * @function Stats.animationWeightChanged
+    * @returns {Signal}
+    */
+
+    void animationWeight3Changed();
+
+    /**jsdoc
+    * Triggered when the value of the <code>animationName</code> property changes.
+    * @function Stats.animationNameChanged
+    * @returns {Signal}
+    */
+    void animationName3Changed();
 
     /**jsdoc
      * Triggered when the value of the <code>rectifiedTextureCount</code> property changes.

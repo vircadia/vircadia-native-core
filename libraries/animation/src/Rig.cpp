@@ -575,28 +575,6 @@ bool Rig::getAbsoluteJointPoseInRigFrame(int jointIndex, AnimPose& returnPose) c
     }
 }
 
-void Rig::calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const {
-
-    ASSERT(referenceSpeeds.size() > 0);
-
-    // calculate alpha from linear combination of referenceSpeeds.
-    float alpha = 0.0f;
-    if (speed <= referenceSpeeds.front()) {
-        alpha = 0.0f;
-    } else if (speed > referenceSpeeds.back()) {
-        alpha = (float)(referenceSpeeds.size() - 1);
-    } else {
-        for (size_t i = 0; i < referenceSpeeds.size() - 1; i++) {
-            if (referenceSpeeds[i] < speed && speed < referenceSpeeds[i + 1]) {
-                alpha = (float)i + ((speed - referenceSpeeds[i]) / (referenceSpeeds[i + 1] - referenceSpeeds[i]));
-                break;
-            }
-        }
-    }
-
-    *alphaOut = alpha;
-}
-
 void Rig::setEnableInverseKinematics(bool enable) {
     _enableInverseKinematics = enable;
 }
@@ -1032,6 +1010,8 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
         AnimNode::Triggers triggersOut;
 
         _internalPoseSet._relativePoses = _animNode->evaluate(_animVars, context, deltaTime, triggersOut);
+        _fwdAlpha = _animNode->getMyNum();
+        _animationName1 = _animVars.lookup("Animation1", _animationName1);
         if ((int)_internalPoseSet._relativePoses.size() != _animSkeleton->getNumJoints()) {
             // animations haven't fully loaded yet.
             _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();

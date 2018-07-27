@@ -46,8 +46,9 @@ static float calculateAlpha(const float speed, const std::vector<float>& charact
     return alpha;
 }
 
-const AnimPoseVec& AnimBlendLinearMove::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
+const AnimPoseVec& AnimBlendLinearMove::evaluate(AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
     qCDebug(animation) << "in blend linear move " << _alphaVar << ": " << _alpha;
+    setMyNum(getMyNum() + 1.0f);
     assert(_children.size() == _characteristicSpeeds.size());
 
     _desiredSpeed = animVars.lookup(_desiredSpeedVar, _desiredSpeed);
@@ -92,7 +93,7 @@ const AnimPoseVec& AnimBlendLinearMove::getPosesInternal() const {
     return _poses;
 }
 
-void AnimBlendLinearMove::evaluateAndBlendChildren(const AnimVariantMap& animVars, const AnimContext& context, Triggers& triggersOut, float alpha,
+void AnimBlendLinearMove::evaluateAndBlendChildren(AnimVariantMap& animVars, const AnimContext& context, Triggers& triggersOut, float alpha,
                                                    size_t prevPoseIndex, size_t nextPoseIndex,
                                                    float prevDeltaTime, float nextDeltaTime) {
     if (prevPoseIndex == nextPoseIndex) {

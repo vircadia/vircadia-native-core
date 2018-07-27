@@ -874,7 +874,7 @@ void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, co
 }
 
 //virtual
-const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimNode::Triggers& triggersOut) {
+const AnimPoseVec& AnimInverseKinematics::evaluate(AnimVariantMap& animVars, const AnimContext& context, float dt, AnimNode::Triggers& triggersOut) {
     qCDebug(animation) << "in animation ik node";
     // don't call this function, call overlay() instead
     assert(false);
@@ -882,7 +882,7 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
 }
 
 //virtual
-const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
+const AnimPoseVec& AnimInverseKinematics::overlay(AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
 #ifdef Q_OS_ANDROID
     // disable IK on android
     return underPoses;

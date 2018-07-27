@@ -32,12 +32,12 @@ AnimManipulator::~AnimManipulator() {
 
 }
 
-const AnimPoseVec& AnimManipulator::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
+const AnimPoseVec& AnimManipulator::evaluate(AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
     qCDebug(animation) << "in anim manipulator node";
     return overlay(animVars, context, dt, triggersOut, _skeleton->getRelativeDefaultPoses());
 }
 
-const AnimPoseVec& AnimManipulator::overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
+const AnimPoseVec& AnimManipulator::overlay(AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
     _alpha = animVars.lookup(_alphaVar, _alpha);
 
     _poses = underPoses;
