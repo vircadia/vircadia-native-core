@@ -325,7 +325,7 @@ Script.include("/~/system/libraries/controllers.js");
             } else if (target === TARGET.SURFACE) {
                 var offset = getAvatarFootOffset();
                 result.intersection.y += offset;
-                MyAvatar.goToLocation(result.intersection, false, {x: 0, y: 0, z: 0, w: 1}, false);
+                MyAvatar.goToLocation(result.intersection, true, HMD.orientation, false);
                 HMD.centerUI();
                 MyAvatar.centerBody();
             }
