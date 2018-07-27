@@ -58,5 +58,5 @@ void TestRailSelectorWindow::setProject(const int project) {
 }
 
 int TestRailSelectorWindow::getProject() {
-    return projectLineEdit->getText().toInt();
+    return projectLineEdit->text().toInt();
 }

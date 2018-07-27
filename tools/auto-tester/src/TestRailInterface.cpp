@@ -23,6 +23,9 @@ TestRailInterface::TestRailInterface() {
 
     _testRailSelectorWindow.setURL("https://highfidelity.testrail.net/");
     _testRailSelectorWindow.setUser("@highfidelity.io");
+
+    // 24 is the HighFidelity Interface project id in TestRail
+    _testRailSelectorWindow.setProject(24);
 }
 
 void TestRailInterface::createTestRailDotPyScript(const QString& outputDirectory) {
