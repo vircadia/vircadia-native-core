@@ -1281,7 +1281,8 @@ void MyAvatar::loadData() {
         settings.remove("avatarEntityData");
     }
     setAvatarEntityDataChanged(true);
-    setFlyingEnabled(settings.value("enabledFlying").toBool());
+    Setting::Handle<bool> firstRunVal { Settings::firstRun, true };
+    setFlyingEnabled(firstRunVal.get() ? getFlyingEnabled() : settings.value("enabledFlying").toBool());
     setDisplayName(settings.value("displayName").toString());
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
     setSnapTurn(settings.value("useSnapTurn", _useSnapTurn).toBool());
@@ -1607,14 +1608,16 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     emit skeletonModelURLChanged();
 }
 
-void MyAvatar::removeAvatarEntities() {
+void MyAvatar::removeAvatarEntities(const std::function<bool(const QUuid& entityID)>& condition) {
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (entityTree) {
         entityTree->withWriteLock([&] {
             AvatarEntityMap avatarEntities = getAvatarEntityData();
             for (auto entityID : avatarEntities.keys()) {
-                entityTree->deleteEntity(entityID, true, true);
+                if (!condition || condition(entityID)) {
+                    entityTree->deleteEntity(entityID, true, true);
+                }
             }
         });
     }

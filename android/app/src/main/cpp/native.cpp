@@ -162,7 +162,19 @@ JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnCrea
         jvmArgs.version = JNI_VERSION_1_6; // choose your JNI version
         jvmArgs.name = NULL; // you might want to give the java thread a name
         jvmArgs.group = NULL; // you might want to assign the java thread to a ThreadGroup
-        jvm->AttachCurrentThread(reinterpret_cast<JNIEnv **>(&myNewEnv), &jvmArgs);
+
+        int attachedHere = 0; // know if detaching at the end is necessary
+        jint res = jvm->GetEnv((void**)&myNewEnv, JNI_VERSION_1_6); // checks if current env needs attaching or it is already attached
+        if (JNI_OK != res) {
+            qDebug() << "[JCRASH] GetEnv env not attached yet, attaching now..";
+            res = jvm->AttachCurrentThread(reinterpret_cast<JNIEnv **>(&myNewEnv), &jvmArgs);
+            if (JNI_OK != res) {
+                qDebug() << "[JCRASH] Failed to AttachCurrentThread, ErrorCode = " << res;
+                return;
+            } else {
+                attachedHere = 1;
+            }
+        }
 
         QAndroidJniObject string = QAndroidJniObject::fromString(a);
         jboolean jBackToScene = (jboolean) backToScene;
@@ -175,7 +187,9 @@ JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnCrea
             myNewEnv->CallObjectMethod(hashmap, mapClassPut, QAndroidJniObject::fromString("url").object<jstring>(), jArg.object<jstring>());
         }
         __interfaceActivity.callMethod<void>("openAndroidActivity", "(Ljava/lang/String;ZLjava/util/HashMap;)V", string.object<jstring>(), jBackToScene, hashmap);
-        jvm->DetachCurrentThread();
+        if (attachedHere) {
+            jvm->DetachCurrentThread();
+        }
     });
 
     QObject::connect(&AndroidHelper::instance(), &AndroidHelper::hapticFeedbackRequested, [](int duration) {

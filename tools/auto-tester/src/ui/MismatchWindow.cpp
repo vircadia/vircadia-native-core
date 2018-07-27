@@ -66,14 +66,14 @@ void MismatchWindow::setTestFailure(TestFailure testFailure) {
     QPixmap expectedPixmap = QPixmap(testFailure._pathname + testFailure._expectedImageFilename);
     QPixmap actualPixmap = QPixmap(testFailure._pathname + testFailure._actualImageFilename);
 
-    diffPixmap = computeDiffPixmap(
+    _diffPixmap = computeDiffPixmap(
         QImage(testFailure._pathname + testFailure._expectedImageFilename), 
         QImage(testFailure._pathname + testFailure._actualImageFilename)
     );
 
     expectedImage->setPixmap(expectedPixmap);
     resultImage->setPixmap(actualPixmap);
-    diffImage->setPixmap(diffPixmap);
+    diffImage->setPixmap(_diffPixmap);
 }
 
 void MismatchWindow::on_passTestButton_clicked() {
@@ -92,5 +92,5 @@ void MismatchWindow::on_abortTestsButton_clicked() {
 }
 
 QPixmap MismatchWindow::getComparisonImage() {
-    return diffPixmap;
+    return _diffPixmap;
 }

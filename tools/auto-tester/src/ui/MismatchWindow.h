@@ -36,7 +36,7 @@ private slots:
 private:
     UserResponse _userResponse{ USER_RESPONSE_INVALID };
 
-    QPixmap diffPixmap;
+    QPixmap _diffPixmap;
 };
 
 
