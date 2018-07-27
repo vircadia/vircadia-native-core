@@ -5475,7 +5475,7 @@ void Application::update(float deltaTime) {
         // we haven't yet enabled physics.  we wait until we think we have all the collision information
         // for nearby entities before starting bullet up.
         quint64 now = usecTimestampNow();
-        const int PHYSICS_CHECK_TIMEOUT = 2 * USECS_PER_SECOND;
+        //const int PHYSICS_CHECK_TIMEOUT = 2 * USECS_PER_SECOND;
         auto entityTreeRenderer = getEntities();
         if (entityTreeRenderer && _octreeProcessor.octreeSequenceIsComplete(entityTreeRenderer->getLastOctreeMessageSequence()) ) {
         /*if (now - _lastPhysicsCheckTime > PHYSICS_CHECK_TIMEOUT || _fullSceneReceivedCounter > _fullSceneCounterAtLastPhysicsCheck) {*/

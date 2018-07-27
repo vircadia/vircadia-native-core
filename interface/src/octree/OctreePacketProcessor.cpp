@@ -130,8 +130,8 @@ void OctreePacketProcessor::resetCompletionSequenceNumber() {
 }
 
 namespace {
-    template<typename T> constexpr bool lessThanWraparound(int a, int b) {
-        static const int MAX_T_VALUE = std::numeric_limits<T>::max();
+    template<typename T> bool lessThanWraparound(int a, int b) {
+        constexpr int MAX_T_VALUE = std::numeric_limits<T>::max();
         if (b < a) {
             b += MAX_T_VALUE;
         }
