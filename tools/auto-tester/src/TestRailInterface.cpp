@@ -222,7 +222,14 @@ void TestRailInterface::processDirecoryPython(const QString& directory, QTextStr
         stream << "data = { \'name\': \'" << name << "\', \'parent_id\': parent_id }\n";
 
         stream << "section = client.send_post(\'add_section/\' + str(" << _project << "), data)\n";
+
+        // Now we push the parent_id, and recursively process each directory
+        stream << "parent_ids.push(section[\'id\'])\n\n";
+        processDirecoryPython(nextDirectory, stream);
     }
+
+    // pop the parent directory before leaving
+    stream << "parent_ids.pop()\n\n";
 }
 
     // A suite of TestRail test cases contains trees.
@@ -256,9 +263,9 @@ void TestRailInterface::createAddSectionsPythonScript(const QString& testDirecto
            << "Test Suite - " << QDateTime::currentDateTime().toString("yyyy-MM-ddTHH:mm") << "\'}\n";
 
     stream << "section = client.send_post(\'add_section/\' + str(" << _project << "), data)\n";
-    stream << "parent_ids.push(section[\'id\'])\n\n";
 
-    // Now recursively process each directory
+    // Now we push the parent_id, and recursively process each directory
+    stream << "parent_ids.push(section[\'id\'])\n\n";
     processDirecoryPython(testDirectory, stream);
 
     file.close();
