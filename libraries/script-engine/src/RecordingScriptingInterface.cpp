@@ -59,7 +59,7 @@ void RecordingScriptingInterface::playClip(NetworkClipLoaderPointer clipLoader, 
 
     if (callback.isFunction()) {
         QScriptValueList args { true, url };
-        callback.call(_scriptEngine->globalObject(), args);
+        callback.call(QScriptValue(), args);
     }
 }
 
@@ -78,7 +78,7 @@ void RecordingScriptingInterface::loadRecording(const QString& url, QScriptValue
     auto weakClipLoader = clipLoader.toWeakRef();
 
     // when clip loaded, call the callback with the URL and success boolean
-    connect(clipLoader.data(), &recording::NetworkClipLoader::clipLoaded, this,
+    connect(clipLoader.data(), &recording::NetworkClipLoader::clipLoaded, callback.engine(),
             [this, weakClipLoader, url, callback]() mutable {
 
         if (auto clipLoader = weakClipLoader.toStrongRef()) {
@@ -92,12 +92,12 @@ void RecordingScriptingInterface::loadRecording(const QString& url, QScriptValue
     });
 
     // when clip load fails, call the callback with the URL and failure boolean
-    connect(clipLoader.data(), &recording::NetworkClipLoader::failed, this, [this, weakClipLoader, url, callback](QNetworkReply::NetworkError error) mutable {
+    connect(clipLoader.data(), &recording::NetworkClipLoader::failed, callback.engine(), [this, weakClipLoader, url, callback](QNetworkReply::NetworkError error) mutable {
         qCDebug(scriptengine) << "Failed to load recording from" << url;
 
         if (callback.isFunction()) {
             QScriptValueList args { false, url };
-            callback.call(_scriptEngine->currentContext()->thisObject(), args);
+            callback.call(QScriptValue(), args);
         }
 
         if (auto clipLoader = weakClipLoader.toStrongRef()) {
