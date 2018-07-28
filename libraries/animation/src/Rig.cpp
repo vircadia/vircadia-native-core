@@ -1008,10 +1008,11 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
 
         // evaluate the animation
         AnimNode::Triggers triggersOut;
-
+        //clear the animation stack info
+        //_animNode->getAnimStack()->clear();
         _internalPoseSet._relativePoses = _animNode->evaluate(_animVars, context, deltaTime, triggersOut);
         _fwdAlpha = _animNode->getMyNum();
-        _animationName1 = _animVars.lookup("Animation1", _animationName1);
+        
         if ((int)_internalPoseSet._relativePoses.size() != _animSkeleton->getNumJoints()) {
             // animations haven't fully loaded yet.
             _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();

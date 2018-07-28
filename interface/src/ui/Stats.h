@@ -135,12 +135,7 @@ private: \
  * @property {number} batchFrameTime - <em>Read-only.</em>
  * @property {number} engineFrameTime - <em>Read-only.</em>
  * @property {number} avatarSimulationTime - <em>Read-only.</em>
- * @property {number} animationWeight1 - <em>Read-only.</em>
- * @property {number} animationName1 - <em>Read-only.</em>
- * @property {number} animationWeight2 - <em>Read-only.</em>
- * @property {number} animationName2 - <em>Read-only.</em>
- * @property {number} animationWeight3 - <em>Read-only.</em>
- * @property {number} animationName3 - <em>Read-only.</em>
+ * @property {string[]} animStackNames - <em>Read-only.</em>
  *
  *
  * @property {number} x
@@ -288,12 +283,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(float, batchFrameTime, 0)
     STATS_PROPERTY(float, engineFrameTime, 0)
     STATS_PROPERTY(float, avatarSimulationTime, 0)
-    STATS_PROPERTY(float, animationWeight1, 0)
-    STATS_PROPERTY(QString, animationName1, QString())
-    STATS_PROPERTY(float, animationWeight2, 0)
-    STATS_PROPERTY(QString, animationName2, QString())
-    STATS_PROPERTY(float, animationWeight3, 0)
-    STATS_PROPERTY(QString, animationName3, QString())
+    Q_PROPERTY(QStringList animStackNames READ animStackNames NOTIFY animStackNamesChanged)
 
 public:
     static Stats* getInstance();
@@ -318,6 +308,7 @@ public:
     }
 
     QStringList downloadUrls () { return _downloadUrls; }
+    QStringList animStackNames() { return _animStackNames; }
 
 public slots:
     void forceUpdateStats() { updateStats(true); }
@@ -1012,47 +1003,11 @@ signals:
     void avatarSimulationTimeChanged();
 
     /**jsdoc
-    * Triggered when the value of the <code>animationWeight</code> property changes.
-    * @function Stats.animationWeightChanged
+    * Triggered when the value of the <code>animStackNames</code> property changes.
+    * @function Stats.animStackNamesChanged
     * @returns {Signal}
     */
-    void animationWeight1Changed();
-
-    /**jsdoc
-    * Triggered when the value of the <code>animationName</code> property changes.
-    * @function Stats.animationNameChanged
-    * @returns {Signal}
-    */
-    void animationName1Changed();
-
-    /**jsdoc
-    * Triggered when the value of the <code>animationWeight</code> property changes.
-    * @function Stats.animationWeightChanged
-    * @returns {Signal}
-    */
-    void animationWeight2Changed();
-
-    /**jsdoc
-    * Triggered when the value of the <code>animationName</code> property changes.
-    * @function Stats.animationNameChanged
-    * @returns {Signal}
-    */
-
-    void animationName2Changed();
-    /**jsdoc
-    * Triggered when the value of the <code>animationWeight</code> property changes.
-    * @function Stats.animationWeightChanged
-    * @returns {Signal}
-    */
-
-    void animationWeight3Changed();
-
-    /**jsdoc
-    * Triggered when the value of the <code>animationName</code> property changes.
-    * @function Stats.animationNameChanged
-    * @returns {Signal}
-    */
-    void animationName3Changed();
+    void animStackNamesChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>rectifiedTextureCount</code> property changes.
@@ -1299,6 +1254,7 @@ private:
     QString _monospaceFont;
     const AudioIOStats* _audioStats;
     QStringList _downloadUrls = QStringList();
+    QStringList _animStackNames = QStringList();
 };
 
 #endif // hifi_Stats_h

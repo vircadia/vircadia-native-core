@@ -34,6 +34,7 @@
 #include "Util.h"
 #include "SequenceNumberStats.h"
 #include "StatTracker.h"
+#include "InterfaceLogging.h"
 
 
 HIFI_QML_DEF(Stats)
@@ -192,14 +193,17 @@ void Stats::updateStats(bool force) {
     // Third column, avatar stats
     auto myAvatar = avatarManager->getMyAvatar();
     auto rigCopy = myAvatar->getSkeletonModel();
-    auto forwardAlpha = rigCopy->getRig().getFwdAlpha();
     auto animStack = rigCopy->getRig().getAnimStack();
+    qCDebug(interfaceapp) << "Animation Stack Begin: ";
+
+    //check to see if the anim stack has changed
+    _animStackNames.clear();
     for (auto animStackIterator = animStack.begin(); animStackIterator != animStack.end(); ++animStackIterator) {
-        //animStackIterator->first
+        qCDebug(interfaceapp) << "---" << animStackIterator->first << " " << animStackIterator->second;
+        _animStackNames << animStackIterator->first + ":       " +  QString::number(animStackIterator->second);
+            //forwardAlpha = animStackIterator->second;
     }
-    //auto backwardAlpha = rigCopy->getRig().getBwdAlpha();
-    //auto lateralAlpha = rigCopy->getRig().getLateralAlpha();
-    QString animName(rigCopy->getRig().getAnimation1Name());
+    emit animStackNamesChanged();
 
     glm::vec3 avatarPos = myAvatar->getWorldPosition();
     STAT_UPDATE(position, QVector3D(avatarPos.x, avatarPos.y, avatarPos.z));
@@ -261,7 +265,6 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(downloadsPending, ResourceCache::getPendingRequestCount());
         STAT_UPDATE(processing, DependencyManager::get<StatTracker>()->getStat("Processing").toInt());
         STAT_UPDATE(processingPending, DependencyManager::get<StatTracker>()->getStat("PendingProcessing").toInt());
-        
 
         // See if the active download urls have changed
         bool shouldUpdateUrls = _downloads != _downloadUrls.size();
@@ -356,12 +359,6 @@ void Stats::updateStats(bool force) {
     auto config = qApp->getRenderEngine()->getConfiguration().get();
     STAT_UPDATE(engineFrameTime, (float) config->getCPURunTime());
     STAT_UPDATE(avatarSimulationTime, (float)avatarManager->getAvatarSimulationTime());
-    STAT_UPDATE(animationWeight1, (float)forwardAlpha);
-    STAT_UPDATE(animationName1, (QString)animName);
-    STAT_UPDATE(animationWeight2, (float)forwardAlpha);
-    STAT_UPDATE(animationName2, (QString)animName);
-    STAT_UPDATE(animationWeight3, (float)forwardAlpha);
-    STAT_UPDATE(animationName3, (QString)animName);
 
     STAT_UPDATE(gpuBuffers, (int)gpu::Context::getBufferGPUCount());
     STAT_UPDATE(gpuBufferMemory, (int)BYTES_TO_MB(gpu::Context::getBufferGPUMemSize()));

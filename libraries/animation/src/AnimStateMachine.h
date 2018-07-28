@@ -138,6 +138,7 @@ protected:
     float _alpha = 0.0f;
     AnimPoseVec _prevPoses;
     AnimPoseVec _nextPoses;
+    QString _previousStateID { "none" };
 
     State::Pointer _currentState;
     std::vector<State::Pointer> _states;

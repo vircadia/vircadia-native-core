@@ -50,6 +50,14 @@ const AnimPoseVec& AnimBlendLinearMove::evaluate(AnimVariantMap& animVars, const
     qCDebug(animation) << "in blend linear move " << _alphaVar << ": " << _alpha;
     setMyNum(getMyNum() + 1.0f);
     assert(_children.size() == _characteristicSpeeds.size());
+    const int motion1 = static_cast<int>(_alpha);
+    const int motion2 = motion1 + 1;
+    float alpha1 = _alpha - (float)motion1;
+    float alpha2 = 1.0f - alpha1;
+    _animStack[_children[motion1]->getID()] = alpha1;
+    if (motion2 < _children.size()) {
+        _animStack[_children[motion2]->getID()] = alpha2;
+    }
 
     _desiredSpeed = animVars.lookup(_desiredSpeedVar, _desiredSpeed);
 

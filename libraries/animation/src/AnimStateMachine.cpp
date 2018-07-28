@@ -23,9 +23,13 @@ AnimStateMachine::~AnimStateMachine() {
 
 const AnimPoseVec& AnimStateMachine::evaluate(AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
     qCDebug(animation) << "in anim state machine " << _currentState->getID() << ": " << _alpha;
-    animVars.set("Animation1", _currentState->getID());
-    _animStack[_currentState->getID()] = _alpha;
+    //animVars.set("Animation1", _currentState->getID());
+    
     //setMyNum(getMyNum() + 1.0f);
+    if (_currentState->getID().contains("userAnimNone")) {
+        _animStack.clear();
+    }
+    _animStack[_currentState->getID()] = _alpha;
 
     QString desiredStateID = animVars.lookup(_currentStateVar, _currentState->getID());
     if (_currentState->getID() != desiredStateID) {
@@ -33,10 +37,7 @@ const AnimPoseVec& AnimStateMachine::evaluate(AnimVariantMap& animVars, const An
         bool foundState = false;
         for (auto& state : _states) {
             if (state->getID() == desiredStateID) {
-                if (_animStack.count(_currentState->getID()) > 0) {
-                    _animStack.erase(_currentState->getID());
-                }
-                _animStack[desiredStateID] = _alpha;
+                _previousStateID = _currentState->getID();
                 switchState(animVars, context, state);
                 foundState = true;
                 break;
@@ -50,6 +51,7 @@ const AnimPoseVec& AnimStateMachine::evaluate(AnimVariantMap& animVars, const An
     // evaluate currentState transitions
     auto desiredState = evaluateTransitions(animVars);
     if (desiredState != _currentState) {
+        _previousStateID = _currentState->getID();
         switchState(animVars, context, desiredState);
     }
 
@@ -82,6 +84,10 @@ const AnimPoseVec& AnimStateMachine::evaluate(AnimVariantMap& animVars, const An
             }
         } else {
             _duringInterp = false;
+            if (_animStack.count(_previousStateID) > 0) {
+                _animStack.erase(_previousStateID);
+            }
+            _previousStateID = "none";
             _prevPoses.clear();
             _nextPoses.clear();
         }
@@ -89,6 +95,10 @@ const AnimPoseVec& AnimStateMachine::evaluate(AnimVariantMap& animVars, const An
     if (!_duringInterp) {
         _poses = currentStateNode->evaluate(animVars, context, dt, triggersOut);
     }
+    if (!_previousStateID.contains("none")) {
+        _animStack[_previousStateID] = 1.0f - _alpha;
+    }
+    _animStack[_currentState->getID()] = _alpha;
     return _poses;
 }
 

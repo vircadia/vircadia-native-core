@@ -174,13 +174,21 @@ Item {
                         text: "Yaw: " + root.yaw.toFixed(1)
                     }
                     StatText {
-                        text: "Animation1 Name: " + root.animationName1 + " Weight: " + root.animationWeight1.toFixed(1)
+                        visible: root.animStackNames.length > 0;
+                        text: "Anim Stack Names:"
                     }
-                    StatText {
-                        text: "Animation2 Name: " + root.animationName2 + " Weight: " + root.animationWeight2.toFixed(1)
-                    }
-                    StatText {
-                        text: "Animation3 Name: " + root.animationName3 + " Weight: " + root.animationWeight3.toFixed(1)
+                    ListView {
+                        width: geoCol.width
+                        height: root.animStackNames.length * 15
+
+                        visible: root.animStackNames.length > 0;
+
+                        model: root.animStackNames
+                        delegate: StatText {
+                            text: modelData.length > 30
+                                ?  modelData.substring(0, 5) + "..." + modelData.substring(modelData.length - 22)
+                                : modelData
+                        }
                     }
                     StatText {
                         visible: root.expanded;
