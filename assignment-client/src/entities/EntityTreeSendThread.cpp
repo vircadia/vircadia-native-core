@@ -170,6 +170,7 @@ bool EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
     if (sendComplete && nodeData->wantReportInitialCompletion() && _traversal.finished()) {
         // Dealt with all nearby entities.
         nodeData->setReportInitialCompletion(false);
+        resetState();
 
         // Send EntityQueryInitialResultsComplete reliable packet ...
         auto initialCompletion = NLPacket::create(PacketType::EntityQueryInitialResultsComplete, -1, true);
