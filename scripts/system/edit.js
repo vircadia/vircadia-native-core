@@ -392,6 +392,8 @@ var toolBar = (function () {
         entityListTool.sendUpdate();
         selectionManager.setSelections([entityID]);
 
+        Window.setFocus();
+
         return entityID;
     }
 
