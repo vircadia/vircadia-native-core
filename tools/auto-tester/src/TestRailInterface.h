@@ -22,33 +22,42 @@ public:
 
     void createTestSuiteXML(const QString& testDirectory,
                             const QString& outputDirectory,
-                            const QString& user,
-                            const QString& branch);
+                            const QString& userGitHub,
+                            const QString& branchGitHub);
 
     void createTestSuitePython(const QString& testDirectory,
                                const QString& outputDirectory,
-                               const QString& user,
-                               const QString& branch);
+                               const QString& userGitHub,
+                               const QString& branchGitHub);
 
     QDomElement processDirectoryXML(const QString& directory,
-                                    const QString& user,
-                                    const QString& branch,
+                                    const QString& useGitHubr,
+                                    const QString& branchGitHub,
                                     const QDomElement& element);
 
     QDomElement processTestXML(const QString& fullDirectory,
                                const QString& test,
-                               const QString& user,
-                               const QString& branch,
+                               const QString& userGitHub,
+                               const QString& branchGitHub,
                                const QDomElement& element);
 
-    void processTestPython(const QString& fullDirectory, QTextStream& stream);
+    void processTestPython(const QString& fullDirectory,
+                           QTextStream& stream,
+                           const QString& userGitHub,
+                           const QString& branchGitHub);
 
     void createTestRailDotPyScript(const QString& outputDirectory);
     void createStackDotPyScript(const QString& outputDirectory);
     void requestDataFromUser();
-    void createAddSectionsPythonScript(const QString& testDirectory, const QString& outputDirectory);
+    void createAddSectionsPythonScript(const QString& testDirectory,
+                                       const QString& outputDirectory,
+                                       const QString& userGitHub,
+                                       const QString& branchGitHub);
 
-    void processDirectoryPython(const QString& directory, QTextStream& stream);
+    void processDirectoryPython(const QString& directory,
+                                QTextStream& stream,
+                                const QString& userGitHub,
+                                const QString& branchGitHub);
 
     bool isAValidTestDirectory(const QString& directory);
     QString getObject(const QString& path);

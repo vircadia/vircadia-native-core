@@ -16,6 +16,7 @@
 #include <QDateTime>
 #include <QFile>
 #include <QMessageBox>
+#include <QProcess>
 #include <QTextStream>
 
 TestRailInterface::TestRailInterface() {
@@ -209,7 +210,10 @@ bool TestRailInterface::isAValidTestDirectory(const QString& directory) {
     return false;
 }
 
-void TestRailInterface::processDirectoryPython(const QString& directory, QTextStream& stream) {
+void TestRailInterface::processDirectoryPython(const QString& directory,
+                                               QTextStream& stream,
+                                               const QString& userGitHub,
+                                               const QString& branchGitHub) {
     // Loop over all entries in directory
     QDirIterator it(directory.toStdString().c_str());
     while (it.hasNext()) {
@@ -226,9 +230,9 @@ void TestRailInterface::processDirectoryPython(const QString& directory, QTextSt
 
             // Now we push the parent_id, and recursively process each directory
             stream << "parent_ids.push(section['id'])\n\n";
-            processDirectoryPython(nextDirectory, stream);
+            processDirectoryPython(nextDirectory, stream, userGitHub, branchGitHub);
         } else if (objectName == "test.js" || objectName == "testStory.js") {
-            processTestPython(nextDirectory, stream);
+            processTestPython(nextDirectory, stream, userGitHub, branchGitHub);
         }
     }
 
@@ -243,8 +247,11 @@ void TestRailInterface::processDirectoryPython(const QString& directory, QTextSt
 // Each node and leaf have an ID and a parent ID.
 // Therefore, the tree is built top-down, using a stack to store the IDs of each node
 //
-void TestRailInterface::createAddSectionsPythonScript(const QString& testDirectory, const QString& outputDirectory) {
-    QFile file(outputDirectory + "/addSections.py");
+void TestRailInterface::createAddSectionsPythonScript(const QString& testDirectory,
+                                                      const QString& outputDirectory,
+                                                      const QString& userGitHub,
+                                                      const QString& branchGitHub) {
+    QFile file(outputDirectory + "/addTestCases.py");
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
                               "Could not create 'addSections.py'");
@@ -270,28 +277,42 @@ void TestRailInterface::createAddSectionsPythonScript(const QString& testDirecto
 
     // Now we push the parent_id, and recursively process each directory
     stream << "parent_ids.push(section['id'])\n\n";
-    processDirectoryPython(testDirectory, stream);
+    processDirectoryPython(testDirectory, stream, userGitHub, branchGitHub);
 
     file.close();
 
-    QMessageBox::information(0, "Success", "TestRail Python script has been created");
+    if (QMessageBox::Yes == QMessageBox(QMessageBox::Information, "Python script has been created", "Do you want to run the script and update TestRail?", QMessageBox::Yes | QMessageBox::No).exec()) {
+        QString command("python");
+        QStringList parameters = QStringList() << outputDirectory + "/addTestCases.py";
+        QProcess* process = new QProcess();
+        process->startDetached(command, parameters);
+        if (process->waitForStarted(3000)) {
+            QMessageBox::information(0, "Python process started", "TestRail is being updated");
+
+            process->waitForFinished();
+            process->close();
+        } else {
+            QMessageBox::critical(0, "Failure", "Could not start process to update TestRail");
+            return;
+        }
+    }
 }
 
 void TestRailInterface::createTestSuitePython(const QString& testDirectory,
                                               const QString& outputDirectory,
-                                              const QString& user,
-                                              const QString& branch) {
+                                              const QString& userGitHub,
+                                              const QString& branchGitHub) {
     
     createTestRailDotPyScript(outputDirectory);
     createStackDotPyScript(outputDirectory);
     requestDataFromUser();
-    createAddSectionsPythonScript(testDirectory, outputDirectory);
+    createAddSectionsPythonScript(testDirectory, outputDirectory, userGitHub, branchGitHub);
  }
 
  void TestRailInterface::createTestSuiteXML(const QString& testDirectory,
                                             const QString& outputDirectory,
-                                            const QString& user,
-                                            const QString& branch) {
+                                            const QString& userGitHub,
+                                            const QString& branchGitHub) {
 
     QDomProcessingInstruction instruction = _document.createProcessingInstruction("xml", "version='1.0' encoding='UTF-8'");
     _document.appendChild(instruction);
@@ -308,7 +329,7 @@ void TestRailInterface::createTestSuitePython(const QString& testDirectory,
 
     // This is the first call to 'process'.  This is then called recursively to build the full XML tree
     QDomElement secondLevelSections = _document.createElement("sections");
-    topLevelSection.appendChild(processDirectoryXML(testDirectory, user, branch, secondLevelSections));
+    topLevelSection.appendChild(processDirectoryXML(testDirectory, userGitHub, branchGitHub, secondLevelSections));
 
     topLevelSection.appendChild(secondLevelSections);
     root.appendChild(topLevelSection);
@@ -329,7 +350,10 @@ void TestRailInterface::createTestSuitePython(const QString& testDirectory,
     QMessageBox::information(0, "Success", "TestRail XML file has been created");
 }
 
-QDomElement TestRailInterface::processDirectoryXML(const QString& directory, const QString& user, const QString& branch, const QDomElement& element) {
+QDomElement TestRailInterface::processDirectoryXML(const QString& directory,
+                                                   const QString& userGitHub,
+                                                   const QString& branchGitHub,
+                                                   const QDomElement& element) {
     QDomElement result = element;
 
     // Loop over all entries in directory
@@ -350,7 +374,7 @@ QDomElement TestRailInterface::processDirectoryXML(const QString& directory, con
             sectionElement.appendChild(sectionElementName);
 
             QDomElement testsElement = _document.createElement("sections");
-            sectionElement.appendChild(processDirectoryXML(nextDirectory, user, branch, testsElement));
+            sectionElement.appendChild(processDirectoryXML(nextDirectory, userGitHub, branchGitHub, testsElement));
 
             result.appendChild(sectionElement);
         } else if (objectName == "test.js" || objectName == "testStory.js") {
@@ -358,7 +382,9 @@ QDomElement TestRailInterface::processDirectoryXML(const QString& directory, con
             QDomElement sectionElementName = _document.createElement("name");
             sectionElementName.appendChild(_document.createTextNode("all"));
             sectionElement.appendChild(sectionElementName);
-            sectionElement.appendChild(processTestXML(nextDirectory, objectName, user, branch, _document.createElement("cases")));
+            sectionElement.appendChild(
+                processTestXML(nextDirectory, objectName, userGitHub, branchGitHub, _document.createElement("cases")));
+
             result.appendChild(sectionElement);
         }
     }
@@ -366,7 +392,11 @@ QDomElement TestRailInterface::processDirectoryXML(const QString& directory, con
     return result;
 }
 
-QDomElement TestRailInterface::processTestXML(const QString& fullDirectory, const QString& test, const QString& user, const QString& branch, const QDomElement& element) {
+QDomElement TestRailInterface::processTestXML(const QString& fullDirectory,
+                                              const QString& test,
+                                              const QString& userGitHub,
+                                              const QString& branchGitHub,
+                                              const QDomElement& element) {
     QDomElement result = element;
    
     QDomElement caseElement = _document.createElement("case");
@@ -443,7 +473,7 @@ QDomElement TestRailInterface::processTestXML(const QString& fullDirectory, cons
     added_to_releaseElementId.appendChild(_document.createTextNode("4"));
     added_to_releaseElement.appendChild(added_to_releaseElementId);
     QDomElement added_to_releaseElementValue = _document.createElement("value");
-    added_to_releaseElementValue.appendChild(_document.createTextNode(branch));
+    added_to_releaseElementValue.appendChild(_document.createTextNode(branchGitHub));
     added_to_releaseElement.appendChild(added_to_releaseElementValue);
     customElement.appendChild(added_to_releaseElement);
 
@@ -451,7 +481,8 @@ QDomElement TestRailInterface::processTestXML(const QString& fullDirectory, cons
     precondsElement.appendChild(_document.createTextNode("Tester is in an empty region of a domain in which they have edit rights\n\n*Note: Press 'n' to advance test script"));
     customElement.appendChild(precondsElement);
 
-    QString testMDName = QString("https://github.com/") + user + "/hifi_tests/blob/" + branch + "/tests/content/entity/light/point/create/test.md";
+    QString testMDName = QString("https://github.com/") + userGitHub + "/hifi_tests/blob/" + branchGitHub +
+                         "/tests/content/entity/light/point/create/test.md";
 
     QDomElement steps_seperatedElement = _document.createElement("steps_separated");
     QDomElement stepElement = _document.createElement("step");
@@ -478,7 +509,10 @@ QDomElement TestRailInterface::processTestXML(const QString& fullDirectory, cons
     return result;
 }
 
-void TestRailInterface::processTestPython(const QString& fullDirectory, QTextStream& stream) {
+void TestRailInterface::processTestPython(const QString& fullDirectory,
+                                          QTextStream& stream,
+                                          const QString& userGitHub,
+                                          const QString& branchGitHub) {
     // The name of the test is derived from the full path.
     // The first term is the first word after "tests"
     // The last word is the penultimate word
@@ -500,11 +534,19 @@ void TestRailInterface::processTestPython(const QString& fullDirectory, QTextStr
     }
 
     stream << "section_id = parent_ids.peek()\n";
-    stream << "data = {" 
-        << "'title': '" << title << "', " 
-        << "'template': '" << "Test Case (Steps)" << "', " 
-        << "'custom_preconds': '" << "Tester is in an empty region of a domain in which they have edit rights\\n\\n*Note: Press \\'n\\' to advance test script'"
-        << " }\n";
+
+    QString testMDName = QString("https://github.com/") + userGitHub + "/hifi_tests/blob/" + branchGitHub +
+                         "/tests/content/entity/light/point/create/test.md";
+
+    QString testContent = QString("Execute instructions in [THIS TEST](") + testMDName + ")";
+    QString testExpected = QString("Refer to the expected result in the linked description.");
+
+    stream << "data = {\n\t" 
+        << "'title': '" << title << "',\n\t" 
+        << "'template_id': 2,\n\t" 
+        << "'custom_preconds': " << "'Tester is in an empty region of a domain in which they have edit rights\\n\\n*Note: Press \\'n\\' to advance test script',\n\t" 
+        << "'custom_steps_separated': " << "[\n\t\t{\n\t\t\t'content': '" << testContent << "',\n\t\t\t'expected': '" << testExpected << "'\n\t\t}\n\t]\n"
+        << "}\n";
 
     stream << "case = client.send_post('add_case/' + str(section_id), data)\n";
 }
