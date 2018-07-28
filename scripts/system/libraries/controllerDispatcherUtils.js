@@ -428,16 +428,16 @@ distanceBetweenEntityLocalPositionAndBoundingBox = function(entityProps, jointGr
     var localMin = Vec3.subtract(entityCenter, halfDims);
     var localMax = Vec3.sum(entityCenter, halfDims);
 
-    if ((localMin.x < localPoint.x) && (localMin.y < localPoint.y) && (localMin.z < localPoint.z)) {
-        if ((localMax.x > localPoint.x) && (localMax.y > localPoint.y) && (localMax.z > localPoint.z)) {
-            return 0;
-        }
-    }
 
+    var v = {x: localPoint.x, y: localPoint.y, z: localPoint.z};
+    v.x = Math.max(v.x, localMin.x);
+    v.x = Math.min(v.x, localMax.x);
+    v.y = Math.max(v.y, localMin.y);
+    v.y = Math.min(v.y, localMax.y);
+    v.z = Math.max(v.z, localMin.z);
+    v.z = Math.min(v.z, localMax.z);
 
-    var distanceToLocalMax = Vec3.distance(localMax, localPoint);
-    var distanceToLocalMin = Vec3.distance(localMin, localPoint);
-    return Math.min(distanceToLocalMax, distanceToLocalMin);
+    return Vec3.distance(v, localPoint);
 };
 
 distanceBetweenPointAndEntityBoundingBox = function(point, entityProps) {
