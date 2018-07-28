@@ -23,6 +23,20 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
     // XXX this.ignoreIK = (grabbableData.ignoreIK !== undefined) ? grabbableData.ignoreIK : true;
     // XXX this.kinematicGrab = (grabbableData.kinematic !== undefined) ? grabbableData.kinematic : NEAR_GRABBING_KINEMATIC;
 
+    var GRAB_POINT_SPHERE_OFFSET = { x: 0.01, y: -0.13, z: 0.039 };
+
+    function getGrabPointSphereOffset(handController) {
+        var offset = GRAB_POINT_SPHERE_OFFSET;
+        if (handController === Controller.Standard.LeftHand) {
+            offset = {
+                x: -GRAB_POINT_SPHERE_OFFSET.x,
+                y: GRAB_POINT_SPHERE_OFFSET.y,
+                z: GRAB_POINT_SPHERE_OFFSET.z
+            };
+        }
+        return Vec3.multiply(MyAvatar.sensorToWorldScale, offset);
+    }
+
     function NearParentingGrabEntity(hand) {
         this.hand = hand;
         this.targetEntityID = null;
@@ -174,7 +188,9 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
                 this.lastUnequipCheckTime = now;
                 if (props.parentID === MyAvatar.SELF_ID) {
                     var tearAwayDistance = TEAR_AWAY_DISTANCE * MyAvatar.sensorToWorldScale;
-                    var distance = distanceBetweenPointAndEntityBoundingBox(props);
+                    var controllerIndex = (this.hand === LEFT_HAND ? Controller.Standard.LeftHand : Controller.Standard.RightHand);
+                    var controllerGrabOffset = getGrabPointSphereOffset(controllerIndex);
+                    var distance = distanceBetweenEntityLocalPositionAndBoundingBox(props, controllerGrabOffset);
                     if (distance > tearAwayDistance) {
                         this.autoUnequipCounter++;
                     } else {
