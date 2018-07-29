@@ -49,10 +49,10 @@ public:
     void createTestRailDotPyScript(const QString& outputDirectory);
     void createStackDotPyScript(const QString& outputDirectory);
     void requestDataFromUser();
-    void createAddSectionsPythonScript(const QString& testDirectory,
-                                       const QString& outputDirectory,
-                                       const QString& userGitHub,
-                                       const QString& branchGitHub);
+    void createAddTestCasesPythonScript(const QString& testDirectory,
+                                        const QString& outputDirectory,
+                                        const QString& userGitHub,
+                                        const QString& branchGitHub);
 
     void processDirectoryPython(const QString& directory,
                                 QTextStream& stream,
