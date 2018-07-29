@@ -247,14 +247,14 @@ void TestRailInterface::processDirectoryPython(const QString& directory,
 // Each node and leaf have an ID and a parent ID.
 // Therefore, the tree is built top-down, using a stack to store the IDs of each node
 //
-void TestRailInterface::createAddSectionsPythonScript(const QString& testDirectory,
+void TestRailInterface::createAddTestCasesPythonScript(const QString& testDirectory,
                                                       const QString& outputDirectory,
                                                       const QString& userGitHub,
                                                       const QString& branchGitHub) {
     QFile file(outputDirectory + "/addTestCases.py");
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "Could not create 'addSections.py'");
+                              "Could not create 'addTestCases.py'");
         exit(-1);
     }
 
@@ -282,15 +282,11 @@ void TestRailInterface::createAddSectionsPythonScript(const QString& testDirecto
     file.close();
 
     if (QMessageBox::Yes == QMessageBox(QMessageBox::Information, "Python script has been created", "Do you want to run the script and update TestRail?", QMessageBox::Yes | QMessageBox::No).exec()) {
-        QString command("python");
+        QString command("C:\\Python37\\python");
         QStringList parameters = QStringList() << outputDirectory + "/addTestCases.py";
         QProcess* process = new QProcess();
-        process->startDetached(command, parameters);
-        if (process->waitForStarted(3000)) {
+        if (process->startDetached(command, parameters)) {
             QMessageBox::information(0, "Python process started", "TestRail is being updated");
-
-            process->waitForFinished();
-            process->close();
         } else {
             QMessageBox::critical(0, "Failure", "Could not start process to update TestRail");
             return;
@@ -306,7 +302,7 @@ void TestRailInterface::createTestSuitePython(const QString& testDirectory,
     createTestRailDotPyScript(outputDirectory);
     createStackDotPyScript(outputDirectory);
     requestDataFromUser();
-    createAddSectionsPythonScript(testDirectory, outputDirectory, userGitHub, branchGitHub);
+    createAddTestCasesPythonScript(testDirectory, outputDirectory, userGitHub, branchGitHub);
  }
 
  void TestRailInterface::createTestSuiteXML(const QString& testDirectory,
