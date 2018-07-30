@@ -522,11 +522,8 @@ void EntityServer::startDynamicDomainVerification() {
                             qCDebug(entities) << "Entity passed dynamic domain verification:" << entityID;
                         }
                     } else {
-                        qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() << "; deleting entity" << entityID
+                        qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() << "; NOT deleting entity" << entityID
                             << "More info:" << jsonObject;
-                        tree->withWriteLock([&] {
-                            tree->deleteEntity(entityID, true);
-                        });
                     }
 
                     networkReply->deleteLater();

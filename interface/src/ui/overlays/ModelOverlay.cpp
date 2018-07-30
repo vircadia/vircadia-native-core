@@ -27,10 +27,6 @@ ModelOverlay::ModelOverlay()
 {
     _model->setLoadingPriority(_loadPriority);
     _isLoaded = false;
-
-    // Don't show overlay until textures have loaded
-    _visible = false;
-
     render::ScenePointer scene = qApp->getMain3DScene();
     _model->setVisibleInScene(false, scene);
 }
@@ -136,11 +132,13 @@ void ModelOverlay::update(float deltatime) {
     }
     scene->enqueueTransaction(transaction);
 
+    if (_texturesDirty && !_modelTextures.isEmpty()) {
+        _texturesDirty = false;
+        _model->setTextures(_modelTextures);
+    }
+
     if (!_texturesLoaded && _model->getGeometry() && _model->getGeometry()->areTexturesLoaded()) {
         _texturesLoaded = true;
-        if (!_modelTextures.isEmpty()) {
-            _model->setTextures(_modelTextures);
-        }
 
         _model->setVisibleInScene(getVisible(), scene);
         _model->updateRenderItems();
@@ -242,6 +240,7 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
         _texturesLoaded = false;
         QVariantMap textureMap = texturesValue.toMap();
         _modelTextures = textureMap;
+        _texturesDirty = true;
     }
 
     auto groupCulledValue = properties["isGroupCulled"];
@@ -382,8 +381,7 @@ vectorType ModelOverlay::mapJoints(mapFunction<itemType> function) const {
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
  *     <code>dashed</code>.
- * @property {boolean} ignoreRayIntersection=false - If <code>true</code>,
- *     {@link Overlays.findRayIntersection|findRayIntersection} ignores the overlay.
+ * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
  *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.
  * @property {boolean} isGroupCulled=false - If <code>true</code>, the mesh parts of the model are LOD culled as a group.
@@ -519,15 +517,24 @@ QVariant ModelOverlay::getProperty(const QString& property) {
 
 bool ModelOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                        float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking) {
-
     QVariantMap extraInfo;
     return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, surfaceNormal, extraInfo, precisionPicking);
 }
 
 bool ModelOverlay::findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction,
                                                 float& distance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking) {
-
     return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, surfaceNormal, extraInfo, precisionPicking);
+}
+
+bool ModelOverlay::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+                                            float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking) {
+    QVariantMap extraInfo;
+    return _model->findParabolaIntersectionAgainstSubMeshes(origin, velocity, acceleration, parabolicDistance, face, surfaceNormal, extraInfo, precisionPicking);
+}
+
+bool ModelOverlay::findParabolaIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+                                                     float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking) {
+    return _model->findParabolaIntersectionAgainstSubMeshes(origin, velocity, acceleration, parabolicDistance, face, surfaceNormal, extraInfo, precisionPicking);
 }
 
 ModelOverlay* ModelOverlay::createClone() const {

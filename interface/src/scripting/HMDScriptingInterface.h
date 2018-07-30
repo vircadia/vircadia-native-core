@@ -100,6 +100,8 @@ public:
      */
     Q_INVOKABLE glm::vec3 calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction) const;
 
+    glm::vec3 calculateParabolaUICollisionPoint(const glm::vec3& position, const glm::vec3& velocity, const glm::vec3& acceleration, float& parabolicDistance) const;
+
     /**jsdoc
      * Get the 2D HUD overlay coordinates of a 3D point on the HUD overlay.
      * 2D HUD overlay coordinates are pixels with the origin at the top left of the overlay.

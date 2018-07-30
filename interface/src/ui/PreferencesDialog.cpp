@@ -313,8 +313,8 @@ void setupPreferences() {
                                                        getter, setter));
     }
     {
-        auto getter = [=]()->bool { return myAvatar->getFlyingEnabled(); };
-        auto setter = [=](bool value) { myAvatar->setFlyingEnabled(value); };
+        auto getter = [=]()->bool { return myAvatar->getFlyingHMDPref(); };
+        auto setter = [=](bool value) { myAvatar->setFlyingHMDPref(value); };
         preferences->addPreference(new CheckPreference(VR_MOVEMENT, "Flying & jumping", getter, setter));
     }
     {

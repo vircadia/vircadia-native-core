@@ -42,8 +42,10 @@ public:
     QVariant getProperty(const QString& property) override;
     bool isTransparent() override { return Base3DOverlay::isTransparent() || _alphaTexture; }
 
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
                                      BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking = false) override;
+    virtual bool findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration, float& parabolicDistance,
+                                          BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking = false) override;
 
     virtual Image3DOverlay* createClone() const override;
 
