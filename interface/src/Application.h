@@ -72,6 +72,8 @@
 #include "ui/overlays/Overlays.h"
 #include "UndoStackScriptingInterface.h"
 
+#include "workload/GameWorkload.h"
+
 #include <procedural/ProceduralSkybox.h>
 #include <graphics/Skybox.h>
 #include <ModelScriptingInterface.h>
@@ -274,6 +276,8 @@ public:
     render::EnginePointer getRenderEngine() override { return _renderEngine; }
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
+    const GameWorkload& getGameWorkload() const { return _gameWorkload; }
+
     virtual void pushPostUpdateLambda(void* key, const std::function<void()>& func) override;
 
     void updateMyAvatarLookAtPosition();
@@ -306,7 +310,10 @@ public:
     void loadAvatarScripts(const QVector<QString>& urls);
     void unloadAvatarScripts();
 
+    Q_INVOKABLE void copyToClipboard(const QString& text);
+
 #if defined(Q_OS_ANDROID)
+    void beforeEnterBackground();
     void enterBackground();
     void enterForeground();
 #endif
@@ -656,6 +663,8 @@ private:
     render::ScenePointer _main3DScene{ new render::Scene(glm::vec3(-0.5f * (float)TREE_SCALE), (float)TREE_SCALE) };
     render::EnginePointer _renderEngine{ new render::RenderEngine() };
     gpu::ContextPointer _gpuContext; // initialized during window creation
+
+    GameWorkload _gameWorkload;
 
     mutable QMutex _renderArgsMutex{ QMutex::Recursive };
     struct AppRenderArgs {

@@ -21,8 +21,6 @@ Rectangle {
     HifiConstants { id: hifi;}
     color: hifi.colors.baseGray;
     id: root
- //   width: parent ? parent.width : 200
- //   height: parent ? parent.height : 400
     property var rootConfig : Workload
 
     Original.TextArea {

@@ -95,15 +95,16 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
     auto newParticleProperties = entity->getParticleProperties();
     if (!newParticleProperties.valid()) {
         qCWarning(entitiesrenderer) << "Bad particle properties";
-        if (!entity->getParticleProperties().valid()) {
-            qCWarning(entitiesrenderer) << "Bad particle properties";
-        }
     }
     
     if (resultWithReadLock<bool>([&]{ return _particleProperties != newParticleProperties; })) {
         _timeUntilNextEmit = 0;
         withWriteLock([&]{
             _particleProperties = newParticleProperties;
+            if (!_prevEmitterShouldTrailInitialized) {
+                _prevEmitterShouldTrailInitialized = true;
+                _prevEmitterShouldTrail = _particleProperties.emission.shouldTrail;
+            }
         });
     }
     _emitting = entity->getIsEmitting();
@@ -125,6 +126,14 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
             });
         }
     }
+
+    void* key = (void*)this;
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this] () {
+        withWriteLock([&] {
+            updateModelTransformAndBound();
+            _renderTransform = getModelTransform();
+        });
+    });
 }
 
 void ParticleEffectEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
@@ -139,7 +148,12 @@ void ParticleEffectEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEn
         particleUniforms.color.middle = _particleProperties.getColorMiddle();
         particleUniforms.color.finish = _particleProperties.getColorFinish();
         particleUniforms.color.spread = _particleProperties.getColorSpread();
+        particleUniforms.spin.start = _particleProperties.spin.range.start;
+        particleUniforms.spin.middle = _particleProperties.spin.gradient.target;
+        particleUniforms.spin.finish = _particleProperties.spin.range.finish;
+        particleUniforms.spin.spread = _particleProperties.spin.gradient.spread;
         particleUniforms.lifespan = _particleProperties.lifespan;
+        particleUniforms.rotateWithEntity = _particleProperties.rotateWithEntity ? 1 : 0;
     });
     // Update particle uniforms
     memcpy(&_uniformBuffer.edit<ParticleUniforms>(), &particleUniforms, sizeof(ParticleUniforms));
@@ -171,7 +185,7 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
     const auto& azimuthFinish = particleProperties.azimuth.finish;
     const auto& emitDimensions = particleProperties.emission.dimensions;
     const auto& emitAcceleration = particleProperties.emission.acceleration.target;
-    auto emitOrientation = particleProperties.emission.orientation;
+    auto emitOrientation = baseTransform.getRotation() * particleProperties.emission.orientation;
     const auto& emitRadiusStart = glm::max(particleProperties.radiusStart, EPSILON); // Avoid math complications at center
     const auto& emitSpeed = particleProperties.emission.speed.target;
     const auto& speedSpread = particleProperties.emission.speed.spread;
@@ -180,16 +194,15 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
 
     particle.seed = randFloatInRange(-1.0f, 1.0f);
     particle.expiration = now + (uint64_t)(particleProperties.lifespan * USECS_PER_SECOND);
-    if (particleProperties.emission.shouldTrail) {
-        particle.position = baseTransform.getTranslation();
-        emitOrientation = baseTransform.getRotation() * emitOrientation;
-    }
+
+    particle.relativePosition = glm::vec3(0.0f);
+    particle.basePosition = baseTransform.getTranslation();
 
     // Position, velocity, and acceleration
     if (polarStart == 0.0f && polarFinish == 0.0f && emitDimensions.z == 0.0f) {
         // Emit along z-axis from position
 
-        particle.velocity = (emitSpeed + 0.2f * speedSpread) * (emitOrientation * Vectors::UNIT_Z);
+        particle.velocity = (emitSpeed + randFloatInRange(-1.0f, 1.0f) * speedSpread) * (emitOrientation * Vectors::UNIT_Z);
         particle.acceleration = emitAcceleration + randFloatInRange(-1.0f, 1.0f) * accelerationSpread;
 
     } else {
@@ -198,10 +211,9 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
         // - Distribute points relatively evenly over ellipsoid surface
         // - Distribute points relatively evenly within ellipsoid volume
 
-        float elevationMinZ = sin(PI_OVER_TWO - polarFinish);
-        float elevationMaxZ = sin(PI_OVER_TWO - polarStart);
-        //  float elevation = asin(elevationMinZ + (elevationMaxZ - elevationMinZ) * randFloat());
-        float elevation = asin(elevationMinZ + (elevationMaxZ - elevationMinZ) *randFloat());
+        float elevationMinZ = sinf(PI_OVER_TWO - polarFinish);
+        float elevationMaxZ = sinf(PI_OVER_TWO - polarStart);
+        float elevation = asinf(elevationMinZ + (elevationMaxZ - elevationMinZ) * randFloat());
 
         float azimuth;
         if (azimuthFinish >= azimuthStart) {
@@ -233,7 +245,7 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
                 radii.y > 0.0f ? y / (radii.y * radii.y) : 0.0f,
                 radii.z > 0.0f ? z / (radii.z * radii.z) : 0.0f
             ));
-            particle.position += emitOrientation * emitPosition;
+            particle.relativePosition += emitOrientation * emitPosition;
         }
 
         particle.velocity = (emitSpeed + randFloatInRange(-1.0f, 1.0f) * speedSpread) * (emitOrientation * emitDirection);
@@ -258,8 +270,8 @@ void ParticleEffectEntityRenderer::stepSimulation() {
         particleProperties = _particleProperties;
     });
 
+    const auto& modelTransform = getModelTransform();
     if (_emitting && particleProperties.emitting()) {
-        const auto& modelTransform = getModelTransform();
         uint64_t emitInterval = particleProperties.emitIntervalUsecs();
         if (emitInterval > 0 && interval >= _timeUntilNextEmit) {
             auto timeRemaining = interval;
@@ -284,15 +296,23 @@ void ParticleEffectEntityRenderer::stepSimulation() {
     const float deltaTime = (float)interval / (float)USECS_PER_SECOND;
     // update the particles 
     for (auto& particle : _cpuParticles) {
+        if (_prevEmitterShouldTrail != particleProperties.emission.shouldTrail) {
+            if (_prevEmitterShouldTrail) {
+                particle.relativePosition = particle.relativePosition + particle.basePosition - modelTransform.getTranslation();
+            }
+            particle.basePosition = modelTransform.getTranslation();
+        }
         particle.integrate(deltaTime);
     }
+    _prevEmitterShouldTrail = particleProperties.emission.shouldTrail;
 
     // Build particle primitives
     static GpuParticles gpuParticles;
     gpuParticles.clear();
     gpuParticles.reserve(_cpuParticles.size()); // Reserve space
-    std::transform(_cpuParticles.begin(), _cpuParticles.end(), std::back_inserter(gpuParticles), [](const CpuParticle& particle) {
-        return GpuParticle(particle.position, glm::vec2(particle.lifetime, particle.seed));
+    std::transform(_cpuParticles.begin(), _cpuParticles.end(), std::back_inserter(gpuParticles), [&particleProperties, &modelTransform](const CpuParticle& particle) {
+        glm::vec3 position = particle.relativePosition + (particleProperties.emission.shouldTrail ? particle.basePosition : modelTransform.getTranslation());
+        return GpuParticle(position, glm::vec2(particle.lifetime, particle.seed));
     });
 
     // Update particle buffer
@@ -309,7 +329,6 @@ void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
         return;
     }
 
-
     // FIXME migrate simulation to a compute stage
     stepSimulation();
 
@@ -321,12 +340,11 @@ void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
     }
 
     Transform transform; 
-    // In trail mode, the particles are created in world space.
-    // so we only set a transform if they're not in trail mode
-    if (!_particleProperties.emission.shouldTrail) {
-        transform = getModelTransform();
-        transform.setScale(vec3(1));
-    }
+    // The particles are in world space, so the transform is unused, except for the rotation, which we use
+    // if the particles are marked rotateWithEntity
+    withReadLock([&] {
+        transform.setRotation(_renderTransform.getRotation());
+    });
     batch.setModelTransform(transform);
     batch.setUniformBuffer(PARTICLE_UNIFORM_SLOT, _uniformBuffer);
     batch.setInputFormat(_vertexFormat);
@@ -335,5 +353,3 @@ void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
     auto numParticles = _particleBuffer->getSize() / sizeof(GpuParticle);
     batch.drawInstanced((gpu::uint32)numParticles, gpu::TRIANGLE_STRIP, (gpu::uint32)VERTEX_PER_PARTICLE);
 }
-
-

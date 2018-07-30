@@ -50,6 +50,7 @@
 #include "entities/AssignmentParentFinder.h"
 #include "RecordingScriptingInterface.h"
 #include "AbstractAudioInterface.h"
+#include "AgentScriptingInterface.h"
 
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
@@ -64,6 +65,7 @@ Agent::Agent(ReceivedMessage& message) :
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
     DependencyManager::set<ResourceManager>();
+    DependencyManager::set<PluginManager>();
 
     DependencyManager::registerInheritance<SpatialParentFinder, AssignmentParentFinder>();
 
@@ -343,8 +345,6 @@ void Agent::scriptRequestFinished() {
 void Agent::executeScript() {
     _scriptEngine = scriptEngineFactory(ScriptEngine::AGENT_SCRIPT, _scriptContents, _payload);
 
-    DependencyManager::get<RecordingScriptingInterface>()->setScriptEngine(_scriptEngine);
-
     // setup an Avatar for the script to use
     auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
 
@@ -451,7 +451,7 @@ void Agent::executeScript() {
     packetReceiver.registerListener(PacketType::AvatarIdentity, avatarHashMap.data(), "processAvatarIdentityPacket");
 
     // register ourselves to the script engine
-    _scriptEngine->registerGlobalObject("Agent", this);
+    _scriptEngine->registerGlobalObject("Agent", new AgentScriptingInterface(this));
 
     _scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
     _scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
@@ -832,6 +832,8 @@ void Agent::aboutToFinish() {
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(nullptr);
 
     DependencyManager::get<ResourceManager>()->cleanup();
+
+    DependencyManager::destroy<PluginManager>();
 
     // cleanup the AudioInjectorManager (and any still running injectors)
     DependencyManager::destroy<AudioInjectorManager>();

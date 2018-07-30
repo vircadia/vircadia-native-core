@@ -105,6 +105,10 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
         }
         case MOTION_TYPE_DYNAMIC: {
             mass = motionState->getMass();
+            const float MIN_DYNAMIC_MASS = 0.01f;
+            if (mass != mass || mass < MIN_DYNAMIC_MASS) {
+                mass = MIN_DYNAMIC_MASS;
+            }
             btCollisionShape* shape = const_cast<btCollisionShape*>(motionState->getShape());
             assert(shape);
             shape->calculateLocalInertia(mass, inertia);

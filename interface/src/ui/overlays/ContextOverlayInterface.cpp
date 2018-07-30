@@ -97,6 +97,10 @@ static const float CONTEXT_OVERLAY_UNHOVERED_COLORPULSE = 1.0f;
 
 void ContextOverlayInterface::setEnabled(bool enabled) {
     _enabled = enabled;
+    if (!enabled) {
+        // Destroy any potentially-active ContextOverlays when disabling the interface
+        createOrDestroyContextOverlay(EntityItemID(), PointerEvent());
+    }
 }
 
 void ContextOverlayInterface::clickDownOnEntity(const EntityItemID& entityItemID, const PointerEvent& event) {
@@ -193,7 +197,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 _contextOverlay->setPulseMin(CONTEXT_OVERLAY_UNHOVERED_PULSEMIN);
                 _contextOverlay->setPulseMax(CONTEXT_OVERLAY_UNHOVERED_PULSEMAX);
                 _contextOverlay->setColorPulse(CONTEXT_OVERLAY_UNHOVERED_COLORPULSE);
-                _contextOverlay->setIgnoreRayIntersection(false);
+                _contextOverlay->setIgnorePickIntersection(false);
                 _contextOverlay->setDrawInFront(true);
                 _contextOverlay->setURL(PathUtils::resourcesUrl() + "images/inspect-icon.png");
                 _contextOverlay->setIsFacingAvatar(true);

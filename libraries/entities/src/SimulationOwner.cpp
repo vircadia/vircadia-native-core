@@ -16,29 +16,20 @@
 
 #include <NumericalConstants.h>
 
-const uint8_t PENDING_STATE_NOTHING = 0;
-const uint8_t PENDING_STATE_TAKE = 1;
-const uint8_t PENDING_STATE_RELEASE = 2;
-
 // static
 const int SimulationOwner::NUM_BYTES_ENCODED = NUM_BYTES_RFC4122_UUID + 1;
 
 SimulationOwner::SimulationOwner() :
         _id(),
         _expiry(0),
-        _pendingBidTimestamp(0),
-        _priority(0),
-        _pendingBidPriority(0),
-        _pendingState(PENDING_STATE_NOTHING)
+        _priority(0)
 {
 }
 
 SimulationOwner::SimulationOwner(const QUuid& id, uint8_t priority) :
         _id(id),
         _expiry(0),
-        _pendingBidTimestamp(0),
-        _priority(priority),
-        _pendingBidPriority(0)
+        _priority(priority)
 {
 }
 
@@ -61,20 +52,11 @@ bool SimulationOwner::fromByteArray(const QByteArray& data) {
 void SimulationOwner::clear() {
     _id = QUuid();
     _expiry = 0;
-    _pendingBidTimestamp = 0;
     _priority = 0;
-    _pendingBidPriority = 0;
-    _pendingState = PENDING_STATE_NOTHING;
 }
 
 void SimulationOwner::setPriority(uint8_t priority) {
     _priority = priority;
-}
-
-void SimulationOwner::promotePriority(uint8_t priority) {
-    if (priority > _priority) {
-        _priority = priority;
-    }
 }
 
 bool SimulationOwner::setID(const QUuid& id) {
@@ -101,23 +83,9 @@ bool SimulationOwner::set(const SimulationOwner& owner) {
     return setID(owner._id) || oldPriority != _priority;
 }
 
-void SimulationOwner::setPendingPriority(uint8_t priority, uint64_t timestamp) {
-    _pendingBidPriority = priority;
-    _pendingBidTimestamp = timestamp;
-    _pendingState = (_pendingBidPriority == 0) ? PENDING_STATE_RELEASE : PENDING_STATE_TAKE;
-}
-
 void SimulationOwner::updateExpiry() {
     const uint64_t OWNERSHIP_LOCKOUT_EXPIRY = 200 * USECS_PER_MSEC;
     _expiry = usecTimestampNow() + OWNERSHIP_LOCKOUT_EXPIRY;
-}
-
-bool SimulationOwner::pendingRelease(uint64_t timestamp) {
-    return _pendingBidPriority == 0 && _pendingState == PENDING_STATE_RELEASE && _pendingBidTimestamp >= timestamp;
-}
-
-bool SimulationOwner::pendingTake(uint64_t timestamp) {
-    return _pendingBidPriority > 0 && _pendingState == PENDING_STATE_TAKE && _pendingBidTimestamp >= timestamp;
 }
 
 void SimulationOwner::clearCurrentOwner() {

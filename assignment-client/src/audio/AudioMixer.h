@@ -58,6 +58,9 @@ public:
                to.getPublicSocket() != from.getPublicSocket() &&
                to.getLocalSocket() != from.getLocalSocket();
     }
+
+    virtual void aboutToFinish() override;
+    
 public slots:
     void run() override;
     void sendStatsPacket() override;

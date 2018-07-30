@@ -51,7 +51,7 @@ void OculusControllerManager::checkForConnectedDevices() {
         unsigned int controllerConnected = ovr_GetConnectedControllerTypes(session);
 
         if (!_remote && (controllerConnected & ovrControllerType_Remote) == ovrControllerType_Remote) {
-            if (OVR_SUCCESS(ovr_GetInputState(session, ovrControllerType_Remote, &_inputState))) {
+            if (OVR_SUCCESS(ovr_GetInputState(session, ovrControllerType_Remote, &_remoteInputState))) {
                 auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
                 _remote = std::make_shared<RemoteDevice>(*this);
                 userInputMapper->registerDevice(_remote);
@@ -59,7 +59,7 @@ void OculusControllerManager::checkForConnectedDevices() {
         }
 
         if (!_touch && (controllerConnected & ovrControllerType_Touch) != 0) {
-            if (OVR_SUCCESS(ovr_GetInputState(session, ovrControllerType_Touch, &_inputState))) {
+            if (OVR_SUCCESS(ovr_GetInputState(session, ovrControllerType_Touch, &_touchInputState))) {
                 auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
                 _touch = std::make_shared<TouchDevice>(*this);
                 userInputMapper->registerDevice(_touch);
@@ -90,13 +90,13 @@ void OculusControllerManager::pluginUpdate(float deltaTime, const controller::In
 
     ovr::withSession([&](ovrSession session) {
         if (_touch) {
-            updateTouch = OVR_SUCCESS(ovr_GetInputState(session, ovrControllerType_Touch, &_inputState));
+            updateTouch = OVR_SUCCESS(ovr_GetInputState(session, ovrControllerType_Touch, &_touchInputState));
             if (!updateTouch) {
                 qCWarning(oculusLog) << "Unable to read Oculus touch input state" << ovr::getError();
             }
         }
         if (_remote) {
-            updateRemote = OVR_SUCCESS(ovr_GetInputState(session, ovrControllerType_Remote, &_inputState));
+            updateRemote = OVR_SUCCESS(ovr_GetInputState(session, ovrControllerType_Remote, &_remoteInputState));
             if (!updateRemote) {
                 qCWarning(oculusLog) << "Unable to read Oculus remote input state" << ovr::getError();
             }
@@ -194,7 +194,7 @@ QString OculusControllerManager::RemoteDevice::getDefaultMappingConfig() const {
 
 void OculusControllerManager::RemoteDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     _buttonPressedMap.clear();
-    const auto& inputState = _parent._inputState;
+    const auto& inputState = _parent._remoteInputState;
     for (const auto& pair : BUTTON_MAP) {
         if (inputState.Buttons & pair.first) {
             _buttonPressedMap.insert(pair.second);
@@ -257,7 +257,7 @@ void OculusControllerManager::TouchDevice::update(float deltaTime,
 
     using namespace controller;
     // Axes
-    const auto& inputState = _parent._inputState;
+    const auto& inputState = _parent._touchInputState;
     _axisStateMap[LX] = inputState.Thumbstick[ovrHand_Left].x;
     _axisStateMap[LY] = inputState.Thumbstick[ovrHand_Left].y;
     _axisStateMap[LT] = inputState.IndexTrigger[ovrHand_Left];

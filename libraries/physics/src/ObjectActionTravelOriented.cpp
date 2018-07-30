@@ -161,7 +161,7 @@ bool ObjectActionTravelOriented::updateArguments(QVariantMap arguments) {
 QVariantMap ObjectActionTravelOriented::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
-        arguments["forward"] = glmToQMap(_forward);
+        arguments["forward"] = vec3ToQMap(_forward);
         arguments["angularTimeScale"] = _angularTimeScale;
     });
     return arguments;

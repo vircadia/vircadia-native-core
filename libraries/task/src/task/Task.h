@@ -179,6 +179,7 @@ public:
     const std::string& getName() const { return _concept->getName(); }
     const Varying getInput() const { return _concept->getInput(); }
     const Varying getOutput() const { return _concept->getOutput(); }
+
     QConfigPointer& getConfiguration() const { return _concept->getConfiguration(); }
     void applyConfiguration() { return _concept->applyConfiguration(); }
 
@@ -376,6 +377,7 @@ public:
     using Context = JC;
     using ContextPointer = std::shared_ptr<Context>;
     using Config = TaskConfig;
+
     using TaskType = Task<JC, TP>;
     using ConceptPointer = typename TaskType::ConceptPointer;
 

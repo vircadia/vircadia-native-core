@@ -135,6 +135,8 @@ Item {
 
                 placeholderText: qsTr("Password")
                 echoMode: TextInput.Password
+
+                Keys.onReturnPressed: linkAccountBody.login()
             }
     }
 

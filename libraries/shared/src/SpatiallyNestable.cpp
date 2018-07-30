@@ -165,6 +165,10 @@ void SpatiallyNestable::forgetChild(SpatiallyNestablePointer newChild) const {
 
 void SpatiallyNestable::setParentJointIndex(quint16 parentJointIndex) {
     _parentJointIndex = parentJointIndex;
+    auto parent = _parent.lock();
+    if (parent) {
+        parent->recalculateChildCauterization();
+    }
 }
 
 glm::vec3 SpatiallyNestable::worldToLocal(const glm::vec3& position,

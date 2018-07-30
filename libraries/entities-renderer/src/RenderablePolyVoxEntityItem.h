@@ -51,11 +51,15 @@ public:
 
     int getOnCount() const override { return _onCount; }
 
-    virtual bool supportsDetailedRayIntersection() const override { return true; }
+    virtual bool supportsDetailedIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                        OctreeElementPointer& element, float& distance,
-                        BoxFace& face, glm::vec3& surfaceNormal,
-                        QVariantMap& extraInfo, bool precisionPicking) const override;
+                                             OctreeElementPointer& element, float& distance,
+                                             BoxFace& face, glm::vec3& surfaceNormal,
+                                             QVariantMap& extraInfo, bool precisionPicking) const override;
+    virtual bool findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const vec3& accleration,
+                                                  OctreeElementPointer& element, float& parabolicDistance,
+                                                  BoxFace& face, glm::vec3& surfaceNormal,
+                                                  QVariantMap& extraInfo, bool precisionPicking) const override;
 
     virtual void setVoxelData(const QByteArray& voxelData) override;
     virtual void setVoxelVolumeSize(const glm::vec3& voxelVolumeSize) override;

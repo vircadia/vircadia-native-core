@@ -17,7 +17,6 @@
 #include <QtCore/QJsonArray>
 #include <QVector>
 
-#include <FaceshiftConstants.h>
 #include <GLMHelpers.h>
 #include <shared/JSONHelpers.h>
 
@@ -33,7 +32,7 @@ HeadData::HeadData(AvatarData* owningAvatar) :
     _summedBlendshapeCoefficients(QVector<float>(0, 0.0f)),
     _owningAvatar(owningAvatar)
 {
-
+    computeBlendshapesLookupMap();
 }
 
 glm::quat HeadData::getRawOrientation() const {
@@ -71,16 +70,10 @@ void HeadData::setOrientation(const glm::quat& orientation) {
     setHeadOrientation(orientation);
 }
 
-//Lazily construct a lookup map from the blendshapes
-static const QMap<QString, int>& getBlendshapesLookupMap() {
-    static std::once_flag once;
-    static QMap<QString, int> blendshapeLookupMap;
-    std::call_once(once, [&] {
-        for (int i = 0; i < NUM_FACESHIFT_BLENDSHAPES; i++) {
-            blendshapeLookupMap[FACESHIFT_BLENDSHAPES[i]] = i;
-        }
-    });
-    return blendshapeLookupMap;
+void HeadData::computeBlendshapesLookupMap(){
+    for (int i = 0; i < NUM_FACESHIFT_BLENDSHAPES; i++) {
+        _blendshapeLookupMap[FACESHIFT_BLENDSHAPES[i]] = i;
+    }
 }
 
 int HeadData::getNumSummedBlendshapeCoefficients() const {
@@ -108,11 +101,10 @@ const QVector<float>& HeadData::getSummedBlendshapeCoefficients() {
 }
 
 void HeadData::setBlendshape(QString name, float val) {
-    const auto& blendshapeLookupMap = getBlendshapesLookupMap();
 
     //Check to see if the named blendshape exists, and then set its value if it does
-    auto it = blendshapeLookupMap.find(name);
-    if (it != blendshapeLookupMap.end()) {
+    auto it = _blendshapeLookupMap.find(name);
+    if (it != _blendshapeLookupMap.end()) {
         if (_blendshapeCoefficients.size() <= it.value()) {
             _blendshapeCoefficients.resize(it.value() + 1);
         }
@@ -120,6 +112,18 @@ void HeadData::setBlendshape(QString name, float val) {
             _transientBlendshapeCoefficients.resize(it.value() + 1);
         }
         _blendshapeCoefficients[it.value()] = val;
+    }
+}
+
+int HeadData::getBlendshapeIndex(const QString& name) {
+    auto it = _blendshapeLookupMap.find(name);
+    int index = it != _blendshapeLookupMap.end() ? it.value() : -1;
+    return index;
+}
+
+void HeadData::getBlendshapeIndices(const std::vector<QString>& blendShapeNames, std::vector<int>& indexes) {
+    for (auto& name : blendShapeNames) {
+        indexes.push_back(getBlendshapeIndex(name));
     }
 }
 
@@ -131,10 +135,9 @@ static const QString JSON_AVATAR_HEAD_LOOKAT = QStringLiteral("lookAt");
 
 QJsonObject HeadData::toJson() const {
     QJsonObject headJson;
-    const auto& blendshapeLookupMap = getBlendshapesLookupMap();
     QJsonObject blendshapesJson;
-    for (auto name : blendshapeLookupMap.keys()) {
-        auto index = blendshapeLookupMap[name];
+    for (auto name : _blendshapeLookupMap.keys()) {
+        auto index = _blendshapeLookupMap[name];
         float value = 0.0f;
         if (index < _blendshapeCoefficients.size()) {
             value += _blendshapeCoefficients[index];

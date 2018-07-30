@@ -63,6 +63,27 @@ public:
     EntityItemID entityID;
 };
 
+class ParabolaArgs {
+public:
+    // Inputs
+    glm::vec3 origin;
+    glm::vec3 velocity;
+    glm::vec3 acceleration;
+    const QVector<EntityItemID>& entityIdsToInclude;
+    const QVector<EntityItemID>& entityIdsToDiscard;
+    bool visibleOnly;
+    bool collidableOnly;
+    bool precisionPicking;
+
+    // Outputs
+    OctreeElementPointer& element;
+    float& parabolicDistance;
+    BoxFace& face;
+    glm::vec3& surfaceNormal;
+    QVariantMap& extraInfo;
+    EntityItemID entityID;
+};
+
 
 EntityTree::EntityTree(bool shouldReaverage) :
     Octree(shouldReaverage)
@@ -97,6 +118,7 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     if (_simulation) {
         _simulation->clearEntities();
     }
+    _staleProxies.clear();
     QHash<EntityItemID, EntityItemPointer> localMap;
     localMap.swap(_entityMap);
     this->withWriteLock([&] {
@@ -276,10 +298,11 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
     }
 
     _isDirty = true;
-    emit addingEntity(entity->getEntityItemID());
 
     // find and hook up any entities with this entity as a (previously) missing parent
     fixupNeedsParentFixups();
+
+    emit addingEntity(entity->getEntityItemID());
 }
 
 bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
@@ -359,21 +382,34 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
                     // the sender is trying to take or continue ownership
                     if (entity->getSimulatorID().isNull()) {
                         // the sender is taking ownership
-                        properties.promoteSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
+                        if (properties.getSimulationOwner().getPriority() == VOLUNTEER_SIMULATION_PRIORITY) {
+                            // the entity-server always promotes VOLUNTEER to RECRUIT to avoid ownership thrash
+                            // when dynamic objects first activate and multiple participants bid simultaneously
+                            properties.setSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
+                        }
                         simulationBlocked = false;
                     } else if (entity->getSimulatorID() == senderID) {
                         // the sender is asserting ownership, maybe changing priority
                         simulationBlocked = false;
+                        // the entity-server always promotes VOLUNTEER to RECRUIT to avoid ownership thrash
+                        // when dynamic objects first activate and multiple participants bid simultaneously
+                        if (properties.getSimulationOwner().getPriority() == VOLUNTEER_SIMULATION_PRIORITY) {
+                            properties.setSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
+                        }
                     } else {
                         // the sender is trying to steal ownership from another simulator
                         // so we apply the rules for ownership change:
                         // (1) higher priority wins
-                        // (2) equal priority wins if ownership filter has expired except...
+                        // (2) equal priority wins if ownership filter has expired
+                        // (3) VOLUNTEER priority is promoted to RECRUIT
                         uint8_t oldPriority = entity->getSimulationPriority();
                         uint8_t newPriority = properties.getSimulationOwner().getPriority();
                         if (newPriority > oldPriority ||
                              (newPriority == oldPriority && properties.getSimulationOwner().hasExpired())) {
                             simulationBlocked = false;
+                            if (properties.getSimulationOwner().getPriority() == VOLUNTEER_SIMULATION_PRIORITY) {
+                                properties.setSimulationPriority(RECRUIT_SIMULATION_PRIORITY);
+                            }
                         }
                     }
                     if (!simulationBlocked) {
@@ -391,6 +427,7 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
             }
             if (simulationBlocked) {
                 // squash ownership and physics-related changes.
+                // TODO? replace these eight calls with just one?
                 properties.setSimulationOwnerChanged(false);
                 properties.setPositionChanged(false);
                 properties.setRotationChanged(false);
@@ -729,6 +766,12 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
         if (theEntity->isSimulated()) {
             _simulation->prepareEntityForDelete(theEntity);
         }
+
+        // keep a record of valid stale spaceIndices so they can be removed from the Space
+        int32_t spaceIndex = theEntity->getSpaceIndex();
+        if (spaceIndex != -1) {
+            _staleProxies.push_back(spaceIndex);
+        }
     }
 }
 
@@ -798,8 +841,7 @@ EntityItemID EntityTree::findRayIntersection(const glm::vec3& origin, const glm:
                                     BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
                                     Octree::lockType lockType, bool* accurateResult) {
     RayArgs args = { origin, direction, entityIdsToInclude, entityIdsToDiscard,
-            visibleOnly, collidableOnly, precisionPicking,
-            element, distance, face, surfaceNormal, extraInfo, EntityItemID() };
+            visibleOnly, collidableOnly, precisionPicking, element, distance, face, surfaceNormal, extraInfo, EntityItemID() };
     distance = FLT_MAX;
 
     bool requireLock = lockType == Octree::Lock;
@@ -809,6 +851,47 @@ EntityItemID EntityTree::findRayIntersection(const glm::vec3& origin, const glm:
 
     if (accurateResult) {
         *accurateResult = lockResult; // if user asked to accuracy or result, let them know this is accurate
+    }
+
+    return args.entityID;
+}
+
+bool findParabolaIntersectionOp(const OctreeElementPointer& element, void* extraData) {
+    ParabolaArgs* args = static_cast<ParabolaArgs*>(extraData);
+    bool keepSearching = true;
+    EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
+    EntityItemID entityID = entityTreeElementPointer->findParabolaIntersection(args->origin, args->velocity, args->acceleration, keepSearching,
+        args->element, args->parabolicDistance, args->face, args->surfaceNormal, args->entityIdsToInclude,
+        args->entityIdsToDiscard, args->visibleOnly, args->collidableOnly, args->extraInfo, args->precisionPicking);
+    if (!entityID.isNull()) {
+        args->entityID = entityID;
+    }
+    return keepSearching;
+}
+
+EntityItemID EntityTree::findParabolaIntersection(const PickParabola& parabola,
+                                    QVector<EntityItemID> entityIdsToInclude, QVector<EntityItemID> entityIdsToDiscard,
+                                    bool visibleOnly, bool collidableOnly, bool precisionPicking,
+                                    OctreeElementPointer& element, glm::vec3& intersection, float& distance, float& parabolicDistance,
+                                    BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
+                                    Octree::lockType lockType, bool* accurateResult) {
+    ParabolaArgs args = { parabola.origin, parabola.velocity, parabola.acceleration, entityIdsToInclude, entityIdsToDiscard,
+        visibleOnly, collidableOnly, precisionPicking, element, parabolicDistance, face, surfaceNormal, extraInfo, EntityItemID() };
+    parabolicDistance = FLT_MAX;
+    distance = FLT_MAX;
+
+    bool requireLock = lockType == Octree::Lock;
+    bool lockResult = withReadLock([&] {
+        recurseTreeWithOperation(findParabolaIntersectionOp, &args);
+    }, requireLock);
+
+    if (accurateResult) {
+        *accurateResult = lockResult; // if user asked to accuracy or result, let them know this is accurate
+    }
+
+    if (!args.entityID.isNull()) {
+        intersection = parabola.origin + parabola.velocity * parabolicDistance + 0.5f * parabola.acceleration * parabolicDistance * parabolicDistance;
+        distance = glm::distance(intersection, parabola.origin);
     }
 
     return args.entityID;
@@ -1853,6 +1936,7 @@ void EntityTree::addToNeedsParentFixupList(EntityItemPointer entity) {
 
 void EntityTree::update(bool simulate) {
     PROFILE_RANGE(simulation_physics, "UpdateTree");
+    PerformanceTimer perfTimer("updateTree");
     withWriteLock([&] {
         fixupNeedsParentFixups();
         if (simulate && _simulation) {
@@ -2496,6 +2580,13 @@ bool EntityTree::readFromMap(QVariantMap& map) {
                 properties.setCloneDynamic(cloneDynamic.toBool());
                 properties.setCloneAvatarEntity(cloneAvatarEntity.toBool());
             }
+        }
+
+        // Zero out the spread values that were fixed in version ParticleEntityFix so they behave the same as before
+        if (contentVersion < (int)EntityVersion::ParticleEntityFix) {
+            properties.setRadiusSpread(0.0f);
+            properties.setAlphaSpread(0.0f);
+            properties.setColorSpread({0, 0, 0});
         }
 
         EntityItemPointer entity = addEntity(entityItemID, properties);

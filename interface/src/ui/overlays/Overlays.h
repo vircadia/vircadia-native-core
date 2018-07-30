@@ -59,18 +59,27 @@ class RayToOverlayIntersectionResult {
 public:
     bool intersects { false };
     OverlayID overlayID { UNKNOWN_OVERLAY_ID };
-    float distance { 0 };
+    float distance { 0.0f };
     BoxFace face { UNKNOWN_FACE };
     glm::vec3 surfaceNormal;
     glm::vec3 intersection;
     QVariantMap extraInfo;
 };
-
-
 Q_DECLARE_METATYPE(RayToOverlayIntersectionResult);
-
 QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, const RayToOverlayIntersectionResult& value);
 void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, RayToOverlayIntersectionResult& value);
+
+class ParabolaToOverlayIntersectionResult {
+public:
+    bool intersects { false };
+    OverlayID overlayID { UNKNOWN_OVERLAY_ID };
+    float distance { 0.0f };
+    float parabolicDistance { 0.0f };
+    BoxFace face { UNKNOWN_FACE };
+    glm::vec3 surfaceNormal;
+    glm::vec3 intersection;
+    QVariantMap extraInfo;
+};
 
 /**jsdoc
  * The Overlays API provides facilities to create and interact with overlays. Overlays are 2D and 3D objects visible only to
@@ -106,6 +115,11 @@ public:
     OverlayID addOverlay(const Overlay::Pointer& overlay);
 
     RayToOverlayIntersectionResult findRayIntersectionVector(const PickRay& ray, bool precisionPicking,
+        const QVector<OverlayID>& overlaysToInclude,
+        const QVector<OverlayID>& overlaysToDiscard,
+        bool visibleOnly = false, bool collidableOnly = false);
+
+    ParabolaToOverlayIntersectionResult findParabolaIntersectionVector(const PickParabola& parabola, bool precisionPicking,
         const QVector<OverlayID>& overlaysToInclude,
         const QVector<OverlayID>& overlaysToDiscard,
         bool visibleOnly = false, bool collidableOnly = false);

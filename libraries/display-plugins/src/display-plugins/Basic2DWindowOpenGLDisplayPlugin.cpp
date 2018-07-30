@@ -151,11 +151,9 @@ void Basic2DWindowOpenGLDisplayPlugin::compositeExtra() {
             batch.setModelTransform(stickTransform);
             batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-            if (!virtualPadManager.getLeftVirtualPad()->isBeingTouched()) {
-                batch.setResourceTexture(0, _virtualPadJumpBtnTexture);
-                batch.setModelTransform(jumpTransform);
-                batch.draw(gpu::TRIANGLE_STRIP, 4);
-            }
+            batch.setResourceTexture(0, _virtualPadJumpBtnTexture);
+            batch.setModelTransform(jumpTransform);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
         });
     }
 #endif

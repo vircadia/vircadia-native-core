@@ -32,6 +32,6 @@ StackView {
     TabletPreferencesDialog {
         id: root
         objectName: "TabletGeneralPreferences"
-        showCategories: ["User Interface", "HMD", "Snapshots", "Privacy"]
+        showCategories: ["User Interface", "Mouse Sensitivity", "HMD", "Snapshots", "Privacy"]
     }
 }

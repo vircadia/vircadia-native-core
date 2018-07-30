@@ -161,12 +161,6 @@ void setupPreferences() {
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Use reticle cursor instead of arrow", getter, setter));
     }
 
-    {
-        auto getter = [=]()->bool { return myAvatar->getClearOverlayWhenMoving(); };
-        auto setter = [=](bool value) { myAvatar->setClearOverlayWhenMoving(value); };
-        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Clear overlays when moving", getter, setter));
-    }
-
     static const QString VIEW_CATEGORY{ "View" };
     {
         auto getter = [=]()->float { return myAvatar->getRealWorldFieldOfView(); };
@@ -233,6 +227,8 @@ void setupPreferences() {
         auto getter = [=]()->float { return myAvatar->getTargetScale(); };
         auto setter = [=](float value) { myAvatar->setTargetScale(value); };
         auto preference = new SpinnerSliderPreference(AVATAR_TUNING, "Avatar Scale", getter, setter);
+        preference->setMin(0.25);
+        preference->setMax(4);
         preference->setStep(0.05f);
         preference->setDecimals(2);
         preferences->addPreference(preference);
@@ -270,20 +266,15 @@ void setupPreferences() {
         preferences->addPreference(new SliderPreference(FACE_TRACKING, "Eye Deflection", getter, setter));
     }
 
-    static const QString MOVEMENT{ "VR Movement" };
+    static const QString MOVEMENT{ "Movement" };
     {
 
         static const QString movementsControlChannel = QStringLiteral("Hifi-Advanced-Movement-Disabler");
         auto getter = [=]()->bool { return myAvatar->useAdvancedMovementControls(); };
         auto setter = [=](bool value) { myAvatar->setUseAdvancedMovementControls(value); };
         preferences->addPreference(new CheckPreference(MOVEMENT,
-                                                       QStringLiteral("Advanced movement for hand controllers"),
-                                                       getter, setter));
-    }
-    {
-        auto getter = [=]()->bool { return myAvatar->getFlyingEnabled(); };
-        auto setter = [=](bool value) { myAvatar->setFlyingEnabled(value); };
-        preferences->addPreference(new CheckPreference(MOVEMENT, "Flying & jumping", getter, setter));
+            QStringLiteral("Advanced movement for hand controllers"),
+            getter, setter));
     }
     {
         auto getter = [=]()->int { return myAvatar->getSnapTurn() ? 0 : 1; };
@@ -304,22 +295,73 @@ void setupPreferences() {
         preference->setStep(0.001f);
         preferences->addPreference(preference);
     }
+    {
+        auto preference = new ButtonPreference(MOVEMENT, "RESET SENSORS", [] {
+            qApp->resetSensors();
+        });
+        preferences->addPreference(preference);
+    }
+
+    static const QString VR_MOVEMENT{ "VR Movement" };
+    {
+
+        static const QString movementsControlChannel = QStringLiteral("Hifi-Advanced-Movement-Disabler");
+        auto getter = [=]()->bool { return myAvatar->useAdvancedMovementControls(); };
+        auto setter = [=](bool value) { myAvatar->setUseAdvancedMovementControls(value); };
+        preferences->addPreference(new CheckPreference(VR_MOVEMENT,
+                                                       QStringLiteral("Advanced movement for hand controllers"),
+                                                       getter, setter));
+    }
+    {
+        auto getter = [=]()->bool { return myAvatar->getFlyingHMDPref(); };
+        auto setter = [=](bool value) { myAvatar->setFlyingHMDPref(value); };
+        preferences->addPreference(new CheckPreference(VR_MOVEMENT, "Flying & jumping", getter, setter));
+    }
+    {
+        auto getter = [=]()->int { return myAvatar->getSnapTurn() ? 0 : 1; };
+        auto setter = [=](int value) { myAvatar->setSnapTurn(value == 0); };
+        auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Snap turn / Smooth turn", getter, setter);
+        QStringList items;
+        items << "Snap turn" << "Smooth turn";
+        preference->setItems(items);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [=]()->float { return myAvatar->getUserHeight(); };
+        auto setter = [=](float value) { myAvatar->setUserHeight(value); };
+        auto preference = new SpinnerPreference(VR_MOVEMENT, "User real-world height (meters)", getter, setter);
+        preference->setMin(1.0f);
+        preference->setMax(2.2f);
+        preference->setDecimals(3);
+        preference->setStep(0.001f);
+        preferences->addPreference(preference);
+    }
+    {
+        auto preference = new ButtonPreference(VR_MOVEMENT, "RESET SENSORS", [] {
+            qApp->resetSensors();
+        });
+        preferences->addPreference(preference);
+    }
 
     static const QString AVATAR_CAMERA{ "Mouse Sensitivity" };
     {
         auto getter = [=]()->float { return myAvatar->getPitchSpeed(); };
         auto setter = [=](float value) { myAvatar->setPitchSpeed(value); };
-        auto preference = new SpinnerPreference(AVATAR_CAMERA, "Pitch speed (degrees/second)", getter, setter);
+        auto preference = new SpinnerSliderPreference(AVATAR_CAMERA, "Y input:", getter, setter);
         preference->setMin(1.0f);
         preference->setMax(360.0f);
+        preference->setStep(1);
+        preference->setDecimals(1);
         preferences->addPreference(preference);
     }
     {
         auto getter = [=]()->float { return myAvatar->getYawSpeed(); };
         auto setter = [=](float value) { myAvatar->setYawSpeed(value); };
-        auto preference = new SpinnerPreference(AVATAR_CAMERA, "Yaw speed (degrees/second)", getter, setter);
+        auto preference = new SpinnerSliderPreference(AVATAR_CAMERA, "X input:", getter, setter);
         preference->setMin(1.0f);
         preference->setMax(360.0f);
+        preference->setStep(1);
+        preference->setDecimals(1);
         preferences->addPreference(preference);
     }
 

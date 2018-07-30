@@ -153,8 +153,6 @@ public:
 
     /// Returns a reference to the shared geometry.
     const Geometry::Pointer& getGeometry() const { return _renderGeometry; }
-    /// Returns a reference to the shared collision geometry.
-    const Geometry::Pointer& getCollisionGeometry() const { return _collisionGeometry; }
 
     const QVariantMap getTextures() const { assert(isLoaded()); return _renderGeometry->getTextures(); }
     Q_INVOKABLE virtual void setTextures(const QVariantMap& textures);
@@ -180,6 +178,9 @@ public:
     bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
                                              BoxFace& face, glm::vec3& surfaceNormal,
                                              QVariantMap& extraInfo, bool pickAgainstTriangles = false, bool allowBackface = false);
+    bool findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+                                                  float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
+                                                  QVariantMap& extraInfo, bool pickAgainstTriangles = false, bool allowBackface = false);
 
     void setOffset(const glm::vec3& offset);
     const glm::vec3& getOffset() const { return _offset; }
@@ -260,7 +261,6 @@ public:
 
     // returns 'true' if needs fullUpdate after geometry change
     virtual bool updateGeometry();
-    void setCollisionMesh(graphics::MeshPointer mesh);
 
     void setLoadingPriority(float priority) { _loadingPriority = priority; }
 
@@ -362,7 +362,6 @@ protected:
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
 
     Geometry::Pointer _renderGeometry; // only ever set by its watcher
-    Geometry::Pointer _collisionGeometry;
 
     GeometryResourceWatcher _renderWatcher;
 
@@ -427,12 +426,9 @@ protected:
     bool _overrideModelTransform { false };
     bool _triangleSetsValid { false };
     void calculateTriangleSets(const FBXGeometry& geometry);
-    QVector<TriangleSet> _modelSpaceMeshTriangleSets; // model space triangles for all sub meshes
+    std::vector<std::vector<TriangleSet>> _modelSpaceMeshTriangleSets; // model space triangles for all sub meshes
 
-
-    void createRenderItemSet();
-    virtual void createVisibleRenderItemSet();
-    virtual void createCollisionRenderItemSet();
+    virtual void createRenderItemSet();
 
     bool _isWireframe;
     bool _useDualQuaternionSkinning { false };
@@ -442,9 +438,6 @@ protected:
 
 
     static AbstractViewStateInterface* _viewState;
-
-    QVector<std::shared_ptr<MeshPartPayload>> _collisionRenderItems;
-    QMap<render::ItemID, render::PayloadPointer> _collisionRenderItemsMap;
 
     QVector<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItems;
     QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItemsMap;

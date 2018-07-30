@@ -26,7 +26,7 @@
 
 #include "AddressManager.h"
 #include "Application.h"
-#include "Crashpad.h"
+#include "CrashHandler.h"
 #include "InterfaceLogging.h"
 #include "UserActivityLogger.h"
 #include "MainWindow.h"
@@ -81,10 +81,17 @@ int main(int argc, const char* argv[]) {
 
     // Instance UserActivityLogger now that the settings are loaded
     auto& ual = UserActivityLogger::getInstance();
+    // once the settings have been loaded, check if we need to flip the default for UserActivityLogger
+    if (!ual.isDisabledSettingSet()) {
+        // the user activity logger is opt-out for Interface
+        // but it's defaulted to disabled for other targets
+        // so we need to enable it here if it has never been disabled by the user
+        ual.disable(false);
+    }
     qDebug() << "UserActivityLogger is enabled:" << ual.isEnabled();
 
     if (ual.isEnabled()) {
-        auto crashHandlerStarted = startCrashHandler();
+        auto crashHandlerStarted = startCrashHandler(argv[0]);
         qDebug() << "Crash handler started:" << crashHandlerStarted;
     }
 
@@ -255,6 +262,9 @@ int main(int argc, const char* argv[]) {
         // Extend argv to enable WebGL rendering
         std::vector<const char*> argvExtended(&argv[0], &argv[argc]);
         argvExtended.push_back("--ignore-gpu-blacklist");
+#ifdef Q_OS_ANDROID
+        argvExtended.push_back("--suppress-settings-reset");
+#endif
         int argcExtended = (int)argvExtended.size();
 
         PROFILE_SYNC_END(startup, "main startup", "");

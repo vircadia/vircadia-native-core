@@ -306,13 +306,21 @@
         // change pricing to GET/BUY on button hover
         $('body').on('mouseenter', '#price-or-edit .price', function () {
             var $this = $(this);
+            var buyString = "BUY";
+            var getString = "GET";
+            // Protection against the button getting stuck in the "BUY"/"GET" state.
+            // That happens when the browser gets two MOUSEENTER events before getting a
+            // MOUSELEAVE event.
+            if ($this.text() === buyString || $this.text() === getString) {
+                return;
+            }
             $this.data('initialHtml', $this.html());
 
             var cost = $(this).parent().siblings().text();
             if (parseInt(cost) > 0) {
-                $this.text('BUY');
+                $this.text(buyString);
             } else {
-                $this.text('GET');
+                $this.text(getString);
             }
         });
 

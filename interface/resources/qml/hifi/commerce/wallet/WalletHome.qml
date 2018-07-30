@@ -76,7 +76,7 @@ Item {
         anchors.top: parent.top;
         anchors.left: parent.left;
         anchors.leftMargin: 20;
-        width: parent.width/2;
+        width: parent.width/2 - anchors.leftMargin;
         height: 80;
     }
 
@@ -212,6 +212,7 @@ Item {
         HifiModels.PSFListModel {
             id: transactionHistoryModel;
             listModelName: "transaction history"; // For debugging. Alternatively, we could specify endpoint for that purpose, even though it's not used directly.
+            listView: transactionHistory;
             itemsPerPage: 6;
             getPage: function () {
                 console.debug('getPage', transactionHistoryModel.listModelName, transactionHistoryModel.currentPageToRetrieve);
@@ -252,60 +253,6 @@ Item {
             anchors.bottom: parent.bottom;
             anchors.left: parent.left;
             anchors.right: parent.right;
-
-            Item {  // On empty history. We don't want to flash and then replace, so don't show until we know we're zero.
-                visible: transactionHistoryModel.count === 0 && transactionHistoryModel.currentPageToRetrieve < 0;
-                anchors.centerIn: parent;
-                width: parent.width - 12;
-                height: parent.height;
-
-                HifiControlsUit.Separator {
-                    colorScheme: 1;
-                    anchors.left: parent.left;
-                    anchors.right: parent.right;
-                    anchors.top: parent.top;
-                }
-
-                RalewayRegular {
-                    id: noActivityText;
-                    text: "Congrats! Your wallet is all set!<br><br>" +
-                        "<b>Where's my HFC?</b><br>" +
-                        "High Fidelity commerce is in open beta right now. Want more HFC? Get it by meeting with a banker at " +
-                        "<a href='#goToBank'>BankOfHighFidelity</a>!"
-                    // Text size
-                    size: 22;
-                    // Style
-                    color: hifi.colors.blueAccent;
-                    anchors.top: parent.top;
-                    anchors.topMargin: 36;
-                    anchors.left: parent.left;
-                    anchors.leftMargin: 12;
-                    anchors.right: parent.right;
-                    anchors.rightMargin: 12;
-                    height: paintedHeight;
-                    wrapMode: Text.WordWrap;
-                    horizontalAlignment: Text.AlignHCenter;
-
-                    onLinkActivated: {
-                        sendSignalToWallet({ method: "transactionHistory_goToBank" });
-                    }
-                }
-
-                HifiControlsUit.Button {
-                    id: bankButton;
-                    color: hifi.buttons.blue;
-                    colorScheme: hifi.colorSchemes.dark;
-                    anchors.top: noActivityText.bottom;
-                    anchors.topMargin: 30;
-                    anchors.horizontalCenter: parent.horizontalCenter;
-                    width: parent.width/2;
-                    height: 50;
-                    text: "VISIT BANK OF HIGH FIDELITY";
-                    onClicked: {
-                        sendSignalToWallet({ method: "transactionHistory_goToBank" });
-                    }
-                }
-            }
             
             ListView {
                 id: transactionHistory;
@@ -400,10 +347,62 @@ Item {
                         }
                     }
                 }
-                onAtYEndChanged: {
-                    if (transactionHistory.atYEnd && !transactionHistory.atYBeginning) {
-                        console.log("User scrolled to the bottom of 'Recent Activity'.");
-                        transactionHistoryModel.getNextPage();
+            }
+
+            Item {
+                // On empty history. We don't want to flash and then replace, so don't show until we know we should.
+                // The history is empty when it contains 1 item (the pending item count) AND there are no pending items.
+                visible: transactionHistoryModel.count === 1 &&
+                    transactionHistoryModel.retrievedAtLeastOnePage &&
+                    transactionHistoryModel.get(0).count === 0;
+                anchors.centerIn: parent;
+                width: parent.width - 12;
+                height: parent.height;
+
+                HifiControlsUit.Separator {
+                    colorScheme: 1;
+                    anchors.left: parent.left;
+                    anchors.right: parent.right;
+                    anchors.top: parent.top;
+                }
+
+                RalewayRegular {
+                    id: noActivityText;
+                    text: "Congrats! Your wallet is all set!<br><br>" +
+                        "<b>Where's my HFC?</b><br>" +
+                        "High Fidelity commerce is in open beta right now. Want more HFC? Get it by meeting with a banker at " +
+                        "<a href='#goToBank'>BankOfHighFidelity</a>!"
+                    // Text size
+                    size: 22;
+                    // Style
+                    color: hifi.colors.blueAccent;
+                    anchors.top: parent.top;
+                    anchors.topMargin: 36;
+                    anchors.left: parent.left;
+                    anchors.leftMargin: 12;
+                    anchors.right: parent.right;
+                    anchors.rightMargin: 12;
+                    height: paintedHeight;
+                    wrapMode: Text.WordWrap;
+                    horizontalAlignment: Text.AlignHCenter;
+
+                    onLinkActivated: {
+                        sendSignalToWallet({ method: "transactionHistory_goToBank" });
+                    }
+                }
+
+                HifiControlsUit.Button {
+                    id: bankButton;
+                    color: hifi.buttons.blue;
+                    colorScheme: hifi.colorSchemes.dark;
+                    anchors.top: noActivityText.bottom;
+                    anchors.topMargin: 30;
+                    anchors.horizontalCenter: parent.horizontalCenter;
+                    width: parent.width/2;
+                    height: 50;
+                    text: "VISIT BANK OF HIGH FIDELITY";
+                    onClicked: {
+                        sendSignalToWallet({ method: "transactionHistory_goToBank" });
                     }
                 }
             }

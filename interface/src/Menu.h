@@ -141,7 +141,6 @@ namespace MenuOption {
     const QString Overlays = "Show Overlays";
     const QString PackageModel = "Package Model as .fst...";
     const QString Pair = "Pair";
-    const QString PhysicsShowHulls = "Draw Collision Shapes";
     const QString PhysicsShowOwned = "Highlight Simulation Ownership";
     const QString VerboseLogging = "Verbose Logging";
     const QString PhysicsShowBulletWireframe = "Show Bullet Collision";

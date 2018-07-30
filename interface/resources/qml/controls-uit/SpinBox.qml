@@ -17,12 +17,19 @@ import "../controls-uit" as HifiControls
 SpinBox {
     id: spinBox
 
+    HifiConstants {
+        id: hifi
+    }
+
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme === hifi.colorSchemes.light
     property string label: ""
     property string suffix: ""
     property string labelInside: ""
     property color colorLabelInside: hifi.colors.white
+    property color backgroundColor: isLightColorScheme
+                                    ? (spinBox.activeFocus ? hifi.colors.white : hifi.colors.lightGray)
+                                    : (spinBox.activeFocus ? hifi.colors.black : hifi.colors.baseGrayShadow)
     property real controlHeight: height + (spinBoxLabel.visible ? spinBoxLabel.height + spinBoxLabel.anchors.bottomMargin : 0)
     property int decimals: 2;
     property real factor: Math.pow(10, decimals)
@@ -31,8 +38,8 @@ SpinBox {
     property real maximumValue: 0.0
 
     property real realValue: 0.0
-    property real realFrom: 0.0
-    property real realTo: 100.0
+    property real realFrom: minimumValue
+    property real realTo: maximumValue
     property real realStepSize: 1.0
 
     signal editingFinished()
@@ -51,9 +58,14 @@ SpinBox {
 
     onValueModified: realValue = value/factor
     onValueChanged: realValue = value/factor
+    onRealValueChanged: {
+        var newValue = Math.round(realValue*factor);
+        if(value != newValue) {
+            value = newValue;
+        }
+    }
 
     stepSize: realStepSize*factor
-    value: realValue*factor
     to : realTo*factor
     from : realFrom*factor
 
@@ -64,9 +76,7 @@ SpinBox {
     y: spinBoxLabel.visible ? spinBoxLabel.height + spinBoxLabel.anchors.bottomMargin : 0
 
     background: Rectangle {
-        color: isLightColorScheme
-               ? (spinBox.activeFocus ? hifi.colors.white : hifi.colors.lightGray)
-               : (spinBox.activeFocus ? hifi.colors.black : hifi.colors.baseGrayShadow)
+        color: backgroundColor
         border.color: spinBoxLabelInside.visible ? spinBoxLabelInside.color : hifi.colors.primaryHighlight
         border.width: spinBox.activeFocus ? spinBoxLabelInside.visible ? 2 : 1 : 0
     }
@@ -81,6 +91,7 @@ SpinBox {
     }
 
     valueFromText: function(text, locale) {
+        spinBox.value = 0; // Force valueChanged signal to be emitted so that validator fires.
         return Number.fromLocaleString(locale, text)*factor;
     }
 
@@ -110,7 +121,7 @@ SpinBox {
             anchors.centerIn: parent
             text: hifi.glyphs.caratUp
             size: hifi.dimensions.spinnerSize
-            color: spinBox.down.pressed || spinBox.up.hovered ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
+            color: spinBox.up.pressed || spinBox.up.hovered ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
         }
     }
 
@@ -149,26 +160,14 @@ SpinBox {
         visible: spinBox.labelInside != ""
     }
 
-//    MouseArea {
-//        anchors.fill: parent
-//        propagateComposedEvents: true
-//        onWheel: {
-//            if(spinBox.activeFocus)
-//                wheel.accepted = false
-//            else
-//                wheel.accepted = true
-//        }
-//        onPressed: {
-//            mouse.accepted = false
-//        }
-//        onReleased: {
-//            mouse.accepted = false
-//        }
-//        onClicked: {
-//            mouse.accepted = false
-//        }
-//        onDoubleClicked: {
-//            mouse.accepted = false
-//        }
-//    }
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.NoButton
+        onWheel: {
+            if (wheel.angleDelta.y > 0)
+                value += stepSize
+            else
+                value -= stepSize
+        }
+    }
 }

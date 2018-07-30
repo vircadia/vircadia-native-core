@@ -66,7 +66,7 @@
         <script>
             var handControllerImageURL = null;
             var index = 0;
-            var count = 4;
+            var count = 5;
 
             function showKbm() {
                 document.getElementById("main_image").setAttribute("src", "img/tablet-help-keyboard.jpg");
@@ -102,9 +102,13 @@
                         showHandControllers();
                         break;
                     case 2:
-                        showGamepad();
+                        handControllerImageURL = "img/tablet-help-windowsMR.jpg";
+                        showHandControllers();
                         break;
                     case 3:
+                        showGamepad();
+                        break;
+                    case 4:
                         showKbm();
                         break;
 
@@ -144,7 +148,10 @@
                         handControllerImageURL = "img/tablet-help-oculus.jpg";
                         index = 0;
                         break;
-
+                    case "windowsMR":
+                        handControllerImageURL = "img/tablet-help-windowsMR.jpg";
+                        index = 2;
+                        break;
                     case "vive":
                     default:
                         handControllerImageURL = "img/tablet-help-vive.jpg";
@@ -154,7 +161,7 @@
                 switch (params.defaultTab) {
                     case "gamepad":
                         showGamepad();
-                        index = 2;
+                        index = 3;
                         break;
 
                     case "handControllers":
@@ -164,7 +171,7 @@
                     case "kbm":
                     default:
                         showKbm();
-                        index = 3;
+                        index = 4;
                 }
             }
         </script>

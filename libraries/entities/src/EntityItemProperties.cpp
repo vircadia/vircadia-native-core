@@ -369,6 +369,11 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_ROT, materialMappingRot);
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_DATA, materialData);
     CHECK_PROPERTY_CHANGE(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
+    CHECK_PROPERTY_CHANGE(PROP_PARTICLE_SPIN, particleSpin);
+    CHECK_PROPERTY_CHANGE(PROP_SPIN_SPREAD, spinSpread);
+    CHECK_PROPERTY_CHANGE(PROP_SPIN_START, spinStart);
+    CHECK_PROPERTY_CHANGE(PROP_SPIN_FINISH, spinFinish);
+    CHECK_PROPERTY_CHANGE(PROP_PARTICLE_ROTATE_WITH_ENTITY, rotateWithEntity);
 
     // Certifiable Properties
     CHECK_PROPERTY_CHANGE(PROP_ITEM_NAME, itemName);
@@ -854,7 +859,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     default is Earth's gravity value.
  * @property {vec3} accelerationSpread=0,0,0 - The spread in accelerations that each particle is given. If
  *     <code>emitAccelerations == {x: 0, y: -9.8, z: 0}</code> and <code>accelerationSpread ==
- *     {x: 0, y: 1, z: 0}</code>, each particle will have an acceleration in the range, <code>{x: 0, y: -10.8, z: 0}</code> 
+ *     {x: 0, y: 1, z: 0}</code>, each particle will have an acceleration in the range <code>{x: 0, y: -10.8, z: 0}</code>
  *     &ndash; <code>{x: 0, y: -8.8, z: 0}</code>.
  * @property {Vec3} dimensions - The dimensions of the particle effect, i.e., a bounding box containing all the particles
  *     during their lifetimes, assuming that <code>emitterShouldTrail</code> is <code>false</code>. <em>Read-only.</em>
@@ -879,30 +884,44 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} azimuthStart=-Math.PI - The angle in radians from the entity's local x-axis about the entity's local 
  *     z-axis at which particles start being emitted; range <code>-Math.PI</code> &ndash; <code>Math.PI</code>. Particles are 
  *     emitted from the portion of the ellipsoid that lies between <code>azimuthStart<code> and <code>azimuthFinish</code>.
- * @property {number} azimuthFinish=Math.PI - The angle in radians from the entity's local x-axis about the entity's local 
- *     z-axis at which particles stop being emitted; range <code>-Math.PI</code> &ndash; <code>Math.PI</code>. Particles are 
+ * @property {number} azimuthFinish=Math.PI - The angle in radians from the entity's local x-axis about the entity's local
+ *     z-axis at which particles stop being emitted; range <code>-Math.PI</code> &ndash; <code>Math.PI</code>. Particles are
  *     emitted from the portion of the ellipsoid that lies between <code>azimuthStart<code> and <code>azimuthFinish</code>.
  *
- * @property {string} textures="" - The URL of a JPG or PNG image file to display for each particle. If you want transparency, 
+ * @property {string} textures="" - The URL of a JPG or PNG image file to display for each particle. If you want transparency,
  *     use PNG format.
  * @property {number} particleRadius=0.025 - The radius of each particle at the middle of its life.
- * @property {number} radiusStart=0.025 - The radius of each particle at the start of its life. If not explicitly set, the 
+ * @property {number} radiusStart=NAN - The radius of each particle at the start of its life. If NAN, the
  *     <code>particleRadius</code> value is used.
- * @property {number} radiusFinish=0.025 - The radius of each particle at the end of its life. If not explicitly set, the 
+ * @property {number} radiusFinish=NAN - The radius of each particle at the end of its life. If NAN, the
  *     <code>particleRadius</code> value is used.
- * @property {number} radiusSpread=0 - <em>Currently not used.</em>
+ * @property {number} radiusSpread=0 - The spread in radius that each particle is given. If <code>particleRadius == 0.5</code>
+ *     and <code>radiusSpread == 0.25</code>, each particle will have a radius in the range <code>0.25</code> &ndash; <code>0.75</code>.
  * @property {Color} color=255,255,255 - The color of each particle at the middle of its life.
- * @property {Color} colorStart=255,255,255 - The color of each particle at the start of its life. If not explicitly set, the 
+ * @property {Color} colorStart=NAN,NAN,NAN - The color of each particle at the start of its life. If any of the values are NAN, the
  *     <code>color</code> value is used.
- * @property {Color} colorFinish=255,255,255 - The color of each particle at the end of its life. If not explicitly set, the 
+ * @property {Color} colorFinish=NAN,NAN,NAN - The color of each particle at the end of its life. If any of the values are NAN, the
  *     <code>color</code> value is used.
- * @property {Color} colorSpread=0,0,0 - <em>Currently not used.</em>
+ * @property {Color} colorSpread=0,0,0 - The spread in color that each particle is given. If
+ *     <code>color == {red: 100, green: 100, blue: 100}</code> and <code>colorSpread ==
+ *     {red: 10, green: 25, blue: 50}</code>, each particle will have an acceleration in the range <code>{red: 90, green: 75, blue: 50}</code>
+ *     &ndash; <code>{red: 110, green: 125, blue: 150}</code>.
  * @property {number} alpha=1 - The alpha of each particle at the middle of its life.
- * @property {number} alphaStart=1 - The alpha of each particle at the start of its life. If not explicitly set, the 
+ * @property {number} alphaStart=NAN - The alpha of each particle at the start of its life. If NAN, the
  *     <code>alpha</code> value is used.
- * @property {number} alphaFinish=1 - The alpha of each particle at the end of its life. If not explicitly set, the 
+ * @property {number} alphaFinish=NAN - The alpha of each particle at the end of its life. If NAN, the
  *     <code>alpha</code> value is used.
- * @property {number} alphaSpread=0 - <em>Currently not used.</em>
+ * @property {number} alphaSpread=0 - The spread in alpha that each particle is given. If <code>alpha == 0.5</code>
+ *     and <code>alphaSpread == 0.25</code>, each particle will have an alpha in the range <code>0.25</code> &ndash; <code>0.75</code>.
+ * @property {number} particleSpin=0 - The spin of each particle at the middle of its life. In the range <code>-2*PI</code> &ndash; <code>2*PI</code>.
+ * @property {number} spinStart=NaN - The spin of each particle at the start of its life. In the range <code>-2*PI</code> &ndash; <code>2*PI</code>.
+ *     If <code>NaN</code>, the <code>particleSpin</code> value is used.
+ * @property {number} spinFinish=NaN - The spin of each particle at the end of its life. In the range <code>-2*PI</code> &ndash; <code>2*PI</code>.
+ *     If <code>NaN</code>, the <code>particleSpin</code> value is used.
+ * @property {number} spinSpread=0 - The spread in spin that each particle is given. In the range <code>0</code> &ndash; <code>2*PI</code>.  If <code>particleSpin == PI</code>
+ *     and <code>spinSpread == PI/2</code>, each particle will have a spin in the range <code>PI/2</code> &ndash; <code>3*PI/2</code>.
+ * @property {boolean} rotateWithEntity=false - Whether or not the particles' spin will rotate with the entity.  If false, when <code>particleSpin == 0</code>, the particles will point
+ * up in the world.  If true, they will point towards the entity's up vector, based on its orientation.
  *
  * @property {ShapeType} shapeType="none" - <em>Currently not used.</em> <em>Read-only.</em>
  *
@@ -1286,6 +1305,11 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_START, alphaStart);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_FINISH, alphaFinish);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMITTER_SHOULD_TRAIL, emitterShouldTrail);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARTICLE_SPIN, particleSpin);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SPIN_SPREAD, spinSpread);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SPIN_START, spinStart);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SPIN_FINISH, spinFinish);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARTICLE_ROTATE_WITH_ENTITY, rotateWithEntity);
     }
 
     // Models only
@@ -1499,13 +1523,13 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     }
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lastEditedBy, QUuid, setLastEditedBy);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(position, glmVec3, setPosition);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(dimensions, glmVec3, setDimensions);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(rotation, glmQuat, setRotation);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(position, vec3, setPosition);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(dimensions, vec3, setDimensions);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(rotation, quat, setRotation);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(density, float, setDensity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(velocity, glmVec3, setVelocity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(gravity, glmVec3, setGravity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(acceleration, glmVec3, setAcceleration);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(velocity, vec3, setVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(gravity, vec3, setGravity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(acceleration, vec3, setAcceleration);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(damping, float, setDamping);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(restitution, float, setRestitution);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(friction, float, setFriction);
@@ -1513,15 +1537,15 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(script, QString, setScript);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(scriptTimestamp, quint64, setScriptTimestamp);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(serverScripts, QString, setServerScripts);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(registrationPoint, glmVec3, setRegistrationPoint);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(angularVelocity, glmVec3, setAngularVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(registrationPoint, vec3, setRegistrationPoint);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(angularVelocity, vec3, setAngularVelocity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(angularDamping, float, setAngularDamping);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(visible, bool, setVisible);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(canCastShadow, bool, setCanCastShadow);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(color, xColor, setColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(colorSpread, xColor, setColorSpread);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorStart, xColor, setColorStart);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorFinish, xColor, setColorFinish);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorStart, vec3, setColorStart);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorFinish, vec3, setColorFinish);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alpha, float, setAlpha);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaSpread, float, setAlphaSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaStart, float, setAlphaStart);
@@ -1555,15 +1579,15 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitRate, float, setEmitRate);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitSpeed, float, setEmitSpeed);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(speedSpread, float, setSpeedSpread);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitOrientation, glmQuat, setEmitOrientation);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitDimensions, glmVec3, setEmitDimensions);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitOrientation, quat, setEmitOrientation);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitDimensions, vec3, setEmitDimensions);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitRadiusStart, float, setEmitRadiusStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(polarStart, float, setPolarStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(polarFinish, float, setPolarFinish);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(azimuthStart, float, setAzimuthStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(azimuthFinish, float, setAzimuthFinish);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitAcceleration, glmVec3, setEmitAcceleration);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(accelerationSpread, glmVec3, setAccelerationSpread);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitAcceleration, vec3, setEmitAcceleration);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(accelerationSpread, vec3, setAccelerationSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(particleRadius, float, setParticleRadius);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusSpread, float, setRadiusSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusStart, float, setRadiusStart);
@@ -1573,11 +1597,16 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(materialMappingMode, MaterialMappingMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(priority, quint16, setPriority);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(parentMaterialName, QString, setParentMaterialName);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingPos, glmVec2, setMaterialMappingPos);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingScale, glmVec2, setMaterialMappingScale);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingPos, vec2, setMaterialMappingPos);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingScale, vec2, setMaterialMappingScale);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingRot, float, setMaterialMappingRot);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialData, QString, setMaterialData);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(isVisibleInSecondaryCamera, bool, setIsVisibleInSecondaryCamera);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(particleSpin, float, setParticleSpin);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(spinSpread, float, setSpinSpread);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(spinStart, float, setSpinStart);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(spinFinish, float, setSpinFinish);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(rotateWithEntity, bool, setRotateWithEntity);
 
     // Certifiable Properties
     COPY_PROPERTY_FROM_QSCRIPTVALUE(itemName, QString, setItemName);
@@ -1601,7 +1630,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(skyboxMode, SkyboxMode);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(sourceUrl, QString, setSourceUrl);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, glmVec3, setVoxelVolumeSize);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, vec3, setVoxelVolumeSize);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelData, QByteArray, setVoxelData);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelSurfaceStyle, uint16_t, setVoxelSurfaceStyle);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lineWidth, float, setLineWidth);
@@ -1648,11 +1677,11 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(parentJointIndex, quint16, setParentJointIndex);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(queryAACube, AACube, setQueryAACube);
 
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localPosition, glmVec3, setLocalPosition);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localRotation, glmQuat, setLocalRotation);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localVelocity, glmVec3, setLocalVelocity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localAngularVelocity, glmVec3, setLocalAngularVelocity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localDimensions, glmVec3, setLocalDimensions);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localPosition, vec3, setLocalPosition);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localRotation, quat, setLocalRotation);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localVelocity, vec3, setLocalVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localAngularVelocity, vec3, setLocalAngularVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localDimensions, vec3, setLocalDimensions);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotationsSet, qVectorBool, setJointRotationsSet);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotations, qVectorQuat, setJointRotations);
@@ -1746,6 +1775,11 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(radiusSpread);
     COPY_PROPERTY_IF_CHANGED(radiusStart);
     COPY_PROPERTY_IF_CHANGED(radiusFinish);
+    COPY_PROPERTY_IF_CHANGED(particleSpin);
+    COPY_PROPERTY_IF_CHANGED(spinSpread);
+    COPY_PROPERTY_IF_CHANGED(spinStart);
+    COPY_PROPERTY_IF_CHANGED(spinFinish);
+    COPY_PROPERTY_IF_CHANGED(rotateWithEntity);
 
     // Certifiable Properties
     COPY_PROPERTY_IF_CHANGED(itemName);
@@ -1896,8 +1930,8 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_COLOR, Color, color, xColor);
         ADD_PROPERTY_TO_MAP(PROP_COLOR_SPREAD, ColorSpread, colorSpread, xColor);
-        ADD_PROPERTY_TO_MAP(PROP_COLOR_START, ColorStart, colorStart, xColor);
-        ADD_PROPERTY_TO_MAP(PROP_COLOR_FINISH, ColorFinish, colorFinish, xColor);
+        ADD_PROPERTY_TO_MAP(PROP_COLOR_START, ColorStart, colorStart, vec3);
+        ADD_PROPERTY_TO_MAP(PROP_COLOR_FINISH, ColorFinish, colorFinish, vec3);
         ADD_PROPERTY_TO_MAP(PROP_ALPHA, Alpha, alpha, float);
         ADD_PROPERTY_TO_MAP(PROP_ALPHA_SPREAD, AlphaSpread, alphaSpread, float);
         ADD_PROPERTY_TO_MAP(PROP_ALPHA_START, AlphaStart, alphaStart, float);
@@ -1952,12 +1986,18 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_MODE, MaterialMappingMode, materialMappingMode, MaterialMappingMode);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_PRIORITY, Priority, priority, quint16);
         ADD_PROPERTY_TO_MAP(PROP_PARENT_MATERIAL_NAME, ParentMaterialName, parentMaterialName, QString);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_POS, MaterialMappingPos, materialMappingPos, glmVec2);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale, glmVec2);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_POS, MaterialMappingPos, materialMappingPos, vec2);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale, vec2);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_ROT, MaterialMappingRot, materialMappingRot, float);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_DATA, MaterialData, materialData, QString);
 
         ADD_PROPERTY_TO_MAP(PROP_VISIBLE_IN_SECONDARY_CAMERA, IsVisibleInSecondaryCamera, isVisibleInSecondaryCamera, bool);
+
+        ADD_PROPERTY_TO_MAP(PROP_PARTICLE_SPIN, ParticleSpin, particleSpin, float);
+        ADD_PROPERTY_TO_MAP(PROP_SPIN_SPREAD, SpinSpread, spinSpread, float);
+        ADD_PROPERTY_TO_MAP(PROP_SPIN_START, SpinStart, spinStart, float);
+        ADD_PROPERTY_TO_MAP(PROP_SPIN_FINISH, SpinFinish, spinFinish, float);
+        ADD_PROPERTY_TO_MAP(PROP_PARTICLE_ROTATE_WITH_ENTITY, RotateWithEntity, rotateWithEntity, float);
 
         // Certifiable Properties
         ADD_PROPERTY_TO_MAP(PROP_ITEM_NAME, ItemName, itemName, QString);
@@ -2287,6 +2327,11 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA_START, properties.getAlphaStart());
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA_FINISH, properties.getAlphaFinish());
                 APPEND_ENTITY_PROPERTY(PROP_EMITTER_SHOULD_TRAIL, properties.getEmitterShouldTrail());
+                APPEND_ENTITY_PROPERTY(PROP_PARTICLE_SPIN, properties.getParticleSpin());
+                APPEND_ENTITY_PROPERTY(PROP_SPIN_SPREAD, properties.getSpinSpread());
+                APPEND_ENTITY_PROPERTY(PROP_SPIN_START, properties.getSpinStart());
+                APPEND_ENTITY_PROPERTY(PROP_SPIN_FINISH, properties.getSpinFinish());
+                APPEND_ENTITY_PROPERTY(PROP_PARTICLE_ROTATE_WITH_ENTITY, properties.getRotateWithEntity())
             }
 
             if (properties.getType() == EntityTypes::Zone) {
@@ -2423,9 +2468,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
         if (appendState != OctreeElement::COMPLETED) {
             didntFitProperties = propertiesDidntFit;
         }
-    }
 
-    if (success) {
         packetData->endSubTree();
 
         const char* finalizedData = reinterpret_cast<const char*>(packetData->getFinalizedData());
@@ -2436,14 +2479,12 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             buffer.resize(finalizedSize);
         } else {
             qCDebug(entities) << "ERROR - encoded edit message doesn't fit in output buffer.";
-            success = false;
             appendState = OctreeElement::NONE; // if we got here, then we didn't include the item
             // maybe we should assert!!!
         }
     } else {
         packetData->discardSubTree();
     }
-
 
     return appendState;
 }
@@ -2660,12 +2701,17 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_START, float, setRadiusStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_FINISH, float, setRadiusFinish);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_SPREAD, xColor, setColorSpread);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_START, xColor, setColorStart);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_FINISH, xColor, setColorFinish);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_START, vec3, setColorStart);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_FINISH, vec3, setColorFinish);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_SPREAD, float, setAlphaSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_START, float, setAlphaStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_FINISH, float, setAlphaFinish);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMITTER_SHOULD_TRAIL, bool, setEmitterShouldTrail);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARTICLE_SPIN, float, setParticleSpin);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SPIN_SPREAD, float, setSpinSpread);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SPIN_START, float, setSpinStart);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SPIN_FINISH, float, setSpinFinish);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARTICLE_ROTATE_WITH_ENTITY, bool, setRotateWithEntity);
     }
 
     if (properties.getType() == EntityTypes::Zone) {
@@ -2733,8 +2779,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_MODE, MaterialMappingMode, setMaterialMappingMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_PRIORITY, quint16, setPriority);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARENT_MATERIAL_NAME, QString, setParentMaterialName);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_POS, glmVec2, setMaterialMappingPos);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_SCALE, glmVec2, setMaterialMappingScale);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_POS, vec2, setMaterialMappingPos);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_SCALE, vec2, setMaterialMappingScale);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_ROT, float, setMaterialMappingRot);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_DATA, QString, setMaterialData);
     }
@@ -2804,7 +2850,7 @@ QVector<glm::vec3> EntityItemProperties::unpackStrokeColors(const QByteArray& st
             float r = (uint8_t)strokeColors[i++] / 255.0f;
             float g = (uint8_t)strokeColors[i++] / 255.0f;
             float b = (uint8_t)strokeColors[i++] / 255.0f;
-            unpackedStrokeColors[j++] = glmVec3(r, g, b);
+            unpackedStrokeColors[j++] = vec3(r, g, b);
         }
     } else {
         qCDebug(entities) << "WARNING - Expected received size for stroke colors does not match. Expected: " 
@@ -2834,7 +2880,6 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
     outputLength = sizeof(numberOfIds);
 
     memcpy(copyAt, entityItemID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
-    copyAt += NUM_BYTES_RFC4122_UUID;
     outputLength += NUM_BYTES_RFC4122_UUID;
 
     buffer.resize(outputLength);
@@ -2856,7 +2901,6 @@ bool EntityItemProperties::encodeCloneEntityMessage(const EntityItemID& entityID
     outputLength += NUM_BYTES_RFC4122_UUID;
 
     memcpy(copyAt, newEntityID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
-    copyAt += NUM_BYTES_RFC4122_UUID;
     outputLength += NUM_BYTES_RFC4122_UUID;
 
     buffer.resize(outputLength);
@@ -2937,6 +2981,7 @@ void EntityItemProperties::markAllChanged() {
     _shapeTypeChanged = true;
 
     _isEmittingChanged = true;
+    _emitterShouldTrailChanged = true;
     _maxParticlesChanged = true;
     _lifespanChanged = true;
     _emitRateChanged = true;
@@ -2955,15 +3000,17 @@ void EntityItemProperties::markAllChanged() {
     _radiusSpreadChanged = true;
     _colorSpreadChanged = true;
     _alphaSpreadChanged = true;
-
-    // Only mark the following as changed if their values are specified in the properties when the particle is created. If their
-    // values are specified then they are marked as changed in getChangedProperties().
-    //_radiusStartChanged = true;
-    //_radiusFinishChanged = true;
-    //_colorStartChanged = true;
-    //_colorFinishChanged = true;
-    //_alphaStartChanged = true;
-    //_alphaFinishChanged = true;
+    _radiusStartChanged = true;
+    _radiusFinishChanged = true;
+    _colorStartChanged = true;
+    _colorFinishChanged = true;
+    _alphaStartChanged = true;
+    _alphaFinishChanged = true;
+    _particleSpinChanged = true;
+    _spinStartChanged = true;
+    _spinFinishChanged = true;
+    _spinSpreadChanged = true;
+    _rotateWithEntityChanged = true;
 
     _materialURLChanged = true;
     _materialMappingModeChanged = true;
@@ -3311,6 +3358,21 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (radiusFinishChanged()) {
         out += "radiusFinish";
+    }
+    if (particleSpinChanged()) {
+        out += "particleSpin";
+    }
+    if (spinSpreadChanged()) {
+        out += "spinSpread";
+    }
+    if (spinStartChanged()) {
+        out += "spinStart";
+    }
+    if (spinFinishChanged()) {
+        out += "spinFinish";
+    }
+    if (rotateWithEntityChanged()) {
+        out += "rotateWithEntity";
     }
     if (materialURLChanged()) {
         out += "materialURL";

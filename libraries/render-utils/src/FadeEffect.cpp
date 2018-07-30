@@ -13,6 +13,8 @@
 
 #include "render/TransitionStage.h"
 
+#include "FadeObjectParams.shared.slh"
+
 #include <PathUtils.h>
 
 FadeEffect::FadeEffect() {
@@ -31,15 +33,8 @@ void FadeEffect::build(render::Task::TaskConcept& task, const task::Varying& edi
 
 render::ShapePipeline::BatchSetter FadeEffect::getBatchSetter() const {
     return [this](const render::ShapePipeline& shapePipeline, gpu::Batch& batch, render::Args*) {
-        auto program = shapePipeline.pipeline->getProgram();
-        auto maskMapLocation = program->getTextures().findLocation("fadeMaskMap");
-        auto bufferLocation = program->getUniformBuffers().findLocation("fadeParametersBuffer");
-        if (maskMapLocation != -1) {
-            batch.setResourceTexture(maskMapLocation, _maskMap);
-        } 
-        if (bufferLocation != -1) {
-            batch.setUniformBuffer(bufferLocation, _configurations);
-        }
+        batch.setResourceTexture(render::ShapePipeline::Slot::FADE_MASK, _maskMap);
+        batch.setUniformBuffer(render::ShapePipeline::Slot::FADE_PARAMETERS, _configurations);
     };
 }
 
@@ -50,23 +45,29 @@ render::ShapePipeline::ItemSetter FadeEffect::getItemUniformSetter() const {
             auto batch = args->_batch;
             auto transitionStage = scene->getStage<render::TransitionStage>(render::TransitionStage::getName());
             auto& transitionState = transitionStage->getTransition(item.getTransitionId());
-            auto program = shapePipeline.pipeline->getProgram();
-            auto& uniforms = program->getUniforms();
-            auto fadeNoiseOffsetLocation = uniforms.findLocation("fadeNoiseOffset");
-            auto fadeBaseOffsetLocation = uniforms.findLocation("fadeBaseOffset");
-            auto fadeBaseInvSizeLocation = uniforms.findLocation("fadeBaseInvSize");
-            auto fadeThresholdLocation = uniforms.findLocation("fadeThreshold");
-            auto fadeCategoryLocation = uniforms.findLocation("fadeCategory");
 
-            if (fadeNoiseOffsetLocation >= 0 || fadeBaseInvSizeLocation >= 0 || fadeBaseOffsetLocation >= 0 || fadeThresholdLocation >= 0 || fadeCategoryLocation >= 0) {
-                const auto fadeCategory = FadeJob::transitionToCategory[transitionState.eventType];
-
-                batch->_glUniform1i(fadeCategoryLocation, fadeCategory);
-                batch->_glUniform1f(fadeThresholdLocation, transitionState.threshold);
-                batch->_glUniform3f(fadeNoiseOffsetLocation, transitionState.noiseOffset.x, transitionState.noiseOffset.y, transitionState.noiseOffset.z);
-                batch->_glUniform3f(fadeBaseOffsetLocation, transitionState.baseOffset.x, transitionState.baseOffset.y, transitionState.baseOffset.z);
-                batch->_glUniform3f(fadeBaseInvSizeLocation, transitionState.baseInvSize.x, transitionState.baseInvSize.y, transitionState.baseInvSize.z);
+            if (transitionState.paramsBuffer._size != sizeof(gpu::StructBuffer<FadeObjectParams>)) {
+                static_assert(sizeof(transitionState.paramsBuffer) == sizeof(gpu::StructBuffer<FadeObjectParams>), "Assuming gpu::StructBuffer is a helper class for gpu::BufferView");
+                transitionState.paramsBuffer = gpu::StructBuffer<FadeObjectParams>();
             }
+
+            const auto fadeCategory = FadeJob::transitionToCategory[transitionState.eventType];
+            auto& paramsConst = static_cast<gpu::StructBuffer<FadeObjectParams>&>(transitionState.paramsBuffer).get();
+
+            if (paramsConst.category != fadeCategory
+                || paramsConst.threshold != transitionState.threshold
+                || glm::vec3(paramsConst.baseOffset) != transitionState.baseOffset
+                || glm::vec3(paramsConst.noiseOffset) != transitionState.noiseOffset
+                || glm::vec3(paramsConst.baseInvSize) != transitionState.baseInvSize) {
+                auto& params = static_cast<gpu::StructBuffer<FadeObjectParams>&>(transitionState.paramsBuffer).edit();
+
+                params.category = fadeCategory;
+                params.threshold = transitionState.threshold;
+                params.baseInvSize = glm::vec4(transitionState.baseInvSize, 0.0f);
+                params.noiseOffset = glm::vec4(transitionState.noiseOffset, 0.0f);
+                params.baseOffset = glm::vec4(transitionState.baseOffset, 0.0f);
+            }
+            batch->setUniformBuffer(render::ShapePipeline::Slot::FADE_OBJECT_PARAMETERS, transitionState.paramsBuffer);
         }
     };
 }

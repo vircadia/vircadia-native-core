@@ -66,7 +66,7 @@ OffscreenSurface::OffscreenSurface()
 }
 
 OffscreenSurface::~OffscreenSurface() {
-    delete _sharedObject;
+    _sharedObject->deleteLater();
 }
 
 bool OffscreenSurface::fetchTexture(TextureAndFence& textureAndFence) {
@@ -286,6 +286,13 @@ void OffscreenSurface::loadInternal(const QUrl& qmlSource,
     if (QThread::currentThread() != thread()) {
         qFatal("Called load on a non-surface thread");
     }
+
+    // For desktop toolbar mode window: stop script when window is closed.
+    if (qmlSource.isEmpty()) {
+        getSurfaceContext()->engine()->quit();
+        return;
+    }
+
     // Synchronous loading may take a while; restart the deadlock timer
     QMetaObject::invokeMethod(qApp, "updateHeartbeat", Qt::DirectConnection);
 
@@ -386,9 +393,6 @@ void OffscreenSurface::finishQmlLoad(QQmlComponent* qmlComponent,
         _sharedObject->setRootItem(newItem);
     }
 
-    qmlComponent->completeCreate();
-    qmlComponent->deleteLater();
-
     onItemCreated(qmlContext, newItem);
 
     if (!rootCreated) {
@@ -398,6 +402,8 @@ void OffscreenSurface::finishQmlLoad(QQmlComponent* qmlComponent,
         // Call this callback after rootitem is set, otherwise VrMenu wont work
         callback(qmlContext, newItem);
     }
+    qmlComponent->completeCreate();
+    qmlComponent->deleteLater();
 }
 
 QQmlContext* OffscreenSurface::contextForUrl(const QUrl& qmlSource, QQuickItem* parent, bool forceNewContext) {

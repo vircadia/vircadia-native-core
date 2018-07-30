@@ -1244,12 +1244,11 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
                       bool leftArmEnabled, bool rightArmEnabled, float dt,
                       const AnimPose& leftHandPose, const AnimPose& rightHandPose,
                       const FBXJointShapeInfo& hipsShapeInfo, const FBXJointShapeInfo& spineShapeInfo,
-                      const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo) {
+                      const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo,
+                      const glm::mat4& rigToSensorMatrix, const glm::mat4& sensorToRigMatrix) {
 
-    const bool ENABLE_POLE_VECTORS = false;
+    const bool ENABLE_POLE_VECTORS = true;
     const float ELBOW_POLE_VECTOR_BLEND_FACTOR = 0.95f;
-
-    int hipsIndex = indexOfJoint("Hips");
 
     if (leftHandEnabled) {
 
@@ -1269,21 +1268,33 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         int handJointIndex = _animSkeleton->nameToJointIndex("LeftHand");
         int armJointIndex = _animSkeleton->nameToJointIndex("LeftArm");
         int elbowJointIndex = _animSkeleton->nameToJointIndex("LeftForeArm");
-        if (ENABLE_POLE_VECTORS && !leftArmEnabled && handJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0) {
-            glm::vec3 poleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, hipsIndex, true);
+        int oppositeArmJointIndex = _animSkeleton->nameToJointIndex("RightArm");
+        if (ENABLE_POLE_VECTORS && handJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0 && oppositeArmJointIndex >= 0) {
+            glm::vec3 poleVector;
+            bool usePoleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, oppositeArmJointIndex, poleVector);
+            if (usePoleVector) {
+                glm::vec3 sensorPoleVector = transformVectorFast(rigToSensorMatrix, poleVector);
 
-            // smooth toward desired pole vector from previous pole vector...  to reduce jitter
-            if (!_prevLeftHandPoleVectorValid) {
-                _prevLeftHandPoleVectorValid = true;
-                _prevLeftHandPoleVector = poleVector;
+                if (_smoothPoleVectors) {
+                    // smooth toward desired pole vector from previous pole vector...  to reduce jitter
+                    if (!_prevLeftHandPoleVectorValid) {
+                        _prevLeftHandPoleVectorValid = true;
+                        _prevLeftHandPoleVector = sensorPoleVector;
+                    }
+                    glm::quat deltaRot = rotationBetween(_prevLeftHandPoleVector, sensorPoleVector);
+                    glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, ELBOW_POLE_VECTOR_BLEND_FACTOR);
+                    _prevLeftHandPoleVector = smoothDeltaRot * _prevLeftHandPoleVector;
+                } else {
+                    _prevLeftHandPoleVector = sensorPoleVector;
+                }
+                _animVars.set("leftHandPoleVectorEnabled", true);
+                _animVars.set("leftHandPoleReferenceVector", Vectors::UNIT_X);
+                _animVars.set("leftHandPoleVector", transformVectorFast(sensorToRigMatrix, _prevLeftHandPoleVector));
+            } else {
+                _prevLeftHandPoleVectorValid = false;
+                _animVars.set("leftHandPoleVectorEnabled", false);
             }
-            glm::quat deltaRot = rotationBetween(_prevLeftHandPoleVector, poleVector);
-            glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, ELBOW_POLE_VECTOR_BLEND_FACTOR);
-            _prevLeftHandPoleVector = smoothDeltaRot * _prevLeftHandPoleVector;
 
-            _animVars.set("leftHandPoleVectorEnabled", true);
-            _animVars.set("leftHandPoleReferenceVector", Vectors::UNIT_X);
-            _animVars.set("leftHandPoleVector", _prevLeftHandPoleVector);
         } else {
             _prevLeftHandPoleVectorValid = false;
             _animVars.set("leftHandPoleVectorEnabled", false);
@@ -1295,7 +1306,6 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         _animVars.unset("leftHandPosition");
         _animVars.unset("leftHandRotation");
         _animVars.set("leftHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
-
     }
 
     if (rightHandEnabled) {
@@ -1316,21 +1326,34 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         int handJointIndex = _animSkeleton->nameToJointIndex("RightHand");
         int armJointIndex = _animSkeleton->nameToJointIndex("RightArm");
         int elbowJointIndex = _animSkeleton->nameToJointIndex("RightForeArm");
-        if (ENABLE_POLE_VECTORS && !rightArmEnabled && handJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0) {
-            glm::vec3 poleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, hipsIndex, false);
+        int oppositeArmJointIndex = _animSkeleton->nameToJointIndex("LeftArm");
 
-            // smooth toward desired pole vector from previous pole vector...  to reduce jitter
-            if (!_prevRightHandPoleVectorValid) {
-                _prevRightHandPoleVectorValid = true;
-                _prevRightHandPoleVector = poleVector;
+        if (ENABLE_POLE_VECTORS && handJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0 && oppositeArmJointIndex >= 0) {
+            glm::vec3 poleVector;
+            bool usePoleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, oppositeArmJointIndex, poleVector);
+            if (usePoleVector) {
+                glm::vec3 sensorPoleVector = transformVectorFast(rigToSensorMatrix, poleVector);
+
+                if (_smoothPoleVectors) {
+                    // smooth toward desired pole vector from previous pole vector...  to reduce jitter
+                    if (!_prevRightHandPoleVectorValid) {
+                        _prevRightHandPoleVectorValid = true;
+                        _prevRightHandPoleVector = sensorPoleVector;
+                    }
+                    glm::quat deltaRot = rotationBetween(_prevRightHandPoleVector, sensorPoleVector);
+                    glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, ELBOW_POLE_VECTOR_BLEND_FACTOR);
+                    _prevRightHandPoleVector = smoothDeltaRot * _prevRightHandPoleVector;
+                } else {
+                    _prevRightHandPoleVector = sensorPoleVector;
+                }
+
+                _animVars.set("rightHandPoleVectorEnabled", true);
+                _animVars.set("rightHandPoleReferenceVector", -Vectors::UNIT_X);
+                _animVars.set("rightHandPoleVector", transformVectorFast(sensorToRigMatrix, _prevRightHandPoleVector));
+            } else {
+                _prevRightHandPoleVectorValid = false;
+                _animVars.set("rightHandPoleVectorEnabled", false);
             }
-            glm::quat deltaRot = rotationBetween(_prevRightHandPoleVector, poleVector);
-            glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, ELBOW_POLE_VECTOR_BLEND_FACTOR);
-            _prevRightHandPoleVector = smoothDeltaRot * _prevRightHandPoleVector;
-
-            _animVars.set("rightHandPoleVectorEnabled", true);
-            _animVars.set("rightHandPoleReferenceVector", -Vectors::UNIT_X);
-            _animVars.set("rightHandPoleVector", _prevRightHandPoleVector);
         } else {
             _prevRightHandPoleVectorValid = false;
             _animVars.set("rightHandPoleVectorEnabled", false);
@@ -1345,7 +1368,8 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
     }
 }
 
-void Rig::updateFeet(bool leftFootEnabled, bool rightFootEnabled, const AnimPose& leftFootPose, const AnimPose& rightFootPose) {
+void Rig::updateFeet(bool leftFootEnabled, bool rightFootEnabled, const AnimPose& leftFootPose, const AnimPose& rightFootPose,
+                     const glm::mat4& rigToSensorMatrix, const glm::mat4& sensorToRigMatrix) {
 
     const float KNEE_POLE_VECTOR_BLEND_FACTOR = 0.95f;
 
@@ -1360,19 +1384,20 @@ void Rig::updateFeet(bool leftFootEnabled, bool rightFootEnabled, const AnimPose
         int kneeJointIndex = _animSkeleton->nameToJointIndex("LeftLeg");
         int upLegJointIndex = _animSkeleton->nameToJointIndex("LeftUpLeg");
         glm::vec3 poleVector = calculateKneePoleVector(footJointIndex, kneeJointIndex, upLegJointIndex, hipsIndex, leftFootPose);
+        glm::vec3 sensorPoleVector = transformVectorFast(rigToSensorMatrix, poleVector);
 
-        // smooth toward desired pole vector from previous pole vector...  to reduce jitter
+        // smooth toward desired pole vector from previous pole vector...  to reduce jitter, but in sensor space.
         if (!_prevLeftFootPoleVectorValid) {
             _prevLeftFootPoleVectorValid = true;
-            _prevLeftFootPoleVector = poleVector;
+            _prevLeftFootPoleVector = sensorPoleVector;
         }
-        glm::quat deltaRot = rotationBetween(_prevLeftFootPoleVector, poleVector);
+        glm::quat deltaRot = rotationBetween(_prevLeftFootPoleVector, sensorPoleVector);
         glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, KNEE_POLE_VECTOR_BLEND_FACTOR);
         _prevLeftFootPoleVector = smoothDeltaRot * _prevLeftFootPoleVector;
 
         _animVars.set("leftFootPoleVectorEnabled", true);
         _animVars.set("leftFootPoleReferenceVector", Vectors::UNIT_Z);
-        _animVars.set("leftFootPoleVector", _prevLeftFootPoleVector);
+        _animVars.set("leftFootPoleVector", transformVectorFast(sensorToRigMatrix, _prevLeftFootPoleVector));
     } else {
         _animVars.unset("leftFootPosition");
         _animVars.unset("leftFootRotation");
@@ -1390,19 +1415,20 @@ void Rig::updateFeet(bool leftFootEnabled, bool rightFootEnabled, const AnimPose
         int kneeJointIndex = _animSkeleton->nameToJointIndex("RightLeg");
         int upLegJointIndex = _animSkeleton->nameToJointIndex("RightUpLeg");
         glm::vec3 poleVector = calculateKneePoleVector(footJointIndex, kneeJointIndex, upLegJointIndex, hipsIndex, rightFootPose);
+        glm::vec3 sensorPoleVector = transformVectorFast(rigToSensorMatrix, poleVector);
 
         // smooth toward desired pole vector from previous pole vector...  to reduce jitter
         if (!_prevRightFootPoleVectorValid) {
             _prevRightFootPoleVectorValid = true;
-            _prevRightFootPoleVector = poleVector;
+            _prevRightFootPoleVector = sensorPoleVector;
         }
-        glm::quat deltaRot = rotationBetween(_prevRightFootPoleVector, poleVector);
+        glm::quat deltaRot = rotationBetween(_prevRightFootPoleVector, sensorPoleVector);
         glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, KNEE_POLE_VECTOR_BLEND_FACTOR);
         _prevRightFootPoleVector = smoothDeltaRot * _prevRightFootPoleVector;
 
         _animVars.set("rightFootPoleVectorEnabled", true);
         _animVars.set("rightFootPoleReferenceVector", Vectors::UNIT_Z);
-        _animVars.set("rightFootPoleVector", _prevRightFootPoleVector);
+        _animVars.set("rightFootPoleVector", transformVectorFast(sensorToRigMatrix, _prevRightFootPoleVector));
     } else {
         _animVars.unset("rightFootPosition");
         _animVars.unset("rightFootRotation");
@@ -1434,9 +1460,9 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
 
         glm::quat deltaQuat = desiredQuat * glm::inverse(headQuat);
 
-        // limit swing rotation of the deltaQuat by a 30 degree cone.
+        // limit swing rotation of the deltaQuat by a 25 degree cone.
         // TODO: use swing twist decomposition constraint instead, for off axis rotation clamping.
-        const float MAX_ANGLE = 30.0f * RADIANS_PER_DEGREE;
+        const float MAX_ANGLE = 25.0f * RADIANS_PER_DEGREE;
         if (fabsf(glm::angle(deltaQuat)) > MAX_ANGLE) {
             deltaQuat = glm::angleAxis(glm::clamp(glm::angle(deltaQuat), -MAX_ANGLE, MAX_ANGLE), glm::axis(deltaQuat));
         }
@@ -1466,39 +1492,73 @@ static glm::quat quatLerp(const glm::quat& q1, const glm::quat& q2, float alpha)
     return glm::normalize(glm::lerp(q1, temp, alpha));
 }
 
-glm::vec3 Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, int hipsIndex, bool isLeft) const {
-    AnimPose hipsPose = _externalPoseSet._absolutePoses[hipsIndex];
+bool Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, int oppositeArmIndex, glm::vec3& poleVector) const {
+    // The resulting Pole Vector is calculated as the sum of a three vectors.
+    // The first is the vector with direction shoulder-hand. The module of this vector is inversely proportional to the strength of the resulting Pole Vector.
+    // The second vector is always perpendicular to previous vector and is part of the plane that contains a point located on the horizontal line,
+    // pointing forward and with height aprox to the avatar head. The position of the horizontal point will be determined by the hands Y component.
+    // The third vector apply a weighted correction to the resulting pole vector to avoid interpenetration and force a more natural pose.
+
+    AnimPose oppositeArmPose = _externalPoseSet._absolutePoses[oppositeArmIndex];
     AnimPose handPose = _externalPoseSet._absolutePoses[handIndex];
-    AnimPose elbowPose = _externalPoseSet._absolutePoses[elbowIndex];
     AnimPose armPose = _externalPoseSet._absolutePoses[armIndex];
+    AnimPose elbowPose = _externalPoseSet._absolutePoses[elbowIndex];
 
-    // ray from hand to arm.
-    glm::vec3 d = glm::normalize(handPose.trans() - armPose.trans());
+    glm::vec3 armToHand = handPose.trans() - armPose.trans();
+    glm::vec3 armToElbow = elbowPose.trans() - armPose.trans();
+    glm::vec3 elbowToHand = handPose.trans() - elbowPose.trans();
 
-    float sign = isLeft ? 1.0f : -1.0f;
+    glm::vec3 backVector = oppositeArmPose.trans() - armPose.trans();
+    glm::vec3 backCenter = armPose.trans() + 0.5f * backVector;
+    
+    const float OVER_BACK_HEAD_PERCENTAGE = 0.2f;
 
-    // form a plane normal to the hips x-axis.
-    glm::vec3 n = hipsPose.rot() * Vectors::UNIT_X;
-    glm::vec3 y = hipsPose.rot() * Vectors::UNIT_Y;
+    glm::vec3 headCenter = backCenter + glm::vec3(0, OVER_BACK_HEAD_PERCENTAGE * backVector.length(), 0);
+    glm::vec3 frontVector = glm::normalize(glm::cross(backVector, glm::vec3(0, 1, 0)));
+    // Make sure is pointing forward
+    frontVector = frontVector.z < 0 ? -frontVector : frontVector;
 
-    // project d onto this plane
-    glm::vec3 dProj = d - glm::dot(d, n) * n;
+    float horizontalModule = glm::dot(armToHand, glm::vec3(0, -1, 0));
+    glm::vec3 headForward = headCenter + horizontalModule * frontVector;
 
-    // give dProj a bit of offset away from the body.
-    float avatarScale = extractUniformScale(_modelOffset);
-    const float LATERAL_OFFSET = 1.0f * avatarScale;
-    const float VERTICAL_OFFSET = -0.333f * avatarScale;
-    glm::vec3 dProjWithOffset = dProj + sign * LATERAL_OFFSET * n + y * VERTICAL_OFFSET;
+    glm::vec3 armToHead = headForward - armPose.trans();
+    
+    float armToHandDistance = glm::length(armToHand);
+    float armToElbowDistance = glm::length(armToElbow);
+    float elbowToHandDistance = glm::length(elbowToHand);
+    float armTotalDistance = armToElbowDistance + elbowToHandDistance;
 
-    // rotate dProj by 90 degrees to get the poleVector.
-    glm::vec3 poleVector = glm::angleAxis(PI / 2.0f, n) * dProjWithOffset;
+    glm::vec3 armToHandDir = armToHand / armToHandDistance;
+    glm::vec3 armToHeadPlaneNormal = glm::cross(armToHead, armToHandDir);
 
-    // blend the wrist oreintation into the pole vector to reduce the painfully bent wrist problem.
-    glm::quat elbowToHandDelta = handPose.rot() * glm::inverse(elbowPose.rot());
-    const float WRIST_POLE_ADJUST_FACTOR = 0.5f;
-    glm::quat poleAdjust = quatLerp(Quaternions::IDENTITY, elbowToHandDelta, WRIST_POLE_ADJUST_FACTOR);
+    // How much the hand is reaching for the opposite side
+    float oppositeProjection = glm::dot(armToHandDir, glm::normalize(backVector));
+    
+    // Don't use pole vector when the hands are behind
+    if (glm::dot(frontVector, armToHand) < 0 && oppositeProjection < 0.5f * armTotalDistance) {
+        return false;
+    }
 
-    return glm::normalize(poleAdjust * poleVector);
+    // The strenght of the resulting pole determined by the arm flex.
+    float armFlexCoeficient = armToHandDistance / armTotalDistance;
+    glm::vec3 attenuationVector = armFlexCoeficient * armToHandDir;
+    // Pole vector is perpendicular to the shoulder-hand direction and located on the plane that contains the head-forward line
+    glm::vec3 fullPoleVector = glm::normalize(glm::cross(armToHeadPlaneNormal, armToHandDir));
+
+    // Push elbow forward when hand reaches opposite side
+    glm::vec3 correctionVector = glm::vec3(0, 0, 0);
+
+    const float FORWARD_TRIGGER_PERCENTAGE = 0.2f;
+    const float FORWARD_CORRECTOR_WEIGHT = 3.0f;
+
+    float elbowForwardTrigger = FORWARD_TRIGGER_PERCENTAGE * armToHandDistance;
+    
+    if (oppositeProjection > -elbowForwardTrigger) {
+        float forwardAmount = FORWARD_CORRECTOR_WEIGHT * (elbowForwardTrigger + oppositeProjection);
+        correctionVector = forwardAmount * frontVector;
+    }
+    poleVector = glm::normalize(attenuationVector + fullPoleVector + correctionVector);
+    return true;
 }
 
 glm::vec3 Rig::calculateKneePoleVector(int footJointIndex, int kneeIndex, int upLegIndex, int hipsIndex, const AnimPose& targetFootPose) const {
@@ -1546,16 +1606,18 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     bool spine2Enabled = params.primaryControllerFlags[PrimaryControllerType_Spine2] & (uint8_t)ControllerFlags::Enabled;
     bool leftArmEnabled = params.secondaryControllerFlags[SecondaryControllerType_LeftArm] & (uint8_t)ControllerFlags::Enabled;
     bool rightArmEnabled = params.secondaryControllerFlags[SecondaryControllerType_RightArm] & (uint8_t)ControllerFlags::Enabled;
+    glm::mat4 sensorToRigMatrix = glm::inverse(params.rigToSensorMatrix);
 
     updateHead(headEnabled, hipsEnabled, params.primaryControllerPoses[PrimaryControllerType_Head]);
 
     updateHands(leftHandEnabled, rightHandEnabled, hipsEnabled, hipsEstimated, leftArmEnabled, rightArmEnabled, dt,
                 params.primaryControllerPoses[PrimaryControllerType_LeftHand], params.primaryControllerPoses[PrimaryControllerType_RightHand],
-                params.hipsShapeInfo, params.spineShapeInfo, params.spine1ShapeInfo, params.spine2ShapeInfo);
+                params.hipsShapeInfo, params.spineShapeInfo, params.spine1ShapeInfo, params.spine2ShapeInfo,
+                params.rigToSensorMatrix, sensorToRigMatrix);
 
     updateFeet(leftFootEnabled, rightFootEnabled,
-               params.primaryControllerPoses[PrimaryControllerType_LeftFoot], params.primaryControllerPoses[PrimaryControllerType_RightFoot]);
-
+               params.primaryControllerPoses[PrimaryControllerType_LeftFoot], params.primaryControllerPoses[PrimaryControllerType_RightFoot],
+               params.rigToSensorMatrix, sensorToRigMatrix);
 
     if (headEnabled) {
         // Blend IK chains toward the joint limit centers, this should stablize head and hand ik.

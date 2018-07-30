@@ -23,6 +23,7 @@
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
 #include <QtCore/QJsonDocument>
+#include <QtCore/QSaveFile>
 #include <QtCore/QString>
 #include <QtGui/QImageReader>
 #include <QtCore/QVector>
@@ -291,18 +292,6 @@ AssetServer::AssetServer(ReceivedMessage& message) :
     _bakingTaskPool(this),
     _filesizeLimit(AssetUtils::MAX_UPLOAD_SIZE)
 {
-    // store the current state of image compression so we can reset it when this assignment is complete
-    _wasColorTextureCompressionEnabled = image::isColorTexturesCompressionEnabled();
-    _wasGrayscaleTextureCompressionEnabled = image::isGrayscaleTexturesCompressionEnabled();
-    _wasNormalTextureCompressionEnabled = image::isNormalTexturesCompressionEnabled();
-    _wasCubeTextureCompressionEnabled = image::isCubeTexturesCompressionEnabled();
-
-    // enable compression in image library
-    image::setColorTexturesCompressionEnabled(true);
-    image::setGrayscaleTexturesCompressionEnabled(true);
-    image::setNormalTexturesCompressionEnabled(true);
-    image::setCubeTexturesCompressionEnabled(true);
-
     BAKEABLE_TEXTURE_EXTENSIONS = image::getSupportedFormats();
     qDebug() << "Supported baking texture formats:" << BAKEABLE_MODEL_EXTENSIONS;
 
@@ -354,12 +343,6 @@ void AssetServer::aboutToFinish() {
     while (_pendingBakes.size() > 0) {
         QCoreApplication::processEvents();
     }
-
-    // re-set defaults in image library
-    image::setColorTexturesCompressionEnabled(_wasCubeTextureCompressionEnabled);
-    image::setGrayscaleTexturesCompressionEnabled(_wasGrayscaleTextureCompressionEnabled);
-    image::setNormalTexturesCompressionEnabled(_wasNormalTextureCompressionEnabled);
-    image::setCubeTexturesCompressionEnabled(_wasCubeTextureCompressionEnabled);
 }
 
 void AssetServer::run() {
@@ -1060,7 +1043,7 @@ bool AssetServer::loadMappingsFromFile() {
 bool AssetServer::writeMappingsToFile() {
     auto mapFilePath = _resourcesDirectory.absoluteFilePath(MAP_FILE_NAME);
 
-    QFile mapFile { mapFilePath };
+    QSaveFile mapFile { mapFilePath };
     if (mapFile.open(QIODevice::WriteOnly)) {
         QJsonObject root;
 
@@ -1071,8 +1054,12 @@ bool AssetServer::writeMappingsToFile() {
         QJsonDocument jsonDocument { root };
 
         if (mapFile.write(jsonDocument.toJson()) != -1) {
-            qCDebug(asset_server) << "Wrote JSON mappings to file at" << mapFilePath;
-            return true;
+            if (mapFile.commit()) {
+                qCDebug(asset_server) << "Wrote JSON mappings to file at" << mapFilePath;
+                return true;
+            } else {
+                qCWarning(asset_server) << "Failed to commit JSON mappings to file at" << mapFilePath;
+            }
         } else {
             qCWarning(asset_server) << "Failed to write JSON mappings to file at" << mapFilePath;
         }

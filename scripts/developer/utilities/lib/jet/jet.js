@@ -13,7 +13,7 @@
  // traverse task tree
 function task_traverse(root, functor, depth) {
     if (root.isTask()) { 
-        depth++;
+       depth++;
         for (var i = 0; i <root.getNumSubs(); i++) {
             var sub = root.getSubConfig(i);
             if (functor(sub, depth, i)) {

@@ -26,6 +26,7 @@
 #include <render/DrawStatus.h>
 #include <render/DrawSceneOctree.h>
 #include <render/BlurTask.h>
+#include <render/ResampleTask.h>
 
 #include "RenderHifi.h"
 #include "RenderCommonTask.h"
@@ -53,20 +54,25 @@
 #include <sstream>
 
 using namespace render;
-extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest = false);
 extern void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 
 RenderDeferredTask::RenderDeferredTask()
 {
 }
 
-void RenderDeferredTask::configure(const Config& config)
-{
+void RenderDeferredTask::configure(const Config& config) {
+    // Propagate resolution scale to sub jobs who need it
+    auto preparePrimaryBufferConfig = config.getConfig<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
+    auto upsamplePrimaryBufferConfig = config.getConfig<Upsample>("PrimaryBufferUpscale");
+    assert(preparePrimaryBufferConfig);
+    assert(upsamplePrimaryBufferConfig);
+    preparePrimaryBufferConfig->setProperty("resolutionScale", config.resolutionScale);
+    upsamplePrimaryBufferConfig->setProperty("factor", 1.0f / config.resolutionScale);
 }
 
 const render::Varying RenderDeferredTask::addSelectItemJobs(JobModel& task, const char* selectionName,
-                                                            const render::Varying& metas, 
-                                                            const render::Varying& opaques, 
+                                                            const render::Varying& metas,
+                                                            const render::Varying& opaques,
                                                             const render::Varying& transparents) {
     const auto selectMetaInput = SelectItems::Inputs(metas, Varying(), std::string()).asVarying();
     const auto selectedMetas = task.addJob<SelectItems>("MetaSelection", selectMetaInput, selectionName);
@@ -76,7 +82,7 @@ const render::Varying RenderDeferredTask::addSelectItemJobs(JobModel& task, cons
     return task.addJob<SelectItems>("TransparentSelection", selectItemInput, selectionName);
 }
 
-void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
+void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output, bool renderShadows) {
     const auto& items = input.get<Input>();
     auto fadeEffect = DependencyManager::get<FadeEffect>();
 
@@ -98,23 +104,22 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     const auto jitter = task.addJob<JitterSample>("JitterCam");
 
-    // Prepare deferred, generate the shared Deferred Frame Transform
+    // GPU jobs: Start preparing the primary, deferred and lighting buffer
+    const auto scaledPrimaryFramebuffer = task.addJob<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
+
+    // Prepare deferred, generate the shared Deferred Frame Transform. Only valid with the scaled frame buffer
     const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform", jitter);
     const auto lightingModel = task.addJob<MakeLightingModel>("LightingModel");
-    
-
-    // GPU jobs: Start preparing the primary, deferred and lighting buffer
-    const auto primaryFramebuffer = task.addJob<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
 
     const auto opaqueRangeTimer = task.addJob<BeginGPURangeTimer>("BeginOpaqueRangeTimer", "DrawOpaques");
 
-    const auto prepareDeferredInputs = PrepareDeferred::Inputs(primaryFramebuffer, lightingModel).asVarying();
+    const auto prepareDeferredInputs = PrepareDeferred::Inputs(scaledPrimaryFramebuffer, lightingModel).asVarying();
     const auto prepareDeferredOutputs = task.addJob<PrepareDeferred>("PrepareDeferred", prepareDeferredInputs);
     const auto deferredFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(0);
     const auto lightingFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(1);
 
     // draw a stencil mask in hidden regions of the framebuffer.
-    task.addJob<PrepareStencil>("PrepareStencil", primaryFramebuffer);
+    task.addJob<PrepareStencil>("PrepareStencil", scaledPrimaryFramebuffer);
 
     // Render opaque objects in DeferredBuffer
     const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel, jitter).asVarying();
@@ -169,13 +174,13 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto deferredLightingInputs = RenderDeferred::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
         surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource, lightClusters, hazeModel).asVarying();
     
-    task.addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
+    task.addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs, renderShadows);
 
 
     // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
     task.addJob<DrawBackgroundStage>("DrawBackgroundDeferred", lightingModel);
 
-    const auto drawHazeInputs = render::Varying(DrawHaze::Inputs(hazeModel, lightingFramebuffer, linearDepthTarget, deferredFrameTransform, lightingFramebuffer));
+    const auto drawHazeInputs = render::Varying(DrawHaze::Inputs(hazeModel, lightingFramebuffer, linearDepthTarget, deferredFrameTransform, lightingModel));
     task.addJob<DrawHaze>("DrawHazeDeferred", drawHazeInputs);
 
     // Render transparent objects forward in LightingBuffer
@@ -224,7 +229,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<Bloom>("Bloom", bloomInputs);
 
     // Lighting Buffer ready for tone mapping
-    const auto toneMappingInputs = ToneMappingDeferred::Inputs(lightingFramebuffer, primaryFramebuffer).asVarying();
+    const auto toneMappingInputs = ToneMappingDeferred::Inputs(lightingFramebuffer, scaledPrimaryFramebuffer).asVarying();
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
     { // Debug the bounds of the rendered items, still look at the zbuffer
@@ -284,6 +289,9 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
         task.addJob<DebugZoneLighting>("DrawZoneStack", deferredFrameTransform);
     }
+
+    // Upscale to finale resolution
+    const auto primaryFramebuffer = task.addJob<render::Upsample>("PrimaryBufferUpscale", scaledPrimaryFramebuffer);
 
     // Composite the HUD and HUD overlays
     task.addJob<CompositeHUD>("HUD");

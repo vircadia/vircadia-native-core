@@ -62,6 +62,7 @@ public:
 
     void downSample(const QByteArray& rawAudioByteArray, int sampleRate);
     int interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray);
+    int interpretAsMP3(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray);
 
 signals:
     void onSuccess(QByteArray data, bool stereo, bool ambisonic, float duration);

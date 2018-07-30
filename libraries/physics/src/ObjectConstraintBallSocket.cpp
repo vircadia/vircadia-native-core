@@ -193,9 +193,9 @@ bool ObjectConstraintBallSocket::updateArguments(QVariantMap arguments) {
 QVariantMap ObjectConstraintBallSocket::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
-        arguments["pivot"] = glmToQMap(_pivotInA);
+        arguments["pivot"] = vec3ToQMap(_pivotInA);
         arguments["otherEntityID"] = _otherID;
-        arguments["otherPivot"] = glmToQMap(_pivotInB);
+        arguments["otherPivot"] = vec3ToQMap(_pivotInB);
     });
     return arguments;
 }

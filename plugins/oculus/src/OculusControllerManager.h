@@ -103,7 +103,8 @@ private:
 
     void checkForConnectedDevices();
 
-    ovrInputState _inputState {};
+    ovrInputState _remoteInputState {};
+    ovrInputState _touchInputState {};
     RemoteDevice::Pointer _remote;
     TouchDevice::Pointer _touch;
     static const char* NAME;

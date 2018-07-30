@@ -57,7 +57,7 @@ public:
         ICEServerQuery,
         OctreeStats,
         UNUSED_PACKET_TYPE_1,
-        UNUSED_PACKET_TYPE_2,
+        AvatarIdentityRequest,
         AssignmentClientStatus,
         NoisyMute,
         AvatarIdentity,
@@ -236,7 +236,10 @@ enum class EntityVersion : PacketVersion {
     ShadowControl,
     MaterialData,
     CloneableData,
-    CollisionMask16Bytes
+    CollisionMask16Bytes,
+    YieldSimulationOwnership,
+    ParticleEntityFix,
+    ParticleSpin
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
@@ -283,7 +286,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     UpdatedMannequinDefaultAvatar,
     AvatarJointDefaultPoseFlags,
     FBXReaderNodeReparenting,
-    FixMannequinDefaultAvatarFeet
+    FixMannequinDefaultAvatarFeet,
+    ProceduralFaceMovementFlagsAndBlendshapes
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

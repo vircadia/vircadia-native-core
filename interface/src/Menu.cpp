@@ -124,7 +124,7 @@ Menu::Menu() {
     });
 
     // Edit > Delete
-    auto deleteAction =addActionToQMenuAndActionHash(editMenu, "Delete", QKeySequence::Delete);
+    auto deleteAction = addActionToQMenuAndActionHash(editMenu, "Delete", QKeySequence::Delete);
     connect(deleteAction, &QAction::triggered, [] {
             QKeyEvent* keyEvent = new QKeyEvent(QEvent::KeyPress, Qt::Key_Delete, Qt::ControlModifier);
             QCoreApplication::postEvent(QCoreApplication::instance(), keyEvent);
@@ -158,46 +158,6 @@ Menu::Menu() {
     // Edit > Reload All Content
     addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
 
-
-    MenuWrapper* avatarMenu = addMenu("Avatar");
-    auto avatarManager = DependencyManager::get<AvatarManager>();
-    auto avatar = avatarManager->getMyAvatar();
-
-     // Avatar > Size
-    MenuWrapper* avatarSizeMenu = avatarMenu->addMenu("Size");
-    // Avatar > Size > Increase
-    addActionToQMenuAndActionHash(avatarSizeMenu,
-        MenuOption::IncreaseAvatarSize,
-        0, // QML Qt::Key_Plus,
-        avatar.get(), SLOT(increaseSize()));
-
-    // Avatar > Size > Decrease
-    addActionToQMenuAndActionHash(avatarSizeMenu,
-        MenuOption::DecreaseAvatarSize,
-        0, // QML Qt::Key_Minus,
-        avatar.get(), SLOT(decreaseSize()));
-
-    // Avatar > Size > Reset
-    addActionToQMenuAndActionHash(avatarSizeMenu,
-        MenuOption::ResetAvatarSize,
-        0, // QML Qt::Key_Equal,
-        avatar.get(), SLOT(resetSize()));
-
-    // Avatar > Reset Sensors
-    addActionToQMenuAndActionHash(avatarMenu,
-        MenuOption::ResetSensors,
-        0, // QML Qt::Key_Apostrophe,
-        qApp, SLOT(resetSensors()));
-
-    // Avatar > Attachments...
-    action = addActionToQMenuAndActionHash(avatarMenu, MenuOption::Attachments);
-    connect(action, &QAction::triggered, [] {
-        qApp->showDialog(QString("hifi/dialogs/AttachmentsDialog.qml"),
-                     QString("hifi/tablet/TabletAttachmentsDialog.qml"), "AttachmentsDialog");
-    });
-
-    auto avatarBookmarks = DependencyManager::get<AvatarBookmarks>();
-    avatarBookmarks->setupMenus(this, avatarMenu);
     // Display menu ----------------------------------
     // FIXME - this is not yet matching Alan's spec because it doesn't have
     // menus for "2D"/"3D" - we need to add support for detecting the appropriate
@@ -256,8 +216,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::CenterPlayerInView,
         0, true, qApp, SLOT(rotationModeChanged()));
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Overlays, 0, true);
-
     // View > Enter First Person Mode in HMD
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPersonHMD, 0, true);
 
@@ -283,7 +241,7 @@ Menu::Menu() {
     MenuWrapper* settingsMenu = addMenu("Settings");
 
     // Settings > General...
-    action = addActionToQMenuAndActionHash(settingsMenu, MenuOption::Preferences, Qt::CTRL | Qt::Key_G, nullptr, nullptr, QAction::PreferencesRole);
+    action = addActionToQMenuAndActionHash(settingsMenu, MenuOption::Preferences, Qt::CTRL | Qt::Key_G, nullptr, nullptr);
     connect(action, &QAction::triggered, [] {
         qApp->showDialog(QString("hifi/dialogs/GeneralPreferencesDialog.qml"),
             QString("hifi/tablet/TabletGeneralPreferences.qml"), "GeneralPreferencesDialog");
@@ -317,11 +275,11 @@ Menu::Menu() {
             QString("hifi/tablet/TabletGraphicsPreferences.qml"), "GraphicsPreferencesDialog");
     });
 
-    // Settings > Avatar...
-    action = addActionToQMenuAndActionHash(settingsMenu, "Avatar...");
+    // Settings > Attachments...
+    action = addActionToQMenuAndActionHash(settingsMenu, MenuOption::Attachments);
     connect(action, &QAction::triggered, [] {
-        qApp->showDialog(QString("hifi/dialogs/AvatarPreferencesDialog.qml"),
-            QString("hifi/tablet/TabletAvatarPreferences.qml"), "AvatarPreferencesDialog");
+        qApp->showDialog(QString("hifi/dialogs/AttachmentsDialog.qml"),
+                         QString("hifi/tablet/TabletAttachmentsDialog.qml"), "AttachmentsDialog");
     });
 
     // Settings > Developer Menu
@@ -582,6 +540,9 @@ Menu::Menu() {
     action = addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowOtherLookAtVectors, 0, false);
     connect(action, &QAction::triggered, [this]{ Avatar::setShowOtherLookAtVectors(isOptionChecked(MenuOption::ShowOtherLookAtVectors)); });
 
+    auto avatarManager = DependencyManager::get<AvatarManager>();
+    auto avatar = avatarManager->getMyAvatar();
+
     action = addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableLookAtSnapping, 0, true);
     connect(action, &QAction::triggered, [this, avatar]{
             avatar->setProperty("lookAtSnappingEnabled", isOptionChecked(MenuOption::EnableLookAtSnapping));
@@ -725,7 +686,6 @@ Menu::Menu() {
         addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowOwned,
             0, false, drawStatusConfig, SLOT(setShowNetwork(bool)));
     }
-    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowHulls, 0, false, qApp->getEntities().data(), SIGNAL(setRenderDebugHulls()));
 
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletWireframe, 0, false, qApp, SLOT(setShowBulletWireframe(bool)));
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletAABBs, 0, false, qApp, SLOT(setShowBulletAABBs(bool)));
@@ -813,11 +773,14 @@ Menu::Menu() {
     });
     essLogAction->setEnabled(nodeList->getThisNodeCanRez());
 
-    action = addActionToQMenuAndActionHash(developerMenu, "Script Log (HMD friendly)...", Qt::NoButton,
+    addActionToQMenuAndActionHash(developerMenu, "Script Log (HMD friendly)...", Qt::NoButton,
                                            qApp, SLOT(showScriptLogs()));
 
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::VerboseLogging, 0, false,
                                            qApp, SLOT(updateVerboseLogging()));
+
+    // Developer > Show Overlays
+    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Overlays, 0, true);
 
 #if 0 ///  -------------- REMOVED FOR NOW --------------
     addDisabledActionAndSeparator(navigateMenu, "History");

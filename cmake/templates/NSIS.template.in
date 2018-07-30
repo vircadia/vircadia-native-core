@@ -130,7 +130,7 @@
     ; The Inner invocation has written an uninstaller binary for us.
     ; We need to sign it if it's a production or PR build.
     !if @PRODUCTION_BUILD@ == 1
-      !system '"@SIGNTOOL_EXECUTABLE@" sign /fd sha256 /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://tsa.starfieldtech.com /td SHA256 $%TEMP%\@UNINSTALLER_NAME@' = 0
+      !system '"@SIGNTOOL_EXECUTABLE@" sign /fd sha256 /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://sha256timestamp.ws.symantec.com/sha256/timestamp /td SHA256 $%TEMP%\@UNINSTALLER_NAME@' = 0
     !endif
 
     ; Good.  Now we can carry on writing the real installer.
@@ -905,6 +905,8 @@ Function HandlePostInstallOptions
     ${If} $DesktopServerState == ${BST_CHECKED}
       CreateShortCut "$DESKTOP\@CONSOLE_HF_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
       !insertmacro WriteInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ YES
+      ; Set appUserModelId
+      ApplicationID::Set "$DESKTOP\@CONSOLE_HF_SHORTCUT_NAME@.lnk" "@APP_USER_MODEL_ID@"
     ${Else}
       !insertmacro WriteInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ NO
     ${EndIf}
@@ -1162,6 +1164,8 @@ Section "-Core installation"
   ${If} @SERVER_COMPONENT_CONDITIONAL@
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" \
       "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
+    ; Set appUserModelId
+    ApplicationID::Set "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" "@APP_USER_MODEL_ID@"
   ${EndIf}
 
   CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall.lnk" "$INSTDIR\@UNINSTALLER_NAME@"

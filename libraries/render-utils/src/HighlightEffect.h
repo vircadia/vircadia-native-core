@@ -127,6 +127,7 @@ protected:
     render::ShapePlumberPointer _shapePlumber;
     HighlightSharedParametersPointer _sharedParameters;
     gpu::BufferPointer _boundsBuffer;
+    gpu::StructBuffer<glm::vec2> _outlineWidth;
 
     static gpu::PipelinePointer _stencilMaskPipeline;
     static gpu::PipelinePointer _stencilMaskFillPipeline;
@@ -135,7 +136,7 @@ protected:
 class DrawHighlight {
 public:
 
-    using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, HighlightRessourcesPointer, DeferredFramebufferPointer, glm::ivec4>;
+    using Inputs = render::VaryingSet5<DeferredFrameTransformPointer, HighlightRessourcesPointer, DeferredFramebufferPointer, glm::ivec4, gpu::FramebufferPointer>;
     using Config = render::Job::Config;
     using JobModel = render::Job::ModelI<DrawHighlight, Inputs, Config>;
 
@@ -182,7 +183,7 @@ signals:
 
 class DebugHighlight {
 public:
-    using Inputs = render::VaryingSet3<HighlightRessourcesPointer, glm::ivec4, glm::vec2>;
+    using Inputs = render::VaryingSet4<HighlightRessourcesPointer, glm::ivec4, glm::vec2, gpu::FramebufferPointer>;
     using Config = DebugHighlightConfig;
     using JobModel = render::Job::ModelI<DebugHighlight, Inputs, Config>;
 

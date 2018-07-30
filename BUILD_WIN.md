@@ -39,7 +39,7 @@ Go to `Control Panel > System > Advanced System Settings > Environment Variables
 
 ### Step 6. Installing OpenSSL via vcpkg
 
- * In the vcpkg directory, install the 64 bit OpenSSL package with the command `vcpkg install openssl:x64-windows`
+ * In the vcpkg directory, install the 64 bit OpenSSL package with the command `.\vcpkg install openssl:x64-windows`
  * Once the build completes you should have a file `ssl.h` in `${VCPKG_ROOT}/installed/x64-windows/include/openssl`
 
 ### Step 7. Running CMake to Generate Build Files

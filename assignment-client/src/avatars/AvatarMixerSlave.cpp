@@ -396,21 +396,26 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         quint64 end = usecTimestampNow();
         _stats.toByteArrayElapsedTime += (end - start);
 
-        static const int MAX_ALLOWED_AVATAR_DATA = (1400 - NUM_BYTES_RFC4122_UUID);
-        if (bytes.size() > MAX_ALLOWED_AVATAR_DATA) {
-            qCWarning(avatars) << "otherAvatar.toByteArray() resulted in very large buffer:" << bytes.size() << "... attempt to drop facial data";
+        auto maxAvatarDataBytes = avatarPacketList->getMaxSegmentSize() - NUM_BYTES_RFC4122_UUID;
+        if (bytes.size() > maxAvatarDataBytes) {
+            qCWarning(avatars) << "otherAvatar.toByteArray() for" << otherNode->getUUID()
+                << "resulted in very large buffer of" << bytes.size() << "bytes - dropping facial data";
 
             dropFaceTracking = true; // first try dropping the facial data
             bytes = otherAvatar->toByteArray(detail, lastEncodeForOther, lastSentJointsForOther,
                                              hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition, &lastSentJointsForOther);
 
-            if (bytes.size() > MAX_ALLOWED_AVATAR_DATA) {
-                qCWarning(avatars) << "otherAvatar.toByteArray() without facial data resulted in very large buffer:" << bytes.size() << "... reduce to MinimumData";
+            if (bytes.size() > maxAvatarDataBytes) {
+                qCWarning(avatars) << "otherAvatar.toByteArray() for" << otherNode->getUUID()
+                    << "without facial data resulted in very large buffer of" << bytes.size()
+                    << "bytes - reducing to MinimumData";
                 bytes = otherAvatar->toByteArray(AvatarData::MinimumData, lastEncodeForOther, lastSentJointsForOther,
                                                  hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition, &lastSentJointsForOther);
 
-                if (bytes.size() > MAX_ALLOWED_AVATAR_DATA) {
-                    qCWarning(avatars) << "otherAvatar.toByteArray() MinimumData resulted in very large buffer:" << bytes.size() << "... FAIL!!";
+                if (bytes.size() > maxAvatarDataBytes) {
+                    qCWarning(avatars) << "otherAvatar.toByteArray() for" << otherNode->getUUID()
+                        << "MinimumData resulted in very large buffer of" << bytes.size()
+                        << "bytes - refusing to send avatar";
                     includeThisAvatar = false;
                 }
             }

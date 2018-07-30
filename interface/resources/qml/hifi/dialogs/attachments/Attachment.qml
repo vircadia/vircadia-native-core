@@ -119,8 +119,8 @@ Item {
                 colorScheme: hifi.colorSchemes.dark
                 currentIndex: attachment ? model.indexOf(attachment.jointName) : -1
                 onCurrentIndexChanged: {
-                    if (completed && attachment && currentIndex != -1 && currentText && currentText !== attachment.jointName) {
-                        attachment.jointName = currentText;
+                    if (completed && attachment && currentIndex != -1 && attachment.jointName !== model[currentIndex]) {
+                        attachment.jointName = model[currentIndex];
                         updateAttachment();
                     }
                 }

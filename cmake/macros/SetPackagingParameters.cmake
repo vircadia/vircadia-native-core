@@ -18,6 +18,7 @@ macro(SET_PACKAGING_PARAMETERS)
   set(BUILD_GLOBAL_SERVICES "DEVELOPMENT")
   set(USE_STABLE_GLOBAL_SERVICES 0)
   set(BUILD_NUMBER 0)
+  set(APP_USER_MODEL_ID "com.highfidelity.sandbox-dev")
 
   set_from_env(RELEASE_TYPE RELEASE_TYPE "DEV")
   set_from_env(RELEASE_NUMBER RELEASE_NUMBER "")
@@ -89,13 +90,13 @@ macro(SET_PACKAGING_PARAMETERS)
     # for the second parent of HEAD (not HEAD) since that is the
     # SHA of the commit merged to master for the build
     if (PR_BUILD)
-      set(_GIT_LOG_FORMAT "%p")
+      set(_GIT_LOG_FORMAT "%p %h")
     else ()
       set(_GIT_LOG_FORMAT "%h")
     endif ()
 
     execute_process(
-      COMMAND git log -1 --format=${_GIT_LOG_FORMAT}
+      COMMAND git log -1 --abbrev=7 --format=${_GIT_LOG_FORMAT}
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
       OUTPUT_VARIABLE _GIT_LOG_OUTPUT
       ERROR_VARIABLE _GIT_LOG_ERROR
@@ -172,6 +173,7 @@ macro(SET_PACKAGING_PARAMETERS)
     if (PRODUCTION_BUILD)
       set(INTERFACE_SHORTCUT_NAME "High Fidelity Interface")
       set(CONSOLE_SHORTCUT_NAME "Sandbox")
+      set(APP_USER_MODEL_ID "com.highfidelity.sandbox")
     else ()
       set(INTERFACE_SHORTCUT_NAME "High Fidelity Interface - ${BUILD_VERSION_NO_SHA}")
       set(CONSOLE_SHORTCUT_NAME "Sandbox - ${BUILD_VERSION_NO_SHA}")

@@ -47,51 +47,9 @@ int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
 float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
 #define HTTP_INVALID_COM "http://invalid.com"
 
-const int NUM_COLLISION_HULL_COLORS = 24;
-std::vector<graphics::MaterialPointer> _collisionMaterials;
-
-void initCollisionMaterials() {
-    // generates bright colors in red, green, blue, yellow, magenta, and cyan spectrums
-    // (no browns, greys, or dark shades)
-    float component[NUM_COLLISION_HULL_COLORS] = {
-        0.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 0.0f, 0.0f,
-        0.2f, 0.4f, 0.6f, 0.8f,
-        1.0f, 1.0f, 1.0f, 1.0f,
-        1.0f, 1.0f, 1.0f, 1.0f,
-        0.8f, 0.6f, 0.4f, 0.2f
-    };
-    _collisionMaterials.reserve(NUM_COLLISION_HULL_COLORS);
-
-    // each component gets the same cuve
-    // but offset by a multiple of one third the full width
-    int numComponents = 3;
-    int sectionWidth = NUM_COLLISION_HULL_COLORS / numComponents;
-    int greenPhase = sectionWidth;
-    int bluePhase = 2 * sectionWidth;
-
-    // we stride through the colors to scatter adjacent shades
-    // so they don't tend to group together for large models
-    for (int i = 0; i < sectionWidth; ++i) {
-        for (int j = 0; j < numComponents; ++j) {
-            graphics::MaterialPointer material;
-            material = std::make_shared<graphics::Material>();
-            int index = j * sectionWidth + i;
-            float red = component[index % NUM_COLLISION_HULL_COLORS];
-            float green = component[(index + greenPhase) % NUM_COLLISION_HULL_COLORS];
-            float blue = component[(index + bluePhase) % NUM_COLLISION_HULL_COLORS];
-            material->setAlbedo(glm::vec3(red, green, blue));
-            material->setMetallic(0.02f);
-            material->setRoughness(0.5f);
-            _collisionMaterials.push_back(material);
-        }
-    }
-}
-
 Model::Model(QObject* parent, SpatiallyNestable* spatiallyNestableOverride) :
     QObject(parent),
     _renderGeometry(),
-    _collisionGeometry(),
     _renderWatcher(_renderGeometry),
     _spatiallyNestableOverride(spatiallyNestableOverride),
     _translation(0.0f),
@@ -310,16 +268,6 @@ void Model::updateRenderItems() {
             });
         }
 
-        Transform collisionMeshOffset;
-        collisionMeshOffset.setIdentity();
-        foreach(auto itemID, self->_collisionRenderItemsMap.keys()) {
-            transaction.updateItem<MeshPartPayload>(itemID, [renderItemKeyGlobalFlags, modelTransform, collisionMeshOffset](MeshPartPayload& data) {
-                // update the model transform for this render item.
-                data.updateKey(renderItemKeyGlobalFlags);
-                data.updateTransform(modelTransform, collisionMeshOffset);
-            });
-        }
-
         AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
     });
 }
@@ -405,31 +353,27 @@ void Model::initJointStates() {
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
                                                 BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
                                                 bool pickAgainstTriangles, bool allowBackface) {
-
     bool intersectedSomething = false;
 
-    // if we aren't active, we can't ray pick yet...
+    // if we aren't active, we can't pick yet...
     if (!isActive()) {
         return intersectedSomething;
     }
 
     // extents is the entity relative, scaled, centered extents of the entity
-    glm::vec3 position = _translation;
-    glm::mat4 rotation = glm::mat4_cast(_rotation);
-    glm::mat4 translation = glm::translate(position);
-    glm::mat4 modelToWorldMatrix = translation * rotation;
+    glm::mat4 modelToWorldMatrix = createMatFromQuatAndPos(_rotation, _translation);
     glm::mat4 worldToModelMatrix = glm::inverse(modelToWorldMatrix);
 
     Extents modelExtents = getMeshExtents(); // NOTE: unrotated
 
     glm::vec3 dimensions = modelExtents.maximum - modelExtents.minimum;
-    glm::vec3 corner = -(dimensions * _registrationPoint); // since we're going to do the ray picking in the model frame of reference
+    glm::vec3 corner = -(dimensions * _registrationPoint); // since we're going to do the picking in the model frame of reference
     AABox modelFrameBox(corner, dimensions);
 
     glm::vec3 modelFrameOrigin = glm::vec3(worldToModelMatrix * glm::vec4(origin, 1.0f));
     glm::vec3 modelFrameDirection = glm::vec3(worldToModelMatrix * glm::vec4(direction, 0.0f));
 
-    // we can use the AABox's ray intersection by mapping our origin and direction into the model frame
+    // we can use the AABox's intersection by mapping our origin and direction into the model frame
     // and testing intersection there.
     if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face, surfaceNormal)) {
         QMutexLocker locker(&_mutex);
@@ -447,38 +391,150 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         }
 
         glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
-        glm::mat4 meshToWorldMatrix = createMatFromQuatAndPos(_rotation, _translation) * meshToModelMatrix;
+        glm::mat4 meshToWorldMatrix = modelToWorldMatrix * meshToModelMatrix;
         glm::mat4 worldToMeshMatrix = glm::inverse(meshToWorldMatrix);
 
         glm::vec3 meshFrameOrigin = glm::vec3(worldToMeshMatrix * glm::vec4(origin, 1.0f));
         glm::vec3 meshFrameDirection = glm::vec3(worldToMeshMatrix * glm::vec4(direction, 0.0f));
 
-        for (auto& triangleSet : _modelSpaceMeshTriangleSets) {
-            float triangleSetDistance = 0.0f;
-            BoxFace triangleSetFace;
-            Triangle triangleSetTriangle;
-            if (triangleSet.findRayIntersection(meshFrameOrigin, meshFrameDirection, triangleSetDistance, triangleSetFace, triangleSetTriangle, pickAgainstTriangles, allowBackface)) {
+        int shapeID = 0;
+        for (auto& meshTriangleSets : _modelSpaceMeshTriangleSets) {
+            int partIndex = 0;
+            for (auto &partTriangleSet : meshTriangleSets) {
+                float triangleSetDistance;
+                BoxFace triangleSetFace;
+                Triangle triangleSetTriangle;
+                if (partTriangleSet.findRayIntersection(meshFrameOrigin, meshFrameDirection, triangleSetDistance, triangleSetFace, triangleSetTriangle, pickAgainstTriangles, allowBackface)) {
+                    glm::vec3 meshIntersectionPoint = meshFrameOrigin + (meshFrameDirection * triangleSetDistance);
+                    glm::vec3 worldIntersectionPoint = glm::vec3(meshToWorldMatrix * glm::vec4(meshIntersectionPoint, 1.0f));
+                    float worldDistance = glm::distance(origin, worldIntersectionPoint);
 
-                glm::vec3 meshIntersectionPoint = meshFrameOrigin + (meshFrameDirection * triangleSetDistance);
-                glm::vec3 worldIntersectionPoint = glm::vec3(meshToWorldMatrix * glm::vec4(meshIntersectionPoint, 1.0f));
-                float worldDistance = glm::distance(origin, worldIntersectionPoint);
-
-                if (worldDistance < bestDistance) {
-                    bestDistance = worldDistance;
-                    intersectedSomething = true;
-                    face = triangleSetFace;
-                    bestModelTriangle = triangleSetTriangle;
-                    bestWorldTriangle = triangleSetTriangle * meshToWorldMatrix;
-                    extraInfo["worldIntersectionPoint"] = vec3toVariant(worldIntersectionPoint);
-                    extraInfo["meshIntersectionPoint"] = vec3toVariant(meshIntersectionPoint);
-                    bestSubMeshIndex = subMeshIndex;
+                    if (worldDistance < bestDistance) {
+                        bestDistance = worldDistance;
+                        intersectedSomething = true;
+                        face = triangleSetFace;
+                        bestModelTriangle = triangleSetTriangle;
+                        bestWorldTriangle = triangleSetTriangle * meshToWorldMatrix;
+                        extraInfo["worldIntersectionPoint"] = vec3toVariant(worldIntersectionPoint);
+                        extraInfo["meshIntersectionPoint"] = vec3toVariant(meshIntersectionPoint);
+                        extraInfo["partIndex"] = partIndex;
+                        extraInfo["shapeID"] = shapeID;
+                        bestSubMeshIndex = subMeshIndex;
+                    }
                 }
+                partIndex++;
+                shapeID++;
             }
             subMeshIndex++;
         }
 
         if (intersectedSomething) {
             distance = bestDistance;
+            surfaceNormal = bestWorldTriangle.getNormal();
+            if (pickAgainstTriangles) {
+                extraInfo["subMeshIndex"] = bestSubMeshIndex;
+                extraInfo["subMeshName"] = geometry.getModelNameOfMesh(bestSubMeshIndex);
+                extraInfo["subMeshTriangleWorld"] = QVariantMap{
+                    { "v0", vec3toVariant(bestWorldTriangle.v0) },
+                    { "v1", vec3toVariant(bestWorldTriangle.v1) },
+                    { "v2", vec3toVariant(bestWorldTriangle.v2) },
+                };
+                extraInfo["subMeshNormal"] = vec3toVariant(bestModelTriangle.getNormal());
+                extraInfo["subMeshTriangle"] = QVariantMap{
+                    { "v0", vec3toVariant(bestModelTriangle.v0) },
+                    { "v1", vec3toVariant(bestModelTriangle.v1) },
+                    { "v2", vec3toVariant(bestModelTriangle.v2) },
+                };
+            }
+        }
+    }
+
+    return intersectedSomething;
+}
+
+bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+                                                     float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
+                                                     bool pickAgainstTriangles, bool allowBackface) {
+    bool intersectedSomething = false;
+
+    // if we aren't active, we can't pick yet...
+    if (!isActive()) {
+        return intersectedSomething;
+    }
+
+    // extents is the entity relative, scaled, centered extents of the entity
+    glm::mat4 modelToWorldMatrix = createMatFromQuatAndPos(_rotation, _translation);
+    glm::mat4 worldToModelMatrix = glm::inverse(modelToWorldMatrix);
+
+    Extents modelExtents = getMeshExtents(); // NOTE: unrotated
+
+    glm::vec3 dimensions = modelExtents.maximum - modelExtents.minimum;
+    glm::vec3 corner = -(dimensions * _registrationPoint); // since we're going to do the picking in the model frame of reference
+    AABox modelFrameBox(corner, dimensions);
+
+    glm::vec3 modelFrameOrigin = glm::vec3(worldToModelMatrix * glm::vec4(origin, 1.0f));
+    glm::vec3 modelFrameVelocity = glm::vec3(worldToModelMatrix * glm::vec4(velocity, 0.0f));
+    glm::vec3 modelFrameAcceleration = glm::vec3(worldToModelMatrix * glm::vec4(acceleration, 0.0f));
+
+    // we can use the AABox's intersection by mapping our origin and direction into the model frame
+    // and testing intersection there.
+    if (modelFrameBox.findParabolaIntersection(modelFrameOrigin, modelFrameVelocity, modelFrameAcceleration, parabolicDistance, face, surfaceNormal)) {
+        QMutexLocker locker(&_mutex);
+
+        float bestDistance = FLT_MAX;
+        Triangle bestModelTriangle;
+        Triangle bestWorldTriangle;
+        int bestSubMeshIndex = 0;
+
+        int subMeshIndex = 0;
+        const FBXGeometry& geometry = getFBXGeometry();
+
+        if (!_triangleSetsValid) {
+            calculateTriangleSets(geometry);
+        }
+
+        glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
+        glm::mat4 meshToWorldMatrix = modelToWorldMatrix * meshToModelMatrix;
+        glm::mat4 worldToMeshMatrix = glm::inverse(meshToWorldMatrix);
+
+        glm::vec3 meshFrameOrigin = glm::vec3(worldToMeshMatrix * glm::vec4(origin, 1.0f));
+        glm::vec3 meshFrameVelocity = glm::vec3(worldToMeshMatrix * glm::vec4(velocity, 0.0f));
+        glm::vec3 meshFrameAcceleration = glm::vec3(worldToMeshMatrix * glm::vec4(acceleration, 0.0f));
+
+        int shapeID = 0;
+        for (auto& meshTriangleSets : _modelSpaceMeshTriangleSets) {
+            int partIndex = 0;
+            for (auto &partTriangleSet : meshTriangleSets) {
+                float triangleSetDistance;
+                BoxFace triangleSetFace;
+                Triangle triangleSetTriangle;
+                if (partTriangleSet.findParabolaIntersection(meshFrameOrigin, meshFrameVelocity, meshFrameAcceleration,
+                    triangleSetDistance, triangleSetFace, triangleSetTriangle, pickAgainstTriangles, allowBackface)) {
+                    if (triangleSetDistance < bestDistance) {
+                        bestDistance = triangleSetDistance;
+                        intersectedSomething = true;
+                        face = triangleSetFace;
+                        bestModelTriangle = triangleSetTriangle;
+                        bestWorldTriangle = triangleSetTriangle * meshToWorldMatrix;
+                        glm::vec3 meshIntersectionPoint = meshFrameOrigin + meshFrameVelocity * triangleSetDistance +
+                            0.5f * meshFrameAcceleration * triangleSetDistance * triangleSetDistance;
+                        glm::vec3 worldIntersectionPoint = origin + velocity * triangleSetDistance +
+                            0.5f * acceleration * triangleSetDistance * triangleSetDistance;
+                        extraInfo["worldIntersectionPoint"] = vec3toVariant(worldIntersectionPoint);
+                        extraInfo["meshIntersectionPoint"] = vec3toVariant(meshIntersectionPoint);
+                        extraInfo["partIndex"] = partIndex;
+                        extraInfo["shapeID"] = shapeID;
+                        bestSubMeshIndex = subMeshIndex;
+                    }
+                }
+                partIndex++;
+                shapeID++;
+            }
+            subMeshIndex++;
+        }
+
+        if (intersectedSomething) {
+            parabolicDistance = bestDistance;
             surfaceNormal = bestWorldTriangle.getNormal();
             if (pickAgainstTriangles) {
                 extraInfo["subMeshIndex"] = bestSubMeshIndex;
@@ -537,12 +593,14 @@ bool Model::convexHullContains(glm::vec3 point) {
         glm::mat4 worldToMeshMatrix = glm::inverse(meshToWorldMatrix);
         glm::vec3 meshFramePoint = glm::vec3(worldToMeshMatrix * glm::vec4(point, 1.0f));
 
-        for (const auto& triangleSet : _modelSpaceMeshTriangleSets) {
-            const AABox& box = triangleSet.getBounds();
-            if (box.contains(meshFramePoint)) {
-                if (triangleSet.convexHullContains(meshFramePoint)) {
-                    // It's inside this mesh, return true.
-                    return true;
+        for (auto& meshTriangleSets : _modelSpaceMeshTriangleSets) {
+            for (auto &partTriangleSet : meshTriangleSets) {
+                const AABox& box = partTriangleSet.getBounds();
+                if (box.contains(meshFramePoint)) {
+                    if (partTriangleSet.convexHullContains(meshFramePoint)) {
+                        // It's inside this mesh, return true.
+                        return true;
+                    }
                 }
             }
         }
@@ -636,7 +694,7 @@ bool Model::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointe
         }
         scene->enqueueTransaction(transaction);
     }
-    // update triangles for ray picking
+    // update triangles for picking
     {
         FBXGeometry geometry;
         for (const auto& newMesh : meshes) {
@@ -705,8 +763,14 @@ void Model::calculateTriangleSets(const FBXGeometry& geometry) {
     for (int i = 0; i < numberOfMeshes; i++) {
         const FBXMesh& mesh = geometry.meshes.at(i);
 
-        for (int j = 0; j < mesh.parts.size(); j++) {
+        const int numberOfParts = mesh.parts.size();
+        auto& meshTriangleSets = _modelSpaceMeshTriangleSets[i];
+        meshTriangleSets.resize(numberOfParts);
+
+        for (int j = 0; j < numberOfParts; j++) {
             const FBXMeshPart& part = mesh.parts.at(j);
+
+            auto& partTriangleSet = meshTriangleSets[j];
 
             const int INDICES_PER_TRIANGLE = 3;
             const int INDICES_PER_QUAD = 4;
@@ -716,7 +780,7 @@ void Model::calculateTriangleSets(const FBXGeometry& geometry) {
             int numberOfQuads = part.quadIndices.size() / INDICES_PER_QUAD;
             int numberOfTris = part.triangleIndices.size() / INDICES_PER_TRIANGLE;
             int totalTriangles = (numberOfQuads * TRIANGLES_PER_QUAD) + numberOfTris;
-            _modelSpaceMeshTriangleSets[i].reserve(totalTriangles);
+            partTriangleSet.reserve(totalTriangles);
 
             auto meshTransform = geometry.offset * mesh.modelTransform;
 
@@ -738,8 +802,8 @@ void Model::calculateTriangleSets(const FBXGeometry& geometry) {
 
                     Triangle tri1 = { v0, v1, v3 };
                     Triangle tri2 = { v1, v2, v3 };
-                    _modelSpaceMeshTriangleSets[i].insert(tri1);
-                    _modelSpaceMeshTriangleSets[i].insert(tri2);
+                    partTriangleSet.insert(tri1);
+                    partTriangleSet.insert(tri2);
                 }
             }
 
@@ -758,7 +822,7 @@ void Model::calculateTriangleSets(const FBXGeometry& geometry) {
                     glm::vec3 v2 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i2], 1.0f));
 
                     Triangle tri = { v0, v1, v2 };
-                    _modelSpaceMeshTriangleSets[i].insert(tri);
+                    partTriangleSet.insert(tri);
                 }
             }
         }
@@ -773,11 +837,6 @@ void Model::updateRenderItemsKey(const render::ScenePointer& scene) {
     auto renderItemsKey = _renderItemKeyGlobalFlags;
     render::Transaction transaction;
     foreach(auto item, _modelMeshRenderItemsMap.keys()) {
-        transaction.updateItem<ModelMeshPartPayload>(item, [renderItemsKey](ModelMeshPartPayload& data) {
-            data.updateKey(renderItemsKey);
-        });
-    }
-    foreach(auto item, _collisionRenderItemsMap.keys()) {
         transaction.updateItem<ModelMeshPartPayload>(item, [renderItemsKey](ModelMeshPartPayload& data) {
             data.updateKey(renderItemsKey);
         });
@@ -862,49 +921,37 @@ const render::ItemKey Model::getRenderItemKeyGlobalFlags() const {
 bool Model::addToScene(const render::ScenePointer& scene,
                        render::Transaction& transaction,
                        render::Item::Status::Getters& statusGetters) {
-    bool readyToRender = _collisionGeometry || isLoaded();
-    if (!_addedToScene && readyToRender) {
-        createRenderItemSet();
+    if (!_addedToScene && isLoaded()) {
+        updateClusterMatrices();
+        if (_modelMeshRenderItems.empty()) {
+            createRenderItemSet();
+        }
     }
 
     bool somethingAdded = false;
-    if (_collisionGeometry) {
-        if (_collisionRenderItemsMap.empty()) {
-            foreach (auto renderItem, _collisionRenderItems) {
-                auto item = scene->allocateID();
-                auto renderPayload = std::make_shared<MeshPartPayload::Payload>(renderItem);
-                if (_collisionRenderItems.empty() && statusGetters.size()) {
-                    renderPayload->addStatusGetters(statusGetters);
-                }
-                transaction.resetItem(item, renderPayload);
-                _collisionRenderItemsMap.insert(item, renderPayload);
+
+    if (_modelMeshRenderItemsMap.empty()) {
+
+        bool hasTransparent = false;
+        size_t verticesCount = 0;
+        foreach(auto renderItem, _modelMeshRenderItems) {
+            auto item = scene->allocateID();
+            auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
+            if (_modelMeshRenderItemsMap.empty() && statusGetters.size()) {
+                renderPayload->addStatusGetters(statusGetters);
             }
-            somethingAdded = !_collisionRenderItemsMap.empty();
+            transaction.resetItem(item, renderPayload);
+
+            hasTransparent = hasTransparent || renderItem.get()->getShapeKey().isTranslucent();
+            verticesCount += renderItem.get()->getVerticesCount();
+            _modelMeshRenderItemsMap.insert(item, renderPayload);
+            _modelMeshRenderItemIDs.emplace_back(item);
         }
-    } else {
-        if (_modelMeshRenderItemsMap.empty()) {
+        somethingAdded = !_modelMeshRenderItemsMap.empty();
 
-            bool hasTransparent = false;
-            size_t verticesCount = 0;
-            foreach(auto renderItem, _modelMeshRenderItems) {
-                auto item = scene->allocateID();
-                auto renderPayload = std::make_shared<ModelMeshPartPayload::Payload>(renderItem);
-                if (_modelMeshRenderItemsMap.empty() && statusGetters.size()) {
-                    renderPayload->addStatusGetters(statusGetters);
-                }
-                transaction.resetItem(item, renderPayload);
-
-                hasTransparent = hasTransparent || renderItem.get()->getShapeKey().isTranslucent();
-                verticesCount += renderItem.get()->getVerticesCount();
-                _modelMeshRenderItemsMap.insert(item, renderPayload);
-                _modelMeshRenderItemIDs.emplace_back(item);
-            }
-            somethingAdded = !_modelMeshRenderItemsMap.empty();
-
-            _renderInfoVertexCount = verticesCount;
-            _renderInfoDrawCalls = _modelMeshRenderItemsMap.count();
-            _renderInfoHasTransparent = hasTransparent;
-        }
+        _renderInfoVertexCount = verticesCount;
+        _renderInfoDrawCalls = _modelMeshRenderItemsMap.count();
+        _renderInfoHasTransparent = hasTransparent;
     }
 
     if (somethingAdded) {
@@ -926,11 +973,6 @@ void Model::removeFromScene(const render::ScenePointer& scene, render::Transacti
     _modelMeshMaterialNames.clear();
     _modelMeshRenderItemShapes.clear();
 
-    foreach(auto item, _collisionRenderItemsMap.keys()) {
-        transaction.removeItem(item);
-    }
-    _collisionRenderItems.clear();
-    _collisionRenderItemsMap.clear();
     _addedToScene = false;
 
     _renderInfoVertexCount = 0;
@@ -950,56 +992,58 @@ void Model::renderDebugMeshBoxes(gpu::Batch& batch) {
 
     DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, false, true, true);
 
-    for (const auto& triangleSet : _modelSpaceMeshTriangleSets) {
-        auto box = triangleSet.getBounds();
+    for (auto& meshTriangleSets : _modelSpaceMeshTriangleSets) {
+        for (auto &partTriangleSet : meshTriangleSets) {
+            auto box = partTriangleSet.getBounds();
 
-        if (_debugMeshBoxesID == GeometryCache::UNKNOWN_ID) {
-            _debugMeshBoxesID = DependencyManager::get<GeometryCache>()->allocateID();
+            if (_debugMeshBoxesID == GeometryCache::UNKNOWN_ID) {
+                _debugMeshBoxesID = DependencyManager::get<GeometryCache>()->allocateID();
+            }
+            QVector<glm::vec3> points;
+
+            glm::vec3 brn = box.getCorner();
+            glm::vec3 bln = brn + glm::vec3(box.getDimensions().x, 0, 0);
+            glm::vec3 brf = brn + glm::vec3(0, 0, box.getDimensions().z);
+            glm::vec3 blf = brn + glm::vec3(box.getDimensions().x, 0, box.getDimensions().z);
+
+            glm::vec3 trn = brn + glm::vec3(0, box.getDimensions().y, 0);
+            glm::vec3 tln = bln + glm::vec3(0, box.getDimensions().y, 0);
+            glm::vec3 trf = brf + glm::vec3(0, box.getDimensions().y, 0);
+            glm::vec3 tlf = blf + glm::vec3(0, box.getDimensions().y, 0);
+
+            points << brn << bln;
+            points << brf << blf;
+            points << brn << brf;
+            points << bln << blf;
+
+            points << trn << tln;
+            points << trf << tlf;
+            points << trn << trf;
+            points << tln << tlf;
+
+            points << brn << trn;
+            points << brf << trf;
+            points << bln << tln;
+            points << blf << tlf;
+
+            glm::vec4 color[] = {
+                { 0.0f, 1.0f, 0.0f, 1.0f }, // green
+                { 1.0f, 0.0f, 0.0f, 1.0f }, // red
+                { 0.0f, 0.0f, 1.0f, 1.0f }, // blue
+                { 1.0f, 0.0f, 1.0f, 1.0f }, // purple
+                { 1.0f, 1.0f, 0.0f, 1.0f }, // yellow
+                { 0.0f, 1.0f, 1.0f, 1.0f }, // cyan
+                { 1.0f, 1.0f, 1.0f, 1.0f }, // white
+                { 0.0f, 0.5f, 0.0f, 1.0f },
+                { 0.0f, 0.0f, 0.5f, 1.0f },
+                { 0.5f, 0.0f, 0.5f, 1.0f },
+                { 0.5f, 0.5f, 0.0f, 1.0f },
+                { 0.0f, 0.5f, 0.5f, 1.0f } };
+
+            DependencyManager::get<GeometryCache>()->updateVertices(_debugMeshBoxesID, points, color[colorNdx]);
+            DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::LINES, _debugMeshBoxesID);
+            colorNdx++;
         }
-        QVector<glm::vec3> points;
-
-        glm::vec3 brn = box.getCorner();
-        glm::vec3 bln = brn + glm::vec3(box.getDimensions().x, 0, 0);
-        glm::vec3 brf = brn + glm::vec3(0, 0, box.getDimensions().z);
-        glm::vec3 blf = brn + glm::vec3(box.getDimensions().x, 0, box.getDimensions().z);
-
-        glm::vec3 trn = brn + glm::vec3(0, box.getDimensions().y, 0);
-        glm::vec3 tln = bln + glm::vec3(0, box.getDimensions().y, 0);
-        glm::vec3 trf = brf + glm::vec3(0, box.getDimensions().y, 0);
-        glm::vec3 tlf = blf + glm::vec3(0, box.getDimensions().y, 0);
-
-        points << brn << bln;
-        points << brf << blf;
-        points << brn << brf;
-        points << bln << blf;
-
-        points << trn << tln;
-        points << trf << tlf;
-        points << trn << trf;
-        points << tln << tlf;
-
-        points << brn << trn;
-        points << brf << trf;
-        points << bln << tln;
-        points << blf << tlf;
-
-        glm::vec4 color[] = {
-            { 0.0f, 1.0f, 0.0f, 1.0f }, // green
-            { 1.0f, 0.0f, 0.0f, 1.0f }, // red
-            { 0.0f, 0.0f, 1.0f, 1.0f }, // blue
-            { 1.0f, 0.0f, 1.0f, 1.0f }, // purple
-            { 1.0f, 1.0f, 0.0f, 1.0f }, // yellow
-            { 0.0f, 1.0f, 1.0f, 1.0f }, // cyan
-            { 1.0f, 1.0f, 1.0f, 1.0f }, // white
-            { 0.0f, 0.5f, 0.0f, 1.0f },
-            { 0.0f, 0.0f, 0.5f, 1.0f },
-            { 0.5f, 0.0f, 0.5f, 1.0f },
-            { 0.5f, 0.5f, 0.0f, 1.0f },
-            { 0.0f, 0.5f, 0.5f, 1.0f } };
-
-        DependencyManager::get<GeometryCache>()->updateVertices(_debugMeshBoxesID, points, color[colorNdx]);
-        DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::LINES, _debugMeshBoxesID);
-        colorNdx++;
     }
     _mutex.unlock();
 }
@@ -1504,7 +1548,6 @@ void Model::deleteGeometry() {
     _rig.destroyAnimGraph();
     _blendedBlendshapeCoefficients.clear();
     _renderGeometry.reset();
-    _collisionGeometry.reset();
 }
 
 void Model::overrideModelTransformAndOffset(const Transform& transform, const glm::vec3& offset) {
@@ -1533,19 +1576,6 @@ const render::ItemIDs& Model::fetchRenderItemIDs() const {
 }
 
 void Model::createRenderItemSet() {
-    updateClusterMatrices();
-    if (_collisionGeometry) {
-        if (_collisionRenderItems.empty()) {
-            createCollisionRenderItemSet();
-        }
-    } else {
-        if (_modelMeshRenderItems.empty()) {
-            createVisibleRenderItemSet();
-        }
-    }
-};
-
-void Model::createVisibleRenderItemSet() {
     assert(isLoaded());
     const auto& meshes = _renderGeometry->getMeshes();
 
@@ -1587,41 +1617,6 @@ void Model::createVisibleRenderItemSet() {
             _modelMeshMaterialNames.push_back(material ? material->getName() : "");
             _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)i });
             shapeID++;
-        }
-    }
-}
-
-void Model::createCollisionRenderItemSet() {
-    assert((bool)_collisionGeometry);
-    if (_collisionMaterials.empty()) {
-        initCollisionMaterials();
-    }
-
-    const auto& meshes = _collisionGeometry->getMeshes();
-
-    // We should not have any existing renderItems if we enter this section of code
-    Q_ASSERT(_collisionRenderItems.isEmpty());
-
-    Transform identity;
-    identity.setIdentity();
-    Transform offset;
-    offset.postTranslate(_offset);
-
-    // Run through all of the meshes, and place them into their segregated, but unsorted buckets
-    uint32_t numMeshes = (uint32_t)meshes.size();
-    for (uint32_t i = 0; i < numMeshes; i++) {
-        const auto& mesh = meshes.at(i);
-        if (!mesh) {
-            continue;
-        }
-
-        // Create the render payloads
-        int numParts = (int)mesh->getNumParts();
-        for (int partIndex = 0; partIndex < numParts; partIndex++) {
-            graphics::MaterialPointer& material = _collisionMaterials[partIndex % NUM_COLLISION_HULL_COLORS];
-            auto payload = std::make_shared<MeshPartPayload>(mesh, partIndex, material);
-            payload->updateTransform(identity, offset);
-            _collisionRenderItems << payload;
         }
     }
 }
@@ -1680,13 +1675,12 @@ void Model::removeMaterial(graphics::MaterialPointer material, const std::string
     for (auto shapeID : shapeIDs) {
         if (shapeID < _modelMeshRenderItemIDs.size()) {
             auto itemID = _modelMeshRenderItemIDs[shapeID];
-            bool visible = isVisible();
             auto renderItemsKey = _renderItemKeyGlobalFlags;
             bool wireframe = isWireframe();
             auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
             bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
             bool useDualQuaternionSkinning = _useDualQuaternionSkinning;
-            transaction.updateItem<ModelMeshPartPayload>(itemID, [material, visible, renderItemsKey,
+            transaction.updateItem<ModelMeshPartPayload>(itemID, [material, renderItemsKey,
                 invalidatePayloadShapeKey, wireframe, useDualQuaternionSkinning](ModelMeshPartPayload& data) {
                 data.removeMaterial(material);
                 // if the material changed, we might need to update our item key or shape key
@@ -1708,15 +1702,6 @@ public:
         _meshParts = std::shared_ptr<const GeometryMeshParts>();
     }
 };
-
-void Model::setCollisionMesh(graphics::MeshPointer mesh) {
-    if (mesh) {
-        _collisionGeometry = std::make_shared<CollisionRenderGeometry>(mesh);
-    } else {
-        _collisionGeometry.reset();
-    }
-    _needsFixupInScene = true;
-}
 
 ModelBlender::ModelBlender() :
     _pendingBlenders(0) {

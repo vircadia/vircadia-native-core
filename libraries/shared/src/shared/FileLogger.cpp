@@ -30,7 +30,7 @@ signals:
     void rollingLogFile(QString newFilename);
 
 protected:
-    void rollFileIfNecessary(QFile& file, bool notifyListenersIfRolled = true);
+    void rollFileIfNecessary(QFile& file, bool force = false, bool notifyListenersIfRolled = true);
     virtual bool processQueueItems(const Queue& messages) override;
 
 private:
@@ -79,12 +79,12 @@ FilePersistThread::FilePersistThread(const FileLogger& logger) : _logger(logger)
     // A file may exist from a previous run - if it does, roll the file and suppress notifying listeners.
     QFile file(_logger._fileName);
     if (file.exists()) {
-        rollFileIfNecessary(file, false);
+        rollFileIfNecessary(file, true, false);
     }
 }
 
-void FilePersistThread::rollFileIfNecessary(QFile& file, bool notifyListenersIfRolled) {
-    if (file.size() > MAX_LOG_SIZE) {
+void FilePersistThread::rollFileIfNecessary(QFile& file, bool force, bool notifyListenersIfRolled) {
+    if (force || (file.size() > MAX_LOG_SIZE)) {
         QString newFileName = getLogRollerFilename();
         if (file.copy(newFileName)) {
             file.open(QIODevice::WriteOnly | QIODevice::Truncate);

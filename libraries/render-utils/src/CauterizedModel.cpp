@@ -47,7 +47,7 @@ bool CauterizedModel::updateGeometry() {
     return needsFullUpdate;
 }
 
-void CauterizedModel::createVisibleRenderItemSet() {
+void CauterizedModel::createRenderItemSet() {
     if (_isCauterized) {
         assert(isLoaded());
         const auto& meshes = _renderGeometry->getMeshes();
@@ -94,13 +94,8 @@ void CauterizedModel::createVisibleRenderItemSet() {
             }
         }
     } else {
-        Model::createVisibleRenderItemSet();
+        Model::createRenderItemSet();
     }
-}
-
-void CauterizedModel::createCollisionRenderItemSet() {
-    // Temporary HACK: use base class method for now
-    Model::createCollisionRenderItemSet();
 }
 
 void CauterizedModel::updateClusterMatrices() {
@@ -185,12 +180,6 @@ void CauterizedModel::updateRenderItems() {
     if (_isCauterized) {
         if (!_addedToScene) {
             return;
-        }
-
-        glm::vec3 scale = getScale();
-        if (_collisionGeometry) {
-            // _collisionGeometry is already scaled
-            scale = glm::vec3(1.0f);
         }
         _needsUpdateClusterMatrices = true;
         _renderItemsNeedUpdate = false;

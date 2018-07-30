@@ -201,8 +201,6 @@ public:
 class TaskConfig : public JobConfig {
     Q_OBJECT
 public:
-    using QConfigPointer = std::shared_ptr<QObject>;
-
     using Persistent = PersistentConfig<TaskConfig>;
 
     TaskConfig() = default;
@@ -231,7 +229,8 @@ public:
 
         if (tokens.empty()) {
             tokens.push_back(QString());
-        } else {
+        }
+        else {
             while (tokens.size() > 1) {
                 auto name = tokens.front();
                 tokens.pop_front();

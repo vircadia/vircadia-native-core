@@ -53,20 +53,29 @@ void SimpleEntitySimulation::updateEntitiesInternal(uint64_t now) {
 }
 
 void SimpleEntitySimulation::addEntityInternal(EntityItemPointer entity) {
-    if (entity->isMovingRelativeToParent() && !entity->getPhysicsInfo()) {
+    if (entity->getSimulatorID().isNull()) {
         QMutexLocker lock(&_mutex);
-        _simpleKinematicEntities.insert(entity);
-        entity->setLastSimulated(usecTimestampNow());
-    }
-    if (!entity->getSimulatorID().isNull()) {
+        if (entity->getDynamic()) {
+            // we don't allow dynamic objects to move without an owner so nothing to do here
+        } else if (entity->isMovingRelativeToParent()) {
+            SetOfEntities::iterator itr = _simpleKinematicEntities.find(entity);
+            if (itr != _simpleKinematicEntities.end()) {
+                _simpleKinematicEntities.insert(entity);
+                entity->setLastSimulated(usecTimestampNow());
+            }
+        }
+    } else {
         QMutexLocker lock(&_mutex);
         _entitiesWithSimulationOwner.insert(entity);
         _nextStaleOwnershipExpiry = glm::min(_nextStaleOwnershipExpiry, entity->getSimulationOwnershipExpiry());
-    } else if (entity->getDynamic() && entity->hasLocalVelocity()) {
-        QMutexLocker lock(&_mutex);
-        _entitiesThatNeedSimulationOwner.insert(entity);
-        uint64_t expiry = entity->getLastChangedOnServer() + MAX_OWNERLESS_PERIOD;
-        _nextOwnerlessExpiry = glm::min(_nextOwnerlessExpiry, expiry);
+
+        if (entity->isMovingRelativeToParent()) {
+            SetOfEntities::iterator itr = _simpleKinematicEntities.find(entity);
+            if (itr != _simpleKinematicEntities.end()) {
+                _simpleKinematicEntities.insert(entity);
+                entity->setLastSimulated(usecTimestampNow());
+            }
+        }
     }
 }
 
@@ -77,31 +86,49 @@ void SimpleEntitySimulation::removeEntityInternal(EntityItemPointer entity) {
 }
 
 void SimpleEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
-    {
-        QMutexLocker lock(&_mutex);
-        if (entity->isMovingRelativeToParent() && !entity->getPhysicsInfo()) {
-            int numKinematicEntities = _simpleKinematicEntities.size();
-            _simpleKinematicEntities.insert(entity);
-            if (numKinematicEntities != _simpleKinematicEntities.size()) {
-                entity->setLastSimulated(usecTimestampNow());
+    uint32_t flags = entity->getDirtyFlags();
+    if ((flags & Simulation::DIRTY_SIMULATOR_ID) || (flags & Simulation::DIRTY_VELOCITIES)) {
+        if (entity->getSimulatorID().isNull()) {
+            QMutexLocker lock(&_mutex);
+            _entitiesWithSimulationOwner.remove(entity);
+
+            if (entity->getDynamic()) {
+                // we don't allow dynamic objects to move without an owner
+                SetOfEntities::iterator itr = _simpleKinematicEntities.find(entity);
+                if (itr != _simpleKinematicEntities.end()) {
+                    _simpleKinematicEntities.erase(itr);
+                }
+            } else if (entity->isMovingRelativeToParent()) {
+                SetOfEntities::iterator itr = _simpleKinematicEntities.find(entity);
+                if (itr == _simpleKinematicEntities.end()) {
+                    _simpleKinematicEntities.insert(entity);
+                    entity->setLastSimulated(usecTimestampNow());
+                }
+            } else {
+                SetOfEntities::iterator itr = _simpleKinematicEntities.find(entity);
+                if (itr != _simpleKinematicEntities.end()) {
+                    _simpleKinematicEntities.erase(itr);
+                }
             }
         } else {
-            _simpleKinematicEntities.remove(entity);
+            QMutexLocker lock(&_mutex);
+            _entitiesWithSimulationOwner.insert(entity);
+            _nextStaleOwnershipExpiry = glm::min(_nextStaleOwnershipExpiry, entity->getSimulationOwnershipExpiry());
+            _entitiesThatNeedSimulationOwner.remove(entity);
+
+            if (entity->isMovingRelativeToParent()) {
+                SetOfEntities::iterator itr = _simpleKinematicEntities.find(entity);
+                if (itr == _simpleKinematicEntities.end()) {
+                    _simpleKinematicEntities.insert(entity);
+                    entity->setLastSimulated(usecTimestampNow());
+                }
+            } else {
+                SetOfEntities::iterator itr = _simpleKinematicEntities.find(entity);
+                if (itr != _simpleKinematicEntities.end()) {
+                    _simpleKinematicEntities.erase(itr);
+                }
+            }
         }
-    }
-    if (entity->getSimulatorID().isNull()) {
-        QMutexLocker lock(&_mutex);
-        _entitiesWithSimulationOwner.remove(entity);
-        if (entity->getDynamic() && entity->hasLocalVelocity()) {
-            _entitiesThatNeedSimulationOwner.insert(entity);
-            uint64_t expiry = entity->getLastChangedOnServer() + MAX_OWNERLESS_PERIOD;
-            _nextOwnerlessExpiry = glm::min(_nextOwnerlessExpiry, expiry);
-        }
-    } else {
-        QMutexLocker lock(&_mutex);
-        _entitiesWithSimulationOwner.insert(entity);
-        _nextStaleOwnershipExpiry = glm::min(_nextStaleOwnershipExpiry, entity->getSimulationOwnershipExpiry());
-        _entitiesThatNeedSimulationOwner.remove(entity);
     }
     entity->clearDirtyFlags();
 }
@@ -131,6 +158,12 @@ void SimpleEntitySimulation::expireStaleOwnerships(uint64_t now) {
             uint64_t expiry = entity->getSimulationOwnershipExpiry();
             if (now > expiry) {
                 itemItr = _entitiesWithSimulationOwner.erase(itemItr);
+                if (entity->getDynamic()) {
+                    SetOfEntities::iterator itr = _simpleKinematicEntities.find(entity);
+                    if (itr != _simpleKinematicEntities.end()) {
+                        _simpleKinematicEntities.erase(itr);
+                    }
+                }
 
                 // remove ownership and dirty all the tree elements that contain the it
                 entity->clearSimulationOwnership();

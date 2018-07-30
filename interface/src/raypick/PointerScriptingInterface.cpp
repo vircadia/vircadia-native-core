@@ -15,6 +15,7 @@
 #include "Application.h"
 #include "LaserPointer.h"
 #include "StylusPointer.h"
+#include "ParabolaPointer.h"
 
 void PointerScriptingInterface::setIgnoreItems(unsigned int uid, const QScriptValue& ignoreItems) const {
     DependencyManager::get<PointerManager>()->setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
@@ -37,6 +38,8 @@ unsigned int PointerScriptingInterface::createPointer(const PickQuery::PickType&
             return createLaserPointer(properties);
         case PickQuery::PickType::Stylus:
             return createStylus(properties);
+        case PickQuery::PickType::Parabola:
+            return createParabolaPointer(properties);
         default:
             return PointerEvent::INVALID_POINTER_ID;
     }
@@ -85,26 +88,21 @@ unsigned int PointerScriptingInterface::createStylus(const QVariant& properties)
  * An overlay to represent the end of the Ray Pointer, if desired.
  */
 /**jsdoc
- * A trigger mechanism for Ray Pointers.
- *
- * @typedef {object} Pointers.Trigger
- * @property {Controller.Standard|Controller.Actions|function} action This can be a built-in Controller action, like Controller.Standard.LTClick, or a function that evaluates to >= 1.0 when you want to trigger <code>button</code>.
- * @property {string} button Which button to trigger.  "Primary", "Secondary", "Tertiary", and "Focus" are currently supported.  Only "Primary" will trigger clicks on web surfaces.  If "Focus" is triggered,
- * it will try to set the entity or overlay focus to the object at which the Pointer is aimed.  Buttons besides the first three will still trigger events, but event.button will be "None".
- */
-/**jsdoc
  * A set of properties that can be passed to {@link Pointers.createPointer} to create a new Pointer. Contains the relevant {@link Picks.PickProperties} to define the underlying Pick.
  * @typedef {object} Pointers.LaserPointerProperties
- * @property {boolean} [faceAvatar=false] Ray Pointers only.  If true, the end of the Pointer will always rotate to face the avatar.
- * @property {boolean} [centerEndY=true] Ray Pointers only.  If false, the end of the Pointer will be moved up by half of its height.
- * @property {boolean} [lockEnd=false] Ray Pointers only.  If true, the end of the Pointer will lock on to the center of the object at which the laser is pointing.
- * @property {boolean} [distanceScaleEnd=false] Ray Pointers only.  If true, the dimensions of the end of the Pointer will scale linearly with distance.
- * @property {boolean} [scaleWithAvatar=false] Ray Pointers only.  If true, the width of the Pointer's path will scale linearly with your avatar's scale.
+ * @property {boolean} [faceAvatar=false] If true, the end of the Pointer will always rotate to face the avatar.
+ * @property {boolean} [centerEndY=true] If false, the end of the Pointer will be moved up by half of its height.
+ * @property {boolean} [lockEnd=false] If true, the end of the Pointer will lock on to the center of the object at which the laser is pointing.
+ * @property {boolean} [distanceScaleEnd=false] If true, the dimensions of the end of the Pointer will scale linearly with distance.
+ * @property {boolean} [scaleWithAvatar=false] If true, the width of the Pointer's path will scale linearly with your avatar's scale.
+ * @property {boolean} [followNormal=false] If true, the end of the Pointer will rotate to follow the normal of the intersected surface.
+ * @property {number} [followNormalStrength=0.0] The strength of the interpolation between the real normal and the visual normal if followNormal is true. <code>0-1</code>.  If 0 or 1,
+ * the normal will follow exactly.
  * @property {boolean} [enabled=false]
- * @property {Pointers.RayPointerRenderState[]} [renderStates] Ray Pointers only.  A list of different visual states to switch between.
- * @property {Pointers.DefaultRayPointerRenderState[]} [defaultRenderStates] Ray Pointers only.  A list of different visual states to use if there is no intersection.
+ * @property {Pointers.RayPointerRenderState[]} [renderStates] A list of different visual states to switch between.
+ * @property {Pointers.DefaultRayPointerRenderState[]} [defaultRenderStates] A list of different visual states to use if there is no intersection.
  * @property {boolean} [hover=false] If this Pointer should generate hover events.
- * @property {Pointers.Trigger[]} [triggers] Ray Pointers only.  A list of different triggers mechanisms that control this Pointer's click event generation.
+ * @property {Pointers.Trigger[]} [triggers] A list of different triggers mechanisms that control this Pointer's click event generation.
  */
 unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& properties) const {
     QVariantMap propertyMap = properties.toMap();
@@ -134,12 +132,21 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
         scaleWithAvatar = propertyMap["scaleWithAvatar"].toBool();
     }
 
+    bool followNormal = false;
+    if (propertyMap["followNormal"].isValid()) {
+        followNormal = propertyMap["followNormal"].toBool();
+    }
+    float followNormalStrength = 0.0f;
+    if (propertyMap["followNormalStrength"].isValid()) {
+        followNormalStrength = propertyMap["followNormalStrength"].toFloat();
+    }
+
     bool enabled = false;
     if (propertyMap["enabled"].isValid()) {
         enabled = propertyMap["enabled"].toBool();
     }
 
-    LaserPointer::RenderStateMap renderStates;
+    RenderStateMap renderStates;
     if (propertyMap["renderStates"].isValid()) {
         QList<QVariant> renderStateVariants = propertyMap["renderStates"].toList();
         for (const QVariant& renderStateVariant : renderStateVariants) {
@@ -153,7 +160,7 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
         }
     }
 
-    LaserPointer::DefaultRenderStateMap defaultRenderStates;
+    DefaultRenderStateMap defaultRenderStates;
     if (propertyMap["defaultRenderStates"].isValid()) {
         QList<QVariant> renderStateVariants = propertyMap["defaultRenderStates"].toList();
         for (const QVariant& renderStateVariant : renderStateVariants) {
@@ -162,7 +169,7 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
                 if (renderStateMap["name"].isValid() && renderStateMap["distance"].isValid()) {
                     std::string name = renderStateMap["name"].toString().toStdString();
                     float distance = renderStateMap["distance"].toFloat();
-                    defaultRenderStates[name] = std::pair<float, RenderState>(distance, LaserPointer::buildRenderState(renderStateMap));
+                    defaultRenderStates[name] = std::pair<float, std::shared_ptr<StartEndRenderState>>(distance, LaserPointer::buildRenderState(renderStateMap));
                 }
             }
         }
@@ -192,7 +199,151 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
     }
 
     return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<LaserPointer>(properties, renderStates, defaultRenderStates, hover, triggers,
-                                                                                               faceAvatar, centerEndY, lockEnd, distanceScaleEnd, scaleWithAvatar, enabled));
+                                                                                               faceAvatar, followNormal, followNormalStrength, centerEndY, lockEnd,
+                                                                                               distanceScaleEnd, scaleWithAvatar, enabled));
+}
+
+/**jsdoc
+* The rendering properties of the parabolic path
+*
+* @typedef {object} Pointers.ParabolaProperties
+* @property {Color} color The color of the parabola.
+* @property {number} alpha The alpha of the parabola.
+* @property {number} width The width of the parabola, in meters.
+*/
+/**jsdoc
+* A set of properties used to define the visual aspect of a Parabola Pointer in the case that the Pointer is not intersecting something.  Same as a {@link Pointers.ParabolaPointerRenderState},
+* but with an additional distance field.
+*
+* @typedef {object} Pointers.DefaultParabolaPointerRenderState
+* @augments Pointers.ParabolaPointerRenderState
+* @property {number} distance The distance along the parabola at which to render the end of this Parabola Pointer, if one is defined.
+*/
+/**jsdoc
+* A set of properties used to define the visual aspect of a Parabola Pointer in the case that the Pointer is intersecting something.
+*
+* @typedef {object} Pointers.ParabolaPointerRenderState
+* @property {string} name The name of this render state, used by {@link Pointers.setRenderState} and {@link Pointers.editRenderState}
+* @property {Overlays.OverlayProperties} [start] All of the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
+* An overlay to represent the beginning of the Parabola Pointer, if desired.
+* @property {Pointers.ParabolaProperties} [path] The rendering properties of the parabolic path defined by the Parabola Pointer.
+* @property {Overlays.OverlayProperties} [end] All of the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
+* An overlay to represent the end of the Parabola Pointer, if desired.
+*/
+/**jsdoc
+* A set of properties that can be passed to {@link Pointers.createPointer} to create a new Pointer. Contains the relevant {@link Picks.PickProperties} to define the underlying Pick.
+* @typedef {object} Pointers.LaserPointerProperties
+* @property {boolean} [faceAvatar=false] If true, the end of the Pointer will always rotate to face the avatar.
+* @property {boolean} [centerEndY=true] If false, the end of the Pointer will be moved up by half of its height.
+* @property {boolean} [lockEnd=false] If true, the end of the Pointer will lock on to the center of the object at which the laser is pointing.
+* @property {boolean} [distanceScaleEnd=false] If true, the dimensions of the end of the Pointer will scale linearly with distance.
+* @property {boolean} [scaleWithAvatar=false] If true, the width of the Pointer's path will scale linearly with your avatar's scale.
+* @property {boolean} [followNormal=false] If true, the end of the Pointer will rotate to follow the normal of the intersected surface.
+* @property {number} [followNormalStrength=0.0] The strength of the interpolation between the real normal and the visual normal if followNormal is true. <code>0-1</code>.  If 0 or 1,
+* the normal will follow exactly.
+* @property {boolean} [enabled=false]
+* @property {Pointers.ParabolaPointerRenderState[]} [renderStates] A list of different visual states to switch between.
+* @property {Pointers.DefaultParabolaPointerRenderState[]} [defaultRenderStates] A list of different visual states to use if there is no intersection.
+* @property {boolean} [hover=false] If this Pointer should generate hover events.
+* @property {Pointers.Trigger[]} [triggers] A list of different triggers mechanisms that control this Pointer's click event generation.
+*/
+unsigned int PointerScriptingInterface::createParabolaPointer(const QVariant& properties) const {
+    QVariantMap propertyMap = properties.toMap();
+
+    bool faceAvatar = false;
+    if (propertyMap["faceAvatar"].isValid()) {
+        faceAvatar = propertyMap["faceAvatar"].toBool();
+    }
+
+    bool centerEndY = true;
+    if (propertyMap["centerEndY"].isValid()) {
+        centerEndY = propertyMap["centerEndY"].toBool();
+    }
+
+    bool lockEnd = false;
+    if (propertyMap["lockEnd"].isValid()) {
+        lockEnd = propertyMap["lockEnd"].toBool();
+    }
+
+    bool distanceScaleEnd = false;
+    if (propertyMap["distanceScaleEnd"].isValid()) {
+        distanceScaleEnd = propertyMap["distanceScaleEnd"].toBool();
+    }
+
+    bool scaleWithAvatar = false;
+    if (propertyMap["scaleWithAvatar"].isValid()) {
+        scaleWithAvatar = propertyMap["scaleWithAvatar"].toBool();
+    }
+
+    bool followNormal = false;
+    if (propertyMap["followNormal"].isValid()) {
+        followNormal = propertyMap["followNormal"].toBool();
+    }
+    float followNormalStrength = 0.0f;
+    if (propertyMap["followNormalStrength"].isValid()) {
+        followNormalStrength = propertyMap["followNormalStrength"].toFloat();
+    }
+
+    bool enabled = false;
+    if (propertyMap["enabled"].isValid()) {
+        enabled = propertyMap["enabled"].toBool();
+    }
+
+    RenderStateMap renderStates;
+    if (propertyMap["renderStates"].isValid()) {
+        QList<QVariant> renderStateVariants = propertyMap["renderStates"].toList();
+        for (const QVariant& renderStateVariant : renderStateVariants) {
+            if (renderStateVariant.isValid()) {
+                QVariantMap renderStateMap = renderStateVariant.toMap();
+                if (renderStateMap["name"].isValid()) {
+                    std::string name = renderStateMap["name"].toString().toStdString();
+                    renderStates[name] = ParabolaPointer::buildRenderState(renderStateMap);
+                }
+            }
+        }
+    }
+
+    DefaultRenderStateMap defaultRenderStates;
+    if (propertyMap["defaultRenderStates"].isValid()) {
+        QList<QVariant> renderStateVariants = propertyMap["defaultRenderStates"].toList();
+        for (const QVariant& renderStateVariant : renderStateVariants) {
+            if (renderStateVariant.isValid()) {
+                QVariantMap renderStateMap = renderStateVariant.toMap();
+                if (renderStateMap["name"].isValid() && renderStateMap["distance"].isValid()) {
+                    std::string name = renderStateMap["name"].toString().toStdString();
+                    float distance = renderStateMap["distance"].toFloat();
+                    defaultRenderStates[name] = std::pair<float, std::shared_ptr<StartEndRenderState>>(distance, ParabolaPointer::buildRenderState(renderStateMap));
+                }
+            }
+        }
+    }
+
+    bool hover = false;
+    if (propertyMap["hover"].isValid()) {
+        hover = propertyMap["hover"].toBool();
+    }
+
+    PointerTriggers triggers;
+    auto userInputMapper = DependencyManager::get<UserInputMapper>();
+    if (propertyMap["triggers"].isValid()) {
+        QList<QVariant> triggerVariants = propertyMap["triggers"].toList();
+        for (const QVariant& triggerVariant : triggerVariants) {
+            if (triggerVariant.isValid()) {
+                QVariantMap triggerMap = triggerVariant.toMap();
+                if (triggerMap["action"].isValid() && triggerMap["button"].isValid()) {
+                    controller::Endpoint::Pointer endpoint = userInputMapper->endpointFor(controller::Input(triggerMap["action"].toUInt()));
+                    if (endpoint) {
+                        std::string button = triggerMap["button"].toString().toStdString();
+                        triggers.emplace_back(endpoint, button);
+                    }
+                }
+            }
+        }
+    }
+
+    return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<ParabolaPointer>(properties, renderStates, defaultRenderStates, hover, triggers,
+                                                                                                  faceAvatar, followNormal, followNormalStrength, centerEndY, lockEnd, distanceScaleEnd,
+                                                                                                  scaleWithAvatar, enabled));
 }
 
 void PointerScriptingInterface::editRenderState(unsigned int uid, const QString& renderState, const QVariant& properties) const {

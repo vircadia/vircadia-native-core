@@ -284,8 +284,8 @@ bool EntityRenderer::addToScene(const ScenePointer& scene, Transaction& transact
     makeStatusGetters(_entity, statusGetters);
     renderPayload->addStatusGetters(statusGetters);
     transaction.resetItem(_renderItemID, renderPayload);
-    updateInScene(scene, transaction);
     onAddToScene(_entity);
+    updateInScene(scene, transaction);
     return true;
 }
 
@@ -363,6 +363,20 @@ bool EntityRenderer::needsRenderUpdateFromEntity(const EntityItemPointer& entity
     return false;
 }
 
+void EntityRenderer::updateModelTransformAndBound() {
+    bool success = false;
+    auto newModelTransform = _entity->getTransformToCenter(success);
+    if (success) {
+        _modelTransform = newModelTransform;
+    }
+
+    success = false;
+    auto bound = _entity->getAABox(success);
+    if (success) {
+        _bound = bound;
+    }
+}
+
 void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transaction& transaction, const EntityItemPointer& entity) {
     DETAILED_PROFILE_RANGE(simulation_physics, __FUNCTION__);
     withWriteLock([&] {
@@ -372,15 +386,7 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
         }
         _prevIsTransparent = transparent;
 
-        bool success = false;
-        auto bound = entity->getAABox(success);
-        if (success) {
-            _bound = bound;
-        }
-        auto newModelTransform = entity->getTransformToCenter(success);
-        if (success) {
-            _modelTransform = newModelTransform;
-        }
+        updateModelTransformAndBound();
 
         _moving = entity->isMovingRelativeToParent();
         _visible = entity->getVisible();

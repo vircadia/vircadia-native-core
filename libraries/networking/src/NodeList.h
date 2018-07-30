@@ -90,6 +90,9 @@ public:
     bool getRequestsDomainListData() { return _requestsDomainListData; }
     void setRequestsDomainListData(bool isRequesting);
 
+    bool getSendDomainServerCheckInEnabled() { return _sendDomainServerCheckInEnabled; }
+    void setSendDomainServerCheckInEnabled(bool enabled) { _sendDomainServerCheckInEnabled = enabled; }
+
     void removeFromIgnoreMuteSets(const QUuid& nodeID);
 
     virtual bool isDomainServer() const override { return false; }
@@ -169,6 +172,8 @@ private:
     QTimer _keepAlivePingTimer;
     bool _requestsDomainListData { false };
 
+    bool _sendDomainServerCheckInEnabled { true };
+
     mutable QReadWriteLock _ignoredSetLock;
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDs;
     mutable QReadWriteLock _personalMutedSetLock;
@@ -180,7 +185,7 @@ private:
 #if defined(Q_OS_ANDROID)
     Setting::Handle<bool> _ignoreRadiusEnabled { "IgnoreRadiusEnabled", false };
 #else
-    Setting::Handle<bool> _ignoreRadiusEnabled { "IgnoreRadiusEnabled", true };
+    Setting::Handle<bool> _ignoreRadiusEnabled { "IgnoreRadiusEnabled", false }; // False, until such time as it is made to work better.
 #endif
 
 #if (PR_BUILD || DEV_BUILD)

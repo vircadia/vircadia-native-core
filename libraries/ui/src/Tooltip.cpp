@@ -83,7 +83,7 @@ void Tooltip::requestHyperlinkImage() {
             auto accountManager = DependencyManager::get<AccountManager>();
 
             JSONCallbackParameters callbackParams;
-            callbackParams.jsonCallbackReceiver = this;
+            callbackParams.callbackReceiver = this;
             callbackParams.jsonCallbackMethod = "handleAPIResponse";
 
             accountManager->sendRequest(GET_PLACE.arg(_title),
@@ -94,9 +94,9 @@ void Tooltip::requestHyperlinkImage() {
     }
 }
 
-void Tooltip::handleAPIResponse(QNetworkReply& requestReply) {
+void Tooltip::handleAPIResponse(QNetworkReply* requestReply) {
     // did a preview image come back?
-    QJsonObject responseObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+    QJsonObject responseObject = QJsonDocument::fromJson(requestReply->readAll()).object();
     QJsonObject dataObject = responseObject["data"].toObject();
 
     const QString PLACE_KEY = "place";

@@ -289,11 +289,11 @@ bool ObjectConstraintSlider::updateArguments(QVariantMap arguments) {
 QVariantMap ObjectConstraintSlider::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
-        arguments["point"] = glmToQMap(_pointInA);
-        arguments["axis"] = glmToQMap(_axisInA);
+        arguments["point"] = vec3ToQMap(_pointInA);
+        arguments["axis"] = vec3ToQMap(_axisInA);
         arguments["otherEntityID"] = _otherID;
-        arguments["otherPoint"] = glmToQMap(_pointInB);
-        arguments["otherAxis"] = glmToQMap(_axisInB);
+        arguments["otherPoint"] = vec3ToQMap(_pointInB);
+        arguments["otherAxis"] = vec3ToQMap(_axisInB);
         arguments["linearLow"] = _linearLow;
         arguments["linearHigh"] = _linearHigh;
         arguments["angularLow"] = _angularLow;

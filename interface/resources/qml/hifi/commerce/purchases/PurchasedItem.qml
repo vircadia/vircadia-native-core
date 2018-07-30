@@ -67,13 +67,13 @@ Item {
         }
 
         onAppInstalled: {
-            if (appHref === root.itemHref) {
+            if (appID === root.itemId) {
                 root.isInstalled = true;
             }
         }
 
         onAppUninstalled: {
-            if (appHref === root.itemHref) {
+            if (appID === root.itemId) {
                 root.isInstalled = false;
             }
         }
@@ -328,7 +328,16 @@ Item {
                         item.buttonColor = "#E2334D";
                         item.buttonClicked = function() {
                             sendToPurchases({ method: 'flipCard', closeAll: true });
-                            sendToPurchases({method: 'updateItemClicked', itemId: root.itemId, itemEdition: root.itemEdition, upgradeUrl: root.upgradeUrl});
+                            sendToPurchases({
+                                method: 'updateItemClicked',
+                                itemId: root.itemId,
+                                itemEdition: root.itemEdition,
+                                upgradeUrl: root.upgradeUrl,
+                                itemHref: root.itemHref,
+                                itemType: root.itemType,
+                                isInstalled: root.isInstalled,
+                                wornEntityID: root.wornEntityID
+                            });
                         }
                     }
                 }
@@ -646,6 +655,7 @@ Item {
             height: 40;
             enabled: root.hasPermissionToRezThis &&
                 MyAvatar.skeletonModelURL !== root.itemHref &&
+                !root.wornEntityID &&
                 root.valid;
 
             onHoveredChanged: {
@@ -722,7 +732,7 @@ Item {
                     }
                     HiFiGlyphs {
                         id: rezIcon;
-                        text: (root.buttonGlyph)[itemTypesArray.indexOf(root.itemType)];
+                        text: root.isInstalled ? "" : (root.buttonGlyph)[itemTypesArray.indexOf(root.itemType)];
                         anchors.right: rezIconLabel.left;
                         anchors.rightMargin: 2;
                         anchors.verticalCenter: parent.verticalCenter;

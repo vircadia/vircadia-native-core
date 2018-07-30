@@ -31,14 +31,23 @@ class PointerScriptingInterface : public QObject, public Dependency {
 public:
     unsigned int createLaserPointer(const QVariant& properties) const;
     unsigned int createStylus(const QVariant& properties) const;
+    unsigned int createParabolaPointer(const QVariant& properties) const;
 
+    /**jsdoc
+    * A trigger mechanism for Ray and Parabola Pointers.
+    *
+    * @typedef {object} Pointers.Trigger
+    * @property {Controller.Standard|Controller.Actions|function} action This can be a built-in Controller action, like Controller.Standard.LTClick, or a function that evaluates to >= 1.0 when you want to trigger <code>button</code>.
+    * @property {string} button Which button to trigger.  "Primary", "Secondary", "Tertiary", and "Focus" are currently supported.  Only "Primary" will trigger clicks on web surfaces.  If "Focus" is triggered,
+    * it will try to set the entity or overlay focus to the object at which the Pointer is aimed.  Buttons besides the first three will still trigger events, but event.button will be "None".
+    */
     /**jsdoc
      * Adds a new Pointer
      * Different {@link PickType}s use different properties, and within one PickType, the properties you choose can lead to a wide range of behaviors.  For example,
      *   with PickType.Ray, depending on which optional parameters you pass, you could create a Static Ray Pointer, a Mouse Ray Pointer, or a Joint Ray Pointer.
      * @function Pointers.createPointer
      * @param {PickType} type A PickType that specifies the method of picking to use
-     * @param {Pointers.LaserPointerProperties|Pointers.StylusPointerProperties} properties A PointerProperties object, containing all the properties for initializing this Pointer <b>and</b> the {@link Picks.PickProperties} for the Pick that
+     * @param {Pointers.LaserPointerProperties|Pointers.StylusPointerProperties|Pointers.ParabolaPointerProperties} properties A PointerProperties object, containing all the properties for initializing this Pointer <b>and</b> the {@link Picks.PickProperties} for the Pick that
      *   this Pointer will use to do its picking.
      * @returns {number} The ID of the created Pointer.  Used for managing the Pointer.  0 if invalid.
      *

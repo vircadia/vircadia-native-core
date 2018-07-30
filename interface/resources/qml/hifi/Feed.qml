@@ -53,7 +53,7 @@ Column {
             'protocol=' + encodeURIComponent(Window.protocolSignature())
         ];
         endpoint: '/api/v1/user_stories?' + options.join('&');
-        itemsPerPage: 3;
+        itemsPerPage: 4;
         processPage: function (data) {
             return data.user_stories.map(makeModelData);
         };
@@ -86,7 +86,9 @@ Column {
             tags: tags,
             description: description,
             online_users: data.details.connections || data.details.concurrency || 0,
-            drillDownToPlace: false
+            // Server currently doesn't give isStacked (undefined). Could give bool.
+            drillDownToPlace: data.is_stacked || (data.action === 'concurrency'),
+            isStacked: !!data.is_stacked
         };
     }
 
@@ -104,7 +106,6 @@ Column {
         highlightMoveDuration: -1;
         highlightMoveVelocity: -1;
         currentIndex: -1;
-        onAtXEndChanged: { if (scroll.atXEnd && !scroll.atXBeginning) { suggestions.getNextPage(); } }
 
         spacing: 12;
         width: parent.width;
@@ -124,6 +125,7 @@ Column {
             onlineUsers: model.online_users;
             storyId: model.metaverseId;
             drillDownToPlace: model.drillDownToPlace;
+            isStacked: model.isStacked;
 
             textPadding: root.textPadding;
             smallMargin: root.smallMargin;

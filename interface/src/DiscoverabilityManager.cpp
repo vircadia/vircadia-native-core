@@ -23,7 +23,7 @@
 #include <UserActivityLogger.h>
 #include <UUID.h>
 
-#include "Crashpad.h"
+#include "CrashHandler.h"
 #include "Menu.h"
 
 const Discoverability::Mode DEFAULT_DISCOVERABILITY_MODE = Discoverability::Connections;
@@ -97,7 +97,7 @@ void DiscoverabilityManager::updateLocation() {
         locationObject.insert(AVAILABILITY_KEY_IN_LOCATION, findableByString(static_cast<Discoverability::Mode>(_mode.get())));
 
         JSONCallbackParameters callbackParameters;
-        callbackParameters.jsonCallbackReceiver = this;
+        callbackParameters.callbackReceiver = this;
         callbackParameters.jsonCallbackMethod = "handleHeartbeatResponse";
 
         // figure out if we'll send a fresh location or just a simple heartbeat
@@ -121,7 +121,7 @@ void DiscoverabilityManager::updateLocation() {
         // we still send a heartbeat to the metaverse server for stats collection
 
         JSONCallbackParameters callbackParameters;
-        callbackParameters.jsonCallbackReceiver = this;
+        callbackParameters.callbackReceiver = this;
         callbackParameters.jsonCallbackMethod = "handleHeartbeatResponse";
 
         accountManager->sendRequest(API_USER_HEARTBEAT_PATH, AccountManagerAuth::Optional,
@@ -136,7 +136,7 @@ void DiscoverabilityManager::updateLocation() {
     setCrashAnnotation("address", currentAddress.toString().toStdString());
 }
 
-void DiscoverabilityManager::handleHeartbeatResponse(QNetworkReply& requestReply) {
+void DiscoverabilityManager::handleHeartbeatResponse(QNetworkReply* requestReply) {
     auto dataObject = AccountManager::dataObjectFromResponse(requestReply);
 
     if (!dataObject.isEmpty()) {

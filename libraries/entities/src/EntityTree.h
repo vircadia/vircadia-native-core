@@ -95,7 +95,14 @@ public:
     virtual EntityItemID findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         QVector<EntityItemID> entityIdsToInclude, QVector<EntityItemID> entityIdsToDiscard,
         bool visibleOnly, bool collidableOnly, bool precisionPicking, 
-        OctreeElementPointer& node, float& distance,
+        OctreeElementPointer& element, float& distance,
+        BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
+        Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
+
+    virtual EntityItemID findParabolaIntersection(const PickParabola& parabola,
+        QVector<EntityItemID> entityIdsToInclude, QVector<EntityItemID> entityIdsToDiscard,
+        bool visibleOnly, bool collidableOnly, bool precisionPicking,
+        OctreeElementPointer& element, glm::vec3& intersection, float& distance, float& parabolicDistance,
         BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
         Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
@@ -274,6 +281,8 @@ public:
 
     void setMyAvatar(std::shared_ptr<AvatarData> myAvatar) { _myAvatar = myAvatar; }
 
+    void swapStaleProxies(std::vector<int>& proxies) { proxies.swap(_staleProxies); }
+
     void setIsServerlessMode(bool value) { _serverlessDomain = value; }
     bool isServerlessMode() const { return _serverlessDomain; }
 
@@ -407,6 +416,8 @@ private:
     static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromAvatarOperator;
     static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToOverlayOperator;
     static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromOverlayOperator;
+
+    std::vector<int32_t> _staleProxies;
 
     bool _serverlessDomain { false };
 

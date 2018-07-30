@@ -260,7 +260,7 @@ function Grabber() {
 
     this.mouseRayOverlays = Picks.createPick(PickType.Ray, {
         joint: "Mouse",
-        filter: Picks.PICK_OVERLAYS,
+        filter: Picks.PICK_OVERLAYS | Picks.PICK_INCLUDE_NONCOLLIDABLE,
         enabled: true
     });
     var tabletItems = getMainTabletIDs();
@@ -270,7 +270,7 @@ function Grabber() {
     var renderStates = [{name: "grabbed", end: beacon}];
     this.mouseRayEntities = Pointers.createPointer(PickType.Ray, {
         joint: "Mouse",
-        filter: Picks.PICK_ENTITIES,
+        filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_NONCOLLIDABLE,
         faceAvatar: true,
         scaleWithAvatar: true,
         enabled: true,
@@ -315,7 +315,7 @@ Grabber.prototype.pressEvent = function(event) {
         return;
     }
 
-    if (event.isLeftButton !== true || event.isRightButton === true || event.isMiddleButton === true) {
+    if (event.button !== "LEFT") {
         return;
     }
 
@@ -419,7 +419,7 @@ Grabber.prototype.pressEvent = function(event) {
 };
 
 Grabber.prototype.releaseEvent = function(event) {
-    if ((event.isLeftButton!==true || event.isRightButton===true || event.isMiddleButton===true) && !HMD.active) {
+    if (event.button !== "LEFT" && !HMD.active) {
         return;
     }
 

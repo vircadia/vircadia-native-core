@@ -154,6 +154,10 @@ const QUuid AvatarMotionState::getObjectID() const {
     return _avatar->getSessionUUID();
 }
 
+QString AvatarMotionState::getName() const {
+    return _avatar->getName();
+}
+
 // virtual
 QUuid AvatarMotionState::getSimulatorID() const {
     return _avatar->getSessionUUID();

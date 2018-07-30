@@ -97,16 +97,23 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         addMaterial(graphics::MaterialLayer(_material, 0), "0");
 
         _shape = entity->getShape();
-        _position = entity->getWorldPosition();
-        _dimensions = entity->getScaledDimensions();
-        _orientation = entity->getWorldOrientation();
-        _renderTransform = getModelTransform();
+    });
 
-        if (_shape == entity::Sphere) {
-            _renderTransform.postScale(SPHERE_ENTITY_SCALE);
-        }
+    void* key = (void*)this;
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this] () {
+        withWriteLock([&] {
+            auto entity = getEntity();
+            _position = entity->getWorldPosition();
+            _dimensions = entity->getScaledDimensions();
+            _orientation = entity->getWorldOrientation();
+            updateModelTransformAndBound();
+            _renderTransform = getModelTransform();
+            if (_shape == entity::Sphere) {
+                _renderTransform.postScale(SPHERE_ENTITY_SCALE);
+            }
 
-        _renderTransform.postScale(_dimensions);
+            _renderTransform.postScale(_dimensions);
+        });;
     });
 }
 
