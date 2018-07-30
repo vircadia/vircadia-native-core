@@ -75,6 +75,10 @@ private:
     QString _user;
     QString _password;
     QString _project;
+
+    QString _pythonPath;
+
+    const QString pythonExe{ "python.exe" };
 };
 
 #endif

@@ -283,7 +283,7 @@ void TestRailInterface::createAddTestCasesPythonScript(const QString& testDirect
     file.close();
 
     if (QMessageBox::Yes == QMessageBox(QMessageBox::Information, "Python script has been created", "Do you want to run the script and update TestRail?", QMessageBox::Yes | QMessageBox::No).exec()) {
-        QString command("C:\\Python37\\python");
+        QString command(_pythonPath + "/" + pythonExe);
         QStringList parameters = QStringList() << outputDirectory + "/addTestCases.py";
         QProcess* process = new QProcess();
         connect(
@@ -309,6 +309,18 @@ void TestRailInterface::createTestSuitePython(const QString& testDirectory,
                                               const QString& userGitHub,
                                               const QString& branchGitHub) {
     
+    // First check that Python is available
+    QProcessEnvironment  e = QProcessEnvironment::systemEnvironment();
+    QStringList sl = e.toStringList();
+    if (QProcessEnvironment::systemEnvironment().contains("PYTHON_PATH")) {
+        _pythonPath = QProcessEnvironment::systemEnvironment().value("PYTHON_PATH");
+        if (!QFile::exists(_pythonPath + "/" + pythonExe)) {
+            QMessageBox::critical(0, pythonExe, QString("Python executable not found in ") + _pythonPath);
+        }
+    } else {
+        QMessageBox::critical(0, "PYTHON_PATH not defined", "Please set PYTHON_PATH to directory containing the Python executable");
+    }
+
     createTestRailDotPyScript(outputDirectory);
     createStackDotPyScript(outputDirectory);
     requestDataFromUser();
