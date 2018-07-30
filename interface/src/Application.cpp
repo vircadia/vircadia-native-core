@@ -4844,12 +4844,6 @@ void Application::loadSettings() {
 
         isFirstPerson = (qApp->isHMDMode());
 
-        // Flying should be disabled by default in HMD mode on first run, and it
-        // should be enabled by default in desktop mode.
-
-        auto myAvatar = getMyAvatar();
-        myAvatar->setFlyingEnabled(!isFirstPerson);
-
     } else {
         // if this is not the first run, the camera will be initialized differently depending on user settings
 
@@ -6538,9 +6532,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     entityScriptingInterface->setPacketSender(&_entityEditSender);
     entityScriptingInterface->setEntityTree(getEntities()->getTree());
-
-    // give the script engine to the RecordingScriptingInterface for its callbacks
-    DependencyManager::get<RecordingScriptingInterface>()->setScriptEngine(scriptEngine);
 
     if (property(hifi::properties::TEST).isValid()) {
         scriptEngine->registerGlobalObject("Test", TestScriptingInterface::getInstance());

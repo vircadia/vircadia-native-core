@@ -3,7 +3,7 @@ import QtQuick 2.5
 MessageBox {
     id: popup
 
-    function showSpecifyAvatarUrl(callback, linkCallback) {
+    function showSpecifyAvatarUrl(url, callback, linkCallback) {
         popup.onButton2Clicked = callback;
         popup.titleText = 'Specify Avatar URL'
         popup.bodyText = 'This will not overwrite your existing favorite if you are wearing one.<br>' +
@@ -12,6 +12,8 @@ MessageBox {
                 '</a>'
         popup.inputText.visible = true;
         popup.inputText.placeholderText = 'Enter Avatar Url';
+        popup.inputText.text = url;
+        popup.inputText.selectAll();
         popup.button1text = 'CANCEL';
         popup.button2text = 'CONFIRM';
 

@@ -699,14 +699,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
     adjustShapeInfoByRegistration(shapeInfo);
 }
 
-void RenderableModelEntityItem::setCollisionShape(const btCollisionShape* shape) {
-    const void* key = static_cast<const void*>(shape);
-    if (_collisionMeshKey != key) {
-        _collisionMeshKey = key;
-        emit requestCollisionGeometryUpdate();
-    }
-}
-
 void RenderableModelEntityItem::setJointMap(std::vector<int> jointMap) {
     if (jointMap.size() > 0) {
         _jointMap = jointMap;
@@ -1276,10 +1268,6 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
     }
 
     return false;
-}
-
-void ModelEntityRenderer::setCollisionMeshKey(const void*key) {
-    _collisionMeshKey = key;
 }
 
 void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {

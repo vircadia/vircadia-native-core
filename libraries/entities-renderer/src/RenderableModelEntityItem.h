@@ -78,8 +78,6 @@ public:
     virtual bool isReadyToComputeShape() const override;
     virtual void computeShapeInfo(ShapeInfo& shapeInfo) override;
 
-    void setCollisionShape(const btCollisionShape* shape) override;
-
     virtual bool contains(const glm::vec3& point) const override;
     void stopModelOverrideIfNoParent();
 
@@ -112,10 +110,6 @@ public:
     virtual QStringList getJointNames() const override;
 
     bool getMeshes(MeshProxyList& result) override; // deprecated
-    const void* getCollisionMeshKey() const { return _collisionMeshKey; }
-
-signals:
-    void requestCollisionGeometryUpdate();
 
 private:
     bool needsUpdateModelBounds() const;
@@ -130,7 +124,6 @@ private:
     QVariantMap _originalTextures;
     bool _dimensionsInitialized { true };
     bool _needsJointSimulation { false };
-    const void* _collisionMeshKey { nullptr };
 };
 
 namespace render { namespace entities { 
@@ -161,7 +154,6 @@ protected:
     virtual bool needsRenderUpdate() const override;
     virtual void doRender(RenderArgs* args) override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
-    void setCollisionMeshKey(const void* key);
 
     render::hifi::Tag getTagMask() const override;
 

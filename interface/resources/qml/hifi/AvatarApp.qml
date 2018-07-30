@@ -480,7 +480,7 @@ Rectangle {
             MouseArea {
                 anchors.fill: parent
                 onClicked: {
-                    popup.showSpecifyAvatarUrl(function() {
+                    popup.showSpecifyAvatarUrl(currentAvatar.avatarUrl, function() {
                         var url = popup.inputText.text;
                         emitSendToScript({'method' : 'applyExternalAvatar', 'avatarURL' : url})
                     }, function(link) {

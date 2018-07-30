@@ -178,10 +178,6 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
 
 
     withWriteLock([&] {
-        if (_contentType == ContentType::NoContent) {
-            return;
-        }
-
         // This work must be done on the main thread
         // If we couldn't create a new web surface, exit
         if (!hasWebSurface() && !buildWebSurface(entity)) {
@@ -315,7 +311,13 @@ bool WebEntityRenderer::buildWebSurface(const TypedEntityPointer& entity) {
         });
     } else if (_contentType == ContentType::QmlContent) {
         _webSurface->load(_lastSourceUrl);
+    } else if (_contentType == ContentType::NoContent) {
+        // Show empty white panel
+        _webSurface->load("controls/WebEntityView.qml", [this](QQmlContext* context, QObject* item) {
+            item->setProperty(URL_PROPERTY, "");
+        });
     }
+
     _fadeStartTime = usecTimestampNow();
     _webSurface->resume();
 
