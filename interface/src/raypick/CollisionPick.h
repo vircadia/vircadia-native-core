@@ -69,14 +69,12 @@ public:
     bool checkOrFilterAgainstMaxDistance(float maxDistance) override { return true; }
 
     PickResultPointer compareAndProcessNewResult(const PickResultPointer& newRes) override {
-        const std::shared_ptr<CollisionPickResult> newCollisionResult = std::static_pointer_cast<CollisionPickResult>(*const_cast<PickResultPointer*>(&newRes));
-        // Have to reference the raw pointer to work around strange type conversion errors
-        CollisionPickResult* newCollisionResultRaw = const_cast<CollisionPickResult*>(newCollisionResult.get());
+        const std::shared_ptr<CollisionPickResult> newCollisionResult = std::static_pointer_cast<CollisionPickResult>(newRes);
 
-        for (EntityIntersection& intersectingEntity : newCollisionResultRaw->intersectingEntities) {
+        for (EntityIntersection& intersectingEntity : newCollisionResult->intersectingEntities) {
             intersectingEntities.push_back(intersectingEntity);
         }
-        for (EntityIntersection& intersectingAvatar : newCollisionResultRaw->intersectingAvatars) {
+        for (EntityIntersection& intersectingAvatar : newCollisionResult->intersectingAvatars) {
             intersectingAvatars.push_back(intersectingAvatar);
         }
 
