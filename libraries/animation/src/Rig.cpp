@@ -1514,10 +1514,6 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
             deltaQuat = glm::angleAxis(glm::clamp(glm::angle(deltaQuat), -MAX_ANGLE, MAX_ANGLE), glm::axis(deltaQuat));
         }
 
-
-
-
-
         // directly set absolutePose rotation
         _internalPoseSet._absolutePoses[index].rot() = deltaQuat * headQuat;
 
@@ -1526,21 +1522,10 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
         for (int i = 0; i < (int)children.size(); i++) {
             int jointIndex = children[i];
             int parentIndex = _animSkeleton->getParentIndex(jointIndex);
-            _internalPoseSet._absolutePoses[jointIndex] = 
+            _internalPoseSet._absolutePoses[jointIndex] =
                 _internalPoseSet._absolutePoses[parentIndex] * _internalPoseSet._relativePoses[jointIndex];
         }
     }
-}
-
-static glm::quat quatLerp(const glm::quat& q1, const glm::quat& q2, float alpha) {
-    float dot = glm::dot(q1, q2);
-    glm::quat temp;
-    if (dot < 0.0f) {
-        temp = -q2;
-    } else {
-        temp = q2;
-    }
-    return glm::normalize(glm::lerp(q1, temp, alpha));
 }
 
 bool Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, int oppositeArmIndex, glm::vec3& poleVector) const {
@@ -1561,7 +1546,7 @@ bool Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, 
 
     glm::vec3 backVector = oppositeArmPose.trans() - armPose.trans();
     glm::vec3 backCenter = armPose.trans() + 0.5f * backVector;
-    
+
     const float OVER_BACK_HEAD_PERCENTAGE = 0.2f;
 
     glm::vec3 headCenter = backCenter + glm::vec3(0, OVER_BACK_HEAD_PERCENTAGE * backVector.length(), 0);
@@ -1573,7 +1558,7 @@ bool Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, 
     glm::vec3 headForward = headCenter + horizontalModule * frontVector;
 
     glm::vec3 armToHead = headForward - armPose.trans();
-    
+
     float armToHandDistance = glm::length(armToHand);
     float armToElbowDistance = glm::length(armToElbow);
     float elbowToHandDistance = glm::length(elbowToHand);
@@ -1584,7 +1569,7 @@ bool Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, 
 
     // How much the hand is reaching for the opposite side
     float oppositeProjection = glm::dot(armToHandDir, glm::normalize(backVector));
-    
+
     // Don't use pole vector when the hands are behind
     if (glm::dot(frontVector, armToHand) < 0 && oppositeProjection < 0.5f * armTotalDistance) {
         return false;
@@ -1603,7 +1588,7 @@ bool Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, 
     const float FORWARD_CORRECTOR_WEIGHT = 3.0f;
 
     float elbowForwardTrigger = FORWARD_TRIGGER_PERCENTAGE * armToHandDistance;
-    
+
     if (oppositeProjection > -elbowForwardTrigger) {
         float forwardAmount = FORWARD_CORRECTOR_WEIGHT * (elbowForwardTrigger + oppositeProjection);
         correctionVector = forwardAmount * frontVector;

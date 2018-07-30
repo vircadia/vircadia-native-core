@@ -58,7 +58,6 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
 
     // Look up poleVector from animVars, make sure to convert into geom space.
     glm::vec3 poleVector = animVars.lookupRigToGeometryVector(_poleVectorVar, Vectors::UNIT_Z);
-    float poleVectorLength = glm::length(poleVector);
 
     // determine if we should interpolate
     bool enabled = animVars.lookup(_enabledVar, _enabled);
