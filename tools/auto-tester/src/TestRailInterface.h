@@ -11,6 +11,7 @@
 #ifndef hifi_test_testrail_interface_h
 #define hifi_test_testrail_interface_h
 
+#include "ui/BusyWindow.h"
 #include "ui/TestRailSelectorWindow.h"
 #include <QDirIterator>
 #include <QtXml/QDomDocument>
@@ -67,6 +68,7 @@ public:
 private:
     QDomDocument _document;
 
+    BusyWindow _busyWindow;
     TestRailSelectorWindow _testRailSelectorWindow;
 
     QString _url;

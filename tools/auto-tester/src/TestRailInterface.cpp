@@ -20,6 +20,7 @@
 #include <QTextStream>
 
 TestRailInterface::TestRailInterface() {
+    _busyWindow.setModal(true);
     _testRailSelectorWindow.setModal(true);
 
     ////_testRailSelectorWindow.setURL("https://highfidelity.testrail.net");
@@ -287,12 +288,16 @@ void TestRailInterface::createAddTestCasesPythonScript(const QString& testDirect
         QProcess* process = new QProcess();
         connect(
             process, &QProcess::started,
-            this, []() {QMessageBox::information(0, "Python process started", "TestRail is being updated"); }
+            this, [=]() {
+                _busyWindow.exec(); 
+            }
         );
 
         connect(
             process, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), 
-            this, [](int exitCode, QProcess::ExitStatus exitStatus) {QMessageBox::information(0, "Python process finished", "TestRail tests have been added"); }
+            this, [=](int exitCode, QProcess::ExitStatus exitStatus) {
+                _busyWindow.hide();
+            }
         );
 
         process->start(command, parameters);
