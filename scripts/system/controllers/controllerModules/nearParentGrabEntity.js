@@ -23,15 +23,15 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
     // XXX this.ignoreIK = (grabbableData.ignoreIK !== undefined) ? grabbableData.ignoreIK : true;
     // XXX this.kinematicGrab = (grabbableData.kinematic !== undefined) ? grabbableData.kinematic : NEAR_GRABBING_KINEMATIC;
 
-    var GRAB_POINT_SPHERE_OFFSET = { x: 0.01, y: -0.13, z: 0.039 };
+    var GRAB_POINT_SPHERE_OFFSET_IN_JOINT_SPACE = { x: 0.01, y: -0.13, z: 0.039 };
 
     function getGrabPointSphereOffset(handController) {
-        var offset = GRAB_POINT_SPHERE_OFFSET;
+        var offset = GRAB_POINT_SPHERE_OFFSET_IN_JOINT_SPACE;
         if (handController === Controller.Standard.LeftHand) {
             offset = {
-                x: -GRAB_POINT_SPHERE_OFFSET.x,
-                y: GRAB_POINT_SPHERE_OFFSET.y,
-                z: GRAB_POINT_SPHERE_OFFSET.z
+                x: -GRAB_POINT_SPHERE_OFFSET_IN_JOINT_SPACE.x,
+                y: GRAB_POINT_SPHERE_OFFSET_IN_JOINT_SPACE.y,
+                z: GRAB_POINT_SPHERE_OFFSET_IN_JOINT_SPACE.z
             };
         }
         return Vec3.multiply(MyAvatar.sensorToWorldScale, offset);
