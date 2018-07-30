@@ -145,6 +145,22 @@ Rectangle {
         }
         pal.sendToScript({method: 'refreshNearby', params: params});
     }
+    function refreshConnections() {
+        var flickable = connectionsUserModel.flickable;
+        connectionsRefreshScrollTimer.oldY = flickable.contentY;
+        flickable.contentY = 0;
+        connectionsUserModel.getFirstPage('delayRefresh', function () {
+            connectionsRefreshScrollTimer.start();
+        });
+    }
+    Timer {
+        id: connectionsRefreshScrollTimer;
+        interval: 500;
+        property real oldY: 0;
+        onTriggered: {
+            connectionsUserModel.flickable.contentY = oldY;
+        }
+    }
 
     Rectangle {
         id: palTabContainer;
@@ -276,7 +292,10 @@ Rectangle {
                             id: reloadConnections;
                             width: reloadConnections.height;
                             glyph: hifi.glyphs.reload;
-                            onClicked: connectionsUserModel.getFirstPage('delayRefresh');
+                            onClicked: {
+                                pal.sendToScript({method: 'refreshConnections'});
+                                refreshConnections();
+                            }
                         }
                     }
                     // "CONNECTIONS" text
@@ -1208,6 +1227,9 @@ Rectangle {
             break;
         case 'clearLocalQMLData':
             ignored = {};
+            break;
+        case 'refreshConnections':
+            refreshConnections();
             break;
         case 'avatarDisconnected':
             var sessionID = message.params[0];

@@ -268,7 +268,6 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         break;
     case 'refreshConnections':
         print('Refreshing Connections...');
-        getConnectionData(false);
         UserActivityLogger.palAction("refresh_connections", "");
         break;
     case 'removeConnection':
@@ -281,7 +280,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
                 print("Error: unable to remove connection", connectionUserName, error || response.status);
                 return;
             }
-            getConnectionData(false);
+            sendToQml({ method: 'refreshConnections' });
         });
         break;
 
@@ -361,8 +360,9 @@ function getProfilePicture(username, callback) { // callback(url) if successfull
         callback(matched[1]);
     });
 }
+var SAFETY_LIMIT = 400;
 function getAvailableConnections(domain, callback) { // callback([{usename, location}...]) if successfull. (Logs otherwise)
-    var url = METAVERSE_BASE + '/api/v1/users?per_page=400&';
+    var url = METAVERSE_BASE + '/api/v1/users?per_page=' + SAFETY_LIMIT + '&';
     if (domain) {
         url += 'status=' + domain.slice(1, -1); // without curly braces
     } else {
@@ -373,8 +373,10 @@ function getAvailableConnections(domain, callback) { // callback([{usename, loca
     });
 }
 function getInfoAboutUser(specificUsername, callback) {
-    var url = METAVERSE_BASE + '/api/v1/users?filter=connections';
+    var url = METAVERSE_BASE + '/api/v1/users?filter=connections&per_page=' + SAFETY_LIMIT + '&search=' + encodeURIComponent(specificUsername);
     requestJSON(url, function (connectionsData) {
+        // You could have (up to SAFETY_LIMIT connections whose usernames contain the specificUsername.
+        // Search returns all such matches.
         for (user in connectionsData.users) {
             if (connectionsData.users[user].username === specificUsername) {
                 callback(connectionsData.users[user]);
@@ -406,16 +408,14 @@ function getConnectionData(specificUsername, domain) { // Update all the usernam
                 print('Error: Unable to find information about ' + specificUsername + ' in connectionsData!');
             }
         });
-    } else {
+    } else if (domain) {
         getAvailableConnections(domain, function (users) {
-            if (domain) {
-                users.forEach(function (user) {
-                    updateUser(frob(user));
-                });
-            } else {
-                sendToQml({ method: 'connections', params: users.map(frob) });
-            }
+            users.forEach(function (user) {
+                updateUser(frob(user));
+            });
         });
+    } else {
+        print("Error: unrecognized getConnectionData()");
     }
 }
 
