@@ -118,7 +118,6 @@ protected:
 
     bool isReadyToComputeShape() const override;
     const btCollisionShape* computeNewShape() override;
-    void setShape(const btCollisionShape* shape) override;
     void setMotionType(PhysicsMotionType motionType) override;
 
     // EntityMotionState keeps a SharedPointer to its EntityItem which is only set in the CTOR

@@ -49,13 +49,14 @@ private:
         float seed { 0.0f };
         uint64_t expiration { 0 };
         float lifetime { 0.0f };
-        glm::vec3 position;
+        glm::vec3 basePosition;
+        glm::vec3 relativePosition;
         glm::vec3 velocity;
         glm::vec3 acceleration;
 
         void integrate(float deltaTime) {
             glm::vec3 atSquared = (0.5f * deltaTime * deltaTime) * acceleration;
-            position += velocity * deltaTime + atSquared;
+            relativePosition += velocity * deltaTime + atSquared;
             velocity += acceleration * deltaTime;
             lifetime += deltaTime;
         }
@@ -74,15 +75,18 @@ private:
     struct ParticleUniforms {
         InterpolationData<float> radius;
         InterpolationData<glm::vec4> color; // rgba
+        InterpolationData<float> spin;
         float lifespan;
-        glm::vec3 spare;
+        int rotateWithEntity;
+        glm::vec2 spare;
     };
-
 
     static CpuParticle createParticle(uint64_t now, const Transform& baseTransform, const particle::Properties& particleProperties);
     void stepSimulation();
 
     particle::Properties _particleProperties;
+    bool _prevEmitterShouldTrail;
+    bool _prevEmitterShouldTrailInitialized { false };
     CpuParticles _cpuParticles;
     bool _emitting { false };
     uint64_t _timeUntilNextEmit { 0 };
