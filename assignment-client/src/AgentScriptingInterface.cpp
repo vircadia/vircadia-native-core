@@ -12,5 +12,6 @@
 #include "AgentScriptingInterface.h"
 
 AgentScriptingInterface::AgentScriptingInterface(Agent* agent) :
+    QObject(agent),
     _agent(agent)
 { }

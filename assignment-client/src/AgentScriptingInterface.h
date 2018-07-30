@@ -18,17 +18,17 @@
 #include "Agent.h"
 
 /**jsdoc
-* @namespace Agent
-*
-* @hifi-assignment-client
-*
-* @property {boolean} isAvatar
-* @property {boolean} isPlayingAvatarSound <em>Read-only.</em>
-* @property {boolean} isListeningToAudioStream
-* @property {boolean} isNoiseGateEnabled
-* @property {number} lastReceivedAudioLoudness <em>Read-only.</em>
-* @property {Uuid} sessionUUID <em>Read-only.</em>
-*/
+ * @namespace Agent
+ *
+ * @hifi-assignment-client
+ *
+ * @property {boolean} isAvatar
+ * @property {boolean} isPlayingAvatarSound <em>Read-only.</em>
+ * @property {boolean} isListeningToAudioStream
+ * @property {boolean} isNoiseGateEnabled
+ * @property {number} lastReceivedAudioLoudness <em>Read-only.</em>
+ * @property {Uuid} sessionUUID <em>Read-only.</em>
+ */
 class AgentScriptingInterface : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool isAvatar READ isAvatar WRITE setIsAvatar)
