@@ -844,7 +844,7 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
     AllContactsCallback(MotionStateType desiredObjectType, const ShapeInfo& shapeInfo, const Transform& transform) :
         desiredObjectType(desiredObjectType),
         collisionObject(),
-        intersectingObjects(),
+        contacts(),
         btCollisionWorld::ContactResultCallback() {
         const btCollisionShape* collisionShape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
 
@@ -863,7 +863,7 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
 
     MotionStateType desiredObjectType;
     btCollisionObject collisionObject;
-    std::vector<EntityIntersection> intersectingObjects;
+    std::vector<ContactTestResult> contacts;
 
     bool needsCollision(btBroadphaseProxy* proxy) const override {
         return true;
@@ -896,7 +896,7 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
         }
 
         // This is the correct object type. Add it to the list.
-        intersectingObjects.emplace_back(candidate->getObjectID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint));
+        contacts.emplace_back(candidate->getObjectID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint));
 
         return 0;
     }
@@ -907,10 +907,10 @@ protected:
     }
 };
 
-std::vector<EntityIntersection> PhysicsEngine::getCollidingInRegion(MotionStateType desiredObjectType, const ShapeInfo& regionShapeInfo, const Transform& regionTransform) const {
+const std::vector<ContactTestResult> PhysicsEngine::getCollidingInRegion(MotionStateType desiredObjectType, const ShapeInfo& regionShapeInfo, const Transform& regionTransform) const {
     auto contactCallback = AllContactsCallback(desiredObjectType, regionShapeInfo, regionTransform);
     _dynamicsWorld->contactTest(&contactCallback.collisionObject, contactCallback);
 
-    return contactCallback.intersectingObjects;
+    return contactCallback.contacts;
 }
 

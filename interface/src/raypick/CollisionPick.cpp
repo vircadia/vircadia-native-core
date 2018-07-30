@@ -271,8 +271,8 @@ PickResultPointer CollisionPick::getEntityIntersection(const CollisionRegion& pi
         return std::make_shared<CollisionPickResult>();
     }
     
-    const auto& intersectingEntities = _physicsEngine->getCollidingInRegion(MOTIONSTATE_TYPE_ENTITY, pick.shapeInfo, pick.transform);
-    return std::make_shared<CollisionPickResult>(pick, intersectingEntities, std::vector<EntityIntersection>());
+    const auto& entityIntersections = _physicsEngine->getCollidingInRegion(MOTIONSTATE_TYPE_ENTITY, pick.shapeInfo, pick.transform);
+    return std::make_shared<CollisionPickResult>(pick, entityIntersections, std::vector<ContactTestResult>());
 }
 
 PickResultPointer CollisionPick::getOverlayIntersection(const CollisionRegion& pick) {
@@ -285,8 +285,8 @@ PickResultPointer CollisionPick::getAvatarIntersection(const CollisionRegion& pi
         return std::make_shared<CollisionPickResult>();
     }
 
-    const auto& intersectingAvatars = _physicsEngine->getCollidingInRegion(MOTIONSTATE_TYPE_AVATAR, pick.shapeInfo, pick.transform);
-    return std::make_shared<CollisionPickResult>(pick, std::vector<EntityIntersection>(), intersectingAvatars);
+    const auto& avatarIntersections = _physicsEngine->getCollidingInRegion(MOTIONSTATE_TYPE_AVATAR, pick.shapeInfo, pick.transform);
+    return std::make_shared<CollisionPickResult>(pick, std::vector<ContactTestResult>(), avatarIntersections);
 }
 
 PickResultPointer CollisionPick::getHUDIntersection(const CollisionRegion& pick) {

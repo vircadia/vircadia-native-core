@@ -43,22 +43,22 @@ public:
     void* _b; // ObjectMotionState pointer
 };
 
-struct EntityIntersection {
-    EntityIntersection() { }
+struct ContactTestResult {
+    ContactTestResult() = delete;
 
-    EntityIntersection(const EntityIntersection& entityIntersection) :
-        id(entityIntersection.id),
-        testCollisionPoint(entityIntersection.testCollisionPoint),
-        foundCollisionPoint(entityIntersection.foundCollisionPoint) {
+    ContactTestResult(const ContactTestResult& contactTestResult) :
+        foundID(contactTestResult.foundID),
+        testCollisionPoint(contactTestResult.testCollisionPoint),
+        foundCollisionPoint(contactTestResult.foundCollisionPoint) {
     }
 
-    EntityIntersection(QUuid id, glm::vec3 testCollisionPoint, glm::vec3 otherCollisionPoint) :
-        id(id),
+    ContactTestResult(QUuid foundID, glm::vec3 testCollisionPoint, glm::vec3 otherCollisionPoint) :
+        foundID(foundID),
         testCollisionPoint(testCollisionPoint),
         foundCollisionPoint(otherCollisionPoint) {
     }
 
-    QUuid id;
+    QUuid foundID;
     // The deepest point of an intersection within the volume of the test shape, in world space.
     glm::vec3 testCollisionPoint;
     // The deepest point of an intersection within the volume of the found object, in world space.
@@ -128,7 +128,7 @@ public:
     void setShowBulletConstraintLimits(bool value);
 
     // Function for getting colliding ObjectMotionStates in the world of specified type
-    std::vector<EntityIntersection> getCollidingInRegion(MotionStateType desiredObjectType, const ShapeInfo& regionShapeInfo, const Transform& regionTransform) const;
+    const std::vector<ContactTestResult> getCollidingInRegion(MotionStateType desiredObjectType, const ShapeInfo& regionShapeInfo, const Transform& regionTransform) const;
 
 private:
     QList<EntityDynamicPointer> removeDynamicsForBody(btRigidBody* body);

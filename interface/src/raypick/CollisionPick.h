@@ -18,22 +18,22 @@ public:
     CollisionPickResult() {}
     CollisionPickResult(const QVariantMap& pickVariant) : PickResult(pickVariant) {}
 
-    CollisionPickResult(const CollisionRegion& searchRegion, const std::vector<EntityIntersection>& intersectingEntities, const std::vector<EntityIntersection>& intersectingAvatars) :
+    CollisionPickResult(const CollisionRegion& searchRegion, const std::vector<ContactTestResult>& entityIntersections, const std::vector<ContactTestResult>& avatarIntersections) :
         PickResult(searchRegion.toVariantMap()),
-        intersects(intersectingEntities.size() || intersectingAvatars.size()),
-        intersectingEntities(intersectingEntities),
-        intersectingAvatars(intersectingAvatars) {
+        intersects(entityIntersections.size() || avatarIntersections.size()),
+        entityIntersections(entityIntersections),
+        avatarIntersections(avatarIntersections) {
     }
 
     CollisionPickResult(const CollisionPickResult& collisionPickResult) : PickResult(collisionPickResult.pickVariant) {
-        intersectingAvatars = collisionPickResult.intersectingAvatars;
-        intersectingEntities = collisionPickResult.intersectingEntities;
-        intersects = intersectingAvatars.size() || intersectingEntities.size();
+        avatarIntersections = collisionPickResult.avatarIntersections;
+        entityIntersections = collisionPickResult.entityIntersections;
+        intersects = avatarIntersections.size() || entityIntersections.size();
     }
 
     bool intersects { false };
-    std::vector<EntityIntersection> intersectingEntities;
-    std::vector<EntityIntersection> intersectingAvatars;
+    std::vector<ContactTestResult> entityIntersections;
+    std::vector<ContactTestResult> avatarIntersections;
 
     virtual QVariantMap toVariantMap() const override {
         QVariantMap variantMap;
@@ -41,21 +41,21 @@ public:
         variantMap["intersects"] = intersects;
         
         QVariantList qEntityIntersections;
-        for (auto intersectingEntity : intersectingEntities) {
+        for (auto entityIntersection : entityIntersections) {
             QVariantMap qEntityIntersection;
-            qEntityIntersection["objectID"] = intersectingEntity.id;
-            qEntityIntersection["pickCollisionPoint"] = vec3toVariant(intersectingEntity.testCollisionPoint);
-            qEntityIntersection["entityCollisionPoint"] = vec3toVariant(intersectingEntity.foundCollisionPoint);
+            qEntityIntersection["objectID"] = entityIntersection.foundID;
+            qEntityIntersection["pickCollisionPoint"] = vec3toVariant(entityIntersection.testCollisionPoint);
+            qEntityIntersection["entityCollisionPoint"] = vec3toVariant(entityIntersection.foundCollisionPoint);
             qEntityIntersections.append(qEntityIntersection);
         }
         variantMap["entityIntersections"] = qEntityIntersections;
 
         QVariantList qAvatarIntersections;
-        for (auto intersectingAvatar : intersectingAvatars) {
+        for (auto avatarIntersection : avatarIntersections) {
             QVariantMap qAvatarIntersection;
-            qAvatarIntersection["objectID"] = intersectingAvatar.id;
-            qAvatarIntersection["pickCollisionPoint"] = vec3toVariant(intersectingAvatar.testCollisionPoint);
-            qAvatarIntersection["entityCollisionPoint"] = vec3toVariant(intersectingAvatar.foundCollisionPoint);
+            qAvatarIntersection["objectID"] = avatarIntersection.foundID;
+            qAvatarIntersection["pickCollisionPoint"] = vec3toVariant(avatarIntersection.testCollisionPoint);
+            qAvatarIntersection["entityCollisionPoint"] = vec3toVariant(avatarIntersection.foundCollisionPoint);
             qAvatarIntersections.append(qAvatarIntersection);
         }
         variantMap["avatarIntersections"] = qAvatarIntersections;
@@ -71,14 +71,14 @@ public:
     PickResultPointer compareAndProcessNewResult(const PickResultPointer& newRes) override {
         const std::shared_ptr<CollisionPickResult> newCollisionResult = std::static_pointer_cast<CollisionPickResult>(newRes);
 
-        for (EntityIntersection& intersectingEntity : newCollisionResult->intersectingEntities) {
-            intersectingEntities.push_back(intersectingEntity);
+        for (ContactTestResult& entityIntersection : newCollisionResult->entityIntersections) {
+            entityIntersections.push_back(entityIntersection);
         }
-        for (EntityIntersection& intersectingAvatar : newCollisionResult->intersectingAvatars) {
-            intersectingAvatars.push_back(intersectingAvatar);
+        for (ContactTestResult& avatarIntersection : newCollisionResult->avatarIntersections) {
+            avatarIntersections.push_back(avatarIntersection);
         }
 
-        intersects = intersectingEntities.size() || intersectingAvatars.size();
+        intersects = entityIntersections.size() || avatarIntersections.size();
 
         return std::make_shared<CollisionPickResult>(*this);
     }
