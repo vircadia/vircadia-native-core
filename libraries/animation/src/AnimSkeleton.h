@@ -61,6 +61,8 @@ public:
     void dump(bool verbose) const;
     void dump(const AnimPoseVec& poses) const;
 
+    std::vector<int> lookUpJointIndices(const std::vector<QString>& jointNames) const;
+
 protected:
     void buildSkeletonFromJoints(const std::vector<FBXJoint>& joints);
 
