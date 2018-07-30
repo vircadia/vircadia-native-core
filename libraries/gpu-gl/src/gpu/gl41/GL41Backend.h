@@ -173,7 +173,6 @@ protected:
     std::string getBackendShaderHeader() const override;
 
     void postLinkProgram(ShaderObject& programObject, const Shader& program) const override;
-    GLint getRealUniformLocation(GLint location) const override;
 };
 
 } }

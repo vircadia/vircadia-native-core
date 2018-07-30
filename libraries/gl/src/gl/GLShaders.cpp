@@ -110,6 +110,20 @@ Uniforms Uniform::load(GLuint glprogram, const std::vector<const char*>& cnames)
     return load(glprogram, indices);
 }
 
+
+template <typename C, typename F>
+std::vector<const char*> toCNames(const C& container, F lambda) {
+    std::vector<const char*> result;
+    result.reserve(container.size());
+    std::transform(container.begin(), container.end(), std::back_inserter(result), lambda);
+    return result;
+}
+
+Uniforms Uniform::load(GLuint glprogram, const std::vector<std::string>& names) {
+    auto cnames = toCNames(names, [](const std::string& name) { return name.c_str(); });
+    return load(glprogram, cnames);
+}
+
 void UniformBlock::load(GLuint glprogram, int index) {
     this->index = index;
     GLint length = 0;

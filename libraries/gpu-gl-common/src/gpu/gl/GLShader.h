@@ -17,10 +17,8 @@ struct ShaderObject {
     GLuint glshader { 0 };
     GLuint glprogram { 0 };
 
-#if defined(Q_OS_MAC)
     using LocationMap = std::unordered_map <GLuint, GLuint>;
     LocationMap uniformRemap;
-#endif
 };
 
 class GLShader : public GPUObject {

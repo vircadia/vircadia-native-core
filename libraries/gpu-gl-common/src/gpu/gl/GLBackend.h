@@ -260,7 +260,7 @@ public:
     bool isTextureManagementSparseEnabled() const override { return (_textureManagement._sparseCapable && Texture::getEnableSparseTextures()); }
 
 protected:
-    virtual GLint getRealUniformLocation(GLint location) const { return location; }
+    virtual GLint getRealUniformLocation(GLint location) const;
 
     void recycle() const override;
 
@@ -494,7 +494,7 @@ protected:
     } _pipeline;
 
     // Backend dependant compilation of the shader
-    virtual void postLinkProgram(ShaderObject& programObject, const Shader& program) const {}
+    virtual void postLinkProgram(ShaderObject& programObject, const Shader& program) const;
     virtual GLShader* compileBackendProgram(const Shader& program, const Shader::CompilationHandler& handler);
     virtual GLShader* compileBackendShader(const Shader& shader, const Shader::CompilationHandler& handler);
     virtual std::string getBackendShaderHeader() const = 0;

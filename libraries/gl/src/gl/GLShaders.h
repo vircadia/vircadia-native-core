@@ -40,6 +40,7 @@ struct Uniform : public ShaderBinding {
     static Vector load(GLuint glprogram);
     static Vector load(GLuint glprogram, const std::vector<GLuint>& indices);
     static Vector load(GLuint glprogram, const std::vector<const char*>& names);
+    static Vector load(GLuint glprogram, const std::vector<std::string>& names);
 
     template <typename C>
     static Vector loadByName(GLuint glprogram, const C& names) {

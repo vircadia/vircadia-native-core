@@ -22,46 +22,8 @@ std::string GL41Backend::getBackendShaderHeader() const {
     return header;
 }
 
-template <typename C, typename F>
-std::vector<const char*> toCNames(const C& container, F lambda) {
-    std::vector<const char*> result;
-    result.reserve(container.size());
-    std::transform(container.begin(), container.end(), std::back_inserter(result), lambda);
-    return result;
-}
-
-#if defined(Q_OS_MAC)
-ShaderObject::LocationMap buildRemap(GLuint glprogram, const gpu::Shader::SlotSet& slotSet) {
-    static const GLint INVALID_INDEX = -1;
-    ShaderObject::LocationMap result;
-    const auto expectedNames = slotSet.getNames();
-    const auto count = expectedNames.size();
-    std::vector<GLint> indices;
-    indices.resize(count);
-    glGetUniformIndices(glprogram, (GLsizei)count,
-                        toCNames(expectedNames, [](const std::string& name) { return name.c_str(); }).data(),
-                        (GLuint*)indices.data());
-
-    const auto expectedLocationsByName = slotSet.getLocationsByName();
-    for (size_t i = 0; i < count; ++i) {
-        const auto& index = indices[i];
-        const auto& name = expectedNames[i];
-        const auto& expectedLocation = expectedLocationsByName.at(name);
-        if (INVALID_INDEX == index) {
-            result[expectedLocation] = gpu::Shader::INVALID_LOCATION;
-            continue;
-        }
-
-        ::gl::Uniform uniformInfo(glprogram, index);
-        if (expectedLocation != uniformInfo.binding) {
-            result[expectedLocation] = uniformInfo.binding;
-        }
-    }
-    return result;
-}
-#endif
-
 void GL41Backend::postLinkProgram(ShaderObject& programObject, const Shader& program) const {
+    Parent::postLinkProgram(programObject, program);
     const auto& glprogram = programObject.glprogram;
     // For the UBOs, use glUniformBlockBinding to fixup the locations based on the reflection
     {
@@ -106,14 +68,3 @@ void GL41Backend::postLinkProgram(ShaderObject& programObject, const Shader& pro
 }
 
 
-GLint GL41Backend::getRealUniformLocation(GLint location) const {
-    GLint result = location;
-#if defined(Q_OS_MAC)
-    auto& shader = _pipeline._programShader->_shaderObjects[(GLShader::Version)isStereo()];
-    auto itr = shader.uniformRemap.find(location);
-    if (itr != shader.uniformRemap.end()) {
-        result = itr->second;
-    }
-#endif
-    return result;
-}

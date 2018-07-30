@@ -244,6 +244,42 @@ GLShader* GLBackend::compileBackendProgram(const Shader& program, const Shader::
     return object;
 }
 
+static const GLint INVALID_UNIFORM_INDEX = -1;
+
+GLint GLBackend::getRealUniformLocation(GLint location) const {
+    auto& shader = _pipeline._programShader->_shaderObjects[(GLShader::Version)isStereo()];
+    auto itr = shader.uniformRemap.find(location);
+    if (itr == shader.uniformRemap.end()) {
+        // This shouldn't happen, because we use reflection to determine all the possible 
+        // uniforms.  If someone is requesting a uniform that isn't in the remapping structure
+        // that's a bug from the calling code, because it means that location wasn't in the 
+        // reflection
+        qWarning() << "Unexpected location requested for shader";
+        return INVALID_UNIFORM_INDEX;
+    }
+    return itr->second;
+}
+
+void GLBackend::postLinkProgram(ShaderObject& shaderObject, const Shader& program) const {
+    const auto& glprogram = shaderObject.glprogram;
+    const auto& expectedUniforms = program.getUniforms();
+    const auto expectedLocationsByName = expectedUniforms.getLocationsByName();
+    const auto uniforms = ::gl::Uniform::load(glprogram, expectedUniforms.getNames());
+    auto& uniformRemap = shaderObject.uniformRemap;
+
+    // Pre-initialize all the uniforms with an invalid location
+    for (const auto& entry : expectedLocationsByName) {
+        uniformRemap[entry.second] = INVALID_UNIFORM_INDEX;
+    }
+
+    // Now load up all the actual found uniform location
+    for (const auto& uniform : uniforms) {
+        const auto& name = uniform.name;
+        const auto& expectedLocation = expectedLocationsByName.at(name);
+        const auto& location = uniform.binding;
+        uniformRemap[expectedLocation] = location;
+    }
+}
 
 GLBackend::ElementResource GLBackend::getFormatFromGLUniform(GLenum gltype) {
     switch (gltype) {
