@@ -48,7 +48,7 @@ void OtherAvatar::createOrb() {
         _otherAvatarOrbMeshPlaceholder->setPulseMin(0.5);
         _otherAvatarOrbMeshPlaceholder->setPulseMax(1.0);
         _otherAvatarOrbMeshPlaceholder->setColorPulse(1.0);
-        _otherAvatarOrbMeshPlaceholder->setIgnoreRayIntersection(true);
+        _otherAvatarOrbMeshPlaceholder->setIgnorePickIntersection(true);
         _otherAvatarOrbMeshPlaceholder->setDrawInFront(false);
         _otherAvatarOrbMeshPlaceholderID = qApp->getOverlays().addOverlay(_otherAvatarOrbMeshPlaceholder);
         // Position focus

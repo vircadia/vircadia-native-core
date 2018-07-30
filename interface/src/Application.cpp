@@ -5291,7 +5291,7 @@ void Application::setKeyboardFocusHighlight(const glm::vec3& position, const glm
         _keyboardFocusHighlight->setPulseMin(0.5);
         _keyboardFocusHighlight->setPulseMax(1.0);
         _keyboardFocusHighlight->setColorPulse(1.0);
-        _keyboardFocusHighlight->setIgnoreRayIntersection(true);
+        _keyboardFocusHighlight->setIgnorePickIntersection(true);
         _keyboardFocusHighlight->setDrawInFront(false);
         _keyboardFocusHighlightID = getOverlays().addOverlay(_keyboardFocusHighlight);
     }
