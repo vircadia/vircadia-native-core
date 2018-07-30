@@ -1568,6 +1568,7 @@ void Avatar::computeShapeInfo(ShapeInfo& shapeInfo) {
 }
 
 void Avatar::getCapsule(glm::vec3& start, glm::vec3& end, float& radius) {
+    // FIXME: this doesn't take into account Avatar rotation
     ShapeInfo shapeInfo;
     computeShapeInfo(shapeInfo);
     glm::vec3 halfExtents = shapeInfo.getHalfExtents(); // x = radius, y = halfHeight

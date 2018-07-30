@@ -100,6 +100,7 @@ void PickManager::update() {
     // and the rayPicks updae will ALWAYS update at least one ray even when there is no budget
     _stylusPickCacheOptimizer.update(cachedPicks[PickQuery::Stylus], _nextPickToUpdate[PickQuery::Stylus], expiry, false);
     _rayPickCacheOptimizer.update(cachedPicks[PickQuery::Ray], _nextPickToUpdate[PickQuery::Ray], expiry, shouldPickHUD);
+    _parabolaPickCacheOptimizer.update(cachedPicks[PickQuery::Parabola], _nextPickToUpdate[PickQuery::Parabola], expiry, shouldPickHUD);
 }
 
 bool PickManager::isLeftHand(unsigned int uid) {

@@ -159,11 +159,15 @@ public:
 
     virtual void debugDump() const;
 
-    virtual bool supportsDetailedRayIntersection() const { return false; }
+    virtual bool supportsDetailedIntersection() const { return false; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal,
                          QVariantMap& extraInfo, bool precisionPicking) const { return true; }
+    virtual bool findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
+                        const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
+                        BoxFace& face, glm::vec3& surfaceNormal,
+                        QVariantMap& extraInfo, bool precisionPicking) const { return true; }
 
     // attributes applicable to all entity types
     EntityTypes::EntityType getType() const { return _type; }

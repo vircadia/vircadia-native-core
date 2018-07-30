@@ -278,7 +278,7 @@ EntityItemProperties RenderableModelEntityItem::getProperties(EntityPropertyFlag
     return properties;
 }
 
-bool RenderableModelEntityItem::supportsDetailedRayIntersection() const {
+bool RenderableModelEntityItem::supportsDetailedIntersection() const {
     return true;
 }
 
@@ -292,6 +292,18 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
 
     return model->findRayIntersectionAgainstSubMeshes(origin, direction, distance,
                face, surfaceNormal, extraInfo, precisionPicking, false);
+}
+
+bool RenderableModelEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
+                        const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance, BoxFace& face,
+                        glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking) const {
+    auto model = getModel();
+    if (!model || !isModelLoaded()) {
+        return false;
+    }
+
+    return model->findParabolaIntersectionAgainstSubMeshes(origin, velocity, acceleration, parabolicDistance,
+        face, surfaceNormal, extraInfo, precisionPicking, false);
 }
 
 void RenderableModelEntityItem::getCollisionGeometryResource() {

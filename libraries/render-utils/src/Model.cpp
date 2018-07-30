@@ -353,31 +353,27 @@ void Model::initJointStates() {
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
                                                 BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
                                                 bool pickAgainstTriangles, bool allowBackface) {
-
     bool intersectedSomething = false;
 
-    // if we aren't active, we can't ray pick yet...
+    // if we aren't active, we can't pick yet...
     if (!isActive()) {
         return intersectedSomething;
     }
 
     // extents is the entity relative, scaled, centered extents of the entity
-    glm::vec3 position = _translation;
-    glm::mat4 rotation = glm::mat4_cast(_rotation);
-    glm::mat4 translation = glm::translate(position);
-    glm::mat4 modelToWorldMatrix = translation * rotation;
+    glm::mat4 modelToWorldMatrix = createMatFromQuatAndPos(_rotation, _translation);
     glm::mat4 worldToModelMatrix = glm::inverse(modelToWorldMatrix);
 
     Extents modelExtents = getMeshExtents(); // NOTE: unrotated
 
     glm::vec3 dimensions = modelExtents.maximum - modelExtents.minimum;
-    glm::vec3 corner = -(dimensions * _registrationPoint); // since we're going to do the ray picking in the model frame of reference
+    glm::vec3 corner = -(dimensions * _registrationPoint); // since we're going to do the picking in the model frame of reference
     AABox modelFrameBox(corner, dimensions);
 
     glm::vec3 modelFrameOrigin = glm::vec3(worldToModelMatrix * glm::vec4(origin, 1.0f));
     glm::vec3 modelFrameDirection = glm::vec3(worldToModelMatrix * glm::vec4(direction, 0.0f));
 
-    // we can use the AABox's ray intersection by mapping our origin and direction into the model frame
+    // we can use the AABox's intersection by mapping our origin and direction into the model frame
     // and testing intersection there.
     if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face, surfaceNormal)) {
         QMutexLocker locker(&_mutex);
@@ -395,7 +391,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         }
 
         glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
-        glm::mat4 meshToWorldMatrix = createMatFromQuatAndPos(_rotation, _translation) * meshToModelMatrix;
+        glm::mat4 meshToWorldMatrix = modelToWorldMatrix * meshToModelMatrix;
         glm::mat4 worldToMeshMatrix = glm::inverse(meshToWorldMatrix);
 
         glm::vec3 meshFrameOrigin = glm::vec3(worldToMeshMatrix * glm::vec4(origin, 1.0f));
@@ -405,11 +401,10 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         for (auto& meshTriangleSets : _modelSpaceMeshTriangleSets) {
             int partIndex = 0;
             for (auto &partTriangleSet : meshTriangleSets) {
-                float triangleSetDistance = 0.0f;
+                float triangleSetDistance;
                 BoxFace triangleSetFace;
                 Triangle triangleSetTriangle;
                 if (partTriangleSet.findRayIntersection(meshFrameOrigin, meshFrameDirection, triangleSetDistance, triangleSetFace, triangleSetTriangle, pickAgainstTriangles, allowBackface)) {
-
                     glm::vec3 meshIntersectionPoint = meshFrameOrigin + (meshFrameDirection * triangleSetDistance);
                     glm::vec3 worldIntersectionPoint = glm::vec3(meshToWorldMatrix * glm::vec4(meshIntersectionPoint, 1.0f));
                     float worldDistance = glm::distance(origin, worldIntersectionPoint);
@@ -435,6 +430,111 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
         if (intersectedSomething) {
             distance = bestDistance;
+            surfaceNormal = bestWorldTriangle.getNormal();
+            if (pickAgainstTriangles) {
+                extraInfo["subMeshIndex"] = bestSubMeshIndex;
+                extraInfo["subMeshName"] = geometry.getModelNameOfMesh(bestSubMeshIndex);
+                extraInfo["subMeshTriangleWorld"] = QVariantMap{
+                    { "v0", vec3toVariant(bestWorldTriangle.v0) },
+                    { "v1", vec3toVariant(bestWorldTriangle.v1) },
+                    { "v2", vec3toVariant(bestWorldTriangle.v2) },
+                };
+                extraInfo["subMeshNormal"] = vec3toVariant(bestModelTriangle.getNormal());
+                extraInfo["subMeshTriangle"] = QVariantMap{
+                    { "v0", vec3toVariant(bestModelTriangle.v0) },
+                    { "v1", vec3toVariant(bestModelTriangle.v1) },
+                    { "v2", vec3toVariant(bestModelTriangle.v2) },
+                };
+            }
+        }
+    }
+
+    return intersectedSomething;
+}
+
+bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+                                                     float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
+                                                     bool pickAgainstTriangles, bool allowBackface) {
+    bool intersectedSomething = false;
+
+    // if we aren't active, we can't pick yet...
+    if (!isActive()) {
+        return intersectedSomething;
+    }
+
+    // extents is the entity relative, scaled, centered extents of the entity
+    glm::mat4 modelToWorldMatrix = createMatFromQuatAndPos(_rotation, _translation);
+    glm::mat4 worldToModelMatrix = glm::inverse(modelToWorldMatrix);
+
+    Extents modelExtents = getMeshExtents(); // NOTE: unrotated
+
+    glm::vec3 dimensions = modelExtents.maximum - modelExtents.minimum;
+    glm::vec3 corner = -(dimensions * _registrationPoint); // since we're going to do the picking in the model frame of reference
+    AABox modelFrameBox(corner, dimensions);
+
+    glm::vec3 modelFrameOrigin = glm::vec3(worldToModelMatrix * glm::vec4(origin, 1.0f));
+    glm::vec3 modelFrameVelocity = glm::vec3(worldToModelMatrix * glm::vec4(velocity, 0.0f));
+    glm::vec3 modelFrameAcceleration = glm::vec3(worldToModelMatrix * glm::vec4(acceleration, 0.0f));
+
+    // we can use the AABox's intersection by mapping our origin and direction into the model frame
+    // and testing intersection there.
+    if (modelFrameBox.findParabolaIntersection(modelFrameOrigin, modelFrameVelocity, modelFrameAcceleration, parabolicDistance, face, surfaceNormal)) {
+        QMutexLocker locker(&_mutex);
+
+        float bestDistance = FLT_MAX;
+        Triangle bestModelTriangle;
+        Triangle bestWorldTriangle;
+        int bestSubMeshIndex = 0;
+
+        int subMeshIndex = 0;
+        const FBXGeometry& geometry = getFBXGeometry();
+
+        if (!_triangleSetsValid) {
+            calculateTriangleSets(geometry);
+        }
+
+        glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
+        glm::mat4 meshToWorldMatrix = modelToWorldMatrix * meshToModelMatrix;
+        glm::mat4 worldToMeshMatrix = glm::inverse(meshToWorldMatrix);
+
+        glm::vec3 meshFrameOrigin = glm::vec3(worldToMeshMatrix * glm::vec4(origin, 1.0f));
+        glm::vec3 meshFrameVelocity = glm::vec3(worldToMeshMatrix * glm::vec4(velocity, 0.0f));
+        glm::vec3 meshFrameAcceleration = glm::vec3(worldToMeshMatrix * glm::vec4(acceleration, 0.0f));
+
+        int shapeID = 0;
+        for (auto& meshTriangleSets : _modelSpaceMeshTriangleSets) {
+            int partIndex = 0;
+            for (auto &partTriangleSet : meshTriangleSets) {
+                float triangleSetDistance;
+                BoxFace triangleSetFace;
+                Triangle triangleSetTriangle;
+                if (partTriangleSet.findParabolaIntersection(meshFrameOrigin, meshFrameVelocity, meshFrameAcceleration,
+                    triangleSetDistance, triangleSetFace, triangleSetTriangle, pickAgainstTriangles, allowBackface)) {
+                    if (triangleSetDistance < bestDistance) {
+                        bestDistance = triangleSetDistance;
+                        intersectedSomething = true;
+                        face = triangleSetFace;
+                        bestModelTriangle = triangleSetTriangle;
+                        bestWorldTriangle = triangleSetTriangle * meshToWorldMatrix;
+                        glm::vec3 meshIntersectionPoint = meshFrameOrigin + meshFrameVelocity * triangleSetDistance +
+                            0.5f * meshFrameAcceleration * triangleSetDistance * triangleSetDistance;
+                        glm::vec3 worldIntersectionPoint = origin + velocity * triangleSetDistance +
+                            0.5f * acceleration * triangleSetDistance * triangleSetDistance;
+                        extraInfo["worldIntersectionPoint"] = vec3toVariant(worldIntersectionPoint);
+                        extraInfo["meshIntersectionPoint"] = vec3toVariant(meshIntersectionPoint);
+                        extraInfo["partIndex"] = partIndex;
+                        extraInfo["shapeID"] = shapeID;
+                        bestSubMeshIndex = subMeshIndex;
+                    }
+                }
+                partIndex++;
+                shapeID++;
+            }
+            subMeshIndex++;
+        }
+
+        if (intersectedSomething) {
+            parabolicDistance = bestDistance;
             surfaceNormal = bestWorldTriangle.getNormal();
             if (pickAgainstTriangles) {
                 extraInfo["subMeshIndex"] = bestSubMeshIndex;
@@ -594,7 +694,7 @@ bool Model::replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointe
         }
         scene->enqueueTransaction(transaction);
     }
-    // update triangles for ray picking
+    // update triangles for picking
     {
         FBXGeometry geometry;
         for (const auto& newMesh : meshes) {

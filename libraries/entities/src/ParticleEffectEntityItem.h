@@ -340,7 +340,7 @@ public:
     bool getEmitterShouldTrail() const { return _particleProperties.emission.shouldTrail; }
     void setEmitterShouldTrail(bool emitterShouldTrail);
 
-    virtual bool supportsDetailedRayIntersection() const override { return false; }
+    virtual bool supportsDetailedIntersection() const override { return false; }
 
     particle::Properties getParticleProperties() const;
 
