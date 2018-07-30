@@ -69,6 +69,8 @@ AUTOSCRIBE_PROGRAM(NAME simple_textured_unlit_fade VERTEX simple_fade)
 AUTOSCRIBE_PROGRAM(NAME simple_transparent_textured_fade VERTEX simple_fade)
 AUTOSCRIBE_PROGRAM(NAME simple_transparent_textured_unlit_fade VERTEX simple_fade)
 
+AUTOSCRIBE_PROGRAM(NAME parabola)
+
 AUTOSCRIBE_PROGRAM(NAME sdf_text3D)
 AUTOSCRIBE_PROGRAM(NAME sdf_text3D_transparent VERTEX sdf_text3D)
 
