@@ -5477,7 +5477,8 @@ void Application::update(float deltaTime) {
         quint64 now = usecTimestampNow();
         // Check for flagged EntityData having arrived.
         auto entityTreeRenderer = getEntities();
-        if (entityTreeRenderer && _octreeProcessor.octreeSequenceIsComplete(entityTreeRenderer->getLastOctreeMessageSequence()) ) {
+        if (isServerlessMode() || 
+            (entityTreeRenderer && _octreeProcessor.octreeSequenceIsComplete(entityTreeRenderer->getLastOctreeMessageSequence()) )) {
             // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
             _lastPhysicsCheckTime = now;
             _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
