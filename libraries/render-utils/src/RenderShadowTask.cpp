@@ -78,36 +78,38 @@ static void computeNearFar(const glm::vec3 sceneBoundVertices[8], const Plane sh
 }
 
 static void adjustNearFar(const AABox& inShapeBounds, ViewFrustum& shadowFrustum) {
-    const Transform shadowView{ shadowFrustum.getView() };
-    const Transform shadowViewInverse{ shadowView.getInverseMatrix() };
+    if (!inShapeBounds.isNull()) {
+        const Transform shadowView{ shadowFrustum.getView() };
+        const Transform shadowViewInverse{ shadowView.getInverseMatrix() };
 
-    glm::vec3 sceneBoundVertices[8];
-    // Keep only the left, right, top and bottom shadow frustum planes as we wish to determine
-    // the near and far
-    Plane shadowClipPlanes[4];
-    int i;
+        glm::vec3 sceneBoundVertices[8];
+        // Keep only the left, right, top and bottom shadow frustum planes as we wish to determine
+        // the near and far
+        Plane shadowClipPlanes[4];
+        int i;
 
-    // The vertices of the scene bounding box are expressed in the shadow frustum's local space
-    for (i = 0; i < 8; i++) {
-        sceneBoundVertices[i] = shadowViewInverse.transform(inShapeBounds.getVertex(static_cast<BoxVertex>(i)));
+        // The vertices of the scene bounding box are expressed in the shadow frustum's local space
+        for (i = 0; i < 8; i++) {
+            sceneBoundVertices[i] = shadowViewInverse.transform(inShapeBounds.getVertex(static_cast<BoxVertex>(i)));
+        }
+        shadowFrustum.getUniformlyTransformedSidePlanes(shadowViewInverse, shadowClipPlanes);
+
+        float near = std::numeric_limits<float>::max();
+        float far = 0.0f;
+
+        computeNearFar(sceneBoundVertices, shadowClipPlanes, near, far);
+        // Limit the far range to the one used originally.
+        far = glm::min(far, shadowFrustum.getFarClip());
+
+        const auto depthEpsilon = 0.1f;
+        auto projMatrix = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, near - depthEpsilon, far + depthEpsilon);
+        auto shadowProjection = shadowFrustum.getProjection();
+
+        shadowProjection[2][2] = projMatrix[2][2];
+        shadowProjection[3][2] = projMatrix[3][2];
+        shadowFrustum.setProjection(shadowProjection);
+        shadowFrustum.calculate();
     }
-    shadowFrustum.getUniformlyTransformedSidePlanes(shadowViewInverse, shadowClipPlanes);
-
-    float near = std::numeric_limits<float>::max();
-    float far = 0.0f;
-
-    computeNearFar(sceneBoundVertices, shadowClipPlanes, near, far);
-    // Limit the far range to the one used originally.
-    far = glm::min(far, shadowFrustum.getFarClip());
-
-    const auto depthEpsilon = 0.1f;
-    auto projMatrix = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, near - depthEpsilon, far + depthEpsilon);
-    auto shadowProjection = shadowFrustum.getProjection();
-
-    shadowProjection[2][2] = projMatrix[2][2];
-    shadowProjection[3][2] = projMatrix[3][2];
-    shadowFrustum.setProjection(shadowProjection);
-    shadowFrustum.calculate();
 }
 
 void RenderShadowMap::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
@@ -151,60 +153,62 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
         batch.setFramebuffer(fbo);
         batch.clearDepthFramebuffer(1.0, false);
 
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->getViewFrustum().evalProjectionMatrix(projMat);
-        args->getViewFrustum().evalViewTransform(viewMat);
+        if (!inShapeBounds.isNull()) {
+            glm::mat4 projMat;
+            Transform viewMat;
+            args->getViewFrustum().evalProjectionMatrix(projMat);
+            args->getViewFrustum().evalViewTransform(viewMat);
 
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat, false);
+            batch.setProjectionTransform(projMat);
+            batch.setViewTransform(viewMat, false);
 
-        auto shadowPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder);
-        auto shadowSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
-        auto shadowSkinnedDQPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned().withDualQuatSkinned());
+            auto shadowPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder);
+            auto shadowSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
+            auto shadowSkinnedDQPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned().withDualQuatSkinned());
 
-        std::vector<ShapeKey> skinnedShapeKeys{};
-        std::vector<ShapeKey> skinnedDQShapeKeys{};
-        std::vector<ShapeKey> ownPipelineShapeKeys{};
+            std::vector<ShapeKey> skinnedShapeKeys{};
+            std::vector<ShapeKey> skinnedDQShapeKeys{};
+            std::vector<ShapeKey> ownPipelineShapeKeys{};
 
-        // Iterate through all inShapes and render the unskinned
-        args->_shapePipeline = shadowPipeline;
-        batch.setPipeline(shadowPipeline->pipeline);
-        for (auto items : inShapes) {
-            if (items.first.isSkinned()) {
-                if (items.first.isDualQuatSkinned()) {
-                    skinnedDQShapeKeys.push_back(items.first);
+            // Iterate through all inShapes and render the unskinned
+            args->_shapePipeline = shadowPipeline;
+            batch.setPipeline(shadowPipeline->pipeline);
+            for (auto items : inShapes) {
+                if (items.first.isSkinned()) {
+                    if (items.first.isDualQuatSkinned()) {
+                        skinnedDQShapeKeys.push_back(items.first);
+                    } else {
+                        skinnedShapeKeys.push_back(items.first);
+                    }
+                } else if (!items.first.hasOwnPipeline()) {
+                    renderItems(renderContext, items.second);
                 } else {
-                    skinnedShapeKeys.push_back(items.first);
+                    ownPipelineShapeKeys.push_back(items.first);
                 }
-            } else if (!items.first.hasOwnPipeline()) {
-                renderItems(renderContext, items.second);
-            } else {
-                ownPipelineShapeKeys.push_back(items.first);
             }
-        }
 
-        // Reiterate to render the skinned
-        args->_shapePipeline = shadowSkinnedPipeline;
-        batch.setPipeline(shadowSkinnedPipeline->pipeline);
-        for (const auto& key : skinnedShapeKeys) {
-            renderItems(renderContext, inShapes.at(key));
-        }
+            // Reiterate to render the skinned
+            args->_shapePipeline = shadowSkinnedPipeline;
+            batch.setPipeline(shadowSkinnedPipeline->pipeline);
+            for (const auto& key : skinnedShapeKeys) {
+                renderItems(renderContext, inShapes.at(key));
+            }
 
-        // Reiterate to render the DQ skinned
-        args->_shapePipeline = shadowSkinnedDQPipeline;
-        batch.setPipeline(shadowSkinnedDQPipeline->pipeline);
-        for (const auto& key : skinnedDQShapeKeys) {
-            renderItems(renderContext, inShapes.at(key));
-        }
+            // Reiterate to render the DQ skinned
+            args->_shapePipeline = shadowSkinnedDQPipeline;
+            batch.setPipeline(shadowSkinnedDQPipeline->pipeline);
+            for (const auto& key : skinnedDQShapeKeys) {
+                renderItems(renderContext, inShapes.at(key));
+            }
 
-        // Finally render the items with their own pipeline last to prevent them from breaking the
-        // render state. This is probably a temporary code as there is probably something better
-        // to do in the render call of objects that have their own pipeline.
-        args->_shapePipeline = nullptr;
-        for (const auto& key : ownPipelineShapeKeys) {
-            args->_itemShapeKey = key._flags.to_ulong();
-            renderItems(renderContext, inShapes.at(key));
+            // Finally render the items with their own pipeline last to prevent them from breaking the
+            // render state. This is probably a temporary code as there is probably something better
+            // to do in the render call of objects that have their own pipeline.
+            args->_shapePipeline = nullptr;
+            for (const auto& key : ownPipelineShapeKeys) {
+                args->_itemShapeKey = key._flags.to_ulong();
+                renderItems(renderContext, inShapes.at(key));
+            }
         }
 
         args->_batch = nullptr;
