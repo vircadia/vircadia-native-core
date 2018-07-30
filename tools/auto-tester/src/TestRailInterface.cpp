@@ -285,12 +285,17 @@ void TestRailInterface::createAddTestCasesPythonScript(const QString& testDirect
         QString command("C:\\Python37\\python");
         QStringList parameters = QStringList() << outputDirectory + "/addTestCases.py";
         QProcess* process = new QProcess();
-        if (process->startDetached(command, parameters)) {
-            QMessageBox::information(0, "Python process started", "TestRail is being updated");
-        } else {
-            QMessageBox::critical(0, "Failure", "Could not start process to update TestRail");
-            return;
-        }
+        connect(
+            process, &QProcess::started,
+            this, []() {QMessageBox::information(0, "Python process started", "TestRail is being updated"); }
+        );
+
+        connect(
+            process, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), 
+            this, [](int exitCode, QProcess::ExitStatus exitStatus) {QMessageBox::information(0, "Python process finished", "TestRail tests have been added"); }
+        );
+
+        process->start(command, parameters);
     }
 }
 

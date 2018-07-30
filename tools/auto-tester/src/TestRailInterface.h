@@ -16,7 +16,9 @@
 #include <QtXml/QDomDocument>
 #include <QString>
 
-class TestRailInterface {
+class TestRailInterface : public QObject{
+    Q_OBJECT
+
 public:
     TestRailInterface();
 

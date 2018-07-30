@@ -14,8 +14,7 @@
 
 #include "../common.h"
 
-class MismatchWindow : public QDialog, public Ui::MismatchWindow
-{
+class MismatchWindow : public QDialog, public Ui::MismatchWindow {
     Q_OBJECT
 
 public:
