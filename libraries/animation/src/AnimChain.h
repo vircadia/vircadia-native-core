@@ -43,7 +43,7 @@ public:
         // iterate through the skeleton parents, from the tip to the base, copying over relativePoses into the chain.
         for (int jointIndex = tipIndex; jointIndex != -1; jointIndex = skeleton->getParentIndex(jointIndex)) {
             if (_top >= N) {
-                assert(chainTop < N);
+                assert(_top < N);
                 // stack overflow
                 return false;
             }
