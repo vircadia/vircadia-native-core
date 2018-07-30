@@ -95,7 +95,7 @@ public:
     }
 
     CollisionRegion getMathematicalPick() const override;
-    PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const { return std::make_shared<CollisionPickResult>(pickVariant); }
+    PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const override { return std::make_shared<CollisionPickResult>(pickVariant); }
     PickResultPointer getEntityIntersection(const CollisionRegion& pick) override;
     PickResultPointer getOverlayIntersection(const CollisionRegion& pick) override;
     PickResultPointer getAvatarIntersection(const CollisionRegion& pick) override;

@@ -843,8 +843,9 @@ void PhysicsEngine::setShowBulletConstraintLimits(bool value) {
 struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
     AllContactsCallback(MotionStateType desiredObjectType, const ShapeInfo& shapeInfo, const Transform& transform) :
         desiredObjectType(desiredObjectType),
-        btCollisionWorld::ContactResultCallback(),
-        collisionObject() {
+        collisionObject(),
+        intersectingObjects(),
+        btCollisionWorld::ContactResultCallback() {
         const btCollisionShape* collisionShape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
 
         collisionObject.setCollisionShape(const_cast<btCollisionShape*>(collisionShape));
@@ -860,15 +861,11 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
         ObjectMotionState::getShapeManager()->releaseShape(collisionObject.getCollisionShape());
     }
 
-    AllContactsCallback(btCollisionObject& testCollisionObject) :
-        btCollisionWorld::ContactResultCallback(), collisionObject(testCollisionObject) {
-    }
-
     MotionStateType desiredObjectType;
     btCollisionObject collisionObject;
     std::vector<EntityIntersection> intersectingObjects;
 
-    virtual bool needsCollision(btBroadphaseProxy* proxy) const {
+    bool needsCollision(btBroadphaseProxy* proxy) const override {
         return true;
     }
 

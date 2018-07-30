@@ -135,7 +135,6 @@ void CollisionPick::computeShapeInfo(CollisionRegion& pick, ShapeInfo& shapeInfo
         const FBXGeometry& fbxGeometry = resource->getFBXGeometry();
         int numFbxMeshes = fbxGeometry.meshes.size();
         int totalNumVertices = 0;
-        glm::mat4 invRegistrationOffset = glm::translate(dimensions * (-ENTITY_ITEM_DEFAULT_REGISTRATION_POINT));
         for (int i = 0; i < numFbxMeshes; i++) {
             const FBXMesh& mesh = fbxGeometry.meshes.at(i);
             totalNumVertices += mesh.vertices.size();
@@ -191,7 +190,6 @@ void CollisionPick::computeShapeInfo(CollisionRegion& pick, ShapeInfo& shapeInfo
             points.reserve(sizeToReserve);
 
             // copy points
-            uint32_t meshIndexOffset = (uint32_t)points.size();
             const glm::vec3* vertexItr = vertices.cbegin();
             while (vertexItr != vertices.cend()) {
                 glm::vec3 point = *vertexItr;
