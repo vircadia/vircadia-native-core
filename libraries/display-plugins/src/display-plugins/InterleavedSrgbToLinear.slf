@@ -2,7 +2,7 @@ struct TextureData {
     ivec2 textureSize;
 };
 
-layout(std140, location=0) uniform textureDataBuffer {
+layout(std140, binding=0) uniform textureDataBuffer {
     TextureData textureData;
 };
 

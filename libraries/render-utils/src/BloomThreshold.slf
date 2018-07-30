@@ -13,7 +13,7 @@
 <@include render-utils/ShaderConstants.h@>
 
 layout(binding=RENDER_UTILS_TEXTURE_BLOOM_COLOR) uniform sampler2D colorMap;
-layout(std140, location=RENDER_UTILS_BUFFER_BLOOM_PARAMS) uniform parametersBuffer {
+layout(std140, binding=RENDER_UTILS_BUFFER_BLOOM_PARAMS) uniform parametersBuffer {
     Parameters parameters;
 };
 
