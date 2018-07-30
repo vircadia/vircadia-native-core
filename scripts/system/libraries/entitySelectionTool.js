@@ -761,13 +761,13 @@ SelectionDisplay = (function() {
     // We get mouseMoveEvents from the handControllers, via handControllerPointer.
     // But we dont' get mousePressEvents.
     that.triggerMapping = Controller.newMapping(Script.resolvePath('') + '-click');
+    that.triggerPressMapping = Controller.newMapping(Script.resolvePath('') + '-press');
     Script.scriptEnding.connect(that.triggerMapping.disable);
     that.triggeredHand = NO_TRIGGER_HAND;
     that.triggered = function() {
         return that.triggeredHand !== NO_TRIGGER_HAND;
     }
     function triggerPress(hand)  {
-        that.triggeredHand = hand;
         var pointingAtDesktopWindow = (hand === Controller.Standard.RightHand && 
                                        SelectionManager.pointingAtDesktopWindowRight) ||
                                       (hand === Controller.Standard.LeftHand && 
@@ -777,6 +777,7 @@ SelectionDisplay = (function() {
         if (pointingAtDesktopWindow || pointingAtTablet) {
             return;
         }
+        that.triggeredHand = hand;
         that.mousePressEvent({});
     }
     function triggerRelease(hand) {
@@ -791,23 +792,33 @@ SelectionDisplay = (function() {
             triggerPress(otherHand);
         }
     }
-    function makeTriggerHandler(hand) {
-        return function () {
-            // Don't allow both hands to trigger at the same time
-            if (that.triggered() && hand !== that.triggeredHand) {
-                return;
-            }
+    function handleTriggerPress(hand, triggerClicked) {
+        // Don't allow both hands to trigger at the same time
+        if (that.triggered() && hand !== that.triggeredHand) {
+            return;
+        }
+        if (!that.triggered() && triggerClicked) { 
+            triggerPress(hand);
+        } else if (that.triggered() && !triggerClicked) {
+            triggerRelease(hand);
+        }
+    }
+    function makePressHandler(hand) {
+        return function (value) {
             var triggerClicked = hand == Controller.Standard.RightHand ? SelectionManager.triggerClickedRight : 
                                                                          SelectionManager.triggerClickedLeft;
-            if (!that.triggered() && triggerClicked) { 
-                triggerPress(hand);
-            } else if (that.triggered() && !triggerClicked) {
-                triggerRelease(hand);
-            }
+            handleTriggerPress(hand, triggerClicked);
         };
     }
-    that.triggerMapping.from(Controller.Standard.RT).peek().to(makeTriggerHandler(Controller.Standard.RightHand));
-    that.triggerMapping.from(Controller.Standard.LT).peek().to(makeTriggerHandler(Controller.Standard.LeftHand));
+    function makeClickHandler(hand) {
+        return function (clicked) {
+            handleTriggerPress(hand, clicked);
+        };
+    }
+    that.triggerPressMapping.from(Controller.Standard.RT).peek().to(makePressHandler(Controller.Standard.RightHand));
+    that.triggerPressMapping.from(Controller.Standard.LT).peek().to(makePressHandler(Controller.Standard.LeftHand));
+    that.triggerMapping.from(Controller.Standard.RTClick).peek().to(makeClickHandler(Controller.Standard.RightHand));
+    that.triggerMapping.from(Controller.Standard.LTClick).peek().to(makeClickHandler(Controller.Standard.LeftHand));
 
     // FUNCTION DEF(s): Intersection Check Helpers
     function testRayIntersect(queryRay, overlayIncludes, overlayExcludes) {
