@@ -278,6 +278,14 @@ public:
             shapeInfo.getType() == SHAPE_TYPE_NONE);
     }
 
+    bool operator==(const CollisionRegion& other) const {
+        return glm::all(glm::equal(transform.getTranslation(), other.transform.getTranslation())) &&
+            glm::all(glm::equal(transform.getRotation(), other.transform.getRotation())) &&
+            glm::all(glm::equal(transform.getScale(), other.transform.getScale())) &&
+            shapeInfo.getType() == other.shapeInfo.getType() &&
+            modelURL == other.modelURL;
+    }
+
     bool shouldComputeShapeInfo() const {
         if (!(shapeInfo.getType() == SHAPE_TYPE_HULL ||
             (shapeInfo.getType() >= SHAPE_TYPE_COMPOUND &&
