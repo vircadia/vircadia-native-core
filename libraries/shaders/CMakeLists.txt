@@ -80,7 +80,7 @@ AUTOSCRIBE_PROGRAM(NAME ssao_debugOcclusion VERTEX gpu::vertex::DrawViewportQuad
 AUTOSCRIBE_PROGRAM(NAME stencil_drawMask VERTEX gpu::vertex::DrawUnitQuadTexcoord)
 
 AUTOSCRIBE_PROGRAM(NAME standardDrawTexture VERTEX standardTransformPNTC)
-AUTOSCRIBE_PROGRAM(NAME standardDrawTextureNoBlend VERTEX standardTransformPNTC FRAGMENT gpu::fragment::DrawTextureOpaque)
+AUTOSCRIBE_PROGRAM(NAME standardDrawTextureNoBlend VERTEX standardTransformPNTC)
 
 AUTOSCRIBE_PROGRAM(NAME subsurfaceScattering_makeProfile VERTEX gpu::vertex::DrawUnitQuadTexcoord)
 AUTOSCRIBE_PROGRAM(NAME subsurfaceScattering_makeLUT VERTEX gpu::vertex::DrawUnitQuadTexcoord)
