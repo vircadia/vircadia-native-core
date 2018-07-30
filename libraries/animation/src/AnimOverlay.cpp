@@ -42,7 +42,7 @@ void AnimOverlay::buildBoneSet(BoneSet boneSet) {
 }
 
 const AnimPoseVec& AnimOverlay::evaluate(AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
-    qCDebug(animation) << "in anim overlay node" << _alphaVar << ": " << _alpha;
+    qCDebug(animation) << "in anim overlay node" << _alphaVar << ": " << _alpha << " id " << _id;
     // lookup parameters from animVars, using current instance variables as defaults.
     // NOTE: switching bonesets can be an expensive operation, let's try to avoid it.
     auto prevBoneSet = _boneSet;

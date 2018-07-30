@@ -26,10 +26,10 @@ const AnimPoseVec& AnimStateMachine::evaluate(AnimVariantMap& animVars, const An
     //animVars.set("Animation1", _currentState->getID());
     
     //setMyNum(getMyNum() + 1.0f);
-    if (_currentState->getID().contains("userAnimNone")) {
+    if (_id.contains("userAnimStateMachine")) {
         _animStack.clear();
+        qCDebug(animation) << "clearing anim stack";
     }
-    _animStack[_currentState->getID()] = _alpha;
 
     QString desiredStateID = animVars.lookup(_currentStateVar, _currentState->getID());
     if (_currentState->getID() != desiredStateID) {
@@ -51,13 +51,25 @@ const AnimPoseVec& AnimStateMachine::evaluate(AnimVariantMap& animVars, const An
     // evaluate currentState transitions
     auto desiredState = evaluateTransitions(animVars);
     if (desiredState != _currentState) {
-        _previousStateID = _currentState->getID();
+        //parenthesis means snapshot of this state.
+        _previousStateID = "(" + _currentState->getID() + ")";  
         switchState(animVars, context, desiredState);
     }
 
     assert(_currentState);
     auto currentStateNode = _children[_currentState->getChildIndex()];
     assert(currentStateNode);
+
+    if (!_previousStateID.contains("none")) {
+        _animStack[_previousStateID] = 1.0f - _alpha;
+    }
+    if (_alpha > 1.0f) {
+        _animStack[_currentState->getID()] = 1.0f;
+    } else {
+        _animStack[_currentState->getID()] = _alpha;
+        qCDebug(animation) << "setting child alpha " << _currentState->getID() << " " << _alpha;
+
+    }
 
     if (_duringInterp) {
         _alpha += _alphaVel * dt;
@@ -95,10 +107,7 @@ const AnimPoseVec& AnimStateMachine::evaluate(AnimVariantMap& animVars, const An
     if (!_duringInterp) {
         _poses = currentStateNode->evaluate(animVars, context, dt, triggersOut);
     }
-    if (!_previousStateID.contains("none")) {
-        _animStack[_previousStateID] = 1.0f - _alpha;
-    }
-    _animStack[_currentState->getID()] = _alpha;
+    
     return _poses;
 }
 

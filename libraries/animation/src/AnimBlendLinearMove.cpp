@@ -47,17 +47,9 @@ static float calculateAlpha(const float speed, const std::vector<float>& charact
 }
 
 const AnimPoseVec& AnimBlendLinearMove::evaluate(AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
-    qCDebug(animation) << "in blend linear move " << _alphaVar << ": " << _alpha;
-    setMyNum(getMyNum() + 1.0f);
+    qCDebug(animation) << "in blend linear move " << _alphaVar << ": " << _alpha << " band id: " << _id << " parent alpha " << _animStack[_id];
     assert(_children.size() == _characteristicSpeeds.size());
-    const int motion1 = static_cast<int>(_alpha);
-    const int motion2 = motion1 + 1;
-    float alpha1 = _alpha - (float)motion1;
-    float alpha2 = 1.0f - alpha1;
-    _animStack[_children[motion1]->getID()] = alpha1;
-    if (motion2 < _children.size()) {
-        _animStack[_children[motion2]->getID()] = alpha2;
-    }
+    
 
     _desiredSpeed = animVars.lookup(_desiredSpeedVar, _desiredSpeed);
 
@@ -71,6 +63,7 @@ const AnimPoseVec& AnimBlendLinearMove::evaluate(AnimVariantMap& animVars, const
         speed = animVars.lookup("moveForwardSpeed", speed);
     }
     _alpha = calculateAlpha(speed, _characteristicSpeeds);
+    float parentAlpha = _animStack[_id];
 
     if (_children.size() == 0) {
         for (auto&& pose : _poses) {
@@ -83,8 +76,9 @@ const AnimPoseVec& AnimBlendLinearMove::evaluate(AnimVariantMap& animVars, const
         float prevDeltaTime, nextDeltaTime;
         setFrameAndPhase(dt, alpha, prevPoseIndex, nextPoseIndex, &prevDeltaTime, &nextDeltaTime, triggersOut);
         evaluateAndBlendChildren(animVars, context, triggersOut, alpha, prevPoseIndex, nextPoseIndex, prevDeltaTime, nextDeltaTime);
+        
+        _animStack[_children[0]->getID()] = parentAlpha;
     } else {
-
         auto clampedAlpha = glm::clamp(_alpha, 0.0f, (float)(_children.size() - 1));
         auto prevPoseIndex = glm::floor(clampedAlpha);
         auto nextPoseIndex = glm::ceil(clampedAlpha);
@@ -92,6 +86,13 @@ const AnimPoseVec& AnimBlendLinearMove::evaluate(AnimVariantMap& animVars, const
         float prevDeltaTime, nextDeltaTime;
         setFrameAndPhase(dt, alpha, prevPoseIndex, nextPoseIndex, &prevDeltaTime, &nextDeltaTime, triggersOut);
         evaluateAndBlendChildren(animVars, context, triggersOut, alpha, prevPoseIndex, nextPoseIndex, prevDeltaTime, nextDeltaTime);
+
+        float weight1 = alpha;
+        float weight2 = 1.0f - weight1;
+        _animStack[_children[prevPoseIndex]->getID()] = weight1 * parentAlpha;
+        if ((int)nextPoseIndex < _children.size()) {
+            _animStack[_children[nextPoseIndex]->getID()] = weight2 * parentAlpha;
+        }
     }
     return _poses;
 }

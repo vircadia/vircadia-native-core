@@ -25,8 +25,9 @@ AnimBlendLinear::~AnimBlendLinear() {
 }
 
 const AnimPoseVec& AnimBlendLinear::evaluate(AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
-    qCDebug(animation) << "in blend linear ++++++++++++++++" << _alphaVar << ": " << _alpha;
+    qCDebug(animation) << "in blend linear ++++++++++++++++" << _alphaVar << ": " << QString::number(_alpha,'f',3) << " parent id: " << _id << " and alpha " << _animStack[_id];
     _alpha = animVars.lookup(_alphaVar, _alpha);
+    float parentAlpha = _animStack[_id];
 
     if (_children.size() == 0) {
         for (auto&& pose : _poses) {
@@ -34,15 +35,25 @@ const AnimPoseVec& AnimBlendLinear::evaluate(AnimVariantMap& animVars, const Ani
         }
     } else if (_children.size() == 1) {
         _poses = _children[0]->evaluate(animVars, context, dt, triggersOut);
+        _animStack[_children[0]->getID()] = parentAlpha;
     } else {
 
         float clampedAlpha = glm::clamp(_alpha, 0.0f, (float)(_children.size() - 1));
         size_t prevPoseIndex = glm::floor(clampedAlpha);
         size_t nextPoseIndex = glm::ceil(clampedAlpha);
         float alpha = glm::fract(clampedAlpha);
-
         evaluateAndBlendChildren(animVars, context, triggersOut, alpha, prevPoseIndex, nextPoseIndex, dt);
+
+        if (alpha > 0.00001f) {
+            float weight1 = alpha;
+            float weight2 = 1.0f - weight1;
+            _animStack[_children[prevPoseIndex]->getID()] = weight1 * parentAlpha;
+            if ((int)nextPoseIndex < _children.size()) {
+                _animStack[_children[nextPoseIndex]->getID()] = weight2 * parentAlpha;
+            }
+        }
     }
+    
     return _poses;
 }
 
