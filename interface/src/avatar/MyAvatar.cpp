@@ -119,7 +119,8 @@ MyAvatar::MyAvatar(QThread* thread) :
     _goToOrientation(),
     _prevShouldDrawHead(true),
     _audioListenerMode(FROM_HEAD),
-    _hmdAtRestDetector(glm::vec3(0), glm::quat())
+    _hmdAtRestDetector(glm::vec3(0), glm::quat()),
+    _clientTraitsHandler(this)
 {
 
     // give the pointer to our head to inherited _headData variable from AvatarData
@@ -512,6 +513,8 @@ void MyAvatar::update(float deltaTime) {
     if (getIdentityDataChanged()) {
         sendIdentityPacket();
     }
+
+    _clientTraitsHandler.sendChangedTraitsToMixer();
 
     simulate(deltaTime);
 
@@ -1696,6 +1699,8 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     saveAvatarUrl();
     emit skeletonChanged();
     emit skeletonModelURLChanged();
+
+    _clientTraitsHandler.markTraitChanged(AvatarTraits::SkeletonModelURL);
 }
 
 void MyAvatar::removeAvatarEntities(const std::function<bool(const QUuid& entityID)>& condition) {

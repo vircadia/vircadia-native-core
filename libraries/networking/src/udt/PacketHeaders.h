@@ -56,7 +56,7 @@ public:
         ICEServerPeerInformation,
         ICEServerQuery,
         OctreeStats,
-        UNUSED_PACKET_TYPE_1,
+        SetAvatarTraits,
         AvatarIdentityRequest,
         AssignmentClientStatus,
         NoisyMute,
