@@ -58,8 +58,6 @@ private:
     int32_t _numEntitiesOffset { 0 };
     uint16_t _numEntities { 0 };
 
-    const static float INITIAL_RADIUS;
-
 private slots:
     void editingEntityPointer(const EntityItemPointer& entity);
     void deletingEntityPointer(EntityItem* entity);

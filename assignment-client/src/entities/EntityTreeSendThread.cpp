@@ -17,9 +17,6 @@
 
 #include "EntityServer.h"
 
-// Initially just send all items within this distance.
-const float EntityTreeSendThread::INITIAL_RADIUS = 10.0f;
-
 EntityTreeSendThread::EntityTreeSendThread(OctreeServer* myServer, const SharedNodePointer& node) :
     OctreeSendThread(myServer, node)
 {
@@ -113,14 +110,7 @@ bool EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
 
         int32_t lodLevelOffset = nodeData->getBoundaryLevelAdjust() + (viewFrustumChanged ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
         newView.lodScaleFactor = powf(2.0f, lodLevelOffset);
-
-        if (nodeData->wantReportInitialCompletion() && !newView.viewFrustums.empty()) {
-            auto& mainView = newView.viewFrustums[0];
-            // Force acceptance within INITIAL_RADIUS.
-            mainView.setSimpleRadius(INITIAL_RADIUS);
-            newView.lodScaleFactor = 0.0f;
-        }
-
+        
         startNewTraversal(newView, root);
 
         // When the viewFrustum changed the sort order may be incorrect, so we re-sort
