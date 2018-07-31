@@ -53,25 +53,23 @@ SelectionManager = (function() {
         }
 
         if (messageParsed.method === "selectEntity") {
-            if (wantDebug) {
-                print("setting selection to " + messageParsed.entityID);
+            if (!SelectionDisplay.triggered() || SelectionDisplay.triggeredHand === messageParsed.hand) {
+                if (wantDebug) {
+                    print("setting selection to " + messageParsed.entityID);
+                }
+                that.setSelections([messageParsed.entityID]);
             }
-            that.setSelections([messageParsed.entityID]);
         } else if (messageParsed.method === "clearSelection") {
-            that.clearSelections();
+            if (!SelectionDisplay.triggered() || SelectionDisplay.triggeredHand === messageParsed.hand) {
+                that.clearSelections();
+            }
         } else if (messageParsed.method === "pointingAt") {
-            if (messageParsed.rightHand) {
+            if (messageParsed.hand === Controller.Standard.RightHand) {
                 that.pointingAtDesktopWindowRight = messageParsed.desktopWindow;
                 that.pointingAtTabletRight = messageParsed.tablet;
             } else {
                 that.pointingAtDesktopWindowLeft = messageParsed.desktopWindow;
                 that.pointingAtTabletLeft = messageParsed.tablet;
-            }
-        } else if (messageParsed.method === "triggerClicked") {
-            if (messageParsed.rightHand) {
-                that.triggerClickedRight = messageParsed.clicked;
-            } else {
-                that.triggerClickedLeft = messageParsed.clicked;
             }
         }
     }
@@ -115,9 +113,6 @@ SelectionManager = (function() {
     that.pointingAtDesktopWindowRight = false;
     that.pointingAtTabletLeft = false;
     that.pointingAtTabletRight = false;
-    
-    that.triggerClickedRight = false;
-    that.triggerClickedLeft = false;
 
     that.saveProperties = function() {
         that.savedProperties = {};
@@ -761,62 +756,36 @@ SelectionDisplay = (function() {
     // We get mouseMoveEvents from the handControllers, via handControllerPointer.
     // But we dont' get mousePressEvents.
     that.triggerMapping = Controller.newMapping(Script.resolvePath('') + '-click');
-    that.triggerPressMapping = Controller.newMapping(Script.resolvePath('') + '-press');
     Script.scriptEnding.connect(that.triggerMapping.disable);
     that.triggeredHand = NO_TRIGGER_HAND;
     that.triggered = function() {
         return that.triggeredHand !== NO_TRIGGER_HAND;
     }
-    function triggerPress(hand)  {
-        var pointingAtDesktopWindow = (hand === Controller.Standard.RightHand && 
-                                       SelectionManager.pointingAtDesktopWindowRight) ||
-                                      (hand === Controller.Standard.LeftHand && 
-                                       SelectionManager.pointingAtDesktopWindowLeft);
-        var pointingAtTablet = (hand === Controller.Standard.RightHand && SelectionManager.pointingAtTabletRight) ||
-                               (hand === Controller.Standard.LeftHand && SelectionManager.pointingAtTabletLeft);
-        if (pointingAtDesktopWindow || pointingAtTablet) {
-            return;
-        }
-        that.triggeredHand = hand;
-        that.mousePressEvent({});
-    }
-    function triggerRelease(hand) {
-        that.triggeredHand = NO_TRIGGER_HAND;
-        that.mouseReleaseEvent({});
-        var otherTriggerClicked = hand == Controller.Standard.RightHand ? SelectionManager.triggerClickedLeft : 
-                                                                          SelectionManager.triggerClickedRight;
-        // When one hand is released check if the other hand is clicked and should then trigger a press
-        if (otherTriggerClicked) {
-            var otherHand = hand == Controller.Standard.RightHand ? Controller.Standard.LeftHand :
-                                                                    Controller.Standard.RightHand;
-            triggerPress(otherHand);
-        }
-    }
-    function handleTriggerPress(hand, triggerClicked) {
-        // Don't allow both hands to trigger at the same time
-        if (that.triggered() && hand !== that.triggeredHand) {
-            return;
-        }
-        if (!that.triggered() && triggerClicked) { 
-            triggerPress(hand);
-        } else if (that.triggered() && !triggerClicked) {
-            triggerRelease(hand);
-        }
-    }
-    function makePressHandler(hand) {
-        return function (value) {
-            var triggerClicked = hand == Controller.Standard.RightHand ? SelectionManager.triggerClickedRight : 
-                                                                         SelectionManager.triggerClickedLeft;
-            handleTriggerPress(hand, triggerClicked);
-        };
-    }
     function makeClickHandler(hand) {
         return function (clicked) {
-            handleTriggerPress(hand, clicked);
+            print("DBACK TEST makeClickHandler " + hand + " " + clicked);
+            // Don't allow both hands to trigger at the same time
+            if (that.triggered() && hand !== that.triggeredHand) {
+                return;
+            }
+            if (!that.triggered() && clicked) {
+                var pointingAtDesktopWindow = (hand === Controller.Standard.RightHand && 
+                                               SelectionManager.pointingAtDesktopWindowRight) ||
+                                              (hand === Controller.Standard.LeftHand && 
+                                               SelectionManager.pointingAtDesktopWindowLeft);
+                var pointingAtTablet = (hand === Controller.Standard.RightHand && SelectionManager.pointingAtTabletRight) ||
+                                       (hand === Controller.Standard.LeftHand && SelectionManager.pointingAtTabletLeft);
+                if (pointingAtDesktopWindow || pointingAtTablet) {
+                    return;
+                }
+                that.triggeredHand = hand;
+                that.mousePressEvent({});
+            } else if (that.triggered() && !clicked) {
+                that.triggeredHand = NO_TRIGGER_HAND;
+                that.mouseReleaseEvent({});
+            }
         };
     }
-    that.triggerPressMapping.from(Controller.Standard.RT).peek().to(makePressHandler(Controller.Standard.RightHand));
-    that.triggerPressMapping.from(Controller.Standard.LT).peek().to(makePressHandler(Controller.Standard.LeftHand));
     that.triggerMapping.from(Controller.Standard.RTClick).peek().to(makeClickHandler(Controller.Standard.RightHand));
     that.triggerMapping.from(Controller.Standard.LTClick).peek().to(makeClickHandler(Controller.Standard.LeftHand));
 
