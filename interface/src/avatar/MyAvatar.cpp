@@ -2062,6 +2062,8 @@ void MyAvatar::initAnimGraph() {
         graphUrl = PathUtils::resourcesUrl("avatar/avatar-animation.json");
     }
 
+    emit animGraphUrlChanged(graphUrl);
+
     _skeletonModel->getRig().initAnimGraph(graphUrl);
     _currentAnimGraphUrl.set(graphUrl);
     connect(&(_skeletonModel->getRig()), SIGNAL(onLoadComplete()), this, SLOT(animGraphLoaded()));
