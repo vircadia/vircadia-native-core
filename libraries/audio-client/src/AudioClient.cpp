@@ -1849,7 +1849,7 @@ const float AudioClient::CALLBACK_ACCELERATOR_RATIO = 2.0f;
 #endif
 
 #ifdef Q_OS_ANDROID
-const float AudioClient::CALLBACK_ACCELERATOR_RATIO = 0.5f;
+const float AudioClient::CALLBACK_ACCELERATOR_RATIO = 2.0f;
 #elif defined(Q_OS_LINUX)
 const float AudioClient::CALLBACK_ACCELERATOR_RATIO = 2.0f;
 #endif
