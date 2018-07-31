@@ -223,10 +223,11 @@ ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const
     if (_type == Type::ENTITY_CLIENT || _type == Type::ENTITY_SERVER) {
         QObject::connect(this, &ScriptEngine::update, this, [this]() {
             // process pending entity script content
-            if (_contentAvailableQueue.size()) {
-                auto pending = _contentAvailableQueue.values().toStdList();
-                _contentAvailableQueue.clear();
-                for (auto& args : pending) {
+            if (!_contentAvailableQueue.empty()) {
+                EntityScriptContentAvailableMap pending;
+                std::swap(_contentAvailableQueue, pending);
+                for (auto& pair : pending) {
+                    auto& args = pair.second;
                     entityScriptContentAvailable(args.entityID, args.scriptOrURL, args.contents, args.isURL, args.success, args.status);
                 }
             }
