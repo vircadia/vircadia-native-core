@@ -198,12 +198,12 @@ SelectionManager = (function() {
     // This is mostly a heuristic - there is no perfect way to know if an entity is being
     // grabbed.
     function nonDynamicEntityIsBeingGrabbedByAvatar(properties) {
-        if (properties.dynamic || properties.parentID === null) {
+        if (properties.dynamic || Uuid.isNull(properties.parentID)) {
             return false;
         }
 
         var avatar = AvatarList.getAvatar(properties.parentID);
-        if (avatar.sessionUUID === null) {
+        if (Uuid.isNull(avatar.sessionUUID)) {
             return false;
         }
 
@@ -271,7 +271,7 @@ SelectionManager = (function() {
 
                 duplicatedEntityIDs.push({
                     entityID: newEntityID,
-                    properties: properties,
+                    properties: properties
                 });
                 if (properties.parentID !== Uuid.NULL) {
                     duplicatedChildrenWithOldParents[newEntityID] = properties.parentID;
