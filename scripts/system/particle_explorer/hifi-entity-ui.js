@@ -215,6 +215,11 @@ HifiEntityUI.prototype = {
                             red.value = parseInt(property.x);
                             green.value = parseInt(property.y);
                             blue.value = parseInt(property.z);
+
+                            // trigger update to color picker
+                            red.oninput({
+                                target: red
+                            });
                         } else if (field.className.indexOf("xyz") !== -1) {
                             var x = document.getElementById(value + "-x");
                             var y = document.getElementById(value + "-y");

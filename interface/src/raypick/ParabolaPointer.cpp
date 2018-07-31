@@ -207,7 +207,7 @@ std::shared_ptr<StartEndRenderState> ParabolaPointer::buildRenderState(const QVa
         QVariantMap pathMap = propMap["path"].toMap();
         if (pathMap["color"].isValid()) {
             bool valid;
-            color = toGlm(xColorFromVariant(pathMap["color"], valid));
+            color = toGlm(vec3FromVariant(pathMap["color"], valid));
         }
 
         if (pathMap["alpha"].isValid()) {

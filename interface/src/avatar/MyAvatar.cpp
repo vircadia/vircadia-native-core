@@ -1137,7 +1137,6 @@ void MyAvatar::saveData() {
     settings.setValue("userHeight", getUserHeight());
     settings.setValue("flyingDesktop", getFlyingDesktopPref());
     settings.setValue("flyingHMD", getFlyingHMDPref());
-    settings.setValue("enabledFlying", getFlyingEnabled());
 
     settings.endGroup();
 }

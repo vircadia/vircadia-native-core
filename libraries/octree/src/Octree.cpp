@@ -939,9 +939,7 @@ bool Octree::toJSONDocument(QJsonDocument* doc, const OctreeElementPointer& elem
         return false;
     }
 
-    qDebug() << "boop3" << entityDescription;
     *doc = QJsonDocument::fromVariant(entityDescription);
-    qDebug() << "boop4" << *doc;
     return true;
 }
 

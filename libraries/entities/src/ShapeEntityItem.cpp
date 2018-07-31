@@ -226,8 +226,10 @@ ScriptVec3UChar ShapeEntityItem::getColor() const {
 }
 
 void ShapeEntityItem::setAlpha(float alpha) {
-    _alpha = alpha;
-    _material->setOpacity(alpha);
+    withWriteLock([&] {
+        _alpha = alpha;
+        _material->setOpacity(alpha);
+    });
 }
 
 void ShapeEntityItem::setUnscaledDimensions(const glm::vec3& value) {

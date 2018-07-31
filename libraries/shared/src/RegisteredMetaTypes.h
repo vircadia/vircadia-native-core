@@ -57,7 +57,7 @@ public:
     ScriptVec2Float() {}
     ScriptVec2Float(float xy) : x(xy), y(xy) {}
     ScriptVec2Float(float x, float y) : x(x), y(y) {}
-    ScriptVec2Float(const ScriptVec2Float& other) : x(other.x), y(other.y) {}
+    ScriptVec2Float(const ScriptVec2Float& other) : QObject(), x(other.x), y(other.y) {}
     ScriptVec2Float(const glm::vec2& other) : x(other.x), y(other.y) {}
     void operator=(const ScriptVec2Float& other) { x = other.x; y = other.y; }
     inline bool operator==(const ScriptVec2Float& other) const { return (x == other.x && y == other.y); }
@@ -107,7 +107,7 @@ public:
     ScriptVec3Float() {}
     ScriptVec3Float(float xyz) : x(xyz), y(xyz), z(xyz) {}
     ScriptVec3Float(float x, float y, float z) : x(x), y(y), z(z) {}
-    ScriptVec3Float(const ScriptVec3Float& other) : x(other.x), y(other.y), z(other.z) {}
+    ScriptVec3Float(const ScriptVec3Float& other) : QObject(), x(other.x), y(other.y), z(other.z) {}
     ScriptVec3Float(const glm::vec3& other) : x(other.x), y(other.y), z(other.z) {}
     void operator=(const ScriptVec3Float& other) { x = other.x; y = other.y; z = other.z; }
     inline bool operator==(const ScriptVec3Float& other) const { return (x == other.x && y == other.y && z == other.z); }
@@ -150,7 +150,7 @@ public:
     ScriptVec3UChar() {}
     ScriptVec3UChar(unsigned int xyz) : x(xyz), y(xyz), z(xyz) {}
     ScriptVec3UChar(unsigned int x, unsigned int y, unsigned int z) : x(x), y(y), z(z) {}
-    ScriptVec3UChar(const ScriptVec3UChar& other) : x(other.x), y(other.y), z(other.z) {}
+    ScriptVec3UChar(const ScriptVec3UChar& other) : QObject(), x(other.x), y(other.y), z(other.z) {}
     ScriptVec3UChar(const glm::vec3& other) : x(other.x), y(other.y), z(other.z) {}
     void operator=(const ScriptVec3UChar& other) { x = other.x; y = other.y; z = other.z; }
     inline bool operator==(const ScriptVec3UChar& other) const { return (x == other.x && y == other.y && z == other.z); }
