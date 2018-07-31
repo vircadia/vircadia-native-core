@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>489</width>
-    <height>415</height>
+    <height>474</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -74,7 +74,7 @@
    <property name="geometry">
     <rect>
      <x>120</x>
-     <y>350</y>
+     <y>420</y>
      <width>93</width>
      <height>28</height>
     </rect>
@@ -87,7 +87,7 @@
    <property name="geometry">
     <rect>
      <x>280</x>
-     <y>350</y>
+     <y>420</y>
      <width>93</width>
      <height>28</height>
     </rect>
@@ -127,7 +127,7 @@
     <string>TestRail User</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="projectLineEdit">
+  <widget class="QLineEdit" name="projectIDLineEdit">
    <property name="geometry">
     <rect>
      <x>200</x>
@@ -155,14 +155,14 @@
     </font>
    </property>
    <property name="text">
-    <string>TestRail Project</string>
+    <string>TestRail Project ID</string>
    </property>
   </widget>
   <widget class="QPushButton" name="acceptButton">
    <property name="geometry">
     <rect>
      <x>200</x>
-     <y>220</y>
+     <y>270</y>
      <width>231</width>
      <height>28</height>
     </rect>
@@ -178,7 +178,7 @@
    <property name="geometry">
     <rect>
      <x>270</x>
-     <y>280</y>
+     <y>350</y>
      <width>161</width>
      <height>22</height>
     </rect>
@@ -191,7 +191,7 @@
    <property name="geometry">
     <rect>
      <x>140</x>
-     <y>280</y>
+     <y>350</y>
      <width>121</width>
      <height>20</height>
     </rect>
@@ -231,8 +231,50 @@
     <enum>QLineEdit::Normal</enum>
    </property>
   </widget>
+  <widget class="QLineEdit" name="suiteIDLineEdit">
+   <property name="geometry">
+    <rect>
+     <x>200</x>
+     <y>215</y>
+     <width>231</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <property name="echoMode">
+    <enum>QLineEdit::Normal</enum>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_5">
+   <property name="geometry">
+    <rect>
+     <x>70</x>
+     <y>220</y>
+     <width>121</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>TestRail Suite ID</string>
+   </property>
+  </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <tabstops>
+  <tabstop>urlLineEdit</tabstop>
+  <tabstop>userLineEdit</tabstop>
+  <tabstop>passwordLineEdit</tabstop>
+  <tabstop>projectIDLineEdit</tabstop>
+  <tabstop>suiteIDLineEdit</tabstop>
+  <tabstop>acceptButton</tabstop>
+  <tabstop>milestoneComboBox</tabstop>
+  <tabstop>OKButton</tabstop>
+  <tabstop>cancelButton</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

@@ -16,14 +16,14 @@
 TestRailSelectorWindow::TestRailSelectorWindow(QWidget *parent) {
     setupUi(this);
 
-    projectLineEdit->setValidator(new QIntValidator(1, 999, this));
+    projectIDLineEdit->setValidator(new QIntValidator(1, 999, this));
 }
 
 void TestRailSelectorWindow::on_acceptButton_clicked() {
     urlLineEdit->setDisabled(true);
     userLineEdit->setDisabled(true);
     passwordLineEdit->setDisabled(true);
-    projectLineEdit->setDisabled(true);
+    projectIDLineEdit->setDisabled(true);
 
     OKButton->setDisabled(false);
     milestoneComboBox->setDisabled(false);
@@ -64,12 +64,20 @@ QString TestRailSelectorWindow::getPassword() {
     return passwordLineEdit->text();
 }
 
-void TestRailSelectorWindow::setProject(const int project) {
-    projectLineEdit->setText(QString::number(project));
+void TestRailSelectorWindow::setProjectID(const int project) {
+    projectIDLineEdit->setText(QString::number(project));
 }
 
-int TestRailSelectorWindow::getProject() {
-    return projectLineEdit->text().toInt();
+int TestRailSelectorWindow::getProjectID() {
+    return projectIDLineEdit->text().toInt();
+}
+
+void TestRailSelectorWindow::setSuiteID(const int project) {
+    suiteIDLineEdit->setText(QString::number(project));
+}
+
+int TestRailSelectorWindow::getSuiteID() {
+    return suiteIDLineEdit->text().toInt();
 }
 
 void TestRailSelectorWindow::updateMilestoneComboBoxData(QStringList data) {

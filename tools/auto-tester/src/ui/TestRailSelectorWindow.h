@@ -28,8 +28,11 @@ public:
 
     QString getPassword();
 
-    void setProject(const int project);
-    int getProject();
+    void setProjectID(const int project);
+    int getProjectID();
+
+    void setSuiteID(const int project);
+    int getSuiteID();
 
     bool userCancelled{ false };
 

@@ -70,6 +70,12 @@ public:
     void updateMilestonesComboData(int exitCode, QProcess::ExitStatus exitStatus);
 
 private:
+    // HighFidelity Interface project ID in TestRail
+    const int INTERFACE_PROJECT_ID{ 24 };
+
+    // Rendering suite ID
+    const int INTERFACE_SUITE_ID{ 1147 };
+
     QDomDocument _document;
 
     BusyWindow _busyWindow;
@@ -78,7 +84,8 @@ private:
     QString _url;
     QString _user;
     QString _password;
-    QString _project;
+    QString _projectID;
+    QString _suiteID;
 
     QString _testDirectory;
     QString _outputDirectory;

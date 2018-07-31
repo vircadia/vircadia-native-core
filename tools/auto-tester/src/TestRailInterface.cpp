@@ -22,14 +22,15 @@ TestRailInterface::TestRailInterface() {
     _busyWindow.setModal(true);
     _testRailSelectorWindow.setModal(true);
 
-    ////_testRailSelectorWindow.setURL("https://highfidelity.testrail.net");
-    _testRailSelectorWindow.setURL("https://nissimhadar.testrail.io");
-    ////_testRailSelectorWindow.setUser("@highfidelity.io");
-    _testRailSelectorWindow.setUser("nissim.hadar@gmail.com");
+    _testRailSelectorWindow.setURL("https://highfidelity.testrail.net");
+    ////_testRailSelectorWindow.setURL("https://nissimhadar.testrail.io");
+    _testRailSelectorWindow.setUser("@highfidelity.io");
+    ////_testRailSelectorWindow.setUser("nissim.hadar@gmail.com");
 
-    // 24 is the HighFidelity Interface project id in TestRail
-    ////_testRailSelectorWindow.setProject(24);
-    _testRailSelectorWindow.setProject(1);
+    _testRailSelectorWindow.setProjectID(INTERFACE_PROJECT_ID);
+    ////_testRailSelectorWindow.setProject(1);
+
+    _testRailSelectorWindow.setSuiteID(INTERFACE_SUITE_ID);
 }
 
 QString TestRailInterface::getObject(const QString& path) {
@@ -197,9 +198,10 @@ void TestRailInterface::requestTestRailDataFromUser() {
 
     _url = _testRailSelectorWindow.getURL() + "/";
     _user = _testRailSelectorWindow.getUser();
-    ////_password = _testRailSelectorWindow.getPassword();
-    _password = "tutKA76";
-    _project = QString::number(_testRailSelectorWindow.getProject());
+    _password = _testRailSelectorWindow.getPassword();
+    ////_password = "tutKA76";
+    _projectID = QString::number(_testRailSelectorWindow.getProjectID());
+    _suiteID = QString::number(_testRailSelectorWindow.getSuiteID());
 }
 
 bool TestRailInterface::isAValidTestDirectory(const QString& directory) {
@@ -218,7 +220,8 @@ bool TestRailInterface::isAValidTestDirectory(const QString& directory) {
 void TestRailInterface::processDirectoryPython(const QString& directory,
                                                QTextStream& stream,
                                                const QString& userGitHub,
-                                               const QString& branchGitHub) {
+                                               const QString& branchGitHub
+) {
     // Loop over all entries in directory
     QDirIterator it(directory.toStdString().c_str());
     while (it.hasNext()) {
@@ -229,9 +232,9 @@ void TestRailInterface::processDirectoryPython(const QString& directory,
         if (isAValidTestDirectory(nextDirectory)) {
             // The name of the section is the directory at the end of the path
             stream << "parent_id = parent_ids.peek()\n";
-            stream << "data = { 'name': '" << objectName << "', 'parent_id': parent_id }\n";
+            stream << "data = { 'name': '" << objectName << "', 'suite_id': " + _suiteID + ", 'parent_id': parent_id }\n";
 
-            stream << "section = client.send_post('add_section/' + str(" << _project << "), data)\n";
+            stream << "section = client.send_post('add_section/' + str(" << _projectID << "), data)\n";
 
             // Now we push the parent_id, and recursively process each directory
             stream << "parent_ids.push(section['id'])\n\n";
@@ -254,8 +257,8 @@ void TestRailInterface::processDirectoryPython(const QString& directory,
 //
 void TestRailInterface::createAddTestCasesPythonScript(const QString& testDirectory,
                                                        const QString& userGitHub,
-                                                       const QString& branchGitHub) {
-
+                                                       const QString& branchGitHub
+) {
     QString filename = _outputDirectory + "/addTestCases.py";
     if (QFile::exists(filename)) {
         QFile::remove(filename);
@@ -281,9 +284,10 @@ void TestRailInterface::createAddTestCasesPythonScript(const QString& testDirect
 
     // top-level section
     stream << "data = { 'name': '"
-           << "Test Suite - " << QDateTime::currentDateTime().toString("yyyy-MM-ddTHH:mm") << "'}\n";
+           << "Test Suite - " << QDateTime::currentDateTime().toString("yyyy-MM-ddTHH:mm") + "', "
+           << "'suite_id': " + _suiteID + "}\n";
 
-    stream << "section = client.send_post('add_section/' + str(" << _project << "), data)\n";
+    stream << "section = client.send_post('add_section/' + str(" << _projectID << "), data)\n";
 
     // Now we push the parent_id, and recursively process each directory
     stream << "parent_ids.push(section['id'])\n\n";
@@ -382,7 +386,7 @@ void TestRailInterface::getMilestonesFromTestRail() {
 
     // Print the list of uncompleted milestones
     stream << "file = open('" + _outputDirectory + "/milestones.txt', 'w')\n\n";
-    stream << "milestones = client.send_get('get_milestones/" + _project + "')\n";
+    stream << "milestones = client.send_get('get_milestones/" + _projectID + "')\n";
     stream << "for milestone in milestones:\n";
     stream << "\tif milestone['is_completed'] == False:\n";
     stream << "\t\tfile.write(milestone['name'] + ' ' + str(milestone['id']) + '\\n')\n\n";
@@ -665,12 +669,15 @@ void TestRailInterface::processTestPython(const QString& fullDirectory,
 
     int milestone_id = _milestones[_milestoneNames[_testRailSelectorWindow.getMilestoneID()]];
 
-    stream << "data = {\n\t" 
-        << "'title': '" << title << "',\n\t" 
-        << "'template_id': 2,\n\t" 
-        << "'milestone_id': " << milestone_id << ",\n\t" 
-        << "'custom_preconds': " << "'Tester is in an empty region of a domain in which they have edit rights\\n\\n*Note: Press \\'n\\' to advance test script',\n\t" 
-        << "'custom_steps_separated': " << "[\n\t\t{\n\t\t\t'content': '" << testContent << "',\n\t\t\t'expected': '" << testExpected << "'\n\t\t}\n\t]\n"
+    stream << "data = {\n" 
+        << "\t'title': '" << title << "',\n" 
+        << "\t'template_id': 2,\n"
+        << "\t'milestone_id': " << milestone_id << ",\n" 
+        << "\t'custom_tester_count': 1,\n"
+        << "\t'custom_domain_bot_load': 1,\n"
+        << "\t'custom_added_to_release': 4,\n"
+        << "\t'custom_preconds': " << "'Tester is in an empty region of a domain in which they have edit rights\\n\\n*Note: Press \\'n\\' to advance test script',\n"
+        << "\t'custom_steps_separated': " << "[\n\t\t{\n\t\t\t'content': '" << testContent << "',\n\t\t\t'expected': '" << testExpected << "'\n\t\t}\n\t]\n"
         << "}\n";
 
     stream << "case = client.send_post('add_case/' + str(section_id), data)\n";
