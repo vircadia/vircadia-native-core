@@ -69,6 +69,8 @@ public:
 
     void updateMilestonesComboData(int exitCode, QProcess::ExitStatus exitStatus);
 
+    void createTestRailRun();
+
 private:
     // HighFidelity Interface project ID in TestRail
     const int INTERFACE_PROJECT_ID{ 24 };

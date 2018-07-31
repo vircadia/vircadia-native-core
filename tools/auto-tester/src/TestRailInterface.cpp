@@ -689,3 +689,6 @@ void TestRailInterface::processTestPython(const QString& fullDirectory,
 
     stream << "case = client.send_post('add_case/' + str(section_id), data)\n";
 }
+
+void TestRailInterface::createTestRailRun() {
+}
