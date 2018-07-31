@@ -19,6 +19,17 @@ TestRailSelectorWindow::TestRailSelectorWindow(QWidget *parent) {
     projectLineEdit->setValidator(new QIntValidator(1, 999, this));
 }
 
+void TestRailSelectorWindow::on_acceptButton_clicked() {
+    urlLineEdit->setDisabled(true);
+    userLineEdit->setDisabled(true);
+    passwordLineEdit->setDisabled(true);
+    projectLineEdit->setDisabled(true);
+
+    OKButton->setDisabled(false);
+    milestoneComboBox->setDisabled(false);
+    close();
+}
+
 void TestRailSelectorWindow::on_OKButton_clicked() {
     userCancelled = false;
     close();
@@ -34,19 +45,19 @@ bool TestRailSelectorWindow::getUserCancelled() {
 }
 
 void TestRailSelectorWindow::setURL(const QString& user) {
-    URLTextEdit->setText(user);
+    urlLineEdit->setText(user);
 }
 
 QString TestRailSelectorWindow::getURL() {
-    return URLTextEdit->toPlainText();
+    return urlLineEdit->text();
 }
 
 void TestRailSelectorWindow::setUser(const QString& user) {
-    userTextEdit->setText(user);
+    userLineEdit->setText(user);
 }
 
 QString TestRailSelectorWindow::getUser() {
-    return userTextEdit->toPlainText();
+    return userLineEdit->text();
 }
 
 QString TestRailSelectorWindow::getPassword() {
@@ -59,4 +70,12 @@ void TestRailSelectorWindow::setProject(const int project) {
 
 int TestRailSelectorWindow::getProject() {
     return projectLineEdit->text().toInt();
+}
+
+void TestRailSelectorWindow::updateMilestoneComboBoxData(QStringList data) {
+    milestoneComboBox->insertItems(0, data);
+}
+
+int TestRailSelectorWindow::getMilestoneID() {
+    return milestoneComboBox->currentIndex();
 }

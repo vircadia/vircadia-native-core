@@ -16,7 +16,6 @@
 #include <QDateTime>
 #include <QFile>
 #include <QMessageBox>
-#include <QProcess>
 #include <QTextStream>
 
 TestRailInterface::TestRailInterface() {
@@ -39,8 +38,8 @@ QString TestRailInterface::getObject(const QString& path) {
 
 // Creates the testrail.py script
 // This is the file linked to from http://docs.gurock.com/testrail-api2/bindings-python
-void TestRailInterface::createTestRailDotPyScript(const QString& outputDirectory) {
-    QFile file(outputDirectory + "/testrail.py");
+void TestRailInterface::createTestRailDotPyScript() {
+    QFile file(_outputDirectory + "/testrail.py");
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
                               "Could not create 'testrail.py'");
@@ -145,8 +144,13 @@ void TestRailInterface::createTestRailDotPyScript(const QString& outputDirectory
 }
 
 // Creates a Stack class
-void TestRailInterface::createStackDotPyScript(const QString& outputDirectory) {
-    QFile file(outputDirectory + "/stack.py");
+void TestRailInterface::createStackDotPyScript() {
+    QString filename = _outputDirectory + "/stack.py";
+    if (QFile::exists(filename)) {
+        QFile::remove(filename);
+    }
+    QFile file(filename);
+
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
                               "Could not create 'stack.py'");
@@ -184,7 +188,7 @@ void TestRailInterface::createStackDotPyScript(const QString& outputDirectory) {
     file.close();
 }
 
-void TestRailInterface::requestDataFromUser() {
+void TestRailInterface::requestTestRailDataFromUser() {
     _testRailSelectorWindow.exec();
 
     if (_testRailSelectorWindow.getUserCancelled()) {
@@ -249,10 +253,15 @@ void TestRailInterface::processDirectoryPython(const QString& directory,
 // Therefore, the tree is built top-down, using a stack to store the IDs of each node
 //
 void TestRailInterface::createAddTestCasesPythonScript(const QString& testDirectory,
-                                                      const QString& outputDirectory,
-                                                      const QString& userGitHub,
-                                                      const QString& branchGitHub) {
-    QFile file(outputDirectory + "/addTestCases.py");
+                                                       const QString& userGitHub,
+                                                       const QString& branchGitHub) {
+
+    QString filename = _outputDirectory + "/addTestCases.py";
+    if (QFile::exists(filename)) {
+        QFile::remove(filename);
+    }
+    QFile file(filename);
+
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
                               "Could not create 'addTestCases.py'");
@@ -283,54 +292,149 @@ void TestRailInterface::createAddTestCasesPythonScript(const QString& testDirect
     file.close();
 
     if (QMessageBox::Yes == QMessageBox(QMessageBox::Information, "Python script has been created", "Do you want to run the script and update TestRail?", QMessageBox::Yes | QMessageBox::No).exec()) {
-        QString command(_pythonPath + "/" + pythonExe);
-        QStringList parameters = QStringList() << outputDirectory + "/addTestCases.py";
         QProcess* process = new QProcess();
-        connect(
-            process, &QProcess::started,
-            this, [=]() {
+        connect(process, &QProcess::started, this, 
+            [=]() {
                 _busyWindow.exec(); 
             }
         );
 
-        connect(
-            process, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), 
-            this, [=](int exitCode, QProcess::ExitStatus exitStatus) {
+        connect(process, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this, 
+            [=](int exitCode, QProcess::ExitStatus exitStatus) {
                 _busyWindow.hide();
             }
         );
 
-        process->start(command, parameters);
+        QStringList parameters = QStringList() << _outputDirectory + "/addTestCases.py";
+        process->start(_pythonCommand, parameters);
     }
+}
+
+void TestRailInterface::updateMilestonesComboData(int exitCode, QProcess::ExitStatus exitStatus) {
+    // Check if process completed successfully
+    if (exitStatus != QProcess::NormalExit) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not get milestones from TestRail");
+            exit(-1);
+    }
+
+    // Create map of milestones from the file created by the process
+    _milestoneNames.clear();
+
+    QString filename = _outputDirectory + "/milestones.txt";
+    if (!QFile::exists(filename)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not find milestones.txt in " + _outputDirectory);
+        exit(-1);
+    }
+
+    QFile file(filename);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not open " +  _outputDirectory + "/milestones.txt");
+        exit(-1);
+    }
+
+    QTextStream in(&file);
+    QString line = in.readLine();
+    while (!line.isNull()) {
+        QStringList words = line.split(' ');
+        _milestones[words[0]] = words[1].toInt();
+        _milestoneNames << words[0];
+
+        line = in.readLine();
+    }
+
+    file.close();
+
+    // Update the combo
+    _testRailSelectorWindow.updateMilestoneComboBoxData(_milestoneNames);
+
+    _testRailSelectorWindow.exec();
+
+    if (_testRailSelectorWindow.getUserCancelled()) {
+        return;
+    }
+
+    createAddTestCasesPythonScript(_testDirectory, _userGitHub, _branchGitHub);
+}
+
+void TestRailInterface::getMilestonesFromTestRail() {
+    QString filename = _outputDirectory + "/getMilestones.py";
+    if (QFile::exists(filename)) {
+        QFile::remove(filename);
+    }
+    QFile file(filename);
+
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not create 'getMilestones.py'");
+        exit(-1);
+    }
+
+    QTextStream stream(&file);
+
+    // Code to access TestRail
+    stream << "from testrail import *\n";
+    stream << "client = APIClient('" << _url.toStdString().c_str() << "')\n";
+    stream << "client.user = '" << _user << "'\n";
+    stream << "client.password = '" << _password << "'\n\n";
+
+    // Print the list of uncompleted milestones
+    stream << "file = open('" + _outputDirectory + "/milestones.txt', 'w')\n\n";
+    stream << "milestones = client.send_get('get_milestones/" + _project + "')\n";
+    stream << "for milestone in milestones:\n";
+    stream << "\tif milestone['is_completed'] == False:\n";
+    stream << "\t\tfile.write(milestone['name'] + ' ' + str(milestone['id']) + '\\n')\n\n";
+    stream << "file.close()\n";
+
+    file.close();
+
+    QProcess* process = new QProcess();
+    connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
+        [=](int exitCode, QProcess::ExitStatus exitStatus) { 
+            updateMilestonesComboData(exitCode, exitStatus);
+        }
+    );
+
+    QStringList parameters = QStringList() << _outputDirectory + "/getMilestones.py ";
+    process->start(_pythonCommand, parameters);
 }
 
 void TestRailInterface::createTestSuitePython(const QString& testDirectory,
                                               const QString& outputDirectory,
                                               const QString& userGitHub,
                                               const QString& branchGitHub) {
-    
+
+    _testDirectory = testDirectory;
+    _outputDirectory = outputDirectory;
+    _userGitHub = userGitHub;
+    _branchGitHub = branchGitHub;
+
     // First check that Python is available
-    QProcessEnvironment  e = QProcessEnvironment::systemEnvironment();
-    QStringList sl = e.toStringList();
     if (QProcessEnvironment::systemEnvironment().contains("PYTHON_PATH")) {
-        _pythonPath = QProcessEnvironment::systemEnvironment().value("PYTHON_PATH");
+        QString _pythonPath = QProcessEnvironment::systemEnvironment().value("PYTHON_PATH");
         if (!QFile::exists(_pythonPath + "/" + pythonExe)) {
             QMessageBox::critical(0, pythonExe, QString("Python executable not found in ") + _pythonPath);
         }
+        _pythonCommand = _pythonPath + "/" + pythonExe;
     } else {
         QMessageBox::critical(0, "PYTHON_PATH not defined", "Please set PYTHON_PATH to directory containing the Python executable");
+        return;
     }
 
-    createTestRailDotPyScript(outputDirectory);
-    createStackDotPyScript(outputDirectory);
-    requestDataFromUser();
-    createAddTestCasesPythonScript(testDirectory, outputDirectory, userGitHub, branchGitHub);
+    requestTestRailDataFromUser();
+    getMilestonesFromTestRail();
+    createTestRailDotPyScript();
+    createStackDotPyScript();
  }
 
  void TestRailInterface::createTestSuiteXML(const QString& testDirectory,
                                             const QString& outputDirectory,
                                             const QString& userGitHub,
                                             const QString& branchGitHub) {
+
+     _outputDirectory = outputDirectory;
 
     QDomProcessingInstruction instruction = _document.createProcessingInstruction("xml", "version='1.0' encoding='UTF-8'");
     _document.appendChild(instruction);
@@ -353,7 +457,7 @@ void TestRailInterface::createTestSuitePython(const QString& testDirectory,
     root.appendChild(topLevelSection);
 
     // Write to file
-    const QString testRailsFilename{ outputDirectory  + "/TestRailSuite.xml" };
+    const QString testRailsFilename{ _outputDirectory  + "/TestRailSuite.xml" };
     QFile file(testRailsFilename);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Could not create XML file");
@@ -559,9 +663,12 @@ void TestRailInterface::processTestPython(const QString& fullDirectory,
     QString testContent = QString("Execute instructions in [THIS TEST](") + testMDName + ")";
     QString testExpected = QString("Refer to the expected result in the linked description.");
 
+    int milestone_id = _milestones[_milestoneNames[_testRailSelectorWindow.getMilestoneID()]];
+
     stream << "data = {\n\t" 
         << "'title': '" << title << "',\n\t" 
         << "'template_id': 2,\n\t" 
+        << "'milestone_id': " << milestone_id << ",\n\t" 
         << "'custom_preconds': " << "'Tester is in an empty region of a domain in which they have edit rights\\n\\n*Note: Press \\'n\\' to advance test script',\n\t" 
         << "'custom_steps_separated': " << "[\n\t\t{\n\t\t\t'content': '" << testContent << "',\n\t\t\t'expected': '" << testExpected << "'\n\t\t}\n\t]\n"
         << "}\n";
