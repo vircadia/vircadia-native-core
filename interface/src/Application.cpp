@@ -5483,6 +5483,7 @@ void Application::update(float deltaTime) {
             // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
             _lastPhysicsCheckTime = now;
             _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
+            _lastQueriedViews.clear();  // Force new view.
 
             // process octree stats packets are sent in between full sends of a scene (this isn't currently true).
             // We keep physics disabled until we've received a full scene and everything near the avatar in that

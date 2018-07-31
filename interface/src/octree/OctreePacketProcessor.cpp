@@ -135,7 +135,7 @@ void OctreePacketProcessor::resetCompletionSequenceNumber() {
 namespace {
     template<typename T> bool lessThanWraparound(int a, int b) {
         constexpr int MAX_T_VALUE = std::numeric_limits<T>::max();
-        if (b < a) {
+        if (b <= a) {
             b += MAX_T_VALUE;
         }
         return (b - a) < (MAX_T_VALUE / 2);
@@ -146,5 +146,5 @@ bool OctreePacketProcessor::octreeSequenceIsComplete(int sequenceNumber) const {
     Locker lock(_completionMutex);
     // If we've received the flagged seq # and the current one is >= it.
     return _completionSequenceNumberValid &&
-        !lessThanWraparound<OCTREE_PACKET_SEQUENCE>(_completionSequenceNumber, sequenceNumber);
+        !lessThanWraparound<OCTREE_PACKET_SEQUENCE>(sequenceNumber, _completionSequenceNumber);
 }

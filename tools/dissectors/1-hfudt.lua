@@ -156,11 +156,11 @@ local packet_types = {
   [92] = "EntityScriptCallMethod",
   [93] = "ChallengeOwnershipRequest",
   [94] = "ChallengeOwnershipReply",
-  [95] = "EntityQueryInitialResultsComplete",
-  [96] = "OctreeDataFileRequest",
-  [97] = "OctreeDataFileReply",
-  [98] = "OctreeDataPersist",
-  [99] = "EntityClone"
+  [95] = "OctreeDataFileRequest",
+  [96] = "OctreeDataFileReply",
+  [97] = "OctreeDataPersist",
+  [98] = "EntityClone",
+  [99] = "EntityQueryInitialResultsComplete"
 }
 
 local unsourced_packet_types = {

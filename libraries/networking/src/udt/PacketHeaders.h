@@ -126,13 +126,13 @@ public:
         EntityScriptCallMethod,
         ChallengeOwnershipRequest,
         ChallengeOwnershipReply,
-        EntityQueryInitialResultsComplete,
 
         OctreeDataFileRequest,
         OctreeDataFileReply,
         OctreeDataPersist,
 
         EntityClone,
+        EntityQueryInitialResultsComplete,
 
         NUM_PACKET_TYPE
     };

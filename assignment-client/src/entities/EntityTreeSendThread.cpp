@@ -160,12 +160,11 @@ bool EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
     if (sendComplete && nodeData->wantReportInitialCompletion() && _traversal.finished()) {
         // Dealt with all nearby entities.
         nodeData->setReportInitialCompletion(false);
-        resetState();
 
         // Send EntityQueryInitialResultsComplete reliable packet ...
-        auto initialCompletion = NLPacket::create(PacketType::EntityQueryInitialResultsComplete, -1, true);
-        QDataStream initialCompletionStream(initialCompletion.get());
-        initialCompletionStream << OCTREE_PACKET_SEQUENCE(nodeData->getSequenceNumber() - 1U);
+        auto initialCompletion = NLPacket::create(PacketType::EntityQueryInitialResultsComplete,
+            sizeof(OCTREE_PACKET_SEQUENCE), true);
+        initialCompletion->writePrimitive(OCTREE_PACKET_SEQUENCE(nodeData->getSequenceNumber() - 1U));
         DependencyManager::get<NodeList>()->sendPacket(std::move(initialCompletion), *node.data());
     }
 
