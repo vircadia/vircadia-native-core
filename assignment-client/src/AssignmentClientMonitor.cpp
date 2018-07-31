@@ -242,11 +242,8 @@ void AssignmentClientMonitor::spawnChildClient() {
     if (assignmentClient->processId() > 0) {
         auto pid = assignmentClient->processId();
         // make sure we hear that this process has finished when it does
-        connect(
-            assignmentClient, 
-            static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
-                this, 
-                [this, pid](int exitCode, QProcess::ExitStatus exitStatus) {
+        connect(assignmentClient, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
+                this, [this, pid](int exitCode, QProcess::ExitStatus exitStatus) {
                     childProcessFinished(pid, exitCode, exitStatus);
             });
 
