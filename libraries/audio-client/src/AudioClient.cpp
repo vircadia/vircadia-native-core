@@ -668,7 +668,7 @@ void AudioClient::stop() {
 
 void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<ReceivedMessage> message) {
 
-    char bitset;
+    /*char bitset;
     message->readPrimitive(&bitset);
 
     bool hasReverb = oneAtBit(bitset, HAS_REVERB_BIT);
@@ -680,11 +680,11 @@ void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<ReceivedMessag
         _receivedAudioStream.setReverb(reverbTime, wetLevel);
     } else {
         _receivedAudioStream.clearReverb();
-   }
+        }*/
 }
 
 void AudioClient::handleAudioDataPacket(QSharedPointer<ReceivedMessage> message) {
-
+    /*
     if (message->getType() == PacketType::SilentAudioFrame) {
         _silentInbound.increment();
     } else {
@@ -709,7 +709,7 @@ void AudioClient::handleAudioDataPacket(QSharedPointer<ReceivedMessage> message)
         // Audio output must exist and be correctly set up if we're going to process received audio
         _receivedAudioStream.parseData(*message);
 #endif
-    }
+}*/
 }
 
 AudioClient::Gate::Gate(AudioClient* audioClient) :

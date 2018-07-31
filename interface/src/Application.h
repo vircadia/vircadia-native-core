@@ -304,6 +304,7 @@ public:
     void saveNextPhysicsStats(QString filename);
 
     bool isServerlessMode() const;
+    bool isInterstitialMode() const;
 
     void replaceDomainContent(const QString& url);
 
@@ -423,6 +424,7 @@ public slots:
     void setPreferredCursor(const QString& cursor);
 
     void setIsServerlessMode(bool serverlessDomain);
+    void setIsInterstitialMode(bool interstialMode);
     void loadServerlessDomain(QUrl domainURL);
 
     void updateVerboseLogging();
@@ -624,6 +626,7 @@ private:
     QSet<int> _keysPressed;
 
     bool _enableProcessOctreeThread;
+    bool _interstitialMode { true };
 
     OctreePacketProcessor _octreeProcessor;
     EntityEditPacketSender _entityEditSender;

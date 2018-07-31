@@ -3412,6 +3412,16 @@ bool Application::isServerlessMode() const {
     return false;
 }
 
+bool Application::isInterstitialPage() {
+    return _interstitialMode;
+}
+
+void Application::setInterstitialMode(bool interstitialMode) {
+    if (_interstitialMode != interstitialMode) {
+        _interstitialMode = interstitialMode;
+    }
+}
+
 void Application::setIsServerlessMode(bool serverlessDomain) {
     auto tree = getEntities()->getTree();
     if (tree) {
@@ -5471,6 +5481,8 @@ static bool domainLoadingInProgress = false;
 void Application::update(float deltaTime) {
     PROFILE_RANGE_EX(app, __FUNCTION__, 0xffff0000, (uint64_t)_renderFrameCount + 1);
 
+    auto audioClient = DependencyManager::get<AudioClient>();
+    audioClient->setMuted(true);
     if (!_physicsEnabled) {
         if (!domainLoadingInProgress) {
             PROFILE_ASYNC_BEGIN(app, "Scene Loading", "");
