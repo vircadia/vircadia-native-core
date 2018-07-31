@@ -11,117 +11,54 @@
 #ifndef hifi_LaserPointer_h
 #define hifi_LaserPointer_h
 
-#include <QString>
-#include <glm/glm.hpp>
+#include "PathPointer.h"
 
-#include "ui/overlays/Overlay.h"
-
-#include <Pointer.h>
-#include <Pick.h>
-
-struct LockEndObject {
-    QUuid id { QUuid() };
-    bool isOverlay { false };
-    glm::mat4 offsetMat { glm::mat4() };
-};
-
-class RenderState {
-
+class LaserPointer : public PathPointer {
+    using Parent = PathPointer;
 public:
-    RenderState() {}
-    RenderState(const OverlayID& startID, const OverlayID& pathID, const OverlayID& endID);
+    class RenderState : public StartEndRenderState {
+    public:
+        RenderState() {}
+        RenderState(const OverlayID& startID, const OverlayID& pathID, const OverlayID& endID);
 
-    const OverlayID& getStartID() const { return _startID; }
-    const OverlayID& getPathID() const { return _pathID; }
-    const OverlayID& getEndID() const { return _endID; }
-    const bool& doesStartIgnoreRays() const { return _startIgnoreRays; }
-    const bool& doesPathIgnoreRays() const { return _pathIgnoreRays; }
-    const bool& doesEndIgnoreRays() const { return _endIgnoreRays; }
+        const OverlayID& getPathID() const { return _pathID; }
+        const bool& doesPathIgnoreRays() const { return _pathIgnoreRays; }
 
-    void setEndDim(const glm::vec3& endDim) { _endDim = endDim; }
-    const glm::vec3& getEndDim() const { return _endDim; }
+        void setLineWidth(const float& lineWidth) { _lineWidth = lineWidth; }
+        const float& getLineWidth() const { return _lineWidth; }
 
-    void setLineWidth(const float& lineWidth) { _lineWidth = lineWidth; }
-    const float& getLineWidth() const { return _lineWidth; }
+        void cleanup() override;
+        void disable() override;
+        void update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
+                    bool faceAvatar, bool followNormal, float followNormalStrength, float distance, const PickResultPointer& pickResult) override;
 
-    void deleteOverlays();
+    private:
+        OverlayID _pathID;
+        bool _pathIgnoreRays;
 
-private:
-    OverlayID _startID;
-    OverlayID _pathID;
-    OverlayID _endID;
-    bool _startIgnoreRays;
-    bool _pathIgnoreRays;
-    bool _endIgnoreRays;
-
-    glm::vec3 _endDim;
-    float _lineWidth;
-};
-
-class LaserPointer : public Pointer {
-    using Parent = Pointer;
-public:
-    typedef std::unordered_map<std::string, RenderState> RenderStateMap;
-    typedef std::unordered_map<std::string, std::pair<float, RenderState>> DefaultRenderStateMap;
-
-    LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, bool hover, const PointerTriggers& triggers,
-        bool faceAvatar, bool centerEndY, bool lockEnd, bool distanceScaleEnd, bool scaleWithAvatar, bool enabled);
-    ~LaserPointer();
-
-    void setRenderState(const std::string& state) override;
-    // You cannot use editRenderState to change the overlay type of any part of the laser pointer.  You can only edit the properties of the existing overlays.
-    void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) override;
-
-    void setLength(float length) override;
-    void setLockEndUUID(const QUuid& objectID, bool isOverlay, const glm::mat4& offsetMat = glm::mat4()) override;
-
-    void updateVisuals(const PickResultPointer& prevRayPickResult) override;
-
-    static RenderState buildRenderState(const QVariantMap& propMap);
-
-protected:
-    PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, const std::string& button = "", bool hover = true) override;
-
-    PickResultPointer getVisualPickResult(const PickResultPointer& pickResult) override;
-    PickedObject getHoveredObject(const PickResultPointer& pickResult) override;
-    Pointer::Buttons getPressedButtons(const PickResultPointer& pickResult) override;
-
-    bool shouldHover(const PickResultPointer& pickResult) override { return _currentRenderState != ""; }
-    bool shouldTrigger(const PickResultPointer& pickResult) override { return _currentRenderState != ""; }
-
-private:
-    PointerTriggers _triggers;
-    float _laserLength { 0.0f };
-    std::string _currentRenderState { "" };
-    RenderStateMap _renderStates;
-    DefaultRenderStateMap _defaultRenderStates;
-    bool _faceAvatar;
-    bool _centerEndY;
-    bool _lockEnd;
-    bool _distanceScaleEnd;
-    bool _scaleWithAvatar;
-    LockEndObject _lockEndObject;
-
-    void updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
-    void updateRenderState(const RenderState& renderState, const IntersectionType type, float distance, const QUuid& objectID, const PickRay& pickRay);
-    void disableRenderState(const RenderState& renderState);
-
-    struct TriggerState {
-        PickedObject triggeredObject;
-        glm::vec3 intersection { NAN };
-        glm::vec3 surfaceNormal { NAN };
-        glm::vec2 triggerPos2D { NAN };
-        quint64 triggerStartTime { 0 };
-        bool deadspotExpired { true };
-        bool triggering { false };
-        bool wasTriggering { false };
+        float _lineWidth;
     };
 
-    Pointer::Buttons _previousButtons;
-    std::unordered_map<std::string, TriggerState> _states;
-    TriggerState _latestState;
+    LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, bool hover, const PointerTriggers& triggers,
+        bool faceAvatar, bool followNormal, float followNormalStrength, bool centerEndY, bool lockEnd, bool distanceScaleEnd, bool scaleWithAvatar, bool enabled);
+
+    static std::shared_ptr<StartEndRenderState> buildRenderState(const QVariantMap& propMap);
+
+protected:
+    void editRenderStatePath(const std::string& state, const QVariant& pathProps) override;
+
+    glm::vec3 getPickOrigin(const PickResultPointer& pickResult) const override;
+    glm::vec3 getPickEnd(const PickResultPointer& pickResult, float distance) const override;
+    glm::vec3 getPickedObjectNormal(const PickResultPointer& pickResult) const override;
+    IntersectionType getPickedObjectType(const PickResultPointer& pickResult) const override;
+    QUuid getPickedObjectID(const PickResultPointer& pickResult) const override;
+    void setVisualPickResultInternal(PickResultPointer pickResult, IntersectionType type, const QUuid& id,
+                                     const glm::vec3& intersection, float distance, const glm::vec3& surfaceNormal) override;
+
+    PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, const std::string& button = "", bool hover = true) override;
+
+private:
     static glm::vec3 findIntersection(const PickedObject& pickedObject, const glm::vec3& origin, const glm::vec3& direction);
-    static glm::vec2 findPos2D(const PickedObject& pickedObject, const glm::vec3& origin);
 
 };
 

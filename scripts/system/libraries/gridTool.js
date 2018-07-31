@@ -1,6 +1,6 @@
 var GRID_CONTROLS_HTML_URL = Script.resolvePath('../html/gridControls.html');
 
-Grid = function(opts) {
+Grid = function() {
     var that = {};
     var gridColor = { red: 0, green: 0, blue: 0 };
     var gridAlpha = 0.6;
@@ -154,6 +154,12 @@ Grid = function(opts) {
             that.emitUpdate();
         }
     };
+    
+    that.moveToSelection = function() {
+        var newPosition = SelectionManager.worldPosition;
+        newPosition = Vec3.subtract(newPosition, { x: 0, y: SelectionManager.worldDimensions.y * 0.5, z: 0 });
+        that.setPosition(newPosition);
+    };
 
     that.emitUpdate = function() {
         if (that.onUpdate) {
@@ -241,6 +247,7 @@ GridTool = function(opts) {
     var horizontalGrid = opts.horizontalGrid;
     var verticalGrid = opts.verticalGrid;
     var createToolsWindow = opts.createToolsWindow;
+    var shouldUseEditTabletApp = opts.shouldUseEditTabletApp;
     var listeners = [];
 
     var webView = null;
@@ -280,9 +287,7 @@ GridTool = function(opts) {
                 }
                 horizontalGrid.setPosition(position);
             } else if (action == "moveToSelection") {
-                var newPosition = selectionManager.worldPosition;
-                newPosition = Vec3.subtract(newPosition, { x: 0, y: selectionManager.worldDimensions.y * 0.5, z: 0 });
-                grid.setPosition(newPosition);
+                horizontalGrid.moveToSelection();
             }
         }
     };
@@ -295,7 +300,7 @@ GridTool = function(opts) {
     };
 
     that.setVisible = function(visible) {
-        webView.setVisible(HMD.active && visible);
+        webView.setVisible(shouldUseEditTabletApp() && visible);
     };
 
     return that;

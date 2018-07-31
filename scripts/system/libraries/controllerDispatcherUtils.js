@@ -58,7 +58,8 @@
    entityIsFarGrabbedByOther:true,
    highlightTargetEntity:true,
    clearHighlightedEntities:true,
-   unhighlightTargetEntity:true
+   unhighlightTargetEntity:true,
+   distanceBetweenEntityLocalPositionAndBoundingBox: true
 */
 
 MSECS_PER_SEC = 1000.0;
@@ -94,7 +95,7 @@ COLORS_GRAB_DISTANCE_HOLD = { red: 238, green: 75, blue: 214 };
 
 NEAR_GRAB_RADIUS = 1.0;
 
-TEAR_AWAY_DISTANCE = 0.1; // ungrab an entity if its bounding-box moves this far from the hand
+TEAR_AWAY_DISTANCE = 0.15; // ungrab an entity if its bounding-box moves this far from the hand
 TEAR_AWAY_COUNT = 2; // multiply by TEAR_AWAY_CHECK_TIME to know how long the item must be away
 TEAR_AWAY_CHECK_TIME = 0.15; // seconds, duration between checks
 DISPATCHER_HOVERING_LIST = "dispactherHoveringList";
@@ -130,7 +131,9 @@ DISPATCHER_PROPERTIES = [
     "type",
     "href",
     "cloneable",
-    "cloneDynamic"
+    "cloneDynamic",
+    "localPosition",
+    "localRotation"
 ];
 
 // priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step
@@ -411,6 +414,30 @@ findHandChildEntities = function(hand) {
         var childType = Entities.getNestableType(childID);
         return childType == "entity";
     });
+};
+
+distanceBetweenEntityLocalPositionAndBoundingBox = function(entityProps, jointGrabOffset) {
+    var DEFAULT_REGISTRATION_POINT = { x: 0.5, y: 0.5, z: 0.5 };
+    var rotInv = Quat.inverse(entityProps.localRotation);
+    var localPosition = Vec3.sum(entityProps.localPosition, jointGrabOffset);
+    var localPoint = Vec3.multiplyQbyV(rotInv, Vec3.multiply(localPosition, -1.0));
+
+    var halfDims = Vec3.multiply(entityProps.dimensions, 0.5);
+    var regRatio = Vec3.subtract(DEFAULT_REGISTRATION_POINT, entityProps.registrationPoint);
+    var entityCenter = Vec3.multiplyVbyV(regRatio, entityProps.dimensions);
+    var localMin = Vec3.subtract(entityCenter, halfDims);
+    var localMax = Vec3.sum(entityCenter, halfDims);
+
+
+    var v = {x: localPoint.x, y: localPoint.y, z: localPoint.z};
+    v.x = Math.max(v.x, localMin.x);
+    v.x = Math.min(v.x, localMax.x);
+    v.y = Math.max(v.y, localMin.y);
+    v.y = Math.min(v.y, localMax.y);
+    v.z = Math.max(v.z, localMin.z);
+    v.z = Math.min(v.z, localMax.z);
+
+    return Vec3.distance(v, localPoint);
 };
 
 distanceBetweenPointAndEntityBoundingBox = function(point, entityProps) {

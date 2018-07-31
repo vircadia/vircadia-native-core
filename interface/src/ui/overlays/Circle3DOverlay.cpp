@@ -397,8 +397,7 @@ void Circle3DOverlay::setProperties(const QVariantMap& properties) {
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
  *     <code>dashed</code>.
- * @property {boolean} ignoreRayIntersection=false - If <code>true</code>,
- *     {@link Overlays.findRayIntersection|findRayIntersection} ignores the overlay.
+ * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
  *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.
  * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
@@ -520,22 +519,66 @@ QVariant Circle3DOverlay::getProperty(const QString& property) {
 
 bool Circle3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
                                           BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking) {
-
     // Scale the dimensions by the diameter
     glm::vec2 dimensions = getOuterRadius() * 2.0f * getDimensions();
-    bool intersects = findRayRectangleIntersection(origin, direction, getWorldOrientation(), getWorldPosition(), dimensions, distance);
+    glm::quat rotation = getWorldOrientation();
 
-    if (intersects) {
+    if (findRayRectangleIntersection(origin, direction, rotation, getWorldPosition(), dimensions, distance)) {
         glm::vec3 hitPosition = origin + (distance * direction);
         glm::vec3 localHitPosition = glm::inverse(getWorldOrientation()) * (hitPosition - getWorldPosition());
         localHitPosition.x /= getDimensions().x;
         localHitPosition.y /= getDimensions().y;
         float distanceToHit = glm::length(localHitPosition);
 
-        intersects = getInnerRadius() <= distanceToHit && distanceToHit <= getOuterRadius();
+        if (getInnerRadius() <= distanceToHit && distanceToHit <= getOuterRadius()) {
+            glm::vec3 forward = rotation * Vectors::FRONT;
+            if (glm::dot(forward, direction) > 0.0f) {
+                face = MAX_Z_FACE;
+                surfaceNormal = -forward;
+            } else {
+                face = MIN_Z_FACE;
+                surfaceNormal = forward;
+            }
+            return true;
+        }
     }
 
-    return intersects;
+    return false;
+}
+
+bool Circle3DOverlay::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+                                               float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking) {
+    // Scale the dimensions by the diameter
+    glm::vec2 xyDimensions = getOuterRadius() * 2.0f * getDimensions();
+    glm::quat rotation = getWorldOrientation();
+    glm::vec3 position = getWorldPosition();
+
+    glm::quat inverseRot = glm::inverse(rotation);
+    glm::vec3 localOrigin = inverseRot * (origin - position);
+    glm::vec3 localVelocity = inverseRot * velocity;
+    glm::vec3 localAcceleration = inverseRot * acceleration;
+
+    if (findParabolaRectangleIntersection(localOrigin, localVelocity, localAcceleration, xyDimensions, parabolicDistance)) {
+        glm::vec3 localHitPosition = localOrigin + localVelocity * parabolicDistance + 0.5f * localAcceleration * parabolicDistance * parabolicDistance;
+        localHitPosition.x /= getDimensions().x;
+        localHitPosition.y /= getDimensions().y;
+        float distanceToHit = glm::length(localHitPosition);
+
+        if (getInnerRadius() <= distanceToHit && distanceToHit <= getOuterRadius()) {
+            float localIntersectionVelocityZ = localVelocity.z + localAcceleration.z * parabolicDistance;
+            glm::vec3 forward = rotation * Vectors::FRONT;
+            if (localIntersectionVelocityZ > 0.0f) {
+                face = MIN_Z_FACE;
+                surfaceNormal = forward;
+            } else {
+                face = MAX_Z_FACE;
+                surfaceNormal = -forward;
+            }
+            return true;
+        }
+    }
+
+    return false;
 }
 
 Circle3DOverlay* Circle3DOverlay::createClone() const {

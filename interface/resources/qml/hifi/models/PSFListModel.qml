@@ -33,7 +33,6 @@ ListModel {
 
     // QML fires the following changed handlers even when first instantiating the Item. So we need a guard against firing them too early.
     property bool initialized: false;
-    Component.onCompleted: initialized = true;
     onEndpointChanged: if (initialized) { getFirstPage('delayClear'); }
     onSortKeyChanged:  if (initialized) { getFirstPage('delayClear'); }
     onSearchFilterChanged: if (initialized) { getFirstPage('delayClear'); }
@@ -60,11 +59,41 @@ ListModel {
     // Override to return one property of data, and/or to transform the elements. Must return an array of model elements.
     property var processPage: function (data) { return data; }
 
-    property var listView; // Optional. For debugging.
+    property var listView; // Optional. For debugging, or for having the scroll handler automatically call getNextPage.
+    property var flickable: listView && (listView.flickableItem || listView);
+    // 2: get two pages before you need it (i.e. one full page before you reach the end).
+    // 1: equivalent to paging when reaching end (and not before).
+    // 0: don't getNextPage on scroll at all here. The application code will do it.
+    property real pageAhead: 2.0;
+    function needsEarlyYFetch() {
+         return flickable
+            && !flickable.atYBeginning
+            && (flickable.contentY - flickable.originY) >= (flickable.contentHeight - (pageAhead * flickable.height));
+    }
+    function needsEarlyXFetch() {
+        return flickable
+            && !flickable.atXBeginning
+            && (flickable.contentX - flickable.originX) >= (flickable.contentWidth - (pageAhead * flickable.width));
+    }
+    function getNextPageIfHorizontalScroll() {
+        if (needsEarlyXFetch()) { getNextPage(); }
+    }
+    function getNextPageIfVerticalScroll() {
+        if (needsEarlyYFetch()) { getNextPage(); }
+    }
+    Component.onCompleted: {
+        initialized = true;
+        if (flickable && pageAhead > 0.0) {
+            // Pun: Scrollers are usually one direction or another, such that only one of the following will actually fire.
+            flickable.contentXChanged.connect(getNextPageIfHorizontalScroll);
+            flickable.contentYChanged.connect(getNextPageIfVerticalScroll);
+        }
+    }
+
     property int totalPages: 0;
     property int totalEntries: 0;
     // Check consistency and call processPage.
-    function handlePage(error, response) {
+    function handlePage(error, response, cb) {
         var processed;
         console.debug('handlePage', listModelName, additionalFirstPageRequested, error, JSON.stringify(response));
         function fail(message) {
@@ -105,7 +134,9 @@ ListModel {
         if (additionalFirstPageRequested) {
             console.debug('deferred getFirstPage', listModelName);
             additionalFirstPageRequested = false;
-            getFirstPage('delayedClear');
+            getFirstPage('delayedClear', cb);
+        } else if (cb) {
+            cb();
         }
     }
     function debugView(label) {
@@ -118,7 +149,7 @@ ListModel {
 
     // Override either http or getPage.
     property var http; // An Item that has a request function.
-    property var getPage: function () {  // Any override MUST call handlePage(), above, even if results empty.
+    property var getPage: function (cb) {  // Any override MUST call handlePage(), above, even if results empty.
         if (!http) { return console.warn("Neither http nor getPage was set for", listModelName); }
         // If it is a path starting with slash, add the metaverseServer domain.
         var url = /^\//.test(endpoint) ? (Account.metaverseServerURL + endpoint) : endpoint;
@@ -136,12 +167,12 @@ ListModel {
         var parametersSeparator = /\?/.test(url) ? '&' : '?';
         url = url + parametersSeparator + parameters.join('&');
         console.debug('getPage', listModelName, currentPageToRetrieve);
-        http.request({uri: url}, handlePage);
+        http.request({uri: url}, cb ? function (error, result) { handlePage(error, result, cb); } : handlePage);
     }
 
     // Start the show by retrieving data according to `getPage()`.
     // It can be custom-defined by this item's Parent.
-    property var getFirstPage: function (delayClear) {
+    property var getFirstPage: function (delayClear, cb) {
         if (requestPending) {
             console.debug('deferring getFirstPage', listModelName);
             additionalFirstPageRequested = true;
@@ -151,7 +182,7 @@ ListModel {
         resetModel();
         requestPending = true;
         console.debug("getFirstPage", listModelName, currentPageToRetrieve);
-        getPage();
+        getPage(cb);
     }
     property bool additionalFirstPageRequested: false;
     property bool requestPending: false; // For de-bouncing getNextPage.

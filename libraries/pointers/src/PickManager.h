@@ -59,14 +59,15 @@ protected:
 
     std::shared_ptr<PickQuery> findPick(unsigned int uid) const;
     std::unordered_map<PickQuery::PickType, std::unordered_map<unsigned int, std::shared_ptr<PickQuery>>> _picks;
-    unsigned int _nextPickToUpdate[PickQuery::NUM_PICK_TYPES] { 0, 0 };
+    unsigned int _nextPickToUpdate[PickQuery::NUM_PICK_TYPES] { 0, 0, 0 };
     std::unordered_map<unsigned int, PickQuery::PickType> _typeMap;
     unsigned int _nextPickID { INVALID_PICK_ID + 1 };
 
     PickCacheOptimizer<PickRay> _rayPickCacheOptimizer;
     PickCacheOptimizer<StylusTip> _stylusPickCacheOptimizer;
+    PickCacheOptimizer<PickParabola> _parabolaPickCacheOptimizer;
 
-    static const unsigned int DEFAULT_PER_FRAME_TIME_BUDGET = 2 * USECS_PER_MSEC;
+    static const unsigned int DEFAULT_PER_FRAME_TIME_BUDGET = 3 * USECS_PER_MSEC;
     unsigned int _perFrameTimeBudget { DEFAULT_PER_FRAME_TIME_BUDGET };
 };
 

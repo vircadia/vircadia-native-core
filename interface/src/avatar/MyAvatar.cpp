@@ -262,6 +262,26 @@ void MyAvatar::setDominantHand(const QString& hand) {
     }
 }
 
+void MyAvatar::requestDisableHandTouch() {
+    std::lock_guard<std::mutex> guard(_disableHandTouchMutex);
+    _disableHandTouchCount++;
+    emit shouldDisableHandTouchChanged(_disableHandTouchCount > 0);
+}
+
+void MyAvatar::requestEnableHandTouch() {
+    std::lock_guard<std::mutex> guard(_disableHandTouchMutex);
+    _disableHandTouchCount = std::max(_disableHandTouchCount - 1, 0);
+    emit shouldDisableHandTouchChanged(_disableHandTouchCount > 0);
+}
+
+void MyAvatar::disableHandTouchForID(const QUuid& entityID) {
+    emit disableHandTouchForIDChanged(entityID, true);
+}
+
+void MyAvatar::enableHandTouchForID(const QUuid& entityID) {
+    emit disableHandTouchForIDChanged(entityID, false);
+}
+
 void MyAvatar::registerMetaTypes(ScriptEnginePointer engine) {
     QScriptValue value = engine->newQObject(this, QScriptEngine::QtOwnership, QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
     engine->globalObject().setProperty("MyAvatar", value);
@@ -557,8 +577,10 @@ void MyAvatar::updateChildCauterization(SpatiallyNestablePointer object, bool ca
 
 void MyAvatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
-
+    
     animateScaleChanges(deltaTime);
+
+    setFlyingEnabled(getFlyingEnabled());
 
     if (_cauterizationNeedsUpdate) {
         _cauterizationNeedsUpdate = false;
@@ -704,16 +726,18 @@ void MyAvatar::simulate(float deltaTime) {
                         properties.setQueryAACubeDirty();
                         properties.setLastEdited(now);
 
-                        packetSender->queueEditEntityMessage(PacketType::EntityEdit, entityTree, entity->getID(), properties);
+                        packetSender->queueEditEntityMessage(PacketType::EntityEdit, entityTree,
+                                                             entity->getID(), properties);
                         entity->setLastBroadcast(usecTimestampNow());
 
                         entity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
-                            EntityItemPointer entityDescendant = std::static_pointer_cast<EntityItem>(descendant);
-                            if (!entityDescendant->getClientOnly() && descendant->updateQueryAACube()) {
+                            EntityItemPointer entityDescendant = std::dynamic_pointer_cast<EntityItem>(descendant);
+                            if (entityDescendant && !entityDescendant->getClientOnly() && descendant->updateQueryAACube()) {
                                 EntityItemProperties descendantProperties;
                                 descendantProperties.setQueryAACube(descendant->getQueryAACube());
                                 descendantProperties.setLastEdited(now);
-                                packetSender->queueEditEntityMessage(PacketType::EntityEdit, entityTree, entityDescendant->getID(), descendantProperties);
+                                packetSender->queueEditEntityMessage(PacketType::EntityEdit, entityTree,
+                                                                     entityDescendant->getID(), descendantProperties);
                                 entityDescendant->setLastBroadcast(now); // for debug/physics status icons
                             }
                         });
@@ -1111,7 +1135,8 @@ void MyAvatar::saveData() {
     settings.setValue("collisionSoundURL", _collisionSoundURL);
     settings.setValue("useSnapTurn", _useSnapTurn);
     settings.setValue("userHeight", getUserHeight());
-    settings.setValue("enabledFlying", getFlyingEnabled());
+    settings.setValue("flyingDesktop", getFlyingDesktopPref());
+    settings.setValue("flyingHMD", getFlyingHMDPref());
 
     settings.endGroup();
 }
@@ -1261,7 +1286,13 @@ void MyAvatar::loadData() {
         settings.remove("avatarEntityData");
     }
     setAvatarEntityDataChanged(true);
-    setFlyingEnabled(settings.value("enabledFlying").toBool());
+
+    // Flying preferences must be loaded before calling setFlyingEnabled()
+    Setting::Handle<bool> firstRunVal { Settings::firstRun, true };
+    setFlyingDesktopPref(firstRunVal.get() ? true : settings.value("flyingDesktop").toBool());
+    setFlyingHMDPref(firstRunVal.get() ? false : settings.value("flyingHMD").toBool());
+    setFlyingEnabled(getFlyingEnabled());
+
     setDisplayName(settings.value("displayName").toString());
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
     setSnapTurn(settings.value("useSnapTurn", _useSnapTurn).toBool());
@@ -1587,14 +1618,16 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     emit skeletonModelURLChanged();
 }
 
-void MyAvatar::removeAvatarEntities() {
+void MyAvatar::removeAvatarEntities(const std::function<bool(const QUuid& entityID)>& condition) {
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (entityTree) {
         entityTree->withWriteLock([&] {
             AvatarEntityMap avatarEntities = getAvatarEntityData();
             for (auto entityID : avatarEntities.keys()) {
-                entityTree->deleteEntity(entityID, true, true);
+                if (!condition || condition(entityID)) {
+                    entityTree->deleteEntity(entityID, true, true);
+                }
             }
         });
     }
@@ -2027,6 +2060,8 @@ void MyAvatar::initAnimGraph() {
     } else {
         graphUrl = PathUtils::resourcesUrl("avatar/avatar-animation.json");
     }
+
+    emit animGraphUrlChanged(graphUrl);
 
     _skeletonModel->getRig().initAnimGraph(graphUrl);
     _currentAnimGraphUrl.set(graphUrl);
@@ -2802,6 +2837,12 @@ void MyAvatar::setFlyingEnabled(bool enabled) {
         return;
     }
 
+    if (qApp->isHMDMode()) {
+        setFlyingHMDPref(enabled);
+    } else {
+        setFlyingDesktopPref(enabled);
+    }
+
     _enableFlying = enabled;
 }
 
@@ -2817,7 +2858,33 @@ bool MyAvatar::isInAir() {
 
 bool MyAvatar::getFlyingEnabled() {
     // May return true even if client is not allowed to fly in the zone.
-    return _enableFlying;
+    return (qApp->isHMDMode() ? getFlyingHMDPref() : getFlyingDesktopPref());
+}
+
+void MyAvatar::setFlyingDesktopPref(bool enabled) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setFlyingDesktopPref", Q_ARG(bool, enabled));
+        return;
+    }
+
+    _flyingPrefDesktop = enabled;
+}
+
+bool MyAvatar::getFlyingDesktopPref() {
+    return _flyingPrefDesktop;
+}
+
+void MyAvatar::setFlyingHMDPref(bool enabled) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setFlyingHMDPref", Q_ARG(bool, enabled));
+        return;
+    }
+
+    _flyingPrefHMD = enabled;
+}
+
+bool MyAvatar::getFlyingHMDPref() {
+    return _flyingPrefHMD;
 }
 
 // Public interface for targetscale
@@ -3019,7 +3086,7 @@ static glm::vec3 dampenCgMovement(glm::vec3 cgUnderHeadHandsAvatarSpace, float b
 }
 
 // computeCounterBalance returns the center of gravity in Avatar space
-glm::vec3 MyAvatar::computeCounterBalance() const {
+glm::vec3 MyAvatar::computeCounterBalance() {
     struct JointMass {
         QString name;
         float weight;
@@ -3037,7 +3104,8 @@ glm::vec3 MyAvatar::computeCounterBalance() const {
     JointMass cgLeftHandMass(QString("LeftHand"), DEFAULT_AVATAR_LEFTHAND_MASS, glm::vec3(0.0f, 0.0f, 0.0f));
     JointMass cgRightHandMass(QString("RightHand"), DEFAULT_AVATAR_RIGHTHAND_MASS, glm::vec3(0.0f, 0.0f, 0.0f));
     glm::vec3 tposeHead = DEFAULT_AVATAR_HEAD_POS;
-    glm::vec3 tposeHips = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 tposeHips = DEFAULT_AVATAR_HIPS_POS;
+    glm::vec3 tposeRightFoot = DEFAULT_AVATAR_RIGHTFOOT_POS;
 
     if (_skeletonModel->getRig().indexOfJoint(cgHeadMass.name) != -1) {
         cgHeadMass.position = getAbsoluteJointTranslationInObjectFrame(_skeletonModel->getRig().indexOfJoint(cgHeadMass.name));
@@ -3055,6 +3123,9 @@ glm::vec3 MyAvatar::computeCounterBalance() const {
     }
     if (_skeletonModel->getRig().indexOfJoint("Hips") != -1) {
         tposeHips = getAbsoluteDefaultJointTranslationInObjectFrame(_skeletonModel->getRig().indexOfJoint("Hips"));
+    }
+    if (_skeletonModel->getRig().indexOfJoint("RightFoot") != -1) {
+        tposeRightFoot = getAbsoluteDefaultJointTranslationInObjectFrame(_skeletonModel->getRig().indexOfJoint("RightFoot"));
     }
 
     // find the current center of gravity position based on head and hand moments
@@ -3076,9 +3147,12 @@ glm::vec3 MyAvatar::computeCounterBalance() const {
     glm::vec3 counterBalancedCg = (1.0f / DEFAULT_AVATAR_HIPS_MASS) * counterBalancedForHead;
 
     // find the height of the hips
+    const float UPPER_LEG_FRACTION = 0.3333f;
     glm::vec3 xzDiff((cgHeadMass.position.x - counterBalancedCg.x), 0.0f, (cgHeadMass.position.z - counterBalancedCg.z));
     float headMinusHipXz = glm::length(xzDiff);
     float headHipDefault = glm::length(tposeHead - tposeHips);
+    float hipFootDefault = tposeHips.y - tposeRightFoot.y;
+    float sitSquatThreshold = tposeHips.y - (UPPER_LEG_FRACTION * hipFootDefault);
     float hipHeight = 0.0f;
     if (headHipDefault > headMinusHipXz) {
         hipHeight = sqrtf((headHipDefault * headHipDefault) - (headMinusHipXz * headMinusHipXz));
@@ -3090,6 +3164,10 @@ glm::vec3 MyAvatar::computeCounterBalance() const {
     if (counterBalancedCg.y > (tposeHips.y + 0.05f)) {
         // if the height is higher than default hips, clamp to default hips
         counterBalancedCg.y = tposeHips.y + 0.05f;
+    } else if (counterBalancedCg.y < sitSquatThreshold) {
+        //do a height reset
+        setResetMode(true);
+        _follow.activate(FollowHelper::Vertical);
     }
     return counterBalancedCg;
 }
@@ -3139,7 +3217,7 @@ static void drawBaseOfSupport(float baseOfSupportScale, float footLocal, glm::ma
 // this function finds the hips position using a center of gravity model that
 // balances the head and hands with the hips over the base of support
 // returns the rotation (-z forward) and position of the Avatar in Sensor space
-glm::mat4 MyAvatar::deriveBodyUsingCgModel() const {
+glm::mat4 MyAvatar::deriveBodyUsingCgModel() {
     glm::mat4 sensorToWorldMat = getSensorToWorldMatrix();
     glm::mat4 worldToSensorMat = glm::inverse(sensorToWorldMat);
     auto headPose = getControllerPoseInSensorFrame(controller::Action::HEAD);
@@ -3157,7 +3235,7 @@ glm::mat4 MyAvatar::deriveBodyUsingCgModel() const {
     }
 
     // get the new center of gravity
-    const glm::vec3 cgHipsPosition = computeCounterBalance();
+    glm::vec3 cgHipsPosition = computeCounterBalance();
 
     // find the new hips rotation using the new head-hips axis as the up axis
     glm::mat4 avatarHipsMat = computeNewHipsMatrix(glmExtractRotation(avatarHeadMat), extractTranslation(avatarHeadMat), cgHipsPosition);
@@ -3551,6 +3629,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
         qApp->getCamera().getMode() != CAMERA_MODE_MIRROR) {
         if (!isActive(Rotation) && (shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
             activate(Rotation);
+            myAvatar.setHeadControllerFacingMovingAverage(myAvatar._headControllerFacing);
         }
         if (myAvatar.getCenterOfGravityModelEnabled()) {
             if (!isActive(Horizontal) && (shouldActivateHorizontalCG(myAvatar) || hasDriveInput)) {
@@ -3568,6 +3647,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
     } else {
         if (!isActive(Rotation) && getForceActivateRotation()) {
             activate(Rotation);
+            myAvatar.setHeadControllerFacingMovingAverage(myAvatar._headControllerFacing);
             setForceActivateRotation(false);
         }
         if (!isActive(Horizontal) && getForceActivateHorizontal()) {

@@ -11,16 +11,32 @@
    TRIGGER_OFF_VALUE, makeDispatcherModuleParameters, entityIsGrabbable, makeRunningValues, NEAR_GRAB_RADIUS,
    findGroupParent, Vec3, cloneEntity, entityIsCloneable, propsAreCloneDynamic, HAPTIC_PULSE_STRENGTH,
    HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE, findHandChildEntities, TEAR_AWAY_DISTANCE, MSECS_PER_SEC, TEAR_AWAY_CHECK_TIME,
-   TEAR_AWAY_COUNT, distanceBetweenPointAndEntityBoundingBox, print, Uuid, highlightTargetEntity, unhighlightTargetEntity
+   TEAR_AWAY_COUNT, distanceBetweenPointAndEntityBoundingBox, print, Uuid, highlightTargetEntity, unhighlightTargetEntity,
+   distanceBetweenEntityLocalPositionAndBoundingBox, GRAB_POINT_SPHERE_OFFSET
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/cloneEntityUtils.js");
+Script.include("/~/system/libraries/controllers.js");
 
 (function() {
 
     // XXX this.ignoreIK = (grabbableData.ignoreIK !== undefined) ? grabbableData.ignoreIK : true;
     // XXX this.kinematicGrab = (grabbableData.kinematic !== undefined) ? grabbableData.kinematic : NEAR_GRABBING_KINEMATIC;
+
+    function getGrabOffset(handController) {
+        var offset = GRAB_POINT_SPHERE_OFFSET;
+        if (handController === Controller.Standard.LeftHand) {
+            offset = {
+                x: -GRAB_POINT_SPHERE_OFFSET.x,
+                y: GRAB_POINT_SPHERE_OFFSET.y,
+                z: GRAB_POINT_SPHERE_OFFSET.z
+            };
+        }
+
+        offset.y = -GRAB_POINT_SPHERE_OFFSET.y;
+        return Vec3.multiply(MyAvatar.sensorToWorldScale, offset);
+    }
 
     function NearParentingGrabEntity(hand) {
         this.hand = hand;
@@ -172,12 +188,11 @@ Script.include("/~/system/libraries/cloneEntityUtils.js");
             if (now - this.lastUnequipCheckTime > MSECS_PER_SEC * TEAR_AWAY_CHECK_TIME) {
                 this.lastUnequipCheckTime = now;
                 if (props.parentID === MyAvatar.SELF_ID) {
-                    var sensorScaleFactor = MyAvatar.sensorToWorldScale;
-                    var handPosition = controllerData.controllerLocations[this.hand].position;
-                    var dist = distanceBetweenPointAndEntityBoundingBox(handPosition, props);
-                    var distance = Vec3.distance(props.position, handPosition);
-                    if ((dist > TEAR_AWAY_DISTANCE) ||
-                        (distance > NEAR_GRAB_RADIUS * sensorScaleFactor)) {
+                    var tearAwayDistance = TEAR_AWAY_DISTANCE * MyAvatar.sensorToWorldScale;
+                    var controllerIndex = (this.hand === LEFT_HAND ? Controller.Standard.LeftHand : Controller.Standard.RightHand);
+                    var controllerGrabOffset = getGrabOffset(controllerIndex);
+                    var distance = distanceBetweenEntityLocalPositionAndBoundingBox(props, controllerGrabOffset);
+                    if (distance > tearAwayDistance) {
                         this.autoUnequipCounter++;
                     } else {
                         this.autoUnequipCounter = 0;
