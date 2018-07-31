@@ -264,22 +264,21 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
         char jobName[64];
         sprintf(jobName, "ShadowCascadeSetup%d", i);
         const auto cascadeSetupOutput = task.addJob<RenderShadowCascadeSetup>(jobName, i, _cullFunctor, tagBits, tagMask);
-        const auto shadowRenderFilter = cascadeSetupOutput.getN<RenderShadowCascadeSetup::Outputs>(0);
-        const auto shadowBoundsFilter = cascadeSetupOutput.getN<RenderShadowCascadeSetup::Outputs>(1);
+        const auto shadowFilter = cascadeSetupOutput.getN<RenderShadowCascadeSetup::Outputs>(0);
         auto antiFrustum = render::Varying(ViewFrustumPointer());
-        cascadeFrustums[i] = cascadeSetupOutput.getN<RenderShadowCascadeSetup::Outputs>(2);
+        cascadeFrustums[i] = cascadeSetupOutput.getN<RenderShadowCascadeSetup::Outputs>(1);
         if (i > 1) {
             antiFrustum = cascadeFrustums[i - 2];
         }
 
         // CPU jobs: finer grained culling
-        const auto cullInputs = CullShapeBounds::Inputs(sortedShapes, shadowRenderFilter, shadowBoundsFilter, antiFrustum).asVarying();
-        const auto culledShadowItemsAndBounds = task.addJob<CullShapeBounds>("CullShadowCascade", cullInputs, shadowCullFunctor, RenderDetails::SHADOW);
+        const auto cullInputs = CullShadowBounds::Inputs(sortedShapes, shadowFilter, antiFrustum).asVarying();
+        const auto culledShadowItemsAndBounds = task.addJob<CullShadowBounds>("CullShadowCascade", cullInputs, shadowCullFunctor);
 
         // GPU jobs: Render to shadow map
         sprintf(jobName, "RenderShadowMap%d", i);
         task.addJob<RenderShadowMap>(jobName, culledShadowItemsAndBounds, shapePlumber, i);
-        task.addJob<RenderShadowCascadeTeardown>("ShadowCascadeTeardown", shadowRenderFilter);
+        task.addJob<RenderShadowCascadeTeardown>("ShadowCascadeTeardown", shadowFilter);
     }
 
     task.addJob<RenderShadowTeardown>("ShadowTeardown", setupOutput);
@@ -412,11 +411,8 @@ void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderCon
 
     const auto globalShadow = lightStage->getCurrentKeyShadow();
     if (globalShadow && _cascadeIndex<globalShadow->getCascadeCount()) {
-        auto baseFilter = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(_tagBits, _tagMask);
         // Second item filter is to filter items to keep in shadow frustum computation (here we need to keep shadow receivers)
-        output.edit1() = baseFilter;
-        // First item filter is to filter items to render in shadow map (so only keep casters)
-        output.edit0() = baseFilter.withShadowCaster();
+        output.edit0() = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(_tagBits, _tagMask);
 
         // Set the keylight render args
         auto& cascade = globalShadow->getCascade(_cascadeIndex);
@@ -429,11 +425,10 @@ void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderCon
         texelSize *= minTexelCount;
         _cullFunctor._minSquareSize = texelSize * texelSize;
 
-        output.edit2() = cascadeFrustum;
+        output.edit1() = cascadeFrustum;
     } else {
         output.edit0() = ItemFilter::Builder::nothing();
-        output.edit1() = ItemFilter::Builder::nothing();
-        output.edit2() = ViewFrustumPointer();
+        output.edit1() = ViewFrustumPointer();
     }
 }
 
@@ -455,4 +450,99 @@ void RenderShadowTeardown::run(const render::RenderContextPointer& renderContext
     assert(args->hasViewFrustum());
     // Reset the render args
     args->_renderMode = input.get0();
+}
+
+static AABox& merge(AABox& box, const AABox& otherBox, const glm::vec3& dir) {
+    if (!otherBox.isInvalid()) {
+        int vertexIndex = 0;
+        vertexIndex |= ((dir.z > 0.0f) & 1) << 2;
+        vertexIndex |= ((dir.y > 0.0f) & 1) << 1;
+        vertexIndex |= ((dir.x < 0.0f) & 1);
+        auto vertex = otherBox.getVertex((BoxVertex)vertexIndex);
+        if (!box.isInvalid()) {
+            const auto boxCenter = box.calcCenter();
+            vertex -= boxCenter;
+            vertex = dir * glm::max(0.0f, glm::dot(vertex, dir));
+            vertex += boxCenter;
+        }
+        box += vertex;
+    }
+    return box;
+}
+
+void CullShadowBounds::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
+    assert(renderContext->args);
+    assert(renderContext->args->hasViewFrustum());
+    RenderArgs* args = renderContext->args;
+
+    const auto& inShapes = inputs.get0();
+    const auto& filter = inputs.get1();
+    ViewFrustumPointer antiFrustum;
+    auto& outShapes = outputs.edit0();
+    auto& outBounds = outputs.edit1();
+
+    if (!inputs[3].isNull()) {
+        antiFrustum = inputs.get2();
+    }
+    outShapes.clear();
+    outBounds = AABox();
+
+    if (!filter.selectsNothing()) {
+        auto& details = args->_details.edit(RenderDetails::SHADOW);
+        render::CullTest test(_cullFunctor, args, details, antiFrustum);
+        auto scene = args->_scene;
+        auto lightStage = renderContext->_scene->getStage<LightStage>();
+        assert(lightStage);
+        const auto globalLightDir = lightStage->getCurrentKeyLight()->getDirection();
+        auto castersFilter = render::ItemFilter::Builder(filter).withShadowCaster().build();
+        const auto& receiversFilter = filter;
+
+        for (auto& inItems : inShapes) {
+            auto key = inItems.first;
+            auto outItems = outShapes.find(key);
+            if (outItems == outShapes.end()) {
+                outItems = outShapes.insert(std::make_pair(key, ItemBounds{})).first;
+                outItems->second.reserve(inItems.second.size());
+            }
+
+            details._considered += (int)inItems.second.size();
+
+            if (antiFrustum == nullptr) {
+                for (auto& item : inItems.second) {
+                    if (test.solidAngleTest(item.bound) && test.frustumTest(item.bound)) {
+                        const auto shapeKey = scene->getItem(item.id).getKey();
+                        if (castersFilter.test(shapeKey)) {
+                            outItems->second.emplace_back(item);
+                            outBounds += item.bound;
+                        } else if (receiversFilter.test(shapeKey)) {
+                            // Receivers are not rendered but they still increase the bounds of the shadow scene
+                            // although only in the direction of the light direction so as to have a correct far
+                            // distance without decreasing the near distance.
+                            merge(outBounds, item.bound, globalLightDir);
+                        }
+                    }
+                }
+            } else {
+                for (auto& item : inItems.second) {
+                    if (test.solidAngleTest(item.bound) && test.frustumTest(item.bound) && test.antiFrustumTest(item.bound)) {
+                        const auto shapeKey = scene->getItem(item.id).getKey();
+                        if (castersFilter.test(shapeKey)) {
+                            outItems->second.emplace_back(item);
+                            outBounds += item.bound;
+                        } else if (receiversFilter.test(shapeKey)) {
+                            // Receivers are not rendered but they still increase the bounds of the shadow scene
+                            // although only in the direction of the light direction so as to have a correct far
+                            // distance without decreasing the near distance.
+                            merge(outBounds, item.bound, globalLightDir);
+                        }
+                    }
+                }
+            }
+            details._rendered += (int)outItems->second.size();
+        }
+
+        for (auto& items : outShapes) {
+            items.second.shrink_to_fit();
+        }
+    }
 }
