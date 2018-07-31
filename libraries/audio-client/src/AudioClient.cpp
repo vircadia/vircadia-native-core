@@ -489,10 +489,10 @@ bool nativeFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
 #if defined(Q_OS_ANDROID)
     // Using the HW sample rate (AUDIO_INPUT_FLAG_FAST) in some samsung phones causes a low volume at input stream
     // Changing the sample rate forces a resampling that (in samsung) amplifies +18 dB
-    QAndroidJniObject brand =  QAndroidJniObject::getStaticObjectField<jstring>("android/os/Build", "BRAND");
-    if (audioDevice == QAudioDeviceInfo::defaultInputDevice() && brand.toString().contains("samsung", Qt::CaseInsensitive)) {
-        audioFormat.setSampleRate(24000);
-    }
+//    QAndroidJniObject brand =  QAndroidJniObject::getStaticObjectField<jstring>("android/os/Build", "BRAND");
+//    if (audioDevice == QAudioDeviceInfo::defaultInputDevice() && brand.toString().contains("samsung", Qt::CaseInsensitive)) {
+//        audioFormat.setSampleRate(24000);
+//    }
 #endif
 
     if (!audioDevice.isFormatSupported(audioFormat)) {
@@ -1848,7 +1848,9 @@ const float AudioClient::CALLBACK_ACCELERATOR_RATIO = IsWindows8OrGreater() ? 1.
 const float AudioClient::CALLBACK_ACCELERATOR_RATIO = 2.0f;
 #endif
 
-#ifdef Q_OS_LINUX
+#ifdef Q_OS_ANDROID
+const float AudioClient::CALLBACK_ACCELERATOR_RATIO = 1.0f;
+#elif defined(Q_OS_LINUX)
 const float AudioClient::CALLBACK_ACCELERATOR_RATIO = 2.0f;
 #endif
 
