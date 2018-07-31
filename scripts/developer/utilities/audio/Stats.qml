@@ -17,7 +17,7 @@ import "qrc:////qml//controls-uit" as HifiControls
 Column {
     id: stats
     width: parent.width
-    property bool showGraphs: toggleGraphs.checked
+    property alias showGraphs: toggleGraphs.toggle
 
     Item {
         width: parent.width
@@ -25,10 +25,10 @@ Column {
 
         HifiControls.Button {
             id: toggleGraphs
-            checked: false
+            property bool toggle: false
             anchors.horizontalCenter: parent.horizontalCenter
-            text: checked ? "Hide graphs" : "Show graphs"
-            onClicked: function() { checked = !checked; }
+            text: toggle ? "Hide graphs" : "Show graphs"
+            onClicked: { toggle = !toggle;}
         }
     }
 
