@@ -241,7 +241,7 @@ void TestRailInterface::processDirectoryPython(const QString& directory,
             // Now we push the parent_id, and recursively process each directory
             stream << "parent_ids.push(section['id'])\n\n";
             processDirectoryPython(nextDirectory, stream, userGitHub, branchGitHub);
-        } else if (objectName == "test.js" || objectName == "testStory.js") {
+        } else if (objectName == "test.js") {
             processTestPython(nextDirectory, stream, userGitHub, branchGitHub);
         }
     }
