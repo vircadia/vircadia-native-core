@@ -18,6 +18,8 @@ class TestRailSelectorWindow : public QDialog, public Ui::TestRailSelectorWindow
 public:
     TestRailSelectorWindow(QWidget* parent = Q_NULLPTR);
 
+    void reset();
+
     bool getUserCancelled();
 
     void setURL(const QString& user);

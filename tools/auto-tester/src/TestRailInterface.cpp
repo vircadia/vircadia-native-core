@@ -190,6 +190,8 @@ void TestRailInterface::createStackDotPyScript() {
 }
 
 void TestRailInterface::requestTestRailDataFromUser() {
+    // Make sure correct fields are enabled before calling
+    _testRailSelectorWindow.reset();
     _testRailSelectorWindow.exec();
 
     if (_testRailSelectorWindow.getUserCancelled()) {
@@ -428,10 +430,12 @@ void TestRailInterface::createTestSuitePython(const QString& testDirectory,
     }
 
     requestTestRailDataFromUser();
-    getMilestonesFromTestRail();
     createTestRailDotPyScript();
     createStackDotPyScript();
- }
+
+    // TestRail will be updated after the process initiated by getMilestonesFromTestRail has completed
+    getMilestonesFromTestRail();
+}
 
  void TestRailInterface::createTestSuiteXML(const QString& testDirectory,
                                             const QString& outputDirectory,
@@ -659,10 +663,13 @@ void TestRailInterface::processTestPython(const QString& fullDirectory,
         title += " / " + words[i];
     }
 
+    // To create the path to test.md, prefix by tests, and remove blanks
+    QString pathToTestMD = QString("/tests/") + title.remove(" ");
+
     stream << "section_id = parent_ids.peek()\n";
 
     QString testMDName = QString("https://github.com/") + userGitHub + "/hifi_tests/blob/" + branchGitHub +
-                         "/tests/content/entity/light/point/create/test.md";
+                         pathToTestMD + "/test.md ";
 
     QString testContent = QString("Execute instructions in [THIS TEST](") + testMDName + ")";
     QString testExpected = QString("Refer to the expected result in the linked description.");
