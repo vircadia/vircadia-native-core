@@ -70,7 +70,7 @@ void TextEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] () {
         withWriteLock([&] {
             _dimensions = entity->getScaledDimensions();
-            updateModelTransform();
+            updateModelTransformAndBound();
             _renderTransform = getModelTransform();
         });
     });

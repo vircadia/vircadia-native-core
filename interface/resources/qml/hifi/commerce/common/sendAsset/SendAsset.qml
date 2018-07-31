@@ -398,7 +398,7 @@ Item {
             http: root.http;
             listModelName: root.listModelName;
             endpoint: "/api/v1/users?filter=connections";
-            itemsPerPage: 8;
+            itemsPerPage: 9;
             listView: connectionsList;
             processPage: function (data) {
                 return data.users;
@@ -520,7 +520,6 @@ Item {
                     visible: !connectionsLoading.visible;
                     clip: true;
                     model: connectionsModel;
-                    onAtYEndChanged: if (connectionsList.atYEnd && !connectionsList.atYBeginning) { connectionsModel.getNextPage(); }
                     snapMode: ListView.SnapToItem;
                     // Anchors
                     anchors.fill: parent;

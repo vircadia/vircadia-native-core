@@ -42,14 +42,14 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
         mProtocol = protocol;
         mLastLocation = lastLocation;
         domainProvider = new UserStoryDomainProvider(mProtocol);
-        loadDomains("");
+        loadDomains("", true);
     }
 
     public void setListener(AdapterListener adapterListener) {
         mAdapterListener = adapterListener;
     }
 
-    public void loadDomains(String filterText) {
+    public void loadDomains(String filterText, boolean forceRefresh) {
         domainProvider.retrieve(filterText, new DomainProvider.DomainCallback() {
             @Override
             public void retrieveOk(List<Domain> domain) {
@@ -76,7 +76,7 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
                 Log.e("DOMAINS", message, e);
                 if (mAdapterListener != null) mAdapterListener.onError(e, message);
             }
-        });
+        }, forceRefresh);
     }
 
     private void overrideDefaultThumbnails(List<Domain> domain) {

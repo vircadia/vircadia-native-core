@@ -239,6 +239,7 @@ enum class EntityVersion : PacketVersion {
     CollisionMask16Bytes,
     YieldSimulationOwnership,
     ParticleEntityFix,
+    ParticleSpin,
     ScriptGlmVectors
 };
 

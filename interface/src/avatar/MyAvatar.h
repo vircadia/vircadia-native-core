@@ -33,6 +33,7 @@
 #include "MyCharacterController.h"
 #include "RingBufferHistory.h"
 #include <ThreadSafeValueCache.h>
+#include <EntityItem.h>
 
 class AvatarActionHold;
 class ModelItemID;
@@ -505,6 +506,28 @@ public:
      * @returns {boolean} 
      */
     Q_INVOKABLE bool getHMDLeanRecenterEnabled() const { return _hmdLeanRecenterEnabled; }
+    /**jsdoc
+     * Request to enable hand touch effect globally
+     * @function MyAvatar.requestEnableHandTouch
+     */
+    Q_INVOKABLE void requestEnableHandTouch();
+    /**jsdoc
+     * Request to disable hand touch effect globally
+     * @function MyAvatar.requestDisableHandTouch
+     */
+    Q_INVOKABLE void requestDisableHandTouch();
+    /**jsdoc
+     * Disables hand touch effect on a specific entity
+     * @function MyAvatar.disableHandTouchForID
+     * @param {Uuid} entityID - ID of the entity that will disable hand touch effect
+     */
+    Q_INVOKABLE void disableHandTouchForID(const QUuid& entityID);
+    /**jsdoc
+     * Enables hand touch effect on a specific entity
+     * @function MyAvatar.enableHandTouchForID
+     * @param {Uuid} entityID - ID of the entity that will enable hand touch effect
+     */
+    Q_INVOKABLE void enableHandTouchForID(const QUuid& entityID);
 
     bool useAdvancedMovementControls() const { return _useAdvancedMovementControls.get(); }
     void setUseAdvancedMovementControls(bool useAdvancedMovementControls)
@@ -589,6 +612,8 @@ public:
     eyeContactTarget getEyeContactTarget();
 
     const MyHead* getMyHead() const;
+
+    Q_INVOKABLE void toggleSmoothPoleVectors() { _skeletonModel->getRig().toggleSmoothPoleVectors(); };
 
     /**jsdoc
      * Get the current position of the avatar's "Head" joint.
@@ -883,6 +908,7 @@ public:
     virtual void rebuildCollisionShape() override;
 
     const glm::vec2& getHeadControllerFacingMovingAverage() const { return _headControllerFacingMovingAverage; }
+    void setHeadControllerFacingMovingAverage(glm::vec2 currentHeadControllerFacing) { _headControllerFacingMovingAverage = currentHeadControllerFacing; }
     float getCurrentStandingHeight() const { return _currentStandingHeight; }
     void setCurrentStandingHeight(float newMode) { _currentStandingHeight = newMode; }
     const glm::quat getAverageHeadRotation() const { return _averageHeadRotation; }
@@ -903,7 +929,7 @@ public:
     * @returns {object[]}
     */
     Q_INVOKABLE QVariantList getAvatarEntitiesVariant();
-    void removeAvatarEntities();
+    void removeAvatarEntities(const std::function<bool(const QUuid& entityID)>& condition = {});
 
     /**jsdoc
      * @function MyAvatar.isFlying
@@ -928,6 +954,30 @@ public:
      * @returns {boolean}
      */
     Q_INVOKABLE bool getFlyingEnabled();
+
+    /**jsdoc
+     * @function MyAvatar.setFlyingDesktopPref
+     * @param {boolean} enabled
+     */
+    Q_INVOKABLE void setFlyingDesktopPref(bool enabled);
+
+    /**jsdoc
+     * @function MyAvatar.getFlyingDesktopPref
+     * @returns {boolean}
+     */
+    Q_INVOKABLE bool getFlyingDesktopPref();
+
+    /**jsdoc
+     * @function MyAvatar.setFlyingDesktopPref
+     * @param {boolean} enabled
+     */
+    Q_INVOKABLE void setFlyingHMDPref(bool enabled);
+
+    /**jsdoc
+     * @function MyAvatar.getFlyingDesktopPref
+     * @returns {boolean}
+     */
+    Q_INVOKABLE bool getFlyingHMDPref();
 
 
     /**jsdoc
@@ -993,12 +1043,12 @@ public:
     // results are in sensor frame (-z forward)
     glm::mat4 deriveBodyFromHMDSensor() const;
 
-    glm::vec3 computeCounterBalance() const;
+    glm::vec3 computeCounterBalance();
 
     // derive avatar body position and orientation from using the current HMD Sensor location in relation to the previous
     // location of the base of support of the avatar.
     // results are in sensor frame (-z foward)
-    glm::mat4 deriveBodyUsingCgModel() const;
+    glm::mat4 deriveBodyUsingCgModel();
 
     /**jsdoc
      * @function MyAvatar.isUp
@@ -1391,6 +1441,23 @@ signals:
      */
     void scaleChanged();
 
+    /**jsdoc
+     * Triggered when hand touch is globally enabled or disabled
+     * @function MyAvatar.shouldDisableHandTouchChanged
+     * @param {boolean} shouldDisable
+     * @returns {Signal}
+     */
+    void shouldDisableHandTouchChanged(bool shouldDisable);
+
+    /**jsdoc
+     * Triggered when hand touch is enabled or disabled for an specific entity
+     * @function MyAvatar.disableHandTouchForIDChanged
+     * @param {Uuid} entityID - ID of the entity that will enable hand touch effect
+     * @param {boolean} disable
+     * @returns {Signal}
+     */
+    void disableHandTouchForIDChanged(const QUuid& entityID, bool disable);
+
 private slots:
     void leaveDomain();
 
@@ -1462,6 +1529,8 @@ private:
     std::bitset<MAX_DRIVE_KEYS> _disabledDriveKeys;
 
     bool _enableFlying { false };
+    bool _flyingPrefDesktop { true };
+    bool _flyingPrefHMD { false };
     bool _wasPushing { false };
     bool _isPushing { false };
     bool _isBeingPushed { false };
@@ -1627,6 +1696,7 @@ private:
     // all poses are in sensor-frame
     std::map<controller::Action, controller::Pose> _controllerPoseMap;
     mutable std::mutex _controllerPoseMapMutex;
+    mutable std::mutex _disableHandTouchMutex;
 
     bool _centerOfGravityModelEnabled { true };
     bool _hmdLeanRecenterEnabled { true };
@@ -1667,6 +1737,7 @@ private:
     bool _shouldLoadScripts { false };
 
     bool _haveReceivedHeightLimitsFromDomain { false };
+    int _disableHandTouchCount { 0 };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

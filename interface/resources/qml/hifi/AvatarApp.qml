@@ -244,7 +244,7 @@ Rectangle {
             var avatarSettings = {
                 dominantHand : settings.dominantHandIsLeft ? 'left' : 'right',
                 collisionsEnabled : settings.avatarCollisionsOn,
-                animGraphUrl : settings.avatarAnimationJSON,
+                animGraphOverrideUrl : settings.avatarAnimationOverrideJSON,
                 collisionSoundUrl : settings.avatarCollisionSoundUrl
             };
 
@@ -480,7 +480,7 @@ Rectangle {
             MouseArea {
                 anchors.fill: parent
                 onClicked: {
-                    popup.showSpecifyAvatarUrl(function() {
+                    popup.showSpecifyAvatarUrl(currentAvatar.avatarUrl, function() {
                         var url = popup.inputText.text;
                         emitSendToScript({'method' : 'applyExternalAvatar', 'avatarURL' : url})
                     }, function(link) {

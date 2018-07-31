@@ -95,6 +95,7 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
         slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), Slot::MAP::LIGHT_AMBIENT_MAP));
         slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), Slot::MAP::FADE_MASK));
         slotBindings.insert(gpu::Shader::Binding(std::string("fadeParametersBuffer"), Slot::BUFFER::FADE_PARAMETERS));
+        slotBindings.insert(gpu::Shader::Binding(std::string("fadeObjectParametersBuffer"), Slot::BUFFER::FADE_OBJECT_PARAMETERS));
         slotBindings.insert(gpu::Shader::Binding(std::string("hazeBuffer"), Slot::BUFFER::HAZE_MODEL));
 
         if (key.isTranslucent()) {
@@ -124,6 +125,7 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     locations->lightAmbientMapUnit = program->getTextures().findLocation("skyboxMap");
     locations->fadeMaskTextureUnit = program->getTextures().findLocation("fadeMaskMap");
     locations->fadeParameterBufferUnit = program->getUniformBuffers().findLocation("fadeParametersBuffer");
+    locations->fadeObjectParameterBufferUnit = program->getUniformBuffers().findLocation("fadeObjectParametersBuffer");
     locations->hazeParameterBufferUnit = program->getUniformBuffers().findLocation("hazeBuffer");
     if (key.isTranslucent()) {
         locations->lightClusterGridBufferUnit = program->getUniformBuffers().findLocation("clusterGridBuffer");
