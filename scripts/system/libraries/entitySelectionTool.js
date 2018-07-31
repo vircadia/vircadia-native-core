@@ -763,7 +763,6 @@ SelectionDisplay = (function() {
     }
     function makeClickHandler(hand) {
         return function (clicked) {
-            print("DBACK TEST makeClickHandler " + hand + " " + clicked);
             // Don't allow both hands to trigger at the same time
             if (that.triggered() && hand !== that.triggeredHand) {
                 return;
