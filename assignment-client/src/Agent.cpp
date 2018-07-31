@@ -336,7 +336,6 @@ void Agent::scriptRequestFinished() {
         }
 
         setFinished(true);
-        ThreadedAssignment::aboutToFinish();
     }
 
     request->deleteLater();
@@ -499,7 +498,6 @@ void Agent::executeScript() {
     DependencyManager::destroy<RecordingScriptingInterface>();
 
     setFinished(true);
-    ThreadedAssignment::aboutToFinish();
 }
 
 QUuid Agent::getSessionUUID() const {
@@ -827,14 +825,6 @@ void Agent::processAgentAvatarAudio() {
 void Agent::aboutToFinish() {
     setIsAvatar(false);// will stop timers for sending identity packets
 
-    // If script engine not started yet then finish up, else will be done when
-    // script engine exits.
-    if (_scriptEngine) {
-        _scriptEngine->stop();
-    } else {
-        ThreadedAssignment::aboutToFinish();
-    }
-
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(nullptr);
 
@@ -862,5 +852,11 @@ void Agent::aboutToFinish() {
     if (_codec && _encoder) {
         _codec->releaseEncoder(_encoder);
         _encoder = nullptr;
+    }
+}
+
+void Agent::stop() {
+    if (_scriptEngine) {
+        _scriptEngine->stop();
     }
 }

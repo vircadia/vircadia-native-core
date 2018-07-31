@@ -72,7 +72,6 @@ void EntityServer::aboutToFinish() {
     DependencyManager::get<ResourceManager>()->cleanup();
 
     OctreeServer::aboutToFinish();
-    ThreadedAssignment::aboutToFinish();
 }
 
 void EntityServer::handleEntityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {

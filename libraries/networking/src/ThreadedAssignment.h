@@ -25,7 +25,7 @@ public:
     ~ThreadedAssignment() { stop(); }
 
     void setFinished(bool isFinished);
-    virtual void aboutToFinish() { emit finished(); };
+    virtual void aboutToFinish() { };
     void addPacketStatsAndSendStatsPacket(QJsonObject statsObject);
 
 public slots:

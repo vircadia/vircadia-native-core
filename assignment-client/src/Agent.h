@@ -97,6 +97,12 @@ public slots:
      */
     bool isAvatar() const { return _isAvatar; }
 
+    /**jsdoc
+    * @function Agent.stop
+    * @deprecated This function is being removed from the API.
+    */
+    Q_INVOKABLE virtual void stop() override;
+
 private slots:
     void requestScript();
     void scriptRequestFinished();

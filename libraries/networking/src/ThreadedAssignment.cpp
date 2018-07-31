@@ -66,6 +66,8 @@ void ThreadedAssignment::setFinished(bool isFinished) {
 
             // call our virtual aboutToFinish method - this gives the ThreadedAssignment subclass a chance to cleanup
             aboutToFinish();
+
+            emit finished();
         }
     }
 }
@@ -118,7 +120,7 @@ void ThreadedAssignment::checkInWithDomainServerOrExit() {
     if (_numQueuedCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
         qCDebug(networking) << "At least" << MAX_SILENT_DOMAIN_SERVER_CHECK_INS << "have been queued without a response from domain-server"
             << "Stopping the current assignment";
-        setFinished(true);
+        stop();
     } else {
         auto nodeList = DependencyManager::get<NodeList>();
         QMetaObject::invokeMethod(nodeList.data(), "sendDomainServerCheckIn");
@@ -130,5 +132,5 @@ void ThreadedAssignment::checkInWithDomainServerOrExit() {
 
 void ThreadedAssignment::domainSettingsRequestFailed() {
     qCDebug(networking) << "Failed to retreive settings object from domain-server. Bailing on assignment.";
-    setFinished(true);
+    stop();
 }
