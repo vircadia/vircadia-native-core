@@ -159,7 +159,7 @@ EntityItemID EntityTreeElement::findRayIntersection(const glm::vec3& origin, con
     }
 
     // by default, we only allow intersections with leaves with content
-    if (!canRayIntersect()) {
+    if (!canPickIntersect()) {
         return result; // we don't intersect with non-leaves, and we keep searching
     }
 
@@ -168,7 +168,7 @@ EntityItemID EntityTreeElement::findRayIntersection(const glm::vec3& origin, con
     QVariantMap localExtraInfo;
     float distanceToElementDetails = distance;
     EntityItemID entityID = findDetailedRayIntersection(origin, direction, element, distanceToElementDetails,
-            face, localSurfaceNormal, entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly,
+            localFace, localSurfaceNormal, entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly,
             localExtraInfo, precisionPicking);
     if (!entityID.isNull() && distanceToElementDetails < distance) {
         distance = distanceToElementDetails;
@@ -232,7 +232,7 @@ EntityItemID EntityTreeElement::findDetailedRayIntersection(const glm::vec3& ori
                                                 localFace, localSurfaceNormal)) {
             if (entityFrameBox.contains(entityFrameOrigin) || localDistance < distance) {
                 // now ask the entity if we actually intersect
-                if (entity->supportsDetailedRayIntersection()) {
+                if (entity->supportsDetailedIntersection()) {
                     QVariantMap localExtraInfo;
                     if (entity->findDetailedRayIntersection(origin, direction, element, localDistance,
                             localFace, localSurfaceNormal, localExtraInfo, precisionPicking)) {
@@ -250,7 +250,8 @@ EntityItemID EntityTreeElement::findDetailedRayIntersection(const glm::vec3& ori
                     if (localDistance < distance && entity->getType() != EntityTypes::ParticleEffect) {
                         distance = localDistance;
                         face = localFace;
-                        surfaceNormal = glm::vec3(rotation * glm::vec4(localSurfaceNormal, 1.0f));
+                        surfaceNormal = glm::vec3(rotation * glm::vec4(localSurfaceNormal, 0.0f));
+                        extraInfo = QVariantMap();
                         entityID = entity->getEntityItemID();
                     }
                 }
@@ -285,6 +286,144 @@ bool EntityTreeElement::findSpherePenetration(const glm::vec3& center, float rad
         }
     });
     return result;
+}
+
+EntityItemID EntityTreeElement::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
+    const glm::vec3& acceleration, bool& keepSearching, OctreeElementPointer& element, float& parabolicDistance,
+    BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
+    const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
+    QVariantMap& extraInfo, bool precisionPicking) {
+
+    EntityItemID result;
+    float distanceToElementCube = std::numeric_limits<float>::max();
+    BoxFace localFace;
+    glm::vec3 localSurfaceNormal;
+
+    // if the parabola doesn't intersect with our cube OR the distance to element is less than current best distance
+    // we can stop searching!
+    bool hit = _cube.findParabolaIntersection(origin, velocity, acceleration, distanceToElementCube, localFace, localSurfaceNormal);
+    if (!hit || (!_cube.contains(origin) && distanceToElementCube > parabolicDistance)) {
+        keepSearching = false; // no point in continuing to search
+        return result; // we did not intersect
+    }
+
+    // by default, we only allow intersections with leaves with content
+    if (!canPickIntersect()) {
+        return result; // we don't intersect with non-leaves, and we keep searching
+    }
+
+    // if the distance to the element cube is not less than the current best distance, then it's not possible
+    // for any details inside the cube to be closer so we don't need to consider them.
+    QVariantMap localExtraInfo;
+    float distanceToElementDetails = parabolicDistance;
+    // We can precompute the world-space parabola normal and reuse it for the parabola plane intersects AABox sphere check
+    glm::vec3 vectorOnPlane = velocity;
+    if (glm::dot(glm::normalize(velocity), glm::normalize(acceleration)) > 1.0f - EPSILON) {
+        // Handle the degenerate case where velocity is parallel to acceleration
+        // We pick t = 1 and calculate a second point on the plane
+        vectorOnPlane = velocity + 0.5f * acceleration;
+    }
+    // Get the normal of the plane, the cross product of two vectors on the plane
+    glm::vec3 normal = glm::normalize(glm::cross(vectorOnPlane, acceleration));
+    EntityItemID entityID = findDetailedParabolaIntersection(origin, velocity, acceleration, normal, element, distanceToElementDetails,
+            localFace, localSurfaceNormal, entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly,
+            localExtraInfo, precisionPicking);
+    if (!entityID.isNull() && distanceToElementDetails < parabolicDistance) {
+        parabolicDistance = distanceToElementDetails;
+        face = localFace;
+        surfaceNormal = localSurfaceNormal;
+        extraInfo = localExtraInfo;
+        result = entityID;
+    }
+    return result;
+}
+
+EntityItemID EntityTreeElement::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+                                    const glm::vec3& normal, OctreeElementPointer& element, float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
+                                    const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIDsToDiscard,
+                                    bool visibleOnly, bool collidableOnly, QVariantMap& extraInfo, bool precisionPicking) {
+
+    // only called if we do intersect our bounding cube, but find if we actually intersect with entities...
+    int entityNumber = 0;
+    EntityItemID entityID;
+    forEachEntity([&](EntityItemPointer entity) {
+        // use simple line-sphere for broadphase check
+        // (this is faster and more likely to cull results than the filter check below so we do it first)
+        bool success;
+        AABox entityBox = entity->getAABox(success);
+        if (!success) {
+            return;
+        }
+
+        // Instead of checking parabolaInstersectsBoundingSphere here, we are just going to check if the plane
+        // defined by the parabola slices the sphere.  The solution to parabolaIntersectsBoundingSphere is cubic,
+        // the solution to which is more computationally expensive than the quadratic AABox::findParabolaIntersection
+        // below
+        if (!entityBox.parabolaPlaneIntersectsBoundingSphere(origin, velocity, acceleration, normal)) {
+            return;
+        }
+
+        // check RayPick filter settings
+        if ((visibleOnly && !entity->isVisible())
+                || (collidableOnly && (entity->getCollisionless() || entity->getShapeType() == SHAPE_TYPE_NONE))
+                || (entityIdsToInclude.size() > 0 && !entityIdsToInclude.contains(entity->getID()))
+                || (entityIDsToDiscard.size() > 0 && entityIDsToDiscard.contains(entity->getID())) ) {
+            return;
+        }
+
+        // extents is the entity relative, scaled, centered extents of the entity
+        glm::mat4 rotation = glm::mat4_cast(entity->getWorldOrientation());
+        glm::mat4 translation = glm::translate(entity->getWorldPosition());
+        glm::mat4 entityToWorldMatrix = translation * rotation;
+        glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
+
+        glm::vec3 dimensions = entity->getRaycastDimensions();
+        glm::vec3 registrationPoint = entity->getRegistrationPoint();
+        glm::vec3 corner = -(dimensions * registrationPoint);
+
+        AABox entityFrameBox(corner, dimensions);
+
+        glm::vec3 entityFrameOrigin = glm::vec3(worldToEntityMatrix * glm::vec4(origin, 1.0f));
+        glm::vec3 entityFrameVelocity = glm::vec3(worldToEntityMatrix * glm::vec4(velocity, 0.0f));
+        glm::vec3 entityFrameAcceleration = glm::vec3(worldToEntityMatrix * glm::vec4(acceleration, 0.0f));
+
+        // we can use the AABox's ray intersection by mapping our origin and direction into the entity frame
+        // and testing intersection there.
+        float localDistance;
+        BoxFace localFace;
+        glm::vec3 localSurfaceNormal;
+        if (entityFrameBox.findParabolaIntersection(entityFrameOrigin, entityFrameVelocity, entityFrameAcceleration, localDistance,
+                                                localFace, localSurfaceNormal)) {
+            if (entityFrameBox.contains(entityFrameOrigin) || localDistance < parabolicDistance) {
+                // now ask the entity if we actually intersect
+                if (entity->supportsDetailedIntersection()) {
+                    QVariantMap localExtraInfo;
+                    if (entity->findDetailedParabolaIntersection(origin, velocity, acceleration, element, localDistance,
+                            localFace, localSurfaceNormal, localExtraInfo, precisionPicking)) {
+                        if (localDistance < parabolicDistance) {
+                            parabolicDistance = localDistance;
+                            face = localFace;
+                            surfaceNormal = localSurfaceNormal;
+                            extraInfo = localExtraInfo;
+                            entityID = entity->getEntityItemID();
+                        }
+                    }
+                } else {
+                    // if the entity type doesn't support a detailed intersection, then just return the non-AABox results
+                    // Never intersect with particle entities
+                    if (localDistance < parabolicDistance && entity->getType() != EntityTypes::ParticleEffect) {
+                        parabolicDistance = localDistance;
+                        face = localFace;
+                        surfaceNormal = glm::vec3(rotation * glm::vec4(localSurfaceNormal, 0.0f));
+                        extraInfo = QVariantMap();
+                        entityID = entity->getEntityItemID();
+                    }
+                }
+            }
+        }
+        entityNumber++;
+    });
+    return entityID;
 }
 
 EntityItemPointer EntityTreeElement::getClosestEntity(glm::vec3 position) const {

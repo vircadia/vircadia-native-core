@@ -134,9 +134,9 @@ public:
     virtual bool isRendered() const override { return getShouldRender(); }
     virtual bool deleteApproved() const override { return !hasEntities(); }
 
-    virtual bool canRayIntersect() const override { return hasEntities(); }
+    virtual bool canPickIntersect() const override { return hasEntities(); }
     virtual EntityItemID findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-        bool& keepSearching, OctreeElementPointer& node, float& distance,
+        bool& keepSearching, OctreeElementPointer& element, float& distance,
         BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
         const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
         QVariantMap& extraInfo, bool precisionPicking = false);
@@ -148,6 +148,16 @@ public:
     virtual bool findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const override;
 
+    virtual EntityItemID findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
+        const glm::vec3& acceleration, bool& keepSearching, OctreeElementPointer& element, float& parabolicDistance,
+        BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
+        const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
+        QVariantMap& extraInfo, bool precisionPicking = false);
+    virtual EntityItemID findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
+        const glm::vec3& normal, const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
+        BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
+        const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
+        QVariantMap& extraInfo, bool precisionPicking);
 
     template <typename F>
     void forEachEntity(F f) const {

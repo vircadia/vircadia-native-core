@@ -251,6 +251,12 @@ enum EntityPropertyList {
 
     PROP_VISIBLE_IN_SECONDARY_CAMERA, // not sent over the wire, only used locally
 
+    PROP_PARTICLE_SPIN,
+    PROP_SPIN_START,
+    PROP_SPIN_FINISH,
+    PROP_SPIN_SPREAD,
+    PROP_PARTICLE_ROTATE_WITH_ENTITY,
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,
