@@ -19,7 +19,9 @@ layout(location=RENDER_UTILS_UNIFORM_TEXT_COLOR) uniform vec4 Color;
 
 // the interpolated normal
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
-layout(location=RENDER_UTILS_ATTR_TEXCOORD0) in vec2 _texCoord0;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
+vec2 _texCoord0 = _texCoord01.xy;
+vec2 _texCoord1 = _texCoord01.zw;
 
 #define TAA_TEXTURE_LOD_BIAS    -3.0
 

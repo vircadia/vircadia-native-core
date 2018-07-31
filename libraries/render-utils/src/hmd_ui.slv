@@ -26,10 +26,10 @@ layout(std140, binding=0) uniform hudBuffer {
     HUDData hud;
 };
 
-layout(location=RENDER_UTILS_ATTR_TEXCOORD0) out vec2 _texCoord0;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
 
 void main() {
-  _texCoord0 = inTexCoord0.st;
+  _texCoord01.xy = inTexCoord0.st;
 
   // standard transform
   TransformCamera cam = getTransformCamera();

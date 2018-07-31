@@ -90,7 +90,6 @@ public:
     static GLint MAX_COMBINED_UNIFORM_BLOCKS;
     static GLint MAX_COMBINED_TEXTURE_IMAGE_UNITS;
     static GLint MAX_UNIFORM_BLOCK_SIZE;
-    static GLint MAX_UNIFORM_LOCATIONS;
     static GLint UNIFORM_BUFFER_OFFSET_ALIGNMENT;
 
     virtual ~GLBackend();

@@ -102,8 +102,23 @@ Uniforms Uniform::load(GLuint glprogram, const std::vector<GLuint>& indices) {
     return result;
 }
 
+Uniform Uniform::loadByName(GLuint glprogram, const std::string& name) {
+    GLuint index;
+    const char* nameCStr = name.c_str();
+    glGetUniformIndices(glprogram, 1, &nameCStr, &index);
+    Uniform result;
+    if (index != GL_INVALID_INDEX) {
+        result.load(glprogram, index);
+    }
+    return result;
+}
+
+
 Uniforms Uniform::load(GLuint glprogram, const std::vector<const char*>& cnames) {
     GLsizei count = static_cast<GLsizei>(cnames.size());
+    if (0 == count) {
+        return {};
+    }
     std::vector<GLuint> indices;
     indices.resize(count);
     glGetUniformIndices(glprogram, count, cnames.data(), indices.data());
@@ -232,58 +247,28 @@ bool gl::compileShader(GLenum shaderDomain,
     GLint compiled = 0;
     glGetShaderiv(glshader, GL_COMPILE_STATUS, &compiled);
 
-    GLint infoLength = 0;
-    glGetShaderiv(glshader, GL_INFO_LOG_LENGTH, &infoLength);
-
-    if ((infoLength > 0) || !compiled) {
-        char* temp = new char[infoLength];
-        glGetShaderInfoLog(glshader, infoLength, NULL, temp);
-
-        message = std::string(temp);
-
-        // if compilation fails
-        if (!compiled) {
-            // save the source code to a temp file so we can debug easily
-            /*
-            std::ofstream filestream;
-            filestream.open("debugshader.glsl");
-            if (filestream.is_open()) {
-                for (const auto& str : cstrs) {
-                    filestream << str;
-                }
-                filestream.close();
+    getShaderInfoLog(glshader, message);
+    // if compilation fails
+    if (!compiled) {
+        qCCritical(glLogging) << "GLShader::compileShader - failed to compile the gl shader object:";
+        int lineNumber = 0;
+        for (const auto& s : cstrs) {
+            QString str(s);
+            QStringList lines = str.split("\n");
+            for (auto& line : lines) {
+                qCCritical(glLogging).noquote() << QString("%1: %2").arg(lineNumber++, 5, 10, QChar('0')).arg(line);
             }
-            */
-
-            /*
-            filestream.open("debugshader.glsl.info.txt");
-            if (filestream.is_open()) {
-                filestream << std::string(temp);
-                filestream.close();
-            }
-            */
-
-            qCCritical(glLogging) << "GLShader::compileShader - failed to compile the gl shader object:";
-            int lineNumber = 0;
-            for (const auto& s : cstrs) {
-                QString str(s);
-                QStringList lines = str.split("\n");
-                for (auto& line : lines) {
-                    qCCritical(glLogging).noquote() << QString("%1: %2").arg(lineNumber++, 5, 10, QChar('0')).arg(line);
-                }
-            }
-            qCCritical(glLogging) << "GLShader::compileShader - errors:";
-            qCCritical(glLogging) << temp;
-
-            delete[] temp;
-            glDeleteShader(glshader);
-            return false;
         }
+        qCCritical(glLogging) << "GLShader::compileShader - errors:";
+        qCCritical(glLogging) << message.c_str();
+        glDeleteShader(glshader);
+        return false;
+    }
 
+    if (!message.empty()) {
         // Compilation success
         qCWarning(glLogging) << "GLShader::compileShader - Success:";
-        qCWarning(glLogging) << temp;
-        delete[] temp;
+        qCWarning(glLogging) << message.c_str();
     }
 
 #ifdef SEPARATE_PROGRAM
@@ -339,6 +324,20 @@ bool gl::compileShader(GLenum shaderDomain,
 #endif
     shaderObject = glshader;
     return true;
+}
+
+void gl::getShaderInfoLog(GLuint glshader, std::string& message) {
+    std::string result;
+    GLint infoLength = 0;
+    glGetShaderiv(glshader, GL_INFO_LOG_LENGTH, &infoLength);
+    if (infoLength > 0) {
+        char* temp = new char[infoLength];
+        glGetShaderInfoLog(glshader, infoLength, NULL, temp);
+        message = std::string(temp);
+        delete[] temp;
+    } else {
+        message.clear();
+    }
 }
 
 void gl::getProgramInfoLog(GLuint glprogram, std::string& message) {

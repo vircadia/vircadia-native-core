@@ -17,6 +17,19 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonDocument>
 #include <QtCore/qdebug.h>
+#include <QtCore/QProcessEnvironment>
+
+#include <gl/GLHelpers.h>
+
+static bool cleanShaders() {
+#if defined(Q_OS_MAC)
+    static const bool CLEAN_SHADERS = true;
+#else
+    static const bool CLEAN_SHADERS = ::gl::disableGl45();
+
+#endif
+    return CLEAN_SHADERS;
+}
 
 // Can't use the Q_INIT_RESOURCE macro inside a namespace on Mac,
 // so this is done out of line
@@ -74,14 +87,14 @@ void cleanShaderSource(std::string& shaderSource) {
 std::string loadShaderSource(uint32_t shaderId) {
     initShaders();
     auto shaderStr = loadResource(std::string(":/shaders/") + std::to_string(shaderId));
-#if defined(Q_OS_MAC)
-    // OSX only supports OpenGL 4.1 without ARB_shading_language_420pack or
-    // ARB_explicit_uniform_location or basically anything useful that's
-    // been released in the last 8 fucking years, so in that case we need to 
-    // strip out all explicit locations and do a bunch of background magic to 
-    // make the system seem like it is using the explicit locations
-    cleanShaderSource(shaderStr);
-#endif
+    if (cleanShaders()) {
+        // OSX only supports OpenGL 4.1 without ARB_shading_language_420pack or
+        // ARB_explicit_uniform_location or basically anything useful that's
+        // been released in the last 8 fucking years, so in that case we need to 
+        // strip out all explicit locations and do a bunch of background magic to 
+        // make the system seem like it is using the explicit locations
+        cleanShaderSource(shaderStr);
+    }
     return shaderStr;
 }
     

@@ -10,6 +10,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 <@include BloomApply.shared.slh@>
+<@include render-utils/ShaderConstants.h@>
 
 layout(binding=0) uniform sampler2D blurMap0;
 layout(binding=1) uniform sampler2D blurMap1;

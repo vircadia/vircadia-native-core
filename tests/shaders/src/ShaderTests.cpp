@@ -47,13 +47,32 @@ void ShaderTests::cleanupTestCase() {
     qDebug() << "Done";
 }
 
-template <typename C, typename F>
-QStringList toStringList(const C& c, F f) {
+template <typename C>
+QStringList toQStringList(const C& c) {
     QStringList result;
     for (const auto& v : c) {
-        result << f(v);
+        result << v.c_str();
     }
     return result;
+}
+
+template <typename C, typename F>
+std::unordered_set<std::string> toStringSet(const C& c, F f) {
+    std::unordered_set<std::string> result;
+    for (const auto& v : c) {
+        result.insert(f(v));
+    }
+    return result;
+}
+
+template<typename C>
+bool isSubset(const C& parent, const C& child) {
+    for (const auto& v : child) {
+        if (0 == parent.count(v)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 gpu::Shader::ReflectionMap mergeReflection(const std::initializer_list<const gpu::Shader::Source>& list) {
@@ -87,6 +106,77 @@ gpu::Shader::ReflectionMap mergeReflection(const std::initializer_list<const gpu
     return result;
 }
 
+template <typename K, typename V>
+std::unordered_map<V, K> invertMap(const std::unordered_map<K, V>& map) {
+    std::unordered_map<V, K> result;
+    for (const auto& entry : map) {
+        result[entry.second] = entry.first;
+    }
+    return result;
+}
+
+static void verifyBindings(const gpu::Shader::Source& source) {
+    const auto reflection = source.getReflection();
+    for (const auto& entry : reflection) {
+        const auto& map = entry.second;
+        const auto reverseMap = invertMap(map);
+        if (map.size() != reverseMap.size()) {
+            QFAIL("Bindings are not unique");
+        }
+    }
+
+}
+
+
+static void verifyInterface(const gpu::Shader::Source& vertexSource, const gpu::Shader::Source& fragmentSource) {
+    if (0 == fragmentSource.getReflection().count(gpu::Shader::BindingType::INPUT)) {
+        return;
+    }
+    auto fragIn = fragmentSource.getReflection().at(gpu::Shader::BindingType::INPUT);
+    if (0 == vertexSource.getReflection().count(gpu::Shader::BindingType::OUTPUT)) {
+        qDebug() << "No vertex output for fragment input";
+        //QFAIL("No vertex output for fragment input");
+        return;
+    }
+    auto vout = vertexSource.getReflection().at(gpu::Shader::BindingType::OUTPUT);
+    auto vrev = invertMap(vout);
+    static const std::string IN_STEREO_SIDE_STRING = "_inStereoSide";
+    for (const auto entry : fragIn) {
+        const auto& name = entry.first;
+        // The presence of "_inStereoSide" in fragment shaders is a bug due to the way we do reflection
+        // and use preprocessor macros in the shaders
+        if (name == IN_STEREO_SIDE_STRING) {
+            continue;
+        }
+        if (0 == vout.count(name)) {
+            qDebug() << "Vertex output missing";
+            //QFAIL("Vertex output missing");
+            continue;
+        }
+        const auto& inLocation = entry.second;
+        const auto& outLocation = vout.at(name);
+        if (inLocation != outLocation) {
+            qDebug() << "Mismatch in vertex / fragment interface";
+            //QFAIL("Mismatch in vertex / fragment interface");
+            continue;
+        }
+    }
+}
+
+template<typename C>
+bool compareBindings(const C& actual, const gpu::Shader::LocationMap& expected) {
+    if (actual.size() != expected.size()) {
+        auto actualNames = toStringSet(actual, [](const auto& v) { return v.name; });
+        auto expectedNames = toStringSet(expected, [](const auto& v) { return v.first; });
+        if (!isSubset(expectedNames, actualNames)) {
+            qDebug() << "Found" << toQStringList(actualNames);
+            qDebug() << "Expected" << toQStringList(expectedNames);
+            return false;
+        }
+    }
+    return true;
+}
+
 void ShaderTests::testShaderLoad() {
     std::set<uint32_t> usedShaders;
     uint32_t maxShader = 0;
@@ -97,16 +187,17 @@ void ShaderTests::testShaderLoad() {
             ++index;
 
             uint32_t vertexId = shader::getVertexId(programId);
-            //QVERIFY(0 != vertexId);
             uint32_t fragmentId = shader::getFragmentId(programId);
-            QVERIFY(0 != fragmentId);
             usedShaders.insert(vertexId);
             usedShaders.insert(fragmentId);
             maxShader = std::max(maxShader, std::max(fragmentId, vertexId));
             auto vertexSource = gpu::Shader::getShaderSource(vertexId);
             QVERIFY(!vertexSource.getCode().empty());
+            verifyBindings(vertexSource);
             auto fragmentSource = gpu::Shader::getShaderSource(fragmentId);
             QVERIFY(!fragmentSource.getCode().empty());
+            verifyBindings(fragmentSource);
+            verifyInterface(vertexSource, fragmentSource);
 
             auto expectedBindings = mergeReflection({ vertexSource, fragmentSource });
 
@@ -124,16 +215,11 @@ void ShaderTests::testShaderLoad() {
 
                 // Uniforms
                 {
-
-#ifdef Q_OS_MAC
-                    const auto& uniformRemap = shaderObject.uniformRemap;
-#endif
                     auto uniforms = gl::Uniform::load(program);
+                    const auto& uniformRemap = shaderObject.uniformRemap;
                     auto expectedUniforms = expectedBindings[gpu::Shader::BindingType::UNIFORM];
-                    if (uniforms.size() != expectedUniforms.size()) {
-                        qDebug() << "Found" << toStringList(uniforms, [](const auto& v) { return v.name.c_str(); });
-                        qDebug() << "Expected" << toStringList(expectedUniforms, [](const auto& v) { return v.first.c_str(); });
-                        qDebug() << "Uniforms size mismatch";
+                    if (!compareBindings(uniforms, expectedUniforms)) {
+                        qDebug() << "Uniforms mismatch";
                     }
                     for (const auto& uniform : uniforms) {
                         if (0 != expectedUniforms.count(uniform.name)) {
@@ -152,10 +238,8 @@ void ShaderTests::testShaderLoad() {
                 {
                     const auto textures = gl::Uniform::loadTextures(program);
                     const auto expectedTextures = expectedBindings[gpu::Shader::BindingType::TEXTURE];
-                    if (textures.size() != expectedTextures.size()) {
-                        qDebug() << "Found" << toStringList(textures, [](const auto& v) { return v.name.c_str(); });
-                        qDebug() << "Expected" << toStringList(expectedTextures, [](const auto& v) { return v.first.c_str(); });
-                        qDebug() << "Uniforms size mismatch";
+                    if (!compareBindings(textures, expectedTextures)) {
+                        qDebug() << "Textures mismatch";
                     }
                     for (const auto& texture : textures) {
                         if (0 != expectedTextures.count(texture.name)) {
@@ -172,10 +256,8 @@ void ShaderTests::testShaderLoad() {
                 {
                     auto ubos = gl::UniformBlock::load(program);
                     auto expectedUbos = expectedBindings[gpu::Shader::BindingType::UNIFORM_BUFFER];
-                    if (ubos.size() != expectedUbos.size()) {
-                        qDebug() << "Found" << toStringList(ubos, [](const auto& v) { return v.name.c_str(); });
-                        qDebug() << "Expected" << toStringList(expectedUbos, [](const auto& v) { return v.first.c_str(); });
-                        qDebug() << "UBOs size mismatch";
+                    if (!compareBindings(ubos, expectedUbos)) {
+                        qDebug() << "UBOs mismatch";
                     }
                     for (const auto& ubo : ubos) {
                         if (0 != expectedUbos.count(ubo.name)) {

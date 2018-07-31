@@ -269,7 +269,9 @@ void Context::create() {
 #if defined(USE_GLES)
     _version = 0x0200;
 #else
-    if (GLAD_GL_VERSION_4_5) {
+    if (gl::disableGl45()) {
+        _version = 0x0401;
+    } else if (GLAD_GL_VERSION_4_5) {
         _version = 0x0405;
     } else if (GLAD_GL_VERSION_4_3) {
         _version = 0x0403;

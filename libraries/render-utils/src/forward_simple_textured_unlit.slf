@@ -23,7 +23,9 @@ layout(location=0) out vec4 _fragColor0;
 layout(binding=0) uniform sampler2D originalTexture;
 
 layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
-layout(location=RENDER_UTILS_ATTR_TEXCOORD0) in vec2 _texCoord0;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
+vec2 _texCoord0 = _texCoord01.xy;
+vec2 _texCoord1 = _texCoord01.zw;
 
 void main(void) {
     vec4 texel = texture(originalTexture, _texCoord0.st);

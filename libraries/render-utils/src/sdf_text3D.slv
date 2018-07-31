@@ -18,10 +18,10 @@
 
 // the interpolated normal
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
-layout(location=RENDER_UTILS_ATTR_TEXCOORD0) out vec2 _texCoord0;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
 
 void main() {
-    _texCoord0 = inTexCoord0.xy;
+    _texCoord01.xy = inTexCoord0.xy;
     
     // standard transform
     TransformCamera cam = getTransformCamera();

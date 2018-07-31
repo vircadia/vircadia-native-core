@@ -108,7 +108,6 @@ GLint GLBackend::MAX_COMBINED_UNIFORM_BLOCKS{ 0 };
 GLint GLBackend::MAX_COMBINED_TEXTURE_IMAGE_UNITS{ 0 };
 GLint GLBackend::MAX_UNIFORM_BLOCK_SIZE{ 0 };
 GLint GLBackend::UNIFORM_BUFFER_OFFSET_ALIGNMENT{ 1 };
-GLint GLBackend::MAX_UNIFORM_LOCATIONS{ 0 };
 
 void GLBackend::init() {
     static std::once_flag once;
@@ -127,7 +126,6 @@ void GLBackend::init() {
         GL_GET_INTEGER(MAX_COMBINED_UNIFORM_BLOCKS);
         GL_GET_INTEGER(MAX_UNIFORM_BLOCK_SIZE);
         GL_GET_INTEGER(UNIFORM_BUFFER_OFFSET_ALIGNMENT);
-        GL_GET_INTEGER(MAX_UNIFORM_LOCATIONS);
 
         qCDebug(gpugllogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
         qCDebug(gpugllogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));

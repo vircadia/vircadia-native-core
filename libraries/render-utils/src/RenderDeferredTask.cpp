@@ -12,6 +12,8 @@
 
 #include "RenderDeferredTask.h"
 
+#include <QtCore/qglobal.h>
+
 #include <DependencyManager.h>
 
 #include <PerfStat.h>

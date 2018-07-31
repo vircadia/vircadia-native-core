@@ -24,6 +24,26 @@ size_t evalGLFormatSwapchainPixelSize(const QSurfaceFormat& format) {
     return pixelSize;
 }
 
+bool gl::disableGl45() {
+#if defined(USE_GLES)
+    return false;
+#else
+    static const QString DEBUG_FLAG("HIFI_DISABLE_OPENGL_45");
+    static bool disableOpenGL45 = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+    return disableOpenGL45;
+#endif
+}
+
+void gl::getTargetVersion(int& major, int& minor) {
+#if defined(USE_GLES)
+    major = 3;
+    minor = 2;
+#else
+    major = 4;
+    minor = disableGl45() ? 1 : 5;
+#endif
+}
+
 const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
     static QSurfaceFormat format;
     static std::once_flag once;
@@ -40,7 +60,10 @@ const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
         // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
         format.setDepthBufferSize(DEFAULT_GL_DEPTH_BUFFER_BITS);
         format.setStencilBufferSize(DEFAULT_GL_STENCIL_BUFFER_BITS);
-        setGLFormatVersion(format);
+        int major, minor;
+        ::gl::getTargetVersion(major, minor);
+        format.setMajorVersion(major);
+        format.setMinorVersion(minor);
         QSurfaceFormat::setDefaultFormat(format);
     });
     return format;

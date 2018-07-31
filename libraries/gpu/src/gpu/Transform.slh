@@ -35,7 +35,7 @@ layout(std140, binding=GPU_BUFFER_TRANSFORM_CAMERA) uniform transformCameraBuffe
 layout(location=GPU_ATTR_STEREO_SIDE) in int _inStereoSide;
 #endif
 
-layout(location=GPU_ATTR_STEREO_SIDE) flat out int _stereoSide;
+layout(location=GPU_ATTR_V2F_STEREO_SIDE) flat out int _stereoSide;
 
 // In stereo drawcall mode Instances are drawn twice (left then right) hence the true InstanceID is the gl_InstanceID / 2
 int gpu_InstanceID() {
@@ -60,7 +60,7 @@ int gpu_InstanceID() {
 
 #ifdef GPU_PIXEL_SHADER
 #ifdef GPU_TRANSFORM_STEREO_CAMERA
-layout(location=GPU_ATTR_STEREO_SIDE) flat in int _stereoSide;
+layout(location=GPU_ATTR_V2F_STEREO_SIDE) flat in int _stereoSide;
 #endif
 #endif
 

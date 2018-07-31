@@ -130,6 +130,7 @@ json reflectShader(const std::string& shaderPath) {
     json inputs;
     json outputs;
     json textures;
+    json textureTypes;
     json uniforms;
     json storageBuffers;
     json uniformBuffers;
@@ -148,8 +149,12 @@ json reflectShader(const std::string& shaderPath) {
             if (m[DECL_SIMPLE].matched) {
                 auto name = m[SIMPLE_NAME].str();
                 auto type = m[SIMPLE_TYPE].str();
-                auto& map = 0 == type.find("sampler") ? textures : uniforms;
+                bool isTexture = 0 == type.find("sampler");
+                auto& map = isTexture ? textures : uniforms;
                 map[name] = binding;
+                if (isTexture) {
+                    textureTypes[name] = type;
+                }
             } else if (m[DECL_STRUCT].matched) {
                 auto name = m[STRUCT_NAME].str();
                 auto type = m[STRUCT_TYPE].str();
@@ -172,6 +177,9 @@ json reflectShader(const std::string& shaderPath) {
     }
     if (!textures.empty()) {
         result["textures"] = textures;
+    }
+    if (!textureTypes.empty()) {
+        result["texturesTypes"] = textureTypes;
     }
     if (!uniforms.empty()) {
         result["uniforms"] = uniforms;

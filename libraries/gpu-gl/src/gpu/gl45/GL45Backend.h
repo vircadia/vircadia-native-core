@@ -34,6 +34,7 @@ class GL45Backend : public GLBackend {
 
 public:
     static GLint MAX_COMBINED_SHADER_STORAGE_BLOCKS;
+    static GLint MAX_UNIFORM_LOCATIONS;
 #if GPU_BINDLESS_TEXTURES
     virtual bool supportsBindless() const override { return true; }
 #endif

@@ -94,16 +94,9 @@ public:
     QTestWindow() {
         setSurfaceType(QSurface::OpenGLSurface);
 
-        QSurfaceFormat format;
-        // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
-        format.setDepthBufferSize(16);
-        format.setStencilBufferSize(8);
-        setGLFormatVersion(format);
-        format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
+        QSurfaceFormat format = getDefaultOpenGLSurfaceFormat();
         format.setOption(QSurfaceFormat::DebugContext);
-
         setFormat(format);
-
         _context.setFormat(format);
         _context.create();
 

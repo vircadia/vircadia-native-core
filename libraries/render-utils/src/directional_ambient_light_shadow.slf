@@ -20,7 +20,9 @@
 <$declareEvalLightmappedColor()$>
 <$declareEvalAmbientSphereGlobalColor(isScattering)$>
 
-layout(location=RENDER_UTILS_ATTR_TEXCOORD0) in vec2 _texCoord0;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
+vec2 _texCoord0 = _texCoord01.xy;
+vec2 _texCoord1 = _texCoord01.zw;
 layout(location=0) out vec4 _fragColor;
 
 void main(void) {

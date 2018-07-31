@@ -189,5 +189,5 @@ foreach(COMPILED_SHADER ${COMPILED_SHADERS})
   set_property(TARGET ${TARGET_NAME} APPEND PROPERTY AUTOGEN_TARGET_DEPENDS "${COMPILED_SHADER}")
 endforeach()
 
-link_hifi_libraries(shared)
+link_hifi_libraries(shared gl)
 

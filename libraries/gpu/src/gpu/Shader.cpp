@@ -204,9 +204,33 @@ Shader::Pointer Shader::createProgram(const Pointer& vertexShader, const Pointer
     return createOrReuseProgramShader(PROGRAM, vertexShader, geometryShader, pixelShader);
 }
 
+static const std::string IGNORED_BINDING = "transformObjectBuffer";
+
 void updateBindingsFromJsonObject(Shader::LocationMap& inOutSet, const QJsonObject& json) {
     for (const auto& key : json.keys()) {
-        inOutSet[key.toStdString()] = json[key].toInt();
+        auto keyStr = key.toStdString();
+        if (IGNORED_BINDING == keyStr) {
+            continue;
+        }
+        inOutSet[keyStr] = json[key].toInt();
+    }
+}
+
+void updateTextureAndResourceBuffersFromJsonObjects(Shader::LocationMap& inOutTextures, Shader::LocationMap& inOutResourceBuffers,
+                                                    const QJsonObject& json, const QJsonObject& types) {
+    static const std::string RESOURCE_BUFFER_TEXTURE_TYPE = "samplerBuffer";
+    for (const auto& key : json.keys()) {
+        auto keyStr = key.toStdString();
+        if (keyStr == IGNORED_BINDING) {
+            continue;
+        }
+        auto location = json[key].toInt();
+        auto type = types[key].toString().toStdString();
+        if (type == RESOURCE_BUFFER_TEXTURE_TYPE) {
+            inOutResourceBuffers[keyStr] = location;
+        } else {
+            inOutTextures[key.toStdString()] = location;
+        }
     }
 }
 
@@ -221,6 +245,7 @@ Shader::ReflectionMap getShaderReflection(const std::string& reflectionJson) {
 #define REFLECT_KEY_SSBOS "storageBuffers"
 #define REFLECT_KEY_UNIFORMS "uniforms"
 #define REFLECT_KEY_TEXTURES "textures"
+#define REFLECT_KEY_TEXTURE_TYPES "textureTypes"
 
     auto doc = QJsonDocument::fromJson(reflectionJson.c_str());
     if (doc.isNull()) {
@@ -236,17 +261,28 @@ Shader::ReflectionMap getShaderReflection(const std::string& reflectionJson) {
     if (json.contains(REFLECT_KEY_OUTPUTS)) {
         updateBindingsFromJsonObject(result[Shader::BindingType::OUTPUT], json[REFLECT_KEY_OUTPUTS].toObject());
     }
-    if (json.contains(REFLECT_KEY_UBOS)) {
-        updateBindingsFromJsonObject(result[Shader::BindingType::UNIFORM_BUFFER], json[REFLECT_KEY_UBOS].toObject());
-    }
-    if (json.contains(REFLECT_KEY_TEXTURES)) {
-        updateBindingsFromJsonObject(result[Shader::BindingType::TEXTURE], json[REFLECT_KEY_TEXTURES].toObject());
-    }
+    // FIXME eliminate the last of the uniforms
     if (json.contains(REFLECT_KEY_UNIFORMS)) {
         updateBindingsFromJsonObject(result[Shader::BindingType::UNIFORM], json[REFLECT_KEY_UNIFORMS].toObject());
     }
+    if (json.contains(REFLECT_KEY_UBOS)) {
+        updateBindingsFromJsonObject(result[Shader::BindingType::UNIFORM_BUFFER], json[REFLECT_KEY_UBOS].toObject());
+    }
+
+    // SSBOs need to come BEFORE the textures.  In GL 4.5 the reflection slots aren't really used, but in 4.1 the slots
+    // are used to explicitly setup bindings after shader linkage, so we want the resource buffer slots to contain the
+    // texture locations, not the SSBO locations
     if (json.contains(REFLECT_KEY_SSBOS)) {
-        updateBindingsFromJsonObject(result[Shader::BindingType::UNIFORM], json[REFLECT_KEY_SSBOS].toObject());
+        updateBindingsFromJsonObject(result[Shader::BindingType::RESOURCE_BUFFER], json[REFLECT_KEY_SSBOS].toObject());
+    }
+
+    // samplerBuffer textures map to gpu ResourceBuffer, while all other textures map to regular gpu Texture
+    if (json.contains(REFLECT_KEY_TEXTURES)) {
+        updateTextureAndResourceBuffersFromJsonObjects(
+               result[Shader::BindingType::TEXTURE],
+               result[Shader::BindingType::RESOURCE_BUFFER],
+               json[REFLECT_KEY_TEXTURES].toObject(),
+               json[REFLECT_KEY_TEXTURE_TYPES].toObject());
     }
 
     

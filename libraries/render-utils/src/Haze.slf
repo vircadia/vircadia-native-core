@@ -19,9 +19,6 @@
 <@include LightingModel.slh@>
 <$declareLightBuffer()$>
 
-<@include LightDirectional.slh@>
-<$declareLightingDirectional(_SCRIBE_NULL)$>
-
 <@include Haze.slh@>
 
 layout(binding=RENDER_UTILS_TEXTURE_HAZE_LINEAR_DEPTH) uniform sampler2D linearDepthMap;

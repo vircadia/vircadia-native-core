@@ -24,10 +24,11 @@
 <$declareMaterialTextures(ALBEDO)$>
 
 layout(location=RENDER_UTILS_ATTR_POSITION_WS) in vec4 _positionWS;
-layout(location=RENDER_UTILS_ATTR_TEXCOORD0) in vec2 _texCoord0;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
+vec2 _texCoord0 = _texCoord01.xy;
+vec2 _texCoord1 = _texCoord01.zw;
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
-layout(location=RENDER_UTILS_ATTR_COLOR) in vec3 _color;
-layout(location=RENDER_UTILS_ATTR_ALPHA) in float _alpha;
+layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
 
 void main(void) {
     vec3 fadeEmissive;
@@ -46,7 +47,7 @@ void main(void) {
 
     vec3 albedo = getMaterialAlbedo(mat);
     <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
-    albedo *= _color;
+    albedo *= _color.rgb;
     albedo += fadeEmissive;
     packDeferredFragmentUnlit(
         normalize(_normalWS), 

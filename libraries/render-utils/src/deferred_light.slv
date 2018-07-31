@@ -14,7 +14,7 @@
 
 <@include render-utils/ShaderConstants.h@>
 
-layout(location=RENDER_UTILS_ATTR_TEXCOORD0) out vec2 _texCoord0;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
 
 layout(location=RENDER_UTILS_UNIFORM_LIGHT_TEXCOORD_TRANSFORM) uniform vec4 texcoordFrameTransform;
 
@@ -28,10 +28,10 @@ void main(void) {
     );
     vec4 pos = UNIT_QUAD[gl_VertexID];
 
-    _texCoord0 = (pos.xy + 1.0) * 0.5;
+    _texCoord01.xy = (pos.xy + 1.0) * 0.5;
 
-    _texCoord0 *= texcoordFrameTransform.zw;
-    _texCoord0 += texcoordFrameTransform.xy;
+    _texCoord01.xy *= texcoordFrameTransform.zw;
+    _texCoord01.xy += texcoordFrameTransform.xy;
 
     gl_Position = pos;
 }

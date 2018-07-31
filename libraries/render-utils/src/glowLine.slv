@@ -27,7 +27,7 @@ layout(std140, binding=0) uniform LineDataBuffer {
 
 layout(location=RENDER_UTILS_ATTR_COLOR) out vec4 _color;
 // the distance from the center in 'quad space'
-layout(location=1) out float distanceFromCenter;
+layout(location=0) out float distanceFromCenter;
 
 void main(void) {
     _color = _lineData.color;

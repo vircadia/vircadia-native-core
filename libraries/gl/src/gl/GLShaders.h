@@ -41,9 +41,13 @@ struct Uniform : public ShaderBinding {
     static Vector load(GLuint glprogram, const std::vector<GLuint>& indices);
     static Vector load(GLuint glprogram, const std::vector<const char*>& names);
     static Vector load(GLuint glprogram, const std::vector<std::string>& names);
+    static Uniform loadByName(GLuint glprogram, const std::string& names);
 
     template <typename C>
     static Vector loadByName(GLuint glprogram, const C& names) {
+        if (names.empty()) {
+            return {};
+        }
         std::vector<const char*> cnames;
         cnames.reserve(names.size());
         for (const auto& name : names) {
@@ -113,6 +117,7 @@ bool compileShader(GLenum shaderDomain,
 GLuint buildProgram(const std::vector<GLuint>& glshaders);
 GLuint buildProgram(const CachedShader& binary);
 bool linkProgram(GLuint glprogram, std::string& message);
+void getShaderInfoLog(GLuint glshader, std::string& message);
 void getProgramInfoLog(GLuint glprogram, std::string& message);
 void getProgramBinary(GLuint glprogram, CachedShader& cachedShader);
 }  // namespace gl

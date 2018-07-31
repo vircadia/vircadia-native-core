@@ -19,11 +19,13 @@ using namespace gpu;
 using namespace gpu::gl45;
 
 GLint GL45Backend::MAX_COMBINED_SHADER_STORAGE_BLOCKS{ 0 };
+GLint GL45Backend::MAX_UNIFORM_LOCATIONS{ 0 };
 
 static void staticInit() {
     static std::once_flag once;
     std::call_once(once, [&] {
         glGetIntegerv(GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS, &GL45Backend::MAX_COMBINED_SHADER_STORAGE_BLOCKS);
+        glGetIntegerv(GL_MAX_UNIFORM_LOCATIONS, &GL45Backend::MAX_UNIFORM_LOCATIONS);
     });
 }
 const std::string GL45Backend::GL45_VERSION { "GL45" };
