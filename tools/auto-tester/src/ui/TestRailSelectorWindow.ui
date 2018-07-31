@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MismatchWindow</string>
+   <string>TestRail Selector Window</string>
   </property>
   <widget class="QLabel" name="errorLabel">
    <property name="geometry">
