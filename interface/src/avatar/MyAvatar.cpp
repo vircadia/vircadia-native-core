@@ -1669,7 +1669,10 @@ void MyAvatar::clearJointsData() {
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _skeletonModelChangeCount++;
     int skeletonModelChangeCount = _skeletonModelChangeCount;
+
+    auto previousSkeletonModelURL = _skeletonModelURL;
     Avatar::setSkeletonModelURL(skeletonModelURL);
+
     _skeletonModel->setTagMask(render::hifi::TAG_NONE);
     _skeletonModel->setGroupCulled(true);
     _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene());
@@ -1700,7 +1703,11 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     emit skeletonChanged();
     emit skeletonModelURLChanged();
 
-    _clientTraitsHandler.markTraitChanged(AvatarTraits::SkeletonModelURL);
+    if (previousSkeletonModelURL != _skeletonModelURL) {
+        _clientTraitsHandler.markTraitChanged(AvatarTraits::SkeletonModelURL);
+    } else {
+        qDebug() << "Not marking skeleton model URL trait changed since the new value matches the previous";
+    }
 }
 
 void MyAvatar::removeAvatarEntities(const std::function<bool(const QUuid& entityID)>& condition) {

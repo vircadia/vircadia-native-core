@@ -120,6 +120,8 @@ public:
     void queuePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node);
     int processPackets(); // returns number of packets processed
 
+    void processSetTraitsMessage(ReceivedMessage& message);
+
 private:
     struct PacketQueue : public std::queue<QSharedPointer<ReceivedMessage>> {
         QWeakPointer<Node> node;

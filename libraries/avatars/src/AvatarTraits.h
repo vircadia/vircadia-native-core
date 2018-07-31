@@ -22,8 +22,6 @@ namespace AvatarTraits {
 
     using TraitVersion = uint32_t;
     const TraitVersion DEFAULT_TRAIT_VERSION = 0;
-
-    using TraitVersions = std::vector<TraitVersion>;
 }
 
 #endif // hifi_AvatarTraits_h

@@ -15,6 +15,7 @@
 #include <AnimationCache.h>
 #include <AnimSkeleton.h>
 #include <AvatarData.h>
+#include <ClientTraitsHandler.h>
 #include <ScriptEngine.h>
 
 /**jsdoc
@@ -123,7 +124,7 @@
 class ScriptableAvatar : public AvatarData, public Dependency {
     Q_OBJECT
 public:
-  
+
     /**jsdoc
      * @function Avatar.startAnimation
      * @param {string} url
@@ -164,6 +165,8 @@ private:
     QStringList _maskedJoints;
     AnimationPointer _bind; // a sleazy way to get the skeleton, given the various library/cmake dependencies
     std::shared_ptr<AnimSkeleton> _animSkeleton;
+
+    ClientTraitsHandler _clientTraitsHandler { this };
 };
 
 #endif // hifi_ScriptableAvatar_h

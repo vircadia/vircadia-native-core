@@ -54,7 +54,7 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::RadiusIgnoreRequest, this, "handleRadiusIgnoreRequestPacket");
     packetReceiver.registerListener(PacketType::RequestsDomainListData, this, "handleRequestsDomainListDataPacket");
     packetReceiver.registerListener(PacketType::AvatarIdentityRequest, this, "handleAvatarIdentityRequestPacket");
-    packetReceiver.registerListener(PacketType::SetAvatarTraits, this, "handleSetAvatarTraitsMessage");
+    packetReceiver.registerListener(PacketType::SetAvatarTraits, this, "queueIncomingPacket");
 
     packetReceiver.registerListenerForTypes({
         PacketType::ReplicatedAvatarIdentity,
@@ -605,10 +605,6 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
     }
     auto end = usecTimestampNow();
     _handleAvatarIdentityPacketElapsedTime += (end - start);
-}
-
-void AvatarMixer::handleSetAvatarTraitsMessage(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    qDebug() << "Got a traits packet of" << message->getSize() << "bytes from" << senderNode;
 }
 
 void AvatarMixer::handleAvatarIdentityRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {

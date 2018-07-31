@@ -48,7 +48,6 @@ private slots:
     void handleAdjustAvatarSorting(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleAvatarQueryPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
-    void handleSetAvatarTraitsMessage(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleRadiusIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
@@ -127,9 +126,7 @@ private:
 
     RateCounter<> _loopRate; // this is the rate that the main thread tight loop runs
 
-
     AvatarMixerSlavePool _slavePool;
-
 };
 
 #endif // hifi_AvatarMixer_h

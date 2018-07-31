@@ -62,6 +62,9 @@ int AvatarMixerClientData::processPackets() {
             case PacketType::AvatarData:
                 parseData(*packet);
                 break;
+            case PacketType::SetAvatarTraits:
+                processSetTraitsMessage(*packet);
+                break;
             default:
                 Q_UNREACHABLE();
         }
@@ -87,6 +90,11 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message) {
     // compute the offset to the data payload
     return _avatar->parseDataFromBuffer(message.readWithoutCopy(message.getBytesLeftToRead()));
 }
+
+void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message) {
+    qDebug() << "Pulling a traits message of" << message.getSize();
+}
+
 uint64_t AvatarMixerClientData::getLastBroadcastTime(const QUuid& nodeUUID) const {
     // return the matching PacketSequenceNumber, or the default if we don't have it
     auto nodeMatch = _lastBroadcastTimes.find(nodeUUID);
