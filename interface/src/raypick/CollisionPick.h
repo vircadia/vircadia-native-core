@@ -35,35 +35,7 @@ public:
     std::vector<ContactTestResult> entityIntersections;
     std::vector<ContactTestResult> avatarIntersections;
 
-    virtual QVariantMap toVariantMap() const override {
-        QVariantMap variantMap;
-
-        variantMap["intersects"] = intersects;
-        
-        QVariantList qEntityIntersections;
-        for (auto entityIntersection : entityIntersections) {
-            QVariantMap qEntityIntersection;
-            qEntityIntersection["objectID"] = entityIntersection.foundID;
-            qEntityIntersection["pickCollisionPoint"] = vec3toVariant(entityIntersection.testCollisionPoint);
-            qEntityIntersection["entityCollisionPoint"] = vec3toVariant(entityIntersection.foundCollisionPoint);
-            qEntityIntersections.append(qEntityIntersection);
-        }
-        variantMap["entityIntersections"] = qEntityIntersections;
-
-        QVariantList qAvatarIntersections;
-        for (auto avatarIntersection : avatarIntersections) {
-            QVariantMap qAvatarIntersection;
-            qAvatarIntersection["objectID"] = avatarIntersection.foundID;
-            qAvatarIntersection["pickCollisionPoint"] = vec3toVariant(avatarIntersection.testCollisionPoint);
-            qAvatarIntersection["entityCollisionPoint"] = vec3toVariant(avatarIntersection.foundCollisionPoint);
-            qAvatarIntersections.append(qAvatarIntersection);
-        }
-        variantMap["avatarIntersections"] = qAvatarIntersections;
-
-        variantMap["collisionRegion"] = pickVariant;
-
-        return variantMap;
-    }
+    QVariantMap CollisionPickResult::toVariantMap() const override;
 
     bool doesIntersect() const override { return intersects; }
     bool checkOrFilterAgainstMaxDistance(float maxDistance) override { return true; }

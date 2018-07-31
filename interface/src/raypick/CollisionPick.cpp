@@ -14,6 +14,61 @@
 
 #include "ScriptEngineLogging.h"
 #include "model-networking/ModelCache.h"
+#include "UUIDHasher.h"
+
+QVariantMap CollisionPickResult::toVariantMap() const {
+    QVariantMap variantMap;
+
+    variantMap["intersects"] = intersects;
+
+    std::unordered_map<QUuid, QVariantMap> intersections;
+    std::unordered_map<QUuid, QVariantList> collisionPointPairs;
+
+    IntersectionType intersectionTypesToCheck[] = { ENTITY, AVATAR };
+    for (int i = 0; i < 2; i++) {
+        IntersectionType intersectionType = intersectionTypesToCheck[i];
+
+        const std::vector<ContactTestResult>* objectIntersections;
+        if (intersectionType == ENTITY) {
+            objectIntersections = &entityIntersections;
+        }
+        else {
+            objectIntersections = &avatarIntersections;
+        }
+
+        for (auto& objectIntersection : *objectIntersections) {
+            auto at = intersections.find(objectIntersection.foundID);
+            if (at == intersections.end()) {
+                QVariantMap intersectingObject;
+                intersectingObject["id"] = objectIntersection.foundID;
+                intersectingObject["type"] = intersectionType;
+                intersections[objectIntersection.foundID] = intersectingObject;
+
+                collisionPointPairs[objectIntersection.foundID] = QVariantList();
+            }
+
+            QVariantMap collisionPointPair;
+            collisionPointPair["pick"] = vec3toVariant(objectIntersection.testCollisionPoint);
+            collisionPointPair["object"] = vec3toVariant(objectIntersection.foundCollisionPoint);
+
+            collisionPointPairs[objectIntersection.foundID].append(collisionPointPair);
+        }
+    }
+
+    QVariantList qIntersectingObjects;
+    for (auto& intersectionKeyVal : intersections) {
+        const QUuid& id = intersectionKeyVal.first;
+        QVariantMap& intersection = intersectionKeyVal.second;
+
+        intersection["collisionPointPairs"] = collisionPointPairs[id];
+        qIntersectingObjects.append(intersection);
+    }
+
+    variantMap["intersectingObjects"] = qIntersectingObjects;
+    variantMap["collisionRegion"] = pickVariant;
+
+    return variantMap;
+}
 
 bool CollisionPick::isShapeInfoReady(CollisionRegion& pick) {
     if (pick.shouldComputeShapeInfo()) {
