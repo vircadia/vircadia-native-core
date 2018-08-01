@@ -26,6 +26,16 @@ TestRailInterface::TestRailInterface() {
     ////_testRailSelectorWindow.setProject(1);
 
     _testRailTestCasesSelectorWindow.setSuiteID(INTERFACE_SUITE_ID);
+
+    _testRailRunSelectorWindow.setURL("https://highfidelity.testrail.net");
+    ////_testRailRunSelectorWindow.setURL("https://nissimhadar.testrail.io");
+    _testRailRunSelectorWindow.setUser("@highfidelity.io");
+    ////_testRailSelectorWindow.setUser("nissim.hadar@gmail.com");
+
+    _testRailRunSelectorWindow.setProjectID(INTERFACE_PROJECT_ID);
+    ////_testRailSelectorWindow.setProject(1);
+
+    _testRailRunSelectorWindow.setSuiteID(INTERFACE_SUITE_ID);
 }
 
 QString TestRailInterface::getObject(const QString& path) {
@@ -184,7 +194,7 @@ void TestRailInterface::createStackDotPyScript() {
     file.close();
 }
 
-void TestRailInterface::requestTestRailDataFromUser() {
+void TestRailInterface::requestTestRailTestCasesDataFromUser() {
     // Make sure correct fields are enabled before calling
     _testRailTestCasesSelectorWindow.reset();
     _testRailTestCasesSelectorWindow.exec();
@@ -312,6 +322,11 @@ void TestRailInterface::createAddTestCasesPythonScript(const QString& testDirect
 }
 
 void TestRailInterface::updateMilestonesComboData(int exitCode, QProcess::ExitStatus exitStatus) {
+    // Quit if user has previously cancelled
+    if (_testRailTestCasesSelectorWindow.getUserCancelled()) {
+        return;
+    }
+
     // Check if process completed successfully
     if (exitStatus != QProcess::NormalExit) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
@@ -424,7 +439,7 @@ void TestRailInterface::createTestSuitePython(const QString& testDirectory,
         return;
     }
 
-    requestTestRailDataFromUser();
+    requestTestRailTestCasesDataFromUser();
     createTestRailDotPyScript();
     createStackDotPyScript();
 
@@ -685,6 +700,19 @@ void TestRailInterface::processTestPython(const QString& fullDirectory,
     stream << "case = client.send_post('add_case/' + str(section_id), data)\n";
 }
 
+void TestRailInterface::requestTestRailRunDataFromUser() {
+    _testRailRunSelectorWindow.reset();
+    _testRailRunSelectorWindow.exec();
+}
+
+void TestRailInterface::getTestCasesFromTestRail() {
+}
+
 void TestRailInterface::createTestRailRun() {
-    
+    requestTestRailRunDataFromUser();
+    createTestRailDotPyScript();
+    createStackDotPyScript();
+
+    // TestRail will be updated after the process initiated by getTestCasesFromTestRail has completed
+    getTestCasesFromTestRail();
 }

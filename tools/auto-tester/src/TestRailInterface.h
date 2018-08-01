@@ -54,9 +54,13 @@ public:
                            const QString& branchGitHub);
 
     void getMilestonesFromTestRail();
+    void getTestCasesFromTestRail();
+
     void createTestRailDotPyScript();
     void createStackDotPyScript();
-    void requestTestRailDataFromUser();
+
+    void requestTestRailTestCasesDataFromUser();
+    void requestTestRailRunDataFromUser();
 
     void createAddTestCasesPythonScript(const QString& testDirectory,
                                         const QString& userGitHub,
@@ -68,6 +72,7 @@ public:
                                 const QString& branchGitHub);
 
     bool isAValidTestDirectory(const QString& directory);
+
     QString getObject(const QString& path);
 
     void updateMilestonesComboData(int exitCode, QProcess::ExitStatus exitStatus);
