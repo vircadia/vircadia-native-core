@@ -74,6 +74,7 @@ public:
     friend class Avatar;
 
 protected:
+    void setRigidBody(btRigidBody* body) override;
     void setShape(const btCollisionShape* shape) override;
     void cacheShapeDiameter();
 

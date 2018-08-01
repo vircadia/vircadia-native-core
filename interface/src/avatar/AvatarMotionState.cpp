@@ -96,6 +96,10 @@ void AvatarMotionState::setWorldTransform(const btTransform& worldTrans) {
         btVector3 velocity = glmToBullet(getObjectLinearVelocity()) + (1.0f / SPRING_TIMESCALE) * offsetToTarget;
         _body->setLinearVelocity(velocity);
         _body->setAngularVelocity(glmToBullet(getObjectAngularVelocity()));
+        // slam its rotation
+        btTransform newTransform = worldTrans;
+        newTransform.setRotation(glmToBullet(getObjectRotation()));
+        _body->setWorldTransform(newTransform);
     }
 }
 
@@ -188,6 +192,14 @@ void AvatarMotionState::cacheShapeDiameter() {
         _diameter = SQRT_TWO * aabbMax.length();
     } else {
         _diameter = 0.0f;
+    }
+}
+
+void AvatarMotionState::setRigidBody(btRigidBody* body) {
+    ObjectMotionState::setRigidBody(body);
+    if (_body) {
+        // remove angular dynamics from this body
+        _body->setAngularFactor(0.0f);
     }
 }
 
