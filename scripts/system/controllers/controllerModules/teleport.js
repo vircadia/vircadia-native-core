@@ -184,24 +184,20 @@ Script.include("/~/system/libraries/controllers.js");
         });
 
 
-        this.PLAY_AREA_OVERLAY_OFFSET = { x: 0, y: 0.02, z: 0 }; // Raise above surface to make visible.
-        this.PLAY_AREA_OVERLAY_IMAGE_SIZE = 256;
-        this.PLAY_AREA_OVERLAY_IMAGE_RECTANGLE = 250; // Size of rectangle within image.
-        this.PLAY_AREA_OVERLAY_SCALE = this.PLAY_AREA_OVERLAY_IMAGE_SIZE / this.PLAY_AREA_OVERLAY_IMAGE_RECTANGLE;
+        this.PLAY_AREA_OVERLAY_MODEL = Script.resolvePath("../../assets/models/trackingSpacev2.fbx");
+        this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS = { x: 2, y: 0.2, z: 2 };
+        this.PLAY_AREA_OVERLAY_MODEL_UNIT_HEIGHT = this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.y
+            / this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.x;
+        this.PLAY_AREA_OVERLAY_OFFSET = { x: 0, y: this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.y / 2, z: 0 };
+        this.PLAY_AREA_SENSOR_OVERLAY_MODEL = Script.resolvePath("../../assets/models/oculusSensorv2.fbx");
+        this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS = { x: 0.1198, y: 0.2981, z: 0.1198 };
+        this.PLAY_AREA_SENSOR_OVERLAY_ROTATION = Quat.fromVec3Degrees({ x: 0, y: -90, z: 0 });
+        this.playAreaSensorPositions = [];
+        this.playAreaSensorPositionOverlays = [];
         this.playArea = { x: 0, y: 0 };
         this.playAreaCenterOffset = this.PLAY_AREA_OVERLAY_OFFSET;
         this.isPlayAreaVisible = false;
         this.isPlayAreaAvailable = false;
-
-        this.playAreaSensorPositions = [];
-        this.playAreaSensorPositionOverlays = [];
-        this.PLAY_AREA_OVERLAY_MODEL = Script.resolvePath("../../assets/models/trackingSpace.fbx");
-        this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS = { x: 2, y: 0.2, z: 2 };
-        this.PLAY_AREA_OVERLAY_MODEL_UNIT_HEIGHT = this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.y
-            / this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.x;
-        this.PLAY_AREA_SENSOR_OVERLAY_MODEL = Script.resolvePath("../../assets/models/oculusSensor.fbx");
-        this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS = { x: 0.1198, y: 0.2981, z: 0.1198 };
-        this.PLAY_AREA_SENSOR_OVERLAY_ROTATION = Quat.fromVec3Degrees({ x: 0, y: -90, z: 0 });
 
         this.playAreaOverlay = Overlays.addOverlay("model", {
             url: this.PLAY_AREA_OVERLAY_MODEL,
@@ -242,7 +238,9 @@ Script.include("/~/system/libraries/controllers.js");
             for (var i = 0; i < this.playAreaSensorPositionOverlays.length; i++) {
                 var localPosition = this.playAreaSensorPositions[i];
                 localPosition = Vec3.multiply(avatarScale, localPosition);
-                localPosition.y = avatarScale * this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS.y / 2; // Position on the floor.
+                localPosition.y = avatarScale * this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS.y / 2
+                    - this.playAreaCenterOffset.y / 2;  // Position on the floor.
+
                 Overlays.editOverlay(this.playAreaSensorPositionOverlays[i], {
                     dimensions: Vec3.multiply(avatarScale, this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS),
                     parentID: this.playAreaOverlay,
@@ -270,8 +268,6 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.setPlayAreaAvailable = function () {
             this.playArea = HMD.playArea;
-            this.playArea.width = this.PLAY_AREA_OVERLAY_SCALE * this.playArea.width;
-            this.playArea.height = this.PLAY_AREA_OVERLAY_SCALE * this.playArea.height;
             this.isPlayAreaAvailable = HMD.active && this.playArea.width !== 0 && this.playArea.height !== 0;
             if (this.isPlayAreaAvailable) {
                 this.playAreaCenterOffset = Vec3.sum({ x: this.playArea.x, y: 0, z: this.playArea.y },
