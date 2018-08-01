@@ -143,6 +143,7 @@
 #include <QmlFragmentClass.h>
 #include <Preferences.h>
 #include <display-plugins/CompositorHelper.h>
+#include <display-plugins/hmd/HmdDisplayPlugin.h>
 #include <trackers/EyeTracker.h>
 #include <avatars-renderer/ScriptAvatar.h>
 #include <RenderableEntityItem.h>
@@ -2717,6 +2718,10 @@ void Application::initializeDisplayPlugins() {
         QObject::connect(displayPlugin.get(), &DisplayPlugin::recommendedFramebufferSizeChanged,
             [this](const QSize& size) { resizeGL(); });
         QObject::connect(displayPlugin.get(), &DisplayPlugin::resetSensorsRequested, this, &Application::requestReset);
+        if (displayPlugin->isHmd()) {
+            QObject::connect(dynamic_cast<HmdDisplayPlugin*>(displayPlugin.get()), &HmdDisplayPlugin::hmdMountedChanged,
+                DependencyManager::get<HMDScriptingInterface>().data(), &HMDScriptingInterface::mountedChanged);
+        }
     }
 
     // The default display plugin needs to be activated first, otherwise the display plugin thread
