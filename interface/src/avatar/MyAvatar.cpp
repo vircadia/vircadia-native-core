@@ -2326,6 +2326,14 @@ void MyAvatar::updateOrientation(float deltaTime) {
     }
 }
 
+static float scaleSpeedByDirection(glm::vec2 velocityDirection, float speed) {
+    float scale = 1.0f;
+    if (velocityDirection.y > 0.0f) {
+        scale = 0.5f;
+    }
+    return scale * speed;
+}
+
 void MyAvatar::updateActionMotor(float deltaTime) {
     bool thrustIsPushing = (glm::length2(_thrust) > EPSILON);
     bool scriptedMotorIsPushing = (_motionBehaviors & AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED)
@@ -2387,7 +2395,10 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         _actionMotorVelocity = motorSpeed * direction;
     } else {
         // we're interacting with a floor --> simple horizontal speed and exponential decay
-        _actionMotorVelocity = getSensorToWorldScale() * (_walkSpeed.get() * _walkSpeedScalar)  * direction;
+        const glm::vec2 currentVel = { direction.x, direction.z };
+        float wspd = _walkSpeed.get();
+        float scaledSpeed = scaleSpeedByDirection(currentVel, wspd);
+        _actionMotorVelocity = getSensorToWorldScale() * (scaledSpeed * _walkSpeedScalar)  * direction;
     }
 
     float previousBoomLength = _boomLength;
@@ -3358,12 +3369,22 @@ bool MyAvatar::isReadyForPhysics() const {
 }
 
 void MyAvatar::setSprintMode(bool sprint) {
-    _walkSpeedScalar = sprint ? AVATAR_SPRINT_SPEED_SCALAR : AVATAR_WALK_SPEED_SCALAR;
+    _walkSpeedScalar = sprint ? _sprintSpeed.get() : AVATAR_WALK_SPEED_SCALAR;
 }
 
 void MyAvatar::setWalkSpeed(float value) {
     _walkSpeed.set(value);
 }
+
+void MyAvatar::setSprintSpeed(float speed) {
+    _sprintSpeed.set(speed);
+}
+
+float MyAvatar::getSprintSpeed() const {
+    return _sprintSpeed.get();
+}
+
+
 
 QVector<QString> MyAvatar::getScriptUrls() {
     QVector<QString> scripts = _skeletonModel->isLoaded() ? _skeletonModel->getFBXGeometry().scripts : QVector<QString>();
