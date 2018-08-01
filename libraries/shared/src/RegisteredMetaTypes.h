@@ -97,7 +97,11 @@ void qRectFromScriptValue(const QScriptValue& object, QRect& rect);
 QRect qRectFromVariant(const QVariant& object, bool& isValid);
 QRect qRectFromVariant(const QVariant& object);
 QVariant qRectToVariant(const QRect& rect);
-
+QScriptValue qRectFToScriptValue(QScriptEngine* engine, const QRectF& rect);
+void qRectFFromScriptValue(const QScriptValue& object, QRectF& rect);
+QRectF qRectFFromVariant(const QVariant& object, bool& isValid);
+QRectF qRectFFromVariant(const QVariant& object);
+QVariant qRectFToVariant(const QRectF& rect);
 
 // xColor
 QScriptValue xColorToScriptValue(QScriptEngine* engine, const xColor& color);
