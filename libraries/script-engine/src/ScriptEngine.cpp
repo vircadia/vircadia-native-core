@@ -751,7 +751,7 @@ void ScriptEngine::init() {
     registerGlobalObject("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
 
 #if DEV_BUILD || PR_BUILD
-    registerGlobalObject("StackTest", new StackTestScriptingInterface());
+    registerGlobalObject("StackTest", new StackTestScriptingInterface(this));
 #endif
 }
 

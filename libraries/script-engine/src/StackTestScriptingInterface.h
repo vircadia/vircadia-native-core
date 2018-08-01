@@ -20,6 +20,8 @@ class StackTestScriptingInterface : public QObject {
     Q_OBJECT
 
 public:
+    StackTestScriptingInterface(QObject* parent = nullptr) : QObject(parent) {}
+
     Q_INVOKABLE void pass(QString message = QString());
     Q_INVOKABLE void fail(QString message = QString());
 
