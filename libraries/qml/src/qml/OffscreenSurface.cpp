@@ -393,9 +393,6 @@ void OffscreenSurface::finishQmlLoad(QQmlComponent* qmlComponent,
         _sharedObject->setRootItem(newItem);
     }
 
-    qmlComponent->completeCreate();
-    qmlComponent->deleteLater();
-
     onItemCreated(qmlContext, newItem);
 
     if (!rootCreated) {
@@ -405,6 +402,8 @@ void OffscreenSurface::finishQmlLoad(QQmlComponent* qmlComponent,
         // Call this callback after rootitem is set, otherwise VrMenu wont work
         callback(qmlContext, newItem);
     }
+    qmlComponent->completeCreate();
+    qmlComponent->deleteLater();
 }
 
 QQmlContext* OffscreenSurface::contextForUrl(const QUrl& qmlSource, QQuickItem* parent, bool forceNewContext) {

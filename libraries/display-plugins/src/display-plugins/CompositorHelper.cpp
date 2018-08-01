@@ -29,6 +29,8 @@
 #include <CursorManager.h>
 #include <gl/GLWidget.h>
 
+#include "GeometryUtil.h"
+
 // Used to animate the magnification windows
 
 //static const quint64 TOOLTIP_DELAY = 500 * MSECS_TO_USECS;
@@ -275,7 +277,7 @@ bool CompositorHelper::getReticleOverDesktop() const {
     // as being over the desktop.
     if (isHMD()) {
         QMutexLocker locker(&_reticleLock);
-        glm::vec2 maxOverlayPosition = glm::vec2(_currentDisplayPlugin->getRecommendedUiSize()) * _currentDisplayPlugin->getRenderResolutionScale();
+        glm::vec2 maxOverlayPosition = glm::vec2(_currentDisplayPlugin->getRecommendedUiSize());
         static const glm::vec2 minOverlayPosition;
         if (glm::any(glm::lessThan(_reticlePositionInHMD, minOverlayPosition)) ||
             glm::any(glm::greaterThan(_reticlePositionInHMD, maxOverlayPosition))) {
@@ -317,7 +319,7 @@ void CompositorHelper::sendFakeMouseEvent() {
 
 void CompositorHelper::setReticlePosition(const glm::vec2& position, bool sendFakeEvent) {
     if (isHMD()) {
-        glm::vec2 maxOverlayPosition = glm::vec2(_currentDisplayPlugin->getRecommendedUiSize()) * _currentDisplayPlugin->getRenderResolutionScale();
+        glm::vec2 maxOverlayPosition = glm::vec2(_currentDisplayPlugin->getRecommendedUiSize());
         // FIXME don't allow negative mouseExtra
         glm::vec2 mouseExtra = (MOUSE_EXTENTS_PIXELS - maxOverlayPosition) / 2.0f;
         glm::vec2 minMouse = vec2(0) - mouseExtra;
@@ -357,9 +359,9 @@ bool CompositorHelper::calculateRayUICollisionPoint(const glm::vec3& position, c
     glm::vec3 localDirection = glm::normalize(transformVectorFast(worldToUi, direction));
 
     const float UI_RADIUS = 1.0f;
-    float instersectionDistance;
-    if (raySphereIntersect(localDirection, localPosition, UI_RADIUS, &instersectionDistance)) {
-        result = transformPoint(uiToWorld, localPosition + localDirection * instersectionDistance);
+    float intersectionDistance;
+    if (raySphereIntersect(localDirection, localPosition, UI_RADIUS, &intersectionDistance)) {
+        result = transformPoint(uiToWorld, localPosition + localDirection * intersectionDistance);
 #ifdef WANT_DEBUG
         DebugDraw::getInstance().drawRay(position, result, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
 #endif
@@ -368,6 +370,23 @@ bool CompositorHelper::calculateRayUICollisionPoint(const glm::vec3& position, c
 #ifdef WANT_DEBUG
         DebugDraw::getInstance().drawRay(position, position + (direction * 1000.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
 #endif
+    }
+    return false;
+}
+
+bool CompositorHelper::calculateParabolaUICollisionPoint(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration, glm::vec3& result, float& parabolicDistance) const {
+    glm::mat4 uiToWorld = getUiTransform();
+    glm::mat4 worldToUi = glm::inverse(uiToWorld);
+    glm::vec3 localOrigin = transformPoint(worldToUi, origin);
+    glm::vec3 localVelocity = glm::normalize(transformVectorFast(worldToUi, velocity));
+    glm::vec3 localAcceleration = glm::normalize(transformVectorFast(worldToUi, acceleration));
+
+    const float UI_RADIUS = 1.0f;
+    float intersectionDistance;
+    if (findParabolaSphereIntersection(localOrigin, localVelocity, localAcceleration, glm::vec3(0.0f), UI_RADIUS, intersectionDistance)) {
+        result = origin + velocity * intersectionDistance + 0.5f * acceleration * intersectionDistance * intersectionDistance;
+        parabolicDistance = intersectionDistance;
+        return true;
     }
     return false;
 }

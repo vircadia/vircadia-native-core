@@ -52,6 +52,7 @@ public:
     void setRenderingWidget(QWidget* widget) { _renderingWidget = widget; }
 
     bool calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const;
+    bool calculateParabolaUICollisionPoint(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration, glm::vec3& result, float& parabolicDistance) const;
 
     bool isHMD() const;
     bool fakeEventActive() const { return _fakeMouseEvent; }

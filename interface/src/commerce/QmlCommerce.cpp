@@ -208,7 +208,7 @@ void QmlCommerce::alreadyOwned(const QString& marketplaceId) {
     ledger->alreadyOwned(marketplaceId);
 }
 
-QString QmlCommerce::getInstalledApps() {
+QString QmlCommerce::getInstalledApps(const QString& justInstalledAppID) {
     QString installedAppsFromMarketplace;
     QStringList runningScripts = DependencyManager::get<ScriptEngines>()->getRunningScripts();
 
@@ -217,6 +217,18 @@ QString QmlCommerce::getInstalledApps() {
     foreach(QString appFileName, apps) {
         installedAppsFromMarketplace += appFileName;
         installedAppsFromMarketplace += ",";
+
+        // If we were supplied a "justInstalledAppID" argument, that means we're entering this function
+        // to get the new list of installed apps immediately after installing an app.
+        // In that case, the app we installed may not yet have its associated script running -
+        // that task is asynchronous and takes a nonzero amount of time. This is especially true
+        // for apps that are not in Interface's script cache.
+        // Thus, we protect against deleting the .app.json from the user's disk (below)
+        // by skipping that check for the app we just installed.
+        if ((justInstalledAppID != "") && ((justInstalledAppID + ".app.json") == appFileName)) {
+            continue;
+        }
+
         QFile appFile(_appsPath + appFileName);
         if (appFile.open(QIODevice::ReadOnly)) {
             QJsonDocument appFileJsonDocument = QJsonDocument::fromJson(appFile.readAll());
@@ -291,7 +303,8 @@ bool QmlCommerce::installApp(const QString& itemHref) {
             return false;
         }
 
-        emit appInstalled(itemHref);
+        QFileInfo appFileInfo(appFile);
+        emit appInstalled(appFileInfo.baseName());
         return true;
     });
     request->send();
@@ -321,7 +334,8 @@ bool QmlCommerce::uninstallApp(const QString& itemHref) {
         qCWarning(commerce) << "Couldn't delete local .app.json file during app uninstall. Continuing anyway. App filename is:" << appHref.fileName();
     }
 
-    emit appUninstalled(itemHref);
+    QFileInfo appFileInfo(appFile);
+    emit appUninstalled(appFileInfo.baseName());
     return true;
 }
 

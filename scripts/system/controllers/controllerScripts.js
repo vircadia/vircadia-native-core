@@ -29,7 +29,6 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/disableOtherModule.js",
     "controllerModules/farTrigger.js",
     "controllerModules/teleport.js",
-    "controllerModules/scaleAvatar.js",
     "controllerModules/hudOverlayPointer.js",
     "controllerModules/mouseHMD.js",
     "controllerModules/scaleEntity.js",

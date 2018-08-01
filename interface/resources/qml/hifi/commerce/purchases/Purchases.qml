@@ -98,7 +98,7 @@ Rectangle {
         }
 
         onAppInstalled: {
-            root.installedApps = Commerce.getInstalledApps();
+            root.installedApps = Commerce.getInstalledApps(appID);
         }
 
         onAppUninstalled: {
@@ -551,8 +551,9 @@ Rectangle {
 
         HifiModels.PSFListModel {
             id: purchasesModel;
-            itemsPerPage: 6;
+            itemsPerPage: 7;
             listModelName: 'purchases';
+            listView: purchasesContentsList;
             getPage: function () {
                 console.debug('getPage', purchasesModel.listModelName, root.isShowingMyItems, filterBar.primaryFilter_filterName, purchasesModel.currentPageToRetrieve, purchasesModel.itemsPerPage);
                 Commerce.inventory(
@@ -706,7 +707,58 @@ Rectangle {
                                 }
                             }
                         } else if (msg.method === "updateItemClicked") {
-                            sendToScript(msg);
+                            // These three cases are very similar to the conditionals below, under
+                            // "if msg.method === "giftAsset". They differ in their popup's wording
+                            // and the actions to take when continuing.
+                            // I could see an argument for DRYing up this code, but I think the
+                            // actions are different enough now and potentially moving forward such that I'm
+                            // OK with "somewhat repeating myself".
+                            if (msg.itemType === "app" && msg.isInstalled) {
+                                lightboxPopup.titleText = "Uninstall App";
+                                lightboxPopup.bodyText = "The app that you are trying to update is installed.<br><br>" +
+                                "If you proceed, the current version of the app will be uninstalled.";
+                                lightboxPopup.button1text = "CANCEL";
+                                lightboxPopup.button1method = function() {
+                                    lightboxPopup.visible = false;
+                                }
+                                lightboxPopup.button2text = "CONFIRM";
+                                lightboxPopup.button2method = function() {
+                                    Commerce.uninstallApp(msg.itemHref);
+                                    sendToScript(msg);
+                                };
+                                lightboxPopup.visible = true;
+                            } else if (msg.itemType === "wearable" && msg.wornEntityID !== '') {
+                                lightboxPopup.titleText = "Remove Wearable";
+                                lightboxPopup.bodyText = "You are currently wearing the wearable that you are trying to update.<br><br>" +
+                                "If you proceed, this wearable will be removed.";
+                                lightboxPopup.button1text = "CANCEL";
+                                lightboxPopup.button1method = function() {
+                                    lightboxPopup.visible = false;
+                                }
+                                lightboxPopup.button2text = "CONFIRM";
+                                lightboxPopup.button2method = function() {
+                                    Entities.deleteEntity(msg.wornEntityID);
+                                    purchasesModel.setProperty(index, 'wornEntityID', '');
+                                    sendToScript(msg);
+                                };
+                                lightboxPopup.visible = true;
+                            } else if (msg.itemType === "avatar" && MyAvatar.skeletonModelURL === msg.itemHref) {
+                                lightboxPopup.titleText = "Change Avatar to Default";
+                                lightboxPopup.bodyText = "You are currently wearing the avatar that you are trying to update.<br><br>" +
+                                "If you proceed, your avatar will be changed to the default avatar.";
+                                lightboxPopup.button1text = "CANCEL";
+                                lightboxPopup.button1method = function() {
+                                    lightboxPopup.visible = false;
+                                }
+                                lightboxPopup.button2text = "CONFIRM";
+                                lightboxPopup.button2method = function() {
+                                    MyAvatar.useFullAvatarURL('');
+                                    sendToScript(msg);
+                                };
+                                lightboxPopup.visible = true;
+                            } else {
+                                sendToScript(msg);
+                            }
                         } else if (msg.method === "giftAsset") {
                             sendAsset.assetName = msg.itemName;
                             sendAsset.assetCertID = msg.certId;
@@ -763,14 +815,6 @@ Rectangle {
                             }
                         }
                     }
-                }
-            }
-
-            
-            onAtYEndChanged: {
-                if (purchasesContentsList.atYEnd && !purchasesContentsList.atYBeginning) {
-                    console.log("User scrolled to the bottom of 'Purchases'.");
-                    purchasesModel.getNextPage();
                 }
             }
         }

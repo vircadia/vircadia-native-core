@@ -1,0 +1,18 @@
+// glsl / C++ compatible source as interface for BloomThreshold
+#ifdef __cplusplus
+#   define BT_VEC2 glm::vec2
+#else
+#   define BT_VEC2 vec2
+#endif
+
+struct Parameters
+{
+    BT_VEC2 _deltaUV;
+	float _threshold;
+    int _sampleCount;
+};
+
+    // <@if 1@>
+    // Trigger Scribe include 
+    // <@endif@> <!def that !> 
+//

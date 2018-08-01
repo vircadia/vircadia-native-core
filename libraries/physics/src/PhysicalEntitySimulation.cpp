@@ -59,7 +59,10 @@ void PhysicalEntitySimulation::addEntityInternal(EntityItemPointer entity) {
             _entitiesToAddToPhysics.insert(entity);
         }
     } else if (canBeKinematic && entity->isMovingRelativeToParent()) {
-        _simpleKinematicEntities.insert(entity);
+        SetOfEntities::iterator itr = _simpleKinematicEntities.find(entity);
+        if (itr == _simpleKinematicEntities.end()) {
+            _simpleKinematicEntities.insert(entity);
+        }
     }
 }
 
@@ -150,7 +153,10 @@ void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
             removeOwnershipData(motionState);
             _entitiesToRemoveFromPhysics.insert(entity);
             if (canBeKinematic && entity->isMovingRelativeToParent()) {
-                _simpleKinematicEntities.insert(entity);
+                SetOfEntities::iterator itr = _simpleKinematicEntities.find(entity);
+                if (itr == _simpleKinematicEntities.end()) {
+                    _simpleKinematicEntities.insert(entity);
+                }
             }
         } else {
             _incomingChanges.insert(motionState);
@@ -160,11 +166,20 @@ void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
         // The intent is for this object to be in the PhysicsEngine, but it has no MotionState yet.
         // Perhaps it's shape has changed and it can now be added?
         _entitiesToAddToPhysics.insert(entity);
-        _simpleKinematicEntities.remove(entity); // just in case it's non-physical-kinematic
+        SetOfEntities::iterator itr = _simpleKinematicEntities.find(entity);
+        if (itr != _simpleKinematicEntities.end()) {
+            _simpleKinematicEntities.erase(itr);
+        }
     } else if (canBeKinematic && entity->isMovingRelativeToParent()) {
-        _simpleKinematicEntities.insert(entity);
+        SetOfEntities::iterator itr = _simpleKinematicEntities.find(entity);
+        if (itr == _simpleKinematicEntities.end()) {
+            _simpleKinematicEntities.insert(entity);
+        }
     } else {
-        _simpleKinematicEntities.remove(entity); // just in case it's non-physical-kinematic
+        SetOfEntities::iterator itr = _simpleKinematicEntities.find(entity);
+        if (itr != _simpleKinematicEntities.end()) {
+            _simpleKinematicEntities.erase(itr);
+        }
     }
 }
 
@@ -212,7 +227,6 @@ const VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToRemoveFromPhys
         assert(motionState);
       // TODO CLEan this, just a n extra check to avoid the crash that shouldn;t happen
       if (motionState) {
-
             _entitiesToAddToPhysics.remove(entity);
             if (entity->isDead() && entity->getElement()) {
                 _deadEntities.insert(entity);
@@ -255,7 +269,10 @@ void PhysicalEntitySimulation::getObjectsToAddToPhysics(VectorOfMotionStates& re
             // this entity should no longer be on the internal _entitiesToAddToPhysics
             entityItr = _entitiesToAddToPhysics.erase(entityItr);
             if (entity->isMovingRelativeToParent()) {
-                _simpleKinematicEntities.insert(entity);
+                SetOfEntities::iterator itr = _simpleKinematicEntities.find(entity);
+                if (itr == _simpleKinematicEntities.end()) {
+                    _simpleKinematicEntities.insert(entity);
+                }
             }
         } else if (entity->isReadyToComputeShape()) {
             ShapeInfo shapeInfo;
@@ -375,19 +392,21 @@ void PhysicalEntitySimulation::handleChangedMotionStates(const VectorOfMotionSta
 }
 
 void PhysicalEntitySimulation::addOwnershipBid(EntityMotionState* motionState) {
-    if (!getEntityTree()->isServerlessMode()) {
-        motionState->initForBid();
-        motionState->sendBid(_entityPacketSender, _physicsEngine->getNumSubsteps());
-        _bids.push_back(motionState);
-        _nextBidExpiry = glm::min(_nextBidExpiry, motionState->getNextBidExpiry());
+    if (getEntityTree()->isServerlessMode()) {
+        return;
     }
+    motionState->initForBid();
+    motionState->sendBid(_entityPacketSender, _physicsEngine->getNumSubsteps());
+    _bids.push_back(motionState);
+    _nextBidExpiry = glm::min(_nextBidExpiry, motionState->getNextBidExpiry());
 }
 
 void PhysicalEntitySimulation::addOwnership(EntityMotionState* motionState) {
-    if (!getEntityTree()->isServerlessMode()) {
-        motionState->initForOwned();
-        _owned.push_back(motionState);
+    if (getEntityTree()->isServerlessMode()) {
+        return;
     }
+    motionState->initForOwned();
+    _owned.push_back(motionState);
 }
 
 void PhysicalEntitySimulation::sendOwnershipBids(uint32_t numSubsteps) {
@@ -426,7 +445,9 @@ void PhysicalEntitySimulation::sendOwnershipBids(uint32_t numSubsteps) {
 }
 
 void PhysicalEntitySimulation::sendOwnedUpdates(uint32_t numSubsteps) {
-    bool serverlessMode = getEntityTree()->isServerlessMode();
+    if (getEntityTree()->isServerlessMode()) {
+        return;
+    }
     PROFILE_RANGE_EX(simulation_physics, "Update", 0x00000000, (uint64_t)_owned.size());
     uint32_t i = 0;
     while (i < _owned.size()) {
@@ -438,7 +459,7 @@ void PhysicalEntitySimulation::sendOwnedUpdates(uint32_t numSubsteps) {
             }
             _owned.remove(i);
         } else {
-            if (!serverlessMode && _owned[i]->shouldSendUpdate(numSubsteps)) {
+            if (_owned[i]->shouldSendUpdate(numSubsteps)) {
                 _owned[i]->sendUpdate(_entityPacketSender, numSubsteps);
             }
             ++i;

@@ -401,7 +401,6 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(float sensorToWorldScale READ getSensorToWorldScale)
 
 public:
-
     virtual QString getName() const override { return QString("Avatar:") + _displayName; }
 
     static const QString FRAME_NAME;
@@ -1525,18 +1524,29 @@ void registerAvatarTypes(QScriptEngine* engine);
 
 class RayToAvatarIntersectionResult {
 public:
-RayToAvatarIntersectionResult() : intersects(false), avatarID(), distance(0) {}
-    bool intersects;
+    bool intersects { false };
     QUuid avatarID;
-    float distance;
+    float distance { 0.0f };
+    BoxFace face;
     glm::vec3 intersection;
+    glm::vec3 surfaceNormal;
     QVariantMap extraInfo;
 };
-
 Q_DECLARE_METATYPE(RayToAvatarIntersectionResult)
-
 QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, const RayToAvatarIntersectionResult& results);
 void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, RayToAvatarIntersectionResult& results);
+
+class ParabolaToAvatarIntersectionResult {
+public:
+    bool intersects { false };
+    QUuid avatarID;
+    float distance { 0.0f };
+    float parabolicDistance { 0.0f };
+    BoxFace face;
+    glm::vec3 intersection;
+    glm::vec3 surfaceNormal;
+    QVariantMap extraInfo;
+};
 
 Q_DECLARE_METATYPE(AvatarEntityMap)
 

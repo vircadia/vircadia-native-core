@@ -13,7 +13,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global SelectionManager, grid, rayPlaneIntersection, rayPlaneIntersection2, pushCommandForSelections,
+/* global SelectionManager, SelectionDisplay, grid, rayPlaneIntersection, rayPlaneIntersection2, pushCommandForSelections,
    getMainTabletIDs, getControllerWorldLocation */
 
 var SPACE_LOCAL = "local";
@@ -53,14 +53,18 @@ SelectionManager = (function() {
         }
 
         if (messageParsed.method === "selectEntity") {
-            if (wantDebug) {
-                print("setting selection to " + messageParsed.entityID);
+            if (!SelectionDisplay.triggered() || SelectionDisplay.triggeredHand === messageParsed.hand) {
+                if (wantDebug) {
+                    print("setting selection to " + messageParsed.entityID);
+                }
+                that.setSelections([messageParsed.entityID]);
             }
-            that.setSelections([messageParsed.entityID]);
         } else if (messageParsed.method === "clearSelection") {
-            that.clearSelections();
+            if (!SelectionDisplay.triggered() || SelectionDisplay.triggeredHand === messageParsed.hand) {
+                that.clearSelections();
+            }
         } else if (messageParsed.method === "pointingAt") {
-            if (messageParsed.rightHand) {
+            if (messageParsed.hand === Controller.Standard.RightHand) {
                 that.pointingAtDesktopWindowRight = messageParsed.desktopWindow;
                 that.pointingAtTabletRight = messageParsed.tablet;
             } else {
@@ -72,7 +76,9 @@ SelectionManager = (function() {
 
     subscribeToUpdateMessages();
 
-    var COLOR_ORANGE_HIGHLIGHT = { red: 255, green: 99, blue: 9 }
+    // disabling this for now as it is causing rendering issues with the other handle overlays
+    /*
+    var COLOR_ORANGE_HIGHLIGHT = { red: 255, green: 99, blue: 9 };
     var editHandleOutlineStyle = {
         outlineUnoccludedColor: COLOR_ORANGE_HIGHLIGHT,
         outlineOccludedColor: COLOR_ORANGE_HIGHLIGHT,
@@ -85,8 +91,8 @@ SelectionManager = (function() {
         outlineWidth: 3,
         isOutlineSmooth: true
     };
-    // disabling this for now as it is causing rendering issues with the other handle overlays
-    //Selection.enableListHighlight(HIGHLIGHT_LIST_NAME, editHandleOutlineStyle);
+    Selection.enableListHighlight(HIGHLIGHT_LIST_NAME, editHandleOutlineStyle);
+    */
 
     that.savedProperties = {};
     that.selections = [];
@@ -180,18 +186,119 @@ SelectionManager = (function() {
         that.selections = [];
         that._update(true);
     };
+    
+    that.addChildrenEntities = function(parentEntityID, entityList) {
+        var children = Entities.getChildrenIDs(parentEntityID);
+        for (var i = 0; i < children.length; i++) {
+            var childID = children[i];
+            if (entityList.indexOf(childID) < 0) {
+                entityList.push(childID);
+            }
+            that.addChildrenEntities(childID, entityList);
+        }
+    };
+
+    // Return true if the given entity with `properties` is being grabbed by an avatar.
+    // This is mostly a heuristic - there is no perfect way to know if an entity is being
+    // grabbed.
+    function nonDynamicEntityIsBeingGrabbedByAvatar(properties) {
+        if (properties.dynamic || Uuid.isNull(properties.parentID)) {
+            return false;
+        }
+
+        var avatar = AvatarList.getAvatar(properties.parentID);
+        if (Uuid.isNull(avatar.sessionUUID)) {
+            return false;
+        }
+
+        var grabJointNames = [
+            'RightHand', 'LeftHand',
+            '_CONTROLLER_RIGHTHAND', '_CONTROLLER_LEFTHAND',
+            '_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND', '_CAMERA_RELATIVE_CONTROLLER_LEFTHAND'];
+
+        for (var i = 0; i < grabJointNames.length; ++i) {
+            if (avatar.getJointIndex(grabJointNames[i]) === properties.parentJointIndex) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     that.duplicateSelection = function() {
+        var entitiesToDuplicate = [];
         var duplicatedEntityIDs = [];
-        Object.keys(that.savedProperties).forEach(function(otherEntityID) {
-            var properties = that.savedProperties[otherEntityID];
+        var duplicatedChildrenWithOldParents = [];
+        var originalEntityToNewEntityID = [];
+
+        SelectionManager.saveProperties();
+        
+        // build list of entities to duplicate by including any unselected children of selected parent entities
+        Object.keys(that.savedProperties).forEach(function(originalEntityID) {
+            if (entitiesToDuplicate.indexOf(originalEntityID) < 0) {
+                entitiesToDuplicate.push(originalEntityID);
+            }
+            that.addChildrenEntities(originalEntityID, entitiesToDuplicate);
+        });
+        
+        // duplicate entities from above and store their original to new entity mappings and children needing re-parenting
+        for (var i = 0; i < entitiesToDuplicate.length; i++) {
+            var originalEntityID = entitiesToDuplicate[i];
+            var properties = that.savedProperties[originalEntityID];
+            if (properties === undefined) {
+                properties = Entities.getEntityProperties(originalEntityID);
+            }
             if (!properties.locked && (!properties.clientOnly || properties.owningAvatarID === MyAvatar.sessionUUID)) {
+                if (nonDynamicEntityIsBeingGrabbedByAvatar(properties)) {
+                    properties.parentID = null;
+                    properties.parentJointIndex = null;
+                    properties.localPosition = properties.position;
+                    properties.localRotation = properties.rotation;
+                }
+                delete properties.actionData;
+                var newEntityID = Entities.addEntity(properties);
+
+                // Re-apply actions from the original entity
+                var actionIDs = Entities.getActionIDs(properties.id);
+                for (var i = 0; i < actionIDs.length; ++i) {
+                    var actionID = actionIDs[i];
+                    var actionArguments = Entities.getActionArguments(properties.id, actionID);
+                    if (actionArguments) {
+                        var type = actionArguments.type;
+                        if (type == 'hold' || type == 'far-grab') {
+                            continue;
+                        }
+                        delete actionArguments.ttl;
+                        Entities.addAction(type, newEntityID, actionArguments);
+                    }
+                }
+
                 duplicatedEntityIDs.push({
-                    entityID: Entities.addEntity(properties),
+                    entityID: newEntityID,
                     properties: properties
                 });
+                if (properties.parentID !== Uuid.NULL) {
+                    duplicatedChildrenWithOldParents[newEntityID] = properties.parentID;
+                }
+                originalEntityToNewEntityID[originalEntityID] = newEntityID;
+            }
+        }
+        
+        // re-parent duplicated children to the duplicate entities of their original parents (if they were duplicated)
+        Object.keys(duplicatedChildrenWithOldParents).forEach(function(childIDNeedingNewParent) {
+            var originalParentID = duplicatedChildrenWithOldParents[childIDNeedingNewParent];
+            var newParentID = originalEntityToNewEntityID[originalParentID];
+            if (newParentID) {
+                Entities.editEntity(childIDNeedingNewParent, { parentID: newParentID });
+                for (var i = 0; i < duplicatedEntityIDs.length; i++) {
+                    var duplicatedEntity = duplicatedEntityIDs[i];
+                    if (duplicatedEntity.entityID === childIDNeedingNewParent) {
+                        duplicatedEntity.properties.parentID = newParentID;
+                    }
+                }
             }
         });
+        
         return duplicatedEntityIDs;
     };
 
@@ -204,7 +311,8 @@ SelectionManager = (function() {
             that.worldPosition = null;
             that.worldRotation = null;
         } else if (that.selections.length === 1) {
-            properties = Entities.getEntityProperties(that.selections[0]);
+            properties = Entities.getEntityProperties(that.selections[0],
+                ['dimensions', 'position', 'rotation', 'registrationPoint', 'boundingBox', 'type']);
             that.localDimensions = properties.dimensions;
             that.localPosition = properties.position;
             that.localRotation = properties.rotation;
@@ -212,7 +320,7 @@ SelectionManager = (function() {
 
             that.worldDimensions = properties.boundingBox.dimensions;
             that.worldPosition = properties.boundingBox.center;
-            that.worldRotation = properties.boundingBox.rotation;
+            that.worldRotation = Quat.IDENTITY;
 
             that.entityType = properties.type;
             
@@ -220,11 +328,7 @@ SelectionManager = (function() {
                 SelectionDisplay.setSpaceMode(SPACE_LOCAL);
             }
         } else {
-            that.localRotation = null;
-            that.localDimensions = null;
-            that.localPosition = null;
-
-            properties = Entities.getEntityProperties(that.selections[0]);
+            properties = Entities.getEntityProperties(that.selections[0], ['type', 'boundingBox']);
 
             that.entityType = properties.type;
 
@@ -232,7 +336,7 @@ SelectionManager = (function() {
             var tfl = properties.boundingBox.tfl;
 
             for (var i = 1; i < that.selections.length; i++) {
-                properties = Entities.getEntityProperties(that.selections[i]);
+                properties = Entities.getEntityProperties(that.selections[i], 'boundingBox');
                 var bb = properties.boundingBox;
                 brn.x = Math.min(bb.brn.x, brn.x);
                 brn.y = Math.min(bb.brn.y, brn.y);
@@ -242,6 +346,7 @@ SelectionManager = (function() {
                 tfl.z = Math.max(bb.tfl.z, tfl.z);
             }
 
+            that.localRotation = null;
             that.localDimensions = null;
             that.localPosition = null;
             that.worldDimensions = {
@@ -249,6 +354,7 @@ SelectionManager = (function() {
                 y: tfl.y - brn.y,
                 z: tfl.z - brn.z
             };
+            that.worldRotation = Quat.IDENTITY;
             that.worldPosition = {
                 x: brn.x + (that.worldDimensions.x / 2),
                 y: brn.y + (that.worldDimensions.y / 2),
@@ -330,6 +436,8 @@ SelectionDisplay = (function() {
     
     var CTRL_KEY_CODE = 16777249;
 
+    var RAIL_AXIS_LENGTH = 10000;
+
     var TRANSLATE_DIRECTION = {
         X: 0,
         Y: 1,
@@ -359,11 +467,11 @@ SelectionDisplay = (function() {
         YAW: 1,
         ROLL: 2
     };
+    
+    var NO_TRIGGER_HAND = -1;
 
     var spaceMode = SPACE_LOCAL;
     var overlayNames = [];
-    var lastCameraPosition = Camera.getPosition();
-    var lastCameraOrientation = Camera.getOrientation();
     var lastControllerPoses = [
         getControllerWorldLocation(Controller.Standard.LeftHand, true),
         getControllerWorldLocation(Controller.Standard.RightHand, true)
@@ -383,7 +491,7 @@ SelectionDisplay = (function() {
 
     var ctrlPressed = false;
 
-    var replaceCollisionsAfterStretch = false;
+    that.replaceCollisionsAfterStretch = false;
 
     var handlePropertiesTranslateArrowCones = {
         shape: "Cone",
@@ -567,6 +675,40 @@ SelectionDisplay = (function() {
         dashed: false
     });
 
+    var xRailOverlay = Overlays.addOverlay("line3d", {
+        visible: false,
+        start: Vec3.ZERO,
+        end: Vec3.ZERO,
+        color: {
+            red: 255,
+            green: 0,
+            blue: 0
+        },
+        ignoreRayIntersection: true // always ignore this
+    });
+    var yRailOverlay = Overlays.addOverlay("line3d", {
+        visible: false,
+        start: Vec3.ZERO,
+        end: Vec3.ZERO,
+        color: {
+            red: 0,
+            green: 255,
+            blue: 0
+        },
+        ignoreRayIntersection: true // always ignore this
+    });
+    var zRailOverlay = Overlays.addOverlay("line3d", {
+        visible: false,
+        start: Vec3.ZERO,
+        end: Vec3.ZERO,
+        color: {
+            red: 0,
+            green: 0,
+            blue: 255
+        },
+        ignoreRayIntersection: true // always ignore this
+});
+
     var allOverlays = [
         handleTranslateXCone,
         handleTranslateXCylinder,
@@ -607,8 +749,13 @@ SelectionDisplay = (function() {
         handleScaleFLEdge,
         handleCloner,
         selectionBox,
-        iconSelectionBox
+        iconSelectionBox,
+        xRailOverlay,
+        yRailOverlay,
+        zRailOverlay
+
     ];
+    var maximumHandleInAllOverlays = handleCloner;
 
     overlayNames[handleTranslateXCone] = "handleTranslateXCone";
     overlayNames[handleTranslateXCylinder] = "handleTranslateXCylinder";
@@ -663,20 +810,17 @@ SelectionDisplay = (function() {
     // But we dont' get mousePressEvents.
     that.triggerMapping = Controller.newMapping(Script.resolvePath('') + '-click');
     Script.scriptEnding.connect(that.triggerMapping.disable);
-    that.TRIGGER_GRAB_VALUE = 0.85; //  From handControllerGrab/Pointer.js. Should refactor.
-    that.TRIGGER_ON_VALUE = 0.4;
-    that.TRIGGER_OFF_VALUE = 0.15;
-    that.triggered = false;
-    var activeHand = Controller.Standard.RightHand;
-    function makeTriggerHandler(hand) {
-        return function (value) {
-            if (!that.triggered && (value > that.TRIGGER_GRAB_VALUE)) { // should we smooth?
-                that.triggered = true;
-                if (activeHand !== hand) {
-                    // No switching while the other is already triggered, so no need to release.
-                    activeHand = (activeHand === Controller.Standard.RightHand) ?
-                        Controller.Standard.LeftHand : Controller.Standard.RightHand;
-                }
+    that.triggeredHand = NO_TRIGGER_HAND;
+    that.triggered = function() {
+        return that.triggeredHand !== NO_TRIGGER_HAND;
+    }
+    function makeClickHandler(hand) {
+        return function (clicked) {
+            // Don't allow both hands to trigger at the same time
+            if (that.triggered() && hand !== that.triggeredHand) {
+                return;
+            }
+            if (!that.triggered() && clicked) {
                 var pointingAtDesktopWindow = (hand === Controller.Standard.RightHand && 
                                                SelectionManager.pointingAtDesktopWindowRight) ||
                                               (hand === Controller.Standard.LeftHand && 
@@ -686,15 +830,16 @@ SelectionDisplay = (function() {
                 if (pointingAtDesktopWindow || pointingAtTablet) {
                     return;
                 }
+                that.triggeredHand = hand;
                 that.mousePressEvent({});
-            } else if (that.triggered && (value < that.TRIGGER_OFF_VALUE)) {
-                that.triggered = false;
+            } else if (that.triggered() && !clicked) {
+                that.triggeredHand = NO_TRIGGER_HAND;
                 that.mouseReleaseEvent({});
             }
         };
     }
-    that.triggerMapping.from(Controller.Standard.RT).peek().to(makeTriggerHandler(Controller.Standard.RightHand));
-    that.triggerMapping.from(Controller.Standard.LT).peek().to(makeTriggerHandler(Controller.Standard.LeftHand));
+    that.triggerMapping.from(Controller.Standard.RTClick).peek().to(makeClickHandler(Controller.Standard.RightHand));
+    that.triggerMapping.from(Controller.Standard.LTClick).peek().to(makeClickHandler(Controller.Standard.LeftHand));
 
     // FUNCTION DEF(s): Intersection Check Helpers
     function testRayIntersect(queryRay, overlayIncludes, overlayExcludes) {
@@ -732,6 +877,12 @@ SelectionDisplay = (function() {
         return Math.abs(position.x) <= box.dimensions.x / 2 && Math.abs(position.y) <= box.dimensions.y / 2
             && Math.abs(position.z) <= box.dimensions.z / 2;
     }
+    
+    that.isEditHandle = function(overlayID) {
+        var overlayIndex = allOverlays.indexOf(overlayID);
+        var maxHandleIndex = allOverlays.indexOf(maximumHandleInAllOverlays);
+        return overlayIndex >= 0 && overlayIndex <= maxHandleIndex;
+    };
 
     // FUNCTION: MOUSE PRESS EVENT
     that.mousePressEvent = function (event) {
@@ -739,7 +890,7 @@ SelectionDisplay = (function() {
         if (wantDebug) {
             print("=============== eST::MousePressEvent BEG =======================");
         }
-        if (!event.isLeftButton && !that.triggered) {
+        if (!event.isLeftButton && !that.triggered()) {
             // EARLY EXIT-(if another mouse button than left is pressed ignore it)
             return false;
         }
@@ -817,11 +968,13 @@ SelectionDisplay = (function() {
     };
 
     // FUNCTION: MOUSE MOVE EVENT
+    var lastMouseEvent = null;
     that.mouseMoveEvent = function(event) {
         var wantDebug = false;
         if (wantDebug) {
             print("=============== eST::MouseMoveEvent BEG =======================");
         }
+        lastMouseEvent = event;
         if (activeTool) {
             if (wantDebug) {
                 print("    Trigger ActiveTool(" + activeTool.mode + ")'s onMove");
@@ -943,18 +1096,34 @@ SelectionDisplay = (function() {
     };
 
     // Control key remains active only while key is held down
-    that.keyReleaseEvent = function(key) {
-        if (key.key === CTRL_KEY_CODE) {
+    that.keyReleaseEvent = function(event) {
+        if (event.key === CTRL_KEY_CODE) {
             ctrlPressed = false;
             that.updateActiveRotateRing();
+        }
+        if (activeTool && lastMouseEvent !== null) {
+            lastMouseEvent.isShifted = event.isShifted;
+            lastMouseEvent.isMeta = event.isMeta;
+            lastMouseEvent.isControl = event.isControl;
+            lastMouseEvent.isAlt = event.isAlt;
+            activeTool.onMove(lastMouseEvent);
+            SelectionManager._update();
         }
     };
 
     // Triggers notification on specific key driven events
-    that.keyPressEvent = function(key) {
-        if (key.key === CTRL_KEY_CODE) {
+    that.keyPressEvent = function(event) {
+        if (event.key === CTRL_KEY_CODE) {
             ctrlPressed = true;
             that.updateActiveRotateRing();
+        }
+        if (activeTool && lastMouseEvent !== null) {
+            lastMouseEvent.isShifted = event.isShifted;
+            lastMouseEvent.isMeta = event.isMeta;
+            lastMouseEvent.isControl = event.isControl;
+            lastMouseEvent.isAlt = event.isAlt;
+            activeTool.onMove(lastMouseEvent);
+            SelectionManager._update();
         }
     };
 
@@ -967,9 +1136,9 @@ SelectionDisplay = (function() {
 
     that.checkControllerMove = function() {
         if (SelectionManager.hasSelection()) {
-            var controllerPose = getControllerWorldLocation(activeHand, true);
-            var hand = (activeHand === Controller.Standard.LeftHand) ? 0 : 1;
-            if (controllerPose.valid && lastControllerPoses[hand].valid) {
+            var controllerPose = getControllerWorldLocation(that.triggeredHand, true);
+            var hand = (that.triggeredHand === Controller.Standard.LeftHand) ? 0 : 1;
+            if (controllerPose.valid && lastControllerPoses[hand].valid && that.triggered()) {
                 if (!Vec3.equal(controllerPose.position, lastControllerPoses[hand].position) ||
                     !Vec3.equal(controllerPose.rotation, lastControllerPoses[hand].rotation)) {
                     that.mouseMoveEvent({});
@@ -980,8 +1149,8 @@ SelectionDisplay = (function() {
     };
 
     function controllerComputePickRay() {
-        var controllerPose = getControllerWorldLocation(activeHand, true);
-        if (controllerPose.valid && that.triggered) {
+        var controllerPose = getControllerWorldLocation(that.triggeredHand, true);
+        if (controllerPose.valid && that.triggered()) {
             var controllerPosition = controllerPose.translation;
             // This gets point direction right, but if you want general quaternion it would be more complicated:
             var controllerDirection = Quat.getUp(controllerPose.rotation);
@@ -1018,9 +1187,6 @@ SelectionDisplay = (function() {
 
     that.select = function(entityID, event) {
         var properties = Entities.getEntityProperties(SelectionManager.selections[0]);
-
-        lastCameraPosition = Camera.getPosition();
-        lastCameraOrientation = Camera.getOrientation();
 
         if (event !== false) {
             var wantDebug = false;
@@ -1140,10 +1306,17 @@ SelectionDisplay = (function() {
             var localRotationZ = Quat.fromPitchYawRollDegrees(rotationDegrees, 0, 0);
             var rotationZ = Quat.multiply(rotation, localRotationZ);
             worldRotationZ = rotationZ;
+            
+            var selectionBoxGeometry = {
+                position: position,
+                rotation: rotation,
+                dimensions: dimensions
+            };
+            var isCameraInsideBox = isPointInsideBox(Camera.position, selectionBoxGeometry);
 
-            // in HMD we clamp the overlays to the bounding box for now so lasers can hit them
+            // in HMD if outside the bounding box clamp the overlays to the bounding box for now so lasers can hit them
             var maxHandleDimension = 0;
-            if (HMD.active) {
+            if (HMD.active && !isCameraInsideBox) {
                 maxHandleDimension = Math.max(dimensions.x, dimensions.y, dimensions.z);
             }
 
@@ -1392,12 +1565,6 @@ SelectionDisplay = (function() {
             var inModeRotate = isActiveTool(handleRotatePitchRing) || 
                                isActiveTool(handleRotateYawRing) || 
                                isActiveTool(handleRotateRollRing);
-            var selectionBoxGeometry = {
-                position: position,
-                rotation: rotation,
-                dimensions: dimensions
-            };
-            var isCameraInsideBox = isPointInsideBox(Camera.position, selectionBoxGeometry);
             selectionBoxGeometry.visible = !inModeRotate && !isCameraInsideBox;
             Overlays.editOverlay(selectionBox, selectionBoxGeometry);
 
@@ -1606,6 +1773,20 @@ SelectionDisplay = (function() {
                 Vec3.print("    pickResult.intersection", pickResult.intersection);
             }
 
+            // Duplicate entities if alt is pressed.  This will make a
+            // copy of the selected entities and move the _original_ entities, not
+            // the new ones.
+            if (event.isAlt || doClone) {
+                duplicatedEntityIDs = SelectionManager.duplicateSelection();
+                var ids = [];
+                for (var i = 0; i < duplicatedEntityIDs.length; ++i) {
+                    ids.push(duplicatedEntityIDs[i].entityID);
+                }
+                SelectionManager.setSelections(ids);
+            } else {
+                duplicatedEntityIDs = null;
+            }
+
             SelectionManager.saveProperties();
             that.resetPreviousHandleColor();
 
@@ -1619,7 +1800,7 @@ SelectionDisplay = (function() {
 
             translateXZTool.pickPlanePosition = pickResult.intersection;
             translateXZTool.greatestDimension = Math.max(Math.max(SelectionManager.worldDimensions.x, 
-                                                                  SelectionManager.worldDimensions.y), 
+                                                                  SelectionManager.worldDimensions.y),
                                                                   SelectionManager.worldDimensions.z);
             translateXZTool.startingDistance = Vec3.distance(pickRay.origin, SelectionManager.position);
             translateXZTool.startingElevation = translateXZTool.elevation(pickRay.origin, translateXZTool.pickPlanePosition);
@@ -1635,15 +1816,6 @@ SelectionDisplay = (function() {
                 z: 0
             });
 
-            // Duplicate entities if alt is pressed.  This will make a
-            // copy of the selected entities and move the _original_ entities, not
-            // the new ones.
-            if (event.isAlt || doClone) {
-                duplicatedEntityIDs = SelectionManager.duplicateSelection();
-            } else {
-                duplicatedEntityIDs = null;
-            }
-
             isConstrained = false;
             if (wantDebug) {
                 print("================== TRANSLATE_XZ(End) <- =======================");
@@ -1651,6 +1823,14 @@ SelectionDisplay = (function() {
         },
         onEnd: function(event, reason) {
             pushCommandForSelections(duplicatedEntityIDs);
+            if (isConstrained) {
+                Overlays.editOverlay(xRailOverlay, {
+                    visible: false
+                });
+                Overlays.editOverlay(zRailOverlay, {
+                    visible: false
+                });
+            }
         },
         elevation: function(origin, intersection) {
             return (origin.y - intersection.y) / Vec3.distance(origin, intersection);
@@ -1714,10 +1894,46 @@ SelectionDisplay = (function() {
                     vector.x = 0;
                 }
                 if (!isConstrained) {
+                    var xStart = Vec3.sum(startPosition, {
+                        x: -RAIL_AXIS_LENGTH,
+                        y: 0,
+                        z: 0
+                    });
+                    var xEnd = Vec3.sum(startPosition, {
+                        x: RAIL_AXIS_LENGTH,
+                        y: 0,
+                        z: 0
+                    });
+                    var zStart = Vec3.sum(startPosition, {
+                        x: 0,
+                        y: 0,
+                        z: -RAIL_AXIS_LENGTH
+                    });
+                    var zEnd = Vec3.sum(startPosition, {
+                        x: 0,
+                        y: 0,
+                        z: RAIL_AXIS_LENGTH
+                    });
+                    Overlays.editOverlay(xRailOverlay, {
+                        start: xStart,
+                        end: xEnd,
+                        visible: true
+                    });
+                    Overlays.editOverlay(zRailOverlay, {
+                        start: zStart,
+                        end: zEnd,
+                        visible: true
+                    });
                     isConstrained = true;
                 }
             } else {
                 if (isConstrained) {
+                    Overlays.editOverlay(xRailOverlay, {
+                        visible: false
+                    });
+                    Overlays.editOverlay(zRailOverlay, {
+                        visible: false
+                    });
                     isConstrained = false;
                 }
             }
@@ -1769,23 +1985,41 @@ SelectionDisplay = (function() {
     function addHandleTranslateTool(overlay, mode, direction) {
         var pickNormal = null;
         var lastPick = null;
+        var initialPosition = null;
         var projectionVector = null;
         var previousPickRay = null;
         addHandleTool(overlay, {
             mode: mode,
             onBegin: function(event, pickRay, pickResult) {
+                // Duplicate entities if alt is pressed.  This will make a
+                // copy of the selected entities and move the _original_ entities, not
+                // the new ones.
+                if (event.isAlt) {
+                    duplicatedEntityIDs = SelectionManager.duplicateSelection();
+                    var ids = [];
+                    for (var i = 0; i < duplicatedEntityIDs.length; ++i) {
+                        ids.push(duplicatedEntityIDs[i].entityID);
+                    }
+                    SelectionManager.setSelections(ids);
+                } else {
+                    duplicatedEntityIDs = null;
+                }
+
+                var axisVector;
                 if (direction === TRANSLATE_DIRECTION.X) {
-                    pickNormal = { x: 0, y: 1, z: 1 };
+                    axisVector = { x: 1, y: 0, z: 0 };
                 } else if (direction === TRANSLATE_DIRECTION.Y) {
-                    pickNormal = { x: 1, y: 0, z: 1 };
+                    axisVector = { x: 0, y: 1, z: 0 };
                 } else if (direction === TRANSLATE_DIRECTION.Z) {
-                    pickNormal = { x: 1, y: 1, z: 0 };
+                    axisVector = { x: 0, y: 0, z: 1 };
                 }
 
                 var rotation = spaceMode === SPACE_LOCAL ? SelectionManager.localRotation : SelectionManager.worldRotation;
-                pickNormal = Vec3.multiplyQbyV(rotation, pickNormal);
+                axisVector = Vec3.multiplyQbyV(rotation, axisVector);
+                pickNormal = Vec3.cross(Vec3.cross(pickRay.direction, axisVector), axisVector);
 
                 lastPick = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, pickNormal);
+                initialPosition = SelectionManager.worldPosition;
     
                 SelectionManager.saveProperties();
                 that.resetPreviousHandleColor();
@@ -1797,15 +2031,6 @@ SelectionDisplay = (function() {
                 that.setHandleStretchVisible(false);
                 that.setHandleScaleCubeVisible(false);
                 that.setHandleClonerVisible(false);
-    
-                // Duplicate entities if alt is pressed.  This will make a
-                // copy of the selected entities and move the _original_ entities, not
-                // the new ones.
-                if (event.isAlt) {
-                    duplicatedEntityIDs = SelectionManager.duplicateSelection();
-                } else {
-                    duplicatedEntityIDs = null;
-                }
                 
                 previousPickRay = pickRay;
             },
@@ -1820,7 +2045,7 @@ SelectionDisplay = (function() {
                     pickRay = previousPickRay;
                 }
     
-                var newIntersection = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, pickNormal);
+                var newIntersection = rayPlaneIntersection(pickRay, initialPosition, pickNormal);
                 var vector = Vec3.subtract(newIntersection, lastPick);
                 
                 if (direction === TRANSLATE_DIRECTION.X) {
@@ -1836,7 +2061,8 @@ SelectionDisplay = (function() {
 
                 var dotVector = Vec3.dot(vector, projectionVector);
                 vector = Vec3.multiply(dotVector, projectionVector);
-                vector = grid.snapToGrid(vector);
+                var gridOrigin = grid.getOrigin();
+                vector = Vec3.subtract(grid.snapToGrid(Vec3.sum(vector, gridOrigin)), gridOrigin);
                 
                 var wantDebug = false;
                 if (wantDebug) {
@@ -2084,11 +2310,11 @@ SelectionDisplay = (function() {
             }
 
             // Are we using handControllers or Mouse - only relevant for 3D tools
-            var controllerPose = getControllerWorldLocation(activeHand, true);
+            var controllerPose = getControllerWorldLocation(that.triggeredHand, true);
             var vector = null;
             var newPick = null;
             if (HMD.isHMDAvailable() && HMD.isHandControllerAvailable() && 
-                    controllerPose.valid && that.triggered && directionFor3DStretch) {
+                    controllerPose.valid && that.triggered() && directionFor3DStretch) {
                 localDeltaPivot = deltaPivot3D;
                 newPick = pickRay.origin;
                 vector = Vec3.subtract(newPick, lastPick3D);
@@ -2136,8 +2362,8 @@ SelectionDisplay = (function() {
                 newDimensions = Vec3.sum(initialDimensions, changeInDimensions);
             }
     
-            var minimumDimension = directionEnum === STRETCH_DIRECTION.ALL ? STRETCH_ALL_MINIMUM_DIMENSION : 
-                                                                             STRETCH_MINIMUM_DIMENSION; 
+            var minimumDimension = directionEnum ===
+                STRETCH_DIRECTION.ALL ? STRETCH_ALL_MINIMUM_DIMENSION : STRETCH_MINIMUM_DIMENSION; 
             if (newDimensions.x < minimumDimension) {
                 newDimensions.x = minimumDimension;
                 changeInDimensions.x = minimumDimension - initialDimensions.x;
@@ -2231,8 +2457,7 @@ SelectionDisplay = (function() {
             selectedHandle = handleScaleRTFCube;
         }
         offset = Vec3.multiply(directionVector, NEGATE_VECTOR);
-        var tool = makeStretchTool(mode, STRETCH_DIRECTION.ALL, directionVector, 
-                                   directionVector, offset, null, selectedHandle);
+        var tool = makeStretchTool(mode, STRETCH_DIRECTION.ALL, directionVector, directionVector, offset, null, selectedHandle);
         return addHandleTool(overlay, tool);
     }
 

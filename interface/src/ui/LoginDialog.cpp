@@ -170,11 +170,13 @@ void LoginDialog::openUrl(const QString& url) const {
         offscreenUi->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
             newObject->setProperty("url", url);
         });
+        LoginDialog::hide();
     } else {
         if (!hmd->getShouldShowTablet() && !qApp->isHMDMode()) {
             offscreenUi->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
                 newObject->setProperty("url", url);
             });
+            LoginDialog::hide();
         } else {
             tablet->gotoWebScreen(url);
         }

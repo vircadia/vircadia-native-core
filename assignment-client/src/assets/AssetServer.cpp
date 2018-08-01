@@ -23,6 +23,7 @@
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
 #include <QtCore/QJsonDocument>
+#include <QtCore/QSaveFile>
 #include <QtCore/QString>
 #include <QtGui/QImageReader>
 #include <QtCore/QVector>
@@ -1042,7 +1043,7 @@ bool AssetServer::loadMappingsFromFile() {
 bool AssetServer::writeMappingsToFile() {
     auto mapFilePath = _resourcesDirectory.absoluteFilePath(MAP_FILE_NAME);
 
-    QFile mapFile { mapFilePath };
+    QSaveFile mapFile { mapFilePath };
     if (mapFile.open(QIODevice::WriteOnly)) {
         QJsonObject root;
 
@@ -1053,8 +1054,12 @@ bool AssetServer::writeMappingsToFile() {
         QJsonDocument jsonDocument { root };
 
         if (mapFile.write(jsonDocument.toJson()) != -1) {
-            qCDebug(asset_server) << "Wrote JSON mappings to file at" << mapFilePath;
-            return true;
+            if (mapFile.commit()) {
+                qCDebug(asset_server) << "Wrote JSON mappings to file at" << mapFilePath;
+                return true;
+            } else {
+                qCWarning(asset_server) << "Failed to commit JSON mappings to file at" << mapFilePath;
+            }
         } else {
             qCWarning(asset_server) << "Failed to write JSON mappings to file at" << mapFilePath;
         }

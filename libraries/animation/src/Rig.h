@@ -75,6 +75,10 @@ public:
     };
 
     struct ControllerParameters {
+        ControllerParameters() {
+            memset(primaryControllerFlags, 0, NumPrimaryControllerTypes);
+            memset(secondaryControllerFlags, 0, NumPrimaryControllerTypes);
+        }
         glm::mat4 rigToSensorMatrix;
         AnimPose primaryControllerPoses[NumPrimaryControllerTypes];  // rig space
         uint8_t primaryControllerFlags[NumPrimaryControllerTypes];
@@ -217,7 +221,7 @@ public:
 
     // input assumed to be in rig space
     void computeHeadFromHMD(const AnimPose& hmdPose, glm::vec3& headPositionOut, glm::quat& headOrientationOut) const;
-
+    void toggleSmoothPoleVectors() { _smoothPoleVectors = !_smoothPoleVectors; };
 signals:
     void onLoadComplete();
 
@@ -229,21 +233,23 @@ protected:
 
     void updateHead(bool headEnabled, bool hipsEnabled, const AnimPose& headMatrix);
     void updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, bool hipsEstimated,
-                     bool leftArmEnabled, bool rightArmEnabled, float dt,
+                     bool leftArmEnabled, bool rightArmEnabled, bool headEnabled, float dt,
                      const AnimPose& leftHandPose, const AnimPose& rightHandPose,
                      const FBXJointShapeInfo& hipsShapeInfo, const FBXJointShapeInfo& spineShapeInfo,
                      const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo,
                      const glm::mat4& rigToSensorMatrix, const glm::mat4& sensorToRigMatrix);
-    void updateFeet(bool leftFootEnabled, bool rightFootEnabled, const AnimPose& leftFootPose, const AnimPose& rightFootPose,
+    void updateFeet(bool leftFootEnabled, bool rightFootEnabled, bool headEnabled,
+                    const AnimPose& leftFootPose, const AnimPose& rightFootPose,
                     const glm::mat4& rigToSensorMatrix, const glm::mat4& sensorToRigMatrix);
 
     void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::vec3& lookAt, const glm::vec3& saccade);
     void calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const;
 
-    glm::vec3 calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, int hipsIndex, bool isLeft) const;
+    bool calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, int oppositeArmIndex, glm::vec3& poleVector) const;
     glm::vec3 calculateKneePoleVector(int footJointIndex, int kneeJoint, int upLegIndex, int hipsIndex, const AnimPose& targetFootPose) const;
     glm::vec3 deflectHandFromTorso(const glm::vec3& handPosition, const FBXJointShapeInfo& hipsShapeInfo, const FBXJointShapeInfo& spineShapeInfo,
                                    const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo) const;
+
 
     AnimPose _modelOffset;  // model to rig space
     AnimPose _geometryOffset; // geometry to model space (includes unit offset & fst offsets)
@@ -368,11 +374,13 @@ protected:
     glm::vec3 _prevLeftFootPoleVector { Vectors::UNIT_Z }; // sensor space
     bool _prevLeftFootPoleVectorValid { false };
 
-    glm::vec3 _prevRightHandPoleVector { -Vectors::UNIT_Z }; // sensor space
-    bool _prevRightHandPoleVectorValid { false };
+    glm::vec3 _prevRightHandPoleVector{ -Vectors::UNIT_Z }; // sensor space
+    bool _prevRightHandPoleVectorValid{ false };
 
-    glm::vec3 _prevLeftHandPoleVector { -Vectors::UNIT_Z }; // sensor space
-    bool _prevLeftHandPoleVectorValid { false };
+    glm::vec3 _prevLeftHandPoleVector{ -Vectors::UNIT_Z }; // sensor space
+    bool _prevLeftHandPoleVectorValid{ false };
+
+    bool _smoothPoleVectors { false };
 
     int _rigId;
 };

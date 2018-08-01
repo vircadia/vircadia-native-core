@@ -19,7 +19,11 @@ Original.Button {
 
     property int color: 0
     property int colorScheme: hifi.colorSchemes.light
+    property int fontSize: hifi.fontSizes.buttonLabel
+    property int radius: hifi.buttons.radius
+    property alias implicitTextWidth: buttonText.implicitWidth
     property string buttonGlyph: "";
+    property int fontCapitalization: Font.AllUppercase
 
     width: hifi.dimensions.buttonWidth
     height: hifi.dimensions.controlLineHeight
@@ -43,7 +47,7 @@ Original.Button {
     }
 
     background: Rectangle {
-        radius: hifi.buttons.radius
+        radius: control.radius
 
         border.width: (control.color === hifi.buttons.none ||
                        (control.color === hifi.buttons.noneBorderless && control.hovered) ||
@@ -105,10 +109,10 @@ Original.Button {
         RalewayBold {
             id: buttonText;
             anchors.centerIn: parent;
-            font.capitalization: Font.AllUppercase
+            font.capitalization: control.fontCapitalization
             color: enabled ? hifi.buttons.textColor[control.color]
                            : hifi.buttons.disabledTextColor[control.colorScheme]
-            size: hifi.fontSizes.buttonLabel
+            size: control.fontSize
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignHCenter
             text: control.text

@@ -57,8 +57,6 @@ public:
     void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
     void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
 
-    void setRenderControllers(bool renderControllers) { _renderControllers = renderControllers; }
-
     virtual void saveSettings() const override;
     virtual void loadSettings() override;
 
@@ -219,7 +217,6 @@ private:
     int _leftHandRenderID { 0 };
     int _rightHandRenderID { 0 };
 
-    bool _renderControllers { false };
     vr::IVRSystem* _system { nullptr };
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>(_system) };
 

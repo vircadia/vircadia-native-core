@@ -33,7 +33,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityEdit:
         case PacketType::EntityData:
         case PacketType::EntityPhysics:
-            return static_cast<PacketVersion>(EntityVersion::ParticleEntityFix);
+            return static_cast<PacketVersion>(EntityVersion::ParticleSpin);
         case PacketType::EntityQuery:
             return static_cast<PacketVersion>(EntityQueryPacketVersion::ConicalFrustums);
         case PacketType::AvatarIdentity:
@@ -92,6 +92,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(PingVersion::IncludeConnectionID);
         case PacketType::AvatarQuery:
             return static_cast<PacketVersion>(AvatarQueryVersion::ConicalFrustums);
+        case PacketType::AvatarIdentityRequest:
+            return 22;
         default:
             return 21;
     }

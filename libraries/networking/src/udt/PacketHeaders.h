@@ -57,7 +57,7 @@ public:
         ICEServerQuery,
         OctreeStats,
         UNUSED_PACKET_TYPE_1,
-        UNUSED_PACKET_TYPE_2,
+        AvatarIdentityRequest,
         AssignmentClientStatus,
         NoisyMute,
         AvatarIdentity,
@@ -238,7 +238,8 @@ enum class EntityVersion : PacketVersion {
     CloneableData,
     CollisionMask16Bytes,
     YieldSimulationOwnership,
-    ParticleEntityFix
+    ParticleEntityFix,
+    ParticleSpin
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {

@@ -4,6 +4,7 @@ import android.app.Fragment;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.Editable;
@@ -32,6 +33,7 @@ public class HomeFragment extends Fragment {
 
 
     private OnHomeInteractionListener mListener;
+    private SwipeRefreshLayout mSwipeRefreshLayout;
 
     public native String nativeGetLastLocation();
 
@@ -57,12 +59,14 @@ public class HomeFragment extends Fragment {
         View rootView = inflater.inflate(R.layout.fragment_home, container, false);
 
         searchNoResultsView = rootView.findViewById(R.id.searchNoResultsView);
+        mSwipeRefreshLayout = rootView.findViewById(R.id.swipeRefreshLayout);
 
         mDomainsView = rootView.findViewById(R.id.rvDomains);
         int numberOfColumns = 1;
         GridLayoutManager gridLayoutMgr = new GridLayoutManager(getContext(), numberOfColumns);
         mDomainsView.setLayoutManager(gridLayoutMgr);
         mDomainAdapter = new DomainAdapter(getContext(), HifiUtils.getInstance().protocolVersionSignature(), nativeGetLastLocation());
+        mSwipeRefreshLayout.setRefreshing(true);
         mDomainAdapter.setClickListener((view, position, domain) -> {
             new Handler(getActivity().getMainLooper()).postDelayed(() -> {
                 if (mListener != null) {
@@ -76,12 +80,14 @@ public class HomeFragment extends Fragment {
                 searchNoResultsView.setText(R.string.search_no_results);
                 searchNoResultsView.setVisibility(View.VISIBLE);
                 mDomainsView.setVisibility(View.GONE);
+                mSwipeRefreshLayout.setRefreshing(false);
             }
 
             @Override
             public void onNonEmptyAdapter() {
                 searchNoResultsView.setVisibility(View.GONE);
                 mDomainsView.setVisibility(View.VISIBLE);
+                mSwipeRefreshLayout.setRefreshing(false);
             }
 
             @Override
@@ -104,7 +110,7 @@ public class HomeFragment extends Fragment {
 
             @Override
             public void afterTextChanged(Editable editable) {
-                mDomainAdapter.loadDomains(editable.toString());
+                mDomainAdapter.loadDomains(editable.toString(), false);
                 if (editable.length() > 0) {
                     mSearchIconView.setVisibility(View.GONE);
                     mClearSearch.setVisibility(View.VISIBLE);
@@ -129,6 +135,13 @@ public class HomeFragment extends Fragment {
         });
 
         mClearSearch.setOnClickListener(view -> onSearchClear(view));
+
+        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                mDomainAdapter.loadDomains(mSearchView.getText().toString(), true);
+            }
+        });
 
         getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 

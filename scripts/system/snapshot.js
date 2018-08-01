@@ -279,13 +279,25 @@ function onMessage(message) {
 }
 
 var POLAROID_PRINT_SOUND = SoundCache.getSound(Script.resourcesPath() + "sounds/snapshot/sound-print-photo.wav");
-var POLAROID_MODEL_URL  = 'http://hifi-content.s3.amazonaws.com/alan/dev/Test/snapshot.fbx';
+var POLAROID_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/alan/dev/Test/snapshot.fbx';
+var POLAROID_RATE_LIMIT_MS = 1000;
+var polaroidPrintingIsRateLimited = false;
 
 function printToPolaroid(image_url) {
+
+    // Rate-limit printing
+    if (polaroidPrintingIsRateLimited) {
+        return;
+    }
+    polaroidPrintingIsRateLimited = true;
+    Script.setTimeout(function () {
+        polaroidPrintingIsRateLimited = false;
+    }, POLAROID_RATE_LIMIT_MS);
+
     var polaroid_url = image_url;                  
 
     var model_pos = Vec3.sum(MyAvatar.position, Vec3.multiply(1.25, Quat.getForward(MyAvatar.orientation)));
-    model_pos.y += 0.2; // Print a bit closer to the head
+    model_pos.y += 0.39; // Print a bit closer to the head
     
     var model_q1 = MyAvatar.orientation;
     var model_q2 = Quat.angleAxis(90, Quat.getRight(model_q1));
@@ -307,10 +319,8 @@ function printToPolaroid(image_url) {
 
         "density": 200,
         "restitution": 0.15,                            
-        "gravity": { "x": 0, "y": -2.5, "z": 0 },
-        
-        "velocity": { "x": 0, "y": 1.95, "z": 0 },
-        "angularVelocity": Vec3.multiplyQbyV(MyAvatar.orientation, { "x": -1.0, "y": 0, "z": -1.3 }),
+        "gravity": { "x": 0, "y": -2.0, "z": 0 },
+        "damping": 0.45,
 
         "dynamic": true, 
         "collisionsWillMove": true,
