@@ -63,8 +63,8 @@ static const QString LEFT_FOOT_POSITION("leftFootPosition");
 static const QString LEFT_FOOT_ROTATION("leftFootRotation");
 static const QString LEFT_FOOT_IK_POSITION_VAR("leftFootIKPositionVar");
 static const QString LEFT_FOOT_IK_ROTATION_VAR("leftFootIKRotationVar");
-static const QString MAIN_STATE_MACHINE_LEFT_FOOT_ROTATION("mainStateMachineLeftFootRotation");
 static const QString MAIN_STATE_MACHINE_LEFT_FOOT_POSITION("mainStateMachineLeftFootPosition");
+static const QString MAIN_STATE_MACHINE_LEFT_FOOT_ROTATION("mainStateMachineLeftFootRotation");
 
 static const QString RIGHT_FOOT_POSITION("rightFootPosition");
 static const QString RIGHT_FOOT_ROTATION("rightFootRotation");

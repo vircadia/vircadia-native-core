@@ -79,14 +79,6 @@ AnimPose::operator glm::mat4() const {
 }
 
 void AnimPose::blend(const AnimPose& srcPose, float alpha) {
-    // adjust signs if necessary
-    const glm::quat& q1 = srcPose._rot;
-    glm::quat q2 = _rot;
-    float dot = glm::dot(q1, q2);
-    if (dot < 0.0f) {
-        q2 = -q2;
-    }
-
     _scale = lerp(srcPose._scale, _scale, alpha);
     _rot = safeLerp(srcPose._rot, _rot, alpha);
     _trans = lerp(srcPose._trans, _trans, alpha);

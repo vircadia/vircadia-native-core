@@ -145,6 +145,7 @@ const AnimPoseVec& AnimTwoBoneIK::evaluate(const AnimVariantMap& animVars, const
 
     float d = glm::length(targetPose.trans() - basePose.trans());
 
+    // http://mathworld.wolfram.com/Circle-CircleIntersection.html
     float midAngle = 0.0f;
     if (d < r0 + r1) {
         float y = sqrtf((-d + r1 - r0) * (-d - r1 + r0) * (-d + r1 + r0) * (d + r1 + r0)) / (2.0f * d);
