@@ -211,6 +211,9 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto overlaysInFrontOpaque = filteredOverlaysOpaque.getN<FilterLayeredItems::Outputs>(0);
     const auto overlaysInFrontTransparent = filteredOverlaysTransparent.getN<FilterLayeredItems::Outputs>(0);
 
+    // We don't want the overlay to clear the deferred frame buffer depth because we would like to keep it for debugging visualisation
+    task.addJob<SetSeparateDeferredDepthBuffer>("SeparateDepthForOverlay", deferredFramebuffer);
+
     const auto overlayInFrontOpaquesInputs = DrawOverlay3D::Inputs(overlaysInFrontOpaque, lightingModel, jitter).asVarying();
     const auto overlayInFrontTransparentsInputs = DrawOverlay3D::Inputs(overlaysInFrontTransparent, lightingModel, jitter).asVarying();
     task.addJob<DrawOverlay3D>("DrawOverlayInFrontOpaque", overlayInFrontOpaquesInputs, true);
@@ -450,4 +453,27 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
     });
 
     config->setNumDrawn((int)inItems.size());
+}
+
+void SetSeparateDeferredDepthBuffer::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
+    assert(renderContext->args);
+
+    const auto deferredFramebuffer = inputs->getDeferredFramebuffer();
+    const auto frameSize = deferredFramebuffer->getSize();
+    const auto renderbufferCount = deferredFramebuffer->getNumRenderBuffers();
+
+    if (!_framebuffer || _framebuffer->getSize() != frameSize || _framebuffer->getNumRenderBuffers() != renderbufferCount) {
+        auto depthFormat = deferredFramebuffer->getDepthStencilBufferFormat();
+        auto depthStencilTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(depthFormat, frameSize.x, frameSize.y));
+        _framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("deferredFramebufferSeparateDepth"));
+        _framebuffer->setDepthStencilBuffer(depthStencilTexture, depthFormat);
+        for (decltype(deferredFramebuffer->getNumRenderBuffers()) i = 0; i < renderbufferCount; i++) {
+            _framebuffer->setRenderBuffer(i, deferredFramebuffer->getRenderBuffer(i));
+        }
+    }
+
+    RenderArgs* args = renderContext->args;
+    gpu::doInBatch("SetSeparateDeferredDepthBuffer::run", args->_context, [this](gpu::Batch& batch) {
+        batch.setFramebuffer(_framebuffer);
+    });
 }
