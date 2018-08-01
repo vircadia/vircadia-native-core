@@ -17,9 +17,6 @@
 #include <QTextStream>
 
 TestRailInterface::TestRailInterface() {
-    _busyWindow.setModal(true);
-    _testRailTestCasesSelectorWindow.setModal(true);
-
     _testRailTestCasesSelectorWindow.setURL("https://highfidelity.testrail.net");
     ////_testRailTestCasesSelectorWindow.setURL("https://nissimhadar.testrail.io");
     _testRailTestCasesSelectorWindow.setUser("@highfidelity.io");
@@ -689,4 +686,5 @@ void TestRailInterface::processTestPython(const QString& fullDirectory,
 }
 
 void TestRailInterface::createTestRailRun() {
+    
 }

@@ -12,7 +12,10 @@
 #define hifi_test_testrail_interface_h
 
 #include "ui/BusyWindow.h"
+
 #include "ui/TestRailTestCasesSelectorWindow.h"
+#include "ui/TestRailRunSelectorWindow.h"
+
 #include <QDirIterator>
 #include <QtXml/QDomDocument>
 #include <QProcess>
@@ -54,7 +57,7 @@ public:
     void createTestRailDotPyScript();
     void createStackDotPyScript();
     void requestTestRailDataFromUser();
-    void requestMilestoneFromUser();
+
     void createAddTestCasesPythonScript(const QString& testDirectory,
                                         const QString& userGitHub,
                                         const QString& branchGitHub);
@@ -82,6 +85,7 @@ private:
 
     BusyWindow _busyWindow;
     TestRailTestCasesSelectorWindow _testRailTestCasesSelectorWindow;
+    TestRailRunSelectorWindow _testRailRunSelectorWindow;
 
     QString _url;
     QString _user;
