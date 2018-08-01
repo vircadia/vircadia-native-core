@@ -857,5 +857,7 @@ void Agent::aboutToFinish() {
 void Agent::stop() {
     if (_scriptEngine) {
         _scriptEngine->stop();
+    } else {
+        setFinished(true);
     }
 }
