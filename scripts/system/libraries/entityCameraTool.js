@@ -39,7 +39,6 @@ var EASING_MULTIPLIER = 8;
 var INITIAL_ZOOM_DISTANCE = 2;
 var INITIAL_ZOOM_DISTANCE_FIRST_PERSON = 3;
 
-
 var easeOutCubic = function(t) {
     t--;
     return t * t * t + 1;
