@@ -67,7 +67,8 @@ function getMyAvatarSettings() {
         dominantHand: MyAvatar.getDominantHand(),
         collisionsEnabled : MyAvatar.getCollisionsEnabled(),
         collisionSoundUrl : MyAvatar.collisionSoundURL,
-        animGraphUrl : MyAvatar.getAnimGraphUrl(),
+        animGraphUrl: MyAvatar.getAnimGraphUrl(),
+        animGraphOverrideUrl : MyAvatar.getAnimGraphOverrideUrl(),
     }
 }
 
@@ -142,9 +143,14 @@ function onNewCollisionSoundUrl(url) {
 }
 
 function onAnimGraphUrlChanged(url) {
-    if(currentAvatarSettings.animGraphUrl !== url) {
+    if (currentAvatarSettings.animGraphUrl !== url) {
         currentAvatarSettings.animGraphUrl = url;
-        sendToQml({'method' : 'settingChanged', 'name' : 'animGraphUrl', 'value' : url})
+        sendToQml({ 'method': 'settingChanged', 'name': 'animGraphUrl', 'value': currentAvatarSettings.animGraphUrl })
+
+        if (currentAvatarSettings.animGraphOverrideUrl !== MyAvatar.getAnimGraphOverrideUrl()) {
+            currentAvatarSettings.animGraphOverrideUrl = MyAvatar.getAnimGraphOverrideUrl();
+            sendToQml({ 'method': 'settingChanged', 'name': 'animGraphOverrideUrl', 'value': currentAvatarSettings.animGraphOverrideUrl })
+        }
     }
 }
 
@@ -282,7 +288,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         MyAvatar.setDominantHand(message.settings.dominantHand);
         MyAvatar.setCollisionsEnabled(message.settings.collisionsEnabled);
         MyAvatar.collisionSoundURL = message.settings.collisionSoundUrl;
-        MyAvatar.setAnimGraphUrl(message.settings.animGraphUrl);
+        MyAvatar.setAnimGraphOverrideUrl(message.settings.animGraphOverrideUrl);
 
         settings = getMyAvatarSettings();
         break;

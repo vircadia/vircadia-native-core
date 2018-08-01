@@ -14,6 +14,7 @@ Rectangle {
     property string titleText: ''
     property string bodyText: ''
     property alias inputText: input;
+    property alias dialogButtons: buttons
 
     property string imageSource: null
     onImageSourceChanged: {
@@ -36,6 +37,7 @@ Rectangle {
     function close() {
         visible = false;
 
+        dialogButtons.yesButton.fontCapitalization = Font.AllUppercase;
         onButton1Clicked = null;
         onButton2Clicked = null;
         button1text = '';

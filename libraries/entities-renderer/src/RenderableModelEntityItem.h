@@ -66,9 +66,13 @@ public:
     void doInitialModelSimulation();
     void updateModelBounds();
 
-    virtual bool supportsDetailedRayIntersection() const override;
+    virtual bool supportsDetailedIntersection() const override;
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                         OctreeElementPointer& element, float& distance,
+                        BoxFace& face, glm::vec3& surfaceNormal,
+                        QVariantMap& extraInfo, bool precisionPicking) const override;
+    virtual bool findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
+                        const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
                         BoxFace& face, glm::vec3& surfaceNormal,
                         QVariantMap& extraInfo, bool precisionPicking) const override;
 

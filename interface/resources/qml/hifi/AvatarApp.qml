@@ -244,7 +244,7 @@ Rectangle {
             var avatarSettings = {
                 dominantHand : settings.dominantHandIsLeft ? 'left' : 'right',
                 collisionsEnabled : settings.avatarCollisionsOn,
-                animGraphUrl : settings.avatarAnimationJSON,
+                animGraphOverrideUrl : settings.avatarAnimationOverrideJSON,
                 collisionSoundUrl : settings.avatarCollisionSoundUrl
             };
 
@@ -682,6 +682,14 @@ Rectangle {
                                 PropertyChanges { target: container; y: -5 }
                                 PropertyChanges { target: favoriteAvatarImage; dropShadowRadius: 10 }
                                 PropertyChanges { target: favoriteAvatarImage; dropShadowVerticalOffset: 6 }
+                            },
+                            State {
+                                name: "getMoreAvatarsHovered"
+                                when: getMoreAvatarsMouseArea.containsMouse;
+                                PropertyChanges { target: getMoreAvatarsMouseArea; anchors.bottomMargin: -5 }
+                                PropertyChanges { target: container; y: -5 }
+                                PropertyChanges { target: getMoreAvatarsImage; dropShadowRadius: 10 }
+                                PropertyChanges { target: getMoreAvatarsImage; dropShadowVerticalOffset: 6 }
                             }
                         ]
 
@@ -741,6 +749,7 @@ Rectangle {
                         }
 
                         ShadowRectangle {
+                            id: getMoreAvatarsImage
                             width: 92
                             height: 92
                             radius: 5
@@ -756,7 +765,9 @@ Rectangle {
                             }
 
                             MouseArea {
+                                id: getMoreAvatarsMouseArea
                                 anchors.fill: parent
+                                hoverEnabled: true
 
                                 onClicked: {
                                     popup.showBuyAvatars(function() {

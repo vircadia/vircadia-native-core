@@ -1137,7 +1137,6 @@ void MyAvatar::saveData() {
     settings.setValue("userHeight", getUserHeight());
     settings.setValue("flyingDesktop", getFlyingDesktopPref());
     settings.setValue("flyingHMD", getFlyingHMDPref());
-    settings.setValue("enabledFlying", getFlyingEnabled());
 
     settings.endGroup();
 }
@@ -2061,6 +2060,8 @@ void MyAvatar::initAnimGraph() {
     } else {
         graphUrl = PathUtils::resourcesUrl("avatar/avatar-animation.json");
     }
+
+    emit animGraphUrlChanged(graphUrl);
 
     _skeletonModel->getRig().initAnimGraph(graphUrl);
     _currentAnimGraphUrl.set(graphUrl);
