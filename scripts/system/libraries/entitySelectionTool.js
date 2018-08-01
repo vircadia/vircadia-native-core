@@ -53,14 +53,18 @@ SelectionManager = (function() {
         }
 
         if (messageParsed.method === "selectEntity") {
-            if (wantDebug) {
-                print("setting selection to " + messageParsed.entityID);
+            if (!SelectionDisplay.triggered() || SelectionDisplay.triggeredHand === messageParsed.hand) {
+                if (wantDebug) {
+                    print("setting selection to " + messageParsed.entityID);
+                }
+                that.setSelections([messageParsed.entityID]);
             }
-            that.setSelections([messageParsed.entityID]);
         } else if (messageParsed.method === "clearSelection") {
-            that.clearSelections();
+            if (!SelectionDisplay.triggered() || SelectionDisplay.triggeredHand === messageParsed.hand) {
+                that.clearSelections();
+            }
         } else if (messageParsed.method === "pointingAt") {
-            if (messageParsed.rightHand) {
+            if (messageParsed.hand === Controller.Standard.RightHand) {
                 that.pointingAtDesktopWindowRight = messageParsed.desktopWindow;
                 that.pointingAtTabletRight = messageParsed.tablet;
             } else {
@@ -410,6 +414,8 @@ SelectionDisplay = (function() {
         YAW: 1,
         ROLL: 2
     };
+    
+    var NO_TRIGGER_HAND = -1;
 
     var spaceMode = SPACE_LOCAL;
     var overlayNames = [];
@@ -751,20 +757,17 @@ SelectionDisplay = (function() {
     // But we dont' get mousePressEvents.
     that.triggerMapping = Controller.newMapping(Script.resolvePath('') + '-click');
     Script.scriptEnding.connect(that.triggerMapping.disable);
-    that.TRIGGER_GRAB_VALUE = 0.85; //  From handControllerGrab/Pointer.js. Should refactor.
-    that.TRIGGER_ON_VALUE = 0.4;
-    that.TRIGGER_OFF_VALUE = 0.15;
-    that.triggered = false;
-    var activeHand = Controller.Standard.RightHand;
-    function makeTriggerHandler(hand) {
-        return function (value) {
-            if (!that.triggered && (value > that.TRIGGER_GRAB_VALUE)) { // should we smooth?
-                that.triggered = true;
-                if (activeHand !== hand) {
-                    // No switching while the other is already triggered, so no need to release.
-                    activeHand = (activeHand === Controller.Standard.RightHand) ?
-                        Controller.Standard.LeftHand : Controller.Standard.RightHand;
-                }
+    that.triggeredHand = NO_TRIGGER_HAND;
+    that.triggered = function() {
+        return that.triggeredHand !== NO_TRIGGER_HAND;
+    }
+    function makeClickHandler(hand) {
+        return function (clicked) {
+            // Don't allow both hands to trigger at the same time
+            if (that.triggered() && hand !== that.triggeredHand) {
+                return;
+            }
+            if (!that.triggered() && clicked) {
                 var pointingAtDesktopWindow = (hand === Controller.Standard.RightHand && 
                                                SelectionManager.pointingAtDesktopWindowRight) ||
                                               (hand === Controller.Standard.LeftHand && 
@@ -774,15 +777,16 @@ SelectionDisplay = (function() {
                 if (pointingAtDesktopWindow || pointingAtTablet) {
                     return;
                 }
+                that.triggeredHand = hand;
                 that.mousePressEvent({});
-            } else if (that.triggered && (value < that.TRIGGER_OFF_VALUE)) {
-                that.triggered = false;
+            } else if (that.triggered() && !clicked) {
+                that.triggeredHand = NO_TRIGGER_HAND;
                 that.mouseReleaseEvent({});
             }
         };
     }
-    that.triggerMapping.from(Controller.Standard.RT).peek().to(makeTriggerHandler(Controller.Standard.RightHand));
-    that.triggerMapping.from(Controller.Standard.LT).peek().to(makeTriggerHandler(Controller.Standard.LeftHand));
+    that.triggerMapping.from(Controller.Standard.RTClick).peek().to(makeClickHandler(Controller.Standard.RightHand));
+    that.triggerMapping.from(Controller.Standard.LTClick).peek().to(makeClickHandler(Controller.Standard.LeftHand));
 
     // FUNCTION DEF(s): Intersection Check Helpers
     function testRayIntersect(queryRay, overlayIncludes, overlayExcludes) {
@@ -833,7 +837,7 @@ SelectionDisplay = (function() {
         if (wantDebug) {
             print("=============== eST::MousePressEvent BEG =======================");
         }
-        if (!event.isLeftButton && !that.triggered) {
+        if (!event.isLeftButton && !that.triggered()) {
             // EARLY EXIT-(if another mouse button than left is pressed ignore it)
             return false;
         }
@@ -1079,9 +1083,9 @@ SelectionDisplay = (function() {
 
     that.checkControllerMove = function() {
         if (SelectionManager.hasSelection()) {
-            var controllerPose = getControllerWorldLocation(activeHand, true);
-            var hand = (activeHand === Controller.Standard.LeftHand) ? 0 : 1;
-            if (controllerPose.valid && lastControllerPoses[hand].valid && that.triggered) {
+            var controllerPose = getControllerWorldLocation(that.triggeredHand, true);
+            var hand = (that.triggeredHand === Controller.Standard.LeftHand) ? 0 : 1;
+            if (controllerPose.valid && lastControllerPoses[hand].valid && that.triggered()) {
                 if (!Vec3.equal(controllerPose.position, lastControllerPoses[hand].position) ||
                     !Vec3.equal(controllerPose.rotation, lastControllerPoses[hand].rotation)) {
                     that.mouseMoveEvent({});
@@ -1092,8 +1096,8 @@ SelectionDisplay = (function() {
     };
 
     function controllerComputePickRay() {
-        var controllerPose = getControllerWorldLocation(activeHand, true);
-        if (controllerPose.valid && that.triggered) {
+        var controllerPose = getControllerWorldLocation(that.triggeredHand, true);
+        if (controllerPose.valid && that.triggered()) {
             var controllerPosition = controllerPose.translation;
             // This gets point direction right, but if you want general quaternion it would be more complicated:
             var controllerDirection = Quat.getUp(controllerPose.rotation);
@@ -2243,11 +2247,11 @@ SelectionDisplay = (function() {
             }
 
             // Are we using handControllers or Mouse - only relevant for 3D tools
-            var controllerPose = getControllerWorldLocation(activeHand, true);
+            var controllerPose = getControllerWorldLocation(that.triggeredHand, true);
             var vector = null;
             var newPick = null;
             if (HMD.isHMDAvailable() && HMD.isHandControllerAvailable() && 
-                    controllerPose.valid && that.triggered && directionFor3DStretch) {
+                    controllerPose.valid && that.triggered() && directionFor3DStretch) {
                 localDeltaPivot = deltaPivot3D;
                 newPick = pickRay.origin;
                 vector = Vec3.subtract(newPick, lastPick3D);
