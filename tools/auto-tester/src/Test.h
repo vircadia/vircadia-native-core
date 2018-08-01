@@ -57,7 +57,8 @@ public:
 
     void createTestsOutline();
 
-    void createTestRailTestSuite();
+    void createTestRailTestCases();
+    void createTestRailRun();
 
     bool compareImageLists(bool isInteractiveMode, QProgressBar* progressBar);
 

@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>TestRailSelectorWindow</class>
- <widget class="QDialog" name="TestRailSelectorWindow">
+ <class>TestRailTestCasesSelectorWindow</class>
+ <widget class="QDialog" name="TestRailTestCasesSelectorWindow">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
     <width>489</width>
-    <height>312</height>
+    <height>474</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MismatchWindow</string>
+   <string>TestRail Test Case Selector Window</string>
   </property>
   <widget class="QLabel" name="errorLabel">
    <property name="geometry">
@@ -35,7 +35,7 @@
    <property name="geometry">
     <rect>
      <x>70</x>
-     <y>115</y>
+     <y>125</y>
      <width>121</width>
      <height>20</height>
     </rect>
@@ -67,21 +67,14 @@
     <string>TestRail URL</string>
    </property>
   </widget>
-  <widget class="QTextEdit" name="URLTextEdit">
-   <property name="geometry">
-    <rect>
-     <x>200</x>
-     <y>25</y>
-     <width>231</width>
-     <height>24</height>
-    </rect>
-   </property>
-  </widget>
   <widget class="QPushButton" name="OKButton">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="geometry">
     <rect>
      <x>120</x>
-     <y>240</y>
+     <y>420</y>
      <width>93</width>
      <height>28</height>
     </rect>
@@ -94,7 +87,7 @@
    <property name="geometry">
     <rect>
      <x>280</x>
-     <y>240</y>
+     <y>420</y>
      <width>93</width>
      <height>28</height>
     </rect>
@@ -107,7 +100,7 @@
    <property name="geometry">
     <rect>
      <x>200</x>
-     <y>115</y>
+     <y>120</y>
      <width>231</width>
      <height>24</height>
     </rect>
@@ -116,21 +109,11 @@
     <enum>QLineEdit::Password</enum>
    </property>
   </widget>
-  <widget class="QTextEdit" name="userTextEdit">
-   <property name="geometry">
-    <rect>
-     <x>200</x>
-     <y>70</y>
-     <width>231</width>
-     <height>24</height>
-    </rect>
-   </property>
-  </widget>
   <widget class="QLabel" name="label_3">
    <property name="geometry">
     <rect>
      <x>70</x>
-     <y>70</y>
+     <y>75</y>
      <width>121</width>
      <height>20</height>
     </rect>
@@ -144,11 +127,11 @@
     <string>TestRail User</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="projectLineEdit">
+  <widget class="QLineEdit" name="projectIDLineEdit">
    <property name="geometry">
     <rect>
      <x>200</x>
-     <y>160</y>
+     <y>170</y>
      <width>231</width>
      <height>24</height>
     </rect>
@@ -161,7 +144,7 @@
    <property name="geometry">
     <rect>
      <x>70</x>
-     <y>160</y>
+     <y>175</y>
      <width>121</width>
      <height>20</height>
     </rect>
@@ -172,11 +155,126 @@
     </font>
    </property>
    <property name="text">
-    <string>TestRail Project</string>
+    <string>TestRail Project ID</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="acceptButton">
+   <property name="geometry">
+    <rect>
+     <x>200</x>
+     <y>270</y>
+     <width>231</width>
+     <height>28</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Accept</string>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="milestoneComboBox">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>270</x>
+     <y>350</y>
+     <width>161</width>
+     <height>22</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QLabel" name="milestoneLabel">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>140</x>
+     <y>350</y>
+     <width>121</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>TestRail Milestone</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="urlLineEdit">
+   <property name="geometry">
+    <rect>
+     <x>200</x>
+     <y>20</y>
+     <width>231</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <property name="echoMode">
+    <enum>QLineEdit::Normal</enum>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="userLineEdit">
+   <property name="geometry">
+    <rect>
+     <x>200</x>
+     <y>70</y>
+     <width>231</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <property name="echoMode">
+    <enum>QLineEdit::Normal</enum>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="suiteIDLineEdit">
+   <property name="geometry">
+    <rect>
+     <x>200</x>
+     <y>215</y>
+     <width>231</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <property name="echoMode">
+    <enum>QLineEdit::Normal</enum>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_5">
+   <property name="geometry">
+    <rect>
+     <x>70</x>
+     <y>220</y>
+     <width>121</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>TestRail Suite ID</string>
    </property>
   </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <tabstops>
+  <tabstop>urlLineEdit</tabstop>
+  <tabstop>userLineEdit</tabstop>
+  <tabstop>passwordLineEdit</tabstop>
+  <tabstop>projectIDLineEdit</tabstop>
+  <tabstop>suiteIDLineEdit</tabstop>
+  <tabstop>acceptButton</tabstop>
+  <tabstop>milestoneComboBox</tabstop>
+  <tabstop>OKButton</tabstop>
+  <tabstop>cancelButton</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

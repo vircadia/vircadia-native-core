@@ -68,8 +68,12 @@ void AutoTester::on_createTestsOutlineButton_clicked() {
     _test->createTestsOutline();
 }
 
-void AutoTester::on_createTestRailTestSuiteButton_clicked() {
-    _test->createTestRailTestSuite();
+void AutoTester::on_createTestRailTestCasesButton_clicked() {
+    _test->createTestRailTestCases();
+}
+
+void AutoTester::on_createTestRailRunButton_clicked() {
+    _test->createTestRailRun();
 }
 
 // To toggle between show and hide

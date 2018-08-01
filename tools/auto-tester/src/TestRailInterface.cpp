@@ -11,27 +11,44 @@
 #include "TestRailInterface.h"
 #include "Test.h"
 
-#include "ui/TestRailSelectorWindow.h"
-
 #include <QDateTime>
 #include <QFile>
 #include <QMessageBox>
 #include <QTextStream>
 
 TestRailInterface::TestRailInterface() {
-    _testRailSelectorWindow.setModal(true);
+    _testRailTestCasesSelectorWindow.setURL("https://highfidelity.testrail.net");
+    ////_testRailTestCasesSelectorWindow.setURL("https://nissimhadar.testrail.io");
+    _testRailTestCasesSelectorWindow.setUser("@highfidelity.io");
+    ////_testRailSelectorWindow.setUser("nissim.hadar@gmail.com");
 
-    _testRailSelectorWindow.setURL("https://highfidelity.testrail.net/");
-    _testRailSelectorWindow.setUser("@highfidelity.io");
+    _testRailTestCasesSelectorWindow.setProjectID(INTERFACE_PROJECT_ID);
+    ////_testRailSelectorWindow.setProject(1);
+
+    _testRailTestCasesSelectorWindow.setSuiteID(INTERFACE_SUITE_ID);
+
+    _testRailRunSelectorWindow.setURL("https://highfidelity.testrail.net");
+    ////_testRailRunSelectorWindow.setURL("https://nissimhadar.testrail.io");
+    _testRailRunSelectorWindow.setUser("@highfidelity.io");
+    ////_testRailSelectorWindow.setUser("nissim.hadar@gmail.com");
+
+    _testRailRunSelectorWindow.setProjectID(INTERFACE_PROJECT_ID);
+    ////_testRailSelectorWindow.setProject(1);
+
+    _testRailRunSelectorWindow.setSuiteID(INTERFACE_SUITE_ID);
 }
 
-void TestRailInterface::createTestRailDotPyScript(const QString& outputDirectory) {
-    // Create the testrail.py script
-    // This is the file linked to from http://docs.gurock.com/testrail-api2/bindings-python
-    QFile file(outputDirectory + "/testrail.py");
+QString TestRailInterface::getObject(const QString& path) {
+    return path.right(path.length() - path.lastIndexOf("/") - 1);
+}
+
+// Creates the testrail.py script
+// This is the file linked to from http://docs.gurock.com/testrail-api2/bindings-python
+void TestRailInterface::createTestRailDotPyScript() {
+    QFile file(_outputDirectory + "/testrail.py");
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "Could not create \'testrail.py\'");
+                              "Could not create 'testrail.py'");
         exit(-1);
     }
 
@@ -118,10 +135,10 @@ void TestRailInterface::createTestRailDotPyScript(const QString& outputDirectory
     stream << "\n";
     stream << "\t\tif e != None:\n";
     stream << "\t\t\tif result and 'error' in result:\n";
-    stream << "\t\t\t\terror = \'\"\' + result[\'error\'] + \'\"\'\n";
+    stream << "\t\t\t\terror = '\"' + result['error'] + '\"'\n";
     stream << "\t\t\telse:\n";
-    stream << "\t\t\t\terror = \'No additional error message received\'\n";
-    stream << "\t\t\traise APIError(\'TestRail API returned HTTP %s (%s)\' % \n";
+    stream << "\t\t\t\terror = 'No additional error message received'\n";
+    stream << "\t\t\traise APIError('TestRail API returned HTTP %s (%s)' % \n";
     stream << "\t\t\t\t(e.code, error))\n";
     stream << "\n";
     stream << "\t\treturn result\n";
@@ -132,23 +149,132 @@ void TestRailInterface::createTestRailDotPyScript(const QString& outputDirectory
     file.close();
 }
 
-void TestRailInterface::requestDataFromUser() {
-    _testRailSelectorWindow.exec();
+// Creates a Stack class
+void TestRailInterface::createStackDotPyScript() {
+    QString filename = _outputDirectory + "/stack.py";
+    if (QFile::exists(filename)) {
+        QFile::remove(filename);
+    }
+    QFile file(filename);
 
-    if (_testRailSelectorWindow.getUserCancelled()) {
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not create 'stack.py'");
+        exit(-1);
+    }
+
+    QTextStream stream(&file);
+
+    stream << "class Stack:\n";
+
+    stream << "\tdef __init__(self):\n";
+    stream << "\t\tself.items = []\n";
+    stream << "\n";
+
+    stream << "\tdef is_empty(self):\n";
+    stream << "\t\treturn self.items == []\n";
+    stream << "\n";
+
+    stream << "\tdef push(self, item):\n";
+    stream << "\t\tself.items.append(item)\n";
+    stream << "\n";
+
+    stream << "\tdef pop(self):\n";
+    stream << "\t\treturn self.items.pop()\n";
+    stream << "\n";
+
+    stream << "\tdef peek(self):\n";
+    stream << "\t\treturn self.items[len(self.items)-1]\n";
+    stream << "\n";
+
+    stream << "\tdef size(self):\n";
+    stream << "\t\treturn len(self.items)\n";
+    stream << "\n";
+
+    file.close();
+}
+
+void TestRailInterface::requestTestRailTestCasesDataFromUser() {
+    // Make sure correct fields are enabled before calling
+    _testRailTestCasesSelectorWindow.reset();
+    _testRailTestCasesSelectorWindow.exec();
+
+    if (_testRailTestCasesSelectorWindow.getUserCancelled()) {
         return;
     }
 
-    _url = _testRailSelectorWindow.getURL();
-    _user = _testRailSelectorWindow.getUser();
-    _password = _testRailSelectorWindow.getPassword();
+    _url = _testRailTestCasesSelectorWindow.getURL() + "/";
+    _user = _testRailTestCasesSelectorWindow.getUser();
+    _password = _testRailTestCasesSelectorWindow.getPassword();
+    ////_password = "tutKA76";
+    _projectID = QString::number(_testRailTestCasesSelectorWindow.getProjectID());
+    _suiteID = QString::number(_testRailTestCasesSelectorWindow.getSuiteID());
 }
 
-void TestRailInterface::createAddSectionsPythonScript(const QString& outputDirectory) {
-    QFile file(outputDirectory + "/addSections.py");
+bool TestRailInterface::isAValidTestDirectory(const QString& directory) {
+    if (Test::isAValidDirectory(directory)) {
+        // Ignore the utils and preformance directories
+        if (directory.right(QString("utils").length()) == "utils" ||
+            directory.right(QString("performance").length()) == "performance") {
+            return false;
+        }
+        return true;
+    }
+
+    return false;
+}
+
+void TestRailInterface::processDirectoryPython(const QString& directory,
+                                               QTextStream& stream,
+                                               const QString& userGitHub,
+                                               const QString& branchGitHub
+) {
+    // Loop over all entries in directory
+    QDirIterator it(directory.toStdString().c_str());
+    while (it.hasNext()) {
+        QString nextDirectory = it.next();
+
+        QString objectName = getObject(nextDirectory);
+
+        if (isAValidTestDirectory(nextDirectory)) {
+            // The name of the section is the directory at the end of the path
+            stream << "parent_id = parent_ids.peek()\n";
+            stream << "data = { 'name': '" << objectName << "', 'suite_id': " + _suiteID + ", 'parent_id': parent_id }\n";
+
+            stream << "section = client.send_post('add_section/' + str(" << _projectID << "), data)\n";
+
+            // Now we push the parent_id, and recursively process each directory
+            stream << "parent_ids.push(section['id'])\n\n";
+            processDirectoryPython(nextDirectory, stream, userGitHub, branchGitHub);
+        } else if (objectName == "test.js") {
+            processTestPython(nextDirectory, stream, userGitHub, branchGitHub);
+        }
+    }
+
+    // pop the parent directory before leaving
+    stream << "parent_ids.pop()\n\n";
+}
+
+    // A suite of TestRail test cases contains trees.
+//    The nodes of the trees are sections
+//    The leaves are the test cases
+//
+// Each node and leaf have an ID and a parent ID.
+// Therefore, the tree is built top-down, using a stack to store the IDs of each node
+//
+void TestRailInterface::createAddTestCasesPythonScript(const QString& testDirectory,
+                                                       const QString& userGitHub,
+                                                       const QString& branchGitHub
+) {
+    QString filename = _outputDirectory + "/addTestCases.py";
+    if (QFile::exists(filename)) {
+        QFile::remove(filename);
+    }
+    QFile file(filename);
+
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "Could not create \'addSections.py\'");
+                              "Could not create 'addTestCases.py'");
         exit(-1);
     }
 
@@ -156,31 +282,177 @@ void TestRailInterface::createAddSectionsPythonScript(const QString& outputDirec
 
     // Code to access TestRail
     stream << "from testrail import *\n";
-    stream << "client = APIClient(\'" << _url.toStdString().c_str() << "\')\n";
-    stream << "client.user = \'" << _user << "\'\n";
-    stream << "client.password = \'" << _password << "\'\n\n";
+    stream << "client = APIClient('" << _url.toStdString().c_str() << "')\n";
+    stream << "client.user = '" << _user << "'\n";
+    stream << "client.password = '" << _password << "'\n\n";
+
+    stream << "from stack import *\n";
+    stream << "parent_ids = Stack()\n\n";
 
     // top-level section
-    stream << "data = { \'name\': \'"
-           << "Test Suite - " << QDateTime::currentDateTime().toString("yyyy-MM-ddTHH:mm") << "\'}\n";
+    stream << "data = { 'name': '"
+           << "Test Suite - " << QDateTime::currentDateTime().toString("yyyy-MM-ddTHH:mm") + "', "
+           << "'suite_id': " + _suiteID + "}\n";
+
+    stream << "section = client.send_post('add_section/' + str(" << _projectID << "), data)\n";
+
+    // Now we push the parent_id, and recursively process each directory
+    stream << "parent_ids.push(section['id'])\n\n";
+    processDirectoryPython(testDirectory, stream, userGitHub, branchGitHub);
 
     file.close();
+
+    if (QMessageBox::Yes == QMessageBox(QMessageBox::Information, "Python script has been created", "Do you want to run the script and update TestRail?", QMessageBox::Yes | QMessageBox::No).exec()) {
+        QProcess* process = new QProcess();
+        connect(process, &QProcess::started, this, 
+            [=]() {
+                _busyWindow.exec(); 
+            }
+        );
+
+        connect(process, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this, 
+            [=](int exitCode, QProcess::ExitStatus exitStatus) {
+                _busyWindow.hide();
+            }
+        );
+
+        QStringList parameters = QStringList() << _outputDirectory + "/addTestCases.py";
+        process->start(_pythonCommand, parameters);
+    }
+}
+
+void TestRailInterface::updateMilestonesComboData(int exitCode, QProcess::ExitStatus exitStatus) {
+    // Quit if user has previously cancelled
+    if (_testRailTestCasesSelectorWindow.getUserCancelled()) {
+        return;
+    }
+
+    // Check if process completed successfully
+    if (exitStatus != QProcess::NormalExit) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not get milestones from TestRail");
+            exit(-1);
+    }
+
+    // Create map of milestones from the file created by the process
+    _milestoneNames.clear();
+
+    QString filename = _outputDirectory + "/milestones.txt";
+    if (!QFile::exists(filename)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not find milestones.txt in " + _outputDirectory);
+        exit(-1);
+    }
+
+    QFile file(filename);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not open " +  _outputDirectory + "/milestones.txt");
+        exit(-1);
+    }
+
+    QTextStream in(&file);
+    QString line = in.readLine();
+    while (!line.isNull()) {
+        QStringList words = line.split(' ');
+        _milestones[words[0]] = words[1].toInt();
+        _milestoneNames << words[0];
+
+        line = in.readLine();
+    }
+
+    file.close();
+
+    // Update the combo
+    _testRailTestCasesSelectorWindow.updateMilestoneComboBoxData(_milestoneNames);
+
+    _testRailTestCasesSelectorWindow.exec();
+
+    if (_testRailTestCasesSelectorWindow.getUserCancelled()) {
+        return;
+    }
+
+    createAddTestCasesPythonScript(_testDirectory, _userGitHub, _branchGitHub);
+}
+
+void TestRailInterface::getMilestonesFromTestRail() {
+    QString filename = _outputDirectory + "/getMilestones.py";
+    if (QFile::exists(filename)) {
+        QFile::remove(filename);
+    }
+    QFile file(filename);
+
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not create 'getMilestones.py'");
+        exit(-1);
+    }
+
+    QTextStream stream(&file);
+
+    // Code to access TestRail
+    stream << "from testrail import *\n";
+    stream << "client = APIClient('" << _url.toStdString().c_str() << "')\n";
+    stream << "client.user = '" << _user << "'\n";
+    stream << "client.password = '" << _password << "'\n\n";
+
+    // Print the list of uncompleted milestones
+    stream << "file = open('" + _outputDirectory + "/milestones.txt', 'w')\n\n";
+    stream << "milestones = client.send_get('get_milestones/" + _projectID + "')\n";
+    stream << "for milestone in milestones:\n";
+    stream << "\tif milestone['is_completed'] == False:\n";
+    stream << "\t\tfile.write(milestone['name'] + ' ' + str(milestone['id']) + '\\n')\n\n";
+    stream << "file.close()\n";
+
+    file.close();
+
+    QProcess* process = new QProcess();
+    connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
+        [=](int exitCode, QProcess::ExitStatus exitStatus) { 
+            updateMilestonesComboData(exitCode, exitStatus);
+        }
+    );
+
+    QStringList parameters = QStringList() << _outputDirectory + "/getMilestones.py ";
+    process->start(_pythonCommand, parameters);
 }
 
 void TestRailInterface::createTestSuitePython(const QString& testDirectory,
                                               const QString& outputDirectory,
-                                              const QString& user,
-                                              const QString& branch) {
-    
-    createTestRailDotPyScript(outputDirectory);
-    requestDataFromUser();
-    createAddSectionsPythonScript(outputDirectory);
- }
+                                              const QString& userGitHub,
+                                              const QString& branchGitHub) {
+
+    _testDirectory = testDirectory;
+    _outputDirectory = outputDirectory;
+    _userGitHub = userGitHub;
+    _branchGitHub = branchGitHub;
+
+    // First check that Python is available
+    if (QProcessEnvironment::systemEnvironment().contains("PYTHON_PATH")) {
+        QString _pythonPath = QProcessEnvironment::systemEnvironment().value("PYTHON_PATH");
+        if (!QFile::exists(_pythonPath + "/" + pythonExe)) {
+            QMessageBox::critical(0, pythonExe, QString("Python executable not found in ") + _pythonPath);
+        }
+        _pythonCommand = _pythonPath + "/" + pythonExe;
+    } else {
+        QMessageBox::critical(0, "PYTHON_PATH not defined", "Please set PYTHON_PATH to directory containing the Python executable");
+        return;
+    }
+
+    requestTestRailTestCasesDataFromUser();
+    createTestRailDotPyScript();
+    createStackDotPyScript();
+
+    // TestRail will be updated after the process initiated by getMilestonesFromTestRail has completed
+    getMilestonesFromTestRail();
+}
 
  void TestRailInterface::createTestSuiteXML(const QString& testDirectory,
                                             const QString& outputDirectory,
-                                            const QString& user,
-                                            const QString& branch) {
+                                            const QString& userGitHub,
+                                            const QString& branchGitHub) {
+
+     _outputDirectory = outputDirectory;
 
     QDomProcessingInstruction instruction = _document.createProcessingInstruction("xml", "version='1.0' encoding='UTF-8'");
     _document.appendChild(instruction);
@@ -195,14 +467,15 @@ void TestRailInterface::createTestSuitePython(const QString& testDirectory,
     suiteName.appendChild(_document.createTextNode("Test Suite - " + QDateTime::currentDateTime().toString("yyyy-MM-ddTHH:mm")));
     topLevelSection.appendChild(suiteName);
 
+    // This is the first call to 'process'.  This is then called recursively to build the full XML tree
     QDomElement secondLevelSections = _document.createElement("sections");
-    topLevelSection.appendChild(processDirectory(testDirectory, user, branch, secondLevelSections));
+    topLevelSection.appendChild(processDirectoryXML(testDirectory, userGitHub, branchGitHub, secondLevelSections));
 
     topLevelSection.appendChild(secondLevelSections);
     root.appendChild(topLevelSection);
 
     // Write to file
-    const QString testRailsFilename{ outputDirectory  + "/TestRailSuite.xml" };
+    const QString testRailsFilename{ _outputDirectory  + "/TestRailSuite.xml" };
     QFile file(testRailsFilename);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Could not create XML file");
@@ -217,7 +490,10 @@ void TestRailInterface::createTestSuitePython(const QString& testDirectory,
     QMessageBox::information(0, "Success", "TestRail XML file has been created");
 }
 
-QDomElement TestRailInterface::processDirectory(const QString& directory, const QString& user, const QString& branch, const QDomElement& element) {
+QDomElement TestRailInterface::processDirectoryXML(const QString& directory,
+                                                   const QString& userGitHub,
+                                                   const QString& branchGitHub,
+                                                   const QDomElement& element) {
     QDomElement result = element;
 
     // Loop over all entries in directory
@@ -226,17 +502,11 @@ QDomElement TestRailInterface::processDirectory(const QString& directory, const 
          QString nextDirectory = it.next();
 
        // The object name appears after the last slash (we are assured there is at least 1).
-        QString objectName = nextDirectory.right(nextDirectory.length() - nextDirectory.lastIndexOf("/") - 1);
+         QString objectName = getObject(nextDirectory);
 
         // Only process directories
-        if (Test::isAValidDirectory(nextDirectory)) {
-            // Ignore the utils and preformance directories
-            if (nextDirectory.right(QString("utils").length()) == "utils" || nextDirectory.right(QString("performance").length()) == "performance") {
-                continue;
-            }
-
+        if (isAValidTestDirectory(nextDirectory)) {
             // Create a section and process it
-
             QDomElement sectionElement = _document.createElement("section");
 
             QDomElement sectionElementName = _document.createElement("name");
@@ -244,7 +514,7 @@ QDomElement TestRailInterface::processDirectory(const QString& directory, const 
             sectionElement.appendChild(sectionElementName);
 
             QDomElement testsElement = _document.createElement("sections");
-            sectionElement.appendChild(processDirectory(nextDirectory, user, branch, testsElement));
+            sectionElement.appendChild(processDirectoryXML(nextDirectory, userGitHub, branchGitHub, testsElement));
 
             result.appendChild(sectionElement);
         } else if (objectName == "test.js" || objectName == "testStory.js") {
@@ -252,7 +522,9 @@ QDomElement TestRailInterface::processDirectory(const QString& directory, const 
             QDomElement sectionElementName = _document.createElement("name");
             sectionElementName.appendChild(_document.createTextNode("all"));
             sectionElement.appendChild(sectionElementName);
-            sectionElement.appendChild(processTest(nextDirectory, objectName, user, branch, _document.createElement("cases")));
+            sectionElement.appendChild(
+                processTestXML(nextDirectory, objectName, userGitHub, branchGitHub, _document.createElement("cases")));
+
             result.appendChild(sectionElement);
         }
     }
@@ -260,7 +532,11 @@ QDomElement TestRailInterface::processDirectory(const QString& directory, const 
     return result;
 }
 
-QDomElement TestRailInterface::processTest(const QString& fullDirectory, const QString& test, const QString& user, const QString& branch, const QDomElement& element) {
+QDomElement TestRailInterface::processTestXML(const QString& fullDirectory,
+                                              const QString& test,
+                                              const QString& userGitHub,
+                                              const QString& branchGitHub,
+                                              const QDomElement& element) {
     QDomElement result = element;
    
     QDomElement caseElement = _document.createElement("case");
@@ -337,7 +613,7 @@ QDomElement TestRailInterface::processTest(const QString& fullDirectory, const Q
     added_to_releaseElementId.appendChild(_document.createTextNode("4"));
     added_to_releaseElement.appendChild(added_to_releaseElementId);
     QDomElement added_to_releaseElementValue = _document.createElement("value");
-    added_to_releaseElementValue.appendChild(_document.createTextNode(branch));
+    added_to_releaseElementValue.appendChild(_document.createTextNode(branchGitHub));
     added_to_releaseElement.appendChild(added_to_releaseElementValue);
     customElement.appendChild(added_to_releaseElement);
 
@@ -345,7 +621,8 @@ QDomElement TestRailInterface::processTest(const QString& fullDirectory, const Q
     precondsElement.appendChild(_document.createTextNode("Tester is in an empty region of a domain in which they have edit rights\n\n*Note: Press 'n' to advance test script"));
     customElement.appendChild(precondsElement);
 
-    QString testMDName = QString("https://github.com/") + user + "/hifi_tests/blob/" + branch + "/tests/content/entity/light/point/create/test.md";
+    QString testMDName = QString("https://github.com/") + userGitHub + "/hifi_tests/blob/" + branchGitHub +
+                         "/tests/content/entity/light/point/create/test.md";
 
     QDomElement steps_seperatedElement = _document.createElement("steps_separated");
     QDomElement stepElement = _document.createElement("step");
@@ -370,4 +647,72 @@ QDomElement TestRailInterface::processTest(const QString& fullDirectory, const Q
     result.appendChild(caseElement);
  
     return result;
+}
+
+void TestRailInterface::processTestPython(const QString& fullDirectory,
+                                          QTextStream& stream,
+                                          const QString& userGitHub,
+                                          const QString& branchGitHub) {
+    // The name of the test is derived from the full path.
+    // The first term is the first word after "tests"
+    // The last word is the penultimate word
+    QStringList words = fullDirectory.split('/');
+    int i = 0;
+    while (words[i] != "tests") {
+        ++i;
+        if (i >= words.length() - 1) {
+            QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                                  "Folder \"tests\" not found  in " + fullDirectory);
+            exit(-1);
+        }
+    }
+
+    ++i;
+    QString title{ words[i] };
+    for (++i; i < words.length() - 1; ++i) {
+        title += " / " + words[i];
+    }
+
+    // To create the path to test.md, prefix by tests, and remove blanks
+    QString pathToTestMD = QString("/tests/") + title.remove(" ");
+
+    stream << "section_id = parent_ids.peek()\n";
+
+    QString testMDName = QString("https://github.com/") + userGitHub + "/hifi_tests/blob/" + branchGitHub +
+                         pathToTestMD + "/test.md ";
+
+    QString testContent = QString("Execute instructions in [THIS TEST](") + testMDName + ")";
+    QString testExpected = QString("Refer to the expected result in the linked description.");
+
+    int milestone_id = _milestones[_milestoneNames[_testRailTestCasesSelectorWindow.getMilestoneID()]];
+
+    stream << "data = {\n" 
+        << "\t'title': '" << title << "',\n" 
+        << "\t'template_id': 2,\n"
+        << "\t'milestone_id': " << milestone_id << ",\n" 
+        << "\t'custom_tester_count': 1,\n"
+        << "\t'custom_domain_bot_load': 1,\n"
+        << "\t'custom_added_to_release': 4,\n"
+        << "\t'custom_preconds': " << "'Tester is in an empty region of a domain in which they have edit rights\\n\\n*Note: Press \\'n\\' to advance test script',\n"
+        << "\t'custom_steps_separated': " << "[\n\t\t{\n\t\t\t'content': '" << testContent << "',\n\t\t\t'expected': '" << testExpected << "'\n\t\t}\n\t]\n"
+        << "}\n";
+
+    stream << "case = client.send_post('add_case/' + str(section_id), data)\n";
+}
+
+void TestRailInterface::requestTestRailRunDataFromUser() {
+    _testRailRunSelectorWindow.reset();
+    _testRailRunSelectorWindow.exec();
+}
+
+void TestRailInterface::getTestCasesFromTestRail() {
+}
+
+void TestRailInterface::createTestRailRun() {
+    requestTestRailRunDataFromUser();
+    createTestRailDotPyScript();
+    createStackDotPyScript();
+
+    // TestRail will be updated after the process initiated by getTestCasesFromTestRail has completed
+    getTestCasesFromTestRail();
 }

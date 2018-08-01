@@ -11,44 +11,102 @@
 #ifndef hifi_test_testrail_interface_h
 #define hifi_test_testrail_interface_h
 
-#include "ui/TestRailSelectorWindow.h"
+#include "ui/BusyWindow.h"
+
+#include "ui/TestRailTestCasesSelectorWindow.h"
+#include "ui/TestRailRunSelectorWindow.h"
+
 #include <QDirIterator>
 #include <QtXml/QDomDocument>
+#include <QProcess>
 #include <QString>
 
-class TestRailInterface {
+class TestRailInterface : public QObject{
+    Q_OBJECT
+
 public:
     TestRailInterface();
 
     void createTestSuiteXML(const QString& testDirectory,
                             const QString& outputDirectory,
-                            const QString& user,
-                            const QString& branch);
+                            const QString& userGitHub,
+                            const QString& branchGitHub);
 
     void createTestSuitePython(const QString& testDirectory,
                                const QString& outputDirectory,
-                               const QString& user,
-                               const QString& branch);
+                               const QString& userGitHub,
+                               const QString& branchGitHub);
 
-    QDomElement processDirectory(const QString& directory,
-                                 const QString& user,
-                                 const QString& branch,
-                                 const QDomElement& element);
+    QDomElement processDirectoryXML(const QString& directory,
+                                    const QString& useGitHubr,
+                                    const QString& branchGitHub,
+                                    const QDomElement& element);
 
-    QDomElement processTest(const QString& fullDirectory, const QString& test, const QString& user, const QString& branch, const QDomElement& element);
+    QDomElement processTestXML(const QString& fullDirectory,
+                               const QString& test,
+                               const QString& userGitHub,
+                               const QString& branchGitHub,
+                               const QDomElement& element);
 
-    void createTestRailDotPyScript(const QString& outputDirectory);
-    void requestDataFromUser();
-    void createAddSectionsPythonScript(const QString& outputDirectory);
+    void processTestPython(const QString& fullDirectory,
+                           QTextStream& stream,
+                           const QString& userGitHub,
+                           const QString& branchGitHub);
+
+    void getMilestonesFromTestRail();
+    void getTestCasesFromTestRail();
+
+    void createTestRailDotPyScript();
+    void createStackDotPyScript();
+
+    void requestTestRailTestCasesDataFromUser();
+    void requestTestRailRunDataFromUser();
+
+    void createAddTestCasesPythonScript(const QString& testDirectory,
+                                        const QString& userGitHub,
+                                        const QString& branchGitHub);
+
+    void processDirectoryPython(const QString& directory,
+                                QTextStream& stream,
+                                const QString& userGitHub,
+                                const QString& branchGitHub);
+
+    bool isAValidTestDirectory(const QString& directory);
+
+    QString getObject(const QString& path);
+
+    void updateMilestonesComboData(int exitCode, QProcess::ExitStatus exitStatus);
+
+    void createTestRailRun();
 
 private:
+    // HighFidelity Interface project ID in TestRail
+    const int INTERFACE_PROJECT_ID{ 24 };
+
+    // Rendering suite ID
+    const int INTERFACE_SUITE_ID{ 1147 };
+
     QDomDocument _document;
 
-    TestRailSelectorWindow _testRailSelectorWindow;
+    BusyWindow _busyWindow;
+    TestRailTestCasesSelectorWindow _testRailTestCasesSelectorWindow;
+    TestRailRunSelectorWindow _testRailRunSelectorWindow;
 
     QString _url;
     QString _user;
     QString _password;
+    QString _projectID;
+    QString _suiteID;
+
+    QString _testDirectory;
+    QString _outputDirectory;
+    QString _userGitHub;
+    QString _branchGitHub;
+
+    const QString pythonExe{ "python.exe" };
+    QString _pythonCommand;
+    std::map<QString, int> _milestones;
+    QStringList _milestoneNames;
 };
 
 #endif

@@ -821,7 +821,7 @@ void Test::createTestsOutline() {
     QMessageBox::information(0, "Success", "Test outline file " + testsOutlineFilename + " has been created");
 }
 
-void Test::createTestRailTestSuite() {
+void Test::createTestRailTestCases() {
     QString previousSelection = _testDirectory;
     QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
     if (!parent.isNull() && parent.right(1) != "/") {
@@ -852,6 +852,10 @@ void Test::createTestRailTestSuite() {
         _testRailInterface.createTestSuiteXML(_testDirectory, outputDirectory, autoTester->getSelectedUser(),
                                            autoTester->getSelectedBranch());
     }
+}
+
+void Test::createTestRailRun() {
+    _testRailInterface.createTestRailRun();
 }
 
 QStringList Test::createListOfAll_imagesInDirectory(const QString& imageFormat, const QString& pathToImageDirectory) {
