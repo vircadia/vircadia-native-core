@@ -39,6 +39,9 @@ var EASING_MULTIPLIER = 8;
 var INITIAL_ZOOM_DISTANCE = 2;
 var INITIAL_ZOOM_DISTANCE_FIRST_PERSON = 3;
 
+var KEY_A = 80;
+var KEY_D = 80;
+
 var easeOutCubic = function(t) {
     t--;
     return t * t * t + 1;
@@ -77,17 +80,17 @@ CameraManager = function() {
     }
 
     var keyToActionMapping = {
-        "a": "orbitLeft",
-        "d": "orbitRight",
-        "w": "orbitForward",
-        "s": "orbitBackward",
-        "e": "orbitUp",
-        "c": "orbitDown",
-
-        "LEFT": "orbitLeft",
-        "RIGHT": "orbitRight",
-        "UP": "orbitForward",
-        "DOWN": "orbitBackward",
+        65: "orbitLeft",    // "a"
+        68: "orbitRight",   // "d"
+        87: "orbitForward", // "w"
+        83: "orbitBackward",// "s"
+        69: "orbitUp",      // "e"
+        67: "orbitDown",    // "c"
+        
+        16777234: "orbitLeft",    //"LEFT"
+        16777236: "orbitRight",   //"RIGHT"
+        16777235: "orbitForward", //"UP"
+        16777237: "orbitBackward",//"DOWN"
     }
 
     var CAPTURED_KEYS = [];
@@ -96,7 +99,7 @@ CameraManager = function() {
     }
 
     function getActionForKeyEvent(event) {
-        var action = keyToActionMapping[event.text];
+        var action = keyToActionMapping[event.key];
         if (action !== undefined) {
             if (event.isShifted) {
                 if (action === "orbitForward") {
