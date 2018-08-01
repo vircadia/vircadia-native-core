@@ -51,6 +51,10 @@ macro(SET_PACKAGING_PARAMETERS)
       set(USE_STABLE_GLOBAL_SERVICES 1)
     endif ()
 
+    if (NOT BYPASS_SIGNING)
+      set(BYPASS_SIGNING 0)
+    endif ()      
+
   elseif (RELEASE_TYPE STREQUAL "PR")
     set(DEPLOY_PACKAGE TRUE)
     set(PR_BUILD 1)
