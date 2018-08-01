@@ -1,22 +1,22 @@
 //
-//  TestRailSelectorWindow.h
+//  TestRailRunSelectorWindow.h
 //
-//  Created by Nissim Hadar on 26 Jul 2017.
+//  Created by Nissim Hadar on 31 Jul 2017.
 //  Copyright 2013 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#ifndef hifi_TestRailSelectorWindow_h
-#define hifi_TestRailSelectorWindow_h
+#ifndef hifi_TestRailRunSelectorWindow_h
+#define hifi_TestRailRunSelectorWindow_h
 
-#include "ui_TestRailSelectorWindow.h"
+#include "ui_TestRailRunSelectorWindow.h"
 
-class TestRailSelectorWindow : public QDialog, public Ui::TestRailSelectorWindow {
+class TestRailRunSelectorWindow : public QDialog, public Ui::TestRailRunSelectorWindow {
     Q_OBJECT
 
 public:
-    TestRailSelectorWindow(QWidget* parent = Q_NULLPTR);
+    TestRailRunSelectorWindow(QWidget* parent = Q_NULLPTR);
 
     void reset();
 

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>TestRailSelectorWindow</class>
- <widget class="QDialog" name="TestRailSelectorWindow">
+ <class>TestRailTestCasesSelectorWindow</class>
+ <widget class="QDialog" name="TestRailTestCasesSelectorWindow">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>TestRail Selector Window</string>
+   <string>TestRail Test Case Selector Window</string>
   </property>
   <widget class="QLabel" name="errorLabel">
    <property name="geometry">

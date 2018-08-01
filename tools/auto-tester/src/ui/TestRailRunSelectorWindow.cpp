@@ -1,26 +1,26 @@
 //
-//  TestRailSelectorWindow.cpp
+//  TestRailRunSelectorWindow.cpp
 //
-//  Created by Nissim Hadar on 26 Jul 2017.
+//  Created by Nissim Hadar on 31 Jul 2017.
 //  Copyright 2013 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "TestRailSelectorWindow.h"
+#include "TestRailRunSelectorWindow.h"
 
 #include <QtCore/QFileInfo>
 
 #include <cmath>
 
-TestRailSelectorWindow::TestRailSelectorWindow(QWidget *parent) {
+TestRailRunSelectorWindow::TestRailRunSelectorWindow(QWidget *parent) {
     setupUi(this);
 
     projectIDLineEdit->setValidator(new QIntValidator(1, 999, this));
 }
 
 
-void TestRailSelectorWindow::reset() {
+void TestRailRunSelectorWindow::reset() {
     urlLineEdit->setDisabled(false);
     userLineEdit->setDisabled(false);
     passwordLineEdit->setDisabled(false);
@@ -30,7 +30,7 @@ void TestRailSelectorWindow::reset() {
     milestoneComboBox->setDisabled(true);
 }
 
-void TestRailSelectorWindow::on_acceptButton_clicked() {
+void TestRailRunSelectorWindow::on_acceptButton_clicked() {
     urlLineEdit->setDisabled(true);
     userLineEdit->setDisabled(true);
     passwordLineEdit->setDisabled(true);
@@ -41,60 +41,60 @@ void TestRailSelectorWindow::on_acceptButton_clicked() {
     close();
 }
 
-void TestRailSelectorWindow::on_OKButton_clicked() {
+void TestRailRunSelectorWindow::on_OKButton_clicked() {
     userCancelled = false;
     close();
 }
 
-void TestRailSelectorWindow::on_cancelButton_clicked() {
+void TestRailRunSelectorWindow::on_cancelButton_clicked() {
     userCancelled = true;
     close();
 }
 
-bool TestRailSelectorWindow::getUserCancelled() {
+bool TestRailRunSelectorWindow::getUserCancelled() {
     return userCancelled;
 }
 
-void TestRailSelectorWindow::setURL(const QString& user) {
+void TestRailRunSelectorWindow::setURL(const QString& user) {
     urlLineEdit->setText(user);
 }
 
-QString TestRailSelectorWindow::getURL() {
+QString TestRailRunSelectorWindow::getURL() {
     return urlLineEdit->text();
 }
 
-void TestRailSelectorWindow::setUser(const QString& user) {
+void TestRailRunSelectorWindow::setUser(const QString& user) {
     userLineEdit->setText(user);
 }
 
-QString TestRailSelectorWindow::getUser() {
+QString TestRailRunSelectorWindow::getUser() {
     return userLineEdit->text();
 }
 
-QString TestRailSelectorWindow::getPassword() {
+QString TestRailRunSelectorWindow::getPassword() {
     return passwordLineEdit->text();
 }
 
-void TestRailSelectorWindow::setProjectID(const int project) {
+void TestRailRunSelectorWindow::setProjectID(const int project) {
     projectIDLineEdit->setText(QString::number(project));
 }
 
-int TestRailSelectorWindow::getProjectID() {
+int TestRailRunSelectorWindow::getProjectID() {
     return projectIDLineEdit->text().toInt();
 }
 
-void TestRailSelectorWindow::setSuiteID(const int project) {
+void TestRailRunSelectorWindow::setSuiteID(const int project) {
     suiteIDLineEdit->setText(QString::number(project));
 }
 
-int TestRailSelectorWindow::getSuiteID() {
+int TestRailRunSelectorWindow::getSuiteID() {
     return suiteIDLineEdit->text().toInt();
 }
 
-void TestRailSelectorWindow::updateMilestoneComboBoxData(QStringList data) {
+void TestRailRunSelectorWindow::updateMilestoneComboBoxData(QStringList data) {
     milestoneComboBox->insertItems(0, data);
 }
 
-int TestRailSelectorWindow::getMilestoneID() {
+int TestRailRunSelectorWindow::getMilestoneID() {
     return milestoneComboBox->currentIndex();
 }

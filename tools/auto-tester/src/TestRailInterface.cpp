@@ -11,8 +11,6 @@
 #include "TestRailInterface.h"
 #include "Test.h"
 
-#include "ui/TestRailSelectorWindow.h"
-
 #include <QDateTime>
 #include <QFile>
 #include <QMessageBox>
@@ -20,17 +18,17 @@
 
 TestRailInterface::TestRailInterface() {
     _busyWindow.setModal(true);
-    _testRailSelectorWindow.setModal(true);
+    _testRailTestCasesSelectorWindow.setModal(true);
 
-    _testRailSelectorWindow.setURL("https://highfidelity.testrail.net");
-    ////_testRailSelectorWindow.setURL("https://nissimhadar.testrail.io");
-    _testRailSelectorWindow.setUser("@highfidelity.io");
+    _testRailTestCasesSelectorWindow.setURL("https://highfidelity.testrail.net");
+    ////_testRailTestCasesSelectorWindow.setURL("https://nissimhadar.testrail.io");
+    _testRailTestCasesSelectorWindow.setUser("@highfidelity.io");
     ////_testRailSelectorWindow.setUser("nissim.hadar@gmail.com");
 
-    _testRailSelectorWindow.setProjectID(INTERFACE_PROJECT_ID);
+    _testRailTestCasesSelectorWindow.setProjectID(INTERFACE_PROJECT_ID);
     ////_testRailSelectorWindow.setProject(1);
 
-    _testRailSelectorWindow.setSuiteID(INTERFACE_SUITE_ID);
+    _testRailTestCasesSelectorWindow.setSuiteID(INTERFACE_SUITE_ID);
 }
 
 QString TestRailInterface::getObject(const QString& path) {
@@ -191,19 +189,19 @@ void TestRailInterface::createStackDotPyScript() {
 
 void TestRailInterface::requestTestRailDataFromUser() {
     // Make sure correct fields are enabled before calling
-    _testRailSelectorWindow.reset();
-    _testRailSelectorWindow.exec();
+    _testRailTestCasesSelectorWindow.reset();
+    _testRailTestCasesSelectorWindow.exec();
 
-    if (_testRailSelectorWindow.getUserCancelled()) {
+    if (_testRailTestCasesSelectorWindow.getUserCancelled()) {
         return;
     }
 
-    _url = _testRailSelectorWindow.getURL() + "/";
-    _user = _testRailSelectorWindow.getUser();
-    _password = _testRailSelectorWindow.getPassword();
+    _url = _testRailTestCasesSelectorWindow.getURL() + "/";
+    _user = _testRailTestCasesSelectorWindow.getUser();
+    _password = _testRailTestCasesSelectorWindow.getPassword();
     ////_password = "tutKA76";
-    _projectID = QString::number(_testRailSelectorWindow.getProjectID());
-    _suiteID = QString::number(_testRailSelectorWindow.getSuiteID());
+    _projectID = QString::number(_testRailTestCasesSelectorWindow.getProjectID());
+    _suiteID = QString::number(_testRailTestCasesSelectorWindow.getSuiteID());
 }
 
 bool TestRailInterface::isAValidTestDirectory(const QString& directory) {
@@ -354,11 +352,11 @@ void TestRailInterface::updateMilestonesComboData(int exitCode, QProcess::ExitSt
     file.close();
 
     // Update the combo
-    _testRailSelectorWindow.updateMilestoneComboBoxData(_milestoneNames);
+    _testRailTestCasesSelectorWindow.updateMilestoneComboBoxData(_milestoneNames);
 
-    _testRailSelectorWindow.exec();
+    _testRailTestCasesSelectorWindow.exec();
 
-    if (_testRailSelectorWindow.getUserCancelled()) {
+    if (_testRailTestCasesSelectorWindow.getUserCancelled()) {
         return;
     }
 
@@ -674,7 +672,7 @@ void TestRailInterface::processTestPython(const QString& fullDirectory,
     QString testContent = QString("Execute instructions in [THIS TEST](") + testMDName + ")";
     QString testExpected = QString("Refer to the expected result in the linked description.");
 
-    int milestone_id = _milestones[_milestoneNames[_testRailSelectorWindow.getMilestoneID()]];
+    int milestone_id = _milestones[_milestoneNames[_testRailTestCasesSelectorWindow.getMilestoneID()]];
 
     stream << "data = {\n" 
         << "\t'title': '" << title << "',\n" 
