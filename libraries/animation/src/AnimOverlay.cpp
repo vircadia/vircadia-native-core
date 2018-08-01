@@ -41,7 +41,7 @@ void AnimOverlay::buildBoneSet(BoneSet boneSet) {
     }
 }
 
-const AnimPoseVec& AnimOverlay::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
+const AnimPoseVec& AnimOverlay::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
 
     // lookup parameters from animVars, using current instance variables as defaults.
     // NOTE: switching bonesets can be an expensive operation, let's try to avoid it.
@@ -66,6 +66,9 @@ const AnimPoseVec& AnimOverlay::evaluate(const AnimVariantMap& animVars, const A
             }
         }
     }
+
+    processOutputJoints(triggersOut);
+
     return _poses;
 }
 
