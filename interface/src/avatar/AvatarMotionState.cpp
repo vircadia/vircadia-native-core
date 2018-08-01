@@ -19,6 +19,7 @@
 AvatarMotionState::AvatarMotionState(AvatarSharedPointer avatar, const btCollisionShape* shape) : ObjectMotionState(shape), _avatar(avatar) {
     assert(_avatar);
     _type = MOTIONSTATE_TYPE_AVATAR;
+    cacheShapeDiameter();
 }
 
 void AvatarMotionState::handleEasyChanges(uint32_t& flags) {
@@ -57,9 +58,6 @@ PhysicsMotionType AvatarMotionState::computePhysicsMotionType() const {
 const btCollisionShape* AvatarMotionState::computeNewShape() {
     ShapeInfo shapeInfo;
     std::static_pointer_cast<Avatar>(_avatar)->computeShapeInfo(shapeInfo);
-    glm::vec3 halfExtents = shapeInfo.getHalfExtents();
-    halfExtents.y = 0.0f;
-    _diameter = 2.0f * glm::length(halfExtents);
     return getShapeManager()->getShape(shapeInfo);
 }
 
@@ -141,7 +139,10 @@ glm::vec3 AvatarMotionState::getObjectLinearVelocity() const {
 
 // virtual
 glm::vec3 AvatarMotionState::getObjectAngularVelocity() const {
-    return _avatar->getWorldAngularVelocity();
+    // HACK: avatars use a capusle collision shape and their angularVelocity in the local simulation is unimportant.
+    // Therefore, as optimization toward support for larger crowds we ignore it and return zero.
+    //return _avatar->getWorldAngularVelocity();
+    return glm::vec3(0.0f);
 }
 
 // virtual
@@ -174,3 +175,23 @@ float AvatarMotionState::getMass() const {
     return std::static_pointer_cast<Avatar>(_avatar)->computeMass();
 }
 
+void AvatarMotionState::cacheShapeDiameter() {
+    if (_shape) {
+        // measure XZ diameter of capsule shape
+        btVector3 aabbMin, aabbMax;
+        btTransform transform;
+        transform.setIdentity();
+        _shape->getAabb(transform, aabbMin, aabbMax);
+        aabbMax -= aabbMin;
+        aabbMax.setY(0.0f);
+        const float SQRT_TWO = 1.414213562f;
+        _diameter = SQRT_TWO * aabbMax.length();
+    } else {
+        _diameter = 0.0f;
+    }
+}
+
+void AvatarMotionState::setShape(const btCollisionShape* shape) {
+    cacheShapeDiameter();
+    ObjectMotionState::setShape(shape);
+}

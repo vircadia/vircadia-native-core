@@ -181,7 +181,7 @@ protected:
     MotionStateType _type { MOTIONSTATE_TYPE_INVALID }; // type of MotionState
     PhysicsMotionType _motionType { MOTION_TYPE_STATIC }; // type of motion: KINEMATIC, DYNAMIC, or STATIC
 
-    const btCollisionShape* _shape;
+    const btCollisionShape* _shape { nullptr };
     btRigidBody* _body { nullptr };
     float _density { 1.0f };
 
