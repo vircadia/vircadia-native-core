@@ -838,7 +838,7 @@ void Test::createTestRailTestCases() {
     }
 
     QString outputDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select a folder to store generated files in",
-                                                                parent, QFileDialog::ShowDirsOnly);
+                                                                nullptr, QFileDialog::ShowDirsOnly);
 
     // If user cancelled then return
     if (outputDirectory == "") {
@@ -855,7 +855,9 @@ void Test::createTestRailTestCases() {
 }
 
 void Test::createTestRailRun() {
-    _testRailInterface.createTestRailRun();
+    QString outputDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select a folder to store generated files in",
+                                                                nullptr, QFileDialog::ShowDirsOnly);
+    _testRailInterface.createTestRailRun(outputDirectory);
 }
 
 QStringList Test::createListOfAll_imagesInDirectory(const QString& imageFormat, const QString& pathToImageDirectory) {

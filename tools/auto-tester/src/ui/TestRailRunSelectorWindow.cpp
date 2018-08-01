@@ -27,7 +27,7 @@ void TestRailRunSelectorWindow::reset() {
     projectIDLineEdit->setDisabled(false);
 
     OKButton->setDisabled(true);
-    milestoneComboBox->setDisabled(true);
+    sectionsComboBox->setDisabled(true);
 }
 
 void TestRailRunSelectorWindow::on_acceptButton_clicked() {
@@ -37,7 +37,7 @@ void TestRailRunSelectorWindow::on_acceptButton_clicked() {
     projectIDLineEdit->setDisabled(true);
 
     OKButton->setDisabled(false);
-    milestoneComboBox->setDisabled(false);
+    sectionsComboBox->setDisabled(false);
     close();
 }
 
@@ -91,10 +91,11 @@ int TestRailRunSelectorWindow::getSuiteID() {
     return suiteIDLineEdit->text().toInt();
 }
 
-void TestRailRunSelectorWindow::updateMilestoneComboBoxData(QStringList data) {
-    milestoneComboBox->insertItems(0, data);
+void TestRailRunSelectorWindow::updateSectionsComboBoxData(QStringList data) {
+    sectionsComboBox->insertItems(0, data);
 }
 
-int TestRailRunSelectorWindow::getMilestoneID() {
-    return milestoneComboBox->currentIndex();
+int TestRailRunSelectorWindow::getSectionID() {
+    return 0;
+    sectionsComboBox->currentIndex();
 }
