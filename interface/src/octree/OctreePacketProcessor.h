@@ -37,7 +37,8 @@ private slots:
     void handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
 
 private:
-    std::atomic<int> _completionSequenceNumber { -1 };
+    static constexpr int INVALID_SEQUENCE = -1;
+    std::atomic<int> _completionSequenceNumber { INVALID_SEQUENCE };
 
 };
 #endif // hifi_OctreePacketProcessor_h

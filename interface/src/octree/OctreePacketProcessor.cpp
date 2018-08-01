@@ -126,7 +126,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
 }
 
 void OctreePacketProcessor::resetCompletionSequenceNumber() {
-    _completionSequenceNumber = -1;
+    _completionSequenceNumber = INVALID_SEQUENCE;
 }
 
 namespace {
@@ -141,6 +141,6 @@ namespace {
 
 bool OctreePacketProcessor::octreeSequenceIsComplete(int sequenceNumber) const {
     // If we've received the flagged seq # and the current one is >= it.
-    return _completionSequenceNumber != -1 &&
+    return _completionSequenceNumber != INVALID_SEQUENCE &&
         !lessThanWraparound<OCTREE_PACKET_SEQUENCE>(sequenceNumber, _completionSequenceNumber);
 }
