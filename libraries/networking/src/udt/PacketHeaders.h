@@ -238,7 +238,8 @@ enum class EntityVersion : PacketVersion {
     CloneableData,
     CollisionMask16Bytes,
     YieldSimulationOwnership,
-    ParticleEntityFix
+    ParticleEntityFix,
+    ParticleSpin
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {

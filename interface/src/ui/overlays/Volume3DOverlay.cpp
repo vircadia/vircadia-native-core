@@ -88,7 +88,34 @@ bool Volume3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::ve
 
     // we can use the AABox's ray intersection by mapping our origin and direction into the overlays frame
     // and testing intersection there.
-    return _localBoundingBox.findRayIntersection(overlayFrameOrigin, overlayFrameDirection, distance, face, surfaceNormal);
+    bool hit = _localBoundingBox.findRayIntersection(overlayFrameOrigin, overlayFrameDirection, distance, face, surfaceNormal);
+
+    if (hit) {
+        surfaceNormal = transform.getRotation() * surfaceNormal;
+    }
+    return hit;
+}
+
+bool Volume3DOverlay::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+                                               float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking) {
+    // extents is the entity relative, scaled, centered extents of the entity
+    glm::mat4 worldToEntityMatrix;
+    Transform transform = getTransform();
+    transform.setScale(1.0f);  // ignore any inherited scale from SpatiallyNestable
+    transform.getInverseMatrix(worldToEntityMatrix);
+
+    glm::vec3 overlayFrameOrigin = glm::vec3(worldToEntityMatrix * glm::vec4(origin, 1.0f));
+    glm::vec3 overlayFrameVelocity = glm::vec3(worldToEntityMatrix * glm::vec4(velocity, 0.0f));
+    glm::vec3 overlayFrameAcceleration = glm::vec3(worldToEntityMatrix * glm::vec4(acceleration, 0.0f));
+
+    // we can use the AABox's ray intersection by mapping our origin and direction into the overlays frame
+    // and testing intersection there.
+    bool hit = _localBoundingBox.findParabolaIntersection(overlayFrameOrigin, overlayFrameVelocity, overlayFrameAcceleration, parabolicDistance, face, surfaceNormal);
+
+    if (hit) {
+        surfaceNormal = transform.getRotation() * surfaceNormal;
+    }
+    return hit;
 }
 
 Transform Volume3DOverlay::evalRenderTransform() {

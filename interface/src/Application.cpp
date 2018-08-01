@@ -4844,12 +4844,6 @@ void Application::loadSettings() {
 
         isFirstPerson = (qApp->isHMDMode());
 
-        // Flying should be disabled by default in HMD mode on first run, and it
-        // should be enabled by default in desktop mode.
-
-        auto myAvatar = getMyAvatar();
-        myAvatar->setFlyingEnabled(!isFirstPerson);
-
     } else {
         // if this is not the first run, the camera will be initialized differently depending on user settings
 
@@ -5297,7 +5291,7 @@ void Application::setKeyboardFocusHighlight(const glm::vec3& position, const glm
         _keyboardFocusHighlight->setPulseMin(0.5);
         _keyboardFocusHighlight->setPulseMax(1.0);
         _keyboardFocusHighlight->setColorPulse(1.0);
-        _keyboardFocusHighlight->setIgnoreRayIntersection(true);
+        _keyboardFocusHighlight->setIgnorePickIntersection(true);
         _keyboardFocusHighlight->setDrawInFront(false);
         _keyboardFocusHighlightID = getOverlays().addOverlay(_keyboardFocusHighlight);
     }
@@ -6201,6 +6195,9 @@ PickRay Application::computePickRay(float x, float y) const {
         getApplicationCompositor().computeHmdPickRay(pickPoint, result.origin, result.direction);
     } else {
         pickPoint /= getCanvasSize();
+        if (_myCamera.getMode() == CameraMode::CAMERA_MODE_MIRROR) {
+            pickPoint.x = 1.0f - pickPoint.x;
+        }
         QMutexLocker viewLocker(&_viewMutex);
         _viewFrustum.computePickRay(pickPoint.x, pickPoint.y, result.origin, result.direction);
     }
@@ -6535,9 +6532,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     entityScriptingInterface->setPacketSender(&_entityEditSender);
     entityScriptingInterface->setEntityTree(getEntities()->getTree());
-
-    // give the script engine to the RecordingScriptingInterface for its callbacks
-    DependencyManager::get<RecordingScriptingInterface>()->setScriptEngine(scriptEngine);
 
     if (property(hifi::properties::TEST).isValid()) {
         scriptEngine->registerGlobalObject("Test", TestScriptingInterface::getInstance());

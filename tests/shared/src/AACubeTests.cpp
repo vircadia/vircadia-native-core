@@ -152,3 +152,47 @@ void AACubeTests::touchesSphere() {
     }
 }
 
+void AACubeTests::rayVsParabolaPerformance() {
+    // Test performance of findRayIntersection vs. findParabolaIntersection
+    // 100000 cubes with scale 500 in the +x +y +z quadrant
+    const int NUM_CUBES = 100000;
+    const float MAX_POS = 1000.0f;
+    const float MAX_SCALE = 500.0f;
+    int numRayHits = 0;
+    int numParabolaHits = 0;
+    std::vector<AACube> cubes;
+    cubes.reserve(NUM_CUBES);
+    for (int i = 0; i < NUM_CUBES; i++) {
+        cubes.emplace_back(glm::vec3(randFloatInRange(0.0f, MAX_POS), randFloatInRange(0.0f, MAX_POS), randFloatInRange(0.0f, MAX_POS)), MAX_SCALE);
+    }
+
+    glm::vec3 origin(0.0f);
+    glm::vec3 direction = glm::normalize(glm::vec3(1.0f));
+    float distance;
+    BoxFace face;
+    glm::vec3 normal;
+    auto start = std::chrono::high_resolution_clock::now();
+    for (auto& cube : cubes) {
+        if (cube.findRayIntersection(origin, direction, distance, face, normal)) {
+            numRayHits++;
+        }
+    }
+
+    auto rayTime = std::chrono::high_resolution_clock::now() - start;
+    start = std::chrono::high_resolution_clock::now();
+    direction = 10.0f * direction;
+    glm::vec3 acceleration = glm::vec3(-0.0001f, -0.0001f, -0.0001f);
+    for (auto& cube : cubes) {
+        if (cube.findParabolaIntersection(origin, direction, acceleration, distance, face, normal)) {
+            numParabolaHits++;
+        }
+    }
+    auto parabolaTime = std::chrono::high_resolution_clock::now() - start;
+
+    qDebug() << "Ray vs. Parabola perfomance: rayHit%:" << numRayHits / ((float)NUM_CUBES) * 100.0f << ", rayTime:" << rayTime.count() <<
+        ", parabolaHit%:" << numParabolaHits / ((float)NUM_CUBES) * 100.0f << ", parabolaTime:" << parabolaTime.count() << ", parabolaTime/rayTime: " << (float)parabolaTime.count()/(float)rayTime.count();
+}
+
+void AACubeTests::cleanupTestCase() {
+
+}
