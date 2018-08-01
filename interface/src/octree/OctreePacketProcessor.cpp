@@ -116,9 +116,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
             OCTREE_PACKET_SEQUENCE completionNumber;
             message->readPrimitive(&completionNumber);
 
-            Locker lock(_completionMutex);
             _completionSequenceNumber = completionNumber;
-            _completionSequenceNumberValid = true;
         } break;
 
         default: {
@@ -128,8 +126,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
 }
 
 void OctreePacketProcessor::resetCompletionSequenceNumber() {
-    Locker lock(_completionMutex);
-    _completionSequenceNumber = false;
+    _completionSequenceNumber = -1;
 }
 
 namespace {
@@ -143,8 +140,7 @@ namespace {
 }
 
 bool OctreePacketProcessor::octreeSequenceIsComplete(int sequenceNumber) const {
-    Locker lock(_completionMutex);
     // If we've received the flagged seq # and the current one is >= it.
-    return _completionSequenceNumberValid &&
+    return _completionSequenceNumber != -1 &&
         !lessThanWraparound<OCTREE_PACKET_SEQUENCE>(sequenceNumber, _completionSequenceNumber);
 }
