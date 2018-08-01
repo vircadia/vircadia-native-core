@@ -80,17 +80,17 @@ CameraManager = function() {
     }
 
     var keyToActionMapping = {
-        65: "orbitLeft",    // "a"
-        68: "orbitRight",   // "d"
-        87: "orbitForward", // "w"
-        83: "orbitBackward",// "s"
-        69: "orbitUp",      // "e"
-        67: "orbitDown",    // "c"
+        65: "orbitLeft",     // "a"
+        68: "orbitRight",    // "d"
+        87: "orbitForward",  // "w"
+        83: "orbitBackward", // "s"
+        69: "orbitUp",       // "e"
+        67: "orbitDown",     // "c"
         
-        16777234: "orbitLeft",    //"LEFT"
-        16777236: "orbitRight",   //"RIGHT"
-        16777235: "orbitForward", //"UP"
-        16777237: "orbitBackward",//"DOWN"
+        16777234: "orbitLeft",     // "LEFT"
+        16777236: "orbitRight",    // "RIGHT"
+        16777235: "orbitForward",  // "UP"
+        16777237: "orbitBackward", // "DOWN"
     }
 
     var CAPTURED_KEYS = [];
