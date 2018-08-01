@@ -963,13 +963,15 @@ function handleOverlaySelectionToolUpdates(channel, message, sender) {
     var data = JSON.parse(message);
 
     if (data.method === "selectOverlay") {
-        if (wantDebug) {
-            print("setting selection to overlay " + data.overlayID);
-        }
-        var entity = entityIconOverlayManager.findEntity(data.overlayID);
+        if (!selectionDisplay.triggered() || selectionDisplay.triggeredHand === data.hand) {
+            if (wantDebug) {
+                print("setting selection to overlay " + data.overlayID);
+            }
+            var entity = entityIconOverlayManager.findEntity(data.overlayID);
 
-        if (entity !== null) {
-            selectionManager.setSelections([entity]);
+            if (entity !== null) {
+                selectionManager.setSelections([entity]);
+            }
         }
     }
 }
