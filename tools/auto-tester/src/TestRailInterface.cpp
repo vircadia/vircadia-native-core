@@ -20,22 +20,24 @@ TestRailInterface::TestRailInterface() {
     _testRailTestCasesSelectorWindow.setURL("https://highfidelity.testrail.net");
     ////_testRailTestCasesSelectorWindow.setURL("https://nissimhadar.testrail.io");
     _testRailTestCasesSelectorWindow.setUser("@highfidelity.io");
-    ////_testRailSelectorWindow.setUser("nissim.hadar@gmail.com");
+    ////_testRailTestCasesSelectorWindow.setUser("nissim.hadar@gmail.com");
 
     _testRailTestCasesSelectorWindow.setProjectID(INTERFACE_PROJECT_ID);
-    ////_testRailSelectorWindow.setProject(1);
+    ////_testRailTestCasesSelectorWindow.setProjectID(2);
 
     _testRailTestCasesSelectorWindow.setSuiteID(INTERFACE_SUITE_ID);
+    ////_testRailTestCasesSelectorWindow.setSuiteID(2);
 
     _testRailRunSelectorWindow.setURL("https://highfidelity.testrail.net");
     ////_testRailRunSelectorWindow.setURL("https://nissimhadar.testrail.io");
     _testRailRunSelectorWindow.setUser("@highfidelity.io");
-    ////_testRailSelectorWindow.setUser("nissim.hadar@gmail.com");
+    ////_testRailRunSelectorWindow.setUser("nissim.hadar@gmail.com");
 
     _testRailRunSelectorWindow.setProjectID(INTERFACE_PROJECT_ID);
-    ////_testRailSelectorWindow.setProject(1);
+    ////_testRailRunSelectorWindow.setProjectID(2);
 
     _testRailRunSelectorWindow.setSuiteID(INTERFACE_SUITE_ID);
+    ////_testRailRunSelectorWindow.setSuiteID(2);
 }
 
 QString TestRailInterface::getObject(const QString& path) {
@@ -224,7 +226,7 @@ void TestRailInterface::requestTestRailTestCasesDataFromUser() {
     _url = _testRailTestCasesSelectorWindow.getURL() + "/";
     _user = _testRailTestCasesSelectorWindow.getUser();
     _password = _testRailTestCasesSelectorWindow.getPassword();
-    ////_password = "tutKA76";
+    ////_password = "tutKA76";////
     _projectID = QString::number(_testRailTestCasesSelectorWindow.getProjectID());
     _suiteID = QString::number(_testRailTestCasesSelectorWindow.getSuiteID());
 }
@@ -307,7 +309,7 @@ void TestRailInterface::createAddTestCasesPythonScript(const QString& testDirect
 
     // top-level section
     stream << "data = { 'name': '"
-           << "Test Suite - " << QDateTime::currentDateTime().toString("yyyy-MM-ddTHH:mm") + "', "
+           << "Test Section - " << QDateTime::currentDateTime().toString("yyyy-MM-ddTHH:mm") + "', "
            << "'suite_id': " + _suiteID + "}\n";
 
     stream << "section = client.send_post('add_section/' + str(" << _projectID << "), data)\n";
@@ -320,8 +322,8 @@ void TestRailInterface::createAddTestCasesPythonScript(const QString& testDirect
 
     if (QMessageBox::Yes == QMessageBox(QMessageBox::Information, "Python script has been created",
                                         "Do you want to run the script and update TestRail?",
-                                        QMessageBox::Yes | QMessageBox::No)
-                                .exec()) {
+                                        QMessageBox::Yes | QMessageBox::No).exec()
+    ) {
         QProcess* process = new QProcess();
         connect(process, &QProcess::started, this, [=]() { _busyWindow.exec(); });
 
@@ -367,7 +369,7 @@ void TestRailInterface::updateMilestonesComboData(int exitCode, QProcess::ExitSt
     QString line = in.readLine();
     while (!line.isNull()) {
         QStringList words = line.split(' ');
-        _milestones[words[0]] = words[1].toInt();
+        _milestoneIDs.push_back(words[1].toInt());
         _milestoneNames << words[0];
 
         line = in.readLine();
@@ -385,6 +387,80 @@ void TestRailInterface::updateMilestonesComboData(int exitCode, QProcess::ExitSt
     }
 
     createAddTestCasesPythonScript(_testDirectory, _userGitHub, _branchGitHub);
+}
+
+void TestRailInterface::addRun() {
+    QString filename = _outputDirectory + "/addRun.py";
+    if (QFile::exists(filename)) {
+        QFile::remove(filename);
+    }
+    QFile file(filename);
+
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not create 'addRun.py'");
+        exit(-1);
+    }
+
+    QTextStream stream(&file);
+
+    // Code to access TestRail
+    stream << "from testrail import *\n";
+    stream << "client = APIClient('" << _url.toStdString().c_str() << "')\n";
+    stream << "client.user = '" << _user << "'\n";
+    stream << "client.password = '" << _password << "'\n\n";
+
+    // A test suite is a forest.  Each node is a section and leaves are either sections or test cases
+    // The user has selected a root for the run
+    // To find the cases in this tree we need all the sections in the tree
+    // These are found by building a set of all relevant sections.  The first section is the selected root
+    // As the sections are in an ordered array we use the following snippet to find the relevant sections:
+    //      initialize section set with the root
+    //      for each section in the ordered array of sections in the suite
+    //          if the parent of the section is in the section set then
+    //              add this section to the section set
+    //
+    stream << "sections = client.send_get('get_sections/" + _projectID + "&suite_id=" + _suiteID + "')\n\n";
+
+    int sectionID = _sectionIDs[_testRailRunSelectorWindow.getSectionID()];
+
+    stream << "relevantSections = { " + QString::number(sectionID) + " }\n";
+    stream << "for section in sections:\n";
+    stream << "\tif section['parent_id'] in relevantSections:\n";
+    stream << "\t\trelevantSections.add(section['id'])\n\n";
+
+    // We now loop over each section in the set and collect the cases into an array
+    stream << "cases = []\n";
+    stream << "for section_id in relevantSections:\n";
+    stream << "\tcases = cases + client.send_get('get_cases/" + _projectID + "&suite_id=" + _suiteID + "&section_id=' + str(section_id))\n\n";
+
+    // To create a run we need an array of the relevant case ids
+    stream << "case_ids = []\n";
+    stream << "for case in cases:\n";
+    stream << "\tcase_ids.append(case['id'])\n\n";
+
+    // Now, we can create the run
+    stream << "data = { 'name': '" + _sectionNames[_testRailRunSelectorWindow.getSectionID()].replace("Section", "Run") +
+                  "', 'suite_id': " + _suiteID + 
+                  ", 'include_all': False, 'case_ids': case_ids}\n";
+
+    stream << "run = client.send_post('add_run/" + _projectID + "', data)\n";
+
+    file.close();
+
+    if (QMessageBox::Yes == QMessageBox(QMessageBox::Information, "Python script has been created",
+                                        "Do you want to run the script and update TestRail?",
+                                        QMessageBox::Yes | QMessageBox::No).exec()
+    ) {
+        QProcess* process = new QProcess();
+        connect(process, &QProcess::started, this, [=]() { _busyWindow.exec(); });
+
+        connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
+                [=](int exitCode, QProcess::ExitStatus exitStatus) { _busyWindow.hide(); });
+
+        QStringList parameters = QStringList() << _outputDirectory + "/addRun.py";
+        process->start(_pythonCommand, parameters);
+    }
 }
 
 void TestRailInterface::updateSectionsComboData(int exitCode, QProcess::ExitStatus exitStatus) {
@@ -425,7 +501,7 @@ void TestRailInterface::updateSectionsComboData(int exitCode, QProcess::ExitStat
         QString section = line.left(line.lastIndexOf(" "));
         QString id = line.right(line.length() - line.lastIndexOf(" ") - 1);
 
-        _sections[section] = id.toInt();
+        _sectionIDs.push_back(id.toInt());
         _sectionNames << section;
 
         line = in.readLine();
@@ -442,7 +518,9 @@ void TestRailInterface::updateSectionsComboData(int exitCode, QProcess::ExitStat
         return;
     }
 
-    ////createAddTestCasesPythonScript(_testDirectory, _userGitHub, _branchGitHub);
+    // The test cases are now read from TestRail
+    // When this is complete, the Run can be created
+    addRun();
 }
 
 void TestRailInterface::getMilestonesFromTestRail() {
@@ -747,12 +825,12 @@ void TestRailInterface::processTestPython(const QString& fullDirectory,
     QString testContent = QString("Execute instructions in [THIS TEST](") + testMDName + ")";
     QString testExpected = QString("Refer to the expected result in the linked description.");
 
-    int milestone_id = _milestones[_milestoneNames[_testRailTestCasesSelectorWindow.getMilestoneID()]];
+    int milestoneID = _milestoneIDs[_testRailTestCasesSelectorWindow.getMilestoneID()];
 
     stream << "data = {\n"
            << "\t'title': '" << title << "',\n"
            << "\t'template_id': 2,\n"
-           << "\t'milestone_id': " << milestone_id << ",\n"
+           << "\t'milestone_id': " << milestoneID << ",\n"
            << "\t'custom_tester_count': 1,\n"
            << "\t'custom_domain_bot_load': 1,\n"
            << "\t'custom_added_to_release': 4,\n"
@@ -777,7 +855,7 @@ void TestRailInterface::requestTestRailRunDataFromUser() {
     _url = _testRailRunSelectorWindow.getURL() + "/";
     _user = _testRailRunSelectorWindow.getUser();
     _password = _testRailRunSelectorWindow.getPassword();
-    ////_password = "tutKA76";
+    ////_password = "tutKA76";////
     _projectID = QString::number(_testRailRunSelectorWindow.getProjectID());
     _suiteID = QString::number(_testRailRunSelectorWindow.getSuiteID());
 }

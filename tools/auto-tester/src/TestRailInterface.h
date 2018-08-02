@@ -80,6 +80,8 @@ public:
 
     void createTestRailRun(const QString& outputDirectory);
 
+    void addRun();
+
     bool setPythonCommand();
 
 private:
@@ -109,11 +111,11 @@ private:
     const QString pythonExe{ "python.exe" };
     QString _pythonCommand;
 
-    std::map<QString, int> _milestones;
     QStringList _milestoneNames;
+    std::vector<int> _milestoneIDs;
 
-    std::map<QString, int> _sections;
     QStringList _sectionNames;
+    std::vector<int> _sectionIDs;
 };
 
 #endif
