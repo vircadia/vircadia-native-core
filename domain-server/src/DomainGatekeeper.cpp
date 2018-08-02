@@ -264,7 +264,7 @@ void DomainGatekeeper::updateNodePermissions() {
     QList<SharedNodePointer> nodesToKill;
 
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-    limitedNodeList->eachNode([this, limitedNodeList, &nodesToKill](const SharedNodePointer& node){
+    limitedNodeList->eachNode([this, &limitedNodeList, &nodesToKill](const SharedNodePointer& node){
         // the id and the username in NodePermissions will often be the same, but id is set before
         // authentication and verifiedUsername is only set once they user's key has been confirmed.
         QString verifiedUsername = node->getPermissions().getVerifiedUserName();
@@ -458,7 +458,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 
     // in case this is a node that's failing to connect
     // double check we don't have the same node whose sockets match exactly already in the list
-    limitedNodeList->eachNodeBreakable([&](const SharedNodePointer& node){
+    limitedNodeList->eachNodeBreakable([nodeConnection, username, &existingNodeID](const SharedNodePointer& node){
 
         if (node->getPublicSocket() == nodeConnection.publicSockAddr && node->getLocalSocket() == nodeConnection.localSockAddr) {
             // we have a node that already has these exact sockets - this can occur if a node
@@ -1009,7 +1009,7 @@ void DomainGatekeeper::refreshGroupsCache() {
     getDomainOwnerFriendsList();
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
-    nodeList->eachNode([&](const SharedNodePointer& node) {
+    nodeList->eachNode([this](const SharedNodePointer& node) {
         if (!node->getPermissions().isAssignment) {
             // this node is an agent
             const QString& verifiedUserName = node->getPermissions().getVerifiedUserName();

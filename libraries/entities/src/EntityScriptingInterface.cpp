@@ -1249,7 +1249,7 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
 
     EntityItemPointer entity;
     bool doTransmit = false;
-    _entityTree->withWriteLock([&] {
+    _entityTree->withWriteLock([this, &entity, entityID, myNodeID, &doTransmit, actor, &properties] {
         EntitySimulationPointer simulation = _entityTree->getSimulation();
         entity = _entityTree->findEntityByEntityItemID(entityID);
         if (!entity) {

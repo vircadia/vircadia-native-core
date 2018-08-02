@@ -1138,7 +1138,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // setup a timer for domain-server check ins
     QTimer* domainCheckInTimer = new QTimer(this);
-    connect(domainCheckInTimer, &QTimer::timeout, [this, nodeList] {
+    connect(domainCheckInTimer, &QTimer::timeout, [this, &nodeList] {
         if (!isServerlessMode()) {
             nodeList->sendDomainServerCheckIn();
         }
@@ -1164,7 +1164,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             return myAvatar ? myAvatar->getOrientationForAudio() : Quaternions::IDENTITY;
         });
 
-        recording::Frame::registerFrameHandler(AudioConstants::getAudioFrameName(), [=](recording::Frame::ConstPointer frame) {
+        recording::Frame::registerFrameHandler(AudioConstants::getAudioFrameName(), [&audioIO](recording::Frame::ConstPointer frame) {
             audioIO->handleRecordedAudioInput(frame->data);
         });
 
@@ -1835,13 +1835,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     });
 
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::deletingEntity, [=](const EntityItemID& entityItemID) {
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::deletingEntity, [this](const EntityItemID& entityItemID) {
         if (entityItemID == _keyboardFocusedEntity.get()) {
             setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
         }
     });
 
-    connect(getEntities()->getTree().get(), &EntityTree::deletingEntity, [=](const EntityItemID& entityItemID) {
+    connect(getEntities()->getTree().get(), &EntityTree::deletingEntity, [](const EntityItemID& entityItemID) {
         auto avatarManager = DependencyManager::get<AvatarManager>();
         auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
         if (myAvatar) {
@@ -1849,7 +1849,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     });
 
-    EntityTree::setAddMaterialToEntityOperator([&](const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
+    EntityTree::setAddMaterialToEntityOperator([this](const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
         // try to find the renderable
         auto renderable = getEntities()->renderableForEntityId(entityID);
         if (renderable) {
@@ -1864,7 +1864,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
         return false;
     });
-    EntityTree::setRemoveMaterialFromEntityOperator([&](const QUuid& entityID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
+    EntityTree::setRemoveMaterialFromEntityOperator([this](const QUuid& entityID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
         // try to find the renderable
         auto renderable = getEntities()->renderableForEntityId(entityID);
         if (renderable) {
@@ -1899,7 +1899,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return false;
     });
 
-    EntityTree::setAddMaterialToOverlayOperator([&](const QUuid& overlayID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
+    EntityTree::setAddMaterialToOverlayOperator([this](const QUuid& overlayID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
         auto overlay = _overlays.getOverlay(overlayID);
         if (overlay) {
             overlay->addMaterial(material, parentMaterialName);
@@ -1907,7 +1907,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
         return false;
     });
-    EntityTree::setRemoveMaterialFromOverlayOperator([&](const QUuid& overlayID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
+    EntityTree::setRemoveMaterialFromOverlayOperator([this](const QUuid& overlayID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
         auto overlay = _overlays.getOverlay(overlayID);
         if (overlay) {
             overlay->removeMaterial(material, parentMaterialName);
@@ -1918,13 +1918,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // Keyboard focus handling for Web overlays.
     auto overlays = &(qApp->getOverlays());
-    connect(overlays, &Overlays::overlayDeleted, [=](const OverlayID& overlayID) {
+    connect(overlays, &Overlays::overlayDeleted, [this](const OverlayID& overlayID) {
         if (overlayID == _keyboardFocusedOverlay.get()) {
             setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
         }
     });
 
-    connect(this, &Application::aboutToQuit, [=]() {
+    connect(this, &Application::aboutToQuit, [this]() {
         setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
         setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
     });
@@ -2201,14 +2201,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         // This is done so we don't get a "connection time-out" message when we haven't passed in a URL.
         if (arguments().contains("--url")) {
             auto reply = SandboxUtils::getStatus();
-            connect(reply, &QNetworkReply::finished, this, [=] {
+            connect(reply, &QNetworkReply::finished, this, [this, reply] {
                 handleSandboxStatus(reply);
             });
         }
     } else {
         PROFILE_RANGE(render, "GetSandboxStatus");
         auto reply = SandboxUtils::getStatus();
-        connect(reply, &QNetworkReply::finished, this, [=] {
+        connect(reply, &QNetworkReply::finished, this, [this, reply] {
             handleSandboxStatus(reply);
         });
     }
@@ -2235,8 +2235,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     connect(&_myCamera, &Camera::modeUpdated, this, &Application::cameraModeChanged);
 
-    DependencyManager::get<PickManager>()->setShouldPickHUDOperator([&]() { return DependencyManager::get<HMDScriptingInterface>()->isHMDMode(); });
-    DependencyManager::get<PickManager>()->setCalculatePos2DFromHUDOperator([&](const glm::vec3& intersection) {
+    DependencyManager::get<PickManager>()->setShouldPickHUDOperator([]() { return DependencyManager::get<HMDScriptingInterface>()->isHMDMode(); });
+    DependencyManager::get<PickManager>()->setCalculatePos2DFromHUDOperator([this](const glm::vec3& intersection) {
         const glm::vec2 MARGIN(25.0f);
         glm::vec2 maxPos = _controllerScriptingInterface->getViewportDimensions() - MARGIN;
         glm::vec2 pos2D = DependencyManager::get<HMDScriptingInterface>()->overlayFromWorldPoint(intersection);
@@ -2246,7 +2246,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Setup the mouse ray pick and related operators
     DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickID(DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, std::make_shared<MouseRayPick>(
         PickFilter(PickScriptingInterface::PICK_ENTITIES() | PickScriptingInterface::PICK_INCLUDE_NONCOLLIDABLE()), 0.0f, true)));
-    DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickResultOperator([&](unsigned int rayPickID) {
+    DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickResultOperator([](unsigned int rayPickID) {
         RayToEntityIntersectionResult entityResult;
         entityResult.intersects = false;
         auto pickResult = DependencyManager::get<PickManager>()->getPrevPickResultTyped<RayPickResult>(rayPickID);
@@ -2262,7 +2262,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
         return entityResult;
     });
-    DependencyManager::get<EntityTreeRenderer>()->setSetPrecisionPickingOperator([&](unsigned int rayPickID, bool value) {
+    DependencyManager::get<EntityTreeRenderer>()->setSetPrecisionPickingOperator([](unsigned int rayPickID, bool value) {
         DependencyManager::get<PickManager>()->setPrecisionPicking(rayPickID, value);
     });
 
@@ -2461,32 +2461,35 @@ void Application::cleanupBeforeQuit() {
         _keyboardFocusHighlight = nullptr;
     }
 
-    auto nodeList = DependencyManager::get<NodeList>();
+    {
+        auto nodeList = DependencyManager::get<NodeList>();
 
-    // send the domain a disconnect packet, force stoppage of domain-server check-ins
-    nodeList->getDomainHandler().disconnect();
-    nodeList->setIsShuttingDown(true);
+        // send the domain a disconnect packet, force stoppage of domain-server check-ins
+        nodeList->getDomainHandler().disconnect();
+        nodeList->setIsShuttingDown(true);
 
-    // tell the packet receiver we're shutting down, so it can drop packets
-    nodeList->getPacketReceiver().setShouldDropPackets(true);
+        // tell the packet receiver we're shutting down, so it can drop packets
+        nodeList->getPacketReceiver().setShouldDropPackets(true);
+    }
 
     getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
 
     // Clear any queued processing (I/O, FBX/OBJ/Texture parsing)
     QThreadPool::globalInstance()->clear();
 
+    DependencyManager::destroy<RecordingScriptingInterface>();
+
+    // FIXME: Something is still holding on to the ScriptEnginePointers contained in ScriptEngines, and they hold backpointers to ScriptEngines,
+    // so this doesn't shut down properly
+    DependencyManager::get<ScriptEngines>()->shutdownScripting(); // stop all currently running global scripts
     // These classes hold ScriptEnginePointers, so they must be destroyed before ScriptEngines
+    // Must be done after shutdownScripting in case any scripts try to access these things
     {
-        DependencyManager::destroy<RecordingScriptingInterface>();
         DependencyManager::destroy<StandAloneJSConsole>();
         EntityTreePointer tree = getEntities()->getTree();
         tree->setSimulation(nullptr);
         DependencyManager::destroy<EntityTreeRenderer>();
     }
-
-    // FIXME: Something is still holding on to the ScriptEnginePointers contained in ScriptEngines, and they hold backpointers to ScriptEngines,
-    // so this doesn't shut down properly
-    DependencyManager::get<ScriptEngines>()->shutdownScripting(); // stop all currently running global scripts
     DependencyManager::destroy<ScriptEngines>();
 
     _displayPlugin.reset();
@@ -4748,7 +4751,7 @@ bool Application::exportEntities(const QString& filename,
     exportTree->createRootElement();
     glm::vec3 root(TREE_SCALE, TREE_SCALE, TREE_SCALE);
     bool success = true;
-    entityTree->withReadLock([&] {
+    entityTree->withReadLock([entityIDs, entityTree, givenOffset, myAvatarID, &root, &entities, &success, &exportTree] {
         for (auto entityID : entityIDs) { // Gather entities and properties.
             auto entityItem = entityTree->findEntityByEntityItemID(entityID);
             if (!entityItem) {
@@ -6345,7 +6348,6 @@ void Application::domainURLChanged(QUrl domainURL) {
 void Application::resettingDomain() {
     _notifiedPacketVersionMismatchThisDomain = false;
 
-    auto nodeList = DependencyManager::get<NodeList>();
     clearDomainOctreeDetails();
 }
 

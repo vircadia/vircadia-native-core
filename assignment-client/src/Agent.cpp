@@ -517,7 +517,7 @@ void Agent::setIsListeningToAudioStream(bool isListeningToAudioStream) {
 
         auto nodeList = DependencyManager::get<NodeList>();
         nodeList->eachMatchingNode(
-            [&](const SharedNodePointer& node)->bool {
+            [](const SharedNodePointer& node)->bool {
             return (node->getType() == NodeType::AudioMixer) && node->getActiveSocket();
         },
             [&](const SharedNodePointer& node) {

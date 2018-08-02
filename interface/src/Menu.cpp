@@ -147,9 +147,11 @@ Menu::Menu() {
     auto assetServerAction = addActionToQMenuAndActionHash(editMenu, MenuOption::AssetServer,
                                                            Qt::CTRL | Qt::SHIFT | Qt::Key_A,
                                                            qApp, SLOT(showAssetServerWidget()));
-    auto nodeList = DependencyManager::get<NodeList>();
-    QObject::connect(nodeList.data(), &NodeList::canWriteAssetsChanged, assetServerAction, &QAction::setEnabled);
-    assetServerAction->setEnabled(nodeList->getThisNodeCanWriteAssets());
+    {
+        auto nodeList = DependencyManager::get<NodeList>();
+        QObject::connect(nodeList.data(), &NodeList::canWriteAssetsChanged, assetServerAction, &QAction::setEnabled);
+        assetServerAction->setEnabled(nodeList->getThisNodeCanWriteAssets());
+    }
 
     // Edit > Package Model as .fst...
     addActionToQMenuAndActionHash(editMenu, MenuOption::PackageModel, 0,
@@ -620,8 +622,11 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::SendWrongProtocolVersion, 0, false,
                 qApp, SLOT(sendWrongProtocolVersionsSignature(bool)));
 
-    addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::SendWrongDSConnectVersion, 0, false,
-                                           nodeList.data(), SLOT(toggleSendNewerDSConnectVersion(bool)));
+    {
+        auto nodeList = DependencyManager::get<NodeList>();
+        addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::SendWrongDSConnectVersion, 0, false,
+            nodeList.data(), SLOT(toggleSendNewerDSConnectVersion(bool)));
+    }
     #endif
 
 
@@ -763,11 +768,14 @@ Menu::Menu() {
                                   qApp, SLOT(toggleLogDialog()));
     auto essLogAction = addActionToQMenuAndActionHash(developerMenu, MenuOption::EntityScriptServerLog, 0,
                                                       qApp, SLOT(toggleEntityScriptServerLogDialog()));
-    QObject::connect(nodeList.data(), &NodeList::canRezChanged, essLogAction, [essLogAction] {
+    {
         auto nodeList = DependencyManager::get<NodeList>();
+        QObject::connect(nodeList.data(), &NodeList::canRezChanged, essLogAction, [essLogAction] {
+            auto nodeList = DependencyManager::get<NodeList>();
+            essLogAction->setEnabled(nodeList->getThisNodeCanRez());
+        });
         essLogAction->setEnabled(nodeList->getThisNodeCanRez());
-    });
-    essLogAction->setEnabled(nodeList->getThisNodeCanRez());
+    }
 
     addActionToQMenuAndActionHash(developerMenu, "Script Log (HMD friendly)...", Qt::NoButton,
                                            qApp, SLOT(showScriptLogs()));

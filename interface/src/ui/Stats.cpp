@@ -174,7 +174,7 @@ void Stats::updateStats(bool force) {
     int octreeServerCount = 0;
     int pingOctreeMax = 0;
     int totalEntityKbps = 0;
-    nodeList->eachNode([&](const SharedNodePointer& node) {
+    nodeList->eachNode([&totalPingOctree, &totalEntityKbps, &octreeServerCount, &pingOctreeMax](const SharedNodePointer& node) {
         // TODO: this should also support entities
         if (node->getType() == NodeType::EntityServer) {
             totalPingOctree += node->getPingMs();
