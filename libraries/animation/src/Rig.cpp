@@ -641,6 +641,11 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         float lateralSpeed = glm::dot(localVel, IDENTITY_RIGHT);
         float turningSpeed = glm::orientedAngle(forward, _lastForward, IDENTITY_UP) / deltaTime;
 
+        glm::vec3 lastVel = glm::inverse(worldRotation) * _lastVelocity;
+
+        float lastForwardSpeed = glm::dot(lastVel, IDENTITY_FORWARD);
+        float lastLateralSpeed = glm::dot(lastVel, IDENTITY_RIGHT);
+
         // filter speeds using a simple moving average.
         _averageForwardSpeed.updateAverage(forwardSpeed);
         _averageLateralSpeed.updateAverage(lateralSpeed);
@@ -723,26 +728,20 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         if ((_desiredStateAge >= STATE_CHANGE_HYSTERESIS_TIMER) && _desiredState != _state) {
             _state = _desiredState;
             _desiredStateAge = 0.0f;
-            // if we are changing anim states.
-            //reset the average speed to the current reading of speed
-            qCDebug(animation) << "reset the average movement speeds";
-            _averageForwardSpeed.reset();
-            _averageLateralSpeed.reset();
-            _averageForwardSpeed.updateAverage(forwardSpeed);
-            _averageLateralSpeed.updateAverage(lateralSpeed);
-            _animVars.set("moveForwardSpeed", _averageForwardSpeed.getAverage());
-            _animVars.set("moveBackwardSpeed", -_averageForwardSpeed.getAverage());
-            _animVars.set("moveLateralSpeed", fabsf(_averageLateralSpeed.getAverage()));
-
         }
 
         _desiredStateAge += deltaTime;
+
+        bool resetVelocityAverage = false;
 
         if (_state == RigRole::Move) {
             glm::vec3 horizontalVel = localVel - glm::vec3(0.0f, localVel.y, 0.0f);
             if (glm::length(horizontalVel) > MOVE_ENTER_SPEED_THRESHOLD) {
                 if (fabsf(forwardSpeed) > 0.5f * fabsf(lateralSpeed)) {
                     if (forwardSpeed > 0.0f) {
+                        if (lastForwardSpeed < 0.0f){
+                            resetVelocityAverage = true;
+                        }
                         // forward
                         _animVars.set("isMovingForward", true);
                         _animVars.set("isMovingBackward", false);
@@ -751,6 +750,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                         _animVars.set("isNotMoving", false);
 
                     } else {
+                        if (lastForwardSpeed > 0.0f) {
+                            resetVelocityAverage = true;
+                        }
                         // backward
                         _animVars.set("isMovingBackward", true);
                         _animVars.set("isMovingForward", false);
@@ -760,6 +762,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                     }
                 } else {
                     if (lateralSpeed > 0.0f) {
+                        if (lastLateralSpeed < 0.0f) {
+                            resetVelocityAverage = true;
+                        }
                         // right
                         _animVars.set("isMovingRight", true);
                         _animVars.set("isMovingLeft", false);
@@ -767,6 +772,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                         _animVars.set("isMovingBackward", false);
                         _animVars.set("isNotMoving", false);
                     } else {
+                        if (lastLateralSpeed > 0.0f) {
+                            resetVelocityAverage = true;
+                        }
                         // left
                         _animVars.set("isMovingLeft", true);
                         _animVars.set("isMovingRight", false);
@@ -787,6 +795,19 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isInAirStand", false);
             _animVars.set("isInAirRun", false);
             _animVars.set("isNotInAir", true);
+
+            if (false) {
+                // if we are changing anim states.
+                //reset the average speed to the current reading of speed
+                qCDebug(animation) << "reset the average movement speeds";
+                _averageForwardSpeed.reset();
+                _averageLateralSpeed.reset();
+                _averageForwardSpeed.updateAverage(forwardSpeed);
+                _averageLateralSpeed.updateAverage(lateralSpeed);
+                _animVars.set("moveForwardSpeed", _averageForwardSpeed.getAverage());
+                _animVars.set("moveBackwardSpeed", -_averageForwardSpeed.getAverage());
+                _animVars.set("moveLateralSpeed", fabsf(_averageLateralSpeed.getAverage()));
+            }
 
         } else if (_state == RigRole::Turn) {
             if (turningSpeed > 0.0f) {

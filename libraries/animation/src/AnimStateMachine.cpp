@@ -109,13 +109,8 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, co
         _animStack[_currentState->getID()] = 1.0f;
         _poses = currentStateNode->evaluate(animVars, context, dt, triggersOut);
     }
-<<<<<<< HEAD
-    
-=======
-
     processOutputJoints(triggersOut);
 
->>>>>>> upstream/master
     return _poses;
 }
 
@@ -127,7 +122,7 @@ void AnimStateMachine::addState(State::Pointer state) {
     _states.push_back(state);
 }
 
-void AnimStateMachine::switchState(AnimVariantMap& animVars, const AnimContext& context, State::Pointer desiredState) {
+void AnimStateMachine::switchState(const AnimVariantMap& animVars, const AnimContext& context, State::Pointer desiredState) {
 
     const float FRAMES_PER_SECOND = 30.0f;
 

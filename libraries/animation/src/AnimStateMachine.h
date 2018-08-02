@@ -123,7 +123,7 @@ protected:
 
     void addState(State::Pointer state);
 
-    void switchState(AnimVariantMap& animVars, const AnimContext& context, State::Pointer desiredState);
+    void switchState(const AnimVariantMap& animVars, const AnimContext& context, State::Pointer desiredState);
     State::Pointer evaluateTransitions(const AnimVariantMap& animVars) const;
 
     // for AnimDebugDraw rendering
