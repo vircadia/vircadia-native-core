@@ -66,11 +66,13 @@ Script.include("/~/system/libraries/utils.js");
 
         this.sendPickData = function(controllerData) {
             if (controllerData.triggerClicks[this.hand]) {
+                var hand = this.hand === RIGHT_HAND ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
                 if (!this.triggerClicked) {
                     this.selectedTarget = controllerData.rayPicks[this.hand];
                     if (!this.selectedTarget.intersects) {
                         Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
-                            method: "clearSelection"
+                            method: "clearSelection",
+                            hand: hand
                         }));
                     }
                 }
@@ -78,13 +80,15 @@ Script.include("/~/system/libraries/utils.js");
                     if (!this.isTabletMaterialEntity(this.selectedTarget.objectID)) {
                         Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
                             method: "selectEntity",
-                            entityID: this.selectedTarget.objectID
+                            entityID: this.selectedTarget.objectID,
+                            hand: hand
                         }));
                     }
                 } else if (this.selectedTarget.type === Picks.INTERSECTED_OVERLAY) {
                     Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
                         method: "selectOverlay",
-                        overlayID: this.selectedTarget.objectID
+                        overlayID: this.selectedTarget.objectID,
+                        hand: hand
                     }));
                 }
 

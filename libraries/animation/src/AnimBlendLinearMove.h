@@ -39,7 +39,7 @@ public:
     AnimBlendLinearMove(const QString& id, float alpha, float desiredSpeed, const std::vector<float>& characteristicSpeeds);
     virtual ~AnimBlendLinearMove() override;
 
-    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) override;
+    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) override;
 
     void setAlphaVar(const QString& alphaVar) { _alphaVar = alphaVar; }
     void setDesiredSpeedVar(const QString& desiredSpeedVar) { _desiredSpeedVar = desiredSpeedVar; }
@@ -48,12 +48,12 @@ protected:
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override;
 
-    void evaluateAndBlendChildren(const AnimVariantMap& animVars, const AnimContext& context, Triggers& triggersOut, float alpha,
+    void evaluateAndBlendChildren(const AnimVariantMap& animVars, const AnimContext& context, AnimVariantMap& triggersOut, float alpha,
                                   size_t prevPoseIndex, size_t nextPoseIndex,
                                   float prevDeltaTime, float nextDeltaTime);
 
     void setFrameAndPhase(float dt, float alpha, int prevPoseIndex, int nextPoseIndex,
-                          float* prevDeltaTimeOut, float* nextDeltaTimeOut, Triggers& triggersOut);
+                          float* prevDeltaTimeOut, float* nextDeltaTimeOut, AnimVariantMap& triggersOut);
 
     virtual void setCurrentFrameInternal(float frame) override;
 

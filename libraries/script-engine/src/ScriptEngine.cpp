@@ -219,6 +219,20 @@ ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const
         }
         logException(output);
     });
+
+    if (_type == Type::ENTITY_CLIENT || _type == Type::ENTITY_SERVER) {
+        QObject::connect(this, &ScriptEngine::update, this, [this]() {
+            // process pending entity script content
+            if (!_contentAvailableQueue.empty()) {
+                EntityScriptContentAvailableMap pending;
+                std::swap(_contentAvailableQueue, pending);
+                for (auto& pair : pending) {
+                    auto& args = pair.second;
+                    entityScriptContentAvailable(args.entityID, args.scriptOrURL, args.contents, args.isURL, args.success, args.status);
+                }
+            }
+        });
+    }
 }
 
 QString ScriptEngine::getContext() const {
@@ -2181,7 +2195,7 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
                 qCDebug(scriptengine) << "loadEntityScript.contentAvailable" << status << QUrl(url).fileName() << entityID.toString();
 #endif
                 if (!isStopping() && _entityScripts.contains(entityID)) {
-                    entityScriptContentAvailable(entityID, url, contents, isURL, success, status);
+                    _contentAvailableQueue[entityID] = { entityID, url, contents, isURL, success, status };
                 } else {
 #ifdef DEBUG_ENTITY_STATES
                     qCDebug(scriptengine) << "loadEntityScript.contentAvailable -- aborting";

@@ -26,7 +26,7 @@
 #include <ResourceManager.h>
 #include <ScriptCache.h>
 #include <ScriptEngines.h>
-#include <SoundCache.h>
+#include <SoundCacheScriptingInterface.h>
 #include <UUID.h>
 #include <WebSocketServerClass.h>
 
@@ -66,6 +66,7 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
 
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
+    DependencyManager::set<SoundCacheScriptingInterface>();
     DependencyManager::set<AudioInjectorManager>();
 
     DependencyManager::set<ScriptCache>();
@@ -438,7 +439,7 @@ void EntityScriptServer::resetEntitiesScriptEngine() {
     auto webSocketServerConstructorValue = newEngine->newFunction(WebSocketServerClass::constructor);
     newEngine->globalObject().setProperty("WebSocketServer", webSocketServerConstructorValue);
 
-    newEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
+    newEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCacheScriptingInterface>().data());
 
     // connect this script engines printedMessage signal to the global ScriptEngines these various messages
     auto scriptEngines = DependencyManager::get<ScriptEngines>().data();

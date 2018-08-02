@@ -45,14 +45,17 @@ public:
 
     bool intersects(const AACube& cube) const;
     bool intersects(const AABox& box) const;
-    bool getAngularSize(const AACube& cube) const;
-    bool getAngularSize(const AABox& box) const;
+    float getAngularSize(const AACube& cube) const;
+    float getAngularSize(const AABox& box) const;
 
     bool intersects(const glm::vec3& relativePosition, float distance, float radius) const;
-    bool getAngularSize(float distance, float radius) const;
+    float getAngularSize(float distance, float radius) const;
 
     int serialize(unsigned char* destinationBuffer) const;
     int deserialize(const unsigned char* sourceBuffer);
+
+    // Just test for within radius.
+    void setSimpleRadius(float radius);
 
 private:
     glm::vec3 _position { 0.0f, 0.0f, 0.0f };
