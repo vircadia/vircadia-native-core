@@ -80,6 +80,8 @@ public:
 
     void createTestRailRun(const QString& outputDirectory);
 
+    bool setPythonCommand();
+
 private:
     // HighFidelity Interface project ID in TestRail
     const int INTERFACE_PROJECT_ID{ 24 };
@@ -106,8 +108,12 @@ private:
 
     const QString pythonExe{ "python.exe" };
     QString _pythonCommand;
+
     std::map<QString, int> _milestones;
     QStringList _milestoneNames;
+
+    std::map<QString, int> _sections;
+    QStringList _sectionNames;
 };
 
 #endif

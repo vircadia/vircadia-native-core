@@ -42,6 +42,24 @@ QString TestRailInterface::getObject(const QString& path) {
     return path.right(path.length() - path.lastIndexOf("/") - 1);
 }
 
+
+bool TestRailInterface::setPythonCommand() {
+    if (QProcessEnvironment::systemEnvironment().contains("PYTHON_PATH")) {
+        QString _pythonPath = QProcessEnvironment::systemEnvironment().value("PYTHON_PATH");
+        if (!QFile::exists(_pythonPath + "/" + pythonExe)) {
+            QMessageBox::critical(0, pythonExe, QString("Python executable not found in ") + _pythonPath);
+        }
+        _pythonCommand = _pythonPath + "/" + pythonExe;
+        return true;
+    } else {
+        QMessageBox::critical(0, "PYTHON_PATH not defined",
+                              "Please set PYTHON_PATH to directory containing the Python executable");
+        return false;
+    }
+
+    return false;
+}
+
 // Creates the testrail.py script
 // This is the file linked to from http://docs.gurock.com/testrail-api2/bindings-python
 void TestRailInterface::createTestRailDotPyScript() {
@@ -370,6 +388,61 @@ void TestRailInterface::updateMilestonesComboData(int exitCode, QProcess::ExitSt
 }
 
 void TestRailInterface::updateSectionsComboData(int exitCode, QProcess::ExitStatus exitStatus) {
+    // Quit if user has previously cancelled
+    if (_testRailRunSelectorWindow.getUserCancelled()) {
+        return;
+    }
+
+    // Check if process completed successfully
+    if (exitStatus != QProcess::NormalExit) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not get sections from TestRail");
+        exit(-1);
+    }
+
+    // Create map of sections from the file created by the process
+    _sectionNames.clear();
+
+    QString filename = _outputDirectory + "/sections.txt";
+    if (!QFile::exists(filename)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not find sections.txt in " + _outputDirectory);
+        exit(-1);
+    }
+
+    QFile file(filename);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not open " + _outputDirectory + "/sections.txt");
+        exit(-1);
+    }
+
+    QTextStream in(&file);
+    QString line = in.readLine();
+    while (!line.isNull()) {
+        // The section name is all the words except for the last
+        // The id is the last word
+        QString section = line.left(line.lastIndexOf(" "));
+        QString id = line.right(line.length() - line.lastIndexOf(" ") - 1);
+
+        _sections[section] = id.toInt();
+        _sectionNames << section;
+
+        line = in.readLine();
+    }
+
+    file.close();
+
+    // Update the combo
+    _testRailRunSelectorWindow.updateSectionsComboBoxData(_sectionNames);
+
+    _testRailRunSelectorWindow.exec();
+
+    if (_testRailRunSelectorWindow.getUserCancelled()) {
+        return;
+    }
+
+    ////createAddTestCasesPythonScript(_testDirectory, _userGitHub, _branchGitHub);
 }
 
 void TestRailInterface::getMilestonesFromTestRail() {
@@ -420,16 +493,7 @@ void TestRailInterface::createTestSuitePython(const QString& testDirectory,
     _userGitHub = userGitHub;
     _branchGitHub = branchGitHub;
 
-    // First check that Python is available
-    if (QProcessEnvironment::systemEnvironment().contains("PYTHON_PATH")) {
-        QString _pythonPath = QProcessEnvironment::systemEnvironment().value("PYTHON_PATH");
-        if (!QFile::exists(_pythonPath + "/" + pythonExe)) {
-            QMessageBox::critical(0, pythonExe, QString("Python executable not found in ") + _pythonPath);
-        }
-        _pythonCommand = _pythonPath + "/" + pythonExe;
-    } else {
-        QMessageBox::critical(0, "PYTHON_PATH not defined",
-                              "Please set PYTHON_PATH to directory containing the Python executable");
+    if (!setPythonCommand()) {
         return;
     }
 
@@ -759,6 +823,10 @@ void TestRailInterface::getTestSectionsFromTestRail() {
 
 void TestRailInterface::createTestRailRun(const QString& outputDirectory) {
     _outputDirectory = outputDirectory;
+
+    if (!setPythonCommand()) {
+        return;
+    }
 
     requestTestRailRunDataFromUser();
     createTestRailDotPyScript();
