@@ -181,15 +181,12 @@ float AvatarMotionState::getMass() const {
 
 void AvatarMotionState::cacheShapeDiameter() {
     if (_shape) {
-        // measure XZ diameter of capsule shape
+        // shape is capsuleY
         btVector3 aabbMin, aabbMax;
         btTransform transform;
         transform.setIdentity();
         _shape->getAabb(transform, aabbMin, aabbMax);
-        aabbMax -= aabbMin;
-        aabbMax.setY(0.0f);
-        const float SQRT_TWO = 1.414213562f;
-        _diameter = SQRT_TWO * aabbMax.length();
+        _diameter = (aabbMax - aabbMin).getX();
     } else {
         _diameter = 0.0f;
     }
@@ -204,6 +201,6 @@ void AvatarMotionState::setRigidBody(btRigidBody* body) {
 }
 
 void AvatarMotionState::setShape(const btCollisionShape* shape) {
-    cacheShapeDiameter();
     ObjectMotionState::setShape(shape);
+    cacheShapeDiameter();
 }
