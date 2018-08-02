@@ -45,4 +45,7 @@ QScriptValue EntityItemIDtoScriptValue(QScriptEngine* engine, const EntityItemID
 void EntityItemIDfromScriptValue(const QScriptValue &object, EntityItemID& properties);
 QVector<EntityItemID> qVectorEntityItemIDFromScriptValue(const QScriptValue& array);
 
+// Allow the use of std::unordered_map with QUuid keys
+namespace std { template<> struct hash<EntityItemID> { size_t operator()(const EntityItemID& id) const; }; }
+
 #endif // hifi_EntityItemID_h

@@ -58,7 +58,7 @@
    entityIsFarGrabbedByOther:true,
    highlightTargetEntity:true,
    clearHighlightedEntities:true,
-   unhighlightTargetEntity:true
+   unhighlightTargetEntity:true,
    distanceBetweenEntityLocalPositionAndBoundingBox: true
 */
 
@@ -95,7 +95,7 @@ COLORS_GRAB_DISTANCE_HOLD = { red: 238, green: 75, blue: 214 };
 
 NEAR_GRAB_RADIUS = 1.0;
 
-TEAR_AWAY_DISTANCE = 0.1; // ungrab an entity if its bounding-box moves this far from the hand
+TEAR_AWAY_DISTANCE = 0.15; // ungrab an entity if its bounding-box moves this far from the hand
 TEAR_AWAY_COUNT = 2; // multiply by TEAR_AWAY_CHECK_TIME to know how long the item must be away
 TEAR_AWAY_CHECK_TIME = 0.15; // seconds, duration between checks
 DISPATCHER_HOVERING_LIST = "dispactherHoveringList";
@@ -416,13 +416,18 @@ findHandChildEntities = function(hand) {
     });
 };
 
-distanceBetweenEntityLocalPositionAndBoundingBox = function(entityProps) {
-    var localPoint = entityProps.localPosition;
-    var entityXform = new Xform(entityProps.rotation, entityProps.position);
-    var minOffset = Vec3.multiplyVbyV(entityProps.registrationPoint, entityProps.dimensions);
-    var maxOffset = Vec3.multiplyVbyV(Vec3.subtract(ONE_VEC, entityProps.registrationPoint), entityProps.dimensions);
-    var localMin = Vec3.subtract(entityXform.trans, minOffset);
-    var localMax = Vec3.sum(entityXform.trans, maxOffset);
+distanceBetweenEntityLocalPositionAndBoundingBox = function(entityProps, jointGrabOffset) {
+    var DEFAULT_REGISTRATION_POINT = { x: 0.5, y: 0.5, z: 0.5 };
+    var rotInv = Quat.inverse(entityProps.localRotation);
+    var localPosition = Vec3.sum(entityProps.localPosition, jointGrabOffset);
+    var localPoint = Vec3.multiplyQbyV(rotInv, Vec3.multiply(localPosition, -1.0));
+
+    var halfDims = Vec3.multiply(entityProps.dimensions, 0.5);
+    var regRatio = Vec3.subtract(DEFAULT_REGISTRATION_POINT, entityProps.registrationPoint);
+    var entityCenter = Vec3.multiplyVbyV(regRatio, entityProps.dimensions);
+    var localMin = Vec3.subtract(entityCenter, halfDims);
+    var localMax = Vec3.sum(entityCenter, halfDims);
+
 
     var v = {x: localPoint.x, y: localPoint.y, z: localPoint.z};
     v.x = Math.max(v.x, localMin.x);

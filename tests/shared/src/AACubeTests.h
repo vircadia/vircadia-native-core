@@ -23,6 +23,8 @@ private slots:
     void ctorsAndSetters();
     void containsPoint();
     void touchesSphere();
+    void rayVsParabolaPerformance();
+    void cleanupTestCase();
 };
 
 #endif // hifi_AACubeTests_h

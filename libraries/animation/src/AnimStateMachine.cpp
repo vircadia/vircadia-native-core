@@ -21,9 +21,8 @@ AnimStateMachine::~AnimStateMachine() {
 
 }
 
-const AnimPoseVec& AnimStateMachine::evaluate(AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
+const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
     qCDebug(animation) << "in anim state machine " << _currentState->getID() << ": " << _alpha;
-    //animVars.set("Animation1", _currentState->getID());
     
     //setMyNum(getMyNum() + 1.0f);
     if (_id.contains("userAnimStateMachine")) {
@@ -110,7 +109,13 @@ const AnimPoseVec& AnimStateMachine::evaluate(AnimVariantMap& animVars, const An
         _animStack[_currentState->getID()] = 1.0f;
         _poses = currentStateNode->evaluate(animVars, context, dt, triggersOut);
     }
+<<<<<<< HEAD
     
+=======
+
+    processOutputJoints(triggersOut);
+
+>>>>>>> upstream/master
     return _poses;
 }
 
@@ -137,7 +142,7 @@ void AnimStateMachine::switchState(AnimVariantMap& animVars, const AnimContext& 
 
     // because dt is 0, we should not encounter any triggers
     const float dt = 0.0f;
-    Triggers triggers;
+    AnimVariantMap triggers;
 
     if (_interpType == InterpType::SnapshotBoth) {
         // snapshot previous pose.

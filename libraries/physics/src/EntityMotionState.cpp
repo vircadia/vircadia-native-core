@@ -307,13 +307,6 @@ const btCollisionShape* EntityMotionState::computeNewShape() {
     return getShapeManager()->getShape(shapeInfo);
 }
 
-void EntityMotionState::setShape(const btCollisionShape* shape) {
-    if (_shape != shape) {
-        ObjectMotionState::setShape(shape);
-        _entity->setCollisionShape(_shape);
-    }
-}
-
 bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     // NOTE: this method is only ever called when the entity simulation is locally owned
     DETAILED_PROFILE_RANGE(simulation_physics, "CheckOutOfSync");

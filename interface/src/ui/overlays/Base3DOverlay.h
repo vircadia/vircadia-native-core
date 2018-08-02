@@ -45,7 +45,7 @@ public:
     bool getIsSolid() const { return _isSolid; }
     bool getIsDashedLine() const { return _isDashedLine; }
     bool getIsSolidLine() const { return !_isDashedLine; }
-    bool getIgnoreRayIntersection() const { return _ignoreRayIntersection; }
+    bool getIgnorePickIntersection() const { return _ignorePickIntersection; }
     bool getDrawInFront() const { return _drawInFront; }
     bool getDrawHUDLayer() const { return _drawHUDLayer; }
     bool getIsGrabbable() const { return _isGrabbable; }
@@ -53,7 +53,7 @@ public:
 
     void setIsSolid(bool isSolid) { _isSolid = isSolid; }
     void setIsDashedLine(bool isDashedLine) { _isDashedLine = isDashedLine; }
-    void setIgnoreRayIntersection(bool value) { _ignoreRayIntersection = value; }
+    void setIgnorePickIntersection(bool value) { _ignorePickIntersection = value; }
     virtual void setDrawInFront(bool value) { _drawInFront = value; }
     virtual void setDrawHUDLayer(bool value) { _drawHUDLayer = value; }
     void setIsGrabbable(bool value) { _isGrabbable = value; }
@@ -69,11 +69,19 @@ public:
     virtual QVariant getProperty(const QString& property) override;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                     BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking = false);
+                                     BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking = false) { return false; }
 
     virtual bool findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction,
                                               float& distance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking = false) {
         return findRayIntersection(origin, direction, distance, face, surfaceNormal, precisionPicking);
+    }
+
+    virtual bool findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration, float& parabolicDistance,
+                                          BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking = false) { return false; }
+
+    virtual bool findParabolaIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+                                                   float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking = false) {
+        return findParabolaIntersection(origin, velocity, acceleration, parabolicDistance, face, surfaceNormal, precisionPicking);
     }
 
     virtual SpatialParentTree* getParentTree() const override;
@@ -91,7 +99,7 @@ protected:
 
     bool _isSolid;
     bool _isDashedLine;
-    bool _ignoreRayIntersection;
+    bool _ignorePickIntersection;
     bool _drawInFront;
     bool _drawHUDLayer;
     bool _isGrabbable { false };

@@ -3,7 +3,7 @@ import QtQuick 2.5
 MessageBox {
     id: popup
 
-    function showSpecifyAvatarUrl(callback, linkCallback) {
+    function showSpecifyAvatarUrl(url, callback, linkCallback) {
         popup.onButton2Clicked = callback;
         popup.titleText = 'Specify Avatar URL'
         popup.bodyText = 'This will not overwrite your existing favorite if you are wearing one.<br>' +
@@ -12,6 +12,8 @@ MessageBox {
                 '</a>'
         popup.inputText.visible = true;
         popup.inputText.placeholderText = 'Enter Avatar Url';
+        popup.inputText.text = url;
+        popup.inputText.selectAll();
         popup.button1text = 'CANCEL';
         popup.button2text = 'CONFIRM';
 
@@ -35,11 +37,12 @@ MessageBox {
 
     function showGetWearables(callback, linkCallback) {
         popup.button2text = 'AvatarIsland'
+        popup.dialogButtons.yesButton.fontCapitalization = Font.MixedCase;
         popup.button1text = 'CANCEL'
         popup.titleText = 'Get Wearables'
-        popup.bodyText = 'Buy wearables from <a href="app://marketplace">Marketplace</a>' + '<br/>' +
-                         'Wear wearables from <a href="app://purchases">My Purchases</a>' + '<br/>' +
-                         'You can visit the domain “AvatarIsland” to get wearables'
+        popup.bodyText = 'Buy wearables from <b><a href="app://marketplace">Marketplace.</a></b>' + '<br/>' +
+                         'Wear wearables from <b><a href="app://purchases">My Purchases.</a></b>' + '<br/>' + '<br/>' +
+                         'Visit “AvatarIsland” to get wearables'
 
         popup.imageSource = getWearablesUrl;
         popup.onButton2Clicked = function() {
@@ -94,12 +97,13 @@ MessageBox {
 
     function showBuyAvatars(callback, linkCallback) {
         popup.button2text = 'BodyMart'
+        popup.dialogButtons.yesButton.fontCapitalization = Font.MixedCase;
         popup.button1text = 'CANCEL'
         popup.titleText = 'Get Avatars'
 
-        popup.bodyText = 'Buy avatars from <a href="app://marketplace">Marketplace</a>' + '<br/>' +
-                         'Wear avatars from <a href="app://purchases">My Purchases</a>' + '<br/>' +
-                         'You can visit the domain “BodyMart” to get avatars'
+        popup.bodyText = 'Buy avatars from <b><a href="app://marketplace">Marketplace.</a></b>' + '<br/>' +
+                         'Wear avatars from <b><a href="app://purchases">My Purchases.</a></b>' + '<br/>' + '<br/>' +
+                         'Visit “BodyMart” to get free avatars.'
 
         popup.imageSource = getAvatarsUrl;
         popup.onButton2Clicked = function() {

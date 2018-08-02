@@ -24,8 +24,9 @@ AnimBlendLinear::~AnimBlendLinear() {
 
 }
 
-const AnimPoseVec& AnimBlendLinear::evaluate(AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
-    qCDebug(animation) << "in blend linear ++++++++++++++++" << _alphaVar << ": " << QString::number(_alpha,'f',3) << " parent id: " << _id << " and alpha " << _animStack[_id];
+const AnimPoseVec& AnimBlendLinear::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
+    qCDebug(animation) << "in blend linear ++++++++++++++++" << _alphaVar << ": " << QString::number(_alpha, 'f', 3) << " parent id: " << _id << " and alpha " << _animStack[_id];
+
     _alpha = animVars.lookup(_alphaVar, _alpha);
     float parentAlpha = _animStack[_id];
 
@@ -53,7 +54,8 @@ const AnimPoseVec& AnimBlendLinear::evaluate(AnimVariantMap& animVars, const Ani
             }
         }
     }
-    
+    processOutputJoints(triggersOut);
+
     return _poses;
 }
 
@@ -62,7 +64,7 @@ const AnimPoseVec& AnimBlendLinear::getPosesInternal() const {
     return _poses;
 }
 
-void AnimBlendLinear::evaluateAndBlendChildren(AnimVariantMap& animVars, const AnimContext& context, Triggers& triggersOut, float alpha,
+void AnimBlendLinear::evaluateAndBlendChildren(const AnimVariantMap& animVars, const AnimContext& context, AnimVariantMap& triggersOut, float alpha,
                                                size_t prevPoseIndex, size_t nextPoseIndex, float dt) {
     if (prevPoseIndex == nextPoseIndex) {
         // this can happen if alpha is on an integer boundary

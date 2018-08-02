@@ -21,7 +21,8 @@ public:
     AnimDefaultPose(const QString& id);
     virtual ~AnimDefaultPose() override;
 
-    virtual const AnimPoseVec& evaluate(AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) override;
+    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) override;
+
 protected:
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override;

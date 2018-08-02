@@ -211,10 +211,9 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
             //_totalWastedBytes += 0;
             _trueBytesSent += numBytes;
             numPackets++;
+            NLPacket& sentPacket = nodeData->getPacket();
 
             if (debug) {
-                NLPacket& sentPacket = nodeData->getPacket();
-
                 sentPacket.seek(sizeof(OCTREE_PACKET_FLAGS));
 
                 OCTREE_PACKET_SEQUENCE sequence;
@@ -231,9 +230,9 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
 
             // second packet
             OctreeServer::didCallWriteDatagram(this);
-            DependencyManager::get<NodeList>()->sendUnreliablePacket(nodeData->getPacket(), *node);
+            DependencyManager::get<NodeList>()->sendUnreliablePacket(sentPacket, *node);
 
-            numBytes = nodeData->getPacket().getDataSize();
+            numBytes = sentPacket.getDataSize();
             _totalBytes += numBytes;
             _totalPackets++;
             // we count wasted bytes here because we were unable to fit the stats packet
@@ -243,8 +242,6 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
             numPackets++;
 
             if (debug) {
-                NLPacket& sentPacket = nodeData->getPacket();
-
                 sentPacket.seek(sizeof(OCTREE_PACKET_FLAGS));
 
                 OCTREE_PACKET_SEQUENCE sequence;
@@ -265,9 +262,10 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
         if (nodeData->isPacketWaiting() && !nodeData->isShuttingDown()) {
             // just send the octree packet
             OctreeServer::didCallWriteDatagram(this);
-            DependencyManager::get<NodeList>()->sendUnreliablePacket(nodeData->getPacket(), *node);
+            NLPacket& sentPacket = nodeData->getPacket();
+            DependencyManager::get<NodeList>()->sendUnreliablePacket(sentPacket, *node);
 
-            int numBytes = nodeData->getPacket().getDataSize();
+            int numBytes = sentPacket.getDataSize();
             _totalBytes += numBytes;
             _totalPackets++;
             int thisWastedBytes = udt::MAX_PACKET_SIZE - numBytes;
@@ -276,8 +274,6 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
             _trueBytesSent += numBytes;
 
             if (debug) {
-                NLPacket& sentPacket = nodeData->getPacket();
-
                 sentPacket.seek(sizeof(OCTREE_PACKET_FLAGS));
 
                 OCTREE_PACKET_SEQUENCE sequence;
@@ -434,7 +430,7 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
     return _truePacketsSent;
 }
 
-void OctreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData, bool viewFrustumChanged, bool isFullScene) {
+bool OctreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData, bool viewFrustumChanged, bool isFullScene) {
     // calculate max number of packets that can be sent during this interval
     int clientMaxPacketsPerInterval = std::max(1, (nodeData->getMaxQueryPacketsPerSecond() / INTERVALS_PER_SECOND));
     int maxPacketsPerInterval = std::min(clientMaxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval());
@@ -517,4 +513,6 @@ void OctreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, Octre
                         << "  maxPacketsPerInterval = " << maxPacketsPerInterval
                         << "  clientMaxPacketsPerInterval = " << clientMaxPacketsPerInterval;
     }
+
+    return params.stopReason == EncodeBitstreamParams::FINISHED;
 }

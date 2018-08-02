@@ -131,6 +131,24 @@ QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
     return highestResource;
 }
 
+
+ScriptableResourceCache::ScriptableResourceCache(QSharedPointer<ResourceCache> resourceCache) {
+    _resourceCache = resourceCache;
+}
+
+QVariantList ScriptableResourceCache::getResourceList() {
+    return _resourceCache->getResourceList();
+}
+
+void ScriptableResourceCache::updateTotalSize(const qint64& deltaSize) {
+    _resourceCache->updateTotalSize(deltaSize);
+}
+
+ScriptableResource* ScriptableResourceCache::prefetch(const QUrl& url, void* extra) {
+    return _resourceCache->prefetch(url, extra);
+}
+
+
 ScriptableResource::ScriptableResource(const QUrl& url) :
     QObject(nullptr),
     _url(url) { }

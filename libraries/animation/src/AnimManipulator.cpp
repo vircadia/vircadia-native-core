@@ -32,12 +32,12 @@ AnimManipulator::~AnimManipulator() {
 
 }
 
-const AnimPoseVec& AnimManipulator::evaluate(AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
+const AnimPoseVec& AnimManipulator::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
     qCDebug(animation) << "in anim manipulator node";
     return overlay(animVars, context, dt, triggersOut, _skeleton->getRelativeDefaultPoses());
 }
 
-const AnimPoseVec& AnimManipulator::overlay(AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
+const AnimPoseVec& AnimManipulator::overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut, const AnimPoseVec& underPoses) {
     _alpha = animVars.lookup(_alphaVar, _alpha);
 
     _poses = underPoses;
@@ -74,6 +74,8 @@ const AnimPoseVec& AnimManipulator::overlay(AnimVariantMap& animVars, const Anim
             ::blend(1, &defaultRelPose, &relPose, _alpha, &_poses[jointVar.jointIndex]);
         }
     }
+
+    processOutputJoints(triggersOut);
 
     return _poses;
 }

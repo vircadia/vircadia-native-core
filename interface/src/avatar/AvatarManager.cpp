@@ -618,12 +618,87 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
             result.intersects = true;
             result.avatarID = avatar->getID();
             result.distance = distance;
+            result.face = face;
+            result.surfaceNormal = surfaceNormal;
             result.extraInfo = extraInfo;
         }
     }
 
     if (result.intersects) {
         result.intersection = ray.origin + normDirection * result.distance;
+    }
+
+    return result;
+}
+
+ParabolaToAvatarIntersectionResult AvatarManager::findParabolaIntersectionVector(const PickParabola& pick,
+                                                                                 const QVector<EntityItemID>& avatarsToInclude,
+                                                                                 const QVector<EntityItemID>& avatarsToDiscard) {
+    ParabolaToAvatarIntersectionResult result;
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarManager*>(this), "findParabolaIntersectionVector",
+                               Q_RETURN_ARG(ParabolaToAvatarIntersectionResult, result),
+                               Q_ARG(const PickParabola&, pick),
+                               Q_ARG(const QVector<EntityItemID>&, avatarsToInclude),
+                               Q_ARG(const QVector<EntityItemID>&, avatarsToDiscard));
+        return result;
+    }
+
+    auto avatarHashCopy = getHashCopy();
+    for (auto avatarData : avatarHashCopy) {
+        auto avatar = std::static_pointer_cast<Avatar>(avatarData);
+        if ((avatarsToInclude.size() > 0 && !avatarsToInclude.contains(avatar->getID())) ||
+            (avatarsToDiscard.size() > 0 && avatarsToDiscard.contains(avatar->getID()))) {
+            continue;
+        }
+
+        float parabolicDistance;
+        BoxFace face;
+        glm::vec3 surfaceNormal;
+
+        SkeletonModelPointer avatarModel = avatar->getSkeletonModel();
+
+        // It's better to intersect the parabola against the avatar's actual mesh, but this is currently difficult to
+        // do, because the transformed mesh data only exists over in GPU-land.  As a compromise, this code
+        // intersects against the avatars capsule and then against the (T-pose) mesh.  The end effect is that picking
+        // against the avatar is sort-of right, but you likely wont be able to pick against the arms.
+
+        // TODO -- find a way to extract transformed avatar mesh data from the rendering engine.
+
+        // if we weren't picking against the capsule, we would want to pick against the avatarBounds...
+        // AABox avatarBounds = avatarModel->getRenderableMeshBound();
+        // if (!avatarBounds.findParabolaIntersection(pick.origin, pick.velocity, pick.acceleration, parabolicDistance, face, surfaceNormal)) {
+        //     // parabola doesn't intersect avatar's bounding-box
+        //     continue;
+        // }
+
+        glm::vec3 start;
+        glm::vec3 end;
+        float radius;
+        avatar->getCapsule(start, end, radius);
+        bool intersects = findParabolaCapsuleIntersection(pick.origin, pick.velocity, pick.acceleration, start, end, radius, avatar->getWorldOrientation(), parabolicDistance);
+        if (!intersects) {
+            // ray doesn't intersect avatar's capsule
+            continue;
+        }
+
+        QVariantMap extraInfo;
+        intersects = avatarModel->findParabolaIntersectionAgainstSubMeshes(pick.origin, pick.velocity, pick.acceleration,
+                                                                           parabolicDistance, face, surfaceNormal, extraInfo, true);
+
+        if (intersects && (!result.intersects || parabolicDistance < result.parabolicDistance)) {
+            result.intersects = true;
+            result.avatarID = avatar->getID();
+            result.parabolicDistance = parabolicDistance;
+            result.face = face;
+            result.surfaceNormal = surfaceNormal;
+            result.extraInfo = extraInfo;
+        }
+    }
+
+    if (result.intersects) {
+        result.intersection = pick.origin + pick.velocity * result.parabolicDistance + 0.5f * pick.acceleration * result.parabolicDistance * result.parabolicDistance;
+        result.distance = glm::distance(pick.origin, result.intersection);
     }
 
     return result;

@@ -21,6 +21,7 @@
 #include <shared/QtHelpers.h>
 #include <AccountManager.h>
 #include <AddressManager.h>
+#include <AnimationCacheScriptingInterface.h>
 #include <Assignment.h>
 #include <AvatarHashMap.h>
 #include <EntityScriptingInterface.h>
@@ -63,6 +64,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned, listenPort);
 
     auto animationCache = DependencyManager::set<AnimationCache>();
+    DependencyManager::set<AnimationCacheScriptingInterface>();
     auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>(false);
 
     DependencyManager::registerInheritance<EntityDynamicFactoryInterface, AssignmentDynamicFactory>();

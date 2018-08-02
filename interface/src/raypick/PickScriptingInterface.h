@@ -62,6 +62,7 @@ class PickScriptingInterface : public QObject, public Dependency {
 public:
     unsigned int createRayPick(const QVariant& properties);
     unsigned int createStylusPick(const QVariant& properties);
+    unsigned int createParabolaPick(const QVariant& properties);
 
     void registerMetaTypes(QScriptEngine* engine);
 
@@ -71,7 +72,7 @@ public:
      *   with PickType.Ray, depending on which optional parameters you pass, you could create a Static Ray Pick, a Mouse Ray Pick, or a Joint Ray Pick.
      * @function Picks.createPick
      * @param {PickType} type A PickType that specifies the method of picking to use
-     * @param {Picks.RayPickProperties|Picks.StylusPickProperties} properties A PickProperties object, containing all the properties for initializing this Pick
+     * @param {Picks.RayPickProperties|Picks.StylusPickProperties|Picks.ParabolaPickProperties} properties A PickProperties object, containing all the properties for initializing this Pick
      * @returns {number} The ID of the created Pick.  Used for managing the Pick.  0 if invalid.
      */
     Q_INVOKABLE unsigned int createPick(const PickQuery::PickType type, const QVariant& properties);
@@ -125,6 +126,21 @@ public:
      * @property {StylusTip} stylusTip The StylusTip that was used.  Valid even if there was no intersection.
      */
 
+     /**jsdoc
+     * An intersection result for a Parabola Pick.
+     *
+     * @typedef {object} ParabolaPickResult
+     * @property {number} type The intersection type.
+     * @property {boolean} intersects If there was a valid intersection (type != INTERSECTED_NONE)
+     * @property {Uuid} objectID The ID of the intersected object.  Uuid.NULL for the HUD or invalid intersections.
+     * @property {number} distance The distance to the intersection point from the origin of the parabola, not along the parabola.
+     * @property {number} parabolicDistance The distance to the intersection point from the origin of the parabola, along the parabola.
+     * @property {Vec3} intersection The intersection point in world-space.
+     * @property {Vec3} surfaceNormal The surface normal at the intersected point.  All NANs if type == INTERSECTED_HUD.
+     * @property {Variant} extraInfo Additional intersection details when available for Model objects.
+     * @property {StylusTip} parabola The PickParabola that was used.  Valid even if there was no intersection.
+     */
+
     /**jsdoc
      * Get the most recent pick result from this Pick.  This will be updated as long as the Pick is enabled.
      * @function Picks.getPrevPickResult
@@ -162,7 +178,7 @@ public:
      * Check if a Pick is associated with the left hand.
      * @function Picks.isLeftHand
      * @param {number} uid The ID of the Pick, as returned by {@link Picks.createPick}.
-     * @returns {boolean} True if the Pick is a Joint Ray Pick with joint == "_CONTROLLER_LEFTHAND" or "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND", or a Stylus Pick with hand == 0.
+     * @returns {boolean} True if the Pick is a Joint Ray or Parabola Pick with joint == "_CONTROLLER_LEFTHAND" or "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND", or a Stylus Pick with hand == 0.
      */
     Q_INVOKABLE bool isLeftHand(unsigned int uid);
 
@@ -170,7 +186,7 @@ public:
      * Check if a Pick is associated with the right hand.
      * @function Picks.isRightHand
      * @param {number} uid The ID of the Pick, as returned by {@link Picks.createPick}.
-     * @returns {boolean} True if the Pick is a Joint Ray Pick with joint == "_CONTROLLER_RIGHTHAND" or "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND", or a Stylus Pick with hand == 1.
+     * @returns {boolean} True if the Pick is a Joint Ray or Parabola Pick with joint == "_CONTROLLER_RIGHTHAND" or "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND", or a Stylus Pick with hand == 1.
      */
     Q_INVOKABLE bool isRightHand(unsigned int uid);
 
@@ -178,7 +194,7 @@ public:
      * Check if a Pick is associated with the system mouse.
      * @function Picks.isMouse
      * @param {number} uid The ID of the Pick, as returned by {@link Picks.createPick}.
-     * @returns {boolean} True if the Pick is a Mouse Ray Pick, false otherwise.
+     * @returns {boolean} True if the Pick is a Mouse Ray or Parabola Pick, false otherwise.
      */
     Q_INVOKABLE bool isMouse(unsigned int uid);
 
