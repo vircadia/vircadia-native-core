@@ -165,7 +165,7 @@ bool EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
         auto initialCompletion = NLPacket::create(PacketType::EntityQueryInitialResultsComplete,
             sizeof(OCTREE_PACKET_SEQUENCE), true);
         initialCompletion->writePrimitive(OCTREE_PACKET_SEQUENCE(nodeData->getSequenceNumber() - 1U));
-        DependencyManager::get<NodeList>()->sendPacket(std::move(initialCompletion), *node.data());
+        DependencyManager::get<NodeList>()->sendPacket(std::move(initialCompletion), *node);
     }
 
     return sendComplete;
