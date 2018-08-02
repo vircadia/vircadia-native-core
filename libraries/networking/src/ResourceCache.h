@@ -124,9 +124,9 @@ public:
     virtual ~ScriptableResource() = default;
 
     /**jsdoc
-     * Release this resource.
-     * @function ResourceObject#release
-     */
+      * Release this resource.
+      * @function ResourceObject#release
+      */
     Q_INVOKABLE void release();
 
     const QUrl& getURL() const { return _url; }
@@ -186,15 +186,6 @@ Q_DECLARE_METATYPE(ScriptableResource*);
 class ResourceCache : public QObject {
     Q_OBJECT
 
-    // JSDoc 3.5.5 doesn't augment namespaces with @property or @function definitions.
-    // The ResourceCache properties and functions are copied to the different exposed cache classes.
-
-    /**jsdoc
-     * @property {number} numTotal - Total number of total resources. <em>Read-only.</em>
-     * @property {number} numCached - Total number of cached resource. <em>Read-only.</em>
-     * @property {number} sizeTotal - Size in bytes of all resources. <em>Read-only.</em>
-     * @property {number} sizeCached - Size in bytes of all cached resources. <em>Read-only.</em>
-     */
     Q_PROPERTY(size_t numTotal READ getNumTotalResources NOTIFY dirty)
     Q_PROPERTY(size_t numCached READ getNumCachedResources NOTIFY dirty)
     Q_PROPERTY(size_t sizeTotal READ getSizeTotalResources NOTIFY dirty)
@@ -207,11 +198,6 @@ public:
     size_t getNumCachedResources() const { return _numUnusedResources; }
     size_t getSizeCachedResources() const { return _unusedResourcesSize; }
 
-    /**jsdoc
-     * Get the list of all resource URLs.
-     * @function ResourceCache.getResourceList
-     * @returns {string[]}
-     */
     Q_INVOKABLE QVariantList getResourceList();
 
     static void setRequestLimit(int limit);
@@ -237,40 +223,17 @@ public:
 
 signals:
 
-    /**jsdoc
-     * @function ResourceCache.dirty
-     * @returns {Signal}
-     */
     void dirty();
 
 protected slots:
 
-    /**jsdoc
-     * @function ResourceCache.updateTotalSize
-     * @param {number} deltaSize
-     */
     void updateTotalSize(const qint64& deltaSize);
 
-    /**jsdoc
-     * Prefetches a resource.
-     * @function ResourceCache.prefetch
-     * @param {string} url - URL of the resource to prefetch.
-     * @param {object} [extra=null]
-     * @returns {ResourceObject}
-     */
     // Prefetches a resource to be held by the QScriptEngine.
     // Left as a protected member so subclasses can overload prefetch
     // and delegate to it (see TextureCache::prefetch(const QUrl&, int).
     ScriptableResource* prefetch(const QUrl& url, void* extra);
 
-    /**jsdoc
-     * Asynchronously loads a resource from the specified URL and returns it.
-     * @function ResourceCache.getResource
-     * @param {string} url - URL of the resource to load.
-     * @param {string} [fallback=""] - Fallback URL if load of the desired URL fails.
-     * @param {} [extra=null]
-     * @returns {object}
-     */
     // FIXME: The return type is not recognized by JavaScript.
     /// Loads a resource from the specified URL and returns it.
     /// If the caller is on a different thread than the ResourceCache,
@@ -306,6 +269,7 @@ protected:
 
 private:
     friend class Resource;
+    friend class ScriptableResourceCache;
 
     void reserveUnusedResource(qint64 resourceSize);
     void resetResourceCounters();
@@ -333,6 +297,66 @@ private:
     // Pending resources
     QQueue<QUrl> _resourcesToBeGotten;
     QReadWriteLock _resourcesToBeGottenLock { QReadWriteLock::Recursive };
+};
+
+/// Wrapper to expose resource caches to JS/QML
+class ScriptableResourceCache : public QObject {
+    Q_OBJECT
+
+    // JSDoc 3.5.5 doesn't augment name spaces with @property definitions so the following properties JSDoc is copied to the 
+    // different exposed cache classes.
+
+    /**jsdoc
+     * @property {number} numTotal - Total number of total resources. <em>Read-only.</em>
+     * @property {number} numCached - Total number of cached resource. <em>Read-only.</em>
+     * @property {number} sizeTotal - Size in bytes of all resources. <em>Read-only.</em>
+     * @property {number} sizeCached - Size in bytes of all cached resources. <em>Read-only.</em>
+     */
+    Q_PROPERTY(size_t numTotal READ getNumTotalResources NOTIFY dirty)
+    Q_PROPERTY(size_t numCached READ getNumCachedResources NOTIFY dirty)
+    Q_PROPERTY(size_t sizeTotal READ getSizeTotalResources NOTIFY dirty)
+    Q_PROPERTY(size_t sizeCached READ getSizeCachedResources NOTIFY dirty)
+
+public:
+    ScriptableResourceCache(QSharedPointer<ResourceCache> resourceCache);
+
+    /**jsdoc
+     * Get the list of all resource URLs.
+     * @function ResourceCache.getResourceList
+     * @returns {string[]}
+     */
+    Q_INVOKABLE QVariantList getResourceList();
+
+    /**jsdoc
+     * @function ResourceCache.updateTotalSize
+     * @param {number} deltaSize
+     */
+    Q_INVOKABLE void updateTotalSize(const qint64& deltaSize);
+
+    /**jsdoc
+     * Prefetches a resource.
+     * @function ResourceCache.prefetch
+     * @param {string} url - URL of the resource to prefetch.
+     * @param {object} [extra=null]
+     * @returns {ResourceObject}
+     */
+    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, void* extra = nullptr);
+
+signals:
+
+    /**jsdoc
+     * @function ResourceCache.dirty
+     * @returns {Signal}
+     */
+    void dirty();
+
+private:
+    QSharedPointer<ResourceCache> _resourceCache;
+
+    size_t getNumTotalResources() const { return _resourceCache->getNumTotalResources(); }
+    size_t getSizeTotalResources() const { return _resourceCache->getSizeTotalResources(); }
+    size_t getNumCachedResources() const { return _resourceCache->getNumCachedResources(); }
+    size_t getSizeCachedResources() const { return _resourceCache->getSizeCachedResources(); }
 };
 
 /// Base class for resources.

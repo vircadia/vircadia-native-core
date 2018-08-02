@@ -891,28 +891,30 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {string} textures="" - The URL of a JPG or PNG image file to display for each particle. If you want transparency,
  *     use PNG format.
  * @property {number} particleRadius=0.025 - The radius of each particle at the middle of its life.
- * @property {number} radiusStart=NAN - The radius of each particle at the start of its life. If NAN, the
+ * @property {number} radiusStart=NaN - The radius of each particle at the start of its life. If <code>NaN</code>, the
  *     <code>particleRadius</code> value is used.
- * @property {number} radiusFinish=NAN - The radius of each particle at the end of its life. If NAN, the
+ * @property {number} radiusFinish=NaN - The radius of each particle at the end of its life. If <code>NaN</code>, the
  *     <code>particleRadius</code> value is used.
  * @property {number} radiusSpread=0 - The spread in radius that each particle is given. If <code>particleRadius == 0.5</code>
- *     and <code>radiusSpread == 0.25</code>, each particle will have a radius in the range <code>0.25</code> &ndash; <code>0.75</code>.
+ *     and <code>radiusSpread == 0.25</code>, each particle will have a radius in the range <code>0.25</code> &ndash; 
+ *     <code>0.75</code>.
  * @property {Color} color=255,255,255 - The color of each particle at the middle of its life.
- * @property {Color} colorStart=NAN,NAN,NAN - The color of each particle at the start of its life. If any of the values are NAN, the
- *     <code>color</code> value is used.
- * @property {Color} colorFinish=NAN,NAN,NAN - The color of each particle at the end of its life. If any of the values are NAN, the
- *     <code>color</code> value is used.
+ * @property {Color} colorStart={} - The color of each particle at the start of its life. If any of the component values are 
+ *     undefined, the <code>color</code> value is used.
+ * @property {Color} colorFinish={} - The color of each particle at the end of its life. If any of the component values are 
+ *     undefined, the <code>color</code> value is used.
  * @property {Color} colorSpread=0,0,0 - The spread in color that each particle is given. If
  *     <code>color == {red: 100, green: 100, blue: 100}</code> and <code>colorSpread ==
- *     {red: 10, green: 25, blue: 50}</code>, each particle will have an acceleration in the range <code>{red: 90, green: 75, blue: 50}</code>
- *     &ndash; <code>{red: 110, green: 125, blue: 150}</code>.
+ *     {red: 10, green: 25, blue: 50}</code>, each particle will have a color in the range 
+ *     <code>{red: 90, green: 75, blue: 50}</code> &ndash; <code>{red: 110, green: 125, blue: 150}</code>.
  * @property {number} alpha=1 - The alpha of each particle at the middle of its life.
- * @property {number} alphaStart=NAN - The alpha of each particle at the start of its life. If NAN, the
+ * @property {number} alphaStart=NaN - The alpha of each particle at the start of its life. If <code>NaN</code>, the
  *     <code>alpha</code> value is used.
- * @property {number} alphaFinish=NAN - The alpha of each particle at the end of its life. If NAN, the
+ * @property {number} alphaFinish=NaN - The alpha of each particle at the end of its life. If <code>NaN</code>, the
  *     <code>alpha</code> value is used.
  * @property {number} alphaSpread=0 - The spread in alpha that each particle is given. If <code>alpha == 0.5</code>
- *     and <code>alphaSpread == 0.25</code>, each particle will have an alpha in the range <code>0.25</code> &ndash; <code>0.75</code>.
+ *     and <code>alphaSpread == 0.25</code>, each particle will have an alpha in the range <code>0.25</code> &ndash; 
+ *     <code>0.75</code>.
  * @property {number} particleSpin=0 - The spin of each particle at the middle of its life. In the range <code>-2*PI</code> &ndash; <code>2*PI</code>.
  * @property {number} spinStart=NaN - The spin of each particle at the start of its life. In the range <code>-2*PI</code> &ndash; <code>2*PI</code>.
  *     If <code>NaN</code>, the <code>particleSpin</code> value is used.

@@ -21,6 +21,7 @@
 #include "../OpenGLDisplayPlugin.h"
 
 class HmdDisplayPlugin : public OpenGLDisplayPlugin {
+    Q_OBJECT
     using Parent = OpenGLDisplayPlugin;
 public:
     ~HmdDisplayPlugin();
@@ -44,6 +45,9 @@ public:
     float stutterRate() const override;
 
     virtual bool onDisplayTextureReset() override { _clearPreviewFlag = true; return true; };
+
+signals:
+    void hmdMountedChanged();
 
 protected:
     virtual void hmdPresent() = 0;
