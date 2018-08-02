@@ -50,7 +50,6 @@ const AnimPoseVec& AnimBlendLinearMove::evaluate(AnimVariantMap& animVars, const
     qCDebug(animation) << "in blend linear move " << _alphaVar << ": " << _alpha << " band id: " << _id << " parent alpha " << _animStack[_id];
     assert(_children.size() == _characteristicSpeeds.size());
     
-
     _desiredSpeed = animVars.lookup(_desiredSpeedVar, _desiredSpeed);
 
     float speed = 0.0f;
@@ -64,6 +63,10 @@ const AnimPoseVec& AnimBlendLinearMove::evaluate(AnimVariantMap& animVars, const
     }
     _alpha = calculateAlpha(speed, _characteristicSpeeds);
     float parentAlpha = _animStack[_id];
+    
+    _animStack["speed"] = speed;
+
+    qCDebug(animation) << "speed is now: " << speed;
 
     if (_children.size() == 0) {
         for (auto&& pose : _poses) {
@@ -87,8 +90,8 @@ const AnimPoseVec& AnimBlendLinearMove::evaluate(AnimVariantMap& animVars, const
         setFrameAndPhase(dt, alpha, prevPoseIndex, nextPoseIndex, &prevDeltaTime, &nextDeltaTime, triggersOut);
         evaluateAndBlendChildren(animVars, context, triggersOut, alpha, prevPoseIndex, nextPoseIndex, prevDeltaTime, nextDeltaTime);
 
-        float weight1 = alpha;
-        float weight2 = 1.0f - weight1;
+        float weight2 = alpha;
+        float weight1 = 1.0f - weight2;
         _animStack[_children[prevPoseIndex]->getID()] = weight1 * parentAlpha;
         if ((int)nextPoseIndex < _children.size()) {
             _animStack[_children[nextPoseIndex]->getID()] = weight2 * parentAlpha;

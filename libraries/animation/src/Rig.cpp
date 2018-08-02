@@ -636,6 +636,8 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         _animVars.set("moveForwardSpeed", _averageForwardSpeed.getAverage());
         _animVars.set("moveBackwardSpeed", -_averageForwardSpeed.getAverage());
         _animVars.set("moveLateralSpeed", fabsf(_averageLateralSpeed.getAverage()));
+        _animVars.set("lastSampledForwardSpeed", forwardSpeed);
+        _animVars.set("lastSampledLateralSpeed", lateralSpeed);
 
         const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec
         const float MOVE_EXIT_SPEED_THRESHOLD = 0.07f;  // m/sec
@@ -706,6 +708,17 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         if ((_desiredStateAge >= STATE_CHANGE_HYSTERESIS_TIMER) && _desiredState != _state) {
             _state = _desiredState;
             _desiredStateAge = 0.0f;
+            // if we are changing anim states.
+            //reset the average speed to the current reading of speed
+            qCDebug(animation) << "reset the average movement speeds";
+            _averageForwardSpeed.reset();
+            _averageLateralSpeed.reset();
+            _averageForwardSpeed.updateAverage(forwardSpeed);
+            _averageLateralSpeed.updateAverage(lateralSpeed);
+            _animVars.set("moveForwardSpeed", _averageForwardSpeed.getAverage());
+            _animVars.set("moveBackwardSpeed", -_averageForwardSpeed.getAverage());
+            _animVars.set("moveLateralSpeed", fabsf(_averageLateralSpeed.getAverage()));
+
         }
 
         _desiredStateAge += deltaTime;

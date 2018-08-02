@@ -2328,6 +2328,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
 static float scaleSpeedByDirection(glm::vec2 velocityDirection, float speed) {
     float scale = 1.0f;
+    float x = sqrtf(1.0f - (velocityDirection.y * velocityDirection.y) / 3.0f);
     if (velocityDirection.y > 0.0f) {
         scale = 0.5f;
     }

@@ -37,7 +37,8 @@ const AnimPoseVec& AnimStateMachine::evaluate(AnimVariantMap& animVars, const An
         bool foundState = false;
         for (auto& state : _states) {
             if (state->getID() == desiredStateID) {
-                _previousStateID = _currentState->getID();
+                _previousStateID = "(" + _currentState->getID() + ")";
+                //_previousStateID = _currentState->getID();
                 switchState(animVars, context, state);
                 foundState = true;
                 break;
@@ -63,16 +64,17 @@ const AnimPoseVec& AnimStateMachine::evaluate(AnimVariantMap& animVars, const An
     if (!_previousStateID.contains("none")) {
         _animStack[_previousStateID] = 1.0f - _alpha;
     }
-    if (_alpha > 1.0f) {
-        _animStack[_currentState->getID()] = 1.0f;
-    } else {
-        _animStack[_currentState->getID()] = _alpha;
-        qCDebug(animation) << "setting child alpha " << _currentState->getID() << " " << _alpha;
-
-    }
+    
 
     if (_duringInterp) {
         _alpha += _alphaVel * dt;
+        if (_alpha > 1.0f) {
+            _animStack[_currentState->getID()] = 1.0f;
+        } else {
+            _animStack[_currentState->getID()] = _alpha;
+            qCDebug(animation) << "setting child alpha " << _currentState->getID() << " " << _alpha;
+
+        }
         if (_alpha < 1.0f) {
             AnimPoseVec* nextPoses = nullptr;
             AnimPoseVec* prevPoses = nullptr;
@@ -105,6 +107,7 @@ const AnimPoseVec& AnimStateMachine::evaluate(AnimVariantMap& animVars, const An
         }
     }
     if (!_duringInterp) {
+        _animStack[_currentState->getID()] = 1.0f;
         _poses = currentStateNode->evaluate(animVars, context, dt, triggersOut);
     }
     
