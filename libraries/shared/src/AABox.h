@@ -70,8 +70,11 @@ public:
     bool expandedContains(const glm::vec3& point, float expansion) const;
     bool expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& end, float expansion) const;
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                BoxFace& face, glm::vec3& surfaceNormal) const;
+                             BoxFace& face, glm::vec3& surfaceNormal) const;
+    bool findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+                                  float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal) const;
     bool rayHitsBoundingSphere(const glm::vec3& origin, const glm::vec3& direction) const;
+    bool parabolaPlaneIntersectsBoundingSphere(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration, const glm::vec3& normal) const;
     bool touchesSphere(const glm::vec3& center, float radius) const; // fast but may generate false positives
     bool touchesAAEllipsoid(const glm::vec3& center, const glm::vec3& radials) const;
     bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) const;
@@ -135,6 +138,9 @@ private:
     glm::vec3 getClosestPointOnFace(const glm::vec4& origin, const glm::vec4& direction, BoxFace face) const;
 
     static BoxFace getOppositeFace(BoxFace face);
+
+    void checkPossibleParabolicIntersection(float t, int i, float& minDistance,
+        const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration, bool& hit) const;
 
     glm::vec3 _corner;
     glm::vec3 _scale;

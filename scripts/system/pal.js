@@ -12,14 +12,15 @@
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-(function() { // BEGIN LOCAL_SCOPE
+(function () { // BEGIN LOCAL_SCOPE
 
-    var request = Script.require('request').request;
+var request = Script.require('request').request;
+var AppUi = Script.require('appUi');
 
 var populateNearbyUserList, color, textures, removeOverlays,
-    controllerComputePickRay, onTabletButtonClicked, onTabletScreenChanged,
+    controllerComputePickRay, off,
     receiveMessage, avatarDisconnected, clearLocalQMLDataAndClosePAL,
-    tablet, CHANNEL, getConnectionData, findableByChanged,
+    CHANNEL, getConnectionData, findableByChanged,
     avatarAdded, avatarRemoved, avatarSessionChanged; // forward references;
 
 // hardcoding these as it appears we cannot traverse the originalTextures in overlays???  Maybe I've missed
@@ -40,6 +41,7 @@ var HOVER_TEXTURES = {
 var UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6};
 var SELECTED_COLOR = {red: 0xF3, green: 0x91, blue: 0x29};
 var HOVER_COLOR = {red: 0xD0, green: 0xD0, blue: 0xD0}; // almost white for now
+var METAVERSE_BASE = Account.metaverseServerURL;
 
 Script.include("/~/system/libraries/controllers.js");
 
@@ -221,7 +223,7 @@ function convertDbToLinear(decibels) {
     return Math.pow(2, decibels / 10.0);
 }
 function fromQml(message) { // messages are {method, params}, like json-rpc. See also sendToQml.
-    var data;
+    var data, connectionUserName, friendUserName;
     switch (message.method) {
     case 'selected':
         selectedIds = message.params;
@@ -266,7 +268,6 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         break;
     case 'refreshConnections':
         print('Refreshing Connections...');
-        getConnectionData(false);
         UserActivityLogger.palAction("refresh_connections", "");
         break;
     case 'removeConnection':
@@ -279,9 +280,9 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
                 print("Error: unable to remove connection", connectionUserName, error || response.status);
                 return;
             }
-            getConnectionData(false);
+            sendToQml({ method: 'refreshConnections' });
         });
-        break
+        break;
 
     case 'removeFriend':
         friendUserName = message.params;
@@ -296,7 +297,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
             }
             getConnectionData(friendUserName);
         });
-        break
+        break;
     case 'addFriend':
         friendUserName = message.params;
         print("Adding " + friendUserName + " to friends.");
@@ -307,24 +308,23 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
             body: {
                 username: friendUserName,
             }
-            }, function (error, response) {
-                if (error || (response.status !== 'success')) {
-                    print("Error: unable to friend " + friendUserName, error || response.status);
-                    return;
-                }
-                getConnectionData(friendUserName);
+        }, function (error, response) {
+            if (error || (response.status !== 'success')) {
+                print("Error: unable to friend " + friendUserName, error || response.status);
+                return;
             }
-        );
+            getConnectionData(friendUserName);
+        });
         break;
     case 'http.request':
-	break; // Handled by request-service.
+        break; // Handled by request-service.
     default:
         print('Unrecognized message from Pal.qml:', JSON.stringify(message));
     }
 }
 
 function sendToQml(message) {
-    tablet.sendToQml(message);
+    ui.sendMessage(message);
 }
 function updateUser(data) {
     print('PAL update:', JSON.stringify(data));
@@ -334,7 +334,6 @@ function updateUser(data) {
 // User management services
 //
 // These are prototype versions that will be changed when the back end changes.
-var METAVERSE_BASE = Account.metaverseServerURL;
 
 function requestJSON(url, callback) { // callback(data) if successfull. Logs otherwise.
     request({
@@ -361,8 +360,9 @@ function getProfilePicture(username, callback) { // callback(url) if successfull
         callback(matched[1]);
     });
 }
+var SAFETY_LIMIT = 400;
 function getAvailableConnections(domain, callback) { // callback([{usename, location}...]) if successfull. (Logs otherwise)
-    url = METAVERSE_BASE + '/api/v1/users?per_page=400&'
+    var url = METAVERSE_BASE + '/api/v1/users?per_page=' + SAFETY_LIMIT + '&';
     if (domain) {
         url += 'status=' + domain.slice(1, -1); // without curly braces
     } else {
@@ -373,8 +373,10 @@ function getAvailableConnections(domain, callback) { // callback([{usename, loca
     });
 }
 function getInfoAboutUser(specificUsername, callback) {
-    url = METAVERSE_BASE + '/api/v1/users?filter=connections'
+    var url = METAVERSE_BASE + '/api/v1/users?filter=connections&per_page=' + SAFETY_LIMIT + '&search=' + encodeURIComponent(specificUsername);
     requestJSON(url, function (connectionsData) {
+        // You could have (up to SAFETY_LIMIT connections whose usernames contain the specificUsername.
+        // Search returns all such matches.
         for (user in connectionsData.users) {
             if (connectionsData.users[user].username === specificUsername) {
                 callback(connectionsData.users[user]);
@@ -406,16 +408,14 @@ function getConnectionData(specificUsername, domain) { // Update all the usernam
                 print('Error: Unable to find information about ' + specificUsername + ' in connectionsData!');
             }
         });
-    } else {
+    } else if (domain) {
         getAvailableConnections(domain, function (users) {
-            if (domain) {
-                users.forEach(function (user) {
-                    updateUser(frob(user));
-                });
-            } else {
-                sendToQml({ method: 'connections', params: users.map(frob) });
-            }
+            users.forEach(function (user) {
+                updateUser(frob(user));
+            });
         });
+    } else {
+        print("Error: unrecognized getConnectionData()");
     }
 }
 
@@ -705,77 +705,41 @@ triggerMapping.from(Controller.Standard.LTClick).peek().to(makeClickHandler(Cont
 triggerPressMapping.from(Controller.Standard.RT).peek().to(makePressHandler(Controller.Standard.RightHand));
 triggerPressMapping.from(Controller.Standard.LT).peek().to(makePressHandler(Controller.Standard.LeftHand));
 
+var ui;
+// Most apps can have people toggle the tablet closed and open again, and the app should remain "open" even while
+// the tablet is not shown. However, for the pal, we explicitly close the app and return the tablet to it's 
+// home screen (so that the avatar highlighting goes away).
 function tabletVisibilityChanged() {
-    if (!tablet.tabletShown && onPalScreen) {
-        ContextOverlay.enabled = true;
-        tablet.gotoHomeScreen();
-    }
-}
-
-var wasOnPalScreen = false;
-var onPalScreen = false;
-var PAL_QML_SOURCE = "hifi/Pal.qml";
-function onTabletButtonClicked() {
-    if (!tablet) {
-        print("Warning in onTabletButtonClicked(): 'tablet' undefined!");
-        return;
-    }
-    if (onPalScreen) {
-        // In Toolbar Mode, `gotoHomeScreen` will close the app window.
-        tablet.gotoHomeScreen();
-    } else {
-        tablet.loadQMLSource(PAL_QML_SOURCE);
-    }
-}
-var hasEventBridge = false;
-function wireEventBridge(on) {
-    if (on) {
-        if (!hasEventBridge) {
-            tablet.fromQml.connect(fromQml);
-            hasEventBridge = true;
-        }
-    } else {
-        if (hasEventBridge) {
-            tablet.fromQml.disconnect(fromQml);
-            hasEventBridge = false;
-        }
+    if (!ui.tablet.tabletShown && ui.isOpen) {
+        ui.close();
     }
     }
 
 var UPDATE_INTERVAL_MS = 100;
+var updateInterval;
 function createUpdateInterval() {
     return Script.setInterval(function () {
         updateOverlays();
     }, UPDATE_INTERVAL_MS);
 }
 
-function onTabletScreenChanged(type, url) {
-    wasOnPalScreen = onPalScreen;
-    onPalScreen = (type === "QML" && url === PAL_QML_SOURCE);
-    wireEventBridge(onPalScreen);
-    // for toolbar mode: change button to active when window is first openend, false otherwise.
-    button.editProperties({isActive: onPalScreen});
+var previousContextOverlay = ContextOverlay.enabled;
+var previousRequestsDomainListData = Users.requestsDomainListData;
+function on() {
 
-    if (onPalScreen) {
-        isWired = true;
+    previousContextOverlay = ContextOverlay.enabled;
+    previousRequestsDomainListData = Users.requestsDomainListData
+    ContextOverlay.enabled = false;
+    Users.requestsDomainListData = true;
 
-        ContextOverlay.enabled = false;
-        Users.requestsDomainListData = true;
-
-        tablet.tabletShownChanged.connect(tabletVisibilityChanged);
-        updateInterval = createUpdateInterval();
-        Controller.mousePressEvent.connect(handleMouseEvent);
-        Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
-        Users.usernameFromIDReply.connect(usernameFromIDReply);
-        triggerMapping.enable();
-        triggerPressMapping.enable();
-        populateNearbyUserList();
-    } else {
-        off();
-        if (wasOnPalScreen) {
-            ContextOverlay.enabled = true;
-        }
-    }
+    ui.tablet.tabletShownChanged.connect(tabletVisibilityChanged);
+    updateInterval = createUpdateInterval();
+    Controller.mousePressEvent.connect(handleMouseEvent);
+    Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
+    Users.usernameFromIDReply.connect(usernameFromIDReply);
+    triggerMapping.enable();
+    triggerPressMapping.enable();
+    populateNearbyUserList();
 }
 
 //
@@ -789,8 +753,8 @@ function receiveMessage(channel, messageString, senderID) {
     var message = JSON.parse(messageString);
     switch (message.method) {
     case 'select':
-        if (!onPalScreen) {
-            tablet.loadQMLSource(PAL_QML_SOURCE);
+        if (!ui.isOpen) {
+            ui.open();
             Script.setTimeout(function () { sendToQml(message); }, 1000);
         } else {
             sendToQml(message); // Accepts objects, not just strings.
@@ -826,9 +790,8 @@ function avatarDisconnected(nodeID) {
 
 function clearLocalQMLDataAndClosePAL() {
     sendToQml({ method: 'clearLocalQMLData' });
-    if (onPalScreen) {
-        ContextOverlay.enabled = true;
-        tablet.gotoHomeScreen();
+    if (ui.isOpen) {
+        ui.close();
     }
 }
 
@@ -844,20 +807,15 @@ function avatarSessionChanged(avatarID) {
     sendToQml({ method: 'palIsStale', params: [avatarID, 'avatarSessionChanged'] });
 }
 
-
-var button;
-var buttonName = "PEOPLE";
-var tablet = null;
 function startup() {
-    tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-    button = tablet.addButton({
-        text: buttonName,
-        icon: "icons/tablet-icons/people-i.svg",
-        activeIcon: "icons/tablet-icons/people-a.svg",
-        sortOrder: 7
+    ui = new AppUi({
+        buttonName: "PEOPLE",
+        sortOrder: 7,
+        home: "hifi/Pal.qml",
+        onOpened: on,
+        onClosed: off,
+        onMessage: fromQml
     });
-    button.clicked.connect(onTabletButtonClicked);
-    tablet.screenChanged.connect(onTabletScreenChanged);
     Window.domainChanged.connect(clearLocalQMLDataAndClosePAL);
     Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);
     Messages.subscribe(CHANNEL);
@@ -869,35 +827,25 @@ function startup() {
 }
 startup();
 
-
-var isWired = false;
 function off() {
-    if (isWired) {
+    if (ui.isOpen) { // i.e., only when connected
         if (updateInterval) {
             Script.clearInterval(updateInterval);
         }
         Controller.mousePressEvent.disconnect(handleMouseEvent);
         Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
-        tablet.tabletShownChanged.disconnect(tabletVisibilityChanged);
+        ui.tablet.tabletShownChanged.disconnect(tabletVisibilityChanged);
         Users.usernameFromIDReply.disconnect(usernameFromIDReply);
-        ContextOverlay.enabled = true
         triggerMapping.disable();
         triggerPressMapping.disable();
-        Users.requestsDomainListData = false;
-
-        isWired = false;
     }
 
     removeOverlays();
+    ContextOverlay.enabled = previousContextOverlay;
+    Users.requestsDomainListData = previousRequestsDomainListData;
 }
 
 function shutdown() {
-    if (onPalScreen) {
-        tablet.gotoHomeScreen();
-    }
-    button.clicked.disconnect(onTabletButtonClicked);
-    tablet.removeButton(button);
-    tablet.screenChanged.disconnect(onTabletScreenChanged);
     Window.domainChanged.disconnect(clearLocalQMLDataAndClosePAL);
     Window.domainConnectionRefused.disconnect(clearLocalQMLDataAndClosePAL);
     Messages.subscribe(CHANNEL);

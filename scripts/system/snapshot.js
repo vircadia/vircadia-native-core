@@ -279,9 +279,21 @@ function onMessage(message) {
 }
 
 var POLAROID_PRINT_SOUND = SoundCache.getSound(Script.resourcesPath() + "sounds/snapshot/sound-print-photo.wav");
-var POLAROID_MODEL_URL  = 'http://hifi-content.s3.amazonaws.com/alan/dev/Test/snapshot.fbx';
+var POLAROID_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/alan/dev/Test/snapshot.fbx';
+var POLAROID_RATE_LIMIT_MS = 1000;
+var polaroidPrintingIsRateLimited = false;
 
 function printToPolaroid(image_url) {
+
+    // Rate-limit printing
+    if (polaroidPrintingIsRateLimited) {
+        return;
+    }
+    polaroidPrintingIsRateLimited = true;
+    Script.setTimeout(function () {
+        polaroidPrintingIsRateLimited = false;
+    }, POLAROID_RATE_LIMIT_MS);
+
     var polaroid_url = image_url;                  
 
     var model_pos = Vec3.sum(MyAvatar.position, Vec3.multiply(1.25, Quat.getForward(MyAvatar.orientation)));

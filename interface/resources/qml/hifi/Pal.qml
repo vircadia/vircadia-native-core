@@ -61,7 +61,7 @@ Rectangle {
                 'username';
         }
         sortAscending: connectionsTable.sortIndicatorOrder === Qt.AscendingOrder;
-        itemsPerPage: 9;
+        itemsPerPage: 10;
         listView: connectionsTable;
         processPage: function (data) {
             return data.users.map(function (user) {
@@ -144,6 +144,22 @@ Rectangle {
             params.selected = [[userIds[0]], true, true];
         }
         pal.sendToScript({method: 'refreshNearby', params: params});
+    }
+    function refreshConnections() {
+        var flickable = connectionsUserModel.flickable;
+        connectionsRefreshScrollTimer.oldY = flickable.contentY;
+        flickable.contentY = 0;
+        connectionsUserModel.getFirstPage('delayRefresh', function () {
+            connectionsRefreshScrollTimer.start();
+        });
+    }
+    Timer {
+        id: connectionsRefreshScrollTimer;
+        interval: 500;
+        property real oldY: 0;
+        onTriggered: {
+            connectionsUserModel.flickable.contentY = oldY;
+        }
     }
 
     Rectangle {
@@ -276,7 +292,10 @@ Rectangle {
                             id: reloadConnections;
                             width: reloadConnections.height;
                             glyph: hifi.glyphs.reload;
-                            onClicked: connectionsUserModel.getFirstPage('delayRefresh');
+                            onClicked: {
+                                pal.sendToScript({method: 'refreshConnections'});
+                                refreshConnections();
+                            }
                         }
                     }
                     // "CONNECTIONS" text
@@ -786,14 +805,6 @@ Rectangle {
             }
 
             model: connectionsUserModel;
-            Connections {
-                target: connectionsTable.flickableItem;
-                onAtYEndChanged: {
-                    if (connectionsTable.flickableItem.atYEnd && !connectionsTable.flickableItem.atYBeginning) {
-                        connectionsUserModel.getNextPage();
-                    }
-                }
-            }
 
             // This Rectangle refers to each Row in the connectionsTable.
             rowDelegate: Rectangle {
@@ -1216,6 +1227,9 @@ Rectangle {
             break;
         case 'clearLocalQMLData':
             ignored = {};
+            break;
+        case 'refreshConnections':
+            refreshConnections();
             break;
         case 'avatarDisconnected':
             var sessionID = message.params[0];

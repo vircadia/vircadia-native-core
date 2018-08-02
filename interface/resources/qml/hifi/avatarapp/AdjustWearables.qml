@@ -125,6 +125,7 @@ Rectangle {
             id: wearablesCombobox
             anchors.left: parent.left
             anchors.right: parent.right
+            comboBox.textRole: "text"
 
             model: ListModel {
                 function findIndexById(id) {
@@ -325,7 +326,7 @@ Rectangle {
                     height: 40
                     anchors.right: parent.right
                     color: hifi.buttons.red;
-                    colorScheme: hifi.colorSchemes.dark;
+                    colorScheme: hifi.colorSchemes.light;
                     text: "TAKE IT OFF"
                     onClicked: wearableDeleted(root.avatarName, getCurrentWearable().id);
                     enabled: wearablesCombobox.model.count !== 0

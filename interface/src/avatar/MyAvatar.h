@@ -33,6 +33,7 @@
 #include "MyCharacterController.h"
 #include "RingBufferHistory.h"
 #include <ThreadSafeValueCache.h>
+#include <EntityItem.h>
 
 class AvatarActionHold;
 class ModelItemID;
@@ -612,6 +613,8 @@ public:
 
     const MyHead* getMyHead() const;
 
+    Q_INVOKABLE void toggleSmoothPoleVectors() { _skeletonModel->getRig().toggleSmoothPoleVectors(); };
+
     /**jsdoc
      * Get the current position of the avatar's "Head" joint.
      * @function MyAvatar.getHeadPosition
@@ -926,7 +929,7 @@ public:
     * @returns {object[]}
     */
     Q_INVOKABLE QVariantList getAvatarEntitiesVariant();
-    void removeAvatarEntities();
+    void removeAvatarEntities(const std::function<bool(const QUuid& entityID)>& condition = {});
 
     /**jsdoc
      * @function MyAvatar.isFlying
@@ -951,6 +954,30 @@ public:
      * @returns {boolean}
      */
     Q_INVOKABLE bool getFlyingEnabled();
+
+    /**jsdoc
+     * @function MyAvatar.setFlyingDesktopPref
+     * @param {boolean} enabled
+     */
+    Q_INVOKABLE void setFlyingDesktopPref(bool enabled);
+
+    /**jsdoc
+     * @function MyAvatar.getFlyingDesktopPref
+     * @returns {boolean}
+     */
+    Q_INVOKABLE bool getFlyingDesktopPref();
+
+    /**jsdoc
+     * @function MyAvatar.setFlyingDesktopPref
+     * @param {boolean} enabled
+     */
+    Q_INVOKABLE void setFlyingHMDPref(bool enabled);
+
+    /**jsdoc
+     * @function MyAvatar.getFlyingDesktopPref
+     * @returns {boolean}
+     */
+    Q_INVOKABLE bool getFlyingHMDPref();
 
 
     /**jsdoc
@@ -1016,12 +1043,12 @@ public:
     // results are in sensor frame (-z forward)
     glm::mat4 deriveBodyFromHMDSensor() const;
 
-    glm::vec3 computeCounterBalance() const;
+    glm::vec3 computeCounterBalance();
 
     // derive avatar body position and orientation from using the current HMD Sensor location in relation to the previous
     // location of the base of support of the avatar.
     // results are in sensor frame (-z foward)
-    glm::mat4 deriveBodyUsingCgModel() const;
+    glm::mat4 deriveBodyUsingCgModel();
 
     /**jsdoc
      * @function MyAvatar.isUp
@@ -1502,6 +1529,8 @@ private:
     std::bitset<MAX_DRIVE_KEYS> _disabledDriveKeys;
 
     bool _enableFlying { false };
+    bool _flyingPrefDesktop { true };
+    bool _flyingPrefHMD { false };
     bool _wasPushing { false };
     bool _isPushing { false };
     bool _isBeingPushed { false };

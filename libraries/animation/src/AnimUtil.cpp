@@ -21,14 +21,6 @@ void blend(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, A
         const AnimPose& aPose = a[i];
         const AnimPose& bPose = b[i];
 
-        // adjust signs if necessary
-        const glm::quat& q1 = aPose.rot();
-        glm::quat q2 = bPose.rot();
-        float dot = glm::dot(q1, q2);
-        if (dot < 0.0f) {
-            q2 = -q2;
-        }
-
         result[i].scale() = lerp(aPose.scale(), bPose.scale(), alpha);
         result[i].rot() = safeLerp(aPose.rot(), bPose.rot(), alpha);
         result[i].trans() = lerp(aPose.trans(), bPose.trans(), alpha);
@@ -53,7 +45,7 @@ glm::quat averageQuats(size_t numQuats, const glm::quat* quats) {
 }
 
 float accumulateTime(float startFrame, float endFrame, float timeScale, float currentFrame, float dt, bool loopFlag,
-                     const QString& id, AnimNode::Triggers& triggersOut) {
+                     const QString& id, AnimVariantMap& triggersOut) {
 
     const float EPSILON = 0.0001f;
     float frame = currentFrame;
@@ -79,12 +71,12 @@ float accumulateTime(float startFrame, float endFrame, float timeScale, float cu
             if (framesRemaining >= framesTillEnd) {
                 if (loopFlag) {
                     // anim loop
-                    triggersOut.push_back(id + "OnLoop");
+                    triggersOut.setTrigger(id + "OnLoop");
                     framesRemaining -= framesTillEnd;
                     frame = clampedStartFrame;
                 } else {
                     // anim end
-                    triggersOut.push_back(id + "OnDone");
+                    triggersOut.setTrigger(id + "OnDone");
                     frame = endFrame;
                     framesRemaining = 0.0f;
                 }

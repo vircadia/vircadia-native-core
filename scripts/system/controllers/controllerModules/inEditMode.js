@@ -10,7 +10,7 @@
 /* global Script, Controller, RIGHT_HAND, LEFT_HAND, enableDispatcherModule, disableDispatcherModule, makeRunningValues,
    Messages, makeDispatcherModuleParameters, HMD, getGrabPointSphereOffset, COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
    COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_ON_VALUE,
-   getEnabledModuleByName, PICK_MAX_DISTANCE, isInEditMode, Picks, makeLaserParams
+   getEnabledModuleByName, PICK_MAX_DISTANCE, isInEditMode, Picks, makeLaserParams, Entities
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -19,7 +19,7 @@ Script.include("/~/system/libraries/utils.js");
 
 (function () {
     var MARGIN = 25;
-    
+    var TABLET_MATERIAL_ENTITY_NAME = 'Tablet-Material-Entity';
     function InEditMode(hand) {
         this.hand = hand;
         this.triggerClicked = false;
@@ -53,7 +53,7 @@ Script.include("/~/system/libraries/utils.js");
             return (HMD.tabletScreenID && objectID === HMD.tabletScreenID)
                 || (HMD.homeButtonID && objectID === HMD.homeButtonID);
         };
-        
+
         this.calculateNewReticlePosition = function(intersection) {
             var dims = Controller.getViewportDimensions();
             this.reticleMaxX = dims.x - MARGIN;
@@ -66,32 +66,44 @@ Script.include("/~/system/libraries/utils.js");
 
         this.sendPickData = function(controllerData) {
             if (controllerData.triggerClicks[this.hand]) {
+                var hand = this.hand === RIGHT_HAND ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
                 if (!this.triggerClicked) {
                     this.selectedTarget = controllerData.rayPicks[this.hand];
                     if (!this.selectedTarget.intersects) {
                         Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
-                            method: "clearSelection"
+                            method: "clearSelection",
+                            hand: hand
                         }));
                     }
                 }
                 if (this.selectedTarget.type === Picks.INTERSECTED_ENTITY) {
-                    Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
-                        method: "selectEntity",
-                        entityID: this.selectedTarget.objectID
-                    }));
+                    if (!this.isTabletMaterialEntity(this.selectedTarget.objectID)) {
+                        Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                            method: "selectEntity",
+                            entityID: this.selectedTarget.objectID,
+                            hand: hand
+                        }));
+                    }
                 } else if (this.selectedTarget.type === Picks.INTERSECTED_OVERLAY) {
                     Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
                         method: "selectOverlay",
-                        overlayID: this.selectedTarget.objectID
+                        overlayID: this.selectedTarget.objectID,
+                        hand: hand
                     }));
                 }
 
                 this.triggerClicked = true;
             }
-            
+
             this.sendPointingAtData(controllerData);
         };
-        
+
+
+        this.isTabletMaterialEntity = function(entityID) {
+            return ((entityID === HMD.homeButtonHighlightMaterialID) ||
+                    (entityID === HMD.homeButtonUnhighlightMaterialID));
+        };
+
         this.sendPointingAtData = function(controllerData) {
             var rayPick = controllerData.rayPicks[this.hand];
             var hudRayPick = controllerData.hudRayPicks[this.hand];

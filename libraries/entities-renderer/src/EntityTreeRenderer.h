@@ -40,9 +40,6 @@ namespace render { namespace entities {
 
 } }
 
-// Allow the use of std::unordered_map with QUuid keys
-namespace std { template<> struct hash<EntityItemID> { size_t operator()(const EntityItemID& id) const; }; }
-
 using EntityRenderer = render::entities::EntityRenderer;
 using EntityRendererPointer = render::entities::EntityRendererPointer;
 using EntityRendererWeakPointer = render::entities::EntityRendererWeakPointer;

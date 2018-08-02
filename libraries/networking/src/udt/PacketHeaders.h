@@ -132,6 +132,7 @@ public:
         OctreeDataPersist,
 
         EntityClone,
+        EntityQueryInitialResultsComplete,
 
         NUM_PACKET_TYPE
     };
@@ -238,7 +239,8 @@ enum class EntityVersion : PacketVersion {
     CloneableData,
     CollisionMask16Bytes,
     YieldSimulationOwnership,
-    ParticleEntityFix
+    ParticleEntityFix,
+    ParticleSpin
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
