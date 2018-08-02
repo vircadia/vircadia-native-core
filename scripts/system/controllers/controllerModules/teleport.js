@@ -128,6 +128,22 @@ Script.include("/~/system/libraries/controllers.js");
             return otherModule;
         };
 
+
+        this.teleporterSelectionName = "teleporterSelection" + hand.toString();
+        this.TELEPORTER_SELECTION_STYLE = {
+            outlineUnoccludedColor: { red: 0, green: 0, blue: 0 },
+            outlineUnoccludedAlpha: 0,
+            outlineOccludedColor: { red: 0, green: 0, blue: 0 },
+            outlineOccludedAlpha: 0,
+            fillUnoccludedColor: { red: 0, green: 0, blue: 0 },
+            fillUnoccludedAlpha: 0,
+            fillOccludedColor: { red: 0, green: 0, blue: 255 },
+            fillOccludedAlpha: 0.84,
+            outlineWidth: 0,
+            isOutlineSmooth: false
+        };
+
+
         this.teleportParabolaHandVisible = Pointers.createPointer(PickType.Parabola, {
             joint: (_this.hand === RIGHT_HAND) ? "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" : "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
             dirOffset: { x: 0, y: 1, z: 0.1 },
@@ -209,6 +225,7 @@ Script.include("/~/system/libraries/controllers.js");
             drawInFront: false,
             visible: false
         });
+        Selection.addToSelectedItemsList(this.teleporterSelectionName, "overlay", this.playAreaOverlay);
 
         this.addPlayAreaSensorPositionOverlay = function () {
             var overlay = Overlays.addOverlay("model", {
@@ -221,10 +238,13 @@ Script.include("/~/system/libraries/controllers.js");
                 visible: false
             });
             this.playAreaSensorPositionOverlays.push(overlay);
+            Selection.addToSelectedItemsList(this.teleporterSelectionName, "overlay", overlay);
         };
 
         this.deletePlayAreaSensorPositionOverlay = function (index) {
-            Overlays.deleteOverlay(this.playAreaSensorPositionOverlays[index]);
+            var overlay = this.playAreaSensorPositionOverlays[index];
+            Selection.removeFromSelectedItemsList(this.teleporterSelectionName, "overlay", overlay);
+            Overlays.deleteOverlay(overlay);
             this.playAreaSensorPositionOverlays.splice(index, 1);
         };
 
@@ -339,7 +359,8 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
 
-        this.cleanup = function() {
+        this.cleanup = function () {
+            Selection.removeListFromMap(this.teleporterSelectionName);
             Pointers.removePointer(this.teleportParabolaHandVisible);
             Pointers.removePointer(this.teleportParabolaHandInvisible);
             Pointers.removePointer(this.teleportParabolaHeadVisible);
@@ -456,14 +477,21 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.disableLasers = function() {
             this.setPlayAreaVisible(false);
+            Selection.disableListHighlight(this.teleporterSelectionName);
             Pointers.disablePointer(_this.teleportParabolaHandVisible);
             Pointers.disablePointer(_this.teleportParabolaHandInvisible);
             Pointers.disablePointer(_this.teleportParabolaHeadVisible);
             Pointers.disablePointer(_this.teleportParabolaHeadInvisible);
         };
 
-        this.setTeleportState = function(mode, visibleState, invisibleState) {
-            this.setPlayAreaVisible(visibleState === "teleport");
+        this.setTeleportState = function (mode, visibleState, invisibleState) {
+            var visible = visibleState === "teleport";
+            this.setPlayAreaVisible(visible);
+            if (visible) {
+                Selection.enableListHighlight(this.teleporterSelectionName, this.TELEPORTER_SELECTION_STYLE);
+            } else {
+                Selection.disableListHighlight(this.teleporterSelectionName);
+            }
             if (mode === 'head') {
                 Pointers.setRenderState(_this.teleportParabolaHeadVisible, visibleState);
                 Pointers.setRenderState(_this.teleportParabolaHeadInvisible, invisibleState);
