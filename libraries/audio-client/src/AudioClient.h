@@ -188,6 +188,7 @@ public slots:
     void handleRecordedAudioInput(const QByteArray& audio);
     void reset();
     void audioMixerKilled();
+    void setInterstitialStatus(bool interstitialMode) { _interstitialMode = interstitialMode; }
 
     void setMuted(bool muted, bool emitSignal = true);
     bool isMuted() { return _muted; }
@@ -417,6 +418,7 @@ private:
     QVector<AudioInjectorPointer> _activeLocalAudioInjectors;
 
     bool _isPlayingBackRecording { false };
+    bool _interstitialMode { true };
 
     CodecPluginPointer _codec;
     QString _selectedCodecName;

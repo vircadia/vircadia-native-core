@@ -328,6 +328,7 @@ signals:
     void activeDisplayPluginChanged();
 
     void uploadRequest(QString path);
+    void interstitialModeChanged(bool interstitialMode);
 
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);

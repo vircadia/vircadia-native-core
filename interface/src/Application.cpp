@@ -1372,6 +1372,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         });
         connect(this, &Application::activeDisplayPluginChanged,
             reinterpret_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::onContextChanged);
+        connect(this, &Application::interstitialModeChanged, audioIO.data(), &AudioClient::setInterstitialStatus);
     }
 
     // Create the rendering engine.  This can be slow on some machines due to lots of
@@ -2251,6 +2252,25 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // Preload Tablet sounds
     DependencyManager::get<TabletScriptingInterface>()->preloadSounds();
+
+    connect(this, &Application::interstitialModeChanged, this, [this] (bool interstitialMode) {
+        if (!interstitialMode) {
+            DependencyManager::get<AudioClient>()->negotiateAudioFormat();
+            _queryExpiry = SteadyClock::now();
+            if (_avatarOverrideUrl.isValid()) {
+                getMyAvatar()->useFullAvatarURL(_avatarOverrideUrl);
+            }
+            static const QUrl empty{};
+            if (getMyAvatar()->getFullAvatarURLFromPreferences() != getMyAvatar()->cannonicalSkeletonModelURL(empty)) {
+                getMyAvatar()->resetFullAvatarURL();
+            }
+            getMyAvatar()->markIdentityDataChanged();
+            getMyAvatar()->resetLastSent();
+
+            // transmit a "sendAll" packet to the AvatarMixer we just connected to.
+            getMyAvatar()->sendAvatarDataPacket(true);
+        }
+    });
 
     _pendingIdleEvent = false;
     _pendingRenderEvent = false;
@@ -3412,13 +3432,14 @@ bool Application::isServerlessMode() const {
     return false;
 }
 
-bool Application::isInterstitialPage() {
+bool Application::isInterstitialMode() const {
     return _interstitialMode;
 }
 
-void Application::setInterstitialMode(bool interstitialMode) {
+void Application::setIsInterstitialMode(bool interstitialMode) {
     if (_interstitialMode != interstitialMode) {
         _interstitialMode = interstitialMode;
+        emit interstitialModeChanged(_interstitialMode);
     }
 }
 
@@ -5481,8 +5502,6 @@ static bool domainLoadingInProgress = false;
 void Application::update(float deltaTime) {
     PROFILE_RANGE_EX(app, __FUNCTION__, 0xffff0000, (uint64_t)_renderFrameCount + 1);
 
-    auto audioClient = DependencyManager::get<AudioClient>();
-    audioClient->setMuted(true);
     if (!_physicsEnabled) {
         if (!domainLoadingInProgress) {
             PROFILE_ASYNC_BEGIN(app, "Scene Loading", "");
@@ -5504,6 +5523,7 @@ void Application::update(float deltaTime) {
             // scene is ready to compute its collision shape.
             if (nearbyEntitiesAreReadyForPhysics() && getMyAvatar()->isReadyForPhysics()) {
                 _physicsEnabled = true;
+                setIsInterstitialMode(false);
                 getMyAvatar()->updateMotionBehaviorFromMenu();
             }
         }
@@ -5909,7 +5929,7 @@ void Application::update(float deltaTime) {
     // send packet containing downstream audio stats to the AudioMixer
     {
         quint64 sinceLastNack = now - _lastSendDownstreamAudioStats;
-        if (sinceLastNack > TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS) {
+        if (sinceLastNack > TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS && !isInterstitialMode()) {
             _lastSendDownstreamAudioStats = now;
 
             QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
@@ -6072,21 +6092,23 @@ void Application::updateRenderArgs(float deltaTime) {
 }
 
 void Application::queryAvatars() {
-    auto avatarPacket = NLPacket::create(PacketType::AvatarQuery);
-    auto destinationBuffer = reinterpret_cast<unsigned char*>(avatarPacket->getPayload());
-    unsigned char* bufferStart = destinationBuffer;
+    if (!isInterstitialMode()) {
+        auto avatarPacket = NLPacket::create(PacketType::AvatarQuery);
+        auto destinationBuffer = reinterpret_cast<unsigned char*>(avatarPacket->getPayload());
+        unsigned char* bufferStart = destinationBuffer;
 
-    uint8_t numFrustums = (uint8_t)_conicalViews.size();
-    memcpy(destinationBuffer, &numFrustums, sizeof(numFrustums));
-    destinationBuffer += sizeof(numFrustums);
+        uint8_t numFrustums = (uint8_t)_conicalViews.size();
+        memcpy(destinationBuffer, &numFrustums, sizeof(numFrustums));
+        destinationBuffer += sizeof(numFrustums);
 
-    for (const auto& view : _conicalViews) {
-        destinationBuffer += view.serialize(destinationBuffer);
+        for (const auto& view : _conicalViews) {
+            destinationBuffer += view.serialize(destinationBuffer);
+        }
+
+        avatarPacket->setPayloadSize(destinationBuffer - bufferStart);
+
+        DependencyManager::get<NodeList>()->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);
     }
-
-    avatarPacket->setPayloadSize(destinationBuffer - bufferStart);
-
-    DependencyManager::get<NodeList>()->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);
 }
 
 
@@ -6293,6 +6315,7 @@ void Application::clearDomainOctreeDetails() {
     qCDebug(interfaceapp) << "Clearing domain octree details...";
 
     resetPhysicsReadyInformation();
+    setIsInterstitialMode(true);
 
     _octreeServerSceneStats.withWriteLock([&] {
         _octreeServerSceneStats.clear();
@@ -6367,11 +6390,11 @@ void Application::nodeActivated(SharedNodePointer node) {
         _octreeQuery.incrementConnectionID();
     }
 
-    if (node->getType() == NodeType::AudioMixer) {
+    if (node->getType() == NodeType::AudioMixer && !isInterstitialMode()) {
         DependencyManager::get<AudioClient>()->negotiateAudioFormat();
     }
 
-    if (node->getType() == NodeType::AvatarMixer) {
+    if (node->getType() == NodeType::AvatarMixer && !isInterstitialMode()) {
         _queryExpiry = SteadyClock::now();
 
         // new avatar mixer, send off our identity packet on next update loop

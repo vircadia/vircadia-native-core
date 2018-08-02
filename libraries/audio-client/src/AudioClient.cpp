@@ -667,8 +667,7 @@ void AudioClient::stop() {
 }
 
 void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<ReceivedMessage> message) {
-
-    /*char bitset;
+    char bitset;
     message->readPrimitive(&bitset);
 
     bool hasReverb = oneAtBit(bitset, HAS_REVERB_BIT);
@@ -680,11 +679,10 @@ void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<ReceivedMessag
         _receivedAudioStream.setReverb(reverbTime, wetLevel);
     } else {
         _receivedAudioStream.clearReverb();
-        }*/
+    }
 }
 
 void AudioClient::handleAudioDataPacket(QSharedPointer<ReceivedMessage> message) {
-    /*
     if (message->getType() == PacketType::SilentAudioFrame) {
         _silentInbound.increment();
     } else {
@@ -709,7 +707,7 @@ void AudioClient::handleAudioDataPacket(QSharedPointer<ReceivedMessage> message)
         // Audio output must exist and be correctly set up if we're going to process received audio
         _receivedAudioStream.parseData(*message);
 #endif
-}*/
+    }
 }
 
 AudioClient::Gate::Gate(AudioClient* audioClient) :
@@ -1042,80 +1040,82 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
 }
 
 void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
-    if (_muted) {
-        _lastInputLoudness = 0.0f;
-        _timeSinceLastClip = 0.0f;
-    } else {
-        int16_t* samples = reinterpret_cast<int16_t*>(audioBuffer.data());
-        int numSamples = audioBuffer.size() / AudioConstants::SAMPLE_SIZE;
-        int numFrames = numSamples / (_isStereoInput ? AudioConstants::STEREO : AudioConstants::MONO);
-
-        if (_isNoiseGateEnabled) {
-            // The audio gate includes DC removal
-            _audioGate->render(samples, samples, numFrames);
-        } else {
-            _audioGate->removeDC(samples, samples, numFrames);
-        }
-
-        int32_t loudness = 0;
-        assert(numSamples < 65536); // int32_t loudness cannot overflow
-        bool didClip = false;
-        for (int i = 0; i < numSamples; ++i) {
-            const int32_t CLIPPING_THRESHOLD = (int32_t)(AudioConstants::MAX_SAMPLE_VALUE * 0.9f);
-            int32_t sample = std::abs((int32_t)samples[i]);
-            loudness += sample;
-            didClip |= (sample > CLIPPING_THRESHOLD);
-        }
-        _lastInputLoudness = (float)loudness / numSamples;
-
-        if (didClip) {
+    if (!_interstitialMode) {
+        if (_muted) {
+            _lastInputLoudness = 0.0f;
             _timeSinceLastClip = 0.0f;
-        } else if (_timeSinceLastClip >= 0.0f) {
-            _timeSinceLastClip += (float)numSamples / (float)AudioConstants::SAMPLE_RATE;
+        } else {
+            int16_t* samples = reinterpret_cast<int16_t*>(audioBuffer.data());
+            int numSamples = audioBuffer.size() / AudioConstants::SAMPLE_SIZE;
+            int numFrames = numSamples / (_isStereoInput ? AudioConstants::STEREO : AudioConstants::MONO);
+
+            if (_isNoiseGateEnabled) {
+                // The audio gate includes DC removal
+                _audioGate->render(samples, samples, numFrames);
+            } else {
+                _audioGate->removeDC(samples, samples, numFrames);
+            }
+
+            int32_t loudness = 0;
+            assert(numSamples < 65536); // int32_t loudness cannot overflow
+            bool didClip = false;
+            for (int i = 0; i < numSamples; ++i) {
+                const int32_t CLIPPING_THRESHOLD = (int32_t)(AudioConstants::MAX_SAMPLE_VALUE * 0.9f);
+                int32_t sample = std::abs((int32_t)samples[i]);
+                loudness += sample;
+                didClip |= (sample > CLIPPING_THRESHOLD);
+            }
+            _lastInputLoudness = (float)loudness / numSamples;
+
+            if (didClip) {
+                _timeSinceLastClip = 0.0f;
+            } else if (_timeSinceLastClip >= 0.0f) {
+                _timeSinceLastClip += (float)numSamples / (float)AudioConstants::SAMPLE_RATE;
+            }
+
+            emit inputReceived(audioBuffer);
         }
 
-        emit inputReceived(audioBuffer);
+        emit inputLoudnessChanged(_lastInputLoudness);
+
+        // state machine to detect gate opening and closing
+        bool audioGateOpen = (_lastInputLoudness != 0.0f);
+        bool openedInLastBlock = !_audioGateOpen && audioGateOpen;  // the gate just opened
+        bool closedInLastBlock = _audioGateOpen && !audioGateOpen;  // the gate just closed
+        _audioGateOpen = audioGateOpen;
+
+        if (openedInLastBlock) {
+            emit noiseGateOpened();
+        } else if (closedInLastBlock) {
+            emit noiseGateClosed();
+        }
+
+        // the codec must be flushed to silence before sending silent packets,
+        // so delay the transition to silent packets by one packet after becoming silent.
+        auto packetType = _shouldEchoToServer ? PacketType::MicrophoneAudioWithEcho : PacketType::MicrophoneAudioNoEcho;
+        if (!audioGateOpen && !closedInLastBlock) {
+            packetType = PacketType::SilentAudioFrame;
+            _silentOutbound.increment();
+        } else {
+            _audioOutbound.increment();
+        }
+
+        Transform audioTransform;
+        audioTransform.setTranslation(_positionGetter());
+        audioTransform.setRotation(_orientationGetter());
+
+        QByteArray encodedBuffer;
+        if (_encoder) {
+            _encoder->encode(audioBuffer, encodedBuffer);
+        } else {
+            encodedBuffer = audioBuffer;
+        }
+
+        emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, _isStereoInput,
+                        audioTransform, avatarBoundingBoxCorner, avatarBoundingBoxScale,
+                        packetType, _selectedCodecName);
+        _stats.sentPacket();
     }
-
-    emit inputLoudnessChanged(_lastInputLoudness);
-
-    // state machine to detect gate opening and closing
-    bool audioGateOpen = (_lastInputLoudness != 0.0f);
-    bool openedInLastBlock = !_audioGateOpen && audioGateOpen;  // the gate just opened
-    bool closedInLastBlock = _audioGateOpen && !audioGateOpen;  // the gate just closed
-    _audioGateOpen = audioGateOpen;
-
-    if (openedInLastBlock) {
-        emit noiseGateOpened();
-    } else if (closedInLastBlock) {
-        emit noiseGateClosed();
-    }
-
-    // the codec must be flushed to silence before sending silent packets,
-    // so delay the transition to silent packets by one packet after becoming silent.
-    auto packetType = _shouldEchoToServer ? PacketType::MicrophoneAudioWithEcho : PacketType::MicrophoneAudioNoEcho;
-    if (!audioGateOpen && !closedInLastBlock) {
-        packetType = PacketType::SilentAudioFrame;
-        _silentOutbound.increment();
-    } else {
-        _audioOutbound.increment();
-    }
-
-    Transform audioTransform;
-    audioTransform.setTranslation(_positionGetter());
-    audioTransform.setRotation(_orientationGetter());
-
-    QByteArray encodedBuffer;
-    if (_encoder) {
-        _encoder->encode(audioBuffer, encodedBuffer);
-    } else {
-        encodedBuffer = audioBuffer;
-    }
-
-    emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, _isStereoInput,
-            audioTransform, avatarBoundingBoxCorner, avatarBoundingBoxScale,
-            packetType, _selectedCodecName);
-    _stats.sentPacket();
 }
 
 void AudioClient::handleMicAudioInput() {
@@ -2017,7 +2017,7 @@ void AudioClient::loadSettings() {
     _receivedAudioStream.setDynamicJitterBufferEnabled(dynamicJitterBufferEnabled.get());
     _receivedAudioStream.setStaticJitterBufferFrames(staticJitterBufferFrames.get());
 
-    qCDebug(audioclient) << "---- Initializing Audio Client ----";
+
     auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
     for (auto& plugin : codecPlugins) {
         qCDebug(audioclient) << "Codec available:" << plugin->getName();
