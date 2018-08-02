@@ -198,6 +198,11 @@ Script.include("/~/system/libraries/controllers.js");
         this.playAreaCenterOffset = this.PLAY_AREA_OVERLAY_OFFSET;
         this.isPlayAreaVisible = false;
         this.isPlayAreaAvailable = false;
+        this.PLAY_AREA_SCALE_DURATION = 500;
+        this.PLAY_AREA_SCALE_TIMEOUT = 20;
+        this.playAreaScaleTimer = null;
+        this.playAreaScaleStart = 0;
+        this.playAreaScaleFactor = 0;
 
         this.playAreaOverlay = Overlays.addOverlay("model", {
             url: this.PLAY_AREA_OVERLAY_MODEL,
@@ -228,7 +233,7 @@ Script.include("/~/system/libraries/controllers.js");
 
             Overlays.editOverlay(this.playAreaOverlay, {
                 dimensions:
-                    Vec3.multiply(avatarScale, {
+                    Vec3.multiply(this.playAreaScaleFactor * avatarScale, {
                         x: this.playArea.width,
                         y: this.PLAY_AREA_OVERLAY_MODEL_UNIT_HEIGHT,
                         z: this.playArea.height
@@ -239,10 +244,9 @@ Script.include("/~/system/libraries/controllers.js");
                 var localPosition = this.playAreaSensorPositions[i];
                 localPosition = Vec3.multiply(avatarScale, localPosition);
                 localPosition.y = avatarScale * this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS.y / 2
-                    - this.playAreaCenterOffset.y / 2;  // Position on the floor.
-
+                    - this.playAreaCenterOffset.y / 2; // Position on the floor.
                 Overlays.editOverlay(this.playAreaSensorPositionOverlays[i], {
-                    dimensions: Vec3.multiply(avatarScale, this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS),
+                    dimensions: Vec3.multiply(this.playAreaScaleFactor * avatarScale, this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS),
                     parentID: this.playAreaOverlay,
                     localPosition: localPosition
                 });
@@ -255,14 +259,38 @@ Script.include("/~/system/libraries/controllers.js");
             }
         };
 
+        this.scaleInPlayArea = function () {
+            _this.playAreaScaleFactor = Math.min((Date.now() - _this.playAreaScaleStart) / _this.PLAY_AREA_SCALE_DURATION, 1);
+            _this.setPlayAreaDimensions();
+            if (_this.playAreaScaleFactor < 1) {
+                _this.playAreaScaleTimer = Script.setTimeout(_this.scaleInPlayArea, _this.PLAY_AREA_SCALE_TIMEOUT);
+            } else {
+                _this.playAreaScaleTimer = null;
+            }
+        };
+
         this.setPlayAreaVisible = function (visible) {
             if (!this.isPlayAreaAvailable || this.isPlayAreaVisible === visible) {
                 return;
             }
             this.isPlayAreaVisible = visible;
-            Overlays.editOverlay(this.playAreaOverlay, { visible: visible });
+            Overlays.editOverlay(this.playAreaOverlay, {
+                visible: visible,
+                dimensions: Vec3.ZERO
+            });
             for (var i = 0; i < this.playAreaSensorPositionOverlays.length; i++) {
-                Overlays.editOverlay(this.playAreaSensorPositionOverlays[i], { visible: visible });
+                Overlays.editOverlay(this.playAreaSensorPositionOverlays[i], {
+                    visible: visible,
+                    dimensions: Vec3.ZERO
+                });
+            }
+            if (visible) {
+                this.playAreaScaleStart = Date.now();
+                this.playAreaScaleFactor = 0;
+                this.scaleInPlayArea();
+            } else if (this.playAreaScaleTimer !== null) {
+                Script.clearTimeout(this.playAreaScaleTimer);
+                this.playAreaScaleTimer = null;
             }
         };
 
