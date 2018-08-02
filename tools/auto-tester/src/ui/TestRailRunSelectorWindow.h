@@ -38,8 +38,8 @@ public:
 
     bool userCancelled{ false };
 
-    void updateMilestoneComboBoxData(QStringList data);
-    int getMilestoneID();
+    void updateSectionsComboBoxData(QStringList data);
+    int getSectionID();
 
 private slots:
     void on_acceptButton_clicked();

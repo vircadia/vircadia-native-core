@@ -174,15 +174,15 @@
     <string>Accept</string>
    </property>
   </widget>
-  <widget class="QComboBox" name="milestoneComboBox">
+  <widget class="QComboBox" name="sectionsComboBox">
    <property name="enabled">
     <bool>false</bool>
    </property>
    <property name="geometry">
     <rect>
-     <x>270</x>
+     <x>140</x>
      <y>350</y>
-     <width>161</width>
+     <width>311</width>
      <height>22</height>
     </rect>
    </property>
@@ -193,7 +193,7 @@
    </property>
    <property name="geometry">
     <rect>
-     <x>140</x>
+     <x>20</x>
      <y>350</y>
      <width>121</width>
      <height>20</height>
@@ -205,7 +205,7 @@
     </font>
    </property>
    <property name="text">
-    <string>TestRail Milestone</string>
+    <string>TestRail Sections</string>
    </property>
   </widget>
   <widget class="QLineEdit" name="urlLineEdit">
@@ -274,7 +274,7 @@
   <tabstop>projectIDLineEdit</tabstop>
   <tabstop>suiteIDLineEdit</tabstop>
   <tabstop>acceptButton</tabstop>
-  <tabstop>milestoneComboBox</tabstop>
+  <tabstop>sectionsComboBox</tabstop>
   <tabstop>OKButton</tabstop>
   <tabstop>cancelButton</tabstop>
  </tabstops>

@@ -54,7 +54,7 @@ public:
                            const QString& branchGitHub);
 
     void getMilestonesFromTestRail();
-    void getTestCasesFromTestRail();
+    void getTestSectionsFromTestRail();
 
     void createTestRailDotPyScript();
     void createStackDotPyScript();
@@ -76,8 +76,11 @@ public:
     QString getObject(const QString& path);
 
     void updateMilestonesComboData(int exitCode, QProcess::ExitStatus exitStatus);
+    void updateSectionsComboData(int exitCode, QProcess::ExitStatus exitStatus);
 
-    void createTestRailRun();
+    void createTestRailRun(const QString& outputDirectory);
+
+    bool setPythonCommand();
 
 private:
     // HighFidelity Interface project ID in TestRail
@@ -105,8 +108,12 @@ private:
 
     const QString pythonExe{ "python.exe" };
     QString _pythonCommand;
+
     std::map<QString, int> _milestones;
     QStringList _milestoneNames;
+
+    std::map<QString, int> _sections;
+    QStringList _sectionNames;
 };
 
 #endif
