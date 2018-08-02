@@ -378,6 +378,7 @@ static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SI
 static const uint32_t INVALID_FRAME = UINT32_MAX;
 
 static const float PHYSICS_READY_RANGE = 3.0f; // how far from avatar to check for entities that aren't ready for simulation
+static const float INITIAL_QUERY_RADIUS = 10.0f;  // priority radius for entities before physics enabled
 
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 
@@ -5499,12 +5500,14 @@ void Application::update(float deltaTime) {
         // we haven't yet enabled physics.  we wait until we think we have all the collision information
         // for nearby entities before starting bullet up.
         quint64 now = usecTimestampNow();
-        const int PHYSICS_CHECK_TIMEOUT = 2 * USECS_PER_SECOND;
-
-        if (now - _lastPhysicsCheckTime > PHYSICS_CHECK_TIMEOUT || _fullSceneReceivedCounter > _fullSceneCounterAtLastPhysicsCheck) {
+        // Check for flagged EntityData having arrived.
+        auto entityTreeRenderer = getEntities();
+        if (isServerlessMode() || 
+            (entityTreeRenderer && _octreeProcessor.octreeSequenceIsComplete(entityTreeRenderer->getLastOctreeMessageSequence()) )) {
             // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
             _lastPhysicsCheckTime = now;
             _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
+            _lastQueriedViews.clear();  // Force new view.
 
             // process octree stats packets are sent in between full sends of a scene (this isn't currently true).
             // We keep physics disabled until we've received a full scene and everything near the avatar in that
@@ -6153,11 +6156,23 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType) {
         return; // bail early if settings are not loaded
     }
 
-    _octreeQuery.setConicalViews(_conicalViews);
+    const bool isModifiedQuery = !_physicsEnabled;
+    if (isModifiedQuery) {
+        // Create modified view that is a simple sphere.
+        ConicalViewFrustum sphericalView;
+        sphericalView.setSimpleRadius(INITIAL_QUERY_RADIUS);
+        _octreeQuery.setConicalViews({ sphericalView });
+        _octreeQuery.setOctreeSizeScale(DEFAULT_OCTREE_SIZE_SCALE);
+        static constexpr float MIN_LOD_ADJUST = -20.0f;
+        _octreeQuery.setBoundaryLevelAdjust(MIN_LOD_ADJUST);
+    } else {
+        _octreeQuery.setConicalViews(_conicalViews);
+        auto lodManager = DependencyManager::get<LODManager>();
+        _octreeQuery.setOctreeSizeScale(lodManager->getOctreeSizeScale());
+        _octreeQuery.setBoundaryLevelAdjust(lodManager->getBoundaryLevelAdjust());
+    }
+    _octreeQuery.setReportInitialCompletion(isModifiedQuery);
 
-    auto lodManager = DependencyManager::get<LODManager>();
-    _octreeQuery.setOctreeSizeScale(lodManager->getOctreeSizeScale());
-    _octreeQuery.setBoundaryLevelAdjust(lodManager->getBoundaryLevelAdjust());
 
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -6305,6 +6320,7 @@ void Application::clearDomainOctreeDetails() {
         _octreeServerSceneStats.clear();
     });
 
+    _octreeProcessor.resetCompletionSequenceNumber();
     // reset the model renderer
     getEntities()->clear();
 

@@ -192,6 +192,8 @@ void OctreeProcessor::processDatagram(ReceivedMessage& message, SharedNodePointe
             _elementsInLastWindow = 0;
             _entitiesInLastWindow = 0;
         }
+
+        _lastOctreeMessageSequence = sequence;
     }
 }
 
