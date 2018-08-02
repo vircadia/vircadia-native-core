@@ -375,3 +375,7 @@ QVariantMap PointerScriptingInterface::getPrevPickResult(unsigned int uid) const
     }
     return result;
 }
+
+QVector<QUuid> PointerScriptingInterface::getOverlayIDs(unsigned int uid) {
+    return DependencyManager::get<PointerManager>()->getOverlayIDs(uid);
+}

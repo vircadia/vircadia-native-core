@@ -76,6 +76,8 @@ public:
     // You cannot use editRenderState to change the type of any part of the pointer.  You can only edit the properties of the existing overlays.
     void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) override;
 
+    QVector<QUuid> getOverlayIDs() override;
+
     void setLength(float length) override;
     void setLockEndUUID(const QUuid& objectID, bool isOverlay, const glm::mat4& offsetMat = glm::mat4()) override;
 

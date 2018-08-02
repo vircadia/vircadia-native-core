@@ -199,6 +199,17 @@ Script.include("/~/system/libraries/controllers.js");
             maxDistance: 8.0
         });
 
+        this.addToSelectedItemsList = function (overlays) {
+            for (var i = 0, length = overlays.length; i < length; i++) {
+                Selection.addToSelectedItemsList(this.teleporterSelectionName, "overlay", overlays[i]);
+            }
+        };
+
+        this.addToSelectedItemsList(Pointers.getOverlayIDs(this.teleportParabolaHandVisible));
+        this.addToSelectedItemsList(Pointers.getOverlayIDs(this.teleportParabolaHandInvisible));
+        this.addToSelectedItemsList(Pointers.getOverlayIDs(this.teleportParabolaHeadVisible));
+        this.addToSelectedItemsList(Pointers.getOverlayIDs(this.teleportParabolaHeadInvisible));
+
 
         this.PLAY_AREA_OVERLAY_MODEL = Script.resolvePath("../../assets/models/trackingSpacev2.fbx");
         this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS = { x: 2, y: 0.2, z: 2 };

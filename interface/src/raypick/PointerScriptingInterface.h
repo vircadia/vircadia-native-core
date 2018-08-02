@@ -203,6 +203,13 @@ public:
      */
     Q_INVOKABLE bool isMouse(unsigned int uid) { return DependencyManager::get<PointerManager>()->isMouse(uid); }
 
+    /**jsdoc
+     * Get the IDs of the overlays used by a Pointer.
+     * @function Pointers.getOverlayIDs
+     * @param {number} uid The ID of the Pointer, as returned by {@link Pointers.createPointer}.
+     * @returns {Uuid[]} The overlay IDs used by the Pointer.
+     */
+    Q_INVOKABLE QVector<QUuid> getOverlayIDs(unsigned int uid);
 };
 
 #endif // hifi_PointerScriptingInterface_h

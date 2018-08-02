@@ -226,3 +226,9 @@ glm::vec2 StylusPointer::findPos2D(const PickedObject& pickedObject, const glm::
             return glm::vec2(NAN);
     }
 }
+
+QVector<QUuid> StylusPointer::getOverlayIDs() {
+    QVector<QUuid> result;
+    result.append(_stylusOverlay);
+    return result;
+}
