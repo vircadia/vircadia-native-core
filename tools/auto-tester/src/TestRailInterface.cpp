@@ -335,7 +335,7 @@ void TestRailInterface::createAddTestCasesPythonScript(const QString& testDirect
     }
 }
 
-void TestRailInterface::updateMilestonesComboData(int exitCode, QProcess::ExitStatus exitStatus) {
+void TestRailInterface::updateReleasesComboData(int exitCode, QProcess::ExitStatus exitStatus) {
     // Quit if user has previously cancelled
     if (_testRailTestCasesSelectorWindow.getUserCancelled()) {
         return;
@@ -344,41 +344,38 @@ void TestRailInterface::updateMilestonesComboData(int exitCode, QProcess::ExitSt
     // Check if process completed successfully
     if (exitStatus != QProcess::NormalExit) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "Could not get milestones from TestRail");
+                              "Could not get 'added to release' data from TestRail");
         exit(-1);
     }
 
-    // Create map of milestones from the file created by the process
-    _milestoneNames.clear();
+    // Create map of releases from the file created by the process
+    _releaseNames.clear();
 
-    QString filename = _outputDirectory + "/milestones.txt";
+    QString filename = _outputDirectory + "/releases.txt";
     if (!QFile::exists(filename)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "Could not find milestones.txt in " + _outputDirectory);
+                              "Could not find releases.txt in " + _outputDirectory);
         exit(-1);
     }
 
     QFile file(filename);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "Could not open " + _outputDirectory + "/milestones.txt");
+                              "Could not open " + _outputDirectory + "/releases.txt");
         exit(-1);
     }
 
     QTextStream in(&file);
     QString line = in.readLine();
     while (!line.isNull()) {
-        QStringList words = line.split(' ');
-        _milestoneIDs.push_back(words[1].toInt());
-        _milestoneNames << words[0];
-
+        _releaseNames << line;
         line = in.readLine();
     }
 
     file.close();
 
     // Update the combo
-    _testRailTestCasesSelectorWindow.updateMilestonesComboBoxData(_milestoneNames);
+    _testRailTestCasesSelectorWindow.updateReleasesComboBoxData(_releaseNames);
 
     _testRailTestCasesSelectorWindow.exec();
 
@@ -523,8 +520,8 @@ void TestRailInterface::updateSectionsComboData(int exitCode, QProcess::ExitStat
     addRun();
 }
 
-void TestRailInterface::getMilestonesFromTestRail() {
-    QString filename = _outputDirectory + "/getMilestones.py";
+void TestRailInterface::getReleasesFromTestRail() {
+    QString filename = _outputDirectory + "/getReleases.py";
     if (QFile::exists(filename)) {
         QFile::remove(filename);
     }
@@ -532,7 +529,7 @@ void TestRailInterface::getMilestonesFromTestRail() {
 
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "Could not create 'getMilestones.py'");
+                              "Could not create 'getReleases.py'");
         exit(-1);
     }
 
@@ -544,21 +541,33 @@ void TestRailInterface::getMilestonesFromTestRail() {
     stream << "client.user = '" << _user << "'\n";
     stream << "client.password = '" << _password << "'\n\n";
 
-    // Print the list of uncompleted milestones
-    stream << "file = open('" + _outputDirectory + "/milestones.txt', 'w')\n\n";
-    stream << "milestones = client.send_get('get_milestones/" + _projectID + "')\n";
-    stream << "for milestone in milestones:\n";
-    stream << "\tif milestone['is_completed'] == False:\n";
-    stream << "\t\tfile.write(milestone['name'] + ' ' + str(milestone['id']) + '\\n')\n\n";
+    // Print the list of releases
+    stream << "case_fields = client.send_get('get_case_fields/" + _projectID + "')\n";
+    stream << "for case_field in case_fields:\n";
+    stream << "\tif case_field['name'] == 'added_to_release':\n";
+    stream << "\t\trelease_string = case_field['configs'][0]['options']['items']\n\n";
+
+    // The list read from TestRail looks like this:
+    //      '0,< RC65\n1,RC65\n2,RC66\n3,RC67\n4,RC68\n5,RC69\n6,v0.70.0\n7,v0.71.0\n8,v0.72.0\n9,v0.73.0\n10,v0.74.0\n11,v0.75.0\n12,v0.76.0\n13,v0.77.0\n14,v0.78.0\n15,v0.79.0'
+    // Splitting on newline gives an array:
+    //      ['0,< RC65', '1,RC65', '2,RC66', '3,RC67', '4,RC68', '5,RC69', '6,v0.70.0', '7,v0.71.0', '8,v0.72.0', '9,v0.73.0', '10,v0.74.0', '11,v0.75.0', '12,v0.76.0', '13,v0.77.0', '14,v0.78.0', '15,v0.79.0']
+    // Each element consists of an index and a string, separated by a comma.
+    // We just need the strings
+    stream << "file = open('" + _outputDirectory + "/releases.txt', 'w')\n\n";
+    stream << "releases = release_string.split('\\n')\n";
+    stream << "for release in releases:\n";
+    stream << "\twords = release.split(',')\n";
+    stream << "\tfile.write(words[1] + '\\n')\n\n";
+
     stream << "file.close()\n";
 
     file.close();
 
     QProcess* process = new QProcess();
     connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
-            [=](int exitCode, QProcess::ExitStatus exitStatus) { updateMilestonesComboData(exitCode, exitStatus); });
+            [=](int exitCode, QProcess::ExitStatus exitStatus) { updateReleasesComboData(exitCode, exitStatus); });
 
-    QStringList parameters = QStringList() << _outputDirectory + "/getMilestones.py ";
+    QStringList parameters = QStringList() << filename;
     process->start(_pythonCommand, parameters);
 }
 
@@ -579,8 +588,8 @@ void TestRailInterface::createTestSuitePython(const QString& testDirectory,
     createTestRailDotPyScript();
     createStackDotPyScript();
 
-    // TestRail will be updated after the process initiated by getMilestonesFromTestRail has completed
-    getMilestonesFromTestRail();
+    // TestRail will be updated after the process initiated by getReleasesFromTestRail has completed
+    getReleasesFromTestRail();
 }
 
 void TestRailInterface::createTestSuiteXML(const QString& testDirectory,
@@ -825,15 +834,13 @@ void TestRailInterface::processTestPython(const QString& fullDirectory,
     QString testContent = QString("Execute instructions in [THIS TEST](") + testMDName + ")";
     QString testExpected = QString("Refer to the expected result in the linked description.");
 
-    int milestoneID = _milestoneIDs[_testRailTestCasesSelectorWindow.getMilestoneID()];
 
     stream << "data = {\n"
            << "\t'title': '" << title << "',\n"
            << "\t'template_id': 2,\n"
-           << "\t'milestone_id': " << milestoneID << ",\n"
+           << "\t'custom_added_to_release': " << _testRailTestCasesSelectorWindow.getReleaseID() << ",\n"
            << "\t'custom_tester_count': 1,\n"
            << "\t'custom_domain_bot_load': 1,\n"
-           << "\t'custom_added_to_release': 4,\n"
            << "\t'custom_preconds': "
            << "'Tester is in an empty region of a domain in which they have edit rights\\n\\n*Note: Press \\'n\\' to advance "
               "test script',\n"
@@ -895,7 +902,7 @@ void TestRailInterface::getTestSectionsFromTestRail() {
     connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
             [=](int exitCode, QProcess::ExitStatus exitStatus) { updateSectionsComboData(exitCode, exitStatus); });
 
-    QStringList parameters = QStringList() << _outputDirectory + "/getSections.py ";
+    QStringList parameters = QStringList() << filename;
     process->start(_pythonCommand, parameters);
 }
 

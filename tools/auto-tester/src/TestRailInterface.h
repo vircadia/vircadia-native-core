@@ -53,7 +53,7 @@ public:
                            const QString& userGitHub,
                            const QString& branchGitHub);
 
-    void getMilestonesFromTestRail();
+    void getReleasesFromTestRail();
     void getTestSectionsFromTestRail();
 
     void createTestRailDotPyScript();
@@ -75,7 +75,7 @@ public:
 
     QString getObject(const QString& path);
 
-    void updateMilestonesComboData(int exitCode, QProcess::ExitStatus exitStatus);
+    void updateReleasesComboData(int exitCode, QProcess::ExitStatus exitStatus);
     void updateSectionsComboData(int exitCode, QProcess::ExitStatus exitStatus);
 
     void createTestRailRun(const QString& outputDirectory);
@@ -111,8 +111,7 @@ private:
     const QString pythonExe{ "python.exe" };
     QString _pythonCommand;
 
-    QStringList _milestoneNames;
-    std::vector<int> _milestoneIDs;
+    QStringList _releaseNames;
 
     QStringList _sectionNames;
     std::vector<int> _sectionIDs;
