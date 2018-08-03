@@ -52,10 +52,11 @@ namespace {
              return false;
          }
 
+         // We can potentially add whitelisting logic or development environment variables that
+         // will allow people to override this setting on a per-client basis here.
          QString targetFilePath = QFileInfo(requestUrl.toLocalFile()).canonicalFilePath();
 
-         // If we get here, then it's a local file that isn't whitelisted and the 
-         // developer mode environment variable is not enabled.  Block access to the file
+         // If we get here, we've determined it's a local file and we have no reason not to block it
          qWarning() << "Blocking web access to local file path" << targetFilePath;
          info.block(true);
          return true;
