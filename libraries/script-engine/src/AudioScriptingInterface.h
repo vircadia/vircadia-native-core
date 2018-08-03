@@ -98,7 +98,8 @@ signals:
     void mutedByMixer();
 
     /**jsdoc
-     * Triggered when everyone is muted by the mixer.
+     * Triggered when the client is muted by the mixer because they're within a certain radius (50m) of someone who requested 
+     * the mute through Developer &gt; Audio &gt; Mute Environment.
      * @function Audio.environmentMuted
      * @returns {Signal} 
      */

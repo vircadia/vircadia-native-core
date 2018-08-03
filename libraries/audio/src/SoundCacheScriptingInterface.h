@@ -48,10 +48,11 @@ public:
     SoundCacheScriptingInterface();
 
     /**jsdoc
-     * Loads the content of an audio file into an object, ready for playback by {@link Audio.playSound}.
+     * Loads the content of an audio file into a {@link SoundObject}, ready for playback by {@link Audio.playSound}.
      * @function SoundCache.getSound
-     * @param {string} url - The URL of the audio file to load. See {@link SoundObject} for supported formats.
-     * @returns {SoundObject}
+     * @param {string} url - The URL of the audio file to load &mdash; Web, ATP, or file. See {@link SoundObject} for supported 
+     *     formats.
+     * @returns {SoundObject} The sound ready for playback.
      */
     Q_INVOKABLE SharedSoundPointer getSound(const QUrl& url);
 };
