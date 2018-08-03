@@ -33,6 +33,87 @@ using namespace render;
 
 extern void initZPassPipelines(ShapePlumber& plumber, gpu::StatePointer state);
 
+void RenderShadowTask::configure(const Config& configuration) {
+    DependencyManager::get<DeferredLightingEffect>()->setShadowMapEnabled(configuration.enabled);
+    // This is a task, so must still propogate configure() to its Jobs
+    //    Task::configure(configuration);
+}
+
+void RenderShadowTask::build(JobModel& task, const render::Varying& input, render::Varying& output, render::CullFunctor cameraCullFunctor, uint8_t tagBits, uint8_t tagMask) {
+    ::CullFunctor shadowCullFunctor = [this](const RenderArgs* args, const AABox& bounds) {
+        return _cullFunctor(args, bounds);
+    };
+
+    // Prepare the ShapePipeline
+    ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
+    {
+        auto state = std::make_shared<gpu::State>();
+        state->setCullMode(gpu::State::CULL_BACK);
+        state->setDepthTest(true, true, gpu::LESS_EQUAL);
+
+        initZPassPipelines(*shapePlumber, state);
+    }
+
+    const auto setupOutput = task.addJob<RenderShadowSetup>("ShadowSetup");
+    const auto queryResolution = setupOutput.getN<RenderShadowSetup::Outputs>(1);
+    // Fetch and cull the items from the scene
+
+    static const auto shadowCasterReceiverFilter = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(tagBits, tagMask);
+
+    const auto fetchInput = FetchSpatialTree::Inputs(shadowCasterReceiverFilter, queryResolution).asVarying();
+    const auto shadowSelection = task.addJob<FetchSpatialTree>("FetchShadowTree", fetchInput);
+    const auto selectionInputs = FetchSpatialSelection::Inputs(shadowSelection, shadowCasterReceiverFilter).asVarying();
+    const auto shadowItems = task.addJob<FetchSpatialSelection>("FetchShadowSelection", selectionInputs);
+
+    // Cull objects that are not visible in camera view. Hopefully the cull functor only performs LOD culling, not
+    // frustum culling or this will make shadow casters out of the camera frustum disappear.
+    const auto cameraFrustum = setupOutput.getN<RenderShadowSetup::Outputs>(2);
+    const auto applyFunctorInputs = ApplyCullFunctorOnItemBounds::Inputs(shadowItems, cameraFrustum).asVarying();
+    const auto culledShadowItems = task.addJob<ApplyCullFunctorOnItemBounds>("ShadowCullCamera", applyFunctorInputs, cameraCullFunctor);
+
+    // Sort
+    const auto sortedPipelines = task.addJob<PipelineSortShapes>("PipelineSortShadow", culledShadowItems);
+    const auto sortedShapes = task.addJob<DepthSortShapes>("DepthSortShadow", sortedPipelines, true);
+
+    render::Varying cascadeFrustums[SHADOW_CASCADE_MAX_COUNT] = {
+        ViewFrustumPointer()
+#if SHADOW_CASCADE_MAX_COUNT>1
+        ,ViewFrustumPointer(),
+        ViewFrustumPointer(),
+        ViewFrustumPointer()
+#endif
+    };
+
+    Output cascadeSceneBBoxes;
+
+    for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
+        char jobName[64];
+        sprintf(jobName, "ShadowCascadeSetup%d", i);
+        const auto cascadeSetupOutput = task.addJob<RenderShadowCascadeSetup>(jobName, i, _cullFunctor, tagBits, tagMask);
+        const auto shadowFilter = cascadeSetupOutput.getN<RenderShadowCascadeSetup::Outputs>(0);
+        auto antiFrustum = render::Varying(ViewFrustumPointer());
+        cascadeFrustums[i] = cascadeSetupOutput.getN<RenderShadowCascadeSetup::Outputs>(1);
+        if (i > 1) {
+            antiFrustum = cascadeFrustums[i - 2];
+        }
+
+        // CPU jobs: finer grained culling
+        const auto cullInputs = CullShadowBounds::Inputs(sortedShapes, shadowFilter, antiFrustum).asVarying();
+        const auto culledShadowItemsAndBounds = task.addJob<CullShadowBounds>("CullShadowCascade", cullInputs, shadowCullFunctor);
+
+        // GPU jobs: Render to shadow map
+        sprintf(jobName, "RenderShadowMap%d", i);
+        task.addJob<RenderShadowMap>(jobName, culledShadowItemsAndBounds, shapePlumber, i);
+        task.addJob<RenderShadowCascadeTeardown>("ShadowCascadeTeardown", shadowFilter);
+
+        cascadeSceneBBoxes[i] = culledShadowItemsAndBounds.getN<CullShadowBounds::Outputs>(1);
+    }
+
+    output = render::Varying(cascadeSceneBBoxes);
+
+    task.addJob<RenderShadowTeardown>("ShadowTeardown", setupOutput);
+}
+
 static void computeNearFar(const Triangle& triangle, const Plane shadowClipPlanes[4], float& near, float& far) {
     static const int MAX_TRIANGLE_COUNT = 16;
     Triangle clippedTriangles[MAX_TRIANGLE_COUNT];
@@ -213,87 +294,6 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext, con
 
         args->_batch = nullptr;
     });
-}
-
-void RenderShadowTask::build(JobModel& task, const render::Varying& input, render::Varying& output, render::CullFunctor cameraCullFunctor, uint8_t tagBits, uint8_t tagMask) {
-    ::CullFunctor shadowCullFunctor = [this](const RenderArgs* args, const AABox& bounds) {
-        return _cullFunctor(args, bounds);
-    };
-
-    // Prepare the ShapePipeline
-    ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
-    {
-        auto state = std::make_shared<gpu::State>();
-        state->setCullMode(gpu::State::CULL_BACK);
-        state->setDepthTest(true, true, gpu::LESS_EQUAL);
-
-        initZPassPipelines(*shapePlumber, state);
-    }
-
-    const auto setupOutput = task.addJob<RenderShadowSetup>("ShadowSetup");
-    const auto queryResolution = setupOutput.getN<RenderShadowSetup::Outputs>(1);
-    // Fetch and cull the items from the scene
-
-    static const auto shadowCasterReceiverFilter = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(tagBits, tagMask);
-
-    const auto fetchInput = FetchSpatialTree::Inputs(shadowCasterReceiverFilter, queryResolution).asVarying();
-    const auto shadowSelection = task.addJob<FetchSpatialTree>("FetchShadowTree", fetchInput);
-    const auto selectionInputs = FetchSpatialSelection::Inputs(shadowSelection, shadowCasterReceiverFilter).asVarying();
-    const auto shadowItems = task.addJob<FetchSpatialSelection>("FetchShadowSelection", selectionInputs);
-
-    // Cull objects that are not visible in camera view. Hopefully the cull functor only performs LOD culling, not
-    // frustum culling or this will make shadow casters out of the camera frustum disappear.
-    const auto cameraFrustum = setupOutput.getN<RenderShadowSetup::Outputs>(2);
-    const auto applyFunctorInputs = ApplyCullFunctorOnItemBounds::Inputs(shadowItems, cameraFrustum).asVarying();
-    const auto culledShadowItems = task.addJob<ApplyCullFunctorOnItemBounds>("ShadowCullCamera", applyFunctorInputs, cameraCullFunctor);
-
-    // Sort
-    const auto sortedPipelines = task.addJob<PipelineSortShapes>("PipelineSortShadow", culledShadowItems);
-    const auto sortedShapes = task.addJob<DepthSortShapes>("DepthSortShadow", sortedPipelines, true);
-
-    render::Varying cascadeFrustums[SHADOW_CASCADE_MAX_COUNT] = {
-        ViewFrustumPointer()
-#if SHADOW_CASCADE_MAX_COUNT>1
-        ,ViewFrustumPointer(),
-        ViewFrustumPointer(),
-        ViewFrustumPointer()
-#endif
-    };
-
-    Output cascadeSceneBBoxes;
-
-    for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
-        char jobName[64];
-        sprintf(jobName, "ShadowCascadeSetup%d", i);
-        const auto cascadeSetupOutput = task.addJob<RenderShadowCascadeSetup>(jobName, i, _cullFunctor, tagBits, tagMask);
-        const auto shadowFilter = cascadeSetupOutput.getN<RenderShadowCascadeSetup::Outputs>(0);
-        auto antiFrustum = render::Varying(ViewFrustumPointer());
-        cascadeFrustums[i] = cascadeSetupOutput.getN<RenderShadowCascadeSetup::Outputs>(1);
-        if (i > 1) {
-            antiFrustum = cascadeFrustums[i - 2];
-        }
-
-        // CPU jobs: finer grained culling
-        const auto cullInputs = CullShadowBounds::Inputs(sortedShapes, shadowFilter, antiFrustum).asVarying();
-        const auto culledShadowItemsAndBounds = task.addJob<CullShadowBounds>("CullShadowCascade", cullInputs, shadowCullFunctor);
-
-        // GPU jobs: Render to shadow map
-        sprintf(jobName, "RenderShadowMap%d", i);
-        task.addJob<RenderShadowMap>(jobName, culledShadowItemsAndBounds, shapePlumber, i);
-        task.addJob<RenderShadowCascadeTeardown>("ShadowCascadeTeardown", shadowFilter);
-
-        cascadeSceneBBoxes[i] = culledShadowItemsAndBounds.getN<CullShadowBounds::Outputs>(1);
-    }
-
-    output = render::Varying(cascadeSceneBBoxes);
-
-    task.addJob<RenderShadowTeardown>("ShadowTeardown", setupOutput);
-}
-
-void RenderShadowTask::configure(const Config& configuration) {
-    DependencyManager::get<DeferredLightingEffect>()->setShadowMapEnabled(configuration.enabled);
-    // This is a task, so must still propogate configure() to its Jobs
-//    Task::configure(configuration);
 }
 
 RenderShadowSetup::RenderShadowSetup() :
