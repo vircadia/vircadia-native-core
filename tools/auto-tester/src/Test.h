@@ -51,14 +51,16 @@ public:
     void createRecursiveScript(const QString& topLevelDirectory, bool interactiveMode);
 
     void createTests();
+
+    void createTestsOutline();
+
     void createMDFile();
     void createAllMDFiles();
     void createMDFile(const QString& topLevelDirectory);
 
-    void createTestsOutline();
-
     void createTestRailTestCases();
     void createTestRailRun();
+    void updateTestRailRunResult();
 
     bool compareImageLists(bool isInteractiveMode, QProgressBar* progressBar);
 

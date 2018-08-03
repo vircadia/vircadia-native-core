@@ -234,7 +234,7 @@
      <rect>
       <x>410</x>
       <y>100</y>
-      <width>140</width>
+      <width>161</width>
       <height>40</height>
      </rect>
     </property>
@@ -275,13 +275,26 @@
     <property name="geometry">
      <rect>
       <x>410</x>
-      <y>180</y>
-      <width>140</width>
+      <y>160</y>
+      <width>161</width>
       <height>40</height>
      </rect>
     </property>
     <property name="text">
      <string>Create TestRail Run</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="updateTestRailRunResultsButton">
+    <property name="geometry">
+     <rect>
+      <x>410</x>
+      <y>220</y>
+      <width>161</width>
+      <height>40</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Update TestRail Run Results</string>
     </property>
    </widget>
   </widget>

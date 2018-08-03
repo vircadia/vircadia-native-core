@@ -76,6 +76,10 @@ void AutoTester::on_createTestRailRunButton_clicked() {
     _test->createTestRailRun();
 }
 
+void AutoTester::on_updateTestRailRunResultsButton_clicked() {
+    _test->updateTestRailRunResult();
+}
+
 // To toggle between show and hide
 //   if (uState & ABS_AUTOHIDE) on_showTaskbarButton_clicked();
 //   else on_hideTaskbarButton_clicked();

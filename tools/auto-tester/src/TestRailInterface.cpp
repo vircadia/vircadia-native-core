@@ -11,6 +11,9 @@
 #include "TestRailInterface.h"
 #include "Test.h"
 
+#include <quazip5/quazip.h>
+#include <quazip5/JlCompress.h>
+
 #include <QDateTime>
 #include <QFile>
 #include <QMessageBox>
@@ -919,4 +922,12 @@ void TestRailInterface::createTestRailRun(const QString& outputDirectory) {
 
     // TestRail will be updated after the process initiated by getTestCasesFromTestRail has completed
     getTestSectionsFromTestRail();
+}
+
+
+void TestRailInterface::updateTestRailRunResults(const QString& testResults, const QString& tempDirectory) {
+    QString tempSubDirectory = tempDirectory + "/" + tempName;
+    QDir dir = tempSubDirectory;
+    dir.mkdir(tempSubDirectory);
+    JlCompress::extractDir(testResults, tempSubDirectory);
 }

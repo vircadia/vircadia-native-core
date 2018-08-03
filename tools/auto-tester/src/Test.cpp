@@ -132,9 +132,7 @@ void Test::appendTestResultsToFile(const QString& _testResultsFolderPath, TestFa
         exit(-1);
     }
 
-    QString err = QString::number(testFailure._error).left(6);
-
-    QString failureFolderPath { _testResultsFolderPath + "/" + err +  "-Failure_" + QString::number(_index) + "--" + testFailure._actualImageFilename.left(testFailure._actualImageFilename.length() - 4) };
+    QString failureFolderPath { _testResultsFolderPath + "/Failure_" + QString::number(_index) + "--" + testFailure._actualImageFilename.left(testFailure._actualImageFilename.length() - 4) };
     if (!QDir().mkdir(failureFolderPath)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create folder " + failureFolderPath);
         exit(-1);
@@ -858,6 +856,16 @@ void Test::createTestRailRun() {
     QString outputDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select a folder to store generated files in",
                                                                 nullptr, QFileDialog::ShowDirsOnly);
     _testRailInterface.createTestRailRun(outputDirectory);
+}
+
+void Test::updateTestRailRunResult() {
+    QString testResults = QFileDialog::getOpenFileName(nullptr, "Please select the zipped test results to update from", nullptr,
+                                                       "Zipped Test Results (*.zip)");
+
+    QString tempDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select a folder to store temporary files in",
+                                                                nullptr, QFileDialog::ShowDirsOnly);
+
+    _testRailInterface.updateTestRailRunResults(testResults, tempDirectory);
 }
 
 QStringList Test::createListOfAll_imagesInDirectory(const QString& imageFormat, const QString& pathToImageDirectory) {

@@ -79,6 +79,7 @@ public:
     void updateSectionsComboData(int exitCode, QProcess::ExitStatus exitStatus);
 
     void createTestRailRun(const QString& outputDirectory);
+    void updateTestRailRunResults(const QString& testResults, const QString& tempDirectory);
 
     void addRun();
 
@@ -115,6 +116,8 @@ private:
 
     QStringList _sectionNames;
     std::vector<int> _sectionIDs;
+
+    QString tempName{ "fgadhcUDHSFaidsfh3478JJJFSDFIUSOEIrf" };
 };
 
 #endif
