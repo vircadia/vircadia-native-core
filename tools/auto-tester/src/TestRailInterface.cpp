@@ -511,8 +511,10 @@ void TestRailInterface::addRun() {
         process->start(_pythonCommand, parameters);
     }
 }
+void TestRailInterface::updateRunWithResults() {
+}
 
-void TestRailInterface::updateSectionsComboData(int exitCode, QProcess::ExitStatus exitStatus) {
+void TestRailInterface::updateSectionsComboData(int exitCode, QProcess::ExitStatus exitStatus) {(
     // Quit if user has previously cancelled
     if (_testRailRunSelectorWindow.getUserCancelled()) {
         return;
@@ -619,7 +621,7 @@ void TestRailInterface::updateRunsComboData(int exitCode, QProcess::ExitStatus e
     file.close();
 
     // Update the combo
-    _testRailResultsSelectorWindow.updateRunsComboBoxData(_sectionNames);
+    _testRailResultsSelectorWindow.updateRunsComboBoxData(_runNames);
 
     _testRailResultsSelectorWindow.exec();
 
@@ -628,9 +630,8 @@ void TestRailInterface::updateRunsComboData(int exitCode, QProcess::ExitStatus e
     }
 
     // The test cases are now read from TestRail
-    // When this is complete, the Run can be created
-    int sfg = 456;
-    //addRun();
+    // When this is complete, the Run can be updated
+    updateRunWithResults();
 }
 
 void TestRailInterface::getReleasesFromTestRail() {
@@ -1006,8 +1007,8 @@ void TestRailInterface::getTestSectionsFromTestRail() {
     process->start(_pythonCommand, parameters);
 }
 
-void TestRailInterface::getRunFromTestRail() {
-    QString filename = _outputDirectory + "/getRun.py";
+void TestRailInterface::getRunsFromTestRail() {
+    QString filename = _outputDirectory + "/getRuns.py";
     if (QFile::exists(filename)) {
         QFile::remove(filename);
     }
@@ -1015,7 +1016,7 @@ void TestRailInterface::getRunFromTestRail() {
 
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "Could not create 'getRun.py'");
+                              "Could not create " + filename);
         exit(-1);
     }
 
@@ -1041,6 +1042,7 @@ void TestRailInterface::getRunFromTestRail() {
             [=](int exitCode, QProcess::ExitStatus exitStatus) { updateRunsComboData(exitCode, exitStatus); });
 
     QStringList parameters = QStringList() << filename;
+
     process->start(_pythonCommand, parameters);
 }
 
@@ -1063,12 +1065,18 @@ void TestRailInterface::createTestRailRun(const QString& outputDirectory) {
 }
 
 void TestRailInterface::updateTestRailRunResults(const QString& testResults, const QString& tempDirectory) {
-    if (requestTestRailResultsDataFromUser()) {
+    _outputDirectory = tempDirectory;
+
+    if (!setPythonCommand()) {
+        return;
+    }
+
+    if (!requestTestRailResultsDataFromUser()) {
         return;
     }
 
     // TestRail will be updated after the process initiated by getTestRunFromTestRail has completed
-    getRunFromTestRail();
+    getRunsFromTestRail();
     
     // Extract test failures from zipped folder
     QString tempSubDirectory = tempDirectory + "/" + tempName;

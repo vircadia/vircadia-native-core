@@ -56,7 +56,7 @@ public:
 
     void getReleasesFromTestRail();
     void getTestSectionsFromTestRail();
-    void getRunFromTestRail();
+    void getRunsFromTestRail();
 
     void createTestRailDotPyScript();
     void createStackDotPyScript();
@@ -86,6 +86,7 @@ public:
     void updateTestRailRunResults(const QString& testResults, const QString& tempDirectory);
 
     void addRun();
+    void updateRunWithResults();
 
     bool setPythonCommand();
 
