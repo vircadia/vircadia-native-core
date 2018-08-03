@@ -45,14 +45,14 @@ const AnimPoseVec& AnimBlendLinear::evaluate(const AnimVariantMap& animVars, con
         float alpha = glm::fract(clampedAlpha);
         evaluateAndBlendChildren(animVars, context, triggersOut, alpha, prevPoseIndex, nextPoseIndex, dt);
 
-        if (alpha > 0.00001f) {
-            float weight1 = alpha;
-            float weight2 = 1.0f - weight1;
-            _animStack[_children[prevPoseIndex]->getID()] = weight1 * parentAlpha;
-            if ((int)nextPoseIndex < _children.size()) {
-                _animStack[_children[nextPoseIndex]->getID()] = weight2 * parentAlpha;
-            }
+
+        float weight2 = alpha;
+        float weight1 = 1.0f - weight2;
+        _animStack[_children[prevPoseIndex]->getID()] = weight1 * parentAlpha;
+        if ((int)nextPoseIndex < _children.size()) {
+            _animStack[_children[nextPoseIndex]->getID()] = weight2 * parentAlpha;
         }
+
     }
     processOutputJoints(triggersOut);
 

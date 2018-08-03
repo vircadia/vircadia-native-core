@@ -22,12 +22,9 @@ AnimStateMachine::~AnimStateMachine() {
 }
 
 const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
-    qCDebug(animation) << "in anim state machine " << _currentState->getID() << ": " << _alpha;
-    
-    //setMyNum(getMyNum() + 1.0f);
+
     if (_id.contains("userAnimStateMachine")) {
         _animStack.clear();
-        qCDebug(animation) << "clearing anim stack";
     }
 
     QString desiredStateID = animVars.lookup(_currentStateVar, _currentState->getID());
@@ -37,7 +34,6 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, co
         for (auto& state : _states) {
             if (state->getID() == desiredStateID) {
                 _previousStateID = "(" + _currentState->getID() + ")";
-                //_previousStateID = _currentState->getID();
                 switchState(animVars, context, state);
                 foundState = true;
                 break;
@@ -52,7 +48,7 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, co
     auto desiredState = evaluateTransitions(animVars);
     if (desiredState != _currentState) {
         //parenthesis means snapshot of this state.
-        _previousStateID = "(" + _currentState->getID() + ")";  
+        _previousStateID = "(" + _currentState->getID() + ")";
         switchState(animVars, context, desiredState);
     }
 
@@ -63,7 +59,6 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, co
     if (!_previousStateID.contains("none")) {
         _animStack[_previousStateID] = 1.0f - _alpha;
     }
-    
 
     if (_duringInterp) {
         _alpha += _alphaVel * dt;
@@ -71,8 +66,6 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, co
             _animStack[_currentState->getID()] = 1.0f;
         } else {
             _animStack[_currentState->getID()] = _alpha;
-            qCDebug(animation) << "setting child alpha " << _currentState->getID() << " " << _alpha;
-
         }
         if (_alpha < 1.0f) {
             AnimPoseVec* nextPoses = nullptr;
@@ -91,7 +84,6 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, co
             } else {
                 assert(false);
             }
-
             if (_poses.size() > 0 && nextPoses && prevPoses && nextPoses->size() > 0 && prevPoses->size() > 0) {
                 ::blend(_poses.size(), &(prevPoses->at(0)), &(nextPoses->at(0)), _alpha, &_poses[0]);
             }

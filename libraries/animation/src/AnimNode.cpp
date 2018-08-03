@@ -12,7 +12,6 @@
 
 #include <QtGlobal>
 
-float AnimNode::_myNum = 42.0;
 std::map<QString, float> AnimNode::_animStack = {
     {"none", 0.0f}
 };

@@ -31,7 +31,6 @@ AnimClip::~AnimClip() {
 }
 
 const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
-    qCDebug(animation) << "anim clip is: " << _url;
 
     // lookup parameters from animVars, using current instance variables as defaults.
     _startFrame = animVars.lookup(_startFrameVar, _startFrame);

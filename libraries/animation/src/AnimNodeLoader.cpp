@@ -640,7 +640,6 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
 
     auto statesArray = statesValue.toArray();
     for (const auto& stateValue : statesArray) {
-        //qCDebug(animation) << " state name is " << stateValue.toString();
         if (!stateValue.isObject()) {
             qCCritical(animation) << "AnimNodeLoader, bad state object in \"states\", id =" << nodeId << ", url =" << jsonUrl.toDisplayString();
             return false;

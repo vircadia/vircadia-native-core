@@ -867,7 +867,6 @@ void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, co
 
 //virtual
 const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
-    qCDebug(animation) << "in animation ik node";
     // don't call this function, call overlay() instead
     assert(false);
     return _relativePoses;

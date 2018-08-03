@@ -84,8 +84,6 @@ public:
     }
 
     void setCurrentFrame(float frame);
-    const int getMyNum() { return _myNum; }
-    void setMyNum(float num) { _myNum = num; }
     const std::map<QString, float> getAnimStack() { return _animStack; }
 
     template <typename F>
@@ -129,8 +127,7 @@ protected:
     std::weak_ptr<AnimNode> _parent;
     std::vector<QString> _outputJointNames;
 
-    //global available to rig
-    static float _myNum;
+    //global available to Stats.h
     static std::map<QString, float> _animStack;
 
     // no copies

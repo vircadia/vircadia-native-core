@@ -51,7 +51,7 @@ const AnimPoseVec& AnimBlendLinearMove::evaluate(const AnimVariantMap& animVars,
 
     qCDebug(animation) << "in blend linear move " << _alphaVar << ": " << _alpha << " band id: " << _id << " parent alpha " << _animStack[_id];
     assert(_children.size() == _characteristicSpeeds.size());
-    
+
     _desiredSpeed = animVars.lookup(_desiredSpeedVar, _desiredSpeed);
 
     float speed = 0.0f;
@@ -65,7 +65,7 @@ const AnimPoseVec& AnimBlendLinearMove::evaluate(const AnimVariantMap& animVars,
     }
     _alpha = calculateAlpha(speed, _characteristicSpeeds);
     float parentAlpha = _animStack[_id];
-    
+
     _animStack["speed"] = speed;
 
     qCDebug(animation) << "speed is now: " << speed;
@@ -81,7 +81,6 @@ const AnimPoseVec& AnimBlendLinearMove::evaluate(const AnimVariantMap& animVars,
         float prevDeltaTime, nextDeltaTime;
         setFrameAndPhase(dt, alpha, prevPoseIndex, nextPoseIndex, &prevDeltaTime, &nextDeltaTime, triggersOut);
         evaluateAndBlendChildren(animVars, context, triggersOut, alpha, prevPoseIndex, nextPoseIndex, prevDeltaTime, nextDeltaTime);
-        
         _animStack[_children[0]->getID()] = parentAlpha;
     } else {
         auto clampedAlpha = glm::clamp(_alpha, 0.0f, (float)(_children.size() - 1));

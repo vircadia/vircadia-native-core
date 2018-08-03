@@ -201,7 +201,6 @@ void Stats::updateStats(bool force) {
     for (auto animStackIterator = animStack.begin(); animStackIterator != animStack.end(); ++animStackIterator) {
         qCDebug(interfaceapp) << "---" << animStackIterator->first << " " << animStackIterator->second;
         _animStackNames << animStackIterator->first + ":       " +  QString::number(animStackIterator->second,'f',3);
-            //forwardAlpha = animStackIterator->second;
     }
     emit animStackNamesChanged();
 

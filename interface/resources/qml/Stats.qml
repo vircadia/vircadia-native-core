@@ -180,9 +180,7 @@ Item {
                     ListView {
                         width: geoCol.width
                         height: root.animStackNames.length * 15
-
                         visible: root.animStackNames.length > 0;
-
                         model: root.animStackNames
                         delegate: StatText {
                             text: modelData.length > 30
