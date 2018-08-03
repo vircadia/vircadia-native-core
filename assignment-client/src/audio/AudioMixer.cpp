@@ -203,7 +203,7 @@ void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
     nodeList->eachNode([&killedNode](const SharedNodePointer& node) {
         auto clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
         if (clientData) {
-            clientData->removeNode(killedNode->getUUID());
+            clientData->removeNode(killedNode->getLocalID());
         }
     });
 }
@@ -233,7 +233,7 @@ void AudioMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> packet, 
         nodeList->eachNode([sendingNode](const SharedNodePointer& node){
             auto listenerClientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
             if (listenerClientData) {
-                listenerClientData->removeHRTFForStream(sendingNode->getUUID());
+                listenerClientData->removeHRTFForStream(sendingNode->getLocalID());
             }
         });
     }
@@ -248,7 +248,7 @@ void AudioMixer::removeHRTFsForFinishedInjector(const QUuid& streamID) {
         nodeList->eachNode([injectorClientData, &streamID](const SharedNodePointer& node){
             auto listenerClientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
             if (listenerClientData) {
-                listenerClientData->removeHRTFForStream(injectorClientData->getNodeID(), streamID);
+                listenerClientData->removeHRTFForStream(injectorClientData->getNodeLocalID(), streamID);
             }
         });
     }
@@ -370,6 +370,7 @@ AudioMixerClientData* AudioMixer::getOrCreateClientData(Node* node) {
     if (!clientData) {
         node->setLinkedData(unique_ptr<NodeData> { new AudioMixerClientData(node->getUUID(), node->getLocalID()) });
         clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
+        clientData->setNodeLocalID(node->getLocalID());
         connect(clientData, &AudioMixerClientData::injectorStreamFinished, this, &AudioMixer::removeHRTFsForFinishedInjector);
     }
 

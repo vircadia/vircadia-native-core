@@ -50,13 +50,13 @@ public:
     // they are not thread-safe
 
     // returns a new or existing HRTF object for the given stream from the given node
-    AudioHRTF& hrtfForStream(const QUuid& nodeID, const QUuid& streamID = QUuid()) { return _nodeSourcesHRTFMap[nodeID][streamID]; }
+    AudioHRTF& hrtfForStream(Node::LocalID nodeID, const QUuid& streamID = QUuid()) { return _nodeSourcesHRTFMap[nodeID][streamID]; }
 
     // removes an AudioHRTF object for a given stream
-    void removeHRTFForStream(const QUuid& nodeID, const QUuid& streamID = QUuid());
+    void removeHRTFForStream(Node::LocalID nodeID, const QUuid& streamID = QUuid());
 
     // remove all sources and data from this node
-    void removeNode(const QUuid& nodeID) { _nodeSourcesHRTFMap.erase(nodeID); }
+    void removeNode(Node::LocalID nodeID) { _nodeSourcesHRTFMap.erase(nodeID); }
 
     void removeAgentAvatarAudioStream();
 
@@ -74,6 +74,9 @@ public:
     void removeDeadInjectedStreams();
 
     QJsonObject getAudioStreamStats();
+
+    void setNodeLocalID(Node::LocalID localNodeID) { _localNodeID = localNodeID; }
+    Node::LocalID getNodeLocalID() { return _localNodeID; }
 
     void sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode);
 
@@ -150,7 +153,7 @@ private:
     IgnoreZoneMemo _ignoreZone;
 
     using HRTFMap = std::unordered_map<QUuid, AudioHRTF>;
-    using NodeSourcesHRTFMap = std::unordered_map<QUuid, HRTFMap>;
+    using NodeSourcesHRTFMap = std::unordered_map<Node::LocalID, HRTFMap>;
     NodeSourcesHRTFMap _nodeSourcesHRTFMap;
 
     quint16 _outgoingMixedAudioSequenceNumber;
@@ -170,6 +173,8 @@ private:
 
     bool _shouldMuteClient { false };
     bool _requestsDomainListData { false };
+
+    Node::LocalID _localNodeID;
 };
 
 #endif // hifi_AudioMixerClientData_h

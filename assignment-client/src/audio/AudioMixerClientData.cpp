@@ -197,7 +197,8 @@ void AudioMixerClientData::parsePerAvatarGainSet(ReceivedMessage& message, const
         qCDebug(audio) << "Setting MASTER avatar gain for " << uuid << " to " << gain;
     } else {
         // set the per-source avatar gain
-        hrtfForStream(avatarUuid, QUuid()).setGainAdjustment(gain);
+        auto nodeList = DependencyManager::get<NodeList>();
+        hrtfForStream(nodeList->nodeWithUUID(avatarUuid)->getLocalID(), QUuid()).setGainAdjustment(gain);
         qCDebug(audio) << "Setting avatar gain adjustment for hrtf[" << uuid << "][" << avatarUuid << "] to " << gain;
     }
 }
@@ -225,7 +226,7 @@ AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {
     return NULL;
 }
 
-void AudioMixerClientData::removeHRTFForStream(const QUuid& nodeID, const QUuid& streamID) {
+void AudioMixerClientData::removeHRTFForStream(Node::LocalID nodeID, const QUuid& streamID) {
     auto it = _nodeSourcesHRTFMap.find(nodeID);
     if (it != _nodeSourcesHRTFMap.end()) {
         // erase the stream with the given ID from the given node

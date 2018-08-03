@@ -142,9 +142,9 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
     std::vector<std::pair<float, SharedNodePointer>> throttledNodes;
 
     typedef void (AudioMixerSlave::*MixFunctor)(
-            AudioMixerClientData&, const QUuid&, const AvatarAudioStream&, const PositionalAudioStream&);
+        AudioMixerClientData&, Node::LocalID, const AvatarAudioStream&, const PositionalAudioStream&);
     auto forAllStreams = [&](const SharedNodePointer& node, AudioMixerClientData* nodeData, MixFunctor mixFunctor) {
-        auto nodeID = node->getUUID();
+        auto nodeID = node->getLocalID();
         for (auto& streamPair : nodeData->getAudioStreams()) {
             (this->*mixFunctor)(*listenerData, nodeID, *listenerAudioStream, *streamPair);
         }
@@ -164,14 +164,13 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
             // only mix the echo, if requested
             for (auto& streamPair : nodeData->getAudioStreams()) {
                 if (streamPair->shouldLoopbackForNode()) {
-                    mixStream(*listenerData, node->getUUID(), *listenerAudioStream, *streamPair);
+                    mixStream(*listenerData, node->getLocalID(), *listenerAudioStream, *streamPair);
                 }
             }
         } else if (!listenerData->shouldIgnore(listener, node, _frame)) {
             if (!isThrottling) {
                 forAllStreams(node, nodeData, &AudioMixerSlave::mixStream);
             } else {
-                auto nodeID = node->getUUID();
 
                 // compute the node's max relative volume
                 float nodeVolume = 0.0f;
@@ -182,7 +181,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
                     float gain = approximateGain(*listenerAudioStream, *nodeStream, relativePosition);
 
                     // modify by hrtf gain adjustment
-                    auto& hrtf = listenerData->hrtfForStream(nodeID, nodeStream->getStreamIdentifier());
+                    auto& hrtf = listenerData->hrtfForStream(node->getLocalID(), nodeStream->getStreamIdentifier());
                     gain *= hrtf.getGainAdjustment();
 
                     auto streamVolume = nodeStream->getLastPopOutputTrailingLoudness() * gain;
@@ -243,23 +242,23 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
     return hasAudio;
 }
 
-void AudioMixerSlave::throttleStream(AudioMixerClientData& listenerNodeData, const QUuid& sourceNodeID,
+void AudioMixerSlave::throttleStream(AudioMixerClientData& listenerNodeData, Node::LocalID sourceNodeLocalID,
         const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd) {
     // only throttle this stream to the mix if it has a valid position, we won't know how to mix it otherwise
     if (streamToAdd.hasValidPosition()) {
-        addStream(listenerNodeData, sourceNodeID, listeningNodeStream, streamToAdd, true);
+        addStream(listenerNodeData, sourceNodeLocalID, listeningNodeStream, streamToAdd, true);
     }
 }
 
-void AudioMixerSlave::mixStream(AudioMixerClientData& listenerNodeData, const QUuid& sourceNodeID,
+void AudioMixerSlave::mixStream(AudioMixerClientData& listenerNodeData, Node::LocalID sourceNodeLocalID,
         const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd) {
     // only add the stream to the mix if it has a valid position, we won't know how to mix it otherwise
     if (streamToAdd.hasValidPosition()) {
-        addStream(listenerNodeData, sourceNodeID, listeningNodeStream, streamToAdd, false);
+        addStream(listenerNodeData, sourceNodeLocalID, listeningNodeStream, streamToAdd, false);
     }
 }
 
-void AudioMixerSlave::addStream(AudioMixerClientData& listenerNodeData, const QUuid& sourceNodeID,
+void AudioMixerSlave::addStream(AudioMixerClientData& listenerNodeData, Node::LocalID sourceNodeLocalID,
         const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         bool throttle) {
     ++stats.totalMixes;
@@ -301,7 +300,7 @@ void AudioMixerSlave::addStream(AudioMixerClientData& listenerNodeData, const QU
             // (this is not done for stereo streams since they do not go through the HRTF)
             if (!streamToAdd.isStereo() && !isEcho) {
                 // get the existing listener-source HRTF object, or create a new one
-                auto& hrtf = listenerNodeData.hrtfForStream(sourceNodeID, streamToAdd.getStreamIdentifier());
+                auto& hrtf = listenerNodeData.hrtfForStream(sourceNodeLocalID, streamToAdd.getStreamIdentifier());
 
                 static int16_t silentMonoBlock[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL] = {};
                 hrtf.renderSilent(silentMonoBlock, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
@@ -321,7 +320,7 @@ void AudioMixerSlave::addStream(AudioMixerClientData& listenerNodeData, const QU
     if (streamToAdd.isStereo()) {
 
         // apply the avatar gain adjustment
-        auto& hrtf = listenerNodeData.hrtfForStream(sourceNodeID, streamToAdd.getStreamIdentifier());
+        auto& hrtf = listenerNodeData.hrtfForStream(sourceNodeLocalID, streamToAdd.getStreamIdentifier());
         gain *= hrtf.getGainAdjustment();
 
         const float scale = 1/32768.0f; // int16_t to float
@@ -351,7 +350,7 @@ void AudioMixerSlave::addStream(AudioMixerClientData& listenerNodeData, const QU
     }
 
     // get the existing listener-source HRTF object, or create a new one
-    auto& hrtf = listenerNodeData.hrtfForStream(sourceNodeID, streamToAdd.getStreamIdentifier());
+    auto& hrtf = listenerNodeData.hrtfForStream(sourceNodeLocalID, streamToAdd.getStreamIdentifier());
 
     streamPopOutput.readSamples(_bufferSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
@@ -375,7 +374,7 @@ void AudioMixerSlave::addStream(AudioMixerClientData& listenerNodeData, const QU
 
     if (streamToAdd.getType() == PositionalAudioStream::Injector) {
         // apply per-avatar gain to positional audio injectors, which wouldn't otherwise be affected by PAL sliders
-        hrtf.setGainAdjustment(listenerNodeData.hrtfForStream(sourceNodeID, QUuid()).getGainAdjustment());
+        hrtf.setGainAdjustment(listenerNodeData.hrtfForStream(sourceNodeLocalID, QUuid()).getGainAdjustment());
     }
 
     hrtf.render(_bufferSamples, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,

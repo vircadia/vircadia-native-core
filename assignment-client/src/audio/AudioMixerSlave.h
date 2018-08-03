@@ -45,11 +45,11 @@ public:
 private:
     // create mix, returns true if mix has audio
     bool prepareMix(const SharedNodePointer& listener);
-    void throttleStream(AudioMixerClientData& listenerData, const QUuid& streamerID,
+    void throttleStream(AudioMixerClientData& listenerData, Node::LocalID streamerID,
             const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer);
-    void mixStream(AudioMixerClientData& listenerData, const QUuid& streamerID,
+    void mixStream(AudioMixerClientData& listenerData, Node::LocalID streamerID,
             const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer);
-    void addStream(AudioMixerClientData& listenerData, const QUuid& streamerID,
+    void addStream(AudioMixerClientData& listenerData, Node::LocalID streamerID,
             const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer,
             bool throttle);
 
