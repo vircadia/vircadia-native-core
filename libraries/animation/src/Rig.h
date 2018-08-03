@@ -302,10 +302,7 @@ protected:
     std::shared_ptr<AnimSkeleton> _animSkeleton;
     std::unique_ptr<AnimNodeLoader> _animLoader;
     AnimVariantMap _animVars;
-    float _fwdAlpha { 0.0f };
-    float _bwdAlpha { 0.0f };
-    float _lateralAlpha { 0.0f };
-    QString _animationName1 { "none" };
+
     enum class RigRole {
         Idle = 0,
         Turn,
@@ -391,6 +388,7 @@ protected:
     bool _smoothPoleVectors { false };
 
     int _rigId;
+    bool _headEnabled { false };
 };
 
 #endif /* defined(__hifi__Rig__) */

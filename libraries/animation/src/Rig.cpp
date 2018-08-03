@@ -656,8 +656,6 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         _animVars.set("moveForwardSpeed", _averageForwardSpeed.getAverage());
         _animVars.set("moveBackwardSpeed", -_averageForwardSpeed.getAverage());
         _animVars.set("moveLateralSpeed", fabsf(_averageLateralSpeed.getAverage()));
-        _animVars.set("lastSampledForwardSpeed", forwardSpeed);
-        _animVars.set("lastSampledLateralSpeed", lateralSpeed);
 
         const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec
         const float MOVE_EXIT_SPEED_THRESHOLD = 0.07f;  // m/sec
@@ -734,12 +732,18 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
         bool resetVelocityAverage = false;
 
+        //bool headEnabled = params.primaryControllerFlags[PrimaryControllerType_Head] & (uint8_t)ControllerFlags::Enabled;
+        //int headType = (int)(IKTarget::Type::HmdHead);
+       // headType = (int)_animVars.lookup("headType", headType);
+        qCDebug(animation) << "head type anim variable is :                                               " << _headEnabled;
+
+
         if (_state == RigRole::Move) {
             glm::vec3 horizontalVel = localVel - glm::vec3(0.0f, localVel.y, 0.0f);
             if (glm::length(horizontalVel) > MOVE_ENTER_SPEED_THRESHOLD) {
                 if (fabsf(forwardSpeed) > 0.5f * fabsf(lateralSpeed)) {
                     if (forwardSpeed > 0.0f) {
-                        if (lastForwardSpeed < 0.0f){
+                        if (lastForwardSpeed < 0.0f) {
                             resetVelocityAverage = true;
                         }
                         // forward
@@ -747,6 +751,8 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                         _animVars.set("isMovingBackward", false);
                         _animVars.set("isMovingRight", false);
                         _animVars.set("isMovingLeft", false);
+                        _animVars.set("isMovingRightHmd", false);
+                        _animVars.set("isMovingLeftHmd", false);
                         _animVars.set("isNotMoving", false);
 
                     } else {
@@ -756,8 +762,13 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                         // backward
                         _animVars.set("isMovingBackward", true);
                         _animVars.set("isMovingForward", false);
-                        _animVars.set("isMovingRight", false);
-                        _animVars.set("isMovingLeft", false);
+                        if (!_headEnabled) {
+                            _animVars.set("isMovingRight", false);
+                            _animVars.set("isMovingLeft", false);
+                        } else {
+                            _animVars.set("isMovingRightHmd", false);
+                            _animVars.set("isMovingLeftHmd", false);
+                        }
                         _animVars.set("isNotMoving", false);
                     }
                 } else {
@@ -766,8 +777,17 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                             resetVelocityAverage = true;
                         }
                         // right
-                        _animVars.set("isMovingRight", true);
-                        _animVars.set("isMovingLeft", false);
+                        if (!_headEnabled) {
+                            _animVars.set("isMovingRight", true);
+                            _animVars.set("isMovingLeft", false);
+                            _animVars.set("isMovingRightHmd", false);
+                            _animVars.set("isMovingLeftHmd", false);
+                        } else {
+                            _animVars.set("isMovingRightHmd", true);
+                            _animVars.set("isMovingLeftHmd", false);
+                            _animVars.set("isMovingRight", false);
+                            _animVars.set("isMovingLeft", false);
+                        }
                         _animVars.set("isMovingForward", false);
                         _animVars.set("isMovingBackward", false);
                         _animVars.set("isNotMoving", false);
@@ -776,8 +796,17 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                             resetVelocityAverage = true;
                         }
                         // left
-                        _animVars.set("isMovingLeft", true);
-                        _animVars.set("isMovingRight", false);
+                        if (!_headEnabled) {
+                            _animVars.set("isMovingRight", false);
+                            _animVars.set("isMovingLeft", true);
+                            _animVars.set("isMovingRightHmd", false);
+                            _animVars.set("isMovingLeftHmd", false);
+                        } else {
+                            _animVars.set("isMovingRightHmd", false);
+                            _animVars.set("isMovingLeftHmd", true);
+                            _animVars.set("isMovingRight", false);
+                            _animVars.set("isMovingLeft", false);
+                        }
                         _animVars.set("isMovingForward", false);
                         _animVars.set("isMovingBackward", false);
                         _animVars.set("isNotMoving", false);
@@ -825,6 +854,8 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isMovingBackward", false);
             _animVars.set("isMovingRight", false);
             _animVars.set("isMovingLeft", false);
+            _animVars.set("isMovingRightHmd", false);
+            _animVars.set("isMovingLeftHmd", false);
             _animVars.set("isNotMoving", true);
             _animVars.set("isFlying", false);
             _animVars.set("isNotFlying", true);
@@ -835,7 +866,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isInAirRun", false);
             _animVars.set("isNotInAir", true);
 
-        } else if (_state == RigRole::Idle ) {
+        } else if (_state == RigRole::Idle) {
             // default anim vars to notMoving and notTurning
             _animVars.set("isMovingForward", false);
             _animVars.set("isMovingBackward", false);
@@ -844,6 +875,8 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isNotMoving", true);
             _animVars.set("isTurningLeft", false);
             _animVars.set("isTurningRight", false);
+            _animVars.set("isMovingRightHmd", false);
+            _animVars.set("isMovingLeftHmd", false);
             _animVars.set("isNotTurning", true);
             _animVars.set("isFlying", false);
             _animVars.set("isNotFlying", true);
@@ -863,6 +896,8 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isNotMoving", true);
             _animVars.set("isTurningLeft", false);
             _animVars.set("isTurningRight", false);
+            _animVars.set("isMovingRightHmd", false);
+            _animVars.set("isMovingLeftHmd", false);
             _animVars.set("isNotTurning", true);
             _animVars.set("isFlying", true);
             _animVars.set("isNotFlying", false);
@@ -879,6 +914,8 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isMovingBackward", false);
             _animVars.set("isMovingLeft", false);
             _animVars.set("isMovingRight", false);
+            _animVars.set("isMovingRightHmd", false);
+            _animVars.set("isMovingLeftHmd", false);
             _animVars.set("isNotMoving", true);
             _animVars.set("isTurningLeft", false);
             _animVars.set("isTurningRight", false);
@@ -906,6 +943,8 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isMovingBackward", false);
             _animVars.set("isMovingLeft", false);
             _animVars.set("isMovingRight", false);
+            _animVars.set("isMovingRightHmd", false);
+            _animVars.set("isMovingLeftHmd", false);
             _animVars.set("isNotMoving", true);
             _animVars.set("isTurningLeft", false);
             _animVars.set("isTurningRight", false);
@@ -942,6 +981,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             }
         }
         _lastEnableInverseKinematics = _enableInverseKinematics;
+
     }
 
     _lastForward = forward;
@@ -1612,7 +1652,7 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     _animVars.set("isTalking", params.isTalking);
     _animVars.set("notIsTalking", !params.isTalking);
 
-    bool headEnabled = params.primaryControllerFlags[PrimaryControllerType_Head] & (uint8_t)ControllerFlags::Enabled;
+    _headEnabled = params.primaryControllerFlags[PrimaryControllerType_Head] & (uint8_t)ControllerFlags::Enabled;
     bool leftHandEnabled = params.primaryControllerFlags[PrimaryControllerType_LeftHand] & (uint8_t)ControllerFlags::Enabled;
     bool rightHandEnabled = params.primaryControllerFlags[PrimaryControllerType_RightHand] & (uint8_t)ControllerFlags::Enabled;
     bool hipsEnabled = params.primaryControllerFlags[PrimaryControllerType_Hips] & (uint8_t)ControllerFlags::Enabled;
@@ -1624,18 +1664,18 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     bool rightArmEnabled = params.secondaryControllerFlags[SecondaryControllerType_RightArm] & (uint8_t)ControllerFlags::Enabled;
     glm::mat4 sensorToRigMatrix = glm::inverse(params.rigToSensorMatrix);
 
-    updateHead(headEnabled, hipsEnabled, params.primaryControllerPoses[PrimaryControllerType_Head]);
+    updateHead(_headEnabled, hipsEnabled, params.primaryControllerPoses[PrimaryControllerType_Head]);
 
-    updateHands(leftHandEnabled, rightHandEnabled, hipsEnabled, hipsEstimated, leftArmEnabled, rightArmEnabled, headEnabled, dt,
+    updateHands(leftHandEnabled, rightHandEnabled, hipsEnabled, hipsEstimated, leftArmEnabled, rightArmEnabled, _headEnabled, dt,
                 params.primaryControllerPoses[PrimaryControllerType_LeftHand], params.primaryControllerPoses[PrimaryControllerType_RightHand],
                 params.hipsShapeInfo, params.spineShapeInfo, params.spine1ShapeInfo, params.spine2ShapeInfo,
                 params.rigToSensorMatrix, sensorToRigMatrix);
 
-    updateFeet(leftFootEnabled, rightFootEnabled, headEnabled,
+    updateFeet(leftFootEnabled, rightFootEnabled, _headEnabled,
                params.primaryControllerPoses[PrimaryControllerType_LeftFoot], params.primaryControllerPoses[PrimaryControllerType_RightFoot],
                params.rigToSensorMatrix, sensorToRigMatrix);
 
-    if (headEnabled) {
+    if (_headEnabled) {
         // Blend IK chains toward the joint limit centers, this should stablize head and hand ik.
         _animVars.set("solutionSource", (int)AnimInverseKinematics::SolutionSource::RelaxToLimitCenterPoses);
     } else {
