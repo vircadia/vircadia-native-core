@@ -16,118 +16,17 @@
     var MAX_X_SIZE = 3;
     var isVisible = true;
     var defaultOffset = 1.5;
-    var hifi = "HighFidelity";
     var VOLUME = 0.4;
     var tune = SoundCache.getSound("http://hifi-content.s3.amazonaws.com/alexia/LoadingScreens/crystals_and_voices.wav");
     var sample = null;
     var MAX_LEFT_MARGIN = 1.9;
     var INNER_CIRCLE_WIDTH = 4.7;
     var DESTINATION_CARD_Y_OFFSET = 2;
-    var DEFAULT_TONE_MAPPING_EXPOSURE = 0.0;
-    var MIN_TONE_MAPPING_EXPOSURE = -5.0;
     var SYSTEM_TOOL_BAR = "com.highfidelity.interface.toolbar.system";
     var MAX_ELAPSED_TIME = 5 * 1000; // time in ms
-    function isInFirstPerson() {
-        return (Camera.mode === "first person");
-    }
 
     var toolbar = Toolbars.getToolbar(SYSTEM_TOOL_BAR);
     var renderViewTask = Render.getConfig("RenderMainView");
-
-    var domainHostnameMap = {
-        eschatology: "Seth Alves",
-        blue: "Sam Cake",
-        thepines: "Roxie",
-        "dev-mobile": "HighFidelity",
-        "dev-mobile-master": "HighFidelity",
-        portalarium: "Bijou",
-        porange: "Caitlyn",
-        rust: hifi,
-        start: hifi,
-        miimusic: "Madysyn",
-        codex: "FluffyJenkins",
-        zaru: hifi,
-        help: hifi,
-        therealoasis: "Caitlyn",
-        vrmacy: "budgiebeats",
-        niccage: "OneLisa",
-        impromedia: "GeorgeDeac",
-        nest: "budgiebeats",
-        gabworld: "LeeGab",
-        vrtv: "GeoorgeDeac",
-        burrow: "budgiebeats",
-        leftcoast: "Lurks",
-        lazybones: "LazybonesJurassic",
-        skyriver: "Chamberlain",
-        chapel: "www.livin.today",
-        "hi-studio": hifi,
-        luskan: "jyoum",
-        arcadiabay: "Aitolda",
-        chime: hifi,
-        standupnow: "diva",
-        avreng: "GeorgeDeac",
-        atlas: "rocklin_guy",
-        steamedhams: "Alan_",
-        banff: hifi,
-        operahouse: hifi,
-        bankofhighfidelity: hifi,
-        tutorial: "WadeWatts",
-        nightsky: hifi,
-        garageband: hifi,
-        painting: hifi,
-        windwaker: "bijou",
-        fumbleland: "Lpasca",
-        monolith: "Nik",
-        bijou: "bijou",
-        morty: "bijou",
-        "hifiqa-rc-bots": hifi,
-        fightnight: hifi,
-        spirited: "Alan_",
-        "desert-oasis": "ryan",
-        springfield: "Alan_",
-        hall: "ryan",
-        "national-park": "ryan",
-        vector: "Nik",
-        bodymart: hifi,
-        "medievil-village": "ryan",
-        "villains-lair": "ryan",
-        "island-breeze": "ryan",
-        "classy-apartment": "ryan",
-        voxel: "FlameSoulis",
-        virtuoso: "noahglaseruc",
-        avatarisland: hifi,
-        ioab: "rocklin_guy",
-        tamait: "rocklin_guy",
-        konshulabs: "Konshu",
-        epic: "philip",
-        poopsburg: "Caitlyn",
-        east: hifi,
-        glitched: hifi,
-        calartsim: hifi,
-        calarts: hifi,
-        livin: "rocklin_guy",
-        fightclub: "philip",
-        thefactory: "whyroc",
-        wothal: "Alezia.Kurdis",
-        udacity: hifi,
-        json: "WadeWatts",
-        anonymous: "darlingnotin",
-        maker: hifi,
-        elisa: "elisahifi",
-        volxeltopia: hifi,
-        cupcake: hifi,
-        minigolf: hifi,
-        workshop: hifi,
-        vankh: "Alezia.Kurdis",
-        "the-crash-site": "WolfGang",
-        jjv360: "jjv3600",
-        distributed2: hifi,
-        anny: hifi,
-        university: hifi,
-        ludus: hifi,
-        stepford: "darlingnotin",
-        thespot: hifi
-    };
 
     // Tips have a character limit of 69
     var userTips = [
@@ -282,11 +181,10 @@
         };
 
         var BY = "by ";
-        var host = domainHostnameMap[location.placename];
-        var text = BY + host;
+        var text = BY
         var hostLeftMargin = getLeftMargin(domainHostname, text);
         var hostnameProperties = {
-            text: BY + host,
+            text: BY,
             leftMargin: hostLeftMargin
         };
 
@@ -323,7 +221,7 @@
             AddressManager.handleLookupString(THE_PLACE);
         }
     }
-    var previousCameraMode = Camera.mode;
+
     var previousPhysicsStatus = 99999;
 
     function updateOverlays(physicsEnabled) {
@@ -405,9 +303,6 @@
         Overlays.deleteOverlay(domainToolTip);
         Overlays.deleteOverlay(loadingBarPlacard);
         Overlays.deleteOverlay(loadingBarProgress);
-        try {
-        }  catch (e) {
-        }
     }
 
     Script.scriptEnding.connect(cleanup);
