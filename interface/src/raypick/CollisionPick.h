@@ -15,11 +15,18 @@
 
 class CollisionPickResult : public PickResult {
 public:
+    enum LoadState {
+        LOAD_STATE_UNKNOWN,
+        LOAD_STATE_NOT_LOADED,
+        LOAD_STATE_LOADED
+    };
+
     CollisionPickResult() {}
     CollisionPickResult(const QVariantMap& pickVariant) : PickResult(pickVariant) {}
 
-    CollisionPickResult(const CollisionRegion& searchRegion, const std::vector<ContactTestResult>& entityIntersections, const std::vector<ContactTestResult>& avatarIntersections) :
+    CollisionPickResult(const CollisionRegion& searchRegion, LoadState loadState, const std::vector<ContactTestResult>& entityIntersections, const std::vector<ContactTestResult>& avatarIntersections) :
         PickResult(searchRegion.toVariantMap()),
+        loadState(loadState),
         intersects(entityIntersections.size() || avatarIntersections.size()),
         entityIntersections(entityIntersections),
         avatarIntersections(avatarIntersections) {
@@ -29,8 +36,10 @@ public:
         avatarIntersections = collisionPickResult.avatarIntersections;
         entityIntersections = collisionPickResult.entityIntersections;
         intersects = avatarIntersections.size() || entityIntersections.size();
+        loadState = collisionPickResult.loadState;
     }
 
+    LoadState loadState { LOAD_STATE_UNKNOWN };
     bool intersects { false };
     std::vector<ContactTestResult> entityIntersections;
     std::vector<ContactTestResult> avatarIntersections;
@@ -51,6 +60,9 @@ public:
         }
 
         intersects = entityIntersections.size() || avatarIntersections.size();
+        if (newCollisionResult->loadState == LOAD_STATE_NOT_LOADED || loadState == LOAD_STATE_UNKNOWN) {
+            loadState = (LoadState)newCollisionResult->loadState;        
+        }
 
         return std::make_shared<CollisionPickResult>(*this);
     }
@@ -68,7 +80,9 @@ public:
     }
 
     CollisionRegion getMathematicalPick() const override;
-    PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const override { return std::make_shared<CollisionPickResult>(pickVariant); }
+    PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const override {
+        return std::make_shared<CollisionPickResult>(pickVariant, CollisionPickResult::LOAD_STATE_UNKNOWN, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
+    }
     PickResultPointer getEntityIntersection(const CollisionRegion& pick) override;
     PickResultPointer getOverlayIntersection(const CollisionRegion& pick) override;
     PickResultPointer getAvatarIntersection(const CollisionRegion& pick) override;

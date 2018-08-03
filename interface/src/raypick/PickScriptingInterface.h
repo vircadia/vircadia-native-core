@@ -135,6 +135,7 @@ public:
      * @property {EntityItersection[]} entityIntersections The collision information of entities which intersect with the CollisionRegion. There may be multiple intersections with the same entity which represent distinct collision points.
      * @property {EntityItersection[]} avatarIntersections The collision information of avatars which intersect with the CollisionRegion. There may be multiple intersections with the same entity which represent distinct collision points.
      * @property {CollisionRegion} collisionRegion The CollisionRegion that was used. Valid even if there was no intersection.
+     * @property {boolean} loaded If the CollisionRegion was successfully loaded (may be false if a model was used)
      */
 
      /**jsdoc
