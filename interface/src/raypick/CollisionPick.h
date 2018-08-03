@@ -62,6 +62,9 @@ public:
         Pick(filter, maxDistance, enabled),
         _mathPick(collisionRegion),
         _physicsEngine(physicsEngine) {
+        if (collisionRegion.shouldComputeShapeInfo()) {
+            _cachedResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(collisionRegion.modelURL);
+        }
     }
 
     CollisionRegion getMathematicalPick() const override;
@@ -73,7 +76,7 @@ public:
 
 protected:
     // Returns true if pick.shapeInfo is valid. Otherwise, attempts to get the shapeInfo ready for use.
-    bool isShapeInfoReady(CollisionRegion& pick);
+    bool isShapeInfoReady();
     void computeShapeInfo(CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<GeometryResource> resource);
 
     CollisionRegion _mathPick;

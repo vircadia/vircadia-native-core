@@ -13,7 +13,6 @@
 #include <glm/gtx/transform.hpp>
 
 #include "ScriptEngineLogging.h"
-#include "model-networking/ModelCache.h"
 #include "UUIDHasher.h"
 
 QVariantMap CollisionPickResult::toVariantMap() const {
@@ -70,14 +69,10 @@ QVariantMap CollisionPickResult::toVariantMap() const {
     return variantMap;
 }
 
-bool CollisionPick::isShapeInfoReady(CollisionRegion& pick) {
-    if (pick.shouldComputeShapeInfo()) {
-        if (!_cachedResource || _cachedResource->getURL() != pick.modelURL) {
-            _cachedResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(pick.modelURL);
-        }
-
-        if (_cachedResource->isLoaded()) {
-            computeShapeInfo(pick, pick.shapeInfo, _cachedResource);
+bool CollisionPick::isShapeInfoReady() {
+    if (_mathPick.shouldComputeShapeInfo()) {
+        if (_cachedResource && _cachedResource->isLoaded()) {
+            computeShapeInfo(_mathPick, *_mathPick.shapeInfo, _cachedResource);
             return true;
         }
 
@@ -321,12 +316,12 @@ CollisionRegion CollisionPick::getMathematicalPick() const {
 }
 
 PickResultPointer CollisionPick::getEntityIntersection(const CollisionRegion& pick) {
-    if (!isShapeInfoReady(*const_cast<CollisionRegion*>(&pick))) {
+    if (!isShapeInfoReady()) {
         // Cannot compute result
         return std::make_shared<CollisionPickResult>();
     }
     
-    const auto& entityIntersections = _physicsEngine->getCollidingInRegion(MOTIONSTATE_TYPE_ENTITY, pick.shapeInfo, pick.transform);
+    const auto& entityIntersections = _physicsEngine->getCollidingInRegion(MOTIONSTATE_TYPE_ENTITY, *pick.shapeInfo, pick.transform);
     return std::make_shared<CollisionPickResult>(pick, entityIntersections, std::vector<ContactTestResult>());
 }
 
@@ -335,12 +330,12 @@ PickResultPointer CollisionPick::getOverlayIntersection(const CollisionRegion& p
 }
 
 PickResultPointer CollisionPick::getAvatarIntersection(const CollisionRegion& pick) {
-    if (!isShapeInfoReady(*const_cast<CollisionRegion*>(&pick))) {
+    if (!isShapeInfoReady()) {
         // Cannot compute result
         return std::make_shared<CollisionPickResult>();
     }
 
-    const auto& avatarIntersections = _physicsEngine->getCollidingInRegion(MOTIONSTATE_TYPE_AVATAR, pick.shapeInfo, pick.transform);
+    const auto& avatarIntersections = _physicsEngine->getCollidingInRegion(MOTIONSTATE_TYPE_AVATAR, *pick.shapeInfo, pick.transform);
     return std::make_shared<CollisionPickResult>(pick, std::vector<ContactTestResult>(), avatarIntersections);
 }
 

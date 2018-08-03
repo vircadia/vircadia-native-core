@@ -243,7 +243,7 @@ public:
                     transform.setScale(vec3FromVariant(shape["dimensions"]));
                 }
 
-                shapeInfo.setParams(shapeType, transform.getScale() / 2.0f, modelURL.toString());
+                shapeInfo->setParams(shapeType, transform.getScale() / 2.0f, modelURL.toString());
             }
         }
 
@@ -259,7 +259,7 @@ public:
         QVariantMap collisionRegion;
         
         QVariantMap shape;
-        shape["shapeType"] = ShapeInfo::getNameForShapeType(shapeInfo.getType());
+        shape["shapeType"] = ShapeInfo::getNameForShapeType(shapeInfo->getType());
         shape["modelURL"] = modelURL.toString();
         shape["dimensions"] = vec3toVariant(transform.getScale());
 
@@ -274,33 +274,33 @@ public:
     operator bool() const override {
         return !(glm::any(glm::isnan(transform.getTranslation())) ||
             glm::any(glm::isnan(transform.getRotation())) ||
-            shapeInfo.getType() == SHAPE_TYPE_NONE);
+            shapeInfo->getType() == SHAPE_TYPE_NONE);
     }
 
     bool operator==(const CollisionRegion& other) const {
         return glm::all(glm::equal(transform.getTranslation(), other.transform.getTranslation())) &&
             glm::all(glm::equal(transform.getRotation(), other.transform.getRotation())) &&
             glm::all(glm::equal(transform.getScale(), other.transform.getScale())) &&
-            shapeInfo.getType() == other.shapeInfo.getType() &&
+            shapeInfo->getType() == other.shapeInfo->getType() &&
             modelURL == other.modelURL;
     }
 
     bool shouldComputeShapeInfo() const {
-        if (!(shapeInfo.getType() == SHAPE_TYPE_HULL ||
-            (shapeInfo.getType() >= SHAPE_TYPE_COMPOUND &&
-                shapeInfo.getType() <= SHAPE_TYPE_STATIC_MESH)
+        if (!(shapeInfo->getType() == SHAPE_TYPE_HULL ||
+            (shapeInfo->getType() >= SHAPE_TYPE_COMPOUND &&
+                shapeInfo->getType() <= SHAPE_TYPE_STATIC_MESH)
             )) {
             return false;
         }
 
-        return !shapeInfo.getPointCollection().size();
+        return !shapeInfo->getPointCollection().size();
     }
 
     // We can't load the model here because it would create a circular dependency, so we delegate that responsibility to the owning CollisionPick
     QUrl modelURL;
 
     // We can't compute the shapeInfo here without loading the model first, so we delegate that responsibility to the owning CollisionPick
-    ShapeInfo shapeInfo;
+    std::shared_ptr<ShapeInfo> shapeInfo = std::make_shared<ShapeInfo>();
     Transform transform;
 };
 
@@ -371,7 +371,7 @@ namespace std {
     struct hash<CollisionRegion> {
         size_t operator()(const CollisionRegion& a) const {
             size_t result = 0;
-            hash_combine(result, a.transform, (int)a.shapeInfo.getType(), qHash(a.modelURL));
+            hash_combine(result, a.transform, (int)a.shapeInfo->getType(), qHash(a.modelURL));
             return result;
         }
     };
