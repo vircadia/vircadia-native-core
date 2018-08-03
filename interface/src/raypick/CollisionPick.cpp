@@ -318,7 +318,7 @@ CollisionRegion CollisionPick::getMathematicalPick() const {
 PickResultPointer CollisionPick::getEntityIntersection(const CollisionRegion& pick) {
     if (!isShapeInfoReady()) {
         // Cannot compute result
-        return std::make_shared<CollisionPickResult>();
+        return std::make_shared<CollisionPickResult>(pick.toVariantMap());
     }
     
     const auto& entityIntersections = _physicsEngine->getCollidingInRegion(MOTIONSTATE_TYPE_ENTITY, *pick.shapeInfo, pick.transform);
@@ -326,13 +326,13 @@ PickResultPointer CollisionPick::getEntityIntersection(const CollisionRegion& pi
 }
 
 PickResultPointer CollisionPick::getOverlayIntersection(const CollisionRegion& pick) {
-    return getDefaultResult(QVariantMap());
+    return getDefaultResult(pick.toVariantMap());
 }
 
 PickResultPointer CollisionPick::getAvatarIntersection(const CollisionRegion& pick) {
     if (!isShapeInfoReady()) {
         // Cannot compute result
-        return std::make_shared<CollisionPickResult>();
+        return std::make_shared<CollisionPickResult>(pick.toVariantMap());
     }
 
     const auto& avatarIntersections = _physicsEngine->getCollidingInRegion(MOTIONSTATE_TYPE_AVATAR, *pick.shapeInfo, pick.transform);
@@ -340,5 +340,5 @@ PickResultPointer CollisionPick::getAvatarIntersection(const CollisionRegion& pi
 }
 
 PickResultPointer CollisionPick::getHUDIntersection(const CollisionRegion& pick) {
-    return getDefaultResult(QVariantMap());
+    return getDefaultResult(pick.toVariantMap());
 }
