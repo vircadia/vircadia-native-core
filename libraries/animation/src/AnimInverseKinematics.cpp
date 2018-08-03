@@ -259,14 +259,6 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
                         jointChainInfoVec[i].jointInfoVec[j].rot = safeMix(_prevJointChainInfoVec[i].jointInfoVec[j].rot, jointChainInfoVec[i].jointInfoVec[j].rot, alpha);
                         jointChainInfoVec[i].jointInfoVec[j].trans = lerp(_prevJointChainInfoVec[i].jointInfoVec[j].trans, jointChainInfoVec[i].jointInfoVec[j].trans, alpha);
                     }
-
-                    // if joint chain was just disabled, ramp the weight toward zero.
-                    if (_prevJointChainInfoVec[i].target.getType() != IKTarget::Type::Unknown &&
-                        jointChainInfoVec[i].target.getType() == IKTarget::Type::Unknown) {
-                        IKTarget newTarget = _prevJointChainInfoVec[i].target;
-                        newTarget.setWeight((1.0f - alpha) * _prevJointChainInfoVec[i].target.getWeight());
-                        jointChainInfoVec[i].target = newTarget;
-                    }
                 }
             }
         }
@@ -874,14 +866,14 @@ void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, co
 }
 
 //virtual
-const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimNode::Triggers& triggersOut) {
+const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
     // don't call this function, call overlay() instead
     assert(false);
     return _relativePoses;
 }
 
 //virtual
-const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
+const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut, const AnimPoseVec& underPoses) {
 #ifdef Q_OS_ANDROID
     // disable IK on android
     return underPoses;
@@ -961,6 +953,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 PROFILE_RANGE_EX(simulation_animation, "ik/shiftHips", 0xffff00ff, 0);
 
                 if (_hipsTargetIndex >= 0) {
+
                     assert(_hipsTargetIndex < (int)targets.size());
 
                     // slam the hips to match the _hipsTarget
@@ -1045,6 +1038,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 PROFILE_RANGE_EX(simulation_animation, "ik/ccd", 0xffff00ff, 0);
 
                 setSecondaryTargets(context);
+
                 preconditionRelativePosesToAvoidLimbLock(context, targets);
 
                 solve(context, targets, dt, jointChainInfoVec);
@@ -1055,6 +1049,8 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             debugDrawConstraints(context);
         }
     }
+
+    processOutputJoints(triggersOut);
 
     return _relativePoses;
 }
@@ -1750,7 +1746,7 @@ void AnimInverseKinematics::preconditionRelativePosesToAvoidLimbLock(const AnimC
     const float MIN_AXIS_LENGTH = 1.0e-4f;
 
     for (auto& target : targets) {
-        if (target.getIndex() != -1) {
+        if (target.getIndex() != -1 && target.getType() == IKTarget::Type::RotationAndPosition) {
             for (int i = 0; i < NUM_LIMBS; i++) {
                 if (limbs[i].first == target.getIndex()) {
                     int tipIndex = limbs[i].first;
@@ -1843,6 +1839,10 @@ void AnimInverseKinematics::initRelativePosesFromSolutionSource(SolutionSource s
     default:
     case SolutionSource::RelaxToUnderPoses:
         blendToPoses(underPoses, underPoses, RELAX_BLEND_FACTOR);
+        // special case for hips: don't dampen hip motion from underposes
+        if (_hipsIndex >= 0 && _hipsIndex < (int)_relativePoses.size()) {
+            _relativePoses[_hipsIndex] = underPoses[_hipsIndex];
+        }
         break;
     case SolutionSource::RelaxToLimitCenterPoses:
         blendToPoses(_limitCenterPoses, underPoses, RELAX_BLEND_FACTOR);
