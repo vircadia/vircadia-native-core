@@ -41,8 +41,8 @@ MessageBox {
         popup.button1text = 'CANCEL'
         popup.titleText = 'Get Wearables'
         popup.bodyText = 'Buy wearables from <b><a href="app://marketplace">Marketplace.</a></b>' + '<br/>' +
-                         'Wear wearables from <b><a href="app://purchases">My Purchases.</a></b>' + '<br/>' + '<br/>' +
-                         'Visit “AvatarIsland” to get wearables'
+                         'Use wearables in <b><a href="app://purchases">My Purchases.</a></b>' + '<br/>' + '<br/>' +
+                         'Visit “AvatarIsland” to get wearables.'
 
         popup.imageSource = getWearablesUrl;
         popup.onButton2Clicked = function() {
@@ -102,7 +102,7 @@ MessageBox {
         popup.titleText = 'Get Avatars'
 
         popup.bodyText = 'Buy avatars from <b><a href="app://marketplace">Marketplace.</a></b>' + '<br/>' +
-                         'Wear avatars from <b><a href="app://purchases">My Purchases.</a></b>' + '<br/>' + '<br/>' +
+                         'Wear avatars in <b><a href="app://purchases">My Purchases.</a></b>' + '<br/>' + '<br/>' +
                          'Visit “BodyMart” to get free avatars.'
 
         popup.imageSource = getAvatarsUrl;
