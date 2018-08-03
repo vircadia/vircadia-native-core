@@ -21,14 +21,10 @@ Script.include("/~/system/libraries/controllers.js");
 
 (function() { // BEGIN LOCAL_SCOPE
 
-    var TARGET_MODEL_URL = Script.resolvePath("../../assets/models/teleport-destination.fbx");
+    var TARGET_MODEL_URL = Script.resolvePath("../../assets/models/teleportationSpotBasev3.fbx");
     var SEAT_MODEL_URL = Script.resolvePath("../../assets/models/teleport-seat.fbx");
 
-    var TARGET_MODEL_DIMENSIONS = {
-        x: 1.15,
-        y: 0.5,
-        z: 1.15
-    };
+    var TARGET_MODEL_DIMENSIONS = { x: 0.6552, y: 0.0010, z: 0.6552 };
 
     var COLORS_TELEPORT_SEAT = {
         red: 255,
