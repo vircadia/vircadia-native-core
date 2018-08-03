@@ -538,17 +538,28 @@ void TestRailInterface::updateRunWithResults() {
     //      This is the name of the test in TestRail
     stream << "from os import listdir\n";
 
-    stream << "names = []";
+    stream << "failed_tests = set()\n";
 
     stream << "for entry in listdir('" + _outputDirectory + "/" + tempName + "'):\n";
     stream << "\tparts = entry.split('--tests.')[1].split('.')\n";
-    stream << "\tname = parts[0]\n";
+    stream << "\tfailed_test = parts[0]\n";
     stream << "\tfor i in range(1, len(parts) - 1):\n";
-    stream << "\t\tname = name + '/' + parts[i]\n";
+    stream << "\t\tfailed_test = failed_test + '/' + parts[i]\n";
 
-    stream << "\tnames.append(name)\n";
+    stream << "\tfailed_tests.add(failed_test)\n\n";
 
     int runID = _runIDs[_testRailResultsSelectorWindow.getRunID()];
+    stream << "tests = client.send_get('get_tests/" + QString::number(runID) + "')\n\n";
+    stream << "for test in tests:\n";
+
+    // status_id's: 1 - Passed
+    //              2 - Blocked
+    //              3 - Untested
+    //              4 - Retest
+    //              5 - Failed
+    stream << "\tstatus_id = 1\n";
+    stream << "\tif test['title'] in failed_tests:\n";
+    stream << "\t\tstatus_id = 5\n";
 
     file.close();
 }
