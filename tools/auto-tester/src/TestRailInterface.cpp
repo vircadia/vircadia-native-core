@@ -41,6 +41,17 @@ TestRailInterface::TestRailInterface() {
 
     _testRailRunSelectorWindow.setSuiteID(INTERFACE_SUITE_ID);
     ////_testRailRunSelectorWindow.setSuiteID(2);
+
+    _testRailResultsSelectorWindow.setURL("https://highfidelity.testrail.net");
+    ////_testRailResultsSelectorWindow.setURL("https://nissimhadar.testrail.io");
+    _testRailResultsSelectorWindow.setUser("@highfidelity.io");
+    ////_testRailResultsSelectorWindow.setUser("nissim.hadar@gmail.com");
+
+    _testRailResultsSelectorWindow.setProjectID(INTERFACE_PROJECT_ID);
+    ////_testRailResultsSelectorWindow.setProjectID(2);
+
+    _testRailResultsSelectorWindow.setSuiteID(INTERFACE_SUITE_ID);
+    ////_testRailResultsSelectorWindow.setSuiteID(2);
 }
 
 QString TestRailInterface::getObject(const QString& path) {
@@ -217,13 +228,13 @@ void TestRailInterface::createStackDotPyScript() {
     file.close();
 }
 
-void TestRailInterface::requestTestRailTestCasesDataFromUser() {
+bool TestRailInterface::requestTestRailTestCasesDataFromUser() {
     // Make sure correct fields are enabled before calling
     _testRailTestCasesSelectorWindow.reset();
     _testRailTestCasesSelectorWindow.exec();
 
     if (_testRailTestCasesSelectorWindow.getUserCancelled()) {
-        return;
+        return false;
     }
 
     _url = _testRailTestCasesSelectorWindow.getURL() + "/";
@@ -232,6 +243,44 @@ void TestRailInterface::requestTestRailTestCasesDataFromUser() {
     ////_password = "tutKA76";////
     _projectID = QString::number(_testRailTestCasesSelectorWindow.getProjectID());
     _suiteID = QString::number(_testRailTestCasesSelectorWindow.getSuiteID());
+
+    return true;
+}
+
+bool TestRailInterface::requestTestRailRunDataFromUser() {
+    _testRailRunSelectorWindow.reset();
+    _testRailRunSelectorWindow.exec();
+
+    if (_testRailRunSelectorWindow.getUserCancelled()) {
+        return false;
+    }
+
+    _url = _testRailRunSelectorWindow.getURL() + "/";
+    _user = _testRailRunSelectorWindow.getUser();
+    _password = _testRailRunSelectorWindow.getPassword();
+    ////_password = "tutKA76";////
+    _projectID = QString::number(_testRailRunSelectorWindow.getProjectID());
+    _suiteID = QString::number(_testRailRunSelectorWindow.getSuiteID());
+
+    return true;
+}
+
+bool TestRailInterface::requestTestRailResultsDataFromUser() {
+    _testRailResultsSelectorWindow.reset();
+    _testRailResultsSelectorWindow.exec();
+
+    if (_testRailResultsSelectorWindow.getUserCancelled()) {
+        return false;
+    }
+
+    _url = _testRailResultsSelectorWindow.getURL() + "/";
+    _user = _testRailResultsSelectorWindow.getUser();
+    _password = _testRailResultsSelectorWindow.getPassword();
+    ////_password = "tutKA76";////
+    _projectID = QString::number(_testRailResultsSelectorWindow.getProjectID());
+    _suiteID = QString::number(_testRailResultsSelectorWindow.getSuiteID());
+
+    return true;
 }
 
 bool TestRailInterface::isAValidTestDirectory(const QString& directory) {
@@ -489,7 +538,7 @@ void TestRailInterface::updateSectionsComboData(int exitCode, QProcess::ExitStat
     QFile file(filename);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "Could not open " + _outputDirectory + "/sections.txt");
+                              "Could not open " + filename);
         exit(-1);
     }
 
@@ -521,6 +570,67 @@ void TestRailInterface::updateSectionsComboData(int exitCode, QProcess::ExitStat
     // The test cases are now read from TestRail
     // When this is complete, the Run can be created
     addRun();
+}
+
+void TestRailInterface::updateRunsComboData(int exitCode, QProcess::ExitStatus exitStatus) {
+    // Quit if user has previously cancelled
+    if (_testRailRunSelectorWindow.getUserCancelled()) {
+        return;
+    }
+
+    // Check if process completed successfully
+    if (exitStatus != QProcess::NormalExit) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not get runs from TestRail");
+        exit(-1);
+    }
+
+    // Create map of sections from the file created by the process
+    _runNames.clear();
+
+    QString filename = _outputDirectory + "/runs.txt";
+    if (!QFile::exists(filename)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not find runs.txt in " + _outputDirectory);
+        exit(-1);
+    }
+
+    QFile file(filename);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not open " + filename);
+        exit(-1);
+    }
+
+    QTextStream in(&file);
+    QString line = in.readLine();
+    while (!line.isNull()) {
+        // The run name is all the words except for the last
+        // The id is the last word
+        QString section = line.left(line.lastIndexOf(" "));
+        QString id = line.right(line.length() - line.lastIndexOf(" ") - 1);
+
+        _runIDs.push_back(id.toInt());
+        _runNames << section;
+
+        line = in.readLine();
+    }
+
+    file.close();
+
+    // Update the combo
+    _testRailResultsSelectorWindow.updateRunsComboBoxData(_sectionNames);
+
+    _testRailResultsSelectorWindow.exec();
+
+    if (_testRailResultsSelectorWindow.getUserCancelled()) {
+        return;
+    }
+
+    // The test cases are now read from TestRail
+    // When this is complete, the Run can be created
+    int sfg = 456;
+    //addRun();
 }
 
 void TestRailInterface::getReleasesFromTestRail() {
@@ -587,7 +697,10 @@ void TestRailInterface::createTestSuitePython(const QString& testDirectory,
         return;
     }
 
-    requestTestRailTestCasesDataFromUser();
+    if (!requestTestRailTestCasesDataFromUser()) {
+        return;
+    }
+
     createTestRailDotPyScript();
     createStackDotPyScript();
 
@@ -854,22 +967,6 @@ void TestRailInterface::processTestPython(const QString& fullDirectory,
     stream << "case = client.send_post('add_case/' + str(section_id), data)\n";
 }
 
-void TestRailInterface::requestTestRailRunDataFromUser() {
-    _testRailRunSelectorWindow.reset();
-    _testRailRunSelectorWindow.exec();
-
-    if (_testRailRunSelectorWindow.getUserCancelled()) {
-        return;
-    }
-
-    _url = _testRailRunSelectorWindow.getURL() + "/";
-    _user = _testRailRunSelectorWindow.getUser();
-    _password = _testRailRunSelectorWindow.getPassword();
-    ////_password = "tutKA76";////
-    _projectID = QString::number(_testRailRunSelectorWindow.getProjectID());
-    _suiteID = QString::number(_testRailRunSelectorWindow.getSuiteID());
-}
-
 void TestRailInterface::getTestSectionsFromTestRail() {
     QString filename = _outputDirectory + "/getSections.py";
     if (QFile::exists(filename)) {
@@ -909,6 +1006,44 @@ void TestRailInterface::getTestSectionsFromTestRail() {
     process->start(_pythonCommand, parameters);
 }
 
+void TestRailInterface::getRunFromTestRail() {
+    QString filename = _outputDirectory + "/getRun.py";
+    if (QFile::exists(filename)) {
+        QFile::remove(filename);
+    }
+    QFile file(filename);
+
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not create 'getRun.py'");
+        exit(-1);
+    }
+
+    QTextStream stream(&file);
+
+    // Code to access TestRail
+    stream << "from testrail import *\n";
+    stream << "client = APIClient('" << _url.toStdString().c_str() << "')\n";
+    stream << "client.user = '" << _user << "'\n";
+    stream << "client.password = '" << _password << "'\n\n";
+
+    // Print the list of runs
+    stream << "runs = client.send_get('get_runs/" + _projectID + "')\n\n";
+    stream << "file = open('" + _outputDirectory + "/runs.txt', 'w')\n\n";
+    stream << "for run in runs:\n";
+    stream << "\tfile.write(run['name'] + ' ' + str(run['id']) + '\\n')\n\n";
+    stream << "file.close()\n";
+
+    file.close();
+
+    QProcess* process = new QProcess();
+    connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
+            [=](int exitCode, QProcess::ExitStatus exitStatus) { updateRunsComboData(exitCode, exitStatus); });
+
+    QStringList parameters = QStringList() << filename;
+    process->start(_pythonCommand, parameters);
+}
+
 void TestRailInterface::createTestRailRun(const QString& outputDirectory) {
     _outputDirectory = outputDirectory;
 
@@ -916,7 +1051,10 @@ void TestRailInterface::createTestRailRun(const QString& outputDirectory) {
         return;
     }
 
-    requestTestRailRunDataFromUser();
+    if (!requestTestRailRunDataFromUser()) {
+        return;
+    }
+
     createTestRailDotPyScript();
     createStackDotPyScript();
 
@@ -924,8 +1062,14 @@ void TestRailInterface::createTestRailRun(const QString& outputDirectory) {
     getTestSectionsFromTestRail();
 }
 
-
 void TestRailInterface::updateTestRailRunResults(const QString& testResults, const QString& tempDirectory) {
+    if (requestTestRailResultsDataFromUser()) {
+        return;
+    }
+
+    // TestRail will be updated after the process initiated by getTestRunFromTestRail has completed
+    getRunFromTestRail();
+    
     // Extract test failures from zipped folder
     QString tempSubDirectory = tempDirectory + "/" + tempName;
     QDir dir = tempSubDirectory;

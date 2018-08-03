@@ -28,8 +28,8 @@ void TestRailResultsSelectorWindow::reset() {
 
     OKButton->setDisabled(true);
 
-    releasesLabel->setDisabled(true);
-    releasesComboBox->setDisabled(true);
+    runsLabel->setDisabled(true);
+    runsComboBox->setDisabled(true);
 }
 
 void TestRailResultsSelectorWindow::on_acceptButton_clicked() {
@@ -40,8 +40,8 @@ void TestRailResultsSelectorWindow::on_acceptButton_clicked() {
 
     OKButton->setDisabled(false);
 
-    releasesLabel->setDisabled(false);
-    releasesComboBox->setDisabled(false);
+    runsLabel->setDisabled(false);
+    runsComboBox->setDisabled(false);
     close();
 }
 
@@ -95,10 +95,10 @@ int TestRailResultsSelectorWindow::getSuiteID() {
     return suiteIDLineEdit->text().toInt();
 }
 
-void TestRailResultsSelectorWindow::updateReleasesComboBoxData(QStringList data) {
-    releasesComboBox->insertItems(0, data);
+void TestRailResultsSelectorWindow::updateRunsComboBoxData(QStringList data) {
+    runsComboBox->insertItems(0, data);
 }
 
 int TestRailResultsSelectorWindow::getReleaseID() {
-    return releasesComboBox->currentIndex();
+    return runsComboBox->currentIndex();
 }

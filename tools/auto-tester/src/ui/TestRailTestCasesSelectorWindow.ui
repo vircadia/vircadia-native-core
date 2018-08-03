@@ -202,7 +202,7 @@
     </font>
    </property>
    <property name="text">
-    <string>TestRail Added for release</string>
+    <string>TestRail Added for Release</string>
    </property>
   </widget>
   <widget class="QLineEdit" name="urlLineEdit">

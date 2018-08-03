@@ -38,7 +38,7 @@ public:
 
     bool userCancelled{ false };
 
-    void updateReleasesComboBoxData(QStringList data);
+    void updateRunsComboBoxData(QStringList data);
     int getReleaseID();
 
 private slots:
