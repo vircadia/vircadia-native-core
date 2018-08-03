@@ -11,6 +11,7 @@
 #include <QVariant>
 #include "GLMHelpers.h"
 
+#include "Application.h"
 #include <PickManager.h>
 
 #include "StaticRayPick.h"
@@ -174,7 +175,7 @@ unsigned int PickScriptingInterface::createCollisionPick(const QVariant& propert
 
     CollisionRegion collisionRegion(propMap);
 
-    return DependencyManager::get<PickManager>()->addPick(PickQuery::Collision, std::make_shared<CollisionPick>(filter, maxDistance, enabled, collisionRegion, _physicsEngine));
+    return DependencyManager::get<PickManager>()->addPick(PickQuery::Collision, std::make_shared<CollisionPick>(filter, maxDistance, enabled, collisionRegion, qApp->getPhysicsEngine()));
 }
 
 void PickScriptingInterface::enablePick(unsigned int uid) {

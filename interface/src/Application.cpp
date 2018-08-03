@@ -6656,7 +6656,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
 
     auto pickScriptingInterface = DependencyManager::get<PickScriptingInterface>();
     pickScriptingInterface->registerMetaTypes(scriptEngine.data());
-    pickScriptingInterface->setPhysicsEngine(_physicsEngine);
 
     // connect this script engines printedMessage signal to the global ScriptEngines these various messages
     connect(scriptEngine.data(), &ScriptEngine::printedMessage,

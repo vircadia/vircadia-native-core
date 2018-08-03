@@ -295,14 +295,6 @@ public slots:
      * @returns {number}
      */
     static constexpr unsigned int INTERSECTED_HUD() { return IntersectionType::HUD; }
-
-    // Set to allow CollisionPicks to have access to the physics engine
-    void setPhysicsEngine(PhysicsEnginePointer physicsEngine) {
-        _physicsEngine = physicsEngine;
-    }
-
-protected:
-    PhysicsEnginePointer _physicsEngine;
 };
 
 #endif // hifi_PickScriptingInterface_h
