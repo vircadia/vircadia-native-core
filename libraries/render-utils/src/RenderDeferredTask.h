@@ -16,6 +16,7 @@
 #include <render/RenderFetchCullSortTask.h>
 #include "LightingModel.h"
 #include "LightClusters.h"
+#include "RenderShadowTask.h"
 
 class DrawDeferredConfig : public render::Job::Config {
     Q_OBJECT
@@ -135,7 +136,7 @@ signals:
 
 class RenderDeferredTask {
 public:
-    using Input = RenderFetchCullSortTask::Output;
+    using Input = render::VaryingSet2<RenderFetchCullSortTask::Output, RenderShadowTask::Output>;
     using Config = RenderDeferredTaskConfig;
     using JobModel = render::Task::ModelI<RenderDeferredTask, Input, Config>;
 

@@ -260,6 +260,8 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
 #endif
     };
 
+    Output cascadeSceneBBoxes;
+
     for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
         char jobName[64];
         sprintf(jobName, "ShadowCascadeSetup%d", i);
@@ -279,7 +281,11 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
         sprintf(jobName, "RenderShadowMap%d", i);
         task.addJob<RenderShadowMap>(jobName, culledShadowItemsAndBounds, shapePlumber, i);
         task.addJob<RenderShadowCascadeTeardown>("ShadowCascadeTeardown", shadowFilter);
+
+        cascadeSceneBBoxes[i] = culledShadowItemsAndBounds.getN<CullShadowBounds::Outputs>(1);
     }
+
+    output = render::Varying(cascadeSceneBBoxes);
 
     task.addJob<RenderShadowTeardown>("ShadowTeardown", setupOutput);
 }

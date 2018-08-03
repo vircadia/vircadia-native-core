@@ -83,7 +83,9 @@ const render::Varying RenderDeferredTask::addSelectItemJobs(JobModel& task, cons
 }
 
 void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output, bool renderShadows) {
-    const auto& items = input.get<Input>();
+    const auto& inputs = input.get<Input>();
+    const auto& items = inputs.get0();
+
     auto fadeEffect = DependencyManager::get<FadeEffect>();
 
     // Prepare the ShapePipelines
@@ -246,11 +248,17 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         const auto viewFrustum = frustums.getN<ExtractFrustums::Output>(ExtractFrustums::VIEW_FRUSTUM);
         task.addJob<DrawFrustum>("DrawViewFrustum", viewFrustum, glm::vec3(1.0f, 1.0f, 0.0f));
         for (auto i = 0; i < ExtractFrustums::SHADOW_CASCADE_FRUSTUM_COUNT; i++) {
-            const auto shadowFrustum = frustums.getN<ExtractFrustums::Output>(ExtractFrustums::SHADOW_CASCADE0_FRUSTUM+i);
+            const auto shadowFrustum = frustums.getN<ExtractFrustums::Output>(ExtractFrustums::SHADOW_CASCADE0_FRUSTUM + i);
             float tint = 1.0f - i / float(ExtractFrustums::SHADOW_CASCADE_FRUSTUM_COUNT - 1);
             char jobName[64];
             sprintf(jobName, "DrawShadowFrustum%d", i);
             task.addJob<DrawFrustum>(jobName, shadowFrustum, glm::vec3(0.0f, tint, 1.0f));
+            if (!inputs[1].isNull()) {
+                const auto& shadowCascadeSceneBBoxes = inputs.get1();
+                const auto shadowBBox = shadowCascadeSceneBBoxes[ExtractFrustums::SHADOW_CASCADE0_FRUSTUM + i];
+                sprintf(jobName, "DrawShadowBBox%d", i);
+                task.addJob<DrawAABox>(jobName, shadowBBox, glm::vec3(1.0f, tint, 0.0f));
+            }
         }
 
         // Render.getConfig("RenderMainView.DrawSelectionBounds").enabled = true
