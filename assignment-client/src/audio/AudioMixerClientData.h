@@ -34,13 +34,12 @@ public:
     ~AudioMixerClientData();
 
     using SharedStreamPointer = std::shared_ptr<PositionalAudioStream>;
-    using AudioStreamMap = std::unordered_map<QUuid, SharedStreamPointer>;
+    using AudioStreamVector = std::vector<SharedStreamPointer>;
 
     void queuePacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer node);
     void processPackets();
 
-    // locks the mutex to make a copy
-    AudioStreamMap getAudioStreams() { QReadLocker readLock { &_streamsLock }; return _audioStreams; }
+    AudioStreamVector& getAudioStreams() { return _audioStreams; }
     AvatarAudioStream* getAvatarAudioStream();
 
     // returns whether self (this data's node) should ignore node, memoized by frame
@@ -127,7 +126,7 @@ private:
     PacketQueue _packetQueue;
 
     QReadWriteLock _streamsLock;
-    AudioStreamMap _audioStreams; // microphone stream from avatar is stored under key of null UUID
+    AudioStreamVector _audioStreams; // microphone stream from avatar is stored under key of null UUID
 
     void optionallyReplicatePacket(ReceivedMessage& packet, const Node& node);
 

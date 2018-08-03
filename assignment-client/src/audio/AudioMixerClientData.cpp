@@ -213,9 +213,12 @@ void AudioMixerClientData::parseRadiusIgnoreRequest(QSharedPointer<ReceivedMessa
 AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {
     QReadLocker readLocker { &_streamsLock };
 
-    auto it = _audioStreams.find(QUuid());
+    auto it = std::find_if(_audioStreams.begin(), _audioStreams.end(), [](const SharedStreamPointer& stream){
+        return stream->getStreamIdentifier().isNull();
+    });
+
     if (it != _audioStreams.end()) {
-        return dynamic_cast<AvatarAudioStream*>(it->second.get());
+        return dynamic_cast<AvatarAudioStream*>(it->get());
     }
 
     // no mic stream found - return NULL
@@ -238,11 +241,14 @@ void AudioMixerClientData::removeHRTFForStream(const QUuid& nodeID, const QUuid&
 
 void AudioMixerClientData::removeAgentAvatarAudioStream() {
     QWriteLocker writeLocker { &_streamsLock };
-    auto it = _audioStreams.find(QUuid());
+
+    auto it = std::remove_if(_audioStreams.begin(), _audioStreams.end(), [](const SharedStreamPointer& stream){
+        return stream->getStreamIdentifier().isNull();
+    });
+
     if (it != _audioStreams.end()) {
         _audioStreams.erase(it);
     }
-    writeLocker.unlock();
 }
 
 int AudioMixerClientData::parseData(ReceivedMessage& message) {
@@ -271,7 +277,9 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
 
             QWriteLocker writeLocker { &_streamsLock };
 
-            auto micStreamIt = _audioStreams.find(QUuid());
+            auto micStreamIt = std::find_if(_audioStreams.begin(), _audioStreams.end(), [](const SharedStreamPointer& stream){
+                return stream->getStreamIdentifier().isNull();
+            });
             if (micStreamIt == _audioStreams.end()) {
                 // we don't have a mic stream yet, so add it
 
@@ -301,15 +309,11 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
                 connect(avatarAudioStream, &InboundAudioStream::mismatchedAudioCodec,
                         this, &AudioMixerClientData::handleMismatchAudioFormat);
 
-                auto emplaced = _audioStreams.emplace(
-                    QUuid(),
-                    std::unique_ptr<PositionalAudioStream> { avatarAudioStream }
-                );
-
-                micStreamIt = emplaced.first;
+                matchingStream = SharedStreamPointer(avatarAudioStream);
+                _audioStreams.push_back(matchingStream);
+            } else {
+                matchingStream = *micStreamIt;
             }
-
-            matchingStream = micStreamIt->second;
 
             writeLocker.unlock();
 
@@ -327,7 +331,9 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
 
             QWriteLocker writeLock { &_streamsLock };
 
-            auto streamIt = _audioStreams.find(streamIdentifier);
+            auto streamIt = std::find_if(_audioStreams.begin(), _audioStreams.end(), [&streamIdentifier](const SharedStreamPointer& stream) {
+                return stream->getStreamIdentifier() == streamIdentifier;
+            });
 
             if (streamIt == _audioStreams.end()) {
                 // we don't have this injected stream yet, so add it
@@ -338,15 +344,11 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
                 qCDebug(audio) << "creating new injectorStream... codec:" << _selectedCodecName << "isStereo:" << isStereo;
 #endif
 
-                auto emplaced = _audioStreams.emplace(
-                    streamIdentifier,
-                    std::unique_ptr<InjectedAudioStream> { injectorStream }
-                );
-
-                streamIt = emplaced.first;
+                matchingStream = SharedStreamPointer(injectorStream);
+                _audioStreams.push_back(matchingStream);
+            } else {
+                matchingStream = *streamIt;
             }
-
-            matchingStream = streamIt->second;
 
             writeLock.unlock();
         }
@@ -373,7 +375,7 @@ int AudioMixerClientData::checkBuffersBeforeFrameSend() {
 
     auto it = _audioStreams.begin();
     while (it != _audioStreams.end()) {
-        SharedStreamPointer stream = it->second;
+        SharedStreamPointer stream = *it;
 
         if (stream->popFrames(1, true) > 0) {
             stream->updateLastPopOutputLoudnessAndTrailingLoudness();
@@ -388,7 +390,7 @@ int AudioMixerClientData::checkBuffersBeforeFrameSend() {
             // this is an inactive injector, pull it from our streams
 
             // first emit that it is finished so that the HRTF objects for this source can be cleaned up
-            emit injectorStreamFinished(it->second->getStreamIdentifier());
+            emit injectorStreamFinished(stream->getStreamIdentifier());
 
             // erase the stream to drop our ref to the shared pointer and remove it
             it = _audioStreams.erase(it);
@@ -441,7 +443,7 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
 
         // pack the calculated number of stream stats
         for (int i = 0; i < numStreamStatsToPack; i++) {
-            PositionalAudioStream* stream = it->second.get();
+            PositionalAudioStream* stream = it->get();
 
             stream->perSecondCallbackForUpdatingStats();
 
@@ -513,12 +515,12 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() {
     QJsonArray injectorArray;
     auto streamsCopy = getAudioStreams();
     for (auto& injectorPair : streamsCopy) {
-        if (injectorPair.second->getType() == PositionalAudioStream::Injector) {
+        if (injectorPair->getType() == PositionalAudioStream::Injector) {
             QJsonObject upstreamStats;
 
-            AudioStreamStats streamStats = injectorPair.second->getAudioStreamStats();
+            AudioStreamStats streamStats = injectorPair->getAudioStreamStats();
             upstreamStats["inj.desired"]  = streamStats._desiredJitterBufferFrames;
-            upstreamStats["desired_calc"] = injectorPair.second->getCalculatedJitterBufferFrames();
+            upstreamStats["desired_calc"] = injectorPair->getCalculatedJitterBufferFrames();
             upstreamStats["available_avg_10s"] = streamStats._framesAvailableAverage;
             upstreamStats["available"] = (double) streamStats._framesAvailable;
             upstreamStats["unplayed"] = (double) streamStats._unplayedMs;

@@ -36,7 +36,7 @@
 #include "InjectedAudioStream.h"
 #include "AudioHelpers.h"
 
-using AudioStreamMap = AudioMixerClientData::AudioStreamMap;
+using AudioStreamVector = AudioMixerClientData::AudioStreamVector;
 
 // packet helpers
 std::unique_ptr<NLPacket> createAudioPacket(PacketType type, int size, quint16 sequence, QString codec);
@@ -146,8 +146,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
     auto forAllStreams = [&](const SharedNodePointer& node, AudioMixerClientData* nodeData, MixFunctor mixFunctor) {
         auto nodeID = node->getUUID();
         for (auto& streamPair : nodeData->getAudioStreams()) {
-            auto nodeStream = streamPair.second;
-            (this->*mixFunctor)(*listenerData, nodeID, *listenerAudioStream, *nodeStream);
+            (this->*mixFunctor)(*listenerData, nodeID, *listenerAudioStream, *streamPair);
         }
     };
 
@@ -164,9 +163,8 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
         if (*node == *listener) {
             // only mix the echo, if requested
             for (auto& streamPair : nodeData->getAudioStreams()) {
-                auto nodeStream = streamPair.second;
-                if (nodeStream->shouldLoopbackForNode()) {
-                    mixStream(*listenerData, node->getUUID(), *listenerAudioStream, *nodeStream);
+                if (streamPair->shouldLoopbackForNode()) {
+                    mixStream(*listenerData, node->getUUID(), *listenerAudioStream, *streamPair);
                 }
             }
         } else if (!listenerData->shouldIgnore(listener, node, _frame)) {
@@ -177,8 +175,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
 
                 // compute the node's max relative volume
                 float nodeVolume = 0.0f;
-                for (auto& streamPair : nodeData->getAudioStreams()) {
-                    auto nodeStream = streamPair.second;
+                for (auto& nodeStream : nodeData->getAudioStreams()) {
 
                     // approximate the gain
                     glm::vec3 relativePosition = nodeStream->getPosition() - listenerAudioStream->getPosition();
