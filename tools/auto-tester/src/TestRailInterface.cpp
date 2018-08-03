@@ -926,6 +926,7 @@ void TestRailInterface::createTestRailRun(const QString& outputDirectory) {
 
 
 void TestRailInterface::updateTestRailRunResults(const QString& testResults, const QString& tempDirectory) {
+    // Extract test failures from zipped folder
     QString tempSubDirectory = tempDirectory + "/" + tempName;
     QDir dir = tempSubDirectory;
     dir.mkdir(tempSubDirectory);
