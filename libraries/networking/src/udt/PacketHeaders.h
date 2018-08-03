@@ -132,6 +132,7 @@ public:
         OctreeDataPersist,
 
         EntityClone,
+        EntityQueryInitialResultsComplete,
 
         NUM_PACKET_TYPE
     };

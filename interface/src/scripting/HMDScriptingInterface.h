@@ -347,17 +347,6 @@ signals:
      */
     bool shouldShowHandControllersChanged();
 
-    /**jsdoc
-     * Triggered when the <code>HMD.mounted</code> property value changes.
-     * @function HMD.mountedChanged
-     * @returns {Signal}
-     * @example <caption>Report when there's a change in the HMD being worn.</caption>
-     * HMD.mountedChanged.connect(function () {
-     *     print("Mounted changed. HMD is mounted: " + HMD.mounted);
-     * });
-     */
-    void mountedChanged();
-
 public:
     HMDScriptingInterface();
     static QScriptValue getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine);

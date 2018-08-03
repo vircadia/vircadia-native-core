@@ -22,13 +22,23 @@ class OctreePacketProcessor : public ReceivedPacketProcessor {
 public:
     OctreePacketProcessor();
 
+    bool octreeSequenceIsComplete(int sequenceNumber) const;
+
 signals:
     void packetVersionMismatch();
+
+public slots:
+    void resetCompletionSequenceNumber();
 
 protected:
     virtual void processPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) override;
 
 private slots:
     void handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+
+private:
+    static constexpr int INVALID_SEQUENCE = -1;
+    std::atomic<int> _completionSequenceNumber { INVALID_SEQUENCE };
+
 };
 #endif // hifi_OctreePacketProcessor_h

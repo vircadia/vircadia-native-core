@@ -20,6 +20,7 @@ Original.Button {
     property int color: 0
     property int colorScheme: hifi.colorSchemes.light
     property int fontSize: hifi.fontSizes.buttonLabel
+    property int radius: hifi.buttons.radius
     property alias implicitTextWidth: buttonText.implicitWidth
     property string buttonGlyph: "";
     property int fontCapitalization: Font.AllUppercase
@@ -46,7 +47,7 @@ Original.Button {
     }
 
     background: Rectangle {
-        radius: hifi.buttons.radius
+        radius: control.radius
 
         border.width: (control.color === hifi.buttons.none ||
                        (control.color === hifi.buttons.noneBorderless && control.hovered) ||
