@@ -34,13 +34,18 @@ class AudioMixer : public ThreadedAssignment {
 public:
     AudioMixer(ReceivedMessage& message);
 
+
+    struct ZoneDescription {
+        QString name;
+        AABox area;
+    };
     struct ZoneSettings {
-        QString source;
-        QString listener;
+        int source;
+        int listener;
         float coefficient;
     };
     struct ReverbSettings {
-        QString zone;
+        int zone;
         float reverbTime;
         float wetLevel;
     };
@@ -48,9 +53,9 @@ public:
     static int getStaticJitterFrames() { return _numStaticJitterFrames; }
     static bool shouldMute(float quietestFrame) { return quietestFrame > _noiseMutingThreshold; }
     static float getAttenuationPerDoublingInDistance() { return _attenuationPerDoublingInDistance; }
-    static const QHash<QString, AABox>& getAudioZones() { return _audioZones; }
-    static const QVector<ZoneSettings>& getZoneSettings() { return _zoneSettings; }
-    static const QVector<ReverbSettings>& getReverbSettings() { return _zoneReverbSettings; }
+    static const std::vector<ZoneDescription>& getAudioZones() { return _audioZones; }
+    static const std::vector<ZoneSettings>& getZoneSettings() { return _zoneSettings; }
+    static const std::vector<ReverbSettings>& getReverbSettings() { return _zoneReverbSettings; }
     static const std::pair<QString, CodecPluginPointer> negotiateCodec(std::vector<QString> codecs);
 
     static bool shouldReplicateTo(const Node& from, const Node& to) {
@@ -136,9 +141,11 @@ private:
     static float _attenuationPerDoublingInDistance;
     static std::map<QString, CodecPluginPointer> _availableCodecs;
     static QStringList _codecPreferenceOrder;
-    static QHash<QString, AABox> _audioZones;
-    static QVector<ZoneSettings> _zoneSettings;
-    static QVector<ReverbSettings> _zoneReverbSettings;
+
+
+    static std::vector<ZoneDescription> _audioZones;
+    static std::vector<ZoneSettings> _zoneSettings;
+    static std::vector<ReverbSettings> _zoneReverbSettings;
 
 };
 

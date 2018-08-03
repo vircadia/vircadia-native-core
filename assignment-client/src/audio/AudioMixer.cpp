@@ -38,6 +38,8 @@
 #include "AvatarAudioStream.h"
 #include "InjectedAudioStream.h"
 
+using namespace std;
+
 static const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.5f;    // attenuation = -6dB * log2(distance)
 static const int DISABLE_STATIC_JITTER_FRAMES = -1;
 static const float DEFAULT_NOISE_MUTING_THRESHOLD = 1.0f;
@@ -49,11 +51,11 @@ static const QString AUDIO_THREADING_GROUP_KEY = "audio_threading";
 int AudioMixer::_numStaticJitterFrames{ DISABLE_STATIC_JITTER_FRAMES };
 float AudioMixer::_noiseMutingThreshold{ DEFAULT_NOISE_MUTING_THRESHOLD };
 float AudioMixer::_attenuationPerDoublingInDistance{ DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE };
-std::map<QString, std::shared_ptr<CodecPlugin>> AudioMixer::_availableCodecs{ };
+map<QString, shared_ptr<CodecPlugin>> AudioMixer::_availableCodecs{ };
 QStringList AudioMixer::_codecPreferenceOrder{};
-QHash<QString, AABox> AudioMixer::_audioZones;
-QVector<AudioMixer::ZoneSettings> AudioMixer::_zoneSettings;
-QVector<AudioMixer::ReverbSettings> AudioMixer::_zoneReverbSettings;
+vector<AudioMixer::ZoneDescription> AudioMixer::_audioZones;
+vector<AudioMixer::ZoneSettings> AudioMixer::_zoneSettings;
+vector<AudioMixer::ReverbSettings> AudioMixer::_zoneReverbSettings;
 
 AudioMixer::AudioMixer(ReceivedMessage& message) :
     ThreadedAssignment(message)
@@ -67,7 +69,7 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     _availableCodecs.clear(); // Make sure struct is clean
     auto pluginManager = DependencyManager::set<PluginManager>();
     auto codecPlugins = pluginManager->getCodecPlugins();
-    std::for_each(codecPlugins.cbegin(), codecPlugins.cend(),
+    for_each(codecPlugins.cbegin(), codecPlugins.cend(),
         [&](const CodecPluginPointer& codec) {
             _availableCodecs[codec->getName()] = codec;
         });
@@ -122,7 +124,7 @@ void AudioMixer::queueAudioPacket(QSharedPointer<ReceivedMessage> message, Share
 void AudioMixer::queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> message) {
     // make sure we have a replicated node for the original sender of the packet
     auto nodeList = DependencyManager::get<NodeList>();
-    
+
     // Node ID is now part of user data, since replicated audio packets are non-sourced.
     QUuid nodeID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
@@ -173,12 +175,12 @@ void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> mes
     }
 }
 
-const std::pair<QString, CodecPluginPointer> AudioMixer::negotiateCodec(std::vector<QString> codecs) {
+const pair<QString, CodecPluginPointer> AudioMixer::negotiateCodec(vector<QString> codecs) {
     QString selectedCodecName;
     CodecPluginPointer selectedCodec;
 
     // read the codecs requested (by the client)
-    int minPreference = std::numeric_limits<int>::max();
+    int minPreference = numeric_limits<int>::max();
     for (auto& codec : codecs) {
         if (_availableCodecs.count(codec) > 0) {
             int preference = _codecPreferenceOrder.indexOf(codec);
@@ -191,7 +193,7 @@ const std::pair<QString, CodecPluginPointer> AudioMixer::negotiateCodec(std::vec
         }
     }
 
-    return std::make_pair(selectedCodecName, _availableCodecs[selectedCodecName]);
+    return make_pair(selectedCodecName, _availableCodecs[selectedCodecName]);
 }
 
 void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
@@ -285,7 +287,7 @@ void AudioMixer::sendStatsPacket() {
     // timing stats
     QJsonObject timingStats;
 
-    auto addTiming = [&](Timer& timer, std::string name) {
+    auto addTiming = [&](Timer& timer, string name) {
         uint64_t timing, trailing;
         timer.get(timing, trailing);
         timingStats[("us_per_" + name).c_str()] = (qint64)(timing / _numStatFrames);
@@ -366,7 +368,7 @@ AudioMixerClientData* AudioMixer::getOrCreateClientData(Node* node) {
     auto clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
 
     if (!clientData) {
-        node->setLinkedData(std::unique_ptr<NodeData> { new AudioMixerClientData(node->getUUID(), node->getLocalID()) });
+        node->setLinkedData(unique_ptr<NodeData> { new AudioMixerClientData(node->getUUID(), node->getLocalID()) });
         clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
         connect(clientData, &AudioMixerClientData::injectorStreamFinished, this, &AudioMixer::removeHRTFsForFinishedInjector);
     }
@@ -410,7 +412,7 @@ void AudioMixer::start() {
             // prepare frames; pop off any new audio from their streams
             {
                 auto prepareTimer = _prepareTiming.timer();
-                std::for_each(cbegin, cend, [&](const SharedNodePointer& node) {
+                for_each(cbegin, cend, [&](const SharedNodePointer& node) {
                     _stats.sumStreams += prepareFrame(node, frame);
                 });
             }
@@ -455,26 +457,26 @@ void AudioMixer::start() {
     }
 }
 
-std::chrono::microseconds AudioMixer::timeFrame(p_high_resolution_clock::time_point& timestamp) {
+chrono::microseconds AudioMixer::timeFrame(p_high_resolution_clock::time_point& timestamp) {
     // advance the next frame
-    auto nextTimestamp = timestamp + std::chrono::microseconds(AudioConstants::NETWORK_FRAME_USECS);
+    auto nextTimestamp = timestamp + chrono::microseconds(AudioConstants::NETWORK_FRAME_USECS);
     auto now = p_high_resolution_clock::now();
 
     // compute how long the last frame took
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(now - timestamp);
+    auto duration = chrono::duration_cast<chrono::microseconds>(now - timestamp);
 
     // set the new frame timestamp
-    timestamp = std::max(now, nextTimestamp);
+    timestamp = max(now, nextTimestamp);
 
     // sleep until the next frame should start
     // WIN32 sleep_until is broken until VS2015 Update 2
-    // instead, std::max (above) guarantees that timestamp >= now, so we can sleep_for
-    std::this_thread::sleep_for(timestamp - now);
+    // instead, max (above) guarantees that timestamp >= now, so we can sleep_for
+    this_thread::sleep_for(timestamp - now);
 
     return duration;
 }
 
-void AudioMixer::throttle(std::chrono::microseconds duration, int frame) {
+void AudioMixer::throttle(chrono::microseconds duration, int frame) {
     // throttle using a modified proportional-integral controller
     const float FRAME_TIME = 10000.0f;
     float mixRatio = duration.count() / FRAME_TIME;
@@ -508,13 +510,13 @@ void AudioMixer::throttle(std::chrono::microseconds duration, int frame) {
         if (_trailingMixRatio > TARGET) {
             int proportionalTerm = 1 + (_trailingMixRatio - TARGET) / 0.1f;
             _throttlingRatio += THROTTLE_RATE * proportionalTerm;
-            _throttlingRatio = std::min(_throttlingRatio, 1.0f);
+            _throttlingRatio = min(_throttlingRatio, 1.0f);
             qCDebug(audio) << "audio-mixer is struggling (" << _trailingMixRatio << "mix/sleep) - throttling"
                 << _throttlingRatio << "of streams";
         } else if (_throttlingRatio > 0.0f && _trailingMixRatio <= BACKOFF_TARGET) {
             int proportionalTerm = 1 + (TARGET - _trailingMixRatio) / 0.2f;
             _throttlingRatio -= BACKOFF_RATE * proportionalTerm;
-            _throttlingRatio = std::max(_throttlingRatio, 0.0f);
+            _throttlingRatio = max(_throttlingRatio, 0.0f);
             qCDebug(audio) << "audio-mixer is recovering (" << _trailingMixRatio << "mix/sleep) - throttling"
                 << _throttlingRatio << "of streams";
         }
@@ -661,8 +663,11 @@ void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
             const QString Y_MAX = "y_max";
             const QString Z_MIN = "z_min";
             const QString Z_MAX = "z_max";
-            foreach (const QString& zone, zones.keys()) {
-                QJsonObject zoneObject = zones[zone].toObject();
+
+            auto zoneNames = zones.keys();
+            _audioZones.reserve(zoneNames.length());
+            foreach (const QString& zoneName, zoneNames) {
+                QJsonObject zoneObject = zones[zoneName].toObject();
 
                 if (zoneObject.contains(X_MIN) && zoneObject.contains(X_MAX) && zoneObject.contains(Y_MIN) &&
                     zoneObject.contains(Y_MAX) && zoneObject.contains(Z_MIN) && zoneObject.contains(Z_MAX)) {
@@ -686,8 +691,8 @@ void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
                         glm::vec3 corner(xMin, yMin, zMin);
                         glm::vec3 dimensions(xMax - xMin, yMax - yMin, zMax - zMin);
                         AABox zoneAABox(corner, dimensions);
-                        _audioZones.insert(zone, zoneAABox);
-                        qCDebug(audio) << "Added zone:" << zone << "(corner:" << corner << ", dimensions:" << dimensions << ")";
+                        _audioZones.push_back({ zoneName, zoneAABox });
+                        qCDebug(audio) << "Added zone:" << zoneName << "(corner:" << corner << ", dimensions:" << dimensions << ")";
                     }
                 }
             }
@@ -707,18 +712,28 @@ void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
                     coefficientObject.contains(LISTENER) &&
                     coefficientObject.contains(COEFFICIENT)) {
 
-                    ZoneSettings settings;
+                    auto itSource = find_if(begin(_audioZones), end(_audioZones), [&](const ZoneDescription& description) {
+                        return description.name == coefficientObject.value(SOURCE).toString();
+                    });
+                    auto itListener = find_if(begin(_audioZones), end(_audioZones), [&](const ZoneDescription& description) {
+                        return description.name == coefficientObject.value(LISTENER).toString();
+                    });
 
                     bool ok;
-                    settings.source = coefficientObject.value(SOURCE).toString();
-                    settings.listener = coefficientObject.value(LISTENER).toString();
-                    settings.coefficient = coefficientObject.value(COEFFICIENT).toString().toFloat(&ok);
+                    float coefficient = coefficientObject.value(COEFFICIENT).toString().toFloat(&ok);
 
-                    if (ok && settings.coefficient >= 0.0f && settings.coefficient <= 1.0f &&
-                        _audioZones.contains(settings.source) && _audioZones.contains(settings.listener)) {
+
+                    if (ok && coefficient >= 0.0f && coefficient <= 1.0f &&
+                        itSource != end(_audioZones) &&
+                        itListener != end(_audioZones)) {
+
+                        ZoneSettings settings;
+                        settings.source = itSource - begin(_audioZones);
+                        settings.listener = itListener - begin(_audioZones);
+                        settings.coefficient = coefficient;
 
                         _zoneSettings.push_back(settings);
-                        qCDebug(audio) << "Added Coefficient:" << settings.source << settings.listener << settings.coefficient;
+                        qCDebug(audio) << "Added Coefficient:" << itSource->name << itListener->name << settings.coefficient;
                     }
                 }
             }
@@ -739,19 +754,21 @@ void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
                     reverbObject.contains(WET_LEVEL)) {
 
                     bool okReverbTime, okWetLevel;
-                    QString zone = reverbObject.value(ZONE).toString();
+                    auto itZone = find_if(begin(_audioZones), end(_audioZones), [&](const ZoneDescription& description) {
+                        return description.name == reverbObject.value(ZONE).toString();
+                    });
                     float reverbTime = reverbObject.value(REVERB_TIME).toString().toFloat(&okReverbTime);
                     float wetLevel = reverbObject.value(WET_LEVEL).toString().toFloat(&okWetLevel);
 
-                    if (okReverbTime && okWetLevel && _audioZones.contains(zone)) {
+                    if (okReverbTime && okWetLevel && itZone != end(_audioZones)) {
                         ReverbSettings settings;
-                        settings.zone = zone;
+                        settings.zone = itZone - begin(_audioZones);
                         settings.reverbTime = reverbTime;
                         settings.wetLevel = wetLevel;
 
                         _zoneReverbSettings.push_back(settings);
 
-                        qCDebug(audio) << "Added Reverb:" << zone << reverbTime << wetLevel;
+                        qCDebug(audio) << "Added Reverb:" << itZone->name << reverbTime << wetLevel;
                     }
                 }
             }
@@ -764,7 +781,7 @@ AudioMixer::Timer::Timing::Timing(uint64_t& sum) : _sum(sum) {
 }
 
 AudioMixer::Timer::Timing::~Timing() {
-    _sum += std::chrono::duration_cast<std::chrono::microseconds>(p_high_resolution_clock::now() - _timing).count();
+    _sum += chrono::duration_cast<chrono::microseconds>(p_high_resolution_clock::now() - _timing).count();
 }
 
 void AudioMixer::Timer::get(uint64_t& timing, uint64_t& trailing) {

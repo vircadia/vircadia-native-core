@@ -440,12 +440,12 @@ void sendEnvironmentPacket(const SharedNodePointer& node, AudioMixerClientData& 
     glm::vec3 streamPosition = stream->getPosition();
 
     // find reverb properties
-    for (int i = 0; i < reverbSettings.size(); ++i) {
-        AABox box = audioZones[reverbSettings[i].zone];
+    for (const auto& settings : reverbSettings) {
+        AABox box = audioZones[settings.zone].area;
         if (box.contains(streamPosition)) {
             hasReverb = true;
-            reverbTime = reverbSettings[i].reverbTime;
-            wetLevel = reverbSettings[i].wetLevel;
+            reverbTime = settings.reverbTime;
+            wetLevel = settings.wetLevel;
             break;
         }
     }
@@ -539,10 +539,10 @@ float computeGain(const AudioMixerClientData& listenerNodeData, const AvatarAudi
 
     // find distance attenuation coefficient
     float attenuationPerDoublingInDistance = AudioMixer::getAttenuationPerDoublingInDistance();
-    for (int i = 0; i < zoneSettings.length(); ++i) {
-        if (audioZones[zoneSettings[i].source].contains(streamToAdd.getPosition()) &&
-            audioZones[zoneSettings[i].listener].contains(listeningNodeStream.getPosition())) {
-            attenuationPerDoublingInDistance = zoneSettings[i].coefficient;
+    for (const auto& settings : zoneSettings) {
+        if (audioZones[settings.source].area.contains(streamToAdd.getPosition()) &&
+            audioZones[settings.listener].area.contains(listeningNodeStream.getPosition())) {
+            attenuationPerDoublingInDistance = settings.coefficient;
             break;
         }
     }
