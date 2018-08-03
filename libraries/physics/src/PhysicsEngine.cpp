@@ -879,8 +879,7 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
             otherBody = colObj1->m_collisionObject;
             penetrationPoint = getWorldPoint(cp.m_localPointB, colObj1->getWorldTransform());
             otherPenetrationPoint = getWorldPoint(cp.m_localPointA, colObj0->getWorldTransform());
-        }
-        else {
+        } else {
             otherBody = colObj0->m_collisionObject;
             penetrationPoint = getWorldPoint(cp.m_localPointA, colObj0->getWorldTransform());
             otherPenetrationPoint = getWorldPoint(cp.m_localPointB, colObj1->getWorldTransform());

@@ -235,8 +235,7 @@ public:
                 if (shapeType >= SHAPE_TYPE_COMPOUND && shapeType <= SHAPE_TYPE_STATIC_MESH && shape["modelURL"].isValid()) {
                     QString newURL = shape["modelURL"].toString();
                     modelURL.setUrl(newURL);
-                }
-                else {
+                } else {
                     modelURL.setUrl("");
                 }
                 
