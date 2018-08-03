@@ -447,7 +447,7 @@ void TestRailInterface::addRun() {
 
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "Could not create 'addRun.py'");
+                              "Could not create " + filename);
         exit(-1);
     }
 
@@ -512,9 +512,48 @@ void TestRailInterface::addRun() {
     }
 }
 void TestRailInterface::updateRunWithResults() {
+    QString filename = _outputDirectory + "/updateRunWithResults.py";
+    if (QFile::exists(filename)) {
+        QFile::remove(filename);
+    }
+    QFile file(filename);
+
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not create " + filename);
+        exit(-1);
+    }
+
+    QTextStream stream(&file);
+
+    // Code to access TestRail
+    stream << "from testrail import *\n";
+    stream << "client = APIClient('" << _url.toStdString().c_str() << "')\n";
+    stream << "client.user = '" << _user << "'\n";
+    stream << "client.password = '" << _password << "'\n\n";
+
+    // It is assumed that all the tests that haven't failed have passed
+    // The failed tests are read, formatted and inserted into a set
+    //      A failure named 'Failure_1--tests.content.entity.material.apply.avatars.00000' is formatted to 'content/entity/material/apply/avatars'
+    //      This is the name of the test in TestRail
+    stream << "from os import listdir\n";
+
+    stream << "names = []";
+
+    stream << "for entry in listdir('" + _outputDirectory + "/" + tempName + "'):\n";
+    stream << "\tparts = entry.split('--tests.')[1].split('.')\n";
+    stream << "\tname = parts[0]\n";
+    stream << "\tfor i in range(1, len(parts) - 1):\n";
+    stream << "\t\tname = name + '/' + parts[i]\n";
+
+    stream << "\tnames.append(name)\n";
+
+    int runID = _runIDs[_testRailResultsSelectorWindow.getRunID()];
+
+    file.close();
 }
 
-void TestRailInterface::updateSectionsComboData(int exitCode, QProcess::ExitStatus exitStatus) {(
+void TestRailInterface::updateSectionsComboData(int exitCode, QProcess::ExitStatus exitStatus) {
     // Quit if user has previously cancelled
     if (_testRailRunSelectorWindow.getUserCancelled()) {
         return;

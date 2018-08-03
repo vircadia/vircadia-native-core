@@ -99,6 +99,6 @@ void TestRailResultsSelectorWindow::updateRunsComboBoxData(QStringList data) {
     runsComboBox->insertItems(0, data);
 }
 
-int TestRailResultsSelectorWindow::getReleaseID() {
+int TestRailResultsSelectorWindow::getRunID() {
     return runsComboBox->currentIndex();
 }
