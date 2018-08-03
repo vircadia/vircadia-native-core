@@ -2017,7 +2017,7 @@ void AudioClient::loadSettings() {
     _receivedAudioStream.setDynamicJitterBufferEnabled(dynamicJitterBufferEnabled.get());
     _receivedAudioStream.setStaticJitterBufferFrames(staticJitterBufferFrames.get());
 
-
+    qCDebug(audioclient) << "---- Initializing Audio Client ----";
     auto codecPlugins = PluginManager::getInstance()->getCodecPlugins();
     for (auto& plugin : codecPlugins) {
         qCDebug(audioclient) << "Codec available:" << plugin->getName();

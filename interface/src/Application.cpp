@@ -3713,7 +3713,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
     _controllerScriptingInterface->emitKeyPressEvent(event); // send events to any registered scripts
     // if one of our scripts have asked to capture this event, then stop processing it
-    if (_controllerScriptingInterface->isKeyCaptured(event)) {
+    if (_controllerScriptingInterface->isKeyCaptured(event) || isInterstitialMode()) {
         return;
     }
 
@@ -5603,7 +5603,7 @@ void Application::update(float deltaTime) {
         // Transfer the user inputs to the driveKeys
         // FIXME can we drop drive keys and just have the avatar read the action states directly?
         myAvatar->clearDriveKeys();
-        if (_myCamera.getMode() != CAMERA_MODE_INDEPENDENT) {
+        if (_myCamera.getMode() != CAMERA_MODE_INDEPENDENT && !isInterstitialMode()) {
             if (!_controllerScriptingInterface->areActionsCaptured() && _myCamera.getMode() != CAMERA_MODE_MIRROR) {
                 myAvatar->setDriveKey(MyAvatar::TRANSLATE_Z, -1.0f * userInputMapper->getActionState(controller::Action::TRANSLATE_Z));
                 myAvatar->setDriveKey(MyAvatar::TRANSLATE_Y, userInputMapper->getActionState(controller::Action::TRANSLATE_Y));
