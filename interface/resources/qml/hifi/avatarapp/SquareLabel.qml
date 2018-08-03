@@ -1,24 +1,41 @@
 import "../../styles-uit"
+import "../../controls-uit" as HifiControlsUit
 import QtQuick 2.9
 import QtGraphicalEffects 1.0
 
-ShadowRectangle {
+Item {
+    id: root
     width: 44
     height: 28
-    AvatarAppStyle {
-        id: style
+    signal clicked();
+
+    HifiControlsUit.Button {
+        id: button
+
+        HifiConstants {
+            id: hifi
+        }
+
+        anchors.fill: parent
+        color: hifi.buttons.blue;
+        colorScheme: hifi.colorSchemes.light;
+        radius: 3
+        onClicked: root.clicked();
     }
 
-    gradient: Gradient {
-        GradientStop { position: 0.0; color: style.colors.blueHighlight }
-        GradientStop { position: 1.0; color: style.colors.blueAccent }
+    DropShadow {
+        id: shadow
+        anchors.fill: button
+        radius: 6
+        horizontalOffset: 0
+        verticalOffset: 3
+        color: Qt.rgba(0, 0, 0, 0.25)
+        source: button
     }
 
     property alias glyphText: glyph.text
     property alias glyphRotation: glyph.rotation
     property alias glyphSize: glyph.size
-
-    radius: 3
 
     HiFiGlyphs {
         id: glyph

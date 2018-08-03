@@ -69,3 +69,4 @@ QVector<EntityItemID> qVectorEntityItemIDFromScriptValue(const QScriptValue& arr
     return newVector;
 }
 
+size_t std::hash<EntityItemID>::operator()(const EntityItemID& id) const { return qHash(id); }

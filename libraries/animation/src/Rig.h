@@ -75,6 +75,10 @@ public:
     };
 
     struct ControllerParameters {
+        ControllerParameters() {
+            memset(primaryControllerFlags, 0, NumPrimaryControllerTypes);
+            memset(secondaryControllerFlags, 0, NumPrimaryControllerTypes);
+        }
         glm::mat4 rigToSensorMatrix;
         AnimPose primaryControllerPoses[NumPrimaryControllerTypes];  // rig space
         uint8_t primaryControllerFlags[NumPrimaryControllerTypes];
@@ -229,12 +233,13 @@ protected:
 
     void updateHead(bool headEnabled, bool hipsEnabled, const AnimPose& headMatrix);
     void updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, bool hipsEstimated,
-                     bool leftArmEnabled, bool rightArmEnabled, float dt,
+                     bool leftArmEnabled, bool rightArmEnabled, bool headEnabled, float dt,
                      const AnimPose& leftHandPose, const AnimPose& rightHandPose,
                      const FBXJointShapeInfo& hipsShapeInfo, const FBXJointShapeInfo& spineShapeInfo,
                      const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo,
                      const glm::mat4& rigToSensorMatrix, const glm::mat4& sensorToRigMatrix);
-    void updateFeet(bool leftFootEnabled, bool rightFootEnabled, const AnimPose& leftFootPose, const AnimPose& rightFootPose,
+    void updateFeet(bool leftFootEnabled, bool rightFootEnabled, bool headEnabled,
+                    const AnimPose& leftFootPose, const AnimPose& rightFootPose,
                     const glm::mat4& rigToSensorMatrix, const glm::mat4& sensorToRigMatrix);
 
     void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::vec3& lookAt, const glm::vec3& saccade);
