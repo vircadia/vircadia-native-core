@@ -15,6 +15,7 @@
 #include <memory>
 #include <ostream>
 #include <stdint.h>
+#include <vector>
 
 #include <QtCore/QDebug>
 #include <QtCore/QMutex>
@@ -83,7 +84,7 @@ public:
     void parseIgnoreRequestMessage(QSharedPointer<ReceivedMessage> message);
     void addIgnoredNode(const QUuid& otherNodeID);
     void removeIgnoredNode(const QUuid& otherNodeID);
-    bool isIgnoringNodeWithID(const QUuid& nodeID) const { QReadLocker lock { &_ignoredNodeIDSetLock }; return _ignoredNodeIDSet.find(nodeID) != _ignoredNodeIDSet.cend(); }
+    bool isIgnoringNodeWithID(const QUuid& nodeID) const;
     void parseIgnoreRadiusRequestMessage(QSharedPointer<ReceivedMessage> message);
 
     friend QDataStream& operator<<(QDataStream& out, const Node& node);
@@ -108,7 +109,7 @@ private:
     MovingPercentile _clockSkewMovingPercentile;
     NodePermissions _permissions;
     bool _isUpstream { false };
-    tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDSet;
+    std::vector<QUuid> _ignoredNodeIDs;
     mutable QReadWriteLock _ignoredNodeIDSetLock;
     std::vector<QString> _replicatedUsernames { };
 

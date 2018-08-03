@@ -57,7 +57,7 @@ public:
     void removeHRTFForStream(const QUuid& nodeID, const QUuid& streamID = QUuid());
 
     // remove all sources and data from this node
-    void removeNode(const QUuid& nodeID) { _nodeSourcesIgnoreMap.unsafe_erase(nodeID); _nodeSourcesHRTFMap.erase(nodeID); }
+    void removeNode(const QUuid& nodeID) { _nodeSourcesHRTFMap.erase(nodeID); }
 
     void removeAgentAvatarAudioStream();
 
@@ -149,25 +149,6 @@ private:
         std::mutex _mutex;
     };
     IgnoreZoneMemo _ignoreZone;
-
-    class IgnoreNodeCache {
-    public:
-        // std::atomic is not copyable - always initialize uncached
-        IgnoreNodeCache() {}
-        IgnoreNodeCache(const IgnoreNodeCache& other) {}
-
-        void cache(bool shouldIgnore);
-        bool isCached();
-        bool shouldIgnore();
-
-    private:
-        std::atomic<bool> _isCached { false };
-        bool _shouldIgnore { false };
-    };
-    struct IgnoreNodeCacheHasher { std::size_t operator()(const QUuid& key) const { return qHash(key); } };
-
-    using NodeSourcesIgnoreMap = tbb::concurrent_unordered_map<QUuid, IgnoreNodeCache, IgnoreNodeCacheHasher>;
-    NodeSourcesIgnoreMap _nodeSourcesIgnoreMap;
 
     using HRTFMap = std::unordered_map<QUuid, AudioHRTF>;
     using NodeSourcesHRTFMap = std::unordered_map<QUuid, HRTFMap>;

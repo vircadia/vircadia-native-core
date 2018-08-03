@@ -647,31 +647,8 @@ AudioMixerClientData::IgnoreZone& AudioMixerClientData::IgnoreZoneMemo::get(unsi
     return _zone;
 }
 
-void AudioMixerClientData::IgnoreNodeCache::cache(bool shouldIgnore) {
-    if (!_isCached) {
-        _shouldIgnore = shouldIgnore;
-        _isCached = true;
-    }
-}
-
-bool AudioMixerClientData::IgnoreNodeCache::isCached() {
-    return _isCached;
-}
-
-bool AudioMixerClientData::IgnoreNodeCache::shouldIgnore() {
-    bool ignore = _shouldIgnore;
-    _isCached = false;
-    return ignore;
-}
-
 bool AudioMixerClientData::shouldIgnore(const SharedNodePointer self, const SharedNodePointer node, unsigned int frame) {
     // this is symmetric over self / node; if computed, it is cached in the other
-
-    // check the cache to avoid computation
-    auto& cache = _nodeSourcesIgnoreMap[node->getUUID()];
-    if (cache.isCached()) {
-        return cache.shouldIgnore();
-    }
 
     AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
     if (!nodeData) {
@@ -696,8 +673,6 @@ bool AudioMixerClientData::shouldIgnore(const SharedNodePointer self, const Shar
         }
     }
 
-    // cache in node
-    nodeData->_nodeSourcesIgnoreMap[self->getUUID()].cache(shouldIgnore);
 
     return shouldIgnore;
 }
