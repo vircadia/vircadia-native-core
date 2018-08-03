@@ -13,9 +13,19 @@
 
 class QmlFragmentClass : public QmlWindowClass {
     Q_OBJECT
+
+private:
+    static QScriptValue internal_constructor(QScriptContext* context, QScriptEngine* engine, bool restricted);
 public: 
-    QmlFragmentClass(QString id);
-    static QScriptValue constructor(QScriptContext* context, QScriptEngine* engine);
+    static QScriptValue constructor(QScriptContext* context, QScriptEngine* engine) {
+        return internal_constructor(context, engine, false);
+    }
+
+    static QScriptValue restricted_constructor(QScriptContext* context, QScriptEngine* engine ){
+        return internal_constructor(context, engine, true);
+    }
+
+    QmlFragmentClass(bool restricted, QString id);
 
     /**jsdoc
      * Creates a new button, adds it to this and returns it.
