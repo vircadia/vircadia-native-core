@@ -92,4 +92,6 @@ private:
     friend class OpenVrSubmitThread;
 
     bool _asyncReprojectionActive { false };
+
+    bool _hmdMounted { false };
 };
