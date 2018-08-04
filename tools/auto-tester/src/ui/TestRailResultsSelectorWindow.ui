@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>489</width>
+    <width>533</width>
     <height>474</height>
    </rect>
   </property>
@@ -171,20 +171,20 @@
     <string>Accept</string>
    </property>
   </widget>
-  <widget class="QComboBox" name="releasesComboBox">
+  <widget class="QComboBox" name="runsComboBox">
    <property name="enabled">
     <bool>false</bool>
    </property>
    <property name="geometry">
     <rect>
-     <x>270</x>
+     <x>160</x>
      <y>350</y>
-     <width>161</width>
+     <width>271</width>
      <height>22</height>
     </rect>
    </property>
   </widget>
-  <widget class="QLabel" name="releasesLabel">
+  <widget class="QLabel" name="runsLabel">
    <property name="enabled">
     <bool>true</bool>
    </property>
@@ -192,7 +192,7 @@
     <rect>
      <x>80</x>
      <y>350</y>
-     <width>181</width>
+     <width>71</width>
      <height>20</height>
     </rect>
    </property>
@@ -202,7 +202,7 @@
     </font>
    </property>
    <property name="text">
-    <string>TestRail Added for release</string>
+    <string>TestRail Run</string>
    </property>
   </widget>
   <widget class="QLineEdit" name="urlLineEdit">
@@ -271,7 +271,7 @@
   <tabstop>projectIDLineEdit</tabstop>
   <tabstop>suiteIDLineEdit</tabstop>
   <tabstop>acceptButton</tabstop>
-  <tabstop>releasesComboBox</tabstop>
+  <tabstop>runsComboBox</tabstop>
   <tabstop>OKButton</tabstop>
   <tabstop>cancelButton</tabstop>
  </tabstops>

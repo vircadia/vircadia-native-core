@@ -830,7 +830,7 @@ void Test::createTestRailTestCases() {
         QFileDialog::getExistingDirectory(nullptr, "Please select the tests root folder", parent, QFileDialog::ShowDirsOnly);
 
     // If user cancelled then restore previous selection and return
-    if (_testDirectory == "") {
+    if (_testDirectory.isNull()) {
         _testDirectory = previousSelection;
         return;
     }
@@ -839,7 +839,7 @@ void Test::createTestRailTestCases() {
                                                                 nullptr, QFileDialog::ShowDirsOnly);
 
     // If user cancelled then return
-    if (outputDirectory == "") {
+    if (outputDirectory.isNull()) {
         return;
     }
 
@@ -855,15 +855,26 @@ void Test::createTestRailTestCases() {
 void Test::createTestRailRun() {
     QString outputDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select a folder to store generated files in",
                                                                 nullptr, QFileDialog::ShowDirsOnly);
+
+    if (outputDirectory.isNull()) {
+        return;
+    }
+
     _testRailInterface.createTestRailRun(outputDirectory);
 }
 
 void Test::updateTestRailRunResult() {
     QString testResults = QFileDialog::getOpenFileName(nullptr, "Please select the zipped test results to update from", nullptr,
-                                                       "Zipped Test Results (*.zip)");
+                                                       "Zipped Test Results (*.zip)");   
+    if (testResults.isNull()) {
+        return;
+    }
 
     QString tempDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select a folder to store temporary files in",
                                                                 nullptr, QFileDialog::ShowDirsOnly);
+    if (tempDirectory.isNull()) {
+        return;
+    }
 
     _testRailInterface.updateTestRailRunResults(testResults, tempDirectory);
 }

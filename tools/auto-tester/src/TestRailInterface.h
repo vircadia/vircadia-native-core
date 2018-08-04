@@ -15,6 +15,7 @@
 
 #include "ui/TestRailTestCasesSelectorWindow.h"
 #include "ui/TestRailRunSelectorWindow.h"
+#include "ui/TestRailResultsSelectorWindow.h"
 
 #include <QDirIterator>
 #include <QtXml/QDomDocument>
@@ -55,12 +56,14 @@ public:
 
     void getReleasesFromTestRail();
     void getTestSectionsFromTestRail();
+    void getRunsFromTestRail();
 
     void createTestRailDotPyScript();
     void createStackDotPyScript();
 
-    void requestTestRailTestCasesDataFromUser();
-    void requestTestRailRunDataFromUser();
+    bool requestTestRailTestCasesDataFromUser();
+    bool requestTestRailRunDataFromUser();
+    bool requestTestRailResultsDataFromUser();
 
     void createAddTestCasesPythonScript(const QString& testDirectory,
                                         const QString& userGitHub,
@@ -77,11 +80,13 @@ public:
 
     void updateReleasesComboData(int exitCode, QProcess::ExitStatus exitStatus);
     void updateSectionsComboData(int exitCode, QProcess::ExitStatus exitStatus);
+    void updateRunsComboData(int exitCode, QProcess::ExitStatus exitStatus);
 
     void createTestRailRun(const QString& outputDirectory);
     void updateTestRailRunResults(const QString& testResults, const QString& tempDirectory);
 
     void addRun();
+    void updateRunWithResults();
 
     bool setPythonCommand();
 
@@ -97,6 +102,7 @@ private:
     BusyWindow _busyWindow;
     TestRailTestCasesSelectorWindow _testRailTestCasesSelectorWindow;
     TestRailRunSelectorWindow _testRailRunSelectorWindow;
+    TestRailResultsSelectorWindow _testRailResultsSelectorWindow;
 
     QString _url;
     QString _user;
@@ -116,6 +122,9 @@ private:
 
     QStringList _sectionNames;
     std::vector<int> _sectionIDs;
+
+    QStringList _runNames;
+    std::vector<int> _runIDs;
 
     QString tempName{ "fgadhcUDHSFaidsfh3478JJJFSDFIUSOEIrf" };
 };
