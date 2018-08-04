@@ -665,6 +665,10 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     NodePermissions newPermissions;
     packetStream >> newPermissions;
     setPermissions(newPermissions);
+    // Is packet authentication enabled?
+    bool isAuthenticated;
+    packetStream >> isAuthenticated;
+    setAuthenticatePackets(isAuthenticated);
 
     // pull each node in the packet
     while (packetStream.device()->pos() < message->getSize()) {

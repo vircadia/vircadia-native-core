@@ -315,7 +315,8 @@ enum class DomainListVersion : PacketVersion {
     PrePermissionsGrid = 18,
     PermissionsGrid,
     GetUsernameFromUUIDSupport,
-    GetMachineFingerprintFromUUIDSupport
+    GetMachineFingerprintFromUUIDSupport,
+    AuthenticationOptional
 };
 
 enum class AudioVersion : PacketVersion {
