@@ -289,6 +289,12 @@ void NodeList::addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes)
 }
 
 void NodeList::sendDomainServerCheckIn() {
+
+    if (!_sendDomainServerCheckInEnabled) {
+        qCDebug(networking) << "Refusing to send a domain-server check in while it is disabled.";
+        return;
+    }
+
     if (thread() != QThread::currentThread()) {
         QMetaObject::invokeMethod(this, "sendDomainServerCheckIn", Qt::QueuedConnection);
         return;
@@ -659,6 +665,10 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     NodePermissions newPermissions;
     packetStream >> newPermissions;
     setPermissions(newPermissions);
+    // Is packet authentication enabled?
+    bool isAuthenticated;
+    packetStream >> isAuthenticated;
+    setAuthenticatePackets(isAuthenticated);
 
     // pull each node in the packet
     while (packetStream.device()->pos() < message->getSize()) {

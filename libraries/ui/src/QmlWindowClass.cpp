@@ -25,6 +25,8 @@
 
 #include <shared/QtHelpers.h>
 #include "OffscreenUi.h"
+#include "ui/types/HFWebEngineProfile.h"
+#include "ui/types/FileTypeProfile.h"
 
 static const char* const SOURCE_PROPERTY = "source";
 static const char* const TITLE_PROPERTY = "title";
@@ -68,10 +70,10 @@ QVariantMap QmlWindowClass::parseArguments(QScriptContext* context) {
 
 
 // Method called by Qt scripts to create a new web window in the overlay
-QScriptValue QmlWindowClass::constructor(QScriptContext* context, QScriptEngine* engine) {
+QScriptValue QmlWindowClass::internal_constructor(QScriptContext* context, QScriptEngine* engine, bool restricted) {
     auto properties = parseArguments(context);
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    QmlWindowClass* retVal = new QmlWindowClass();
+    QmlWindowClass* retVal = new QmlWindowClass(restricted);
     Q_ASSERT(retVal);
     if (QThread::currentThread() != qApp->thread()) {
         retVal->moveToThread(qApp->thread());
@@ -83,7 +85,7 @@ QScriptValue QmlWindowClass::constructor(QScriptContext* context, QScriptEngine*
     return engine->newQObject(retVal);
 }
 
-QmlWindowClass::QmlWindowClass() {
+QmlWindowClass::QmlWindowClass(bool restricted) : _restricted(restricted) {
 
 }
 
@@ -99,8 +101,7 @@ void QmlWindowClass::initQml(QVariantMap properties) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     _source = properties[SOURCE_PROPERTY].toString();
 
-    // Build the event bridge and wrapper on the main thread
-    offscreenUi->loadInNewContext(qmlSource(), [&](QQmlContext* context, QObject* object) {
+    auto objectInitLambda = [&](QQmlContext* context, QObject* object) {
         _qmlWindow = object;
         context->setContextProperty(EVENT_BRIDGE_PROPERTY, this);
         context->engine()->setObjectOwnership(this, QQmlEngine::CppOwnership);
@@ -128,7 +129,24 @@ void QmlWindowClass::initQml(QVariantMap properties) {
         if (metaObject->indexOfSignal("moved") >= 0)
             connect(_qmlWindow, SIGNAL(moved(QVector2D)), this, SLOT(hasMoved(QVector2D)), Qt::QueuedConnection);
         connect(_qmlWindow, SIGNAL(windowClosed()), this, SLOT(hasClosed()), Qt::QueuedConnection);
-    });
+    };
+
+    auto contextInitLambda = [&](QQmlContext* context) {
+#if !defined(Q_OS_ANDROID)
+        // If the restricted flag is on, override the FileTypeProfile and HFWebEngineProfile objects in the 
+        // QML surface root context with local ones
+        qDebug() << "Context initialization lambda";
+        if (_restricted) {
+            qDebug() << "Restricting web content";
+            ContextAwareProfile::restrictContext(context);
+            FileTypeProfile::registerWithContext(context);
+            HFWebEngineProfile::registerWithContext(context);
+        }
+#endif
+    };
+
+    // Build the event bridge and wrapper on the main thread
+    offscreenUi->loadInNewContext(qmlSource(), objectInitLambda, contextInitLambda);
 
     Q_ASSERT(_qmlWindow);
     Q_ASSERT(dynamic_cast<const QQuickItem*>(_qmlWindow.data()));

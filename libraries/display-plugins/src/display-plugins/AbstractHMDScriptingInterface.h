@@ -54,6 +54,17 @@ signals:
      */
     void displayModeChanged(bool isHMDMode);
 
+    /**jsdoc
+     * Triggered when the <code>HMD.mounted</code> property value changes.
+     * @function HMD.mountedChanged
+     * @returns {Signal}
+     * @example <caption>Report when there's a change in the HMD being worn.</caption>
+     * HMD.mountedChanged.connect(function () {
+     *     print("Mounted changed. HMD is mounted: " + HMD.mounted);
+     * });
+     */
+    void mountedChanged();
+
 private:
     float _IPDScale{ 1.0 };
 };

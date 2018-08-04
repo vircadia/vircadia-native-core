@@ -49,8 +49,8 @@ public class UserStoryDomainProvider implements DomainProvider {
     }
 
     @Override
-    public synchronized void retrieve(String filterText, DomainCallback domainCallback) {
-        if (!startedToGetFromAPI) {
+    public synchronized void retrieve(String filterText, DomainCallback domainCallback, boolean forceRefresh) {
+        if (!startedToGetFromAPI || forceRefresh) {
             startedToGetFromAPI = true;
             fillDestinations(filterText, domainCallback);
         } else {
@@ -72,6 +72,7 @@ public class UserStoryDomainProvider implements DomainProvider {
                     allStories.clear();
                     getUserStoryPage(1, allStories, null,
                             ex -> {
+                                suggestions.clear();
                                 allStories.forEach(userStory -> {
                                     if (taggedStoriesIds.contains(userStory.id)) {
                                         userStory.tagFound = true;

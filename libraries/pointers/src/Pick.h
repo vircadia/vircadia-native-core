@@ -161,8 +161,8 @@ public:
     enum PickType {
         Ray = 0,
         Stylus,
+        Parabola,
         Collision,
-
         NUM_PICK_TYPES
     };
     Q_ENUM(PickType)

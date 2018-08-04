@@ -63,6 +63,15 @@ var createToolsWindow = new CreateWindow(
     false
 );
 
+/**
+ * @description Returns true in case we should use the tablet version of the CreateApp
+ * @returns boolean
+ */
+var shouldUseEditTabletApp = function() {
+    return HMD.active || (!HMD.active && !Settings.getValue("desktopTabletBecomesToolbar", true));
+};
+
+
 var selectionDisplay = SelectionDisplay;
 var selectionManager = SelectionManager;
 
@@ -88,11 +97,12 @@ var cameraManager = new CameraManager();
 var grid = new Grid();
 var gridTool = new GridTool({
     horizontalGrid: grid,
-    createToolsWindow: createToolsWindow
+    createToolsWindow: createToolsWindow,
+    shouldUseEditTabletApp: shouldUseEditTabletApp
 });
 gridTool.setVisible(false);
 
-var entityListTool = new EntityListTool();
+var entityListTool = new EntityListTool(shouldUseEditTabletApp);
 
 selectionManager.addEventListener(function () {
     selectionDisplay.updateHandles();
@@ -306,10 +316,10 @@ var toolBar = (function () {
             direction = Vec3.multiplyQbyV(direction, Vec3.UNIT_Z);
             // Align entity with Avatar orientation.
             properties.rotation = MyAvatar.orientation;
-            
+
             var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Web", "Material"];
             if (PRE_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
-                    
+
                 // Adjust position of entity per bounding box prior to creating it.
                 var registration = properties.registration;
                 if (registration === undefined) {
@@ -342,7 +352,12 @@ var toolBar = (function () {
                 properties.userData = JSON.stringify({ grabbableKey: { grabbable: false } });
             }
 
+            SelectionManager.saveProperties();
             entityID = Entities.addEntity(properties);
+            pushCommandForSelections([{
+                entityID: entityID,
+                properties: properties
+            }], [], true);
 
             if (properties.type === "ParticleEffect") {
                 selectParticleEntity(entityID);
@@ -381,6 +396,8 @@ var toolBar = (function () {
         selectionManager.clearSelections();
         entityListTool.sendUpdate();
         selectionManager.setSelections([entityID]);
+
+        Window.setFocus();
 
         return entityID;
     }
@@ -578,7 +595,8 @@ var toolBar = (function () {
         });
         createButton = activeButton;
         tablet.screenChanged.connect(function (type, url) {
-            var isGoingToHomescreenOnDesktop = (!HMD.active && (url === 'hifi/tablet/TabletHome.qml' || url === ''));
+            var isGoingToHomescreenOnDesktop = (!shouldUseEditTabletApp() &&
+                (url === 'hifi/tablet/TabletHome.qml' || url === ''));
             if (isActive && (type !== "QML" || url !== "hifi/tablet/Edit.qml") && !isGoingToHomescreenOnDesktop) {
                 that.setActive(false);
             }
@@ -605,7 +623,7 @@ var toolBar = (function () {
         });
         function createNewEntityDialogButtonCallback(entityType) {
             return function() {
-                if (HMD.active) {
+                if (shouldUseEditTabletApp()) {
                     // tablet version of new-model dialog
                     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
                     tablet.pushOntoStack("hifi/tablet/New" + entityType + "Dialog.qml");
@@ -837,7 +855,7 @@ var toolBar = (function () {
             selectionDisplay.triggerMapping.disable();
             tablet.landscape = false;
         } else {
-            if (HMD.active) {
+            if (shouldUseEditTabletApp()) {
                 tablet.loadQMLSource("hifi/tablet/Edit.qml", true);
             } else {
                 // make other apps inactive while in desktop mode
@@ -950,13 +968,15 @@ function handleOverlaySelectionToolUpdates(channel, message, sender) {
     var data = JSON.parse(message);
 
     if (data.method === "selectOverlay") {
-        if (wantDebug) {
-            print("setting selection to overlay " + data.overlayID);
-        }
-        var entity = entityIconOverlayManager.findEntity(data.overlayID);
+        if (!selectionDisplay.triggered() || selectionDisplay.triggeredHand === data.hand) {
+            if (wantDebug) {
+                print("setting selection to overlay " + data.overlayID);
+            }
+            var entity = entityIconOverlayManager.findEntity(data.overlayID);
 
-        if (entity !== null) {
-            selectionManager.setSelections([entity]);
+            if (entity !== null) {
+                selectionManager.setSelections([entity]);
+            }
         }
     }
 }
@@ -1075,15 +1095,19 @@ function mouseReleaseEvent(event) {
     }
 }
 
-function wasTabletClicked(event) {
+function wasTabletOrEditHandleClicked(event) {
     var rayPick = Camera.computePickRay(event.x, event.y);
-    var tabletIDs = getMainTabletIDs();
-    if (tabletIDs.length === 0) {
-        return false;
-    } else {
-        var result = Overlays.findRayIntersection(rayPick, true, getMainTabletIDs());
-        return result.intersects;
+    var result = Overlays.findRayIntersection(rayPick, true);
+    if (result.intersects) {
+        var overlayID = result.overlayID;
+        var tabletIDs = getMainTabletIDs();
+        if (tabletIDs.indexOf(overlayID) >= 0) {
+            return true;
+        } else if (selectionDisplay.isEditHandle(overlayID)) {
+            return true;
+        }
     }
+    return false;
 }
 
 function mouseClickEvent(event) {
@@ -1091,8 +1115,8 @@ function mouseClickEvent(event) {
     var result, properties, tabletClicked;
     if (isActive && event.isLeftButton) {
         result = findClickedEntity(event);
-        tabletClicked = wasTabletClicked(event);
-        if (tabletClicked) {
+        tabletOrEditHandleClicked = wasTabletOrEditHandleClicked(event);
+        if (tabletOrEditHandleClicked) {
             return;
         }
 
@@ -1577,11 +1601,7 @@ function deleteSelectedEntities() {
         if (savedProperties.length > 0) {
             SelectionManager.clearSelections();
             pushCommandForSelections([], savedProperties);
-
-            entityListTool.webView.emitScriptEvent(JSON.stringify({
-                type: "deleted",
-                ids: deletedIDs
-            }));
+            entityListTool.deleteEntities(deletedIDs);
         }
     }
 }
@@ -1853,13 +1873,7 @@ var keyReleaseEvent = function (event) {
         }
     } else if (event.text === 'g') {
         if (isActive && selectionManager.hasSelection()) {
-            var newPosition = selectionManager.worldPosition;
-            newPosition = Vec3.subtract(newPosition, {
-                x: 0,
-                y: selectionManager.worldDimensions.y * 0.5,
-                z: 0
-            });
-            grid.setPosition(newPosition);
+            grid.moveToSelection();
         }
     } else if (event.key === KEY_P && event.isControl && !event.isAutoRepeat ) {
         if (event.isShifted) {
@@ -1873,12 +1887,14 @@ Controller.keyReleaseEvent.connect(keyReleaseEvent);
 Controller.keyPressEvent.connect(keyPressEvent);
 
 function recursiveAdd(newParentID, parentData) {
-    var children = parentData.children;
-    for (var i = 0; i < children.length; i++) {
-        var childProperties = children[i].properties;
-        childProperties.parentID = newParentID;
-        var newChildID = Entities.addEntity(childProperties);
-        recursiveAdd(newChildID, children[i]);
+    if (parentData.children !== undefined) {
+        var children = parentData.children;
+        for (var i = 0; i < children.length; i++) {
+            var childProperties = children[i].properties;
+            childProperties.parentID = newParentID;
+            var newChildID = Entities.addEntity(childProperties);
+            recursiveAdd(newChildID, children[i]);
+        }
     }
 }
 
@@ -1888,16 +1904,22 @@ function recursiveAdd(newParentID, parentData) {
 var DELETED_ENTITY_MAP = {};
 
 function applyEntityProperties(data) {
-    var properties = data.setProperties;
+    var editEntities = data.editEntities;
     var selectedEntityIDs = [];
+    var selectEdits = data.createEntities.length == 0 || !data.selectCreated;
     var i, entityID;
-    for (i = 0; i < properties.length; i++) {
-        entityID = properties[i].entityID;
+    for (i = 0; i < editEntities.length; i++) {
+        var entityID = editEntities[i].entityID;
         if (DELETED_ENTITY_MAP[entityID] !== undefined) {
             entityID = DELETED_ENTITY_MAP[entityID];
         }
-        Entities.editEntity(entityID, properties[i].properties);
-        selectedEntityIDs.push(entityID);
+        var entityProperties = editEntities[i].properties;
+        if (entityProperties !== null) {
+            Entities.editEntity(entityID, entityProperties);
+        }
+        if (selectEdits) {
+            selectedEntityIDs.push(entityID);
+        }
     }
     for (i = 0; i < data.createEntities.length; i++) {
         entityID = data.createEntities[i].entityID;
@@ -1917,36 +1939,48 @@ function applyEntityProperties(data) {
         Entities.deleteEntity(entityID);
     }
 
-    selectionManager.setSelections(selectedEntityIDs);
+    // We might be getting an undo while edit.js is disabled. If that is the case, don't set
+    // our selections, causing the edit widgets to display.
+    if (isActive) {
+        selectionManager.setSelections(selectedEntityIDs);
+    }
 }
 
 // For currently selected entities, push a command to the UndoStack that uses the current entity properties for the
 // redo command, and the saved properties for the undo command.  Also, include create and delete entity data.
-function pushCommandForSelections(createdEntityData, deletedEntityData) {
+function pushCommandForSelections(createdEntityData, deletedEntityData, doNotSaveEditProperties) {
+    doNotSaveEditProperties = false;
     var undoData = {
-        setProperties: [],
+        editEntities: [],
         createEntities: deletedEntityData || [],
         deleteEntities: createdEntityData || [],
         selectCreated: true
     };
     var redoData = {
-        setProperties: [],
+        editEntities: [],
         createEntities: createdEntityData || [],
         deleteEntities: deletedEntityData || [],
-        selectCreated: false
+        selectCreated: true
     };
     for (var i = 0; i < SelectionManager.selections.length; i++) {
         var entityID = SelectionManager.selections[i];
         var initialProperties = SelectionManager.savedProperties[entityID];
-        var currentProperties = Entities.getEntityProperties(entityID);
+        var currentProperties = null;
         if (!initialProperties) {
             continue;
         }
-        undoData.setProperties.push({
+
+        if (doNotSaveEditProperties) {
+            initialProperties = null;
+        } else {
+            currentProperties = Entities.getEntityProperties(entityID);
+        }
+
+        undoData.editEntities.push({
             entityID: entityID,
             properties: initialProperties
         });
-        redoData.setProperties.push({
+        redoData.editEntities.push({
             entityID: entityID,
             properties: currentProperties
         });
@@ -1999,8 +2033,8 @@ var PropertiesTool = function (opts) {
 
     that.setVisible = function (newVisible) {
         visible = newVisible;
-        webView.setVisible(HMD.active && visible);
-        createToolsWindow.setVisible(!HMD.active && visible);
+        webView.setVisible(shouldUseEditTabletApp() && visible);
+        createToolsWindow.setVisible(!shouldUseEditTabletApp() && visible);
     };
 
     that.setVisible(false);
@@ -2218,7 +2252,7 @@ var PropertiesTool = function (opts) {
             updateSelections(true);
         }
     };
-    
+
     createToolsWindow.webEventReceived.addListener(this, onWebEventReceived);
 
     webView.webEventReceived.connect(onWebEventReceived);
@@ -2426,7 +2460,7 @@ function selectParticleEntity(entityID) {
 
     // Switch to particle explorer
     var selectTabMethod = { method: 'selectTab', params: { id: 'particle' } };
-    if (HMD.active) {
+    if (shouldUseEditTabletApp()) {
         var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         tablet.sendToQml(selectTabMethod);
     } else {

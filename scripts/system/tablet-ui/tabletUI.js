@@ -13,7 +13,7 @@
 //
 
 /* global Script, HMD, WebTablet, UIWebTablet, UserActivityLogger, Settings, Entities, Messages, Tablet, Overlays,
-   MyAvatar, Menu, AvatarInputs, Vec3 */
+   MyAvatar, Menu, AvatarInputs, Vec3, cleanUpOldMaterialEntities */
 
 (function() { // BEGIN LOCAL_SCOPE
     var tabletRezzed = false;
@@ -30,6 +30,14 @@
     var gTablet = null;
 
     Script.include("../libraries/WebTablet.js");
+
+    function cleanupMaterialEntities() {
+        if (Window.isPhysicsEnabled()) {
+            cleanUpOldMaterialEntities();
+            return;
+        }
+        Script.setTimeout(cleanupMaterialEntities, 100);
+    }
 
     function checkTablet() {
         if (gTablet === null) {
@@ -327,4 +335,5 @@
         HMD.homeButtonHighlightMaterialID = null;
         HMD.homeButtonUnhighlightMaterialID = null;
     });
+    Script.setTimeout(cleanupMaterialEntities, 100);
 }()); // END LOCAL_SCOPE

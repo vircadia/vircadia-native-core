@@ -44,4 +44,5 @@ protected:
     ovrLayerEyeFov _sceneLayer;
     ovrViewScaleDesc _viewScaleDesc;
     // ovrLayerEyeFovDepth _depthLayer;
+    bool _hmdMounted { false };
 };

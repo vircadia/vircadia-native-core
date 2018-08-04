@@ -52,7 +52,7 @@ protected:
     /// Implements generic processing behavior for this thread.
     virtual bool process() override;
 
-    virtual void traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData,
+    virtual bool traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData,
             bool viewFrustumChanged, bool isFullScene);
     virtual bool traverseTreeAndBuildNextPacketPayload(EncodeBitstreamParams& params, const QJsonObject& jsonFilters) = 0;
 

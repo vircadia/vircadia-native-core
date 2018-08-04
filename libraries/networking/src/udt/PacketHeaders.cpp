@@ -27,13 +27,13 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::StunResponse:
             return 17;
         case PacketType::DomainList:
-            return static_cast<PacketVersion>(DomainListVersion::GetMachineFingerprintFromUUIDSupport);
+            return static_cast<PacketVersion>(DomainListVersion::AuthenticationOptional);
         case PacketType::EntityAdd:
         case PacketType::EntityClone:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
         case PacketType::EntityPhysics:
-            return static_cast<PacketVersion>(EntityVersion::ParticleEntityFix);
+            return static_cast<PacketVersion>(EntityVersion::ParticleSpin);
         case PacketType::EntityQuery:
             return static_cast<PacketVersion>(EntityQueryPacketVersion::ConicalFrustums);
         case PacketType::AvatarIdentity:

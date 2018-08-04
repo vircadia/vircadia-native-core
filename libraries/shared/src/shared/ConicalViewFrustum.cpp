@@ -69,7 +69,7 @@ bool ConicalViewFrustum::intersects(const AABox& box) const {
     return intersects(position, distance, radius);
 }
 
-bool ConicalViewFrustum::getAngularSize(const AACube& cube) const {
+float ConicalViewFrustum::getAngularSize(const AACube& cube) const {
     auto radius = 0.5f * SQRT_THREE * cube.getScale(); // radius of bounding sphere
     auto position = cube.calcCenter() - _position; // position of bounding sphere in view-frame
     float distance = glm::length(position);
@@ -77,7 +77,7 @@ bool ConicalViewFrustum::getAngularSize(const AACube& cube) const {
     return getAngularSize(distance, radius);
 }
 
-bool ConicalViewFrustum::getAngularSize(const AABox& box) const {
+float ConicalViewFrustum::getAngularSize(const AABox& box) const {
     auto radius = 0.5f * glm::length(box.getScale()); // radius of bounding sphere
     auto position = box.calcCenter() - _position; // position of bounding sphere in view-frame
     float distance = glm::length(position);
@@ -107,7 +107,7 @@ bool ConicalViewFrustum::intersects(const glm::vec3& relativePosition, float dis
            sqrtf(distance * distance - radius * radius) * _cosAngle - radius * _sinAngle;
 }
 
-bool ConicalViewFrustum::getAngularSize(float distance, float radius) const {
+float ConicalViewFrustum::getAngularSize(float distance, float radius) const {
     const float AVOID_DIVIDE_BY_ZERO = 0.001f;
     float angularSize = radius / (distance + AVOID_DIVIDE_BY_ZERO);
     return angularSize;
@@ -143,4 +143,9 @@ int ConicalViewFrustum::deserialize(const unsigned char* sourceBuffer) {
     calculate();
 
     return sourceBuffer - startPosition;
+}
+
+void ConicalViewFrustum::setSimpleRadius(float radius) {
+    _radius = radius;
+    _farClip = radius / 2.0f;
 }

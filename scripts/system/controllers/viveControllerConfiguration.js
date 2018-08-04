@@ -77,6 +77,8 @@ VIVE_CONTROLLER_CONFIGURATION_LEFT = {
             dimensions: viveNaturalDimensions,
 
             parts: {
+                // DISABLED FOR NOW
+                /*
                 tips: {
                     type: "static",
                     modelURL: viveTipsModelURL,
@@ -103,6 +105,7 @@ VIVE_CONTROLLER_CONFIGURATION_LEFT = {
                         }
                     }
                 },
+                */
 
                 // The touchpad type draws a dot indicating the current touch/thumb position
                 // and swaps in textures based on the thumb position.
@@ -215,6 +218,8 @@ VIVE_CONTROLLER_CONFIGURATION_RIGHT = {
             },
 
             parts: {
+                // DISABLED FOR NOW
+                /*
                 tips: {
                     type: "static",
                     modelURL: viveTipsModelURL,
@@ -242,6 +247,7 @@ VIVE_CONTROLLER_CONFIGURATION_RIGHT = {
                         }
                     }
                 },
+                */
 
                 // The touchpad type draws a dot indicating the current touch/thumb position
                 // and swaps in textures based on the thumb position.
