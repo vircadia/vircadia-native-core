@@ -226,11 +226,31 @@ AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {
     return NULL;
 }
 
+AudioHRTF& AudioMixerClientData::hrtfForStream(Node::LocalID nodeID, const QUuid& streamID) {
+    auto& hrtfVector = _nodeSourcesHRTFMap[nodeID];
+
+    auto streamIt = std::find_if(hrtfVector.begin(), hrtfVector.end(), [&streamID](IdentifiedHRTF& identifiedHRTF){
+        return identifiedHRTF.streamIdentifier == streamID;
+    });
+
+    if (streamIt == hrtfVector.end()) {
+        hrtfVector.push_back({ streamID, std::unique_ptr<AudioHRTF>(new AudioHRTF) });
+
+        return *hrtfVector.back().hrtf;
+    } else {
+        return *streamIt->hrtf;
+    }
+}
+
 void AudioMixerClientData::removeHRTFForStream(Node::LocalID nodeID, const QUuid& streamID) {
     auto it = _nodeSourcesHRTFMap.find(nodeID);
     if (it != _nodeSourcesHRTFMap.end()) {
+        auto streamIt = std::find_if(it->second.begin(), it->second.end(), [&streamID](IdentifiedHRTF& identifiedHRTF){
+            return identifiedHRTF.streamIdentifier == streamID;
+        });
+
         // erase the stream with the given ID from the given node
-        it->second.erase(streamID);
+        it->second.erase(streamIt);
 
         // is the map for this node now empty?
         // if so we can remove it

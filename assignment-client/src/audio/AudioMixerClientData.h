@@ -50,7 +50,7 @@ public:
     // they are not thread-safe
 
     // returns a new or existing HRTF object for the given stream from the given node
-    AudioHRTF& hrtfForStream(Node::LocalID nodeID, const QUuid& streamID = QUuid()) { return _nodeSourcesHRTFMap[nodeID][streamID]; }
+    AudioHRTF& hrtfForStream(Node::LocalID nodeID, const QUuid& streamID = QUuid());
 
     // removes an AudioHRTF object for a given stream
     void removeHRTFForStream(Node::LocalID nodeID, const QUuid& streamID = QUuid());
@@ -152,8 +152,13 @@ private:
     };
     IgnoreZoneMemo _ignoreZone;
 
-    using HRTFMap = std::unordered_map<QUuid, AudioHRTF>;
-    using NodeSourcesHRTFMap = std::unordered_map<Node::LocalID, HRTFMap>;
+    struct IdentifiedHRTF {
+        QUuid streamIdentifier;
+        std::unique_ptr<AudioHRTF> hrtf;
+    };
+
+    using HRTFVector = std::vector<IdentifiedHRTF>;
+    using NodeSourcesHRTFMap = std::unordered_map<Node::LocalID, HRTFVector>;
     NodeSourcesHRTFMap _nodeSourcesHRTFMap;
 
     quint16 _outgoingMixedAudioSequenceNumber;
