@@ -99,12 +99,14 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
 
         // CPU jobs: finer grained culling
         const auto cullInputs = CullShadowBounds::Inputs(sortedShapes, shadowFilter, antiFrustum).asVarying();
-        const auto culledShadowItemsAndBounds = task.addJob<CullShadowBounds>("CullShadowCascade", cullInputs, shadowCullFunctor);
+        sprintf(jobName, "CullShadowCascade%d", i);
+        const auto culledShadowItemsAndBounds = task.addJob<CullShadowBounds>(jobName, cullInputs, shadowCullFunctor);
 
         // GPU jobs: Render to shadow map
         sprintf(jobName, "RenderShadowMap%d", i);
         task.addJob<RenderShadowMap>(jobName, culledShadowItemsAndBounds, shapePlumber, i);
-        task.addJob<RenderShadowCascadeTeardown>("ShadowCascadeTeardown", shadowFilter);
+        sprintf(jobName, "ShadowCascadeTeardown%d", i);
+        task.addJob<RenderShadowCascadeTeardown>(jobName, shadowFilter);
 
         cascadeSceneBBoxes[i] = culledShadowItemsAndBounds.getN<CullShadowBounds::Outputs>(1);
     }
@@ -181,6 +183,9 @@ static void adjustNearFar(const AABox& inShapeBounds, ViewFrustum& shadowFrustum
         computeNearFar(sceneBoundVertices, shadowClipPlanes, near, far);
         // Limit the far range to the one used originally.
         far = glm::min(far, shadowFrustum.getFarClip());
+        if (near > far) {
+            near = far;
+        }
 
         const auto depthEpsilon = 0.1f;
         auto projMatrix = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, near - depthEpsilon, far + depthEpsilon);
