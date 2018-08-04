@@ -77,6 +77,8 @@ public:
     void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) override;
 
     QVector<QUuid> getOverlayIDs() override;
+    QUuid getStartOverlayID(const QString& state) override;
+    QUuid getEndOverlayID(const QString& state) override;
 
     void setLength(float length) override;
     void setLockEndUUID(const QUuid& objectID, bool isOverlay, const glm::mat4& offsetMat = glm::mat4()) override;

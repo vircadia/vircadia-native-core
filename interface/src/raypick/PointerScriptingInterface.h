@@ -207,9 +207,29 @@ public:
      * Get the IDs of the overlays used by a Pointer.
      * @function Pointers.getOverlayIDs
      * @param {number} uid The ID of the Pointer, as returned by {@link Pointers.createPointer}.
-     * @returns {Uuid[]} The overlay IDs used by the Pointer.
+     * @returns {Uuid[]} The overlay IDs used by the Pointer if a {@link PickType|Parabola}, otherwise null.
      */
     Q_INVOKABLE QVector<QUuid> getOverlayIDs(unsigned int uid);
+
+    /**jsdoc
+     * Get the ID of the start overlay for a particular state used by a {@link PickType|Path} or {@link PickType|Parabola} 
+     * Pointer.
+     * @function Pointers.getStartOverlayID
+     * @param {number} uid The ID of the Pointer, as returned by {@link Pointers.createPointer}.
+     * @returns {Uuid} The ID of the start overlay used by the Pointer if a {@link PickType|Path} or {@link PickType|Parabola}, 
+     *     otherwise Uuid.NULL.
+     */
+    Q_INVOKABLE QUuid getStartOverlayID(unsigned int uid, const QString& state);
+
+    /**jsdoc
+     * Get the ID of the end overlay for a particular state used by a {@link PickType|Path} or {@link PickType|Parabola} 
+     * Pointer.
+     * @function Pointers.getEndOverlayID
+     * @param {number} uid The ID of the Pointer, as returned by {@link Pointers.createPointer}.
+     * @returns {Uuid} The ID of the end overlay used by the Pointer if a  {@link PickType|Path} or {@link PickType|Parabola}, 
+     *     otherwise Uuid.NULL.
+     */
+    Q_INVOKABLE QUuid getEndOverlayID(unsigned int uid, const QString& state);
 };
 
 #endif // hifi_PointerScriptingInterface_h

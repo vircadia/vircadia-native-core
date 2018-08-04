@@ -221,6 +221,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.playAreaCenterOffset = this.PLAY_AREA_OVERLAY_OFFSET;
         this.isPlayAreaVisible = false;
         this.isPlayAreaAvailable = false;
+        this.targetOverlayID = null;
 
         this.TELEPORT_SCALE_DURATION = 500;
         this.TELEPORT_SCALE_TIMEOUT = 20;
@@ -296,14 +297,17 @@ Script.include("/~/system/libraries/controllers.js");
             }
         };
 
-        this.setPlayAreaVisible = function (visible) {
+        this.setPlayAreaVisible = function (visible, targetOverlayID) {
             if (!this.isPlayAreaAvailable || this.isPlayAreaVisible === visible) {
                 return;
             }
+
             this.isPlayAreaVisible = visible;
+            this.targetOverlayID = targetOverlayID;
+
             Overlays.editOverlay(this.playAreaOverlay, {
-                visible: visible,
-                dimensions: Vec3.ZERO
+                dimensions: Vec3.ZERO,
+                visible: visible
             });
             for (var i = 0; i < this.playAreaSensorPositionOverlays.length; i++) {
                 Overlays.editOverlay(this.playAreaSensorPositionOverlays[i], {
@@ -349,12 +353,31 @@ Script.include("/~/system/libraries/controllers.js");
             var avatarSensorPosition = Mat4.transformPoint(worldToSensorMatrix, MyAvatar.position);
             avatarSensorPosition.y = 0;
 
-            Overlays.editOverlay(this.playAreaOverlay, {
-                position: Vec3.sum(position,
-                    Vec3.multiplyQbyV(sensorToWorldRotation,
-                        Vec3.multiply(MyAvatar.scale, Vec3.subtract(this.playAreaCenterOffset, avatarSensorPosition)))),
-                rotation: sensorToWorldRotation
-            });
+            var targetXZPosition = { x: position.x, y: 0, z: position.z };
+            var avatarXZPosition = MyAvatar.position;
+            avatarXZPosition.y = 0;
+            var MIN_PARENTING_DISTANCE = 0.2; // Parenting under this distance results in the play area's rotation jittering.
+            if (Vec3.distance(targetXZPosition, avatarXZPosition) < MIN_PARENTING_DISTANCE) {
+                // Set play area position and rotation in world coordinates with no parenting.
+                Overlays.editOverlay(this.playAreaOverlay, {
+                    parentID: Uuid.NULL,
+                    position: Vec3.sum(position,
+                        Vec3.multiplyQbyV(sensorToWorldRotation,
+                            Vec3.multiply(MyAvatar.scale, Vec3.subtract(this.playAreaCenterOffset, avatarSensorPosition)))),
+                    rotation: sensorToWorldRotation
+                });
+            } else {
+                // Set play area position and rotation in local coordinates with parenting.
+                var targetRotation = Overlays.getProperty(this.targetOverlayID, "rotation");
+                var sensorToTargetRotation = Quat.multiply(Quat.inverse(targetRotation), sensorToWorldRotation);
+                Overlays.editOverlay(this.playAreaOverlay, {
+                    parentID: this.targetOverlayID,
+                    localPosition: Vec3.multiplyQbyV(Quat.inverse(targetRotation),
+                        Vec3.multiplyQbyV(sensorToWorldRotation,
+                            Vec3.multiply(MyAvatar.scale, Vec3.subtract(this.playAreaCenterOffset, avatarSensorPosition)))),
+                    localRotation: sensorToTargetRotation
+                });
+            }
         };
 
 
@@ -538,14 +561,17 @@ Script.include("/~/system/libraries/controllers.js");
             } else {
                 Selection.disableListHighlight(this.teleporterSelectionName);
             }
+            var pointerID;
             if (mode === 'head') {
                 Pointers.setRenderState(_this.teleportParabolaHeadVisible, visibleState);
                 Pointers.setRenderState(_this.teleportParabolaHeadInvisible, invisibleState);
+                pointerID = _this.teleportParabolaHeadVisible;
             } else {
                 Pointers.setRenderState(_this.teleportParabolaHandVisible, visibleState);
                 Pointers.setRenderState(_this.teleportParabolaHandInvisible, invisibleState);
+                pointerID = _this.teleportParabolaHandVisible;
             }
-            this.setPlayAreaVisible(visible);
+            this.setPlayAreaVisible(visible, Pointers.getEndOverlayID(pointerID, "teleport"));
             this.setTeleportVisible(visible);
         };
 

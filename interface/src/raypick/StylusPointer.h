@@ -34,6 +34,8 @@ public:
     void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) override {}
 
     QVector<QUuid> getOverlayIDs() override;
+    QUuid getStartOverlayID(const QString& state) override { return QUuid(); };
+    QUuid getEndOverlayID(const QString& state) override { return QUuid(); };;
 
     static OverlayID buildStylusOverlay(const QVariantMap& properties);
 
