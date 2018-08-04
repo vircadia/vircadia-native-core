@@ -46,6 +46,14 @@
           "default": "40102",
           "type": "int",
           "advanced": true
+        },
+        {
+          "name": "enable_packet_verification",
+          "label": "Enable Packet Verification",
+          "help": "Enable secure checksums on communication that uses the High Fidelity protocol. Increases security with possibly a small performance penalty.",
+          "default": true,
+          "type": "checkbox",
+          "advanced":  true
         }
       ]
     },
