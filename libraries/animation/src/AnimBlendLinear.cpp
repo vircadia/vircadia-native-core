@@ -43,9 +43,16 @@ const AnimPoseVec& AnimBlendLinear::evaluate(const AnimVariantMap& animVars, con
         size_t prevPoseIndex = glm::floor(clampedAlpha);
         size_t nextPoseIndex = glm::ceil(clampedAlpha);
         float alpha = glm::fract(clampedAlpha);
+        if (prevPoseIndex == nextPoseIndex) {
+            if (nextPoseIndex == 0) {
+                nextPoseIndex = 1;
+            } else if (prevPoseIndex == (_children.size() - 1)) {
+                prevPoseIndex = (_children.size() - 2);
+            }
+        }
         evaluateAndBlendChildren(animVars, context, triggersOut, alpha, prevPoseIndex, nextPoseIndex, dt);
 
-
+        qCDebug(animation) << "linear blend alpha " << alpha << " next pose " <<  _children[nextPoseIndex]->getID() << " previous pose " << _children[prevPoseIndex]->getID();
         float weight2 = alpha;
         float weight1 = 1.0f - weight2;
         _animStack[_children[prevPoseIndex]->getID()] = weight1 * parentAlpha;
