@@ -18,8 +18,6 @@
 
 layout(location = 0) in vec4 inPosition;
 
-out vec3 varWorldPos;
-
 void main(void) {
     // standard transform
     TransformCamera cam = getTransformCamera();
