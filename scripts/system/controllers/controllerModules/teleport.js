@@ -221,11 +221,14 @@ Script.include("/~/system/libraries/controllers.js");
         this.playAreaCenterOffset = this.PLAY_AREA_OVERLAY_OFFSET;
         this.isPlayAreaVisible = false;
         this.isPlayAreaAvailable = false;
-        this.PLAY_AREA_SCALE_DURATION = 500;
-        this.PLAY_AREA_SCALE_TIMEOUT = 20;
-        this.playAreaScaleTimer = null;
-        this.playAreaScaleStart = 0;
-        this.playAreaScaleFactor = 0;
+
+        this.TELEPORT_SCALE_DURATION = 500;
+        this.TELEPORT_SCALE_TIMEOUT = 20;
+        this.isTeleportVisible = false;
+        this.teleportScaleTimer = null;
+        this.teleportScaleStart = 0;
+        this.teleportScaleFactor = 0;
+        this.teleportScaleMode = "head";
 
         this.playAreaOverlay = Overlays.addOverlay("model", {
             url: this.PLAY_AREA_OVERLAY_MODEL,
@@ -260,7 +263,7 @@ Script.include("/~/system/libraries/controllers.js");
 
             Overlays.editOverlay(this.playAreaOverlay, {
                 dimensions:
-                    Vec3.multiply(this.playAreaScaleFactor * avatarScale, {
+                    Vec3.multiply(this.teleportScaleFactor * avatarScale, {
                         x: this.playArea.width,
                         y: this.PLAY_AREA_OVERLAY_MODEL_UNIT_HEIGHT,
                         z: this.playArea.height
@@ -280,7 +283,7 @@ Script.include("/~/system/libraries/controllers.js");
                 localPosition.y = avatarScale * this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS.y / 2
                     - this.playAreaCenterOffset.y / 2;
                 Overlays.editOverlay(this.playAreaSensorPositionOverlays[i], {
-                    dimensions: Vec3.multiply(this.playAreaScaleFactor * avatarScale, this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS),
+                    dimensions: Vec3.multiply(this.teleportScaleFactor * avatarScale, this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS),
                     parentID: this.playAreaOverlay,
                     localPosition: localPosition
                 });
@@ -290,16 +293,6 @@ Script.include("/~/system/libraries/controllers.js");
         this.updatePlayAreaScale = function () {
             if (this.isPlayAreaAvailable) {
                 this.setPlayAreaDimensions();
-            }
-        };
-
-        this.scaleInPlayArea = function () {
-            _this.playAreaScaleFactor = Math.min((Date.now() - _this.playAreaScaleStart) / _this.PLAY_AREA_SCALE_DURATION, 1);
-            _this.setPlayAreaDimensions();
-            if (_this.playAreaScaleFactor < 1) {
-                _this.playAreaScaleTimer = Script.setTimeout(_this.scaleInPlayArea, _this.PLAY_AREA_SCALE_TIMEOUT);
-            } else {
-                _this.playAreaScaleTimer = null;
             }
         };
 
@@ -317,14 +310,6 @@ Script.include("/~/system/libraries/controllers.js");
                     visible: visible,
                     dimensions: Vec3.ZERO
                 });
-            }
-            if (visible) {
-                this.playAreaScaleStart = Date.now();
-                this.playAreaScaleFactor = 0;
-                this.scaleInPlayArea();
-            } else if (this.playAreaScaleTimer !== null) {
-                Script.clearTimeout(this.playAreaScaleTimer);
-                this.playAreaScaleTimer = null;
             }
         };
 
@@ -370,6 +355,54 @@ Script.include("/~/system/libraries/controllers.js");
                         Vec3.multiply(MyAvatar.scale, Vec3.subtract(this.playAreaCenterOffset, avatarSensorPosition)))),
                 rotation: sensorToWorldRotation
             });
+        };
+
+
+        this.scaleInTeleport = function () {
+            _this.teleportScaleFactor = Math.min((Date.now() - _this.teleportScaleStart) / _this.TELEPORT_SCALE_DURATION, 1);
+            Pointers.editRenderState(
+                _this.teleportScaleMode === "head" ? _this.teleportParabolaHeadVisible : _this.teleportParabolaHandVisible,
+                "teleport",
+                {
+                    path: teleportPath, // Teleport beam disappears if not included.
+                    end: { dimensions: Vec3.multiply(_this.teleportScaleFactor, TARGET_MODEL_DIMENSIONS) }
+                }
+            );
+            _this.setPlayAreaDimensions();
+            if (_this.teleportScaleFactor < 1) {
+                _this.teleportScaleTimer = Script.setTimeout(_this.scaleInTeleport, _this.TELEPORT_SCALE_TIMEOUT);
+            } else {
+                _this.teleportScaleTimer = null;
+            }
+        };
+
+        this.setTeleportVisible = function (visible, mode) {
+            // Scales in teleport target and play area when start displaying them.
+            if (visible === this.isTeleportVisible) {
+                return;
+            }
+
+            if (visible) {
+                this.teleportScaleMode = mode;
+                Pointers.editRenderState(
+                    mode === "head" ? _this.teleportParabolaHeadVisible : _this.teleportParabolaHandVisible,
+                    "teleport",
+                    {
+                        path: teleportPath, // Teleport beam disappears if not included.
+                        end: { dimensions: Vec3.ZERO }
+                    }
+                );
+                this.teleportScaleStart = Date.now();
+                this.teleportScaleFactor = 0;
+                this.scaleInTeleport();
+            } else {
+                if (this.teleportScaleTimer !== null) {
+                    Script.clearTimeout(this.teleportScaleTimer);
+                    this.teleportScaleTimer = null;
+                }
+            }
+
+            this.isTeleportVisible = visible;
         };
 
 
@@ -500,7 +533,6 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.setTeleportState = function (mode, visibleState, invisibleState) {
             var visible = visibleState === "teleport";
-            this.setPlayAreaVisible(visible);
             if (visible) {
                 Selection.enableListHighlight(this.teleporterSelectionName, this.TELEPORTER_SELECTION_STYLE);
             } else {
@@ -513,6 +545,8 @@ Script.include("/~/system/libraries/controllers.js");
                 Pointers.setRenderState(_this.teleportParabolaHandVisible, visibleState);
                 Pointers.setRenderState(_this.teleportParabolaHandInvisible, invisibleState);
             }
+            this.setPlayAreaVisible(visible);
+            this.setTeleportVisible(visible);
         };
 
         this.setIgnoreEntities = function(entitiesToIgnore) {
