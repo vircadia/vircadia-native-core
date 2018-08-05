@@ -79,6 +79,10 @@ float evalShadowCascadeWeight(vec4 cascadeTexCoords) {
     return clamp(blend * getShadowCascadeInvBlendWidth(), 0.0, 1.0);
 }
 
+float evalCascadeMix(float firstCascadeWeight, float secondCascadeWeight) {
+    return ((1.0-firstCascadeWeight) * secondCascadeWeight) / (firstCascadeWeight + secondCascadeWeight);
+}
+
 float determineShadowCascadesOnPixel(vec4 worldPosition, float viewDepth, out vec4 cascadeShadowCoords[2], out ivec2 cascadeIndices) {
     cascadeIndices.x = getFirstShadowCascadeOnPixel(0, worldPosition, cascadeShadowCoords[0]);
     cascadeIndices.y = cascadeIndices.x+1;
@@ -88,7 +92,7 @@ float determineShadowCascadesOnPixel(vec4 worldPosition, float viewDepth, out ve
 
         float secondCascadeWeight = evalShadowCascadeWeight(cascadeShadowCoords[1]);
         // Returns the mix amount between first and second cascade.
-        return ((1.0-firstCascadeWeight) * secondCascadeWeight) / (firstCascadeWeight + secondCascadeWeight);
+        return evalCascadeMix(firstCascadeWeight, secondCascadeWeight);
     } else {
         return 0.0;
     }
