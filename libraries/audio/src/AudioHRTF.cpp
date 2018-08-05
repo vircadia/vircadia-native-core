@@ -919,6 +919,9 @@ static void azimuthToIndex(float azimuth, int& index0, int& index1, float& frac)
     index1 = index0 + 1;
     frac = azimuth - (float)index0;
 
+    if (index0 >= HRTF_AZIMUTHS) {
+        index0 -= HRTF_AZIMUTHS;
+    }
     if (index1 >= HRTF_AZIMUTHS) {
         index1 -= HRTF_AZIMUTHS;
     }
