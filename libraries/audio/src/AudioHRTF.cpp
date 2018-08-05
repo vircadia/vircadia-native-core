@@ -840,7 +840,7 @@ static void nearFieldGainCorrection(float azimuth, float distance, float& gainL,
     // normalized distance factor = [0,1] as distance = [HRTF_NEARFIELD_MAX,HRTF_HEAD_RADIUS]
     assert(distance < HRTF_NEARFIELD_MAX);
     assert(distance > HRTF_HEAD_RADIUS);
-	float d = (HRTF_NEARFIELD_MAX - distance) * ( 1.0f / (HRTF_NEARFIELD_MAX - HRTF_HEAD_RADIUS));
+	float d = (HRTF_NEARFIELD_MAX - distance) * (1.0f / (HRTF_NEARFIELD_MAX - HRTF_HEAD_RADIUS));
 
     // angle of incidence at each ear
     float angleL = azimuth + HALFPI;
