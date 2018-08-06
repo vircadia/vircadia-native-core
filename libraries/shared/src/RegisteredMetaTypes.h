@@ -51,13 +51,12 @@ void mat4FromScriptValue(const QScriptValue& object, glm::mat4& mat4);
 * @property {number} x - X-coordinate of the vector. Synonyms: <code>u</code> and <code>width</code>.
 * @property {number} y - Y-coordinate of the vector. Synonyms: <code>v</code> and <code>height</code>.
 */
-class ScriptVec2Float : public QObject {
-    Q_OBJECT
+class ScriptVec2Float {
 public:
     ScriptVec2Float() {}
     ScriptVec2Float(float xy) : x(xy), y(xy) {}
     ScriptVec2Float(float x, float y) : x(x), y(y) {}
-    ScriptVec2Float(const ScriptVec2Float& other) : QObject(), x(other.x), y(other.y) {}
+    ScriptVec2Float(const ScriptVec2Float& other) : x(other.x), y(other.y) {}
     ScriptVec2Float(const glm::vec2& other) : x(other.x), y(other.y) {}
     void operator=(const ScriptVec2Float& other) { x = other.x; y = other.y; }
     inline bool operator==(const ScriptVec2Float& other) const { return (x == other.x && y == other.y); }
@@ -66,7 +65,6 @@ public:
     inline bool operator!=(const glm::vec2& other) const { return !(*this == other); }
 
     glm::vec2 toGlm() const { return glm::vec2(x, y); }
-    Q_INVOKABLE QVariant toJSON() const { return toJsonValue(*this, { "x", "y" }).toVariant(); }
 
     float x { 0.0f };
     float y { 0.0f };
@@ -101,13 +99,12 @@ glm::vec2 vec2FromVariant(const QVariant& object);
 * @property {number} y - Y-coordinate of the vector. Synonyms: <code>g</code>, <code>green</code>, and <code>height</code>.
 * @property {number} z - Z-coordinate of the vector. Synonyms: <code>b</code>, <code>blue</code>, and <code>depth</code>.
 */
-class ScriptVec3Float : public QObject {
-    Q_OBJECT
+class ScriptVec3Float {
 public:
     ScriptVec3Float() {}
     ScriptVec3Float(float xyz) : x(xyz), y(xyz), z(xyz) {}
     ScriptVec3Float(float x, float y, float z) : x(x), y(y), z(z) {}
-    ScriptVec3Float(const ScriptVec3Float& other) : QObject(), x(other.x), y(other.y), z(other.z) {}
+    ScriptVec3Float(const ScriptVec3Float& other) : x(other.x), y(other.y), z(other.z) {}
     ScriptVec3Float(const glm::vec3& other) : x(other.x), y(other.y), z(other.z) {}
     void operator=(const ScriptVec3Float& other) { x = other.x; y = other.y; z = other.z; }
     inline bool operator==(const ScriptVec3Float& other) const { return (x == other.x && y == other.y && z == other.z); }
@@ -116,7 +113,6 @@ public:
     inline bool operator!=(const glm::vec3& other) const { return !(*this == other); }
 
     glm::vec3 toGlm() const { return glm::vec3(x, y, z); }
-    Q_INVOKABLE QVariant toJSON() const { return toJsonValue(*this, { "x", "y", "z" }).toVariant(); }
 
     float x { 0.0f };
     float y { 0.0f };
@@ -144,20 +140,18 @@ void vec3FloatFromScriptValue(const QScriptValue& object, ScriptVec3Float& vec3)
 * @property {number} y - Green component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>g</code>, <code>green</code>, and <code>height</code>.
 * @property {number} z - Blue component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>b</code>, <code>blue</code>, and <code>depth</code>.
 */
-class ScriptVec3UChar : public QObject {
-    Q_OBJECT
+class ScriptVec3UChar {
 public:
     ScriptVec3UChar() {}
     ScriptVec3UChar(unsigned int xyz) : x(xyz), y(xyz), z(xyz) {}
     ScriptVec3UChar(unsigned int x, unsigned int y, unsigned int z) : x(x), y(y), z(z) {}
-    ScriptVec3UChar(const ScriptVec3UChar& other) : QObject(), x(other.x), y(other.y), z(other.z) {}
+    ScriptVec3UChar(const ScriptVec3UChar& other) : x(other.x), y(other.y), z(other.z) {}
     ScriptVec3UChar(const glm::vec3& other) : x(other.x), y(other.y), z(other.z) {}
     void operator=(const ScriptVec3UChar& other) { x = other.x; y = other.y; z = other.z; }
     inline bool operator==(const ScriptVec3UChar& other) const { return (x == other.x && y == other.y && z == other.z); }
     inline bool operator!=(const ScriptVec3UChar& other) const { return !(*this == other); }
 
     glm::vec3 toGlm() const { return glm::vec3(x, y, z); }
-    Q_INVOKABLE QVariant toJSON() const { return toJsonValue(*this, { "x", "y", "z" }).toVariant(); }
 
     unsigned char x { 0 };
     unsigned char y { 0 };

@@ -76,12 +76,6 @@ QJsonValue toJsonValueHelper(const QVariant& variant, int type) {
         return toJsonValue(variant.value<vec3>());
     } else if (type == qMetaTypeId<vec4>()) {
         return toJsonValue(variant.value<vec4>());
-    } else if (type == qMetaTypeId<ScriptVec2Float>()) {
-        return toJsonValue(variant.value<ScriptVec2Float>(), {"x", "y"});
-    } else if (type == qMetaTypeId<ScriptVec3Float>()) {
-        return toJsonValue(variant.value<ScriptVec2Float>(), { "x", "y", "z" });
-    } else if (type == qMetaTypeId<ScriptVec3UChar>()) {
-        return toJsonValue(variant.value<ScriptVec3UChar>(), { "x", "y", "z" });
     } else {
         // Qt types are converted automatically
         return QJsonValue::fromVariant(variant);
