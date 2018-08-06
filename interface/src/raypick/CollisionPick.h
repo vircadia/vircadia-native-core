@@ -44,7 +44,7 @@ public:
     std::vector<ContactTestResult> entityIntersections;
     std::vector<ContactTestResult> avatarIntersections;
 
-    QVariantMap CollisionPickResult::toVariantMap() const override;
+    QVariantMap toVariantMap() const override;
 
     bool doesIntersect() const override { return intersects; }
     bool checkOrFilterAgainstMaxDistance(float maxDistance) override { return true; }
