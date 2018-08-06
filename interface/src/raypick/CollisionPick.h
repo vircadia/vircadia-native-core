@@ -92,6 +92,7 @@ protected:
     // Returns true if pick.shapeInfo is valid. Otherwise, attempts to get the shapeInfo ready for use.
     bool isShapeInfoReady();
     void computeShapeInfo(CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<GeometryResource> resource);
+    const std::vector<ContactTestResult> filterIntersections(const std::vector<ContactTestResult>& intersections) const;
 
     CollisionRegion _mathPick;
     PhysicsEnginePointer _physicsEngine;
