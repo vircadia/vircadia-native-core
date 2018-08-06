@@ -27,7 +27,7 @@ layout(location=0) out vec4 _color;
 void main(void) {
     _color = color;
 
-    float t = parabolicDistance * (floor(gl_VertexID / 2) / float(numSections));
+    float t = parabolicDistance * (float(gl_VertexID / 2) / float(numSections));
 
     vec4 pos = vec4(velocity * t + 0.5 * acceleration * t * t, 1);
     const float EPSILON = 0.00001;

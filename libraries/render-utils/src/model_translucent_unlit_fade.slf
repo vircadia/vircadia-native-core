@@ -24,8 +24,8 @@
 <@include render-utils/ShaderConstants.h@>
 
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
-vec2 _texCoord0 = _texCoord01.xy;
-vec2 _texCoord1 = _texCoord01.zw;
+#define _texCoord0 _texCoord01.xy
+#define _texCoord1 _texCoord01.zw
 layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
 layout(location=RENDER_UTILS_ATTR_POSITION_WS) in vec4 _positionWS;
 
