@@ -564,10 +564,23 @@ void TestRailInterface::updateRunWithResults() {
     stream << "\tstatus_id = 1\n";
     stream << "\tif test['title'] in failed_tests:\n";
     stream << "\t\tstatus_id = 5\n";
-    stream << "\tcase_id.append(test['case_id'])\n";
-    stream << "\tstatus_ids.append(status_id)\n";
+    stream << "\tcase_ids.append(test['case_id'])\n";
+    stream << "\tstatus_ids.append(status_id)\n\n";
 
-    // We can now update the test (note that all tests need to be updated
+    // We can now update the test (note that all tests need to be updated)
+    // An example request is as follows:
+    //
+    //      "results" : [
+    //          { 'case_id': 1, 'status_id': 5 },
+    //          { 'case_id': 2, 'status_id': 1 }
+    //      ]
+    //
+    stream << "results = []\n";
+    stream << "for i in range(len(case_ids)):\n";
+    stream << "\tresults.append({'case_id': case_ids[i], 'status_id': status_ids[i] })\n\n";
+
+    stream << "data = { 'results': results }\n";
+    stream << "section = client.send_post('add_results_for_cases/' + str(" << runID << "), data)\n";
 
     file.close();
 }
