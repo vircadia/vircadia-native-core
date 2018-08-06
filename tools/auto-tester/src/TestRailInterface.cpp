@@ -583,6 +583,20 @@ void TestRailInterface::updateRunWithResults() {
     stream << "section = client.send_post('add_results_for_cases/' + str(" << runID << "), data)\n";
 
     file.close();
+
+    if (QMessageBox::Yes == QMessageBox(QMessageBox::Information, "Python script has been created",
+                                        "Do you want to run the script and update TestRail?",
+                                        QMessageBox::Yes | QMessageBox::No).exec()
+    ) {
+        QProcess* process = new QProcess();
+        connect(process, &QProcess::started, this, [=]() { _busyWindow.exec(); });
+
+        connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
+                [=](int exitCode, QProcess::ExitStatus exitStatus) { _busyWindow.hide(); });
+
+        QStringList parameters = QStringList() << _outputDirectory + "/updateRunWithResults.py";
+        process->start(_pythonCommand, parameters);
+    }
 }
 
 void TestRailInterface::updateSectionsComboData(int exitCode, QProcess::ExitStatus exitStatus) {
