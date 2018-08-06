@@ -23,6 +23,7 @@ class AudioScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
+    // JSDoc for property is in Audio.h.
     Q_PROPERTY(bool isStereoInput READ isStereoInput WRITE setStereoInput NOTIFY isStereoInputChanged)
 
 public:
@@ -35,91 +36,121 @@ protected:
     // these methods are protected to stop C++ callers from calling, but invokable from script
 
     /**jsdoc
+     * Starts playing &mdash; "injecting" &mdash; the content of an audio file. The sound is played globally (sent to the audio 
+     * mixer) so that everyone hears it, unless the <code>injectorOptions</code> has <code>localOnly</code> set to 
+     * <code>true</code> in which case only the client hears the sound played. No sound is played if sent to the audio mixer 
+     * but the client is not connected to an audio mixer. The {@link AudioInjector} object returned by the function can be used 
+     * to control the playback and get information about its current state.
      * @function Audio.playSound
-     * @param {} sound
-     * @param {} [injectorOptions=null]
-     * @returns {object}
+     * @param {SoundObject} sound - The content of an audio file, loaded using {@link SoundCache.getSound}. See 
+     * {@link SoundObject} for supported formats.
+     * @param {AudioInjector.AudioInjectorOptions} [injectorOptions={}] - Audio injector configuration.
+     * @returns {AudioInjector} The audio injector that plays the audio file.
+     * @example <caption>Play a sound.</caption>
+     * var sound = SoundCache.getSound(Script.resourcesPath() + "sounds/sample.wav");
+     * var injector;
+     * var injectorOptions = {
+     *     position: MyAvatar.position
+     * };
+     * 
+     * Script.setTimeout(function () { // Give the sound time to load.
+     *     injector = Audio.playSound(sound, injectorOptions);
+     * }, 1000);
      */
     Q_INVOKABLE ScriptAudioInjector* playSound(SharedSoundPointer sound, const AudioInjectorOptions& injectorOptions = AudioInjectorOptions());
 
     /**jsdoc
+     * Start playing the content of an audio file, locally (isn't sent to the audio mixer). This is the same as calling 
+     * {@link Audio.playSound} with {@link AudioInjector.AudioInjectorOptions} <code>localOnly</code> set <code>true</code> and 
+     * the specified <code>position</code>.
      * @function Audio.playSystemSound
-     * @param {} sound
-     * @param {} position
-     * @returns {object}
+     * @param {SoundObject} sound - The content of an audio file, loaded using {@link SoundCache.getSound}. See 
+     * {@link SoundObject} for supported formats.
+     * @param {Vec3} position - The position in the domain to play the sound.
+     * @returns {AudioInjector} The audio injector that plays the audio file.
      */
     // FIXME: there is no way to play a positionless sound
     Q_INVOKABLE ScriptAudioInjector* playSystemSound(SharedSoundPointer sound, const QVector3D& position);
 
     /**jsdoc
+     * Set whether or not the audio input should be used in stereo. If the audio input does not support stereo then setting a 
+     * value of <code>true</code> has no effect.
      * @function Audio.setStereoInput
-     * @param {boolean} stereo
+     * @param {boolean} stereo - <code>true</code> if the audio input should be used in stereo, otherwise <code>false</code>.
      */
     Q_INVOKABLE void setStereoInput(bool stereo);
 
     /**jsdoc
+     * Get whether or not the audio input is used in stereo.
      * @function Audio.isStereoInput
-     * @returns {boolean} 
+     * @returns {boolean} <code>true</code> if the audio input is used in stereo, otherwise <code>false</code>. 
      */
     Q_INVOKABLE bool isStereoInput();
 
 signals:
 
     /**jsdoc
-     * The client has been muted by the mixer.
+     * Triggered when the client is muted by the mixer because their loudness value for the noise background has reached the 
+     * threshold set for the domain in the server settings.
      * @function Audio.mutedByMixer
      * @returns {Signal} 
      */
     void mutedByMixer();
 
     /**jsdoc
-     * The entire environment has been muted by the mixer.
+     * Triggered when the client is muted by the mixer because they're within a certain radius (50m) of someone who requested 
+     * the mute through Developer &gt; Audio &gt; Mute Environment.
      * @function Audio.environmentMuted
      * @returns {Signal} 
      */
     void environmentMuted();
 
     /**jsdoc
-     * The client has received its first packet from the audio mixer.
+     * Triggered when the client receives its first packet from the audio mixer.
      * @function Audio.receivedFirstPacket
      * @returns {Signal} 
      */
     void receivedFirstPacket();
 
     /**jsdoc
-     * The client has been disconnected from the audio mixer.
+     * Triggered when the client is disconnected from the audio mixer.
      * @function Audio.disconnected
      * @returns {Signal} 
      */
     void disconnected();
 
     /**jsdoc
-     * The noise gate has opened.
+     * Triggered when the noise gate is opened: the input audio signal is no longer blocked (fully attenuated) because it has 
+     * risen above an adaptive threshold set just above the noise floor. Only occurs if <code>Audio.noiseReduction</code> is 
+     * <code>true</code>.
      * @function Audio.noiseGateOpened
      * @returns {Signal} 
      */
     void noiseGateOpened();
 
     /**jsdoc
-     * The noise gate has closed.
+     * Triggered when the noise gate is closed: the input audio signal is blocked (fully attenuated) because it has fallen 
+     * below an adaptive threshold set just above the noise floor. Only occurs if <code>Audio.noiseReduction</code> is 
+     * <code>true</code>.
      * @function Audio.noiseGateClosed
      * @returns {Signal} 
      */
     void noiseGateClosed();
 
     /**jsdoc
-     * A frame of mic input audio has been received and processed.
+     * Triggered when a frame of audio input is processed.
      * @function Audio.inputReceived
-     * @param {} inputSamples
+     * @param {Int16Array} inputSamples - The audio input processed.
      * @returns {Signal} 
      */
     void inputReceived(const QByteArray& inputSamples);
 
     /**jsdoc
-    * @function Audio.isStereoInputChanged
-    * @param {boolean} isStereo
-    * @returns {Signal}
-    */
+     * Triggered when the input audio use changes between mono and stereo.
+     * @function Audio.isStereoInputChanged
+     * @param {boolean} isStereo - <code>true</code> if the input audio is stereo, otherwise <code>false</code>.
+     * @returns {Signal}
+     */
     void isStereoInputChanged(bool isStereo);
 
 private:

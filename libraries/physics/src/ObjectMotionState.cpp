@@ -64,9 +64,9 @@ ShapeManager* ObjectMotionState::getShapeManager() {
 }
 
 ObjectMotionState::ObjectMotionState(const btCollisionShape* shape) :
-    _shape(shape),
     _lastKinematicStep(worldSimulationStep)
 {
+    setShape(shape);
 }
 
 ObjectMotionState::~ObjectMotionState() {
