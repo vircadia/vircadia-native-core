@@ -46,17 +46,17 @@ const AnimPoseVec& AnimBlendLinear::evaluate(const AnimVariantMap& animVars, con
         if (prevPoseIndex == nextPoseIndex) {
             if (nextPoseIndex == 0) {
                 nextPoseIndex = 1;
-            } else if (prevPoseIndex == (_children.size() - 1)) {
-                prevPoseIndex = (_children.size() - 2);
+            } else {
+                prevPoseIndex = (nextPoseIndex - 1);
             }
         }
         evaluateAndBlendChildren(animVars, context, triggersOut, alpha, prevPoseIndex, nextPoseIndex, dt);
 
-        qCDebug(animation) << "linear blend alpha " << alpha << " next pose " <<  _children[nextPoseIndex]->getID() << " previous pose " << _children[prevPoseIndex]->getID();
-        float weight2 = alpha;
+        qCDebug(animation) << "linear blend alpha " << alpha << " and _alpha " << _alpha <<" next pose " <<  _children[nextPoseIndex]->getID() << " previous pose " << _children[prevPoseIndex]->getID();
+        float weight2 = _alpha - (float)prevPoseIndex;
         float weight1 = 1.0f - weight2;
         _animStack[_children[prevPoseIndex]->getID()] = weight1 * parentAlpha;
-        if ((int)nextPoseIndex < _children.size()) {
+        if (nextPoseIndex < _children.size()) {
             _animStack[_children[nextPoseIndex]->getID()] = weight2 * parentAlpha;
         }
 
