@@ -548,6 +548,10 @@ void TestRailInterface::updateRunWithResults() {
 
     stream << "\tfailed_tests.add(failed_test)\n\n";
 
+    // Initialize the array of results that will be eventually used to update TestRail
+    stream << "status_ids = []\n";
+    stream << "case_ids = []\n";
+
     int runID = _runIDs[_testRailResultsSelectorWindow.getRunID()];
     stream << "tests = client.send_get('get_tests/" + QString::number(runID) + "')\n\n";
     stream << "for test in tests:\n";
@@ -560,6 +564,10 @@ void TestRailInterface::updateRunWithResults() {
     stream << "\tstatus_id = 1\n";
     stream << "\tif test['title'] in failed_tests:\n";
     stream << "\t\tstatus_id = 5\n";
+    stream << "\tcase_id.append(test['case_id'])\n";
+    stream << "\tstatus_ids.append(status_id)\n";
+
+    // We can now update the test (note that all tests need to be updated
 
     file.close();
 }
@@ -1125,12 +1133,15 @@ void TestRailInterface::updateTestRailRunResults(const QString& testResults, con
         return;
     }
 
-    // TestRail will be updated after the process initiated by getTestRunFromTestRail has completed
-    getRunsFromTestRail();
-    
+    // This is needed to access TestRail
+    createTestRailDotPyScript();
+
     // Extract test failures from zipped folder
     QString tempSubDirectory = tempDirectory + "/" + tempName;
     QDir dir = tempSubDirectory;
     dir.mkdir(tempSubDirectory);
     JlCompress::extractDir(testResults, tempSubDirectory);
+
+    // TestRail will be updated after the process initiated by getTestRunFromTestRail has completed
+    getRunsFromTestRail();
 }
