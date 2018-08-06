@@ -119,6 +119,11 @@ void Procedural::setProceduralData(const ProceduralData& proceduralData) {
     _dirty = true;
     _enabled = false;
 
+    if (proceduralData.version != _data.version ) {
+        _data.version = proceduralData.version;
+        _shaderDirty = true;
+    }
+
     if (proceduralData.uniforms != _data.uniforms) {
         _data.uniforms = proceduralData.uniforms;
         _uniformsDirty = true;
