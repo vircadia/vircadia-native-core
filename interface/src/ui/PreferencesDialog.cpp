@@ -416,12 +416,24 @@ void setupPreferences() {
     {
         static const QString NETWORKING("Networking");
 
-        auto nodelist = DependencyManager::get<NodeList>();
+        QWeakPointer<NodeList> nodeListWeak = DependencyManager::get<NodeList>();
         {
             static const int MIN_PORT_NUMBER { 0 };
             static const int MAX_PORT_NUMBER { 65535 };
-            auto getter = [&nodelist] { return static_cast<int>(nodelist->getSocketLocalPort()); };
-            auto setter = [&nodelist](int preset) { nodelist->setSocketLocalPort(static_cast<quint16>(preset)); };
+            auto getter = [nodeListWeak] {
+                auto nodeList = nodeListWeak.lock();
+                if (nodeList) {
+                    return static_cast<int>(nodeList->getSocketLocalPort());
+                } else {
+                    return -1;
+                }
+            };
+            auto setter = [nodeListWeak](int preset) {
+                auto nodeList = nodeListWeak.lock();
+                if (nodeList) {
+                    nodeList->setSocketLocalPort(static_cast<quint16>(preset));
+                }
+            };
             auto preference = new IntSpinnerPreference(NETWORKING, "Listening Port", getter, setter);
             preference->setMin(MIN_PORT_NUMBER);
             preference->setMax(MAX_PORT_NUMBER);

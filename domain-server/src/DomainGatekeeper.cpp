@@ -264,7 +264,8 @@ void DomainGatekeeper::updateNodePermissions() {
     QList<SharedNodePointer> nodesToKill;
 
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-    limitedNodeList->eachNode([this, &limitedNodeList, &nodesToKill](const SharedNodePointer& node){
+    QWeakPointer<LimitedNodeList> limitedNodeListWeak = limitedNodeList;
+    limitedNodeList->eachNode([this, limitedNodeListWeak, &nodesToKill](const SharedNodePointer& node){
         // the id and the username in NodePermissions will often be the same, but id is set before
         // authentication and verifiedUsername is only set once they user's key has been confirmed.
         QString verifiedUsername = node->getPermissions().getVerifiedUserName();
@@ -296,7 +297,8 @@ void DomainGatekeeper::updateNodePermissions() {
                 machineFingerprint = nodeData->getMachineFingerprint();
 
                 auto sendingAddress = nodeData->getSendingSockAddr().getAddress();
-                isLocalUser = (sendingAddress == limitedNodeList->getLocalSockAddr().getAddress() ||
+                auto nodeList = limitedNodeListWeak.lock();
+                isLocalUser = ((nodeList && sendingAddress == nodeList->getLocalSockAddr().getAddress()) ||
                                sendingAddress == QHostAddress::LocalHost);
             }
 

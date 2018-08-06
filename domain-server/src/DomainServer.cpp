@@ -1198,6 +1198,7 @@ QUuid DomainServer::connectionSecretForNodes(const SharedNodePointer& nodeA, con
 void DomainServer::broadcastNewNode(const SharedNodePointer& addedNode) {
 
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+    QWeakPointer<LimitedNodeList> limitedNodeListWeak = limitedNodeList;
 
     auto addNodePacket = NLPacket::create(PacketType::DomainServerAddedNode);
 
@@ -1217,16 +1218,19 @@ void DomainServer::broadcastNewNode(const SharedNodePointer& addedNode) {
                 return false;
             }
         },
-        [this, &addNodePacket, connectionSecretIndex, addedNode, &limitedNodeList](const SharedNodePointer& node) {
-            addNodePacket->seek(connectionSecretIndex);
-
-            QByteArray rfcConnectionSecret = connectionSecretForNodes(node, addedNode).toRfc4122();
-
-            // replace the bytes at the end of the packet for the connection secret between these nodes
-            addNodePacket->write(rfcConnectionSecret);
-
+        [this, &addNodePacket, connectionSecretIndex, addedNode, limitedNodeListWeak](const SharedNodePointer& node) {
             // send off this packet to the node
-            limitedNodeList->sendUnreliablePacket(*addNodePacket, *node);
+            auto limitedNodeList = limitedNodeListWeak.lock();
+            if (limitedNodeList) {
+                addNodePacket->seek(connectionSecretIndex);
+
+                QByteArray rfcConnectionSecret = connectionSecretForNodes(node, addedNode).toRfc4122();
+
+                // replace the bytes at the end of the packet for the connection secret between these nodes
+                addNodePacket->write(rfcConnectionSecret);
+
+                limitedNodeList->sendUnreliablePacket(*addNodePacket, *node);
+            }
         }
     );
 }

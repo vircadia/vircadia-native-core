@@ -1138,8 +1138,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // setup a timer for domain-server check ins
     QTimer* domainCheckInTimer = new QTimer(this);
-    connect(domainCheckInTimer, &QTimer::timeout, [this, &nodeList] {
-        if (!isServerlessMode()) {
+    QWeakPointer<NodeList> nodeListWeak = nodeList;
+    connect(domainCheckInTimer, &QTimer::timeout, [this, nodeListWeak] {
+        auto nodeList = nodeListWeak.lock();
+        if (!isServerlessMode() && nodeList) {
             nodeList->sendDomainServerCheckIn();
         }
     });
