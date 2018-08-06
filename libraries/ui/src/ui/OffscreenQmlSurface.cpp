@@ -265,19 +265,6 @@ void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
     if (!javaScriptToInject.isEmpty()) {
         rootContext->setContextProperty("eventBridgeJavaScriptToInject", QVariant(javaScriptToInject));
     }
-#if !defined(Q_OS_ANDROID)
-    rootContext->setContextProperty("FileTypeProfile", new FileTypeProfile(rootContext));
-    rootContext->setContextProperty("HFWebEngineProfile", new HFWebEngineProfile(rootContext));
-    {
-        PROFILE_RANGE(startup, "FileTypeProfile");
-        rootContext->setContextProperty("FileTypeProfile", new FileTypeProfile(rootContext));
-    }
-    {
-        PROFILE_RANGE(startup, "HFWebEngineProfile");
-        rootContext->setContextProperty("HFWebEngineProfile", new HFWebEngineProfile(rootContext));
-        
-    }
-#endif
     rootContext->setContextProperty("Paths", DependencyManager::get<PathUtils>().data());
     rootContext->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
     rootContext->setContextProperty("Toolbars", DependencyManager::get<ToolbarScriptingInterface>().data());
@@ -300,6 +287,17 @@ void OffscreenQmlSurface::onRootContextCreated(QQmlContext* qmlContext) {
     // FIXME Compatibility mechanism for existing HTML and JS that uses eventBridgeWrapper
     // Find a way to flag older scripts using this mechanism and wanr that this is deprecated
     qmlContext->setContextProperty("eventBridgeWrapper", new EventBridgeWrapper(this, qmlContext));
+#if !defined(Q_OS_ANDROID)
+    {
+        PROFILE_RANGE(startup, "FileTypeProfile");
+        FileTypeProfile::registerWithContext(qmlContext);
+    }
+    {
+        PROFILE_RANGE(startup, "HFWebEngineProfile");
+        HFWebEngineProfile::registerWithContext(qmlContext);
+
+    }
+#endif
 }
 
 QQmlContext* OffscreenQmlSurface::contextForUrl(const QUrl& qmlSource, QQuickItem* parent, bool forceNewContext) {

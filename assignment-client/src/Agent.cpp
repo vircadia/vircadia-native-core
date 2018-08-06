@@ -827,10 +827,6 @@ void Agent::processAgentAvatarAudio() {
 void Agent::aboutToFinish() {
     setIsAvatar(false);// will stop timers for sending identity packets
 
-    if (_scriptEngine) {
-        _scriptEngine->stop();
-    }
-
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(nullptr);
 
@@ -843,7 +839,6 @@ void Agent::aboutToFinish() {
 
     // destroy all other created dependencies
     DependencyManager::destroy<ScriptCache>();
-    DependencyManager::destroy<ScriptEngines>();
 
     DependencyManager::destroy<ResourceCacheSharedItems>();
     DependencyManager::destroy<SoundCacheScriptingInterface>();
@@ -860,5 +855,13 @@ void Agent::aboutToFinish() {
     if (_codec && _encoder) {
         _codec->releaseEncoder(_encoder);
         _encoder = nullptr;
+    }
+}
+
+void Agent::stop() {
+    if (_scriptEngine) {
+        _scriptEngine->stop();
+    } else {
+        setFinished(true);
     }
 }
