@@ -491,31 +491,8 @@ Rectangle {
             anchors.verticalCenter: wearablesLabel.verticalCenter
             glyphText: "\ue02e"
 
-            visible: avatarWearablesCount !== 0
             onClicked: {
                 adjustWearables.open(currentAvatar);
-            }
-        }
-
-        // TextStyle3
-        RalewayRegular {
-            size: 22;
-            anchors.right: parent.right
-            anchors.verticalCenter: wearablesLabel.verticalCenter
-            font.underline: true
-            text: "Add"
-            color: 'black'
-            visible: avatarWearablesCount === 0
-
-            MouseArea {
-                anchors.fill: parent
-                onClicked: {
-                    popup.showGetWearables(function() {
-                        emitSendToScript({'method' : 'navigate', 'url' : 'hifi://AvatarIsland/11.5848,-8.10862,-2.80195'})
-                    }, function(link) {
-                        emitSendToScript({'method' : 'navigate', 'url' : link})
-                    });
-                }
             }
         }
     }
