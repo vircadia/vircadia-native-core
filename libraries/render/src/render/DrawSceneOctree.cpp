@@ -142,10 +142,6 @@ const gpu::PipelinePointer DrawItemSelection::getDrawItemBoundPipeline() {
     if (!_drawItemBoundPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::drawItemBounds);
 
-        //_drawItemBoundPosLoc = program->getUniforms().findLocation("inBoundPos");
-        //_drawItemBoundDimLoc = program->getUniforms().findLocation("inBoundDim");
-        //_drawCellLocationLoc = program->getUniforms().findLocation("inCellLocation");
-
         auto state = std::make_shared<gpu::State>();
 
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
@@ -194,10 +190,6 @@ void DrawItemSelection::run(const RenderContextPointer& renderContext, const Ite
                 auto itemCell = scene->getSpatialTree().getCellLocation(item.getCell());
                 glm::ivec4 cellLocation(0, 0, 0, itemCell.depth);
 
-                //batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
-                //batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*)(&itemBound.getCorner()));
-                //batch._glUniform3fv(_drawItemBoundDimLoc, 1, (const float*)(&itemBound.getScale()));
-
                 batch.draw(gpu::LINES, 24, 0);
             }
         }
@@ -208,10 +200,6 @@ void DrawItemSelection::run(const RenderContextPointer& renderContext, const Ite
                 auto itemBound = item.getBound();
                 auto itemCell = scene->getSpatialTree().getCellLocation(item.getCell());
                 glm::ivec4 cellLocation(0, 0, 1, itemCell.depth);
-
-                //batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
-                //batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*)(&itemBound.getCorner()));
-                //batch._glUniform3fv(_drawItemBoundDimLoc, 1, (const float*)(&itemBound.getScale()));
 
                 batch.draw(gpu::LINES, 24, 0);
             }
@@ -224,10 +212,6 @@ void DrawItemSelection::run(const RenderContextPointer& renderContext, const Ite
                 auto itemCell = scene->getSpatialTree().getCellLocation(item.getCell());
                 glm::ivec4 cellLocation(0, 0, 0, itemCell.depth);
 
-                //batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
-                //batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*)(&itemBound.getCorner()));
-                //batch._glUniform3fv(_drawItemBoundDimLoc, 1, (const float*)(&itemBound.getScale()));
-
                 batch.draw(gpu::LINES, 24, 0);
             }
         }
@@ -238,9 +222,6 @@ void DrawItemSelection::run(const RenderContextPointer& renderContext, const Ite
                 auto itemBound = item.getBound();
                 auto itemCell = scene->getSpatialTree().getCellLocation(item.getCell());
                 glm::ivec4 cellLocation(0, 0, 1, itemCell.depth);
-                //batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
-                //batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*)(&itemBound.getCorner()));
-                //batch._glUniform3fv(_drawItemBoundDimLoc, 1, (const float*)(&itemBound.getScale()));
 
                 batch.draw(gpu::LINES, 24, 0);
             }

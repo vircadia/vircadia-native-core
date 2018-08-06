@@ -33,9 +33,6 @@ void DrawStatusConfig::dirtyHelper() {
 const gpu::PipelinePointer DrawStatus::getDrawItemBoundsPipeline() {
     if (!_drawItemBoundsPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::drawItemBounds);
-        //_drawItemBoundPosLoc = program->getUniforms().findLocation("inBoundPos");
-        //_drawItemBoundDimLoc = program->getUniforms().findLocation("inBoundDim");
-        //_drawItemCellLocLoc = program->getUniforms().findLocation("inCellLocation");
 
         auto state = std::make_shared<gpu::State>();
 
@@ -55,10 +52,6 @@ const gpu::PipelinePointer DrawStatus::getDrawItemBoundsPipeline() {
 const gpu::PipelinePointer DrawStatus::getDrawItemStatusPipeline() {
     if (!_drawItemStatusPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::blurGaussianDepthAwareV);
-        //_drawItemStatusPosLoc = program->getUniforms().findLocation("");
-        //_drawItemStatusDimLoc = program->getUniforms().findLocation("");
-        //_drawItemStatusValue0Loc = program->getUniforms().findLocation("");
-        //_drawItemStatusValue1Loc = program->getUniforms().findLocation("");
 
         auto state = std::make_shared<gpu::State>();
 
