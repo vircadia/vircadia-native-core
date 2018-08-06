@@ -142,7 +142,7 @@ Item {
 
     Timer {
         id: refreshTimer;
-        interval: 4000;
+        interval: 6000;
         onTriggered: {
             if (transactionHistory.atYBeginning) {
                 console.log("Refreshing 1st Page of Recent Activity...");
@@ -211,6 +211,7 @@ Item {
 
         HifiModels.PSFListModel {
             id: transactionHistoryModel;
+            property int lastPendingCount: 0;
             listModelName: "transaction history"; // For debugging. Alternatively, we could specify endpoint for that purpose, even though it's not used directly.
             listView: transactionHistory;
             itemsPerPage: 6;
@@ -221,8 +222,26 @@ Item {
             processPage: function (data) {
                 console.debug('processPage', transactionHistoryModel.listModelName, JSON.stringify(data));
                 var result, pending; // Set up or get the accumulator for pending.
-                if (transactionHistoryModel.currentPageToRetrieve == 1) {
-                    pending = {transaction_type: "pendingCount", count: 0};
+                if (transactionHistoryModel.currentPageToRetrieve === 1) {
+                    // The initial data elements inside the ListModel MUST contain all keys
+                    // that will be used in future data.
+                    pending = {
+                        transaction_type: "pendingCount",
+                        count: 0,
+                        created_at: 0,
+                        hfc_text: "",
+                        id: "",
+                        message: "",
+                        place_name: "",
+                        received_certs: 0,
+                        received_money: 0,
+                        recipient_name: "",
+                        sender_name: "",
+                        sent_certs: 0,
+                        sent_money: 0,
+                        status: "",
+                        transaction_text: ""
+                    };
                     result = [pending];
                 } else {
                     pending = transactionHistoryModel.get(0);
@@ -238,6 +257,15 @@ Item {
                         result = result.concat(item);
                     }
                 });
+
+                if (lastPendingCount === 0) {
+                    lastPendingCount = pending.count;
+                } else {
+                    if (lastPendingCount !== pending.count) {
+                        transactionHistoryModel.getNextPageIfNotEnoughVerticalResults();
+                    }
+                    lastPendingCount = pending.count;
+                }
 
                 // Only auto-refresh if the user hasn't scrolled
                 // and there is more data to grab
@@ -257,13 +285,13 @@ Item {
             ListView {
                 id: transactionHistory;
                 ScrollBar.vertical: ScrollBar {
-                policy: transactionHistory.contentHeight > parent.parent.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded;
-                parent: transactionHistory.parent;
-                anchors.top: transactionHistory.top;
-                anchors.left: transactionHistory.right;
-                anchors.leftMargin: 4;
-                anchors.bottom: transactionHistory.bottom;
-                width: 20;
+                    policy: transactionHistory.contentHeight > parent.parent.height ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded;
+                    parent: transactionHistory.parent;
+                    anchors.top: transactionHistory.top;
+                    anchors.left: transactionHistory.right;
+                    anchors.leftMargin: 4;
+                    anchors.bottom: transactionHistory.bottom;
+                    width: 20;
                 }
                 anchors.centerIn: parent;
                 width: parent.width - 12;
@@ -340,7 +368,7 @@ Item {
                         }
 
                         HifiControlsUit.Separator {
-                        colorScheme: 1;
+                            colorScheme: 1;
                             anchors.left: parent.left;
                             anchors.right: parent.right;
                             anchors.bottom: parent.bottom;

@@ -156,58 +156,6 @@ class TextureCache : public ResourceCache, public Dependency {
 
 public:
 
-    // Properties are copied over from ResourceCache (see ResourceCache.h for reason).
-
-    /**jsdoc
-    * API to manage texture cache resources.
-    * @namespace TextureCache
-    *
-    * @hifi-interface
-    * @hifi-client-entity
-    *
-    * @property {number} numTotal - Total number of total resources. <em>Read-only.</em>
-    * @property {number} numCached - Total number of cached resource. <em>Read-only.</em>
-    * @property {number} sizeTotal - Size in bytes of all resources. <em>Read-only.</em>
-    * @property {number} sizeCached - Size in bytes of all cached resources. <em>Read-only.</em>
-    */
-
-
-    // Functions are copied over from ResourceCache (see ResourceCache.h for reason).
-
-    /**jsdoc
-     * Get the list of all resource URLs.
-     * @function TextureCache.getResourceList
-     * @returns {string[]}
-     */
-
-    /**jsdoc
-     * @function TextureCache.dirty
-     * @returns {Signal}
-     */
-
-    /**jsdoc
-     * @function TextureCache.updateTotalSize
-     * @param {number} deltaSize
-     */
-
-    /**jsdoc
-     * Prefetches a resource.
-     * @function TextureCache.prefetch
-     * @param {string} url - URL of the resource to prefetch.
-     * @param {object} [extra=null]
-     * @returns {ResourceObject}
-     */
-
-    /**jsdoc
-     * Asynchronously loads a resource from the specified URL and returns it.
-     * @function TextureCache.getResource
-     * @param {string} url - URL of the resource to load.
-     * @param {string} [fallback=""] - Fallback URL if load of the desired URL fails.
-     * @param {} [extra=null]
-     * @returns {object}
-     */
-
-
     /// Returns the ID of the permutation/normal texture used for Perlin noise shader programs.  This texture
     /// has two lines: the first, a set of random numbers in [0, 255] to be used as permutation offsets, and
     /// the second, a set of random unit vectors to be used as noise gradients.
@@ -248,21 +196,10 @@ public:
     gpu::ContextPointer getGPUContext() const { return _gpuContext; }
 
 signals:
-    /**jsdoc 
-     * @function TextureCache.spectatorCameraFramebufferReset
-     * @returns {Signal}
-     */
     void spectatorCameraFramebufferReset();
 
 protected:
     
-    /**jsdoc
-     * @function TextureCache.prefetch
-     * @param {string} url
-     * @param {number} type
-     * @param {number} [maxNumPixels=67108864]
-     * @returns {ResourceObject}
-     */
     // Overload ResourceCache::prefetch to allow specifying texture type for loads
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, int type, int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
 
@@ -273,6 +210,7 @@ private:
     friend class ImageReader;
     friend class NetworkTexture;
     friend class DilatableNetworkTexture;
+    friend class TextureCacheScriptingInterface;
 
     TextureCache();
     virtual ~TextureCache();

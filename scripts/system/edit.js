@@ -316,10 +316,10 @@ var toolBar = (function () {
             direction = Vec3.multiplyQbyV(direction, Vec3.UNIT_Z);
             // Align entity with Avatar orientation.
             properties.rotation = MyAvatar.orientation;
-            
+
             var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Web", "Material"];
             if (PRE_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
-                    
+
                 // Adjust position of entity per bounding box prior to creating it.
                 var registration = properties.registration;
                 if (registration === undefined) {
@@ -352,7 +352,12 @@ var toolBar = (function () {
                 properties.userData = JSON.stringify({ grabbableKey: { grabbable: false } });
             }
 
+            SelectionManager.saveProperties();
             entityID = Entities.addEntity(properties);
+            pushCommandForSelections([{
+                entityID: entityID,
+                properties: properties
+            }], [], true);
 
             if (properties.type === "ParticleEffect") {
                 selectParticleEntity(entityID);
@@ -963,13 +968,15 @@ function handleOverlaySelectionToolUpdates(channel, message, sender) {
     var data = JSON.parse(message);
 
     if (data.method === "selectOverlay") {
-        if (wantDebug) {
-            print("setting selection to overlay " + data.overlayID);
-        }
-        var entity = entityIconOverlayManager.findEntity(data.overlayID);
+        if (!selectionDisplay.triggered() || selectionDisplay.triggeredHand === data.hand) {
+            if (wantDebug) {
+                print("setting selection to overlay " + data.overlayID);
+            }
+            var entity = entityIconOverlayManager.findEntity(data.overlayID);
 
-        if (entity !== null) {
-            selectionManager.setSelections([entity]);
+            if (entity !== null) {
+                selectionManager.setSelections([entity]);
+            }
         }
     }
 }
@@ -1590,7 +1597,7 @@ function deleteSelectedEntities() {
                 Entities.deleteEntity(entityID);
             }
         }
-        
+
         if (savedProperties.length > 0) {
             SelectionManager.clearSelections();
             pushCommandForSelections([], savedProperties);
@@ -1880,12 +1887,14 @@ Controller.keyReleaseEvent.connect(keyReleaseEvent);
 Controller.keyPressEvent.connect(keyPressEvent);
 
 function recursiveAdd(newParentID, parentData) {
-    var children = parentData.children;
-    for (var i = 0; i < children.length; i++) {
-        var childProperties = children[i].properties;
-        childProperties.parentID = newParentID;
-        var newChildID = Entities.addEntity(childProperties);
-        recursiveAdd(newChildID, children[i]);
+    if (parentData.children !== undefined) {
+        var children = parentData.children;
+        for (var i = 0; i < children.length; i++) {
+            var childProperties = children[i].properties;
+            childProperties.parentID = newParentID;
+            var newChildID = Entities.addEntity(childProperties);
+            recursiveAdd(newChildID, children[i]);
+        }
     }
 }
 
@@ -1895,16 +1904,22 @@ function recursiveAdd(newParentID, parentData) {
 var DELETED_ENTITY_MAP = {};
 
 function applyEntityProperties(data) {
-    var properties = data.setProperties;
+    var editEntities = data.editEntities;
     var selectedEntityIDs = [];
+    var selectEdits = data.createEntities.length == 0 || !data.selectCreated;
     var i, entityID;
-    for (i = 0; i < properties.length; i++) {
-        entityID = properties[i].entityID;
+    for (i = 0; i < editEntities.length; i++) {
+        var entityID = editEntities[i].entityID;
         if (DELETED_ENTITY_MAP[entityID] !== undefined) {
             entityID = DELETED_ENTITY_MAP[entityID];
         }
-        Entities.editEntity(entityID, properties[i].properties);
-        selectedEntityIDs.push(entityID);
+        var entityProperties = editEntities[i].properties;
+        if (entityProperties !== null) {
+            Entities.editEntity(entityID, entityProperties);
+        }
+        if (selectEdits) {
+            selectedEntityIDs.push(entityID);
+        }
     }
     for (i = 0; i < data.createEntities.length; i++) {
         entityID = data.createEntities[i].entityID;
@@ -1933,31 +1948,39 @@ function applyEntityProperties(data) {
 
 // For currently selected entities, push a command to the UndoStack that uses the current entity properties for the
 // redo command, and the saved properties for the undo command.  Also, include create and delete entity data.
-function pushCommandForSelections(createdEntityData, deletedEntityData) {
+function pushCommandForSelections(createdEntityData, deletedEntityData, doNotSaveEditProperties) {
+    doNotSaveEditProperties = false;
     var undoData = {
-        setProperties: [],
+        editEntities: [],
         createEntities: deletedEntityData || [],
         deleteEntities: createdEntityData || [],
         selectCreated: true
     };
     var redoData = {
-        setProperties: [],
+        editEntities: [],
         createEntities: createdEntityData || [],
         deleteEntities: deletedEntityData || [],
-        selectCreated: false
+        selectCreated: true
     };
     for (var i = 0; i < SelectionManager.selections.length; i++) {
         var entityID = SelectionManager.selections[i];
         var initialProperties = SelectionManager.savedProperties[entityID];
-        var currentProperties = Entities.getEntityProperties(entityID);
+        var currentProperties = null;
         if (!initialProperties) {
             continue;
         }
-        undoData.setProperties.push({
+
+        if (doNotSaveEditProperties) {
+            initialProperties = null;
+        } else {
+            currentProperties = Entities.getEntityProperties(entityID);
+        }
+
+        undoData.editEntities.push({
             entityID: entityID,
             properties: initialProperties
         });
-        redoData.setProperties.push({
+        redoData.editEntities.push({
             entityID: entityID,
             properties: currentProperties
         });
@@ -2229,7 +2252,7 @@ var PropertiesTool = function (opts) {
             updateSelections(true);
         }
     };
-    
+
     createToolsWindow.webEventReceived.addListener(this, onWebEventReceived);
 
     webView.webEventReceived.connect(onWebEventReceived);

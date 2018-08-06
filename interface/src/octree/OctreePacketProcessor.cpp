@@ -21,9 +21,9 @@ OctreePacketProcessor::OctreePacketProcessor() {
     setObjectName("Octree Packet Processor");
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    
-    packetReceiver.registerDirectListenerForTypes({ PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
-                                                  this, "handleOctreePacket");
+    const PacketReceiver::PacketTypeList octreePackets =
+        { PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase, PacketType::EntityQueryInitialResultsComplete };
+    packetReceiver.registerDirectListenerForTypes(octreePackets, this, "handleOctreePacket");
 }
 
 void OctreePacketProcessor::handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
@@ -111,8 +111,36 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
             }
         } break;
 
+        case PacketType::EntityQueryInitialResultsComplete: {
+            // Read sequence #
+            OCTREE_PACKET_SEQUENCE completionNumber;
+            message->readPrimitive(&completionNumber);
+
+            _completionSequenceNumber = completionNumber;
+        } break;
+
         default: {
             // nothing to do
         } break;
     }
+}
+
+void OctreePacketProcessor::resetCompletionSequenceNumber() {
+    _completionSequenceNumber = INVALID_SEQUENCE;
+}
+
+namespace {
+    template<typename T> bool lessThanWraparound(int a, int b) {
+        constexpr int MAX_T_VALUE = std::numeric_limits<T>::max();
+        if (b <= a) {
+            b += MAX_T_VALUE;
+        }
+        return (b - a) < (MAX_T_VALUE / 2);
+    }
+}
+
+bool OctreePacketProcessor::octreeSequenceIsComplete(int sequenceNumber) const {
+    // If we've received the flagged seq # and the current one is >= it.
+    return _completionSequenceNumber != INVALID_SEQUENCE &&
+        !lessThanWraparound<OCTREE_PACKET_SEQUENCE>(sequenceNumber, _completionSequenceNumber);
 }
