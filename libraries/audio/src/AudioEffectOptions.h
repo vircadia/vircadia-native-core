@@ -16,35 +16,39 @@
 #include <QtScript/QScriptEngine>
 
 /**jsdoc
+ * Audio effect options used by the {@link Audio} API.
+ *
+ * <p>Create using <code>new AudioEffectOptions(reverbOptions)</code>.</p>
+ *
  * @class AudioEffectOptions
- * @param {AudioEffectOptions.ReverbOptions} [reverbOptions=null]
+ * @param {AudioEffectOptions.ReverbOptions} [reverbOptions=null] - Reverberation options.
  *
  * @hifi-interface
  * @hifi-client-entity
  * @hifi-server-entity
  * @hifi-assignment-client
  *
- * @property {number} bandwidth=10000
- * @property {number} preDelay=20
- * @property {number} lateDelay=0
- * @property {number} reverbTime=2
- * @property {number} earlyDiffusion=100
- * @property {number} lateDiffusion=100
- * @property {number} roomSize=50
- * @property {number} density=100
- * @property {number} bassMult=1.5
- * @property {number} bassFreq=250
- * @property {number} highGain=-6
- * @property {number} highFreq=3000
- * @property {number} modRate=2.3
- * @property {number} modDepth=50
- * @property {number} earlyGain=0
- * @property {number} lateGain=0
- * @property {number} earlyMixLeft=20
- * @property {number} earlyMixRight=20
- * @property {number} lateMixLeft=90
- * @property {number} lateMixRight=90
- * @property {number} wetDryMix=50
+ * @property {number} bandwidth=10000 - The corner frequency (Hz) of the low-pass filter at reverb input.
+ * @property {number} preDelay=20 - The delay (milliseconds) between dry signal and the onset of early reflections.
+ * @property {number} lateDelay=0 - The delay (milliseconds) between early reflections and the onset of reverb tail.
+ * @property {number} reverbTime=2 - The time (seconds) for the reverb tail to decay by 60dB, also known as RT60.
+ * @property {number} earlyDiffusion=100 - Adjusts the buildup of echo density in the early reflections, normally 100%.
+ * @property {number} lateDiffusion=100 - Adjusts the buildup of echo density in the reverb tail, normally 100%.
+ * @property {number} roomSize=50 - The apparent room size, from small (0%) to large (100%).
+ * @property {number} density=100 - Adjusts the echo density in the reverb tail, normally 100%.
+ * @property {number} bassMult=1.5 - Adjusts the bass-frequency reverb time, as multiple of reverbTime.
+ * @property {number} bassFreq=250 - The crossover frequency (Hz) for the onset of bassMult.
+ * @property {number} highGain=-6 - Reduces the high-frequency reverb time, as attenuation (dB).
+ * @property {number} highFreq=3000 - The crossover frequency (Hz) for the onset of highGain.
+ * @property {number} modRate=2.3 - The rate of modulation (Hz) of the LFO-modulated delay lines.
+ * @property {number} modDepth=50 - The depth of modulation (percent) of the LFO-modulated delay lines.
+ * @property {number} earlyGain=0 - Adjusts the relative level (dB) of the early reflections.
+ * @property {number} lateGain=0 - Adjusts the relative level (dB) of the reverb tail.
+ * @property {number} earlyMixLeft=20 - The apparent distance of the source (percent) in the early reflections.
+ * @property {number} earlyMixRight=20 - The apparent distance of the source (percent) in the early reflections.
+ * @property {number} lateMixLeft=90 - The apparent distance of the source (percent) in the reverb tail.
+ * @property {number} lateMixRight=90 - The apparent distance of the source (percent) in the reverb tail.
+ * @property {number} wetDryMix=50 - Adjusts the wet/dry ratio, from completely dry (0%) to completely wet (100%).
  */
 
 class AudioEffectOptions : public QObject {

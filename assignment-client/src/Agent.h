@@ -67,6 +67,8 @@ public slots:
     void setIsAvatar(bool isAvatar);
     bool isAvatar() const { return _isAvatar; }
 
+    Q_INVOKABLE virtual void stop() override;
+
 private slots:
     void requestScript();
     void scriptRequestFinished();
