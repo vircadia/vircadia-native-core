@@ -32,10 +32,13 @@
 
 QTEST_MAIN(ShaderTests)
 
+#pragma optimize("", off)
 void ShaderTests::initTestCase() {
+    _window = new QWindow();
+    _context = new ::gl::Context(_window);
     getDefaultOpenGLSurfaceFormat();
-    _canvas.create();
-    if (!_canvas.makeCurrent()) {
+    _context->create();
+    if (!_context->makeCurrent()) {
         qFatal("Unable to make test GL context current");
     }
     gl::initModuleGl();
@@ -181,9 +184,19 @@ void ShaderTests::testShaderLoad() {
     std::set<uint32_t> usedShaders;
     uint32_t maxShader = 0;
     try {
+
+#if 1
+        uint32_t testPrograms[] = {
+            shader::render_utils::program::parabola,
+            shader::INVALID_PROGRAM,
+        };
+#else
+        const auto& testPrograms = shader::all_programs;
+#endif
+
         size_t index = 0;
-        while (shader::INVALID_PROGRAM != shader::all_programs[index]) {
-            auto programId = shader::all_programs[index];
+        while (shader::INVALID_PROGRAM != testPrograms[index]) {
+            auto programId = testPrograms[index];
             ++index;
 
             uint32_t vertexId = shader::getVertexId(programId);
@@ -216,6 +229,12 @@ void ShaderTests::testShaderLoad() {
                 // Uniforms
                 {
                     auto uniforms = gl::Uniform::load(program);
+                    for (const auto& uniform : uniforms) {
+                        GLint offset, size;
+                        glGetActiveUniformsiv(program, 1, (GLuint*)&uniform.index, GL_UNIFORM_OFFSET, &offset);
+                        glGetActiveUniformsiv(program, 1, (GLuint*)&uniform.index, GL_UNIFORM_SIZE, &size);
+                        qDebug() << uniform.name.c_str() << " size " << size << "offset" << offset;
+                    }
                     const auto& uniformRemap = shaderObject.uniformRemap;
                     auto expectedUniforms = expectedBindings[gpu::Shader::BindingType::UNIFORM];
                     if (!compareBindings(uniforms, expectedUniforms)) {
@@ -224,11 +243,9 @@ void ShaderTests::testShaderLoad() {
                     for (const auto& uniform : uniforms) {
                         if (0 != expectedUniforms.count(uniform.name)) {
                             auto expectedLocation = expectedUniforms[uniform.name];
-#ifdef Q_OS_MAC
                             if (0 != uniformRemap.count(expectedLocation)) {
                                 expectedLocation = uniformRemap.at(expectedLocation);
                             }
-#endif
                             QVERIFY(expectedLocation == uniform.binding);
                         }
                     }
@@ -236,7 +253,12 @@ void ShaderTests::testShaderLoad() {
 
                 // Textures
                 {
-                    const auto textures = gl::Uniform::loadTextures(program);
+                    auto textures = gl::Uniform::loadTextures(program);
+                    auto expiredBegin = std::remove_if(textures.begin(), textures.end(), [&](const gl::Uniform& uniform) -> bool {
+                        return uniform.name == "transformObjectBuffer";
+                    });
+                    textures.erase(expiredBegin, textures.end());
+
                     const auto expectedTextures = expectedBindings[gpu::Shader::BindingType::TEXTURE];
                     if (!compareBindings(textures, expectedTextures)) {
                         qDebug() << "Textures mismatch";

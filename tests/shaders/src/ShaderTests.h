@@ -12,6 +12,7 @@
 #include <QtTest/QtTest>
 #include <gpu/Forward.h>
 #include <gl/OffscreenGLCanvas.h>
+#include <gl/Context.h>
 
 class ShaderTests : public QObject {
     Q_OBJECT
@@ -22,7 +23,8 @@ private slots:
     void testShaderLoad();
 
 private:
-    OffscreenGLCanvas _canvas;
+    QWindow* _window{ nullptr };
+    gl::Context* _context{ nullptr };
     gpu::ContextPointer _gpuContext;
 };
 
