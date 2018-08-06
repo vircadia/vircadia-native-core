@@ -412,9 +412,6 @@ void AvatarManager::clearOtherAvatars() {
     while (avatarIterator != _avatarHash.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
         if (avatar != _myAvatar) {
-            if (avatar->isInScene()) {
-                avatar->removeFromScene(avatar, scene, transaction);
-            }
             handleRemovedAvatar(avatar);
             avatarIterator = _avatarHash.erase(avatarIterator);
         } else {
