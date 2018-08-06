@@ -115,64 +115,111 @@ Rectangle {
 
     Column {
         anchors.top: parent.top
-        anchors.topMargin: 15
+        anchors.topMargin: 12
         anchors.horizontalCenter: parent.horizontalCenter
 
         spacing: 20
-        width: parent.width - 30 * 2
+        width: parent.width - 22 * 2
 
-        HifiControlsUit.ComboBox {
-            id: wearablesCombobox
-            anchors.left: parent.left
-            anchors.right: parent.right
-            comboBox.textRole: "text"
+        Column {
+            width: parent.width
 
-            model: ListModel {
-                function findIndexById(id) {
+            Row {
+                RalewayBold {
+                    size: 15;
+                    lineHeightMode: Text.FixedHeight
+                    lineHeight: 18;
+                    text: "Wearable"
+                    anchors.verticalCenter: parent.verticalCenter
+                }
 
-                    for(var i = 0; i < count; ++i) {
-                        var wearable = get(i);
-                        if(wearable.id === id) {
-                            return i;
-                        }
-                    }
+                spacing: 10
 
-                    return -1;
+                RalewayBold {
+                    size: 15;
+                    lineHeightMode: Text.FixedHeight
+                    lineHeight: 18;
+                    text: "<a href='#'>Add custom</a>"
+                    linkColor: hifi.colors.blueHighlight
+                    anchors.verticalCenter: parent.verticalCenter
                 }
             }
 
-            comboBox.onCurrentIndexChanged: {
-                var currentWearable = getCurrentWearable();
+            HifiControlsUit.ComboBox {
+                id: wearablesCombobox
+                anchors.left: parent.left
+                anchors.right: parent.right
+                comboBox.textRole: "text"
 
-                if(currentWearable) {
-                    position.set(currentWearable.localPosition);
-                    rotation.set(currentWearable.localRotationAngles);
-                    scalespinner.set(currentWearable.dimensions.x / currentWearable.naturalDimensions.x)
+                model: ListModel {
+                    function findIndexById(id) {
 
-                    wearableSelected(currentWearable.id);
+                        for(var i = 0; i < count; ++i) {
+                            var wearable = get(i);
+                            if(wearable.id === id) {
+                                return i;
+                            }
+                        }
+
+                        return -1;
+                    }
+                }
+
+                comboBox.onCurrentIndexChanged: {
+                    var currentWearable = getCurrentWearable();
+
+                    if(currentWearable) {
+                        position.set(currentWearable.localPosition);
+                        rotation.set(currentWearable.localRotationAngles);
+                        scalespinner.set(currentWearable.dimensions.x / currentWearable.naturalDimensions.x)
+
+                        wearableSelected(currentWearable.id);
+                    }
                 }
             }
         }
 
         Column {
             width: parent.width
-            spacing: 5
+
+            RalewayBold {
+                size: 15;
+                lineHeightMode: Text.FixedHeight
+                lineHeight: 18;
+                text: "Joint"
+            }
+
+            HifiControlsUit.ComboBox {
+                id: jointsCombobox
+                anchors.left: parent.left
+                anchors.right: parent.right
+                comboBox.textRole: "text"
+
+                model: ListModel {
+                }
+            }
+        }
+
+        Column {
+            width: parent.width
 
             Row {
                 spacing: 20
 
                 // TextStyle5
-                FiraSansSemiBold {
+                RalewayBold {
                     id: positionLabel
-                    size: 22;
+                    size: 15;
+                    lineHeightMode: Text.FixedHeight
+                    lineHeight: 18;
                     text: "Position"
                 }
 
                 // TextStyle7
-                FiraSansRegular {
-                    size: 18;
+                RalewayBold {
+                    size: 15;
                     lineHeightMode: Text.FixedHeight
-                    lineHeight: 16.9;
+                    lineHeight: 18;
                     text: "m"
                     anchors.verticalCenter: positionLabel.verticalCenter
                 }
@@ -214,23 +261,24 @@ Rectangle {
 
         Column {
             width: parent.width
-            spacing: 5
 
             Row {
                 spacing: 20
 
                 // TextStyle5
-                FiraSansSemiBold {
+                RalewayBold {
                     id: rotationLabel
-                    size: 22;
+                    size: 15;
+                    lineHeightMode: Text.FixedHeight
+                    lineHeight: 18;
                     text: "Rotation"
                 }
 
                 // TextStyle7
-                FiraSansRegular {
-                    size: 18;
+                RalewayBold {
+                    size: 15;
                     lineHeightMode: Text.FixedHeight
-                    lineHeight: 16.9;
+                    lineHeight: 18;
                     text: "deg"
                     anchors.verticalCenter: rotationLabel.verticalCenter
                 }
@@ -270,19 +318,30 @@ Rectangle {
             }
         }
 
-        Column {
+        Item {
             width: parent.width
-            spacing: 5
+            height: childrenRect.height
 
-            // TextStyle5
-            FiraSansSemiBold {
-                size: 22;
-                text: "Scale"
+            HifiControlsUit.CheckBox {
+                text: "Is soft"
+                labelFontSize: 15
+                labelFontWeight: Font.Bold
+                color:  Qt.black
+                y: scalespinner.y
             }
 
-            Item {
-                width: parent.width
-                height: childrenRect.height
+            Column {
+                id: scalesColumn
+                anchors.right: parent.right
+
+                // TextStyle5
+                RalewayBold {
+                    id: scaleLabel
+                    size: 15;
+                    lineHeightMode: Text.FixedHeight
+                    lineHeight: 18;
+                    text: "Scale"
+                }
 
                 HifiControlsUit.SpinBox {
                     id: scalespinner
@@ -320,26 +379,29 @@ Rectangle {
                         wearableUpdated(currentWearable.id, wearablesCombobox.currentIndex, properties);
                     }
                 }
-
-                HifiControlsUit.Button {
-                    fontSize: 18
-                    height: 40
-                    anchors.right: parent.right
-                    color: hifi.buttons.red;
-                    colorScheme: hifi.colorSchemes.light;
-                    text: "TAKE IT OFF"
-                    onClicked: wearableDeleted(root.avatarName, getCurrentWearable().id);
-                    enabled: wearablesCombobox.model.count !== 0
-                    anchors.verticalCenter: scalespinner.verticalCenter
-                }
             }
+        }
 
+        Column {
+            width: parent.width
+
+            HifiControlsUit.Button {
+                fontSize: 18
+                height: 40
+                width: scalespinner.width
+                anchors.right: parent.right
+                color: hifi.buttons.red;
+                colorScheme: hifi.colorSchemes.light;
+                text: "TAKE IT OFF"
+                onClicked: wearableDeleted(root.avatarName, getCurrentWearable().id);
+                enabled: wearablesCombobox.model.count !== 0
+            }
         }
     }
 
     DialogButtons {
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 30
+        anchors.bottomMargin: 57
         anchors.left: parent.left
         anchors.leftMargin: 30
         anchors.right: parent.right
