@@ -102,7 +102,6 @@ private:
         gpu::BufferPointer indices;
         uint32_t indexCount { 0 };
         gpu::PipelinePointer pipeline;
-        int32_t uniformsLocation { -1 };
 
         gpu::BufferPointer uniformsBuffer;
 

@@ -12,11 +12,9 @@
 #include <StencilMaskPass.h>
 
 #include <DependencyManager.h>
+#include <shaders/Shaders.h>
+
 #include "ParabolaPick.h"
-
-#include "render-utils/parabola_vert.h"
-#include "render-utils/parabola_frag.h"
-
 const glm::vec4 ParabolaPointer::RenderState::ParabolaRenderItem::DEFAULT_PARABOLA_COLOR { 1.0f };
 const float ParabolaPointer::RenderState::ParabolaRenderItem::DEFAULT_PARABOLA_WIDTH { 0.01f };
 const bool ParabolaPointer::RenderState::ParabolaRenderItem::DEFAULT_PARABOLA_ISVISIBLEINSECONDARYCAMERA { false };
@@ -326,13 +324,7 @@ void ParabolaPointer::RenderState::ParabolaRenderItem::updateKey() {
 
 const gpu::PipelinePointer ParabolaPointer::RenderState::ParabolaRenderItem::getParabolaPipeline() {
     if (!_parabolaPipeline || !_transparentParabolaPipeline) {
-        auto vs = parabola_vert::getShader();
-        auto ps = parabola_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("parabolaData"), 0));
-        gpu::Shader::makeProgram(*program, slotBindings);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::parabola);
 
         {
             auto state = std::make_shared<gpu::State>();

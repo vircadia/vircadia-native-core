@@ -1,0 +1,6 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+  <qresource prefix="/shaders">
+@SHADER_QRC@
+  </qresource>
+</RCC>

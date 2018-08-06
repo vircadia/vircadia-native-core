@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  drawCellBounds.slv
+//  drawCellBounds.vert
 //  Vertex shader
 //
 //  Created by Sam Gateau on 1/25/2016
@@ -20,9 +20,9 @@
 <$declareColorWheel()$>
 <@include SceneOctree.slh@>
 
-uniform ivec4 inCellLocation;
+layout(location=GPU_UNIFORM_EXTRA0) uniform ivec4 inCellLocation;
 
-out vec4 varColor;
+layout(location=0) out vec4 varColor;
 
 
 void main(void) {

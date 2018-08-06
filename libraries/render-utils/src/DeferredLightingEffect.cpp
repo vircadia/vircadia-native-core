@@ -10,82 +10,46 @@
 //
 
 #include "DeferredLightingEffect.h"
-
 #include <QtCore/QFileSelector>
 
 #include <GLMHelpers.h>
 #include <PathUtils.h>
 #include <ViewFrustum.h>
 #include <shared/FileUtils.h>
-
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
+#include <shaders/Shaders.h>
 
+#include <graphics/ShaderConstants.h>
+
+#include "render-utils/ShaderConstants.h"
 #include "StencilMaskPass.h"
 #include "AbstractViewStateInterface.h"
 #include "GeometryCache.h"
 #include "TextureCache.h"
 #include "FramebufferCache.h"
 
-#include "deferred_light_vert.h"
-#include "deferred_light_point_vert.h"
-#include "deferred_light_spot_vert.h"
+namespace ru {
+    using render_utils::slot::texture::Texture;
+    using render_utils::slot::buffer::Buffer;
+    using render_utils::slot::uniform::Uniform;
+}
 
-#include "directional_ambient_light_frag.h"
-#include "directional_skybox_light_frag.h"
-
-#include "directional_ambient_light_shadow_frag.h"
-#include "directional_skybox_light_shadow_frag.h"
-
-#include "local_lights_shading_frag.h"
-#include "local_lights_drawOutline_frag.h"
-
+namespace gr {
+    using graphics::slot::texture::Texture;
+    using graphics::slot::buffer::Buffer;
+}
 
 using namespace render;
 
 struct LightLocations {
-    int radius{ -1 };
-    int keyLightBufferUnit{ -1 };
-    int lightBufferUnit{ -1 };
-    int ambientBufferUnit { -1 };
-    int lightIndexBufferUnit { -1 };
-    int texcoordFrameTransform{ -1 };
-    int deferredFrameTransformBuffer{ -1 };
-    int subsurfaceScatteringParametersBuffer{ -1 };
-    int shadowTransformBuffer{ -1 };
+    bool shadowTransform{ false };
+    void initialize(const gpu::ShaderPointer& program) {
+        shadowTransform = program->getUniformBuffers().isValid(ru::Buffer::ShadowParams);
+    }
 };
 
-enum DeferredShader_MapSlot {
-    DEFERRED_BUFFER_COLOR_UNIT = 0,
-    DEFERRED_BUFFER_NORMAL_UNIT = 1,
-    DEFERRED_BUFFER_EMISSIVE_UNIT = 2,
-    DEFERRED_BUFFER_DEPTH_UNIT = 3,
-    DEFERRED_BUFFER_OBSCURANCE_UNIT = 4,
-    DEFERRED_BUFFER_LINEAR_DEPTH_UNIT = 5,
-    DEFERRED_BUFFER_CURVATURE_UNIT = 6,
-    DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT = 7,
-    SCATTERING_LUT_UNIT = 8,
-    SCATTERING_SPECULAR_UNIT = 9,
-    SKYBOX_MAP_UNIT = render::ShapePipeline::Slot::LIGHT_AMBIENT_MAP, // unit = 10
-    SHADOW_MAP_UNIT = 11,
-    nextAvailableUnit = SHADOW_MAP_UNIT
-};
-enum DeferredShader_BufferSlot {
-    DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT = 0,
-    CAMERA_CORRECTION_BUFFER_SLOT,
-    SCATTERING_PARAMETERS_BUFFER_SLOT,
-    LIGHTING_MODEL_BUFFER_SLOT = render::ShapePipeline::Slot::LIGHTING_MODEL,
-    KEY_LIGHT_SLOT = render::ShapePipeline::Slot::KEY_LIGHT,
-    LIGHT_ARRAY_SLOT = render::ShapePipeline::Slot::LIGHT_ARRAY_BUFFER,
-    LIGHT_AMBIENT_SLOT = render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER,
-    HAZE_MODEL_BUFFER_SLOT = render::ShapePipeline::Slot::HAZE_MODEL,
-    LIGHT_INDEX_GPU_SLOT,
-    LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
-    LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
-    LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
-};
-
-static void loadLightProgram(const gpu::ShaderPointer& vertShader, const gpu::ShaderPointer& fragShader, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
+static void loadLightProgram(int programId, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
 
 void DeferredLightingEffect::init() {
     _directionalAmbientSphereLightLocations = std::make_shared<LightLocations>();
@@ -97,17 +61,17 @@ void DeferredLightingEffect::init() {
     _localLightLocations = std::make_shared<LightLocations>();
     _localLightOutlineLocations = std::make_shared<LightLocations>();
 
-    loadLightProgram(deferred_light_vert::getShader(), directional_ambient_light_frag::getShader(), false, _directionalAmbientSphereLight, _directionalAmbientSphereLightLocations);
-    loadLightProgram(deferred_light_vert::getShader(), directional_skybox_light_frag::getShader(), false, _directionalSkyboxLight, _directionalSkyboxLightLocations);
+    loadLightProgram(shader::render_utils::program::directional_ambient_light, false, _directionalAmbientSphereLight, _directionalAmbientSphereLightLocations);
+    loadLightProgram(shader::render_utils::program::directional_skybox_light, false, _directionalSkyboxLight, _directionalSkyboxLightLocations);
 
-    loadLightProgram(deferred_light_vert::getShader(), directional_ambient_light_shadow_frag::getShader(), false, _directionalAmbientSphereLightShadow, _directionalAmbientSphereLightShadowLocations);
-    loadLightProgram(deferred_light_vert::getShader(), directional_skybox_light_shadow_frag::getShader(), false, _directionalSkyboxLightShadow, _directionalSkyboxLightShadowLocations);
+    loadLightProgram(shader::render_utils::program::directional_ambient_light_shadow, false, _directionalAmbientSphereLightShadow, _directionalAmbientSphereLightShadowLocations);
+    loadLightProgram(shader::render_utils::program::directional_skybox_light_shadow, false, _directionalSkyboxLightShadow, _directionalSkyboxLightShadowLocations);
 
-    loadLightProgram(deferred_light_vert::getShader(), local_lights_shading_frag::getShader(), true, _localLight, _localLightLocations);
-    loadLightProgram(deferred_light_vert::getShader(), local_lights_drawOutline_frag::getShader(), true, _localLightOutline, _localLightOutlineLocations);
+    loadLightProgram(shader::render_utils::program::local_lights_shading, true, _localLight, _localLightLocations);
+    loadLightProgram(shader::render_utils::program::local_lights_drawOutline, true, _localLightOutline, _localLightOutlineLocations);
 }
 
-void DeferredLightingEffect::setupKeyLightBatch(const RenderArgs* args, gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit) {
+void DeferredLightingEffect::setupKeyLightBatch(const RenderArgs* args, gpu::Batch& batch) {
     PerformanceTimer perfTimer("DLE->setupBatch()");
     graphics::LightPointer keySunLight;
     auto lightStage = args->_scene->getStage<LightStage>();
@@ -121,114 +85,49 @@ void DeferredLightingEffect::setupKeyLightBatch(const RenderArgs* args, gpu::Bat
     }
 
     if (keySunLight) {
-        if (lightBufferUnit >= 0) {
-            batch.setUniformBuffer(lightBufferUnit, keySunLight->getLightSchemaBuffer());
-        }
+        batch.setUniformBuffer(gr::Buffer::KeyLight, keySunLight->getLightSchemaBuffer());
     }
 
     if (keyAmbiLight) {
-        if (ambientBufferUnit >= 0) {
-            batch.setUniformBuffer(ambientBufferUnit, keyAmbiLight->getAmbientSchemaBuffer());
-        }
+        batch.setUniformBuffer(gr::Buffer::AmbientLight, keyAmbiLight->getAmbientSchemaBuffer());
 
-        if (keyAmbiLight->getAmbientMap() && (skyboxCubemapUnit >= 0)) {
-            batch.setResourceTexture(skyboxCubemapUnit, keyAmbiLight->getAmbientMap());
+        if (keyAmbiLight->getAmbientMap() ) {
+            batch.setResourceTexture(ru::Texture::Skybox, keyAmbiLight->getAmbientMap());
         }
     }
 }
 
-void DeferredLightingEffect::unsetKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit) {
-    if (lightBufferUnit >= 0) {
-        batch.setUniformBuffer(lightBufferUnit, nullptr);
-    }
-    if ((ambientBufferUnit >= 0)) {
-        batch.setUniformBuffer(ambientBufferUnit, nullptr);
-    }
-
-    if ((skyboxCubemapUnit >= 0)) {
-        batch.setResourceTexture(skyboxCubemapUnit, nullptr);
-    }
+void DeferredLightingEffect::unsetKeyLightBatch(gpu::Batch& batch) {
+    batch.setUniformBuffer(gr::Buffer::KeyLight, nullptr);
+    batch.setUniformBuffer(gr::Buffer::AmbientLight, nullptr);
+    batch.setResourceTexture(ru::Texture::Skybox, nullptr);
 }
 
-void DeferredLightingEffect::setupLocalLightsBatch(gpu::Batch& batch,
-                                                   int lightArrayBufferUnit, int clusterGridBufferUnit, int clusterContentBufferUnit, int frustumGridBufferUnit,
-                                                   const LightClustersPointer& lightClusters) {
+void DeferredLightingEffect::setupLocalLightsBatch(gpu::Batch& batch, const LightClustersPointer& lightClusters) {
     // Bind the global list of lights and the visible lights this frame
-    batch.setUniformBuffer(lightArrayBufferUnit, lightClusters->_lightStage->getLightArrayBuffer());
+    batch.setUniformBuffer(gr::Buffer::Light, lightClusters->_lightStage->getLightArrayBuffer());
 
-    batch.setUniformBuffer(frustumGridBufferUnit, lightClusters->_frustumGridBuffer);
-    batch.setUniformBuffer(clusterGridBufferUnit, lightClusters->_clusterGridBuffer);
-    batch.setUniformBuffer(clusterContentBufferUnit, lightClusters->_clusterContentBuffer);
+    batch.setUniformBuffer(ru::Buffer::LightClusterFrustumGrid, lightClusters->_frustumGridBuffer);
+    batch.setUniformBuffer(ru::Buffer::LightClusterGrid, lightClusters->_clusterGridBuffer);
+    batch.setUniformBuffer(ru::Buffer::LightClusterContent, lightClusters->_clusterContentBuffer);
 }
 
-void DeferredLightingEffect::unsetLocalLightsBatch(gpu::Batch& batch, int lightArrayBufferUnit, int clusterGridBufferUnit, int clusterContentBufferUnit, int frustumGridBufferUnit) {
-    if (lightArrayBufferUnit >= 0) {
-        batch.setUniformBuffer(lightArrayBufferUnit, nullptr);
-    }
-    if (clusterGridBufferUnit >= 0) {
-        batch.setUniformBuffer(clusterGridBufferUnit, nullptr);
-    }
-    if (clusterContentBufferUnit >= 0) {
-        batch.setUniformBuffer(clusterContentBufferUnit, nullptr);
-    }
-    if (frustumGridBufferUnit >= 0) {
-        batch.setUniformBuffer(frustumGridBufferUnit, nullptr);
-    }
+void DeferredLightingEffect::unsetLocalLightsBatch(gpu::Batch& batch) {
+    batch.setUniformBuffer(gr::Buffer::Light, nullptr);
+    batch.setUniformBuffer(ru::Buffer::LightClusterGrid, nullptr);
+    batch.setUniformBuffer(ru::Buffer::LightClusterContent, nullptr);
+    batch.setUniformBuffer(ru::Buffer::LightClusterFrustumGrid, nullptr);
 }
 
-static gpu::ShaderPointer makeLightProgram(const gpu::ShaderPointer& vertShader, const gpu::ShaderPointer& fragShader, LightLocationsPtr& locations) {
-    gpu::ShaderPointer program = gpu::Shader::createProgram(vertShader, fragShader);
-    gpu::Shader::BindingSet slotBindings;
-    slotBindings.insert(gpu::Shader::Binding(std::string("colorMap"), DEFERRED_BUFFER_COLOR_UNIT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), DEFERRED_BUFFER_NORMAL_UNIT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), DEFERRED_BUFFER_EMISSIVE_UNIT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), DEFERRED_BUFFER_DEPTH_UNIT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("obscuranceMap"), DEFERRED_BUFFER_OBSCURANCE_UNIT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("shadowMaps"), SHADOW_MAP_UNIT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), SKYBOX_MAP_UNIT));
-
-    slotBindings.insert(gpu::Shader::Binding(std::string("linearZeyeMap"), DEFERRED_BUFFER_LINEAR_DEPTH_UNIT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("curvatureMap"), DEFERRED_BUFFER_CURVATURE_UNIT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("diffusedCurvatureMap"), DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("scatteringLUT"), SCATTERING_LUT_UNIT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("scatteringSpecularBeckmann"), SCATTERING_SPECULAR_UNIT));
-
-
-    slotBindings.insert(gpu::Shader::Binding(std::string("cameraCorrectionBuffer"), CAMERA_CORRECTION_BUFFER_SLOT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), LIGHTING_MODEL_BUFFER_SLOT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("hazeBuffer"), HAZE_MODEL_BUFFER_SLOT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("subsurfaceScatteringParametersBuffer"), SCATTERING_PARAMETERS_BUFFER_SLOT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), KEY_LIGHT_SLOT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_ARRAY_SLOT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), LIGHT_AMBIENT_SLOT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("lightIndexBuffer"), LIGHT_INDEX_GPU_SLOT));
-
-
-    slotBindings.insert(gpu::Shader::Binding(std::string("frustumGridBuffer"), LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("clusterGridBuffer"), LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("clusterContentBuffer"), LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT));
-
-    gpu::Shader::makeProgram(*program, slotBindings);
-
-    locations->radius = program->getUniforms().findLocation("radius");
-
-    locations->texcoordFrameTransform = program->getUniforms().findLocation("texcoordFrameTransform");
-
-    locations->keyLightBufferUnit = program->getUniformBuffers().findLocation("keyLightBuffer");
-    locations->lightBufferUnit = program->getUniformBuffers().findLocation("lightBuffer");
-    locations->ambientBufferUnit = program->getUniformBuffers().findLocation("lightAmbientBuffer");
-    locations->lightIndexBufferUnit = program->getUniformBuffers().findLocation("lightIndexBuffer");
-    locations->deferredFrameTransformBuffer = program->getUniformBuffers().findLocation("deferredFrameTransformBuffer");
-    locations->subsurfaceScatteringParametersBuffer = program->getUniformBuffers().findLocation("subsurfaceScatteringParametersBuffer");
-    locations->shadowTransformBuffer = program->getUniformBuffers().findLocation("shadowTransformBuffer");
-
+static gpu::ShaderPointer makeLightProgram(int programId, LightLocationsPtr& locations) {
+    gpu::ShaderPointer program = gpu::Shader::createProgram(programId);
+    locations->initialize(program);
     return program;
 }
 
-static void loadLightProgram(const gpu::ShaderPointer& vertShader, const gpu::ShaderPointer& fragShader, bool lightVolume, gpu::PipelinePointer& pipeline, LightLocationsPtr& locations) {
+static void loadLightProgram(int programId, bool lightVolume, gpu::PipelinePointer& pipeline, LightLocationsPtr& locations) {
 
-    gpu::ShaderPointer program = makeLightProgram(vertShader, fragShader, locations);
+    gpu::ShaderPointer program = makeLightProgram(programId, locations);
 
     auto state = std::make_shared<gpu::State>();
     state->setColorWriteMask(true, true, true, false);
@@ -237,9 +136,8 @@ static void loadLightProgram(const gpu::ShaderPointer& vertShader, const gpu::Sh
         PrepareStencil::testShape(*state);
        
         state->setCullMode(gpu::State::CULL_BACK);
-   //     state->setCullMode(gpu::State::CULL_FRONT);
-     //   state->setDepthTest(true, false, gpu::GREATER_EQUAL);
-
+        //state->setCullMode(gpu::State::CULL_FRONT);
+        //state->setDepthTest(true, false, gpu::GREATER_EQUAL);
         //state->setDepthClampEnable(true);
         // TODO: We should use DepthClamp and avoid changing geometry for inside /outside cases
         // additive blending
@@ -462,7 +360,7 @@ void PrepareDeferred::run(const RenderContextPointer& renderContext, const Input
             vec4(vec3(0), 0), 1.0, 0, true);
 
         // For the rest of the rendering, bind the lighting model
-        batch.setUniformBuffer(LIGHTING_MODEL_BUFFER_SLOT, lightingModel->getParametersBuffer());
+        batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
     });
     
     
@@ -501,35 +399,35 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         
         
         // Bind the G-Buffer surfaces
-        batch.setResourceTexture(DEFERRED_BUFFER_COLOR_UNIT, deferredFramebuffer->getDeferredColorTexture());
-        batch.setResourceTexture(DEFERRED_BUFFER_NORMAL_UNIT, deferredFramebuffer->getDeferredNormalTexture());
-        batch.setResourceTexture(DEFERRED_BUFFER_EMISSIVE_UNIT, deferredFramebuffer->getDeferredSpecularTexture());
-        batch.setResourceTexture(DEFERRED_BUFFER_DEPTH_UNIT, deferredFramebuffer->getPrimaryDepthTexture());
+        batch.setResourceTexture(ru::Texture::DeferredColor, deferredFramebuffer->getDeferredColorTexture());
+        batch.setResourceTexture(ru::Texture::DeferredNormal, deferredFramebuffer->getDeferredNormalTexture());
+        batch.setResourceTexture(ru::Texture::DeferredSpecular, deferredFramebuffer->getDeferredSpecularTexture());
+        batch.setResourceTexture(ru::Texture::DeferredDepth, deferredFramebuffer->getPrimaryDepthTexture());
         
         // FIXME: Different render modes should have different tasks
         if (args->_renderMode == RenderArgs::DEFAULT_RENDER_MODE && deferredLightingEffect->isAmbientOcclusionEnabled() && ambientOcclusionFramebuffer) {
-            batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, ambientOcclusionFramebuffer->getOcclusionTexture());
+            batch.setResourceTexture(ru::Texture::DeferredObscurance, ambientOcclusionFramebuffer->getOcclusionTexture());
         } else {
             // need to assign the white texture if ao is off
-            batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, textureCache->getWhiteTexture());
+            batch.setResourceTexture(ru::Texture::DeferredObscurance, textureCache->getWhiteTexture());
         }
 
         // The Deferred Frame Transform buffer
-        batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, frameTransform->getFrameTransformBuffer());
+        batch.setUniformBuffer(ru::Buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
 
         // THe lighting model
-        batch.setUniformBuffer(LIGHTING_MODEL_BUFFER_SLOT, lightingModel->getParametersBuffer());
+        batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
 
         // Subsurface scattering specific
         if (surfaceGeometryFramebuffer) {
-            batch.setResourceTexture(DEFERRED_BUFFER_LINEAR_DEPTH_UNIT, surfaceGeometryFramebuffer->getLinearDepthTexture());
-            batch.setResourceTexture(DEFERRED_BUFFER_CURVATURE_UNIT, surfaceGeometryFramebuffer->getCurvatureTexture());
-            batch.setResourceTexture(DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT, surfaceGeometryFramebuffer->getLowCurvatureTexture());
+            batch.setResourceTexture(ru::Texture::DeferredLinearZEye, surfaceGeometryFramebuffer->getLinearDepthTexture());
+            batch.setResourceTexture(ru::Texture::DeferredCurvature, surfaceGeometryFramebuffer->getCurvatureTexture());
+            batch.setResourceTexture(ru::Texture::DeferredDiffusedCurvature, surfaceGeometryFramebuffer->getLowCurvatureTexture());
         }
         if (subsurfaceScatteringResource) {
-            batch.setUniformBuffer(SCATTERING_PARAMETERS_BUFFER_SLOT, subsurfaceScatteringResource->getParametersBuffer());
-            batch.setResourceTexture(SCATTERING_LUT_UNIT, subsurfaceScatteringResource->getScatteringTable());
-            batch.setResourceTexture(SCATTERING_SPECULAR_UNIT, subsurfaceScatteringResource->getScatteringSpecular());
+            batch.setUniformBuffer(ru::Buffer::SsscParams, subsurfaceScatteringResource->getParametersBuffer());
+            batch.setResourceTexture(ru::Texture::SsscLut, subsurfaceScatteringResource->getScatteringTable());
+            batch.setResourceTexture(ru::Texture::SsscSpecularBeckmann, subsurfaceScatteringResource->getScatteringSpecular());
         }
 
         // Global directional light and ambient pass
@@ -542,7 +440,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
 
         // Bind the shadow buffers
         if (globalShadow) {
-            batch.setResourceTexture(SHADOW_MAP_UNIT, globalShadow->map);
+            batch.setResourceTexture(ru::Texture::Shadow, globalShadow->map);
         }
 
         auto program = deferredLightingEffect->_directionalSkyboxLight;
@@ -591,10 +489,8 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
                 }
             }
 
-            if (locations->shadowTransformBuffer >= 0) {
-                if (globalShadow) {
-                    batch.setUniformBuffer(locations->shadowTransformBuffer, globalShadow->getBuffer());
-                }
+            if (locations->shadowTransform && globalShadow) {
+                batch.setUniformBuffer(ru::Buffer::ShadowParams, globalShadow->getBuffer());
             }
 
             batch.setPipeline(program);
@@ -602,22 +498,22 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
 
         // Adjust the texcoordTransform in the case we are rendeirng a sub region(mini mirror)
         auto textureFrameTransform = gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(deferredFramebuffer->getFrameSize(), args->_viewport);
-        batch._glUniform4fv(locations->texcoordFrameTransform, 1, reinterpret_cast< const float* >(&textureFrameTransform));
+        batch._glUniform4fv(ru::Uniform::TexcoordTransform, 1, reinterpret_cast< const float* >(&textureFrameTransform));
 
         // Setup the global lighting
-        deferredLightingEffect->setupKeyLightBatch(args, batch, KEY_LIGHT_SLOT, LIGHT_AMBIENT_SLOT, SKYBOX_MAP_UNIT);
+        deferredLightingEffect->setupKeyLightBatch(args, batch);
 
         // Haze
         if (haze) {
-            batch.setUniformBuffer(HAZE_MODEL_BUFFER_SLOT, haze->getHazeParametersBuffer());
+            batch.setUniformBuffer(ru::Buffer::HazeParams, haze->getHazeParametersBuffer());
         }
         
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-        deferredLightingEffect->unsetKeyLightBatch(batch, KEY_LIGHT_SLOT, LIGHT_AMBIENT_SLOT, SKYBOX_MAP_UNIT);
+        deferredLightingEffect->unsetKeyLightBatch(batch);
 
         for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
-            batch.setResourceTexture(SHADOW_MAP_UNIT+i, nullptr);
+            batch.setResourceTexture(ru::Texture::Shadow +i, nullptr);
         }
     }
 }
@@ -669,20 +565,18 @@ void RenderDeferredLocals::run(const render::RenderContextPointer& renderContext
 
         auto& lightIndices = lightClusters->_visibleLightIndices;
         if (!lightIndices.empty() && lightIndices[0] > 0) {
-            deferredLightingEffect->setupLocalLightsBatch(batch,
-                LIGHT_ARRAY_SLOT, LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
-                lightClusters);
+            deferredLightingEffect->setupLocalLightsBatch(batch, lightClusters);
 
             // Local light pipeline
             batch.setPipeline(deferredLightingEffect->_localLight);
-            batch._glUniform4fv(deferredLightingEffect->_localLightLocations->texcoordFrameTransform, 1, reinterpret_cast<const float*>(&textureFrameTransform));
+            batch._glUniform4fv(ru::Uniform::TexcoordTransform, 1, reinterpret_cast<const float*>(&textureFrameTransform));
 
             batch.draw(gpu::TRIANGLE_STRIP, 4);
 
              // Draw outline as well ?
             if (lightingModel->isShowLightContourEnabled()) {
                 batch.setPipeline(deferredLightingEffect->_localLightOutline);
-                batch._glUniform4fv(deferredLightingEffect->_localLightOutlineLocations->texcoordFrameTransform, 1, reinterpret_cast<const float*>(&textureFrameTransform));
+                batch._glUniform4fv(ru::Uniform::TexcoordTransform, 1, reinterpret_cast<const float*>(&textureFrameTransform));
 
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
             }
@@ -695,25 +589,25 @@ void RenderDeferredCleanup::run(const render::RenderContextPointer& renderContex
     auto& batch = (*args->_batch);
     {
         // Probably not necessary in the long run because the gpu layer would unbound this texture if used as render target
-        batch.setResourceTexture(DEFERRED_BUFFER_COLOR_UNIT, nullptr);
-        batch.setResourceTexture(DEFERRED_BUFFER_NORMAL_UNIT, nullptr);
-        batch.setResourceTexture(DEFERRED_BUFFER_EMISSIVE_UNIT, nullptr);
-        batch.setResourceTexture(DEFERRED_BUFFER_DEPTH_UNIT, nullptr);
-        batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, nullptr);
+        batch.setResourceTexture(ru::Texture::DeferredColor, nullptr);
+        batch.setResourceTexture(ru::Texture::DeferredNormal, nullptr);
+        batch.setResourceTexture(ru::Texture::DeferredSpecular, nullptr);
+        batch.setResourceTexture(ru::Texture::DeferredDepth, nullptr);
+        batch.setResourceTexture(ru::Texture::DeferredObscurance, nullptr);
 
-        batch.setResourceTexture(DEFERRED_BUFFER_LINEAR_DEPTH_UNIT, nullptr);
-        batch.setResourceTexture(DEFERRED_BUFFER_CURVATURE_UNIT, nullptr);
-        batch.setResourceTexture(DEFERRED_BUFFER_DIFFUSED_CURVATURE_UNIT, nullptr);
-        batch.setResourceTexture(SCATTERING_LUT_UNIT, nullptr);
-        batch.setResourceTexture(SCATTERING_SPECULAR_UNIT, nullptr);
+        batch.setResourceTexture(ru::Texture::DeferredLinearZEye, nullptr);
+        batch.setResourceTexture(ru::Texture::DeferredCurvature, nullptr);
+        batch.setResourceTexture(ru::Texture::DeferredDiffusedCurvature, nullptr);
+        batch.setResourceTexture(ru::Texture::SsscLut, nullptr);
+        batch.setResourceTexture(ru::Texture::SsscSpecularBeckmann, nullptr);
 
-        batch.setUniformBuffer(SCATTERING_PARAMETERS_BUFFER_SLOT, nullptr);
+        batch.setUniformBuffer(ru::Buffer::SsscParams, nullptr);
         //     batch.setUniformBuffer(LIGHTING_MODEL_BUFFER_SLOT, nullptr);
-        batch.setUniformBuffer(DEFERRED_FRAME_TRANSFORM_BUFFER_SLOT, nullptr);
+        batch.setUniformBuffer(ru::Buffer::DeferredFrameTransform, nullptr);
 
-        batch.setUniformBuffer(LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT, nullptr);
-        batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, nullptr);
-        batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, nullptr);
+        batch.setUniformBuffer(ru::Buffer::LightClusterFrustumGrid, nullptr);
+        batch.setUniformBuffer(ru::Buffer::LightClusterGrid, nullptr);
+        batch.setUniformBuffer(ru::Buffer::LightClusterContent, nullptr);
 
     }
 }

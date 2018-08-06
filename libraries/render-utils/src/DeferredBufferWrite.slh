@@ -14,11 +14,10 @@
 <@include DeferredBuffer.slh@>
 
 
-layout(location = 0) out vec4 _fragColor0;
-layout(location = 1) out vec4 _fragColor1;
-layout(location = 2) out vec4 _fragColor2;
-
-layout(location = 3) out vec4 _fragColor3;
+layout(location=0) out vec4 _fragColor0; // albedo / metallic
+layout(location=1) out vec4 _fragColor1; // Normal
+layout(location=2) out vec4 _fragColor2; // scattering / emissive / occlusion
+layout(location=3) out vec4 _fragColor3; // emissive
 
 // the alpha threshold
 const float alphaThreshold = 0.5;

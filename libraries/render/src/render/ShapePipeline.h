@@ -228,62 +228,29 @@ inline QDebug operator<<(QDebug debug, const ShapeKey& key) {
 // Meta-information (pipeline and locations) to render a shape
 class ShapePipeline {
 public:
-    class Slot {
-    public:
-        enum BUFFER {
-            SKINNING = 0,
-            MATERIAL,
-            TEXMAPARRAY,
-            LIGHTING_MODEL,
-            KEY_LIGHT,
-            LIGHT_ARRAY_BUFFER,
-            LIGHT_AMBIENT_BUFFER,
-            HAZE_MODEL,
-            FADE_PARAMETERS,
-            FADE_OBJECT_PARAMETERS,
-            LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
-            LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
-            LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
-
-        };
-
-        enum MAP {
-            ALBEDO = 0,
-            NORMAL,
-            METALLIC,
-            EMISSIVE_LIGHTMAP,
-            ROUGHNESS,
-            OCCLUSION,
-            SCATTERING,
-
-            LIGHT_AMBIENT_MAP = 10,
-            FADE_MASK,
-        };
-    };
-
     class Locations {
     public:
-        int albedoTextureUnit;
-        int normalTextureUnit;
-        int roughnessTextureUnit;
-        int metallicTextureUnit;
-        int emissiveTextureUnit;
-        int occlusionTextureUnit;
-        int lightingModelBufferUnit;
-        int skinClusterBufferUnit;
-        int materialBufferUnit;
-        int texMapArrayBufferUnit;
-        int keyLightBufferUnit;
-        int lightBufferUnit;
-        int lightAmbientBufferUnit;
-        int lightAmbientMapUnit;
-        int fadeMaskTextureUnit;
-        int fadeParameterBufferUnit;
-        int fadeObjectParameterBufferUnit;
-        int hazeParameterBufferUnit;
-        int lightClusterGridBufferUnit;
-        int lightClusterContentBufferUnit;
-        int lightClusterFrustumBufferUnit;
+        bool albedoTextureUnit{ false };
+        bool normalTextureUnit{ false };
+        bool roughnessTextureUnit{ false };
+        bool metallicTextureUnit{ false };
+        bool emissiveTextureUnit{ false };
+        bool occlusionTextureUnit{ false };
+        bool lightingModelBufferUnit{ false };
+        bool skinClusterBufferUnit{ false };
+        bool materialBufferUnit{ false };
+        bool texMapArrayBufferUnit{ false };
+        bool keyLightBufferUnit{ false };
+        bool lightBufferUnit{ false };
+        bool lightAmbientBufferUnit{ false };
+        bool lightAmbientMapUnit{ false };
+        bool fadeMaskTextureUnit{ false };
+        bool fadeParameterBufferUnit{ false };
+        bool fadeObjectParameterBufferUnit{ false };
+        bool hazeParameterBufferUnit{ false };
+        bool lightClusterGridBufferUnit{ false };
+        bool lightClusterContentBufferUnit{ false };
+        bool lightClusterFrustumBufferUnit{ false };
     };
     using LocationsPointer = std::shared_ptr<Locations>;
 
@@ -330,7 +297,7 @@ public:
     using Pipeline = ShapePipeline;
     using PipelinePointer = ShapePipelinePointer;
     using PipelineMap = std::unordered_map<ShapeKey, PipelinePointer, ShapeKey::Hash, ShapeKey::KeyEqual>;
-    using Slot = Pipeline::Slot;
+    using Slot = int32_t;
     using Locations = Pipeline::Locations;
     using LocationsPointer = Pipeline::LocationsPointer;
     using BatchSetter = Pipeline::BatchSetter;

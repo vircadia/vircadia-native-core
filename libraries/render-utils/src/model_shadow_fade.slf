@@ -13,11 +13,14 @@
 //
 
 <@include Fade.slh@>
+<@include render-utils/ShaderConstants.h@>
+
 <$declareFadeFragment()$>
 
-layout(location = 0) out vec4 _fragColor;
 
-in vec4 _positionWS;
+layout(location=RENDER_UTILS_ATTR_POSITION_WS) in vec4 _positionWS;
+
+layout(location=0) out vec4 _fragColor;
 
 void main(void) {
     FadeObjectParams fadeParams;

@@ -19,12 +19,8 @@ function(LINK_HIFI_LIBRARIES)
   endforeach()
 
   foreach(HIFI_LIBRARY ${LIBRARIES_TO_LINK})
-  
     include_directories("${HIFI_LIBRARY_DIR}/${HIFI_LIBRARY}/src")
-    include_directories("${CMAKE_BINARY_DIR}/libraries/${HIFI_LIBRARY}/shaders")
-
-   #add_dependencies(${TARGET_NAME} ${HIFI_LIBRARY})
-
+    include_directories("${CMAKE_BINARY_DIR}/libraries/${HIFI_LIBRARY}")
     # link the actual library - it is static so don't bubble it up
     target_link_libraries(${TARGET_NAME} ${HIFI_LIBRARY})
   endforeach()

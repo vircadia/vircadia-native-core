@@ -11,13 +11,14 @@
 <@if not SHADOW_SLH@>
 <@def SHADOW_SLH@>
 
+<@include render-utils/ShaderConstants.h@>
 <@include ShadowCore.slh@>
 
 #define SHADOW_NOISE_ENABLED            0
 #define SHADOW_SCREEN_SPACE_DITHER      1
 
 // the shadow texture
-uniform sampler2DArrayShadow shadowMaps;
+layout(binding=RENDER_UTILS_TEXTURE_SHADOW) uniform sampler2DArrayShadow shadowMaps;
 
 // Sample the shadowMap with PCF (built-in)
 float fetchShadow(int cascadeIndex, vec3 shadowTexcoord) {

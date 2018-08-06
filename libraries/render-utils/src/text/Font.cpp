@@ -6,11 +6,9 @@
 #include <ColorUtils.h>
 
 #include <StreamHelpers.h>
+#include <shaders/Shaders.h>
 
-#include "sdf_text3D_vert.h"
-#include "sdf_text3D_frag.h"
-#include "sdf_text3D_transparent_frag.h"
-
+#include "../render-utils/ShaderConstants.h"
 #include "../RenderUtilsLogging.h"
 #include "FontFamilies.h"
 #include "../StencilMaskPass.h"
@@ -223,20 +221,8 @@ void Font::setupGPU() {
 
         // Setup render pipeline
         {
-            auto vertexShader = sdf_text3D_vert::getShader();
-            auto pixelShader = sdf_text3D_frag::getShader();
-            auto pixelShaderTransparent = sdf_text3D_transparent_frag::getShader();
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShader, pixelShader);
-            gpu::ShaderPointer programTransparent = gpu::Shader::createProgram(vertexShader, pixelShaderTransparent);
-
-            gpu::Shader::BindingSet slotBindings;
-            gpu::Shader::makeProgram(*program, slotBindings);
-            gpu::Shader::makeProgram(*programTransparent, slotBindings);
-
-            _fontLoc = program->getTextures().findLocation("Font");
-            _outlineLoc = program->getUniforms().findLocation("Outline");
-            _colorLoc = program->getUniforms().findLocation("Color");
-
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::sdf_text3D);
+            gpu::ShaderPointer programTransparent = gpu::Shader::createProgram(shader::render_utils::program::sdf_text3D_transparent);
             auto state = std::make_shared<gpu::State>();
             state->setCullMode(gpu::State::CULL_BACK);
             state->setDepthTest(true, true, gpu::LESS_EQUAL);
@@ -368,19 +354,11 @@ void Font::drawString(gpu::Batch& batch, float x, float y, const QString& str, c
     setupGPU();
 
     batch.setPipeline(((*color).a < 1.0f || layered) ? _transparentPipeline : _pipeline);
-    if (_fontLoc >= 0) {
-        batch.setResourceTexture(_fontLoc, _texture);
-    }
-    if (_outlineLoc >= 0) {
-        batch._glUniform1i(_outlineLoc, (effectType == OUTLINE_EFFECT));
-    }
-    
+    batch.setResourceTexture(render_utils::slot::texture::TextFont, _texture);
+    batch._glUniform1i(render_utils::slot::uniform::TextOutline, (effectType == OUTLINE_EFFECT));
     // need the gamma corrected color here
     glm::vec4 lrgba = ColorUtils::sRGBToLinearVec4(*color);
-    if (_colorLoc >= 0) {
-        batch._glUniform4fv(_colorLoc, 1, (const float*)&lrgba);
-    }
-
+    batch._glUniform4fv(render_utils::slot::uniform::TextColor, 1, (const float*)&lrgba);
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);
     batch.setIndexBuffer(gpu::UINT16, _indicesBuffer, 0);

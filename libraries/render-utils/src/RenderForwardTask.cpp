@@ -17,13 +17,13 @@
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
 #include <gpu/Texture.h>
-#include <gpu/StandardShaderLib.h>
-
+#include <graphics/ShaderConstants.h>
 #include <render/ShapePipeline.h>
 
 #include <render/FilterTask.h>
 
 #include "RenderHifi.h"
+#include "render-utils/ShaderConstants.h"
 #include "StencilMaskPass.h"
 #include "ZoneRenderer.h"
 #include "FadeEffect.h"
@@ -34,9 +34,18 @@
 #include "RenderCommonTask.h"
 #include "LightStage.h"
 
-#include "nop_frag.h"
+namespace ru {
+    using render_utils::slot::texture::Texture;
+    using render_utils::slot::buffer::Buffer;
+}
+
+namespace gr {
+    using graphics::slot::texture::Texture;
+    using graphics::slot::buffer::Buffer;
+}
 
 using namespace render;
+
 extern void initForwardPipelines(ShapePlumber& plumber);
 
 void RenderForwardTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
@@ -179,14 +188,14 @@ void PrepareForward::run(const RenderContextPointer& renderContext, const Inputs
         }
 
         if (keySunLight) {
-            batch.setUniformBuffer(render::ShapePipeline::Slot::KEY_LIGHT, keySunLight->getLightSchemaBuffer());
+            batch.setUniformBuffer(gr::Buffer::KeyLight, keySunLight->getLightSchemaBuffer());
         }
 
         if (keyAmbiLight) {
-            batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER, keyAmbiLight->getAmbientSchemaBuffer());
+            batch.setUniformBuffer(gr::Buffer::AmbientLight, keyAmbiLight->getAmbientSchemaBuffer());
 
             if (keyAmbiLight->getAmbientMap()) {
-                batch.setResourceTexture(render::ShapePipeline::Slot::LIGHT_AMBIENT_MAP, keyAmbiLight->getAmbientMap());
+                batch.setResourceTexture(ru::Texture::Skybox, keyAmbiLight->getAmbientMap());
             }
         }
     });
@@ -212,7 +221,7 @@ void DrawForward::run(const RenderContextPointer& renderContext, const Inputs& i
         batch.setModelTransform(Transform());
 
         // Setup lighting model for all items;
-        batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
+        batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
 
         // From the lighting model define a global shapeKey ORED with individiual keys
         ShapeKey::Builder keyBuilder;
