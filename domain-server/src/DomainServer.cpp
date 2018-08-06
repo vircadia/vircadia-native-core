@@ -630,6 +630,7 @@ bool DomainServer::isPacketVerified(const udt::Packet& packet) {
 
 void DomainServer::setupNodeListAndAssignments() {
     const QString CUSTOM_LOCAL_PORT_OPTION = "metaverse.local_port";
+    static const QString ENABLE_PACKET_AUTHENTICATION = "metaverse.enable_packet_verification";
 
     QVariant localPortValue = _settingsManager.valueOrDefaultValueForKeyPath(CUSTOM_LOCAL_PORT_OPTION);
     int domainServerPort = localPortValue.toInt();
@@ -695,6 +696,9 @@ void DomainServer::setupNodeListAndAssignments() {
             _type = MetaverseTemporaryDomain;
         }
     }
+
+    bool isAuthEnabled = _settingsManager.valueOrDefaultValueForKeyPath(ENABLE_PACKET_AUTHENTICATION).toBool();
+    nodeList->setAuthenticatePackets(isAuthEnabled);
 
     connect(nodeList.data(), &LimitedNodeList::nodeAdded, this, &DomainServer::nodeAdded);
     connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &DomainServer::nodeKilled);
@@ -1133,7 +1137,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     extendedHeaderStream << node->getUUID();
     extendedHeaderStream << node->getLocalID();
     extendedHeaderStream << node->getPermissions();
-
+    extendedHeaderStream << limitedNodeList->getAuthenticatePackets();
     auto domainListPackets = NLPacketList::create(PacketType::DomainList, extendedHeader);
 
     // always send the node their own UUID back
