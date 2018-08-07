@@ -338,7 +338,6 @@ StackView {
                         filter: addressLine.text;
                         goFunction: goCard;
                         http: http;
-                        autoScrollTimerEnabled: true;
                     }
                     Feed {
                         id: snapshots;

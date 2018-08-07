@@ -41,7 +41,7 @@ Column {
     property var goFunction: null;
     property var http: null;
 
-    property bool autoScrollTimerEnabled;
+    property bool autoScrollTimerEnabled: false;
 
     HifiConstants { id: hifi }
     Component.onCompleted: suggestions.getFirstPage();
