@@ -41,6 +41,8 @@ Column {
     property var goFunction: null;
     property var http: null;
 
+    property bool autoScrollTimerEnabled;
+
     HifiConstants { id: hifi }
     Component.onCompleted: suggestions.getFirstPage();
     HifiModels.PSFListModel {
@@ -102,9 +104,12 @@ Column {
         id: scroll;
         model: suggestions;
         orientation: ListView.Horizontal;
-        highlightFollowsCurrentItem: false
-        highlightMoveDuration: -1;
-        highlightMoveVelocity: -1;
+        highlightFollowsCurrentItem: true;
+        preferredHighlightBegin: 0;
+        preferredHighlightEnd: cardWidth;
+        highlightRangeMode: ListView.StrictlyEnforceRange;
+        highlightMoveDuration: 800;
+        highlightMoveVelocity: 1;
         currentIndex: -1;
 
         spacing: 12;
@@ -136,6 +141,44 @@ Column {
             shadowHeight: root.stackedCardShadowHeight;
             hoverThunk: function () { hovered = true }
             unhoverThunk: function () { hovered = false }
+        }
+
+        onCountChanged: {
+            if (scroll.currentIndex === -1 && scroll.count > 0 && root.autoScrollTimerEnabled) {
+                scroll.currentIndex = 0;
+                autoScrollTimer.start();
+            }
+        }
+
+        MouseArea {
+            id: feedMouseArea;
+            enabled: root.autoScrollTimerEnabled;
+            anchors.fill: parent;
+            hoverEnabled: true;
+            onEntered: {
+                if (autoScrollTimer.running) {
+                    autoScrollTimer.stop();
+                }
+            }
+            onExited: {
+                autoScrollTimer.restart();
+            }
+        }
+    }
+
+    Timer {
+        id: autoScrollTimer;
+        interval: 3000;
+        running: false;
+        repeat: true;
+        onTriggered: {
+            if (scroll.currentIndex !== -1) {
+                if (scroll.currentIndex === scroll.count - 1) {
+                    scroll.currentIndex = 0;
+                } else {
+                    scroll.currentIndex++;
+                }
+            }
         }
     }
 }
