@@ -497,7 +497,7 @@ void Agent::executeScript() {
     Frame::clearFrameHandler(AUDIO_FRAME_TYPE);
     Frame::clearFrameHandler(AVATAR_FRAME_TYPE);
 
-
+    DependencyManager::destroy<RecordingScriptingInterface>();
     setFinished(true);
 }
 
@@ -847,7 +847,6 @@ void Agent::aboutToFinish() {
     DependencyManager::destroy<recording::Deck>();
     DependencyManager::destroy<recording::Recorder>();
     DependencyManager::destroy<recording::ClipCache>();
-    DependencyManager::destroy<RecordingScriptingInterface>();
     DependencyManager::destroy<ScriptEngine>();
     QMetaObject::invokeMethod(&_avatarAudioTimer, "stop");
 
