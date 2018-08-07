@@ -2636,12 +2636,7 @@ void MyAvatar::goToFeetLocation(const glm::vec3& newPosition,
     glm::vec3 localFeetPos = shapeInfo.getOffset() - glm::vec3(0.0f, halfExtents.y + halfExtents.x, 0.0f);
     glm::mat4 localFeet = createMatFromQuatAndPos(Quaternions::IDENTITY, localFeetPos);
     
-    glm::mat4 worldFeet;
-    if (hasOrientation) {
-        worldFeet = createMatFromQuatAndPos(newOrientation, newPosition);
-    } else {
-        worldFeet = createMatFromQuatAndPos(Quaternions::IDENTITY, newPosition);
-    }
+    glm::mat4 worldFeet = createMatFromQuatAndPos(Quaternions::IDENTITY, newPosition);
     
     glm::mat4 avatarMat = worldFeet * glm::inverse(localFeet);
 
