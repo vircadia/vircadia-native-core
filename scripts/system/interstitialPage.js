@@ -186,7 +186,6 @@
 
     function startInterstitialPage() {
         if (timer === null) {
-            print("--------> start page <--------");
             updateOverlays(Window.isPhysicsEnabled());
             target = 0;
             currentProgress = 0.1;
@@ -195,8 +194,9 @@
     }
 
     function domainChanged(domain) {
+        print("domain changed: " + domain);
         if (domain !== currentDomain) {
-            print("----------> domain changed <-------------->");
+            MyAvatar.restoreAnimation();
             var name = AddressManager.placename;
             domainName = name.charAt(0).toUpperCase() + name.slice(1);
             var domainNameLeftMargin = getLeftMargin(domainNameTextID, domainName);
@@ -205,13 +205,11 @@
                 leftMargin: domainNameLeftMargin
             };
 
-            var BY = "by ";
-            var text = BY
-            var hostLeftMargin = getLeftMargin(domainHostname, text);
+            /*var hostLeftMargin = getLeftMargin(domainHostname, text);
             var hostnameProperties = {
                 text: BY,
                 leftMargin: hostLeftMargin
-            };
+            };*/
 
             var randomIndex = Math.floor(Math.random() * userTips.length);
             var tip = userTips[randomIndex];
@@ -222,7 +220,7 @@
             };
 
             Overlays.editOverlay(domainNameTextID, textProperties);
-            Overlays.editOverlay(domainHostname, hostnameProperties);
+           //  Overlays.editOverlay(domainHostname, hostnameProperties);
             Overlays.editOverlay(domainToolTip, toolTipProperties);
 
 
@@ -234,12 +232,9 @@
     var THE_PLACE = "hifi://TheSpot";
     function clickedOnOverlay(overlayID, event) {
         print(overlayID + " other: " + loadingToTheSpotID);
-        print(event.button === "Primary");
         if (loadingToTheSpotID === overlayID) {
-            if (timerset) {
-                timeElapsed = 0;
-            }
-            AddressManager.handleLookupString(THE_PLACE);
+            print("-------> heading to theb spot <--------");
+            location.handleLookupString(THE_PLACE);
         }
     }
 
@@ -254,7 +249,7 @@
             visible: !physicsEnabled
         };
 
-        Menu.setIsOptionChecked("Show Overlays", physicsEnabled);
+        // Menu.setIsOptionChecked("Show Overlays", physicsEnabled);
 
         renderViewTask.getConfig("LightingModel")["enableAmbientLight"] = physicsEnabled;
         renderViewTask.getConfig("LightingModel")["enableDirectionalLight"] = physicsEnabled;
@@ -314,7 +309,10 @@
     }
 
     Overlays.mouseReleaseOnOverlay.connect(clickedOnOverlay);
-    Window.domainChanged.connect(domainChanged);
+    location.hostChanged.connect(domainChanged);
+    location.lookupResultsFinished.connect(function() {
+        print("connected: " + location.isConnected());
+    });
 
     function cleanup() {
         Overlays.deleteOverlay(loadingSphereID);
