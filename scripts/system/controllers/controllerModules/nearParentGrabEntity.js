@@ -328,7 +328,7 @@ Script.include("/~/system/libraries/controllers.js");
                 if (!props) {
                     // entity was deleted
                     unhighlightTargetEntity(this.targetEntityID);
-                    this.highlightedEntity = NULL;
+                    this.highlightedEntity = null;
                     this.grabbing = false;
                     this.targetEntityID = null;
                     this.hapticTargetID = null;
