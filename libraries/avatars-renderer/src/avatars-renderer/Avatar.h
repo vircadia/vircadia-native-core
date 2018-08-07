@@ -252,7 +252,7 @@ public:
     /**jsdoc
      * Get the position of the current avatar's feet (or rather, bottom of its collision capsule) in world coordinates.
      * @function MyAvatar.getWorldFeetPosition
-     * @returns {Vec3} The position of the Avatar's feet in world coordinates.
+     * @returns {Vec3} The position of the avatar's feet in world coordinates.
     */
     Q_INVOKABLE glm::vec3 getWorldFeetPosition();
 
