@@ -37,27 +37,24 @@ const AnimPoseVec& AnimBlendLinear::evaluate(const AnimVariantMap& animVars, con
         _poses = _children[0]->evaluate(animVars, context, dt, triggersOut);
         _animStack[_children[0]->getID()] = parentAlpha;
     } else {
-
         float clampedAlpha = glm::clamp(_alpha, 0.0f, (float)(_children.size() - 1));
         size_t prevPoseIndex = glm::floor(clampedAlpha);
         size_t nextPoseIndex = glm::ceil(clampedAlpha);
-        if (prevPoseIndex == nextPoseIndex) {
-            if (nextPoseIndex == 0) {
-                nextPoseIndex = 1;
-            } else {
-                prevPoseIndex = (nextPoseIndex - 1);
-            }
-        }
-        float alpha = clampedAlpha - (float)prevPoseIndex;
+        auto alpha = glm::fract(clampedAlpha);
         evaluateAndBlendChildren(animVars, context, triggersOut, alpha, prevPoseIndex, nextPoseIndex, dt);
 
-        float weight2 = _alpha - (float)prevPoseIndex;
-        float weight1 = 1.0f - weight2;
-        _animStack[_children[prevPoseIndex]->getID()] = weight1 * parentAlpha;
-        if (nextPoseIndex < _children.size()) {
+        // weights are for animation stack debug purposes only.
+        float weight1 = 0.0f;
+        float weight2 = 0.0f;
+        if (prevPoseIndex == nextPoseIndex) {
+            weight2 = 1.0f;
+            _animStack[_children[nextPoseIndex]->getID()] = weight2 * parentAlpha;
+        } else {
+            weight2 = alpha;
+            weight1 = 1.0f - weight2;
+            _animStack[_children[prevPoseIndex]->getID()] = weight1 * parentAlpha;
             _animStack[_children[nextPoseIndex]->getID()] = weight2 * parentAlpha;
         }
-
     }
     processOutputJoints(triggersOut);
 

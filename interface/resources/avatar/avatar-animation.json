@@ -654,7 +654,7 @@
                                                                                             "interpDuration": 6,
                                                                                             "interpType": "snapshotPrev",
                                                                                             "transitions": [
-                                                                                                { "var": "isNotMoving", "state": "idle" },
+                                                                                                { "var": "isNotMoving", "state": "idleSettle" },
                                                                                                 { "var": "isMovingBackward", "state": "walkBwd" },
                                                                                                 { "var": "isMovingRight", "state": "strafeRight" },
                                                                                                 { "var": "isMovingLeft", "state": "strafeLeft" },
@@ -675,7 +675,7 @@
                                                                                             "interpDuration": 6,
                                                                                             "interpType": "snapshotPrev",
                                                                                             "transitions": [
-                                                                                                { "var": "isNotMoving", "state": "idle" },
+                                                                                                { "var": "isNotMoving", "state": "idleSettle" },
                                                                                                 { "var": "isMovingForward", "state": "walkFwd" },
                                                                                                 { "var": "isMovingRight", "state": "strafeRight" },
                                                                                                 { "var": "isMovingLeft", "state": "strafeLeft" },
@@ -696,7 +696,7 @@
                                                                                             "interpDuration": 8,
                                                                                             "interpType": "snapshotPrev",
                                                                                             "transitions": [
-                                                                                                { "var": "isNotMoving", "state": "idle" },
+                                                                                                { "var": "isNotMoving", "state": "idleSettle" },
                                                                                                 { "var": "isMovingForward", "state": "walkFwd" },
                                                                                                 { "var": "isMovingBackward", "state": "walkBwd" },
                                                                                                 { "var": "isMovingLeft", "state": "strafeLeft" },
@@ -717,7 +717,7 @@
                                                                                             "interpDuration": 6,
                                                                                             "interpType": "snapshotPrev",
                                                                                             "transitions": [
-                                                                                                { "var": "isNotMoving", "state": "idle" },
+                                                                                                { "var": "isNotMoving", "state": "idleSettle" },
                                                                                                 { "var": "isMovingForward", "state": "walkFwd" },
                                                                                                 { "var": "isMovingBackward", "state": "walkBwd" },
                                                                                                 { "var": "isMovingRight", "state": "strafeRight" },
@@ -821,7 +821,7 @@
                                                                                             "interpTarget": 6,
                                                                                             "interpDuration": 6,
                                                                                             "transitions": [
-                                                                                                { "var": "isNotFlying", "state": "idle" }
+                                                                                                { "var": "isNotFlying", "state": "idleSettle" }
                                                                                             ]
                                                                                         },
                                                                                         {

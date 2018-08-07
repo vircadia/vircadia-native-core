@@ -815,19 +815,6 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isInAirRun", false);
             _animVars.set("isNotInAir", true);
 
-            if (false) {
-                // if we are changing anim states.
-                //reset the average speed to the current reading of speed
-                qCDebug(animation) << "reset the average movement speeds";
-                _averageForwardSpeed.reset();
-                _averageLateralSpeed.reset();
-                _averageForwardSpeed.updateAverage(forwardSpeed);
-                _averageLateralSpeed.updateAverage(lateralSpeed);
-                _animVars.set("moveForwardSpeed", _averageForwardSpeed.getAverage());
-                _animVars.set("moveBackwardSpeed", -_averageForwardSpeed.getAverage());
-                _animVars.set("moveLateralSpeed", fabsf(_averageLateralSpeed.getAverage()));
-            }
-
         } else if (_state == RigRole::Turn) {
             if (turningSpeed > 0.0f) {
                 // turning right

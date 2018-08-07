@@ -34,7 +34,6 @@
 #include "Util.h"
 #include "SequenceNumberStats.h"
 #include "StatTracker.h"
-#include "InterfaceLogging.h"
 
 
 HIFI_QML_DEF(Stats)
@@ -194,12 +193,10 @@ void Stats::updateStats(bool force) {
     auto myAvatar = avatarManager->getMyAvatar();
     auto rigCopy = myAvatar->getSkeletonModel();
     auto animStack = rigCopy->getRig().getAnimStack();
-    qCDebug(interfaceapp) << "Animation Stack Begin: ";
 
     //check to see if the anim stack has changed
     _animStackNames.clear();
     for (auto animStackIterator = animStack.begin(); animStackIterator != animStack.end(); ++animStackIterator) {
-        qCDebug(interfaceapp) << "---" << animStackIterator->first << " " << animStackIterator->second;
         _animStackNames << animStackIterator->first + ":       " +  QString::number(animStackIterator->second,'f',3);
     }
     emit animStackNamesChanged();
