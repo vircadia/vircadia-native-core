@@ -11,6 +11,8 @@
 <@if not MODEL_MATERIAL_SLH@>
 <@def MODEL_MATERIAL_SLH@>
 
+<@include graphics/ShaderConstants.h@>
+
 // The material values (at least the material key) must be precisely bitwise accurate
 // to what is provided by the uniform buffer, or the material key has the wrong bits
 
@@ -21,7 +23,7 @@ struct Material {
     vec4 _scatteringSpare2Key;
 };
 
-uniform materialBuffer {
+layout(binding=GRAPHICS_BUFFER_MATERIAL) uniform materialBuffer {
     Material _mat;
 };
 

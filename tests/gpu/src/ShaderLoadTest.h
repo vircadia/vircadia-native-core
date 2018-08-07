@@ -17,7 +17,7 @@
 #include <gpu/Forward.h>
 #include <gl/OffscreenGLCanvas.h>
 
-#define USE_LOCAL_SHADERS 0
+#define USE_LOCAL_SHADERS 1
 
 namespace std {
     template <>
@@ -52,12 +52,11 @@ private slots:
     void cleanupTestCase();
     void testShaderLoad();
 
-
 private:
-
     ShadersByName _shaderSources;
     Programs _programs;
     QString _resourcesPath;
     OffscreenGLCanvas _canvas;
+    gpu::ContextPointer _gpuContext;
     const glm::uvec2 _size{ 640, 480 };
 };

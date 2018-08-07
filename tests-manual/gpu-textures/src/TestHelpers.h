@@ -36,5 +36,4 @@ public:
 };
 
 uint32_t toCompactColor(const glm::vec4& color);
-gpu::ShaderPointer makeShader(const std::string & vertexShaderSrc, const std::string & fragmentShaderSrc, const gpu::Shader::BindingSet & bindings);
 QString projectRootDir();

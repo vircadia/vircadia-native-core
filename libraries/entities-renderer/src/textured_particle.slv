@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  particle vertex shader
+//  texture_particle.vert
 //
 //  Copyright 2015 High Fidelity, Inc.
 //
@@ -43,15 +43,15 @@ struct ParticleUniforms {
     vec2 spare;
 };
 
-layout(std140) uniform particleBuffer {
+layout(std140, binding=0) uniform particleBuffer {
     ParticleUniforms particle;
 };
 
 layout(location=0) in vec3 inPosition;
 layout(location=2) in vec2 inColor; // This is actual Lifetime + Seed
 
-out vec4 varColor;
-out vec2 varTexcoord;
+layout(location=0) out vec4 varColor;
+layout(location=1) out vec2 varTexcoord;
 
 float bezierInterpolate(float y1, float y2, float y3, float u) {
     // https://en.wikipedia.org/wiki/Bezier_curve

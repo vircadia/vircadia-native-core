@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  drawItemBounds.slv
+//  drawWorkloadView.vert
 //  vertex shader
 //
 //  Created by Sam Gateau on 6/29/2015.
@@ -28,9 +28,12 @@ const int NUM_VERTICES_PER_VIEW_REGION = NUM_SEGMENT_PER_VIEW_REGION * NUM_VERTI
 const int NUM_REGIONS_PER_VIEW = 3;
 const int NUM_VERTICES_PER_VIEW = NUM_VERTICES_PER_VIEW_REGION * NUM_REGIONS_PER_VIEW;
 
-
-layout(std140) uniform drawMeshBuffer {
+struct DrawMesh {
     vec4 verts[NUM_SEGMENT_PER_VIEW_REGION];
+};
+
+layout(std140, binding=0) uniform DrawMeshBuffer {
+    DrawMesh _drawMeshBuffer;
 };
 
 void main(void) {
@@ -43,7 +46,7 @@ void main(void) {
     int segmentID = regionVertexID / NUM_VERTICES_PER_SEGMENT;
     int segmentVertexID = regionVertexID - segmentID * NUM_VERTICES_PER_SEGMENT;
 
-    vec4 segment = verts[segmentID];
+    vec4 segment = _drawMeshBuffer.verts[segmentID];
 
     vec4 spriteVert = vec4(segment.y, 0.0, segment.x, 1.0);
     vec3 spriteTan = vec3(segment.x, 0.0, -segment.y);

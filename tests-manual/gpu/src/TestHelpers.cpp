@@ -7,14 +7,3 @@
 //
 
 #include "TestHelpers.h"
-
-gpu::ShaderPointer makeShader(const std::string & vertexShaderSrc, const std::string & fragmentShaderSrc, const gpu::Shader::BindingSet & bindings) {
-    auto vs = gpu::Shader::createVertex(vertexShaderSrc);
-    auto fs = gpu::Shader::createPixel(fragmentShaderSrc);
-    auto shader = gpu::Shader::createProgram(vs, fs);
-    if (!gpu::Shader::makeProgram(*shader, bindings)) {
-        printf("Could not compile shader\n");
-        exit(-1);
-    }
-    return shader;
-}

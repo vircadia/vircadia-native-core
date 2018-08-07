@@ -11,24 +11,28 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-<@include ForwardGlobalLight.slh@>
-<$declareEvalSkyboxGlobalColor()$>
-
-<@include graphics/Material.slh@>
 
 <@include gpu/Transform.slh@>
+<@include graphics/Material.slh@>
+<@include graphics/MaterialTextures.slh@>
+<@include render-utils/ShaderConstants.h@>
+<@include ForwardGlobalLight.slh@>
+
+<$declareEvalSkyboxGlobalColor()$>
+
+
 <$declareStandardCameraTransform()$>
 
-<@include MaterialTextures.slh@>
 <$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, METALLIC, EMISSIVE, OCCLUSION)$>
 
-in vec4 _positionES;
-in vec2 _texCoord0;
-in vec2 _texCoord1;
-in vec3 _normalWS;
-in vec3 _color;
+layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _positionES;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
+#define _texCoord0 _texCoord01.xy
+#define _texCoord1 _texCoord01.zw
+layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
+layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
 
-layout(location = 0) out vec4 _fragColor0;
+layout(location=0) out vec4 _fragColor0;
 
 void main(void) {
     Material mat = getMaterial();
@@ -42,7 +46,7 @@ void main(void) {
 
     vec3 albedo = getMaterialAlbedo(mat);
     <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
-    albedo *= _color;
+    albedo *= _color.rgb;
 
     float roughness = getMaterialRoughness(mat);
     <$evalMaterialRoughness(roughnessTex, roughness, matKey, roughness)$>;

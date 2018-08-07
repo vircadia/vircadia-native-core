@@ -11,11 +11,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-in vec4 varColor;
-in vec3 varTexcoord;
-out vec4 outFragColor;
+layout(location=0) in vec4 varColor;
+layout(location=1) in vec3 varTexcoord;
+layout(location=0) out vec4 outFragColor;
 
-uniform sampler2D _icons;
+layout(binding=0) uniform sampler2D _icons;
 vec2 getIconTexcoord(float icon, vec2 uv) {
     const vec2 ICON_COORD_SIZE = vec2(0.0625, 1.0);
 	return vec2((uv.x + icon) * ICON_COORD_SIZE.x, uv.y * ICON_COORD_SIZE.y);

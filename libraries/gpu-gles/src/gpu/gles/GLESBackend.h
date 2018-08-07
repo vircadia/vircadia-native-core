@@ -163,9 +163,6 @@ protected:
     void do_blit(const Batch& batch, size_t paramOffset) override;
     
     std::string getBackendShaderHeader() const override;
-    void makeProgramBindings(ShaderObject& shaderObject) override;
-    int makeResourceBufferSlots(const ShaderObject& shaderObject, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) override;
-
 };
 
 } }

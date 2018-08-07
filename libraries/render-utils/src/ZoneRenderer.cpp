@@ -10,20 +10,31 @@
 //
 #include "ZoneRenderer.h"
 
-
 #include <gpu/Context.h>
-#include <gpu/StandardShaderLib.h>
 
 #include <render/FilterTask.h>
 #include <render/DrawTask.h>
+#include <shaders/Shaders.h>
+#include <gpu/ShaderConstants.h>
+#include <graphics/ShaderConstants.h>
 
 #include "StencilMaskPass.h"
 #include "DeferredLightingEffect.h"
 
-#include "zone_drawKeyLight_frag.h"
-#include "zone_drawAmbient_frag.h"
-#include "zone_drawSkybox_frag.h"
 
+#include "render-utils/ShaderConstants.h"
+#include "StencilMaskPass.h"
+#include "DeferredLightingEffect.h"
+
+namespace ru {
+    using render_utils::slot::texture::Texture;
+    using render_utils::slot::buffer::Buffer;
+}
+
+namespace gr {
+    using graphics::slot::texture::Texture;
+    using graphics::slot::buffer::Buffer;
+}
 
 using namespace render;
 
@@ -77,16 +88,7 @@ void SetupZones::run(const RenderContextPointer& context, const Inputs& inputs) 
 
 const gpu::PipelinePointer& DebugZoneLighting::getKeyLightPipeline() {
     if (!_keyLightPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
-        auto ps = zone_drawKeyLight_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), ZONE_DEFERRED_TRANSFORM_BUFFER));
-        slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), ZONE_KEYLIGHT_BUFFER));
-
-        gpu::Shader::makeProgram(*program, slotBindings);
-
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::zone_drawKeyLight);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         PrepareStencil::testMask(*state);
@@ -98,17 +100,7 @@ const gpu::PipelinePointer& DebugZoneLighting::getKeyLightPipeline() {
 
 const gpu::PipelinePointer& DebugZoneLighting::getAmbientPipeline() {
     if (!_ambientPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
-        auto ps = zone_drawAmbient_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), ZONE_DEFERRED_TRANSFORM_BUFFER));
-        slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), ZONE_AMBIENT_BUFFER));
-        slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), ZONE_AMBIENT_MAP));
-        
-        gpu::Shader::makeProgram(*program, slotBindings);
-
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::zone_drawAmbient);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         PrepareStencil::testMask(*state);
@@ -119,17 +111,7 @@ const gpu::PipelinePointer& DebugZoneLighting::getAmbientPipeline() {
 }
 const gpu::PipelinePointer& DebugZoneLighting::getBackgroundPipeline() {
     if (!_backgroundPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
-        auto ps = zone_drawSkybox_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), ZONE_DEFERRED_TRANSFORM_BUFFER));
-        slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), ZONE_SKYBOX_MAP));
-        slotBindings.insert(gpu::Shader::Binding(std::string("skyboxBuffer"), ZONE_SKYBOX_BUFFER));
-        
-        gpu::Shader::makeProgram(*program, slotBindings);
-
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::zone_drawSkybox);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         PrepareStencil::testMask(*state);
@@ -180,7 +162,7 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
 
         Transform model;
 
-        batch.setUniformBuffer(ZONE_DEFERRED_TRANSFORM_BUFFER, deferredTransform->getFrameTransformBuffer());
+        batch.setUniformBuffer(ru::Buffer::DeferredFrameTransform, deferredTransform->getFrameTransformBuffer());
 
         batch.setPipeline(getKeyLightPipeline());
         auto numKeys = (int) keyLightStack.size();
@@ -188,7 +170,7 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
             model.setTranslation(glm::vec3(-4.0, -3.0 + (i * 1.0), -10.0 - (i * 3.0)));
             batch.setModelTransform(model);
             if (keyLightStack[i]) {
-                batch.setUniformBuffer(ZONE_KEYLIGHT_BUFFER, keyLightStack[i]->getLightSchemaBuffer());
+                batch.setUniformBuffer(gr::Buffer::KeyLight, keyLightStack[i]->getLightSchemaBuffer());
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
             }
         }
@@ -199,9 +181,9 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
             model.setTranslation(glm::vec3(0.0, -3.0 + (i * 1.0), -10.0 - (i * 3.0)));
             batch.setModelTransform(model);
             if (ambientLightStack[i]) {
-                batch.setUniformBuffer(ZONE_AMBIENT_BUFFER, ambientLightStack[i]->getAmbientSchemaBuffer());
+                batch.setUniformBuffer(gr::Buffer::AmbientLight, ambientLightStack[i]->getAmbientSchemaBuffer());
                 if (ambientLightStack[i]->getAmbientMap()) {
-                    batch.setResourceTexture(ZONE_AMBIENT_MAP, ambientLightStack[i]->getAmbientMap());
+                    batch.setResourceTexture(ru::Texture::Skybox, ambientLightStack[i]->getAmbientMap());
                 }
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
             }
@@ -213,8 +195,8 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
             model.setTranslation(glm::vec3(4.0, -3.0 + (i * 1.0), -10.0 - (i * 3.0)));
             batch.setModelTransform(model);
             if (skyboxStack[i]) {
-                batch.setResourceTexture(ZONE_SKYBOX_MAP, skyboxStack[i]->getCubemap());
-                batch.setUniformBuffer(ZONE_SKYBOX_BUFFER, skyboxStack[i]->getSchemaBuffer());
+                batch.setResourceTexture(ru::Texture::Skybox, skyboxStack[i]->getCubemap());
+                batch.setUniformBuffer(ru::Buffer::DebugSkyboxParams, skyboxStack[i]->getSchemaBuffer());
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
             }
         }

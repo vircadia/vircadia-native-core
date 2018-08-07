@@ -58,14 +58,6 @@ namespace render {
         bool _showDisplay; // initialized by Config
         bool _showNetwork; // initialized by Config
 
-        int _drawItemBoundPosLoc = -1;
-        int _drawItemBoundDimLoc = -1;
-        int _drawItemCellLocLoc = -1;
-        int _drawItemStatusPosLoc = -1;
-        int _drawItemStatusDimLoc = -1;
-        int _drawItemStatusValue0Loc = -1;
-        int _drawItemStatusValue1Loc = -1;
-
         gpu::Stream::FormatPointer _drawItemFormat;
         gpu::PipelinePointer _drawItemBoundsPipeline;
         gpu::PipelinePointer _drawItemStatusPipeline;
