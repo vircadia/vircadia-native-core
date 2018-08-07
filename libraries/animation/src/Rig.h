@@ -225,7 +225,6 @@ public:
     const std::map<QString, float> getAnimStack() { return _animNode->getAnimStack(); }
 
     void toggleSmoothPoleVectors() { _smoothPoleVectors = !_smoothPoleVectors; };
-
 signals:
     void onLoadComplete();
 

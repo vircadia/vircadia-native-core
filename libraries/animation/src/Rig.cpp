@@ -940,7 +940,6 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             }
         }
         _lastEnableInverseKinematics = _enableInverseKinematics;
-
     }
 
     _lastForward = forward;

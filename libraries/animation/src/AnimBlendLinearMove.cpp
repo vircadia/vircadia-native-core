@@ -26,7 +26,6 @@ AnimBlendLinearMove::~AnimBlendLinearMove() {
 
 }
 
-
 static float calculateAlpha(const float speed, const std::vector<float>& characteristicSpeeds) {
 
     assert(characteristicSpeeds.size() > 0);
@@ -111,7 +110,6 @@ const AnimPoseVec& AnimBlendLinearMove::evaluate(const AnimVariantMap& animVars,
 const AnimPoseVec& AnimBlendLinearMove::getPosesInternal() const {
     return _poses;
 }
-
 
 void AnimBlendLinearMove::evaluateAndBlendChildren(const AnimVariantMap& animVars, const AnimContext& context, AnimVariantMap& triggersOut, float alpha,
                                                    size_t prevPoseIndex, size_t nextPoseIndex,
