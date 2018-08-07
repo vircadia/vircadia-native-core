@@ -15,12 +15,12 @@
 
 <@include Highlight_shared.slh@>
 
-uniform highlightParamsBuffer {
+layout(binding=RENDER_UTILS_BUFFER_HIGHLIGHT_PARAMS) uniform highlightParamsBuffer {
     HighlightParameters params;
 };
 
-uniform sampler2D sceneDepthMap;
-uniform sampler2D highlightedDepthMap;
+layout(binding=RENDER_UTILS_TEXTURE_HIGHLIGHT_SCENE_DEPTH) uniform sampler2D sceneDepthMap;
+layout(binding=RENDER_UTILS_TEXTURE_HIGHLIGHT_DEPTH) uniform sampler2D highlightedDepthMap;
 
 in vec2 varTexCoord0;
 out vec4 outFragColor;

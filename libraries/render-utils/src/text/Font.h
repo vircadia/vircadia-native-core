@@ -72,10 +72,6 @@ private:
     unsigned int _numVertices = 0;
     unsigned int _numIndices = 0;
 
-    int _fontLoc = -1;
-    int _outlineLoc = -1;
-    int _colorLoc = -1;
-
     // last string render characteristics
     QString _lastStringRendered;
     glm::vec2 _lastBounds;

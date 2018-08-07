@@ -51,15 +51,9 @@ namespace render {
     };
 
     class DrawSceneOctree {
-
-        int _drawCellLocationLoc;
         gpu::PipelinePointer _drawCellBoundsPipeline;
         gpu::BufferPointer _cells;
-
         gpu::PipelinePointer _drawLODReticlePipeline;
-
-        int _drawItemBoundPosLoc = -1;
-        int _drawItemBoundDimLoc = -1;
         gpu::PipelinePointer _drawItemBoundPipeline;
 
         bool _showVisibleCells; // initialized by Config
@@ -112,10 +106,6 @@ namespace render {
     };
 
     class DrawItemSelection {
-
-        int _drawItemBoundPosLoc = -1;
-        int _drawItemBoundDimLoc = -1;
-        int _drawCellLocationLoc = -1;
         gpu::PipelinePointer _drawItemBoundPipeline;
 
         bool _showInsideItems; // initialized by Config

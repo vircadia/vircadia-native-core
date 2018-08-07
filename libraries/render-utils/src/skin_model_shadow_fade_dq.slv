@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  skin_model_shadow_fade.vert
+//  skin_model_shadow_fade_dq.vert
 //  vertex shader
 //
 //  Created by Olivier Prat on 06/045/17.
@@ -14,12 +14,14 @@
 
 <@include gpu/Inputs.slh@>
 <@include gpu/Transform.slh@>
+<@include render-utils/ShaderConstants.h@>
+<@include Skinning.slh@>
+
 <$declareStandardTransform()$>
 
-<@include Skinning.slh@>
 <$declareUseDualQuaternionSkinning(1)$>
 
-out vec4 _positionWS;
+layout(location=RENDER_UTILS_ATTR_POSITION_WS) out vec4 _positionWS;
 
 void main(void) {
     vec4 position = vec4(0.0, 0.0, 0.0, 0.0);

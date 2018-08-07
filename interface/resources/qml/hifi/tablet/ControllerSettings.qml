@@ -299,7 +299,7 @@ Item {
             anchors.fill: stackView
             id: controllerPrefereneces
             objectName: "TabletControllerPreferences"
-            showCategories: [( (HMD.active) ? "VR Movement" : "Movement"), "Game Controller", "Sixense Controllers", "Perception Neuron", "Leap Motion"]
+            showCategories: ["VR Movement", "Game Controller", "Sixense Controllers", "Perception Neuron", "Leap Motion"]
             categoryProperties: {
                 "VR Movement" : {
                     "User real-world height (meters)" : { "anchors.right" : "undefined" },

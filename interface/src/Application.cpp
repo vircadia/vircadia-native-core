@@ -2703,8 +2703,6 @@ void Application::initializeGL() {
     // contexts
     _glWidget->makeCurrent();
     gpu::Context::init<gpu::gl::GLBackend>();
-    qApp->setProperty(hifi::properties::gl::MAKE_PROGRAM_CALLBACK,
-        QVariant::fromValue((void*)(&gpu::gl::GLBackend::makeProgram)));
     _glWidget->makeCurrent();
     _gpuContext = std::make_shared<gpu::Context>();
 
@@ -4574,11 +4572,14 @@ void Application::idle() {
     _lastTimeUpdated.start();
 
     // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
-    if (_keyboardDeviceHasFocus && offscreenUi && offscreenUi->getWindow()->activeFocusItem() != offscreenUi->getRootItem()) {
-        _keyboardMouseDevice->pluginFocusOutEvent();
-        _keyboardDeviceHasFocus = false;
-    } else if (offscreenUi && offscreenUi->getWindow()->activeFocusItem() == offscreenUi->getRootItem()) {
-        _keyboardDeviceHasFocus = true;
+    if (offscreenUi && offscreenUi->getWindow()) {
+        auto activeFocusItem = offscreenUi->getWindow()->activeFocusItem();
+        if (_keyboardDeviceHasFocus && activeFocusItem != offscreenUi->getRootItem()) {
+            _keyboardMouseDevice->pluginFocusOutEvent();
+            _keyboardDeviceHasFocus = false;
+        } else if (activeFocusItem == offscreenUi->getRootItem()) {
+            _keyboardDeviceHasFocus = true;
+        }
     }
 
     checkChangeCursor();
@@ -6619,11 +6620,12 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                                        LocationScriptingInterface::locationSetter);
 
+    bool clientScript = scriptEngine->isClientScript();
+    scriptEngine->registerFunction("OverlayWindow", clientScript ? QmlWindowClass::constructor : QmlWindowClass::restricted_constructor);
 #if !defined(Q_OS_ANDROID)
-    scriptEngine->registerFunction("OverlayWebWindow", QmlWebWindowClass::constructor);
+    scriptEngine->registerFunction("OverlayWebWindow", clientScript ? QmlWebWindowClass::constructor : QmlWebWindowClass::restricted_constructor);
 #endif
-    scriptEngine->registerFunction("OverlayWindow", QmlWindowClass::constructor);
-    scriptEngine->registerFunction("QmlFragment", QmlFragmentClass::constructor);
+    scriptEngine->registerFunction("QmlFragment", clientScript ? QmlFragmentClass::constructor : QmlFragmentClass::restricted_constructor);
 
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("DesktopPreviewProvider", DependencyManager::get<DesktopPreviewProvider>().data());

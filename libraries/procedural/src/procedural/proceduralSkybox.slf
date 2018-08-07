@@ -1,0 +1,45 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//  proceduralSkybox.frag
+//  fragment shader
+//
+//  Created by Sam Gateau on 5/5/2015.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+<@include graphics/ShaderConstants.h@>
+
+layout(binding=GRAPHICS_TEXTURE_SKYBOX) uniform samplerCube cubeMap;
+
+struct Skybox {
+    vec4 color;
+};
+
+layout(binding=GRAPHICS_BUFFER_SKYBOX_PARAMS) uniform skyboxBuffer {
+    Skybox skybox;
+};
+
+layout(location=0) in vec3  _normal;
+layout(location=0) out vec4 _fragColor;
+
+<@include procedural/ProceduralCommon.slh@>
+
+#line 1001
+//PROCEDURAL_BLOCK
+
+#line 2033
+void main(void) {
+    vec3 color = getSkyboxColor();
+    // Protect from NaNs and negative values
+    color = mix(color, vec3(0), isnan(color));
+    color = max(color, vec3(0));
+    // Procedural Shaders are expected to be Gamma corrected so let's bring back the RGB in linear space for the rest of the pipeline
+    color = pow(color, vec3(2.2));
+    _fragColor = vec4(color, 0.0);
+
+    // FIXME: scribe does not yet scrub out else statements
+    return;
+}

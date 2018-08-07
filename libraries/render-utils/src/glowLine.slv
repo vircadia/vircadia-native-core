@@ -10,28 +10,34 @@
 //
 
 <@include gpu/Transform.slh@>
+<@include render-utils/ShaderConstants.h@>
+
 <$declareStandardTransform()$>
 
-layout(std140) uniform lineData {
+struct LineData {
     vec4 p1;
     vec4 p2;
     vec4 color;
     float width;
 };
 
-out vec4 _color;
+layout(std140, binding=0) uniform LineDataBuffer {
+    LineData _lineData;
+};
+
+layout(location=RENDER_UTILS_ATTR_COLOR) out vec4 _color;
 // the distance from the center in 'quad space'
-out float distanceFromCenter;
+layout(location=0) out float distanceFromCenter;
 
 void main(void) {
-    _color = color;
+    _color = _lineData.color;
 
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
 
     vec4 p1eye, p2eye;
-    <$transformModelToEyePos(cam, obj, p1, p1eye)$> 
-    <$transformModelToEyePos(cam, obj, p2, p2eye)$>
+    <$transformModelToEyePos(cam, obj, _lineData.p1, p1eye)$> 
+    <$transformModelToEyePos(cam, obj, _lineData.p2, p2eye)$>
     p1eye /= p1eye.w;
     p2eye /= p2eye.w; 
 
@@ -40,7 +46,7 @@ void main(void) {
     // Find the vector from the eye to one of the points
     vec3 v2 = normalize(p1eye.xyz);
     // The orthogonal vector is the cross product of these two
-    vec3 orthogonal = cross(v1, v2) * width;
+    vec3 orthogonal = cross(v1, v2) * _lineData.width;
     
     // Deteremine which end to emit based on the vertex id (even / odd)
     vec4 eye = (0 == gl_VertexID % 2) ? p1eye : p2eye;

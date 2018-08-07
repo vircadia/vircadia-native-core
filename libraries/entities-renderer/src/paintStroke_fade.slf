@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  paintStroke_fade.slf
+//  paintStroke_fade.frag
 //  fragment shader
 //
 //  Created by Olivier Prat on 19/07/17.
@@ -18,19 +18,19 @@
 <$declareFadeFragment()$>
 
 // the albedo texture
-uniform sampler2D originalTexture;
+layout(binding=0) uniform sampler2D originalTexture;
 
 // the interpolated normal
-in vec3 interpolatedNormal;
-in vec2 varTexcoord;
-in vec4 varColor;
-in vec4 _worldPosition;
+layout(location=0) in vec3 interpolatedNormal;
+layout(location=1) in vec2 varTexcoord;
+layout(location=2) in vec4 varColor;
+layout(location=3) in vec4 _worldPosition;
 
 struct PolyLineUniforms {
     vec3 color;
 };
 
-uniform polyLineBuffer {
+layout(binding=0) uniform polyLineBuffer {
     PolyLineUniforms polyline;
 };
 

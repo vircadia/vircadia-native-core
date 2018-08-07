@@ -2,6 +2,8 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
+//  surfaceGeometry_makeLinearDepth.frag
+//
 //  Created by Sam Gateau on 6/3/16.
 //  Copyright 2016 High Fidelity, Inc.
 //
@@ -9,13 +11,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@include render-utils/ShaderConstants.h@>
+
 <@include DeferredTransform.slh@>
 <$declareDeferredFrameTransform()$>
 
+layout(binding=RENDER_UTILS_TEXTURE_SG_DEPTH) uniform sampler2D depthMap;
 
-uniform sampler2D depthMap;
-
-out vec4 outFragColor;
+layout(location=0) out vec4 outFragColor;
 
 void main(void) {
     float Zdb = texelFetch(depthMap, ivec2(gl_FragCoord.xy), 0).x;
