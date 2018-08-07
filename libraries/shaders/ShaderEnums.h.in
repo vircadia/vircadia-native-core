@@ -1,0 +1,9 @@
+#include <cstdint>
+#include <string>
+
+namespace shader {
+
+@SHADER_ENUMS@
+
+}
+

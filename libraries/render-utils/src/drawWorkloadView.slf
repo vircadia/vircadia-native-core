@@ -1,7 +1,8 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//  drawItemBounds.frag
+//
+//  drawWorkloadView.frag
 //  fragment shader
 //
 //  Created by Sam Gateau on 6/29/15.

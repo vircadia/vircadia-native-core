@@ -1,0 +1,11 @@
+#include "ShaderEnums.h"
+
+namespace shader {
+
+uint32_t all_programs[] = {
+@SHADER_PROGRAMS_ARRAY@
+    (uint32_t)-1
+};
+
+}
+

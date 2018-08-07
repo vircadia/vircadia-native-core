@@ -94,16 +94,9 @@ public:
     QTestWindow() {
         setSurfaceType(QSurface::OpenGLSurface);
 
-        QSurfaceFormat format;
-        // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
-        format.setDepthBufferSize(16);
-        format.setStencilBufferSize(8);
-        setGLFormatVersion(format);
-        format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
+        QSurfaceFormat format = getDefaultOpenGLSurfaceFormat();
         format.setOption(QSurfaceFormat::DebugContext);
-
         setFormat(format);
-
         _context.setFormat(format);
         _context.create();
 
@@ -152,13 +145,6 @@ protected:
 
 //static const wchar_t* EXAMPLE_TEXT = L"Hello";
 //static const wchar_t* EXAMPLE_TEXT = L"\xC1y Hello 1.0\ny\xC1 line 2\n\xC1y";
-
-void testShaderBuild(const char* vs_src, const char * fs_src) {
-    auto vs = gpu::Shader::createVertex(std::string(vs_src));
-    auto fs = gpu::Shader::createPixel(std::string(fs_src));
-    auto pr = gpu::Shader::createProgram(vs, fs);
-    gpu::Shader::makeProgram(*pr);
-}
 
 void QTestWindow::draw() {
     if (!isVisible()) {

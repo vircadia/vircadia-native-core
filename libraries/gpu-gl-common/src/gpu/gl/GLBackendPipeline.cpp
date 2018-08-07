@@ -10,6 +10,7 @@
 //
 #include "GLBackend.h"
 #include <gpu/TextureTable.h>
+#include <gpu/ShaderConstants.h>
 
 #include "GLShared.h"
 #include "GLPipeline.h"
@@ -36,7 +37,7 @@ void GLBackend::do_setPipeline(const Batch& batch, size_t paramOffset) {
         _pipeline._pipeline.reset();
 
         _pipeline._program = 0;
-        _pipeline._cameraCorrectionLocation = -1;
+        _pipeline._cameraCorrection = false;
         _pipeline._programShader = nullptr;
         _pipeline._invalidProgram = true;
 
@@ -62,7 +63,7 @@ void GLBackend::do_setPipeline(const Batch& batch, size_t paramOffset) {
             _pipeline._program = glprogram;
             _pipeline._programShader = pipelineObject->_program;
             _pipeline._invalidProgram = true;
-            _pipeline._cameraCorrectionLocation = pipelineObject->_cameraCorrection;
+            _pipeline._cameraCorrection = pipelineObject->_cameraCorrection;
         }
 
         // Now for the state
@@ -78,16 +79,13 @@ void GLBackend::do_setPipeline(const Batch& batch, size_t paramOffset) {
     // THis should be done on Pipeline::update...
     if (_pipeline._invalidProgram) {
         glUseProgram(_pipeline._program);
-        if (_pipeline._cameraCorrectionLocation != -1) {
-            gl::GLBuffer* cameraCorrectionBuffer = nullptr;
-            if (_transform._viewCorrectionEnabled) {
-                cameraCorrectionBuffer = syncGPUObject(*_pipeline._cameraCorrectionBuffer._buffer);
-            } else {
-                cameraCorrectionBuffer = syncGPUObject(*_pipeline._cameraCorrectionBufferIdentity._buffer);
-            }
+        if (_pipeline._cameraCorrection) {
             // Invalidate uniform buffer cache slot
-            _uniform._buffers[_pipeline._cameraCorrectionLocation].reset();
-            glBindBufferRange(GL_UNIFORM_BUFFER, _pipeline._cameraCorrectionLocation, cameraCorrectionBuffer->_id, 0, sizeof(CameraCorrection));
+            _uniform._buffers[gpu::slot::buffer::CameraCorrection] = {};
+            auto& cameraCorrectionBuffer = _transform._viewCorrectionEnabled ?
+                _pipeline._cameraCorrectionBuffer._buffer : 
+                _pipeline._cameraCorrectionBufferIdentity._buffer;
+            bindUniformBuffer(gpu::slot::buffer::CameraCorrection, cameraCorrectionBuffer, 0, sizeof(CameraCorrection));
         }
         (void)CHECK_GL_ERROR();
         _pipeline._invalidProgram = false;
@@ -138,15 +136,18 @@ void GLBackend::resetPipelineStage() {
     glUseProgram(0);
 }
 
+GLBackend::UniformStageState::BufferState::BufferState(const BufferPointer& buffer, GLintptr offset, GLsizeiptr size)
+  : buffer(buffer), offset(offset), size(size) {}
+
 void GLBackend::releaseUniformBuffer(uint32_t slot) {
     auto& buf = _uniform._buffers[slot];
-    if (buf) {
-        auto* object = Backend::getGPUObject<GLBuffer>(*buf);
+    if (buf.buffer) {
+        auto* object = Backend::getGPUObject<GLBuffer>(*buf.buffer);
         if (object) {
             glBindBufferBase(GL_UNIFORM_BUFFER, slot, 0);  // RELEASE
             (void)CHECK_GL_ERROR();
         }
-        buf.reset();
+        buf = UniformStageState::BufferState();
     }
 }
 
@@ -156,6 +157,33 @@ void GLBackend::resetUniformStage() {
     }
 }
 
+void GLBackend::bindUniformBuffer(uint32_t slot, const BufferPointer& buffer, GLintptr offset, GLsizeiptr size) {
+    if (!buffer) {
+        releaseUniformBuffer(slot);
+        return;
+    }
+
+    UniformStageState::BufferState bufferState{ buffer, offset, size };
+
+    // check cache before thinking
+    if (_uniform._buffers[slot] == bufferState) {
+        return;
+    }
+
+    // Sync BufferObject
+    auto* object = syncGPUObject(*bufferState.buffer);
+    if (object) {
+        glBindBufferRange(GL_UNIFORM_BUFFER, slot, object->_buffer, bufferState.offset, bufferState.size);
+
+        _uniform._buffers[slot] = bufferState;
+        (void)CHECK_GL_ERROR();
+    } else {
+        releaseUniformBuffer(slot);
+        return;
+    }
+
+}
+
 void GLBackend::do_setUniformBuffer(const Batch& batch, size_t paramOffset) {
     GLuint slot = batch._params[paramOffset + 3]._uint;
     if (slot > (GLuint)MAX_NUM_UNIFORM_BUFFERS) {
@@ -163,31 +191,12 @@ void GLBackend::do_setUniformBuffer(const Batch& batch, size_t paramOffset) {
                               << " which doesn't exist. MaxNumUniformBuffers = " << getMaxNumUniformBuffers();
         return;
     }
+
     BufferPointer uniformBuffer = batch._buffers.get(batch._params[paramOffset + 2]._uint);
     GLintptr rangeStart = batch._params[paramOffset + 1]._uint;
     GLsizeiptr rangeSize = batch._params[paramOffset + 0]._uint;
 
-    if (!uniformBuffer) {
-        releaseUniformBuffer(slot);
-        return;
-    }
-
-    // check cache before thinking
-    if (_uniform._buffers[slot] == uniformBuffer) {
-        return;
-    }
-
-    // Sync BufferObject
-    auto* object = syncGPUObject(*uniformBuffer);
-    if (object) {
-        glBindBufferRange(GL_UNIFORM_BUFFER, slot, object->_buffer, rangeStart, rangeSize);
-
-        _uniform._buffers[slot] = uniformBuffer;
-        (void)CHECK_GL_ERROR();
-    } else {
-        releaseUniformBuffer(slot);
-        return;
-    }
+    bindUniformBuffer(slot, uniformBuffer, rangeStart, rangeSize);
 }
 
 void GLBackend::releaseResourceTexture(uint32_t slot) {

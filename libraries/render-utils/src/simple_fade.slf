@@ -17,14 +17,18 @@
 <@include Fade.slh@>
 <$declareFadeFragmentInstanced()$>
 
+<@include render-utils/ShaderConstants.h@>
+
 // the interpolated normal
-in vec3 _normalWS;
-in vec3 _normalMS;
-in vec4 _color;
-in vec2 _texCoord0;
-in vec4 _positionMS;
-in vec4 _positionES;
-in vec4 _positionWS;
+layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
+layout(location=RENDER_UTILS_ATTR_NORMAL_MS) in vec3 _normalMS;
+layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
+#define _texCoord0 _texCoord01.xy
+#define _texCoord1 _texCoord01.zw
+layout(location=RENDER_UTILS_ATTR_POSITION_MS) in vec4 _positionMS;
+layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _positionES;
+layout(location=RENDER_UTILS_ATTR_POSITION_WS) in vec4 _positionWS;
 
 // For retro-compatibility
 #define _normal      _normalWS
@@ -32,7 +36,7 @@ in vec4 _positionWS;
 #define _position    _positionMS
 #define _eyePosition _positionES
 
-//PROCEDURAL_COMMON_BLOCK
+<@include procedural/ProceduralCommon.slh@>
 
 #line 1001
 //PROCEDURAL_BLOCK

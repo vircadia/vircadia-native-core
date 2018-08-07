@@ -16,21 +16,23 @@
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
 
-<@include MaterialTextures.slh@>
+<@include graphics/MaterialTextures.slh@>
 <$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, _SCRIBE_NULL, EMISSIVE, OCCLUSION)$>
 
 <@include Fade.slh@>
 <$declareFadeFragment()$>
 
-in vec2 _texCoord0;
-in vec2 _texCoord1;
-in vec4 _positionES;
-in vec4 _positionWS;
-in vec3 _normalWS;
-in vec3 _color;
-in float _alpha;
+<@include render-utils/ShaderConstants.h@>
 
-out vec4 _fragColor;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
+#define _texCoord0 _texCoord01.xy
+#define _texCoord1 _texCoord01.zw
+layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _positionES;
+layout(location=RENDER_UTILS_ATTR_POSITION_WS) in vec4 _positionWS;
+layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
+layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
+
+layout(location=0) out vec4 _fragColor;
 
 void main(void) {
     vec3 fadeEmissive;
@@ -44,13 +46,13 @@ void main(void) {
     <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, _SCRIBE_NULL, emissiveTex)$>
     <$fetchMaterialTexturesCoord1(matKey, _texCoord1, occlusionTex)$>
 
-    float opacity = getMaterialOpacity(mat) * _alpha;
+    float opacity = getMaterialOpacity(mat) * _color.a;
     <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
     <$discardTransparent(opacity)$>;
 
     vec3 albedo = getMaterialAlbedo(mat);
     <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
-    albedo *= _color;
+    albedo *= _color.rgb;
 
     float roughness = getMaterialRoughness(mat);
     <$evalMaterialRoughness(roughnessTex, roughness, matKey, roughness)$>;

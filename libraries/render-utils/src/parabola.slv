@@ -12,7 +12,7 @@
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
-layout(std140) uniform parabolaData {
+layout(std140, binding=0) uniform parabolaData {
     vec3 velocity;
     float parabolicDistance;
     vec3 acceleration;
@@ -22,12 +22,12 @@ layout(std140) uniform parabolaData {
     ivec3 spare;
 };
 
-out vec4 _color;
+layout(location=0) out vec4 _color;
 
 void main(void) {
     _color = color;
 
-    float t = parabolicDistance * (floor(gl_VertexID / 2) / float(numSections));
+    float t = parabolicDistance * (float(gl_VertexID / 2) / float(numSections));
 
     vec4 pos = vec4(velocity * t + 0.5 * acceleration * t * t, 1);
     const float EPSILON = 0.00001;
