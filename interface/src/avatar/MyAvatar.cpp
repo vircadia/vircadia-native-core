@@ -154,7 +154,7 @@ MyAvatar::MyAvatar(QThread* thread) :
 
     // connect to AddressManager signal for location jumps
     connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired,
-            this, static_cast<SlotType>(&MyAvatar::goToLocation));
+            this, static_cast<SlotType>(&MyAvatar::goToFeetLocation));
 
     // handle scale constraints imposed on us by the domain-server
     auto& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
@@ -2621,6 +2621,54 @@ void MyAvatar::goToLocation(const QVariant& propertiesVar) {
     } else {
         goToLocation(v);
     }
+}
+
+void MyAvatar::goToFeetLocation(const glm::vec3& newPosition,
+    bool hasOrientation, const glm::quat& newOrientation,
+    bool shouldFaceLocation) {
+
+    qCDebug(interfaceapp).nospace() << "MyAvatar goToFeetLocation - moving to " << newPosition.x << ", "
+        << newPosition.y << ", " << newPosition.z;
+
+    ShapeInfo shapeInfo;
+    computeShapeInfo(shapeInfo);
+    glm::vec3 halfExtents = shapeInfo.getHalfExtents();
+    glm::vec3 localFeetPos = shapeInfo.getOffset() - glm::vec3(0.0f, halfExtents.y + halfExtents.x, 0.0f);
+    glm::mat4 localFeet = createMatFromQuatAndPos(Quaternions::IDENTITY, localFeetPos);
+    
+    glm::mat4 worldFeet;
+    if (hasOrientation) {
+        worldFeet = createMatFromQuatAndPos(newOrientation, newPosition);
+    } else {
+        worldFeet = createMatFromQuatAndPos(Quaternions::IDENTITY, newPosition);
+    }
+    
+    glm::mat4 avatarMat = worldFeet * glm::inverse(localFeet);
+
+    glm::vec3 adjustedPosition = extractTranslation(avatarMat);
+
+    _goToPending = true;
+    _goToPosition = adjustedPosition;
+    _goToOrientation = getWorldOrientation();
+    if (hasOrientation) {
+        qCDebug(interfaceapp).nospace() << "MyAvatar goToFeetLocation - new orientation is "
+            << newOrientation.x << ", " << newOrientation.y << ", " << newOrientation.z << ", " << newOrientation.w;
+
+        // orient the user to face the target
+        glm::quat quatOrientation = cancelOutRollAndPitch(newOrientation);
+
+        if (shouldFaceLocation) {
+            quatOrientation = newOrientation * glm::angleAxis(PI, Vectors::UP);
+
+            // move the user a couple units away
+            const float DISTANCE_TO_USER = 2.0f;
+            _goToPosition = adjustedPosition - quatOrientation * IDENTITY_FORWARD * DISTANCE_TO_USER;
+        }
+
+        _goToOrientation = quatOrientation;
+    }
+
+    emit transformChanged();
 }
 
 void MyAvatar::goToLocation(const glm::vec3& newPosition,
