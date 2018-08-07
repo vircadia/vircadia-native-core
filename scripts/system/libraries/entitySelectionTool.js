@@ -260,8 +260,8 @@ SelectionManager = (function() {
 
                 // Re-apply actions from the original entity
                 var actionIDs = Entities.getActionIDs(properties.id);
-                for (var i = 0; i < actionIDs.length; ++i) {
-                    var actionID = actionIDs[i];
+                for (var j = 0; j < actionIDs.length; ++j) {
+                    var actionID = actionIDs[j];
                     var actionArguments = Entities.getActionArguments(properties.id, actionID);
                     if (actionArguments) {
                         var type = actionArguments.type;
