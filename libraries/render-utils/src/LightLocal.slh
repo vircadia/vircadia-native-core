@@ -9,16 +9,14 @@
 
 // Everything about light
 <@include graphics/Light.slh@>
-<$declareLightBuffer(256)$>
 <@include LightingModel.slh@>
-
-
 <@include LightPoint.slh@>
-<$declareLightingPoint(supportScattering)$>
 <@include LightSpot.slh@>
-<$declareLightingSpot(supportScattering)$>
-
 <@include LightClusterGrid.slh@>
+
+<$declareLightBuffer(256)$>
+<$declareLightingPoint(supportScattering)$>
+<$declareLightingSpot(supportScattering)$>
 
 vec4 evalLocalLighting(ivec3 cluster, int numLights, vec3 fragWorldPos, SurfaceData surface,
                        float fragMetallic, vec3 fragFresnel, vec3 fragAlbedo, float fragScattering,  
@@ -146,3 +144,4 @@ vec4 evalLocalLighting(ivec3 cluster, int numLights, vec3 fragWorldPos, SurfaceD
     fragColor.rgb += evalSpecularWithOpacity(fragSpecular, opacity);
     return fragColor;
 }
+

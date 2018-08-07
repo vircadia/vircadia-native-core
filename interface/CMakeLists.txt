@@ -214,6 +214,7 @@ link_hifi_libraries(
   controllers plugins image trackers
   ui-plugins display-plugins input-plugins
   ${PLATFORM_GL_BACKEND}
+  shaders
 )
 
 # include the binary directory of render-utils for shader includes

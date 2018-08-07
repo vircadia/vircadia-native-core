@@ -66,8 +66,6 @@ private:
     const gpu::PipelinePointer getPipeline();
     gpu::PipelinePointer _boundsPipeline;
     gpu::BufferPointer _drawBuffer;
-
-    int _colorLocation { -1 };
 };
 
 class DrawQuadVolumeConfig : public render::JobConfig {

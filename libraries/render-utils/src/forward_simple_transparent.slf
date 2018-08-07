@@ -17,12 +17,14 @@
 <$declareEvalGlobalLightingAlphaBlended()$>
 
 // the interpolated normal
-in vec3 _normalWS;
-in vec3 _normalMS;
-in vec4 _color;
-in vec2 _texCoord0;
-in vec4 _positionMS;
-in vec4 _positionES;
+layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
+layout(location=RENDER_UTILS_ATTR_NORMAL_MS) in vec3 _normalMS;
+layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
+#define _texCoord0 _texCoord01.xy
+#define _texCoord1 _texCoord01.zw
+layout(location=RENDER_UTILS_ATTR_POSITION_MS) in vec4 _positionMS;
+layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _positionES;
 
 // For retro-compatibility
 #define _normal      _normalWS
@@ -30,7 +32,7 @@ in vec4 _positionES;
 #define _position    _positionMS
 #define _eyePosition _positionES
 
-layout(location = 0) out vec4 _fragColor0;
+layout(location=0) out vec4 _fragColor0;
 
 //PROCEDURAL_COMMON_BLOCK
 

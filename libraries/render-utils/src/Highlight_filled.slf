@@ -1,4 +1,4 @@
-//  Highlight_filled.slf
+//  Highlight_filled.frag
 //  Add highlight effect based on two zbuffers : one containing the total scene z and another 
 //  with the z of only the objects to be outlined.
 //  This is the version with the fill effect inside the silhouette.

@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  forward_simple_textured.slf
+//  forward_simple_textured.frag
 //  fragment shader
 //
 //  Created by Clément Brisset on 5/29/15.
@@ -19,16 +19,20 @@
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
 
+<@include render-utils/ShaderConstants.h@>
+
 // the albedo texture
-uniform sampler2D originalTexture;
+layout(binding=0) uniform sampler2D originalTexture;
 
 // the interpolated normal
-in vec3 _normalWS;
-in vec4 _color;
-in vec2 _texCoord0;
-in vec4 _positionES;
+layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
+layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
+#define _texCoord0 _texCoord01.xy
+#define _texCoord1 _texCoord01.zw
+layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _positionES;
 
-layout(location = 0) out vec4 _fragColor0;
+layout(location=0) out vec4 _fragColor0;
 
 void main(void) {
     vec4 texel = texture(originalTexture, _texCoord0);

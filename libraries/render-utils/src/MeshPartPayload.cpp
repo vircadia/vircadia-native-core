@@ -13,7 +13,9 @@
 
 #include <PerfStat.h>
 #include <DualQuaternion.h>
+#include <graphics/ShaderConstants.h>
 
+#include "render-utils/ShaderConstants.h"
 #include "DeferredLightingEffect.h"
 
 #include "RenderPipelines.h"
@@ -395,7 +397,7 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) {
 
 void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const {
     if (_clusterBuffer) {
-        batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::SKINNING, _clusterBuffer);
+        batch.setUniformBuffer(graphics::slot::buffer::Skinning, _clusterBuffer);
     }
     batch.setModelTransform(_transform);
 }

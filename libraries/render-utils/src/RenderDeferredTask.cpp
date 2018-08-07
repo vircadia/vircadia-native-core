@@ -12,12 +12,15 @@
 
 #include "RenderDeferredTask.h"
 
+#include <QtCore/qglobal.h>
+
 #include <DependencyManager.h>
 
 #include <PerfStat.h>
 #include <PathUtils.h>
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
+#include <graphics/ShaderConstants.h>
 
 #include <render/CullTask.h>
 #include <render/FilterTask.h>
@@ -29,6 +32,7 @@
 #include <render/ResampleTask.h>
 
 #include "RenderHifi.h"
+#include "render-utils/ShaderConstants.h"
 #include "RenderCommonTask.h"
 #include "LightingModel.h"
 #include "StencilMaskPass.h"
@@ -55,6 +59,17 @@
 
 using namespace render;
 extern void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
+
+namespace ru {
+    using render_utils::slot::texture::Texture;
+    using render_utils::slot::buffer::Buffer;
+}
+
+namespace gr {
+    using graphics::slot::texture::Texture;
+    using graphics::slot::buffer::Buffer;
+}
+
 
 RenderDeferredTask::RenderDeferredTask()
 {
@@ -347,27 +362,18 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         batch.setViewTransform(viewMat);
 
         // Setup lighting model for all items;
-        batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
+        batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
 
         // Set the light
-        deferredLightingEffect->setupKeyLightBatch(args, batch,
-            render::ShapePipeline::Slot::KEY_LIGHT,
-            render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER,
-            render::ShapePipeline::Slot::LIGHT_AMBIENT_MAP);
-
-        deferredLightingEffect->setupLocalLightsBatch(batch,
-            render::ShapePipeline::Slot::LIGHT_ARRAY_BUFFER,
-            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
-            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
-            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
-            lightClusters);
+        deferredLightingEffect->setupKeyLightBatch(args, batch);
+        deferredLightingEffect->setupLocalLightsBatch(batch, lightClusters);
 
         // Setup haze if current zone has haze
         auto hazeStage = args->_scene->getStage<HazeStage>();
         if (hazeStage && hazeStage->_currentFrame._hazes.size() > 0) {
             graphics::HazePointer hazePointer = hazeStage->getHaze(hazeStage->_currentFrame._hazes.front());
             if (hazePointer) {
-                batch.setUniformBuffer(render::ShapePipeline::Slot::HAZE_MODEL, hazePointer->getHazeParametersBuffer());
+                batch.setUniformBuffer(ru::Buffer::HazeParams, hazePointer->getHazeParametersBuffer());
             }
         }
 
@@ -385,16 +391,8 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         args->_batch = nullptr;
         args->_globalShapeKey = 0;
 
-        deferredLightingEffect->unsetLocalLightsBatch(batch,
-            render::ShapePipeline::Slot::LIGHT_ARRAY_BUFFER,
-            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
-            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
-            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT);
-
-        deferredLightingEffect->unsetKeyLightBatch(batch,
-            render::ShapePipeline::Slot::KEY_LIGHT,
-            render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER,
-            render::ShapePipeline::Slot::LIGHT_AMBIENT_MAP);
+        deferredLightingEffect->unsetLocalLightsBatch(batch);
+        deferredLightingEffect->unsetKeyLightBatch(batch);
     });
 
     config->setNumDrawn((int)inItems.size());
@@ -429,7 +427,7 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
         batch.setViewTransform(viewMat);
 
         // Setup lighting model for all items;
-        batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
+        batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
 
         // From the lighting model define a global shapeKey ORED with individiual keys
         ShapeKey::Builder keyBuilder;
