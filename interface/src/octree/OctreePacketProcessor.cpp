@@ -16,6 +16,7 @@
 #include "Application.h"
 #include "Menu.h"
 #include "SceneScriptingInterface.h"
+#include "SafeLanding.h"
 
 OctreePacketProcessor::OctreePacketProcessor() {
     setObjectName("Octree Packet Processor");
@@ -25,6 +26,8 @@ OctreePacketProcessor::OctreePacketProcessor() {
         { PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase, PacketType::EntityQueryInitialResultsComplete };
     packetReceiver.registerDirectListenerForTypes(octreePackets, this, "handleOctreePacket");
 }
+
+OctreePacketProcessor::~OctreePacketProcessor() { }
 
 void OctreePacketProcessor::handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     queueReceivedPacket(message, senderNode);
