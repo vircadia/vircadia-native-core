@@ -91,7 +91,7 @@ function loaded() {
       function onRowClicked(clickEvent) {
           var id = this.dataset.entityId;
           var selection = [this.dataset.entityId];
-          if (clickEvent.ctrlKey) {
+          if (clickEvent.ctrlKey && selectedEntities.indexOf(id) === -1) {
               selection = selection.concat(selectedEntities);
           } else if (clickEvent.shiftKey && selectedEntities.length > 0) {
               var previousItemFound = -1;
