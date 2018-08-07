@@ -36,7 +36,7 @@ var lastEntityID = null;
 
 var MATERIAL_PREFIX_STRING = "mat::";
 
-var INVALIDATE_SCRIPT_STATUS = "[ Fetching status ]";
+var PENDING_SCRIPT_STATUS = "[ Fetching status ]";
 
 function debugPrint(message) {
     EventBridge.emitWebEvent(
@@ -1673,7 +1673,7 @@ function loaded() {
         elServerScripts.addEventListener('change', createEmitTextPropertyUpdateFunction('serverScripts'));
         elServerScripts.addEventListener('change', function() {
             // invalidate the current status (so that same-same updates can still be observed visually)
-            elServerScriptStatus.innerText = INVALIDATE_SCRIPT_STATUS;
+            elServerScriptStatus.innerText = PENDING_SCRIPT_STATUS;
         });
 
         elClearUserData.addEventListener("click", function() {
@@ -2147,7 +2147,7 @@ function loaded() {
         });
         elReloadServerScriptsButton.addEventListener("click", function() {
             // invalidate the current status (so that same-same updates can still be observed visually)
-            elServerScriptStatus.innerText = INVALIDATE_SCRIPT_STATUS;
+            elServerScriptStatus.innerText = PENDING_SCRIPT_STATUS;
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "action",
                 action: "reloadServerScripts"

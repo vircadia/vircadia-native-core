@@ -2040,8 +2040,9 @@ var PropertiesTool = function (opts) {
     that.setVisible(false);
     
     function emitScriptEvent(data) {
-        webView.emitScriptEvent(JSON.stringify(data));
-        createToolsWindow.emitScriptEvent(JSON.stringify(data));
+        var dataString = JSON.stringify(data);
+        webView.emitScriptEvent(dataString);
+        createToolsWindow.emitScriptEvent(dataString);
     }
 
     function updateScriptStatus(info) {
