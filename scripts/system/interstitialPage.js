@@ -13,9 +13,11 @@
    Camera, HMD*/
 
 (function() {
-    var MAX_X_SIZE = 3;
-    var isVisible = true;
-    var defaultOffset = 1.5;
+    var MAX_X_SIZE = 5;
+    var EPSILON = 0.25;
+    var isVisible = false;
+    var STABILITY = 3.0;
+    var defaultOffset = -0.5;
     var VOLUME = 0.4;
     var tune = SoundCache.getSound("http://hifi-content.s3.amazonaws.com/alexia/LoadingScreens/crystals_and_voices.wav");
     var sample = null;
@@ -50,14 +52,15 @@
     var loadingSphereID = Overlays.addOverlay("model", {
         name: "Loading-Sphere",
         position: Vec3.sum(Vec3.sum(MyAvatar.position, {x: 0.0, y: -1.0, z: 0.0}), Vec3.multiplyQbyV(MyAvatar.orientation, {x: 0, y: 0.95, z: 0})),
-        orientation: Quat.multiply(Quat.fromVec3Degrees({x: 0, y: 180, z: 0}), MyAvatar.orientation),
+        orientation: Quat.multiply(Quat.fromVec3Degrees({x: 10, y: 180, z: 0}), MyAvatar.orientation),
         url: "http://hifi-content.s3.amazonaws.com/alexia/LoadingScreens/black-sphere.fbx",
         dimensions: { x: 20, y: 20, z: 20 },
         alpha: 1,
         visible: isVisible,
         ignoreRayIntersection: true,
         drawInFront: true,
-        grabbable: false
+        grabbable: false,
+        parentID: MyAvatar.SELF_ID
     });
 
 
@@ -128,7 +131,7 @@
 
     var loadingBarPlacard = Overlays.addOverlay("image3d", {
         name: "Loading-Bar-Placard",
-        localPosition: { x: 0.0 , y: DESTINATION_CARD_Y_OFFSET - 0.99, z: 5.45 },
+        localPosition: { x: 0.0 , y: DESTINATION_CARD_Y_OFFSET - 0.99, z: 5.52 },
         url: "http://hifi-content.s3.amazonaws.com/alexia/LoadingScreens/loadingBar_placard.png",
         alpha: 1,
         dimensions: { x: 4, y: 2.8},
@@ -161,6 +164,9 @@
     var timerset = false;
     var lastInterval = Date.now();
     var timeElapsed = 0;
+    var currentDomain = "";
+    var timer = null;
+    var target = 0;
 
 
     function getLeftMargin(overlayID, text) {
@@ -171,43 +177,58 @@
     }
 
 
+    function resetValues() {
+    }
+
+    function lerp(a, b, t) {
+        return ((1 - t) * a + t * b);
+    }
+
+    function startInterstitialPage() {
+        if (timer === null) {
+            print("--------> start page <--------");
+            updateOverlays(Window.isPhysicsEnabled());
+            target = 0;
+            currentProgress = 0.1;
+            timer = Script.setTimeout(update, BASIC_TIMER_INTERVAL_MS);
+        }
+    }
+
     function domainChanged(domain) {
-        var name = AddressManager.placename;
-        domainName = name.charAt(0).toUpperCase() + name.slice(1);
-        var domainNameLeftMargin = getLeftMargin(domainNameTextID, domainName);
-        var textProperties = {
-            text: domainName,
-            leftMargin: domainNameLeftMargin
-        };
+        if (domain !== currentDomain) {
+            print("----------> domain changed <-------------->");
+            var name = AddressManager.placename;
+            domainName = name.charAt(0).toUpperCase() + name.slice(1);
+            var domainNameLeftMargin = getLeftMargin(domainNameTextID, domainName);
+            var textProperties = {
+                text: domainName,
+                leftMargin: domainNameLeftMargin
+            };
 
-        var BY = "by ";
-        var text = BY
-        var hostLeftMargin = getLeftMargin(domainHostname, text);
-        var hostnameProperties = {
-            text: BY,
-            leftMargin: hostLeftMargin
-        };
+            var BY = "by ";
+            var text = BY
+            var hostLeftMargin = getLeftMargin(domainHostname, text);
+            var hostnameProperties = {
+                text: BY,
+                leftMargin: hostLeftMargin
+            };
 
-        var randomIndex = Math.floor(Math.random() * userTips.length);
-        var tip = userTips[randomIndex];
-        var tipLeftMargin = getLeftMargin(domainToolTip, tip);
-        var toolTipProperties = {
-            text: tip,
-            leftMargin: tipLeftMargin
-        };
+            var randomIndex = Math.floor(Math.random() * userTips.length);
+            var tip = userTips[randomIndex];
+            var tipLeftMargin = getLeftMargin(domainToolTip, tip);
+            var toolTipProperties = {
+                text: tip,
+                leftMargin: tipLeftMargin
+            };
 
-        var myAvatarDirection = Vec3.UNIT_NEG_Z;
-        var cardDirectionPrime = {x: 0 , y: 0, z: 5.5};
-        var rotationDelta = Quat.rotationBetween(cardDirectionPrime, myAvatarDirection);
-        var overlayRotation = Quat.multiply(MyAvatar.orientation, rotationDelta);
-        var mainSphereProperties = {
-            orientation: overlayRotation
-        };
+            Overlays.editOverlay(domainNameTextID, textProperties);
+            Overlays.editOverlay(domainHostname, hostnameProperties);
+            Overlays.editOverlay(domainToolTip, toolTipProperties);
 
-        Overlays.editOverlay(loadingSphereID, mainSphereProperties);
-        Overlays.editOverlay(domainNameTextID, textProperties);
-        Overlays.editOverlay(domainHostname, hostnameProperties);
-        Overlays.editOverlay(domainToolTip, toolTipProperties);
+
+            startInterstitialPage();
+            currentDomain = domain;
+        }
     }
 
     var THE_PLACE = "hifi://TheSpot";
@@ -222,26 +243,18 @@
         }
     }
 
-    var previousPhysicsStatus = 99999;
+    var currentProgress = 0.1;
 
     function updateOverlays(physicsEnabled) {
         var properties = {
             visible: !physicsEnabled
         };
 
-        var myAvatarDirection = Vec3.UNIT_NEG_Z;
-        var cardDirectionPrime = {x: 0 , y: 0, z: 5.5};
-        var rotationDelta = Quat.rotationBetween(cardDirectionPrime, myAvatarDirection);
-        var overlayRotation = Quat.multiply(MyAvatar.orientation, rotationDelta);
         var mainSphereProperties = {
-            visible: !physicsEnabled,
-            orientation: overlayRotation
+            visible: !physicsEnabled
         };
 
-        if (!HMD.active) {
-            toolbar.writeProperty("visible", physicsEnabled);
-            MyAvatar.headOrientation = Quat.multiply(Quat.cancelOutRollAndPitch(MyAvatar.headOrientation), Quat.fromPitchYawRollDegrees(2.5, 0, 0));
-        }
+        Menu.setIsOptionChecked("Show Overlays", physicsEnabled);
 
         renderViewTask.getConfig("LightingModel")["enableAmbientLight"] = physicsEnabled;
         renderViewTask.getConfig("LightingModel")["enableDirectionalLight"] = physicsEnabled;
@@ -260,38 +273,46 @@
         var thisInterval = Date.now();
         var deltaTime = (thisInterval - lastInterval);
         lastInterval = thisInterval;
-        if (physicsEnabled !== previousPhysicsStatus) {
-            if (!physicsEnabled && !timerset) {
-                updateOverlays(physicsEnabled);
-                sample = Audio.playSound(tune, {
-                    localOnly: true,
-                    position: MyAvatar.headPosition,
-                    volume: VOLUME
-                });
-                timeElapsed = 0;
-                timerset = true;
-            }
-            previousPhysicsStatus = physicsEnabled;
+        timeElapsed += deltaTime;
+
+        var nearbyEntitiesReadyCount = Window.getPhysicsNearbyEntitiesReadyCount();
+        var stabilityCount = Window.getPhysicsNearbyEntitiesStabilityCount();
+        var nearbyEntitiesCount = Window.getPhysicsNearbyEntitiesCount();
+
+        var stabilityPercentage = (stabilityCount / STABILITY);
+        if (stabilityPercentage > 1) {
+            stabilityPercentage = 1;
         }
 
-        if (timerset) {
-            timeElapsed += deltaTime;
-            if (timeElapsed >= MAX_ELAPSED_TIME) {
-                updateOverlays(true);
-                sample.stop();
-                sample = null;
-                timerset = false;
-            }
+        var stabilityProgress = (MAX_X_SIZE * 0.75) * stabilityPercentage;
 
+        var entitiesLoadedPercentage = 1;
+        if (nearbyEntitiesCount > 0) {
+            entitiesLoadedPercentage = nearbyEntitiesReadyCount / nearbyEntitiesCount;
         }
+        var entitiesLoadedProgress = (MAX_X_SIZE * 0.25) * entitiesLoadedPercentage;
+        var progress = stabilityProgress + entitiesLoadedProgress;
+        if (progress >= target) {
+            target = progress;
+        }
+        currentProgress = lerp(currentProgress, target, 0.2);
+        var properties = {
+            localPosition: { x: -(currentProgress / 2) + 2, y: DESTINATION_CARD_Y_OFFSET - 0.99, z: 5.45 },
+            dimensions: {
+                x: currentProgress,
+                y: 2.8
+            }
+        };
 
-        Overlays.editOverlay(loadingSphereID, {
-            position: Vec3.sum(Vec3.sum(MyAvatar.position, {x: 0.0, y: -1.7, z: 0.0}), Vec3.multiplyQbyV(MyAvatar.orientation, {x: 0, y: 0.95, z: 0}))
-        });
-        Script.setTimeout(update, BASIC_TIMER_INTERVAL_MS);
+        Overlays.editOverlay(loadingBarProgress, properties);
+        if (physicsEnabled && (currentProgress >= (MAX_X_SIZE - EPSILON))) {
+            updateOverlays(physicsEnabled);
+            timer = null;
+            return;
+        }
+        timer = Script.setTimeout(update, BASIC_TIMER_INTERVAL_MS);
     }
 
-    Script.setTimeout(update, BASIC_TIMER_INTERVAL_MS);
     Overlays.mouseReleaseOnOverlay.connect(clickedOnOverlay);
     Window.domainChanged.connect(domainChanged);
 

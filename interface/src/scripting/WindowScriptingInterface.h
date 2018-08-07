@@ -746,6 +746,9 @@ signals:
      */
     void geometryChanged(QRect geometry);
 
+
+    void interstitialStatusChanged(bool intersititalMode);
+
 private:
     QString getPreviousBrowseLocation() const;
     void setPreviousBrowseLocation(const QString& location);

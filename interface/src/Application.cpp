@@ -3458,6 +3458,7 @@ bool Application::isInterstitialMode() const {
 
 void Application::setIsInterstitialMode(bool interstitialMode) {
     if (_interstitialMode != interstitialMode) {
+        qDebug() << "-------> interstitial mode changed: " << _interstitialMode << " ------------> ";
         _interstitialMode = interstitialMode;
         emit interstitialModeChanged(_interstitialMode);
     }
