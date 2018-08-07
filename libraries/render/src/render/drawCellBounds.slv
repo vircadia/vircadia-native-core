@@ -24,7 +24,6 @@ layout(location=GPU_UNIFORM_EXTRA0) uniform ivec4 inCellLocation;
 
 layout(location=0) out vec4 varColor;
 
-
 void main(void) {
     const vec4 UNIT_BOX[8] = vec4[8](
         vec4(0.0, 0.0, 0.0, 1.0),
