@@ -2336,15 +2336,17 @@ void MyAvatar::updateOrientation(float deltaTime) {
     }
 }
 
-static float scaleSpeedByDirection(glm::vec2 velocityDirection, float forwardSpeed, float backwardSpeed) {
-    // for the elipse function -->  (x^2)*(1/backwardSpeed*backwardSpeed) + y^2/(forwardSpeed*forwardSpeed) = 1,  scale == y^2 when x is 0 
+static float scaleSpeedByDirection(const glm::vec2 velocityDirection, const float forwardSpeed, const float backwardSpeed) {
+    // for the elipse function -->  (x^2)/(backwardSpeed*backwardSpeed) + y^2/(forwardSpeed*forwardSpeed) = 1,  scale == y^2 when x is 0
     float fwdScale = forwardSpeed * forwardSpeed;
-    float backScale = 1.0f / (backwardSpeed * backwardSpeed);
+    float backScale = backwardSpeed * backwardSpeed;
     float scaledX = velocityDirection.x * backwardSpeed;
-    float scaledSpeed = backwardSpeed;
+    float scaledSpeed = forwardSpeed;
     if (velocityDirection.y < 0.0f) {
-        float yValue = sqrtf(fwdScale * (1.0f - (scaledX * scaledX * backScale)));
-        scaledSpeed = sqrtf((scaledX * scaledX) + (yValue * yValue));
+        if (backScale > 0.0f) {
+            float yValue = sqrtf(fwdScale * (1.0f - ((scaledX * scaledX) / backScale)));
+            scaledSpeed = sqrtf((scaledX * scaledX) + (yValue * yValue));
+        }
     } else {
         scaledSpeed = backwardSpeed;
     }
@@ -2414,6 +2416,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         // we're interacting with a floor --> simple horizontal speed and exponential decay
         const glm::vec2 currentVel = { direction.x, direction.z };
         float scaledSpeed = scaleSpeedByDirection(currentVel, _walkSpeed.get(), _walkBackwardSpeed.get());
+        // _walkSpeedScalar is a multiplier if we are in sprint mode, otherwise 1.0
         _actionMotorVelocity = getSensorToWorldScale() * (scaledSpeed * _walkSpeedScalar)  * direction;
     }
 
@@ -3444,8 +3447,8 @@ void MyAvatar::setWalkBackwardSpeed(float value) {
 }
 
 
-void MyAvatar::setSprintSpeed(float speed) {
-    _sprintSpeed.set(speed);
+void MyAvatar::setSprintSpeed(float value) {
+    _sprintSpeed.set(value);
 }
 
 float MyAvatar::getSprintSpeed() const {

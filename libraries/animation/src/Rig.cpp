@@ -641,10 +641,6 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         float lateralSpeed = glm::dot(localVel, IDENTITY_RIGHT);
         float turningSpeed = glm::orientedAngle(forward, _lastForward, IDENTITY_UP) / deltaTime;
 
-        glm::vec3 lastVel = glm::inverse(worldRotation) * _lastVelocity;
-        float lastForwardSpeed = glm::dot(lastVel, IDENTITY_FORWARD);
-        float lastLateralSpeed = glm::dot(lastVel, IDENTITY_RIGHT);
-
         // filter speeds using a simple moving average.
         _averageForwardSpeed.updateAverage(forwardSpeed);
         _averageLateralSpeed.updateAverage(lateralSpeed);
@@ -729,16 +725,11 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
         _desiredStateAge += deltaTime;
 
-        bool resetVelocityAverage = false;
-
         if (_state == RigRole::Move) {
             glm::vec3 horizontalVel = localVel - glm::vec3(0.0f, localVel.y, 0.0f);
             if (glm::length(horizontalVel) > MOVE_ENTER_SPEED_THRESHOLD) {
                 if (fabsf(forwardSpeed) > 0.5f * fabsf(lateralSpeed)) {
                     if (forwardSpeed > 0.0f) {
-                        if (lastForwardSpeed < 0.0f) {
-                            resetVelocityAverage = true;
-                        }
                         // forward
                         _animVars.set("isMovingForward", true);
                         _animVars.set("isMovingBackward", false);
@@ -749,9 +740,6 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                         _animVars.set("isNotMoving", false);
 
                     } else {
-                        if (lastForwardSpeed > 0.0f) {
-                            resetVelocityAverage = true;
-                        }
                         // backward
                         _animVars.set("isMovingBackward", true);
                         _animVars.set("isMovingForward", false);
@@ -763,9 +751,6 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                     }
                 } else {
                     if (lateralSpeed > 0.0f) {
-                        if (lastLateralSpeed < 0.0f) {
-                            resetVelocityAverage = true;
-                        }
                         // right
                         if (!_headEnabled) {
                             _animVars.set("isMovingRight", true);
@@ -782,9 +767,6 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                         _animVars.set("isMovingBackward", false);
                         _animVars.set("isNotMoving", false);
                     } else {
-                        if (lastLateralSpeed > 0.0f) {
-                            resetVelocityAverage = true;
-                        }
                         // left
                         if (!_headEnabled) {
                             _animVars.set("isMovingRight", false);
@@ -803,8 +785,8 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                     }
                 }
             }
-            _animVars.set("isTurningLeft", false);
             _animVars.set("isTurningRight", false);
+            _animVars.set("isTurningLeft", false);
             _animVars.set("isNotTurning", true);
             _animVars.set("isFlying", false);
             _animVars.set("isNotFlying", true);
@@ -823,8 +805,8 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                 _animVars.set("isNotTurning", false);
             } else {
                 // turning left
-                _animVars.set("isTurningLeft", true);
                 _animVars.set("isTurningRight", false);
+                _animVars.set("isTurningLeft", true);
                 _animVars.set("isNotTurning", false);
             }
             _animVars.set("isMovingForward", false);
@@ -852,8 +834,8 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isMovingRightHmd", false);
             _animVars.set("isMovingLeftHmd", false);
             _animVars.set("isNotMoving", true);
-            _animVars.set("isTurningLeft", false);
             _animVars.set("isTurningRight", false);
+            _animVars.set("isTurningLeft", false);
             _animVars.set("isNotTurning", true);
             _animVars.set("isFlying", false);
             _animVars.set("isNotFlying", true);
@@ -873,8 +855,8 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isMovingRightHmd", false);
             _animVars.set("isMovingLeftHmd", false);
             _animVars.set("isNotMoving", true);
-            _animVars.set("isTurningLeft", false);
             _animVars.set("isTurningRight", false);
+            _animVars.set("isTurningLeft", false);
             _animVars.set("isNotTurning", true);
             _animVars.set("isFlying", true);
             _animVars.set("isNotFlying", false);
@@ -889,13 +871,13 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             // jumping in-air
             _animVars.set("isMovingForward", false);
             _animVars.set("isMovingBackward", false);
-            _animVars.set("isMovingLeft", false);
             _animVars.set("isMovingRight", false);
+            _animVars.set("isMovingLeft", false);
             _animVars.set("isMovingRightHmd", false);
             _animVars.set("isMovingLeftHmd", false);
             _animVars.set("isNotMoving", true);
-            _animVars.set("isTurningLeft", false);
             _animVars.set("isTurningRight", false);
+            _animVars.set("isTurningLeft", false);
             _animVars.set("isNotTurning", true);
             _animVars.set("isFlying", false);
             _animVars.set("isNotFlying", true);
@@ -918,13 +900,13 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             // jumping in-air
             _animVars.set("isMovingForward", false);
             _animVars.set("isMovingBackward", false);
-            _animVars.set("isMovingLeft", false);
             _animVars.set("isMovingRight", false);
+            _animVars.set("isMovingLeft", false);
             _animVars.set("isMovingRightHmd", false);
             _animVars.set("isMovingLeftHmd", false);
             _animVars.set("isNotMoving", true);
-            _animVars.set("isTurningLeft", false);
             _animVars.set("isTurningRight", false);
+            _animVars.set("isTurningLeft", false);
             _animVars.set("isNotTurning", true);
             _animVars.set("isFlying", false);
             _animVars.set("isNotFlying", true);

@@ -1080,7 +1080,7 @@ public:
     float getWalkSpeed() const;
     void setWalkBackwardSpeed(float value);
     float getWalkBackwardSpeed() const;
-    void setSprintSpeed(float speed);
+    void setSprintSpeed(float value);
     float getSprintSpeed() const;
 
     QVector<QString> getScriptUrls();
@@ -1739,7 +1739,7 @@ private:
 
     // max unscaled forward movement speed
     ThreadSafeValueCache<float> _walkSpeed { DEFAULT_AVATAR_MAX_WALKING_SPEED };
-    ThreadSafeValueCache<float> _walkBackwardSpeed{ 0.5 * DEFAULT_AVATAR_MAX_WALKING_SPEED };
+    ThreadSafeValueCache<float> _walkBackwardSpeed{ DEFAULT_AVATAR_MAX_WALKING_SPEED };
     ThreadSafeValueCache<float> _sprintSpeed { AVATAR_SPRINT_SPEED_SCALAR };
     float _walkSpeedScalar { AVATAR_WALK_SPEED_SCALAR };
 

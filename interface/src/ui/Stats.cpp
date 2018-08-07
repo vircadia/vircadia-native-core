@@ -191,13 +191,11 @@ void Stats::updateStats(bool force) {
 
     // Third column, avatar stats
     auto myAvatar = avatarManager->getMyAvatar();
-    auto rigCopy = myAvatar->getSkeletonModel();
-    auto animStack = rigCopy->getRig().getAnimStack();
+    auto animStack = myAvatar->getSkeletonModel()->getRig().getAnimStack();
 
-    //check to see if the anim stack has changed
     _animStackNames.clear();
     for (auto animStackIterator = animStack.begin(); animStackIterator != animStack.end(); ++animStackIterator) {
-        _animStackNames << animStackIterator->first + ":       " +  QString::number(animStackIterator->second,'f',3);
+        _animStackNames << animStackIterator->first + ":   " +  QString::number(animStackIterator->second,'f',3);
     }
     emit animStackNamesChanged();
 

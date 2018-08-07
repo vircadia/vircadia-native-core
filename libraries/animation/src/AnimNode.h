@@ -127,7 +127,7 @@ protected:
     std::weak_ptr<AnimNode> _parent;
     std::vector<QString> _outputJointNames;
 
-    //global available to Stats.h
+    // global available to Stats.h
     static std::map<QString, float> _animStack;
 
     // no copies

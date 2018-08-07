@@ -33,6 +33,7 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, co
         bool foundState = false;
         for (auto& state : _states) {
             if (state->getID() == desiredStateID) {
+                // parenthesis means previous state, which is a snapshot.
                 _previousStateID = "(" + _currentState->getID() + ")";
                 switchState(animVars, context, state);
                 foundState = true;
@@ -47,7 +48,7 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, co
     // evaluate currentState transitions
     auto desiredState = evaluateTransitions(animVars);
     if (desiredState != _currentState) {
-        //parenthesis means snapshot of this state.
+        // parenthesis means previous state, which is a snapshot.
         _previousStateID = "(" + _currentState->getID() + ")";
         switchState(animVars, context, desiredState);
     }
