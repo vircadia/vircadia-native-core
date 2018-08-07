@@ -38,6 +38,8 @@ public:
     QString getSelectedBranch();
 
 private slots:
+    void on_tabWidget_currentChanged(int index);
+
     void on_evaluateTestsButton_clicked();
     void on_createRecursiveScriptButton_clicked();
     void on_createAllRecursiveScriptsButton_clicked();

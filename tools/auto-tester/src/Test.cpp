@@ -27,8 +27,8 @@ Test::Test() {
     _mismatchWindow.setModal(true);
 
     if (autoTester) {
-        autoTester->setUserText("highfidelity");
-        autoTester->setBranchText("master");
+        autoTester->setUserText(GIT_HUB_DEFAULT_USER);
+        autoTester->setBranchText(GIT_HUB_DEFAULT_BRANCH);
     }
 }
 

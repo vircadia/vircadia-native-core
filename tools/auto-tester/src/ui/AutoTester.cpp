@@ -17,8 +17,10 @@
 
 AutoTester::AutoTester(QWidget *parent) : QMainWindow(parent) {
     _ui.setupUi(this);
+
     _ui.checkBoxInteractiveMode->setChecked(true);
     _ui.progressBar->setVisible(false);
+    _ui.tabWidget->setCurrentIndex(0);
 
     _signalMapper = new QSignalMapper();
 
@@ -26,8 +28,7 @@ AutoTester::AutoTester(QWidget *parent) : QMainWindow(parent) {
     connect(_ui.actionAbout, &QAction::triggered, this, &AutoTester::about);
 
 #ifndef Q_OS_WIN
-    _ui.hideTaskbarButton->setVisible(false);
-    _ui.showTaskbarButton->setVisible(false);
+    _ui.tabWidget->setTabEnabled(3, false);
 #endif
 }
 
@@ -38,6 +39,16 @@ void AutoTester::setup() {
 void AutoTester::runFromCommandLine(const QString& testFolder, const QString& branch, const QString& user) {
     _isRunningFromCommandline = true;
     _test->startTestsEvaluation(testFolder, branch, user);
+}
+
+void AutoTester::on_tabWidget_currentChanged(int index) {
+    if (index == 1 || index == 2) {
+        _ui.userTextEdit->setDisabled(false);
+        _ui.branchTextEdit->setDisabled(false);
+    } else {
+        _ui.userTextEdit->setDisabled(true);
+        _ui.branchTextEdit->setDisabled(true);
+    }
 }
 
 void AutoTester::on_evaluateTestsButton_clicked() {
