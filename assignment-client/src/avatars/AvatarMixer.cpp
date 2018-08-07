@@ -904,7 +904,7 @@ AvatarMixerClientData* AvatarMixer::getOrCreateClientData(SharedNodePointer node
     auto clientData = dynamic_cast<AvatarMixerClientData*>(node->getLinkedData());
 
     if (!clientData) {
-        node->setLinkedData(std::unique_ptr<NodeData> { new AvatarMixerClientData(node->getUUID()) });
+        node->setLinkedData(std::unique_ptr<NodeData> { new AvatarMixerClientData(node->getUUID(), node->getLocalID()) });
         clientData = dynamic_cast<AvatarMixerClientData*>(node->getLinkedData());
         auto& avatar = clientData->getAvatar();
         avatar.setDomainMinimumHeight(_domainMinimumHeight);

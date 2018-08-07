@@ -16,7 +16,7 @@
 #include <DependencyManager.h>
 #include <NodeList.h>
 
-AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID) :
+AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID, Node::LocalID nodeLocalID) :
     NodeData(nodeID)
 {
     // in case somebody calls getSessionUUID on the AvatarData instance, make sure it has the right ID
