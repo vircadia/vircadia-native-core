@@ -21,7 +21,6 @@ AnimDefaultPose::~AnimDefaultPose() {
 }
 
 const AnimPoseVec& AnimDefaultPose::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
-
     if (_skeleton) {
         _poses = _skeleton->getRelativeDefaultPoses();
     } else {

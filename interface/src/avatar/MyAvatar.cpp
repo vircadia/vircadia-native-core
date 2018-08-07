@@ -3446,7 +3446,6 @@ void MyAvatar::setWalkBackwardSpeed(float value) {
     _walkBackwardSpeed.set(value);
 }
 
-
 void MyAvatar::setSprintSpeed(float value) {
     _sprintSpeed.set(value);
 }
@@ -3454,8 +3453,6 @@ void MyAvatar::setSprintSpeed(float value) {
 float MyAvatar::getSprintSpeed() const {
     return _sprintSpeed.get();
 }
-
-
 
 QVector<QString> MyAvatar::getScriptUrls() {
     QVector<QString> scripts = _skeletonModel->isLoaded() ? _skeletonModel->getFBXGeometry().scripts : QVector<QString>();
