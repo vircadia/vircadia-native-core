@@ -1671,7 +1671,7 @@ function loaded() {
         elServerScripts.addEventListener('change', createEmitTextPropertyUpdateFunction('serverScripts'));
         elServerScripts.addEventListener('change', function() {
             // invalidate the current status (so that same-same updates can still be observed visually)
-            elServerScriptStatus.innerText = '[' + elServerScriptStatus.innerText + ']';
+            elServerScriptStatus.innerText = "[ Getting status ]";
         });
 
         elClearUserData.addEventListener("click", function() {
@@ -2145,7 +2145,7 @@ function loaded() {
         });
         elReloadServerScriptsButton.addEventListener("click", function() {
             // invalidate the current status (so that same-same updates can still be observed visually)
-            elServerScriptStatus.innerText = '[' + elServerScriptStatus.innerText + ']';
+            elServerScriptStatus.innerText = "[ Getting status ]";
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "action",
                 action: "reloadServerScripts"

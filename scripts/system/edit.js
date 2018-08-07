@@ -2042,6 +2042,7 @@ var PropertiesTool = function (opts) {
     function updateScriptStatus(info) {
         info.type = "server_script_status";
         webView.emitScriptEvent(JSON.stringify(info));
+        createToolsWindow.emitScriptEvent(JSON.stringify(info));
     }
 
     function resetScriptStatus() {
