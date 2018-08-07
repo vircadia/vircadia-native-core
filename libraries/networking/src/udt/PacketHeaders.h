@@ -134,7 +134,7 @@ public:
         EntityClone,
         EntityQueryInitialResultsComplete,
         BulkAvatarTraits,
-        
+
         NUM_PACKET_TYPE
     };
 
@@ -291,6 +291,7 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     FixMannequinDefaultAvatarFeet,
     ProceduralFaceMovementFlagsAndBlendshapes,
     FarGrabJoints
+    MigrateSkeletonURLToTraits
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

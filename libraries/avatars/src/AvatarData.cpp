@@ -42,6 +42,7 @@
 #include <BitVectorHelpers.h>
 
 #include "AvatarLogging.h"
+#include "AvatarTraits.h"
 
 //#define WANT_DEBUG
 
@@ -1756,7 +1757,7 @@ QUrl AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) const {
 }
 
 void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& identityChanged,
-                                       bool& displayNameChanged, bool& skeletonModelUrlChanged) {
+                                       bool& displayNameChanged) {
 
     QDataStream packetStream(identityData);
 
@@ -1777,7 +1778,7 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
     if (incomingSequenceNumber > _identitySequenceNumber) {
         Identity identity;
 
-        packetStream >> identity.skeletonModelURL
+        packetStream
             >> identity.attachmentData
             >> identity.displayName
             >> identity.sessionDisplayName
@@ -1788,16 +1789,6 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
 
         // set the store identity sequence number to match the incoming identity
         _identitySequenceNumber = incomingSequenceNumber;
-
-        if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
-            setSkeletonModelURL(identity.skeletonModelURL);
-            identityChanged = true;
-            skeletonModelUrlChanged = true;
-            if (_firstSkeletonCheck) {
-                displayNameChanged = true;
-            }
-            _firstSkeletonCheck = false;
-        }
 
         if (identity.displayName != _displayName) {
             _displayName = identity.displayName;
@@ -1834,7 +1825,6 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
 #ifdef WANT_DEBUG
         qCDebug(avatars) << __FUNCTION__
             << "identity.uuid:" << identity.uuid
-            << "identity.skeletonModelURL:" << identity.skeletonModelURL
             << "identity.displayName:" << identity.displayName
             << "identity.sessionDisplayName:" << identity.sessionDisplayName;
     } else {
@@ -1846,10 +1836,18 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
     }
 }
 
+void AvatarData::processTrait(AvatarTraits::TraitType traitType, QByteArray traitBinaryData) {
+    if (traitType == AvatarTraits::SkeletonModelURL) {
+        // get the URL from the binary data
+        auto skeletonModelURL = QUrl::fromEncoded(traitBinaryData);
+        qDebug() << "Setting skeleton model URL from trait packet to" << skeletonModelURL;
+        setSkeletonModelURL(skeletonModelURL);
+    }
+}
+
 QByteArray AvatarData::identityByteArray(bool setIsReplicated) const {
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
-    const QUrl& urlToSend = cannonicalSkeletonModelURL(emptyURL); // depends on _skeletonModelURL
 
     // when mixers send identity packets to agents, they simply forward along the last incoming sequence number they received
     // whereas agents send a fresh outgoing sequence number when identity data has changed
@@ -1857,7 +1855,6 @@ QByteArray AvatarData::identityByteArray(bool setIsReplicated) const {
     _avatarEntitiesLock.withReadLock([&] {
         identityStream << getSessionUUID()
             << (udt::SequenceNumber::Type) _identitySequenceNumber
-            << urlToSend
             << _attachmentData
             << _displayName
             << getSessionDisplayNameForTransport() // depends on _sessionDisplayName

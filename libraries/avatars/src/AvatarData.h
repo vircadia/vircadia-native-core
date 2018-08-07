@@ -51,6 +51,7 @@
 #include <udt/SequenceNumber.h>
 
 #include "AABox.h"
+#include "AvatarTraits.h"
 #include "HeadData.h"
 #include "PathUtils.h"
 
@@ -955,8 +956,9 @@ public:
 
     // identityChanged returns true if identity has changed, false otherwise.
     // identityChanged returns true if identity has changed, false otherwise. Similarly for displayNameChanged and skeletonModelUrlChange.
-    void processAvatarIdentity(const QByteArray& identityData, bool& identityChanged,
-                               bool& displayNameChanged, bool& skeletonModelUrlChanged);
+    void processAvatarIdentity(const QByteArray& identityData, bool& identityChanged, bool& displayNameChanged);
+
+    void processTrait(AvatarTraits::TraitType traitType, QByteArray traitBinaryData);
 
     QByteArray identityByteArray(bool setIsReplicated = false) const;
 
@@ -1327,7 +1329,6 @@ protected:
     mutable HeadData* _headData { nullptr };
 
     QUrl _skeletonModelURL;
-    bool _firstSkeletonCheck { true };
     QUrl _skeletonFBXURL;
     QVector<AttachmentData> _attachmentData;
     QVector<AttachmentData> _oldAttachmentData;

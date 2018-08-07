@@ -1705,8 +1705,6 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
     if (previousSkeletonModelURL != _skeletonModelURL) {
         _clientTraitsHandler.markTraitChanged(AvatarTraits::SkeletonModelURL);
-    } else {
-        qDebug() << "Not marking skeleton model URL trait changed since the new value matches the previous";
     }
 }
 

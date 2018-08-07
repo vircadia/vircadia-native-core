@@ -19,9 +19,16 @@
 #include <SharedUtil.h>
 
 #include "AvatarLogging.h"
+#include "AvatarTraits.h"
 
 AvatarHashMap::AvatarHashMap() {
     auto nodeList = DependencyManager::get<NodeList>();
+
+    auto& packetReceiver = nodeList->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
+    packetReceiver.registerListener(PacketType::KillAvatar, this, "processKillAvatar");
+    packetReceiver.registerListener(PacketType::AvatarIdentity, this, "processAvatarIdentityPacket");
+    packetReceiver.registerListener(PacketType::BulkAvatarTraits, this, "processBulkAvatarTraits");
 
     connect(nodeList.data(), &NodeList::uuidChanged, this, &AvatarHashMap::sessionUUIDChanged);
 }
@@ -182,9 +189,74 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
         auto avatar = newOrExistingAvatar(identityUUID, sendingNode, isNewAvatar);
         bool identityChanged = false;
         bool displayNameChanged = false;
-        bool skeletonModelUrlChanged = false;
         // In this case, the "sendingNode" is the Avatar Mixer.
-        avatar->processAvatarIdentity(message->getMessage(), identityChanged, displayNameChanged, skeletonModelUrlChanged);
+        avatar->processAvatarIdentity(message->getMessage(), identityChanged, displayNameChanged);
+    }
+}
+
+bool AvatarHashMap::checkLastProcessedTraitVersion(QUuid avatarID,
+                                                   AvatarTraits::TraitType traitType, AvatarTraits::TraitVersion newVersion) {
+    auto it = _processedSimpleTraitVersions.find(avatarID);
+    if (it == _processedSimpleTraitVersions.end()) {
+        auto pair = _processedSimpleTraitVersions.insert({
+            avatarID,
+            { AvatarTraits::TotalTraitTypes, AvatarTraits::DEFAULT_TRAIT_VERSION }
+        });
+
+        it = pair.first;
+    };
+
+    if (it->second[traitType] < newVersion) {
+        it->second[traitType] = newVersion;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    while (message->getBytesLeftToRead()) {
+        // read the avatar ID to figure out which avatar this is for
+        auto avatarID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+        // grab the avatar so we can ask it to process trait data
+        AvatarSharedPointer avatar;
+
+        QReadLocker locker(&_hashLock);
+        auto it = _avatarHash.find(avatarID);
+        if (it != _avatarHash.end()) {
+            avatar = *it;
+        }
+        locker.unlock();
+
+        // read the first trait type for this avatar
+        AvatarTraits::TraitType traitType;
+        message->readPrimitive(&traitType);
+
+        while (traitType != AvatarTraits::NullTrait) {
+            AvatarTraits::TraitVersion traitVersion;
+            message->readPrimitive(&traitVersion);
+
+            AvatarTraits::TraitWireSize traitBinarySize;
+            message->readPrimitive(&traitBinarySize);
+
+            if (avatar) {
+                // check if this trait version is newer than what we already have for this avatar
+                bool traitIsNewer = checkLastProcessedTraitVersion(avatarID, traitType, traitVersion);
+                if (traitIsNewer) {
+                    avatar->processTrait(traitType, message->readWithoutCopy(traitBinarySize));
+                } else {
+                    message->seek(message->getPosition() + traitBinarySize);
+                }
+            } else {
+                // though we have no avatar pointer, we still hop through the packet in case there are
+                // traits for avatars we do have later in the packet
+                message->seek(message->getPosition() + traitBinarySize);
+            }
+
+            // read the next trait type, which is null if there are no more traits for this avatar
+            message->readPrimitive(&traitType);
+        }
     }
 }
 

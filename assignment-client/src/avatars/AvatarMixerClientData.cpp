@@ -109,17 +109,10 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message) {
         message.readPrimitive(&traitSize);
 
         if (packetTraitVersion > _receivedSimpleTraitVersions[traitType]) {
-            if (traitType == AvatarTraits::SkeletonModelURL) {
-                // get the URL from the binary data
-                auto skeletonModelURL = QUrl::fromEncoded(message.read(traitSize));
-                _avatar->setSkeletonModelURL(skeletonModelURL);
-
-                 qDebug() << "Set skeleton URL to" << skeletonModelURL << "for trait packet version" << packetTraitVersion;
-
-                _receivedSimpleTraitVersions[traitType] = packetTraitVersion;
-
-                anyTraitsChanged = true;
-            }
+            _avatar->processTrait(traitType, message.readWithoutCopy(traitSize));
+            _receivedSimpleTraitVersions[traitType] = packetTraitVersion;
+            
+            anyTraitsChanged = true;
         } else {
             message.seek(message.getPosition() + traitSize);
         }

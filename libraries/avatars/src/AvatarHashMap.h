@@ -30,6 +30,7 @@
 #include "ScriptAvatarData.h"
 
 #include "AvatarData.h"
+#include "AvatarTraits.h"
 
 /**jsdoc
  * <strong>Note:</strong> An <code>AvatarList</code> API is also provided for Interface and client entity scripts: it is a 
@@ -133,6 +134,8 @@ protected slots:
      */
     void processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     
+    void processBulkAvatarTraits(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
+    
     /**jsdoc
      * @function AvatarList.processKillAvatar
      * @param {} message
@@ -153,6 +156,9 @@ protected:
 
     virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason);
 
+    bool checkLastProcessedTraitVersion(QUuid avatarID,
+                                        AvatarTraits::TraitType traitType, AvatarTraits::TraitVersion newVersion);
+
     AvatarHash _avatarHash;
     struct PendingAvatar {
         std::chrono::steady_clock::time_point creationTime;
@@ -163,6 +169,7 @@ protected:
     AvatarPendingHash _pendingAvatars;
     mutable QReadWriteLock _hashLock;
 
+    std::unordered_map<QUuid, AvatarTraits::SimpleTraitVersions> _processedSimpleTraitVersions;
 private:
     QUuid _lastOwnerSessionUUID;
 };
