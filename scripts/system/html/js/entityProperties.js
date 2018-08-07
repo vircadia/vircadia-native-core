@@ -980,7 +980,7 @@ function loaded() {
                         elCollideOtherAvatar.checked = false;
 
                         elGrabbable.checked = false;
-                        elWantsTrigger.checked = false;
+                        elTriggerable.checked = false;
                         elIgnoreIK.checked = false;
 
                         elCloneable.checked = false;
