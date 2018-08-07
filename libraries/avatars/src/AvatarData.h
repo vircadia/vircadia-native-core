@@ -138,6 +138,7 @@ namespace AvatarDataPacket {
     const HasFlags PACKET_HAS_FACE_TRACKER_INFO        = 1U << 10;
     const HasFlags PACKET_HAS_JOINT_DATA               = 1U << 11;
     const HasFlags PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS = 1U << 12;
+    const HasFlags PACKET_HAS_GRAB_JOINTS              = 1U << 13;
     const size_t AVATAR_HAS_FLAGS_SIZE = 2;
 
     using SixByteQuat = uint8_t[6];
@@ -273,7 +274,7 @@ namespace AvatarDataPacket {
         SixByteTrans rightHandControllerTranslation;
     };
     */
-    size_t maxJointDataSize(size_t numJoints);
+    size_t maxJointDataSize(size_t numJoints, bool hasGrabJoints);
 
     /*
     struct JointDefaultPoseFlags {
@@ -283,6 +284,17 @@ namespace AvatarDataPacket {
     };
     */
     size_t maxJointDefaultPoseFlagsSize(size_t numJoints);
+
+    PACKED_BEGIN struct FarGrabJoints {
+        float leftFarGrabPosition[3]; // left controller far-grab joint position
+        float leftFarGrabRotation[4]; // left controller far-grab joint rotation
+        float rightFarGrabPosition[3]; // right controller far-grab joint position
+        float rightFarGrabRotation[4]; // right controller far-grab joint rotation
+        float mouseFarGrabPosition[3]; // mouse far-grab joint position
+        float mouseFarGrabRotation[4]; // mouse far-grab joint rotation
+    } PACKED_END;
+    const size_t FAR_GRAB_JOINTS_SIZE = 84;
+    static_assert(sizeof(FarGrabJoints) == FAR_GRAB_JOINTS_SIZE, "AvatarDataPacket::FarGrabJoints size doesn't match.");
 }
 
 const float MAX_AUDIO_LOUDNESS = 1000.0f; // close enough for mouth animation
@@ -347,6 +359,7 @@ public:
     RateCounter<> faceTrackerRate;
     RateCounter<> jointDataRate;
     RateCounter<> jointDefaultPoseFlagsRate;
+    RateCounter<> farGrabJointRate;
 };
 
 class AvatarPriority {
@@ -1370,6 +1383,7 @@ protected:
     RateCounter<> _faceTrackerRate;
     RateCounter<> _jointDataRate;
     RateCounter<> _jointDefaultPoseFlagsRate;
+    RateCounter<> _farGrabJointRate;
 
     // Some rate data for incoming data updates
     RateCounter<> _parseBufferUpdateRate;
@@ -1386,6 +1400,7 @@ protected:
     RateCounter<> _faceTrackerUpdateRate;
     RateCounter<> _jointDataUpdateRate;
     RateCounter<> _jointDefaultPoseFlagsUpdateRate;
+    RateCounter<> _farGrabJointUpdateRate;
 
     // Some rate data for outgoing data
     AvatarDataRate _outboundDataRate;
@@ -1403,6 +1418,10 @@ protected:
     ThreadSafeValueCache<glm::mat4> _sensorToWorldMatrixCache { glm::mat4() };
     ThreadSafeValueCache<glm::mat4> _controllerLeftHandMatrixCache { glm::mat4() };
     ThreadSafeValueCache<glm::mat4> _controllerRightHandMatrixCache { glm::mat4() };
+
+    ThreadSafeValueCache<glm::mat4> _farGrabRightMatrixCache { glm::mat4() };
+    ThreadSafeValueCache<glm::mat4> _farGrabLeftMatrixCache { glm::mat4() };
+    ThreadSafeValueCache<glm::mat4> _farGrabMouseMatrixCache { glm::mat4() };
 
     int getFauxJointIndex(const QString& name) const;
 
@@ -1561,5 +1580,11 @@ const int CONTROLLER_LEFTHAND_INDEX = 65532; // -4
 const int CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX = 65531; // -5
 const int CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX = 65530; // -6
 const int CAMERA_MATRIX_INDEX = 65529; // -7
+const int FARGRAB_RIGHTHAND_INDEX = 65528; // -8
+const int FARGRAB_LEFTHAND_INDEX = 65527; // -9
+const int FARGRAB_MOUSE_INDEX = 65526; // -10
+
+const int LOWEST_PSEUDO_JOINT_INDEX = 65526;
+
 
 #endif // hifi_AvatarData_h

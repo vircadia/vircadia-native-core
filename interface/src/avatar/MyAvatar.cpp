@@ -1499,50 +1499,126 @@ void MyAvatar::setJointRotations(const QVector<glm::quat>& jointRotations) {
 }
 
 void MyAvatar::setJointData(int index, const glm::quat& rotation, const glm::vec3& translation) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setJointData", Q_ARG(int, index), Q_ARG(const glm::quat&, rotation),
-            Q_ARG(const glm::vec3&, translation));
-        return;
+    switch (index) {
+        case FARGRAB_RIGHTHAND_INDEX: {
+            _farGrabRightMatrixCache.set(createMatFromQuatAndPos(rotation, translation));
+            break;
+        }
+        case FARGRAB_LEFTHAND_INDEX: {
+            _farGrabLeftMatrixCache.set(createMatFromQuatAndPos(rotation, translation));
+            break;
+        }
+        case FARGRAB_MOUSE_INDEX: {
+            _farGrabMouseMatrixCache.set(createMatFromQuatAndPos(rotation, translation));
+            break;
+        }
+        default: {
+            if (QThread::currentThread() != thread()) {
+                QMetaObject::invokeMethod(this, "setJointData", Q_ARG(int, index), Q_ARG(const glm::quat&, rotation),
+                                          Q_ARG(const glm::vec3&, translation));
+                return;
+            }
+            // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
+            _skeletonModel->getRig().setJointState(index, true, rotation, translation, SCRIPT_PRIORITY);
+        }
     }
-    // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
-    _skeletonModel->getRig().setJointState(index, true, rotation, translation, SCRIPT_PRIORITY);
 }
 
 void MyAvatar::setJointRotation(int index, const glm::quat& rotation) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setJointRotation", Q_ARG(int, index), Q_ARG(const glm::quat&, rotation));
-        return;
+    switch (index) {
+        case FARGRAB_RIGHTHAND_INDEX: {
+            glm::mat4 prevMat = _farGrabRightMatrixCache.get();
+            glm::vec3 previousTranslation = extractTranslation(prevMat);
+            _farGrabRightMatrixCache.set(createMatFromQuatAndPos(rotation, previousTranslation));
+            break;
+        }
+        case FARGRAB_LEFTHAND_INDEX: {
+            glm::mat4 prevMat = _farGrabLeftMatrixCache.get();
+            glm::vec3 previousTranslation = extractTranslation(prevMat);
+            _farGrabLeftMatrixCache.set(createMatFromQuatAndPos(rotation, previousTranslation));
+            break;
+        }
+        case FARGRAB_MOUSE_INDEX: {
+            glm::mat4 prevMat = _farGrabMouseMatrixCache.get();
+            glm::vec3 previousTranslation = extractTranslation(prevMat);
+            _farGrabMouseMatrixCache.set(createMatFromQuatAndPos(rotation, previousTranslation));
+            break;
+        }
+        default: {
+            if (QThread::currentThread() != thread()) {
+                QMetaObject::invokeMethod(this, "setJointRotation", Q_ARG(int, index), Q_ARG(const glm::quat&, rotation));
+                return;
+            }
+            // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
+            _skeletonModel->getRig().setJointRotation(index, true, rotation, SCRIPT_PRIORITY);
+        }
     }
-    // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
-    _skeletonModel->getRig().setJointRotation(index, true, rotation, SCRIPT_PRIORITY);
 }
 
 void MyAvatar::setJointTranslation(int index, const glm::vec3& translation) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setJointTranslation", Q_ARG(int, index), Q_ARG(const glm::vec3&, translation));
-        return;
+    switch (index) {
+        case FARGRAB_RIGHTHAND_INDEX: {
+            glm::mat4 prevMat = _farGrabRightMatrixCache.get();
+            glm::quat previousRotation = extractRotation(prevMat);
+            _farGrabRightMatrixCache.set(createMatFromQuatAndPos(previousRotation, translation));
+            break;
+        }
+        case FARGRAB_LEFTHAND_INDEX: {
+            glm::mat4 prevMat = _farGrabLeftMatrixCache.get();
+            glm::quat previousRotation = extractRotation(prevMat);
+            _farGrabLeftMatrixCache.set(createMatFromQuatAndPos(previousRotation, translation));
+            break;
+        }
+        case FARGRAB_MOUSE_INDEX: {
+            glm::mat4 prevMat = _farGrabMouseMatrixCache.get();
+            glm::quat previousRotation = extractRotation(prevMat);
+            _farGrabMouseMatrixCache.set(createMatFromQuatAndPos(previousRotation, translation));
+            break;
+        }
+        default: {
+            if (QThread::currentThread() != thread()) {
+                QMetaObject::invokeMethod(this, "setJointTranslation",
+                                          Q_ARG(int, index), Q_ARG(const glm::vec3&, translation));
+                return;
+            }
+            // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
+            _skeletonModel->getRig().setJointTranslation(index, true, translation, SCRIPT_PRIORITY);
+        }
     }
-    // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
-    _skeletonModel->getRig().setJointTranslation(index, true, translation, SCRIPT_PRIORITY);
 }
 
 void MyAvatar::clearJointData(int index) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "clearJointData", Q_ARG(int, index));
-        return;
+    switch (index) {
+        case FARGRAB_RIGHTHAND_INDEX: {
+            _farGrabRightMatrixCache.invalidate();
+            break;
+        }
+        case FARGRAB_LEFTHAND_INDEX: {
+            _farGrabLeftMatrixCache.invalidate();
+            break;
+        }
+        case FARGRAB_MOUSE_INDEX: {
+            _farGrabMouseMatrixCache.invalidate();
+            break;
+        }
+        default: {
+            if (QThread::currentThread() != thread()) {
+                QMetaObject::invokeMethod(this, "clearJointData", Q_ARG(int, index));
+                return;
+            }
+            _skeletonModel->getRig().clearJointAnimationPriority(index);
+        }
     }
-    _skeletonModel->getRig().clearJointAnimationPriority(index);
 }
 
 void MyAvatar::setJointData(const QString& name, const glm::quat& rotation, const glm::vec3& translation) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "setJointData", Q_ARG(QString, name), Q_ARG(const glm::quat&, rotation),
-            Q_ARG(const glm::vec3&, translation));
+                                  Q_ARG(const glm::vec3&, translation));
         return;
     }
     writeLockWithNamedJointIndex(name, [&](int index) {
-        // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
-        _skeletonModel->getRig().setJointState(index, true, rotation, translation, SCRIPT_PRIORITY);
+        setJointData(index, rotation, translation);
     });
 }
 
@@ -1552,8 +1628,7 @@ void MyAvatar::setJointRotation(const QString& name, const glm::quat& rotation) 
         return;
     }
     writeLockWithNamedJointIndex(name, [&](int index) {
-        // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
-        _skeletonModel->getRig().setJointRotation(index, true, rotation, SCRIPT_PRIORITY);
+        setJointRotation(index, rotation);
     });
 }
 
@@ -1563,8 +1638,7 @@ void MyAvatar::setJointTranslation(const QString& name, const glm::vec3& transla
         return;
     }
     writeLockWithNamedJointIndex(name, [&](int index) {
-        // HACK: ATM only JS scripts call setJointData() on MyAvatar so we hardcode the priority
-        _skeletonModel->getRig().setJointTranslation(index, true, translation, SCRIPT_PRIORITY);
+        setJointTranslation(index, translation);
     });
 }
 
@@ -1574,7 +1648,7 @@ void MyAvatar::clearJointData(const QString& name) {
         return;
     }
     writeLockWithNamedJointIndex(name, [&](int index) {
-        _skeletonModel->getRig().clearJointAnimationPriority(index);
+        clearJointData(index);
     });
 }
 
@@ -1583,6 +1657,9 @@ void MyAvatar::clearJointsData() {
         QMetaObject::invokeMethod(this, "clearJointsData");
         return;
     }
+    _farGrabRightMatrixCache.invalidate();
+    _farGrabLeftMatrixCache.invalidate();
+    _farGrabMouseMatrixCache.invalidate();
     _skeletonModel->getRig().clearJointStates();
 }
 

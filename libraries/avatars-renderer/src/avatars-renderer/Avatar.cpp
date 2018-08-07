@@ -1184,6 +1184,15 @@ glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
             }
             return Quaternions::Y_180 * rotation * Quaternions::Y_180;
         }
+        case FARGRAB_RIGHTHAND_INDEX: {
+            return extractRotation(_farGrabRightMatrixCache.get());
+        }
+        case FARGRAB_LEFTHAND_INDEX: {
+            return extractRotation(_farGrabLeftMatrixCache.get());
+        }
+        case FARGRAB_MOUSE_INDEX: {
+            return extractRotation(_farGrabMouseMatrixCache.get());
+        }
         default: {
             glm::quat rotation;
             _skeletonModel->getAbsoluteJointRotationInRigFrame(index, rotation);
@@ -1223,6 +1232,15 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
                 }
             }
             return Quaternions::Y_180 * translation * Quaternions::Y_180;
+        }
+        case FARGRAB_RIGHTHAND_INDEX: {
+            return extractTranslation(_farGrabRightMatrixCache.get());
+        }
+        case FARGRAB_LEFTHAND_INDEX: {
+            return extractTranslation(_farGrabLeftMatrixCache.get());
+        }
+        case FARGRAB_MOUSE_INDEX: {
+            return extractTranslation(_farGrabMouseMatrixCache.get());
         }
         default: {
             glm::vec3 translation;
