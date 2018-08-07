@@ -211,7 +211,14 @@ ShapeKey ShapeEntityRenderer::getShapeKey() {
 
         return builder.build();
     } else {
-        return Parent::getShapeKey();
+        ShapeKey::Builder builder;
+        if (_procedural.isReady()) {
+            builder.withOwnPipeline();
+        }
+        if (isTransparent()) {
+            builder.withTranslucent();
+        }
+        return builder.build();
     }
 }
 
