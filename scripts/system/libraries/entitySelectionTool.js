@@ -28,6 +28,17 @@ Script.include([
 SelectionManager = (function() {
     var that = {};
 
+    /**
+     * @description Removes known to be broken properties from a properties object
+     * @param properties
+     * @return properties
+     */
+    var fixRemoveBrokenProperties = function (properties) {
+        // Reason: Entity property is always set to 0,0,0 which causes it to override angularVelocity (see MS17131)
+        delete properties.localAngularVelocity;
+        return properties;
+    }
+
     // FUNCTION: SUBSCRIBE TO UPDATE MESSAGES
     function subscribeToUpdateMessages() {
         Messages.subscribe("entityToolUpdates");
@@ -118,7 +129,7 @@ SelectionManager = (function() {
         that.savedProperties = {};
         for (var i = 0; i < that.selections.length; i++) {
             var entityID = that.selections[i];
-            that.savedProperties[entityID] = Entities.getEntityProperties(entityID);
+            that.savedProperties[entityID] = fixRemoveBrokenProperties(Entities.getEntityProperties(entityID));
         }
     };
 
@@ -246,7 +257,7 @@ SelectionManager = (function() {
             var originalEntityID = entitiesToDuplicate[i];
             var properties = that.savedProperties[originalEntityID];
             if (properties === undefined) {
-                properties = Entities.getEntityProperties(originalEntityID);
+                properties = fixRemoveBrokenProperties(Entities.getEntityProperties(originalEntityID));
             }
             if (!properties.locked && (!properties.clientOnly || properties.owningAvatarID === MyAvatar.sessionUUID)) {
                 if (nonDynamicEntityIsBeingGrabbedByAvatar(properties)) {
