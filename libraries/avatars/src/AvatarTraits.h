@@ -13,15 +13,25 @@
 #define hifi_AvatarTraits_h
 
 #include <cstdint>
+#include <set>
+#include <vector>
 
 namespace AvatarTraits {
-    enum Trait : uint8_t {
+    enum TraitType : int8_t {
+        NullTrait = -1,
         SkeletonModelURL,
-        TotalTraits
+        TotalTraitTypes
     };
+
+    using TraitTypeSet = std::set<TraitType>;
+    const TraitTypeSet SimpleTraitTypes = { SkeletonModelURL };
 
     using TraitVersion = uint32_t;
     const TraitVersion DEFAULT_TRAIT_VERSION = 0;
+
+    using TraitWireSize = uint16_t;
+
+    using SimpleTraitVersions = std::vector<TraitVersion>;
 }
 
 #endif // hifi_AvatarTraits_h

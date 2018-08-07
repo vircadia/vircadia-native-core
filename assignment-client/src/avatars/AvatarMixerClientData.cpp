@@ -17,7 +17,8 @@
 #include <NodeList.h>
 
 AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID, Node::LocalID nodeLocalID) :
-    NodeData(nodeID)
+    NodeData(nodeID),
+	_receivedSimpleTraitVersions(AvatarTraits::SimpleTraitTypes.size())
 {
     // in case somebody calls getSessionUUID on the AvatarData instance, make sure it has the right ID
     _avatar->setID(nodeID);
@@ -92,7 +93,41 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message) {
 }
 
 void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message) {
-    qDebug() << "Pulling a traits message of" << message.getSize();
+    // pull the trait version from the message
+    AvatarTraits::TraitVersion packetTraitVersion;
+    message.readPrimitive(&packetTraitVersion);
+
+    bool anyTraitsChanged = false;
+
+    while (message.getBytesLeftToRead() > 0) {
+        // for each trait in the packet, apply it if the trait version is newer than what we have
+
+        AvatarTraits::TraitType traitType;
+        message.readPrimitive(&traitType);
+
+        AvatarTraits::TraitWireSize traitSize;
+        message.readPrimitive(&traitSize);
+
+        if (packetTraitVersion > _receivedSimpleTraitVersions[traitType]) {
+            if (traitType == AvatarTraits::SkeletonModelURL) {
+                // get the URL from the binary data
+                auto skeletonModelURL = QUrl::fromEncoded(message.read(traitSize));
+                _avatar->setSkeletonModelURL(skeletonModelURL);
+
+                 qDebug() << "Set skeleton URL to" << skeletonModelURL << "for trait packet version" << packetTraitVersion;
+
+                _receivedSimpleTraitVersions[traitType] = packetTraitVersion;
+
+                anyTraitsChanged = true;
+            }
+        } else {
+            message.seek(message.getPosition() + traitSize);
+        }
+    }
+
+    if (anyTraitsChanged) {
+        _lastReceivedTraitsChange = std::chrono::steady_clock::now();
+    }
 }
 
 uint64_t AvatarMixerClientData::getLastBroadcastTime(const QUuid& nodeUUID) const {
@@ -171,4 +206,40 @@ void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
     jsonObject["av_data_receive_rate"] = _avatar->getReceiveRate();
     jsonObject["recent_other_av_in_view"] = _recentOtherAvatarsInView;
     jsonObject["recent_other_av_out_of_view"] = _recentOtherAvatarsOutOfView;
+}
+
+AvatarMixerClientData::TraitsCheckTimestamp AvatarMixerClientData::getLastOtherAvatarTraitsSendPoint(Node::LocalID otherAvatar) const {
+    auto it = _lastSentTraitsTimestamps.find(otherAvatar);
+
+    if (it != _lastSentTraitsTimestamps.end()) {
+        return it->second;
+    } else {
+        return TraitsCheckTimestamp();
+    }
+}
+
+AvatarTraits::TraitVersion AvatarMixerClientData::getLastSentSimpleTraitVersion(Node::LocalID otherAvatar,
+                                                                                AvatarTraits::TraitType traitType) const {
+    auto it = _sentSimpleTraitVersions.find(otherAvatar);
+
+    if (it != _sentSimpleTraitVersions.end()) {
+        return it->second[traitType];
+    }
+
+    return AvatarTraits::DEFAULT_TRAIT_VERSION;
+}
+
+void AvatarMixerClientData::setLastSentSimpleTraitVersion(Node::LocalID otherAvatar, AvatarTraits::TraitType traitType, AvatarTraits::TraitVersion traitVersion) {
+
+    auto it = _sentSimpleTraitVersions.find(otherAvatar);
+
+    if (it == _sentSimpleTraitVersions.end()) {
+        auto pair = _sentSimpleTraitVersions.insert({
+            otherAvatar, { AvatarTraits::TotalTraitTypes, AvatarTraits::DEFAULT_TRAIT_VERSION }
+        });
+
+        it = pair.first;
+    }
+
+    it->second[traitType] = traitVersion;
 }

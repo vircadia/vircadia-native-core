@@ -133,7 +133,8 @@ public:
 
         EntityClone,
         EntityQueryInitialResultsComplete,
-
+        BulkAvatarTraits,
+        
         NUM_PACKET_TYPE
     };
 

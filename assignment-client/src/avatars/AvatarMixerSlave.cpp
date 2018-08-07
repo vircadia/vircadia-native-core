@@ -79,6 +79,61 @@ int AvatarMixerSlave::sendIdentityPacket(const AvatarMixerClientData* nodeData, 
     }
 }
 
+void AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* listeningNodeData,
+                                                   const AvatarMixerClientData* sendingNodeData,
+                                                   NLPacketList& traitsPacketList) {
+
+    auto otherNodeLocalID = sendingNodeData->getNodeLocalID();
+
+    // Perform a simple check with two server clock time points
+    // to see if there is any new traits data for this avatar that we need to send
+    auto timeOfLastTraitsSent = listeningNodeData->getLastOtherAvatarTraitsSendPoint(otherNodeLocalID);
+    auto timeOfLastTraitsChange = sendingNodeData->getLastReceivedTraitsChange();
+
+    if (timeOfLastTraitsChange > timeOfLastTraitsSent) {
+        // there is definitely new traits data to send
+
+        // add the avatar ID to mark the beginning of traits for this avatar
+        traitsPacketList.write(sendingNodeData->getNodeID().toRfc4122());
+
+        auto sendingAvatar = sendingNodeData->getAvatarSharedPointer();
+
+        // compare trait versions so we can see what exactly needs to go out
+        for (int i = 0; i < AvatarTraits::TotalTraitTypes; ++i) {
+            AvatarTraits::TraitType traitType = static_cast<AvatarTraits::TraitType>(i);
+
+            auto lastSentVersion = listeningNodeData->getLastSentSimpleTraitVersion(otherNodeLocalID, traitType);
+            auto lastReceivedVersion = sendingNodeData->getLastReceivedSimpleTraitVersion(traitType);
+
+            if (lastReceivedVersion > lastSentVersion) {
+                // there is an update to this trait, add it to the traits packet
+
+                // write the trait type and the trait version
+                traitsPacketList.writePrimitive(traitType);
+                traitsPacketList.writePrimitive(lastReceivedVersion);
+
+                // update the last sent version since we're adding this to the packet
+                listeningNodeData->setLastSentSimpleTraitVersion(otherNodeLocalID, traitType, lastReceivedVersion);
+
+                if (traitType == AvatarTraits::SkeletonModelURL) {
+                    // get an encoded version of the URL, write its size and then the data itself
+                    auto encodedSkeletonURL = sendingAvatar->getSkeletonModelURL().toEncoded();
+
+                    traitsPacketList.writePrimitive(uint16_t(encodedSkeletonURL.size()));
+                    traitsPacketList.write(encodedSkeletonURL);
+                }
+            }
+        }
+
+        // write a null trait type to mark the end of trait data for this avatar
+        traitsPacketList.writePrimitive(AvatarTraits::NullTrait);
+
+        // since we send all traits for this other avatar, update the time of last traits sent
+        // to match the time of last traits change
+        listeningNodeData->setLastOtherAvatarTraitsSendPoint(otherNodeLocalID, timeOfLastTraitsChange);
+    }
+}
+
 int AvatarMixerSlave::sendReplicatedIdentityPacket(const Node& agentNode, const AvatarMixerClientData* nodeData, const Node& destinationNode) {
     if (AvatarMixer::shouldReplicateTo(agentNode, destinationNode)) {
         QByteArray individualData = nodeData->getConstAvatarData()->identityByteArray(true);
@@ -326,6 +381,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     // loop through our sorted avatars and allocate our bandwidth to them accordingly
 
     int remainingAvatars = (int)sortedAvatars.size();
+    auto traitsPacketList = NLPacketList::create(PacketType::BulkAvatarTraits, QByteArray(), true, true);
     while (!sortedAvatars.empty()) {
         const auto avatarData = sortedAvatars.top().getAvatar();
         sortedAvatars.pop();
@@ -392,11 +448,12 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
         quint64 start = usecTimestampNow();
         QByteArray bytes = otherAvatar->toByteArray(detail, lastEncodeForOther, lastSentJointsForOther,
-                                                    hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition, &lastSentJointsForOther);
+                                                    hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition,
+                                                    &lastSentJointsForOther);
         quint64 end = usecTimestampNow();
         _stats.toByteArrayElapsedTime += (end - start);
 
-        auto maxAvatarDataBytes = avatarPacketList->getMaxSegmentSize() - NUM_BYTES_RFC4122_UUID;
+        static auto maxAvatarDataBytes = avatarPacketList->getMaxSegmentSize() - NUM_BYTES_RFC4122_UUID;
         if (bytes.size() > maxAvatarDataBytes) {
             qCWarning(avatars) << "otherAvatar.toByteArray() for" << otherNode->getUUID()
                 << "resulted in very large buffer of" << bytes.size() << "bytes - dropping facial data";
@@ -445,6 +502,9 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
         quint64 endAvatarDataPacking = usecTimestampNow();
         _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
+
+        // use helper to add any changed traits to our packet list
+        addChangedTraitsToBulkPacket(nodeData, otherNodeData, *traitsPacketList);
     }
 
     quint64 startPacketSending = usecTimestampNow();
@@ -460,6 +520,14 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
     // record the bytes sent for other avatar data in the AvatarMixerClientData
     nodeData->recordSentAvatarData(numAvatarDataBytes);
+
+    // close the current traits packet list
+    traitsPacketList->closeCurrentPacket();
+
+    if (traitsPacketList->getNumPackets() >= 1) {
+        // send the traits packet list
+        nodeList->sendPacketList(std::move(traitsPacketList), *node);
+    }
 
     // record the number of avatars held back this frame
     nodeData->recordNumOtherAvatarStarves(numAvatarsHeldBack);

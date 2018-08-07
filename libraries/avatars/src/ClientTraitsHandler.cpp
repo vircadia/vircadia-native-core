@@ -68,8 +68,10 @@ void ClientTraitsHandler::sendChangedTraitsToMixer() {
 
             auto encodedSkeletonURL = _owningAvatar->getSkeletonModelURL().toEncoded();
 
-            uint16_t encodedURLSize = encodedSkeletonURL.size();
+            AvatarTraits::TraitWireSize encodedURLSize = encodedSkeletonURL.size();
             traitsPacketList->writePrimitive(encodedURLSize);
+
+            qDebug() << "Sending trait of size" << encodedURLSize;
 
             traitsPacketList->write(encodedSkeletonURL);
 

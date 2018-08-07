@@ -99,6 +99,10 @@ private:
     int sendIdentityPacket(const AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode);
     int sendReplicatedIdentityPacket(const Node& agentNode, const AvatarMixerClientData* nodeData, const Node& destinationNode);
 
+    void addChangedTraitsToBulkPacket(AvatarMixerClientData* listeningNodeData,
+                                     const AvatarMixerClientData* sendingNodeData,
+                                     NLPacketList& traitsPacketList);
+
     void broadcastAvatarDataToAgent(const SharedNodePointer& node);
     void broadcastAvatarDataToDownstreamMixer(const SharedNodePointer& node);
 

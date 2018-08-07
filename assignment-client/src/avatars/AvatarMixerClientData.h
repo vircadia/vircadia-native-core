@@ -22,6 +22,7 @@
 #include <QtCore/QUrl>
 
 #include <AvatarData.h>
+#include <AvatarTraits.h>
 #include <NodeData.h>
 #include <NumericalConstants.h>
 #include <udt/PacketHeaders.h>
@@ -122,6 +123,20 @@ public:
 
     void processSetTraitsMessage(ReceivedMessage& message);
 
+    using TraitsCheckTimestamp = std::chrono::steady_clock::time_point;
+
+    TraitsCheckTimestamp getLastReceivedTraitsChange() const { return _lastReceivedTraitsChange; }
+    AvatarTraits::TraitVersion getLastReceivedSimpleTraitVersion(AvatarTraits::TraitType traitType) const
+        { return _receivedSimpleTraitVersions[traitType]; }
+
+    TraitsCheckTimestamp getLastOtherAvatarTraitsSendPoint(Node::LocalID otherAvatar) const;
+    void setLastOtherAvatarTraitsSendPoint(Node::LocalID otherAvatar, TraitsCheckTimestamp sendPoint)
+        { _lastSentTraitsTimestamps[otherAvatar] = sendPoint; }
+
+    AvatarTraits::TraitVersion getLastSentSimpleTraitVersion(Node::LocalID otherAvatar, AvatarTraits::TraitType traitType) const;
+    void setLastSentSimpleTraitVersion(Node::LocalID otherAvatar, AvatarTraits::TraitType traitType,
+                                       AvatarTraits::TraitVersion traitVersion);
+
 private:
     struct PacketQueue : public std::queue<QSharedPointer<ReceivedMessage>> {
         QWeakPointer<Node> node;
@@ -158,6 +173,12 @@ private:
     int _recentOtherAvatarsOutOfView { 0 };
     QString _baseDisplayName{}; // The santized key used in determinging unique sessionDisplayName, so that we can remove from dictionary.
     bool _requestsDomainListData { false };
+
+    AvatarTraits::SimpleTraitVersions _receivedSimpleTraitVersions;
+    TraitsCheckTimestamp _lastReceivedTraitsChange;
+
+    std::unordered_map<Node::LocalID, TraitsCheckTimestamp> _lastSentTraitsTimestamps;
+    std::unordered_map<Node::LocalID, AvatarTraits::SimpleTraitVersions> _sentSimpleTraitVersions;
 };
 
 #endif // hifi_AvatarMixerClientData_h

@@ -25,16 +25,16 @@ public:
     void sendChangedTraitsToMixer();
 
     bool hasChangedTraits() { return _changedTraits.size(); }
-    void markTraitChanged(AvatarTraits::Trait changedTrait) { _changedTraits.insert(changedTrait); }
+    void markTraitChanged(AvatarTraits::TraitType changedTrait) { _changedTraits.insert(changedTrait); }
 
-    bool hasTraitChanged(AvatarTraits::Trait checkTrait) { return _changedTraits.count(checkTrait) > 0; }
+    bool hasTraitChanged(AvatarTraits::TraitType checkTrait) { return _changedTraits.count(checkTrait) > 0; }
 
     void resetForNewMixer();
 
 private:
     AvatarData* _owningAvatar;
 
-    std::set<AvatarTraits::Trait> _changedTraits;
+    AvatarTraits::TraitTypeSet _changedTraits;
     AvatarTraits::TraitVersion _currentTraitVersion { AvatarTraits::DEFAULT_TRAIT_VERSION };
     bool _performInitialSend { false };
 };
