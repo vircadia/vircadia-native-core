@@ -111,11 +111,6 @@ EntityListTool = function(shouldUseEditTabletApp) {
         return value !== undefined ? value : "";
     }
 
-    function filterEntity(entityID) {
-        return ((entityID === HMD.homeButtonHighlightMaterialID) ||
-                (entityID === HMD.homeButtonUnhighlightMaterialID));
-    }
-
     that.sendUpdate = function() {
         var entities = [];
 
@@ -125,10 +120,6 @@ EntityListTool = function(shouldUseEditTabletApp) {
         } else {
             ids = Entities.findEntities(MyAvatar.position, searchRadius);
         }
-
-        ids = ids.filter(function(id) {
-            return !filterEntity(id);
-        });
 
         var cameraPosition = Camera.position;
         for (var i = 0; i < ids.length; i++) {
