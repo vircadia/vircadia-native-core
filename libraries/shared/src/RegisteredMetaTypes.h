@@ -282,7 +282,9 @@ public:
         if (pickVariant["position"].isValid()) {
             transform.setTranslation(vec3FromVariant(pickVariant["position"]));
         }
-        if (pickVariant["orientation"].isValid()) {
+        if (pickVariant["rotation"].isValid()) {
+            transform.setRotation(quatFromVariant(pickVariant["rotation"]));
+        } else if (pickVariant["orientation"].isValid()) {
             transform.setRotation(quatFromVariant(pickVariant["orientation"]));
         }
     }
