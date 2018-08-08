@@ -842,11 +842,11 @@ void PhysicsEngine::setShowBulletConstraintLimits(bool value) {
 
 struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
     AllContactsCallback(MotionStateType desiredObjectType, const ShapeInfo& shapeInfo, const Transform& transform, btCollisionObject* myAvatarCollisionObject) :
+        btCollisionWorld::ContactResultCallback(),
         desiredObjectType(desiredObjectType),
         collisionObject(),
         contacts(),
-        myAvatarCollisionObject(myAvatarCollisionObject),
-        btCollisionWorld::ContactResultCallback() {
+        myAvatarCollisionObject(myAvatarCollisionObject) {
         const btCollisionShape* collisionShape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
 
         collisionObject.setCollisionShape(const_cast<btCollisionShape*>(collisionShape));
