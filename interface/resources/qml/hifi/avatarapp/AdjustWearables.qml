@@ -30,6 +30,7 @@ Rectangle {
     function open(avatar) {
         adjustWearablesOpened(avatar.name);
 
+        modified = false;
         visible = true;
         avatarName = avatar.name;
         wearablesModel = avatar.wearables;
@@ -401,7 +402,7 @@ Rectangle {
                     colorScheme: hifi.colorSchemes.light
 
                     property bool notify: false;
-                    onValueChanged: if(notify) notifyScaleChanged();
+                    onRealValueChanged: if(notify) notifyScaleChanged();
 
                     function set(value) {
                         notify = false;
@@ -439,13 +440,18 @@ Rectangle {
                 color: hifi.buttons.red;
                 colorScheme: hifi.colorSchemes.light;
                 text: "TAKE IT OFF"
-                onClicked: wearableDeleted(root.avatarName, getCurrentWearable().id);
+                onClicked: {
+                    modified = true;
+                    wearableDeleted(root.avatarName, getCurrentWearable().id);
+                }
                 enabled: wearablesCombobox.model.count !== 0
             }
         }
     }
 
     DialogButtons {
+        yesButton.enabled: modified
+
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 57
         anchors.left: parent.left
