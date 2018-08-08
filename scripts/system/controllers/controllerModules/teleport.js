@@ -212,9 +212,9 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.PLAY_AREA_OVERLAY_MODEL = Script.resolvePath("../../assets/models/trackingSpacev2.fbx");
         this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS = { x: 2, y: 0.2, z: 2 };
-        this.PLAY_AREA_OVERLAY_MODEL_UNIT_HEIGHT = this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.y
-            / this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.x;
-        this.PLAY_AREA_OVERLAY_OFFSET = { x: 0, y: this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.y / 2, z: 0 };
+        this.PLAY_AREA_FLOAT_ABOVE_FLOOR = 0.3;
+        this.PLAY_AREA_OVERLAY_OFFSET = // Offset from floor.
+            { x: 0, y: this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.y / 2 + this.PLAY_AREA_FLOAT_ABOVE_FLOOR, z: 0 };
         this.PLAY_AREA_SENSOR_OVERLAY_MODEL = Script.resolvePath("../../assets/models/oculusSensorv2.fbx");
         this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS = { x: 0.1198, y: 0.2981, z: 0.1198 };
         this.PLAY_AREA_SENSOR_OVERLAY_ROTATION = Quat.fromVec3Degrees({ x: 0, y: -90, z: 0 });
@@ -272,27 +272,44 @@ Script.include("/~/system/libraries/controllers.js");
         this.setPlayAreaDimensions = function () {
             var avatarScale = MyAvatar.scale;
 
-            Overlays.editOverlay(this.playAreaOverlay, {
+            var playAreaOverlayProperties = {
                 dimensions:
                     Vec3.multiply(this.teleportScaleFactor * avatarScale, {
                         x: this.playArea.width,
-                        y: this.PLAY_AREA_OVERLAY_MODEL_UNIT_HEIGHT,
+                        y: this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.y,
                         z: this.playArea.height
                     })
-            });
+            };
+
+            if (this.teleportScaleFactor < 1) {
+                // Adjust position of playAreOverlay so that its base is at correct height.
+                // Always parenting to teleport target is good enough for this.
+                var sensorToWorldMatrix = MyAvatar.sensorToWorldMatrix;
+                var sensorToWorldRotation = Mat4.extractRotation(MyAvatar.sensorToWorldMatrix);
+                var worldToSensorMatrix = Mat4.inverse(sensorToWorldMatrix);
+                var avatarSensorPosition = Mat4.transformPoint(worldToSensorMatrix, MyAvatar.position);
+                avatarSensorPosition.y = 0;
+
+                var targetRotation = Overlays.getProperty(this.targetOverlayID, "rotation");
+                var relativePlayAreaCenterOffset =
+                    Vec3.sum(this.playAreaCenterOffset, { x: 0, y: -TARGET_MODEL_DIMENSIONS.y / 2, z: 0 });
+                var localPosition = Vec3.multiplyQbyV(Quat.inverse(targetRotation),
+                    Vec3.multiplyQbyV(sensorToWorldRotation,
+                        Vec3.multiply(MyAvatar.scale, Vec3.subtract(relativePlayAreaCenterOffset, avatarSensorPosition))));
+                localPosition.y = this.teleportScaleFactor * localPosition.y;
+
+                playAreaOverlayProperties.parentID = this.targetOverlayID;
+                playAreaOverlayProperties.localPosition = localPosition;
+            }
+
+            Overlays.editOverlay(this.playAreaOverlay, playAreaOverlayProperties);
 
             for (var i = 0; i < this.playAreaSensorPositionOverlays.length; i++) {
-                var localPosition = this.playAreaSensorPositions[i];
+                localPosition = this.playAreaSensorPositions[i];
                 localPosition = Vec3.multiply(avatarScale, localPosition);
-                /*
-                // Position at the correct elevation. Tracking origin is at eye height.
-                localPosition.y = MyAvatar.getEyeHeight() + localPosition.y
-                    - avatarScale * this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS.y / 2
-                    - this.playAreaCenterOffset.y / 2;
-                */
-                // Position on the floor.
-                localPosition.y = avatarScale * this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS.y / 2
-                    - this.playAreaCenterOffset.y / 2;
+                // Position relative to the play area.
+                localPosition.y = avatarScale * (this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS.y / 2
+                    - this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.y / 2);
                 Overlays.editOverlay(this.playAreaSensorPositionOverlays[i], {
                     dimensions: Vec3.multiply(this.teleportScaleFactor * avatarScale, this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS),
                     parentID: this.playAreaOverlay,
@@ -418,11 +435,14 @@ Script.include("/~/system/libraries/controllers.js");
                 // Set play area position and rotation in local coordinates with parenting.
                 var targetRotation = Overlays.getProperty(this.targetOverlayID, "rotation");
                 var sensorToTargetRotation = Quat.multiply(Quat.inverse(targetRotation), sensorToWorldRotation);
+                var relativePlayAreaCenterOffset =
+                    Vec3.sum(this.playAreaCenterOffset, { x: 0, y: -TARGET_MODEL_DIMENSIONS.y / 2, z: 0 });
+
                 Overlays.editOverlay(this.playAreaOverlay, {
                     parentID: this.targetOverlayID,
                     localPosition: Vec3.multiplyQbyV(Quat.inverse(targetRotation),
                         Vec3.multiplyQbyV(sensorToWorldRotation,
-                            Vec3.multiply(MyAvatar.scale, Vec3.subtract(this.playAreaCenterOffset, avatarSensorPosition)))),
+                            Vec3.multiply(MyAvatar.scale, Vec3.subtract(relativePlayAreaCenterOffset, avatarSensorPosition)))),
                     localRotation: sensorToTargetRotation
                 });
             }
