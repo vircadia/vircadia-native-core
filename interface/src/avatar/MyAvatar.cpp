@@ -1699,9 +1699,9 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
        }
        QObject::disconnect(*skeletonConnection);
     });
+    
     saveAvatarUrl();
     emit skeletonChanged();
-    emit skeletonModelURLChanged();
 
     if (previousSkeletonModelURL != _skeletonModelURL) {
         _clientTraitsHandler.markTraitChanged(AvatarTraits::SkeletonModelURL);
@@ -1776,8 +1776,6 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
         setSkeletonModelURL(fullAvatarURL);
         UserActivityLogger::getInstance().changedModel("skeleton", urlString);
     }
-
-    markIdentityDataChanged();
 }
 
 glm::vec3 MyAvatar::getSkeletonPosition() const {

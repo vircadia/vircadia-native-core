@@ -1891,11 +1891,13 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     if (expanded == _skeletonModelURL) {
         return;
     }
+    
     _skeletonModelURL = expanded;
     qCDebug(avatars) << "Changing skeleton model for avatar" << getSessionUUID() << "to" << _skeletonModelURL.toString();
 
     updateJointMappings();
-    markIdentityDataChanged();
+
+    emit skeletonModelURLChanged();
 }
 
 void AvatarData::setDisplayName(const QString& displayName) {

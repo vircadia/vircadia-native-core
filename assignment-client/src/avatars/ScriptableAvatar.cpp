@@ -1,6 +1,6 @@
 //
 //  ScriptableAvatar.cpp
-//
+//  assignment-client/src/avatars
 //
 //  Created by Clement on 7/22/14.
 //  Copyright 2014 High Fidelity, Inc.
