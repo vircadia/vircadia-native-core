@@ -42,7 +42,7 @@ Rectangle {
             var wearable = avatar.wearables.get(i).properties;
             for(var j = (wearable.modelURL.length - 1); j >= 0; --j) {
                 if(wearable.modelURL[j] === '/') {
-                    wearable.text = wearable.modelURL.substring(j + 1) + ' [%jointIndex%]'.replace('%jointIndex%', jointNames[wearable.parentJointIndex]);
+                    wearable.text = wearable.modelURL.substring(j + 1);
                     break;
                 }
             }
@@ -50,6 +50,9 @@ Rectangle {
         }
 
         wearablesCombobox.currentIndex = 0;
+        if(wearablesCombobox.model.count !== 0) {
+            jointsCombobox.set(getCurrentWearable().parentJointIndex)
+        }
     }
 
     function refreshWearable(wearableID, wearableIndex, properties, updateUI) {
@@ -172,6 +175,7 @@ Rectangle {
                         position.set(currentWearable.localPosition);
                         rotation.set(currentWearable.localRotationAngles);
                         scalespinner.set(currentWearable.dimensions.x / currentWearable.naturalDimensions.x)
+                        jointsCombobox.set(currentWearable.parentJointIndex)
 
                         wearableSelected(currentWearable.id);
                     }
@@ -193,9 +197,32 @@ Rectangle {
                 id: jointsCombobox
                 anchors.left: parent.left
                 anchors.right: parent.right
-                comboBox.textRole: "text"
 
-                model: ListModel {
+                model: jointNames
+                property bool notify: false
+
+                function set(jointIndex) {
+                    notify = false;
+                    currentIndex = jointIndex;
+                    notify = true;
+                }
+
+                function notifyJointChanged() {
+                    modified = true;
+                    var properties = {
+                        parentJointIndex: currentIndex,
+                        localPosition: {
+                            x: position.xvalue,
+                            y: position.yvalue,
+                            z: position.zvalue
+                        }
+                    };
+
+                    wearableUpdated(getCurrentWearable().id, wearablesCombobox.currentIndex, properties);
+                }
+
+                onCurrentIndexChanged: {
+                    if(notify) notifyJointChanged();
                 }
             }
         }
