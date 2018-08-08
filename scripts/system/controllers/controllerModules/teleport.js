@@ -248,6 +248,16 @@ Script.include("/~/system/libraries/controllers.js");
         });
         Selection.addToSelectedItemsList(this.teleporterSelectionName, "overlay", this.playAreaOverlay);
 
+        this.teleportedPosition = Vec3.ZERO;
+        this.TELEPORTED_TARGET_ALPHA = 1.0;
+        this.TELEPORTED_TARGET_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 });
+        this.teleportedTargetOverlay = Overlays.addOverlay("model", {
+            url: TARGET_MODEL_URL,
+            alpha: this.TELEPORTED_TARGET_ALPHA,
+            visible: false
+        });
+        Selection.addToSelectedItemsList(this.teleportedTargetOverlay, "overlay", this.playAreaOverlay);
+
         this.addPlayAreaSensorPositionOverlay = function () {
             var overlay = Overlays.addOverlay("model", {
                 url: this.PLAY_AREA_SENSOR_OVERLAY_MODEL,
@@ -332,6 +342,9 @@ Script.include("/~/system/libraries/controllers.js");
             _this.PlayAreaFadeFactor = _this.PlayAreaFadeFactor - _this.PLAY_AREA_FADE_DELTA;
             if (_this.PlayAreaFadeFactor > 0) {
                 // Fade.
+                Overlays.editOverlay(_this.teleportedTargetOverlay, {
+                    alpha: _this.PlayAreaFadeFactor * _this.TELEPORTED_TARGET_ALPHA
+                });
                 Overlays.editOverlay(_this.playAreaOverlay, { alpha: _this.PlayAreaFadeFactor * _this.PLAY_AREA_BOX_ALPHA });
                 var sensorAlpha = _this.PlayAreaFadeFactor * _this.PLAY_AREA_SENSOR_ALPHA;
                 for (i = 0, length = _this.playAreaSensorPositionOverlays.length; i < length; i++) {
@@ -340,6 +353,7 @@ Script.include("/~/system/libraries/controllers.js");
                 _this.playAreaFadeTimer = Script.setTimeout(_this.fadePlayArea, _this.PLAY_AREA_FADE_INTERVAL);
             } else {
                 // Make invisible.
+                Overlays.editOverlay(_this.teleportedTargetOverlay, { visible: false });
                 Overlays.editOverlay(_this.playAreaOverlay, { visible: false });
                 for (i = 0, length = _this.playAreaSensorPositionOverlays.length; i < length; i++) {
                     Overlays.editOverlay(_this.playAreaSensorPositionOverlays[i], { visible: false });
@@ -376,6 +390,19 @@ Script.include("/~/system/libraries/controllers.js");
                     });
                 }
             } else {
+                // Copy of target at teleported position for fading.
+                Overlays.editOverlay(this.teleportedTargetOverlay, {
+                    position: Vec3.sum(this.teleportedPosition, {
+                        x: 0,
+                        y: -getAvatarFootOffset() + MyAvatar.scale * TARGET_MODEL_DIMENSIONS.y / 2,
+                        z: 0
+                    }),
+                    rotation: Quat.multiply(this.TELEPORTED_TARGET_ROTATION, MyAvatar.orientation),
+                    dimensions: Vec3.multiply(MyAvatar.scale, TARGET_MODEL_DIMENSIONS),
+                    alpha: this.TELEPORTED_TARGET_ALPHA,
+                    visible: true
+                });
+
                 // Fade out over time.
                 this.PlayAreaFadeFactor = 1.0;
                 _this.playAreaFadeTimer = Script.setTimeout(this.fadePlayArea, this.PLAY_AREA_FADE_DELAY);
@@ -503,6 +530,7 @@ Script.include("/~/system/libraries/controllers.js");
             Pointers.removePointer(this.teleportParabolaHandInvisible);
             Pointers.removePointer(this.teleportParabolaHeadVisible);
             Pointers.removePointer(this.teleportParabolaHeadInvisible);
+            Overlays.deleteOverlay(this.teleportedTargetOverlay);
             Overlays.deleteOverlay(this.playAreaOverlay);
             for (var i = 0; i < this.playAreaSensorPositionOverlays.length; i++) {
                 Overlays.deleteOverlay(this.playAreaSensorPositionOverlays[i]);
@@ -592,6 +620,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.teleport = function(newResult, target) {
             var result = newResult;
+            this.teleportedPosition = newResult.intersection;
             if (_this.buttonValue !== 0) {
                 return makeRunningValues(true, [], []);
             }
