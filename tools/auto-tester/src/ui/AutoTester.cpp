@@ -10,6 +10,8 @@
 //
 #include "AutoTester.h"
 
+#include "HelpWindow.h"
+
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <shellapi.h>
@@ -186,8 +188,8 @@ void AutoTester::about() {
 }
 
 void AutoTester::content() {
-  //  BrowserWindow browserWindow;
-   // browserWindow.show();
+   HelpWindow helpWindow;
+    helpWindow.show();
 }
 
 void AutoTester::setUserText(const QString& user) {
