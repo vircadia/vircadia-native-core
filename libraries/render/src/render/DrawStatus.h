@@ -62,12 +62,7 @@ namespace render {
         gpu::PipelinePointer _drawItemBoundsPipeline;
         gpu::PipelinePointer _drawItemStatusPipeline;
 
-        std::vector<AABox> _itemBounds;
-        std::vector<std::pair<glm::ivec4, glm::ivec4>> _itemStatus;
-        std::vector<Octree::Location> _itemCells;
-        //gpu::BufferPointer _itemBounds;
-        //gpu::BufferPointer _itemCells;
-        //gpu::BufferPointer _itemStatus;
+        gpu::BufferPointer _boundsBuffer;
         gpu::TexturePointer _statusIconMap;
     };
 }

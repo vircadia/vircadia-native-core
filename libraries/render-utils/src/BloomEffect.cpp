@@ -65,12 +65,13 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
 
     glm::ivec4 viewport{ 0, 0, bufferSize.x, bufferSize.y };
 
-    if (!bloom || !bloom->getBloomActive()) {
+    if (!bloom) {
         outputs = _outputBuffer;
         return;
     }
 
     _parameters.edit()._threshold = bloom->getBloomThreshold();
+    qDebug() << "boop1" << bloom->getBloomIntensity() << bloom->getBloomThreshold() << bloom->getBloomSize();
 
     //{
     //    std::string blurName { "BloomBlurN" };
@@ -136,9 +137,11 @@ void BloomApply::run(const render::RenderContextPointer& renderContext, const In
     const auto bloom = inputs.get4();
     const glm::ivec4 viewport{ 0, 0, framebufferSize.x, framebufferSize.y };
 
-    if (!bloom || !bloom->getBloomActive()) {
+    if (!bloom) {
         return;
     }
+
+    qDebug() << "boop2" << bloom->getBloomIntensity() << bloom->getBloomThreshold() << bloom->getBloomSize();
 
     const auto newIntensity = bloom->getBloomIntensity() / 3.0f;
     auto& parameters = _parameters.edit();
@@ -172,6 +175,13 @@ void BloomDraw::run(const render::RenderContextPointer& renderContext, const Inp
 
     const auto frameBuffer = inputs.get0();
     const auto bloomFrameBuffer = inputs.get1();
+    const auto bloom = inputs.get2();
+
+    if (!bloom) {
+        return;
+    }
+
+    qDebug() << "boop3" << bloom->getBloomIntensity() << bloom->getBloomThreshold() << bloom->getBloomSize();
 
     if (frameBuffer && bloomFrameBuffer) {
         const auto framebufferSize = frameBuffer->getSize();
@@ -290,7 +300,7 @@ void DebugBloom::run(const render::RenderContextPointer& renderContext, const In
 BloomEffect::BloomEffect() {}
 
 void BloomEffect::configure(const Config& config) {
-    std::string blurName{ "BloomBlurN" };
+    std::string blurName { "BloomBlurN" };
 
     for (auto i = 0; i < BLOOM_BLUR_LEVEL_COUNT; i++) {
         blurName.back() = '0' + i;
@@ -312,10 +322,10 @@ void BloomEffect::build(JobModel& task, const render::Varying& inputs, render::V
     const auto& frameBuffer = input[1];
 
     // Mix all blur levels at quarter resolution
-    const auto applyInput = BloomApply::Inputs(bloomInputBuffer, blurFB0, blurFB1, blurFB2, input.get2()).asVarying();
+    const auto applyInput = BloomApply::Inputs(bloomInputBuffer, blurFB0, blurFB1, blurFB2, input[2]).asVarying();
     task.addJob<BloomApply>("BloomApply", applyInput);
     // And then blend result in additive manner on top of final color buffer
-    const auto drawInput = BloomDraw::Inputs(frameBuffer, bloomInputBuffer).asVarying();
+    const auto drawInput = BloomDraw::Inputs(frameBuffer, bloomInputBuffer, input[2]).asVarying();
     task.addJob<BloomDraw>("BloomDraw", drawInput);
 
     const auto debugInput = DebugBloom::Inputs(frameBuffer, blurFB0, blurFB1, blurFB2, bloomInputBuffer).asVarying();

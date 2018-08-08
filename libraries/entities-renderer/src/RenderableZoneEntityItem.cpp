@@ -212,8 +212,9 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
             _hazeStage->_currentFrame.pushHaze(_hazeIndex);
         }
 
-        // Bloom only if the mode is not inherit, as the model deals with on/off
-        if (_bloomMode != COMPONENT_MODE_INHERIT) {
+        if (_bloomMode == COMPONENT_MODE_DISABLED) {
+            _bloomStage->_currentFrame.pushBloom(INVALID_INDEX);
+        } else if (_bloomMode == COMPONENT_MODE_ENABLED) {
             _bloomStage->_currentFrame.pushBloom(_bloomIndex);
         }
     }
@@ -426,8 +427,6 @@ void ZoneEntityRenderer::updateBloomFromEntity(const TypedEntityPointer& entity)
 
     const auto& bloom = editBloom();
 
-    const uint32_t bloomMode = entity->getBloomMode();
-    bloom->setBloomActive(bloomMode == COMPONENT_MODE_ENABLED);
     bloom->setBloomIntensity(_bloomProperties.getBloomIntensity());
     bloom->setBloomThreshold(_bloomProperties.getBloomThreshold());
     bloom->setBloomSize(_bloomProperties.getBloomSize());

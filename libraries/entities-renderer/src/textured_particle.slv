@@ -149,7 +149,7 @@ void main(void) {
     vec3 UP = vec3(0, 1, 0);
     vec3 modelUpWorld;
     <$transformModelToWorldDir(cam, obj, UP, modelUpWorld)$>
-    vec3 upWorld = mix(UP, normalize(modelUpWorld), particle.rotateWithEntity);
+    vec3 upWorld = mix(UP, normalize(modelUpWorld), float(particle.rotateWithEntity));
     vec3 upEye = normalize(view3 * upWorld);
     vec3 FORWARD = vec3(0, 0, -1);
     vec3 particleRight = normalize(cross(FORWARD, upEye));

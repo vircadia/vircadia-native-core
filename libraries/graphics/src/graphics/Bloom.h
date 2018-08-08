@@ -26,15 +26,12 @@ namespace graphics {
         void setBloomIntensity(const float bloomIntensity) { _bloomIntensity = bloomIntensity; }
         void setBloomThreshold(const float bloomThreshold) { _bloomThreshold = bloomThreshold; }
         void setBloomSize(const float bloomSize) { _bloomSize = bloomSize; }
-        void setBloomActive(const bool isBloomActive) { _isBloomActive = isBloomActive; }
 
         float getBloomIntensity() { return _bloomIntensity; }
         float getBloomThreshold() { return _bloomThreshold; }
         float getBloomSize() { return _bloomSize; }
-        bool getBloomActive() { return _isBloomActive; }
 
     private:
-        bool _isBloomActive { false };
         float _bloomIntensity { INITIAL_BLOOM_INTENSITY };
         float _bloomThreshold {INITIAL_BLOOM_THRESHOLD };
         float _bloomSize { INITIAL_BLOOM_SIZE };

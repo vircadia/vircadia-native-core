@@ -73,7 +73,7 @@ private:
 
 class BloomDraw {
 public:
-    using Inputs = render::VaryingSet2<gpu::FramebufferPointer, gpu::FramebufferPointer>;
+    using Inputs = render::VaryingSet3<gpu::FramebufferPointer, gpu::FramebufferPointer, graphics::BloomPointer>;
     using JobModel = render::Job::ModelI<BloomDraw, Inputs>;
 
     BloomDraw() {}
