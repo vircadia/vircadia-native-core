@@ -31,7 +31,7 @@ function executeLater(callback) {
 
 var INVALID_JOINT_INDEX = -1
 function isWearable(avatarEntity) {
-    return avatarEntity.properties.visible === true && avatarEntity.properties.parentJointIndex !== INVALID_JOINT_INDEX &&
+    return avatarEntity.properties.visible === true && (avatarEntity.properties.parentJointIndex !== INVALID_JOINT_INDEX || avatarEntity.properties.relayParentJoints === true) &&
         (avatarEntity.properties.parentID === MyAvatar.sessionUUID || avatarEntity.properties.parentID === MyAvatar.SELF_ID);
 }
 
