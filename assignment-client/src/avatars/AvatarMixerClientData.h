@@ -34,6 +34,8 @@
 const QString OUTBOUND_AVATAR_DATA_STATS_KEY = "outbound_av_data_kbps";
 const QString INBOUND_AVATAR_DATA_STATS_KEY = "inbound_av_data_kbps";
 
+struct SlaveSharedData;
+
 class AvatarMixerClientData : public NodeData {
     Q_OBJECT
 public:
@@ -66,8 +68,6 @@ public:
     void flagIdentityChange() { _identityChangeTimestamp = usecTimestampNow(); }
     bool getAvatarSessionDisplayNameMustChange() const { return _avatarSessionDisplayNameMustChange; }
     void setAvatarSessionDisplayNameMustChange(bool set = true) { _avatarSessionDisplayNameMustChange = set; }
-    bool getAvatarSkeletonModelUrlMustChange() const { return _avatarSkeletonModelUrlMustChange; }
-    void setAvatarSkeletonModelUrlMustChange(bool set = true) { _avatarSkeletonModelUrlMustChange = set; }
 
     void resetNumAvatarsSentLastFrame() { _numAvatarsSentLastFrame = 0; }
     void incrementNumAvatarsSentLastFrame() { ++_numAvatarsSentLastFrame; }
@@ -119,9 +119,11 @@ public:
     QVector<JointData>& getLastOtherAvatarSentJoints(QUuid otherAvatar) { return _lastOtherAvatarSentJoints[otherAvatar]; }
 
     void queuePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node);
-    int processPackets(); // returns number of packets processed
+    int processPackets(SlaveSharedData* slaveSharedData); // returns number of packets processed
 
-    void processSetTraitsMessage(ReceivedMessage& message);
+    void processSetTraitsMessage(ReceivedMessage& message, SlaveSharedData* slaveSharedData, Node& sendingNode);
+    void checkSkeletonURLAgainstWhitelist(SlaveSharedData* slaveSharedData, Node& sendingNode,
+                                          AvatarTraits::TraitVersion traitVersion);
 
     using TraitsCheckTimestamp = std::chrono::steady_clock::time_point;
 

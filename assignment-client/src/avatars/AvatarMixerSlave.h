@@ -78,11 +78,16 @@ public:
         jobElapsedTime += rhs.jobElapsedTime;
         return *this;
     }
+};
 
+struct SlaveSharedData {
+    QStringList skeletonURLWhitelist;
+    QUrl skeletonReplacementURL;
 };
 
 class AvatarMixerSlave {
 public:
+    AvatarMixerSlave(SlaveSharedData* sharedData) : _sharedData(sharedData) {};
     using ConstIter = NodeList::const_iterator;
 
     void configure(ConstIter begin, ConstIter end);
@@ -115,6 +120,7 @@ private:
     float _throttlingRatio { 0.0f };
 
     AvatarMixerSlaveStats _stats;
+    SlaveSharedData* _sharedData;
 };
 
 #endif // hifi_AvatarMixerSlave_h

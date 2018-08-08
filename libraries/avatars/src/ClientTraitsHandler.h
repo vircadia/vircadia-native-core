@@ -12,13 +12,15 @@
 #ifndef hifi_ClientTraitsHandler_h
 #define hifi_ClientTraitsHandler_h
 
-#include <set>
+#include <ReceivedMessage.h>
 
 #include "AvatarTraits.h"
+#include "Node.h"
 
 class AvatarData;
 
-class ClientTraitsHandler {
+class ClientTraitsHandler : public QObject {
+    Q_OBJECT
 public:
     ClientTraitsHandler(AvatarData* owningAvatar);
 
@@ -31,11 +33,17 @@ public:
 
     void resetForNewMixer();
 
+public slots:
+    void processTraitOverride(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
+
 private:
     AvatarData* _owningAvatar;
 
     AvatarTraits::TraitTypeSet _changedTraits;
     AvatarTraits::TraitVersion _currentTraitVersion { AvatarTraits::DEFAULT_TRAIT_VERSION };
+
+    AvatarTraits::NullableTraitVersion _currentSkeletonVersion { AvatarTraits::NULL_TRAIT_VERSION };
+    
     bool _performInitialSend { false };
 };
 

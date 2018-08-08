@@ -78,7 +78,7 @@ BasePacket::BasePacket(std::unique_ptr<char[]> data, qint64 size, const HifiSock
 }
 
 BasePacket::BasePacket(const BasePacket& other) :
-    QIODevice()
+    ExtendedIODevice()
 {
     *this = other;
 }

@@ -168,7 +168,7 @@ void AvatarMixerSlavePool::resize(int numThreads) {
     if (numThreads > _numThreads) {
         // start new slaves
         for (int i = 0; i < numThreads - _numThreads; ++i) {
-            auto slave = new AvatarMixerSlaveThread(*this);
+            auto slave = new AvatarMixerSlaveThread(*this, _slaveSharedData);
             slave->start();
             _slaves.emplace_back(slave);
         }

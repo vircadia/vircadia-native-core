@@ -16,6 +16,8 @@
 #include <DependencyManager.h>
 #include <NodeList.h>
 
+#include "AvatarMixerSlave.h"
+
 AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID, Node::LocalID nodeLocalID) :
     NodeData(nodeID),
 	_receivedSimpleTraitVersions(AvatarTraits::SimpleTraitTypes.size())
@@ -48,7 +50,7 @@ void AvatarMixerClientData::queuePacket(QSharedPointer<ReceivedMessage> message,
     _packetQueue.push(message);
 }
 
-int AvatarMixerClientData::processPackets() {
+int AvatarMixerClientData::processPackets(SlaveSharedData* slaveSharedData) {
     int packetsProcessed = 0;
     SharedNodePointer node = _packetQueue.node;
     assert(_packetQueue.empty() || node);
@@ -64,7 +66,7 @@ int AvatarMixerClientData::processPackets() {
                 parseData(*packet);
                 break;
             case PacketType::SetAvatarTraits:
-                processSetTraitsMessage(*packet);
+                processSetTraitsMessage(*packet, slaveSharedData, *node);
                 break;
             default:
                 Q_UNREACHABLE();
@@ -92,7 +94,7 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message) {
     return _avatar->parseDataFromBuffer(message.readWithoutCopy(message.getBytesLeftToRead()));
 }
 
-void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message) {
+void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message, SlaveSharedData* slaveSharedData, Node& sendingNode) {
     // pull the trait version from the message
     AvatarTraits::TraitVersion packetTraitVersion;
     message.readPrimitive(&packetTraitVersion);
@@ -111,6 +113,11 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message) {
         if (packetTraitVersion > _receivedSimpleTraitVersions[traitType]) {
             _avatar->processTrait(traitType, message.readWithoutCopy(traitSize));
             _receivedSimpleTraitVersions[traitType] = packetTraitVersion;
+
+            if (traitType == AvatarTraits::SkeletonModelURL) {
+                // special handling for skeleton model URL, since we need to make sure it is in the whitelist
+                checkSkeletonURLAgainstWhitelist(slaveSharedData, sendingNode, packetTraitVersion);
+            }
             
             anyTraitsChanged = true;
         } else {
@@ -120,6 +127,46 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message) {
 
     if (anyTraitsChanged) {
         _lastReceivedTraitsChange = std::chrono::steady_clock::now();
+    }
+}
+
+void AvatarMixerClientData::checkSkeletonURLAgainstWhitelist(SlaveSharedData *slaveSharedData, Node& sendingNode,
+                                                             AvatarTraits::TraitVersion traitVersion) {
+    const auto& whitelist = slaveSharedData->skeletonURLWhitelist;
+
+    if (!whitelist.isEmpty()) {
+        bool inWhitelist = false;
+        auto avatarURL = _avatar->getSkeletonModelURL();
+
+        // The avatar is in the whitelist if:
+        // 1. The avatar's URL's host matches one of the hosts of the URLs in the whitelist AND
+        // 2. The avatar's URL's path starts with the path of that same URL in the whitelist
+        for (const auto& whiteListedPrefix : whitelist) {
+            auto whiteListURL = QUrl::fromUserInput(whiteListedPrefix);
+            // check if this script URL matches the whitelist domain and, optionally, is beneath the path
+            if (avatarURL.host().compare(whiteListURL.host(), Qt::CaseInsensitive) == 0 &&
+                avatarURL.path().startsWith(whiteListURL.path(), Qt::CaseInsensitive)) {
+                inWhitelist = true;
+
+                break;
+            }
+        }
+
+        if (!inWhitelist) {
+            // we need to change this avatar's skeleton URL, and send them a traits packet informing them of the change
+            _avatar->setSkeletonModelURL(slaveSharedData->skeletonReplacementURL);
+
+            qDebug() << "Sending overwritten" << _avatar->getSkeletonModelURL() << "back to sending avatar";
+
+            auto packet = NLPacket::create(PacketType::SetAvatarTraits, -1, true);
+            
+            // the returned set traits packet uses the trait version from the incoming packet
+            // so the client knows they should not overwrite if they have since changed the trait
+            _avatar->packTrait(AvatarTraits::SkeletonModelURL, *packet, traitVersion);
+
+            auto nodeList = DependencyManager::get<NodeList>();
+            nodeList->sendPacket(std::move(packet), sendingNode);
+        }
     }
 }
 

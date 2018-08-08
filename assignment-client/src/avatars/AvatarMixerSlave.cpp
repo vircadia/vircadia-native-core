@@ -59,7 +59,7 @@ void AvatarMixerSlave::processIncomingPackets(const SharedNodePointer& node) {
     auto nodeData = dynamic_cast<AvatarMixerClientData*>(node->getLinkedData());
     if (nodeData) {
         _stats.nodesProcessed++;
-        _stats.packetsProcessed += nodeData->processPackets();
+        _stats.packetsProcessed += nodeData->processPackets(_sharedData);
     }
     auto end = usecTimestampNow();
     _stats.processIncomingPacketsElapsedTime += (end - start);
@@ -108,20 +108,10 @@ void AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* liste
             if (lastReceivedVersion > lastSentVersion) {
                 // there is an update to this trait, add it to the traits packet
 
-                // write the trait type and the trait version
-                traitsPacketList.writePrimitive(traitType);
-                traitsPacketList.writePrimitive(lastReceivedVersion);
-
-                // update the last sent version since we're adding this to the packet
+                // update the last sent version
                 listeningNodeData->setLastSentSimpleTraitVersion(otherNodeLocalID, traitType, lastReceivedVersion);
 
-                if (traitType == AvatarTraits::SkeletonModelURL) {
-                    // get an encoded version of the URL, write its size and then the data itself
-                    auto encodedSkeletonURL = sendingAvatar->getSkeletonModelURL().toEncoded();
-
-                    traitsPacketList.writePrimitive(uint16_t(encodedSkeletonURL.size()));
-                    traitsPacketList.write(encodedSkeletonURL);
-                }
+                sendingAvatar->packTrait(traitType, traitsPacketList, lastReceivedVersion);
             }
         }
 

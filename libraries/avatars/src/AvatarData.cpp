@@ -1750,12 +1750,6 @@ glm::quat AvatarData::getOrientationOutbound() const {
     return (getLocalOrientation());
 }
 
-static const QUrl emptyURL("");
-QUrl AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) const {
-    // We don't put file urls on the wire, but instead convert to empty.
-    return _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
-}
-
 void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& identityChanged,
                                        bool& displayNameChanged) {
 
@@ -1833,6 +1827,27 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
             << (udt::SequenceNumber::Type) _identitySequenceNumber
             << "is >=" << (udt::SequenceNumber::Type) incomingSequenceNumber;
 #endif
+    }
+}
+
+void AvatarData::packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice& destination, int64_t traitVersion) {
+    destination.writePrimitive(traitType);
+
+    if (traitVersion > 0) {
+        AvatarTraits::TraitVersion typedVersion = traitVersion;
+        destination.writePrimitive(typedVersion);
+    }
+
+    if (traitType == AvatarTraits::SkeletonModelURL) {
+        QByteArray encodedSkeletonURL;
+        if (_skeletonModelURL.scheme() != "file" && _skeletonModelURL.scheme() != "qrc") {
+            encodedSkeletonURL = _skeletonModelURL.toEncoded();
+        }
+        
+        AvatarTraits::TraitWireSize encodedURLSize = encodedSkeletonURL.size();
+        destination.writePrimitive(encodedURLSize);
+
+        destination.write(encodedSkeletonURL);
     }
 }
 

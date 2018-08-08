@@ -27,6 +27,8 @@ ClientTraitsHandler::ClientTraitsHandler(AvatarData* owningAvatar) :
             resetForNewMixer();
         }
     });
+
+    nodeList->getPacketReceiver().registerListener(PacketType::SetAvatarTraits, this, "processTraitOverride");
 }
 
 void ClientTraitsHandler::resetForNewMixer() {
@@ -63,24 +65,46 @@ void ClientTraitsHandler::sendChangedTraitsToMixer() {
 
         if (_performInitialSend || changedTraitsCopy.count(AvatarTraits::SkeletonModelURL)) {
             traitsPacketList->startSegment();
-
-            traitsPacketList->writePrimitive(AvatarTraits::SkeletonModelURL);
-
-            auto encodedSkeletonURL = _owningAvatar->getSkeletonModelURL().toEncoded();
-
-            AvatarTraits::TraitWireSize encodedURLSize = encodedSkeletonURL.size();
-            traitsPacketList->writePrimitive(encodedURLSize);
-
-            qDebug() << "Sending trait of size" << encodedURLSize;
-
-            traitsPacketList->write(encodedSkeletonURL);
-
+            _owningAvatar->packTrait(AvatarTraits::SkeletonModelURL, *traitsPacketList);
             traitsPacketList->endSegment();
+
+            // keep track of our skeleton version in case we get an override back
+            _currentSkeletonVersion = _currentTraitVersion;
         }
 
         nodeList->sendPacketList(std::move(traitsPacketList), *avatarMixer);
 
         // if this was an initial send of all traits, consider it completed
         _performInitialSend = false;
+    }
+}
+
+void ClientTraitsHandler::processTraitOverride(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    if (sendingNode->getType() == NodeType::AvatarMixer) {
+        while (message->getBytesLeftToRead()) {
+            AvatarTraits::TraitType traitType;
+            message->readPrimitive(&traitType);
+
+            AvatarTraits::TraitVersion traitVersion;
+            message->readPrimitive(&traitVersion);
+
+            AvatarTraits::TraitWireSize traitBinarySize;
+            message->readPrimitive(&traitBinarySize);
+
+            // only accept an override if this is for a trait type we override
+            // and the version matches what we last sent for skeleton
+            if (traitType == AvatarTraits::SkeletonModelURL
+                && traitVersion == _currentSkeletonVersion
+                && !hasTraitChanged(AvatarTraits::SkeletonModelURL)) {
+                // override the skeleton URL but do not mark the trait as having changed
+                // so that we don't unecessarily sent a new trait packet to the mixer with the overriden URL
+                auto encodedSkeletonURL = QUrl::fromEncoded(message->readWithoutCopy(traitBinarySize));
+                _owningAvatar->setSkeletonModelURL(encodedSkeletonURL);
+
+                _changedTraits.erase(AvatarTraits::SkeletonModelURL);
+            } else {
+                message->seek(message->getPosition() + traitBinarySize);
+            }
+        }
     }
 }

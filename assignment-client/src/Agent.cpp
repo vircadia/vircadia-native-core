@@ -25,16 +25,19 @@
 #include <AudioInjectorManager.h>
 #include <AssetClient.h>
 #include <DebugDraw.h>
+#include <EntityScriptingInterface.h>
 #include <LocationScriptingInterface.h>
 #include <MessagesClient.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
 #include <ResourceCache.h>
+#include <ResourceScriptingInterface.h>
 #include <ScriptCache.h>
 #include <ScriptEngines.h>
 #include <SoundCacheScriptingInterface.h>
 #include <SoundCache.h>
+#include <UserActivityLoggerScriptingInterface.h>
 #include <UsersScriptingInterface.h>
 #include <UUID.h>
 
@@ -49,11 +52,11 @@
 #include <WebSocketServerClass.h>
 #include <EntityScriptingInterface.h> // TODO: consider moving to scriptengine.h
 
+#include "AssignmentDynamicFactory.h"
 #include "entities/AssignmentParentFinder.h"
 #include "RecordingScriptingInterface.h"
 #include "AbstractAudioInterface.h"
 #include "AgentScriptingInterface.h"
-
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
 
@@ -63,6 +66,18 @@ Agent::Agent(ReceivedMessage& message) :
     _audioGate(AudioConstants::SAMPLE_RATE, AudioConstants::MONO),
     _avatarAudioTimer(this)
 {
+    DependencyManager::set<ScriptableAvatar>();
+
+    DependencyManager::set<AnimationCache>();
+    DependencyManager::set<AnimationCacheScriptingInterface>();
+    DependencyManager::set<EntityScriptingInterface>(false);
+
+    DependencyManager::registerInheritance<EntityDynamicFactoryInterface, AssignmentDynamicFactory>();
+    DependencyManager::set<AssignmentDynamicFactory>();
+
+    DependencyManager::set<ResourceScriptingInterface>();
+    DependencyManager::set<UserActivityLoggerScriptingInterface>();
+
     _entityEditSender.setPacketsPerSecond(DEFAULT_ENTITY_PPS_PER_SCRIPT);
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
@@ -98,7 +113,6 @@ Agent::Agent(ReceivedMessage& message) :
         { PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
         this, "handleOctreePacket");
     packetReceiver.registerListener(PacketType::SelectedAudioFormat, this, "handleSelectedAudioFormat");
-
 
     // 100Hz timer for audio
     const int TARGET_INTERVAL_MSEC = 10; // 10ms
@@ -439,7 +453,7 @@ void Agent::executeScript() {
             encodedBuffer = audio;
         }
 
-        AbstractAudioInterface::emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), audioSequenceNumber, false, 
+        AbstractAudioInterface::emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), audioSequenceNumber, false,
             audioTransform, scriptedAvatar->getWorldPosition(), glm::vec3(0),
             packetType, _selectedCodecName);
     });
@@ -842,6 +856,9 @@ void Agent::aboutToFinish() {
     DependencyManager::destroy<recording::Recorder>();
     DependencyManager::destroy<recording::ClipCache>();
     DependencyManager::destroy<ScriptEngine>();
+
+    DependencyManager::destroy<ScriptableAvatar>();
+
     QMetaObject::invokeMethod(&_avatarAudioTimer, "stop");
 
     // cleanup codec & encoder

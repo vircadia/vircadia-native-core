@@ -29,6 +29,9 @@ namespace AvatarTraits {
     using TraitVersion = uint32_t;
     const TraitVersion DEFAULT_TRAIT_VERSION = 0;
 
+    using NullableTraitVersion = int64_t;
+    const NullableTraitVersion NULL_TRAIT_VERSION = -1;
+
     using TraitWireSize = uint16_t;
 
     using SimpleTraitVersions = std::vector<TraitVersion>;

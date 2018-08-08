@@ -39,7 +39,8 @@ const QString AVATAR_MIXER_LOGGING_NAME = "avatar-mixer";
 const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 45;
 
 AvatarMixer::AvatarMixer(ReceivedMessage& message) :
-    ThreadedAssignment(message)
+    ThreadedAssignment(message),
+    _slavePool(&_slaveSharedData)
 {
     // make sure we hear about node kills so we can tell the other nodes
     connect(DependencyManager::get<NodeList>().data(), &NodeList::nodeKilled, this, &AvatarMixer::handleAvatarKilled);
@@ -338,17 +339,7 @@ void AvatarMixer::manageIdentityData(const SharedNodePointer& node) {
         sendIdentity = true;
         qCDebug(avatars) << "Giving session display name" << sessionDisplayName << "to node with ID" << node->getUUID();
     }
-    if (nodeData && nodeData->getAvatarSkeletonModelUrlMustChange()) { // never true for an empty _avatarWhitelist
-        nodeData->setAvatarSkeletonModelUrlMustChange(false);
-        AvatarData& avatar = nodeData->getAvatar();
-        static const QUrl emptyURL("");
-        QUrl url = avatar.cannonicalSkeletonModelURL(emptyURL);
-        if (!isAvatarInWhitelist(url)) {
-            qCDebug(avatars) << "Forbidden avatar" << nodeData->getNodeID() << avatar.getSkeletonModelURL() << "replaced with" << (_replacementAvatar.isEmpty() ? "default" : _replacementAvatar);
-            avatar.setSkeletonModelURL(_replacementAvatar);
-            sendIdentity = true;
-        }
-    }
+
     if (sendIdentity && !node->isUpstream()) {
         sendIdentityPacket(nodeData, node); // Tell node whose name changed about its new session display name or avatar.
         // since this packet includes a change to either the skeleton model URL or the display name
@@ -358,22 +349,6 @@ void AvatarMixer::manageIdentityData(const SharedNodePointer& node) {
         // tell node whose name changed about its new session display name or avatar.
         sendIdentityPacket(nodeData, node);
     }
-}
-
-bool AvatarMixer::isAvatarInWhitelist(const QUrl& url) {
-    // The avatar is in the whitelist if:
-    // 1. The avatar's URL's host matches one of the hosts of the URLs in the whitelist AND
-    // 2. The avatar's URL's path starts with the path of that same URL in the whitelist
-    for (const auto& whiteListedPrefix : _avatarWhitelist) {
-        auto whiteListURL = QUrl::fromUserInput(whiteListedPrefix);
-        // check if this script URL matches the whitelist domain and, optionally, is beneath the path
-        if (url.host().compare(whiteListURL.host(), Qt::CaseInsensitive) == 0 &&
-            url.path().startsWith(whiteListURL.path(), Qt::CaseInsensitive)) {
-            return true;
-        }
-    }
-
-    return false;
 }
 
 void AvatarMixer::throttle(std::chrono::microseconds duration, int frame) {
@@ -588,17 +563,13 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
             // parse the identity packet and update the change timestamp if appropriate
             bool identityChanged = false;
             bool displayNameChanged = false;
-            bool skeletonModelUrlChanged = false;
-            avatar.processAvatarIdentity(message->getMessage(), identityChanged, displayNameChanged, skeletonModelUrlChanged);
+            avatar.processAvatarIdentity(message->getMessage(), identityChanged, displayNameChanged);
 
             if (identityChanged) {
                 QMutexLocker nodeDataLocker(&nodeData->getMutex());
                 nodeData->flagIdentityChange();
                 if (displayNameChanged) {
                     nodeData->setAvatarSessionDisplayNameMustChange(true);
-                }
-                if (skeletonModelUrlChanged && !_avatarWhitelist.isEmpty()) {
-                    nodeData->setAvatarSkeletonModelUrlMustChange(true);
                 }
             }
         }
@@ -992,20 +963,22 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
     qCDebug(avatars) << "This domain requires a minimum avatar height of" << _domainMinimumHeight
                      << "and a maximum avatar height of" << _domainMaximumHeight;
 
-    const QString AVATAR_WHITELIST_DEFAULT{ "" };
     static const QString AVATAR_WHITELIST_OPTION = "avatar_whitelist";
-    _avatarWhitelist = domainSettings[AVATARS_SETTINGS_KEY].toObject()[AVATAR_WHITELIST_OPTION].toString(AVATAR_WHITELIST_DEFAULT).split(',', QString::KeepEmptyParts);
+    _slaveSharedData.skeletonURLWhitelist = domainSettings[AVATARS_SETTINGS_KEY].toObject()[AVATAR_WHITELIST_OPTION]
+        .toString().split(',', QString::KeepEmptyParts);
 
     static const QString REPLACEMENT_AVATAR_OPTION = "replacement_avatar";
-    _replacementAvatar = domainSettings[AVATARS_SETTINGS_KEY].toObject()[REPLACEMENT_AVATAR_OPTION].toString(REPLACEMENT_AVATAR_DEFAULT);
+    _slaveSharedData.skeletonReplacementURL = domainSettings[AVATARS_SETTINGS_KEY].toObject()[REPLACEMENT_AVATAR_OPTION]
+        .toString();
 
-    if ((_avatarWhitelist.count() == 1) && _avatarWhitelist[0].isEmpty()) {
-        _avatarWhitelist.clear(); // KeepEmptyParts above will parse "," as ["", ""] (which is ok), but "" as [""] (which is not ok).
+    if (_slaveSharedData.skeletonURLWhitelist.count() == 1 && _slaveSharedData.skeletonURLWhitelist[0].isEmpty()) {
+        // KeepEmptyParts above will parse "," as ["", ""] (which is ok), but "" as [""] (which is not ok).
+        _slaveSharedData.skeletonURLWhitelist.clear();
     }
 
-    if (_avatarWhitelist.isEmpty()) {
+    if (_slaveSharedData.skeletonURLWhitelist.isEmpty()) {
         qCDebug(avatars) << "All avatars are allowed.";
     } else {
-        qCDebug(avatars) << "Avatars other than" << _avatarWhitelist << "will be replaced by" << (_replacementAvatar.isEmpty() ? "default" : _replacementAvatar);
+        qCDebug(avatars) << "Avatars other than" << _slaveSharedData.skeletonURLWhitelist << "will be replaced by" << (_slaveSharedData.skeletonReplacementURL.isEmpty() ? "default" : _slaveSharedData.skeletonReplacementURL.toString());
     }
 }
