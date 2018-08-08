@@ -75,7 +75,7 @@ QString ShapeInfo::getNameForShapeType(ShapeType type) {
 }
 
 ShapeType ShapeInfo::getShapeTypeForName(QString string) {
-    for (int i = 0; i < SHAPETYPE_NAME_COUNT; i++) {
+    for (int i = 0; i < (int)SHAPETYPE_NAME_COUNT; i++) {
         auto name = shapeTypeNames[i];
         if (name == string) {
             return (ShapeType)i;

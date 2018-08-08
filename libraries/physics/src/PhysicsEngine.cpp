@@ -845,8 +845,8 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
         desiredObjectType(desiredObjectType),
         collisionObject(),
         contacts(),
-        btCollisionWorld::ContactResultCallback(),
-        myAvatarCollisionObject(myAvatarCollisionObject) {
+        myAvatarCollisionObject(myAvatarCollisionObject),
+        btCollisionWorld::ContactResultCallback() {
         const btCollisionShape* collisionShape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
 
         collisionObject.setCollisionShape(const_cast<btCollisionShape*>(collisionShape));
