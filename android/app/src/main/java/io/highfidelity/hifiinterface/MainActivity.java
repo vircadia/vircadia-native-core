@@ -115,8 +115,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             case "Privacy Policy":
                 loadPrivacyPolicyFragment();
                 break;
-            case "Friends":
-                loadFriendsFragment();
+            case "People":
+                loadPeopleFragment();
                 break;
             default:
                 Log.e(TAG, "Unknown fragment " + fragment);
@@ -141,10 +141,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         loadFragment(fragment, getString(R.string.privacyPolicy), true);
     }
 
-    private void loadFriendsFragment() {
+    private void loadPeopleFragment() {
         Fragment fragment = FriendsFragment.newInstance();
 
-        loadFragment(fragment, getString(R.string.friends), true);
+        loadFragment(fragment, getString(R.string.people), true);
     }
 
     private void loadFragment(Fragment fragment, String title, boolean addToBackStack) {
@@ -212,8 +212,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             case R.id.action_home:
                 loadHomeFragment();
                 return true;
-            case R.id.action_friends:
-                loadFriendsFragment();
+            case R.id.action_people:
+                loadPeopleFragment();
                 return true;
         }
         return false;

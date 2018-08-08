@@ -6,7 +6,7 @@
         android:title="@string/home"
         />
     <item
-        android:id="@+id/action_friends"
-        android:title="@string/friends"
+        android:id="@+id/action_people"
+        android:title="@string/people"
         />
 </menu>
