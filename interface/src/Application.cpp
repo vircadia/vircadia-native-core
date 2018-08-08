@@ -8133,7 +8133,6 @@ void Application::setDisplayPlugin(DisplayPluginPointer newDisplayPlugin) {
 
     // reset the avatar, to set head and hand palms back to a reasonable default pose.
     getMyAvatar()->reset(false);
-
     // switch to first person if entering hmd and setting is checked
     if (menu) {
         QAction* action = menu->getActionForOption(newDisplayPlugin->getName());
