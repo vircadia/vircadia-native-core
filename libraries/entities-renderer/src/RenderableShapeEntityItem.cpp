@@ -268,8 +268,10 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
             geometryCache->renderSolidShapeInstance(args, batch, geometryShape, outColor, pipeline);
         }
     } else {
-        RenderPipelines::bindMaterial(mat, batch, args->_enableTexturing);
-        args->_details._materialSwitches++;
+        if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
+            RenderPipelines::bindMaterial(mat, batch, args->_enableTexturing);
+            args->_details._materialSwitches++;
+        }
 
         geometryCache->renderShape(batch, geometryShape);
     }
