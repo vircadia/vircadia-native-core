@@ -281,10 +281,12 @@ gpu::TexturePointer TextureCache::getImageTexture(const QString& path, image::Te
     auto loader = image::TextureUsage::getTextureLoaderForType(type, options);
 #ifdef USE_GLES
     gpu::BackendTarget target = gpu::BackendTarget::GLES32;
+    bool shouldCompress = true;
 #else
     gpu::BackendTarget target = gpu::BackendTarget::GL45;
+    bool shouldCompress = false;
 #endif
-    return gpu::TexturePointer(loader(std::move(image), path.toStdString(), false, target, false));
+    return gpu::TexturePointer(loader(std::move(image), path.toStdString(), shouldCompress, target, false));
 }
 
 QSharedPointer<Resource> TextureCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
@@ -1168,14 +1170,11 @@ void ImageReader::read() {
 
 #ifdef USE_GLES
         constexpr bool shouldCompress = true;
+        gpu::BackendTarget target = gpu::BackendTarget::GLES32;
 #else
         constexpr bool shouldCompress = false;
-#endif
-    #ifdef USE_GLES
-        gpu::BackendTarget target = gpu::BackendTarget::GLES32;
-    #else
         gpu::BackendTarget target = gpu::BackendTarget::GL45;
-    #endif
+#endif
         texture = image::processImage(std::move(buffer), _url.toString().toStdString(), _maxNumPixels, networkTexture->getTextureType(), shouldCompress, target);
 
         if (!texture) {
