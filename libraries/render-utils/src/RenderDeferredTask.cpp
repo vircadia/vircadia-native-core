@@ -45,6 +45,7 @@
 #include "TextureCache.h"
 #include "ZoneRenderer.h"
 #include "FadeEffect.h"
+#include "BloomStage.h"
 #include "RenderUtilsLogging.h"
 
 #include "AmbientOcclusionEffect.h"
@@ -171,7 +172,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto velocityBufferOutputs = task.addJob<VelocityBufferPass>("VelocityBuffer", velocityBufferInputs);
     const auto velocityBuffer = velocityBufferOutputs.getN<VelocityBufferPass::Outputs>(0);
 
-    // Clear Light, Haze and Skybox Stages and render zones from the general metas bucket
+    // Clear Light, Haze, Bloom, and Skybox Stages and render zones from the general metas bucket
     const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
 
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
@@ -184,6 +185,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
  
     // Add haze model
     const auto hazeModel = task.addJob<FetchHazeStage>("HazeModel");
+    // Add Bloom model
+    const auto bloomModel = task.addJob<FetchBloomStage>("BloomModel");
 
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     const auto deferredLightingInputs = RenderDeferred::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
@@ -240,8 +243,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
 
     // Add bloom
-    const auto bloomInputs = Bloom::Inputs(deferredFrameTransform, lightingFramebuffer).asVarying();
-    task.addJob<Bloom>("Bloom", bloomInputs);
+    const auto bloomInputs = BloomEffect::Inputs(deferredFrameTransform, lightingFramebuffer, bloomModel).asVarying();
+    task.addJob<BloomEffect>("Bloom", bloomInputs);
 
     // Lighting Buffer ready for tone mapping
     const auto toneMappingInputs = ToneMappingDeferred::Inputs(lightingFramebuffer, scaledPrimaryFramebuffer).asVarying();
