@@ -56,7 +56,7 @@
             presentationMode: Desktop.PresentationMode.NATIVE,
             size: {x: 400, y: 600}
         });
-        window.setPosition(200, 50);
+      //  window.setPosition(200, 50);
         window.closed.connect(killWindow);
         window.fromQml.connect(fromQml);
         onScreen = true
@@ -107,9 +107,7 @@
         }
     }
 
-    function fromQml(message) {
-    }
-        
+  
     button.clicked.connect(onClicked);
     tablet.screenChanged.connect(onScreenChanged);
 
@@ -127,6 +125,7 @@
     Script.include("./test_physics_scene.js")
 
     function fromQml(message) {
+        print("fromQml: " + JSON.stringify(message))
         switch (message.method) {
         case "createScene":
             createScene();
