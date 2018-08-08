@@ -37,6 +37,7 @@
 AnimationPropertyGroup EntityItemProperties::_staticAnimation;
 SkyboxPropertyGroup EntityItemProperties::_staticSkybox;
 HazePropertyGroup EntityItemProperties::_staticHaze;
+BloomPropertyGroup EntityItemProperties::_staticBloom;
 KeyLightPropertyGroup EntityItemProperties::_staticKeyLight;
 AmbientLightPropertyGroup EntityItemProperties::_staticAmbientLight;
 
@@ -84,6 +85,7 @@ void EntityItemProperties::debugDump() const {
     getHaze().debugDump();
     getKeyLight().debugDump();
     getAmbientLight().debugDump();
+    getBloom().debugDump();
 
     qCDebug(entities) << "   changed properties...";
     EntityPropertyFlags props = getChangedProperties();
@@ -211,6 +213,10 @@ QString EntityItemProperties::getHazeModeAsString() const {
     return getComponentModeAsString(_hazeMode);
 }
 
+QString EntityItemProperties::getBloomModeAsString() const {
+    return getComponentModeAsString(_bloomMode);
+}
+
 QString EntityItemProperties::getComponentModeString(uint32_t mode) {
     // return "inherit" if mode is not valid
     if (mode < COMPONENT_MODE_ITEM_COUNT) {
@@ -232,6 +238,15 @@ void EntityItemProperties::setHazeModeFromString(const QString& hazeMode) {
     if (result != COMPONENT_MODES.end()) {
         _hazeMode = result->first;
         _hazeModeChanged = true;
+    }
+}
+
+void EntityItemProperties::setBloomModeFromString(const QString& bloomMode) {
+    auto result = findComponent(bloomMode);
+
+    if (result != COMPONENT_MODES.end()) {
+        _bloomMode = result->first;
+        _bloomModeChanged = true;
     }
 }
 
@@ -394,6 +409,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_KEY_LIGHT_MODE, keyLightMode);
     CHECK_PROPERTY_CHANGE(PROP_AMBIENT_LIGHT_MODE, ambientLightMode);
     CHECK_PROPERTY_CHANGE(PROP_SKYBOX_MODE, skyboxMode);
+    CHECK_PROPERTY_CHANGE(PROP_BLOOM_MODE, bloomMode);
 
     CHECK_PROPERTY_CHANGE(PROP_SOURCE_URL, sourceUrl);
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_VOLUME_SIZE, voxelVolumeSize);
@@ -454,6 +470,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     changedProperties += _ambientLight.getChangedProperties();
     changedProperties += _skybox.getChangedProperties();
     changedProperties += _haze.getChangedProperties();
+    changedProperties += _bloom.getChangedProperties();
 
     return changedProperties;
 }
@@ -1164,6 +1181,12 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <code>"enabled"</code>: The haze properties of this zone are enabled, overriding the haze from any enclosing zone.
  * @property {Entities.Haze} haze - The haze properties of the zone.
  *
+ * @property {string} bloomMode="inherit" - Configures the bloom in the zone. Possible values:<br />
+ *     <code>"inherit"</code>: The bloom from any enclosing zone continues into this zone.<br />
+ *     <code>"disabled"</code>: The bloom from any enclosing zone and the bloom of this zone are disabled in this zone.<br />
+ *     <code>"enabled"</code>: The bloom properties of this zone are enabled, overriding the bloom from any enclosing zone.
+ * @property {Entities.Bloom} bloom - The bloom properties of the zone.
+ *
  * @property {boolean} flyingAllowed=true - If <code>true</code> then visitors can fly in the zone; otherwise they cannot.
  * @property {boolean} ghostingAllowed=true - If <code>true</code> then visitors with avatar collisions turned off will not 
  *     collide with content in the zone; otherwise visitors will always collide with content in the zone.
@@ -1381,6 +1404,9 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_HAZE_MODE, hazeMode, getHazeModeAsString());
         _haze.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BLOOM_MODE, bloomMode, getBloomModeAsString());
+        _bloom.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_KEY_LIGHT_MODE, keyLightMode, getKeyLightModeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_AMBIENT_LIGHT_MODE, ambientLightMode, getAmbientLightModeAsString());
@@ -1630,6 +1656,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(keyLightMode, KeyLightMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(ambientLightMode, AmbientLightMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(skyboxMode, SkyboxMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(bloomMode, BloomMode);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(sourceUrl, QString, setSourceUrl);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, vec3, setVoxelVolumeSize);
@@ -1662,6 +1689,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     _ambientLight.copyFromScriptValue(object, _defaultSettings);
     _skybox.copyFromScriptValue(object, _defaultSettings);
     _haze.copyFromScriptValue(object, _defaultSettings);
+    _bloom.copyFromScriptValue(object, _defaultSettings);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(xTextureURL, QString, setXTextureURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(yTextureURL, QString, setYTextureURL);
@@ -1803,6 +1831,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(keyLightMode);
     COPY_PROPERTY_IF_CHANGED(ambientLightMode);
     COPY_PROPERTY_IF_CHANGED(skyboxMode);
+    COPY_PROPERTY_IF_CHANGED(bloomMode);
 
     COPY_PROPERTY_IF_CHANGED(sourceUrl);
     COPY_PROPERTY_IF_CHANGED(voxelVolumeSize);
@@ -1825,6 +1854,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     _ambientLight.merge(other._ambientLight);
     _skybox.merge(other._skybox);
     _haze.merge(other._haze);
+    _bloom.merge(other._bloom);
 
     COPY_PROPERTY_IF_CHANGED(xTextureURL);
     COPY_PROPERTY_IF_CHANGED(yTextureURL);
@@ -2096,6 +2126,11 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_RANGE, Haze, haze, HazeKeyLightRange, hazeKeyLightRange);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_ALTITUDE, Haze, haze, HazeKeyLightAltitude, hazeKeyLightAltitude);
 
+        ADD_PROPERTY_TO_MAP(PROP_BLOOM_MODE, BloomMode, bloomMode, uint32_t);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_BLOOM_INTENSITY, Bloom, bloom, BloomIntensity, bloomIntensity);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_BLOOM_THRESHOLD, Bloom, bloom, BloomThreshold, bloomThreshold);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_BLOOM_SIZE, Bloom, bloom, BloomSize, bloomSize);
+
         ADD_PROPERTY_TO_MAP(PROP_KEY_LIGHT_MODE, KeyLightMode, keyLightMode, uint32_t);
         ADD_PROPERTY_TO_MAP(PROP_AMBIENT_LIGHT_MODE, AmbientLightMode, ambientLightMode, uint32_t);
         ADD_PROPERTY_TO_MAP(PROP_SKYBOX_MODE, SkyboxMode, skyboxMode, uint32_t);
@@ -2356,6 +2391,10 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, (uint32_t)properties.getHazeMode());
                 _staticHaze.setProperties(properties);
                 _staticHaze.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
+
+                APPEND_ENTITY_PROPERTY(PROP_BLOOM_MODE, (uint32_t)properties.getBloomMode());
+                _staticBloom.setProperties(properties);
+                _staticBloom.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
                 APPEND_ENTITY_PROPERTY(PROP_KEY_LIGHT_MODE, (uint32_t)properties.getKeyLightMode());
                 APPEND_ENTITY_PROPERTY(PROP_AMBIENT_LIGHT_MODE, (uint32_t)properties.getAmbientLightMode());
@@ -2731,6 +2770,9 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HAZE_MODE, uint32_t, setHazeMode);
         properties.getHaze().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BLOOM_MODE, uint32_t, setBloomMode);
+        properties.getBloom().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEY_LIGHT_MODE, uint32_t, setKeyLightMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_AMBIENT_LIGHT_MODE, uint32_t, setAmbientLightMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SKYBOX_MODE, uint32_t, setSkyboxMode);
@@ -3044,10 +3086,12 @@ void EntityItemProperties::markAllChanged() {
     _skyboxModeChanged = true;
     _ambientLightModeChanged = true;
     _hazeModeChanged = true;
+    _bloomModeChanged = true;
 
     _animation.markAllChanged();
     _skybox.markAllChanged();
     _haze.markAllChanged();
+    _bloom.markAllChanged();
 
     _sourceUrlChanged = true;
     _voxelVolumeSizeChanged = true;
@@ -3442,15 +3486,15 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (hazeModeChanged()) {
         out += "hazeMode";
     }
-
+    if (bloomModeChanged()) {
+        out += "bloomMode";
+    }
     if (keyLightModeChanged()) {
         out += "keyLightMode";
     }
-
     if (ambientLightModeChanged()) {
         out += "ambientLightMode";
     }
-
     if (skyboxModeChanged()) {
         out += "skyboxMode";
     }
@@ -3581,6 +3625,7 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     getAmbientLight().listChangedProperties(out);
     getSkybox().listChangedProperties(out);
     getHaze().listChangedProperties(out);
+    getBloom().listChangedProperties(out);
 
     return out;
 }

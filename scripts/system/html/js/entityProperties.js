@@ -839,7 +839,7 @@ function loaded() {
         var elZoneHazeModeInherit = document.getElementById("property-zone-haze-mode-inherit");
         var elZoneHazeModeDisabled = document.getElementById("property-zone-haze-mode-disabled");
         var elZoneHazeModeEnabled = document.getElementById("property-zone-haze-mode-enabled");
-        
+
         var elZoneHazeRange = document.getElementById("property-zone-haze-range");
         var elZoneHazeColor = document.getElementById("property-zone-haze-color");
         var elZoneHazeColorRed = document.getElementById("property-zone-haze-color-red");
@@ -857,6 +857,15 @@ function loaded() {
         var elZoneHazeCeiling = document.getElementById("property-zone-haze-ceiling");
 
         var elZoneHazeBackgroundBlend = document.getElementById("property-zone-haze-background-blend");
+
+        // Bloom
+        var elZoneBloomModeInherit = document.getElementById("property-zone-bloom-mode-inherit");
+        var elZoneBloomModeDisabled = document.getElementById("property-zone-bloom-mode-disabled");
+        var elZoneBloomModeEnabled = document.getElementById("property-zone-bloom-mode-enabled");
+
+        var elZoneBloomIntensity = document.getElementById("property-zone-bloom-intensity");
+        var elZoneBloomThreshold = document.getElementById("property-zone-bloom-threshold");
+        var elZoneBloomSize = document.getElementById("property-zone-bloom-size");
 
         var elZoneSkyboxColor = document.getElementById("property-zone-skybox-color");
         var elZoneSkyboxColorRed = document.getElementById("property-zone-skybox-color-red");
@@ -914,19 +923,19 @@ function loaded() {
                                 deleteJSONMaterialEditor();
                             }
                         }
-                        
+
                         elTypeIcon.style.display = "none";
                         elType.innerHTML = "<i>No selection</i>";
                         elPropertiesList.className = '';
-                        
+
                         elID.value = "";
                         elName.value = "";
                         elLocked.checked = false;
                         elVisible.checked = false;
-                        
+
                         elParentID.value = "";
                         elParentJointIndex.value = "";
-                        
+
                         elColorRed.value = "";
                         elColorGreen.value = "";
                         elColorBlue.value = "";
@@ -935,15 +944,15 @@ function loaded() {
                         elPositionX.value = "";
                         elPositionY.value = "";
                         elPositionZ.value = "";
-                        
+
                         elRotationX.value = "";
                         elRotationY.value = "";
                         elRotationZ.value = "";
-                        
+
                         elDimensionsX.value = "";
                         elDimensionsY.value = "";
                         elDimensionsZ.value = "";   
-                        
+
                         elRegistrationX.value = "";
                         elRegistrationY.value = "";
                         elRegistrationZ.value = "";
@@ -965,14 +974,14 @@ function loaded() {
                         elAccelerationX.value = "";
                         elAccelerationY.value = "";
                         elAccelerationZ.value = "";
-                        
+
                         elRestitution.value = "";
                         elFriction.value = "";
                         elDensity.value = "";
-                        
+
                         elCollisionless.checked = false;
                         elDynamic.checked = false;
-                        
+
                         elCollideStatic.checked = false;
                         elCollideKinematic.checked = false;
                         elCollideDynamic.checked = false;
@@ -989,27 +998,27 @@ function loaded() {
                         elCloneableGroup.style.display = "none";
                         elCloneableLimit.value = "";
                         elCloneableLifetime.value = "";
-                                            
-                        showElements(document.getElementsByClassName('can-cast-shadow-section'), true);                                 
+
+                        showElements(document.getElementsByClassName('can-cast-shadow-section'), true);
                         elCanCastShadow.checked = false;
-                        
+
                         elCollisionSoundURL.value = "";
                         elLifetime.value = "";
                         elScriptURL.value = "";
                         elServerScripts.value = "";
                         elHyperlinkHref.value = "";
                         elDescription.value = "";
-                        
+
                         deleteJSONEditor();
                         elUserData.value = "";
                         showUserDataTextArea();
                         showSaveUserDataButton();
                         showNewJSONEditorButton();
-                        
+
                         // Shape Properties
                         elShape.value = "Cube";
                         setDropdownText(elShape);
-                        
+
                         // Light Properties
                         elLightSpotLight.checked = false;
                         elLightColor.style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
@@ -1020,7 +1029,7 @@ function loaded() {
                         elLightFalloffRadius.value = "";
                         elLightExponent.value = "";
                         elLightCutoff.value = "";
-                        
+
                         // Model Properties
                         elModelURL.value = "";
                         elCompoundShapeURL.value = "";
@@ -1037,7 +1046,7 @@ function loaded() {
                         elModelAnimationAllowTranslation.checked = false;
                         elModelTextures.value = "";
                         elModelOriginalTextures.value = "";
-                                                
+
                         // Zone Properties
                         elZoneFlyingAllowed.checked = false;
                         elZoneGhostingAllowed.checked = false;
@@ -1067,6 +1076,9 @@ function loaded() {
                         elZoneHazeAltitudeEffect.checked = false;
                         elZoneHazeBaseRef.value = "";
                         elZoneHazeCeiling.value = "";
+                        elZoneBloomIntensity.value = "";
+                        elZoneBloomThreshold.value = "";
+                        elZoneBloomSize.value = "";
                         elZoneSkyboxColor.style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
                         elZoneSkyboxColorRed.value = "";
                         elZoneSkyboxColorGreen.value = "";
@@ -1076,7 +1088,8 @@ function loaded() {
                         showElements(document.getElementsByClassName('skybox-section'), true);
                         showElements(document.getElementsByClassName('ambient-section'), true);
                         showElements(document.getElementsByClassName('haze-section'), true);
-                        
+                        showElements(document.getElementsByClassName('bloom-section'), true);
+
                         // Text Properties
                         elTextText.value = "";
                         elTextLineHeight.value = "";
@@ -1089,14 +1102,14 @@ function loaded() {
                         elTextBackgroundColorRed.value = "";
                         elTextBackgroundColorGreen.value = "";
                         elTextBackgroundColorBlue.value = "";
-                                                
+
                         // Image Properties
                         elImageURL.value = "";
-                        
+
                         // Web Properties
                         elWebSourceURL.value = "";
                         elWebDPI.value = "";
-                        
+
                         // Material Properties
                         elMaterialURL.value = "";
                         elParentMaterialNameNumber.value = "";
@@ -1107,13 +1120,13 @@ function loaded() {
                         elMaterialMappingScaleX.value = "";
                         elMaterialMappingScaleY.value = "";
                         elMaterialMappingRot.value = "";
-                        
+
                         deleteJSONMaterialEditor();
                         elMaterialData.value = "";
                         showMaterialDataTextArea();
                         showSaveMaterialDataButton();
                         showNewJSONMaterialEditorButton();
-                        
+
                         disableProperties();
                     } else if (data.selections.length > 1) {
                         deleteJSONEditor();
@@ -1250,7 +1263,7 @@ function loaded() {
                         elCloneableGroup.style.display = elCloneable.checked ? "block": "none";
                         elCloneableLimit.value = properties.cloneLimit;
                         elCloneableLifetime.value = properties.cloneLifetime;
-                        
+
                         var grabbablesSet = false;
                         var parsedUserData = {};
                         try {
@@ -1476,6 +1489,14 @@ function loaded() {
                             elZoneHazeBaseRef.value = properties.haze.hazeBaseRef.toFixed(0);
                             elZoneHazeCeiling.value = properties.haze.hazeCeiling.toFixed(0);
 
+                            elZoneBloomModeInherit.checked = (properties.bloomMode === 'inherit');
+                            elZoneBloomModeDisabled.checked = (properties.bloomMode === 'disabled');
+                            elZoneBloomModeEnabled.checked = (properties.bloomMode === 'enabled');
+
+                            elZoneBloomIntensity.value = properties.bloom.bloomIntensity.toFixed(2);
+                            elZoneBloomThreshold.value = properties.bloom.bloomThreshold.toFixed(2);
+                            elZoneBloomSize.value = properties.bloom.bloomSize.toFixed(2);
+
                             elShapeType.value = properties.shapeType;
                             elCompoundShapeURL.value = properties.compoundShapeURL;
 
@@ -1502,6 +1523,9 @@ function loaded() {
 
                             showElements(document.getElementsByClassName('haze-section'),
                                 elZoneHazeModeEnabled.checked);
+
+                            showElements(document.getElementsByClassName('bloom-section'),
+                                elZoneBloomModeEnabled.checked);
                         } else if (properties.type === "PolyVox") {
                             elVoxelVolumeSizeX.value = properties.voxelVolumeSize.x.toFixed(2);
                             elVoxelVolumeSizeY.value = properties.voxelVolumeSize.y.toFixed(2);
@@ -2066,6 +2090,18 @@ function loaded() {
 
         elZoneHazeBackgroundBlend.addEventListener('change', 
             createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeBackgroundBlend'));
+
+        // Bloom
+        var bloomModeChanged = createZoneComponentModeChangedFunction('bloomMode',
+            elZoneBloomModeInherit, elZoneBloomModeDisabled, elZoneBloomModeEnabled);
+
+        elZoneBloomModeInherit.addEventListener('change', bloomModeChanged);
+        elZoneBloomModeDisabled.addEventListener('change', bloomModeChanged);
+        elZoneBloomModeEnabled.addEventListener('change', bloomModeChanged);
+
+        elZoneBloomIntensity.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('bloom', 'bloomIntensity'));
+        elZoneBloomThreshold.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('bloom', 'bloomThreshold'));
+        elZoneBloomSize.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('bloom', 'bloomSize'));
 
         var zoneSkyboxColorChangeFunction = createEmitGroupColorPropertyUpdateFunction('skybox', 'color',
             elZoneSkyboxColorRed, elZoneSkyboxColorGreen, elZoneSkyboxColorBlue);

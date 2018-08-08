@@ -25,11 +25,7 @@ BloomThreshold::BloomThreshold(unsigned int downsamplingFactor) {
     _parameters.edit()._sampleCount = downsamplingFactor;
 }
 
-void BloomThreshold::configure(const Config& config) {
-    if (_parameters.get()._threshold != config.threshold) {
-        _parameters.edit()._threshold = config.threshold;
-    }
-}
+void BloomThreshold::configure(const Config& config) {}
 
 void BloomThreshold::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
     assert(renderContext->args);
@@ -39,6 +35,7 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
 
     const auto frameTransform = inputs.get0();
     const auto inputFrameBuffer = inputs.get1();
+    const auto bloom = inputs.get2();
 
     assert(inputFrameBuffer->hasColor());
 
@@ -68,6 +65,28 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
 
     glm::ivec4 viewport{ 0, 0, bufferSize.x, bufferSize.y };
 
+    if (!bloom || !bloom->getBloomActive()) {
+        outputs = _outputBuffer;
+        return;
+    }
+
+    _parameters.edit()._threshold = bloom->getBloomThreshold();
+
+    //{
+    //    std::string blurName { "BloomBlurN" };
+    //    auto sigma = 0.5f + bloom->getBloomSize() * 3.5f;
+    //    auto task = static_cast<render::Task::TaskConcept*>(this);
+
+    //    for (auto i = 0; i < BLOOM_BLUR_LEVEL_COUNT; i++) {
+    //        blurName.back() = '0' + i;
+    //        auto blurJobIt = task->editJob(blurName);
+    //        assert(blurJobIt != task->_jobs.end());
+    //        auto& gaussianBlur = blurJobIt->edit<render::BlurGaussian>();
+    //        auto gaussianBlurParams = gaussianBlur.getParameters();
+    //        gaussianBlurParams->setFilterGaussianTaps(9, sigma);
+    //    }
+    //}
+
     gpu::doInBatch("BloomThreshold::run", args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
 
@@ -90,16 +109,7 @@ BloomApply::BloomApply() {
 
 }
 
-void BloomApply::configure(const Config& config) {
-    const auto newIntensity = config.intensity / 3.0f;
-
-    if (_parameters.get()._intensities.x != newIntensity) {
-        auto& parameters = _parameters.edit();
-        parameters._intensities.x = newIntensity;
-        parameters._intensities.y = newIntensity;
-        parameters._intensities.z = newIntensity;
-    }
-}
+void BloomApply::configure(const Config& config) {}
 
 void BloomApply::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
     assert(renderContext->args);
@@ -123,7 +133,18 @@ void BloomApply::run(const render::RenderContextPointer& renderContext, const In
     const auto blur0FB = inputs.get1();
     const auto blur1FB = inputs.get2();
     const auto blur2FB = inputs.get3();
+    const auto bloom = inputs.get4();
     const glm::ivec4 viewport{ 0, 0, framebufferSize.x, framebufferSize.y };
+
+    if (!bloom || !bloom->getBloomActive()) {
+        return;
+    }
+
+    const auto newIntensity = bloom->getBloomIntensity() / 3.0f;
+    auto& parameters = _parameters.edit();
+    parameters._intensities.x = newIntensity;
+    parameters._intensities.y = newIntensity;
+    parameters._intensities.z = newIntensity;
 
     gpu::doInBatch("BloomApply::run", args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -266,43 +287,9 @@ void DebugBloom::run(const render::RenderContextPointer& renderContext, const In
     });
 }
 
-void BloomConfig::setIntensity(float value) {
-    auto task = static_cast<render::Task::TaskConcept*>(_task);
-    auto blurJobIt = task->editJob("BloomApply");
-    assert(blurJobIt != task->_jobs.end());
-    blurJobIt->getConfiguration()->setProperty("intensity", value);
-}
+BloomEffect::BloomEffect() {}
 
-float BloomConfig::getIntensity() const {
-    auto task = static_cast<render::Task::TaskConcept*>(_task);
-    auto blurJobIt = task->getJob("BloomApply");
-    assert(blurJobIt != task->_jobs.end());
-    return blurJobIt->getConfiguration()->property("intensity").toFloat();
-}
-
-void BloomConfig::setSize(float value) {
-    std::string blurName{ "BloomBlurN" };
-    auto sigma = 0.5f+value*3.5f;
-    auto task = static_cast<render::Task::TaskConcept*>(_task);
-
-    for (auto i = 0; i < BLOOM_BLUR_LEVEL_COUNT; i++) {
-        blurName.back() = '0' + i;
-        auto blurJobIt = task->editJob(blurName);
-        assert(blurJobIt != task->_jobs.end());
-        auto& gaussianBlur = blurJobIt->edit<render::BlurGaussian>();
-        auto gaussianBlurParams = gaussianBlur.getParameters();
-        gaussianBlurParams->setFilterGaussianTaps(9, sigma);
-    }
-    auto blurJobIt = task->getJob("BloomApply");
-    assert(blurJobIt != task->_jobs.end());
-    blurJobIt->getConfiguration()->setProperty("sigma", sigma);
-}
-
-Bloom::Bloom() {
-
-}
-
-void Bloom::configure(const Config& config) {
+void BloomEffect::configure(const Config& config) {
     std::string blurName{ "BloomBlurN" };
 
     for (auto i = 0; i < BLOOM_BLUR_LEVEL_COUNT; i++) {
@@ -312,7 +299,7 @@ void Bloom::configure(const Config& config) {
     }
 }
 
-void Bloom::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs) {
+void BloomEffect::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs) {
     // Start by computing threshold of color buffer input at quarter resolution
     const auto bloomInputBuffer = task.addJob<BloomThreshold>("BloomThreshold", inputs, 4U);
 
@@ -325,7 +312,7 @@ void Bloom::build(JobModel& task, const render::Varying& inputs, render::Varying
     const auto& frameBuffer = input[1];
 
     // Mix all blur levels at quarter resolution
-    const auto applyInput = BloomApply::Inputs(bloomInputBuffer, blurFB0, blurFB1, blurFB2).asVarying();
+    const auto applyInput = BloomApply::Inputs(bloomInputBuffer, blurFB0, blurFB1, blurFB2, input.get2()).asVarying();
     task.addJob<BloomApply>("BloomApply", applyInput);
     // And then blend result in additive manner on top of final color buffer
     const auto drawInput = BloomDraw::Inputs(frameBuffer, bloomInputBuffer).asVarying();
