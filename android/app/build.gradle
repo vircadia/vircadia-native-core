@@ -24,6 +24,7 @@ android {
                     '-DANDROID_STL=c++_shared',
                     '-DQT_CMAKE_PREFIX_PATH=' + HIFI_ANDROID_PRECOMPILED + '/qt/lib/cmake',
                     '-DNATIVE_SCRIBE=' + HIFI_ANDROID_PRECOMPILED + '/scribe' + EXEC_SUFFIX,
+                    '-DNATIVE_SHREFLECT=' + HIFI_ANDROID_PRECOMPILED + '/shreflect' + EXEC_SUFFIX,
                     '-DHIFI_ANDROID_PRECOMPILED=' + HIFI_ANDROID_PRECOMPILED,
                     '-DRELEASE_NUMBER=' + RELEASE_NUMBER,
                     '-DRELEASE_TYPE=' + RELEASE_TYPE,

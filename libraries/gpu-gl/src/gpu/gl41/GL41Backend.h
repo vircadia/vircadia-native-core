@@ -19,11 +19,7 @@
 #define GPU_CORE_41 410
 #define GPU_CORE_43 430
 
-#ifdef Q_OS_MAC
 #define GPU_INPUT_PROFILE GPU_CORE_41
-#else 
-#define GPU_INPUT_PROFILE GPU_CORE_43
-#endif
 
 namespace gpu { namespace gl41 {
 
@@ -35,7 +31,6 @@ class GL41Backend : public GLBackend {
     friend class Context;
 
 public:
-    static const GLint TRANSFORM_OBJECT_SLOT  { 31 };
     static const GLint RESOURCE_TRANSFER_TEX_UNIT { 32 };
     static const GLint RESOURCE_TRANSFER_EXTRA_TEX_UNIT { 33 };
     static const GLint RESOURCE_BUFFER_TEXBUF_TEX_UNIT { 34 };
@@ -172,9 +167,8 @@ protected:
     void do_blit(const Batch& batch, size_t paramOffset) override;
 
     std::string getBackendShaderHeader() const override;
-    void makeProgramBindings(ShaderObject& shaderObject) override;
-    int makeResourceBufferSlots(const ShaderObject& shaderProgram, const Shader::BindingSet& slotBindings,Shader::SlotSet& resourceBuffers) override;
 
+    void postLinkProgram(ShaderObject& programObject, const Shader& program) const override;
 };
 
 } }

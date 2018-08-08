@@ -44,11 +44,11 @@
 #include <shared/RateCounter.h>
 #include <AssetClient.h>
 #include <PathUtils.h>
+#include <shaders/Shaders.h>
 
 #include <gpu/gl/GLBackend.h>
 #include <gpu/gl/GLFramebuffer.h>
 #include <gpu/gl/GLTexture.h>
-#include <gpu/StandardShaderLib.h>
 
 #include <GenericThread.h>
 #include <AddressManager.h>
@@ -154,11 +154,7 @@ public:
         //wglSwapIntervalEXT(0);
         _frameTimes.resize(FRAME_TIME_BUFFER_SIZE, 0);
         {
-            auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-            auto ps = gpu::StandardShaderLib::getDrawTexturePS();
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-            gpu::Shader::BindingSet slotBindings;
-            gpu::Shader::makeProgram(*program, slotBindings);
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawTransformUnitQuadTextureOpaque);
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
             _presentPipeline = gpu::Pipeline::create(program, state);
         }
@@ -345,10 +341,7 @@ public:
         _renderThread.submitFrame(gpu::FramePointer());
         _initContext.makeCurrent();
         {
-            auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-            auto ps = gpu::StandardShaderLib::getDrawTexturePS();
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-            gpu::Shader::makeProgram(*program);
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawTransformUnitQuadTextureOpaque);
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
             state->setDepthTest(gpu::State::DepthTest(false));
             state->setScissorEnable(true);

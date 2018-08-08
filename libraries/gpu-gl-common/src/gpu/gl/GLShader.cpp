@@ -56,52 +56,5 @@ GLShader* GLShader::sync(GLBackend& backend, const Shader& shader, const Shader:
     return object;
 }
 
-bool GLShader::makeProgram(GLBackend& backend, Shader& shader, const Shader::BindingSet& slotBindings, const Shader::CompilationHandler& handler) {
-
-    // First make sure the Shader has been compiled
-    GLShader* object = sync(backend, shader, handler);
-    if (!object) {
-        return false;
-    }
-
-    // Apply bindings to all program versions and generate list of slots from default version
-    for (int version = 0; version < GLShader::NumVersions; version++) {
-        auto& shaderObject = object->_shaderObjects[version];
-        if (shaderObject.glprogram) {
-            shaderObject.uniforms = ::gl::loadUniforms(shaderObject.glprogram);
-            Shader::SlotSet buffers;
-            backend.makeUniformBlockSlots(shaderObject, slotBindings, buffers);
-
-            Shader::SlotSet uniforms;
-            Shader::SlotSet textures;
-            Shader::SlotSet samplers;
-            backend.makeUniformSlots(shaderObject, slotBindings, uniforms, textures, samplers);
-
-            Shader::SlotSet resourceBuffers;
-            backend.makeResourceBufferSlots(shaderObject, slotBindings, resourceBuffers);
-
-            Shader::SlotSet inputs;
-            backend.makeInputSlots(shaderObject, slotBindings, inputs);
-
-            Shader::SlotSet outputs;
-            backend.makeOutputSlots(shaderObject, slotBindings, outputs);
-
-            // Define the public slots only from the default version
-            if (version == 0) {
-                shader.defineSlots(uniforms, buffers, resourceBuffers, textures, samplers, inputs, outputs);
-            } // else
-            {
-                GLShader::UniformMapping mapping;
-                for (auto srcUniform : shader.getUniforms()) {
-                    mapping[srcUniform._location] = uniforms.findLocation(srcUniform._name);
-                }
-                object->_uniformMappings.push_back(mapping);
-            }
-        }
-    }
-
-    return true;
-}
-
 
 

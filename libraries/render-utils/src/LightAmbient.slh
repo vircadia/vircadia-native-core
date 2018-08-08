@@ -6,9 +6,10 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
+<@include render-utils/ShaderConstants.h@>
 <@func declareSkyboxMap()@>
 // declareSkyboxMap
-uniform samplerCube skyboxMap;
+layout(binding=RENDER_UTILS_TEXTURE_SKYBOX) uniform samplerCube skyboxMap;
 
 vec4 evalSkyboxLight(vec3 direction, float lod) {
     // textureQueryLevels is not available until #430, so we require explicit lod

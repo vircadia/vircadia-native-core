@@ -19,12 +19,9 @@
 
 #include <gpu/Context.h>
 
-#include "Args.h"
+#include <shaders/Shaders.h>
 
-#include "drawItemBounds_vert.h"
-#include "drawItemBounds_frag.h"
-#include "drawItemStatus_vert.h"
-#include "drawItemStatus_frag.h"
+#include "Args.h"
 
 using namespace render;
 
@@ -35,16 +32,10 @@ void DrawStatusConfig::dirtyHelper() {
 
 const gpu::PipelinePointer DrawStatus::getDrawItemBoundsPipeline() {
     if (!_drawItemBoundsPipeline) {
-        auto vs = drawItemBounds_vert::getShader();
-        auto ps = drawItemBounds_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        gpu::Shader::makeProgram(*program, slotBindings);
-
-        _drawItemBoundPosLoc = program->getUniforms().findLocation("inBoundPos");
-        _drawItemBoundDimLoc = program->getUniforms().findLocation("inBoundDim");
-        _drawItemCellLocLoc = program->getUniforms().findLocation("inCellLocation");
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::drawItemBounds);
+        //_drawItemBoundPosLoc = program->getUniforms().findLocation("inBoundPos");
+        //_drawItemBoundDimLoc = program->getUniforms().findLocation("inBoundDim");
+        //_drawItemCellLocLoc = program->getUniforms().findLocation("inCellLocation");
 
         auto state = std::make_shared<gpu::State>();
 
@@ -63,18 +54,11 @@ const gpu::PipelinePointer DrawStatus::getDrawItemBoundsPipeline() {
 
 const gpu::PipelinePointer DrawStatus::getDrawItemStatusPipeline() {
     if (!_drawItemStatusPipeline) {
-        auto vs = drawItemStatus_vert::getShader();
-        auto ps = drawItemStatus_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("iconStatusMap"), 0));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
-        _drawItemStatusPosLoc = program->getUniforms().findLocation("inBoundPos");
-        _drawItemStatusDimLoc = program->getUniforms().findLocation("inBoundDim");
-        _drawItemStatusValue0Loc = program->getUniforms().findLocation("inStatus0");
-        _drawItemStatusValue1Loc = program->getUniforms().findLocation("inStatus1");
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::blurGaussianDepthAwareV);
+        //_drawItemStatusPosLoc = program->getUniforms().findLocation("");
+        //_drawItemStatusDimLoc = program->getUniforms().findLocation("");
+        //_drawItemStatusValue0Loc = program->getUniforms().findLocation("");
+        //_drawItemStatusValue1Loc = program->getUniforms().findLocation("");
 
         auto state = std::make_shared<gpu::State>();
 
@@ -189,11 +173,10 @@ void DrawStatus::run(const RenderContextPointer& renderContext, const Input& inp
 
         if (_showDisplay) {
             for (int i = 0; i < nbItems; i++) {
-                batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*)&(_itemBounds[i]));
-                batch._glUniform3fv(_drawItemBoundDimLoc, 1, ((const float*)&(_itemBounds[i])) + VEC3_ADRESS_OFFSET);
-
-                glm::ivec4 cellLocation(_itemCells[i].pos, _itemCells[i].depth);
-                batch._glUniform4iv(_drawItemCellLocLoc, 1, ((const int*)(&cellLocation)));
+                //batch._glUniform3fv(gpu::slot::uniform::Extra0, 1, (const float*)&(_itemBounds[i]));
+                //batch._glUniform3fv(gpu::slot::uniform::Extra1, 1, ((const float*)&(_itemBounds[i])) + VEC3_ADRESS_OFFSET);
+                //glm::ivec4 cellLocation(_itemCells[i].pos, _itemCells[i].depth);
+                //batch._glUniform4iv(_drawItemCellLocLoc, 1, ((const int*)(&cellLocation)));
                 batch.draw(gpu::LINES, 24, 0);
             }
         }
@@ -204,10 +187,10 @@ void DrawStatus::run(const RenderContextPointer& renderContext, const Input& inp
 
         if (_showNetwork) {
             for (int i = 0; i < nbItems; i++) {
-                batch._glUniform3fv(_drawItemStatusPosLoc, 1, (const float*)&(_itemBounds[i]));
-                batch._glUniform3fv(_drawItemStatusDimLoc, 1, ((const float*)&(_itemBounds[i])) + VEC3_ADRESS_OFFSET);
-                batch._glUniform4iv(_drawItemStatusValue0Loc, 1, (const int*)&(_itemStatus[i].first));
-                batch._glUniform4iv(_drawItemStatusValue1Loc, 1, (const int*)&(_itemStatus[i].second));
+                batch._glUniform3fv(gpu::slot::uniform::Extra0, 1, (const float*)&(_itemBounds[i]));
+                batch._glUniform3fv(gpu::slot::uniform::Extra1, 1, ((const float*)&(_itemBounds[i])) + VEC3_ADRESS_OFFSET);
+                batch._glUniform4iv(gpu::slot::uniform::Extra2, 1, (const int*)&(_itemStatus[i].first));
+                batch._glUniform4iv(gpu::slot::uniform::Extra3, 1, (const int*)&(_itemStatus[i].second));
                 batch.draw(gpu::TRIANGLES, 24 * NUM_STATUS_VEC4_PER_ITEM, 0);
             }
         }

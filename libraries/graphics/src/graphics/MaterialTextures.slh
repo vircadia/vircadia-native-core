@@ -11,6 +11,8 @@
 <@if not MODEL_MATERIAL_TEXTURES_SLH@>
 <@def MODEL_MATERIAL_TEXTURES_SLH@>
 
+<@include graphics/ShaderConstants.h@>
+
 <@func declareMaterialTexMapArrayBuffer()@>
 
 const int MAX_TEXCOORDS = 2;
@@ -22,7 +24,7 @@ struct TexMapArray {
     vec4 _lightmapParams;
 };
 
-uniform texMapArrayBuffer {
+layout(binding=GRAPHICS_BUFFER_TEXMAPARRAY) uniform texMapArrayBuffer {
     TexMapArray _texMapArray;
 };
 
@@ -123,21 +125,21 @@ float fetchScatteringMap(vec2 uv) {
 #else
 
 <@if withAlbedo@>
-uniform sampler2D albedoMap;
+layout(binding=GRAPHICS_TEXTURE_MATERIAL_ALBEDO) uniform sampler2D albedoMap;
 vec4 fetchAlbedoMap(vec2 uv) {
     return texture(albedoMap, uv, TAA_TEXTURE_LOD_BIAS);
 }
 <@endif@>
 
 <@if withRoughness@>
-uniform sampler2D roughnessMap;
+layout(binding=GRAPHICS_TEXTURE_MATERIAL_ROUGHNESS) uniform sampler2D roughnessMap;
 float fetchRoughnessMap(vec2 uv) {
     return (texture(roughnessMap, uv, TAA_TEXTURE_LOD_BIAS).r);
 }
 <@endif@>
 
 <@if withNormal@>
-uniform sampler2D normalMap;
+layout(binding=GRAPHICS_TEXTURE_MATERIAL_NORMAL) uniform sampler2D normalMap;
 vec3 fetchNormalMap(vec2 uv) {
     // unpack normal, swizzle to get into hifi tangent space with Y axis pointing out
     vec2 t = 2.0 * (texture(normalMap, uv, TAA_TEXTURE_LOD_BIAS).rg - vec2(0.5, 0.5));
@@ -147,28 +149,28 @@ vec3 fetchNormalMap(vec2 uv) {
 <@endif@>
 
 <@if withMetallic@>
-uniform sampler2D metallicMap;
+layout(binding=GRAPHICS_TEXTURE_MATERIAL_METALLIC) uniform sampler2D metallicMap;
 float fetchMetallicMap(vec2 uv) {
     return (texture(metallicMap, uv, TAA_TEXTURE_LOD_BIAS).r);
 }
 <@endif@>
 
 <@if withEmissive@>
-uniform sampler2D emissiveMap;
+layout(binding=GRAPHICS_TEXTURE_MATERIAL_EMISSIVE_LIGHTMAP) uniform sampler2D emissiveMap;
 vec3 fetchEmissiveMap(vec2 uv) {
     return texture(emissiveMap, uv, TAA_TEXTURE_LOD_BIAS).rgb;
 }
 <@endif@>
 
 <@if withOcclusion@>
-uniform sampler2D occlusionMap;
+layout(binding=GRAPHICS_TEXTURE_MATERIAL_OCCLUSION) uniform sampler2D occlusionMap;
 float fetchOcclusionMap(vec2 uv) {
     return texture(occlusionMap, uv).r;
 }
 <@endif@>
 
 <@if withScattering@>
-uniform sampler2D scatteringMap;
+layout(binding=GRAPHICS_TEXTURE_MATERIAL_SCATTERING) uniform sampler2D scatteringMap;
 float fetchScatteringMap(vec2 uv) {
     float scattering = texture(scatteringMap, uv, TAA_TEXTURE_LOD_BIAS).r; // boolean scattering for now
     return max(((scattering - 0.1) / 0.9), 0.0);
@@ -217,10 +219,10 @@ float fetchScatteringMap(vec2 uv) {
 
 <$declareMaterialTexMapArrayBuffer()$>
 
-uniform sampler2D emissiveMap;
+layout(binding=GRAPHICS_TEXTURE_MATERIAL_EMISSIVE_LIGHTMAP) uniform sampler2D emissiveMap;
 vec3 fetchLightmapMap(vec2 uv) {
-    vec2 emissiveParams = getTexMapArray()._lightmapParams.xy;
-    return (vec3(emissiveParams.x) + emissiveParams.y * texture(emissiveMap, uv).rgb);
+    vec2 lightmapParams = getTexMapArray()._lightmapParams.xy;
+    return (vec3(lightmapParams.x) + lightmapParams.y * texture(emissiveMap, uv).rgb);
 }
 <@endfunc@>
 
@@ -267,7 +269,14 @@ vec3 fetchLightmapMap(vec2 uv) {
 
 <@func discardTransparent(opacity)@>
 {
-    if (<$opacity$> < 1e-6) {
+    if (<$opacity$> < 1.0) {
+        discard;
+    }
+}
+<@endfunc@>
+<@func discardInvisible(opacity)@>
+{
+    if (<$opacity$> < 1.e-6) {
         discard;
     }
 }

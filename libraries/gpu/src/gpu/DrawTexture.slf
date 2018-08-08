@@ -2,6 +2,8 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
+//  DrawTexture.frag
+//
 //  Draw texture 0 fetched at texcoord.xy
 //
 //  Created by Sam Gateau on 6/22/2015
@@ -12,10 +14,10 @@
 //
 
 
-uniform sampler2D colorMap;
+layout(binding=0) uniform sampler2D colorMap;
 
-in vec2 varTexCoord0;
-out vec4 outFragColor;
+layout(location=0) in vec2 varTexCoord0;
+layout(location=0) out vec4 outFragColor;
 
 void main(void) {
     outFragColor = texture(colorMap, varTexCoord0);

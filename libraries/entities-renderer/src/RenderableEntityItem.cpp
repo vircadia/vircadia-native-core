@@ -336,6 +336,11 @@ bool EntityRenderer::needsRenderUpdate() const {
     if (_needsRenderUpdate) {
         return true;
     }
+
+    if (isFading()) {
+        return true;
+    }
+
     if (_prevIsTransparent != isTransparent()) {
         return true;
     }
@@ -380,6 +385,10 @@ void EntityRenderer::updateModelTransformAndBound() {
 void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transaction& transaction, const EntityItemPointer& entity) {
     DETAILED_PROFILE_RANGE(simulation_physics, __FUNCTION__);
     withWriteLock([&] {
+        if (isFading()) {
+            emit requestRenderUpdate();
+        }
+
         auto transparent = isTransparent();
         if (_prevIsTransparent && !transparent) {
             _isFading = false;

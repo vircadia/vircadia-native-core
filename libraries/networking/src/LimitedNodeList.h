@@ -307,6 +307,8 @@ public:
 
     bool isPacketVerifiedWithSource(const udt::Packet& packet, Node* sourceNode = nullptr);
     bool isPacketVerified(const udt::Packet& packet) { return isPacketVerifiedWithSource(packet); }
+    void setAuthenticatePackets(bool useAuthentication) { _useAuthentication = useAuthentication; }
+    bool getAuthenticatePackets() const { return _useAuthentication; }
 
     static void makeSTUNRequestPacket(char* stunRequestPacket);
 
@@ -394,6 +396,7 @@ protected:
     HifiSockAddr _publicSockAddr;
     HifiSockAddr _stunSockAddr { STUN_SERVER_HOSTNAME, STUN_SERVER_PORT };
     bool _hasTCPCheckedLocalSocket { false };
+    bool _useAuthentication { true };
 
     PacketReceiver* _packetReceiver;
 
