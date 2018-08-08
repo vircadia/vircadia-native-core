@@ -42,6 +42,48 @@ extern "C" {
 int main(int argc, const char* argv[]) {
     setupHifiApplication(BuildInfo::INTERFACE_NAME);
 
+    QStringList arguments;
+    for (int i = 0; i < argc; ++i) {
+        arguments << argv[i];
+    }
+
+    QCommandLineParser parser;
+    parser.setApplicationDescription("High Fidelity Interface");
+    QCommandLineOption versionOption = parser.addVersionOption();
+    QCommandLineOption helpOption = parser.addHelpOption();
+
+    QCommandLineOption urlOption("url", "", "value");
+    QCommandLineOption noUpdaterOption("no-updater", "Do not show auto-updater");
+    QCommandLineOption checkMinSpecOption("checkMinSpec", "Check if machine meets minimum specifications");
+    QCommandLineOption runServerOption("runServer", "Whether to run the server");
+    QCommandLineOption serverContentPathOption("serverContentPath", "Where to find server content", "serverContentPath");
+    QCommandLineOption allowMultipleInstancesOption("allowMultipleInstances", "Allow multiple instances to run");
+    QCommandLineOption overrideAppLocalDataPathOption("cache", "set test cache <dir>", "dir");
+    QCommandLineOption overrideScriptsPathOption(SCRIPTS_SWITCH, "set scripts <path>", "path");
+
+    parser.addOption(urlOption);
+    parser.addOption(noUpdaterOption);
+    parser.addOption(checkMinSpecOption);
+    parser.addOption(runServerOption);
+    parser.addOption(serverContentPathOption);
+    parser.addOption(overrideAppLocalDataPathOption);
+    parser.addOption(overrideScriptsPathOption);
+    parser.addOption(allowMultipleInstancesOption);
+
+    if (!parser.parse(arguments)) {
+        std::cout << parser.errorText().toStdString() << std::endl; // Avoid Qt log spam
+    }
+
+    if (parser.isSet(versionOption)) {
+        parser.showVersion();
+        Q_UNREACHABLE();
+    }
+    if (parser.isSet(helpOption)) {
+        QCoreApplication mockApp(argc, const_cast<char**>(argv)); // required for call to showHelp()
+        parser.showHelp();
+        Q_UNREACHABLE();
+    }
+
     // Early check for --traceFile argument 
     auto tracer = DependencyManager::set<tracing::Tracer>();
     const char * traceFile = nullptr;
@@ -94,30 +136,6 @@ int main(int argc, const char* argv[]) {
         auto crashHandlerStarted = startCrashHandler(argv[0]);
         qDebug() << "Crash handler started:" << crashHandlerStarted;
     }
-
-    QStringList arguments;
-    for (int i = 0; i < argc; ++i) {
-        arguments << argv[i];
-    }
-
-    QCommandLineParser parser;
-    QCommandLineOption urlOption("url", "", "value");
-    QCommandLineOption noUpdaterOption("no-updater", "Do not show auto-updater");
-    QCommandLineOption checkMinSpecOption("checkMinSpec", "Check if machine meets minimum specifications");
-    QCommandLineOption runServerOption("runServer", "Whether to run the server");
-    QCommandLineOption serverContentPathOption("serverContentPath", "Where to find server content", "serverContentPath");
-    QCommandLineOption allowMultipleInstancesOption("allowMultipleInstances", "Allow multiple instances to run");
-    QCommandLineOption overrideAppLocalDataPathOption("cache", "set test cache <dir>", "dir");
-    QCommandLineOption overrideScriptsPathOption(SCRIPTS_SWITCH, "set scripts <path>", "path");
-    parser.addOption(urlOption);
-    parser.addOption(noUpdaterOption);
-    parser.addOption(checkMinSpecOption);
-    parser.addOption(runServerOption);
-    parser.addOption(serverContentPathOption);
-    parser.addOption(overrideAppLocalDataPathOption);
-    parser.addOption(overrideScriptsPathOption);
-    parser.addOption(allowMultipleInstancesOption);
-    parser.parse(arguments);
 
 
     const QString& applicationName = getInterfaceSharedMemoryName();
