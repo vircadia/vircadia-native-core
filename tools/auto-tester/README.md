@@ -12,72 +12,98 @@ Auto-tester has 4 functions, separated into 4 tabs:
 4. Windows task bar utility (Windows only)
 
 
-## Evaluation - general
-A checkbox is provided for de-selecting interactive mode.  If this checkbox ix selected then each error will be displayed to the user; otherwise, the evaluation will procede till completion.  In both cases, all errors are logged to file.
-For each failed test, a zipped folder is created within the test folder, named *TestResults*.  This folder contains a folder for each failed test named *Failure_n*, numbered sequentially.  Each folder contains 4 files:
-1. Expected Image
-2. Actual Image
-3. Difference Image
-4. TestResults - a text file providing details of the test folder, the original image names, and the size of the mismatch.
-### Evaluate Test
-Evaluating a test is performed after running a **test.js** script to create new snapshots.  After selecting the folder, the images are compared in lexical order.  If the similarity between any image pair does not pass a fixed threshold, the image pair is displayed and the user can select to accept the difference, fail this specific test case, or abort testing.
-![](./autoTesterMismatchExample.png)
-### Evaluate Tests Recursively
-This is a recursive version of the previous function.  Auto-tester will recurse through all folders from the selected folder.  A test will be evaluated if the following is true:
-* The folder contains a **test.js** script
-* The number of actual and expected snapshots is the same (see Create Test for an explanation)
-### Create a recursive test script
-Auto-tester will create a script named **allTests.js** that will call all **test.js** scripts found in the folder, and any subfolders.  An example of the script created is:
+# Create
+![](./Create.png)
+The Create tab provides functions to create tests from snapshots, MD files, a test outline and recursive scripts.
+## Create Tests
+### Usage
+This function is used to create/update Expected Images after a successful run of a test, or multiple tests.
+
+The user will be asked for the snapshot folder and then the tests root folder.  All snapshots located in the snapshot folder will be used to create or update the expected images in the relevant tests.
+### Details
+As an example - if the snapshots folder contains an image named `tests.content.entity.zone.zoneOrientation.00003.png`, then this file will be copied to `tests/contente/enity/zone/zoneOrientation/ExpectedImage0003.png`.
+## Create MD file
+### Usage
+This function creates a file named `test.md` from a `test.js` script.  The user will be asked for the folder containing the test script:
+### Details
+The process to produce the MD file is a simplistic parse of the test script.
+- The string in the `autoTester.perform(...)` function call will be the title of the file
+
+- Instructions to run the script are then provided: 
+
+**Run this script URL: [Manual]()   [Auto]()(from menu/Edit/Open and Run scripts from URL...).**
+
+- The step description is the string in the addStep/addStepStepSnapshot commands
+
+- Image links are provided where applicable to the local Expected Images files
+## Create all MD files
+### Usage
+This function creates all MD files recursively from the user-selected root folder.  This can be any folder in the tests hierarchy (e.g. all engine\material tests).
+
+The file provides a hierarchial list of all the tests 
+## Create Tests Outline
+### Usage
+This function creates an MD file in the (user-selected) tests root folder.  The file provides links to both the tests and the MD files.
+## Create Recursive Script
+### Usage
+After the user selects a folder within the tests hierarchy, a script is created, named `testRecursive.js`.  This script calls all `test.js` scripts in the subfolders.
+### Details
+The various scripts are called in alphabetical order.
+
+An example of a recursive script is as follows:  
 ```
-// This is an automatically generated file, created by auto-tester
-var test1 = Script.require("file:///D:/GitHub/hifi-tests/tests/content/entity/zone/ambientLightInheritance/test.js");
-var test2 = Script.require("file:///D:/GitHub/hifi-tests/tests/content/entity/zone/create/test.js");
-var test3 = Script.require("file:///D:/GitHub/hifi-tests/tests/content/entity/zone/createMultipleZones/test.js");
+// This is an automatically generated file, created by auto-tester on Jul 5 2018, 10:19
 
-var test1HasNotStarted = true;
-var test2HasNotStarted = true;
-var test3HasNotStarted = true;
+PATH_TO_THE_REPO_PATH_UTILS_FILE = "https://raw.githubusercontent.com/highfidelity/hifi_tests/master/tests/utils/branchUtils.js";
+Script.include(PATH_TO_THE_REPO_PATH_UTILS_FILE);
+var autoTester = createAutoTester(Script.resolvePath("."));
 
-// Check every second if the current test is complete and the next test can be run
-var testTimer = Script.setInterval(
-    function() {
-        if (test1HasNotStarted) {
-            test1HasNotStarted = false;
-            test1.test();
-            print("******started test 1******");
-        }
+var testsRootPath = autoTester.getTestsRootPath();
 
-        if (test1.complete && test2HasNotStarted) {
-            test2HasNotStarted = false;
-            test2.test();
-            print("******started test 2******");
-        }
+if (typeof Test !== 'undefined') {
+    Test.wait(10000);
+};
 
-        if (test2.complete && test3HasNotStarted) {
-            test3HasNotStarted = false;
-            test3.test();
-            print("******started test 3******");
-        }
+autoTester.enableRecursive();
+autoTester.enableAuto();
 
-        if (test3.complete) {
-            print("******stopping******");
-            Script.stop();
-        }
+Script.include(testsRootPath + "content/overlay/layer/drawInFront/shape/test.js");
+Script.include(testsRootPath + "content/overlay/layer/drawInFront/model/test.js");
+Script.include(testsRootPath + "content/overlay/layer/drawHUDLayer/test.js");
 
-    },
-
-    1000
-);
-
-// Stop the timer and clear the module cache
-Script.scriptEnding.connect(
-    function() {
-        Script.clearInterval(testTimer);
-        Script.require.cache = {};
-    }
-);
+autoTester.runRecursive();
 ```
-### Create a Test Case
-A test case is created after running the test script.  Running the script produces a series of snapshots, named **hifi-snap-by-**_user name_**-on-YYYY-MM-DD_HH-MM-SS.jpg**.  This function simply renames these files to **ExpectedImage_1.jpg**, **ExpectedImage_2.jpg** and so on.  These files can be added to version control as they are a fixed asset of the test.
-### Delete old snapshots
-This button recursively deletes all snapshots created for testign (not the Expected Images).
+## Create all Recursive Scripts
+### Usage
+In this case all recursive scripts, from the selected folder down, are created.
+
+Running this function in the tests root folder will create (or update) all the recursive scripts.
+# Evaluate
+![](./Evaluate.png)
+The Evaluate tab provides a single function - evaluating the results of a test run.
+
+A checkbox (defaulting to checked) runs the evaluation in interactive mode.  In this mode - every failure is shown to the user, who can then decide whether to pass the test, fail it or abort the whole evaluation.
+
+If any tests have failed, then a zipped folder will be created in the snapshots folder, with a description of each failed step in each test.
+### Usage
+Before starting the evaluation, make sure the GitHub user and branch are set correctly.  The user should not normally be changed, but the branch may need to be set to the appropriate RC.
+
+After setting the checkbox as required and pressing Evaluate - the user will be asked for the snapshots folder.
+### Details
+Evaluation proceeds in a number of steps:
+
+1. A folder is created to store any failures
+
+1. The expecetd images are download from GitHub.  They are named slightly differently from the snapshots (e.g. `tests.engine.render.effect.highlight.coverage.00000.png` and `tests.engine.render.effect.highlight.coverage.00000_EI.png`).
+
+1. The images are then pair-wise compared, using the SSIM algorithm.  A fixed threshold is used to define a mismatch.
+
+1.  In interactive mode - a window is opened showing the expected image, actual image, difference image and error.
+
+1.  If not in interactive mode, or the user has defined the results as an error, an error is written into the error folder.  The error itself is a folder with the 3 images and a small text file containing details.
+
+1.  At the end of the test, the folder is zipped and the original folder is deleted.  If there are no errors, then there will be no zipped folder.
+# TestRail
+![](./TestRail.png)
+# Windows
+![](./Windows.png)

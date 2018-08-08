@@ -10,6 +10,12 @@
     <height>734</height>
    </rect>
   </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
   <property name="windowTitle">
    <string>AutoTester</string>
   </property>
@@ -37,11 +43,11 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>3</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="tab_1">
      <attribute name="title">
-      <string>Create Tests</string>
+      <string>Create</string>
      </attribute>
      <widget class="QPushButton" name="createTestsButton">
       <property name="geometry">
@@ -124,7 +130,7 @@
     </widget>
     <widget class="QWidget" name="tab_2">
      <attribute name="title">
-      <string>Evaluate Results</string>
+      <string>Evaluate</string>
      </attribute>
      <widget class="QProgressBar" name="progressBar">
       <property name="geometry">
@@ -171,7 +177,7 @@
     </widget>
     <widget class="QWidget" name="tab_3">
      <attribute name="title">
-      <string>TestRail Interface</string>
+      <string>TestRail</string>
      </attribute>
      <widget class="QPushButton" name="updateTestRailRunResultsButton">
       <property name="geometry">
@@ -244,7 +250,7 @@
     </widget>
     <widget class="QWidget" name="tab_4">
      <attribute name="title">
-      <string>Windows Taskbar</string>
+      <string>Windows</string>
      </attribute>
      <widget class="QPushButton" name="hideTaskbarButton">
       <property name="geometry">
