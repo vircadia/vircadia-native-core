@@ -26,6 +26,7 @@ AutoTester::AutoTester(QWidget *parent) : QMainWindow(parent) {
 
     connect(_ui.actionClose, &QAction::triggered, this, &AutoTester::on_closeButton_clicked);
     connect(_ui.actionAbout, &QAction::triggered, this, &AutoTester::about);
+    connect(_ui.actionContent, &QAction::triggered, this, &AutoTester::content);
 
 #ifndef Q_OS_WIN
     _ui.tabWidget->setTabEnabled(3, false);
@@ -182,6 +183,11 @@ void AutoTester::saveImage(int index) {
 
 void AutoTester::about() {
     QMessageBox::information(0, "About", QString("Built ") + __DATE__ + " : " + __TIME__);
+}
+
+void AutoTester::content() {
+  //  BrowserWindow browserWindow;
+   // browserWindow.show();
 }
 
 void AutoTester::setUserText(const QString& user) {
