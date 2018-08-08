@@ -48,11 +48,7 @@ Rectangle {
             }
             wearablesCombobox.model.append(wearable);
         }
-
         wearablesCombobox.currentIndex = 0;
-        if(wearablesCombobox.model.count !== 0) {
-            jointsCombobox.set(getCurrentWearable().parentJointIndex)
-        }
     }
 
     function refreshWearable(wearableID, wearableIndex, properties, updateUI) {
@@ -176,6 +172,7 @@ Rectangle {
                         rotation.set(currentWearable.localRotationAngles);
                         scalespinner.set(currentWearable.dimensions.x / currentWearable.naturalDimensions.x)
                         jointsCombobox.set(currentWearable.parentJointIndex)
+                        isSoft.set(currentWearable.relayParentJoints)
 
                         wearableSelected(currentWearable.id);
                     }
@@ -197,6 +194,8 @@ Rectangle {
                 id: jointsCombobox
                 anchors.left: parent.left
                 anchors.right: parent.right
+                enabled: !isSoft.checked
+                comboBox.displayText: isSoft.checked ? 'Hips' : comboBox.currentText
 
                 model: jointNames
                 property bool notify: false
@@ -350,11 +349,31 @@ Rectangle {
             height: childrenRect.height
 
             HifiControlsUit.CheckBox {
+                id: isSoft
                 text: "Is soft"
                 labelFontSize: 15
                 labelFontWeight: Font.Bold
                 color:  Qt.black
                 y: scalespinner.y
+
+                function set(value) {
+                    notify = false;
+                    checked = value
+                    notify = true;
+                }
+
+                function notifyIsSoftChanged() {
+                    modified = true;
+                    var properties = {
+                        relayParentJoints: checked
+                    };
+
+                    wearableUpdated(getCurrentWearable().id, wearablesCombobox.currentIndex, properties);
+                }
+
+                property bool notify: false;
+
+                onCheckedChanged: if(notify) notifyIsSoftChanged();
             }
 
             Column {
