@@ -19,7 +19,7 @@ Column {
 
      Component.onCompleted: {
         sceneOctree.enabled = true;
-        itemSelection.enabled = true;                    
+        itemSelection.enabled = true;
         sceneOctree.showVisibleCells = false;
         sceneOctree.showEmptyCells = false;
         itemSelection.showInsideItems = false;
@@ -29,9 +29,9 @@ Column {
     }
     Component.onDestruction: {
         sceneOctree.enabled = false;
-        itemSelection.enabled = false;  
+        itemSelection.enabled = false;
         Render.getConfig("RenderMainView.FetchSceneSelection").freezeFrustum = false;
-        Render.getConfig("RenderMainView.CullSceneSelection").freezeFrustum = false;                     
+        Render.getConfig("RenderMainView.CullSceneSelection").freezeFrustum = false;
     }
 
     GroupBox {
@@ -44,7 +44,7 @@ Column {
                 CheckBox {
                     text: "Freeze Culling Frustum"
                     checked: false
-                    onCheckedChanged: { 
+                    onCheckedChanged: {
                         Render.getConfig("RenderMainView.FetchSceneSelection").freezeFrustum = checked;
                         Render.getConfig("RenderMainView.CullSceneSelection").freezeFrustum = checked;
                     }
@@ -88,15 +88,19 @@ Column {
                     text: "Partial Sub-cell Items"
                     checked: false
                     onCheckedChanged: { root.itemSelection.showPartialSubcellItems = checked }
-                } 
+                }
             }
         }
-    }   
+    }
 
     GroupBox {
         title: "Render Items"
+        anchors.left: parent.left;
+        anchors.right: parent.right;
 
         Column{
+            anchors.left: parent.left;
+            anchors.right: parent.right;
             Repeater {
                 model: [ "Opaque:RenderMainView.DrawOpaqueDeferred", "Transparent:RenderMainView.DrawTransparentDeferred", "Light:RenderMainView.DrawLight",
                         "Opaque Overlays:RenderMainView.DrawOverlay3DOpaque", "Transparent Overlays:RenderMainView.DrawOverlay3DTransparent" ]

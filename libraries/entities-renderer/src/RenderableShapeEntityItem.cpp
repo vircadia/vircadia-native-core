@@ -35,9 +35,7 @@ ShapeEntityRenderer::ShapeEntityRenderer(const EntityItemPointer& entity) : Pare
     _procedural._vertexSource = gpu::Shader::getVertexShaderSource(shader::render_utils::vertex::simple);
     // FIXME: Setup proper uniform slots and use correct pipelines for forward rendering
     _procedural._opaquefragmentSource = gpu::Shader::getFragmentShaderSource(shader::render_utils::fragment::simple);
-    // FIXME: Transparent procedural entities only seem to work if they use the opaque pipelines
-    //_procedural._transparentfragmentSource = simple_transparent_frag::getSource();
-    _procedural._transparentfragmentSource = _procedural._opaquefragmentSource;
+    _procedural._transparentfragmentSource = gpu::Shader::getFragmentShaderSource(shader::render_utils::fragment::simple_transparent);
     _procedural._opaqueState->setCullMode(gpu::State::CULL_NONE);
     _procedural._opaqueState->setDepthTest(true, true, gpu::LESS_EQUAL);
     PrepareStencil::testMaskDrawShape(*_procedural._opaqueState);
