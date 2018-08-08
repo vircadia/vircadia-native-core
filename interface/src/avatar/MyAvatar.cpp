@@ -806,7 +806,6 @@ void MyAvatar::updateSensorToWorldMatrix() {
     // update the sensor mat so that the body position will end up in the desired
     // position when driven from the head.
     float sensorToWorldScale = getEyeHeight() / getUserEyeHeight();
-    qCDebug(interfaceapp) << sensorToWorldScale;
     glm::mat4 desiredMat = createMatFromScaleQuatAndPos(glm::vec3(sensorToWorldScale), getWorldOrientation(), getWorldPosition());
     _sensorToWorldMatrix = desiredMat * glm::inverse(_bodySensorMatrix);
 
@@ -1743,10 +1742,6 @@ controller::Pose MyAvatar::getControllerPoseInSensorFrame(controller::Action act
 
 controller::Pose MyAvatar::getControllerPoseInWorldFrame(controller::Action action) const {
     auto pose = getControllerPoseInSensorFrame(action);
-    glm::mat4 printout = getSensorToWorldMatrix();
-    if (action == controller::Action::HEAD) {
-        //qCDebug(interfaceapp) << "matrix 4 sensor to world" << printout;
-    }
     if (pose.valid) {
         return pose.transform(getSensorToWorldMatrix());
     } else {
@@ -1756,7 +1751,6 @@ controller::Pose MyAvatar::getControllerPoseInWorldFrame(controller::Action acti
 
 controller::Pose MyAvatar::getControllerPoseInAvatarFrame(controller::Action action) const {
     auto pose = getControllerPoseInWorldFrame(action);
-   // qCDebug(interfaceapp) << " the head position in world frame is " << pose.getTranslation();
     if (pose.valid) {
         glm::mat4 invAvatarMatrix = glm::inverse(createMatFromQuatAndPos(getWorldOrientation(), getWorldPosition()));
         return pose.transform(invAvatarMatrix);

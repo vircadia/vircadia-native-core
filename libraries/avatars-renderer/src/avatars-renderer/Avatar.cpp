@@ -1761,7 +1761,6 @@ void Avatar::ensureInScene(AvatarSharedPointer self, const render::ScenePointer&
 
 // thread-safe
 float Avatar::getEyeHeight() const {
-    qCDebug(animation) << "modelscale "<<getModelScale() <<" eyeheight " << getUnscaledEyeHeight();
     return getModelScale() * getUnscaledEyeHeight();
 }
 

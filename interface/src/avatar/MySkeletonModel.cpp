@@ -116,9 +116,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
     // input action is the highest priority source for head orientation.
     auto avatarHeadPose = myAvatar->getControllerPoseInAvatarFrame(controller::Action::HEAD);
-    
     if (avatarHeadPose.isValid()) {
-        //qCDebug(interfaceapp) << " the head position in avatar frame is " << avatarHeadPose.getTranslation();
         AnimPose pose(avatarHeadPose.getRotation(), avatarHeadPose.getTranslation());
         params.primaryControllerPoses[Rig::PrimaryControllerType_Head] = avatarToRigPose * pose;
         params.primaryControllerFlags[Rig::PrimaryControllerType_Head] = (uint8_t)Rig::ControllerFlags::Enabled;
