@@ -18,7 +18,9 @@
 #include "SceneScriptingInterface.h"
 #include "SafeLanding.h"
 
-OctreePacketProcessor::OctreePacketProcessor() {
+OctreePacketProcessor::OctreePacketProcessor():
+    _safeLanding(new SafeLanding())
+{
     setObjectName("Octree Packet Processor");
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
@@ -120,6 +122,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
             message->readPrimitive(&completionNumber);
 
             _completionSequenceNumber = completionNumber;
+            _safeLanding->setCompletionSequenceNumbers(0, completionNumber);
         } break;
 
         default: {
@@ -146,4 +149,8 @@ bool OctreePacketProcessor::octreeSequenceIsComplete(int sequenceNumber) const {
     // If we've received the flagged seq # and the current one is >= it.
     return _completionSequenceNumber != INVALID_SEQUENCE &&
         !lessThanWraparound<OCTREE_PACKET_SEQUENCE>(sequenceNumber, _completionSequenceNumber);
+}
+
+void OctreePacketProcessor::startEntitySequence() {
+    _safeLanding->startEntitySequence(qApp->getEntities());
 }

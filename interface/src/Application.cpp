@@ -6166,6 +6166,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType) {
         _octreeQuery.setOctreeSizeScale(DEFAULT_OCTREE_SIZE_SCALE);
         static constexpr float MIN_LOD_ADJUST = -20.0f;
         _octreeQuery.setBoundaryLevelAdjust(MIN_LOD_ADJUST);
+        _octreeProcessor.startEntitySequence();
     } else {
         _octreeQuery.setConicalViews(_conicalViews);
         auto lodManager = DependencyManager::get<LODManager>();

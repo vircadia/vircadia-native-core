@@ -14,13 +14,47 @@
 #ifndef hifi_SafeLanding_h
 #define hifi_SafeLanding_h
 
-class SafeLanding {
+#include <QtCore/QObject>
+#include <QtCore/QSharedPointer>
+
+#include "EntityItem.h"
+
+class EntityTreeRenderer;
+class EntityItemID;
+
+class SafeLanding : public QObject {
 public:
-        SafeLanding();
-        ~SafeLanding();
+    SafeLanding();
+    ~SafeLanding();
 
+    void startEntitySequence(QSharedPointer<EntityTreeRenderer> entityTreeRenderer);
+    void stopEntitySequence();
+    void setCompletionSequenceNumbers(int first, int last);
+    void sequenceNumberReceived(int sequenceNumber);
+    bool isSequenceComplete() const { return _isSequenceComplete; }
+
+private slots:
+    void addTrackedEntity(const EntityItemID& entityID);
+    void deleteTrackedEntity(const EntityItemID& entityID);
 private:
+    bool sequenceNumbersComplete();
+    bool _trackingEntities { false };
+    EntityTreePointer _entityTree;
+    using EntityMap = std::map<EntityItemID, EntityItemPointer>;
+    EntityMap _trackedEntities;
 
+    static constexpr int INVALID_SEQUENCE = -1;
+    bool _isSequenceComplete { true };
+    int _initialStart { INVALID_SEQUENCE };
+    int _initialEnd { INVALID_SEQUENCE }; // final sequence, exclusive.
+
+    struct SequenceLessThan {
+        bool operator()(const int& a, const int& b) const;
+    };
+
+    std::set<int, SequenceLessThan> _sequenceNumbers;
+
+    static const int SEQUENCE_MODULO;
 };
 
 #endif  // hifi_SafeLanding_h

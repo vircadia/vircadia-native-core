@@ -25,6 +25,7 @@ public:
     OctreePacketProcessor();
     ~OctreePacketProcessor();
 
+    void startEntitySequence();
     bool octreeSequenceIsComplete(int sequenceNumber) const;
 
 signals:
