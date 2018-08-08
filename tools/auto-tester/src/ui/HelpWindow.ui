@@ -1,115 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>HelpWindow</class>
- <widget class="QMainWindow" name="HelpWindow">
+ <widget class="QDialog" name="HelpWindow">
+  <property name="windowModality">
+   <enum>Qt::ApplicationModal</enum>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>696</width>
+    <height>546</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MarkDown Editor</string>
+   <string>AutoTester Help</string>
   </property>
-  <widget class="QWidget" name="centralwidget">
-   <layout class="QHBoxLayout" name="horizontalLayout">
-    <item>
-     <widget class="QSplitter" name="splitter">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-      <widget class="QPlainTextEdit" name="editor"/>
-      <widget class="QWebEngineView" name="preview" native="true"/>
-     </widget>
-    </item>
-   </layout>
-  </widget>
-  <widget class="QMenuBar" name="menubar">
+  <widget class="QTextEdit" name="textEdit">
    <property name="geometry">
     <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>800</width>
-     <height>26</height>
+     <x>50</x>
+     <y>50</y>
+     <width>581</width>
+     <height>381</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menu_File">
-    <property name="title">
-     <string>&amp;File</string>
-    </property>
-    <addaction name="actionNew"/>
-    <addaction name="actionOpen"/>
-    <addaction name="actionSave"/>
-    <addaction name="actionSaveAs"/>
-    <addaction name="separator"/>
-    <addaction name="actionExit"/>
-   </widget>
-   <addaction name="menu_File"/>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
-  <action name="actionOpen">
+  <widget class="QPushButton" name="pushButton">
+   <property name="geometry">
+    <rect>
+     <x>300</x>
+     <y>460</y>
+     <width>93</width>
+     <height>28</height>
+    </rect>
+   </property>
    <property name="text">
-    <string>&amp;Open...</string>
+    <string>Close</string>
    </property>
-   <property name="toolTip">
-    <string>Open document</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+O</string>
-   </property>
-  </action>
-  <action name="actionSave">
-   <property name="text">
-    <string>&amp;Save</string>
-   </property>
-   <property name="toolTip">
-    <string>Save current document</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+S</string>
-   </property>
-  </action>
-  <action name="actionExit">
-   <property name="text">
-    <string>E&amp;xit</string>
-   </property>
-   <property name="toolTip">
-    <string>Exit editor</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+Q</string>
-   </property>
-  </action>
-  <action name="actionSaveAs">
-   <property name="text">
-    <string>Save &amp;As...</string>
-   </property>
-   <property name="toolTip">
-    <string>Save document under different name</string>
-   </property>
-  </action>
-  <action name="actionNew">
-   <property name="text">
-    <string>&amp;New</string>
-   </property>
-   <property name="toolTip">
-    <string>Create new document</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+N</string>
-   </property>
-  </action>
+  </widget>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>QWebEngineView</class>
-   <extends>QWidget</extends>
-   <header>qwebengineview.h</header>
-   <container>1</container>
-  </customwidget>
- </customwidgets>
+ <layoutdefault spacing="6" margin="11"/>
  <resources/>
  <connections/>
 </ui>

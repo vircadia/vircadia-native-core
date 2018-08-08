@@ -31,6 +31,8 @@ AutoTester::AutoTester(QWidget* parent) : QMainWindow(parent) {
 #ifndef Q_OS_WIN
     _ui.tabWidget->setTabEnabled(3, false);
 #endif
+
+   // helpWindow.textBrowser->setText()
 }
 
 void AutoTester::setup() {
