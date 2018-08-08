@@ -242,10 +242,12 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
 * A Shape defines a physical volume.
 *
 * @typedef {object} Shape
-* @property {ShapeType} shapeType The type of shape to use.
-* @property {string} modelURL - If shapeType is one of: "compound", "simple-hull", "simple-compound", or "static-mesh", this defines the model to load to generate the collision volume.
+* @property {string} shapeType The type of shape to use. Can be one of the following: "box", "sphere", "capsule-x", "capsule-y", "capsule-z", "cylinder-x", "cylinder-y", "cylinder-z", "plane"
 * @property {Vec3} dimensions - The size to scale the shape to.
 */
+
+// TODO: Add this property to the Shape jsdoc above once model picks work properly
+// * @property {string} modelURL - If shapeType is one of: "compound", "simple-hull", "simple-compound", or "static-mesh", this defines the model to load to generate the collision volume.
 
 /**jsdoc
 * A set of properties that can be passed to {@link Picks.createPick} to create a new Collision Pick.
