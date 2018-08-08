@@ -365,8 +365,6 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
             }
             avatarItr = _avatarsToFade.erase(avatarItr);
         } else {
-            const bool inView = true; // HACK
-            avatar->simulate(deltaTime, inView);
             ++avatarItr;
         }
     }
