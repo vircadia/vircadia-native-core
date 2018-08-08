@@ -18,6 +18,8 @@
 #include "../Downloader.h"
 #include "../Test.h"
 
+#include "HelpWindow.h"
+
 class AutoTester : public QMainWindow {
     Q_OBJECT
 
@@ -85,6 +87,8 @@ private:
     int _index { 0 };
 
     bool _isRunningFromCommandline { false };
+
+    HelpWindow helpWindow;
 };
 
 #endif // hifi_AutoTester_h

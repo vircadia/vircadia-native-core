@@ -15,7 +15,7 @@
 #include <shellapi.h>
 #endif
 
-AutoTester::AutoTester(QWidget *parent) : QMainWindow(parent) {
+AutoTester::AutoTester(QWidget* parent) : QMainWindow(parent) {
     _ui.setupUi(this);
 
     _ui.checkBoxInteractiveMode->setChecked(true);
@@ -65,7 +65,7 @@ void AutoTester::on_createAllRecursiveScriptsButton_clicked() {
 }
 
 void AutoTester::on_createTestsButton_clicked() {
-	_test->createTests();
+    _test->createTests();
 }
 
 void AutoTester::on_createMDFileButton_clicked() {
@@ -130,7 +130,7 @@ void AutoTester::on_createXMLScriptRadioButton_clicked() {
 
 void AutoTester::downloadImage(const QUrl& url) {
     _downloaders.emplace_back(new Downloader(url, this));
-    connect(_downloaders[_index], SIGNAL (downloaded()), _signalMapper, SLOT (map()));
+    connect(_downloaders[_index], SIGNAL(downloaded()), _signalMapper, SLOT(map()));
 
     _signalMapper->setMapping(_downloaders[_index], _index);
 
@@ -156,7 +156,7 @@ void AutoTester::downloadImages(const QStringList& URLs, const QString& director
         downloadImage(imageURL);
     }
 
-    connect(_signalMapper, SIGNAL (mapped(int)), this, SLOT (saveImage(int)));
+    connect(_signalMapper, SIGNAL(mapped(int)), this, SLOT(saveImage(int)));
 }
 
 void AutoTester::saveImage(int index) {
@@ -174,7 +174,7 @@ void AutoTester::saveImage(int index) {
     ++_numberOfImagesDownloaded;
 
     if (_numberOfImagesDownloaded == _numberOfImagesToDownload) {
-        disconnect(_signalMapper, SIGNAL (mapped(int)), this, SLOT (saveImage(int)));
+        disconnect(_signalMapper, SIGNAL(mapped(int)), this, SLOT(saveImage(int)));
         _test->finishTestsEvaluation(_isRunningFromCommandline, _ui.checkBoxInteractiveMode->isChecked(), _ui.progressBar);
     } else {
         _ui.progressBar->setValue(_numberOfImagesDownloaded);
@@ -186,14 +186,14 @@ void AutoTester::about() {
 }
 
 void AutoTester::content() {
+    helpWindow.show();
 }
 
 void AutoTester::setUserText(const QString& user) {
     _ui.userTextEdit->setText(user);
 }
 
-QString AutoTester::getSelectedUser()
-{
+QString AutoTester::getSelectedUser() {
     return _ui.userTextEdit->toPlainText();
 }
 
