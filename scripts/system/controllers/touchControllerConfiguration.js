@@ -44,7 +44,7 @@ TOUCH_CONTROLLER_CONFIGURATION_LEFT = {
     controllers: [
         {
             modelURL: BASE_URL + "touch_l_body.fbx",
-            jointIndex: MyAvatar.getJointIndex("_CONTROLLER_LEFTHAND"),
+            jointIndex: MyAvatar.getJointIndex("_CAMERA_RELATIVE_CONTROLLER_LEFTHAND"),
             naturalPosition: { x: 0.01648625358939171, y: -0.03551870584487915, z: -0.018527675420045853 },
             dimensions: { x: 0.11053799837827682, y: 0.0995776429772377, z: 0.10139888525009155 },
             rotation: leftBaseRotation,
@@ -209,7 +209,7 @@ TOUCH_CONTROLLER_CONFIGURATION_RIGHT = {
     controllers: [
         {
             modelURL: BASE_URL + "touch_r_body.fbx",
-            jointIndex: MyAvatar.getJointIndex("_CONTROLLER_RIGHTHAND"),
+            jointIndex: MyAvatar.getJointIndex("_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND"),
             naturalPosition: { x: -0.016486231237649918, y: -0.03551865369081497, z: -0.018527653068304062 },
             dimensions: { x: 0.11053784191608429, y: 0.09957750141620636, z: 0.10139875113964081 },
             rotation: rightBaseRotation,
