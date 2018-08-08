@@ -33,17 +33,12 @@ LogHandler& LogHandler::getInstance() {
 }
 
 LogHandler::LogHandler() {
-    // when the log handler is first setup we should print our timezone
-    QString timezoneString = "Time zone: " + QDateTime::currentDateTime().toString("t");
-    printMessage(LogMsgType::LogInfo, QMessageLogContext(), timezoneString);
-
     // make sure we setup the repeated message flusher, but do it on the LogHandler thread	
     QMetaObject::invokeMethod(this, "setupRepeatedMessageFlusher");
 }
 
 LogHandler::~LogHandler() {
     flushRepeatedMessages();
-    printMessage(LogMsgType::LogDebug, QMessageLogContext(), "LogHandler shutdown.");
 }
 
 const char* stringForLogType(LogMsgType msgType) {

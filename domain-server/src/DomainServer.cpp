@@ -13,6 +13,7 @@
 
 #include <memory>
 #include <random>
+#include <iostream>
 
 #include <QDir>
 #include <QJsonDocument>
@@ -68,6 +69,14 @@ const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.com";
 #else
 const QString ICE_SERVER_DEFAULT_HOSTNAME = "dev-ice.highfidelity.com";
 #endif
+
+QString DomainServer::_iceServerAddr { ICE_SERVER_DEFAULT_HOSTNAME };
+int DomainServer::_iceServerPort { ICE_SERVER_DEFAULT_PORT };
+bool DomainServer::_overrideDomainID { false };
+QUuid DomainServer::_overridingDomainID;
+bool DomainServer::_getTempName { false };
+QString DomainServer::_userConfigFilename;
+int DomainServer::_parentPID { -1 };
 
 bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
                                               const QString& metaversePath,
@@ -148,24 +157,13 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _gatekeeper(this),
-    _httpManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
-    _allAssignments(),
-    _unfulfilledAssignments(),
-    _isUsingDTLS(false),
-    _oauthProviderURL(),
-    _oauthClientID(),
-    _hostname(),
-    _ephemeralACScripts(),
-    _webAuthenticationStateSet(),
-    _cookieSessionHash(),
-    _automaticNetworkingSetting(),
-    _settingsManager(),
-    _iceServerAddr(ICE_SERVER_DEFAULT_HOSTNAME),
-    _iceServerPort(ICE_SERVER_DEFAULT_PORT)
+    _httpManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this)
 {
-    PathUtils::removeTemporaryApplicationDirs();
+    if (_parentPID != -1) {
+        watchParentProcess(_parentPID);
+    }
 
-    parseCommandLine();
+    PathUtils::removeTemporaryApplicationDirs();
 
     DependencyManager::set<tracing::Tracer>();
     DependencyManager::set<StatTracker>();
@@ -185,9 +183,16 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     // (need this since domain-server can restart itself and maintain static variables)
     DependencyManager::set<AccountManager>();
 
-    auto args = arguments();
-
-    _settingsManager.setupConfigMap(args);
+    // load the user config
+    QString userConfigFilename;
+    if (!_userConfigFilename.isEmpty()) {
+        userConfigFilename = _userConfigFilename;
+    } else {
+        // we weren't passed a user config path
+        static const QString USER_CONFIG_FILE_NAME = "config.json";
+        userConfigFilename = PathUtils::getAppDataFilePath(USER_CONFIG_FILE_NAME);
+    }
+    _settingsManager.setupConfigMap(userConfigFilename);
 
     // setup a shutdown event listener to handle SIGTERM or WM_CLOSE for us
 #ifdef _WIN32
@@ -246,8 +251,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     }
 
     // check for the temporary name parameter
-    const QString GET_TEMPORARY_NAME_SWITCH = "--get-temp-name";
-    if (args.contains(GET_TEMPORARY_NAME_SWITCH)) {
+    if (_getTempName) {
         getTemporaryName();
     }
 
@@ -316,28 +320,45 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     connect(_contentManager.get(), &DomainContentBackupManager::recoveryCompleted, this, &DomainServer::restart);
 }
 
-void DomainServer::parseCommandLine() {
+void DomainServer::parseCommandLine(int argc, char* argv[]) {
     QCommandLineParser parser;
     parser.setApplicationDescription("High Fidelity Domain Server");
-    parser.addHelpOption();
+    const QCommandLineOption versionOption = parser.addVersionOption();
+    const QCommandLineOption helpOption = parser.addHelpOption();
 
     const QCommandLineOption iceServerAddressOption("i", "ice-server address", "IP:PORT or HOSTNAME:PORT");
     parser.addOption(iceServerAddressOption);
 
-    const QCommandLineOption domainIDOption("d", "domain-server uuid");
+    const QCommandLineOption domainIDOption("d", "domain-server uuid", "uuid");
     parser.addOption(domainIDOption);
 
     const QCommandLineOption getTempNameOption("get-temp-name", "Request a temporary domain-name");
     parser.addOption(getTempNameOption);
 
-    const QCommandLineOption masterConfigOption("master-config", "Deprecated config-file option");
-    parser.addOption(masterConfigOption);
+    const QCommandLineOption userConfigOption("user-config", "Pass user config file pass", "path");
+    parser.addOption(userConfigOption);
 
     const QCommandLineOption parentPIDOption(PARENT_PID_OPTION, "PID of the parent process", "parent-pid");
     parser.addOption(parentPIDOption);
 
-    if (!parser.parse(QCoreApplication::arguments())) {
-        qWarning() << parser.errorText() << endl;
+
+    QStringList arguments;
+    for (int i = 0; i < argc; ++i) {
+        arguments << argv[i];
+    }
+    if (!parser.parse(arguments)) {
+        std::cout << parser.errorText().toStdString() << std::endl; // Avoid Qt log spam
+        QCoreApplication mockApp(argc, argv); // required for call to showHelp()
+        parser.showHelp();
+        Q_UNREACHABLE();
+    }
+
+    if (parser.isSet(versionOption)) {
+        parser.showVersion();
+        Q_UNREACHABLE();
+    }
+    if (parser.isSet(helpOption)) {
+        QCoreApplication mockApp(argc, argv); // required for call to showHelp()
         parser.showHelp();
         Q_UNREACHABLE();
     }
@@ -354,7 +375,7 @@ void DomainServer::parseCommandLine() {
 
         if (_iceServerAddr.isEmpty()) {
             qWarning() << "Could not parse an IP address and port combination from" << hostnamePortString;
-            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+            ::exit(0);
         }
     }
 
@@ -364,14 +385,21 @@ void DomainServer::parseCommandLine() {
         qDebug() << "domain-server ID is" << _overridingDomainID;
     }
 
+    if (parser.isSet(getTempNameOption)) {
+        _getTempName = true;
+    }
+
+    if (parser.isSet(userConfigOption)) {
+        _userConfigFilename = parser.value(userConfigOption);
+    }
 
     if (parser.isSet(parentPIDOption)) {
         bool ok = false;
         int parentPID = parser.value(parentPIDOption).toInt(&ok);
 
         if (ok) {
-            qDebug() << "Parent process PID is" << parentPID;
-            watchParentProcess(parentPID);
+            _parentPID = parentPID;
+            qDebug() << "Parent process PID is" << _parentPID;
         }
     }
 }

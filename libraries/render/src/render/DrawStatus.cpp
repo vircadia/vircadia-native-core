@@ -33,9 +33,6 @@ void DrawStatusConfig::dirtyHelper() {
 const gpu::PipelinePointer DrawStatus::getDrawItemBoundsPipeline() {
     if (!_drawItemBoundsPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::drawItemBounds);
-        //_drawItemBoundPosLoc = program->getUniforms().findLocation("inBoundPos");
-        //_drawItemBoundDimLoc = program->getUniforms().findLocation("inBoundDim");
-        //_drawItemCellLocLoc = program->getUniforms().findLocation("inCellLocation");
 
         auto state = std::make_shared<gpu::State>();
 
@@ -54,11 +51,7 @@ const gpu::PipelinePointer DrawStatus::getDrawItemBoundsPipeline() {
 
 const gpu::PipelinePointer DrawStatus::getDrawItemStatusPipeline() {
     if (!_drawItemStatusPipeline) {
-        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::blurGaussianDepthAwareV);
-        //_drawItemStatusPosLoc = program->getUniforms().findLocation("");
-        //_drawItemStatusDimLoc = program->getUniforms().findLocation("");
-        //_drawItemStatusValue0Loc = program->getUniforms().findLocation("");
-        //_drawItemStatusValue1Loc = program->getUniforms().findLocation("");
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::drawItemStatus);
 
         auto state = std::make_shared<gpu::State>();
 
@@ -99,36 +92,30 @@ void DrawStatus::run(const RenderContextPointer& renderContext, const Input& inp
     const auto& inItems = input.get0();
     const auto jitter = input.get1();
 
-    // FIrst thing, we collect the bound and the status for all the items we want to render
+    // First thing, we collect the bound and the status for all the items we want to render
     int nbItems = 0;
+    render::ItemBounds itemBounds;
+    std::vector<std::pair<glm::ivec4, glm::ivec4>> itemStatus;
     {
-        _itemBounds.resize(inItems.size());
-        _itemStatus.resize(inItems.size());
-        _itemCells.resize(inItems.size());
-
-//        AABox* itemAABox = reinterpret_cast<AABox*> (_itemBounds->editData());
-//        glm::ivec4* itemStatus = reinterpret_cast<glm::ivec4*> (_itemStatus->editData());
-//        Octree::Location* itemCell = reinterpret_cast<Octree::Location*> (_itemCells->editData());
         for (size_t i = 0; i < inItems.size(); ++i) {
             const auto& item = inItems[i];
             if (!item.bound.isInvalid()) {
                 if (!item.bound.isNull()) {
-                    _itemBounds[i] = item.bound;
+                    itemBounds.emplace_back(render::ItemBound(item.id, item.bound));
                 } else {
-                    _itemBounds[i].setBox(item.bound.getCorner(), 0.1f);
+                    itemBounds.emplace_back(item.id, AABox(item.bound.getCorner(), 0.1f));
                 }
-                
 
                 auto& itemScene = scene->getItem(item.id);
-                _itemCells[i] = scene->getSpatialTree().getCellLocation(itemScene.getCell());
 
                 auto itemStatusPointer = itemScene.getStatus();
                 if (itemStatusPointer) {
+                    itemStatus.push_back(std::pair<glm::ivec4, glm::ivec4>());
                     // Query the current status values, this is where the statusGetter lambda get called
                     auto&& currentStatusValues = itemStatusPointer->getCurrentValues();
                     int valueNum = 0;
                     for (int vec4Num = 0; vec4Num < NUM_STATUS_VEC4_PER_ITEM; vec4Num++) {
-                        auto& value = (vec4Num ? _itemStatus[i].first : _itemStatus[i].second);
+                        auto& value = (vec4Num ? itemStatus[nbItems].first : itemStatus[nbItems].second);
                         value = glm::ivec4(Item::Status::Value::INVALID.getPackedData());
                         for (int component = 0; component < VEC4_LENGTH; component++) {
                             valueNum = vec4Num * VEC4_LENGTH + component;
@@ -138,7 +125,8 @@ void DrawStatus::run(const RenderContextPointer& renderContext, const Input& inp
                         }
                     }
                 } else {
-                    _itemStatus[i].first = _itemStatus[i].second = glm::ivec4(Item::Status::Value::INVALID.getPackedData());
+                    auto invalid = glm::ivec4(Item::Status::Value::INVALID.getPackedData());
+                    itemStatus.emplace_back(invalid, invalid);
                 }
                 nbItems++;
             }
@@ -149,7 +137,11 @@ void DrawStatus::run(const RenderContextPointer& renderContext, const Input& inp
         return;
     }
 
-    // Allright, something to render let's do it
+    if (!_boundsBuffer) {
+        _boundsBuffer = std::make_shared<gpu::Buffer>(sizeof(render::ItemBound));
+    }
+
+    // Alright, something to render let's do it
     gpu::doInBatch("DrawStatus::run", args->_context, [&](gpu::Batch& batch) {
         glm::mat4 projMat;
         Transform viewMat;
@@ -165,32 +157,24 @@ void DrawStatus::run(const RenderContextPointer& renderContext, const Input& inp
         // bind the one gpu::Pipeline we need
         batch.setPipeline(getDrawItemBoundsPipeline());
 
-        //AABox* itemAABox = reinterpret_cast<AABox*> (_itemBounds->editData());
-        //glm::ivec4* itemStatus = reinterpret_cast<glm::ivec4*> (_itemStatus->editData());
-        //Octree::Location* itemCell = reinterpret_cast<Octree::Location*> (_itemCells->editData());
-
-        const unsigned int VEC3_ADRESS_OFFSET = 3;
+        _boundsBuffer->setData(itemBounds.size() * sizeof(render::ItemBound), (const gpu::Byte*) itemBounds.data());
 
         if (_showDisplay) {
-            for (int i = 0; i < nbItems; i++) {
-                //batch._glUniform3fv(gpu::slot::uniform::Extra0, 1, (const float*)&(_itemBounds[i]));
-                //batch._glUniform3fv(gpu::slot::uniform::Extra1, 1, ((const float*)&(_itemBounds[i])) + VEC3_ADRESS_OFFSET);
-                //glm::ivec4 cellLocation(_itemCells[i].pos, _itemCells[i].depth);
-                //batch._glUniform4iv(_drawItemCellLocLoc, 1, ((const int*)(&cellLocation)));
-                batch.draw(gpu::LINES, 24, 0);
-            }
+            batch.setResourceBuffer(0, _boundsBuffer);
+            batch.draw(gpu::LINES, (gpu::uint32) itemBounds.size() * 24, 0);
         }
+        batch.setResourceBuffer(0, 0);
 
         batch.setResourceTexture(0, gpu::TextureView(getStatusIconMap(), 0));
 
         batch.setPipeline(getDrawItemStatusPipeline());
 
         if (_showNetwork) {
-            for (int i = 0; i < nbItems; i++) {
-                batch._glUniform3fv(gpu::slot::uniform::Extra0, 1, (const float*)&(_itemBounds[i]));
-                batch._glUniform3fv(gpu::slot::uniform::Extra1, 1, ((const float*)&(_itemBounds[i])) + VEC3_ADRESS_OFFSET);
-                batch._glUniform4iv(gpu::slot::uniform::Extra2, 1, (const int*)&(_itemStatus[i].first));
-                batch._glUniform4iv(gpu::slot::uniform::Extra3, 1, (const int*)&(_itemStatus[i].second));
+            for (size_t i = 0; i < itemBounds.size(); i++) {
+                batch._glUniform3fv(gpu::slot::uniform::Extra0, 1, (const float*)&itemBounds[i].bound.getCorner());
+                batch._glUniform3fv(gpu::slot::uniform::Extra1, 1, ((const float*)&itemBounds[i].bound.getScale()));
+                batch._glUniform4iv(gpu::slot::uniform::Extra2, 1, (const int*)&(itemStatus[i].first));
+                batch._glUniform4iv(gpu::slot::uniform::Extra3, 1, (const int*)&(itemStatus[i].second));
                 batch.draw(gpu::TRIANGLES, 24 * NUM_STATUS_VEC4_PER_ITEM, 0);
             }
         }

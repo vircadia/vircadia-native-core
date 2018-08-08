@@ -22,9 +22,7 @@
 
 #include "Args.h"
 
-
 using namespace render;
-
 
 const gpu::PipelinePointer DrawSceneOctree::getDrawCellBoundsPipeline() {
     if (!_drawCellBoundsPipeline) {
@@ -71,7 +69,6 @@ void DrawSceneOctree::run(const RenderContextPointer& renderContext, const ItemS
     std::static_pointer_cast<Config>(renderContext->jobConfig)->numAllocatedCells = (int)scene->getSpatialTree().getNumAllocatedCells();
     std::static_pointer_cast<Config>(renderContext->jobConfig)->numFreeCells = (int)scene->getSpatialTree().getNumFreeCells();
 
-
     gpu::doInBatch("DrawSceneOctree::run", args->_context, [&](gpu::Batch& batch) {
         glm::mat4 projMat;
         Transform viewMat;
@@ -86,44 +83,30 @@ void DrawSceneOctree::run(const RenderContextPointer& renderContext, const ItemS
         // bind the one gpu::Pipeline we need
         batch.setPipeline(getDrawCellBoundsPipeline());
 
-        if (_showVisibleCells) {
-
-            for (const auto& cellID : inSelection.cellSelection.insideCells) {
+        auto drawCellBounds = [this, &scene, &batch](const std::vector<gpu::Stamp>& cells) {
+            for (const auto& cellID : cells) {
                 auto cell = scene->getSpatialTree().getConcreteCell(cellID);
                 auto cellLoc = cell.getlocation();
                 glm::ivec4 cellLocation(cellLoc.pos.x, cellLoc.pos.y, cellLoc.pos.z, cellLoc.depth);
 
-                bool doDraw = true;
-                if (cell.isBrickEmpty() || !cell.hasBrick()) {
+                bool empty = cell.isBrickEmpty() || !cell.hasBrick();
+                if (empty) {
                     if (!_showEmptyCells) {
-                        doDraw = false;
+                        continue;
                     }
-                    cellLocation.w *= -1;
+                    cellLocation.w *= -1.0;
+                } else if (!empty && !_showVisibleCells) {
+                    continue;
                 }
-                if (doDraw) {
-                    batch._glUniform4iv(gpu::slot::uniform::Extra0, 1, ((const int*)(&cellLocation)));
-                    batch.draw(gpu::LINES, 24, 0);
-                }
-            }
 
-            for (const auto& cellID : inSelection.cellSelection.partialCells) {
-                auto cell = scene->getSpatialTree().getConcreteCell(cellID);
-                auto cellLoc = cell.getlocation();
-                glm::ivec4 cellLocation(cellLoc.pos.x, cellLoc.pos.y, cellLoc.pos.z, cellLoc.depth);
-
-                bool doDraw = true;
-                if (cell.isBrickEmpty() || !cell.hasBrick()) {
-                    if (!_showEmptyCells) {
-                        doDraw = false;
-                    }
-                    cellLocation.w *= -1;
-                }
-                if (doDraw) {
-                    batch._glUniform4iv(gpu::slot::uniform::Extra0, 1, ((const int*)(&cellLocation)));
-                    batch.draw(gpu::LINES, 24, 0);
-                }
+                batch._glUniform4iv(gpu::slot::uniform::Extra0, 1, ((const int*)(&cellLocation)));
+                batch.draw(gpu::LINES, 24, 0);
             }
-        }
+        };
+
+        drawCellBounds(inSelection.cellSelection.insideCells);
+        drawCellBounds(inSelection.cellSelection.partialCells);
+
         // Draw the LOD Reticle
         {
             float angle = glm::degrees(getPerspectiveAccuracyAngle(args->_sizeScale, args->_boundaryLevelAdjust));
@@ -141,10 +124,6 @@ void DrawSceneOctree::run(const RenderContextPointer& renderContext, const ItemS
 const gpu::PipelinePointer DrawItemSelection::getDrawItemBoundPipeline() {
     if (!_drawItemBoundPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::drawItemBounds);
-
-        //_drawItemBoundPosLoc = program->getUniforms().findLocation("inBoundPos");
-        //_drawItemBoundDimLoc = program->getUniforms().findLocation("inBoundDim");
-        //_drawCellLocationLoc = program->getUniforms().findLocation("inCellLocation");
 
         auto state = std::make_shared<gpu::State>();
 
@@ -173,6 +152,19 @@ void DrawItemSelection::run(const RenderContextPointer& renderContext, const Ite
     RenderArgs* args = renderContext->args;
     auto& scene = renderContext->_scene;
 
+    if (!_boundsBufferInside) {
+        _boundsBufferInside = std::make_shared<gpu::Buffer>(sizeof(render::ItemBound));
+    }
+    if (!_boundsBufferInsideSubcell) {
+        _boundsBufferInsideSubcell = std::make_shared<gpu::Buffer>(sizeof(render::ItemBound));
+    }
+    if (!_boundsBufferPartial) {
+        _boundsBufferPartial = std::make_shared<gpu::Buffer>(sizeof(render::ItemBound));
+    }
+    if (!_boundsBufferPartialSubcell) {
+        _boundsBufferPartialSubcell = std::make_shared<gpu::Buffer>(sizeof(render::ItemBound));
+    }
+
     gpu::doInBatch("DrawItemSelection::run", args->_context, [&](gpu::Batch& batch) {
         glm::mat4 projMat;
         Transform viewMat;
@@ -187,63 +179,35 @@ void DrawItemSelection::run(const RenderContextPointer& renderContext, const Ite
         // bind the one gpu::Pipeline we need
         batch.setPipeline(getDrawItemBoundPipeline());
 
+        auto drawItemBounds = [&](const render::ItemIDs itemIDs, const gpu::BufferPointer buffer) {
+            render::ItemBounds itemBounds;
+            for (const auto& itemID : itemIDs) {
+                auto& item = scene->getItem(itemID);
+                auto itemBound = item.getBound();
+                if (!itemBound.isInvalid()) {
+                    itemBounds.emplace_back(itemID, itemBound);
+                }
+            }
+
+            if (itemBounds.size() > 0) {
+                buffer->setData(itemBounds.size() * sizeof(render::ItemBound), (const gpu::Byte*) itemBounds.data());
+                batch.setResourceBuffer(0, buffer);
+                batch.draw(gpu::LINES, (gpu::uint32) itemBounds.size() * 24, 0);
+            }
+        };
+
         if (_showInsideItems) {
-            for (const auto& itemID : inSelection.insideItems) {
-                auto& item = scene->getItem(itemID);
-                auto itemBound = item.getBound();
-                auto itemCell = scene->getSpatialTree().getCellLocation(item.getCell());
-                glm::ivec4 cellLocation(0, 0, 0, itemCell.depth);
-
-                //batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
-                //batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*)(&itemBound.getCorner()));
-                //batch._glUniform3fv(_drawItemBoundDimLoc, 1, (const float*)(&itemBound.getScale()));
-
-                batch.draw(gpu::LINES, 24, 0);
-            }
+            drawItemBounds(inSelection.insideItems, _boundsBufferInside);
         }
-
         if (_showInsideSubcellItems) {
-            for (const auto& itemID : inSelection.insideSubcellItems) {
-                auto& item = scene->getItem(itemID);
-                auto itemBound = item.getBound();
-                auto itemCell = scene->getSpatialTree().getCellLocation(item.getCell());
-                glm::ivec4 cellLocation(0, 0, 1, itemCell.depth);
-
-                //batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
-                //batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*)(&itemBound.getCorner()));
-                //batch._glUniform3fv(_drawItemBoundDimLoc, 1, (const float*)(&itemBound.getScale()));
-
-                batch.draw(gpu::LINES, 24, 0);
-            }
+            drawItemBounds(inSelection.insideSubcellItems, _boundsBufferInsideSubcell);
         }
-
         if (_showPartialItems) {
-            for (const auto& itemID : inSelection.partialItems) {
-                auto& item = scene->getItem(itemID);
-                auto itemBound = item.getBound();
-                auto itemCell = scene->getSpatialTree().getCellLocation(item.getCell());
-                glm::ivec4 cellLocation(0, 0, 0, itemCell.depth);
-
-                //batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
-                //batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*)(&itemBound.getCorner()));
-                //batch._glUniform3fv(_drawItemBoundDimLoc, 1, (const float*)(&itemBound.getScale()));
-
-                batch.draw(gpu::LINES, 24, 0);
-            }
+            drawItemBounds(inSelection.partialItems, _boundsBufferPartial);
         }
-
         if (_showPartialSubcellItems) {
-            for (const auto& itemID : inSelection.partialSubcellItems) {
-                auto& item = scene->getItem(itemID);
-                auto itemBound = item.getBound();
-                auto itemCell = scene->getSpatialTree().getCellLocation(item.getCell());
-                glm::ivec4 cellLocation(0, 0, 1, itemCell.depth);
-                //batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
-                //batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*)(&itemBound.getCorner()));
-                //batch._glUniform3fv(_drawItemBoundDimLoc, 1, (const float*)(&itemBound.getScale()));
-
-                batch.draw(gpu::LINES, 24, 0);
-            }
+            drawItemBounds(inSelection.partialSubcellItems, _boundsBufferPartialSubcell);
         }
+        batch.setResourceBuffer(0, 0);
     });
 }

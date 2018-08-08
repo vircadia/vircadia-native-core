@@ -20,9 +20,7 @@
 <@include gpu/Color.slh@>
 <$declareColorWheel()$>
 
-
 layout(location=GPU_UNIFORM_COLOR) uniform vec4 inColor;
-
 
 struct ItemBound {
     vec4 id_boundPos;
@@ -47,8 +45,6 @@ ItemBound getItemBound(int i) {
     return bound;
 }
 #endif
-
-
 
 layout(location=0) out vec4 varColor;
 layout(location=1) out vec2 varTexcoord;

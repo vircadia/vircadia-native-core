@@ -52,7 +52,6 @@ namespace render {
 
     class DrawSceneOctree {
         gpu::PipelinePointer _drawCellBoundsPipeline;
-        gpu::BufferPointer _cells;
         gpu::PipelinePointer _drawLODReticlePipeline;
         gpu::PipelinePointer _drawItemBoundPipeline;
 
@@ -107,6 +106,10 @@ namespace render {
 
     class DrawItemSelection {
         gpu::PipelinePointer _drawItemBoundPipeline;
+        gpu::BufferPointer _boundsBufferInside;
+        gpu::BufferPointer _boundsBufferInsideSubcell;
+        gpu::BufferPointer _boundsBufferPartial;
+        gpu::BufferPointer _boundsBufferPartialSubcell;
 
         bool _showInsideItems; // initialized by Config
         bool _showInsideSubcellItems; // initialized by Config
