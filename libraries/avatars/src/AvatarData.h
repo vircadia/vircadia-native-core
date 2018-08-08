@@ -372,6 +372,8 @@ public:
     bool operator<(const AvatarPriority& other) const { return priority < other.priority; }
 };
 
+class ClientTraitsHandler;
+
 class AvatarData : public QObject, public SpatiallyNestable {
     Q_OBJECT
 
@@ -924,6 +926,7 @@ public:
      * @param {string} entityData
      */
     Q_INVOKABLE void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData);
+
     /**jsdoc
      * @function MyAvatar.clearAvatarEntity
      * @param {Uuid} entityID
@@ -1434,6 +1437,9 @@ protected:
     udt::SequenceNumber _identitySequenceNumber { 0 };
     bool _hasProcessedFirstIdentity { false };
     float _density;
+
+    // null unless MyAvatar or ScriptableAvatar sending traits data to mixer
+    std::unique_ptr<ClientTraitsHandler> _clientTraitsHandler;
 
     template <typename T, typename F>
     T readLockWithNamedJointIndex(const QString& name, const T& defaultValue, F f) const {

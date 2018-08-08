@@ -12,8 +12,8 @@
 #ifndef hifi_AvatarTraits_h
 #define hifi_AvatarTraits_h
 
+#include <algorithm>
 #include <cstdint>
-#include <set>
 #include <vector>
 
 namespace AvatarTraits {
@@ -23,7 +23,28 @@ namespace AvatarTraits {
         TotalTraitTypes
     };
 
-    using TraitTypeSet = std::set<TraitType>;
+    class TraitTypeSet {
+    public:
+        TraitTypeSet() {};
+        
+        TraitTypeSet(std::initializer_list<TraitType> types) {
+            for (auto type : types) {
+                _types[type] = true;
+            }
+        };
+
+        bool contains(TraitType type) const { return _types[type]; }
+
+        bool hasAny() const { return std::find(_types.begin(), _types.end(), true) != _types.end(); }
+        int size() const { return std::count(_types.begin(), _types.end(), true); }
+
+        void insert(TraitType type) { _types[type] = true; }
+        void erase(TraitType type) { _types[type] = false; }
+        void clear() { std::fill(_types.begin(), _types.end(), false); }
+    private:
+        std::vector<bool> _types = { AvatarTraits::TotalTraitTypes, false };
+    };
+
     const TraitTypeSet SimpleTraitTypes = { SkeletonModelURL };
 
     using TraitVersion = uint32_t;
@@ -35,6 +56,6 @@ namespace AvatarTraits {
     using TraitWireSize = uint16_t;
 
     using SimpleTraitVersions = std::vector<TraitVersion>;
-}
+};
 
 #endif // hifi_AvatarTraits_h

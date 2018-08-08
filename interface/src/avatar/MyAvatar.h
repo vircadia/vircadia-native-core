@@ -1334,7 +1334,6 @@ public slots:
      */
     void setAnimGraphUrl(const QUrl& url);  // thread-safe
 
-
     /**jsdoc
      * @function MyAvatar.getPositionForAudio
      * @returns {Vec3} 
@@ -1346,7 +1345,6 @@ public slots:
      * @returns {Quat} 
      */
     glm::quat getOrientationForAudio();
-
 
     /**jsdoc
      * @function MyAvatar.setModelScale
@@ -1776,8 +1774,6 @@ private:
 
     bool _haveReceivedHeightLimitsFromDomain { false };
     int _disableHandTouchCount { 0 };
-
-    ClientTraitsHandler _clientTraitsHandler;
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

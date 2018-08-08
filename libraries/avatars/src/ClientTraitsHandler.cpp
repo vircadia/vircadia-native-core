@@ -63,7 +63,7 @@ void ClientTraitsHandler::sendChangedTraitsToMixer() {
         auto changedTraitsCopy { _changedTraits };
         _changedTraits.clear();
 
-        if (_performInitialSend || changedTraitsCopy.count(AvatarTraits::SkeletonModelURL)) {
+        if (_performInitialSend || changedTraitsCopy.contains(AvatarTraits::SkeletonModelURL)) {
             traitsPacketList->startSegment();
             _owningAvatar->packTrait(AvatarTraits::SkeletonModelURL, *traitsPacketList);
             traitsPacketList->endSegment();

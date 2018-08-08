@@ -43,6 +43,7 @@
 
 #include "AvatarLogging.h"
 #include "AvatarTraits.h"
+#include "ClientTraitsHandler.h"
 
 //#define WANT_DEBUG
 
@@ -1896,6 +1897,10 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     qCDebug(avatars) << "Changing skeleton model for avatar" << getSessionUUID() << "to" << _skeletonModelURL.toString();
 
     updateJointMappings();
+
+    if (_clientTraitsHandler) {
+        _clientTraitsHandler->markTraitChanged(AvatarTraits::SkeletonModelURL);
+    }
 
     emit skeletonModelURLChanged();
 }

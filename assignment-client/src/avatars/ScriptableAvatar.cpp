@@ -16,9 +16,13 @@
 #include <glm/gtx/transform.hpp>
 
 #include <shared/QtHelpers.h>
-#include <GLMHelpers.h>
 #include <AnimUtil.h>
+#include <ClientTraitsHandler.h>
+#include <GLMHelpers.h>
 
+ScriptableAvatar::ScriptableAvatar() {
+    _clientTraitsHandler = std::unique_ptr<ClientTraitsHandler>(new ClientTraitsHandler(this));
+}
 
 QByteArray ScriptableAvatar::toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking) {
     _globalPosition = getWorldPosition();
@@ -63,8 +67,6 @@ void ScriptableAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _animSkeleton.reset();
 
     AvatarData::setSkeletonModelURL(skeletonModelURL);
-
-    _clientTraitsHandler.markTraitChanged(AvatarTraits::SkeletonModelURL);
 }
 
 static AnimPose composeAnimPose(const FBXJoint& fbxJoint, const glm::quat rotation, const glm::vec3 translation) {
@@ -141,5 +143,5 @@ void ScriptableAvatar::update(float deltatime) {
         }
     }
 
-    _clientTraitsHandler.sendChangedTraitsToMixer();
+    _clientTraitsHandler->sendChangedTraitsToMixer();
 }

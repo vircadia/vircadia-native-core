@@ -26,10 +26,10 @@ public:
 
     void sendChangedTraitsToMixer();
 
-    bool hasChangedTraits() { return _changedTraits.size(); }
+    bool hasChangedTraits() { return _changedTraits.hasAny(); }
     void markTraitChanged(AvatarTraits::TraitType changedTrait) { _changedTraits.insert(changedTrait); }
 
-    bool hasTraitChanged(AvatarTraits::TraitType checkTrait) { return _changedTraits.count(checkTrait) > 0; }
+    bool hasTraitChanged(AvatarTraits::TraitType checkTrait) { return _changedTraits.contains(checkTrait) > 0; }
 
     void resetForNewMixer();
 
