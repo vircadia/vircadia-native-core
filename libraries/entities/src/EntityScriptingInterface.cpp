@@ -38,6 +38,8 @@
 #include <EntityScriptClient.h>
 #include <Profile.h>
 
+const QString GRABBABLE_USER_DATA = "{\"grabbableKey\":{\"grabbable\":true}}";
+const QString NOT_GRABBABLE_USER_DATA = "{\"grabbableKey\":{\"grabbable\":false}}";
 
 EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership) :
     _entityTree(NULL),
@@ -303,7 +305,7 @@ bool EntityScriptingInterface::addLocalEntityCopy(EntityItemProperties& properti
 }
 
 QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const QString& textures,
-                                                const QString& shapeType, bool dynamic, bool collisionless,
+                                                const QString& shapeType, bool dynamic, bool collisionless, bool grabbable,
                                                 const glm::vec3& position, const glm::vec3& gravity) {
     _activityTracking.addedEntityCount++;
 
@@ -314,6 +316,7 @@ QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QStrin
     properties.setShapeTypeFromString(shapeType);
     properties.setDynamic(dynamic);
     properties.setCollisionless(collisionless);
+    properties.setUserData(grabbable ? GRABBABLE_USER_DATA : NOT_GRABBABLE_USER_DATA);
     properties.setPosition(position);
     properties.setGravity(gravity);
     if (!textures.isEmpty()) {

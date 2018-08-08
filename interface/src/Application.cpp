@@ -7325,7 +7325,6 @@ void Application::addAssetToWorldCheckModelSize() {
         auto name = properties.getName();
         auto dimensions = properties.getDimensions();
 
-        const QString GRABBABLE_USER_DATA = "{\"grabbableKey\":{\"grabbable\":true}}";
         bool doResize = false;
 
         const glm::vec3 DEFAULT_DIMENSIONS = glm::vec3(0.1f, 0.1f, 0.1f);
