@@ -1992,7 +1992,7 @@ void MyAvatar::initHeadBones() {
     if (neckJointIndex == -1) {
         neckJointIndex = (_skeletonModel->getFBXGeometry().headJointIndex - 1);
         if (neckJointIndex < 0) {
-            //return if the head is not even there. can't cauterize!!
+            // return if the head is not even there. can't cauterize!!
             return;
         }
     }
