@@ -389,6 +389,7 @@ Script.include("/~/system/libraries/controllers.js");
                         visible: visible
                     });
                 }
+                Overlays.editOverlay(this.teleportedTargetOverlay, { visible: false });
             } else {
                 // Copy of target at teleported position for fading.
                 Overlays.editOverlay(this.teleportedTargetOverlay, {
