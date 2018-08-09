@@ -169,7 +169,7 @@ public:
      * Get the most recent pick result from this Pick.  This will be updated as long as the Pick is enabled.
      * @function Picks.getPrevPickResult
      * @param {number} uid The ID of the Pick, as returned by {@link Picks.createPick}.
-     * @returns {RayPickResult|StylusPickResult|CollisionPickResult} The most recent intersection result.  This will be different for different PickTypes.
+     * @returns {RayPickResult|StylusPickResult|ParabolaPickResult|CollisionPickResult} The most recent intersection result.  This will be different for different PickTypes.
      */
     Q_INVOKABLE QVariantMap getPrevPickResult(unsigned int uid);
 
