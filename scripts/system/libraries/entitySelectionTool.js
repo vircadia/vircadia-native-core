@@ -413,7 +413,7 @@ SelectionDisplay = (function() {
     var ROTATE_CTRL_SNAP_ANGLE = 22.5;
     var ROTATE_DEFAULT_SNAP_ANGLE = 1;
     var ROTATE_DEFAULT_TICK_MARKS_ANGLE = 5;
-    var ROTATE_RING_IDLE_INNER_RADIUS = 0.95;
+    var ROTATE_RING_IDLE_INNER_RADIUS = 0.92;
     var ROTATE_RING_SELECTED_INNER_RADIUS = 0.9;
 
     // These are multipliers for sizing the rotation degrees display while rotating an entity
