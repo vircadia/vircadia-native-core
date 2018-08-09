@@ -71,14 +71,23 @@ void SkeletonModel::initJointStates() {
         qCWarning(avatars_renderer) << "Bad head joint! Got:" << headJointIndex << "jointCount:" << _rig.getJointStateCount();
     }
     glm::vec3 leftEyePosition, rightEyePosition;
+    qCDebug(avatars_renderer) << "initial left and right eyes " << leftEyePosition << " " << rightEyePosition;
     getEyeModelPositions(leftEyePosition, rightEyePosition);
+    qCDebug(avatars_renderer) << "after setting the left and right eyes " << leftEyePosition << " " << rightEyePosition;
     glm::vec3 midEyePosition = (leftEyePosition + rightEyePosition) / 2.0f;
 
     int rootJointIndex = geometry.rootJointIndex;
     glm::vec3 rootModelPosition;
     getJointPosition(rootJointIndex, rootModelPosition);
+    qCDebug(avatars_renderer) << "root joint index " << rootJointIndex << " root position: " << rootModelPosition;
 
     _defaultEyeModelPosition = midEyePosition - rootModelPosition;
+    if (headJointIndex > -1) {
+        glm::vec3 headModelPosition;
+        getJointPosition(headJointIndex, headModelPosition);
+        qCDebug(avatars_renderer) << "we have a head joint " << headJointIndex << " and " << headModelPosition;
+    }
+    qCDebug(avatars_renderer) << "the default eye pos " << _defaultEyeModelPosition << " and scale " << _scale;
 
     // Skeleton may have already been scaled so unscale it
     _defaultEyeModelPosition = _defaultEyeModelPosition / _scale;
@@ -293,6 +302,16 @@ bool SkeletonModel::getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3&
         float headHeight = glm::distance(neckPosition, headPosition);
         firstEyePosition = baseEyePosition + headRotation * glm::vec3(EYE_SEPARATION, 0.0f, EYES_FORWARD) * headHeight;
         secondEyePosition = baseEyePosition + headRotation * glm::vec3(-EYE_SEPARATION, 0.0f, EYES_FORWARD) * headHeight;
+        return true;
+    } else if (getJointPosition(geometry.headJointIndex, headPosition)) {
+        glm::vec3 baseEyePosition = headPosition;
+        glm::quat headRotation;
+        getJointRotation(geometry.headJointIndex, headRotation);
+        const float EYES_FORWARD = 0.25f;
+        const float EYE_SEPARATION = 0.1f;
+        float headHeight = glm::distance(neckPosition, headPosition);
+        firstEyePosition = baseEyePosition + headRotation * glm::vec3(EYE_SEPARATION, 0.0f, EYES_FORWARD);
+        secondEyePosition = baseEyePosition + headRotation * glm::vec3(-EYE_SEPARATION, 0.0f, EYES_FORWARD);
         return true;
     }
     return false;

@@ -3064,6 +3064,7 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
     auto myAvatar = getMyAvatar();
     boomOffset = myAvatar->getModelScale() * myAvatar->getBoomLength() * -IDENTITY_FORWARD;
 
+    //qCDebug(interfaceapp) << "boom offset" << boomOffset;
     // The render mode is default or mirror if the camera is in mirror mode, assigned further below
     renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
 
@@ -3074,10 +3075,12 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
         _thirdPersonHMDCameraBoomValid= false;
         if (isHMDMode()) {
             mat4 camMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
+            //qCDebug(interfaceapp) << "camera 1rst translation hmd " << extractTranslation(camMat);
             _myCamera.setPosition(extractTranslation(camMat));
             _myCamera.setOrientation(glmExtractRotation(camMat));
         }
         else {
+            //qCDebug(interfaceapp) << "camera 1rst translation desktop " << myAvatar->getDefaultEyePosition();
             _myCamera.setPosition(myAvatar->getDefaultEyePosition());
             _myCamera.setOrientation(myAvatar->getMyHead()->getHeadOrientation());
         }
@@ -3099,6 +3102,7 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
 
             _myCamera.setOrientation(glm::normalize(glmExtractRotation(worldCameraMat)));
             _myCamera.setPosition(extractTranslation(worldCameraMat));
+            //qCDebug(interfaceapp) << "camera translation 3rd hmd " << extractTranslation(worldCameraMat);
         }
         else {
             _thirdPersonHMDCameraBoomValid = false;
@@ -3112,6 +3116,7 @@ void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
                 _myCamera.setPosition(myAvatar->getDefaultEyePosition()
                     + myAvatar->getWorldOrientation() * boomOffset);
             }
+            qCDebug(interfaceapp) << "camera translation 3rd desktop " << (myAvatar->getDefaultEyePosition() + _myCamera.getOrientation() * boomOffset);
         }
     }
     else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {

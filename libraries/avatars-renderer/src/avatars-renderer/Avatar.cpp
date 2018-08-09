@@ -169,6 +169,8 @@ AABox Avatar::getBounds() const {
         // approximately 2m tall, scaled to user request.
         return AABox(getWorldPosition() - glm::vec3(getModelScale()), getModelScale() * 2.0f);
     }
+    //float temp = _skeletonModel->getRenderableMeshBound().getLargestDimension();
+    //qCDebug(animation) << " largest bounding box dimension " << temp;
     return _skeletonModel->getRenderableMeshBound();
 }
 
@@ -1775,6 +1777,7 @@ void Avatar::buildUnscaledEyeHeightCache() {
     // Sanity check by looking at the model extents.
     Extents meshExtents = _skeletonModel->getUnscaledMeshExtents();
     float meshHeight = meshExtents.size().y;
+    //qCDebug(animation) << "mesh height " << meshHeight << " skeleton height " << skeletonHeight;
 
     // if we determine the mesh is much larger then the skeleton, then we use the mesh height instead.
     // This helps prevent absurdly large avatars from exceeding the domain height limit.

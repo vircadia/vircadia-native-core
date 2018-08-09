@@ -1704,8 +1704,10 @@ glm::vec3 MyAvatar::getSkeletonPosition() const {
         // The avatar is rotated PI about the yAxis, so we have to correct for it
         // to get the skeleton offset contribution in the world-frame.
         const glm::quat FLIP = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        //qCDebug(interfaceapp) << "position third person " << getWorldPosition();
         return getWorldPosition() + getWorldOrientation() * FLIP * _skeletonOffset;
     }
+    //qCDebug(interfaceapp) << "position first person " << Avatar::getWorldPosition();
     return Avatar::getWorldPosition();
 }
 
