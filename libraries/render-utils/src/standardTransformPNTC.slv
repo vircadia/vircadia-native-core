@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  standardTransformPNTC.slv
+//  standardTransformPNTC.vert
 //  vertex shader
 //
 //  Created by Sam Gateau on 6/10/2015.
@@ -17,10 +17,10 @@
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
-out vec3 varPosition;
-out vec3 varNormal;
-out vec2 varTexCoord0;
-out vec4 varColor;
+layout(location=GPU_ATTR_POSITION) out vec3 varPosition;
+layout(location=GPU_ATTR_NORMAL) out vec3 varNormal;
+layout(location=GPU_ATTR_TEXCOORD0) out vec2 varTexCoord0;
+layout(location=GPU_ATTR_COLOR) out vec4 varColor;
 
 void main(void) {
     varTexCoord0 = inTexCoord0.st;

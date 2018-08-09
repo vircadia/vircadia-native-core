@@ -17,17 +17,19 @@
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
+<@include render-utils/ShaderConstants.h@>
+
 // the interpolated normal
-out vec3 _normalWS;
-out vec3 _normalMS;
-out vec4 _color;
-out vec2 _texCoord0;
-out vec4 _positionMS;
-out vec4 _positionES;
+layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
+layout(location=RENDER_UTILS_ATTR_NORMAL_MS) out vec3 _normalMS;
+layout(location=RENDER_UTILS_ATTR_COLOR) out vec4 _color;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
+layout(location=RENDER_UTILS_ATTR_POSITION_MS) out vec4 _positionMS;
+layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
 
 void main(void) {
     _color = color_sRGBAToLinear(inColor);
-    _texCoord0 = inTexCoord0.st;
+    _texCoord01.xy = inTexCoord0.st;
     _positionMS = inPosition;
     _normalMS = inNormal.xyz;
 

@@ -19,6 +19,8 @@ local f_avatar_data_valid_rotations = ProtoField.string("hf_avatar.avatar_data_v
 local f_avatar_data_valid_translations = ProtoField.string("hf_avatar.avatar_data_valid_translations", "Valid Translations")
 local f_avatar_data_default_rotations = ProtoField.string("hf_avatar.avatar_data_default_rotations", "Valid Default")
 local f_avatar_data_default_translations = ProtoField.string("hf_avatar.avatar_data_default_translations", "Valid Default")
+local f_avatar_data_sizes = ProtoField.string("hf_avatar.avatar_sizes", "Sizes")
+
 
 p_hf_avatar.fields = {
   f_avatar_id, f_avatar_data_parent_id
@@ -110,6 +112,9 @@ function add_avatar_data_subtrees(avatar_data)
   if avatar_data["default_translations"] then
     avatar_subtree:add(f_avatar_data_default_translations, avatar_data["default_translations"])
   end
+  if avatar_data["sizes"] then
+    avatar_subtree:add(f_avatar_data_sizes, avatar_data["sizes"])
+  end
 end
 
 function decode_vec3(buf)
@@ -153,6 +158,8 @@ function decode_avatar_data_packet(buf)
 
   local i = 0
   local result = {}
+
+  result["sizes"] = ""
 
   -- uint16 has_flags
   local has_flags = buf(i, 2):le_uint()
@@ -258,6 +265,8 @@ function decode_avatar_data_packet(buf)
 
   if has_joint_data then
 
+    local joint_poses_start = i
+
     local num_joints = buf(i, 1):uint()
     i = i + 1
     local num_validity_bytes = math.ceil(num_joints / 8)
@@ -279,6 +288,8 @@ function decode_avatar_data_packet(buf)
     -- TODO: skip hand controller data
     i = i + 24
 
+    result["sizes"] = result["sizes"] .. " Poses: " .. (i - joint_poses_start)
+
   end
 
   if has_joint_default_pose_flags then
@@ -294,6 +305,8 @@ function decode_avatar_data_packet(buf)
     i = i + num_validity_bytes
     result["default_translations"] = "Default Translations: " .. string.format("(%d/%d) {", #indices, num_joints) .. table.concat(indices, ", ") .. "}"
   end
+
+  result["sizes"] = result["sizes"] .. " Total: " .. i
 
   return result
 end

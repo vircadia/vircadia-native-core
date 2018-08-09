@@ -20,16 +20,16 @@
 <@include Skinning.slh@>
 <$declareUseDualQuaternionSkinning()$>
 
-<@include MaterialTextures.slh@>
+<@include graphics/MaterialTextures.slh@>
 <$declareMaterialTexMapArrayBuffer()$>
 
-out vec4 _positionES;
-out vec2 _texCoord0;
-out vec2 _texCoord1;
-out vec3 _normalWS;
-out vec3 _tangentWS;
-out vec3 _color;
-out float _alpha;
+<@include render-utils/ShaderConstants.h@>
+
+layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
+layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
+layout(location=RENDER_UTILS_ATTR_TANGENT_WS) out vec3 _tangentWS;
+layout(location=RENDER_UTILS_ATTR_COLOR) out vec4 _color;
 
 void main(void) {
     vec4 position = vec4(0.0, 0.0, 0.0, 0.0);
@@ -39,12 +39,12 @@ void main(void) {
     skinPositionNormalTangent(inSkinClusterIndex, inSkinClusterWeight, inPosition, inNormal.xyz, inTangent.xyz, position, interpolatedNormal.xyz, interpolatedTangent.xyz);
 
     // pass along the color
-    _color = color_sRGBToLinear(inColor.rgb);
-    _alpha = inColor.a;
+    _color.rgb = color_sRGBToLinear(inColor.rgb);
+    _color.a = inColor.a;
 
     TexMapArray texMapArray = getTexMapArray();
-    <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _texCoord0)$>
-    <$evalTexMapArrayTexcoord1(texMapArray, inTexCoord0, _texCoord1)$>
+    <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _texCoord01.xy)$>
+    <$evalTexMapArrayTexcoord1(texMapArray, inTexCoord0, _texCoord01.zw)$>
 
     interpolatedNormal = vec4(normalize(interpolatedNormal.xyz), 0.0);
     interpolatedTangent = vec4(normalize(interpolatedTangent.xyz), 0.0);

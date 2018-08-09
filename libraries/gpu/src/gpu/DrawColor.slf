@@ -2,6 +2,8 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
+//  DrawColor.frag
+//
 //  Draw with color uniform
 //
 //  Created by Olivier Prat on 25/10/2017
@@ -10,9 +12,12 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-uniform vec4 color;
 
-out vec4 outFragColor;
+<@include gpu/ShaderConstants.h@>
+
+layout(location=GPU_UNIFORM_COLOR) uniform vec4 color;
+
+layout(location=0) out vec4 outFragColor;
 
 void main(void) {
     outFragColor = color;

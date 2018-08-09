@@ -1547,16 +1547,18 @@ bool Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, 
     glm::vec3 backVector = oppositeArmPose.trans() - armPose.trans();
     glm::vec3 backCenter = armPose.trans() + 0.5f * backVector;
 
-    const float OVER_BACK_HEAD_PERCENTAGE = 0.2f;
+    glm::vec3 frontVector = glm::normalize(glm::cross(backVector, Vectors::UNIT_Y));
+    glm::vec3 topVector = glm::normalize(glm::cross(frontVector, backVector));
 
-    glm::vec3 headCenter = backCenter + glm::vec3(0, OVER_BACK_HEAD_PERCENTAGE * backVector.length(), 0);
-    glm::vec3 frontVector = glm::normalize(glm::cross(backVector, glm::vec3(0, 1, 0)));
+    glm::vec3 centerToHand = handPose.trans() - backCenter;
+    glm::vec3 headCenter = backCenter + glm::length(backVector) * topVector;
+
     // Make sure is pointing forward
     frontVector = frontVector.z < 0 ? -frontVector : frontVector;
 
-    float horizontalModule = glm::dot(armToHand, glm::vec3(0, -1, 0));
-    glm::vec3 headForward = headCenter + horizontalModule * frontVector;
+    float horizontalModule = glm::dot(centerToHand, -topVector);
 
+    glm::vec3 headForward = headCenter + glm::max(0.0f, horizontalModule) * frontVector;
     glm::vec3 armToHead = headForward - armPose.trans();
 
     float armToHandDistance = glm::length(armToHand);
@@ -1570,8 +1572,10 @@ bool Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, 
     // How much the hand is reaching for the opposite side
     float oppositeProjection = glm::dot(armToHandDir, glm::normalize(backVector));
 
-    // Don't use pole vector when the hands are behind
-    if (glm::dot(frontVector, armToHand) < 0 && oppositeProjection < 0.5f * armTotalDistance) {
+    bool isCrossed = glm::dot(centerToHand, backVector) > 0;
+    bool isBehind = glm::dot(frontVector, armToHand) < 0;
+    // Don't use pole vector when the hands are behind the back and the arms are not crossed
+    if (isBehind && !isCrossed) {
         return false;
     }
 
@@ -1585,7 +1589,7 @@ bool Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, 
     glm::vec3 correctionVector = glm::vec3(0, 0, 0);
 
     const float FORWARD_TRIGGER_PERCENTAGE = 0.2f;
-    const float FORWARD_CORRECTOR_WEIGHT = 3.0f;
+    const float FORWARD_CORRECTOR_WEIGHT = 2.3f;
 
     float elbowForwardTrigger = FORWARD_TRIGGER_PERCENTAGE * armToHandDistance;
 

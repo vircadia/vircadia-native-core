@@ -58,24 +58,11 @@ namespace render {
         bool _showDisplay; // initialized by Config
         bool _showNetwork; // initialized by Config
 
-        int _drawItemBoundPosLoc = -1;
-        int _drawItemBoundDimLoc = -1;
-        int _drawItemCellLocLoc = -1;
-        int _drawItemStatusPosLoc = -1;
-        int _drawItemStatusDimLoc = -1;
-        int _drawItemStatusValue0Loc = -1;
-        int _drawItemStatusValue1Loc = -1;
-
         gpu::Stream::FormatPointer _drawItemFormat;
         gpu::PipelinePointer _drawItemBoundsPipeline;
         gpu::PipelinePointer _drawItemStatusPipeline;
 
-        std::vector<AABox> _itemBounds;
-        std::vector<std::pair<glm::ivec4, glm::ivec4>> _itemStatus;
-        std::vector<Octree::Location> _itemCells;
-        //gpu::BufferPointer _itemBounds;
-        //gpu::BufferPointer _itemCells;
-        //gpu::BufferPointer _itemStatus;
+        gpu::BufferPointer _boundsBuffer;
         gpu::TexturePointer _statusIconMap;
     };
 }

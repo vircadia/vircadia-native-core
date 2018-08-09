@@ -2,6 +2,8 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
+//  ssao_makeVerticalBlur.frag
+//
 //  Created by Sam Gateau on 1/1/16.
 //  Copyright 2016 High Fidelity, Inc.
 //
@@ -13,7 +15,7 @@
 const ivec2 vertical = ivec2(0,1);
 <$declareBlurPass(vertical)$>
 
-out vec4 outFragColor;
+layout(location=0) out vec4 outFragColor;
 
 void main(void) {
     float occlusion = getBlurredOcclusion(gl_FragCoord.xy).x;

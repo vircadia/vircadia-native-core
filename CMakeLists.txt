@@ -15,6 +15,7 @@ include("cmake/compiler.cmake")
 
 if (BUILD_SCRIBE_ONLY)
   add_subdirectory(tools/scribe)
+  add_subdirectory(tools/shader_reflect)
   return()
 endif()
 

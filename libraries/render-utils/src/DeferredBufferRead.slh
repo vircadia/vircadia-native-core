@@ -11,26 +11,29 @@
 <@if not DEFERRED_BUFFER_READ_SLH@>
 <@def DEFERRED_BUFFER_READ_SLH@>
 
+<@include render-utils/ShaderConstants.h@>
 <@include DeferredBuffer.slh@>
 
+// See DeferredShader_MapSlot in DeferredLightingEffect.cpp for constants
+
 // the albedo texture
-uniform sampler2D albedoMap;
+layout(binding=RENDER_UTILS_TEXTURE_DEFERRRED_COLOR) uniform sampler2D albedoMap;
 
 // the normal texture
-uniform sampler2D normalMap;
+layout(binding=RENDER_UTILS_TEXTURE_DEFERRRED_NORMAL) uniform sampler2D normalMap;
 
 // the specular texture
-uniform sampler2D specularMap;
+layout(binding=RENDER_UTILS_TEXTURE_DEFERRRED_SPECULAR) uniform sampler2D specularMap;
 
 // the depth texture
-uniform sampler2D depthMap;
-uniform sampler2D linearZeyeMap;
+layout(binding=RENDER_UTILS_TEXTURE_DEFERRRED_DEPTH) uniform sampler2D depthMap;
+layout(binding=RENDER_UTILS_TEXTURE_DEFERRRED_LINEAR_Z_EYE) uniform sampler2D linearZeyeMap;
 
 // the obscurance texture
-uniform sampler2D obscuranceMap;
+layout(binding=RENDER_UTILS_TEXTURE_DEFERRED_OBSCURANCE) uniform sampler2D obscuranceMap;
 
 // the lighting texture
-uniform sampler2D lightingMap;
+layout(binding=RENDER_UTILS_TEXTURE_DEFERRED_LIGHTING) uniform sampler2D lightingMap;
 
 
 struct DeferredFragment {
@@ -167,14 +170,14 @@ DeferredFragment unpackDeferredFragment(DeferredFrameTransform deferredTransform
 <@func declareDeferredCurvature()@>
 
 // the curvature texture
-uniform sampler2D curvatureMap;
+layout(binding=RENDER_UTILS_TEXTURE_DEFERRED_CURVATURE) uniform sampler2D curvatureMap;
 
 vec4 fetchCurvature(vec2 texcoord) {
     return texture(curvatureMap, texcoord);
 }
 
 // the curvature texture
-uniform sampler2D diffusedCurvatureMap;
+layout(binding=RENDER_UTILS_TEXTURE_DEFERRED_DIFFUSED_CURVATURE) uniform sampler2D diffusedCurvatureMap;
 
 vec4 fetchDiffusedCurvature(vec2 texcoord) {
     return texture(diffusedCurvatureMap, texcoord);

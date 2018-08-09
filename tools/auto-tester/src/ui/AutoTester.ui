@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>612</width>
-    <height>537</height>
+    <width>645</width>
+    <height>814</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,7 +18,7 @@
     <property name="geometry">
      <rect>
       <x>380</x>
-      <y>430</y>
+      <y>620</y>
       <width>101</width>
       <height>40</height>
      </rect>
@@ -44,7 +44,7 @@
     <property name="geometry">
      <rect>
       <x>430</x>
-      <y>270</y>
+      <y>490</y>
       <width>101</width>
       <height>40</height>
      </rect>
@@ -57,7 +57,7 @@
     <property name="geometry">
      <rect>
       <x>330</x>
-      <y>110</y>
+      <y>340</y>
       <width>220</width>
       <height>40</height>
      </rect>
@@ -70,7 +70,7 @@
     <property name="geometry">
      <rect>
       <x>320</x>
-      <y>280</y>
+      <y>500</y>
       <width>131</width>
       <height>20</height>
      </rect>
@@ -86,7 +86,7 @@
     <property name="geometry">
      <rect>
       <x>320</x>
-      <y>330</y>
+      <y>550</y>
       <width>255</width>
       <height>23</height>
      </rect>
@@ -99,7 +99,7 @@
     <property name="geometry">
      <rect>
       <x>330</x>
-      <y>170</y>
+      <y>400</y>
       <width>220</width>
       <height>40</height>
      </rect>
@@ -229,13 +229,68 @@
      </rect>
     </property>
    </widget>
+   <widget class="QPushButton" name="createTestRailTestCasesButton">
+    <property name="geometry">
+     <rect>
+      <x>410</x>
+      <y>100</y>
+      <width>140</width>
+      <height>40</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Create TestRail Test Cases</string>
+    </property>
+   </widget>
+   <widget class="QRadioButton" name="createPythonScriptRadioButton">
+    <property name="geometry">
+     <rect>
+      <x>310</x>
+      <y>100</y>
+      <width>95</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Python</string>
+    </property>
+    <property name="checked">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QRadioButton" name="createXMLScriptRadioButton">
+    <property name="geometry">
+     <rect>
+      <x>310</x>
+      <y>120</y>
+      <width>95</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>XML</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="createTestRailRunButton">
+    <property name="geometry">
+     <rect>
+      <x>410</x>
+      <y>180</y>
+      <width>140</width>
+      <height>40</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Create TestRail Run</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>612</width>
+     <width>645</width>
      <height>21</height>
     </rect>
    </property>

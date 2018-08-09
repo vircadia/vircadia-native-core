@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  simple_textured_unlit.frag
+//  forward_simple_textured_unlit.frag
 //  fragment shader
 //
 //  Created by Clément Brisset on 5/29/15.
@@ -15,13 +15,17 @@
 <@include LightingModel.slh@>
 <@include gpu/Color.slh@>
 
-layout(location = 0) out vec4 _fragColor0;
+<@include render-utils/ShaderConstants.h@>
+
+layout(location=0) out vec4 _fragColor0;
 
 // the albedo texture
-uniform sampler2D originalTexture;
+layout(binding=0) uniform sampler2D originalTexture;
 
-in vec4 _color;
-in vec2 _texCoord0;
+layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
+#define _texCoord0 _texCoord01.xy
+#define _texCoord1 _texCoord01.zw
 
 void main(void) {
     vec4 texel = texture(originalTexture, _texCoord0.st);

@@ -1,7 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//  drawCellBounds.slf
+//  drawCellBounds.frag
 //  fragment shader
 //
 //  Created by Sam Gateau on 1/25/2016.
@@ -11,8 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-in vec4 varColor;
-out vec4 outFragColor;
+layout(location=0) in vec4 varColor;
+layout(location=0) out vec4 outFragColor;
 
 
 void main(void) {

@@ -9,18 +9,22 @@
 <@if not FADE_SLH@>
 <@def FADE_SLH@>
 
-<@func declareFadeFragmentCommon()@>
+<@include render-utils/ShaderConstants.h@>
 
+<@func declareFadeFragmentCommon()@>
 
 #define CATEGORY_COUNT    5
 
 <@include Fade_shared.slh@>
 <@include FadeObjectParams.shared.slh@>
 
-layout(std140) uniform fadeParametersBuffer {
+// See ShapePipeline::Slot::BUFFER in ShapePipeline.h
+layout(std140, binding=RENDER_UTILS_BUFFER_FADE_PARAMS) uniform fadeParametersBuffer {
     FadeParameters fadeParameters[CATEGORY_COUNT];
 };
-uniform sampler2D fadeMaskMap;
+
+// See ShapePipeline::Slot::MAP in ShapePipeline.h
+layout(binding=RENDER_UTILS_TEXTURE_FADE_MASK) uniform sampler2D fadeMaskMap;
 
 vec3 getNoiseInverseSize(int category) {
     return fadeParameters[category]._noiseInvSizeAndLevel.xyz;
@@ -113,7 +117,7 @@ void applyFade(FadeObjectParams params, vec3 position, out vec3 emissive) {
 
 <@func declareFadeFragmentUniform()@>
 
-layout(std140) uniform fadeObjectParametersBuffer {
+layout(std140, binding=RENDER_UTILS_BUFFER_FADE_OBJECT_PARAMS) uniform fadeObjectParametersBuffer {
     FadeObjectParams fadeObjectParams;
 };
 
@@ -125,9 +129,9 @@ layout(std140) uniform fadeObjectParametersBuffer {
 
 <@func declareFadeFragmentVertexInput()@>
 
-in vec4 _fadeData1;
-in vec4 _fadeData2;
-in vec4 _fadeData3;
+layout(location=RENDER_UTILS_ATTR_FADE1) in vec4 _fadeData1;
+layout(location=RENDER_UTILS_ATTR_FADE2) in vec4 _fadeData2;
+layout(location=RENDER_UTILS_ATTR_FADE3) in vec4 _fadeData3;
 
 <@endfunc@>
 
@@ -150,9 +154,9 @@ in vec4 _fadeData3;
 <@endfunc@>
 
 <@func declareFadeVertexInstanced()@>
-out vec4 _fadeData1;
-out vec4 _fadeData2;
-out vec4 _fadeData3;
+layout(location=RENDER_UTILS_ATTR_FADE1) out vec4 _fadeData1;
+layout(location=RENDER_UTILS_ATTR_FADE2) out vec4 _fadeData2;
+layout(location=RENDER_UTILS_ATTR_FADE3) out vec4 _fadeData3;
 <@endfunc@>
 
 <@func passThroughFadeObjectParams()@>

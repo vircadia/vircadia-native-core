@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  paintStroke_fade.slv
+//  paintStroke_fade.vert
 //  vertex shader
 //
 //  Created by Olivier Prat on 19/07/17.
@@ -18,13 +18,13 @@
 <$declareStandardTransform()$>
 
 // the interpolated normal
-out vec3 interpolatedNormal;
+layout(location=0) out vec3 interpolatedNormal;
 
 //the diffuse texture
-out vec2 varTexcoord;
+layout(location=1) out vec2 varTexcoord;
 
-out vec4 varColor;
-out vec4 _worldPosition;
+layout(location=2) out vec4 varColor;
+layout(location=3) out vec4 _worldPosition;
 
 void main(void) {
     

@@ -21,7 +21,6 @@ namespace hifi { namespace properties {
 
     namespace gl {
         const char* BACKEND = "com.highfidelity.gl.backend";
-        const char* MAKE_PROGRAM_CALLBACK = "com.highfidelity.gl.makeProgram";
         const char* PRIMARY_CONTEXT = "com.highfidelity.gl.primaryContext";
     }
 

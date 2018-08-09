@@ -164,18 +164,29 @@ def packages = [
 
 
 def scribeLocalFile='scribe' + EXEC_SUFFIX
-
 def scribeFile='scribe_linux_x86_64'
 def scribeChecksum='ca4b904f52f4f993c29175ba96798fa6'
 def scribeVersion='u_iTrJDaE95i2abTPXOpPZckGBIim53G'
+
+def shreflectLocalFile='shreflect' + EXEC_SUFFIX
+def shreflectFile='shreflect_linux_x86_64'
+def shreflectChecksum='d6094a8580066c0b6f4e80b5adfb1d98'
+def shreflectVersion='jnrpudh6fptIg6T2.Z6fgKP2ultAdKmE'
+
 if (Os.isFamily(Os.FAMILY_MAC)) {
     scribeFile = 'scribe_osx_x86_64'
     scribeChecksum='72db9d32d4e1e50add755570ac5eb749'
     scribeVersion='DAW0DmnjCRib4MD8x93bgc2Z2MpPojZC'
+    shreflectFile='shreflect_osx_x86_64'
+    shreflectChecksum='d613ef0703c21371fee93fd2e54b964f'
+    shreflectVersion='.rYNzjSFq6WtWDnE5KIKRIAGyJtr__ad'
 } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
     scribeFile = 'scribe_win32_x86_64.exe'
     scribeChecksum='678e43d290c90fda670c6fefe038a06d'
     scribeVersion='PuullrA_bPlO9kXZRt8rLe536X1UI.m7'
+    shreflectFile='shreflect_win32_x86_64.exe'
+    shreflectChecksum='6f4a77b8cceb3f1bbc655132c3665060'
+    shreflectVersion='iIyCyza1nelkbI7ihybF59bBlwrfAC3D'
 }
 
 def options = [
@@ -450,11 +461,27 @@ task fixScribePermissions(type: Exec, dependsOn: verifyScribe) {
     commandLine 'chmod', 'a+x', HIFI_ANDROID_PRECOMPILED + '/' + scribeLocalFile
 }
 
-task setupScribe(dependsOn: verifyScribe) { }
+task downloadShreflect(type: Download) {
+    src baseUrl + shreflectFile + '?versionId=' + shreflectVersion
+    dest new File(baseFolder, shreflectLocalFile)
+    onlyIfNewer true
+}
+
+task verifyShreflect(type: Verify, dependsOn: downloadShreflect) {
+    src new File(baseFolder, shreflectLocalFile);
+    checksum shreflectChecksum
+}
+
+task fixShreflectPermissions(type: Exec, dependsOn: verifyShreflect) {
+    commandLine 'chmod', 'a+x', HIFI_ANDROID_PRECOMPILED + '/' + shreflectLocalFile
+}
+
+task setupScribe(dependsOn: [verifyScribe, verifyShreflect]) { }
 
 // On Windows, we don't need to set the executable bit, but on OSX and Unix we do
 if (!Os.isFamily(Os.FAMILY_WINDOWS)) {
     setupScribe.dependsOn fixScribePermissions
+    setupScribe.dependsOn fixShreflectPermissions
 }
 
 task extractGvrBinaries(dependsOn: extractDependencies) {

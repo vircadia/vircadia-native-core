@@ -10,7 +10,7 @@
 <@if not RENDER_LIGHT_CLUSTER_GRID_SLH@>
 <@def RENDER_LIGHT_CLUSTER_GRID_SLH@>
 
-
+<@include render-utils/ShaderConstants.h@>
 
 struct FrustumGrid {
     float frustumNear;
@@ -24,7 +24,7 @@ struct FrustumGrid {
     mat4 eyeToWorldMat;
 };
 
-layout(std140) uniform frustumGridBuffer {
+layout(std140, binding=RENDER_UTILS_BUFFER_LIGHT_CLUSTER_FRUSTUM_GRID) uniform frustumGridBuffer {
     FrustumGrid frustumGrid;
 };
 
@@ -60,11 +60,11 @@ float projection_getFar(mat4 projection) {
 #define GRID_FETCH_BUFFER(i) i!>
 <@endif@>
 
-layout(std140) uniform clusterGridBuffer {
+layout(std140, binding=RENDER_UTILS_BUFFER_LIGHT_CLUSTER_GRID) uniform clusterGridBuffer {
     GRID_INDEX_TYPE _clusterGridTable[GRID_NUM_ELEMENTS];
 };
 
-layout(std140) uniform clusterContentBuffer {
+layout(std140, binding=RENDER_UTILS_BUFFER_LIGHT_CLUSTER_CONTENT) uniform clusterContentBuffer {
     GRID_INDEX_TYPE _clusterGridContent[GRID_NUM_ELEMENTS];
 };
 

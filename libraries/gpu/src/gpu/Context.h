@@ -115,7 +115,7 @@ public:
     static ContextMetricSize textureResourceIdealGPUMemSize;
 
 protected:
-    virtual bool isStereo() {
+    virtual bool isStereo() const {
         return _stereo.isStereo();
     }
 
@@ -140,14 +140,12 @@ class Context {
 public:
     using Size = Resource::Size;
     typedef BackendPointer (*CreateBackend)();
-    typedef bool (*MakeProgram)(Shader& shader, const Shader::BindingSet& bindings, const Shader::CompilationHandler& handler);
 
     // This one call must happen before any context is created or used (Shader::MakeProgram) in order to setup the Backend and any singleton data needed
     template <class T>
     static void init() {
         std::call_once(_initialized, [] {
             _createBackendCallback = T::createBackend;
-            _makeProgramCallback = T::makeProgram;
             T::init();
         });
     }
@@ -261,14 +259,7 @@ protected:
     // Sampled at the end of every frame, the stats of all the counters
     mutable ContextStats _frameStats;
 
-    // This function can only be called by "static Shader::makeProgram()"
-    // makeProgramShader(...) make a program shader ready to be used in a Batch.
-    // It compiles the sub shaders, link them and defines the Slots and their bindings.
-    // If the shader passed is not a program, nothing happens.
-    static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings, const Shader::CompilationHandler& handler);
-
     static CreateBackend _createBackendCallback;
-    static MakeProgram _makeProgramCallback;
     static std::once_flag _initialized;
 
     friend class Shader;
