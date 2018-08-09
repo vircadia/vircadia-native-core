@@ -91,7 +91,7 @@ function AppUi(properties) {
         icon: that.normalButton,
         activeIcon: that.activeButton,
         text: that.buttonName,
-        sortOrder: that.sortOrder
+        sortOrder: that.sortOrder || undefined
     });
     that.ignore = function ignore() { };
 
@@ -126,6 +126,7 @@ function AppUi(properties) {
     // (Although injected javascript still has to use JSON.stringify/JSON.parse.)
     that.sendToHtml = function (messageObject) { that.tablet.emitScriptEvent(JSON.stringify(messageObject)); };
     that.fromHtml = function (messageString) { that.onMessage(JSON.parse(messageString)); };
+    that.sendMessage = that.ignore;
     that.wireEventBridge = function wireEventBridge(on) {
         // Uniquivocally sets that.sendMessage(messageObject) to do the right thing.
         // Sets hasEventBridge and wires onMessage to eventSignal as appropriate, IFF onMessage defined.
