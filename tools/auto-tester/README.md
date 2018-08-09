@@ -13,7 +13,7 @@ Auto-tester has 4 functions, separated into 4 tabs:
 
 
 # Create
-![](./Create.png)
+![](./Create.PNG)
 
 The Create tab provides functions to create tests from snapshots, MD files, a test outline and recursive scripts.
 ## Create Tests
@@ -80,7 +80,7 @@ In this case all recursive scripts, from the selected folder down, are created.
 
 Running this function in the tests root folder will create (or update) all the recursive scripts.
 # Evaluate
-![](./Evaluate.png)
+![](./Evaluate.PNG)
 
 The Evaluate tab provides a single function - evaluating the results of a test run.
 
@@ -106,13 +106,13 @@ Evaluation proceeds in a number of steps:
 
 1.  At the end of the test, the folder is zipped and the original folder is deleted.  If there are no errors then the zipped folder will be empty.
 # TestRail
-![](./TestRail.png)
+![](./TestRail.PNG)
 
 Before updating TestRail, make sure the GitHub user and branch are set correctly.  The user should not normally be changed, but the branch may need to be set to the appropriate RC.
 
 Any access to TestRail will require the TestRail account (default is High Fidelity's account), a user-name and a password:
 
-![](./TestRailSelector.png)
+![](./TestRailSelector.PNG)
 
 - The default test rail user is shown, and can be changed as needed.
 - The username is usually the user's email.
@@ -176,7 +176,7 @@ A number of Python scripts are created:
 
 In addition - a file containing all the releases will be created - `runs.txt`
 # Windows
-![](./Windows.png)
+![](./Windows.PNG)
 
 This tab is Windows-specific.  It provides buttons to hide and show the task bar.
 
