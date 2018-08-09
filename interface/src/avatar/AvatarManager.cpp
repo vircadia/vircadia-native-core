@@ -277,21 +277,6 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         sortedAvatars.pop();
     }
 
-    if (_shouldRender) {
-        if (!_avatarsToFade.empty()) {
-            QReadLocker lock(&_hashLock);
-            QVector<AvatarSharedPointer>::iterator itr = _avatarsToFade.begin();
-            while (itr != _avatarsToFade.end() && usecTimestampNow() > updateExpiry) {
-                auto avatar = std::static_pointer_cast<Avatar>(*itr);
-                avatar->animateScaleChanges(deltaTime);
-                avatar->simulate(deltaTime, true);
-                avatar->updateRenderItem(transaction);
-                ++itr;
-            }
-        }
-        qApp->getMain3DScene()->enqueueTransaction(transaction);
-    }
-
     _numAvatarsUpdated = numAvatarsUpdated;
     _numAvatarsNotUpdated = numAVatarsNotUpdated;
 
