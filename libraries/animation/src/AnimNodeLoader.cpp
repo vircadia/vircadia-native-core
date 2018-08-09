@@ -25,6 +25,8 @@
 #include "AnimManipulator.h"
 #include "AnimInverseKinematics.h"
 #include "AnimDefaultPose.h"
+#include "AnimTwoBoneIK.h"
+#include "AnimPoleVectorConstraint.h"
 
 using NodeLoaderFunc = AnimNode::Pointer (*)(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 using NodeProcessFunc = bool (*)(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
@@ -38,6 +40,8 @@ static AnimNode::Pointer loadStateMachineNode(const QJsonObject& jsonObj, const 
 static AnimNode::Pointer loadManipulatorNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadDefaultPoseNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
+static AnimNode::Pointer loadTwoBoneIKNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
+static AnimNode::Pointer loadPoleVectorConstraintNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 
 static const float ANIM_GRAPH_LOAD_PRIORITY = 10.0f;
 
@@ -56,6 +60,8 @@ static const char* animNodeTypeToString(AnimNode::Type type) {
     case AnimNode::Type::Manipulator: return "manipulator";
     case AnimNode::Type::InverseKinematics: return "inverseKinematics";
     case AnimNode::Type::DefaultPose: return "defaultPose";
+    case AnimNode::Type::TwoBoneIK: return "twoBoneIK";
+    case AnimNode::Type::PoleVectorConstraint: return "poleVectorConstraint";
     case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
@@ -116,6 +122,8 @@ static NodeLoaderFunc animNodeTypeToLoaderFunc(AnimNode::Type type) {
     case AnimNode::Type::Manipulator: return loadManipulatorNode;
     case AnimNode::Type::InverseKinematics: return loadInverseKinematicsNode;
     case AnimNode::Type::DefaultPose: return loadDefaultPoseNode;
+    case AnimNode::Type::TwoBoneIK: return loadTwoBoneIKNode;
+    case AnimNode::Type::PoleVectorConstraint: return loadPoleVectorConstraintNode;
     case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
@@ -131,6 +139,8 @@ static NodeProcessFunc animNodeTypeToProcessFunc(AnimNode::Type type) {
     case AnimNode::Type::Manipulator: return processDoNothing;
     case AnimNode::Type::InverseKinematics: return processDoNothing;
     case AnimNode::Type::DefaultPose: return processDoNothing;
+    case AnimNode::Type::TwoBoneIK: return processDoNothing;
+    case AnimNode::Type::PoleVectorConstraint: return processDoNothing;
     case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
@@ -189,6 +199,25 @@ static NodeProcessFunc animNodeTypeToProcessFunc(AnimNode::Type type) {
     }                                                                   \
     do {} while (0)
 
+#define READ_VEC3(NAME, JSON_OBJ, ID, URL, ERROR_RETURN)                \
+    auto NAME##_VAL = JSON_OBJ.value(#NAME);                            \
+    if (!NAME##_VAL.isArray()) {                                        \
+        qCCritical(animation) << "AnimNodeLoader, error reading vector" \
+                              << #NAME << "id =" << ID                  \
+                              << ", url =" << URL.toDisplayString();    \
+        return ERROR_RETURN;                                            \
+    }                                                                   \
+    QJsonArray NAME##_ARRAY = NAME##_VAL.toArray();                     \
+    if (NAME##_ARRAY.size() != 3) {                                     \
+        qCCritical(animation) << "AnimNodeLoader, vector size != 3"     \
+                              << #NAME << "id =" << ID                  \
+                              << ", url =" << URL.toDisplayString();    \
+        return ERROR_RETURN;                                            \
+    }                                                                   \
+    glm::vec3 NAME((float)NAME##_ARRAY.at(0).toDouble(),                \
+                   (float)NAME##_ARRAY.at(1).toDouble(),                \
+                   (float)NAME##_ARRAY.at(2).toDouble())
+
 static AnimNode::Pointer loadNode(const QJsonObject& jsonObj, const QUrl& jsonUrl) {
     auto idVal = jsonObj.value("id");
     if (!idVal.isString()) {
@@ -216,6 +245,16 @@ static AnimNode::Pointer loadNode(const QJsonObject& jsonObj, const QUrl& jsonUr
     }
     auto dataObj = dataValue.toObject();
 
+    std::vector<QString> outputJoints;
+
+    auto outputJoints_VAL = dataObj.value("outputJoints");
+    if (outputJoints_VAL.isArray()) {
+        QJsonArray outputJoints_ARRAY = outputJoints_VAL.toArray();
+        for (int i = 0; i < outputJoints_ARRAY.size(); i++) {
+            outputJoints.push_back(outputJoints_ARRAY.at(i).toString());
+        }
+    }
+
     assert((int)type >= 0 && type < AnimNode::Type::NumTypes);
     auto node = (animNodeTypeToLoaderFunc(type))(dataObj, id, jsonUrl);
     if (!node) {
@@ -242,6 +281,9 @@ static AnimNode::Pointer loadNode(const QJsonObject& jsonObj, const QUrl& jsonUr
     }
 
     if ((animNodeTypeToProcessFunc(type))(node, dataObj, id, jsonUrl)) {
+        for (auto&& outputJoint : outputJoints) {
+            node->addOutputJoint(outputJoint);
+        }
         return node;
     } else {
         return nullptr;
@@ -531,6 +573,41 @@ static AnimNode::Pointer loadDefaultPoseNode(const QJsonObject& jsonObj, const Q
     return node;
 }
 
+static AnimNode::Pointer loadTwoBoneIKNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
+    READ_FLOAT(alpha, jsonObj, id, jsonUrl, nullptr);
+    READ_BOOL(enabled, jsonObj, id, jsonUrl, nullptr);
+    READ_FLOAT(interpDuration, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(baseJointName, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(midJointName, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(tipJointName, jsonObj, id, jsonUrl, nullptr);
+    READ_VEC3(midHingeAxis, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(alphaVar, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(enabledVar, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(endEffectorRotationVarVar, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(endEffectorPositionVarVar, jsonObj, id, jsonUrl, nullptr);
+
+    auto node = std::make_shared<AnimTwoBoneIK>(id, alpha, enabled, interpDuration,
+                                                baseJointName, midJointName, tipJointName, midHingeAxis,
+                                                alphaVar, enabledVar,
+                                                endEffectorRotationVarVar, endEffectorPositionVarVar);
+    return node;
+}
+
+static AnimNode::Pointer loadPoleVectorConstraintNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
+    READ_VEC3(referenceVector, jsonObj, id, jsonUrl, nullptr);
+    READ_BOOL(enabled, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(baseJointName, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(midJointName, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(tipJointName, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(enabledVar, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(poleVectorVar, jsonObj, id, jsonUrl, nullptr);
+
+    auto node = std::make_shared<AnimPoleVectorConstraint>(id, enabled, referenceVector,
+                                                           baseJointName, midJointName, tipJointName,
+                                                           enabledVar, poleVectorVar);
+    return node;
+}
+
 void buildChildMap(std::map<QString, int>& map, AnimNode::Pointer node) {
     for (int i = 0; i < (int)node->getChildCount(); ++i) {
         map.insert(std::pair<QString, int>(node->getChild(i)->getID(), i));
@@ -682,7 +759,8 @@ AnimNode::Pointer AnimNodeLoader::load(const QByteArray& contents, const QUrl& j
     QString version = versionVal.toString();
 
     // check version
-    if (version != "1.0") {
+    // AJT: TODO version check
+    if (version != "1.0" && version != "1.1") {
         qCCritical(animation) << "AnimNodeLoader, bad version number" << version << "expected \"1.0\", url =" << jsonUrl.toDisplayString();
         return nullptr;
     }

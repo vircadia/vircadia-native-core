@@ -11,6 +11,7 @@
 <@if not MODEL_LIGHT_SLH@>
 <@def MODEL_LIGHT_SLH@>
 
+<@include graphics/ShaderConstants.h@>
 <@include graphics/LightVolume.shared.slh@>
 <@include graphics/LightIrradiance.shared.slh@>
 
@@ -50,7 +51,7 @@ float getLightAmbientMapNumMips(LightAmbient l) { return l._ambient.y; }
 
 
 <@if N@>
-uniform lightBuffer {
+layout(binding=GRAPHICS_BUFFER_LIGHT) uniform lightBuffer {
     Light lightArray[<$N$>];
 };
 Light getLight(int index) {
@@ -58,7 +59,7 @@ Light getLight(int index) {
 }
 
 <@else@>
-uniform keyLightBuffer {
+layout(binding=GRAPHICS_BUFFER_KEY_LIGHT) uniform keyLightBuffer {
     Light light;
 };
 Light getKeyLight() {
@@ -78,7 +79,7 @@ Light getKeyLight() {
 
 <@if N@>
 
-uniform lightAmbientBuffer {
+layout(binding=GRAPHICS_BUFFER_AMBIENT_LIGHT) uniform lightAmbientBuffer {
     LightAmbient lightAmbientArray[<$N$>];
 };
 
@@ -87,7 +88,7 @@ LightAmbient getLightAmbient(int index) {
 }
 
 <@else@>
-uniform lightAmbientBuffer {
+layout(binding=GRAPHICS_BUFFER_AMBIENT_LIGHT) uniform lightAmbientBuffer {
     LightAmbient lightAmbient;
 };
 

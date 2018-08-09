@@ -132,6 +132,7 @@ public:
         OctreeDataPersist,
 
         EntityClone,
+        EntityQueryInitialResultsComplete,
 
         NUM_PACKET_TYPE
     };
@@ -314,7 +315,8 @@ enum class DomainListVersion : PacketVersion {
     PrePermissionsGrid = 18,
     PermissionsGrid,
     GetUsernameFromUUIDSupport,
-    GetMachineFingerprintFromUUIDSupport
+    GetMachineFingerprintFromUUIDSupport,
+    AuthenticationOptional
 };
 
 enum class AudioVersion : PacketVersion {

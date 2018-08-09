@@ -55,6 +55,7 @@ public slots:
 private:
     void spawnChildClient();
     void simultaneousWaitOnChildren(int waitMsecs);
+    void adjustOSResources(unsigned int numForks) const;
 
     QTimer _checkSparesTimer; // every few seconds see if it need fewer or more spare children
 

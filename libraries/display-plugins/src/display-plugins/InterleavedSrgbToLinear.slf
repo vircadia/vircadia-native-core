@@ -1,0 +1,21 @@
+struct TextureData {
+    ivec2 textureSize;
+};
+
+layout(std140, binding=0) uniform textureDataBuffer {
+    TextureData textureData;
+};
+
+layout(binding=0) uniform sampler2D colorMap;
+layout(location=0) in vec2 varTexCoord0;
+layout(location=0) out vec4 outFragColor;
+
+void main(void) {
+    ivec2 texCoord = ivec2(floor(varTexCoord0 * textureData.textureSize));
+    texCoord.x /= 2;
+    int row = int(floor(gl_FragCoord.y));
+    if (row % 2 > 0) {
+        texCoord.x += (textureData.textureSize.x / 2);
+    }
+    outFragColor = vec4(pow(texelFetch(colorMap, texCoord, 0).rgb, vec3(2.2)), 1.0);
+}

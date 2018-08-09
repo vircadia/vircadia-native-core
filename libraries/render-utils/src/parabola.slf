@@ -9,9 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-in vec4 _color;
+layout(location=0) in vec4 _color;
 
-out vec4 _fragColor;
+layout(location=0) out vec4 _fragColor;
 
 void main(void) {
     _fragColor = _color;

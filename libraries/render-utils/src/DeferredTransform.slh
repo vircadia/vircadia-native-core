@@ -11,6 +11,9 @@
 <@if not DEFERRED_TRANSFORM_SLH@>
 <@def DEFERRED_TRANSFORM_SLH@>
 
+<@include gpu/ShaderConstants.h@>
+<@include render-utils/ShaderConstants.h@>
+
 <@func declareDeferredFrameTransform()@>
 
 struct CameraCorrection {
@@ -21,7 +24,7 @@ struct CameraCorrection {
     mat4 _prevViewInverse;
 };
  
-uniform cameraCorrectionBuffer {
+layout(binding=GPU_BUFFER_CAMERA_CORRECTION) uniform cameraCorrectionBuffer {
     CameraCorrection cameraCorrection;
 };
 
@@ -39,7 +42,7 @@ struct DeferredFrameTransform {
 	mat4 _invProjectionUnJittered[2];
 };
 
-uniform deferredFrameTransformBuffer {
+layout(binding=RENDER_UTILS_BUFFER_DEFERRED_FRAME_TRANSFORM) uniform deferredFrameTransformBuffer {
     DeferredFrameTransform frameTransform;
 };
 

@@ -13,18 +13,21 @@
 
 <@include graphics/Material.slh@>
 <@include DeferredBufferWrite.slh@>
+<@include render-utils/ShaderConstants.h@>
+<@include entities-renderer/ShaderConstants.h@>
 
 <@include Fade.slh@>
 
-in vec3 _normal;
-in vec4 _position;
-in vec4 _worldPosition;
-in vec4 _worldFadePosition;
+layout(location=RENDER_UTILS_ATTR_NORMAL_MS) in vec3 _normal;
+layout(location=RENDER_UTILS_ATTR_POSITION_MS) in vec4 _position;
+layout(location=RENDER_UTILS_ATTR_POSITION_WS) in vec4 _worldPosition;
+layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _worldFadePosition;
 
-uniform sampler2D xMap;
-uniform sampler2D yMap;
-uniform sampler2D zMap;
-uniform vec3 voxelVolumeSize;
+layout(binding=ENTITIES_TEXTURE_POLYVOX_XMAP) uniform sampler2D xMap;
+layout(binding=ENTITIES_TEXTURE_POLYVOX_YMAP) uniform sampler2D yMap;
+layout(binding=ENTITIES_TEXTURE_POLYVOX_ZMAP) uniform sampler2D zMap;
+
+layout(location=ENTITIES_UNIFORM_POLYVOX_VOXEL_SIZE) uniform vec3 voxelVolumeSize;
 
 // Declare after all samplers to prevent sampler location mix up with voxel shading (sampler locations are hardcoded in RenderablePolyVoxEntityItem)
 <$declareFadeFragment()$>

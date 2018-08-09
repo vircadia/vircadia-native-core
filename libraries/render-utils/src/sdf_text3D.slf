@@ -11,14 +11,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 <@include DeferredBufferWrite.slh@>
+<@include render-utils/ShaderConstants.h@>
 
-uniform sampler2D Font;
-uniform bool Outline;
-uniform vec4 Color;
+layout(binding=0) uniform sampler2D Font;
+layout(location=RENDER_UTILS_UNIFORM_TEXT_OUTLINE) uniform bool Outline;
+layout(location=RENDER_UTILS_UNIFORM_TEXT_COLOR) uniform vec4 Color;
 
 // the interpolated normal
-in vec3 _normalWS;
-in vec2 _texCoord0;
+layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
+#define _texCoord0 _texCoord01.xy
+#define _texCoord1 _texCoord01.zw
 
 #define TAA_TEXTURE_LOD_BIAS    -3.0
 

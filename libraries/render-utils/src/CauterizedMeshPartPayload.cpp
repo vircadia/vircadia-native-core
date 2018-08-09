@@ -12,6 +12,7 @@
 #include "CauterizedMeshPartPayload.h"
 
 #include <PerfStat.h>
+#include <graphics/ShaderConstants.h>
 
 #include "CauterizedModel.h"
 
@@ -58,7 +59,7 @@ void CauterizedMeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::Ren
     bool useCauterizedMesh = (renderMode != RenderArgs::RenderMode::SHADOW_RENDER_MODE && renderMode != RenderArgs::RenderMode::SECONDARY_CAMERA_RENDER_MODE) && _enableCauterization;
     if (useCauterizedMesh) {
         if (_cauterizedClusterBuffer) {
-            batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::SKINNING, _cauterizedClusterBuffer);
+            batch.setUniformBuffer(graphics::slot::buffer::Skinning, _cauterizedClusterBuffer);
         }
         batch.setModelTransform(_cauterizedTransform);
     } else {

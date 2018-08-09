@@ -476,17 +476,13 @@ Rectangle {
             anchors.verticalCenter: avatarNameLabel.verticalCenter
             glyphText: "."
             glyphSize: 22
-
-            MouseArea {
-                anchors.fill: parent
-                onClicked: {
-                    popup.showSpecifyAvatarUrl(currentAvatar.avatarUrl, function() {
-                        var url = popup.inputText.text;
-                        emitSendToScript({'method' : 'applyExternalAvatar', 'avatarURL' : url})
-                    }, function(link) {
-                        Qt.openUrlExternally(link);
-                    });
-                }
+            onClicked: {
+                popup.showSpecifyAvatarUrl(currentAvatar.avatarUrl, function() {
+                    var url = popup.inputText.text;
+                    emitSendToScript({'method' : 'applyExternalAvatar', 'avatarURL' : url})
+                }, function(link) {
+                    Qt.openUrlExternally(link);
+                });
             }
         }
 
@@ -496,12 +492,8 @@ Rectangle {
             glyphText: "\ue02e"
 
             visible: avatarWearablesCount !== 0
-
-            MouseArea {
-                anchors.fill: parent
-                onClicked: {
-                    adjustWearables.open(currentAvatar);
-                }
+            onClicked: {
+                adjustWearables.open(currentAvatar);
             }
         }
 

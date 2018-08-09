@@ -21,6 +21,7 @@
 #include "../OpenGLDisplayPlugin.h"
 
 class HmdDisplayPlugin : public OpenGLDisplayPlugin {
+    Q_OBJECT
     using Parent = OpenGLDisplayPlugin;
 public:
     ~HmdDisplayPlugin();
@@ -44,6 +45,9 @@ public:
     float stutterRate() const override;
 
     virtual bool onDisplayTextureReset() override { _clearPreviewFlag = true; return true; };
+
+signals:
+    void hmdMountedChanged();
 
 protected:
     virtual void hmdPresent() = 0;
@@ -98,7 +102,6 @@ private:
         gpu::BufferPointer indices;
         uint32_t indexCount { 0 };
         gpu::PipelinePointer pipeline;
-        int32_t uniformsLocation { -1 };
 
         gpu::BufferPointer uniformsBuffer;
 

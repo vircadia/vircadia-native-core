@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  drawItemStatus.slv
+//  drawItemStatus.vert
 //  vertex shader
 //
 //  Created by Sam Gateau on 6/30/2015.
@@ -13,16 +13,17 @@
 //
 
 <@include gpu/Transform.slh@>
+<@include gpu/ShaderConstants.h@>
 
 <$declareStandardTransform()$>
 
-out vec4 varColor;
-out vec3 varTexcoord;
+layout(location=0) out vec4 varColor;
+layout(location=1) out vec3 varTexcoord;
 
-uniform vec3 inBoundPos;
-uniform vec3 inBoundDim;
-uniform ivec4 inStatus0;
-uniform ivec4 inStatus1;
+layout(location=GPU_UNIFORM_EXTRA0) uniform vec3 inBoundPos;
+layout(location=GPU_UNIFORM_EXTRA1) uniform vec3 inBoundDim;
+layout(location=GPU_UNIFORM_EXTRA2) uniform ivec4 inStatus0;
+layout(location=GPU_UNIFORM_EXTRA3) uniform ivec4 inStatus1;
 
 vec3 paintRainbow(float normalizedHue) {
     float v = normalizedHue * 6.f;

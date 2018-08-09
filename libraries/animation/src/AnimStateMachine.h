@@ -113,7 +113,7 @@ public:
     explicit AnimStateMachine(const QString& id);
     virtual ~AnimStateMachine() override;
 
-    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) override;
+    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) override;
 
     void setCurrentStateVar(QString& currentStateVar) { _currentStateVar = currentStateVar; }
 

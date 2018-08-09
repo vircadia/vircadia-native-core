@@ -18,13 +18,12 @@
 #include <gpu/Context.h>
 #include <render/Scene.h>
 #include <ViewFrustum.h>
+#include <shaders/Shaders.h>
+#include "render-utils/ShaderConstants.h"
 
 #include "GeometryCache.h"
 #include "TextureCache.h"
 #include "DeferredLightingEffect.h"
-
-#include "debug_deferred_buffer_vert.h"
-#include "debug_deferred_buffer_frag.h"
 
 using namespace render;
 
@@ -39,6 +38,7 @@ void DebugDeferredBufferConfig::setMode(int newMode) {
     emit dirty();
 }
 
+#if 0
 enum TextureSlot {
     Albedo = 0,
     Normal,
@@ -63,29 +63,30 @@ enum ParamSlot {
     ShadowTransform,
     DebugParametersBuffer
 };
+#endif
 
-static const std::string DEFAULT_ALBEDO_SHADER {
+static const std::string DEFAULT_ALBEDO_SHADER{
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
     "    return vec4(pow(frag.albedo, vec3(1.0 / 2.2)), 1.0);"
     " }"
 };
 
-static const std::string DEFAULT_METALLIC_SHADER {
+static const std::string DEFAULT_METALLIC_SHADER{
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
     "    return vec4(vec3(pow(frag.metallic, 1.0 / 2.2)), 1.0);"
     " }"
 };
 
-static const std::string DEFAULT_ROUGHNESS_SHADER {
+static const std::string DEFAULT_ROUGHNESS_SHADER{
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
     "    return vec4(vec3(pow(frag.roughness, 1.0 / 2.2)), 1.0);"
-   // "    return vec4(vec3(pow(colorRamp(frag.roughness), vec3(1.0 / 2.2))), 1.0);"
+    // "    return vec4(vec3(pow(colorRamp(frag.roughness), vec3(1.0 / 2.2))), 1.0);"
     " }"
 };
-static const std::string DEFAULT_NORMAL_SHADER {
+static const std::string DEFAULT_NORMAL_SHADER{
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
     "    return vec4(vec3(0.5) + (frag.normal * 0.5), 1.0);"
@@ -94,8 +95,8 @@ static const std::string DEFAULT_NORMAL_SHADER {
 
 static const std::string DEFAULT_OCCLUSION_SHADER{
     "vec4 getFragmentColor() {"
- //   "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
- //   "    return vec4(vec3(pow(frag.obscurance, 1.0 / 2.2)), 1.0);"
+    //   "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
+    //   "    return vec4(vec3(pow(frag.obscurance, 1.0 / 2.2)), 1.0);"
     "    return vec4(vec3(pow(texture(specularMap, uv).a, 1.0 / 2.2)), 1.0);"
     " }"
 };
@@ -103,7 +104,8 @@ static const std::string DEFAULT_OCCLUSION_SHADER{
 static const std::string DEFAULT_EMISSIVE_SHADER{
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
-    "    return (frag.mode == FRAG_MODE_SHADED ? vec4(pow(texture(specularMap, uv).rgb, vec3(1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
+    "    return (frag.mode == FRAG_MODE_SHADED ? vec4(pow(texture(specularMap, uv).rgb, vec3(1.0 / 2.2)), 1.0) : "
+    "vec4(vec3(0.0), 1.0));"
     " }"
 };
 
@@ -117,7 +119,8 @@ static const std::string DEFAULT_UNLIT_SHADER{
 static const std::string DEFAULT_LIGHTMAP_SHADER{
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
-    "    return (frag.mode == FRAG_MODE_LIGHTMAPPED ? vec4(pow(texture(specularMap, uv).rgb, vec3(1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
+    "    return (frag.mode == FRAG_MODE_LIGHTMAPPED ? vec4(pow(texture(specularMap, uv).rgb, vec3(1.0 / 2.2)), 1.0) : "
+    "vec4(vec3(0.0), 1.0));"
     " }"
 };
 
@@ -128,13 +131,13 @@ static const std::string DEFAULT_SCATTERING_SHADER{
     " }"
 };
 
-static const std::string DEFAULT_DEPTH_SHADER {
+static const std::string DEFAULT_DEPTH_SHADER{
     "vec4 getFragmentColor() {"
     "    return vec4(vec3(texture(depthMap, uv).x), 1.0);"
     " }"
 };
 
-static const std::string DEFAULT_LIGHTING_SHADER {
+static const std::string DEFAULT_LIGHTING_SHADER{
     "vec4 getFragmentColor() {"
     "    return vec4(pow(texture(lightingMap, uv).xyz, vec3(1.0 / 2.2)), 1.0);"
     " }"
@@ -173,7 +176,7 @@ static const std::string DEFAULT_SHADOW_CASCADE_SHADER{
     "}"
 };
 
-static const std::string DEFAULT_LINEAR_DEPTH_SHADER {
+static const std::string DEFAULT_LINEAR_DEPTH_SHADER{
     "vec4 getFragmentColor() {"
     "    return vec4(vec3(1.0 - texture(linearDepthMap, uv).x * 0.01), 1.0);"
     "}"
@@ -194,7 +197,7 @@ static const std::string DEFAULT_HALF_NORMAL_SHADER{
 static const std::string DEFAULT_CURVATURE_SHADER{
     "vec4 getFragmentColor() {"
     "    return vec4(pow(vec3(texture(curvatureMap, uv).a), vec3(1.0 / 2.2)), 1.0);"
-   // "    return vec4(pow(vec3(texture(curvatureMap, uv).xyz), vec3(1.0 / 2.2)), 1.0);"
+    // "    return vec4(pow(vec3(texture(curvatureMap, uv).xyz), vec3(1.0 / 2.2)), 1.0);"
     //"    return vec4(vec3(1.0 - textureLod(pyramidMap, uv, 3).x * 0.01), 1.0);"
     " }"
 };
@@ -202,7 +205,7 @@ static const std::string DEFAULT_CURVATURE_SHADER{
 static const std::string DEFAULT_NORMAL_CURVATURE_SHADER{
     "vec4 getFragmentColor() {"
     //"    return vec4(pow(vec3(texture(curvatureMap, uv).a), vec3(1.0 / 2.2)), 1.0);"
-     "    return vec4(vec3(texture(curvatureMap, uv).xyz), 1.0);"
+    "    return vec4(vec3(texture(curvatureMap, uv).xyz), 1.0);"
     //"    return vec4(vec3(1.0 - textureLod(pyramidMap, uv, 3).x * 0.01), 1.0);"
     " }"
 };
@@ -238,7 +241,7 @@ static const std::string DEFAULT_CURVATURE_OCCLUSION_SHADER{
 static const std::string DEFAULT_DEBUG_SCATTERING_SHADER{
     "vec4 getFragmentColor() {"
     "    return vec4(pow(vec3(texture(scatteringMap, uv).xyz), vec3(1.0 / 2.2)), 1.0);"
-  //  "    return vec4(vec3(texture(scatteringMap, uv).xyz), 1.0);"
+    //  "    return vec4(vec3(texture(scatteringMap, uv).xyz), 1.0);"
     " }"
 };
 
@@ -261,7 +264,7 @@ static const std::string DEFAULT_VELOCITY_SHADER{
     " }"
 };
 
-static const std::string DEFAULT_CUSTOM_SHADER {
+static const std::string DEFAULT_CUSTOM_SHADER{
     "vec4 getFragmentColor() {"
     "    return vec4(1.0, 0.0, 0.0, 1.0);"
     " }"
@@ -272,12 +275,11 @@ static std::string getFileContent(std::string fileName, std::string defaultConte
     if (customFile.open(QIODevice::ReadOnly)) {
         return customFile.readAll().toStdString();
     }
-    qWarning() << "DebugDeferredBuffer::getFileContent(): Could not open"
-               << QString::fromStdString(fileName);
+    qWarning() << "DebugDeferredBuffer::getFileContent(): Could not open" << QString::fromStdString(fileName);
     return defaultContent;
 }
 
-#include <QStandardPaths> // TODO REMOVE: Temporary until UI
+#include <QStandardPaths>  // TODO REMOVE: Temporary until UI
 DebugDeferredBuffer::DebugDeferredBuffer() {
     // TODO REMOVE: Temporary until UI
     static const auto DESKTOP_PATH = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
@@ -363,60 +365,35 @@ bool DebugDeferredBuffer::pipelineNeedsUpdate(Mode mode, std::string customFile)
     if (mode != CustomMode) {
         return !_pipelines[mode];
     }
-    
+
     auto it = _customPipelines.find(customFile);
     if (it != _customPipelines.end() && it->second.pipeline) {
         auto& info = it->second.info;
-        
+
         auto lastModified = info.lastModified();
         info.refresh();
         return lastModified != info.lastModified();
     }
-    
+
     return true;
 }
 
 const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Mode mode, std::string customFile) {
     if (pipelineNeedsUpdate(mode, customFile)) {
-        static const std::string FRAGMENT_SHADER { debug_deferred_buffer_frag::getSource() };
-        static const std::string SOURCE_PLACEHOLDER { "//SOURCE_PLACEHOLDER" };
-        static const auto SOURCE_PLACEHOLDER_INDEX = FRAGMENT_SHADER.find(SOURCE_PLACEHOLDER);
-        Q_ASSERT_X(SOURCE_PLACEHOLDER_INDEX != std::string::npos, Q_FUNC_INFO,
-                   "Could not find source placeholder");
-        
-        auto bakedFragmentShader = FRAGMENT_SHADER;
-        bakedFragmentShader.replace(SOURCE_PLACEHOLDER_INDEX, SOURCE_PLACEHOLDER.size(),
-                                    getShaderSourceCode(mode, customFile));
-        
-        const auto vs = debug_deferred_buffer_vert::getShader();
-        const auto ps = gpu::Shader::createPixel(bakedFragmentShader);
-        const auto program = gpu::Shader::createProgram(vs, ps);
-        
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding("cameraCorrectionBuffer", CameraCorrection));
-        slotBindings.insert(gpu::Shader::Binding("deferredFrameTransformBuffer", DeferredFrameTransform));
-        slotBindings.insert(gpu::Shader::Binding("shadowTransformBuffer", ShadowTransform));
-        slotBindings.insert(gpu::Shader::Binding("parametersBuffer", DebugParametersBuffer));
+        static const auto FRAGMENT_SHADER_SOURCE =
+            gpu::Shader::createPixel(shader::render_utils::fragment::debug_deferred_buffer)->getSource();
+        static const std::string SOURCE_PLACEHOLDER{ "//SOURCE_PLACEHOLDER" };
+        static const auto SOURCE_PLACEHOLDER_INDEX = FRAGMENT_SHADER_SOURCE.getCode().find(SOURCE_PLACEHOLDER);
+        Q_ASSERT_X(SOURCE_PLACEHOLDER_INDEX != std::string::npos, Q_FUNC_INFO, "Could not find source placeholder");
 
-        slotBindings.insert(gpu::Shader::Binding("albedoMap", Albedo));
-        slotBindings.insert(gpu::Shader::Binding("normalMap", Normal));
-        slotBindings.insert(gpu::Shader::Binding("specularMap", Specular));
-        slotBindings.insert(gpu::Shader::Binding("depthMap", Depth));
-        slotBindings.insert(gpu::Shader::Binding("obscuranceMap", AmbientOcclusion));
-        slotBindings.insert(gpu::Shader::Binding("lightingMap", Lighting));
-        slotBindings.insert(gpu::Shader::Binding("shadowMaps", Shadow));
-        slotBindings.insert(gpu::Shader::Binding("linearDepthMap", LinearDepth));
-        slotBindings.insert(gpu::Shader::Binding("halfLinearDepthMap", HalfLinearDepth));
-        slotBindings.insert(gpu::Shader::Binding("halfNormalMap", HalfNormal));
-        slotBindings.insert(gpu::Shader::Binding("curvatureMap", Curvature));
-        slotBindings.insert(gpu::Shader::Binding("diffusedCurvatureMap", DiffusedCurvature));
-        slotBindings.insert(gpu::Shader::Binding("scatteringMap", Scattering));
-        slotBindings.insert(gpu::Shader::Binding("occlusionBlurredMap", AmbientOcclusionBlurred));
-        slotBindings.insert(gpu::Shader::Binding("velocityMap", Velocity));
-        gpu::Shader::makeProgram(*program, slotBindings);
-        
+        auto bakedFragmentShader = FRAGMENT_SHADER_SOURCE.getCode();
+        bakedFragmentShader.replace(SOURCE_PLACEHOLDER_INDEX, SOURCE_PLACEHOLDER.size(), getShaderSourceCode(mode, customFile));
+
+        const auto vs = gpu::Shader::createVertex(shader::render_utils::vertex::debug_deferred_buffer);
+        const auto ps = gpu::Shader::createPixel({ bakedFragmentShader, FRAGMENT_SHADER_SOURCE.getReflection() });
+        const auto program = gpu::Shader::createProgram(vs, ps);
         auto pipeline = gpu::Pipeline::create(program, std::make_shared<gpu::State>());
-        
+
         // Good to go add the brand new pipeline
         if (mode != CustomMode) {
             _pipelines[mode] = pipeline;
@@ -424,7 +401,7 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Mode mode, std::str
             _customPipelines[customFile].pipeline = pipeline;
         }
     }
-    
+
     if (mode != CustomMode) {
         return _pipelines[mode];
     } else {
@@ -471,23 +448,27 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
         batch.setViewTransform(viewMat, true);
         batch.setModelTransform(Transform());
 
+        using Textures = render_utils::slot::texture::Texture;
+        using UBOs = render_utils::slot::buffer::Buffer;
+
         // TODO REMOVE: Temporary until UI
         auto first = _customPipelines.begin()->first;
         auto pipeline = getPipeline(_mode, first);
         batch.setPipeline(pipeline);
 
         if (deferredFramebuffer) {
-            batch.setResourceTexture(Albedo, deferredFramebuffer->getDeferredColorTexture());
-            batch.setResourceTexture(Normal, deferredFramebuffer->getDeferredNormalTexture());
-            batch.setResourceTexture(Specular, deferredFramebuffer->getDeferredSpecularTexture());
-            batch.setResourceTexture(Depth, deferredFramebuffer->getPrimaryDepthTexture());
-            batch.setResourceTexture(Lighting, deferredFramebuffer->getLightingTexture());
+            batch.setResourceTexture(Textures::DeferredColor, deferredFramebuffer->getDeferredColorTexture());
+            batch.setResourceTexture(Textures::DeferredNormal, deferredFramebuffer->getDeferredNormalTexture());
+            batch.setResourceTexture(Textures::DeferredSpecular, deferredFramebuffer->getDeferredSpecularTexture());
+            batch.setResourceTexture(Textures::DeferredDepth, deferredFramebuffer->getPrimaryDepthTexture());
+            batch.setResourceTexture(Textures::DeferredLighting, deferredFramebuffer->getLightingTexture());
         }
         if (velocityFramebuffer) {
-            batch.setResourceTexture(Velocity, velocityFramebuffer->getVelocityTexture());
+            batch.setResourceTexture(Textures::DebugVelocity, velocityFramebuffer->getVelocityTexture());
         }
 
-        batch.setUniformBuffer(DebugParametersBuffer, _parameters);
+        // FIXME can't find the corresponding buffer
+        // batch.setUniformBuffer(UBOs:: DebugParametersBuffer, _parameters);
 
         auto lightStage = renderContext->_scene->getStage<LightStage>();
         assert(lightStage);
@@ -495,46 +476,48 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
         auto lightAndShadow = lightStage->getCurrentKeyLightAndShadow();
         const auto& globalShadow = lightAndShadow.second;
         if (globalShadow) {
-            batch.setResourceTexture(Shadow, globalShadow->map);
-            batch.setUniformBuffer(ShadowTransform, globalShadow->getBuffer());
-            batch.setUniformBuffer(DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
+            batch.setResourceTexture(Textures::Shadow, globalShadow->map);
+            batch.setUniformBuffer(UBOs::ShadowParams, globalShadow->getBuffer());
+            batch.setUniformBuffer(UBOs::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
         }
 
         if (linearDepthTarget) {
-            batch.setResourceTexture(LinearDepth, linearDepthTarget->getLinearDepthTexture());
-            batch.setResourceTexture(HalfLinearDepth, linearDepthTarget->getHalfLinearDepthTexture());
-            batch.setResourceTexture(HalfNormal, linearDepthTarget->getHalfNormalTexture());
+            batch.setResourceTexture(Textures::DebugDepth, linearDepthTarget->getLinearDepthTexture());
+            batch.setResourceTexture(Textures::DebugHalfDepth, linearDepthTarget->getHalfLinearDepthTexture());
+            batch.setResourceTexture(Textures::DebugHalfNormal, linearDepthTarget->getHalfNormalTexture());
         }
         if (surfaceGeometryFramebuffer) {
-            batch.setResourceTexture(Curvature, surfaceGeometryFramebuffer->getCurvatureTexture());
-            batch.setResourceTexture(DiffusedCurvature, surfaceGeometryFramebuffer->getLowCurvatureTexture());
+            batch.setResourceTexture(Textures::DeferredCurvature, surfaceGeometryFramebuffer->getCurvatureTexture());
+            batch.setResourceTexture(Textures::DeferredDiffusedCurvature,
+                                     surfaceGeometryFramebuffer->getLowCurvatureTexture());
         }
         if (ambientOcclusionFramebuffer) {
-            batch.setResourceTexture(AmbientOcclusion, ambientOcclusionFramebuffer->getOcclusionTexture());
-            batch.setResourceTexture(AmbientOcclusionBlurred, ambientOcclusionFramebuffer->getOcclusionBlurredTexture());
+            batch.setResourceTexture(Textures::DebugOcclusion, ambientOcclusionFramebuffer->getOcclusionTexture());
+            batch.setResourceTexture(Textures::DebugOcclusionBlurred,
+                                     ambientOcclusionFramebuffer->getOcclusionBlurredTexture());
         }
         const glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
         const glm::vec2 bottomLeft(_size.x, _size.y);
         const glm::vec2 topRight(_size.z, _size.w);
         geometryBuffer->renderQuad(batch, bottomLeft, topRight, color, _geometryId);
 
-        batch.setResourceTexture(Albedo, nullptr);
-        batch.setResourceTexture(Normal, nullptr);
-        batch.setResourceTexture(Specular, nullptr);
-        batch.setResourceTexture(Depth, nullptr);
-        batch.setResourceTexture(Lighting, nullptr);
-        batch.setResourceTexture(Shadow, nullptr);
-        batch.setResourceTexture(LinearDepth, nullptr);
-        batch.setResourceTexture(HalfLinearDepth, nullptr);
-        batch.setResourceTexture(HalfNormal, nullptr);
+        batch.setResourceTexture(Textures::DeferredColor, nullptr);
+        batch.setResourceTexture(Textures::DeferredNormal, nullptr);
+        batch.setResourceTexture(Textures::DeferredSpecular, nullptr);
+        batch.setResourceTexture(Textures::DeferredDepth, nullptr);
+        batch.setResourceTexture(Textures::DeferredLighting, nullptr);
+        batch.setResourceTexture(Textures::Shadow, nullptr);
+        batch.setResourceTexture(Textures::DebugDepth, nullptr);
+        batch.setResourceTexture(Textures::DebugHalfDepth, nullptr);
+        batch.setResourceTexture(Textures::DebugHalfNormal, nullptr);
 
-        batch.setResourceTexture(Curvature, nullptr);
-        batch.setResourceTexture(DiffusedCurvature, nullptr);
+        batch.setResourceTexture(Textures::DeferredCurvature, nullptr);
+        batch.setResourceTexture(Textures::DeferredDiffusedCurvature, nullptr);
 
-        batch.setResourceTexture(AmbientOcclusion, nullptr);
-        batch.setResourceTexture(AmbientOcclusionBlurred, nullptr);
+        batch.setResourceTexture(Textures::DebugOcclusion, nullptr);
+        batch.setResourceTexture(Textures::DebugOcclusionBlurred, nullptr);
 
-        batch.setResourceTexture(Velocity, nullptr);
+        batch.setResourceTexture(Textures::DebugVelocity, nullptr);
 
     });
 }

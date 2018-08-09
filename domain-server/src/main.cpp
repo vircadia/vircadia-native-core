@@ -24,6 +24,8 @@
 int main(int argc, char* argv[]) {
     setupHifiApplication(BuildInfo::DOMAIN_SERVER_NAME);
 
+    DomainServer::parseCommandLine(argc, argv);
+
     Setting::init();
 
     int currentExitCode = 0;

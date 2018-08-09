@@ -14,14 +14,17 @@
 
 <@include LightingModel.slh@>
 <@include graphics/Material.slh@>
+<@include graphics/MaterialTextures.slh@>
+<@include render-utils/ShaderConstants.h@>
 
-<@include MaterialTextures.slh@>
 <$declareMaterialTextures(ALBEDO)$>
 
-in vec2 _texCoord0;
-in vec3 _color;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
+#define _texCoord0 _texCoord01.xy
+#define _texCoord1 _texCoord01.zw
+layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
 
-layout(location = 0) out vec4 _fragColor0;
+layout(location=0) out vec4 _fragColor0;
 
 void main(void) {
 
@@ -35,7 +38,7 @@ void main(void) {
 
     vec3 albedo = getMaterialAlbedo(mat);
     <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
-    albedo *= _color;
+    albedo *= _color.rgb;
 
      if (opacity != 1.0) {
         discard;

@@ -321,6 +321,7 @@ inline QDebug operator<<(QDebug debug, const ItemFilter& me) {
 // Handy type to just pass the ID and the bound of an item
 class ItemBound {
     public:
+        ItemBound() {}
         ItemBound(ItemID id) : id(id) { }
         ItemBound(ItemID id, const AABox& bound) : id(id), bound(bound) { }
 

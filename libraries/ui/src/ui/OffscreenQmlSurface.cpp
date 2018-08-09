@@ -265,19 +265,6 @@ void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
     if (!javaScriptToInject.isEmpty()) {
         rootContext->setContextProperty("eventBridgeJavaScriptToInject", QVariant(javaScriptToInject));
     }
-#if !defined(Q_OS_ANDROID)
-    rootContext->setContextProperty("FileTypeProfile", new FileTypeProfile(rootContext));
-    rootContext->setContextProperty("HFWebEngineProfile", new HFWebEngineProfile(rootContext));
-    {
-        PROFILE_RANGE(startup, "FileTypeProfile");
-        rootContext->setContextProperty("FileTypeProfile", new FileTypeProfile(rootContext));
-    }
-    {
-        PROFILE_RANGE(startup, "HFWebEngineProfile");
-        rootContext->setContextProperty("HFWebEngineProfile", new HFWebEngineProfile(rootContext));
-        
-    }
-#endif
     rootContext->setContextProperty("Paths", DependencyManager::get<PathUtils>().data());
     rootContext->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
     rootContext->setContextProperty("Toolbars", DependencyManager::get<ToolbarScriptingInterface>().data());
@@ -300,6 +287,17 @@ void OffscreenQmlSurface::onRootContextCreated(QQmlContext* qmlContext) {
     // FIXME Compatibility mechanism for existing HTML and JS that uses eventBridgeWrapper
     // Find a way to flag older scripts using this mechanism and wanr that this is deprecated
     qmlContext->setContextProperty("eventBridgeWrapper", new EventBridgeWrapper(this, qmlContext));
+#if !defined(Q_OS_ANDROID)
+    {
+        PROFILE_RANGE(startup, "FileTypeProfile");
+        FileTypeProfile::registerWithContext(qmlContext);
+    }
+    {
+        PROFILE_RANGE(startup, "HFWebEngineProfile");
+        HFWebEngineProfile::registerWithContext(qmlContext);
+
+    }
+#endif
 }
 
 QQmlContext* OffscreenQmlSurface::contextForUrl(const QUrl& qmlSource, QQuickItem* parent, bool forceNewContext) {
@@ -426,11 +424,17 @@ PointerEvent::EventType OffscreenQmlSurface::choosePointerEventType(QEvent::Type
 }
 
 void OffscreenQmlSurface::hoverBeginEvent(const PointerEvent& event, class QTouchDevice& device) {
+#if defined(DISABLE_QML)
+    return;
+#endif
     handlePointerEvent(event, device);
     _activeTouchPoints[event.getID()].hovering = true;
 }
 
 void OffscreenQmlSurface::hoverEndEvent(const PointerEvent& event, class QTouchDevice& device) {
+#if defined(DISABLE_QML)
+    return;
+#endif
     _activeTouchPoints[event.getID()].hovering = false;
     // Send a fake mouse move event if
     // - the event told us to
@@ -444,6 +448,10 @@ void OffscreenQmlSurface::hoverEndEvent(const PointerEvent& event, class QTouchD
 }
 
 bool OffscreenQmlSurface::handlePointerEvent(const PointerEvent& event, class QTouchDevice& device, bool release) {
+#if defined(DISABLE_QML)
+    return false;
+#endif
+
     // Ignore mouse interaction if we're paused
     if (!getRootItem() || isPaused()) {
         return false;

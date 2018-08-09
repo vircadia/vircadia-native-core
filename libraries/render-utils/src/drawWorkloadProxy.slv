@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  drawItemBounds.slv
+//  drawWorkloadProxy.vert
 //  vertex shader
 //
 //  Created by Sam Gateau on 6/29/2015.
@@ -18,7 +18,7 @@
 <@include gpu/Color.slh@>
 <$declareColorWheel()$>
 
-uniform vec4 inColor;
+layout(location=0) uniform vec4 inColor;
 
 
 struct WorkloadProxy {
@@ -27,7 +27,7 @@ struct WorkloadProxy {
 };
 
 #if defined(GPU_GL410)
-uniform samplerBuffer workloadProxiesBuffer;
+layout(binding=0) uniform samplerBuffer workloadProxiesBuffer;
 WorkloadProxy getWorkloadProxy(int i) {
     int offset = 2 * i;
     WorkloadProxy proxy;
@@ -36,7 +36,7 @@ WorkloadProxy getWorkloadProxy(int i) {
     return proxy;
 }
 #else
-layout(std140) buffer workloadProxiesBuffer {
+layout(std140, binding=0) buffer workloadProxiesBuffer {
     WorkloadProxy _proxies[];
 };
 WorkloadProxy getWorkloadProxy(int i) {

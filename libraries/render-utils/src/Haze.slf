@@ -2,6 +2,8 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
+//  Haze.frag
+//
 //  Created by Nissim Hadar on 9/5/2107.
 //  Copyright 2016 High Fidelity, Inc.
 //
@@ -17,12 +19,9 @@
 <@include LightingModel.slh@>
 <$declareLightBuffer()$>
 
-<@include LightDirectional.slh@>
-<$declareLightingDirectional(_SCRIBE_NULL)$>
-
 <@include Haze.slh@>
 
-uniform sampler2D linearDepthMap;
+layout(binding=RENDER_UTILS_TEXTURE_HAZE_LINEAR_DEPTH) uniform sampler2D linearDepthMap;
 
 vec4 unpackPositionFromZeye(vec2 texcoord) {
     float Zeye = -texture(linearDepthMap, texcoord).x;
@@ -37,8 +36,8 @@ vec4 unpackPositionFromZeye(vec2 texcoord) {
     return vec4(evalEyePositionFromZeye(side, Zeye, texcoord), 1.0);
 }
 
-in vec2 varTexCoord0;
-out vec4 outFragColor;
+layout(location=0) in vec2 varTexCoord0;
+layout(location=0) out vec4 outFragColor;
 
 void main(void) {
     if ((isHazeEnabled() == 0.0) || (hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) != HAZE_MODE_IS_ACTIVE) {

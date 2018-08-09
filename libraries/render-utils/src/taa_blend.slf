@@ -14,8 +14,8 @@
 
 <@include taa.slh@>
 
-in vec2 varTexCoord0;
-layout(location = 0) out vec4 outFragColor;
+layout(location=0) in vec2 varTexCoord0;
+layout(location=0) out vec4 outFragColor;
 
 void main(void) {
     vec3 nextColor = texture(nextMap, varTexCoord0).xyz;
