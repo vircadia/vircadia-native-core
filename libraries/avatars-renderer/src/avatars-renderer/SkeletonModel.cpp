@@ -300,7 +300,6 @@ bool SkeletonModel::getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3&
         getJointRotation(geometry.headJointIndex, headRotation);
         const float EYES_FORWARD_HEAD_ONLY = 0.30f;
         const float EYE_SEPARATION = 0.1f;
-        float headHeight = glm::distance(neckPosition, headPosition);
         firstEyePosition = baseEyePosition + headRotation * glm::vec3(EYE_SEPARATION, 0.0f, EYES_FORWARD_HEAD_ONLY);
         secondEyePosition = baseEyePosition + headRotation * glm::vec3(-EYE_SEPARATION, 0.0f, EYES_FORWARD_HEAD_ONLY);
         return true;
