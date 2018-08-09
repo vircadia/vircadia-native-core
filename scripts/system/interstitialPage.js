@@ -10,25 +10,30 @@
 //
 
 /* global Script, Controller, Overlays, Quat, MyAvatar, Entities, print, Vec3, AddressManager, Render, Window, Toolbars,
-   Camera, HMD*/
+   Camera, HMD, location, Account*/
 
 (function() {
+    Script.include("/~/system/libraries/Xform.js");
+    var DEBUG = true;
     var MAX_X_SIZE = 5;
     var EPSILON = 0.25;
     var isVisible = false;
     var STABILITY = 3.0;
-    var defaultOffset = -0.5;
     var VOLUME = 0.4;
     var tune = SoundCache.getSound("http://hifi-content.s3.amazonaws.com/alexia/LoadingScreens/crystals_and_voices.wav");
     var sample = null;
     var MAX_LEFT_MARGIN = 1.9;
     var INNER_CIRCLE_WIDTH = 4.7;
     var DESTINATION_CARD_Y_OFFSET = 2;
-    var SYSTEM_TOOL_BAR = "com.highfidelity.interface.toolbar.system";
-    var MAX_ELAPSED_TIME = 5 * 1000; // time in ms
+    var DEFAULT_Z_OFFSET = 5.45;
 
-    var toolbar = Toolbars.getToolbar(SYSTEM_TOOL_BAR);
     var renderViewTask = Render.getConfig("RenderMainView");
+    var request = Script.require('request').request;
+    var BUTTON_PROPERTIES = {
+        text: "Interstitial"
+    };
+    var tablet = null;
+    var button = null;
 
     // Tips have a character limit of 69
     var userTips = [
@@ -49,12 +54,14 @@
         "Tip: Log in to make friends, visit new domains, and save avatars!"
     ];
 
+    var DEFAULT_DIMENSIONS = { x: 20, y: 20, z: 20 };
+
     var loadingSphereID = Overlays.addOverlay("model", {
         name: "Loading-Sphere",
         position: Vec3.sum(Vec3.sum(MyAvatar.position, {x: 0.0, y: -1.0, z: 0.0}), Vec3.multiplyQbyV(MyAvatar.orientation, {x: 0, y: 0.95, z: 0})),
-        orientation: Quat.multiply(Quat.fromVec3Degrees({x: 10, y: 180, z: 0}), MyAvatar.orientation),
+        orientation: Quat.multiply(Quat.fromVec3Degrees({x: 0, y: 180, z: 0}), MyAvatar.orientation),
         url: "http://hifi-content.s3.amazonaws.com/alexia/LoadingScreens/black-sphere.fbx",
-        dimensions: { x: 20, y: 20, z: 20 },
+        dimensions: DEFAULT_DIMENSIONS,
         alpha: 1,
         visible: isVisible,
         ignoreRayIntersection: true,
@@ -63,11 +70,23 @@
         parentID: MyAvatar.SELF_ID
     });
 
+    var anchorOverlay = Overlays.addOverlay("cube", {
+        dimensions: {x: 0.2, y: 0.2, z: 0.2},
+        visible: true,
+        grabbable: false,
+        ignoreRayIntersection: true,
+        localPosition: {x: 0.0, y: getAnchorLocalYOffset(), z: DEFAULT_Z_OFFSET },
+        orientation: Quat.multiply(Quat.fromVec3Degrees({x: 0, y: 180, z: 0}), MyAvatar.orientation),
+        solid: true,
+        drawInFront: true,
+        parentID: MyAvatar.SELF_ID
+    });
 
-    var domainName = "";
+
+    var domainName = "Test";
     var domainNameTextID = Overlays.addOverlay("text3d", {
         name: "Loading-Destination-Card-Text",
-        localPosition: { x: 0.0, y: DESTINATION_CARD_Y_OFFSET + 0.8, z: 5.45 },
+        localPosition: { x: 0.0, y: 0.8, z: 0.0 },
         text: domainName,
         textAlpha: 1,
         backgroundAlpha: 0,
@@ -77,15 +96,15 @@
         drawInFront: true,
         grabbable: false,
         localOrientation: Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }),
-        parentID: loadingSphereID
+        parentID: anchorOverlay
     });
 
-    var hostName = "";
+    var domainText = "";
 
-    var domainHostname = Overlays.addOverlay("text3d", {
+    var domainDescription = Overlays.addOverlay("text3d", {
         name: "Loading-Hostname",
-        localPosition: { x: 0.0, y: DESTINATION_CARD_Y_OFFSET + 0.32, z: 5.45 },
-        text: hostName,
+        localPosition: { x: 0.0, y: 0.32, z: 0.0 },
+        text: domainText,
         textAlpha: 1,
         backgroundAlpha: 0,
         lineHeight: 0.13,
@@ -94,14 +113,14 @@
         drawInFront: true,
         grabbable: false,
         localOrientation: Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }),
-        parentID: loadingSphereID
+        parentID: anchorOverlay
     });
 
     var toolTip = "";
 
     var domainToolTip = Overlays.addOverlay("text3d", {
         name: "Loading-Tooltip",
-        localPosition: { x: 0.0 , y: DESTINATION_CARD_Y_OFFSET - 1.6, z: 5.45 },
+        localPosition: { x: 0.0 , y: -1.6, z: 0.0 },
         text: toolTip,
         textAlpha: 1,
         backgroundAlpha: 0,
@@ -111,12 +130,12 @@
         drawInFront: true,
         grabbable: false,
         localOrientation: Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }),
-        parentID: loadingSphereID
+        parentID: anchorOverlay
     });
 
     var loadingToTheSpotID = Overlays.addOverlay("image3d", {
         name: "Loading-Destination-Card-Text",
-        localPosition: { x: 0.0 , y: DESTINATION_CARD_Y_OFFSET - 1.8, z: 5.45 },
+        localPosition: { x: 0.0 , y: -1.8, z: 0.0 },
         url: "http://hifi-content.s3.amazonaws.com/alexia/LoadingScreens/goTo_button.png",
         alpha: 1,
         dimensions: { x: 1.2, y: 0.6},
@@ -126,12 +145,12 @@
         drawInFront: true,
         grabbable: false,
         localOrientation: Quat.fromVec3Degrees({ x: 0.0, y: 180.0, z: 0.0 }),
-        parentID: loadingSphereID
+        parentID: anchorOverlay
     });
 
     var loadingBarPlacard = Overlays.addOverlay("image3d", {
         name: "Loading-Bar-Placard",
-        localPosition: { x: 0.0 , y: DESTINATION_CARD_Y_OFFSET - 0.99, z: 5.52 },
+        localPosition: { x: 0.0 , y: -0.99, z: 0.07 },
         url: "http://hifi-content.s3.amazonaws.com/alexia/LoadingScreens/loadingBar_placard.png",
         alpha: 1,
         dimensions: { x: 4, y: 2.8},
@@ -141,12 +160,12 @@
         drawInFront: true,
         grabbable: false,
         localOrientation: Quat.fromVec3Degrees({ x: 0.0, y: 180.0, z: 0.0 }),
-        parentID: loadingSphereID
+        parentID: anchorOverlay
     });
 
     var loadingBarProgress = Overlays.addOverlay("image3d", {
         name: "Loading-Bar-Progress",
-        localPosition: { x: 0.0 , y: DESTINATION_CARD_Y_OFFSET - 0.99, z: 5.45 },
+        localPosition: { x: 0.0 , y: -0.99, z: 0.0 },
         url: "http://hifi-content.s3.amazonaws.com/alexia/LoadingScreens/loadingBar_progress.png",
         alpha: 1,
         dimensions: { x: 4, y: 2.8},
@@ -156,7 +175,7 @@
         drawInFront: true,
         grabbable: false,
         localOrientation: Quat.fromVec3Degrees({ x: 0.0, y: 180.0, z: 0.0 }),
-        parentID: loadingSphereID
+        parentID: anchorOverlay
     });
 
     var TARGET_UPDATE_HZ = 60; // 50hz good enough, but we're using update
@@ -169,13 +188,22 @@
     var target = 0;
 
 
+    function getAnchorLocalYOffset() {
+        var loadingSpherePosition = Overlays.getProperty(loadingSphereID, "position");
+        var loadingSphereOrientation = Overlays.getProperty(loadingSphereID, "rotation");
+        var overlayXform = new Xform(loadingSphereOrientation, loadingSpherePosition);
+        var worldToOverlayXform = overlayXform.inv();
+        var headPosition = MyAvatar.getHeadPosition();
+        var headPositionInOverlaySpace = worldToOverlayXform.xformPoint(headPosition);
+        return headPositionInOverlaySpace.y;
+    }
+
     function getLeftMargin(overlayID, text) {
         var textSize = Overlays.textSize(overlayID, text);
         var sizeDifference = ((INNER_CIRCLE_WIDTH - textSize.width) / 2);
         var leftMargin = -(MAX_LEFT_MARGIN - sizeDifference);
         return leftMargin;
     }
-
 
     function resetValues() {
     }
@@ -186,11 +214,26 @@
 
     function startInterstitialPage() {
         if (timer === null) {
+            print("----------> starting <----------");
             updateOverlays(Window.isPhysicsEnabled());
+            startAudio();
             target = 0;
             currentProgress = 0.1;
             timer = Script.setTimeout(update, BASIC_TIMER_INTERVAL_MS);
         }
+    }
+
+    function startAudio() {
+        sample = Audio.playSound(tune, {
+            localOnly: true,
+            position: MyAvatar.getHeadPosition(),
+            volume: VOLUME
+        });
+    }
+
+    function endAudio() {
+        sample.stop();
+        sample = null;
     }
 
     function domainChanged(domain) {
@@ -205,11 +248,23 @@
                 leftMargin: domainNameLeftMargin
             };
 
-            /*var hostLeftMargin = getLeftMargin(domainHostname, text);
-            var hostnameProperties = {
-                text: BY,
-                leftMargin: hostLeftMargin
-            };*/
+            var url = Account.metaverseServerURL + '/api/v1/places/' + domain;
+            request({
+                uri: url
+            }, function(error, data) {
+                if (data.status === "success") {
+                    print("-----------> settings domain description <----------");
+                    var domainInfo = data.data;
+                    var domainDescriptionText = domainInfo.place.description;
+                    print("domainText: " + domainDescriptionText);
+                    var leftMargin = getLeftMargin(domainDescription, domainDescriptionText);
+                    var domainDescriptionProperties = {
+                        text: domainDescriptionText,
+                        leftMargin: leftMargin
+                    };
+                    Overlays.editOverlay(domainDescription, domainDescriptionProperties);
+                }
+            });
 
             var randomIndex = Math.floor(Math.random() * userTips.length);
             var tip = userTips[randomIndex];
@@ -220,7 +275,6 @@
             };
 
             Overlays.editOverlay(domainNameTextID, textProperties);
-           //  Overlays.editOverlay(domainHostname, hostnameProperties);
             Overlays.editOverlay(domainToolTip, toolTipProperties);
 
 
@@ -233,7 +287,6 @@
     function clickedOnOverlay(overlayID, event) {
         print(overlayID + " other: " + loadingToTheSpotID);
         if (loadingToTheSpotID === overlayID) {
-            print("-------> heading to theb spot <--------");
             location.handleLookupString(THE_PLACE);
         }
     }
@@ -249,7 +302,16 @@
             visible: !physicsEnabled
         };
 
+        var domainTextProperties = {
+            text: domainText,
+            visible: !physicsEnabled
+        };
+
         // Menu.setIsOptionChecked("Show Overlays", physicsEnabled);
+
+        if (!HMD.active) {
+            MyAvatar.headOrientation = Quat.multiply(Quat.cancelOutRollAndPitch(MyAvatar.headOrientation), Quat.fromPitchYawRollDegrees(-3.0, 0, 0));
+        }
 
         renderViewTask.getConfig("LightingModel")["enableAmbientLight"] = physicsEnabled;
         renderViewTask.getConfig("LightingModel")["enableDirectionalLight"] = physicsEnabled;
@@ -257,10 +319,53 @@
         Overlays.editOverlay(loadingSphereID, mainSphereProperties);
         Overlays.editOverlay(loadingToTheSpotID, properties);
         Overlays.editOverlay(domainNameTextID, properties);
-        Overlays.editOverlay(domainHostname, properties);
+        Overlays.editOverlay(domainDescription, domainTextProperties);
         Overlays.editOverlay(domainToolTip, properties);
         Overlays.editOverlay(loadingBarPlacard, properties);
         Overlays.editOverlay(loadingBarProgress, properties);
+
+        Camera.mode = "first person";
+    }
+
+
+    function scaleInterstitialPage(sensorToWorldScale) {
+        var yOffset = getAnchorLocalYOffset();
+        var localPosition = {
+            x: 0.0,
+            y: yOffset,
+            z: 5.45
+        };
+
+        Overlays.editOverlay(anchorOverlay, { localPosition: localPosition });
+    }
+
+    var progress = 0;
+    function updateProgress() {
+        print("updateProgress");
+        var thisInterval = Date.now();
+        var deltaTime = (thisInterval - lastInterval);
+        lastInterval = thisInterval;
+        timeElapsed += deltaTime;
+
+        progress += MAX_X_SIZE * (deltaTime / 1000);
+        print(progress);
+        var properties = {
+            localPosition: { x: -(progress / 1.98) + 2, y: -0.99, z: 0.0 },
+            dimensions: {
+                x: progress,
+                y: 2.8
+            }
+        };
+
+        if (progress > MAX_X_SIZE) {
+            progress = 0;
+        }
+
+        Overlays.editOverlay(loadingBarProgress, properties);
+
+        if (!toggle) {
+            Script.setTimeout(updateProgress, BASIC_TIMER_INTERVAL_MS);
+        }
     }
 
     function update() {
@@ -292,7 +397,7 @@
         }
         currentProgress = lerp(currentProgress, target, 0.2);
         var properties = {
-            localPosition: { x: -(currentProgress / 2) + 2, y: DESTINATION_CARD_Y_OFFSET - 0.99, z: 5.45 },
+            localPosition: { x: -(currentProgress / 2) + 2, y: 0.99, z: 5.45 },
             dimensions: {
                 x: currentProgress,
                 y: 2.8
@@ -301,7 +406,9 @@
 
         Overlays.editOverlay(loadingBarProgress, properties);
         if (physicsEnabled && (currentProgress >= (MAX_X_SIZE - EPSILON))) {
+            print("----------> ending <--------");
             updateOverlays(physicsEnabled);
+            endAudio();
             timer = null;
             return;
         }
@@ -311,17 +418,39 @@
     Overlays.mouseReleaseOnOverlay.connect(clickedOnOverlay);
     location.hostChanged.connect(domainChanged);
     location.lookupResultsFinished.connect(function() {
-        print("connected: " + location.isConnected());
+        print("connected: " + location.isConnected);
     });
+
+    MyAvatar.sensorToWorldScaleChanged.connect(scaleInterstitialPage);
+
+    var toggle = true;
+    if (DEBUG) {
+        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        button = tablet.addButton(BUTTON_PROPERTIES);
+
+        button.clicked.connect(function() {
+            toggle = !toggle;
+            updateOverlays(toggle);
+
+            if (!toggle) {
+                Script.setTimeout(updateProgress, BASIC_TIMER_INTERVAL_MS);
+            }
+        });
+    }
 
     function cleanup() {
         Overlays.deleteOverlay(loadingSphereID);
         Overlays.deleteOverlay(loadingToTheSpotID);
         Overlays.deleteOverlay(domainNameTextID);
-        Overlays.deleteOverlay(domainHostname);
+        Overlays.deleteOverlay(domainDescription);
         Overlays.deleteOverlay(domainToolTip);
         Overlays.deleteOverlay(loadingBarPlacard);
         Overlays.deleteOverlay(loadingBarProgress);
+        Overlays.deleteOverlay(anchorOverlay);
+
+        if (DEBUG) {
+            tablet.removeButton(button);
+        }
     }
 
     Script.scriptEnding.connect(cleanup);
