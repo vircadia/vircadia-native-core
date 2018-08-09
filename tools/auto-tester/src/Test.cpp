@@ -49,9 +49,7 @@ void Test::zipAndDeleteTestResultsFolder() {
     }
 
     QDir testResultsFolder(_testResultsFolderPath);
-    if (!testResultsFolder.isEmpty()) {
-        JlCompress::compressDir(_testResultsFolderPath + ".zip", _testResultsFolderPath);
-    }
+    JlCompress::compressDir(_testResultsFolderPath + ".zip", _testResultsFolderPath);
 
     testResultsFolder.removeRecursively();
 

@@ -189,7 +189,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>Update TestRail Run Results</string>
+       <string>Update Run Results</string>
       </property>
      </widget>
      <widget class="QRadioButton" name="createPythonScriptRadioButton">
@@ -218,7 +218,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>Create TestRail Run</string>
+       <string>Create Run</string>
       </property>
      </widget>
      <widget class="QPushButton" name="createTestRailTestCasesButton">
@@ -231,7 +231,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>Create TestRail Test Cases</string>
+       <string>Create Test Cases</string>
       </property>
      </widget>
      <widget class="QRadioButton" name="createXMLScriptRadioButton">

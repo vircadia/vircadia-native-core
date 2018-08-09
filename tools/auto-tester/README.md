@@ -14,6 +14,7 @@ Auto-tester has 4 functions, separated into 4 tabs:
 
 # Create
 ![](./Create.png)
+
 The Create tab provides functions to create tests from snapshots, MD files, a test outline and recursive scripts.
 ## Create Tests
 ### Usage
@@ -80,6 +81,7 @@ In this case all recursive scripts, from the selected folder down, are created.
 Running this function in the tests root folder will create (or update) all the recursive scripts.
 # Evaluate
 ![](./Evaluate.png)
+
 The Evaluate tab provides a single function - evaluating the results of a test run.
 
 A checkbox (defaulting to checked) runs the evaluation in interactive mode.  In this mode - every failure is shown to the user, who can then decide whether to pass the test, fail it or abort the whole evaluation.
@@ -102,8 +104,80 @@ Evaluation proceeds in a number of steps:
 
 1.  If not in interactive mode, or the user has defined the results as an error, an error is written into the error folder.  The error itself is a folder with the 3 images and a small text file containing details.
 
-1.  At the end of the test, the folder is zipped and the original folder is deleted.  If there are no errors, then there will be no zipped folder.
+1.  At the end of the test, the folder is zipped and the original folder is deleted.  If there are no errors then the zipped folder will be empty.
 # TestRail
 ![](./TestRail.png)
+
+Before updating TestRail, make sure the GitHub user and branch are set correctly.  The user should not normally be changed, but the branch may need to be set to the appropriate RC.
+
+Any access to TestRail will require the TestRail account (default is High Fidelity's account), a user-name and a password:
+
+![](./TestRailSelector.png)
+
+- The default test rail user is shown, and can be changed as needed.
+- The username is usually the user's email.
+- The Project ID defaults to 14 - Interface.
+- The Suite ID defaults to 1147 - Renderong.
+- The TestRail page provides 3 functions for writing to TestRail.
+## Create Test Cases
+### Usage
+This function can either create an XML file that can then be imported into TestRail through TestRail itself, or automatically create the appropriate TestRail Sections.
+
+The user will be first asked for the tests root folder and a folder to store temporary files (this is the output folder).
+
+If XML has been selected, then the XML file will be created in the output folder.
+
+If Python is selected, the user will then be prompted for TestRail data.  After pressing `Accept` - the Release combo will be populated (as it needs to be read from TestRail).
+
+After selecting the appropriate Release, press OK.  The Python script will be created in the output folder, and the user will be prompted to run it.
+
+A busy window will appear until the process is complete.
+### Details
+A number of Python scripts are created:
+- `testrail.py` is the TestRail interface code.
+- `stack.py` is a simple stack class
+- `getReleases.py` reads the release names from TestRail
+- `addTestCases` is the script that writes to TestRail.
+
+In addition - a file containing all the releases will be created - `releases.txt`
+## Create Run
+A Run is created from previously created Test Cases.
+
+The user will first be prompted for a temporary folder (for the Python scripts).
+
+After entering TestRail data and pressing `Accept` - the Sections combo will be populated (as it needs to be read from TestRail).
+
+After selecting the appropriate Section, press OK.  The Python script will be created in the output folder, and the user will be prompted to run it.
+
+A busy window will appear until the process is complete.
+### Details
+A number of Python scripts are created:
+- `testrail.py` is the TestRail interface code.
+- `stack.py` is a simple stack class
+- `getSections.py` reads the release names from TestRail
+- `addRun` is the script that writes to TestRail.
+
+In addition - a file containing all the releases will be created - `sections.txt`
+## Update Run Results
+This function updates a Run with the results of an automated test.
+
+The user will first be prompted to enter the zipped results folder and a folder to store temporary files (this is the output folder).
+
+After entering TestRail data and pressing `Accept` - the Run combo will be populated (as it needs to be read from TestRail).
+
+After selecting the appropriate Run, press OK.  The Python script will be created in the output folder, and the user will be prompted to run it.
+
+A busy window will appear until the process is complete.
+### Details
+A number of Python scripts are created:
+- `testrail.py` is the TestRail interface code.
+- `getRuns.py` reads the release names from TestRail
+- `addRun` is the script that writes to TestRail.
+
+In addition - a file containing all the releases will be created - `runs.txt`
 # Windows
 ![](./Windows.png)
+
+This tab is Windows-specific.  It provides buttons to hide and show the task bar.
+
+The task bar should be hidden for all tests that use the primary camera.  This is required to ensure that the snapshots are the right size.
