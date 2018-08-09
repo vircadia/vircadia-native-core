@@ -2096,7 +2096,7 @@ AttachmentData MyAvatar::entityPropertiesToAttachmentData(const EntityItemProper
     data.translation = properties.getLocalPosition();
     data.rotation = properties.getLocalRotation();
     data.isSoft = properties.getRelayParentJoints();
-    quint16 jointIndex = properties.getParentJointIndex();
+    int jointIndex = (int)properties.getParentJointIndex();
     if (jointIndex > -1 && jointIndex < getJointNames().size()) {
         data.jointName = getJointNames()[jointIndex];
     }
