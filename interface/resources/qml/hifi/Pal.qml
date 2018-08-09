@@ -1046,6 +1046,7 @@ Rectangle {
                     enabled: myData.userName !== "Unknown user" && !userInfoViewer.visible;
                     hoverEnabled: true;
                     onClicked: {
+                        // TODO: Change language from "Happening Now" to something else (or remove entirely)
                         popupComboDialog("Set your availability:",
                         availabilityComboBox.availabilityStrings,
                         ["Your username will be visible in everyone's 'Nearby' list. Anyone will be able to jump to your location from within the 'Nearby' list.",
