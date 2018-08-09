@@ -5285,6 +5285,7 @@ void Application::reloadResourceCaches() {
     queryOctree(NodeType::EntityServer, PacketType::EntityQuery);
 
     DependencyManager::get<AssetClient>()->clearCache();
+    DependencyManager::get<ScriptCache>()->clearCache();
 
     DependencyManager::get<AnimationCache>()->refreshAll();
     DependencyManager::get<ModelCache>()->refreshAll();
