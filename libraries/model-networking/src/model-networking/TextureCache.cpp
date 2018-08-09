@@ -1173,7 +1173,11 @@ void ImageReader::read() {
         gpu::BackendTarget target = gpu::BackendTarget::GLES32;
 #else
         constexpr bool shouldCompress = false;
+#ifdef Q_OS_MAC
+        gpu::BackendTarget target = gpu::BackendTarget::GL41;
+#else
         gpu::BackendTarget target = gpu::BackendTarget::GL45;
+#endif
 #endif
         texture = image::processImage(std::move(buffer), _url.toString().toStdString(), _maxNumPixels, networkTexture->getTextureType(), shouldCompress, target);
 
