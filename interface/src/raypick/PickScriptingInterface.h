@@ -148,21 +148,28 @@ public:
      *
      * @typedef {object} CollisionPickResult
      * @property {boolean} intersects If there was at least one valid intersection (entityIntersections.length + avatarIntersections.length > 0)
-     * @property {EntityItersection[]} entityIntersections The collision information of entities which intersect with the CollisionRegion. There may be multiple intersections with the same entity which represent distinct collision points.
-     * @property {EntityItersection[]} avatarIntersections The collision information of avatars which intersect with the CollisionRegion. There may be multiple intersections with the same entity which represent distinct collision points.
+     * @property {IntersectingObject[]} intersectingObjects The collision information of each object which intersect with the CollisionRegion.
      * @property {CollisionRegion} collisionRegion The CollisionRegion that was used. Valid even if there was no intersection.
      */
 
     // TODO: Add this to the CollisionPickResult jsdoc once model collision picks are working
     //* @property {boolean} loaded If the CollisionRegion was successfully loaded (may be false if a model was used)
 
+    /**jsdoc
+    * Information about the Collision Pick's intersection with an object
+    *
+    * @typedef {object} IntersectingObject
+    * @property {QUuid} id The ID of the object.
+    * @property {number} type The type of the object, either Picks.INTERSECTED_ENTITY() or Picks.INTERSECTED_AVATAR()
+    * @property {ContactPointPair[]} contactPointPairs Pairs of points representing penetration information between the pick and the object
+    */
+
      /**jsdoc
-     * A pair of intersection points between a CollisionPick and an entity/avatar.
+     * A pair of points that represents part of an overlap between a Collision Pick and an object in the physics engine. Points which are further apart represent deeper overlap
      *
-     * @typedef {object} EntityIntersection
-     * @property {QUuid} id The ID of the object.
-     * @property {Vec3} pickCollisionPoint A point within the volume of the CollisionPick which corresponds to a point on the surface of the collided entity, in world space.
-     * @property {Vec3} entityCollisionPoint A point within the volume of the collided entity which corresponds to a point on the surface of the CollisionPick, in world space.
+     * @typedef {object} ContactPointPair
+     * @property {Vec3} pickContactPoint A point representing a penetration of the object's surface into the volume of the pick, in world space.
+     * @property {Vec3} objectContactPoint A point representing a penetration of the pick's surface into the volume of the found object, in world space.
      */
 
     /**jsdoc

@@ -47,8 +47,8 @@ QVariantMap CollisionPickResult::toVariantMap() const {
             }
 
             QVariantMap collisionPointPair;
-            collisionPointPair["pick"] = vec3toVariant(objectIntersection.testCollisionPoint);
-            collisionPointPair["object"] = vec3toVariant(objectIntersection.foundCollisionPoint);
+            collisionPointPair["pickContactPoint"] = vec3toVariant(objectIntersection.testCollisionPoint);
+            collisionPointPair["objectContactPoint"] = vec3toVariant(objectIntersection.foundCollisionPoint);
 
             collisionPointPairs[objectIntersection.foundID].append(collisionPointPair);
         }
@@ -59,7 +59,7 @@ QVariantMap CollisionPickResult::toVariantMap() const {
         const QUuid& id = intersectionKeyVal.first;
         QVariantMap& intersection = intersectionKeyVal.second;
 
-        intersection["collisionPointPairs"] = collisionPointPairs[id];
+        intersection["contactPointPairs"] = collisionPointPairs[id];
         qIntersectingObjects.append(intersection);
     }
 
