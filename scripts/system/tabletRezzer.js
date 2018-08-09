@@ -8,14 +8,29 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global */
+/* global getTabletWidthFromSettings */
 
 (function () {
 
     "use strict";
 
+    Script.include("./libraries/utils.js");
+
     var // Overlay
-        proxyOverlay,
+        proxyOverlay = null,
+        TABLET_PROXY_DIMENSIONS = { x: 0.0638, y: 0.0965, z: 0.0045 },
+        TABLET_PROXY_POSITION_LEFT_HAND = {
+            x: 0,
+            y: 0.07, // Distance from joint.
+            z: 0.07 // Distance above palm.
+        },
+        TABLET_PROXY_POSITION_RIGHT_HAND = {
+            x: 0,
+            y: 0.07, // Distance from joint.
+            z: 0.07 // Distance above palm.
+        },
+        TABLET_PROXY_ROTATION_LEFT_HAND = Quat.fromVec3Degrees({ x: 0, y: 180, z: 90 }),
+        TABLET_PROXY_ROTATION_RIGHT_HAND = Quat.fromVec3Degrees({ x: 0, y: 180, z: -90 }),
 
         // State machine
         PROXY_HIDDEN = 0,
@@ -27,6 +42,12 @@
         STATE_MACHINE,
         rezzerState = PROXY_HIDDEN,
         proxyHand,
+        PROXY_EXPAND_DURATION = 500,
+        PROXY_EXPAND_TIMEOUT = 25,
+        proxyExpandTimer = null,
+        proxyExpandStart,
+        proxyInitialWidth,
+        proxyTargetWidth,
 
         // Events
         MIN_HAND_CAMERA_ANGLE = 30,
@@ -34,10 +55,11 @@
         MIN_HAND_CAMERA_ANGLE_COS = Math.cos(Math.PI * MIN_HAND_CAMERA_ANGLE / DEGREES_180),
         updateTimer = null,
         UPDATE_INTERVAL = 250,
+        HIFI_OBJECT_MANIPULATION_CHANNEL = "Hifi-Object-Manipulation",
 
         LEFT_HAND = 0,
         RIGHT_HAND = 1,
-        DEBUG = true;
+        DEBUG = false;
 
     // #region Utilities =======================================================================================================
 
@@ -83,10 +105,73 @@
     // #region State Machine ===================================================================================================
 
     function enterProxyHidden() {
+        Overlays.deleteOverlay(proxyOverlay);
+        proxyOverlay = null;
     }
 
     function enterProxyVisible(hand) {
         proxyHand = hand;
+        proxyOverlay = Overlays.addOverlay("cube", {
+            parentID: MyAvatar.SELF_ID,
+            parentJointIndex: handJointIndex(proxyHand),
+            localPosition: proxyHand === LEFT_HAND ? TABLET_PROXY_POSITION_LEFT_HAND : TABLET_PROXY_POSITION_RIGHT_HAND,
+            localRotation: proxyHand === LEFT_HAND ? TABLET_PROXY_ROTATION_LEFT_HAND : TABLET_PROXY_ROTATION_RIGHT_HAND,
+            dimensions: TABLET_PROXY_DIMENSIONS,
+            solid: true,
+            grabbable: true,
+            displayInFront: true,
+            visible: true
+        });
+    }
+
+    function expandProxy() {
+        var scaleFactor = (Date.now() - proxyExpandStart) / PROXY_EXPAND_DURATION;
+        if (scaleFactor < 1) {
+            Overlays.editOverlay(proxyOverlay, {
+                dimensions: Vec3.multiply(
+                    1 + scaleFactor * (proxyTargetWidth - proxyInitialWidth) / proxyInitialWidth,
+                    TABLET_PROXY_DIMENSIONS)
+            });
+            proxyExpandTimer = Script.setTimeout(expandProxy, PROXY_EXPAND_TIMEOUT);
+            return;
+        }
+
+        proxyExpandTimer = null;
+        setState(TABLET_OPEN);
+    }
+
+    function enterProxyExpanding() {
+        // Detach from hand.
+        Overlays.editOverlay(proxyOverlay, {
+            parentID: Uuid.NULL,
+            parentJointIndex: -1
+        });
+
+        // Start expanding.
+        proxyInitialWidth = TABLET_PROXY_DIMENSIONS.x;
+        proxyTargetWidth = getTabletWidthFromSettings();
+        proxyExpandStart = Date.now();
+        proxyExpandTimer = Script.setTimeout(expandProxy, PROXY_EXPAND_TIMEOUT);
+    }
+
+    function exitProxyExpanding() {
+        if (proxyExpandTimer !== null) {
+            Script.clearTimeout(proxyExpandTimer);
+            proxyExpandTimer = null;
+        }
+    }
+
+    function enterTabletOpen() {
+        var proxyOverlayProperties = Overlays.getProperties(proxyOverlay, ["position", "orientation"]);
+
+        Overlays.deleteOverlay(proxyOverlay);
+        proxyOverlay = null;
+
+        Overlays.editOverlay(HMD.tabletID, {
+            position: proxyOverlayProperties.position,
+            orientation: proxyOverlayProperties.orientation
+        });
+        HMD.openTablet(true);
     }
 
     STATE_MACHINE = {
@@ -106,12 +191,12 @@
             exit: null
         },
         PROXY_EXPANDING: { // Tablet proxy has been released from grab and is expanding before showing tablet proper.
-            enter: null,
+            enter: enterProxyExpanding,
             update: null,
-            exit: null
+            exit: exitProxyExpanding
         },
         TABLET_OPEN: { // Tablet proper is being displayed.
-            enter: null,
+            enter: enterTabletOpen,
             update: null,
             exit: null
         }
@@ -181,6 +266,14 @@
                     break;
                 }
                 break;
+            case PROXY_GRABBED:
+            case PROXY_EXPANDING:
+                break;
+            case TABLET_OPEN:
+                if (!HMD.showTablet) {
+                    setState(PROXY_HIDDEN);
+                }
+                break;
             default:
                 error("Missing case: " + rezzerState);
         }
@@ -188,6 +281,24 @@
         updateTimer = Script.setTimeout(update, UPDATE_INTERVAL);
     }
 
+    function onMessageReceived(channel, data, senderID, localOnly) {
+        var message;
+
+        if (channel !== HIFI_OBJECT_MANIPULATION_CHANNEL) {
+            return;
+        }
+
+        message = JSON.parse(data);
+        if (message.grabbedEntity !== proxyOverlay) {
+            return;
+        }
+
+        if (message.action === "grab" && rezzerState === PROXY_VISIBLE) {
+            setState(PROXY_GRABBED);
+        } else if (message.action === "release" && rezzerState === PROXY_GRABBED) {
+            setState(PROXY_EXPANDING);
+        }
+    }
 
     function onMountedChanged() {
         // Tablet proxy only available when HMD is mounted.
@@ -213,6 +324,9 @@
     // #region Start-up and tear-down ==========================================================================================
 
     function setUp() {
+        Messages.subscribe(HIFI_OBJECT_MANIPULATION_CHANNEL);
+        Messages.messageReceived.connect(onMessageReceived);
+
         HMD.mountedChanged.connect(onMountedChanged);
         HMD.displayModeChanged.connect(onMountedChanged); // For the case that the HMD is already worn when the script starts.
         if (HMD.mounted) {
@@ -221,17 +335,25 @@
     }
 
     function tearDown() {
+        setState(PROXY_HIDDEN);  // Or just tear right down? Perhaps so.
+
+        Messages.messageReceived.disconnect(onMessageReceived);
+        Messages.unsubscribe(HIFI_OBJECT_MANIPULATION_CHANNEL);
+
         HMD.displayModeChanged.disconnect(onMountedChanged);
         HMD.mountedChanged.disconnect(onMountedChanged);
         if (updateTimer !== null) {
             Script.clearTimeout(updateTimer);
             updateTimer = null;
         }
+        if (proxyOverlay !== null) {
+            Overlays.deleteOverlay(proxyOverlay);
+        }
     }
 
     setUp();
     Script.scriptEnding.connect(tearDown);
 
-    //#endregion
+    // #endregion
 
 }());
