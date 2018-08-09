@@ -95,9 +95,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
     // make sure lookAt is not too close to face (avoid crosseyes)
     glm::vec3 lookAt = head->getLookAtPosition();
-    //qCDebug(interfaceapp) << "look at " << lookAt;
     glm::vec3 focusOffset = lookAt - _owningAvatar->getHead()->getEyePosition();
-    //qCDebug(interfaceapp) << "focus offset " << focusOffset;
     float focusDistance = glm::length(focusOffset);
     const float MIN_LOOK_AT_FOCUS_DISTANCE = 1.0f;
     if (focusDistance < MIN_LOOK_AT_FOCUS_DISTANCE && focusDistance > EPSILON) {
@@ -115,8 +113,6 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     glm::mat4 avatarToWorldMatrix = createMatFromQuatAndPos(myAvatar->getWorldOrientation(), myAvatar->getWorldPosition());
     glm::mat4 sensorToWorldMatrix = myAvatar->getSensorToWorldMatrix();
     params.rigToSensorMatrix = glm::inverse(sensorToWorldMatrix) * avatarToWorldMatrix * rigToAvatarMatrix;
-    //qCDebug(interfaceapp) << "AVATAR: " << avatarToWorldMatrix;
-    //qCDebug(interfaceapp) << "SENSOR " << sensorToWorldMatrix;
 
     // input action is the highest priority source for head orientation.
     auto avatarHeadPose = myAvatar->getControllerPoseInAvatarFrame(controller::Action::HEAD);
@@ -286,7 +282,6 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     eyeParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
     eyeParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
 
-    //qCDebug(interfaceapp) << "right eye index is  " << geometry.leftEyeJointIndex;
     _rig.updateFromEyeParameters(eyeParams);
 
     updateFingers();

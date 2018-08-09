@@ -139,6 +139,8 @@ void CauterizedModel::updateClusterMatrices() {
             glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
         auto cauterizeMatrix = _rig.getJointTransform(geometry.neckJointIndex) * zeroScale;
 
+        // qCDebug(renderutils) << "cauterize matrix: " << cauterizeMatrix;
+
         for (int i = 0; i < _cauterizeMeshStates.size(); i++) {
             Model::MeshState& state = _cauterizeMeshStates[i];
             const FBXMesh& mesh = geometry.meshes.at(i);

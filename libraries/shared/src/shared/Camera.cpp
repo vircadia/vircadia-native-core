@@ -9,7 +9,6 @@
 //
 
 #include "Camera.h"
-//#include "../SharedLogging.h"
 
 /**jsdoc
  * <p>Camera modes affect the position of the camera and the controls for camera movement. The camera can be in one of the
