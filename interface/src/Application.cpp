@@ -1247,7 +1247,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
 
     // use our MyAvatar position and quat for address manager path
-    addressManager->setPositionGetter([this]{ return getMyAvatar()->getWorldPosition(); });
+    addressManager->setPositionGetter([this]{ return getMyAvatar()->getWorldFeetPosition(); });
     addressManager->setOrientationGetter([this]{ return getMyAvatar()->getWorldOrientation(); });
 
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
@@ -5285,6 +5285,7 @@ void Application::reloadResourceCaches() {
     queryOctree(NodeType::EntityServer, PacketType::EntityQuery);
 
     DependencyManager::get<AssetClient>()->clearCache();
+    DependencyManager::get<ScriptCache>()->clearCache();
 
     DependencyManager::get<AnimationCache>()->refreshAll();
     DependencyManager::get<ModelCache>()->refreshAll();
