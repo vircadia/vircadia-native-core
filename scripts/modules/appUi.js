@@ -87,12 +87,18 @@ function AppUi(properties) {
     defaultButton('activeButton', 'a.svg');
     defaultButton('normalMessagesButton', 'i-msg.svg');
     defaultButton('activeMessagesButton', 'a-msg.svg');
-    that.button = that.tablet.addButton({
+    var buttonOptions = {
         icon: that.normalButton,
         activeIcon: that.activeButton,
-        text: that.buttonName,
-        sortOrder: that.sortOrder || undefined
-    });
+        text: that.buttonName
+    };
+    // `TabletScriptingInterface` looks for the presence of a `sortOrder` key.
+    // What it SHOULD do is look to see if the value inside that key is defined.
+    // To get around the current code, we do this instead.
+    if (that.sortOrder) {
+        buttonOptions.sortOrder = that.sortOrder;
+    }
+    that.button = that.tablet.addButton(buttonOptions);
     that.ignore = function ignore() { };
 
     // Handlers
