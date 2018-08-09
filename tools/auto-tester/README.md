@@ -13,7 +13,7 @@ Auto-tester has 4 functions, separated into 4 tabs:
 ## Installation
 1. Download the installer by browsing to [here](<https://hifi-content.s3.amazonaws.com/nissim/autoTester/AutoTester-Installer.exe>).
 2. Double click on the installer and install to a convenient location  
-![](./setup_7z.png)
+![](./setup_7z.PNG)
 3. To run the auto-tester, double click **auto-tester.exe**.
 # Create
 ![](./Create.PNG)
@@ -104,7 +104,7 @@ Evaluation proceeds in a number of steps:
 1. The images are then pair-wise compared, using the SSIM algorithm.  A fixed threshold is used to define a mismatch.
 
 1.  In interactive mode - a window is opened showing the expected image, actual image, difference image and error:
-![](./autoTesterMismatchExample.png)
+![](./autoTesterMismatchExample.PNG)
 
 1.  If not in interactive mode, or the user has defined the results as an error, an error is written into the error folder.  The error itself is a folder with the 3 images and a small text file containing details.
 
