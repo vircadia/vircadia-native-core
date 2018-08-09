@@ -26,7 +26,7 @@ public:
     ~OctreePacketProcessor();
 
     void startEntitySequence();
-    bool octreeSequenceIsComplete(int sequenceNumber) const;
+    bool isLoadSequenceComplete() const;
 
 signals:
     void packetVersionMismatch();

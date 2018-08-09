@@ -11,6 +11,9 @@
 
 #include "SafeLanding.h"
 #include "EntityTreeRenderer.h"
+#include "ModelEntityItem.h"
+#include "model-networking/ModelCache.h"
+#include "InterfaceLogging.h"
 
 const int SafeLanding::SEQUENCE_MODULO = std::numeric_limits<OCTREE_PACKET_SEQUENCE>::max() + 1;
 
@@ -31,8 +34,6 @@ bool SafeLanding::SequenceLessThan::operator()(const int& a, const int& b) const
 SafeLanding::SafeLanding() {
 }
 
-SafeLanding::~SafeLanding() { }
-
 void SafeLanding::startEntitySequence(QSharedPointer<EntityTreeRenderer> entityTreeRenderer) {
     if (!_trackingEntities) {
         auto entityTree = entityTreeRenderer->getTree();
@@ -45,7 +46,6 @@ void SafeLanding::startEntitySequence(QSharedPointer<EntityTreeRenderer> entityT
                 &EntityTree::deletingEntity, this, &SafeLanding::deleteTrackedEntity);
             _trackingEntities = true;
             _sequenceNumbers.clear();
-            _isSequenceComplete = false;
         }
     }
 }
@@ -70,10 +70,10 @@ void SafeLanding::addTrackedEntity(const EntityItemID& entityID) {
 
             if (solidTypes.count(entity->getType()) && !entity->getCollisionless()) {
                 _trackedEntities.emplace(entityID, entity);
+                trackResources(entity);
+                qCDebug(interfaceapp) << "Tracking entity " << entity->getItemName();
             }
-
         }
-
     }
 }
 
@@ -110,4 +110,68 @@ bool SafeLanding::sequenceNumbersComplete() {
         }
     }
     return false;
+}
+
+void SafeLanding::trackResources(EntityItemPointer entity) {
+    if (entity->getType() == EntityTypes::Model) {
+        ModelEntityItem * modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity).get();
+        QString resourceURL;
+        QSharedPointer<Resource> resource;
+        auto shapeType = modelEntity->getShapeType();
+
+        if (shapeType == SHAPE_TYPE_COMPOUND) {
+            resourceURL = modelEntity->getCompoundShapeURL();
+            resource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(resourceURL);
+        } else if (shapeType == SHAPE_TYPE_STATIC_MESH || shapeType == SHAPE_TYPE_SIMPLE_COMPOUND) {
+            resourceURL = modelEntity->getModelURL();
+            resource = DependencyManager::get<ModelCache>()->getGeometryResource(resourceURL);
+        }
+
+        if (resource) {
+            connect(resource.data(), &Resource::loaded, this, &SafeLanding::resourceLoaded);
+            // Remove it either way:
+            connect(resource.data(), &Resource::failed, this, &SafeLanding::resourceLoaded);
+            if (!resource->isLoaded()) {
+                _trackedURLs.insert(resourceURL);
+            }
+        }
+    }
+}
+
+void SafeLanding::resourceLoaded() {
+    QObject * sender = QObject::sender();
+    if (sender) {
+        Resource * resource = dynamic_cast<Resource*>(sender);
+        const QString resourceURL = resource->getURL().toString();
+        _trackedURLs.erase(resourceURL);
+        qCDebug(interfaceapp) << "Removed tracked URL" << resourceURL;
+    }
+}
+
+bool SafeLanding::isLoadSequenceComplete() {
+    if (sequenceNumbersComplete() && _trackedURLs.empty()) {
+        _trackingEntities = false;
+        _trackedEntities.clear();
+    }
+
+    return !_trackingEntities;
+}
+
+void SafeLanding::DebugDumpSequenceIDs() const {
+    int p = -1;
+    qCDebug(interfaceapp) << "Sequence set size:" << _sequenceNumbers.size();
+    for (auto s: _sequenceNumbers) {
+        if (p == -1) {
+            p = s;
+            qCDebug(interfaceapp) << "First: " << s;
+        } else {
+            if (s != p + 1) {
+                qCDebug(interfaceapp) << "Gap from" << p << "to" << s << "(exclusive)";
+                p = s;
+            }
+        }
+    }
+    if (p != -1) {
+        qCDebug(interfaceapp) << "Last:" << p;
+    }
 }

@@ -25,26 +25,30 @@ class EntityItemID;
 class SafeLanding : public QObject {
 public:
     SafeLanding();
-    ~SafeLanding();
+    ~SafeLanding() = default;
 
     void startEntitySequence(QSharedPointer<EntityTreeRenderer> entityTreeRenderer);
     void stopEntitySequence();
     void setCompletionSequenceNumbers(int first, int last);
     void sequenceNumberReceived(int sequenceNumber);
-    bool isSequenceComplete() const { return _isSequenceComplete; }
+    bool isLoadSequenceComplete();
 
 private slots:
     void addTrackedEntity(const EntityItemID& entityID);
     void deleteTrackedEntity(const EntityItemID& entityID);
+    void resourceLoaded();
+
 private:
     bool sequenceNumbersComplete();
+    void trackResources(EntityItemPointer entity);
+    void DebugDumpSequenceIDs() const;
+
     bool _trackingEntities { false };
     EntityTreePointer _entityTree;
     using EntityMap = std::map<EntityItemID, EntityItemPointer>;
     EntityMap _trackedEntities;
 
     static constexpr int INVALID_SEQUENCE = -1;
-    bool _isSequenceComplete { true };
     int _initialStart { INVALID_SEQUENCE };
     int _initialEnd { INVALID_SEQUENCE }; // final sequence, exclusive.
 
@@ -53,6 +57,7 @@ private:
     };
 
     std::set<int, SequenceLessThan> _sequenceNumbers;
+    std::set<QString> _trackedURLs;
 
     static const int SEQUENCE_MODULO;
 };

@@ -5495,6 +5495,7 @@ void Application::update(float deltaTime) {
     if (!_physicsEnabled) {
         if (!domainLoadingInProgress) {
             PROFILE_ASYNC_BEGIN(app, "Scene Loading", "");
+            _octreeProcessor.startEntitySequence();
             domainLoadingInProgress = true;
         }
 
@@ -5504,7 +5505,7 @@ void Application::update(float deltaTime) {
         // Check for flagged EntityData having arrived.
         auto entityTreeRenderer = getEntities();
         if (isServerlessMode() || 
-            (entityTreeRenderer && _octreeProcessor.octreeSequenceIsComplete(entityTreeRenderer->getLastOctreeMessageSequence()) )) {
+            (_octreeProcessor.isLoadSequenceComplete() )) {
             // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
             _lastPhysicsCheckTime = now;
             _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
@@ -6166,7 +6167,6 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType) {
         _octreeQuery.setOctreeSizeScale(DEFAULT_OCTREE_SIZE_SCALE);
         static constexpr float MIN_LOD_ADJUST = -20.0f;
         _octreeQuery.setBoundaryLevelAdjust(MIN_LOD_ADJUST);
-        _octreeProcessor.startEntitySequence();
     } else {
         _octreeQuery.setConicalViews(_conicalViews);
         auto lodManager = DependencyManager::get<LODManager>();

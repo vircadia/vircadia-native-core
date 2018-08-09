@@ -112,6 +112,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
                 auto renderer = qApp->getEntities();
                 if (renderer) {
                     renderer->processDatagram(*message, sendingNode);
+                    _safeLanding->sequenceNumberReceived(renderer->getLastOctreeMessageSequence());
                 }
             }
         } break;
@@ -145,12 +146,16 @@ namespace {
     }
 }
 
-bool OctreePacketProcessor::octreeSequenceIsComplete(int sequenceNumber) const {
-    // If we've received the flagged seq # and the current one is >= it.
-    return _completionSequenceNumber != INVALID_SEQUENCE &&
-        !lessThanWraparound<OCTREE_PACKET_SEQUENCE>(sequenceNumber, _completionSequenceNumber);
-}
+//bool OctreePacketProcessor::octreeSequenceIsComplete(int sequenceNumber) const {
+//    // If we've received the flagged seq # and the current one is >= it.
+//    return _completionSequenceNumber != INVALID_SEQUENCE &&
+//        !lessThanWraparound<OCTREE_PACKET_SEQUENCE>(sequenceNumber, _completionSequenceNumber);
+//}
 
 void OctreePacketProcessor::startEntitySequence() {
     _safeLanding->startEntitySequence(qApp->getEntities());
+}
+
+bool OctreePacketProcessor::isLoadSequenceComplete() const {
+    return _safeLanding->isLoadSequenceComplete();
 }
