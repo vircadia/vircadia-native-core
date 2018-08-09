@@ -161,15 +161,15 @@ public:
     * @typedef {object} IntersectingObject
     * @property {QUuid} id The ID of the object.
     * @property {number} type The type of the object, either Picks.INTERSECTED_ENTITY() or Picks.INTERSECTED_AVATAR()
-    * @property {ContactPointPair[]} contactPointPairs Pairs of points representing penetration information between the pick and the object
+    * @property {CollisionContact[]} collisionContacts Pairs of points representing penetration information between the pick and the object
     */
 
      /**jsdoc
      * A pair of points that represents part of an overlap between a Collision Pick and an object in the physics engine. Points which are further apart represent deeper overlap
      *
-     * @typedef {object} ContactPointPair
-     * @property {Vec3} pickContactPoint A point representing a penetration of the object's surface into the volume of the pick, in world space.
-     * @property {Vec3} objectContactPoint A point representing a penetration of the pick's surface into the volume of the found object, in world space.
+     * @typedef {object} CollisionContact
+     * @property {Vec3} pointOnPick A point representing a penetration of the object's surface into the volume of the pick, in world space.
+     * @property {Vec3} pointOnObject A point representing a penetration of the pick's surface into the volume of the found object, in world space.
      */
 
     /**jsdoc
