@@ -270,10 +270,12 @@ Script.include("/~/system/libraries/controllers.js");
                         Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
                         this.hapticTargetID = props.id;
                     }
-                    // if we've attempted to grab a child, roll up to the root of the tree
-                    var groupRootProps = findGroupParent(controllerData, props);
-                    if (entityIsGrabbable(groupRootProps)) {
-                        return groupRootProps;
+                    if (!entityIsCloneable(props)) {
+                        // if we've attempted to grab a non-cloneable child, roll up to the root of the tree
+                        var groupRootProps = findGroupParent(controllerData, props);
+                        if (entityIsGrabbable(groupRootProps)) {
+                            return groupRootProps;
+                        }
                     }
                     return props;
                 }
