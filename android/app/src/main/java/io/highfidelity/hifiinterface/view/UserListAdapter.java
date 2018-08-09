@@ -7,8 +7,11 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
 
@@ -62,7 +65,14 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
     public void onBindViewHolder(UserListAdapter.ViewHolder holder, int position) {
         User aUser = mUsers.get(position);
         holder.mUsername.setText(aUser.name);
-        holder.mOnline.setText(aUser.online?"ONLINE":"OFFLINE");
+        holder.mOnline.setText(aUser.online?"Online":"Offline");
+        holder.mOnline.setVisibility(aUser.online? View.VISIBLE : View.GONE);
+        holder.mUserDelete.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Toast.makeText(view.getContext(), "Delete " + aUser.name, Toast.LENGTH_SHORT).show();
+            }
+        });
         Uri uri = Uri.parse(aUser.imageUrl);
         Picasso.get().load(uri).into(holder.mImage);
     }
@@ -77,12 +87,14 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
         TextView mUsername;
         TextView mOnline;
         ImageView mImage;
+        ImageButton mUserDelete;
 
         public ViewHolder(View itemView) {
             super(itemView);
             mUsername = itemView.findViewById(R.id.userName);
             mOnline = itemView.findViewById(R.id.userOnline);
             mImage = itemView.findViewById(R.id.userImage);
+            mUserDelete = itemView.findViewById(R.id.userDelete);
         }
     }
 
