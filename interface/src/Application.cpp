@@ -6322,9 +6322,10 @@ void Application::clearDomainOctreeDetails() {
         _octreeServerSceneStats.clear();
     });
 
-    _octreeProcessor.resetCompletionSequenceNumber();
     // reset the model renderer
     getEntities()->clear();
+
+    _octreeProcessor.startEntitySequence();
 
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
 

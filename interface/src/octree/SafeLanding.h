@@ -24,9 +24,6 @@ class EntityItemID;
 
 class SafeLanding : public QObject {
 public:
-    SafeLanding();
-    ~SafeLanding() = default;
-
     void startEntitySequence(QSharedPointer<EntityTreeRenderer> entityTreeRenderer);
     void stopEntitySequence();
     void setCompletionSequenceNumbers(int first, int last);
@@ -40,8 +37,8 @@ private slots:
 
 private:
     bool sequenceNumbersComplete();
-    void trackResources(EntityItemPointer entity);
-    void DebugDumpSequenceIDs() const;
+    void debugDumpSequenceIDs() const;
+    bool entityPhysicsComplete();
 
     bool _trackingEntities { false };
     EntityTreePointer _entityTree;
