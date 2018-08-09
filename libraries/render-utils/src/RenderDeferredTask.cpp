@@ -185,8 +185,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
  
     // Add haze model
     const auto hazeModel = task.addJob<FetchHazeStage>("HazeModel");
-    // Add Bloom model
-    const auto bloomModel = task.addJob<FetchBloomStage>("BloomModel");
 
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     const auto deferredLightingInputs = RenderDeferred::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
@@ -243,6 +241,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
 
     // Add bloom
+    const auto bloomModel = task.addJob<FetchBloomStage>("BloomModel");
     const auto bloomInputs = BloomEffect::Inputs(deferredFrameTransform, lightingFramebuffer, bloomModel).asVarying();
     task.addJob<BloomEffect>("Bloom", bloomInputs);
 

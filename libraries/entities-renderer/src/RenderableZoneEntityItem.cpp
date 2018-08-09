@@ -214,7 +214,7 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
 
         if (_bloomMode == COMPONENT_MODE_DISABLED) {
             _bloomStage->_currentFrame.pushBloom(INVALID_INDEX);
-        } else if (_ambientLightMode == COMPONENT_MODE_ENABLED) {
+        } else if (_bloomMode == COMPONENT_MODE_ENABLED) {
             _bloomStage->_currentFrame.pushBloom(_bloomIndex);
         }
     }
@@ -427,8 +427,6 @@ void ZoneEntityRenderer::updateBloomFromEntity(const TypedEntityPointer& entity)
 
     const auto& bloom = editBloom();
 
-    const uint32_t bloomMode = entity->getBloomMode();
-    bloom->setBloomActive(bloomMode == COMPONENT_MODE_ENABLED);
     bloom->setBloomIntensity(_bloomProperties.getBloomIntensity());
     bloom->setBloomThreshold(_bloomProperties.getBloomThreshold());
     bloom->setBloomSize(_bloomProperties.getBloomSize());

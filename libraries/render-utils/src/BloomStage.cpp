@@ -24,7 +24,6 @@ void FetchBloomStage::configure(const Config& config) {
     _bloom->setBloomIntensity(config.bloomIntensity);
     _bloom->setBloomThreshold(config.bloomThreshold);
     _bloom->setBloomSize(config.bloomSize);
-    _bloom->setBloomActive(config.isBloomActive);
 }
 
 BloomStage::Index BloomStage::findBloom(const BloomPointer& bloom) const {

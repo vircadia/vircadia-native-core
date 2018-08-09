@@ -195,9 +195,7 @@ bool BlurInOutResource::updateResources(const gpu::FramebufferPointer& sourceFra
     return true;
 }
 
-BlurGaussian::BlurGaussian(bool generateOutputFramebuffer, unsigned int downsampleFactor) :
-    _inOutResources(generateOutputFramebuffer, downsampleFactor)
-{
+BlurGaussian::BlurGaussian() {
     _parameters = std::make_shared<BlurParams>();
 }
 
@@ -243,11 +241,16 @@ void BlurGaussian::configure(const Config& config) {
 }
 
 
-void BlurGaussian::run(const RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceFramebuffer, gpu::FramebufferPointer& blurredFramebuffer) {
+void BlurGaussian::run(const RenderContextPointer& renderContext, const Inputs& inputs, gpu::FramebufferPointer& blurredFramebuffer) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
     RenderArgs* args = renderContext->args;
+
+    const auto sourceFramebuffer = inputs.get0();
+    _inOutResources._generateOutputFramebuffer = inputs.get1();
+    _inOutResources._downsampleFactor = inputs.get2();
+    _parameters->setFilterGaussianTaps(inputs.get3(), inputs.get4());
 
     BlurInOutResource::Resources blurringResources;
     if (!_inOutResources.updateResources(sourceFramebuffer, blurringResources)) {

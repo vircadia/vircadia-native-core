@@ -29,7 +29,7 @@ class BloomThresholdConfig : public render::Job::Config {
 class BloomThreshold {
 public:
     using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, gpu::FramebufferPointer, graphics::BloomPointer>;
-    using Outputs = gpu::FramebufferPointer;
+    using Outputs = render::VaryingSet2<gpu::FramebufferPointer, float>;
     using Config = BloomThresholdConfig;
     using JobModel = render::Job::ModelIO<BloomThreshold, Inputs, Outputs, Config>;
 
