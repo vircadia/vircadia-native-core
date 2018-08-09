@@ -104,7 +104,7 @@ float evalShadowAttenuation(vec3 worldLightDir, vec4 worldPosition, float viewDe
     vec3 cascadeMix;
     bvec4 isPixelOnCascade;
     int cascadeIndex;
-    const float oneMinusNdotL = 1.0 - clamp(dot(worldLightDir, worldNormal), 0, 1);
+    float oneMinusNdotL = 1.0 - clamp(dot(worldLightDir, worldNormal), 0, 1);
 
     for (cascadeIndex=0 ; cascadeIndex<getShadowCascadeCount() ; cascadeIndex++) {
         cascadeShadowCoords[cascadeIndex] = evalShadowTexcoord(cascadeIndex, worldPosition);
