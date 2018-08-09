@@ -15,7 +15,7 @@
 (function() {
     Script.include("/~/system/libraries/Xform.js");
     var DEBUG = true;
-    var MAX_X_SIZE = 5;
+    var MAX_X_SIZE = 4;
     var EPSILON = 0.25;
     var isVisible = false;
     var STABILITY = 3.0;
@@ -67,7 +67,6 @@
         ignoreRayIntersection: true,
         drawInFront: true,
         grabbable: false,
-        parentID: MyAvatar.SELF_ID
     });
 
     var anchorOverlay = Overlays.addOverlay("cube", {
@@ -79,7 +78,7 @@
         orientation: Quat.multiply(Quat.fromVec3Degrees({x: 0, y: 180, z: 0}), MyAvatar.orientation),
         solid: true,
         drawInFront: true,
-        parentID: MyAvatar.SELF_ID
+        parentID: loadingSphereID
     });
 
 
@@ -100,7 +99,6 @@
     });
 
     var domainText = "";
-
     var domainDescription = Overlays.addOverlay("text3d", {
         name: "Loading-Hostname",
         localPosition: { x: 0.0, y: 0.32, z: 0.0 },
@@ -150,7 +148,7 @@
 
     var loadingBarPlacard = Overlays.addOverlay("image3d", {
         name: "Loading-Bar-Placard",
-        localPosition: { x: 0.0 , y: -0.99, z: 0.07 },
+        localPosition: { x: 0.0, y: -0.99, z: 0.0 },
         url: "http://hifi-content.s3.amazonaws.com/alexia/LoadingScreens/loadingBar_placard.png",
         alpha: 1,
         dimensions: { x: 4, y: 2.8},
@@ -165,10 +163,10 @@
 
     var loadingBarProgress = Overlays.addOverlay("image3d", {
         name: "Loading-Bar-Progress",
-        localPosition: { x: 0.0 , y: -0.99, z: 0.0 },
-        url: "http://hifi-content.s3.amazonaws.com/alexia/LoadingScreens/loadingBar_progress.png",
+        localPosition: { x: 0.0, y: -0.99, z: 0.0 },
+        url: Script.resourcesPath() + "images/loadingBar_v1.png",
         alpha: 1,
-        dimensions: { x: 4, y: 2.8},
+        dimensions: {x: 4, y: 2.8},
         visible: isVisible,
         emissive: true,
         ignoreRayIntersection: false,
@@ -186,6 +184,8 @@
     var currentDomain = "";
     var timer = null;
     var target = 0;
+
+    var connectionToDomainFailed = false;
 
 
     function getAnchorLocalYOffset() {
@@ -219,6 +219,7 @@
             startAudio();
             target = 0;
             currentProgress = 0.1;
+            connectionToDomainFailed = false;
             timer = Script.setTimeout(update, BASIC_TIMER_INTERVAL_MS);
         }
     }
@@ -313,9 +314,9 @@
             MyAvatar.headOrientation = Quat.multiply(Quat.cancelOutRollAndPitch(MyAvatar.headOrientation), Quat.fromPitchYawRollDegrees(-3.0, 0, 0));
         }
 
-        renderViewTask.getConfig("LightingModel")["enableAmbientLight"] = physicsEnabled;
-        renderViewTask.getConfig("LightingModel")["enableDirectionalLight"] = physicsEnabled;
-        renderViewTask.getConfig("LightingModel")["enablePointLight"] = physicsEnabled;
+        //renderViewTask.getConfig("LightingModel")["enableAmbientLight"] = physicsEnabled;
+        //renderViewTask.getConfig("LightingModel")["enableDirectionalLight"] = physicsEnabled;
+        //renderViewTask.getConfig("LightingModel")["enablePointLight"] = physicsEnabled;
         Overlays.editOverlay(loadingSphereID, mainSphereProperties);
         Overlays.editOverlay(loadingToTheSpotID, properties);
         Overlays.editOverlay(domainNameTextID, properties);
@@ -350,7 +351,7 @@
         progress += MAX_X_SIZE * (deltaTime / 1000);
         print(progress);
         var properties = {
-            localPosition: { x: -(progress / 1.98) + 2, y: -0.99, z: 0.0 },
+            localPosition: { x: -(progress / 2) + 2, y: -0.99, z: 0.0 },
             dimensions: {
                 x: progress,
                 y: 2.8
@@ -403,11 +404,11 @@
                 y: 2.8
             }
         };
-
+        print("progress: " + currentProgress);
         Overlays.editOverlay(loadingBarProgress, properties);
-        if (physicsEnabled && (currentProgress >= (MAX_X_SIZE - EPSILON))) {
+        if (((physicsEnabled && (currentProgress >= (MAX_X_SIZE - EPSILON))) || connectionToDomainFailed)) {
             print("----------> ending <--------");
-            updateOverlays(physicsEnabled);
+            updateOverlays((physicsEnabled || connectionToDomainFailed));
             endAudio();
             timer = null;
             return;
@@ -418,7 +419,10 @@
     Overlays.mouseReleaseOnOverlay.connect(clickedOnOverlay);
     location.hostChanged.connect(domainChanged);
     location.lookupResultsFinished.connect(function() {
-        print("connected: " + location.isConnected);
+        Script.setTimeout(function() {
+            print("location connected: " + location.isConnected);
+            connectionToDomainFailed = !location.isConnected;
+        }, 300);
     });
 
     MyAvatar.sensorToWorldScaleChanged.connect(scaleInterstitialPage);
@@ -433,7 +437,7 @@
             updateOverlays(toggle);
 
             if (!toggle) {
-                Script.setTimeout(updateProgress, BASIC_TIMER_INTERVAL_MS);
+                //Script.setTimeout(updateProgress, BASIC_TIMER_INTERVAL_MS);
             }
         });
     }
