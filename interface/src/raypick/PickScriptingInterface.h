@@ -138,7 +138,7 @@ public:
      * @property {Vec3} intersection The intersection point in world-space.
      * @property {Vec3} surfaceNormal The surface normal at the intersected point.  All NANs if type == INTERSECTED_HUD.
      * @property {Variant} extraInfo Additional intersection details when available for Model objects.
-     * @property {StylusTip} parabola The PickParabola that was used.  Valid even if there was no intersection.
+     * @property {PickParabola} parabola The PickParabola that was used.  Valid even if there was no intersection.
      */
 
     /**jsdoc
