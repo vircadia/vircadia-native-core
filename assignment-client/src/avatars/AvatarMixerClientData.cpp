@@ -285,3 +285,10 @@ AvatarMixerClientData::TraitsCheckTimestamp AvatarMixerClientData::getLastOtherA
         return TraitsCheckTimestamp();
     }
 }
+
+void AvatarMixerClientData::cleanupKilledNode(const QUuid& nodeUUID, Node::LocalID nodeLocalID) {
+    removeLastBroadcastSequenceNumber(nodeUUID);
+    removeLastBroadcastTime(nodeUUID);
+    _lastSentTraitsTimestamps.erase(nodeLocalID);
+    _sentTraitVersions.erase(nodeLocalID);
+}

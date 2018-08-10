@@ -57,10 +57,7 @@ public:
     void setLastBroadcastTime(const QUuid& nodeUUID, uint64_t broadcastTime) { _lastBroadcastTimes[nodeUUID] = broadcastTime; }
     Q_INVOKABLE void removeLastBroadcastTime(const QUuid& nodeUUID) { _lastBroadcastTimes.erase(nodeUUID); }
 
-    Q_INVOKABLE void cleanupKilledNode(const QUuid& nodeUUID) {
-        removeLastBroadcastSequenceNumber(nodeUUID);
-        removeLastBroadcastTime(nodeUUID);
-    }
+    Q_INVOKABLE void cleanupKilledNode(const QUuid& nodeUUID, Node::LocalID nodeLocalID);
 
     uint16_t getLastReceivedSequenceNumber() const { return _lastReceivedSequenceNumber; }
 

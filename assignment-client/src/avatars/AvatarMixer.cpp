@@ -470,7 +470,8 @@ void AvatarMixer::handleAvatarKilled(SharedNodePointer avatarNode) {
                 QMetaObject::invokeMethod(node->getLinkedData(),
                                          "cleanupKilledNode",
                                           Qt::AutoConnection,
-                                          Q_ARG(const QUuid&, QUuid(avatarNode->getUUID())));
+                                          Q_ARG(const QUuid&, QUuid(avatarNode->getUUID())),
+                                          Q_ARG(Node::LocalID, avatarNode->getLocalID()));
             }
         );
     }
