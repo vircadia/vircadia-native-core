@@ -81,6 +81,22 @@ AvatarManager::AvatarManager(QObject* parent) :
     });
 }
 
+AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
+    AvatarSharedPointer avatar = AvatarHashMap::addAvatar(sessionUUID, mixerWeakPointer);
+
+    const auto otherAvatar = std::static_pointer_cast<OtherAvatar>(avatar);
+    if (otherAvatar && _space) {
+        std::unique_lock<std::mutex> lock(_spaceLock);
+        auto spaceIndex = _space->allocateID();
+        otherAvatar->setSpaceIndex(spaceIndex);
+        workload::Sphere sphere(otherAvatar->getWorldPosition(), otherAvatar->getBoundingRadius());
+        workload::Transaction transaction;
+        transaction.reset(spaceIndex, sphere, workload::Owner(otherAvatar));
+        _space->enqueueTransaction(transaction);
+    }
+    return avatar;
+}
+
 AvatarManager::~AvatarManager() {
     assert(_motionStates.empty());
 }
@@ -102,6 +118,11 @@ void AvatarManager::init() {
         _myAvatar->addToScene(_myAvatar, scene, transaction);
         scene->enqueueTransaction(transaction);
     }
+}
+
+void AvatarManager::setSpace(workload::SpacePointer& space ) {
+    assert(!_space);
+    _space = space;
 }
 
 void AvatarManager::updateMyAvatar(float deltaTime) {
@@ -194,18 +215,19 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     int numAVatarsNotUpdated = 0;
     bool physicsEnabled = qApp->isPhysicsEnabled();
 
-    render::Transaction transaction;
+    render::Transaction renderTransaction;
+    workload::Transaction workloadTransaction;
     while (!sortedAvatars.empty()) {
         const SortableAvatar& sortData = sortedAvatars.top();
-        const auto avatar = std::static_pointer_cast<Avatar>(sortData.getAvatar());
-        const auto otherAvatar = std::static_pointer_cast<OtherAvatar>(sortData.getAvatar());
+        const auto avatar = std::static_pointer_cast<OtherAvatar>(sortData.getAvatar());
 
+        // TODO: to help us scale to more avatars it would be nice to not have to poll orb state here
         // if the geometry is loaded then turn off the orb
         if (avatar->getSkeletonModel()->isLoaded()) {
             // remove the orb if it is there
-            otherAvatar->removeOrb();
+            avatar->removeOrb();
         } else {
-            otherAvatar->updateOrbPosition();
+            avatar->updateOrbPosition();
         }
 
         bool ignoring = DependencyManager::get<NodeList>()->isPersonalMutingNode(avatar->getID());
@@ -241,15 +263,16 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
                 numAvatarsUpdated++;
             }
             avatar->simulate(deltaTime, inView);
-            avatar->updateRenderItem(transaction);
+            avatar->updateRenderItem(renderTransaction);
+            avatar->updateSpaceProxy(workloadTransaction);
             avatar->setLastRenderUpdateTime(startTime);
         } else {
             // we've spent our full time budget --> bail on the rest of the avatar updates
             // --> more avatars may freeze until their priority trickles up
-            // --> some scale or fade animations may glitch
+            // --> some scale animations may glitch
             // --> some avatar velocity measurements may be a little off
 
-            // no time simulate, but we take the time to count how many were tragically missed
+            // no time to simulate, but we take the time to count how many were tragically missed
             bool inView = sortData.getPriority() > OUT_OF_VIEW_THRESHOLD;
             if (!inView) {
                 break;
@@ -275,6 +298,14 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     if (_shouldRender) {
         qApp->getMain3DScene()->enqueueTransaction(transaction);
     }
+
+    if (!_spaceProxiesToDelete.empty() && _space) {
+        std::unique_lock<std::mutex> lock(_spaceLock);
+        workloadTransaction.remove(_spaceProxiesToDelete);
+        _spaceProxiesToDelete.clear();
+    }
+    _space->enqueueTransaction(workloadTransaction);
+
     _numAvatarsUpdated = numAvatarsUpdated;
     _numAvatarsNotUpdated = numAVatarsNotUpdated;
 
@@ -363,10 +394,14 @@ AvatarSharedPointer AvatarManager::newSharedAvatar() {
 }
 
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
-    AvatarHashMap::handleRemovedAvatar(removedAvatar, removalReason);
+    auto avatar = std::static_pointer_cast<OtherAvatar>(removedAvatar);
+    {
+        std::unique_lock<std::mutex> lock(_spaceLock);
+        _spaceProxiesToDelete.push_back(avatar->getSpaceIndex());
+    }
+    AvatarHashMap::handleRemovedAvatar(avatar, removalReason);
 
     // remove from physics
-    auto avatar = std::static_pointer_cast<Avatar>(removedAvatar);
     avatar->setPhysicsCallback(nullptr);
     AvatarMotionStateMap::iterator itr = _motionStates.find(avatar.get());
     if (itr != _motionStates.end()) {

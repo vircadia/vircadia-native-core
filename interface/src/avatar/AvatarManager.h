@@ -23,6 +23,7 @@
 #include <shared/RateCounter.h>
 #include <avatars-renderer/ScriptAvatar.h>
 #include <AudioInjector.h>
+#include <workload/Space.h>
 
 #include "AvatarMotionState.h"
 #include "MyAvatar.h"
@@ -62,6 +63,7 @@ public:
     virtual ~AvatarManager();
 
     void init();
+    void setSpace(workload::SpacePointer& space );
 
     std::shared_ptr<MyAvatar> getMyAvatar() { return _myAvatar; }
     glm::vec3 getMyAvatarPosition() const { return _myAvatar->getWorldPosition(); }
@@ -183,6 +185,9 @@ public slots:
      */
     void updateAvatarRenderStatus(bool shouldRenderAvatars);
 
+protected:
+    AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) override;
+
 private:
     explicit AvatarManager(QObject* parent = 0);
     explicit AvatarManager(const AvatarManager& other);
@@ -212,6 +217,10 @@ private:
     float _avatarSimulationTime { 0.0f };
     bool _shouldRender { true };
     mutable int _identityRequestsSent { 0 };
+
+    mutable std::mutex _spaceLock;
+    workload::SpacePointer _space;
+    std::vector<int32_t> _spaceProxiesToDelete;
 };
 
 #endif // hifi_AvatarManager_h

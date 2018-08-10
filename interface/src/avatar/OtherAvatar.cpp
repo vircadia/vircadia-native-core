@@ -58,3 +58,16 @@ void OtherAvatar::createOrb() {
         _otherAvatarOrbMeshPlaceholder->setVisible(true);
     }
 }
+
+void OtherAvatar::setSpaceIndex(int32_t index) {
+    assert(_spaceIndex == -1);
+    _spaceIndex = index;
+}
+
+void OtherAvatar::updateSpaceProxy(workload::Transaction& transaction) const {
+    if (_spaceIndex > -1) {
+        float approximateBoundingRadius = glm::length(getTargetScale());
+        workload::Sphere sphere(getWorldPosition(), approximateBoundingRadius);
+        transaction.update(_spaceIndex, sphere);
+    }
+}
