@@ -534,7 +534,6 @@ Item {
             value = Users.getAvatarGain(uuid);
         }
         onValueChanged: {
-            console.log("onValueChanged:" + uuid + ", value="+value);
             updateGainFromQML(uuid, value, false);
         }
         onPressedChanged: {
