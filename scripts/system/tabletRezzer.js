@@ -30,8 +30,14 @@
             y: 0.07, // Distance from joint.
             z: 0.07 // Distance above palm.
         },
+        /*
+        // Aligned cross-palm.
         TABLET_PROXY_ROTATION_LEFT_HAND = Quat.fromVec3Degrees({ x: 0, y: 180, z: 90 }),
         TABLET_PROXY_ROTATION_RIGHT_HAND = Quat.fromVec3Degrees({ x: 0, y: 180, z: -90 }),
+        */
+        // Aligned with palm.
+        TABLET_PROXY_ROTATION_LEFT_HAND = Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }),
+        TABLET_PROXY_ROTATION_RIGHT_HAND = Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }),
 
         // State machine
         PROXY_HIDDEN = 0,
