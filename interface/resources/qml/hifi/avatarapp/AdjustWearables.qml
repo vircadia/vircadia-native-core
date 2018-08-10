@@ -18,6 +18,7 @@ Rectangle {
 
     signal adjustWearablesOpened(var avatarName);
     signal adjustWearablesClosed(bool status, var avatarName);
+    signal addWearable(string avatarName, string url);
 
     property bool modified: false;
     Component.onCompleted: {
@@ -40,6 +41,8 @@ Rectangle {
 
     function refresh(avatar) {
         wearablesCombobox.model.clear();
+        wearablesCombobox.currentIndex = -1;
+
         for(var i = 0; i < avatar.wearables.count; ++i) {
             var wearable = avatar.wearables.get(i).properties;
             for(var j = (wearable.modelURL.length - 1); j >= 0; --j) {
@@ -167,6 +170,12 @@ Rectangle {
                         linkColor: hifi.colors.blueHighlight
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.right: parent.right
+                        onLinkActivated: {
+                            popup.showSpecifyWearableUrl(function(url) {
+                                console.debug('popup.showSpecifyWearableUrl: ', url);
+                                addWearable(root.avatarName, url);
+                            });
+                        }
                     }
                 }
             }

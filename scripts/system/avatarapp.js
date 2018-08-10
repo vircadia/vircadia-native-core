@@ -235,6 +235,33 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         Messages.messageReceived.disconnect(handleWearableMessages);
         Messages.unsubscribe('Hifi-Object-Manipulation');
         break;
+    case 'addWearable':
+
+        var joints = MyAvatar.getJointNames();
+        var hipsIndex = -1;
+
+        for(var i = 0; i < joints.length; ++i) {
+            if(joints[i] === 'Hips') {
+                hipsIndex = i;
+                break;
+            }
+        }
+
+        var properties = {
+            name: "Custom wearable",
+            type: "Model",
+            modelURL: message.url,
+            parentID: MyAvatar.sessionUUID,
+            relayParentJoints: false,
+            parentJointIndex: hipsIndex
+        };
+
+        var entityID = Entities.addEntity(properties, true);
+        updateAvatarWearables(currentAvatar, message.avatarName);
+        executeLater(function() {
+            onSelectedEntity(entityID);
+        });
+        break;
     case 'selectWearable':
         ensureWearableSelected(message.entityID);
         break;

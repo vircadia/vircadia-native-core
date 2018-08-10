@@ -33,6 +33,26 @@ MessageBox {
         popup.inputText.forceActiveFocus();
     }
 
+    function showSpecifyWearableUrl(callback) {
+        popup.button2text = 'CONFIRM'
+        popup.button1text = 'CANCEL'
+        popup.titleText = 'Specify Wearable URL'
+        popup.bodyText = 'If you want to add a custom wearable, you can specify the URL of the wearable file here.'
+
+        popup.inputText.visible = true;
+        popup.inputText.placeholderText = 'Enter Wearable URL';
+
+        popup.onButton2Clicked = function() {
+            if(callback)
+                callback(popup.inputText.text);
+
+            popup.close();
+        }
+
+        popup.open();
+        popup.inputText.forceActiveFocus();
+    }
+
     property url getWearablesUrl: '../../../images/avatarapp/AvatarIsland.jpg'
 
     function showGetWearables(callback, linkCallback) {

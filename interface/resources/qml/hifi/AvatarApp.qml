@@ -285,6 +285,9 @@ Rectangle {
         onWearableSelected: {
             emitSendToScript({'method' : 'selectWearable', 'entityID' : id});
         }
+        onAddWearable: {
+            emitSendToScript({'method' : 'addWearable', 'avatarName' : avatarName, 'url' : url});
+        }
 
         z: 3
     }
