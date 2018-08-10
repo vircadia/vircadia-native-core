@@ -92,7 +92,7 @@ unsigned int PointerScriptingInterface::createStylus(const QVariant& properties)
  * @typedef {object} Pointers.LaserPointerProperties
  * @property {boolean} [faceAvatar=false] If true, the end of the Pointer will always rotate to face the avatar.
  * @property {boolean} [centerEndY=true] If false, the end of the Pointer will be moved up by half of its height.
- * @property {boolean} [lockEnd=false] If true, the end of the Pointer will lock on to the center of the object at which the laser is pointing.
+ * @property {boolean} [lockEnd=false] If true, the end of the Pointer will lock on to the center of the object at which the pointer is pointing.
  * @property {boolean} [distanceScaleEnd=false] If true, the dimensions of the end of the Pointer will scale linearly with distance.
  * @property {boolean} [scaleWithAvatar=false] If true, the width of the Pointer's path will scale linearly with your avatar's scale.
  * @property {boolean} [followNormal=false] If true, the end of the Pointer will rotate to follow the normal of the intersected surface.
@@ -207,9 +207,10 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
 * The rendering properties of the parabolic path
 *
 * @typedef {object} Pointers.ParabolaProperties
-* @property {Color} color The color of the parabola.
-* @property {number} alpha The alpha of the parabola.
-* @property {number} width The width of the parabola, in meters.
+* @property {Color} color=255,255,255 The color of the parabola.
+* @property {number} alpha=1.0 The alpha of the parabola.
+* @property {number} width=0.01 The width of the parabola, in meters.
+* @property {boolean} isVisibleInSecondaryCamera=false The width of the parabola, in meters.
 */
 /**jsdoc
 * A set of properties used to define the visual aspect of a Parabola Pointer in the case that the Pointer is not intersecting something.  Same as a {@link Pointers.ParabolaPointerRenderState},
@@ -232,10 +233,10 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
 */
 /**jsdoc
 * A set of properties that can be passed to {@link Pointers.createPointer} to create a new Pointer. Contains the relevant {@link Picks.PickProperties} to define the underlying Pick.
-* @typedef {object} Pointers.LaserPointerProperties
+* @typedef {object} Pointers.ParabolaPointerProperties
 * @property {boolean} [faceAvatar=false] If true, the end of the Pointer will always rotate to face the avatar.
 * @property {boolean} [centerEndY=true] If false, the end of the Pointer will be moved up by half of its height.
-* @property {boolean} [lockEnd=false] If true, the end of the Pointer will lock on to the center of the object at which the laser is pointing.
+* @property {boolean} [lockEnd=false] If true, the end of the Pointer will lock on to the center of the object at which the pointer is pointing.
 * @property {boolean} [distanceScaleEnd=false] If true, the dimensions of the end of the Pointer will scale linearly with distance.
 * @property {boolean} [scaleWithAvatar=false] If true, the width of the Pointer's path will scale linearly with your avatar's scale.
 * @property {boolean} [followNormal=false] If true, the end of the Pointer will rotate to follow the normal of the intersected surface.
