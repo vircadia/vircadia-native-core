@@ -1,18 +1,22 @@
 package io.highfidelity.hifiinterface.view;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
+import android.support.v4.graphics.drawable.RoundedBitmapDrawable;
+import android.support.v4.graphics.drawable.RoundedBitmapDrawableFactory;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
@@ -74,7 +78,28 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
             }
         });
         Uri uri = Uri.parse(aUser.imageUrl);
-        Picasso.get().load(uri).into(holder.mImage);
+        Picasso.get().load(uri).into(holder.mImage, new RoundProfilePictureCallback(holder.mImage));
+    }
+
+    private class RoundProfilePictureCallback implements Callback {
+        private ImageView mProfilePicture;
+        public RoundProfilePictureCallback(ImageView imageView) {
+            mProfilePicture = imageView;
+        }
+
+        @Override
+        public void onSuccess() {
+            Bitmap imageBitmap = ((BitmapDrawable) mProfilePicture.getDrawable()).getBitmap();
+            RoundedBitmapDrawable imageDrawable = RoundedBitmapDrawableFactory.create(mProfilePicture.getContext().getResources(), imageBitmap);
+            imageDrawable.setCircular(true);
+            imageDrawable.setCornerRadius(Math.max(imageBitmap.getWidth(), imageBitmap.getHeight()) / 2.0f);
+            mProfilePicture.setImageDrawable(imageDrawable);
+        }
+
+        @Override
+        public void onError(Exception e) {
+            mProfilePicture.setImageResource(R.drawable.default_profile_avatar);
+        }
     }
 
     @Override
