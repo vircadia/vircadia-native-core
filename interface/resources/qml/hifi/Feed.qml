@@ -165,6 +165,7 @@ Column {
             enabled: root.autoScrollTimerEnabled;
             anchors.fill: parent;
             hoverEnabled: true;
+            propagateComposedEvents: true;
             onEntered: {
                 if (autoScrollTimer.running) {
                     autoScrollTimer.stop();
