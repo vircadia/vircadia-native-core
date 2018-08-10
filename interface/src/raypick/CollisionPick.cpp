@@ -15,6 +15,26 @@
 #include "ScriptEngineLogging.h"
 #include "UUIDHasher.h"
 
+void buildObjectIntersectionsMap(IntersectionType intersectionType, const std::vector<ContactTestResult>& objectIntersections, std::unordered_map<QUuid, QVariantMap>& intersections, std::unordered_map<QUuid, QVariantList>& collisionPointPairs) {
+    for (auto& objectIntersection : objectIntersections) {
+        auto at = intersections.find(objectIntersection.foundID);
+        if (at == intersections.end()) {
+            QVariantMap intersectingObject;
+            intersectingObject["id"] = objectIntersection.foundID;
+            intersectingObject["type"] = intersectionType;
+            intersections[objectIntersection.foundID] = intersectingObject;
+
+            collisionPointPairs[objectIntersection.foundID] = QVariantList();
+        }
+
+        QVariantMap collisionPointPair;
+        collisionPointPair["pointOnPick"] = vec3toVariant(objectIntersection.testCollisionPoint);
+        collisionPointPair["pointOnObject"] = vec3toVariant(objectIntersection.foundCollisionPoint);
+
+        collisionPointPairs[objectIntersection.foundID].append(collisionPointPair);
+    }
+}
+
 QVariantMap CollisionPickResult::toVariantMap() const {
     QVariantMap variantMap;
 
@@ -40,26 +60,6 @@ QVariantMap CollisionPickResult::toVariantMap() const {
     variantMap["collisionRegion"] = pickVariant;
 
     return variantMap;
-}
-
-void buildObjectIntersectionsMap(IntersectionType intersectionType, const std::vector<ContactTestResult>& objectIntersections, std::unordered_map<QUuid, QVariantMap>& intersections, std::unordered_map<QUuid, QVariantList>& collisionPointPairs) {
-    for (auto& objectIntersection : objectIntersections) {
-        auto at = intersections.find(objectIntersection.foundID);
-        if (at == intersections.end()) {
-            QVariantMap intersectingObject;
-            intersectingObject["id"] = objectIntersection.foundID;
-            intersectingObject["type"] = intersectionType;
-            intersections[objectIntersection.foundID] = intersectingObject;
-
-            collisionPointPairs[objectIntersection.foundID] = QVariantList();
-        }
-
-        QVariantMap collisionPointPair;
-        collisionPointPair["pointOnPick"] = vec3toVariant(objectIntersection.testCollisionPoint);
-        collisionPointPair["pointOnObject"] = vec3toVariant(objectIntersection.foundCollisionPoint);
-
-        collisionPointPairs[objectIntersection.foundID].append(collisionPointPair);
-    }
 }
 
 bool CollisionPick::isShapeInfoReady() {
