@@ -28,6 +28,8 @@ var FOCUS_MIN_ZOOM = 0.5;
 var ZOOM_SCALING = 0.02;
 
 var MIN_ZOOM_DISTANCE = 0.01;
+
+// The maximum usable zoom level is somewhere around 14km, further than that the edit handles will fade-out. (FIXME: MS17493)
 var MAX_ZOOM_DISTANCE = 14000;
 
 var MODE_INACTIVE = 'inactive';
