@@ -20,7 +20,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
     var ENTITY_LIST_WIDTH = 495;
     var MAX_DEFAULT_CREATE_TOOLS_HEIGHT = 778;
     var entityListWindow = new CreateWindow(
-        Script.resourcesPath() + "qml/hifi/tablet/EditEntityList.qml",
+        Script.resolvePath("EditEntityList.qml"),
         'Entity List',
         'com.highfidelity.create.entityListWindow',
         function () {
