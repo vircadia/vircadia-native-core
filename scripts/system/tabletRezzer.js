@@ -56,6 +56,7 @@
         updateTimer = null,
         UPDATE_INTERVAL = 250,
         HIFI_OBJECT_MANIPULATION_CHANNEL = "Hifi-Object-Manipulation",
+        avatarScale = 1,
 
         LEFT_HAND = 0,
         RIGHT_HAND = 1,
@@ -115,9 +116,10 @@
         proxyOverlay = Overlays.addOverlay("cube", {
             parentID: MyAvatar.SELF_ID,
             parentJointIndex: handJointIndex(proxyHand),
-            localPosition: proxyHand === LEFT_HAND ? TABLET_PROXY_POSITION_LEFT_HAND : TABLET_PROXY_POSITION_RIGHT_HAND,
+            localPosition: Vec3.multiply(avatarScale,
+                proxyHand === LEFT_HAND ? TABLET_PROXY_POSITION_LEFT_HAND : TABLET_PROXY_POSITION_RIGHT_HAND),
             localRotation: proxyHand === LEFT_HAND ? TABLET_PROXY_ROTATION_LEFT_HAND : TABLET_PROXY_ROTATION_RIGHT_HAND,
-            dimensions: TABLET_PROXY_DIMENSIONS,
+            dimensions: Vec3.multiply(avatarScale, TABLET_PROXY_DIMENSIONS),
             solid: true,
             grabbable: true,
             displayInFront: true,
@@ -130,7 +132,7 @@
         if (scaleFactor < 1) {
             Overlays.editOverlay(proxyOverlay, {
                 dimensions: Vec3.multiply(
-                    1 + scaleFactor * (proxyTargetWidth - proxyInitialWidth) / proxyInitialWidth,
+                    avatarScale * (1 + scaleFactor * (proxyTargetWidth - proxyInitialWidth) / proxyInitialWidth),
                     TABLET_PROXY_DIMENSIONS)
             });
             proxyExpandTimer = Script.setTimeout(expandProxy, PROXY_EXPAND_TIMEOUT);
@@ -282,6 +284,12 @@
         updateTimer = Script.setTimeout(update, UPDATE_INTERVAL);
     }
 
+    function onScaleChanged() {
+        avatarScale = MyAvatar.scale;
+        // Clamp scale in order to work around M17434.
+        avatarScale = Math.max(MyAvatar.getDomainMinScale(), Math.min(MyAvatar.getDomainMaxScale(), avatarScale));
+    }
+
     function onMessageReceived(channel, data, senderID, localOnly) {
         var message;
 
@@ -327,6 +335,8 @@
     // #region Start-up and tear-down ==========================================================================================
 
     function setUp() {
+        MyAvatar.scaleChanged.connect(onScaleChanged);
+
         Messages.subscribe(HIFI_OBJECT_MANIPULATION_CHANNEL);
         Messages.messageReceived.connect(onMessageReceived);
 
@@ -342,6 +352,8 @@
 
         Messages.messageReceived.disconnect(onMessageReceived);
         Messages.unsubscribe(HIFI_OBJECT_MANIPULATION_CHANNEL);
+
+        MyAvatar.scaleChanged.disconnect(onScaleChanged);
 
         HMD.displayModeChanged.disconnect(onMountedChanged);
         HMD.mountedChanged.disconnect(onMountedChanged);
