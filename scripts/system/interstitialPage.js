@@ -67,11 +67,12 @@
         ignoreRayIntersection: true,
         drawInFront: true,
         grabbable: false,
+        parentID: MyAvatar.SELF_ID
     });
 
     var anchorOverlay = Overlays.addOverlay("cube", {
         dimensions: {x: 0.2, y: 0.2, z: 0.2},
-        visible: true,
+        visible: false,
         grabbable: false,
         ignoreRayIntersection: true,
         localPosition: {x: 0.0, y: getAnchorLocalYOffset(), z: DEFAULT_Z_OFFSET },
@@ -314,9 +315,9 @@
             MyAvatar.headOrientation = Quat.multiply(Quat.cancelOutRollAndPitch(MyAvatar.headOrientation), Quat.fromPitchYawRollDegrees(-3.0, 0, 0));
         }
 
-        //renderViewTask.getConfig("LightingModel")["enableAmbientLight"] = physicsEnabled;
-        //renderViewTask.getConfig("LightingModel")["enableDirectionalLight"] = physicsEnabled;
-        //renderViewTask.getConfig("LightingModel")["enablePointLight"] = physicsEnabled;
+        renderViewTask.getConfig("LightingModel")["enableAmbientLight"] = physicsEnabled;
+        renderViewTask.getConfig("LightingModel")["enableDirectionalLight"] = physicsEnabled;
+        renderViewTask.getConfig("LightingModel")["enablePointLight"] = physicsEnabled;
         Overlays.editOverlay(loadingSphereID, mainSphereProperties);
         Overlays.editOverlay(loadingToTheSpotID, properties);
         Overlays.editOverlay(domainNameTextID, properties);
@@ -350,15 +351,18 @@
 
         progress += MAX_X_SIZE * (deltaTime / 1000);
         print(progress);
+        if (progress > MAX_X_SIZE) {
+            progress = 4;
+        }
         var properties = {
-            localPosition: { x: -(progress / 2) + 2, y: -0.99, z: 0.0 },
+            localPosition: { x: 2.0 - (progress / 2), y: -0.99, z: -0.3 },
             dimensions: {
                 x: progress,
                 y: 2.8
             }
         };
 
-        if (progress > MAX_X_SIZE) {
+        if (progress >= MAX_X_SIZE) {
             progress = 0;
         }
 
@@ -398,7 +402,7 @@
         }
         currentProgress = lerp(currentProgress, target, 0.2);
         var properties = {
-            localPosition: { x: -(currentProgress / 2) + 2, y: 0.99, z: 5.45 },
+            localPosition: { x: 2 - (currentProgress / 2), y: -0.99, z: -0.3 },
             dimensions: {
                 x: currentProgress,
                 y: 2.8
