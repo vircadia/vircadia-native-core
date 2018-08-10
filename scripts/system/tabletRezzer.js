@@ -18,7 +18,8 @@
 
     var // Overlay
         proxyOverlay = null,
-        TABLET_PROXY_DIMENSIONS = { x: 0.0638, y: 0.0965, z: 0.0045 },
+        TABLET_PROXY_MODEL = Script.resolvePath("./assets/models/tinyTablet.fbx"),
+        TABLET_PROXY_DIMENSIONS = { x: 0.0637, y: 0.0965, z: 0.0046 }, // Proportional to tablet proper.
         TABLET_PROXY_POSITION_LEFT_HAND = {
             x: 0,
             y: 0.07, // Distance from joint.
@@ -116,7 +117,8 @@
 
     function enterProxyVisible(hand) {
         proxyHand = hand;
-        proxyOverlay = Overlays.addOverlay("cube", {
+        proxyOverlay = Overlays.addOverlay("model", {
+            url: TABLET_PROXY_MODEL,
             parentID: MyAvatar.SELF_ID,
             parentJointIndex: handJointIndex(proxyHand),
             localPosition: Vec3.multiply(avatarScale,
