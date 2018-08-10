@@ -2034,6 +2034,13 @@ void AvatarData::setJointMappingsFromNetworkReply() {
 
     QNetworkReply* networkReply = static_cast<QNetworkReply*>(sender());
 
+    // before we process this update, make sure that the skeleton model URL hasn't changed
+    // since we made the FST request
+    if (networkReply->url() != _skeletonModelURL) {
+        qCDebug(avatars) << "Refusing to set joint mappings for FST URL that does not match the current URL";
+        return;
+    }
+
     {
         QWriteLocker writeLock(&_jointDataLock);
         QByteArray line;
