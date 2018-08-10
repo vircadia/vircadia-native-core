@@ -33,13 +33,14 @@ public:
 private slots:
     void addTrackedEntity(const EntityItemID& entityID);
     void deleteTrackedEntity(const EntityItemID& entityID);
-    void resourceLoaded();
 
 private:
     bool sequenceNumbersComplete();
     void debugDumpSequenceIDs() const;
     bool entityPhysicsComplete();
 
+    std::mutex _lock;
+    using Locker = std::lock_guard<std::mutex>;
     bool _trackingEntities { false };
     EntityTreePointer _entityTree;
     using EntityMap = std::map<EntityItemID, EntityItemPointer>;
