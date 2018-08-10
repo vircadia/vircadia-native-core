@@ -48,6 +48,7 @@
         proxyExpandStart,
         proxyInitialWidth,
         proxyTargetWidth,
+        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system"),
 
         // Events
         MIN_HAND_CAMERA_ANGLE = 30,
@@ -255,8 +256,8 @@
         // Assumes that is HMD.mounted.
         switch (rezzerState) {
             case PROXY_HIDDEN:
-                // Don't show proxy is tablet is already displayed.
-                if (HMD.showTablet) {
+                // Don't show proxy is tablet is already displayed or are in toolbar mode.
+                if (HMD.showTablet || tablet.toolbarMode) {
                     break;
                 }
                 // Compare palm directions of hands with vectors from palms to camera.
