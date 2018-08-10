@@ -2336,6 +2336,23 @@ void MyAvatar::updateOrientation(float deltaTime) {
     }
 }
 
+static float scaleSpeedByDirection(const glm::vec2 velocityDirection, const float forwardSpeed, const float backwardSpeed) {
+    // for the elipse function -->  (x^2)/(backwardSpeed*backwardSpeed) + y^2/(forwardSpeed*forwardSpeed) = 1,  scale == y^2 when x is 0
+    float fwdScale = forwardSpeed * forwardSpeed;
+    float backScale = backwardSpeed * backwardSpeed;
+    float scaledX = velocityDirection.x * backwardSpeed;
+    float scaledSpeed = forwardSpeed;
+    if (velocityDirection.y < 0.0f) {
+        if (backScale > 0.0f) {
+            float yValue = sqrtf(fwdScale * (1.0f - ((scaledX * scaledX) / backScale)));
+            scaledSpeed = sqrtf((scaledX * scaledX) + (yValue * yValue));
+        }
+    } else {
+        scaledSpeed = backwardSpeed;
+    }
+    return scaledSpeed;
+}
+
 void MyAvatar::updateActionMotor(float deltaTime) {
     bool thrustIsPushing = (glm::length2(_thrust) > EPSILON);
     bool scriptedMotorIsPushing = (_motionBehaviors & AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED)
@@ -2397,7 +2414,10 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         _actionMotorVelocity = motorSpeed * direction;
     } else {
         // we're interacting with a floor --> simple horizontal speed and exponential decay
-        _actionMotorVelocity = getSensorToWorldScale() * (_walkSpeed.get() * _walkSpeedScalar)  * direction;
+        const glm::vec2 currentVel = { direction.x, direction.z };
+        float scaledSpeed = scaleSpeedByDirection(currentVel, _walkSpeed.get(), _walkBackwardSpeed.get());
+        // _walkSpeedScalar is a multiplier if we are in sprint mode, otherwise 1.0
+        _actionMotorVelocity = getSensorToWorldScale() * (scaledSpeed * _walkSpeedScalar)  * direction;
     }
 
     float previousBoomLength = _boomLength;
@@ -3449,16 +3469,32 @@ float MyAvatar::getWalkSpeed() const {
     return _walkSpeed.get() * _walkSpeedScalar;
 }
 
+float MyAvatar::getWalkBackwardSpeed() const {
+    return _walkSpeed.get() * _walkSpeedScalar;
+}
+
 bool MyAvatar::isReadyForPhysics() const {
     return qApp->isServerlessMode() || _haveReceivedHeightLimitsFromDomain;
 }
 
 void MyAvatar::setSprintMode(bool sprint) {
-    _walkSpeedScalar = sprint ? AVATAR_SPRINT_SPEED_SCALAR : AVATAR_WALK_SPEED_SCALAR;
+    _walkSpeedScalar = sprint ? _sprintSpeed.get() : AVATAR_WALK_SPEED_SCALAR;
 }
 
 void MyAvatar::setWalkSpeed(float value) {
     _walkSpeed.set(value);
+}
+
+void MyAvatar::setWalkBackwardSpeed(float value) {
+    _walkBackwardSpeed.set(value);
+}
+
+void MyAvatar::setSprintSpeed(float value) {
+    _sprintSpeed.set(value);
+}
+
+float MyAvatar::getSprintSpeed() const {
+    return _sprintSpeed.get();
 }
 
 QVector<QString> MyAvatar::getScriptUrls() {
