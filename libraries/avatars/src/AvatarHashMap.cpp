@@ -194,26 +194,6 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
     }
 }
 
-bool AvatarHashMap::checkLastProcessedTraitVersion(QUuid avatarID,
-                                                   AvatarTraits::TraitType traitType, AvatarTraits::TraitVersion newVersion) {
-    auto it = _processedSimpleTraitVersions.find(avatarID);
-    if (it == _processedSimpleTraitVersions.end()) {
-        auto pair = _processedSimpleTraitVersions.insert({
-            avatarID,
-            { AvatarTraits::TotalTraitTypes, AvatarTraits::DEFAULT_TRAIT_VERSION }
-        });
-
-        it = pair.first;
-    };
-
-    if (it->second[traitType] < newVersion) {
-        it->second[traitType] = newVersion;
-        return true;
-    } else {
-        return false;
-    }
-}
-
 void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     while (message->getBytesLeftToRead()) {
         // read the avatar ID to figure out which avatar this is for
@@ -233,24 +213,55 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
         AvatarTraits::TraitType traitType;
         message->readPrimitive(&traitType);
 
+        // grab the last trait versions for this avatar
+        auto& lastProcessedVersions = _processedTraitVersions[avatarID];
+
         while (traitType != AvatarTraits::NullTrait) {
-            AvatarTraits::TraitVersion traitVersion;
-            message->readPrimitive(&traitVersion);
+            AvatarTraits::TraitVersion packetTraitVersion;
+            message->readPrimitive(&packetTraitVersion);
 
             AvatarTraits::TraitWireSize traitBinarySize;
-            message->readPrimitive(&traitBinarySize);
+            bool skipBinaryTrait = false;
 
-            if (avatar) {
-                // check if this trait version is newer than what we already have for this avatar
-                bool traitIsNewer = checkLastProcessedTraitVersion(avatarID, traitType, traitVersion);
-                if (traitIsNewer) {
-                    avatar->processTrait(traitType, message->readWithoutCopy(traitBinarySize));
-                } else {
-                    message->seek(message->getPosition() + traitBinarySize);
+            if (!avatar) {
+                skipBinaryTrait = true;
+            }
+
+            if (AvatarTraits::isSimpleTrait(traitType)) {
+                message->readPrimitive(&traitBinarySize);
+
+                if (avatar) {
+                    // check if this trait version is newer than what we already have for this avatar
+                    if (packetTraitVersion > lastProcessedVersions[traitType]) {
+                        avatar->processTrait(traitType, message->read(traitBinarySize));
+                        lastProcessedVersions[traitType] = packetTraitVersion;
+                    } else {
+                        skipBinaryTrait = true;
+                    }
                 }
             } else {
-                // though we have no avatar pointer, we still hop through the packet in case there are
-                // traits for avatars we do have later in the packet
+                AvatarTraits::TraitInstanceID traitInstanceID =
+                    QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+                message->readPrimitive(&traitBinarySize);
+
+                if (avatar) {
+                    auto& processedInstanceVersion = lastProcessedVersions.getInstanceValueRef(traitType, traitInstanceID);
+                    if (packetTraitVersion > processedInstanceVersion) {
+                        if (traitBinarySize == AvatarTraits::DELETED_TRAIT_SIZE) {
+                            avatar->processDeletedTraitInstance(traitType, traitInstanceID);
+                        } else {
+                            avatar->processTraitInstance(traitType, traitInstanceID, message->read(traitBinarySize));
+                        }
+                        processedInstanceVersion = packetTraitVersion;
+                    } else {
+                        skipBinaryTrait = true;
+                    }
+                }
+            }
+
+            if (skipBinaryTrait) {
+                // we didn't read this trait because it was older or because we didn't have an avatar to process it for
                 message->seek(message->getPosition() + traitBinarySize);
             }
 

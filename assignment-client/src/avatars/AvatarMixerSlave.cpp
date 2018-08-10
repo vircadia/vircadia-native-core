@@ -99,20 +99,76 @@ void AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* liste
         auto sendingAvatar = sendingNodeData->getAvatarSharedPointer();
 
         // compare trait versions so we can see what exactly needs to go out
-        for (int i = 0; i < AvatarTraits::TotalTraitTypes; ++i) {
-            AvatarTraits::TraitType traitType = static_cast<AvatarTraits::TraitType>(i);
+        auto& lastSentVersions = listeningNodeData->getLastSentTraitVersions(otherNodeLocalID);
+        const auto& lastReceivedVersions = sendingNodeData->getLastReceivedTraitVersions();
 
-            auto lastSentVersion = listeningNodeData->getLastSentSimpleTraitVersion(otherNodeLocalID, traitType);
-            auto lastReceivedVersion = sendingNodeData->getLastReceivedSimpleTraitVersion(traitType);
+        auto simpleReceivedIt = lastReceivedVersions.simpleCBegin();
+        while (simpleReceivedIt != lastReceivedVersions.simpleCEnd()) {
+            auto traitType = static_cast<AvatarTraits::TraitType>(std::distance(lastReceivedVersions.simpleCBegin(),
+                                                                                simpleReceivedIt));
 
-            if (lastReceivedVersion > lastSentVersion) {
-                // there is an update to this trait, add it to the traits packet
+            // we need to double check that this is actually a simple trait type, since the instanced
+            // trait types are in the simple vector for access efficiency
+            if (AvatarTraits::isSimpleTrait(traitType)) {
+                auto lastReceivedVersion = *simpleReceivedIt;
+                auto& lastSentVersionRef = lastSentVersions[traitType];
 
-                // update the last sent version
-                listeningNodeData->setLastSentSimpleTraitVersion(otherNodeLocalID, traitType, lastReceivedVersion);
+                if (lastReceivedVersions[traitType] > lastSentVersionRef) {
+                    // there is an update to this trait, add it to the traits packet
+                    sendingAvatar->packTrait(traitType, traitsPacketList, lastReceivedVersion);
 
-                sendingAvatar->packTrait(traitType, traitsPacketList, lastReceivedVersion);
+                    // update the last sent version
+                    lastSentVersionRef = lastReceivedVersion;
+                }
             }
+
+            ++simpleReceivedIt;
+        }
+
+        // enumerate the received instanced trait versions
+        auto instancedReceivedIt = lastReceivedVersions.instancedCBegin();
+        while (instancedReceivedIt != lastReceivedVersions.instancedCEnd()) {
+            auto traitType = instancedReceivedIt->traitType;
+
+            // get or create the sent trait versions for this trait type
+            auto& sentIDValuePairs = lastSentVersions.getInstanceIDValuePairs(traitType);
+
+            // enumerate each received instance
+            for (auto& receivedInstance : instancedReceivedIt->instances) {
+                auto instanceID = receivedInstance.id;
+                const auto receivedVersion = receivedInstance.value;
+
+                // to track deletes and maintain version information for traits
+                // the mixer stores the negative value of the received version when a trait instance is deleted
+                bool isDeleted = receivedVersion < 0;
+                const auto absoluteReceivedVersion = std::abs(receivedVersion);
+
+                // look for existing sent version for this instance
+                auto sentInstanceIt = std::find_if(sentIDValuePairs.begin(), sentIDValuePairs.end(),
+                                                   [instanceID](auto& sentInstance)
+                                                   {
+                                                       return sentInstance.id == instanceID;
+                                                   });
+
+                if (!isDeleted && (sentInstanceIt == sentIDValuePairs.end() || receivedVersion > sentInstanceIt->value)) {
+                    // this instance version exists and has never been sent or is newer so we need to send it
+                    sendingAvatar->packTraitInstance(traitType, instanceID, traitsPacketList, receivedVersion);
+
+                    if (sentInstanceIt != sentIDValuePairs.end()) {
+                        sentInstanceIt->value = receivedVersion;
+                    } else {
+                        sentIDValuePairs.emplace_back(instanceID, receivedVersion);
+                    }
+                } else if (isDeleted && sentInstanceIt != sentIDValuePairs.end() && absoluteReceivedVersion > sentInstanceIt->value) {
+                    // this instance version was deleted and we haven't sent the delete to this client yet
+                    AvatarTraits::packInstancedTraitDelete(traitType, instanceID, traitsPacketList, absoluteReceivedVersion);
+
+                    // update the last sent version for this trait instance to the absolute value of the deleted version
+                    sentInstanceIt->value = absoluteReceivedVersion;
+                }
+            }
+
+            ++instancedReceivedIt;
         }
 
         // write a null trait type to mark the end of trait data for this avatar

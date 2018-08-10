@@ -16,46 +16,43 @@
 #include <cstdint>
 #include <vector>
 
+#include <QtCore/QUuid>
+
 namespace AvatarTraits {
     enum TraitType : int8_t {
         NullTrait = -1,
         SkeletonModelURL,
+        AvatarEntity,
         TotalTraitTypes
     };
 
-    class TraitTypeSet {
-    public:
-        TraitTypeSet() {};
-        
-        TraitTypeSet(std::initializer_list<TraitType> types) {
-            for (auto type : types) {
-                _types[type] = true;
-            }
-        };
+    using TraitInstanceID = QUuid;
 
-        bool contains(TraitType type) const { return _types[type]; }
+    inline bool isSimpleTrait(TraitType traitType) {
+        return traitType == SkeletonModelURL;
+    }
 
-        bool hasAny() const { return std::find(_types.begin(), _types.end(), true) != _types.end(); }
-        int size() const { return std::count(_types.begin(), _types.end(), true); }
-
-        void insert(TraitType type) { _types[type] = true; }
-        void erase(TraitType type) { _types[type] = false; }
-        void clear() { std::fill(_types.begin(), _types.end(), false); }
-    private:
-        std::vector<bool> _types = { AvatarTraits::TotalTraitTypes, false };
-    };
-
-    const TraitTypeSet SimpleTraitTypes = { SkeletonModelURL };
-
-    using TraitVersion = uint32_t;
+    using TraitVersion = int32_t;
     const TraitVersion DEFAULT_TRAIT_VERSION = 0;
+    const TraitVersion NULL_TRAIT_VERSION = -1;
 
-    using NullableTraitVersion = int64_t;
-    const NullableTraitVersion NULL_TRAIT_VERSION = -1;
+    using TraitWireSize = int16_t;
+    const TraitWireSize DELETED_TRAIT_SIZE = -1;
 
-    using TraitWireSize = uint16_t;
+    inline void packInstancedTraitDelete(TraitType traitType, TraitInstanceID instanceID, ExtendedIODevice& destination,
+                                         TraitVersion traitVersion = NULL_TRAIT_VERSION) {
+        destination.writePrimitive(traitType);
 
-    using SimpleTraitVersions = std::vector<TraitVersion>;
+        if (traitVersion > DEFAULT_TRAIT_VERSION) {
+            AvatarTraits::TraitVersion typedVersion = traitVersion;
+            destination.writePrimitive(typedVersion);
+        }
+
+        destination.write(instanceID.toRfc4122());
+
+        destination.writePrimitive(DELETED_TRAIT_SIZE);
+
+    }
 };
 
 #endif // hifi_AvatarTraits_h

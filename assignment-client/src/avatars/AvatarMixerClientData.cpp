@@ -19,8 +19,7 @@
 #include "AvatarMixerSlave.h"
 
 AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID, Node::LocalID nodeLocalID) :
-    NodeData(nodeID),
-	_receivedSimpleTraitVersions(AvatarTraits::SimpleTraitTypes.size())
+    NodeData(nodeID)
 {
     // in case somebody calls getSessionUUID on the AvatarData instance, make sure it has the right ID
     _avatar->setID(nodeID);
@@ -107,21 +106,47 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message, Sl
         AvatarTraits::TraitType traitType;
         message.readPrimitive(&traitType);
 
-        AvatarTraits::TraitWireSize traitSize;
-        message.readPrimitive(&traitSize);
+        if (AvatarTraits::isSimpleTrait(traitType)) {
+            AvatarTraits::TraitWireSize traitSize;
+            message.readPrimitive(&traitSize);
 
-        if (packetTraitVersion > _receivedSimpleTraitVersions[traitType]) {
-            _avatar->processTrait(traitType, message.readWithoutCopy(traitSize));
-            _receivedSimpleTraitVersions[traitType] = packetTraitVersion;
+            if (packetTraitVersion > _lastReceivedTraitVersions[traitType]) {
+                _avatar->processTrait(traitType, message.read(traitSize));
+                _lastReceivedTraitVersions[traitType] = packetTraitVersion;
 
-            if (traitType == AvatarTraits::SkeletonModelURL) {
-                // special handling for skeleton model URL, since we need to make sure it is in the whitelist
-                checkSkeletonURLAgainstWhitelist(slaveSharedData, sendingNode, packetTraitVersion);
+                if (traitType == AvatarTraits::SkeletonModelURL) {
+                    // special handling for skeleton model URL, since we need to make sure it is in the whitelist
+                    checkSkeletonURLAgainstWhitelist(slaveSharedData, sendingNode, packetTraitVersion);
+                }
+
+                anyTraitsChanged = true;
+            } else {
+                message.seek(message.getPosition() + traitSize);
             }
-            
-            anyTraitsChanged = true;
         } else {
-            message.seek(message.getPosition() + traitSize);
+            AvatarTraits::TraitInstanceID instanceID = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+            AvatarTraits::TraitWireSize traitSize;
+            message.readPrimitive(&traitSize);
+
+            auto& instanceVersionRef = _lastReceivedTraitVersions.getInstanceValueRef(traitType, instanceID);
+
+            if (packetTraitVersion > instanceVersionRef) {
+                if (traitSize == AvatarTraits::DELETED_TRAIT_SIZE) {
+                    _avatar->processDeletedTraitInstance(traitType, instanceID);
+
+                    // to track a deleted instance but keep version information
+                    // the avatar mixer uses the negative value of the sent version
+                    instanceVersionRef = -packetTraitVersion;
+                } else {
+                    _avatar->processTraitInstance(traitType, instanceID, message.read(traitSize));
+                    instanceVersionRef = packetTraitVersion;
+                }
+
+                anyTraitsChanged = true;
+            } else {
+                message.seek(message.getPosition() + traitSize);
+            }
         }
     }
 
@@ -256,30 +281,4 @@ AvatarMixerClientData::TraitsCheckTimestamp AvatarMixerClientData::getLastOtherA
     } else {
         return TraitsCheckTimestamp();
     }
-}
-
-AvatarTraits::TraitVersion AvatarMixerClientData::getLastSentSimpleTraitVersion(Node::LocalID otherAvatar,
-                                                                                AvatarTraits::TraitType traitType) const {
-    auto it = _sentSimpleTraitVersions.find(otherAvatar);
-
-    if (it != _sentSimpleTraitVersions.end()) {
-        return it->second[traitType];
-    }
-
-    return AvatarTraits::DEFAULT_TRAIT_VERSION;
-}
-
-void AvatarMixerClientData::setLastSentSimpleTraitVersion(Node::LocalID otherAvatar, AvatarTraits::TraitType traitType, AvatarTraits::TraitVersion traitVersion) {
-
-    auto it = _sentSimpleTraitVersions.find(otherAvatar);
-
-    if (it == _sentSimpleTraitVersions.end()) {
-        auto pair = _sentSimpleTraitVersions.insert({
-            otherAvatar, { AvatarTraits::TotalTraitTypes, AvatarTraits::DEFAULT_TRAIT_VERSION }
-        });
-
-        it = pair.first;
-    }
-
-    it->second[traitType] = traitVersion;
 }

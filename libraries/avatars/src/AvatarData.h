@@ -947,12 +947,10 @@ public:
     const HeadData* getHeadData() const { return _headData; }
 
     struct Identity {
-        QUrl skeletonModelURL;
         QVector<AttachmentData> attachmentData;
         QString displayName;
         QString sessionDisplayName;
         bool isReplicated;
-        AvatarEntityMap avatarEntityData;
         bool lookAtSnappingEnabled;
     };
 
@@ -960,12 +958,21 @@ public:
     // identityChanged returns true if identity has changed, false otherwise. Similarly for displayNameChanged and skeletonModelUrlChange.
     void processAvatarIdentity(const QByteArray& identityData, bool& identityChanged, bool& displayNameChanged);
 
-    void packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice& destination, int64_t traitVersion = -1);
+    void packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice& destination,
+                   AvatarTraits::TraitVersion traitVersion = AvatarTraits::NULL_TRAIT_VERSION);
+    void packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID,
+                           ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion = AvatarTraits::NULL_TRAIT_VERSION);
+
     void processTrait(AvatarTraits::TraitType traitType, QByteArray traitBinaryData);
+    void processTraitInstance(AvatarTraits::TraitType traitType,
+                              AvatarTraits::TraitInstanceID instanceID, QByteArray traitBinaryData);
+    void processDeletedTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID);
 
     QByteArray identityByteArray(bool setIsReplicated = false) const;
 
+    QUrl getWireSafeSkeletonModelURL() const;
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
+
     const QString& getDisplayName() const { return _displayName; }
     const QString& getSessionDisplayName() const { return _sessionDisplayName; }
     bool getLookAtSnappingEnabled() const { return _lookAtSnappingEnabled; }
@@ -1311,6 +1318,8 @@ protected:
     virtual const QString& getSessionDisplayNameForTransport() const { return _sessionDisplayName; }
     virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) { } // No-op in AvatarMixer
 
+    void removeAvatarEntityAndDetach(const QUuid& entityID);
+
     // Body scale
     float _targetScale;
     float _domainMinimumHeight { MIN_AVATAR_HEIGHT };
@@ -1415,7 +1424,6 @@ protected:
     mutable ReadWriteLockable _avatarEntitiesLock;
     AvatarEntityIDs _avatarEntityDetached; // recently detached from this avatar
     AvatarEntityMap _avatarEntityData;
-    bool _avatarEntityDataLocallyEdited { false };
     bool _avatarEntityDataChanged { false };
 
     // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.

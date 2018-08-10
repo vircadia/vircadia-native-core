@@ -1778,7 +1778,6 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
             >> identity.displayName
             >> identity.sessionDisplayName
             >> identity.isReplicated
-            >> identity.avatarEntityData
             >> identity.lookAtSnappingEnabled
         ;
 
@@ -1802,16 +1801,6 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
             identityChanged = true;
         }
 
-        bool avatarEntityDataChanged = false;
-        _avatarEntitiesLock.withReadLock([&] {
-            avatarEntityDataChanged = (identity.avatarEntityData != _avatarEntityData);
-        });
-        
-        if (avatarEntityDataChanged) {
-            setAvatarEntityData(identity.avatarEntityData);
-            identityChanged = true;
-        }
-
     if (identity.lookAtSnappingEnabled != _lookAtSnappingEnabled) {
         setProperty("lookAtSnappingEnabled", identity.lookAtSnappingEnabled);
         identityChanged = true;
@@ -1831,19 +1820,25 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
     }
 }
 
-void AvatarData::packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice& destination, int64_t traitVersion) {
+QUrl AvatarData::getWireSafeSkeletonModelURL() const {
+    if (_skeletonModelURL.scheme() != "file" && _skeletonModelURL.scheme() != "qrc") {
+        return _skeletonModelURL;
+    } else {
+        return QUrl();
+    }
+}
+
+void AvatarData::packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice& destination,
+                           AvatarTraits::TraitVersion traitVersion) {
     destination.writePrimitive(traitType);
 
-    if (traitVersion > 0) {
+    if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
         AvatarTraits::TraitVersion typedVersion = traitVersion;
         destination.writePrimitive(typedVersion);
     }
 
     if (traitType == AvatarTraits::SkeletonModelURL) {
-        QByteArray encodedSkeletonURL;
-        if (_skeletonModelURL.scheme() != "file" && _skeletonModelURL.scheme() != "qrc") {
-            encodedSkeletonURL = _skeletonModelURL.toEncoded();
-        }
+        QByteArray encodedSkeletonURL = getWireSafeSkeletonModelURL().toEncoded();
         
         AvatarTraits::TraitWireSize encodedURLSize = encodedSkeletonURL.size();
         destination.writePrimitive(encodedURLSize);
@@ -1852,12 +1847,58 @@ void AvatarData::packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice& 
     }
 }
 
+void AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID traitInstanceID,
+                                   ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion) {
+    destination.writePrimitive(traitType);
+
+    if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
+        AvatarTraits::TraitVersion typedVersion = traitVersion;
+        destination.writePrimitive(typedVersion);
+    }
+
+    destination.write(traitInstanceID.toRfc4122());
+
+    if (traitType == AvatarTraits::AvatarEntity) {
+        // grab a read lock on the avatar entities and check for entity data for the given ID
+        QByteArray entityBinaryData;
+
+        _avatarEntitiesLock.withReadLock([this, &entityBinaryData, &traitInstanceID] {
+            if (_avatarEntityData.contains(traitInstanceID)) {
+                entityBinaryData = _avatarEntityData[traitInstanceID];
+            }
+        });
+
+        if (!entityBinaryData.isNull()) {
+            AvatarTraits::TraitWireSize entityBinarySize = entityBinaryData.size();
+
+            qDebug() << QJsonDocument::fromBinaryData(entityBinaryData).toJson();
+
+            destination.writePrimitive(entityBinarySize);
+            destination.write(entityBinaryData);
+        } else {
+            destination.writePrimitive(AvatarTraits::DELETED_TRAIT_SIZE);
+        }
+    }
+}
+
 void AvatarData::processTrait(AvatarTraits::TraitType traitType, QByteArray traitBinaryData) {
     if (traitType == AvatarTraits::SkeletonModelURL) {
         // get the URL from the binary data
         auto skeletonModelURL = QUrl::fromEncoded(traitBinaryData);
-        qDebug() << "Setting skeleton model URL from trait packet to" << skeletonModelURL;
         setSkeletonModelURL(skeletonModelURL);
+    }
+}
+
+void AvatarData::processTraitInstance(AvatarTraits::TraitType traitType,
+                                      AvatarTraits::TraitInstanceID instanceID, QByteArray traitBinaryData) {
+    if (traitType == AvatarTraits::AvatarEntity) {
+        updateAvatarEntity(instanceID, traitBinaryData);
+    }
+}
+
+void AvatarData::processDeletedTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID) {
+    if (traitType == AvatarTraits::AvatarEntity) {
+        removeAvatarEntityAndDetach(instanceID);
     }
 }
 
@@ -1868,17 +1909,13 @@ QByteArray AvatarData::identityByteArray(bool setIsReplicated) const {
     // when mixers send identity packets to agents, they simply forward along the last incoming sequence number they received
     // whereas agents send a fresh outgoing sequence number when identity data has changed
 
-    _avatarEntitiesLock.withReadLock([&] {
-        identityStream << getSessionUUID()
-            << (udt::SequenceNumber::Type) _identitySequenceNumber
-            << _attachmentData
-            << _displayName
-            << getSessionDisplayNameForTransport() // depends on _sessionDisplayName
-            << (_isReplicated || setIsReplicated)
-            << _avatarEntityData
-            << _lookAtSnappingEnabled
-        ;
-    });
+    identityStream << getSessionUUID()
+        << (udt::SequenceNumber::Type) _identitySequenceNumber
+        << _attachmentData
+        << _displayName
+        << getSessionDisplayNameForTransport() // depends on _sessionDisplayName
+        << (_isReplicated || setIsReplicated)
+        << _lookAtSnappingEnabled;
 
     return identityData;
 }
@@ -1899,7 +1936,7 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     updateJointMappings();
 
     if (_clientTraitsHandler) {
-        _clientTraitsHandler->markTraitChanged(AvatarTraits::SkeletonModelURL);
+        _clientTraitsHandler->markTraitUpdated(AvatarTraits::SkeletonModelURL);
     }
 
     emit skeletonModelURLChanged();
@@ -2095,7 +2132,6 @@ void AvatarData::sendIdentityPacket() {
             nodeList->sendPacketList(std::move(packetList), *node);
     });
 
-    _avatarEntityDataLocallyEdited = false;
     _identityDataChanged = false;
 }
 
@@ -2650,23 +2686,37 @@ void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& ent
         if (itr == _avatarEntityData.end()) {
             if (_avatarEntityData.size() < MAX_NUM_AVATAR_ENTITIES) {
                 _avatarEntityData.insert(entityID, entityData);
-                _avatarEntityDataLocallyEdited = true;
-                markIdentityDataChanged();
             }
         } else {
             itr.value() = entityData;
-            _avatarEntityDataLocallyEdited = true;
-            markIdentityDataChanged();
         }
     });
+
+    if (_clientTraitsHandler) {
+        // we have a client traits handler, so we need to mark this instanced trait as changed
+        // so that changes will be sent next frame
+        _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
+    }
 }
 
 void AvatarData::clearAvatarEntity(const QUuid& entityID) {
     _avatarEntitiesLock.withWriteLock([&] {
         _avatarEntityData.remove(entityID);
-        _avatarEntityDataLocallyEdited = true;
-        markIdentityDataChanged();
     });
+
+    if (_clientTraitsHandler) {
+        // we have a client traits handler, so we need to mark this removed instance trait as changed
+        // so that changes are sent next frame
+        _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, entityID);
+    }
+}
+
+void AvatarData::removeAvatarEntityAndDetach(const QUuid &entityID) {
+    _avatarEntitiesLock.withWriteLock([this, &entityID]{
+        _avatarEntityData.remove(entityID);
+    });
+
+    insertDetachedEntityID(entityID);
 }
 
 AvatarEntityMap AvatarData::getAvatarEntityData() const {

@@ -14,7 +14,7 @@
 
 #include <ReceivedMessage.h>
 
-#include "AvatarTraits.h"
+#include "AssociatedTraitValues.h"
 #include "Node.h"
 
 class AvatarData;
@@ -26,10 +26,14 @@ public:
 
     void sendChangedTraitsToMixer();
 
-    bool hasChangedTraits() { return _changedTraits.hasAny(); }
-    void markTraitChanged(AvatarTraits::TraitType changedTrait) { _changedTraits.insert(changedTrait); }
+    bool hasChangedTraits() { return _hasChangedTraits; }
 
-    bool hasTraitChanged(AvatarTraits::TraitType checkTrait) { return _changedTraits.contains(checkTrait) > 0; }
+    void markTraitUpdated(AvatarTraits::TraitType updatedTrait)
+        { _traitStatuses[updatedTrait] = Updated; _hasChangedTraits = true; }
+    void markInstancedTraitUpdated(AvatarTraits::TraitType traitType, QUuid updatedInstanceID)
+        { _traitStatuses.instanceInsert(traitType, updatedInstanceID, Updated); _hasChangedTraits = true; }
+    void markInstancedTraitDeleted(AvatarTraits::TraitType traitType, QUuid deleteInstanceID)
+        { _traitStatuses.instanceInsert(traitType, deleteInstanceID, Deleted); _hasChangedTraits = true; }
 
     void resetForNewMixer();
 
@@ -37,14 +41,21 @@ public slots:
     void processTraitOverride(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
 
 private:
+    enum ClientTraitStatus {
+        Unchanged,
+        Updated,
+        Deleted
+    };
+
     AvatarData* _owningAvatar;
 
-    AvatarTraits::TraitTypeSet _changedTraits;
+    AvatarTraits::AssociatedTraitValues<ClientTraitStatus, Unchanged> _traitStatuses;
     AvatarTraits::TraitVersion _currentTraitVersion { AvatarTraits::DEFAULT_TRAIT_VERSION };
 
-    AvatarTraits::NullableTraitVersion _currentSkeletonVersion { AvatarTraits::NULL_TRAIT_VERSION };
+    AvatarTraits::TraitVersion _currentSkeletonVersion { AvatarTraits::NULL_TRAIT_VERSION };
     
-    bool _performInitialSend { false };
+    bool _shouldPerformInitialSend { false };
+    bool _hasChangedTraits { false };
 };
 
 #endif // hifi_ClientTraitsHandler_h

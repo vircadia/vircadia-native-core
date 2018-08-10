@@ -30,7 +30,7 @@
 #include "ScriptAvatarData.h"
 
 #include "AvatarData.h"
-#include "AvatarTraits.h"
+#include "AssociatedTraitValues.h"
 
 /**jsdoc
  * <strong>Note:</strong> An <code>AvatarList</code> API is also provided for Interface and client entity scripts: it is a 
@@ -155,10 +155,7 @@ protected:
     virtual void removeAvatar(const QUuid& sessionUUID, KillAvatarReason removalReason = KillAvatarReason::NoReason);
 
     virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason);
-
-    bool checkLastProcessedTraitVersion(QUuid avatarID,
-                                        AvatarTraits::TraitType traitType, AvatarTraits::TraitVersion newVersion);
-
+    
     AvatarHash _avatarHash;
     struct PendingAvatar {
         std::chrono::steady_clock::time_point creationTime;
@@ -169,7 +166,7 @@ protected:
     AvatarPendingHash _pendingAvatars;
     mutable QReadWriteLock _hashLock;
 
-    std::unordered_map<QUuid, AvatarTraits::SimpleTraitVersions> _processedSimpleTraitVersions;
+    std::unordered_map<QUuid, AvatarTraits::TraitVersions> _processedTraitVersions;
 private:
     QUuid _lastOwnerSessionUUID;
 };

@@ -290,8 +290,9 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     FBXReaderNodeReparenting,
     FixMannequinDefaultAvatarFeet,
     ProceduralFaceMovementFlagsAndBlendshapes,
-    FarGrabJoints
-    MigrateSkeletonURLToTraits
+    FarGrabJoints,
+    MigrateSkeletonURLToTraits,
+    MigrateAvatarEntitiesToTraits
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {
