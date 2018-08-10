@@ -36,6 +36,9 @@ This function is used to create/update Expected Images after a successful run of
 The user will be asked for the snapshot folder and then the tests root folder.  All snapshots located in the snapshot folder will be used to create or update the expected images in the relevant tests.
 ### Details
 As an example - if the snapshots folder contains an image named `tests.content.entity.zone.zoneOrientation.00003.png`, then this file will be copied to `tests/contente/enity/zone/zoneOrientation/ExpectedImage0003.png`.
+## Create Tests Outline
+### Usage
+This function creates an MD file in the (user-selected) tests root folder.  The file provides links to both the tests and the MD files.
 ## Create MD file
 ### Usage
 This function creates a file named `test.md` from a `test.js` script.  The user will be asked for the folder containing the test script:
@@ -54,13 +57,20 @@ The process to produce the MD file is a simplistic parse of the test script.
 ### Usage
 This function creates all MD files recursively from the user-selected root folder.  This can be any folder in the tests hierarchy (e.g. all engine\material tests).
 
-The file provides a hierarchial list of all the tests 
-## Create Tests Outline
+The file provides a hierarchal list of all the tests 
+## Create testAuto script
 ### Usage
-This function creates an MD file in the (user-selected) tests root folder.  The file provides links to both the tests and the MD files.
+This function creates a script named `testAuto.js` in a user-selected test folder.
+### Details
+The script created runs the `test.js` script in the folder in automatic mode.  The script is the same for all tests.
+## Create all testAuto scripts
+### Usage
+This function creates all testAuto scripts recursively from the user-selected root folder.  This can be any folder in the tests hierarchy (e.g. all engine\material tests).
+
+The file provides a hierarchical list of all the tests 
 ## Create Recursive Script
 ### Usage
-After the user selects a folder within the tests hierarchy, a script is created, named `testRecursive.js`.  This script calls all `test.js` scripts in the subfolders.
+After the user selects a folder within the tests hierarchy, a script is created, named `testRecursive.js`.  This script calls all `test.js` scripts in the sub-folders.
 ### Details
 The various scripts are called in alphabetical order.
 
@@ -103,13 +113,13 @@ If any tests have failed, then a zipped folder will be created in the snapshots 
 ### Usage
 Before starting the evaluation, make sure the GitHub user and branch are set correctly.  The user should not normally be changed, but the branch may need to be set to the appropriate RC.
 
-After setting the checkbox as required and pressing Evaluate - the user will be asked for the snapshots folder.
+After setting the check-box as required and pressing Evaluate - the user will be asked for the snapshots folder.
 ### Details
 Evaluation proceeds in a number of steps:
 
 1. A folder is created to store any failures
 
-1. The expecetd images are download from GitHub.  They are named slightly differently from the snapshots (e.g. `tests.engine.render.effect.highlight.coverage.00000.png` and `tests.engine.render.effect.highlight.coverage.00000_EI.png`).
+1. The expected images are download from GitHub.  They are named slightly differently from the snapshots (e.g. `tests.engine.render.effect.highlight.coverage.00000.png` and `tests.engine.render.effect.highlight.coverage.00000_EI.png`).
 
 1. The images are then pair-wise compared, using the SSIM algorithm.  A fixed threshold is used to define a mismatch.
 
@@ -129,9 +139,9 @@ Any access to TestRail will require the TestRail account (default is High Fideli
 ![](./TestRailSelector.PNG)
 
 - The default test rail user is shown, and can be changed as needed.
-- The username is usually the user's email.
+- The user-name is usually the user's email.
 - The Project ID defaults to 14 - Interface.
-- The Suite ID defaults to 1147 - Renderong.
+- The Suite ID defaults to 1147 - Rendering.
 - The TestRail page provides 3 functions for writing to TestRail.
 ## Create Test Cases
 ### Usage

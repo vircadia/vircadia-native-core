@@ -302,174 +302,6 @@ void Test::includeTest(QTextStream& textStream, const QString& testPathname) {
     textStream << "Script.include(testsRootPath + \"" << partialPathWithoutTests + "\");" << endl;
 }
 
-// Creates a single script in a user-selected folder.
-// This script will run all text.js scripts in every applicable sub-folder
-void Test::createRecursiveScript() {
-    // Select folder to start recursing from
-    QString previousSelection = _testDirectory;
-    QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
-    if (!parent.isNull() && parent.right(1) != "/") {
-        parent += "/";
-    }
-
-    _testDirectory =
-        QFileDialog::getExistingDirectory(nullptr, "Please select folder that will contain the top level test script", parent,
-                                          QFileDialog::ShowDirsOnly);
-
-    // If user cancelled then restore previous selection and return
-    if (_testDirectory == "") {
-        _testDirectory = previousSelection;
-        return;
-    }
-
-    createRecursiveScript(_testDirectory, true);
-}
-
-// This method creates a `testRecursive.js` script in every sub-folder.
-void Test::createAllRecursiveScripts() {
-    // Select folder to start recursing from
-    QString previousSelection = _testsRootDirectory;
-    QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
-    if (!parent.isNull() && parent.right(1) != "/") {
-        parent += "/";
-    }
-
-    _testsRootDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select the root folder for the recursive scripts",
-                                                      parent, QFileDialog::ShowDirsOnly);
-
-    // If user cancelled then restore previous selection and return
-    if (_testsRootDirectory == "") {
-        _testsRootDirectory = previousSelection;
-        return;
-    }
-
-    createRecursiveScript(_testsRootDirectory, false);
-
-    QDirIterator it(_testsRootDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
-    while (it.hasNext()) {
-        QString directory = it.next();
-
-        // Only process directories
-        QDir dir;
-        if (!isAValidDirectory(directory)) {
-            continue;
-        }
-
-        // Only process directories that have sub-directories
-        bool hasNoSubDirectories{ true };
-        QDirIterator it2(directory.toStdString().c_str(), QDirIterator::Subdirectories);
-        while (it2.hasNext()) {
-            QString directory2 = it2.next();
-
-            // Only process directories
-            QDir dir;
-            if (isAValidDirectory(directory2)) {
-                hasNoSubDirectories = false;
-                break;
-            }
-        }
-
-        if (!hasNoSubDirectories) {
-            createRecursiveScript(directory, false);
-        }
-    }
-
-    QMessageBox::information(0, "Success", "Scripts have been created");
-}
-
-void Test::createRecursiveScript(const QString& topLevelDirectory, bool interactiveMode) {
-    const QString recursiveTestsFilename("testRecursive.js");
-    QFile allTestsFilename(topLevelDirectory + "/" + recursiveTestsFilename);
-    if (!allTestsFilename.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::critical(0,
-            "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-            "Failed to create \"" + recursiveTestsFilename + "\" in directory \"" + topLevelDirectory + "\""
-        );
-
-        exit(-1);
-    }
-
-    QTextStream textStream(&allTestsFilename);
-
-    const QString DATE_TIME_FORMAT("MMM d yyyy, h:mm");
-    textStream << "// This is an automatically generated file, created by auto-tester on " << QDateTime::currentDateTime().toString(DATE_TIME_FORMAT) << endl << endl;
-
-    // Include 'autoTest.js'
-    QString branch = autoTester->getSelectedBranch();
-    QString user = autoTester->getSelectedUser();
-
-    textStream << "PATH_TO_THE_REPO_PATH_UTILS_FILE = \"https://raw.githubusercontent.com/" + user + "/hifi_tests/" + branch + "/tests/utils/branchUtils.js\";" << endl;
-    textStream << "Script.include(PATH_TO_THE_REPO_PATH_UTILS_FILE);" << endl;
-    textStream << "var autoTester = createAutoTester(Script.resolvePath(\".\"));" << endl << endl;
-
-    textStream << "var testsRootPath = autoTester.getTestsRootPath();" << endl << endl;
-
-    // Wait 10 seconds before starting
-    textStream << "if (typeof Test !== 'undefined') {" << endl;
-    textStream << "    Test.wait(10000);" << endl;
-    textStream << "};" << endl << endl;
-
-    textStream << "autoTester.enableRecursive();" << endl;
-    textStream << "autoTester.enableAuto();" << endl << endl;
-
-    // This is used to verify that the recursive test contains at least one test
-    bool testFound{ false };
-
-    // Directories are included in reverse order.  The autoTester scripts use a stack mechanism,
-    // so this ensures that the tests run in alphabetical order (a convenience when debugging)
-    QStringList directories;
-
-    // First test if top-level folder has a test.js file
-    const QString testPathname{ topLevelDirectory + "/" + TEST_FILENAME };
-    QFileInfo fileInfo(testPathname);
-    if (fileInfo.exists()) {
-        // Current folder contains a test
-        directories.push_front(testPathname);
-
-        testFound = true;
-    }
-
-    QDirIterator it(topLevelDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
-    while (it.hasNext()) {
-        QString directory = it.next();
-
-        // Only process directories
-        QDir dir(directory);
-        if (!isAValidDirectory(directory)) {
-            continue;
-        }
-
-        const QString testPathname { directory + "/" + TEST_FILENAME };
-        QFileInfo fileInfo(testPathname);
-        if (fileInfo.exists()) {
-            // Current folder contains a test
-            directories.push_front(testPathname);
-
-            testFound = true;
-        }
-    }
-
-    if (interactiveMode && !testFound) {
-        QMessageBox::information(0, "Failure", "No \"" + TEST_FILENAME + "\" files found");
-        allTestsFilename.close();
-        return;
-    }
-
-    // Now include the test scripts
-    for (int i = 0; i < directories.length(); ++i) {
-        includeTest(textStream, directories.at(i));
-    }
-
-    textStream << endl;
-    textStream << "autoTester.runRecursive();" << endl;
-
-    allTestsFilename.close();
-    
-    if (interactiveMode) {
-        QMessageBox::information(0, "Success", "Script has been created");
-    }
-}
-
 void Test::createTests() {
     // Rename files sequentially, as ExpectedResult_00000.jpeg, ExpectedResult_00001.jpg and so on
     // Any existing expected result images will be deleted
@@ -613,9 +445,7 @@ ExtractedText Test::getTestScriptLines(QString testFileName) {
     return relevantTextFromTest;
 }
 
-// Create an MD file for a user-selected test.
-// The folder selected must contain a script named "test.js", the file produced is named "test.md"
-void Test::createMDFile() {
+void Test::createFileSetup() {
     // Folder selection
     QString previousSelection = _testDirectory;
     QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
@@ -624,20 +454,15 @@ void Test::createMDFile() {
     }
 
     _testDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test", parent,
-                                                      QFileDialog::ShowDirsOnly);
+                                                       QFileDialog::ShowDirsOnly);
 
     // If user cancelled then restore previous selection and return
     if (_testDirectory == "") {
         _testDirectory = previousSelection;
         return;
     }
-
-    createMDFile(_testDirectory);
-
-    QMessageBox::information(0, "Success", "MD file has been created");
 }
-
-void Test::createAllMDFiles() {
+void Test::createAllFilesSetup() {
     // Select folder to start recursing from
     QString previousSelection = _testsRootDirectory;
     QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
@@ -646,13 +471,25 @@ void Test::createAllMDFiles() {
     }
 
     _testsRootDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select the root folder for the MD files", parent,
-                                                      QFileDialog::ShowDirsOnly);
+                                                            QFileDialog::ShowDirsOnly);
 
     // If user cancelled then restore previous selection and return
     if (_testsRootDirectory == "") {
         _testsRootDirectory = previousSelection;
         return;
     }
+}
+
+// Create an MD file for a user-selected test.
+// The folder selected must contain a script named "test.js", the file produced is named "test.md"
+void Test::createMDFile() {
+    createFileSetup(); 
+    createMDFile(_testDirectory);
+    QMessageBox::information(0, "Success", "MD file has been created");
+}
+
+void Test::createAllMDFiles() {
+    createAllFilesSetup();
 
     // First test if top-level folder has a test.js file
     const QString testPathname{ _testsRootDirectory + "/" + TEST_FILENAME };
@@ -681,9 +518,9 @@ void Test::createAllMDFiles() {
     QMessageBox::information(0, "Success", "MD files have been created");
 }
 
-void Test::createMDFile(const QString& _testDirectory) {
+void Test::createMDFile(const QString& directory) {
     // Verify folder contains test.js file
-    QString testFileName(_testDirectory + "/" + TEST_FILENAME);
+    QString testFileName(directory + "/" + TEST_FILENAME);
     QFileInfo testFileInfo(testFileName);
     if (!testFileInfo.exists()) {
         QMessageBox::critical(0, "Error", "Could not find file: " + TEST_FILENAME);
@@ -692,7 +529,7 @@ void Test::createMDFile(const QString& _testDirectory) {
 
     ExtractedText testScriptLines = getTestScriptLines(testFileName);
 
-    QString mdFilename(_testDirectory + "/" + "test.md");
+    QString mdFilename(directory + "/" + "test.md");
     QFile mdFile(mdFilename);
     if (!mdFile.open(QIODevice::WriteOnly)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create file " + mdFilename);
@@ -727,6 +564,204 @@ void Test::createMDFile(const QString& _testDirectory) {
     }
 
     mdFile.close();
+}
+
+void Test::createTestAutoScript() {
+    createFileSetup();
+    createTestAutoScript(_testDirectory);
+    QMessageBox::information(0, "Success", "'autoTester.js` script has been created");
+}
+
+void Test::createAllTestAutoScripts() {
+    createAllFilesSetup();
+
+    // First test if top-level folder has a test.js file
+    const QString testPathname{ _testsRootDirectory + "/" + TEST_FILENAME };
+    QFileInfo fileInfo(testPathname);
+    if (fileInfo.exists()) {
+        createTestAutoScript(_testsRootDirectory);
+    }
+
+    QDirIterator it(_testsRootDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        QString directory = it.next();
+
+        // Only process directories
+        QDir dir;
+        if (!isAValidDirectory(directory)) {
+            continue;
+        }
+
+        const QString testPathname{ directory + "/" + TEST_FILENAME };
+        QFileInfo fileInfo(testPathname);
+        if (fileInfo.exists()) {
+            createTestAutoScript(directory);
+        }
+    }
+
+    QMessageBox::information(0, "Success", "'autoTester.js' scripts have been created");
+}
+
+void Test::createTestAutoScript(const QString& directory) {
+    // Verify folder contains test.js file
+    QString testFileName(directory + "/" + TEST_FILENAME);
+    QFileInfo testFileInfo(testFileName);
+    if (!testFileInfo.exists()) {
+        QMessageBox::critical(0, "Error", "Could not find file: " + TEST_FILENAME);
+        return;
+    }
+
+    QString testAutoScriptFilename(directory + "/" + "testAuto.js");
+    QFile testAutoScriptFile(testAutoScriptFilename);
+    if (!testAutoScriptFile.open(QIODevice::WriteOnly)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Failed to create file " + testAutoScriptFilename);
+        exit(-1);
+    }
+
+    QTextStream stream(&testAutoScriptFile);
+
+    stream << "if (typeof PATH_TO_THE_REPO_PATH_UTILS_FILE === 'undefined') PATH_TO_THE_REPO_PATH_UTILS_FILE = 'https://raw.githubusercontent.com/highfidelity/hifi_tests/master/tests/utils/branchUtils.js';\n";
+    stream << "Script.include(PATH_TO_THE_REPO_PATH_UTILS_FILE);\n";
+    stream << "var autoTester = createAutoTester(Script.resolvePath('.'));\n\n";
+    stream << "autoTester.enableAuto();\n\n";
+    stream << "Script.include('./test.js?raw=true');\n";
+
+    testAutoScriptFile.close();
+}
+
+// Creates a single script in a user-selected folder.
+// This script will run all text.js scripts in every applicable sub-folder
+void Test::createRecursiveScript() {
+    createFileSetup();
+    createRecursiveScript(_testDirectory, true);
+    QMessageBox::information(0, "Success", "'testRecursive.js` script has been created");
+}
+
+// This method creates a `testRecursive.js` script in every sub-folder.
+void Test::createAllRecursiveScripts() {
+    createAllFilesSetup();
+
+    createRecursiveScript(_testsRootDirectory, false);
+
+    QDirIterator it(_testsRootDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        QString directory = it.next();
+
+        // Only process directories
+        QDir dir;
+        if (!isAValidDirectory(directory)) {
+            continue;
+        }
+
+        // Only process directories that have sub-directories
+        bool hasNoSubDirectories{ true };
+        QDirIterator it2(directory.toStdString().c_str(), QDirIterator::Subdirectories);
+        while (it2.hasNext()) {
+            QString directory2 = it2.next();
+
+            // Only process directories
+            QDir dir;
+            if (isAValidDirectory(directory2)) {
+                hasNoSubDirectories = false;
+                break;
+            }
+        }
+
+        if (!hasNoSubDirectories) {
+            createRecursiveScript(directory, false);
+        }
+    }
+
+    QMessageBox::information(0, "Success", "Scripts have been created");
+}
+
+void Test::createRecursiveScript(const QString& topLevelDirectory, bool interactiveMode) {
+    const QString recursiveTestsFilename("testRecursive.js");
+    QFile allTestsFilename(topLevelDirectory + "/" + recursiveTestsFilename);
+    if (!allTestsFilename.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Failed to create \"" + recursiveTestsFilename + "\" in directory \"" + topLevelDirectory + "\"");
+
+        exit(-1);
+    }
+
+    QTextStream textStream(&allTestsFilename);
+
+    textStream << "// This is an automatically generated file, created by auto-tester" << endl;
+
+    // Include 'autoTest.js'
+    QString branch = autoTester->getSelectedBranch();
+    QString user = autoTester->getSelectedUser();
+
+    textStream << "PATH_TO_THE_REPO_PATH_UTILS_FILE = \"https://raw.githubusercontent.com/" + user + "/hifi_tests/" + branch +
+                      "/tests/utils/branchUtils.js\";"
+               << endl;
+    textStream << "Script.include(PATH_TO_THE_REPO_PATH_UTILS_FILE);" << endl;
+    textStream << "var autoTester = createAutoTester(Script.resolvePath(\".\"));" << endl << endl;
+
+    textStream << "var testsRootPath = autoTester.getTestsRootPath();" << endl << endl;
+
+    // Wait 10 seconds before starting
+    textStream << "if (typeof Test !== 'undefined') {" << endl;
+    textStream << "    Test.wait(10000);" << endl;
+    textStream << "};" << endl << endl;
+
+    textStream << "autoTester.enableRecursive();" << endl;
+    textStream << "autoTester.enableAuto();" << endl << endl;
+
+    // This is used to verify that the recursive test contains at least one test
+    bool testFound{ false };
+
+    // Directories are included in reverse order.  The autoTester scripts use a stack mechanism,
+    // so this ensures that the tests run in alphabetical order (a convenience when debugging)
+    QStringList directories;
+
+    // First test if top-level folder has a test.js file
+    const QString testPathname{ topLevelDirectory + "/" + TEST_FILENAME };
+    QFileInfo fileInfo(testPathname);
+    if (fileInfo.exists()) {
+        // Current folder contains a test
+        directories.push_front(testPathname);
+
+        testFound = true;
+    }
+
+    QDirIterator it(topLevelDirectory.toStdString().c_str(), QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        QString directory = it.next();
+
+        // Only process directories
+        QDir dir(directory);
+        if (!isAValidDirectory(directory)) {
+            continue;
+        }
+
+        const QString testPathname{ directory + "/" + TEST_FILENAME };
+        QFileInfo fileInfo(testPathname);
+        if (fileInfo.exists()) {
+            // Current folder contains a test
+            directories.push_front(testPathname);
+
+            testFound = true;
+        }
+    }
+
+    if (interactiveMode && !testFound) {
+        QMessageBox::information(0, "Failure", "No \"" + TEST_FILENAME + "\" files found");
+        allTestsFilename.close();
+        return;
+    }
+
+    // Now include the test scripts
+    for (int i = 0; i < directories.length(); ++i) {
+        includeTest(textStream, directories.at(i));
+    }
+
+    textStream << endl;
+    textStream << "autoTester.runRecursive();" << endl;
+
+    allTestsFilename.close();
 }
 
 void Test::createTestsOutline() {

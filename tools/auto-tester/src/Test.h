@@ -46,21 +46,28 @@ public:
     void startTestsEvaluation(const QString& testFolder = QString(), const QString& branchFromCommandLine = QString(), const QString& userFromCommandLine = QString());
     void finishTestsEvaluation(bool isRunningFromCommandline, bool interactiveMode, QProgressBar* progressBar);
 
-    void createRecursiveScript();
-    void createAllRecursiveScripts();
-    void createRecursiveScript(const QString& topLevelDirectory, bool interactiveMode);
-
     void createTests();
 
     void createTestsOutline();
 
+    void createFileSetup();
+    void createAllFilesSetup();
+
     void createMDFile();
     void createAllMDFiles();
-    void createMDFile(const QString& topLevelDirectory);
+    void createMDFile(const QString& directory);
+
+    void createTestAutoScript();
+    void createAllTestAutoScripts();
+    void createTestAutoScript(const QString& directory);
 
     void createTestRailTestCases();
     void createTestRailRun();
     void updateTestRailRunResult();
+
+    void createRecursiveScript();
+    void createAllRecursiveScripts();
+    void createRecursiveScript(const QString& topLevelDirectory, bool interactiveMode);
 
     bool compareImageLists(bool isInteractiveMode, QProgressBar* progressBar);
 

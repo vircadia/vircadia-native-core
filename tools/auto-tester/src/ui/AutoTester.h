@@ -50,6 +50,9 @@ private slots:
     void on_createMDFileButton_clicked();
     void on_createAllMDFilesButton_clicked();
 
+    void on_createTestAutoScriptButton_clicked();
+    void on_createAllTestAutoScriptsButton_clicked();
+
     void on_createTestsOutlineButton_clicked();
 
     void on_createTestRailTestCasesButton_clicked();

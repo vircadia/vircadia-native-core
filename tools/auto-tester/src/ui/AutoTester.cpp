@@ -78,6 +78,14 @@ void AutoTester::on_createAllMDFilesButton_clicked() {
     _test->createAllMDFiles();
 }
 
+void AutoTester::on_createTestAutoScriptButton_clicked() {
+    _test->createTestAutoScript();
+}
+
+void AutoTester::on_createAllTestAutoScriptsButton_clicked() {
+    _test->createAllTestAutoScripts();
+}
+
 void AutoTester::on_createTestsOutlineButton_clicked() {
     _test->createTestsOutline();
 }
