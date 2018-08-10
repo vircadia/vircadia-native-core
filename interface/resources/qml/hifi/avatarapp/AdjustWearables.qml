@@ -131,6 +131,32 @@ Rectangle {
         Column {
             width: parent.width
 
+            Rectangle {
+                color: hifi.colors.orangeHighlight
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 70
+                visible: HMD.active
+
+                RalewayRegular {
+                    anchors.fill: parent
+                    anchors.leftMargin: 18
+                    anchors.rightMargin: 18
+                    size: 20;
+                    lineHeightMode: Text.FixedHeight
+                    lineHeight: 23;
+                    text: "Tip: You can use hand controllers to grab and adjust your wearables"
+                    wrapMode: Text.WordWrap
+                }
+            }
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 12 // spacing
+                visible: HMD.active
+            }
+
             RowLayout {
                 anchors.left: parent.left
                 anchors.right: parent.right
