@@ -259,7 +259,7 @@ public:
 * @typedef {object} CollisionPick
 * @property {Shape} shape - The information about the collision region's size and shape.
 * @property {Vec3} position - The position of the collision region.
-* @property {Quat} rotation - The orientation of the collision region.
+* @property {Quat} orientation - The orientation of the collision region.
 */
 class CollisionRegion : public MathPick {
 public:
@@ -290,8 +290,8 @@ public:
         if (pickVariant["position"].isValid()) {
             transform.setTranslation(vec3FromVariant(pickVariant["position"]));
         }
-        if (pickVariant["rotation"].isValid()) {
-            transform.setRotation(quatFromVariant(pickVariant["rotation"]));
+        if (pickVariant["orientation"].isValid()) {
+            transform.setRotation(quatFromVariant(pickVariant["orientation"]));
         }
     }
 
@@ -306,7 +306,7 @@ public:
         collisionRegion["shape"] = shape;
 
         collisionRegion["position"] = vec3toVariant(transform.getTranslation());
-        collisionRegion["rotation"] = quatToVariant(transform.getRotation());
+        collisionRegion["orientation"] = quatToVariant(transform.getRotation());
 
         return collisionRegion;
     }

@@ -255,7 +255,7 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
 * @typedef {object} Picks.CollisionPickProperties
 * @property {Shape} shape - The information about the collision region's size and shape.
 * @property {Vec3} position - The position of the collision region.
-* @property {Quat} rotation - The orientation of the collision region.
+* @property {Quat} orientation - The orientation of the collision region.
 */
 unsigned int PickScriptingInterface::createCollisionPick(const QVariant& properties) {
     QVariantMap propMap = properties.toMap();
