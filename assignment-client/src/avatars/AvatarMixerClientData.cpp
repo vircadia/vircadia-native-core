@@ -178,19 +178,22 @@ void AvatarMixerClientData::checkSkeletonURLAgainstWhitelist(SlaveSharedData *sl
         }
 
         if (!inWhitelist) {
-            // we need to change this avatar's skeleton URL, and send them a traits packet informing them of the change
-            _avatar->setSkeletonModelURL(slaveSharedData->skeletonReplacementURL);
+            // make sure we're not unecessarily overriding the default avatar with the default avatar
+            if (_avatar->getWireSafeSkeletonModelURL() != slaveSharedData->skeletonReplacementURL) {
+                // we need to change this avatar's skeleton URL, and send them a traits packet informing them of the change
+                qDebug() << "Overwriting avatar URL" << _avatar->getWireSafeSkeletonModelURL()
+                    << "to replacement" << slaveSharedData->skeletonReplacementURL << "for" << sendingNode.getUUID();
+                _avatar->setSkeletonModelURL(slaveSharedData->skeletonReplacementURL);
 
-            qDebug() << "Sending overwritten" << _avatar->getSkeletonModelURL() << "back to sending avatar";
+                auto packet = NLPacket::create(PacketType::SetAvatarTraits, -1, true);
 
-            auto packet = NLPacket::create(PacketType::SetAvatarTraits, -1, true);
-            
-            // the returned set traits packet uses the trait version from the incoming packet
-            // so the client knows they should not overwrite if they have since changed the trait
-            _avatar->packTrait(AvatarTraits::SkeletonModelURL, *packet, traitVersion);
+                // the returned set traits packet uses the trait version from the incoming packet
+                // so the client knows they should not overwrite if they have since changed the trait
+                _avatar->packTrait(AvatarTraits::SkeletonModelURL, *packet, traitVersion);
 
-            auto nodeList = DependencyManager::get<NodeList>();
-            nodeList->sendPacket(std::move(packet), sendingNode);
+                auto nodeList = DependencyManager::get<NodeList>();
+                nodeList->sendPacket(std::move(packet), sendingNode);
+            }
         }
     }
 }
