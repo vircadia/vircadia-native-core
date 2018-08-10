@@ -253,6 +253,14 @@ public:
     }
 };
 
+/**jsdoc
+* A CollisionPick defines a volume for checking collisions in the physics simulation.
+
+* @typedef {object} CollisionPick
+* @property {Shape} shape - The information about the collision region's size and shape.
+* @property {Vec3} position - The position of the collision region.
+* @property {Quat} rotation - The orientation of the collision region.
+*/
 class CollisionRegion : public MathPick {
 public:
     CollisionRegion() { }
@@ -284,8 +292,6 @@ public:
         }
         if (pickVariant["rotation"].isValid()) {
             transform.setRotation(quatFromVariant(pickVariant["rotation"]));
-        } else if (pickVariant["orientation"].isValid()) {
-            transform.setRotation(quatFromVariant(pickVariant["orientation"]));
         }
     }
 
@@ -300,7 +306,7 @@ public:
         collisionRegion["shape"] = shape;
 
         collisionRegion["position"] = vec3toVariant(transform.getTranslation());
-        collisionRegion["orientation"] = quatToVariant(transform.getRotation());
+        collisionRegion["rotation"] = quatToVariant(transform.getRotation());
 
         return collisionRegion;
     }
