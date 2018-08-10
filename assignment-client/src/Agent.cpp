@@ -365,6 +365,8 @@ void Agent::executeScript() {
     // setup an Avatar for the script to use
     auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
 
+    scriptedAvatar->setID(getSessionUUID());
+
     connect(_scriptEngine.data(), SIGNAL(update(float)),
             scriptedAvatar.data(), SLOT(update(float)), Qt::ConnectionType::QueuedConnection);
     scriptedAvatar->setForceFaceTrackerConnected(true);
@@ -606,6 +608,11 @@ void Agent::setIsAvatar(bool isAvatar) {
         }
 
         QMetaObject::invokeMethod(&_avatarAudioTimer, "stop");
+
+        _entityEditSender.setMyAvatar(nullptr);
+    } else {
+        auto scriptableAvatar = DependencyManager::get<ScriptableAvatar>();
+        _entityEditSender.setMyAvatar(scriptableAvatar.data());
     }
 }
 
