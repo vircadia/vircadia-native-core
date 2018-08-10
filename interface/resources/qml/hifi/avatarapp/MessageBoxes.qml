@@ -33,6 +33,35 @@ MessageBox {
         popup.inputText.forceActiveFocus();
     }
 
+    property url getWearablesUrl: '../../../images/avatarapp/AvatarIsland.jpg'
+
+    function showGetWearables(callback, linkCallback) {
+        popup.button2text = 'AvatarIsland'
+        popup.dialogButtons.yesButton.fontCapitalization = Font.MixedCase;
+        popup.button1text = 'CANCEL'
+        popup.titleText = 'Get Wearables'
+        popup.bodyText = 'Buy wearables from <b><a href="app://marketplace">Marketplace.</a></b>' + '<br/>' +
+                'Wear wearables from <b><a href="app://purchases">My Purchases.</a></b>' + '<br/>' + '<br/>' +
+                'Visit вЂњAvatarIslandвЂќ to get wearables'
+
+        popup.imageSource = getWearablesUrl;
+        popup.onButton2Clicked = function() {
+            popup.close();
+
+            if(callback)
+                callback();
+        }
+
+        popup.onLinkClicked = function(link) {
+            popup.close();
+
+            if(linkCallback)
+                linkCallback(link);
+        }
+
+        popup.open();
+    }
+
     function showDeleteFavorite(favoriteName, callback) {
         popup.titleText = 'Delete Favorite: {AvatarName}'.replace('{AvatarName}', favoriteName)
         popup.bodyText = 'This will delete your favorite. You will retain access to the wearables and avatar that made up the favorite from My Purchases.'

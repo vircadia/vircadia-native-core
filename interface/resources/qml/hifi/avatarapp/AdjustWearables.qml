@@ -1,5 +1,6 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
+import QtQuick.Layouts 1.3
 import "../../styles-uit"
 import "../../controls-uit" as HifiControlsUit
 import "../../controls" as HifiControls
@@ -124,7 +125,10 @@ Rectangle {
         Column {
             width: parent.width
 
-            Row {
+            RowLayout {
+                anchors.left: parent.left
+                anchors.right: parent.right
+
                 RalewayBold {
                     size: 15;
                     lineHeightMode: Text.FixedHeight
@@ -139,9 +143,31 @@ Rectangle {
                     size: 15;
                     lineHeightMode: Text.FixedHeight
                     lineHeight: 18;
-                    text: "<a href='#'>Add custom</a>"
+                    text: "<a href='#'>Get more</a>"
                     linkColor: hifi.colors.blueHighlight
                     anchors.verticalCenter: parent.verticalCenter
+                    onLinkActivated: {
+                        popup.showGetWearables(function() {
+                            emitSendToScript({'method' : 'navigate', 'url' : 'hifi://AvatarIsland/11.5848,-8.10862,-2.80195'})
+                        }, function(link) {
+                            emitSendToScript({'method' : 'navigate', 'url' : link})
+                        });
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+
+                    RalewayBold {
+                        size: 15;
+                        lineHeightMode: Text.FixedHeight
+                        lineHeight: 18;
+                        text: "<a href='#'>Add custom</a>"
+                        linkColor: hifi.colors.blueHighlight
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.right: parent.right
+                    }
                 }
             }
 
