@@ -958,10 +958,10 @@ public:
     // identityChanged returns true if identity has changed, false otherwise. Similarly for displayNameChanged and skeletonModelUrlChange.
     void processAvatarIdentity(const QByteArray& identityData, bool& identityChanged, bool& displayNameChanged);
 
-    void packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice& destination,
-                   AvatarTraits::TraitVersion traitVersion = AvatarTraits::NULL_TRAIT_VERSION);
-    void packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID,
-                           ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion = AvatarTraits::NULL_TRAIT_VERSION);
+    qint64 packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice& destination,
+                     AvatarTraits::TraitVersion traitVersion = AvatarTraits::NULL_TRAIT_VERSION);
+    qint64 packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID,
+                             ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion = AvatarTraits::NULL_TRAIT_VERSION);
 
     void processTrait(AvatarTraits::TraitType traitType, QByteArray traitBinaryData);
     void processTraitInstance(AvatarTraits::TraitType traitType,

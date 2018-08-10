@@ -1828,35 +1828,40 @@ QUrl AvatarData::getWireSafeSkeletonModelURL() const {
     }
 }
 
-void AvatarData::packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice& destination,
+qint64 AvatarData::packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice& destination,
                            AvatarTraits::TraitVersion traitVersion) {
-    destination.writePrimitive(traitType);
+    qint64 bytesWritten = 0;
+    bytesWritten += destination.writePrimitive(traitType);
 
     if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
         AvatarTraits::TraitVersion typedVersion = traitVersion;
-        destination.writePrimitive(typedVersion);
+        bytesWritten += destination.writePrimitive(typedVersion);
     }
 
     if (traitType == AvatarTraits::SkeletonModelURL) {
         QByteArray encodedSkeletonURL = getWireSafeSkeletonModelURL().toEncoded();
         
         AvatarTraits::TraitWireSize encodedURLSize = encodedSkeletonURL.size();
-        destination.writePrimitive(encodedURLSize);
+        bytesWritten += destination.writePrimitive(encodedURLSize);
 
-        destination.write(encodedSkeletonURL);
+        bytesWritten += destination.write(encodedSkeletonURL);
     }
+
+    return bytesWritten;
 }
 
-void AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID traitInstanceID,
+qint64 AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID traitInstanceID,
                                    ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion) {
-    destination.writePrimitive(traitType);
+    qint64 bytesWritten = 0;
+
+    bytesWritten += destination.writePrimitive(traitType);
 
     if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
         AvatarTraits::TraitVersion typedVersion = traitVersion;
-        destination.writePrimitive(typedVersion);
+        bytesWritten += destination.writePrimitive(typedVersion);
     }
 
-    destination.write(traitInstanceID.toRfc4122());
+    bytesWritten += destination.write(traitInstanceID.toRfc4122());
 
     if (traitType == AvatarTraits::AvatarEntity) {
         // grab a read lock on the avatar entities and check for entity data for the given ID
@@ -1873,12 +1878,14 @@ void AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTrai
 
             qDebug() << QJsonDocument::fromBinaryData(entityBinaryData).toJson();
 
-            destination.writePrimitive(entityBinarySize);
-            destination.write(entityBinaryData);
+            bytesWritten += destination.writePrimitive(entityBinarySize);
+            bytesWritten += destination.write(entityBinaryData);
         } else {
-            destination.writePrimitive(AvatarTraits::DELETED_TRAIT_SIZE);
+            bytesWritten += destination.writePrimitive(AvatarTraits::DELETED_TRAIT_SIZE);
         }
     }
+
+    return bytesWritten;
 }
 
 void AvatarData::processTrait(AvatarTraits::TraitType traitType, QByteArray traitBinaryData) {

@@ -39,19 +39,22 @@ namespace AvatarTraits {
     using TraitWireSize = int16_t;
     const TraitWireSize DELETED_TRAIT_SIZE = -1;
 
-    inline void packInstancedTraitDelete(TraitType traitType, TraitInstanceID instanceID, ExtendedIODevice& destination,
+    inline qint64 packInstancedTraitDelete(TraitType traitType, TraitInstanceID instanceID, ExtendedIODevice& destination,
                                          TraitVersion traitVersion = NULL_TRAIT_VERSION) {
-        destination.writePrimitive(traitType);
+        qint64 bytesWritten = 0;
+
+        bytesWritten += destination.writePrimitive(traitType);
 
         if (traitVersion > DEFAULT_TRAIT_VERSION) {
             AvatarTraits::TraitVersion typedVersion = traitVersion;
-            destination.writePrimitive(typedVersion);
+            bytesWritten += destination.writePrimitive(typedVersion);
         }
 
-        destination.write(instanceID.toRfc4122());
+        bytesWritten += destination.write(instanceID.toRfc4122());
 
-        destination.writePrimitive(DELETED_TRAIT_SIZE);
+        bytesWritten += destination.writePrimitive(DELETED_TRAIT_SIZE);
 
+        return bytesWritten;
     }
 };
 
