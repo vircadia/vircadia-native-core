@@ -107,8 +107,10 @@
     // #region State Machine ===================================================================================================
 
     function enterProxyHidden() {
-        Overlays.deleteOverlay(proxyOverlay);
-        proxyOverlay = null;
+        if (proxyOverlay) {
+            Overlays.deleteOverlay(proxyOverlay);
+            proxyOverlay = null;
+        }
     }
 
     function enterProxyVisible(hand) {
@@ -253,29 +255,38 @@
         // Assumes that is HMD.mounted.
         switch (rezzerState) {
             case PROXY_HIDDEN:
+                // Don't show proxy is tablet is already displayed.
+                if (HMD.showTablet) {
+                    break;
+                }
                 // Compare palm directions of hands with vectors from palms to camera.
                 if (shouldShowProxy(LEFT_HAND)) {
                     setState(PROXY_VISIBLE, LEFT_HAND);
-                    break;
                 } else if (shouldShowProxy(RIGHT_HAND)) {
                     setState(PROXY_VISIBLE, RIGHT_HAND);
-                    break;
                 }
                 break;
             case PROXY_VISIBLE:
+                // Hide proxy if tablet has been displayed by other means.
+                if (HMD.showTablet) {
+                    setState(PROXY_HIDDEN);
+                    break;
+                }
                 // Check that palm direction of proxy hand still less than maximum angle.
                 if (!shouldShowProxy(proxyHand)) {
                     setState(PROXY_HIDDEN);
-                    break;
                 }
                 break;
             case PROXY_GRABBED:
             case PROXY_EXPANDING:
-                break;
-            case TABLET_OPEN:
-                if (!HMD.showTablet) {
+                // Hide proxy if tablet has been displayed by other means.
+                if (HMD.showTablet) {
                     setState(PROXY_HIDDEN);
                 }
+                break;
+            case TABLET_OPEN:
+                // Immediately transition back to PROXY_HIDDEN.
+                setState(PROXY_HIDDEN);
                 break;
             default:
                 error("Missing case: " + rezzerState);
