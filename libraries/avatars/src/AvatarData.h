@@ -363,7 +363,7 @@ class AvatarData : public QObject, public SpatiallyNestable {
 
     // The following properties have JSDoc in MyAvatar.h and ScriptableAvatar.h
     Q_PROPERTY(glm::vec3 position READ getWorldPosition WRITE setPositionViaScript)
-    Q_PROPERTY(float scale READ getTargetScale WRITE setTargetScale)
+    Q_PROPERTY(float scale READ getDomainLimitedScale WRITE setTargetScale)
     Q_PROPERTY(float density READ getDensity)
     Q_PROPERTY(glm::vec3 handPosition READ getHandPosition WRITE setHandPosition)
     Q_PROPERTY(float bodyYaw READ getBodyYaw WRITE setBodyYaw)
