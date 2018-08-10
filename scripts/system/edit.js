@@ -806,6 +806,14 @@ var toolBar = (function () {
 
         addButton("newMaterialButton", createNewEntityDialogButtonCallback("Material"));
 
+        var deactiveCreateIfDesktopWindowsHidden = function() {
+            if (!shouldUseEditTabletApp() && !entityListTool.isVisible() && !createToolsWindow.isVisible()) {
+                that.setActive(false);
+            }
+        };
+        entityListTool.interactiveWindowHidden.addListener(this, deactiveCreateIfDesktopWindowsHidden);
+        createToolsWindow.interactiveWindowHidden.addListener(this, deactiveCreateIfDesktopWindowsHidden);
+
         that.setActive(false);
     }
 
