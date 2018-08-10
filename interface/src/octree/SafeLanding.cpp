@@ -37,12 +37,14 @@ void SafeLanding::startEntitySequence(QSharedPointer<EntityTreeRenderer> entityT
         if (entityTree) {
             Locker lock(_lock);
             _entityTree = entityTree;
+            _trackingEntities = true;
             connect(std::const_pointer_cast<EntityTree>(_entityTree).get(),
                 &EntityTree::addingEntity, this, &SafeLanding::addTrackedEntity);
             connect(std::const_pointer_cast<EntityTree>(_entityTree).get(),
                 &EntityTree::deletingEntity, this, &SafeLanding::deleteTrackedEntity);
-            _trackingEntities = true;
             _sequenceNumbers.clear();
+            _initialStart = INVALID_SEQUENCE;
+            _initialEnd = INVALID_SEQUENCE;
         }
     }
 }
@@ -58,6 +60,7 @@ void SafeLanding::stopEntitySequence() {
 
 void SafeLanding::addTrackedEntity(const EntityItemID& entityID) {
     if (_trackingEntities) {
+        Locker lock(_lock);
         EntityItemPointer entity = _entityTree->findEntityByID(entityID);
 
         if (entity && !entity->getCollisionless()) {
@@ -68,7 +71,6 @@ void SafeLanding::addTrackedEntity(const EntityItemID& entityID) {
                     { SHAPE_TYPE_COMPOUND, SHAPE_TYPE_SIMPLE_COMPOUND, SHAPE_TYPE_STATIC_MESH,  SHAPE_TYPE_SIMPLE_HULL };
                 if (downloadedCollisionTypes.count(modelEntity->getShapeType()) != 0) {
                     // Only track entities with downloaded collision bodies.
-                    Locker lock(_lock);
                     _trackedEntities.emplace(entityID, entity);
                     qCDebug(interfaceapp) << "Safe Landing: Tracking entity " << entity->getItemName();
                 }
@@ -84,8 +86,10 @@ void SafeLanding::deleteTrackedEntity(const EntityItemID& entityID) {
 
 void SafeLanding::setCompletionSequenceNumbers(int first, int last) {
     Locker lock(_lock);
-    _initialStart = first;
-    _initialEnd = last;
+    if (_initialStart == INVALID_SEQUENCE) {
+        _initialStart = first;
+        _initialEnd = last;
+    }
 }
 
 void SafeLanding::sequenceNumberReceived(int sequenceNumber) {
@@ -98,8 +102,10 @@ void SafeLanding::sequenceNumberReceived(int sequenceNumber) {
 bool SafeLanding::isLoadSequenceComplete() {
     if (entityPhysicsComplete() && sequenceNumbersComplete()) {
         Locker lock(_lock);
-        _trackingEntities = false;
         _trackedEntities.clear();
+        _initialStart = INVALID_SEQUENCE;
+        _initialEnd = INVALID_SEQUENCE;
+        _entityTree = nullptr;
         qCDebug(interfaceapp) << "Safe Landing: load sequence complete";
     }
 
@@ -109,18 +115,12 @@ bool SafeLanding::isLoadSequenceComplete() {
 bool SafeLanding::sequenceNumbersComplete() {
     if (_initialStart != INVALID_SEQUENCE) {
         Locker lock(_lock);
-        //auto startIter = _sequenceNumbers.find(_initialStart);
-        //if (startIter != _sequenceNumbers.end()) {
-        //    _sequenceNumbers.erase(_sequenceNumbers.begin(), startIter);
-        //    _sequenceNumbers.erase(_sequenceNumbers.find(_initialEnd), _sequenceNumbers.end());
         int sequenceSize = _initialStart < _initialEnd ? _initialEnd - _initialStart:
                 _initialEnd + SEQUENCE_MODULO - _initialStart;
-        //    // First no. exists, nothing outside of first, last exists, so complete iff set size is sequence size.
-        //    return (int) _sequenceNumbers.size() == sequenceSize;
-        //}
         auto startIter = _sequenceNumbers.find(_initialStart);
         auto endIter = _sequenceNumbers.find(_initialEnd);
-        if (startIter != _sequenceNumbers.end() && endIter != _sequenceNumbers.end() && std::distance(startIter, endIter) == sequenceSize) {
+        if (startIter != _sequenceNumbers.end() && endIter != _sequenceNumbers.end() && distance(startIter, endIter) == sequenceSize) {
+            _trackingEntities = false; // Don't track anything else that comes in.
             return true;
         }
     }
