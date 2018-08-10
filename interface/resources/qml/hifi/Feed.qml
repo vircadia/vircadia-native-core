@@ -90,7 +90,9 @@ Column {
             online_users: data.details.connections || data.details.concurrency || 0,
             // Server currently doesn't give isStacked (undefined). Could give bool.
             drillDownToPlace: data.is_stacked || (data.action === 'concurrency'),
-            isStacked: !!data.is_stacked
+            isStacked: !!data.is_stacked,
+
+            time_before_autoscroll_ms: data.hold_time || 3000
         };
     }
 
@@ -146,6 +148,14 @@ Column {
         onCountChanged: {
             if (scroll.currentIndex === -1 && scroll.count > 0 && root.autoScrollTimerEnabled) {
                 scroll.currentIndex = 0;
+                autoScrollTimer.interval = suggestions.get(scroll.currentIndex).time_before_autoscroll_ms;
+                autoScrollTimer.start();
+            }
+        }
+
+        onCurrentIndexChanged: {
+            if (root.autoScrollTimerEnabled) {
+                autoScrollTimer.interval = suggestions.get(scroll.currentIndex).time_before_autoscroll_ms;
                 autoScrollTimer.start();
             }
         }
@@ -170,7 +180,7 @@ Column {
         id: autoScrollTimer;
         interval: 3000;
         running: false;
-        repeat: true;
+        repeat: false;
         onTriggered: {
             if (scroll.currentIndex !== -1) {
                 if (scroll.currentIndex === scroll.count - 1) {
