@@ -147,7 +147,7 @@ public:
      * An intersection result for a Collision Pick.
      *
      * @typedef {object} CollisionPickResult
-     * @property {boolean} intersects If there was at least one valid intersection (entityIntersections.length + avatarIntersections.length > 0)
+     * @property {boolean} intersects If there was at least one valid intersection (intersectingObjects.length > 0)
      * @property {IntersectingObject[]} intersectingObjects The collision information of each object which intersect with the CollisionRegion.
      * @property {CollisionRegion} collisionRegion The CollisionRegion that was used. Valid even if there was no intersection.
      */
