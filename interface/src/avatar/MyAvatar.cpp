@@ -140,6 +140,12 @@ MyAvatar::MyAvatar(QThread* thread) :
             qApp->loadAvatarScripts(geometry.scripts);
             _shouldLoadScripts = false;
         }
+                // Load and convert old attachments to avatar entities
+        if (_oldAttachmentData.size() > 0) {
+            setAttachmentData(_oldAttachmentData);
+            _oldAttachmentData.clear();
+            _attachmentData.clear();
+        }
     });
     connect(_skeletonModel.get(), &Model::rigReady, this, &Avatar::rigReady);
     connect(_skeletonModel.get(), &Model::rigReset, this, &Avatar::rigReset);
@@ -1249,7 +1255,6 @@ void MyAvatar::loadData() {
 
     useFullAvatarURL(_fullAvatarURLFromPreferences, _fullAvatarModelName);
 
-    QVector<AttachmentData> attachmentData;
     int attachmentCount = settings.beginReadArray("attachmentData");
     for (int i = 0; i < attachmentCount; i++) {
         settings.setArrayIndex(i);
@@ -1266,10 +1271,10 @@ void MyAvatar::loadData() {
         attachment.rotation = glm::quat(eulers);
         attachment.scale = loadSetting(settings, "scale", 1.0f);
         attachment.isSoft = settings.value("isSoft").toBool();
-        attachmentData.append(attachment);
+        // old attachments are stored and loaded/converted later when rig is ready
+        _oldAttachmentData.append(attachment);
     }
     settings.endArray();
-    setAttachmentData(attachmentData);
 
     int avatarEntityCount = settings.beginReadArray("avatarEntityData");
     for (int i = 0; i < avatarEntityCount; i++) {
@@ -2107,8 +2112,7 @@ void MyAvatar::attachmentDataToEntityProperties(const AttachmentData& data, Enti
     QString url = data.modelURL.toString();
     properties.setName(QFileInfo(url).baseName());
     properties.setType(EntityTypes::Model);
-    properties.setParentID(getID());
-    properties.setOwningAvatarID(getID());
+    properties.setParentID(AVATAR_SELF_ID);
     properties.setLocalPosition(data.translation);
     properties.setLocalRotation(data.rotation);
     if (!data.isSoft) {

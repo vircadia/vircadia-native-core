@@ -1317,6 +1317,7 @@ protected:
     bool _firstSkeletonCheck { true };
     QUrl _skeletonFBXURL;
     QVector<AttachmentData> _attachmentData;
+    QVector<AttachmentData> _oldAttachmentData;
     QString _displayName;
     QString _sessionDisplayName { };
     bool _lookAtSnappingEnabled { true };
