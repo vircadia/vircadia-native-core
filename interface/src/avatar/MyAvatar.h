@@ -143,8 +143,7 @@ class MyAvatar : public Avatar {
      *     registration point of the 3D model.
      *
      * @property {Vec3} position 
-     * @property {number} scale - The target scale in which the avatar is set to by the user.
-     * @property {number} domainLimitedScale - The avatar's scale limited by the domain.
+     * @property {number} scale - Returns the clamped scale of the avatar.
      * @property {number} density <em>Read-only.</em>
      * @property {Vec3} handPosition 
      * @property {number} bodyYaw - The rotation left or right about an axis running from the head to the feet of the avatar. 
