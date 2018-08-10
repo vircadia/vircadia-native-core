@@ -19,4 +19,6 @@
     <color name="statusbar_color">#292929</color>
     <color name="hifiLogoColor">#23B2E7</color>
     <color name="hifiAquamarine">#62D5C6</color>
+    <color name="starSelectedTint">#FBD92A</color>
+    <color name="starUnselectedTint">#8A8A8A</color>
 </resources>

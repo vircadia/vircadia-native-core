@@ -44,5 +44,13 @@
                 android:fontFamily="@font/raleway_italic"/>
         </LinearLayout>
     </LinearLayout>
-
+    <ImageView android:id="@+id/userFav"
+        android:layout_width="27dp"
+        android:layout_height="27dp"
+        android:src="@drawable/ic_star"
+        android:tint="@color/starUnselectedTint"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginEnd="@dimen/activity_horizontal_margin" />
 </android.support.constraint.ConstraintLayout>
