@@ -72,12 +72,15 @@ function getMyAvatarSettings() {
     }
 }
 
-function updateAvatarWearables(avatar, bookmarkAvatarName) {
+function updateAvatarWearables(avatar, bookmarkAvatarName, callback) {
     executeLater(function() {
         var wearables = getMyAvatarWearables();
         avatar[ENTRY_AVATAR_ENTITIES] = wearables;
 
         sendToQml({'method' : 'wearablesUpdated', 'wearables' : wearables, 'avatarName' : bookmarkAvatarName})
+
+        if(callback)
+            callback();
     });
 }
 
@@ -257,8 +260,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         };
 
         var entityID = Entities.addEntity(properties, true);
-        updateAvatarWearables(currentAvatar, message.avatarName);
-        executeLater(function() {
+        updateAvatarWearables(currentAvatar, message.avatarName, function() {
             onSelectedEntity(entityID);
         });
         break;
