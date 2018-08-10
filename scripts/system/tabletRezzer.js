@@ -59,6 +59,7 @@
 
         LEFT_HAND = 0,
         RIGHT_HAND = 1,
+        HAND_NAMES = ["LeftHand", "RightHand"],
         DEBUG = false;
 
     // #region Utilities =======================================================================================================
@@ -293,7 +294,9 @@
             return;
         }
 
-        if (message.action === "grab" && rezzerState === PROXY_VISIBLE) {
+        // Don't transition into PROXY_GRABBED unless the tablet proxy is grabbed with "other" hand. However, once it has been 
+        // grabbed then the original hand can grab it back and grow it from there.
+        if (message.action === "grab" && message.joint !== HAND_NAMES[proxyHand] && rezzerState === PROXY_VISIBLE) {
             setState(PROXY_GRABBED);
         } else if (message.action === "release" && rezzerState === PROXY_GRABBED) {
             setState(PROXY_EXPANDING);
