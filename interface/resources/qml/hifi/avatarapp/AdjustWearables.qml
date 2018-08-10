@@ -53,7 +53,10 @@ Rectangle {
             }
             wearablesCombobox.model.append(wearable);
         }
-        wearablesCombobox.currentIndex = 0;
+
+        if(wearablesCombobox.model.count !== 0) {
+            wearablesCombobox.currentIndex = 0;
+        }
     }
 
     function refreshWearable(wearableID, wearableIndex, properties, updateUI) {
@@ -75,9 +78,9 @@ Rectangle {
 
             if(updateUI) {
                 if(prop === 'localPosition') {
-                    position.set(wearable[prop]);
+                    positionVector.set(wearable[prop]);
                 } else if(prop === 'localRotationAngles') {
-                    rotation.set(wearable[prop]);
+                    rotationVector.set(wearable[prop]);
                 } else if(prop === 'dimensions') {
                     scalespinner.set(wearable[prop].x / wearable.naturalDimensions.x);
                 }
@@ -88,7 +91,7 @@ Rectangle {
     }
 
     function getCurrentWearable() {
-        return wearablesCombobox.model.get(wearablesCombobox.currentIndex)
+        return wearablesCombobox.currentIndex !== -1 ? wearablesCombobox.model.get(wearablesCombobox.currentIndex) : null;
     }
 
     function selectWearableByID(entityID) {
@@ -184,6 +187,7 @@ Rectangle {
                 id: wearablesCombobox
                 anchors.left: parent.left
                 anchors.right: parent.right
+                enabled: getCurrentWearable() !== null
                 comboBox.textRole: "text"
 
                 model: ListModel {
@@ -202,14 +206,19 @@ Rectangle {
 
                 comboBox.onCurrentIndexChanged: {
                     var currentWearable = getCurrentWearable();
+                    var position = currentWearable ? currentWearable.localPosition : { x : 0, y : 0, z : 0 };
+                    var rotation = currentWearable ? currentWearable.localRotationAngles : { x : 0, y : 0, z : 0 };
+                    var scale = currentWearable ? currentWearable.dimensions.x / currentWearable.naturalDimensions.x : 1.0;
+                    var joint = currentWearable ? currentWearable.parentJointIndex : -1;
+                    var soft = currentWearable ? currentWearable.relayParentJoints : false;
+
+                    positionVector.set(position);
+                    rotationVector.set(rotation);
+                    scalespinner.set(scale);
+                    jointsCombobox.set(joint);
+                    isSoft.set(soft);
 
                     if(currentWearable) {
-                        position.set(currentWearable.localPosition);
-                        rotation.set(currentWearable.localRotationAngles);
-                        scalespinner.set(currentWearable.dimensions.x / currentWearable.naturalDimensions.x)
-                        jointsCombobox.set(currentWearable.parentJointIndex)
-                        isSoft.set(currentWearable.relayParentJoints)
-
                         wearableSelected(currentWearable.id);
                     }
                 }
@@ -230,7 +239,7 @@ Rectangle {
                 id: jointsCombobox
                 anchors.left: parent.left
                 anchors.right: parent.right
-                enabled: !isSoft.checked
+                enabled: getCurrentWearable() !== null &&  !isSoft.checked
                 comboBox.displayText: isSoft.checked ? 'Hips' : comboBox.currentText
 
                 model: jointNames
@@ -247,9 +256,9 @@ Rectangle {
                     var properties = {
                         parentJointIndex: currentIndex,
                         localPosition: {
-                            x: position.xvalue,
-                            y: position.yvalue,
-                            z: position.zvalue
+                            x: positionVector.xvalue,
+                            y: positionVector.yvalue,
+                            z: positionVector.zvalue
                         }
                     };
 
@@ -288,8 +297,9 @@ Rectangle {
             }
 
             Vector3 {
-                id: position
+                id: positionVector
                 backgroundColor: "lightgray"
+                enabled: getCurrentWearable() !== null
 
                 function set(localPosition) {
                     notify = false;
@@ -347,8 +357,9 @@ Rectangle {
             }
 
             Vector3 {
-                id: rotation
+                id: rotationVector
                 backgroundColor: "lightgray"
+                enabled: getCurrentWearable() !== null
 
                 function set(localRotationAngles) {
                     notify = false;
@@ -386,6 +397,7 @@ Rectangle {
 
             HifiControlsUit.CheckBox {
                 id: isSoft
+                enabled: getCurrentWearable() !== null
                 text: "Is soft"
                 labelFontSize: 15
                 labelFontWeight: Font.Bold
@@ -427,13 +439,14 @@ Rectangle {
 
                 HifiControlsUit.SpinBox {
                     id: scalespinner
+                    enabled: getCurrentWearable() !== null
                     decimals: 2
                     realStepSize: 0.1
                     realFrom: 0.1
                     realTo: 3.0
                     realValue: 1.0
                     backgroundColor: "lightgray"
-                    width: position.spinboxWidth
+                    width: positionVector.spinboxWidth
                     colorScheme: hifi.colorSchemes.light
 
                     property bool notify: false;
