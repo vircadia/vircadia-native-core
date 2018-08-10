@@ -642,6 +642,14 @@ bool EntityTreeRenderer::applyLayeredZones() {
 }
 
 void EntityTreeRenderer::processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
+    OCTREE_PACKET_FLAGS flags;
+    message.readPrimitive(&flags);
+
+    OCTREE_PACKET_SEQUENCE sequence;
+    message.readPrimitive(&sequence);
+
+    _lastOctreeMessageSequence = sequence;
+    message.seek(0);
     std::static_pointer_cast<EntityTree>(_tree)->processEraseMessage(message, sourceNode);
 }
 

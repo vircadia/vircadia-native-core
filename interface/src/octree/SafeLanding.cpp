@@ -85,7 +85,7 @@ void SafeLanding::deleteTrackedEntity(const EntityItemID& entityID) {
 void SafeLanding::setCompletionSequenceNumbers(int first, int last) {
     Locker lock(_lock);
     _initialStart = first;
-    _initialEnd = (last + 1) % SEQUENCE_MODULO;
+    _initialEnd = last;
 }
 
 void SafeLanding::sequenceNumberReceived(int sequenceNumber) {
@@ -96,7 +96,7 @@ void SafeLanding::sequenceNumberReceived(int sequenceNumber) {
 }
 
 bool SafeLanding::isLoadSequenceComplete() {
-    if (sequenceNumbersComplete() && entityPhysicsComplete()) {
+    if (entityPhysicsComplete() && sequenceNumbersComplete()) {
         Locker lock(_lock);
         _trackingEntities = false;
         _trackedEntities.clear();
@@ -109,14 +109,19 @@ bool SafeLanding::isLoadSequenceComplete() {
 bool SafeLanding::sequenceNumbersComplete() {
     if (_initialStart != INVALID_SEQUENCE) {
         Locker lock(_lock);
-        auto startIter = _sequenceNumbers.find(_initialStart);
-        if (startIter != _sequenceNumbers.end()) {
-            _sequenceNumbers.erase(_sequenceNumbers.begin(), startIter);
-            _sequenceNumbers.erase(_sequenceNumbers.find(_initialEnd), _sequenceNumbers.end());
-            int sequenceSize = _initialStart < _initialEnd ? _initialEnd - _initialStart :
+        //auto startIter = _sequenceNumbers.find(_initialStart);
+        //if (startIter != _sequenceNumbers.end()) {
+        //    _sequenceNumbers.erase(_sequenceNumbers.begin(), startIter);
+        //    _sequenceNumbers.erase(_sequenceNumbers.find(_initialEnd), _sequenceNumbers.end());
+        int sequenceSize = _initialStart < _initialEnd ? _initialEnd - _initialStart:
                 _initialEnd + SEQUENCE_MODULO - _initialStart;
-            // First no. exists, nothing outside of first, last exists, so complete iff set size is sequence size.
-            return (int) _sequenceNumbers.size() == sequenceSize;
+        //    // First no. exists, nothing outside of first, last exists, so complete iff set size is sequence size.
+        //    return (int) _sequenceNumbers.size() == sequenceSize;
+        //}
+        auto startIter = _sequenceNumbers.find(_initialStart);
+        auto endIter = _sequenceNumbers.find(_initialEnd);
+        if (startIter != _sequenceNumbers.end() && endIter != _sequenceNumbers.end() && std::distance(startIter, endIter) == sequenceSize) {
+            return true;
         }
     }
     return false;

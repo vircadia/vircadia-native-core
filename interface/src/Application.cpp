@@ -5495,7 +5495,6 @@ void Application::update(float deltaTime) {
     if (!_physicsEnabled) {
         if (!domainLoadingInProgress) {
             PROFILE_ASYNC_BEGIN(app, "Scene Loading", "");
-            _octreeProcessor.startEntitySequence();
             domainLoadingInProgress = true;
         }
 
@@ -5514,7 +5513,7 @@ void Application::update(float deltaTime) {
             // process octree stats packets are sent in between full sends of a scene (this isn't currently true).
             // We keep physics disabled until we've received a full scene and everything near the avatar in that
             // scene is ready to compute its collision shape.
-            if (nearbyEntitiesAreReadyForPhysics() && getMyAvatar()->isReadyForPhysics()) {
+            if (getMyAvatar()->isReadyForPhysics()) {
                 _physicsEnabled = true;
                 getMyAvatar()->updateMotionBehaviorFromMenu();
             }
