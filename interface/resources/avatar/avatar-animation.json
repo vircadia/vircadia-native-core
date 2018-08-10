@@ -1058,7 +1058,7 @@
                                                                                         "data": {
                                                                                             "alpha": 0.0,
                                                                                             "desiredSpeed": 1.4,
-                                                                                            "characteristicSpeeds": [0.6, 2.0],
+                                                                                            "characteristicSpeeds": [0.6, 1.7],
                                                                                             "alphaVar": "moveBackwardAlpha",
                                                                                             "desiredSpeedVar": "moveBackwardSpeed"
                                                                                         },
@@ -1081,7 +1081,7 @@
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/walk_bwd_fast.fbx",
                                                                                                     "startFrame": 0.0,
-                                                                                                    "endFrame": 28.0,
+                                                                                                    "endFrame": 27.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
                                                                                                 },
@@ -1120,7 +1120,7 @@
                                                                                         "data": {
                                                                                             "alpha": 0.0,
                                                                                             "desiredSpeed": 1.4,
-                                                                                            "characteristicSpeeds": [0, 0.5, 1.3, 2.6, 3.0],
+                                                                                            "characteristicSpeeds": [0, 0.5, 1.5, 2.6, 3.0],
                                                                                             "alphaVar": "moveLateralAlpha",
                                                                                             "desiredSpeedVar": "moveLateralSpeed"
                                                                                         },
@@ -1155,7 +1155,7 @@
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/walk_left.fbx",
                                                                                                     "startFrame": 0.0,
-                                                                                                    "endFrame": 35.0,
+                                                                                                    "endFrame": 33.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
                                                                                                 },
@@ -1193,7 +1193,7 @@
                                                                                         "data": {
                                                                                             "alpha": 0.0,
                                                                                             "desiredSpeed": 1.4,
-                                                                                            "characteristicSpeeds": [0, 0.5, 1.3, 2.6, 3.0],
+                                                                                            "characteristicSpeeds": [0, 0.5, 1.5, 2.6, 3.0],
                                                                                             "alphaVar": "moveLateralAlpha",
                                                                                             "desiredSpeedVar": "moveLateralSpeed"
                                                                                         },
@@ -1229,7 +1229,7 @@
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/walk_left.fbx",
                                                                                                     "startFrame": 0.0,
-                                                                                                    "endFrame": 35.0,
+                                                                                                    "endFrame": 33.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true,
                                                                                                     "mirrorFlag": true
