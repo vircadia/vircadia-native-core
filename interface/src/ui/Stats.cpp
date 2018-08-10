@@ -431,7 +431,7 @@ void Stats::updateStats(bool force) {
         // a new Map sorted by average time...
         bool onlyDisplayTopTen = Menu::getInstance()->isOptionChecked(MenuOption::OnlyDisplayTopTen);
         QMap<float, QString> sortedRecords;
-        const QMap<QString, PerformanceTimerRecord>& allRecords = PerformanceTimer::getAllTimerRecords();
+        auto allRecords = PerformanceTimer::getAllTimerRecords();
         QMapIterator<QString, PerformanceTimerRecord> i(allRecords);
 
         while (i.hasNext()) {
@@ -479,7 +479,7 @@ void Stats::updateStats(bool force) {
             bool operator<(const SortableStat& other) const { return priority < other.priority; }
         };
 
-        const QMap<QString, PerformanceTimerRecord>& allRecords = PerformanceTimer::getAllTimerRecords();
+        auto allRecords = PerformanceTimer::getAllTimerRecords();
         std::priority_queue<SortableStat> idleUpdateStats;
         auto itr = allRecords.find("/idle/update");
         if (itr != allRecords.end()) {
@@ -496,7 +496,7 @@ void Stats::updateStats(bool force) {
             };
             for (int32_t j = 0; j < categories.size(); ++j) {
                 QString recordKey = "/idle/update/" + categories[j];
-                auto record = PerformanceTimer::getTimerRecord(recordKey);
+                auto& record = allRecords[recordKey];
                 if (record.getCount()) {
                     float dt = (float) record.getMovingAverage() / (float)USECS_PER_MSEC;
                     QString message = QString("\n    %1 = %2").arg(categories[j]).arg(dt);
