@@ -31,6 +31,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/random.hpp>
 
+#include <gl/GLHelpers.h>
 #include <gpu/Batch.h>
 
 #include <image/Image.h>
@@ -271,6 +272,20 @@ gpu::TexturePointer getFallbackTextureForType(image::TextureUsage::Type type) {
     return result;
 }
 
+gpu::BackendTarget getBackendTarget() {
+#if defined(USE_GLES)
+    gpu::BackendTarget target = gpu::BackendTarget::GLES32;
+#elif defined(Q_OS_MAC)
+    gpu::BackendTarget target = gpu::BackendTarget::GL41;
+#else
+    gpu::BackendTarget target = gpu::BackendTarget::GL45;
+    if (gl::disableGl45()) {
+        target = gpu::BackendTarget::GL41;
+    }
+#endif
+    return target;
+}
+
 /// Returns a texture version of an image file
 gpu::TexturePointer TextureCache::getImageTexture(const QString& path, image::TextureUsage::Type type, QVariantMap options) {
     QImage image = QImage(path);
@@ -279,13 +294,14 @@ gpu::TexturePointer TextureCache::getImageTexture(const QString& path, image::Te
         return nullptr;
     }
     auto loader = image::TextureUsage::getTextureLoaderForType(type, options);
+
 #ifdef USE_GLES
-    gpu::BackendTarget target = gpu::BackendTarget::GLES32;
-    bool shouldCompress = true;
+    constexpr bool shouldCompress = true;
 #else
-    gpu::BackendTarget target = gpu::BackendTarget::GL45;
-    bool shouldCompress = false;
+    constexpr bool shouldCompress = false;
 #endif
+    auto target = getBackendTarget();
+
     return gpu::TexturePointer(loader(std::move(image), path.toStdString(), shouldCompress, target, false));
 }
 
@@ -1170,15 +1186,10 @@ void ImageReader::read() {
 
 #ifdef USE_GLES
         constexpr bool shouldCompress = true;
-        gpu::BackendTarget target = gpu::BackendTarget::GLES32;
 #else
         constexpr bool shouldCompress = false;
-#ifdef Q_OS_MAC
-        gpu::BackendTarget target = gpu::BackendTarget::GL41;
-#else
-        gpu::BackendTarget target = gpu::BackendTarget::GL45;
 #endif
-#endif
+        auto target = getBackendTarget();
         texture = image::processImage(std::move(buffer), _url.toString().toStdString(), _maxNumPixels, networkTexture->getTextureType(), shouldCompress, target);
 
         if (!texture) {
