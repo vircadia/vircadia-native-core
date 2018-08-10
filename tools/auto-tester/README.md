@@ -11,10 +11,20 @@ Auto-tester has 4 functions, separated into 4 tabs:
 3. TestRail interface
 4. Windows task bar utility (Windows only)
 ## Installation
+### Executable
 1. Download the installer by browsing to [here](<https://hifi-content.s3.amazonaws.com/nissim/autoTester/AutoTester-Installer.exe>).
 2. Double click on the installer and install to a convenient location  
 ![](./setup_7z.PNG)
 3. To run the auto-tester, double click **auto-tester.exe**.
+### Python
+The TestRail interface requires Python 3 to be installed. Auto-Tester has been tested with Python 3.7.0 but should work with newer versions.
+
+Python 3 can be downloaded from:
+1. Windows installer   <https://www.python.org/downloads/>
+2. Linux (source)      <https://www.python.org/downloads/release/python-370/> (**Gzipped source tarball**)
+3. Mac                 <https://www.python.org/downloads/release/python-370/> (**macOS 64-bit/32-bit installer** or **macOS 64-bit/32-bit installer**)
+ 
+After installation - create an environment variable called PYTHON_PATH and set it to the folder containing the Python executable.
 # Create
 ![](./Create.PNG)
 
