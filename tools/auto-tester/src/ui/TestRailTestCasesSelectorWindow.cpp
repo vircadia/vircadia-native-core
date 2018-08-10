@@ -27,7 +27,9 @@ void TestRailTestCasesSelectorWindow::reset() {
     projectIDLineEdit->setDisabled(false);
 
     OKButton->setDisabled(true);
-    milestonesComboBox->setDisabled(true);
+
+    releasesLabel->setDisabled(true);
+    releasesComboBox->setDisabled(true);
 }
 
 void TestRailTestCasesSelectorWindow::on_acceptButton_clicked() {
@@ -37,7 +39,9 @@ void TestRailTestCasesSelectorWindow::on_acceptButton_clicked() {
     projectIDLineEdit->setDisabled(true);
 
     OKButton->setDisabled(false);
-    milestonesComboBox->setDisabled(false);
+
+    releasesLabel->setDisabled(false);
+    releasesComboBox->setDisabled(false);
     close();
 }
 
@@ -91,10 +95,10 @@ int TestRailTestCasesSelectorWindow::getSuiteID() {
     return suiteIDLineEdit->text().toInt();
 }
 
-void TestRailTestCasesSelectorWindow::updateMilestonesComboBoxData(QStringList data) {
-    milestonesComboBox->insertItems(0, data);
+void TestRailTestCasesSelectorWindow::updateReleasesComboBoxData(QStringList data) {
+    releasesComboBox->insertItems(0, data);
 }
 
-int TestRailTestCasesSelectorWindow::getMilestoneID() {
-    return milestonesComboBox->currentIndex();
+int TestRailTestCasesSelectorWindow::getReleaseID() {
+    return releasesComboBox->currentIndex();
 }
