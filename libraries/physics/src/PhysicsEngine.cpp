@@ -888,6 +888,7 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
         // TODO: Give MyAvatar a motion state so we don't have to do this
         if (desiredObjectType == MOTIONSTATE_TYPE_AVATAR && myAvatarCollisionObject && myAvatarCollisionObject == otherBody) {
             contacts.emplace_back(Physics::getSessionUUID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint));
+            return 0;
         }
 
         if (!(otherBody->getInternalType() & btCollisionObject::CO_RIGID_BODY)) {
