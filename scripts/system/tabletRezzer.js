@@ -49,7 +49,7 @@
         STATE_MACHINE,
         rezzerState = PROXY_HIDDEN,
         proxyHand,
-        PROXY_EXPAND_DURATION = 500,
+        PROXY_EXPAND_DURATION = 250,
         PROXY_EXPAND_TIMEOUT = 25,
         proxyExpandTimer = null,
         proxyExpandStart,
