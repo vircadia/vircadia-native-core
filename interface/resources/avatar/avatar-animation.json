@@ -713,8 +713,8 @@
                                                                                         },
                                                                                         {
                                                                                             "id": "strafeLeft",
-                                                                                            "interpTarget": 0,
-                                                                                            "interpDuration": 6,
+                                                                                            "interpTarget": 5,
+                                                                                            "interpDuration": 8,
                                                                                             "interpType": "snapshotPrev",
                                                                                             "transitions": [
                                                                                                 { "var": "isNotMoving", "state": "idleSettle" },
@@ -1120,7 +1120,7 @@
                                                                                         "data": {
                                                                                             "alpha": 0.0,
                                                                                             "desiredSpeed": 1.4,
-                                                                                            "characteristicSpeeds": [0, 0.5, 1.5, 2.6, 3.0],
+                                                                                            "characteristicSpeeds": [0, 0.5, 1.3, 2.6, 3.0],
                                                                                             "alphaVar": "moveLateralAlpha",
                                                                                             "desiredSpeedVar": "moveLateralSpeed"
                                                                                         },
@@ -1193,7 +1193,7 @@
                                                                                         "data": {
                                                                                             "alpha": 0.0,
                                                                                             "desiredSpeed": 1.4,
-                                                                                            "characteristicSpeeds": [0, 0.5, 1.5, 2.6, 3.0],
+                                                                                            "characteristicSpeeds": [0, 0.5, 1.3, 2.6, 3.0],
                                                                                             "alphaVar": "moveLateralAlpha",
                                                                                             "desiredSpeedVar": "moveLateralSpeed"
                                                                                         },
