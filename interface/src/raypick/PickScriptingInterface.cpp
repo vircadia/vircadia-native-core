@@ -242,7 +242,7 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
 * A Shape defines a physical volume.
 *
 * @typedef {object} Shape
-* @property {string} shapeType The type of shape to use. Can be one of the following: "box", "sphere", "capsule-x", "capsule-y", "capsule-z", "cylinder-x", "cylinder-y", "cylinder-z", "plane"
+* @property {string} shapeType The type of shape to use. Can be one of the following: "box", "sphere", "capsule-x", "capsule-y", "capsule-z", "cylinder-x", "cylinder-y", "cylinder-z"
 * @property {Vec3} dimensions - The size to scale the shape to.
 */
 
