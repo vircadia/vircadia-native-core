@@ -7284,7 +7284,7 @@ void Application::addAssetToWorldAddEntity(QString filePath, QString mapping) {
     }
     properties.setCollisionless(true);  // Temporarily set so that doesn't collide with avatar.
     properties.setVisible(false);  // Temporarily set so that don't see at large unresized dimensions.
-    bool grabbable = (Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawDefaultPose));
+    bool grabbable = (Menu::getInstance()->isOptionChecked(MenuOption::CreateEntitiesGrabbable));
     properties.setUserData(grabbable ? GRABBABLE_USER_DATA : NOT_GRABBABLE_USER_DATA);
     glm::vec3 positionOffset = getMyAvatar()->getWorldOrientation() * (getMyAvatar()->getSensorToWorldScale() * glm::vec3(0.0f, 0.0f, -2.0f));
     properties.setPosition(getMyAvatar()->getWorldPosition() + positionOffset);
