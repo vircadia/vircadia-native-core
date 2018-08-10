@@ -71,6 +71,17 @@ class QIODevice;
 class Transform;
 class NLPacket;
 
+class AudioSender : public QObject {
+    Q_OBJECT
+public:
+    AudioSender();
+    void start();
+public Q_SLOTS:
+    void emitAudioPacket(const void* audioData, size_t bytes, quint16 sequenceNumber, bool isStereo,
+                         const Transform& transform, glm::vec3 avatarBoundingBoxCorner, glm::vec3 avatarBoundingBoxScale,
+                         PacketType packetType, QString codecName = QString(""));
+};
+
 class AudioClient : public AbstractAudioInterface, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -261,6 +272,7 @@ protected:
     virtual void customDeleter() override;
 
 private:
+    AudioSender *_audioSender;
     friend class CheckDevicesThread;
     friend class LocalInjectorsThread;
 

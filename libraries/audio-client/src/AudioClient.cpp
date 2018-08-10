@@ -57,6 +57,11 @@
 #include <QtAndroidExtras/QAndroidJniObject>
 #endif
 
+Q_DECLARE_METATYPE(const void*);
+Q_DECLARE_METATYPE(quint16);
+Q_DECLARE_METATYPE(Transform);
+
+
 const int AudioClient::MIN_BUFFER_FRAMES = 1;
 
 const int AudioClient::MAX_BUFFER_FRAMES = 20;
@@ -208,10 +213,18 @@ AudioClient::AudioClient() :
     _audioOutputIODevice(_localInjectorsStream, _receivedAudioStream, this),
     _stats(&_receivedAudioStream),
     _positionGetter(DEFAULT_POSITION_GETTER),
+    _audioSender(new AudioSender()),
 #if defined(Q_OS_ANDROID)
     _checkInputTimer(this),
 #endif
     _orientationGetter(DEFAULT_ORIENTATION_GETTER) {
+
+    qRegisterMetaType<const void*>("const void*");
+    qRegisterMetaType<quint16>("quint16");
+    qRegisterMetaType<Transform>("Transform");
+
+    _audioSender->start();
+
     // avoid putting a lock in the device callback
     assert(_localSamplesAvailable.is_lock_free());
 
@@ -1112,11 +1125,21 @@ void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
     } else {
         encodedBuffer = audioBuffer;
     }
+    QMetaObject::invokeMethod(_audioSender, "emitAudioPacket", Qt::QueuedConnection,
+    Q_ARG(const void*, encodedBuffer.data()),
+Q_ARG(size_t, encodedBuffer.size()),
+Q_ARG(quint16, _outgoingAvatarAudioSequenceNumber++ ),
+                              Q_ARG(bool,_isStereoInput),
+                              Q_ARG(Transform, audioTransform),
+                              Q_ARG(glm::vec3, avatarBoundingBoxCorner),
+                              Q_ARG(glm::vec3, avatarBoundingBoxScale),
+                              Q_ARG(PacketType, packetType),
+                              Q_ARG(QString, _selectedCodecName));
 
-    emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, _isStereoInput,
+    /* emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), _outgoingAvatarAudioSequenceNumber, _isStereoInput,
             audioTransform, avatarBoundingBoxCorner, avatarBoundingBoxScale,
-            packetType, _selectedCodecName);
-    _stats.sentPacket();
+            packetType, _selectedCodecName); */
+    //_stats.sentPacket();
 }
 
 void AudioClient::handleMicAudioInput() {
@@ -2049,5 +2072,67 @@ void AudioClient::setInputVolume(float volume, bool emitSignal) {
         if (emitSignal) {
             emit inputVolumeChanged(_audioInput->volume());
         }
+    }
+}
+
+AudioSender::AudioSender() {
+
+}
+
+void AudioSender::start() {
+    moveToNewNamedThread(this, "Audio Sender Thread", [this] { }, QThread::HighestPriority);
+}
+
+
+void AudioSender::emitAudioPacket(const void* audioData, size_t bytes, quint16 sequenceNumber, bool isStereo,
+                const Transform& transform, glm::vec3 avatarBoundingBoxCorner, glm::vec3 avatarBoundingBoxScale,
+                PacketType packetType, QString codecName) {
+    static std::mutex _mutex;
+    using Locker = std::unique_lock<std::mutex>;
+    auto nodeList = DependencyManager::get<NodeList>();
+    SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
+    if (audioMixer && audioMixer->getActiveSocket()) {
+        Locker lock(_mutex);
+        auto audioPacket = NLPacket::create(packetType);
+
+        // write sequence number
+        auto sequence = sequenceNumber;
+        audioPacket->writePrimitive(sequence);
+
+        // write the codec
+        audioPacket->writeString(codecName);
+
+        if (packetType == PacketType::SilentAudioFrame) {
+            // pack num silent samples
+            quint16 numSilentSamples = isStereo ?
+                                       AudioConstants::NETWORK_FRAME_SAMPLES_STEREO :
+                                       AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
+            audioPacket->writePrimitive(numSilentSamples);
+        } else {
+            // set the mono/stereo byte
+            quint8 channelFlag = isStereo ? 1 : 0;
+            audioPacket->writePrimitive(channelFlag);
+        }
+
+        // at this point we'd better be sending the mixer a valid position, or it won't consider us for mixing
+        assert(!isNaN(transform.getTranslation()));
+
+        // pack the three float positions
+        audioPacket->writePrimitive(transform.getTranslation());
+        // pack the orientation
+        audioPacket->writePrimitive(transform.getRotation());
+
+        audioPacket->writePrimitive(avatarBoundingBoxCorner);
+        audioPacket->writePrimitive(avatarBoundingBoxScale);
+
+
+        if (audioPacket->getType() != PacketType::SilentAudioFrame) {
+            // audio samples have already been packed (written to networkAudioSamples)
+            int leadingBytes = audioPacket->getPayloadSize();
+            audioPacket->setPayloadSize(leadingBytes + bytes);
+            memcpy(audioPacket->getPayload() + leadingBytes, audioData, bytes);
+        }
+        nodeList->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendAudioPacket);
+        nodeList->sendUnreliablePacket(*audioPacket, *audioMixer);
     }
 }
