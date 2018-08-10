@@ -67,9 +67,9 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
     public void onBindViewHolder(UserListAdapter.ViewHolder holder, int position) {
         User aUser = mUsers.get(position);
         holder.mUsername.setText(aUser.name);
-        holder.mOnline.setText(aUser.online?"Online":"Offline");
-        holder.mOnline.setVisibility(aUser.online? View.VISIBLE : View.GONE);
+        holder.mOnlineInfo.setVisibility(aUser.online? View.VISIBLE : View.GONE);
         Uri uri = Uri.parse(aUser.imageUrl);
+        holder.mLocation.setText(" - unknown"); // Bring info from the API and use it here
         Picasso.get().load(uri).into(holder.mImage, new RoundProfilePictureCallback(holder.mImage));
     }
 
@@ -103,6 +103,8 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
 
         TextView mUsername;
         TextView mOnline;
+        View mOnlineInfo;
+        TextView mLocation;
         ImageView mImage;
 
         public ViewHolder(View itemView) {
@@ -110,6 +112,8 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
             mUsername = itemView.findViewById(R.id.userName);
             mOnline = itemView.findViewById(R.id.userOnline);
             mImage = itemView.findViewById(R.id.userImage);
+            mOnlineInfo = itemView.findViewById(R.id.userOnlineInfo);
+            mLocation = itemView.findViewById(R.id.userLocation);
         }
     }
 

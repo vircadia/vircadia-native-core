@@ -25,11 +25,24 @@
         <TextView
             android:id="@+id/userName"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
-        <TextView
-            android:id="@+id/userOnline"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/raleway" />
+        <LinearLayout android:id="@+id/userOnlineInfo"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content">
+            <TextView
+                android:id="@+id/userOnline"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/online"
+                android:fontFamily="@font/raleway"
+                android:textColor="@color/hifiAquamarine" />
+            <TextView
+                android:id="@+id/userLocation"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/raleway_italic"/>
+        </LinearLayout>
     </LinearLayout>
 
 </android.support.constraint.ConstraintLayout>

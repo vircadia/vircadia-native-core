@@ -23,5 +23,5 @@
     <string name="search_no_results">No places exist with that name</string>
     <string name="privacyPolicy">Privacy Policy</string>
     <string name="your_last_location">Your Last Location</string>
-
+    <string name="online">Online</string>
 </resources>
