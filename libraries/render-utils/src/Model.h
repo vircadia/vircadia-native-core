@@ -413,7 +413,7 @@ protected:
 
     QUrl _url;
 
-    gpu::Buffers _blendedVertexBuffers;
+    std::unordered_map<int, gpu::BufferPointer> _blendedVertexBuffers;
 
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
 

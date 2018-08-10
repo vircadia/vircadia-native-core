@@ -305,36 +305,6 @@ bool Model::updateGeometry() {
             state.clusterDualQuaternions.resize(mesh.clusters.size());
             state.clusterMatrices.resize(mesh.clusters.size());
             _meshStates.push_back(state);
-
-            // Note: we add empty buffers for meshes that lack blendshapes so we can access the buffers by index
-            // later in ModelMeshPayload, however the vast majority of meshes will not have them.
-            // TODO? make _blendedVertexBuffers a map instead of vector and only add for meshes with blendshapes?
-            auto buffer = std::make_shared<gpu::Buffer>();
-            if (!mesh.blendshapes.isEmpty()) {
-                std::vector<NormalType> normalsAndTangents;
-                normalsAndTangents.reserve(mesh.normals.size() + mesh.tangents.size());
-
-                for (auto normalIt = mesh.normals.begin(), tangentIt = mesh.tangents.begin();
-                     normalIt != mesh.normals.end();
-                     ++normalIt, ++tangentIt) {
-#if FBX_PACK_NORMALS
-                    glm::uint32 finalNormal;
-                    glm::uint32 finalTangent;
-                    buffer_helpers::packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
-#else
-                    const auto finalNormal = *normalIt;
-                    const auto finalTangent = *tangentIt;
-#endif
-                    normalsAndTangents.push_back(finalNormal);
-                    normalsAndTangents.push_back(finalTangent);
-                }
-
-                buffer->resize(mesh.vertices.size() * (sizeof(glm::vec3) + 2 * sizeof(NormalType)));
-                buffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (const gpu::Byte*) mesh.vertices.constData());
-                buffer->setSubData(mesh.vertices.size() * sizeof(glm::vec3),
-                                   mesh.normals.size() * 2 * sizeof(NormalType), (const gpu::Byte*) normalsAndTangents.data());
-            }
-            _blendedVertexBuffers.push_back(buffer);
         }
         needFullUpdate = true;
         emit rigReady();
@@ -1280,9 +1250,9 @@ void Blender::run() {
     }
     // post the result to the geometry cache, which will dispatch to the model if still alive
     QMetaObject::invokeMethod(DependencyManager::get<ModelBlender>().data(), "setBlendedVertices",
-        Q_ARG(ModelPointer, _model), Q_ARG(int, _blendNumber),
-        Q_ARG(const Geometry::WeakPointer&, _geometry), Q_ARG(const QVector<glm::vec3>&, vertices),
-        Q_ARG(const QVector<glm::vec3>&, normals), Q_ARG(const QVector<glm::vec3>&, tangents));
+                              Q_ARG(ModelPointer, _model), Q_ARG(int, _blendNumber),
+                              Q_ARG(const Geometry::WeakPointer&, _geometry), Q_ARG(const QVector<glm::vec3>&, vertices),
+                              Q_ARG(const QVector<glm::vec3>&, normals), Q_ARG(const QVector<glm::vec3>&, tangents));
 }
 
 void Model::setScaleToFit(bool scaleToFit, const glm::vec3& dimensions, bool forceRescale) {
@@ -1463,7 +1433,7 @@ bool Model::maybeStartBlender() {
 void Model::setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geometry,
         const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, const QVector<glm::vec3>& tangents) {
     auto geometryRef = geometry.lock();
-    if (!geometryRef || _renderGeometry != geometryRef || _blendedVertexBuffers.empty() || blendNumber < _appliedBlendNumber) {
+    if (!geometryRef || _renderGeometry != geometryRef || blendNumber < _appliedBlendNumber) {
         return;
     }
     _appliedBlendNumber = blendNumber;
@@ -1476,13 +1446,13 @@ void Model::setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geo
             continue;
         }
 
-        gpu::BufferPointer& buffer = _blendedVertexBuffers[i];
+        gpu::BufferPointer buffer = _blendedVertexBuffers[i];
         const auto vertexCount = mesh.vertices.size();
         const auto verticesSize = vertexCount * sizeof(glm::vec3);
         const auto offset = index * sizeof(glm::vec3);
 
         normalsAndTangents.clear();
-        normalsAndTangents.resize(normals.size()+tangents.size());
+        normalsAndTangents.resize(normals.size() + tangents.size());
 //        assert(normalsAndTangents.size() == 2 * vertexCount);
 
         // Interleave normals and tangents
@@ -1510,7 +1480,7 @@ void Model::setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geo
         }
 #else
         // Parallel version for performance
-        tbb::parallel_for(tbb::blocked_range<size_t>(index, index+vertexCount), [&](const tbb::blocked_range<size_t>& range) {
+        tbb::parallel_for(tbb::blocked_range<size_t>(index, index + vertexCount), [&](const tbb::blocked_range<size_t>& range) {
             auto normalsRange = std::make_pair(normals.begin() + range.begin(), normals.begin() + range.end());
             auto tangentsRange = std::make_pair(tangents.begin() + range.begin(), tangents.begin() + range.end());
             auto normalsAndTangentsIt = normalsAndTangents.begin() + (range.begin()-index)*2;
@@ -1603,6 +1573,7 @@ void Model::createRenderItemSet() {
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
     int shapeID = 0;
     uint32_t numMeshes = (uint32_t)meshes.size();
+    const FBXGeometry& fbxGeometry = getFBXGeometry();
     for (uint32_t i = 0; i < numMeshes; i++) {
         const auto& mesh = meshes.at(i);
         if (!mesh) {
@@ -1612,6 +1583,10 @@ void Model::createRenderItemSet() {
         // Create the render payloads
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
+            if (!fbxGeometry.meshes[i].blendshapes.empty()) {
+                _blendedVertexBuffers[i] = std::make_shared<gpu::Buffer>();
+                _blendedVertexBuffers[i]->resize(fbxGeometry.meshes[i].vertices.size() * (sizeof(glm::vec3) + 2 * sizeof(NormalType)));
+            }
             _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
             auto material = getGeometry()->getShapeMaterial(shapeID);
             _modelMeshMaterialNames.push_back(material ? material->getName() : "");
@@ -1724,8 +1699,8 @@ void ModelBlender::noteRequiresBlend(ModelPointer model) {
     }
 }
 
-void ModelBlender::setBlendedVertices(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry, 
-                                      const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, 
+void ModelBlender::setBlendedVertices(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry,
+                                      const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals,
                                       const QVector<glm::vec3>& tangents) {
     if (model) {
         model->setBlendedVertices(blendNumber, geometry, vertices, normals, tangents);
@@ -1744,4 +1719,3 @@ void ModelBlender::setBlendedVertices(ModelPointer model, int blendNumber, const
         }
     }
 }
-

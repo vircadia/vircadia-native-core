@@ -353,15 +353,14 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     QReadLocker locker(&_hashLock);
     QVector<AvatarSharedPointer>::iterator avatarItr = _avatarsToFade.begin();
     const render::ScenePointer& scene = qApp->getMain3DScene();
+    render::Transaction transaction;
     while (avatarItr != _avatarsToFade.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(*avatarItr);
         avatar->updateFadingStatus(scene);
         if (!avatar->isFading()) {
             // fading to zero is such a rare event we push a unique transaction for each
             if (avatar->isInScene()) {
-                render::Transaction transaction;
                 avatar->removeFromScene(*avatarItr, scene, transaction);
-                scene->enqueueTransaction(transaction);
             }
             avatarItr = _avatarsToFade.erase(avatarItr);
         } else {
@@ -370,6 +369,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
             ++avatarItr;
         }
     }
+    scene->enqueueTransaction(transaction);
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
