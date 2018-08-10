@@ -55,7 +55,7 @@
         DEGREES_180 = 180,
         MIN_HAND_CAMERA_ANGLE_COS = Math.cos(Math.PI * MIN_HAND_CAMERA_ANGLE / DEGREES_180),
         updateTimer = null,
-        UPDATE_INTERVAL = 250,
+        UPDATE_INTERVAL = 300,
         HIFI_OBJECT_MANIPULATION_CHANNEL = "Hifi-Object-Manipulation",
         avatarScale = 1,
 
@@ -223,10 +223,6 @@
         }
     }
 
-    function updateState() {
-        STATE_MACHINE[STATE_STRINGS[rezzerState]].update();
-    }
-
     // #endregion
 
     // #region Events ==========================================================================================================
@@ -360,22 +356,20 @@
     }
 
     function tearDown() {
-        setState(PROXY_HIDDEN);  // Or just tear right down? Perhaps so.
+        if (updateTimer !== null) {
+            Script.clearTimeout(updateTimer);
+            updateTimer = null;
+        }
+
+        setState(PROXY_HIDDEN);
+
+        HMD.displayModeChanged.disconnect(onMountedChanged);
+        HMD.mountedChanged.disconnect(onMountedChanged);
 
         Messages.messageReceived.disconnect(onMessageReceived);
         Messages.unsubscribe(HIFI_OBJECT_MANIPULATION_CHANNEL);
 
         MyAvatar.scaleChanged.disconnect(onScaleChanged);
-
-        HMD.displayModeChanged.disconnect(onMountedChanged);
-        HMD.mountedChanged.disconnect(onMountedChanged);
-        if (updateTimer !== null) {
-            Script.clearTimeout(updateTimer);
-            updateTimer = null;
-        }
-        if (proxyOverlay !== null) {
-            Overlays.deleteOverlay(proxyOverlay);
-        }
     }
 
     setUp();
