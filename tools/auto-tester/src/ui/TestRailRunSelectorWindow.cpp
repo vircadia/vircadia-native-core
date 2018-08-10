@@ -96,6 +96,5 @@ void TestRailRunSelectorWindow::updateSectionsComboBoxData(QStringList data) {
 }
 
 int TestRailRunSelectorWindow::getSectionID() {
-    return 0;
-    sectionsComboBox->currentIndex();
+    return sectionsComboBox->currentIndex();
 }

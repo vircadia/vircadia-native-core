@@ -205,7 +205,9 @@ void SecondaryCameraRenderTask::build(JobModel& task, const render::Varying& inp
     const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor, render::ItemKey::TAG_BITS_1, render::ItemKey::TAG_BITS_1);
     assert(items.canCast<RenderFetchCullSortTask::Output>());
     if (isDeferred) {
-        task.addJob<RenderDeferredTask>("RenderDeferredTask", items, false);
+        const render::Varying cascadeSceneBBoxes;
+        const auto renderInput = RenderDeferredTask::Input(items, cascadeSceneBBoxes).asVarying();
+        task.addJob<RenderDeferredTask>("RenderDeferredTask", renderInput, false);
     } else {
         task.addJob<RenderForwardTask>("Forward", items);
     }

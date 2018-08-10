@@ -260,8 +260,8 @@ SelectionManager = (function() {
 
                 // Re-apply actions from the original entity
                 var actionIDs = Entities.getActionIDs(properties.id);
-                for (var i = 0; i < actionIDs.length; ++i) {
-                    var actionID = actionIDs[i];
+                for (var j = 0; j < actionIDs.length; ++j) {
+                    var actionID = actionIDs[j];
                     var actionArguments = Entities.getActionArguments(properties.id, actionID);
                     if (actionArguments) {
                         var type = actionArguments.type;
@@ -413,7 +413,7 @@ SelectionDisplay = (function() {
     var ROTATE_CTRL_SNAP_ANGLE = 22.5;
     var ROTATE_DEFAULT_SNAP_ANGLE = 1;
     var ROTATE_DEFAULT_TICK_MARKS_ANGLE = 5;
-    var ROTATE_RING_IDLE_INNER_RADIUS = 0.95;
+    var ROTATE_RING_IDLE_INNER_RADIUS = 0.92;
     var ROTATE_RING_SELECTED_INNER_RADIUS = 0.9;
 
     // These are multipliers for sizing the rotation degrees display while rotating an entity
@@ -494,6 +494,7 @@ SelectionDisplay = (function() {
     that.replaceCollisionsAfterStretch = false;
 
     var handlePropertiesTranslateArrowCones = {
+        alpha: 1,
         shape: "Cone",
         solid: true,
         visible: false,
@@ -501,6 +502,7 @@ SelectionDisplay = (function() {
         drawInFront: true
     };
     var handlePropertiesTranslateArrowCylinders = {
+        alpha: 1,
         shape: "Cylinder",
         solid: true,
         visible: false,
@@ -577,6 +579,7 @@ SelectionDisplay = (function() {
     });
 
     var handlePropertiesStretchSpheres = {
+        alpha: 1,
         shape: "Sphere",
         solid: true,
         visible: false,
@@ -606,6 +609,7 @@ SelectionDisplay = (function() {
     Overlays.editOverlay(handleStretchZPanel, { color: COLOR_BLUE });
 
     var handlePropertiesScaleCubes = {
+        alpha: 1,
         size: 0.025,
         color: COLOR_SCALE_CUBE,
         solid: true,
@@ -624,6 +628,7 @@ SelectionDisplay = (function() {
     var handleScaleRTFCube = Overlays.addOverlay("cube", handlePropertiesScaleCubes); // ( x,  y,  z)
 
     var handlePropertiesScaleEdge = {
+        alpha: 1,
         color: COLOR_SCALE_EDGE,
         visible: false,
         ignoreRayIntersection: true,
@@ -644,6 +649,7 @@ SelectionDisplay = (function() {
     var handleScaleFLEdge = Overlays.addOverlay("line3d", handlePropertiesScaleEdge);
 
     var handleCloner = Overlays.addOverlay("cube", {
+        alpha: 1,
         size: 0.05,
         color: COLOR_GREEN,
         solid: true,

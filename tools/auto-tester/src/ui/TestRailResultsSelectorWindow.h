@@ -1,22 +1,22 @@
 //
-//  TestRailTestCasesSelectorWindow.h
+//  TestRailResultsSelectorWindow.h
 //
-//  Created by Nissim Hadar on 26 Jul 2017.
+//  Created by Nissim Hadar on 2 Aug 2017.
 //  Copyright 2013 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#ifndef hifi_TestRailTestCasesSelectorWindow_h
-#define hifi_TestRailTestCasesSelectorWindow_h
+#ifndef hifi_TestRailResultsSelectorWindow_h
+#define hifi_TestRailResultsSelectorWindow_h
 
-#include "ui_TestRailTestCasesSelectorWindow.h"
+#include "ui_TestRailResultsSelectorWindow.h"
 
-class TestRailTestCasesSelectorWindow : public QDialog, public Ui::TestRailTestCasesSelectorWindow {
+class TestRailResultsSelectorWindow : public QDialog, public Ui::TestRailResultsSelectorWindow {
     Q_OBJECT
 
 public:
-    TestRailTestCasesSelectorWindow(QWidget* parent = Q_NULLPTR);
+    TestRailResultsSelectorWindow(QWidget* parent = Q_NULLPTR);
 
     void reset();
 
@@ -38,8 +38,8 @@ public:
 
     bool userCancelled{ false };
 
-    void updateReleasesComboBoxData(QStringList data);
-    int getReleaseID();
+    void updateRunsComboBoxData(QStringList data);
+    int getRunID();
 
 private slots:
     void on_acceptButton_clicked();
