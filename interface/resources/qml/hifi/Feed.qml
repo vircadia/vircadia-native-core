@@ -156,7 +156,9 @@ Column {
         onCurrentIndexChanged: {
             if (root.autoScrollTimerEnabled) {
                 autoScrollTimer.interval = suggestions.get(scroll.currentIndex).time_before_autoscroll_ms;
-                autoScrollTimer.start();
+                if (!feedMouseArea.containsMouse) {
+                    autoScrollTimer.start();
+                }
             }
         }
 
