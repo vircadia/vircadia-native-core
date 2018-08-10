@@ -1134,6 +1134,20 @@ public slots:
     float getGravity();
 
     /**jsdoc
+     * Move the avatar to a new position and/or orientation in the domain, while taking into account Avatar leg-length.
+     * @function MyAvatar.goToFeetLocation
+     * @param {Vec3} position - The new position for the avatar, in world coordinates.
+     * @param {boolean} [hasOrientation=false] - Set to <code>true</code> to set the orientation of the avatar.
+     * @param {Quat} [orientation=Quat.IDENTITY] - The new orientation for the avatar.
+     * @param {boolean} [shouldFaceLocation=false] - Set to <code>true</code> to position the avatar a short distance away from
+     *      the new position and orientate the avatar to face the position.
+     */
+
+    void goToFeetLocation(const glm::vec3& newPosition,
+        bool hasOrientation, const glm::quat& newOrientation,
+        bool shouldFaceLocation);
+
+    /**jsdoc
      * Move the avatar to a new position and/or orientation in the domain.
      * @function MyAvatar.goToLocation
      * @param {Vec3} position - The new position for the avatar, in world coordinates.

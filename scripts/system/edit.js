@@ -2038,10 +2038,16 @@ var PropertiesTool = function (opts) {
     };
 
     that.setVisible(false);
+    
+    function emitScriptEvent(data) {
+        var dataString = JSON.stringify(data);
+        webView.emitScriptEvent(dataString);
+        createToolsWindow.emitScriptEvent(dataString);
+    }
 
     function updateScriptStatus(info) {
         info.type = "server_script_status";
-        webView.emitScriptEvent(JSON.stringify(info));
+        emitScriptEvent(info);
     }
 
     function resetScriptStatus() {
@@ -2094,8 +2100,7 @@ var PropertiesTool = function (opts) {
         }
         data.selections = selections;
 
-        webView.emitScriptEvent(JSON.stringify(data));
-        createToolsWindow.emitScriptEvent(JSON.stringify(data));
+        emitScriptEvent(data);
     }
     selectionManager.addEventListener(updateSelections);
 

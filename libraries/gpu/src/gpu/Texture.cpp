@@ -43,14 +43,6 @@ bool recommendedSparseTextures = (QThread::idealThreadCount() >= MIN_CORES_FOR_I
 
 std::atomic<bool> Texture::_enableSparseTextures { recommendedSparseTextures };
 
-struct ReportTextureState {
-    ReportTextureState() {
-        qCDebug(gpulogging) << "[TEXTURE TRANSFER SUPPORT]"
-            << "\n\tidealThreadCount:" << QThread::idealThreadCount()
-            << "\n\tRECOMMENDED enableSparseTextures:" << recommendedSparseTextures;
-    }
-} report;
-
 void Texture::setEnableSparseTextures(bool enabled) {
 #ifdef Q_OS_WIN
     qCDebug(gpulogging) << "[TEXTURE TRANSFER SUPPORT] SETTING - Enable Sparse Textures and Dynamic Texture Management:" << enabled;

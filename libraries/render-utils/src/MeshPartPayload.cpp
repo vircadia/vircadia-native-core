@@ -157,8 +157,10 @@ void MeshPartPayload::render(RenderArgs* args) {
     bindMesh(batch);
 
     // apply material properties
-    RenderPipelines::bindMaterial(!_drawMaterials.empty() ? _drawMaterials.top().material : DEFAULT_MATERIAL, batch, args->_enableTexturing);
-    args->_details._materialSwitches++;
+    if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
+        RenderPipelines::bindMaterial(!_drawMaterials.empty() ? _drawMaterials.top().material : DEFAULT_MATERIAL, batch, args->_enableTexturing);
+        args->_details._materialSwitches++;
+    }
 
     // Draw!
     {
@@ -417,8 +419,10 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     bindMesh(batch);
 
     // apply material properties
-    RenderPipelines::bindMaterial(!_drawMaterials.empty() ? _drawMaterials.top().material : DEFAULT_MATERIAL, batch, args->_enableTexturing);
-    args->_details._materialSwitches++;
+    if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
+        RenderPipelines::bindMaterial(!_drawMaterials.empty() ? _drawMaterials.top().material : DEFAULT_MATERIAL, batch, args->_enableTexturing);
+        args->_details._materialSwitches++;
+    }
 
     // Draw!
     {

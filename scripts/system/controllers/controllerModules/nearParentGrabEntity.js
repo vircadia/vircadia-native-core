@@ -100,6 +100,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.startNearParentingGrabEntity = function (controllerData, targetProps) {
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
             unhighlightTargetEntity(this.targetEntityID);
+            this.highlightedEntity = null;
             var message = {
                 hand: this.hand,
                 entityID: this.targetEntityID
@@ -177,6 +178,7 @@ Script.include("/~/system/libraries/controllers.js");
                 joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
             }));
             unhighlightTargetEntity(this.targetEntityID);
+            this.highlightedEntity = null;
             this.grabbing = false;
             this.targetEntityID = null;
             this.robbed = false;
@@ -268,10 +270,12 @@ Script.include("/~/system/libraries/controllers.js");
                         Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
                         this.hapticTargetID = props.id;
                     }
-                    // if we've attempted to grab a child, roll up to the root of the tree
-                    var groupRootProps = findGroupParent(controllerData, props);
-                    if (entityIsGrabbable(groupRootProps)) {
-                        return groupRootProps;
+                    if (!entityIsCloneable(props)) {
+                        // if we've attempted to grab a non-cloneable child, roll up to the root of the tree
+                        var groupRootProps = findGroupParent(controllerData, props);
+                        if (entityIsGrabbable(groupRootProps)) {
+                            return groupRootProps;
+                        }
                     }
                     return props;
                 }
@@ -304,6 +308,10 @@ Script.include("/~/system/libraries/controllers.js");
                     return makeRunningValues(true, [this.targetEntityID], []);
                 }
             } else {
+                if (this.highlightedEntity) {
+                    unhighlightTargetEntity(this.highlightedEntity);
+                    this.highlightedEntity = null;
+                }
                 this.hapticTargetID = null;
                 this.robbed = false;
                 return makeRunningValues(false, [], []);
@@ -322,6 +330,7 @@ Script.include("/~/system/libraries/controllers.js");
                 if (!props) {
                     // entity was deleted
                     unhighlightTargetEntity(this.targetEntityID);
+                    this.highlightedEntity = null;
                     this.grabbing = false;
                     this.targetEntityID = null;
                     this.hapticTargetID = null;
@@ -344,6 +353,7 @@ Script.include("/~/system/libraries/controllers.js");
                 if (!readiness.active) {
                     this.robbed = false;
                     unhighlightTargetEntity(this.highlightedEntity);
+                    this.highlightedEntity = null;
                     return readiness;
                 }
                 if (controllerData.triggerClicks[this.hand] || controllerData.secondaryValues[this.hand] > BUMPER_ON_VALUE) {

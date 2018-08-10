@@ -368,7 +368,6 @@ void Agent::executeScript() {
     // give scripts access to the Users object
     _scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
 
-
     auto player = DependencyManager::get<recording::Deck>();
     connect(player.data(), &recording::Deck::playbackStateChanged, [=] {
         if (player->isPlaying()) {
