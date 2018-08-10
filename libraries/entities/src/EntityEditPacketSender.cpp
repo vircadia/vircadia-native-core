@@ -74,7 +74,7 @@ void EntityEditPacketSender::queueEditAvatarEntityMessage(PacketType type,
     jsonProperties = QJsonDocument(jsonObject);
 
     QByteArray binaryProperties = jsonProperties.toBinaryData();
-    _myAvatar->updateAvatarEntity(entityItemID, binaryProperties);
+    _myAvatar->updateAvatarEntity(entityItemID, binaryProperties, false);
 
     entity->setLastBroadcast(usecTimestampNow());
 }
@@ -148,11 +148,6 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
 }
 
 void EntityEditPacketSender::queueEraseEntityMessage(const EntityItemID& entityItemID) {
-
-    // in case this was a clientOnly entity:
-    if(_myAvatar) {
-        _myAvatar->clearAvatarEntity(entityItemID);
-    }
 
     QByteArray bufferOut(NLPacket::maxPayloadSize(PacketType::EntityErase), 0);
 

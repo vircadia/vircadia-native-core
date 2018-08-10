@@ -1292,7 +1292,6 @@ void MyAvatar::loadData() {
         // HACK: manually remove empty 'avatarEntityData' else legacy data may persist in settings file
         settings.remove("avatarEntityData");
     }
-    setAvatarEntityDataChanged(true);
 
     // Flying preferences must be loaded before calling setFlyingEnabled()
     Setting::Handle<bool> firstRunVal { Settings::firstRun, true };

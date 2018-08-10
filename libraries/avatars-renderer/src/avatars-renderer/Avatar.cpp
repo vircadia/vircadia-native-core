@@ -224,13 +224,23 @@ void Avatar::setAvatarEntityDataChanged(bool value) {
 
 void Avatar::updateAvatarEntities() {
     PerformanceTimer perfTimer("attachments");
+
+    // AVATAR ENTITY UPDATE FLOW
     // - if queueEditEntityMessage sees clientOnly flag it does _myAvatar->updateAvatarEntity()
-    // - updateAvatarEntity saves the bytes and sets _avatarEntityDataLocallyEdited
-    // - MyAvatar::update notices _avatarEntityDataLocallyEdited and calls sendIdentityPacket
-    // - sendIdentityPacket sends the entity bytes to the server which relays them to other interfaces
-    // - AvatarHashMap::processAvatarIdentityPacket on other interfaces call avatar->setAvatarEntityData()
-    // - setAvatarEntityData saves the bytes and sets _avatarEntityDataChanged = true
+    // - updateAvatarEntity saves the bytes and flags the trait instance for the entity as updated
+    // - ClientTraitsHandler::sendChangedTraitsToMixer sends the entity bytes to the mixer which relays them to other interfaces
+    // - AvatarHashMap::processBulkAvatarTraits on other interfaces calls avatar->processTraitInstace
+    // - AvatarData::processTraitInstance calls updateAvatarEntity, which sets _avatarEntityDataChanged = true
     // - (My)Avatar::simulate notices _avatarEntityDataChanged and here we are...
+
+    // AVATAR ENTITY DELETE FLOW
+    // - EntityScriptingInterface::deleteEntity calls _myAvatar->clearAvatarEntity() for deleted avatar entities
+    // - clearAvatarEntity removes the avatar entity and flags the trait instance for the entity as deleted
+    // - ClientTraitsHandler::sendChangedTraitsToMixer sends a deletion to the mixer which relays to other interfaces
+    // - AvatarHashMap::processBulkAvatarTraits on other interfaces calls avatar->processDeletedTraitInstace
+    // - AvatarData::processDeletedTraitInstance calls clearAvatarEntity
+    // - AvatarData::clearAvatarEntity sets _avatarEntityDataChanged = true and adds the ID to the detached list
+    // - Avatar::simulate notices _avatarEntityDataChanged and here we are...
 
     if (!_avatarEntityDataChanged) {
         return;

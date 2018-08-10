@@ -1898,7 +1898,7 @@ void AvatarData::processTraitInstance(AvatarTraits::TraitType traitType,
 
 void AvatarData::processDeletedTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID) {
     if (traitType == AvatarTraits::AvatarEntity) {
-        removeAvatarEntityAndDetach(instanceID);
+        clearAvatarEntity(instanceID);
     }
 }
 
@@ -2687,7 +2687,7 @@ void AvatarData::setAttachmentsVariant(const QVariantList& variant) {
 
 const int MAX_NUM_AVATAR_ENTITIES = 42;
 
-void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) {
+void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData, bool requiresTreeUpdate) {
     _avatarEntitiesLock.withWriteLock([&] {
         AvatarEntityMap::iterator itr = _avatarEntityData.find(entityID);
         if (itr == _avatarEntityData.end()) {
@@ -2699,6 +2699,10 @@ void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& ent
         }
     });
 
+    if (requiresTreeUpdate) {
+        _avatarEntityDataChanged = true;
+    }
+
     if (_clientTraitsHandler) {
         // we have a client traits handler, so we need to mark this instanced trait as changed
         // so that changes will be sent next frame
@@ -2706,24 +2710,25 @@ void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& ent
     }
 }
 
-void AvatarData::clearAvatarEntity(const QUuid& entityID) {
-    _avatarEntitiesLock.withWriteLock([&] {
-        _avatarEntityData.remove(entityID);
+void AvatarData::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree) {
+
+    bool removedEntity = false;
+
+    _avatarEntitiesLock.withWriteLock([this, &removedEntity, &entityID] {
+        removedEntity = _avatarEntityData.remove(entityID);
     });
 
-    if (_clientTraitsHandler) {
-        // we have a client traits handler, so we need to mark this removed instance trait as changed
-        // so that changes are sent next frame
-        _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, entityID);
+    if (removedEntity) {
+        if (requiresRemovalFromTree) {
+            insertDetachedEntityID(entityID);
+        }
+
+        if (_clientTraitsHandler) {
+            // we have a client traits handler, so we need to mark this removed instance trait as changed
+            // so that changes are sent next frame
+            _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, entityID);
+        }
     }
-}
-
-void AvatarData::removeAvatarEntityAndDetach(const QUuid &entityID) {
-    _avatarEntitiesLock.withWriteLock([this, &entityID]{
-        _avatarEntityData.remove(entityID);
-    });
-
-    insertDetachedEntityID(entityID);
 }
 
 AvatarEntityMap AvatarData::getAvatarEntityData() const {
@@ -2738,6 +2743,8 @@ void AvatarData::insertDetachedEntityID(const QUuid entityID) {
     _avatarEntitiesLock.withWriteLock([&] {
         _avatarEntityDetached.insert(entityID);
     });
+
+    _avatarEntityDataChanged = true;
 }
 
 void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {

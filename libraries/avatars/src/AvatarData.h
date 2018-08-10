@@ -925,13 +925,13 @@ public:
      * @param {Uuid} entityID
      * @param {string} entityData
      */
-    Q_INVOKABLE void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData);
+    Q_INVOKABLE void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData, bool requiresTreeUpdate = true);
 
     /**jsdoc
      * @function MyAvatar.clearAvatarEntity
      * @param {Uuid} entityID
      */
-    Q_INVOKABLE void clearAvatarEntity(const QUuid& entityID);
+    Q_INVOKABLE void clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree = true);
 
 
     /**jsdoc
@@ -1317,8 +1317,6 @@ protected:
     glm::vec3 _handPosition;
     virtual const QString& getSessionDisplayNameForTransport() const { return _sessionDisplayName; }
     virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) { } // No-op in AvatarMixer
-
-    void removeAvatarEntityAndDetach(const QUuid& entityID);
 
     // Body scale
     float _targetScale;
