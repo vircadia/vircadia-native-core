@@ -507,7 +507,7 @@
                     "originalTextures": "{\n    \"file5\": \"http://mpassets.highfidelity.com/11c4208d-15d7-4449-9758-a08da6dbd3dc-v1/Fedora.fbx/Texture/Fedora_Hat1_Base_Color.png\",\n    \"file7\": \"http://mpassets.highfidelity.com/11c4208d-15d7-4449-9758-a08da6dbd3dc-v1/Fedora.fbx/Texture/Fedora_Hat1_Roughness.png\"\n}\n",
                     "owningAvatarID": "{4c770def-4abb-40c6-91a1-88da5247b2db}",
                     "parentID": "{4c770def-4abb-40c6-91a1-88da5247b2db}",
-                    "parentJointIndex": 64,
+                    "parentJointIndex": 63,
                     "position": {
                         "x": -0.030000008642673492,
                         "y": 0.12999820709228516,
