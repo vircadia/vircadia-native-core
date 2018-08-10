@@ -121,8 +121,6 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
             // Read sequence #
             OCTREE_PACKET_SEQUENCE completionNumber;
             message->readPrimitive(&completionNumber);
-
-            completionNumber;
             _safeLanding->setCompletionSequenceNumbers(0, completionNumber);
         } break;
 
