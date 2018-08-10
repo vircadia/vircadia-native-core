@@ -59,6 +59,8 @@ public:
     DomainServer(int argc, char* argv[]);
     ~DomainServer();
 
+    static void parseCommandLine(int argc, char* argv[]);
+
     enum DomainType {
         NonMetaverse,
         MetaverseDomain,
@@ -138,7 +140,6 @@ signals:
 
 private:
     QUuid getID();
-    void parseCommandLine();
 
     QString getContentBackupDir();
     QString getEntitiesDirPath();
@@ -228,7 +229,7 @@ private:
     QQueue<SharedAssignmentPointer> _unfulfilledAssignments;
     TransactionHash _pendingAssignmentCredits;
 
-    bool _isUsingDTLS;
+    bool _isUsingDTLS { false };
 
     QUrl _oauthProviderURL;
     QString _oauthClientID;
@@ -265,10 +266,13 @@ private:
     friend class DomainGatekeeper;
     friend class DomainMetadata;
 
-    QString _iceServerAddr;
-    int _iceServerPort;
-    bool _overrideDomainID { false }; // should we override the domain-id from settings?
-    QUuid _overridingDomainID { QUuid() }; // what should we override it with?
+    static QString _iceServerAddr;
+    static int _iceServerPort;
+    static bool _overrideDomainID; // should we override the domain-id from settings?
+    static QUuid _overridingDomainID; // what should we override it with?
+    static bool _getTempName;
+    static QString _userConfigFilename;
+    static int _parentPID;
 
     bool _sendICEServerAddressToMetaverseAPIInProgress { false };
     bool _sendICEServerAddressToMetaverseAPIRedo { false };

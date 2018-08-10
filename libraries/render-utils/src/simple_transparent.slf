@@ -11,8 +11,10 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+<@include DefaultMaterials.slh@>
 
-<@include DeferredBufferWrite.slh@>
+<@include DeferredGlobalLight.slh@>
+<$declareEvalGlobalLightingAlphaBlendedWithHaze()$>
 
 <@include render-utils/ShaderConstants.h@>
 
@@ -25,6 +27,8 @@ layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
 #define _texCoord1 _texCoord01.zw
 layout(location=RENDER_UTILS_ATTR_POSITION_MS) in vec4 _positionMS;
 layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _positionES;
+
+layout(location=0) out vec4 _fragColor0;
 
 // For retro-compatibility
 #define _normal      _normalWS
@@ -48,9 +52,9 @@ void main(void) {
 #ifdef PROCEDURAL
 
 #ifdef PROCEDURAL_V1
-    specular = getProceduralColor().rgb;
+    diffuse = getProceduralColor().rgb;
     // Procedural Shaders are expected to be Gamma corrected so let's bring back the RGB in linear space for the rest of the pipeline
-    //specular = pow(specular, vec3(2.2));
+    //diffuse = pow(diffuse, vec3(2.2));
     emissiveAmount = 1.0;
 #else
     emissiveAmount = getProceduralColors(diffuse, specular, shininess);
@@ -58,19 +62,23 @@ void main(void) {
 
 #endif
 
+    TransformCamera cam = getTransformCamera();
+    vec3 fragPosition = _positionES.xyz;
+
     if (emissiveAmount > 0.0) {
-        packDeferredFragmentTranslucent(
-            normal,
-            _color.a,
-            specular,
-            DEFAULT_FRESNEL,
-            DEFAULT_ROUGHNESS);
+        _fragColor0 = vec4(diffuse, _color.a);
     } else {
-        packDeferredFragmentTranslucent(
+        _fragColor0 = vec4(evalGlobalLightingAlphaBlendedWithHaze(
+            cam._viewInverse,
+            1.0,
+            DEFAULT_OCCLUSION,
+            fragPosition,
             normal,
-            _color.a,
             diffuse,
             DEFAULT_FRESNEL,
-            DEFAULT_ROUGHNESS);
+            length(specular),
+            DEFAULT_EMISSIVE,
+            max(0.0, 1.0 - shininess / 128.0), _color.a),
+            _color.a);
     }
 }

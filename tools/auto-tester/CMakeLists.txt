@@ -5,7 +5,7 @@ project(${TARGET_NAME})
 SET (CMAKE_AUTOUIC ON) 
 SET (CMAKE_AUTOMOC ON) 
 
-setup_hifi_project (Core Widgets Network)
+setup_hifi_project (Core Widgets Network Xml)
 link_hifi_libraries ()
 
 # FIX: Qt was built with -reduce-relocations
@@ -18,7 +18,7 @@ include_directories (${CMAKE_CURRENT_SOURCE_DIR})
 include_directories (${Qt5Core_INCLUDE_DIRS})
 include_directories (${Qt5Widgets_INCLUDE_DIRS})
 
-set (QT_LIBRARIES Qt5::Core Qt5::Widgets)
+set (QT_LIBRARIES Qt5::Core Qt5::Widgets QT::Gui Qt5::Xml)
 
 if (WIN32)
     # Do not show Console
