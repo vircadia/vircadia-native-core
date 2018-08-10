@@ -122,12 +122,19 @@ void ClientTraitsHandler::processTraitOverride(QSharedPointer<ReceivedMessage> m
             if (traitType == AvatarTraits::SkeletonModelURL
                 && traitVersion == _currentSkeletonVersion
                 && _traitStatuses[AvatarTraits::SkeletonModelURL] != Updated) {
+
                 // override the skeleton URL but do not mark the trait as having changed
-                // so that we don't unecessarily sent a new trait packet to the mixer with the overriden URL
+                // so that we don't unecessarily send a new trait packet to the mixer with the overriden URL
                 auto encodedSkeletonURL = QUrl::fromEncoded(message->readWithoutCopy(traitBinarySize));
+
+                auto hasChangesBefore = _hasChangedTraits;
+
                 _owningAvatar->setSkeletonModelURL(encodedSkeletonURL);
 
+                // setSkeletonModelURL will flag us for changes to the SkeletonModelURL so we reset some state here to
+                // avoid unnecessarily sending the overriden skeleton model URL back to the mixer
                 _traitStatuses.erase(AvatarTraits::SkeletonModelURL);
+                _hasChangedTraits = hasChangesBefore;
             } else {
                 message->seek(message->getPosition() + traitBinarySize);
             }
