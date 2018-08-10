@@ -127,7 +127,8 @@ public:
     bool getProjectedRect(const AABox& box, glm::vec2& bottomLeft, glm::vec2& topRight) const;
     void getFurthestPointFromCamera(const AACube& box, glm::vec3& furthestPoint) const;
 
-    float distanceToCamera(const glm::vec3& point) const;
+    float distanceToCameraSquared(const glm::vec3& point) const;
+    float distanceToCamera(const glm::vec3& point) const { return sqrtf(distanceToCameraSquared(point)); }
 
     void evalProjectionMatrix(glm::mat4& proj) const;
 
