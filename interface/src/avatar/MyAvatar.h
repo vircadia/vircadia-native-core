@@ -138,6 +138,8 @@ class MyAvatar : public Avatar {
      *     where MyAvatar.sessionUUID is not available (e.g., if not connected to a domain). Note: Likely to be deprecated. 
      *     <em>Read-only.</em>
      * @property {number} walkSpeed
+     * @property {number} walkBackwardSpeed
+     * @property {number} sprintSpeed
      *
      * @property {Vec3} skeletonOffset - Can be used to apply a translation offset between the avatar's position and the
      *     registration point of the 3D model.
@@ -233,6 +235,8 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(QUuid SELF_ID READ getSelfID CONSTANT)
 
     Q_PROPERTY(float walkSpeed READ getWalkSpeed WRITE setWalkSpeed);
+    Q_PROPERTY(float walkBackwardSpeed READ getWalkBackwardSpeed WRITE setWalkBackwardSpeed);
+    Q_PROPERTY(float sprintSpeed READ getSprintSpeed WRITE setSprintSpeed);
 
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
@@ -1074,6 +1078,10 @@ public:
 
     void setWalkSpeed(float value);
     float getWalkSpeed() const;
+    void setWalkBackwardSpeed(float value);
+    float getWalkBackwardSpeed() const;
+    void setSprintSpeed(float value);
+    float getSprintSpeed() const;
 
     QVector<QString> getScriptUrls();
 
@@ -1745,6 +1753,8 @@ private:
 
     // max unscaled forward movement speed
     ThreadSafeValueCache<float> _walkSpeed { DEFAULT_AVATAR_MAX_WALKING_SPEED };
+    ThreadSafeValueCache<float> _walkBackwardSpeed { DEFAULT_AVATAR_MAX_WALKING_BACKWARD_SPEED };
+    ThreadSafeValueCache<float> _sprintSpeed { AVATAR_SPRINT_SPEED_SCALAR };
     float _walkSpeedScalar { AVATAR_WALK_SPEED_SCALAR };
 
     // load avatar scripts once when rig is ready
