@@ -34,8 +34,7 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/emote.js"
 ];
 var DEFAULT_SCRIPTS_SEPARATE = [
-    "system/controllers/controllerScripts.js",
-    "system/interstitialPage.js"
+    "system/controllers/controllerScripts.js"
     //"system/chat.js"
 ];
 

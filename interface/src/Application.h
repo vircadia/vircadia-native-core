@@ -631,7 +631,7 @@ private:
     QSet<int> _keysPressed;
 
     bool _enableProcessOctreeThread;
-    bool _interstitialMode { true };
+    bool _interstitialMode { false };
 
     OctreePacketProcessor _octreeProcessor;
     EntityEditPacketSender _entityEditSender;

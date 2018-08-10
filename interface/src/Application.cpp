@@ -2973,6 +2973,9 @@ void Application::initializeUi() {
     if (_window && _window->isFullScreen()) {
         setFullscreen(nullptr, true);
     }
+
+
+    setIsInterstitialMode(true);
 }
 
 
@@ -3451,13 +3454,15 @@ bool Application::isServerlessMode() const {
 }
 
 bool Application::isInterstitialMode() const {
-    return _interstitialMode;
+    bool interstitialModeEnabled = Menu::getInstance()->isOptionChecked("Enable Interstitial");
+    return interstitialModeEnabled ? _interstitialMode : false;
 }
 
 void Application::setIsInterstitialMode(bool interstitialMode) {
-    if (_interstitialMode != interstitialMode) {
-        qDebug() << "-------> interstitial mode changed: " << _interstitialMode << " ------------> ";
+    bool interstitialModeEnabled = Menu::getInstance()->isOptionChecked("Enable Interstitial");
+    if (_interstitialMode != interstitialMode && interstitialModeEnabled) {
         _interstitialMode = interstitialMode;
+        qDebug() << "-------> interstitial mode changed: " << _interstitialMode << " ------------> ";
         emit interstitialModeChanged(_interstitialMode);
     }
 }

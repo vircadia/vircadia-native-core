@@ -15,8 +15,8 @@
 (function() {
     Script.include("/~/system/libraries/Xform.js");
     var DEBUG = true;
-    var MAX_X_SIZE = 4;
-    var EPSILON = 0.25;
+    var MAX_X_SIZE = 3.8;
+    var EPSILON = 0.01;
     var isVisible = false;
     var STABILITY = 3.0;
     var VOLUME = 0.4;
@@ -149,8 +149,8 @@
 
     var loadingBarPlacard = Overlays.addOverlay("image3d", {
         name: "Loading-Bar-Placard",
-        localPosition: { x: 0.0, y: -0.99, z: 0.0 },
-        url: "http://hifi-content.s3.amazonaws.com/alexia/LoadingScreens/loadingBar_placard.png",
+        localPosition: { x: 0.0, y: -0.99, z: 0.3 },
+        url: Script.resourcesPath() + "images/loadingBar_placard.png",
         alpha: 1,
         dimensions: { x: 4, y: 2.8},
         visible: isVisible,
@@ -164,10 +164,10 @@
 
     var loadingBarProgress = Overlays.addOverlay("image3d", {
         name: "Loading-Bar-Progress",
-        localPosition: { x: 0.0, y: -0.99, z: 0.0 },
-        url: Script.resourcesPath() + "images/loadingBar_v1.png",
+        localPosition: { x: 0.0, y: -0.90, z: 0.0 },
+        url: Script.resourcesPath() + "images/loadingBar_progress.png",
         alpha: 1,
-        dimensions: {x: 4, y: 2.8},
+        dimensions: {x: 3.8, y: 2.8},
         visible: isVisible,
         emissive: true,
         ignoreRayIntersection: false,
@@ -285,7 +285,7 @@
         }
     }
 
-    var THE_PLACE = "hifi://TheSpot";
+    var THE_PLACE = "hifi://TheSpot-dev";
     function clickedOnOverlay(overlayID, event) {
         print(overlayID + " other: " + loadingToTheSpotID);
         if (loadingToTheSpotID === overlayID) {
@@ -309,6 +309,11 @@
             visible: !physicsEnabled
         };
 
+        var loadingBarProperties = {
+            dimensions: { x: 0.0, y: 2.8 },
+            visible: !physicsEnabled
+        };
+
         // Menu.setIsOptionChecked("Show Overlays", physicsEnabled);
 
         if (!HMD.active) {
@@ -324,7 +329,7 @@
         Overlays.editOverlay(domainDescription, domainTextProperties);
         Overlays.editOverlay(domainToolTip, properties);
         Overlays.editOverlay(loadingBarPlacard, properties);
-        Overlays.editOverlay(loadingBarProgress, properties);
+        Overlays.editOverlay(loadingBarProgress, loadingBarProperties);
 
         Camera.mode = "first person";
     }
@@ -349,13 +354,13 @@
         lastInterval = thisInterval;
         timeElapsed += deltaTime;
 
-        progress += MAX_X_SIZE * (deltaTime / 1000);
-        print(progress);
+        progress += (deltaTime / 1000);
         if (progress > MAX_X_SIZE) {
-            progress = 4;
+            progress = MAX_X_SIZE;
         }
+
         var properties = {
-            localPosition: { x: 2.0 - (progress / 2), y: -0.99, z: -0.3 },
+            localPosition: { x: (1.85 - (progress / 2) - (-0.029 * (progress / MAX_X_SIZE))), y: -0.935, z: 0.0 },
             dimensions: {
                 x: progress,
                 y: 2.8
@@ -402,7 +407,7 @@
         }
         currentProgress = lerp(currentProgress, target, 0.2);
         var properties = {
-            localPosition: { x: 2 - (currentProgress / 2), y: -0.99, z: -0.3 },
+            localPosition: { x: (1.85 - (progress / 2) - (-0.029 * (progress / MAX_X_SIZE))), y: -0.935, z: 0.0 },
             dimensions: {
                 x: currentProgress,
                 y: 2.8
@@ -410,7 +415,7 @@
         };
         print("progress: " + currentProgress);
         Overlays.editOverlay(loadingBarProgress, properties);
-        if (((physicsEnabled && (currentProgress >= (MAX_X_SIZE - EPSILON))) || connectionToDomainFailed)) {
+        if ((physicsEnabled && (currentProgress >= (MAX_X_SIZE - EPSILON)))) {
             print("----------> ending <--------");
             updateOverlays((physicsEnabled || connectionToDomainFailed));
             endAudio();
@@ -441,7 +446,7 @@
             updateOverlays(toggle);
 
             if (!toggle) {
-                //Script.setTimeout(updateProgress, BASIC_TIMER_INTERVAL_MS);
+                // Script.setTimeout(updateProgress, BASIC_TIMER_INTERVAL_MS);
             }
         });
     }
