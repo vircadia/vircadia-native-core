@@ -17,7 +17,6 @@
 #include <workload/Space.h>
 
 class OtherAvatar : public Avatar {
-    Q_OBJECT
 public:
     explicit OtherAvatar(QThread* thread);
     virtual ~OtherAvatar();
@@ -30,9 +29,6 @@ public:
     void setSpaceIndex(int32_t index);
     int32_t getSpaceIndex() const { return _spaceIndex; }
     void updateSpaceProxy(workload::Transaction& transaction) const;
-
-signals:
-     void spaceUpdate(std::pair<int32_t, glm::vec4> data);
 
 protected:
     std::shared_ptr<Sphere3DOverlay> _otherAvatarOrbMeshPlaceholder { nullptr };
