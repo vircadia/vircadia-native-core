@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>645</width>
-    <height>814</height>
+    <width>432</width>
+    <height>734</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>AutoTester</string>
@@ -17,9 +23,9 @@
    <widget class="QPushButton" name="closeButton">
     <property name="geometry">
      <rect>
-      <x>380</x>
-      <y>620</y>
-      <width>101</width>
+      <x>166</x>
+      <y>610</y>
+      <width>100</width>
       <height>40</height>
      </rect>
     </property>
@@ -27,157 +33,258 @@
      <string>Close</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="createTestsButton">
+   <widget class="QTabWidget" name="tabWidget">
     <property name="geometry">
      <rect>
-      <x>20</x>
-      <y>30</y>
-      <width>220</width>
-      <height>40</height>
+      <x>12</x>
+      <y>140</y>
+      <width>408</width>
+      <height>461</height>
      </rect>
     </property>
-    <property name="text">
-     <string>Create Tests</string>
+    <property name="currentIndex">
+     <number>0</number>
     </property>
+    <widget class="QWidget" name="tab_1">
+     <attribute name="title">
+      <string>Create</string>
+     </attribute>
+     <widget class="QPushButton" name="createTestsButton">
+      <property name="geometry">
+       <rect>
+        <x>96</x>
+        <y>20</y>
+        <width>220</width>
+        <height>40</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Create Tests</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="createMDFileButton">
+      <property name="geometry">
+       <rect>
+        <x>96</x>
+        <y>100</y>
+        <width>220</width>
+        <height>40</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Create MD file</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="createAllMDFilesButton">
+      <property name="geometry">
+       <rect>
+        <x>96</x>
+        <y>150</y>
+        <width>220</width>
+        <height>40</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Create all  MD files</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="createTestsOutlineButton">
+      <property name="geometry">
+       <rect>
+        <x>96</x>
+        <y>230</y>
+        <width>220</width>
+        <height>40</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Create Tests Outline</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="createRecursiveScriptButton">
+      <property name="geometry">
+       <rect>
+        <x>96</x>
+        <y>310</y>
+        <width>220</width>
+        <height>40</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Create Recursive Script</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="createAllRecursiveScriptsButton">
+      <property name="geometry">
+       <rect>
+        <x>96</x>
+        <y>360</y>
+        <width>220</width>
+        <height>40</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Create all  Recursive Scripts</string>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="tab_2">
+     <attribute name="title">
+      <string>Evaluate</string>
+     </attribute>
+     <widget class="QProgressBar" name="progressBar">
+      <property name="geometry">
+       <rect>
+        <x>90</x>
+        <y>100</y>
+        <width>255</width>
+        <height>23</height>
+       </rect>
+      </property>
+      <property name="value">
+       <number>24</number>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="checkBoxInteractiveMode">
+      <property name="geometry">
+       <rect>
+        <x>90</x>
+        <y>50</y>
+        <width>131</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="toolTip">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If unchecked, will not show results during evaluation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+      <property name="text">
+       <string>Interactive Mode</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="evaluateTestsButton">
+      <property name="geometry">
+       <rect>
+        <x>200</x>
+        <y>40</y>
+        <width>101</width>
+        <height>40</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Evaluate Test</string>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="tab_3">
+     <attribute name="title">
+      <string>TestRail</string>
+     </attribute>
+     <widget class="QPushButton" name="updateTestRailRunResultsButton">
+      <property name="geometry">
+       <rect>
+        <x>180</x>
+        <y>160</y>
+        <width>161</width>
+        <height>40</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Update Run Results</string>
+      </property>
+     </widget>
+     <widget class="QRadioButton" name="createPythonScriptRadioButton">
+      <property name="geometry">
+       <rect>
+        <x>80</x>
+        <y>40</y>
+        <width>95</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Python</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="createTestRailRunButton">
+      <property name="geometry">
+       <rect>
+        <x>180</x>
+        <y>100</y>
+        <width>161</width>
+        <height>40</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Create Run</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="createTestRailTestCasesButton">
+      <property name="geometry">
+       <rect>
+        <x>180</x>
+        <y>40</y>
+        <width>161</width>
+        <height>40</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Create Test Cases</string>
+      </property>
+     </widget>
+     <widget class="QRadioButton" name="createXMLScriptRadioButton">
+      <property name="geometry">
+       <rect>
+        <x>80</x>
+        <y>60</y>
+        <width>95</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>XML</string>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="tab_4">
+     <attribute name="title">
+      <string>Windows</string>
+     </attribute>
+     <widget class="QPushButton" name="hideTaskbarButton">
+      <property name="geometry">
+       <rect>
+        <x>100</x>
+        <y>100</y>
+        <width>211</width>
+        <height>40</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Hide Windows Taskbar</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="showTaskbarButton">
+      <property name="geometry">
+       <rect>
+        <x>100</x>
+        <y>170</y>
+        <width>211</width>
+        <height>40</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Show Windows Taskbar</string>
+      </property>
+     </widget>
+    </widget>
    </widget>
-   <widget class="QPushButton" name="evaluateTestsButton">
+   <widget class="QLabel" name="label_3">
     <property name="geometry">
      <rect>
-      <x>430</x>
-      <y>490</y>
-      <width>101</width>
-      <height>40</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Evaluate Test</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="createRecursiveScriptButton">
-    <property name="geometry">
-     <rect>
-      <x>330</x>
-      <y>340</y>
-      <width>220</width>
-      <height>40</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Create Recursive Script</string>
-    </property>
-   </widget>
-   <widget class="QCheckBox" name="checkBoxInteractiveMode">
-    <property name="geometry">
-     <rect>
-      <x>320</x>
-      <y>500</y>
-      <width>131</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="toolTip">
-     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If unchecked, will not show results during evaluation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-    </property>
-    <property name="text">
-     <string>Interactive Mode</string>
-    </property>
-   </widget>
-   <widget class="QProgressBar" name="progressBar">
-    <property name="geometry">
-     <rect>
-      <x>320</x>
-      <y>550</y>
-      <width>255</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="value">
-     <number>24</number>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="createAllRecursiveScriptsButton">
-    <property name="geometry">
-     <rect>
-      <x>330</x>
-      <y>400</y>
-      <width>220</width>
-      <height>40</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Create all  Recursive Scripts</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="createMDFileButton">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>110</y>
-      <width>220</width>
-      <height>40</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Create MD file</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="createAllMDFilesButton">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>160</y>
-      <width>220</width>
-      <height>40</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Create all  MD files</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="createTestsOutlineButton">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>250</y>
-      <width>220</width>
-      <height>40</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Create Tests Outline</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="showTaskbarButton">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>440</y>
-      <width>211</width>
-      <height>40</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Show Windows Taskbar</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="hideTaskbarButton">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>390</y>
-      <width>211</width>
-      <height>40</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Hide Windows Taskbar</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label">
-    <property name="geometry">
-     <rect>
-      <x>330</x>
-      <y>55</y>
+      <x>110</x>
+      <y>90</y>
       <width>81</width>
       <height>16</height>
      </rect>
@@ -191,11 +298,31 @@
      <string>GitHub Branch</string>
     </property>
    </widget>
-   <widget class="QLabel" name="label_2">
+   <widget class="QTextEdit" name="branchTextEdit">
     <property name="geometry">
      <rect>
-      <x>330</x>
-      <y>15</y>
+      <x>200</x>
+      <y>85</y>
+      <width>140</width>
+      <height>24</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QTextEdit" name="userTextEdit">
+    <property name="geometry">
+     <rect>
+      <x>200</x>
+      <y>47</y>
+      <width>140</width>
+      <height>24</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_4">
+    <property name="geometry">
+     <rect>
+      <x>110</x>
+      <y>50</y>
       <width>81</width>
       <height>16</height>
      </rect>
@@ -209,88 +336,13 @@
      <string>GitHub User</string>
     </property>
    </widget>
-   <widget class="QTextEdit" name="userTextEdit">
-    <property name="geometry">
-     <rect>
-      <x>420</x>
-      <y>12</y>
-      <width>140</width>
-      <height>24</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QTextEdit" name="branchTextEdit">
-    <property name="geometry">
-     <rect>
-      <x>420</x>
-      <y>50</y>
-      <width>140</width>
-      <height>24</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="createTestRailTestCasesButton">
-    <property name="geometry">
-     <rect>
-      <x>410</x>
-      <y>100</y>
-      <width>140</width>
-      <height>40</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Create TestRail Test Cases</string>
-    </property>
-   </widget>
-   <widget class="QRadioButton" name="createPythonScriptRadioButton">
-    <property name="geometry">
-     <rect>
-      <x>310</x>
-      <y>100</y>
-      <width>95</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Python</string>
-    </property>
-    <property name="checked">
-     <bool>true</bool>
-    </property>
-   </widget>
-   <widget class="QRadioButton" name="createXMLScriptRadioButton">
-    <property name="geometry">
-     <rect>
-      <x>310</x>
-      <y>120</y>
-      <width>95</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>XML</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="createTestRailRunButton">
-    <property name="geometry">
-     <rect>
-      <x>410</x>
-      <y>180</y>
-      <width>140</width>
-      <height>40</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Create TestRail Run</string>
-    </property>
-   </widget>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>645</width>
+     <width>432</width>
      <height>21</height>
     </rect>
    </property>
@@ -305,6 +357,7 @@
      <string>Help</string>
     </property>
     <addaction name="actionAbout"/>
+    <addaction name="actionContent"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuHelp"/>
@@ -326,6 +379,11 @@
   <action name="actionAbout">
    <property name="text">
     <string>About</string>
+   </property>
+  </action>
+  <action name="actionContent">
+   <property name="text">
+    <string>Content</string>
    </property>
   </action>
  </widget>

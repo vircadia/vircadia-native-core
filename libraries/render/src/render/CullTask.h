@@ -22,6 +22,22 @@ namespace render {
     void cullItems(const RenderContextPointer& renderContext, const CullFunctor& cullFunctor, RenderDetails::Item& details,
         const ItemBounds& inItems, ItemBounds& outItems);
 
+    // Culling Frustum / solidAngle test helper class
+    struct CullTest {
+        CullFunctor _functor;
+        RenderArgs* _args;
+        RenderDetails::Item& _renderDetails;
+        ViewFrustumPointer _antiFrustum;
+        glm::vec3 _eyePos;
+        float _squareTanAlpha;
+
+        CullTest(CullFunctor& functor, RenderArgs* pargs, RenderDetails::Item& renderDetails, ViewFrustumPointer antiFrustum = nullptr);
+
+        bool frustumTest(const AABox& bound);
+        bool antiFrustumTest(const AABox& bound);
+        bool solidAngleTest(const AABox& bound);
+    };
+
     class FetchNonspatialItems {
     public:
         using JobModel = Job::ModelIO<FetchNonspatialItems, ItemFilter, ItemBounds>;

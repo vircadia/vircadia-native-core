@@ -526,11 +526,13 @@ Item {
         anchors.left: nameCardVUMeter.left;
         // Properties
         visible: (isMyCard || (selected && pal.activeTab == "nearbyTab")) && isPresent;
-        value: Users.getAvatarGain(uuid)
         minimumValue: -60.0
         maximumValue: 20.0
         stepSize: 5
         updateValueWhileDragging: true
+        Component.onCompleted: {
+            value = Users.getAvatarGain(uuid);
+        }
         onValueChanged: {
             updateGainFromQML(uuid, value, false);
         }
@@ -587,9 +589,11 @@ Item {
    }
 
     function updateGainFromQML(avatarUuid, sliderValue, isReleased) {
-        Users.setAvatarGain(avatarUuid, sliderValue);
-        if (isReleased) {
-           UserActivityLogger.palAction("avatar_gain_changed", avatarUuid);
+        if (Users.getAvatarGain(avatarUuid) != sliderValue) {
+            Users.setAvatarGain(avatarUuid, sliderValue);
+            if (isReleased) {
+                UserActivityLogger.palAction("avatar_gain_changed", avatarUuid);
+            }
         }
     }
 
