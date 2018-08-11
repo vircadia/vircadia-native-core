@@ -45,6 +45,7 @@ void SafeLanding::startEntitySequence(QSharedPointer<EntityTreeRenderer> entityT
             _sequenceNumbers.clear();
             _initialStart = INVALID_SEQUENCE;
             _initialEnd = INVALID_SEQUENCE;
+            EntityTreeRenderer::setEntityLoadingPriorityFunction(&ElevatedPriority);
         }
     }
 }
@@ -106,6 +107,7 @@ bool SafeLanding::isLoadSequenceComplete() {
         _initialStart = INVALID_SEQUENCE;
         _initialEnd = INVALID_SEQUENCE;
         _entityTree = nullptr;
+        EntityTreeRenderer::setEntityLoadingPriorityFunction(StandardPriority);
         qCDebug(interfaceapp) << "Safe Landing: load sequence complete";
     }
 
