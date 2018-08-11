@@ -314,8 +314,6 @@ var toolBar = (function () {
                 direction = MyAvatar.orientation;
             }
             direction = Vec3.multiplyQbyV(direction, Vec3.UNIT_Z);
-            // Align entity with Avatar orientation.
-            properties.rotation = MyAvatar.orientation;
 
             var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Web", "Material"];
             if (PRE_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
