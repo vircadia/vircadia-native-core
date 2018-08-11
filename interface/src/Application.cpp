@@ -7371,7 +7371,8 @@ void Application::addAssetToWorldCheckModelSize() {
             if (!name.toLower().endsWith(PNG_EXTENSION) && !name.toLower().endsWith(JPG_EXTENSION)) {
                 properties.setCollisionless(false);
             }
-            properties.setUserData(GRABBABLE_USER_DATA);
+            bool grabbable = (Menu::getInstance()->isOptionChecked(MenuOption::CreateEntitiesGrabbable));
+            properties.setUserData(grabbable ? GRABBABLE_USER_DATA : NOT_GRABBABLE_USER_DATA);
             properties.setLastEdited(usecTimestampNow());
             entityScriptingInterface->editEntity(entityID, properties);
         }
