@@ -3692,6 +3692,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
             setForceActivateRotation(false);
         }
         if (!isActive(Horizontal) && getForceActivateHorizontal()) {
+            qCDebug(interfaceapp) << "called the recentering from script";
             activate(Horizontal);
             setForceActivateHorizontal(false);
         }
