@@ -806,13 +806,13 @@ var toolBar = (function () {
 
         addButton("newMaterialButton", createNewEntityDialogButtonCallback("Material"));
 
-        var deactiveCreateIfDesktopWindowsHidden = function() {
+        var deactivateCreateIfDesktopWindowsHidden = function() {
             if (!shouldUseEditTabletApp() && !entityListTool.isVisible() && !createToolsWindow.isVisible()) {
                 that.setActive(false);
             }
         };
-        entityListTool.interactiveWindowHidden.addListener(this, deactiveCreateIfDesktopWindowsHidden);
-        createToolsWindow.interactiveWindowHidden.addListener(this, deactiveCreateIfDesktopWindowsHidden);
+        entityListTool.interactiveWindowHidden.addListener(this, deactivateCreateIfDesktopWindowsHidden);
+        createToolsWindow.interactiveWindowHidden.addListener(this, deactivateCreateIfDesktopWindowsHidden);
 
         that.setActive(false);
     }
