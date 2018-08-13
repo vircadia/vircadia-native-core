@@ -863,6 +863,9 @@ void PhysicsEngine::setShowBulletConstraintLimits(bool value) {
     }
 }
 
+const int32_t CONTACT_CALLBACK_FLAG_ENTITY = BULLET_COLLISION_GROUP_STATIC | BULLET_COLLISION_GROUP_KINEMATIC | BULLET_COLLISION_GROUP_DYNAMIC;
+const int32_t CONTACT_CALLBACK_FLAG_AVATAR = USER_COLLISION_GROUP_MY_AVATAR | USER_COLLISION_GROUP_OTHER_AVATAR;
+
 struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
     AllContactsCallback(MotionStateType desiredObjectType, const ShapeInfo& shapeInfo, const Transform& transform, btCollisionObject* myAvatarCollisionObject) :
         btCollisionWorld::ContactResultCallback(),
@@ -879,6 +882,14 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
         bulletTransform.setRotation(glmToBullet(transform.getRotation()));
 
         collisionObject.setWorldTransform(bulletTransform);
+
+        m_collisionFilterGroup = ~0; // Everything collidable should collide with our test object unless we set the filter mask otherwise
+        if (desiredObjectType == MOTIONSTATE_TYPE_AVATAR) {
+            m_collisionFilterMask = CONTACT_CALLBACK_FLAG_AVATAR;
+        }
+        else {
+            m_collisionFilterMask = CONTACT_CALLBACK_FLAG_ENTITY;
+        }
     }
 
     ~AllContactsCallback() {
@@ -889,10 +900,6 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
     btCollisionObject collisionObject;
     std::vector<ContactTestResult> contacts;
     btCollisionObject* myAvatarCollisionObject;
-
-    bool needsCollision(btBroadphaseProxy* proxy) const override {
-        return true;
-    }
 
     btScalar addSingleResult(btManifoldPoint& cp, const btCollisionObjectWrapper* colObj0, int partId0, int index0, const btCollisionObjectWrapper* colObj1, int partId1, int index1) override {
         const btCollisionObject* otherBody;
