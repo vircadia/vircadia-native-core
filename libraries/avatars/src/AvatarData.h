@@ -895,14 +895,14 @@ public:
      * @returns {object} 
      */
     // FIXME: Can this name be improved? Can it be deprecated?
-    Q_INVOKABLE QVariantList getAttachmentsVariant() const;
+    Q_INVOKABLE virtual QVariantList getAttachmentsVariant() const;
 
     /**jsdoc
      * @function MyAvatar.setAttachmentsVariant
      * @param {object} variant
      */
     // FIXME: Can this name be improved? Can it be deprecated?
-    Q_INVOKABLE void setAttachmentsVariant(const QVariantList& variant);
+    Q_INVOKABLE virtual void setAttachmentsVariant(const QVariantList& variant);
 
 
     /**jsdoc
@@ -969,7 +969,7 @@ public:
      *     print (attachments[i].modelURL);
      * }
      */
-    Q_INVOKABLE QVector<AttachmentData> getAttachmentData() const;
+    Q_INVOKABLE virtual QVector<AttachmentData> getAttachmentData() const;
 
     /**jsdoc
      * Set all models currently attached to your avatar. For example, if you retrieve attachment data using 
@@ -1040,7 +1040,7 @@ public:
      * @param {string} [jointName=""] - The name of the joint to detach the model from. If <code>""</code>, then the most 
      *     recently attached model is removed from which ever joint it was attached to.
      */
-    Q_INVOKABLE void detachOne(const QString& modelURL, const QString& jointName = QString());
+    Q_INVOKABLE virtual void detachOne(const QString& modelURL, const QString& jointName = QString());
 
     /**jsdoc
      * Detach all instances of a particular model from either a specific joint or all joints.
@@ -1049,7 +1049,7 @@ public:
      * @param {string} [jointName=""] - The name of the joint to detach the model from. If <code>""</code>, then the model is 
      *     detached from all joints.
      */
-    Q_INVOKABLE void detachAll(const QString& modelURL, const QString& jointName = QString());
+    Q_INVOKABLE virtual void detachAll(const QString& modelURL, const QString& jointName = QString());
 
     QString getSkeletonModelURLFromScript() const { return _skeletonModelURL.toString(); }
     void setSkeletonModelURLFromScript(const QString& skeletonModelString) { setSkeletonModelURL(QUrl(skeletonModelString)); }
@@ -1317,6 +1317,7 @@ protected:
     bool _firstSkeletonCheck { true };
     QUrl _skeletonFBXURL;
     QVector<AttachmentData> _attachmentData;
+    QVector<AttachmentData> _oldAttachmentData;
     QString _displayName;
     QString _sessionDisplayName { };
     bool _lookAtSnappingEnabled { true };
