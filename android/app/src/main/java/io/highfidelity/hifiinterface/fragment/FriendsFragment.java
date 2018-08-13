@@ -10,6 +10,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.sothree.slidinguppanel.SlidingUpPanelLayout;
+
 import io.highfidelity.hifiinterface.R;
 import io.highfidelity.hifiinterface.view.UserListAdapter;
 
@@ -20,7 +22,9 @@ public class FriendsFragment extends Fragment {
     public native String nativeGetAccessToken();
 
     private RecyclerView mUsersView;
+    private View mUserActions;
     private UserListAdapter mUsersAdapter;
+    private SlidingUpPanelLayout mSlidingUpPanelLayout;
 
     public FriendsFragment() {
         // Required empty public constructor
@@ -45,9 +49,44 @@ public class FriendsFragment extends Fragment {
         GridLayoutManager gridLayoutMgr = new GridLayoutManager(getContext(), numberOfColumns);
         mUsersView.setLayoutManager(gridLayoutMgr);
         mUsersAdapter = new UserListAdapter(getContext(), accessToken);
+
+        mUserActions = rootView.findViewById(R.id.userActionsLayout);
+
+        mSlidingUpPanelLayout = rootView.findViewById(R.id.sliding_layout);
+        mSlidingUpPanelLayout.setPanelHeight(0);
+        mUsersAdapter.setClickListener(new UserListAdapter.ItemClickListener() {
+            @Override
+            public void onItemClick(View view, int position, UserListAdapter.User user) {
+                // 1. 'select' user
+                // ..
+                // 2. adapt options
+                // ..
+                // 3. show
+                mSlidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.EXPANDED);
+            }
+        });
         mUsersView.setAdapter(mUsersAdapter);
+
+        mSlidingUpPanelLayout.setFadeOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mSlidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+            }
+        });
 
         return rootView;
     }
 
+    /**
+     * Processes the back pressed event and returns true if it was managed by this Fragment
+     * @return
+     */
+    public boolean onBackPressed() {
+        if (mSlidingUpPanelLayout.getPanelState().equals(SlidingUpPanelLayout.PanelState.EXPANDED)) {
+            mSlidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+            return true;
+        } else {
+            return false;
+        }
+    }
 }

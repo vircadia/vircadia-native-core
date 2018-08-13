@@ -150,7 +150,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private void loadFragment(Fragment fragment, String title, boolean addToBackStack) {
         FragmentManager fragmentManager = getFragmentManager();
         FragmentTransaction ft = fragmentManager.beginTransaction();
-        ft.replace(R.id.content_frame, fragment);
+        ft.replace(R.id.content_frame, fragment, getString(R.string.tagFragmentPeople));
+
         if (addToBackStack) {
             ft.addToBackStack(title);
         }
@@ -297,6 +298,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     public void onBackPressed() {
+        // if a fragment needs to internally manage back presses..
+        FragmentManager fm = getFragmentManager();
+        Fragment friendsFragment = fm.findFragmentByTag(getString(R.string.tagFragmentPeople));
+        if (friendsFragment != null && friendsFragment instanceof FriendsFragment) {
+            if (((FriendsFragment) friendsFragment).onBackPressed()) {
+                return;
+            }
+        }
+
         int index = getFragmentManager().getBackStackEntryCount() - 1;
         if (index > 0) {
             super.onBackPressed();

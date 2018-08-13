@@ -34,6 +34,7 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
     private LayoutInflater mInflater;
     private Context mContext;
     private List<User> mUsers = new ArrayList<>();
+    private ItemClickListener mClickListener;
 
     public UserListAdapter(Context c, String accessToken) {
         mContext = c;
@@ -99,7 +100,7 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
         return mUsers.size();
     }
 
-    public class ViewHolder extends RecyclerView.ViewHolder {
+    public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
         TextView mUsername;
         TextView mOnline;
@@ -114,7 +115,23 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
             mImage = itemView.findViewById(R.id.userImage);
             mOnlineInfo = itemView.findViewById(R.id.userOnlineInfo);
             mLocation = itemView.findViewById(R.id.userLocation);
+            itemView.setOnClickListener(this);
         }
+
+        @Override
+        public void onClick(View view) {
+            int position = getAdapterPosition();
+            if (mClickListener != null) mClickListener.onItemClick(view, position, mUsers.get(position));
+        }
+    }
+
+    // allows clicks events to be caught
+    public void setClickListener(ItemClickListener itemClickListener) {
+        this.mClickListener = itemClickListener;
+    }
+
+    public interface ItemClickListener {
+        void onItemClick(View view, int position, User user);
     }
 
     public static class User {

@@ -1,21 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<com.sothree.slidinguppanel.SlidingUpPanelLayout xmlns:sothree="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/sliding_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/backgroundLight">
+    android:gravity="bottom"
 
+    sothree:umanoShadowHeight="4dp"
+    android:background="@color/backgroundLight">
+<!--sothree:umanoPanelHeight="68dp"-->
     <android.support.v7.widget.RecyclerView
         android:id="@+id/rvUsers"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
         android:paddingTop="@dimen/list_vertical_padding"
         android:paddingBottom="@dimen/list_vertical_padding"
         android:clipToPadding="false"
-        android:layout_width="0dp"
-        android:layout_height="0dp" />
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
-</android.support.constraint.ConstraintLayout>
+    <LinearLayout
+        android:id="@+id/userActionsLayout"
+        android:layout_width="match_parent"
+        android:layout_height="270dp"
+        android:orientation="vertical"
+        android:background="@color/backgroundDark"
+        >
+
+    </LinearLayout>
+</com.sothree.slidinguppanel.SlidingUpPanelLayout>

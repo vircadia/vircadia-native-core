@@ -24,4 +24,7 @@
     <string name="privacyPolicy">Privacy Policy</string>
     <string name="your_last_location">Your Last Location</string>
     <string name="online">Online</string>
+
+    <!-- tags -->
+    <string name="tagFragmentPeople">tagFragmentPeople</string>
 </resources>
