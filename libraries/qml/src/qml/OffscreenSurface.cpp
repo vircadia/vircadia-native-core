@@ -100,7 +100,7 @@ QPointF OffscreenSurface::mapToVirtualScreen(const QPointF& originalPoint) {
 //
 
 bool OffscreenSurface::filterEnabled(QObject* originalDestination, QEvent* event) const {
-    if (!_sharedObject || _sharedObject->getWindow() == originalDestination) {
+    if (!_sharedObject || !_sharedObject->getWindow() || _sharedObject->getWindow() == originalDestination) {
         return false;
     }
     // Only intercept events while we're in an active state

@@ -22,8 +22,7 @@ struct GPUTextureTable {
 #define tableTex(name, slot) sampler2D(name._textures[slot].xy)
 #define tableTexMinLod(name, slot) float(name._textures[slot].z)
 
-#define tableTexValue(name, slot, uv) \
-    tableTexValueLod(tableTex(matTex, albedoMap), tableTexMinLod(matTex, albedoMap), uv)
+#define tableTexValue(name, slot, uv) tableTexValueLod(tableTex(matTex, albedoMap), tableTexMinLod(matTex, albedoMap), uv)
     
 vec4 tableTexValueLod(sampler2D sampler, float minLod, vec2 uv) {
     float queryLod = textureQueryLod(sampler, uv).x;

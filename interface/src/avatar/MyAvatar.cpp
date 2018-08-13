@@ -140,6 +140,12 @@ MyAvatar::MyAvatar(QThread* thread) :
             qApp->loadAvatarScripts(geometry.scripts);
             _shouldLoadScripts = false;
         }
+                // Load and convert old attachments to avatar entities
+        if (_oldAttachmentData.size() > 0) {
+            setAttachmentData(_oldAttachmentData);
+            _oldAttachmentData.clear();
+            _attachmentData.clear();
+        }
     });
     connect(_skeletonModel.get(), &Model::rigReady, this, &Avatar::rigReady);
     connect(_skeletonModel.get(), &Model::rigReset, this, &Avatar::rigReset);
@@ -154,7 +160,7 @@ MyAvatar::MyAvatar(QThread* thread) :
 
     // connect to AddressManager signal for location jumps
     connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired,
-            this, static_cast<SlotType>(&MyAvatar::goToLocation));
+            this, static_cast<SlotType>(&MyAvatar::goToFeetLocation));
 
     // handle scale constraints imposed on us by the domain-server
     auto& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
@@ -1135,7 +1141,6 @@ void MyAvatar::saveData() {
     settings.setValue("collisionSoundURL", _collisionSoundURL);
     settings.setValue("useSnapTurn", _useSnapTurn);
     settings.setValue("userHeight", getUserHeight());
-    settings.setValue("flyingDesktop", getFlyingDesktopPref());
     settings.setValue("flyingHMD", getFlyingHMDPref());
 
     settings.endGroup();
@@ -1250,7 +1255,6 @@ void MyAvatar::loadData() {
 
     useFullAvatarURL(_fullAvatarURLFromPreferences, _fullAvatarModelName);
 
-    QVector<AttachmentData> attachmentData;
     int attachmentCount = settings.beginReadArray("attachmentData");
     for (int i = 0; i < attachmentCount; i++) {
         settings.setArrayIndex(i);
@@ -1267,10 +1271,10 @@ void MyAvatar::loadData() {
         attachment.rotation = glm::quat(eulers);
         attachment.scale = loadSetting(settings, "scale", 1.0f);
         attachment.isSoft = settings.value("isSoft").toBool();
-        attachmentData.append(attachment);
+        // old attachments are stored and loaded/converted later when rig is ready
+        _oldAttachmentData.append(attachment);
     }
     settings.endArray();
-    setAttachmentData(attachmentData);
 
     int avatarEntityCount = settings.beginReadArray("avatarEntityData");
     for (int i = 0; i < avatarEntityCount; i++) {
@@ -1289,7 +1293,6 @@ void MyAvatar::loadData() {
 
     // Flying preferences must be loaded before calling setFlyingEnabled()
     Setting::Handle<bool> firstRunVal { Settings::firstRun, true };
-    setFlyingDesktopPref(firstRunVal.get() ? true : settings.value("flyingDesktop").toBool());
     setFlyingHMDPref(firstRunVal.get() ? false : settings.value("flyingHMD").toBool());
     setFlyingEnabled(getFlyingEnabled());
 
@@ -1690,16 +1693,6 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
     markIdentityDataChanged();
 }
 
-void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
-    if (QThread::currentThread() != thread()) {
-        BLOCKING_INVOKE_METHOD(this, "setAttachmentData",
-                                  Q_ARG(const QVector<AttachmentData>, attachmentData));
-        return;
-    }
-    Avatar::setAttachmentData(attachmentData);
-    emit attachmentsChanged();
-}
-
 glm::vec3 MyAvatar::getSkeletonPosition() const {
     CameraMode mode = qApp->getCamera().getMode();
     if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
@@ -1970,20 +1963,164 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName,
                       float scale, bool isSoft,
                       bool allowDuplicates, bool useSaved) {
     if (QThread::currentThread() != thread()) {
-        Avatar::attach(modelURL, jointName, translation, rotation, scale, isSoft, allowDuplicates, useSaved);
+        BLOCKING_INVOKE_METHOD(this, "attach",
+            Q_ARG(const QString&, modelURL), 
+            Q_ARG(const QString&, jointName), 
+            Q_ARG(const glm::vec3&, translation), 
+            Q_ARG(const glm::quat&, rotation),
+            Q_ARG(float, scale),
+            Q_ARG(bool, isSoft),
+            Q_ARG(bool, allowDuplicates),
+            Q_ARG(bool, useSaved)
+        );
         return;
     }
-    if (useSaved) {
-        AttachmentData attachment = loadAttachmentData(modelURL, jointName);
-        if (attachment.isValid()) {
-            Avatar::attach(modelURL, attachment.jointName,
-                           attachment.translation, attachment.rotation,
-                           attachment.scale, attachment.isSoft,
-                           allowDuplicates, useSaved);
-            return;
+    AttachmentData data;
+    data.modelURL = modelURL;
+    data.jointName = jointName;
+    data.translation = translation;
+    data.rotation = rotation;
+    data.scale = scale;
+    data.isSoft = isSoft;
+    EntityItemProperties properties;
+    attachmentDataToEntityProperties(data, properties);
+    DependencyManager::get<EntityScriptingInterface>()->addEntity(properties, true);
+    emit attachmentsChanged();
+}
+
+void MyAvatar::detachOne(const QString& modelURL, const QString& jointName) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "detachOne",
+            Q_ARG(const QString&, modelURL),
+            Q_ARG(const QString&, jointName)
+        );
+        return;
+    }
+    QUuid entityID;
+    if (findAvatarEntity(modelURL, jointName, entityID)) {
+        DependencyManager::get<EntityScriptingInterface>()->deleteEntity(entityID);
+    }
+    emit attachmentsChanged();
+}
+
+void MyAvatar::detachAll(const QString& modelURL, const QString& jointName) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "detachAll",
+            Q_ARG(const QString&, modelURL),
+            Q_ARG(const QString&, jointName)
+        );
+        return;
+    }
+    QUuid entityID;
+    while (findAvatarEntity(modelURL, jointName, entityID)) {
+        DependencyManager::get<EntityScriptingInterface>()->deleteEntity(entityID);
+    }
+    emit attachmentsChanged();
+}
+
+void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "setAttachmentData",
+            Q_ARG(const QVector<AttachmentData>&, attachmentData));
+        return;
+    }
+    std::vector<EntityItemProperties> newEntitiesProperties;
+    for (auto& data : attachmentData) {
+        QUuid entityID;
+        EntityItemProperties properties;
+        if (findAvatarEntity(data.modelURL.toString(), data.jointName, entityID)) {
+            properties = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(entityID);
+        }
+        attachmentDataToEntityProperties(data, properties);
+        newEntitiesProperties.push_back(properties);
+    }
+    removeAvatarEntities();
+    for (auto& properties : newEntitiesProperties) {
+        DependencyManager::get<EntityScriptingInterface>()->addEntity(properties, true);
+    }
+    emit attachmentsChanged();
+}
+
+QVector<AttachmentData> MyAvatar::getAttachmentData() const {    
+    QVector<AttachmentData> avatarData;
+    auto avatarEntities = getAvatarEntityData();
+    AvatarEntityMap::const_iterator dataItr = avatarEntities.begin();
+    while (dataItr != avatarEntities.end()) {
+        QUuid entityID = dataItr.key();
+        auto properties = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(entityID);
+        AttachmentData data = entityPropertiesToAttachmentData(properties);
+        avatarData.append(data);
+        dataItr++;
+    }
+    return avatarData;
+}
+
+QVariantList MyAvatar::getAttachmentsVariant() const {
+    QVariantList result;
+    for (const auto& attachment : getAttachmentData()) {
+        result.append(attachment.toVariant());
+    }
+    return result;
+}
+
+void MyAvatar::setAttachmentsVariant(const QVariantList& variant) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "setAttachmentsVariant",
+            Q_ARG(const QVariantList&, variant));
+        return;
+    }
+    QVector<AttachmentData> newAttachments;
+    newAttachments.reserve(variant.size());
+    for (const auto& attachmentVar : variant) {
+        AttachmentData attachment;
+        if (attachment.fromVariant(attachmentVar)) {
+            newAttachments.append(attachment);
         }
     }
-    Avatar::attach(modelURL, jointName, translation, rotation, scale, isSoft, allowDuplicates, useSaved);
+    setAttachmentData(newAttachments);   
+}
+
+bool MyAvatar::findAvatarEntity(const QString& modelURL, const QString& jointName, QUuid& entityID) {
+    auto avatarEntities = getAvatarEntityData();
+    AvatarEntityMap::const_iterator dataItr = avatarEntities.begin();
+    while (dataItr != avatarEntities.end()) {
+        entityID = dataItr.key();
+        auto props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(entityID);
+        if (props.getModelURL() == modelURL &&
+            (jointName.isEmpty() || props.getParentJointIndex() == getJointIndex(jointName))) {
+            return true;
+        }
+        dataItr++;
+    }
+    return false;
+}
+
+AttachmentData MyAvatar::entityPropertiesToAttachmentData(const EntityItemProperties& properties) const {
+    AttachmentData data;
+    data.modelURL = properties.getModelURL();
+    data.translation = properties.getLocalPosition();
+    data.rotation = properties.getLocalRotation();
+    data.isSoft = properties.getRelayParentJoints();
+    int jointIndex = (int)properties.getParentJointIndex();
+    if (jointIndex > -1 && jointIndex < getJointNames().size()) {
+        data.jointName = getJointNames()[jointIndex];
+    }
+    return data;
+}
+
+void MyAvatar::attachmentDataToEntityProperties(const AttachmentData& data, EntityItemProperties& properties) {
+    QString url = data.modelURL.toString();
+    properties.setName(QFileInfo(url).baseName());
+    properties.setType(EntityTypes::Model);
+    properties.setParentID(AVATAR_SELF_ID);
+    properties.setLocalPosition(data.translation);
+    properties.setLocalRotation(data.rotation);
+    if (!data.isSoft) {
+        properties.setParentJointIndex(getJointIndex(data.jointName));
+    } else {
+        properties.setRelayParentJoints(true);
+    }
+    properties.setModelURL(url);
 }
 
 void MyAvatar::initHeadBones() {
@@ -2338,6 +2475,23 @@ void MyAvatar::updateOrientation(float deltaTime) {
     }
 }
 
+static float scaleSpeedByDirection(const glm::vec2 velocityDirection, const float forwardSpeed, const float backwardSpeed) {
+    // for the elipse function -->  (x^2)/(backwardSpeed*backwardSpeed) + y^2/(forwardSpeed*forwardSpeed) = 1,  scale == y^2 when x is 0
+    float fwdScale = forwardSpeed * forwardSpeed;
+    float backScale = backwardSpeed * backwardSpeed;
+    float scaledX = velocityDirection.x * backwardSpeed;
+    float scaledSpeed = forwardSpeed;
+    if (velocityDirection.y < 0.0f) {
+        if (backScale > 0.0f) {
+            float yValue = sqrtf(fwdScale * (1.0f - ((scaledX * scaledX) / backScale)));
+            scaledSpeed = sqrtf((scaledX * scaledX) + (yValue * yValue));
+        }
+    } else {
+        scaledSpeed = backwardSpeed;
+    }
+    return scaledSpeed;
+}
+
 void MyAvatar::updateActionMotor(float deltaTime) {
     bool thrustIsPushing = (glm::length2(_thrust) > EPSILON);
     bool scriptedMotorIsPushing = (_motionBehaviors & AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED)
@@ -2399,7 +2553,10 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         _actionMotorVelocity = motorSpeed * direction;
     } else {
         // we're interacting with a floor --> simple horizontal speed and exponential decay
-        _actionMotorVelocity = getSensorToWorldScale() * (_walkSpeed.get() * _walkSpeedScalar)  * direction;
+        const glm::vec2 currentVel = { direction.x, direction.z };
+        float scaledSpeed = scaleSpeedByDirection(currentVel, _walkSpeed.get(), _walkBackwardSpeed.get());
+        // _walkSpeedScalar is a multiplier if we are in sprint mode, otherwise 1.0
+        _actionMotorVelocity = getSensorToWorldScale() * (scaledSpeed * _walkSpeedScalar)  * direction;
     }
 
     float previousBoomLength = _boomLength;
@@ -2623,6 +2780,49 @@ void MyAvatar::goToLocation(const QVariant& propertiesVar) {
     } else {
         goToLocation(v);
     }
+}
+
+void MyAvatar::goToFeetLocation(const glm::vec3& newPosition,
+    bool hasOrientation, const glm::quat& newOrientation,
+    bool shouldFaceLocation) {
+
+    qCDebug(interfaceapp).nospace() << "MyAvatar goToFeetLocation - moving to " << newPosition.x << ", "
+        << newPosition.y << ", " << newPosition.z;
+
+    ShapeInfo shapeInfo;
+    computeShapeInfo(shapeInfo);
+    glm::vec3 halfExtents = shapeInfo.getHalfExtents();
+    glm::vec3 localFeetPos = shapeInfo.getOffset() - glm::vec3(0.0f, halfExtents.y + halfExtents.x, 0.0f);
+    glm::mat4 localFeet = createMatFromQuatAndPos(Quaternions::IDENTITY, localFeetPos);
+    
+    glm::mat4 worldFeet = createMatFromQuatAndPos(Quaternions::IDENTITY, newPosition);
+    
+    glm::mat4 avatarMat = worldFeet * glm::inverse(localFeet);
+
+    glm::vec3 adjustedPosition = extractTranslation(avatarMat);
+
+    _goToPending = true;
+    _goToPosition = adjustedPosition;
+    _goToOrientation = getWorldOrientation();
+    if (hasOrientation) {
+        qCDebug(interfaceapp).nospace() << "MyAvatar goToFeetLocation - new orientation is "
+            << newOrientation.x << ", " << newOrientation.y << ", " << newOrientation.z << ", " << newOrientation.w;
+
+        // orient the user to face the target
+        glm::quat quatOrientation = cancelOutRollAndPitch(newOrientation);
+
+        if (shouldFaceLocation) {
+            quatOrientation = newOrientation * glm::angleAxis(PI, Vectors::UP);
+
+            // move the user a couple units away
+            const float DISTANCE_TO_USER = 2.0f;
+            _goToPosition = adjustedPosition - quatOrientation * IDENTITY_FORWARD * DISTANCE_TO_USER;
+        }
+
+        _goToOrientation = quatOrientation;
+    }
+
+    emit transformChanged();
 }
 
 void MyAvatar::goToLocation(const glm::vec3& newPosition,
@@ -3408,16 +3608,32 @@ float MyAvatar::getWalkSpeed() const {
     return _walkSpeed.get() * _walkSpeedScalar;
 }
 
+float MyAvatar::getWalkBackwardSpeed() const {
+    return _walkSpeed.get() * _walkSpeedScalar;
+}
+
 bool MyAvatar::isReadyForPhysics() const {
     return qApp->isServerlessMode() || _haveReceivedHeightLimitsFromDomain;
 }
 
 void MyAvatar::setSprintMode(bool sprint) {
-    _walkSpeedScalar = sprint ? AVATAR_SPRINT_SPEED_SCALAR : AVATAR_WALK_SPEED_SCALAR;
+    _walkSpeedScalar = sprint ? _sprintSpeed.get() : AVATAR_WALK_SPEED_SCALAR;
 }
 
 void MyAvatar::setWalkSpeed(float value) {
     _walkSpeed.set(value);
+}
+
+void MyAvatar::setWalkBackwardSpeed(float value) {
+    _walkBackwardSpeed.set(value);
+}
+
+void MyAvatar::setSprintSpeed(float value) {
+    _sprintSpeed.set(value);
+}
+
+float MyAvatar::getSprintSpeed() const {
+    return _sprintSpeed.get();
 }
 
 QVector<QString> MyAvatar::getScriptUrls() {

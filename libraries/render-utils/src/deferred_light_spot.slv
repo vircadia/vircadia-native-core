@@ -13,18 +13,18 @@
 //
 
 <@include gpu/Inputs.slh@>
-
 <@include gpu/Transform.slh@>
+<@include graphics/Light.slh@>
+<@include render-utils/ShaderConstants.h@>
 
 <$declareStandardTransform()$>
 
-<@include graphics/Light.slh@>
 <$declareLightBuffer(256)$>
 
-uniform lightIndexBuffer {
+layout(binding=RENDER_UTILS_BUFFER_LIGHT_INDEX) uniform lightIndexBuffer {
     int lightIndex[256];
 };
-out vec4 _texCoord0;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord0;
 
 void main(void) {
     vec4 coneVertex = inPosition;

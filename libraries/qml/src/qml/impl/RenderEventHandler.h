@@ -7,6 +7,8 @@
 //
 #pragma once
 
+#ifndef DISABLE_QML
+
 #include <QtCore/QObject>
 #include <QtCore/QThread>
 #include <QtGui/qevent.h>
@@ -54,3 +56,5 @@ private:
 };
 
 }}}  // namespace hifi::qml::impl
+
+#endif

@@ -1247,7 +1247,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
 
     // use our MyAvatar position and quat for address manager path
-    addressManager->setPositionGetter([this]{ return getMyAvatar()->getWorldPosition(); });
+    addressManager->setPositionGetter([this]{ return getMyAvatar()->getWorldFeetPosition(); });
     addressManager->setOrientationGetter([this]{ return getMyAvatar()->getWorldOrientation(); });
 
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
@@ -2703,8 +2703,6 @@ void Application::initializeGL() {
     // contexts
     _glWidget->makeCurrent();
     gpu::Context::init<gpu::gl::GLBackend>();
-    qApp->setProperty(hifi::properties::gl::MAKE_PROGRAM_CALLBACK,
-        QVariant::fromValue((void*)(&gpu::gl::GLBackend::makeProgram)));
     _glWidget->makeCurrent();
     _gpuContext = std::make_shared<gpu::Context>();
 
@@ -4574,11 +4572,14 @@ void Application::idle() {
     _lastTimeUpdated.start();
 
     // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
-    if (_keyboardDeviceHasFocus && offscreenUi && offscreenUi->getWindow()->activeFocusItem() != offscreenUi->getRootItem()) {
-        _keyboardMouseDevice->pluginFocusOutEvent();
-        _keyboardDeviceHasFocus = false;
-    } else if (offscreenUi && offscreenUi->getWindow()->activeFocusItem() == offscreenUi->getRootItem()) {
-        _keyboardDeviceHasFocus = true;
+    if (offscreenUi && offscreenUi->getWindow()) {
+        auto activeFocusItem = offscreenUi->getWindow()->activeFocusItem();
+        if (_keyboardDeviceHasFocus && activeFocusItem != offscreenUi->getRootItem()) {
+            _keyboardMouseDevice->pluginFocusOutEvent();
+            _keyboardDeviceHasFocus = false;
+        } else if (activeFocusItem == offscreenUi->getRootItem()) {
+            _keyboardDeviceHasFocus = true;
+        }
     }
 
     checkChangeCursor();
@@ -5284,6 +5285,7 @@ void Application::reloadResourceCaches() {
     queryOctree(NodeType::EntityServer, PacketType::EntityQuery);
 
     DependencyManager::get<AssetClient>()->clearCache();
+    DependencyManager::get<ScriptCache>()->clearCache();
 
     DependencyManager::get<AnimationCache>()->refreshAll();
     DependencyManager::get<ModelCache>()->refreshAll();

@@ -145,6 +145,7 @@ public:
      *
      * @property {number} Ray Ray Picks intersect a ray with the nearest object in front of them, along a given direction.
      * @property {number} Stylus Stylus Picks provide "tapping" functionality on/into flat surfaces.
+     * @property {number} Parabola Parabola Picks intersect a parabola with the nearest object in front of them, with a given initial velocity and acceleration.
      */
     /**jsdoc
      * <table>
@@ -154,6 +155,7 @@ public:
      *   <tbody>
      *     <tr><td><code>{@link PickType(0)|PickType.Ray}</code></td><td></td></tr>
      *     <tr><td><code>{@link PickType(0)|PickType.Stylus}</code></td><td></td></tr>
+     *     <tr><td><code>{@link PickType(0)|PickType.Parabola}</code></td><td></td></tr>
      *   </tbody>
      * </table>
      * @typedef {number} PickType

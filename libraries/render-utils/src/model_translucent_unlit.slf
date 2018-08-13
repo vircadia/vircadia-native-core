@@ -14,28 +14,31 @@
 
 <@include graphics/Material.slh@>
 
-<@include MaterialTextures.slh@>
+<@include graphics/MaterialTextures.slh@>
 <$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, _SCRIBE_NULL, EMISSIVE, OCCLUSION)$>
 <@include LightingModel.slh@>
 
-in vec2 _texCoord0;
-in vec3 _color;
-in float _alpha;
+<@include render-utils/ShaderConstants.h@>
 
-out vec4 _fragColor;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
+#define _texCoord0 _texCoord01.xy
+#define _texCoord1 _texCoord01.zw
+layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
+
+layout(location=0) out vec4 _fragColor;
 
 void main(void) {
     Material mat = getMaterial();
     BITFIELD matKey = getMaterialKey(mat);
     <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex)$>
 
-    float opacity = getMaterialOpacity(mat) * _alpha;
+    float opacity = getMaterialOpacity(mat) * _color.a;
     <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
-    <$discardTransparent(opacity)$>;
+    <$discardInvisible(opacity)$>;
 
     vec3 albedo = getMaterialAlbedo(mat);
     <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
-    albedo *= _color;
+    albedo *= _color.rgb;
 
     _fragColor = vec4(albedo * isUnlitEnabled(), opacity);
 }

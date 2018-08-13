@@ -16,12 +16,12 @@
 #include <gl/GLHelpers.h>
 #include <gpu/gl/GLBackend.h>
 #include <NumericalConstants.h>
-#include <test-utils/FileDownloader.h>
 
 #include <quazip5/quazip.h>
 #include <quazip5/JlCompress.h>
 
 #include <test-utils/QTestExtensions.h>
+#include <test-utils/Utils.h>
 
 QTEST_MAIN(TextureTest)
 
@@ -86,7 +86,6 @@ void TextureTest::initTestCase() {
     gpu::Context::init<gpu::gl::GLBackend>();
     _gpuContext = std::make_shared<gpu::Context>();
 
-
     if (QProcessEnvironment::systemEnvironment().contains(KTX_TEST_DIR_ENV)) {
         // For local testing with larger data sets
         _resourcesPath = QProcessEnvironment::systemEnvironment().value(KTX_TEST_DIR_ENV);
@@ -94,16 +93,14 @@ void TextureTest::initTestCase() {
         _resourcesPath = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/" + TEST_DIR_NAME;
         if (!QFileInfo(_resourcesPath).exists()) {
             QDir(_resourcesPath).mkpath(".");
-            FileDownloader(TEST_DATA,
-                           [&](const QByteArray& data) {
-                               QTemporaryFile zipFile;
-                               if (zipFile.open()) {
-                                   zipFile.write(data);
-                                   zipFile.close();
-                               }
-                               JlCompress::extractDir(zipFile.fileName(), _resourcesPath);
-                           })
-                .waitForDownload();
+            downloadFile(TEST_DATA, [&](const QByteArray& data) {
+                QTemporaryFile zipFile;
+                if (zipFile.open()) {
+                    zipFile.write(data);
+                    zipFile.close();
+                }
+                JlCompress::extractDir(zipFile.fileName(), _resourcesPath);
+            });
         }
     }
 
@@ -114,8 +111,6 @@ void TextureTest::initTestCase() {
         auto VS = gpu::Shader::createVertex(vertexShaderSource);
         auto PS = gpu::Shader::createPixel(fragmentShaderSource);
         auto program = gpu::Shader::createProgram(VS, PS);
-        gpu::Shader::BindingSet slotBindings;
-        gpu::Shader::makeProgram(*program, slotBindings);
         // If the pipeline did not exist, make it
         auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_NONE);
@@ -180,7 +175,6 @@ void TextureTest::endFrame() {
     QThread::msleep(10);
 }
 
-
 void TextureTest::renderFrame(const std::function<void(gpu::Batch&)>& renderLambda) {
     beginFrame();
     gpu::doInBatch("Test::body", _gpuContext, renderLambda);
@@ -190,7 +184,7 @@ void TextureTest::renderFrame(const std::function<void(gpu::Batch&)>& renderLamb
 extern QString getTextureMemoryPressureModeString();
 
 void TextureTest::testTextureLoading() {
-    QBENCHMARK{
+    QBENCHMARK {
         _frameCount = 0;
         auto textures = loadTestTextures();
         QVERIFY(textures.size() > 0);

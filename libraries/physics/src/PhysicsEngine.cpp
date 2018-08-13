@@ -18,6 +18,7 @@
 #include <PerfStat.h>
 #include <PhysicsCollisionGroups.h>
 #include <Profile.h>
+#include <BulletCollision/CollisionShapes/btTriangleShape.h>
 
 #include "CharacterController.h"
 #include "ObjectMotionState.h"
@@ -25,6 +26,25 @@
 #include "PhysicsDebugDraw.h"
 #include "ThreadSafeDynamicsWorld.h"
 #include "PhysicsLogging.h"
+
+
+static bool flipNormalsMyAvatarVsBackfacingTriangles( btManifoldPoint& cp,
+        const btCollisionObjectWrapper* colObj0Wrap, int partId0, int index0,
+        const btCollisionObjectWrapper* colObj1Wrap, int partId1, int index1) {
+    if (colObj1Wrap->getCollisionShape()->getShapeType() == TRIANGLE_SHAPE_PROXYTYPE) {
+        auto triShape = static_cast<const btTriangleShape*>(colObj1Wrap->getCollisionShape());
+        const btVector3* v = triShape->m_vertices1;
+        btVector3 faceNormal = colObj1Wrap->getWorldTransform().getBasis() * btCross(v[1] - v[0], v[2] - v[0]);
+        float nDotF = btDot(faceNormal, cp.m_normalWorldOnB);
+        if (nDotF <= 0.0f) {
+            faceNormal.normalize();
+            // flip the contact normal to be aligned with the face normal
+            cp.m_normalWorldOnB += -2.0f * nDotF * faceNormal;
+        }
+    }
+    // return value is currently ignored but to be future-proof: return false when not modifying friction
+    return false;
+}
 
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset) :
         _originOffset(offset),
@@ -68,6 +88,9 @@ void PhysicsEngine::init() {
         // in order for its broadphase collision queries to work correctly. Look at how we use
         // _activeStaticBodies to track and update the Aabb's of moved static objects.
         _dynamicsWorld->setForceUpdateAllAabbs(false);
+
+        // register contact filter to help MyAvatar pass through backfacing triangles
+        gContactAddedCallback = flipNormalsMyAvatarVsBackfacingTriangles;
     }
 }
 

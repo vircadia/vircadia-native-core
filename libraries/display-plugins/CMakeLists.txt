@@ -1,7 +1,7 @@
 set(TARGET_NAME display-plugins)
 AUTOSCRIBE_SHADER_LIB(gpu display-plugins)
 setup_hifi_library(Gui)
-link_hifi_libraries(shared plugins ui-plugins gl ui render-utils ${PLATFORM_GL_BACKEND})
+link_hifi_libraries(shared shaders plugins ui-plugins gl ui render-utils ${PLATFORM_GL_BACKEND})
 include_hifi_library_headers(gpu)
 include_hifi_library_headers(model-networking)
 include_hifi_library_headers(networking)
