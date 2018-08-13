@@ -190,6 +190,32 @@ bool writeKeys(const char* filename, EC_KEY* keys) {
     return retval;
 }
 
+bool Wallet::setWallet(const QByteArray& wallet) {
+    QFile file(keyFilePath());
+    if (!file.open(QIODevice::WriteOnly)) {
+        qCCritical(commerce) << "Unable to open wallet for write in" << keyFilePath();
+        return false;
+    }
+    if (file.write(wallet) != wallet.count()) {
+        qCCritical(commerce) << "Unable to write wallet in" << keyFilePath();
+        return false;
+    }
+    file.close();
+    qCDebug(commerce) << "FIXME wrote" << wallet.count() << "to" << keyFilePath();
+    return true;
+}
+QByteArray Wallet::getWallet() {
+    QFile file(keyFilePath());
+    if (!file.open(QIODevice::ReadOnly)) {
+        qCInfo(commerce) << "No existing wallet in" << keyFilePath();
+        return QByteArray();
+    }
+    QByteArray wallet = file.readAll();
+    file.close();
+    qCDebug(commerce) << "FIXME read" << wallet.count() << "from" << keyFilePath();
+    return wallet;
+}
+
 QPair<QByteArray*, QByteArray*> generateECKeypair() {
 
     EC_KEY* keyPair = EC_KEY_new_by_curve_name(NID_secp256k1);

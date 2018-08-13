@@ -125,8 +125,19 @@ bool Ledger::receiveAt(const QString& hfc_key, const QString& signing_key) {
         emit receiveAtResult(result);
         return false; // We know right away that we will fail, so tell the caller.
     }
-
-    signedSend("public_key", hfc_key.toUtf8(), signing_key, "receive_at", "receiveAtSuccess", "receiveAtFailure");
+    auto wallet = DependencyManager::get<Wallet>();
+    QByteArray locker = wallet->getWallet();
+    if (locker.isEmpty()) {
+        signedSend("public_key", hfc_key.toUtf8(), signing_key, "receive_at", "receiveAtSuccess", "receiveAtFailure");
+    } else {
+        QJsonObject transaction;
+        transaction["public_key"] = hfc_key;
+        transaction["locker"] = QString::fromUtf8(locker);
+        QJsonDocument transactionDoc{ transaction };
+        auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
+        qCDebug(commerce) << "FIXME transactionString" << transactionString;
+        signedSend("text", transactionString, signing_key, "receive_at", "receiveAtSuccess", "receiveAtFailure");
+    }
     return true; // Note that there may still be an asynchronous signal of failure that callers might be interested in.
 }
 
@@ -277,17 +288,22 @@ void Ledger::accountSuccess(QNetworkReply* reply) {
     // lets set the appropriate stuff in the wallet now
     auto wallet = DependencyManager::get<Wallet>();
     QByteArray response = reply->readAll();
+    qCDebug(commerce) << "FIXME accountSuccess got" << response;
     QJsonObject data = QJsonDocument::fromJson(response).object()["data"].toObject();
 
     auto salt = QByteArray::fromBase64(data["salt"].toString().toUtf8());
     auto iv = QByteArray::fromBase64(data["iv"].toString().toUtf8());
     auto ckey = QByteArray::fromBase64(data["ckey"].toString().toUtf8());
     QString remotePublicKey = data["public_key"].toString();
+    const QByteArray locker = data["locker"].toString().toUtf8();
     bool isOverride = wallet->wasSoftReset();
 
     wallet->setSalt(salt);
     wallet->setIv(iv);
     wallet->setCKey(ckey);
+    if (!locker.isEmpty()) {
+        wallet->setWallet(locker);
+    }
 
     QString keyStatus = "ok";
     QStringList localPublicKeys = wallet->listPublicKeys();
@@ -301,6 +317,9 @@ void Ledger::accountSuccess(QNetworkReply* reply) {
             keyStatus = "preexisting";
         } else if (localPublicKeys.first() != remotePublicKey) {
             keyStatus = "conflicting";
+        } else if (locker.isEmpty()) {
+            QString key = localPublicKeys.first();
+            receiveAt(key, key);
         }
     }
 

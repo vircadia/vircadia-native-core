@@ -44,6 +44,10 @@ public:
     void setCKey(const QByteArray& ckey) { _ckey = ckey; }
     QByteArray getCKey() { return _ckey; }
 
+    // FIXME protect more
+    bool setWallet(const QByteArray& wallet);
+    QByteArray getWallet();
+
     bool setPassphrase(const QString& passphrase);
     QString* getPassphrase() { return _passphrase; }
     bool getPassphraseIsCached() { return !(_passphrase->isEmpty()); }
