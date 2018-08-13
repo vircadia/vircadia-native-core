@@ -23,16 +23,22 @@ const DELETE = 46; // Key code for the delete key.
 const KEY_P = 80; // Key code for letter p used for Parenting hotkey.
 const MAX_ITEMS = Number.MAX_VALUE; // Used to set the max length of the list of discovered entities.
 
+log = function(msg) {
+    EventBridge.emitWebEvent(msg);
+}
+
 var profileIndent = '';
 PROFILE = function(name, fn, args) {
-    EventBridge.emitWebEvent("PROFILE-Web " + profileIndent + "(" + name + ") Begin");
+    log("PROFILE-Web " + profileIndent + "(" + name + ") Begin");
+    console.log("PROFILE-Web " + profileIndent + "(" + name + ") Begin");
     var previousIndent = profileIndent;
     profileIndent += '  ';
     var before = Date.now();
     fn.apply(this, args);
     var delta = Date.now() - before;
     profileIndent = previousIndent;
-    EventBridge.emitWebEvent("PROFILE-Web " + profileIndent + "(" + name + ") End " + delta + "ms");
+    log("PROFILE-Web " + profileIndent + "(" + name + ") End " + delta + "ms");
+    console.log("PROFILE-Web " + profileIndent + "(" + name + ") End " + delta + "ms");
 }
 
 debugPrint = function (message) {
@@ -168,44 +174,89 @@ function loaded() {
             return number ? number : "";
         }
 
-        function addEntity(id, name, type, url, locked, visible, verticesCount, texturesCount, texturesSize, hasTransparent,
-                           isBaked, drawCalls, hasScript) {
+        function getFilename(url) {
+            let urlParts = url.split('/');
+            return urlParts[urlParts.length - 1];
+        }
 
-            var urlParts = url.split('/');
-            var filename = urlParts[urlParts.length - 1];
+        //function addEntity(
+        //id, name, type, url, locked, visible, verticesCount,
+        //texturesCount, texturesSize, hasTransparent,
+        //isBaked, drawCalls, hasScript) {
+        function addEntities(entityData) {
+            const IMAGE_MODEL_NAME = 'default-image-model.fbx';
 
-            var IMAGE_MODEL_NAME = 'default-image-model.fbx';
+            let newEntities = entityData.filter(function(entity) {
+                if (entity.id in entities) {
+                    var item = entities[entity.id].item;
+                    item.values({
+                        name: entity.name,
+                        url: getFilename(entity.url),
+                        locked: entity.locked,
+                        visible: entity.visible
+                    });
+                    return false;
+                }
+                return true;
+            });
 
-            if (filename === IMAGE_MODEL_NAME) {
-                type = "Image";
+            if (newEntities.length === 0) {
+                return;
             }
 
-            if (entities[id] === undefined) {
-                entityList.add([{
-                    id: id, name: name, type: type, url: filename, locked: locked, visible: visible,
-                    verticesCount: displayIfNonZero(verticesCount), texturesCount: displayIfNonZero(texturesCount),
-                    texturesSize: decimalMegabytes(texturesSize), hasTransparent: hasTransparent,
-                    isBaked: isBaked, drawCalls: displayIfNonZero(drawCalls), hasScript: hasScript
-                }],
+            newEntities = newEntities.map(function(entity) {
+                let type = entity.type;
+                let filename = getFilename(entity.url);
+                if (filename === IMAGE_MODEL_NAME) {
+                    type = "Image";
+                }
+                return {
+                    id: entity.id,
+                    name: entity.name,
+                    type: type,
+                    url: filename,
+                    fullUrl: entity.url,
+                    locked: entity.locked ? LOCKED_GLYPH : null,
+                    visible: entity.visible ? VISIBLE_GLYPH : null,
+                    verticesCount: displayIfNonZero(entity.verticesCount),
+                    texturesCount: displayIfNonZero(entity.texturesCount),
+                    texturesSize: decimalMegabytes(entity.texturesSize),
+                    hasTransparent: entity.hasTransparent ? TRANSPARENCY_GLYPH : null,
+                    isBaked: entity.isBaked ? BAKED_GLYPH : null,
+                    drawCalls: displayIfNonZero(entity.drawCalls),
+                    hasScript: entity.hasScript ? SCRIPT_GLYPH : null
+                }
+            });
+                //newEntities = newEntities.splice(newEntities.length - 10);
+                console.log("Adding: " + newEntities.length);
+
+            let size = 2000;
+            let sets = Math.ceil(newEntities.length / size);
+            for (let i = 0; i < sets; i++) {
+                
+                console.log(Date.now(), "Adding", i * size, (i + 1) * size);
+            entityList.add(newEntities.splice(i * size, (i + 1) * size),
                 function (items) {
-                    var currentElement = items[0].elm;
-                    var id = items[0]._values.id;
-                    entities[id] = {
-                        id: id,
-                        name: name,
-                        el: currentElement,
-                        item: items[0]
-                    };
-                    currentElement.setAttribute('id', 'entity_' + id);
-                    currentElement.setAttribute('title', url);
-                    currentElement.dataset.entityId = id;
-                    currentElement.onclick = onRowClicked;
-                    currentElement.ondblclick = onRowDoubleClicked;
+                    console.log(Date.now(), "added: " + items.length);
+                    items.forEach(function(item) {
+                        var currentElement = item.elm;
+                        var values = item._values;
+
+                        entities[values.id] = {
+                            id: values.id,
+                            name: values.name,
+                            el: currentElement,
+                            item: item
+                        };
+                        currentElement.setAttribute('id', 'entity_' + values.id);
+                        currentElement.setAttribute('title', values.fullUrl);
+                        currentElement.dataset.entityId = values.id;
+                        currentElement.onclick = onRowClicked;
+                        currentElement.ondblclick = onRowDoubleClicked;
+                    });
                 });
-            } else {
-                var item = entities[id].item;
-                item.values({ name: name, url: filename, locked: locked, visible: visible });
             }
+            console.log(Date.now(), "DONE");
         }
 
         function removeEntities(deletedIDs) {
@@ -382,17 +433,7 @@ function loaded() {
                             elFooter.firstChild.nodeValue = "0 entities found";
                         } else if (newEntities) {
                             elNoEntitiesMessage.style.display = "none";
-                            for (var i = 0; i < newEntities.length; i++) {
-                                var id = newEntities[i].id;
-                                addEntity(id, newEntities[i].name, newEntities[i].type, newEntities[i].url,
-                                          newEntities[i].locked ? LOCKED_GLYPH : null,
-                                          newEntities[i].visible ? VISIBLE_GLYPH : null,
-                                          newEntities[i].verticesCount, newEntities[i].texturesCount, newEntities[i].texturesSize,
-                                          newEntities[i].hasTransparent ? TRANSPARENCY_GLYPH : null,
-                                          newEntities[i].isBaked ? BAKED_GLYPH : null,
-                                          newEntities[i].drawCalls,
-                                          newEntities[i].hasScript ? SCRIPT_GLYPH : null);
-                            }
+                            addEntities(newEntities);
                             updateSelectedEntities(data.selectedIDs);
                             scheduleRefreshEntityList();
                             resize();
