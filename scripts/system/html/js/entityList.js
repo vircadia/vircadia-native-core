@@ -23,6 +23,18 @@ const DELETE = 46; // Key code for the delete key.
 const KEY_P = 80; // Key code for letter p used for Parenting hotkey.
 const MAX_ITEMS = Number.MAX_VALUE; // Used to set the max length of the list of discovered entities.
 
+var profileIndent = '';
+PROFILE = function(name, fn, args) {
+    EventBridge.emitWebEvent("PROFILE-Web " + profileIndent + "(" + name + ") Begin");
+    var previousIndent = profileIndent;
+    profileIndent += '  ';
+    var before = Date.now();
+    fn.apply(this, args);
+    var delta = Date.now() - before;
+    profileIndent = previousIndent;
+    EventBridge.emitWebEvent("PROFILE-Web " + profileIndent + "(" + name + ") End " + delta + "ms");
+}
+
 debugPrint = function (message) {
     console.log(message);
 };
@@ -363,27 +375,29 @@ function loaded() {
                         refreshEntities();
                     }
                 } else if (data.type === "update" && data.selectedIDs !== undefined) {
-                    var newEntities = data.entities;
-                    if (newEntities && newEntities.length == 0) {
-                        elNoEntitiesMessage.style.display = "block";
-                        elFooter.firstChild.nodeValue = "0 entities found";
-                    } else if (newEntities) {
-                        elNoEntitiesMessage.style.display = "none";
-                        for (var i = 0; i < newEntities.length; i++) {
-                            var id = newEntities[i].id;
-                            addEntity(id, newEntities[i].name, newEntities[i].type, newEntities[i].url,
-                                      newEntities[i].locked ? LOCKED_GLYPH : null,
-                                      newEntities[i].visible ? VISIBLE_GLYPH : null,
-                                      newEntities[i].verticesCount, newEntities[i].texturesCount, newEntities[i].texturesSize,
-                                      newEntities[i].hasTransparent ? TRANSPARENCY_GLYPH : null,
-                                      newEntities[i].isBaked ? BAKED_GLYPH : null,
-                                      newEntities[i].drawCalls,
-                                      newEntities[i].hasScript ? SCRIPT_GLYPH : null);
+                    PROFILE("update", function() {
+                        var newEntities = data.entities;
+                        if (newEntities && newEntities.length == 0) {
+                            elNoEntitiesMessage.style.display = "block";
+                            elFooter.firstChild.nodeValue = "0 entities found";
+                        } else if (newEntities) {
+                            elNoEntitiesMessage.style.display = "none";
+                            for (var i = 0; i < newEntities.length; i++) {
+                                var id = newEntities[i].id;
+                                addEntity(id, newEntities[i].name, newEntities[i].type, newEntities[i].url,
+                                          newEntities[i].locked ? LOCKED_GLYPH : null,
+                                          newEntities[i].visible ? VISIBLE_GLYPH : null,
+                                          newEntities[i].verticesCount, newEntities[i].texturesCount, newEntities[i].texturesSize,
+                                          newEntities[i].hasTransparent ? TRANSPARENCY_GLYPH : null,
+                                          newEntities[i].isBaked ? BAKED_GLYPH : null,
+                                          newEntities[i].drawCalls,
+                                          newEntities[i].hasScript ? SCRIPT_GLYPH : null);
+                            }
+                            updateSelectedEntities(data.selectedIDs);
+                            scheduleRefreshEntityList();
+                            resize();
                         }
-                        updateSelectedEntities(data.selectedIDs);
-                        scheduleRefreshEntityList();
-                        resize();
-                    }
+                    });
                 } else if (data.type === "removeEntities" && data.deletedIDs !== undefined && data.selectedIDs !== undefined) {
                     removeEntities(data.deletedIDs);
                     updateSelectedEntities(data.selectedIDs);

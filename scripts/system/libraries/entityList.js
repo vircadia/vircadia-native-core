@@ -11,6 +11,18 @@
 /* global EntityListTool, Tablet, selectionManager, Entities, Camera, MyAvatar, Vec3, Menu, Messages,
    cameraManager, MENU_EASE_ON_FOCUS, deleteSelectedEntities, toggleSelectedEntitiesLocked, toggleSelectedEntitiesVisible */
 
+var profileIndent = '';
+PROFILE = function(name, fn, args) {
+    console.log("PROFILE-Script " + profileIndent + "(" + name + ") Begin");
+    var previousIndent = profileIndent;
+    profileIndent += '  ';
+    var before = Date.now();
+    fn.apply(this, args);
+    var delta = Date.now() - before;
+    profileIndent = previousIndent;
+    console.log("PROFILE-Script " + profileIndent + "(" + name + ") End " + delta + "ms");
+}
+
 EntityListTool = function(shouldUseEditTabletApp) {
     var that = {};
 
@@ -66,11 +78,16 @@ EntityListTool = function(shouldUseEditTabletApp) {
     that.setVisible(false);
 
     function emitJSONScriptEvent(data) {
-        var dataString = JSON.stringify(data);
-        webView.emitScriptEvent(dataString);
-        if (entityListWindow.window) {
-            entityListWindow.window.emitScriptEvent(dataString);
-        }
+        var dataString;
+        PROFILE("Script-JSON.stringify", function() {
+            dataString = JSON.stringify(data);
+        });
+        PROFILE("Script-emitScriptEvent", function() {
+            webView.emitScriptEvent(dataString);
+            if (entityListWindow.window) {
+                entityListWindow.window.emitScriptEvent(dataString);
+            }
+        });
     }
     
     that.toggleVisible = function() {
@@ -116,59 +133,61 @@ EntityListTool = function(shouldUseEditTabletApp) {
     }
 
     that.sendUpdate = function() {
-        var entities = [];
+        PROFILE('Script-sendUpdate', function() {
+            var entities = [];
 
-        var ids;
-        if (filterInView) {
-            ids = Entities.findEntitiesInFrustum(Camera.frustum);
-        } else {
-            ids = Entities.findEntities(MyAvatar.position, searchRadius);
-        }
-
-        var cameraPosition = Camera.position;
-        for (var i = 0; i < ids.length; i++) {
-            var id = ids[i];
-            var properties = Entities.getEntityProperties(id);
-
-            if (!filterInView || Vec3.distance(properties.position, cameraPosition) <= searchRadius) {
-                var url = "";
-                if (properties.type === "Model") {
-                    url = properties.modelURL;
-                } else if (properties.type === "Material") {
-                    url = properties.materialURL;
-                }
-                entities.push({
-                    id: id,
-                    name: properties.name,
-                    type: properties.type,
-                    url: url,
-                    locked: properties.locked,
-                    visible: properties.visible,
-                    verticesCount: (properties.renderInfo !== undefined ? 
-                        valueIfDefined(properties.renderInfo.verticesCount) : ""),
-                    texturesCount: (properties.renderInfo !== undefined ? 
-                        valueIfDefined(properties.renderInfo.texturesCount) : ""),
-                    texturesSize: (properties.renderInfo !== undefined ? 
-                        valueIfDefined(properties.renderInfo.texturesSize) : ""),
-                    hasTransparent: (properties.renderInfo !== undefined ? 
-                        valueIfDefined(properties.renderInfo.hasTransparent) : ""),
-                    isBaked: properties.type === "Model" ? url.toLowerCase().endsWith(".baked.fbx") : false,
-                    drawCalls: (properties.renderInfo !== undefined ? 
-                        valueIfDefined(properties.renderInfo.drawCalls) : ""),
-                    hasScript: properties.script !== ""
-                });
+            var ids;
+            if (filterInView) {
+                ids = Entities.findEntitiesInFrustum(Camera.frustum);
+            } else {
+                ids = Entities.findEntities(MyAvatar.position, searchRadius);
             }
-        }
 
-        var selectedIDs = [];
-        for (var j = 0; j < selectionManager.selections.length; j++) {
-            selectedIDs.push(selectionManager.selections[j]);
-        }
+            var cameraPosition = Camera.position;
+            for (var i = 0; i < ids.length; i++) {
+                var id = ids[i];
+                var properties = Entities.getEntityProperties(id);
 
-        emitJSONScriptEvent({
-            type: "update",
-            entities: entities,
-            selectedIDs: selectedIDs,
+                if (!filterInView || Vec3.distance(properties.position, cameraPosition) <= searchRadius) {
+                    var url = "";
+                    if (properties.type === "Model") {
+                        url = properties.modelURL;
+                    } else if (properties.type === "Material") {
+                        url = properties.materialURL;
+                    }
+                    entities.push({
+                        id: id,
+                        name: properties.name,
+                        type: properties.type,
+                        url: url,
+                        locked: properties.locked,
+                        visible: properties.visible,
+                        verticesCount: (properties.renderInfo !== undefined ? 
+                            valueIfDefined(properties.renderInfo.verticesCount) : ""),
+                        texturesCount: (properties.renderInfo !== undefined ? 
+                            valueIfDefined(properties.renderInfo.texturesCount) : ""),
+                        texturesSize: (properties.renderInfo !== undefined ? 
+                            valueIfDefined(properties.renderInfo.texturesSize) : ""),
+                        hasTransparent: (properties.renderInfo !== undefined ? 
+                            valueIfDefined(properties.renderInfo.hasTransparent) : ""),
+                        isBaked: properties.type === "Model" ? url.toLowerCase().endsWith(".baked.fbx") : false,
+                        drawCalls: (properties.renderInfo !== undefined ? 
+                            valueIfDefined(properties.renderInfo.drawCalls) : ""),
+                        hasScript: properties.script !== ""
+                    });
+                }
+            }
+
+            var selectedIDs = [];
+            for (var j = 0; j < selectionManager.selections.length; j++) {
+                selectedIDs.push(selectionManager.selections[j]);
+            }
+
+            emitJSONScriptEvent({
+                type: "update",
+                entities: entities,
+                selectedIDs: selectedIDs,
+            });
         });
     };
 
@@ -186,7 +205,8 @@ EntityListTool = function(shouldUseEditTabletApp) {
         try {
             data = JSON.parse(data);
         } catch(e) {
-            print("entityList.js: Error parsing JSON: " + e.name + " data " + data);
+            console.log(data);
+            //print("entityList.js: Error parsing JSON: " + e.name + " data " + data);
             return;
         }
 
