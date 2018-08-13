@@ -944,7 +944,7 @@ protected:
     }
 };
 
-const std::vector<ContactTestResult> PhysicsEngine::getCollidingInRegion(MotionStateType desiredObjectType, const ShapeInfo& regionShapeInfo, const Transform& regionTransform) const {
+std::vector<ContactTestResult> PhysicsEngine::getCollidingInRegion(MotionStateType desiredObjectType, const ShapeInfo& regionShapeInfo, const Transform& regionTransform) const {
     // TODO: Give MyAvatar a motion state so we don't have to do this
     btCollisionObject* myAvatarCollisionObject = nullptr;
     if (desiredObjectType == MOTIONSTATE_TYPE_AVATAR && _myAvatarController) {

@@ -308,20 +308,18 @@ CollisionRegion CollisionPick::getMathematicalPick() const {
     return _mathPick;
 }
 
-const std::vector<ContactTestResult> CollisionPick::filterIntersections(const std::vector<ContactTestResult>& intersections) const {
-    std::vector<ContactTestResult> filteredIntersections;
-
+void CollisionPick::filterIntersections(std::vector<ContactTestResult>& intersections) const {
     const QVector<QUuid>& ignoreItems = getIgnoreItems();
     const QVector<QUuid>& includeItems = getIncludeItems();
     bool isWhitelist = includeItems.size();
-    for (const auto& intersection : intersections) {
+    for (int i = 0; i < intersections.size(); i++) {
+        auto& intersection = intersections[i];
         const QUuid& id = intersection.foundID;
-        if (!ignoreItems.contains(id) && (!isWhitelist || includeItems.contains(id))) {
-            filteredIntersections.push_back(intersection);
+        if (ignoreItems.contains(id) || (isWhitelist && !includeItems.contains(id))) {
+            intersections[i] = intersections[intersections.size()-1];
+            intersections.pop_back();
         }
     }
-
-    return filteredIntersections;
 }
 
 PickResultPointer CollisionPick::getEntityIntersection(const CollisionRegion& pick) {
@@ -330,7 +328,8 @@ PickResultPointer CollisionPick::getEntityIntersection(const CollisionRegion& pi
         return std::make_shared<CollisionPickResult>(pick.toVariantMap(), CollisionPickResult::LOAD_STATE_NOT_LOADED, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
     }
     
-    const auto& entityIntersections = filterIntersections(_physicsEngine->getCollidingInRegion(MOTIONSTATE_TYPE_ENTITY, *pick.shapeInfo, pick.transform));
+    auto& entityIntersections = _physicsEngine->getCollidingInRegion(MOTIONSTATE_TYPE_ENTITY, *pick.shapeInfo, pick.transform);
+    filterIntersections(entityIntersections);
     return std::make_shared<CollisionPickResult>(pick, CollisionPickResult::LOAD_STATE_LOADED, entityIntersections, std::vector<ContactTestResult>());
 }
 
@@ -344,7 +343,8 @@ PickResultPointer CollisionPick::getAvatarIntersection(const CollisionRegion& pi
         return std::make_shared<CollisionPickResult>(pick.toVariantMap(), CollisionPickResult::LOAD_STATE_NOT_LOADED, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
     }
 
-    const auto& avatarIntersections = filterIntersections(_physicsEngine->getCollidingInRegion(MOTIONSTATE_TYPE_AVATAR, *pick.shapeInfo, pick.transform));
+    auto& avatarIntersections = _physicsEngine->getCollidingInRegion(MOTIONSTATE_TYPE_AVATAR, *pick.shapeInfo, pick.transform);
+    filterIntersections(avatarIntersections);
     return std::make_shared<CollisionPickResult>(pick, CollisionPickResult::LOAD_STATE_LOADED, std::vector<ContactTestResult>(), avatarIntersections);
 }
 
