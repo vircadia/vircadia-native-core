@@ -127,17 +127,13 @@ bool Ledger::receiveAt(const QString& hfc_key, const QString& signing_key) {
     }
     auto wallet = DependencyManager::get<Wallet>();
     QByteArray locker = wallet->getWallet();
-    if (locker.isEmpty()) {
-        signedSend("public_key", hfc_key.toUtf8(), signing_key, "receive_at", "receiveAtSuccess", "receiveAtFailure");
-    } else {
-        QJsonObject transaction;
-        transaction["public_key"] = hfc_key;
-        transaction["locker"] = QString::fromUtf8(locker);
-        QJsonDocument transactionDoc{ transaction };
-        auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
-        qCDebug(commerce) << "FIXME transactionString" << transactionString;
-        signedSend("text", transactionString, signing_key, "receive_at", "receiveAtSuccess", "receiveAtFailure");
-    }
+    QJsonObject transaction;
+    transaction["public_key"] = hfc_key;
+    transaction["locker"] = QString::fromUtf8(locker);
+    QJsonDocument transactionDoc{ transaction };
+    auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
+    qCDebug(commerce) << "FIXME transactionString" << transactionString;
+    signedSend("text", transactionString, signing_key, "receive_at", "receiveAtSuccess", "receiveAtFailure");
     return true; // Note that there may still be an asynchronous signal of failure that callers might be interested in.
 }
 
