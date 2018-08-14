@@ -10,6 +10,9 @@ import io.highfidelity.hifiinterface.view.UserListAdapter;
 
 public interface UsersProvider {
 
+    public static String CONNECTION_TYPE_FRIEND = "friend";
+    public static String CONNECTION_FILTER_CONNECTIONS = "connections";
+
     void retrieve(UsersProvider.UsersCallback usersCallback);
 
     interface UsersCallback {

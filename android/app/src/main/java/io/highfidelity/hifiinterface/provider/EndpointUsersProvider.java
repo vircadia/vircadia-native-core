@@ -1,5 +1,7 @@
 package io.highfidelity.hifiinterface.provider;
 
+import android.util.Log;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,6 +49,7 @@ public class EndpointUsersProvider implements UsersProvider {
                 return chain.proceed(request);
             }
         });
+        Log.d("[USERZ]", "Authorization: Bearer " + accessToken);// CLD DELETE THIS LINE!
         OkHttpClient client = httpClient.build();
 
         mRetrofit = new Retrofit.Builder()
@@ -60,7 +63,7 @@ public class EndpointUsersProvider implements UsersProvider {
     @Override
     public void retrieve(UsersCallback usersCallback) {
         Call<UsersResponse> friendsCall = mEndpointUsersProviderService.getUsers(
-                "friends",
+                CONNECTION_FILTER_CONNECTIONS,
                 400,
                 null);
         friendsCall.enqueue(new Callback<UsersResponse>() {

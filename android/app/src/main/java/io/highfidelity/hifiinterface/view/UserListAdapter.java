@@ -2,8 +2,10 @@ package io.highfidelity.hifiinterface.view;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.PorterDuff;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.graphics.drawable.RoundedBitmapDrawable;
 import android.support.v4.graphics.drawable.RoundedBitmapDrawableFactory;
 import android.support.v7.widget.RecyclerView;
@@ -69,6 +71,7 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
         User aUser = mUsers.get(position);
         holder.mUsername.setText(aUser.name);
         holder.mOnlineInfo.setVisibility(aUser.online? View.VISIBLE : View.GONE);
+        holder.mFriendStar.setChecked(aUser.connection.equals(UsersProvider.CONNECTION_TYPE_FRIEND));
         Uri uri = Uri.parse(aUser.imageUrl);
         holder.mLocation.setText(" - unknown"); // Bring info from the API and use it here
         Picasso.get().load(uri).into(holder.mImage, new RoundProfilePictureCallback(holder.mImage));
@@ -100,6 +103,38 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
         return mUsers.size();
     }
 
+    public class ToggleWrapper {
+
+        private ImageView mImage;
+        private boolean mChecked = false;
+
+        public ToggleWrapper(ImageView imageView) {
+            mImage = imageView;
+            mImage.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    toggle();
+                }
+            });
+        }
+
+        private void refreshUI() {
+            mImage.setColorFilter(ContextCompat.getColor(mImage.getContext(),
+                    mChecked ? R.color.starSelectedTint : R.color.starUnselectedTint));
+        }
+
+        protected void toggle() {
+            // TODO API CALL TO CHANGE
+            mChecked = !mChecked;
+            refreshUI();
+        }
+
+        protected void setChecked(boolean checked) {
+            mChecked = checked;
+            refreshUI();
+        }
+    }
+
     public class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
         TextView mUsername;
@@ -107,6 +142,7 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
         View mOnlineInfo;
         TextView mLocation;
         ImageView mImage;
+        ToggleWrapper mFriendStar;
 
         public ViewHolder(View itemView) {
             super(itemView);
@@ -115,6 +151,7 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
             mImage = itemView.findViewById(R.id.userImage);
             mOnlineInfo = itemView.findViewById(R.id.userOnlineInfo);
             mLocation = itemView.findViewById(R.id.userLocation);
+            mFriendStar = new ToggleWrapper(itemView.findViewById(R.id.userFav));
             itemView.setOnClickListener(this);
         }
 
