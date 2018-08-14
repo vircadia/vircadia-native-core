@@ -12,6 +12,7 @@
 
 #include <RegisteredMetaTypes.h>
 #include <DependencyManager.h>
+#include <PhysicsEngine.h>
 #include <Pick.h>
 
 /**jsdoc
@@ -62,6 +63,7 @@ class PickScriptingInterface : public QObject, public Dependency {
 public:
     unsigned int createRayPick(const QVariant& properties);
     unsigned int createStylusPick(const QVariant& properties);
+    unsigned int createCollisionPick(const QVariant& properties);
     unsigned int createParabolaPick(const QVariant& properties);
 
     void registerMetaTypes(QScriptEngine* engine);
@@ -72,7 +74,7 @@ public:
      *   with PickType.Ray, depending on which optional parameters you pass, you could create a Static Ray Pick, a Mouse Ray Pick, or a Joint Ray Pick.
      * @function Picks.createPick
      * @param {PickType} type A PickType that specifies the method of picking to use
-     * @param {Picks.RayPickProperties|Picks.StylusPickProperties|Picks.ParabolaPickProperties} properties A PickProperties object, containing all the properties for initializing this Pick
+     * @param {Picks.RayPickProperties|Picks.StylusPickProperties|Picks.ParabolaPickProperties|Picks.CollisionPickProperties} properties A PickProperties object, containing all the properties for initializing this Pick
      * @returns {number} The ID of the created Pick.  Used for managing the Pick.  0 if invalid.
      */
     Q_INVOKABLE unsigned int createPick(const PickQuery::PickType type, const QVariant& properties);
@@ -141,11 +143,40 @@ public:
      * @property {PickParabola} parabola The PickParabola that was used.  Valid even if there was no intersection.
      */
 
+     /**jsdoc
+     * An intersection result for a Collision Pick.
+     *
+     * @typedef {object} CollisionPickResult
+     * @property {boolean} intersects If there was at least one valid intersection (intersectingObjects.length > 0)
+     * @property {IntersectingObject[]} intersectingObjects The collision information of each object which intersect with the CollisionRegion.
+     * @property {CollisionRegion} collisionRegion The CollisionRegion that was used. Valid even if there was no intersection.
+     */
+
+    // TODO: Add this to the CollisionPickResult jsdoc once model collision picks are working
+    //* @property {boolean} loaded If the CollisionRegion was successfully loaded (may be false if a model was used)
+
+    /**jsdoc
+    * Information about the Collision Pick's intersection with an object
+    *
+    * @typedef {object} IntersectingObject
+    * @property {QUuid} id The ID of the object.
+    * @property {number} type The type of the object, either Picks.INTERSECTED_ENTITY() or Picks.INTERSECTED_AVATAR()
+    * @property {CollisionContact[]} collisionContacts Pairs of points representing penetration information between the pick and the object
+    */
+
+     /**jsdoc
+     * A pair of points that represents part of an overlap between a Collision Pick and an object in the physics engine. Points which are further apart represent deeper overlap
+     *
+     * @typedef {object} CollisionContact
+     * @property {Vec3} pointOnPick A point representing a penetration of the object's surface into the volume of the pick, in world space.
+     * @property {Vec3} pointOnObject A point representing a penetration of the pick's surface into the volume of the found object, in world space.
+     */
+
     /**jsdoc
      * Get the most recent pick result from this Pick.  This will be updated as long as the Pick is enabled.
      * @function Picks.getPrevPickResult
      * @param {number} uid The ID of the Pick, as returned by {@link Picks.createPick}.
-     * @returns {RayPickResult|StylusPickResult} The most recent intersection result.  This will be different for different PickTypes.
+     * @returns {RayPickResult|StylusPickResult|ParabolaPickResult|CollisionPickResult} The most recent intersection result.  This will be different for different PickTypes.
      */
     Q_INVOKABLE QVariantMap getPrevPickResult(unsigned int uid);
 
