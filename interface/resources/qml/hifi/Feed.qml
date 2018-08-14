@@ -143,11 +143,15 @@ Column {
             shadowHeight: root.stackedCardShadowHeight;
             hoverThunk: function () { 
                 hovered = true;
-                autoScrollTimer.stop();
+                if(root.autoScrollTimerEnabled) {
+                    autoScrollTimer.stop();
+                }
 			}
             unhoverThunk: function () { 
                 hovered = false;
-                autoScrollTimer.start();
+                if(root.autoScrollTimerEnabled) {
+                    autoScrollTimer.start();
+                }
             }
         }
 
