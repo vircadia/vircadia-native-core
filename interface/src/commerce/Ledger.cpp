@@ -117,7 +117,7 @@ void Ledger::buy(const QString& hfc_key, int cost, const QString& asset_id, cons
     signedSend("transaction", transactionString, hfc_key, "buy", "buySuccess", "buyFailure", controlled_failure);
 }
 
-bool Ledger::receiveAt(const QString& hfc_key, const QString& signing_key) {
+bool Ledger::receiveAt(const QString& hfc_key, const QString& signing_key, const QByteArray& locker) {
     auto accountManager = DependencyManager::get<AccountManager>();
     if (!accountManager->isLoggedIn()) {
         qCWarning(commerce) << "Cannot set receiveAt when not logged in.";
@@ -125,8 +125,6 @@ bool Ledger::receiveAt(const QString& hfc_key, const QString& signing_key) {
         emit receiveAtResult(result);
         return false; // We know right away that we will fail, so tell the caller.
     }
-    auto wallet = DependencyManager::get<Wallet>();
-    QByteArray locker = wallet->getWallet();
     QJsonObject transaction;
     transaction["public_key"] = hfc_key;
     transaction["locker"] = QString::fromUtf8(locker);
@@ -135,6 +133,16 @@ bool Ledger::receiveAt(const QString& hfc_key, const QString& signing_key) {
     qCDebug(commerce) << "FIXME transactionString" << transactionString;
     signedSend("text", transactionString, signing_key, "receive_at", "receiveAtSuccess", "receiveAtFailure");
     return true; // Note that there may still be an asynchronous signal of failure that callers might be interested in.
+}
+
+bool Ledger::receiveAt() {
+    auto wallet = DependencyManager::get<Wallet>();
+    auto keys = wallet->listPublicKeys();
+    if (keys.isEmpty()) {
+        return false;
+    }
+    auto key = keys.first();
+    return receiveAt(key, key, wallet->getWallet());
 }
 
 void Ledger::balance(const QStringList& keys) {
@@ -304,18 +312,16 @@ void Ledger::accountSuccess(QNetworkReply* reply) {
     QString keyStatus = "ok";
     QStringList localPublicKeys = wallet->listPublicKeys();
     if (remotePublicKey.isEmpty() || isOverride) {
-        if (!localPublicKeys.isEmpty()) {
-            QString key = localPublicKeys.first();
-            receiveAt(key, key);
+        if (!localPublicKeys.isEmpty()) { // Let the metaverse know about a local wallet.
+            receiveAt();
         }
     } else {
         if (localPublicKeys.isEmpty()) {
             keyStatus = "preexisting";
         } else if (localPublicKeys.first() != remotePublicKey) {
             keyStatus = "conflicting";
-        } else if (locker.isEmpty()) {
-            QString key = localPublicKeys.first();
-            receiveAt(key, key);
+        } else if (locker.isEmpty()) { // Matches metaverse data, but we haven't lockered it yet.
+            receiveAt();
         }
     }
 

@@ -602,7 +602,7 @@ bool Wallet::generateKeyPair() {
     // 2. It is maximally private, and we can step back from that later if desired.
     // 3. It maximally exercises all the machinery, so we are most likely to surface issues now.
     auto ledger = DependencyManager::get<Ledger>();
-    return ledger->receiveAt(key, key);
+    return ledger->receiveAt(key, key, getWallet());
 }
 
 QStringList Wallet::listPublicKeys() {
@@ -741,6 +741,11 @@ QString Wallet::getKeyFilePath() {
 
 bool Wallet::writeWallet(const QString& newPassphrase) {
     EC_KEY* keys = readKeys(keyFilePath().toStdString().c_str());
+    auto ledger = DependencyManager::get<Ledger>();
+    // Remove any existing locker, because it will be out of date.
+    if (!_publicKeys.isEmpty() && !ledger->receiveAt(_publicKeys.first(), _publicKeys.first(), QByteArray())) {
+        return false;  // FIXME: receiveAt could fail asynchronously.
+    }
     if (keys) {
         // we read successfully, so now write to a new temp file
         QString tempFileName = QString("%1.%2").arg(keyFilePath(), QString("temp"));
@@ -748,6 +753,7 @@ bool Wallet::writeWallet(const QString& newPassphrase) {
         if (!newPassphrase.isEmpty()) {
             setPassphrase(newPassphrase);
         }
+
         if (writeKeys(tempFileName.toStdString().c_str(), keys)) {
             if (writeSecurityImage(_securityImage, tempFileName)) {
                 // ok, now move the temp file to the correct spot
@@ -755,6 +761,11 @@ bool Wallet::writeWallet(const QString& newPassphrase) {
                 QFile(tempFileName).rename(QString(keyFilePath()));
                 qCDebug(commerce) << "wallet written successfully";
                 emit keyFilePathIfExistsResult(getKeyFilePath());
+                if (!walletIsAuthenticatedWithPassphrase() || !ledger->receiveAt()) {
+                    // FIXME: Should we fail the whole operation?
+                    // Tricky, because we'll need the the key and file from the TEMP location...
+                    qCWarning(commerce) << "Failed to update locker";
+                }
                 return true;
             } else {
                 qCDebug(commerce) << "couldn't write security image to temp wallet";
