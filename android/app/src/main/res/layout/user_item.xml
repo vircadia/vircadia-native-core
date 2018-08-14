@@ -26,7 +26,8 @@
             android:id="@+id/userName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/raleway" />
+            android:fontFamily="@font/raleway"
+            android:textColor="@color/menuOption"/>
         <LinearLayout android:id="@+id/userOnlineInfo"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content">
@@ -41,7 +42,8 @@
                 android:id="@+id/userLocation"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/raleway_italic"/>
+                android:fontFamily="@font/raleway_italic"
+                android:textColor="@color/menuOption"/>
         </LinearLayout>
     </LinearLayout>
     <ImageView android:id="@+id/userFav"
