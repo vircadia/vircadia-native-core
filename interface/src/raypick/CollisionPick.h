@@ -24,10 +24,14 @@ public:
     CollisionPickResult() {}
     CollisionPickResult(const QVariantMap& pickVariant) : PickResult(pickVariant) {}
 
-    CollisionPickResult(const CollisionRegion& searchRegion, LoadState loadState, const std::vector<ContactTestResult>& entityIntersections, const std::vector<ContactTestResult>& avatarIntersections) :
+    CollisionPickResult(const CollisionRegion& searchRegion,
+        LoadState loadState,
+        std::shared_ptr<std::vector<ContactTestResult>> entityIntersections = std::make_shared<std::vector<ContactTestResult>>(),
+        std::shared_ptr<std::vector<ContactTestResult>> avatarIntersections = std::make_shared<std::vector<ContactTestResult>>()
+    ) :
         PickResult(searchRegion.toVariantMap()),
         loadState(loadState),
-        intersects(entityIntersections.size() || avatarIntersections.size()),
+        intersects(entityIntersections->size() || avatarIntersections->size()),
         entityIntersections(entityIntersections),
         avatarIntersections(avatarIntersections) {
     }
@@ -41,8 +45,8 @@ public:
 
     LoadState loadState { LOAD_STATE_UNKNOWN };
     bool intersects { false };
-    std::vector<ContactTestResult> entityIntersections;
-    std::vector<ContactTestResult> avatarIntersections;
+    std::shared_ptr<std::vector<ContactTestResult>> entityIntersections { std::make_shared<std::vector<ContactTestResult>>() };
+    std::shared_ptr<std::vector<ContactTestResult>> avatarIntersections { std::make_shared<std::vector<ContactTestResult>>() };
 
     QVariantMap toVariantMap() const override;
 
@@ -52,14 +56,14 @@ public:
     PickResultPointer compareAndProcessNewResult(const PickResultPointer& newRes) override {
         const std::shared_ptr<CollisionPickResult> newCollisionResult = std::static_pointer_cast<CollisionPickResult>(newRes);
 
-        for (ContactTestResult& entityIntersection : newCollisionResult->entityIntersections) {
-            entityIntersections.push_back(entityIntersection);
+        for (ContactTestResult& entityIntersection : *(newCollisionResult->entityIntersections)) {
+            entityIntersections->push_back(entityIntersection);
         }
-        for (ContactTestResult& avatarIntersection : newCollisionResult->avatarIntersections) {
-            avatarIntersections.push_back(avatarIntersection);
+        for (ContactTestResult& avatarIntersection : *(newCollisionResult->avatarIntersections)) {
+            avatarIntersections->push_back(avatarIntersection);
         }
 
-        intersects = entityIntersections.size() || avatarIntersections.size();
+        intersects = entityIntersections->size() || avatarIntersections->size();
         if (newCollisionResult->loadState == LOAD_STATE_NOT_LOADED || loadState == LOAD_STATE_UNKNOWN) {
             loadState = (LoadState)newCollisionResult->loadState;        
         }
@@ -81,7 +85,7 @@ public:
 
     CollisionRegion getMathematicalPick() const override;
     PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const override {
-        return std::make_shared<CollisionPickResult>(pickVariant, CollisionPickResult::LOAD_STATE_UNKNOWN, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
+        return std::make_shared<CollisionPickResult>(pickVariant, CollisionPickResult::LOAD_STATE_UNKNOWN, std::make_shared<std::vector<ContactTestResult>>(), std::make_shared<std::vector<ContactTestResult>>());
     }
     PickResultPointer getEntityIntersection(const CollisionRegion& pick) override;
     PickResultPointer getOverlayIntersection(const CollisionRegion& pick) override;
@@ -92,7 +96,7 @@ protected:
     // Returns true if pick.shapeInfo is valid. Otherwise, attempts to get the shapeInfo ready for use.
     bool isShapeInfoReady();
     void computeShapeInfo(CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<GeometryResource> resource);
-    void filterIntersections(std::vector<ContactTestResult>& intersections) const;
+    void filterIntersections(std::shared_ptr<std::vector<ContactTestResult>> intersections) const;
 
     CollisionRegion _mathPick;
     PhysicsEnginePointer _physicsEngine;

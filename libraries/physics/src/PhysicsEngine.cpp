@@ -871,7 +871,6 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
         btCollisionWorld::ContactResultCallback(),
         desiredObjectType(desiredObjectType),
         collisionObject(),
-        contacts(),
         myAvatarCollisionObject(myAvatarCollisionObject) {
         const btCollisionShape* collisionShape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
 
@@ -898,7 +897,7 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
 
     MotionStateType desiredObjectType;
     btCollisionObject collisionObject;
-    std::vector<ContactTestResult> contacts;
+    std::shared_ptr<std::vector<ContactTestResult>> contacts = std::make_shared<std::vector<ContactTestResult>>();
     btCollisionObject* myAvatarCollisionObject;
 
     btScalar addSingleResult(btManifoldPoint& cp, const btCollisionObjectWrapper* colObj0, int partId0, int index0, const btCollisionObjectWrapper* colObj1, int partId1, int index1) override {
@@ -917,7 +916,7 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
 
         // TODO: Give MyAvatar a motion state so we don't have to do this
         if (desiredObjectType == MOTIONSTATE_TYPE_AVATAR && myAvatarCollisionObject && myAvatarCollisionObject == otherBody) {
-            contacts.emplace_back(Physics::getSessionUUID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint));
+            contacts->emplace_back(Physics::getSessionUUID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint));
             return 0;
         }
 
@@ -933,7 +932,7 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
         }
 
         // This is the correct object type. Add it to the list.
-        contacts.emplace_back(candidate->getObjectID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint));
+        contacts->emplace_back(candidate->getObjectID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint));
 
         return 0;
     }
@@ -944,7 +943,7 @@ protected:
     }
 };
 
-std::vector<ContactTestResult> PhysicsEngine::getCollidingInRegion(MotionStateType desiredObjectType, const ShapeInfo& regionShapeInfo, const Transform& regionTransform) const {
+std::shared_ptr<std::vector<ContactTestResult>> PhysicsEngine::getCollidingInRegion(MotionStateType desiredObjectType, const ShapeInfo& regionShapeInfo, const Transform& regionTransform) const {
     // TODO: Give MyAvatar a motion state so we don't have to do this
     btCollisionObject* myAvatarCollisionObject = nullptr;
     if (desiredObjectType == MOTIONSTATE_TYPE_AVATAR && _myAvatarController) {
