@@ -71,7 +71,7 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
         User aUser = mUsers.get(position);
         holder.mUsername.setText(aUser.name);
         holder.mOnlineInfo.setVisibility(aUser.online? View.VISIBLE : View.GONE);
-        holder.mFriendStar.setChecked(aUser.connection.equals(UsersProvider.CONNECTION_TYPE_FRIEND));
+        holder.mFriendStar.onBindSet(aUser.name, aUser.connection.equals(UsersProvider.CONNECTION_TYPE_FRIEND));
         Uri uri = Uri.parse(aUser.imageUrl);
         holder.mLocation.setText(" - unknown"); // Bring info from the API and use it here
         Picasso.get().load(uri).into(holder.mImage, new RoundProfilePictureCallback(holder.mImage));
@@ -107,6 +107,8 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
 
         private ImageView mImage;
         private boolean mChecked = false;
+        private String mUsername;
+        private boolean waitingChangeConfirm = false;
 
         public ToggleWrapper(ImageView imageView) {
             mImage = imageView;
@@ -123,14 +125,51 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
                     mChecked ? R.color.starSelectedTint : R.color.starUnselectedTint));
         }
 
-        protected void toggle() {
-            // TODO API CALL TO CHANGE
-            mChecked = !mChecked;
-            refreshUI();
+        class RollbackUICallback implements UsersProvider.UserActionCallback {
+
+            boolean previousStatus;
+
+            RollbackUICallback(boolean previousStatus) {
+                this.previousStatus = previousStatus;
+            }
+
+            @Override
+            public void requestOk() {
+                if (!waitingChangeConfirm) return;
+                mImage.setClickable(true);
+                // nothing to do, new status was set
+            }
+
+            @Override
+            public void requestError(Exception e, String message) {
+                if (!waitingChangeConfirm) return;
+                // new status was not set, rolling back
+                mChecked = previousStatus;
+                mImage.setClickable(true);
+                refreshUI();
+            }
+
         }
 
-        protected void setChecked(boolean checked) {
+        protected void toggle() {
+            // TODO API CALL TO CHANGE
+            final boolean previousStatus = mChecked;
+            mChecked = !mChecked;
+            mImage.setClickable(false);
+            refreshUI();
+            waitingChangeConfirm = true;
+            if (mChecked) {
+                mProvider.addFriend(mUsername, new RollbackUICallback(previousStatus));
+            } else {
+                mProvider.removeFriend(mUsername, new RollbackUICallback(previousStatus));
+            }
+        }
+
+        protected void onBindSet(String username, boolean checked) {
             mChecked = checked;
+            mUsername = username;
+            waitingChangeConfirm = false;
+            mImage.setClickable(true);
             refreshUI();
         }
     }

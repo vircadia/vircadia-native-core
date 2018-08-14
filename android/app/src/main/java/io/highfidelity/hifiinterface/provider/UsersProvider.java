@@ -20,4 +20,16 @@ public interface UsersProvider {
         void retrieveError(Exception e, String message);
     }
 
+
+    void addFriend(String friendUserName, UserActionCallback callback);
+
+    void removeFriend(String friendUserName, UserActionCallback callback);
+
+    void removeConnection(String connectionUserName, UserActionCallback callback);
+
+    interface UserActionCallback {
+        void requestOk();
+        void requestError(Exception e, String message);
+    }
+
 }
