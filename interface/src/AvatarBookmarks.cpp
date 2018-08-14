@@ -171,6 +171,13 @@ void AvatarBookmarks::loadBookmark(const QString& bookmarkName) {
 
     if (bookmarkEntry != _bookmarks.end()) {
         QVariantMap bookmark = bookmarkEntry.value().toMap();
+        if (bookmark.empty()) { // compatibility with bookmarks like this: "Wooden Doll": "http://mpassets.highfidelity.com/7fe80a1e-f445-4800-9e89-40e677b03bee-v1/mannequin.fst?noDownload=false",
+            auto avatarUrl = bookmarkEntry.value().toString();
+            if (!avatarUrl.isEmpty()) {
+                bookmark.insert(ENTRY_AVATAR_URL, avatarUrl);
+            }
+        }
+
         if (!bookmark.empty()) {
             auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
             auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
