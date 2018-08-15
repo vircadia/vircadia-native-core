@@ -70,10 +70,12 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
     public void onBindViewHolder(UserListAdapter.ViewHolder holder, int position) {
         User aUser = mUsers.get(position);
         holder.mUsername.setText(aUser.name);
+
         holder.mOnlineInfo.setVisibility(aUser.online? View.VISIBLE : View.GONE);
+        holder.mLocation.setText("- " + aUser.locationName); // Bring info from the API and use it here
+
         holder.mFriendStar.onBindSet(aUser.name, aUser.connection.equals(UsersProvider.CONNECTION_TYPE_FRIEND));
         Uri uri = Uri.parse(aUser.imageUrl);
-        holder.mLocation.setText(" - unknown"); // Bring info from the API and use it here
         Picasso.get().load(uri).into(holder.mImage, new RoundProfilePictureCallback(holder.mImage));
     }
 
@@ -212,6 +214,8 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
         public String imageUrl;
         public String connection;
         public boolean online;
+
+        public String locationName;
 
         public User() {}
     }

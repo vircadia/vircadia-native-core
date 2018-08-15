@@ -209,6 +209,11 @@ JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeGotoUr
     DependencyManager::get<AddressManager>()->loadSettings(jniUrl.toString());
 }
 
+JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeGoToUser(JNIEnv* env, jobject obj, jstring username) {
+    QAndroidJniObject jniUsername("java/lang/String", "(Ljava/lang/String;)V", username);
+    DependencyManager::get<AddressManager>()->goToUser(jniUsername.toString(), false);
+}
+
 JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnPause(JNIEnv* env, jobject obj) {
 }
 

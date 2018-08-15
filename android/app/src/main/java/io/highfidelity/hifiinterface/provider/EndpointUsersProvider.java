@@ -85,6 +85,10 @@ public class EndpointUsersProvider implements UsersProvider {
                     adapterUser.imageUrl = user.images.thumbnail;
                     adapterUser.name = user.username;
                     adapterUser.online = user.online;
+                    adapterUser.locationName = (user.location != null ?
+                            (user.location.root != null ? user.location.root.name :
+                                    (user.location.domain != null ? user.location.domain.name : ""))
+                            : "");
                     adapterUsers.add(adapterUser);
                 }
                 usersCallback.retrieveOk(adapterUsers);
@@ -199,6 +203,7 @@ public class EndpointUsersProvider implements UsersProvider {
         boolean online;
         String connection;
         Images images;
+        LocationData location;
     }
 
     class Images {
@@ -206,6 +211,15 @@ public class EndpointUsersProvider implements UsersProvider {
         String hero;
         String thumbnail;
         String tiny;
+    }
+
+    class LocationData {
+        public LocationData() {}
+        NameContainer root;
+        NameContainer domain;
+    }
+    class NameContainer {
+        String name;
     }
 
 }

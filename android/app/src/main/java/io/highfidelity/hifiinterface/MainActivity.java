@@ -37,7 +37,8 @@ import io.highfidelity.hifiinterface.task.DownloadProfileImageTask;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,
                                                                 LoginFragment.OnLoginInteractionListener,
-                                                                HomeFragment.OnHomeInteractionListener {
+                                                                HomeFragment.OnHomeInteractionListener,
+                                                                FriendsFragment.OnHomeInteractionListener {
 
     private static final int PROFILE_PICTURE_PLACEHOLDER = R.drawable.default_profile_avatar;
     public static final String DEFAULT_FRAGMENT = "Home";
@@ -251,6 +252,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         startActivity(intent);
     }
 
+    private void goToUser(String username) {
+        Intent intent = new Intent(this, InterfaceActivity.class);
+        intent.putExtra(InterfaceActivity.EXTRA_GOTO_USERNAME, username);
+        finish();
+        intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(intent);
+    }
+
     @Override
     public void onLoginCompleted() {
         loadHomeFragment();
@@ -278,6 +287,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     public void onPrivacyPolicyClicked(View view) {
         loadPrivacyPolicyFragment();
+    }
+
+    @Override
+    public void onVisitUserSelected(String username) {
+        goToUser(username);
     }
 
     private class RoundProfilePictureCallback implements Callback {

@@ -2,6 +2,7 @@ package io.highfidelity.hifiinterface.fragment;
 
 
 import android.app.Fragment;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
@@ -31,6 +32,8 @@ public class FriendsFragment extends Fragment {
     private SlidingUpPanelLayout mSlidingUpPanelLayout;
     private EndpointUsersProvider mUsersProvider;
     private String mSelectedUsername;
+
+    private OnHomeInteractionListener mListener;
 
     public FriendsFragment() {
         // Required empty public constructor
@@ -64,6 +67,15 @@ public class FriendsFragment extends Fragment {
         mSlidingUpPanelLayout.setPanelHeight(0);
 
         rootView.findViewById(R.id.userActionDelete).setOnClickListener(view -> onRemoveConnectionClick());
+
+        rootView.findViewById(R.id.userActionVisit).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (mListener != null && mSelectedUsername != null) {
+                    mListener.onVisitUserSelected(mSelectedUsername);
+                }
+            }
+        });
 
         mUsersAdapter.setClickListener(new UserListAdapter.ItemClickListener() {
             @Override
@@ -134,5 +146,20 @@ public class FriendsFragment extends Fragment {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        if (context instanceof OnHomeInteractionListener) {
+            mListener = (OnHomeInteractionListener) context;
+        } else {
+            throw new RuntimeException(context.toString()
+                    + " must implement OnHomeInteractionListener");
+        }
+    }
+
+    public interface OnHomeInteractionListener {
+        void onVisitUserSelected(String username);
     }
 }
