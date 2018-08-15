@@ -12,11 +12,11 @@
 #include <memory>
 
 #include <avatars-renderer/Avatar.h>
+#include <workload/Space.h>
+
+#include "InterfaceLogging.h"
 #include "ui/overlays/Overlays.h"
 #include "ui/overlays/Sphere3DOverlay.h"
-#include "InterfaceLogging.h"
-
-#include <workload/Space.h>
 
 class OtherAvatar : public Avatar {
 public:
