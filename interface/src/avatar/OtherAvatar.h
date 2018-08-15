@@ -18,7 +18,7 @@
 #include "ui/overlays/Overlays.h"
 #include "ui/overlays/Sphere3DOverlay.h"
 
-using AvatarPhysicsCallback = std::function<void(uint32_t)>;
+class AvatarMotionState;
 
 class OtherAvatar : public Avatar {
 public:
@@ -36,14 +36,14 @@ public:
 
     int parseDataFromBuffer(const QByteArray& buffer) override;
 
-    void setPhysicsCallback(AvatarPhysicsCallback cb);
-    bool isInPhysicsSimulation() const { return _physicsCallback != nullptr; }
+    void setMotionState(AvatarMotionState* motionState);
+    bool isInPhysicsSimulation() const { return _motionState != nullptr; }
     void rebuildCollisionShape() override;
 
 protected:
     std::shared_ptr<Sphere3DOverlay> _otherAvatarOrbMeshPlaceholder { nullptr };
     OverlayID _otherAvatarOrbMeshPlaceholderID { UNKNOWN_OVERLAY_ID };
-    AvatarPhysicsCallback _physicsCallback { nullptr };
+    AvatarMotionState* _motionState { nullptr };
     int32_t _spaceIndex { -1 };
 };
 

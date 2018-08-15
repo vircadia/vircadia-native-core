@@ -247,7 +247,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             if (shape) {
                 AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
                 motionState->setMass(avatar->computeMass());
-                avatar->setPhysicsCallback([=] (uint32_t flags) { motionState->addDirtyFlags(flags); });
+                avatar->setMotionState(motionState);
                 _motionStates.insert(avatar.get(), motionState);
                 _motionStatesToAddToPhysics.insert(motionState);
             }
@@ -406,7 +406,7 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
     AvatarHashMap::handleRemovedAvatar(avatar, removalReason);
 
     // remove from physics
-    avatar->setPhysicsCallback(nullptr);
+    avatar->setMotionState(nullptr);
     AvatarMotionStateMap::iterator itr = _motionStates.find(avatar.get());
     if (itr != _motionStates.end()) {
         AvatarMotionState* motionState = *itr;

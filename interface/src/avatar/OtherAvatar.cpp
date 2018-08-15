@@ -9,6 +9,8 @@
 #include "OtherAvatar.h"
 #include "Application.h"
 
+#include "AvatarMotionState.h"
+
 OtherAvatar::OtherAvatar(QThread* thread) : Avatar(thread) {
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = new Head(this);
@@ -74,18 +76,18 @@ void OtherAvatar::updateSpaceProxy(workload::Transaction& transaction) const {
 
 int OtherAvatar::parseDataFromBuffer(const QByteArray& buffer) {
     int32_t bytesRead = Avatar::parseDataFromBuffer(buffer);
-    if (_moving && _physicsCallback) {
-        _physicsCallback(Simulation::DIRTY_POSITION);
+    if (_moving && _motionState) {
+        _motionState->addDirtyFlags(Simulation::DIRTY_POSITION);
     }
     return bytesRead;
 }
 
 void OtherAvatar::rebuildCollisionShape() {
-    if (_physicsCallback) {
-        _physicsCallback(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
+    if (_motionState) {
+        _motionState->addDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
     }
 }
 
-void OtherAvatar::setPhysicsCallback(AvatarPhysicsCallback cb) {
-    _physicsCallback = cb;
+void OtherAvatar::setMotionState(AvatarMotionState* motionState) {
+    _motionState = motionState;
 }
