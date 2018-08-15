@@ -79,7 +79,7 @@ protected:
     Transform evalRenderTransform() override;
 
 private:
-    void setupQmlSurface();
+    void setupQmlSurface(bool isTablet);
     void rebuildWebSurface();
     bool isWebContent() const;
 

@@ -228,6 +228,7 @@
             animationData.rightHandPosition.y += verticalOffset;
         }
         animationData.rightHandRotation = Quat.fromPitchYawRollDegrees(90, 0, 90);
+        animationData.rightHandType = 0; // RotationAndPosition, see IKTargets.h
     }
     function shakeHandsAnimation() {
         return animationData;
