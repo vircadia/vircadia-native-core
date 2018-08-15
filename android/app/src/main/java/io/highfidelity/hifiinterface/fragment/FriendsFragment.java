@@ -13,6 +13,7 @@ import android.view.ViewGroup;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 
 import io.highfidelity.hifiinterface.R;
+import io.highfidelity.hifiinterface.provider.UsersProvider;
 import io.highfidelity.hifiinterface.view.UserListAdapter;
 
 public class FriendsFragment extends Fragment {
@@ -61,6 +62,7 @@ public class FriendsFragment extends Fragment {
                 // ..
                 // 2. adapt options
                 // ..
+                rootView.findViewById(R.id.userActionVisit).setVisibility(user.online?View.VISIBLE:View.GONE);
                 // 3. show
                 mSlidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.EXPANDED);
             }
