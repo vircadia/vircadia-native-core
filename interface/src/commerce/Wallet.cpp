@@ -131,7 +131,7 @@ bool Wallet::writeBackupInstructions() {
     QFile outputFile(outputFilename);
     bool retval = false;
 
-    if (getKeyFilePath() == "")
+    if (getKeyFilePath().isEmpty())
     {
         return false;
     }
@@ -360,7 +360,7 @@ Wallet::Wallet() {
         uint status;
         QString keyStatus = result.contains("data") ? result["data"].toObject()["keyStatus"].toString() : "";
 
-        if (wallet->getKeyFilePath() == "" || !wallet->getSecurityImage()) {
+        if (wallet->getKeyFilePath().isEmpty() || !wallet->getSecurityImage()) {
             if (keyStatus == "preexisting") {
                 status = (uint) WalletStatus::WALLET_STATUS_PREEXISTING;
             } else{
@@ -550,15 +550,23 @@ bool Wallet::walletIsAuthenticatedWithPassphrase() {
 
     // FIXME: initialize OpenSSL elsewhere soon
     initialize();
+    qCDebug(commerce) << "walletIsAuthenticatedWithPassphrase: checking" << (!_passphrase || !_passphrase->isEmpty());
 
     // this should always be false if we don't have a passphrase
     // cached yet
     if (!_passphrase || _passphrase->isEmpty()) {
-        return false;
+        if (!getKeyFilePath().isEmpty()) { // If file exists, then it is an old school file that has not been lockered. Must get user's passphrase.
+            qCDebug(commerce) << "walletIsAuthenticatedWithPassphrase: No passphrase, but there is an existing wallet.";
+            return false;
+        } else {
+            qCDebug(commerce) << "walletIsAuthenticatedWithPassphrase: New setup.";
+            setPassphrase("ACCOUNT"); // Going forward, consider this an account-based client.
+        }
     }
     if (_publicKeys.count() > 0) {
         // we _must_ be authenticated if the publicKeys are there
         DependencyManager::get<WalletScriptingInterface>()->setWalletStatus((uint)WalletStatus::WALLET_STATUS_READY);
+        qCDebug(commerce) << "walletIsAuthenticatedWithPassphrase: wallet was ready";
         return true;
     }
 
@@ -571,10 +579,15 @@ bool Wallet::walletIsAuthenticatedWithPassphrase() {
 
             // be sure to add the public key so we don't do this over and over
             _publicKeys.push_back(publicKey.toBase64());
+
+            if (*_passphrase != "ACCOUNT") {
+                changePassphrase("ACCOUNT"); // Rewrites with salt and constant, and will be lockered that way.
+            }
+            qCDebug(commerce) << "walletIsAuthenticatedWithPassphrase: wallet now ready";
             return true;
         }
     }
-
+    qCDebug(commerce) << "walletIsAuthenticatedWithPassphrase: wallet not ready";
     return false;
 }
 
@@ -585,6 +598,7 @@ bool Wallet::generateKeyPair() {
     qCInfo(commerce) << "Generating keypair.";
     auto keyPair = generateECKeypair();
     if (!keyPair.first) {
+        qCWarning(commerce) << "Empty keypair";
         return false;
     }
 
@@ -692,11 +706,13 @@ void Wallet::chooseSecurityImage(const QString& filename) {
     // there _is_ a keyfile, we need to update it (similar to changing the
     // passphrase, we need to do so into a temp file and move it).
     if (!QFile(keyFilePath()).exists()) {
+        qCDebug(commerce) << "initial security pic set for empty wallet";
         emit securityImageResult(true);
         return;
     }
 
     bool success = writeWallet();
+    qCDebug(commerce) << "updated security pic" << success;
     emit securityImageResult(success);
 }
 

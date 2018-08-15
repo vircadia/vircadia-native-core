@@ -307,6 +307,7 @@ void Ledger::accountSuccess(QNetworkReply* reply) {
     wallet->setCKey(ckey);
     if (!locker.isEmpty()) {
         wallet->setWallet(locker);
+        wallet->setPassphrase("ACCOUNT"); // We only locker wallets that have been converted to account-based auth.
     }
 
     QString keyStatus = "ok";
