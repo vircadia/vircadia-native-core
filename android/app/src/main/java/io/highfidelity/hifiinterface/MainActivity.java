@@ -58,6 +58,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private View mLoginPanel;
     private View mProfilePanel;
     private TextView mLogoutOption;
+    private MenuItem mPeopleMenuItem;
 
     private boolean backToScene;
 
@@ -76,6 +77,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         mDisplayName = mNavigationView.getHeaderView(0).findViewById(R.id.displayName);
         mProfilePicture = mNavigationView.getHeaderView(0).findViewById(R.id.profilePicture);
+
+        mPeopleMenuItem = mNavigationView.getMenu().findItem(R.id.action_people);
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setTitleTextAppearance(this, R.style.HomeActionBarTitleStyle);
@@ -167,11 +170,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             mLoginPanel.setVisibility(View.GONE);
             mProfilePanel.setVisibility(View.VISIBLE);
             mLogoutOption.setVisibility(View.VISIBLE);
+            mPeopleMenuItem.setVisible(true);
             updateProfileHeader();
         } else {
             mLoginPanel.setVisibility(View.VISIBLE);
             mProfilePanel.setVisibility(View.GONE);
             mLogoutOption.setVisibility(View.GONE);
+            mPeopleMenuItem.setVisible(false);
             mDisplayName.setText("");
         }
     }
