@@ -105,19 +105,16 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
 
     public class ToggleWrapper {
 
+        private ViewGroup mFrame;
         private ImageView mImage;
         private boolean mChecked = false;
         private String mUsername;
         private boolean waitingChangeConfirm = false;
 
-        public ToggleWrapper(ImageView imageView) {
-            mImage = imageView;
-            mImage.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    toggle();
-                }
-            });
+        public ToggleWrapper(ViewGroup toggleFrame) {
+            mFrame = toggleFrame;
+            mImage = toggleFrame.findViewById(R.id.userFavImage);
+            mFrame.setOnClickListener(view -> toggle());
         }
 
         private void refreshUI() {
@@ -136,7 +133,7 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
             @Override
             public void requestOk() {
                 if (!waitingChangeConfirm) return;
-                mImage.setClickable(true);
+                mFrame.setClickable(true);
                 // nothing to do, new status was set
             }
 
@@ -145,7 +142,7 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
                 if (!waitingChangeConfirm) return;
                 // new status was not set, rolling back
                 mChecked = previousStatus;
-                mImage.setClickable(true);
+                mFrame.setClickable(true);
                 refreshUI();
             }
 
@@ -155,7 +152,7 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
             // TODO API CALL TO CHANGE
             final boolean previousStatus = mChecked;
             mChecked = !mChecked;
-            mImage.setClickable(false);
+            mFrame.setClickable(false);
             refreshUI();
             waitingChangeConfirm = true;
             if (mChecked) {
@@ -169,7 +166,7 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
             mChecked = checked;
             mUsername = username;
             waitingChangeConfirm = false;
-            mImage.setClickable(true);
+            mFrame.setClickable(true);
             refreshUI();
         }
     }

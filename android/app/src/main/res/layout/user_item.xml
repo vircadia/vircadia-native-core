@@ -46,16 +46,23 @@
                 android:textColor="@color/menuOption"/>
         </LinearLayout>
     </LinearLayout>
-    <ImageView android:id="@+id/userFav"
-        android:layout_width="27dp"
-        android:layout_height="27dp"
-        android:src="@drawable/ic_star"
-        android:background="?attr/selectableItemBackgroundBorderless"
+    <RelativeLayout android:id="@+id/userFav"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:clickable="true"
         android:focusable="true"
-        android:tint="@color/starUnselectedTint"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        android:layout_marginEnd="@dimen/activity_horizontal_margin" />
+        android:layout_marginEnd="5.5dp">
+        <ImageView android:id="@+id/userFavImage"
+            android:layout_width="27dp"
+            android:layout_height="27dp"
+            android:src="@drawable/ic_star"
+            android:tint="@color/starUnselectedTint"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:layout_centerInParent="true"
+            android:layout_marginEnd="0dp" />
+    </RelativeLayout>
+
 </android.support.constraint.ConstraintLayout>
