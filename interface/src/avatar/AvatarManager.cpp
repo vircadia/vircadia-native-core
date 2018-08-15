@@ -44,7 +44,6 @@
 #include "InterfaceLogging.h"
 #include "Menu.h"
 #include "MyAvatar.h"
-#include "OtherAvatar.h"
 #include "SceneScriptingInterface.h"
 
 // 50 times per second - target is 45hz, but this helps account for any small deviations
@@ -91,7 +90,8 @@ AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWe
         otherAvatar->setSpaceIndex(spaceIndex);
         workload::Sphere sphere(otherAvatar->getWorldPosition(), otherAvatar->getBoundingRadius());
         workload::Transaction transaction;
-        transaction.reset(spaceIndex, sphere, workload::Owner(otherAvatar));
+        SpatiallyNestablePointer nestable = std::static_pointer_cast<SpatiallyNestable>(otherAvatar);
+        transaction.reset(spaceIndex, sphere, workload::Owner(nestable));
         _space->enqueueTransaction(transaction);
     }
     return avatar;
@@ -391,6 +391,10 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
 
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
     return AvatarSharedPointer(new OtherAvatar(qApp->thread()), [](OtherAvatar* ptr) { ptr->deleteLater(); });
+}
+
+void AvatarManager::handleSpaceChange(OtherAvatarPointer avatar) {
+    // WORKLOAD_AVATARS_BOOKMARK: implement this
 }
 
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {

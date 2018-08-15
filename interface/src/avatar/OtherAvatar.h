@@ -9,6 +9,8 @@
 #ifndef hifi_OtherAvatar_h
 #define hifi_OtherAvatar_h
 
+#include <memory>
+
 #include <avatars-renderer/Avatar.h>
 #include "ui/overlays/Overlays.h"
 #include "ui/overlays/Sphere3DOverlay.h"
@@ -35,5 +37,7 @@ protected:
     OverlayID _otherAvatarOrbMeshPlaceholderID { UNKNOWN_OVERLAY_ID };
     int32_t _spaceIndex { -1 };
 };
+
+using OtherAvatarPointer = std::shared_ptr<OtherAvatar>;
 
 #endif  // hifi_OtherAvatar_h

@@ -27,6 +27,7 @@
 
 #include "AvatarMotionState.h"
 #include "MyAvatar.h"
+#include "OtherAvatar.h"
 
 /**jsdoc 
  * The AvatarManager API has properties and methods which manage Avatars within the same domain.
@@ -94,6 +95,7 @@ public:
     void getObjectsToRemoveFromPhysics(VectorOfMotionStates& motionStates);
     void getObjectsToAddToPhysics(VectorOfMotionStates& motionStates);
     void getObjectsToChange(VectorOfMotionStates& motionStates);
+
     void handleChangedMotionStates(const VectorOfMotionStates& motionStates);
     void handleCollisionEvents(const CollisionEvents& collisionEvents);
 
@@ -104,23 +106,21 @@ public:
      * @returns {number}
      */
     Q_INVOKABLE float getAvatarDataRate(const QUuid& sessionID, const QString& rateName = QString("")) const;
-    
+
     /**jsdoc
      * @function AvatarManager.getAvatarUpdateRate
      * @param {Uuid} sessionID
      * @param {string} [rateName=""]
      * @returns {number}
      */
-    
     Q_INVOKABLE float getAvatarUpdateRate(const QUuid& sessionID, const QString& rateName = QString("")) const;
-    
+
     /**jsdoc
      * @function AvatarManager.getAvatarSimulationRate
      * @param {Uuid} sessionID
      * @param {string} [rateName=""]
      * @returns {number}
      */
-   
     Q_INVOKABLE float getAvatarSimulationRate(const QUuid& sessionID, const QString& rateName = QString("")) const;
 
     /**jsdoc
@@ -155,7 +155,7 @@ public:
      */
     // TODO: remove this HACK once we settle on optimal default sort coefficients
     Q_INVOKABLE float getAvatarSortCoefficient(const QString& name);
-   
+
     /**jsdoc
      * @function AvatarManager.setAvatarSortCoefficient
      * @param {string} name
@@ -184,6 +184,8 @@ public slots:
      * @param {boolean} shouldRenderAvatars
      */
     void updateAvatarRenderStatus(bool shouldRenderAvatars);
+
+    void handleSpaceChange(OtherAvatarPointer avatar);
 
 protected:
     AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) override;

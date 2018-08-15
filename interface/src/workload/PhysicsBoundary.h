@@ -10,11 +10,8 @@
 #ifndef hifi_PhysicsGatekeeper_h
 #define hifi_PhysicsGatekeeper_h
 
-#include <EntityItem.h>
 #include <workload/Engine.h>
 #include <workload/RegionTracker.h>
-
-#include "PhysicalEntitySimulation.h"
 
 class PhysicsBoundary {
 public:
