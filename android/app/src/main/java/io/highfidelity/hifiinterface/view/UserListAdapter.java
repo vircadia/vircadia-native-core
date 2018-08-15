@@ -38,14 +38,14 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
     private List<User> mUsers = new ArrayList<>();
     private ItemClickListener mClickListener;
 
-    public UserListAdapter(Context c, String accessToken) {
+    public UserListAdapter(Context c, UsersProvider usersProvider) {
         mContext = c;
         mInflater = LayoutInflater.from(mContext);
-        mProvider = new EndpointUsersProvider(accessToken);
+        mProvider = usersProvider;
         loadUsers();
     }
 
-    private void loadUsers() {
+    public void loadUsers() {
         mProvider.retrieve(new UsersProvider.UsersCallback() {
             @Override
             public void retrieveOk(List<User> users) {
