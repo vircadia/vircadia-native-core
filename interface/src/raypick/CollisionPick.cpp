@@ -15,6 +15,33 @@
 #include "ScriptEngineLogging.h"
 #include "UUIDHasher.h"
 
+PickResultPointer CollisionPickResult::compareAndProcessNewResult(const PickResultPointer& newRes) {
+    const std::shared_ptr<CollisionPickResult> newCollisionResult = std::static_pointer_cast<CollisionPickResult>(newRes);
+
+    if (entityIntersections->size()) {
+        for (ContactTestResult& entityIntersection : *(newCollisionResult->entityIntersections)) {
+            entityIntersections->push_back(entityIntersection);
+        }
+    } else {
+        entityIntersections = newCollisionResult->entityIntersections;
+    }
+
+    if (avatarIntersections->size()) {
+        for (ContactTestResult& avatarIntersection : *(newCollisionResult->avatarIntersections)) {
+            avatarIntersections->push_back(avatarIntersection);
+        }
+    } else {
+        avatarIntersections = newCollisionResult->avatarIntersections;
+    }
+
+    intersects = entityIntersections->size() || avatarIntersections->size();
+    if (newCollisionResult->loadState == LOAD_STATE_NOT_LOADED || loadState == LOAD_STATE_UNKNOWN) {
+        loadState = (LoadState)newCollisionResult->loadState;
+    }
+
+    return std::make_shared<CollisionPickResult>(*this);
+}
+
 void buildObjectIntersectionsMap(IntersectionType intersectionType, const std::shared_ptr<std::vector<ContactTestResult>> objectIntersections, std::unordered_map<QUuid, QVariantMap>& intersections, std::unordered_map<QUuid, QVariantList>& collisionPointPairs) {
     for (auto& objectIntersection : *objectIntersections) {
         auto at = intersections.find(objectIntersection.foundID);
