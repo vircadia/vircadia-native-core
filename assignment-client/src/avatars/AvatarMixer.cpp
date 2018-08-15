@@ -447,18 +447,21 @@ void AvatarMixer::handleAvatarKilled(SharedNodePointer avatarNode) {
         // send a kill packet for it to our other nodes
         nodeList->eachMatchingNode([&](const SharedNodePointer& node) {
             // we relay avatar kill packets to agents that are not upstream
-            // and downstream avatar mixers, if the node that was just killed was being replicated
-            return (node->getType() == NodeType::Agent && !node->isUpstream()) ||
-                   (avatarNode->isReplicated() && shouldReplicateTo(*avatarNode, *node));
+            // and downstream avatar mixers, if the node that was just killed was being replicatedConnectedAgent
+            return node->getActiveSocket() &&
+                ((node->getType() == NodeType::Agent && !node->isUpstream()) ||
+                 (avatarNode->isReplicated() && shouldReplicateTo(*avatarNode, *node)));
         }, [&](const SharedNodePointer& node) {
             if (node->getType() == NodeType::Agent) {
                 if (!killPacket) {
-                    killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason));
+                    killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason), true);
                     killPacket->write(avatarNode->getUUID().toRfc4122());
                     killPacket->writePrimitive(KillAvatarReason::AvatarDisconnected);
                 }
 
-                nodeList->sendUnreliablePacket(*killPacket, *node);
+                auto killPacketCopy = NLPacket::createCopy(*killPacket);
+
+                nodeList->sendPacket(std::move(killPacketCopy), *node);
             } else {
                 // send a replicated kill packet to the downstream avatar mixer
                 if (!replicatedKillPacket) {
