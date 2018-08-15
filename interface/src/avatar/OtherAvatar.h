@@ -1,6 +1,6 @@
 //
-//  Created by Bradley Austin Davis on 2017/04/27
-//  Copyright 2013-2017 High Fidelity, Inc.
+//  Created by amantly 2018.06.26
+//  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -18,6 +18,8 @@
 #include "ui/overlays/Overlays.h"
 #include "ui/overlays/Sphere3DOverlay.h"
 
+using AvatarPhysicsCallback = std::function<void(uint32_t)>;
+
 class OtherAvatar : public Avatar {
 public:
     explicit OtherAvatar(QThread* thread);
@@ -32,9 +34,16 @@ public:
     int32_t getSpaceIndex() const { return _spaceIndex; }
     void updateSpaceProxy(workload::Transaction& transaction) const;
 
+    int parseDataFromBuffer(const QByteArray& buffer) override;
+
+    void setPhysicsCallback(AvatarPhysicsCallback cb);
+    bool isInPhysicsSimulation() const { return _physicsCallback != nullptr; }
+    void rebuildCollisionShape() override;
+
 protected:
     std::shared_ptr<Sphere3DOverlay> _otherAvatarOrbMeshPlaceholder { nullptr };
     OverlayID _otherAvatarOrbMeshPlaceholderID { UNKNOWN_OVERLAY_ID };
+    AvatarPhysicsCallback _physicsCallback { nullptr };
     int32_t _spaceIndex { -1 };
 };
 

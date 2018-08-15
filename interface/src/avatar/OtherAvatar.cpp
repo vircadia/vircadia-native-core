@@ -71,3 +71,21 @@ void OtherAvatar::updateSpaceProxy(workload::Transaction& transaction) const {
         transaction.update(_spaceIndex, sphere);
     }
 }
+
+int OtherAvatar::parseDataFromBuffer(const QByteArray& buffer) {
+    int32_t bytesRead = Avatar::parseDataFromBuffer(buffer);
+    if (_moving && _physicsCallback) {
+        _physicsCallback(Simulation::DIRTY_POSITION);
+    }
+    return bytesRead;
+}
+
+void OtherAvatar::rebuildCollisionShape() {
+    if (_physicsCallback) {
+        _physicsCallback(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
+    }
+}
+
+void OtherAvatar::setPhysicsCallback(AvatarPhysicsCallback cb) {
+    _physicsCallback = cb;
+}
