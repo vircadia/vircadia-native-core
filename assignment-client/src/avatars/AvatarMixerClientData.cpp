@@ -108,7 +108,7 @@ uint16_t AvatarMixerClientData::getLastBroadcastSequenceNumber(const QUuid& node
 void AvatarMixerClientData::ignoreOther(SharedNodePointer self, SharedNodePointer other) {
     if (!isRadiusIgnoring(other->getUUID())) {
         addToRadiusIgnoringSet(other->getUUID());
-        auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason));
+        auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason), true);
         killPacket->write(other->getUUID().toRfc4122());
         if (self->isIgnoreRadiusEnabled()) {
             killPacket->writePrimitive(KillAvatarReason::TheirAvatarEnteredYourBubble);
@@ -116,7 +116,7 @@ void AvatarMixerClientData::ignoreOther(SharedNodePointer self, SharedNodePointe
             killPacket->writePrimitive(KillAvatarReason::YourAvatarEnteredTheirBubble);
         }
         setLastBroadcastTime(other->getUUID(), 0);
-        DependencyManager::get<NodeList>()->sendUnreliablePacket(*killPacket, *self);
+        DependencyManager::get<NodeList>()->sendPacket(std::move(killPacket), *self);
     }
 }
 

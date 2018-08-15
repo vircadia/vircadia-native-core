@@ -36,6 +36,7 @@ public:
             void setVisible(bool visible);
             void updateKey();
             void updateUniformBuffer() { _uniformBuffer->setSubData(0, _parabolaData); }
+            void updateBounds();
 
             void setColor(const glm::vec3& color) { _parabolaData.color = glm::vec4(color, _parabolaData.color.a); }
             void setAlpha(const float& alpha) { _parabolaData.color.a = alpha; }

@@ -28,7 +28,9 @@ var FOCUS_MIN_ZOOM = 0.5;
 var ZOOM_SCALING = 0.02;
 
 var MIN_ZOOM_DISTANCE = 0.01;
-var MAX_ZOOM_DISTANCE = 200;
+
+// The maximum usable zoom level is somewhere around 14km, further than that the edit handles will fade-out. (FIXME: MS17493)
+var MAX_ZOOM_DISTANCE = 14000;
 
 var MODE_INACTIVE = 'inactive';
 var MODE_ORBIT = 'orbit';
@@ -253,14 +255,6 @@ CameraManager = function() {
         zoom *= that.targetZoomDistance * ZOOM_SCALING;
         that.targetZoomDistance = Math.min(Math.max(that.targetZoomDistance + zoom, MIN_ZOOM_DISTANCE), MAX_ZOOM_DISTANCE);
         that.updateCamera();
-    }
-
-    that.getZoomPercentage = function() {
-        return (that.zoomDistance - MIN_ZOOM_DISTANCE) / MAX_ZOOM_DISTANCE;
-    }
-
-    that.setZoomPercentage = function(pct) {
-        that.targetZoomDistance = pct * (MAX_ZOOM_DISTANCE - MIN_ZOOM_DISTANCE);
     }
 
     that.pan = function(offset) {

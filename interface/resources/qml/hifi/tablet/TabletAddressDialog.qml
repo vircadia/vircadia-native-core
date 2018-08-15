@@ -320,11 +320,12 @@ StackView {
                         width: parent.width;
                         cardWidth: 312 + (2 * 4);
                         cardHeight: 163 + (2 * 4);
-                        labelText: 'HAPPENING NOW';
+                        labelText: 'FEATURED';
                         actions: 'announcement';
                         filter: addressLine.text;
                         goFunction: goCard;
                         http: http;
+                        autoScrollTimerEnabled: true;
                     }
                     Feed {
                         id: places;

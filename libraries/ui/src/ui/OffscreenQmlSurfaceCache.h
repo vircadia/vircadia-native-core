@@ -13,6 +13,7 @@
 
 #include <QtCore/QSharedPointer>
 
+class QQmlContext;
 class OffscreenQmlSurface;
 
 class OffscreenQmlSurfaceCache : public Dependency {
@@ -25,10 +26,12 @@ public:
     QSharedPointer<OffscreenQmlSurface> acquire(const QString& rootSource);
     void release(const QString& rootSource, const QSharedPointer<OffscreenQmlSurface>& surface);
     void reserve(const QString& rootSource, int count = 1);
+    void setOnRootContextCreated(const std::function<void(const QString& rootSource, QQmlContext* rootContext)> & onRootContextCreated);
 
 private:
     QSharedPointer<OffscreenQmlSurface> buildSurface(const QString& rootSource);
     QHash<QString, QList<QSharedPointer<OffscreenQmlSurface>>> _cache;
+    std::function<void(const QString& rootSource, QQmlContext* rootContext)> _onRootContextCreated;
 };
 
 #endif

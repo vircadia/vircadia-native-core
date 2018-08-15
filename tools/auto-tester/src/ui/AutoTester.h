@@ -18,6 +18,8 @@
 #include "../Downloader.h"
 #include "../Test.h"
 
+#include "HelpWindow.h"
+
 class AutoTester : public QMainWindow {
     Q_OBJECT
 
@@ -38,15 +40,21 @@ public:
     QString getSelectedBranch();
 
 private slots:
+    void on_tabWidget_currentChanged(int index);
+
     void on_evaluateTestsButton_clicked();
     void on_createRecursiveScriptButton_clicked();
     void on_createAllRecursiveScriptsButton_clicked();
 	void on_createTestsButton_clicked();
+
     void on_createMDFileButton_clicked();
     void on_createAllMDFilesButton_clicked();
+
     void on_createTestsOutlineButton_clicked();
+
     void on_createTestRailTestCasesButton_clicked();
     void on_createTestRailRunButton_clicked();
+    void on_updateTestRailRunResultsButton_clicked();
 
     void on_hideTaskbarButton_clicked();
     void on_showTaskbarButton_clicked();
@@ -59,6 +67,7 @@ private slots:
     void saveImage(int index);
 
     void about();
+    void content();
 
 private:
     Ui::AutoTesterClass _ui;
@@ -78,6 +87,8 @@ private:
     int _index { 0 };
 
     bool _isRunningFromCommandline { false };
+
+    HelpWindow helpWindow;
 };
 
 #endif // hifi_AutoTester_h

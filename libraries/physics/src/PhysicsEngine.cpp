@@ -18,6 +18,7 @@
 #include <PerfStat.h>
 #include <PhysicsCollisionGroups.h>
 #include <Profile.h>
+#include <BulletCollision/CollisionShapes/btTriangleShape.h>
 
 #include "CharacterController.h"
 #include "ObjectMotionState.h"
@@ -25,6 +26,25 @@
 #include "PhysicsDebugDraw.h"
 #include "ThreadSafeDynamicsWorld.h"
 #include "PhysicsLogging.h"
+
+
+static bool flipNormalsMyAvatarVsBackfacingTriangles( btManifoldPoint& cp,
+        const btCollisionObjectWrapper* colObj0Wrap, int partId0, int index0,
+        const btCollisionObjectWrapper* colObj1Wrap, int partId1, int index1) {
+    if (colObj1Wrap->getCollisionShape()->getShapeType() == TRIANGLE_SHAPE_PROXYTYPE) {
+        auto triShape = static_cast<const btTriangleShape*>(colObj1Wrap->getCollisionShape());
+        const btVector3* v = triShape->m_vertices1;
+        btVector3 faceNormal = colObj1Wrap->getWorldTransform().getBasis() * btCross(v[1] - v[0], v[2] - v[0]);
+        float nDotF = btDot(faceNormal, cp.m_normalWorldOnB);
+        if (nDotF <= 0.0f) {
+            faceNormal.normalize();
+            // flip the contact normal to be aligned with the face normal
+            cp.m_normalWorldOnB += -2.0f * nDotF * faceNormal;
+        }
+    }
+    // return value is currently ignored but to be future-proof: return false when not modifying friction
+    return false;
+}
 
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset) :
         _originOffset(offset),
@@ -68,6 +88,9 @@ void PhysicsEngine::init() {
         // in order for its broadphase collision queries to work correctly. Look at how we use
         // _activeStaticBodies to track and update the Aabb's of moved static objects.
         _dynamicsWorld->setForceUpdateAllAabbs(false);
+
+        // register contact filter to help MyAvatar pass through backfacing triangles
+        gContactAddedCallback = flipNormalsMyAvatarVsBackfacingTriangles;
     }
 }
 
@@ -838,5 +861,92 @@ void PhysicsEngine::setShowBulletConstraintLimits(bool value) {
     } else {
         _physicsDebugDraw->setDebugMode(mode & ~btIDebugDraw::DBG_DrawConstraintLimits);
     }
+}
+
+struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
+    AllContactsCallback(MotionStateType desiredObjectType, const ShapeInfo& shapeInfo, const Transform& transform, btCollisionObject* myAvatarCollisionObject) :
+        btCollisionWorld::ContactResultCallback(),
+        desiredObjectType(desiredObjectType),
+        collisionObject(),
+        contacts(),
+        myAvatarCollisionObject(myAvatarCollisionObject) {
+        const btCollisionShape* collisionShape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
+
+        collisionObject.setCollisionShape(const_cast<btCollisionShape*>(collisionShape));
+
+        btTransform bulletTransform;
+        bulletTransform.setOrigin(glmToBullet(transform.getTranslation()));
+        bulletTransform.setRotation(glmToBullet(transform.getRotation()));
+
+        collisionObject.setWorldTransform(bulletTransform);
+    }
+
+    ~AllContactsCallback() {
+        ObjectMotionState::getShapeManager()->releaseShape(collisionObject.getCollisionShape());
+    }
+
+    MotionStateType desiredObjectType;
+    btCollisionObject collisionObject;
+    std::vector<ContactTestResult> contacts;
+    btCollisionObject* myAvatarCollisionObject;
+
+    bool needsCollision(btBroadphaseProxy* proxy) const override {
+        return true;
+    }
+
+    btScalar addSingleResult(btManifoldPoint& cp, const btCollisionObjectWrapper* colObj0, int partId0, int index0, const btCollisionObjectWrapper* colObj1, int partId1, int index1) override {
+        const btCollisionObject* otherBody;
+        btVector3 penetrationPoint;
+        btVector3 otherPenetrationPoint;
+        if (colObj0->m_collisionObject == &collisionObject) {
+            otherBody = colObj1->m_collisionObject;
+            penetrationPoint = getWorldPoint(cp.m_localPointB, colObj1->getWorldTransform());
+            otherPenetrationPoint = getWorldPoint(cp.m_localPointA, colObj0->getWorldTransform());
+        } else {
+            otherBody = colObj0->m_collisionObject;
+            penetrationPoint = getWorldPoint(cp.m_localPointA, colObj0->getWorldTransform());
+            otherPenetrationPoint = getWorldPoint(cp.m_localPointB, colObj1->getWorldTransform());
+        }
+
+        // TODO: Give MyAvatar a motion state so we don't have to do this
+        if (desiredObjectType == MOTIONSTATE_TYPE_AVATAR && myAvatarCollisionObject && myAvatarCollisionObject == otherBody) {
+            contacts.emplace_back(Physics::getSessionUUID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint));
+            return 0;
+        }
+
+        if (!(otherBody->getInternalType() & btCollisionObject::CO_RIGID_BODY)) {
+            return 0;
+        }
+        const btRigidBody* collisionCandidate = static_cast<const btRigidBody*>(otherBody);
+
+        const btMotionState* motionStateCandidate = collisionCandidate->getMotionState();
+        const ObjectMotionState* candidate = dynamic_cast<const ObjectMotionState*>(motionStateCandidate);
+        if (!candidate || candidate->getType() != desiredObjectType) {
+            return 0;
+        }
+
+        // This is the correct object type. Add it to the list.
+        contacts.emplace_back(candidate->getObjectID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint));
+
+        return 0;
+    }
+
+protected:
+    static btVector3 getWorldPoint(const btVector3& localPoint, const btTransform& transform) {
+        return quatRotate(transform.getRotation(), localPoint) + transform.getOrigin();
+    }
+};
+
+const std::vector<ContactTestResult> PhysicsEngine::getCollidingInRegion(MotionStateType desiredObjectType, const ShapeInfo& regionShapeInfo, const Transform& regionTransform) const {
+    // TODO: Give MyAvatar a motion state so we don't have to do this
+    btCollisionObject* myAvatarCollisionObject = nullptr;
+    if (desiredObjectType == MOTIONSTATE_TYPE_AVATAR && _myAvatarController) {
+        myAvatarCollisionObject = _myAvatarController->getCollisionObject();
+    }
+
+    auto contactCallback = AllContactsCallback(desiredObjectType, regionShapeInfo, regionTransform, myAvatarCollisionObject);
+    _dynamicsWorld->contactTest(&contactCallback.collisionObject, contactCallback);
+
+    return contactCallback.contacts;
 }
 

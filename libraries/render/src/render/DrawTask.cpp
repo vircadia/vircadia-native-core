@@ -210,10 +210,15 @@ void DrawBounds::run(const RenderContextPointer& renderContext,
     });
 }
 
+gpu::Stream::FormatPointer DrawQuadVolume::_format;
+
 DrawQuadVolume::DrawQuadVolume(const glm::vec3& color) :
     _color{ color } {
     _meshVertices = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(glm::vec3) * 8, nullptr), gpu::Element::VEC3F_XYZ);
-    _meshStream.addBuffer(_meshVertices._buffer, _meshVertices._offset, _meshVertices._stride);
+    if (!_format) {
+        _format = std::make_shared<gpu::Stream::Format>();
+        _format->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
+    }
 }
 
 void DrawQuadVolume::configure(const Config& configuration) {
@@ -243,10 +248,11 @@ void DrawQuadVolume::run(const render::RenderContextPointer& renderContext, cons
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
         batch.setPipeline(getPipeline());
-        batch.setIndexBuffer(indices);
 
         batch._glUniform4f(0, _color.x, _color.y, _color.z, 1.0f);
-        batch.setInputStream(0, _meshStream);
+        batch.setInputFormat(_format);
+        batch.setInputBuffer(gpu::Stream::POSITION, _meshVertices);
+        batch.setIndexBuffer(indices);
         batch.drawIndexed(gpu::LINES, indexCount, 0U);
 
         args->_batch = nullptr;
