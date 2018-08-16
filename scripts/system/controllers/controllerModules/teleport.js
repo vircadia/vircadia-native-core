@@ -117,8 +117,8 @@ Script.include("/~/system/libraries/controllers.js");
         var _this = this;
         this.hand = hand;
 
-        this.buttonStateXX = 0; // Left hand / right hand x-axis.
-        this.buttonStateXY = 0; // Left hand / right hand y-axis.
+        this.buttonStateX = 0; // Left hand / right hand x-axis.
+        this.buttonStateX = 0; // Left hand / right hand y-axis.
         this.BUTTON_TRANSITION_DELAY = 50; // Allow time for transition from direction buttons to touch-pad.
 
         this.buttonValue = 0;
