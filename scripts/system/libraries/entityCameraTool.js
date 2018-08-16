@@ -145,6 +145,10 @@ CameraManager = function() {
             });
         }
 
+        for (var action in actions) {
+            actions[action] = 0;
+        }
+
         that.enabled = true;
         that.mode = MODE_INACTIVE;
 
