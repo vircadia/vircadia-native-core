@@ -59,6 +59,7 @@ public:
     using TriangleIndices = QVector<int32_t>;
 
     static QString getNameForShapeType(ShapeType type);
+    static ShapeType getShapeTypeForName(QString string);
 
     void clear();
 

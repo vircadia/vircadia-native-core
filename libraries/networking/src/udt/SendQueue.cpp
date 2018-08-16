@@ -164,44 +164,12 @@ void SendQueue::ack(SequenceNumber ack) {
     _emptyCondition.notify_one();
 }
 
-void SendQueue::nak(SequenceNumber start, SequenceNumber end) {    
-    {
-        std::lock_guard<std::mutex> nakLocker(_naksLock);
-        _naks.insert(start, end);
-    }
-    
-    // call notify_one on the condition_variable_any in case the send thread is sleeping waiting for losses to re-send
-    _emptyCondition.notify_one();
-}
-
 void SendQueue::fastRetransmit(udt::SequenceNumber ack) {
     {
         std::lock_guard<std::mutex> nakLocker(_naksLock);
         _naks.insert(ack, ack);
     }
 
-    // call notify_one on the condition_variable_any in case the send thread is sleeping waiting for losses to re-send
-    _emptyCondition.notify_one();
-}
-
-void SendQueue::overrideNAKListFromPacket(ControlPacket& packet) {
-    {
-        std::lock_guard<std::mutex> nakLocker(_naksLock);
-        _naks.clear();
-        
-        SequenceNumber first, second;
-        while (packet.bytesLeftToRead() >= (qint64)(2 * sizeof(SequenceNumber))) {
-            packet.readPrimitive(&first);
-            packet.readPrimitive(&second);
-            
-            if (first == second) {
-                _naks.append(first);
-            } else {
-                _naks.append(first, second);
-            }
-        }
-    }
-    
     // call notify_one on the condition_variable_any in case the send thread is sleeping waiting for losses to re-send
     _emptyCondition.notify_one();
 }
@@ -267,8 +235,6 @@ bool SendQueue::sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket,
             std::lock_guard<std::mutex> nakLocker(_naksLock);
             _naks.append(sequenceNumber);
         }
-
-        emit shortCircuitLoss(quint32(sequenceNumber));
 
         return false;
     } else {
@@ -385,10 +351,6 @@ void SendQueue::run() {
     }
 }
 
-void SendQueue::setProbePacketEnabled(bool enabled) {
-    _shouldSendProbes = enabled;
-}
-
 int SendQueue::maybeSendNewPacket() {
     if (!isFlowWindowFull()) {
         // we didn't re-send a packet, so time to send a new one
@@ -397,40 +359,15 @@ int SendQueue::maybeSendNewPacket() {
             SequenceNumber nextNumber = getNextSequenceNumber();
             
             // grab the first packet we will send
-            std::unique_ptr<Packet> firstPacket = _packets.takePacket();
-            Q_ASSERT(firstPacket);
+            std::unique_ptr<Packet> packet = _packets.takePacket();
+            Q_ASSERT(packet);
 
 
-            // attempt to send the first packet
-            if (sendNewPacketAndAddToSentList(move(firstPacket), nextNumber)) {
-                std::unique_ptr<Packet> secondPacket;
-                bool shouldSendPairTail = false;
+            // attempt to send the packet
+            sendNewPacketAndAddToSentList(move(packet), nextNumber);
 
-                if (_shouldSendProbes && ((uint32_t) nextNumber & 0xF) == 0) {
-                    // the first packet is the first in a probe pair - every 16 (rightmost 16 bits = 0) packets
-                    // pull off a second packet if we can before we unlock
-                    shouldSendPairTail = true;
-
-                    secondPacket = _packets.takePacket();
-                }
-
-                // do we have a second in a pair to send as well?
-                if (secondPacket) {
-                    sendNewPacketAndAddToSentList(move(secondPacket), getNextSequenceNumber());
-                } else if (shouldSendPairTail) {
-                    // we didn't get a second packet to send in the probe pair
-                    // send a control packet of type ProbePairTail so the receiver can still do
-                    // proper bandwidth estimation
-                    static auto pairTailPacket = ControlPacket::create(ControlPacket::ProbeTail);
-                    _socket->writeBasePacket(*pairTailPacket, _destination);
-                }
-
-                // return the number of attempted packet sends
-                return shouldSendPairTail ? 2 : 1;
-            } else {
-                // we attempted to send a single packet, return 1
-                return 1;
-            }
+            // we attempted to send a packet, return 1
+            return 1;
         }
     }
     

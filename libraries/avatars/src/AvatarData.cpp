@@ -62,7 +62,7 @@ size_t AvatarDataPacket::maxFaceTrackerInfoSize(size_t numBlendshapeCoefficients
     return FACE_TRACKER_INFO_SIZE + numBlendshapeCoefficients * sizeof(float);
 }
 
-size_t AvatarDataPacket::maxJointDataSize(size_t numJoints) {
+size_t AvatarDataPacket::maxJointDataSize(size_t numJoints, bool hasGrabJoints) {
     const size_t validityBitsSize = (size_t)std::ceil(numJoints / (float)BITS_IN_BYTE);
 
     size_t totalSize = sizeof(uint8_t); // numJoints
@@ -73,7 +73,8 @@ size_t AvatarDataPacket::maxJointDataSize(size_t numJoints) {
     totalSize += numJoints * sizeof(SixByteTrans); // Translations
 
     size_t NUM_FAUX_JOINT = 2;
-    totalSize += NUM_FAUX_JOINT * (sizeof(SixByteQuat) + sizeof(SixByteTrans)); // faux joints
+    size_t num_grab_joints = (hasGrabJoints ? 2 : 0);
+    totalSize += (NUM_FAUX_JOINT + num_grab_joints) * (sizeof(SixByteQuat) + sizeof(SixByteTrans)); // faux joints
 
     return totalSize;
 }
@@ -227,7 +228,8 @@ QByteArray AvatarData::toByteArrayStateful(AvatarDataDetail dataDetail, bool dro
                         &_outboundDataRate);
 }
 
-QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
+QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime,
+                                   const QVector<JointData>& lastSentJointData,
     AvatarDataPacket::HasFlags& hasFlagsOut, bool dropFaceTracking, bool distanceAdjust,
     glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut, AvatarDataRate* outboundDataRateOut) const {
 
@@ -284,6 +286,11 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     bool hasFaceTrackerInfo = false;
     bool hasJointData = false;
     bool hasJointDefaultPoseFlags = false;
+    bool hasGrabJoints = false;
+
+    glm::mat4 leftFarGrabMatrix;
+    glm::mat4 rightFarGrabMatrix;
+    glm::mat4 mouseFarGrabMatrix;
 
     if (sendPALMinimum) {
         hasAudioLoudness = true;
@@ -304,12 +311,30 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             (sendAll || faceTrackerInfoChangedSince(lastSentTime));
         hasJointData = sendAll || !sendMinimum;
         hasJointDefaultPoseFlags = hasJointData;
+        if (hasJointData) {
+            bool leftValid;
+            leftFarGrabMatrix = _farGrabLeftMatrixCache.get(leftValid);
+            if (!leftValid) {
+                leftFarGrabMatrix = glm::mat4();
+            }
+            bool rightValid;
+            rightFarGrabMatrix = _farGrabRightMatrixCache.get(rightValid);
+            if (!rightValid) {
+                rightFarGrabMatrix = glm::mat4();
+            }
+            bool mouseValid;
+            mouseFarGrabMatrix = _farGrabMouseMatrixCache.get(mouseValid);
+            if (!mouseValid) {
+                mouseFarGrabMatrix = glm::mat4();
+            }
+            hasGrabJoints = (leftValid || rightValid || mouseValid);
+        }
     }
 
 
     const size_t byteArraySize = AvatarDataPacket::MAX_CONSTANT_HEADER_SIZE +
         (hasFaceTrackerInfo ? AvatarDataPacket::maxFaceTrackerInfoSize(_headData->getBlendshapeCoefficients().size()) : 0) +
-        (hasJointData ? AvatarDataPacket::maxJointDataSize(_jointData.size()) : 0) +
+        (hasJointData ? AvatarDataPacket::maxJointDataSize(_jointData.size(), hasGrabJoints) : 0) +
         (hasJointDefaultPoseFlags ? AvatarDataPacket::maxJointDefaultPoseFlagsSize(_jointData.size()) : 0);
 
     QByteArray avatarDataByteArray((int)byteArraySize, 0);
@@ -330,7 +355,8 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         | (hasAvatarLocalPosition ? AvatarDataPacket::PACKET_HAS_AVATAR_LOCAL_POSITION : 0)
         | (hasFaceTrackerInfo ? AvatarDataPacket::PACKET_HAS_FACE_TRACKER_INFO : 0)
         | (hasJointData ? AvatarDataPacket::PACKET_HAS_JOINT_DATA : 0)
-        | (hasJointDefaultPoseFlags ? AvatarDataPacket::PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS : 0);
+        | (hasJointDefaultPoseFlags ? AvatarDataPacket::PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS : 0)
+        | (hasGrabJoints ? AvatarDataPacket::PACKET_HAS_GRAB_JOINTS : 0);
 
     memcpy(destinationBuffer, &packetStateFlags, sizeof(packetStateFlags));
     destinationBuffer += sizeof(packetStateFlags);
@@ -668,6 +694,53 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, controllerRightHandTransform.getTranslation(),
             TRANSLATION_COMPRESSION_RADIX);
 
+        if (hasGrabJoints) {
+            // the far-grab joints may range further than 3 meters, so we can't use packFloatVec3ToSignedTwoByteFixed etc
+            auto startSection = destinationBuffer;
+            auto data = reinterpret_cast<AvatarDataPacket::FarGrabJoints*>(destinationBuffer);
+            glm::vec3 leftFarGrabPosition = extractTranslation(leftFarGrabMatrix);
+            glm::quat leftFarGrabRotation = extractRotation(leftFarGrabMatrix);
+            glm::vec3 rightFarGrabPosition = extractTranslation(rightFarGrabMatrix);
+            glm::quat rightFarGrabRotation = extractRotation(rightFarGrabMatrix);
+            glm::vec3 mouseFarGrabPosition = extractTranslation(mouseFarGrabMatrix);
+            glm::quat mouseFarGrabRotation = extractRotation(mouseFarGrabMatrix);
+
+            data->leftFarGrabPosition[0] = leftFarGrabPosition.x;
+            data->leftFarGrabPosition[1] = leftFarGrabPosition.y;
+            data->leftFarGrabPosition[2] = leftFarGrabPosition.z;
+
+            data->leftFarGrabRotation[0] = leftFarGrabRotation.w;
+            data->leftFarGrabRotation[1] = leftFarGrabRotation.x;
+            data->leftFarGrabRotation[2] = leftFarGrabRotation.y;
+            data->leftFarGrabRotation[3] = leftFarGrabRotation.z;
+
+            data->rightFarGrabPosition[0] = rightFarGrabPosition.x;
+            data->rightFarGrabPosition[1] = rightFarGrabPosition.y;
+            data->rightFarGrabPosition[2] = rightFarGrabPosition.z;
+
+            data->rightFarGrabRotation[0] = rightFarGrabRotation.w;
+            data->rightFarGrabRotation[1] = rightFarGrabRotation.x;
+            data->rightFarGrabRotation[2] = rightFarGrabRotation.y;
+            data->rightFarGrabRotation[3] = rightFarGrabRotation.z;
+
+            data->mouseFarGrabPosition[0] = mouseFarGrabPosition.x;
+            data->mouseFarGrabPosition[1] = mouseFarGrabPosition.y;
+            data->mouseFarGrabPosition[2] = mouseFarGrabPosition.z;
+
+            data->mouseFarGrabRotation[0] = mouseFarGrabRotation.w;
+            data->mouseFarGrabRotation[1] = mouseFarGrabRotation.x;
+            data->mouseFarGrabRotation[2] = mouseFarGrabRotation.y;
+            data->mouseFarGrabRotation[3] = mouseFarGrabRotation.z;
+
+            destinationBuffer += sizeof(AvatarDataPacket::FarGrabJoints);
+
+            int numBytes = destinationBuffer - startSection;
+
+            if (outboundDataRateOut) {
+                outboundDataRateOut->farGrabJointRate.increment(numBytes);
+            }
+        }
+
 #ifdef WANT_DEBUG
         if (sendAll) {
             qCDebug(avatars) << "AvatarData::toByteArray" << cullSmallChanges << sendAll
@@ -834,6 +907,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     bool hasFaceTrackerInfo       = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_FACE_TRACKER_INFO);
     bool hasJointData             = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_JOINT_DATA);
     bool hasJointDefaultPoseFlags = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS);
+    bool hasGrabJoints            = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_GRAB_JOINTS);
 
     quint64 now = usecTimestampNow();
 
@@ -1195,6 +1269,34 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         int numBytesRead = sourceBuffer - startSection;
         _jointDataRate.increment(numBytesRead);
         _jointDataUpdateRate.increment();
+
+        if (hasGrabJoints) {
+            auto startSection = sourceBuffer;
+
+            PACKET_READ_CHECK(FarGrabJoints, sizeof(AvatarDataPacket::FarGrabJoints));
+            auto data = reinterpret_cast<const AvatarDataPacket::FarGrabJoints*>(sourceBuffer);
+            glm::vec3 leftFarGrabPosition = glm::vec3(data->leftFarGrabPosition[0], data->leftFarGrabPosition[1],
+                                                      data->leftFarGrabPosition[2]);
+            glm::quat leftFarGrabRotation = glm::quat(data->leftFarGrabRotation[0], data->leftFarGrabRotation[1],
+                                                      data->leftFarGrabRotation[2], data->leftFarGrabRotation[3]);
+            glm::vec3 rightFarGrabPosition = glm::vec3(data->rightFarGrabPosition[0], data->rightFarGrabPosition[1],
+                                                       data->rightFarGrabPosition[2]);
+            glm::quat rightFarGrabRotation = glm::quat(data->rightFarGrabRotation[0], data->rightFarGrabRotation[1],
+                                                       data->rightFarGrabRotation[2], data->rightFarGrabRotation[3]);
+            glm::vec3 mouseFarGrabPosition = glm::vec3(data->mouseFarGrabPosition[0], data->mouseFarGrabPosition[1],
+                                                       data->mouseFarGrabPosition[2]);
+            glm::quat mouseFarGrabRotation = glm::quat(data->mouseFarGrabRotation[0], data->mouseFarGrabRotation[1],
+                                                       data->mouseFarGrabRotation[2], data->mouseFarGrabRotation[3]);
+
+            _farGrabLeftMatrixCache.set(createMatFromQuatAndPos(leftFarGrabRotation, leftFarGrabPosition));
+            _farGrabRightMatrixCache.set(createMatFromQuatAndPos(rightFarGrabRotation, rightFarGrabPosition));
+            _farGrabMouseMatrixCache.set(createMatFromQuatAndPos(mouseFarGrabRotation, mouseFarGrabPosition));
+
+            sourceBuffer += sizeof(AvatarDataPacket::AvatarGlobalPosition);
+            int numBytesRead = sourceBuffer - startSection;
+            _farGrabJointRate.increment(numBytesRead);
+            _farGrabJointUpdateRate.increment();
+        }
     }
 
     if (hasJointDefaultPoseFlags) {
@@ -1261,6 +1363,8 @@ float AvatarData::getDataRate(const QString& rateName) const {
         return _jointDataRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "jointDefaultPoseFlagsRate") {
         return _jointDefaultPoseFlagsRate.rate() / BYTES_PER_KILOBIT;
+    } else if (rateName == "farGrabJointRate") {
+        return _farGrabJointRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "globalPositionOutbound") {
         return _outboundDataRate.globalPositionRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "localPositionOutbound") {
@@ -1318,6 +1422,8 @@ float AvatarData::getUpdateRate(const QString& rateName) const {
         return _faceTrackerUpdateRate.rate();
     } else if (rateName == "jointData") {
         return _jointDataUpdateRate.rate();
+    } else if (rateName == "farGrabJointData") {
+        return _farGrabJointUpdateRate.rate();
     }
     return 0.0f;
 }
@@ -1344,7 +1450,7 @@ void AvatarData::setRawJointData(QVector<JointData> data) {
 }
 
 void AvatarData::setJointData(int index, const glm::quat& rotation, const glm::vec3& translation) {
-    if (index == -1) {
+    if (index < 0 || index >= LOWEST_PSEUDO_JOINT_INDEX) {
         return;
     }
     QWriteLocker writeLock(&_jointDataLock);
@@ -1359,7 +1465,7 @@ void AvatarData::setJointData(int index, const glm::quat& rotation, const glm::v
 }
 
 void AvatarData::clearJointData(int index) {
-    if (index == -1) {
+    if (index < 0 || index >= LOWEST_PSEUDO_JOINT_INDEX) {
         return;
     }
     QWriteLocker writeLock(&_jointDataLock);
@@ -1371,27 +1477,72 @@ void AvatarData::clearJointData(int index) {
 }
 
 bool AvatarData::isJointDataValid(int index) const {
-    if (index == -1) {
-        return false;
+    switch (index) {
+        case FARGRAB_RIGHTHAND_INDEX: {
+            bool valid;
+            _farGrabRightMatrixCache.get(valid);
+            return valid;
+        }
+        case FARGRAB_LEFTHAND_INDEX: {
+            bool valid;
+            _farGrabLeftMatrixCache.get(valid);
+            return valid;
+        }
+        case FARGRAB_MOUSE_INDEX: {
+            bool valid;
+            _farGrabMouseMatrixCache.get(valid);
+            return valid;
+        }
+        default: {
+            if (index < 0 || index >= LOWEST_PSEUDO_JOINT_INDEX) {
+                return false;
+            }
+            QReadLocker readLock(&_jointDataLock);
+            return index < _jointData.size();
+        }
     }
-    QReadLocker readLock(&_jointDataLock);
-    return index < _jointData.size();
 }
 
 glm::quat AvatarData::getJointRotation(int index) const {
-    if (index == -1) {
-        return glm::quat();
+    switch (index) {
+        case FARGRAB_RIGHTHAND_INDEX: {
+            return extractRotation(_farGrabRightMatrixCache.get());
+        }
+        case FARGRAB_LEFTHAND_INDEX: {
+            return extractRotation(_farGrabLeftMatrixCache.get());
+        }
+        case FARGRAB_MOUSE_INDEX: {
+            return extractRotation(_farGrabMouseMatrixCache.get());
+        }
+        default: {
+            if (index < 0 || index >= LOWEST_PSEUDO_JOINT_INDEX) {
+                return glm::quat();
+            }
+            QReadLocker readLock(&_jointDataLock);
+            return index < _jointData.size() ? _jointData.at(index).rotation : glm::quat();
+        }
     }
-    QReadLocker readLock(&_jointDataLock);
-    return index < _jointData.size() ? _jointData.at(index).rotation : glm::quat();
 }
 
 glm::vec3 AvatarData::getJointTranslation(int index) const {
-    if (index == -1) {
-        return glm::vec3();
+    switch (index) {
+        case FARGRAB_RIGHTHAND_INDEX: {
+            return extractTranslation(_farGrabRightMatrixCache.get());
+        }
+        case FARGRAB_LEFTHAND_INDEX: {
+            return extractTranslation(_farGrabLeftMatrixCache.get());
+        }
+        case FARGRAB_MOUSE_INDEX: {
+            return extractTranslation(_farGrabMouseMatrixCache.get());
+        }
+        default: {
+            if (index < 0 || index >= LOWEST_PSEUDO_JOINT_INDEX) {
+                return glm::vec3();
+            }
+            QReadLocker readLock(&_jointDataLock);
+            return index < _jointData.size() ? _jointData.at(index).translation : glm::vec3();
+        }
     }
-    QReadLocker readLock(&_jointDataLock);
-    return index < _jointData.size() ? _jointData.at(index).translation : glm::vec3();
 }
 
 glm::vec3 AvatarData::getJointTranslation(const QString& name) const {
@@ -1400,6 +1551,7 @@ glm::vec3 AvatarData::getJointTranslation(const QString& name) const {
     // return getJointTranslation(getJointIndex(name));
     return readLockWithNamedJointIndex<glm::vec3>(name, [this](int index) {
         return _jointData.at(index).translation;
+        return getJointTranslation(index);
     });
 }
 
@@ -1437,7 +1589,7 @@ void AvatarData::setJointTranslation(const QString& name, const glm::vec3& trans
 }
 
 void AvatarData::setJointRotation(int index, const glm::quat& rotation) {
-    if (index == -1) {
+    if (index < 0 || index >= LOWEST_PSEUDO_JOINT_INDEX) {
         return;
     }
     QWriteLocker writeLock(&_jointDataLock);
@@ -1450,7 +1602,7 @@ void AvatarData::setJointRotation(int index, const glm::quat& rotation) {
 }
 
 void AvatarData::setJointTranslation(int index, const glm::vec3& translation) {
-    if (index == -1) {
+    if (index < 0 || index >= LOWEST_PSEUDO_JOINT_INDEX) {
         return;
     }
     QWriteLocker writeLock(&_jointDataLock);
@@ -1566,6 +1718,15 @@ int AvatarData::getFauxJointIndex(const QString& name) const {
     }
     if (name == "_CAMERA_MATRIX") {
         return CAMERA_MATRIX_INDEX;
+    }
+    if (name == "_FARGRAB_RIGHTHAND") {
+        return FARGRAB_RIGHTHAND_INDEX;
+    }
+    if (name == "_FARGRAB_LEFTHAND") {
+        return FARGRAB_LEFTHAND_INDEX;
+    }
+    if (name == "_FARGRAB_MOUSE") {
+        return FARGRAB_MOUSE_INDEX;
     }
     return -1;
 }
@@ -1908,7 +2069,7 @@ void AvatarData::sendIdentityPacket() {
     auto packetList = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
     packetList->write(identityData);
     nodeList->eachMatchingNode(
-        [&](const SharedNodePointer& node)->bool {
+        [](const SharedNodePointer& node)->bool {
             return node->getType() == NodeType::AvatarMixer && node->getActiveSocket();
         },
         [&](const SharedNodePointer& node) {

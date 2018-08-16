@@ -164,7 +164,7 @@ public:
         Ray = 0,
         Stylus,
         Parabola,
-
+        Collision,
         NUM_PICK_TYPES
     };
     Q_ENUM(PickType)

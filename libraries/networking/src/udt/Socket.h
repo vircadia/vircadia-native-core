@@ -102,7 +102,6 @@ public slots:
 private slots:
     void readPendingDatagrams();
     void checkForReadyReadBackup();
-    void rateControlSync();
 
     void handleSocketError(QAbstractSocket::SocketError socketError);
     void handleStateChanged(QAbstractSocket::SocketState socketState);
@@ -133,9 +132,6 @@ private:
     std::unordered_map<HifiSockAddr, BasePacketHandler> _unfilteredHandlers;
     std::unordered_map<HifiSockAddr, SequenceNumber> _unreliableSequenceNumbers;
     std::unordered_map<HifiSockAddr, std::unique_ptr<Connection>> _connectionsHash;
-    
-    int _synInterval { 10 }; // 10ms
-    QTimer* _synTimer { nullptr };
 
     QTimer* _readyReadBackupTimer { nullptr };
 

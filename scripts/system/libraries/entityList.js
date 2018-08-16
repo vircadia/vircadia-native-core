@@ -59,6 +59,10 @@ EntityListTool = function(shouldUseEditTabletApp) {
         entityListWindow.setVisible(!shouldUseEditTabletApp() && visible);
     };
 
+    that.isVisible = function() {
+        return entityListWindow.isVisible();
+    };
+
     that.setVisible(false);
 
     function emitJSONScriptEvent(data) {
@@ -244,6 +248,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
 
     webView.webEventReceived.connect(onWebEventReceived);
     entityListWindow.webEventReceived.addListener(onWebEventReceived);
+    that.interactiveWindowHidden = entityListWindow.interactiveWindowHidden;
 
     return that;
 };

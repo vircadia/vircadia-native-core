@@ -20,7 +20,7 @@ struct ParabolaData {
     vec4 color;
     int numSections;
     ivec3 spare;
-}
+};
 
 layout(std140, binding=0) uniform parabolaData {
     ParabolaData _parabolaData;

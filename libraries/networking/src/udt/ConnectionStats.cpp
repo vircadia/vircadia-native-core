@@ -95,11 +95,6 @@ void ConnectionStats::recordReceiveRate(int sample) {
     _total.receiveRate = (int)((_total.receiveRate * EWMA_PREVIOUS_SAMPLES_WEIGHT) + (sample * EWMA_CURRENT_SAMPLE_WEIGHT));
 }
 
-void ConnectionStats::recordEstimatedBandwidth(int sample) {
-    _currentSample.estimatedBandwith = sample;
-    _total.estimatedBandwith = (int)((_total.estimatedBandwith * EWMA_PREVIOUS_SAMPLES_WEIGHT) + (sample * EWMA_CURRENT_SAMPLE_WEIGHT));
-}
-
 void ConnectionStats::recordRTT(int sample) {
     _currentSample.rtt = sample;
     _total.rtt = (int)((_total.rtt * EWMA_PREVIOUS_SAMPLES_WEIGHT) + (sample * EWMA_CURRENT_SAMPLE_WEIGHT));
@@ -122,14 +117,6 @@ QDebug& operator<<(QDebug&& debug, const udt::ConnectionStats::Stats& stats) {
     HIFI_LOG_EVENT(SentACK)
     HIFI_LOG_EVENT(ReceivedACK)
     HIFI_LOG_EVENT(ProcessedACK)
-    HIFI_LOG_EVENT(SentLightACK)
-    HIFI_LOG_EVENT(ReceivedLightACK)
-    HIFI_LOG_EVENT(SentACK2)
-    HIFI_LOG_EVENT(ReceivedACK2)
-    HIFI_LOG_EVENT(SentNAK)
-    HIFI_LOG_EVENT(ReceivedNAK)
-    HIFI_LOG_EVENT(SentTimeoutNAK)
-    HIFI_LOG_EVENT(ReceivedTimeoutNAK)
     HIFI_LOG_EVENT(Retransmission)
     HIFI_LOG_EVENT(Duplicate)
     ;
