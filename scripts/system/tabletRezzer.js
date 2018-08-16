@@ -42,10 +42,9 @@
         // State machine
         PROXY_HIDDEN = 0,
         PROXY_VISIBLE = 1,
-        PROXY_GRABBED = 2,
-        PROXY_EXPANDING = 3,
-        TABLET_OPEN = 4,
-        STATE_STRINGS = ["PROXY_HIDDEN", "PROXY_VISIBLE", "PROXY_GRABBED", "PROXY_EXPANDING", "TABLET_OPEN"],
+        PROXY_EXPANDING = 2,
+        TABLET_OPEN = 3,
+        STATE_STRINGS = ["PROXY_HIDDEN", "PROXY_VISIBLE", "PROXY_EXPANDING", "TABLET_OPEN"],
         STATE_MACHINE,
         rezzerState = PROXY_HIDDEN,
         proxyHand,
@@ -163,13 +162,6 @@
         }
     }
 
-    function updateProxyGrabbed() {
-        // Hide proxy if tablet has been displayed by other means.
-        if (HMD.showTablet) {
-            setState(PROXY_HIDDEN);
-        }
-    }
-
     function expandProxy() {
         var scaleFactor = (Date.now() - proxyExpandStart) / PROXY_EXPAND_DURATION;
         if (scaleFactor < 1) {
@@ -243,12 +235,7 @@
             update: updateProxyVisible,
             exit: null
         },
-        PROXY_GRABBED: { // Other hand has grabbed and is holding the tablet proxy.
-            enter: null,
-            update: updateProxyGrabbed,
-            exit: null
-        },
-        PROXY_EXPANDING: { // Tablet proxy has been released from grab and is expanding before showing tablet proper.
+        PROXY_EXPANDING: { // Tablet proxy has been grabbed and is expanding before showing tablet proper.
             enter: enterProxyExpanding,
             update: updateProxyExanding,
             exit: exitProxyExpanding
@@ -328,11 +315,7 @@
             return;
         }
 
-        // Don't transition into PROXY_GRABBED unless the tablet proxy is grabbed with "other" hand. However, once it has been 
-        // grabbed then the original hand can grab it back and grow it from there.
-        if (message.action === "grab" && message.joint !== HAND_NAMES[proxyHand] && rezzerState === PROXY_VISIBLE) {
-            setState(PROXY_GRABBED);
-        } else if (message.action === "release" && rezzerState === PROXY_GRABBED) {
+        if (message.action === "grab" && rezzerState === PROXY_VISIBLE) {
             setState(PROXY_EXPANDING);
         }
     }
