@@ -121,6 +121,19 @@
         }
     }
 
+    function updateProxyHidden() {
+        // Don't show proxy is tablet is already displayed or are in toolbar mode.
+        if (HMD.showTablet || tablet.toolbarMode) {
+            return;
+        }
+        // Compare palm directions of hands with vectors from palms to camera.
+        if (shouldShowProxy(LEFT_HAND)) {
+            setState(PROXY_VISIBLE, LEFT_HAND);
+        } else if (shouldShowProxy(RIGHT_HAND)) {
+            setState(PROXY_VISIBLE, RIGHT_HAND);
+        }
+    }
+
     function enterProxyVisible(hand) {
         proxyHand = hand;
         proxyOverlay = Overlays.addOverlay("model", {
@@ -136,6 +149,25 @@
             displayInFront: true,
             visible: true
         });
+    }
+
+    function updateProxyVisible() {
+        // Hide proxy if tablet has been displayed by other means.
+        if (HMD.showTablet) {
+            setState(PROXY_HIDDEN);
+            return;
+        }
+        // Check that palm direction of proxy hand still less than maximum angle.
+        if (!shouldShowProxy(proxyHand)) {
+            setState(PROXY_HIDDEN);
+        }
+    }
+
+    function updateProxyGrabbed() {
+        // Hide proxy if tablet has been displayed by other means.
+        if (HMD.showTablet) {
+            setState(PROXY_HIDDEN);
+        }
     }
 
     function expandProxy() {
@@ -168,6 +200,13 @@
         proxyExpandTimer = Script.setTimeout(expandProxy, PROXY_EXPAND_TIMEOUT);
     }
 
+    function updateProxyExanding() {
+        // Hide proxy if tablet has been displayed by other means.
+        if (HMD.showTablet) {
+            setState(PROXY_HIDDEN);
+        }
+    }
+
     function exitProxyExpanding() {
         if (proxyExpandTimer !== null) {
             Script.clearTimeout(proxyExpandTimer);
@@ -188,30 +227,35 @@
         HMD.openTablet(true);
     }
 
+    function updateTabletOpen() {
+        // Immediately transition back to PROXY_HIDDEN.
+        setState(PROXY_HIDDEN);
+    }
+
     STATE_MACHINE = {
         PROXY_HIDDEN: { // Tablet proxy could be shown but isn't because hand is oriented to show it or aren't in HMD mode.
             enter: enterProxyHidden,
-            update: null,
+            update: updateProxyHidden,
             exit: null
         },
         PROXY_VISIBLE: { // Tablet proxy is visible and attached to hand.
             enter: enterProxyVisible,
-            update: null,
+            update: updateProxyVisible,
             exit: null
         },
         PROXY_GRABBED: { // Other hand has grabbed and is holding the tablet proxy.
             enter: null,
-            update: null,
+            update: updateProxyGrabbed,
             exit: null
         },
         PROXY_EXPANDING: { // Tablet proxy has been released from grab and is expanding before showing tablet proper.
             enter: enterProxyExpanding,
-            update: null,
+            update: updateProxyExanding,
             exit: exitProxyExpanding
         },
         TABLET_OPEN: { // Tablet proper is being displayed.
             enter: enterTabletOpen,
-            update: null,
+            update: updateTabletOpen,
             exit: null
         }
     };
@@ -229,6 +273,10 @@
         } else {
             error("Null state transition: " + state + "!");
         }
+    }
+
+    function updateState() {
+        STATE_MACHINE[STATE_STRINGS[rezzerState]].update();
     }
 
     // #endregion
@@ -258,45 +306,7 @@
 
     function update() {
         // Assumes that is HMD.mounted.
-        switch (rezzerState) {
-            case PROXY_HIDDEN:
-                // Don't show proxy is tablet is already displayed or are in toolbar mode.
-                if (HMD.showTablet || tablet.toolbarMode) {
-                    break;
-                }
-                // Compare palm directions of hands with vectors from palms to camera.
-                if (shouldShowProxy(LEFT_HAND)) {
-                    setState(PROXY_VISIBLE, LEFT_HAND);
-                } else if (shouldShowProxy(RIGHT_HAND)) {
-                    setState(PROXY_VISIBLE, RIGHT_HAND);
-                }
-                break;
-            case PROXY_VISIBLE:
-                // Hide proxy if tablet has been displayed by other means.
-                if (HMD.showTablet) {
-                    setState(PROXY_HIDDEN);
-                    break;
-                }
-                // Check that palm direction of proxy hand still less than maximum angle.
-                if (!shouldShowProxy(proxyHand)) {
-                    setState(PROXY_HIDDEN);
-                }
-                break;
-            case PROXY_GRABBED:
-            case PROXY_EXPANDING:
-                // Hide proxy if tablet has been displayed by other means.
-                if (HMD.showTablet) {
-                    setState(PROXY_HIDDEN);
-                }
-                break;
-            case TABLET_OPEN:
-                // Immediately transition back to PROXY_HIDDEN.
-                setState(PROXY_HIDDEN);
-                break;
-            default:
-                error("Missing case: " + rezzerState);
-        }
-
+        updateState();
         updateTimer = Script.setTimeout(update, UPDATE_INTERVAL);
     }
 
