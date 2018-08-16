@@ -139,7 +139,8 @@ public class FriendsFragment extends Fragment {
                 mUsersProvider.removeConnection(mSelectedUsername, new UsersProvider.UserActionCallback() {
                     @Override
                     public void requestOk() {
-                        // CLD: Show success message
+                        mSlidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+                        mSelectedUsername = null;
                         mUsersAdapter.loadUsers();
                     }
 
