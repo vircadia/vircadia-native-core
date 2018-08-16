@@ -27,14 +27,11 @@ public:
     TCPVegasCC();
 
     virtual bool onACK(SequenceNumber ackNum, p_high_resolution_clock::time_point receiveTime) override;
-    virtual void onLoss(SequenceNumber rangeStart, SequenceNumber rangeEnd) override {};
     virtual void onTimeout() override {};
 
-    virtual bool shouldNAK() override { return false; }
-    virtual bool shouldACK2() override { return false; }
-    virtual bool shouldProbe() override { return false; }
-
     virtual void onPacketSent(int wireSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) override;
+
+    virtual int estimatedTimeout() const override;
     
 protected:
     virtual void performCongestionAvoidance(SequenceNumber ack);
@@ -65,7 +62,6 @@ private:
     int _duplicateACKCount { 0 }; // Counter for duplicate ACKs received
 
     int _slowStartOddAdjust { 0 }; // Marker for every window adjustment every other RTT in slow-start
-
 };
 
 }
