@@ -117,10 +117,6 @@ Script.include("/~/system/libraries/controllers.js");
         var _this = this;
         this.hand = hand;
 
-        this.buttonStateX = 0; // Left hand / right hand x-axis.
-        this.buttonStateX = 0; // Left hand / right hand y-axis.
-        this.BUTTON_TRANSITION_DELAY = 50; // Allow time for transition from direction buttons to touch-pad.
-
         this.buttonValue = 0;
         this.disabled = false; // used by the 'Hifi-Teleport-Disabler' message handler
         this.active = false;
@@ -195,8 +191,11 @@ Script.include("/~/system/libraries/controllers.js");
             Pointers.removePointer(this.teleportParabolaHeadInvisible);
         };
 
+        this.axisButtonStateX = 0; // Left/right axis button pressed.
+        this.axisButtonStateY = 0; // Up/down axis button pressed.
+        this.BUTTON_TRANSITION_DELAY = 100; // Allow time for transition from direction buttons to touch-pad.
 
-        this.buttonStateXX = function (value) {
+        this.axisButtonChangeX = function (value) {
             if (value !== 0) {
                 // Don't lock right hand's x-axis buttons if snap turn.
                 if (_this.hand === LEFT_HAND || !Controller.getValue(Controller.Hardware.Application.SnapTurn)) {
@@ -205,18 +204,18 @@ Script.include("/~/system/libraries/controllers.js");
             } else {
                 // Delay direction button release until after teleport possibly pressed.
                 Script.setTimeout(function () {
-                    _this.buttonStateX = value;
+                    _this.axisButtonStateX = value;
                 }, _this.BUTTON_TRANSITION_DELAY);
             }
         };
 
-        this.buttonStateXY = function (value) {
+        this.axisButtonChangeY = function (value) {
             if (value !== 0) {
-                _this.buttonStateY = value;
+                _this.axisButtonStateY = value;
             } else {
                 // Delay direction button release until after teleport possibly pressed.
                 Script.setTimeout(function () {
-                    _this.buttonStateY = value;
+                    _this.axisButtonStateY = value;
                 }, _this.BUTTON_TRANSITION_DELAY);
             }
         };
@@ -224,7 +223,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.teleportLocked = function () {
             // Lock teleport if in advanced movement mode and have just transitioned from pressing a direction button.
             return Controller.getValue(Controller.Hardware.Application.AdvancedMovement)
-                && (_this.buttonStateX !== 0 || _this.buttonStateY !== 0);
+                && (_this.axisButtonStateX !== 0 || _this.axisButtonStateY !== 0);
         };
 
         this.buttonPress = function (value) {
@@ -386,6 +385,7 @@ Script.include("/~/system/libraries/controllers.js");
     }
 
     var mappingName, teleportMapping;
+    var isViveMapped = false;
 
     function parseJSON(json) {
         try {
@@ -429,21 +429,35 @@ Script.include("/~/system/libraries/controllers.js");
         }
     }
 
+    function registerViveTeleportMapping() {
+        // Disable Vive teleport if touch is transitioning across touch-pad after pressing a direction button.
+        if (Controller.Hardware.Vive) {
+            var mappingName = 'Hifi-Teleporter-Dev-Vive-' + Math.random();
+            var viveTeleportMapping = Controller.newMapping(mappingName);
+            viveTeleportMapping.from(Controller.Hardware.Vive.LSX).peek().to(leftTeleporter.axisButtonChangeX);
+            viveTeleportMapping.from(Controller.Hardware.Vive.LSY).peek().to(leftTeleporter.axisButtonChangeY);
+            viveTeleportMapping.from(Controller.Hardware.Vive.RSX).peek().to(rightTeleporter.axisButtonChangeX);
+            viveTeleportMapping.from(Controller.Hardware.Vive.RSY).peek().to(rightTeleporter.axisButtonChangeY);
+            Controller.enableMapping(mappingName);
+            isViveMapped = true;
+        }
+    }
+
+    function onHardwareChanged() {
+        // Controller.Hardware.Vive is not immediately available at Interface start-up.
+        if (!isViveMapped && Controller.Hardware.Vive) {
+            registerViveTeleportMapping();
+        }
+    }
+
+    Controller.hardwareChanged.connect(onHardwareChanged);
+
     function registerMappings() {
         mappingName = 'Hifi-Teleporter-Dev-' + Math.random();
         teleportMapping = Controller.newMapping(mappingName);
 
-        // Disable Vive teleport if touch is transitioning across touch-pad after using a direction button.
-        if (Controller.Hardware.Vive) {
-            teleportMapping.from(Controller.Hardware.Vive.LX).peek().when(Controller.Hardware.Vive.LSX)
-                .to(leftTeleporter.buttonStateXX);
-            teleportMapping.from(Controller.Hardware.Vive.LY).peek().when(Controller.Hardware.Vive.LSY).invert()
-                .to(leftTeleporter.buttonStateXY);
-            teleportMapping.from(Controller.Hardware.Vive.RX).peek().when(Controller.Hardware.Vive.RSX)
-                .to(rightTeleporter.buttonStateXX);
-            teleportMapping.from(Controller.Hardware.Vive.RY).peek().when(Controller.Hardware.Vive.RSY).invert()
-                .to(rightTeleporter.buttonStateXY);
-        }
+        // Vive teleport button lock-out.
+        registerViveTeleportMapping();
 
         // Teleport actions.
         teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftTeleporter.buttonPress);
@@ -459,6 +473,7 @@ Script.include("/~/system/libraries/controllers.js");
     Controller.enableMapping(mappingName);
 
     function cleanup() {
+        Controller.hardwareChanged.disconnect(onHardwareChanged);
         teleportMapping.disable();
         leftTeleporter.cleanup();
         rightTeleporter.cleanup();
