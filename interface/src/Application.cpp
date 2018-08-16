@@ -3705,7 +3705,10 @@ static bool _altPressed{ false };
 
 void Application::keyPressEvent(QKeyEvent* event) {
     _altPressed = event->key() == Qt::Key_Alt;
-    _keysPressed.insert(event->key());
+
+    if (!event->isAutoRepeat()) {
+        _keysPressed.insert(event->key(), *event);
+    }
 
     _controllerScriptingInterface->emitKeyPressEvent(event); // send events to any registered scripts
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -3916,7 +3919,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
 }
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
-    _keysPressed.remove(event->key());
+    if (!event->isAutoRepeat()) {
+        _keysPressed.remove(event->key());
+    }
 
 #if defined(Q_OS_ANDROID)
     if (event->key() == Qt::Key_Back) {
@@ -3952,11 +3957,14 @@ void Application::focusOutEvent(QFocusEvent* event) {
 #endif
 
     // synthesize events for keys currently pressed, since we may not get their release events
-    foreach (int key, _keysPressed) {
-        QKeyEvent keyEvent(QEvent::KeyRelease, key, Qt::NoModifier);
-        keyReleaseEvent(&keyEvent);
+    // Because our key event handlers may manipulate _keysPressed, lets swap the keys pressed into a local copy,
+    // clearing the existing list.
+    QHash<int, QKeyEvent> keysPressed;
+    std::swap(keysPressed, _keysPressed);
+    for (auto& ev : keysPressed) {
+        QKeyEvent synthesizedEvent { QKeyEvent::KeyRelease, ev.key(), Qt::NoModifier, ev.text() };
+        keyReleaseEvent(&synthesizedEvent);
     }
-    _keysPressed.clear();
 }
 
 void Application::maybeToggleMenuVisible(QMouseEvent* event) const {
