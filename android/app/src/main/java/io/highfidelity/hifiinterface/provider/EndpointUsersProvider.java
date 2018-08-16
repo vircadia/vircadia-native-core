@@ -53,7 +53,7 @@ public class EndpointUsersProvider implements UsersProvider {
                 return chain.proceed(request);
             }
         });
-        Log.d("[USERZ]", "Authorization: Bearer " + accessToken);// CLD DELETE THIS LINE!
+
         OkHttpClient client = httpClient.build();
 
         mRetrofit = new Retrofit.Builder()
