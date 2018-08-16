@@ -50,6 +50,18 @@ PickResultPointer RayPick::getHUDIntersection(const PickRay& pick) {
     return std::make_shared<RayPickResult>(IntersectionType::HUD, QUuid(), glm::distance(pick.origin, hudRes), hudRes, pick);
 }
 
+Transform RayPick::getResultTransform() const {
+    PickResultPointer result = getPrevPickResult();
+    if (!result) {
+        return Transform();
+    }
+
+    auto rayResult = std::static_pointer_cast<RayPickResult>(result);
+    Transform transform;
+    transform.setTranslation(rayResult->intersection);
+    return transform;
+}
+
 glm::vec3 RayPick::intersectRayWithXYPlane(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& point, const glm::quat& rotation, const glm::vec3& registration) {
     // TODO: take into account registration
     glm::vec3 n = rotation * Vectors::FRONT;

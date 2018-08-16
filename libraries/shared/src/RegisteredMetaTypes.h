@@ -258,8 +258,11 @@ public:
 
 * @typedef {object} CollisionPick
 * @property {Shape} shape - The information about the collision region's size and shape.
-* @property {Vec3} position - The position of the collision region.
-* @property {Quat} orientation - The orientation of the collision region.
+* @property {Vec3} position - The position of the collision region, relative to a parent if defined.
+* @property {Quat} orientation - The orientation of the collision region, relative to a parent if defined.
+* @property {Uuid} parentID - The ID of the parent, either an avatar, an entity, or an overlay.
+* @property {number} parentJointIndex - The joint of the parent to parent to, for example, the joints on the model of an avatar. (default = 0, no joint)
+* @property {string} joint - If "Mouse," parents the pick to the mouse. If "Head," parents the pick to MyAvatar's head. Otherwise, parents to the joint of the given name on MyAvatar.
 */
 class CollisionRegion : public MathPick {
 public:
@@ -305,6 +308,15 @@ public:
         if (pickVariant["orientation"].isValid()) {
             transform.setRotation(quatFromVariant(pickVariant["orientation"]));
         }
+        if (pickVariant["parentID"].isValid()) {
+            parentID = pickVariant["parentID"].toString();
+        }
+        if (pickVariant["parentJointIndex"].isValid()) {
+            parentJointIndex = pickVariant["parentJointIndex"].toInt();
+        }
+        if (pickVariant["joint"].isValid()) {
+            joint = pickVariant["joint"].toString();
+        }
     }
 
     QVariantMap toVariantMap() const override {
@@ -319,6 +331,14 @@ public:
 
         collisionRegion["position"] = vec3toVariant(transform.getTranslation());
         collisionRegion["orientation"] = quatToVariant(transform.getRotation());
+
+        if (!parentID.isNull()) {
+            collisionRegion["parentID"] = parentID;
+        }
+        collisionRegion["parentJointIndex"] = parentJointIndex;
+        if (!joint.isNull()) {
+            collisionRegion["joint"] = joint;
+        }
 
         return collisionRegion;
     }
@@ -354,6 +374,11 @@ public:
     // We can't compute the shapeInfo here without loading the model first, so we delegate that responsibility to the owning CollisionPick
     std::shared_ptr<ShapeInfo> shapeInfo = std::make_shared<ShapeInfo>();
     Transform transform;
+
+    // Parenting information
+    QUuid parentID;
+    int parentJointIndex = 0;
+    QString joint; 
 };
 
 namespace std {

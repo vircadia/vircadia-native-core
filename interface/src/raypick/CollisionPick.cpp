@@ -86,7 +86,7 @@ QVariantMap CollisionPickResult::toVariantMap() const {
     return variantMap;
 }
 
-bool CollisionPick::isShapeInfoReady() {
+bool CollisionPick::getShapeInfoReady() {
     if (_mathPick.shouldComputeShapeInfo()) {
         if (_cachedResource && _cachedResource->isLoaded()) {
             computeShapeInfo(_mathPick, *_mathPick.shapeInfo, _cachedResource);
@@ -95,8 +95,23 @@ bool CollisionPick::isShapeInfoReady() {
 
         return false;
     }
+    else {
+        computeShapeInfoDimensionsOnly(_mathPick, *_mathPick.shapeInfo, _cachedResource);
+        return true;
+    }
+}
 
-    return true;
+void CollisionPick::computeShapeInfoDimensionsOnly(CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<GeometryResource> resource) {
+    ShapeType type = shapeInfo.getType();
+    glm::vec3 dimensions = pick.transform.getScale();
+    QString modelURL = (resource ? resource->getURL().toString() : "");
+    if (type == SHAPE_TYPE_COMPOUND) {
+        shapeInfo.setParams(type, dimensions, modelURL);
+    } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
+        shapeInfo.setParams(type, 0.5f * dimensions, modelURL);
+    } else {
+        shapeInfo.setParams(type, 0.5f * dimensions, modelURL);
+    }
 }
 
 void CollisionPick::computeShapeInfo(CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<GeometryResource> resource) {
@@ -328,8 +343,23 @@ void CollisionPick::computeShapeInfo(CollisionRegion& pick, ShapeInfo& shapeInfo
     }
 }
 
+CollisionPick::CollisionPick(const PickFilter& filter, float maxDistance, bool enabled, CollisionRegion collisionRegion, PhysicsEnginePointer physicsEngine) :
+    Pick(filter, maxDistance, enabled),
+    _mathPick(collisionRegion),
+    _physicsEngine(physicsEngine) {
+    if (collisionRegion.shouldComputeShapeInfo()) {
+        _cachedResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(collisionRegion.modelURL);
+    }
+}
+
 CollisionRegion CollisionPick::getMathematicalPick() const {
-    return _mathPick;
+    if (!parentTransform) {
+        return _mathPick;
+    } else {
+        CollisionRegion transformedMathPick = _mathPick;
+        transformedMathPick.transform = parentTransform->getTransform().worldTransform(_mathPick.transform);
+        return transformedMathPick;
+    }
 }
 
 void CollisionPick::filterIntersections(std::vector<ContactTestResult>& intersections) const {
@@ -356,7 +386,7 @@ void CollisionPick::filterIntersections(std::vector<ContactTestResult>& intersec
 }
 
 PickResultPointer CollisionPick::getEntityIntersection(const CollisionRegion& pick) {
-    if (!isShapeInfoReady()) {
+    if (!getShapeInfoReady()) {
         // Cannot compute result
         return std::make_shared<CollisionPickResult>(pick.toVariantMap(), CollisionPickResult::LOAD_STATE_NOT_LOADED, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
     }
@@ -367,13 +397,13 @@ PickResultPointer CollisionPick::getEntityIntersection(const CollisionRegion& pi
 }
 
 PickResultPointer CollisionPick::getOverlayIntersection(const CollisionRegion& pick) {
-    return std::make_shared<CollisionPickResult>(pick.toVariantMap(), isShapeInfoReady() ? CollisionPickResult::LOAD_STATE_LOADED : CollisionPickResult::LOAD_STATE_NOT_LOADED, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
+    return std::make_shared<CollisionPickResult>(pick, getShapeInfoReady() ? CollisionPickResult::LOAD_STATE_LOADED : CollisionPickResult::LOAD_STATE_NOT_LOADED, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
 }
 
 PickResultPointer CollisionPick::getAvatarIntersection(const CollisionRegion& pick) {
-    if (!isShapeInfoReady()) {
+    if (!getShapeInfoReady()) {
         // Cannot compute result
-        return std::make_shared<CollisionPickResult>(pick.toVariantMap(), CollisionPickResult::LOAD_STATE_NOT_LOADED, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
+        return std::make_shared<CollisionPickResult>(pick, CollisionPickResult::LOAD_STATE_NOT_LOADED, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
     }
     
     auto avatarIntersections = _physicsEngine->contactTest(USER_COLLISION_MASK_AVATARS, *pick.shapeInfo, pick.transform);
@@ -382,5 +412,16 @@ PickResultPointer CollisionPick::getAvatarIntersection(const CollisionRegion& pi
 }
 
 PickResultPointer CollisionPick::getHUDIntersection(const CollisionRegion& pick) {
-    return std::make_shared<CollisionPickResult>(pick.toVariantMap(), isShapeInfoReady() ? CollisionPickResult::LOAD_STATE_LOADED : CollisionPickResult::LOAD_STATE_NOT_LOADED, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
+    return std::make_shared<CollisionPickResult>(pick.toVariantMap(), getShapeInfoReady() ? CollisionPickResult::LOAD_STATE_LOADED : CollisionPickResult::LOAD_STATE_NOT_LOADED, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
+}
+
+Transform CollisionPick::getResultTransform() const {
+    PickResultPointer result = getPrevPickResult();
+    if (!result) {
+        return Transform();
+    }
+
+    Transform transform;
+    transform.setTranslation(getMathematicalPick().transform.getTranslation());
+    return transform;
 }

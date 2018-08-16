@@ -11,6 +11,7 @@
 #include <PhysicsEngine.h>
 #include <model-networking/ModelCache.h>
 #include <RegisteredMetaTypes.h>
+#include <TransformNode.h>
 #include <Pick.h>
 
 class CollisionPickResult : public PickResult {
@@ -24,12 +25,17 @@ public:
     CollisionPickResult() {}
     CollisionPickResult(const QVariantMap& pickVariant) : PickResult(pickVariant) {}
 
-    CollisionPickResult(const CollisionRegion& searchRegion, LoadState loadState, const std::vector<ContactTestResult>& entityIntersections, const std::vector<ContactTestResult>& avatarIntersections) :
+    CollisionPickResult(const CollisionRegion& searchRegion,
+        LoadState loadState,
+        const std::vector<ContactTestResult>& entityIntersections,
+        const std::vector<ContactTestResult>& avatarIntersections
+    ) :
         PickResult(searchRegion.toVariantMap()),
         loadState(loadState),
         intersects(entityIntersections.size() || avatarIntersections.size()),
         entityIntersections(entityIntersections),
-        avatarIntersections(avatarIntersections) {
+        avatarIntersections(avatarIntersections)
+    {
     }
 
     CollisionPickResult(const CollisionPickResult& collisionPickResult) : PickResult(collisionPickResult.pickVariant) {
@@ -54,14 +60,7 @@ public:
 
 class CollisionPick : public Pick<CollisionRegion> {
 public:
-    CollisionPick(const PickFilter& filter, float maxDistance, bool enabled, CollisionRegion collisionRegion, PhysicsEnginePointer physicsEngine) :
-        Pick(filter, maxDistance, enabled),
-        _mathPick(collisionRegion),
-        _physicsEngine(physicsEngine) {
-        if (collisionRegion.shouldComputeShapeInfo()) {
-            _cachedResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(collisionRegion.modelURL);
-        }
-    }
+    CollisionPick(const PickFilter& filter, float maxDistance, bool enabled, CollisionRegion collisionRegion, PhysicsEnginePointer physicsEngine);
 
     CollisionRegion getMathematicalPick() const override;
     PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const override {
@@ -71,11 +70,12 @@ public:
     PickResultPointer getOverlayIntersection(const CollisionRegion& pick) override;
     PickResultPointer getAvatarIntersection(const CollisionRegion& pick) override;
     PickResultPointer getHUDIntersection(const CollisionRegion& pick) override;
-
+    Transform getResultTransform() const override;
 protected:
     // Returns true if pick.shapeInfo is valid. Otherwise, attempts to get the shapeInfo ready for use.
-    bool isShapeInfoReady();
+    bool getShapeInfoReady();
     void computeShapeInfo(CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<GeometryResource> resource);
+    void computeShapeInfoDimensionsOnly(CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<GeometryResource> resource);
     void filterIntersections(std::vector<ContactTestResult>& intersections) const;
 
     CollisionRegion _mathPick;

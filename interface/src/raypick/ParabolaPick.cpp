@@ -68,3 +68,15 @@ glm::vec3 ParabolaPick::getAcceleration() const {
     }
     return scale * _accelerationAxis;
 }
+
+Transform ParabolaPick::getResultTransform() const {
+    PickResultPointer result = getPrevPickResult();
+    if (!result) {
+        return Transform();
+    }
+
+    auto parabolaResult = std::static_pointer_cast<ParabolaPickResult>(result);
+    Transform transform;
+    transform.setTranslation(parabolaResult->intersection);
+    return transform;
+}
