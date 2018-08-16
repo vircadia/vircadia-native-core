@@ -7,7 +7,6 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
-import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.v4.content.ContextCompat;
@@ -155,18 +154,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private void loadFragment(Fragment fragment, String title, String tag, boolean addToBackStack) {
         FragmentManager fragmentManager = getFragmentManager();
 
-
         // check if it's the same fragment
         String currentFragmentName = fragmentManager.getBackStackEntryCount() > 0
                 ? fragmentManager.getBackStackEntryAt(fragmentManager.getBackStackEntryCount() - 1).getName()
                 : "";
-
-        Log.d("[BACK]", "Before it's " + currentFragmentName + ", now adding  " + title + " (before) backstackCount " + fragmentManager.getBackStackEntryCount());
-
-        // check if it's the same fragment than the one being shown
         if (currentFragmentName.equals(title)) {
             mDrawerLayout.closeDrawer(mNavigationView);
-            return;// cancel as we are already in that fragment
+            return; // cancel as we are already in that fragment
         }
 
         // go back until first transaction
@@ -187,14 +181,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         ft.commit();
         setTitle(title);
         mDrawerLayout.closeDrawer(mNavigationView);
-        final Handler handler = new Handler();
-        handler.postDelayed(new Runnable() {
-                                @Override
-                                public void run() {
-                                    //Do something after 100ms
-                                    Log.d("[BACK]", "added  " + title + " backstackCount " + fragmentManager.getBackStackEntryCount());
-                                }
-                            }, 100);
     }
 
     
