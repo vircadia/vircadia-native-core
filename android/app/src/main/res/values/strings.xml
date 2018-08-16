@@ -26,5 +26,8 @@
     <string name="online">Online</string>
 
     <!-- tags -->
+    <string name="tagFragmentHome">tagFragmentHome</string>
+    <string name="tagFragmentLogin">tagFragmentLogin</string>
+    <string name="tagFragmentPolicy">tagFragmentPolicy</string>
     <string name="tagFragmentPeople">tagFragmentPeople</string>
 </resources>
