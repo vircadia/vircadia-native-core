@@ -197,10 +197,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.axisButtonChangeX = function (value) {
             if (value !== 0) {
-                // Don't lock right hand's x-axis buttons if snap turn.
-                if (_this.hand === LEFT_HAND || !Controller.getValue(Controller.Hardware.Application.SnapTurn)) {
-                    _this.buttonStateX = value;
-                }
+                _this.buttonStateX = value;
             } else {
                 // Delay direction button release until after teleport possibly pressed.
                 Script.setTimeout(function () {
