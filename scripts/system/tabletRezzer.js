@@ -48,6 +48,13 @@
         STATE_MACHINE,
         rezzerState = PROXY_HIDDEN,
         proxyHand,
+        PROXY_GRAB_HANDLES = [
+            { x: 0.5, y: -0.4, z: 0 },
+            { x: -0.5, y: -0.4, z: 0 }
+        ],
+        proxyGrabHand,
+        proxyGrabHandleLocalPosition,
+        proxyGrabLocalRotation = Quat.IDENTITY,
         PROXY_EXPAND_DURATION = 250,
         PROXY_EXPAND_TIMEOUT = 25,
         proxyExpandTimer = null,
@@ -109,6 +116,10 @@
         return MyAvatar.getJointIndex(handJointName(hand));
     }
 
+    function otherHand(hand) {
+        return hand === LEFT_HAND ? RIGHT_HAND : LEFT_HAND;
+    }
+
     // #endregion
 
     // #region State Machine ===================================================================================================
@@ -164,11 +175,16 @@
 
     function expandProxy() {
         var scaleFactor = (Date.now() - proxyExpandStart) / PROXY_EXPAND_DURATION;
+        var tabletScaleFactor = avatarScale * (1 + scaleFactor * (proxyTargetWidth - proxyInitialWidth) / proxyInitialWidth);
         if (scaleFactor < 1) {
             Overlays.editOverlay(proxyOverlay, {
-                dimensions: Vec3.multiply(
-                    avatarScale * (1 + scaleFactor * (proxyTargetWidth - proxyInitialWidth) / proxyInitialWidth),
-                    TABLET_PROXY_DIMENSIONS)
+                dimensions: Vec3.multiply(tabletScaleFactor, TABLET_PROXY_DIMENSIONS),
+                localPosition:
+                    Vec3.sum(proxyGrabHandleLocalPosition,
+                        Vec3.multiplyQbyV(proxyGrabLocalRotation,
+                            Vec3.multiply(-tabletScaleFactor,
+                                Vec3.multiplyVbyV(PROXY_GRAB_HANDLES[proxyGrabHand], TABLET_PROXY_DIMENSIONS)))
+                    )
             });
             proxyExpandTimer = Script.setTimeout(expandProxy, PROXY_EXPAND_TIMEOUT);
             return;
@@ -179,11 +195,12 @@
     }
 
     function enterProxyExpanding() {
-        // Detach from hand.
-        Overlays.editOverlay(proxyOverlay, {
-            parentID: Uuid.NULL,
-            parentJointIndex: -1
-        });
+        // Grab details.
+        var properties = Overlays.getProperties(proxyOverlay, ["localPosition", "localRotation"]);
+        proxyGrabLocalRotation = properties.localRotation;
+        proxyGrabHandleLocalPosition = Vec3.sum(properties.localPosition,
+            Vec3.multiplyQbyV(proxyGrabLocalRotation,
+                Vec3.multiplyVbyV(PROXY_GRAB_HANDLES[proxyGrabHand], TABLET_PROXY_DIMENSIONS)));
 
         // Start expanding.
         proxyInitialWidth = TABLET_PROXY_DIMENSIONS.x;
@@ -316,6 +333,7 @@
         }
 
         if (message.action === "grab" && rezzerState === PROXY_VISIBLE) {
+            proxyGrabHand = message.joint === HAND_NAMES[proxyHand] ? proxyHand : otherHand(proxyHand);
             setState(PROXY_EXPANDING);
         }
     }
