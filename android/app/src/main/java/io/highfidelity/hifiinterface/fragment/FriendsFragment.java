@@ -5,6 +5,7 @@ import android.app.Fragment;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -34,6 +35,7 @@ public class FriendsFragment extends Fragment {
     private String mSelectedUsername;
 
     private OnHomeInteractionListener mListener;
+    private SwipeRefreshLayout mSwipeRefreshLayout;
 
     public FriendsFragment() {
         // Required empty public constructor
@@ -54,12 +56,15 @@ public class FriendsFragment extends Fragment {
 
         Log.d("[USERS]", "token : [" + accessToken + "]");
 
+        mSwipeRefreshLayout = rootView.findViewById(R.id.swipeRefreshLayout);
+
         mUsersView = rootView.findViewById(R.id.rvUsers);
         int numberOfColumns = 1;
         GridLayoutManager gridLayoutMgr = new GridLayoutManager(getContext(), numberOfColumns);
         mUsersView.setLayoutManager(gridLayoutMgr);
 
         mUsersAdapter = new UserListAdapter(getContext(), mUsersProvider);
+        mSwipeRefreshLayout.setRefreshing(true);
 
         mUserActions = rootView.findViewById(R.id.userActionsLayout);
 
@@ -90,6 +95,24 @@ public class FriendsFragment extends Fragment {
                 mSlidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.EXPANDED);
             }
         });
+
+        mUsersAdapter.setListener(new UserListAdapter.AdapterListener() {
+            @Override
+            public void onEmptyAdapter() {
+                mSwipeRefreshLayout.setRefreshing(false);
+            }
+
+            @Override
+            public void onNonEmptyAdapter() {
+                mSwipeRefreshLayout.setRefreshing(false);
+            }
+
+            @Override
+            public void onError(Exception e, String message) {
+                mSwipeRefreshLayout.setRefreshing(false);
+            }
+        });
+
         mUsersView.setAdapter(mUsersAdapter);
 
         mSlidingUpPanelLayout.setFadeOnClickListener(new View.OnClickListener() {
@@ -99,6 +122,8 @@ public class FriendsFragment extends Fragment {
                 mSelectedUsername = null;
             }
         });
+
+        mSwipeRefreshLayout.setOnRefreshListener(() -> mUsersAdapter.loadUsers());
 
         return rootView;
     }

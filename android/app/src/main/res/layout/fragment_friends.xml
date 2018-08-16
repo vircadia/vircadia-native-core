@@ -10,13 +10,18 @@
     app:umanoShadowHeight="4dp"
     android:background="@color/backgroundLight">
 
-    <android.support.v7.widget.RecyclerView
-        android:id="@+id/rvUsers"
-        android:paddingTop="@dimen/list_vertical_padding"
-        android:paddingBottom="@dimen/list_vertical_padding"
-        android:clipToPadding="false"
+    <android.support.v4.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefreshLayout"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent">
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/rvUsers"
+            android:paddingTop="@dimen/list_vertical_padding"
+            android:paddingBottom="@dimen/list_vertical_padding"
+            android:clipToPadding="false"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </android.support.v4.widget.SwipeRefreshLayout>
 
     <LinearLayout
         android:id="@+id/userActionsLayout"

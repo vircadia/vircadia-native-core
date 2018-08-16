@@ -2,7 +2,6 @@ package io.highfidelity.hifiinterface.view;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.PorterDuff;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.support.v4.content.ContextCompat;
@@ -23,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.highfidelity.hifiinterface.R;
-import io.highfidelity.hifiinterface.provider.EndpointUsersProvider;
 import io.highfidelity.hifiinterface.provider.UsersProvider;
 
 /**
@@ -37,6 +35,7 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
     private Context mContext;
     private List<User> mUsers = new ArrayList<>();
     private ItemClickListener mClickListener;
+    private AdapterListener mAdapterListener;
 
     public UserListAdapter(Context c, UsersProvider usersProvider) {
         mContext = c;
@@ -45,17 +44,29 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
         loadUsers();
     }
 
+    public void setListener(AdapterListener adapterListener) {
+        mAdapterListener = adapterListener;
+    }
+
     public void loadUsers() {
         mProvider.retrieve(new UsersProvider.UsersCallback() {
             @Override
             public void retrieveOk(List<User> users) {
                 mUsers = new ArrayList<>(users);
                 notifyDataSetChanged();
+                if (mAdapterListener != null) {
+                    if (mUsers.isEmpty()) {
+                        mAdapterListener.onEmptyAdapter();
+                    } else {
+                        mAdapterListener.onNonEmptyAdapter();
+                    }
+                }
             }
 
             @Override
             public void retrieveError(Exception e, String message) {
                 Log.e("[USERS]", message, e);
+                if (mAdapterListener != null) mAdapterListener.onError(e, message);
             }
         });
     }
@@ -218,5 +229,11 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
         public String locationName;
 
         public User() {}
+    }
+
+    public interface AdapterListener {
+        void onEmptyAdapter();
+        void onNonEmptyAdapter();
+        void onError(Exception e, String message);
     }
 }
