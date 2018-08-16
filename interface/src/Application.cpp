@@ -1139,8 +1139,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // setup a timer for domain-server check ins
     QTimer* domainCheckInTimer = new QTimer(this);
-    connect(domainCheckInTimer, &QTimer::timeout, [this, nodeList] {
-        if (!isServerlessMode()) {
+    QWeakPointer<NodeList> nodeListWeak = nodeList;
+    connect(domainCheckInTimer, &QTimer::timeout, [this, nodeListWeak] {
+        auto nodeList = nodeListWeak.lock();
+        if (!isServerlessMode() && nodeList) {
             nodeList->sendDomainServerCheckIn();
         }
     });
@@ -1150,33 +1152,34 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         domainCheckInTimer->deleteLater();
     });
 
+    {
+        auto audioIO = DependencyManager::get<AudioClient>().data();
+        audioIO->setPositionGetter([] {
+            auto avatarManager = DependencyManager::get<AvatarManager>();
+            auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
 
-    auto audioIO = DependencyManager::get<AudioClient>();
-    audioIO->setPositionGetter([]{
-        auto avatarManager = DependencyManager::get<AvatarManager>();
-        auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
+            return myAvatar ? myAvatar->getPositionForAudio() : Vectors::ZERO;
+        });
+        audioIO->setOrientationGetter([] {
+            auto avatarManager = DependencyManager::get<AvatarManager>();
+            auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
 
-        return myAvatar ? myAvatar->getPositionForAudio() : Vectors::ZERO;
-    });
-    audioIO->setOrientationGetter([]{
-        auto avatarManager = DependencyManager::get<AvatarManager>();
-        auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
+            return myAvatar ? myAvatar->getOrientationForAudio() : Quaternions::IDENTITY;
+        });
 
-        return myAvatar ? myAvatar->getOrientationForAudio() : Quaternions::IDENTITY;
-    });
+        recording::Frame::registerFrameHandler(AudioConstants::getAudioFrameName(), [&audioIO](recording::Frame::ConstPointer frame) {
+            audioIO->handleRecordedAudioInput(frame->data);
+        });
 
-    recording::Frame::registerFrameHandler(AudioConstants::getAudioFrameName(), [=](recording::Frame::ConstPointer frame) {
-        audioIO->handleRecordedAudioInput(frame->data);
-    });
-
-    connect(audioIO.data(), &AudioClient::inputReceived, [](const QByteArray& audio){
-        static auto recorder = DependencyManager::get<recording::Recorder>();
-        if (recorder->isRecording()) {
-            static const recording::FrameType AUDIO_FRAME_TYPE = recording::Frame::registerFrameType(AudioConstants::getAudioFrameName());
-            recorder->recordFrame(AUDIO_FRAME_TYPE, audio);
-        }
-    });
-    audioIO->startThread();
+        connect(audioIO, &AudioClient::inputReceived, [](const QByteArray& audio) {
+            static auto recorder = DependencyManager::get<recording::Recorder>();
+            if (recorder->isRecording()) {
+                static const recording::FrameType AUDIO_FRAME_TYPE = recording::Frame::registerFrameType(AudioConstants::getAudioFrameName());
+                recorder->recordFrame(AUDIO_FRAME_TYPE, audio);
+            }
+        });
+        audioIO->startThread();
+    }
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
@@ -1275,27 +1278,29 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Inititalize sample before registering
     _sampleSound = DependencyManager::get<SoundCache>()->getSound(PathUtils::resourcesUrl("sounds/sample.wav"));
 
-    auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
-    scriptEngines->registerScriptInitializer([this](ScriptEnginePointer engine){
-        registerScriptEngineWithApplicationServices(engine);
-    });
+    {
+        auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
+        scriptEngines->registerScriptInitializer([this](ScriptEnginePointer engine) {
+            registerScriptEngineWithApplicationServices(engine);
+        });
 
-    connect(scriptEngines, &ScriptEngines::scriptCountChanged, scriptEngines, [this] {
-        auto scriptEngines = DependencyManager::get<ScriptEngines>();
-        if (scriptEngines->getRunningScripts().isEmpty()) {
-            getMyAvatar()->clearScriptableSettings();
-        }
-    }, Qt::QueuedConnection);
+        connect(scriptEngines, &ScriptEngines::scriptCountChanged, this, [this] {
+            auto scriptEngines = DependencyManager::get<ScriptEngines>();
+            if (scriptEngines->getRunningScripts().isEmpty()) {
+                getMyAvatar()->clearScriptableSettings();
+            }
+        }, Qt::QueuedConnection);
 
-    connect(scriptEngines, &ScriptEngines::scriptsReloading, scriptEngines, [this] {
-        getEntities()->reloadEntityScripts();
-        loadAvatarScripts(getMyAvatar()->getScriptUrls());
-    }, Qt::QueuedConnection);
+        connect(scriptEngines, &ScriptEngines::scriptsReloading, this, [this] {
+            getEntities()->reloadEntityScripts();
+            loadAvatarScripts(getMyAvatar()->getScriptUrls());
+        }, Qt::QueuedConnection);
 
-    connect(scriptEngines, &ScriptEngines::scriptLoadError,
-        scriptEngines, [](const QString& filename, const QString& error){
-        OffscreenUi::asyncWarning(nullptr, "Error Loading Script", filename + " failed to load.");
-    }, Qt::QueuedConnection);
+        connect(scriptEngines, &ScriptEngines::scriptLoadError,
+            this, [](const QString& filename, const QString& error) {
+            OffscreenUi::asyncWarning(nullptr, "Error Loading Script", filename + " failed to load.");
+        }, Qt::QueuedConnection);
+    }
 
 #ifdef _WIN32
     WSADATA WsaData;
@@ -1365,10 +1370,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // so we defer the setup of the `scripting::Audio` class until this point
     {
         auto audioScriptingInterface = DependencyManager::set<AudioScriptingInterface, scripting::Audio>();
-        connect(audioIO.data(), &AudioClient::mutedByMixer, audioScriptingInterface.data(), &AudioScriptingInterface::mutedByMixer);
-        connect(audioIO.data(), &AudioClient::receivedFirstPacket, audioScriptingInterface.data(), &AudioScriptingInterface::receivedFirstPacket);
-        connect(audioIO.data(), &AudioClient::disconnected, audioScriptingInterface.data(), &AudioScriptingInterface::disconnected);
-        connect(audioIO.data(), &AudioClient::muteEnvironmentRequested, [](glm::vec3 position, float radius) {
+        auto audioIO = DependencyManager::get<AudioClient>().data();
+        connect(audioIO, &AudioClient::mutedByMixer, audioScriptingInterface.data(), &AudioScriptingInterface::mutedByMixer);
+        connect(audioIO, &AudioClient::receivedFirstPacket, audioScriptingInterface.data(), &AudioScriptingInterface::receivedFirstPacket);
+        connect(audioIO, &AudioClient::disconnected, audioScriptingInterface.data(), &AudioScriptingInterface::disconnected);
+        connect(audioIO, &AudioClient::muteEnvironmentRequested, [](glm::vec3 position, float radius) {
             auto audioClient = DependencyManager::get<AudioClient>();
             auto audioScriptingInterface = DependencyManager::get<AudioScriptingInterface>();
             auto myAvatarPosition = DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldPosition();
@@ -1697,23 +1703,26 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         userInputMapper->registerDevice(_touchscreenVirtualPadDevice->getInputDevice());
     }
 
-    // this will force the model the look at the correct directory (weird order of operations issue)
-    scriptEngines->reloadLocalFiles();
+    {
+        auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
+        // this will force the model the look at the correct directory (weird order of operations issue)
+        scriptEngines->reloadLocalFiles();
 
-    // do this as late as possible so that all required subsystems are initialized
-    // If we've overridden the default scripts location, just load default scripts
-    // otherwise, load 'em all
+        // do this as late as possible so that all required subsystems are initialized
+        // If we've overridden the default scripts location, just load default scripts
+        // otherwise, load 'em all
 
-    // we just want to see if --scripts was set, we've already parsed it and done
-    // the change in PathUtils.  Rather than pass that in the constructor, lets just
-    // look (this could be debated)
-    QString scriptsSwitch = QString("--").append(SCRIPTS_SWITCH);
-    QDir defaultScriptsLocation(getCmdOption(argc, constArgv, scriptsSwitch.toStdString().c_str()));
-    if (!defaultScriptsLocation.exists()) {
-        scriptEngines->loadDefaultScripts();
-        scriptEngines->defaultScriptsLocationOverridden(true);
-    } else {
-        scriptEngines->loadScripts();
+        // we just want to see if --scripts was set, we've already parsed it and done
+        // the change in PathUtils.  Rather than pass that in the constructor, lets just
+        // look (this could be debated)
+        QString scriptsSwitch = QString("--").append(SCRIPTS_SWITCH);
+        QDir defaultScriptsLocation(getCmdOption(argc, constArgv, scriptsSwitch.toStdString().c_str()));
+        if (!defaultScriptsLocation.exists()) {
+            scriptEngines->loadDefaultScripts();
+            scriptEngines->defaultScriptsLocationOverridden(true);
+        } else {
+            scriptEngines->loadScripts();
+        }
     }
 
     // Make sure we don't time out during slow operations at startup
@@ -1763,13 +1772,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         cameraMenuChanged();
     }
 
-    // set the local loopback interface for local sounds
-    AudioInjector::setLocalAudioInterface(audioIO.data());
-    auto audioScriptingInterface = DependencyManager::get<AudioScriptingInterface>();
-    audioScriptingInterface->setLocalAudioInterface(audioIO.data());
-    connect(audioIO.data(), &AudioClient::noiseGateOpened, audioScriptingInterface.data(), &AudioScriptingInterface::noiseGateOpened);
-    connect(audioIO.data(), &AudioClient::noiseGateClosed, audioScriptingInterface.data(), &AudioScriptingInterface::noiseGateClosed);
-    connect(audioIO.data(), &AudioClient::inputReceived, audioScriptingInterface.data(), &AudioScriptingInterface::inputReceived);
+    {
+        auto audioIO = DependencyManager::get<AudioClient>().data();
+        // set the local loopback interface for local sounds
+        AudioInjector::setLocalAudioInterface(audioIO);
+        auto audioScriptingInterface = DependencyManager::get<AudioScriptingInterface>();
+        audioScriptingInterface->setLocalAudioInterface(audioIO);
+        connect(audioIO, &AudioClient::noiseGateOpened, audioScriptingInterface.data(), &AudioScriptingInterface::noiseGateOpened);
+        connect(audioIO, &AudioClient::noiseGateClosed, audioScriptingInterface.data(), &AudioScriptingInterface::noiseGateClosed);
+        connect(audioIO, &AudioClient::inputReceived, audioScriptingInterface.data(), &AudioScriptingInterface::inputReceived);
+    }
 
     this->installEventFilter(this);
 
@@ -1826,13 +1838,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     });
 
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::deletingEntity, [=](const EntityItemID& entityItemID) {
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::deletingEntity, [this](const EntityItemID& entityItemID) {
         if (entityItemID == _keyboardFocusedEntity.get()) {
             setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
         }
     });
 
-    connect(getEntities()->getTree().get(), &EntityTree::deletingEntity, [=](const EntityItemID& entityItemID) {
+    connect(getEntities()->getTree().get(), &EntityTree::deletingEntity, [](const EntityItemID& entityItemID) {
         auto avatarManager = DependencyManager::get<AvatarManager>();
         auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
         if (myAvatar) {
@@ -1840,7 +1852,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     });
 
-    EntityTree::setAddMaterialToEntityOperator([&](const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
+    EntityTree::setAddMaterialToEntityOperator([this](const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
         // try to find the renderable
         auto renderable = getEntities()->renderableForEntityId(entityID);
         if (renderable) {
@@ -1855,7 +1867,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
         return false;
     });
-    EntityTree::setRemoveMaterialFromEntityOperator([&](const QUuid& entityID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
+    EntityTree::setRemoveMaterialFromEntityOperator([this](const QUuid& entityID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
         // try to find the renderable
         auto renderable = getEntities()->renderableForEntityId(entityID);
         if (renderable) {
@@ -1890,7 +1902,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return false;
     });
 
-    EntityTree::setAddMaterialToOverlayOperator([&](const QUuid& overlayID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
+    EntityTree::setAddMaterialToOverlayOperator([this](const QUuid& overlayID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
         auto overlay = _overlays.getOverlay(overlayID);
         if (overlay) {
             overlay->addMaterial(material, parentMaterialName);
@@ -1898,7 +1910,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
         return false;
     });
-    EntityTree::setRemoveMaterialFromOverlayOperator([&](const QUuid& overlayID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
+    EntityTree::setRemoveMaterialFromOverlayOperator([this](const QUuid& overlayID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
         auto overlay = _overlays.getOverlay(overlayID);
         if (overlay) {
             overlay->removeMaterial(material, parentMaterialName);
@@ -1909,13 +1921,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // Keyboard focus handling for Web overlays.
     auto overlays = &(qApp->getOverlays());
-    connect(overlays, &Overlays::overlayDeleted, [=](const OverlayID& overlayID) {
+    connect(overlays, &Overlays::overlayDeleted, [this](const OverlayID& overlayID) {
         if (overlayID == _keyboardFocusedOverlay.get()) {
             setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
         }
     });
 
-    connect(this, &Application::aboutToQuit, [=]() {
+    connect(this, &Application::aboutToQuit, [this]() {
         setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
         setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
     });
@@ -2184,23 +2196,22 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QVariant testProperty = property(hifi::properties::TEST);
     qDebug() << testProperty;
     if (testProperty.isValid()) {
-        auto scriptEngines = DependencyManager::get<ScriptEngines>();
         const auto testScript = property(hifi::properties::TEST).toUrl();
 
         // Set last parameter to exit interface when the test script finishes, if so requested
-        scriptEngines->loadScript(testScript, false, false, false, false, quitWhenFinished);
+        DependencyManager::get<ScriptEngines>()->loadScript(testScript, false, false, false, false, quitWhenFinished);
 
         // This is done so we don't get a "connection time-out" message when we haven't passed in a URL.
         if (arguments().contains("--url")) {
             auto reply = SandboxUtils::getStatus();
-            connect(reply, &QNetworkReply::finished, this, [=] {
+            connect(reply, &QNetworkReply::finished, this, [this, reply] {
                 handleSandboxStatus(reply);
             });
         }
     } else {
         PROFILE_RANGE(render, "GetSandboxStatus");
         auto reply = SandboxUtils::getStatus();
-        connect(reply, &QNetworkReply::finished, this, [=] {
+        connect(reply, &QNetworkReply::finished, this, [this, reply] {
             handleSandboxStatus(reply);
         });
     }
@@ -2227,8 +2238,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     connect(&_myCamera, &Camera::modeUpdated, this, &Application::cameraModeChanged);
 
-    DependencyManager::get<PickManager>()->setShouldPickHUDOperator([&]() { return DependencyManager::get<HMDScriptingInterface>()->isHMDMode(); });
-    DependencyManager::get<PickManager>()->setCalculatePos2DFromHUDOperator([&](const glm::vec3& intersection) {
+    DependencyManager::get<PickManager>()->setShouldPickHUDOperator([]() { return DependencyManager::get<HMDScriptingInterface>()->isHMDMode(); });
+    DependencyManager::get<PickManager>()->setCalculatePos2DFromHUDOperator([this](const glm::vec3& intersection) {
         const glm::vec2 MARGIN(25.0f);
         glm::vec2 maxPos = _controllerScriptingInterface->getViewportDimensions() - MARGIN;
         glm::vec2 pos2D = DependencyManager::get<HMDScriptingInterface>()->overlayFromWorldPoint(intersection);
@@ -2238,7 +2249,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Setup the mouse ray pick and related operators
     DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickID(DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, std::make_shared<MouseRayPick>(
         PickFilter(PickScriptingInterface::PICK_ENTITIES() | PickScriptingInterface::PICK_INCLUDE_NONCOLLIDABLE()), 0.0f, true)));
-    DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickResultOperator([&](unsigned int rayPickID) {
+    DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickResultOperator([](unsigned int rayPickID) {
         RayToEntityIntersectionResult entityResult;
         entityResult.intersects = false;
         auto pickResult = DependencyManager::get<PickManager>()->getPrevPickResultTyped<RayPickResult>(rayPickID);
@@ -2254,7 +2265,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
         return entityResult;
     });
-    DependencyManager::get<EntityTreeRenderer>()->setSetPrecisionPickingOperator([&](unsigned int rayPickID, bool value) {
+    DependencyManager::get<EntityTreeRenderer>()->setSetPrecisionPickingOperator([](unsigned int rayPickID, bool value) {
         DependencyManager::get<PickManager>()->setPrecisionPicking(rayPickID, value);
     });
 
@@ -2453,21 +2464,35 @@ void Application::cleanupBeforeQuit() {
         _keyboardFocusHighlight = nullptr;
     }
 
-    auto nodeList = DependencyManager::get<NodeList>();
+    {
+        auto nodeList = DependencyManager::get<NodeList>();
 
-    // send the domain a disconnect packet, force stoppage of domain-server check-ins
-    nodeList->getDomainHandler().disconnect();
-    nodeList->setIsShuttingDown(true);
+        // send the domain a disconnect packet, force stoppage of domain-server check-ins
+        nodeList->getDomainHandler().disconnect();
+        nodeList->setIsShuttingDown(true);
 
-    // tell the packet receiver we're shutting down, so it can drop packets
-    nodeList->getPacketReceiver().setShouldDropPackets(true);
+        // tell the packet receiver we're shutting down, so it can drop packets
+        nodeList->getPacketReceiver().setShouldDropPackets(true);
+    }
 
     getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
 
     // Clear any queued processing (I/O, FBX/OBJ/Texture parsing)
     QThreadPool::globalInstance()->clear();
 
+    DependencyManager::destroy<RecordingScriptingInterface>();
+
+    // FIXME: Something is still holding on to the ScriptEnginePointers contained in ScriptEngines, and they hold backpointers to ScriptEngines,
+    // so this doesn't shut down properly
     DependencyManager::get<ScriptEngines>()->shutdownScripting(); // stop all currently running global scripts
+    // These classes hold ScriptEnginePointers, so they must be destroyed before ScriptEngines
+    // Must be done after shutdownScripting in case any scripts try to access these things
+    {
+        DependencyManager::destroy<StandAloneJSConsole>();
+        EntityTreePointer tree = getEntities()->getTree();
+        tree->setSimulation(nullptr);
+        DependencyManager::destroy<EntityTreeRenderer>();
+    }
     DependencyManager::destroy<ScriptEngines>();
 
     _displayPlugin.reset();
@@ -2504,6 +2529,8 @@ void Application::cleanupBeforeQuit() {
     DependencyManager::destroy<EyeTracker>();
 #endif
 
+    DependencyManager::destroy<ContextOverlayInterface>(); // Must be destroyed before TabletScriptingInterface
+
     // stop QML
     DependencyManager::destroy<TabletScriptingInterface>();
     DependencyManager::destroy<ToolbarScriptingInterface>();
@@ -2514,10 +2541,6 @@ void Application::cleanupBeforeQuit() {
     if (_snapshotSoundInjector != nullptr) {
         _snapshotSoundInjector->stop();
     }
-
-    // FIXME: something else is holding a reference to AudioClient,
-    // so it must be explicitly synchronously stopped here
-    DependencyManager::get<AudioClient>()->cleanupBeforeQuit();
 
     // destroy Audio so it and its threads have a chance to go down safely
     // this must happen after QML, as there are unexplained audio crashes originating in qtwebengine
@@ -2557,9 +2580,6 @@ Application::~Application() {
 
     _entityClipboard->eraseAllOctreeElements();
     _entityClipboard.reset();
-
-    EntityTreePointer tree = getEntities()->getTree();
-    tree->setSimulation(nullptr);
 
     _octreeProcessor.terminate();
     _entityEditSender.terminate();
@@ -3274,8 +3294,7 @@ void Application::showHelp() {
     QUrlQuery queryString;
     queryString.addQueryItem("handControllerName", handControllerName);
     queryString.addQueryItem("defaultTab", defaultTab);
-    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
+    TabletProxy* tablet = dynamic_cast<TabletProxy*>(DependencyManager::get<TabletScriptingInterface>()->getTablet(SYSTEM_TABLET));
     tablet->gotoWebScreen(PathUtils::resourcesUrl() + INFO_HELP_PATH + "?" + queryString.toString());
     DependencyManager::get<HMDScriptingInterface>()->openTablet();
     //InfoView::show(INFO_HELP_PATH, false, queryString.toString());
@@ -3587,6 +3606,10 @@ static void dumpEventQueue(QThread* thread) {
 #endif // DEBUG_EVENT_QUEUE
 
 bool Application::event(QEvent* event) {
+
+    if (_aboutToQuit) {
+        return false;
+    }
 
     if (!Menu::getInstance()) {
         return false;
@@ -3992,10 +4015,6 @@ void Application::maybeToggleMenuVisible(QMouseEvent* event) const {
 void Application::mouseMoveEvent(QMouseEvent* event) {
     PROFILE_RANGE(app_input_mouse, __FUNCTION__);
 
-    if (_aboutToQuit) {
-        return;
-    }
-
     maybeToggleMenuVisible(event);
 
     auto& compositor = getApplicationCompositor();
@@ -4060,11 +4079,9 @@ void Application::mousePressEvent(QMouseEvent* event) {
         event->screenPos(), event->button(),
         event->buttons(), event->modifiers());
 
-    if (!_aboutToQuit) {
-        getOverlays().mousePressEvent(&mappedEvent);
-        if (!_controllerScriptingInterface->areEntityClicksCaptured()) {
-            getEntities()->mousePressEvent(&mappedEvent);
-        }
+    getOverlays().mousePressEvent(&mappedEvent);
+    if (!_controllerScriptingInterface->areEntityClicksCaptured()) {
+        getEntities()->mousePressEvent(&mappedEvent);
     }
 
     _controllerScriptingInterface->emitMousePressEvent(&mappedEvent); // send events to any registered scripts
@@ -4101,13 +4118,10 @@ void Application::mouseDoublePressEvent(QMouseEvent* event) {
         event->screenPos(), event->button(),
         event->buttons(), event->modifiers());
 
-    if (!_aboutToQuit) {
-        getOverlays().mouseDoublePressEvent(&mappedEvent);
-        if (!_controllerScriptingInterface->areEntityClicksCaptured()) {
-            getEntities()->mouseDoublePressEvent(&mappedEvent);
-        }
+    getOverlays().mouseDoublePressEvent(&mappedEvent);
+    if (!_controllerScriptingInterface->areEntityClicksCaptured()) {
+        getEntities()->mouseDoublePressEvent(&mappedEvent);
     }
-
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface->isMouseCaptured()) {
@@ -4127,10 +4141,8 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
         event->screenPos(), event->button(),
         event->buttons(), event->modifiers());
 
-    if (!_aboutToQuit) {
-        getOverlays().mouseReleaseEvent(&mappedEvent);
-        getEntities()->mouseReleaseEvent(&mappedEvent);
-    }
+    getOverlays().mouseReleaseEvent(&mappedEvent);
+    getEntities()->mouseReleaseEvent(&mappedEvent);
 
     _controllerScriptingInterface->emitMouseReleaseEvent(&mappedEvent); // send events to any registered scripts
 
@@ -4280,7 +4292,6 @@ bool Application::shouldPaint() const {
     if (_aboutToQuit || _window->isMinimized()) {
         return false;
     }
-
 
     auto displayPlugin = getActiveDisplayPlugin();
 
@@ -4761,7 +4772,7 @@ bool Application::exportEntities(const QString& filename,
     exportTree->createRootElement();
     glm::vec3 root(TREE_SCALE, TREE_SCALE, TREE_SCALE);
     bool success = true;
-    entityTree->withReadLock([&] {
+    entityTree->withReadLock([entityIDs, entityTree, givenOffset, myAvatarID, &root, &entities, &success, &exportTree] {
         for (auto entityID : entityIDs) { // Gather entities and properties.
             auto entityItem = entityTree->findEntityByEntityItemID(entityID);
             if (!entityItem) {
@@ -5510,6 +5521,10 @@ static bool domainLoadingInProgress = false;
 void Application::update(float deltaTime) {
     PROFILE_RANGE_EX(app, __FUNCTION__, 0xffff0000, (uint64_t)_renderFrameCount + 1);
 
+    if (_aboutToQuit) {
+        return;
+    }
+
     if (!_physicsEnabled) {
         if (!domainLoadingInProgress) {
             PROFILE_ASYNC_BEGIN(app, "Scene Loading", "");
@@ -5778,15 +5793,13 @@ void Application::update(float deltaTime) {
                             _entitySimulation->handleDeactivatedMotionStates(deactivations);
                         });
 
-                        if (!_aboutToQuit) {
-                            // handleCollisionEvents() AFTER handleChangedMotionStates()
-                            {
-                                PROFILE_RANGE(simulation_physics, "CollisionEvents");
-                                avatarManager->handleCollisionEvents(collisionEvents);
-                                // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
-                                // deadlock.)
-                                _entitySimulation->handleCollisionEvents(collisionEvents);
-                            }
+                        // handleCollisionEvents() AFTER handleChangedMotionStates()
+                        {
+                            PROFILE_RANGE(simulation_physics, "CollisionEvents");
+                            avatarManager->handleCollisionEvents(collisionEvents);
+                            // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
+                            // deadlock.)
+                            _entitySimulation->handleCollisionEvents(collisionEvents);
                         }
 
                         {
@@ -5804,11 +5817,9 @@ void Application::update(float deltaTime) {
                     }
                     auto t4 = std::chrono::high_resolution_clock::now();
 
-                    if (!_aboutToQuit) {
-                        // NOTE: the getEntities()->update() call below will wait for lock
-                        // and will provide non-physical entity motion
-                        getEntities()->update(true); // update the models...
-                    }
+                    // NOTE: the getEntities()->update() call below will wait for lock
+                    // and will provide non-physical entity motion
+                    getEntities()->update(true); // update the models...
 
                     auto t5 = std::chrono::high_resolution_clock::now();
 
@@ -6374,7 +6385,6 @@ void Application::domainURLChanged(QUrl domainURL) {
 void Application::resettingDomain() {
     _notifiedPacketVersionMismatchThisDomain = false;
 
-    auto nodeList = DependencyManager::get<NodeList>();
     clearDomainOctreeDetails();
 }
 
@@ -6729,16 +6739,12 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     pickScriptingInterface->registerMetaTypes(scriptEngine.data());
 
     // connect this script engines printedMessage signal to the global ScriptEngines these various messages
-    connect(scriptEngine.data(), &ScriptEngine::printedMessage,
-            DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onPrintedMessage);
-    connect(scriptEngine.data(), &ScriptEngine::errorMessage,
-            DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onErrorMessage);
-    connect(scriptEngine.data(), &ScriptEngine::warningMessage,
-            DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onWarningMessage);
-    connect(scriptEngine.data(), &ScriptEngine::infoMessage,
-            DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onInfoMessage);
-    connect(scriptEngine.data(), &ScriptEngine::clearDebugWindow,
-            DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onClearDebugWindow);
+    auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
+    connect(scriptEngine.data(), &ScriptEngine::printedMessage, scriptEngines, &ScriptEngines::onPrintedMessage);
+    connect(scriptEngine.data(), &ScriptEngine::errorMessage, scriptEngines, &ScriptEngines::onErrorMessage);
+    connect(scriptEngine.data(), &ScriptEngine::warningMessage, scriptEngines, &ScriptEngines::onWarningMessage);
+    connect(scriptEngine.data(), &ScriptEngine::infoMessage, scriptEngines, &ScriptEngines::onInfoMessage);
+    connect(scriptEngine.data(), &ScriptEngine::clearDebugWindow, scriptEngines, &ScriptEngines::onClearDebugWindow);
 
 }
 
@@ -7046,10 +7052,9 @@ void Application::showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const
 }
 
 void Application::showScriptLogs() {
-    auto scriptEngines = DependencyManager::get<ScriptEngines>();
     QUrl defaultScriptsLoc = PathUtils::defaultScriptsLocation();
     defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/debugging/debugWindow.js");
-    scriptEngines->loadScript(defaultScriptsLoc.toString());
+    DependencyManager::get<ScriptEngines>()->loadScript(defaultScriptsLoc.toString());
 }
 
 void Application::showAssetServerWidget(QString filePath) {
@@ -7615,7 +7620,6 @@ void Application::openUrl(const QUrl& url) const {
 }
 
 void Application::loadDialog() {
-    auto scriptEngines = DependencyManager::get<ScriptEngines>();
     ModalDialogListener* dlg = OffscreenUi::getOpenFileNameAsync(_glWidget, tr("Open Script"),
                                                                  getPreviousScriptLocation(),
                                                                  tr("JavaScript Files (*.js)"));
