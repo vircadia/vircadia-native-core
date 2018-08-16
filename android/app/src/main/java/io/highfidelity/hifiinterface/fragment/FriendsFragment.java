@@ -107,7 +107,7 @@ public class FriendsFragment extends Fragment {
         if (mSelectedUsername == null) return;
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        builder.setMessage("Remove this user from People?");
+        builder.setMessage("Remove '" + mSelectedUsername + "' from People?");
         builder.setPositiveButton("Remove", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
