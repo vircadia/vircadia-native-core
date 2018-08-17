@@ -340,6 +340,11 @@ void CollisionPick::filterIntersections(std::shared_ptr<std::vector<ContactTestR
     const QVector<QUuid>& ignoreItems = getIgnoreItems();
     const QVector<QUuid>& includeItems = getIncludeItems();
     bool isWhitelist = includeItems.size();
+
+    if (!isWhitelist && !ignoreItems.size()) {
+        return;
+    }
+
     int n = (int)intersections->size();
     for (int i = 0; i < n; i++) {
         auto& intersection = (*intersections)[i];
