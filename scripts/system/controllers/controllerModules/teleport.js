@@ -116,7 +116,6 @@ Script.include("/~/system/libraries/controllers.js");
     function Teleporter(hand) {
         var _this = this;
         this.hand = hand;
-
         this.buttonValue = 0;
         this.disabled = false; // used by the 'Hifi-Teleport-Disabler' message handler
         this.active = false;
@@ -197,7 +196,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.axisButtonChangeX = function (value) {
             if (value !== 0) {
-                _this.buttonStateX = value;
+                _this.axisButtonStateX = value;
             } else {
                 // Delay direction button release until after teleport possibly pressed.
                 Script.setTimeout(function () {
