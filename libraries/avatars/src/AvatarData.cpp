@@ -2069,7 +2069,7 @@ void AvatarData::sendIdentityPacket() {
     auto packetList = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
     packetList->write(identityData);
     nodeList->eachMatchingNode(
-        [&](const SharedNodePointer& node)->bool {
+        [](const SharedNodePointer& node)->bool {
             return node->getType() == NodeType::AvatarMixer && node->getActiveSocket();
         },
         [&](const SharedNodePointer& node) {

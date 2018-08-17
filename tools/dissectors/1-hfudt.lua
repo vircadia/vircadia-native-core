@@ -26,9 +26,6 @@ local f_hmac_hash = ProtoField.bytes("hfudt.hmac_hash", "HMAC Hash")
 local f_control_type = ProtoField.uint16("hfudt.control_type", "Control Type", base.DEC)
 local f_control_type_text = ProtoField.string("hfudt.control_type_text", "Control Type Text", base.ASCII)
 local f_ack_sequence_number = ProtoField.uint32("hfudt.ack_sequence_number", "ACKed Sequence Number", base.DEC)
-local f_control_sub_sequence = ProtoField.uint32("hfudt.control_sub_sequence", "Control Sub-Sequence Number", base.DEC)
-local f_nak_sequence_number = ProtoField.uint32("hfudt.nak_sequence_number", "NAKed Sequence Number", base.DEC)
-local f_nak_range_end = ProtoField.uint32("hfudt.nak_range_end", "NAK Range End", base.DEC)
 
 local SEQUENCE_NUMBER_MASK = 0x07FFFFFF
 
@@ -37,19 +34,13 @@ p_hfudt.fields = {
   f_control_bit, f_reliable_bit, f_message_bit, f_sequence_number, f_type, f_type_text, f_version,
   f_sender_id, f_hmac_hash,
   f_message_position, f_message_number, f_message_part_number, f_obfuscation_level,
-  f_control_type, f_control_type_text, f_control_sub_sequence, f_ack_sequence_number, f_nak_sequence_number, f_nak_range_end,
-  f_data
+  f_control_type, f_control_type_text, f_ack_sequence_number, f_data
 }
 
 local control_types = {
   [0] = { "ACK", "Acknowledgement" },
-  [1] = { "ACK2", "Acknowledgement of acknowledgement" },
-  [2] = { "LightACK", "Light Acknowledgement" },
-  [3] = { "NAK", "Loss report (NAK)" },
-  [4] = { "TimeoutNAK", "Loss report re-transmission (TimeoutNAK)" },
   [5] = { "Handshake", "Handshake" },
   [6] = { "HandshakeACK", "Acknowledgement of Handshake" },
-  [7] = { "ProbeTail", "Probe tail" },
   [8] = { "HandshakeRequest", "Request a Handshake" }
 }
 
@@ -205,51 +196,18 @@ function p_hfudt.dissector(buf, pinfo, tree)
       subtree:add(f_control_type_text, control_types[shifted_type][1])
     end
 
-    if shifted_type == 0 or shifted_type == 1 then
+    if shifted_type == 0 then
+      local data_index = 4
 
-      -- this has a sub-sequence number
-      local second_word = buf(4, 4):le_uint()
-      subtree:add(f_control_sub_sequence, bit32.band(second_word, SEQUENCE_NUMBER_MASK))
-
-      local data_index = 8
-
-      if shifted_type == 0 then
-        -- if this is an ACK let's read out the sequence number
-        local sequence_number = buf(8, 4):le_uint()
-        subtree:add(f_ack_sequence_number, bit32.band(sequence_number, SEQUENCE_NUMBER_MASK))
-
-        data_index = data_index + 4
-      end
+      -- This is an ACK let's read out the sequence number
+      local sequence_number = buf(data_index, 4):le_uint()
+      subtree:add(f_ack_sequence_number, bit32.band(sequence_number, SEQUENCE_NUMBER_MASK))
+      data_index = data_index + 4
 
       data_length = buf:len() - data_index
 
       -- set the data from whatever is left in the packet
       subtree:add(f_data, buf(data_index, data_length))
-
-    elseif shifted_type == 2 then
-      -- this is a Light ACK let's read out the sequence number
-      local sequence_number = buf(4, 4):le_uint()
-      subtree:add(f_ack_sequence_number, bit32.band(sequence_number, SEQUENCE_NUMBER_MASK))
-
-      data_length = buf:len() - 4
-
-      -- set the data from whatever is left in the packet
-      subtree:add(f_data, buf(4, data_length))
-    elseif shifted_type == 3 or shifted_type == 4 then
-     if buf:len() <= 12 then
-       -- this is a NAK  pull the sequence number or range
-       local sequence_number = buf(4, 4):le_uint()
-       subtree:add(f_nak_sequence_number, bit32.band(sequence_number, SEQUENCE_NUMBER_MASK))
-
-       data_length = buf:len() - 4
-
-       if buf:len() > 8 then
-         local range_end = buf(8, 4):le_uint()
-         subtree:add(f_nak_range_end, bit32.band(range_end, SEQUENCE_NUMBER_MASK))
-
-         data_length = data_length - 4
-       end
-     end
     else
       data_length = buf:len() - 4
 

@@ -82,8 +82,6 @@ Agent::Agent(ReceivedMessage& message) :
     DependencyManager::set<recording::ClipCache>();
 
     DependencyManager::set<ScriptCache>();
-    DependencyManager::set<ScriptEngines>(ScriptEngine::AGENT_SCRIPT);
-
     DependencyManager::set<RecordingScriptingInterface>();
     DependencyManager::set<UsersScriptingInterface>();
 
@@ -162,6 +160,8 @@ void Agent::handleAudioPacket(QSharedPointer<ReceivedMessage> message) {
 static const QString AGENT_LOGGING_NAME = "agent";
 
 void Agent::run() {
+    // Create ScriptEngines on threaded-assignment thread then move to main thread.
+    DependencyManager::set<ScriptEngines>(ScriptEngine::AGENT_SCRIPT)->moveToThread(qApp->thread());
 
     // make sure we request our script once the agent connects to the domain
     auto nodeList = DependencyManager::get<NodeList>();
@@ -497,7 +497,6 @@ void Agent::executeScript() {
     Frame::clearFrameHandler(AVATAR_FRAME_TYPE);
 
     DependencyManager::destroy<RecordingScriptingInterface>();
-
     setFinished(true);
 }
 
@@ -516,7 +515,7 @@ void Agent::setIsListeningToAudioStream(bool isListeningToAudioStream) {
 
         auto nodeList = DependencyManager::get<NodeList>();
         nodeList->eachMatchingNode(
-            [&](const SharedNodePointer& node)->bool {
+            [](const SharedNodePointer& node)->bool {
             return (node->getType() == NodeType::AudioMixer) && node->getActiveSocket();
         },
             [&](const SharedNodePointer& node) {
@@ -847,7 +846,7 @@ void Agent::aboutToFinish() {
     DependencyManager::destroy<recording::Deck>();
     DependencyManager::destroy<recording::Recorder>();
     DependencyManager::destroy<recording::ClipCache>();
-
+    DependencyManager::destroy<ScriptEngine>();
     QMetaObject::invokeMethod(&_avatarAudioTimer, "stop");
 
     // cleanup codec & encoder

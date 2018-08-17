@@ -76,6 +76,7 @@ namespace MenuOption {
     const QString CrashOutOfBoundsVectorAccessThreaded = "Out of Bounds Vector Access (threaded)";
     const QString CrashNewFault = "New Fault";
     const QString CrashNewFaultThreaded = "New Fault (threaded)";
+    const QString CreateEntitiesGrabbable = "Create Entities As Grabbable (except Zones, Particles, and Lights)";
     const QString DeadlockInterface = "Deadlock Interface";
     const QString UnresponsiveInterface = "Unresponsive Interface";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";

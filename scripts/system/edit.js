@@ -871,6 +871,7 @@ var toolBar = (function () {
             }
             UserActivityLogger.enabledEdit();
             entityListTool.setVisible(true);
+            entityListTool.sendUpdate();
             gridTool.setVisible(true);
             grid.setEnabled(true);
             propertiesTool.setVisible(true);

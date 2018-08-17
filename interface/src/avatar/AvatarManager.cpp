@@ -79,7 +79,7 @@ AvatarManager::AvatarManager(QObject* parent) :
 
     // when we hear that the user has ignored an avatar by session UUID
     // immediately remove that avatar instead of waiting for the absence of packets from avatar mixer
-    connect(nodeList.data(), &NodeList::ignoredNode, this, [=](const QUuid& nodeID, bool enabled) {
+    connect(nodeList.data(), &NodeList::ignoredNode, this, [this](const QUuid& nodeID, bool enabled) {
         if (enabled) {
             removeAvatar(nodeID, KillAvatarReason::AvatarIgnored);
         }
@@ -318,16 +318,21 @@ void AvatarManager::postUpdate(float deltaTime, const render::ScenePointer& scen
 
 void AvatarManager::sendIdentityRequest(const QUuid& avatarID) const {
     auto nodeList = DependencyManager::get<NodeList>();
+    QWeakPointer<NodeList> nodeListWeak = nodeList;
     nodeList->eachMatchingNode(
-        [&](const SharedNodePointer& node)->bool {
-        return node->getType() == NodeType::AvatarMixer && node->getActiveSocket();
-    },
-        [&](const SharedNodePointer& node) {
-        auto packet = NLPacket::create(PacketType::AvatarIdentityRequest, NUM_BYTES_RFC4122_UUID, true);
-        packet->write(avatarID.toRfc4122());
-        nodeList->sendPacket(std::move(packet), *node);
-        ++_identityRequestsSent;
-    });
+        [](const SharedNodePointer& node)->bool {
+            return node->getType() == NodeType::AvatarMixer && node->getActiveSocket();
+        },
+        [this, avatarID, nodeListWeak](const SharedNodePointer& node) {
+            auto nodeList = nodeListWeak.lock();
+            if (nodeList) {
+                auto packet = NLPacket::create(PacketType::AvatarIdentityRequest, NUM_BYTES_RFC4122_UUID, true);
+                packet->write(avatarID.toRfc4122());
+                nodeList->sendPacket(std::move(packet), *node);
+                ++_identityRequestsSent;
+            }
+        }
+    );
 }
 
 void AvatarManager::simulateAvatarFades(float deltaTime) {

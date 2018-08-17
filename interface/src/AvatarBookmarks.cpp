@@ -64,7 +64,7 @@ void addAvatarEntities(const QVariantList& avatarEntities) {
 
         EntityItemID id = EntityItemID(QUuid::createUuid());
         bool success = true;
-        entityTree->withWriteLock([&] {
+        entityTree->withWriteLock([&entityTree, id, &entityProperties, &success] {
             EntityItemPointer entity = entityTree->addEntity(id, entityProperties);
             if (entity) {
                 if (entityProperties.queryAACubeRelatedPropertyChanged()) {
