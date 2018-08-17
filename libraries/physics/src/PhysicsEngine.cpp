@@ -863,13 +863,9 @@ void PhysicsEngine::setShowBulletConstraintLimits(bool value) {
     }
 }
 
-const int32_t CONTACT_CALLBACK_FLAG_ENTITY = BULLET_COLLISION_GROUP_STATIC | BULLET_COLLISION_GROUP_KINEMATIC | BULLET_COLLISION_GROUP_DYNAMIC;
-const int32_t CONTACT_CALLBACK_FLAG_AVATAR = USER_COLLISION_GROUP_MY_AVATAR | USER_COLLISION_GROUP_OTHER_AVATAR;
-
 struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
-    AllContactsCallback(MotionStateType desiredObjectType, const ShapeInfo& shapeInfo, const Transform& transform, btCollisionObject* myAvatarCollisionObject) :
+    AllContactsCallback(int32_t mask, int32_t group, const ShapeInfo& shapeInfo, const Transform& transform, btCollisionObject* myAvatarCollisionObject) :
         btCollisionWorld::ContactResultCallback(),
-        desiredObjectType(desiredObjectType),
         collisionObject(),
         myAvatarCollisionObject(myAvatarCollisionObject) {
         const btCollisionShape* collisionShape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
@@ -882,20 +878,14 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
 
         collisionObject.setWorldTransform(bulletTransform);
 
-        m_collisionFilterGroup = ~0; // Everything collidable should collide with our test object unless we set the filter mask otherwise
-        if (desiredObjectType == MOTIONSTATE_TYPE_AVATAR) {
-            m_collisionFilterMask = CONTACT_CALLBACK_FLAG_AVATAR;
-        }
-        else {
-            m_collisionFilterMask = CONTACT_CALLBACK_FLAG_ENTITY;
-        }
+        m_collisionFilterMask = mask;
+        m_collisionFilterGroup = group;
     }
 
     ~AllContactsCallback() {
         ObjectMotionState::getShapeManager()->releaseShape(collisionObject.getCollisionShape());
     }
 
-    MotionStateType desiredObjectType;
     btCollisionObject collisionObject;
     std::shared_ptr<std::vector<ContactTestResult>> contacts = std::make_shared<std::vector<ContactTestResult>>();
     btCollisionObject* myAvatarCollisionObject;
@@ -915,7 +905,7 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
         }
 
         // TODO: Give MyAvatar a motion state so we don't have to do this
-        if (desiredObjectType == MOTIONSTATE_TYPE_AVATAR && myAvatarCollisionObject && myAvatarCollisionObject == otherBody) {
+        if ((m_collisionFilterMask & BULLET_COLLISION_GROUP_MY_AVATAR) && myAvatarCollisionObject && myAvatarCollisionObject == otherBody) {
             contacts->emplace_back(Physics::getSessionUUID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint));
             return 0;
         }
@@ -927,7 +917,7 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
 
         const btMotionState* motionStateCandidate = collisionCandidate->getMotionState();
         const ObjectMotionState* candidate = dynamic_cast<const ObjectMotionState*>(motionStateCandidate);
-        if (!candidate || candidate->getType() != desiredObjectType) {
+        if (!candidate) {
             return 0;
         }
 
@@ -943,14 +933,14 @@ protected:
     }
 };
 
-std::shared_ptr<std::vector<ContactTestResult>> PhysicsEngine::getCollidingInRegion(MotionStateType desiredObjectType, const ShapeInfo& regionShapeInfo, const Transform& regionTransform) const {
+std::shared_ptr<std::vector<ContactTestResult>> PhysicsEngine::contactTest(uint16_t mask, const ShapeInfo& regionShapeInfo, const Transform& regionTransform, uint16_t group) const {
     // TODO: Give MyAvatar a motion state so we don't have to do this
     btCollisionObject* myAvatarCollisionObject = nullptr;
-    if (desiredObjectType == MOTIONSTATE_TYPE_AVATAR && _myAvatarController) {
+    if ((mask & USER_COLLISION_GROUP_MY_AVATAR) && _myAvatarController) {
         myAvatarCollisionObject = _myAvatarController->getCollisionObject();
     }
 
-    auto contactCallback = AllContactsCallback(desiredObjectType, regionShapeInfo, regionTransform, myAvatarCollisionObject);
+    auto contactCallback = AllContactsCallback((int32_t)mask, (int32_t)group, regionShapeInfo, regionTransform, myAvatarCollisionObject);
     _dynamicsWorld->contactTest(&contactCallback.collisionObject, contactCallback);
 
     return contactCallback.contacts;
