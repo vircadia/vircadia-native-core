@@ -124,6 +124,29 @@
 
     // #region State Machine ===================================================================================================
 
+    function shouldShowProxy(hand) {
+        // Should show tablet proxy if hand is oriented toward the camera and the camera is oriented toward the proxy tablet.
+        var pose,
+            jointIndex,
+            handPosition,
+            handOrientation,
+            cameraToHandDirection;
+
+        pose = Controller.getPoseValue(hand === LEFT_HAND ? Controller.Standard.LeftHand : Controller.Standard.RightHand);
+        if (!pose.valid) {
+            return false;
+        }
+
+        jointIndex = handJointIndex(hand);
+        handPosition = Vec3.sum(MyAvatar.position,
+            Vec3.multiplyQbyV(MyAvatar.orientation, MyAvatar.getAbsoluteJointTranslationInObjectFrame(jointIndex)));
+        handOrientation = Quat.multiply(MyAvatar.orientation, MyAvatar.getAbsoluteJointRotationInObjectFrame(jointIndex));
+        cameraToHandDirection = Vec3.normalize(Vec3.subtract(handPosition, Camera.position));
+
+        return Vec3.dot(cameraToHandDirection, Quat.getForward(handOrientation)) > MIN_HAND_CAMERA_ANGLE_COS
+            && Vec3.dot(cameraToHandDirection, Quat.getForward(Camera.orientation)) > MIN_HAND_CAMERA_ANGLE_COS;
+    }
+
     function enterProxyHidden() {
         if (proxyOverlay) {
             Overlays.deleteOverlay(proxyOverlay);
@@ -286,27 +309,6 @@
     // #endregion
 
     // #region Events ==========================================================================================================
-
-    function shouldShowProxy(hand) {
-        // Should show tablet proxy if hand is oriented towards the camera.
-        var pose,
-            jointIndex,
-            handPosition,
-            handOrientation;
-
-        pose = Controller.getPoseValue(hand === LEFT_HAND ? Controller.Standard.LeftHand : Controller.Standard.RightHand);
-        if (!pose.valid) {
-            return false;
-        }
-
-        jointIndex = handJointIndex(hand);
-        handPosition = Vec3.sum(MyAvatar.position,
-            Vec3.multiplyQbyV(MyAvatar.orientation, MyAvatar.getAbsoluteJointTranslationInObjectFrame(jointIndex)));
-        handOrientation = Quat.multiply(MyAvatar.orientation, MyAvatar.getAbsoluteJointRotationInObjectFrame(jointIndex));
-
-        return Vec3.dot(Vec3.normalize(Vec3.subtract(handPosition, Camera.position)), Quat.getForward(handOrientation))
-            > MIN_HAND_CAMERA_ANGLE_COS;
-    }
 
     function update() {
         // Assumes that is HMD.mounted.
