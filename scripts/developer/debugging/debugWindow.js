@@ -23,7 +23,7 @@ if (scripts.length >= 2) {
 var qml = Script.resolvePath('debugWindow.qml');
 
 var HMD_DEBUG_WINDOW_GEOMETRY_KEY = 'hmdDebugWindowGeometry';
-var hmdDebugWindowGeometryValue = Settings.getValue(HMD_DEBUG_WINDOW_GEOMETRY_KEY)
+var hmdDebugWindowGeometryValue = Settings.getValue(HMD_DEBUG_WINDOW_GEOMETRY_KEY);
 
 var windowWidth = 400;
 var windowHeight = 900;
@@ -34,12 +34,13 @@ var windowY = 0;
 
 if (hmdDebugWindowGeometryValue !== '') {
     var geometry = JSON.parse(hmdDebugWindowGeometryValue);
-
-    windowWidth = geometry.width
-    windowHeight = geometry.height
-    windowX = geometry.x
-    windowY = geometry.y
-    hasPosition = true;
+    if ((geometry.x !== 0) && (geometry.y !== 0)) {
+        windowWidth = geometry.width;
+        windowHeight = geometry.height;
+        windowX = geometry.x;
+        windowY = geometry.y;
+        hasPosition = true;
+    }
 }
 
 var window = new OverlayWindow({
@@ -51,6 +52,12 @@ var window = new OverlayWindow({
 if (hasPosition) {
     window.setPosition(windowX, windowY);
 }
+
+window.visibleChanged.connect(function() {
+    if (!window.visible) {
+        window.setVisible(true);
+    }
+});
 
 window.closed.connect(function () { Script.stop(); });
 
@@ -93,10 +100,10 @@ Script.scriptEnding.connect(function () {
         y: window.position.y,
         width: window.size.x,
         height: window.size.y
-    })
+    });
 
     Settings.setValue(HMD_DEBUG_WINDOW_GEOMETRY_KEY, geometry);
     window.close();
-})
+});
 
 }());
