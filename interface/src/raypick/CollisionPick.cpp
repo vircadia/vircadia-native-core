@@ -335,9 +335,9 @@ CollisionRegion CollisionPick::getMathematicalPick() const {
 void CollisionPick::filterIntersections(std::shared_ptr<std::vector<ContactTestResult>> intersections) const {
     const QVector<QUuid>& ignoreItems = getIgnoreItems();
     const QVector<QUuid>& includeItems = getIncludeItems();
-    bool isWhitelist = includeItems.size();
+    bool isWhitelist = !includeItems.empty();
 
-    if (!isWhitelist && !ignoreItems.size()) {
+    if (!isWhitelist && ignoreItems.empty()) {
         return;
     }
 
