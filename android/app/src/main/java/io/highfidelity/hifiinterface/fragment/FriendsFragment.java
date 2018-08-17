@@ -90,7 +90,7 @@ public class FriendsFragment extends Fragment {
                 // ..
                 // 2. adapt options
                 // ..
-                rootView.findViewById(R.id.userActionVisit).setVisibility(user.online?View.VISIBLE:View.GONE);
+                rootView.findViewById(R.id.userActionVisit).setVisibility(user.online ? View.VISIBLE : View.GONE);
                 // 3. show
                 mSlidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.EXPANDED);
             }
@@ -129,7 +129,9 @@ public class FriendsFragment extends Fragment {
     }
 
     private void onRemoveConnectionClick() {
-        if (mSelectedUsername == null) return;
+        if (mSelectedUsername == null) {
+            return;
+        }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         builder.setMessage("Remove '" + mSelectedUsername + "' from People?");

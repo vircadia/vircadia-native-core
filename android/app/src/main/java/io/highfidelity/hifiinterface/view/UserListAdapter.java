@@ -66,7 +66,9 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
             @Override
             public void retrieveError(Exception e, String message) {
                 Log.e("[USERS]", message, e);
-                if (mAdapterListener != null) mAdapterListener.onError(e, message);
+                if (mAdapterListener != null) {
+                    mAdapterListener.onError(e, message);
+                }
             }
         });
     }
@@ -145,14 +147,18 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
 
             @Override
             public void requestOk() {
-                if (!waitingChangeConfirm) return;
+                if (!waitingChangeConfirm) {
+                    return;
+                }
                 mFrame.setClickable(true);
                 // nothing to do, new status was set
             }
 
             @Override
             public void requestError(Exception e, String message) {
-                if (!waitingChangeConfirm) return;
+                if (!waitingChangeConfirm) {
+                    return;
+                }
                 // new status was not set, rolling back
                 mChecked = previousStatus;
                 mFrame.setClickable(true);
@@ -207,7 +213,9 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
         @Override
         public void onClick(View view) {
             int position = getAdapterPosition();
-            if (mClickListener != null) mClickListener.onItemClick(view, position, mUsers.get(position));
+            if (mClickListener != null) {
+                mClickListener.onItemClick(view, position, mUsers.get(position));
+            }
         }
     }
 
