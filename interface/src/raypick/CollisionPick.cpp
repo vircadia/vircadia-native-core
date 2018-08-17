@@ -20,17 +20,13 @@ PickResultPointer CollisionPickResult::compareAndProcessNewResult(const PickResu
     const std::shared_ptr<CollisionPickResult> newCollisionResult = std::static_pointer_cast<CollisionPickResult>(newRes);
 
     if (entityIntersections->size()) {
-        for (ContactTestResult& entityIntersection : *(newCollisionResult->entityIntersections)) {
-            entityIntersections->push_back(entityIntersection);
-        }
+        entityIntersections->insert(entityIntersections->cend(), newCollisionResult->entityIntersections->begin(), newCollisionResult->entityIntersections->end());
     } else {
         entityIntersections = newCollisionResult->entityIntersections;
     }
 
     if (avatarIntersections->size()) {
-        for (ContactTestResult& avatarIntersection : *(newCollisionResult->avatarIntersections)) {
-            avatarIntersections->push_back(avatarIntersection);
-        }
+        avatarIntersections->insert(avatarIntersections->cend(), newCollisionResult->avatarIntersections->begin(), newCollisionResult->avatarIntersections->end());
     } else {
         avatarIntersections = newCollisionResult->avatarIntersections;
     }
