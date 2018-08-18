@@ -806,6 +806,14 @@ var toolBar = (function () {
 
         addButton("newMaterialButton", createNewEntityDialogButtonCallback("Material"));
 
+        var deactivateCreateIfDesktopWindowsHidden = function() {
+            if (!shouldUseEditTabletApp() && !entityListTool.isVisible() && !createToolsWindow.isVisible()) {
+                that.setActive(false);
+            }
+        };
+        entityListTool.interactiveWindowHidden.addListener(this, deactivateCreateIfDesktopWindowsHidden);
+        createToolsWindow.interactiveWindowHidden.addListener(this, deactivateCreateIfDesktopWindowsHidden);
+
         that.setActive(false);
     }
 
@@ -863,6 +871,7 @@ var toolBar = (function () {
             }
             UserActivityLogger.enabledEdit();
             entityListTool.setVisible(true);
+            entityListTool.sendUpdate();
             gridTool.setVisible(true);
             grid.setEnabled(true);
             propertiesTool.setVisible(true);

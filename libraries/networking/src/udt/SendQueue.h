@@ -69,16 +69,12 @@ public:
     
     void setEstimatedTimeout(int estimatedTimeout) { _estimatedTimeout = estimatedTimeout; }
     void setSyncInterval(int syncInterval) { _syncInterval = syncInterval; }
-
-    void setProbePacketEnabled(bool enabled);
     
 public slots:
     void stop();
     
     void ack(SequenceNumber ack);
-    void nak(SequenceNumber start, SequenceNumber end);
     void fastRetransmit(SequenceNumber ack);
-    void overrideNAKListFromPacket(ControlPacket& packet);
     void handshakeACK();
 
 signals:
@@ -87,7 +83,6 @@ signals:
     
     void queueInactive();
 
-    void shortCircuitLoss(quint32 sequenceNumber);
     void timeout();
     
 private slots:
@@ -145,9 +140,6 @@ private:
     std::condition_variable _handshakeACKCondition;
     
     std::condition_variable_any _emptyCondition;
-
-
-    std::atomic<bool> _shouldSendProbes { true };
 };
     
 }

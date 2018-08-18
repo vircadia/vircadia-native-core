@@ -32,15 +32,30 @@ public:
         return _value;
     }
 
+    // returns atomic copy of the cached value and indicates validity
+    T get(bool& valid) const {
+        std::lock_guard<std::mutex> guard(_mutex);
+        valid = _valid;
+        return _value;
+    }
+
     // will reflect copy of value into the cache.
     void set(const T& v) {
         std::lock_guard<std::mutex> guard(_mutex);
         _value = v;
+        _valid = true;
+    }
+
+    // indicate that the value is not longer valid
+    void invalidate() {
+        std::lock_guard<std::mutex> guard(_mutex);
+        _valid = false;
     }
 
 private:
     mutable std::mutex _mutex;
     T _value;
+    bool _valid { false };
 
     // no copies
     ThreadSafeValueCache(const ThreadSafeValueCache&) = delete;

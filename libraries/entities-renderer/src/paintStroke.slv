@@ -26,12 +26,10 @@ layout(location=1) out vec2 varTexcoord;
 layout(location=2) out vec4 varColor;
 
 void main(void) {
-    
     varTexcoord = inTexCoord0.st;
-    
+
     // pass along the diffuse color
     varColor = color_sRGBAToLinear(inColor);
-
 
     // standard transform
     TransformCamera cam = getTransformCamera();

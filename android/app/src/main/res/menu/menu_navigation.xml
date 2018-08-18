@@ -5,4 +5,8 @@
         android:id="@+id/action_home"
         android:title="@string/home"
         />
+    <item
+        android:id="@+id/action_people"
+        android:title="@string/people"
+        />
 </menu>

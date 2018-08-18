@@ -37,4 +37,6 @@
     <dimen name="header_hifi_height">101dp</dimen>
     <dimen name="header_hifi_width">425dp</dimen>
 
+    <dimen name="list_vertical_padding">8dp</dimen>
+
 </resources>

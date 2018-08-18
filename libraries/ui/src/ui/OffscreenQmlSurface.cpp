@@ -329,8 +329,7 @@ void OffscreenQmlSurface::onRootCreated() {
     getSurfaceContext()->setContextProperty("offscreenWindow", QVariant::fromValue(getWindow()));
 
     // Connect with the audio client and listen for audio device changes
-    auto audioIO = DependencyManager::get<AudioClient>();
-    connect(audioIO.data(), &AudioClient::deviceChanged, this, [&](QAudio::Mode mode, const QAudioDeviceInfo& device) {
+    connect(DependencyManager::get<AudioClient>().data(), &AudioClient::deviceChanged, this, [this](QAudio::Mode mode, const QAudioDeviceInfo& device) {
         if (mode == QAudio::Mode::AudioOutput) {
             QMetaObject::invokeMethod(this, "changeAudioOutputDevice", Qt::QueuedConnection, Q_ARG(QString, device.deviceName()));
         }

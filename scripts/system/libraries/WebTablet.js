@@ -596,7 +596,7 @@ WebTablet.prototype.scheduleMouseMoveProcessor = function() {
     }
 };
 
-WebTablet.prototype.handleMouseButtonHover = function(x, y) {
+WebTablet.prototype.handleHomeButtonHover = function(x, y) {
     var pickRay = Camera.computePickRay(x, y);
     var entityPickResults;
     var homebuttonHovered = false;
