@@ -164,6 +164,7 @@ ListModel {
                                        {'propertyName' : 'marketplaceID'},
                                        {'propertyName' : 'itemName'},
                                        {'propertyName' : 'script'},
+                                       {'propertyName' : 'relayParentJoints'},
                                        {'propertyName' : 'localPosition', 'comparer' : compareNumericObjects},
                                        {'propertyName' : 'localRotationAngles', 'comparer' : compareNumericObjects},
                                        {'propertyName' : 'dimensions', 'comparer' : compareNumericObjects}], 'properties')
