@@ -12,6 +12,8 @@
 #ifndef hifi_AvatarManager_h
 #define hifi_AvatarManager_h
 
+#include <set>
+
 #include <QtCore/QHash>
 #include <QtCore/QObject>
 #include <QtCore/QSharedPointer>
@@ -177,15 +179,16 @@ public:
     float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
     int getIdentityRequestsSent() const { return _identityRequestsSent; }
 
-public slots:
+    void queuePhysicsChange(const OtherAvatarPointer& avatar);
+    void buildPhysicsTransaction(PhysicsEngine::Transaction& transaction);
+    void handleProcessedPhysicsTransaction(PhysicsEngine::Transaction& transaction);
 
+public slots:
     /**jsdoc
      * @function AvatarManager.updateAvatarRenderStatus
      * @param {boolean} shouldRenderAvatars
      */
     void updateAvatarRenderStatus(bool shouldRenderAvatars);
-
-    void handleSpaceChange(OtherAvatarPointer avatar);
 
 protected:
     AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) override;
@@ -197,16 +200,12 @@ private:
     void simulateAvatarFades(float deltaTime);
 
     AvatarSharedPointer newSharedAvatar() override;
-    void deleteMotionStates();
     void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
 
     QVector<AvatarSharedPointer> _avatarsToFade;
 
-    using AvatarMotionStateMap = QMap<Avatar*, AvatarMotionState*>;
-    AvatarMotionStateMap _motionStates;
-    VectorOfMotionStates _motionStatesToRemoveFromPhysics;
-    VectorOfMotionStates _motionStatesToDelete;
-    SetOfMotionStates _motionStatesToAddToPhysics;
+    using SetOfOtherAvatars = std::set<OtherAvatarPointer>;
+    SetOfOtherAvatars _avatarsToChangeInPhysics;
 
     std::shared_ptr<MyAvatar> _myAvatar;
     quint64 _lastSendAvatarDataTime = 0; // Controls MyAvatar send data rate.

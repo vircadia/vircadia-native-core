@@ -18,6 +18,7 @@
 #include "ui/overlays/Overlays.h"
 #include "ui/overlays/Sphere3DOverlay.h"
 
+class AvatarManager;
 class AvatarMotionState;
 
 class OtherAvatar : public Avatar {
@@ -36,15 +37,20 @@ public:
 
     int parseDataFromBuffer(const QByteArray& buffer) override;
 
-    void setMotionState(AvatarMotionState* motionState);
     bool isInPhysicsSimulation() const { return _motionState != nullptr; }
     void rebuildCollisionShape() override;
+
+    void setWorkloadRegion(uint8_t region);
+    bool shouldBeInPhysicsSimulation() const;
+
+    friend AvatarManager;
 
 protected:
     std::shared_ptr<Sphere3DOverlay> _otherAvatarOrbMeshPlaceholder { nullptr };
     OverlayID _otherAvatarOrbMeshPlaceholderID { UNKNOWN_OVERLAY_ID };
     AvatarMotionState* _motionState { nullptr };
     int32_t _spaceIndex { -1 };
+    uint8_t _workloadRegion { workload::Region::INVALID };
 };
 
 using OtherAvatarPointer = std::shared_ptr<OtherAvatar>;

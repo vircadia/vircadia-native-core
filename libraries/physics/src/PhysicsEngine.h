@@ -70,6 +70,18 @@ using CollisionEvents = std::vector<Collision>;
 
 class PhysicsEngine {
 public:
+    class Transaction {
+    public:
+        void clear() {
+            objectsToRemove.clear();
+            objectsToAdd.clear();
+            objectsToChange.clear();
+        }
+        std::vector<ObjectMotionState*> objectsToRemove;
+        std::vector<ObjectMotionState*> objectsToAdd;
+        std::vector<ObjectMotionState*> objectsToChange;
+    };
+
     PhysicsEngine(const glm::vec3& offset);
     ~PhysicsEngine();
     void init();
@@ -82,6 +94,8 @@ public:
     void addObjects(const VectorOfMotionStates& objects);
     VectorOfMotionStates changeObjects(const VectorOfMotionStates& objects);
     void reinsertObject(ObjectMotionState* object);
+
+    void processTransaction(Transaction& transaction);
 
     void stepSimulation();
     void harvestPerformanceStats();

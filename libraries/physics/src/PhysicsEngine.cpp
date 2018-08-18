@@ -279,6 +279,57 @@ void PhysicsEngine::reinsertObject(ObjectMotionState* object) {
     }
 }
 
+void PhysicsEngine::processTransaction(PhysicsEngine::Transaction& transaction) {
+    // removes
+    for (auto object : transaction.objectsToRemove) {
+        btRigidBody* body = object->getRigidBody();
+        if (body) {
+            removeDynamicsForBody(body);
+            _dynamicsWorld->removeRigidBody(body);
+
+            // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
+            object->setRigidBody(nullptr);
+            body->setMotionState(nullptr);
+            delete body;
+        }
+        object->clearIncomingDirtyFlags();
+    }
+
+    // adds
+    for (auto object : transaction.objectsToAdd) {
+        addObjectToDynamicsWorld(object);
+    }
+
+    // changes
+    std::vector<ObjectMotionState*> failedChanges;
+    for (auto object : transaction.objectsToChange) {
+        uint32_t flags = object->getIncomingDirtyFlags() & DIRTY_PHYSICS_FLAGS;
+        if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
+            if (object->handleHardAndEasyChanges(flags, this)) {
+                object->clearIncomingDirtyFlags();
+            } else {
+                failedChanges.push_back(object);
+            }
+        } else if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
+            object->handleEasyChanges(flags);
+            object->clearIncomingDirtyFlags();
+        }
+        if (object->getMotionType() == MOTION_TYPE_STATIC && object->isActive()) {
+            _activeStaticBodies.insert(object->getRigidBody());
+        }
+    }
+    // activeStaticBodies have changed (in an Easy way) and need their Aabbs updated
+    // but we've configured Bullet to NOT update them automatically (for improved performance)
+    // so we must do it ourselves
+    std::set<btRigidBody*>::const_iterator itr = _activeStaticBodies.begin();
+    while (itr != _activeStaticBodies.end()) {
+        _dynamicsWorld->updateSingleAabb(*itr);
+        ++itr;
+    }
+    // we replace objectsToChange with any that failed
+    transaction.objectsToChange.swap(failedChanges);
+}
+
 void PhysicsEngine::removeContacts(ObjectMotionState* motionState) {
     // trigger events for new/existing/old contacts
     ContactMap::iterator contactItr = _contactMap.begin();

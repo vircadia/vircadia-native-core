@@ -82,12 +82,16 @@ int OtherAvatar::parseDataFromBuffer(const QByteArray& buffer) {
     return bytesRead;
 }
 
+void OtherAvatar::setWorkloadRegion(uint8_t region) {
+    _workloadRegion = region;
+}
+
+bool OtherAvatar::shouldBeInPhysicsSimulation() const {
+    return (_workloadRegion < workload::Region::R3 && !isDead());
+}
+
 void OtherAvatar::rebuildCollisionShape() {
     if (_motionState) {
         _motionState->addDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
     }
-}
-
-void OtherAvatar::setMotionState(AvatarMotionState* motionState) {
-    _motionState = motionState;
 }
