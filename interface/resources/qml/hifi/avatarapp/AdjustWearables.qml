@@ -286,6 +286,11 @@ Rectangle {
                             x: positionVector.xvalue,
                             y: positionVector.yvalue,
                             z: positionVector.zvalue
+                        },
+                        localRotationAngles: {
+                            x: rotationVector.xvalue,
+                            y: rotationVector.yvalue,
+                            z: rotationVector.zvalue,
                         }
                     };
 
