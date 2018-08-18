@@ -42,7 +42,6 @@ ListModel {
             'thumbnailUrl' : avatarThumbnailUrl,
             'avatarUrl' : avatar.avatarUrl,
             'wearables' : avatar.avatarEntites ? avatar.avatarEntites : [],
-            'attachments' : avatar.attachments ? avatar.attachments : [],
             'entry' : avatar,
             'getMoreAvatars' : false
         };
@@ -170,13 +169,6 @@ ListModel {
                                        {'propertyName' : 'dimensions', 'comparer' : compareNumericObjects}], 'properties')
     }
 
-    function compareAttachments(a1, a2) {
-        return compareObjects(a1, a2, [{'propertyName' : 'position', 'comparer' : compareNumericObjects},
-                                       {'propertyName' : 'orientation'},
-                                       {'propertyName' : 'parentJointIndex'},
-                                       {'propertyName' : 'modelurl'}])
-    }
-
     function findAvatarIndexByValue(avatar) {
 
         var index = -1;
@@ -191,10 +183,6 @@ ListModel {
 
             if(bookmarkedAvatar.avatarScale !== avatar.avatarScale)
                 continue;
-
-            if(!modelsAreEqual(bookmarkedAvatar.attachments, avatar.attachments, compareAttachments)) {
-                continue;
-            }
 
             if(!modelsAreEqual(bookmarkedAvatar.wearables, avatar.wearables, compareWearables)) {
                 continue;

@@ -20,7 +20,6 @@ Script.include("/~/system/libraries/controllers.js");
 
 // constants from AvatarBookmarks.h
 var ENTRY_AVATAR_URL = "avatarUrl";
-var ENTRY_AVATAR_ATTACHMENTS = "attachments";
 var ENTRY_AVATAR_ENTITIES = "avatarEntites";
 var ENTRY_AVATAR_SCALE = "avatarScale";
 var ENTRY_VERSION = "version";
@@ -57,7 +56,6 @@ function getMyAvatar() {
     var avatar = {}
     avatar[ENTRY_AVATAR_URL] = MyAvatar.skeletonModelURL;
     avatar[ENTRY_AVATAR_SCALE] = MyAvatar.getAvatarScale();
-    avatar[ENTRY_AVATAR_ATTACHMENTS] = MyAvatar.getAttachmentsVariant();
     avatar[ENTRY_AVATAR_ENTITIES] = getMyAvatarWearables();
     return avatar;
 }
