@@ -621,7 +621,7 @@ private:
     float _mirrorYawOffset;
     float _raiseMirror;
 
-    QSet<int> _keysPressed;
+    QHash<int, QKeyEvent> _keysPressed;
 
     bool _enableProcessOctreeThread;
 

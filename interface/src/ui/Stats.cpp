@@ -174,7 +174,7 @@ void Stats::updateStats(bool force) {
     int octreeServerCount = 0;
     int pingOctreeMax = 0;
     int totalEntityKbps = 0;
-    nodeList->eachNode([&](const SharedNodePointer& node) {
+    nodeList->eachNode([&totalPingOctree, &totalEntityKbps, &octreeServerCount, &pingOctreeMax](const SharedNodePointer& node) {
         // TODO: this should also support entities
         if (node->getType() == NodeType::EntityServer) {
             totalPingOctree += node->getPingMs();
@@ -219,7 +219,7 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE_FLOAT(myAvatarSendRate, avatarManager->getMyAvatarSendRate(), 0.1f);
 
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
-        auto audioClient = DependencyManager::get<AudioClient>();
+        auto audioClient = DependencyManager::get<AudioClient>().data();
         if (audioMixerNode || force) {
             STAT_UPDATE(audioMixerKbps, (int)roundf(
                 bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AudioMixer) +

@@ -24,14 +24,6 @@ public:
             SentACK,
             ReceivedACK,
             ProcessedACK,
-            SentLightACK,
-            ReceivedLightACK,
-            SentACK2,
-            ReceivedACK2,
-            SentNAK,
-            ReceivedNAK,
-            SentTimeoutNAK,
-            ReceivedTimeoutNAK,
             Retransmission,
             Duplicate,
             
@@ -89,7 +81,6 @@ public:
     
     void recordSendRate(int sample);
     void recordReceiveRate(int sample);
-    void recordEstimatedBandwidth(int sample);
     void recordRTT(int sample);
     void recordCongestionWindowSize(int sample);
     void recordPacketSendPeriod(int sample);

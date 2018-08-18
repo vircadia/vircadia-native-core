@@ -869,8 +869,6 @@ public:
 
     void resetFullAvatarURL();
 
-    virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
-
     MyCharacterController* getCharacterController() { return &_characterController; }
     const MyCharacterController* getCharacterController() const { return &_characterController; }
 
@@ -1089,6 +1087,12 @@ public:
 
     float computeStandingHeightMode(const controller::Pose& head);
     glm::quat computeAverageHeadRotation(const controller::Pose& head);
+
+    virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
+    virtual QVector<AttachmentData> getAttachmentData() const override;
+
+    virtual QVariantList getAttachmentsVariant() const override;
+    virtual void setAttachmentsVariant(const QVariantList& variant) override;
 
 public slots:
 
@@ -1528,10 +1532,20 @@ private:
     void setScriptedMotorTimescale(float timescale);
     void setScriptedMotorFrame(QString frame);
     void setScriptedMotorMode(QString mode);
+
+    // Attachments
     virtual void attach(const QString& modelURL, const QString& jointName = QString(),
                         const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(),
                         float scale = 1.0f, bool isSoft = false,
                         bool allowDuplicates = false, bool useSaved = true) override;
+
+    virtual void detachOne(const QString& modelURL, const QString& jointName = QString()) override;
+    virtual void detachAll(const QString& modelURL, const QString& jointName = QString()) override;
+    
+    // Attachments/Avatar Entity
+    void attachmentDataToEntityProperties(const AttachmentData& data, EntityItemProperties& properties);
+    AttachmentData entityPropertiesToAttachmentData(const EntityItemProperties& properties) const;
+    bool findAvatarEntity(const QString& modelURL, const QString& jointName, QUuid& entityID);
 
     bool cameraInsideHead(const glm::vec3& cameraPosition) const;
 

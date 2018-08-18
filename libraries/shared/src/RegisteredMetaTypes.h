@@ -20,8 +20,10 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include "AACube.h"
+#include "ShapeInfo.h"
 #include "SharedUtil.h"
 #include "shared/Bilateral.h"
+#include "Transform.h"
 
 class QColor;
 class QUrl;
@@ -251,6 +253,97 @@ public:
     }
 };
 
+/**jsdoc
+* A CollisionPick defines a volume for checking collisions in the physics simulation.
+
+* @typedef {object} CollisionPick
+* @property {Shape} shape - The information about the collision region's size and shape.
+* @property {Vec3} position - The position of the collision region.
+* @property {Quat} orientation - The orientation of the collision region.
+*/
+class CollisionRegion : public MathPick {
+public:
+    CollisionRegion() { }
+    CollisionRegion(const QVariantMap& pickVariant) {
+        if (pickVariant["shape"].isValid()) {
+            auto shape = pickVariant["shape"].toMap();
+            if (!shape.empty()) {
+                ShapeType shapeType = SHAPE_TYPE_NONE;
+                if (shape["shapeType"].isValid()) {
+                    shapeType = ShapeInfo::getShapeTypeForName(shape["shapeType"].toString());
+                }
+                if (shapeType >= SHAPE_TYPE_COMPOUND && shapeType <= SHAPE_TYPE_STATIC_MESH && shape["modelURL"].isValid()) {
+                    QString newURL = shape["modelURL"].toString();
+                    modelURL.setUrl(newURL);
+                } else {
+                    modelURL.setUrl("");
+                }
+
+                if (shape["dimensions"].isValid()) {
+                    transform.setScale(vec3FromVariant(shape["dimensions"]));
+                }
+
+                shapeInfo->setParams(shapeType, transform.getScale() / 2.0f, modelURL.toString());
+            }
+        }
+
+        if (pickVariant["position"].isValid()) {
+            transform.setTranslation(vec3FromVariant(pickVariant["position"]));
+        }
+        if (pickVariant["orientation"].isValid()) {
+            transform.setRotation(quatFromVariant(pickVariant["orientation"]));
+        }
+    }
+
+    QVariantMap toVariantMap() const override {
+        QVariantMap collisionRegion;
+
+        QVariantMap shape;
+        shape["shapeType"] = ShapeInfo::getNameForShapeType(shapeInfo->getType());
+        shape["modelURL"] = modelURL.toString();
+        shape["dimensions"] = vec3toVariant(transform.getScale());
+
+        collisionRegion["shape"] = shape;
+
+        collisionRegion["position"] = vec3toVariant(transform.getTranslation());
+        collisionRegion["orientation"] = quatToVariant(transform.getRotation());
+
+        return collisionRegion;
+    }
+
+    operator bool() const override {
+        return !(glm::any(glm::isnan(transform.getTranslation())) ||
+            glm::any(glm::isnan(transform.getRotation())) ||
+            shapeInfo->getType() == SHAPE_TYPE_NONE);
+    }
+
+    bool operator==(const CollisionRegion& other) const {
+        return glm::all(glm::equal(transform.getTranslation(), other.transform.getTranslation())) &&
+            glm::all(glm::equal(transform.getRotation(), other.transform.getRotation())) &&
+            glm::all(glm::equal(transform.getScale(), other.transform.getScale())) &&
+            shapeInfo->getType() == other.shapeInfo->getType() &&
+            modelURL == other.modelURL;
+    }
+
+    bool shouldComputeShapeInfo() const {
+        if (!(shapeInfo->getType() == SHAPE_TYPE_HULL ||
+            (shapeInfo->getType() >= SHAPE_TYPE_COMPOUND &&
+                shapeInfo->getType() <= SHAPE_TYPE_STATIC_MESH)
+            )) {
+            return false;
+        }
+
+        return !shapeInfo->getPointCollection().size();
+    }
+
+    // We can't load the model here because it would create a circular dependency, so we delegate that responsibility to the owning CollisionPick
+    QUrl modelURL;
+
+    // We can't compute the shapeInfo here without loading the model first, so we delegate that responsibility to the owning CollisionPick
+    std::shared_ptr<ShapeInfo> shapeInfo = std::make_shared<ShapeInfo>();
+    Transform transform;
+};
+
 namespace std {
     inline void hash_combine(std::size_t& seed) { }
 
@@ -287,6 +380,15 @@ namespace std {
     };
 
     template <>
+    struct hash<Transform> {
+        size_t operator()(const Transform& a) const {
+            size_t result = 0;
+            hash_combine(result, a.getTranslation(), a.getRotation(), a.getScale());
+            return result;
+        }
+    };
+
+    template <>
     struct hash<PickRay> {
         size_t operator()(const PickRay& a) const {
             size_t result = 0;
@@ -309,6 +411,15 @@ namespace std {
         size_t operator()(const PickParabola& a) const {
             size_t result = 0;
             hash_combine(result, a.origin, a.velocity, a.acceleration);
+            return result;
+        }
+    };
+
+    template <>
+    struct hash<CollisionRegion> {
+        size_t operator()(const CollisionRegion& a) const {
+            size_t result = 0;
+            hash_combine(result, a.transform, (int)a.shapeInfo->getType(), qHash(a.modelURL));
             return result;
         }
     };

@@ -352,8 +352,7 @@ bool QmlCommerce::openApp(const QString& itemHref) {
     QJsonObject appFileJsonObject = appFileJsonDocument.object();
     QString homeUrl = appFileJsonObject["homeURL"].toString();
 
-    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    auto tablet = dynamic_cast<TabletProxy*>(DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
     if (homeUrl.contains(".qml", Qt::CaseInsensitive)) {
         tablet->loadQMLSource(homeUrl);
     } else if (homeUrl.contains(".html", Qt::CaseInsensitive)) {
