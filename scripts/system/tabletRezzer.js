@@ -16,28 +16,39 @@
 
     Script.include("./libraries/utils.js");
 
-    var // Overlay
+    var // Base overlay
         proxyOverlay = null,
-        TABLET_PROXY_MODEL = Script.resolvePath("./assets/models/tinyTablet.fbx"),
-        TABLET_PROXY_DIMENSIONS = { x: 0.0637, y: 0.0965, z: 0.0046 }, // Proportional to tablet proper.
-        TABLET_PROXY_POSITION_LEFT_HAND = {
+        PROXY_MODEL = Script.resolvePath("./assets/models/tinyTablet.fbx"),
+        PROXY_DIMENSIONS = { x: 0.0637, y: 0.0965, z: 0.0046 }, // Proportional to tablet proper.
+        PROXY_POSITION_LEFT_HAND = {
             x: 0,
             y: 0.07, // Distance from joint.
             z: 0.07 // Distance above palm.
         },
-        TABLET_PROXY_POSITION_RIGHT_HAND = {
+        PROXY_POSITION_RIGHT_HAND = {
             x: 0,
             y: 0.07, // Distance from joint.
             z: 0.07 // Distance above palm.
         },
         /*
         // Aligned cross-palm.
-        TABLET_PROXY_ROTATION_LEFT_HAND = Quat.fromVec3Degrees({ x: 0, y: 180, z: 90 }),
-        TABLET_PROXY_ROTATION_RIGHT_HAND = Quat.fromVec3Degrees({ x: 0, y: 180, z: -90 }),
+        PROXY_ROTATION_LEFT_HAND = Quat.fromVec3Degrees({ x: 0, y: 180, z: 90 }),
+        PROXY_ROTATION_RIGHT_HAND = Quat.fromVec3Degrees({ x: 0, y: 180, z: -90 }),
         */
         // Aligned with palm.
-        TABLET_PROXY_ROTATION_LEFT_HAND = Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }),
-        TABLET_PROXY_ROTATION_RIGHT_HAND = Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }),
+        PROXY_ROTATION_LEFT_HAND = Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }),
+        PROXY_ROTATION_RIGHT_HAND = Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }),
+
+        // UI overlay.
+        proxyUIOverlay = null,
+        PROXY_UI_HTML = Script.resolvePath("./html/tabletRezzer.html"),
+        PROXY_UI_DIMENSIONS = { x: 0.0577, y: 0.0905 },
+        PROXY_UI_WIDTH_PIXELS = 150,
+        METERS_TO_INCHES = 39.3701,
+        PROXY_UI_DPI = PROXY_UI_WIDTH_PIXELS / (PROXY_UI_DIMENSIONS.x * METERS_TO_INCHES),
+        PROXY_UI_OFFSET = 0.001, // Above model surface.
+        PROXY_UI_LOCAL_POSITION = { x: 0, y: 0, z: -(PROXY_DIMENSIONS.z / 2 + PROXY_UI_OFFSET) },
+        PROXY_UI_LOCAL_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }),
 
         // State machine
         PROXY_HIDDEN = 0,
@@ -149,7 +160,9 @@
 
     function enterProxyHidden() {
         if (proxyOverlay) {
+            Overlays.deleteOverlay(proxyUIOverlay);
             Overlays.deleteOverlay(proxyOverlay);
+            proxyUIOverlay = null;
             proxyOverlay = null;
         }
     }
@@ -170,15 +183,27 @@
     function enterProxyVisible(hand) {
         proxyHand = hand;
         proxyOverlay = Overlays.addOverlay("model", {
-            url: TABLET_PROXY_MODEL,
+            url: PROXY_MODEL,
             parentID: MyAvatar.SELF_ID,
             parentJointIndex: handJointIndex(proxyHand),
             localPosition: Vec3.multiply(avatarScale,
-                proxyHand === LEFT_HAND ? TABLET_PROXY_POSITION_LEFT_HAND : TABLET_PROXY_POSITION_RIGHT_HAND),
-            localRotation: proxyHand === LEFT_HAND ? TABLET_PROXY_ROTATION_LEFT_HAND : TABLET_PROXY_ROTATION_RIGHT_HAND,
-            dimensions: Vec3.multiply(avatarScale, TABLET_PROXY_DIMENSIONS),
+                proxyHand === LEFT_HAND ? PROXY_POSITION_LEFT_HAND : PROXY_POSITION_RIGHT_HAND),
+            localRotation: proxyHand === LEFT_HAND ? PROXY_ROTATION_LEFT_HAND : PROXY_ROTATION_RIGHT_HAND,
+            dimensions: Vec3.multiply(avatarScale, PROXY_DIMENSIONS),
             solid: true,
             grabbable: true,
+            displayInFront: true,
+            visible: true
+        });
+        proxyUIOverlay = Overlays.addOverlay("web3d", {
+            url: PROXY_UI_HTML,
+            parentID: proxyOverlay,
+            localPosition: PROXY_UI_LOCAL_POSITION,
+            localRotation: PROXY_UI_LOCAL_ROTATION,
+            dimensions: PROXY_UI_DIMENSIONS,
+            dpi: PROXY_UI_DPI,
+            alpha: 1.0,
+            grabbable: false,
             displayInFront: true,
             visible: true
         });
@@ -201,13 +226,18 @@
         var tabletScaleFactor = avatarScale * (1 + scaleFactor * (proxyTargetWidth - proxyInitialWidth) / proxyInitialWidth);
         if (scaleFactor < 1) {
             Overlays.editOverlay(proxyOverlay, {
-                dimensions: Vec3.multiply(tabletScaleFactor, TABLET_PROXY_DIMENSIONS),
+                dimensions: Vec3.multiply(tabletScaleFactor, PROXY_DIMENSIONS),
                 localPosition:
                     Vec3.sum(proxyGrabHandleLocalPosition,
                         Vec3.multiplyQbyV(proxyGrabLocalRotation,
                             Vec3.multiply(-tabletScaleFactor,
-                                Vec3.multiplyVbyV(PROXY_GRAB_HANDLES[proxyGrabHand], TABLET_PROXY_DIMENSIONS)))
+                                Vec3.multiplyVbyV(PROXY_GRAB_HANDLES[proxyGrabHand], PROXY_DIMENSIONS)))
                     )
+            });
+            Overlays.editOverlay(proxyUIOverlay, {
+                dimensions: Vec3.multiply(tabletScaleFactor, PROXY_UI_DIMENSIONS),
+                localPosition: Vec3.multiply(tabletScaleFactor, PROXY_UI_LOCAL_POSITION),
+                dpi: PROXY_UI_DPI / tabletScaleFactor
             });
             proxyExpandTimer = Script.setTimeout(expandProxy, PROXY_EXPAND_TIMEOUT);
             return;
@@ -223,10 +253,10 @@
         proxyGrabLocalRotation = properties.localRotation;
         proxyGrabHandleLocalPosition = Vec3.sum(properties.localPosition,
             Vec3.multiplyQbyV(proxyGrabLocalRotation,
-                Vec3.multiplyVbyV(PROXY_GRAB_HANDLES[proxyGrabHand], TABLET_PROXY_DIMENSIONS)));
+                Vec3.multiplyVbyV(PROXY_GRAB_HANDLES[proxyGrabHand], PROXY_DIMENSIONS)));
 
         // Start expanding.
-        proxyInitialWidth = TABLET_PROXY_DIMENSIONS.x;
+        proxyInitialWidth = PROXY_DIMENSIONS.x;
         proxyTargetWidth = getTabletWidthFromSettings();
         proxyExpandStart = Date.now();
         proxyExpandTimer = Script.setTimeout(expandProxy, PROXY_EXPAND_TIMEOUT);
@@ -249,6 +279,8 @@
     function enterTabletOpen() {
         var proxyOverlayProperties = Overlays.getProperties(proxyOverlay, ["position", "orientation"]);
 
+        Overlays.deleteOverlay(proxyUIOverlay);
+        proxyUIOverlay = null;
         Overlays.deleteOverlay(proxyOverlay);
         proxyOverlay = null;
 
