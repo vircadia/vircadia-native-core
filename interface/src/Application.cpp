@@ -3459,10 +3459,11 @@ bool Application::isInterstitialMode() const {
 }
 
 void Application::setIsInterstitialMode(bool interstitialMode) {
-    bool interstitialModeEnabled = Menu::getInstance()->isOptionChecked("Enable Interstitial");
+    auto menu = Menu::getInstance();
+    bool interstitialModeEnabled = menu->isOptionChecked("Enable Interstitial");
     if (_interstitialMode != interstitialMode && interstitialModeEnabled) {
         _interstitialMode = interstitialMode;
-        qDebug() << "-------> interstitial mode changed: " << _interstitialMode << " ------------> ";
+        menu->setIsOptionChecked(MenuOption::Overlays, !_interstitialMode);
         emit interstitialModeChanged(_interstitialMode);
     }
 }

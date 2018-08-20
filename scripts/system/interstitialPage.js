@@ -10,11 +10,11 @@
 //
 
 /* global Script, Controller, Overlays, Quat, MyAvatar, Entities, print, Vec3, AddressManager, Render, Window, Toolbars,
-   Camera, HMD, location, Account*/
+   Camera, HMD, location, Account, Xform*/
 
 (function() {
     Script.include("/~/system/libraries/Xform.js");
-    var DEBUG = true;
+    var DEBUG = false;
     var MAX_X_SIZE = 3.8;
     var EPSILON = 0.01;
     var isVisible = false;
@@ -24,7 +24,6 @@
     var sample = null;
     var MAX_LEFT_MARGIN = 1.9;
     var INNER_CIRCLE_WIDTH = 4.7;
-    var DESTINATION_CARD_Y_OFFSET = 2;
     var DEFAULT_Z_OFFSET = 5.45;
 
     var renderViewTask = Render.getConfig("RenderMainView");
@@ -83,7 +82,7 @@
     });
 
 
-    var domainName = "Test";
+    var domainName = "";
     var domainNameTextID = Overlays.addOverlay("text3d", {
         name: "Loading-Destination-Card-Text",
         localPosition: { x: 0.0, y: 0.8, z: 0.0 },
@@ -179,9 +178,7 @@
 
     var TARGET_UPDATE_HZ = 60; // 50hz good enough, but we're using update
     var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ;
-    var timerset = false;
     var lastInterval = Date.now();
-    var timeElapsed = 0;
     var currentDomain = "";
     var timer = null;
     var target = 0;
@@ -206,16 +203,12 @@
         return leftMargin;
     }
 
-    function resetValues() {
-    }
-
     function lerp(a, b, t) {
         return ((1 - t) * a + t * b);
     }
 
     function startInterstitialPage() {
         if (timer === null) {
-            print("----------> starting <----------");
             updateOverlays(Window.isPhysicsEnabled());
             startAudio();
             target = 0;
@@ -255,7 +248,6 @@
                 uri: url
             }, function(error, data) {
                 if (data.status === "success") {
-                    print("-----------> settings domain description <----------");
                     var domainInfo = data.data;
                     var domainDescriptionText = domainInfo.place.description;
                     print("domainText: " + domainDescriptionText);
@@ -346,44 +338,11 @@
         Overlays.editOverlay(anchorOverlay, { localPosition: localPosition });
     }
 
-    var progress = 0;
-    function updateProgress() {
-        print("updateProgress");
-        var thisInterval = Date.now();
-        var deltaTime = (thisInterval - lastInterval);
-        lastInterval = thisInterval;
-        timeElapsed += deltaTime;
-
-        progress += (deltaTime / 1000);
-        if (progress > MAX_X_SIZE) {
-            progress = MAX_X_SIZE;
-        }
-
-        var properties = {
-            localPosition: { x: (1.85 - (progress / 2) - (-0.029 * (progress / MAX_X_SIZE))), y: -0.935, z: 0.0 },
-            dimensions: {
-                x: progress,
-                y: 2.8
-            }
-        };
-
-        if (progress >= MAX_X_SIZE) {
-            progress = 0;
-        }
-
-        Overlays.editOverlay(loadingBarProgress, properties);
-
-        if (!toggle) {
-            Script.setTimeout(updateProgress, BASIC_TIMER_INTERVAL_MS);
-        }
-    }
-
     function update() {
         var physicsEnabled = Window.isPhysicsEnabled();
         var thisInterval = Date.now();
         var deltaTime = (thisInterval - lastInterval);
         lastInterval = thisInterval;
-        timeElapsed += deltaTime;
 
         var nearbyEntitiesReadyCount = Window.getPhysicsNearbyEntitiesReadyCount();
         var stabilityCount = Window.getPhysicsNearbyEntitiesStabilityCount();
@@ -407,16 +366,15 @@
         }
         currentProgress = lerp(currentProgress, target, 0.2);
         var properties = {
-            localPosition: { x: (1.85 - (progress / 2) - (-0.029 * (progress / MAX_X_SIZE))), y: -0.935, z: 0.0 },
+            localPosition: { x: (1.85 - (currentProgress / 2) - (-0.029 * (currentProgress / MAX_X_SIZE))), y: -0.935, z: 0.0 },
             dimensions: {
                 x: currentProgress,
                 y: 2.8
             }
         };
-        print("progress: " + currentProgress);
+
         Overlays.editOverlay(loadingBarProgress, properties);
         if ((physicsEnabled && (currentProgress >= (MAX_X_SIZE - EPSILON)))) {
-            print("----------> ending <--------");
             updateOverlays((physicsEnabled || connectionToDomainFailed));
             endAudio();
             timer = null;
@@ -431,7 +389,7 @@
         Script.setTimeout(function() {
             print("location connected: " + location.isConnected);
             connectionToDomainFailed = !location.isConnected;
-        }, 300);
+        }, 1200);
     });
 
     MyAvatar.sensorToWorldScaleChanged.connect(scaleInterstitialPage);
@@ -444,10 +402,6 @@
         button.clicked.connect(function() {
             toggle = !toggle;
             updateOverlays(toggle);
-
-            if (!toggle) {
-                // Script.setTimeout(updateProgress, BASIC_TIMER_INTERVAL_MS);
-            }
         });
     }
 
