@@ -49,15 +49,18 @@
         PROXY_UI_OFFSET = 0.001, // Above model surface.
         PROXY_UI_LOCAL_POSITION = { x: 0, y: 0, z: -(PROXY_DIMENSIONS.z / 2 + PROXY_UI_OFFSET) },
         PROXY_UI_LOCAL_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }),
+        proxyUIOverlayEnabled = false,
+        PROXY_UI_OVERLAY_ENABLED_DELAY = 500,
 
         // State machine
-        PROXY_HIDDEN = 0,
-        PROXY_VISIBLE = 1,
-        PROXY_EXPANDING = 2,
-        TABLET_OPEN = 3,
-        STATE_STRINGS = ["PROXY_HIDDEN", "PROXY_VISIBLE", "PROXY_EXPANDING", "TABLET_OPEN"],
+        PROXY_DISABLED = 0,
+        PROXY_HIDDEN = 1,
+        PROXY_VISIBLE = 2,
+        PROXY_EXPANDING = 3,
+        TABLET_OPEN = 4,
+        STATE_STRINGS = ["PROXY_DISABLED", "PROXY_HIDDEN", "PROXY_VISIBLE", "PROXY_EXPANDING", "TABLET_OPEN"],
         STATE_MACHINE,
-        rezzerState = PROXY_HIDDEN,
+        rezzerState = PROXY_DISABLED,
         proxyHand,
         PROXY_GRAB_HANDLES = [
             { x: 0.5, y: -0.4, z: 0 },
@@ -86,7 +89,7 @@
         LEFT_HAND = 0,
         RIGHT_HAND = 1,
         HAND_NAMES = ["LeftHand", "RightHand"],
-        DEBUG = false;
+        DEBUG = true;
 
     // #region Utilities =======================================================================================================
 
@@ -133,7 +136,116 @@
 
     // #endregion
 
+    // #region UI ==============================================================================================================
+
+    function createUI() {
+        proxyOverlay = Overlays.addOverlay("model", {
+            url: PROXY_MODEL,
+            dimensions: Vec3.multiply(avatarScale, PROXY_DIMENSIONS),
+            solid: true,
+            grabbable: true,
+            displayInFront: true,
+            visible: false
+        });
+        proxyUIOverlay = Overlays.addOverlay("web3d", {
+            url: PROXY_UI_HTML,
+            parentID: proxyOverlay,
+            localPosition: Vec3.multiply(avatarScale, PROXY_UI_LOCAL_POSITION),
+            localRotation: PROXY_UI_LOCAL_ROTATION,
+            dimensions: Vec3.multiply(avatarScale, PROXY_UI_DIMENSIONS),
+            dpi: PROXY_UI_DPI / avatarScale,
+            alpha: 0, // Hide overlay while its content is being created.
+            grabbable: false,
+            displayInFront: true,
+            visible: false
+        });
+
+        proxyUIOverlayEnabled = false; // This and alpha = 0 hides overlay while its content is being created.
+    }
+
+    function showUI(hand) {
+        Overlays.editOverlay(proxyOverlay, {
+            parentID: MyAvatar.SELF_ID,
+            parentJointIndex: handJointIndex(proxyHand),
+            localPosition: Vec3.multiply(avatarScale,
+                proxyHand === LEFT_HAND ? PROXY_POSITION_LEFT_HAND : PROXY_POSITION_RIGHT_HAND),
+            localRotation: proxyHand === LEFT_HAND ? PROXY_ROTATION_LEFT_HAND : PROXY_ROTATION_RIGHT_HAND,
+            dimensions: Vec3.multiply(avatarScale, PROXY_DIMENSIONS),
+            visible: true
+        });
+        Overlays.editOverlay(proxyUIOverlay, {
+            localPosition: Vec3.multiply(avatarScale, PROXY_UI_LOCAL_POSITION),
+            dimensions: Vec3.multiply(avatarScale, PROXY_UI_DIMENSIONS),
+            dpi: PROXY_UI_DPI / avatarScale,
+            visible: true
+        });
+
+        if (!proxyUIOverlayEnabled) {
+            // Overlay content is created the first time it is visible to the user. The initial creation displays artefacts.
+            // Delay showing UI overlay until after giving it time for its content to be created.
+            Script.setTimeout(function () {
+                Overlays.editOverlay(proxyUIOverlay, { alpha: 1.0 });
+            }, PROXY_UI_OVERLAY_ENABLED_DELAY);
+        }
+    }
+
+    function sizeUI(scaleFactor) {
+        Overlays.editOverlay(proxyOverlay, {
+            localPosition:
+                Vec3.sum(proxyGrabHandleLocalPosition,
+                    Vec3.multiplyQbyV(proxyGrabLocalRotation,
+                        Vec3.multiply(-scaleFactor,
+                            Vec3.multiplyVbyV(PROXY_GRAB_HANDLES[proxyGrabHand], PROXY_DIMENSIONS)))
+                ),
+            dimensions: Vec3.multiply(scaleFactor, PROXY_DIMENSIONS)
+        });
+        Overlays.editOverlay(proxyUIOverlay, {
+            localPosition: Vec3.multiply(scaleFactor, PROXY_UI_LOCAL_POSITION),
+            dimensions: Vec3.multiply(scaleFactor, PROXY_UI_DIMENSIONS),
+            dpi: PROXY_UI_DPI / scaleFactor
+        });
+    }
+
+    function hideUI() {
+        Overlays.editOverlay(proxyOverlay, {
+            visible: false
+        });
+        Overlays.editOverlay(proxyUIOverlay, {
+            visible: false
+        });
+    }
+
+    function destroyUI() {
+        if (proxyOverlay) {
+            Overlays.deleteOverlay(proxyUIOverlay);
+            Overlays.deleteOverlay(proxyOverlay);
+            proxyUIOverlay = null;
+            proxyOverlay = null;
+        }
+    }
+
+    // #endregion
+
     // #region State Machine ===================================================================================================
+
+    function enterProxyDisabled() {
+        // Stop updates.
+        if (updateTimer !== null) {
+            Script.clearTimeout(updateTimer);
+            updateTimer = null;
+        }
+
+        // Don't keep overlays prepared if in desktop mode.
+        destroyUI();
+    }
+
+    function exitProxyDisabled() {
+        // Create UI so that it's ready to be displayed without seeing artefacts from creating the UI.
+        createUI();
+
+        // Start updates.
+        updateTimer = Script.setTimeout(updateState, UPDATE_INTERVAL);
+    }
 
     function shouldShowProxy(hand) {
         // Should show tablet proxy if hand is oriented toward the camera and the camera is oriented toward the proxy tablet.
@@ -159,16 +271,11 @@
     }
 
     function enterProxyHidden() {
-        if (proxyOverlay) {
-            Overlays.deleteOverlay(proxyUIOverlay);
-            Overlays.deleteOverlay(proxyOverlay);
-            proxyUIOverlay = null;
-            proxyOverlay = null;
-        }
+        hideUI();
     }
 
     function updateProxyHidden() {
-        // Don't show proxy is tablet is already displayed or are in toolbar mode.
+        // Don't show proxy if tablet is already displayed or in toolbar mode.
         if (HMD.showTablet || tablet.toolbarMode) {
             return;
         }
@@ -182,31 +289,7 @@
 
     function enterProxyVisible(hand) {
         proxyHand = hand;
-        proxyOverlay = Overlays.addOverlay("model", {
-            url: PROXY_MODEL,
-            parentID: MyAvatar.SELF_ID,
-            parentJointIndex: handJointIndex(proxyHand),
-            localPosition: Vec3.multiply(avatarScale,
-                proxyHand === LEFT_HAND ? PROXY_POSITION_LEFT_HAND : PROXY_POSITION_RIGHT_HAND),
-            localRotation: proxyHand === LEFT_HAND ? PROXY_ROTATION_LEFT_HAND : PROXY_ROTATION_RIGHT_HAND,
-            dimensions: Vec3.multiply(avatarScale, PROXY_DIMENSIONS),
-            solid: true,
-            grabbable: true,
-            displayInFront: true,
-            visible: true
-        });
-        proxyUIOverlay = Overlays.addOverlay("web3d", {
-            url: PROXY_UI_HTML,
-            parentID: proxyOverlay,
-            localPosition: PROXY_UI_LOCAL_POSITION,
-            localRotation: PROXY_UI_LOCAL_ROTATION,
-            dimensions: PROXY_UI_DIMENSIONS,
-            dpi: PROXY_UI_DPI,
-            alpha: 1.0,
-            grabbable: false,
-            displayInFront: true,
-            visible: true
-        });
+        showUI(proxyHand);
     }
 
     function updateProxyVisible() {
@@ -225,20 +308,7 @@
         var scaleFactor = (Date.now() - proxyExpandStart) / PROXY_EXPAND_DURATION;
         var tabletScaleFactor = avatarScale * (1 + scaleFactor * (proxyTargetWidth - proxyInitialWidth) / proxyInitialWidth);
         if (scaleFactor < 1) {
-            Overlays.editOverlay(proxyOverlay, {
-                dimensions: Vec3.multiply(tabletScaleFactor, PROXY_DIMENSIONS),
-                localPosition:
-                    Vec3.sum(proxyGrabHandleLocalPosition,
-                        Vec3.multiplyQbyV(proxyGrabLocalRotation,
-                            Vec3.multiply(-tabletScaleFactor,
-                                Vec3.multiplyVbyV(PROXY_GRAB_HANDLES[proxyGrabHand], PROXY_DIMENSIONS)))
-                    )
-            });
-            Overlays.editOverlay(proxyUIOverlay, {
-                dimensions: Vec3.multiply(tabletScaleFactor, PROXY_UI_DIMENSIONS),
-                localPosition: Vec3.multiply(tabletScaleFactor, PROXY_UI_LOCAL_POSITION),
-                dpi: PROXY_UI_DPI / tabletScaleFactor
-            });
+            sizeUI(tabletScaleFactor);
             proxyExpandTimer = Script.setTimeout(expandProxy, PROXY_EXPAND_TIMEOUT);
             return;
         }
@@ -279,10 +349,7 @@
     function enterTabletOpen() {
         var proxyOverlayProperties = Overlays.getProperties(proxyOverlay, ["position", "orientation"]);
 
-        Overlays.deleteOverlay(proxyUIOverlay);
-        proxyUIOverlay = null;
-        Overlays.deleteOverlay(proxyOverlay);
-        proxyOverlay = null;
+        hideUI();
 
         Overlays.editOverlay(HMD.tabletID, {
             position: proxyOverlayProperties.position,
@@ -297,6 +364,11 @@
     }
 
     STATE_MACHINE = {
+        PROXY_DISABLED: { // Tablet proxy cannot be shown because in desktop mode.
+            enter: enterProxyDisabled,
+            update: null,
+            exit: exitProxyDisabled
+        },
         PROXY_HIDDEN: { // Tablet proxy could be shown but isn't because hand is oriented to show it or aren't in HMD mode.
             enter: enterProxyHidden,
             update: updateProxyHidden,
@@ -336,17 +408,12 @@
 
     function updateState() {
         STATE_MACHINE[STATE_STRINGS[rezzerState]].update();
+        updateTimer = Script.setTimeout(updateState, UPDATE_INTERVAL);
     }
 
     // #endregion
 
     // #region Events ==========================================================================================================
-
-    function update() {
-        // Assumes that is HMD.mounted.
-        updateState();
-        updateTimer = Script.setTimeout(update, UPDATE_INTERVAL);
-    }
 
     function onScaleChanged() {
         avatarScale = MyAvatar.scale;
@@ -372,22 +439,12 @@
         }
     }
 
-    function onMountedChanged() {
-        // Tablet proxy only available when HMD is mounted.
-
-        if (HMD.mounted) {
-            if (updateTimer === null) {
-                update();
-            }
-            return;
-        }
-
-        if (updateTimer !== null) {
-            Script.clearTimeout(updateTimer);
-            updateTimer = null;
-        }
-        if (rezzerState !== PROXY_HIDDEN) {
+    function onDisplayModeChanged() {
+        // Tablet proxy only available when HMD is active.
+        if (HMD.active) {
             setState(PROXY_HIDDEN);
+        } else {
+            setState(PROXY_DISABLED);
         }
     }
 
@@ -401,10 +458,9 @@
         Messages.subscribe(HIFI_OBJECT_MANIPULATION_CHANNEL);
         Messages.messageReceived.connect(onMessageReceived);
 
-        HMD.mountedChanged.connect(onMountedChanged);
-        HMD.displayModeChanged.connect(onMountedChanged); // For the case that the HMD is already worn when the script starts.
-        if (HMD.mounted) {
-            update();
+        HMD.displayModeChanged.connect(onDisplayModeChanged);
+        if (HMD.active) {
+            setState(PROXY_HIDDEN);
         }
     }
 
@@ -414,10 +470,9 @@
             updateTimer = null;
         }
 
-        setState(PROXY_HIDDEN);
+        setState(PROXY_DISABLED);
 
-        HMD.displayModeChanged.disconnect(onMountedChanged);
-        HMD.mountedChanged.disconnect(onMountedChanged);
+        HMD.displayModeChanged.disconnect(onDisplayModeChanged);
 
         Messages.messageReceived.disconnect(onMessageReceived);
         Messages.unsubscribe(HIFI_OBJECT_MANIPULATION_CHANNEL);
