@@ -74,7 +74,7 @@ void EntityEditPacketSender::queueEditAvatarEntityMessage(PacketType type,
     jsonProperties = QJsonDocument(jsonObject);
 
     QByteArray binaryProperties = jsonProperties.toBinaryData();
-    _myAvatar->updateAvatarEntity(entityItemID, binaryProperties, false);
+    _myAvatar->updateAvatarEntity(entityItemID, binaryProperties);
 
     entity->setLastBroadcast(usecTimestampNow());
 }

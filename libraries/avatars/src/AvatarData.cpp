@@ -2692,7 +2692,7 @@ void AvatarData::setAttachmentsVariant(const QVariantList& variant) {
 
 const int MAX_NUM_AVATAR_ENTITIES = 42;
 
-void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData, bool requiresTreeUpdate) {
+void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) {
     _avatarEntitiesLock.withWriteLock([&] {
         AvatarEntityMap::iterator itr = _avatarEntityData.find(entityID);
         if (itr == _avatarEntityData.end()) {
@@ -2704,9 +2704,7 @@ void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& ent
         }
     });
 
-    if (requiresTreeUpdate) {
-        _avatarEntityDataChanged = true;
-    }
+    _avatarEntityDataChanged = true;
 
     if (_clientTraitsHandler) {
         // we have a client traits handler, so we need to mark this instanced trait as changed
