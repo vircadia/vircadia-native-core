@@ -109,7 +109,7 @@ Script.include("/~/system/libraries/controllers.js");
         SEAT: 'seat' // The current target is a seat
     };
 
-    var speed = 7.4422;
+    var speed = 9.3;
     var accelerationAxis = {x: 0.0, y: -5.0, z: 0.0};
 
     function Teleporter(hand) {
@@ -212,7 +212,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.PLAY_AREA_OVERLAY_MODEL = Script.resolvePath("../../assets/models/trackingSpacev2.fbx");
         this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS = { x: 2, y: 0.2, z: 2 };
-        this.PLAY_AREA_FLOAT_ABOVE_FLOOR = 0.3;
+        this.PLAY_AREA_FLOAT_ABOVE_FLOOR = 0;
         this.PLAY_AREA_OVERLAY_OFFSET = // Offset from floor.
             { x: 0, y: this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.y / 2 + this.PLAY_AREA_FLOAT_ABOVE_FLOOR, z: 0 };
         this.PLAY_AREA_SENSOR_OVERLAY_MODEL = Script.resolvePath("../../assets/models/oculusSensorv2.fbx");
@@ -226,14 +226,14 @@ Script.include("/~/system/libraries/controllers.js");
         this.isPlayAreaAvailable = false;
         this.targetOverlayID = null;
 
-        this.PLAY_AREA_FADE_DELAY = 500;
+        this.PLAY_AREA_FADE_DELAY = 900;
         this.PLAY_AREA_FADE_DURATION = 200;
         this.PLAY_AREA_FADE_INTERVAL = 25;
         this.PLAY_AREA_BOX_ALPHA = 1.0;
         this.PLAY_AREA_SENSOR_ALPHA = 0.8;
         this.PLAY_AREA_FADE_DELTA = this.PLAY_AREA_FADE_INTERVAL / this.PLAY_AREA_FADE_DURATION;
 
-        this.TELEPORT_SCALE_DURATION = 500;
+        this.TELEPORT_SCALE_DURATION = 130;
         this.TELEPORT_SCALE_TIMEOUT = 20;
         this.isTeleportVisible = false;
         this.teleportScaleTimer = null;
