@@ -55,9 +55,8 @@ private:
     };
 
     std::set<int, SequenceLessThan> _sequenceNumbers;
-    std::set<QString> _trackedURLs;
 
-    static float ElevatedPriority(const EntityItem&) { return 10.0f; }
+    static float ElevatedPriority(const EntityItem& entityItem);
     static float StandardPriority(const EntityItem&) { return 0.0f; }
 
     static const int SEQUENCE_MODULO;

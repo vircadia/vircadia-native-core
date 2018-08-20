@@ -5272,6 +5272,7 @@ void Application::resetPhysicsReadyInformation() {
     _nearbyEntitiesCountAtLastPhysicsCheck = 0;
     _nearbyEntitiesStabilityCount = 0;
     _physicsEnabled = false;
+    _octreeProcessor.startEntitySequence();
 }
 
 
@@ -6323,8 +6324,6 @@ void Application::clearDomainOctreeDetails() {
 
     // reset the model renderer
     getEntities()->clear();
-
-    _octreeProcessor.startEntitySequence();
 
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
 

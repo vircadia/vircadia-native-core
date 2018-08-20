@@ -31,22 +31,22 @@ bool SafeLanding::SequenceLessThan::operator()(const int& a, const int& b) const
 }
 
 void SafeLanding::startEntitySequence(QSharedPointer<EntityTreeRenderer> entityTreeRenderer) {
-    if (!_trackingEntities) {
-        auto entityTree = entityTreeRenderer->getTree();
+    auto entityTree = entityTreeRenderer->getTree();
 
-        if (entityTree) {
-            Locker lock(_lock);
-            _entityTree = entityTree;
-            _trackingEntities = true;
-            connect(std::const_pointer_cast<EntityTree>(_entityTree).get(),
-                &EntityTree::addingEntity, this, &SafeLanding::addTrackedEntity);
-            connect(std::const_pointer_cast<EntityTree>(_entityTree).get(),
-                &EntityTree::deletingEntity, this, &SafeLanding::deleteTrackedEntity);
-            _sequenceNumbers.clear();
-            _initialStart = INVALID_SEQUENCE;
-            _initialEnd = INVALID_SEQUENCE;
-            EntityTreeRenderer::setEntityLoadingPriorityFunction(&ElevatedPriority);
-        }
+    if (entityTree) {
+        Locker lock(_lock);
+        _entityTree = entityTree;
+        _trackedEntities.clear();
+        _trackingEntities = true;
+        connect(std::const_pointer_cast<EntityTree>(_entityTree).get(),
+            &EntityTree::addingEntity, this, &SafeLanding::addTrackedEntity);
+        connect(std::const_pointer_cast<EntityTree>(_entityTree).get(),
+            &EntityTree::deletingEntity, this, &SafeLanding::deleteTrackedEntity);
+
+        _sequenceNumbers.clear();
+        _initialStart = INVALID_SEQUENCE;
+        _initialEnd = INVALID_SEQUENCE;
+        EntityTreeRenderer::setEntityLoadingPriorityFunction(&ElevatedPriority);
     }
 }
 
@@ -70,7 +70,9 @@ void SafeLanding::addTrackedEntity(const EntityItemID& entityID) {
                 ModelEntityItem * modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity).get();
                 static const std::set<ShapeType> downloadedCollisionTypes
                     { SHAPE_TYPE_COMPOUND, SHAPE_TYPE_SIMPLE_COMPOUND, SHAPE_TYPE_STATIC_MESH,  SHAPE_TYPE_SIMPLE_HULL };
-                if (downloadedCollisionTypes.count(modelEntity->getShapeType()) != 0) {
+                bool hasAABox;
+                entity->getAABox(hasAABox);
+                if (hasAABox && downloadedCollisionTypes.count(modelEntity->getShapeType()) != 0) {
                     // Only track entities with downloaded collision bodies.
                     _trackedEntities.emplace(entityID, entity);
                     qCDebug(interfaceapp) << "Safe Landing: Tracking entity " << entity->getItemName();
@@ -117,11 +119,14 @@ bool SafeLanding::isLoadSequenceComplete() {
 bool SafeLanding::sequenceNumbersComplete() {
     if (_initialStart != INVALID_SEQUENCE) {
         Locker lock(_lock);
-        int sequenceSize = _initialStart < _initialEnd ? _initialEnd - _initialStart:
+        int sequenceSize = _initialStart <= _initialEnd ? _initialEnd - _initialStart:
                 _initialEnd + SEQUENCE_MODULO - _initialStart;
         auto startIter = _sequenceNumbers.find(_initialStart);
         auto endIter = _sequenceNumbers.find(_initialEnd);
-        if (startIter != _sequenceNumbers.end() && endIter != _sequenceNumbers.end() && distance(startIter, endIter) == sequenceSize) {
+        if (sequenceSize == 0 ||
+            (startIter != _sequenceNumbers.end()
+            && endIter != _sequenceNumbers.end()
+            && distance(startIter, endIter) == sequenceSize) ) {
             _trackingEntities = false; // Don't track anything else that comes in.
             return true;
         }
@@ -141,6 +146,10 @@ bool SafeLanding::entityPhysicsComplete() {
         }
     }
     return _trackedEntities.empty();
+}
+
+float SafeLanding::ElevatedPriority(const EntityItem& entityItem) {
+    return entityItem.getCollisionless() ? 0.0f : 10.0f;
 }
 
 void SafeLanding::debugDumpSequenceIDs() const {
