@@ -1,5 +1,5 @@
 //
-//  tabletRezzer.js
+//  miniTablet.js
 //
 //  Created by David Rowe on 9 Aug 2018.
 //  Copyright 2018 High Fidelity, Inc.
@@ -41,7 +41,7 @@
 
         // UI overlay.
         proxyUIOverlay = null,
-        PROXY_UI_HTML = Script.resolvePath("./html/tabletRezzer.html"),
+        PROXY_UI_HTML = Script.resolvePath("./html/miniTablet.html"),
         PROXY_UI_DIMENSIONS = { x: 0.0577, y: 0.0905 },
         PROXY_UI_WIDTH_PIXELS = 150,
         METERS_TO_INCHES = 39.3701,
