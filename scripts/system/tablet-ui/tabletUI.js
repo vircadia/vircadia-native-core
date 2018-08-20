@@ -13,7 +13,7 @@
 //
 
 /* global Script, HMD, WebTablet, UIWebTablet, UserActivityLogger, Settings, Entities, Messages, Tablet, Overlays,
-   MyAvatar, Menu, AvatarInputs, Vec3 */
+   MyAvatar, Menu, AvatarInputs, Vec3, cleanUpOldMaterialEntities */
 
 (function() { // BEGIN LOCAL_SCOPE
     var tabletRezzed = false;
@@ -30,6 +30,14 @@
     var gTablet = null;
 
     Script.include("../libraries/WebTablet.js");
+
+    function cleanupMaterialEntities() {
+        if (Window.isPhysicsEnabled()) {
+            cleanUpOldMaterialEntities();
+            return;
+        }
+        Script.setTimeout(cleanupMaterialEntities, 100);
+    }
 
     function checkTablet() {
         if (gTablet === null) {
@@ -104,8 +112,7 @@
         HMD.tabletID = UIWebTablet.tabletEntityID;
         HMD.homeButtonID = UIWebTablet.homeButtonID;
         HMD.tabletScreenID = UIWebTablet.webOverlayID;
-        HMD.homeButtonHighlightMaterialID = UIWebTablet.homeButtonHighlightMaterial;
-        HMD.homeButtonUnhighlightMaterialID = UIWebTablet.homeButtonUnhighlightMaterial;
+        HMD.homeButtonHighlightID = UIWebTablet.homeButtonHighlightID;
         HMD.displayModeChanged.connect(onHmdChanged);
         MyAvatar.sensorToWorldScaleChanged.connect(onSensorToWorldScaleChanged);
 
@@ -131,6 +138,7 @@
             tabletProperties.visible = true;
             Overlays.editOverlay(HMD.tabletID, tabletProperties);
             Overlays.editOverlay(HMD.homeButtonID, { visible: true });
+            Overlays.editOverlay(HMD.homeButtonHighlightID, { visible: true });
             Overlays.editOverlay(HMD.tabletScreenID, { visible: true });
             Overlays.editOverlay(HMD.tabletScreenID, { maxFPS: 90 });
             updateTabletWidthFromSettings(true);
@@ -151,6 +159,7 @@
 
         Overlays.editOverlay(HMD.tabletID, { visible: false });
         Overlays.editOverlay(HMD.homeButtonID, { visible: false });
+        Overlays.editOverlay(HMD.homeButtonHighlightID, { visible: false });
         Overlays.editOverlay(HMD.tabletScreenID, { visible: false });
         Overlays.editOverlay(HMD.tabletScreenID, { maxFPS: 1 });
     }
@@ -171,6 +180,7 @@
             UIWebTablet = null;
             HMD.tabletID = null;
             HMD.homeButtonID = null;
+            HMD.homeButtonHighlightID = null;
             HMD.tabletScreenID = null;
         } else if (debugTablet) {
             print("TABLET closeTabletUI, UIWebTablet is null");
@@ -323,8 +333,8 @@
         Overlays.deleteOverlay(tabletID);
         HMD.tabletID = null;
         HMD.homeButtonID = null;
+        HMD.homeButtonHighlightID = null;
         HMD.tabletScreenID = null;
-        HMD.homeButtonHighlightMaterialID = null;
-        HMD.homeButtonUnhighlightMaterialID = null;
     });
+    Script.setTimeout(cleanupMaterialEntities, 100);
 }()); // END LOCAL_SCOPE

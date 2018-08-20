@@ -11,6 +11,8 @@
 
 #include "AssignmentClientApp.h"
 
+#include <iostream>
+
 #include <QtCore/QCommandLineParser>
 #include <QtCore/QDir>
 #include <QtCore/QStandardPaths>
@@ -42,9 +44,8 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     // parse command-line
     QCommandLineParser parser;
     parser.setApplicationDescription("High Fidelity Assignment Client");
-    parser.addHelpOption();
-
     const QCommandLineOption helpOption = parser.addHelpOption();
+    const QCommandLineOption versionOption = parser.addVersionOption();
 
     QString typeDescription = "run single assignment client of given type\n# | Type\n============================";
     for (Assignment::Type type = Assignment::FirstType;
@@ -97,8 +98,13 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     parser.addOption(parentPIDOption);
 
     if (!parser.parse(QCoreApplication::arguments())) {
-        qCritical() << parser.errorText() << endl;
+        std::cout << parser.errorText().toStdString() << std::endl; // Avoid Qt log spam
         parser.showHelp();
+        Q_UNREACHABLE();
+    }
+
+    if (parser.isSet(versionOption)) {
+        parser.showVersion();
         Q_UNREACHABLE();
     }
 

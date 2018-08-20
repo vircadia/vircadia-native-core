@@ -24,14 +24,11 @@
 #include "Stream.h"
 #include "Texture.h"
 #include "Transform.h"
+#include "ShaderConstants.h"
 
 class QDebug;
 #define BATCH_PREALLOCATE_MIN 128
 namespace gpu {
-
-enum ReservedSlot {
-    TRANSFORM_CAMERA_SLOT = 15,
-};
 
 // The named batch data provides a mechanism for accumulating data into buffers over the course 
 // of many independent calls.  For instance, two objects in the scene might both want to render 
@@ -170,10 +167,10 @@ public:
     void resetViewTransform() { setViewTransform(Transform(), false); }
     void setViewTransform(const Transform& view, bool camera = true);
     void setProjectionTransform(const Mat4& proj);
-	void setProjectionJitter(float jx = 0.0f, float jy = 0.0f);
-	// Very simple 1 level stack management of jitter.
-	void pushProjectionJitter(float jx = 0.0f, float jy = 0.0f);
-	void popProjectionJitter();
+    void setProjectionJitter(float jx = 0.0f, float jy = 0.0f);
+    // Very simple 1 level stack management of jitter.
+    void pushProjectionJitter(float jx = 0.0f, float jy = 0.0f);
+    void popProjectionJitter();
     // Viewport is xy = low left corner in framebuffer, zw = width height of the viewport, expressed in pixels
     void setViewportTransform(const Vec4i& viewport);
     void setDepthRangeTransform(float nearDepth, float farDepth);
@@ -299,9 +296,9 @@ public:
 
         COMMAND_setModelTransform,
         COMMAND_setViewTransform,
-		COMMAND_setProjectionTransform,
-		COMMAND_setProjectionJitter,
-		COMMAND_setViewportTransform,
+        COMMAND_setProjectionTransform,
+        COMMAND_setProjectionJitter,
+        COMMAND_setViewportTransform,
         COMMAND_setDepthRangeTransform,
 
         COMMAND_setPipeline,
@@ -504,7 +501,7 @@ public:
 
     NamedBatchDataMap _namedData;
 
-	glm::vec2 _projectionJitter{ 0.0f, 0.0f };
+    glm::vec2 _projectionJitter{ 0.0f, 0.0f };
     bool _enableStereo{ true };
     bool _enableSkybox { false };
 

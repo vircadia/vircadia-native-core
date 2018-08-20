@@ -294,7 +294,19 @@ glm::vec3 safeEulerAngles(const glm::quat& q) {
 
 //  Helper function returns the positive angle (in radians) between two 3D vectors
 float angleBetween(const glm::vec3& v1, const glm::vec3& v2) {
-    return acosf((glm::dot(v1, v2)) / (glm::length(v1) * glm::length(v2)));
+    float lengthFactor = glm::length(v1) * glm::length(v2);
+
+    if (lengthFactor < EPSILON) {
+        qWarning() << "DANGER: don't supply zero-length vec3's as arguments";
+    }
+
+    float cosAngle = glm::dot(v1, v2) / lengthFactor;
+    // If v1 and v2 are colinear, then floating point rounding errors might cause
+    // cosAngle to be slightly higher than 1 or slightly lower than -1
+    // which is are values for which acos is not defined and result in a NaN
+    // So we clamp the value to insure the value is in the correct range
+    cosAngle = glm::clamp(cosAngle, -1.0f, 1.0f);
+    return acosf(cosAngle);
 }
 
 //  Helper function return the rotation from the first vector onto the second

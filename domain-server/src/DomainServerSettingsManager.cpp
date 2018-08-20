@@ -191,13 +191,12 @@ void DomainServerSettingsManager::processSettingsRequestPacket(QSharedPointer<Re
     nodeList->sendPacketList(std::move(packetList), message->getSenderSockAddr());
 }
 
-void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList) {
+void DomainServerSettingsManager::setupConfigMap(const QString& userConfigFilename) {
     // since we're called from the DomainServerSettingsManager constructor, we don't take a write lock here
     // even though we change the underlying config map
 
-    _argumentList = argumentList;
-
-    _configMap.loadConfig(_argumentList);
+    _configMap.setUserConfigFilename(userConfigFilename);
+    _configMap.loadConfig();
 
     static const auto VERSION_SETTINGS_KEYPATH = "version";
     QVariant* versionVariant = _configMap.valueForKeyPath(VERSION_SETTINGS_KEYPATH);
@@ -1736,7 +1735,7 @@ void DomainServerSettingsManager::persistToFile() {
         // failed to write, reload whatever the current config state is
         // with a write lock since we're about to overwrite the config map
         QWriteLocker locker(&_settingsLock);
-        _configMap.loadConfig(_argumentList);
+        _configMap.loadConfig();
     }
 }
 

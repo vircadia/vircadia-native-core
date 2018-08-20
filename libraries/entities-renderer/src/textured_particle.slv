@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  particle vertex shader
+//  texture_particle.vert
 //
 //  Copyright 2015 High Fidelity, Inc.
 //
@@ -27,31 +27,31 @@ struct Colors {
     vec4 finish;
     vec4 spread;
 };
+struct Spin {
+    float start;
+    float middle;
+    float finish;
+    float spread;
+};
 
 struct ParticleUniforms {
     Radii radius;
     Colors color;
-    vec4 lifespan; // x is lifespan, 3 spare floats
+    Spin spin;
+    float lifespan;
+    int rotateWithEntity;
+    vec2 spare;
 };
 
-layout(std140) uniform particleBuffer {
+layout(std140, binding=0) uniform particleBuffer {
     ParticleUniforms particle;
 };
 
 layout(location=0) in vec3 inPosition;
 layout(location=2) in vec2 inColor; // This is actual Lifetime + Seed
 
-out vec4 varColor;
-out vec2 varTexcoord;
-
-const int NUM_VERTICES_PER_PARTICLE = 4;
-// This ordering ensures that un-rotated particles render upright in the viewer.
-const vec4 UNIT_QUAD[NUM_VERTICES_PER_PARTICLE] = vec4[NUM_VERTICES_PER_PARTICLE](
-    vec4(-1.0, 1.0, 0.0, 0.0),
-    vec4(-1.0, -1.0, 0.0, 0.0),
-    vec4(1.0, 1.0, 0.0, 0.0),
-    vec4(1.0, -1.0, 0.0, 0.0)
-);
+layout(location=0) out vec4 varColor;
+layout(location=1) out vec2 varTexcoord;
 
 float bezierInterpolate(float y1, float y2, float y3, float u) {
     // https://en.wikipedia.org/wiki/Bezier_curve
@@ -103,6 +103,15 @@ vec4 interpolate3Vec4(vec4 y1, vec4 y2, vec4 y3, float u) {
                 interpolate3Points(y1.w, y2.w, y3.w, u));
 }
 
+const int NUM_VERTICES_PER_PARTICLE = 4;
+const vec2 TEX_COORDS[NUM_VERTICES_PER_PARTICLE] = vec2[NUM_VERTICES_PER_PARTICLE](
+    vec2(-1.0, 0.0),
+    vec2(-1.0, 1.0),
+    vec2(0.0, 0.0),
+    vec2(0.0, 1.0)
+);
+
+
 void main(void) {
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
@@ -113,28 +122,54 @@ void main(void) {
     int twoTriID = gl_VertexID - particleID * NUM_VERTICES_PER_PARTICLE;
 
     // Particle properties
-    float age = inColor.x / particle.lifespan.x;
+    float age = inColor.x / particle.lifespan;
     float seed = inColor.y;
 
-    // Pass the texcoord and the z texcoord is representing the texture icon
-    // Offset for corrected vertex ordering.
-    varTexcoord = vec2((UNIT_QUAD[twoTriID].xy -1.0) * vec2(0.5, -0.5)); 
+    // Pass the texcoord
+    varTexcoord = TEX_COORDS[twoTriID].xy;
     varColor = interpolate3Vec4(particle.color.start, particle.color.middle, particle.color.finish, age);
     vec3 colorSpread = 2.0 * vec3(hifi_hash(seed), hifi_hash(seed * 2.0), hifi_hash(seed * 3.0)) - 1.0;
     varColor.rgb = clamp(varColor.rgb + colorSpread * particle.color.spread.rgb, vec3(0), vec3(1));
     float alphaSpread = 2.0 * hifi_hash(seed * 4.0) - 1.0;
     varColor.a = clamp(varColor.a + alphaSpread * particle.color.spread.a, 0.0, 1.0);
 
+    float spin = interpolate3Points(particle.spin.start, particle.spin.middle, particle.spin.finish, age);
+    float spinSpread = 2.0 * hifi_hash(seed * 5.0) - 1.0;
+    spin = spin + spinSpread * particle.spin.spread;
+
     // anchor point in eye space
     float radius = interpolate3Points(particle.radius.start, particle.radius.middle, particle.radius.finish, age);
-    float radiusSpread = 2.0 * hifi_hash(seed * 5.0) - 1.0;
+    float radiusSpread = 2.0 * hifi_hash(seed * 6.0) - 1.0;
     radius = max(radius + radiusSpread * particle.radius.spread, 0.0);
-    vec4 quadPos = radius * UNIT_QUAD[twoTriID];
 
-    vec4 anchorPoint;
-    vec4 _inPosition = vec4(inPosition, 1.0);
-    <$transformModelToEyePos(cam, obj, _inPosition, anchorPoint)$>
+    // inPosition is in world space
+    vec4 anchorPoint = cam._view * vec4(inPosition, 1.0);
 
-    vec4 eyePos = anchorPoint + quadPos;
+    mat3 view3 = mat3(cam._view);
+    vec3 UP = vec3(0, 1, 0);
+    vec3 modelUpWorld;
+    <$transformModelToWorldDir(cam, obj, UP, modelUpWorld)$>
+    vec3 upWorld = mix(UP, normalize(modelUpWorld), float(particle.rotateWithEntity));
+    vec3 upEye = normalize(view3 * upWorld);
+    vec3 FORWARD = vec3(0, 0, -1);
+    vec3 particleRight = normalize(cross(FORWARD, upEye));
+    vec3 particleUp = cross(particleRight, FORWARD);     // don't need to normalize
+    // This ordering ensures that un-rotated particles render upright in the viewer.
+    vec3 UNIT_QUAD[NUM_VERTICES_PER_PARTICLE] = vec3[NUM_VERTICES_PER_PARTICLE](
+        normalize(-particleRight + particleUp),
+        normalize(-particleRight - particleUp),
+        normalize(particleRight + particleUp),
+        normalize(particleRight - particleUp)
+    );
+    float c = cos(spin);
+    float s = sin(spin);
+    mat4 rotation = mat4(
+        c, -s, 0, 0,
+        s, c, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+    );
+    vec4 quadPos = radius * vec4(UNIT_QUAD[twoTriID], 0.0);
+    vec4 eyePos = anchorPoint + rotation * quadPos;
     <$transformEyeToClipPos(cam, eyePos, gl_Position)$>
 }

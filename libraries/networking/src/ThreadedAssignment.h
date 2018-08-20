@@ -24,43 +24,25 @@ public:
     ThreadedAssignment(ReceivedMessage& message);
     ~ThreadedAssignment() { stop(); }
 
-    void setFinished(bool isFinished);
     virtual void aboutToFinish() { };
     void addPacketStatsAndSendStatsPacket(QJsonObject statsObject);
 
 public slots:
-    // JSDoc: Overridden in Agent.h.
     /// threaded run of assignment
     virtual void run() = 0;
 
-    /**jsdoc
-     * @function Agent.stop
-     * @deprecated This function is being removed from the API.
-     */
     Q_INVOKABLE virtual void stop() { setFinished(true); }
 
-    /**jsdoc
-     * @function Agent.sendStatsPacket
-     * @deprecated This function is being removed from the API.
-     */
     virtual void sendStatsPacket();
 
-    /**jsdoc
-     * @function Agent.clearQueuedCheckIns
-     * @deprecated This function is being removed from the API.
-     */
     void clearQueuedCheckIns() { _numQueuedCheckIns = 0; }
 
 signals:
-    /**jsdoc
-     * @function Agent.finished
-     * @returns {Signal}
-     * @deprecated This function is being removed from the API.
-     */
     void finished();
 
 protected:
     void commonInit(const QString& targetName, NodeType_t nodeType);
+    void setFinished(bool isFinished);
 
     bool _isFinished;
     QTimer _domainServerTimer;
@@ -68,10 +50,6 @@ protected:
     int _numQueuedCheckIns { 0 };
 
 protected slots:
-    /**jsdoc
-     * @function Agent.domainSettingsRequestFailed
-     * @deprecated This function is being removed from the API.
-     */
     void domainSettingsRequestFailed();
 
 private slots:

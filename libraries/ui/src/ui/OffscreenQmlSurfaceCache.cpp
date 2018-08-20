@@ -46,8 +46,18 @@ void OffscreenQmlSurfaceCache::release(const QString& rootSource, const QSharedP
 
 QSharedPointer<OffscreenQmlSurface> OffscreenQmlSurfaceCache::buildSurface(const QString& rootSource) {
     auto surface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface());
+
+    QObject::connect(surface.data(), &hifi::qml::OffscreenSurface::rootContextCreated, [this, rootSource](QQmlContext* surfaceContext) {
+        if (_onRootContextCreated) {
+            _onRootContextCreated(rootSource, surfaceContext);
+        }
+    });
+
     surface->load(rootSource);
     surface->resize(QSize(100, 100));
     return surface;
 }
 
+void OffscreenQmlSurfaceCache::setOnRootContextCreated(const std::function<void(const QString& rootSource, QQmlContext* rootContext)>& onRootContextCreated) {
+    _onRootContextCreated = onRootContextCreated;
+}

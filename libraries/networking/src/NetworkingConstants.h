@@ -30,6 +30,7 @@ namespace NetworkingConstants {
     QUrl METAVERSE_SERVER_URL();
 }
 
+const QString URL_SCHEME_ABOUT = "about";
 const QString URL_SCHEME_HIFI = "hifi";
 const QString URL_SCHEME_QRC = "qrc";
 const QString URL_SCHEME_FILE = "file";

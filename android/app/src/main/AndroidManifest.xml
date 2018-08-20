@@ -22,7 +22,8 @@
         android:icon="@drawable/ic_launcher"
         android:launchMode="singleTop"
         android:roundIcon="@drawable/ic_launcher">
-        <activity android:name="io.highfidelity.hifiinterface.PermissionChecker">
+        <activity android:name="io.highfidelity.hifiinterface.PermissionChecker"
+            android:theme="@style/Theme.AppCompat.Translucent.NoActionBar.Launcher">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

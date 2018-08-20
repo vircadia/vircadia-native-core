@@ -14,8 +14,7 @@
 
 #include "../common.h"
 
-class MismatchWindow : public QDialog, public Ui::MismatchWindow
-{
+class MismatchWindow : public QDialog, public Ui::MismatchWindow {
     Q_OBJECT
 
 public:
@@ -36,7 +35,7 @@ private slots:
 private:
     UserResponse _userResponse{ USER_RESPONSE_INVALID };
 
-    QPixmap diffPixmap;
+    QPixmap _diffPixmap;
 };
 
 

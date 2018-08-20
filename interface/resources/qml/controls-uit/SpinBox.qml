@@ -124,6 +124,11 @@ SpinBox {
             color: spinBox.up.pressed || spinBox.up.hovered ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
         }
     }
+    up.onPressedChanged: {
+        if(value) {
+            spinBox.forceActiveFocus();
+        }
+    }
 
     down.indicator: Item {
             x: spinBox.width - implicitWidth - 5
@@ -137,6 +142,11 @@ SpinBox {
                 size: hifi.dimensions.spinnerSize
                 color: spinBox.down.pressed || spinBox.down.hovered ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
             }
+    }
+    down.onPressedChanged: {
+        if(value) {
+            spinBox.forceActiveFocus();
+        }
     }
 
     HifiControls.Label {

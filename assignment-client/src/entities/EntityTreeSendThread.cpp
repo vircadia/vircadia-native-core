@@ -17,7 +17,6 @@
 
 #include "EntityServer.h"
 
-
 EntityTreeSendThread::EntityTreeSendThread(OctreeServer* myServer, const SharedNodePointer& node) :
     OctreeSendThread(myServer, node)
 {
@@ -100,7 +99,7 @@ void EntityTreeSendThread::preDistributionProcessing() {
     }
 }
 
-void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData,
+bool EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData,
             bool viewFrustumChanged, bool isFullScene) {
     if (viewFrustumChanged || _traversal.finished()) {
         EntityTreeElementPointer root = std::dynamic_pointer_cast<EntityTreeElement>(_myServer->getOctree()->getRoot());
@@ -111,7 +110,7 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
 
         int32_t lodLevelOffset = nodeData->getBoundaryLevelAdjust() + (viewFrustumChanged ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
         newView.lodScaleFactor = powf(2.0f, lodLevelOffset);
-
+        
         startNewTraversal(newView, root);
 
         // When the viewFrustum changed the sort order may be incorrect, so we re-sort
@@ -156,7 +155,20 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
         OctreeServer::trackTreeTraverseTime((float)(usecTimestampNow() - startTime));
     }
 
-    OctreeSendThread::traverseTreeAndSendContents(node, nodeData, viewFrustumChanged, isFullScene);
+    bool sendComplete = OctreeSendThread::traverseTreeAndSendContents(node, nodeData, viewFrustumChanged, isFullScene);
+
+    if (sendComplete && nodeData->wantReportInitialCompletion() && _traversal.finished()) {
+        // Dealt with all nearby entities.
+        nodeData->setReportInitialCompletion(false);
+
+        // Send EntityQueryInitialResultsComplete reliable packet ...
+        auto initialCompletion = NLPacket::create(PacketType::EntityQueryInitialResultsComplete,
+            sizeof(OCTREE_PACKET_SEQUENCE), true);
+        initialCompletion->writePrimitive(OCTREE_PACKET_SEQUENCE(nodeData->getSequenceNumber() - 1U));
+        DependencyManager::get<NodeList>()->sendPacket(std::move(initialCompletion), *node);
+    }
+
+    return sendComplete;
 }
 
 bool EntityTreeSendThread::addAncestorsToExtraFlaggedEntities(const QUuid& filteredEntityID,
@@ -301,6 +313,7 @@ void EntityTreeSendThread::startNewTraversal(const DiffTraversal::View& view, En
 
 bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstreamParams& params, const QJsonObject& jsonFilters) {
     if (_sendQueue.empty()) {
+        params.stopReason = EncodeBitstreamParams::FINISHED;
         OctreeServer::trackEncodeTime(OctreeServer::SKIP_TIME);
         return false;
     }

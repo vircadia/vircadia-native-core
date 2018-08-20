@@ -39,7 +39,7 @@ namespace particle {
     static const float MINIMUM_EMIT_RATE = 0.0f;
     static const float MAXIMUM_EMIT_RATE = 100000.0f;
     static const float DEFAULT_EMIT_SPEED = 5.0f;
-    static const float MINIMUM_EMIT_SPEED = 0.0f;
+    static const float MINIMUM_EMIT_SPEED = -1000.0f;
     static const float MAXIMUM_EMIT_SPEED = 1000.0f;  // Approx mach 3
     static const float DEFAULT_SPEED_SPREAD = 1.0f;
     static const glm::quat DEFAULT_EMIT_ORIENTATION = glm::angleAxis(-PI_OVER_TWO, Vectors::UNIT_X);  // Vertical
@@ -69,8 +69,15 @@ namespace particle {
     static const float DEFAULT_RADIUS_SPREAD = 0.0f;
     static const float DEFAULT_RADIUS_START = UNINITIALIZED;
     static const float DEFAULT_RADIUS_FINISH = UNINITIALIZED;
+    static const float DEFAULT_PARTICLE_SPIN = 0.0f;
+    static const float DEFAULT_SPIN_START = UNINITIALIZED;
+    static const float DEFAULT_SPIN_FINISH = UNINITIALIZED;
+    static const float DEFAULT_SPIN_SPREAD = 0.0f;
+    static const float MINIMUM_PARTICLE_SPIN = -2.0f * SCRIPT_MAXIMUM_PI;
+    static const float MAXIMUM_PARTICLE_SPIN = 2.0f * SCRIPT_MAXIMUM_PI;
     static const QString DEFAULT_TEXTURES = "";
     static const bool DEFAULT_EMITTER_SHOULD_TRAIL = false;
+    static const bool DEFAULT_ROTATE_WITH_ENTITY = false;
 
     template <typename T>
     struct Range {
@@ -151,6 +158,8 @@ namespace particle {
         RangeGradient<float> alpha { DEFAULT_ALPHA, DEFAULT_ALPHA_START, DEFAULT_ALPHA_FINISH, DEFAULT_ALPHA_SPREAD };
         float radiusStart { DEFAULT_EMIT_RADIUS_START };
         RangeGradient<float> radius { DEFAULT_PARTICLE_RADIUS, DEFAULT_RADIUS_START, DEFAULT_RADIUS_FINISH, DEFAULT_RADIUS_SPREAD };
+        RangeGradient<float> spin { DEFAULT_PARTICLE_SPIN, DEFAULT_SPIN_START, DEFAULT_SPIN_FINISH, DEFAULT_SPIN_SPREAD };
+        bool rotateWithEntity { DEFAULT_ROTATE_WITH_ENTITY };
         float lifespan { DEFAULT_LIFESPAN };
         uint32_t maxParticles { DEFAULT_MAX_PARTICLES };
         EmitProperties emission;
@@ -168,6 +177,8 @@ namespace particle {
         Properties& operator =(const Properties& other) {
             color = other.color;
             alpha = other.alpha;
+            spin = other.spin;
+            rotateWithEntity = other.rotateWithEntity;
             radius = other.radius;
             lifespan = other.lifespan;
             maxParticles = other.maxParticles;
@@ -306,6 +317,21 @@ public:
     void setRadiusSpread(float radiusSpread);
     float getRadiusSpread() const { return _particleProperties.radius.gradient.spread; }
 
+    void setParticleSpin(float particleSpin);
+    float getParticleSpin() const { return _particleProperties.spin.gradient.target; }
+
+    void setSpinStart(float spinStart);
+    float getSpinStart() const { return _particleProperties.spin.range.start; }
+
+    void setSpinFinish(float spinFinish);
+    float getSpinFinish() const { return _particleProperties.spin.range.finish; }
+
+    void setSpinSpread(float spinSpread);
+    float getSpinSpread() const { return _particleProperties.spin.gradient.spread; }
+
+    void setRotateWithEntity(bool rotateWithEntity);
+    bool getRotateWithEntity() const { return _particleProperties.rotateWithEntity; }
+
     void computeAndUpdateDimensions();
 
     void setTextures(const QString& textures);
@@ -314,7 +340,7 @@ public:
     bool getEmitterShouldTrail() const { return _particleProperties.emission.shouldTrail; }
     void setEmitterShouldTrail(bool emitterShouldTrail);
 
-    virtual bool supportsDetailedRayIntersection() const override { return false; }
+    virtual bool supportsDetailedIntersection() const override { return false; }
 
     particle::Properties getParticleProperties() const;
 

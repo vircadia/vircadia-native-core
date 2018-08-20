@@ -40,7 +40,8 @@ static QSize clampSize(const QSize& qsize, uint32_t maxDimension) {
     return fromGlm(clampSize(toGlm(qsize), maxDimension));
 }
 
-const QmlContextObjectCallback OffscreenSurface::DEFAULT_CONTEXT_CALLBACK = [](QQmlContext*, QQuickItem*) {};
+const QmlContextObjectCallback OffscreenSurface::DEFAULT_CONTEXT_OBJECT_CALLBACK = [](QQmlContext*, QQuickItem*) {};
+const QmlContextCallback OffscreenSurface::DEFAULT_CONTEXT_CALLBACK = [](QQmlContext*) {};
 
 void OffscreenSurface::initializeEngine(QQmlEngine* engine) {
 }
@@ -99,7 +100,7 @@ QPointF OffscreenSurface::mapToVirtualScreen(const QPointF& originalPoint) {
 //
 
 bool OffscreenSurface::filterEnabled(QObject* originalDestination, QEvent* event) const {
-    if (!_sharedObject || _sharedObject->getWindow() == originalDestination) {
+    if (!_sharedObject || !_sharedObject->getWindow() || _sharedObject->getWindow() == originalDestination) {
         return false;
     }
     // Only intercept events while we're in an active state
@@ -266,8 +267,8 @@ void OffscreenSurface::load(const QUrl& qmlSource, bool createNewContext, const 
     loadInternal(qmlSource, createNewContext, nullptr, callback);
 }
 
-void OffscreenSurface::loadInNewContext(const QUrl& qmlSource, const QmlContextObjectCallback& callback) {
-    load(qmlSource, true, callback);
+void OffscreenSurface::loadInNewContext(const QUrl& qmlSource, const QmlContextObjectCallback& callback, const QmlContextCallback& contextCallback) {
+    loadInternal(qmlSource, true, nullptr, callback, contextCallback);
 }
 
 void OffscreenSurface::load(const QUrl& qmlSource, const QmlContextObjectCallback& callback) {
@@ -281,7 +282,8 @@ void OffscreenSurface::load(const QString& qmlSourceFile, const QmlContextObject
 void OffscreenSurface::loadInternal(const QUrl& qmlSource,
                                     bool createNewContext,
                                     QQuickItem* parent,
-                                    const QmlContextObjectCallback& callback) {
+                                    const QmlContextObjectCallback& callback,
+                                    const QmlContextCallback& contextCallback) {
     PROFILE_RANGE_EX(app, "OffscreenSurface::loadInternal", 0xffff00ff, 0, { std::make_pair("url", qmlSource.toDisplayString()) });
     if (QThread::currentThread() != thread()) {
         qFatal("Called load on a non-surface thread");
@@ -310,6 +312,7 @@ void OffscreenSurface::loadInternal(const QUrl& qmlSource,
     }
 
     auto targetContext = contextForUrl(finalQmlSource, parent, createNewContext);
+    contextCallback(targetContext);
     QQmlComponent* qmlComponent;
     {
         PROFILE_RANGE(app, "new QQmlComponent");

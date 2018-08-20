@@ -132,6 +132,7 @@ public:
         OctreeDataPersist,
 
         EntityClone,
+        EntityQueryInitialResultsComplete,
 
         NUM_PACKET_TYPE
     };
@@ -238,7 +239,8 @@ enum class EntityVersion : PacketVersion {
     CloneableData,
     CollisionMask16Bytes,
     YieldSimulationOwnership,
-    ParticleEntityFix
+    ParticleEntityFix,
+    ParticleSpin
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
@@ -286,7 +288,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     AvatarJointDefaultPoseFlags,
     FBXReaderNodeReparenting,
     FixMannequinDefaultAvatarFeet,
-    ProceduralFaceMovementFlagsAndBlendshapes
+    ProceduralFaceMovementFlagsAndBlendshapes,
+    FarGrabJoints
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {
@@ -313,7 +316,8 @@ enum class DomainListVersion : PacketVersion {
     PrePermissionsGrid = 18,
     PermissionsGrid,
     GetUsernameFromUUIDSupport,
-    GetMachineFingerprintFromUUIDSupport
+    GetMachineFingerprintFromUUIDSupport,
+    AuthenticationOptional
 };
 
 enum class AudioVersion : PacketVersion {

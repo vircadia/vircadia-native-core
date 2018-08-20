@@ -11,20 +11,23 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+<@include render-utils/ShaderConstants.h@>
 
-uniform sampler2D hudTexture;
+layout(binding=0) uniform sampler2D hudTexture;
 
 struct HUDData {
     float alpha;
 };
 
-layout(std140) uniform hudBuffer {
+layout(std140, binding=0) uniform hudBuffer {
     HUDData hud;
 };
 
-in vec2 _texCoord0;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
+#define _texCoord0 _texCoord01.xy
+#define _texCoord1 _texCoord01.zw
 
-out vec4 fragColor0;
+layout(location=0) out vec4 fragColor0;
 
 void main() {
     vec4 color = texture(hudTexture, _texCoord0);

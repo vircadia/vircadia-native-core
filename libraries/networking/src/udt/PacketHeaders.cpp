@@ -27,20 +27,20 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::StunResponse:
             return 17;
         case PacketType::DomainList:
-            return static_cast<PacketVersion>(DomainListVersion::GetMachineFingerprintFromUUIDSupport);
+            return static_cast<PacketVersion>(DomainListVersion::AuthenticationOptional);
         case PacketType::EntityAdd:
         case PacketType::EntityClone:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
         case PacketType::EntityPhysics:
-            return static_cast<PacketVersion>(EntityVersion::ParticleEntityFix);
+            return static_cast<PacketVersion>(EntityVersion::ParticleSpin);
         case PacketType::EntityQuery:
             return static_cast<PacketVersion>(EntityQueryPacketVersion::ConicalFrustums);
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::ProceduralFaceMovementFlagsAndBlendshapes);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::FarGrabJoints);
         case PacketType::MessagesData:
             return static_cast<PacketVersion>(MessageDataVersion::TextOrBinaryData);
         // ICE packets
@@ -95,7 +95,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::AvatarIdentityRequest:
             return 22;
         default:
-            return 21;
+            return 22;
     }
 }
 

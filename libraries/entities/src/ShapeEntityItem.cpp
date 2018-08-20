@@ -250,7 +250,7 @@ void ShapeEntityItem::setUnscaledDimensions(const glm::vec3& value) {
     }
 }
 
-bool ShapeEntityItem::supportsDetailedRayIntersection() const {
+bool ShapeEntityItem::supportsDetailedIntersection() const {
     return _shape == entity::Sphere;
 }
 
@@ -273,7 +273,32 @@ bool ShapeEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const
         glm::vec3 hitAt = glm::vec3(entityToWorldMatrix * glm::vec4(entityFrameHitAt, 1.0f));
         distance = glm::distance(origin, hitAt);
         bool success;
+        // FIXME: this is only correct for uniformly scaled spheres
         surfaceNormal = glm::normalize(hitAt - getCenterPosition(success));
+        if (!success) {
+            return false;
+        }
+        return true;
+    }
+    return false;
+}
+
+bool ShapeEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+                                                       OctreeElementPointer& element, float& parabolicDistance,
+                                                       BoxFace& face, glm::vec3& surfaceNormal,
+                                                       QVariantMap& extraInfo, bool precisionPicking) const {
+    // determine the parabola in the frame of the entity transformed from a unit sphere
+    glm::mat4 entityToWorldMatrix = getEntityToWorldMatrix();
+    glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
+    glm::vec3 entityFrameOrigin = glm::vec3(worldToEntityMatrix * glm::vec4(origin, 1.0f));
+    glm::vec3 entityFrameVelocity = glm::vec3(worldToEntityMatrix * glm::vec4(velocity, 0.0f));
+    glm::vec3 entityFrameAcceleration = glm::vec3(worldToEntityMatrix * glm::vec4(acceleration, 0.0f));
+
+    // NOTE: unit sphere has center of 0,0,0 and radius of 0.5
+    if (findParabolaSphereIntersection(entityFrameOrigin, entityFrameVelocity, entityFrameAcceleration, glm::vec3(0.0f), 0.5f, parabolicDistance)) {
+        bool success;
+        // FIXME: this is only correct for uniformly scaled spheres
+        surfaceNormal = glm::normalize((origin + velocity * parabolicDistance + 0.5f * acceleration * parabolicDistance * parabolicDistance) - getCenterPosition(success));
         if (!success) {
             return false;
         }

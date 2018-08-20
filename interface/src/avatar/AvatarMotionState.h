@@ -74,6 +74,10 @@ public:
     friend class Avatar;
 
 protected:
+    void setRigidBody(btRigidBody* body) override;
+    void setShape(const btCollisionShape* shape) override;
+    void cacheShapeDiameter();
+
     // the dtor had been made protected to force the compiler to verify that it is only
     // ever called by the Avatar class dtor.
     ~AvatarMotionState();

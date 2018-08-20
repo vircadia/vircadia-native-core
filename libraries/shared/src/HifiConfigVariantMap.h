@@ -21,7 +21,7 @@ class HifiConfigVariantMap {
 public:
     static QVariantMap mergeCLParametersWithJSONConfig(const QStringList& argumentList);
 
-    void loadConfig(const QStringList& argumentList);
+    void loadConfig();
 
     const QVariant value(const QString& key) const { return _userConfig.value(key); }
     QVariant* valueForKeyPath(const QString& keyPath, bool shouldCreateIfMissing = false)
@@ -30,6 +30,7 @@ public:
     QVariantMap& getConfig() { return _userConfig; }
 
     const QString& getUserConfigFilename() const { return _userConfigFilename; }
+    void setUserConfigFilename(const QString& filename) { _userConfigFilename = filename; }
 private:
     QString _userConfigFilename;
 

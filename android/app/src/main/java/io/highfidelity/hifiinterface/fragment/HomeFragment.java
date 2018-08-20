@@ -66,6 +66,7 @@ public class HomeFragment extends Fragment {
         GridLayoutManager gridLayoutMgr = new GridLayoutManager(getContext(), numberOfColumns);
         mDomainsView.setLayoutManager(gridLayoutMgr);
         mDomainAdapter = new DomainAdapter(getContext(), HifiUtils.getInstance().protocolVersionSignature(), nativeGetLastLocation());
+        mSwipeRefreshLayout.setRefreshing(true);
         mDomainAdapter.setClickListener((view, position, domain) -> {
             new Handler(getActivity().getMainLooper()).postDelayed(() -> {
                 if (mListener != null) {

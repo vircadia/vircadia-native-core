@@ -361,6 +361,55 @@
                     type: "Row"
                 }
             ],
+            Spin: [
+                {
+                    id: "particleSpin",
+                    name: "Particle Spin",
+                    type: "SliderRadian",
+                    min: -360.0,
+                    max: 360.0
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "spinSpread",
+                    name: "Spin Spread",
+                    type: "SliderRadian",
+                    max: 360.0
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "spinStart",
+                    name: "Spin Start",
+                    type: "SliderRadian",
+                    min: -360.0,
+                    max: 360.0
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "spinFinish",
+                    name: "Spin Finish",
+                    type: "SliderRadian",
+                    min: -360.0,
+                    max: 360.0
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "rotateWithEntity",
+                    name: "Rotate with Entity",
+                    type: "Boolean"
+                },
+                {
+                    type: "Row"
+                }
+            ],
             Polar: [
                 {
                     id: "polarStart",

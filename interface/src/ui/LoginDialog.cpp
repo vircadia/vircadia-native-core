@@ -162,9 +162,7 @@ void LoginDialog::createAccountFromStream(QString username) {
 }
 
 void LoginDialog::openUrl(const QString& url) const {
-
-    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    auto tablet = dynamic_cast<TabletProxy*>(DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
@@ -172,11 +170,13 @@ void LoginDialog::openUrl(const QString& url) const {
         offscreenUi->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
             newObject->setProperty("url", url);
         });
+        LoginDialog::hide();
     } else {
         if (!hmd->getShouldShowTablet() && !qApp->isHMDMode()) {
             offscreenUi->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
                 newObject->setProperty("url", url);
             });
+            LoginDialog::hide();
         } else {
             tablet->gotoWebScreen(url);
         }

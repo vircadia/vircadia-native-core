@@ -11,17 +11,17 @@
 //
 
 <@include gpu/Inputs.slh@>
-
 <@include gpu/Transform.slh@>
+<@include render-utils/ShaderConstants.h@>
 
 <$declareStandardTransform()$>
 
 // the interpolated normal
-out vec3 _normalWS;
-out vec2 _texCoord0;
+layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
 
 void main() {
-    _texCoord0 = inTexCoord0.xy;
+    _texCoord01.xy = inTexCoord0.xy;
     
     // standard transform
     TransformCamera cam = getTransformCamera();
