@@ -68,9 +68,9 @@
         STATE_MACHINE,
         rezzerState = PROXY_DISABLED,
         proxyHand,
-        PROXY_EXPAND_HANDLES = [
-            { x: 0.5, y: -0.4, z: 0 },
-            { x: -0.5, y: -0.4, z: 0 }
+        PROXY_EXPAND_HANDLES = [ // Normalized coordinates in range [-0.5, 0.5] about center of mini tablet.
+            { x: 0.5, y: -0.75, z: 0 },
+            { x: -0.5, y: -0.75, z: 0 }
         ],
         proxyExpandHand,
         proxyExpandLocalPosition,
