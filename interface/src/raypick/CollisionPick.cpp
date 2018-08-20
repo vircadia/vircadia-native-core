@@ -341,16 +341,18 @@ void CollisionPick::filterIntersections(std::vector<ContactTestResult>& intersec
         return;
     }
 
+    std::vector<ContactTestResult> filteredIntersections;
+
     int n = (int)intersections.size();
     for (int i = 0; i < n; i++) {
         auto& intersection = intersections[i];
         const QUuid& id = intersection.foundID;
-        if (ignoreItems.contains(id) || (isWhitelist && !includeItems.contains(id))) {
-            intersections[i] = intersections[--n];
-            intersections.pop_back();
-            --i;
+        if (!ignoreItems.contains(id) && (!isWhitelist || includeItems.contains(id))) {
+            filteredIntersections.push_back(intersection);
         }
     }
+
+    intersections = filteredIntersections;
 }
 
 PickResultPointer CollisionPick::getEntityIntersection(const CollisionRegion& pick) {
