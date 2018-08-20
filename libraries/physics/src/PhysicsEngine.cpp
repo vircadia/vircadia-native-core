@@ -867,6 +867,7 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
     AllContactsCallback(int32_t mask, int32_t group, const ShapeInfo& shapeInfo, const Transform& transform, btCollisionObject* myAvatarCollisionObject) :
         btCollisionWorld::ContactResultCallback(),
         collisionObject(),
+        contacts(),
         myAvatarCollisionObject(myAvatarCollisionObject) {
         const btCollisionShape* collisionShape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
 
@@ -887,7 +888,7 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
     }
 
     btCollisionObject collisionObject;
-    std::shared_ptr<std::vector<ContactTestResult>> contacts = std::make_shared<std::vector<ContactTestResult>>();
+    std::vector<ContactTestResult> contacts;
     btCollisionObject* myAvatarCollisionObject;
 
     btScalar addSingleResult(btManifoldPoint& cp, const btCollisionObjectWrapper* colObj0, int partId0, int index0, const btCollisionObjectWrapper* colObj1, int partId1, int index1) override {
@@ -906,7 +907,7 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
 
         // TODO: Give MyAvatar a motion state so we don't have to do this
         if ((m_collisionFilterMask & BULLET_COLLISION_GROUP_MY_AVATAR) && myAvatarCollisionObject && myAvatarCollisionObject == otherBody) {
-            contacts->emplace_back(Physics::getSessionUUID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint));
+            contacts.emplace_back(Physics::getSessionUUID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint));
             return 0;
         }
 
@@ -922,7 +923,7 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
         }
 
         // This is the correct object type. Add it to the list.
-        contacts->emplace_back(candidate->getObjectID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint));
+        contacts.emplace_back(candidate->getObjectID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint));
 
         return 0;
     }
@@ -933,7 +934,7 @@ protected:
     }
 };
 
-std::shared_ptr<std::vector<ContactTestResult>> PhysicsEngine::contactTest(uint16_t mask, const ShapeInfo& regionShapeInfo, const Transform& regionTransform, uint16_t group) const {
+std::vector<ContactTestResult> PhysicsEngine::contactTest(uint16_t mask, const ShapeInfo& regionShapeInfo, const Transform& regionTransform, uint16_t group) const {
     // TODO: Give MyAvatar a motion state so we don't have to do this
     btCollisionObject* myAvatarCollisionObject = nullptr;
     if ((mask & USER_COLLISION_GROUP_MY_AVATAR) && _myAvatarController) {

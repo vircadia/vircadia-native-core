@@ -127,7 +127,7 @@ public:
 
     // Function for getting colliding objects in the world of specified type
     // See PhysicsCollisionGroups.h for mask flags.
-    std::shared_ptr<std::vector<ContactTestResult>> contactTest(uint16_t mask, const ShapeInfo& regionShapeInfo, const Transform& regionTransform, uint16_t group = USER_COLLISION_GROUP_DYNAMIC) const;
+    std::vector<ContactTestResult> contactTest(uint16_t mask, const ShapeInfo& regionShapeInfo, const Transform& regionTransform, uint16_t group = USER_COLLISION_GROUP_DYNAMIC) const;
 
 private:
     QList<EntityDynamicPointer> removeDynamicsForBody(btRigidBody* body);

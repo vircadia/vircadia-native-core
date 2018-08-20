@@ -24,14 +24,10 @@ public:
     CollisionPickResult() {}
     CollisionPickResult(const QVariantMap& pickVariant) : PickResult(pickVariant) {}
 
-    CollisionPickResult(const CollisionRegion& searchRegion,
-        LoadState loadState,
-        std::shared_ptr<std::vector<ContactTestResult>> entityIntersections = std::make_shared<std::vector<ContactTestResult>>(),
-        std::shared_ptr<std::vector<ContactTestResult>> avatarIntersections = std::make_shared<std::vector<ContactTestResult>>()
-    ) :
+    CollisionPickResult(const CollisionRegion& searchRegion, LoadState loadState, const std::vector<ContactTestResult>& entityIntersections, const std::vector<ContactTestResult>& avatarIntersections) :
         PickResult(searchRegion.toVariantMap()),
         loadState(loadState),
-        intersects(entityIntersections->size() || avatarIntersections->size()),
+        intersects(entityIntersections.size() || avatarIntersections.size()),
         entityIntersections(entityIntersections),
         avatarIntersections(avatarIntersections) {
     }
@@ -45,8 +41,8 @@ public:
 
     LoadState loadState { LOAD_STATE_UNKNOWN };
     bool intersects { false };
-    std::shared_ptr<std::vector<ContactTestResult>> entityIntersections { std::make_shared<std::vector<ContactTestResult>>() };
-    std::shared_ptr<std::vector<ContactTestResult>> avatarIntersections { std::make_shared<std::vector<ContactTestResult>>() };
+    std::vector<ContactTestResult> entityIntersections;
+    std::vector<ContactTestResult> avatarIntersections;
 
     QVariantMap toVariantMap() const override;
 
@@ -69,7 +65,7 @@ public:
 
     CollisionRegion getMathematicalPick() const override;
     PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const override {
-        return std::make_shared<CollisionPickResult>(pickVariant, CollisionPickResult::LOAD_STATE_UNKNOWN, std::make_shared<std::vector<ContactTestResult>>(), std::make_shared<std::vector<ContactTestResult>>());
+        return std::make_shared<CollisionPickResult>(pickVariant, CollisionPickResult::LOAD_STATE_UNKNOWN, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
     }
     PickResultPointer getEntityIntersection(const CollisionRegion& pick) override;
     PickResultPointer getOverlayIntersection(const CollisionRegion& pick) override;
@@ -80,7 +76,7 @@ protected:
     // Returns true if pick.shapeInfo is valid. Otherwise, attempts to get the shapeInfo ready for use.
     bool isShapeInfoReady();
     void computeShapeInfo(CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<GeometryResource> resource);
-    void filterIntersections(std::shared_ptr<std::vector<ContactTestResult>> intersections) const;
+    void filterIntersections(std::vector<ContactTestResult>& intersections) const;
 
     CollisionRegion _mathPick;
     PhysicsEnginePointer _physicsEngine;
