@@ -57,9 +57,9 @@ ListModel {
     // Not normally set directly, but rather by giving a truthy argument to getFirstPage(true);
     property bool delayedClear: false;
     function resetModel() {
-        if (!delayedClear) { root.clear(); }
         currentPageToRetrieve = 1;
         retrievedAtLeastOnePage = false;
+        if (!delayedClear) { root.clear(); }
         totalPages = 0;
         totalEntries = 0;
     }
@@ -94,11 +94,13 @@ ListModel {
     function needsMoreHorizontalResults() {
         return flickable
             && currentPageToRetrieve > 0
+            && retrievedAtLeastOnePage
             && flickable.contentWidth < flickable.width;
     }
     function needsMoreVerticalResults() {
         return flickable
             && currentPageToRetrieve > 0
+            && retrievedAtLeastOnePage
             && flickable.contentHeight < flickable.height;
     }
     function getNextPageIfNotEnoughHorizontalResults() {

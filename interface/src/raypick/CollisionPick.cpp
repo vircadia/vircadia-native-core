@@ -1,0 +1,353 @@
+//
+//  Created by Sabrina Shanman 7/16/2018
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+#include "CollisionPick.h"
+
+#include <QtCore/QDebug>
+
+#include <glm/gtx/transform.hpp>
+
+#include "ScriptEngineLogging.h"
+#include "UUIDHasher.h"
+
+void buildObjectIntersectionsMap(IntersectionType intersectionType, const std::vector<ContactTestResult>& objectIntersections, std::unordered_map<QUuid, QVariantMap>& intersections, std::unordered_map<QUuid, QVariantList>& collisionPointPairs) {
+    for (auto& objectIntersection : objectIntersections) {
+        auto at = intersections.find(objectIntersection.foundID);
+        if (at == intersections.end()) {
+            QVariantMap intersectingObject;
+            intersectingObject["id"] = objectIntersection.foundID;
+            intersectingObject["type"] = intersectionType;
+            intersections[objectIntersection.foundID] = intersectingObject;
+
+            collisionPointPairs[objectIntersection.foundID] = QVariantList();
+        }
+
+        QVariantMap collisionPointPair;
+        collisionPointPair["pointOnPick"] = vec3toVariant(objectIntersection.testCollisionPoint);
+        collisionPointPair["pointOnObject"] = vec3toVariant(objectIntersection.foundCollisionPoint);
+
+        collisionPointPairs[objectIntersection.foundID].append(collisionPointPair);
+    }
+}
+
+QVariantMap CollisionPickResult::toVariantMap() const {
+    QVariantMap variantMap;
+
+    variantMap["intersects"] = intersects;
+
+    std::unordered_map<QUuid, QVariantMap> intersections;
+    std::unordered_map<QUuid, QVariantList> collisionPointPairs;
+
+    buildObjectIntersectionsMap(ENTITY, entityIntersections, intersections, collisionPointPairs);
+    buildObjectIntersectionsMap(AVATAR, avatarIntersections, intersections, collisionPointPairs);
+
+    QVariantList qIntersectingObjects;
+    for (auto& intersectionKeyVal : intersections) {
+        const QUuid& id = intersectionKeyVal.first;
+        QVariantMap& intersection = intersectionKeyVal.second;
+
+        intersection["collisionContacts"] = collisionPointPairs[id];
+        qIntersectingObjects.append(intersection);
+    }
+
+    variantMap["intersectingObjects"] = qIntersectingObjects;
+    variantMap["loaded"] = (loadState == LOAD_STATE_LOADED);
+    variantMap["collisionRegion"] = pickVariant;
+
+    return variantMap;
+}
+
+bool CollisionPick::isShapeInfoReady() {
+    if (_mathPick.shouldComputeShapeInfo()) {
+        if (_cachedResource && _cachedResource->isLoaded()) {
+            computeShapeInfo(_mathPick, *_mathPick.shapeInfo, _cachedResource);
+            return true;
+        }
+
+        return false;
+    }
+
+    return true;
+}
+
+void CollisionPick::computeShapeInfo(CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<GeometryResource> resource) {
+    // This code was copied and modified from RenderableModelEntityItem::computeShapeInfo
+    // TODO: Move to some shared code area (in entities-renderer? model-networking?)
+    // after we verify this is working and do a diff comparison with RenderableModelEntityItem::computeShapeInfo
+    // to consolidate the code.
+    // We may also want to make computeShapeInfo always abstract away from the gpu model mesh, like it does here.
+    const uint32_t TRIANGLE_STRIDE = 3;
+    const uint32_t QUAD_STRIDE = 4;
+
+    ShapeType type = shapeInfo.getType();
+    glm::vec3 dimensions = pick.transform.getScale();
+    if (type == SHAPE_TYPE_COMPOUND) {
+        // should never fall in here when collision model not fully loaded
+        // TODO: assert that all geometries exist and are loaded
+        //assert(_model && _model->isLoaded() && _compoundShapeResource && _compoundShapeResource->isLoaded());
+        const FBXGeometry& collisionGeometry = resource->getFBXGeometry();
+
+        ShapeInfo::PointCollection& pointCollection = shapeInfo.getPointCollection();
+        pointCollection.clear();
+        uint32_t i = 0;
+
+        // the way OBJ files get read, each section under a "g" line is its own meshPart.  We only expect
+        // to find one actual "mesh" (with one or more meshParts in it), but we loop over the meshes, just in case.
+        foreach (const FBXMesh& mesh, collisionGeometry.meshes) {
+            // each meshPart is a convex hull
+            foreach (const FBXMeshPart &meshPart, mesh.parts) {
+                pointCollection.push_back(QVector<glm::vec3>());
+                ShapeInfo::PointList& pointsInPart = pointCollection[i];
+
+                // run through all the triangles and (uniquely) add each point to the hull
+                uint32_t numIndices = (uint32_t)meshPart.triangleIndices.size();
+                // TODO: assert rather than workaround after we start sanitizing FBXMesh higher up
+                //assert(numIndices % TRIANGLE_STRIDE == 0);
+                numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXReader
+
+                for (uint32_t j = 0; j < numIndices; j += TRIANGLE_STRIDE) {
+                    glm::vec3 p0 = mesh.vertices[meshPart.triangleIndices[j]];
+                    glm::vec3 p1 = mesh.vertices[meshPart.triangleIndices[j + 1]];
+                    glm::vec3 p2 = mesh.vertices[meshPart.triangleIndices[j + 2]];
+                    if (!pointsInPart.contains(p0)) {
+                        pointsInPart << p0;
+                    }
+                    if (!pointsInPart.contains(p1)) {
+                        pointsInPart << p1;
+                    }
+                    if (!pointsInPart.contains(p2)) {
+                        pointsInPart << p2;
+                    }
+                }
+
+                // run through all the quads and (uniquely) add each point to the hull
+                numIndices = (uint32_t)meshPart.quadIndices.size();
+                // TODO: assert rather than workaround after we start sanitizing FBXMesh higher up
+                //assert(numIndices % QUAD_STRIDE == 0);
+                numIndices -= numIndices % QUAD_STRIDE; // WORKAROUND lack of sanity checking in FBXReader
+
+                for (uint32_t j = 0; j < numIndices; j += QUAD_STRIDE) {
+                    glm::vec3 p0 = mesh.vertices[meshPart.quadIndices[j]];
+                    glm::vec3 p1 = mesh.vertices[meshPart.quadIndices[j + 1]];
+                    glm::vec3 p2 = mesh.vertices[meshPart.quadIndices[j + 2]];
+                    glm::vec3 p3 = mesh.vertices[meshPart.quadIndices[j + 3]];
+                    if (!pointsInPart.contains(p0)) {
+                        pointsInPart << p0;
+                    }
+                    if (!pointsInPart.contains(p1)) {
+                        pointsInPart << p1;
+                    }
+                    if (!pointsInPart.contains(p2)) {
+                        pointsInPart << p2;
+                    }
+                    if (!pointsInPart.contains(p3)) {
+                        pointsInPart << p3;
+                    }
+                }
+
+                if (pointsInPart.size() == 0) {
+                    qCDebug(scriptengine) << "Warning -- meshPart has no faces";
+                    pointCollection.pop_back();
+                    continue;
+                }
+                ++i;
+            }
+        }
+
+        // We expect that the collision model will have the same units and will be displaced
+        // from its origin in the same way the visual model is.  The visual model has
+        // been centered and probably scaled.  We take the scaling and offset which were applied
+        // to the visual model and apply them to the collision model (without regard for the
+        // collision model's extents).
+
+        glm::vec3 scaleToFit = dimensions / resource->getFBXGeometry().getUnscaledMeshExtents().size();
+        // multiply each point by scale
+        for (int32_t i = 0; i < pointCollection.size(); i++) {
+            for (int32_t j = 0; j < pointCollection[i].size(); j++) {
+                // back compensate for registration so we can apply that offset to the shapeInfo later
+                pointCollection[i][j] = scaleToFit * pointCollection[i][j];
+            }
+        }
+        shapeInfo.setParams(type, dimensions, resource->getURL().toString());
+    } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
+        const FBXGeometry& fbxGeometry = resource->getFBXGeometry();
+        int numFbxMeshes = fbxGeometry.meshes.size();
+        int totalNumVertices = 0;
+        for (int i = 0; i < numFbxMeshes; i++) {
+            const FBXMesh& mesh = fbxGeometry.meshes.at(i);
+            totalNumVertices += mesh.vertices.size();
+        }
+        const int32_t MAX_VERTICES_PER_STATIC_MESH = 1e6;
+        if (totalNumVertices > MAX_VERTICES_PER_STATIC_MESH) {
+            qWarning() << "model" << resource->getURL() << "has too many vertices" << totalNumVertices << "and will collide as a box.";
+            shapeInfo.setParams(SHAPE_TYPE_BOX, 0.5f * dimensions);
+            return;
+        }
+
+        auto& meshes = resource->getFBXGeometry().meshes;
+        int32_t numMeshes = (int32_t)(meshes.size());
+
+        const int MAX_ALLOWED_MESH_COUNT = 1000;
+        if (numMeshes > MAX_ALLOWED_MESH_COUNT) {
+            // too many will cause the deadlock timer to throw...
+            shapeInfo.setParams(SHAPE_TYPE_BOX, 0.5f * dimensions);
+            return;
+        }
+
+        ShapeInfo::PointCollection& pointCollection = shapeInfo.getPointCollection();
+        pointCollection.clear();
+        if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
+            pointCollection.resize(numMeshes);
+        } else {
+            pointCollection.resize(1);
+        }
+
+        ShapeInfo::TriangleIndices& triangleIndices = shapeInfo.getTriangleIndices();
+        triangleIndices.clear();
+
+        Extents extents;
+        int32_t meshCount = 0;
+        int32_t pointListIndex = 0;
+        for (auto& mesh : meshes) {
+            if (!mesh.vertices.size()) {
+                continue;
+            }
+            QVector<glm::vec3> vertices = mesh.vertices;
+
+            ShapeInfo::PointList& points = pointCollection[pointListIndex];
+
+            // reserve room
+            int32_t sizeToReserve = (int32_t)(vertices.count());
+            if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
+                // a list of points for each mesh
+                pointListIndex++;
+            } else {
+                // only one list of points
+                sizeToReserve += (int32_t)points.size();
+            }
+            points.reserve(sizeToReserve);
+
+            // copy points
+            const glm::vec3* vertexItr = vertices.cbegin();
+            while (vertexItr != vertices.cend()) {
+                glm::vec3 point = *vertexItr;
+                points.push_back(point);
+                extents.addPoint(point);
+                ++vertexItr;
+            }
+
+            if (type == SHAPE_TYPE_STATIC_MESH) {
+                // copy into triangleIndices
+                size_t triangleIndicesCount = 0;
+                for (const FBXMeshPart& meshPart : mesh.parts) {
+                    triangleIndicesCount += meshPart.triangleIndices.count();
+                }
+                triangleIndices.reserve((int)triangleIndicesCount);
+
+                for (const FBXMeshPart& meshPart : mesh.parts) {
+                    const int* indexItr = meshPart.triangleIndices.cbegin();
+                    while (indexItr != meshPart.triangleIndices.cend()) {
+                        triangleIndices.push_back(*indexItr);
+                        ++indexItr;
+                    }
+                }
+            } else if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
+                // for each mesh copy unique part indices, separated by special bogus (flag) index values
+                for (const FBXMeshPart& meshPart : mesh.parts) {
+                    // collect unique list of indices for this part
+                    std::set<int32_t> uniqueIndices;
+                    auto numIndices = meshPart.triangleIndices.count();
+                    // TODO: assert rather than workaround after we start sanitizing FBXMesh higher up
+                    //assert(numIndices% TRIANGLE_STRIDE == 0);
+                    numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXReader
+
+                    auto indexItr = meshPart.triangleIndices.cbegin();
+                    while (indexItr != meshPart.triangleIndices.cend()) {
+                        uniqueIndices.insert(*indexItr);
+                        ++indexItr;
+                    }
+
+                    // store uniqueIndices in triangleIndices
+                    triangleIndices.reserve(triangleIndices.size() + (int32_t)uniqueIndices.size());
+                    for (auto index : uniqueIndices) {
+                        triangleIndices.push_back(index);
+                    }
+                    // flag end of part
+                    triangleIndices.push_back(END_OF_MESH_PART);
+                }
+                // flag end of mesh
+                triangleIndices.push_back(END_OF_MESH);
+            }
+            ++meshCount;
+        }
+
+        // scale and shift
+        glm::vec3 extentsSize = extents.size();
+        glm::vec3 scaleToFit = dimensions / extentsSize;
+        for (int32_t i = 0; i < 3; ++i) {
+            if (extentsSize[i] < 1.0e-6f) {
+                scaleToFit[i] = 1.0f;
+            }
+        }
+        for (auto points : pointCollection) {
+            for (int32_t i = 0; i < points.size(); ++i) {
+                points[i] = (points[i] * scaleToFit);
+            }
+        }
+
+        shapeInfo.setParams(type, 0.5f * dimensions, resource->getURL().toString());
+    }
+}
+
+CollisionRegion CollisionPick::getMathematicalPick() const {
+    return _mathPick;
+}
+
+const std::vector<ContactTestResult> CollisionPick::filterIntersections(const std::vector<ContactTestResult>& intersections) const {
+    std::vector<ContactTestResult> filteredIntersections;
+
+    const QVector<QUuid>& ignoreItems = getIgnoreItems();
+    const QVector<QUuid>& includeItems = getIncludeItems();
+    bool isWhitelist = includeItems.size();
+    for (const auto& intersection : intersections) {
+        const QUuid& id = intersection.foundID;
+        if (!ignoreItems.contains(id) && (!isWhitelist || includeItems.contains(id))) {
+            filteredIntersections.push_back(intersection);
+        }
+    }
+
+    return filteredIntersections;
+}
+
+PickResultPointer CollisionPick::getEntityIntersection(const CollisionRegion& pick) {
+    if (!isShapeInfoReady()) {
+        // Cannot compute result
+        return std::make_shared<CollisionPickResult>(pick.toVariantMap(), CollisionPickResult::LOAD_STATE_NOT_LOADED, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
+    }
+    
+    const auto& entityIntersections = filterIntersections(_physicsEngine->getCollidingInRegion(MOTIONSTATE_TYPE_ENTITY, *pick.shapeInfo, pick.transform));
+    return std::make_shared<CollisionPickResult>(pick, CollisionPickResult::LOAD_STATE_LOADED, entityIntersections, std::vector<ContactTestResult>());
+}
+
+PickResultPointer CollisionPick::getOverlayIntersection(const CollisionRegion& pick) {
+    return std::make_shared<CollisionPickResult>(pick.toVariantMap(), isShapeInfoReady() ? CollisionPickResult::LOAD_STATE_LOADED : CollisionPickResult::LOAD_STATE_NOT_LOADED, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
+}
+
+PickResultPointer CollisionPick::getAvatarIntersection(const CollisionRegion& pick) {
+    if (!isShapeInfoReady()) {
+        // Cannot compute result
+        return std::make_shared<CollisionPickResult>(pick.toVariantMap(), CollisionPickResult::LOAD_STATE_NOT_LOADED, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
+    }
+
+    const auto& avatarIntersections = filterIntersections(_physicsEngine->getCollidingInRegion(MOTIONSTATE_TYPE_AVATAR, *pick.shapeInfo, pick.transform));
+    return std::make_shared<CollisionPickResult>(pick, CollisionPickResult::LOAD_STATE_LOADED, std::vector<ContactTestResult>(), avatarIntersections);
+}
+
+PickResultPointer CollisionPick::getHUDIntersection(const CollisionRegion& pick) {
+    return std::make_shared<CollisionPickResult>(pick.toVariantMap(), isShapeInfoReady() ? CollisionPickResult::LOAD_STATE_LOADED : CollisionPickResult::LOAD_STATE_NOT_LOADED, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
+}

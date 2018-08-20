@@ -21,8 +21,6 @@ TCPVegasCC::TCPVegasCC() {
     _packetSendPeriod = 0.0;
     _congestionWindowSize = 2;
 
-    setAckInterval(1); // TCP sends an ACK for every packet received
-
     // set our minimum RTT variables to the maximum possible value
     // we can't do this as a member initializer until our VS has support for constexpr
     _currentMinRTT = std::numeric_limits<int>::max();
@@ -103,12 +101,11 @@ bool TCPVegasCC::onACK(SequenceNumber ack, p_high_resolution_clock::time_point r
 
         auto it = _sentPacketTimes.find(ack + 1);
         if (it != _sentPacketTimes.end()) {
-            auto estimatedTimeout = _ewmaRTT + _rttVariance * 4;
 
             auto now = p_high_resolution_clock::now();
             auto sinceSend = duration_cast<microseconds>(now - it->second).count();
 
-            if (sinceSend >= estimatedTimeout) {
+            if (sinceSend >= estimatedTimeout()) {
                 // break out of slow start, we've decided this is loss
                 _slowStart = false;
 
@@ -213,6 +210,11 @@ void TCPVegasCC::performCongestionAvoidance(udt::SequenceNumber ack) {
 
     // reset our count of collected RTT samples
     _numACKs = 0;
+}
+
+
+int TCPVegasCC::estimatedTimeout() const {
+    return _ewmaRTT == -1 ? DEFAULT_SYN_INTERVAL : _ewmaRTT + _rttVariance * 4;
 }
 
 bool TCPVegasCC::isCongestionWindowLimited() {

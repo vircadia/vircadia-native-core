@@ -15,20 +15,24 @@
 #include <shellapi.h>
 #endif
 
-AutoTester::AutoTester(QWidget *parent) : QMainWindow(parent) {
+AutoTester::AutoTester(QWidget* parent) : QMainWindow(parent) {
     _ui.setupUi(this);
+
     _ui.checkBoxInteractiveMode->setChecked(true);
     _ui.progressBar->setVisible(false);
+    _ui.tabWidget->setCurrentIndex(0);
 
     _signalMapper = new QSignalMapper();
 
     connect(_ui.actionClose, &QAction::triggered, this, &AutoTester::on_closeButton_clicked);
     connect(_ui.actionAbout, &QAction::triggered, this, &AutoTester::about);
+    connect(_ui.actionContent, &QAction::triggered, this, &AutoTester::content);
 
 #ifndef Q_OS_WIN
-    _ui.hideTaskbarButton->setVisible(false);
-    _ui.showTaskbarButton->setVisible(false);
+    _ui.tabWidget->setTabEnabled(3, false);
 #endif
+
+   // helpWindow.textBrowser->setText()
 }
 
 void AutoTester::setup() {
@@ -38,6 +42,16 @@ void AutoTester::setup() {
 void AutoTester::runFromCommandLine(const QString& testFolder, const QString& branch, const QString& user) {
     _isRunningFromCommandline = true;
     _test->startTestsEvaluation(testFolder, branch, user);
+}
+
+void AutoTester::on_tabWidget_currentChanged(int index) {
+    if (index == 1 || index == 2) {
+        _ui.userTextEdit->setDisabled(false);
+        _ui.branchTextEdit->setDisabled(false);
+    } else {
+        _ui.userTextEdit->setDisabled(true);
+        _ui.branchTextEdit->setDisabled(true);
+    }
 }
 
 void AutoTester::on_evaluateTestsButton_clicked() {
@@ -53,7 +67,7 @@ void AutoTester::on_createAllRecursiveScriptsButton_clicked() {
 }
 
 void AutoTester::on_createTestsButton_clicked() {
-	_test->createTests();
+    _test->createTests();
 }
 
 void AutoTester::on_createMDFileButton_clicked() {
@@ -74,6 +88,10 @@ void AutoTester::on_createTestRailTestCasesButton_clicked() {
 
 void AutoTester::on_createTestRailRunButton_clicked() {
     _test->createTestRailRun();
+}
+
+void AutoTester::on_updateTestRailRunResultsButton_clicked() {
+    _test->updateTestRailRunResult();
 }
 
 // To toggle between show and hide
@@ -114,7 +132,7 @@ void AutoTester::on_createXMLScriptRadioButton_clicked() {
 
 void AutoTester::downloadImage(const QUrl& url) {
     _downloaders.emplace_back(new Downloader(url, this));
-    connect(_downloaders[_index], SIGNAL (downloaded()), _signalMapper, SLOT (map()));
+    connect(_downloaders[_index], SIGNAL(downloaded()), _signalMapper, SLOT(map()));
 
     _signalMapper->setMapping(_downloaders[_index], _index);
 
@@ -140,7 +158,7 @@ void AutoTester::downloadImages(const QStringList& URLs, const QString& director
         downloadImage(imageURL);
     }
 
-    connect(_signalMapper, SIGNAL (mapped(int)), this, SLOT (saveImage(int)));
+    connect(_signalMapper, SIGNAL(mapped(int)), this, SLOT(saveImage(int)));
 }
 
 void AutoTester::saveImage(int index) {
@@ -158,7 +176,7 @@ void AutoTester::saveImage(int index) {
     ++_numberOfImagesDownloaded;
 
     if (_numberOfImagesDownloaded == _numberOfImagesToDownload) {
-        disconnect(_signalMapper, SIGNAL (mapped(int)), this, SLOT (saveImage(int)));
+        disconnect(_signalMapper, SIGNAL(mapped(int)), this, SLOT(saveImage(int)));
         _test->finishTestsEvaluation(_isRunningFromCommandline, _ui.checkBoxInteractiveMode->isChecked(), _ui.progressBar);
     } else {
         _ui.progressBar->setValue(_numberOfImagesDownloaded);
@@ -169,12 +187,15 @@ void AutoTester::about() {
     QMessageBox::information(0, "About", QString("Built ") + __DATE__ + " : " + __TIME__);
 }
 
+void AutoTester::content() {
+    helpWindow.show();
+}
+
 void AutoTester::setUserText(const QString& user) {
     _ui.userTextEdit->setText(user);
 }
 
-QString AutoTester::getSelectedUser()
-{
+QString AutoTester::getSelectedUser() {
     return _ui.userTextEdit->toPlainText();
 }
 

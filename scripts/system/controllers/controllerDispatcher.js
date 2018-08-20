@@ -12,7 +12,8 @@
    LEFT_HAND, RIGHT_HAND, NEAR_GRAB_PICK_RADIUS, DEFAULT_SEARCH_SPHERE_DISTANCE, DISPATCHER_PROPERTIES,
    getGrabPointSphereOffset, HMD, MyAvatar, Messages, findHandChildEntities, Picks, PickType, Pointers, COLORS_GRAB_SEARCHING_HALF_SQUEEZE
    COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD, TRIGGER_ON_VALUE, PointerManager, print
-   Selection, DISPATCHER_HOVERING_LIST, DISPATCHER_HOVERING_STYLE
+   getGrabPointSphereOffset, HMD, MyAvatar, Messages, findHandChildEntities, Picks, PickType, Pointers,
+   PointerManager, print, Selection, DISPATCHER_HOVERING_LIST, DISPATCHER_HOVERING_STYLE
 */
 
 controllerDispatcherPlugins = {};

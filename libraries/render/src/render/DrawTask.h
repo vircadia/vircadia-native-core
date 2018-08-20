@@ -95,9 +95,10 @@ protected:
              const gpu::BufferView& indices, int indexCount);
 
     gpu::BufferView _meshVertices;
-    gpu::BufferStream _meshStream;
     glm::vec3 _color;
     bool _isUpdateEnabled{ true };
+
+    static gpu::Stream::FormatPointer _format;
 
     static gpu::PipelinePointer getPipeline();
 };

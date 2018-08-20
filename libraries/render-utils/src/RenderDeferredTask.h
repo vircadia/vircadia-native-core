@@ -16,6 +16,7 @@
 #include <render/RenderFetchCullSortTask.h>
 #include "LightingModel.h"
 #include "LightClusters.h"
+#include "RenderShadowTask.h"
 
 class DrawDeferredConfig : public render::Job::Config {
     Q_OBJECT
@@ -87,7 +88,8 @@ public:
     using JobModel = render::Job::ModelI<DrawStateSortDeferred, Inputs, Config>;
 
     DrawStateSortDeferred(render::ShapePlumberPointer shapePlumber)
-        : _shapePlumber{ shapePlumber } {}
+        : _shapePlumber{ shapePlumber } {
+    }
 
     void configure(const Config& config) {
         _maxDrawn = config.maxDrawn;
@@ -99,6 +101,19 @@ protected:
     render::ShapePlumberPointer _shapePlumber;
     int _maxDrawn;  // initialized by Config
     bool _stateSort;
+};
+
+class SetSeparateDeferredDepthBuffer {
+public:
+    using Inputs = DeferredFramebufferPointer;
+    using JobModel = render::Job::ModelI<SetSeparateDeferredDepthBuffer, Inputs>;
+
+    SetSeparateDeferredDepthBuffer() = default;
+
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
+
+protected:
+    gpu::FramebufferPointer _framebuffer;
 };
 
 class RenderDeferredTaskConfig : public render::Task::Config {
@@ -121,7 +136,7 @@ signals:
 
 class RenderDeferredTask {
 public:
-    using Input = RenderFetchCullSortTask::Output;
+    using Input = render::VaryingSet2<RenderFetchCullSortTask::Output, RenderShadowTask::Output>;
     using Config = RenderDeferredTaskConfig;
     using JobModel = render::Task::ModelI<RenderDeferredTask, Input, Config>;
 

@@ -75,8 +75,8 @@ void CauterizedModel::createRenderItemSet() {
 
         // Run through all of the meshes, and place them into their segregated, but unsorted buckets
         int shapeID = 0;
-        const FBXGeometry& fbxGeometry = getFBXGeometry();
         uint32_t numMeshes = (uint32_t)meshes.size();
+        const FBXGeometry& fbxGeometry = getFBXGeometry();
         for (uint32_t i = 0; i < numMeshes; i++) {
             const auto& mesh = meshes.at(i);
             if (!mesh) {
@@ -86,7 +86,7 @@ void CauterizedModel::createRenderItemSet() {
             // Create the render payloads
             int numParts = (int)mesh->getNumParts();
             for (int partIndex = 0; partIndex < numParts; partIndex++) {
-                if (!fbxGeometry.meshes[i].blendshapes.empty()) {
+                if (!fbxGeometry.meshes[i].blendshapes.empty() && !_blendedVertexBuffers[i]) {
                     _blendedVertexBuffers[i] = std::make_shared<gpu::Buffer>();
                     _blendedVertexBuffers[i]->resize(fbxGeometry.meshes[i].vertices.size() * (sizeof(glm::vec3) + 2 * sizeof(NormalType)));
                 }

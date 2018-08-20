@@ -360,11 +360,11 @@ void AudioInputDeviceList::onPeakValueListChanged(const QList<float>& peakValueL
 }
 
 AudioDevices::AudioDevices(bool& contextIsHMD) : _contextIsHMD(contextIsHMD) {
-    auto client = DependencyManager::get<AudioClient>();
+    auto client = DependencyManager::get<AudioClient>().data();
 
-    connect(client.data(), &AudioClient::deviceChanged, this, &AudioDevices::onDeviceChanged, Qt::QueuedConnection);
-    connect(client.data(), &AudioClient::devicesChanged, this, &AudioDevices::onDevicesChanged, Qt::QueuedConnection);
-    connect(client.data(), &AudioClient::peakValueListChanged, &_inputs, &AudioInputDeviceList::onPeakValueListChanged, Qt::QueuedConnection);
+    connect(client, &AudioClient::deviceChanged, this, &AudioDevices::onDeviceChanged, Qt::QueuedConnection);
+    connect(client, &AudioClient::devicesChanged, this, &AudioDevices::onDevicesChanged, Qt::QueuedConnection);
+    connect(client, &AudioClient::peakValueListChanged, &_inputs, &AudioInputDeviceList::onPeakValueListChanged, Qt::QueuedConnection);
 
     _inputs.onDeviceChanged(client->getActiveAudioDevice(QAudio::AudioInput), contextIsHMD);
     _outputs.onDeviceChanged(client->getActiveAudioDevice(QAudio::AudioOutput), contextIsHMD);
@@ -446,7 +446,7 @@ void AudioDevices::onDevicesChanged(QAudio::Mode mode, const QList<QAudioDeviceI
     static std::once_flag once;
     std::call_once(once, [&] {
         //readout settings
-        auto client = DependencyManager::get<AudioClient>();
+        auto client = DependencyManager::get<AudioClient>().data();
 
         _inputs._hmdSavedDeviceName = getTargetDevice(true, QAudio::AudioInput);
         _inputs._desktopSavedDeviceName = getTargetDevice(false, QAudio::AudioInput);
@@ -494,9 +494,9 @@ void AudioDevices::onDevicesChanged(QAudio::Mode mode, const QList<QAudioDeviceI
 void AudioDevices::chooseInputDevice(const QAudioDeviceInfo& device, bool isHMD) {
     //check if current context equals device to change
     if (_contextIsHMD == isHMD) {
-        auto client = DependencyManager::get<AudioClient>();
+        auto client = DependencyManager::get<AudioClient>().data();
         _requestedInputDevice = device;
-        QMetaObject::invokeMethod(client.data(), "switchAudioDevice",
+        QMetaObject::invokeMethod(client, "switchAudioDevice",
                                   Q_ARG(QAudio::Mode, QAudio::AudioInput),
                                   Q_ARG(const QAudioDeviceInfo&, device));
     } else {
@@ -511,9 +511,9 @@ void AudioDevices::chooseInputDevice(const QAudioDeviceInfo& device, bool isHMD)
 void AudioDevices::chooseOutputDevice(const QAudioDeviceInfo& device, bool isHMD) {
     //check if current context equals device to change
     if (_contextIsHMD == isHMD) {
-        auto client = DependencyManager::get<AudioClient>();
+        auto client = DependencyManager::get<AudioClient>().data();
         _requestedOutputDevice = device;
-        QMetaObject::invokeMethod(client.data(), "switchAudioDevice",
+        QMetaObject::invokeMethod(client, "switchAudioDevice",
                                   Q_ARG(QAudio::Mode, QAudio::AudioOutput),
                                   Q_ARG(const QAudioDeviceInfo&, device));
     } else {

@@ -661,7 +661,7 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
             return false;
         }
 
-        AnimStateMachine::InterpType interpTypeEnum = AnimStateMachine::InterpType::SnapshotBoth;  // default value
+        AnimStateMachine::InterpType interpTypeEnum = AnimStateMachine::InterpType::SnapshotPrev;  // default value
         if (!interpType.isEmpty()) {
             interpTypeEnum = stringToInterpType(interpType);
             if (interpTypeEnum == AnimStateMachine::InterpType::NumTypes) {

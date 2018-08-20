@@ -654,10 +654,10 @@ const ViewFrustum::Corners ViewFrustum::getCorners(const float depth) const {
     };
 }
 
-float ViewFrustum::distanceToCamera(const glm::vec3& point) const {
+float ViewFrustum::distanceToCameraSquared(const glm::vec3& point) const {
     glm::vec3 temp = getPosition() - point;
-    float distanceToPoint = sqrtf(glm::dot(temp, temp));
-    return distanceToPoint;
+    float distanceToPointSquared = glm::dot(temp, temp);
+    return distanceToPointSquared;
 }
 
 void ViewFrustum::evalProjectionMatrix(glm::mat4& proj) const {
