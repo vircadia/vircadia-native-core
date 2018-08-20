@@ -6,12 +6,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-var entities = {};
-var selectedEntities = [];
-var currentSortColumn = 'type';
-var currentSortOrder = 'des';
-var entityList = null;
-var refreshEntityListTimer = null;
+const ASCENDING_SORT = 1;
+const DESCENDING_SORT = -1;
 const ASCENDING_STRING = '&#x25B4;';
 const DESCENDING_STRING = '&#x25BE;';
 const LOCKED_GLYPH = "&#xe006;";
@@ -22,6 +18,30 @@ const SCRIPT_GLYPH = "k";
 const DELETE = 46; // Key code for the delete key.
 const KEY_P = 80; // Key code for letter p used for Parenting hotkey.
 const MAX_ITEMS = Number.MAX_VALUE; // Used to set the max length of the list of discovered entities.
+
+const COMPARE_ASCENDING = function(a, b) {
+    let va = a[currentSortColumn];
+    let vb = b[currentSortColumn];
+
+    if (va < vb) {
+        return -1;
+    }  else if (va > vb) {
+        return 1;
+    }
+    return 0;
+}
+const COMPARE_DESCENDING = function(a, b) {
+    return COMPARE_ASCENDING(b, a);
+}
+
+var entities = {};
+var entityCount = 0;
+// Raw entity data sent from script
+let entityData = []
+var selectedEntities = [];
+var currentSortColumn = 'type';
+var currentSortOrder = ASCENDING_SORT;
+var refreshEntityListTimer = null;
 
 log = function(msg) {
     EventBridge.emitWebEvent(msg);
@@ -47,8 +67,6 @@ debugPrint = function (message) {
 
 function loaded() {
     openEventBridge(function() {
-        entityList = new List('entity-list', { valueNames: ['name', 'type', 'url', 'locked', 'visible'], page: MAX_ITEMS});
-        entityList.clear();
         elEntityTable = document.getElementById("entity-table");
         elEntityTableBody = document.getElementById("entity-table-body");
         elRefresh = document.getElementById("refresh");
@@ -107,10 +125,12 @@ function loaded() {
         };
 
         function onRowClicked(clickEvent) {
-            var id = this.dataset.entityId;
-            var selection = [this.dataset.entityId];
+            let entityID = this.dataset.entityID;
+            console.log("CLICKED", entityID, this);
+            //return;
+            var selection = [entityID];
             if (clickEvent.ctrlKey) {
-                var selectedIndex = selectedEntities.indexOf(id);
+                var selectedIndex = selectedEntities.indexOf(entityID);
                 if (selectedIndex >= 0) {
                     selection = selectedEntities;
                     selection.splice(selectedIndex, 1)
@@ -121,7 +141,7 @@ function loaded() {
                 var previousItemFound = -1;
                 var clickedItemFound = -1;
                 for (var entity in entityList.visibleItems) {
-                    if (clickedItemFound === -1 && this.dataset.entityId == entityList.visibleItems[entity].values().id) {
+                    if (clickedItemFound === -1 && entityID == entityList.visibleItems[entity].values().id) {
                         clickedItemFound = entity;
                     } else if(previousItemFound === -1 && selectedEntities[0] == entityList.visibleItems[entity].values().id) {
                         previousItemFound = entity;
@@ -143,6 +163,12 @@ function loaded() {
                 }
             }
 
+            selectedEntities.forEach(function(entityID) {
+                if (selection.indexOf(entityID) === -1) {
+                    entities[entityID].el.className = '';
+                }
+            });
+
             selectedEntities = selection;
 
             this.className = 'selected';
@@ -160,7 +186,7 @@ function loaded() {
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "selectionUpdate",
                 focus: true,
-                entityIds: [this.dataset.entityId],
+                entityIds: [this.dataset.entityID],
             }));
         }
 
@@ -179,90 +205,88 @@ function loaded() {
             return urlParts[urlParts.length - 1];
         }
 
-        //function addEntity(
-        //id, name, type, url, locked, visible, verticesCount,
-        //texturesCount, texturesSize, hasTransparent,
-        //isBaked, drawCalls, hasScript) {
-        function addEntities(entityData) {
+        function refreshEntityList() {
             const IMAGE_MODEL_NAME = 'default-image-model.fbx';
 
-            let newEntities = entityData.filter(function(entity) {
-                if (entity.id in entities) {
-                    var item = entities[entity.id].item;
-                    item.values({
+            PROFILE("sort", function() {
+                let cmp = currentSortOrder === ASCENDING_SORT ? COMPARE_ASCENDING : COMPARE_DESCENDING;
+                console.log("Doing sort", currentSortColumn, currentSortOrder);
+                entityData.sort(cmp);
+            });
+
+            entities = {};
+
+            let newEntities;
+            PROFILE("map-data", function() {
+                newEntities = entityData.map(function(entity) {
+                    let type = entity.type;
+                    let filename = getFilename(entity.url);
+                    if (filename === IMAGE_MODEL_NAME) {
+                        type = "Image";
+                    }
+                    return {
+                        id: entity.id,
                         name: entity.name,
-                        url: getFilename(entity.url),
-                        locked: entity.locked,
-                        visible: entity.visible
-                    });
-                    return false;
-                }
-                return true;
-            });
-
-            if (newEntities.length === 0) {
-                return;
-            }
-
-            newEntities = newEntities.map(function(entity) {
-                let type = entity.type;
-                let filename = getFilename(entity.url);
-                if (filename === IMAGE_MODEL_NAME) {
-                    type = "Image";
-                }
-                return {
-                    id: entity.id,
-                    name: entity.name,
-                    type: type,
-                    url: filename,
-                    fullUrl: entity.url,
-                    locked: entity.locked ? LOCKED_GLYPH : null,
-                    visible: entity.visible ? VISIBLE_GLYPH : null,
-                    verticesCount: displayIfNonZero(entity.verticesCount),
-                    texturesCount: displayIfNonZero(entity.texturesCount),
-                    texturesSize: decimalMegabytes(entity.texturesSize),
-                    hasTransparent: entity.hasTransparent ? TRANSPARENCY_GLYPH : null,
-                    isBaked: entity.isBaked ? BAKED_GLYPH : null,
-                    drawCalls: displayIfNonZero(entity.drawCalls),
-                    hasScript: entity.hasScript ? SCRIPT_GLYPH : null
-                }
-            });
-                //newEntities = newEntities.splice(newEntities.length - 10);
-                console.log("Adding: " + newEntities.length);
-
-            let size = 2000;
-            let sets = Math.ceil(newEntities.length / size);
-            for (let i = 0; i < sets; i++) {
-                
-                console.log(Date.now(), "Adding", i * size, (i + 1) * size);
-            entityList.add(newEntities.splice(i * size, (i + 1) * size),
-                function (items) {
-                    console.log(Date.now(), "added: " + items.length);
-                    items.forEach(function(item) {
-                        var currentElement = item.elm;
-                        var values = item._values;
-
-                        entities[values.id] = {
-                            id: values.id,
-                            name: values.name,
-                            el: currentElement,
-                            item: item
-                        };
-                        currentElement.setAttribute('id', 'entity_' + values.id);
-                        currentElement.setAttribute('title', values.fullUrl);
-                        currentElement.dataset.entityId = values.id;
-                        currentElement.onclick = onRowClicked;
-                        currentElement.ondblclick = onRowDoubleClicked;
-                    });
+                        type: type,
+                        url: filename,
+                        fullUrl: entity.url,
+                        locked: entity.locked ? LOCKED_GLYPH : null,
+                        visible: entity.visible ? VISIBLE_GLYPH : null,
+                        verticesCount: displayIfNonZero(entity.verticesCount),
+                        texturesCount: displayIfNonZero(entity.texturesCount),
+                        texturesSize: decimalMegabytes(entity.texturesSize),
+                        hasTransparent: entity.hasTransparent ? TRANSPARENCY_GLYPH : null,
+                        isBaked: entity.isBaked ? BAKED_GLYPH : null,
+                        drawCalls: displayIfNonZero(entity.drawCalls),
+                        hasScript: entity.hasScript ? SCRIPT_GLYPH : null
+                    }
                 });
-            }
-            console.log(Date.now(), "DONE");
+            });
+
+            console.log("Adding: " + newEntities.length);
+
+            elEntityTableBody.innerHTML = '';
+
+            entities = {};
+
+            PROFILE("update-dom", function() {
+            newEntities.forEach(function(entity) {
+                let row = document.createElement('tr');
+                row.dataset.entityID = entity.id;
+                row.attributes.title = entity.fullUrl;
+                function addColumn(cls, text) {
+                    let col = document.createElement('td');
+                    col.className = cls;
+                    col.innerText = text;
+                    row.append(col);
+                }
+                addColumn('type', entity.type);
+                addColumn('name', entity.name);
+                addColumn('url', entity.url);
+                addColumn('locked glyph', entity.locked);
+                addColumn('visible glyph', entity.visible);
+                addColumn('verticesCount', entity.verticesCount);
+                addColumn('texturesCount', entity.texturesCount);
+                addColumn('texturesSize', entity.texturesSize);
+                addColumn('hasTransparent glyph', entity.hasTransparent);
+                addColumn('isBaked glyph', entity.isBaked);
+                addColumn('drawCalls', entity.drawCalls);
+                addColumn('hasScript glyph', entity.hasScript);
+                elEntityTableBody.append(row);
+                row.addEventListener('click', onRowClicked);
+                row.addEventListener('dblclick', onRowDoubleClicked);
+                entities[entity.id] = { el: row };
+            });
+                
+            });
         }
 
         function removeEntities(deletedIDs) {
+            return;
             for (i = 0, length = deletedIDs.length; i < length; i++) {
-                delete entities[deletedIDs[i]];
-                entityList.remove("id", deletedIDs[i]);
+                let id = deletedIDs[i];
+                entities[id].el.remove();
+                delete entities[id];
             }
         }
 
@@ -276,7 +300,6 @@ function loaded() {
 
         function clearEntities() {
             entities = {};
-            entityList.clear();
             refreshFooter();
         }
 
@@ -295,15 +318,19 @@ function loaded() {
             hasScript: document.querySelector('#entity-hasScript .sort-order'),
         }
         function setSortColumn(column) {
-            if (currentSortColumn == column) {
-                currentSortOrder = currentSortOrder == "asc" ? "desc" : "asc";
-            } else {
-                elSortOrder[currentSortColumn].innerHTML = "";
-                currentSortColumn = column;
-                currentSortOrder = "asc";
-            }
-            elSortOrder[column].innerHTML = currentSortOrder == "asc" ? ASCENDING_STRING : DESCENDING_STRING;
-            entityList.sort(currentSortColumn, { order: currentSortOrder });
+            PROFILE("set-sort-column", function() {
+                if (currentSortColumn == column) {
+                    currentSortOrder *= -1;
+                } else {
+                    elSortOrder[currentSortColumn].innerHTML = "";
+                    currentSortColumn = column;
+                    currentSortOrder = ASCENDING_SORT;
+                }
+                elSortOrder[column].innerHTML = currentSortOrder == ASCENDING_SORT ? ASCENDING_STRING : DESCENDING_STRING;
+                
+                //entityList.sort(currentSortColumn, { order: currentSortOrder });
+                refreshEntityList();
+            });
         }
         setSortColumn('type');
 
@@ -313,21 +340,22 @@ function loaded() {
         }
 
         function refreshFooter() {
+            return;
             if (selectedEntities.length > 1) {
                 elFooter.firstChild.nodeValue = selectedEntities.length + " entities selected";
             } else if (selectedEntities.length === 1) {
                 elFooter.firstChild.nodeValue = "1 entity selected";
-            } else if (entityList.visibleItems.length === 1) {
+            } else if (entityCount === 1) {
                 elFooter.firstChild.nodeValue = "1 entity found";
             } else {
-                elFooter.firstChild.nodeValue = entityList.visibleItems.length + " entities found";
+                elFooter.firstChild.nodeValue = entityCount + " entities found";
             }
         }
 
         function refreshEntityListObject() {
             refreshEntityListTimer = null;
-            entityList.sort(currentSortColumn, { order: currentSortOrder });
-            entityList.search(elFilter.value);
+            //entityList.sort(currentSortColumn, { order: currentSortOrder });
+            //entityList.search(elFilter.value);
             refreshFooter();
         }
 
@@ -433,10 +461,11 @@ function loaded() {
                             elFooter.firstChild.nodeValue = "0 entities found";
                         } else if (newEntities) {
                             elNoEntitiesMessage.style.display = "none";
-                            addEntities(newEntities);
-                            updateSelectedEntities(data.selectedIDs);
-                            scheduleRefreshEntityList();
-                            resize();
+                            entityData = newEntities;
+                            refreshEntityList();
+                            //updateSelectedEntities(data.selectedIDs);
+                            //scheduleRefreshEntityList();
+                            //resize();
                         }
                     });
                 } else if (data.type === "removeEntities" && data.deletedIDs !== undefined && data.selectedIDs !== undefined) {

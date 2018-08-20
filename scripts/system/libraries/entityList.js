@@ -137,13 +137,16 @@ EntityListTool = function(shouldUseEditTabletApp) {
             var entities = [];
 
             var ids;
+            PROFILE("findEntities", function() {
             if (filterInView) {
                 ids = Entities.findEntitiesInFrustum(Camera.frustum);
             } else {
                 ids = Entities.findEntities(MyAvatar.position, searchRadius);
             }
+            });
 
             var cameraPosition = Camera.position;
+            PROFILE("getProperties", function() {
             for (var i = 0; i < ids.length; i++) {
                 var id = ids[i];
                 var properties = Entities.getEntityProperties(id);
@@ -177,6 +180,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
                     });
                 }
             }
+            });
 
             var selectedIDs = [];
             for (var j = 0; j < selectionManager.selections.length; j++) {
