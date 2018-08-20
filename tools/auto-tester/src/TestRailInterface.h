@@ -92,10 +92,10 @@ public:
 
 private:
     // HighFidelity Interface project ID in TestRail
-    const int INTERFACE_PROJECT_ID{ 24 };
+    const int INTERFACE_AUTOMATION_PROJECT_ID{ 26 };
 
     // Rendering suite ID
-    const int INTERFACE_SUITE_ID{ 1147 };
+    const int INTERFACE_SUITE_ID{ 1312 };
 
     QDomDocument _document;
 
