@@ -2432,7 +2432,7 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
     }
 
     if (json.contains(JSON_AVATAR_ENTITIES) && json[JSON_AVATAR_ENTITIES].isArray()) {
-         QJsonArray attachmentsJson = json[JSON_AVATAR_ATTACHMENTS].toArray();
+         QJsonArray attachmentsJson = json[JSON_AVATAR_ENTITIES].toArray();
          for (auto attachmentJson : attachmentsJson) {
              if (attachmentJson.isObject()) {
                  QVariantMap entityData = attachmentJson.toObject().toVariantMap();
