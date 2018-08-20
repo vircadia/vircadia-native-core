@@ -2439,8 +2439,8 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         }
 
     } else if (connection->requestOperation() == QNetworkAccessManager::DeleteOperation) {
-        const QString ALL_NODE_DELETE_REGEX_STRING = QString("\\%1\\/?$").arg(URI_NODES);
-        const QString NODE_DELETE_REGEX_STRING = QString("\\%1\\/(%2)\\/$").arg(URI_NODES).arg(UUID_REGEX_STRING);
+        const QString ALL_NODE_DELETE_REGEX_STRING = QString("%1/?$").arg(URI_NODES);
+        const QString NODE_DELETE_REGEX_STRING = QString("%1/(%2)$").arg(URI_NODES).arg(UUID_REGEX_STRING);
 
         QRegExp allNodesDeleteRegex(ALL_NODE_DELETE_REGEX_STRING);
         QRegExp nodeDeleteRegex(NODE_DELETE_REGEX_STRING);
