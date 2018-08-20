@@ -53,6 +53,7 @@ public:
     QVariantMap toVariantMap() const override;
 
     bool doesIntersect() const override { return intersects; }
+    bool needsToCompareResults() const override { return true; }
     bool checkOrFilterAgainstMaxDistance(float maxDistance) override { return true; }
 
     PickResultPointer compareAndProcessNewResult(const PickResultPointer& newRes) override;
