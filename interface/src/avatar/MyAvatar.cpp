@@ -1703,21 +1703,6 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     emit skeletonChanged();
 }
 
-void MyAvatar::removeAvatarEntities(const std::function<bool(const QUuid& entityID)>& condition) {
-    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
-    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
-    if (entityTree) {
-        entityTree->withWriteLock([&] {
-            AvatarEntityMap avatarEntities = getAvatarEntityData();
-            for (auto entityID : avatarEntities.keys()) {
-                if (!condition || condition(entityID)) {
-                    entityTree->deleteEntity(entityID, true, true);
-                }
-            }
-        });
-    }
-}
-
 QVariantList MyAvatar::getAvatarEntitiesVariant() {
     QVariantList avatarEntitiesData;
     QScriptEngine scriptEngine;
@@ -2114,7 +2099,9 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
         attachmentDataToEntityProperties(data, properties);
         newEntitiesProperties.push_back(properties);
     }
-    removeAvatarEntities();
+
+    clearAvatarEntities();
+
     for (auto& properties : newEntitiesProperties) {
         DependencyManager::get<EntityScriptingInterface>()->addEntity(properties, true);
     }
