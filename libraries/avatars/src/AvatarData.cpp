@@ -2255,6 +2255,7 @@ static const QString JSON_AVATAR_HEAD_MODEL = QStringLiteral("headModel");
 static const QString JSON_AVATAR_BODY_MODEL = QStringLiteral("bodyModel");
 static const QString JSON_AVATAR_DISPLAY_NAME = QStringLiteral("displayName");
 // It isn't meaningful to persist sessionDisplayName.
+static const QString JSON_AVATAR_ATTACHMENTS = QStringLiteral("attachments");
 static const QString JSON_AVATAR_ENTITIES = QStringLiteral("attachedEntities");
 static const QString JSON_AVATAR_SCALE = QStringLiteral("scale");
 static const QString JSON_AVATAR_VERSION = QStringLiteral("version");
@@ -2302,7 +2303,6 @@ QJsonObject AvatarData::toJson() const {
     if (!getDisplayName().isEmpty()) {
         root[JSON_AVATAR_DISPLAY_NAME] = getDisplayName();
     }
-
     _avatarEntitiesLock.withReadLock([&] {
         if (!_avatarEntityData.empty()) {
             QJsonArray avatarEntityJson;
@@ -2416,6 +2416,19 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
 
     if (json.contains(JSON_AVATAR_SCALE)) {
         setTargetScale((float)json[JSON_AVATAR_SCALE].toDouble());
+    }
+
+    QVector<AttachmentData> attachments;
+    if (json.contains(JSON_AVATAR_ATTACHMENTS) && json[JSON_AVATAR_ATTACHMENTS].isArray()) {
+        QJsonArray attachmentsJson = json[JSON_AVATAR_ATTACHMENTS].toArray();
+        for (auto attachmentJson : attachmentsJson) {
+            AttachmentData attachment;
+            attachment.fromJson(attachmentJson.toObject());
+            attachments.push_back(attachment);
+        }
+    }
+    if (attachments != getAttachmentData()) {
+        setAttachmentData(attachments);
     }
 
     if (json.contains(JSON_AVATAR_JOINT_ARRAY)) {
