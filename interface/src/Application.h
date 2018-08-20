@@ -207,6 +207,7 @@ public:
 
     size_t getRenderFrameCount() const { return _renderFrameCount; }
     float getRenderLoopRate() const { return _renderLoopCounter.rate(); }
+    float getNumRigidBodies() const;
     float getTargetRenderFrameRate() const; // frames/second
 
     float getFieldOfView() { return _fieldOfView.get(); }

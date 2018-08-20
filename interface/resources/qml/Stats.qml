@@ -61,6 +61,9 @@ Item {
                         text: "Game Rate: " + root.gameLoopRate
                     }
                     StatText {
+                        text: "Physics Body Count: " + root.physicsBodyCount
+                    }
+                    StatText {
                         visible: root.expanded
                         text: root.gameUpdateStats
                     }
