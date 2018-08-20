@@ -2431,6 +2431,18 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
         setAttachmentData(attachments);
     }
 
+    if (json.contains(JSON_AVATAR_ENTITIES) && json[JSON_AVATAR_ENTITIES].isArray()) {
+         QJsonArray attachmentsJson = json[JSON_AVATAR_ATTACHMENTS].toArray();
+         for (auto attachmentJson : attachmentsJson) {
+             if (attachmentJson.isObject()) {
+                 QVariantMap entityData = attachmentJson.toObject().toVariantMap();
+                 QUuid entityID = entityData.value("id").toUuid();
+                 QByteArray properties = entityData.value("properties").toByteArray();
+                 updateAvatarEntity(entityID, properties);
+             }
+         }
+    }
+
     if (json.contains(JSON_AVATAR_JOINT_ARRAY)) {
         if (version == (int)JsonAvatarFrameVersion::JointRotationsInRelativeFrame) {
             // because we don't have the full joint hierarchy skeleton of the model,
