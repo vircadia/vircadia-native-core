@@ -2729,7 +2729,7 @@ void AvatarData::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFr
         }
 
         if (_clientTraitsHandler) {
-            // we have a client traits handler, so we need to mark this removed instance trait as changed
+            // we have a client traits handler, so we need to mark this removed instance trait as deleted
             // so that changes are sent next frame
             _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, entityID);
         }
@@ -2769,6 +2769,12 @@ void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
             foreach (auto entityID, previousAvatarEntityIDs) {
                 if (!_avatarEntityData.contains(entityID)) {
                     _avatarEntityDetached.insert(entityID);
+
+                    if (_clientTraitsHandler) {
+                        // we have a client traits handler, so we flag this removed entity as deleted
+                        // so that changes are sent next frame
+                        _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, entityID);
+                    }
                 }
             }
         }
