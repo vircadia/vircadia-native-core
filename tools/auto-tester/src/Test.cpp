@@ -652,7 +652,10 @@ bool Test::createTestAutoScript(const QString& directory) {
 // Creates a single script in a user-selected folder.
 // This script will run all text.js scripts in every applicable sub-folder
 void Test::createRecursiveScript() {
-    createFileSetup();
+    if (!createFileSetup()) {
+        return;
+    }
+
     createRecursiveScript(_testDirectory, true);
     QMessageBox::information(0, "Success", "'testRecursive.js` script has been created");
 }
