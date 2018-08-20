@@ -484,8 +484,10 @@ void Test::createAllFilesSetup() {
 // The folder selected must contain a script named "test.js", the file produced is named "test.md"
 void Test::createMDFile() {
     createFileSetup(); 
-    createMDFile(_testDirectory);
-    QMessageBox::information(0, "Success", "MD file has been created");
+    
+    if (createMDFile(_testDirectory)) {
+        QMessageBox::information(0, "Success", "MD file has been created");
+    }
 }
 
 void Test::createAllMDFiles() {
@@ -518,13 +520,13 @@ void Test::createAllMDFiles() {
     QMessageBox::information(0, "Success", "MD files have been created");
 }
 
-void Test::createMDFile(const QString& directory) {
+bool Test::createMDFile(const QString& directory) {
     // Verify folder contains test.js file
     QString testFileName(directory + "/" + TEST_FILENAME);
     QFileInfo testFileInfo(testFileName);
     if (!testFileInfo.exists()) {
         QMessageBox::critical(0, "Error", "Could not find file: " + TEST_FILENAME);
-        return;
+        return false;
     }
 
     ExtractedText testScriptLines = getTestScriptLines(testFileName);
@@ -564,12 +566,15 @@ void Test::createMDFile(const QString& directory) {
     }
 
     mdFile.close();
+    return true;
 }
 
 void Test::createTestAutoScript() {
     createFileSetup();
-    createTestAutoScript(_testDirectory);
-    QMessageBox::information(0, "Success", "'autoTester.js` script has been created");
+    
+    if (createTestAutoScript(_testDirectory)) {
+        QMessageBox::information(0, "Success", "'autoTester.js` script has been created");
+    }
 }
 
 void Test::createAllTestAutoScripts() {
@@ -602,13 +607,13 @@ void Test::createAllTestAutoScripts() {
     QMessageBox::information(0, "Success", "'autoTester.js' scripts have been created");
 }
 
-void Test::createTestAutoScript(const QString& directory) {
+bool Test::createTestAutoScript(const QString& directory) {
     // Verify folder contains test.js file
     QString testFileName(directory + "/" + TEST_FILENAME);
     QFileInfo testFileInfo(testFileName);
     if (!testFileInfo.exists()) {
         QMessageBox::critical(0, "Error", "Could not find file: " + TEST_FILENAME);
-        return;
+        return false;
     }
 
     QString testAutoScriptFilename(directory + "/" + "testAuto.js");
@@ -628,6 +633,7 @@ void Test::createTestAutoScript(const QString& directory) {
     stream << "Script.include('./test.js?raw=true');\n";
 
     testAutoScriptFile.close();
+    return true;
 }
 
 // Creates a single script in a user-selected folder.

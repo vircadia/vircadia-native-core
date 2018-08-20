@@ -55,11 +55,11 @@ public:
 
     void createMDFile();
     void createAllMDFiles();
-    void createMDFile(const QString& directory);
+    bool createMDFile(const QString& directory);
 
     void createTestAutoScript();
     void createAllTestAutoScripts();
-    void createTestAutoScript(const QString& directory);
+    bool createTestAutoScript(const QString& directory);
 
     void createTestRailTestCases();
     void createTestRailRun();
