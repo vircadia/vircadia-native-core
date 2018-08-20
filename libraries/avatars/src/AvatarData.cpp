@@ -1876,8 +1876,6 @@ qint64 AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTr
         if (!entityBinaryData.isNull()) {
             AvatarTraits::TraitWireSize entityBinarySize = entityBinaryData.size();
 
-            qDebug() << QJsonDocument::fromBinaryData(entityBinaryData).toJson();
-
             bytesWritten += destination.writePrimitive(entityBinarySize);
             bytesWritten += destination.write(entityBinaryData);
         } else {
