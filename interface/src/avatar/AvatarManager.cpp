@@ -283,7 +283,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     }
 
     if (_shouldRender) {
-        qApp->getMain3DScene()->enqueueTransaction(transaction);
+        qApp->getMain3DScene()->enqueueTransaction(renderTransaction);
     }
 
     if (!_spaceProxiesToDelete.empty() && _space) {
