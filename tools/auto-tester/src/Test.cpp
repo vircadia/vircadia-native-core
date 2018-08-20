@@ -244,7 +244,7 @@ void Test::startTestsEvaluation(const QString& testFolder, const QString& branch
 void Test::finishTestsEvaluation(bool isRunningFromCommandline, bool interactiveMode, QProgressBar* progressBar) {
     bool success = compareImageLists((!isRunningFromCommandline && interactiveMode), progressBar);
     
-    if (interactiveMode && !isRunningFromCommandline) {
+    if (!isRunningFromCommandline) {
         if (success) {
             QMessageBox::information(0, "Success", "All images are as expected");
         } else {
