@@ -86,6 +86,7 @@
 
         // EventBridge
         READY_MESSAGE = "ready", // Engine <== Dialog
+        HOVER_MESSAGE = "hover", // Engine <== Dialog
         MUTE_MESSAGE = "mute", // Engine <=> Dialog
         BUBBLE_MESSAGE = "bubble", // Engine <=> Dialog
         EXPAND_MESSAGE = "expand", // Engine <== Dialog
@@ -99,11 +100,20 @@
         HIFI_OBJECT_MANIPULATION_CHANNEL = "Hifi-Object-Manipulation",
         avatarScale = 1,
 
+        // Sounds
+        HOVER_SOUND = "./assets/sounds/button-hover.wav",
+        HOVER_VOLUME = 0.5,
+        CLICK_SOUND = "./assets/sounds/button-click.wav",
+        CLICK_VOLUME = 0.8,
+        hoverSound = SoundCache.getSound(Script.resolvePath(HOVER_SOUND)),
+        clickSound = SoundCache.getSound(Script.resolvePath(CLICK_SOUND)),
 
+        // Hands
         LEFT_HAND = 0,
         RIGHT_HAND = 1,
         NO_HAND = 2,
         HAND_NAMES = ["LeftHand", "RightHand"],
+
         DEBUG = false;
 
     // #region Utilities =======================================================================================================
@@ -149,6 +159,14 @@
         return hand === LEFT_HAND ? RIGHT_HAND : LEFT_HAND;
     }
 
+    function playSound(sound, volume) {
+        Audio.playSound(sound, {
+            position: proxyHand === LEFT_HAND ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition(),
+            volume: volume,
+            localOnly: true
+        });
+    }
+
     // #endregion
 
     // #region Communications ==================================================================================================
@@ -187,16 +205,23 @@
                 updateMutedStatus();
                 updateBubbleStatus();
                 break;
+            case HOVER_MESSAGE:
+                // Audio feedback.
+                playSound(hoverSound, HOVER_VOLUME);
+                break;
             case MUTE_MESSAGE:
                 // Toggle mute.
+                playSound(clickSound, CLICK_VOLUME);
                 Audio.muted = !Audio.muted;
                 break;
             case BUBBLE_MESSAGE:
                 // Toggle bubble.
+                playSound(clickSound, CLICK_VOLUME);
                 Users.toggleIgnoreRadius();
                 break;
             case EXPAND_MESSAGE:
                 // Expand tablet;
+                playSound(clickSound, CLICK_VOLUME);
                 setState(PROXY_EXPANDING, NO_HAND);
                 break;
         }

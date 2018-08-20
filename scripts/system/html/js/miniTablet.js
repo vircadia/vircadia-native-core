@@ -17,6 +17,7 @@
 
     var // EventBridge
         READY_MESSAGE = "ready", // Engine <== Dialog
+        HOVER_MESSAGE = "hover", // Engine <== Dialog
         MUTE_MESSAGE = "mute", // Engine <=> Dialog
         BUBBLE_MESSAGE = "bubble", // Engine <=> Dialog
         EXPAND_MESSAGE = "expand", // Engine <== Dialog
@@ -54,6 +55,12 @@
     function onMuteButtonClick() {
         EventBridge.emitWebEvent(JSON.stringify({
             type: MUTE_MESSAGE
+        }));
+    }
+
+    function onButtonHover() {
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: HOVER_MESSAGE
         }));
     }
 
@@ -97,6 +104,9 @@
 
         connectEventBridge();
 
+        muteButton.addEventListener("mouseenter", onButtonHover, false);
+        bubbleButton.addEventListener("mouseenter", onButtonHover, false);
+        expandButton.addEventListener("mouseenter", onButtonHover, false);
         muteButton.addEventListener("click", onMuteButtonClick, true);
         bubbleButton.addEventListener("click", onBubbleButtonClick, true);
         expandButton.addEventListener("click", onExpandButtonClick, true);
