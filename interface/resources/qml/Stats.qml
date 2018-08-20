@@ -174,6 +174,21 @@ Item {
                         text: "Yaw: " + root.yaw.toFixed(1)
                     }
                     StatText {
+                        visible: root.animStackNames.length > 0;
+                        text: "Anim Stack Names:"
+                    }
+                    ListView {
+                        width: geoCol.width
+                        height: root.animStackNames.length * 15
+                        visible: root.animStackNames.length > 0;
+                        model: root.animStackNames
+                        delegate: StatText {
+                            text: modelData.length > 30
+                                ?  modelData.substring(0, 5) + "..." + modelData.substring(modelData.length - 22)
+                                : modelData
+                        }
+                    }
+                    StatText {
                         visible: root.expanded;
                         text: "Avatar Mixer In: " + root.avatarMixerInKbps + " kbps, " +
                             root.avatarMixerInPps + "pps";

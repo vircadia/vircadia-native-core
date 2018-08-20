@@ -12,17 +12,13 @@
 #include <qmath.h>
 #include <gpu/Batch.h>
 #include <GLMHelpers.h>
+#include <shaders/Shaders.h>
 
 #include "AbstractViewStateInterface.h"
 #include "RenderUtilsLogging.h"
 #include "DebugDraw.h"
 #include "StencilMaskPass.h"
 
-#include "animdebugdraw_vert.h"
-#include "animdebugdraw_frag.h"
-
-#include "animdebugdraw_vert.h"
-#include "animdebugdraw_frag.h"
 class AnimDebugDrawData {
 public:
 
@@ -106,9 +102,7 @@ AnimDebugDraw::AnimDebugDraw() :
                             gpu::State::INV_SRC_ALPHA, gpu::State::FACTOR_ALPHA,
                             gpu::State::BLEND_OP_ADD, gpu::State::ONE);
     PrepareStencil::testMaskDrawShape(*state.get());
-    auto vertShader = animdebugdraw_vert::getShader();
-    auto fragShader = animdebugdraw_frag::getShader();
-    auto program = gpu::Shader::createProgram(vertShader, fragShader);
+    auto program = gpu::Shader::createProgram(shader::render_utils::program::animdebugdraw);
     _pipeline = gpu::Pipeline::create(program, state);
 
     _animDebugDrawData = std::make_shared<AnimDebugDrawData>();

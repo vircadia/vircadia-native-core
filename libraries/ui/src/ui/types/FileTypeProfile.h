@@ -17,12 +17,23 @@
 #include <QtCore/QtGlobal>
 
 #if !defined(Q_OS_ANDROID)
-#include <QtWebEngine/QQuickWebEngineProfile>
+#include "ContextAwareProfile.h"
 
-class FileTypeProfile : public QQuickWebEngineProfile {
+class FileTypeProfile : public ContextAwareProfile {
+    using Parent = ContextAwareProfile;
+
 public:
-    FileTypeProfile(QObject* parent = Q_NULLPTR);
+    static void registerWithContext(QQmlContext* parent);
+
+protected:
+    FileTypeProfile(QQmlContext* parent);
+    class RequestInterceptor : public Parent::RequestInterceptor {
+    public:
+        RequestInterceptor(ContextAwareProfile* parent) : Parent::RequestInterceptor(parent) {}
+        void interceptRequest(QWebEngineUrlRequestInfo& info) override;
+    };
 };
+
 #endif
 
 #endif // hifi_FileTypeProfile_h

@@ -1435,7 +1435,7 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
 
     QNetworkReply* networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
 
-    connect(networkReply, &QNetworkReply::finished, [=]() {
+    connect(networkReply, &QNetworkReply::finished, [this, networkReply, entityItemID, certID, senderNode]() {
         QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
         jsonObject = jsonObject["data"].toObject();
 

@@ -60,23 +60,20 @@ Audio::Audio() : _devices(_contextIsHMD) {
 }
 
 bool Audio::startRecording(const QString& filepath) {
-    auto client = DependencyManager::get<AudioClient>().data();
     return resultWithWriteLock<bool>([&] {
-        return client->startRecording(filepath);
+        return DependencyManager::get<AudioClient>()->startRecording(filepath);
     });
 }
 
 bool Audio::getRecording() {
-    auto client = DependencyManager::get<AudioClient>().data();
     return resultWithReadLock<bool>([&] {
-        return client->getRecording();
+        return DependencyManager::get<AudioClient>()->getRecording();
     });
 }
 
 void Audio::stopRecording() {
-    auto client = DependencyManager::get<AudioClient>().data();
     withWriteLock([&] {
-        client->stopRecording();
+        DependencyManager::get<AudioClient>()->stopRecording();
     });
 }
 

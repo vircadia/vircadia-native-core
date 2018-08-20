@@ -13,7 +13,9 @@
 
 #include <PerfStat.h>
 #include <DualQuaternion.h>
+#include <graphics/ShaderConstants.h>
 
+#include "render-utils/ShaderConstants.h"
 #include "DeferredLightingEffect.h"
 
 #include "RenderPipelines.h"
@@ -155,8 +157,10 @@ void MeshPartPayload::render(RenderArgs* args) {
     bindMesh(batch);
 
     // apply material properties
-    RenderPipelines::bindMaterial(!_drawMaterials.empty() ? _drawMaterials.top().material : DEFAULT_MATERIAL, batch, args->_enableTexturing);
-    args->_details._materialSwitches++;
+    if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
+        RenderPipelines::bindMaterial(!_drawMaterials.empty() ? _drawMaterials.top().material : DEFAULT_MATERIAL, batch, args->_enableTexturing);
+        args->_details._materialSwitches++;
+    }
 
     // Draw!
     {
@@ -395,7 +399,7 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) {
 
 void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const {
     if (_clusterBuffer) {
-        batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::SKINNING, _clusterBuffer);
+        batch.setUniformBuffer(graphics::slot::buffer::Skinning, _clusterBuffer);
     }
     batch.setModelTransform(_transform);
 }
@@ -415,8 +419,10 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     bindMesh(batch);
 
     // apply material properties
-    RenderPipelines::bindMaterial(!_drawMaterials.empty() ? _drawMaterials.top().material : DEFAULT_MATERIAL, batch, args->_enableTexturing);
-    args->_details._materialSwitches++;
+    if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
+        RenderPipelines::bindMaterial(!_drawMaterials.empty() ? _drawMaterials.top().material : DEFAULT_MATERIAL, batch, args->_enableTexturing);
+        args->_details._materialSwitches++;
+    }
 
     // Draw!
     {

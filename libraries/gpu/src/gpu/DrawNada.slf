@@ -1,0 +1,5 @@
+<@include gpu/Config.slh@>
+
+<$VERSION_HEADER$>
+
+void main(void) { }

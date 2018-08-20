@@ -90,7 +90,6 @@ const QString& PathUtils::resourcesPath() {
             staticResourcePath = projectRootPath() + "/interface/resources/";
         }
 #endif
-        qDebug() << "Resource path resolved to " << staticResourcePath;
     });
     return staticResourcePath;
 }
@@ -105,7 +104,6 @@ const QString& PathUtils::resourcesUrl() {
             staticResourcePath = QUrl::fromLocalFile(projectRootPath() + "/interface/resources/").toString();
         }
 #endif
-        qDebug() << "Resource url resolved to " << staticResourcePath;
     });
     return staticResourcePath;
 }

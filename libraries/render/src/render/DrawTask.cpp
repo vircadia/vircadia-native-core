@@ -18,12 +18,10 @@
 #include <PerfStat.h>
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
-#include <gpu/StandardShaderLib.h>
+#include <shaders/Shaders.h>
+#include <gpu/ShaderConstants.h>
 
 #include "Logging.h"
-
-#include "drawItemBounds_vert.h"
-#include "drawItemBounds_frag.h"
 
 using namespace render;
 
@@ -160,15 +158,7 @@ void DrawLight::run(const RenderContextPointer& renderContext, const ItemBounds&
 
 const gpu::PipelinePointer DrawBounds::getPipeline() {
     if (!_boundsPipeline) {
-        auto vs = drawItemBounds_vert::getShader();
-        auto ps = drawItemBounds_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        gpu::Shader::makeProgram(*program, slotBindings);
-
-        _colorLocation = program->getUniforms().findLocation("inColor");
-
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render::program::drawItemBounds);
         auto state = std::make_shared<gpu::State>();
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
         state->setBlendFunction(true,
@@ -212,7 +202,7 @@ void DrawBounds::run(const RenderContextPointer& renderContext,
         batch.setPipeline(getPipeline());
 
         glm::vec4 color(glm::vec3(0.0f), -(float) numItems);
-        batch._glUniform4fv(_colorLocation, 1, (const float*)(&color));
+        batch._glUniform4fv(gpu::slot::uniform::Color, 1, (const float*)(&color));
         batch.setResourceBuffer(0, _drawBuffer);
 
         static const int NUM_VERTICES_PER_CUBE = 24;
@@ -220,10 +210,15 @@ void DrawBounds::run(const RenderContextPointer& renderContext,
     });
 }
 
+gpu::Stream::FormatPointer DrawQuadVolume::_format;
+
 DrawQuadVolume::DrawQuadVolume(const glm::vec3& color) :
     _color{ color } {
     _meshVertices = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(glm::vec3) * 8, nullptr), gpu::Element::VEC3F_XYZ);
-    _meshStream.addBuffer(_meshVertices._buffer, _meshVertices._offset, _meshVertices._stride);
+    if (!_format) {
+        _format = std::make_shared<gpu::Stream::Format>();
+        _format->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
+    }
 }
 
 void DrawQuadVolume::configure(const Config& configuration) {
@@ -253,10 +248,11 @@ void DrawQuadVolume::run(const render::RenderContextPointer& renderContext, cons
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
         batch.setPipeline(getPipeline());
-        batch.setIndexBuffer(indices);
 
         batch._glUniform4f(0, _color.x, _color.y, _color.z, 1.0f);
-        batch.setInputStream(0, _meshStream);
+        batch.setInputFormat(_format);
+        batch.setInputBuffer(gpu::Stream::POSITION, _meshVertices);
+        batch.setIndexBuffer(indices);
         batch.drawIndexed(gpu::LINES, indexCount, 0U);
 
         args->_batch = nullptr;
@@ -267,14 +263,7 @@ gpu::PipelinePointer DrawQuadVolume::getPipeline() {
     static gpu::PipelinePointer pipeline;
 
     if (!pipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawTransformVertexPositionVS();
-        auto ps = gpu::StandardShaderLib::getDrawColorPS();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding("color", 0));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawColor);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         state->setDepthTest(gpu::State::DepthTest(true, false));
         pipeline = gpu::Pipeline::create(program, state);

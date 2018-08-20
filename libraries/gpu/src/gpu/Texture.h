@@ -43,6 +43,11 @@ namespace khronos { namespace gl { namespace texture {
 
 namespace gpu {
 
+enum class BackendTarget {
+    GL41,
+    GL45,
+    GLES32
+};
 
 const std::string SOURCE_HASH_KEY { "hifi.sourceHash" };
 
@@ -82,7 +87,7 @@ public:
 
     void assignPreset(int p);
 
-    void evalFromTexture(const Texture& texture);
+    void evalFromTexture(const Texture& texture, gpu::BackendTarget target);
 };
 typedef std::shared_ptr< SphericalHarmonics > SHPointer;
 
@@ -541,7 +546,7 @@ public:
     Usage getUsage() const { return _usage; }
 
     // For Cube Texture, it's possible to generate the irradiance spherical harmonics and make them availalbe with the texture
-    bool generateIrradiance();
+    bool generateIrradiance(gpu::BackendTarget target);
     const SHPointer& getIrradiance(uint16 slice = 0) const { return _irradiance; }
     void overrideIrradiance(SHPointer irradiance) { _irradiance = irradiance; }
     bool isIrradianceValid() const { return _isIrradianceValid; }

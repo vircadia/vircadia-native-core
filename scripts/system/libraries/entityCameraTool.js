@@ -28,7 +28,9 @@ var FOCUS_MIN_ZOOM = 0.5;
 var ZOOM_SCALING = 0.02;
 
 var MIN_ZOOM_DISTANCE = 0.01;
-var MAX_ZOOM_DISTANCE = 200;
+
+// The maximum usable zoom level is somewhere around 14km, further than that the edit handles will fade-out. (FIXME: MS17493)
+var MAX_ZOOM_DISTANCE = 14000;
 
 var MODE_INACTIVE = 'inactive';
 var MODE_ORBIT = 'orbit';
@@ -77,17 +79,17 @@ CameraManager = function() {
     }
 
     var keyToActionMapping = {
-        "a": "orbitLeft",
-        "d": "orbitRight",
-        "w": "orbitForward",
-        "s": "orbitBackward",
-        "e": "orbitUp",
-        "c": "orbitDown",
-
-        "LEFT": "orbitLeft",
-        "RIGHT": "orbitRight",
-        "UP": "orbitForward",
-        "DOWN": "orbitBackward",
+        65: "orbitLeft",     // "a"
+        68: "orbitRight",    // "d"
+        87: "orbitForward",  // "w"
+        83: "orbitBackward", // "s"
+        69: "orbitUp",       // "e"
+        67: "orbitDown",     // "c"
+        
+        16777234: "orbitLeft",     // "LEFT"
+        16777236: "orbitRight",    // "RIGHT"
+        16777235: "orbitForward",  // "UP"
+        16777237: "orbitBackward", // "DOWN"
     }
 
     var CAPTURED_KEYS = [];
@@ -96,7 +98,7 @@ CameraManager = function() {
     }
 
     function getActionForKeyEvent(event) {
-        var action = keyToActionMapping[event.text];
+        var action = keyToActionMapping[event.key];
         if (action !== undefined) {
             if (event.isShifted) {
                 if (action === "orbitForward") {
@@ -141,6 +143,10 @@ CameraManager = function() {
             Controller.captureKeyEvents({
                 text: CAPTURED_KEYS[i]
             });
+        }
+
+        for (var action in actions) {
+            actions[action] = 0;
         }
 
         that.enabled = true;
@@ -253,14 +259,6 @@ CameraManager = function() {
         zoom *= that.targetZoomDistance * ZOOM_SCALING;
         that.targetZoomDistance = Math.min(Math.max(that.targetZoomDistance + zoom, MIN_ZOOM_DISTANCE), MAX_ZOOM_DISTANCE);
         that.updateCamera();
-    }
-
-    that.getZoomPercentage = function() {
-        return (that.zoomDistance - MIN_ZOOM_DISTANCE) / MAX_ZOOM_DISTANCE;
-    }
-
-    that.setZoomPercentage = function(pct) {
-        that.targetZoomDistance = pct * (MAX_ZOOM_DISTANCE - MIN_ZOOM_DISTANCE);
     }
 
     that.pan = function(offset) {

@@ -471,7 +471,6 @@ TabletModalWindow {
                 bottomMargin: hifi.dimensions.contentSpacing.y + currentSelection.controlHeight - currentSelection.height
             }
             headerVisible: !selectDirectory
-            onClicked: navigateToRow(row);
             onDoubleClicked: navigateToRow(row);
             focus: true
             Keys.onReturnPressed: navigateToCurrentRow();

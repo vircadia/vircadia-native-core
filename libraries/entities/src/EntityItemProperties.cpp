@@ -3753,6 +3753,8 @@ bool EntityItemProperties::verifyStaticCertificateProperties() {
 void EntityItemProperties::convertToCloneProperties(const EntityItemID& entityIDToClone) {
     setName(getName() + "-clone-" + entityIDToClone.toString());
     setLocked(false);
+    setParentID(QUuid());
+    setParentJointIndex(-1);
     setLifetime(getCloneLifetime());
     setDynamic(getCloneDynamic());
     setClientOnly(getCloneAvatarEntity());

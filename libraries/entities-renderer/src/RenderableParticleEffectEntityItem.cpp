@@ -13,9 +13,8 @@
 #include <StencilMaskPass.h>
 
 #include <GeometryCache.h>
+#include <shaders/Shaders.h>
 
-#include "textured_particle_vert.h"
-#include "textured_particle_frag.h"
 
 using namespace render;
 using namespace render::entities;
@@ -23,8 +22,6 @@ using namespace render::entities;
 static uint8_t CUSTOM_PIPELINE_NUMBER = 0;
 static gpu::Stream::FormatPointer _vertexFormat;
 static std::weak_ptr<gpu::Pipeline> _texturedPipeline;
-// FIXME: This is interfering with the uniform buffers in DeferredLightingEffect.cpp, so use 12 to avoid collisions
-static int32_t PARTICLE_UNIFORM_SLOT { 12 };
 
 static ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const ShapeKey& key, gpu::Batch& batch) {
     auto texturedPipeline = _texturedPipeline.lock();
@@ -36,17 +33,8 @@ static ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, co
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
         PrepareStencil::testMask(*state);
 
-        auto vertShader = textured_particle_vert::getShader();
-        auto fragShader = textured_particle_frag::getShader();
-
-        auto program = gpu::Shader::createProgram(vertShader, fragShader);
+        auto program = gpu::Shader::createProgram(shader::entities_renderer::program::textured_particle);
         _texturedPipeline = texturedPipeline = gpu::Pipeline::create(program, state);
-
-        batch.runLambda([program] {
-            gpu::Shader::BindingSet slotBindings;
-            slotBindings.insert(gpu::Shader::Binding(std::string("particleBuffer"), PARTICLE_UNIFORM_SLOT));
-            gpu::Shader::makeProgram(*program, slotBindings);
-        });
     }
 
     return std::make_shared<render::ShapePipeline>(texturedPipeline, nullptr, nullptr, nullptr);
@@ -346,7 +334,7 @@ void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
         transform.setRotation(_renderTransform.getRotation());
     });
     batch.setModelTransform(transform);
-    batch.setUniformBuffer(PARTICLE_UNIFORM_SLOT, _uniformBuffer);
+    batch.setUniformBuffer(0, _uniformBuffer);
     batch.setInputFormat(_vertexFormat);
     batch.setInputBuffer(0, _particleBuffer, 0, sizeof(GpuParticle));
 

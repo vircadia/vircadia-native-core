@@ -171,7 +171,6 @@ public:
 public slots:
     void start();
     void stop();
-    void cleanupBeforeQuit();
 
     void handleAudioEnvironmentDataPacket(QSharedPointer<ReceivedMessage> message);
     void handleAudioDataPacket(QSharedPointer<ReceivedMessage> message);
