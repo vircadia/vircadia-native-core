@@ -50,8 +50,8 @@ public:
 
     void createTestsOutline();
 
-    void createFileSetup();
-    void createAllFilesSetup();
+    bool createFileSetup();
+    bool createAllFilesSetup();
 
     void createMDFile();
     void createAllMDFiles();

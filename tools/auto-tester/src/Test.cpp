@@ -445,7 +445,7 @@ ExtractedText Test::getTestScriptLines(QString testFileName) {
     return relevantTextFromTest;
 }
 
-void Test::createFileSetup() {
+bool Test::createFileSetup() {
     // Folder selection
     QString previousSelection = _testDirectory;
     QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
@@ -459,10 +459,13 @@ void Test::createFileSetup() {
     // If user cancelled then restore previous selection and return
     if (_testDirectory == "") {
         _testDirectory = previousSelection;
-        return;
+        return false;
     }
+
+    return true;
 }
-void Test::createAllFilesSetup() {
+
+bool Test::createAllFilesSetup() {
     // Select folder to start recursing from
     QString previousSelection = _testsRootDirectory;
     QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
@@ -476,14 +479,18 @@ void Test::createAllFilesSetup() {
     // If user cancelled then restore previous selection and return
     if (_testsRootDirectory == "") {
         _testsRootDirectory = previousSelection;
-        return;
+        return false;
     }
+
+    return true;
 }
 
 // Create an MD file for a user-selected test.
 // The folder selected must contain a script named "test.js", the file produced is named "test.md"
 void Test::createMDFile() {
-    createFileSetup(); 
+    if (!createFileSetup()) {
+        return;
+    } 
     
     if (createMDFile(_testDirectory)) {
         QMessageBox::information(0, "Success", "MD file has been created");
@@ -491,7 +498,9 @@ void Test::createMDFile() {
 }
 
 void Test::createAllMDFiles() {
-    createAllFilesSetup();
+    if (!createAllFilesSetup()) {
+        return;
+    }
 
     // First test if top-level folder has a test.js file
     const QString testPathname{ _testsRootDirectory + "/" + TEST_FILENAME };
@@ -570,7 +579,9 @@ bool Test::createMDFile(const QString& directory) {
 }
 
 void Test::createTestAutoScript() {
-    createFileSetup();
+    if (!createFileSetup()) {
+        return;
+    } 
     
     if (createTestAutoScript(_testDirectory)) {
         QMessageBox::information(0, "Success", "'autoTester.js` script has been created");
@@ -578,7 +589,9 @@ void Test::createTestAutoScript() {
 }
 
 void Test::createAllTestAutoScripts() {
-    createAllFilesSetup();
+    if (!createAllFilesSetup()) {
+        return;
+    }
 
     // First test if top-level folder has a test.js file
     const QString testPathname{ _testsRootDirectory + "/" + TEST_FILENAME };
@@ -646,7 +659,9 @@ void Test::createRecursiveScript() {
 
 // This method creates a `testRecursive.js` script in every sub-folder.
 void Test::createAllRecursiveScripts() {
-    createAllFilesSetup();
+    if (!createAllFilesSetup()) {
+        return;
+    }
 
     createRecursiveScript(_testsRootDirectory, false);
 
