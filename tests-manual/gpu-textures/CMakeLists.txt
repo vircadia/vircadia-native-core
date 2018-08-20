@@ -1,5 +1,4 @@
 set(TARGET_NAME gpu-textures-tests)
-AUTOSCRIBE_SHADER_LIB(gpu graphics render-utils)
 # This is not a testcase -- just set it up as a regular hifi project
 setup_hifi_project(Quick Gui Script)
 setup_memory_debugger()
