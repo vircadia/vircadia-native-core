@@ -14,7 +14,6 @@
 #include <string>
 
 #include <QScriptEngine>
-#include <QtCore/QJsonDocument>
 
 #include "AvatarLogging.h"
 

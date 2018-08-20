@@ -279,6 +279,9 @@ void AvatarHashMap::removeAvatar(const QUuid& sessionUUID, KillAvatarReason remo
 }
 
 void AvatarHashMap::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
+    // remove any information about processed traits for this avatar
+    _processedTraitVersions.erase(removedAvatar->getID());
+
     qCDebug(avatars) << "Removed avatar with UUID" << uuidStringWithoutCurlyBraces(removedAvatar->getSessionUUID())
         << "from AvatarHashMap" << removalReason;
     emit avatarRemovedEvent(removedAvatar->getSessionUUID());

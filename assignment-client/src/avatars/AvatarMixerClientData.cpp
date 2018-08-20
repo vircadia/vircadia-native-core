@@ -19,7 +19,7 @@
 #include "AvatarMixerSlave.h"
 
 AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID, Node::LocalID nodeLocalID) :
-    NodeData(nodeID)
+    NodeData(nodeID, nodeLocalID)
 {
     // in case somebody calls getSessionUUID on the AvatarData instance, make sure it has the right ID
     _avatar->setID(nodeID);
