@@ -70,8 +70,7 @@
         proxyHand,
         PROXY_EXPAND_HANDLES = [
             { x: 0.5, y: -0.4, z: 0 },
-            { x: -0.5, y: -0.4, z: 0 },
-            { x: 0, y: -0.4, z: 0 }
+            { x: -0.5, y: -0.4, z: 0 }
         ],
         proxyExpandHand,
         proxyExpandLocalPosition,
@@ -111,7 +110,6 @@
         // Hands
         LEFT_HAND = 0,
         RIGHT_HAND = 1,
-        NO_HAND = 2,
         HAND_NAMES = ["LeftHand", "RightHand"],
 
         DEBUG = false;
@@ -222,7 +220,7 @@
             case EXPAND_MESSAGE:
                 // Expand tablet;
                 playSound(clickSound, CLICK_VOLUME);
-                setState(PROXY_EXPANDING, NO_HAND);
+                setState(PROXY_EXPANDING, proxyHand);
                 break;
         }
     }
