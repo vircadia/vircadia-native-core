@@ -68,13 +68,14 @@
         STATE_MACHINE,
         rezzerState = PROXY_DISABLED,
         proxyHand,
-        PROXY_GRAB_HANDLES = [
+        PROXY_EXPAND_HANDLES = [
             { x: 0.5, y: -0.4, z: 0 },
-            { x: -0.5, y: -0.4, z: 0 }
+            { x: -0.5, y: -0.4, z: 0 },
+            { x: 0, y: -0.4, z: 0 }
         ],
-        proxyGrabHand,
-        proxyGrabHandleLocalPosition,
-        proxyGrabLocalRotation = Quat.IDENTITY,
+        proxyExpandHand,
+        proxyExpandLocalPosition,
+        proxyExpandLocalRotation = Quat.IDENTITY,
         PROXY_EXPAND_DURATION = 250,
         PROXY_EXPAND_TIMEOUT = 25,
         proxyExpandTimer = null,
@@ -87,6 +88,7 @@
         READY_MESSAGE = "ready", // Engine <== Dialog
         MUTE_MESSAGE = "mute", // Engine <=> Dialog
         BUBBLE_MESSAGE = "bubble", // Engine <=> Dialog
+        EXPAND_MESSAGE = "expand", // Engine <== Dialog
 
         // Events
         MIN_HAND_CAMERA_ANGLE = 30,
@@ -97,8 +99,10 @@
         HIFI_OBJECT_MANIPULATION_CHANNEL = "Hifi-Object-Manipulation",
         avatarScale = 1,
 
+
         LEFT_HAND = 0,
         RIGHT_HAND = 1,
+        NO_HAND = 2,
         HAND_NAMES = ["LeftHand", "RightHand"],
         DEBUG = false;
 
@@ -183,6 +187,18 @@
                 updateMutedStatus();
                 updateBubbleStatus();
                 break;
+            case MUTE_MESSAGE:
+                // Toggle mute.
+                Audio.muted = !Audio.muted;
+                break;
+            case BUBBLE_MESSAGE:
+                // Toggle bubble.
+                Users.toggleIgnoreRadius();
+                break;
+            case EXPAND_MESSAGE:
+                // Expand tablet;
+                setState(PROXY_EXPANDING, NO_HAND);
+                break;
         }
     }
 
@@ -196,6 +212,7 @@
             dimensions: Vec3.multiply(avatarScale, PROXY_DIMENSIONS),
             solid: true,
             grabbable: true,
+            showKeyboardFocusHighlight: false,
             displayInFront: true,
             visible: false
         });
@@ -208,6 +225,7 @@
             dpi: PROXY_UI_DPI / avatarScale,
             alpha: 0, // Hide overlay while its content is being created.
             grabbable: false,
+            showKeyboardFocusHighlight: false,
             displayInFront: true,
             visible: false
         });
@@ -247,10 +265,10 @@
     function sizeUI(scaleFactor) {
         Overlays.editOverlay(proxyOverlay, {
             localPosition:
-                Vec3.sum(proxyGrabHandleLocalPosition,
-                    Vec3.multiplyQbyV(proxyGrabLocalRotation,
+                Vec3.sum(proxyExpandLocalPosition,
+                    Vec3.multiplyQbyV(proxyExpandLocalRotation,
                         Vec3.multiply(-scaleFactor,
-                            Vec3.multiplyVbyV(PROXY_GRAB_HANDLES[proxyGrabHand], PROXY_DIMENSIONS)))
+                            Vec3.multiplyVbyV(PROXY_EXPAND_HANDLES[proxyExpandHand], PROXY_DIMENSIONS)))
                 ),
             dimensions: Vec3.multiply(scaleFactor, PROXY_DIMENSIONS)
         });
@@ -383,13 +401,14 @@
         setState(TABLET_OPEN);
     }
 
-    function enterProxyExpanding() {
+    function enterProxyExpanding(hand) {
         // Grab details.
         var properties = Overlays.getProperties(proxyOverlay, ["localPosition", "localRotation"]);
-        proxyGrabLocalRotation = properties.localRotation;
-        proxyGrabHandleLocalPosition = Vec3.sum(properties.localPosition,
-            Vec3.multiplyQbyV(proxyGrabLocalRotation,
-                Vec3.multiplyVbyV(PROXY_GRAB_HANDLES[proxyGrabHand], PROXY_DIMENSIONS)));
+        proxyExpandHand = hand;
+        proxyExpandLocalRotation = properties.localRotation;
+        proxyExpandLocalPosition = Vec3.sum(properties.localPosition,
+            Vec3.multiplyQbyV(proxyExpandLocalRotation,
+                Vec3.multiplyVbyV(PROXY_EXPAND_HANDLES[proxyExpandHand], PROXY_DIMENSIONS)));
 
         // Start expanding.
         proxyInitialWidth = PROXY_DIMENSIONS.x;
@@ -488,7 +507,7 @@
     }
 
     function onMessageReceived(channel, data, senderID, localOnly) {
-        var message;
+        var message, hand;
 
         if (channel !== HIFI_OBJECT_MANIPULATION_CHANNEL) {
             return;
@@ -500,8 +519,8 @@
         }
 
         if (message.action === "grab" && rezzerState === PROXY_VISIBLE) {
-            proxyGrabHand = message.joint === HAND_NAMES[proxyHand] ? proxyHand : otherHand(proxyHand);
-            setState(PROXY_EXPANDING);
+            hand = message.joint === HAND_NAMES[proxyHand] ? proxyHand : otherHand(proxyHand);
+            setState(PROXY_EXPANDING, hand);
         }
     }
 

@@ -19,11 +19,13 @@
         READY_MESSAGE = "ready", // Engine <== Dialog
         MUTE_MESSAGE = "mute", // Engine <=> Dialog
         BUBBLE_MESSAGE = "bubble", // Engine <=> Dialog
+        EXPAND_MESSAGE = "expand", // Engine <== Dialog
 
         muteButton,
         muteImage,
         bubbleButton,
-        bubbleImage;
+        bubbleImage,
+        expandButton;
 
     // #region Communications ==================================================================================================
 
@@ -47,6 +49,24 @@
                 bubbleImage.src = message.icon;
                 break;
         }
+    }
+
+    function onMuteButtonClick() {
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: MUTE_MESSAGE
+        }));
+    }
+
+    function onBubbleButtonClick() {
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: BUBBLE_MESSAGE
+        }));
+    }
+
+    function onExpandButtonClick() {
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: EXPAND_MESSAGE
+        }));
     }
 
     function connectEventBridge() {
@@ -73,8 +93,13 @@
         muteImage = document.getElementById("mute-img");
         bubbleButton = document.getElementById("bubble");
         bubbleImage = document.getElementById("bubble-img");
+        expandButton = document.getElementById("expand");
 
         connectEventBridge();
+
+        muteButton.addEventListener("click", onMuteButtonClick, true);
+        bubbleButton.addEventListener("click", onBubbleButtonClick, true);
+        expandButton.addEventListener("click", onExpandButtonClick, true);
 
         document.body.onunload = function () {
             onUnload();
