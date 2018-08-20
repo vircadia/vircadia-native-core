@@ -51,6 +51,12 @@
         PROXY_UI_LOCAL_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }),
         proxyUIOverlayEnabled = false,
         PROXY_UI_OVERLAY_ENABLED_DELAY = 500,
+        proxyOverlayObject = null,
+
+        MUTE_ON_ICON = Script.resourcesPath() + "icons/tablet-icons/mic-mute-a.svg",
+        MUTE_OFF_ICON = Script.resourcesPath() + "icons/tablet-icons/mic-unmute-i.svg",
+        BUBBLE_ON_ICON = Script.resourcesPath() + "icons/tablet-icons/bubble-a.svg",
+        BUBBLE_OFF_ICON = Script.resourcesPath() + "icons/tablet-icons/bubble-i.svg",
 
         // State machine
         PROXY_DISABLED = 0,
@@ -76,6 +82,11 @@
         proxyInitialWidth,
         proxyTargetWidth,
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system"),
+
+        // EventBridge
+        READY_MESSAGE = "ready", // Engine <== Dialog
+        MUTE_MESSAGE = "mute", // Engine <=> Dialog
+        BUBBLE_MESSAGE = "bubble", // Engine <=> Dialog
 
         // Events
         MIN_HAND_CAMERA_ANGLE = 30,
@@ -136,6 +147,47 @@
 
     // #endregion
 
+    // #region Communications ==================================================================================================
+
+    function updateMutedStatus() {
+        var isMuted = Audio.muted;
+        proxyOverlayObject.emitScriptEvent(JSON.stringify({
+            type: MUTE_MESSAGE,
+            on: isMuted,
+            icon: isMuted ? MUTE_ON_ICON : MUTE_OFF_ICON
+        }));
+    }
+
+    function updateBubbleStatus() {
+        var isBubbleOn = Users.getIgnoreRadiusEnabled();
+        proxyOverlayObject.emitScriptEvent(JSON.stringify({
+            type: BUBBLE_MESSAGE,
+            on: isBubbleOn,
+            icon: isBubbleOn ? BUBBLE_ON_ICON : BUBBLE_OFF_ICON
+        }));
+    }
+
+    function onWebEventReceived(data) {
+        var message;
+
+        try {
+            message = JSON.parse(data);
+        } catch (e) {
+            console.error("EventBridge message error");
+            return;
+        }
+
+        switch (message.type) {
+            case READY_MESSAGE:
+                // Send initial button statuses.
+                updateMutedStatus();
+                updateBubbleStatus();
+                break;
+        }
+    }
+
+    // #endregion
+
     // #region UI ==============================================================================================================
 
     function createUI() {
@@ -161,6 +213,9 @@
         });
 
         proxyUIOverlayEnabled = false; // This and alpha = 0 hides overlay while its content is being created.
+
+        proxyOverlayObject = Overlays.getOverlayObject(proxyUIOverlay);
+        proxyOverlayObject.webEventReceived.connect(onWebEventReceived);
     }
 
     function showUI(hand) {
@@ -217,9 +272,11 @@
     }
 
     function destroyUI() {
-        if (proxyOverlay) {
+        if (proxyOverlayObject) {
+            proxyOverlayObject.webEventReceived.disconnect(onWebEventReceived);
             Overlays.deleteOverlay(proxyUIOverlay);
             Overlays.deleteOverlay(proxyOverlay);
+            proxyOverlayObject = null;
             proxyUIOverlay = null;
             proxyOverlay = null;
         }
@@ -236,6 +293,10 @@
             updateTimer = null;
         }
 
+        // Stop monitoring mute and bubble changes.
+        Audio.mutedChanged.disconnect(updateMutedStatus);
+        Users.ignoreRadiusEnabledChanged.disconnect(updateBubbleStatus);
+
         // Don't keep overlays prepared if in desktop mode.
         destroyUI();
     }
@@ -243,6 +304,10 @@
     function exitProxyDisabled() {
         // Create UI so that it's ready to be displayed without seeing artefacts from creating the UI.
         createUI();
+
+        // Start monitoring mute and bubble changes.
+        Audio.mutedChanged.connect(updateMutedStatus);
+        Users.ignoreRadiusEnabledChanged.connect(updateBubbleStatus);
 
         // Start updates.
         updateTimer = Script.setTimeout(updateState, UPDATE_INTERVAL);

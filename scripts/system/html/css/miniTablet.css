@@ -96,7 +96,7 @@ footer {
         }
 
     footer .button:hover {
-        border: 1px solid #1fc6a6;
+        border: 1px solid #e3e3e3;
         border-radius: 2px;
         margin: -1px;
     }
