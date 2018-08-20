@@ -52,7 +52,6 @@
 #include <WebSocketServerClass.h>
 #include <EntityScriptingInterface.h> // TODO: consider moving to scriptengine.h
 
-#include "AssignmentDynamicFactory.h"
 #include "entities/AssignmentParentFinder.h"
 #include "RecordingScriptingInterface.h"
 #include "AbstractAudioInterface.h"
@@ -71,9 +70,6 @@ Agent::Agent(ReceivedMessage& message) :
     DependencyManager::set<AnimationCache>();
     DependencyManager::set<AnimationCacheScriptingInterface>();
     DependencyManager::set<EntityScriptingInterface>(false);
-
-    DependencyManager::registerInheritance<EntityDynamicFactoryInterface, AssignmentDynamicFactory>();
-    DependencyManager::set<AssignmentDynamicFactory>();
 
     DependencyManager::set<ResourceScriptingInterface>();
     DependencyManager::set<UserActivityLoggerScriptingInterface>();
