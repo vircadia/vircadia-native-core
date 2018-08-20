@@ -48,6 +48,7 @@ import com.google.vr.ndk.base.GvrApi;*/
 public class InterfaceActivity extends QtActivity implements WebViewFragment.OnWebViewInteractionListener {
 
     public static final String DOMAIN_URL = "url";
+    public static final String EXTRA_GOTO_USERNAME = "gotousername";
     private static final String TAG = "Interface";
     private static final int WEB_DRAWER_RIGHT_MARGIN = 262;
     private static final int WEB_DRAWER_BOTTOM_MARGIN = 150;
@@ -59,6 +60,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
     private native long nativeOnCreate(InterfaceActivity instance, AssetManager assetManager);
     private native void nativeOnDestroy();
     private native void nativeGotoUrl(String url);
+    private native void nativeGoToUser(String username);
     private native void nativeBeforeEnterBackground();
     private native void nativeEnterBackground();
     private native void nativeEnterForeground();
@@ -280,6 +282,9 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         if (intent.hasExtra(DOMAIN_URL)) {
             webSlidingDrawer.setVisibility(View.GONE);
             nativeGotoUrl(intent.getStringExtra(DOMAIN_URL));
+        } else if (intent.hasExtra(EXTRA_GOTO_USERNAME)) {
+            webSlidingDrawer.setVisibility(View.GONE);
+            nativeGoToUser(intent.getStringExtra(EXTRA_GOTO_USERNAME));
         }
     }
 

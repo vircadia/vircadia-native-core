@@ -266,19 +266,10 @@ class RenderEventHandler : public QObject {
     using Parent = QObject;
     Q_OBJECT
 public:
-    RenderEventHandler(QOpenGLContext* context) {
-        _renderContext = new OffscreenGLCanvas();
-        _renderContext->setObjectName("RenderContext");
-        _renderContext->create(context);
-        if (!_renderContext->makeCurrent()) {
-            qFatal("Unable to make rendering context current");
-        }
-        _renderContext->doneCurrent();
-
+    RenderEventHandler() {
         // Transfer to a new thread
         moveToNewNamedThread(this, "RenderThread", [this](QThread* renderThread) {
             hifi::qt::addBlockingForbiddenThread("Render", renderThread);
-            _renderContext->moveToThreadWithContext(renderThread);
             qApp->_lastTimeRendered.start();
         }, std::bind(&RenderEventHandler::initialize, this), QThread::HighestPriority);
     }
@@ -288,9 +279,6 @@ private:
         setObjectName("Render");
         PROFILE_SET_THREAD_NAME("Render");
         setCrashAnnotation("render_thread_id", std::to_string((size_t)QThread::currentThreadId()));
-        if (!_renderContext->makeCurrent()) {
-            qFatal("Unable to make rendering context current on render thread");
-        }
     }
 
     void render() {
@@ -311,8 +299,6 @@ private:
         }
         return Parent::event(event);
     }
-
-    OffscreenGLCanvas* _renderContext { nullptr };
 };
 
 
@@ -2695,26 +2681,14 @@ void Application::initializeGL() {
         }
     }
 
-    // Build an offscreen GL context for the main thread.
-    _offscreenContext = new OffscreenGLCanvas();
-    _offscreenContext->setObjectName("MainThreadContext");
-    _offscreenContext->create(_glWidget->qglContext());
-    if (!_offscreenContext->makeCurrent()) {
-        qFatal("Unable to make offscreen context current");
-    }
-    _offscreenContext->doneCurrent();
-    _offscreenContext->setThreadContext();
+    _renderEventHandler = new RenderEventHandler();
 
+    // Build an offscreen GL context for the main thread.
     _glWidget->makeCurrent();
     glClearColor(0.2f, 0.2f, 0.2f, 1);
     glClear(GL_COLOR_BUFFER_BIT);
     _glWidget->swapBuffers();
 
-    // Move the GL widget context to the render event handler thread
-    _renderEventHandler = new RenderEventHandler(_glWidget->qglContext());
-    if (!_offscreenContext->makeCurrent()) {
-        qFatal("Unable to make offscreen context current");
-    }
 
     // Create the GPU backend
 
@@ -2727,9 +2701,6 @@ void Application::initializeGL() {
     _gpuContext = std::make_shared<gpu::Context>();
 
     DependencyManager::get<TextureCache>()->setGPUContext(_gpuContext);
-
-    // Restore the default main thread context
-    _offscreenContext->makeCurrent();
 }
 
 static const QString SPLASH_SKYBOX{ "{\"ProceduralEntity\":{ \"version\":2, \"shaderUrl\":\"qrc:///shaders/splashSkybox.frag\" } }" };
@@ -2767,8 +2738,6 @@ void Application::initializeDisplayPlugins() {
 
     // Submit a default frame to render until the engine starts up
     updateRenderArgs(0.0f);
-
-    _offscreenContext->makeCurrent();
 
 #define ENABLE_SPLASH_FRAME 0
 #if ENABLE_SPLASH_FRAME
@@ -2811,8 +2780,6 @@ void Application::initializeDisplayPlugins() {
 }
 
 void Application::initializeRenderEngine() {
-    _offscreenContext->makeCurrent();
-
     // FIXME: on low end systems os the shaders take up to 1 minute to compile, so we pause the deadlock watchdog thread.
     DeadlockWatchdogThread::withPause([&] {
         // Set up the render engine
@@ -4562,7 +4529,6 @@ void Application::idle() {
         if (offscreenUi->size() != fromGlm(uiSize)) {
             qCDebug(interfaceapp) << "Device pixel ratio changed, triggering resize to " << uiSize;
             offscreenUi->resize(fromGlm(uiSize));
-            _offscreenContext->makeCurrent();
         }
     }
 
@@ -4619,10 +4585,6 @@ void Application::idle() {
     // details normally.
     bool showWarnings = getLogger()->extraDebugging();
     PerformanceWarning warn(showWarnings, "idle()");
-
-    if (!_offscreenContext->makeCurrent()) {
-        qFatal("Unable to make main thread context current");
-    }
 
     {
         _gameWorkload.updateViews(_viewFrustum, getMyAvatar()->getHeadPosition());
@@ -4951,7 +4913,6 @@ QVector<EntityItemID> Application::pasteEntities(float x, float y, float z) {
 }
 
 void Application::init() {
-    _offscreenContext->makeCurrent();
     // Make sure Login state is up to date
     DependencyManager::get<DialogsManager>()->toggleLoginDialog();
     if (!DISABLE_DEFERRED) {
@@ -8342,7 +8303,7 @@ QOpenGLContext* Application::getPrimaryContext() {
 }
 
 bool Application::makeRenderingContextCurrent() {
-    return _offscreenContext->makeCurrent();
+    return true;
 }
 
 bool Application::isForeground() const {

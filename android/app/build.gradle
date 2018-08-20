@@ -145,5 +145,7 @@ dependencies {
     compile 'com.squareup.retrofit2:converter-gson:2.4.0'
     implementation 'com.squareup.picasso:picasso:2.71828'
 
+    compile 'com.sothree.slidinguppanel:library:3.4.0'
+
     implementation fileTree(include: ['*.jar'], dir: 'libs')
 }
