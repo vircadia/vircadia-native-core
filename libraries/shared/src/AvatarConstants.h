@@ -66,6 +66,7 @@ const glm::vec3 DEFAULT_AVATAR_RIGHTFOOT_POS { 0.08f, -0.96f, 0.029f };
 const glm::quat DEFAULT_AVATAR_RIGHTFOOT_ROT { -0.4016716778278351f, 0.9154615998268127f, 0.0053307069465518f, 0.023696165531873703f };
 
 const float DEFAULT_AVATAR_MAX_WALKING_SPEED = 2.6f; // meters / second
+const float DEFAULT_AVATAR_MAX_WALKING_BACKWARD_SPEED = 2.2f; // meters / second
 const float DEFAULT_AVATAR_MAX_FLYING_SPEED = 30.0f; // meters / second
 
 const float DEFAULT_AVATAR_GRAVITY = -5.0f; // meters / second^2

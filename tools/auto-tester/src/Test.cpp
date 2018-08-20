@@ -27,8 +27,8 @@ Test::Test() {
     _mismatchWindow.setModal(true);
 
     if (autoTester) {
-        autoTester->setUserText("highfidelity");
-        autoTester->setBranchText("master");
+        autoTester->setUserText(GIT_HUB_DEFAULT_USER);
+        autoTester->setBranchText(GIT_HUB_DEFAULT_BRANCH);
     }
 }
 
@@ -49,9 +49,7 @@ void Test::zipAndDeleteTestResultsFolder() {
     }
 
     QDir testResultsFolder(_testResultsFolderPath);
-    if (!testResultsFolder.isEmpty()) {
-        JlCompress::compressDir(_testResultsFolderPath + ".zip", _testResultsFolderPath);
-    }
+    JlCompress::compressDir(_testResultsFolderPath + ".zip", _testResultsFolderPath);
 
     testResultsFolder.removeRecursively();
 
@@ -132,9 +130,7 @@ void Test::appendTestResultsToFile(const QString& _testResultsFolderPath, TestFa
         exit(-1);
     }
 
-    QString err = QString::number(testFailure._error).left(6);
-
-    QString failureFolderPath { _testResultsFolderPath + "/" + err +  "-Failure_" + QString::number(_index) + "--" + testFailure._actualImageFilename.left(testFailure._actualImageFilename.length() - 4) };
+    QString failureFolderPath { _testResultsFolderPath + "/Failure_" + QString::number(_index) + "--" + testFailure._actualImageFilename.left(testFailure._actualImageFilename.length() - 4) };
     if (!QDir().mkdir(failureFolderPath)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create folder " + failureFolderPath);
         exit(-1);
@@ -832,7 +828,7 @@ void Test::createTestRailTestCases() {
         QFileDialog::getExistingDirectory(nullptr, "Please select the tests root folder", parent, QFileDialog::ShowDirsOnly);
 
     // If user cancelled then restore previous selection and return
-    if (_testDirectory == "") {
+    if (_testDirectory.isNull()) {
         _testDirectory = previousSelection;
         return;
     }
@@ -841,7 +837,7 @@ void Test::createTestRailTestCases() {
                                                                 nullptr, QFileDialog::ShowDirsOnly);
 
     // If user cancelled then return
-    if (outputDirectory == "") {
+    if (outputDirectory.isNull()) {
         return;
     }
 
@@ -857,7 +853,28 @@ void Test::createTestRailTestCases() {
 void Test::createTestRailRun() {
     QString outputDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select a folder to store generated files in",
                                                                 nullptr, QFileDialog::ShowDirsOnly);
+
+    if (outputDirectory.isNull()) {
+        return;
+    }
+
     _testRailInterface.createTestRailRun(outputDirectory);
+}
+
+void Test::updateTestRailRunResult() {
+    QString testResults = QFileDialog::getOpenFileName(nullptr, "Please select the zipped test results to update from", nullptr,
+                                                       "Zipped Test Results (*.zip)");   
+    if (testResults.isNull()) {
+        return;
+    }
+
+    QString tempDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select a folder to store temporary files in",
+                                                                nullptr, QFileDialog::ShowDirsOnly);
+    if (tempDirectory.isNull()) {
+        return;
+    }
+
+    _testRailInterface.updateTestRailRunResults(testResults, tempDirectory);
 }
 
 QStringList Test::createListOfAll_imagesInDirectory(const QString& imageFormat, const QString& pathToImageDirectory) {

@@ -314,8 +314,6 @@ var toolBar = (function () {
                 direction = MyAvatar.orientation;
             }
             direction = Vec3.multiplyQbyV(direction, Vec3.UNIT_Z);
-            // Align entity with Avatar orientation.
-            properties.rotation = MyAvatar.orientation;
 
             var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Web", "Material"];
             if (PRE_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
@@ -806,6 +804,14 @@ var toolBar = (function () {
 
         addButton("newMaterialButton", createNewEntityDialogButtonCallback("Material"));
 
+        var deactivateCreateIfDesktopWindowsHidden = function() {
+            if (!shouldUseEditTabletApp() && !entityListTool.isVisible() && !createToolsWindow.isVisible()) {
+                that.setActive(false);
+            }
+        };
+        entityListTool.interactiveWindowHidden.addListener(this, deactivateCreateIfDesktopWindowsHidden);
+        createToolsWindow.interactiveWindowHidden.addListener(this, deactivateCreateIfDesktopWindowsHidden);
+
         that.setActive(false);
     }
 
@@ -863,6 +869,7 @@ var toolBar = (function () {
             }
             UserActivityLogger.enabledEdit();
             entityListTool.setVisible(true);
+            entityListTool.sendUpdate();
             gridTool.setVisible(true);
             grid.setEnabled(true);
             propertiesTool.setVisible(true);
