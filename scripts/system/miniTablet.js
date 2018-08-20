@@ -89,7 +89,7 @@
         LEFT_HAND = 0,
         RIGHT_HAND = 1,
         HAND_NAMES = ["LeftHand", "RightHand"],
-        DEBUG = true;
+        DEBUG = false;
 
     // #region Utilities =======================================================================================================
 
@@ -208,6 +208,7 @@
 
     function hideUI() {
         Overlays.editOverlay(proxyOverlay, {
+            parentID: Uuid.NULL, // Release hold so that hand can grab tablet proper.
             visible: false
         });
         Overlays.editOverlay(proxyUIOverlay, {
