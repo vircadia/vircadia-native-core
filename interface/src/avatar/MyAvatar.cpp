@@ -3582,6 +3582,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
             if (!isActive(Horizontal) && (shouldActivateHorizontalCG(myAvatar) || hasDriveInput)) {
                 activate(Horizontal);
                 if (myAvatar.getEnableStepResetRotation()) {
+                    activate(Rotation);
                     myAvatar.setHeadControllerFacingMovingAverage(myAvatar._headControllerFacing);
                 }
             }
@@ -3589,6 +3590,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
             if (!isActive(Horizontal) && (shouldActivateHorizontal(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
                 activate(Horizontal);
                 if (myAvatar.getEnableStepResetRotation()) {
+                    activate(Rotation);
                     myAvatar.setHeadControllerFacingMovingAverage(myAvatar._headControllerFacing);
                 }
             }
