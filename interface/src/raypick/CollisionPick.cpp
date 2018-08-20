@@ -348,6 +348,7 @@ void CollisionPick::filterIntersections(std::vector<ContactTestResult>& intersec
         if (ignoreItems.contains(id) || (isWhitelist && !includeItems.contains(id))) {
             intersections[i] = intersections[--n];
             intersections.pop_back();
+            --i;
         }
     }
 }
