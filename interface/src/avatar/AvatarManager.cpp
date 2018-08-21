@@ -478,7 +478,7 @@ void AvatarManager::deleteAllAvatars() {
     QReadLocker locker(&_hashLock);
     AvatarHash::iterator avatarIterator =  _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
-        auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
+        auto avatar = std::static_pointer_cast<OtherAvatar>(avatarIterator.value());
         avatarIterator = _avatarHash.erase(avatarIterator);
         avatar->die();
         assert(!avatar->_motionState);
