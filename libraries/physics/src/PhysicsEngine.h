@@ -125,8 +125,9 @@ public:
     void setShowBulletConstraints(bool value);
     void setShowBulletConstraintLimits(bool value);
 
-    // Function for getting colliding ObjectMotionStates in the world of specified type
-    const std::vector<ContactTestResult> getCollidingInRegion(MotionStateType desiredObjectType, const ShapeInfo& regionShapeInfo, const Transform& regionTransform) const;
+    // Function for getting colliding objects in the world of specified type
+    // See PhysicsCollisionGroups.h for mask flags.
+    std::vector<ContactTestResult> contactTest(uint16_t mask, const ShapeInfo& regionShapeInfo, const Transform& regionTransform, uint16_t group = USER_COLLISION_GROUP_DYNAMIC) const;
 
 private:
     QList<EntityDynamicPointer> removeDynamicsForBody(btRigidBody* body);

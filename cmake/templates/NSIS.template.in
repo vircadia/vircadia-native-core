@@ -130,7 +130,11 @@
     ; The Inner invocation has written an uninstaller binary for us.
     ; We need to sign it if it's a production or PR build.
     !if @PRODUCTION_BUILD@ == 1
-      !system '"@SIGNTOOL_EXECUTABLE@" sign /fd sha256 /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://sha256timestamp.ws.symantec.com/sha256/timestamp /td SHA256 $%TEMP%\@UNINSTALLER_NAME@' = 0
+      !if @BYPASS_SIGNING@ == 1
+        !warning "BYPASS_SIGNING set - installer will not be signed"
+      !else
+        !system '"@SIGNTOOL_EXECUTABLE@" sign /fd sha256 /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://sha256timestamp.ws.symantec.com/sha256/timestamp /td SHA256 $%TEMP%\@UNINSTALLER_NAME@' = 0
+      !endif
     !endif
 
     ; Good.  Now we can carry on writing the real installer.

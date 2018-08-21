@@ -16,8 +16,11 @@
 #include "Application.h"
 #include "Menu.h"
 #include "SceneScriptingInterface.h"
+#include "SafeLanding.h"
 
-OctreePacketProcessor::OctreePacketProcessor() {
+OctreePacketProcessor::OctreePacketProcessor():
+    _safeLanding(new SafeLanding())
+{
     setObjectName("Octree Packet Processor");
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
@@ -25,6 +28,8 @@ OctreePacketProcessor::OctreePacketProcessor() {
         { PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase, PacketType::EntityQueryInitialResultsComplete };
     packetReceiver.registerDirectListenerForTypes(octreePackets, this, "handleOctreePacket");
 }
+
+OctreePacketProcessor::~OctreePacketProcessor() { }
 
 void OctreePacketProcessor::handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     queueReceivedPacket(message, senderNode);
@@ -107,6 +112,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
                 auto renderer = qApp->getEntities();
                 if (renderer) {
                     renderer->processDatagram(*message, sendingNode);
+                    _safeLanding->noteReceivedsequenceNumber(renderer->getLastOctreeMessageSequence());
                 }
             }
         } break;
@@ -115,8 +121,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
             // Read sequence #
             OCTREE_PACKET_SEQUENCE completionNumber;
             message->readPrimitive(&completionNumber);
-
-            _completionSequenceNumber = completionNumber;
+            _safeLanding->setCompletionSequenceNumbers(0, completionNumber);
         } break;
 
         default: {
@@ -125,22 +130,10 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
     }
 }
 
-void OctreePacketProcessor::resetCompletionSequenceNumber() {
-    _completionSequenceNumber = INVALID_SEQUENCE;
+void OctreePacketProcessor::startEntitySequence() {
+    _safeLanding->startEntitySequence(qApp->getEntities());
 }
 
-namespace {
-    template<typename T> bool lessThanWraparound(int a, int b) {
-        constexpr int MAX_T_VALUE = std::numeric_limits<T>::max();
-        if (b <= a) {
-            b += MAX_T_VALUE;
-        }
-        return (b - a) < (MAX_T_VALUE / 2);
-    }
-}
-
-bool OctreePacketProcessor::octreeSequenceIsComplete(int sequenceNumber) const {
-    // If we've received the flagged seq # and the current one is >= it.
-    return _completionSequenceNumber != INVALID_SEQUENCE &&
-        !lessThanWraparound<OCTREE_PACKET_SEQUENCE>(sequenceNumber, _completionSequenceNumber);
+bool OctreePacketProcessor::isLoadSequenceComplete() const {
+    return _safeLanding->isLoadSequenceComplete();
 }

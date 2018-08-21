@@ -277,6 +277,9 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         sortedAvatars.pop();
     }
 
+    if (_shouldRender) {
+        qApp->getMain3DScene()->enqueueTransaction(transaction);
+    }
     _numAvatarsUpdated = numAvatarsUpdated;
     _numAvatarsNotUpdated = numAVatarsNotUpdated;
 

@@ -49,23 +49,7 @@ public:
     bool doesIntersect() const override { return intersects; }
     bool checkOrFilterAgainstMaxDistance(float maxDistance) override { return true; }
 
-    PickResultPointer compareAndProcessNewResult(const PickResultPointer& newRes) override {
-        const std::shared_ptr<CollisionPickResult> newCollisionResult = std::static_pointer_cast<CollisionPickResult>(newRes);
-
-        for (ContactTestResult& entityIntersection : newCollisionResult->entityIntersections) {
-            entityIntersections.push_back(entityIntersection);
-        }
-        for (ContactTestResult& avatarIntersection : newCollisionResult->avatarIntersections) {
-            avatarIntersections.push_back(avatarIntersection);
-        }
-
-        intersects = entityIntersections.size() || avatarIntersections.size();
-        if (newCollisionResult->loadState == LOAD_STATE_NOT_LOADED || loadState == LOAD_STATE_UNKNOWN) {
-            loadState = (LoadState)newCollisionResult->loadState;        
-        }
-
-        return std::make_shared<CollisionPickResult>(*this);
-    }
+    PickResultPointer compareAndProcessNewResult(const PickResultPointer& newRes) override;
 };
 
 class CollisionPick : public Pick<CollisionRegion> {
@@ -92,7 +76,7 @@ protected:
     // Returns true if pick.shapeInfo is valid. Otherwise, attempts to get the shapeInfo ready for use.
     bool isShapeInfoReady();
     void computeShapeInfo(CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<GeometryResource> resource);
-    const std::vector<ContactTestResult> filterIntersections(const std::vector<ContactTestResult>& intersections) const;
+    void filterIntersections(std::vector<ContactTestResult>& intersections) const;
 
     CollisionRegion _mathPick;
     PhysicsEnginePointer _physicsEngine;
