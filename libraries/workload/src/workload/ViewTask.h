@@ -192,7 +192,7 @@ namespace workload {
 
 
         struct Data {
-            bool regulateViewRanges{ false };
+            bool regulateViewRanges{ false }; // regulation is OFF by default
         } data;
 
         struct DataExport {

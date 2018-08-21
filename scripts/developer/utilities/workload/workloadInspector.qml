@@ -160,9 +160,9 @@ Rectangle {
                 }
                 Repeater {
                     model: [ 
-                        "r1Front:500:1.0",
-                        "r2Front:500:1.0",
-                        "r3Front:500:1.0"
+                        "r1Front:16000:1.0",
+                        "r2Front:16000:1.0",
+                        "r3Front:16000:1.0"
                     ]
                     ConfigSlider {
                         showLabel: false
