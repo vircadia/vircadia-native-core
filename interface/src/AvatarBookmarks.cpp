@@ -151,7 +151,13 @@ bool isWearableEntity(const EntityItemPointer& entity) {
 
 void AvatarBookmarks::updateAvatarEntities(const QVariantList &avatarEntities) {
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    myAvatar->clearAvatarEntities();
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+    myAvatar->removeAvatarEntities([&](const QUuid& entityID) {
+        auto entity = entityTree->findEntityByID(entityID);
+        return entity && isWearableEntity(entity);
+    });
+
     addAvatarEntities(avatarEntities);
 }
 
@@ -174,7 +180,12 @@ void AvatarBookmarks::loadBookmark(const QString& bookmarkName) {
 
         if (!bookmark.empty()) {
             auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-            myAvatar->clearAvatarEntities();
+            auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+            EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+            myAvatar->removeAvatarEntities([&](const QUuid& entityID) {
+                auto entity = entityTree->findEntityByID(entityID);
+                return entity && isWearableEntity(entity);
+            });
             const QString& avatarUrl = bookmark.value(ENTRY_AVATAR_URL, "").toString();
             myAvatar->useFullAvatarURL(avatarUrl);
             qCDebug(interfaceapp) << "Avatar On " << avatarUrl;

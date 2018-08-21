@@ -931,7 +931,7 @@ public:
     * @returns {object[]}
     */
     Q_INVOKABLE QVariantList getAvatarEntitiesVariant();
-    void clearAvatarEntities() { setAvatarEntityData(AvatarEntityMap()); }
+    void removeAvatarEntities(const std::function<bool(const QUuid& entityID)>& condition = {});
 
     /**jsdoc
      * @function MyAvatar.isFlying
