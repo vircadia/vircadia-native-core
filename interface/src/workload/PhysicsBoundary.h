@@ -7,8 +7,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#ifndef hifi_PhysicsGatekeeper_h
-#define hifi_PhysicsGatekeeper_h
+#ifndef hifi_PhysicsBoundary_h
+#define hifi_PhysicsBoundary_h
 
 #include <workload/Engine.h>
 #include <workload/RegionTracker.h>
@@ -18,11 +18,11 @@ public:
     using Config = workload::Job::Config;
     using Inputs = workload::RegionTracker::Outputs;
     using Outputs = bool;
-    using JobModel = workload::Job::ModelI<PhysicsBoundary, Inputs, Config>; // this doesn't work
+    using JobModel = workload::Job::ModelI<PhysicsBoundary, Inputs, Config>;
 
     PhysicsBoundary() {}
     void configure(const Config& config) { }
     void run(const workload::WorkloadContextPointer& context, const Inputs& inputs);
 };
 
-#endif // hifi_PhysicsGatekeeper_h
+#endif // hifi_PhysicsBoundary_h
