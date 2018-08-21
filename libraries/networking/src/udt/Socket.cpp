@@ -37,6 +37,7 @@ Socket::Socket(QObject* parent, bool shouldChangeSocketOptions) :
     _shouldChangeSocketOptions(shouldChangeSocketOptions)
 {
     connect(&_udpSocket, &QUdpSocket::readyRead, this, &Socket::readPendingDatagrams);
+    connect(this, &Socket::pendingDatagrams, this, &Socket::processPendingDatagrams);
 
     // make sure we hear about errors and state changes from the underlying socket
     connect(&_udpSocket, SIGNAL(error(QAbstractSocket::SocketError)),
@@ -315,55 +316,80 @@ void Socket::checkForReadyReadBackup() {
 }
 
 void Socket::readPendingDatagrams() {
+    int packetsRead = 0;
+
     int packetSizeWithHeader = -1;
-
     while (_udpSocket.hasPendingDatagrams() && (packetSizeWithHeader = _udpSocket.pendingDatagramSize()) != -1) {
-
-        // we're reading a packet so re-start the readyRead backup timer
-        _readyReadBackupTimer->start();
-
         // grab a time point we can mark as the receive time of this packet
         auto receiveTime = p_high_resolution_clock::now();
 
-        // setup a HifiSockAddr to read into
-        HifiSockAddr senderSockAddr;
 
         // setup a buffer to read the packet into
         auto buffer = std::unique_ptr<char[]>(new char[packetSizeWithHeader]);
 
+        QHostAddress senderAddress;
+        quint16 senderPort;
+
         // pull the datagram
         auto sizeRead = _udpSocket.readDatagram(buffer.get(), packetSizeWithHeader,
-                                                senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
+            &senderAddress, &senderPort);
 
-        // save information for this packet, in case it is the one that sticks readyRead
-        _lastPacketSizeRead = sizeRead;
-        _lastPacketSockAddr = senderSockAddr;
+        // we either didn't pull anything for this packet or there was an error reading (this seems to trigger
+        // on windows even if there's not a packet available)
 
-        if (sizeRead <= 0) {
-            // we either didn't pull anything for this packet or there was an error reading (this seems to trigger
-            // on windows even if there's not a packet available)
+        if (packetSizeWithHeader < 0) {
             continue;
         }
+
+        _incomingDatagrams.push({ senderAddress, senderPort, packetSizeWithHeader,
+            std::move(buffer), receiveTime });
+        ++packetsRead;
+
+    }
+
+    _maxDatagramsRead = std::max(_maxDatagramsRead, packetsRead);
+    emit pendingDatagrams(packetsRead);
+}
+
+void Socket::processPendingDatagrams(int) {
+    // setup a HifiSockAddr to read into
+    HifiSockAddr senderSockAddr;
+
+    while (!_incomingDatagrams.empty()) {
+        auto& datagram = _incomingDatagrams.front();
+        senderSockAddr.setAddress(datagram._senderAddress);
+        senderSockAddr.setPort(datagram._senderPort);
+        int datagramSize = datagram._datagramLength;
+        auto receiveTime = datagram._receiveTime;
 
         auto it = _unfilteredHandlers.find(senderSockAddr);
 
         if (it != _unfilteredHandlers.end()) {
             // we have a registered unfiltered handler for this HifiSockAddr - call that and return
             if (it->second) {
-                auto basePacket = BasePacket::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
-                basePacket->setReceiveTime(receiveTime);
+                auto basePacket = BasePacket::fromReceivedPacket(std::move(datagram._datagram), datagramSize,
+                    senderSockAddr);
+                basePacket->setReceiveTime(datagram._receiveTime);
                 it->second(std::move(basePacket));
             }
 
+            _incomingDatagrams.pop();
             continue;
         }
 
+        // we're reading a packet so re-start the readyRead backup timer
+        _readyReadBackupTimer->start();
+
+        // save information for this packet, in case it is the one that sticks readyRead
+        _lastPacketSizeRead = datagramSize;
+        _lastPacketSockAddr = senderSockAddr;
+
         // check if this was a control packet or a data packet
-        bool isControlPacket = *reinterpret_cast<uint32_t*>(buffer.get()) & CONTROL_BIT_MASK;
+        bool isControlPacket = *reinterpret_cast<uint32_t*>(datagram._datagram.get()) & CONTROL_BIT_MASK;
 
         if (isControlPacket) {
             // setup a control packet from the data we just read
-            auto controlPacket = ControlPacket::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
+            auto controlPacket = ControlPacket::fromReceivedPacket(std::move(datagram._datagram), datagramSize, senderSockAddr);
             controlPacket->setReceiveTime(receiveTime);
 
             // move this control packet to the matching connection, if there is one
@@ -375,7 +401,7 @@ void Socket::readPendingDatagrams() {
 
         } else {
             // setup a Packet from the data we just read
-            auto packet = Packet::fromReceivedPacket(std::move(buffer), packetSizeWithHeader, senderSockAddr);
+            auto packet = Packet::fromReceivedPacket(std::move(datagram._datagram), datagramSize, senderSockAddr);
             packet->setReceiveTime(receiveTime);
 
             // save the sequence number in case this is the packet that sticks readyRead
@@ -395,6 +421,7 @@ void Socket::readPendingDatagrams() {
                         qCDebug(networking) << "Can't process packet: version" << (unsigned int)NLPacket::versionInHeader(*packet)
                             << ", type" << NLPacket::typeInHeader(*packet);
 #endif
+                        _incomingDatagrams.pop();
                         continue;
                     }
                 }
@@ -410,6 +437,8 @@ void Socket::readPendingDatagrams() {
                 }
             }
         }
+
+        _incomingDatagrams.pop();
     }
 }
 
