@@ -61,13 +61,20 @@
         // State machine
         PROXY_DISABLED = 0,
         PROXY_HIDDEN = 1,
-        PROXY_VISIBLE = 2,
-        PROXY_EXPANDING = 3,
-        TABLET_OPEN = 4,
-        STATE_STRINGS = ["PROXY_DISABLED", "PROXY_HIDDEN", "PROXY_VISIBLE", "PROXY_EXPANDING", "TABLET_OPEN"],
+        PROXY_HIDING = 2,
+        PROXY_SHOWING = 3,
+        PROXY_VISIBLE = 4,
+        PROXY_EXPANDING = 5,
+        TABLET_OPEN = 6,
+        STATE_STRINGS = ["PROXY_DISABLED", "PROXY_HIDDEN", "PROXY_HIDING", "PROXY_SHOWING", "PROXY_VISIBLE", "PROXY_EXPANDING",
+            "TABLET_OPEN"],
         STATE_MACHINE,
         rezzerState = PROXY_DISABLED,
         proxyHand,
+        PROXY_SCALE_DURATION = 150,
+        PROXY_SCALE_TIMEOUT = 20,
+        proxyScaleTimer = null,
+        proxyScaleStart,
         PROXY_EXPAND_HANDLES = [ // Normalized coordinates in range [-0.5, 0.5] about center of mini tablet.
             { x: 0.5, y: -0.75, z: 0 },
             { x: -0.5, y: -0.75, z: 0 }
@@ -76,12 +83,11 @@
         proxyExpandLocalPosition,
         proxyExpandLocalRotation = Quat.IDENTITY,
         PROXY_EXPAND_DURATION = 250,
-        PROXY_EXPAND_TIMEOUT = 25,
+        PROXY_EXPAND_TIMEOUT = 20,
         proxyExpandTimer = null,
         proxyExpandStart,
         proxyInitialWidth,
         proxyTargetWidth,
-        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system"),
 
         // EventBridge
         READY_MESSAGE = "ready", // Engine <== Dialog
@@ -112,6 +118,8 @@
         RIGHT_HAND = 1,
         HAND_NAMES = ["LeftHand", "RightHand"],
 
+        // Miscellaneous.
+        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system"),
         DEBUG = false;
 
     // #region Utilities =======================================================================================================
@@ -266,20 +274,22 @@
         updateMiniTabletID();
     }
 
-    function showUI(hand) {
+    function showUI() {
+        var initialScale = 0.01; // Start very small.
+
         Overlays.editOverlay(proxyOverlay, {
             parentID: MyAvatar.SELF_ID,
             parentJointIndex: handJointIndex(proxyHand),
             localPosition: Vec3.multiply(avatarScale,
                 proxyHand === LEFT_HAND ? PROXY_POSITION_LEFT_HAND : PROXY_POSITION_RIGHT_HAND),
             localRotation: proxyHand === LEFT_HAND ? PROXY_ROTATION_LEFT_HAND : PROXY_ROTATION_RIGHT_HAND,
-            dimensions: Vec3.multiply(avatarScale, PROXY_DIMENSIONS),
+            dimensions: Vec3.multiply(initialScale, PROXY_DIMENSIONS),
             visible: true
         });
         Overlays.editOverlay(proxyUIOverlay, {
             localPosition: Vec3.multiply(avatarScale, PROXY_UI_LOCAL_POSITION),
-            dimensions: Vec3.multiply(avatarScale, PROXY_UI_DIMENSIONS),
-            dpi: PROXY_UI_DPI / avatarScale,
+            dimensions: Vec3.multiply(initialScale, PROXY_UI_DIMENSIONS),
+            dpi: PROXY_UI_DPI / initialScale,
             visible: true
         });
 
@@ -293,6 +303,19 @@
     }
 
     function sizeUI(scaleFactor) {
+        // Scale UI in place.
+        Overlays.editOverlay(proxyOverlay, {
+            dimensions: Vec3.multiply(scaleFactor, PROXY_DIMENSIONS)
+        });
+        Overlays.editOverlay(proxyUIOverlay, {
+            localPosition: Vec3.multiply(scaleFactor, PROXY_UI_LOCAL_POSITION),
+            dimensions: Vec3.multiply(scaleFactor, PROXY_UI_DIMENSIONS),
+            dpi: PROXY_UI_DPI / scaleFactor
+        });
+    }
+
+    function sizeUIAboutHandles(scaleFactor) {
+        // Scale UI and move per handles.
         Overlays.editOverlay(proxyOverlay, {
             localPosition:
                 Vec3.sum(proxyExpandLocalPosition,
@@ -396,15 +419,71 @@
         }
         // Compare palm directions of hands with vectors from palms to camera.
         if (shouldShowProxy(LEFT_HAND)) {
-            setState(PROXY_VISIBLE, LEFT_HAND);
+            setState(PROXY_SHOWING, LEFT_HAND);
         } else if (shouldShowProxy(RIGHT_HAND)) {
-            setState(PROXY_VISIBLE, RIGHT_HAND);
+            setState(PROXY_SHOWING, RIGHT_HAND);
         }
     }
 
-    function enterProxyVisible(hand) {
+    function scaleProxyDown() {
+        var scaleFactor = (Date.now() - proxyScaleStart) / PROXY_SCALE_DURATION;
+        if (scaleFactor < 1) {
+            sizeUI((1 - scaleFactor) * avatarScale);
+            proxyScaleTimer = Script.setTimeout(scaleProxyDown, PROXY_SCALE_TIMEOUT);
+            return;
+        }
+        proxyScaleTimer = null;
+        setState(PROXY_HIDDEN);
+    }
+
+    function enterProxyHiding() {
+        proxyScaleStart = Date.now();
+        proxyScaleTimer = Script.setTimeout(scaleProxyDown, PROXY_SCALE_TIMEOUT);
+    }
+
+    function updateProxyHiding() {
+        if (HMD.showTablet) {
+            setState(PROXY_HIDDEN);
+        }
+    }
+
+    function exitProxyHiding() {
+        if (proxyScaleTimer) {
+            Script.clearTimeout(proxyScaleTimer);
+            proxyScaleTimer = null;
+        }
+    }
+
+    function scaleProxyUp() {
+        var scaleFactor = (Date.now() - proxyScaleStart) / PROXY_SCALE_DURATION;
+        if (scaleFactor < 1) {
+            sizeUI(scaleFactor * avatarScale);
+            proxyScaleTimer = Script.setTimeout(scaleProxyUp, PROXY_SCALE_TIMEOUT);
+            return;
+        }
+        proxyScaleTimer = null;
+        sizeUI(avatarScale);
+        setState(PROXY_VISIBLE);
+    }
+
+    function enterProxyShowing(hand) {
         proxyHand = hand;
-        showUI(proxyHand);
+        showUI();
+        proxyScaleStart = Date.now();
+        proxyScaleTimer = Script.setTimeout(scaleProxyUp, PROXY_SCALE_TIMEOUT);
+    }
+
+    function updateProxyShowing() {
+        if (HMD.showTablet) {
+            setState(PROXY_HIDDEN);
+        }
+    }
+
+    function exitProxyShowing() {
+        if (proxyScaleTimer) {
+            Script.clearTimeout(proxyScaleTimer);
+            proxyScaleTimer = null;
+        }
     }
 
     function updateProxyVisible() {
@@ -415,7 +494,7 @@
         }
         // Check that palm direction of proxy hand still less than maximum angle.
         if (!shouldShowProxy(proxyHand)) {
-            setState(PROXY_HIDDEN);
+            setState(PROXY_HIDING);
         }
     }
 
@@ -423,11 +502,10 @@
         var scaleFactor = (Date.now() - proxyExpandStart) / PROXY_EXPAND_DURATION;
         var tabletScaleFactor = avatarScale * (1 + scaleFactor * (proxyTargetWidth - proxyInitialWidth) / proxyInitialWidth);
         if (scaleFactor < 1) {
-            sizeUI(tabletScaleFactor);
+            sizeUIAboutHandles(tabletScaleFactor);
             proxyExpandTimer = Script.setTimeout(expandProxy, PROXY_EXPAND_TIMEOUT);
             return;
         }
-
         proxyExpandTimer = null;
         setState(TABLET_OPEN);
     }
@@ -449,7 +527,7 @@
     }
 
     function updateProxyExanding() {
-        // Hide proxy if tablet has been displayed by other means.
+        // Hide proxy immediately if tablet has been displayed by other means.
         if (HMD.showTablet) {
             setState(PROXY_HIDDEN);
         }
@@ -490,8 +568,18 @@
             update: updateProxyHidden,
             exit: null
         },
+        PROXY_HIDING: { // Tablet proxy is reducing from PROXY_VISIBLE to PROXY_HIDDEN.
+            enter: enterProxyHiding,
+            update: updateProxyHiding,
+            exit: exitProxyHiding
+        },
+        PROXY_SHOWING: { // Tablet proxy is expanding from PROXY_HIDDN to PROXY_VISIBLE.
+            enter: enterProxyShowing,
+            update: updateProxyShowing,
+            exit: exitProxyShowing
+        },
         PROXY_VISIBLE: { // Tablet proxy is visible and attached to hand.
-            enter: enterProxyVisible,
+            enter: null,
             update: updateProxyVisible,
             exit: null
         },
@@ -523,7 +611,9 @@
     }
 
     function updateState() {
-        STATE_MACHINE[STATE_STRINGS[rezzerState]].update();
+        if (STATE_MACHINE[STATE_STRINGS[rezzerState]].update) {
+            STATE_MACHINE[STATE_STRINGS[rezzerState]].update();
+        }
         updateTimer = Script.setTimeout(updateState, UPDATE_INTERVAL);
     }
 
