@@ -3557,10 +3557,10 @@ static bool headAngularVelocityBelowThreshold(const controller::Pose& head) {
     return isBelowThreshold;
 }
 
-static bool isWithinThresholdHeightMode(const controller::Pose& head,const float& newMode) {
+static bool isWithinThresholdHeightMode(const controller::Pose& head, const float& newMode, const float& scale) {
     bool isWithinThreshold = true;
     if (head.isValid()) {
-        isWithinThreshold = (head.getTranslation().y - newMode) > DEFAULT_AVATAR_MODE_HEIGHT_STEPPING_THRESHOLD;
+        isWithinThreshold = (head.getTranslation().y - newMode) > DEFAULT_AVATAR_MODE_HEIGHT_STEPPING_THRESHOLD * scale;
     }
     return isWithinThreshold;
 }
@@ -3791,8 +3791,7 @@ void MyAvatar::lateUpdatePalms() {
     Avatar::updatePalms();
 }
 
-
-static const float FOLLOW_TIME = 0.5f;
+static const float FOLLOW_TIME = 0.1f;
 
 MyAvatar::FollowHelper::FollowHelper() {
     deactivate();
@@ -3883,9 +3882,10 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontalCG(MyAvatar& myAvatar) cons
     controller::Pose currentRightHandPose = myAvatar.getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND);
 
     bool stepDetected = false;
+    float myScale = myAvatar.getAvatarScale();
     if (!withinBaseOfSupport(currentHeadPose) &&
             headAngularVelocityBelowThreshold(currentHeadPose) &&
-            isWithinThresholdHeightMode(currentHeadPose, myAvatar.getCurrentStandingHeight()) &&
+            isWithinThresholdHeightMode(currentHeadPose, myAvatar.getCurrentStandingHeight(), myScale) &&
             handDirectionMatchesHeadDirection(currentLeftHandPose, currentRightHandPose, currentHeadPose) &&
             handAngularVelocityBelowThreshold(currentLeftHandPose, currentRightHandPose) &&
             headVelocityGreaterThanThreshold(currentHeadPose) &&
@@ -3897,8 +3897,8 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontalCG(MyAvatar& myAvatar) cons
         glm::vec3 defaultHeadPosition = myAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar.getJointIndex("Head"));
         glm::vec3 currentHeadPosition = currentHeadPose.getTranslation();
         float anatomicalHeadToHipsDistance = glm::length(defaultHeadPosition - defaultHipsPosition);
-        if (!isActive(Horizontal) &&
-            (glm::length(currentHeadPosition - defaultHipsPosition) > (anatomicalHeadToHipsDistance + DEFAULT_AVATAR_SPINE_STRETCH_LIMIT))) {
+        if (!isActive(Horizontal) && 
+            (glm::length(currentHeadPosition - defaultHipsPosition) > (anatomicalHeadToHipsDistance + (DEFAULT_AVATAR_SPINE_STRETCH_LIMIT * anatomicalHeadToHipsDistance * myAvatar.getAvatarScale())))) {
             myAvatar.setResetMode(true);
             stepDetected = true;
         }
@@ -3918,6 +3918,9 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(const MyAvatar& myAvatar, co
 void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix,
                                               const glm::mat4& currentBodyMatrix, bool hasDriveInput) {
 
+    const float VELOCITY_THRESHHOLD = 0.5f;
+    float currentVelocity = glm::length(myAvatar.getLocalVelocity() / myAvatar.getSensorToWorldScale());
+
     if (myAvatar.getHMDLeanRecenterEnabled() &&
         qApp->getCamera().getMode() != CAMERA_MODE_MIRROR) {
         if (!isActive(Rotation) && (shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
@@ -3925,7 +3928,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
             myAvatar.setHeadControllerFacingMovingAverage(myAvatar._headControllerFacing);
         }
         if (myAvatar.getCenterOfGravityModelEnabled()) {
-            if (!isActive(Horizontal) && (shouldActivateHorizontalCG(myAvatar) || hasDriveInput)) {
+            if ((!isActive(Horizontal) && (shouldActivateHorizontalCG(myAvatar) || hasDriveInput)) || ( isActive(Horizontal) && (currentVelocity > VELOCITY_THRESHHOLD))) {
                 activate(Horizontal);
             }
         } else {
