@@ -57,14 +57,16 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
     }
 
     private void useTmpCachedDomains() {
-        if (DOMAINS_TMP_CACHE != null && DOMAINS_TMP_CACHE.length > 0) {
-            mDomains = Arrays.copyOf(DOMAINS_TMP_CACHE, DOMAINS_TMP_CACHE.length);
-            notifyDataSetChanged();
-            if (mAdapterListener != null) {
-                if (mDomains.length == 0) {
-                    mAdapterListener.onEmptyAdapter(false);
-                } else {
-                    mAdapterListener.onNonEmptyAdapter(false);
+        synchronized (this) {
+            if (DOMAINS_TMP_CACHE != null && DOMAINS_TMP_CACHE.length > 0) {
+                mDomains = Arrays.copyOf(DOMAINS_TMP_CACHE, DOMAINS_TMP_CACHE.length);
+                notifyDataSetChanged();
+                if (mAdapterListener != null) {
+                    if (mDomains.length == 0) {
+                        mAdapterListener.onEmptyAdapter(false);
+                    } else {
+                        mAdapterListener.onNonEmptyAdapter(false);
+                    }
                 }
             }
         }
@@ -81,16 +83,18 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
                 overrideDefaultThumbnails(domain);
 
                 mDomains = new Domain[domain.size()];
-                domain.toArray(mDomains);
-                if (filterText.isEmpty()) {
-                    DOMAINS_TMP_CACHE = Arrays.copyOf(mDomains, mDomains.length);
-                }
-                notifyDataSetChanged();
-                if (mAdapterListener != null) {
-                    if (mDomains.length == 0) {
-                        mAdapterListener.onEmptyAdapter(true);
-                    } else {
-                        mAdapterListener.onNonEmptyAdapter(true);
+                synchronized (this) {
+                    domain.toArray(mDomains);
+                    if (filterText.isEmpty()) {
+                        DOMAINS_TMP_CACHE = Arrays.copyOf(mDomains, mDomains.length);
+                    }
+                    notifyDataSetChanged();
+                    if (mAdapterListener != null) {
+                        if (mDomains.length == 0) {
+                            mAdapterListener.onEmptyAdapter(true);
+                        } else {
+                            mAdapterListener.onNonEmptyAdapter(true);
+                        }
                     }
                 }
             }

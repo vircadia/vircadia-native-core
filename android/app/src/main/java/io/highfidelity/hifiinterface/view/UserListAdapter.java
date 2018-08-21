@@ -55,15 +55,17 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
     }
 
     private void useTmpCachedUsers() {
-        if (USERS_TMP_CACHE != null && USERS_TMP_CACHE.size() > 0) {
-            mUsers = new ArrayList<>(USERS_TMP_CACHE.size());
-            mUsers.addAll(USERS_TMP_CACHE);
-            notifyDataSetChanged();
-            if (mAdapterListener != null) {
-                if (mUsers.isEmpty()) {
-                    mAdapterListener.onEmptyAdapter(false);
-                } else {
-                    mAdapterListener.onNonEmptyAdapter(false);
+        synchronized (this) {
+            if (USERS_TMP_CACHE != null && USERS_TMP_CACHE.size() > 0) {
+                mUsers = new ArrayList<>(USERS_TMP_CACHE.size());
+                mUsers.addAll(USERS_TMP_CACHE);
+                notifyDataSetChanged();
+                if (mAdapterListener != null) {
+                    if (mUsers.isEmpty()) {
+                        mAdapterListener.onEmptyAdapter(false);
+                    } else {
+                        mAdapterListener.onNonEmptyAdapter(false);
+                    }
                 }
             }
         }
@@ -76,14 +78,16 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
                 mUsers = new ArrayList<>(users);
                 notifyDataSetChanged();
 
-                USERS_TMP_CACHE = new ArrayList<>(mUsers.size());
-                USERS_TMP_CACHE.addAll(mUsers);
+                synchronized (this) {
+                    USERS_TMP_CACHE = new ArrayList<>(mUsers.size());
+                    USERS_TMP_CACHE.addAll(mUsers);
 
-                if (mAdapterListener != null) {
-                    if (mUsers.isEmpty()) {
-                        mAdapterListener.onEmptyAdapter(true);
-                    } else {
-                        mAdapterListener.onNonEmptyAdapter(true);
+                    if (mAdapterListener != null) {
+                        if (mUsers.isEmpty()) {
+                            mAdapterListener.onEmptyAdapter(true);
+                        } else {
+                            mAdapterListener.onNonEmptyAdapter(true);
+                        }
                     }
                 }
             }
@@ -269,4 +273,5 @@ public class UserListAdapter extends RecyclerView.Adapter<UserListAdapter.ViewHo
         void onNonEmptyAdapter(boolean shouldStopRefreshing);
         void onError(Exception e, String message);
     }
+
 }
