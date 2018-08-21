@@ -290,6 +290,7 @@
         });
         Overlays.editOverlay(proxyUIOverlay, {
             localPosition: Vec3.multiply(avatarScale, PROXY_UI_LOCAL_POSITION),
+            localRotation: PROXY_UI_LOCAL_ROTATION,
             dimensions: Vec3.multiply(initialScale, PROXY_UI_DIMENSIONS),
             dpi: PROXY_UI_DPI / initialScale,
             visible: true
