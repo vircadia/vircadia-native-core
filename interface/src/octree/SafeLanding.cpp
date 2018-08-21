@@ -95,7 +95,7 @@ void SafeLanding::setCompletionSequenceNumbers(int first, int last) {
     }
 }
 
-void SafeLanding::sequenceNumberReceived(int sequenceNumber) {
+void SafeLanding::noteReceivedsequenceNumber(int sequenceNumber) {
     if (_trackingEntities) {
         Locker lock(_lock);
         _sequenceNumbers.insert(sequenceNumber);
@@ -103,7 +103,7 @@ void SafeLanding::sequenceNumberReceived(int sequenceNumber) {
 }
 
 bool SafeLanding::isLoadSequenceComplete() {
-    if (entityPhysicsComplete() && sequenceNumbersComplete()) {
+    if (isEntityPhysicsComplete() && isSequenceNumbersComplete()) {
         Locker lock(_lock);
         _trackedEntities.clear();
         _initialStart = INVALID_SEQUENCE;
@@ -116,7 +116,7 @@ bool SafeLanding::isLoadSequenceComplete() {
     return !_trackingEntities;
 }
 
-bool SafeLanding::sequenceNumbersComplete() {
+bool SafeLanding::isSequenceNumbersComplete() {
     if (_initialStart != INVALID_SEQUENCE) {
         Locker lock(_lock);
         int sequenceSize = _initialStart <= _initialEnd ? _initialEnd - _initialStart:
@@ -134,7 +134,7 @@ bool SafeLanding::sequenceNumbersComplete() {
     return false;
 }
 
-bool SafeLanding::entityPhysicsComplete() {
+bool SafeLanding::isEntityPhysicsComplete() {
     Locker lock(_lock);
     for (auto entityMapIter = _trackedEntities.begin(); entityMapIter != _trackedEntities.end(); ++entityMapIter) {
         auto entity = entityMapIter->second;

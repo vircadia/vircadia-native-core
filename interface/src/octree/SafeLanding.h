@@ -27,7 +27,7 @@ public:
     void startEntitySequence(QSharedPointer<EntityTreeRenderer> entityTreeRenderer);
     void stopEntitySequence();
     void setCompletionSequenceNumbers(int first, int last);
-    void sequenceNumberReceived(int sequenceNumber);
+    void noteReceivedsequenceNumber(int sequenceNumber);
     bool isLoadSequenceComplete();
 
 private slots:
@@ -35,9 +35,9 @@ private slots:
     void deleteTrackedEntity(const EntityItemID& entityID);
 
 private:
-    bool sequenceNumbersComplete();
+    bool isSequenceNumbersComplete();
     void debugDumpSequenceIDs() const;
-    bool entityPhysicsComplete();
+    bool isEntityPhysicsComplete();
 
     std::mutex _lock;
     using Locker = std::lock_guard<std::mutex>;

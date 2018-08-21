@@ -112,7 +112,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
                 auto renderer = qApp->getEntities();
                 if (renderer) {
                     renderer->processDatagram(*message, sendingNode);
-                    _safeLanding->sequenceNumberReceived(renderer->getLastOctreeMessageSequence());
+                    _safeLanding->noteReceivedsequenceNumber(renderer->getLastOctreeMessageSequence());
                 }
             }
         } break;
