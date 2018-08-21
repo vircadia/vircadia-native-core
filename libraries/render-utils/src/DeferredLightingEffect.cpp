@@ -135,7 +135,7 @@ static void loadLightProgram(int programId, bool lightVolume, gpu::PipelinePoint
     if (lightVolume) {
         PrepareStencil::testShape(*state);
        
-        state->setCullMode(gpu::State::CULL_NONE);
+        state->setCullMode(gpu::State::CULL_BACK);
         //state->setCullMode(gpu::State::CULL_FRONT);
         //state->setDepthTest(true, false, gpu::GREATER_EQUAL);
         //state->setDepthClampEnable(true);

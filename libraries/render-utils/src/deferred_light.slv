@@ -16,6 +16,7 @@
 
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
 
+// NOTE: WE are assuming that the deferred lighting pass is always full screen so this texture transform is not needed (and cause problems on AMD)
 //layout(location=RENDER_UTILS_UNIFORM_LIGHT_TEXCOORD_TRANSFORM) uniform vec4 texcoordFrameTransform;
 
 void main(void) {
