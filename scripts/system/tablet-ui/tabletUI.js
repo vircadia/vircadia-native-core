@@ -298,6 +298,7 @@
     }
         wantsMenu = clicked;
     });
+    
     clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(function (clicked) {
         if (clicked) {
             //activeHudPoint2d(Controller.Standard.LeftHand);
@@ -305,6 +306,7 @@
         }
         wantsMenu = clicked;
     });
+
     clickMapping.from(Controller.Standard.Start).peek().to(function (clicked) {
     if (clicked) {
         //activeHudPoint2dGamePad();
