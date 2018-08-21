@@ -83,10 +83,12 @@ void ClientTraitsHandler::sendChangedTraitsToMixer() {
         auto instancedIt = traitStatusesCopy.instancedCBegin();
         while (instancedIt != traitStatusesCopy.instancedCEnd()) {
             for (auto& instanceIDValuePair : instancedIt->instances) {
-                if (_shouldPerformInitialSend || instanceIDValuePair.value == Updated) {
-                    // this is a changed trait we need to send, ask the owning avatar to pack it
+                if ((_shouldPerformInitialSend && instanceIDValuePair.value != Deleted)
+                    || instanceIDValuePair.value == Updated) {
+                    // this is a changed trait we need to send or we haven't send out trait information yet
+                    // ask the owning avatar to pack it
                     _owningAvatar->packTraitInstance(instancedIt->traitType, instanceIDValuePair.id, *traitsPacketList);
-                } else if (instanceIDValuePair.value == Deleted) {
+                } else if (!_shouldPerformInitialSend && instanceIDValuePair.value == Deleted) {
                     // pack delete for this trait instance
                     AvatarTraits::packInstancedTraitDelete(instancedIt->traitType, instanceIDValuePair.id,
                                                            *traitsPacketList);
