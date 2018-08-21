@@ -88,7 +88,7 @@ public:
 protected:
     BasePacket(qint64 size);
     BasePacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr);
-    BasePacket(const BasePacket& other) { *this = other; }
+    BasePacket(const BasePacket& other) : ExtendedIODevice() { *this = other; }
     BasePacket& operator=(const BasePacket& other);
     BasePacket(BasePacket&& other);
     BasePacket& operator=(BasePacket&& other);
