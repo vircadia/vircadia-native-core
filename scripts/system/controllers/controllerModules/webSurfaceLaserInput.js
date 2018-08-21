@@ -84,9 +84,9 @@ Script.include("/~/system/libraries/controllers.js");
                     return overlayType === "web3d" || triggerPressed;
                 }
             } else if (intersection.type === Picks.INTERSECTED_ENTITY) {
-                var entityProperty = Entities.getEntityProperties(objectID);
-                var entityType = entityProperty.type;
-                var isLocked = entityProperty.locked;
+                var entityProperties = Entities.getEntityProperties(objectID);
+                var entityType = entityProperties.type;
+                var isLocked = entityProperties.locked;
                 return entityType === "Web" && (!isLocked || triggerPressed);
             }
             return false;
