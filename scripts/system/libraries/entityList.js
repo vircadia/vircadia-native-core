@@ -82,6 +82,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
         PROFILE("Script-JSON.stringify", function() {
             dataString = JSON.stringify(data);
         });
+        console.log("Length: ", dataString.length, data.type);
         PROFILE("Script-emitScriptEvent", function() {
             webView.emitScriptEvent(dataString);
             if (entityListWindow.window) {
@@ -149,7 +150,9 @@ EntityListTool = function(shouldUseEditTabletApp) {
             PROFILE("getProperties", function() {
             for (var i = 0; i < ids.length; i++) {
                 var id = ids[i];
-                var properties = Entities.getEntityProperties(id);
+                //var properties = Entities.getEntityProperties(id);
+                var properties = Entities.getEntityProperties(id, ['name', 'type', 'locked',
+                    'visible', 'renderInfo', 'type', 'modelURL', 'materialURL', 'script']);
 
                 if (!filterInView || Vec3.distance(properties.position, cameraPosition) <= searchRadius) {
                     var url = "";
