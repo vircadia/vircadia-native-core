@@ -584,7 +584,11 @@ function update(dt) {
 
     // make the signal colors reflect the current thresholds that have been crossed
     updateSignalColors();
-    print("the current back length is " + currentStateReadings.backLength + " " + DEFAULT_TORSO_LENGTH);
+
+    SPINE_STRETCH_LIMIT = (0.04) * DEFAULT_TORSO_LENGTH * MyAvatar.scale;
+
+    //print("the spine stretch limit is " + SPINE_STRETCH_LIMIT + " head avatar space is " + currentStateReadings.headPose.translation.y);
+    //print("the current back length is " + currentStateReadings.backLength + " " + DEFAULT_TORSO_LENGTH);
     //  Conditions for taking a step. 
     // 1. off the base of support. front, lateral, back edges.
     // 2. head is not lower than the height mode value by more than the maxHeightChange tolerance
@@ -672,6 +676,7 @@ Script.setTimeout(function() {
     DEFAULT_HIPS_POSITION = MyAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(MyAvatar.getJointIndex("Hips"));
     DEFAULT_HEAD_POSITION = MyAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(MyAvatar.getJointIndex("Head"));
     DEFAULT_TORSO_LENGTH = Vec3.length(Vec3.subtract(DEFAULT_HEAD_POSITION, DEFAULT_HIPS_POSITION));
+    SPINE_STRETCH_LIMIT = (0.04) * DEFAULT_TORSO_LENGTH * MyAvatar.scale;
 },(4*LOADING_DELAY));
 
 Script.update.connect(update);
