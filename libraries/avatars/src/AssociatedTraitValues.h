@@ -143,7 +143,7 @@ namespace AvatarTraits {
         auto it = instancesForTrait(traitType);
 
         if (it != _instancedTypes.end()) {
-            auto instancesVector = it->instances;
+            auto& instancesVector = it->instances;
             instancesVector.erase(std::remove_if(instancesVector.begin(),
                                                  instancesVector.end(),
                                                  [&instanceID](InstanceIDValuePair& idValuePair){
