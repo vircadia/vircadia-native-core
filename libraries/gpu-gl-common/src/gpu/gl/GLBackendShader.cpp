@@ -256,7 +256,7 @@ GLint GLBackend::getRealUniformLocation(GLint location) const {
         // uniforms.  If someone is requesting a uniform that isn't in the remapping structure
         // that's a bug from the calling code, because it means that location wasn't in the 
         // reflection
-		qWarning() << "Unexpected location requested for shader: #" << location;
+        qWarning() << "Unexpected location requested for shader: #" << location;
         return INVALID_UNIFORM_INDEX;
     }
     return itr->second;
