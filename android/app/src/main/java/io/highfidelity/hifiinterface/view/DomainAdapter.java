@@ -12,6 +12,7 @@ import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
+import java.util.Arrays;
 import java.util.List;
 
 import io.highfidelity.hifiinterface.R;
@@ -36,17 +37,37 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
     // references to our domains
     private Domain[] mDomains = {};
 
+    private static Domain[] DOMAINS_TMP_CACHE = {};
+
     public DomainAdapter(Context c, String protocol, String lastLocation) {
         mContext = c;
         this.mInflater = LayoutInflater.from(mContext);
         mProtocol = protocol;
         mLastLocation = lastLocation;
         domainProvider = new UserStoryDomainProvider(mProtocol);
-        loadDomains("", true);
     }
 
     public void setListener(AdapterListener adapterListener) {
         mAdapterListener = adapterListener;
+    }
+
+    public void startLoad() {
+        useTmpCachedDomains();
+        loadDomains("", true);
+    }
+
+    private void useTmpCachedDomains() {
+        if (DOMAINS_TMP_CACHE != null && DOMAINS_TMP_CACHE.length > 0) {
+            mDomains = Arrays.copyOf(DOMAINS_TMP_CACHE, DOMAINS_TMP_CACHE.length);
+            notifyDataSetChanged();
+            if (mAdapterListener != null) {
+                if (mDomains.length == 0) {
+                    mAdapterListener.onEmptyAdapter(false);
+                } else {
+                    mAdapterListener.onNonEmptyAdapter(false);
+                }
+            }
+        }
     }
 
     public void loadDomains(String filterText, boolean forceRefresh) {
@@ -60,13 +81,16 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
                 overrideDefaultThumbnails(domain);
 
                 mDomains = new Domain[domain.size()];
-                mDomains = domain.toArray(mDomains);
+                domain.toArray(mDomains);
+                if (filterText.isEmpty()) {
+                    DOMAINS_TMP_CACHE = Arrays.copyOf(mDomains, mDomains.length);
+                }
                 notifyDataSetChanged();
                 if (mAdapterListener != null) {
                     if (mDomains.length == 0) {
-                        mAdapterListener.onEmptyAdapter();
+                        mAdapterListener.onEmptyAdapter(true);
                     } else {
-                        mAdapterListener.onNonEmptyAdapter();
+                        mAdapterListener.onNonEmptyAdapter(true);
                     }
                 }
             }
@@ -112,8 +136,6 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        // TODO
-        //holder.thumbnail.setImageResource(mDomains[position].thumbnail);
         Domain domain = mDomains[position];
         holder.mDomainName.setText(domain.name);
         Uri uri = Uri.parse(domain.thumbnail);
@@ -164,8 +186,8 @@ public class DomainAdapter extends RecyclerView.Adapter<DomainAdapter.ViewHolder
     }
 
     public interface AdapterListener {
-        void onEmptyAdapter();
-        void onNonEmptyAdapter();
+        void onEmptyAdapter(boolean shouldStopRefreshing);
+        void onNonEmptyAdapter(boolean shouldStopRefreshing);
         void onError(Exception e, String message);
     }
 }
