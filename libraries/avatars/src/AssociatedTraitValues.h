@@ -123,7 +123,7 @@ namespace AvatarTraits {
         auto it = instancesForTrait(traitType);
 
         if (it != _instancedTypes.end()) {
-            auto instancesVector = it->instances;
+            auto& instancesVector = it->instances;
             auto instanceIt = std::find_if(instancesVector.begin(), instancesVector.end(),
                                            [instanceID](InstanceIDValuePair& idValuePair){
                                                return idValuePair.id == instanceID;
