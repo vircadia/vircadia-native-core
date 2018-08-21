@@ -60,7 +60,7 @@ var handlerId = MyAvatar.addAnimationStateHandler(function (props) {
     //result.hipsPosition = hipsPositionRigSpace; // { x: 0, y: 0, z: 0 };
     //result.hipsRotation = hipsRotationRigSpace;//{ x: 0, y: 0, z: 0, w: 1 }; //
     result.spine2Type = ikTypes.Spline;
-    result.spine2Position = { x: 0, y: 1.3, z: 0 }; 
+    result.spine2Position = spine2PositionRigSpace;// { x: 0, y: 1.3, z: 0 }; 
     result.spine2Rotation = spine2Rotation;
     
     return result;
@@ -298,6 +298,8 @@ function update(dt) {
     var zAxisWorldSpace = Vec3.multiplyQbyV(MyAvatar.rotation, zAxisSpineRotation);
     DebugDraw.drawRay(MyAvatar.position, Vec3.sum(MyAvatar.position, zAxisSpineRotation), { x: 1, y: 0, z: 0 });
     spine2Rotation = latestSpineRotation;
+    var spine2Pos = MyAvatar.getAbsoluteJointTranslationInObjectFrame(MyAvatar.getJointIndex("Spine2"));
+    spine2PositionRigSpace = Vec3.multiplyQbyV(CHANGE_OF_BASIS_ROTATION, spine2Pos);
     /*
     if (HMD.active && !scriptLoaded) {
         //Script.load("rotateApp.js");
