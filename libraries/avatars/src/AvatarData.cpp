@@ -2721,16 +2721,12 @@ void AvatarData::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFr
         removedEntity = _avatarEntityData.remove(entityID);
     });
 
-    if (removedEntity) {
-        if (requiresRemovalFromTree) {
-            insertDetachedEntityID(entityID);
-        }
+    insertDetachedEntityID(entityID);
 
-        if (_clientTraitsHandler) {
-            // we have a client traits handler, so we need to mark this removed instance trait as deleted
-            // so that changes are sent next frame
-            _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, entityID);
-        }
+    if (removedEntity && _clientTraitsHandler) {
+        // we have a client traits handler, so we need to mark this removed instance trait as deleted
+        // so that changes are sent next frame
+        _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, entityID);
     }
 }
 
@@ -2773,6 +2769,14 @@ void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
                         // so that changes are sent next frame
                         _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, entityID);
                     }
+                }
+            }
+
+            if (_clientTraitsHandler) {
+                // if we have a client traits handler, flag any updated or created entities
+                // so that we send changes for them next frame
+                foreach (auto entityID, _avatarEntityData) {
+                    _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
                 }
             }
         }
