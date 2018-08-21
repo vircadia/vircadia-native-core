@@ -135,7 +135,7 @@ static void loadLightProgram(int programId, bool lightVolume, gpu::PipelinePoint
     if (lightVolume) {
         PrepareStencil::testShape(*state);
        
-        state->setCullMode(gpu::State::CULL_BACK);
+        state->setCullMode(gpu::State::CULL_NONE);
         //state->setCullMode(gpu::State::CULL_FRONT);
         //state->setDepthTest(true, false, gpu::GREATER_EQUAL);
         //state->setDepthClampEnable(true);
@@ -496,9 +496,10 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
             batch.setPipeline(program);
         }
 
+        // NOTE: WE are assuming that the deferred lighting pass is always full screen so this texture transform is not needed (and cause problems on AMD)
         // Adjust the texcoordTransform in the case we are rendeirng a sub region(mini mirror)
-        auto textureFrameTransform = gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(deferredFramebuffer->getFrameSize(), args->_viewport);
-        batch._glUniform4fv(ru::Uniform::TexcoordTransform, 1, reinterpret_cast< const float* >(&textureFrameTransform));
+        //  auto textureFrameTransform = gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(deferredFramebuffer->getFrameSize(), args->_viewport);
+        //  batch._glUniform4fv(ru::Uniform::TexcoordTransform, 1, reinterpret_cast< const float* >(&textureFrameTransform));
 
         // Setup the global lighting
         deferredLightingEffect->setupKeyLightBatch(args, batch);
@@ -560,7 +561,8 @@ void RenderDeferredLocals::run(const render::RenderContextPointer& renderContext
         batch.setViewportTransform(viewport);
         batch.setStateScissorRect(viewport);
 
-        auto textureFrameTransform = gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(deferredFramebuffer->getFrameSize(), viewport);
+        // NOTE: WE are assuming that the deferred lighting pass is always full screen so this texture transform is not needed (and cause problems on AMD)
+        // auto textureFrameTransform = gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(deferredFramebuffer->getFrameSize(), viewport);
 
 
         auto& lightIndices = lightClusters->_visibleLightIndices;
@@ -569,14 +571,14 @@ void RenderDeferredLocals::run(const render::RenderContextPointer& renderContext
 
             // Local light pipeline
             batch.setPipeline(deferredLightingEffect->_localLight);
-            batch._glUniform4fv(ru::Uniform::TexcoordTransform, 1, reinterpret_cast<const float*>(&textureFrameTransform));
+            // batch._glUniform4fv(ru::Uniform::TexcoordTransform, 1, reinterpret_cast<const float*>(&textureFrameTransform));
 
             batch.draw(gpu::TRIANGLE_STRIP, 4);
 
              // Draw outline as well ?
             if (lightingModel->isShowLightContourEnabled()) {
                 batch.setPipeline(deferredLightingEffect->_localLightOutline);
-                batch._glUniform4fv(ru::Uniform::TexcoordTransform, 1, reinterpret_cast<const float*>(&textureFrameTransform));
+                // batch._glUniform4fv(ru::Uniform::TexcoordTransform, 1, reinterpret_cast<const float*>(&textureFrameTransform));
 
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
             }
