@@ -75,6 +75,10 @@ public:
     };
 
     struct ControllerParameters {
+        ControllerParameters() {
+            memset(primaryControllerFlags, 0, NumPrimaryControllerTypes);
+            memset(secondaryControllerFlags, 0, NumPrimaryControllerTypes);
+        }
         glm::mat4 rigToSensorMatrix;
         AnimPose primaryControllerPoses[NumPrimaryControllerTypes];  // rig space
         uint8_t primaryControllerFlags[NumPrimaryControllerTypes];
@@ -217,6 +221,9 @@ public:
 
     // input assumed to be in rig space
     void computeHeadFromHMD(const AnimPose& hmdPose, glm::vec3& headPositionOut, glm::quat& headOrientationOut) const;
+
+    const std::map<QString, float> getAnimStack() { return _animNode->getAnimStack(); }
+
     void toggleSmoothPoleVectors() { _smoothPoleVectors = !_smoothPoleVectors; };
 signals:
     void onLoadComplete();
@@ -229,12 +236,13 @@ protected:
 
     void updateHead(bool headEnabled, bool hipsEnabled, const AnimPose& headMatrix);
     void updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, bool hipsEstimated,
-                     bool leftArmEnabled, bool rightArmEnabled, float dt,
+                     bool leftArmEnabled, bool rightArmEnabled, bool headEnabled, float dt,
                      const AnimPose& leftHandPose, const AnimPose& rightHandPose,
                      const FBXJointShapeInfo& hipsShapeInfo, const FBXJointShapeInfo& spineShapeInfo,
                      const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo,
                      const glm::mat4& rigToSensorMatrix, const glm::mat4& sensorToRigMatrix);
-    void updateFeet(bool leftFootEnabled, bool rightFootEnabled, const AnimPose& leftFootPose, const AnimPose& rightFootPose,
+    void updateFeet(bool leftFootEnabled, bool rightFootEnabled, bool headEnabled,
+                    const AnimPose& leftFootPose, const AnimPose& rightFootPose,
                     const glm::mat4& rigToSensorMatrix, const glm::mat4& sensorToRigMatrix);
 
     void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::vec3& lookAt, const glm::vec3& saccade);
@@ -293,6 +301,7 @@ protected:
     std::shared_ptr<AnimSkeleton> _animSkeleton;
     std::unique_ptr<AnimNodeLoader> _animLoader;
     AnimVariantMap _animVars;
+
     enum class RigRole {
         Idle = 0,
         Turn,
@@ -378,6 +387,7 @@ protected:
     bool _smoothPoleVectors { false };
 
     int _rigId;
+    bool _headEnabled { false };
 };
 
 #endif /* defined(__hifi__Rig__) */

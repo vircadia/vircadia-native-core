@@ -65,7 +65,6 @@ protected:
     QVector<glm::vec3> _lastStrokeColors;
     QVector<float> _lastStrokeWidths;
     gpu::BufferPointer _verticesBuffer;
-    gpu::BufferView _uniformBuffer;
     
     uint32_t _numVertices { 0 };
     bool _empty{ true };

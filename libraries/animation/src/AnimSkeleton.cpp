@@ -282,3 +282,17 @@ void AnimSkeleton::dump(const AnimPoseVec& poses) const {
     qCDebug(animation) << "]";
 }
 
+std::vector<int> AnimSkeleton::lookUpJointIndices(const std::vector<QString>& jointNames) const {
+    std::vector<int> result;
+    result.reserve(jointNames.size());
+    for (auto& name : jointNames) {
+        int index = nameToJointIndex(name);
+        if (index == -1) {
+            qWarning(animation) << "AnimSkeleton::lookUpJointIndices(): could not find bone with named " << name;
+        }
+        result.push_back(index);
+    }
+    return result;
+}
+
+

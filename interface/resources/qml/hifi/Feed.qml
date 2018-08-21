@@ -41,6 +41,8 @@ Column {
     property var goFunction: null;
     property var http: null;
 
+    property bool autoScrollTimerEnabled: false;
+
     HifiConstants { id: hifi }
     Component.onCompleted: suggestions.getFirstPage();
     HifiModels.PSFListModel {
@@ -88,7 +90,9 @@ Column {
             online_users: data.details.connections || data.details.concurrency || 0,
             // Server currently doesn't give isStacked (undefined). Could give bool.
             drillDownToPlace: data.is_stacked || (data.action === 'concurrency'),
-            isStacked: !!data.is_stacked
+            isStacked: !!data.is_stacked,
+
+            time_before_autoscroll_ms: data.hold_time || 3000
         };
     }
 
@@ -102,9 +106,12 @@ Column {
         id: scroll;
         model: suggestions;
         orientation: ListView.Horizontal;
-        highlightFollowsCurrentItem: false
-        highlightMoveDuration: -1;
-        highlightMoveVelocity: -1;
+        highlightFollowsCurrentItem: true;
+        preferredHighlightBegin: 0;
+        preferredHighlightEnd: cardWidth;
+        highlightRangeMode: ListView.StrictlyEnforceRange;
+        highlightMoveDuration: 800;
+        highlightMoveVelocity: 1;
         currentIndex: -1;
 
         spacing: 12;
@@ -134,8 +141,49 @@ Column {
             textSizeSmall: root.textSizeSmall;
             stackShadowNarrowing: root.stackShadowNarrowing;
             shadowHeight: root.stackedCardShadowHeight;
-            hoverThunk: function () { hovered = true }
-            unhoverThunk: function () { hovered = false }
+            hoverThunk: function () { 
+                hovered = true;
+                if(root.autoScrollTimerEnabled) {
+                    autoScrollTimer.stop();
+                }
+			}
+            unhoverThunk: function () { 
+                hovered = false;
+                if(root.autoScrollTimerEnabled) {
+                    autoScrollTimer.start();
+                }
+            }
+        }
+
+        onCountChanged: {
+            if (scroll.currentIndex === -1 && scroll.count > 0 && root.autoScrollTimerEnabled) {
+                scroll.currentIndex = 0;
+                autoScrollTimer.interval = suggestions.get(scroll.currentIndex).time_before_autoscroll_ms;
+                autoScrollTimer.start();
+            }
+        }
+
+        onCurrentIndexChanged: {
+            if (root.autoScrollTimerEnabled) {
+                autoScrollTimer.interval = suggestions.get(scroll.currentIndex).time_before_autoscroll_ms;
+                autoScrollTimer.start();
+            }
+        }
+    }
+
+    Timer {
+        id: autoScrollTimer;
+        interval: 3000;
+        running: false;
+        repeat: false;
+        onTriggered: {
+            if (scroll.currentIndex !== -1) {
+                if (scroll.currentIndex === scroll.count - 1) {
+                    scroll.currentIndex = 0;
+                } else {
+                    scroll.currentIndex++;
+                }
+            }
         }
     }
 }

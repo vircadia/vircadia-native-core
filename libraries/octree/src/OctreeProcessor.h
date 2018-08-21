@@ -56,6 +56,8 @@ public:
     float getAverageUncompressPerPacket() const { return _uncompressPerPacket.getAverage(); }
     float getAverageReadBitstreamPerPacket() const { return _readBitstreamPerPacket.getAverage(); }
 
+    OCTREE_PACKET_SEQUENCE getLastOctreeMessageSequence() const { return _lastOctreeMessageSequence; }
+
 protected:
     virtual OctreePointer createTree() = 0;
 
@@ -77,6 +79,7 @@ protected:
     int _packetsInLastWindow = 0;
     int _elementsInLastWindow = 0;
     int _entitiesInLastWindow = 0;
+    std::atomic<OCTREE_PACKET_SEQUENCE> _lastOctreeMessageSequence;
 
 };
 

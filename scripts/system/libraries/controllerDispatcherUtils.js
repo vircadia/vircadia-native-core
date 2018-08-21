@@ -5,7 +5,6 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-
 /* global module, Camera, HMD, MyAvatar, controllerDispatcherPlugins:true, Quat, Vec3, Overlays, Xform,
    Selection, Uuid,
    MSECS_PER_SEC:true , LEFT_HAND:true, RIGHT_HAND:true, FORBIDDEN_GRAB_TYPES:true,
@@ -58,7 +57,7 @@
    entityIsFarGrabbedByOther:true,
    highlightTargetEntity:true,
    clearHighlightedEntities:true,
-   unhighlightTargetEntity:true
+   unhighlightTargetEntity:true,
    distanceBetweenEntityLocalPositionAndBoundingBox: true
 */
 
@@ -95,7 +94,7 @@ COLORS_GRAB_DISTANCE_HOLD = { red: 238, green: 75, blue: 214 };
 
 NEAR_GRAB_RADIUS = 1.0;
 
-TEAR_AWAY_DISTANCE = 0.1; // ungrab an entity if its bounding-box moves this far from the hand
+TEAR_AWAY_DISTANCE = 0.15; // ungrab an entity if its bounding-box moves this far from the hand
 TEAR_AWAY_COUNT = 2; // multiply by TEAR_AWAY_CHECK_TIME to know how long the item must be away
 TEAR_AWAY_CHECK_TIME = 0.15; // seconds, duration between checks
 DISPATCHER_HOVERING_LIST = "dispactherHoveringList";
@@ -203,15 +202,15 @@ getEnabledModuleByName = function (moduleName) {
     return null;
 };
 
-getGrabbableData = function (props) {
+getGrabbableData = function (ggdProps) {
     // look in userData for a "grabbable" key, return the value or some defaults
     var grabbableData = {};
     var userDataParsed = null;
     try {
-        if (!props.userDataParsed) {
-            props.userDataParsed = JSON.parse(props.userData);
+        if (!ggdProps.userDataParsed) {
+            ggdProps.userDataParsed = JSON.parse(ggdProps.userData);
         }
-        userDataParsed = props.userDataParsed;
+        userDataParsed = ggdProps.userDataParsed;
     } catch (err) {
         userDataParsed = {};
     }
@@ -237,11 +236,11 @@ getGrabbableData = function (props) {
     return grabbableData;
 };
 
-entityIsGrabbable = function (props) {
-    var grabbable = getGrabbableData(props).grabbable;
+entityIsGrabbable = function (eigProps) {
+    var grabbable = getGrabbableData(eigProps).grabbable;
     if (!grabbable ||
-        props.locked ||
-        FORBIDDEN_GRAB_TYPES.indexOf(props.type) >= 0) {
+        eigProps.locked ||
+        FORBIDDEN_GRAB_TYPES.indexOf(eigProps.type) >= 0) {
         return false;
     }
     return true;
@@ -259,13 +258,13 @@ unhighlightTargetEntity = function(entityID) {
     Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity", entityID);
 };
 
-entityIsDistanceGrabbable = function(props) {
-    if (!entityIsGrabbable(props)) {
+entityIsDistanceGrabbable = function(eidgProps) {
+    if (!entityIsGrabbable(eidgProps)) {
         return false;
     }
 
     // we can't distance-grab non-physical
-    var isPhysical = propsArePhysical(props);
+    var isPhysical = propsArePhysical(eidgProps);
     if (!isPhysical) {
         return false;
     }
@@ -304,11 +303,11 @@ getControllerJointIndex = function (hand) {
     return -1;
 };
 
-propsArePhysical = function (props) {
-    if (!props.dynamic) {
+propsArePhysical = function (papProps) {
+    if (!papProps.dynamic) {
         return false;
     }
-    var isPhysical = (props.shapeType && props.shapeType !== 'none');
+    var isPhysical = (papProps.shapeType && papProps.shapeType !== 'none');
     return isPhysical;
 };
 
@@ -328,8 +327,9 @@ projectOntoXYPlane = function (worldPos, position, rotation, dimensions, registr
     };
 };
 
-projectOntoEntityXYPlane = function (entityID, worldPos, props) {
-    return projectOntoXYPlane(worldPos, props.position, props.rotation, props.dimensions, props.registrationPoint);
+projectOntoEntityXYPlane = function (entityID, worldPos, popProps) {
+    return projectOntoXYPlane(worldPos, popProps.position, popProps.rotation,
+                              popProps.dimensions, popProps.registrationPoint);
 };
 
 projectOntoOverlayXYPlane = function projectOntoOverlayXYPlane(overlayID, worldPos) {
@@ -348,9 +348,9 @@ entityHasActions = function (entityID) {
 ensureDynamic = function (entityID) {
     // if we distance hold something and keep it very still before releasing it, it ends up
     // non-dynamic in bullet.  If it's too still, give it a little bounce so it will fall.
-    var props = Entities.getEntityProperties(entityID, ["velocity", "dynamic", "parentID"]);
-    if (props.dynamic && props.parentID === Uuid.NULL) {
-        var velocity = props.velocity;
+    var edProps = Entities.getEntityProperties(entityID, ["velocity", "dynamic", "parentID"]);
+    if (edProps.dynamic && edProps.parentID === Uuid.NULL) {
+        var velocity = edProps.velocity;
         if (Vec3.length(velocity) < 0.05) { // see EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
             velocity = { x: 0.0, y: 0.2, z: 0.0 };
             Entities.editEntity(entityID, { velocity: velocity });
@@ -416,13 +416,18 @@ findHandChildEntities = function(hand) {
     });
 };
 
-distanceBetweenEntityLocalPositionAndBoundingBox = function(entityProps) {
-    var localPoint = entityProps.localPosition;
-    var entityXform = new Xform(entityProps.rotation, entityProps.position);
-    var minOffset = Vec3.multiplyVbyV(entityProps.registrationPoint, entityProps.dimensions);
-    var maxOffset = Vec3.multiplyVbyV(Vec3.subtract(ONE_VEC, entityProps.registrationPoint), entityProps.dimensions);
-    var localMin = Vec3.subtract(entityXform.trans, minOffset);
-    var localMax = Vec3.sum(entityXform.trans, maxOffset);
+distanceBetweenEntityLocalPositionAndBoundingBox = function(entityProps, jointGrabOffset) {
+    var DEFAULT_REGISTRATION_POINT = { x: 0.5, y: 0.5, z: 0.5 };
+    var rotInv = Quat.inverse(entityProps.localRotation);
+    var localPosition = Vec3.sum(entityProps.localPosition, jointGrabOffset);
+    var localPoint = Vec3.multiplyQbyV(rotInv, Vec3.multiply(localPosition, -1.0));
+
+    var halfDims = Vec3.multiply(entityProps.dimensions, 0.5);
+    var regRatio = Vec3.subtract(DEFAULT_REGISTRATION_POINT, entityProps.registrationPoint);
+    var entityCenter = Vec3.multiplyVbyV(regRatio, entityProps.dimensions);
+    var localMin = Vec3.subtract(entityCenter, halfDims);
+    var localMax = Vec3.sum(entityCenter, halfDims);
+
 
     var v = {x: localPoint.x, y: localPoint.y, z: localPoint.z};
     v.x = Math.max(v.x, localMin.x);

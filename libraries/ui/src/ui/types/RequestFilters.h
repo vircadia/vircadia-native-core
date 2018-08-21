@@ -20,10 +20,12 @@
 #include <QObject>
 #include <QWebEngineUrlRequestInfo>
 
+class QQmlContext;
+
 class RequestFilters : public QObject {
 public:
-    static void interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info);
-    static void interceptFileType(QWebEngineUrlRequestInfo& info);
+    static void interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info, QQmlContext* context);
+    static void interceptFileType(QWebEngineUrlRequestInfo& info, QQmlContext* context);
 };
 #endif
 

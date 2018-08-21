@@ -79,7 +79,7 @@ AvatarManager::AvatarManager(QObject* parent) :
 
     // when we hear that the user has ignored an avatar by session UUID
     // immediately remove that avatar instead of waiting for the absence of packets from avatar mixer
-    connect(nodeList.data(), &NodeList::ignoredNode, this, [=](const QUuid& nodeID, bool enabled) {
+    connect(nodeList.data(), &NodeList::ignoredNode, this, [this](const QUuid& nodeID, bool enabled) {
         if (enabled) {
             removeAvatar(nodeID, KillAvatarReason::AvatarIgnored);
         }
@@ -278,20 +278,8 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     }
 
     if (_shouldRender) {
-        if (!_avatarsToFade.empty()) {
-            QReadLocker lock(&_hashLock);
-            QVector<AvatarSharedPointer>::iterator itr = _avatarsToFade.begin();
-            while (itr != _avatarsToFade.end() && usecTimestampNow() > updateExpiry) {
-                auto avatar = std::static_pointer_cast<Avatar>(*itr);
-                avatar->animateScaleChanges(deltaTime);
-                avatar->simulate(deltaTime, true);
-                avatar->updateRenderItem(transaction);
-                ++itr;
-            }
-        }
         qApp->getMain3DScene()->enqueueTransaction(transaction);
     }
-
     _numAvatarsUpdated = numAvatarsUpdated;
     _numAvatarsNotUpdated = numAVatarsNotUpdated;
 
@@ -333,16 +321,21 @@ void AvatarManager::postUpdate(float deltaTime, const render::ScenePointer& scen
 
 void AvatarManager::sendIdentityRequest(const QUuid& avatarID) const {
     auto nodeList = DependencyManager::get<NodeList>();
+    QWeakPointer<NodeList> nodeListWeak = nodeList;
     nodeList->eachMatchingNode(
-        [&](const SharedNodePointer& node)->bool {
-        return node->getType() == NodeType::AvatarMixer && node->getActiveSocket();
-    },
-        [&](const SharedNodePointer& node) {
-        auto packet = NLPacket::create(PacketType::AvatarIdentityRequest, NUM_BYTES_RFC4122_UUID, true);
-        packet->write(avatarID.toRfc4122());
-        nodeList->sendPacket(std::move(packet), *node);
-        ++_identityRequestsSent;
-    });
+        [](const SharedNodePointer& node)->bool {
+            return node->getType() == NodeType::AvatarMixer && node->getActiveSocket();
+        },
+        [this, avatarID, nodeListWeak](const SharedNodePointer& node) {
+            auto nodeList = nodeListWeak.lock();
+            if (nodeList) {
+                auto packet = NLPacket::create(PacketType::AvatarIdentityRequest, NUM_BYTES_RFC4122_UUID, true);
+                packet->write(avatarID.toRfc4122());
+                nodeList->sendPacket(std::move(packet), *node);
+                ++_identityRequestsSent;
+            }
+        }
+    );
 }
 
 void AvatarManager::simulateAvatarFades(float deltaTime) {
@@ -365,8 +358,6 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
             }
             avatarItr = _avatarsToFade.erase(avatarItr);
         } else {
-            const bool inView = true; // HACK
-            avatar->simulate(deltaTime, inView);
             ++avatarItr;
         }
     }
@@ -412,9 +403,6 @@ void AvatarManager::clearOtherAvatars() {
     while (avatarIterator != _avatarHash.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
         if (avatar != _myAvatar) {
-            if (avatar->isInScene()) {
-                avatar->removeFromScene(avatar, scene, transaction);
-            }
             handleRemovedAvatar(avatar);
             avatarIterator = _avatarHash.erase(avatarIterator);
         } else {
@@ -618,12 +606,87 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
             result.intersects = true;
             result.avatarID = avatar->getID();
             result.distance = distance;
+            result.face = face;
+            result.surfaceNormal = surfaceNormal;
             result.extraInfo = extraInfo;
         }
     }
 
     if (result.intersects) {
         result.intersection = ray.origin + normDirection * result.distance;
+    }
+
+    return result;
+}
+
+ParabolaToAvatarIntersectionResult AvatarManager::findParabolaIntersectionVector(const PickParabola& pick,
+                                                                                 const QVector<EntityItemID>& avatarsToInclude,
+                                                                                 const QVector<EntityItemID>& avatarsToDiscard) {
+    ParabolaToAvatarIntersectionResult result;
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarManager*>(this), "findParabolaIntersectionVector",
+                               Q_RETURN_ARG(ParabolaToAvatarIntersectionResult, result),
+                               Q_ARG(const PickParabola&, pick),
+                               Q_ARG(const QVector<EntityItemID>&, avatarsToInclude),
+                               Q_ARG(const QVector<EntityItemID>&, avatarsToDiscard));
+        return result;
+    }
+
+    auto avatarHashCopy = getHashCopy();
+    for (auto avatarData : avatarHashCopy) {
+        auto avatar = std::static_pointer_cast<Avatar>(avatarData);
+        if ((avatarsToInclude.size() > 0 && !avatarsToInclude.contains(avatar->getID())) ||
+            (avatarsToDiscard.size() > 0 && avatarsToDiscard.contains(avatar->getID()))) {
+            continue;
+        }
+
+        float parabolicDistance;
+        BoxFace face;
+        glm::vec3 surfaceNormal;
+
+        SkeletonModelPointer avatarModel = avatar->getSkeletonModel();
+
+        // It's better to intersect the parabola against the avatar's actual mesh, but this is currently difficult to
+        // do, because the transformed mesh data only exists over in GPU-land.  As a compromise, this code
+        // intersects against the avatars capsule and then against the (T-pose) mesh.  The end effect is that picking
+        // against the avatar is sort-of right, but you likely wont be able to pick against the arms.
+
+        // TODO -- find a way to extract transformed avatar mesh data from the rendering engine.
+
+        // if we weren't picking against the capsule, we would want to pick against the avatarBounds...
+        // AABox avatarBounds = avatarModel->getRenderableMeshBound();
+        // if (!avatarBounds.findParabolaIntersection(pick.origin, pick.velocity, pick.acceleration, parabolicDistance, face, surfaceNormal)) {
+        //     // parabola doesn't intersect avatar's bounding-box
+        //     continue;
+        // }
+
+        glm::vec3 start;
+        glm::vec3 end;
+        float radius;
+        avatar->getCapsule(start, end, radius);
+        bool intersects = findParabolaCapsuleIntersection(pick.origin, pick.velocity, pick.acceleration, start, end, radius, avatar->getWorldOrientation(), parabolicDistance);
+        if (!intersects) {
+            // ray doesn't intersect avatar's capsule
+            continue;
+        }
+
+        QVariantMap extraInfo;
+        intersects = avatarModel->findParabolaIntersectionAgainstSubMeshes(pick.origin, pick.velocity, pick.acceleration,
+                                                                           parabolicDistance, face, surfaceNormal, extraInfo, true);
+
+        if (intersects && (!result.intersects || parabolicDistance < result.parabolicDistance)) {
+            result.intersects = true;
+            result.avatarID = avatar->getID();
+            result.parabolicDistance = parabolicDistance;
+            result.face = face;
+            result.surfaceNormal = surfaceNormal;
+            result.extraInfo = extraInfo;
+        }
+    }
+
+    if (result.intersects) {
+        result.intersection = pick.origin + pick.velocity * result.parabolicDistance + 0.5f * pick.acceleration * result.parabolicDistance * result.parabolicDistance;
+        result.distance = glm::distance(pick.origin, result.intersection);
     }
 
     return result;

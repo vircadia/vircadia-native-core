@@ -13,7 +13,6 @@ using namespace gpu;
 using namespace gpu::gl;
 using CachedShader = ::gl::CachedShader;
 
-
 // Shader domain
 static const size_t NUM_SHADER_DOMAINS = 3;
 static_assert(Shader::Type::NUM_DOMAINS == NUM_SHADER_DOMAINS, "GL shader domains must equal defined GPU shader domains");
@@ -178,24 +177,22 @@ GLShader* GLBackend::compileBackendProgram(const Shader& program, const Shader::
             }
         }
 
-
         GLuint glprogram = 0;
-
         // If we have a cached binary program, try to load it instead of compiling the individual shaders
         if (cachedBinary) {
-            glprogram = ::gl::compileProgram({}, compilationLogs[version].message, cachedBinary);
+            glprogram = ::gl::buildProgram(cachedBinary);
             if (0 != glprogram) {
                 ++gpuBinaryShadersLoaded;
-            }
-        }
-
-        // If we have no program, then either no cached binary, or the binary failed to load (perhaps a GPU driver update invalidated the cache)
-        if (0 == glprogram) {
-            cachedBinary = CachedShader();
-            {
+            } else {
+                cachedBinary = CachedShader();
                 std::unique_lock<std::mutex> shaderCacheLock{ _shaderBinaryCache._mutex };
                 _shaderBinaryCache._binaries.erase(hash);
             }
+        }
+
+        // If we have no program, then either no cached binary, or the binary failed to load 
+        // (perhaps a GPU driver update invalidated the cache)
+        if (0 == glprogram) {
             // Let's go through every shaders and make sure they are ready to go
             std::vector<GLuint> shaderGLObjects;
             shaderGLObjects.reserve(program.getShaders().size());
@@ -212,8 +209,16 @@ GLShader* GLBackend::compileBackendProgram(const Shader& program, const Shader::
                 }
             }
 
-            glprogram = ::gl::compileProgram(shaderGLObjects, compilationLogs[version].message, cachedBinary);
-            if (cachedBinary) {
+            glprogram = ::gl::buildProgram(shaderGLObjects);
+
+            if (!::gl::linkProgram(glprogram, compilationLogs[version].message)) {
+                glDeleteProgram(glprogram);
+                glprogram = 0;
+                return nullptr;
+            }
+
+            if (!cachedBinary) {
+                ::gl::getProgramBinary(glprogram, cachedBinary);
                 cachedBinary.source = programSource;
                 std::unique_lock<std::mutex> shaderCacheLock{ _shaderBinaryCache._mutex };
                 _shaderBinaryCache._binaries[hash] = cachedBinary;
@@ -228,7 +233,7 @@ GLShader* GLBackend::compileBackendProgram(const Shader& program, const Shader::
 
         compilationLogs[version].compiled = true;
         programObject.glprogram = glprogram;
-        makeProgramBindings(programObject);
+        postLinkProgram(programObject, program);
     }
     // Compilation feedback
     program.setCompilationLogs(compilationLogs);
@@ -236,10 +241,45 @@ GLShader* GLBackend::compileBackendProgram(const Shader& program, const Shader::
     // So far so good, the program versions have all been created successfully
     GLShader* object = new GLShader(this->shared_from_this());
     object->_shaderObjects = programObjects;
-
     return object;
 }
 
+static const GLint INVALID_UNIFORM_INDEX = -1;
+
+GLint GLBackend::getRealUniformLocation(GLint location) const {
+    auto& shader = _pipeline._programShader->_shaderObjects[(GLShader::Version)isStereo()];
+    auto itr = shader.uniformRemap.find(location);
+    if (itr == shader.uniformRemap.end()) {
+        // This shouldn't happen, because we use reflection to determine all the possible 
+        // uniforms.  If someone is requesting a uniform that isn't in the remapping structure
+        // that's a bug from the calling code, because it means that location wasn't in the 
+        // reflection
+        qWarning() << "Unexpected location requested for shader";
+        return INVALID_UNIFORM_INDEX;
+    }
+    return itr->second;
+}
+
+void GLBackend::postLinkProgram(ShaderObject& shaderObject, const Shader& program) const {
+    const auto& glprogram = shaderObject.glprogram;
+    const auto& expectedUniforms = program.getUniforms();
+    const auto expectedLocationsByName = expectedUniforms.getLocationsByName();
+    const auto uniforms = ::gl::Uniform::load(glprogram, expectedUniforms.getNames());
+    auto& uniformRemap = shaderObject.uniformRemap;
+
+    // Pre-initialize all the uniforms with an invalid location
+    for (const auto& entry : expectedLocationsByName) {
+        uniformRemap[entry.second] = INVALID_UNIFORM_INDEX;
+    }
+
+    // Now load up all the actual found uniform location
+    for (const auto& uniform : uniforms) {
+        const auto& name = uniform.name;
+        const auto& expectedLocation = expectedLocationsByName.at(name);
+        const auto& location = uniform.binding;
+        uniformRemap[expectedLocation] = location;
+    }
+}
 
 GLBackend::ElementResource GLBackend::getFormatFromGLUniform(GLenum gltype) {
     switch (gltype) {
@@ -405,196 +445,7 @@ GLBackend::ElementResource GLBackend::getFormatFromGLUniform(GLenum gltype) {
     //{GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE    uimage2DMS},
     //{GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY    uimage2DMSArray},
     //{GL_UNSIGNED_INT_ATOMIC_COUNTER    atomic_uint}
-
-
 };
-
-int GLBackend::makeUniformSlots(const ShaderObject& shaderProgram, const Shader::BindingSet& slotBindings,
-    Shader::SlotSet& uniforms, Shader::SlotSet& textures, Shader::SlotSet& samplers) {
-    auto& glprogram = shaderProgram.glprogram;
-
-    for (const auto& uniform : shaderProgram.uniforms) {
-        const auto& type = uniform.type;
-        const auto& location = uniform.location;
-        const auto& size = uniform.size;
-        const auto& name = uniform.name;
-        const GLint INVALID_UNIFORM_LOCATION = -1;
-
-        // Try to make sense of the gltype
-        auto elementResource = getFormatFromGLUniform(type);
-
-        // The uniform as a standard var type
-        if (location != INVALID_UNIFORM_LOCATION) {
-            auto sname = uniform.name;
-            // Let's make sure the name doesn't contains an array element
-            auto foundBracket = sname.find_first_of('[');
-            if (foundBracket != std::string::npos) {
-                //  std::string arrayname = sname.substr(0, foundBracket);
-
-                if (sname[foundBracket + 1] == '0') {
-                    sname = sname.substr(0, foundBracket);
-                } else {
-                    // skip this uniform since it's not the first element of an array
-                    continue;
-                }
-            }
-
-            if (elementResource._resource == Resource::BUFFER) {
-                uniforms.insert(Shader::Slot(sname, location, elementResource._element, elementResource._resource));
-            } else {
-                // For texture/Sampler, the location is the actual binding value
-                GLint binding = -1;
-                glGetUniformiv(glprogram, location, &binding);
-
-                auto requestedBinding = slotBindings.find(std::string(sname));
-                if (requestedBinding != slotBindings.end()) {
-                    if (binding != (*requestedBinding)._location) {
-                        binding = (*requestedBinding)._location;
-                        for (auto i = 0; i < size; i++) {
-                            // If we are working with an array of textures, reserve for each elemet
-                            glProgramUniform1i(glprogram, location+i, binding+i);
-                        }
-                    }
-                }
-
-                textures.insert(Shader::Slot(name, binding, elementResource._element, elementResource._resource));
-                samplers.insert(Shader::Slot(name, binding, elementResource._element, elementResource._resource));
-            }
-        }
-    }
-
-    return static_cast<uint32_t>(shaderProgram.uniforms.size());
-}
-
-int GLBackend::makeUniformBlockSlots(const ShaderObject& shaderProgram, const Shader::BindingSet& slotBindings, Shader::SlotSet& buffers) {
-    const auto& glprogram = shaderProgram.glprogram;
-    GLint buffersCount = 0;
-
-    glGetProgramiv(glprogram, GL_ACTIVE_UNIFORM_BLOCKS, &buffersCount);
-
-    // fast exit
-    if (buffersCount == 0) {
-        return 0;
-    }
-
-    GLint maxNumUniformBufferSlots = 0;
-    glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &maxNumUniformBufferSlots);
-    std::vector<GLint> uniformBufferSlotMap(maxNumUniformBufferSlots, -1);
-
-    struct UniformBlockInfo {
-        using Vector = std::vector<UniformBlockInfo>;
-        const GLuint index{ 0 };
-        const std::string name;
-        GLint binding{ -1 };
-        GLint size{ 0 };
-
-        static std::string getName(GLuint glprogram, GLuint i) {
-            static const GLint NAME_LENGTH = 256;
-            GLint length = 0;
-            GLchar nameBuffer[NAME_LENGTH];
-            glGetActiveUniformBlockiv(glprogram, i, GL_UNIFORM_BLOCK_NAME_LENGTH, &length);
-            glGetActiveUniformBlockName(glprogram, i, NAME_LENGTH, &length, nameBuffer);
-            return std::string(nameBuffer);
-        }
-
-        UniformBlockInfo(GLuint glprogram, GLuint i) : index(i), name(getName(glprogram, i)) {
-            glGetActiveUniformBlockiv(glprogram, index, GL_UNIFORM_BLOCK_BINDING, &binding);
-            glGetActiveUniformBlockiv(glprogram, index, GL_UNIFORM_BLOCK_DATA_SIZE, &size);
-        }
-    };
-
-    UniformBlockInfo::Vector uniformBlocks;
-    uniformBlocks.reserve(buffersCount);
-    for (int i = 0; i < buffersCount; i++) {
-        uniformBlocks.push_back(UniformBlockInfo(glprogram, i));
-    }
-
-    for (auto& info : uniformBlocks) {
-        auto requestedBinding = slotBindings.find(info.name);
-        if (requestedBinding != slotBindings.end()) {
-            info.binding = (*requestedBinding)._location;
-            glUniformBlockBinding(glprogram, info.index, info.binding);
-            uniformBufferSlotMap[info.binding] = info.index;
-        }
-    }
-
-    for (auto& info : uniformBlocks) {
-        if (slotBindings.count(info.name)) {
-            continue;
-        }
-
-        // If the binding is 0, or the binding maps to an already used binding
-        if (info.binding == 0 || !isUnusedSlot(uniformBufferSlotMap[info.binding])) {
-            // If no binding was assigned then just do it finding a free slot
-            auto slotIt = std::find_if(uniformBufferSlotMap.begin(), uniformBufferSlotMap.end(), GLBackend::isUnusedSlot);
-            if (slotIt != uniformBufferSlotMap.end()) {
-                info.binding = slotIt - uniformBufferSlotMap.begin();
-                glUniformBlockBinding(glprogram, info.index, info.binding);
-            } else {
-                // This should neve happen, an active ubo cannot find an available slot among the max available?!
-                info.binding = -1;
-            }
-        }
-
-        uniformBufferSlotMap[info.binding] = info.index;
-    }
-
-    for (auto& info : uniformBlocks) {
-        static const Element element(SCALAR, gpu::UINT32, gpu::UNIFORM_BUFFER);
-        buffers.insert(Shader::Slot(info.name, info.binding, element, Resource::BUFFER, info.size));
-    }
-    return buffersCount;
-}
-
-int GLBackend::makeInputSlots(const ShaderObject& shaderProgram, const Shader::BindingSet& slotBindings, Shader::SlotSet& inputs) {
-    const auto& glprogram = shaderProgram.glprogram;
-    GLint inputsCount = 0;
-
-    glGetProgramiv(glprogram, GL_ACTIVE_ATTRIBUTES, &inputsCount);
-
-    for (int i = 0; i < inputsCount; i++) {
-        const GLint NAME_LENGTH = 256;
-        GLchar name[NAME_LENGTH];
-        GLint length = 0;
-        GLint size = 0;
-        GLenum type = 0;
-        glGetActiveAttrib(glprogram, i, NAME_LENGTH, &length, &size, &type, name);
-
-        GLint binding = glGetAttribLocation(glprogram, name);
-
-        auto elementResource = getFormatFromGLUniform(type);
-        inputs.insert(Shader::Slot(name, binding, elementResource._element, -1));
-    }
-
-    return inputsCount;
-}
-
-int GLBackend::makeOutputSlots(const ShaderObject& shaderProgram, const Shader::BindingSet& slotBindings, Shader::SlotSet& outputs) {
-    /*   GLint outputsCount = 0;
-
-    glGetProgramiv(glprogram, GL_ACTIVE_, &outputsCount);
-
-    for (int i = 0; i < inputsCount; i++) {
-    const GLint NAME_LENGTH = 256;
-    GLchar name[NAME_LENGTH];
-    GLint length = 0;
-    GLint size = 0;
-    GLenum type = 0;
-    glGetActiveAttrib(glprogram, i, NAME_LENGTH, &length, &size, &type, name);
-
-    auto element = getFormatFromGLUniform(type);
-    outputs.insert(Shader::Slot(name, i, element));
-    }
-    */
-    return 0; //inputsCount;
-}
-
-void GLBackend::makeProgramBindings(ShaderObject& shaderObject) {
-    if (!shaderObject.glprogram) {
-        return;
-    }
-}
-
 
 void GLBackend::initShaderBinaryCache() {
     GLint numBinFormats = 0;

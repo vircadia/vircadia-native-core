@@ -20,7 +20,8 @@ Rectangle {
     property real scaleValue: scaleSlider.value / 10
     property alias dominantHandIsLeft: leftHandRadioButton.checked
     property alias avatarCollisionsOn: collisionsEnabledRadiobutton.checked
-    property alias avatarAnimationJSON: avatarAnimationUrlInputText.text
+    property alias avatarAnimationOverrideJSON: avatarAnimationUrlInputText.text
+    property alias avatarAnimationJSON: avatarAnimationUrlInputText.placeholderText
     property alias avatarCollisionSoundUrl: avatarCollisionSoundUrlInputText.text
 
     property real avatarScaleBackup;
@@ -45,6 +46,7 @@ Rectangle {
         }
 
         avatarAnimationJSON = settings.animGraphUrl;
+        avatarAnimationOverrideJSON = settings.animGraphOverrideUrl;
         avatarCollisionSoundUrl = settings.collisionSoundUrl;
 
         visible = true;

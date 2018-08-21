@@ -66,9 +66,13 @@ public:
     void doInitialModelSimulation();
     void updateModelBounds();
 
-    virtual bool supportsDetailedRayIntersection() const override;
+    virtual bool supportsDetailedIntersection() const override;
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                         OctreeElementPointer& element, float& distance,
+                        BoxFace& face, glm::vec3& surfaceNormal,
+                        QVariantMap& extraInfo, bool precisionPicking) const override;
+    virtual bool findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
+                        const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
                         BoxFace& face, glm::vec3& surfaceNormal,
                         QVariantMap& extraInfo, bool precisionPicking) const override;
 
@@ -141,6 +145,9 @@ public:
 
     void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) override;
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) override;
+
+    // FIXME: model mesh parts should fade individually
+    bool isFading() const override { return false; }
 
 protected:
     virtual void removeFromScene(const ScenePointer& scene, Transaction& transaction) override;

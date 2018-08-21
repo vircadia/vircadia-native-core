@@ -18,6 +18,7 @@
 
 #include "ImageComparer.h"
 #include "ui/MismatchWindow.h"
+#include "TestRailInterface.h"
 
 class Step {
 public:
@@ -33,6 +34,11 @@ public:
     StepList stepList;
 };
 
+enum TestRailCreateMode {
+    PYTHON,
+    XML
+};
+
 class Test {
 public: 
     Test();
@@ -45,11 +51,16 @@ public:
     void createRecursiveScript(const QString& topLevelDirectory, bool interactiveMode);
 
     void createTests();
+
+    void createTestsOutline();
+
     void createMDFile();
     void createAllMDFiles();
     void createMDFile(const QString& topLevelDirectory);
 
-    void createTestsOutline();
+    void createTestRailTestCases();
+    void createTestRailRun();
+    void updateTestRailRunResult();
 
     bool compareImageLists(bool isInteractiveMode, QProgressBar* progressBar);
 
@@ -64,10 +75,14 @@ public:
     bool createTestResultsFolderPath(const QString& directory);
     void zipAndDeleteTestResultsFolder();
 
-    bool isAValidDirectory(const QString& pathname);
+    static bool isAValidDirectory(const QString& pathname);
 	QString extractPathFromTestsDown(const QString& fullPath);
     QString getExpectedImageDestinationDirectory(const QString& filename);
     QString getExpectedImagePartialSourceDirectory(const QString& filename);
+
+    ExtractedText getTestScriptLines(QString testFileName);
+
+    void setTestRailCreateMode(TestRailCreateMode testRailCreateMode);
 
 private:
     const QString TEST_FILENAME { "test.js" };
@@ -76,14 +91,14 @@ private:
 
     const double THRESHOLD{ 0.96 };
 
-    QDir imageDirectory;
+    QDir _imageDirectory;
 
-    MismatchWindow mismatchWindow;
+    MismatchWindow _mismatchWindow;
 
-    ImageComparer imageComparer;
+    ImageComparer _imageComparer;
 
-    QString testResultsFolderPath;
-    int index { 1 };
+    QString _testResultsFolderPath;
+    int _index { 1 };
 
     // Expected images are in the format ExpectedImage_dddd.jpg (d == decimal digit)
     const int NUM_DIGITS { 5 };
@@ -93,20 +108,20 @@ private:
     // The first is the directory containing the test we are working with
     // The second is the root directory of all tests
     // The third contains the snapshots taken for test runs that need to be evaluated
-    QString testDirectory;
-    QString testsRootDirectory;
-    QString snapshotDirectory;
+    QString _testDirectory;
+    QString _testsRootDirectory;
+    QString _snapshotDirectory;
 
-    QStringList expectedImagesFilenames;
-    QStringList expectedImagesFullFilenames;
-    QStringList resultImagesFullFilenames;
+    QStringList _expectedImagesFilenames;
+    QStringList _expectedImagesFullFilenames;
+    QStringList _resultImagesFullFilenames;
 
     // Used for accessing GitHub
+    const QString GIT_HUB_DEFAULT_USER{ "highfidelity" };
+    const QString GIT_HUB_DEFAULT_BRANCH{ "master" };
     const QString GIT_HUB_REPOSITORY{ "hifi_tests" };
 
     const QString DATETIME_FORMAT{ "yyyy-MM-dd_hh-mm-ss" };
-
-	ExtractedText getTestScriptLines(QString testFileName);
 
     // NOTE: these need to match the appropriate var's in autoTester.js
     //    var advanceKey = "n";
@@ -114,7 +129,11 @@ private:
     const QString ADVANCE_KEY{ "n" };
     const QString PATH_SEPARATOR{ "." };
 
-    bool exitWhenComplete{ false };
+    bool _exitWhenComplete{ false };
+
+    TestRailInterface _testRailInterface;
+
+    TestRailCreateMode _testRailCreateMode { PYTHON };
 };
 
 #endif // hifi_test_h

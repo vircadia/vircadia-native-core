@@ -19,6 +19,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <QThread>
 
+#include <AnimationCacheScriptingInterface.h>
 #include <AssetClient.h>
 #include <AvatarHashMap.h>
 #include <AudioInjectorManager.h>
@@ -32,6 +33,7 @@
 #include <ResourceCache.h>
 #include <ScriptCache.h>
 #include <ScriptEngines.h>
+#include <SoundCacheScriptingInterface.h>
 #include <SoundCache.h>
 #include <UsersScriptingInterface.h>
 #include <UUID.h>
@@ -50,6 +52,7 @@
 #include "entities/AssignmentParentFinder.h"
 #include "RecordingScriptingInterface.h"
 #include "AbstractAudioInterface.h"
+#include "AgentScriptingInterface.h"
 
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
@@ -70,6 +73,7 @@ Agent::Agent(ReceivedMessage& message) :
 
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
+    DependencyManager::set<SoundCacheScriptingInterface>();
     DependencyManager::set<AudioScriptingInterface>();
     DependencyManager::set<AudioInjectorManager>();
 
@@ -78,8 +82,6 @@ Agent::Agent(ReceivedMessage& message) :
     DependencyManager::set<recording::ClipCache>();
 
     DependencyManager::set<ScriptCache>();
-    DependencyManager::set<ScriptEngines>(ScriptEngine::AGENT_SCRIPT);
-
     DependencyManager::set<RecordingScriptingInterface>();
     DependencyManager::set<UsersScriptingInterface>();
 
@@ -158,6 +160,8 @@ void Agent::handleAudioPacket(QSharedPointer<ReceivedMessage> message) {
 static const QString AGENT_LOGGING_NAME = "agent";
 
 void Agent::run() {
+    // Create ScriptEngines on threaded-assignment thread then move to main thread.
+    DependencyManager::set<ScriptEngines>(ScriptEngine::AGENT_SCRIPT)->moveToThread(qApp->thread());
 
     // make sure we request our script once the agent connects to the domain
     auto nodeList = DependencyManager::get<NodeList>();
@@ -364,7 +368,6 @@ void Agent::executeScript() {
     // give scripts access to the Users object
     _scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
 
-
     auto player = DependencyManager::get<recording::Deck>();
     connect(player.data(), &recording::Deck::playbackStateChanged, [=] {
         if (player->isPlaying()) {
@@ -450,10 +453,10 @@ void Agent::executeScript() {
     packetReceiver.registerListener(PacketType::AvatarIdentity, avatarHashMap.data(), "processAvatarIdentityPacket");
 
     // register ourselves to the script engine
-    _scriptEngine->registerGlobalObject("Agent", this);
+    _scriptEngine->registerGlobalObject("Agent", new AgentScriptingInterface(this));
 
-    _scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
-    _scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
+    _scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCacheScriptingInterface>().data());
+    _scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCacheScriptingInterface>().data());
 
     QScriptValue webSocketServerConstructorValue = _scriptEngine->newFunction(WebSocketServerClass::constructor);
     _scriptEngine->globalObject().setProperty("WebSocketServer", webSocketServerConstructorValue);
@@ -494,7 +497,6 @@ void Agent::executeScript() {
     Frame::clearFrameHandler(AVATAR_FRAME_TYPE);
 
     DependencyManager::destroy<RecordingScriptingInterface>();
-
     setFinished(true);
 }
 
@@ -513,7 +515,7 @@ void Agent::setIsListeningToAudioStream(bool isListeningToAudioStream) {
 
         auto nodeList = DependencyManager::get<NodeList>();
         nodeList->eachMatchingNode(
-            [&](const SharedNodePointer& node)->bool {
+            [](const SharedNodePointer& node)->bool {
             return (node->getType() == NodeType::AudioMixer) && node->getActiveSocket();
         },
             [&](const SharedNodePointer& node) {
@@ -823,10 +825,6 @@ void Agent::processAgentAvatarAudio() {
 void Agent::aboutToFinish() {
     setIsAvatar(false);// will stop timers for sending identity packets
 
-    if (_scriptEngine) {
-        _scriptEngine->stop();
-    }
-
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(nullptr);
 
@@ -839,21 +837,29 @@ void Agent::aboutToFinish() {
 
     // destroy all other created dependencies
     DependencyManager::destroy<ScriptCache>();
-    DependencyManager::destroy<ScriptEngines>();
 
     DependencyManager::destroy<ResourceCacheSharedItems>();
+    DependencyManager::destroy<SoundCacheScriptingInterface>();
     DependencyManager::destroy<SoundCache>();
     DependencyManager::destroy<AudioScriptingInterface>();
 
     DependencyManager::destroy<recording::Deck>();
     DependencyManager::destroy<recording::Recorder>();
     DependencyManager::destroy<recording::ClipCache>();
-
+    DependencyManager::destroy<ScriptEngine>();
     QMetaObject::invokeMethod(&_avatarAudioTimer, "stop");
 
     // cleanup codec & encoder
     if (_codec && _encoder) {
         _codec->releaseEncoder(_encoder);
         _encoder = nullptr;
+    }
+}
+
+void Agent::stop() {
+    if (_scriptEngine) {
+        _scriptEngine->stop();
+    } else {
+        setFinished(true);
     }
 }

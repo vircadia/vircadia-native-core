@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  simple_textured_fade.slf
+//  simple_textured_fade.frag
 //  fragment shader
 //
 //  Created by Olivier Prat on 06/05/17.
@@ -17,14 +17,18 @@
 
 <@include Fade.slh@>
 
+<@include render-utils/ShaderConstants.h@>
+
 // the albedo texture
-uniform sampler2D originalTexture;
+layout(binding=0) uniform sampler2D originalTexture;
 
 // the interpolated normal
-in vec3 _normalWS;
-in vec4 _color;
-in vec2 _texCoord0;
-in vec4 _positionWS;
+layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
+layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
+#define _texCoord0 _texCoord01.xy
+#define _texCoord1 _texCoord01.zw
+layout(location=RENDER_UTILS_ATTR_POSITION_WS) in vec4 _positionWS;
 
 // Declare after all samplers to prevent sampler location mix up with originalTexture
 <$declareFadeFragmentInstanced()$>

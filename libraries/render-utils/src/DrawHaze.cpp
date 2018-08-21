@@ -12,14 +12,25 @@
 #include "DrawHaze.h"
 
 #include <gpu/Context.h>
-#include <gpu/StandardShaderLib.h>
+#include <shaders/Shaders.h>
+
+#include <graphics/ShaderConstants.h>
+#include "render-utils/ShaderConstants.h"
 
 #include "StencilMaskPass.h"
 #include "FramebufferCache.h"
 #include "HazeStage.h"
 #include "LightStage.h"
 
-#include "Haze_frag.h"
+namespace ru {
+    using render_utils::slot::texture::Texture;
+    using render_utils::slot::buffer::Buffer;
+}
+
+namespace gr {
+    using graphics::slot::texture::Texture;
+    using graphics::slot::buffer::Buffer;
+}
 
 void HazeConfig::setHazeColor(const glm::vec3 value) { 
     hazeColor = value; 
@@ -107,12 +118,6 @@ void MakeHaze::run(const render::RenderContextPointer& renderContext, graphics::
     haze = _haze;
 }
 
-// Buffer slots
-const int HazeEffect_ParamsSlot = 0;
-const int HazeEffect_TransformBufferSlot = 1;
-// Texture slots
-const int HazeEffect_LinearDepthMapSlot = 0;
-
 void DrawHaze::configure(const Config& config) {
 }
 
@@ -132,10 +137,7 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
     RenderArgs* args = renderContext->args;
 
     if (!_hazePipeline) {
-        gpu::ShaderPointer ps = Haze_frag::getShader();
-        gpu::ShaderPointer vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::haze);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         state->setBlendFunction(true,
@@ -144,19 +146,7 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
 
         // Mask out haze on the tablet
         PrepareStencil::testMask(*state);
-
         _hazePipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
-        gpu::doInBatch("DrawHaze::build", args->_context, [program](gpu::Batch& batch) {
-            batch.runLambda([program]() {
-                gpu::Shader::BindingSet slotBindings;
-                slotBindings.insert(gpu::Shader::Binding(std::string("hazeBuffer"), HazeEffect_ParamsSlot));
-                slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), HazeEffect_TransformBufferSlot));
-                slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), render::ShapePipeline::Slot::LIGHTING_MODEL));
-                slotBindings.insert(gpu::Shader::Binding(std::string("linearDepthMap"), HazeEffect_LinearDepthMapSlot));
-                slotBindings.insert(gpu::Shader::Binding(std::string("keyLightBuffer"), render::ShapePipeline::Slot::KEY_LIGHT));
-                gpu::Shader::makeProgram(*program, slotBindings);
-            });
-        });
     }
 
     auto outputFramebufferSize = glm::ivec2(outputBuffer->getSize());
@@ -176,26 +166,25 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
         if (hazeStage && hazeStage->_currentFrame._hazes.size() > 0) {
             graphics::HazePointer hazePointer = hazeStage->getHaze(hazeStage->_currentFrame._hazes.front());
             if (hazePointer) {
-                batch.setUniformBuffer(HazeEffect_ParamsSlot, hazePointer->getHazeParametersBuffer());
+                batch.setUniformBuffer(ru::Buffer::HazeParams, hazePointer->getHazeParametersBuffer());
             } else {
                 // Something is wrong, so just quit Haze
                 return;
             }
         }
 
-        batch.setUniformBuffer(HazeEffect_TransformBufferSlot, transformBuffer->getFrameTransformBuffer());
-        batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
+        batch.setUniformBuffer(ru::Buffer::DeferredFrameTransform, transformBuffer->getFrameTransformBuffer());
+        batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
+        batch.setResourceTexture(ru::Texture::HazeLinearDepth, depthBuffer);
+        auto lightStage = args->_scene->getStage<LightStage>();
+        if (lightStage) {
+            graphics::LightPointer keyLight;
+            keyLight = lightStage->getCurrentKeyLight();
+            if (keyLight) {
+                batch.setUniformBuffer(gr::Buffer::KeyLight, keyLight->getLightSchemaBuffer());
+            }
+        }
 
-	    auto lightStage = args->_scene->getStage<LightStage>();
-	    if (lightStage) {
-	        graphics::LightPointer keyLight;
-	        keyLight = lightStage->getCurrentKeyLight();
-	        if (keyLight) {
-	            batch.setUniformBuffer(render::ShapePipeline::Slot::KEY_LIGHT, keyLight->getLightSchemaBuffer());
-	        }
-	    }
-
-        batch.setResourceTexture(HazeEffect_LinearDepthMapSlot, depthBuffer);
 
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });

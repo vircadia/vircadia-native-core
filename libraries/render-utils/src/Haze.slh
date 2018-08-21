@@ -10,6 +10,8 @@
 <@if not HAZE_SLH@>
 <@def HAZE_SLH@>
 
+<@include render-utils/ShaderConstants.h@>
+
 const int HAZE_MODE_IS_ACTIVE = 1 << 0;
 const int HAZE_MODE_IS_ALTITUDE_BASED = 1 << 1;
 const int HAZE_MODE_IS_KEYLIGHT_ATTENUATED = 1 << 2;
@@ -36,7 +38,8 @@ struct HazeParams {
     float hazeKeyLightAltitudeFactor;
 };
 
-layout(std140) uniform hazeBuffer {
+// See ShapePipeline::Slot::BUFFER in ShapePipeline.h
+layout(std140, binding=RENDER_UTILS_BUFFER_HAZE_PARAMS) uniform hazeBuffer {
     HazeParams hazeParams;
 };
 

@@ -142,6 +142,10 @@ public:
                                                                         const QVector<EntityItemID>& avatarsToInclude,
                                                                         const QVector<EntityItemID>& avatarsToDiscard);
 
+    Q_INVOKABLE ParabolaToAvatarIntersectionResult findParabolaIntersectionVector(const PickParabola& pick,
+                                                                                  const QVector<EntityItemID>& avatarsToInclude,
+                                                                                  const QVector<EntityItemID>& avatarsToDiscard);
+
     /**jsdoc
      * @function AvatarManager.getAvatarSortCoefficient
      * @param {string} name
