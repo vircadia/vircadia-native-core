@@ -24,7 +24,6 @@ public:
     ThreadedAssignment(ReceivedMessage& message);
     ~ThreadedAssignment() { stop(); }
 
-    void setFinished(bool isFinished);
     virtual void aboutToFinish() { };
     void addPacketStatsAndSendStatsPacket(QJsonObject statsObject);
 
@@ -43,6 +42,7 @@ signals:
 
 protected:
     void commonInit(const QString& targetName, NodeType_t nodeType);
+    void setFinished(bool isFinished);
 
     bool _isFinished;
     QTimer _domainServerTimer;

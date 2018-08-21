@@ -370,7 +370,7 @@ getTabletWidthFromSettings = function () {
 
 resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride) {
 
-    if (!HMD.tabletID || !HMD.tabletScreenID || !HMD.homeButtonID) {
+    if (!HMD.tabletID || !HMD.tabletScreenID || !HMD.homeButtonID || !HMD.homeButtonHighlightID) {
         return;
     }
     var sensorScaleFactor = sensorToWorldScaleOverride || MyAvatar.sensorToWorldScale;
@@ -419,6 +419,12 @@ resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride)
     var HOME_BUTTON_Z_OFFSET = (tabletDepth / 1.9) * sensorScaleOffsetOverride;
     Overlays.editOverlay(HMD.homeButtonID, {
         localPosition: { x: HOME_BUTTON_X_OFFSET, y: HOME_BUTTON_Y_OFFSET, z: -HOME_BUTTON_Z_OFFSET },
+        localRotation: { x: 0, y: 1, z: 0, w: 0 },
+        dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim }
+    });
+
+    Overlays.editOverlay(HMD.homeButtonHighlightID, {
+        localPosition: { x: -HOME_BUTTON_X_OFFSET, y: HOME_BUTTON_Y_OFFSET, z: -HOME_BUTTON_Z_OFFSET },
         localRotation: { x: 0, y: 1, z: 0, w: 0 },
         dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim }
     });

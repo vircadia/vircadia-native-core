@@ -69,15 +69,6 @@ public:
 
 protected:
 
-    enum Slots {
-        ZONE_DEFERRED_TRANSFORM_BUFFER = 0,
-        ZONE_KEYLIGHT_BUFFER,
-        ZONE_AMBIENT_BUFFER,
-        ZONE_AMBIENT_MAP,
-        ZONE_SKYBOX_BUFFER,
-        ZONE_SKYBOX_MAP,
-    };
-
     gpu::PipelinePointer _keyLightPipeline;
     gpu::PipelinePointer _ambientPipeline;
     gpu::PipelinePointer _backgroundPipeline;

@@ -75,6 +75,7 @@ module.exports = (function() {
         this.settingsKey = settingsKey;
         this.defaultRect = defaultRect;
         this.webEventReceived = new CallableEvent();
+        this.interactiveWindowHidden = new CallableEvent();
         this.fromQml = new CallableEvent();
         if (createOnStartup) {
             this.createWindow();
@@ -108,8 +109,14 @@ module.exports = (function() {
             this.window.sizeChanged.connect(this, windowRectChanged);
             this.window.positionChanged.connect(this, windowRectChanged);
 
-            this.window.webEventReceived.connect(this, function (data) {
+            this.window.webEventReceived.connect(this, function(data) {
                 this.webEventReceived.call(data);
+            });
+
+            this.window.visibleChanged.connect(this, function() {
+                if (!this.window.visible) {
+                    this.interactiveWindowHidden.call();
+                }
             });
 
             this.window.fromQml.connect(this, function (data) {
@@ -133,6 +140,12 @@ module.exports = (function() {
                 }
             }
         },
+        isVisible: function() {
+            if (this.window) {
+                return this.window.visible;
+            }
+            return false;
+        },
         emitScriptEvent: function(data) {
             if (this.window) {
                 this.window.emitScriptEvent(data);
@@ -144,6 +157,7 @@ module.exports = (function() {
             }
         },
         webEventReceived: null,
+        interactiveWindowHidden: null,
         fromQml: null
     };
 

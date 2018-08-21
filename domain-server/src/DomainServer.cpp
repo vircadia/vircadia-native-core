@@ -13,6 +13,7 @@
 
 #include <memory>
 #include <random>
+#include <iostream>
 
 #include <QDir>
 #include <QJsonDocument>
@@ -68,6 +69,14 @@ const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.com";
 #else
 const QString ICE_SERVER_DEFAULT_HOSTNAME = "dev-ice.highfidelity.com";
 #endif
+
+QString DomainServer::_iceServerAddr { ICE_SERVER_DEFAULT_HOSTNAME };
+int DomainServer::_iceServerPort { ICE_SERVER_DEFAULT_PORT };
+bool DomainServer::_overrideDomainID { false };
+QUuid DomainServer::_overridingDomainID;
+bool DomainServer::_getTempName { false };
+QString DomainServer::_userConfigFilename;
+int DomainServer::_parentPID { -1 };
 
 bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
                                               const QString& metaversePath,
@@ -148,24 +157,13 @@ bool DomainServer::forwardMetaverseAPIRequest(HTTPConnection* connection,
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _gatekeeper(this),
-    _httpManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
-    _allAssignments(),
-    _unfulfilledAssignments(),
-    _isUsingDTLS(false),
-    _oauthProviderURL(),
-    _oauthClientID(),
-    _hostname(),
-    _ephemeralACScripts(),
-    _webAuthenticationStateSet(),
-    _cookieSessionHash(),
-    _automaticNetworkingSetting(),
-    _settingsManager(),
-    _iceServerAddr(ICE_SERVER_DEFAULT_HOSTNAME),
-    _iceServerPort(ICE_SERVER_DEFAULT_PORT)
+    _httpManager(QHostAddress::AnyIPv4, DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this)
 {
-    PathUtils::removeTemporaryApplicationDirs();
+    if (_parentPID != -1) {
+        watchParentProcess(_parentPID);
+    }
 
-    parseCommandLine();
+    PathUtils::removeTemporaryApplicationDirs();
 
     DependencyManager::set<tracing::Tracer>();
     DependencyManager::set<StatTracker>();
@@ -185,9 +183,16 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     // (need this since domain-server can restart itself and maintain static variables)
     DependencyManager::set<AccountManager>();
 
-    auto args = arguments();
-
-    _settingsManager.setupConfigMap(args);
+    // load the user config
+    QString userConfigFilename;
+    if (!_userConfigFilename.isEmpty()) {
+        userConfigFilename = _userConfigFilename;
+    } else {
+        // we weren't passed a user config path
+        static const QString USER_CONFIG_FILE_NAME = "config.json";
+        userConfigFilename = PathUtils::getAppDataFilePath(USER_CONFIG_FILE_NAME);
+    }
+    _settingsManager.setupConfigMap(userConfigFilename);
 
     // setup a shutdown event listener to handle SIGTERM or WM_CLOSE for us
 #ifdef _WIN32
@@ -246,8 +251,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     }
 
     // check for the temporary name parameter
-    const QString GET_TEMPORARY_NAME_SWITCH = "--get-temp-name";
-    if (args.contains(GET_TEMPORARY_NAME_SWITCH)) {
+    if (_getTempName) {
         getTemporaryName();
     }
 
@@ -316,28 +320,45 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     connect(_contentManager.get(), &DomainContentBackupManager::recoveryCompleted, this, &DomainServer::restart);
 }
 
-void DomainServer::parseCommandLine() {
+void DomainServer::parseCommandLine(int argc, char* argv[]) {
     QCommandLineParser parser;
     parser.setApplicationDescription("High Fidelity Domain Server");
-    parser.addHelpOption();
+    const QCommandLineOption versionOption = parser.addVersionOption();
+    const QCommandLineOption helpOption = parser.addHelpOption();
 
     const QCommandLineOption iceServerAddressOption("i", "ice-server address", "IP:PORT or HOSTNAME:PORT");
     parser.addOption(iceServerAddressOption);
 
-    const QCommandLineOption domainIDOption("d", "domain-server uuid");
+    const QCommandLineOption domainIDOption("d", "domain-server uuid", "uuid");
     parser.addOption(domainIDOption);
 
     const QCommandLineOption getTempNameOption("get-temp-name", "Request a temporary domain-name");
     parser.addOption(getTempNameOption);
 
-    const QCommandLineOption masterConfigOption("master-config", "Deprecated config-file option");
-    parser.addOption(masterConfigOption);
+    const QCommandLineOption userConfigOption("user-config", "Pass user config file pass", "path");
+    parser.addOption(userConfigOption);
 
     const QCommandLineOption parentPIDOption(PARENT_PID_OPTION, "PID of the parent process", "parent-pid");
     parser.addOption(parentPIDOption);
 
-    if (!parser.parse(QCoreApplication::arguments())) {
-        qWarning() << parser.errorText() << endl;
+
+    QStringList arguments;
+    for (int i = 0; i < argc; ++i) {
+        arguments << argv[i];
+    }
+    if (!parser.parse(arguments)) {
+        std::cout << parser.errorText().toStdString() << std::endl; // Avoid Qt log spam
+        QCoreApplication mockApp(argc, argv); // required for call to showHelp()
+        parser.showHelp();
+        Q_UNREACHABLE();
+    }
+
+    if (parser.isSet(versionOption)) {
+        parser.showVersion();
+        Q_UNREACHABLE();
+    }
+    if (parser.isSet(helpOption)) {
+        QCoreApplication mockApp(argc, argv); // required for call to showHelp()
         parser.showHelp();
         Q_UNREACHABLE();
     }
@@ -354,7 +375,7 @@ void DomainServer::parseCommandLine() {
 
         if (_iceServerAddr.isEmpty()) {
             qWarning() << "Could not parse an IP address and port combination from" << hostnamePortString;
-            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+            ::exit(0);
         }
     }
 
@@ -364,14 +385,21 @@ void DomainServer::parseCommandLine() {
         qDebug() << "domain-server ID is" << _overridingDomainID;
     }
 
+    if (parser.isSet(getTempNameOption)) {
+        _getTempName = true;
+    }
+
+    if (parser.isSet(userConfigOption)) {
+        _userConfigFilename = parser.value(userConfigOption);
+    }
 
     if (parser.isSet(parentPIDOption)) {
         bool ok = false;
         int parentPID = parser.value(parentPIDOption).toInt(&ok);
 
         if (ok) {
-            qDebug() << "Parent process PID is" << parentPID;
-            watchParentProcess(parentPID);
+            _parentPID = parentPID;
+            qDebug() << "Parent process PID is" << _parentPID;
         }
     }
 }
@@ -630,6 +658,7 @@ bool DomainServer::isPacketVerified(const udt::Packet& packet) {
 
 void DomainServer::setupNodeListAndAssignments() {
     const QString CUSTOM_LOCAL_PORT_OPTION = "metaverse.local_port";
+    static const QString ENABLE_PACKET_AUTHENTICATION = "metaverse.enable_packet_verification";
 
     QVariant localPortValue = _settingsManager.valueOrDefaultValueForKeyPath(CUSTOM_LOCAL_PORT_OPTION);
     int domainServerPort = localPortValue.toInt();
@@ -695,6 +724,9 @@ void DomainServer::setupNodeListAndAssignments() {
             _type = MetaverseTemporaryDomain;
         }
     }
+
+    bool isAuthEnabled = _settingsManager.valueOrDefaultValueForKeyPath(ENABLE_PACKET_AUTHENTICATION).toBool();
+    nodeList->setAuthenticatePackets(isAuthEnabled);
 
     connect(nodeList.data(), &LimitedNodeList::nodeAdded, this, &DomainServer::nodeAdded);
     connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &DomainServer::nodeKilled);
@@ -1046,7 +1078,7 @@ bool DomainServer::isInInterestSet(const SharedNodePointer& nodeA, const SharedN
 unsigned int DomainServer::countConnectedUsers() {
     unsigned int result = 0;
     auto nodeList = DependencyManager::get<LimitedNodeList>();
-    nodeList->eachNode([&](const SharedNodePointer& node){
+    nodeList->eachNode([&result](const SharedNodePointer& node){
         // only count unassigned agents (i.e., users)
         if (node->getType() == NodeType::Agent) {
             auto nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
@@ -1133,7 +1165,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     extendedHeaderStream << node->getUUID();
     extendedHeaderStream << node->getLocalID();
     extendedHeaderStream << node->getPermissions();
-
+    extendedHeaderStream << limitedNodeList->getAuthenticatePackets();
     auto domainListPackets = NLPacketList::create(PacketType::DomainList, extendedHeader);
 
     // always send the node their own UUID back
@@ -1149,7 +1181,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
         // DTLSServerSession* dtlsSession = _isUsingDTLS ? _dtlsSessions[senderSockAddr] : NULL;
         if (nodeData->isAuthenticated()) {
             // if this authenticated node has any interest types, send back those nodes as well
-            limitedNodeList->eachNode([&](const SharedNodePointer& otherNode) {
+            limitedNodeList->eachNode([this, node, &domainListPackets, &domainListStream](const SharedNodePointer& otherNode) {
                 if (otherNode->getUUID() != node->getUUID() && isInInterestSet(node, otherNode)) {
                     // since we're about to add a node to the packet we start a segment
                     domainListPackets->startSegment();
@@ -1198,6 +1230,7 @@ QUuid DomainServer::connectionSecretForNodes(const SharedNodePointer& nodeA, con
 void DomainServer::broadcastNewNode(const SharedNodePointer& addedNode) {
 
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+    QWeakPointer<LimitedNodeList> limitedNodeListWeak = limitedNodeList;
 
     auto addNodePacket = NLPacket::create(PacketType::DomainServerAddedNode);
 
@@ -1209,7 +1242,7 @@ void DomainServer::broadcastNewNode(const SharedNodePointer& addedNode) {
     int connectionSecretIndex = addNodePacket->pos();
 
     limitedNodeList->eachMatchingNode(
-        [&](const SharedNodePointer& node)->bool {
+        [this, addedNode](const SharedNodePointer& node)->bool {
             if (node->getLinkedData() && node->getActiveSocket() && node != addedNode) {
                 // is the added Node in this node's interest list?
                 return isInInterestSet(node, addedNode);
@@ -1217,16 +1250,19 @@ void DomainServer::broadcastNewNode(const SharedNodePointer& addedNode) {
                 return false;
             }
         },
-        [&](const SharedNodePointer& node) {
-            addNodePacket->seek(connectionSecretIndex);
-
-            QByteArray rfcConnectionSecret = connectionSecretForNodes(node, addedNode).toRfc4122();
-
-            // replace the bytes at the end of the packet for the connection secret between these nodes
-            addNodePacket->write(rfcConnectionSecret);
-
+        [this, &addNodePacket, connectionSecretIndex, addedNode, limitedNodeListWeak](const SharedNodePointer& node) {
             // send off this packet to the node
-            limitedNodeList->sendUnreliablePacket(*addNodePacket, *node);
+            auto limitedNodeList = limitedNodeListWeak.lock();
+            if (limitedNodeList) {
+                addNodePacket->seek(connectionSecretIndex);
+
+                QByteArray rfcConnectionSecret = connectionSecretForNodes(node, addedNode).toRfc4122();
+
+                // replace the bytes at the end of the packet for the connection secret between these nodes
+                addNodePacket->write(rfcConnectionSecret);
+
+                limitedNodeList->sendUnreliablePacket(*addNodePacket, *node);
+            }
         }
     );
 }
@@ -2403,8 +2439,8 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         }
 
     } else if (connection->requestOperation() == QNetworkAccessManager::DeleteOperation) {
-        const QString ALL_NODE_DELETE_REGEX_STRING = QString("\\%1\\/?$").arg(URI_NODES);
-        const QString NODE_DELETE_REGEX_STRING = QString("\\%1\\/(%2)\\/$").arg(URI_NODES).arg(UUID_REGEX_STRING);
+        const QString ALL_NODE_DELETE_REGEX_STRING = QString("%1/?$").arg(URI_NODES);
+        const QString NODE_DELETE_REGEX_STRING = QString("%1/(%2)$").arg(URI_NODES).arg(UUID_REGEX_STRING);
 
         QRegExp allNodesDeleteRegex(ALL_NODE_DELETE_REGEX_STRING);
         QRegExp nodeDeleteRegex(NODE_DELETE_REGEX_STRING);
@@ -2832,7 +2868,7 @@ void DomainServer::updateReplicationNodes(ReplicationServerDirection direction) 
             auto serversSettings = replicationSettings.value(serversKey).toList();
 
             std::vector<HifiSockAddr> knownReplicationNodes;
-            nodeList->eachNode([&](const SharedNodePointer& otherNode) {
+            nodeList->eachNode([direction, &knownReplicationNodes](const SharedNodePointer& otherNode) {
                 if ((direction == Upstream && NodeType::isUpstream(otherNode->getType()))
                     || (direction == Downstream && NodeType::isDownstream(otherNode->getType()))) {
                     knownReplicationNodes.push_back(otherNode->getPublicSocket());
@@ -2870,7 +2906,7 @@ void DomainServer::updateReplicationNodes(ReplicationServerDirection direction) 
         // collect them in a vector to separately remove them with handleKillNode (since eachNode has a read lock and
         // we cannot recursively take the write lock required by handleKillNode)
         std::vector<SharedNodePointer> nodesToKill;
-        nodeList->eachNode([&](const SharedNodePointer& otherNode) {
+        nodeList->eachNode([this, direction, replicationNodesInSettings, replicationDirection, &nodesToKill](const SharedNodePointer& otherNode) {
             if ((direction == Upstream && NodeType::isUpstream(otherNode->getType()))
                 || (direction == Downstream && NodeType::isDownstream(otherNode->getType()))) {
                 bool nodeInSettings = find(replicationNodesInSettings.cbegin(), replicationNodesInSettings.cend(),

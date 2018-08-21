@@ -96,10 +96,13 @@ static OffscreenFlags* offscreenFlags { nullptr };
 // so I think it's OK for the time being.
 bool OffscreenUi::shouldSwallowShortcut(QEvent* event) {
     Q_ASSERT(event->type() == QEvent::ShortcutOverride);
-    QObject* focusObject = getWindow()->focusObject();
-    if (focusObject != getWindow() && focusObject != getRootItem()) {
-        event->accept();
-        return true;
+    auto window = getWindow();
+    if (window) {
+        QObject* focusObject = getWindow()->focusObject();
+        if (focusObject != getWindow() && focusObject != getRootItem()) {
+            event->accept();
+            return true;
+        }
     }
     return false;
 }

@@ -36,6 +36,8 @@ var lastEntityID = null;
 
 var MATERIAL_PREFIX_STRING = "mat::";
 
+var PENDING_SCRIPT_STATUS = "[ Fetching status ]";
+
 function debugPrint(message) {
     EventBridge.emitWebEvent(
         JSON.stringify({
@@ -308,9 +310,10 @@ function setUserDataFromEditor(noUpdate) {
     }
 }
 
-function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults) {
+function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults, removeKeys) {
     var properties = {};
     var parsedData = {};
+    var keysToBeRemoved = removeKeys ? removeKeys : [];
     try {
         if ($('#userdata-editor').css('height') !== "0px") {
             // if there is an expanded, we want to use its json.
@@ -342,6 +345,12 @@ function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults) {
             parsedData[groupName][key] = defaults[key];
         }
     });
+    keysToBeRemoved.forEach(function(key) {
+        if (parsedData[groupName].hasOwnProperty(key)) {
+            delete parsedData[groupName][key];
+        }
+    });
+    
     if (Object.keys(parsedData[groupName]).length === 0) {
         delete parsedData[groupName];
     }
@@ -355,11 +364,11 @@ function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults) {
 
     updateProperties(properties);
 }
-function userDataChanger(groupName, keyName, values, userDataElement, defaultValue) {
+function userDataChanger(groupName, keyName, values, userDataElement, defaultValue, removeKeys) {
     var val = {}, def = {};
     val[keyName] = values;
     def[keyName] = defaultValue;
-    multiDataUpdater(groupName, val, userDataElement, def);
+    multiDataUpdater(groupName, val, userDataElement, def, removeKeys);
 }
 
 function setMaterialDataFromEditor(noUpdate) {
@@ -711,7 +720,7 @@ function loaded() {
         var elCloneableLifetime = document.getElementById("property-cloneable-lifetime");
         var elCloneableLimit = document.getElementById("property-cloneable-limit");
 
-        var elWantsTrigger = document.getElementById("property-wants-trigger");
+        var elTriggerable = document.getElementById("property-triggerable");
         var elIgnoreIK = document.getElementById("property-ignore-ik");
 
         var elLifetime = document.getElementById("property-lifetime");
@@ -973,7 +982,7 @@ function loaded() {
                         elCollideOtherAvatar.checked = false;
 
                         elGrabbable.checked = false;
-                        elWantsTrigger.checked = false;
+                        elTriggerable.checked = false;
                         elIgnoreIK.checked = false;
 
                         elCloneable.checked = false;
@@ -1234,7 +1243,7 @@ function loaded() {
 
                         elGrabbable.checked = properties.dynamic;
 
-                        elWantsTrigger.checked = false;
+                        elTriggerable.checked = false;
                         elIgnoreIK.checked = true;
 
                         elCloneable.checked = properties.cloneable;
@@ -1257,10 +1266,12 @@ function loaded() {
                                 } else {
                                     elGrabbable.checked = true;
                                 }
-                                if ("wantsTrigger" in grabbableData) {
-                                    elWantsTrigger.checked = grabbableData.wantsTrigger;
+                                if ("triggerable" in grabbableData) {
+                                    elTriggerable.checked = grabbableData.triggerable;
+                                } else if ("wantsTrigger" in grabbableData) {
+                                    elTriggerable.checked = grabbableData.wantsTrigger;
                                 } else {
-                                    elWantsTrigger.checked = false;
+                                    elTriggerable.checked = false;
                                 }
                                 if ("ignoreIK" in grabbableData) {
                                     elIgnoreIK.checked = grabbableData.ignoreIK;
@@ -1273,7 +1284,7 @@ function loaded() {
                         }
                         if (!grabbablesSet) {
                             elGrabbable.checked = true;
-                            elWantsTrigger.checked = false;
+                            elTriggerable.checked = false;
                             elIgnoreIK.checked = true;
                             elCloneable.checked = false;
                         }
@@ -1647,8 +1658,8 @@ function loaded() {
         elCloneableLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('cloneLifetime'));
         elCloneableLimit.addEventListener('change', createEmitNumberPropertyUpdateFunction('cloneLimit'));
 
-        elWantsTrigger.addEventListener('change', function() {
-            userDataChanger("grabbableKey", "wantsTrigger", elWantsTrigger, elUserData, false);
+        elTriggerable.addEventListener('change', function() {
+            userDataChanger("grabbableKey", "triggerable", elTriggerable, elUserData, false, ['wantsTrigger']);
         });
         elIgnoreIK.addEventListener('change', function() {
             userDataChanger("grabbableKey", "ignoreIK", elIgnoreIK, elUserData, true);
@@ -1662,7 +1673,7 @@ function loaded() {
         elServerScripts.addEventListener('change', createEmitTextPropertyUpdateFunction('serverScripts'));
         elServerScripts.addEventListener('change', function() {
             // invalidate the current status (so that same-same updates can still be observed visually)
-            elServerScriptStatus.innerText = '[' + elServerScriptStatus.innerText + ']';
+            elServerScriptStatus.innerText = PENDING_SCRIPT_STATUS;
         });
 
         elClearUserData.addEventListener("click", function() {
@@ -2136,7 +2147,7 @@ function loaded() {
         });
         elReloadServerScriptsButton.addEventListener("click", function() {
             // invalidate the current status (so that same-same updates can still be observed visually)
-            elServerScriptStatus.innerText = '[' + elServerScriptStatus.innerText + ']';
+            elServerScriptStatus.innerText = PENDING_SCRIPT_STATUS;
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "action",
                 action: "reloadServerScripts"

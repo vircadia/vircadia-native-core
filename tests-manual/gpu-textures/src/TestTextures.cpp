@@ -81,11 +81,9 @@ TexturesTest::TexturesTest() {
     connect(&stats, &TextureTestStats::prevTexture, this, &TexturesTest::onPrevTexture);
     connect(&stats, &TextureTestStats::maxTextureMemory, this, &TexturesTest::onMaxTextureMemory);
     {
-        auto VS = gpu::Shader::createVertex(vertexShaderSource);
-        auto PS = gpu::Shader::createPixel(fragmentShaderSource);
+        auto VS = gpu::Shader::createVertex({ vertexShaderSource, {} });
+        auto PS = gpu::Shader::createPixel({ fragmentShaderSource, {} });
         auto program = gpu::Shader::createProgram(VS, PS);
-        gpu::Shader::BindingSet slotBindings;
-        gpu::Shader::makeProgram(*program, slotBindings);
         // If the pipeline did not exist, make it
         auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_NONE);

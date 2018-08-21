@@ -20,10 +20,10 @@
 std::mutex QmlFragmentClass::_mutex;
 std::map<QString, QScriptValue> QmlFragmentClass::_fragments;
 
-QmlFragmentClass::QmlFragmentClass(QString id) : qml(id) { }
+QmlFragmentClass::QmlFragmentClass(bool restricted, QString id) : QmlWindowClass(restricted), qml(id) { }
 
 // Method called by Qt scripts to create a new bottom menu bar in Android
-QScriptValue QmlFragmentClass::constructor(QScriptContext* context, QScriptEngine* engine) {
+QScriptValue QmlFragmentClass::internal_constructor(QScriptContext* context, QScriptEngine* engine, bool restricted) {
 
     std::lock_guard<std::mutex> guard(_mutex);
     auto qml = context->argument(0).toVariant().toMap().value("qml");
@@ -41,7 +41,7 @@ QScriptValue QmlFragmentClass::constructor(QScriptContext* context, QScriptEngin
 
     auto properties = parseArguments(context);
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    QmlFragmentClass* retVal = new QmlFragmentClass(qml.toString());
+    QmlFragmentClass* retVal = new QmlFragmentClass(restricted, qml.toString());
     Q_ASSERT(retVal);
     if (QThread::currentThread() != qApp->thread()) {
         retVal->moveToThread(qApp->thread());

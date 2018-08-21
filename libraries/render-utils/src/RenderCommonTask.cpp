@@ -9,9 +9,22 @@
 #include "RenderCommonTask.h"
 
 #include <gpu/Context.h>
+#include <graphics/ShaderConstants.h>
 
+#include "render-utils/ShaderConstants.h"
 #include "DeferredLightingEffect.h"
 #include "RenderUtilsLogging.h"
+
+namespace ru {
+    using render_utils::slot::texture::Texture;
+    using render_utils::slot::buffer::Buffer;
+}
+
+namespace gr {
+    using graphics::slot::texture::Texture;
+    using graphics::slot::buffer::Buffer;
+}
+
 
 using namespace render;
 extern void initForwardPipelines(ShapePlumber& plumber);
@@ -46,7 +59,7 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
 
     const auto& inItems = inputs.get0();
     const auto& lightingModel = inputs.get1();
-	const auto jitter = inputs.get2();
+    const auto jitter = inputs.get2();
     
     config->setNumDrawn((int)inItems.size());
     emit config->numDrawnChanged();
@@ -76,11 +89,11 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
             args->getViewFrustum().evalViewTransform(viewMat);
 
             batch.setProjectionTransform(projMat);
-			batch.setProjectionJitter(jitter.x, jitter.y);
-			batch.setViewTransform(viewMat);
+            batch.setProjectionJitter(jitter.x, jitter.y);
+            batch.setViewTransform(viewMat);
 
             // Setup lighting model for all items;
-            batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
+            batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
 
             renderShapes(renderContext, _shapePlumber, inItems, _maxDrawn);
             args->_batch = nullptr;

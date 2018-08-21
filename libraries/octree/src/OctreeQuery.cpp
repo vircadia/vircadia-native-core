@@ -27,6 +27,10 @@ OctreeQuery::OctreeQuery(bool randomizeConnectionID) {
     }
 }
 
+OctreeQuery::OctreeQueryFlags operator|=(OctreeQuery::OctreeQueryFlags& lhs, int rhs) {
+    return lhs = OctreeQuery::OctreeQueryFlags(lhs | rhs);
+}
+
 int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
     unsigned char* bufferStart = destinationBuffer;
 
@@ -76,7 +80,12 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
         memcpy(destinationBuffer, binaryParametersDocument.data(), binaryParametersBytes);
         destinationBuffer += binaryParametersBytes;
     }
-    
+
+    OctreeQueryFlags queryFlags { NoFlags };
+    queryFlags |= (_reportInitialCompletion ? OctreeQuery::WantInitialCompletion : 0);
+    memcpy(destinationBuffer, &queryFlags, sizeof(queryFlags));
+    destinationBuffer += sizeof(queryFlags);
+
     return destinationBuffer - bufferStart;
 }
 
@@ -150,6 +159,12 @@ int OctreeQuery::parseData(ReceivedMessage& message) {
         QWriteLocker jsonParameterLocker { &_jsonParametersLock };
         _jsonParameters = newJsonDocument.object();
     }
-    
+
+    OctreeQueryFlags queryFlags;
+    memcpy(&queryFlags, sourceBuffer, sizeof(queryFlags));
+    sourceBuffer += sizeof(queryFlags);
+
+    _reportInitialCompletion = bool(queryFlags & OctreeQueryFlags::WantInitialCompletion);
+
     return sourceBuffer - startPosition;
 }

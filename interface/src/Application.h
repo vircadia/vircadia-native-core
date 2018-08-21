@@ -81,7 +81,6 @@
 
 #include "Sound.h"
 
-class OffscreenGLCanvas;
 class GLCanvas;
 class FaceTracker;
 class MainWindow;
@@ -554,7 +553,6 @@ private:
 
     bool _previousSessionCrashed;
 
-    OffscreenGLCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
     QMetaObject::Connection _displayPluginPresentConnection;
     mutable std::mutex _displayPluginLock;
@@ -621,7 +619,7 @@ private:
     float _mirrorYawOffset;
     float _raiseMirror;
 
-    QSet<int> _keysPressed;
+    QHash<int, QKeyEvent> _keysPressed;
 
     bool _enableProcessOctreeThread;
 

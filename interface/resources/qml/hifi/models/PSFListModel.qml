@@ -38,6 +38,16 @@ ListModel {
     onSearchFilterChanged: if (initialized) { getFirstPage('delayClear'); }
     onTagsFilterChanged: if (initialized) { getFirstPage('delayClear'); }
 
+    // When considering a value for `itemsPerPage` in YOUR model, consider the following:
+    //     - If your ListView delegates are of variable width/height, ensure you select
+    //     an `itemsPerPage` value that would be sufficient to show one full page of data
+    //     if all of the delegates were at their minimum heights.
+    //     - If your first ListView delegate contains some special data (as in WalletHome's
+    //     "Recent Activity" view), beware that your `itemsPerPage` value may _never_ reasonably be
+    //     high enough such that the first page of data causes the view to be one-screen in height
+    //     after retrieving the first page. This means data will automatically pop-in (after a short delay)
+    //     until the combined heights of your View's delegates reach one-screen in height OR there is
+    //     no more data to retrieve. See "needsMoreVerticalResults()" below.
     property int itemsPerPage: 100;
 
     // State.
@@ -47,9 +57,9 @@ ListModel {
     // Not normally set directly, but rather by giving a truthy argument to getFirstPage(true);
     property bool delayedClear: false;
     function resetModel() {
-        if (!delayedClear) { root.clear(); }
         currentPageToRetrieve = 1;
         retrievedAtLeastOnePage = false;
+        if (!delayedClear) { root.clear(); }
         totalPages = 0;
         totalEntries = 0;
     }
@@ -81,12 +91,37 @@ ListModel {
     function getNextPageIfVerticalScroll() {
         if (needsEarlyYFetch()) { getNextPage(); }
     }
+    function needsMoreHorizontalResults() {
+        return flickable
+            && currentPageToRetrieve > 0
+            && retrievedAtLeastOnePage
+            && flickable.contentWidth < flickable.width;
+    }
+    function needsMoreVerticalResults() {
+        return flickable
+            && currentPageToRetrieve > 0
+            && retrievedAtLeastOnePage
+            && flickable.contentHeight < flickable.height;
+    }
+    function getNextPageIfNotEnoughHorizontalResults() {
+        if (needsMoreHorizontalResults()) {
+            getNextPage();
+        }
+    }
+    function getNextPageIfNotEnoughVerticalResults() {
+        if (needsMoreVerticalResults()) {
+            getNextPage();
+        }
+    }
+
     Component.onCompleted: {
         initialized = true;
         if (flickable && pageAhead > 0.0) {
             // Pun: Scrollers are usually one direction or another, such that only one of the following will actually fire.
             flickable.contentXChanged.connect(getNextPageIfHorizontalScroll);
             flickable.contentYChanged.connect(getNextPageIfVerticalScroll);
+            flickable.contentWidthChanged.connect(getNextPageIfNotEnoughHorizontalResults);
+            flickable.contentHeightChanged.connect(getNextPageIfNotEnoughVerticalResults);
         }
     }
 

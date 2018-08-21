@@ -40,8 +40,7 @@
 
 #include <PointerManager.h>
 
-size_t std::hash<EntityItemID>::operator()(const EntityItemID& id) const { return qHash(id); }
-std::function<bool()> EntityTreeRenderer::_entitiesShouldFadeFunction;
+std::function<bool()> EntityTreeRenderer::_entitiesShouldFadeFunction = []() { return true; };
 
 QString resolveScriptURL(const QString& scriptUrl) {
     auto normalizedScriptUrl = DependencyManager::get<ResourceManager>()->normalizeURL(scriptUrl);
@@ -643,6 +642,14 @@ bool EntityTreeRenderer::applyLayeredZones() {
 }
 
 void EntityTreeRenderer::processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
+    OCTREE_PACKET_FLAGS flags;
+    message.readPrimitive(&flags);
+
+    OCTREE_PACKET_SEQUENCE sequence;
+    message.readPrimitive(&sequence);
+
+    _lastOctreeMessageSequence = sequence;
+    message.seek(0);
     std::static_pointer_cast<EntityTree>(_tree)->processEraseMessage(message, sourceNode);
 }
 

@@ -42,13 +42,13 @@
 #include <StatTracker.h>
 #include <LogHandler.h>
 #include <AssetClient.h>
+#include <shaders/Shaders.h>
 
 #include <gl/OffscreenGLCanvas.h>
 
 #include <gpu/gl/GLBackend.h>
 #include <gpu/gl/GLFramebuffer.h>
 #include <gpu/gl/GLTexture.h>
-#include <gpu/StandardShaderLib.h>
 
 #include <ui/OffscreenQmlSurface.h>
 
@@ -120,18 +120,26 @@ public:
 class QWindowCamera : public SimpleCamera {
     Key forKey(int key) {
         switch (key) {
-            case Qt::Key_W: return FORWARD;
-            case Qt::Key_S: return BACK;
-            case Qt::Key_A: return LEFT;
-            case Qt::Key_D: return RIGHT;
-            case Qt::Key_E: return UP;
-            case Qt::Key_C: return DOWN;
-            default: break;
+            case Qt::Key_W:
+                return FORWARD;
+            case Qt::Key_S:
+                return BACK;
+            case Qt::Key_A:
+                return LEFT;
+            case Qt::Key_D:
+                return RIGHT;
+            case Qt::Key_E:
+                return UP;
+            case Qt::Key_C:
+                return DOWN;
+            default:
+                break;
         }
         return INVALID;
     }
 
     vec2 _lastMouse;
+
 public:
     void onKeyPress(QKeyEvent* event) {
         Key k = forKey(event->key());
@@ -168,7 +176,7 @@ public:
 };
 
 static QString toHumanSize(size_t size, size_t maxUnit = std::numeric_limits<size_t>::max()) {
-    static const std::vector<QString> SUFFIXES { { "B", "KB", "MB", "GB", "TB", "PB" } };
+    static const std::vector<QString> SUFFIXES{ { "B", "KB", "MB", "GB", "TB", "PB" } };
     const size_t maxIndex = std::min(maxUnit, SUFFIXES.size() - 1);
     size_t suffixIndex = 0;
 
@@ -180,40 +188,28 @@ static QString toHumanSize(size_t size, size_t maxUnit = std::numeric_limits<siz
     return QString("%1 %2").arg(size).arg(SUFFIXES[suffixIndex]);
 }
 
-const char* SRGB_TO_LINEAR_FRAG = R"SCRIBE(
-
-uniform sampler2D colorMap;
-
-in vec2 varTexCoord0;
-
-out vec4 outFragColor;
-
-void main(void) {
-    outFragColor = vec4(pow(texture(colorMap, varTexCoord0).rgb, vec3(2.2)), 1.0);
-}
-)SCRIBE";
-
 extern QThread* RENDER_THREAD;
 
 class RenderThread : public GenericThread {
     using Parent = GenericThread;
+
 public:
     gl::Context _context;
     gpu::PipelinePointer _presentPipeline;
-    gpu::ContextPointer _gpuContext; // initialized during window creation
+    gpu::ContextPointer _gpuContext;  // initialized during window creation
     std::atomic<size_t> _presentCount;
     QElapsedTimer _elapsed;
-    std::atomic<uint16_t> _fps { 1 };
+    std::atomic<uint16_t> _fps{ 1 };
     RateCounter<200> _fpsCounter;
     std::mutex _mutex;
     std::shared_ptr<gpu::Backend> _backend;
     std::vector<uint64_t> _frameTimes;
-    size_t _frameIndex { 0 };
+    size_t _frameIndex{ 0 };
     std::mutex _frameLock;
     std::queue<gpu::FramePointer> _pendingFrames;
     gpu::FramePointer _activeFrame;
     QSize _size;
-    static const size_t FRAME_TIME_BUFFER_SIZE { 8192 };
+    static const size_t FRAME_TIME_BUFFER_SIZE{ 8192 };
 
     void submitFrame(const gpu::FramePointer& frame) {
         std::unique_lock<std::mutex> lock(_frameLock);
@@ -246,18 +242,12 @@ public:
         RENDER_THREAD = QThread::currentThread();
 
         // Wait until the context has been moved to this thread
-        {
-            std::unique_lock<std::mutex> lock(_mutex);
-        }
+        { std::unique_lock<std::mutex> lock(_mutex); }
 
         _context.makeCurrent();
         _frameTimes.resize(FRAME_TIME_BUFFER_SIZE, 0);
         {
-            auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-            auto ps = gpu::Shader::createPixel(std::string(SRGB_TO_LINEAR_FRAG));
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-            gpu::Shader::BindingSet slotBindings;
-            gpu::Shader::makeProgram(*program, slotBindings);
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::display_plugins::program::SrgbToLinear);
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
             _presentPipeline = gpu::Pipeline::create(program, state);
         }
@@ -287,7 +277,6 @@ public:
             _gpuContext->executeFrame(frame);
 
             {
-
                 auto geometryCache = DependencyManager::get<GeometryCache>();
                 gpu::Batch presentBatch;
                 presentBatch.setViewportTransform({ 0, 0, _size.width(), _size.height() });
@@ -304,7 +293,7 @@ public:
         _context.makeCurrent();
         _context.swapBuffers();
         _fpsCounter.increment();
-        static size_t _frameCount { 0 };
+        static size_t _frameCount{ 0 };
         ++_frameCount;
         if (_elapsed.elapsed() >= 500) {
             _fps = _fpsCounter.rate();
@@ -374,16 +363,13 @@ public:
 class TestActionFactory : public EntityDynamicFactoryInterface {
 public:
     virtual EntityDynamicPointer factory(EntityDynamicType type,
-        const QUuid& id,
-        EntityItemPointer ownerEntity,
-        QVariantMap arguments) override {
+                                         const QUuid& id,
+                                         EntityItemPointer ownerEntity,
+                                         QVariantMap arguments) override {
         return EntityDynamicPointer();
     }
 
-
-    virtual EntityDynamicPointer factoryBA(EntityItemPointer ownerEntity, QByteArray data) override {
-        return nullptr;
-    }
+    virtual EntityDynamicPointer factoryBA(EntityItemPointer ownerEntity, QByteArray data) override { return nullptr; }
 };
 
 // Background Render Data & rendering functions
@@ -391,96 +377,77 @@ class BackgroundRenderData {
 public:
     typedef render::Payload<BackgroundRenderData> Payload;
     typedef Payload::DataPointer Pointer;
-    static render::ItemID _item; // unique WorldBoxRenderData
+    static render::ItemID _item;  // unique WorldBoxRenderData
 };
 
 render::ItemID BackgroundRenderData::_item = 0;
 QSharedPointer<FileLogger> logger;
 
 namespace render {
-    template <> const ItemKey payloadGetKey(const BackgroundRenderData::Pointer& stuff) {
-        return ItemKey::Builder::background();
-    }
-
-    template <> const Item::Bound payloadGetBound(const BackgroundRenderData::Pointer& stuff) {
-        return Item::Bound();
-    }
-
-    template <> void payloadRender(const BackgroundRenderData::Pointer& background, RenderArgs* args) {
-        Q_ASSERT(args->_batch);
-        gpu::Batch& batch = *args->_batch;
-
-        // Background rendering decision
-        auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-        auto backgroundMode = skyStage->getBackgroundMode();
-
-        switch (backgroundMode) {
-            case graphics::SunSkyStage::SKY_BOX: {
-                auto skybox = skyStage->getSkybox();
-                if (skybox) {
-                    PerformanceTimer perfTimer("skybox");
-                    skybox->render(batch, args->getViewFrustum());
-                    break;
-                }
-            }
-            default:
-                // this line intentionally left blank
-                break;
-        }
-    }
+template <>
+const ItemKey payloadGetKey(const BackgroundRenderData::Pointer& stuff) {
+    return ItemKey::Builder::background();
 }
 
-OffscreenGLCanvas* _chromiumShareContext{ nullptr };
-Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
+template <>
+const Item::Bound payloadGetBound(const BackgroundRenderData::Pointer& stuff) {
+    return Item::Bound();
+}
 
+template <>
+void payloadRender(const BackgroundRenderData::Pointer& background, RenderArgs* args) {
+    Q_ASSERT(args->_batch);
+    gpu::Batch& batch = *args->_batch;
+
+    // Background rendering decision
+    auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+    auto backgroundMode = skyStage->getBackgroundMode();
+
+    switch (backgroundMode) {
+        case graphics::SunSkyStage::SKY_BOX: {
+            auto skybox = skyStage->getSkybox();
+            if (skybox) {
+                PerformanceTimer perfTimer("skybox");
+                skybox->render(batch, args->getViewFrustum());
+                break;
+            }
+        }
+        default:
+            // this line intentionally left blank
+            break;
+    }
+}
+}  // namespace render
+
+OffscreenGLCanvas* _chromiumShareContext{ nullptr };
+Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext* context);
 
 // Create a simple OpenGL window that renders text in various ways
 class QTestWindow : public QWindow, public AbstractViewStateInterface {
-
 protected:
-    void copyCurrentViewFrustum(ViewFrustum& viewOut) const override {
-        viewOut = _viewFrustum;
-    }
+    void copyCurrentViewFrustum(ViewFrustum& viewOut) const override { viewOut = _viewFrustum; }
 
-    const ConicalViewFrustums& getConicalViews() const override {
-        return _view;
-    }
+    const ConicalViewFrustums& getConicalViews() const override { return _view; }
 
-    QThread* getMainThread() override {
-        return QThread::currentThread();
-    }
+    QThread* getMainThread() override { return QThread::currentThread(); }
 
-    PickRay computePickRay(float x, float y) const override {
-        return PickRay();
-    }
+    PickRay computePickRay(float x, float y) const override { return PickRay(); }
 
-    glm::vec3 getAvatarPosition() const override {
-        return vec3();
-    }
+    glm::vec3 getAvatarPosition() const override { return vec3(); }
 
     void postLambdaEvent(const std::function<void()>& f) override {}
     void sendLambdaEvent(const std::function<void()>& f) override {}
 
-    qreal getDevicePixelRatio() override {
-        return 1.0f;
-    }
+    qreal getDevicePixelRatio() override { return 1.0f; }
 
-    render::ScenePointer getMain3DScene() override {
-        return _main3DScene;
-    }
+    render::ScenePointer getMain3DScene() override { return _main3DScene; }
 
-    render::EnginePointer getRenderEngine() override {
-        return _renderEngine;
-    }
+    render::EnginePointer getRenderEngine() override { return _renderEngine; }
 
     std::map<void*, std::function<void()>> _postUpdateLambdas;
-    void pushPostUpdateLambda(void* key, const std::function<void()>& func) override {
-        _postUpdateLambdas[key] = func;
-    }
+    void pushPostUpdateLambda(void* key, const std::function<void()>& func) override { _postUpdateLambdas[key] = func; }
 
-    bool isHMDMode() const override {
-        return false;
-    }
+    bool isHMDMode() const override { return false; }
 
 public:
     //"/-17.2049,-8.08629,-19.4153/0,0.881994,0,-0.47126"
@@ -521,7 +488,7 @@ public:
         nodeList->setPermissions(permissions);
 
         {
-            SimpleEntitySimulationPointer simpleSimulation { new SimpleEntitySimulation() };
+            SimpleEntitySimulationPointer simpleSimulation{ new SimpleEntitySimulation() };
             simpleSimulation->setEntityTree(_octree->getTree());
             _octree->getTree()->setSimulation(simpleSimulation);
             _entitySimulation = simpleSimulation;
@@ -556,7 +523,6 @@ public:
             _initContext.makeCurrent();
         }
 
-
         // FIXME use a wait condition
         QThread::msleep(1000);
         _renderThread.submitFrame(gpu::FramePointer());
@@ -575,16 +541,14 @@ public:
         restorePosition();
 
         QTimer* timer = new QTimer(this);
-        timer->setInterval(0); // Qt::CoarseTimer acceptable
-        connect(timer, &QTimer::timeout, this, [this] {
-            draw();
-        });
+        timer->setInterval(0);  // Qt::CoarseTimer acceptable
+        connect(timer, &QTimer::timeout, this, [this] { draw(); });
         timer->start();
         _ready = true;
     }
 
     virtual ~QTestWindow() {
-        getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
+        getEntities()->shutdown();  // tell the entities system we're shutting down, so it will stop running scripts
         _renderEngine.reset();
         _main3DScene.reset();
         EntityTreePointer tree = getEntities()->getTree();
@@ -611,8 +575,7 @@ public:
     }
 
 protected:
-
-    bool eventFilter(QObject *obj, QEvent *event) override {
+    bool eventFilter(QObject* obj, QEvent* event) override {
         if (event->type() == QEvent::Close) {
             _renderThread.terminate();
         }
@@ -668,22 +631,16 @@ protected:
         _camera.onKeyPress(event);
     }
 
-    void keyReleaseEvent(QKeyEvent* event) override {
-        _camera.onKeyRelease(event);
-    }
+    void keyReleaseEvent(QKeyEvent* event) override { _camera.onKeyRelease(event); }
 
-    void mouseMoveEvent(QMouseEvent* event) override {
-        _camera.onMouseMove(event);
-    }
+    void mouseMoveEvent(QMouseEvent* event) override { _camera.onMouseMove(event); }
 
-    void resizeEvent(QResizeEvent* ev) override {
-        resizeWindow(ev->size());
-    }
+    void resizeEvent(QResizeEvent* ev) override { resizeWindow(ev->size()); }
 
 private:
-
     static bool cull(const RenderArgs* args, const AABox& bounds) {
-        float renderAccuracy = calculateRenderAccuracy(args->getViewFrustum().getPosition(), bounds, args->_sizeScale, args->_boundaryLevelAdjust);
+        float renderAccuracy =
+            calculateRenderAccuracy(args->getViewFrustum().getPosition(), bounds, args->_sizeScale, args->_boundaryLevelAdjust);
         return (renderAccuracy > 0.0f);
     }
 
@@ -702,10 +659,8 @@ private:
         update();
 
         _initContext.makeCurrent();
-        RenderArgs renderArgs(_renderThread._gpuContext, DEFAULT_OCTREE_SIZE_SCALE,
-            0, RenderArgs::DEFAULT_RENDER_MODE,
-            RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
-
+        RenderArgs renderArgs(_renderThread._gpuContext, DEFAULT_OCTREE_SIZE_SCALE, 0, RenderArgs::DEFAULT_RENDER_MODE,
+                              RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
 
         QSize windowSize = _size;
         if (_renderMode == NORMAL) {
@@ -719,16 +674,16 @@ private:
                     eyeProjections[i] = _viewFrustum.getProjection();
                 }
             } else if (_renderMode == HMD) {
-                eyeOffsets[0][3] = vec4 { -0.0327499993, 0.0, 0.0149999997, 1.0 };
-                eyeOffsets[1][3] = vec4 { 0.0327499993, 0.0, 0.0149999997, 1.0 };
-                eyeProjections[0][0] = vec4 { 0.759056330, 0.000000000, 0.000000000, 0.000000000 };
-                eyeProjections[0][1] = vec4 { 0.000000000, 0.682773232, 0.000000000, 0.000000000 };
-                eyeProjections[0][2] = vec4 { -0.0580431037, -0.00619550655, -1.00000489, -1.00000000 };
-                eyeProjections[0][3] = vec4 { 0.000000000, 0.000000000, -0.0800003856, 0.000000000 };
-                eyeProjections[1][0] = vec4 { 0.752847493, 0.000000000, 0.000000000, 0.000000000 };
-                eyeProjections[1][1] = vec4 { 0.000000000, 0.678060353, 0.000000000, 0.000000000 };
-                eyeProjections[1][2] = vec4 { 0.0578232110, -0.00669418881, -1.00000489, -1.000000000 };
-                eyeProjections[1][3] = vec4 { 0.000000000, 0.000000000, -0.0800003856, 0.000000000 };
+                eyeOffsets[0][3] = vec4{ -0.0327499993, 0.0, 0.0149999997, 1.0 };
+                eyeOffsets[1][3] = vec4{ 0.0327499993, 0.0, 0.0149999997, 1.0 };
+                eyeProjections[0][0] = vec4{ 0.759056330, 0.000000000, 0.000000000, 0.000000000 };
+                eyeProjections[0][1] = vec4{ 0.000000000, 0.682773232, 0.000000000, 0.000000000 };
+                eyeProjections[0][2] = vec4{ -0.0580431037, -0.00619550655, -1.00000489, -1.00000000 };
+                eyeProjections[0][3] = vec4{ 0.000000000, 0.000000000, -0.0800003856, 0.000000000 };
+                eyeProjections[1][0] = vec4{ 0.752847493, 0.000000000, 0.000000000, 0.000000000 };
+                eyeProjections[1][1] = vec4{ 0.000000000, 0.678060353, 0.000000000, 0.000000000 };
+                eyeProjections[1][2] = vec4{ 0.0578232110, -0.00669418881, -1.00000489, -1.000000000 };
+                eyeProjections[1][3] = vec4{ 0.000000000, 0.000000000, -0.0800003856, 0.000000000 };
                 windowSize = { 2048, 2048 };
             }
             renderArgs._context->setStereoProjections(eyeProjections);
@@ -774,10 +729,11 @@ private:
 
     void updateText() {
         QString title = QString("FPS %1 Culling %2 TextureMemory GPU %3 CPU %4 Max GPU %5")
-            .arg(_fps).arg(_cullingEnabled)
-            .arg(toHumanSize(gpu::Context::getTextureGPUMemSize(), 2))
-            .arg(toHumanSize(gpu::Texture::getTextureCPUMemSize(), 2))
-            .arg(toHumanSize(gpu::Texture::getAllowedGPUMemoryUsage(), 2));
+                            .arg(_fps)
+                            .arg(_cullingEnabled)
+                            .arg(toHumanSize(gpu::Context::getTextureGPUMemSize(), 2))
+                            .arg(toHumanSize(gpu::Texture::getTextureCPUMemSize(), 2))
+                            .arg(toHumanSize(gpu::Texture::getAllowedGPUMemoryUsage(), 2));
         setTitle(title);
 #if 0
         {
@@ -818,34 +774,34 @@ private:
             if (commandParams.length() < 2) {
                 qDebug() << "No wait time specified";
                 return;
-                }
+            }
             int seconds = commandParams[1].toInt();
             _nextCommandTime = usecTimestampNow() + seconds * USECS_PER_SECOND;
-    } else if (verb == "load") {
-        if (commandParams.length() < 2) {
-            qDebug() << "No load file specified";
-            return;
-        }
-        QString file = commandParams[1];
-        if (QFileInfo(file).isRelative()) {
-            file = _commandPath + "/" + file;
-        }
-        if (!QFileInfo(file).exists()) {
-            qDebug() << "Cannot find scene file " + file;
-            return;
-        }
+        } else if (verb == "load") {
+            if (commandParams.length() < 2) {
+                qDebug() << "No load file specified";
+                return;
+            }
+            QString file = commandParams[1];
+            if (QFileInfo(file).isRelative()) {
+                file = _commandPath + "/" + file;
+            }
+            if (!QFileInfo(file).exists()) {
+                qDebug() << "Cannot find scene file " + file;
+                return;
+            }
 
-        importScene(file);
-    } else if (verb == "go") {
-        if (commandParams.length() < 2) {
-            qDebug() << "No destination specified for go command";
-            return;
+            importScene(file);
+        } else if (verb == "go") {
+            if (commandParams.length() < 2) {
+                qDebug() << "No destination specified for go command";
+                return;
+            }
+            parsePath(commandParams[1]);
+        } else {
+            qDebug() << "Unknown command " << command;
         }
-        parsePath(commandParams[1]);
-    } else {
-        qDebug() << "Unknown command " << command;
     }
-}
 
     void runNextCommand(quint64 now) {
         if (_commands.empty()) {
@@ -918,15 +874,12 @@ private:
 
             _main3DScene->processTransactionQueue();
         }
-
     }
 
     void render(RenderArgs* renderArgs) {
         auto& gpuContext = renderArgs->_context;
         gpuContext->beginFrame();
-        gpu::doInBatch("QTestWindow::render", gpuContext, [&](gpu::Batch& batch) {
-            batch.resetStages();
-        });
+        gpu::doInBatch("QTestWindow::render", gpuContext, [&](gpu::Batch& batch) { batch.resetStages(); });
         PROFILE_RANGE(render, __FUNCTION__);
         PerformanceTimer perfTimer("draw");
         // The pending changes collecting the changes here
@@ -953,8 +906,6 @@ private:
         if (!_renderThread.isThreaded()) {
             _renderThread.process();
         }
-
-
     }
 
     void resizeWindow(const QSize& size) {
@@ -972,31 +923,27 @@ private:
         static const QString FLOAT_REGEX_STRING = "([-+]?[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)?)";
         static const QString SPACED_COMMA_REGEX_STRING = "\\s*,\\s*";
         static const QString POSITION_REGEX_STRING = QString("\\/") + FLOAT_REGEX_STRING + SPACED_COMMA_REGEX_STRING +
-            FLOAT_REGEX_STRING + SPACED_COMMA_REGEX_STRING + FLOAT_REGEX_STRING + "\\s*(?:$|\\/)";
+                                                     FLOAT_REGEX_STRING + SPACED_COMMA_REGEX_STRING + FLOAT_REGEX_STRING +
+                                                     "\\s*(?:$|\\/)";
         static const QString QUAT_REGEX_STRING = QString("\\/") + FLOAT_REGEX_STRING + SPACED_COMMA_REGEX_STRING +
-            FLOAT_REGEX_STRING + SPACED_COMMA_REGEX_STRING + FLOAT_REGEX_STRING + SPACED_COMMA_REGEX_STRING +
-            FLOAT_REGEX_STRING + "\\s*$";
+                                                 FLOAT_REGEX_STRING + SPACED_COMMA_REGEX_STRING + FLOAT_REGEX_STRING +
+                                                 SPACED_COMMA_REGEX_STRING + FLOAT_REGEX_STRING + "\\s*$";
 
         static QRegExp orientationRegex(QUAT_REGEX_STRING);
         static QRegExp positionRegex(POSITION_REGEX_STRING);
 
         if (positionRegex.indexIn(viewpointString) != -1) {
             // we have at least a position, so emit our signal to say we need to change position
-            glm::vec3 newPosition(positionRegex.cap(1).toFloat(),
-                positionRegex.cap(2).toFloat(),
-                positionRegex.cap(3).toFloat());
+            glm::vec3 newPosition(positionRegex.cap(1).toFloat(), positionRegex.cap(2).toFloat(),
+                                  positionRegex.cap(3).toFloat());
             _camera.setPosition(newPosition);
 
             if (!glm::any(glm::isnan(newPosition))) {
                 // we may also have an orientation
-                if (viewpointString[positionRegex.matchedLength() - 1] == QChar('/')
-                    && orientationRegex.indexIn(viewpointString, positionRegex.matchedLength() - 1) != -1) {
-
-                    glm::vec4 v = glm::vec4(
-                        orientationRegex.cap(1).toFloat(),
-                        orientationRegex.cap(2).toFloat(),
-                        orientationRegex.cap(3).toFloat(),
-                        orientationRegex.cap(4).toFloat());
+                if (viewpointString[positionRegex.matchedLength() - 1] == QChar('/') &&
+                    orientationRegex.indexIn(viewpointString, positionRegex.matchedLength() - 1) != -1) {
+                    glm::vec4 v = glm::vec4(orientationRegex.cap(1).toFloat(), orientationRegex.cap(2).toFloat(),
+                                            orientationRegex.cap(3).toFloat(), orientationRegex.cap(4).toFloat());
                     if (!glm::any(glm::isnan(v))) {
                         _camera.setRotation(glm::quat(v.w, v.x, v.y, v.z));
                     }
@@ -1056,9 +1003,7 @@ private:
         // /-17.2049,-8.08629,-19.4153/0,-0.48551,0,0.874231
         glm::quat q = _camera.getOrientation();
         glm::vec3 v = _camera.position;
-        QString viewpoint = QString("/%1,%2,%3/%4,%5,%6,%7").
-            arg(v.x).arg(v.y).arg(v.z).
-            arg(q.x).arg(q.y).arg(q.z).arg(q.w);
+        QString viewpoint = QString("/%1,%2,%3/%4,%5,%6,%7").arg(v.x).arg(v.y).arg(v.z).arg(q.x).arg(q.y).arg(q.z).arg(q.w);
         _settings.setValue(LAST_LOCATION_KEY, viewpoint);
         _camera.setRotation(q);
     }
@@ -1076,30 +1021,26 @@ private:
         _camera.setPosition(vec3());
     }
 
-    void toggleCulling() {
-        _cullingEnabled = !_cullingEnabled;
-    }
+    void toggleCulling() { _cullingEnabled = !_cullingEnabled; }
 
     void cycleMode() {
         static auto defaultProjection = SimpleCamera().matrices.perspective;
         _renderMode = (RenderMode)((_renderMode + 1) % RENDER_MODE_COUNT);
         if (_renderMode == HMD) {
-            _camera.matrices.perspective[0] = vec4 { 0.759056330, 0.000000000, 0.000000000, 0.000000000 };
-            _camera.matrices.perspective[1] = vec4 { 0.000000000, 0.682773232, 0.000000000, 0.000000000 };
-            _camera.matrices.perspective[2] = vec4 { -0.0580431037, -0.00619550655, -1.00000489, -1.00000000 };
-            _camera.matrices.perspective[3] = vec4 { 0.000000000, 0.000000000, -0.0800003856, 0.000000000 };
+            _camera.matrices.perspective[0] = vec4{ 0.759056330, 0.000000000, 0.000000000, 0.000000000 };
+            _camera.matrices.perspective[1] = vec4{ 0.000000000, 0.682773232, 0.000000000, 0.000000000 };
+            _camera.matrices.perspective[2] = vec4{ -0.0580431037, -0.00619550655, -1.00000489, -1.00000000 };
+            _camera.matrices.perspective[3] = vec4{ 0.000000000, 0.000000000, -0.0800003856, 0.000000000 };
         } else {
             _camera.matrices.perspective = defaultProjection;
             _camera.setAspectRatio((float)_size.width() / (float)_size.height());
         }
     }
 
-    QSharedPointer<EntityTreeRenderer> getEntities() {
-        return _octree;
-    }
+    QSharedPointer<EntityTreeRenderer> getEntities() { return _octree; }
 
 private:
-    render::CullFunctor _cullFunctor { [&](const RenderArgs* args, const AABox& bounds)->bool {
+    render::CullFunctor _cullFunctor{ [&](const RenderArgs* args, const AABox& bounds) -> bool {
         if (_cullingEnabled) {
             return cull(args, bounds);
         } else {
@@ -1107,8 +1048,8 @@ private:
         }
     } };
 
-    render::EnginePointer _renderEngine { new render::RenderEngine() };
-    render::ScenePointer _main3DScene { new render::Scene(glm::vec3(-0.5f * (float)TREE_SCALE), (float)TREE_SCALE) };
+    render::EnginePointer _renderEngine{ new render::RenderEngine() };
+    render::ScenePointer _main3DScene{ new render::Scene(glm::vec3(-0.5f * (float)TREE_SCALE), (float)TREE_SCALE) };
     QSize _size;
     QSettings _settings;
 
@@ -1116,38 +1057,38 @@ private:
     gl::OffscreenContext _initContext;
     RenderThread _renderThread;
     QWindowCamera _camera;
-    ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
+    ViewFrustum _viewFrustum;  // current state of view frustum, perspective, orientation, etc.
     graphics::SunSkyStage _sunSkyStage;
-    graphics::LightPointer _globalLight { std::make_shared<graphics::Light>() };
-    bool _ready { false };
+    graphics::LightPointer _globalLight{ std::make_shared<graphics::Light>() };
+    bool _ready{ false };
     EntitySimulationPointer _entitySimulation;
     ConicalViewFrustums _view;
 
     QStringList _commands;
     QString _commandPath;
-    int _commandLoops { 0 };
-    int _commandIndex { -1 };
-    uint64_t _nextCommandTime { 0 };
+    int _commandLoops{ 0 };
+    int _commandIndex{ -1 };
+    uint64_t _nextCommandTime{ 0 };
 
     //TextOverlay* _textOverlay;
     static bool _cullingEnabled;
 
-    enum RenderMode {
+    enum RenderMode
+    {
         NORMAL = 0,
         STEREO,
         HMD,
         RENDER_MODE_COUNT
     };
-    RenderMode _renderMode { NORMAL };
+    RenderMode _renderMode{ NORMAL };
     QSharedPointer<EntityTreeRenderer> _octree;
 };
 
 bool QTestWindow::_cullingEnabled = true;
 
-const char * LOG_FILTER_RULES = R"V0G0N(
+const char* LOG_FILTER_RULES = R"V0G0N(
 hifi.gpu=true
 )V0G0N";
-
 
 int main(int argc, char** argv) {
     setupHifiApplication("RenderPerf");
@@ -1164,4 +1105,3 @@ int main(int argc, char** argv) {
 }
 
 #include "main.moc"
-

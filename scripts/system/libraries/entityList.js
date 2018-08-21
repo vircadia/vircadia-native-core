@@ -59,6 +59,10 @@ EntityListTool = function(shouldUseEditTabletApp) {
         entityListWindow.setVisible(!shouldUseEditTabletApp() && visible);
     };
 
+    that.isVisible = function() {
+        return entityListWindow.isVisible();
+    };
+
     that.setVisible(false);
 
     function emitJSONScriptEvent(data) {
@@ -111,11 +115,6 @@ EntityListTool = function(shouldUseEditTabletApp) {
         return value !== undefined ? value : "";
     }
 
-    function filterEntity(entityID) {
-        return ((entityID === HMD.homeButtonHighlightMaterialID) ||
-                (entityID === HMD.homeButtonUnhighlightMaterialID));
-    }
-
     that.sendUpdate = function() {
         var entities = [];
 
@@ -125,10 +124,6 @@ EntityListTool = function(shouldUseEditTabletApp) {
         } else {
             ids = Entities.findEntities(MyAvatar.position, searchRadius);
         }
-
-        ids = ids.filter(function(id) {
-            return !filterEntity(id);
-        });
 
         var cameraPosition = Camera.position;
         for (var i = 0; i < ids.length; i++) {
@@ -253,6 +248,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
 
     webView.webEventReceived.connect(onWebEventReceived);
     entityListWindow.webEventReceived.addListener(onWebEventReceived);
+    that.interactiveWindowHidden = entityListWindow.interactiveWindowHidden;
 
     return that;
 };

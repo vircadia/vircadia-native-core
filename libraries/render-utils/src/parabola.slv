@@ -12,7 +12,7 @@
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
-layout(std140) uniform parabolaData {
+struct ParabolaData {
     vec3 velocity;
     float parabolicDistance;
     vec3 acceleration;
@@ -22,32 +22,36 @@ layout(std140) uniform parabolaData {
     ivec3 spare;
 };
 
-out vec4 _color;
+layout(std140, binding=0) uniform parabolaData {
+    ParabolaData _parabolaData;
+};
+
+layout(location=0) out vec4 _color;
 
 void main(void) {
-    _color = color;
+    _color = _parabolaData.color;
 
-    float t = parabolicDistance * (floor(gl_VertexID / 2) / float(numSections));
+    float t = _parabolaData.parabolicDistance * (float(gl_VertexID / 2) / float(_parabolaData.numSections));
 
-    vec4 pos = vec4(velocity * t + 0.5 * acceleration * t * t, 1);
+    vec4 pos = vec4(_parabolaData.velocity * t + 0.5 * _parabolaData.acceleration * t * t, 1);
     const float EPSILON = 0.00001;
     vec4 normal;
 
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    if (dot(acceleration, acceleration) < EPSILON) {
+    if (dot(_parabolaData.acceleration, _parabolaData.acceleration) < EPSILON) {
         // Handle case where acceleration == (0, 0, 0)
         vec3 eyeUp = vec3(0, 1, 0);
         vec3 worldUp;
         <$transformEyeToWorldDir(cam, eyeUp, worldUp)$>
-        normal = vec4(normalize(cross(velocity, worldUp)), 0);
+        normal = vec4(normalize(cross(_parabolaData.velocity, worldUp)), 0);
     } else {
-        normal = vec4(normalize(cross(velocity, acceleration)), 0);
+        normal = vec4(normalize(cross(_parabolaData.velocity, _parabolaData.acceleration)), 0);
     }
     if (gl_VertexID % 2 == 0) {
-        pos += 0.5 * width * normal;
+        pos += 0.5 * _parabolaData.width * normal;
     } else {
-        pos -= 0.5 * width * normal;
+        pos -= 0.5 * _parabolaData.width * normal;
     }
 
     <$transformModelToClipPos(cam, obj, pos, gl_Position)$>

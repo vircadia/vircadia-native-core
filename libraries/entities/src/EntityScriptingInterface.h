@@ -39,6 +39,9 @@
 class EntityTree;
 class MeshProxy;
 
+extern const QString GRABBABLE_USER_DATA;
+extern const QString NOT_GRABBABLE_USER_DATA;
+
 // helper factory to compose standardized, async metadata queries for "magic" Entity properties
 // like .script and .serverScripts.  This is used for automated testing of core scripting features
 // as well as to provide early adopters a self-discoverable, consistent way to diagnose common
@@ -237,7 +240,7 @@ public slots:
     /// temporary method until addEntity can be used from QJSEngine
     /// Deliberately not adding jsdoc, only used internally.
     Q_INVOKABLE QUuid addModelEntity(const QString& name, const QString& modelUrl, const QString& textures, const QString& shapeType, bool dynamic,
-                                     bool collisionless, const glm::vec3& position, const glm::vec3& gravity);
+                                     bool collisionless, bool grabbable, const glm::vec3& position, const glm::vec3& gravity);
 
     /**jsdoc
      * Create a clone of an entity. A clone can be created by a client that doesn't have rez permissions in the current domain.

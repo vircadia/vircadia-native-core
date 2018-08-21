@@ -55,7 +55,7 @@
 #include "scripting/AccountServicesScriptingInterface.h"
 #include <plugins/InputConfiguration.h>
 #include "ui/Snapshot.h"
-#include "SoundCache.h"
+#include "SoundCacheScriptingInterface.h"
 #include "raypick/PointerScriptingInterface.h"
 #include <display-plugins/CompositorHelper.h>
 #include "AboutUtil.h"
@@ -184,9 +184,11 @@ void Web3DOverlay::buildWebSurface() {
             _webSurface->getRootItem()->setProperty("scriptURL", _scriptURL);
         } else {
             _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), qmlSurfaceDeleter);
+            connect(_webSurface.data(), &hifi::qml::OffscreenSurface::rootContextCreated, [this](QQmlContext* surfaceContext) {
+                setupQmlSurface(_url == TabletScriptingInterface::QML);
+            });
             _webSurface->load(_url);
             _cachedWebSurface = false;
-            setupQmlSurface();
         }
         _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getWorldPosition()));
         onResizeWebSurface();
@@ -214,7 +216,7 @@ bool Web3DOverlay::isWebContent() const {
     return false;
 }
 
-void Web3DOverlay::setupQmlSurface() {
+void Web3DOverlay::setupQmlSurface(bool isTablet) {
     _webSurface->getSurfaceContext()->setContextProperty("Users", DependencyManager::get<UsersScriptingInterface>().data());
     _webSurface->getSurfaceContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     _webSurface->getSurfaceContext()->setContextProperty("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
@@ -225,7 +227,7 @@ void Web3DOverlay::setupQmlSurface() {
     _webSurface->getSurfaceContext()->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
     _webSurface->getSurfaceContext()->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
 
-    if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tabletRoot") {
+    if (isTablet) {
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
         auto flags = tabletScriptingInterface->getFlags();
 
@@ -253,7 +255,7 @@ void Web3DOverlay::setupQmlSurface() {
         _webSurface->getSurfaceContext()->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
         _webSurface->getSurfaceContext()->setContextProperty("DialogsManager", DialogsManagerScriptingInterface::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
-        _webSurface->getSurfaceContext()->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
+        _webSurface->getSurfaceContext()->setContextProperty("SoundCache", DependencyManager::get<SoundCacheScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());

@@ -95,8 +95,6 @@ void AudioIOStats::processStreamStatsPacket(QSharedPointer<ReceivedMessage> mess
 }
 
 void AudioIOStats::publish() {
-    auto audioIO = DependencyManager::get<AudioClient>();
-
     // call _receivedAudioStream's per-second callback
     _receivedAudioStream->perSecondCallbackForUpdatingStats();
 

@@ -15,7 +15,7 @@
 
 <$declareStandardTransform()$>
 
-out vec3 _normal;
+layout(location=0) out vec3 _normal;
 
 void main(void) {
     const float depth = 0.0;

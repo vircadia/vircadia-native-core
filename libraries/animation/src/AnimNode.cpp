@@ -12,6 +12,10 @@
 
 #include <QtGlobal>
 
+std::map<QString, float> AnimNode::_animStack = {
+    {"none", 0.0f}
+};
+
 AnimNode::Pointer AnimNode::getParent() {
     return _parent.lock();
 }
@@ -57,5 +61,21 @@ void AnimNode::setCurrentFrame(float frame) {
     setCurrentFrameInternal(frame);
     for (auto&& child : _children) {
         child->setCurrentFrameInternal(frame);
+    }
+}
+
+void AnimNode::processOutputJoints(AnimVariantMap& triggersOut) const {
+    if (!_skeleton) {
+        return;
+    }
+
+    for (auto&& jointName : _outputJointNames) {
+        // TODO: cache the jointIndices
+        int jointIndex = _skeleton->nameToJointIndex(jointName);
+        if (jointIndex >= 0) {
+            AnimPose pose = _skeleton->getAbsolutePose(jointIndex, getPosesInternal());
+            triggersOut.set(_id + jointName + "Rotation", pose.rot());
+            triggersOut.set(_id + jointName + "Position", pose.trans());
+        }
     }
 }

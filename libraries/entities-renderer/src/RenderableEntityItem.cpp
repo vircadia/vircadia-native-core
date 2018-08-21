@@ -14,7 +14,6 @@
 
 #include <ObjectMotionState.h>
 
-#include "EntityTreeRenderer.h"
 #include "RenderableLightEntityItem.h"
 #include "RenderableLineEntityItem.h"
 #include "RenderableModelEntityItem.h"
@@ -43,8 +42,6 @@ enum class RenderItemStatusIcon {
     CLIENT_ONLY = 6,
     NONE = 255
 };
-
-std::function<bool()> EntityRenderer::_entitiesShouldFadeFunction = []() { return true; };
 
 void EntityRenderer::initEntityRenderers() {
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Model, RenderableModelEntityItem::factory)
@@ -336,6 +333,11 @@ bool EntityRenderer::needsRenderUpdate() const {
     if (_needsRenderUpdate) {
         return true;
     }
+
+    if (isFading()) {
+        return true;
+    }
+
     if (_prevIsTransparent != isTransparent()) {
         return true;
     }
@@ -381,8 +383,12 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
     DETAILED_PROFILE_RANGE(simulation_physics, __FUNCTION__);
     withWriteLock([&] {
         auto transparent = isTransparent();
-        if (_prevIsTransparent && !transparent) {
-            _isFading = false;
+        auto fading = isFading();
+        if (fading || _prevIsTransparent != transparent) {
+            emit requestRenderUpdate();
+        }
+        if (fading) {
+            _isFading = Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f;
         }
         _prevIsTransparent = transparent;
 
