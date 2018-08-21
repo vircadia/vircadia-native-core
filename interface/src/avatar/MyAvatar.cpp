@@ -2114,7 +2114,10 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
         attachmentDataToEntityProperties(data, properties);
         newEntitiesProperties.push_back(properties);
     }
-    removeAvatarEntities();
+
+    // clear any existing avatar entities
+    setAvatarEntityData(AvatarEntityMap());
+
     for (auto& properties : newEntitiesProperties) {
         DependencyManager::get<EntityScriptingInterface>()->addEntity(properties, true);
     }
