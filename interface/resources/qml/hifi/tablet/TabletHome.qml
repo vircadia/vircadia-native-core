@@ -269,7 +269,6 @@ Item {
             anchors.bottom: parent.bottom
             anchors.horizontalCenter: parent.horizontalCenter
             count: swipeView.count
-
         }
     }
 

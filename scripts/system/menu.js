@@ -52,7 +52,6 @@ var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-
             if (isHMDMode) {
                 button = tablet.addButton(buttonProperties);
                 button.clicked.connect(onClicked);
-                print("Adding menu button");
             } else if (button) {
                 button.clicked.disconnect(onClicked);
                 tablet.removeButton(button);

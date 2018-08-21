@@ -22,7 +22,7 @@
     var DEFAULT_TABLET_SCALE = 70;
     var preMakeTime = Date.now();
     var validCheckTime = Date.now();
-    var debugTablet = true;
+    var debugTablet = false;
     var tabletScalePercentage = 70.0;
     var UIWebTablet = null;
     var MSECS_PER_SEC = 1000.0;
@@ -298,7 +298,6 @@
     }
         wantsMenu = clicked;
     });
-
     clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(function (clicked) {
         if (clicked) {
             //activeHudPoint2d(Controller.Standard.LeftHand);
@@ -306,7 +305,6 @@
         }
         wantsMenu = clicked;
     });
-
     clickMapping.from(Controller.Standard.Start).peek().to(function (clicked) {
     if (clicked) {
         //activeHudPoint2dGamePad();
