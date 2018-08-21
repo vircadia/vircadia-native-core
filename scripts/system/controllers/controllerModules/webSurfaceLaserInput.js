@@ -76,7 +76,7 @@ Script.include("/~/system/libraries/controllers.js");
             var objectID = intersection.objectID;
             if (intersection.type === Picks.INTERSECTED_OVERLAY) {
                 if ((HMD.tabletID && objectID === HMD.tabletID) ||
-                    (HMD.tabletScreenID && objectID === HMD.tabletScreenID) || 
+                    (HMD.tabletScreenID && objectID === HMD.tabletScreenID) ||
                     (HMD.homeButtonID && objectID === HMD.homeButtonID)) {
                     return true;
                 } else {
@@ -122,9 +122,9 @@ Script.include("/~/system/libraries/controllers.js");
             var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE &&
                                    controllerData.triggerValues[this.otherHand] <= TRIGGER_OFF_VALUE;
             var allowThisModule = !otherModuleRunning || isTriggerPressed;
+
             if (allowThisModule && this.isPointingAtTriggerable(controllerData, isTriggerPressed) &&
                 !this.isPointingAtNearGrabbableEntity(controllerData, isTriggerPressed)) {
-                //(controllerData.nearbyEntityProperties[this.hand] !== [])) {
                 this.updateAllwaysOn();
                 if (isTriggerPressed) {
                     this.dominantHandOverride = true; // Override dominant hand.
@@ -147,7 +147,6 @@ Script.include("/~/system/libraries/controllers.js");
             var laserOn = isTriggerPressed || this.parameters.handLaser.allwaysOn;
             if (allowThisModule && (laserOn && this.isPointingAtTriggerable(controllerData, isTriggerPressed)) &&
                 !this.isPointingAtNearGrabbableEntity(controllerData, isTriggerPressed)) {
-                //(controllerData.nearbyEntityProperties[this.hand] !== [])) {
                 this.running = true;
                 return makeRunningValues(true, [], []);
             }
