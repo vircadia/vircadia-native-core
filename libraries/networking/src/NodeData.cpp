@@ -18,5 +18,3 @@ NodeData::NodeData(const QUuid& nodeID, NetworkPeer::LocalID nodeLocalID) :
 {
     
 }
-
-NodeData::~NodeData() {}

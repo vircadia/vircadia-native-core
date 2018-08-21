@@ -59,7 +59,7 @@ void AvatarMixerSlave::processIncomingPackets(const SharedNodePointer& node) {
     auto nodeData = dynamic_cast<AvatarMixerClientData*>(node->getLinkedData());
     if (nodeData) {
         _stats.nodesProcessed++;
-        _stats.packetsProcessed += nodeData->processPackets(_sharedData);
+        _stats.packetsProcessed += nodeData->processPackets(*_sharedData);
     }
     auto end = usecTimestampNow();
     _stats.processIncomingPacketsElapsedTime += (end - start);
@@ -109,19 +109,15 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
             auto traitType = static_cast<AvatarTraits::TraitType>(std::distance(lastReceivedVersions.simpleCBegin(),
                                                                                 simpleReceivedIt));
 
-            // we need to double check that this is actually a simple trait type, since the instanced
-            // trait types are in the simple vector for access efficiency
-            if (AvatarTraits::isSimpleTrait(traitType)) {
-                auto lastReceivedVersion = *simpleReceivedIt;
-                auto& lastSentVersionRef = lastSentVersions[traitType];
+            auto lastReceivedVersion = *simpleReceivedIt;
+            auto& lastSentVersionRef = lastSentVersions[traitType];
 
-                if (lastReceivedVersions[traitType] > lastSentVersionRef) {
-                    // there is an update to this trait, add it to the traits packet
-                    bytesWritten += sendingAvatar->packTrait(traitType, traitsPacketList, lastReceivedVersion);
+            if (lastReceivedVersions[traitType] > lastSentVersionRef) {
+                // there is an update to this trait, add it to the traits packet
+                bytesWritten += sendingAvatar->packTrait(traitType, traitsPacketList, lastReceivedVersion);
 
-                    // update the last sent version
-                    lastSentVersionRef = lastReceivedVersion;
-                }
+                // update the last sent version
+                lastSentVersionRef = lastReceivedVersion;
             }
 
             ++simpleReceivedIt;

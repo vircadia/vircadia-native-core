@@ -22,14 +22,15 @@ namespace AvatarTraits {
     enum TraitType : int8_t {
         NullTrait = -1,
         SkeletonModelURL,
-        AvatarEntity,
+        FirstInstancedTrait,
+        AvatarEntity = FirstInstancedTrait,
         TotalTraitTypes
     };
 
     using TraitInstanceID = QUuid;
 
     inline bool isSimpleTrait(TraitType traitType) {
-        return traitType == SkeletonModelURL;
+        return traitType > NullTrait && traitType < FirstInstancedTrait;
     }
 
     using TraitVersion = int32_t;
@@ -46,8 +47,7 @@ namespace AvatarTraits {
         bytesWritten += destination.writePrimitive(traitType);
 
         if (traitVersion > DEFAULT_TRAIT_VERSION) {
-            AvatarTraits::TraitVersion typedVersion = traitVersion;
-            bytesWritten += destination.writePrimitive(typedVersion);
+            bytesWritten += destination.writePrimitive(traitVersion);
         }
 
         bytesWritten += destination.write(instanceID.toRfc4122());

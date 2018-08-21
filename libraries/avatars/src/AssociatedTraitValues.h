@@ -18,7 +18,7 @@ namespace AvatarTraits {
     template<typename T, T defaultValue>
     class AssociatedTraitValues {
     public:
-        AssociatedTraitValues() : _simpleTypes(TotalTraitTypes, defaultValue) {}
+        AssociatedTraitValues() : _simpleTypes(FirstInstancedTrait, defaultValue) {}
 
         void insert(TraitType type, T value) { _simpleTypes[type] = value; }
         void erase(TraitType type) { _simpleTypes[type] = defaultValue; }

@@ -26,7 +26,7 @@ class NodeData : public QObject {
     Q_OBJECT
 public:
     NodeData(const QUuid& nodeID = QUuid(), NetworkPeer::LocalID localID = NetworkPeer::NULL_LOCAL_ID);
-    virtual ~NodeData() = 0;
+    virtual ~NodeData() = default;
     virtual int parseData(ReceivedMessage& message) { return 0; }
 
     const QUuid& getNodeID() const { return _nodeID; }

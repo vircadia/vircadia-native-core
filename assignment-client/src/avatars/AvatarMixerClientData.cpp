@@ -49,7 +49,7 @@ void AvatarMixerClientData::queuePacket(QSharedPointer<ReceivedMessage> message,
     _packetQueue.push(message);
 }
 
-int AvatarMixerClientData::processPackets(SlaveSharedData* slaveSharedData) {
+int AvatarMixerClientData::processPackets(const SlaveSharedData& slaveSharedData) {
     int packetsProcessed = 0;
     SharedNodePointer node = _packetQueue.node;
     assert(_packetQueue.empty() || node);
@@ -93,7 +93,8 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message) {
     return _avatar->parseDataFromBuffer(message.readWithoutCopy(message.getBytesLeftToRead()));
 }
 
-void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message, SlaveSharedData* slaveSharedData, Node& sendingNode) {
+void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
+                                                    const SlaveSharedData& slaveSharedData, Node& sendingNode) {
     // pull the trait version from the message
     AvatarTraits::TraitVersion packetTraitVersion;
     message.readPrimitive(&packetTraitVersion);
@@ -155,9 +156,9 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message, Sl
     }
 }
 
-void AvatarMixerClientData::checkSkeletonURLAgainstWhitelist(SlaveSharedData *slaveSharedData, Node& sendingNode,
+void AvatarMixerClientData::checkSkeletonURLAgainstWhitelist(const SlaveSharedData &slaveSharedData, Node& sendingNode,
                                                              AvatarTraits::TraitVersion traitVersion) {
-    const auto& whitelist = slaveSharedData->skeletonURLWhitelist;
+    const auto& whitelist = slaveSharedData.skeletonURLWhitelist;
 
     if (!whitelist.isEmpty()) {
         bool inWhitelist = false;
@@ -179,11 +180,11 @@ void AvatarMixerClientData::checkSkeletonURLAgainstWhitelist(SlaveSharedData *sl
 
         if (!inWhitelist) {
             // make sure we're not unecessarily overriding the default avatar with the default avatar
-            if (_avatar->getWireSafeSkeletonModelURL() != slaveSharedData->skeletonReplacementURL) {
+            if (_avatar->getWireSafeSkeletonModelURL() != slaveSharedData.skeletonReplacementURL) {
                 // we need to change this avatar's skeleton URL, and send them a traits packet informing them of the change
                 qDebug() << "Overwriting avatar URL" << _avatar->getWireSafeSkeletonModelURL()
-                    << "to replacement" << slaveSharedData->skeletonReplacementURL << "for" << sendingNode.getUUID();
-                _avatar->setSkeletonModelURL(slaveSharedData->skeletonReplacementURL);
+                    << "to replacement" << slaveSharedData.skeletonReplacementURL << "for" << sendingNode.getUUID();
+                _avatar->setSkeletonModelURL(slaveSharedData.skeletonReplacementURL);
 
                 auto packet = NLPacket::create(PacketType::SetAvatarTraits, -1, true);
 

@@ -1834,8 +1834,7 @@ qint64 AvatarData::packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice
     bytesWritten += destination.writePrimitive(traitType);
 
     if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
-        AvatarTraits::TraitVersion typedVersion = traitVersion;
-        bytesWritten += destination.writePrimitive(typedVersion);
+        bytesWritten += destination.writePrimitive(traitVersion);
     }
 
     if (traitType == AvatarTraits::SkeletonModelURL) {
@@ -1857,8 +1856,7 @@ qint64 AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTr
     bytesWritten += destination.writePrimitive(traitType);
 
     if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
-        AvatarTraits::TraitVersion typedVersion = traitVersion;
-        bytesWritten += destination.writePrimitive(typedVersion);
+        bytesWritten += destination.writePrimitive(traitVersion);
     }
 
     bytesWritten += destination.write(traitInstanceID.toRfc4122());

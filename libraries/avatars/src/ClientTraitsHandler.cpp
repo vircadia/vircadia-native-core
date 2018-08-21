@@ -68,14 +68,12 @@ void ClientTraitsHandler::sendChangedTraitsToMixer() {
             // we double check that it is a simple iterator here
             auto traitType = static_cast<AvatarTraits::TraitType>(std::distance(traitStatusesCopy.simpleCBegin(), simpleIt));
 
-            if (AvatarTraits::isSimpleTrait(traitType)) {
-                if (_shouldPerformInitialSend || *simpleIt == Updated) {
-                    if (traitType == AvatarTraits::SkeletonModelURL) {
-                        _owningAvatar->packTrait(traitType, *traitsPacketList);
+            if (_shouldPerformInitialSend || *simpleIt == Updated) {
+                if (traitType == AvatarTraits::SkeletonModelURL) {
+                    _owningAvatar->packTrait(traitType, *traitsPacketList);
 
-                        // keep track of our skeleton version in case we get an override back
-                        _currentSkeletonVersion = _currentTraitVersion;
-                    }
+                    // keep track of our skeleton version in case we get an override back
+                    _currentSkeletonVersion = _currentTraitVersion;
                 }
             }
 

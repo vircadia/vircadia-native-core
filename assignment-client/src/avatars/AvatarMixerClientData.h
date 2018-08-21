@@ -116,10 +116,10 @@ public:
     QVector<JointData>& getLastOtherAvatarSentJoints(QUuid otherAvatar) { return _lastOtherAvatarSentJoints[otherAvatar]; }
 
     void queuePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node);
-    int processPackets(SlaveSharedData* slaveSharedData); // returns number of packets processed
+    int processPackets(const SlaveSharedData& slaveSharedData); // returns number of packets processed
 
-    void processSetTraitsMessage(ReceivedMessage& message, SlaveSharedData* slaveSharedData, Node& sendingNode);
-    void checkSkeletonURLAgainstWhitelist(SlaveSharedData* slaveSharedData, Node& sendingNode,
+    void processSetTraitsMessage(ReceivedMessage& message, const SlaveSharedData& slaveSharedData, Node& sendingNode);
+    void checkSkeletonURLAgainstWhitelist(const SlaveSharedData& slaveSharedData, Node& sendingNode,
                                           AvatarTraits::TraitVersion traitVersion);
 
     using TraitsCheckTimestamp = std::chrono::steady_clock::time_point;
