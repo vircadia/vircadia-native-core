@@ -1373,7 +1373,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         });
         connect(this, &Application::activeDisplayPluginChanged,
             reinterpret_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::onContextChanged);
-        connect(this, &Application::interstitialModeChanged, audioIO.data(), &AudioClient::setInterstitialStatus);
+        connect(this, &Application::interstitialModeChanged, audioIO, &AudioClient::setInterstitialStatus);
     }
 
     // Create the rendering engine.  This can be slow on some machines due to lots of
