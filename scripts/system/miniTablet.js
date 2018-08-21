@@ -169,6 +169,11 @@
 
     // #region Communications ==================================================================================================
 
+    function updateMiniTabletID() {
+        // Send mini-tablet overlay ID to controllerDispatcher so that it can use a smaller near grab distance.
+        Messages.sendLocalMessage("Hifi-MiniTablet-ID", proxyOverlay);
+    }
+
     function updateMutedStatus() {
         var isMuted = Audio.muted;
         proxyOverlayObject.emitScriptEvent(JSON.stringify({
@@ -257,6 +262,8 @@
 
         proxyOverlayObject = Overlays.getOverlayObject(proxyUIOverlay);
         proxyOverlayObject.webEventReceived.connect(onWebEventReceived);
+
+        updateMiniTabletID();
     }
 
     function showUI(hand) {
@@ -320,6 +327,7 @@
             proxyOverlayObject = null;
             proxyUIOverlay = null;
             proxyOverlay = null;
+            updateMiniTabletID();
         }
     }
 
