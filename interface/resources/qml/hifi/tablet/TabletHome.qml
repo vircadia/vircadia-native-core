@@ -117,7 +117,6 @@ Item {
                 id: pageRepeater
                 model: Math.ceil(tabletProxy.buttons.rowCount() / TabletEnums.ButtonsOnPage)
                 onItemAdded: {
-                    console.log("onItemAdded: " + tabletProxy.buttons.rowCount());
                     item.proxyModel.sourceModel = tabletProxy.buttons;
                     item.proxyModel.pageIndex = index;
                 }
@@ -209,7 +208,6 @@ Item {
                             Component.onCompleted: updateProperties()
 
                             function updateProperties() {
-                                console.log("updateProperties: " + tabletProxy.buttons.rowCount());
                                 var keys = Object.keys(modelData.properties).forEach(function (key) {
                                     if (tabletButton[key] !== modelData.properties[key]) {
                                         tabletButton[key] = modelData.properties[key];
@@ -272,9 +270,6 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             count: swipeView.count
 
-            Component.onCompleted: {
-                console.log("pageIndicator: " + pageIndicator.count);
-            }
         }
     }
 
