@@ -180,6 +180,8 @@
     function updateMiniTabletID() {
         // Send mini-tablet overlay ID to controllerDispatcher so that it can use a smaller near grab distance.
         Messages.sendLocalMessage("Hifi-MiniTablet-ID", proxyOverlay);
+        // Send mini-tablet UI overlay ID to stylusInput so that it styluses can be used on it.
+        Messages.sendLocalMessage("Hifi-MiniTablet-UI-ID", proxyUIOverlay);
     }
 
     function updateMutedStatus() {
@@ -271,7 +273,7 @@
         proxyOverlayObject = Overlays.getOverlayObject(proxyUIOverlay);
         proxyOverlayObject.webEventReceived.connect(onWebEventReceived);
 
-        updateMiniTabletID();
+        // updateMiniTabletID(); Other scripts relying on this may not be ready yet so do this in showUI().
     }
 
     function showUI() {
@@ -292,6 +294,8 @@
             dpi: PROXY_UI_DPI / initialScale,
             visible: true
         });
+
+        updateMiniTabletID();
 
         if (!proxyUIOverlayEnabled) {
             // Overlay content is created the first time it is visible to the user. The initial creation displays artefacts.
