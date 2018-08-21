@@ -18,15 +18,17 @@ MessageBox {
         popup.button2text = 'CONFIRM';
 
         popup.onButton2Clicked = function() {
-            if(callback)
+            if (callback) {
                 callback();
+            }
 
             popup.close();
         }
 
         popup.onLinkClicked = function(link) {
-            if(linkCallback)
+            if (linkCallback) {
                 linkCallback(link);
+            }
         }
 
         popup.open();
@@ -43,8 +45,9 @@ MessageBox {
         popup.inputText.placeholderText = 'Enter Wearable URL';
 
         popup.onButton2Clicked = function() {
-            if(callback)
+            if (callback) {
                 callback(popup.inputText.text);
+            }
 
             popup.close();
         }
@@ -68,15 +71,17 @@ MessageBox {
         popup.onButton2Clicked = function() {
             popup.close();
 
-            if(callback)
+            if (callback) {
                 callback();
+            }
         }
 
         popup.onLinkClicked = function(link) {
             popup.close();
 
-            if(linkCallback)
+            if (linkCallback) {
                 linkCallback(link);
+            }
         }
 
         popup.open();
@@ -92,8 +97,9 @@ MessageBox {
         popup.onButton2Clicked = function() {
             popup.close();
 
-            if(callback)
+            if (callback) {
                 callback();
+            }
         }
         popup.open();
     }
@@ -107,8 +113,9 @@ MessageBox {
         popup.onButton2Clicked = function() {
             popup.close();
 
-            if(callback)
+            if (callback) {
                 callback();
+            }
         }
         popup.open();
     }
@@ -129,15 +136,17 @@ MessageBox {
         popup.onButton2Clicked = function() {
             popup.close();
 
-            if(callback)
+            if (callback) {
                 callback();
+            }
         }
 
         popup.onLinkClicked = function(link) {
             popup.close();
 
-            if(linkCallback)
+            if (linkCallback) {
                 linkCallback(link);
+            }
         }
 
         popup.open();

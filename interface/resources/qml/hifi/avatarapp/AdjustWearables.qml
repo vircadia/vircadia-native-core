@@ -43,10 +43,10 @@ Rectangle {
         wearablesCombobox.model.clear();
         wearablesCombobox.currentIndex = -1;
 
-        for(var i = 0; i < avatar.wearables.count; ++i) {
+        for (var i = 0; i < avatar.wearables.count; ++i) {
             var wearable = avatar.wearables.get(i).properties;
-            for(var j = (wearable.modelURL.length - 1); j >= 0; --j) {
-                if(wearable.modelURL[j] === '/') {
+            for (var j = (wearable.modelURL.length - 1); j >= 0; --j) {
+                if (wearable.modelURL[j] === '/') {
                     wearable.text = wearable.modelURL.substring(j + 1);
                     break;
                 }
@@ -54,34 +54,34 @@ Rectangle {
             wearablesCombobox.model.append(wearable);
         }
 
-        if(wearablesCombobox.model.count !== 0) {
+        if (wearablesCombobox.model.count !== 0) {
             wearablesCombobox.currentIndex = 0;
         }
     }
 
     function refreshWearable(wearableID, wearableIndex, properties, updateUI) {
-        if(wearableIndex === -1) {
+        if (wearableIndex === -1) {
             wearableIndex = wearablesCombobox.model.findIndexById(wearableID);
         }
 
         var wearable = wearablesCombobox.model.get(wearableIndex);
 
-        if(!wearable) {
+        if (!wearable) {
             return;
         }
 
         var wearableModelItemProperties = wearablesModel.get(wearableIndex).properties;
 
-        for(var prop in properties) {
+        for (var prop in properties) {
             wearable[prop] = properties[prop];
             wearableModelItemProperties[prop] = wearable[prop];
 
-            if(updateUI) {
-                if(prop === 'localPosition') {
+            if (updateUI) {
+                if (prop === 'localPosition') {
                     positionVector.set(wearable[prop]);
-                } else if(prop === 'localRotationAngles') {
+                } else if (prop === 'localRotationAngles') {
                     rotationVector.set(wearable[prop]);
-                } else if(prop === 'dimensions') {
+                } else if (prop === 'dimensions') {
                     scalespinner.set(wearable[prop].x / wearable.naturalDimensions.x);
                 }
             }
@@ -95,9 +95,9 @@ Rectangle {
     }
 
     function selectWearableByID(entityID) {
-        for(var i = 0; i < wearablesCombobox.model.count; ++i) {
+        for (var i = 0; i < wearablesCombobox.model.count; ++i) {
             var wearable = wearablesCombobox.model.get(i);
-            if(wearable.id === entityID) {
+            if (wearable.id === entityID) {
                 wearablesCombobox.currentIndex = i;
                 break;
             }
@@ -220,9 +220,9 @@ Rectangle {
                 model: ListModel {
                     function findIndexById(id) {
 
-                        for(var i = 0; i < count; ++i) {
+                        for (var i = 0; i < count; ++i) {
                             var wearable = get(i);
-                            if(wearable.id === id) {
+                            if (wearable.id === id) {
                                 return i;
                             }
                         }
@@ -245,7 +245,7 @@ Rectangle {
                     jointsCombobox.set(joint);
                     isSoft.set(soft);
 
-                    if(currentWearable) {
+                    if (currentWearable) {
                         wearableSelected(currentWearable.id);
                     }
                 }
@@ -298,7 +298,7 @@ Rectangle {
                 }
 
                 onCurrentIndexChanged: {
-                    if(notify) notifyJointChanged();
+                    if (notify) notifyJointChanged();
                 }
             }
         }
@@ -352,9 +352,9 @@ Rectangle {
 
                 property bool notify: false;
 
-                onXvalueChanged: if(notify) notifyPositionChanged();
-                onYvalueChanged: if(notify) notifyPositionChanged();
-                onZvalueChanged: if(notify) notifyPositionChanged();
+                onXvalueChanged: if (notify) notifyPositionChanged();
+                onYvalueChanged: if (notify) notifyPositionChanged();
+                onZvalueChanged: if (notify) notifyPositionChanged();
 
                 decimals: 2
                 realFrom: -10
@@ -412,9 +412,9 @@ Rectangle {
 
                 property bool notify: false;
 
-                onXvalueChanged: if(notify) notifyRotationChanged();
-                onYvalueChanged: if(notify) notifyRotationChanged();
-                onZvalueChanged: if(notify) notifyRotationChanged();
+                onXvalueChanged: if (notify) notifyRotationChanged();
+                onYvalueChanged: if (notify) notifyRotationChanged();
+                onZvalueChanged: if (notify) notifyRotationChanged();
 
                 decimals: 0
                 realFrom: -180
@@ -453,7 +453,7 @@ Rectangle {
 
                 property bool notify: false;
 
-                onCheckedChanged: if(notify) notifyIsSoftChanged();
+                onCheckedChanged: if (notify) notifyIsSoftChanged();
             }
 
             Column {
@@ -482,7 +482,7 @@ Rectangle {
                     colorScheme: hifi.colorSchemes.light
 
                     property bool notify: false;
-                    onRealValueChanged: if(notify) notifyScaleChanged();
+                    onRealValueChanged: if (notify) notifyScaleChanged();
 
                     function set(value) {
                         notify = false;
