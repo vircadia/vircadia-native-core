@@ -153,7 +153,7 @@ private:
         int _senderPort;
         int _datagramLength;
         std::unique_ptr<char[]> _datagram;
-        std::chrono::time_point<std::chrono::steady_clock> _receiveTime;
+        p_high_resolution_clock::time_point _receiveTime;
     };
 
     std::queue<Datagram> _incomingDatagrams;

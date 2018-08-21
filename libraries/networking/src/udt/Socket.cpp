@@ -337,7 +337,7 @@ void Socket::readPendingDatagrams() {
         // we either didn't pull anything for this packet or there was an error reading (this seems to trigger
         // on windows even if there's not a packet available)
 
-        if (packetSizeWithHeader < 0) {
+        if (sizeRead < 0) {
             continue;
         }
 
