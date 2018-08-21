@@ -16,8 +16,10 @@
 
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
 
+#ifdef RENDER_UTILS_USE_TEXCOORD_FRAME_TRANSFORM 
 // NOTE: WE are assuming that the deferred lighting pass is always full screen so this texture transform is not needed (and cause problems on AMD)
-//layout(location=RENDER_UTILS_UNIFORM_LIGHT_TEXCOORD_TRANSFORM) uniform vec4 texcoordFrameTransform;
+layout(location=RENDER_UTILS_UNIFORM_LIGHT_TEXCOORD_TRANSFORM) uniform vec4 texcoordFrameTransform;
+#endif
 
 void main(void) {
     const float depth = 1.0;
@@ -31,8 +33,10 @@ void main(void) {
 
     _texCoord01.xy = (pos.xy + 1.0) * 0.5;
 
- //   _texCoord01.xy *= texcoordFrameTransform.zw;
- //   _texCoord01.xy += texcoordFrameTransform.xy;
+#ifdef RENDER_UTILS_USE_TEXCOORD_FRAME_TRANSFORM 
+    _texCoord01.xy *= texcoordFrameTransform.zw;
+    _texCoord01.xy += texcoordFrameTransform.xy;
+#endif
 
     gl_Position = pos;
 }
