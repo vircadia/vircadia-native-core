@@ -115,8 +115,6 @@ ParabolaPointer::RenderState::RenderState(const OverlayID& startID, const Overla
     _pathWidth = pathWidth;
     if (render::Item::isValidID(_pathID)) {
         auto renderItem = std::make_shared<ParabolaRenderItem>(pathColor, pathAlpha, pathWidth, isVisibleInSecondaryCamera, pathEnabled);
-        // TODO: update bounds properly
-        renderItem->editBound().setBox(glm::vec3(-16000.0f), 32000.0f);
         transaction.resetItem(_pathID, std::make_shared<ParabolaRenderItem::Payload>(renderItem));
         scene->enqueueTransaction(transaction);
     }
@@ -180,6 +178,7 @@ void ParabolaPointer::RenderState::update(const glm::vec3& origin, const glm::ve
             item.setAcceleration(acceleration);
             item.setParabolicDistance(parabolicDistance);
             item.setWidth(width);
+            item.updateBounds();
         });
         scene->enqueueTransaction(transaction);
     }
@@ -302,10 +301,10 @@ void ParabolaPointer::RenderState::ParabolaRenderItem::setVisible(bool visible) 
 }
 
 void ParabolaPointer::RenderState::ParabolaRenderItem::updateKey() {
-    // FIXME: There's no way to designate a render item as non-shadow-reciever, and since a parabola's bounding box covers the entire domain,
-    // it seems to block all shadows.  I think this is a bug with shadows.
-    //auto builder = _parabolaData.color.a < 1.0f ? render::ItemKey::Builder::transparentShape() : render::ItemKey::Builder::opaqueShape();
-    auto builder = render::ItemKey::Builder::transparentShape();
+    auto builder = _parabolaData.color.a < 1.0f ? render::ItemKey::Builder::transparentShape() : render::ItemKey::Builder::opaqueShape();
+
+    // TODO: parabolas should cast shadows, but they're so thin that the cascaded shadow maps make them look pretty bad
+    //builder.withShadowCaster();
 
     if (_enabled && _visible) {
         builder.withVisible();
@@ -320,6 +319,33 @@ void ParabolaPointer::RenderState::ParabolaRenderItem::updateKey() {
     }
 
     _key = builder.build();
+}
+
+void ParabolaPointer::RenderState::ParabolaRenderItem::updateBounds() {
+    glm::vec3 max = _origin;
+    glm::vec3 min = _origin;
+
+    glm::vec3 end = _origin + _parabolaData.velocity * _parabolaData.parabolicDistance +
+        0.5f * _parabolaData.acceleration * _parabolaData.parabolicDistance * _parabolaData.parabolicDistance;
+    max = glm::max(max, end);
+    min = glm::min(min, end);
+
+    for (int i = 0; i < 3; i++) {
+        if (fabsf(_parabolaData.velocity[i]) > EPSILON && fabsf(_parabolaData.acceleration[i]) > EPSILON) {
+            float maxT = -_parabolaData.velocity[i] / _parabolaData.acceleration[i];
+            if (maxT > 0.0f && maxT < _parabolaData.parabolicDistance) {
+                glm::vec3 maxPoint = _origin + _parabolaData.velocity * maxT + 0.5f * _parabolaData.acceleration * maxT * maxT;
+                max = glm::max(max, maxPoint);
+                min = glm::min(min, maxPoint);
+            }
+        }
+    }
+
+    glm::vec3 halfWidth = glm::vec3(0.5f * _parabolaData.width);
+    max += halfWidth;
+    min -= halfWidth;
+
+    _bound = AABox(min, max - min);
 }
 
 const gpu::PipelinePointer ParabolaPointer::RenderState::ParabolaRenderItem::getParabolaPipeline() {

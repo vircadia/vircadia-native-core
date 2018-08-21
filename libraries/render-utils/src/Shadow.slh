@@ -14,6 +14,7 @@
 <@include render-utils/ShaderConstants.h@>
 <@include ShadowCore.slh@>
 
+#define SHADOW_DITHER                   1
 #define SHADOW_NOISE_ENABLED            0
 #define SHADOW_SCREEN_SPACE_DITHER      1
 
@@ -32,10 +33,12 @@ vec2 PCFkernel[4] = vec2[4](
     vec2(0.5, -1.5)
 );
 
+#if SHADOW_NOISE_ENABLED
 float evalShadowNoise(vec4 seed) {
     float dot_product = dot(seed, vec4(12.9898,78.233,45.164,94.673));
     return fract(sin(dot_product) * 43758.5453);
 }
+#endif
 
 struct ShadowSampleOffsets {
     vec3 points[4];
@@ -74,12 +77,16 @@ ShadowSampleOffsets evalShadowFilterOffsets(vec4 position) {
 
 float evalShadowAttenuationPCF(int cascadeIndex, ShadowSampleOffsets offsets, vec4 shadowTexcoord, float bias) {
     shadowTexcoord.z -= bias;
+#if SHADOW_DITHER
     float shadowAttenuation = 0.25 * (
         fetchShadow(cascadeIndex, shadowTexcoord.xyz + offsets.points[0]) +
         fetchShadow(cascadeIndex, shadowTexcoord.xyz + offsets.points[1]) +
         fetchShadow(cascadeIndex, shadowTexcoord.xyz + offsets.points[2]) +
         fetchShadow(cascadeIndex, shadowTexcoord.xyz + offsets.points[3])
     );
+#else
+    float shadowAttenuation = fetchShadow(cascadeIndex, shadowTexcoord.xyz);
+#endif
     return shadowAttenuation;
 }
 
@@ -90,20 +97,55 @@ float evalShadowCascadeAttenuation(int cascadeIndex, ShadowSampleOffsets offsets
 
 float evalShadowAttenuation(vec3 worldLightDir, vec4 worldPosition, float viewDepth, vec3 worldNormal) {
     ShadowSampleOffsets offsets = evalShadowFilterOffsets(worldPosition);
-    vec4 cascadeShadowCoords[2];
-    cascadeShadowCoords[0] = vec4(0);
-    cascadeShadowCoords[1] = vec4(0);
-    ivec2 cascadeIndices;
-    float cascadeMix = determineShadowCascadesOnPixel(worldPosition, viewDepth, cascadeShadowCoords, cascadeIndices);
-	
-    // Adjust bias if we are at a grazing angle with light
+
+    vec4 cascadeShadowCoords[4];
+    vec4 cascadeWeights;
+    vec4 cascadeAttenuations = vec4(1.0);
+    vec3 cascadeMix;
+    bvec4 isPixelOnCascade;
+    int cascadeIndex;
     float oneMinusNdotL = 1.0 - clamp(dot(worldLightDir, worldNormal), 0, 1);
-    vec2 cascadeAttenuations = vec2(1.0, 1.0);
-    cascadeAttenuations.x = evalShadowCascadeAttenuation(cascadeIndices.x, offsets, cascadeShadowCoords[0], oneMinusNdotL);
-    if (cascadeMix > 0.0 && cascadeIndices.y < getShadowCascadeCount()) {
-        cascadeAttenuations.y = evalShadowCascadeAttenuation(cascadeIndices.y, offsets, cascadeShadowCoords[1], oneMinusNdotL);
+
+    for (cascadeIndex=0 ; cascadeIndex<getShadowCascadeCount() ; cascadeIndex++) {
+        cascadeShadowCoords[cascadeIndex] = evalShadowTexcoord(cascadeIndex, worldPosition);
     }
-    float attenuation = mix(cascadeAttenuations.x, cascadeAttenuations.y, cascadeMix);
+
+    isPixelOnCascade.x = isShadowCascadeProjectedOnPixel(cascadeShadowCoords[0]);
+    isPixelOnCascade.y = isShadowCascadeProjectedOnPixel(cascadeShadowCoords[1]);
+    isPixelOnCascade.z = isShadowCascadeProjectedOnPixel(cascadeShadowCoords[2]);
+    isPixelOnCascade.w = isShadowCascadeProjectedOnPixel(cascadeShadowCoords[3]);
+
+    if (isPixelOnCascade.x) {
+        cascadeAttenuations.x = evalShadowCascadeAttenuation(0, offsets, cascadeShadowCoords[0], oneMinusNdotL);
+    }
+    if (isPixelOnCascade.y) {
+        cascadeAttenuations.y = evalShadowCascadeAttenuation(1, offsets, cascadeShadowCoords[1], oneMinusNdotL);
+    }
+    if (isPixelOnCascade.z) {
+        cascadeAttenuations.z = evalShadowCascadeAttenuation(2, offsets, cascadeShadowCoords[2], oneMinusNdotL);
+    }
+    if (isPixelOnCascade.w) {
+        cascadeAttenuations.w = evalShadowCascadeAttenuation(3, offsets, cascadeShadowCoords[3], oneMinusNdotL);
+    }
+
+    cascadeWeights.x = evalShadowCascadeWeight(cascadeShadowCoords[0]);
+    cascadeWeights.y = evalShadowCascadeWeight(cascadeShadowCoords[1]);
+    cascadeWeights.z = evalShadowCascadeWeight(cascadeShadowCoords[2]);
+    cascadeWeights.w = evalShadowCascadeWeight(cascadeShadowCoords[3]);
+    cascadeWeights = mix(vec4(0.0), cascadeWeights, isPixelOnCascade);
+
+    cascadeMix.x = evalCascadeMix(cascadeWeights.x, cascadeWeights.y);
+    cascadeMix.y = evalCascadeMix(cascadeWeights.y, cascadeWeights.z);
+    cascadeMix.z = evalCascadeMix(cascadeWeights.z, cascadeWeights.w);
+
+    vec3 attenuations = mix(cascadeAttenuations.xyz, cascadeAttenuations.yzw, cascadeMix.xyz);
+
+    attenuations.x = mix(1.0, attenuations.x, isPixelOnCascade.x);
+    attenuations.y = mix(1.0, attenuations.y, !isPixelOnCascade.x && isPixelOnCascade.y);
+    attenuations.z = mix(1.0, attenuations.z, !any(isPixelOnCascade.xy) && any(isPixelOnCascade.zw));
+
+    float attenuation = min(attenuations.x, min(attenuations.y, attenuations.z));
+
     // Falloff to max distance
     return mix(1.0, attenuation, evalShadowFalloff(viewDepth));
 }

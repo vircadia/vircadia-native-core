@@ -9,10 +9,6 @@
 //
 #include "BusyWindow.h"
 
-#include <QtCore/QFileInfo>
-
-#include <cmath>
-
 BusyWindow::BusyWindow(QWidget *parent) {
     setupUi(this);
 }

@@ -1,5 +1,4 @@
 set(TARGET_NAME avatars-renderer)
-AUTOSCRIBE_SHADER_LIB(gpu graphics render render-utils)
 setup_hifi_library(Network Script)
 link_hifi_libraries(shared gpu graphics animation model-networking script-engine render render-utils image trackers entities-renderer)
 include_hifi_library_headers(avatars)

@@ -53,6 +53,7 @@
 #include "AudioHelpers.h"
 
 #if defined(Q_OS_ANDROID)
+#define VOICE_RECOGNITION "voicerecognition"
 #include <QtAndroidExtras/QAndroidJniObject>
 #endif
 
@@ -273,31 +274,14 @@ AudioClient::~AudioClient() {
 }
 
 void AudioClient::customDeleter() {
-    deleteLater();
-}
-
-void AudioClient::cleanupBeforeQuit() {
-    // FIXME: this should be put in customDeleter, but there is still a reference to this when it is called,
-    //        so this must be explicitly, synchronously stopped
-    static ConditionalGuard guard;
-    if (QThread::currentThread() != thread()) {
-        // This will likely be called from the main thread, but we don't want to do blocking queued calls
-        // from the main thread, so we use a normal auto-connection invoke, and then use a conditional to wait
-        // for completion
-        // The effect is the same, yes, but we actually want to avoid the use of Qt::BlockingQueuedConnection
-        // in the code
-        QMetaObject::invokeMethod(this, "cleanupBeforeQuit");
-        guard.wait();
-        return;
-    }
-
 #if defined(Q_OS_ANDROID)
     _shouldRestartInputSetup = false;
 #endif
     stop();
     _checkDevicesTimer->stop();
     _checkPeakValuesTimer->stop();
-    guard.trigger();
+
+    deleteLater();
 }
 
 void AudioClient::handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec) {
@@ -465,7 +449,16 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
     return getNamedAudioDeviceForMode(mode, deviceName);
 #endif
 
-
+#if defined (Q_OS_ANDROID)
+    if (mode == QAudio::AudioInput) {
+        auto inputDevices = QAudioDeviceInfo::availableDevices(QAudio::AudioInput);
+        for (auto inputDevice : inputDevices) {
+            if (inputDevice.deviceName() == VOICE_RECOGNITION) {
+                return inputDevice;
+            }
+        }
+    }
+#endif
     // fallback for failed lookup is the default device
     return (mode == QAudio::AudioInput) ? QAudioDeviceInfo::defaultInputDevice() : QAudioDeviceInfo::defaultOutputDevice();
 }
@@ -485,15 +478,6 @@ bool nativeFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
     audioFormat.setSampleSize(16);
     audioFormat.setSampleType(QAudioFormat::SignedInt);
     audioFormat.setByteOrder(QAudioFormat::LittleEndian);
-
-#if defined(Q_OS_ANDROID)
-    // Using the HW sample rate (AUDIO_INPUT_FLAG_FAST) in some samsung phones causes a low volume at input stream
-    // Changing the sample rate forces a resampling that (in samsung) amplifies +18 dB
-    QAndroidJniObject brand =  QAndroidJniObject::getStaticObjectField<jstring>("android/os/Build", "BRAND");
-    if (audioDevice == QAudioDeviceInfo::defaultInputDevice() && brand.toString().contains("samsung", Qt::CaseInsensitive)) {
-        audioFormat.setSampleRate(24000);
-    }
-#endif
 
     if (!audioDevice.isFormatSupported(audioFormat)) {
         qCWarning(audioclient) << "The native format is" << audioFormat << "but isFormatSupported() failed.";
@@ -1848,7 +1832,9 @@ const float AudioClient::CALLBACK_ACCELERATOR_RATIO = IsWindows8OrGreater() ? 1.
 const float AudioClient::CALLBACK_ACCELERATOR_RATIO = 2.0f;
 #endif
 
-#ifdef Q_OS_LINUX
+#ifdef Q_OS_ANDROID
+const float AudioClient::CALLBACK_ACCELERATOR_RATIO = 0.5f;
+#elif defined(Q_OS_LINUX)
 const float AudioClient::CALLBACK_ACCELERATOR_RATIO = 2.0f;
 #endif
 

@@ -23,12 +23,18 @@ AnimStateMachine::~AnimStateMachine() {
 
 const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
 
+    if (_id.contains("userAnimStateMachine")) {
+        _animStack.clear();
+    }
+
     QString desiredStateID = animVars.lookup(_currentStateVar, _currentState->getID());
     if (_currentState->getID() != desiredStateID) {
         // switch states
         bool foundState = false;
         for (auto& state : _states) {
             if (state->getID() == desiredStateID) {
+                // parenthesis means previous state, which is a snapshot.
+                _previousStateID = "(" + _currentState->getID() + ")";
                 switchState(animVars, context, state);
                 foundState = true;
                 break;
@@ -42,6 +48,8 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, co
     // evaluate currentState transitions
     auto desiredState = evaluateTransitions(animVars);
     if (desiredState != _currentState) {
+        // parenthesis means previous state, which is a snapshot.
+        _previousStateID = "(" + _currentState->getID() + ")";
         switchState(animVars, context, desiredState);
     }
 
@@ -49,8 +57,17 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, co
     auto currentStateNode = _children[_currentState->getChildIndex()];
     assert(currentStateNode);
 
+    if (!_previousStateID.contains("none")) {
+        _animStack[_previousStateID] = 1.0f - _alpha;
+    }
+
     if (_duringInterp) {
         _alpha += _alphaVel * dt;
+        if (_alpha > 1.0f) {
+            _animStack[_currentState->getID()] = 1.0f;
+        } else {
+            _animStack[_currentState->getID()] = _alpha;
+        }
         if (_alpha < 1.0f) {
             AnimPoseVec* nextPoses = nullptr;
             AnimPoseVec* prevPoses = nullptr;
@@ -68,20 +85,23 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, co
             } else {
                 assert(false);
             }
-
             if (_poses.size() > 0 && nextPoses && prevPoses && nextPoses->size() > 0 && prevPoses->size() > 0) {
                 ::blend(_poses.size(), &(prevPoses->at(0)), &(nextPoses->at(0)), _alpha, &_poses[0]);
             }
         } else {
             _duringInterp = false;
+            if (_animStack.count(_previousStateID) > 0) {
+                _animStack.erase(_previousStateID);
+            }
+            _previousStateID = "none";
             _prevPoses.clear();
             _nextPoses.clear();
         }
     }
     if (!_duringInterp) {
+        _animStack[_currentState->getID()] = 1.0f;
         _poses = currentStateNode->evaluate(animVars, context, dt, triggersOut);
     }
-
     processOutputJoints(triggersOut);
 
     return _poses;

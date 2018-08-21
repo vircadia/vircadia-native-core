@@ -15,7 +15,7 @@
 #include "UDTTest.h"
 
 int main(int argc, char* argv[]) {
-    setupHifiApplication("UDT Test);
+    setupHifiApplication("UDT Test");
 
     UDTTest app(argc, argv);
     return app.exec();

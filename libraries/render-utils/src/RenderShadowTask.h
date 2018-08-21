@@ -46,8 +46,11 @@ signals:
 
 class RenderShadowTask {
 public:
+
+    // There is one AABox per shadow cascade
+    using Output = render::VaryingArray<AABox, SHADOW_CASCADE_MAX_COUNT>;
     using Config = RenderShadowTaskConfig;
-    using JobModel = render::Task::Model<RenderShadowTask, Config>;
+    using JobModel = render::Task::ModelO<RenderShadowTask, Output, Config>;
 
     RenderShadowTask() {}
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cameraCullFunctor, uint8_t tagBits = 0x00, uint8_t tagMask = 0x00);
@@ -118,7 +121,7 @@ private:
 
 class RenderShadowCascadeSetup {
 public:
-    using Outputs = render::VaryingSet3<render::ItemFilter, render::ItemFilter, ViewFrustumPointer>;
+    using Outputs = render::VaryingSet2<render::ItemFilter, ViewFrustumPointer>;
     using JobModel = render::Job::ModelO<RenderShadowCascadeSetup, Outputs>;
 
     RenderShadowCascadeSetup(unsigned int cascadeIndex, RenderShadowTask::CullFunctor& cullFunctor, uint8_t tagBits = 0x00, uint8_t tagMask = 0x00) : 
@@ -145,6 +148,24 @@ public:
     using Input = RenderShadowSetup::Outputs;
     using JobModel = render::Job::ModelI<RenderShadowTeardown, Input>;
     void run(const render::RenderContextPointer& renderContext, const Input& input);
+};
+
+class CullShadowBounds {
+public:
+    using Inputs = render::VaryingSet3<render::ShapeBounds, render::ItemFilter, ViewFrustumPointer>;
+    using Outputs = render::VaryingSet2<render::ShapeBounds, AABox>;
+    using JobModel = render::Job::ModelIO<CullShadowBounds, Inputs, Outputs>;
+
+    CullShadowBounds(render::CullFunctor cullFunctor) :
+        _cullFunctor{ cullFunctor } {
+    }
+
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
+
+private:
+
+    render::CullFunctor _cullFunctor;
+
 };
 
 #endif // hifi_RenderShadowTask_h

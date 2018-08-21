@@ -186,6 +186,8 @@ Windows.ScrollingWindow {
             return;
         }
 
+        var grabbable = MenuInterface.isOptionChecked("Create Entities As Grabbable (except Zones, Particles, and Lights)");
+
         if (defaultURL.endsWith(".jpg") || defaultURL.endsWith(".png")) {
             var name = assetProxyModel.data(treeView.selection.currentIndex);
             var modelURL = "https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx";
@@ -195,7 +197,7 @@ Windows.ScrollingWindow {
             var collisionless = true;
             var position = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getForward(MyAvatar.orientation)));
             var gravity = Vec3.multiply(Vec3.fromPolar(Math.PI / 2, 0), 0);
-            Entities.addModelEntity(name, modelURL, textures, shapeType, dynamic, collisionless, position, gravity);
+            Entities.addModelEntity(name, modelURL, textures, shapeType, dynamic, collisionless, grabbable, position, gravity);
         } else {
             var SHAPE_TYPE_NONE = 0;
             var SHAPE_TYPE_SIMPLE_HULL = 1;
@@ -281,7 +283,7 @@ Windows.ScrollingWindow {
                         print("Asset browser - adding asset " + url + " (" + name + ") to world.");
 
                         // Entities.addEntity doesn't work from QML, so we use this.
-                        Entities.addModelEntity(name, url, "", shapeType, dynamic, collisionless, addPosition, gravity);
+                        Entities.addModelEntity(name, url, "", shapeType, dynamic, collisionless, grabbable, addPosition, gravity);
                     }
                 }
             });

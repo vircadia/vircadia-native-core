@@ -43,6 +43,28 @@ public:
     void* _b; // ObjectMotionState pointer
 };
 
+struct ContactTestResult {
+    ContactTestResult() = delete;
+
+    ContactTestResult(const ContactTestResult& contactTestResult) :
+        foundID(contactTestResult.foundID),
+        testCollisionPoint(contactTestResult.testCollisionPoint),
+        foundCollisionPoint(contactTestResult.foundCollisionPoint) {
+    }
+
+    ContactTestResult(QUuid foundID, glm::vec3 testCollisionPoint, glm::vec3 otherCollisionPoint) :
+        foundID(foundID),
+        testCollisionPoint(testCollisionPoint),
+        foundCollisionPoint(otherCollisionPoint) {
+    }
+
+    QUuid foundID;
+    // The deepest point of an intersection within the volume of the test shape, in world space.
+    glm::vec3 testCollisionPoint;
+    // The deepest point of an intersection within the volume of the found object, in world space.
+    glm::vec3 foundCollisionPoint;
+};
+
 using ContactMap = std::map<ContactKey, ContactInfo>;
 using CollisionEvents = std::vector<Collision>;
 
@@ -102,6 +124,10 @@ public:
     void setShowBulletContactPoints(bool value);
     void setShowBulletConstraints(bool value);
     void setShowBulletConstraintLimits(bool value);
+
+    // Function for getting colliding objects in the world of specified type
+    // See PhysicsCollisionGroups.h for mask flags.
+    std::vector<ContactTestResult> contactTest(uint16_t mask, const ShapeInfo& regionShapeInfo, const Transform& regionTransform, uint16_t group = USER_COLLISION_GROUP_DYNAMIC) const;
 
 private:
     QList<EntityDynamicPointer> removeDynamicsForBody(btRigidBody* body);

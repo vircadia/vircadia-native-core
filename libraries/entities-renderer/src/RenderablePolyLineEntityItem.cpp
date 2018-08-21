@@ -29,17 +29,11 @@ using namespace render::entities;
 
 static uint8_t CUSTOM_PIPELINE_NUMBER { 0 };
 static const int32_t PAINTSTROKE_TEXTURE_SLOT { 0 };
-// FIXME: This is interfering with the uniform buffers in DeferredLightingEffect.cpp, so use 12 to avoid collisions
-static const int32_t PAINTSTROKE_UNIFORM_SLOT { 12 };
 static gpu::Stream::FormatPointer polylineFormat;
 static gpu::PipelinePointer polylinePipeline;
 #ifdef POLYLINE_ENTITY_USE_FADE_EFFECT
 static gpu::PipelinePointer polylineFadePipeline;
 #endif
-
-struct PolyLineUniforms {
-    glm::vec3 color;
-};
 
 static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key, gpu::Batch& batch) {
     if (!polylinePipeline) {
@@ -84,8 +78,6 @@ PolyLineEntityRenderer::PolyLineEntityRenderer(const EntityItemPointer& entity) 
         polylineFormat->setAttribute(gpu::Stream::COLOR, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB), offsetof(Vertex, color));
     });
 
-    PolyLineUniforms uniforms;
-    _uniformBuffer = std::make_shared<gpu::Buffer>(sizeof(PolyLineUniforms), (const gpu::Byte*) &uniforms);
     _verticesBuffer = std::make_shared<gpu::Buffer>();
 }
 
@@ -126,9 +118,6 @@ void PolyLineEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& 
 }
 
 void PolyLineEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
-    PolyLineUniforms uniforms;
-    uniforms.color = toGlm(entity->getXColor());
-    memcpy(&_uniformBuffer.edit<PolyLineUniforms>(), &uniforms, sizeof(PolyLineUniforms));
     auto pointsChanged = entity->pointsChanged();
     auto strokeWidthsChanged = entity->strokeWidthsChanged();
     auto normalsChanged = entity->normalsChanged();
@@ -274,7 +263,6 @@ void PolyLineEntityRenderer::doRender(RenderArgs* args) {
 
     gpu::Batch& batch = *args->_batch;
     batch.setModelTransform(_polylineTransform);
-    batch.setUniformBuffer(PAINTSTROKE_UNIFORM_SLOT, _uniformBuffer);
 
     if (_texture && _texture->isLoaded()) {
         batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, _texture->getGPUTexture());

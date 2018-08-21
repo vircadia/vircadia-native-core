@@ -171,7 +171,7 @@
     <string>Accept</string>
    </property>
   </widget>
-  <widget class="QComboBox" name="milestonesComboBox">
+  <widget class="QComboBox" name="releasesComboBox">
    <property name="enabled">
     <bool>false</bool>
    </property>
@@ -184,15 +184,15 @@
     </rect>
    </property>
   </widget>
-  <widget class="QLabel" name="milestoneLabel">
+  <widget class="QLabel" name="releasesLabel">
    <property name="enabled">
     <bool>true</bool>
    </property>
    <property name="geometry">
     <rect>
-     <x>140</x>
+     <x>80</x>
      <y>350</y>
-     <width>121</width>
+     <width>181</width>
      <height>20</height>
     </rect>
    </property>
@@ -202,7 +202,7 @@
     </font>
    </property>
    <property name="text">
-    <string>TestRail Milestone</string>
+    <string>TestRail Added for Release</string>
    </property>
   </widget>
   <widget class="QLineEdit" name="urlLineEdit">
@@ -271,7 +271,7 @@
   <tabstop>projectIDLineEdit</tabstop>
   <tabstop>suiteIDLineEdit</tabstop>
   <tabstop>acceptButton</tabstop>
-  <tabstop>milestonesComboBox</tabstop>
+  <tabstop>releasesComboBox</tabstop>
   <tabstop>OKButton</tabstop>
   <tabstop>cancelButton</tabstop>
  </tabstops>

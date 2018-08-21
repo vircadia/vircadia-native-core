@@ -27,28 +27,27 @@
 
 void setupPreferences() {
     auto preferences = DependencyManager::get<Preferences>();
-    auto nodeList = DependencyManager::get<NodeList>();
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     static const QString AVATAR_BASICS { "Avatar Basics" };
     {
-        auto getter = [=]()->QString { return myAvatar->getDisplayName(); };
-        auto setter = [=](const QString& value) { myAvatar->setDisplayName(value); };
+        auto getter = [myAvatar]()->QString { return myAvatar->getDisplayName(); };
+        auto setter = [myAvatar](const QString& value) { myAvatar->setDisplayName(value); };
         auto preference = new EditPreference(AVATAR_BASICS, "Avatar display name (optional)", getter, setter);
         preference->setPlaceholderText("Not showing a name");
         preferences->addPreference(preference);
     }
 
     {
-        auto getter = [=]()->QString { return myAvatar->getCollisionSoundURL(); };
-        auto setter = [=](const QString& value) { myAvatar->setCollisionSoundURL(value); };
+        auto getter = [myAvatar]()->QString { return myAvatar->getCollisionSoundURL(); };
+        auto setter = [myAvatar](const QString& value) { myAvatar->setCollisionSoundURL(value); };
         auto preference = new EditPreference(AVATAR_BASICS, "Avatar collision sound URL (optional)", getter, setter);
         preference->setPlaceholderText("Enter the URL of a sound to play when you bump into something");
         preferences->addPreference(preference);
     }
 
     {
-        auto getter = [=]()->QString { return myAvatar->getFullAvatarURLFromPreferences().toString(); };
-        auto setter = [=](const QString& value) { myAvatar->useFullAvatarURL(value, ""); qApp->clearAvatarOverrideUrl(); };
+        auto getter = [myAvatar]()->QString { return myAvatar->getFullAvatarURLFromPreferences().toString(); };
+        auto setter = [myAvatar](const QString& value) { myAvatar->useFullAvatarURL(value, ""); qApp->clearAvatarOverrideUrl(); };
         auto preference = new AvatarPreference(AVATAR_BASICS, "Appearance", getter, setter);
         preferences->addPreference(preference);
     }
@@ -163,8 +162,8 @@ void setupPreferences() {
 
     static const QString VIEW_CATEGORY{ "View" };
     {
-        auto getter = [=]()->float { return myAvatar->getRealWorldFieldOfView(); };
-        auto setter = [=](float value) { myAvatar->setRealWorldFieldOfView(value); };
+        auto getter = [myAvatar]()->float { return myAvatar->getRealWorldFieldOfView(); };
+        auto setter = [myAvatar](float value) { myAvatar->setRealWorldFieldOfView(value); };
         auto preference = new SpinnerPreference(VIEW_CATEGORY, "Real world vertical field of view (angular size of monitor)", getter, setter);
         preference->setMin(1);
         preference->setMax(180);
@@ -219,13 +218,13 @@ void setupPreferences() {
     
     static const QString AVATAR_TUNING { "Avatar Tuning" };
     {
-        auto getter = [=]()->QString { return myAvatar->getDominantHand(); };
-        auto setter = [=](const QString& value) { myAvatar->setDominantHand(value); };
+        auto getter = [myAvatar]()->QString { return myAvatar->getDominantHand(); };
+        auto setter = [myAvatar](const QString& value) { myAvatar->setDominantHand(value); };
         preferences->addPreference(new PrimaryHandPreference(AVATAR_TUNING, "Dominant Hand", getter, setter));
     }
     {
-        auto getter = [=]()->float { return myAvatar->getTargetScale(); };
-        auto setter = [=](float value) { myAvatar->setTargetScale(value); };
+        auto getter = [myAvatar]()->float { return myAvatar->getTargetScale(); };
+        auto setter = [myAvatar](float value) { myAvatar->setTargetScale(value); };
         auto preference = new SpinnerSliderPreference(AVATAR_TUNING, "Avatar Scale", getter, setter);
         preference->setMin(0.25);
         preference->setMax(4);
@@ -240,16 +239,16 @@ void setupPreferences() {
     }
 
     {
-        auto getter = [=]()->QString { return myAvatar->getAnimGraphOverrideUrl().toString(); };
-        auto setter = [=](const QString& value) { myAvatar->setAnimGraphOverrideUrl(QUrl(value)); };
+        auto getter = [myAvatar]()->QString { return myAvatar->getAnimGraphOverrideUrl().toString(); };
+        auto setter = [myAvatar](const QString& value) { myAvatar->setAnimGraphOverrideUrl(QUrl(value)); };
         auto preference = new EditPreference(AVATAR_TUNING, "Avatar animation JSON", getter, setter);
         preference->setPlaceholderText("default");
         preferences->addPreference(preference);
     }
 
     {
-        auto getter = [=]()->bool { return myAvatar->getCollisionsEnabled(); };
-        auto setter = [=](bool value) { myAvatar->setCollisionsEnabled(value); };
+        auto getter = [myAvatar]()->bool { return myAvatar->getCollisionsEnabled(); };
+        auto setter = [myAvatar](bool value) { myAvatar->setCollisionsEnabled(value); };
         auto preference = new CheckPreference(AVATAR_TUNING, "Enable Avatar collisions", getter, setter);
         preferences->addPreference(preference);
     }
@@ -270,20 +269,20 @@ void setupPreferences() {
     {
 
         static const QString movementsControlChannel = QStringLiteral("Hifi-Advanced-Movement-Disabler");
-        auto getter = [=]()->bool { return myAvatar->useAdvancedMovementControls(); };
-        auto setter = [=](bool value) { myAvatar->setUseAdvancedMovementControls(value); };
+        auto getter = [myAvatar]()->bool { return myAvatar->useAdvancedMovementControls(); };
+        auto setter = [myAvatar](bool value) { myAvatar->setUseAdvancedMovementControls(value); };
         preferences->addPreference(new CheckPreference(VR_MOVEMENT,
                                                        QStringLiteral("Advanced movement for hand controllers"),
                                                        getter, setter));
     }
     {
-        auto getter = [=]()->bool { return myAvatar->getFlyingHMDPref(); };
-        auto setter = [=](bool value) { myAvatar->setFlyingHMDPref(value); };
+        auto getter = [myAvatar]()->bool { return myAvatar->getFlyingHMDPref(); };
+        auto setter = [myAvatar](bool value) { myAvatar->setFlyingHMDPref(value); };
         preferences->addPreference(new CheckPreference(VR_MOVEMENT, "Flying & jumping (HMD)", getter, setter));
     }
     {
-        auto getter = [=]()->int { return myAvatar->getSnapTurn() ? 0 : 1; };
-        auto setter = [=](int value) { myAvatar->setSnapTurn(value == 0); };
+        auto getter = [myAvatar]()->int { return myAvatar->getSnapTurn() ? 0 : 1; };
+        auto setter = [myAvatar](int value) { myAvatar->setSnapTurn(value == 0); };
         auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Snap turn / Smooth turn", getter, setter);
         QStringList items;
         items << "Snap turn" << "Smooth turn";
@@ -309,8 +308,8 @@ void setupPreferences() {
 
     static const QString AVATAR_CAMERA{ "Mouse Sensitivity" };
     {
-        auto getter = [=]()->float { return myAvatar->getPitchSpeed(); };
-        auto setter = [=](float value) { myAvatar->setPitchSpeed(value); };
+        auto getter = [myAvatar]()->float { return myAvatar->getPitchSpeed(); };
+        auto setter = [myAvatar](float value) { myAvatar->setPitchSpeed(value); };
         auto preference = new SpinnerSliderPreference(AVATAR_CAMERA, "Y input:", getter, setter);
         preference->setMin(1.0f);
         preference->setMax(360.0f);
@@ -319,8 +318,8 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        auto getter = [=]()->float { return myAvatar->getYawSpeed(); };
-        auto setter = [=](float value) { myAvatar->setYawSpeed(value); };
+        auto getter = [myAvatar]()->float { return myAvatar->getYawSpeed(); };
+        auto setter = [myAvatar](float value) { myAvatar->setYawSpeed(value); };
         auto preference = new SpinnerSliderPreference(AVATAR_CAMERA, "X input:", getter, setter);
         preference->setMin(1.0f);
         preference->setMax(360.0f);
@@ -381,12 +380,24 @@ void setupPreferences() {
     {
         static const QString NETWORKING("Networking");
 
-        auto nodelist = DependencyManager::get<NodeList>();
+        QWeakPointer<NodeList> nodeListWeak = DependencyManager::get<NodeList>();
         {
             static const int MIN_PORT_NUMBER { 0 };
             static const int MAX_PORT_NUMBER { 65535 };
-            auto getter = [nodelist] { return static_cast<int>(nodelist->getSocketLocalPort()); };
-            auto setter = [nodelist](int preset) { nodelist->setSocketLocalPort(static_cast<quint16>(preset)); };
+            auto getter = [nodeListWeak] {
+                auto nodeList = nodeListWeak.lock();
+                if (nodeList) {
+                    return static_cast<int>(nodeList->getSocketLocalPort());
+                } else {
+                    return -1;
+                }
+            };
+            auto setter = [nodeListWeak](int preset) {
+                auto nodeList = nodeListWeak.lock();
+                if (nodeList) {
+                    nodeList->setSocketLocalPort(static_cast<quint16>(preset));
+                }
+            };
             auto preference = new IntSpinnerPreference(NETWORKING, "Listening Port", getter, setter);
             preference->setMin(MIN_PORT_NUMBER);
             preference->setMax(MAX_PORT_NUMBER);
