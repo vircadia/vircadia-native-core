@@ -127,8 +127,6 @@ float SafeLanding::loadingProgressPercentage() {
     Locker lock(_lock);
     if (_maxTrackedEntityCount > 0) {
         float trackedEntityCount = (float)_trackedEntities.size();
-        qDebug() << "pocessed: " << (_maxTrackedEntityCount - trackedEntityCount) << " -> total: " << _maxTrackedEntityCount;
-        qDebug() << ((_maxTrackedEntityCount - trackedEntityCount) / _maxTrackedEntityCount);
         return ((_maxTrackedEntityCount - trackedEntityCount) / _maxTrackedEntityCount);
     }
 

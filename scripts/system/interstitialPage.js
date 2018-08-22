@@ -27,6 +27,7 @@
     var DEFAULT_Z_OFFSET = 5.45;
 
     var renderViewTask = Render.getConfig("RenderMainView");
+    var toolbar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
     var request = Script.require('request').request;
     var BUTTON_PROPERTIES = {
         text: "Interstitial"
@@ -336,6 +337,7 @@
         Overlays.editOverlay(loadingBarProgress, loadingBarProperties);
 
         if (physicsEnabled) {
+            toolbar.writeProperty("visible", true);
             resetValues();
         }
 

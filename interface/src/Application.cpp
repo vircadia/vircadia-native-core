@@ -3458,7 +3458,8 @@ void Application::setIsInterstitialMode(bool interstitialMode) {
     bool interstitialModeEnabled = menu->isOptionChecked("Enable Interstitial");
     if (_interstitialMode != interstitialMode && interstitialModeEnabled) {
         _interstitialMode = interstitialMode;
-        menu->setIsOptionChecked(MenuOption::Overlays, !_interstitialMode);
+
+        DependencyManager::get<OffscreenUi>()->setPinned(_interstitialMode);
         emit interstitialModeChanged(_interstitialMode);
     }
 }
