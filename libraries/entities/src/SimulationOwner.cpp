@@ -16,29 +16,20 @@
 
 #include <NumericalConstants.h>
 
-const quint8 PENDING_STATE_NOTHING = 0;
-const quint8 PENDING_STATE_TAKE = 1;
-const quint8 PENDING_STATE_RELEASE = 2;
-
 // static
 const int SimulationOwner::NUM_BYTES_ENCODED = NUM_BYTES_RFC4122_UUID + 1;
 
 SimulationOwner::SimulationOwner() :
         _id(),
         _expiry(0),
-        _pendingBidTimestamp(0),
-        _priority(0),
-        _pendingBidPriority(0),
-        _pendingState(PENDING_STATE_NOTHING)
+        _priority(0)
 {
 }
 
-SimulationOwner::SimulationOwner(const QUuid& id, quint8 priority) :
+SimulationOwner::SimulationOwner(const QUuid& id, uint8_t priority) :
         _id(id),
         _expiry(0),
-        _pendingBidTimestamp(0),
-        _priority(priority),
-        _pendingBidPriority(0)
+        _priority(priority)
 {
 }
 
@@ -61,20 +52,11 @@ bool SimulationOwner::fromByteArray(const QByteArray& data) {
 void SimulationOwner::clear() {
     _id = QUuid();
     _expiry = 0;
-    _pendingBidTimestamp = 0;
     _priority = 0;
-    _pendingBidPriority = 0;
-    _pendingState = PENDING_STATE_NOTHING;
 }
 
-void SimulationOwner::setPriority(quint8 priority) {
+void SimulationOwner::setPriority(uint8_t priority) {
     _priority = priority;
-}
-
-void SimulationOwner::promotePriority(quint8 priority) {
-    if (priority > _priority) {
-        _priority = priority;
-    }
 }
 
 bool SimulationOwner::setID(const QUuid& id) {
@@ -89,7 +71,7 @@ bool SimulationOwner::setID(const QUuid& id) {
     return false;
 }
 
-bool SimulationOwner::set(const QUuid& id, quint8 priority) {
+bool SimulationOwner::set(const QUuid& id, uint8_t priority) {
     uint8_t oldPriority = _priority;
     setPriority(priority);
     return setID(id) || oldPriority != _priority;
@@ -101,23 +83,9 @@ bool SimulationOwner::set(const SimulationOwner& owner) {
     return setID(owner._id) || oldPriority != _priority;
 }
 
-void SimulationOwner::setPendingPriority(quint8 priority, const quint64& timestamp) {
-    _pendingBidPriority = priority;
-    _pendingBidTimestamp = timestamp;
-    _pendingState = (_pendingBidPriority == 0) ? PENDING_STATE_RELEASE : PENDING_STATE_TAKE;
-}
-
 void SimulationOwner::updateExpiry() {
-    const quint64 OWNERSHIP_LOCKOUT_EXPIRY = USECS_PER_SECOND / 5;
+    const uint64_t OWNERSHIP_LOCKOUT_EXPIRY = 200 * USECS_PER_MSEC;
     _expiry = usecTimestampNow() + OWNERSHIP_LOCKOUT_EXPIRY;
-}
-
-bool SimulationOwner::pendingRelease(const quint64& timestamp) {
-    return _pendingBidPriority == 0 && _pendingState == PENDING_STATE_RELEASE && _pendingBidTimestamp >= timestamp;
-}
-
-bool SimulationOwner::pendingTake(const quint64& timestamp) {
-    return _pendingBidPriority > 0 && _pendingState == PENDING_STATE_TAKE && _pendingBidTimestamp >= timestamp;
 }
 
 void SimulationOwner::clearCurrentOwner() {
@@ -142,7 +110,7 @@ void SimulationOwner::test() {
 
     { // test set constructor
         QUuid id = QUuid::createUuid();
-        quint8 priority = 128;
+        uint8_t priority = 128;
         SimulationOwner simOwner(id, priority);
         if (simOwner.isNull()) {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR : SimulationOwner should NOT be NULL" << std::endl;
@@ -164,7 +132,7 @@ void SimulationOwner::test() {
 
     { // test set()
         QUuid id = QUuid::createUuid();
-        quint8 priority = 1;
+        uint8_t priority = 1;
         SimulationOwner simOwner;
         simOwner.set(id, priority);
         if (simOwner.isNull()) {

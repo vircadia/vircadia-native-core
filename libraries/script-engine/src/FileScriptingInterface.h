@@ -16,6 +16,15 @@
 #include <QFileInfo>
 #include <QString>
 
+/**jsdoc
+ * @namespace File
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
+ */
+
 class FileScriptingInterface : public QObject {
     Q_OBJECT
 
@@ -23,11 +32,41 @@ public:
     FileScriptingInterface(QObject* parent);
 
 public slots:
+
+    /**jsdoc
+     * @function File.convertUrlToPath
+     * @param {string} url
+     * @returns {string}
+     */
     QString convertUrlToPath(QUrl url);
+
+    /**jsdoc
+     * @function File.runUnzip
+     * @param {string} path
+     * @param {string} url
+     * @param {boolean} autoAdd
+     * @param {boolean} isZip
+     * @param {boolean} isBlocks
+     */
     void runUnzip(QString path, QUrl url, bool autoAdd, bool isZip, bool isBlocks);
+
+    /**jsdoc
+     * @function File.getTempDir
+     * @returns {string}
+     */
     QString getTempDir();
 
 signals:
+
+    /**jsdoc
+     * @function File.unzipResult
+     * @param {string} zipFile
+     * @param {string} unzipFile
+     * @param {boolean} autoAdd
+     * @param {boolean} isZip
+     * @param {boolean} isBlocks
+     * @returns {Signal}
+     */
     void unzipResult(QString zipFile, QStringList unzipFile, bool autoAdd, bool isZip, bool isBlocks);
 
 private:

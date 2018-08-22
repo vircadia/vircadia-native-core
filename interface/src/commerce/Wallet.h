@@ -78,7 +78,7 @@ private:
     QByteArray _salt;
     QByteArray _iv;
     QByteArray _ckey;
-    QString* _passphrase { new QString("") };
+    QString* _passphrase { nullptr };
     bool _isOverridingServer { false };
 
     bool writeWallet(const QString& newPassphrase = QString(""));

@@ -18,6 +18,8 @@
 #include "AbstractViewStateInterface.h"
 #include "EntitiesRendererLogging.h"
 #include <graphics-scripting/Forward.h>
+#include <RenderHifi.h>
+#include "EntityTreeRenderer.h"
 
 class EntityTreeRenderer;
 
@@ -74,6 +76,7 @@ protected:
     virtual Item::Bound getBound() override;
     virtual void render(RenderArgs* args) override final;
     virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) override;
+    virtual render::hifi::Tag getTagMask() const;
 
     // Returns true if the item in question needs to have updateInScene called because of internal rendering state changes
     virtual bool needsRenderUpdate() const;
@@ -94,9 +97,12 @@ protected:
     // Called by the `render` method after `needsRenderUpdate`
     virtual void doRender(RenderArgs* args) = 0;
 
-    bool isFading() const { return _isFading; }
+    virtual bool isFading() const { return _isFading; }
+    void updateModelTransformAndBound();
     virtual bool isTransparent() const { return _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f : false; }
     inline bool isValidRenderItem() const { return _renderItemID != Item::INVALID_ITEM_ID; }
+
+    virtual void setIsVisibleInSecondaryCamera(bool value) { _isVisibleInSecondaryCamera = value; }
     
     template <typename F, typename T>
     T withReadLockResult(const std::function<T()>& f) {
@@ -116,7 +122,6 @@ protected:
         
 
     static void makeStatusGetters(const EntityItemPointer& entity, Item::Status::Getters& statusGetters);
-    static std::function<bool()> _entitiesShouldFadeFunction;
     const Transform& getModelTransform() const;
 
     Item::Bound _bound;
@@ -126,15 +131,17 @@ protected:
     ItemIDs _subRenderItemIDs;
     uint64_t _fadeStartTime{ usecTimestampNow() };
     uint64_t _updateTime{ usecTimestampNow() }; // used when sorting/throttling render updates
-    bool _isFading{ _entitiesShouldFadeFunction() };
+    bool _isFading { EntityTreeRenderer::getEntitiesShouldFadeFunction()() };
     bool _prevIsTransparent { false };
     bool _visible { false };
+    bool _isVisibleInSecondaryCamera { false };
     bool _canCastShadow { false };
     bool _cauterized { false };
     bool _moving { false };
     bool _needsRenderUpdate { false };
     // Only touched on the rendering thread
     bool _renderUpdateQueued{ false };
+    Transform _renderTransform;
 
     std::unordered_map<std::string, graphics::MultiMaterial> _materials;
     std::mutex _materialsLock;

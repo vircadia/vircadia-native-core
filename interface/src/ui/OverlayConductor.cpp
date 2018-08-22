@@ -8,16 +8,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OverlayConductor.h"
+
 #include <OffscreenUi.h>
 #include <display-plugins/CompositorHelper.h>
 
 #include "Application.h"
 #include "avatar/AvatarManager.h"
 #include "InterfaceLogging.h"
-#include "OverlayConductor.h"
 
 OverlayConductor::OverlayConductor() {
-
 }
 
 OverlayConductor::~OverlayConductor() {
@@ -32,8 +32,8 @@ bool OverlayConductor::headOutsideOverlay() const {
     glm::vec3 uiPos = uiTransform.getTranslation();
     glm::vec3 uiForward = uiTransform.getRotation() * glm::vec3(0.0f, 0.0f, -1.0f);
 
-    const float MAX_COMPOSITOR_DISTANCE = 0.99f; // If you're 1m from center of ui sphere, you're at the surface.
-    const float MAX_COMPOSITOR_ANGLE = 180.0f;  // rotation check is effectively disabled
+    const float MAX_COMPOSITOR_DISTANCE = 0.99f;  // If you're 1m from center of ui sphere, you're at the surface.
+    const float MAX_COMPOSITOR_ANGLE = 180.0f;    // rotation check is effectively disabled
     if (glm::distance(uiPos, hmdPos) > MAX_COMPOSITOR_DISTANCE ||
         glm::dot(uiForward, hmdForward) < cosf(glm::radians(MAX_COMPOSITOR_ANGLE))) {
         return true;
@@ -42,10 +42,9 @@ bool OverlayConductor::headOutsideOverlay() const {
 }
 
 bool OverlayConductor::updateAvatarIsAtRest() {
-
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
-    const quint64 REST_ENABLE_TIME_USECS = 1000 * 1000; // 1 s
+    const quint64 REST_ENABLE_TIME_USECS = 1000 * 1000;  // 1 s
     const quint64 REST_DISABLE_TIME_USECS = 200 * 1000;  // 200 ms
 
     const float AT_REST_THRESHOLD = 0.01f;
@@ -66,31 +65,6 @@ bool OverlayConductor::updateAvatarIsAtRest() {
     }
 
     return _currentAtRest;
-}
-
-bool OverlayConductor::updateAvatarHasDriveInput() {
-    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-
-    const quint64 DRIVE_ENABLE_TIME_USECS = 200 * 1000;  // 200 ms
-    const quint64 DRIVE_DISABLE_TIME_USECS = 1000 * 1000; // 1 s
-
-    bool desiredDriving = myAvatar->hasDriveInput();
-    if (desiredDriving != _desiredDriving) {
-        // start timer
-        _desiredDrivingTimer = usecTimestampNow() + (desiredDriving ? DRIVE_ENABLE_TIME_USECS : DRIVE_DISABLE_TIME_USECS);
-    }
-
-    _desiredDriving = desiredDriving;
-
-    if (_desiredDrivingTimer != 0 && usecTimestampNow() > _desiredDrivingTimer) {
-        // timer expired
-        // change state!
-        _currentDriving = _desiredDriving;
-        // disable timer
-        _desiredDrivingTimer = 0;
-    }
-
-    return _currentDriving;
 }
 
 void OverlayConductor::centerUI() {
@@ -114,40 +88,24 @@ void OverlayConductor::update(float dt) {
         _hmdMode = false;
     }
 
-    bool prevDriving = _currentDriving;
-    bool isDriving = updateAvatarHasDriveInput();
-    bool drivingChanged = prevDriving != isDriving;
-    bool isAtRest = updateAvatarIsAtRest();
     bool shouldRecenter = false;
 
-    if (_flags & SuppressedByDrive) {
-        if (!isDriving) {
-            _flags &= ~SuppressedByDrive;
-             shouldRecenter = true;
-        }
-    } else {
-        if (myAvatar->getClearOverlayWhenMoving() && drivingChanged && isDriving) {
-            _flags |= SuppressedByDrive;
-        }
-    }
-
-    if (_flags & SuppressedByHead) {
-        if (isAtRest) {
-            _flags &= ~SuppressedByHead;
+    if (_suppressedByHead) {
+        if (updateAvatarIsAtRest()) {
+            _suppressedByHead = false;
             shouldRecenter = true;
         }
     } else {
         if (_hmdMode && headOutsideOverlay()) {
-            _flags |= SuppressedByHead;
+            _suppressedByHead = true;
         }
     }
 
-
-    bool targetVisible = Menu::getInstance()->isOptionChecked(MenuOption::Overlays) && (0 == (_flags & SuppressMask));
+    bool targetVisible = Menu::getInstance()->isOptionChecked(MenuOption::Overlays) && !_suppressedByHead;
     if (targetVisible != currentVisible) {
         offscreenUi->setPinned(!targetVisible);
     }
-    if (shouldRecenter && !_flags) {
+    if (shouldRecenter && !_suppressedByHead) {
         centerUI();
     }
 }

@@ -9,8 +9,8 @@
 //
 
 import Hifi 1.0
-import QtQuick 2.5
-import QtQuick.Controls 1.4
+import QtQuick 2.7
+import QtQuick.Controls 2.2
 import QtQuick.Controls.Styles 1.4
 import QtGraphicalEffects 1.0
 import "../../controls"
@@ -34,41 +34,16 @@ StackView {
     height: parent !== null ? parent.height : undefined
     property int cardWidth: 212;
     property int cardHeight: 152;
-    property string metaverseBase: addressBarDialog.metaverseServerUrl + "/api/v1/";
     property var tablet: null;
 
-    // This version only implements rpc(method, parameters, callback(error, result)) calls initiated from here, not initiated from .js, nor "notifications".
-    property var rpcCalls: ({});
-    property var rpcCounter: 0;
+    RootHttpRequest { id: http; }
     signal sendToScript(var message);
-    function rpc(method, parameters, callback) {
-        console.debug('TabletAddressDialog: rpc: method = ', method, 'parameters = ', parameters, 'callback = ', callback)
-
-        rpcCalls[rpcCounter] = callback;
-        var message = {method: method, params: parameters, id: rpcCounter++, jsonrpc: "2.0"};
-        sendToScript(message);
-    }
     function fromScript(message) {
-        if (message.method === 'refreshFeeds') {
-            var feeds = [happeningNow, places, snapshots];
-            console.debug('TabletAddressDialog::fromScript: refreshFeeds', 'feeds = ', feeds);
-
-            feeds.forEach(function(feed) {
-                feed.protocol = encodeURIComponent(message.protocolSignature);
-                Qt.callLater(feed.fillDestinations);
-            });
-
-            return;
+        switch (message.method) {
+        case 'http.response':
+            http.handleHttpResponse(message);
+            break;
         }
-
-        var callback = rpcCalls[message.id];
-        if (!callback) {
-            // FIXME: We often recieve very long messages here, the logging of which is drastically slowing down the main thread
-            //console.log('No callback for message fromScript', JSON.stringify(message));
-            return;
-        }
-        delete rpcCalls[message.id];
-        callback(message.error, message.result);
     }
 
     Component { id: tabletWebView; TabletWebView {} }
@@ -114,6 +89,7 @@ StackView {
 
         property bool keyboardEnabled: false
         property bool punctuationMode: false
+        property bool keyboardRaised: false
 
         width: parent.width
         height: parent.height
@@ -141,7 +117,10 @@ StackView {
             bottom: parent.bottom
         }
 
-        onHostChanged: updateLocationTextTimer.restart();
+        onHostChanged: {
+            updateLocationTextTimer.restart();
+            DialogsManager.hideAddressBar();
+        }
 
         Rectangle {
             id: navBar
@@ -232,6 +211,8 @@ StackView {
 
             QQC2.TextField {
                 id: addressLine
+
+                focus: true
                 width: addressLineContainer.width - addressLineContainer.anchors.leftMargin - addressLineContainer.anchors.rightMargin;
                 anchors {
                     left: addressLineContainer.left;
@@ -258,24 +239,20 @@ StackView {
                 color: hifi.colors.text
                 background: Item {}
 
-                QQC2.Label {
-                    T.TextField {
-                        id: control
+            }
 
-                        padding: 6 // numbers taken from Qt\5.9.2\Src\qtquickcontrols2\src\imports\controls\TextField.qml
-                        leftPadding: padding + 4
-                    }
+            QQC2.Label {
+                font: addressLine.font
 
-                    font: parent.font
+                x: addressLine.x
+                y: addressLine.y
+                leftPadding: addressLine.leftPadding
+                topPadding: addressLine.topPadding
 
-                    x: control.leftPadding
-                    y: control.topPadding
-
-                    text: parent.placeholderText2
-                    verticalAlignment: "AlignVCenter"
-                    color: 'gray'
-                    visible: parent.text === ''
-                }
+                text: addressLine.placeholderText2
+                verticalAlignment: "AlignVCenter"
+                color: 'gray'
+                visible: addressLine.text === ''
             }
 
             Rectangle {
@@ -343,12 +320,12 @@ StackView {
                         width: parent.width;
                         cardWidth: 312 + (2 * 4);
                         cardHeight: 163 + (2 * 4);
-                        metaverseServerUrl: addressBarDialog.metaverseServerUrl;
-                        labelText: 'HAPPENING NOW';
+                        labelText: 'FEATURED';
                         actions: 'announcement';
                         filter: addressLine.text;
                         goFunction: goCard;
-                        rpc: root.rpc;
+                        http: http;
+                        autoScrollTimerEnabled: true;
                     }
                     Feed {
                         id: places;
@@ -356,12 +333,11 @@ StackView {
                         cardWidth: 210;
                         cardHeight: 110 + messageHeight;
                         messageHeight: 44;
-                        metaverseServerUrl: addressBarDialog.metaverseServerUrl;
                         labelText: 'PLACES';
                         actions: 'concurrency';
                         filter: addressLine.text;
                         goFunction: goCard;
-                        rpc: root.rpc;
+                        http: http;
                     }
                     Feed {
                         id: snapshots;
@@ -370,12 +346,11 @@ StackView {
                         cardHeight: 75 + messageHeight + 4;
                         messageHeight: 32;
                         textPadding: 6;
-                        metaverseServerUrl: addressBarDialog.metaverseServerUrl;
                         labelText: 'RECENT SNAPS';
                         actions: 'snapshot';
                         filter: addressLine.text;
                         goFunction: goCard;
-                        rpc: root.rpc;
+                        http: http;
                     }
                 }
             }

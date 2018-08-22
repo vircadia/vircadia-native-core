@@ -1,16 +1,8 @@
 var GRID_CONTROLS_HTML_URL = Script.resolvePath('../html/gridControls.html');
 
-Grid = function(opts) {
+Grid = function() {
     var that = {};
-
-    var colors = [
-        { red: 0, green: 0, blue: 0 },
-        { red: 255, green: 255, blue: 255 },
-        { red: 255, green: 0, blue: 0 },
-        { red: 0, green: 255, blue: 0 },
-        { red: 0, green: 0, blue: 255 },
-    ];
-    var colorIndex = 0;
+    var gridColor = { red: 0, green: 0, blue: 0 };
     var gridAlpha = 0.6;
     var origin = { x: 0, y: +MyAvatar.getJointPosition('LeftToeBase').y.toFixed(1) + 0.1, z: 0 };
     var scale = 500;
@@ -28,10 +20,10 @@ Grid = function(opts) {
         position: origin,
         visible: false,
         drawInFront: false,
-        color: colors[0],
+        color: gridColor,
         alpha: gridAlpha,
         minorGridEvery: minorGridEvery,
-        majorGridEvery: majorGridEvery,
+        majorGridEvery: majorGridEvery
     });
 
     that.visible = false;
@@ -39,26 +31,38 @@ Grid = function(opts) {
 
     that.getOrigin = function() {
         return origin;
-    }
+    };
 
-    that.getMinorIncrement = function() { return minorGridEvery; };
+    that.getMinorIncrement = function() {
+        return minorGridEvery;
+    };
+
     that.setMinorIncrement = function(value) {
         minorGridEvery = value;
         updateGrid();
-    }
-    that.getMajorIncrement = function() { return majorGridEvery; };
+    };
+
+    that.getMajorIncrement = function() {
+        return majorGridEvery;
+    };
+
     that.setMajorIncrement = function(value) {
         majorGridEvery = value;
         updateGrid();
     };
 
-    that.getColorIndex = function() { return colorIndex; };
-    that.setColorIndex = function(value) {
-        colorIndex = value;
+    that.getColor = function() {
+        return gridColor;
+    };
+
+    that.setColor = function(value) {
+        gridColor = value;
         updateGrid();
     };
 
-    that.getSnapToGrid = function() { return snapToGrid; };
+    that.getSnapToGrid = function() {
+        return snapToGrid;
+    };
     that.setSnapToGrid = function(value) {
         snapToGrid = value;
         that.emitUpdate();
@@ -67,9 +71,11 @@ Grid = function(opts) {
     that.setEnabled = function(enabled) {
         that.enabled = enabled;
         updateGrid();
-    }
+    };
 
-    that.getVisible = function() { return that.visible; };
+    that.getVisible = function() { 
+        return that.visible; 
+    };
     that.setVisible = function(visible, noUpdate) {
         that.visible = visible;
         updateGrid();
@@ -77,7 +83,7 @@ Grid = function(opts) {
         if (!noUpdate) {
             that.emitUpdate();
         }
-    }
+    };
 
     that.snapToSurface = function(position, dimensions, registration) {
         if (!snapToGrid) {
@@ -97,7 +103,7 @@ Grid = function(opts) {
             y: origin.y + (registration.y * dimensions.y),
             z: position.z
         };
-    }
+    };
 
     that.snapToGrid = function(position, majorOnly, dimensions, registration) {
         if (!snapToGrid) {
@@ -121,7 +127,7 @@ Grid = function(opts) {
         position.z = Math.round(position.z / spacing) * spacing;
 
         return Vec3.sum(Vec3.sum(position, Vec3.multiplyVbyV(registration, dimensions)), origin);
-    }
+    };
 
     that.snapToSpacing = function(delta, majorOnly) {
         if (!snapToGrid) {
@@ -133,11 +139,11 @@ Grid = function(opts) {
         var snappedDelta = {
             x: Math.round(delta.x / spacing) * spacing,
             y: Math.round(delta.y / spacing) * spacing,
-            z: Math.round(delta.z / spacing) * spacing,
+            z: Math.round(delta.z / spacing) * spacing
         };
 
         return snappedDelta;
-    }
+    };
 
 
     that.setPosition = function(newPosition, noUpdate) {
@@ -148,6 +154,12 @@ Grid = function(opts) {
             that.emitUpdate();
         }
     };
+    
+    that.moveToSelection = function() {
+        var newPosition = SelectionManager.worldPosition;
+        newPosition = Vec3.subtract(newPosition, { x: 0, y: SelectionManager.worldDimensions.y * 0.5, z: 0 });
+        that.setPosition(newPosition);
+    };
 
     that.emitUpdate = function() {
         if (that.onUpdate) {
@@ -157,7 +169,7 @@ Grid = function(opts) {
                 majorGridEvery: majorGridEvery,
                 gridSize: halfSize,
                 visible: that.visible,
-                snapToGrid: snapToGrid,
+                snapToGrid: snapToGrid
             });
         }
     };
@@ -183,8 +195,8 @@ Grid = function(opts) {
             majorGridEvery = data.majorGridEvery;
         }
 
-        if (data.colorIndex !== undefined) {
-            colorIndex = data.colorIndex;
+        if (data.gridColor) {
+            gridColor = data.gridColor;
         }
 
         if (data.gridSize) {
@@ -196,7 +208,7 @@ Grid = function(opts) {
         }
 
         updateGrid(true);
-    }
+    };
 
     function updateGrid(noUpdate) {
         Overlays.editOverlay(gridOverlay, {
@@ -204,8 +216,8 @@ Grid = function(opts) {
             visible: that.visible && that.enabled,
             minorGridEvery: minorGridEvery,
             majorGridEvery: majorGridEvery,
-            color: colors[colorIndex],
-            alpha: gridAlpha,
+            color: gridColor,
+            alpha: gridAlpha
         });
 
         if (!noUpdate) {
@@ -219,7 +231,7 @@ Grid = function(opts) {
 
     that.addListener = function(callback) {
         that.onUpdate = callback;
-    }
+    };
 
     Script.scriptEnding.connect(cleanup);
     updateGrid();
@@ -234,24 +246,28 @@ GridTool = function(opts) {
 
     var horizontalGrid = opts.horizontalGrid;
     var verticalGrid = opts.verticalGrid;
+    var createToolsWindow = opts.createToolsWindow;
+    var shouldUseEditTabletApp = opts.shouldUseEditTabletApp;
     var listeners = [];
 
     var webView = null;
     webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-    webView.setVisible = function(value) {};
+    webView.setVisible = function(value) { };
 
     horizontalGrid.addListener(function(data) {
-        webView.emitScriptEvent(JSON.stringify(data));
+        var dataString = JSON.stringify(data);
+        webView.emitScriptEvent(dataString);
+        createToolsWindow.emitScriptEvent(dataString);
         if (selectionDisplay) {
             selectionDisplay.updateHandles();
         }
     });
 
-    webView.webEventReceived.connect(function(data) {
+    var webEventReceived = function(data) {
         try {
             data = JSON.parse(data);
-        } catch(e) {
-            print("gridTool.js: Error parsing JSON: " + e.name + " data " + data)
+        } catch (e) {
+            print("gridTool.js: Error parsing JSON: " + e.name + " data " + data);
             return;
         }
 
@@ -271,20 +287,21 @@ GridTool = function(opts) {
                 }
                 horizontalGrid.setPosition(position);
             } else if (action == "moveToSelection") {
-                var newPosition = selectionManager.worldPosition;
-                newPosition = Vec3.subtract(newPosition, { x: 0, y: selectionManager.worldDimensions.y * 0.5, z: 0 });
-                grid.setPosition(newPosition);
+                horizontalGrid.moveToSelection();
             }
         }
-    });
+    };
+
+    webView.webEventReceived.connect(webEventReceived);
+    createToolsWindow.webEventReceived.addListener(webEventReceived);
 
     that.addListener = function(callback) {
         listeners.push(callback);
-    }
+    };
 
     that.setVisible = function(visible) {
-        webView.setVisible(visible);
-    }
+        webView.setVisible(shouldUseEditTabletApp() && visible);
+    };
 
     return that;
 };

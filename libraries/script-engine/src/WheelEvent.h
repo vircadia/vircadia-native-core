@@ -12,7 +12,11 @@
 #ifndef hifi_WheelEvent_h
 #define hifi_WheelEvent_h
 
+#include <QString>
 #include <QWheelEvent>
+
+class QScriptValue;
+class QScriptEngine;
 
 class WheelEvent {
 public:

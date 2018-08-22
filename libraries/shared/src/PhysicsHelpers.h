@@ -31,7 +31,7 @@ const float KINEMATIC_ANGULAR_SPEED_THRESHOLD = 0.008f;  // ~0.5 deg/sec
 glm::quat computeBulletRotationStep(const glm::vec3& angularVelocity, float timeStep);
 
 namespace Physics {
-    int16_t getDefaultCollisionMask(int16_t group);
+    int32_t getDefaultCollisionMask(int32_t group);
 
     void setSessionUUID(const QUuid& sessionID);
     const QUuid& getSessionUUID();

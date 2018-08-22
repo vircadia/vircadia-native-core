@@ -36,6 +36,9 @@ public:
     void setBackground(bool enable);
     bool isBackgroundEnabled() const;
 
+    void setHaze(bool enable);
+    bool isHazeEnabled() const;
+
     void setObscurance(bool enable);
     bool isObscuranceEnabled() const;
 
@@ -86,7 +89,6 @@ protected:
         float enableSpecular{ 1.0f };
         float enableAlbedo{ 1.0f };
 
-
         float enableAmbientLight{ 1.0f };
         float enableDirectionalLight{ 1.0f };
         float enablePointLight{ 1.0f };
@@ -98,6 +100,11 @@ protected:
 
         float enableMaterialTexturing { 1.0f };
         float enableWireframe { 0.0f }; // false by default
+
+        float enableHaze{ 1.0f };
+        float spare1;  // Needed for having the LightingModel class aligned on a 4 scalar boundary for gpu 
+        float spare2;
+        float spare3;
 
         Parameters() {}
     };
@@ -116,6 +123,7 @@ class MakeLightingModelConfig : public render::Job::Config {
     Q_PROPERTY(bool enableEmissive MEMBER enableEmissive NOTIFY dirty)
     Q_PROPERTY(bool enableLightmap MEMBER enableLightmap NOTIFY dirty)
     Q_PROPERTY(bool enableBackground MEMBER enableBackground NOTIFY dirty)
+    Q_PROPERTY(bool enableHaze MEMBER enableHaze NOTIFY dirty)
 
     Q_PROPERTY(bool enableObscurance MEMBER enableObscurance NOTIFY dirty)
 
@@ -158,6 +166,7 @@ public:
     bool showLightContour { false }; // false by default
 
     bool enableWireframe { false }; // false by default
+    bool enableHaze{ true };
 
 signals:
     void dirty();

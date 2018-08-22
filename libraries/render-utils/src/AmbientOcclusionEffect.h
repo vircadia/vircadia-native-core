@@ -181,7 +181,7 @@ class DebugAmbientOcclusionConfig : public render::Job::Config {
     Q_PROPERTY(bool showCursorPixel MEMBER showCursorPixel NOTIFY dirty)
     Q_PROPERTY(glm::vec2 debugCursorTexcoord MEMBER debugCursorTexcoord NOTIFY dirty)
 public:
-    DebugAmbientOcclusionConfig() : render::Job::Config(true) {}
+    DebugAmbientOcclusionConfig() : render::Job::Config(false) {}
 
     bool showCursorPixel{ false };
     glm::vec2 debugCursorTexcoord{ 0.5f, 0.5f };

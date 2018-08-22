@@ -11,10 +11,6 @@
 
 using namespace hifi::qml::impl;
 
-#if defined(Q_OS_ANDROID)
-#define USE_GLES 1
-#endif
-
 uint64_t uvec2ToUint64(const QSize& size) {
     uint64_t result = size.width();
     result <<= 32;
@@ -31,25 +27,22 @@ void TextureCache::acquireSize(const QSize& size) {
 
 void TextureCache::releaseSize(const QSize& size) {
     auto sizeKey = uvec2ToUint64(size);
-    ValueList texturesToDelete;
     {
         Lock lock(_mutex);
         assert(_textures.count(sizeKey));
         auto& textureSet = _textures[sizeKey];
         if (0 == --textureSet.clientCount) {
-            texturesToDelete.swap(textureSet.returnedTextures);
+            for (const auto& textureAndFence : textureSet.returnedTextures) {
+                destroy(textureAndFence);
+            }
             _textures.erase(sizeKey);
         }
-    }
-    for (const auto& textureAndFence : texturesToDelete) {
-        destroy(textureAndFence);
     }
 }
 
 uint32_t TextureCache::acquireTexture(const QSize& size) {
     Lock lock(_mutex);
     recycle();
-
 
     ++_activeTextureCount;
     auto sizeKey = uvec2ToUint64(size);
@@ -83,7 +76,12 @@ void TextureCache::report() {
 }
 
 size_t TextureCache::getUsedTextureMemory() {
-    return _totalTextureUsage;
+    size_t toReturn;
+    {
+        Lock lock(_mutex);
+        toReturn = _totalTextureUsage;
+    }
+    return toReturn;
 }
 
 size_t TextureCache::getMemoryForSize(const QSize& size) {
@@ -122,8 +120,6 @@ uint32_t TextureCache::createTexture(const QSize& size) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 8.0f);
 #if !defined(USE_GLES)
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -0.2f);
 #endif

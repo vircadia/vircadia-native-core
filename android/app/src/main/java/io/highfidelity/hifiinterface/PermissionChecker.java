@@ -1,17 +1,18 @@
 package io.highfidelity.hifiinterface;
 
 import android.Manifest;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.app.Activity;
-
-import android.content.DialogInterface;
-import android.app.AlertDialog;
+import android.util.Log;
+import android.view.View;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import android.util.Log;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -24,20 +25,31 @@ public class PermissionChecker extends Activity {
     private static final int REQUEST_PERMISSIONS = 20;
 
     private static final boolean CHOOSE_AVATAR_ON_STARTUP = false;
+    private static final String TAG = "Interface";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Intent myIntent = new Intent(this, BreakpadUploaderService.class);
+        startService(myIntent);
         if (CHOOSE_AVATAR_ON_STARTUP) {
             showMenu();
         }
-        this.requestAppPermissions(new
-                String[]{
-                Manifest.permission.READ_EXTERNAL_STORAGE,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                Manifest.permission.RECORD_AUDIO,
-                Manifest.permission.CAMERA}
-            ,2,REQUEST_PERMISSIONS);
+
+        File obbDir = getObbDir();
+        if (!obbDir.exists()) {
+            if (obbDir.mkdirs()) {
+                Log.d(TAG, "Obb dir created");
+            }
+        }
+
+        requestAppPermissions(new
+                        String[]{
+                        Manifest.permission.READ_EXTERNAL_STORAGE,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                        Manifest.permission.RECORD_AUDIO,
+                        Manifest.permission.CAMERA}
+                ,2,REQUEST_PERMISSIONS);
 
     }
 
@@ -63,7 +75,6 @@ public class PermissionChecker extends Activity {
     }
 
     private void launchActivityWithPermissions(){
-        finish();
         Intent i = new Intent(this, InterfaceActivity.class);
         startActivity(i);
         finish();
@@ -126,5 +137,12 @@ public class PermissionChecker extends Activity {
         }
     }
 
-
+    @Override
+    protected void onResume() {
+        super.onResume();
+        View decorView = getWindow().getDecorView();
+        // Hide the status bar.
+        int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
+        decorView.setSystemUiVisibility(uiOptions);
+    }
 }

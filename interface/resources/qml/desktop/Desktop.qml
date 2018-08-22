@@ -8,8 +8,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.5
+import QtQuick 2.7
 import QtQuick.Controls 1.4
+import QtQuick.Controls 2.3 as QQC2
 
 import "../dialogs"
 import "../js/Utils.js" as Utils
@@ -148,17 +149,17 @@ FocusScope {
         }
 
         function isModalWindow(window) {
-            return window.modality !== Qt.NonModal;
+            return window.modality !== (typeof Qt !== 'undefined' ? Qt.NonModal : 0);
         }
 
         function getTopLevelWindows(predicate) {
-            return findMatchingChildren(desktop, function(child) {
-                return (isTopLevelWindow(child) && (!predicate || predicate(child)));
+            return d.findMatchingChildren(desktop, function(child) {
+                return (d.isTopLevelWindow(child) && (!predicate || predicate(child)));
             });
         }
 
         function getDesktopWindow(item) {
-            return findParentMatching(item, isTopLevelWindow)
+            return d.findParentMatching(item, d.isTopLevelWindow)
         }
 
         function fixupZOrder(windows, basis, topWindow) {
@@ -204,23 +205,23 @@ FocusScope {
         function raiseWindow(targetWindow) {
             var predicate;
             var zBasis;
-            if (isModalWindow(targetWindow)) {
-                predicate = isModalWindow;
+            if (d.isModalWindow(targetWindow)) {
+                predicate = d.isModalWindow;
                 zBasis = zLevels.modal
-            } else if (isAlwaysOnTopWindow(targetWindow)) {
+            } else if (d.isAlwaysOnTopWindow(targetWindow)) {
                 predicate = function(window) {
-                    return (isAlwaysOnTopWindow(window) && !isModalWindow(window));
+                    return (d.isAlwaysOnTopWindow(window) && !d.isModalWindow(window));
                 }
                 zBasis = zLevels.top
             } else {
                 predicate = function(window) {
-                    return (!isAlwaysOnTopWindow(window) && !isModalWindow(window));
+                    return (!d.isAlwaysOnTopWindow(window) && !d.isModalWindow(window));
                 }
                 zBasis = zLevels.normal
             }
 
-            var windows = getTopLevelWindows(predicate);
-            fixupZOrder(windows, zBasis, targetWindow);
+            var windows = d.getTopLevelWindows(predicate);
+            d.fixupZOrder(windows, zBasis, targetWindow);
         }
 
         Component.onCompleted: {
@@ -263,7 +264,7 @@ FocusScope {
         }
 
         function getRepositionChildren(predicate) {
-            return findMatchingChildren(desktop, function(child) {
+            return d.findMatchingChildren(desktop, function(child) {
                 return (child.shouldReposition === true && (!predicate || predicate(child)));
             });
         }
@@ -321,6 +322,18 @@ FocusScope {
             }
         }
         return false;
+    }
+
+    function hideDesktopWindows() {
+        for (var index = 0; index < desktop.visibleChildren.length; index++) {
+            var child = desktop.visibleChildren[index];
+            if (child.topLevelWindow && child.hasOwnProperty("modality")) {
+                var TOOLBAR_NAME = "com.highfidelity.interface.toolbar.system"
+                if (child.objectName !== TOOLBAR_NAME) {
+                    child.setShown(false);
+                }
+            }
+        }
     }
 
     function setPinned(newPinned) {
@@ -565,7 +578,7 @@ FocusScope {
         ColorAnimation on color { from: "#7fffff00"; to: "#7f0000ff"; duration: 1000; loops: 9999 }
     }
 
-    Action {
+    QQC2.Action {
         text: "Toggle Focus Debugger"
         shortcut: "Ctrl+Shift+F"
         enabled: DebugQML

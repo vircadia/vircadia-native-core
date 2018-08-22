@@ -17,7 +17,6 @@ var SNAPSHOT_DELAY = 500; // 500ms
 var FINISH_SOUND_DELAY = 350;
 var resetOverlays;
 var reticleVisible;
-var clearOverlayWhenMoving;
 
 var buttonName = "SNAP";
 var buttonConnected = false;
@@ -37,8 +36,8 @@ var shareAfterLogin = false;
 var snapshotToShareAfterLogin = [];
 var METAVERSE_BASE = Account.metaverseServerURL;
 var isLoggedIn;
-var numGifSnapshotUploadsPending = 0;
-var numStillSnapshotUploadsPending = 0;
+var mostRecentGifSnapshotFilename = "";
+var mostRecentStillSnapshotFilename = "";
 
 // It's totally unnecessary to return to C++ to perform many of these requests, such as DELETEing an old story,
 // POSTING a new one, PUTTING a new audience, or GETTING story data. It's far more efficient to do all of that within JS
@@ -62,6 +61,10 @@ function removeFromStoryIDsToMaybeDelete(story_id) {
 
 function fileExtensionMatches(filePath, extension) {
     return filePath.split('.').pop().toLowerCase() === extension;
+}
+
+function getFilenameFromPath(str) {
+    return str.split('\\').pop().split('/').pop();
 }
 
 function onMessage(message) {
@@ -147,9 +150,9 @@ function onMessage(message) {
                         print('Sharing snapshot with audience "for_url":', message.data);
                         Window.shareSnapshot(message.data, Settings.getValue("previousSnapshotHref"));                      
                         if (isGif) {
-                            numGifSnapshotUploadsPending++;
+                            mostRecentGifSnapshotFilename = getFilenameFromPath(message.data);
                         } else {
-                            numStillSnapshotUploadsPending++;
+                            mostRecentStillSnapshotFilename = getFilenameFromPath(message.data);
                         }
                     } else {
                         shareAfterLogin = true;
@@ -275,13 +278,26 @@ function onMessage(message) {
     }
 }
 
-var POLAROID_PRINT_SOUND = SoundCache.getSound(Script.resolvePath("assets/sounds/sound-print-photo.wav"));
-var POLAROID_MODEL_URL  = 'http://hifi-content.s3.amazonaws.com/alan/dev/Test/snapshot.fbx';
+var POLAROID_PRINT_SOUND = SoundCache.getSound(Script.resourcesPath() + "sounds/snapshot/sound-print-photo.wav");
+var POLAROID_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/alan/dev/Test/snapshot.fbx';
+var POLAROID_RATE_LIMIT_MS = 1000;
+var polaroidPrintingIsRateLimited = false;
 
 function printToPolaroid(image_url) {
+
+    // Rate-limit printing
+    if (polaroidPrintingIsRateLimited) {
+        return;
+    }
+    polaroidPrintingIsRateLimited = true;
+    Script.setTimeout(function () {
+        polaroidPrintingIsRateLimited = false;
+    }, POLAROID_RATE_LIMIT_MS);
+
     var polaroid_url = image_url;                  
 
     var model_pos = Vec3.sum(MyAvatar.position, Vec3.multiply(1.25, Quat.getForward(MyAvatar.orientation)));
+    model_pos.y += 0.39; // Print a bit closer to the head
     
     var model_q1 = MyAvatar.orientation;
     var model_q2 = Quat.angleAxis(90, Quat.getRight(model_q1));
@@ -291,10 +307,11 @@ function printToPolaroid(image_url) {
         "type": 'Model',
         "shapeType": 'box',
 
-        "name": "New Snapshot",
-        "description": "Printed from Snaps",                               
+        "name": "Snapshot by " + MyAvatar.sessionDisplayName,
+        "description": "Printed from SNAP app",                               
         "modelURL": POLAROID_MODEL_URL,
 
+        "dimensions": { "x": 0.5667, "y": 0.042, "z": 0.4176 },
         "position": model_pos,
         "rotation": model_rot,
 
@@ -302,10 +319,8 @@ function printToPolaroid(image_url) {
 
         "density": 200,
         "restitution": 0.15,                            
-        "gravity": { "x": 0, "y": -4.5, "z": 0 },
-        
-        "velocity": { "x": 0, "y": 3.5, "z": 0 },
-        "angularVelocity": { "x": -1.0, "y": 0, "z": -1.3 },
+        "gravity": { "x": 0, "y": -2.0, "z": 0 },
+        "damping": 0.45,
 
         "dynamic": true, 
         "collisionsWillMove": true,
@@ -347,7 +362,7 @@ function fillImageDataFromPrevious() {
             story_id: previousStillSnapStoryID,
             blastButtonDisabled: previousStillSnapBlastingDisabled,
             hifiButtonDisabled: previousStillSnapHifiSharingDisabled,
-            errorPath: Script.resolvePath(Script.resourcesPath() + 'snapshot/img/no-image.jpg')
+            errorPath: Script.resourcesPath() + 'snapshot/img/no-image.jpg'
         });
     }
     if (previousAnimatedSnapPath !== "") {
@@ -356,7 +371,7 @@ function fillImageDataFromPrevious() {
             story_id: previousAnimatedSnapStoryID,
             blastButtonDisabled: previousAnimatedSnapBlastingDisabled,
             hifiButtonDisabled: previousAnimatedSnapHifiSharingDisabled,
-            errorPath: Script.resolvePath(Script.resourcesPath() + 'snapshot/img/no-image.jpg')
+            errorPath: Script.resourcesPath() + 'snapshot/img/no-image.jpg'
         });
     }
 }
@@ -384,13 +399,11 @@ function snapshotUploaded(isError, reply) {
             ignoreStillSnapshotData = false;
         storyIDsToMaybeDelete.push(storyID);
         if (isGif) {
-            numGifSnapshotUploadsPending--;
-            if (numGifSnapshotUploadsPending !== 0) {
+            if (mostRecentGifSnapshotFilename !== replyJson.user_story.details.original_image_file_name) {
                 ignoreGifSnapshotData = true;
             }
         } else {
-            numStillSnapshotUploadsPending--;
-            if (numStillSnapshotUploadsPending !== 0) {
+            if (mostRecentStillSnapshotFilename !== replyJson.user_story.details.original_image_file_name) {
                 ignoreStillSnapshotData = true;
             }
         }
@@ -411,8 +424,6 @@ function snapshotUploaded(isError, reply) {
         } else {
             print('Ignoring snapshotUploaded() callback for stale ' + (isGif ? 'GIF' : 'Still' ) + ' snapshot. Stale story ID:', storyID);
         }
-    } else {
-        print(reply);
     }
     isUploadingPrintableStill = false;
 }
@@ -437,11 +448,6 @@ function takeSnapshot() {
     isUploadingPrintableStill = true;
     updatePrintPermissions();
 
-    // Raising the desktop for the share dialog at end will interact badly with clearOverlayWhenMoving.
-    // Turn it off now, before we start futzing with things (and possibly moving).
-    clearOverlayWhenMoving = MyAvatar.getClearOverlayWhenMoving(); // Do not use Settings. MyAvatar keeps a separate copy.
-    MyAvatar.setClearOverlayWhenMoving(false);
-
     // We will record snapshots based on the starting location. That could change, e.g., when recording a .gif.
     // Even the domainID could change (e.g., if the user falls into a teleporter while recording).
     href = location.href;
@@ -452,7 +458,7 @@ function takeSnapshot() {
     maybeDeleteSnapshotStories();
 
     // update button states
-    resetOverlays = Menu.isOptionChecked("Overlays"); // For completeness. Certainly true if the button is visible to be clicked.
+    resetOverlays = Menu.isOptionChecked("Show Overlays"); // For completeness. Certainly true if the button is visible to be clicked.
     reticleVisible = Reticle.visible;
     Reticle.visible = false;
     if (!HMD.active) {
@@ -472,10 +478,10 @@ function takeSnapshot() {
 
     // hide overlays if they are on
     if (resetOverlays) {
-        Menu.setIsOptionChecked("Overlays", false);
+        Menu.setIsOptionChecked("Show Overlays", false);
     }
 
-    var snapActivateSound = SoundCache.getSound(Script.resolvePath("../../resources/sounds/snap.wav"));
+    var snapActivateSound = SoundCache.getSound(Script.resourcesPath() + "sounds/snapshot/snap.wav");
 
     // take snapshot (with no notification)
     Script.setTimeout(function () {
@@ -529,7 +535,7 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
     Reticle.allowMouseCapture = true;
     // show overlays if they were on
     if (resetOverlays) {
-        Menu.setIsOptionChecked("Overlays", true);
+        Menu.setIsOptionChecked("Show Overlays", true);
     }
     Window.stillSnapshotTaken.disconnect(stillSnapshotTaken);
     if (!buttonConnected) {
@@ -543,9 +549,6 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
     // last element in data array tells dialog whether we can share or not
     Settings.setValue("previousStillSnapPath", pathStillSnapshot);
 
-    if (clearOverlayWhenMoving) {
-        MyAvatar.setClearOverlayWhenMoving(true); // not until after the share dialog
-    }
     HMD.openTablet();
 
     isDomainOpen(domainID, function (canShare) {
@@ -585,20 +588,17 @@ function processingGifStarted(pathStillSnapshot) {
     Reticle.allowMouseCapture = true;
     // show overlays if they were on
     if (resetOverlays) {
-        Menu.setIsOptionChecked("Overlays", true);
+        Menu.setIsOptionChecked("Show Overlays", true);
     }
     Settings.setValue("previousStillSnapPath", pathStillSnapshot);
 
-    if (clearOverlayWhenMoving) {
-        MyAvatar.setClearOverlayWhenMoving(true); // not until after the share dialog
-    }
     HMD.openTablet();
     
     isDomainOpen(domainID, function (canShare) {
         snapshotOptions = {
             containsGif: true,
             processingGif: true,
-            loadingGifPath: Script.resolvePath(Script.resourcesPath() + 'icons/loadingDark.gif'),
+            loadingGifPath: Script.resourcesPath() + 'icons/loadingDark.gif',
             canShare: canShare,
             isLoggedIn: isLoggedIn
         };
@@ -687,9 +687,9 @@ function onUsernameChanged() {
                         Window.shareSnapshot(element.path, element.href);
                         var isGif = fileExtensionMatches(element.path, "gif");
                         if (isGif) {
-                            numGifSnapshotUploadsPending++;
+                            mostRecentGifSnapshotFilename = getFilenameFromPath(element.path);
                         } else {
-                            numStillSnapshotUploadsPending++;
+                            mostRecentStillSnapshotFilename = getFilenameFromPath(element.path);
                         }
                     });
                 }

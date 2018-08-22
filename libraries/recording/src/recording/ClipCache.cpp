@@ -6,11 +6,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ClipCache.h"
+
 #include <QThread>
 
 #include <shared/QtHelpers.h>
 
-#include "ClipCache.h"
 #include "impl/PointerClip.h"
 #include "Logging.h"
 

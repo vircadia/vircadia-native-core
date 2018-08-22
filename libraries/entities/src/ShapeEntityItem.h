@@ -90,11 +90,15 @@ public:
 
     bool shouldBePhysical() const override { return !isDead(); }
     
-    bool supportsDetailedRayIntersection() const override;
+    bool supportsDetailedIntersection() const override;
     bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                 OctreeElementPointer& element, float& distance,
                                                 BoxFace& face, glm::vec3& surfaceNormal,
                                                 QVariantMap& extraInfo, bool precisionPicking) const override;
+    bool findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
+                                          const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
+                                          BoxFace& face, glm::vec3& surfaceNormal,
+                                          QVariantMap& extraInfo, bool precisionPicking) const override;
 
     void debugDump() const override;
 
@@ -105,7 +109,7 @@ public:
 
 protected:
 
-    float _alpha { 1 };  // FIXME: This property is not used.
+    float _alpha { 1.0f };
     rgbColor _color;
     entity::Shape _shape { entity::Shape::Sphere };
 

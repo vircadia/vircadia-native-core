@@ -46,7 +46,7 @@ public:
 
     void addMenu(const QString& menuName);
     void removeMenu(const QString& menuName);
-    QAction* addMenuItem(PluginType pluginType, const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable = false, bool checked = false, const QString& groupName = "");
+    void addMenuItem(PluginType pluginType, const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable = false, bool checked = false, const QString& groupName = "");
     void removeMenuItem(const QString& menuName, const QString& menuItem);
     bool isOptionChecked(const QString& name);
     void setIsOptionChecked(const QString& path, bool checked);
@@ -54,6 +54,12 @@ public:
     void setFullscreen(const QScreen* targetScreen, bool hideMenu = false);
     void unsetFullscreen(const QScreen* avoidScreen = nullptr);
 
+    // FIXME remove access tot he menu from the plugin container
+    // Instead let display plugins expose a structure about the kinds
+    // of actions and menu items they want to have appear when they are
+    // active and allow the application to act on that when the display
+    // plugin becomes active (or when the UI is initialized, and a 
+    // display plugin is already active)
     virtual ui::Menu* getPrimaryMenu() = 0;
     virtual void showDisplayPluginsTools(bool show = true) = 0;
     virtual void requestReset() = 0;
@@ -77,9 +83,9 @@ public:
     }
 
 protected:
+    void flushMenuUpdates();
     QVector<QPair<QString, QString>> _currentDisplayPluginActions;
     QVector<QPair<QString, QString>> _currentInputPluginActions;
-    std::map<QString, QActionGroup*> _exclusiveGroups;
     QRect _savedGeometry { 10, 120, 800, 600 };
 };
 

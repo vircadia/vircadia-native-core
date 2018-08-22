@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OctreeSceneStats.h"
+
 #include <limits>
 #include <QString>
 #include <QStringList>
@@ -20,8 +22,6 @@
 #include "OctreePacketData.h"
 #include "OctreeElement.h"
 #include "OctreeLogging.h"
-#include "OctreeSceneStats.h"
-
 
 const int samples = 100;
 OctreeSceneStats::OctreeSceneStats() :
@@ -282,10 +282,6 @@ void OctreeSceneStats::didntFit(const OctreeElementPointer& element) {
     } else {
         _internalDidntFit++;
     }
-}
-
-void OctreeSceneStats::colorBitsWritten() {
-    _colorBitsWritten++;
 }
 
 void OctreeSceneStats::existsBitsWritten() {
@@ -636,12 +632,8 @@ void OctreeSceneStats::trackIncomingOctreePacket(ReceivedMessage& message, bool 
     const qint64 MAX_RESONABLE_FLIGHT_TIME = 200 * USECS_PER_SECOND; // 200 seconds is more than enough time for a packet to arrive
     const qint64 MIN_RESONABLE_FLIGHT_TIME = -1 * (qint64)USECS_PER_SECOND; // more than 1 second of "reverse flight time" would be unreasonable
     if (flightTime > MAX_RESONABLE_FLIGHT_TIME || flightTime < MIN_RESONABLE_FLIGHT_TIME) {
-        static QString repeatedMessage
-            = LogHandler::getInstance().addRepeatedMessageRegex(
-                    "ignoring unreasonable packet... flightTime: -?\\d+ nodeClockSkewUsec: -?\\d+ usecs");
-
-        qCDebug(octree) << "ignoring unreasonable packet... flightTime:" << flightTime
-                    << "nodeClockSkewUsec:" << nodeClockSkewUsec << "usecs";;
+        HIFI_FCDEBUG(octree(), "ignoring unreasonable packet... flightTime:" << flightTime
+                    << "nodeClockSkewUsec:" << nodeClockSkewUsec << "usecs");
         return; // ignore any packets that are unreasonable
     }
 

@@ -25,7 +25,7 @@ public:
 
     BloomConfig() : render::Task::Config(false) {}
 
-    float size{ 0.8f };
+    float size{ 0.7f };
 
     void setIntensity(float value);
     float getIntensity() const;
@@ -41,7 +41,7 @@ class BloomThresholdConfig : public render::Job::Config {
 
 public:
 
-    float threshold{ 1.25f };
+    float threshold{ 0.9f };
 
 signals:
     void dirty();
@@ -61,20 +61,23 @@ public:
 
 private:
 
+#include "BloomThreshold.shared.slh"
+
     gpu::FramebufferPointer _outputBuffer;
     gpu::PipelinePointer _pipeline;
-    float _threshold;
-    unsigned int _downsamplingFactor;
+    gpu::StructBuffer<Parameters> _parameters;
 };
 
 
 class BloomApplyConfig : public render::Job::Config {
     Q_OBJECT
         Q_PROPERTY(float intensity MEMBER intensity NOTIFY dirty)
+		Q_PROPERTY(float sigma MEMBER sigma NOTIFY dirty)
 
 public:
 
-    float intensity{ 0.8f };
+    float intensity{ 0.25f };
+	float sigma{ 1.0f };
 
 signals:
     void dirty();
@@ -93,8 +96,10 @@ public:
 
 private:
 
+#include "BloomApply.shared.slh"
+
     gpu::PipelinePointer _pipeline;
-    float _intensity{ 1.0f };
+    gpu::StructBuffer<Parameters> _parameters;
 };
 
 class BloomDraw {

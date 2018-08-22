@@ -26,8 +26,6 @@
 
 #include <FBX.h>
 
-static const QString BAKED_FBX_EXTENSION = ".baked.fbx";
-
 using TextureBakerThreadGetter = std::function<QThread*()>;
 
 class FBXBaker : public ModelBaker {
@@ -51,11 +49,10 @@ private:
     void loadSourceFBX();
 
     void importScene();
+    void embedTextureMetaData();
     void rewriteAndBakeSceneModels();
     void rewriteAndBakeSceneTextures();
-    void exportScene();
 
-    FBXNode _rootNode;
     FBXGeometry* _geometry;
     QHash<QString, int> _textureNameMatchCount;
     QHash<QUrl, QString> _remappedTexturePaths;

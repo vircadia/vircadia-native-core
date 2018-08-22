@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "LightEntityItem.h"
 
 #include <QDebug>
 
@@ -19,7 +20,6 @@
 #include "EntityItemProperties.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
-#include "LightEntityItem.h"
 
 const bool LightEntityItem::DEFAULT_IS_SPOTLIGHT = false;
 const float LightEntityItem::DEFAULT_INTENSITY = 1.0f;
@@ -186,7 +186,6 @@ int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 }
 
 
-// TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
 EntityPropertyFlags LightEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_IS_SPOTLIGHT;
@@ -310,3 +309,14 @@ bool LightEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const
     return _lightsArePickable;
 }
 
+bool LightEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
+                        const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
+                        BoxFace& face, glm::vec3& surfaceNormal,
+                        QVariantMap& extraInfo, bool precisionPicking) const {
+    // TODO: consider if this is really what we want to do. We've made it so that "lights are pickable" is a global state
+    // this is probably reasonable since there's typically only one tree you'd be picking on at a time. Technically we could
+    // be on the clipboard and someone might be trying to use the parabola intersection API there. Anyway... if you ever try to
+    // do parabola intersection testing off of trees other than the main tree of the main entity renderer, then we'll need to
+    // fix this mechanism.
+    return _lightsArePickable;
+}

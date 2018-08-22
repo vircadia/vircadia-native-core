@@ -47,7 +47,7 @@ static_assert(
 const char* SDL2Manager::NAME = "SDL2";
 const char* SDL2Manager::SDL2_ID_STRING = "SDL2";
 
-const bool DEFAULT_ENABLED = false;
+const bool DEFAULT_ENABLED = true;
 
 SDL_JoystickID SDL2Manager::getInstanceId(SDL_GameController* controller) {
     SDL_Joystick* joystick = SDL_GameControllerGetJoystick(controller);

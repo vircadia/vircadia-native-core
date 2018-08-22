@@ -9,9 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QtGlobal>
-
 #include "LogUtils.h"
+
+#include <QtGlobal>
 
 void LogUtils::init() {
 #ifdef Q_OS_WIN

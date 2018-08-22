@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Vec3.h"
+
 #include <glm/gtx/vector_angle.hpp>
 
 #include <QDebug>
@@ -16,11 +18,10 @@
 #include <GLMHelpers.h>
 #include <glm/gtx/string_cast.hpp>
 
-#include "ScriptEngineLogging.h"
 #include "NumericalConstants.h"
-#include "Vec3.h"
-
 #include "ScriptEngine.h"
+#include "ScriptEngineLogging.h"
+
 
 float Vec3::orientedAngle(const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& v3) {
     float radians = glm::orientedAngle(glm::normalize(v1), glm::normalize(v2), glm::normalize(v3));

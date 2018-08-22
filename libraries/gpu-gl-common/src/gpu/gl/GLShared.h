@@ -137,6 +137,8 @@ class GLQuery;
 class GLState;
 class GLShader;
 class GLTexture;
+class GLTextureTransferEngine;
+using GLTextureTransferEnginePointer = std::shared_ptr<GLTextureTransferEngine>;
 struct ShaderObject;
 
 } } // namespace gpu::gl 

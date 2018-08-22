@@ -9,11 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "HifiSockAddr.h"
+
 #include <qdatastream.h>
 #include <qhostinfo.h>
 #include <qnetworkinterface.h>
 
-#include "HifiSockAddr.h"
 #include "NetworkLogging.h"
 
 int hifiSockAddrMetaTypeId = qRegisterMetaType<HifiSockAddr>();

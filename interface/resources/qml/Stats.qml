@@ -1,6 +1,5 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.3
-import QtQuick.Controls 1.2
 import '.'
 
 Item {
@@ -175,6 +174,21 @@ Item {
                         text: "Yaw: " + root.yaw.toFixed(1)
                     }
                     StatText {
+                        visible: root.animStackNames.length > 0;
+                        text: "Anim Stack Names:"
+                    }
+                    ListView {
+                        width: geoCol.width
+                        height: root.animStackNames.length * 15
+                        visible: root.animStackNames.length > 0;
+                        model: root.animStackNames
+                        delegate: StatText {
+                            text: modelData.length > 30
+                                ?  modelData.substring(0, 5) + "..." + modelData.substring(modelData.length - 22)
+                                : modelData
+                        }
+                    }
+                    StatText {
                         visible: root.expanded;
                         text: "Avatar Mixer In: " + root.avatarMixerInKbps + " kbps, " +
                             root.avatarMixerInPps + "pps";
@@ -264,6 +278,12 @@ Item {
                     }
                     StatText {
                         text: "GPU: " + root.gpuFrameTime.toFixed(1) + " ms"
+                    }                    
+                    StatText {
+                        text: "GPU (Per pixel): " + root.gpuFrameTimePerPixel.toFixed(5) + " ns/pp"
+                    }                    
+                    StatText {
+                        text: "GPU frame size: " + root.gpuFrameSize.x + " x " + root.gpuFrameSize.y
                     }
                     StatText {
                         text: "Triangles: " + root.triangles +
@@ -282,10 +302,12 @@ Item {
                         text: "  Pressure State: " + root.gpuTextureMemoryPressureState;
                     }
                     StatText {
-                        text: "  Resource Allocated / Populated / Pending: ";
+                        property bool showIdeal: (root.gpuTextureResourceIdealMemory != root.gpuTextureResourceMemory);
+                        text: "  Resource Allocated " + (showIdeal ? "(Ideal)" : "") + " / Populated / Pending: ";
                     }
                     StatText {
-                        text: "       " + root.gpuTextureResourceMemory + " / " + root.gpuTextureResourcePopulatedMemory + " / " + root.texturePendingTransfers + " MB";
+                        property bool showIdeal: (root.gpuTextureResourceIdealMemory != root.gpuTextureResourceMemory);
+                        text: "       " + root.gpuTextureResourceMemory + (showIdeal ? ("(" +  root.gpuTextureResourceIdealMemory + ")") : "") + " / " + root.gpuTextureResourcePopulatedMemory + " / " + root.texturePendingTransfers + " MB";
                     }
                     StatText {
                         text: "  Resident Memory: " + root.gpuTextureResidentMemory + " MB";

@@ -102,7 +102,7 @@ inline float ColorUtils::tosRGBFloat(const float &linear) {
     } else if (0 < linear && linear < SRGB_ELBOW_INV) {
         sRGBValue = 12.92f * linear;
     } else if (SRGB_ELBOW_INV <= linear && linear < 1) {
-        sRGBValue = 1.055f * powf(linear, 0.41666f - 0.055f);
+        sRGBValue = 1.055f * powf(linear, 0.41666f) - 0.055f;
     } else {
         sRGBValue = 1.0f;
     }

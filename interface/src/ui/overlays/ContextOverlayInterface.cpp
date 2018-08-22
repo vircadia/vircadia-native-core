@@ -50,7 +50,9 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _entityPropertyFlags += PROP_OWNING_AVATAR_ID;
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>().data();
-    connect(entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity, this, &ContextOverlayInterface::createOrDestroyContextOverlay);
+    connect(entityScriptingInterface, &EntityScriptingInterface::clickDownOnEntity, this, &ContextOverlayInterface::clickDownOnEntity);
+    connect(entityScriptingInterface, &EntityScriptingInterface::holdingClickOnEntity, this, &ContextOverlayInterface::holdingClickOnEntity);
+    connect(entityScriptingInterface, &EntityScriptingInterface::mouseReleaseOnEntity, this, &ContextOverlayInterface::mouseReleaseOnEntity);
     connect(entityScriptingInterface, &EntityScriptingInterface::hoverEnterEntity, this, &ContextOverlayInterface::contextOverlays_hoverEnterEntity);
     connect(entityScriptingInterface, &EntityScriptingInterface::hoverLeaveEntity, this, &ContextOverlayInterface::contextOverlays_hoverLeaveEntity);
     connect(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"), &TabletProxy::tabletShownChanged, this, [&]() {
@@ -95,6 +97,35 @@ static const float CONTEXT_OVERLAY_UNHOVERED_COLORPULSE = 1.0f;
 
 void ContextOverlayInterface::setEnabled(bool enabled) {
     _enabled = enabled;
+    if (!enabled) {
+        // Destroy any potentially-active ContextOverlays when disabling the interface
+        createOrDestroyContextOverlay(EntityItemID(), PointerEvent());
+    }
+}
+
+void ContextOverlayInterface::clickDownOnEntity(const EntityItemID& entityItemID, const PointerEvent& event) {
+    if (_enabled && event.getButton() == PointerEvent::SecondaryButton && contextOverlayFilterPassed(entityItemID)) {
+        _mouseDownEntity = entityItemID;
+        _mouseDownEntityTimestamp = usecTimestampNow();
+    } else {
+        if (!_currentEntityWithContextOverlay.isNull()) {
+            disableEntityHighlight(_currentEntityWithContextOverlay);
+            destroyContextOverlay(_currentEntityWithContextOverlay, event);
+        }
+    }
+}
+
+static const float CONTEXT_OVERLAY_CLICK_HOLD_TIME_MSEC = 400.0f;
+void ContextOverlayInterface::holdingClickOnEntity(const EntityItemID& entityItemID, const PointerEvent& event) {
+    if (!_mouseDownEntity.isNull() && ((usecTimestampNow() - _mouseDownEntityTimestamp) > (CONTEXT_OVERLAY_CLICK_HOLD_TIME_MSEC * USECS_PER_MSEC))) {
+        _mouseDownEntity = EntityItemID();
+    }
+}
+
+void ContextOverlayInterface::mouseReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event) {
+    if (_enabled && event.getButton() == PointerEvent::SecondaryButton && contextOverlayFilterPassed(entityItemID) && _mouseDownEntity == entityItemID) {
+        createOrDestroyContextOverlay(entityItemID, event);
+    }
 }
 
 bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
@@ -166,7 +197,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 _contextOverlay->setPulseMin(CONTEXT_OVERLAY_UNHOVERED_PULSEMIN);
                 _contextOverlay->setPulseMax(CONTEXT_OVERLAY_UNHOVERED_PULSEMAX);
                 _contextOverlay->setColorPulse(CONTEXT_OVERLAY_UNHOVERED_COLORPULSE);
-                _contextOverlay->setIgnoreRayIntersection(false);
+                _contextOverlay->setIgnorePickIntersection(false);
                 _contextOverlay->setDrawInFront(true);
                 _contextOverlay->setURL(PathUtils::resourcesUrl() + "images/inspect-icon.png");
                 _contextOverlay->setIsFacingAvatar(true);

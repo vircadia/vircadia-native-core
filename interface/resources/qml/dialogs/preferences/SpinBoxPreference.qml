@@ -18,19 +18,17 @@ Preference {
     height: control.height + hifi.dimensions.controlInterlineHeight
 
     Component.onCompleted: {
-        spinner.value = preference.value;
+        spinner.realValue = preference.value;
     }
 
     function save() {
-        preference.value = spinner.value;
+        preference.value = spinner.realValue;
         preference.save();
     }
 
-    Item {
+    Row {
         id: control
         anchors {
-            left: parent.left
-            right: parent.right
             bottom: parent.bottom
         }
         height: Math.max(spinnerLabel.height, spinner.controlHeight)
@@ -40,14 +38,13 @@ Preference {
             text: root.label + ":"
             colorScheme: hifi.colorSchemes.dark
             anchors {
-                left: parent.left
-                right: spinner.left
-                rightMargin: hifi.dimensions.labelPadding
                 verticalCenter: parent.verticalCenter
             }
             horizontalAlignment: Text.AlignRight
             wrapMode: Text.Wrap
         }
+
+        spacing: hifi.dimensions.labelPadding
 
         SpinBox {
             id: spinner
@@ -56,7 +53,6 @@ Preference {
             maximumValue: preference.max
             width: 100
             anchors {
-                right: parent.right
                 verticalCenter: parent.verticalCenter
             }
             colorScheme: hifi.colorSchemes.dark

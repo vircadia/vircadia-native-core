@@ -13,6 +13,9 @@
 #define hifi_MouseEvent_h
 
 #include <QMouseEvent>
+#include <QScriptValue>
+
+class QScriptEngine;
 
 class MouseEvent {
 public:

@@ -39,6 +39,7 @@ Windows.ScrollingWindow {
     property var assetMappingsModel: Assets.mappingModel;
     property var currentDirectory;
     property var selectedItemCount: treeView.selection.selectedIndexes.length;
+    property int updatesCount: 0; // this is used for notifying model-dependent bindings about model updates
 
     Settings {
         category: "Overlay.AssetServer"
@@ -51,6 +52,9 @@ Windows.ScrollingWindow {
         ApplicationInterface.uploadRequest.connect(uploadClicked);
         assetMappingsModel.errorGettingMappings.connect(handleGetMappingsError);
         assetMappingsModel.autoRefreshEnabled = true;
+        assetMappingsModel.updated.connect(function() {
+            ++updatesCount;
+        });
 
         reload();
     }
@@ -182,6 +186,8 @@ Windows.ScrollingWindow {
             return;
         }
 
+        var grabbable = MenuInterface.isOptionChecked("Create Entities As Grabbable (except Zones, Particles, and Lights)");
+
         if (defaultURL.endsWith(".jpg") || defaultURL.endsWith(".png")) {
             var name = assetProxyModel.data(treeView.selection.currentIndex);
             var modelURL = "https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx";
@@ -191,7 +197,7 @@ Windows.ScrollingWindow {
             var collisionless = true;
             var position = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getForward(MyAvatar.orientation)));
             var gravity = Vec3.multiply(Vec3.fromPolar(Math.PI / 2, 0), 0);
-            Entities.addModelEntity(name, modelURL, textures, shapeType, dynamic, collisionless, position, gravity);
+            Entities.addModelEntity(name, modelURL, textures, shapeType, dynamic, collisionless, grabbable, position, gravity);
         } else {
             var SHAPE_TYPE_NONE = 0;
             var SHAPE_TYPE_SIMPLE_HULL = 1;
@@ -277,7 +283,7 @@ Windows.ScrollingWindow {
                         print("Asset browser - adding asset " + url + " (" + name + ") to world.");
 
                         // Entities.addEntity doesn't work from QML, so we use this.
-                        Entities.addModelEntity(name, url, "", shapeType, dynamic, collisionless, addPosition, gravity);
+                        Entities.addModelEntity(name, url, "", shapeType, dynamic, collisionless, grabbable, addPosition, gravity);
                     }
                 }
             });
@@ -852,12 +858,17 @@ Windows.ScrollingWindow {
                     checked = Qt.binding(isChecked);
                 }
 
+                function getStatus() {
+                    // kind of hack for ensuring getStatus() will be re-evaluated on updatesCount changes
+                    return updatesCount, assetProxyModel.data(treeView.selection.currentIndex, 0x105);
+                }
+                
                 function isEnabled() {
                     if (!treeView.selection.hasSelection) {
                         return false;
                     }
 
-                    var status = assetProxyModel.data(treeView.selection.currentIndex, 0x105);
+                    var status = getStatus();
                     if (status === "--") {
                         return false;
                     }
@@ -882,9 +893,9 @@ Windows.ScrollingWindow {
                         return false;
                     }
 
-                    var status = assetProxyModel.data(treeView.selection.currentIndex, 0x105);
-                    return isEnabled() && status !== "Not Baked";
-                }
+                    var status = getStatus();
+                    return isEnabled() && status !== "Not Baked"; 
+                }  
             }
 
             Item {

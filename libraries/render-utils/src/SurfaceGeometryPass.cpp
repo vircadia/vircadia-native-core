@@ -13,28 +13,20 @@
 #include <limits>
 
 #include <gpu/Context.h>
-#include <gpu/StandardShaderLib.h>
+#include <shaders/Shaders.h>
+
 #include "StencilMaskPass.h"
 
-const int DepthLinearPass_FrameTransformSlot = 0;
-const int DepthLinearPass_DepthMapSlot = 0;
-const int DepthLinearPass_NormalMapSlot = 1;
+#include "render-utils/ShaderConstants.h"
 
-const int SurfaceGeometryPass_FrameTransformSlot = 0;
-const int SurfaceGeometryPass_ParamsSlot = 1;
-const int SurfaceGeometryPass_DepthMapSlot = 0;
-const int SurfaceGeometryPass_NormalMapSlot = 1;
-
-#include "surfaceGeometry_makeLinearDepth_frag.h"
-#include "surfaceGeometry_downsampleDepthNormal_frag.h"
-
-#include "surfaceGeometry_makeCurvature_frag.h"
-
+namespace ru {
+    using render_utils::slot::texture::Texture;
+    using render_utils::slot::buffer::Buffer;
+}
 
 
 LinearDepthFramebuffer::LinearDepthFramebuffer() {
 }
-
 
 void LinearDepthFramebuffer::updatePrimaryDepth(const gpu::TexturePointer& depthBuffer) {
     //If the depth buffer or size changed, we need to delete our FBOs
@@ -167,8 +159,8 @@ void LinearDepthPass::run(const render::RenderContextPointer& renderContext, con
     outputs.edit3() = halfLinearDepthTexture;
     outputs.edit4() = halfNormalTexture;
    
-    auto linearDepthPipeline = getLinearDepthPipeline();
-    auto downsamplePipeline = getDownsamplePipeline();
+    auto linearDepthPipeline = getLinearDepthPipeline(renderContext);
+    auto downsamplePipeline = getDownsamplePipeline(renderContext);
 
     auto depthViewport = args->_viewport;
     auto halfViewport = depthViewport >> 1;
@@ -183,21 +175,21 @@ void LinearDepthPass::run(const render::RenderContextPointer& renderContext, con
         batch.resetViewTransform();
         batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(_linearDepthFramebuffer->getDepthFrameSize(), depthViewport));
 
-        batch.setUniformBuffer(DepthLinearPass_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
+        batch.setUniformBuffer(ru::Buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
 
         // LinearDepth
         batch.setFramebuffer(linearDepthFBO);
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(clearLinearDepth, 0.0f, 0.0f, 0.0f));
         batch.setPipeline(linearDepthPipeline);
-        batch.setResourceTexture(DepthLinearPass_DepthMapSlot, depthBuffer);
+        batch.setResourceTexture(ru::Texture::SurfaceGeometryDepth, depthBuffer);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         // Downsample
         batch.setViewportTransform(halfViewport);
        
         batch.setFramebuffer(downsampleFBO);
-        batch.setResourceTexture(DepthLinearPass_DepthMapSlot, linearDepthTexture);
-        batch.setResourceTexture(DepthLinearPass_NormalMapSlot, normalTexture);
+        batch.setResourceTexture(ru::Texture::SurfaceGeometryDepth, linearDepthTexture);
+        batch.setResourceTexture(ru::Texture::SurfaceGeometryNormal, normalTexture);
         batch.setPipeline(downsamplePipeline);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
         
@@ -209,17 +201,10 @@ void LinearDepthPass::run(const render::RenderContextPointer& renderContext, con
 }
 
 
-const gpu::PipelinePointer& LinearDepthPass::getLinearDepthPipeline() {
+const gpu::PipelinePointer& LinearDepthPass::getLinearDepthPipeline(const render::RenderContextPointer& renderContext) {
+    gpu::ShaderPointer program;
     if (!_linearDepthPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = surfaceGeometry_makeLinearDepth_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), DepthLinearPass_FrameTransformSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), DepthLinearPass_DepthMapSlot));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
+        program = gpu::Shader::createProgram(shader::render_utils::program::surfaceGeometry_makeLinearDepth);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
@@ -232,22 +217,14 @@ const gpu::PipelinePointer& LinearDepthPass::getLinearDepthPipeline() {
         _linearDepthPipeline = gpu::Pipeline::create(program, state);
     }
 
+
     return _linearDepthPipeline;
 }
 
 
-const gpu::PipelinePointer& LinearDepthPass::getDownsamplePipeline() {
+const gpu::PipelinePointer& LinearDepthPass::getDownsamplePipeline(const render::RenderContextPointer& renderContext) {
     if (!_downsamplePipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = surfaceGeometry_downsampleDepthNormal_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), DepthLinearPass_FrameTransformSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("linearDepthMap"), DepthLinearPass_DepthMapSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), DepthLinearPass_NormalMapSlot));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::surfaceGeometry_downsampleDepthNormal);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         PrepareStencil::testShape(*state);
@@ -455,7 +432,7 @@ void SurfaceGeometryPass::run(const render::RenderContextPointer& renderContext,
     outputs.edit2() = curvatureFramebuffer;
     outputs.edit3() = lowCurvatureFramebuffer;
 
-    auto curvaturePipeline = getCurvaturePipeline();
+    auto curvaturePipeline = getCurvaturePipeline(renderContext);
     auto diffuseVPipeline = _diffusePass.getBlurVPipeline();
     auto diffuseHPipeline = _diffusePass.getBlurHPipeline();
 
@@ -477,8 +454,8 @@ void SurfaceGeometryPass::run(const render::RenderContextPointer& renderContext,
         batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(_surfaceGeometryFramebuffer->getSourceFrameSize(), curvatureViewport));
 
         // Curvature pass
-        batch.setUniformBuffer(SurfaceGeometryPass_FrameTransformSlot, frameTransform->getFrameTransformBuffer());
-        batch.setUniformBuffer(SurfaceGeometryPass_ParamsSlot, _parametersBuffer);
+        batch.setUniformBuffer(ru::Buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
+        batch.setUniformBuffer(ru::Buffer::SurfaceGeometryParams, _parametersBuffer);
         batch.setFramebuffer(curvatureFramebuffer);
         // We can avoid the clear by drawing the same clear vallue from the makeCurvature shader. same performances or no worse     
 #ifdef USE_STENCIL_TEST
@@ -486,47 +463,44 @@ void SurfaceGeometryPass::run(const render::RenderContextPointer& renderContext,
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0));
 #endif
         batch.setPipeline(curvaturePipeline);
-        batch.setResourceTexture(SurfaceGeometryPass_DepthMapSlot, linearDepthTexture);
-        batch.setResourceTexture(SurfaceGeometryPass_NormalMapSlot, normalTexture);
+        batch.setResourceTexture(ru::Texture::SurfaceGeometryDepth, linearDepthTexture);
+        batch.setResourceTexture(ru::Texture::SurfaceGeometryNormal, normalTexture);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
 
-        batch.setResourceTexture(SurfaceGeometryPass_DepthMapSlot, nullptr);
-        batch.setResourceTexture(SurfaceGeometryPass_NormalMapSlot, nullptr);
-        batch.setUniformBuffer(SurfaceGeometryPass_ParamsSlot, nullptr);
-        batch.setUniformBuffer(SurfaceGeometryPass_FrameTransformSlot, nullptr);
+        batch.setResourceTexture(ru::Texture::SurfaceGeometryDepth, nullptr);
+        batch.setResourceTexture(ru::Texture::SurfaceGeometryNormal, nullptr);
+        batch.setUniformBuffer(ru::Buffer::SurfaceGeometryParams, nullptr);
+        batch.setUniformBuffer(ru::Buffer::DeferredFrameTransform, nullptr);
 
         // Diffusion pass
-        const int BlurTask_ParamsSlot = 0;
-        const int BlurTask_SourceSlot = 0;
-        const int BlurTask_DepthSlot = 1;
-        batch.setUniformBuffer(BlurTask_ParamsSlot, _diffusePass.getParameters()->_parametersBuffer);
+        batch.setUniformBuffer(ru::Buffer::BlurParams, _diffusePass.getParameters()->_parametersBuffer);
 
-        batch.setResourceTexture(BlurTask_DepthSlot, linearDepthTexture);
+        batch.setResourceTexture(ru::Texture::BlurDepth, linearDepthTexture);
 
         batch.setFramebuffer(blurringFramebuffer);     
         batch.setPipeline(diffuseVPipeline);
-        batch.setResourceTexture(BlurTask_SourceSlot, curvatureTexture);
+        batch.setResourceTexture(ru::Texture::BlurSource, curvatureTexture);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         batch.setFramebuffer(curvatureFramebuffer);
         batch.setPipeline(diffuseHPipeline);
-        batch.setResourceTexture(BlurTask_SourceSlot, blurringTexture);
+        batch.setResourceTexture(ru::Texture::BlurSource, blurringTexture);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         batch.setFramebuffer(blurringFramebuffer);     
         batch.setPipeline(diffuseVPipeline);
-        batch.setResourceTexture(BlurTask_SourceSlot, curvatureTexture);
+        batch.setResourceTexture(ru::Texture::BlurSource, curvatureTexture);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         batch.setFramebuffer(lowCurvatureFramebuffer);
         batch.setPipeline(diffuseHPipeline);
-        batch.setResourceTexture(BlurTask_SourceSlot, blurringTexture);
+        batch.setResourceTexture(ru::Texture::BlurSource, blurringTexture);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-        batch.setResourceTexture(BlurTask_SourceSlot, nullptr);
-        batch.setResourceTexture(BlurTask_DepthSlot, nullptr);
-        batch.setUniformBuffer(BlurTask_ParamsSlot, nullptr);
+        batch.setResourceTexture(ru::Texture::BlurSource, nullptr);
+        batch.setResourceTexture(ru::Texture::BlurDepth, nullptr);
+        batch.setUniformBuffer(ru::Buffer::BlurParams, nullptr);
 
         _gpuTimer->end(batch);
     });
@@ -536,20 +510,9 @@ void SurfaceGeometryPass::run(const render::RenderContextPointer& renderContext,
     config->setGPUBatchRunTime(_gpuTimer->getGPUAverage(), _gpuTimer->getBatchAverage());
 }
 
-
-const gpu::PipelinePointer& SurfaceGeometryPass::getCurvaturePipeline() {
+const gpu::PipelinePointer& SurfaceGeometryPass::getCurvaturePipeline(const render::RenderContextPointer& renderContext) {
     if (!_curvaturePipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
-        auto ps = surfaceGeometry_makeCurvature_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), SurfaceGeometryPass_FrameTransformSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("surfaceGeometryParamsBuffer"), SurfaceGeometryPass_ParamsSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), SurfaceGeometryPass_DepthMapSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), SurfaceGeometryPass_NormalMapSlot));
-        gpu::Shader::makeProgram(*program, slotBindings);
-
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::surfaceGeometry_makeCurvature);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 

@@ -60,6 +60,7 @@ public:
     void createDesktop(const QUrl& url);
     void show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     void hide(const QString& name);
+    void hideDesktopWindows();
     bool isVisible(const QString& name);
     void toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     bool shouldSwallowShortcut(QEvent* event);

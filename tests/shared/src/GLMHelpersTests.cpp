@@ -14,7 +14,7 @@
 #include <NumericalConstants.h>
 #include <StreamUtils.h>
 
-#include <../QTestExtensions.h>
+#include <test-utils/QTestExtensions.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/simd/matrix.h>
 

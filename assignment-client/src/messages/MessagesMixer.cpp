@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "MessagesMixer.h"
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QJsonObject>
 #include <QBuffer>
@@ -16,7 +18,6 @@
 #include <MessagesClient.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
-#include "MessagesMixer.h"
 
 const QString MESSAGES_MIXER_LOGGING_NAME = "messages-mixer";
 

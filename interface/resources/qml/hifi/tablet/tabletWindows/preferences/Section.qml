@@ -9,7 +9,6 @@
 //
 
 import QtQuick 2.5
-import QtQuick.Controls 1.4
 import Hifi 1.0
 
 import "../../../../dialogs/preferences"
@@ -25,6 +24,7 @@ Preference {
     property bool isLast: false
     property string name: "Header"
     property real spacing: 8
+    property var sectionProperties: ({})
     default property alias preferences: contentContainer.children
 
     HifiConstants { id: hifi }
@@ -83,6 +83,7 @@ Preference {
         property var comboBoxBuilder: Component { ComboBoxPreference { } }
         property var spinnerSliderBuilder: Component { SpinnerSliderPreference { } }
         property var primaryHandBuilder: Component { PrimaryHandPreference { } }
+        property var radioButtonsBuilder: Component { RadioButtonsPreference { } }
         property var preferences: []
         property int checkBoxCount: 0
 
@@ -155,10 +156,36 @@ Preference {
                     checkBoxCount++;
                     builder = primaryHandBuilder;
                     break;
+                case Preference.RadioButtons:
+                    checkBoxCount++;
+                    builder = radioButtonsBuilder;
+                    break;
             };
 
             if (builder) {
                 preferences.push(builder.createObject(contentContainer, { preference: preference, isFirstCheckBox: (checkBoxCount === 1) , z: zpos}));
+
+                var preferenceObject = preferences[preferences.length - 1];
+                var props = sectionProperties.hasOwnProperty(preference.name) ? sectionProperties[preference.name] : {};
+
+                for(var prop in props) {
+                    var value = props[prop];
+                    if(value.indexOf('.') !== -1) {
+                        var splittedValues = value.split('.');
+                        if(splittedValues[0] === 'parent') {
+                            value = preferenceObject.parent[splittedValues[1]];
+                        }
+                    } else if(value === 'undefined') {
+                        value = undefined;
+                    }
+
+                    if(prop.indexOf('.') !== -1) {
+                        var splittedProps = prop.split('.');
+                        preferenceObject[splittedProps[0]][splittedProps[1]] = value;
+                    } else {
+                        preferenceObject[prop] = value;
+                    }
+                }
             }
         }
     }

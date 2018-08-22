@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ModesWidget.h"
+
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QStackedWidget>
@@ -16,8 +18,6 @@
 #include "DomainBakeWidget.h"
 #include "ModelBakeWidget.h"
 #include "SkyboxBakeWidget.h"
-
-#include "ModesWidget.h"
 
 ModesWidget::ModesWidget(QWidget* parent, Qt::WindowFlags flags) :
     QWidget(parent, flags)

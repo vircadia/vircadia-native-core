@@ -79,7 +79,7 @@ private:
 
     VelocityFramebufferPointer _velocityFramebuffer;
 
-    const gpu::PipelinePointer& getCameraMotionPipeline();
+    const gpu::PipelinePointer& getCameraMotionPipeline(const render::RenderContextPointer& renderContext);
     gpu::PipelinePointer _cameraMotionPipeline;
 
     gpu::RangeTimerPointer _gpuTimer;

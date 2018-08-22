@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AudioScope.h"
+
 #include <qvector2d.h>
 #include <limits>
 
@@ -18,8 +20,6 @@
 #include <TextureCache.h>
 #include <gpu/Context.h>
 #include <GLMHelpers.h>
-
-#include "AudioScope.h"
 
 static const unsigned int DEFAULT_FRAMES_PER_SCOPE = 5;
 static const unsigned int MULTIPLIER_SCOPE_HEIGHT = 20;

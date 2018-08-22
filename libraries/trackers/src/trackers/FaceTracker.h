@@ -18,6 +18,7 @@
 #include <SettingHandle.h>
 
 /// Base class for face trackers (DDE, BinaryVR).
+
 class FaceTracker : public QObject {
     Q_OBJECT
     
@@ -58,11 +59,27 @@ public:
                                 QVector<float>& coefficients);
 
 signals:
+
+    /**jsdoc 
+     * @function FaceTracker.muteToggled
+     * @returns {Signal}
+     */
     void muteToggled();
 
 public slots:
+
+    // No JSDoc here because it's overridden in DdeFaceTracker.
     virtual void setEnabled(bool enabled) = 0;
+    
+    /**jsdoc
+     * @function FaceTracker.toggleMute
+     */
     void toggleMute();
+
+    /**jsdoc
+     * @function FaceTracker.getMuted
+     * @returns {boolean} 
+     */
     bool getMuted() { return _isMuted; }
 
 protected:

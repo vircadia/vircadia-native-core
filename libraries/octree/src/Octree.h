@@ -49,116 +49,53 @@ public:
 
 // Callback function, for recuseTreeWithOperation
 using RecurseOctreeOperation = std::function<bool(const OctreeElementPointer&, void*)>;
-typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
 typedef QHash<uint, AACube> CubeList;
 
 const bool NO_EXISTS_BITS         = false;
 const bool WANT_EXISTS_BITS       = true;
-const bool COLLAPSE_EMPTY_TREE    = true;
-const bool DONT_COLLAPSE          = false;
 
-const int DONT_CHOP              = 0;
 const int NO_BOUNDARY_ADJUST     = 0;
 const int LOW_RES_MOVING_ADJUST  = 1;
 
-#define IGNORE_COVERAGE_MAP      NULL
-
 class EncodeBitstreamParams {
 public:
-    ViewFrustum viewFrustum;
-    ViewFrustum lastViewFrustum;
-    int maxEncodeLevel;
-    int maxLevelReached;
     bool includeExistsBits;
-    int chopLevels;
-    bool deltaView;
-    bool recurseEverything { false };
-    int boundaryLevelAdjust;
-    float octreeElementSizeScale;
-    bool forceSendScene;
     NodeData* nodeData;
 
     // output hints from the encode process
     typedef enum {
         UNKNOWN,
         DIDNT_FIT,
-        NULL_NODE,
-        NULL_NODE_DATA,
-        TOO_DEEP,
-        LOD_SKIP,
-        OUT_OF_VIEW,
-        WAS_IN_VIEW,
-        NO_CHANGE,
-        OCCLUDED,
         FINISHED
     } reason;
     reason stopReason;
 
-    EncodeBitstreamParams(
-        int maxEncodeLevel = INT_MAX,
-        bool includeExistsBits = WANT_EXISTS_BITS,
-        int  chopLevels = 0,
-        bool useDeltaView = false,
-        int boundaryLevelAdjust = NO_BOUNDARY_ADJUST,
-        float octreeElementSizeScale = DEFAULT_OCTREE_SIZE_SCALE,
-        bool forceSendScene = true,
-        NodeData* nodeData = nullptr) :
-            maxEncodeLevel(maxEncodeLevel),
-            maxLevelReached(0),
+    EncodeBitstreamParams(bool includeExistsBits = WANT_EXISTS_BITS,
+                          NodeData* nodeData = nullptr) :
             includeExistsBits(includeExistsBits),
-            chopLevels(chopLevels),
-            deltaView(useDeltaView),
-            boundaryLevelAdjust(boundaryLevelAdjust),
-            octreeElementSizeScale(octreeElementSizeScale),
-            forceSendScene(forceSendScene),
             nodeData(nodeData),
             stopReason(UNKNOWN)
     {
-        lastViewFrustum.invalidate();
     }
 
     void displayStopReason() {
         printf("StopReason: ");
         switch (stopReason) {
-            default:
             case UNKNOWN: qDebug("UNKNOWN"); break;
-
             case DIDNT_FIT: qDebug("DIDNT_FIT"); break;
-            case NULL_NODE: qDebug("NULL_NODE"); break;
-            case TOO_DEEP: qDebug("TOO_DEEP"); break;
-            case LOD_SKIP: qDebug("LOD_SKIP"); break;
-            case OUT_OF_VIEW: qDebug("OUT_OF_VIEW"); break;
-            case WAS_IN_VIEW: qDebug("WAS_IN_VIEW"); break;
-            case NO_CHANGE: qDebug("NO_CHANGE"); break;
-            case OCCLUDED: qDebug("OCCLUDED"); break;
+            case FINISHED: qDebug("FINISHED"); break;
         }
     }
 
     QString getStopReason() {
         switch (stopReason) {
-            default:
             case UNKNOWN: return QString("UNKNOWN"); break;
-
             case DIDNT_FIT: return QString("DIDNT_FIT"); break;
-            case NULL_NODE: return QString("NULL_NODE"); break;
-            case TOO_DEEP: return QString("TOO_DEEP"); break;
-            case LOD_SKIP: return QString("LOD_SKIP"); break;
-            case OUT_OF_VIEW: return QString("OUT_OF_VIEW"); break;
-            case WAS_IN_VIEW: return QString("WAS_IN_VIEW"); break;
-            case NO_CHANGE: return QString("NO_CHANGE"); break;
-            case OCCLUDED: return QString("OCCLUDED"); break;
+            case FINISHED: return QString("FINISHED"); break;
         }
     }
 
     std::function<void(const QUuid& dataID, quint64 itemLastEdited)> trackSend { [](const QUuid&, quint64){} };
-};
-
-class ReadElementBufferToTreeArgs {
-public:
-    const unsigned char* buffer;
-    int length;
-    bool destructive;
-    bool pathChanged;
 };
 
 class ReadBitstreamToTreeParams {
@@ -167,8 +104,6 @@ public:
     OctreeElementPointer destinationElement;
     QUuid sourceUUID;
     SharedNodePointer sourceNode;
-    bool wantImportProgress;
-    PacketVersion bitstreamVersion;
     int elementsPerPacket = 0;
     int entitiesPerPacket = 0;
 
@@ -176,15 +111,11 @@ public:
         bool includeExistsBits = WANT_EXISTS_BITS,
         OctreeElementPointer destinationElement = NULL,
         QUuid sourceUUID = QUuid(),
-        SharedNodePointer sourceNode = SharedNodePointer(),
-        bool wantImportProgress = false,
-        PacketVersion bitstreamVersion = 0) :
+        SharedNodePointer sourceNode = SharedNodePointer()) :
             includeExistsBits(includeExistsBits),
             destinationElement(destinationElement),
             sourceUUID(sourceUUID),
-            sourceNode(sourceNode),
-            wantImportProgress(wantImportProgress),
-            bitstreamVersion(bitstreamVersion)
+            sourceNode(sourceNode)
     {}
 };
 
@@ -199,7 +130,6 @@ public:
 
     // These methods will allow the OctreeServer to send your tree inbound edit packets of your
     // own definition. Implement these to allow your octree based server to support editing
-    virtual bool getWantSVOfileVersions() const { return false; }
     virtual PacketType expectedDataPacketType() const { return PacketType::Unknown; }
     virtual PacketVersion expectedVersion() const { return versionForPacketType(expectedDataPacketType()); }
     virtual bool handlesEditPacketType(PacketType packetType) const { return false; }
@@ -209,12 +139,8 @@ public:
     virtual void processChallengeOwnershipReplyPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) { return; }
     virtual void processChallengeOwnershipPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) { return; }
 
-    virtual bool recurseChildrenWithData() const { return true; }
     virtual bool rootElementHasData() const { return false; }
-    virtual int minimumRequiredRootDataBytes() const { return 0; }
-    virtual bool suppressEmptySubtrees() const { return true; }
     virtual void releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncodeData) const { }
-    virtual bool mustIncludeAllChildData() const { return true; }
 
     virtual void update() { } // nothing to do by default
 
@@ -223,10 +149,7 @@ public:
     virtual void eraseAllOctreeElements(bool createNewRoot = true);
 
     virtual void readBitstreamToTree(const unsigned char* bitstream,  uint64_t bufferSizeBytes, ReadBitstreamToTreeParams& args);
-    void deleteOctalCodeFromTree(const unsigned char* codeBuffer, bool collapseEmptyTrees = DONT_COLLAPSE);
     void reaverageOctreeElements(OctreeElementPointer startElement = OctreeElementPointer());
-
-    void deleteOctreeElementAt(float x, float y, float z, float s);
 
     /// Find the voxel at position x,y,z,s
     /// \return pointer to the OctreeElement or NULL if none at x,y,z,s.
@@ -250,8 +173,6 @@ public:
 
     void recurseTreeWithOperator(RecurseOctreeOperator* operatorObject);
 
-    int encodeTreeBitstream(const OctreeElementPointer& element, OctreePacketData* packetData, OctreeElementBag& bag,
-                            EncodeBitstreamParams& params) ;
 
     bool isDirty() const { return _isDirty; }
     void clearDirtyBit() { _isDirty = false; }
@@ -344,21 +265,9 @@ public:
 
     void incrementPersistDataVersion() { _persistDataVersion++; }
 
-signals:
-    void importSize(float x, float y, float z);
-    void importProgress(int progress);
-
-public slots:
-    void cancelImport();
-
 
 protected:
     void deleteOctalCodeFromTreeRecursion(const OctreeElementPointer& element, void* extraData);
-
-    int encodeTreeBitstreamRecursion(const OctreeElementPointer& element,
-                                     OctreePacketData* packetData, OctreeElementBag& bag,
-                                     EncodeBitstreamParams& params, int& currentEncodeLevel,
-                                     const ViewFrustum::intersection& parentLocationThisView) const;
 
     static bool countOctreeElementsOperation(const OctreeElementPointer& element, void* extraData);
 
@@ -374,7 +283,6 @@ protected:
 
     bool _isDirty;
     bool _shouldReaverage;
-    bool _stopImport;
 
     bool _isViewing;
     bool _isServer;

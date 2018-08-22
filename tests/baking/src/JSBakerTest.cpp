@@ -66,12 +66,14 @@ void JSBakerTest::setTestCases() {
     _testCases.emplace_back("'abcd1234$%^&[](){}'\na", "'abcd1234$%^&[](){}'\na");
     _testCases.emplace_back("\"abcd1234$%^&[](){}\"\na", "\"abcd1234$%^&[](){}\"\na");
     _testCases.emplace_back("`abcd1234$%^&[](){}`\na", "`abcd1234$%^&[](){}`a");
+    _testCases.emplace_back("\'      \';", "\'      \';");
+    _testCases.emplace_back("\'//single line comment\nvar b=2;\';", "\'//single line comment\nvar b=2;\';");
 
     // Edge Cases
 
     //No semicolon to terminate an expression, instead a new line used for termination
     _testCases.emplace_back("var x=5\nvar y=6;", "var x=5\nvar y=6;");
-    
+
      //a + ++b is minified as a+ ++b.
     _testCases.emplace_back("a + ++b", "a + ++b");
 

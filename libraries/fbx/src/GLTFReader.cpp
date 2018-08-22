@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "GLTFReader.h"
+
 #include <QtCore/QBuffer>
 #include <QtCore/QIODevice>
 #include <QtCore/QEventLoop>
@@ -19,16 +21,18 @@
 #include <QtCore/qpair.h>
 #include <QtCore/qlist.h>
 
+
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkRequest>
 
 #include <qfile.h>
+#include <qfileinfo.h>
 
 #include <shared/NsightHelpers.h>
 #include <NetworkAccessManager.h>
 #include <ResourceManager.h>
+#include <PathUtils.h>
 
-#include "GLTFReader.h"
 #include "FBXReader.h"
 
 
@@ -785,12 +789,17 @@ bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
                 QVector<glm::vec3> raw_vertices;
                 QVector<glm::vec3> raw_normals;
 
-                addArrayOfType(indicesBuffer.blob, 
+                bool success = addArrayOfType(indicesBuffer.blob, 
                     indicesBufferview.byteOffset + indicesAccBoffset, 
-                    indicesBufferview.byteLength, 
+                    indicesAccessor.count, 
                     part.triangleIndices, 
                     indicesAccessor.type, 
                     indicesAccessor.componentType);
+
+                if (!success) {
+                    qWarning(modelformat) << "There was a problem reading glTF INDICES data for model " << _url;
+                    continue;
+                }
 
                 QList<QString> keys = primitive.attributes.values.keys();
 
@@ -804,44 +813,60 @@ bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
                     int accBoffset = accessor.defined["byteOffset"] ? accessor.byteOffset : 0;
                     if (key == "POSITION") {
                         QVector<float> vertices;
-                        addArrayOfType(buffer.blob, 
+                        success = addArrayOfType(buffer.blob, 
                             bufferview.byteOffset + accBoffset, 
-                            bufferview.byteLength, vertices, 
+                            accessor.count, vertices, 
                             accessor.type, 
                             accessor.componentType);
+                        if (!success) {
+                            qWarning(modelformat) << "There was a problem reading glTF POSITION data for model " << _url;
+                            continue;
+                        }
                         for (int n = 0; n < vertices.size(); n = n + 3) {
                             mesh.vertices.push_back(glm::vec3(vertices[n], vertices[n + 1], vertices[n + 2]));
                         }
                     } else if (key == "NORMAL") {
                         QVector<float> normals;
-                        addArrayOfType(buffer.blob, 
+                        success = addArrayOfType(buffer.blob, 
                             bufferview.byteOffset + accBoffset, 
-                            bufferview.byteLength, 
+                            accessor.count, 
                             normals, 
                             accessor.type, 
                             accessor.componentType);
+                        if (!success) {
+                            qWarning(modelformat) << "There was a problem reading glTF NORMAL data for model " << _url;
+                            continue;
+                        }
                         for (int n = 0; n < normals.size(); n = n + 3) {
                             mesh.normals.push_back(glm::vec3(normals[n], normals[n + 1], normals[n + 2]));
                         }
                     } else if (key == "TEXCOORD_0") {
                         QVector<float> texcoords;
-                        addArrayOfType(buffer.blob, 
+                        success = addArrayOfType(buffer.blob, 
                             bufferview.byteOffset + accBoffset, 
-                            bufferview.byteLength, 
+                            accessor.count, 
                             texcoords, 
                             accessor.type, 
                             accessor.componentType);
+                        if (!success) {
+                            qWarning(modelformat) << "There was a problem reading glTF TEXCOORD_0 data for model " << _url;
+                            continue;
+                        }
                         for (int n = 0; n < texcoords.size(); n = n + 2) {
                             mesh.texCoords.push_back(glm::vec2(texcoords[n], texcoords[n + 1]));
                         }
                     } else if (key == "TEXCOORD_1") {
                         QVector<float> texcoords;
-                        addArrayOfType(buffer.blob, 
+                        success = addArrayOfType(buffer.blob, 
                             bufferview.byteOffset + accBoffset, 
-                            bufferview.byteLength, 
+                            accessor.count, 
                             texcoords, 
                             accessor.type, 
                             accessor.componentType);
+                        if (!success) {
+                            qWarning(modelformat) << "There was a problem reading glTF TEXCOORD_1 data for model " << _url;
+                            continue;
+                        }
                         for (int n = 0; n < texcoords.size(); n = n + 2) {
                             mesh.texCoords1.push_back(glm::vec2(texcoords[n], texcoords[n + 1]));
                         }
@@ -887,7 +912,15 @@ bool GLTFReader::buildGeometry(FBXGeometry& geometry, const QUrl& url) {
 
 FBXGeometry* GLTFReader::readGLTF(QByteArray& model, const QVariantHash& mapping, 
                                   const QUrl& url, bool loadLightmaps, float lightmapLevel) {
+    
     _url = url;
+
+    // Normalize url for local files
+    QUrl normalizeUrl = DependencyManager::get<ResourceManager>()->normalizeURL(url);
+    if (normalizeUrl.scheme().isEmpty() || (normalizeUrl.scheme() == "file")) {
+        QString localFileName = PathUtils::expandToLocalDataAbsolutePath(normalizeUrl).toLocalFile();
+        _url = QUrl(QFileInfo(localFileName).absoluteFilePath());
+    }
 
     parseGLTF(model);
     //_file.dump();
@@ -903,6 +936,7 @@ FBXGeometry* GLTFReader::readGLTF(QByteArray& model, const QVariantHash& mapping
 
 bool GLTFReader::readBinary(const QString& url, QByteArray& outdata) {
     QUrl binaryUrl = _url.resolved(QUrl(url).fileName());
+
     qCDebug(modelformat) << "binaryUrl: " << binaryUrl << "  OriginalUrl: " << _url;
     bool success;
     std::tie<bool, QByteArray>(success, outdata) = requestData(binaryUrl);
@@ -1017,13 +1051,12 @@ void GLTFReader::setFBXMaterial(FBXMaterial& fbxmat, const GLTFMaterial& materia
             fbxmat.opacityTexture = getFBXTexture(_file.textures[material.pbrMetallicRoughness.baseColorTexture]);
             fbxmat.albedoTexture = getFBXTexture(_file.textures[material.pbrMetallicRoughness.baseColorTexture]);
             fbxmat.useAlbedoMap = true;
-            fbxmat.metallicTexture = getFBXTexture(_file.textures[material.pbrMetallicRoughness.baseColorTexture]);
-            fbxmat.useMetallicMap = true;
         }
         if (material.pbrMetallicRoughness.defined["metallicRoughnessTexture"]) {
             fbxmat.roughnessTexture = getFBXTexture(_file.textures[material.pbrMetallicRoughness.metallicRoughnessTexture]);
             fbxmat.useRoughnessMap = true;
-
+            fbxmat.metallicTexture = getFBXTexture(_file.textures[material.pbrMetallicRoughness.metallicRoughnessTexture]);
+            fbxmat.useMetallicMap = true;
         }
         if (material.pbrMetallicRoughness.defined["roughnessFactor"]) {
             fbxmat._material->setRoughness(material.pbrMetallicRoughness.roughnessFactor);
@@ -1042,7 +1075,7 @@ void GLTFReader::setFBXMaterial(FBXMaterial& fbxmat, const GLTFMaterial& materia
 }
 
 template<typename T, typename L>
-bool GLTFReader::readArray(const QByteArray& bin, int byteOffset, int byteLength, 
+bool GLTFReader::readArray(const QByteArray& bin, int byteOffset, int count, 
                            QVector<L>& outarray, int accessorType) {
     
     QDataStream blobstream(bin);
@@ -1050,142 +1083,77 @@ bool GLTFReader::readArray(const QByteArray& bin, int byteOffset, int byteLength
     blobstream.setVersion(QDataStream::Qt_5_9);
     blobstream.setFloatingPointPrecision(QDataStream::FloatingPointPrecision::SinglePrecision);
 
-    int vsize = byteLength / sizeof(T);
-
-    qCDebug(modelformat) << "size1: " << vsize;
+    qCDebug(modelformat) << "size1: " << count;
     int dataskipped = blobstream.skipRawData(byteOffset);
     qCDebug(modelformat) << "dataskipped: " << dataskipped;
 
-
-    while (outarray.size() < vsize) {
-        
-        T value1, value2, value3, value4, 
-          value5, value6, value7, value8, 
-          value9, value10, value11, value12, 
-          value13, value14, value15, value16;
-
-        if (accessorType == GLTFAccessorType::SCALAR) {
-
-            blobstream >> value1;
-
-            outarray.push_back(value1);
-        } else if (accessorType == GLTFAccessorType::VEC2) {
-
-            blobstream >> value1; 
-            blobstream >> value2;
-
-            outarray.push_back(value1);
-            outarray.push_back(value2);
-        } else if (accessorType == GLTFAccessorType::VEC3) {
-
-            blobstream >> value1;
-            blobstream >> value2;
-            blobstream >> value3;
-
-            outarray.push_back(value1);
-            outarray.push_back(value2);
-            outarray.push_back(value3);
-        } else if (accessorType == GLTFAccessorType::VEC4 || accessorType == GLTFAccessorType::MAT2) {
-
-            blobstream >> value1;
-            blobstream >> value2;
-            blobstream >> value3;
-            blobstream >> value4;
-
-            outarray.push_back(value1);
-            outarray.push_back(value2);
-            outarray.push_back(value3);
-            outarray.push_back(value4);
-        } else if (accessorType == GLTFAccessorType::MAT3) {
-
-            blobstream >> value1;
-            blobstream >> value2;
-            blobstream >> value3;
-            blobstream >> value4;
-            blobstream >> value5;
-            blobstream >> value6;
-            blobstream >> value7;
-            blobstream >> value8;
-            blobstream >> value9;
-
-            outarray.push_back(value1);
-            outarray.push_back(value2);
-            outarray.push_back(value3);
-            outarray.push_back(value4);
-            outarray.push_back(value5);
-            outarray.push_back(value6);
-            outarray.push_back(value7);
-            outarray.push_back(value8);
-            outarray.push_back(value9);
-        } else if (accessorType == GLTFAccessorType::MAT4) {
-
-            blobstream >> value1;
-            blobstream >> value2;
-            blobstream >> value3;
-            blobstream >> value4;
-            blobstream >> value5;
-            blobstream >> value6;
-            blobstream >> value7;
-            blobstream >> value8;
-            blobstream >> value9;
-            blobstream >> value10;
-            blobstream >> value11;
-            blobstream >> value12;
-            blobstream >> value13; 
-            blobstream >> value14; 
-            blobstream >> value15;
-            blobstream >> value16;
-
-            outarray.push_back(value1);
-            outarray.push_back(value2);
-            outarray.push_back(value3);
-            outarray.push_back(value4);
-            outarray.push_back(value5);
-            outarray.push_back(value6);
-            outarray.push_back(value7);
-            outarray.push_back(value8);
-            outarray.push_back(value9);
-            outarray.push_back(value10);
-            outarray.push_back(value11);
-            outarray.push_back(value12);
-            outarray.push_back(value13);
-            outarray.push_back(value14);
-            outarray.push_back(value15);
-            outarray.push_back(value16);
-        
+    int bufferCount = 0;
+    switch (accessorType) {
+    case GLTFAccessorType::SCALAR:
+        bufferCount = 1;
+        break;
+    case GLTFAccessorType::VEC2:
+        bufferCount = 2;
+        break;
+    case GLTFAccessorType::VEC3:
+        bufferCount = 3;
+        break;
+    case GLTFAccessorType::VEC4:
+        bufferCount = 4;
+        break;
+    case GLTFAccessorType::MAT2:
+        bufferCount = 4;
+        break;
+    case GLTFAccessorType::MAT3:
+        bufferCount = 9;
+        break;
+    case GLTFAccessorType::MAT4:
+        bufferCount = 16;
+        break;
+    default:
+        qWarning(modelformat) << "Unknown accessorType: " << accessorType;
+        blobstream.unsetDevice();
+        return false;
+    }
+    for (int i = 0; i < count; i++) {
+        for (int j = 0; j < bufferCount; j++) {
+            if (!blobstream.atEnd()) {
+                T value;
+                blobstream >> value;
+                outarray.push_back(value);
+            } else {
+                blobstream.unsetDevice();
+                return false;
+            }
         }
     }
+
     blobstream.unsetDevice();
     return true;
 }
 template<typename T>
-bool GLTFReader::addArrayOfType(const QByteArray& bin, int byteOffset, int byteLength, 
+bool GLTFReader::addArrayOfType(const QByteArray& bin, int byteOffset, int count, 
                                 QVector<T>& outarray, int accessorType, int componentType) {
     
     switch (componentType) {
     case GLTFAccessorComponentType::BYTE: {}
     case GLTFAccessorComponentType::UNSIGNED_BYTE: {
-        readArray<uchar>(bin, byteOffset, byteLength, outarray, accessorType);
-        break;
+        return readArray<uchar>(bin, byteOffset, count, outarray, accessorType);
     }
     case GLTFAccessorComponentType::SHORT: {
-        readArray<short>(bin, byteOffset, byteLength, outarray, accessorType);
-        break;
+        return readArray<short>(bin, byteOffset, count, outarray, accessorType);
     }
     case GLTFAccessorComponentType::UNSIGNED_INT: {
-        readArray<quint8>(bin, byteOffset, byteLength, outarray, accessorType);
-        break;
+        return readArray<uint>(bin, byteOffset, count, outarray, accessorType);
     }
     case GLTFAccessorComponentType::UNSIGNED_SHORT: {
-        readArray<ushort>(bin, byteOffset, byteLength, outarray, accessorType);
-        break;
+        return readArray<ushort>(bin, byteOffset, count, outarray, accessorType);
     }
     case GLTFAccessorComponentType::FLOAT: {
-        readArray<float>(bin, byteOffset, byteLength, outarray, accessorType);
-        break;
+        return readArray<float>(bin, byteOffset, count, outarray, accessorType);
     }
     }
-    return true;
+    return false;
 }
 
 void GLTFReader::retriangulate(const QVector<int>& inIndices, const QVector<glm::vec3>& in_vertices, 

@@ -30,10 +30,13 @@
 
 <@include LightClusterGrid.slh@>
 
+<@include render-utils/ShaderConstants.h@>
 
 
-in vec2 _texCoord0;
-out vec4 _fragColor;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
+#define _texCoord0 _texCoord01.xy
+#define _texCoord1 _texCoord01.zw
+layout(location=0) out vec4 _fragColor;
 
 void main(void) {
 
@@ -62,6 +65,7 @@ void main(void) {
     // Frag to eye vec
     vec4 fragEyeVector = invViewMat * vec4(-frag.position.xyz, 0.0);
     vec3 fragEyeDir = normalize(fragEyeVector.xyz);
+    _fragColor = vec4(0, 0, 0, 1);
     
     int numLightTouching = 0;
     int lightClusterOffset = cluster.z;

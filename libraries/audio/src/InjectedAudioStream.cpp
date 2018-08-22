@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "InjectedAudioStream.h"
+
 #include <cstring>
 
 #include <QtCore/QDataStream>
@@ -17,7 +19,6 @@
 #include <udt/PacketHeaders.h>
 #include <UUID.h>
 
-#include "InjectedAudioStream.h"
 #include "AudioHelpers.h"
 
 InjectedAudioStream::InjectedAudioStream(const QUuid& streamIdentifier, bool isStereo, int numStaticJitterFrames) :

@@ -109,7 +109,7 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
             }
             _dynamicsWorld = nullptr;
         }
-        int16_t collisionGroup = computeCollisionGroup();
+        int32_t collisionGroup = computeCollisionGroup();
         if (_rigidBody) {
             updateMassProperties();
         }
@@ -121,6 +121,8 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
             _dynamicsWorld->addAction(this);
             // restore gravity settings because adding an object to the world overwrites its gravity setting
             _rigidBody->setGravity(_currentGravity * _currentUp);
+            // set flag to enable custom contactAddedCallback
+            _rigidBody->setCollisionFlags(btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
             btCollisionShape* shape = _rigidBody->getCollisionShape();
             assert(shape && shape->getShapeType() == CONVEX_HULL_SHAPE_PROXYTYPE);
             _ghost.setCharacterShape(static_cast<btConvexHullShape*>(shape));
@@ -262,23 +264,53 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
         btVector3 linearDisplacement = clampLength(vel * dt, MAX_DISPLACEMENT);  // clamp displacement to prevent tunneling.
         btVector3 endPos = startPos + linearDisplacement;
 
+        // resolve the simple linearDisplacement
+        _followLinearDisplacement += linearDisplacement;
+
+        // now for the rotational part...
         btQuaternion startRot = bodyTransform.getRotation();
         btQuaternion desiredRot = _followDesiredBodyTransform.getRotation();
-        if (desiredRot.dot(startRot) < 0.0f) {
-            desiredRot = -desiredRot;
+
+        // startRot as default rotation
+        btQuaternion endRot = startRot;
+
+        // the dot product between two quaternions is equal to +/- cos(angle/2)
+        // where 'angle' is that of the rotation between them
+        float qDot = desiredRot.dot(startRot);
+
+        // when the abs() value of the dot product is approximately 1.0
+        // then the two rotations are effectively adjacent
+        const float MIN_DOT_PRODUCT_OF_ADJACENT_QUATERNIONS = 0.99999f; // corresponds to approx 0.5 degrees
+        if (fabsf(qDot) < MIN_DOT_PRODUCT_OF_ADJACENT_QUATERNIONS) {
+            if (qDot < 0.0f) {
+                // the quaternions are actually on opposite hyperhemispheres
+                // so we move one to agree with the other and negate qDot
+                desiredRot = -desiredRot;
+                qDot = -qDot;
+            }
+            btQuaternion deltaRot = desiredRot * startRot.inverse();
+
+            // the axis is the imaginary part, but scaled by sin(angle/2)
+            btVector3 axis(deltaRot.getX(), deltaRot.getY(), deltaRot.getZ());
+            axis /= sqrtf(1.0f - qDot * qDot);
+
+            // compute the angle we will resolve for this dt, but don't overshoot
+            float angle = 2.0f * acosf(qDot);
+            if (dt < _followTimeRemaining) {
+                angle *= dt / _followTimeRemaining;
+            }
+
+            // accumulate rotation
+            deltaRot = btQuaternion(axis, angle);
+            _followAngularDisplacement = (deltaRot * _followAngularDisplacement).normalize();
+
+            // in order to accumulate displacement of avatar position, we need to take _shapeLocalOffset into account.
+            btVector3 shapeLocalOffset = glmToBullet(_shapeLocalOffset);
+
+            endRot = deltaRot * startRot;
+            btVector3 swingDisplacement = rotateVector(endRot, -shapeLocalOffset) - rotateVector(startRot, -shapeLocalOffset);
+            _followLinearDisplacement += swingDisplacement;
         }
-        btQuaternion deltaRot = desiredRot * startRot.inverse();
-        float angularSpeed = deltaRot.getAngle() / _followTimeRemaining;
-        btQuaternion angularDisplacement = btQuaternion(deltaRot.getAxis(), angularSpeed * dt);
-        btQuaternion endRot = angularDisplacement * startRot;
-
-        // in order to accumulate displacement of avatar position, we need to take _shapeLocalOffset into account.
-        btVector3 shapeLocalOffset = glmToBullet(_shapeLocalOffset);
-        btVector3 swingDisplacement = rotateVector(endRot, -shapeLocalOffset) - rotateVector(startRot, -shapeLocalOffset);
-
-        _followLinearDisplacement = linearDisplacement + swingDisplacement + _followLinearDisplacement;
-        _followAngularDisplacement = angularDisplacement * _followAngularDisplacement;
-
         _rigidBody->setWorldTransform(btTransform(endRot, endPos));
     }
     _followTime += dt;
@@ -325,7 +357,7 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
     _ghost.setWorldTransform(_rigidBody->getWorldTransform());
 }
 
-void CharacterController::jump() {
+void CharacterController::jump(const btVector3& dir) {
     _pendingFlags |= PENDING_FLAG_JUMP;
 }
 
@@ -352,7 +384,7 @@ static const char* stateToStr(CharacterController::State state) {
 #endif // #ifdef DEBUG_STATE_CHANGE
 
 void CharacterController::updateCurrentGravity() {
-    int16_t collisionGroup = computeCollisionGroup();
+    int32_t collisionGroup = computeCollisionGroup();
     if (_state == State::Hover || collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS) {
         _currentGravity = 0.0f;
     } else {
@@ -378,9 +410,6 @@ void CharacterController::setState(State desiredState, const char* reason) {
 #else
 void CharacterController::setState(State desiredState) {
 #endif
-    if (!_flyingAllowed && desiredState == State::Hover) {
-        desiredState = State::InAir;
-    }
 
     if (desiredState != _state) {
 #ifdef DEBUG_STATE_CHANGE
@@ -433,7 +462,7 @@ void CharacterController::setCollisionless(bool collisionless) {
     }
 }
 
-int16_t CharacterController::computeCollisionGroup() const {
+int32_t CharacterController::computeCollisionGroup() const {
     if (_collisionless) {
         return _collisionlessAllowed ? BULLET_COLLISION_GROUP_COLLISIONLESS : BULLET_COLLISION_GROUP_MY_AVATAR;
     } else {
@@ -446,7 +475,7 @@ void CharacterController::handleChangedCollisionGroup() {
         // ATM the easiest way to update collision groups is to remove/re-add the RigidBody
         if (_dynamicsWorld) {
             _dynamicsWorld->removeRigidBody(_rigidBody);
-            int16_t collisionGroup = computeCollisionGroup();
+            int32_t collisionGroup = computeCollisionGroup();
             _dynamicsWorld->addRigidBody(_rigidBody, collisionGroup, BULLET_COLLISION_MASK_MY_AVATAR);
         }
         _pendingFlags &= ~PENDING_FLAG_UPDATE_COLLISION_GROUP;
@@ -538,7 +567,7 @@ void CharacterController::applyMotor(int index, btScalar dt, btVector3& worldVel
     btScalar angle = motor.rotation.getAngle();
     btVector3 velocity = worldVelocity.rotate(axis, -angle);
 
-    int16_t collisionGroup = computeCollisionGroup();
+    int32_t collisionGroup = computeCollisionGroup();
     if (collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS ||
             _state == State::Hover || motor.hTimescale == motor.vTimescale) {
         // modify velocity
@@ -679,7 +708,7 @@ void CharacterController::updateState() {
     btVector3 rayStart = _position;
 
     btScalar rayLength = _radius;
-    int16_t collisionGroup = computeCollisionGroup();
+    int32_t collisionGroup = computeCollisionGroup();
     if (collisionGroup == BULLET_COLLISION_GROUP_MY_AVATAR) {
         rayLength += _scaleFactor * DEFAULT_AVATAR_FALL_HEIGHT;
     } else {
@@ -746,7 +775,7 @@ void CharacterController::updateState() {
             const float JUMP_SPEED = _scaleFactor * DEFAULT_AVATAR_JUMP_SPEED;
             if ((velocity.dot(_currentUp) <= (JUMP_SPEED / 2.0f)) && ((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport)) {
                 SET_STATE(State::Ground, "hit ground");
-            } else {
+            } else if (_flyingAllowed) {
                 btVector3 desiredVelocity = _targetVelocity;
                 if (desiredVelocity.length2() < MIN_TARGET_SPEED_SQUARED) {
                     desiredVelocity = btVector3(0.0f, 0.0f, 0.0f);
@@ -760,14 +789,17 @@ void CharacterController::updateState() {
                     // Transition to hover if we are above the fall threshold
                     SET_STATE(State::Hover, "above fall threshold");
                 }
+            } else if (!rayHasHit && !_hasSupport) {
+                SET_STATE(State::Hover, "no ground detected");
             }
             break;
         }
         case State::Hover:
             btScalar horizontalSpeed = (velocity - velocity.dot(_currentUp) * _currentUp).length();
             bool flyingFast = horizontalSpeed > (MAX_WALKING_SPEED * 0.75f);
-
-            if ((_floorDistance < MIN_HOVER_HEIGHT) && !jumpButtonHeld && !flyingFast) {
+            if (!_flyingAllowed && rayHasHit) {
+                SET_STATE(State::InAir, "flying not allowed");
+            } else if ((_floorDistance < MIN_HOVER_HEIGHT) && !jumpButtonHeld && !flyingFast) {
                 SET_STATE(State::InAir, "near ground");
             } else if (((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport) && !flyingFast) {
                 SET_STATE(State::Ground, "touching ground");
@@ -826,9 +858,6 @@ bool CharacterController::getRigidBodyLocation(glm::vec3& avatarRigidBodyPositio
 void CharacterController::setFlyingAllowed(bool value) {
     if (value != _flyingAllowed) {
         _flyingAllowed = value;
-        if (!_flyingAllowed && _state == State::Hover) {
-            SET_STATE(State::InAir, "flying not allowed");
-        }
     }
 }
 

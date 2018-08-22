@@ -155,11 +155,11 @@
             MyAvatar.characterControllerEnabled = false;
             MyAvatar.hmdLeanRecenterEnabled = false;
             var roles = this.rolesToOverride();
-            for (i in roles) {
+            for (var i = 0; i < roles.length; i++) {
                 MyAvatar.overrideRoleAnimation(roles[i], ANIMATION_URL, ANIMATION_FPS, true, ANIMATION_FIRST_FRAME, ANIMATION_LAST_FRAME);
             }
 
-            for (var i in OVERRIDEN_DRIVE_KEYS) {
+          for (i = 0; i < OVERRIDEN_DRIVE_KEYS.length; i++) {
                 MyAvatar.disableDriveKey(OVERRIDEN_DRIVE_KEYS[i]);
             }
 
@@ -190,12 +190,12 @@
         if (Settings.getValue(SETTING_KEY) === this.entityID) {
             Settings.setValue(SETTING_KEY, "");
 
-            for (var i in OVERRIDEN_DRIVE_KEYS) {
+            for (var i = 0; i < OVERRIDEN_DRIVE_KEYS.length; i++) {
                 MyAvatar.enableDriveKey(OVERRIDEN_DRIVE_KEYS[i]);
             }
 
             var roles = this.rolesToOverride();
-            for (i in roles) {
+            for (i = 0; i < roles.length; i++) {
                 MyAvatar.restoreRoleAnimation(roles[i]);
             }
             MyAvatar.characterControllerEnabled = true;
@@ -272,7 +272,7 @@
             // Check if a drive key is pressed
             var hasActiveDriveKey = false;
             for (var i in OVERRIDEN_DRIVE_KEYS) {
-                if (MyAvatar.getRawDriveKey(OVERRIDEN_DRIVE_KEYS[i]) != 0.0) {
+                if (MyAvatar.getRawDriveKey(OVERRIDEN_DRIVE_KEYS[i]) !== 0.0) {
                     hasActiveDriveKey = true;
                     break;
                 }

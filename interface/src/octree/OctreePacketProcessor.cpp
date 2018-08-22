@@ -9,21 +9,27 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OctreePacketProcessor.h"
+
 #include <PerfStat.h>
 
 #include "Application.h"
 #include "Menu.h"
-#include "OctreePacketProcessor.h"
 #include "SceneScriptingInterface.h"
+#include "SafeLanding.h"
 
-OctreePacketProcessor::OctreePacketProcessor() {
+OctreePacketProcessor::OctreePacketProcessor():
+    _safeLanding(new SafeLanding())
+{
     setObjectName("Octree Packet Processor");
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    
-    packetReceiver.registerDirectListenerForTypes({ PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
-                                                  this, "handleOctreePacket");
+    const PacketReceiver::PacketTypeList octreePackets =
+        { PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase, PacketType::EntityQueryInitialResultsComplete };
+    packetReceiver.registerDirectListenerForTypes(octreePackets, this, "handleOctreePacket");
 }
+
+OctreePacketProcessor::~OctreePacketProcessor() { }
 
 void OctreePacketProcessor::handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     queueReceivedPacket(message, senderNode);
@@ -71,7 +77,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
     if (message->getVersion() != versionForPacketType(message->getType())) {
         static QMultiMap<QUuid, PacketType> versionDebugSuppressMap;
 
-        const QUuid& senderUUID = message->getSourceID();
+        const QUuid& senderUUID = sendingNode->getUUID();
         if (!versionDebugSuppressMap.contains(senderUUID, packetType)) {
             
             qDebug() << "Was stats packet? " << wasStatsPacket;
@@ -106,12 +112,28 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
                 auto renderer = qApp->getEntities();
                 if (renderer) {
                     renderer->processDatagram(*message, sendingNode);
+                    _safeLanding->noteReceivedsequenceNumber(renderer->getLastOctreeMessageSequence());
                 }
             }
+        } break;
+
+        case PacketType::EntityQueryInitialResultsComplete: {
+            // Read sequence #
+            OCTREE_PACKET_SEQUENCE completionNumber;
+            message->readPrimitive(&completionNumber);
+            _safeLanding->setCompletionSequenceNumbers(0, completionNumber);
         } break;
 
         default: {
             // nothing to do
         } break;
     }
+}
+
+void OctreePacketProcessor::startEntitySequence() {
+    _safeLanding->startEntitySequence(qApp->getEntities());
+}
+
+bool OctreePacketProcessor::isLoadSequenceComplete() const {
+    return _safeLanding->isLoadSequenceComplete();
 }

@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OctreePersistThread.h"
+
 #include <chrono>
 #include <thread>
 
@@ -24,41 +26,161 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonDocument>
+#include <QRegExp>
 
 #include <NumericalConstants.h>
 #include <PerfStat.h>
 #include <PathUtils.h>
 
 #include "OctreeLogging.h"
-#include "OctreePersistThread.h"
 #include "OctreeUtils.h"
 #include "OctreeDataUtils.h"
 
-const int OctreePersistThread::DEFAULT_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
+constexpr std::chrono::seconds OctreePersistThread::DEFAULT_PERSIST_INTERVAL { 30 };
+constexpr std::chrono::milliseconds TIME_BETWEEN_PROCESSING { 10 };
 
-OctreePersistThread::OctreePersistThread(OctreePointer tree, const QString& filename, const QString& backupDirectory, int persistInterval,
-                                         bool wantBackup, const QJsonObject& settings, bool debugTimestampNow,
-                                         QString persistAsFileType, const QByteArray& replacementData) :
+constexpr int MAX_OCTREE_REPLACEMENT_BACKUP_FILES_COUNT { 20 };
+constexpr int64_t MAX_OCTREE_REPLACEMENT_BACKUP_FILES_SIZE_BYTES { 50 * 1000 * 1000 };
+
+OctreePersistThread::OctreePersistThread(OctreePointer tree, const QString& filename, std::chrono::milliseconds persistInterval,
+                                         bool debugTimestampNow, QString persistAsFileType) :
     _tree(tree),
     _filename(filename),
-    _backupDirectory(backupDirectory),
     _persistInterval(persistInterval),
+    _lastPersistCheck(std::chrono::steady_clock::now()),
     _initialLoadComplete(false),
-    _replacementData(replacementData),
     _loadTimeUSecs(0),
-    _lastCheck(0),
-    _wantBackup(wantBackup),
     _debugTimestampNow(debugTimestampNow),
     _lastTimeDebug(0),
     _persistAsFileType(persistAsFileType)
 {
-    parseSettings(settings);
-
-
     // in case the persist filename has an extension that doesn't match the file type
     QString sansExt = fileNameWithoutExtension(_filename, PERSIST_EXTENSIONS);
     _filename = sansExt + "." + _persistAsFileType;
 }
+
+void OctreePersistThread::start() {
+    cleanupOldReplacementBackups();
+
+    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::OctreeDataFileReply, this, "handleOctreeDataFileReply");
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    const DomainHandler& domainHandler = nodeList->getDomainHandler();
+
+    auto packet = NLPacket::create(PacketType::OctreeDataFileRequest, -1, true, false);
+
+    OctreeUtils::RawOctreeData data;
+    qCDebug(octree) << "Reading octree data from" << _filename;
+    if (data.readOctreeDataInfoFromFile(_filename)) {
+        qCDebug(octree) << "Current octree data: ID(" << data.id << ") DataVersion(" << data.version << ")";
+        packet->writePrimitive(true);
+        auto id = data.id.toRfc4122();
+        packet->write(id);
+        packet->writePrimitive(data.version);
+    } else {
+        qCWarning(octree) << "No octree data found";
+        packet->writePrimitive(false);
+    }
+
+    qCDebug(octree) << "Sending OctreeDataFileRequest to DS";
+    nodeList->sendPacket(std::move(packet), domainHandler.getSockAddr());
+}
+
+void OctreePersistThread::handleOctreeDataFileReply(QSharedPointer<ReceivedMessage> message) {
+    if (_initialLoadComplete) {
+        qCWarning(octree) << "Received OctreeDataFileReply after initial load had completed";
+        return;
+    }
+
+    bool includesNewData;
+    message->readPrimitive(&includesNewData);
+    QByteArray replacementData;
+    OctreeUtils::RawOctreeData data;
+    bool hasValidOctreeData { false };
+    if (includesNewData) {
+        replacementData = message->readAll();
+        replaceData(replacementData);
+        hasValidOctreeData = data.readOctreeDataInfoFromFile(_filename);
+        qDebug() << "Got OctreeDataFileReply, new data sent";
+    } else {
+        qDebug() << "Got OctreeDataFileReply, current entity data is sufficient";
+        
+        OctreeUtils::RawEntityData data;
+        qCDebug(octree) << "Reading octree data from" << _filename;
+        if (data.readOctreeDataInfoFromFile(_filename)) {
+            hasValidOctreeData = true;
+            if (data.id.isNull()) {
+                qCDebug(octree) << "Current octree data has a null id, updating";
+                data.resetIdAndVersion();
+
+                QFile file(_filename);
+                if (file.open(QIODevice::WriteOnly)) {
+                    auto entityData = data.toGzippedByteArray();
+                    file.write(entityData);
+                    file.close();
+                } else {
+                    qCDebug(octree) << "Failed to update octree data";
+                }
+            }
+        }
+    }
+
+    quint64 loadStarted = usecTimestampNow();
+    qCDebug(octree) << "loading Octrees from file: " << _filename << "...";
+
+    if (hasValidOctreeData) {
+        qDebug() << "Setting entity version info to: " << data.id << data.version;
+        _tree->setOctreeVersionInfo(data.id, data.version);
+    }
+
+    bool persistentFileRead;
+
+    _tree->withWriteLock([&] {
+        PerformanceWarning warn(true, "Loading Octree File", true);
+
+        persistentFileRead = _tree->readFromFile(_filename.toLocal8Bit().constData());
+        _tree->pruneTree();
+    });
+
+    quint64 loadDone = usecTimestampNow();
+    _loadTimeUSecs = loadDone - loadStarted;
+
+    _tree->clearDirtyBit(); // the tree is clean since we just loaded it
+    qCDebug(octree, "DONE loading Octrees from file... fileRead=%s", debug::valueOf(persistentFileRead));
+
+    unsigned long nodeCount = OctreeElement::getNodeCount();
+    unsigned long internalNodeCount = OctreeElement::getInternalNodeCount();
+    unsigned long leafNodeCount = OctreeElement::getLeafNodeCount();
+    qCDebug(octree, "Nodes after loading scene %lu nodes %lu internal %lu leaves", nodeCount, internalNodeCount, leafNodeCount);
+
+    bool wantDebug = false;
+    if (wantDebug) {
+        double usecPerGet = (double)OctreeElement::getGetChildAtIndexTime() 
+                                / (double)OctreeElement::getGetChildAtIndexCalls();
+        qCDebug(octree) << "getChildAtIndexCalls=" << OctreeElement::getGetChildAtIndexCalls()
+                << " getChildAtIndexTime=" << OctreeElement::getGetChildAtIndexTime() << " perGet=" << usecPerGet;
+
+        double usecPerSet = (double)OctreeElement::getSetChildAtIndexTime() 
+                                / (double)OctreeElement::getSetChildAtIndexCalls();
+        qCDebug(octree) << "setChildAtIndexCalls=" << OctreeElement::getSetChildAtIndexCalls()
+                << " setChildAtIndexTime=" << OctreeElement::getSetChildAtIndexTime() << " perSet=" << usecPerSet;
+    }
+
+    _initialLoadComplete = true;
+
+    // Since we just loaded the persistent file, we can consider ourselves as having just persisted
+    _lastPersistCheck = std::chrono::steady_clock::now();
+
+    if (replacementData.isNull()) {
+        sendLatestEntityDataToDS();
+    }
+
+    QTimer::singleShot(TIME_BETWEEN_PROCESSING.count(), this, &OctreePersistThread::process);
+
+    emit loadCompleted();
+}
+
 
 QString OctreePersistThread::getPersistFileMimeType() const {
     if (_persistAsFileType == "json") {
@@ -67,72 +189,6 @@ QString OctreePersistThread::getPersistFileMimeType() const {
         return "application/zip";
     }
     return "";
-}
-
-void OctreePersistThread::parseSettings(const QJsonObject& settings) {
-    if (settings["backups"].isArray()) {
-        const QJsonArray& backupRules = settings["backups"].toArray();
-        qCDebug(octree) << "BACKUP RULES:";
-
-        foreach (const QJsonValue& value, backupRules) {
-
-            QJsonObject obj = value.toObject();
-
-            int interval = 0;
-            int count = 0;
-            
-            QJsonValue intervalVal = obj["backupInterval"];
-            if (intervalVal.isString()) {
-                interval = intervalVal.toString().toInt();
-            } else {
-                interval = intervalVal.toInt();
-            }
-
-            QJsonValue countVal = obj["maxBackupVersions"];
-            if (countVal.isString()) {
-                count = countVal.toString().toInt();
-            } else {
-                count = countVal.toInt();
-            }
-
-            qCDebug(octree) << "    Name:" << obj["Name"].toString();
-            qCDebug(octree) << "        format:" << obj["format"].toString();
-            qCDebug(octree) << "        interval:" << interval;
-            qCDebug(octree) << "        count:" << count;
-
-            BackupRule newRule = { obj["Name"].toString(), interval, obj["format"].toString(), count, 0};
-                                    
-            newRule.lastBackup = getMostRecentBackupTimeInUsecs(obj["format"].toString());
-            
-            if (newRule.lastBackup > 0) {
-                quint64 now = usecTimestampNow();
-                quint64 sinceLastBackup = now - newRule.lastBackup;
-                qCDebug(octree) << "        lastBackup:" << qPrintable(formatUsecTime(sinceLastBackup)) << "ago";
-            } else {
-                qCDebug(octree) << "        lastBackup: NEVER";
-            }
-            
-            _backupRules << newRule;
-        }        
-    } else {
-        qCDebug(octree) << "BACKUP RULES: NONE";
-    }
-}
-
-quint64 OctreePersistThread::getMostRecentBackupTimeInUsecs(const QString& format) {
-
-    quint64 mostRecentBackupInUsecs = 0;
-
-    QString mostRecentBackupFileName;
-    QDateTime mostRecentBackupTime;
-    
-    bool recentBackup = getMostRecentBackup(format, mostRecentBackupFileName, mostRecentBackupTime);
-    
-    if (recentBackup) {
-        mostRecentBackupInUsecs = mostRecentBackupTime.toMSecsSinceEpoch() * USECS_PER_MSEC;
-    }
-
-    return mostRecentBackupInUsecs;
 }
 
 void OctreePersistThread::replaceData(QByteArray data) {
@@ -166,128 +222,24 @@ bool OctreePersistThread::backupCurrentFile() {
     return true;
 }
 
-bool OctreePersistThread::process() {
+void OctreePersistThread::process() {
+    _tree->update();
 
-    if (!_initialLoadComplete) {
-        quint64 loadStarted = usecTimestampNow();
-        qCDebug(octree) << "loading Octrees from file: " << _filename << "...";
+    auto now = std::chrono::steady_clock::now();
+    auto timeSinceLastPersist = now - _lastPersistCheck;
 
-        if (!_replacementData.isNull()) {
-            replaceData(_replacementData);
-        }
-
-        OctreeUtils::RawOctreeData data;
-        if (data.readOctreeDataInfoFromFile(_filename)) {
-            qDebug() << "Setting entity version info to: " << data.id << data.version;
-            _tree->setOctreeVersionInfo(data.id, data.version);
-        }
-
-        bool persistentFileRead;
-
-        _tree->withWriteLock([&] {
-            PerformanceWarning warn(true, "Loading Octree File", true);
-
-            // First check to make sure "lock" file doesn't exist. If it does exist, then
-            // our last save crashed during the save, and we want to load our most recent backup.
-            QString lockFileName = _filename + ".lock";
-            std::ifstream lockFile(qPrintable(lockFileName), std::ios::in | std::ios::binary | std::ios::ate);
-            if (lockFile.is_open()) {
-                qCDebug(octree) << "WARNING: Octree lock file detected at startup:" << lockFileName
-                    << "-- Attempting to restore from previous backup file.";
-
-                // This is where we should attempt to find the most recent backup and restore from
-                // that file as our persist file.
-                restoreFromMostRecentBackup();
-
-                lockFile.close();
-                qCDebug(octree) << "Loading Octree... lock file closed:" << lockFileName;
-                remove(qPrintable(lockFileName));
-                qCDebug(octree) << "Loading Octree... lock file removed:" << lockFileName;
-            }
-
-            persistentFileRead = _tree->readFromFile(qPrintable(_filename.toLocal8Bit()));
-            _tree->pruneTree();
-        });
-
-        quint64 loadDone = usecTimestampNow();
-        _loadTimeUSecs = loadDone - loadStarted;
-
-        _tree->clearDirtyBit(); // the tree is clean since we just loaded it
-        qCDebug(octree, "DONE loading Octrees from file... fileRead=%s", debug::valueOf(persistentFileRead));
-
-        unsigned long nodeCount = OctreeElement::getNodeCount();
-        unsigned long internalNodeCount = OctreeElement::getInternalNodeCount();
-        unsigned long leafNodeCount = OctreeElement::getLeafNodeCount();
-        qCDebug(octree, "Nodes after loading scene %lu nodes %lu internal %lu leaves", nodeCount, internalNodeCount, leafNodeCount);
-
-        bool wantDebug = false;
-        if (wantDebug) {
-            double usecPerGet = (double)OctreeElement::getGetChildAtIndexTime() 
-                                    / (double)OctreeElement::getGetChildAtIndexCalls();
-            qCDebug(octree) << "getChildAtIndexCalls=" << OctreeElement::getGetChildAtIndexCalls()
-                    << " getChildAtIndexTime=" << OctreeElement::getGetChildAtIndexTime() << " perGet=" << usecPerGet;
-
-            double usecPerSet = (double)OctreeElement::getSetChildAtIndexTime() 
-                                    / (double)OctreeElement::getSetChildAtIndexCalls();
-            qCDebug(octree) << "setChildAtIndexCalls=" << OctreeElement::getSetChildAtIndexCalls()
-                    << " setChildAtIndexTime=" << OctreeElement::getSetChildAtIndexTime() << " perSet=" << usecPerSet;
-        }
-
-        _initialLoadComplete = true;
-
-        // Since we just loaded the persistent file, we can consider ourselves as having "just checked" for persistance.
-        _lastCheck = usecTimestampNow(); // we just loaded, no need to save again
-        
-        // This last persist time is not really used until the file is actually persisted. It is only
-        // used in formatting the backup filename in cases of non-rolling backup names. However, we don't
-        // want an uninitialized value for this, so we set it to the current time (startup of the server)
-        time(&_lastPersistTime);
-
-        if (_replacementData.isNull()) {
-            sendLatestEntityDataToDS();
-        }
-        _replacementData.clear();
-
-        emit loadCompleted();
+    if (timeSinceLastPersist > _persistInterval) {
+        _lastPersistCheck = now;
+        persist();
     }
 
-    if (isStillRunning()) {
-        quint64 MSECS_TO_USECS = 1000;
-        quint64 USECS_TO_SLEEP = 10 * MSECS_TO_USECS; // every 10ms
-        std::this_thread::sleep_for(std::chrono::microseconds(USECS_TO_SLEEP));
-
-        // do our updates then check to save...
-        _tree->update();
-
-        quint64 now = usecTimestampNow();
-        quint64 sinceLastSave = now - _lastCheck;
-        quint64 intervalToCheck = _persistInterval * MSECS_TO_USECS;
-
-        if (sinceLastSave > intervalToCheck) {
-            _lastCheck = now;
-            persist();
-        }
-    }
-    
-    // if we were asked to debugTimestampNow do that now...
-    if (_debugTimestampNow) {
-        quint64 now = usecTimestampNow();
-        quint64 sinceLastDebug = now - _lastTimeDebug;
-        quint64 DEBUG_TIMESTAMP_INTERVAL = 600000000; // every 10 minutes
-
-        if (sinceLastDebug > DEBUG_TIMESTAMP_INTERVAL) {
-            _lastTimeDebug = usecTimestampNow(true); // ask for debug output
-        }
-        
-    }
-    return isStillRunning();  // keep running till they terminate us
+    QTimer::singleShot(TIME_BETWEEN_PROCESSING.count(), this, &OctreePersistThread::process);
 }
 
 void OctreePersistThread::aboutToFinish() {
     qCDebug(octree) << "Persist thread about to finish...";
     persist();
     qCDebug(octree) << "Persist thread done with about to finish...";
-    _stopThread = true;
 }
 
 QByteArray OctreePersistThread::getPersistFileContents() const {
@@ -299,6 +251,36 @@ QByteArray OctreePersistThread::getPersistFileContents() const {
     return fileContents;
 }
 
+void OctreePersistThread::cleanupOldReplacementBackups() {
+    QRegExp filenameRegex { ".*\\.backup\\.\\d{8}-\\d{6}$" };
+    QFileInfo persistFile { _filename };
+    QDir backupDir { persistFile.absolutePath() };
+    backupDir.setSorting(QDir::SortFlag::Time);
+    backupDir.setFilter(QDir::Filter::Files);
+    qDebug() << "Scanning backups for cleanup:" << backupDir.absolutePath();
+
+    int count = 0;
+    int64_t totalSize = 0;
+    for (auto fileInfo : backupDir.entryInfoList()) {
+        auto absPath = fileInfo.absoluteFilePath();
+        qDebug() << "  Found:" << absPath;
+        if (filenameRegex.exactMatch(absPath)) {
+            if (count >= MAX_OCTREE_REPLACEMENT_BACKUP_FILES_COUNT || totalSize > MAX_OCTREE_REPLACEMENT_BACKUP_FILES_SIZE_BYTES) {
+                qDebug() << "  Removing:" << absPath;
+                QFile backup(absPath);
+                if (backup.remove()) {
+                    qDebug() << "  Removed backup:" << absPath;
+                } else {
+                    qWarning() << "  Failed to remove backup:" << absPath;
+                }
+            }
+            totalSize += fileInfo.size();
+            count++;
+        }
+    }
+    qDebug() << "Found" << count << "backups";
+}
+
 void OctreePersistThread::persist() {
     if (_tree->isDirty() && _initialLoadComplete) {
 
@@ -308,27 +290,14 @@ void OctreePersistThread::persist() {
             qCDebug(octree) << "DONE pruning Octree before saving...";
         });
 
-        qCDebug(octree) << "persist operation calling backup...";
-        backup(); // handle backup if requested        
-        qCDebug(octree) << "persist operation DONE with backup...";
-
         _tree->incrementPersistDataVersion();
 
-        // create our "lock" file to indicate we're saving.
-        QString lockFileName = _filename + ".lock";
-        std::ofstream lockFile(qPrintable(lockFileName), std::ios::out|std::ios::binary);
-        if(lockFile.is_open()) {
-            qCDebug(octree) << "saving Octree lock file created at:" << lockFileName;
-
-            _tree->writeToFile(qPrintable(_filename), NULL, _persistAsFileType);
-            time(&_lastPersistTime);
+        qCDebug(octree) << "Saving Octree data to:" << _filename;
+        if (_tree->writeToFile(_filename.toLocal8Bit().constData(), nullptr, _persistAsFileType)) {
             _tree->clearDirtyBit(); // tree is clean after saving
-            qCDebug(octree) << "DONE saving Octree to file...";
-
-            lockFile.close();
-            qCDebug(octree) << "saving Octree lock file closed:" << lockFileName;
-            remove(qPrintable(lockFileName));
-            qCDebug(octree) << "saving Octree lock file removed:" << lockFileName;
+            qCDebug(octree) << "DONE persisting Octree data to" << _filename;
+        } else {
+            qCWarning(octree) << "Failed to persist Octree data to" << _filename;
         }
 
         sendLatestEntityDataToDS();
@@ -347,199 +316,5 @@ void OctreePersistThread::sendLatestEntityDataToDS() {
         nodeList->sendPacketList(std::move(message), domainHandler.getSockAddr());
     } else {
         qCWarning(octree) << "Failed to persist octree to DS";
-    }
-}
-
-void OctreePersistThread::restoreFromMostRecentBackup() {
-    qCDebug(octree) << "Restoring from most recent backup...";
-    
-    QString mostRecentBackupFileName;
-    QDateTime mostRecentBackupTime;
-    
-    bool recentBackup = getMostRecentBackup(QString(""), mostRecentBackupFileName, mostRecentBackupTime);
-
-    // If we found a backup file, restore from that file.
-    if (recentBackup) {
-        qCDebug(octree) << "BEST backup file:" << mostRecentBackupFileName << " last modified:" << mostRecentBackupTime.toString();
-
-        qCDebug(octree) << "Removing old file:" << _filename;
-        remove(qPrintable(_filename));
-
-        qCDebug(octree) << "Restoring backup file " << mostRecentBackupFileName << "...";
-        bool result = QFile::copy(mostRecentBackupFileName, _filename);
-        if (result) {
-            qCDebug(octree) << "DONE restoring backup file " << mostRecentBackupFileName << "to" << _filename << "...";
-        } else {
-            qCDebug(octree) << "ERROR while restoring backup file " << mostRecentBackupFileName << "to" << _filename << "...";
-            perror("ERROR while restoring backup file");
-        }
-    } else {
-        qCDebug(octree) << "NO BEST backup file found.";
-    }
-}
-
-bool OctreePersistThread::getMostRecentBackup(const QString& format, 
-                            QString& mostRecentBackupFileName, QDateTime& mostRecentBackupTime) {
-
-    // Based on our backup file name, determine the path and file name pattern for backup files
-    QFileInfo persistFileInfo(_filename);
-    QString path = _backupDirectory;
-    QString fileNamePart = persistFileInfo.fileName();
-
-    QStringList filters;
-
-    if (format.isEmpty()) {
-        // Create a file filter that will find all backup files of this extension format
-        foreach(const BackupRule& rule, _backupRules) {
-            QString backupExtension = rule.extensionFormat;
-            backupExtension.replace(QRegExp("%."), "*");
-            QString backupFileNamePart = fileNamePart + backupExtension;
-            filters << backupFileNamePart;
-        }
-    } else {
-        QString backupExtension = format;
-        backupExtension.replace(QRegExp("%."), "*");
-        QString backupFileNamePart = fileNamePart + backupExtension;
-        filters << backupFileNamePart;
-    }
-    
-    bool bestBackupFound = false;        
-    QString bestBackupFile;
-    QDateTime bestBackupFileTime;
-
-    // Iterate over all of the backup files in the persist location
-    QDirIterator dirIterator(path, filters, QDir::Files|QDir::NoSymLinks, QDirIterator::NoIteratorFlags);
-    while(dirIterator.hasNext()) {
-
-        dirIterator.next();
-        QDateTime lastModified = dirIterator.fileInfo().lastModified();
-
-        // Based on last modified date, track the most recently modified file as the best backup
-        if (lastModified > bestBackupFileTime) {
-            bestBackupFound = true;
-            bestBackupFile = dirIterator.filePath();
-            bestBackupFileTime = lastModified;
-        }
-    }
-
-    // If we found a backup then return the results    
-    if (bestBackupFound) {
-        mostRecentBackupFileName = bestBackupFile;
-        mostRecentBackupTime = bestBackupFileTime;
-    }
-    return bestBackupFound;
-}
-
-void OctreePersistThread::rollOldBackupVersions(const BackupRule& rule) {
-
-    if (rule.extensionFormat.contains("%N")) {
-        if (rule.maxBackupVersions > 0) {
-            qCDebug(octree) << "Rolling old backup versions for rule" << rule.name << "...";
-
-            QString backupFileName = _backupDirectory + "/" + QUrl(_filename).fileName();
-
-            // Delete maximum rolling file because rename() fails on Windows if target exists
-            QString backupMaxExtensionN = rule.extensionFormat;
-            backupMaxExtensionN.replace(QString("%N"), QString::number(rule.maxBackupVersions));
-            QString backupMaxFilenameN = backupFileName + backupMaxExtensionN;
-            QFile backupMaxFileN(backupMaxFilenameN);
-            if (backupMaxFileN.exists()) {
-                int result = remove(qPrintable(backupMaxFilenameN));
-                if (result != 0) {
-                    qCDebug(octree) << "ERROR deleting old backup file " << backupMaxFilenameN;
-                }
-            }
-
-            for(int n = rule.maxBackupVersions - 1; n > 0; n--) {
-                QString backupExtensionN = rule.extensionFormat;
-                QString backupExtensionNplusOne = rule.extensionFormat;
-                backupExtensionN.replace(QString("%N"), QString::number(n));
-                backupExtensionNplusOne.replace(QString("%N"), QString::number(n+1));
-
-                QString backupFilenameN = findMostRecentFileExtension(backupFileName, PERSIST_EXTENSIONS) + backupExtensionN;
-                QString backupFilenameNplusOne = backupFileName + backupExtensionNplusOne;
-
-                QFile backupFileN(backupFilenameN);
-
-                if (backupFileN.exists()) {
-                    qCDebug(octree) << "rolling backup file " << backupFilenameN << "to" << backupFilenameNplusOne << "...";
-                    int result = rename(qPrintable(backupFilenameN), qPrintable(backupFilenameNplusOne));
-                    if (result == 0) {
-                        qCDebug(octree) << "DONE rolling backup file " << backupFilenameN << "to" << backupFilenameNplusOne << "...";
-                    } else {
-                        qCDebug(octree) << "ERROR in rolling backup file " << backupFilenameN << "to" << backupFilenameNplusOne << "...";
-                        perror("ERROR in rolling backup file");
-                    }
-                }
-            }
-            qCDebug(octree) << "Done rolling old backup versions...";
-        } else {
-            qCDebug(octree) << "Rolling backups for rule" << rule.name << "."
-                     << " Max Rolled Backup Versions less than 1 [" << rule.maxBackupVersions << "]."
-                     << " No need to roll backups...";
-        }
-    }
-}
-
-void OctreePersistThread::backup() {
-    qCDebug(octree) << "backup operation wantBackup:" << _wantBackup;
-    if (_wantBackup) {
-        quint64 now = usecTimestampNow();
-        
-        for(int i = 0; i < _backupRules.count(); i++) {
-            BackupRule& rule = _backupRules[i];
-
-            quint64 sinceLastBackup = now - rule.lastBackup;
-            quint64 SECS_TO_USECS = 1000 * 1000;
-            quint64 intervalToBackup = rule.interval * SECS_TO_USECS;
-
-            qCDebug(octree) << "Checking [" << rule.name << "] - Time since last backup [" << sinceLastBackup << "] " << 
-                        "compared to backup interval [" << intervalToBackup << "]...";
-
-            if (sinceLastBackup > intervalToBackup) {
-                qCDebug(octree) << "Time since last backup [" << sinceLastBackup << "] for rule [" << rule.name 
-                                        << "] exceeds backup interval [" << intervalToBackup << "] doing backup now...";
-
-                struct tm* localTime = localtime(&_lastPersistTime);
-
-                QString backupFileName = _backupDirectory + "/" + QUrl(_filename).fileName();
-            
-                // check to see if they asked for version rolling format
-                if (rule.extensionFormat.contains("%N")) {
-                    rollOldBackupVersions(rule); // rename all the old backup files accordingly
-                    QString backupExtension = rule.extensionFormat;
-                    backupExtension.replace(QString("%N"), QString("1"));
-                    backupFileName += backupExtension;
-                } else {
-                    char backupExtension[256];
-                    strftime(backupExtension, sizeof(backupExtension), qPrintable(rule.extensionFormat), localTime);
-                    backupFileName += backupExtension;
-                }
-
-                if (rule.maxBackupVersions > 0) {
-                    QFile persistFile(_filename);
-                    if (persistFile.exists()) {
-                        qCDebug(octree) << "backing up persist file " << _filename << "to" << backupFileName << "...";
-                        bool result = QFile::copy(_filename, backupFileName);
-                        if (result) {
-                            qCDebug(octree) << "DONE backing up persist file...";
-                            rule.lastBackup = now; // only record successful backup in this case.
-                        } else {
-                            qCDebug(octree) << "ERROR in backing up persist file...";
-                            perror("ERROR in backing up persist file");
-                        }
-                    } else {
-                        qCDebug(octree) << "persist file " << _filename << " does not exist. " << 
-                                    "nothing to backup for this rule ["<< rule.name << "]...";
-                    }
-                } else {
-                    qCDebug(octree) << "This backup rule" << rule.name 
-                             << " has Max Rolled Backup Versions less than 1 [" << rule.maxBackupVersions << "]."
-                             << " There are no backups to be done...";
-                }
-            } else {
-                qCDebug(octree) << "Backup not needed for this rule ["<< rule.name << "]...";
-            }
-        }
     }
 }

@@ -14,12 +14,12 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
-import QtQuick.Controls 1.4
 import "../../../styles-uit"
 import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
 import "../common" as HifiCommerceCommon
-import "./sendMoney"
+import "../common/sendAsset"
+import "../.." as HifiCommon
 
 Rectangle {
     HifiConstants { id: hifi; }
@@ -161,7 +161,9 @@ Rectangle {
                     lightboxPopup.bodyImageSource = titleBarSecurityImage.source;
                     lightboxPopup.bodyText = lightboxPopup.securityPicBodyText;
                     lightboxPopup.button1text = "CLOSE";
-                    lightboxPopup.button1method = "root.visible = false;"
+                    lightboxPopup.button1method = function() {
+                        lightboxPopup.visible = false;
+                    }
                     lightboxPopup.visible = true;
                 }
             }
@@ -237,7 +239,7 @@ Rectangle {
                     } else {
                         sendToScript(msg);
                     }
-                } else if (msg.method === 'maybeEnableHmdPreview') {
+                } else {
                     sendToScript(msg);
                 }
             }
@@ -342,8 +344,14 @@ Rectangle {
         }
     }
 
-    SendMoney {
+    HifiCommon.RootHttpRequest {
+        id: http;
+    }
+
+    SendAsset {
         id: sendMoney;
+        http: http;
+        listModelName: "Send Money Connections";
         z: 997;
         visible: root.activeView === "sendMoney";
         anchors.fill: parent;
@@ -351,7 +359,7 @@ Rectangle {
         parentAppNavBarHeight: tabButtonsContainer.height;
 
         Connections {
-            onSendSignalToWallet: {
+            onSendSignalToParent: {
                 sendToScript(msg);
             }
         }
@@ -406,7 +414,7 @@ Rectangle {
     //
     Item {
         id: tabButtonsContainer;
-        visible: !needsLogIn.visible && root.activeView !== "passphraseChange" && root.activeView !== "securityImageChange" && sendMoney.currentActiveView !== "sendMoneyStep";
+        visible: !needsLogIn.visible && root.activeView !== "passphraseChange" && root.activeView !== "securityImageChange" && sendMoney.currentActiveView !== "sendAssetStep";
         property int numTabs: 5;
         // Size
         width: root.width;
@@ -766,6 +774,13 @@ Rectangle {
             case 'selectRecipient':
             case 'updateSelectedRecipientUsername':
                 sendMoney.fromScript(message);
+            break;
+            case 'http.response':
+                http.handleHttpResponse(message);
+            break;
+            case 'palIsStale':
+            case 'avatarDisconnected':
+                // Because we don't have "channels" for sending messages to a specific QML object, the messages are broadcast to all QML Items. If an Item of yours happens to be visible when some script sends a message with a method you don't expect, you'll get "Unrecognized message..." logs.
             break;
             default:
                 console.log('Unrecognized message from wallet.js:', JSON.stringify(message));

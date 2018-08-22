@@ -45,7 +45,14 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
         return result;
     }
 
-    glm::mat4 hipsMat = myAvatar->deriveBodyFromHMDSensor();
+    glm::mat4 hipsMat;
+    if (myAvatar->getCenterOfGravityModelEnabled() && !isFlying) {
+        // then we use center of gravity model
+        hipsMat = myAvatar->deriveBodyUsingCgModel();
+    } else {
+        // otherwise use the default of putting the hips under the head
+        hipsMat = myAvatar->deriveBodyFromHMDSensor();
+    }
     glm::vec3 hipsPos = extractTranslation(hipsMat);
     glm::quat hipsRot = glmExtractRotation(hipsMat);
 
@@ -53,14 +60,17 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
     glm::mat4 avatarToSensorMat = worldToSensorMat * avatarToWorldMat;
 
     // dampen hips rotation, by mixing it with the avatar orientation in sensor space
-    const float MIX_RATIO = 0.5f;
-    hipsRot = safeLerp(glmExtractRotation(avatarToSensorMat), hipsRot, MIX_RATIO);
+    // turning this off for center of gravity model because it is already mixed in there
+    if (!(myAvatar->getCenterOfGravityModelEnabled())) {
+        const float MIX_RATIO = 0.5f;
+        hipsRot = safeLerp(glmExtractRotation(avatarToSensorMat), hipsRot, MIX_RATIO);
+    }
 
     if (isFlying) {
         // rotate the hips back to match the flying animation.
 
         const float TILT_ANGLE = 0.523f;
-        const glm::quat tiltRot = glm::angleAxis(TILT_ANGLE, transformVectorFast(avatarToSensorMat, -Vectors::UNIT_X));
+        const glm::quat tiltRot = glm::angleAxis(TILT_ANGLE, glm::normalize(transformVectorFast(avatarToSensorMat, -Vectors::UNIT_X)));
 
         glm::vec3 headPos;
         int headIndex = myAvatar->getJointIndex("Head");
@@ -73,6 +83,7 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
         hipsPos = headPos + tiltRot * (hipsPos - headPos);
     }
 
+    // AJT: TODO can we remove this?
     return AnimPose(hipsRot * Quaternions::Y_180, hipsPos);
 }
 
@@ -97,6 +108,11 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     Rig::ControllerParameters params;
 
     AnimPose avatarToRigPose(glm::vec3(1.0f), Quaternions::Y_180, glm::vec3(0.0f));
+
+    glm::mat4 rigToAvatarMatrix = Matrices::Y_180;
+    glm::mat4 avatarToWorldMatrix = createMatFromQuatAndPos(myAvatar->getWorldOrientation(), myAvatar->getWorldPosition());
+    glm::mat4 sensorToWorldMatrix = myAvatar->getSensorToWorldMatrix();
+    params.rigToSensorMatrix = glm::inverse(sensorToWorldMatrix) * avatarToWorldMatrix * rigToAvatarMatrix;
 
     // input action is the highest priority source for head orientation.
     auto avatarHeadPose = myAvatar->getControllerPoseInAvatarFrame(controller::Action::HEAD);
@@ -170,6 +186,15 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         }
     }
 
+    bool isFlying = (myAvatar->getCharacterController()->getState() == CharacterController::State::Hover || myAvatar->getCharacterController()->computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS);
+    if (isFlying != _prevIsFlying) {
+        const float FLY_TO_IDLE_HIPS_TRANSITION_TIME = 0.5f;
+        _flyIdleTimer = FLY_TO_IDLE_HIPS_TRANSITION_TIME;
+    } else {
+        _flyIdleTimer -= deltaTime;
+    }
+    _prevIsFlying = isFlying;
+
     // if hips are not under direct control, estimate the hips position.
     if (avatarHeadPose.isValid() && !(params.primaryControllerFlags[Rig::PrimaryControllerType_Hips] & (uint8_t)Rig::ControllerFlags::Enabled)) {
         bool isFlying = (myAvatar->getCharacterController()->getState() == CharacterController::State::Hover || myAvatar->getCharacterController()->computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS);
@@ -181,14 +206,28 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         AnimPose hips = computeHipsInSensorFrame(myAvatar, isFlying);
 
+        // timescale in seconds
+        const float TRANS_HORIZ_TIMESCALE = 0.15f;
+        const float TRANS_VERT_TIMESCALE = 0.01f; // We want the vertical component of the hips to follow quickly to prevent spine squash/stretch.
+        const float ROT_TIMESCALE = 0.15f;
+        const float FLY_IDLE_TRANSITION_TIMESCALE = 0.25f;
+
+        float transHorizAlpha, transVertAlpha, rotAlpha;
+        if (_flyIdleTimer < 0.0f) {
+            transHorizAlpha = glm::min(deltaTime / TRANS_HORIZ_TIMESCALE, 1.0f);
+            transVertAlpha = glm::min(deltaTime / TRANS_VERT_TIMESCALE, 1.0f);
+            rotAlpha = glm::min(deltaTime / ROT_TIMESCALE, 1.0f);
+        } else {
+            transHorizAlpha = glm::min(deltaTime / FLY_IDLE_TRANSITION_TIMESCALE, 1.0f);
+            transVertAlpha = glm::min(deltaTime / FLY_IDLE_TRANSITION_TIMESCALE, 1.0f);
+            rotAlpha = glm::min(deltaTime / FLY_IDLE_TRANSITION_TIMESCALE, 1.0f);
+        }
+
         // smootly lerp hips, in sensorframe, with different coeff for horiz and vertical translation.
-        const float ROT_ALPHA = 0.9f;
-        const float TRANS_HORIZ_ALPHA = 0.9f;
-        const float TRANS_VERT_ALPHA = 0.1f;
         float hipsY = hips.trans().y;
-        hips.trans() = lerp(hips.trans(), _prevHips.trans(), TRANS_HORIZ_ALPHA);
-        hips.trans().y = lerp(hipsY, _prevHips.trans().y, TRANS_VERT_ALPHA);
-        hips.rot() = safeLerp(hips.rot(), _prevHips.rot(), ROT_ALPHA);
+        hips.trans() = lerp(_prevHips.trans(), hips.trans(), transHorizAlpha);
+        hips.trans().y = lerp(_prevHips.trans().y, hipsY, transVertAlpha);
+        hips.rot() = safeLerp(_prevHips.rot(), hips.rot(), rotAlpha);
 
         _prevHips = hips;
         _prevHipsValid = true;

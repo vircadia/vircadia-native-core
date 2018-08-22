@@ -1,7 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//  grid.slf
+//  grid.frag
 //  fragment shader
 //
 //  Created by Zach Pomerantz on 2/16/2016.
@@ -11,6 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@include gpu/ShaderConstants.h@>
 <@include gpu/Paint.slh@>
 
 struct Grid {
@@ -19,13 +20,16 @@ struct Grid {
     vec4 edge;
 };
 
-uniform gridBuffer { Grid grid; };
+layout(binding=0) uniform gridBuffer {
+  Grid grid; 
+};
+
 Grid getGrid() { return grid; }
 
-in vec2 varTexCoord0;
-in vec4 varColor;
+layout(location=GPU_ATTR_TEXCOORD0) in vec2 varTexCoord0;
+layout(location=GPU_ATTR_COLOR) in vec4 varColor;
 
-out vec4 outFragColor;
+layout(location=0) out vec4 outFragColor;
 
 void main(void) {
     Grid grid = getGrid();

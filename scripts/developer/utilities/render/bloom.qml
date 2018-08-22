@@ -93,9 +93,10 @@ Item {
             integral: false
             config: root.config
             property: "intensity"
-            max: 5.0
+            max: 1.0
             min: 0.0
             width: 280
+            height:38
         }  
         ConfigSlider {
             label: "Size"
@@ -105,6 +106,7 @@ Item {
             max: 1.0
             min: 0.0
             width: 280
+            height:38
         }  
         ConfigSlider {
             label: "Threshold"
@@ -114,6 +116,7 @@ Item {
             max: 2.0
             min: 0.0
             width: 280
+            height:38
         }  
     }
 }

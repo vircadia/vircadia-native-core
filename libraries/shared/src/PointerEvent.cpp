@@ -110,11 +110,13 @@ void PointerEvent::setButton(Button button) {
  *     <tr><td>Shift</td><td><code>0x02000000</code></td><td><code>33554432</code></td>
  *         <td>A Shift key on the keyboard is pressed.</td></tr>
  *     <tr><td>Control</td><td><code>0x04000000</code></td><td><code>67108864</code></td>
- *         <td>A Control key on the keyboard is pressed.</td></tr>
+ *         <td>A control key on the keyboard is pressed. On Windows the "control" key is the Ctrl key; on OSX it is the Command 
+ *         key.</td></tr>
  *     <tr><td>Alt</td><td><code>0x08000000</code></td><td><code>134217728</code></td>
  *         <td>An Alt key on the keyboard is pressed.</td></tr>
  *     <tr><td>Meta</td><td><code>0x10000000</code></td><td><code>268435456</code></td>
- *         <td>A Meta or Windows key on the keyboard is pressed.</td></tr>
+ *         <td>A meta key on the keyboard is pressed. On Windows the "meta" key is the Windows key; on OSX it is the Control 
+ *         (Splat) key.</td></tr>
  *     <tr><td>Keypad</td><td><code>0x20000000</code></td><td><code>536870912</code></td>
  *         <td>A keypad button is pressed.</td></tr>
  *     <tr><td>Group</td><td><code>0x40000000</code></td><td><code>1073741824</code></td>

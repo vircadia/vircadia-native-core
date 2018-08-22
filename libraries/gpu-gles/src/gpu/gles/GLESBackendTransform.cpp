@@ -19,8 +19,10 @@ void GLESBackend::initTransform() {
     glGenBuffers(1, &_transform._drawCallInfoBuffer);
     glGenTextures(1, &_transform._objectBufferTexture);
     size_t cameraSize = sizeof(TransformStageState::CameraBufferElement);
-    while (_transform._cameraUboSize < cameraSize) {
-        _transform._cameraUboSize += _uboAlignment;
+    if (UNIFORM_BUFFER_OFFSET_ALIGNMENT > 0) {
+        while (_transform._cameraUboSize < cameraSize) {
+            _transform._cameraUboSize += UNIFORM_BUFFER_OFFSET_ALIGNMENT;
+        }
     }
 }
 

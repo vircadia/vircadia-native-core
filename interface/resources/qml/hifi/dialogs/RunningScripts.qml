@@ -79,7 +79,7 @@ ScrollingWindow {
         interval: 1000
         repeat: true
         running: false
-        onTriggered: developerMenuEnabled = MenuInterface.isMenuEnabled("Developer Menus");
+        onTriggered: developerMenuEnabled = MenuInterface.isOptionChecked("Developer Menu");
     }
     
     Component {
@@ -98,7 +98,7 @@ ScrollingWindow {
     Component.onCompleted: {
         isHMD = HMD.active;
         updateRunningScripts();
-        developerMenuEnabled = MenuInterface.isMenuEnabled("Developer Menus");
+        developerMenuEnabled = MenuInterface.isOptionChecked("Developer Menu");
         checkMenu.restart();
     }
 

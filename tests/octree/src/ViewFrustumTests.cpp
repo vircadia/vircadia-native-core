@@ -18,8 +18,8 @@
 #include <ViewFrustum.h>
 
 //#include <StreamUtils.h>
-#include <../GLMTestUtils.h>
-#include <../QTestExtensions.h>
+#include <test-utils/GLMTestUtils.h>
+#include <test-utils/QTestExtensions.h>
 
 
 const float ACCEPTABLE_FLOAT_ERROR = 1.0e-6f;

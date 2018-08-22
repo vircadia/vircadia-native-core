@@ -27,6 +27,7 @@
 #include <PropertyFlags.h>
 #include <OctreeConstants.h>
 #include <ShapeInfo.h>
+#include <ColorUtils.h>
 
 #include "AnimationPropertyGroup.h"
 #include "EntityItemID.h"
@@ -133,21 +134,21 @@ public:
     DEFINE_PROPERTY_REF(PROP_SCRIPT, Script, script, QString, ENTITY_ITEM_DEFAULT_SCRIPT);
     DEFINE_PROPERTY(PROP_SCRIPT_TIMESTAMP, ScriptTimestamp, scriptTimestamp, quint64, ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP);
     DEFINE_PROPERTY_REF(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString, ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL);
-    DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, xColor, particle::DEFAULT_COLOR);
-    DEFINE_PROPERTY_REF(PROP_COLOR_SPREAD, ColorSpread, colorSpread, xColor, particle::DEFAULT_COLOR_SPREAD);
-    DEFINE_PROPERTY_REF(PROP_COLOR_START, ColorStart, colorStart, xColor, particle::DEFAULT_COLOR);
-    DEFINE_PROPERTY_REF(PROP_COLOR_FINISH, ColorFinish, colorFinish, xColor, particle::DEFAULT_COLOR);
+    DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, xColor, ParticleEffectEntityItem::DEFAULT_XCOLOR);
+    DEFINE_PROPERTY_REF(PROP_COLOR_SPREAD, ColorSpread, colorSpread, xColor, ParticleEffectEntityItem::DEFAULT_XCOLOR_SPREAD);
+    DEFINE_PROPERTY_REF(PROP_COLOR_START, ColorStart, colorStart, vec3, particle::DEFAULT_COLOR_UNINITIALIZED);
+    DEFINE_PROPERTY_REF(PROP_COLOR_FINISH, ColorFinish, colorFinish, vec3, particle::DEFAULT_COLOR_UNINITIALIZED);
     DEFINE_PROPERTY(PROP_ALPHA, Alpha, alpha, float, particle::DEFAULT_ALPHA);
     DEFINE_PROPERTY(PROP_ALPHA_SPREAD, AlphaSpread, alphaSpread, float, particle::DEFAULT_ALPHA_SPREAD);
-    DEFINE_PROPERTY(PROP_ALPHA_START, AlphaStart, alphaStart, float, particle::DEFAULT_ALPHA);
-    DEFINE_PROPERTY(PROP_ALPHA_FINISH, AlphaFinish, alphaFinish, float, particle::DEFAULT_ALPHA);
+    DEFINE_PROPERTY(PROP_ALPHA_START, AlphaStart, alphaStart, float, particle::DEFAULT_ALPHA_START);
+    DEFINE_PROPERTY(PROP_ALPHA_FINISH, AlphaFinish, alphaFinish, float, particle::DEFAULT_ALPHA_FINISH);
     DEFINE_PROPERTY_REF(PROP_MODEL_URL, ModelURL, modelURL, QString, "");
     DEFINE_PROPERTY_REF(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString, "");
     DEFINE_PROPERTY_REF(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, glm::vec3, ENTITY_ITEM_DEFAULT_REGISTRATION_POINT);
     DEFINE_PROPERTY_REF(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, glm::vec3, ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY);
     DEFINE_PROPERTY(PROP_ANGULAR_DAMPING, AngularDamping, angularDamping, float, ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING);
     DEFINE_PROPERTY(PROP_COLLISIONLESS, Collisionless, collisionless, bool, ENTITY_ITEM_DEFAULT_COLLISIONLESS);
-    DEFINE_PROPERTY(PROP_COLLISION_MASK, CollisionMask, collisionMask, uint8_t, ENTITY_COLLISION_MASK_DEFAULT);
+    DEFINE_PROPERTY(PROP_COLLISION_MASK, CollisionMask, collisionMask, uint16_t, ENTITY_COLLISION_MASK_DEFAULT);
     DEFINE_PROPERTY(PROP_DYNAMIC, Dynamic, dynamic, bool, ENTITY_ITEM_DEFAULT_DYNAMIC);
     DEFINE_PROPERTY(PROP_IS_SPOTLIGHT, IsSpotlight, isSpotlight, bool, LightEntityItem::DEFAULT_IS_SPOTLIGHT);
     DEFINE_PROPERTY(PROP_INTENSITY, Intensity, intensity, float, LightEntityItem::DEFAULT_INTENSITY);
@@ -227,9 +228,18 @@ public:
     DEFINE_PROPERTY_REF_ENUM(PROP_MATERIAL_MAPPING_MODE, MaterialMappingMode, materialMappingMode, MaterialMappingMode, UV);
     DEFINE_PROPERTY_REF(PROP_MATERIAL_PRIORITY, Priority, priority, quint16, 0);
     DEFINE_PROPERTY_REF(PROP_PARENT_MATERIAL_NAME, ParentMaterialName, parentMaterialName, QString, "0");
-    DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_POS, MaterialMappingPos, materialMappingPos, glmVec2, glm::vec2(0, 0));
-    DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale, glmVec2, glm::vec2(1, 1));
+    DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_POS, MaterialMappingPos, materialMappingPos, vec2, glm::vec2(0, 0));
+    DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale, vec2, glm::vec2(1, 1));
     DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_ROT, MaterialMappingRot, materialMappingRot, float, 0);
+    DEFINE_PROPERTY_REF(PROP_MATERIAL_DATA, MaterialData, materialData, QString, "");
+
+    DEFINE_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, IsVisibleInSecondaryCamera, isVisibleInSecondaryCamera, bool, ENTITY_ITEM_DEFAULT_VISIBLE_IN_SECONDARY_CAMERA);
+
+    DEFINE_PROPERTY(PROP_PARTICLE_SPIN, ParticleSpin, particleSpin, float, particle::DEFAULT_PARTICLE_SPIN);
+    DEFINE_PROPERTY(PROP_SPIN_SPREAD, SpinSpread, spinSpread, float, particle::DEFAULT_SPIN_SPREAD);
+    DEFINE_PROPERTY(PROP_SPIN_START, SpinStart, spinStart, float, particle::DEFAULT_SPIN_START);
+    DEFINE_PROPERTY(PROP_SPIN_FINISH, SpinFinish, spinFinish, float, particle::DEFAULT_SPIN_FINISH);
+    DEFINE_PROPERTY(PROP_PARTICLE_ROTATE_WITH_ENTITY, RotateWithEntity, rotateWithEntity, bool, particle::DEFAULT_ROTATE_WITH_ENTITY);
 
     // Certifiable Properties - related to Proof of Purchase certificates
     DEFINE_PROPERTY_REF(PROP_ITEM_NAME, ItemName, itemName, QString, ENTITY_ITEM_DEFAULT_ITEM_NAME);
@@ -245,11 +255,11 @@ public:
     DEFINE_PROPERTY_REF(PROP_STATIC_CERTIFICATE_VERSION, StaticCertificateVersion, staticCertificateVersion, quint32, ENTITY_ITEM_DEFAULT_STATIC_CERTIFICATE_VERSION);
 
     // these are used when bouncing location data into and out of scripts
-    DEFINE_PROPERTY_REF(PROP_LOCAL_POSITION, LocalPosition, localPosition, glmVec3, ENTITY_ITEM_ZERO_VEC3);
-    DEFINE_PROPERTY_REF(PROP_LOCAL_ROTATION, LocalRotation, localRotation, glmQuat, ENTITY_ITEM_DEFAULT_ROTATION);
-    DEFINE_PROPERTY_REF(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, glmVec3, ENTITY_ITEM_ZERO_VEC3);
-    DEFINE_PROPERTY_REF(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, glmVec3, ENTITY_ITEM_ZERO_VEC3);
-    DEFINE_PROPERTY_REF(PROP_LOCAL_DIMENSIONS, LocalDimensions, localDimensions, glmVec3, ENTITY_ITEM_ZERO_VEC3);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_POSITION, LocalPosition, localPosition, vec3, ENTITY_ITEM_ZERO_VEC3);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_ROTATION, LocalRotation, localRotation, quat, ENTITY_ITEM_DEFAULT_ROTATION);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, vec3, ENTITY_ITEM_ZERO_VEC3);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, vec3, ENTITY_ITEM_ZERO_VEC3);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_DIMENSIONS, LocalDimensions, localDimensions, vec3, ENTITY_ITEM_ZERO_VEC3);
 
     DEFINE_PROPERTY_REF(PROP_JOINT_ROTATIONS_SET, JointRotationsSet, jointRotationsSet, QVector<bool>, QVector<bool>());
     DEFINE_PROPERTY_REF(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<glm::quat>, QVector<glm::quat>());
@@ -269,6 +279,13 @@ public:
 
     DEFINE_PROPERTY_REF(PROP_SERVER_SCRIPTS, ServerScripts, serverScripts, QString, ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS);
     DEFINE_PROPERTY(PROP_RELAY_PARENT_JOINTS, RelayParentJoints, relayParentJoints, bool, ENTITY_ITEM_DEFAULT_RELAY_PARENT_JOINTS);
+
+    DEFINE_PROPERTY(PROP_CLONEABLE, Cloneable, cloneable, bool, ENTITY_ITEM_DEFAULT_CLONEABLE);
+    DEFINE_PROPERTY(PROP_CLONE_LIFETIME, CloneLifetime, cloneLifetime, float, ENTITY_ITEM_DEFAULT_CLONE_LIFETIME);
+    DEFINE_PROPERTY(PROP_CLONE_LIMIT, CloneLimit, cloneLimit, float, ENTITY_ITEM_DEFAULT_CLONE_LIMIT);
+    DEFINE_PROPERTY(PROP_CLONE_DYNAMIC, CloneDynamic, cloneDynamic, bool, ENTITY_ITEM_DEFAULT_CLONE_DYNAMIC);
+    DEFINE_PROPERTY(PROP_CLONE_AVATAR_ENTITY, CloneAvatarEntity, cloneAvatarEntity, bool, ENTITY_ITEM_DEFAULT_CLONE_AVATAR_ENTITY);
+    DEFINE_PROPERTY_REF(PROP_CLONE_ORIGIN_ID, CloneOriginID, cloneOriginID, QUuid, ENTITY_ITEM_DEFAULT_CLONE_ORIGIN_ID);
 
     static QString getComponentModeString(uint32_t mode);
     static QString getComponentModeAsString(uint32_t mode);
@@ -292,6 +309,8 @@ public:
                                        QByteArray& buffer, EntityPropertyFlags requestedProperties, EntityPropertyFlags& didntFitProperties);
 
     static bool encodeEraseEntityMessage(const EntityItemID& entityItemID, QByteArray& buffer);
+    static bool encodeCloneEntityMessage(const EntityItemID& entityIDToClone, const EntityItemID& newEntityID, QByteArray& buffer);
+    static bool decodeCloneEntityMessage(const QByteArray& buffer, int& processedBytes, EntityItemID& entityIDToClone, EntityItemID& newEntityID);
 
     static bool decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
                                        EntityItemID& entityID, EntityItemProperties& properties);
@@ -326,7 +345,7 @@ public:
     void clearSimulationOwner();
     void setSimulationOwner(const QUuid& id, uint8_t priority);
     void setSimulationOwner(const QByteArray& data);
-    void promoteSimulationPriority(quint8 priority) { _simulationOwner.promotePriority(priority); }
+    void setSimulationPriority(uint8_t priority) { _simulationOwner.setPriority(priority); }
 
     void setActionDataDirty() { _actionDataChanged = true; }
 
@@ -366,6 +385,8 @@ public:
     QByteArray getStaticCertificateHash() const;
     bool verifyStaticCertificateProperties();
     static bool verifySignature(const QString& key, const QByteArray& text, const QByteArray& signature);
+
+    void convertToCloneProperties(const EntityItemID& entityIDToClone);
 
 protected:
     QString getCollisionMaskAsString() const;
@@ -502,10 +523,23 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, CertificateID, certificateID, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, StaticCertificateVersion, staticCertificateVersion, "");
 
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, LocalPosition, localPosition, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, LocalRotation, localRotation, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, LocalVelocity, localVelocity, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, LocalAngularVelocity, localAngularVelocity, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, LocalDimensions, localDimensions, "");
+
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, HazeMode, hazeMode, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, KeyLightMode, keyLightMode, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AmbientLightMode, ambientLightMode, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, SkyboxMode, skyboxMode, "");
+
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Cloneable, cloneable, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CloneLifetime, cloneLifetime, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CloneLimit, cloneLimit, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CloneDynamic, cloneDynamic, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CloneAvatarEntity, cloneAvatarEntity, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CloneOriginID, cloneOriginID, "");
 
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelVolumeSize, voxelVolumeSize, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, VoxelData, voxelData, "");

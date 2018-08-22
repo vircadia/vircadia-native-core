@@ -60,8 +60,8 @@ Stats::Stats(QQuickItem* parent) :  QQuickItem(parent) {
 bool Stats::includeTimingRecord(const QString& name) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails)) {
         if (name.startsWith("/idle/update/")) {
-            if (name.startsWith("/idle/update/physics/")) {
-                return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsSimulationTiming);
+            if (name.startsWith("/idle/update/simulation/")) {
+                return Menu::getInstance()->isOptionChecked(MenuOption::ExpandSimulationTiming);
             } else if (name.startsWith("/idle/update/myAvatar/")) {
                 if (name.startsWith("/idle/update/myAvatar/simulate/")) {
                     return Menu::getInstance()->isOptionChecked(MenuOption::ExpandMyAvatarSimulateTiming);
@@ -75,8 +75,8 @@ bool Stats::includeTimingRecord(const QString& name) {
             return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
         } else if (name.startsWith("/paintGL/")) {
             return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPaintGLTiming);
-        } else if (name.startsWith("step/")) {
-            return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsSimulationTiming);
+        } else if (name.startsWith("physics/")) {
+            return Menu::getInstance()->isOptionChecked(MenuOption::ExpandPhysicsTiming);
         }
         return true;
     }
@@ -174,7 +174,7 @@ void Stats::updateStats(bool force) {
     int octreeServerCount = 0;
     int pingOctreeMax = 0;
     int totalEntityKbps = 0;
-    nodeList->eachNode([&](const SharedNodePointer& node) {
+    nodeList->eachNode([&totalPingOctree, &totalEntityKbps, &octreeServerCount, &pingOctreeMax](const SharedNodePointer& node) {
         // TODO: this should also support entities
         if (node->getType() == NodeType::EntityServer) {
             totalPingOctree += node->getPingMs();
@@ -191,6 +191,14 @@ void Stats::updateStats(bool force) {
 
     // Third column, avatar stats
     auto myAvatar = avatarManager->getMyAvatar();
+    auto animStack = myAvatar->getSkeletonModel()->getRig().getAnimStack();
+
+    _animStackNames.clear();
+    for (auto animStackIterator = animStack.begin(); animStackIterator != animStack.end(); ++animStackIterator) {
+        _animStackNames << animStackIterator->first + ":   " +  QString::number(animStackIterator->second,'f',3);
+    }
+    emit animStackNamesChanged();
+
     glm::vec3 avatarPos = myAvatar->getWorldPosition();
     STAT_UPDATE(position, QVector3D(avatarPos.x, avatarPos.y, avatarPos.z));
     STAT_UPDATE_FLOAT(speed, glm::length(myAvatar->getWorldVelocity()), 0.01f);
@@ -211,7 +219,7 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE_FLOAT(myAvatarSendRate, avatarManager->getMyAvatarSendRate(), 0.1f);
 
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
-        auto audioClient = DependencyManager::get<AudioClient>();
+        auto audioClient = DependencyManager::get<AudioClient>().data();
         if (audioMixerNode || force) {
             STAT_UPDATE(audioMixerKbps, (int)roundf(
                 bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AudioMixer) +
@@ -251,7 +259,6 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(downloadsPending, ResourceCache::getPendingRequestCount());
         STAT_UPDATE(processing, DependencyManager::get<StatTracker>()->getStat("Processing").toInt());
         STAT_UPDATE(processingPending, DependencyManager::get<StatTracker>()->getStat("PendingProcessing").toInt());
-        
 
         // See if the active download urls have changed
         bool shouldUpdateUrls = _downloads != _downloadUrls.size();
@@ -333,14 +340,19 @@ void Stats::updateStats(bool force) {
     }
 
     auto gpuContext = qApp->getGPUContext();
-
+    auto displayPlugin = qApp->getActiveDisplayPlugin();
+    if (displayPlugin) {
+        QVector2D dims(displayPlugin->getRecommendedRenderSize().x, displayPlugin->getRecommendedRenderSize().y);
+        dims *= displayPlugin->getRenderResolutionScale();
+        STAT_UPDATE(gpuFrameSize, dims);
+        STAT_UPDATE(gpuFrameTimePerPixel, (float)(gpuContext->getFrameTimerGPUAverage()*1000000.0 / double(dims.x()*dims.y())));
+    }
     // Update Frame timing (in ms)
     STAT_UPDATE(gpuFrameTime, (float)gpuContext->getFrameTimerGPUAverage());
     STAT_UPDATE(batchFrameTime, (float)gpuContext->getFrameTimerBatchAverage());
     auto config = qApp->getRenderEngine()->getConfiguration().get();
     STAT_UPDATE(engineFrameTime, (float) config->getCPURunTime());
     STAT_UPDATE(avatarSimulationTime, (float)avatarManager->getAvatarSimulationTime());
-    
 
     STAT_UPDATE(gpuBuffers, (int)gpu::Context::getBufferGPUCount());
     STAT_UPDATE(gpuBufferMemory, (int)BYTES_TO_MB(gpu::Context::getBufferGPUMemSize()));
@@ -354,6 +366,7 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(gpuTextureResidentMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResidentGPUMemSize()));
     STAT_UPDATE(gpuTextureFramebufferMemory, (int)BYTES_TO_MB(gpu::Context::getTextureFramebufferGPUMemSize()));
     STAT_UPDATE(gpuTextureResourceMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResourceGPUMemSize()));
+    STAT_UPDATE(gpuTextureResourceIdealMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResourceIdealGPUMemSize()));
     STAT_UPDATE(gpuTextureResourcePopulatedMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResourcePopulatedGPUMemSize()));
     STAT_UPDATE(gpuTextureExternalMemory, (int)BYTES_TO_MB(gpu::Context::getTextureExternalGPUMemSize()));
 #if !defined(Q_OS_ANDROID)
@@ -424,7 +437,7 @@ void Stats::updateStats(bool force) {
         // a new Map sorted by average time...
         bool onlyDisplayTopTen = Menu::getInstance()->isOptionChecked(MenuOption::OnlyDisplayTopTen);
         QMap<float, QString> sortedRecords;
-        const QMap<QString, PerformanceTimerRecord>& allRecords = PerformanceTimer::getAllTimerRecords();
+        auto allRecords = PerformanceTimer::getAllTimerRecords();
         QMapIterator<QString, PerformanceTimerRecord> i(allRecords);
 
         while (i.hasNext()) {
@@ -472,19 +485,26 @@ void Stats::updateStats(bool force) {
             bool operator<(const SortableStat& other) const { return priority < other.priority; }
         };
 
-        const QMap<QString, PerformanceTimerRecord>& allRecords = PerformanceTimer::getAllTimerRecords();
+        auto allRecords = PerformanceTimer::getAllTimerRecords();
         std::priority_queue<SortableStat> idleUpdateStats;
         auto itr = allRecords.find("/idle/update");
         if (itr != allRecords.end()) {
             float dt = (float)itr.value().getMovingAverage() / (float)USECS_PER_MSEC;
             _gameUpdateStats = QString("/idle/update = %1 ms").arg(dt);
 
-            QVector<QString> categories = { "devices", "physics", "otherAvatars", "MyAvatar", "misc" };
+            QVector<QString> categories = {
+                "devices",
+                "MyAvatar",
+                "otherAvatars",
+                "pickManager",
+                "pointerManager",
+                "simulation"
+            };
             for (int32_t j = 0; j < categories.size(); ++j) {
                 QString recordKey = "/idle/update/" + categories[j];
-                itr = allRecords.find(recordKey);
-                if (itr != allRecords.end()) {
-                    float dt = (float)itr.value().getMovingAverage() / (float)USECS_PER_MSEC;
+                auto& record = allRecords[recordKey];
+                if (record.getCount()) {
+                    float dt = (float) record.getMovingAverage() / (float)USECS_PER_MSEC;
                     QString message = QString("\n    %1 = %2").arg(categories[j]).arg(dt);
                     idleUpdateStats.push(SortableStat(message, dt));
                 }

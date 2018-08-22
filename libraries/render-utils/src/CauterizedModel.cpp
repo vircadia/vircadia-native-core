@@ -47,7 +47,7 @@ bool CauterizedModel::updateGeometry() {
     return needsFullUpdate;
 }
 
-void CauterizedModel::createVisibleRenderItemSet() {
+void CauterizedModel::createRenderItemSet() {
     if (_isCauterized) {
         assert(isLoaded());
         const auto& meshes = _renderGeometry->getMeshes();
@@ -87,19 +87,15 @@ void CauterizedModel::createVisibleRenderItemSet() {
             for (int partIndex = 0; partIndex < numParts; partIndex++) {
                 auto ptr = std::make_shared<CauterizedMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
                 _modelMeshRenderItems << std::static_pointer_cast<ModelMeshPartPayload>(ptr);
-                _modelMeshMaterialNames.push_back(getGeometry()->getShapeMaterial(shapeID)->getName());
+                auto material = getGeometry()->getShapeMaterial(shapeID);
+                _modelMeshMaterialNames.push_back(material ? material->getName() : "");
                 _modelMeshRenderItemShapes.emplace_back(ShapeInfo{ (int)i });
                 shapeID++;
             }
         }
     } else {
-        Model::createVisibleRenderItemSet();
+        Model::createRenderItemSet();
     }
-}
-
-void CauterizedModel::createCollisionRenderItemSet() {
-    // Temporary HACK: use base class method for now
-    Model::createCollisionRenderItemSet();
 }
 
 void CauterizedModel::updateClusterMatrices() {
@@ -185,12 +181,6 @@ void CauterizedModel::updateRenderItems() {
         if (!_addedToScene) {
             return;
         }
-
-        glm::vec3 scale = getScale();
-        if (_collisionGeometry) {
-            // _collisionGeometry is already scaled
-            scale = glm::vec3(1.0f);
-        }
         _needsUpdateClusterMatrices = true;
         _renderItemsNeedUpdate = false;
 
@@ -215,10 +205,7 @@ void CauterizedModel::updateRenderItems() {
             modelTransform.setRotation(self->getRotation());
 
             bool isWireframe = self->isWireframe();
-            bool isVisible = self->isVisible();
-            bool canCastShadow = self->canCastShadow();
-            bool isLayeredInFront = self->isLayeredInFront();
-            bool isLayeredInHUD = self->isLayeredInHUD();
+            auto renderItemKeyGlobalFlags = self->getRenderItemKeyGlobalFlags();
             bool enableCauterization = self->getEnableCauterization();
 
             render::Transaction transaction;
@@ -234,7 +221,7 @@ void CauterizedModel::updateRenderItems() {
                 bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
                 transaction.updateItem<CauterizedMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning, cauterizedMeshState, invalidatePayloadShapeKey,
-                        isWireframe, isVisible, isLayeredInFront, isLayeredInHUD, canCastShadow, enableCauterization](CauterizedMeshPartPayload& data) {
+                        isWireframe, renderItemKeyGlobalFlags, enableCauterization](CauterizedMeshPartPayload& data) {
                     if (useDualQuaternionSkinning) {
                         data.updateClusterBuffer(meshState.clusterDualQuaternions,
                                                  cauterizedMeshState.clusterDualQuaternions);
@@ -276,8 +263,7 @@ void CauterizedModel::updateRenderItems() {
                     data.updateTransformForCauterizedMesh(renderTransform);
 
                     data.setEnableCauterization(enableCauterization);
-                    data.updateKey(isVisible, isLayeredInFront || isLayeredInHUD, canCastShadow, render::ItemKey::TAG_BITS_ALL);
-                    data.setLayer(isLayeredInFront, isLayeredInHUD);
+                    data.updateKey(renderItemKeyGlobalFlags);
                     data.setShapeKey(invalidatePayloadShapeKey, isWireframe, useDualQuaternionSkinning);
                 });
             }

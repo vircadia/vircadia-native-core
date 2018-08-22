@@ -1,5 +1,4 @@
 import QtQuick 2.5
-import QtQuick.Controls 1.4
 import QtWebChannel 1.0
 import QtWebEngine 1.5
 

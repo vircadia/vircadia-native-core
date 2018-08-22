@@ -11,174 +11,26 @@
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/*global XXX */
+/* global getConnectionData */
 
 (function () { // BEGIN LOCAL_SCOPE
     Script.include("/~/system/libraries/accountUtils.js");
-    var request = Script.require('request').request;
+    Script.include("/~/system/libraries/connectionUtils.js");
 
     var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace";
 
-    // Function Name: onButtonClicked()
-    //
-    // Description:
-    //   -Fired when the app button is pressed.
-    //
-    // Relevant Variables:
-    //   -WALLET_QML_SOURCE: The path to the Wallet QML
-    //   -onWalletScreen: true/false depending on whether we're looking at the app.
-    var WALLET_QML_SOURCE = "hifi/commerce/wallet/Wallet.qml";
-    var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/purchases/Purchases.qml";
-    var onWalletScreen = false;
-    function onButtonClicked() {
-        if (!tablet) {
-            print("Warning in buttonClicked(): 'tablet' undefined!");
-            return;
-        }
-        if (onWalletScreen) {
-            // for toolbar-mode: go back to home screen, this will close the window.
-            tablet.gotoHomeScreen();
-        } else {
-            tablet.loadQMLSource(WALLET_QML_SOURCE);
-        }
-    }
 
-    // Function Name: sendToQml()
-    //
-    // Description:
-    //   -Use this function to send a message to the QML (i.e. to change appearances). The "message" argument is what is sent to
-    //    the QML in the format "{method, params}", like json-rpc. See also fromQml().
-    function sendToQml(message) {
-        tablet.sendToQml(message);
-    }
-
-    //***********************************************
-    //
-    // BEGIN Connection logic
-    //
-    //***********************************************
-    // Function Names:
-    //   - requestJSON
-    //   - getAvailableConnections
-    //   - getInfoAboutUser
-    //   - getConnectionData
-    //
-    // Description:
-    //   - Update all the usernames that I am entitled to see, using my login but not dependent on canKick.
-    var METAVERSE_BASE = Account.metaverseServerURL;
-    function requestJSON(url, callback) { // callback(data) if successfull. Logs otherwise.
-        request({
-            uri: url
-        }, function (error, response) {
-            if (error || (response.status !== 'success')) {
-                print("Error: unable to get", url, error || response.status);
-                return;
-            }
-            callback(response.data);
-        });
-    }
-    function getAvailableConnections(domain, callback) { // callback([{usename, location}...]) if successful. (Logs otherwise)
-        url = METAVERSE_BASE + '/api/v1/users?per_page=400&'
-        if (domain) {
-            url += 'status=' + domain.slice(1, -1); // without curly braces
-        } else {
-            url += 'filter=connections'; // regardless of whether online
-        }
-        requestJSON(url, function (connectionsData) {
-            callback(connectionsData.users);
-        });
-    }
-    function getInfoAboutUser(specificUsername, callback) {
-        url = METAVERSE_BASE + '/api/v1/users?filter=connections'
-        requestJSON(url, function (connectionsData) {
-            for (user in connectionsData.users) {
-                if (connectionsData.users[user].username === specificUsername) {
-                    callback(connectionsData.users[user]);
-                    return;
-                }
-            }
-            callback(false);
-        });
-    }
-    function getConnectionData(specificUsername, domain) { 
-        function frob(user) { // get into the right format
-            var formattedSessionId = user.location.node_id || '';
-            if (formattedSessionId !== '' && formattedSessionId.indexOf("{") != 0) {
-                formattedSessionId = "{" + formattedSessionId + "}";
-            }
-            return {
-                sessionId: formattedSessionId,
-                userName: user.username,
-                connection: user.connection,
-                profileUrl: user.images.thumbnail,
-                placeName: (user.location.root || user.location.domain || {}).name || ''
-            };
-        }
-        if (specificUsername) {
-            getInfoAboutUser(specificUsername, function (user) {
-                if (user) {
-                    updateUser(frob(user));
-                } else {
-                    print('Error: Unable to find information about ' + specificUsername + ' in connectionsData!');
-                }
-            });
-        } else {
-            getAvailableConnections(domain, function (users) {
-                if (domain) {
-                    users.forEach(function (user) {
-                        updateUser(frob(user));
-                    });
-                } else {
-                    sendToQml({ method: 'updateConnections', connections: users.map(frob) });
-                }
-            });
-        }
-    }
-    //***********************************************
-    //
-    // END Connection logic
-    //
-    //***********************************************
-
-    //***********************************************
-    //
-    // BEGIN Avatar Selector logic
-    //
-    //***********************************************
-    var UNSELECTED_TEXTURES = {
-        "idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png"),
-        "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-idle.png")
-    };
-    var SELECTED_TEXTURES = {
-        "idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png"),
-        "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-selected.png")
-    };
-    var HOVER_TEXTURES = {
-        "idle-D": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-hover.png"),
-        "idle-E": Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx/Avatar-Overlay-v1.fbm/avatar-overlay-hover.png")
-    };
-
+    // BEGIN AVATAR SELECTOR LOGIC
     var UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6 };
     var SELECTED_COLOR = { red: 0xF3, green: 0x91, blue: 0x29 };
     var HOVER_COLOR = { red: 0xD0, green: 0xD0, blue: 0xD0 };
-    var conserveResources = true;
 
     var overlays = {}; // Keeps track of all our extended overlay data objects, keyed by target identifier.
 
-    function ExtendedOverlay(key, type, properties, selected, hasModel) { // A wrapper around overlays to store the key it is associated with.
+    function ExtendedOverlay(key, type, properties) { // A wrapper around overlays to store the key it is associated with.
         overlays[key] = this;
-        if (hasModel) {
-            var modelKey = key + "-m";
-            this.model = new ExtendedOverlay(modelKey, "model", {
-                url: Script.resolvePath("./assets/models/Avatar-Overlay-v1.fbx"),
-                textures: textures(selected),
-                ignoreRayIntersection: true
-            }, false, false);
-        } else {
-            this.model = undefined;
-        }
         this.key = key;
-        this.selected = selected || false; // not undefined
+        this.selected = false;
         this.hovering = false;
         this.activeOverlay = Overlays.addOverlay(type, properties); // We could use different overlays for (un)selected...
     }
@@ -200,10 +52,6 @@
         }
         return { red: scale(base.red), green: scale(base.green), blue: scale(base.blue) };
     }
-
-    function textures(selected, hovering) {
-        return hovering ? HOVER_TEXTURES : selected ? SELECTED_TEXTURES : UNSELECTED_TEXTURES;
-    }
     // so we don't have to traverse the overlays to get the last one
     var lastHoveringId = 0;
     ExtendedOverlay.prototype.hover = function (hovering) {
@@ -215,9 +63,6 @@
             lastHoveringId = 0;
         }
         this.editOverlay({ color: color(this.selected, hovering) });
-        if (this.model) {
-            this.model.editOverlay({ textures: textures(this.selected, hovering) });
-        }
         if (hovering) {
             // un-hover the last hovering overlay
             if (lastHoveringId && lastHoveringId !== this.key) {
@@ -232,15 +77,12 @@
         }
 
         this.editOverlay({ color: color(selected, this.hovering) });
-        if (this.model) {
-            this.model.editOverlay({ textures: textures(selected) });
-        }
         this.selected = selected;
     };
     // Class methods:
-    var selectedIds = [];
+    var selectedId = false;
     ExtendedOverlay.isSelected = function (id) {
-        return -1 !== selectedIds.indexOf(id);
+        return selectedId === id;
     };
     ExtendedOverlay.get = function (key) { // answer the extended overlay data object associated with the given avatar identifier
         return overlays[key];
@@ -277,51 +119,14 @@
         });
     };
 
-    function HighlightedEntity(id, entityProperties) {
-        this.id = id;
-        this.overlay = Overlays.addOverlay('cube', {
-            position: entityProperties.position,
-            rotation: entityProperties.rotation,
-            dimensions: entityProperties.dimensions,
-            solid: false,
-            color: {
-                red: 0xF3,
-                green: 0x91,
-                blue: 0x29
-            },
-            ignoreRayIntersection: true,
-            drawInFront: false // Arguable. For now, let's not distract with mysterious wires around the scene.
-        });
-        HighlightedEntity.overlays.push(this);
-    }
-    HighlightedEntity.overlays = [];
-    HighlightedEntity.clearOverlays = function clearHighlightedEntities() {
-        HighlightedEntity.overlays.forEach(function (highlighted) {
-            Overlays.deleteOverlay(highlighted.overlay);
-        });
-        HighlightedEntity.overlays = [];
-    };
-    HighlightedEntity.updateOverlays = function updateHighlightedEntities() {
-        HighlightedEntity.overlays.forEach(function (highlighted) {
-            var properties = Entities.getEntityProperties(highlighted.id, ['position', 'rotation', 'dimensions']);
-            Overlays.editOverlay(highlighted.overlay, {
-                position: properties.position,
-                rotation: properties.rotation,
-                dimensions: properties.dimensions
-            });
-        });
-    };
-
-
     function addAvatarNode(id) {
-        var selected = ExtendedOverlay.isSelected(id);
         return new ExtendedOverlay(id, "sphere", {
             drawInFront: true,
             solid: true,
             alpha: 0.8,
-            color: color(selected, false),
+            color: color(false, false),
             ignoreRayIntersection: false
-        }, selected, !conserveResources);
+        });
     }
 
     var pingPong = true;
@@ -360,14 +165,6 @@
                 position: target,
                 dimensions: 0.032 * distance
             });
-            if (overlay.model) {
-                overlay.model.ping = pingPong;
-                overlay.model.editOverlay({
-                    position: target,
-                    scale: 0.2 * distance, // constant apparent size
-                    rotation: Camera.orientation
-                });
-            }
         });
         pingPong = !pingPong;
         ExtendedOverlay.some(function (overlay) { // Remove any that weren't updated. (User is gone.)
@@ -375,13 +172,10 @@
                 overlay.deleteOverlay();
             }
         });
-        // We could re-populateNearbyUserList if anything added or removed, but not for now.
-        HighlightedEntity.updateOverlays();
     }
     function removeOverlays() {
-        selectedIds = [];
+        selectedId = false;
         lastHoveringId = 0;
-        HighlightedEntity.clearOverlays();
         ExtendedOverlay.some(function (overlay) {
             overlay.deleteOverlay();
         });
@@ -391,7 +185,7 @@
     // Clicks.
     //
     function usernameFromIDReply(id, username, machineFingerprint, isAdmin) {
-        if (selectedIds[0] === id) {
+        if (selectedId === id) {
             var message = {
                 method: 'updateSelectedRecipientUsername',
                 userName: username === "" ? "unknown username" : username
@@ -403,43 +197,25 @@
         ExtendedOverlay.applyPickRay(pickRay, function (overlay) {
             var nextSelectedStatus = !overlay.selected;
             var avatarId = overlay.key;
-            selectedIds = nextSelectedStatus ? [avatarId] : [];
+            selectedId = nextSelectedStatus ? avatarId : false;
             if (nextSelectedStatus) {
                 Users.requestUsernameFromID(avatarId);
             }
             var message = {
                 method: 'selectRecipient',
-                id: [avatarId],
+                id: avatarId,
                 isSelected: nextSelectedStatus,
                 displayName: '"' + AvatarList.getAvatar(avatarId).sessionDisplayName + '"',
                 userName: ''
             };
             sendToQml(message);
-            
+
             ExtendedOverlay.some(function (overlay) {
                 var id = overlay.key;
                 var selected = ExtendedOverlay.isSelected(id);
                 overlay.select(selected);
             });
 
-            HighlightedEntity.clearOverlays();
-            if (selectedIds.length) {
-                Entities.findEntitiesInFrustum(Camera.frustum).forEach(function (id) {
-                    // Because lastEditedBy is per session, the vast majority of entities won't match,
-                    // so it would probably be worth reducing marshalling costs by asking for just we need.
-                    // However, providing property name(s) is advisory and some additional properties are
-                    // included anyway. As it turns out, asking for 'lastEditedBy' gives 'position', 'rotation',
-                    // and 'dimensions', too, so we might as well make use of them instead of making a second
-                    // getEntityProperties call.
-                    // It would be nice if we could harden this against future changes by specifying all
-                    // and only these four in an array, but see
-                    // https://highfidelity.fogbugz.com/f/cases/2728/Entities-getEntityProperties-id-lastEditedBy-name-lastEditedBy-doesn-t-work
-                    var properties = Entities.getEntityProperties(id, 'lastEditedBy');
-                    if (ExtendedOverlay.isSelected(properties.lastEditedBy)) {
-                        new HighlightedEntity(id, properties);
-                    }
-                });
-            }
             return true;
         });
     }
@@ -521,11 +297,40 @@
     triggerMapping.from(Controller.Standard.LTClick).peek().to(makeClickHandler(Controller.Standard.LeftHand));
     triggerPressMapping.from(Controller.Standard.RT).peek().to(makePressHandler(Controller.Standard.RightHand));
     triggerPressMapping.from(Controller.Standard.LT).peek().to(makePressHandler(Controller.Standard.LeftHand));
-    //***********************************************
+    // END AVATAR SELECTOR LOGIC
+
+    // Function Name: onButtonClicked()
     //
-    // END Avatar Selector logic
+    // Description:
+    //   -Fired when the app button is pressed.
     //
-    //***********************************************
+    // Relevant Variables:
+    //   -WALLET_QML_SOURCE: The path to the Wallet QML
+    //   -onWalletScreen: true/false depending on whether we're looking at the app.
+    var WALLET_QML_SOURCE = "hifi/commerce/wallet/Wallet.qml";
+    var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/purchases/Purchases.qml";
+    var onWalletScreen = false;
+    function onButtonClicked() {
+        if (!tablet) {
+            print("Warning in buttonClicked(): 'tablet' undefined!");
+            return;
+        }
+        if (onWalletScreen) {
+            // for toolbar-mode: go back to home screen, this will close the window.
+            tablet.gotoHomeScreen();
+        } else {
+            tablet.loadQMLSource(WALLET_QML_SOURCE);
+        }
+    }
+
+    // Function Name: sendToQml()
+    //
+    // Description:
+    //   -Use this function to send a message to the QML (i.e. to change appearances). The "message" argument is what is sent to
+    //    the QML in the format "{method, params}", like json-rpc. See also fromQml().
+    function sendToQml(message) {
+        tablet.sendToQml(message);
+    }
 
     var sendMoneyRecipient;
     var sendMoneyParticleEffectUpdateTimer;
@@ -678,18 +483,23 @@
                 }
                 removeOverlays();
                 break;
-            case 'sendMoney_sendPublicly':
-                deleteSendMoneyParticleEffect();
-                sendMoneyRecipient = message.recipient;
-                var amount = message.amount;
-                var props = SEND_MONEY_PARTICLE_PROPERTIES;
-                props.parentID = MyAvatar.sessionUUID;
-                props.position = MyAvatar.position;
-                props.position.y += 0.2;
-                sendMoneyParticleEffect = Entities.addEntity(props, true);
-                particleEffectTimestamp = Date.now();
-                updateSendMoneyParticleEffect();
-                sendMoneyParticleEffectUpdateTimer = Script.setInterval(updateSendMoneyParticleEffect, SEND_MONEY_PARTICLE_TIMER_UPDATE);
+            case 'sendAsset_sendPublicly':
+                if (message.assetName === "") {
+                    deleteSendMoneyParticleEffect();
+                    sendMoneyRecipient = message.recipient;
+                    var amount = message.amount;
+                    var props = SEND_MONEY_PARTICLE_PROPERTIES;
+                    props.parentID = MyAvatar.sessionUUID;
+                    props.position = MyAvatar.position;
+                    props.position.y += 0.2;
+                    if (message.effectImage) {
+                        props.textures = message.effectImage;
+                    }
+                    sendMoneyParticleEffect = Entities.addEntity(props, true);
+                    particleEffectTimestamp = Date.now();
+                    updateSendMoneyParticleEffect();
+                    sendMoneyParticleEffectUpdateTimer = Script.setInterval(updateSendMoneyParticleEffect, SEND_MONEY_PARTICLE_TIMER_UPDATE);
+                }
                 break;
             case 'transactionHistory_goToBank':
                 if (Account.metaverseServerURL.indexOf("staging") >= 0) {
@@ -700,6 +510,9 @@
                 break;
             case 'wallet_availableUpdatesReceived':
                 // NOP
+                break;
+            case 'http.request':
+                // Handled elsewhere, don't log.
                 break;
             default:
                 print('Unrecognized message from QML:', JSON.stringify(message));
@@ -747,12 +560,14 @@
         }
 
         if (onWalletScreen) {
+            if (!isWired) {
+                Users.usernameFromIDReply.connect(usernameFromIDReply);
+                Controller.mousePressEvent.connect(handleMouseEvent);
+                Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
+                triggerMapping.enable();
+                triggerPressMapping.enable();
+            }
             isWired = true;
-            Users.usernameFromIDReply.connect(usernameFromIDReply);
-            Controller.mousePressEvent.connect(handleMouseEvent);
-            Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
-            triggerMapping.enable();
-            triggerPressMapping.enable();
         } else {
             off();
         }
@@ -781,18 +596,19 @@
     var isWired = false;
     var isUpdateOverlaysWired = false;
     function off() {
-        if (isWired) { // It is not ok to disconnect these twice, hence guard.
+        if (isWired) {
             Users.usernameFromIDReply.disconnect(usernameFromIDReply);
             Controller.mousePressEvent.disconnect(handleMouseEvent);
             Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
+            triggerMapping.disable();
+            triggerPressMapping.disable();
+
             isWired = false;
         }
         if (isUpdateOverlaysWired) {
             Script.update.disconnect(updateOverlays);
             isUpdateOverlaysWired = false;
         }
-        triggerMapping.disable(); // It's ok if we disable twice.
-        triggerPressMapping.disable(); // see above
         removeOverlays();
     }
     function shutdown() {

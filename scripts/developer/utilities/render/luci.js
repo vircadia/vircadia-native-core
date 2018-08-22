@@ -64,9 +64,6 @@
         button.editProperties({isActive: onLuciScreen});
         wireEventBridge(onLuciScreen);
     }
-
-    function fromQml(message) {
-    }
         
     button.clicked.connect(onClicked);
     tablet.screenChanged.connect(onScreenChanged);
@@ -82,14 +79,6 @@
     Controller.mouseMoveEvent.connect(function (e) { if (moveDebugCursor) setDebugCursor(e.x, e.y); });
 
 
-    Script.scriptEnding.connect(function () {
-        if (onLuciScreen) {
-            tablet.gotoHomeScreen();
-        }
-        button.clicked.disconnect(onClicked);
-        tablet.screenChanged.disconnect(onScreenChanged);
-        tablet.removeButton(button);
-    });
 
     function setDebugCursor(x, y) {
         nx = (x / Window.innerWidth);
@@ -98,4 +87,46 @@
          Render.getConfig("RenderMainView").getConfig("Antialiasing").debugCursorTexcoord = { x: nx, y: ny };
     }
 
+
+    function fromQml(message) {
+        switch (message.method) {
+        case "openEngineView":
+            openEngineTaskView();
+            break;
+        }            
+    }
+
+
+    var engineInspectorView = null 
+    function openEngineTaskView() {
+        if (engineInspectorView == null) {
+            var qml = Script.resolvePath('engineInspector.qml');
+            var window = new OverlayWindow({
+                title: 'Render Engine',
+                source: qml,
+                width: 300, 
+                height: 400
+            });
+            window.setPosition(200, 50);
+            engineInspectorView = window
+            window.closed.connect(function() { engineInspectorView = null; });
+        } else {
+            engineInspectorView.setPosition(200, 50);          
+        }
+    }
+
+
+    
+    Script.scriptEnding.connect(function () {
+        if (onLuciScreen) {
+            tablet.gotoHomeScreen();
+        }
+        button.clicked.disconnect(onClicked);
+        tablet.screenChanged.disconnect(onScreenChanged);
+        tablet.removeButton(button);
+
+        if (engineInspectorView !== null) {
+            engineInspectorView.close()
+        }
+    });
 }()); 

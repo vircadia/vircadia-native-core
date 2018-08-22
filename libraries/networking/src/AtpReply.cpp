@@ -9,8 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "ResourceManager.h"
 #include "AtpReply.h"
+
+#include "ResourceManager.h"
 
 AtpReply::AtpReply(const QUrl& url, QObject* parent) :
     _resourceRequest(DependencyManager::get<ResourceManager>()->createResourceRequest(parent, url)) {

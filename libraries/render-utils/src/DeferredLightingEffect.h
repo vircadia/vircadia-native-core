@@ -48,11 +48,11 @@ class DeferredLightingEffect : public Dependency {
 public:
     void init();
  
-    void setupKeyLightBatch(const RenderArgs* args, gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit);
-    void unsetKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit);
+    static void setupKeyLightBatch(const RenderArgs* args, gpu::Batch& batch);
+    static void unsetKeyLightBatch(gpu::Batch& batch);
 
-    void setupLocalLightsBatch(gpu::Batch& batch, int clusterGridBufferUnit, int clusterContentBufferUnit, int frustumGridBufferUnit, const LightClustersPointer& lightClusters);
-    void unsetLocalLightsBatch(gpu::Batch& batch, int clusterGridBufferUnit, int clusterContentBufferUnit, int frustumGridBufferUnit);
+    static void setupLocalLightsBatch(gpu::Batch& batch, const LightClustersPointer& lightClusters);
+    static void unsetLocalLightsBatch(gpu::Batch& batch);
 
     void setShadowMapEnabled(bool enable) { _shadowMapEnabled = enable; };
     void setAmbientOcclusionEnabled(bool enable) { _ambientOcclusionEnabled = enable; }
@@ -93,13 +93,34 @@ private:
     friend class RenderDeferredCleanup;
 };
 
+class PreparePrimaryFramebufferConfig : public render::Job::Config {
+    Q_OBJECT
+        Q_PROPERTY(float resolutionScale MEMBER resolutionScale NOTIFY dirty)
+public:
+
+    float resolutionScale{ 1.0f };
+
+signals:
+    void dirty();
+};
+
 class PreparePrimaryFramebuffer {
 public:
-    using JobModel = render::Job::ModelO<PreparePrimaryFramebuffer, gpu::FramebufferPointer>;
 
-    void run(const render::RenderContextPointer& renderContext, gpu::FramebufferPointer& primaryFramebuffer);
+    using Output = gpu::FramebufferPointer;
+    using Config = PreparePrimaryFramebufferConfig;
+    using JobModel = render::Job::ModelO<PreparePrimaryFramebuffer, Output, Config>;
+
+    PreparePrimaryFramebuffer(float resolutionScale = 1.0f) : _resolutionScale{resolutionScale} {}
+    void configure(const Config& config);
+    void run(const render::RenderContextPointer& renderContext, Output& primaryFramebuffer);
 
     gpu::FramebufferPointer _primaryFramebuffer;
+    float _resolutionScale{ 1.0f };
+
+private:
+
+    static gpu::FramebufferPointer createFramebuffer(const char* name, const glm::uvec2& size);
 };
 
 class PrepareDeferred {
@@ -127,7 +148,8 @@ public:
         const graphics::HazePointer& haze,
         const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
         const AmbientOcclusionFramebufferPointer& ambientOcclusionFramebuffer,
-        const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource);
+        const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource,
+        bool renderShadows);
 };
 
 class RenderDeferredLocals {
@@ -166,7 +188,8 @@ public:
     using Config = RenderDeferredConfig;
     using JobModel = render::Job::ModelI<RenderDeferred, Inputs, Config>;
 
-    RenderDeferred();
+    RenderDeferred() {}
+    RenderDeferred(bool renderShadows) : _renderShadows(renderShadows) {}
 
     void configure(const Config& config);
 
@@ -178,6 +201,9 @@ public:
 
 protected:
     gpu::RangeTimerPointer _gpuTimer;
+
+private:
+    bool _renderShadows { false };
 };
 
 class DefaultLightingSetup {

@@ -15,9 +15,10 @@
  * Copied and modified from btDiscreteDynamicsWorld.cpp by AndrewMeadows on 2014.11.12.
  * */
 
+#include "ThreadSafeDynamicsWorld.h"
+
 #include <LinearMath/btQuickprof.h>
 
-#include "ThreadSafeDynamicsWorld.h"
 #include "Profile.h"
 
 ThreadSafeDynamicsWorld::ThreadSafeDynamicsWorld(
@@ -58,14 +59,11 @@ int ThreadSafeDynamicsWorld::stepSimulationWithSubstepCallback(btScalar timeStep
         }
     }
 
-    /*//process some debugging flags
-    if (getDebugDrawer()) {
-        btIDebugDraw* debugDrawer = getDebugDrawer();
-        gDisableDeactivation = (debugDrawer->getDebugMode() & btIDebugDraw::DBG_NoDeactivation) != 0;
-    }*/
     if (subSteps) {
         //clamp the number of substeps, to prevent simulation grinding spiralling down to a halt
         int clampedSimulationSteps = (subSteps > maxSubSteps)? maxSubSteps : subSteps;
+        _numSubsteps += clampedSimulationSteps;
+        ObjectMotionState::setWorldSimulationStep(_numSubsteps);
 
         saveKinematicState(fixedTimeStep*clampedSimulationSteps);
 
@@ -97,28 +95,24 @@ int ThreadSafeDynamicsWorld::stepSimulationWithSubstepCallback(btScalar timeStep
 // call this instead of non-virtual btDiscreteDynamicsWorld::synchronizeSingleMotionState()
 void ThreadSafeDynamicsWorld::synchronizeMotionState(btRigidBody* body) {
     btAssert(body);
-    if (body->getMotionState() && !body->isStaticObject()) {
-        //we need to call the update at least once, even for sleeping objects
-        //otherwise the 'graphics' transform never updates properly
-        ///@todo: add 'dirty' flag
-        //if (body->getActivationState() != ISLAND_SLEEPING)
-        {
-            if (body->isKinematicObject()) {
-                ObjectMotionState* objectMotionState = static_cast<ObjectMotionState*>(body->getMotionState());
-                if (objectMotionState->hasInternalKinematicChanges()) {
-                    objectMotionState->clearInternalKinematicChanges();
-                    body->getMotionState()->setWorldTransform(body->getWorldTransform());
-                }
-                return;
-            }
-            btTransform interpolatedTransform;
-            btTransformUtil::integrateTransform(body->getInterpolationWorldTransform(),
-                body->getInterpolationLinearVelocity(),body->getInterpolationAngularVelocity(),
-                (m_latencyMotionStateInterpolation && m_fixedTimeStep) ? m_localTime - m_fixedTimeStep : m_localTime*body->getHitFraction(),
-                interpolatedTransform);
-            body->getMotionState()->setWorldTransform(interpolatedTransform);
+    btAssert(body->getMotionState());
+
+    if (body->isKinematicObject()) {
+        ObjectMotionState* objectMotionState = static_cast<ObjectMotionState*>(body->getMotionState());
+        if (objectMotionState->hasInternalKinematicChanges()) {
+            // this is a special case where the kinematic motion has been updated by an Action
+            // so we supply the body's current transform to the MotionState
+            objectMotionState->clearInternalKinematicChanges();
+            body->getMotionState()->setWorldTransform(body->getWorldTransform());
         }
+        return;
     }
+    btTransform interpolatedTransform;
+    btTransformUtil::integrateTransform(body->getInterpolationWorldTransform(),
+        body->getInterpolationLinearVelocity(),body->getInterpolationAngularVelocity(),
+        (m_latencyMotionStateInterpolation && m_fixedTimeStep) ? m_localTime - m_fixedTimeStep : m_localTime*body->getHitFraction(),
+        interpolatedTransform);
+    body->getMotionState()->setWorldTransform(interpolatedTransform);
 }
 
 void ThreadSafeDynamicsWorld::synchronizeMotionStates() {
@@ -163,24 +157,18 @@ void ThreadSafeDynamicsWorld::synchronizeMotionStates() {
 }
 
 void ThreadSafeDynamicsWorld::saveKinematicState(btScalar timeStep) {
-///would like to iterate over m_nonStaticRigidBodies, but unfortunately old API allows
-///to switch status _after_ adding kinematic objects to the world
-///fix it for Bullet 3.x release
     DETAILED_PROFILE_RANGE(simulation_physics, "saveKinematicState");
     BT_PROFILE("saveKinematicState");
-    for (int i=0;i<m_collisionObjects.size();i++)
-    {
-        btCollisionObject* colObj = m_collisionObjects[i];
-        btRigidBody* body = btRigidBody::upcast(colObj);
-        if (body && body->getActivationState() != ISLAND_SLEEPING)
-        {
-            if (body->isKinematicObject())
-            {
-                //to calculate velocities next frame
+    for (int i=0;i<m_nonStaticRigidBodies.size();i++) {
+        btRigidBody* body = m_nonStaticRigidBodies[i];
+        if (body && body->isKinematicObject() && body->getActivationState() != ISLAND_SLEEPING) {
+            if (body->getMotionState()) {
+                btMotionState* motionState = body->getMotionState();
+                ObjectMotionState* objectMotionState = static_cast<ObjectMotionState*>(motionState);
+                objectMotionState->saveKinematicState(timeStep);
+            } else {
                 body->saveKinematicState(timeStep);
             }
         }
     }
 }
-
-

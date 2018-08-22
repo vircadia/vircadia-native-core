@@ -7,12 +7,32 @@
 //
 
 #include "ScriptEndpoint.h"
+#include "../../Logging.h"
 
 #include <QtCore/QThread>
 
 #include <StreamUtils.h>
 
 using namespace controller;
+
+QString formatException(const QScriptValue& exception) {
+    QString note { "UncaughtException" };
+    QString result;
+
+    const auto message = exception.toString();
+    const auto fileName = exception.property("fileName").toString();
+    const auto lineNumber = exception.property("lineNumber").toString();
+    const auto stacktrace = exception.property("stack").toString();
+
+    const QString SCRIPT_EXCEPTION_FORMAT = "[%0] %1 in %2:%3";
+    const QString SCRIPT_BACKTRACE_SEP = "\n    ";
+
+    result = QString(SCRIPT_EXCEPTION_FORMAT).arg(note, message, fileName, lineNumber);
+    if (!stacktrace.isEmpty()) {
+        result += QString("\n[Backtrace]%1%2").arg(SCRIPT_BACKTRACE_SEP).arg(stacktrace);
+    }
+    return result;
+}
 
 float ScriptEndpoint::peek() const {
     const_cast<ScriptEndpoint*>(this)->updateValue();
@@ -26,10 +46,11 @@ void ScriptEndpoint::updateValue() {
     }
 
     QScriptValue result = _callable.call();
-
-    // If the callable ever returns a non-number, we assume it's a pose
-    // and start reporting ourselves as a pose.
-    if (result.isNumber()) {
+    if (result.isError()) {
+        // print JavaScript exception
+        qCDebug(controllers).noquote() << formatException(result);
+        _lastValueRead = 0.0f;
+    } else if (result.isNumber()) {
         _lastValueRead = (float)_callable.call().toNumber();
     } else {
         Pose::fromScriptValue(result, _lastPoseRead);
@@ -52,8 +73,12 @@ void ScriptEndpoint::internalApply(float value, int sourceID) {
             Q_ARG(int, sourceID));
         return;
     }
-    _callable.call(QScriptValue(),
+    QScriptValue result = _callable.call(QScriptValue(),
         QScriptValueList({ QScriptValue(value), QScriptValue(sourceID) }));
+    if (result.isError()) {
+        // print JavaScript exception
+        qCDebug(controllers).noquote() << formatException(result);
+    }
 }
 
 Pose ScriptEndpoint::peekPose() const {
@@ -67,6 +92,10 @@ void ScriptEndpoint::updatePose() {
         return;
     }
     QScriptValue result = _callable.call();
+    if (result.isError()) {
+        // print JavaScript exception
+        qCDebug(controllers).noquote() << formatException(result);
+    }
     Pose::fromScriptValue(result, _lastPoseRead);
 }
 
@@ -85,6 +114,10 @@ void ScriptEndpoint::internalApply(const Pose& newPose, int sourceID) {
             Q_ARG(int, sourceID));
         return;
     }
-    _callable.call(QScriptValue(),
+    QScriptValue result = _callable.call(QScriptValue(),
         QScriptValueList({ Pose::toScriptValue(_callable.engine(), newPose), QScriptValue(sourceID) }));
+    if (result.isError()) {
+        // print JavaScript exception
+        qCDebug(controllers).noquote() << formatException(result);
+    }
 }

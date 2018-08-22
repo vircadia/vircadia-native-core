@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ModelPropertiesDialog.h"
+
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
@@ -22,8 +24,6 @@
 #include <FSTReader.h>
 #include <GLMHelpers.h>
 #include <OffscreenUi.h>
-
-#include "ModelPropertiesDialog.h"
 
 
 ModelPropertiesDialog::ModelPropertiesDialog(FSTReader::ModelType modelType, const QVariantHash& originalMapping,
@@ -42,6 +42,9 @@ _geometry(geometry)
 
     form->addRow("Texture Directory:", _textureDirectory = new QPushButton());
     connect(_textureDirectory, SIGNAL(clicked(bool)), SLOT(chooseTextureDirectory()));
+
+    form->addRow("Script Directory:", _scriptDirectory = new QPushButton());
+    connect(_scriptDirectory, SIGNAL(clicked(bool)), SLOT(chooseScriptDirectory()));
 
     form->addRow("Scale:", _scale = new QDoubleSpinBox());
     _scale->setMaximum(FLT_MAX);
@@ -100,6 +103,7 @@ QVariantHash ModelPropertiesDialog::getMapping() const {
     mapping.insert(TYPE_FIELD, getType());
     mapping.insert(NAME_FIELD, _name->text());
     mapping.insert(TEXDIR_FIELD, _textureDirectory->text());
+    mapping.insert(SCRIPT_FIELD, _scriptDirectory->text());
     mapping.insert(SCALE_FIELD, QString::number(_scale->value()));
 
     // update the joint indices
@@ -157,6 +161,7 @@ void ModelPropertiesDialog::reset() {
     _name->setText(_originalMapping.value(NAME_FIELD).toString());
     _textureDirectory->setText(_originalMapping.value(TEXDIR_FIELD).toString());
     _scale->setValue(_originalMapping.value(SCALE_FIELD).toDouble());
+    _scriptDirectory->setText(_originalMapping.value(SCRIPT_FIELD).toString());
 
     QVariantHash jointHash = _originalMapping.value(JOINT_FIELD).toHash();
 
@@ -206,6 +211,20 @@ void ModelPropertiesDialog::chooseTextureDirectory() {
     }
     _textureDirectory->setText(directory.length() == _basePath.length() ? "." : directory.mid(_basePath.length() + 1));
 }
+
+void ModelPropertiesDialog::chooseScriptDirectory() {
+    QString directory = QFileDialog::getExistingDirectory(this, "Choose Script Directory",
+                                                          _basePath + "/" + _scriptDirectory->text());
+    if (directory.isEmpty()) {
+        return;
+    }
+    if (!directory.startsWith(_basePath)) {
+        OffscreenUi::asyncWarning(NULL, "Invalid script directory", "Script directory must be child of base path.");
+        return;
+    }
+    _scriptDirectory->setText(directory.length() == _basePath.length() ? "." : directory.mid(_basePath.length() + 1));
+}
+
 
 void ModelPropertiesDialog::updatePivotJoint() {
     _pivotJoint->setEnabled(!_pivotAboutCenter->isChecked());

@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  model_lightmap_specular_map.frag
+//  model_lightmap.frag
 //  fragment shader
 //
 //  Created by Samuel Gateau on 11/19/14.
@@ -13,18 +13,19 @@
 //
 
 <@include DeferredBufferWrite.slh@>
-
 <@include graphics/Material.slh@>
+<@include graphics/MaterialTextures.slh@>
+<@include render-utils/ShaderConstants.h@>
 
-<@include MaterialTextures.slh@>
 <$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, METALLIC)$>
 <$declareMaterialLightmap()$>
 
-in vec4 _position;
-in vec2 _texCoord0;
-in vec2 _texCoord1;
-in vec3 _normal;
-in vec3 _color;
+
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
+#define _texCoord0 _texCoord01.xy
+#define _texCoord1 _texCoord01.zw
+layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
+layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
 
 void main(void) {
     Material mat = getMaterial();
@@ -33,9 +34,9 @@ void main(void) {
     <$fetchMaterialTexturesCoord1(matKey, _texCoord1, _SCRIBE_NULL, lightmapVal)$>
 
     packDeferredFragmentLightmap(
-        normalize(_normal), 
+        normalize(_normalWS), 
         evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedo.a),
-        getMaterialAlbedo(mat) * albedo.rgb * _color,
+        getMaterialAlbedo(mat) * albedo.rgb * _color.rgb,
         getMaterialRoughness(mat) * roughness,
         getMaterialMetallic(mat) * metallicTex,
         /*metallicTex, // no use of */getMaterialFresnel(mat),

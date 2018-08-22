@@ -9,10 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "ScriptEngines.h"
+#include "TestingDialog.h"
 
-#include "ui/TestingDialog.h"
 #include "Application.h"
+#include "ScriptEngines.h"
 
 TestingDialog::TestingDialog(QWidget* parent) :
     QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint),
@@ -23,8 +23,7 @@ TestingDialog::TestingDialog(QWidget* parent) :
 
     _console->setFixedHeight(TESTING_CONSOLE_HEIGHT);
 
-    auto _engines = DependencyManager::get<ScriptEngines>();
-    _engine = _engines->loadScript(qApp->applicationDirPath() + testRunnerRelativePath);
+    _engine = DependencyManager::get<ScriptEngines>()->loadScript(qApp->applicationDirPath() + testRunnerRelativePath);
     _console->setScriptEngine(_engine);
     connect(_engine.data(), &ScriptEngine::finished, this, &TestingDialog::onTestingFinished);
 }

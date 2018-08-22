@@ -39,43 +39,52 @@ void FadeEditJob::run(const render::RenderContextPointer& renderContext, const F
     auto scene = renderContext->_scene;
 
     if (_isEditEnabled) {
-        float minIsectDistance = std::numeric_limits<float>::max();
-        auto& itemBounds = inputs.get0();
-        auto editedItem = findNearestItem(renderContext, itemBounds, minIsectDistance);
-        render::Transaction transaction;
-        bool hasTransaction{ false };
+        static const std::string selectionName("TransitionEdit");
+        auto scene = renderContext->_scene;
+        if (!scene->isSelectionEmpty(selectionName)) {
+            auto selection = scene->getSelection(selectionName);
+            auto editedItem = selection.getItems().front();
+            render::Transaction transaction;
+            bool hasTransaction{ false };
 
-        if (editedItem != _editedItem && render::Item::isValidID(_editedItem)) {
-            // Remove transition from previously edited item as we've changed edited item
-            hasTransaction = true;
+            if (editedItem != _editedItem && render::Item::isValidID(_editedItem)) {
+                // Remove transition from previously edited item as we've changed edited item
+                hasTransaction = true;
+                transaction.removeTransitionFromItem(_editedItem);
+            }
+            _editedItem = editedItem;
+
+            if (render::Item::isValidID(_editedItem)) {
+                static const render::Transition::Type categoryToTransition[FADE_CATEGORY_COUNT] = {
+                    render::Transition::ELEMENT_ENTER_DOMAIN,
+                    render::Transition::BUBBLE_ISECT_OWNER,
+                    render::Transition::BUBBLE_ISECT_TRESPASSER,
+                    render::Transition::USER_ENTER_DOMAIN,
+                    render::Transition::AVATAR_CHANGE
+                };
+
+                auto transitionType = categoryToTransition[inputs.get1()];
+
+                transaction.queryTransitionOnItem(_editedItem, [transitionType, scene](render::ItemID id, const render::Transition* transition) {
+                    if (transition == nullptr || transition->isFinished || transition->eventType != transitionType) {
+                        // Relaunch transition
+                        render::Transaction transaction;
+                        transaction.addTransitionToItem(id, transitionType);
+                        scene->enqueueTransaction(transaction);
+                    }
+                });
+                hasTransaction = true;
+            }
+
+            if (hasTransaction) {
+                scene->enqueueTransaction(transaction);
+            }
+        } else if (render::Item::isValidID(_editedItem)) {
+            // Remove transition from previously edited item as we've disabled fade edition
+            render::Transaction transaction;
             transaction.removeTransitionFromItem(_editedItem);
-        }
-        _editedItem = editedItem;
-
-        if (render::Item::isValidID(_editedItem)) {
-            static const render::Transition::Type categoryToTransition[FADE_CATEGORY_COUNT] = {
-                render::Transition::ELEMENT_ENTER_DOMAIN,
-                render::Transition::BUBBLE_ISECT_OWNER,
-                render::Transition::BUBBLE_ISECT_TRESPASSER,
-                render::Transition::USER_ENTER_DOMAIN,
-                render::Transition::AVATAR_CHANGE
-            };
-
-            auto transitionType = categoryToTransition[inputs.get1()];
-
-            transaction.queryTransitionOnItem(_editedItem, [transitionType, scene](render::ItemID id, const render::Transition* transition) {
-                if (transition == nullptr || transition->isFinished || transition->eventType!=transitionType) {
-                    // Relaunch transition
-                    render::Transaction transaction;
-                    transaction.addTransitionToItem(id, transitionType);
-                    scene->enqueueTransaction(transaction);
-                }
-            });
-            hasTransaction = true;
-        }
-
-        if (hasTransaction) {
             scene->enqueueTransaction(transaction);
+            _editedItem = render::Item::INVALID_ITEM_ID;
         }
     }
     else if (render::Item::isValidID(_editedItem)) {
@@ -85,28 +94,6 @@ void FadeEditJob::run(const render::RenderContextPointer& renderContext, const F
         scene->enqueueTransaction(transaction);
         _editedItem = render::Item::INVALID_ITEM_ID;
     }
-}
-
-render::ItemID FadeEditJob::findNearestItem(const render::RenderContextPointer& renderContext, const render::ItemBounds& inputs, float& minIsectDistance) const {
-    const glm::vec3 rayOrigin = renderContext->args->getViewFrustum().getPosition();
-    const glm::vec3 rayDirection = renderContext->args->getViewFrustum().getDirection();
-    BoxFace face;
-    glm::vec3 normal;
-    float isectDistance;
-    render::ItemID nearestItem = render::Item::INVALID_ITEM_ID;
-    const float minDistance = 1.f;
-    const float maxDistance = 50.f;
-
-    for (const auto& itemBound : inputs) {
-        if (!itemBound.bound.contains(rayOrigin) && itemBound.bound.findRayIntersection(rayOrigin, rayDirection, isectDistance, face, normal)) {
-            auto& item = renderContext->_scene->getItem(itemBound.id);
-            if (item.getKey().isWorldSpace() && isectDistance>minDistance && isectDistance < minIsectDistance && isectDistance<maxDistance) {
-                nearestItem = itemBound.id;
-                minIsectDistance = isectDistance;
-            }
-        }
-    }
-    return nearestItem;
 }
 
 FadeConfig::FadeConfig() 
@@ -353,11 +340,9 @@ QString FadeConfig::eventNames[FADE_CATEGORY_COUNT] = {
     "avatar_change",
 };
 
-void FadeConfig::save() const {
-    // Save will only work if the HIFI_USE_SOURCE_TREE_RESOURCES environment variable is set
+void FadeConfig::save(const QString& configFilePath) const {
     assert(editedCategory < FADE_CATEGORY_COUNT);
     QJsonObject lProperties;
-    const QString configFilePath = PathUtils::resourcesPath() + "config/" + eventNames[editedCategory] + ".json";
     QFile file(configFilePath);
     if (!file.open(QFile::WriteOnly | QFile::Text)) {
         qWarning() << "Fade event configuration file " << configFilePath << " cannot be opened";
@@ -382,8 +367,7 @@ void FadeConfig::save() const {
     }
 }
 
-void FadeConfig::load() {
-    const QString configFilePath = PathUtils::resourcesPath() + "config/" + eventNames[editedCategory] + ".json";
+void FadeConfig::load(const QString& configFilePath) {
     QFile file(configFilePath);
     if (!file.exists()) {
         qWarning() << "Fade event configuration file " << configFilePath << " does not exist";
@@ -594,7 +578,7 @@ void FadeJob::run(const render::RenderContextPointer& renderContext, FadeJob::Ou
         if (update(*jobConfig, scene, transaction, state, deltaTime)) {
             hasTransaction = true;
         }
-        if (isFirstItem && jobConfig->manualFade && (state.threshold != jobConfig->threshold)) {
+        if (isFirstItem && (state.threshold != jobConfig->threshold)) {
             jobConfig->setProperty("threshold", state.threshold);
             isFirstItem = false;
         }

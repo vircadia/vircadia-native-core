@@ -50,19 +50,27 @@ Script.include("/~/system/libraries/controllers.js");
             return this.hand === RIGHT_HAND ? leftOverlayLaserInput : rightOverlayLaserInput;
         };
 
-        this.isPointingAtWebEntity = function(controllerData) {
+        this.isPointingAtTriggerable = function(controllerData, triggerPressed) {
+            // allow pointing at tablet, unlocked web entities, or web overlays automatically without pressing trigger,
+            // but for pointing at locked web entities or non-web overlays user must be pressing trigger
             var intersection = controllerData.rayPicks[this.hand];
-            var entityProperty = Entities.getEntityProperties(intersection.objectID);
-            var entityType = entityProperty.type;
-            if ((intersection.type === Picks.INTERSECTED_ENTITY && entityType === "Web")) {
-                return true;
+            if (intersection.type === Picks.INTERSECTED_OVERLAY) {
+                var objectID = intersection.objectID;
+                if ((HMD.tabletID && objectID === HMD.tabletID) ||
+                    (HMD.tabletScreenID && objectID === HMD.tabletScreenID) || 
+                    (HMD.homeButtonID && objectID === HMD.homeButtonID)) {
+                    return true;
+                } else {
+                    var overlayType = Overlays.getOverlayType(objectID);
+                    return overlayType === "web3d" || triggerPressed;
+                }
+            } else if (intersection.type === Picks.INTERSECTED_ENTITY) {
+                var entityProperty = Entities.getEntityProperties(intersection.objectID);
+                var entityType = entityProperty.type;
+                var isLocked = entityProperty.locked;
+                return entityType === "Web" && (!isLocked || triggerPressed);
             }
             return false;
-        };
-
-        this.isPointingAtOverlay = function(controllerData) {
-            var intersection = controllerData.rayPicks[this.hand];
-            return intersection.type === Picks.INTERSECTED_OVERLAY;
         };
 
         this.deleteContextOverlay = function() {
@@ -92,10 +100,10 @@ Script.include("/~/system/libraries/controllers.js");
         this.isReady = function(controllerData) {
             var otherModuleRunning = this.getOtherModule().running;
             otherModuleRunning = otherModuleRunning && this.getDominantHand() !== this.hand; // Auto-swap to dominant hand.
-            var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE
-                && controllerData.triggerValues[this.otherHand] <= TRIGGER_OFF_VALUE;
-            if ((!otherModuleRunning || isTriggerPressed)
-                    && (this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData))) {
+            var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE &&
+                                   controllerData.triggerValues[this.otherHand] <= TRIGGER_OFF_VALUE;
+            var allowThisModule = !otherModuleRunning || isTriggerPressed;
+            if (allowThisModule && this.isPointingAtTriggerable(controllerData, isTriggerPressed)) {
                 this.updateAllwaysOn();
                 if (isTriggerPressed) {
                     this.dominantHandOverride = true; // Override dominant hand.
@@ -113,9 +121,10 @@ Script.include("/~/system/libraries/controllers.js");
             otherModuleRunning = otherModuleRunning && this.getDominantHand() !== this.hand; // Auto-swap to dominant hand.
             otherModuleRunning = otherModuleRunning || this.getOtherModule().dominantHandOverride; // Override dominant hand.
             var grabModuleNeedsToRun = this.grabModuleWantsNearbyOverlay(controllerData);
-            if (!otherModuleRunning && !grabModuleNeedsToRun && (controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE
-                || this.parameters.handLaser.allwaysOn
-                    && (this.isPointingAtOverlay(controllerData) || this.isPointingAtWebEntity(controllerData)))) {
+            var allowThisModule = !otherModuleRunning && !grabModuleNeedsToRun;
+            var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE;
+            var laserOn = isTriggerPressed || this.parameters.handLaser.allwaysOn;
+            if (allowThisModule && (laserOn && this.isPointingAtTriggerable(controllerData, isTriggerPressed))) {
                 this.running = true;
                 return makeRunningValues(true, [], []);
             }

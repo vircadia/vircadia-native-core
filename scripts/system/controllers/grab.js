@@ -8,14 +8,14 @@
 //
 //  Grab's physically moveable entities with the mouse, by applying a spring force.
 //
-//  Updated November 22, 2016 by Philip Rosedale:  Add distance attenuation of grab effect 
+//  Updated November 22, 2016 by Philip Rosedale:  Add distance attenuation of grab effect
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 /* global MyAvatar, Entities, Script, Camera, Vec3, Reticle, Overlays, getEntityCustomData, Messages, Quat, Controller,
-   isInEditMode, HMD entityIsGrabbable, Picks, PickType, Pointers*/
+   isInEditMode, HMD entityIsGrabbable, Picks, PickType, Pointers, unhighlightTargetEntity*/
 
 
 (function() { // BEGIN LOCAL_SCOPE
@@ -260,7 +260,7 @@ function Grabber() {
 
     this.mouseRayOverlays = Picks.createPick(PickType.Ray, {
         joint: "Mouse",
-        filter: Picks.PICK_OVERLAYS,
+        filter: Picks.PICK_OVERLAYS | Picks.PICK_INCLUDE_NONCOLLIDABLE,
         enabled: true
     });
     var tabletItems = getMainTabletIDs();
@@ -270,7 +270,7 @@ function Grabber() {
     var renderStates = [{name: "grabbed", end: beacon}];
     this.mouseRayEntities = Pointers.createPointer(PickType.Ray, {
         joint: "Mouse",
-        filter: Picks.PICK_ENTITIES,
+        filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_NONCOLLIDABLE,
         faceAvatar: true,
         scaleWithAvatar: true,
         enabled: true,
@@ -315,7 +315,7 @@ Grabber.prototype.pressEvent = function(event) {
         return;
     }
 
-    if (event.isLeftButton !== true || event.isRightButton === true || event.isMiddleButton === true) {
+    if (event.button !== "LEFT") {
         return;
     }
 
@@ -354,6 +354,7 @@ Grabber.prototype.pressEvent = function(event) {
 
     Pointers.setRenderState(this.mouseRayEntities, "grabbed");
     Pointers.setLockEndUUID(this.mouseRayEntities, pickResults.objectID, false);
+    unhighlightTargetEntity(pickResults.objectID);
 
     mouse.startDrag(event);
 
@@ -408,7 +409,7 @@ Grabber.prototype.pressEvent = function(event) {
     var args = "mouse";
     Entities.callEntityMethod(this.entityID, "startDistanceGrab", args);
 
-    Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+    Messages.sendLocalMessage('Hifi-Object-Manipulation', JSON.stringify({
         action: 'grab',
         grabbedEntity: this.entityID
     }));
@@ -418,7 +419,7 @@ Grabber.prototype.pressEvent = function(event) {
 };
 
 Grabber.prototype.releaseEvent = function(event) {
-    if ((event.isLeftButton!==true || event.isRightButton===true || event.isMiddleButton===true) && !HMD.active) {
+    if (event.button !== "LEFT" && !HMD.active) {
         return;
     }
 
@@ -444,11 +445,12 @@ Grabber.prototype.releaseEvent = function(event) {
         this.actionID = null;
 
         Pointers.setRenderState(this.mouseRayEntities, "");
+        Pointers.setLockEndUUID(this.mouseRayEntities, null, false);
 
         var args = "mouse";
         Entities.callEntityMethod(this.entityID, "releaseGrab", args);
 
-        Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+        Messages.sendLocalMessage('Hifi-Object-Manipulation', JSON.stringify({
             action: 'release',
             grabbedEntity: this.entityID,
             joint: "mouse"
@@ -567,7 +569,7 @@ Grabber.prototype.moveEventProcess = function() {
     }
 
     if (!this.actionID) {
-        if (!entityIsGrabbedByOther(this.entityID)) {
+        if (!entityIsGrabbedByOther(this.entityID) && !entityIsEquipped(this.entityID)) {
             this.actionID = Entities.addAction("far-grab", this.entityID, actionArgs);
         }
     } else {

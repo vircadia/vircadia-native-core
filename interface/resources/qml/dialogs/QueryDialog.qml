@@ -8,9 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.5
-import QtQuick.Controls 1.4
-import QtQuick.Dialogs 1.2 as OriginalDialogs
+import QtQuick 2.7
+import QtQuick.Controls 2.3
 
 import "../controls-uit"
 import "../styles-uit"
@@ -165,24 +164,29 @@ ModalWindow {
 
         Action {
             id: cancelAction
-            text: qsTr("Cancel")
-            shortcut: Qt.Key_Escape
+            text: qsTr("Cancel");
+            shortcut: "Esc"
             onTriggered: {
                 root.canceled();
                 // FIXME we are leaking memory to avoid a crash
                 // root.destroy();
+
+                root.disableFade = true
                 visible = false;
             }
         }
+
         Action {
             id: acceptAction
-            text: qsTr("OK")
-            shortcut: Qt.Key_Return
+            text: qsTr("OK");
+            shortcut: "Return"
             onTriggered: {
                 root.result = items ? comboBox.currentText : textResult.text
                 root.selected(root.result);
                 // FIXME we are leaking memory to avoid a crash
                 // root.destroy();
+
+                root.disableFade = true
                 visible = false;
             }
         }

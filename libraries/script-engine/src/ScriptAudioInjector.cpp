@@ -9,8 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "ScriptEngineLogging.h"
 #include "ScriptAudioInjector.h"
+
+#include "ScriptEngineLogging.h"
 
 QScriptValue injectorToScriptValue(QScriptEngine* engine, ScriptAudioInjector* const& in) {
     // The AudioScriptingInterface::playSound method can return null, so we need to account for that.

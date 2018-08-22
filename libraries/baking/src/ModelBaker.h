@@ -29,6 +29,8 @@
 using TextureBakerThreadGetter = std::function<QThread*()>;
 using GetMaterialIDCallback = std::function <int(int)>;
 
+static const QString BAKED_FBX_EXTENSION = ".baked.fbx";
+
 class ModelBaker : public Baker {
     Q_OBJECT
 
@@ -49,7 +51,11 @@ public slots:
 
 protected:
     void checkIfTexturesFinished();
+    void texturesFinished();
+    void embedTextureMetaData();
+    void exportScene();
     
+    FBXNode _rootNode;
     QHash<QByteArray, QByteArray> _textureContentMap;
     QUrl _modelURL;
     QString _bakedOutputDir;
@@ -63,7 +69,7 @@ private slots:
     void handleAbortedTexture();
 
 private:
-    QString createBakedTextureFileName(const QFileInfo & textureFileInfo);
+    QString createBaseTextureFileName(const QFileInfo & textureFileInfo);
     QUrl getTextureURL(const QFileInfo& textureFileInfo, QString relativeFileName, bool isEmbedded = false);
     void bakeTexture(const QUrl & textureURL, image::TextureUsage::Type textureType, const QDir & outputDir, 
                      const QString & bakedFilename, const QByteArray & textureContent);

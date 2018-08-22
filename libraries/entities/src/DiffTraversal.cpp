@@ -13,6 +13,7 @@
 
 #include <OctreeUtils.h>
 
+#include "EntityPriorityQueue.h"
 
 DiffTraversal::Waypoint::Waypoint(EntityTreeElementPointer& element) : _nextIndex(0) {
     assert(element);
@@ -36,20 +37,9 @@ void DiffTraversal::Waypoint::getNextVisibleElementFirstTime(DiffTraversal::Visi
             while (_nextIndex < NUMBER_OF_CHILDREN) {
                 EntityTreeElementPointer nextElement = element->getChildAtIndex(_nextIndex);
                 ++_nextIndex;
-                if (nextElement) {
-                    if (!view.usesViewFrustum) {
-                        // No LOD truncation if we aren't using the view frustum
-                        next.element = nextElement;
-                        return;
-                    } else if (view.viewFrustum.cubeIntersectsKeyhole(nextElement->getAACube())) {
-                        // check for LOD truncation
-                        float distance = glm::distance(view.viewFrustum.getPosition(), nextElement->getAACube().calcCenter()) + MIN_VISIBLE_DISTANCE;
-                        float angularDiameter = nextElement->getAACube().getScale() / distance;
-                        if (angularDiameter > MIN_ELEMENT_ANGULAR_DIAMETER * view.lodScaleFactor) {
-                            next.element = nextElement;
-                            return;
-                        }
-                    }
+                if (nextElement && view.shouldTraverseElement(*nextElement)) {
+                    next.element = nextElement;
+                    return;
                 }
             }
         }
@@ -65,7 +55,6 @@ void DiffTraversal::Waypoint::getNextVisibleElementRepeat(
         EntityTreeElementPointer element = _weakElement.lock();
         if (element->getLastChangedContent() > lastTime) {
             next.element = element;
-            next.intersection = ViewFrustum::INTERSECT;
             return;
         }
     }
@@ -75,31 +64,17 @@ void DiffTraversal::Waypoint::getNextVisibleElementRepeat(
             while (_nextIndex < NUMBER_OF_CHILDREN) {
                 EntityTreeElementPointer nextElement = element->getChildAtIndex(_nextIndex);
                 ++_nextIndex;
-                if (nextElement && nextElement->getLastChanged() > lastTime) {
-                    if (!view.usesViewFrustum) {
-                        // No LOD truncation if we aren't using the view frustum
-                        next.element = nextElement;
-                        next.intersection = ViewFrustum::INSIDE;
-                        return;
-                    } else {
-                        // check for LOD truncation
-                        float distance = glm::distance(view.viewFrustum.getPosition(), nextElement->getAACube().calcCenter()) + MIN_VISIBLE_DISTANCE;
-                        float angularDiameter = nextElement->getAACube().getScale() / distance;
-                        if (angularDiameter > MIN_ELEMENT_ANGULAR_DIAMETER * view.lodScaleFactor) {
-                            ViewFrustum::intersection intersection = view.viewFrustum.calculateCubeKeyholeIntersection(nextElement->getAACube());
-                            if (intersection != ViewFrustum::OUTSIDE) {
-                                next.element = nextElement;
-                                next.intersection = intersection;
-                                return;
-                            }
-                        }
-                    }
+                if (nextElement &&
+                    nextElement->getLastChanged() > lastTime &&
+                    view.shouldTraverseElement(*nextElement)) {
+
+                    next.element = nextElement;
+                    return;
                 }
             }
         }
     }
     next.element.reset();
-    next.intersection = ViewFrustum::OUTSIDE;
 }
 
 void DiffTraversal::Waypoint::getNextVisibleElementDifferential(DiffTraversal::VisibleElement& next,
@@ -109,7 +84,6 @@ void DiffTraversal::Waypoint::getNextVisibleElementDifferential(DiffTraversal::V
         ++_nextIndex;
         EntityTreeElementPointer element = _weakElement.lock();
         next.element = element;
-        next.intersection = ViewFrustum::INTERSECT;
         return;
     } else if (_nextIndex < NUMBER_OF_CHILDREN) {
         EntityTreeElementPointer element = _weakElement.lock();
@@ -117,24 +91,101 @@ void DiffTraversal::Waypoint::getNextVisibleElementDifferential(DiffTraversal::V
             while (_nextIndex < NUMBER_OF_CHILDREN) {
                 EntityTreeElementPointer nextElement = element->getChildAtIndex(_nextIndex);
                 ++_nextIndex;
-                if (nextElement) {
-                    AACube cube = nextElement->getAACube();
-                    // check for LOD truncation
-                    float distance = glm::distance(view.viewFrustum.getPosition(), cube.calcCenter()) + MIN_VISIBLE_DISTANCE;
-                    float angularDiameter = cube.getScale() / distance;
-                    if (angularDiameter > MIN_ELEMENT_ANGULAR_DIAMETER * view.lodScaleFactor) {
-                        if (view.viewFrustum.calculateCubeKeyholeIntersection(cube) != ViewFrustum::OUTSIDE) {
-                            next.element = nextElement;
-                            next.intersection = ViewFrustum::OUTSIDE;
-                            return;
-                        }
-                    }
+                if (nextElement && view.shouldTraverseElement(*nextElement)) {
+                    next.element = nextElement;
+                    return;
                 }
             }
         }
     }
     next.element.reset();
-    next.intersection = ViewFrustum::OUTSIDE;
+}
+
+bool DiffTraversal::View::usesViewFrustums() const {
+    return !viewFrustums.empty();
+}
+
+bool DiffTraversal::View::isVerySimilar(const View& view) const {
+    auto size = view.viewFrustums.size();
+
+    if (view.lodScaleFactor != lodScaleFactor ||
+        viewFrustums.size() != size) {
+        return false;
+    }
+
+    for (size_t i = 0; i < size; ++i) {
+        if (!viewFrustums[i].isVerySimilar(view.viewFrustums[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+float DiffTraversal::View::computePriority(const EntityItemPointer& entity) const {
+    if (!entity) {
+        return PrioritizedEntity::DO_NOT_SEND;
+    }
+
+    if (!usesViewFrustums()) {
+        return PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY;
+    }
+
+    bool success = false;
+    auto cube = entity->getQueryAACube(success);
+    if (!success) {
+        return PrioritizedEntity::WHEN_IN_DOUBT_PRIORITY;
+    }
+
+    auto center = cube.calcCenter(); // center of bounding sphere
+    auto radius = 0.5f * SQRT_THREE * cube.getScale(); // radius of bounding sphere
+
+    auto priority = PrioritizedEntity::DO_NOT_SEND;
+
+    for (const auto& frustum : viewFrustums) {
+        auto position = center - frustum.getPosition(); // position of bounding sphere in view-frame
+        float distance = glm::length(position); // distance to center of bounding sphere
+
+        // Check the size of the entity, it's possible that a "too small to see" entity is included in a
+        // larger octree cell because of its position (for example if it crosses the boundary of a cell it
+        // pops to the next higher cell. So we want to check to see that the entity is large enough to be seen
+        // before we consider including it.
+        float angularSize = frustum.getAngularSize(distance, radius);
+        if (angularSize > lodScaleFactor * MIN_ENTITY_ANGULAR_DIAMETER &&
+            frustum.intersects(position, distance, radius)) {
+
+            // use the angular size as priority
+            // we compute the max priority for all frustums
+            priority = std::max(priority, angularSize);
+        }
+    }
+
+    return priority;
+}
+
+bool DiffTraversal::View::shouldTraverseElement(const EntityTreeElement& element) const {
+    if (!usesViewFrustums()) {
+        return true;
+    }
+
+    const auto& cube = element.getAACube();
+
+    auto center = cube.calcCenter(); // center of bounding sphere
+    auto radius = 0.5f * SQRT_THREE * cube.getScale(); // radius of bounding sphere
+
+
+    return any_of(begin(viewFrustums), end(viewFrustums), [&](const ConicalViewFrustum& frustum) {
+        auto position = center - frustum.getPosition(); // position of bounding sphere in view-frame
+        float distance = glm::length(position); // distance to center of bounding sphere
+
+        // Check the size of the entity, it's possible that a "too small to see" entity is included in a
+        // larger octree cell because of its position (for example if it crosses the boundary of a cell it
+        // pops to the next higher cell. So we want to check to see that the entity is large enough to be seen
+        // before we consider including it.
+        float angularSize = frustum.getAngularSize(distance, radius);
+
+        return angularSize > lodScaleFactor * MIN_ELEMENT_ANGULAR_DIAMETER &&
+               frustum.intersects(position, distance, radius);
+    });
 }
 
 DiffTraversal::DiffTraversal() {
@@ -142,8 +193,7 @@ DiffTraversal::DiffTraversal() {
     _path.reserve(MIN_PATH_DEPTH);
 }
 
-DiffTraversal::Type DiffTraversal::prepareNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root, 
-        int32_t lodLevelOffset, bool usesViewFrustum) {
+DiffTraversal::Type DiffTraversal::prepareNewTraversal(const DiffTraversal::View& view, EntityTreeElementPointer root) {
     assert(root);
     // there are three types of traversal:
     //
@@ -159,29 +209,25 @@ DiffTraversal::Type DiffTraversal::prepareNewTraversal(const ViewFrustum& viewFr
     //
     // external code should update the _scanElementCallback after calling prepareNewTraversal
     //
-    _currentView.usesViewFrustum = usesViewFrustum;
-    float lodScaleFactor = powf(2.0f, lodLevelOffset);
 
     Type type;
     // If usesViewFrustum changes, treat it as a First traversal
-    if (_completedView.startTime == 0 || _currentView.usesViewFrustum != _completedView.usesViewFrustum) {
+    if (_completedView.startTime == 0 || _currentView.usesViewFrustums() != _completedView.usesViewFrustums()) {
         type = Type::First;
-        _currentView.viewFrustum = viewFrustum;
-        _currentView.lodScaleFactor = lodScaleFactor;
+        _currentView.viewFrustums = view.viewFrustums;
+        _currentView.lodScaleFactor = view.lodScaleFactor;
         _getNextVisibleElementCallback = [this](DiffTraversal::VisibleElement& next) {
             _path.back().getNextVisibleElementFirstTime(next, _currentView);
         };
-    } else if (!_currentView.usesViewFrustum ||
-               (_completedView.viewFrustum.isVerySimilar(viewFrustum) &&
-                lodScaleFactor == _completedView.lodScaleFactor)) {
+    } else if (!_currentView.usesViewFrustums() || _completedView.isVerySimilar(view)) {
         type = Type::Repeat;
         _getNextVisibleElementCallback = [this](DiffTraversal::VisibleElement& next) {
             _path.back().getNextVisibleElementRepeat(next, _completedView, _completedView.startTime);
         };
     } else {
         type = Type::Differential;
-        _currentView.viewFrustum = viewFrustum;
-        _currentView.lodScaleFactor = lodScaleFactor;
+        _currentView.viewFrustums = view.viewFrustums;
+        _currentView.lodScaleFactor = view.lodScaleFactor;
         _getNextVisibleElementCallback = [this](DiffTraversal::VisibleElement& next) {
             _path.back().getNextVisibleElementDifferential(next, _currentView, _completedView);
         };
@@ -200,7 +246,6 @@ DiffTraversal::Type DiffTraversal::prepareNewTraversal(const ViewFrustum& viewFr
 void DiffTraversal::getNextVisibleElement(DiffTraversal::VisibleElement& next) {
     if (_path.empty()) {
         next.element.reset();
-        next.intersection = ViewFrustum::OUTSIDE;
         return;
     }
     _getNextVisibleElementCallback(next);

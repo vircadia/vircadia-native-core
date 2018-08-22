@@ -41,7 +41,6 @@ public:
         ValueList returnedTextures;
     };
 
-
     void releaseSize(const QSize& size);
     void acquireSize(const QSize& size);
     uint32_t acquireTexture(const QSize& size);

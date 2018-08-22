@@ -9,16 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "UserActivityLogger.h"
+
 #include <QEventLoop>
 #include <QJsonDocument>
 #include <QHttpMultiPart>
 #include <QTimer>
 
-#include "NetworkLogging.h"
-
-#include "UserActivityLogger.h"
 #include <DependencyManager.h>
+
 #include "AddressManager.h"
+#include "NetworkLogging.h"
 
 UserActivityLogger::UserActivityLogger() {
     _timer.start();
@@ -64,7 +65,7 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
     
     // if no callbacks specified, call our owns
     if (params.isEmpty()) {
-        params.errorCallbackReceiver = this;
+        params.callbackReceiver = this;
         params.errorCallbackMethod = "requestError";
     }
     
@@ -74,8 +75,8 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
                                params, NULL, multipart);
 }
 
-void UserActivityLogger::requestError(QNetworkReply& errorReply) {
-    qCDebug(networking) << errorReply.error() << "-" << errorReply.errorString();
+void UserActivityLogger::requestError(QNetworkReply* errorReply) {
+    qCDebug(networking) << errorReply->error() << "-" << errorReply->errorString();
 }
 
 void UserActivityLogger::launch(QString applicationVersion, bool previousSessionCrashed, int previousSessionRuntime) {

@@ -9,10 +9,6 @@
 //
 
 import QtQuick 2.5
-import QtQuick.Controls 1.4
-import QtQuick.Controls.Styles 1.4
-import QtGraphicalEffects 1.0
-
 
 import "."
 import "./preferences"
@@ -23,10 +19,12 @@ Item {
     id: dialog
     width: parent.width
     height: parent.height
+    anchors.fill: parent
 
     HifiConstants { id: hifi }
     property var sections: []
     property var showCategories: []
+    property var categoryProperties: ({})
 
     property bool keyboardEnabled: false
     property bool keyboardRaised: false
@@ -103,7 +101,8 @@ Item {
                     // NOTE: the sort order of items in the showCategories array is the same order in the dialog.
                     for (i = 0; i < showCategories.length; i++) {
                         if (categoryMap[showCategories[i]]) {
-                            sections.push(sectionBuilder.createObject(prefControls, {name: showCategories[i]}));
+                            var properties = categoryProperties.hasOwnProperty(showCategories[i]) ? categoryProperties[showCategories[i]] : {};
+                            sections.push(sectionBuilder.createObject(prefControls, {name: showCategories[i], sectionProperties: properties}));
                         }
                     }
 
@@ -162,14 +161,15 @@ Item {
 
     Rectangle {
         id: footer
-        height: 40
+        height: dialog.height * 0.15
+        anchors.bottom: dialog.bottom
 
         anchors {
             bottom: keyboard.top
             left: parent.left
             right: parent.right
         }
-            
+
         color: hifi.colors.baseGray
 
         Row {

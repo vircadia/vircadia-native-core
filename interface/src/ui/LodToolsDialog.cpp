@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "LodToolsDialog.h"
+
 #include <QCheckBox>
 #include <QColor>
 #include <QDialogButtonBox>
@@ -23,7 +25,6 @@
 #include <LODManager.h>
 
 #include "Menu.h"
-#include "ui/LodToolsDialog.h"
 
 
 LodToolsDialog::LodToolsDialog(QWidget* parent) :
@@ -128,5 +129,4 @@ void LodToolsDialog::closeEvent(QCloseEvent* event) {
     }
 #endif
 }
-
 

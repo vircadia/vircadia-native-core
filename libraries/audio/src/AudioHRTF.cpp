@@ -9,11 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AudioHRTF.h"
+
 #include <math.h>
 #include <string.h>
 #include <assert.h>
 
-#include "AudioHRTF.h"
 #include "AudioHRTFData.h"
 
 #if defined(_MSC_VER)
@@ -839,7 +840,7 @@ static void nearFieldGainCorrection(float azimuth, float distance, float& gainL,
     // normalized distance factor = [0,1] as distance = [HRTF_NEARFIELD_MAX,HRTF_HEAD_RADIUS]
     assert(distance < HRTF_NEARFIELD_MAX);
     assert(distance > HRTF_HEAD_RADIUS);
-	float d = (HRTF_NEARFIELD_MAX - distance) * ( 1.0f / (HRTF_NEARFIELD_MAX - HRTF_HEAD_RADIUS));
+	float d = (HRTF_NEARFIELD_MAX - distance) * (1.0f / (HRTF_NEARFIELD_MAX - HRTF_HEAD_RADIUS));
 
     // angle of incidence at each ear
     float angleL = azimuth + HALFPI;
@@ -918,6 +919,9 @@ static void azimuthToIndex(float azimuth, int& index0, int& index1, float& frac)
     index1 = index0 + 1;
     frac = azimuth - (float)index0;
 
+    if (index0 >= HRTF_AZIMUTHS) {
+        index0 -= HRTF_AZIMUTHS;
+    }
     if (index1 >= HRTF_AZIMUTHS) {
         index1 -= HRTF_AZIMUTHS;
     }

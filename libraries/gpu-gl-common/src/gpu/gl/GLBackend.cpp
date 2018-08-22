@@ -45,6 +45,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::gl::GLBackend::do_setModelTransform),
     (&::gpu::gl::GLBackend::do_setViewTransform),
     (&::gpu::gl::GLBackend::do_setProjectionTransform),
+    (&::gpu::gl::GLBackend::do_setProjectionJitter),
     (&::gpu::gl::GLBackend::do_setViewportTransform),
     (&::gpu::gl::GLBackend::do_setDepthRangeTransform),
 
@@ -55,6 +56,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::gl::GLBackend::do_setUniformBuffer),
     (&::gpu::gl::GLBackend::do_setResourceBuffer),
     (&::gpu::gl::GLBackend::do_setResourceTexture),
+    (&::gpu::gl::GLBackend::do_setResourceTextureTable),
     (&::gpu::gl::GLBackend::do_setResourceFramebufferSwapChainTexture),
 
     (&::gpu::gl::GLBackend::do_setFramebuffer),
@@ -98,11 +100,33 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::gl::GLBackend::do_popProfileRange),
 };
 
+#define GL_GET_INTEGER(NAME) glGetIntegerv(GL_##NAME, &const_cast<GLint&>(NAME)); 
+    
+GLint GLBackend::MAX_TEXTURE_IMAGE_UNITS{ 0 };
+GLint GLBackend::MAX_UNIFORM_BUFFER_BINDINGS{ 0 };
+GLint GLBackend::MAX_COMBINED_UNIFORM_BLOCKS{ 0 };
+GLint GLBackend::MAX_COMBINED_TEXTURE_IMAGE_UNITS{ 0 };
+GLint GLBackend::MAX_UNIFORM_BLOCK_SIZE{ 0 };
+GLint GLBackend::UNIFORM_BUFFER_OFFSET_ALIGNMENT{ 1 };
+
 void GLBackend::init() {
     static std::once_flag once;
     std::call_once(once, [] {
+
+
         QString vendor{ (const char*)glGetString(GL_VENDOR) };
         QString renderer{ (const char*)glGetString(GL_RENDERER) };
+
+        // Textures
+        GL_GET_INTEGER(MAX_TEXTURE_IMAGE_UNITS);
+        GL_GET_INTEGER(MAX_COMBINED_TEXTURE_IMAGE_UNITS);
+
+        // Uniform blocks
+        GL_GET_INTEGER(MAX_UNIFORM_BUFFER_BINDINGS);
+        GL_GET_INTEGER(MAX_COMBINED_UNIFORM_BLOCKS);
+        GL_GET_INTEGER(MAX_UNIFORM_BLOCK_SIZE);
+        GL_GET_INTEGER(UNIFORM_BUFFER_OFFSET_ALIGNMENT);
+
         qCDebug(gpugllogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
         qCDebug(gpugllogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
         qCDebug(gpugllogging) << "GL Vendor: " << vendor;
@@ -113,27 +137,36 @@ void GLBackend::init() {
         qCDebug(gpugllogging) << "\tcard:" << gpu->getName();
         qCDebug(gpugllogging) << "\tdriver:" << gpu->getDriver();
         qCDebug(gpugllogging) << "\tdedicated memory:" << gpu->getMemory() << "MB";
+        qCDebug(gpugllogging) << "Limits:";
+        qCDebug(gpugllogging) << "\tmax textures:" << MAX_TEXTURE_IMAGE_UNITS;
+        qCDebug(gpugllogging) << "\tmax texture binding:" << MAX_COMBINED_TEXTURE_IMAGE_UNITS;
+        qCDebug(gpugllogging) << "\tmax uniforms:" << MAX_UNIFORM_BUFFER_BINDINGS;
+        qCDebug(gpugllogging) << "\tmax uniform binding:" << MAX_COMBINED_UNIFORM_BLOCKS;
+        qCDebug(gpugllogging) << "\tmax uniform size:" << MAX_UNIFORM_BLOCK_SIZE;
+        qCDebug(gpugllogging) << "\tuniform alignment:" << UNIFORM_BUFFER_OFFSET_ALIGNMENT;
 #if !defined(USE_GLES)
         qCDebug(gpugllogging, "V-Sync is %s\n", (::gl::getSwapInterval() > 0 ? "ON" : "OFF"));
 #endif
-#if THREADED_TEXTURE_BUFFERING
-        // This has to happen on the main thread in order to give the thread 
-        // pool a reasonable parent object
-        GLVariableAllocationSupport::TransferJob::startBufferingThread();
-#endif
-
     });
+}
+
+GLBackend::GLBackend(bool syncCache) {
+    _pipeline._cameraCorrectionBuffer._buffer->flush();
+    initShaderBinaryCache();
 }
 
 GLBackend::GLBackend() {
     _pipeline._cameraCorrectionBuffer._buffer->flush();
-    glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &_uboAlignment);
+    initShaderBinaryCache();
 }
 
+GLBackend::~GLBackend() {}
 
-GLBackend::~GLBackend() {
+void GLBackend::shutdown() {
     killInput();
     killTransform();
+    killTextureManagementStage();
+    killShaderBinaryCache();
 }
 
 void GLBackend::renderPassTransfer(const Batch& batch) {
@@ -165,7 +198,18 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
                 case Batch::COMMAND_drawIndexedInstanced:
                 case Batch::COMMAND_multiDrawIndirect:
                 case Batch::COMMAND_multiDrawIndexedIndirect:
-                    _transform.preUpdate(_commandIndex, _stereo);
+                {
+                    Vec2u outputSize{ 1,1 };
+
+                    if (_output._framebuffer) {
+                        outputSize.x = _output._framebuffer->getWidth();
+                        outputSize.y = _output._framebuffer->getHeight();
+                    } else if (glm::dot(_transform._projectionJitter, _transform._projectionJitter)>0.0f) {
+                        qCWarning(gpugllogging) << "Jittering needs to have a frame buffer to be set";
+                    }
+
+                    _transform.preUpdate(_commandIndex, _stereo, outputSize);
+                }
                     break;
 
                 case Batch::COMMAND_disableContextStereo:
@@ -178,7 +222,9 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
 
                 case Batch::COMMAND_setViewportTransform:
                 case Batch::COMMAND_setViewTransform:
-                case Batch::COMMAND_setProjectionTransform: {
+                case Batch::COMMAND_setProjectionTransform:
+                case Batch::COMMAND_setProjectionJitter:
+                {
                     CommandCall call = _commandCalls[(*command)];
                     (this->*(call))(batch, *offset);
                     break;
@@ -253,6 +299,8 @@ void GLBackend::render(const Batch& batch) {
     if (!batch.isStereoEnabled()) {
         _stereo._enable = false;
     }
+    // Reset jitter
+    _transform._projectionJitter = Vec2(0.0f, 0.0f);
     
     {
         PROFILE_RANGE(render_gpu_gl_detail, "Transfer");
@@ -371,16 +419,10 @@ void GLBackend::do_popProfileRange(const Batch& batch, size_t paramOffset) {
     }
 }
 
+
 // TODO: As long as we have gl calls explicitely issued from interface
 // code, we need to be able to record and batch these calls. THe long 
 // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
-
-// As long as we don;t use several versions of shaders we can avoid this more complex code path
-#ifdef GPU_STEREO_CAMERA_BUFFER
-#define GET_UNIFORM_LOCATION(shaderUniformLoc) ((_pipeline._programShader) ? _pipeline._programShader->getUniformLocation(shaderUniformLoc, (GLShader::Version) isStereo()) : -1)
-#else
-#define GET_UNIFORM_LOCATION(shaderUniformLoc) shaderUniformLoc
-#endif
 
 void GLBackend::do_glUniform1i(const Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
@@ -390,8 +432,9 @@ void GLBackend::do_glUniform1i(const Batch& batch, size_t paramOffset) {
     }
     updatePipeline();
 
+    GLint location = getRealUniformLocation(batch._params[paramOffset + 1]._int);
     glUniform1i(
-        GET_UNIFORM_LOCATION(batch._params[paramOffset + 1]._int),
+        location,
         batch._params[paramOffset + 0]._int);
     (void)CHECK_GL_ERROR();
 }
@@ -404,8 +447,9 @@ void GLBackend::do_glUniform1f(const Batch& batch, size_t paramOffset) {
     }
     updatePipeline();
 
+    GLint location = getRealUniformLocation(batch._params[paramOffset + 1]._int);
     glUniform1f(
-        GET_UNIFORM_LOCATION(batch._params[paramOffset + 1]._int),
+        location,
         batch._params[paramOffset + 0]._float);
     (void)CHECK_GL_ERROR();
 }
@@ -417,8 +461,9 @@ void GLBackend::do_glUniform2f(const Batch& batch, size_t paramOffset) {
         return;
     }
     updatePipeline();
+    GLint location = getRealUniformLocation(batch._params[paramOffset + 2]._int);
     glUniform2f(
-        GET_UNIFORM_LOCATION(batch._params[paramOffset + 2]._int),
+        location,
         batch._params[paramOffset + 1]._float,
         batch._params[paramOffset + 0]._float);
     (void)CHECK_GL_ERROR();
@@ -431,8 +476,9 @@ void GLBackend::do_glUniform3f(const Batch& batch, size_t paramOffset) {
         return;
     }
     updatePipeline();
+    GLint location = getRealUniformLocation(batch._params[paramOffset + 3]._int);
     glUniform3f(
-        GET_UNIFORM_LOCATION(batch._params[paramOffset + 3]._int),
+        location,
         batch._params[paramOffset + 2]._float,
         batch._params[paramOffset + 1]._float,
         batch._params[paramOffset + 0]._float);
@@ -446,8 +492,9 @@ void GLBackend::do_glUniform4f(const Batch& batch, size_t paramOffset) {
         return;
     }
     updatePipeline();
+    GLint location = getRealUniformLocation(batch._params[paramOffset + 4]._int);
     glUniform4f(
-        GET_UNIFORM_LOCATION(batch._params[paramOffset + 4]._int),
+        location,
         batch._params[paramOffset + 3]._float,
         batch._params[paramOffset + 2]._float,
         batch._params[paramOffset + 1]._float,
@@ -462,8 +509,9 @@ void GLBackend::do_glUniform3fv(const Batch& batch, size_t paramOffset) {
         return;
     }
     updatePipeline();
+    GLint location = getRealUniformLocation(batch._params[paramOffset + 2]._int);
     glUniform3fv(
-        GET_UNIFORM_LOCATION(batch._params[paramOffset + 2]._int),
+        location,
         batch._params[paramOffset + 1]._uint,
         (const GLfloat*)batch.readData(batch._params[paramOffset + 0]._uint));
 
@@ -478,7 +526,7 @@ void GLBackend::do_glUniform4fv(const Batch& batch, size_t paramOffset) {
     }
     updatePipeline();
 
-    GLint location = GET_UNIFORM_LOCATION(batch._params[paramOffset + 2]._int);
+    GLint location = getRealUniformLocation(batch._params[paramOffset + 2]._int);
     GLsizei count = batch._params[paramOffset + 1]._uint;
     const GLfloat* value = (const GLfloat*)batch.readData(batch._params[paramOffset + 0]._uint);
     glUniform4fv(location, count, value);
@@ -493,8 +541,9 @@ void GLBackend::do_glUniform4iv(const Batch& batch, size_t paramOffset) {
         return;
     }
     updatePipeline();
+    GLint location = getRealUniformLocation(batch._params[paramOffset + 2]._int);
     glUniform4iv(
-        GET_UNIFORM_LOCATION(batch._params[paramOffset + 2]._int),
+        location,
         batch._params[paramOffset + 1]._uint,
         (const GLint*)batch.readData(batch._params[paramOffset + 0]._uint));
 
@@ -509,8 +558,9 @@ void GLBackend::do_glUniformMatrix3fv(const Batch& batch, size_t paramOffset) {
     }
     updatePipeline();
 
+    GLint location = getRealUniformLocation(batch._params[paramOffset + 3]._int);
     glUniformMatrix3fv(
-        GET_UNIFORM_LOCATION(batch._params[paramOffset + 3]._int),
+        location,
         batch._params[paramOffset + 2]._uint,
         batch._params[paramOffset + 1]._uint,
         (const GLfloat*)batch.readData(batch._params[paramOffset + 0]._uint));
@@ -525,8 +575,9 @@ void GLBackend::do_glUniformMatrix4fv(const Batch& batch, size_t paramOffset) {
     }
     updatePipeline();
 
+    GLint location = getRealUniformLocation(batch._params[paramOffset + 3]._int);
     glUniformMatrix4fv(
-        GET_UNIFORM_LOCATION(batch._params[paramOffset + 3]._int),
+        location,
         batch._params[paramOffset + 2]._uint,
         batch._params[paramOffset + 1]._uint,
         (const GLfloat*)batch.readData(batch._params[paramOffset + 0]._uint));
@@ -712,9 +763,8 @@ void GLBackend::recycle() const {
             glDeleteQueries((GLsizei)ids.size(), ids.data());
         }
     }
-
-    GLVariableAllocationSupport::manageMemory();
-    GLVariableAllocationSupport::_frameTexturesCreated = 0;
+    
+    _textureManagement._transferEngine->manageMemory();
     Texture::KtxStorage::releaseOpenKtxFiles();
 }
 

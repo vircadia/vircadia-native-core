@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "FSTReader.h"
+
 #include <QBuffer>
 #include <QEventLoop>
 #include <QNetworkReply>
@@ -16,8 +18,6 @@
 
 #include <NetworkAccessManager.h>
 #include <SharedUtil.h>
-
-#include "FSTReader.h"
 
 QVariantHash FSTReader::parseMapping(QIODevice* device) {
     QVariantHash properties;
@@ -84,7 +84,7 @@ void FSTReader::writeVariant(QBuffer& buffer, QVariantHash::const_iterator& it) 
 
 QByteArray FSTReader::writeMapping(const QVariantHash& mapping) {
     static const QStringList PREFERED_ORDER = QStringList() << NAME_FIELD << TYPE_FIELD << SCALE_FIELD << FILENAME_FIELD
-    << TEXDIR_FIELD << JOINT_FIELD << FREE_JOINT_FIELD
+    << TEXDIR_FIELD << SCRIPT_FIELD << JOINT_FIELD << FREE_JOINT_FIELD
     << BLENDSHAPE_FIELD << JOINT_INDEX_FIELD;
     QBuffer buffer;
     buffer.open(QIODevice::WriteOnly);
@@ -92,7 +92,7 @@ QByteArray FSTReader::writeMapping(const QVariantHash& mapping) {
     for (auto key : PREFERED_ORDER) {
         auto it = mapping.find(key);
         if (it != mapping.constEnd()) {
-            if (key == FREE_JOINT_FIELD) { // writeVariant does not handle strings added using insertMulti.
+            if (key == FREE_JOINT_FIELD || key == SCRIPT_FIELD) { // writeVariant does not handle strings added using insertMulti.
                 for (auto multi : mapping.values(key)) {
                     buffer.write(key.toUtf8());
                     buffer.write(" = ");
@@ -185,6 +185,26 @@ FSTReader::ModelType FSTReader::predictModelType(const QVariantHash& mapping) {
     }
     
     return ENTITY_MODEL;
+}
+
+QVector<QString> FSTReader::getScripts(const QUrl& url, const QVariantHash& mapping) {
+
+    auto fstMapping = mapping.isEmpty() ? downloadMapping(url.toString()) : mapping;
+    QVector<QString> scriptPaths;
+    if (!fstMapping.value(SCRIPT_FIELD).isNull()) {
+        auto scripts = fstMapping.values(SCRIPT_FIELD).toVector();
+        for (auto &script : scripts) {
+            QString scriptPath = script.toString();
+            if (QUrl(scriptPath).isRelative()) {
+                if (scriptPath.at(0) == '/') {
+                    scriptPath = scriptPath.right(scriptPath.length() - 1);
+                }
+                scriptPath = url.resolved(QUrl(scriptPath)).toString();
+            }
+            scriptPaths.push_back(scriptPath);
+        }
+    }
+    return scriptPaths;
 }
 
 QVariantHash FSTReader::downloadMapping(const QString& url) {

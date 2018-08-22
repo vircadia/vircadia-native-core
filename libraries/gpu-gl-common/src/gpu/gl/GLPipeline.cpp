@@ -10,6 +10,7 @@
 
 #include "GLShader.h"
 #include "GLState.h"
+#include "GLBackend.h"
 
 using namespace gpu;
 using namespace gpu::gl;
@@ -51,7 +52,7 @@ GLPipeline* GLPipeline::sync(GLBackend& backend, const Pipeline& pipeline) {
     // Special case for view correction matrices, any pipeline that declares the correction buffer
     // uniform will automatically have it provided without any client code necessary.
     // Required for stable lighting in the HMD.
-    object->_cameraCorrection = shader->getUniformBuffers().findLocation("cameraCorrectionBuffer");
+    object->_cameraCorrection = shader->getUniformBuffers().isValid(gpu::slot::buffer::CameraCorrection);
     object->_program = programObject;
     object->_state = stateObject;
 

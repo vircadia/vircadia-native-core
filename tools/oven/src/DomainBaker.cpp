@@ -464,7 +464,7 @@ bool DomainBaker::rewriteSkyboxURL(QJsonValueRef urlValue, TextureBaker* baker) 
     if (oldSkyboxURL.matches(baker->getTextureURL(), QUrl::RemoveQuery | QUrl::RemoveFragment)) {
         // change the URL to point to the baked texture with its original query and fragment
 
-        auto newSkyboxURL = _destinationPath.resolved(baker->getBakedTextureFileName());
+        auto newSkyboxURL = _destinationPath.resolved(baker->getMetaTextureFileName());
         newSkyboxURL.setQuery(oldSkyboxURL.query());
         newSkyboxURL.setFragment(oldSkyboxURL.fragment());
         newSkyboxURL.setUserInfo(oldSkyboxURL.userInfo());

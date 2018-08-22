@@ -32,10 +32,11 @@ public:
     void render(RenderArgs* args) override;
 
 private:
+    Q_INVOKABLE void qmlElementDestroyed();
     Q_INVOKABLE void buildQmlElement(const QUrl& url);
 
 protected:
-    std::shared_ptr<QQuickItem> _qmlElement;
+    QQuickItem* _qmlElement{ nullptr };
 };
 
 #endif // hifi_QmlOverlay_h

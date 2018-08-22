@@ -4,7 +4,7 @@ set(EXTERNAL_NAME steamworks)
 
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 
-set(STEAMWORKS_URL "https://s3.amazonaws.com/hifi-public/dependencies/steamworks_sdk_137.zip")
+set(STEAMWORKS_URL "https://public.highfidelity.com/dependencies/steamworks_sdk_137.zip")
 set(STEAMWORKS_URL_MD5 "95ba9d0e3ddc04f8a8be17d2da806cbb")
 
 ExternalProject_Add(

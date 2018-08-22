@@ -7,7 +7,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 /* global alert, augmentSpinButtons, clearTimeout, console, document, Element, EventBridge, 
-    HifiEntityUI, JSONEditor, openEventBridge, setUpKeyboardControl, setTimeout, window, _ $ */
+    HifiEntityUI, JSONEditor, openEventBridge, setTimeout, window, _ $ */
 
 var PI = 3.14159265358979;
 var DEGREES_TO_RADIANS = PI / 180.0;
@@ -35,6 +35,8 @@ var colorPickers = {};
 var lastEntityID = null;
 
 var MATERIAL_PREFIX_STRING = "mat::";
+
+var PENDING_SCRIPT_STATUS = "[ Fetching status ]";
 
 function debugPrint(message) {
     EventBridge.emitWebEvent(
@@ -66,6 +68,7 @@ function enableProperties() {
 
     if (elLocked.checked === false) {
         removeStaticUserData();
+        removeStaticMaterialData();
     }
 }
 
@@ -78,8 +81,13 @@ function disableProperties() {
     }
     var elLocked = document.getElementById("property-locked");
 
-    if ($('#userdata-editor').css('display') === "block" && elLocked.checked === true) {
-        showStaticUserData();
+    if (elLocked.checked === true) {
+        if ($('#userdata-editor').css('display') === "block") {
+            showStaticUserData();
+        }
+        if ($('#materialdata-editor').css('display') === "block") {
+            showStaticMaterialData();
+        }
     }
 }
 
@@ -302,9 +310,10 @@ function setUserDataFromEditor(noUpdate) {
     }
 }
 
-function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults) {
+function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults, removeKeys) {
     var properties = {};
     var parsedData = {};
+    var keysToBeRemoved = removeKeys ? removeKeys : [];
     try {
         if ($('#userdata-editor').css('height') !== "0px") {
             // if there is an expanded, we want to use its json.
@@ -336,6 +345,12 @@ function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults) {
             parsedData[groupName][key] = defaults[key];
         }
     });
+    keysToBeRemoved.forEach(function(key) {
+        if (parsedData[groupName].hasOwnProperty(key)) {
+            delete parsedData[groupName][key];
+        }
+    });
+    
     if (Object.keys(parsedData[groupName]).length === 0) {
         delete parsedData[groupName];
     }
@@ -349,11 +364,39 @@ function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults) {
 
     updateProperties(properties);
 }
-function userDataChanger(groupName, keyName, values, userDataElement, defaultValue) {
+function userDataChanger(groupName, keyName, values, userDataElement, defaultValue, removeKeys) {
     var val = {}, def = {};
     val[keyName] = values;
     def[keyName] = defaultValue;
-    multiDataUpdater(groupName, val, userDataElement, def);
+    multiDataUpdater(groupName, val, userDataElement, def, removeKeys);
+}
+
+function setMaterialDataFromEditor(noUpdate) {
+    var json = null;
+    try {
+        json = materialEditor.get();
+    } catch (e) {
+        alert('Invalid JSON code - look for red X in your code ', +e);
+    }
+    if (json === null) {
+        return;
+    } else {
+        var text = materialEditor.getText();
+        if (noUpdate === true) {
+            EventBridge.emitWebEvent(
+                JSON.stringify({
+                    id: lastEntityID,
+                    type: "saveMaterialData",
+                    properties: {
+                        materialData: text
+                    }
+                })
+            );
+            return;
+        } else {
+            updateProperty('materialData', text);
+        }
+    }
 }
 
 function setTextareaScrolling(element) {
@@ -362,9 +405,105 @@ function setTextareaScrolling(element) {
 }
 
 
+var materialEditor = null;
+
+function createJSONMaterialEditor() {
+    var container = document.getElementById("materialdata-editor");
+    var options = {
+        search: false,
+        mode: 'tree',
+        modes: ['code', 'tree'],
+        name: 'materialData',
+        onModeChange: function() {
+            $('.jsoneditor-poweredBy').remove();
+        },
+        onError: function(e) {
+            alert('JSON editor:' + e);
+        },
+        onChange: function() {
+            var currentJSONString = materialEditor.getText();
+
+            if (currentJSONString === '{"":""}') {
+                return;
+            }
+            $('#materialdata-save').attr('disabled', false);
+
+
+        }
+    };
+    materialEditor = new JSONEditor(container, options);
+}
+
+function hideNewJSONMaterialEditorButton() {
+    $('#materialdata-new-editor').hide();
+}
+
+function showSaveMaterialDataButton() {
+    $('#materialdata-save').show();
+}
+
+function hideSaveMaterialDataButton() {
+    $('#materialdata-save').hide();
+}
+
+function showNewJSONMaterialEditorButton() {
+    $('#materialdata-new-editor').show();
+}
+
+function showMaterialDataTextArea() {
+    $('#property-material-data').show();
+}
+
+function hideMaterialDataTextArea() {
+    $('#property-material-data').hide();
+}
+
+function showStaticMaterialData() {
+    if (materialEditor !== null) {
+        $('#static-materialdata').show();
+        $('#static-materialdata').css('height', $('#materialdata-editor').height());
+        $('#static-materialdata').text(materialEditor.getText());
+    }
+}
+
+function removeStaticMaterialData() {
+    $('#static-materialdata').hide();
+}
+
+function setMaterialEditorJSON(json) {
+    materialEditor.set(json);
+    if (materialEditor.hasOwnProperty('expandAll')) {
+        materialEditor.expandAll();
+    }
+}
+
+function getMaterialEditorJSON() {
+    return materialEditor.get();
+}
+
+function deleteJSONMaterialEditor() {
+    if (materialEditor !== null) {
+        materialEditor.destroy();
+        materialEditor = null;
+    }
+}
+
+var savedMaterialJSONTimer = null;
+
+function saveJSONMaterialData(noUpdate) {
+    setMaterialDataFromEditor(noUpdate);
+    $('#materialdata-saved').show();
+    $('#materialdata-save').attr('disabled', true);
+    if (savedMaterialJSONTimer !== null) {
+        clearTimeout(savedMaterialJSONTimer);
+    }
+    savedMaterialJSONTimer = setTimeout(function() {
+        $('#materialdata-saved').hide();
+
+    }, EDITOR_TIMEOUT_DURATION);
+}
+
 var editor = null;
-var editorTimeout = null;
-var lastJSONString = null;
 
 function createJSONEditor() {
     var container = document.getElementById("userdata-editor");
@@ -395,11 +534,6 @@ function createJSONEditor() {
 
 function hideNewJSONEditorButton() {
     $('#userdata-new-editor').hide();
-
-}
-
-function hideClearUserDataButton() {
-    $('#userdata-clear').hide();
 }
 
 function showSaveUserDataButton() {
@@ -408,17 +542,10 @@ function showSaveUserDataButton() {
 
 function hideSaveUserDataButton() {
     $('#userdata-save').hide();
-
 }
 
 function showNewJSONEditorButton() {
     $('#userdata-new-editor').show();
-
-}
-
-function showClearUserDataButton() {
-    $('#userdata-clear').show();
-
 }
 
 function showUserDataTextArea() {
@@ -446,7 +573,6 @@ function setEditorJSON(json) {
     if (editor.hasOwnProperty('expandAll')) {
         editor.expandAll();
     }
-
 }
 
 function getEditorJSON() {
@@ -484,11 +610,14 @@ function bindAllNonJSONEditorElements() {
         // TODO FIXME: (JSHint) Functions declared within loops referencing 
         //             an outer scoped variable may lead to confusing semantics.
         field.on('focus', function(e) {
-            if (e.target.id === "userdata-new-editor" || e.target.id === "userdata-clear") {
+            if (e.target.id === "userdata-new-editor" || e.target.id === "userdata-clear" || e.target.id === "materialdata-new-editor" || e.target.id === "materialdata-clear") {
                 return;
             } else {
                 if ($('#userdata-editor').css('height') !== "0px") {
                     saveJSONUserData(true);
+                }
+                if ($('#materialdata-editor').css('height') !== "0px") {
+                    saveJSONMaterialData(true);
                 }
             }
         });
@@ -591,7 +720,7 @@ function loaded() {
         var elCloneableLifetime = document.getElementById("property-cloneable-lifetime");
         var elCloneableLimit = document.getElementById("property-cloneable-limit");
 
-        var elWantsTrigger = document.getElementById("property-wants-trigger");
+        var elTriggerable = document.getElementById("property-triggerable");
         var elIgnoreIK = document.getElementById("property-ignore-ik");
 
         var elLifetime = document.getElementById("property-lifetime");
@@ -652,6 +781,10 @@ function loaded() {
         var elMaterialMappingScaleX = document.getElementById("property-material-mapping-scale-x");
         var elMaterialMappingScaleY = document.getElementById("property-material-mapping-scale-y");
         var elMaterialMappingRot = document.getElementById("property-material-mapping-rot");
+        var elMaterialData = document.getElementById("property-material-data");
+        var elClearMaterialData = document.getElementById("materialdata-clear");
+        var elSaveMaterialData = document.getElementById("materialdata-save");
+        var elNewJSONMaterialEditor = document.getElementById('materialdata-new-editor');
 
         var elImageURL = document.getElementById("property-image-url");
 
@@ -669,6 +802,7 @@ function loaded() {
         var elTextTextColorRed = document.getElementById("property-text-text-color-red");
         var elTextTextColorGreen = document.getElementById("property-text-text-color-green");
         var elTextTextColorBlue = document.getElementById("property-text-text-color-blue");
+        var elTextBackgroundColor = document.getElementById("property-text-background-color");
         var elTextBackgroundColorRed = document.getElementById("property-text-background-color-red");
         var elTextBackgroundColorGreen = document.getElementById("property-text-background-color-green");
         var elTextBackgroundColorBlue = document.getElementById("property-text-background-color-blue");
@@ -718,7 +852,7 @@ function loaded() {
         var elZoneHazeGlareColorGreen = document.getElementById("property-zone-haze-glare-color-green");
         var elZoneHazeGlareColorBlue = document.getElementById("property-zone-haze-glare-color-blue");
         var elZoneHazeEnableGlare = document.getElementById("property-zone-haze-enable-light-blend");
-        var elZonehazeGlareAngle = document.getElementById("property-zone-haze-blend-angle");
+        var elZoneHazeGlareAngle = document.getElementById("property-zone-haze-blend-angle");
         
         var elZoneHazeAltitudeEffect = document.getElementById("property-zone-haze-altitude-effect");
         var elZoneHazeBaseRef = document.getElementById("property-zone-haze-base");
@@ -769,20 +903,223 @@ function loaded() {
                     } else {
                         elServerScriptStatus.innerText = "Not running";
                     }
-                } else if (data.type === "update") {
+                } else if (data.type === "update" && data.selections) {
 
-                    if (!data.selections || data.selections.length === 0) {
-                        if (editor !== null && lastEntityID !== null) {
-                            saveJSONUserData(true);
-                            deleteJSONEditor();
+                    if (data.selections.length === 0) {
+                        if (lastEntityID !== null) {
+                            if (editor !== null) {
+                                saveJSONUserData(true);
+                                deleteJSONEditor();
+                            }
+                            if (materialEditor !== null) {
+                                saveJSONMaterialData(true);
+                                deleteJSONMaterialEditor();
+                            }
                         }
+                        
                         elTypeIcon.style.display = "none";
                         elType.innerHTML = "<i>No selection</i>";
-                        elID.value = "";
                         elPropertiesList.className = '';
-                        disableProperties();
-                    } else if (data.selections && data.selections.length > 1) {
+                        
+                        elID.value = "";
+                        elName.value = "";
+                        elLocked.checked = false;
+                        elVisible.checked = false;
+                        
+                        elParentID.value = "";
+                        elParentJointIndex.value = "";
+                        
+                        elColorRed.value = "";
+                        elColorGreen.value = "";
+                        elColorBlue.value = "";
+                        elColorControlVariant2.style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+
+                        elPositionX.value = "";
+                        elPositionY.value = "";
+                        elPositionZ.value = "";
+                        
+                        elRotationX.value = "";
+                        elRotationY.value = "";
+                        elRotationZ.value = "";
+                        
+                        elDimensionsX.value = "";
+                        elDimensionsY.value = "";
+                        elDimensionsZ.value = "";   
+                        
+                        elRegistrationX.value = "";
+                        elRegistrationY.value = "";
+                        elRegistrationZ.value = "";
+
+                        elLinearVelocityX.value = "";
+                        elLinearVelocityY.value = "";
+                        elLinearVelocityZ.value = "";
+                        elLinearDamping.value = "";
+
+                        elAngularVelocityX.value = "";
+                        elAngularVelocityY.value = "";
+                        elAngularVelocityZ.value = "";
+                        elAngularDamping.value = "";
+
+                        elGravityX.value = "";
+                        elGravityY.value = "";
+                        elGravityZ.value = "";
+
+                        elAccelerationX.value = "";
+                        elAccelerationY.value = "";
+                        elAccelerationZ.value = "";
+                        
+                        elRestitution.value = "";
+                        elFriction.value = "";
+                        elDensity.value = "";
+                        
+                        elCollisionless.checked = false;
+                        elDynamic.checked = false;
+                        
+                        elCollideStatic.checked = false;
+                        elCollideKinematic.checked = false;
+                        elCollideDynamic.checked = false;
+                        elCollideMyAvatar.checked = false;
+                        elCollideOtherAvatar.checked = false;
+
+                        elGrabbable.checked = false;
+                        elTriggerable.checked = false;
+                        elIgnoreIK.checked = false;
+
+                        elCloneable.checked = false;
+                        elCloneableDynamic.checked = false;
+                        elCloneableAvatarEntity.checked = false;
+                        elCloneableGroup.style.display = "none";
+                        elCloneableLimit.value = "";
+                        elCloneableLifetime.value = "";
+                                            
+                        showElements(document.getElementsByClassName('can-cast-shadow-section'), true);                                 
+                        elCanCastShadow.checked = false;
+                        
+                        elCollisionSoundURL.value = "";
+                        elLifetime.value = "";
+                        elScriptURL.value = "";
+                        elServerScripts.value = "";
+                        elHyperlinkHref.value = "";
+                        elDescription.value = "";
+                        
                         deleteJSONEditor();
+                        elUserData.value = "";
+                        showUserDataTextArea();
+                        showSaveUserDataButton();
+                        showNewJSONEditorButton();
+                        
+                        // Shape Properties
+                        elShape.value = "Cube";
+                        setDropdownText(elShape);
+                        
+                        // Light Properties
+                        elLightSpotLight.checked = false;
+                        elLightColor.style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+                        elLightColorRed.value = "";
+                        elLightColorGreen.value = "";
+                        elLightColorBlue.value = "";
+                        elLightIntensity.value = "";
+                        elLightFalloffRadius.value = "";
+                        elLightExponent.value = "";
+                        elLightCutoff.value = "";
+                        
+                        // Model Properties
+                        elModelURL.value = "";
+                        elCompoundShapeURL.value = "";
+                        elShapeType.value = "none";
+                        setDropdownText(elShapeType);
+                        elModelAnimationURL.value = ""
+                        elModelAnimationPlaying.checked = false;
+                        elModelAnimationFPS.value = "";
+                        elModelAnimationFrame.value = "";
+                        elModelAnimationFirstFrame.value = "";
+                        elModelAnimationLastFrame.value = "";
+                        elModelAnimationLoop.checked = false;
+                        elModelAnimationHold.checked = false;
+                        elModelAnimationAllowTranslation.checked = false;
+                        elModelTextures.value = "";
+                        elModelOriginalTextures.value = "";
+                                                
+                        // Zone Properties
+                        elZoneFlyingAllowed.checked = false;
+                        elZoneGhostingAllowed.checked = false;
+                        elZoneFilterURL.value = "";
+                        elZoneKeyLightColor.style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+                        elZoneKeyLightColorRed.value = "";
+                        elZoneKeyLightColorGreen.value = "";
+                        elZoneKeyLightColorBlue.value = "";
+                        elZoneKeyLightIntensity.value = "";
+                        elZoneKeyLightDirectionX.value = "";
+                        elZoneKeyLightDirectionY.value = "";
+                        elZoneKeyLightCastShadows.checked = false;
+                        elZoneAmbientLightIntensity.value = "";
+                        elZoneAmbientLightURL.value = "";
+                        elZoneHazeRange.value = "";
+                        elZoneHazeColor.style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+                        elZoneHazeColorRed.value = "";
+                        elZoneHazeColorGreen.value = "";
+                        elZoneHazeColorBlue.value = "";
+                        elZoneHazeBackgroundBlend.value = 0;
+                        elZoneHazeGlareColor.style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+                        elZoneHazeGlareColorRed.value = "";
+                        elZoneHazeGlareColorGreen.value = "";
+                        elZoneHazeGlareColorBlue.value = "";
+                        elZoneHazeEnableGlare.checked = false;
+                        elZoneHazeGlareAngle.value = "";
+                        elZoneHazeAltitudeEffect.checked = false;
+                        elZoneHazeBaseRef.value = "";
+                        elZoneHazeCeiling.value = "";
+                        elZoneSkyboxColor.style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+                        elZoneSkyboxColorRed.value = "";
+                        elZoneSkyboxColorGreen.value = "";
+                        elZoneSkyboxColorBlue.value = "";
+                        elZoneSkyboxURL.value = "";
+                        showElements(document.getElementsByClassName('keylight-section'), true);
+                        showElements(document.getElementsByClassName('skybox-section'), true);
+                        showElements(document.getElementsByClassName('ambient-section'), true);
+                        showElements(document.getElementsByClassName('haze-section'), true);
+                        
+                        // Text Properties
+                        elTextText.value = "";
+                        elTextLineHeight.value = "";
+                        elTextFaceCamera.checked = false;
+                        elTextTextColor.style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+                        elTextTextColorRed.value = "";
+                        elTextTextColorGreen.value = "";
+                        elTextTextColorBlue.value = "";
+                        elTextBackgroundColor.style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+                        elTextBackgroundColorRed.value = "";
+                        elTextBackgroundColorGreen.value = "";
+                        elTextBackgroundColorBlue.value = "";
+                                                
+                        // Image Properties
+                        elImageURL.value = "";
+                        
+                        // Web Properties
+                        elWebSourceURL.value = "";
+                        elWebDPI.value = "";
+                        
+                        // Material Properties
+                        elMaterialURL.value = "";
+                        elParentMaterialNameNumber.value = "";
+                        elParentMaterialNameCheckbox.checked = false;
+                        elPriority.value = "";
+                        elMaterialMappingPosX.value = "";
+                        elMaterialMappingPosY.value = "";
+                        elMaterialMappingScaleX.value = "";
+                        elMaterialMappingScaleY.value = "";
+                        elMaterialMappingRot.value = "";
+                        
+                        deleteJSONMaterialEditor();
+                        elMaterialData.value = "";
+                        showMaterialDataTextArea();
+                        showSaveMaterialDataButton();
+                        showNewJSONMaterialEditorButton();
+                        
+                        disableProperties();
+                    } else if (data.selections.length > 1) {
+                        deleteJSONEditor();
+                        deleteJSONMaterialEditor();
                         var selections = data.selections;
 
                         var ids = [];
@@ -815,8 +1152,13 @@ function loaded() {
                     } else {
 
                         properties = data.selections[0].properties;
-                        if (lastEntityID !== '"' + properties.id + '"' && lastEntityID !== null && editor !== null) {
-                            saveJSONUserData(true);
+                        if (lastEntityID !== '"' + properties.id + '"' && lastEntityID !== null) {
+                            if (editor !== null) {
+                                saveJSONUserData(true);
+                            }
+                            if (materialEditor !== null) {
+                                saveJSONMaterialData(true);
+                            }
                         }
 
                         var doSelectElement = lastEntityID === '"' + properties.id + '"';
@@ -901,15 +1243,16 @@ function loaded() {
 
                         elGrabbable.checked = properties.dynamic;
 
-                        elWantsTrigger.checked = false;
+                        elTriggerable.checked = false;
                         elIgnoreIK.checked = true;
 
-                        elCloneable.checked = false;
-                        elCloneableDynamic.checked = false;
+                        elCloneable.checked = properties.cloneable;
+                        elCloneableDynamic.checked = properties.cloneDynamic;
+                        elCloneableAvatarEntity.checked = properties.cloneAvatarEntity;
                         elCloneableGroup.style.display = elCloneable.checked ? "block": "none";
-                        elCloneableLimit.value = 0;
-                        elCloneableLifetime.value = 300;
-
+                        elCloneableLimit.value = properties.cloneLimit;
+                        elCloneableLifetime.value = properties.cloneLifetime;
+                        
                         var grabbablesSet = false;
                         var parsedUserData = {};
                         try {
@@ -923,36 +1266,17 @@ function loaded() {
                                 } else {
                                     elGrabbable.checked = true;
                                 }
-                                if ("wantsTrigger" in grabbableData) {
-                                    elWantsTrigger.checked = grabbableData.wantsTrigger;
+                                if ("triggerable" in grabbableData) {
+                                    elTriggerable.checked = grabbableData.triggerable;
+                                } else if ("wantsTrigger" in grabbableData) {
+                                    elTriggerable.checked = grabbableData.wantsTrigger;
                                 } else {
-                                    elWantsTrigger.checked = false;
+                                    elTriggerable.checked = false;
                                 }
                                 if ("ignoreIK" in grabbableData) {
                                     elIgnoreIK.checked = grabbableData.ignoreIK;
                                 } else {
                                     elIgnoreIK.checked = true;
-                                }
-                                if ("cloneable" in grabbableData) {
-                                    elCloneable.checked = grabbableData.cloneable;
-                                    elCloneableGroup.style.display = elCloneable.checked ? "block" : "none";
-                                    elCloneableDynamic.checked =
-                                        grabbableData.cloneDynamic ? grabbableData.cloneDynamic : properties.dynamic;
-                                    if (elCloneable.checked) {
-                                        if ("cloneLifetime" in grabbableData) {
-                                            elCloneableLifetime.value =
-                                                grabbableData.cloneLifetime ? grabbableData.cloneLifetime : 300;
-                                        }
-                                        if ("cloneLimit" in grabbableData) {
-                                            elCloneableLimit.value = grabbableData.cloneLimit ? grabbableData.cloneLimit : 0;
-                                        }
-                                        if ("cloneAvatarEntity" in grabbableData) {
-                                            elCloneableAvatarEntity.checked =
-                                                grabbableData.cloneAvatarEntity ? grabbableData.cloneAvatarEntity : false;
-                                        }
-                                    }
-                                } else {
-                                    elCloneable.checked = false;
                                 }
                             }
                         } catch (e) {
@@ -960,7 +1284,7 @@ function loaded() {
                         }
                         if (!grabbablesSet) {
                             elGrabbable.checked = true;
-                            elWantsTrigger.checked = false;
+                            elTriggerable.checked = false;
                             elIgnoreIK.checked = true;
                             elCloneable.checked = false;
                         }
@@ -991,6 +1315,28 @@ function loaded() {
                             showSaveUserDataButton();
                             hideUserDataTextArea();
                             hideNewJSONEditorButton();
+                        }
+
+                        var materialJson = null;
+                        try {
+                            materialJson = JSON.parse(properties.materialData);
+                        } catch (e) {
+                            // normal text
+                            deleteJSONMaterialEditor();
+                            elMaterialData.value = properties.materialData;
+                            showMaterialDataTextArea();
+                            showNewJSONMaterialEditorButton();
+                            hideSaveMaterialDataButton();
+                        }
+                        if (materialJson !== null) {
+                            if (materialEditor === null) {
+                                createJSONMaterialEditor();
+                            }
+
+                            setMaterialEditorJSON(materialJson);
+                            showSaveMaterialDataButton();
+                            hideMaterialDataTextArea();
+                            hideNewJSONMaterialEditorButton();
                         }
 
                         elHyperlinkHref.value = properties.href;
@@ -1046,10 +1392,14 @@ function loaded() {
                             elTextLineHeight.value = properties.lineHeight.toFixed(4);
                             elTextFaceCamera.checked = properties.faceCamera;
                             elTextTextColor.style.backgroundColor = "rgb(" + properties.textColor.red + "," + 
-                                                             properties.textColor.green + "," + properties.textColor.blue + ")";
+                                                                    properties.textColor.green + "," + 
+                                                                    properties.textColor.blue + ")";
                             elTextTextColorRed.value = properties.textColor.red;
                             elTextTextColorGreen.value = properties.textColor.green;
                             elTextTextColorBlue.value = properties.textColor.blue;
+                            elTextBackgroundColor.style.backgroundColor = "rgb(" + properties.backgroundColor.red + "," + 
+                                                                          properties.backgroundColor.green + "," + 
+                                                                          properties.backgroundColor.blue + ")";
                             elTextBackgroundColorRed.value = properties.backgroundColor.red;
                             elTextBackgroundColorGreen.value = properties.backgroundColor.green;
                             elTextBackgroundColorBlue.value = properties.backgroundColor.blue;
@@ -1122,13 +1472,12 @@ function loaded() {
                             elZoneHazeGlareColorBlue.value = properties.haze.hazeGlareColor.blue;
 
                             elZoneHazeEnableGlare.checked = properties.haze.hazeEnableGlare;
-                            elZonehazeGlareAngle.value = properties.haze.hazeGlareAngle.toFixed(0);
+                            elZoneHazeGlareAngle.value = properties.haze.hazeGlareAngle.toFixed(0);
 
                             elZoneHazeAltitudeEffect.checked = properties.haze.hazeAltitudeEffect;
                             elZoneHazeBaseRef.value = properties.haze.hazeBaseRef.toFixed(0);
                             elZoneHazeCeiling.value = properties.haze.hazeCeiling.toFixed(0);
 
-                            elZoneHazeBackgroundBlend.value = properties.haze.hazeBackgroundBlend.toFixed(2);
                             elShapeType.value = properties.shapeType;
                             elCompoundShapeURL.value = properties.compoundShapeURL;
 
@@ -1200,6 +1549,7 @@ function loaded() {
                         } else {
                             enableProperties();
                             elSaveUserData.disabled = true;
+                            elSaveMaterialData.disabled = true;
                         }
 
                         var activeElement = document.activeElement;
@@ -1301,48 +1651,15 @@ function loaded() {
             }
             userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData, true);
         });
-        elCloneableDynamic.addEventListener('change', function(event) {
-            userDataChanger("grabbableKey", "cloneDynamic", event.target, elUserData, -1);
-        });
+        
+        elCloneable.addEventListener('change', createEmitCheckedPropertyUpdateFunction('cloneable'));
+        elCloneableDynamic.addEventListener('change', createEmitCheckedPropertyUpdateFunction('cloneDynamic'));
+        elCloneableAvatarEntity.addEventListener('change', createEmitCheckedPropertyUpdateFunction('cloneAvatarEntity'));
+        elCloneableLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('cloneLifetime'));
+        elCloneableLimit.addEventListener('change', createEmitNumberPropertyUpdateFunction('cloneLimit'));
 
-        elCloneableAvatarEntity.addEventListener('change', function(event) {
-            userDataChanger("grabbableKey", "cloneAvatarEntity", event.target, elUserData, -1);
-        });
-
-        elCloneable.addEventListener('change', function (event) {
-            var checked = event.target.checked;
-            if (checked) {
-                multiDataUpdater("grabbableKey", {
-                    cloneLifetime: elCloneableLifetime,
-                    cloneLimit: elCloneableLimit,
-                    cloneDynamic: elCloneableDynamic,
-                    cloneAvatarEntity: elCloneableAvatarEntity,
-                    cloneable: event.target,
-                    grabbable: null
-                }, elUserData, {});
-                elCloneableGroup.style.display = "block";
-                updateProperty('dynamic', false);
-            } else {
-                multiDataUpdater("grabbableKey", {
-                    cloneLifetime: null,
-                    cloneLimit: null,
-                    cloneDynamic: null,
-                    cloneAvatarEntity: null,
-                    cloneable: false
-                }, elUserData, {});
-                elCloneableGroup.style.display = "none";
-            }
-        });
-
-        var numberListener = function (event) {
-            userDataChanger("grabbableKey", 
-                event.target.getAttribute("data-user-data-type"), parseInt(event.target.value), elUserData, false);
-        };
-        elCloneableLifetime.addEventListener('change', numberListener);
-        elCloneableLimit.addEventListener('change', numberListener);
-
-        elWantsTrigger.addEventListener('change', function() {
-            userDataChanger("grabbableKey", "wantsTrigger", elWantsTrigger, elUserData, false);
+        elTriggerable.addEventListener('change', function() {
+            userDataChanger("grabbableKey", "triggerable", elTriggerable, elUserData, false, ['wantsTrigger']);
         });
         elIgnoreIK.addEventListener('change', function() {
             userDataChanger("grabbableKey", "ignoreIK", elIgnoreIK, elUserData, true);
@@ -1356,7 +1673,7 @@ function loaded() {
         elServerScripts.addEventListener('change', createEmitTextPropertyUpdateFunction('serverScripts'));
         elServerScripts.addEventListener('change', function() {
             // invalidate the current status (so that same-same updates can still be observed visually)
-            elServerScriptStatus.innerText = '[' + elServerScriptStatus.innerText + ']';
+            elServerScriptStatus.innerText = PENDING_SCRIPT_STATUS;
         });
 
         elClearUserData.addEventListener("click", function() {
@@ -1382,6 +1699,31 @@ function loaded() {
             hideUserDataTextArea();
             hideNewJSONEditorButton();
             showSaveUserDataButton();
+        });
+
+        elClearMaterialData.addEventListener("click", function() {
+            deleteJSONMaterialEditor();
+            elMaterialData.value = "";
+            showMaterialDataTextArea();
+            showNewJSONMaterialEditorButton();
+            hideSaveMaterialDataButton();
+            updateProperty('materialData', elMaterialData.value);
+        });
+
+        elSaveMaterialData.addEventListener("click", function() {
+            saveJSONMaterialData(true);
+        });
+
+        elMaterialData.addEventListener('change', createEmitTextPropertyUpdateFunction('materialData'));
+
+        elNewJSONMaterialEditor.addEventListener('click', function() {
+            deleteJSONMaterialEditor();
+            createJSONMaterialEditor();
+            var data = {};
+            setMaterialEditorJSON(data);
+            hideMaterialDataTextArea();
+            hideNewJSONMaterialEditorButton();
+            showSaveMaterialDataButton();
         });
 
         var colorChangeFunction = createEmitColorPropertyUpdateFunction(
@@ -1717,7 +2059,7 @@ function loaded() {
 
         elZoneHazeEnableGlare.addEventListener('change', 
             createEmitGroupCheckedPropertyUpdateFunction('haze', 'hazeEnableGlare'));
-        elZonehazeGlareAngle.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeGlareAngle'));
+        elZoneHazeGlareAngle.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('haze', 'hazeGlareAngle'));
 
         elZoneHazeAltitudeEffect.addEventListener('change', 
             createEmitGroupCheckedPropertyUpdateFunction('haze', 'hazeAltitudeEffect'));
@@ -1805,7 +2147,7 @@ function loaded() {
         });
         elReloadServerScriptsButton.addEventListener("click", function() {
             // invalidate the current status (so that same-same updates can still be observed visually)
-            elServerScriptStatus.innerText = '[' + elServerScriptStatus.innerText + ']';
+            elServerScriptStatus.innerText = PENDING_SCRIPT_STATUS;
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "action",
                 action: "reloadServerScripts"
@@ -1972,8 +2314,6 @@ function loaded() {
     }
 
     augmentSpinButtons();
-
-    setUpKeyboardControl();
 
     // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked
     document.addEventListener("contextmenu", function(event) {

@@ -36,6 +36,30 @@ namespace scriptable {
     using ModelProviderPointer = std::shared_ptr<scriptable::ModelProvider>;
     using WeakModelProviderPointer = std::weak_ptr<scriptable::ModelProvider>;
 
+    /**jsdoc
+     * @typedef {object} Graphics.Material
+     * @property {string} name
+     * @property {string} model
+     * @property {number} opacity
+     * @property {number} roughness
+     * @property {number} metallic
+     * @property {number} scattering
+     * @property {boolean} unlit
+     * @propety {Vec3} emissive
+     * @propety {Vec3} albedo
+     * @property {string} emissiveMap
+     * @property {string} albedoMap
+     * @property {string} opacityMap
+     * @property {string} metallicMap
+     * @property {string} specularMap
+     * @property {string} roughnessMap
+     * @property {string} glossMap
+     * @property {string} normalMap
+     * @property {string} bumpMap
+     * @property {string} occlusionMap
+     * @property {string} lightmapMap
+     * @property {string} scatteringMap
+     */
     class ScriptableMaterial {
     public:
         ScriptableMaterial() {}
@@ -68,7 +92,7 @@ namespace scriptable {
 
     /**jsdoc
      * @typedef {object} Graphics.MaterialLayer
-     * @property {Material} material - This layer's material.
+     * @property {Graphics.Material} material - This layer's material.
      * @property {number} priority - The priority of this layer.  If multiple materials are applied to a mesh part, only the highest priority layer is used.
      */
     class ScriptableMaterialLayer {

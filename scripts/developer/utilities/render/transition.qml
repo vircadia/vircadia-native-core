@@ -11,6 +11,7 @@
 import QtQuick 2.7
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.3
+import QtQuick.Dialogs 1.0
 
 import "qrc:///qml/styles-uit"
 import "qrc:///qml/controls-uit" as HifiControls
@@ -22,10 +23,30 @@ Rectangle {
     id: root
     anchors.margins: hifi.dimensions.contentMargin.x
     
+    signal sendToScript(var message);
+
     color: hifi.colors.baseGray;
 
     property var config: Render.getConfig("RenderMainView.Fade");
     property var configEdit: Render.getConfig("RenderMainView.FadeEdit");
+
+    FileDialog {
+        id: fileDialog
+        title: "Please choose a file"
+        folder: shortcuts.documents
+        nameFilters: [ "JSON files (*.json)", "All files (*)" ]
+        onAccepted: {
+            root.sendToScript(title.split(" ")[0]+"*"+fileUrl.toString())
+            // This is a hack to be sure the widgets below properly reflect the change of category: delete the Component
+            // by setting the loader source to Null and then recreate it 500ms later
+            paramWidgetLoader.sourceComponent = undefined;
+            postpone.interval = 500
+            postpone.start()
+        }
+        onRejected: {
+        }
+        Component.onCompleted: visible = false
+    }
 
     ColumnLayout {
         spacing: 3
@@ -37,23 +58,14 @@ Rectangle {
         }
 
         RowLayout {
-            spacing: 20
+            spacing: 8
             Layout.fillWidth: true
             id: root_col
 
-            HifiControls.CheckBox {
-                anchors.verticalCenter: parent.verticalCenter
-                boxSize: 20
-                text: "Edit"
-                checked: root.configEdit["editFade"]
-                onCheckedChanged: {
-                    root.configEdit["editFade"] = checked;
-                    Render.getConfig("RenderMainView.DrawFadedOpaqueBounds").enabled = checked;
-                }
-            }
             HifiControls.ComboBox {
                 anchors.verticalCenter: parent.verticalCenter
-                Layout.fillWidth: true
+                anchors.left : parent.left
+                width: 300
                 id: categoryBox
                 model: ["Elements enter/leave domain", "Bubble isect. - Owner POV", "Bubble isect. - Trespasser POV", "Another user leaves/arrives", "Changing an avatar"]
                 Timer {
@@ -61,17 +73,48 @@ Rectangle {
                     interval: 100; running: false; repeat: false
                     onTriggered: { 
                         paramWidgetLoader.sourceComponent = paramWidgets
+                        var isTimeBased = categoryBox.currentIndex==0 || categoryBox.currentIndex==3
+                        paramWidgetLoader.item.isTimeBased = isTimeBased
                     }
                 }
                 onCurrentIndexChanged: {
+                    var descriptions = [
+                        "Time based threshold, gradients centered on object",
+                        "Fixed threshold, gradients centered on owner avatar",
+                        "Position based threshold (increases when trespasser moves closer to avatar), gradients centered on trespasser avatar",
+                        "Time based threshold, gradients centered on bottom of object",
+                        "UNSUPPORTED"
+                    ]
+
+                    description.text = descriptions[currentIndex]
                     root.config["editedCategory"] = currentIndex;
                     // This is a hack to be sure the widgets below properly reflect the change of category: delete the Component
                     // by setting the loader source to Null and then recreate it 100ms later
                     paramWidgetLoader.sourceComponent = undefined;
                     postpone.interval = 100
                     postpone.start()
+                    root.sendToScript("category*"+currentIndex)
                 }
             }
+            HifiControls.Button {
+                action: saveAction
+                Layout.fillWidth: true
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+            }
+            HifiControls.Button {
+                action: loadAction
+                Layout.fillWidth: true
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+            }
+        }
+
+        HifiControls.Label {
+            id: description
+            text: "..."
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap 
         }
 
         RowLayout {
@@ -104,19 +147,18 @@ Rectangle {
             id: saveAction
             text: "Save"
             onTriggered: {
-                root.config.save()
+                fileDialog.title = "Save configuration..."
+                fileDialog.selectExisting = false
+                fileDialog.open()
             }
         }
         Action {
             id: loadAction
             text: "Load"
             onTriggered: {
-                root.config.load()
-                // This is a hack to be sure the widgets below properly reflect the change of category: delete the Component
-                // by setting the loader source to Null and then recreate it 500ms later
-                paramWidgetLoader.sourceComponent = undefined;
-                postpone.interval = 500
-                postpone.start()
+                fileDialog.title = "Load configuration..."
+                fileDialog.selectExisting = true
+                fileDialog.open()
             }
         }
 
@@ -128,13 +170,8 @@ Rectangle {
             ColumnLayout {
                 spacing: 3
                 width: root_col.width
+                property bool isTimeBased
 
-                HifiControls.CheckBox {
-                    text: "Invert"
-                    boxSize: 20
-                    checked: root.config["isInverted"]
-                    onCheckedChanged: { root.config["isInverted"] = checked }
-                }
                 RowLayout {
                     Layout.fillWidth: true
 
@@ -196,16 +233,32 @@ Rectangle {
                     }
                 }
 
-
-                ConfigSlider {
+                RowLayout {
+                    spacing: 20
                     height: 36
-                    label: "Edge Width"
-                    integral: false
-                    config: root.config
-                    property: "edgeWidth"
-                    max: 1.0
-                    min: 0.0
+
+                    HifiControls.CheckBox {
+                        text: "Invert gradient"
+                        anchors.verticalCenter: parent.verticalCenter
+                        boxSize: 20
+                        checked: root.config["isInverted"]
+                        onCheckedChanged: { root.config["isInverted"] = checked }
+                    }
+                    ConfigSlider {
+                        anchors.left: undefined
+                        anchors.verticalCenter: parent.verticalCenter
+                        height: 36
+                        width: 300
+                        label: "Edge Width"
+                        integral: false
+                        config: root.config
+                        property: "edgeWidth"
+                        max: 1.0
+                        min: 0.0
+                    }
                 }
+
+
                 RowLayout {
                     Layout.fillWidth: true
 
@@ -278,6 +331,8 @@ Rectangle {
                             Layout.fillWidth: true
 
                             ConfigSlider {
+                                enabled: isTimeBased
+                                opacity: isTimeBased ? 1.0 : 0.0
                                 anchors.left: undefined
                                 anchors.right: undefined
                                 Layout.fillWidth: true
@@ -290,6 +345,8 @@ Rectangle {
                                 min: 0.1
                             }
                             HifiControls.ComboBox {
+                                enabled: isTimeBased
+                                opacity: isTimeBased ? 1.0 : 0.0
                                 Layout.fillWidth: true
                                 model: ["Linear", "Ease In", "Ease Out", "Ease In / Out"]
                                 currentIndex: root.config["timing"]
@@ -364,20 +421,6 @@ Rectangle {
             id: paramWidgetLoader
             sourceComponent: paramWidgets
         }
-
-        Row {
-            anchors.left: parent.left
-            anchors.right: parent.right 
-
-            Button {
-                action: saveAction
-            }
-            Button {
-                action: loadAction
-            }
-        }
-
-
         
     }
 }

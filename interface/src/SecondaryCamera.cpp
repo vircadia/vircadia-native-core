@@ -9,25 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "Application.h"
 #include "SecondaryCamera.h"
-#include <TextureCache.h>
-#include <gpu/Context.h>
-#include <EntityScriptingInterface.h>
+
+#include <RenderDeferredTask.h>
+#include <RenderForwardTask.h>
+
 #include <glm/gtx/transform.hpp>
+#include <gpu/Context.h>
+
+#include "Application.h"
 
 using RenderArgsPointer = std::shared_ptr<RenderArgs>;
-
-void MainRenderTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred) {    
-    task.addJob<RenderShadowTask>("RenderShadowTask", cullFunctor, render::ItemKey::TAG_BITS_1, render::ItemKey::TAG_BITS_1);
-    const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor, render::ItemKey::TAG_BITS_1, render::ItemKey::TAG_BITS_1);
-    assert(items.canCast<RenderFetchCullSortTask::Output>());
-    if (!isDeferred) {
-        task.addJob<RenderForwardTask>("Forward", items);
-    } else {
-        task.addJob<RenderDeferredTask>("RenderDeferredTask", items);
-    }
-}
 
 class SecondaryCameraJob {  // Changes renderContext for our framebuffer and view.
 public:
@@ -35,7 +27,6 @@ public:
     using JobModel = render::Job::ModelO<SecondaryCameraJob, RenderArgsPointer, Config>;
     SecondaryCameraJob() {
         _cachedArgsPointer = std::make_shared<RenderArgs>(_cachedArgs);
-        _entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
         _attachedEntityPropertyFlags += PROP_POSITION;
         _attachedEntityPropertyFlags += PROP_ROTATION;
     }
@@ -57,12 +48,16 @@ public:
             qWarning() << "ERROR: Cannot set mirror projection for SecondaryCamera without an attachedEntityId set.";
             return;
         }
-       
-        EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_attachedEntityId, 
-                                                                                               _attachedEntityPropertyFlags);
-        glm::vec3 mirrorPropertiesPosition = entityProperties.getPosition();
-        glm::quat mirrorPropertiesRotation = entityProperties.getRotation();
-        glm::vec3 mirrorPropertiesDimensions = entityProperties.getDimensions();
+        EntityItemPointer attachedEntity = qApp->getEntities()->getTree()->findEntityByID(_attachedEntityId);
+
+        if (!attachedEntity) {
+            qWarning() << "ERROR: Cannot get EntityItemPointer for _attachedEntityId.";
+            return;
+        }
+
+        glm::vec3 mirrorPropertiesPosition = attachedEntity->getWorldPosition();
+        glm::quat mirrorPropertiesRotation = attachedEntity->getWorldOrientation();
+        glm::vec3 mirrorPropertiesDimensions = attachedEntity->getScaledDimensions();
         glm::vec3 halfMirrorPropertiesDimensions = 0.5f * mirrorPropertiesDimensions;
 
         // setup mirror from world as inverse of world from mirror transformation using inverted x and z for mirrored image
@@ -117,10 +112,13 @@ public:
                 setMirrorProjection(srcViewFrustum);
             } else {
                 if (!_attachedEntityId.isNull()) {
-                    EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_attachedEntityId, 
-                                                            _attachedEntityPropertyFlags);
-                    srcViewFrustum.setPosition(entityProperties.getPosition());
-                    srcViewFrustum.setOrientation(entityProperties.getRotation());
+                    EntityItemPointer attachedEntity = qApp->getEntities()->getTree()->findEntityByID(_attachedEntityId);
+                    if (!attachedEntity) {
+                        qWarning() << "ERROR: Cannot get EntityItemPointer for _attachedEntityId.";
+                        return;
+                    }
+                    srcViewFrustum.setPosition(attachedEntity->getWorldPosition());
+                    srcViewFrustum.setOrientation(attachedEntity->getWorldOrientation());
                 } else {
                     srcViewFrustum.setPosition(_position);
                     srcViewFrustum.setOrientation(_orientation);
@@ -152,7 +150,6 @@ private:
     int _textureHeight;
     bool _mirrorProjection;
     EntityPropertyFlags _attachedEntityPropertyFlags;
-    QSharedPointer<EntityScriptingInterface> _entityScriptingInterface;
 };
 
 void SecondaryCameraJobConfig::setPosition(glm::vec3 pos) {
@@ -207,10 +204,12 @@ void SecondaryCameraRenderTask::build(JobModel& task, const render::Varying& inp
     const auto cachedArg = task.addJob<SecondaryCameraJob>("SecondaryCamera");
     const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor, render::ItemKey::TAG_BITS_1, render::ItemKey::TAG_BITS_1);
     assert(items.canCast<RenderFetchCullSortTask::Output>());
-    if (!isDeferred) {
-        task.addJob<RenderForwardTask>("Forward", items);
+    if (isDeferred) {
+        const render::Varying cascadeSceneBBoxes;
+        const auto renderInput = RenderDeferredTask::Input(items, cascadeSceneBBoxes).asVarying();
+        task.addJob<RenderDeferredTask>("RenderDeferredTask", renderInput, false);
     } else {
-        task.addJob<RenderDeferredTask>("RenderDeferredTask", items);
+        task.addJob<RenderForwardTask>("Forward", items);
     }
     task.addJob<EndSecondaryCameraFrame>("EndSecondaryCamera", cachedArg);
 }

@@ -160,8 +160,8 @@ public:
     float manualThreshold{ 0.f };
     bool manualFade{ false };
 
-    Q_INVOKABLE void save() const;
-    Q_INVOKABLE void load();
+    Q_INVOKABLE void save(const QString& filePath) const;
+    Q_INVOKABLE void load(const QString& filePath);
 
     static QString eventNames[FADE_CATEGORY_COUNT];
 
@@ -190,7 +190,6 @@ private:
     bool _isEditEnabled{ false };
     render::ItemID _editedItem{ render::Item::INVALID_ITEM_ID };
 
-    render::ItemID findNearestItem(const render::RenderContextPointer& renderContext, const render::ItemBounds& inputs, float& minIsectDistance) const;
 };
 
 class FadeJob {

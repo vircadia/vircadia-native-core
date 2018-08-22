@@ -49,7 +49,7 @@ public:
     DomainServerSettingsManager();
     bool handleAuthenticatedHTTPRequest(HTTPConnection* connection, const QUrl& url);
 
-    void setupConfigMap(const QStringList& argumentList);
+    void setupConfigMap(const QString& userConfigFilename);
 
     // each of the three methods in this group takes a read lock of _settingsLock
     // and cannot be called when the a write lock is held by the same thread
@@ -133,10 +133,10 @@ signals:
     void settingsUpdated();
 
 public slots:
-    void apiGetGroupIDJSONCallback(QNetworkReply& requestReply);
-    void apiGetGroupIDErrorCallback(QNetworkReply& requestReply);
-    void apiGetGroupRanksJSONCallback(QNetworkReply& requestReply);
-    void apiGetGroupRanksErrorCallback(QNetworkReply& requestReply);
+    void apiGetGroupIDJSONCallback(QNetworkReply* requestReply);
+    void apiGetGroupIDErrorCallback(QNetworkReply* requestReply);
+    void apiGetGroupRanksJSONCallback(QNetworkReply* requestReply);
+    void apiGetGroupRanksErrorCallback(QNetworkReply* requestReply);
 
 private slots:
     void processSettingsRequestPacket(QSharedPointer<ReceivedMessage> message);
@@ -144,8 +144,6 @@ private slots:
     void processUsernameFromIDRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
 
 private:
-    QStringList _argumentList;
-
     QJsonArray filteredDescriptionArray(bool isContentSettings);
     void updateSetting(const QString& key, const QJsonValue& newValue, QVariantMap& settingMap,
                        const QJsonObject& settingDescription);

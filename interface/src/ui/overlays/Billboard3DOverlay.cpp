@@ -46,6 +46,13 @@ bool Billboard3DOverlay::applyTransformTo(Transform& transform, bool force) {
     return transformChanged;
 }
 
+void Billboard3DOverlay::update(float duration) {
+    if (isFacingAvatar()) {
+        _renderVariableDirty = true;
+    }
+    Parent::update(duration);
+}
+
 Transform Billboard3DOverlay::evalRenderTransform() {
     Transform transform = getTransform();
     bool transformChanged = applyTransformTo(transform, true);

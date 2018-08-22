@@ -59,7 +59,7 @@ private:
     typedef gpu::BufferView UniformBufferView;
     gpu::BufferView _parametersBuffer;
 
-    void init();
+    void init(RenderArgs* args);
 };
 
 class ToneMappingConfig : public render::Job::Config {

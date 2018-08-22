@@ -9,21 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "CommerceLogging.h"
-#include "Ledger.h"
 #include "Wallet.h"
-#include "Application.h"
-#include "ui/ImageProvider.h"
-#include "scripting/HMDScriptingInterface.h"
-
-#include <PathUtils.h>
-#include <OffscreenUi.h>
-#include <AccountManager.h>
-
-#include <QFile>
-#include <QCryptographicHash>
-#include <QQmlContext>
-#include <QBuffer>
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -32,13 +18,28 @@
 #include <openssl/evp.h>
 #include <openssl/aes.h>
 #include <openssl/ecdsa.h>
-
 // I know, right?  But per https://www.openssl.org/docs/faq.html
 // this avoids OPENSSL_Uplink(00007FF847238000,08): no OPENSSL_Applink
 // at runtime.
 #ifdef Q_OS_WIN
 #include <openssl/applink.c>
 #endif
+
+#include <QFile>
+#include <QCryptographicHash>
+#include <QQmlContext>
+#include <QBuffer>
+
+#include <PathUtils.h>
+#include <OffscreenUi.h>
+#include <AccountManager.h>
+#include <ui/TabletScriptingInterface.h>
+
+#include "Application.h"
+#include "CommerceLogging.h"
+#include "Ledger.h"
+#include "ui/SecurityImageProvider.h"
+#include "scripting/HMDScriptingInterface.h"
 
 static const char* KEY_FILE = "hifikey";
 static const char* INSTRUCTIONS_FILE = "backup_instructions.html";
@@ -126,31 +127,40 @@ EC_KEY* readKeys(const char* filename) {
 bool Wallet::writeBackupInstructions() {
     QString inputFilename(PathUtils::resourcesPath() + "html/commerce/backup_instructions.html");
     QString outputFilename = PathUtils::getAppDataFilePath(INSTRUCTIONS_FILE);
+    QFile inputFile(inputFilename);
     QFile outputFile(outputFilename);
     bool retval = false;
 
-    if (QFile::exists(outputFilename) || getKeyFilePath() == "")
+    if (getKeyFilePath() == "")
     {
         return false;
     }
-    QFile::copy(inputFilename, outputFilename);
 
-    if (QFile::exists(outputFilename) && outputFile.open(QIODevice::ReadWrite)) {
+    if (QFile::exists(inputFilename) && inputFile.open(QIODevice::ReadOnly)) {
+        if (outputFile.open(QIODevice::ReadWrite)) {
+            // Read the data from the original file, then close it
+            QByteArray fileData = inputFile.readAll();
+            inputFile.close();
 
-        QByteArray fileData = outputFile.readAll();
-        QString text(fileData);
+            // Translate the data from the original file into a QString
+            QString text(fileData);
 
-        text.replace(QString("HIFIKEY_PATH_REPLACEME"), keyFilePath());
+            // Replace the necessary string
+            text.replace(QString("HIFIKEY_PATH_REPLACEME"), keyFilePath());
 
-        outputFile.seek(0); // go to the beginning of the file
-        outputFile.write(text.toUtf8()); // write the new text back to the file
+            // Write the new text back to the file
+            outputFile.write(text.toUtf8());
 
-        outputFile.close(); // close the file handle.
+            // Close the output file
+            outputFile.close();  
 
-        retval = true;
-        qCDebug(commerce) << "wrote html file successfully";
+            retval = true;
+            qCDebug(commerce) << "wrote html file successfully";
+        } else {
+            qCDebug(commerce) << "failed to open output html file" << outputFilename;
+        }
     } else {
-        qCDebug(commerce) << "failed to open output html file" << outputFilename;
+        qCDebug(commerce) << "failed to open input html file" << inputFilename;
     }
     return retval;
 }
@@ -313,11 +323,12 @@ Wallet::Wallet() {
     auto nodeList = DependencyManager::get<NodeList>();
     auto ledger = DependencyManager::get<Ledger>();
     auto& packetReceiver = nodeList->getPacketReceiver();
+    _passphrase = new QString("");
 
     packetReceiver.registerListener(PacketType::ChallengeOwnership, this, "handleChallengeOwnershipPacket");
     packetReceiver.registerListener(PacketType::ChallengeOwnershipRequest, this, "handleChallengeOwnershipPacket");
 
-    connect(ledger.data(), &Ledger::accountResult, this, [&](QJsonObject result) {
+    connect(ledger.data(), &Ledger::accountResult, this, [](QJsonObject result) {
         auto wallet = DependencyManager::get<Wallet>();
         auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
         uint status;
@@ -363,6 +374,10 @@ void Wallet::clear() {
 Wallet::~Wallet() {
     if (_securityImage) {
         delete _securityImage;
+    }
+
+    if (_passphrase) {
+        delete _passphrase;
     }
 }
 
@@ -530,7 +545,6 @@ bool Wallet::walletIsAuthenticatedWithPassphrase() {
 
             // be sure to add the public key so we don't do this over and over
             _publicKeys.push_back(publicKey.toBase64());
-            DependencyManager::get<WalletScriptingInterface>()->setWalletStatus((uint)WalletStatus::WALLET_STATUS_READY);
             return true;
         }
     }
@@ -566,7 +580,6 @@ bool Wallet::generateKeyPair() {
 }
 
 QStringList Wallet::listPublicKeys() {
-    qCInfo(commerce) << "Enumerating public keys.";
     return _publicKeys;
 }
 
@@ -607,11 +620,27 @@ QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
 }
 
 void Wallet::updateImageProvider() {
-    // inform the image provider.  Note it doesn't matter which one you inform, as the
-    // images are statics
-    auto engine = DependencyManager::get<OffscreenUi>()->getSurfaceContext()->engine();
-    auto imageProvider = reinterpret_cast<ImageProvider*>(engine->imageProvider(ImageProvider::PROVIDER_NAME));
-    imageProvider->setSecurityImage(_securityImage);
+    SecurityImageProvider* securityImageProvider;
+
+    // inform offscreenUI security image provider
+    auto offscreenUI = DependencyManager::get<OffscreenUi>();
+    if (!offscreenUI) {
+        return;
+    }
+    QQmlEngine* engine = offscreenUI->getSurfaceContext()->engine();
+    securityImageProvider = reinterpret_cast<SecurityImageProvider*>(engine->imageProvider(SecurityImageProvider::PROVIDER_NAME));
+    securityImageProvider->setSecurityImage(_securityImage);
+
+    // inform tablet security image provider
+    TabletProxy* tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
+    if (tablet) {
+        OffscreenQmlSurface* tabletSurface = tablet->getTabletSurface();
+        if (tabletSurface) {
+            QQmlEngine* tabletEngine = tabletSurface->getSurfaceContext()->engine();
+            securityImageProvider = reinterpret_cast<SecurityImageProvider*>(tabletEngine->imageProvider(SecurityImageProvider::PROVIDER_NAME));
+            securityImageProvider->setSecurityImage(_securityImage);
+        }
+    }
 }
 
 void Wallet::chooseSecurityImage(const QString& filename) {
@@ -651,6 +680,7 @@ bool Wallet::getSecurityImage() {
 
     // if already decrypted, don't do it again
     if (_securityImage) {
+        updateImageProvider();
         emit securityImageResult(true);
         return true;
     }

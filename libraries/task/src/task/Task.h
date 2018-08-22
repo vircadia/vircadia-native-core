@@ -15,20 +15,15 @@
 #include "Config.h"
 #include "Varying.h"
 
-#include "SettingHandle.h"
-
-#include <Profile.h>
-#include <PerfStat.h>
-
 namespace task {
 
 class JobConcept;
-template <class JC> class JobT;
-template <class JC> class TaskT;
+template <class JC, class TP> class JobT;
+template <class JC, class TP> class TaskT;
 class JobNoIO {};
 
 // Task Flow control class is a simple per value object used to communicate flow control commands trhough the graph of tasks.
-// From within the Job::Run function, you can access it from the JobCOntext and  issue commands which   will be picked up by the Task calling for the Job run.
+// From within the Job::Run function, you can access it from the JobContext and  issue commands which   will be picked up by the Task calling for the Job run.
 // This is first introduced to provide a way to abort all the work from within a task job. see the "abortTask" call
 class TaskFlow {
 public:
@@ -47,7 +42,7 @@ protected:
     bool _doAbortTask{ false };
 };
 
-// JobContext class is the base calss for the context object which is passed through all the Job::run calls thoughout the graph of jobs
+// JobContext class is the base class for the context object which is passed through all the Job::run calls thoughout the graph of jobs
 // It is used to communicate to the job::run its context and various state information the job relies on.
 // It specifically provide access to:
 // - The taskFlow object allowing for messaging control flow commands from within a Job::run
@@ -55,11 +50,10 @@ protected:
 // The JobContext can be derived to add more global state to it that Jobs can access
 class JobContext {
 public:
-    JobContext(const QLoggingCategory& category);
+    JobContext();
     virtual ~JobContext();
 
     std::shared_ptr<JobConfig> jobConfig { nullptr };
-    const QLoggingCategory& profileCategory;
 
     // Task flow control
     TaskFlow taskFlow{};
@@ -73,19 +67,22 @@ class JobConcept {
 public:
     using Config = JobConfig;
 
-    JobConcept(QConfigPointer config) : _config(config) {}
+    JobConcept(const std::string& name, QConfigPointer config) : _config(config), _name(name) {}
     virtual ~JobConcept() = default;
+    
+    const std::string& getName() const { return _name; }
 
     virtual const Varying getInput() const { return Varying(); }
     virtual const Varying getOutput() const { return Varying(); }
+    virtual Varying& editInput() = 0;
 
     virtual QConfigPointer& getConfiguration() { return _config; }
     virtual void applyConfiguration() = 0;
-
-    void setCPURunTime(double mstime) { std::static_pointer_cast<Config>(_config)->setCPURunTime(mstime); }
+    void setCPURunTime(const std::chrono::nanoseconds& runtime) { std::static_pointer_cast<Config>(_config)->setCPURunTime(runtime); }
 
     QConfigPointer _config;
 protected:
+    const std::string _name;
 };
 
 
@@ -112,17 +109,18 @@ template <class T, class JC, class I, class O> void jobRun(T& data, const JC& jo
     data.run(jobContext, input, output);
 }
 
-template <class JC>
+template <class JC, class TP>
 class Job {
 public:
     using Context = JC;
+    using TimeProfiler = TP;
     using ContextPointer = std::shared_ptr<Context>;
     using Config = JobConfig;
     using None = JobNoIO;
 
     class Concept : public JobConcept {
     public:
-        Concept(QConfigPointer config) : JobConcept(config) {}
+        Concept(const std::string& name, QConfigPointer config) : JobConcept(name, config) {}
         virtual ~Concept() = default;
 
         virtual void run(const ContextPointer& jobContext) = 0;
@@ -141,10 +139,11 @@ public:
 
         const Varying getInput() const override { return _input; }
         const Varying getOutput() const override { return _output; }
+        Varying& editInput() override { return _input; }
 
         template <class... A>
-        Model(const Varying& input, QConfigPointer config, A&&... args) :
-            Concept(config),
+        Model(const std::string& name, const Varying& input, QConfigPointer config, A&&... args) :
+            Concept(name, config),
             _data(Data(std::forward<A>(args)...)),
             _input(input),
             _output(Output()) {
@@ -152,12 +151,14 @@ public:
         }
 
         template <class... A>
-        static std::shared_ptr<Model> create(const Varying& input, A&&... args) {
-            return std::make_shared<Model>(input, std::make_shared<C>(), std::forward<A>(args)...);
+        static std::shared_ptr<Model> create(const std::string& name, const Varying& input, A&&... args) {
+            return std::make_shared<Model>(name, input, std::make_shared<C>(), std::forward<A>(args)...);
         }
 
 
         void applyConfiguration() override {
+            TimeProfiler probe(("configure::" + JobConcept::getName()));
+
             jobConfigure(_data, *std::static_pointer_cast<C>(Concept::_config));
         }
 
@@ -173,12 +174,17 @@ public:
     template <class T, class O, class C = Config> using ModelO = Model<T, C, None, O>;
     template <class T, class I, class O, class C = Config> using ModelIO = Model<T, C, I, O>;
 
-    Job(std::string name, ConceptPointer concept) : _concept(concept), _name(name) {}
+    Job(ConceptPointer concept) : _concept(concept) {}
 
+    const std::string& getName() const { return _concept->getName(); }
     const Varying getInput() const { return _concept->getInput(); }
     const Varying getOutput() const { return _concept->getOutput(); }
+
     QConfigPointer& getConfiguration() const { return _concept->getConfiguration(); }
     void applyConfiguration() { return _concept->applyConfiguration(); }
+
+    template <class I> void feedInput(const I& in) { _concept->editInput().template edit<I>() = in; }
+    template <class I, class S> void feedInput(int index, const S& inS) { (_concept->editInput().template editN<I>(index)).template edit<S>() = inS; }
 
     template <class T> T& edit() {
         auto concept = std::static_pointer_cast<typename T::JobModel>(_concept);
@@ -193,21 +199,14 @@ public:
     }
 
     virtual void run(const ContextPointer& jobContext) {
-        PerformanceTimer perfTimer(_name.c_str());
-        // NOTE: rather than use the PROFILE_RANGE macro, we create a Duration manually
-        Duration profileRange(jobContext->profileCategory, _name.c_str());
-        auto start = usecTimestampNow();
-
+        TimeProfiler probe(getName());
+        auto startTime = std::chrono::high_resolution_clock::now();
         _concept->run(jobContext);
-
-        _concept->setCPURunTime((double)(usecTimestampNow() - start) / 1000.0);
+        _concept->setCPURunTime((std::chrono::high_resolution_clock::now() - startTime));
     }
-
-    const std::string& getName() const { return _name; }
 
 protected:
     ConceptPointer _concept;
-    std::string _name = "";
 };
 
 
@@ -218,19 +217,20 @@ protected:
 // The build method is where child Jobs can be added internally to the task
 // where the input of the task can be setup to feed the child jobs
 // and where the output of the task is defined
-template <class JC>
-class Task : public Job<JC> {
+template <class JC, class TP>
+class Task : public Job<JC, TP> {
 public:
     using Context = JC;
+    using TimeProfiler = TP;
     using ContextPointer = std::shared_ptr<Context>;
     using Config = TaskConfig;
-    using JobType = Job<JC>;
+    using JobType = Job<JC, TP>;
     using None = typename JobType::None;
     using Concept = typename JobType::Concept;
     using ConceptPointer = typename JobType::ConceptPointer;
     using Jobs = std::vector<JobType>;
 
-    Task(std::string name, ConceptPointer concept) : JobType(name, concept) {}
+    Task(ConceptPointer concept) : JobType(concept) {}
 
     class TaskConcept : public Concept {
     public:
@@ -240,6 +240,8 @@ public:
 
         const Varying getInput() const override { return _input; }
         const Varying getOutput() const override { return _output; }
+        Varying& editInput() override { return _input; }
+
         typename Jobs::iterator editJob(std::string name) {
             typename Jobs::iterator jobIt;
             for (jobIt = _jobs.begin(); jobIt != _jobs.end(); ++jobIt) {
@@ -259,11 +261,11 @@ public:
             return jobIt;
         }
 
-        TaskConcept(const Varying& input, QConfigPointer config) : Concept(config), _input(input) {}
+        TaskConcept(const std::string& name, const Varying& input, QConfigPointer config) : Concept(name, config), _input(input) {}
 
         // Create a new job in the container's queue; returns the job's output
         template <class NT, class... NA> const Varying addJob(std::string name, const Varying& input, NA&&... args) {
-            _jobs.emplace_back(name, (NT::JobModel::create(input, std::forward<NA>(args)...)));
+            _jobs.emplace_back((NT::JobModel::create(name, input, std::forward<NA>(args)...)));
 
             // Conect the child config to this task's config
             std::static_pointer_cast<TaskConfig>(Concept::getConfiguration())->connectChildConfig(_jobs.back().getConfiguration(), name);
@@ -284,16 +286,18 @@ public:
 
         Data _data;
 
-        TaskModel(const Varying& input, QConfigPointer config) :
-            TaskConcept(input, config),
+        TaskModel(const std::string& name, const Varying& input, QConfigPointer config) :
+            TaskConcept(name, input, config),
             _data(Data()) {}
 
         template <class... A>
-        static std::shared_ptr<TaskModel> create(const Varying& input, A&&... args) {
-            auto model = std::make_shared<TaskModel>(input, std::make_shared<C>());
+        static std::shared_ptr<TaskModel> create(const std::string& name, const Varying& input, A&&... args) {
+            auto model = std::make_shared<TaskModel>(name, input, std::make_shared<C>());
 
-            model->_data.build(*(model), model->_input, model->_output, std::forward<A>(args)...);
-
+            {
+                TimeProfiler probe("build::" + model->getName());
+                model->_data.build(*(model), model->_input, model->_output, std::forward<A>(args)...);
+            }
             // Recreate the Config to use the templated type
             model->createConfiguration();
             model->applyConfiguration();
@@ -302,9 +306,9 @@ public:
         }
 
         template <class... A>
-        static std::shared_ptr<TaskModel> create(A&&... args) {
+        static std::shared_ptr<TaskModel> create(const std::string& name, A&&... args) {
             const auto input = Varying(Input());
-            return create(input, std::forward<A>(args)...);
+            return create(name, input, std::forward<A>(args)...);
         }
 
         void createConfiguration() {
@@ -326,6 +330,7 @@ public:
         }
 
         void applyConfiguration() override {
+            TimeProfiler probe("configure::" + JobConcept::getName());
             jobConfigure(_data, *std::static_pointer_cast<C>(Concept::_config));
             for (auto& job : TaskConcept::_jobs) {
                 job.applyConfiguration();
@@ -365,15 +370,45 @@ public:
 
 protected:
 };
+
+template <class JC, class TP>
+class Engine : public Task<JC, TP> {
+public:
+    using Context = JC;
+    using ContextPointer = std::shared_ptr<Context>;
+    using Config = TaskConfig;
+
+    using TaskType = Task<JC, TP>;
+    using ConceptPointer = typename TaskType::ConceptPointer;
+
+    Engine(const ConceptPointer& concept, const ContextPointer& context) : TaskType(concept), _context(context) {}
+    ~Engine() = default;
+
+    void reset(const ContextPointer& context) { _context = context; }
+
+    void run() {
+        if (_context) {
+            run(_context);
+        }
+    }
+
+protected:
+    void run(const ContextPointer& jobContext) override {
+        TaskType::run(_context);
+    }
+
+    ContextPointer _context;
+};
+
 }
 
-
-#define Task_DeclareTypeAliases(ContextType) \
+#define Task_DeclareTypeAliases(ContextType, TimeProfiler) \
     using JobConfig = task::JobConfig; \
     using TaskConfig = task::TaskConfig; \
     template <class T> using PersistentConfig = task::PersistentConfig<T>; \
-    using Job = task::Job<ContextType>; \
-    using Task = task::Task<ContextType>; \
+    using Job = task::Job<ContextType, TimeProfiler>; \
+    using Task = task::Task<ContextType, TimeProfiler>; \
+    using Engine = task::Engine<ContextType, TimeProfiler>; \
     using Varying = task::Varying; \
     template < typename T0, typename T1 > using VaryingSet2 = task::VaryingSet2<T0, T1>; \
     template < typename T0, typename T1, typename T2 > using VaryingSet3 = task::VaryingSet3<T0, T1, T2>; \
@@ -383,5 +418,17 @@ protected:
     template < typename T0, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6 > using VaryingSet7 = task::VaryingSet7<T0, T1, T2, T3, T4, T5, T6>; \
     template < typename T0, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7 > using VaryingSet8 = task::VaryingSet8<T0, T1, T2, T3, T4, T5, T6, T7>; \
     template < class T, int NUM > using VaryingArray = task::VaryingArray<T, NUM>;
+
+
+
+#include <Profile.h>
+#include <PerfStat.h>
+
+#define Task_DeclareCategoryTimeProfilerClass(className, category) \
+    class className : public PerformanceTimer { \
+    public: \
+        className(const std::string& label) : PerformanceTimer(label.c_str()), profileRange(category(), label.c_str()) {} \
+        Duration profileRange; \
+    };
 
 #endif // hifi_task_Task_h

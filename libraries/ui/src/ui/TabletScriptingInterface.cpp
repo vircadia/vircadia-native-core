@@ -334,6 +334,8 @@ static const char* VRMENU_SOURCE_URL = "hifi/tablet/TabletMenu.qml";
 
 class TabletRootWindow : public QmlWindowClass {
     virtual QString qmlSource() const override { return "hifi/tablet/WindowRoot.qml"; }
+public:
+    TabletRootWindow() : QmlWindowClass(false) {}
 };
 
 TabletProxy::TabletProxy(QObject* parent, const QString& name) : QObject(parent), _name(name) {
@@ -387,6 +389,8 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
             offscreenUi->hide("RunningScripts");
             _showRunningScripts = true;
         }
+
+        offscreenUi->hideDesktopWindows();
         // destroy desktop window
         if (_desktopWindow) {
             _desktopWindow->deleteLater();
@@ -429,6 +433,19 @@ bool TabletProxy::isMessageDialogOpen() {
     return result.toBool();
 }
 
+void TabletProxy::closeDialog() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "closeDialog");
+        return;
+    }
+
+    if (!_qmlTabletRoot) {
+        return;
+    }
+
+    QMetaObject::invokeMethod(_qmlTabletRoot, "closeDialog");
+}
+
 void TabletProxy::emitWebEvent(const QVariant& msg) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "emitWebEvent", Q_ARG(QVariant, msg));
@@ -439,7 +456,11 @@ void TabletProxy::emitWebEvent(const QVariant& msg) {
 
 void TabletProxy::onTabletShown() {
     if (_tabletShown) {
-        static_cast<TabletScriptingInterface*>(parent())->playSound(TabletScriptingInterface::TabletOpen);
+        Setting::Handle<bool> notificationSounds{ QStringLiteral("play_notification_sounds"), true};
+        Setting::Handle<bool> notificationSoundTablet{ QStringLiteral("play_notification_sounds_tablet"), true};
+        if (notificationSounds.get() && notificationSoundTablet.get()) {
+            dynamic_cast<TabletScriptingInterface*>(parent())->playSound(TabletScriptingInterface::TabletOpen);
+        }
         if (_showRunningScripts) {
             _showRunningScripts = false;
             pushOntoStack("hifi/dialogs/TabletRunningScripts.qml");
@@ -629,6 +650,26 @@ void TabletProxy::loadQMLSource(const QVariant& path, bool resizable) {
     }
 }
 
+void TabletProxy::stopQMLSource() {
+    // For desktop toolbar mode dialogs.
+    if (!_toolbarMode || !_desktopWindow) {
+        qCDebug(uiLogging) << "tablet cannot clear QML because not desktop toolbar mode";
+        return;
+    }
+
+    auto root = _desktopWindow->asQuickItem();
+    if (root) {
+        QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, ""));
+        if (!_currentPathLoaded.toString().isEmpty()) {
+            emit screenChanged(QVariant("QML"), "");
+        }
+        _currentPathLoaded = "";
+        _state = State::Home;
+    } else {
+        qCDebug(uiLogging) << "tablet cannot clear QML because _desktopWindow is null";
+    }
+}
+
 bool TabletProxy::pushOntoStack(const QVariant& path) {
     if (QThread::currentThread() != thread()) {
         bool result = false;
@@ -700,6 +741,7 @@ void TabletProxy::loadHomeScreen(bool forceOntoHomeScreen) {
             // close desktop window
             if (_desktopWindow->asQuickItem()) {
                 QMetaObject::invokeMethod(_desktopWindow->asQuickItem(), "setShown", Q_ARG(const QVariant&, QVariant(false)));
+                stopQMLSource();  // Stop the currently loaded QML running.
             }
         }
         _state = State::Home;

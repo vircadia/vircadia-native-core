@@ -2,6 +2,9 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
+//  DrawTexcoordRectTransformUnitQuad.vert
+
+//
 //  Draw and transform the unit quad [-1,-1 -> 1,1]
 //  Transform the normalized texcoords [0, 1] to be in the range [texcoordRect.xy, texcoordRect.xy + texcoordRect.zw]
 //  Simply draw a Triangle_strip of 2 triangles, no input buffers or index buffer needed
@@ -14,12 +17,13 @@
 //
 
 <@include gpu/Transform.slh@>
+<@include gpu/ShaderConstants.h@>
 
 <$declareStandardTransform()$>
 
-uniform vec4 texcoordRect;
+layout(location=GPU_UNIFORM_TEXCOORD_RECT) uniform vec4 texcoordRect;
 
-out vec2 varTexCoord0;
+layout(location=0) out vec2 varTexCoord0;
 
 void main(void) {
     const vec4 UNIT_QUAD[4] = vec4[4](

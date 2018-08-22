@@ -23,6 +23,7 @@
 #include <Trace.h>
 #include "NodeType.h"
 
+const NetworkPeer::LocalID NetworkPeer::NULL_LOCAL_ID;
 
 NetworkPeer::NetworkPeer(QObject* parent) :
     QObject(parent),

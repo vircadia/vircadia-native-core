@@ -13,6 +13,7 @@
 
 #include <openssl/x509.h>
 
+#include <QtCore/QDataStream>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QTimer>
 #include <QtNetwork/QNetworkReply>

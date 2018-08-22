@@ -6,10 +6,11 @@
 //  Copyright 2016 High Fidelity, Inc.
 //
 
+#include "AudioLimiter.h"
+
 #include <assert.h>
 
 #include "AudioDynamics.h"
-#include "AudioLimiter.h"
 
 //
 // Limiter (common)

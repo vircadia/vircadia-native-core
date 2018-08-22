@@ -43,7 +43,7 @@ ReceivedMessage::ReceivedMessage(NLPacket& packet)
 }
 
 ReceivedMessage::ReceivedMessage(QByteArray byteArray, PacketType packetType, PacketVersion packetVersion,
-                const HifiSockAddr& senderSockAddr, QUuid sourceID) :
+                const HifiSockAddr& senderSockAddr, NLPacket::LocalID sourceID) :
     _data(byteArray),
     _headData(_data.mid(0, HEAD_DATA_SIZE)),
     _numPackets(1),

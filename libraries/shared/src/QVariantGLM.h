@@ -17,17 +17,17 @@
 
 #include "SharedUtil.h"
 
-QVariantList glmToQList(const glm::vec3& g);
-QVariantList glmToQList(const glm::quat& g);
+QVariantList vec3ToQList(const glm::vec3& g);
+QVariantList quatToQList(const glm::quat& g);
 QVariantList rgbColorToQList(const rgbColor& v);
 
-QVariantMap glmToQMap(const glm::vec3& glmVector);
-QVariantMap glmToQMap(const glm::quat& glmQuat);
+QVariantMap vec3ToQMap(const glm::vec3& glmVector);
+QVariantMap quatToQMap(const glm::quat& glmQuat);
 
-glm::vec3 qListToGlmVec3(const QVariant& q);
-glm::quat qListToGlmQuat(const QVariant& q);
-void qListtoRgbColor(const QVariant& q, rgbColor& returnValue);
+glm::vec3 qListToVec3(const QVariant& q);
+glm::quat qListToQuat(const QVariant& q);
+void qListToRgbColor(const QVariant& q, rgbColor& returnValue);
 
-glm::vec3 qMapToGlmVec3(const QVariant& q);
-glm::quat qMapToGlmQuat(const QVariant& q);
-glm::mat4 qMapToGlmMat4(const QVariant& q);
+glm::vec3 qMapToVec3(const QVariant& q);
+glm::quat qMapToQuat(const QVariant& q);
+glm::mat4 qMapToMat4(const QVariant& q);

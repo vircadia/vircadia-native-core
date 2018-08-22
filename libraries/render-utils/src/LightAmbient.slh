@@ -6,9 +6,10 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
+<@include render-utils/ShaderConstants.h@>
 <@func declareSkyboxMap()@>
 // declareSkyboxMap
-uniform samplerCube skyboxMap;
+layout(binding=RENDER_UTILS_TEXTURE_SKYBOX) uniform samplerCube skyboxMap;
 
 vec4 evalSkyboxLight(vec3 direction, float lod) {
     // textureQueryLevels is not available until #430, so we require explicit lod
@@ -111,15 +112,11 @@ void evalLightingAmbient(out vec3 diffuse, out vec3 specular, LightAmbient ambie
     }
 <@endif@>
 
-    if (!(isObscuranceEnabled() > 0.0)) {
-        obscurance = 1.0;
-    }
+    obscurance = mix(1.0, obscurance, isObscuranceEnabled());
 
     float lightEnergy = obscurance * getLightAmbientIntensity(ambient);
 
-    if (isAlbedoEnabled() > 0.0) {
-        diffuse *= albedo;
-    }
+    diffuse *= mix(vec3(1), albedo, isAlbedoEnabled());
 
     lightEnergy *= isAmbientEnabled();
     diffuse *= lightEnergy * isDiffuseEnabled();

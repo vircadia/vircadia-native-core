@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<android.support.v4.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/drawer_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
+
+
+    <android.support.design.widget.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:theme="@style/AppTheme.AppBarOverlay"
+        >
+
+        <android.support.v7.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/colorPrimaryDark"
+            android:elevation="4dp"
+            />
+
+        <FrameLayout
+            android:id="@+id/content_frame"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </android.support.design.widget.AppBarLayout>
+
+    <!-- Container for contents of drawer - use NavigationView to make configuration easier -->
+    <android.support.design.widget.NavigationView
+        android:id="@+id/nav_view"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        app:headerLayout="@layout/navigation_header"
+        android:fitsSystemWindows="true"
+        android:background="@color/colorPrimaryDark"
+        app:menu="@menu/menu_navigation"
+        >
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:clickable="true"
+            android:orientation="vertical"
+            android:padding="@dimen/activity_horizontal_margin">
+        <TextView
+                android:id="@+id/logout"
+                android:text="@string/logout"
+                android:onClick="onLogoutClicked"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/menuOption"
+            android:paddingTop="15dp"
+            android:paddingBottom="15dp"/>
+        <TextView
+                android:id="@+id/policy"
+                android:text="@string/privacyPolicy"
+                android:onClick="onPrivacyPolicyClicked"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/menuOption"
+            android:paddingTop="15dp"
+            android:paddingBottom="30dp"/>
+        </LinearLayout>
+    </android.support.design.widget.NavigationView>
+
+</android.support.v4.widget.DrawerLayout>

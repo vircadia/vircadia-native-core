@@ -1,4 +1,4 @@
-var qml = Script.resourcesPath() + '/qml/AudioScope.qml';
+var qml = Script.resourcesPath() + '/qml/AudioScopeUI.qml';
 var window = new OverlayWindow({
     title: 'Audio Scope',
     source: qml,
