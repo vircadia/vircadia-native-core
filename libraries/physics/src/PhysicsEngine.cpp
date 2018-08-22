@@ -28,24 +28,6 @@
 #include "PhysicsLogging.h"
 
 
-static bool flipNormalsMyAvatarVsBackfacingTriangles( btManifoldPoint& cp,
-        const btCollisionObjectWrapper* colObj0Wrap, int partId0, int index0,
-        const btCollisionObjectWrapper* colObj1Wrap, int partId1, int index1) {
-    if (colObj1Wrap->getCollisionShape()->getShapeType() == TRIANGLE_SHAPE_PROXYTYPE) {
-        auto triShape = static_cast<const btTriangleShape*>(colObj1Wrap->getCollisionShape());
-        const btVector3* v = triShape->m_vertices1;
-        btVector3 faceNormal = colObj1Wrap->getWorldTransform().getBasis() * btCross(v[1] - v[0], v[2] - v[0]);
-        float nDotF = btDot(faceNormal, cp.m_normalWorldOnB);
-        if (nDotF <= 0.0f) {
-            faceNormal.normalize();
-            // flip the contact normal to be aligned with the face normal
-            cp.m_normalWorldOnB += -2.0f * nDotF * faceNormal;
-        }
-    }
-    // return value is currently ignored but to be future-proof: return false when not modifying friction
-    return false;
-}
-
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset) :
         _originOffset(offset),
         _myAvatarController(nullptr) {
@@ -88,9 +70,6 @@ void PhysicsEngine::init() {
         // in order for its broadphase collision queries to work correctly. Look at how we use
         // _activeStaticBodies to track and update the Aabb's of moved static objects.
         _dynamicsWorld->setForceUpdateAllAabbs(false);
-
-        // register contact filter to help MyAvatar pass through backfacing triangles
-        gContactAddedCallback = flipNormalsMyAvatarVsBackfacingTriangles;
     }
 }
 
@@ -864,9 +843,8 @@ void PhysicsEngine::setShowBulletConstraintLimits(bool value) {
 }
 
 struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
-    AllContactsCallback(MotionStateType desiredObjectType, const ShapeInfo& shapeInfo, const Transform& transform, btCollisionObject* myAvatarCollisionObject) :
+    AllContactsCallback(int32_t mask, int32_t group, const ShapeInfo& shapeInfo, const Transform& transform, btCollisionObject* myAvatarCollisionObject) :
         btCollisionWorld::ContactResultCallback(),
-        desiredObjectType(desiredObjectType),
         collisionObject(),
         contacts(),
         myAvatarCollisionObject(myAvatarCollisionObject) {
@@ -879,20 +857,18 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
         bulletTransform.setRotation(glmToBullet(transform.getRotation()));
 
         collisionObject.setWorldTransform(bulletTransform);
+
+        m_collisionFilterMask = mask;
+        m_collisionFilterGroup = group;
     }
 
     ~AllContactsCallback() {
         ObjectMotionState::getShapeManager()->releaseShape(collisionObject.getCollisionShape());
     }
 
-    MotionStateType desiredObjectType;
     btCollisionObject collisionObject;
     std::vector<ContactTestResult> contacts;
     btCollisionObject* myAvatarCollisionObject;
-
-    bool needsCollision(btBroadphaseProxy* proxy) const override {
-        return true;
-    }
 
     btScalar addSingleResult(btManifoldPoint& cp, const btCollisionObjectWrapper* colObj0, int partId0, int index0, const btCollisionObjectWrapper* colObj1, int partId1, int index1) override {
         const btCollisionObject* otherBody;
@@ -909,7 +885,7 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
         }
 
         // TODO: Give MyAvatar a motion state so we don't have to do this
-        if (desiredObjectType == MOTIONSTATE_TYPE_AVATAR && myAvatarCollisionObject && myAvatarCollisionObject == otherBody) {
+        if ((m_collisionFilterMask & BULLET_COLLISION_GROUP_MY_AVATAR) && myAvatarCollisionObject && myAvatarCollisionObject == otherBody) {
             contacts.emplace_back(Physics::getSessionUUID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint));
             return 0;
         }
@@ -921,7 +897,7 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
 
         const btMotionState* motionStateCandidate = collisionCandidate->getMotionState();
         const ObjectMotionState* candidate = dynamic_cast<const ObjectMotionState*>(motionStateCandidate);
-        if (!candidate || candidate->getType() != desiredObjectType) {
+        if (!candidate) {
             return 0;
         }
 
@@ -937,14 +913,14 @@ protected:
     }
 };
 
-const std::vector<ContactTestResult> PhysicsEngine::getCollidingInRegion(MotionStateType desiredObjectType, const ShapeInfo& regionShapeInfo, const Transform& regionTransform) const {
+std::vector<ContactTestResult> PhysicsEngine::contactTest(uint16_t mask, const ShapeInfo& regionShapeInfo, const Transform& regionTransform, uint16_t group) const {
     // TODO: Give MyAvatar a motion state so we don't have to do this
     btCollisionObject* myAvatarCollisionObject = nullptr;
-    if (desiredObjectType == MOTIONSTATE_TYPE_AVATAR && _myAvatarController) {
+    if ((mask & USER_COLLISION_GROUP_MY_AVATAR) && _myAvatarController) {
         myAvatarCollisionObject = _myAvatarController->getCollisionObject();
     }
 
-    auto contactCallback = AllContactsCallback(desiredObjectType, regionShapeInfo, regionTransform, myAvatarCollisionObject);
+    auto contactCallback = AllContactsCallback((int32_t)mask, (int32_t)group, regionShapeInfo, regionTransform, myAvatarCollisionObject);
     _dynamicsWorld->contactTest(&contactCallback.collisionObject, contactCallback);
 
     return contactCallback.contacts;

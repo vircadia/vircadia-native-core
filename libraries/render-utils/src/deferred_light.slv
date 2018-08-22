@@ -16,8 +16,6 @@
 
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
 
-layout(location=RENDER_UTILS_UNIFORM_LIGHT_TEXCOORD_TRANSFORM) uniform vec4 texcoordFrameTransform;
-
 void main(void) {
     const float depth = 1.0;
     const vec4 UNIT_QUAD[4] = vec4[4](
@@ -29,9 +27,6 @@ void main(void) {
     vec4 pos = UNIT_QUAD[gl_VertexID];
 
     _texCoord01.xy = (pos.xy + 1.0) * 0.5;
-
-    _texCoord01.xy *= texcoordFrameTransform.zw;
-    _texCoord01.xy += texcoordFrameTransform.xy;
 
     gl_Position = pos;
 }
