@@ -184,6 +184,7 @@ MyAvatar::MyAvatar(QThread* thread) :
             if (recordingInterface->getPlayFromCurrentLocation()) {
                 setRecordingBasis();
             }
+            createRecordingIDs();
             _previousCollisionGroup = _characterController.computeCollisionGroup();
             _characterController.setCollisionless(true);
         } else {

@@ -236,6 +236,8 @@ void Avatar::updateAvatarEntities() {
         return;
     }
 
+    createRecordingIDs();
+
     if (getID().isNull() ||
         getID() == AVATAR_SELF_ID ||
         DependencyManager::get<NodeList>()->getSessionUUID() == QUuid()) {
