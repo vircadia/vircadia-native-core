@@ -431,6 +431,7 @@
         renderViewTask.getConfig("LightingModel")["enableAmbientLight"] = true;
         renderViewTask.getConfig("LightingModel")["enableDirectionalLight"] = true;
         renderViewTask.getConfig("LightingModel")["enablePointLight"] = true;
+        toolbar.writeProperty("visible", true);
     }
 
     Script.scriptEnding.connect(cleanup);
