@@ -259,7 +259,7 @@ function limitAngle(angle) {
     return (angle + 180) % 360 - 180;
 }
 
-function computeHandAzimuths() {
+function computeHandAzimuths(timeElapsed) {
     var leftHand = currentStateReadings.lhandPose.translation;
     var rightHand = currentStateReadings.rhandPose.translation;
     var head = currentStateReadings.headPose.translation;
@@ -272,8 +272,9 @@ function computeHandAzimuths() {
     var avatarZAxis = { x: 0.0, y: 0.0, z: 1.0 };
     var hipToLHand = Quat.lookAtSimple({ x: 0, y: 0, z: 0 }, lHandMinusHead);
     var hipToRHand = Quat.lookAtSimple({ x: 0, y: 0, z: 0 }, rHandMinusHead);
-    hipToLHandAverage = Quat.slerp(hipToLHandAverage, hipToLHand, AVERAGING_RATE);
-    hipToRHandAverage = Quat.slerp(hipToRHandAverage, hipToRHand, AVERAGING_RATE);
+    var tau = timeElapsed / filterLengthProperty.value;
+    hipToLHandAverage = Quat.slerp(hipToLHandAverage, hipToLHand, tau);
+    hipToRHandAverage = Quat.slerp(hipToRHandAverage, hipToRHand, tau);
 
     // var angleToLeft = limitAngle(Quat.safeEulerAngles(hipToLHandAverage).y);
     // var angleToRight = limitAngle(Quat.safeEulerAngles(hipToRHandAverage).y);
@@ -283,11 +284,7 @@ function computeHandAzimuths() {
     // limit the angle because we are flipped by 180, fix this tomorrow.
     // print(leftRightMidpointAverage/180.0);
     // print("threshold value " + angleThresholdProperty.value);
-    // get it into radians too!!
-    if ((Math.abs(leftRightMidpointAverage/180.0) * Math.PI) > angleThresholdProperty.value) {
-        print("recenter the feet under the head");
-        MyAvatar.triggerRotationRecenter();
-    }
+    
 
     var raySpineRotation = Quat.fromVec3Degrees({ x: 0, y: leftRightMidpointAverage, z: 0 });
     var zAxisSpineRotation = Vec3.multiplyQbyV(raySpineRotation, { x: 0, y: 0, z: -1 });
@@ -295,6 +292,22 @@ function computeHandAzimuths() {
     DebugDraw.drawRay(MyAvatar.position, Vec3.sum(MyAvatar.position, zAxisWorldSpace), { x: 1, y: 0, z: 0, w: 1 });
 
     //print(leftRightMidpoint);
+
+    var headPoseRigSpace = Quat.multiply(CHANGE_OF_BASIS_ROTATION, currentStateReadings.head.rotation);
+    headPoseAverageOrientation = Quat.slerp(headPoseAverageOrientation, headPoseRigSpace, tau);
+    var headPoseAverageEulers = Quat.safeEulerAngles(headPoseAverageOrientation);
+
+    // get it into radians too!!
+    // average head and hands 50/50
+    print("hands azimuth " + leftRightMidpointAverage + " head azimuth " + headPoseAverageEulers.y)
+    var headPlusHands = (leftRightMidpointAverage + headPoseAverageEulers.y) / 2.0;
+    if ((Math.abs(headPlusHands / 180.0) * Math.PI) > angleThresholdProperty.value) {
+        print("recenter the feet under the head");
+        MyAvatar.triggerRotationRecenter();
+        hipToLHandAverage = { x: 0, y: 0, z: 0, w: 1 };
+        hipToRHandAverage = { x: 0, y: 0, z: 0, w: 1 };
+        headPoseAverageOrientation = { x: 0, y: 0, z: 0, w: 1 };
+    }
     
     return Quat.fromVec3Degrees({ x: 0, y: leftRightMidpoint, z: 0 });
 
@@ -309,7 +322,9 @@ function update(dt) {
 
     //print(JSON.stringify(currentStateReadings.head));
 
-    var latestSpineRotation = computeHandAzimuths();
+
+
+    var latestSpineRotation = computeHandAzimuths(dt);
     
     spine2Rotation = latestSpineRotation;
     var spine2Pos = MyAvatar.getAbsoluteJointTranslationInObjectFrame(MyAvatar.getJointIndex("Spine2"));

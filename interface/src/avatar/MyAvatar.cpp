@@ -3797,7 +3797,7 @@ void MyAvatar::lateUpdatePalms() {
 }
 
 
-static const float FOLLOW_TIME = 0.5f;
+static const float FOLLOW_TIME = 0.1f;
 
 MyAvatar::FollowHelper::FollowHelper() {
     deactivate();
@@ -3902,8 +3902,13 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontalCG(MyAvatar& myAvatar) cons
         glm::vec3 defaultHeadPosition = myAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar.getJointIndex("Head"));
         glm::vec3 currentHeadPosition = currentHeadPose.getTranslation();
         float anatomicalHeadToHipsDistance = glm::length(defaultHeadPosition - defaultHipsPosition);
+        //if (!isActive(Horizontal) &&
+        //    (glm::length(currentHeadPosition - defaultHipsPosition) > (anatomicalHeadToHipsDistance + DEFAULT_AVATAR_SPINE_STRETCH_LIMIT))) {
+        //    myAvatar.setResetMode(true);
+        //    stepDetected = true;
+        //}
         if (!isActive(Horizontal) &&
-            (glm::length(currentHeadPosition - defaultHipsPosition) > (anatomicalHeadToHipsDistance + DEFAULT_AVATAR_SPINE_STRETCH_LIMIT))) {
+            (glm::length(currentHeadPosition - defaultHipsPosition) > (anatomicalHeadToHipsDistance + (DEFAULT_AVATAR_SPINE_STRETCH_LIMIT * anatomicalHeadToHipsDistance * myAvatar.getAvatarScale())))) {
             myAvatar.setResetMode(true);
             stepDetected = true;
         }
@@ -3925,10 +3930,15 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
 
     if (myAvatar.getHMDLeanRecenterEnabled() &&
         qApp->getCamera().getMode() != CAMERA_MODE_MIRROR) {
-        if (!isActive(Rotation) && (shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
+        if (!isActive(Rotation) && getForceActivateRotation()) {
             activate(Rotation);
             myAvatar.setHeadControllerFacingMovingAverage(myAvatar._headControllerFacing);
+            setForceActivateRotation(false);
         }
+        //if (!isActive(Rotation) && (shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
+        //    activate(Rotation);
+        //    myAvatar.setHeadControllerFacingMovingAverage(myAvatar._headControllerFacing);
+        //}
         if (myAvatar.getCenterOfGravityModelEnabled()) {
             if (!isActive(Horizontal) && (shouldActivateHorizontalCG(myAvatar) || hasDriveInput)) {
                 activate(Horizontal);
@@ -3936,11 +3946,6 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
                     activate(Rotation);
                     myAvatar.setHeadControllerFacingMovingAverage(myAvatar._headControllerFacing);
                 }
-            }
-            if (!isActive(Rotation) && getForceActivateRotation()) {
-                activate(Rotation);
-                myAvatar.setHeadControllerFacingMovingAverage(myAvatar._headControllerFacing);
-                setForceActivateRotation(false);
             }
         } else {
             if (!isActive(Horizontal) && (shouldActivateHorizontal(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
