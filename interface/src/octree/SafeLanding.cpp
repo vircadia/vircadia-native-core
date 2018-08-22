@@ -66,23 +66,20 @@ void SafeLanding::addTrackedEntity(const EntityItemID& entityID) {
         EntityItemPointer entity = _entityTree->findEntityByID(entityID);
 
         if (entity && !entity->getCollisionless()) {
-            const auto& entityType = entity->getType();
-            if (entityType == EntityTypes::Model) {
-                ModelEntityItem * modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity).get();
-                static const std::set<ShapeType> downloadedCollisionTypes
-                    { SHAPE_TYPE_COMPOUND, SHAPE_TYPE_SIMPLE_COMPOUND, SHAPE_TYPE_STATIC_MESH,  SHAPE_TYPE_SIMPLE_HULL };
-                bool hasAABox;
-                entity->getAABox(hasAABox);
-                if (hasAABox && downloadedCollisionTypes.count(modelEntity->getShapeType()) != 0) {
-                    // Only track entities with downloaded collision bodies.
-                    _trackedEntities.emplace(entityID, entity);
-                    int currentTrackedEntityCount = _trackedEntities.size();
-                    if (currentTrackedEntityCount > _maxTrackedEntityCount) {
-                        _maxTrackedEntityCount = currentTrackedEntityCount;
-                    }
+            static const std::set<ShapeType> downloadedCollisionTypes
+                { SHAPE_TYPE_COMPOUND, SHAPE_TYPE_SIMPLE_COMPOUND, SHAPE_TYPE_STATIC_MESH,  SHAPE_TYPE_SIMPLE_HULL };
+            bool hasAABox;
+            entity->getAABox(hasAABox);
+            if (hasAABox && downloadedCollisionTypes.count(entity->getShapeType()) != 0) {
+                // Only track entities with downloaded collision bodies.
+                _trackedEntities.emplace(entityID, entity);
 
-                    qCDebug(interfaceapp) << "Safe Landing: Tracking entity " << entity->getItemName();
+                float trackedEntityCount = (float)_trackedEntities.size();
+
+                if (trackedEntityCount > _maxTrackedEntityCount) {
+                    _maxTrackedEntityCount = trackedEntityCount;
                 }
+                qCDebug(interfaceapp) << "Safe Landing: Tracking entity " << entity->getItemName();
             }
         }
     }
@@ -123,15 +120,15 @@ bool SafeLanding::isLoadSequenceComplete() {
 }
 
 float SafeLanding::loadingProgressPercentage() {
-    float percentage = 0;
-
-    if (_maxTrackedEntityCount != 0) {
-        int trackedEntityCount = _trackedEntities.size();
-        percentage = (_maxTrackedEntityCount - trackedEntityCount) / _maxTrackedEntityCount;
+    Locker lock(_lock);
+    if (_maxTrackedEntityCount > 0) {
+        float trackedEntityCount = (float)_trackedEntities.size();
+        qDebug() << "pocessed: " << (_maxTrackedEntityCount - trackedEntityCount) << " -> total: " << _maxTrackedEntityCount;
+        qDebug() << ((_maxTrackedEntityCount - trackedEntityCount) / _maxTrackedEntityCount);
+        return ((_maxTrackedEntityCount - trackedEntityCount) / _maxTrackedEntityCount);
     }
 
-    qDebug() << "----------> percentage: " << percentage << " <--------";
-    return percentage;
+    return 0.0f;
 }
 
 bool SafeLanding::isSequenceNumbersComplete() {
@@ -158,6 +155,7 @@ bool SafeLanding::isEntityPhysicsComplete() {
         auto entity = entityMapIter->second;
         if (!entity->shouldBePhysical() || entity->isReadyToComputeShape()) {
             entityMapIter = _trackedEntities.erase(entityMapIter);
+            qDebug() << "--> removing entity <--";
             if (entityMapIter == _trackedEntities.end()) {
                 break;
             }
