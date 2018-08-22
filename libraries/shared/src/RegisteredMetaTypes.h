@@ -264,6 +264,18 @@ public:
 class CollisionRegion : public MathPick {
 public:
     CollisionRegion() { }
+
+    CollisionRegion(const CollisionRegion& collisionRegion) :
+        modelURL(collisionRegion.modelURL),
+        shapeInfo(std::make_shared<ShapeInfo>()),
+        transform(collisionRegion.transform),
+        parentID(collisionRegion.parentID),
+        parentJointIndex(collisionRegion.parentJointIndex),
+        joint(collisionRegion.joint)
+    {
+        shapeInfo->setParams(collisionRegion.shapeInfo->getType(), collisionRegion.shapeInfo->getHalfExtents(), collisionRegion.modelURL.toString());
+    }
+
     CollisionRegion(const QVariantMap& pickVariant) {
         if (pickVariant["shape"].isValid()) {
             auto shape = pickVariant["shape"].toMap();
