@@ -561,9 +561,7 @@ public slots:
      */
     void closeMessageBox(int id);
 
-    int getPhysicsNearbyEntitiesReadyCount();
-    int getPhysicsNearbyEntitiesStabilityCount();
-    int getPhysicsNearbyEntitiesCount();
+    float domainLoadingProgress();
 
 private slots:
     void onWindowGeometryChanged(const QRect& geometry);

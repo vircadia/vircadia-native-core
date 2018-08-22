@@ -137,3 +137,7 @@ void OctreePacketProcessor::startEntitySequence() {
 bool OctreePacketProcessor::isLoadSequenceComplete() const {
     return _safeLanding->isLoadSequenceComplete();
 }
+
+float OctreePacketProcessor::domainLoadProgress() {
+    return _safeLanding->loadingProgressPercentage();
+}

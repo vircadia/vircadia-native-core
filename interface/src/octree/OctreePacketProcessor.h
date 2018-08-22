@@ -27,6 +27,7 @@ public:
 
     void startEntitySequence();
     bool isLoadSequenceComplete() const;
+    float domainLoadProgress();
 
 signals:
     void packetVersionMismatch();

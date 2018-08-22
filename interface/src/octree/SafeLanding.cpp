@@ -53,6 +53,7 @@ void SafeLanding::startEntitySequence(QSharedPointer<EntityTreeRenderer> entityT
 void SafeLanding::stopEntitySequence() {
     Locker lock(_lock);
     _trackingEntities = false;
+    _maxTrackedEntityCount = 0;
     _initialStart = INVALID_SEQUENCE;
     _initialEnd = INVALID_SEQUENCE;
     _trackedEntities.clear();
@@ -75,6 +76,11 @@ void SafeLanding::addTrackedEntity(const EntityItemID& entityID) {
                 if (hasAABox && downloadedCollisionTypes.count(modelEntity->getShapeType()) != 0) {
                     // Only track entities with downloaded collision bodies.
                     _trackedEntities.emplace(entityID, entity);
+                    int currentTrackedEntityCount = _trackedEntities.size();
+                    if (currentTrackedEntityCount > _maxTrackedEntityCount) {
+                        _maxTrackedEntityCount = currentTrackedEntityCount;
+                    }
+
                     qCDebug(interfaceapp) << "Safe Landing: Tracking entity " << entity->getItemName();
                 }
             }
@@ -114,6 +120,18 @@ bool SafeLanding::isLoadSequenceComplete() {
     }
 
     return !_trackingEntities;
+}
+
+float SafeLanding::loadingProgressPercentage() {
+    float percentage = 0;
+
+    if (_maxTrackedEntityCount != 0) {
+        int trackedEntityCount = _trackedEntities.size();
+        percentage = (_maxTrackedEntityCount - trackedEntityCount) / _maxTrackedEntityCount;
+    }
+
+    qDebug() << "----------> percentage: " << percentage << " <--------";
+    return percentage;
 }
 
 bool SafeLanding::isSequenceNumbersComplete() {

@@ -29,6 +29,7 @@ public:
     void setCompletionSequenceNumbers(int first, int last);
     void noteReceivedsequenceNumber(int sequenceNumber);
     bool isLoadSequenceComplete();
+    float loadingProgressPercentage();
 
 private slots:
     void addTrackedEntity(const EntityItemID& entityID);
@@ -49,6 +50,7 @@ private:
     static constexpr int INVALID_SEQUENCE = -1;
     int _initialStart { INVALID_SEQUENCE };
     int _initialEnd { INVALID_SEQUENCE };
+    int _maxTrackedEntityCount { 0 };
 
     struct SequenceLessThan {
         bool operator()(const int& a, const int& b) const;

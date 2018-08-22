@@ -344,25 +344,16 @@
         var deltaTime = (thisInterval - lastInterval);
         lastInterval = thisInterval;
 
-        var nearbyEntitiesReadyCount = Window.getPhysicsNearbyEntitiesReadyCount();
-        var stabilityCount = Window.getPhysicsNearbyEntitiesStabilityCount();
-        var nearbyEntitiesCount = Window.getPhysicsNearbyEntitiesCount();
+        var domainLoadingProgressPercentage = Window.domainLoadingProgress();
 
-        var stabilityPercentage = (stabilityCount / STABILITY);
-        if (stabilityPercentage > 1) {
-            stabilityPercentage = 1;
-        }
-
-        var stabilityProgress = (MAX_X_SIZE * 0.75) * stabilityPercentage;
-
-        var entitiesLoadedPercentage = 1;
-        if (nearbyEntitiesCount > 0) {
-            entitiesLoadedPercentage = nearbyEntitiesReadyCount / nearbyEntitiesCount;
-        }
-        var entitiesLoadedProgress = (MAX_X_SIZE * 0.25) * entitiesLoadedPercentage;
-        var progress = stabilityProgress + entitiesLoadedProgress;
+        var progress = MAX_X_SIZE * domainLoadingProgressPercentage;
+        print(progress);
         if (progress >= target) {
             target = progress;
+        }
+
+        if (physicsEnabled && target < MAX_X_SIZE) {
+            target = MAX_X_SIZE;
         }
         currentProgress = lerp(currentProgress, target, 0.2);
         var properties = {

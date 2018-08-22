@@ -589,14 +589,6 @@ void WindowScriptingInterface::onMessageBoxSelected(int button) {
 }
 
 
-int WindowScriptingInterface::getPhysicsNearbyEntitiesReadyCount() {
-    return qApp->getNearbyEntitiesReadyCount();
-}
-
-int WindowScriptingInterface::getPhysicsNearbyEntitiesStabilityCount() {
-    return qApp->getEntitiesStabilityCount();
-}
-
-int WindowScriptingInterface::getPhysicsNearbyEntitiesCount() {
-    return qApp->getNearbyEntitiesCount();
+float WindowScriptingInterface::domainLoadingProgress() {
+    return qApp->getDomainLoadProgress();
 }
