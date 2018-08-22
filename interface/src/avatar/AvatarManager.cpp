@@ -14,7 +14,6 @@
 #include <string>
 
 #include <QScriptEngine>
-#include <QtCore/QJsonDocument>
 
 #include "AvatarLogging.h"
 
@@ -72,10 +71,6 @@ AvatarManager::AvatarManager(QObject* parent) :
     qRegisterMetaType<QWeakPointer<Node> >("NodeWeakPointer");
 
     auto nodeList = DependencyManager::get<NodeList>();
-    auto& packetReceiver = nodeList->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
-    packetReceiver.registerListener(PacketType::KillAvatar, this, "processKillAvatar");
-    packetReceiver.registerListener(PacketType::AvatarIdentity, this, "processAvatarIdentityPacket");
 
     // when we hear that the user has ignored an avatar by session UUID
     // immediately remove that avatar instead of waiting for the absence of packets from avatar mixer

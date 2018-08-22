@@ -11,13 +11,10 @@
 
 #include "NodeData.h"
 
-NodeData::NodeData(const QUuid& nodeID) :
+NodeData::NodeData(const QUuid& nodeID, NetworkPeer::LocalID nodeLocalID) :
     _mutex(),
-    _nodeID(nodeID)
+    _nodeID(nodeID),
+    _nodeLocalID(nodeLocalID)
 {
-    
-}
-
-NodeData::~NodeData() {
     
 }
