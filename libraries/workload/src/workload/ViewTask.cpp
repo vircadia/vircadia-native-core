@@ -91,12 +91,24 @@ void ControlViews::run(const workload::WorkloadContextPointer& runContext, const
         regulateViews(outViews, inTimings);
     }
 
-    // Export the timings for debuging
+    // Export the ranges for debuging
+    bool doExport = false;
+    if (outViews.size()) {
+        _dataExport.ranges[workload::Region::R1] = outViews[0].regionBackFronts[workload::Region::R1];
+        _dataExport.ranges[workload::Region::R2] = outViews[0].regionBackFronts[workload::Region::R2];
+        _dataExport.ranges[workload::Region::R3] = outViews[0].regionBackFronts[workload::Region::R3];
+        doExport = true;
+    }
+
+    // Export the ranges and timings for debuging
     if (inTimings.size()) {
         _dataExport.timings[workload::Region::R1] = std::chrono::duration<float, std::milli>(inTimings[0]).count();
         _dataExport.timings[workload::Region::R2] = _dataExport.timings[workload::Region::R1];
         _dataExport.timings[workload::Region::R3] = std::chrono::duration<float, std::milli>(inTimings[1]).count();
+        doExport = true;
+    }
 
+    if (doExport) {
         auto config = std::static_pointer_cast<Config>(runContext->jobConfig);
         config->dataExport = _dataExport;
         config->emitDirty();
@@ -129,11 +141,6 @@ void ControlViews::regulateViews(workload::Views& outViews, const workload::Timi
     regionBackFronts[workload::Region::R3] = regionRegulators[workload::Region::R3].run(loopDuration, timings[1], regionBackFronts[workload::Region::R3]);
 
     enforceRegionContainment();
-
-    _dataExport.ranges[workload::Region::R1] = regionBackFronts[workload::Region::R1];
-    _dataExport.ranges[workload::Region::R2] = regionBackFronts[workload::Region::R2];
-    _dataExport.ranges[workload::Region::R3] = regionBackFronts[workload::Region::R3];
-
     for (auto& outView : outViews) {
         outView.regionBackFronts[workload::Region::R1] = regionBackFronts[workload::Region::R1];
         outView.regionBackFronts[workload::Region::R2] = regionBackFronts[workload::Region::R2];

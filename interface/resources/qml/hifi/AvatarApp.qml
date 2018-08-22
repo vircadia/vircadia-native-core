@@ -57,7 +57,7 @@ Rectangle {
                 try {
                     var marketResponse = JSON.parse(xmlhttp.responseText.trim())
 
-                    if(marketResponse.status === 'success') {
+                    if (marketResponse.status === 'success') {
                         avatar.modelName = marketResponse.data.title;
                     }
                 }
@@ -72,14 +72,14 @@ Rectangle {
 
     function getAvatarModelName() {
 
-        if(currentAvatar === null) {
+        if (currentAvatar === null) {
             return '';
         }
-        if(currentAvatar.modelName !== undefined) {
+        if (currentAvatar.modelName !== undefined) {
             return currentAvatar.modelName;
         } else {
             var marketId = allAvatars.extractMarketId(currentAvatar.avatarUrl);
-            if(marketId !== '') {
+            if (marketId !== '') {
                 fetchAvatarModelName(marketId, currentAvatar);
             }
         }
@@ -103,51 +103,51 @@ Rectangle {
     property url externalAvatarThumbnailUrl: '../../images/avatarapp/guy-in-circle.svg'
 
     function fromScript(message) {
-        if(message.method === 'initialize') {
+        if (message.method === 'initialize') {
             jointNames = message.data.jointNames;
             emitSendToScript({'method' : getAvatarsMethod});
-        } else if(message.method === 'wearableUpdated') {
+        } else if (message.method === 'wearableUpdated') {
             adjustWearables.refreshWearable(message.entityID, message.wearableIndex, message.properties, message.updateUI);
-        } else if(message.method === 'wearablesUpdated') {
+        } else if (message.method === 'wearablesUpdated') {
             var wearablesModel = currentAvatar.wearables;
             wearablesModel.clear();
             message.wearables.forEach(function(wearable) {
                 wearablesModel.append(wearable);
             });
             adjustWearables.refresh(currentAvatar);
-        } else if(message.method === 'scaleChanged') {
+        } else if (message.method === 'scaleChanged') {
             currentAvatar.avatarScale = message.value;
             updateCurrentAvatarInBookmarks(currentAvatar);
-        } else if(message.method === 'externalAvatarApplied') {
+        } else if (message.method === 'externalAvatarApplied') {
             currentAvatar.avatarUrl = message.avatarURL;
             currentAvatar.thumbnailUrl = allAvatars.makeThumbnailUrl(message.avatarURL);
             currentAvatar.entry.avatarUrl = currentAvatar.avatarUrl;
             currentAvatar.modelName = undefined;
             updateCurrentAvatarInBookmarks(currentAvatar);
-        } else if(message.method === 'settingChanged') {
+        } else if (message.method === 'settingChanged') {
             currentAvatarSettings[message.name] = message.value;
-        } else if(message.method === 'changeSettings') {
+        } else if (message.method === 'changeSettings') {
             currentAvatarSettings = message.settings;
-        } else if(message.method === 'bookmarkLoaded') {
+        } else if (message.method === 'bookmarkLoaded') {
             setCurrentAvatar(message.data.currentAvatar, message.data.name);
             var avatarIndex = allAvatars.findAvatarIndex(currentAvatar.name);
             allAvatars.move(avatarIndex, 0, 1);
             view.setPage(0);
-        } else if(message.method === 'bookmarkAdded') {
+        } else if (message.method === 'bookmarkAdded') {
             var avatar = allAvatars.findAvatar(message.bookmarkName);
-            if(avatar !== undefined) {
+            if (avatar !== undefined) {
                 var avatarObject = allAvatars.makeAvatarObject(message.bookmark, message.bookmarkName);
                 for(var prop in avatarObject) {
                     avatar[prop] = avatarObject[prop];
                 }
-                if(currentAvatar.name === message.bookmarkName) {
+                if (currentAvatar.name === message.bookmarkName) {
                     currentAvatar = currentAvatarModel.makeAvatarEntry(avatarObject);
                 }
             } else {
                 allAvatars.addAvatarEntry(message.bookmark, message.bookmarkName);
             }
             updateCurrentAvatarInBookmarks(currentAvatar);
-        } else if(message.method === 'bookmarkDeleted') {
+        } else if (message.method === 'bookmarkDeleted') {
             pageOfAvatars.isUpdating = true;
 
             var index = pageOfAvatars.findAvatarIndex(message.name);
@@ -159,15 +159,16 @@ Rectangle {
             var itemsOnPage = pageOfAvatars.count;
             var newItemIndex = view.currentPage * view.itemsPerPage + itemsOnPage;
 
-            if(newItemIndex <= (allAvatars.count - 1)) {
+            if (newItemIndex <= (allAvatars.count - 1)) {
                 pageOfAvatars.append(allAvatars.get(newItemIndex));
             } else {
-                if(!pageOfAvatars.hasGetAvatars())
+                if (!pageOfAvatars.hasGetAvatars()) {
                     pageOfAvatars.appendGetAvatars();
+                }
             }
 
             pageOfAvatars.isUpdating = false;
-        } else if(message.method === getAvatarsMethod) {
+        } else if (message.method === getAvatarsMethod) {
             var getAvatarsData = message.data;
             allAvatars.populate(getAvatarsData.bookmarks);
             setCurrentAvatar(getAvatarsData.currentAvatar, '');
@@ -175,16 +176,16 @@ Rectangle {
             currentAvatarSettings = getAvatarsData.currentAvatarSettings;
 
             updateCurrentAvatarInBookmarks(currentAvatar);
-        } else if(message.method === 'updateAvatarInBookmarks') {
+        } else if (message.method === 'updateAvatarInBookmarks') {
             updateCurrentAvatarInBookmarks(currentAvatar);
-        } else if(message.method === 'selectAvatarEntity') {
+        } else if (message.method === 'selectAvatarEntity') {
             adjustWearables.selectWearableByID(message.entityID);
         }
     }
 
     function updateCurrentAvatarInBookmarks(avatar) {
         var bookmarkAvatarIndex = allAvatars.findAvatarIndexByValue(avatar);
-        if(bookmarkAvatarIndex === -1) {
+        if (bookmarkAvatarIndex === -1) {
             avatar.name = '';
             view.setPage(0);
         } else {
@@ -284,6 +285,9 @@ Rectangle {
         }
         onWearableSelected: {
             emitSendToScript({'method' : 'selectWearable', 'entityID' : id});
+        }
+        onAddWearable: {
+            emitSendToScript({'method' : 'addWearable', 'avatarName' : avatarName, 'url' : url});
         }
 
         z: 3
@@ -491,31 +495,8 @@ Rectangle {
             anchors.verticalCenter: wearablesLabel.verticalCenter
             glyphText: "\ue02e"
 
-            visible: avatarWearablesCount !== 0
             onClicked: {
                 adjustWearables.open(currentAvatar);
-            }
-        }
-
-        // TextStyle3
-        RalewayRegular {
-            size: 22;
-            anchors.right: parent.right
-            anchors.verticalCenter: wearablesLabel.verticalCenter
-            font.underline: true
-            text: "Add"
-            color: 'black'
-            visible: avatarWearablesCount === 0
-
-            MouseArea {
-                anchors.fill: parent
-                onClicked: {
-                    popup.showGetWearables(function() {
-                        emitSendToScript({'method' : 'navigate', 'url' : 'hifi://AvatarIsland/11.5848,-8.10862,-2.80195'})
-                    }, function(link) {
-                        emitSendToScript({'method' : 'navigate', 'url' : link})
-                    });
-                }
             }
         }
     }
@@ -617,8 +598,9 @@ Rectangle {
                         pageOfAvatars.append(avatarItem);
                     }
 
-                    if(pageOfAvatars.count !== itemsPerPage)
+                    if (pageOfAvatars.count !== itemsPerPage) {
                         pageOfAvatars.appendGetAvatars();
+                    }
 
                     currentPage = pageIndex;
                     pageOfAvatars.isUpdating = false;
@@ -639,7 +621,7 @@ Rectangle {
                     }
 
                     function removeGetAvatars() {
-                        if(hasGetAvatars()) {
+                        if (hasGetAvatars()) {
                             remove(count - 1)
                         }
                     }
@@ -707,13 +689,13 @@ Rectangle {
                                 hoverEnabled: enabled
 
                                 onClicked: {
-                                    if(isInManageState) {
+                                    if (isInManageState) {
                                         var currentItem = delegateRoot.GridView.view.model.get(index);
                                         popup.showDeleteFavorite(currentItem.name, function() {
                                             view.deleteAvatar(currentItem);
                                         });
                                     } else {
-                                        if(delegateRoot.GridView.view.currentIndex !== index) {
+                                        if (delegateRoot.GridView.view.currentIndex !== index) {
                                             var currentItem = delegateRoot.GridView.view.model.get(index);
                                             popup.showLoadFavorite(currentItem.name, function() {
                                                 view.selectAvatar(currentItem);

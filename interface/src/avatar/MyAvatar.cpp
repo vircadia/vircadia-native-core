@@ -121,6 +121,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     _audioListenerMode(FROM_HEAD),
     _hmdAtRestDetector(glm::vec3(0), glm::quat())
 {
+    _clientTraitsHandler = std::unique_ptr<ClientTraitsHandler>(new ClientTraitsHandler(this));
 
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = new MyHead(this);
@@ -512,6 +513,8 @@ void MyAvatar::update(float deltaTime) {
     if (getIdentityDataChanged()) {
         sendIdentityPacket();
     }
+
+    _clientTraitsHandler->sendChangedTraitsToMixer();
 
     simulate(deltaTime);
 
@@ -1289,7 +1292,6 @@ void MyAvatar::loadData() {
         // HACK: manually remove empty 'avatarEntityData' else legacy data may persist in settings file
         settings.remove("avatarEntityData");
     }
-    setAvatarEntityDataChanged(true);
 
     // Flying preferences must be loaded before calling setFlyingEnabled()
     Setting::Handle<bool> firstRunVal { Settings::firstRun, true };
@@ -1666,7 +1668,10 @@ void MyAvatar::clearJointsData() {
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _skeletonModelChangeCount++;
     int skeletonModelChangeCount = _skeletonModelChangeCount;
+
+    auto previousSkeletonModelURL = _skeletonModelURL;
     Avatar::setSkeletonModelURL(skeletonModelURL);
+
     _skeletonModel->setTagMask(render::hifi::TAG_NONE);
     _skeletonModel->setGroupCulled(true);
     _skeletonModel->setVisibleInScene(true, qApp->getMain3DScene());
@@ -1693,9 +1698,9 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
        }
        QObject::disconnect(*skeletonConnection);
     });
+    
     saveAvatarUrl();
     emit skeletonChanged();
-    emit skeletonModelURLChanged();
 }
 
 void MyAvatar::removeAvatarEntities(const std::function<bool(const QUuid& entityID)>& condition) {
@@ -1766,8 +1771,6 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
         setSkeletonModelURL(fullAvatarURL);
         UserActivityLogger::getInstance().changedModel("skeleton", urlString);
     }
-
-    markIdentityDataChanged();
 }
 
 glm::vec3 MyAvatar::getSkeletonPosition() const {
@@ -2111,7 +2114,10 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
         attachmentDataToEntityProperties(data, properties);
         newEntitiesProperties.push_back(properties);
     }
-    removeAvatarEntities();
+
+    // clear any existing avatar entities
+    setAvatarEntityData(AvatarEntityMap());
+
     for (auto& properties : newEntitiesProperties) {
         DependencyManager::get<EntityScriptingInterface>()->addEntity(properties, true);
     }
