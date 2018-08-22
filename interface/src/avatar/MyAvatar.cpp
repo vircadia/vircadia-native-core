@@ -3933,6 +3933,9 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(const MyAvatar& myAvatar, co
 
 void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix,
                                               const glm::mat4& currentBodyMatrix, bool hasDriveInput) {
+    const float VELOCITY_THRESHHOLD = 1.0f;
+    float currentVelocity = glm::length(myAvatar.getLocalVelocity() / myAvatar.getSensorToWorldScale());
+
 
     if (myAvatar.getHMDLeanRecenterEnabled() &&
         qApp->getCamera().getMode() != CAMERA_MODE_MIRROR) {
@@ -3946,7 +3949,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
         //    myAvatar.setHeadControllerFacingMovingAverage(myAvatar._headControllerFacing);
         //}
         if (myAvatar.getCenterOfGravityModelEnabled()) {
-            if (!isActive(Horizontal) && (shouldActivateHorizontalCG(myAvatar) || hasDriveInput)) {
+            if ((!isActive(Horizontal) && (shouldActivateHorizontalCG(myAvatar) || hasDriveInput)) || (isActive(Horizontal) && (currentVelocity > VELOCITY_THRESHHOLD))) {
                 activate(Horizontal);
                 if (myAvatar.getEnableStepResetRotation()) {
                     activate(Rotation);
