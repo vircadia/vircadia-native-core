@@ -2448,7 +2448,6 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
              if (attachmentJson.isObject()) {                 
                  QVariantMap entityData = attachmentJson.toObject().toVariantMap();
                  QUuid entityID = entityData.value("id").toUuid();
-                 auto ds = QByteArray::fromBase64(entityData.value("properties").toString().toUtf8());
                  QByteArray properties = QByteArray::fromBase64(entityData.value("properties").toByteArray());
                  updateAvatarEntity(entityID, properties);
              }
