@@ -236,8 +236,6 @@ void Avatar::updateAvatarEntities() {
         return;
     }
 
-    createRecordingIDs();
-
     if (getID().isNull() ||
         getID() == AVATAR_SELF_ID ||
         DependencyManager::get<NodeList>()->getSessionUUID() == QUuid()) {
@@ -367,6 +365,9 @@ void Avatar::updateAvatarEntities() {
                     _avatarEntityDataHashes.erase(stateItr);
                 }
             }
+        }
+        if (avatarEntities.size() != _avatarEntityForRecording.size()) {
+            createRecordingIDs();
         }
     });
 

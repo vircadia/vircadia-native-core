@@ -2443,15 +2443,15 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
     }
 
     if (json.contains(JSON_AVATAR_ENTITIES) && json[JSON_AVATAR_ENTITIES].isArray()) {
-         QJsonArray attachmentsJson = json[JSON_AVATAR_ENTITIES].toArray();
-         for (auto attachmentJson : attachmentsJson) {
-             if (attachmentJson.isObject()) {                 
-                 QVariantMap entityData = attachmentJson.toObject().toVariantMap();
-                 QUuid entityID = entityData.value("id").toUuid();
-                 QByteArray properties = QByteArray::fromBase64(entityData.value("properties").toByteArray());
-                 updateAvatarEntity(entityID, properties);
-             }
-         }
+        QJsonArray attachmentsJson = json[JSON_AVATAR_ENTITIES].toArray();
+        for (auto attachmentJson : attachmentsJson) {
+            if (attachmentJson.isObject()) {
+                QVariantMap entityData = attachmentJson.toObject().toVariantMap();
+                QUuid entityID = entityData.value("id").toUuid();
+                QByteArray properties = QByteArray::fromBase64(entityData.value("properties").toByteArray());
+                updateAvatarEntity(entityID, properties);
+            }
+        }
     }
 
     if (json.contains(JSON_AVATAR_JOINT_ARRAY)) {
