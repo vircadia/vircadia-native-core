@@ -18,22 +18,22 @@
 
 #include <QUuid>
 
-#include <SettingHandle.h>
-#include <Rig.h>
-#include <Sound.h>
-#include <ScriptEngine.h>
-
-#include <controllers/Pose.h>
-#include <controllers/Actions.h>
 #include <AvatarConstants.h>
 #include <avatars-renderer/Avatar.h>
 #include <avatars-renderer/ScriptAvatar.h>
+#include <ClientTraitsHandler.h>
+#include <controllers/Pose.h>
+#include <controllers/Actions.h>
+#include <EntityItem.h>
+#include <ThreadSafeValueCache.h>
+#include <Rig.h>
+#include <ScriptEngine.h>
+#include <SettingHandle.h>
+#include <Sound.h>
 
 #include "AtRestDetector.h"
 #include "MyCharacterController.h"
 #include "RingBufferHistory.h"
-#include <ThreadSafeValueCache.h>
-#include <EntityItem.h>
 
 class AvatarActionHold;
 class ModelItemID;
@@ -1336,7 +1336,6 @@ public slots:
      */
     void setAnimGraphUrl(const QUrl& url);  // thread-safe
 
-
     /**jsdoc
      * @function MyAvatar.getPositionForAudio
      * @returns {Vec3} 
@@ -1348,7 +1347,6 @@ public slots:
      * @returns {Quat} 
      */
     glm::quat getOrientationForAudio();
-
 
     /**jsdoc
      * @function MyAvatar.setModelScale

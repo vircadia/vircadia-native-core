@@ -103,7 +103,7 @@ FocusScope {
                 verticalCenter: parent.verticalCenter
             }
             size: hifi.fontSizes.textFieldInput
-            text: comboBox.currentText
+            text: comboBox.displayText ? comboBox.displayText : comboBox.currentText
             elide: Text.ElideRight
             color: comboBox.hovered || comboBox.popup.visible ? hifi.colors.baseGray : (isLightColorScheme ? hifi.colors.lightGray : hifi.colors.lightGrayText )
         }
