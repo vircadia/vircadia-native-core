@@ -409,8 +409,7 @@
         handOrientation = Quat.multiply(MyAvatar.orientation, MyAvatar.getAbsoluteJointRotationInObjectFrame(jointIndex));
         cameraToHandDirection = Vec3.normalize(Vec3.subtract(handPosition, Camera.position));
 
-        return Vec3.dot(cameraToHandDirection, Quat.getForward(handOrientation)) > MIN_HAND_CAMERA_ANGLE_COS
-            && Vec3.dot(cameraToHandDirection, Quat.getForward(Camera.orientation)) > MIN_HAND_CAMERA_ANGLE_COS;
+        return Vec3.dot(cameraToHandDirection, Quat.getForward(handOrientation)) > MIN_HAND_CAMERA_ANGLE_COS;
     }
 
     function enterProxyHidden() {
