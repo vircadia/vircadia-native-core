@@ -31,7 +31,9 @@
 QJsonObject Ledger::apiResponse(const QString& label, QNetworkReply* reply) {
     QByteArray response = reply->readAll();
     QJsonObject data = QJsonDocument::fromJson(response).object();
+#if defined(DEV_BUILD)  // Don't expose user's personal data in the wild. But during development this can be handy.
     qInfo(commerce) << label << "response" << QJsonDocument(data).toJson(QJsonDocument::Compact);
+#endif
     return data;
 }
 // Non-200 responses are not json:
@@ -69,7 +71,9 @@ void Ledger::send(const QString& endpoint, const QString& success, const QString
     auto accountManager = DependencyManager::get<AccountManager>();
     const QString URL = "/api/v1/commerce/";
     JSONCallbackParameters callbackParams(this, success, fail);
+#if defined(DEV_BUILD)  // Don't expose user's personal data in the wild. But during development this can be handy.
     qCInfo(commerce) << "Sending" << endpoint << QJsonDocument(request).toJson(QJsonDocument::Compact);
+#endif
     accountManager->sendRequest(URL + endpoint,
         authType,
         method,
@@ -130,7 +134,6 @@ bool Ledger::receiveAt(const QString& hfc_key, const QString& signing_key, const
     transaction["locker"] = QString::fromUtf8(locker);
     QJsonDocument transactionDoc{ transaction };
     auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
-    qCDebug(commerce) << "FIXME transactionString" << transactionString;
     signedSend("text", transactionString, signing_key, "receive_at", "receiveAtSuccess", "receiveAtFailure");
     return true; // Note that there may still be an asynchronous signal of failure that callers might be interested in.
 }
@@ -292,7 +295,6 @@ void Ledger::accountSuccess(QNetworkReply* reply) {
     // lets set the appropriate stuff in the wallet now
     auto wallet = DependencyManager::get<Wallet>();
     QByteArray response = reply->readAll();
-    qCDebug(commerce) << "FIXME accountSuccess got" << response;
     QJsonObject data = QJsonDocument::fromJson(response).object()["data"].toObject();
 
     auto salt = QByteArray::fromBase64(data["salt"].toString().toUtf8());

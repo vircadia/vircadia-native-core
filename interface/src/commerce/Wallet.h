@@ -44,10 +44,6 @@ public:
     void setCKey(const QByteArray& ckey) { _ckey = ckey; }
     QByteArray getCKey() { return _ckey; }
 
-    // FIXME protect more
-    bool setWallet(const QByteArray& wallet);
-    QByteArray getWallet();
-
     bool setPassphrase(const QString& passphrase);
     QString* getPassphrase() { return _passphrase; }
     bool getPassphraseIsCached() { return !(_passphrase->isEmpty()); }
@@ -77,6 +73,7 @@ private slots:
     void handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
 
 private:
+    friend class Ledger;
     QStringList _publicKeys{};
     QPixmap* _securityImage { nullptr };
     QByteArray _salt;
@@ -90,6 +87,9 @@ private:
     bool writeSecurityImage(const QPixmap* pixmap, const QString& outputFilePath);
     bool readSecurityImage(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferLen);
     bool writeBackupInstructions();
+
+    bool setWallet(const QByteArray& wallet);
+    QByteArray getWallet();
 
     void account();
 };

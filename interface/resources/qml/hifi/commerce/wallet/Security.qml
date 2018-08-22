@@ -88,6 +88,7 @@ Item {
             color: hifi.colors.faintGray;
         }
 
+        /*
         Item {
             id: changePassphraseContainer;
             anchors.top: securityTextSeparator.bottom;
@@ -154,10 +155,11 @@ Item {
             // Style
             color: hifi.colors.faintGray;
         }
+        */
 
         Item {
             id: changeSecurityImageContainer;
-            anchors.top: changePassphraseSeparator.bottom;
+            anchors.top: securityTextSeparator.bottom; // changePassphraseSeparator.bottom;
             anchors.topMargin: 8;
             anchors.left: parent.left;
             anchors.leftMargin: 40;
@@ -207,7 +209,7 @@ Item {
                 }
             }
         }
-
+        /*
         Rectangle {
             id: privateKeysSeparator;
             // Size
@@ -344,6 +346,7 @@ Item {
                 }
             }
         }
+        */
     }
 
     //

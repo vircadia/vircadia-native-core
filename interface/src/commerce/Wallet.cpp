@@ -201,7 +201,6 @@ bool Wallet::setWallet(const QByteArray& wallet) {
         return false;
     }
     file.close();
-    qCDebug(commerce) << "FIXME wrote" << wallet.count() << "to" << keyFilePath();
     return true;
 }
 QByteArray Wallet::getWallet() {
@@ -212,7 +211,6 @@ QByteArray Wallet::getWallet() {
     }
     QByteArray wallet = file.readAll();
     file.close();
-    qCDebug(commerce) << "FIXME read" << wallet.count() << "from" << keyFilePath();
     return wallet;
 }
 

@@ -257,9 +257,9 @@ Rectangle {
         Connections {
             onSendSignalToWallet: {
                 if (msg.method === 'walletSecurity_changeSecurityImageCancelled') {
-                    root.activeView = "walletHome"; // was "security";
+                    root.activeView = "security";
                 } else if (msg.method === 'walletSecurity_changeSecurityImageSuccess') {
-                    root.activeView = "walletHome"; // was "security";
+                    root.activeView = "security";
                 } else {
                     sendToScript(msg);
                 }
@@ -610,7 +610,7 @@ Rectangle {
             }
 
             RalewaySemiBold {
-                text: "PURCHASES"; // was "SECURITY";
+                text: "SECURITY";
                 // Text size
                 size: 16;
                 // Anchors
@@ -632,11 +632,8 @@ Rectangle {
                 anchors.fill: parent;
                 hoverEnabled: enabled;
                 onClicked: {
-                    sendToScript({method: 'goToPurchases_fromWalletHome'});
-                    /* was
                     root.activeView = "security";
                     tabButtonsContainer.resetTabButtonColors();
-                    */
                 }
                 onEntered: parent.color = hifi.colors.blueHighlight;
                 onExited: parent.color = root.activeView === "security" ? hifi.colors.blueAccent : hifi.colors.black;
