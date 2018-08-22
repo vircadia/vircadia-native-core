@@ -457,8 +457,11 @@ void EntityScriptServer::resetEntitiesScriptEngine() {
     auto newEngineSP = qSharedPointerCast<EntitiesScriptEngineProvider>(newEngine);
     DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(newEngineSP);
 
-    disconnect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptDetailsUpdated,
-               this, &EntityScriptServer::updateEntityPPS);
+    if (_entitiesScriptEngine) {
+        disconnect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptDetailsUpdated,
+                   this, &EntityScriptServer::updateEntityPPS);
+    }
+
     _entitiesScriptEngine.swap(newEngine);
     connect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptDetailsUpdated,
             this, &EntityScriptServer::updateEntityPPS);
@@ -489,6 +492,21 @@ void EntityScriptServer::shutdownScriptEngine() {
     _shuttingDown = true;
 
     clear(); // always clear() on shutdown
+
+    auto scriptEngines = DependencyManager::get<ScriptEngines>();
+    scriptEngines->shutdownScripting();
+
+    _entitiesScriptEngine.clear();
+
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    // our entity tree is going to go away so tell that to the EntityScriptingInterface
+    entityScriptingInterface->setEntityTree(nullptr);
+
+    // Should always be true as they are singletons.
+    if (entityScriptingInterface->getPacketSender() == &_entityEditSender) {
+        // The packet sender is about to go away.
+        entityScriptingInterface->setPacketSender(nullptr);
+    }
 }
 
 void EntityScriptServer::addingEntity(const EntityItemID& entityID) {
@@ -560,18 +578,6 @@ void EntityScriptServer::handleOctreePacket(QSharedPointer<ReceivedMessage> mess
 
 void EntityScriptServer::aboutToFinish() {
     shutdownScriptEngine();
-
-    {
-        auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-        // our entity tree is going to go away so tell that to the EntityScriptingInterface
-        entityScriptingInterface->setEntityTree(nullptr);
-
-        // Should always be true as they are singletons.
-        if (entityScriptingInterface->getPacketSender() == &_entityEditSender) {
-            // The packet sender is about to go away.
-            entityScriptingInterface->setPacketSender(nullptr);
-        }
-    }
 
     DependencyManager::destroy<AssignmentParentFinder>();
 
