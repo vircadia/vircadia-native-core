@@ -1,6 +1,6 @@
 //
 //  ScriptableAvatar.cpp
-//
+//  assignment-client/src/avatars
 //
 //  Created by Clement on 7/22/14.
 //  Copyright 2014 High Fidelity, Inc.
@@ -16,9 +16,13 @@
 #include <glm/gtx/transform.hpp>
 
 #include <shared/QtHelpers.h>
-#include <GLMHelpers.h>
 #include <AnimUtil.h>
+#include <ClientTraitsHandler.h>
+#include <GLMHelpers.h>
 
+ScriptableAvatar::ScriptableAvatar() {
+    _clientTraitsHandler = std::unique_ptr<ClientTraitsHandler>(new ClientTraitsHandler(this));
+}
 
 QByteArray ScriptableAvatar::toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking) {
     _globalPosition = getWorldPosition();
@@ -61,6 +65,7 @@ AnimationDetails ScriptableAvatar::getAnimationDetails() {
 void ScriptableAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _bind.reset();
     _animSkeleton.reset();
+
     AvatarData::setSkeletonModelURL(skeletonModelURL);
 }
 
@@ -137,4 +142,6 @@ void ScriptableAvatar::update(float deltatime) {
             _animation.clear();
         }
     }
+
+    _clientTraitsHandler->sendChangedTraitsToMixer();
 }

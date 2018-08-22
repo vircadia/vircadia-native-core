@@ -36,7 +36,6 @@ namespace MenuOption {
     const QString AskToResetSettings = "Ask To Reset Settings on Start";
     const QString AssetMigration = "ATP Asset Migration";
     const QString AssetServer = "Asset Browser";
-    const QString Attachments = "Attachments...";
     const QString AudioScope = "Show Scope";
     const QString AudioScopeFiftyFrames = "Fifty";
     const QString AudioScopeFiveFrames = "Five";

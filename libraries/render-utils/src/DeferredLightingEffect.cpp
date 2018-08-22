@@ -496,10 +496,6 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
             batch.setPipeline(program);
         }
 
-        // Adjust the texcoordTransform in the case we are rendeirng a sub region(mini mirror)
-        auto textureFrameTransform = gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(deferredFramebuffer->getFrameSize(), args->_viewport);
-        batch._glUniform4fv(ru::Uniform::TexcoordTransform, 1, reinterpret_cast< const float* >(&textureFrameTransform));
-
         // Setup the global lighting
         deferredLightingEffect->setupKeyLightBatch(args, batch);
 
@@ -560,23 +556,18 @@ void RenderDeferredLocals::run(const render::RenderContextPointer& renderContext
         batch.setViewportTransform(viewport);
         batch.setStateScissorRect(viewport);
 
-        auto textureFrameTransform = gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(deferredFramebuffer->getFrameSize(), viewport);
-
-
         auto& lightIndices = lightClusters->_visibleLightIndices;
         if (!lightIndices.empty() && lightIndices[0] > 0) {
             deferredLightingEffect->setupLocalLightsBatch(batch, lightClusters);
 
             // Local light pipeline
             batch.setPipeline(deferredLightingEffect->_localLight);
-            batch._glUniform4fv(ru::Uniform::TexcoordTransform, 1, reinterpret_cast<const float*>(&textureFrameTransform));
 
             batch.draw(gpu::TRIANGLE_STRIP, 4);
 
              // Draw outline as well ?
             if (lightingModel->isShowLightContourEnabled()) {
                 batch.setPipeline(deferredLightingEffect->_localLightOutline);
-                batch._glUniform4fv(ru::Uniform::TexcoordTransform, 1, reinterpret_cast<const float*>(&textureFrameTransform));
 
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
             }

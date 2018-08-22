@@ -15,7 +15,7 @@
 
 #include "CrashHandler.h"
 
-RenderEventHandler::RenderEventHandler(QOpenGLContext* context, CheckCall checkCall, RenderCall renderCall) :
+RenderEventHandler::RenderEventHandler(CheckCall checkCall, RenderCall renderCall) :
     _checkCall(checkCall),
     _renderCall(renderCall)
 {

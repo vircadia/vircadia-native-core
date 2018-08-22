@@ -1,6 +1,6 @@
 //
 //  ScriptableAvatar.h
-//
+//  assignment-client/src/avatars
 //
 //  Created by Clement on 7/22/14.
 //  Copyright 2014 High Fidelity, Inc.
@@ -123,7 +123,9 @@
 class ScriptableAvatar : public AvatarData, public Dependency {
     Q_OBJECT
 public:
-  
+
+    ScriptableAvatar();
+
     /**jsdoc
      * @function Avatar.startAnimation
      * @param {string} url
