@@ -272,7 +272,7 @@ void setupPreferences() {
         auto getter = [myAvatar]()->bool { return myAvatar->useAdvancedMovementControls(); };
         auto setter = [myAvatar](bool value) { myAvatar->setUseAdvancedMovementControls(value); };
         preferences->addPreference(new CheckPreference(VR_MOVEMENT,
-                                                       QStringLiteral("Advanced movement for hand controllers"),
+                                                       QStringLiteral("Advanced movement for VR (Teleport movement when unchecked)"),
                                                        getter, setter));
     }
     {
