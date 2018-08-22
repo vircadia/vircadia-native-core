@@ -95,7 +95,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::AvatarIdentityRequest:
             return 22;
         case PacketType::EntityQueryInitialResultsComplete:
-            return 23;
+            return static_cast<PacketVersion>(EntityVersion::ParticleSpin);
         default:
             return 22;
     }
