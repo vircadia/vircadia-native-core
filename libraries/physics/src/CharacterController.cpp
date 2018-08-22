@@ -121,6 +121,8 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
             _dynamicsWorld->addAction(this);
             // restore gravity settings because adding an object to the world overwrites its gravity setting
             _rigidBody->setGravity(_currentGravity * _currentUp);
+            // set flag to enable custom contactAddedCallback
+            _rigidBody->setCollisionFlags(btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
             btCollisionShape* shape = _rigidBody->getCollisionShape();
             assert(shape && shape->getShapeType() == CONVEX_HULL_SHAPE_PROXYTYPE);
             _ghost.setCharacterShape(static_cast<btConvexHullShape*>(shape));
@@ -294,14 +296,14 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
 
             // compute the angle we will resolve for this dt, but don't overshoot
             float angle = 2.0f * acosf(qDot);
-            if ( dt < _followTimeRemaining) {
+            if (dt < _followTimeRemaining) {
                 angle *= dt / _followTimeRemaining;
             }
-            
+
             // accumulate rotation
             deltaRot = btQuaternion(axis, angle);
             _followAngularDisplacement = (deltaRot * _followAngularDisplacement).normalize();
-            
+
             // in order to accumulate displacement of avatar position, we need to take _shapeLocalOffset into account.
             btVector3 shapeLocalOffset = glmToBullet(_shapeLocalOffset);
 

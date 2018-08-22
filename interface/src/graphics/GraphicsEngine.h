@@ -88,8 +88,6 @@ protected:
     QObject* _renderEventHandler{ nullptr };
     friend class RenderEventHandler;
 
-    OffscreenGLCanvas* _offscreenContext{ nullptr };
-
     FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
 
     friend class Application;

@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name" translatable="false">Interface</string>
     <string name="home">Home</string>
+    <string name="people">People</string>
     <string name="web_view_action_open_in_browser" translatable="false">Open in browser</string>
     <string name="web_view_action_share" translatable="false">Share link</string>
     <string name="web_view_action_share_subject" translatable="false">Shared a link</string>
@@ -21,5 +22,11 @@
     <string name="search_no_results">No places exist with that name</string>
     <string name="privacyPolicy">Privacy Policy</string>
     <string name="your_last_location">Your Last Location</string>
+    <string name="online">Online</string>
 
+    <!-- tags -->
+    <string name="tagFragmentHome">tagFragmentHome</string>
+    <string name="tagFragmentLogin">tagFragmentLogin</string>
+    <string name="tagFragmentPolicy">tagFragmentPolicy</string>
+    <string name="tagFragmentPeople">tagFragmentPeople</string>
 </resources>

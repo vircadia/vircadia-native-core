@@ -34,7 +34,7 @@ public:
     CheckCall _checkCall;
     RenderCall _renderCall;
 
-    RenderEventHandler(QOpenGLContext* context, CheckCall checkCall, RenderCall renderCall);
+    RenderEventHandler(CheckCall checkCall, RenderCall renderCall);
 
     QElapsedTimer _lastTimeRendered;
     std::atomic<bool> _pendingRenderEvent{ true };
@@ -47,8 +47,6 @@ private:
     void render();
 
     bool event(QEvent* event) override;
-
-    OffscreenGLCanvas* _renderContext{ nullptr };
 };
 
 #endif // #include hifi_RenderEventHandler_h

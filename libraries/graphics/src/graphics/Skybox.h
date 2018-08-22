@@ -43,7 +43,7 @@ public:
     virtual bool empty() { return _empty; }
     virtual void clear();
 
-    void prepare(gpu::Batch& batch, int textureSlot = SKYBOX_SKYMAP_SLOT, int bufferSlot = SKYBOX_CONSTANTS_SLOT) const;
+    void prepare(gpu::Batch& batch) const;
     virtual void render(gpu::Batch& batch, const ViewFrustum& frustum) const;
 
     static void render(gpu::Batch& batch, const ViewFrustum& frustum, const Skybox& skybox);
@@ -51,9 +51,6 @@ public:
     const UniformBufferView& getSchemaBuffer() const { return _schemaBuffer; }
 
 protected:
-    static const int SKYBOX_SKYMAP_SLOT { 0 };
-    static const int SKYBOX_CONSTANTS_SLOT { 0 };
-
     class Schema {
     public:
         glm::vec3 color { 0.0f, 0.0f, 0.0f };

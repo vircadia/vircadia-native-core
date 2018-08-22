@@ -16,6 +16,7 @@
 
 #include <shared/GlobalAppProperties.h>
 #include <gl/QOpenGLContextWrapper.h>
+#include <gl/GLHelpers.h>
 #include <gpu/gl/GLShader.h>
 
 #include "../gl41/GL41Backend.h"
@@ -24,9 +25,6 @@
 using namespace gpu;
 using namespace gpu::gl;
 
-static const QString DEBUG_FLAG("HIFI_DISABLE_OPENGL_45");
-static bool disableOpenGL45 = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
-
 static GLBackend* INSTANCE{ nullptr };
 
 BackendPointer GLBackend::createBackend() {
@@ -34,7 +32,7 @@ BackendPointer GLBackend::createBackend() {
     // Where the gpuContext is initialized and where the TRUE Backend is created and assigned
     auto version = QOpenGLContextWrapper::currentContextVersion();
     std::shared_ptr<GLBackend> result;
-    if (!disableOpenGL45 && version >= 0x0405) {
+    if (!::gl::disableGl45() && version >= 0x0405) {
         qCDebug(gpugllogging) << "Using OpenGL 4.5 backend";
         result = std::make_shared<gpu::gl45::GL45Backend>();
     } else {
@@ -56,8 +54,4 @@ GLBackend& getBackend() {
         INSTANCE = static_cast<GLBackend*>(qApp->property(hifi::properties::gl::BACKEND).value<void*>());
     }
     return *INSTANCE;
-}
-
-bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindings, const Shader::CompilationHandler& handler) {
-    return GLShader::makeProgram(getBackend(), shader, slotBindings, handler);
 }

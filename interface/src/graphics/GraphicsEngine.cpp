@@ -41,40 +41,20 @@ GraphicsEngine::~GraphicsEngine() {
 
 void GraphicsEngine::initializeGPU(GLWidget* glwidget) {
 
-    // Build an offscreen GL context for the main thread.
-    _offscreenContext = new OffscreenGLCanvas();
-    _offscreenContext->setObjectName("MainThreadContext");
-    _offscreenContext->create(glwidget->qglContext());
-    if (!_offscreenContext->makeCurrent()) {
-        qFatal("Unable to make offscreen context current");
-    }
-    _offscreenContext->doneCurrent();
-    _offscreenContext->setThreadContext();
-
     _renderEventHandler = new RenderEventHandler(
-        glwidget->qglContext(),
         [this]() { return this->shouldPaint(); },
         [this]() { this->render_performFrame(); }
     );
-
-    if (!_offscreenContext->makeCurrent()) {
-        qFatal("Unable to make offscreen context current");
-    }
 
     // Requires the window context, because that's what's used in the actual rendering
     // and the GPU backend will make things like the VAO which cannot be shared across
     // contexts
     glwidget->makeCurrent();
     gpu::Context::init<gpu::gl::GLBackend>();
-    qApp->setProperty(hifi::properties::gl::MAKE_PROGRAM_CALLBACK,
-        QVariant::fromValue((void*)(&gpu::gl::GLBackend::makeProgram)));
     glwidget->makeCurrent();
     _gpuContext = std::make_shared<gpu::Context>();
 
     DependencyManager::get<TextureCache>()->setGPUContext(_gpuContext);
-
-    // Restore the default main thread context
-    _offscreenContext->makeCurrent();
 }
 
 void GraphicsEngine::initializeRender(bool disableDeferred) {
@@ -91,8 +71,6 @@ void GraphicsEngine::initializeRender(bool disableDeferred) {
 
     // Now that OpenGL is initialized, we are sure we have a valid context and can create the various pipeline shaders with success.
     DependencyManager::get<GeometryCache>()->initializeShapePipelines();
-
-
 }
 
 void GraphicsEngine::startup() {

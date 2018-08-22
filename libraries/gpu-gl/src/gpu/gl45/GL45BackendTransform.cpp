@@ -25,7 +25,7 @@ void GL45Backend::initTransform() {
 #endif
     size_t cameraSize = sizeof(TransformStageState::CameraBufferElement);
     while (_transform._cameraUboSize < cameraSize) {
-        _transform._cameraUboSize += _uboAlignment;
+        _transform._cameraUboSize += UNIFORM_BUFFER_OFFSET_ALIGNMENT;
     }
 }
 
@@ -57,9 +57,9 @@ void GL45Backend::transferTransformState(const Batch& batch) const {
     }
 
 #ifdef GPU_SSBO_TRANSFORM_OBJECT
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, GL45Backend::TRANSFORM_OBJECT_SLOT, _transform._objectBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, slot::storage::ObjectTransforms, _transform._objectBuffer);
 #else
-    glActiveTexture(GL_TEXTURE0 + GL45Backend::TRANSFORM_OBJECT_SLOT);
+    glActiveTexture(GL_TEXTURE0 + slot::texture::ObjectTransforms);
     glBindTexture(GL_TEXTURE_BUFFER, _transform._objectBufferTexture);
     glTextureBuffer(_transform._objectBufferTexture, GL_RGBA32F, _transform._objectBuffer);
 #endif

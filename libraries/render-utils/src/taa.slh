@@ -13,13 +13,14 @@
 <@include DeferredTransform.slh@>
 <$declareDeferredFrameTransform()$>
 
+<@include render-utils/ShaderConstants.h@>
 <@include gpu/Color.slh@>
 
-uniform sampler2D depthMap;
-uniform sampler2D sourceMap;
-uniform sampler2D historyMap;
-uniform sampler2D velocityMap;
-uniform sampler2D nextMap;
+layout(binding=RENDER_UTILS_TEXTURE_TAA_HISTORY) uniform sampler2D historyMap;
+layout(binding=RENDER_UTILS_TEXTURE_TAA_SOURCE) uniform sampler2D sourceMap;
+layout(binding=RENDER_UTILS_TEXTURE_TAA_VELOCITY) uniform sampler2D velocityMap;
+layout(binding=RENDER_UTILS_TEXTURE_TAA_DEPTH) uniform sampler2D depthMap;
+layout(binding=RENDER_UTILS_TEXTURE_TAA_NEXT) uniform sampler2D nextMap;
 
 struct TAAParams
 {
@@ -32,7 +33,7 @@ struct TAAParams
     vec4 regionInfo;
 };
 
-layout(std140) uniform taaParamsBuffer {
+layout(std140, binding=RENDER_UTILS_BUFFER_TAA_PARAMS) uniform taaParamsBuffer {
     TAAParams params;
 };
 
@@ -519,3 +520,4 @@ vec3 taa_evalFXAA(vec2 fragUV) {
         return rgbB;
     }
 }
+

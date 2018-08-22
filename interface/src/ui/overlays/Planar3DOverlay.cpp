@@ -72,8 +72,48 @@ QVariant Planar3DOverlay::getProperty(const QString& property) {
 
 bool Planar3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                           float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking) {
-    // FIXME - face and surfaceNormal not being returned
-    return findRayRectangleIntersection(origin, direction, getWorldOrientation(), getWorldPosition(), getDimensions(), distance);
+    glm::vec2 xyDimensions = getDimensions();
+    glm::quat rotation = getWorldOrientation();
+    glm::vec3 position = getWorldPosition();
+
+    if (findRayRectangleIntersection(origin, direction, rotation, position, xyDimensions, distance)) {
+        glm::vec3 forward = rotation * Vectors::FRONT;
+        if (glm::dot(forward, direction) > 0.0f) {
+            face = MAX_Z_FACE;
+            surfaceNormal = -forward;
+        } else {
+            face = MIN_Z_FACE;
+            surfaceNormal = forward;
+        }
+        return true;
+    }
+    return false;
+}
+
+bool Planar3DOverlay::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+                                               float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking) {
+    glm::vec2 xyDimensions = getDimensions();
+    glm::quat rotation = getWorldOrientation();
+    glm::vec3 position = getWorldPosition();
+
+    glm::quat inverseRot = glm::inverse(rotation);
+    glm::vec3 localOrigin = inverseRot * (origin - position);
+    glm::vec3 localVelocity = inverseRot * velocity;
+    glm::vec3 localAcceleration = inverseRot * acceleration;
+
+    if (findParabolaRectangleIntersection(localOrigin, localVelocity, localAcceleration, xyDimensions, parabolicDistance)) {
+        float localIntersectionVelocityZ = localVelocity.z + localAcceleration.z * parabolicDistance;
+        glm::vec3 forward = rotation * Vectors::FRONT;
+        if (localIntersectionVelocityZ > 0.0f) {
+            face = MIN_Z_FACE;
+            surfaceNormal = forward;
+        } else {
+            face = MAX_Z_FACE;
+            surfaceNormal = -forward;
+        }
+        return true;
+    }
+    return false;
 }
 
 Transform Planar3DOverlay::evalRenderTransform() {

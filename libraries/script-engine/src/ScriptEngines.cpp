@@ -133,7 +133,7 @@ QUrl expandScriptUrl(const QUrl& rawScriptURL) {
 QObject* scriptsModel();
 
 bool NativeScriptInitializers::registerNativeScriptInitializer(NativeScriptInitializer initializer) {
-    return registerScriptInitializer([=](ScriptEnginePointer engine) {
+    return registerScriptInitializer([initializer](ScriptEnginePointer engine) {
         initializer(qobject_cast<QScriptEngine*>(engine.data()));
     });
 }
@@ -492,8 +492,7 @@ ScriptEnginePointer ScriptEngines::loadScript(const QUrl& scriptFilename, bool i
         return scriptEngine;
     }
 
-    scriptEngine = ScriptEnginePointer(new ScriptEngine(_context, NO_SCRIPT, "about:" + scriptFilename.fileName()));
-    addScriptEngine(scriptEngine);
+    scriptEngine = scriptEngineFactory(_context, NO_SCRIPT, "about:" + scriptFilename.fileName());
     scriptEngine->setUserLoaded(isUserLoaded);
     scriptEngine->setQuitWhenFinished(quitWhenFinished);
 
@@ -564,10 +563,10 @@ int ScriptEngines::runScriptInitializers(ScriptEnginePointer scriptEngine) {
 
 void ScriptEngines::launchScriptEngine(ScriptEnginePointer scriptEngine) {
     connect(scriptEngine.data(), &ScriptEngine::finished, this, &ScriptEngines::onScriptFinished, Qt::DirectConnection);
-    connect(scriptEngine.data(), &ScriptEngine::loadScript, [&](const QString& scriptName, bool userLoaded) {
+    connect(scriptEngine.data(), &ScriptEngine::loadScript, [this](const QString& scriptName, bool userLoaded) {
         loadScript(scriptName, userLoaded);
     });
-    connect(scriptEngine.data(), &ScriptEngine::reloadScript, [&](const QString& scriptName, bool userLoaded) {
+    connect(scriptEngine.data(), &ScriptEngine::reloadScript, [this](const QString& scriptName, bool userLoaded) {
         loadScript(scriptName, userLoaded, false, false, true);
     });
 

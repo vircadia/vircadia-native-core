@@ -33,19 +33,6 @@
 #include "entities/EntityTreeHeadlessViewer.h"
 #include "avatars/ScriptableAvatar.h"
 
-/**jsdoc
- * @namespace Agent
- *
- * @hifi-assignment-client
- *
- * @property {boolean} isAvatar
- * @property {boolean} isPlayingAvatarSound <em>Read-only.</em>
- * @property {boolean} isListeningToAudioStream
- * @property {boolean} isNoiseGateEnabled
- * @property {number} lastReceivedAudioLoudness <em>Read-only.</em>
- * @property {Uuid} sessionUUID <em>Read-only.</em>
- */
-
 class Agent : public ThreadedAssignment {
     Q_OBJECT
 
@@ -73,29 +60,14 @@ public:
     virtual void aboutToFinish() override;
 
 public slots:
-    /**jsdoc
-     * @function Agent.run
-     * @deprecated This function is being removed from the API.
-     */
     void run() override;
 
-    /**jsdoc
-     * @function Agent.playAvatarSound
-     * @param {object} avatarSound
-     */
     void playAvatarSound(SharedSoundPointer avatarSound);
-    
-    /**jsdoc
-     * @function Agent.setIsAvatar
-     * @param {boolean} isAvatar
-     */
-    void setIsAvatar(bool isAvatar);
 
-    /**jsdoc
-     * @function Agent.isAvatar
-     * @returns {boolean}
-     */
+    void setIsAvatar(bool isAvatar);
     bool isAvatar() const { return _isAvatar; }
+
+    Q_INVOKABLE virtual void stop() override;
 
 private slots:
     void requestScript();

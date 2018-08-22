@@ -2,6 +2,8 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
+//  surfaceGeometry_makeCurvature.frag
+//
 //  Created by Sam Gateau on 6/3/16.
 //  Copyright 2016 High Fidelity, Inc.
 //
@@ -10,6 +12,8 @@
 //
 
 <@include DeferredTransform.slh@>
+<@include render-utils/ShaderConstants.h@>
+
 <$declareDeferredFrameTransform()$>
 
 <@include gpu/PackedNormal.slh@>
@@ -21,7 +25,7 @@ struct SurfaceGeometryParams {
     vec4 curvatureInfo;
 };
 
-uniform surfaceGeometryParamsBuffer {
+layout(binding= RENDER_UTILS_BUFFER_SG_PARAMS) uniform surfaceGeometryParamsBuffer {
     SurfaceGeometryParams params;
 };
 
@@ -42,7 +46,8 @@ bool isFullResolution() {
 }
 
 
-uniform sampler2D linearDepthMap;
+layout(binding=RENDER_UTILS_TEXTURE_SG_DEPTH) uniform sampler2D linearDepthMap;
+
 float getZEye(ivec2 pixel) {
     return -texelFetch(linearDepthMap, pixel, 0).x;
 }
@@ -54,7 +59,7 @@ vec2 sideToFrameTexcoord(vec2 side, vec2 texcoordPos) {
     return vec2((texcoordPos.x + side.x) * side.y, texcoordPos.y);
 }
 
-uniform sampler2D normalMap;
+layout(binding=RENDER_UTILS_TEXTURE_SG_NORMAL) uniform sampler2D normalMap;
 
 vec3 getRawNormal(vec2 texcoord) {
     return texture(normalMap, texcoord).xyz;
@@ -79,8 +84,8 @@ float getEyeDepthDiff(vec2 texcoord, vec2 delta) {
 
 
 
-in vec2 varTexCoord0;
-out vec4 outFragColor;
+layout(location=0) in vec2 varTexCoord0;
+layout(location=0) out vec4 outFragColor;
 
 void main(void) {
     // Pixel being shaded

@@ -39,8 +39,6 @@ var TABLET_NATURAL_DIMENSIONS = {x: 32.083, y: 48.553, z: 2.269};
 var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "images/button-close.png";
 // var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-close.png";
 // var TABLET_MODEL_PATH = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx";
-var LOCAL_BEZEL_HIGHLIGHT = Script.resourcesPath() + "images/buttonBezel_highlight.png";
-var LOCAL_NORMAL_BEZEL = Script.resourcesPath() + "images/buttonBezel.png";
 
 var LOCAL_TABLET_MODEL_PATH = Script.resourcesPath() + "meshes/tablet-with-home-button-small-bezel.fbx";
 var HIGH_PRIORITY = 1;
@@ -87,8 +85,7 @@ cleanUpOldMaterialEntities = function() {
     for (var entityID in avatarEntityData) {
         var entityName = Entities.getEntityProperties(entityID, ["name"]).name;
 
-        if (entityName === TABLET_MATERIAL_ENTITY_NAME && entityID !== HMD.homeButtonHighlightMaterialID &&
-           entityID !== HMD.homeButtonUnhighlightMaterialID) {
+        if (entityName === TABLET_MATERIAL_ENTITY_NAME) {
             Entities.deleteEntity(entityID);
         }
     }
@@ -194,45 +191,21 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
         parentJointIndex: -1
     });
 
-    this.homeButtonUnhighlightMaterial = Entities.addEntity({
-        type: "Material",
-        name: TABLET_MATERIAL_ENTITY_NAME,
-        materialURL: "materialData",
-        localPosition: { x: 0.0, y: 0.0, z: 0.0 },
-        priority: HIGH_PRIORITY,
-        materialData: JSON.stringify({
-            materials: {
-                albedoMap: LOCAL_NORMAL_BEZEL
-            }
-
-        }),
-        userData: JSON.stringify({
-            "grabbableKey": {"grabbable": false}
-        }),
-        visible: false,
-        parentMaterialName: SUBMESH,
-        parentID: this.tabletEntityID
-    }, true);
-
-    this.homeButtonHighlightMaterial = Entities.addEntity({
-        type: "Material",
-        name: TABLET_MATERIAL_ENTITY_NAME,
-        materialURL: "materialData",
-        localPosition: { x: 0.0, y: 0.0, z: 0.0 },
-        priority: LOW_PRIORITY,
-        visible: false,
-        materialData: JSON.stringify({
-            materials: {
-                emissiveMap: LOCAL_BEZEL_HIGHLIGHT
-            }
-
-        }),
-        userData: JSON.stringify({
-            "grabbableKey": {"grabbable": false}
-        }),
-        parentMaterialName: SUBMESH,
-        parentID: this.tabletEntityID
-    }, true);
+    this.homeButtonHighlightID = Overlays.addOverlay("circle3d", {
+        name: "homeButtonHighlight",
+        localPosition: { x: -HOME_BUTTON_X_OFFSET, y: HOME_BUTTON_Y_OFFSET, z: -HOME_BUTTON_Z_OFFSET },
+        localRotation: { x: 0, y: 1, z: 0, w: 0},
+        dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim },
+        color: {red: 255, green: 255, blue: 255},
+        solid: true,
+        innerRadius: 0.9,
+        ignoreIntersection: true,
+        alpha: 0.0,
+        visible: visible,
+        drawInFront: false,
+        parentID: this.tabletEntityID,
+        parentJointIndex: -1
+    });
 
     this.receive = function (channel, senderID, senderUUID, localOnly) {
         if (_this.homeButtonID === senderID) {
@@ -387,8 +360,7 @@ WebTablet.prototype.destroy = function () {
     Overlays.deleteOverlay(this.webOverlayID);
     Overlays.deleteOverlay(this.tabletEntityID);
     Overlays.deleteOverlay(this.homeButtonID);
-    Entities.deleteEntity(this.homeButtonUnhighlightMaterial);
-    Entities.deleteEntity(this.homeButtonHighlightMaterial);
+    Overlays.deleteOverlay(this.homeButtonHighlightID);
     HMD.displayModeChanged.disconnect(this.myOnHmdChanged);
 
     Controller.mousePressEvent.disconnect(this.myMousePressEvent);
@@ -482,22 +454,19 @@ WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function (windowPos
 
 WebTablet.prototype.onHoverEnterOverlay = function (overlayID, pointerEvent) {
     if (overlayID === this.homeButtonID) {
-        Entities.editEntity(this.homeButtonUnhighlightMaterial, {priority: LOW_PRIORITY});
-        Entities.editEntity(this.homeButtonHighlightMaterial, {priority: HIGH_PRIORITY});
+        Overlays.editOverlay(this.homeButtonHighlightID, { alpha: 1.0 });
     }
 };
 
 WebTablet.prototype.onHoverOverOverlay = function (overlayID, pointerEvent) {
     if (overlayID !== this.homeButtonID) {
-        Entities.editEntity(this.homeButtonUnhighlightMaterial, {priority: HIGH_PRIORITY});
-        Entities.editEntity(this.homeButtonHighlightMaterial, {priority: LOW_PRIORITY});
+        Overlays.editOverlay(this.homeButtonHighlightID, { alpha: 0.0 });
     }
 };
 
 WebTablet.prototype.onHoverLeaveOverlay = function (overlayID, pointerEvent) {
     if (overlayID === this.homeButtonID) {
-        Entities.editEntity(this.homeButtonUnhighlightMaterial, {priority: HIGH_PRIORITY});
-        Entities.editEntity(this.homeButtonHighlightMaterial, {priority: LOW_PRIORITY});
+        Overlays.editOverlay(this.homeButtonHighlightID, { alpha: 0.0 });
     }
 };
 
@@ -627,6 +596,21 @@ WebTablet.prototype.scheduleMouseMoveProcessor = function() {
     }
 };
 
+WebTablet.prototype.handleHomeButtonHover = function(x, y) {
+    var pickRay = Camera.computePickRay(x, y);
+    var entityPickResults;
+    var homebuttonHovered = false;
+    entityPickResults = Overlays.findRayIntersection(pickRay, true, [this.tabletEntityID]);
+    if (entityPickResults.intersects && (entityPickResults.entityID === this.tabletEntityID ||
+        entityPickResults.overlayID === this.tabletEntityID)) {
+        var overlayPickResults = Overlays.findRayIntersection(pickRay, true, [this.homeButtonID], []);
+        if (overlayPickResults.intersects && overlayPickResults.overlayID === this.homeButtonID) {
+            homebuttonHovered = true;
+        }
+    }
+    Overlays.editOverlay(this.homeButtonHighlightID, { alpha: homebuttonHovered ? 1.0 : 0.0 });
+};
+
 WebTablet.prototype.mouseMoveEvent = function (event) {
     if (this.dragging) {
         this.currentMouse = {
@@ -634,6 +618,8 @@ WebTablet.prototype.mouseMoveEvent = function (event) {
             y: event.y
         };
         this.scheduleMouseMoveProcessor();
+    } else {
+        this.handleHomeButtonHover(event.x, event.y);
     }
 };
 
@@ -660,6 +646,8 @@ WebTablet.prototype.mouseMoveProcessor = function () {
             });
         }
         this.scheduleMouseMoveProcessor();
+    } else {
+        this.handleHomeButtonHover(this.currentMouse.x, this.currentMouse.y);
     }
 };
 

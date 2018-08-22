@@ -39,6 +39,9 @@
 class EntityTree;
 class MeshProxy;
 
+extern const QString GRABBABLE_USER_DATA;
+extern const QString NOT_GRABBABLE_USER_DATA;
+
 // helper factory to compose standardized, async metadata queries for "magic" Entity properties
 // like .script and .serverScripts.  This is used for automated testing of core scripting features
 // as well as to provide early adopters a self-discoverable, consistent way to diagnose common
@@ -71,22 +74,31 @@ private:
 // "accurate" is currently always true because the ray intersection is always performed with an Octree::Lock.
 class RayToEntityIntersectionResult {
 public:
-    RayToEntityIntersectionResult();
-    bool intersects;
-    bool accurate;
+    bool intersects { false };
+    bool accurate { true };
     QUuid entityID;
-    float distance;
+    float distance { 0.0f };
     BoxFace face;
     glm::vec3 intersection;
     glm::vec3 surfaceNormal;
     QVariantMap extraInfo;
 };
-
 Q_DECLARE_METATYPE(RayToEntityIntersectionResult)
-
 QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, const RayToEntityIntersectionResult& results);
 void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, RayToEntityIntersectionResult& results);
 
+class ParabolaToEntityIntersectionResult {
+public:
+    bool intersects { false };
+    bool accurate { true };
+    QUuid entityID;
+    float distance { 0.0f };
+    float parabolicDistance { 0.0f };
+    BoxFace face;
+    glm::vec3 intersection;
+    glm::vec3 surfaceNormal;
+    QVariantMap extraInfo;
+};
 
 /**jsdoc
  * The Entities API provides facilities to create and interact with entities. Entities are 2D and 3D objects that are visible
@@ -131,6 +143,12 @@ public:
 
     void resetActivityTracking();
     ActivityTracking getActivityTracking() const { return _activityTracking; }
+
+    // TODO: expose to script?
+    ParabolaToEntityIntersectionResult findParabolaIntersectionVector(const PickParabola& parabola, bool precisionPicking,
+        const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard,
+        bool visibleOnly, bool collidableOnly);
+
 public slots:
 
     /**jsdoc
@@ -222,7 +240,7 @@ public slots:
     /// temporary method until addEntity can be used from QJSEngine
     /// Deliberately not adding jsdoc, only used internally.
     Q_INVOKABLE QUuid addModelEntity(const QString& name, const QString& modelUrl, const QString& textures, const QString& shapeType, bool dynamic,
-                                     bool collisionless, const glm::vec3& position, const glm::vec3& gravity);
+                                     bool collisionless, bool grabbable, const glm::vec3& position, const glm::vec3& gravity);
 
     /**jsdoc
      * Create a clone of an entity. A clone can be created by a client that doesn't have rez permissions in the current domain.
@@ -1892,6 +1910,11 @@ private:
 
     /// actually does the work of finding the ray intersection, can be called in locking mode or tryLock mode
     RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
+        bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard,
+        bool visibleOnly = false, bool collidableOnly = false);
+
+    /// actually does the work of finding the parabola intersection, can be called in locking mode or tryLock mode
+    ParabolaToEntityIntersectionResult findParabolaIntersectionWorker(const PickParabola& parabola, Octree::lockType lockType,
         bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard,
         bool visibleOnly = false, bool collidableOnly = false);
 

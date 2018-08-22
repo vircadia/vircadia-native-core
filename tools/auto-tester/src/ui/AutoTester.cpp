@@ -15,57 +15,83 @@
 #include <shellapi.h>
 #endif
 
-AutoTester::AutoTester(QWidget *parent) : QMainWindow(parent) {
-    ui.setupUi(this);
-    ui.checkBoxInteractiveMode->setChecked(true);
-    ui.progressBar->setVisible(false);
+AutoTester::AutoTester(QWidget* parent) : QMainWindow(parent) {
+    _ui.setupUi(this);
 
-    signalMapper = new QSignalMapper();
+    _ui.checkBoxInteractiveMode->setChecked(true);
+    _ui.progressBar->setVisible(false);
+    _ui.tabWidget->setCurrentIndex(0);
 
-    connect(ui.actionClose, &QAction::triggered, this, &AutoTester::on_closeButton_clicked);
-    connect(ui.actionAbout, &QAction::triggered, this, &AutoTester::about);
+    _signalMapper = new QSignalMapper();
+
+    connect(_ui.actionClose, &QAction::triggered, this, &AutoTester::on_closeButton_clicked);
+    connect(_ui.actionAbout, &QAction::triggered, this, &AutoTester::about);
+    connect(_ui.actionContent, &QAction::triggered, this, &AutoTester::content);
 
 #ifndef Q_OS_WIN
-    ui.hideTaskbarButton->setVisible(false);
-    ui.showTaskbarButton->setVisible(false);
+    _ui.tabWidget->setTabEnabled(3, false);
 #endif
+
+   // helpWindow.textBrowser->setText()
 }
 
 void AutoTester::setup() {
-    test = new Test();
+    _test = new Test();
 }
 
 void AutoTester::runFromCommandLine(const QString& testFolder, const QString& branch, const QString& user) {
-    isRunningFromCommandline = true;
-    test->startTestsEvaluation(testFolder, branch, user);
+    _isRunningFromCommandline = true;
+    _test->startTestsEvaluation(testFolder, branch, user);
+}
+
+void AutoTester::on_tabWidget_currentChanged(int index) {
+    if (index == 1 || index == 2) {
+        _ui.userTextEdit->setDisabled(false);
+        _ui.branchTextEdit->setDisabled(false);
+    } else {
+        _ui.userTextEdit->setDisabled(true);
+        _ui.branchTextEdit->setDisabled(true);
+    }
 }
 
 void AutoTester::on_evaluateTestsButton_clicked() {
-    test->startTestsEvaluation();
+    _test->startTestsEvaluation();
 }
 
 void AutoTester::on_createRecursiveScriptButton_clicked() {
-    test->createRecursiveScript();
+    _test->createRecursiveScript();
 }
 
 void AutoTester::on_createAllRecursiveScriptsButton_clicked() {
-    test->createAllRecursiveScripts();
+    _test->createAllRecursiveScripts();
 }
 
 void AutoTester::on_createTestsButton_clicked() {
-	test->createTests();
+    _test->createTests();
 }
 
 void AutoTester::on_createMDFileButton_clicked() {
-    test->createMDFile();
+    _test->createMDFile();
 }
 
 void AutoTester::on_createAllMDFilesButton_clicked() {
-    test->createAllMDFiles();
+    _test->createAllMDFiles();
 }
 
 void AutoTester::on_createTestsOutlineButton_clicked() {
-    test->createTestsOutline();
+    _test->createTestsOutline();
+}
+
+void AutoTester::on_createTestRailTestCasesButton_clicked() {
+    _test->createTestRailTestCases();
+}
+
+void AutoTester::on_createTestRailRunButton_clicked() {
+    _test->createTestRailRun();
+}
+
+void AutoTester::on_updateTestRailRunResultsButton_clicked() {
+    _test->updateTestRailRunResult();
 }
 
 // To toggle between show and hide
@@ -96,11 +122,19 @@ void AutoTester::on_closeButton_clicked() {
     exit(0);
 }
 
-void AutoTester::downloadImage(const QUrl& url) {
-    downloaders.emplace_back(new Downloader(url, this));
-    connect(downloaders[_index], SIGNAL (downloaded()), signalMapper, SLOT (map()));
+void AutoTester::on_createPythonScriptRadioButton_clicked() {
+    _test->setTestRailCreateMode(PYTHON);
+}
 
-    signalMapper->setMapping(downloaders[_index], _index);
+void AutoTester::on_createXMLScriptRadioButton_clicked() {
+    _test->setTestRailCreateMode(XML);
+}
+
+void AutoTester::downloadImage(const QUrl& url) {
+    _downloaders.emplace_back(new Downloader(url, this));
+    connect(_downloaders[_index], SIGNAL(downloaded()), _signalMapper, SLOT(map()));
+
+    _signalMapper->setMapping(_downloaders[_index], _index);
 
     ++_index;
 }
@@ -113,39 +147,39 @@ void AutoTester::downloadImages(const QStringList& URLs, const QString& director
     _numberOfImagesDownloaded = 0;
     _index = 0;
 
-    ui.progressBar->setMinimum(0);
-    ui.progressBar->setMaximum(_numberOfImagesToDownload - 1);
-    ui.progressBar->setValue(0);
-    ui.progressBar->setVisible(true);
+    _ui.progressBar->setMinimum(0);
+    _ui.progressBar->setMaximum(_numberOfImagesToDownload - 1);
+    _ui.progressBar->setValue(0);
+    _ui.progressBar->setVisible(true);
 
-    downloaders.clear();
+    _downloaders.clear();
     for (int i = 0; i < _numberOfImagesToDownload; ++i) {
         QUrl imageURL(URLs[i]);
         downloadImage(imageURL);
     }
 
-    connect(signalMapper, SIGNAL (mapped(int)), this, SLOT (saveImage(int)));
+    connect(_signalMapper, SIGNAL(mapped(int)), this, SLOT(saveImage(int)));
 }
 
 void AutoTester::saveImage(int index) {
     try {
         QFile file(_directoryName + "/" + _filenames[index]);
         file.open(QIODevice::WriteOnly);
-        file.write(downloaders[index]->downloadedData());
+        file.write(_downloaders[index]->downloadedData());
         file.close();
     } catch (...) {
         QMessageBox::information(0, "Test Aborted", "Failed to save image: " + _filenames[index]);
-        ui.progressBar->setVisible(false);
+        _ui.progressBar->setVisible(false);
         return;
     }
 
     ++_numberOfImagesDownloaded;
 
     if (_numberOfImagesDownloaded == _numberOfImagesToDownload) {
-        disconnect(signalMapper, SIGNAL (mapped(int)), this, SLOT (saveImage(int)));
-        test->finishTestsEvaluation(isRunningFromCommandline, ui.checkBoxInteractiveMode->isChecked(), ui.progressBar);
+        disconnect(_signalMapper, SIGNAL(mapped(int)), this, SLOT(saveImage(int)));
+        _test->finishTestsEvaluation(_isRunningFromCommandline, _ui.checkBoxInteractiveMode->isChecked(), _ui.progressBar);
     } else {
-        ui.progressBar->setValue(_numberOfImagesDownloaded);
+        _ui.progressBar->setValue(_numberOfImagesDownloaded);
     }
 }
 
@@ -153,19 +187,22 @@ void AutoTester::about() {
     QMessageBox::information(0, "About", QString("Built ") + __DATE__ + " : " + __TIME__);
 }
 
-void AutoTester::setUserText(const QString& user) {
-    ui.userTextEdit->setText(user);
+void AutoTester::content() {
+    helpWindow.show();
 }
 
-QString AutoTester::getSelectedUser()
-{
-    return ui.userTextEdit->toPlainText();
+void AutoTester::setUserText(const QString& user) {
+    _ui.userTextEdit->setText(user);
+}
+
+QString AutoTester::getSelectedUser() {
+    return _ui.userTextEdit->toPlainText();
 }
 
 void AutoTester::setBranchText(const QString& branch) {
-    ui.branchTextEdit->setText(branch);
+    _ui.branchTextEdit->setText(branch);
 }
 
 QString AutoTester::getSelectedBranch() {
-    return ui.branchTextEdit->toPlainText();
+    return _ui.branchTextEdit->toPlainText();
 }

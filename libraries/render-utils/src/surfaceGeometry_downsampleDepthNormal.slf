@@ -2,6 +2,8 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
+// surfaceGeometry_downsampleDepthNormal.frag
+//
 //  Created by Sam Gateau on 6/3/16.
 //  Copyright 2016 High Fidelity, Inc.
 //
@@ -11,14 +13,15 @@
 
 
 <@include gpu/PackedNormal.slh@>
+<@include render-utils/ShaderConstants.h@>
 
-uniform sampler2D linearDepthMap;
-uniform sampler2D normalMap;
+layout(binding=RENDER_UTILS_TEXTURE_SG_DEPTH) uniform sampler2D linearDepthMap;
+layout(binding=RENDER_UTILS_TEXTURE_SG_NORMAL) uniform sampler2D normalMap;
 
-in vec2 varTexCoord0;
+layout(location=0) in vec2 varTexCoord0;
 
-layout(location = 0) out vec4 outLinearDepth;
-layout(location = 1) out vec4 outNormal;
+layout(location=0) out vec4 outLinearDepth;
+layout(location=1) out vec4 outNormal;
 
 void main(void) {
     // Gather 2 by 2 quads from texture and downsample

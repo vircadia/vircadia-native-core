@@ -19,14 +19,12 @@
 #include <QStringList>
 #include <QFile>
 
+#include <shaders/Shaders.h>
 #include "text/Font.h"
 
 #include "GLMHelpers.h"
 #include "MatrixStack.h"
 #include "RenderUtilsLogging.h"
-
-#include "sdf_text3D_vert.h"
-#include "sdf_text3D_frag.h"
 
 #include "GeometryCache.h"
 

@@ -546,7 +546,7 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionVector(const PickRay
             continue;
         }
 
-        if (thisOverlay && thisOverlay->getVisible() && !thisOverlay->getIgnoreRayIntersection() && thisOverlay->isLoaded()) {
+        if (thisOverlay && thisOverlay->getVisible() && !thisOverlay->getIgnorePickIntersection() && thisOverlay->isLoaded()) {
             float thisDistance;
             BoxFace thisFace;
             glm::vec3 thisSurfaceNormal;
@@ -573,76 +573,86 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionVector(const PickRay
     return result;
 }
 
-QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, const RayToOverlayIntersectionResult& value) {
-    auto obj = engine->newObject();
-    obj.setProperty("intersects", value.intersects);
-    obj.setProperty("overlayID", OverlayIDtoScriptValue(engine, value.overlayID));
-    obj.setProperty("distance", value.distance);
+ParabolaToOverlayIntersectionResult Overlays::findParabolaIntersectionVector(const PickParabola& parabola, bool precisionPicking,
+                                                                             const QVector<OverlayID>& overlaysToInclude,
+                                                                             const QVector<OverlayID>& overlaysToDiscard,
+                                                                             bool visibleOnly, bool collidableOnly) {
+    float bestDistance = std::numeric_limits<float>::max();
+    bool bestIsFront = false;
 
-    QString faceName = "";
-    // handle BoxFace
-    switch (value.face) {
-        case MIN_X_FACE:
-            faceName = "MIN_X_FACE";
-            break;
-        case MAX_X_FACE:
-            faceName = "MAX_X_FACE";
-            break;
-        case MIN_Y_FACE:
-            faceName = "MIN_Y_FACE";
-            break;
-        case MAX_Y_FACE:
-            faceName = "MAX_Y_FACE";
-            break;
-        case MIN_Z_FACE:
-            faceName = "MIN_Z_FACE";
-            break;
-        case MAX_Z_FACE:
-            faceName = "MAX_Z_FACE";
-            break;
-        default:
-        case UNKNOWN_FACE:
-            faceName = "UNKNOWN_FACE";
-            break;
+    QMutexLocker locker(&_mutex);
+    ParabolaToOverlayIntersectionResult result;
+    QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysWorld);
+    while (i.hasNext()) {
+        i.next();
+        OverlayID thisID = i.key();
+        auto thisOverlay = std::dynamic_pointer_cast<Base3DOverlay>(i.value());
+
+        if ((overlaysToDiscard.size() > 0 && overlaysToDiscard.contains(thisID)) ||
+            (overlaysToInclude.size() > 0 && !overlaysToInclude.contains(thisID))) {
+            continue;
+        }
+
+        if (thisOverlay && thisOverlay->getVisible() && !thisOverlay->getIgnorePickIntersection() && thisOverlay->isLoaded()) {
+            float thisDistance;
+            BoxFace thisFace;
+            glm::vec3 thisSurfaceNormal;
+            QVariantMap thisExtraInfo;
+            if (thisOverlay->findParabolaIntersectionExtraInfo(parabola.origin, parabola.velocity, parabola.acceleration, thisDistance,
+                thisFace, thisSurfaceNormal, thisExtraInfo, precisionPicking)) {
+                bool isDrawInFront = thisOverlay->getDrawInFront();
+                if ((bestIsFront && isDrawInFront && thisDistance < bestDistance)
+                    || (!bestIsFront && (isDrawInFront || thisDistance < bestDistance))) {
+
+                    bestIsFront = isDrawInFront;
+                    bestDistance = thisDistance;
+                    result.intersects = true;
+                    result.parabolicDistance = thisDistance;
+                    result.face = thisFace;
+                    result.surfaceNormal = thisSurfaceNormal;
+                    result.overlayID = thisID;
+                    result.intersection = parabola.origin + parabola.velocity * thisDistance + 0.5f * parabola.acceleration * thisDistance * thisDistance;
+                    result.distance = glm::distance(result.intersection, parabola.origin);
+                    result.extraInfo = thisExtraInfo;
+                }
+            }
+        }
     }
-    obj.setProperty("face", faceName);
-    auto intersection = vec3toScriptValue(engine, value.intersection);
+    return result;
+}
+
+QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, const RayToOverlayIntersectionResult& value) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("intersects", value.intersects);
+    QScriptValue overlayIDValue = quuidToScriptValue(engine, value.overlayID);
+    obj.setProperty("overlayID", overlayIDValue);
+    obj.setProperty("distance", value.distance);
+    obj.setProperty("face", boxFaceToString(value.face));
+
+    QScriptValue intersection = vec3toScriptValue(engine, value.intersection);
     obj.setProperty("intersection", intersection);
+    QScriptValue surfaceNormal = vec3toScriptValue(engine, value.surfaceNormal);
+    obj.setProperty("surfaceNormal", surfaceNormal);
     obj.setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
     return obj;
 }
 
-void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& objectVar, RayToOverlayIntersectionResult& value) {
-    QVariantMap object = objectVar.toVariant().toMap();
-    value.intersects = object["intersects"].toBool();
-    value.overlayID = OverlayID(QUuid(object["overlayID"].toString()));
-    value.distance = object["distance"].toFloat();
+void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, RayToOverlayIntersectionResult& value) {
+    value.intersects = object.property("intersects").toVariant().toBool();
+    QScriptValue overlayIDValue = object.property("overlayID");
+    quuidFromScriptValue(overlayIDValue, value.overlayID);
+    value.distance = object.property("distance").toVariant().toFloat();
+    value.face = boxFaceFromString(object.property("face").toVariant().toString());
 
-    QString faceName = object["face"].toString();
-    if (faceName == "MIN_X_FACE") {
-        value.face = MIN_X_FACE;
-    } else if (faceName == "MAX_X_FACE") {
-        value.face = MAX_X_FACE;
-    } else if (faceName == "MIN_Y_FACE") {
-        value.face = MIN_Y_FACE;
-    } else if (faceName == "MAX_Y_FACE") {
-        value.face = MAX_Y_FACE;
-    } else if (faceName == "MIN_Z_FACE") {
-        value.face = MIN_Z_FACE;
-    } else if (faceName == "MAX_Z_FACE") {
-        value.face = MAX_Z_FACE;
-    } else {
-        value.face = UNKNOWN_FACE;
-    };
-    auto intersection = object["intersection"];
+    QScriptValue intersection = object.property("intersection");
     if (intersection.isValid()) {
-        bool valid;
-        auto newIntersection = vec3FromVariant(intersection, valid);
-        if (valid) {
-            value.intersection = newIntersection;
-        }
+        vec3FromScriptValue(intersection, value.intersection);
     }
-    value.extraInfo = object["extraInfo"].toMap();
+    QScriptValue surfaceNormal = object.property("surfaceNormal");
+    if (surfaceNormal.isValid()) {
+        vec3FromScriptValue(surfaceNormal, value.surfaceNormal);
+    }
+    value.extraInfo = object.property("extraInfo").toVariant().toMap();
 }
 
 bool Overlays::isLoaded(OverlayID id) {
@@ -1046,7 +1056,8 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
         i.next();
         OverlayID thisID = i.key();
         auto overlay = std::dynamic_pointer_cast<Volume3DOverlay>(i.value());
-        if (overlay && overlay->getVisible() && !overlay->getIgnoreRayIntersection() && overlay->isLoaded()) {
+        // FIXME: this ignores overlays with ignorePickIntersection == true, which seems wrong
+        if (overlay && overlay->getVisible() && !overlay->getIgnorePickIntersection() && overlay->isLoaded()) {
             // get AABox in frame of overlay
             glm::vec3 dimensions = overlay->getDimensions();
             glm::vec3 low = dimensions * -0.5f;

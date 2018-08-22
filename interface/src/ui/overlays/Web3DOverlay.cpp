@@ -55,7 +55,7 @@
 #include "scripting/AccountServicesScriptingInterface.h"
 #include <plugins/InputConfiguration.h>
 #include "ui/Snapshot.h"
-#include "SoundCache.h"
+#include "SoundCacheScriptingInterface.h"
 #include "raypick/PointerScriptingInterface.h"
 #include <display-plugins/CompositorHelper.h>
 #include "AboutUtil.h"
@@ -184,9 +184,11 @@ void Web3DOverlay::buildWebSurface() {
             _webSurface->getRootItem()->setProperty("scriptURL", _scriptURL);
         } else {
             _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), qmlSurfaceDeleter);
+            connect(_webSurface.data(), &hifi::qml::OffscreenSurface::rootContextCreated, [this](QQmlContext* surfaceContext) {
+                setupQmlSurface(_url == TabletScriptingInterface::QML);
+            });
             _webSurface->load(_url);
             _cachedWebSurface = false;
-            setupQmlSurface();
         }
         _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getWorldPosition()));
         onResizeWebSurface();
@@ -214,7 +216,7 @@ bool Web3DOverlay::isWebContent() const {
     return false;
 }
 
-void Web3DOverlay::setupQmlSurface() {
+void Web3DOverlay::setupQmlSurface(bool isTablet) {
     _webSurface->getSurfaceContext()->setContextProperty("Users", DependencyManager::get<UsersScriptingInterface>().data());
     _webSurface->getSurfaceContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     _webSurface->getSurfaceContext()->setContextProperty("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
@@ -225,7 +227,7 @@ void Web3DOverlay::setupQmlSurface() {
     _webSurface->getSurfaceContext()->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
     _webSurface->getSurfaceContext()->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
 
-    if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tabletRoot") {
+    if (isTablet) {
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
         auto flags = tabletScriptingInterface->getFlags();
 
@@ -253,7 +255,7 @@ void Web3DOverlay::setupQmlSurface() {
         _webSurface->getSurfaceContext()->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
         _webSurface->getSurfaceContext()->setContextProperty("DialogsManager", DialogsManagerScriptingInterface::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
-        _webSurface->getSurfaceContext()->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
+        _webSurface->getSurfaceContext()->setContextProperty("SoundCache", DependencyManager::get<SoundCacheScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
@@ -543,8 +545,7 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
  *     <code>dashed</code>.
- * @property {boolean} ignoreRayIntersection=false - If <code>true</code>, 
- *     {@link Overlays.findRayIntersection|findRayIntersection} ignores the overlay.
+ * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
  *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.
  * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
@@ -624,20 +625,6 @@ void Web3DOverlay::setScriptURL(const QString& scriptURL) {
             }
             _webSurface->getRootItem()->setProperty("scriptURL", scriptURL);
         });
-    }
-}
-
-bool Web3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking) {
-    glm::vec2 dimensions = getDimensions();
-    glm::quat rotation = getWorldOrientation();
-    glm::vec3 position = getWorldPosition();
-
-    if (findRayRectangleIntersection(origin, direction, rotation, position, dimensions, distance)) {
-        surfaceNormal = rotation * Vectors::UNIT_Z;
-        face = glm::dot(surfaceNormal, direction) > 0 ? MIN_Z_FACE : MAX_Z_FACE;
-        return true;
-    } else {
-        return false;
     }
 }
 

@@ -48,11 +48,11 @@ class DeferredLightingEffect : public Dependency {
 public:
     void init();
  
-    void setupKeyLightBatch(const RenderArgs* args, gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit);
-    void unsetKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit);
+    static void setupKeyLightBatch(const RenderArgs* args, gpu::Batch& batch);
+    static void unsetKeyLightBatch(gpu::Batch& batch);
 
-    void setupLocalLightsBatch(gpu::Batch& batch, int lightArrayBufferUnit, int clusterGridBufferUnit, int clusterContentBufferUnit, int frustumGridBufferUnit, const LightClustersPointer& lightClusters);
-    void unsetLocalLightsBatch(gpu::Batch& batch, int lightArrayBufferUnit, int clusterGridBufferUnit, int clusterContentBufferUnit, int frustumGridBufferUnit);
+    static void setupLocalLightsBatch(gpu::Batch& batch, const LightClustersPointer& lightClusters);
+    static void unsetLocalLightsBatch(gpu::Batch& batch);
 
     void setShadowMapEnabled(bool enable) { _shadowMapEnabled = enable; };
     void setAmbientOcclusionEnabled(bool enable) { _ambientOcclusionEnabled = enable; }

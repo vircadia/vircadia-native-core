@@ -1,6 +1,6 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
-//  BloomThreshold.slf
+//  BloomThreshold.frag
 //  Perform a soft threshold on an input texture and downsample to half size in one go.
 //
 //  Created by Olivier Prat on 09/26/2017
@@ -10,14 +10,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 <@include BloomThreshold.shared.slh@>
+<@include render-utils/ShaderConstants.h@>
 
-uniform sampler2D colorMap;
-layout(std140) uniform parametersBuffer {
+layout(binding=RENDER_UTILS_TEXTURE_BLOOM_COLOR) uniform sampler2D colorMap;
+layout(std140, binding=RENDER_UTILS_BUFFER_BLOOM_PARAMS) uniform parametersBuffer {
     Parameters parameters;
 };
 
-in vec2 varTexCoord0;
-out vec4 outFragColor;
+layout(location=0) in vec2 varTexCoord0;
+layout(location=0) out vec4 outFragColor;
 
 void main(void) {
     vec2 startUv = varTexCoord0;
