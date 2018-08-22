@@ -80,23 +80,24 @@ footer {
     text-align: center;
     color: #e3e3e3;
     font-weight: bold;
+    font-size: 26px;
 }
 
     footer div {
         display: inline-block;
-        height: 12px;
-        width: 24px;
+        height: 14px;
+        width: 30px;
         position: relative;
-        top: 16px;
+        top: 14px;
     }
 
         footer div p {
             position: relative;
-            top: -8px;
+            top: -15px;
         }
 
     footer .button:hover {
         border: 1px solid #e3e3e3;
-        border-radius: 2px;
-        margin: -1px;
+        border-radius: 3px;
+        margin: -8px;
     }
