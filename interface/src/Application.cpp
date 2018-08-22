@@ -2258,8 +2258,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             if (_avatarOverrideUrl.isValid()) {
                 getMyAvatar()->useFullAvatarURL(_avatarOverrideUrl);
             }
-            static const QUrl empty{};
-            if (getMyAvatar()->getFullAvatarURLFromPreferences() != getMyAvatar()->cannonicalSkeletonModelURL(empty)) {
+
+            if (getMyAvatar()->getFullAvatarURLFromPreferences() != getMyAvatar()->getSkeletonModelURL()) {
                 getMyAvatar()->resetFullAvatarURL();
             }
             getMyAvatar()->markIdentityDataChanged();
