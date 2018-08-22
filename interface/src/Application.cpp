@@ -1013,7 +1013,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 // This is done so as not break previous command line scripts
                 if (testScriptPath.left(URL_SCHEME_HTTP.length()) == URL_SCHEME_HTTP ||
                     testScriptPath.left(URL_SCHEME_FTP.length()) == URL_SCHEME_FTP) {
-                    
+
                     setProperty(hifi::properties::TEST, QUrl::fromUserInput(testScriptPath));
                 } else if (QFileInfo(testScriptPath).exists()) {
                     setProperty(hifi::properties::TEST, QUrl::fromLocalFile(testScriptPath));
@@ -1830,14 +1830,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     });
 
-    connect(getEntities()->getTree().get(), &EntityTree::deletingEntity, [](const EntityItemID& entityItemID) {
-        auto avatarManager = DependencyManager::get<AvatarManager>();
-        auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
-        if (myAvatar) {
-            myAvatar->clearAvatarEntity(entityItemID);
-        }
-    });
-
     EntityTree::setAddMaterialToEntityOperator([this](const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
         // try to find the renderable
         auto renderable = getEntities()->renderableForEntityId(entityID);
@@ -2617,7 +2609,7 @@ Application::~Application() {
 
     // Can't log to file passed this point, FileLogger about to be deleted
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
-    
+
     _renderEventHandler->deleteLater();
 }
 
@@ -5496,10 +5488,7 @@ void Application::update(float deltaTime) {
         // we haven't yet enabled physics.  we wait until we think we have all the collision information
         // for nearby entities before starting bullet up.
         quint64 now = usecTimestampNow();
-        // Check for flagged EntityData having arrived.
-        auto entityTreeRenderer = getEntities();
-        if (isServerlessMode() || 
-            (_octreeProcessor.isLoadSequenceComplete() )) {
+        if (isServerlessMode() || _octreeProcessor.isLoadSequenceComplete()) {
             // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
             _lastPhysicsCheckTime = now;
             _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
@@ -6393,8 +6382,8 @@ void Application::nodeActivated(SharedNodePointer node) {
         if (_avatarOverrideUrl.isValid()) {
             getMyAvatar()->useFullAvatarURL(_avatarOverrideUrl);
         }
-        static const QUrl empty{};
-        if (getMyAvatar()->getFullAvatarURLFromPreferences() != getMyAvatar()->cannonicalSkeletonModelURL(empty)) {
+
+        if (getMyAvatar()->getFullAvatarURLFromPreferences() != getMyAvatar()->getSkeletonModelURL()) {
             getMyAvatar()->resetFullAvatarURL();
         }
         getMyAvatar()->markIdentityDataChanged();

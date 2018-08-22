@@ -25,8 +25,8 @@
 #include "AudioHelpers.h"
 #include "AudioMixer.h"
 
-AudioMixerClientData::AudioMixerClientData(const QUuid& nodeID) :
-    NodeData(nodeID),
+AudioMixerClientData::AudioMixerClientData(const QUuid& nodeID, Node::LocalID nodeLocalID) :
+    NodeData(nodeID, nodeLocalID),
     audioLimiter(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO),
     _ignoreZone(*this),
     _outgoingMixedAudioSequenceNumber(0),
