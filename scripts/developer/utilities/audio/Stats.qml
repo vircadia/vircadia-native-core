@@ -40,7 +40,8 @@ Column {
 
             Section {
                 label: "Latency"
-                description: "Audio pipeline latency, broken out and summed"
+                // description: "Audio pipeline latency, broken out and summed"
+                description: label
                 control: ColumnLayout {
                     MovingValue { label: "Input Read"; source: AudioStats.inputReadMsMax; showGraphs: stats.showGraphs }
                     MovingValue { label: "Input Ring"; source: AudioStats.inputUnplayedMsMax; showGraphs: stats.showGraphs }
@@ -62,7 +63,8 @@ Column {
 
             Section {
                 label: "Upstream Jitter"
-                description: "Timegaps in packets sent to the mixer"
+                // description: "Timegaps in packets sent to the mixer"
+                description: label
                 control: Jitter {
                     max: AudioStats.sentTimegapMsMaxWindow
                     avg: AudioStats.sentTimegapMsAvgWindow
@@ -76,13 +78,15 @@ Column {
 
             Section {
                 label: "Mixer (upstream)"
-                description: "This client's remote audio stream, as seen by the server's mixer"
+                // description: "This client's remote audio stream, as seen by the server's mixer"
+                description: label
                 control: Stream { stream: AudioStats.mixerStream; showGraphs: stats.showGraphs }
             }
 
             Section {
                 label: "Client (downstream)"
-                description: "This client's received audio stream, between the network and the OS"
+                // description: "This client's received audio stream, between the network and the OS"
+                description: label
                 control: Stream { stream: AudioStats.clientStream; showGraphs: stats.showGraphs }
             }
         }
