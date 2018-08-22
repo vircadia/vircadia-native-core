@@ -140,27 +140,17 @@ bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3
 }
 
 EntityItemID EntityTreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-    bool& keepSearching, OctreeElementPointer& element, float& distance,
-    BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
-    const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
-    QVariantMap& extraInfo, bool precisionPicking) {
+    OctreeElementPointer& element, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
+    const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard,
+    bool visibleOnly, bool collidableOnly, QVariantMap& extraInfo, bool precisionPicking) {
 
     EntityItemID result;
-    float distanceToElementCube = std::numeric_limits<float>::max();
+    float distanceToElementCube = FLT_MAX;
     BoxFace localFace;
     glm::vec3 localSurfaceNormal;
 
-    // if the ray doesn't intersect with our cube OR the distance to element is less than current best distance
-    // we can stop searching!
-    bool hit = _cube.findRayIntersection(origin, direction, distanceToElementCube, localFace, localSurfaceNormal);
-    if (!hit || (!_cube.contains(origin) && distanceToElementCube > distance)) {
-        keepSearching = false; // no point in continuing to search
-        return result; // we did not intersect
-    }
-
-    // by default, we only allow intersections with leaves with content
     if (!canPickIntersect()) {
-        return result; // we don't intersect with non-leaves, and we keep searching
+        return result;
     }
 
     // if the distance to the element cube is not less than the current best distance, then it's not possible
@@ -289,7 +279,7 @@ bool EntityTreeElement::findSpherePenetration(const glm::vec3& center, float rad
 }
 
 EntityItemID EntityTreeElement::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
-    const glm::vec3& acceleration, bool& keepSearching, OctreeElementPointer& element, float& parabolicDistance,
+    const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
     BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
     const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
     QVariantMap& extraInfo, bool precisionPicking) {
@@ -299,17 +289,8 @@ EntityItemID EntityTreeElement::findParabolaIntersection(const glm::vec3& origin
     BoxFace localFace;
     glm::vec3 localSurfaceNormal;
 
-    // if the parabola doesn't intersect with our cube OR the distance to element is less than current best distance
-    // we can stop searching!
-    bool hit = _cube.findParabolaIntersection(origin, velocity, acceleration, distanceToElementCube, localFace, localSurfaceNormal);
-    if (!hit || (!_cube.contains(origin) && distanceToElementCube > parabolicDistance)) {
-        keepSearching = false; // no point in continuing to search
-        return result; // we did not intersect
-    }
-
-    // by default, we only allow intersections with leaves with content
     if (!canPickIntersect()) {
-        return result; // we don't intersect with non-leaves, and we keep searching
+        return result;
     }
 
     // if the distance to the element cube is not less than the current best distance, then it's not possible

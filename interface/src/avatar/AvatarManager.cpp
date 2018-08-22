@@ -553,8 +553,6 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
         return result;
     }
 
-    glm::vec3 normDirection = glm::normalize(ray.direction);
-
     auto avatarHashCopy = getHashCopy();
     for (auto avatarData : avatarHashCopy) {
         auto avatar = std::static_pointer_cast<Avatar>(avatarData);
@@ -587,14 +585,14 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
         glm::vec3 end;
         float radius;
         avatar->getCapsule(start, end, radius);
-        bool intersects = findRayCapsuleIntersection(ray.origin, normDirection, start, end, radius, distance);
+        bool intersects = findRayCapsuleIntersection(ray.origin, ray.direction, start, end, radius, distance);
         if (!intersects) {
             // ray doesn't intersect avatar's capsule
             continue;
         }
 
         QVariantMap extraInfo;
-        intersects = avatarModel->findRayIntersectionAgainstSubMeshes(ray.origin, normDirection,
+        intersects = avatarModel->findRayIntersectionAgainstSubMeshes(ray.origin, ray.direction,
                                                                       distance, face, surfaceNormal, extraInfo, true);
 
         if (intersects && (!result.intersects || distance < result.distance)) {
@@ -608,7 +606,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
     }
 
     if (result.intersects) {
-        result.intersection = ray.origin + normDirection * result.distance;
+        result.intersection = ray.origin + ray.direction * result.distance;
     }
 
     return result;

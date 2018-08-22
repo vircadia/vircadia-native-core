@@ -286,12 +286,13 @@ bool findRaySphereIntersection(const glm::vec3& origin, const glm::vec3& directi
         distance = 0.0f;
         return true; // starts inside the sphere
     }
-    float b = glm::dot(direction, relativeOrigin);
-    float radicand = b * b - c;
+    float b = 2.0f * glm::dot(direction, relativeOrigin);
+    float a = glm::dot(direction, direction);
+    float radicand = b * b - 4.0f * a * c;
     if (radicand < 0.0f) {
         return false; // doesn't hit the sphere
     }
-    float t = -b - sqrtf(radicand);
+    float t = 0.5f * (-b - sqrtf(radicand)) / a;
     if (t < 0.0f) {
         return false; // doesn't hit the sphere
     }

@@ -49,6 +49,9 @@ public:
 
 // Callback function, for recuseTreeWithOperation
 using RecurseOctreeOperation = std::function<bool(const OctreeElementPointer&, void*)>;
+// Function for sorting octree children during recursion.  If return value == FLT_MAX, child is discarded
+using RecurseOctreeSortingOperation = std::function<float(const OctreeElementPointer&, void*)>;
+using SortedChild = std::pair<float, OctreeElementPointer>;
 typedef QHash<uint, AACube> CubeList;
 
 const bool NO_EXISTS_BITS         = false;
@@ -163,16 +166,9 @@ public:
     OctreeElementPointer getOrCreateChildElementContaining(const AACube& box);
 
     void recurseTreeWithOperation(const RecurseOctreeOperation& operation, void* extraData = NULL);
-    void recurseTreeWithPostOperation(const RecurseOctreeOperation& operation, void* extraData = NULL);
-
-    /// \param operation type of operation
-    /// \param point point in world-frame (meters)
-    /// \param extraData hook for user data to be interpreted by special context
-    void recurseTreeWithOperationDistanceSorted(const RecurseOctreeOperation& operation,
-                                                const glm::vec3& point, void* extraData = NULL);
+    void recurseTreeWithOperationSorted(const RecurseOctreeOperation& operation, const RecurseOctreeSortingOperation& sortingOperation, void* extraData = NULL);
 
     void recurseTreeWithOperator(RecurseOctreeOperator* operatorObject);
-
 
     bool isDirty() const { return _isDirty; }
     void clearDirtyBit() { _isDirty = false; }
@@ -227,14 +223,8 @@ public:
 
     void recurseElementWithOperation(const OctreeElementPointer& element, const RecurseOctreeOperation& operation,
                 void* extraData, int recursionCount = 0);
-
-    /// Traverse child nodes of node applying operation in post-fix order
-    ///
-    void recurseElementWithPostOperation(const OctreeElementPointer& element, const RecurseOctreeOperation& operation,
-                void* extraData, int recursionCount = 0);
-
-    void recurseElementWithOperationDistanceSorted(const OctreeElementPointer& element, const RecurseOctreeOperation& operation,
-                const glm::vec3& point, void* extraData, int recursionCount = 0);
+    bool recurseElementWithOperationSorted(const OctreeElementPointer& element, const RecurseOctreeOperation& operation,
+        const RecurseOctreeSortingOperation& sortingOperation, void* extraData, int recursionCount = 0);
 
     bool recurseElementWithOperator(const OctreeElementPointer& element, RecurseOctreeOperator* operatorObject, int recursionCount = 0);
 
