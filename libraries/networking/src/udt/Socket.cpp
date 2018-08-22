@@ -319,7 +319,11 @@ void Socket::readPendingDatagrams() {
     int packetsRead = 0;
 
     int packetSizeWithHeader = -1;
-    while (_udpSocket.hasPendingDatagrams() && (packetSizeWithHeader = _udpSocket.pendingDatagramSize()) != -1) {
+    // Max datagrams to read before processing:
+    static const int MAX_DATAGRAMS_CONSECUTIVELY = 10000;
+    while (_udpSocket.hasPendingDatagrams()
+        && (packetSizeWithHeader = _udpSocket.pendingDatagramSize()) != -1
+        && packetsRead <= MAX_DATAGRAMS_CONSECUTIVELY) {
         // grab a time point we can mark as the receive time of this packet
         auto receiveTime = p_high_resolution_clock::now();
 
@@ -336,7 +340,6 @@ void Socket::readPendingDatagrams() {
 
         // we either didn't pull anything for this packet or there was an error reading (this seems to trigger
         // on windows even if there's not a packet available)
-
         if (sizeRead < 0) {
             continue;
         }
@@ -347,7 +350,10 @@ void Socket::readPendingDatagrams() {
 
     }
 
-    _maxDatagramsRead = std::max(_maxDatagramsRead, packetsRead);
+    if (packetsRead > _maxDatagramsRead) {
+        _maxDatagramsRead = packetsRead;
+        qCDebug(networking) << "readPendingDatagrams: Datagrams read:" << packetsRead;
+    }
     emit pendingDatagrams(packetsRead);
 }
 
@@ -365,7 +371,7 @@ void Socket::processPendingDatagrams(int) {
         auto it = _unfilteredHandlers.find(senderSockAddr);
 
         if (it != _unfilteredHandlers.end()) {
-            // we have a registered unfiltered handler for this HifiSockAddr - call that and return
+            // we have a registered unfiltered handler for this HifiSockAddr (eg. STUN packet) - call that and return
             if (it->second) {
                 auto basePacket = BasePacket::fromReceivedPacket(std::move(datagram._datagram), datagramSize,
                     senderSockAddr);
@@ -407,7 +413,7 @@ void Socket::processPendingDatagrams(int) {
             // save the sequence number in case this is the packet that sticks readyRead
             _lastReceivedSequenceNumber = packet->getSequenceNumber();
 
-            // call our verification operator to see if this packet is verified
+            // call our hash verification operator to see if this packet is verified
             if (!_packetFilterOperator || _packetFilterOperator(*packet)) {
                 if (packet->isReliable()) {
                     // if this was a reliable packet then signal the matching connection with the sequence number
