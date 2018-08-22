@@ -44,7 +44,7 @@ var ANIM_VARS = [
     "spine2Type",
     //"hipsType",
     "spine2Position",
-    "spine2Rotation",
+    "spine2Rotation"
     //"hipsPosition",
     //"hipsRotation"
 ];
@@ -60,7 +60,7 @@ var handlerId = MyAvatar.addAnimationStateHandler(function (props) {
     //result.hipsPosition = hipsPositionRigSpace; // { x: 0, y: 0, z: 0 };
     //result.hipsRotation = hipsRotationRigSpace;//{ x: 0, y: 0, z: 0, w: 1 }; //
     result.spine2Type = ikTypes.Spline;
-    result.spine2Position = spine2PositionRigSpace;// { x: 0, y: 1.3, z: 0 }; 
+    result.spine2Position = spine2PositionRigSpace; // { x: 0, y: 1.3, z: 0 }; 
     result.spine2Rotation = spine2Rotation;
     
     return result;
@@ -267,18 +267,34 @@ function computeHandAzimuths() {
     lHandMinusHead.y = 0.0;
     var rHandMinusHead = Vec3.subtract(rightHand, head);
     rHandMinusHead.y = 0.0;
-    print(JSON.stringify(leftHand));
-    print(JSON.stringify(head));
+    //print(JSON.stringify(leftHand));
+    //print(JSON.stringify(head));
     var avatarZAxis = { x: 0.0, y: 0.0, z: 1.0 };
     var hipToLHand = Quat.lookAtSimple({ x: 0, y: 0, z: 0 }, lHandMinusHead);
     var hipToRHand = Quat.lookAtSimple({ x: 0, y: 0, z: 0 }, rHandMinusHead);
-    hipToLHandAverage = Quat.slerp(hipToLHandAverage, hipToLHand, 0.99);
-    hipToRHandAverage = Quat.slerp(hipToRHandAverage, hipToRHand, 0.99);
+    hipToLHandAverage = Quat.slerp(hipToLHandAverage, hipToLHand, AVERAGING_RATE);
+    hipToRHandAverage = Quat.slerp(hipToRHandAverage, hipToRHand, AVERAGING_RATE);
 
     // var angleToLeft = limitAngle(Quat.safeEulerAngles(hipToLHandAverage).y);
     // var angleToRight = limitAngle(Quat.safeEulerAngles(hipToRHandAverage).y);
-    var leftRightMidpoint = (Quat.safeEulerAngles(hipToLHandAverage).y + Quat.safeEulerAngles(hipToRHandAverage).y) / 2.0;
-    print(leftRightMidpoint);
+    var leftRightMidpoint = (Quat.safeEulerAngles(hipToLHand).y + Quat.safeEulerAngles(hipToRHand).y) / 2.0;
+    var leftRightMidpointAverage = (Quat.safeEulerAngles(hipToLHandAverage).y + Quat.safeEulerAngles(hipToRHandAverage).y) / 2.0;
+    
+    // limit the angle because we are flipped by 180, fix this tomorrow.
+    // print(leftRightMidpointAverage/180.0);
+    // print("threshold value " + angleThresholdProperty.value);
+    // get it into radians too!!
+    if ((Math.abs(leftRightMidpointAverage/180.0) * Math.PI) > angleThresholdProperty.value) {
+        print("recenter the feet under the head");
+        MyAvatar.triggerRotationRecenter();
+    }
+
+    var raySpineRotation = Quat.fromVec3Degrees({ x: 0, y: leftRightMidpointAverage, z: 0 });
+    var zAxisSpineRotation = Vec3.multiplyQbyV(raySpineRotation, { x: 0, y: 0, z: -1 });
+    var zAxisWorldSpace = Vec3.multiplyQbyV(MyAvatar.orientation, zAxisSpineRotation);
+    DebugDraw.drawRay(MyAvatar.position, Vec3.sum(MyAvatar.position, zAxisWorldSpace), { x: 1, y: 0, z: 0, w: 1 });
+
+    //print(leftRightMidpoint);
     
     return Quat.fromVec3Degrees({ x: 0, y: leftRightMidpoint, z: 0 });
 
@@ -291,12 +307,10 @@ function update(dt) {
     currentStateReadings.rhandPose = Controller.getPoseValue(Controller.Standard.RightHand);
     currentStateReadings.lhandPose = Controller.getPoseValue(Controller.Standard.LeftHand);
 
-    print(JSON.stringify(currentStateReadings.head));
+    //print(JSON.stringify(currentStateReadings.head));
 
     var latestSpineRotation = computeHandAzimuths();
-    var zAxisSpineRotation = Vec3.multiplyQbyV(latestSpineRotation, { x: 0, y: 0, z: 1 });
-    var zAxisWorldSpace = Vec3.multiplyQbyV(MyAvatar.rotation, zAxisSpineRotation);
-    DebugDraw.drawRay(MyAvatar.position, Vec3.sum(MyAvatar.position, zAxisSpineRotation), { x: 1, y: 0, z: 0 });
+    
     spine2Rotation = latestSpineRotation;
     var spine2Pos = MyAvatar.getAbsoluteJointTranslationInObjectFrame(MyAvatar.getJointIndex("Spine2"));
     spine2PositionRigSpace = Vec3.multiplyQbyV(CHANGE_OF_BASIS_ROTATION, spine2Pos);
