@@ -103,6 +103,7 @@ void OverlayConductor::update(float dt) {
 
     bool targetVisible = Menu::getInstance()->isOptionChecked(MenuOption::Overlays) && !_suppressedByHead;
     if (targetVisible != currentVisible) {
+        qDebug() << "setting pinned: " << !targetVisible;
         offscreenUi->setPinned(!targetVisible);
     }
     if (shouldRecenter && !_suppressedByHead) {

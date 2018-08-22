@@ -207,6 +207,18 @@
         return ((1 - t) * a + t * b);
     }
 
+    function resetValues() {
+         var properties = {
+            localPosition: { x: 1.85, y: -0.935, z: 0.0 },
+            dimensions: {
+                x: 0.1,
+                y: 2.8
+            }
+        };
+
+        Overlays.editOverlay(loadingBarProgress, properties);
+    }
+
     function startInterstitialPage() {
         if (timer === null) {
             updateOverlays(Window.isPhysicsEnabled());
@@ -323,6 +335,10 @@
         Overlays.editOverlay(loadingBarPlacard, properties);
         Overlays.editOverlay(loadingBarProgress, loadingBarProperties);
 
+        if (physicsEnabled) {
+            resetValues();
+        }
+
         Camera.mode = "first person";
     }
 
@@ -409,6 +425,10 @@
         if (DEBUG) {
             tablet.removeButton(button);
         }
+
+        renderViewTask.getConfig("LightingModel")["enableAmbientLight"] = true;
+        renderViewTask.getConfig("LightingModel")["enableDirectionalLight"] = true;
+        renderViewTask.getConfig("LightingModel")["enablePointLight"] = true;
     }
 
     Script.scriptEnding.connect(cleanup);
