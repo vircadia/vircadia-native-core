@@ -140,6 +140,81 @@ Item {
                 }
             }
         }
+
+        Item {
+            id: autoLogoutContainer;
+            anchors.top: changeSecurityImageContainer.bottom;
+            anchors.topMargin: 8;
+            anchors.left: parent.left;
+            anchors.leftMargin: 40;
+            anchors.right: parent.right;
+            anchors.rightMargin: 55;
+            height: 75;
+
+            HiFiGlyphs {	
+                id: autoLogoutImage;	
+                text: hifi.glyphs.walletKey;	
+                // Size	
+                size: 80;	
+                // Anchors	
+                anchors.top: parent.top;	
+                anchors.topMargin: 20;	
+                anchors.left: parent.left;	
+                // Style	
+                color: hifi.colors.white;	
+            }
+
+            HifiControlsUit.CheckBox {
+                id: autoLogoutCheckbox;
+                checked: Settings.getValue("wallet/autoLogout", false);
+                text: "Automatically Log Out when Exiting Interface"
+                // Anchors
+                anchors.verticalCenter: autoLogoutImage.verticalCenter;
+                anchors.left: autoLogoutImage.right;
+                anchors.leftMargin: 20;
+                anchors.right: autoLogoutHelp.left;
+                anchors.rightMargin: 12;
+                boxSize: 28;
+                labelFontSize: 18;
+                color: hifi.colors.white;
+                onCheckedChanged: {
+                    Settings.setValue("wallet/autoLogout", checked);
+                    if (checked) {
+                        Settings.setValue("wallet/savedUsername", Account.username);
+                    } else {
+                        Settings.setValue("wallet/savedUsername", "");
+                    }
+                }
+            }
+
+            RalewaySemiBold {
+                id: autoLogoutHelp;
+                text: '[?]';
+                // Anchors
+                anchors.verticalCenter: autoLogoutImage.verticalCenter;
+                anchors.right: parent.right;
+                width: 30;
+                height: 30;
+                // Text size
+                size: 18;
+                // Style
+                color: hifi.colors.blueHighlight;
+
+                MouseArea {
+                    anchors.fill: parent;
+                    hoverEnabled: true;
+                    onEntered: {
+                        parent.color = hifi.colors.blueAccent;
+                    }
+                    onExited: {
+                        parent.color = hifi.colors.blueHighlight;
+                    }
+                    onClicked: {
+                        sendSignalToWallet({method: 'walletSecurity_autoLogoutHelp'});
+                    }
+                }
+            }
+        }
     }
 
     //
