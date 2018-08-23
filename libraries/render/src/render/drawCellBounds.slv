@@ -20,8 +20,7 @@
 <$declareColorWheel()$>
 <@include SceneOctree.slh@>
 
-layout(location=GPU_UNIFORM_EXTRA0) uniform ivec4 inCellLocation;
-
+layout(location=0) in ivec4 inCellLocation;
 layout(location=0) out vec4 varColor;
 
 void main(void) {
