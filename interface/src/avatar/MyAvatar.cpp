@@ -105,7 +105,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     _eyeContactTarget(LEFT_EYE),
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
-    _useAdvancedMovementControls("advancedMovementForHandControllersIsChecked", false),
+    _useAdvancedMovementControls("advancedMovementForHandControllersIsChecked", true),
     _smoothOrientationTimer(std::numeric_limits<float>::max()),
     _smoothOrientationInitial(),
     _smoothOrientationTarget(),
@@ -444,7 +444,6 @@ void MyAvatar::reset(bool andRecenter, bool andReload, bool andHead) {
 }
 
 void MyAvatar::update(float deltaTime) {
-
     // update moving average of HMD facing in xz plane.
     const float HMD_FACING_TIMESCALE = getRotationRecenterFilterLength();
 
