@@ -33,6 +33,7 @@
 
 #include <EntityScriptClient.h> // for EntityScriptServerServices
 
+#include "../AssignmentDynamicFactory.h"
 #include "EntityScriptServerLogging.h"
 #include "../entities/AssignmentParentFinder.h"
 
@@ -55,6 +56,9 @@ int EntityScriptServer::_entitiesScriptEngineCount = 0;
 
 EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssignment(message) {
     qInstallMessageHandler(messageHandler);
+
+    DependencyManager::registerInheritance<EntityDynamicFactoryInterface, AssignmentDynamicFactory>();
+    DependencyManager::set<AssignmentDynamicFactory>();
 
     DependencyManager::set<EntityScriptingInterface>(false)->setPacketSender(&_entityEditSender);
     DependencyManager::set<ResourceScriptingInterface>();
@@ -579,6 +583,7 @@ void EntityScriptServer::handleOctreePacket(QSharedPointer<ReceivedMessage> mess
 void EntityScriptServer::aboutToFinish() {
     shutdownScriptEngine();
 
+    DependencyManager::destroy<AssignmentDynamicFactory>();
     DependencyManager::destroy<AssignmentParentFinder>();
 
     DependencyManager::get<ResourceManager>()->cleanup();
