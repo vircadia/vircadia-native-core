@@ -87,6 +87,7 @@ public:
     void init();
 
     uint32_t getNumSubsteps() const;
+    int32_t getNumCollisionObjects() const;
 
     void removeObjects(const VectorOfMotionStates& objects);
     void removeSetOfObjects(const SetOfMotionStates& objects); // only called during teardown
@@ -143,8 +144,6 @@ public:
     // See PhysicsCollisionGroups.h for mask flags.
     std::vector<ContactTestResult> contactTest(uint16_t mask, const ShapeInfo& regionShapeInfo, const Transform& regionTransform, uint16_t group = USER_COLLISION_GROUP_DYNAMIC) const;
 
-    int32_t getNumRigidBodies() const { return _numRigidBodies; }
-
 private:
     QList<EntityDynamicPointer> removeDynamicsForBody(btRigidBody* body);
     void addObjectToDynamicsWorld(ObjectMotionState* motionState);
@@ -177,7 +176,6 @@ private:
     CharacterController* _myAvatarController;
 
     uint32_t _numContactFrames { 0 };
-    int32_t _numRigidBodies { 0 };
 
     bool _dumpNextStats { false };
     bool _saveNextStats { false };

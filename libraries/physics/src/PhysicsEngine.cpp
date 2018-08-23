@@ -77,6 +77,10 @@ uint32_t PhysicsEngine::getNumSubsteps() const {
     return _dynamicsWorld->getNumSubsteps();
 }
 
+int32_t PhysicsEngine::getNumCollisionObjects() const {
+    return _dynamicsWorld ? _dynamicsWorld->getNumCollisionObjects() : 0;
+}
+
 // private
 void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
     assert(motionState);
@@ -93,7 +97,6 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
                 btCollisionShape* shape = const_cast<btCollisionShape*>(motionState->getShape());
                 assert(shape);
                 body = new btRigidBody(mass, motionState, shape, inertia);
-                ++_numRigidBodies;
                 motionState->setRigidBody(body);
             } else {
                 body->setMassProps(mass, inertia);
@@ -117,7 +120,6 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
             shape->calculateLocalInertia(mass, inertia);
             if (!body) {
                 body = new btRigidBody(mass, motionState, shape, inertia);
-                ++_numRigidBodies;
                 motionState->setRigidBody(body);
             } else {
                 body->setMassProps(mass, inertia);
@@ -141,7 +143,6 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
             if (!body) {
                 assert(motionState->getShape());
                 body = new btRigidBody(mass, motionState, const_cast<btCollisionShape*>(motionState->getShape()), inertia);
-                ++_numRigidBodies;
                 motionState->setRigidBody(body);
             } else {
                 body->setMassProps(mass, inertia);
@@ -209,7 +210,6 @@ void PhysicsEngine::removeObjects(const VectorOfMotionStates& objects) {
         if (body) {
             removeDynamicsForBody(body);
             _dynamicsWorld->removeRigidBody(body);
-            --_numRigidBodies;
 
             // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
             object->setRigidBody(nullptr);
@@ -227,7 +227,6 @@ void PhysicsEngine::removeSetOfObjects(const SetOfMotionStates& objects) {
         if (body) {
             removeDynamicsForBody(body);
             _dynamicsWorld->removeRigidBody(body);
-            --_numRigidBodies;
 
             // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
             object->setRigidBody(nullptr);
@@ -279,7 +278,6 @@ void PhysicsEngine::reinsertObject(ObjectMotionState* object) {
     btRigidBody* body = object->getRigidBody();
     if (body) {
         _dynamicsWorld->removeRigidBody(body);
-        --_numRigidBodies;
         // add it back
         addObjectToDynamicsWorld(object);
     }
@@ -292,7 +290,6 @@ void PhysicsEngine::processTransaction(PhysicsEngine::Transaction& transaction) 
         if (body) {
             removeDynamicsForBody(body);
             _dynamicsWorld->removeRigidBody(body);
-            --_numRigidBodies;
 
             // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
             object->setRigidBody(nullptr);

@@ -49,7 +49,7 @@ private: \
  * @property {number} presentdroprate - <em>Read-only.</em>
  * @property {number} gameLoopRate - <em>Read-only.</em>
  * @property {number} avatarCount - <em>Read-only.</em>
- * @property {number} physicsBodyCount - <em>Read-only.</em>
+ * @property {number} physicsObjectCount - <em>Read-only.</em>
  * @property {number} updatedAvatarCount - <em>Read-only.</em>
  * @property {number} notUpdatedAvatarCount - <em>Read-only.</em>
  * @property {number} packetInCount - <em>Read-only.</em>
@@ -196,7 +196,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(float, presentdroprate, 0)
     STATS_PROPERTY(int, gameLoopRate, 0)
     STATS_PROPERTY(int, avatarCount, 0)
-    STATS_PROPERTY(int, physicsBodyCount, 0)
+    STATS_PROPERTY(int, physicsObjectCount, 0)
     STATS_PROPERTY(int, updatedAvatarCount, 0)
     STATS_PROPERTY(int, notUpdatedAvatarCount, 0)
     STATS_PROPERTY(int, packetInCount, 0)
@@ -413,7 +413,7 @@ signals:
      * @function Stats.numPhysicsBodiesChanged
      * @returns {Signal}
      */
-    void physicsBodyCountChanged();
+    void physicsObjectCountChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>avatarCount</code> property changes.
