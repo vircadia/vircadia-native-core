@@ -90,7 +90,7 @@ Item {
 
         Item {
             id: changeSecurityImageContainer;
-            anchors.top: securityTextSeparator.bottom; // changePassphraseSeparator.bottom;
+            anchors.top: securityTextSeparator.bottom;
             anchors.topMargin: 8;
             anchors.left: parent.left;
             anchors.leftMargin: 40;
