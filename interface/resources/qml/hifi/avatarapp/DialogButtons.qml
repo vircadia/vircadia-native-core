@@ -33,7 +33,7 @@ Row {
         onClicked: {
             console.debug('whitebutton.clicked', onNoClicked);
 
-            if(onNoClicked) {
+            if (onNoClicked) {
                 onNoClicked();
             }
         }

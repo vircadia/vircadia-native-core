@@ -24,6 +24,7 @@
 #include <plugins/CodecPlugin.h>
 #include <plugins/PluginManager.h>
 #include <ResourceManager.h>
+#include <ResourceScriptingInterface.h>
 #include <ScriptCache.h>
 #include <ScriptEngines.h>
 #include <SoundCacheScriptingInterface.h>
@@ -55,7 +56,8 @@ int EntityScriptServer::_entitiesScriptEngineCount = 0;
 EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssignment(message) {
     qInstallMessageHandler(messageHandler);
 
-    DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
+    DependencyManager::set<EntityScriptingInterface>(false)->setPacketSender(&_entityEditSender);
+    DependencyManager::set<ResourceScriptingInterface>();
 
     DependencyManager::set<ResourceManager>();
     DependencyManager::set<PluginManager>();
@@ -81,9 +83,6 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
     packetReceiver.registerListener(PacketType::SelectedAudioFormat, this, "handleSelectedAudioFormat");
 
     auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
-    packetReceiver.registerListener(PacketType::BulkAvatarData, avatarHashMap.data(), "processAvatarDataPacket");
-    packetReceiver.registerListener(PacketType::KillAvatar, avatarHashMap.data(), "processKillAvatar");
-    packetReceiver.registerListener(PacketType::AvatarIdentity, avatarHashMap.data(), "processAvatarIdentityPacket");
 
     packetReceiver.registerListener(PacketType::ReloadEntityServerScript, this, "handleReloadEntityServerScriptPacket");
     packetReceiver.registerListener(PacketType::EntityScriptGetStatus, this, "handleEntityScriptGetStatusPacket");
@@ -458,8 +457,11 @@ void EntityScriptServer::resetEntitiesScriptEngine() {
     auto newEngineSP = qSharedPointerCast<EntitiesScriptEngineProvider>(newEngine);
     DependencyManager::get<EntityScriptingInterface>()->setEntitiesScriptEngine(newEngineSP);
 
-    disconnect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptDetailsUpdated,
-               this, &EntityScriptServer::updateEntityPPS);
+    if (_entitiesScriptEngine) {
+        disconnect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptDetailsUpdated,
+                   this, &EntityScriptServer::updateEntityPPS);
+    }
+
     _entitiesScriptEngine.swap(newEngine);
     connect(_entitiesScriptEngine.data(), &ScriptEngine::entityScriptDetailsUpdated,
             this, &EntityScriptServer::updateEntityPPS);
@@ -490,6 +492,21 @@ void EntityScriptServer::shutdownScriptEngine() {
     _shuttingDown = true;
 
     clear(); // always clear() on shutdown
+
+    auto scriptEngines = DependencyManager::get<ScriptEngines>();
+    scriptEngines->shutdownScripting();
+
+    _entitiesScriptEngine.clear();
+
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    // our entity tree is going to go away so tell that to the EntityScriptingInterface
+    entityScriptingInterface->setEntityTree(nullptr);
+
+    // Should always be true as they are singletons.
+    if (entityScriptingInterface->getPacketSender() == &_entityEditSender) {
+        // The packet sender is about to go away.
+        entityScriptingInterface->setPacketSender(nullptr);
+    }
 }
 
 void EntityScriptServer::addingEntity(const EntityItemID& entityID) {
@@ -562,24 +579,18 @@ void EntityScriptServer::handleOctreePacket(QSharedPointer<ReceivedMessage> mess
 void EntityScriptServer::aboutToFinish() {
     shutdownScriptEngine();
 
-    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-    // our entity tree is going to go away so tell that to the EntityScriptingInterface
-    entityScriptingInterface->setEntityTree(nullptr);
-
-    // Should always be true as they are singletons.
-    if (entityScriptingInterface->getPacketSender() == &_entityEditSender) {
-        // The packet sender is about to go away.
-        entityScriptingInterface->setPacketSender(nullptr);
-    }
-
     DependencyManager::destroy<AssignmentParentFinder>();
 
     DependencyManager::get<ResourceManager>()->cleanup();
 
     DependencyManager::destroy<PluginManager>();
 
+    DependencyManager::destroy<ResourceScriptingInterface>();
+    DependencyManager::destroy<EntityScriptingInterface>();
+
     // cleanup the AudioInjectorManager (and any still running injectors)
     DependencyManager::destroy<AudioInjectorManager>();
+
     DependencyManager::destroy<ScriptEngines>();
     DependencyManager::destroy<EntityScriptServerServices>();
 

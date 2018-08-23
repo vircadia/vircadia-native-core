@@ -26,7 +26,7 @@ class SafeLanding : public QObject {
 public:
     void startEntitySequence(QSharedPointer<EntityTreeRenderer> entityTreeRenderer);
     void stopEntitySequence();
-    void setCompletionSequenceNumbers(int first, int last);
+    void setCompletionSequenceNumbers(int first, int last);  // 'last' exclusive.
     void noteReceivedsequenceNumber(int sequenceNumber);
     bool isLoadSequenceComplete();
 

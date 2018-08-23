@@ -18,15 +18,38 @@ MessageBox {
         popup.button2text = 'CONFIRM';
 
         popup.onButton2Clicked = function() {
-            if(callback)
+            if (callback) {
                 callback();
+            }
 
             popup.close();
         }
 
         popup.onLinkClicked = function(link) {
-            if(linkCallback)
+            if (linkCallback) {
                 linkCallback(link);
+            }
+        }
+
+        popup.open();
+        popup.inputText.forceActiveFocus();
+    }
+
+    function showSpecifyWearableUrl(callback) {
+        popup.button2text = 'CONFIRM'
+        popup.button1text = 'CANCEL'
+        popup.titleText = 'Specify Wearable URL'
+        popup.bodyText = 'If you want to add a custom wearable, you can specify the URL of the wearable file here.'
+
+        popup.inputText.visible = true;
+        popup.inputText.placeholderText = 'Enter Wearable URL';
+
+        popup.onButton2Clicked = function() {
+            if (callback) {
+                callback(popup.inputText.text);
+            }
+
+            popup.close();
         }
 
         popup.open();
@@ -41,22 +64,24 @@ MessageBox {
         popup.button1text = 'CANCEL'
         popup.titleText = 'Get Wearables'
         popup.bodyText = 'Buy wearables from <b><a href="app://marketplace">Marketplace.</a></b>' + '<br/>' +
-                         'Use wearables in <b><a href="app://purchases">My Purchases.</a></b>' + '<br/>' + '<br/>' +
-                         'Visit “AvatarIsland” to get wearables.'
+                'Wear wearable from <b><a href="app://purchases">My Purchases.</a></b>' + '<br/>' + '<br/>' +
+                'Visit “AvatarIsland” to get wearables'
 
         popup.imageSource = getWearablesUrl;
         popup.onButton2Clicked = function() {
             popup.close();
 
-            if(callback)
+            if (callback) {
                 callback();
+            }
         }
 
         popup.onLinkClicked = function(link) {
             popup.close();
 
-            if(linkCallback)
+            if (linkCallback) {
                 linkCallback(link);
+            }
         }
 
         popup.open();
@@ -72,8 +97,9 @@ MessageBox {
         popup.onButton2Clicked = function() {
             popup.close();
 
-            if(callback)
+            if (callback) {
                 callback();
+            }
         }
         popup.open();
     }
@@ -87,8 +113,9 @@ MessageBox {
         popup.onButton2Clicked = function() {
             popup.close();
 
-            if(callback)
+            if (callback) {
                 callback();
+            }
         }
         popup.open();
     }
@@ -109,15 +136,17 @@ MessageBox {
         popup.onButton2Clicked = function() {
             popup.close();
 
-            if(callback)
+            if (callback) {
                 callback();
+            }
         }
 
         popup.onLinkClicked = function(link) {
             popup.close();
 
-            if(linkCallback)
+            if (linkCallback) {
                 linkCallback(link);
+            }
         }
 
         popup.open();
