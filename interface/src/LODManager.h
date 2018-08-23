@@ -30,7 +30,9 @@ const float INCREASE_LOD_GAP_FPS = 10.0f; // fps
 // The default value DEFAULT_OCTREE_SIZE_SCALE means you can be 400 meters away from a 1 meter object in order to see it (which is ~20:20 vision).
 const float ADJUST_LOD_MAX_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE;
 // This controls how low the auto-adjust LOD will go. We want a minimum vision of ~20:500 or 0.04 of default
-const float ADJUST_LOD_MIN_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE * 0.04f;
+// const float ADJUST_LOD_MIN_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE * 0.04f;
+// const float ADJUST_LOD_MIN_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE * 0.02f;
+const float ADJUST_LOD_MIN_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE * 0.01f;
 
 class AABox;
 
@@ -60,9 +62,10 @@ class LODManager : public QObject, public Dependency {
     Q_PROPERTY(float gpuTime READ getGPUTime)
     Q_PROPERTY(float avgRenderTime READ getAverageRenderTime)
     Q_PROPERTY(float fps READ getMaxTheoreticalFPS)
-    Q_PROPERTY(float lodLevel READ getLODLevel)
+    Q_PROPERTY(float lodLevel READ getLODLevel WRITE setLODLevel NOTIFY LODChanged)
     Q_PROPERTY(float lodDecreaseFPS READ getLODDecreaseFPS)
     Q_PROPERTY(float lodIncreaseFPS READ getLODIncreaseFPS)
+    Q_PROPERTY(bool automaticLODAdjust READ getAutomaticLODAdjust WRITE setAutomaticLODAdjust)
 
 public:
      
@@ -174,6 +177,7 @@ public:
     float getAverageRenderTime() const { return _avgRenderTime; };
     float getMaxTheoreticalFPS() const { return (float)MSECS_PER_SECOND / _avgRenderTime; };
     float getLODLevel() const;
+    void setLODLevel(float level);
 
 signals:
 
@@ -188,6 +192,8 @@ signals:
      * @returns {Signal}
      */
     void LODDecreased();
+
+    void LODChanged();
 
 private:
     LODManager();

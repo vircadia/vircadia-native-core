@@ -87,6 +87,7 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
                     _octreeSizeScale = ADJUST_LOD_MIN_SIZE_SCALE;
                 }
                 emit LODDecreased();
+                emit LODChanged();
                 // Assuming the LOD adjustment will work: we optimistically reset _avgRenderTime
                 // to provide an FPS just above the decrease threshold.  It will drift close to its
                 // true value after a few LOD_ADJUST_TIMESCALEs and we'll adjust again as necessary.
@@ -108,6 +109,8 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
                     _octreeSizeScale = ADJUST_LOD_MAX_SIZE_SCALE;
                 }
                 emit LODIncreased();
+                emit LODChanged();
+
                 // Assuming the LOD adjustment will work: we optimistically reset _avgRenderTime
                 // to provide an FPS just below the increase threshold.  It will drift close to its
                 // true value after a few LOD_ADJUST_TIMESCALEs and we'll adjust again as necessary.
@@ -143,6 +146,10 @@ float LODManager::getLODLevel() const {
     float power = logf(_octreeSizeScale / ADJUST_LOD_MAX_SIZE_SCALE);
     float simpleLOD = (LOG_MIN_LOD_RATIO - power) / LOG_MIN_LOD_RATIO;
     return simpleLOD;
+}
+
+void LODManager::setLODLevel(float level) {
+
 }
 
 const float MIN_DECREASE_FPS = 0.5f;

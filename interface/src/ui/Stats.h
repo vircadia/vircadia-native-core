@@ -239,7 +239,8 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, processing, 0)
     STATS_PROPERTY(int, processingPending, 0)
     STATS_PROPERTY(int, triangles, 0)
-    STATS_PROPERTY(int, quads, 0)
+    STATS_PROPERTY(int, drawcalls, 0)
+   // STATS_PROPERTY(int, quads, 0)
     STATS_PROPERTY(int, materialSwitches, 0)
     STATS_PROPERTY(int, itemConsidered, 0)
     STATS_PROPERTY(int, itemOutOfView, 0)
@@ -709,11 +710,19 @@ signals:
     void trianglesChanged();
 
     /**jsdoc
+    * Triggered when the value of the <code>drawcalls</code> property changes.
+    * This 
+    * @function Stats.drawcallsChanged
+    * @returns {Signal}
+    */
+    void drawcallsChanged();
+
+    /**jsdoc
      * Triggered when the value of the <code>quads</code> property changes.
      * @function Stats.quadsChanged
      * @returns {Signal}
      */
-    void quadsChanged();
+   // void quadsChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>materialSwitches</code> property changes.

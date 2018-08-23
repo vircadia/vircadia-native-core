@@ -56,13 +56,13 @@ Item {
         anchors.verticalCenter: root.verticalCenter
     }
     
-    Binding {
+   /* Binding {
         id: bindingControl
         target: root.config
         property: root.property
         value: sliderControl.value
         when: false
-    }
+    }*/
 
     HifiControls.Slider {
         id: sliderControl
@@ -73,7 +73,7 @@ Item {
         anchors.top: root.top
         anchors.topMargin: 0
 
-        onValueChanged: { root.valueChanged(value) }
+       // onValueChanged: { root.valueChanged(value) }
     }
 
     HifiControls.Label {

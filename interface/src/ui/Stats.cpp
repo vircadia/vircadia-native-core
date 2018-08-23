@@ -376,6 +376,12 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(rectifiedTextureCount, (int)RECTIFIED_TEXTURE_COUNT.load());
     STAT_UPDATE(decimatedTextureCount, (int)DECIMATED_TEXTURE_COUNT.load());
 
+    gpu::ContextStats gpuFrameStats;
+    gpuContext->getFrameStats(gpuFrameStats);
+
+    STAT_UPDATE(drawcalls, gpuFrameStats._DSNumDrawcalls);
+
+
     // Incoming packets
     QLocale locale(QLocale::English);
     auto voxelPacketsToProcess = qApp->getOctreePacketProcessor().packetsToProcessCount();
