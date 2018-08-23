@@ -79,6 +79,7 @@
             { x: 0.5, y: -0.75, z: 0 },
             { x: -0.5, y: -0.75, z: 0 }
         ],
+        PROXY_EXPAND_DELTA_ROTATION = Quat.fromVec3Degrees({ x: -45, y: 0, z: 0 }),
         proxyExpandHand,
         proxyExpandLocalPosition,
         proxyExpandLocalRotation = Quat.IDENTITY,
@@ -88,6 +89,7 @@
         proxyExpandStart,
         proxyInitialWidth,
         proxyTargetWidth,
+        proxyTargetLocalRotation,
 
         // EventBridge
         READY_MESSAGE = "ready", // Engine <== Dialog
@@ -321,19 +323,28 @@
 
     function sizeUIAboutHandles(scaleFactor) {
         // Scale UI and move per handles.
+        var tabletScaleFactor = avatarScale * (1 + scaleFactor * (proxyTargetWidth - proxyInitialWidth) / proxyInitialWidth);
+        var dimensions = Vec3.multiply(tabletScaleFactor, PROXY_DIMENSIONS);
+        var localRotation = Quat.mix(proxyExpandLocalRotation, proxyTargetLocalRotation, scaleFactor);
+        var localPosition =
+            Vec3.sum(proxyExpandLocalPosition,
+                Vec3.multiplyQbyV(proxyExpandLocalRotation,
+                    Vec3.multiply(-tabletScaleFactor,
+                        Vec3.multiplyVbyV(PROXY_EXPAND_HANDLES[proxyExpandHand], PROXY_DIMENSIONS)))
+            );
+        localPosition = Vec3.sum(localPosition,
+            Vec3.multiplyQbyV(proxyExpandLocalRotation, { x: 0, y: 0.5 * -dimensions.y, z: 0 }));
+        localPosition = Vec3.sum(localPosition,
+            Vec3.multiplyQbyV(localRotation, { x: 0, y: 0.5 * dimensions.y, z: 0 }));
         Overlays.editOverlay(proxyOverlay, {
-            localPosition:
-                Vec3.sum(proxyExpandLocalPosition,
-                    Vec3.multiplyQbyV(proxyExpandLocalRotation,
-                        Vec3.multiply(-scaleFactor,
-                            Vec3.multiplyVbyV(PROXY_EXPAND_HANDLES[proxyExpandHand], PROXY_DIMENSIONS)))
-                ),
-            dimensions: Vec3.multiply(scaleFactor, PROXY_DIMENSIONS)
+            localPosition: localPosition,
+            localRotation: localRotation,
+            dimensions: dimensions
         });
         Overlays.editOverlay(proxyUIOverlay, {
-            localPosition: Vec3.multiply(scaleFactor, PROXY_UI_LOCAL_POSITION),
-            dimensions: Vec3.multiply(scaleFactor, PROXY_UI_DIMENSIONS),
-            dpi: PROXY_UI_DPI / scaleFactor
+            localPosition: Vec3.multiply(tabletScaleFactor, PROXY_UI_LOCAL_POSITION),
+            dimensions: Vec3.multiply(tabletScaleFactor, PROXY_UI_DIMENSIONS),
+            dpi: PROXY_UI_DPI / tabletScaleFactor
         });
     }
 
@@ -504,9 +515,8 @@
 
     function expandProxy() {
         var scaleFactor = (Date.now() - proxyExpandStart) / PROXY_EXPAND_DURATION;
-        var tabletScaleFactor = avatarScale * (1 + scaleFactor * (proxyTargetWidth - proxyInitialWidth) / proxyInitialWidth);
         if (scaleFactor < 1) {
-            sizeUIAboutHandles(tabletScaleFactor);
+            sizeUIAboutHandles(scaleFactor);
             proxyExpandTimer = Script.setTimeout(expandProxy, PROXY_EXPAND_TIMEOUT);
             return;
         }
@@ -526,6 +536,7 @@
         // Start expanding.
         proxyInitialWidth = PROXY_DIMENSIONS.x;
         proxyTargetWidth = getTabletWidthFromSettings();
+        proxyTargetLocalRotation = Quat.multiply(proxyExpandLocalRotation, PROXY_EXPAND_DELTA_ROTATION);
         proxyExpandStart = Date.now();
         proxyExpandTimer = Script.setTimeout(expandProxy, PROXY_EXPAND_TIMEOUT);
     }
