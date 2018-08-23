@@ -66,6 +66,7 @@ private:
     const gpu::PipelinePointer getPipeline();
     gpu::PipelinePointer _boundsPipeline;
     gpu::BufferPointer _drawBuffer;
+    gpu::BufferPointer _paramsBuffer;
 };
 
 class DrawQuadVolumeConfig : public render::JobConfig {
@@ -95,7 +96,7 @@ protected:
              const gpu::BufferView& indices, int indexCount);
 
     gpu::BufferView _meshVertices;
-    glm::vec3 _color;
+    gpu::BufferPointer _params;
     bool _isUpdateEnabled{ true };
 
     static gpu::Stream::FormatPointer _format;
