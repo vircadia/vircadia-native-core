@@ -1,5 +1,5 @@
 //
-//  ConfigSlider.qml
+//  RichSlider.qml
 //
 //  Created by Zach Pomerantz on 2/8/2016
 //  Copyright 2016 High Fidelity, Inc.
@@ -24,11 +24,17 @@ Item {
     anchors.right: parent.right    
     height: 24
 
+    function defaultGet() { return 0 }
+    function defaultSet(value) { }
+
     property var labelAreaWidthScale: 0.5
 
     property bool integral: false
-    property var config
-    property string property
+    property var valueVarGetter: defaultGet
+    property var valueVarSetter: defaultSet
+  //  property string property
+    property  alias valueVar : sliderControl.value
+  //  property  alias valueSetter : sliderControl.value
     property alias min: sliderControl.minimumValue
     property alias max: sliderControl.maximumValue
 
@@ -42,9 +48,6 @@ Item {
     signal valueChanged(real value)
 
     Component.onCompleted: {
-        // Binding favors qml value, so set it first
-        sliderControl.value = root.config[root.property];
-        bindingControl.when = true;
     }
 
     HifiControls.Label {
@@ -55,14 +58,6 @@ Item {
         width: root.width * root.labelAreaWidthScale
         anchors.verticalCenter: root.verticalCenter
     }
-    
-    Binding {
-        id: bindingControl
-        target: root.config
-        property: root.property
-        value: sliderControl.value
-        when: false
-    }
 
     HifiControls.Slider {
         id: sliderControl
@@ -72,8 +67,7 @@ Item {
         anchors.rightMargin: 0
         anchors.top: root.top
         anchors.topMargin: 0
-
-        onValueChanged: { root.valueChanged(value) }
+        onValueChanged: { root.valueVarSetter(value) }
     }
 
     HifiControls.Label {
@@ -84,8 +78,5 @@ Item {
         anchors.rightMargin: 5
         anchors.verticalCenter: root.verticalCenter
     }
-
-
- 
 
 }

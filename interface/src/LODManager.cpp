@@ -136,6 +136,11 @@ void LODManager::resetLODAdjust() {
     _decreaseFPSExpiry = _increaseFPSExpiry = usecTimestampNow() + LOD_AUTO_ADJUST_PERIOD;
 }
 
+void LODManager::setAutomaticLODAdjust(bool value) {
+    _automaticLODAdjust = value;
+    emit autoLODChanged();
+}
+
 float LODManager::getLODLevel() const {
     // simpleLOD is a linearized and normalized number that represents how much LOD is being applied.
     // It ranges from:
@@ -149,7 +154,14 @@ float LODManager::getLODLevel() const {
 }
 
 void LODManager::setLODLevel(float level) {
+    float simpleLOD = level;
+    if (!_automaticLODAdjust) {
+        const float LOG_MIN_LOD_RATIO = logf(ADJUST_LOD_MIN_SIZE_SCALE / ADJUST_LOD_MAX_SIZE_SCALE);
 
+        float power = LOG_MIN_LOD_RATIO - (simpleLOD * LOG_MIN_LOD_RATIO);
+        float sizeScale = expf(power) * ADJUST_LOD_MAX_SIZE_SCALE;
+        setOctreeSizeScale(sizeScale);
+    }
 }
 
 const float MIN_DECREASE_FPS = 0.5f;
@@ -247,3 +259,63 @@ void LODManager::saveSettings() {
     hmdLODDecreaseFPS.set(getHMDLODDecreaseFPS());
 }
 
+void LODManager::setWorldDetailQuality(float quality) {
+
+    static const float MAX_DESKTOP_FPS = 60;
+    static const float MAX_HMD_FPS = 90;
+    static const float MIN_FPS = 10;
+    static const float LOW = 0.25f;
+    static const float MEDIUM = 0.5f;
+    static const float HIGH = 0.75f;
+    static const float THRASHING_DIFFERENCE = 10;
+
+    bool isLowestValue = quality == LOW;
+    bool isHMDMode = qApp->isHMDMode();
+
+    float maxFPS = isHMDMode ? MAX_HMD_FPS : MAX_DESKTOP_FPS;
+    float desiredFPS = maxFPS - THRASHING_DIFFERENCE;
+
+    if (!isLowestValue) {
+        float calculatedFPS = (maxFPS - (maxFPS * quality)) - THRASHING_DIFFERENCE;
+        desiredFPS = calculatedFPS < MIN_FPS ? MIN_FPS : calculatedFPS;
+    }
+
+    if (isHMDMode) {
+        setHMDLODDecreaseFPS(desiredFPS);
+    }
+    else {
+        setDesktopLODDecreaseFPS(desiredFPS);
+    }
+
+    emit worldDetailQualityChanged();
+}
+
+float LODManager::getWorldDetailQuality() const {
+
+
+    static const float MAX_DESKTOP_FPS = 60;
+    static const float MAX_HMD_FPS = 90;
+    static const float MIN_FPS = 10;
+    static const float LOW = 0.25f;
+    static const float MEDIUM = 0.5f;
+    static const float HIGH = 0.75f;
+
+    bool inHMD = qApp->isHMDMode();
+
+    float increaseFPS = 0;
+    if (inHMD) {
+        increaseFPS = getHMDLODDecreaseFPS();
+    } else {
+        increaseFPS = getDesktopLODDecreaseFPS();
+    }
+    float maxFPS = inHMD ? MAX_HMD_FPS : MAX_DESKTOP_FPS;
+    float percentage = increaseFPS / maxFPS;
+
+    if (percentage >= HIGH) {
+        return LOW;
+    }
+    else if (percentage >= LOW) {
+        return MEDIUM;
+    }
+    return HIGH;
+}

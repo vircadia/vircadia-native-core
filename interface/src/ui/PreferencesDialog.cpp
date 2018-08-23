@@ -55,7 +55,7 @@ void setupPreferences() {
     // Graphics quality
     static const QString GRAPHICS_QUALITY { "Graphics Quality" };
     {
-        static const float MAX_DESKTOP_FPS = 60;
+  /*      static const float MAX_DESKTOP_FPS = 60;
         static const float MAX_HMD_FPS = 90;
         static const float MIN_FPS = 10;
         static const float LOW = 0.25f;
@@ -102,6 +102,13 @@ void setupPreferences() {
             } else {
                 lodManager->setDesktopLODDecreaseFPS(desiredFPS);
             }
+        };*/
+        auto getter = []()->float {
+            return DependencyManager::get<LODManager>()->getWorldDetailQuality();
+        };
+
+        auto setter = [](float value) {
+            DependencyManager::get<LODManager>()->setWorldDetailQuality(value);
         };
 
         auto wodSlider = new SliderPreference(GRAPHICS_QUALITY, "World Detail", getter, setter);

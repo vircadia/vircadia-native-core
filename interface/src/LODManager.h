@@ -65,7 +65,9 @@ class LODManager : public QObject, public Dependency {
     Q_PROPERTY(float lodLevel READ getLODLevel WRITE setLODLevel NOTIFY LODChanged)
     Q_PROPERTY(float lodDecreaseFPS READ getLODDecreaseFPS)
     Q_PROPERTY(float lodIncreaseFPS READ getLODIncreaseFPS)
-    Q_PROPERTY(bool automaticLODAdjust READ getAutomaticLODAdjust WRITE setAutomaticLODAdjust)
+    Q_PROPERTY(bool automaticLODAdjust READ getAutomaticLODAdjust WRITE setAutomaticLODAdjust NOTIFY autoLODChanged)
+
+    Q_PROPERTY(float worldDetailQuality READ getWorldDetailQuality WRITE setWorldDetailQuality NOTIFY worldDetailQualityChanged)
 
 public:
      
@@ -73,7 +75,7 @@ public:
      * @function LODManager.setAutomaticLODAdjust
      * @param {boolean} value
      */
-    Q_INVOKABLE void setAutomaticLODAdjust(bool value) { _automaticLODAdjust = value; }
+    Q_INVOKABLE void setAutomaticLODAdjust(bool value);
 
     /**jsdoc
      * @function LODManager.getAutomaticLODAdjust
@@ -179,6 +181,9 @@ public:
     float getLODLevel() const;
     void setLODLevel(float level);
 
+    void setWorldDetailQuality(float quality);
+    float getWorldDetailQuality() const;
+
 signals:
 
     /**jsdoc
@@ -194,6 +199,8 @@ signals:
     void LODDecreased();
 
     void LODChanged();
+    void autoLODChanged();
+    void worldDetailQualityChanged();
 
 private:
     LODManager();

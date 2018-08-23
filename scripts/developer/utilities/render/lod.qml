@@ -44,21 +44,50 @@ Item {
         }
         HifiControls.CheckBox {
             boxSize: 20
-            text: "Manual LOD"
-            checked: LODManager.getAutomaticLODAdjust()
-            onCheckedChanged: { LODManager.setAutomaticLODAdjust(checked) }
+            text: "Auto LOD"
+            checked: LODManager.automaticLODAdjust
+            onCheckedChanged: { LODManager.automaticLODAdjust = (checked) }
         }
-        ConfigSlider {
+property var lodObject: LODManager
+
+        RichSlider {
             showLabel: true
-            config:  LODManager
-            property: "lodLevel"
-            max: 13
-            min: 0
+            label: "lodLevel"
+            valueVar: LODManager["lodLevel"]
+            valueVarSetter: (function (v) { LODManager["lodLevel"] = v })
+            max: 1.0
+            min: 0.0
             integral: false
 
             anchors.left: parent.left
             anchors.right: parent.right 
         }
+        RichSlider {
+            showLabel: true
+           // config:  lodObject
+           // property: "worldDetailQuality"
+           // valueVar: LODManager["worldDetailQuality"]
+            label: "World Quality"
+            valueVar: LODManager["worldDetailQuality"]
+            // valueVarGetter: { return LODManager["worldDetailQuality"] }
+            valueVarSetter: (function (v) { LODManager["worldDetailQuality"] = v })
+            max: 0.75
+            min: 0.25
+            integral: false
+
+            anchors.left: parent.left
+            anchors.right: parent.right 
+        }
+     /*   HifiControls.Slider {
+            id: sliderControl
+            stepSize: 0.0
+            minimumValue: 0.0
+            maximumValue: 1.2
+            anchors.left: parent.left
+            anchors.right: parent.right 
+            value: LODManager["lodLevel"]
+            onValueChanged: { LODManager["lodLevel"] = value }
+        }*/
 
     }
 
