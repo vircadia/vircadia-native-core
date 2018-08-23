@@ -21,6 +21,8 @@
 #include "AvatarLogging.h"
 #include "AvatarTraits.h"
 
+const int SURROGATE_COUNT = 2;
+
 AvatarHashMap::AvatarHashMap() {
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -139,14 +141,37 @@ AvatarSharedPointer AvatarHashMap::parseAvatarData(QSharedPointer<ReceivedMessag
     bool isNewAvatar;
     if (sessionUUID != _lastOwnerSessionUUID && (!nodeList->isIgnoringNode(sessionUUID) || nodeList->getRequestsDomainListData())) {
         auto avatar = newOrExistingAvatar(sessionUUID, sendingNode, isNewAvatar);
+        
+        
         if (isNewAvatar) {
             QWriteLocker locker(&_hashLock);
             _pendingAvatars.insert(sessionUUID, { std::chrono::steady_clock::now(), 0, avatar });
+            std::vector<QUuid> surrogateIDs;
+            for (int i = 0; i < SURROGATE_COUNT; i++) {
+                QUuid surrogateID = QUuid::createUuid();
+                surrogateIDs.push_back(surrogateID);
+                auto surrogateAvatar = addAvatar(surrogateID, sendingNode);
+                surrogateAvatar->setSurrogateIndex(i + 1);
+                surrogateAvatar->parseDataFromBuffer(byteArray);
+                _pendingAvatars.insert(surrogateID, { std::chrono::steady_clock::now(), 0, surrogateAvatar });
+            }
+            _surrogates.insert(std::pair<QUuid, std::vector<QUuid>>(sessionUUID, surrogateIDs));
+        } else {
+            auto surrogateIDs = _surrogates[sessionUUID];
+            for (auto id : surrogateIDs) {
+                auto surrogateAvatar = newOrExistingAvatar(id, sendingNode, isNewAvatar);
+                if (!isNewAvatar) {
+                    surrogateAvatar->parseDataFromBuffer(byteArray);
+                }
+            }
+
         }
 
         // have the matching (or new) avatar parse the data from the packet
         int bytesRead = avatar->parseDataFromBuffer(byteArray);
         message->seek(positionBeforeRead + bytesRead);
+
+        avatar->parseDataFromBuffer(byteArray);
         return avatar;
     } else {
         // create a dummy AvatarData class to throw this data on the ground
@@ -191,13 +216,22 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
         bool displayNameChanged = false;
         // In this case, the "sendingNode" is the Avatar Mixer.
         avatar->processAvatarIdentity(message->getMessage(), identityChanged, displayNameChanged);
+        auto surrogateIDs = _surrogates[identityUUID];
+        for (auto id : surrogateIDs) {
+            auto surrogateAvatar = newOrExistingAvatar(id, sendingNode, isNewAvatar);
+            if (!isNewAvatar) {
+                surrogateAvatar->processAvatarIdentity(message->getMessage(), identityChanged, displayNameChanged);
+            }
+        }
     }
 }
 
-void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+void AvatarHashMap::processAvatarTraits(QUuid sessionUUID, QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    message->seek(0);
     while (message->getBytesLeftToRead()) {
         // read the avatar ID to figure out which avatar this is for
         auto avatarID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+        avatarID = sessionUUID;
 
         // grab the avatar so we can ask it to process trait data
         bool isNewAvatar;
@@ -225,10 +259,12 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
                 if (packetTraitVersion > lastProcessedVersions[traitType]) {
                     avatar->processTrait(traitType, message->read(traitBinarySize));
                     lastProcessedVersions[traitType] = packetTraitVersion;
-                } else {
+                }
+                else {
                     skipBinaryTrait = true;
                 }
-            } else {
+            }
+            else {
                 AvatarTraits::TraitInstanceID traitInstanceID =
                     QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
@@ -238,11 +274,13 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
                 if (packetTraitVersion > processedInstanceVersion) {
                     if (traitBinarySize == AvatarTraits::DELETED_TRAIT_SIZE) {
                         avatar->processDeletedTraitInstance(traitType, traitInstanceID);
-                    } else {
+                    }
+                    else {
                         avatar->processTraitInstance(traitType, traitInstanceID, message->read(traitBinarySize));
                     }
                     processedInstanceVersion = packetTraitVersion;
-                } else {
+                }
+                else {
                     skipBinaryTrait = true;
                 }
             }
@@ -258,6 +296,18 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
     }
 }
 
+void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    while (message->getBytesLeftToRead()) {
+        // read the avatar ID to figure out which avatar this is for
+        auto avatarID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+        processAvatarTraits(avatarID, message, sendingNode);
+        auto surrogateIDs = _surrogates[avatarID];
+        for (auto id : surrogateIDs) {
+            processAvatarTraits(id, message, sendingNode);
+        }
+    }
+}
+
 void AvatarHashMap::processKillAvatar(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     // read the node id
     QUuid sessionUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
@@ -265,6 +315,10 @@ void AvatarHashMap::processKillAvatar(QSharedPointer<ReceivedMessage> message, S
     KillAvatarReason reason;
     message->readPrimitive(&reason);
     removeAvatar(sessionUUID, reason);
+    auto surrogateIDs = _surrogates[sessionUUID];
+    for (auto id : surrogateIDs) {
+        removeAvatar(id, reason);
+    }
 }
 
 void AvatarHashMap::removeAvatar(const QUuid& sessionUUID, KillAvatarReason removalReason) {
@@ -275,6 +329,14 @@ void AvatarHashMap::removeAvatar(const QUuid& sessionUUID, KillAvatarReason remo
 
     if (removedAvatar) {
         handleRemovedAvatar(removedAvatar, removalReason);
+    }
+    auto surrogateIDs = _surrogates[sessionUUID];
+    for (auto id : surrogateIDs) {
+        _pendingAvatars.remove(id);
+        auto removedSurrogate = _avatarHash.take(id);
+        if (removedSurrogate) {
+            handleRemovedAvatar(removedSurrogate, removalReason);
+        }
     }
 }
 

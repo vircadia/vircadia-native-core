@@ -134,6 +134,7 @@ protected slots:
      */
     void processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     
+    void processAvatarTraits(QUuid sessionUUID, QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void processBulkAvatarTraits(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     
     /**jsdoc
@@ -167,6 +168,7 @@ protected:
     mutable QReadWriteLock _hashLock;
 
     std::unordered_map<QUuid, AvatarTraits::TraitVersions> _processedTraitVersions;
+    std::map<QUuid, std::vector<QUuid>> _surrogates;
 private:
     QUuid _lastOwnerSessionUUID;
 };
