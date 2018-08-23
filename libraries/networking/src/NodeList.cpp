@@ -273,6 +273,7 @@ void NodeList::reset(bool skipDomainHandlerReset) {
 
     // refresh the owner UUID to the NULL UUID
     setSessionUUID(QUuid());
+    setSessionLocalID(Node::NULL_LOCAL_ID);
 
     // if we setup the DTLS socket, also disconnect from the DTLS socket readyRead() so it can handle handshaking
     if (_dtlsSocket) {
@@ -647,6 +648,17 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     Node::LocalID newLocalID;
     packetStream >> newUUID;
     packetStream >> newLocalID;
+
+    // when connected, if the session ID or local ID were not null and changed, we should reset
+    auto currentLocalID = getSessionLocalID();
+    auto currentSessionID = getSessionUUID();
+    if (_domainHandler.isConnected() &&
+        ((currentLocalID != Node::NULL_LOCAL_ID && newLocalID != currentLocalID) ||
+        (!currentSessionID.isNull() && newUUID != currentSessionID))) {
+            qCDebug(networking) << "Local ID or Session ID changed while connected to domain - forcing NodeList reset";
+            reset(true);
+    }
+
     setSessionLocalID(newLocalID);
     setSessionUUID(newUUID);
 
