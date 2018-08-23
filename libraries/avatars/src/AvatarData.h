@@ -1089,6 +1089,7 @@ public:
     void clearRecordingBasis();
     TransformPointer getRecordingBasis() const;
     void setRecordingBasis(TransformPointer recordingBasis = TransformPointer());
+    void createRecordingIDs();
     QJsonObject toJson() const;
     void fromJson(const QJsonObject& json, bool useFrameSkeleton = true);
 
@@ -1421,6 +1422,7 @@ protected:
 
     mutable ReadWriteLockable _avatarEntitiesLock;
     AvatarEntityIDs _avatarEntityDetached; // recently detached from this avatar
+    AvatarEntityIDs _avatarEntityForRecording; // create new entities id for avatar recording
     AvatarEntityMap _avatarEntityData;
     bool _avatarEntityDataChanged { false };
 
