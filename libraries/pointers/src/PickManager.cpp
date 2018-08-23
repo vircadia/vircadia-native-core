@@ -88,6 +88,14 @@ void PickManager::setIncludeItems(unsigned int uid, const QVector<QUuid>& includ
     }
 }
 
+Transform PickManager::getResultTransform(unsigned int uid) const {
+    auto pick = findPick(uid);
+    if (pick) {
+        return pick->getResultTransform();
+    }
+    return Transform();
+}
+
 void PickManager::update() {
     uint64_t expiry = usecTimestampNow() + _perFrameTimeBudget;
     std::unordered_map<PickQuery::PickType, std::unordered_map<unsigned int, std::shared_ptr<PickQuery>>> cachedPicks;

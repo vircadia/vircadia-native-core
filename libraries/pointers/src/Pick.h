@@ -17,6 +17,7 @@
 #include <QVariant>
 
 #include <shared/ReadWriteLockable.h>
+#include <Transform.h>
 
 enum IntersectionType {
     NONE = 0,
