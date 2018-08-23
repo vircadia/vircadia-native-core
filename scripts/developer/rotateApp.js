@@ -260,6 +260,15 @@ function limitAngle(angle) {
 }
 
 function computeHandAzimuths(timeElapsed) {
+
+   // var leftHandPositionRigSpace = Vec3.multiplyQbyV(Quat.inverse(CHANGE_OF_BASIS_ROTATION), currentStateReadings.lhandPose.translation);
+   // var rightHandPositionRigSpace = Vec3.multiplyQbyV(Quat.inverse(CHANGE_OF_BASIS_ROTATION), currentStateReadings.rhandPose.translation);
+
+
+   // var hipToLeftHand = Quat.lookAtSimple({ x: 0, y: 0, z: 0 }, { x: leftHandPositionRigSpace.x, y: 0, z: leftHandPositionRigSpace.z });
+   // var hipToRightHand = Quat.lookAtSimple({ x: 0, y: 0, z: 0 }, { x: rightHandPositionRigSpace.x, y: 0, z: rightHandPositionRigSpace.z });
+   // var hipToHandHalfway = Quat.slerp(hipToLeftHand, hipToRightHand, 0.5);
+
     var leftHand = currentStateReadings.lhandPose.translation;
     var rightHand = currentStateReadings.rhandPose.translation;
     var head = currentStateReadings.headPose.translation;
@@ -299,17 +308,21 @@ function computeHandAzimuths(timeElapsed) {
 
     // get it into radians too!!
     // average head and hands 50/50
-    print("hands azimuth " + leftRightMidpointAverage + " head azimuth " + headPoseAverageEulers.y)
+    // print("hands azimuth " + leftRightMidpointAverage + " head azimuth " + headPoseAverageEulers.y);
     var headPlusHands = (leftRightMidpointAverage + headPoseAverageEulers.y) / 2.0;
     if ((Math.abs(headPlusHands / 180.0) * Math.PI) > angleThresholdProperty.value) {
-        print("recenter the feet under the head");
+        //print("recenter the feet under the head");
         MyAvatar.triggerRotationRecenter();
         hipToLHandAverage = { x: 0, y: 0, z: 0, w: 1 };
         hipToRHandAverage = { x: 0, y: 0, z: 0, w: 1 };
         headPoseAverageOrientation = { x: 0, y: 0, z: 0, w: 1 };
     }
     
-    return Quat.fromVec3Degrees({ x: 0, y: leftRightMidpoint, z: 0 });
+    // put a hard max on this easing function.  
+    var rotateAngle = ((Math.cos((leftRightMidpoint / 180.0) * Math.PI) + 2.0)/3.0) * leftRightMidpoint;
+    print("rotate angle " + rotateAngle);
+
+    return Quat.fromVec3Degrees({ x: 0, y: rotateAngle, z: 0 });
 
 
 }
