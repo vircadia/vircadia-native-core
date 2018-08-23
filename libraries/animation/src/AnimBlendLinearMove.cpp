@@ -155,6 +155,7 @@ void AnimBlendLinearMove::setFrameAndPhase(float dt, float alpha, int prevPoseIn
 
     // integrate phase forward in time.
     _phase += omega * dt;
+    qCDebug(animation) << "the _phase is " << _phase;
 
     // detect loop trigger events
     if (_phase >= 1.0f) {
@@ -172,4 +173,7 @@ void AnimBlendLinearMove::setCurrentFrameInternal(float frame) {
     assert(clipNode);
     const float NUM_FRAMES = (clipNode->getEndFrame() - clipNode->getStartFrame()) + 1.0f;
     _phase = fmodf(frame / NUM_FRAMES, 1.0f);
+    if (_phase < 0.0f) {
+        _phase = 0.0f; // 1.0f + _phase;
+    }
 }
