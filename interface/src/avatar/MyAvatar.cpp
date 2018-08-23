@@ -203,6 +203,7 @@ MyAvatar::MyAvatar(QThread* thread) :
 
     connect(recorder.data(), &Recorder::recordingStateChanged, [=] {
         if (recorder->isRecording()) {
+            createRecordingIDs();
             setRecordingBasis();
         } else {
             clearRecordingBasis();

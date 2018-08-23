@@ -139,11 +139,11 @@ bool SafeLanding::isSequenceNumbersComplete() {
         int sequenceSize = _initialStart <= _initialEnd ? _initialEnd - _initialStart:
                 _initialEnd + SEQUENCE_MODULO - _initialStart;
         auto startIter = _sequenceNumbers.find(_initialStart);
-        auto endIter = _sequenceNumbers.find(_initialEnd);
+        auto endIter = _sequenceNumbers.find(_initialEnd - 1);
         if (sequenceSize == 0 ||
             (startIter != _sequenceNumbers.end()
             && endIter != _sequenceNumbers.end()
-            && distance(startIter, endIter) == sequenceSize) ) {
+            && distance(startIter, endIter) == sequenceSize - 1) ) {
             _trackingEntities = false; // Don't track anything else that comes in.
             return true;
         }

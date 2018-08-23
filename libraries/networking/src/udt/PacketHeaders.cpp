@@ -94,6 +94,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(AvatarQueryVersion::ConicalFrustums);
         case PacketType::AvatarIdentityRequest:
             return 22;
+        case PacketType::EntityQueryInitialResultsComplete:
+            return static_cast<PacketVersion>(EntityVersion::ParticleSpin);
         default:
             return 22;
     }
