@@ -11,6 +11,7 @@
 #include "GLBackend.h"
 #include "GLShared.h"
 #include "GLInputFormat.h"
+#include "GLBuffer.h"
 
 using namespace gpu;
 using namespace gpu::gl;
@@ -39,14 +40,20 @@ void GLBackend::do_setInputBuffer(const Batch& batch, size_t paramOffset) {
     BufferPointer buffer = batch._buffers.get(batch._params[paramOffset + 2]._uint);
     uint32 channel = batch._params[paramOffset + 3]._uint;
 
-    if (channel < getNumInputBuffers()) {
+  //  if (channel < getNumInputBuffers()) {
         bool isModified = false;
         if (_input._buffers[channel] != buffer) {
             _input._buffers[channel] = buffer;
          
             GLuint vbo = 0;
             if (buffer) {
-                vbo = getBufferID((*buffer));
+               // vbo = getBufferID((*buffer));
+              //  vbo = getBufferIDUnsafe((*buffer));
+                auto* object = Backend::getGPUObject<GLBuffer>((*buffer));
+
+                if (object) {
+                    vbo = object->_buffer;
+                }
             }
             _input._bufferVBOs[channel] = vbo;
 
@@ -66,7 +73,7 @@ void GLBackend::do_setInputBuffer(const Batch& batch, size_t paramOffset) {
         if (isModified) {
             _input._invalidBuffers.set(channel);
         }
-    }
+ //   }
 }
 
 void GLBackend::initInput() {
@@ -128,7 +135,7 @@ void GLBackend::do_setIndexBuffer(const Batch& batch, size_t paramOffset) {
     if (indexBuffer != _input._indexBuffer) {
         _input._indexBuffer = indexBuffer;
         if (indexBuffer) {
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, getBufferID(*indexBuffer));
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, getBufferIDUnsafe(*indexBuffer));
         } else {
             // FIXME do we really need this?  Is there ever a draw call where we care that the element buffer is null?
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -145,7 +152,7 @@ void GLBackend::do_setIndirectBuffer(const Batch& batch, size_t paramOffset) {
     if (buffer != _input._indirectBuffer) {
         _input._indirectBuffer = buffer;
         if (buffer) {
-            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, getBufferID(*buffer));
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, getBufferIDUnsafe(*buffer));
         } else {
             // FIXME do we really need this?  Is there ever a draw call where we care that the element buffer is null?
             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);

@@ -49,13 +49,25 @@ public:
         }
     }
 
+    template <typename GLBufferType>
+    static GLuint getIdUnsafe(GLBackend& backend, const Buffer& buffer) {
+        GLBufferType* object = Backend::getGPUObject<GLBufferType>(buffer);
+
+        if (object) {
+            return object->_buffer;
+        }
+        else {
+            return 0;
+        }
+    }
+
     const GLuint& _buffer { _id };
     const GLuint _size;
     const Stamp _stamp;
 
     ~GLBuffer();
 
-    virtual void transfer() = 0;
+    virtual void transfer() {};
 
 protected:
     GLBuffer(const std::weak_ptr<GLBackend>& backend, const Buffer& buffer, GLuint id);

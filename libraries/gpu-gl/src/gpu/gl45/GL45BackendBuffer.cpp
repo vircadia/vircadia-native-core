@@ -51,6 +51,11 @@ GLuint GL45Backend::getBufferID(const Buffer& buffer) {
     return GL45Buffer::getId<GL45Buffer>(*this, buffer);
 }
 
+GLuint GL45Backend::getBufferIDUnsafe(const Buffer& buffer) {
+    //return GL45Buffer::getId<GL45Buffer>(*this, buffer);
+    return GL45Buffer::getIdUnsafe<GL45Buffer>(*this, buffer);
+}
+
 GLBuffer* GL45Backend::syncGPUObject(const Buffer& buffer) {
     return GL45Buffer::sync<GL45Buffer>(*this, buffer);
 }
