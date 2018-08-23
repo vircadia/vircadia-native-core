@@ -3659,7 +3659,7 @@ bool Application::event(QEvent* event) {
 
 bool Application::eventFilter(QObject* object, QEvent* event) {
 
-    if (_aboutToQuit) {
+    if (_aboutToQuit && event->type() != QEvent::DeferredDelete && event->type() != QEvent::Destroy) {
         return true;
     }
 
