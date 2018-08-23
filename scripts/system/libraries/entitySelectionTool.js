@@ -441,7 +441,7 @@ SelectionDisplay = (function() {
     var STRETCH_PANEL_WIDTH = 0.01;
 
     var SCALE_EDGE_OFFSET = 0.5;
-    var SCALE_CUBE_CAMERA_DISTANCE_MULTIPLE = 0.0125;
+    var SCALE_CUBE_CAMERA_DISTANCE_MULTIPLE = 0.02;
 
     var CLONER_OFFSET = { x: 0.9, y: -0.9, z: 0.9 };    
     
@@ -617,7 +617,7 @@ SelectionDisplay = (function() {
     var handleStretchZPanel = Overlays.addOverlay("shape", handlePropertiesStretchPanel);
     Overlays.editOverlay(handleStretchZPanel, { color: COLOR_BLUE });
 
-	var handleScaleCube = Overlays.addOverlay("cube", {
+    var handleScaleCube = Overlays.addOverlay("cube", {
         size: 0.025,
         color: COLOR_SCALE_CUBE,
         solid: true,
@@ -1393,8 +1393,8 @@ SelectionDisplay = (function() {
             });
 
             // UPDATE SCALE CUBE
-			var scaleCubeRotation = spaceMode === SPACE_LOCAL ? rotation : Quat.IDENTITY;            
-			var scaleCubeDimension = rotateDimension * SCALE_CUBE_CAMERA_DISTANCE_MULTIPLE / 
+            var scaleCubeRotation = spaceMode === SPACE_LOCAL ? rotation : Quat.IDENTITY;            
+            var scaleCubeDimension = rotateDimension * SCALE_CUBE_CAMERA_DISTANCE_MULTIPLE / 
                                                            ROTATE_RING_CAMERA_DISTANCE_MULTIPLE;
             var scaleCubeDimensions = { x: scaleCubeDimension, y: scaleCubeDimension, z: scaleCubeDimension };
             Overlays.editOverlay(handleScaleCube, { 
@@ -1404,10 +1404,10 @@ SelectionDisplay = (function() {
             });
 
             // UPDATE SCALE EDGES
-			var edgeOffsetX = SCALE_EDGE_OFFSET * dimensions.x;
-			var edgeOffsetY = SCALE_EDGE_OFFSET * dimensions.y;
-			var edgeOffsetZ = SCALE_EDGE_OFFSET * dimensions.z;
-			var LBNPosition = { x: -edgeOffsetX, y: -edgeOffsetY, z: -edgeOffsetZ };
+            var edgeOffsetX = SCALE_EDGE_OFFSET * dimensions.x;
+            var edgeOffsetY = SCALE_EDGE_OFFSET * dimensions.y;
+            var edgeOffsetZ = SCALE_EDGE_OFFSET * dimensions.z;
+            var LBNPosition = { x: -edgeOffsetX, y: -edgeOffsetY, z: -edgeOffsetZ };
             LBNPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, LBNPosition));
             var RBNPosition = { x: edgeOffsetX, y: -edgeOffsetY, z: -edgeOffsetZ };
             RBNPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, RBNPosition));
@@ -1445,21 +1445,21 @@ SelectionDisplay = (function() {
             stretchXPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, stretchXPosition));
             Overlays.editOverlay(handleStretchXCube, { 
                 position: stretchXPosition, 
-				rotation: rotationX,
+                rotation: rotationX,
                 dimensions: stretchCubeDimensions 
             });
             var stretchYPosition = { x: 0, y: stretchCubeOffset, z: 0 };
             stretchYPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, stretchYPosition));
             Overlays.editOverlay(handleStretchYCube, { 
                 position: stretchYPosition, 
-				rotation: rotationY,
+                rotation: rotationY,
                 dimensions: stretchCubeDimensions 
             });
             var stretchZPosition = { x: 0, y: 0, z: stretchCubeOffset };
             stretchZPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, stretchZPosition));
             Overlays.editOverlay(handleStretchZCube, { 
                 position: stretchZPosition,
-				rotation: rotationZ,
+                rotation: rotationZ,
                 dimensions: stretchCubeDimensions 
             });
 
@@ -2067,10 +2067,9 @@ SelectionDisplay = (function() {
         var pickRayPosition3D = null;
         var rotation = null;
         var previousPickRay = null;
+        var beginMouseEvent = null;
 
-        var onBegin = function(event, pickRay, pickResult) {
-			var proportional = directionEnum === STRETCH_DIRECTION.ALL;
-			
+        var onBegin = function(event, pickRay, pickResult) {            
             var properties = Entities.getEntityProperties(SelectionManager.selections[0]);
             initialProperties = properties;
             rotation = (spaceMode === SPACE_LOCAL) ? properties.rotation : Quat.IDENTITY;
@@ -2158,17 +2157,7 @@ SelectionDisplay = (function() {
             }
             
             planeNormal = Vec3.multiplyQbyV(rotation, planeNormal);
-			
-			if (proportional) {
-				lastPick = pickRay.origin;
-			} else {
-				lastPick = rayPlaneIntersection(pickRay,
-					pickRayPosition,
-					planeNormal);
-			}
-
-			Vec3.print("DBACK TEST begin pickRayPosition ", pickRayPosition);
-			Vec3.print("DBACK TEST begin lastPick ", lastPick);
+            lastPick = rayPlaneIntersection(pickRay, pickRayPosition, planeNormal);
                 
             var planeNormal3D = {
                 x: 0,
@@ -2208,6 +2197,7 @@ SelectionDisplay = (function() {
             }
             
             previousPickRay = pickRay;
+            beginMouseEvent = event;
         };
 
         var onEnd = function(event, reason) {    
@@ -2273,23 +2263,13 @@ SelectionDisplay = (function() {
             vector = grid.snapToSpacing(vector);
     
             var changeInDimensions = Vec3.multiply(NEGATE_VECTOR, vec3Mult(localSigns, vector));
-			
-			if (proportional) {
-				newPick = pickRay.origin;
-				var pickDifference = Vec3.subtract(newPick, lastPick);
-				Vec3.print("DBACK TEST move newPick ", newPick);
-				Vec3.print("DBACK TEST move pickDifference ", pickDifference);
-				changeInDimensions = 
-			}
-						
-			//Vec3.print("DBACK TEST move pickRay.origin ", pickRay.origin);
-			//Vec3.print("DBACK TEST move pickRay.direction ", pickRay.direction);
-			//Vec3.print("DBACK TEST move newPick ", newPick);
-			//Vec3.print("DBACK TEST move vector ", vector);
-			//Vec3.print("DBACK TEST move changeInDimensions ", changeInDimensions);
-    
-	
-            if (proportional) {  
+            
+            if (proportional) {
+                var viewportDimensions = Controller.getViewportDimensions();
+                var mouseXDifference = (event.x - beginMouseEvent.x) / viewportDimensions.x;
+                var mouseYDifference = (beginMouseEvent.y - event.y) / viewportDimensions.y;
+                var mouseDifference = mouseXDifference + mouseYDifference;
+                changeInDimensions = { x:mouseDifference, y:mouseDifference, z:mouseDifference };
                 var toCameraDistance = getDistanceToCamera(position);   
                 var dimensionsMultiple = toCameraDistance * STRETCH_DIRECTION_ALL_CAMERA_DISTANCE_MULTIPLE; 
                 changeInDimensions = Vec3.multiply(changeInDimensions, dimensionsMultiple); 
@@ -2385,8 +2365,8 @@ SelectionDisplay = (function() {
 
     // TOOL DEFINITION: HANDLE SCALE TOOL   
     function addHandleScaleTool(overlay, mode) {
-		var directionVector = { x:0, y:0, z:0 };
-		var offset = { x:0, y:0, z:0 };
+        var directionVector = { x:0, y:0, z:0 };
+        var offset = { x:0, y:0, z:0 };
         var tool = makeStretchTool(mode, STRETCH_DIRECTION.ALL, directionVector, directionVector, offset, null, handleScaleCube);
         return addHandleTool(overlay, tool);
     }
@@ -2665,6 +2645,6 @@ SelectionDisplay = (function() {
     addHandleStretchTool(handleStretchZCube, "STRETCH_Z", STRETCH_DIRECTION.Z);
 
     addHandleScaleTool(handleScaleCube, "SCALE");
-	
+    
     return that;
 }());
