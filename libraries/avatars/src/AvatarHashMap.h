@@ -41,6 +41,24 @@
  * @hifi-assignment-client
  */
 
+class AvatarReplicas {
+public:
+    AvatarReplicas() {};
+    void addReplica(const QUuid& parentID, AvatarSharedPointer replica);
+    std::vector<QUuid> getReplicaIDs(const QUuid& parentID, int count = 0);
+    void parseDataFromBuffer(const QUuid& parentID, const QByteArray& buffer);
+    void processAvatarIdentity(const QUuid& parentID, const QByteArray& identityData, bool& identityChanged, bool& displayNameChanged);
+    void removeReplicas(const QUuid& parentID);
+    void processTrait(const QUuid& parentID, AvatarTraits::TraitType traitType, QByteArray traitBinaryData);
+    void processDeletedTraitInstance(const QUuid& parentID, AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID);
+    void processTraitInstance(const QUuid& parentID, AvatarTraits::TraitType traitType,
+                                AvatarTraits::TraitInstanceID instanceID, QByteArray traitBinaryData);
+
+private:
+    std::map<QUuid, std::vector<AvatarSharedPointer>> _replicasMap;
+};
+
+
 class AvatarHashMap : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -134,7 +152,7 @@ protected slots:
      */
     void processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     
-    void processAvatarTraits(QUuid sessionUUID, QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
+    void processBulkAvatarTraitsForID(QUuid sessionUUID, QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void processBulkAvatarTraits(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     
     /**jsdoc
@@ -168,7 +186,8 @@ protected:
     mutable QReadWriteLock _hashLock;
 
     std::unordered_map<QUuid, AvatarTraits::TraitVersions> _processedTraitVersions;
-    std::map<QUuid, std::vector<QUuid>> _surrogates;
+    AvatarReplicas _replicas;
+
 private:
     QUuid _lastOwnerSessionUUID;
 };

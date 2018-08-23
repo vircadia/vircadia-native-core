@@ -337,6 +337,7 @@ enum KillAvatarReason : uint8_t {
     TheirAvatarEnteredYourBubble,
     YourAvatarEnteredTheirBubble
 };
+
 Q_DECLARE_METATYPE(KillAvatarReason);
 
 class QDataStream;
@@ -1185,9 +1186,8 @@ public:
 
     virtual void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {}
     virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {}
-
-    void setSurrogateIndex(int surrogateIndex) { _surrogateIndex = surrogateIndex; }
-    int getSurrogateIndex() { return _surrogateIndex; }
+    void setReplicaIndex(int replicaIndex) { _replicaIndex = replicaIndex; }
+    int getReplicaIndex() { return _replicaIndex; }
 
 signals:
 
@@ -1446,7 +1446,7 @@ protected:
     udt::SequenceNumber _identitySequenceNumber { 0 };
     bool _hasProcessedFirstIdentity { false };
     float _density;
-    int _surrogateIndex{ 0 };
+    int _replicaIndex { 0 };
 
     // null unless MyAvatar or ScriptableAvatar sending traits data to mixer
     std::unique_ptr<ClientTraitsHandler> _clientTraitsHandler;

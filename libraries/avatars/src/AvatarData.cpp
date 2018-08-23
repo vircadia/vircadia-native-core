@@ -918,7 +918,26 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         PACKET_READ_CHECK(AvatarGlobalPosition, sizeof(AvatarDataPacket::AvatarGlobalPosition));
         auto data = reinterpret_cast<const AvatarDataPacket::AvatarGlobalPosition*>(sourceBuffer);
-        auto newValue = glm::vec3(data->globalPosition[0], data->globalPosition[1], data->globalPosition[2]) + glm::vec3(0, 2 * _surrogateIndex, 0);
+
+        const float SPACE_BETWEEN_AVATARS = 2.0f;
+        const int RANDOM_RADIUS = 100;
+        const int AVATARS_PER_ROW = 3;
+
+        glm::vec3 offset;
+
+        if (false) {
+            qsrand(static_cast<quint64>(getID().toByteArray().toInt()));
+            float xrand = float((qrand() % ((RANDOM_RADIUS + 1) - 10) + 10) / 10.0f);
+            float yrand = float((qrand() % ((RANDOM_RADIUS + 1) - 10) + 10) / 10.0f);
+            offset = glm::vec3(xrand, 0.0f, yrand);
+        }
+        else {
+            int row = _replicaIndex % AVATARS_PER_ROW;
+            int col = floor(_replicaIndex / AVATARS_PER_ROW);
+            offset = glm::vec3(row * SPACE_BETWEEN_AVATARS, 0.0f, col * SPACE_BETWEEN_AVATARS);
+        }
+
+        auto newValue = glm::vec3(data->globalPosition[0], data->globalPosition[1], data->globalPosition[2]) + offset;
         if (_globalPosition != newValue) {
             _globalPosition = newValue;
             _globalPositionChanged = usecTimestampNow();
