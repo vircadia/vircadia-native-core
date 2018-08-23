@@ -801,6 +801,17 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     }
 }
 
+void MyAvatar::computeHandAzimuth() {
+    controller::Pose leftHandPoseAvatarSpace = getLeftHandPose();
+    controller::Pose rightHandPoseAvatarSpace = getRightHandPose();
+    glm::vec3 localLookat(0.0f, 0.0f, 1.0f);
+    glm::vec3 rightHandRigSpace = rightHandPoseAvatarSpace.rotation * localLookat;
+    glm::vec3 lefttHandRigSpace = leftHandPoseAvatarSpace.rotation * localLookat;
+
+    _hipToHandController = glm::vec2(rightHandRigSpace.x, rightHandRigSpace.z);
+
+}
+
 void MyAvatar::updateJointFromController(controller::Action poseKey, ThreadSafeValueCache<glm::mat4>& matrixCache) {
     assert(QThread::currentThread() == thread());
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
