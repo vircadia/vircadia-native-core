@@ -27,6 +27,8 @@
 #include "AvatarMotionState.h"
 #include "MyAvatar.h"
 
+using SortedAvatar = std::pair<float, std::shared_ptr<Avatar>>;
+
 /**jsdoc 
  * The AvatarManager API has properties and methods which manage Avatars within the same domain.
  *

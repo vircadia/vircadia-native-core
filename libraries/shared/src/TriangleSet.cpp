@@ -29,7 +29,7 @@ void TriangleSet::clear() {
     _bounds.clear();
     _isBalanced = false;
 
-    _triangleOctree.clear();
+    _triangleTree.clear();
 }
 
 bool TriangleSet::convexHullContains(const glm::vec3& point) const {
@@ -53,16 +53,16 @@ void TriangleSet::debugDump() {
     qDebug() << __FUNCTION__;
     qDebug() << "bounds:" << getBounds();
     qDebug() << "triangles:" << size() << "at top level....";
-    qDebug() << "----- _triangleOctree -----";
-    _triangleOctree.debugDump();
+    qDebug() << "----- _triangleTree -----";
+    _triangleTree.debugDump();
 }
 
-void TriangleSet::balanceOctree() {
-    _triangleOctree.reset(_bounds);
+void TriangleSet::balanceTree() {
+    _triangleTree.reset(_bounds);
 
     // insert all the triangles
     for (size_t i = 0; i < _triangles.size(); i++) {
-        _triangleOctree.insert(i);
+        _triangleTree.insert(i);
     }
 
     _isBalanced = true;
@@ -77,13 +77,13 @@ void TriangleSet::balanceOctree() {
 // With a k-d tree: 2 ^ MAX_DEPTH = 4096 leaves
 static const int MAX_DEPTH = 12;
 
-TriangleSet::TriangleOctreeCell::TriangleOctreeCell(std::vector<Triangle>& allTriangles, const AABox& bounds, int depth) :
+TriangleSet::TriangleTreeCell::TriangleTreeCell(std::vector<Triangle>& allTriangles, const AABox& bounds, int depth) :
     _allTriangles(allTriangles)
 {
     reset(bounds, depth);
 }
 
-void TriangleSet::TriangleOctreeCell::clear() {
+void TriangleSet::TriangleTreeCell::clear() {
     _population = 0;
     _triangleIndices.clear();
     _bounds.clear();
@@ -91,13 +91,13 @@ void TriangleSet::TriangleOctreeCell::clear() {
     _children.second.reset();
 }
 
-void TriangleSet::TriangleOctreeCell::reset(const AABox& bounds, int depth) {
+void TriangleSet::TriangleTreeCell::reset(const AABox& bounds, int depth) {
     clear();
     _bounds = bounds;
     _depth = depth;
 }
 
-void TriangleSet::TriangleOctreeCell::debugDump() {
+void TriangleSet::TriangleTreeCell::debugDump() {
     qDebug() << __FUNCTION__;
     qDebug() << "               bounds:" << getBounds();
     qDebug() << "                depth:" << _depth;
@@ -123,7 +123,7 @@ void TriangleSet::TriangleOctreeCell::debugDump() {
     }
 }
 
-std::pair<AABox, AABox> TriangleSet::TriangleOctreeCell::getTriangleOctreeCellChildBounds() {
+std::pair<AABox, AABox> TriangleSet::TriangleTreeCell::getTriangleTreeCellChildBounds() {
     std::pair<AABox, AABox> toReturn;
     int axis = 0;
     // find biggest axis
@@ -145,20 +145,20 @@ std::pair<AABox, AABox> TriangleSet::TriangleOctreeCell::getTriangleOctreeCellCh
     return toReturn;
 }
 
-void TriangleSet::TriangleOctreeCell::insert(size_t triangleIndex) {
+void TriangleSet::TriangleTreeCell::insert(size_t triangleIndex) {
     _population++;
 
     // if we're not yet at the max depth, then check which child the triangle fits in
     if (_depth < MAX_DEPTH) {
         const Triangle& triangle = _allTriangles[triangleIndex];
-        auto childBounds = getTriangleOctreeCellChildBounds();
+        auto childBounds = getTriangleTreeCellChildBounds();
 
-        auto insertOperator = [&](const AABox& childBound, std::shared_ptr<TriangleOctreeCell>& child) {
+        auto insertOperator = [&](const AABox& childBound, std::shared_ptr<TriangleTreeCell>& child) {
             // if the child AABox would contain the triangle...
             if (childBound.contains(triangle)) {
                 // if the child cell doesn't yet exist, create it...
                 if (!child) {
-                    child = std::make_shared<TriangleOctreeCell>(_allTriangles, childBound, _depth + 1);
+                    child = std::make_shared<TriangleTreeCell>(_allTriangles, childBound, _depth + 1);
                 }
 
                 // insert the triangleIndex in the child cell
@@ -179,19 +179,19 @@ void TriangleSet::TriangleOctreeCell::insert(size_t triangleIndex) {
 bool TriangleSet::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
                                       BoxFace& face, Triangle& triangle, bool precision, bool allowBackface) {
     if (!_isBalanced) {
-        balanceOctree();
+        balanceTree();
     }
 
     float localDistance = distance;
     int trianglesTouched = 0;
-    bool hit = _triangleOctree.findRayIntersection(origin, direction, localDistance, face, triangle, precision, trianglesTouched, allowBackface);
+    bool hit = _triangleTree.findRayIntersection(origin, direction, localDistance, face, triangle, precision, trianglesTouched, allowBackface);
     if (hit) {
         distance = localDistance;
     }
 
 #if WANT_DEBUGGING
     if (precision) {
-        qDebug() << "trianglesTouched :" << trianglesTouched << "out of:" << _triangleOctree._population << "_triangles.size:" << _triangles.size();
+        qDebug() << "trianglesTouched :" << trianglesTouched << "out of:" << _triangleTree._population << "_triangles.size:" << _triangles.size();
     }
 #endif
     return hit;
@@ -199,7 +199,7 @@ bool TriangleSet::findRayIntersection(const glm::vec3& origin, const glm::vec3& 
 
 // Determine of the given ray (origin/direction) in model space intersects with any triangles
 // in the set. If an intersection occurs, the distance and surface normal will be provided.
-bool TriangleSet::TriangleOctreeCell::findRayIntersectionInternal(const glm::vec3& origin, const glm::vec3& direction,
+bool TriangleSet::TriangleTreeCell::findRayIntersectionInternal(const glm::vec3& origin, const glm::vec3& direction,
                                                                   float& distance, BoxFace& face, Triangle& triangle, bool precision,
                                                                   int& trianglesTouched, bool allowBackface) {
     bool intersectedSomething = false;
@@ -232,7 +232,7 @@ bool TriangleSet::TriangleOctreeCell::findRayIntersectionInternal(const glm::vec
     return intersectedSomething;
 }
 
-bool TriangleSet::TriangleOctreeCell::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
+bool TriangleSet::TriangleTreeCell::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
                                                           BoxFace& face, Triangle& triangle, bool precision, int& trianglesTouched,
                                                           bool allowBackface) {
     if (_population < 1) {
@@ -261,7 +261,7 @@ bool TriangleSet::TriangleOctreeCell::findRayIntersection(const glm::vec3& origi
     // if we're not yet at the max depth, then check our children
     if (_depth < MAX_DEPTH) {
         std::list<SortedTriangleCell> sortedTriangleCells;
-        auto sortingOperator = [&](std::shared_ptr<TriangleOctreeCell>& child) {
+        auto sortingOperator = [&](std::shared_ptr<TriangleTreeCell>& child) {
             if (child) {
                 float priority = FLT_MAX;
                 if (child->getBounds().contains(origin)) {
@@ -328,25 +328,25 @@ bool TriangleSet::TriangleOctreeCell::findRayIntersection(const glm::vec3& origi
 bool TriangleSet::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
                                            float& parabolicDistance, BoxFace& face, Triangle& triangle, bool precision, bool allowBackface) {
     if (!_isBalanced) {
-        balanceOctree();
+        balanceTree();
     }
 
     float localDistance = parabolicDistance;
     int trianglesTouched = 0;
-    bool hit = _triangleOctree.findParabolaIntersection(origin, velocity, acceleration, localDistance, face, triangle, precision, trianglesTouched, allowBackface);
+    bool hit = _triangleTree.findParabolaIntersection(origin, velocity, acceleration, localDistance, face, triangle, precision, trianglesTouched, allowBackface);
     if (hit) {
         parabolicDistance = localDistance;
     }
 
 #if WANT_DEBUGGING
     if (precision) {
-        qDebug() << "trianglesTouched :" << trianglesTouched << "out of:" << _triangleOctree._population << "_triangles.size:" << _triangles.size();
+        qDebug() << "trianglesTouched :" << trianglesTouched << "out of:" << _triangleTree._population << "_triangles.size:" << _triangles.size();
     }
 #endif
     return hit;
 }
 
-bool TriangleSet::TriangleOctreeCell::findParabolaIntersectionInternal(const glm::vec3& origin, const glm::vec3& velocity,
+bool TriangleSet::TriangleTreeCell::findParabolaIntersectionInternal(const glm::vec3& origin, const glm::vec3& velocity,
                                                                        const glm::vec3& acceleration, float& parabolicDistance,
                                                                        BoxFace& face, Triangle& triangle, bool precision,
                                                                        int& trianglesTouched, bool allowBackface) {
@@ -380,7 +380,7 @@ bool TriangleSet::TriangleOctreeCell::findParabolaIntersectionInternal(const glm
     return intersectedSomething;
 }
 
-bool TriangleSet::TriangleOctreeCell::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
+bool TriangleSet::TriangleTreeCell::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
                                                                const glm::vec3& acceleration, float& parabolicDistance,
                                                                BoxFace& face, Triangle& triangle, bool precision,
                                                                int& trianglesTouched, bool allowBackface) {
@@ -410,7 +410,7 @@ bool TriangleSet::TriangleOctreeCell::findParabolaIntersection(const glm::vec3& 
     // if we're not yet at the max depth, then check our children
     if (_depth < MAX_DEPTH) {
         std::list<SortedTriangleCell> sortedTriangleCells;
-        auto sortingOperator = [&](std::shared_ptr<TriangleOctreeCell>& child) {
+        auto sortingOperator = [&](std::shared_ptr<TriangleTreeCell>& child) {
             if (child) {
                 float priority = FLT_MAX;
                 if (child->getBounds().contains(origin)) {
