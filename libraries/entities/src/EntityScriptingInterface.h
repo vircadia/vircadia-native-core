@@ -850,7 +850,7 @@ public slots:
      *     ]);
      * }, 2000);
      */
-    Q_INVOKABLE bool setAllPoints(QUuid entityID, const QVector<ScriptVec3Float>& points);
+    Q_INVOKABLE bool setAllPoints(QUuid entityID, const QVector<glm::vec3>& points);
     
     /**jsdoc
      * Append a point to a {@link Entities.EntityType|Line} entity.

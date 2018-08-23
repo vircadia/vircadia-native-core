@@ -66,10 +66,10 @@ public:
     QString getParentMaterialName() const { return _parentMaterialName; }
     void setParentMaterialName(const QString& parentMaterialName);
 
-    ScriptVec2Float getMaterialMappingPos() const { return _materialMappingPos; }
-    void setMaterialMappingPos(const ScriptVec2Float& materialMappingPos);
-    ScriptVec2Float getMaterialMappingScale() const { return _materialMappingScale; }
-    void setMaterialMappingScale(const ScriptVec2Float& materialMappingScale);
+    glm::vec2 getMaterialMappingPos() const { return _materialMappingPos; }
+    void setMaterialMappingPos(const glm::vec2& materialMappingPos);
+    glm::vec2 getMaterialMappingScale() const { return _materialMappingScale; }
+    void setMaterialMappingScale(const glm::vec2& materialMappingScale);
     float getMaterialMappingRot() const { return _materialMappingRot; }
     void setMaterialMappingRot(const float& materialMappingRot);
 

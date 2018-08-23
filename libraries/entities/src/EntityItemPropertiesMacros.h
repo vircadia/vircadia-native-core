@@ -101,9 +101,9 @@
         changedProperties += P;    \
     }
 
-inline QScriptValue convertScriptValue(QScriptEngine* e, const ScriptVec2Float& v) { return vec2FloatToScriptValue(e, v); }
-inline QScriptValue convertScriptValue(QScriptEngine* e, const ScriptVec3Float& v) { return vec3FloatToScriptValue(e, v); }
-inline QScriptValue convertScriptValue(QScriptEngine* e, const ScriptVec3UChar& v) { return vec3UCharToScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::vec2& v) { return vec2FloatToScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::vec3& v) { return vec3FloatToScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::u8vec3& v) { return vec3UCharToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, float v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, int v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, bool v) { return QScriptValue(v); }
@@ -114,7 +114,7 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const QString& v) { ret
 
 inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::quat& v) { return quatToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QScriptValue& v) { return v; }
-inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<ScriptVec3Float>& v) {return qVectorVec3ToScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<glm::vec3>& v) {return qVectorVec3FloatToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<glm::quat>& v) {return qVectorQuatToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<bool>& v) {return qVectorBoolToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<float>& v) { return qVectorFloatToScriptValue(e, v); }
@@ -185,7 +185,7 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const AACube& v) { retu
         properties.setProperty(#P, V); \
     }
 
-typedef QVector<ScriptVec3Float> qVectorVec3;
+typedef QVector<glm::vec3> qVectorVec3;
 typedef QVector<glm::quat> qVectorQuat;
 typedef QVector<bool> qVectorBool;
 typedef QVector<float> qVectorFloat;
@@ -221,23 +221,23 @@ inline QByteArray QByteArray_convertFromScriptValue(const QScriptValue& v, bool&
     return QByteArray::fromBase64(b64.toUtf8());
 }
 
-inline ScriptVec2Float ScriptVec2Float_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+inline glm::vec2 vec2_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;
-    ScriptVec2Float vec2;
+    glm::vec2 vec2;
     vec2FloatFromScriptValue(v, vec2);
     return vec2;
 }
 
-inline ScriptVec3Float ScriptVec3Float_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+inline glm::vec3 vec3_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;
-    ScriptVec3Float vec3;
+    glm::vec3 vec3;
     vec3FloatFromScriptValue(v, vec3);
     return vec3;
 }
 
-inline ScriptVec3UChar ScriptVec3UChar_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+inline glm::u8vec3 u8vec3_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;
-    ScriptVec3UChar vec3;
+    glm::u8vec3 vec3;
     vec3UCharFromScriptValue(v, vec3);
     return vec3;
 }
@@ -256,7 +256,7 @@ inline qVectorFloat qVectorFloat_convertFromScriptValue(const QScriptValue& v, b
 
 inline qVectorVec3 qVectorVec3_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;
-    return qVectorVec3FromScriptValue(v);
+    return qVectorVec3FloatFromScriptValue(v);
 }
 
 inline qVectorQuat qVectorQuat_convertFromScriptValue(const QScriptValue& v, bool& isValid) {

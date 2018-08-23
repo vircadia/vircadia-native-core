@@ -81,8 +81,8 @@ int MaterialEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* da
     READ_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_MODE, MaterialMappingMode, setMaterialMappingMode);
     READ_ENTITY_PROPERTY(PROP_MATERIAL_PRIORITY, quint16, setPriority);
     READ_ENTITY_PROPERTY(PROP_PARENT_MATERIAL_NAME, QString, setParentMaterialName);
-    READ_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_POS, ScriptVec2Float, setMaterialMappingPos);
-    READ_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_SCALE, ScriptVec2Float, setMaterialMappingScale);
+    READ_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_POS, glm::vec2, setMaterialMappingPos);
+    READ_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_SCALE, glm::vec2, setMaterialMappingScale);
     READ_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_ROT, float, setMaterialMappingRot);
     READ_ENTITY_PROPERTY(PROP_MATERIAL_DATA, QString, setMaterialData);
 
@@ -208,18 +208,18 @@ void MaterialEntityItem::setMaterialData(const QString& materialData) {
     }
 }
 
-void MaterialEntityItem::setMaterialMappingPos(const ScriptVec2Float& materialMappingPos) {
+void MaterialEntityItem::setMaterialMappingPos(const glm::vec2& materialMappingPos) {
     if (_materialMappingPos != materialMappingPos) {
         removeMaterial();
-        _materialMappingPos = materialMappingPos.toGlm();
+        _materialMappingPos = materialMappingPos;
         applyMaterial();
     }
 }
 
-void MaterialEntityItem::setMaterialMappingScale(const ScriptVec2Float& materialMappingScale) {
+void MaterialEntityItem::setMaterialMappingScale(const glm::vec2& materialMappingScale) {
     if (_materialMappingScale != materialMappingScale) {
         removeMaterial();
-        _materialMappingScale = materialMappingScale.toGlm();
+        _materialMappingScale = materialMappingScale;
         applyMaterial();
     }
 }

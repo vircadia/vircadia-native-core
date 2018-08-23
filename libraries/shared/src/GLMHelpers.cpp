@@ -13,8 +13,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "NumericalConstants.h"
 
-#include "RegisteredMetaTypes.h"
-
 const vec3 Vectors::UNIT_X{ 1.0f, 0.0f, 0.0f };
 const vec3 Vectors::UNIT_Y{ 0.0f, 1.0f, 0.0f };
 const vec3 Vectors::UNIT_Z{ 0.0f, 0.0f, 1.0f };
@@ -450,21 +448,20 @@ glm::vec2 toGlm(const QPointF& pt) {
     return glm::vec2(pt.x(), pt.y());
 }
 
-glm::vec3 toGlm(const ScriptVec3UChar& color) {
+glm::vec3 toGlm(const glm::u8vec3& color) {
     static const float MAX_COLOR = 255.0f;
-    return color.toGlm() / MAX_COLOR;
+    return glm::vec3(color) / MAX_COLOR;
 }
 
-vec4 toGlm(const ScriptVec3UChar& color, float alpha) {
+vec4 toGlm(const glm::u8vec3& color, float alpha) {
     static const float MAX_COLOR = 255.0f;
-    return vec4(color.toGlm() / MAX_COLOR, alpha);
+    return vec4(glm::vec3(color) / MAX_COLOR, alpha);
 }
 
-ScriptVec3UChar scriptVec3UCharFromGlm(const glm::vec3 & color) {
+glm::u8vec3 vec3UCharFromGlm(const glm::vec3 & color) {
     static const float MAX_COLOR = 255.0f;
     return { (uint8_t)(color.x * MAX_COLOR), (uint8_t)(color.y * MAX_COLOR), (uint8_t)(color.z * MAX_COLOR) };
 }
-
 
 glm::vec4 toGlm(const QColor& color) {
     return glm::vec4(color.redF(), color.greenF(), color.blueF(), color.alphaF());

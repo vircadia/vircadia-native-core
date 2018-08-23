@@ -52,8 +52,8 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
-    ScriptVec3UChar getColor() const;
-    void setColor(const ScriptVec3UChar& value);
+    glm::u8vec3 getColor() const;
+    void setColor(const glm::u8vec3& value);
 
     bool getIsSpotlight() const;
     void setIsSpotlight(bool value);
@@ -90,7 +90,7 @@ public:
 
 private:
     // properties of a light
-    ScriptVec3UChar _color;
+    glm::u8vec3 _color;
     bool _isSpotlight { DEFAULT_IS_SPOTLIGHT };
     float _intensity { DEFAULT_INTENSITY };
     float _falloffRadius { DEFAULT_FALLOFF_RADIUS };

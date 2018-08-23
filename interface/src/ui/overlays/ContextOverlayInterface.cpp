@@ -62,7 +62,7 @@ ContextOverlayInterface::ContextOverlayInterface() {
             glm::quat cameraOrientation = qApp->getCamera().getOrientation();
             QVariantMap props;
             float sensorToWorldScale = myAvatar->getSensorToWorldScale();
-            props.insert("position", vec3ToVariant(myAvatar->getEyePosition() + glm::quat(glm::radians(glm::vec3(0.0f, CONTEXT_OVERLAY_TABLET_OFFSET, 0.0f))) * ((CONTEXT_OVERLAY_TABLET_DISTANCE * sensorToWorldScale) * (cameraOrientation * Vectors::FRONT))));
+            props.insert("position", vec3toVariant(myAvatar->getEyePosition() + glm::quat(glm::radians(glm::vec3(0.0f, CONTEXT_OVERLAY_TABLET_OFFSET, 0.0f))) * ((CONTEXT_OVERLAY_TABLET_DISTANCE * sensorToWorldScale) * (cameraOrientation * Vectors::FRONT))));
             props.insert("orientation", quatToVariant(cameraOrientation * glm::quat(glm::radians(glm::vec3(0.0f, CONTEXT_OVERLAY_TABLET_ORIENTATION, 0.0f)))));
             qApp->getOverlays().editOverlay(tabletFrameID, props);
             _contextOverlayJustClicked = false;
@@ -83,7 +83,7 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _challengeOwnershipTimeoutTimer.setSingleShot(true);
 }
 
-static const ScriptVec3UChar CONTEXT_OVERLAY_COLOR = { 255, 255, 255 };
+static const glm::u8vec3 CONTEXT_OVERLAY_COLOR = { 255, 255, 255 };
 static const float CONTEXT_OVERLAY_INSIDE_DISTANCE = 1.0f; // in meters
 static const float CONTEXT_OVERLAY_SIZE = 0.09f; // in meters, same x and y dims
 static const float CONTEXT_OVERLAY_OFFSET_DISTANCE = 0.1f;
@@ -140,10 +140,10 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
             // Add all necessary variables to the stack
             EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
             glm::vec3 cameraPosition = qApp->getCamera().getPosition();
-            glm::vec3 entityDimensions = entityProperties.getDimensions().toGlm();
-            glm::vec3 entityPosition = entityProperties.getPosition().toGlm();
-            glm::vec3 registrationPoint = entityProperties.getRegistrationPoint().toGlm();
-            glm::vec3 contextOverlayPosition = entityProperties.getPosition().toGlm();
+            glm::vec3 entityDimensions = entityProperties.getDimensions();
+            glm::vec3 entityPosition = entityProperties.getPosition();
+            glm::vec3 registrationPoint = entityProperties.getRegistrationPoint();
+            glm::vec3 contextOverlayPosition = entityProperties.getPosition();
             glm::vec2 contextOverlayDimensions;
 
             // Update the position of the overlay if the registration point of the entity

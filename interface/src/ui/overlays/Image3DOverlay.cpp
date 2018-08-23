@@ -108,7 +108,7 @@ void Image3DOverlay::render(RenderArgs* args) {
                                   (fromImage.y() + fromImage.height() - 0.5f) / imageHeight);
 
     float alpha = getAlpha();
-    ScriptVec3UChar color = getColor();
+    glm::u8vec3 color = getColor();
     glm::vec4 imageColor(toGlm(color), alpha);
 
     batch->setModelTransform(getRenderTransform());
@@ -241,7 +241,7 @@ QVariant Image3DOverlay::getProperty(const QString& property) {
         return _fromImage;
     }
     if (property == "offsetPosition") {
-        return vec3ToVariant(getOffsetPosition());
+        return vec3toVariant(getOffsetPosition());
     }
     if (property == "emissive") {
         return _emissive;

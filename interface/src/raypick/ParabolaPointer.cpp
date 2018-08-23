@@ -100,7 +100,7 @@ void ParabolaPointer::setVisualPickResultInternal(PickResultPointer pickResult, 
         parabolaPickResult->distance = distance;
         parabolaPickResult->surfaceNormal = surfaceNormal;
         PickParabola parabola = PickParabola(parabolaPickResult->pickVariant);
-        parabolaPickResult->pickVariant["velocity"] = vec3ToVariant((intersection - parabola.origin -
+        parabolaPickResult->pickVariant["velocity"] = vec3toVariant((intersection - parabola.origin -
             0.5f * parabola.acceleration * parabolaPickResult->parabolicDistance * parabolaPickResult->parabolicDistance) / parabolaPickResult->parabolicDistance);
     }
 }

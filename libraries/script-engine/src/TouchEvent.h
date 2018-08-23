@@ -17,8 +17,6 @@
 #include <QVector>
 #include <QTouchEvent>
 
-#include <RegisteredMetaTypes.h>
-
 class QScriptValue;
 class QScriptEngine;
 
@@ -42,7 +40,7 @@ public:
     bool isMeta;
     bool isAlt;
     int touchPoints;
-    QVector<ScriptVec2Float> points;
+    QVector<glm::vec2> points;
     float radius;
     bool isPinching;
     bool isPinchOpening;

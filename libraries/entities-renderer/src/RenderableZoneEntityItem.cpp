@@ -333,7 +333,7 @@ void ZoneEntityRenderer::updateKeySunFromEntity(const TypedEntityPointer& entity
     // Set the keylight
     sunLight->setColor(ColorUtils::toVec3(_keyLightProperties.getColor()));
     sunLight->setIntensity(_keyLightProperties.getIntensity());
-    sunLight->setDirection(entity->getTransform().getRotation() * _keyLightProperties.getDirection().toGlm());
+    sunLight->setDirection(entity->getTransform().getRotation() * _keyLightProperties.getDirection());
     sunLight->setCastShadows(_keyLightProperties.getCastShadows());
 }
 
@@ -368,9 +368,9 @@ void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) 
     haze->setAltitudeBased(_hazeProperties.getHazeAltitudeEffect());
 
     haze->setHazeRangeFactor(graphics::Haze::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeRange()));
-    ScriptVec3UChar hazeColor = _hazeProperties.getHazeColor();
+    glm::u8vec3 hazeColor = _hazeProperties.getHazeColor();
     haze->setHazeColor(toGlm(hazeColor));
-    ScriptVec3UChar hazeGlareColor = _hazeProperties.getHazeGlareColor();
+    glm::u8vec3 hazeGlareColor = _hazeProperties.getHazeGlareColor();
     haze->setHazeGlareColor(toGlm(hazeGlareColor));
     haze->setHazeEnableGlare(_hazeProperties.getHazeEnableGlare());
     haze->setHazeGlareBlend(graphics::Haze::convertGlareAngleToPower(_hazeProperties.getHazeGlareAngle()));

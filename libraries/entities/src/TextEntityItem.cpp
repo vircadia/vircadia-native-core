@@ -25,8 +25,8 @@
 
 const QString TextEntityItem::DEFAULT_TEXT("");
 const float TextEntityItem::DEFAULT_LINE_HEIGHT = 0.1f;
-const ScriptVec3UChar TextEntityItem::DEFAULT_TEXT_COLOR = { 255, 255, 255 };
-const ScriptVec3UChar TextEntityItem::DEFAULT_BACKGROUND_COLOR = { 0, 0, 0};
+const glm::u8vec3 TextEntityItem::DEFAULT_TEXT_COLOR = { 255, 255, 255 };
+const glm::u8vec3 TextEntityItem::DEFAULT_BACKGROUND_COLOR = { 0, 0, 0};
 const bool TextEntityItem::DEFAULT_FACE_CAMERA = false;
 
 EntityItemPointer TextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -91,8 +91,8 @@ int TextEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
 
     READ_ENTITY_PROPERTY(PROP_TEXT, QString, setText);
     READ_ENTITY_PROPERTY(PROP_LINE_HEIGHT, float, setLineHeight);
-    READ_ENTITY_PROPERTY(PROP_TEXT_COLOR, ScriptVec3UChar, setTextColor);
-    READ_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, ScriptVec3UChar, setBackgroundColor);
+    READ_ENTITY_PROPERTY(PROP_TEXT_COLOR, glm::u8vec3, setTextColor);
+    READ_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, glm::u8vec3, setBackgroundColor);
     READ_ENTITY_PROPERTY(PROP_FACE_CAMERA, bool, setFaceCamera);
     
     return bytesRead;
@@ -206,26 +206,26 @@ float TextEntityItem::getLineHeight() const {
     return result;
 }
 
-void TextEntityItem::setTextColor(const ScriptVec3UChar& value) {
+void TextEntityItem::setTextColor(const glm::u8vec3& value) {
     withWriteLock([&] {
         _textColor = value;
     });
 }
 
-ScriptVec3UChar TextEntityItem::getTextColor() const {
-    return resultWithReadLock<ScriptVec3UChar>([&] {
+glm::u8vec3 TextEntityItem::getTextColor() const {
+    return resultWithReadLock<glm::u8vec3>([&] {
         return _textColor;
     });
 }
 
-void TextEntityItem::setBackgroundColor(const ScriptVec3UChar& value) {
+void TextEntityItem::setBackgroundColor(const glm::u8vec3& value) {
     withWriteLock([&] {
         _backgroundColor = value;
     });
 }
 
-ScriptVec3UChar TextEntityItem::getBackgroundColor() const {
-    return resultWithReadLock<ScriptVec3UChar>([&] {
+glm::u8vec3 TextEntityItem::getBackgroundColor() const {
+    return resultWithReadLock<glm::u8vec3>([&] {
         return _backgroundColor;
     });
 }

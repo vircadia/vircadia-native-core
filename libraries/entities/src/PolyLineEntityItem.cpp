@@ -79,7 +79,7 @@ bool PolyLineEntityItem::setProperties(const EntityItemProperties& properties) {
 }
 
 
-bool PolyLineEntityItem::appendPoint(const ScriptVec3Float& point) {
+bool PolyLineEntityItem::appendPoint(const glm::vec3& point) {
     if (_points.size() > MAX_POINTS_PER_LINE - 1) {
         qCDebug(entities) << "MAX POINTS REACHED!";
         return false;
@@ -102,7 +102,7 @@ bool PolyLineEntityItem::setStrokeWidths(const QVector<float>& strokeWidths) {
     return true;
 }
 
-bool PolyLineEntityItem::setNormals(const QVector<ScriptVec3Float>& normals) {
+bool PolyLineEntityItem::setNormals(const QVector<glm::vec3>& normals) {
     withWriteLock([&] {
         _normals = normals;
         _normalsChanged = true;
@@ -110,7 +110,7 @@ bool PolyLineEntityItem::setNormals(const QVector<ScriptVec3Float>& normals) {
     return true;
 }
 
-bool PolyLineEntityItem::setStrokeColors(const QVector<ScriptVec3Float>& strokeColors) {
+bool PolyLineEntityItem::setStrokeColors(const QVector<glm::vec3>& strokeColors) {
     withWriteLock([&] {
         _strokeColors = strokeColors;
         _strokeColorsChanged = true;
@@ -119,7 +119,7 @@ bool PolyLineEntityItem::setStrokeColors(const QVector<ScriptVec3Float>& strokeC
 }
 
 
-bool PolyLineEntityItem::setLinePoints(const QVector<ScriptVec3Float>& points) {
+bool PolyLineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
     if (points.size() > MAX_POINTS_PER_LINE) {
         return false;
     }
@@ -161,10 +161,10 @@ void PolyLineEntityItem::calculateScaleAndRegistrationPoint() {
     withReadLock([&] {
         pointCount = _points.size();
         if (pointCount > 0) {
-            firstPoint = _points.at(0).toGlm();
+            firstPoint = _points.at(0);
         }
         for (int i = 0; i < pointCount; i++) {
-            const glm::vec3& point = _points.at(i).toGlm();
+            const glm::vec3& point = _points.at(i);
             high = glm::max(point, high);
             low = glm::min(point, low);
         }
@@ -200,11 +200,11 @@ int PolyLineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* da
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY(PROP_COLOR, ScriptVec3UChar, setColor);
+    READ_ENTITY_PROPERTY(PROP_COLOR, glm::u8vec3, setColor);
     READ_ENTITY_PROPERTY(PROP_LINE_WIDTH, float, setLineWidth);
-    READ_ENTITY_PROPERTY(PROP_LINE_POINTS, QVector<ScriptVec3Float>, setLinePoints);
-    READ_ENTITY_PROPERTY(PROP_NORMALS, QVector<ScriptVec3Float>, setNormals);
-    READ_ENTITY_PROPERTY(PROP_STROKE_COLORS, QVector<ScriptVec3Float>, setStrokeColors);
+    READ_ENTITY_PROPERTY(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
+    READ_ENTITY_PROPERTY(PROP_NORMALS, QVector<glm::vec3>, setNormals);
+    READ_ENTITY_PROPERTY(PROP_STROKE_COLORS, QVector<glm::vec3>, setStrokeColors);
     READ_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, QVector<float>, setStrokeWidths);
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
     READ_ENTITY_PROPERTY(PROP_IS_UV_MODE_STRETCH, bool, setIsUVModeStretch);
@@ -257,24 +257,24 @@ void PolyLineEntityItem::debugDump() const {
 
 
 
-QVector<ScriptVec3Float> PolyLineEntityItem::getLinePoints() const {
-    QVector<ScriptVec3Float> result;
+QVector<glm::vec3> PolyLineEntityItem::getLinePoints() const {
+    QVector<glm::vec3> result;
     withReadLock([&] {
         result = _points;
     });
     return result; 
 }
 
-QVector<ScriptVec3Float> PolyLineEntityItem::getNormals() const {
-    QVector<ScriptVec3Float> result;
+QVector<glm::vec3> PolyLineEntityItem::getNormals() const {
+    QVector<glm::vec3> result;
     withReadLock([&] {
         result = _normals;
     });
     return result;
 }
 
-QVector<ScriptVec3Float> PolyLineEntityItem::getStrokeColors() const {
-    QVector<ScriptVec3Float> result;
+QVector<glm::vec3> PolyLineEntityItem::getStrokeColors() const {
+    QVector<glm::vec3> result;
     withReadLock([&] {
         result = _strokeColors;
     });
@@ -306,14 +306,15 @@ void PolyLineEntityItem::setTextures(const QString& textures) {
     });
 }
 
-void PolyLineEntityItem::setColor(const ScriptVec3UChar& value) {
+void PolyLineEntityItem::setColor(const glm::u8vec3& value) {
     withWriteLock([&] {
+        _strokeColorsChanged = true;
         _color = value;
     });
 }
 
-ScriptVec3UChar PolyLineEntityItem::getColor() const {
-    return resultWithReadLock<ScriptVec3UChar>([&] {
+glm::u8vec3 PolyLineEntityItem::getColor() const {
+    return resultWithReadLock<glm::u8vec3>([&] {
         return _color;
     });
 }

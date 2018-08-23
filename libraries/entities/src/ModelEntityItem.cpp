@@ -113,7 +113,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     const unsigned char* dataAt = data;
     bool animationPropertiesChanged = false;
 
-    READ_ENTITY_PROPERTY(PROP_COLOR, ScriptVec3UChar, setColor);
+    READ_ENTITY_PROPERTY(PROP_COLOR, glm::u8vec3, setColor);
     READ_ENTITY_PROPERTY(PROP_MODEL_URL, QString, setModelURL);
     READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
@@ -139,7 +139,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS_SET, QVector<bool>, setJointRotationsSet);
     READ_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS, QVector<glm::quat>, setJointRotations);
     READ_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, QVector<bool>, setJointTranslationsSet);
-    READ_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, QVector<ScriptVec3Float>, setJointTranslations);
+    READ_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, QVector<glm::vec3>, setJointTranslations);
 
     return bytesRead;
 }
@@ -428,7 +428,7 @@ void ModelEntityItem::setJointRotationsSet(const QVector<bool>& rotationsSet) {
     });
 }
 
-void ModelEntityItem::setJointTranslations(const QVector<ScriptVec3Float>& translations) {
+void ModelEntityItem::setJointTranslations(const QVector<glm::vec3>& translations) {
     resizeJointArrays(translations.size());
     _jointDataLock.withWriteLock([&] {
         _jointTranslationsExplicitlySet = translations.size() > 0;
@@ -479,8 +479,8 @@ QVector<bool> ModelEntityItem::getJointRotationsSet() const {
     return result;
 }
 
-QVector<ScriptVec3Float> ModelEntityItem::getJointTranslations() const {
-    QVector<ScriptVec3Float> result;
+QVector<glm::vec3> ModelEntityItem::getJointTranslations() const {
+    QVector<glm::vec3> result;
     _jointDataLock.withReadLock([&] {
         if (_jointTranslationsExplicitlySet) {
             result.resize(_localJointData.size());
@@ -537,14 +537,14 @@ QString ModelEntityItem::getCompoundShapeURL() const {
     return _compoundShapeURL.get();
 }
 
-void ModelEntityItem::setColor(const ScriptVec3UChar& value) {
+void ModelEntityItem::setColor(const glm::u8vec3& value) {
     withWriteLock([&] {
         _color = value;
     });
 }
 
-ScriptVec3UChar ModelEntityItem::getColor() const {
-    return resultWithReadLock<ScriptVec3UChar>([&] {
+glm::u8vec3 ModelEntityItem::getColor() const {
+    return resultWithReadLock<glm::u8vec3>([&] {
         return _color;
     });
 }

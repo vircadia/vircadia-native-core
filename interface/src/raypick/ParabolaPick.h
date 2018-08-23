@@ -50,8 +50,8 @@ public:
         toReturn["objectID"] = objectID;
         toReturn["distance"] = distance;
         toReturn["parabolicDistance"] = parabolicDistance;
-        toReturn["intersection"] = vec3ToVariant(intersection);
-        toReturn["surfaceNormal"] = vec3ToVariant(surfaceNormal);
+        toReturn["intersection"] = vec3toVariant(intersection);
+        toReturn["surfaceNormal"] = vec3toVariant(surfaceNormal);
         toReturn["parabola"] = PickResult::toVariantMap();
         toReturn["extraInfo"] = extraInfo;
         return toReturn;

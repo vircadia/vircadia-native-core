@@ -18,13 +18,11 @@
 
 #include "DependencyManager.h"
 
-#include "RegisteredMetaTypes.h"
-
 extern const float srgbToLinearLookupTable[256];
 
 class ColorUtils {
 public:
-    inline static glm::vec3 toVec3(const ScriptVec3UChar& color);
+    inline static glm::vec3 toVec3(const glm::u8vec3& color);
 
     // Convert to gamma 2.2 space from linear
     inline static glm::vec3 toGamma22Vec3(const glm::vec3& linear);
@@ -42,7 +40,7 @@ public:
     inline static float tosRGBFloat(const float& linear);
 };
 
-inline glm::vec3 ColorUtils::toVec3(const ScriptVec3UChar& color) {
+inline glm::vec3 ColorUtils::toVec3(const glm::u8vec3& color) {
     const float ONE_OVER_255 = 1.0f / 255.0f;
     return glm::vec3(color.x * ONE_OVER_255, color.y * ONE_OVER_255, color.z * ONE_OVER_255);
 }

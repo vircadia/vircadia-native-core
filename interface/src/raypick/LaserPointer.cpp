@@ -74,7 +74,7 @@ void LaserPointer::setVisualPickResultInternal(PickResultPointer pickResult, Int
         rayPickResult->intersection = intersection;
         rayPickResult->distance = distance;
         rayPickResult->surfaceNormal = surfaceNormal;
-        rayPickResult->pickVariant["direction"] = vec3ToVariant(-surfaceNormal);
+        rayPickResult->pickVariant["direction"] = vec3toVariant(-surfaceNormal);
     }
 }
 
@@ -107,10 +107,10 @@ void LaserPointer::RenderState::disable() {
 void LaserPointer::RenderState::update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
                                        bool faceAvatar, bool followNormal, float followNormalStrength, float distance, const PickResultPointer& pickResult) {
     StartEndRenderState::update(origin, end, surfaceNormal, scaleWithAvatar, distanceScaleEnd, centerEndY, faceAvatar, followNormal, followNormalStrength, distance, pickResult);
-    QVariant endVariant = vec3ToVariant(end);
+    QVariant endVariant = vec3toVariant(end);
     if (!getPathID().isNull()) {
         QVariantMap pathProps;
-        pathProps.insert("start", vec3ToVariant(origin));
+        pathProps.insert("start", vec3toVariant(origin));
         pathProps.insert("end", endVariant);
         pathProps.insert("visible", true);
         pathProps.insert("ignoreRayIntersection", doesPathIgnoreRays());

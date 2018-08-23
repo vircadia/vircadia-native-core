@@ -51,7 +51,7 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
     }
 
     float alpha = getAlpha();
-    ScriptVec3UChar color = getColor();
+    glm::u8vec3 color = getColor();
     glm::vec4 rectangleColor(toGlm(color), alpha);
 
     auto batch = args->_batch;
@@ -82,12 +82,12 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
                 geometryCache->renderDashedLine(*batch, point4, point1, rectangleColor, _rectGeometryIds[3]);
             } else {
                 if (halfDimensions != _previousHalfDimensions) {
-                    QVector<ScriptVec3Float> border;
-                    border << ScriptVec3Float(-halfDimensions.x, -halfDimensions.y, 0.0f);
-                    border << ScriptVec3Float(halfDimensions.x, -halfDimensions.y, 0.0f);
-                    border << ScriptVec3Float(halfDimensions.x, halfDimensions.y, 0.0f);
-                    border << ScriptVec3Float(-halfDimensions.x, halfDimensions.y, 0.0f);
-                    border << ScriptVec3Float(-halfDimensions.x, -halfDimensions.y, 0.0f);
+                    QVector<glm::vec3> border;
+                    border << glm::vec3(-halfDimensions.x, -halfDimensions.y, 0.0f);
+                    border << glm::vec3(halfDimensions.x, -halfDimensions.y, 0.0f);
+                    border << glm::vec3(halfDimensions.x, halfDimensions.y, 0.0f);
+                    border << glm::vec3(-halfDimensions.x, halfDimensions.y, 0.0f);
+                    border << glm::vec3(-halfDimensions.x, -halfDimensions.y, 0.0f);
                     geometryCache->updateVertices(_geometryCacheID, border, rectangleColor);
 
                     _previousHalfDimensions = halfDimensions;

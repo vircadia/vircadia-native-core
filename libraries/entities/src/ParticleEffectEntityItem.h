@@ -20,9 +20,9 @@
 namespace particle {
     static const float SCRIPT_MAXIMUM_PI = 3.1416f;  // Round up so that reasonable property values work
     static const float UNINITIALIZED = NAN;
-    static const ScriptVec3UChar DEFAULT_COLOR = { 255, 255, 255 };
+    static const u8vec3 DEFAULT_COLOR = { 255, 255, 255 };
     static const vec3 DEFAULT_COLOR_UNINITIALIZED = { UNINITIALIZED, UNINITIALIZED, UNINITIALIZED };
-    static const ScriptVec3UChar DEFAULT_COLOR_SPREAD = { 0, 0, 0 };
+    static const u8vec3 DEFAULT_COLOR_SPREAD = { 0, 0, 0 };
     static const float DEFAULT_ALPHA = 1.0f;
     static const float DEFAULT_ALPHA_SPREAD = 0.0f;
     static const float DEFAULT_ALPHA_START = UNINITIALIZED;
@@ -42,8 +42,8 @@ namespace particle {
     static const float MINIMUM_EMIT_SPEED = -1000.0f;
     static const float MAXIMUM_EMIT_SPEED = 1000.0f;  // Approx mach 3
     static const float DEFAULT_SPEED_SPREAD = 1.0f;
-    static const glm::quat DEFAULT_EMIT_ORIENTATION = glm::angleAxis(-PI_OVER_TWO, Vectors::UNIT_X);  // Vertical
-    static const glm::vec3 DEFAULT_EMIT_DIMENSIONS = Vectors::ZERO;  // Emit from point
+    static const quat DEFAULT_EMIT_ORIENTATION = glm::angleAxis(-PI_OVER_TWO, Vectors::UNIT_X);  // Vertical
+    static const vec3 DEFAULT_EMIT_DIMENSIONS = Vectors::ZERO;  // Emit from point
     static const float MINIMUM_EMIT_DIMENSION = 0.0f;
     static const float MAXIMUM_EMIT_DIMENSION = (float)TREE_SCALE;
     static const float DEFAULT_EMIT_RADIUS_START = 1.0f;  // Emit from surface (when emitDimensions > 0)
@@ -57,10 +57,10 @@ namespace particle {
     static const float MAXIMUM_AZIMUTH = SCRIPT_MAXIMUM_PI;
     static const float DEFAULT_AZIMUTH_START = -PI;  // Emit full circumference (when polarFinish > 0)
     static const float DEFAULT_AZIMUTH_FINISH = PI;  // ""
-    static const glm::vec3 DEFAULT_EMIT_ACCELERATION(0.0f, -9.8f, 0.0f);
+    static const vec3 DEFAULT_EMIT_ACCELERATION(0.0f, -9.8f, 0.0f);
     static const float MINIMUM_EMIT_ACCELERATION = -100.0f; // ~ 10g
     static const float MAXIMUM_EMIT_ACCELERATION = 100.0f;
-    static const glm::vec3 DEFAULT_ACCELERATION_SPREAD(0.0f, 0.0f, 0.0f);
+    static const vec3 DEFAULT_ACCELERATION_SPREAD(0.0f, 0.0f, 0.0f);
     static const float MINIMUM_ACCELERATION_SPREAD = 0.0f;
     static const float MAXIMUM_ACCELERATION_SPREAD = 100.0f;
     static const float DEFAULT_PARTICLE_RADIUS = 0.025f;
@@ -154,7 +154,7 @@ namespace particle {
     };
 
     struct Properties {
-        RangeGradient<vec3> color { DEFAULT_COLOR.toGlm(), DEFAULT_COLOR_UNINITIALIZED, DEFAULT_COLOR_UNINITIALIZED, DEFAULT_COLOR_SPREAD.toGlm() };
+        RangeGradient<vec3> color { DEFAULT_COLOR, DEFAULT_COLOR_UNINITIALIZED, DEFAULT_COLOR_UNINITIALIZED, DEFAULT_COLOR_SPREAD };
         RangeGradient<float> alpha { DEFAULT_ALPHA, DEFAULT_ALPHA_START, DEFAULT_ALPHA_FINISH, DEFAULT_ALPHA_SPREAD };
         float radiusStart { DEFAULT_EMIT_RADIUS_START };
         RangeGradient<float> radius { DEFAULT_PARTICLE_RADIUS, DEFAULT_RADIUS_START, DEFAULT_RADIUS_FINISH, DEFAULT_RADIUS_SPREAD };
@@ -228,21 +228,17 @@ public:
                                                  EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                  bool& somethingChanged) override;
 
-    void setColor(const ScriptVec3UChar& value);
-    ScriptVec3UChar getColor() const { return _particleProperties.color.gradient.target; }
+    void setColor(const glm::u8vec3& value);
+    glm::u8vec3 getColor() const { return _particleProperties.color.gradient.target; }
 
     void setColorStart(const vec3& colorStart);
-    void setColorStart(const ScriptVec3Float& colorStart) { setColorStart(colorStart.toGlm()); }
     vec3 getColorStart() const { return _particleProperties.color.range.start; }
-    ScriptVec3Float getScriptColorStart() const { return getColorStart(); }
 
     void setColorFinish(const vec3& colorFinish);
-    void setColorFinish(const ScriptVec3Float& colorFinish) { setColorFinish(colorFinish.toGlm()); }
     vec3 getColorFinish() const { return _particleProperties.color.range.finish; }
-    ScriptVec3Float getScriptColorFinish() const { return getColorFinish(); }
 
-    void setColorSpread(const ScriptVec3UChar& colorSpread);
-    ScriptVec3UChar getColorSpread() const { return _particleProperties.color.gradient.spread; }
+    void setColorSpread(const glm::u8vec3& colorSpread);
+    glm::u8vec3 getColorSpread() const { return _particleProperties.color.gradient.spread; }
 
     void setAlpha(float alpha);
     float getAlpha() const { return _particleProperties.alpha.gradient.target; }
@@ -283,9 +279,7 @@ public:
     const glm::quat& getEmitOrientation() const { return _particleProperties.emission.orientation; }
 
     void setEmitDimensions(const glm::vec3& emitDimensions);
-    void setEmitDimensions(const ScriptVec3Float& emitDimensions) { setEmitDimensions(emitDimensions.toGlm()); }
     const glm::vec3& getEmitDimensions() const { return _particleProperties.emission.dimensions; }
-    ScriptVec3Float getScriptEmitDimensions() const { return getEmitDimensions(); }
 
     void setEmitRadiusStart(float emitRadiusStart);
     float getEmitRadiusStart() const { return _particleProperties.radiusStart; }
@@ -303,14 +297,10 @@ public:
     float getAzimuthFinish() const { return _particleProperties.azimuth.finish; }
 
     void setEmitAcceleration(const glm::vec3& emitAcceleration);
-    void setEmitAcceleration(const ScriptVec3Float& emitAcceleration) { setEmitAcceleration(emitAcceleration.toGlm()); }
     const glm::vec3& getEmitAcceleration() const { return _particleProperties.emission.acceleration.target; }
-    ScriptVec3Float getScriptEmitAcceleration() const { return getEmitAcceleration(); }
     
     void setAccelerationSpread(const glm::vec3& accelerationSpread);
-    void setAccelerationSpread(const ScriptVec3Float& accelerationSpread) { setAccelerationSpread(accelerationSpread.toGlm()); }
     const glm::vec3& getAccelerationSpread() const { return _particleProperties.emission.acceleration.spread; }
-    ScriptVec3Float getScriptAccelerationSpread() const { return getAccelerationSpread(); }
 
     void setParticleRadius(float particleRadius);
     float getParticleRadius() const { return _particleProperties.radius.gradient.target; }

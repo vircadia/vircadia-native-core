@@ -31,8 +31,8 @@ void MaterialEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& 
     withWriteLock([&] {
         _drawMaterial = entity->getMaterial();
         _parentID = entity->getParentID();
-        _materialMappingPos = entity->getMaterialMappingPos().toGlm();
-        _materialMappingScale = entity->getMaterialMappingScale().toGlm();
+        _materialMappingPos = entity->getMaterialMappingPos();
+        _materialMappingScale = entity->getMaterialMappingScale();
         _materialMappingRot = entity->getMaterialMappingRot();
         _renderTransform = getModelTransform();
         const float MATERIAL_ENTITY_SCALE = 0.5f;

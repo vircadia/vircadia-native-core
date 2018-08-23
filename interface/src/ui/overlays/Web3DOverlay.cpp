@@ -190,7 +190,7 @@ void Web3DOverlay::buildWebSurface() {
             _webSurface->load(_url);
             _cachedWebSurface = false;
         }
-        _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3ToVariant(getWorldPosition()));
+        _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getWorldPosition()));
         onResizeWebSurface();
         _webSurface->resume();
     });
@@ -202,7 +202,7 @@ void Web3DOverlay::buildWebSurface() {
 void Web3DOverlay::update(float deltatime) {
     if (_webSurface) {
         // update globalPosition
-        _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3ToVariant(getWorldPosition()));
+        _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getWorldPosition()));
     }
     Parent::update(deltatime);
 }

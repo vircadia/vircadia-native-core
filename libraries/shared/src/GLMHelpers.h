@@ -24,6 +24,7 @@ using glm::ivec2;
 using glm::ivec3;
 using glm::ivec4;
 using glm::uvec2;
+using glm::u8vec3;
 using glm::uvec3;
 using glm::uvec4;
 using glm::mat3;
@@ -32,8 +33,6 @@ using glm::vec2;
 using glm::vec3;
 using glm::vec4;
 using glm::quat;
-
-class ScriptVec3UChar;
 
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
@@ -176,12 +175,12 @@ bool isSimilarPosition(const glm::vec3& positionA, const glm::vec3& positionB, f
 uvec2 toGlm(const QSize& size);
 ivec2 toGlm(const QPoint& pt);
 vec2 toGlm(const QPointF& pt);
-vec3 toGlm(const ScriptVec3UChar& color);
+vec3 toGlm(const glm::u8vec3& color);
 vec4 toGlm(const QColor& color);
 ivec4 toGlm(const QRect& rect);
-vec4 toGlm(const ScriptVec3UChar& color, float alpha);
+vec4 toGlm(const glm::u8vec3& color, float alpha);
 
-ScriptVec3UChar scriptVec3UCharFromGlm(const glm::vec3 & c);
+glm::u8vec3 vec3UCharFromGlm(const glm::vec3 & c);
 
 QSize fromGlm(const glm::ivec2 & v);
 QMatrix4x4 fromGlm(const glm::mat4 & m);

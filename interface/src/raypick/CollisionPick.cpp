@@ -28,8 +28,8 @@ void buildObjectIntersectionsMap(IntersectionType intersectionType, const std::v
         }
 
         QVariantMap collisionPointPair;
-        collisionPointPair["pointOnPick"] = vec3ToVariant(objectIntersection.testCollisionPoint);
-        collisionPointPair["pointOnObject"] = vec3ToVariant(objectIntersection.foundCollisionPoint);
+        collisionPointPair["pointOnPick"] = vec3toVariant(objectIntersection.testCollisionPoint);
+        collisionPointPair["pointOnObject"] = vec3toVariant(objectIntersection.foundCollisionPoint);
 
         collisionPointPairs[objectIntersection.foundID].append(collisionPointPair);
     }

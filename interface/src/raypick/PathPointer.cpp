@@ -102,12 +102,12 @@ PickResultPointer PathPointer::getVisualPickResult(const PickResultPointer& pick
                 registrationPoint = glm::vec3(0.5f);
             } else {
                 EntityItemProperties props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(_lockEndObject.id);
-                glm::mat4 entityMat = createMatFromQuatAndPos(props.getRotation(), props.getPosition().toGlm());
+                glm::mat4 entityMat = createMatFromQuatAndPos(props.getRotation(), props.getPosition());
                 glm::mat4 finalPosAndRotMat = entityMat * _lockEndObject.offsetMat;
                 pos = extractTranslation(finalPosAndRotMat);
                 rot = glmExtractRotation(finalPosAndRotMat);
-                dim = props.getDimensions().toGlm();
-                registrationPoint = props.getRegistrationPoint().toGlm();
+                dim = props.getDimensions();
+                registrationPoint = props.getRegistrationPoint();
             }
             const glm::vec3 DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f);
             endVec = pos + rot * (dim * (DEFAULT_REGISTRATION_POINT - registrationPoint));
@@ -277,10 +277,10 @@ void StartEndRenderState::update(const glm::vec3& origin, const glm::vec3& end, 
                                  bool faceAvatar, bool followNormal, float followNormalStrength, float distance, const PickResultPointer& pickResult) {
     if (!getStartID().isNull()) {
         QVariantMap startProps;
-        startProps.insert("position", vec3ToVariant(origin));
+        startProps.insert("position", vec3toVariant(origin));
         startProps.insert("visible", true);
         if (scaleWithAvatar) {
-            startProps.insert("dimensions", vec3ToVariant(getStartDim() * DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale()));
+            startProps.insert("dimensions", vec3toVariant(getStartDim() * DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale()));
         }
         startProps.insert("ignoreRayIntersection", doesStartIgnoreRays());
         qApp->getOverlays().editOverlay(getStartID(), startProps);
@@ -291,10 +291,10 @@ void StartEndRenderState::update(const glm::vec3& origin, const glm::vec3& end, 
         glm::vec3 dim = vec3FromVariant(qApp->getOverlays().getProperty(getEndID(), "dimensions").value);
         if (distanceScaleEnd) {
             dim = getEndDim() * glm::distance(origin, end);
-            endProps.insert("dimensions", vec3ToVariant(dim));
+            endProps.insert("dimensions", vec3toVariant(dim));
         } else if (scaleWithAvatar) {
             dim = getEndDim() * DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale();
-            endProps.insert("dimensions", vec3ToVariant(dim));
+            endProps.insert("dimensions", vec3toVariant(dim));
         }
 
         glm::quat normalQuat = Quat().lookAtSimple(Vectors::ZERO, surfaceNormal);
@@ -331,7 +331,7 @@ void StartEndRenderState::update(const glm::vec3& origin, const glm::vec3& end, 
                 _avgEndRot = rotation;
             }
         }
-        endProps.insert("position", vec3ToVariant(position));
+        endProps.insert("position", vec3toVariant(position));
         endProps.insert("rotation", quatToVariant(rotation));
         endProps.insert("visible", true);
         endProps.insert("ignoreRayIntersection", doesEndIgnoreRays());

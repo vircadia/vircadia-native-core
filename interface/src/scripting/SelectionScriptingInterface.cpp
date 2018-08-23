@@ -498,10 +498,10 @@ QVariantMap SelectionHighlightStyle::toVariantMap() const {
     QVariantMap properties;
 
     const float MAX_COLOR = 255.0f;
-    properties["outlineUnoccludedColor"] = vec3ToVariant(_style._outlineUnoccluded.color * MAX_COLOR);
-    properties["outlineOccludedColor"] = vec3ToVariant(_style._outlineOccluded.color * MAX_COLOR);
-    properties["fillUnoccludedColor"] = vec3ToVariant(_style._fillUnoccluded.color * MAX_COLOR);
-    properties["fillOccludedColor"] = vec3ToVariant(_style._fillOccluded.color * MAX_COLOR);
+    properties["outlineUnoccludedColor"] = vec3toVariant(_style._outlineUnoccluded.color * MAX_COLOR);
+    properties["outlineOccludedColor"] = vec3toVariant(_style._outlineOccluded.color * MAX_COLOR);
+    properties["fillUnoccludedColor"] = vec3toVariant(_style._fillUnoccluded.color * MAX_COLOR);
+    properties["fillOccludedColor"] = vec3toVariant(_style._fillOccluded.color * MAX_COLOR);
 
     properties["outlineUnoccludedAlpha"] = _style._outlineUnoccluded.alpha;
     properties["outlineOccludedAlpha"] = _style._outlineOccluded.alpha;

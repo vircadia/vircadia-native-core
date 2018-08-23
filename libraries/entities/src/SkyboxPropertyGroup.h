@@ -83,8 +83,8 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
-    static const ScriptVec3UChar DEFAULT_COLOR;
-    DEFINE_PROPERTY_REF(PROP_SKYBOX_COLOR, Color, color, ScriptVec3UChar, DEFAULT_COLOR);
+    static const glm::u8vec3 DEFAULT_COLOR;
+    DEFINE_PROPERTY_REF(PROP_SKYBOX_COLOR, Color, color, glm::u8vec3, DEFAULT_COLOR);
     DEFINE_PROPERTY_REF(PROP_SKYBOX_URL, URL, url, QString, "");
 };
 

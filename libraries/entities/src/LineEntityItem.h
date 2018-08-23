@@ -41,16 +41,16 @@ class LineEntityItem : public EntityItem {
                                                  EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                  bool& somethingChanged) override;
 
-    ScriptVec3UChar getColor() const;
-    void setColor(const ScriptVec3UChar& value);
+    glm::u8vec3 getColor() const;
+    void setColor(const glm::u8vec3& value);
 
     void setLineWidth(float lineWidth);
     float getLineWidth() const;
 
-    bool setLinePoints(const QVector<ScriptVec3Float>& points);
-    bool appendPoint(const ScriptVec3Float& point);
+    bool setLinePoints(const QVector<glm::vec3>& points);
+    bool appendPoint(const glm::vec3& point);
 
-    QVector<ScriptVec3Float> getLinePoints() const;
+    QVector<glm::vec3> getLinePoints() const;
 
     virtual ShapeType getShapeType() const override { return SHAPE_TYPE_NONE; }
 
@@ -73,9 +73,9 @@ class LineEntityItem : public EntityItem {
     static const int MAX_POINTS_PER_LINE;
 
  private:
-    ScriptVec3UChar _color;
+    glm::u8vec3 _color;
     float _lineWidth { DEFAULT_LINE_WIDTH };
-    QVector<ScriptVec3Float> _points;
+    QVector<glm::vec3> _points;
     bool _pointsChanged { true };
 };
 

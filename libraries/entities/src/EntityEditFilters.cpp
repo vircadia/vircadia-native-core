@@ -104,10 +104,10 @@ bool EntityEditFilters::filter(glm::vec3& position, EntityItemProperties& proper
                         AABox aaBox = zoneEntity->getAABox(success);
                         if (success) {
                             QScriptValue boundingBox = filterData.engine->newObject();
-                            QScriptValue bottomRightNear = vec3ToScriptValue(filterData.engine, aaBox.getCorner());
-                            QScriptValue topFarLeft = vec3ToScriptValue(filterData.engine, aaBox.calcTopFarLeft());
-                            QScriptValue center = vec3ToScriptValue(filterData.engine, aaBox.calcCenter());
-                            QScriptValue boundingBoxDimensions = vec3ToScriptValue(filterData.engine, aaBox.getDimensions());
+                            QScriptValue bottomRightNear = vec3FloatToScriptValue(filterData.engine, aaBox.getCorner());
+                            QScriptValue topFarLeft = vec3FloatToScriptValue(filterData.engine, aaBox.calcTopFarLeft());
+                            QScriptValue center = vec3FloatToScriptValue(filterData.engine, aaBox.calcCenter());
+                            QScriptValue boundingBoxDimensions = vec3FloatToScriptValue(filterData.engine, aaBox.getDimensions());
                             boundingBox.setProperty("brn", bottomRightNear);
                             boundingBox.setProperty("tfl", topFarLeft);
                             boundingBox.setProperty("center", center);

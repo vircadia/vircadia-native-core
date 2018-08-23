@@ -60,8 +60,8 @@ EntityItemProperties::EntityItemProperties(EntityPropertyFlags desiredProperties
 
 }
 
-void EntityItemProperties::calculateNaturalPosition(const glm::vec3& min, const glm::vec3& max) {
-    glm::vec3 halfDimension = (max - min) / 2.0f;
+void EntityItemProperties::calculateNaturalPosition(const vec3& min, const vec3& max) {
+    vec3 halfDimension = (max - min) / 2.0f;
     _naturalPosition = max - halfDimension;
 }
 
@@ -1447,10 +1447,10 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     if (!skipDefaults && !strictSemantics) {
         AABox aaBox = getAABox();
         QScriptValue boundingBox = engine->newObject();
-        QScriptValue bottomRightNear = vec3ToScriptValue(engine, aaBox.getCorner());
-        QScriptValue topFarLeft = vec3ToScriptValue(engine, aaBox.calcTopFarLeft());
-        QScriptValue center = vec3ToScriptValue(engine, aaBox.calcCenter());
-        QScriptValue boundingBoxDimensions = vec3ToScriptValue(engine, aaBox.getDimensions());
+        QScriptValue bottomRightNear = vec3FloatToScriptValue(engine, aaBox.getCorner());
+        QScriptValue topFarLeft = vec3FloatToScriptValue(engine, aaBox.calcTopFarLeft());
+        QScriptValue center = vec3FloatToScriptValue(engine, aaBox.calcCenter());
+        QScriptValue boundingBoxDimensions = vec3FloatToScriptValue(engine, aaBox.getDimensions());
         boundingBox.setProperty("brn", bottomRightNear);
         boundingBox.setProperty("tfl", topFarLeft);
         boundingBox.setProperty("center", center);
@@ -1527,13 +1527,13 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     }
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lastEditedBy, QUuid, setLastEditedBy);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(position, ScriptVec3Float, setPosition);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(dimensions, ScriptVec3Float, setDimensions);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(position, vec3, setPosition);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(dimensions, vec3, setDimensions);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(rotation, quat, setRotation);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(density, float, setDensity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(velocity, ScriptVec3Float, setVelocity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(gravity, ScriptVec3Float, setGravity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(acceleration, ScriptVec3Float, setAcceleration);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(velocity, vec3, setVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(gravity, vec3, setGravity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(acceleration, vec3, setAcceleration);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(damping, float, setDamping);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(restitution, float, setRestitution);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(friction, float, setFriction);
@@ -1541,15 +1541,15 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(script, QString, setScript);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(scriptTimestamp, quint64, setScriptTimestamp);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(serverScripts, QString, setServerScripts);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(registrationPoint, ScriptVec3Float, setRegistrationPoint);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(angularVelocity, ScriptVec3Float, setAngularVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(registrationPoint, vec3, setRegistrationPoint);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(angularVelocity, vec3, setAngularVelocity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(angularDamping, float, setAngularDamping);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(visible, bool, setVisible);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(canCastShadow, bool, setCanCastShadow);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(color, ScriptVec3UChar, setColor);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorSpread, ScriptVec3UChar, setColorSpread);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorStart, ScriptVec3Float, setColorStart);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorFinish, ScriptVec3Float, setColorFinish);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(color, u8vec3, setColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorSpread, u8vec3, setColorSpread);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorStart, vec3, setColorStart);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorFinish, vec3, setColorFinish);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alpha, float, setAlpha);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaSpread, float, setAlphaSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaStart, float, setAlphaStart);
@@ -1574,8 +1574,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(userData, QString, setUserData);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(text, QString, setText);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lineHeight, float, setLineHeight);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(textColor, ScriptVec3UChar, setTextColor);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(backgroundColor, ScriptVec3UChar, setBackgroundColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(textColor, u8vec3, setTextColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(backgroundColor, u8vec3, setBackgroundColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(shapeType, ShapeType);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(maxParticles, quint32, setMaxParticles);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lifespan, float, setLifespan);
@@ -1584,14 +1584,14 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitSpeed, float, setEmitSpeed);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(speedSpread, float, setSpeedSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitOrientation, quat, setEmitOrientation);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitDimensions, ScriptVec3Float, setEmitDimensions);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitDimensions, vec3, setEmitDimensions);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitRadiusStart, float, setEmitRadiusStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(polarStart, float, setPolarStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(polarFinish, float, setPolarFinish);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(azimuthStart, float, setAzimuthStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(azimuthFinish, float, setAzimuthFinish);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitAcceleration, ScriptVec3Float, setEmitAcceleration);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(accelerationSpread, ScriptVec3Float, setAccelerationSpread);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitAcceleration, vec3, setEmitAcceleration);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(accelerationSpread, vec3, setAccelerationSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(particleRadius, float, setParticleRadius);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusSpread, float, setRadiusSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusStart, float, setRadiusStart);
@@ -1601,8 +1601,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(materialMappingMode, MaterialMappingMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(priority, quint16, setPriority);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(parentMaterialName, QString, setParentMaterialName);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingPos, ScriptVec2Float, setMaterialMappingPos);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingScale, ScriptVec2Float, setMaterialMappingScale);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingPos, vec2, setMaterialMappingPos);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingScale, vec2, setMaterialMappingScale);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingRot, float, setMaterialMappingRot);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialData, QString, setMaterialData);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(isVisibleInSecondaryCamera, bool, setIsVisibleInSecondaryCamera);
@@ -1634,7 +1634,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(skyboxMode, SkyboxMode);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(sourceUrl, QString, setSourceUrl);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, ScriptVec3Float, setVoxelVolumeSize);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, vec3, setVoxelVolumeSize);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelData, QByteArray, setVoxelData);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelSurfaceStyle, uint16_t, setVoxelSurfaceStyle);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lineWidth, float, setLineWidth);
@@ -1681,11 +1681,11 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(parentJointIndex, quint16, setParentJointIndex);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(queryAACube, AACube, setQueryAACube);
 
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localPosition, ScriptVec3Float, setLocalPosition);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localPosition, vec3, setLocalPosition);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localRotation, quat, setLocalRotation);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localVelocity, ScriptVec3Float, setLocalVelocity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localAngularVelocity, ScriptVec3Float, setLocalAngularVelocity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localDimensions, ScriptVec3Float, setLocalDimensions);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localVelocity, vec3, setLocalVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localAngularVelocity, vec3, setLocalAngularVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localDimensions, vec3, setLocalDimensions);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotationsSet, qVectorBool, setJointRotationsSet);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotations, qVectorQuat, setJointRotations);
@@ -1917,13 +1917,13 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
     std::call_once(initMap, [](){
         ADD_PROPERTY_TO_MAP(PROP_VISIBLE, Visible, visible, bool);
         ADD_PROPERTY_TO_MAP(PROP_CAN_CAST_SHADOW, CanCastShadow, canCastShadow, bool);
-        ADD_PROPERTY_TO_MAP(PROP_POSITION, Position, position, ScriptVec3Float);
-        ADD_PROPERTY_TO_MAP(PROP_DIMENSIONS, Dimensions, dimensions, ScriptVec3Float);
-        ADD_PROPERTY_TO_MAP(PROP_ROTATION, Rotation, rotation, glm::quat);
+        ADD_PROPERTY_TO_MAP(PROP_POSITION, Position, position, vec3);
+        ADD_PROPERTY_TO_MAP(PROP_DIMENSIONS, Dimensions, dimensions, vec3);
+        ADD_PROPERTY_TO_MAP(PROP_ROTATION, Rotation, rotation, quat);
         ADD_PROPERTY_TO_MAP(PROP_DENSITY, Density, density, float);
-        ADD_PROPERTY_TO_MAP(PROP_VELOCITY, Velocity, velocity, ScriptVec3Float);
-        ADD_PROPERTY_TO_MAP(PROP_GRAVITY, Gravity, gravity, ScriptVec3Float);
-        ADD_PROPERTY_TO_MAP(PROP_ACCELERATION, Acceleration, acceleration, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_VELOCITY, Velocity, velocity, vec3);
+        ADD_PROPERTY_TO_MAP(PROP_GRAVITY, Gravity, gravity, vec3);
+        ADD_PROPERTY_TO_MAP(PROP_ACCELERATION, Acceleration, acceleration, vec3);
         ADD_PROPERTY_TO_MAP(PROP_DAMPING, Damping, damping, float);
         ADD_PROPERTY_TO_MAP(PROP_RESTITUTION, Restitution, restitution, float);
         ADD_PROPERTY_TO_MAP(PROP_FRICTION, Friction, friction, float);
@@ -1932,10 +1932,10 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_SCRIPT_TIMESTAMP, ScriptTimestamp, scriptTimestamp, quint64);
         ADD_PROPERTY_TO_MAP(PROP_SERVER_SCRIPTS, ServerScripts, serverScripts, QString);
         ADD_PROPERTY_TO_MAP(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString);
-        ADD_PROPERTY_TO_MAP(PROP_COLOR, Color, color, ScriptVec3UChar);
-        ADD_PROPERTY_TO_MAP(PROP_COLOR_SPREAD, ColorSpread, colorSpread, ScriptVec3UChar);
-        ADD_PROPERTY_TO_MAP(PROP_COLOR_START, ColorStart, colorStart, ScriptVec3Float);
-        ADD_PROPERTY_TO_MAP(PROP_COLOR_FINISH, ColorFinish, colorFinish, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_COLOR, Color, color, u8vec3);
+        ADD_PROPERTY_TO_MAP(PROP_COLOR_SPREAD, ColorSpread, colorSpread, u8vec3);
+        ADD_PROPERTY_TO_MAP(PROP_COLOR_START, ColorStart, colorStart, vec3);
+        ADD_PROPERTY_TO_MAP(PROP_COLOR_FINISH, ColorFinish, colorFinish, vec3);
         ADD_PROPERTY_TO_MAP(PROP_ALPHA, Alpha, alpha, float);
         ADD_PROPERTY_TO_MAP(PROP_ALPHA_SPREAD, AlphaSpread, alphaSpread, float);
         ADD_PROPERTY_TO_MAP(PROP_ALPHA_START, AlphaStart, alphaStart, float);
@@ -1943,8 +1943,8 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_EMITTER_SHOULD_TRAIL, EmitterShouldTrail, emitterShouldTrail, bool);
         ADD_PROPERTY_TO_MAP(PROP_MODEL_URL, ModelURL, modelURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString);
-        ADD_PROPERTY_TO_MAP(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, ScriptVec3Float);
-        ADD_PROPERTY_TO_MAP(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, vec3);
+        ADD_PROPERTY_TO_MAP(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, vec3);
         ADD_PROPERTY_TO_MAP(PROP_ANGULAR_DAMPING, AngularDamping, angularDamping, float);
         ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, Collisionless, collisionless, bool);
         ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, unused, ignoreForCollisions, unused); // legacy support
@@ -1963,24 +1963,24 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_SIMULATION_OWNER, SimulationOwner, simulationOwner, SimulationOwner);
         ADD_PROPERTY_TO_MAP(PROP_TEXT, Text, text, QString);
         ADD_PROPERTY_TO_MAP(PROP_LINE_HEIGHT, LineHeight, lineHeight, float);
-        ADD_PROPERTY_TO_MAP(PROP_TEXT_COLOR, TextColor, textColor, ScriptVec3UChar);
-        ADD_PROPERTY_TO_MAP(PROP_BACKGROUND_COLOR, BackgroundColor, backgroundColor, ScriptVec3UChar);
+        ADD_PROPERTY_TO_MAP(PROP_TEXT_COLOR, TextColor, textColor, u8vec3);
+        ADD_PROPERTY_TO_MAP(PROP_BACKGROUND_COLOR, BackgroundColor, backgroundColor, u8vec3);
         ADD_PROPERTY_TO_MAP(PROP_SHAPE_TYPE, ShapeType, shapeType, ShapeType);
         ADD_PROPERTY_TO_MAP(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32);
         ADD_PROPERTY_TO_MAP(PROP_LIFESPAN, Lifespan, lifespan, float);
         ADD_PROPERTY_TO_MAP(PROP_EMITTING_PARTICLES, IsEmitting, isEmitting, bool);
         ADD_PROPERTY_TO_MAP(PROP_EMIT_RATE, EmitRate, emitRate, float);
-        ADD_PROPERTY_TO_MAP(PROP_EMIT_SPEED, EmitSpeed, emitSpeed, ScriptVec3Float);
-        ADD_PROPERTY_TO_MAP(PROP_SPEED_SPREAD, SpeedSpread, speedSpread, ScriptVec3Float);
-        ADD_PROPERTY_TO_MAP(PROP_EMIT_ORIENTATION, EmitOrientation, emitOrientation, glm::quat);
-        ADD_PROPERTY_TO_MAP(PROP_EMIT_DIMENSIONS, EmitDimensions, emitDimensions, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_EMIT_SPEED, EmitSpeed, emitSpeed, vec3);
+        ADD_PROPERTY_TO_MAP(PROP_SPEED_SPREAD, SpeedSpread, speedSpread, vec3);
+        ADD_PROPERTY_TO_MAP(PROP_EMIT_ORIENTATION, EmitOrientation, emitOrientation, quat);
+        ADD_PROPERTY_TO_MAP(PROP_EMIT_DIMENSIONS, EmitDimensions, emitDimensions, vec3);
         ADD_PROPERTY_TO_MAP(PROP_EMIT_RADIUS_START, EmitRadiusStart, emitRadiusStart, float);
         ADD_PROPERTY_TO_MAP(PROP_POLAR_START, EmitPolarStart, polarStart, float);
         ADD_PROPERTY_TO_MAP(PROP_POLAR_FINISH, EmitPolarFinish, polarFinish, float);
         ADD_PROPERTY_TO_MAP(PROP_AZIMUTH_START, EmitAzimuthStart, azimuthStart, float);
         ADD_PROPERTY_TO_MAP(PROP_AZIMUTH_FINISH, EmitAzimuthFinish, azimuthFinish, float);
-        ADD_PROPERTY_TO_MAP(PROP_EMIT_ACCELERATION, EmitAcceleration, emitAcceleration, ScriptVec3Float);
-        ADD_PROPERTY_TO_MAP(PROP_ACCELERATION_SPREAD, AccelerationSpread, accelerationSpread, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_EMIT_ACCELERATION, EmitAcceleration, emitAcceleration, vec3);
+        ADD_PROPERTY_TO_MAP(PROP_ACCELERATION_SPREAD, AccelerationSpread, accelerationSpread, vec3);
         ADD_PROPERTY_TO_MAP(PROP_PARTICLE_RADIUS, ParticleRadius, particleRadius, float);
         ADD_PROPERTY_TO_MAP(PROP_RADIUS_SPREAD, RadiusSpread, radiusSpread, float);
         ADD_PROPERTY_TO_MAP(PROP_RADIUS_START, RadiusStart, radiusStart, float);
@@ -1990,8 +1990,8 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_MODE, MaterialMappingMode, materialMappingMode, MaterialMappingMode);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_PRIORITY, Priority, priority, quint16);
         ADD_PROPERTY_TO_MAP(PROP_PARENT_MATERIAL_NAME, ParentMaterialName, parentMaterialName, QString);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_POS, MaterialMappingPos, materialMappingPos,  ScriptVec2UChar);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale,  ScriptVec2UChar);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_POS, MaterialMappingPos, materialMappingPos, vec2);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale, vec2);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_ROT, MaterialMappingRot, materialMappingRot, float);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_DATA, MaterialData, materialData, QString);
 
@@ -2016,24 +2016,24 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_CERTIFICATE_ID, CertificateID, certificateID, QString);
         ADD_PROPERTY_TO_MAP(PROP_STATIC_CERTIFICATE_VERSION, StaticCertificateVersion, staticCertificateVersion, quint32);
 
-        ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_COLOR, KeyLightColor, keyLightColor, ScriptVec3UChar);
+        ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_COLOR, KeyLightColor, keyLightColor, u8vec3);
         ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_INTENSITY, KeyLightIntensity, keyLightIntensity, float);
-        ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_DIRECTION, KeyLightDirection, keyLightDirection, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_DIRECTION, KeyLightDirection, keyLightDirection, vec3);
         ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_CAST_SHADOW, KeyLightCastShadows, keyLightCastShadows, bool);
 
-        ADD_PROPERTY_TO_MAP(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, vec3);
         ADD_PROPERTY_TO_MAP(PROP_VOXEL_DATA, VoxelData, voxelData, QByteArray);
         ADD_PROPERTY_TO_MAP(PROP_VOXEL_SURFACE_STYLE, VoxelSurfaceStyle, voxelSurfaceStyle, uint16_t);
         ADD_PROPERTY_TO_MAP(PROP_NAME, Name, name, QString);
         ADD_PROPERTY_TO_MAP(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString);
         ADD_PROPERTY_TO_MAP(PROP_LINE_WIDTH, LineWidth, lineWidth, float);
-        ADD_PROPERTY_TO_MAP(PROP_LINE_POINTS, LinePoints, linePoints, QVector<ScriptVec3Float>);
+        ADD_PROPERTY_TO_MAP(PROP_LINE_POINTS, LinePoints, linePoints, QVector<vec3>);
         ADD_PROPERTY_TO_MAP(PROP_HREF, Href, href, QString);
         ADD_PROPERTY_TO_MAP(PROP_DESCRIPTION, Description, description, QString);
         ADD_PROPERTY_TO_MAP(PROP_FACE_CAMERA, FaceCamera, faceCamera, bool);
         ADD_PROPERTY_TO_MAP(PROP_ACTION_DATA, ActionData, actionData, QByteArray);
-        ADD_PROPERTY_TO_MAP(PROP_NORMALS, Normals, normals, QVector<ScriptVec3Float>);
-        ADD_PROPERTY_TO_MAP(PROP_STROKE_COLORS, StrokeColors, strokeColors, QVector<ScriptVec3Float>);
+        ADD_PROPERTY_TO_MAP(PROP_NORMALS, Normals, normals, QVector<vec3>);
+        ADD_PROPERTY_TO_MAP(PROP_STROKE_COLORS, StrokeColors, strokeColors, QVector<vec3>);
         ADD_PROPERTY_TO_MAP(PROP_STROKE_WIDTHS, StrokeWidths, strokeWidths, QVector<float>);
         ADD_PROPERTY_TO_MAP(PROP_IS_UV_MODE_STRETCH, IsUVModeStretch, isUVModeStretch, QVector<float>);
         ADD_PROPERTY_TO_MAP(PROP_X_TEXTURE_URL, XTextureURL, xTextureURL, QString);
@@ -2049,16 +2049,16 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_PARENT_ID, ParentID, parentID, QUuid);
         ADD_PROPERTY_TO_MAP(PROP_PARENT_JOINT_INDEX, ParentJointIndex, parentJointIndex, uint16_t);
 
-        ADD_PROPERTY_TO_MAP(PROP_LOCAL_POSITION, LocalPosition, localPosition, ScriptVec3Float);
-        ADD_PROPERTY_TO_MAP(PROP_LOCAL_ROTATION, LocalRotation, localRotation, glm::quat);
-        ADD_PROPERTY_TO_MAP(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, ScriptVec3Float);
-        ADD_PROPERTY_TO_MAP(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, ScriptVec3Float);
-        ADD_PROPERTY_TO_MAP(PROP_LOCAL_DIMENSIONS, LocalDimensions, localDimensions, ScriptVec3Float);
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_POSITION, LocalPosition, localPosition, vec3);
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_ROTATION, LocalRotation, localRotation, quat);
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, vec3);
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, vec3);
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_DIMENSIONS, LocalDimensions, localDimensions, vec3);
 
         ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS_SET, JointRotationsSet, jointRotationsSet, QVector<bool>);
-        ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<glm::quat>);
+        ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<quat>);
         ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS_SET, JointTranslationsSet, jointTranslationsSet, QVector<bool>);
-        ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS, JointTranslations, jointTranslations, QVector<ScriptVec3Float>);
+        ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS, JointTranslations, jointTranslations, QVector<vec3>);
         ADD_PROPERTY_TO_MAP(PROP_RELAY_PARENT_JOINTS, RelayParentJoints, relayParentJoints, bool);
 
         ADD_PROPERTY_TO_MAP(PROP_SHAPE, Shape, shape, QString);
@@ -2163,7 +2163,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
     // Always include the root octcode. This is only because the OctreeEditPacketSender will check these octcodes
     // to determine which server to send the changes to in the case of multiple jurisdictions. The root will be sent
     // to all servers.
-    glm::vec3 rootPosition(0);
+    vec3 rootPosition(0);
     float rootScale = 0.5f;
     unsigned char* octcode = pointToOctalCode(rootPosition.x, rootPosition.y, rootPosition.z, rootScale);
 
@@ -2501,7 +2501,7 @@ QByteArray EntityItemProperties::getPackedNormals() const {
     return packNormals(getNormals());
 }
 
-QByteArray EntityItemProperties::packNormals(const QVector<ScriptVec3Float>& normals) const {
+QByteArray EntityItemProperties::packNormals(const QVector<vec3>& normals) const {
     int normalsSize = normals.size();
     QByteArray packedNormals = QByteArray(normalsSize * 6 + 1, '0');
     // add size of the array
@@ -2509,7 +2509,7 @@ QByteArray EntityItemProperties::packNormals(const QVector<ScriptVec3Float>& nor
 
     int index = 1;
     for (int i = 0; i < normalsSize; i++) {
-        int numBytes = packFloatVec3ToSignedTwoByteFixed((unsigned char*)packedNormals.data() + index, normals[i].toGlm(), 15);
+        int numBytes = packFloatVec3ToSignedTwoByteFixed((unsigned char*)packedNormals.data() + index, normals[i], 15);
         index += numBytes;
     }
     return packedNormals;
@@ -2518,7 +2518,7 @@ QByteArray EntityItemProperties::packNormals(const QVector<ScriptVec3Float>& nor
 QByteArray EntityItemProperties::getPackedStrokeColors() const {
     return packStrokeColors(getStrokeColors());
 }
-QByteArray EntityItemProperties::packStrokeColors(const QVector<ScriptVec3Float>& strokeColors) const {
+QByteArray EntityItemProperties::packStrokeColors(const QVector<vec3>& strokeColors) const {
     int strokeColorsSize = strokeColors.size();
     QByteArray packedStrokeColors = QByteArray(strokeColorsSize * 3 + 1, '0');
 
@@ -2619,13 +2619,13 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     processedBytes += propertyFlags.getEncodedLength();
 
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SIMULATION_OWNER, QByteArray, setSimulationOwner);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POSITION, ScriptVec3Float, setPosition);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DIMENSIONS, ScriptVec3Float, setDimensions);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ROTATION, glm::quat, setRotation);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POSITION, vec3, setPosition);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DIMENSIONS, vec3, setDimensions);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ROTATION, quat, setRotation);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DENSITY, float, setDensity);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VELOCITY, ScriptVec3Float, setVelocity);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GRAVITY, ScriptVec3Float, setGravity);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACCELERATION, ScriptVec3Float, setAcceleration);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VELOCITY, vec3, setVelocity);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GRAVITY, vec3, setGravity);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACCELERATION, vec3, setAcceleration);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DAMPING, float, setDamping);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RESTITUTION, float, setRestitution);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FRICTION, float, setFriction);
@@ -2633,8 +2633,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SCRIPT, QString, setScript);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SERVER_SCRIPTS, QString, setServerScripts);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_REGISTRATION_POINT, ScriptVec3Float, setRegistrationPoint);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_VELOCITY, ScriptVec3Float, setAngularVelocity);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_REGISTRATION_POINT, vec3, setRegistrationPoint);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_VELOCITY, vec3, setAngularVelocity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_DAMPING, float, setAngularDamping);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE, bool, setVisible);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
@@ -2657,8 +2657,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     if (properties.getType() == EntityTypes::Text) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT, QString, setText);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_HEIGHT, float, setLineHeight);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT_COLOR, ScriptVec3UChar, setTextColor);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BACKGROUND_COLOR, ScriptVec3UChar, setBackgroundColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT_COLOR, u8vec3, setTextColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BACKGROUND_COLOR, u8vec3, setBackgroundColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FACE_CAMERA, bool, setFaceCamera);
     }
 
@@ -2667,20 +2667,20 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, ScriptVec3UChar, setColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3, setColor);
 
         properties.getAnimation().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_ROTATIONS_SET, QVector<bool>, setJointRotationsSet);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_ROTATIONS, QVector<glm::quat>, setJointRotations);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_ROTATIONS, QVector<quat>, setJointRotations);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_TRANSLATIONS_SET, QVector<bool>, setJointTranslationsSet);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_TRANSLATIONS, QVector<ScriptVec3Float>, setJointTranslations);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_TRANSLATIONS, QVector<vec3>, setJointTranslations);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RELAY_PARENT_JOINTS, bool, setRelayParentJoints);
     }
 
     if (properties.getType() == EntityTypes::Light) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IS_SPOTLIGHT, bool, setIsSpotlight);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, ScriptVec3UChar, setColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3, setColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_INTENSITY, float, setIntensity);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FALLOFF_RADIUS, float, setFalloffRadius);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EXPONENT, float, setExponent);
@@ -2695,23 +2695,23 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_RATE, float, setEmitRate);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_SPEED, float, setEmitSpeed);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SPEED_SPREAD, float, setSpeedSpread);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_ORIENTATION, glm::quat, setEmitOrientation);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_DIMENSIONS, ScriptVec3Float, setEmitDimensions);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_ORIENTATION, quat, setEmitOrientation);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_DIMENSIONS, vec3, setEmitDimensions);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_RADIUS_START, float, setEmitRadiusStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POLAR_START, float, setPolarStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POLAR_FINISH, float, setPolarFinish);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_AZIMUTH_START, float, setAzimuthStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_AZIMUTH_FINISH, float, setAzimuthFinish);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_ACCELERATION, ScriptVec3Float, setEmitAcceleration);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACCELERATION_SPREAD, ScriptVec3Float, setAccelerationSpread);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_ACCELERATION, vec3, setEmitAcceleration);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACCELERATION_SPREAD, vec3, setAccelerationSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARTICLE_RADIUS, float, setParticleRadius);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_SPREAD, float, setRadiusSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_START, float, setRadiusStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_FINISH, float, setRadiusFinish);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, ScriptVec3UChar, setColor);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_SPREAD, ScriptVec3UChar, setColorSpread);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_START, ScriptVec3Float, setColorStart);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_FINISH, ScriptVec3Float, setColorFinish);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3, setColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_SPREAD, u8vec3, setColorSpread);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_START, vec3, setColorStart);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_FINISH, vec3, setColorFinish);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_SPREAD, float, setAlphaSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_START, float, setAlphaStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_FINISH, float, setAlphaFinish);
@@ -2744,7 +2744,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     }
 
     if (properties.getType() == EntityTypes::PolyVox) {
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_VOLUME_SIZE, ScriptVec3Float, setVoxelVolumeSize);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_VOLUME_SIZE, vec3, setVoxelVolumeSize);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_DATA, QByteArray, setVoxelData);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VOXEL_SURFACE_STYLE, uint16_t, setVoxelSurfaceStyle);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_X_TEXTURE_URL, QString, setXTextureURL);
@@ -2759,16 +2759,16 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     }
 
     if (properties.getType() == EntityTypes::Line) {
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, ScriptVec3UChar, setColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3, setColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_WIDTH, float, setLineWidth);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<ScriptVec3Float>, setLinePoints);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<vec3>, setLinePoints);
     }
 
 
     if (properties.getType() == EntityTypes::PolyLine) {
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, ScriptVec3UChar, setColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3, setColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_WIDTH, float, setLineWidth);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<ScriptVec3Float>, setLinePoints);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<vec3>, setLinePoints);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NORMALS, QByteArray, setPackedNormals);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STROKE_COLORS, QByteArray, setPackedStrokeColors);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STROKE_WIDTHS, QVector<float>, setStrokeWidths);
@@ -2782,7 +2782,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         properties.getType() == EntityTypes::Box ||
         properties.getType() == EntityTypes::Sphere) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE, QString, setShape);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, ScriptVec3UChar, setColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3, setColor);
     }
 
     // Materials
@@ -2791,8 +2791,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_MODE, MaterialMappingMode, setMaterialMappingMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_PRIORITY, quint16, setPriority);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARENT_MATERIAL_NAME, QString, setParentMaterialName);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_POS, ScriptVec2Float, setMaterialMappingPos);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_SCALE, ScriptVec2Float, setMaterialMappingScale);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_POS, vec2, setMaterialMappingPos);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_SCALE, vec2, setMaterialMappingScale);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_ROT, float, setMaterialMappingRot);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_DATA, QString, setMaterialData);
     }
@@ -2828,14 +2828,14 @@ void EntityItemProperties::setPackedNormals(const QByteArray& value) {
     setNormals(unpackNormals(value));
 }
 
-QVector<ScriptVec3Float> EntityItemProperties::unpackNormals(const QByteArray& normals) {
+QVector<vec3> EntityItemProperties::unpackNormals(const QByteArray& normals) {
     // the size of the vector is packed first
-    QVector<ScriptVec3Float> unpackedNormals = QVector<ScriptVec3Float>((int)normals[0]);
+    QVector<vec3> unpackedNormals = QVector<vec3>((int)normals[0]);
 
     if ((int)normals[0] == normals.size() / 6) {
         int j = 0;
         for (int i = 1; i < normals.size();) {
-            glm::vec3 aux = glm::vec3();
+            vec3 aux = vec3();
             i += unpackFloatVec3FromSignedTwoByteFixed((unsigned char*)normals.data() + i, aux, 15);
             unpackedNormals[j] = aux;
             j++;
@@ -2851,9 +2851,9 @@ void EntityItemProperties::setPackedStrokeColors(const QByteArray& value) {
     setStrokeColors(unpackStrokeColors(value));
 }
 
-QVector<ScriptVec3Float> EntityItemProperties::unpackStrokeColors(const QByteArray& strokeColors) {
+QVector<vec3> EntityItemProperties::unpackStrokeColors(const QByteArray& strokeColors) {
     // the size of the vector is packed first
-    QVector<ScriptVec3Float> unpackedStrokeColors = QVector<ScriptVec3Float>((int)strokeColors[0]);
+    QVector<vec3> unpackedStrokeColors = QVector<vec3>((int)strokeColors[0]);
    
     if ((int)strokeColors[0] == strokeColors.size() / 3) {
         int j = 0;
@@ -2862,7 +2862,7 @@ QVector<ScriptVec3Float> EntityItemProperties::unpackStrokeColors(const QByteArr
             float r = (uint8_t)strokeColors[i++] / 255.0f;
             float g = (uint8_t)strokeColors[i++] / 255.0f;
             float b = (uint8_t)strokeColors[i++] / 255.0f;
-            unpackedStrokeColors[j++] = ScriptVec3Float(r, g, b);
+            unpackedStrokeColors[j++] = vec3(r, g, b);
         }
     } else {
         qCDebug(entities) << "WARNING - Expected received size for stroke colors does not match. Expected: " 
@@ -3123,15 +3123,15 @@ void EntityItemProperties::markAllChanged() {
 AABox EntityItemProperties::getAABox() const {
 
     // _position represents the position of the registration point.
-    glm::vec3 registrationRemainder = glm::vec3(1.0f) - _registrationPoint.toGlm();
+    vec3 registrationRemainder = vec3(1.0f) - _registrationPoint;
 
-    glm::vec3 unrotatedMinRelativeToEntity = - (_dimensions.toGlm() * _registrationPoint.toGlm());
-    glm::vec3 unrotatedMaxRelativeToEntity = _dimensions.toGlm() * registrationRemainder;
+    vec3 unrotatedMinRelativeToEntity = - (_dimensions * _registrationPoint);
+    vec3 unrotatedMaxRelativeToEntity = _dimensions * registrationRemainder;
     Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
     Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(_rotation);
 
     // shift the extents to be relative to the position/registration point
-    rotatedExtentsRelativeToRegistrationPoint.shiftBy(_position.toGlm());
+    rotatedExtentsRelativeToRegistrationPoint.shiftBy(_position);
 
     return AABox(rotatedExtentsRelativeToRegistrationPoint);
 }

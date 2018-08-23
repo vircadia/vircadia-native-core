@@ -28,8 +28,8 @@ class EntityTreeElementExtraEncodeData;
 class ReadBitstreamToTreeParams;
 
 static const float INITIAL_HAZE_RANGE{ 1000.0f };
-static const ScriptVec3UChar initialHazeGlareColor { 255, 229, 179 };
-static const ScriptVec3UChar initialHazeColor { 128, 154, 179 };
+static const glm::u8vec3 initialHazeGlareColor { 255, 229, 179 };
+static const glm::u8vec3 initialHazeColor { 128, 154, 179 };
 static const float INITIAL_HAZE_GLARE_ANGLE{ 20.0f };
 
 static const float INITIAL_HAZE_BASE_REFERENCE{ 0.0f };
@@ -118,8 +118,8 @@ public:
 
     // Range only parameters
     DEFINE_PROPERTY(PROP_HAZE_RANGE, HazeRange, hazeRange, float, INITIAL_HAZE_RANGE);
-    DEFINE_PROPERTY_REF(PROP_HAZE_COLOR, HazeColor, hazeColor, ScriptVec3UChar, initialHazeColor);
-    DEFINE_PROPERTY_REF(PROP_HAZE_GLARE_COLOR, HazeGlareColor, hazeGlareColor, ScriptVec3UChar, initialHazeGlareColor);
+    DEFINE_PROPERTY_REF(PROP_HAZE_COLOR, HazeColor, hazeColor, glm::u8vec3, initialHazeColor);
+    DEFINE_PROPERTY_REF(PROP_HAZE_GLARE_COLOR, HazeGlareColor, hazeGlareColor, glm::u8vec3, initialHazeGlareColor);
     DEFINE_PROPERTY(PROP_HAZE_ENABLE_GLARE, HazeEnableGlare, hazeEnableGlare, bool, false);
     DEFINE_PROPERTY_REF(PROP_HAZE_GLARE_ANGLE, HazeGlareAngle, hazeGlareAngle, float, INITIAL_HAZE_GLARE_ANGLE);
 

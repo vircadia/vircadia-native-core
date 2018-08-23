@@ -59,7 +59,7 @@ QVariantMap convertOverlayLocationFromScriptSemantics(const QVariantMap& propert
         glm::vec3 localPosition = SpatiallyNestable::worldToLocal(vec3FromVariant(result["position"]),
                                                                   parentID, parentJointIndex, scalesWithParent, success);
         if (success) {
-            result["position"] = vec3ToVariant(localPosition);
+            result["position"] = vec3toVariant(localPosition);
         }
     }
 
@@ -112,7 +112,7 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
             properties["parentJointIndex"] = getParentJointIndex();
         }
         if (!properties["position"].isValid() && !properties["localPosition"].isValid()) {
-            properties["position"] = vec3ToVariant(getWorldPosition());
+            properties["position"] = vec3toVariant(getWorldPosition());
         }
         if (!properties["orientation"].isValid() && !properties["localOrientation"].isValid()) {
             properties["orientation"] = quatToVariant(getWorldOrientation());
@@ -241,10 +241,10 @@ QVariant Base3DOverlay::getProperty(const QString& property) {
         return _name;
     }
     if (property == "position" || property == "start" || property == "p1" || property == "point") {
-        return vec3ToVariant(getWorldPosition());
+        return vec3toVariant(getWorldPosition());
     }
     if (property == "localPosition") {
-        return vec3ToVariant(getLocalPosition());
+        return vec3toVariant(getLocalPosition());
     }
     if (property == "rotation" || property == "orientation") {
         return quatToVariant(getWorldOrientation());

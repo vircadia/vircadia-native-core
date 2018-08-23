@@ -41,10 +41,10 @@ namespace controller {
      */
     QScriptValue Pose::toScriptValue(QScriptEngine* engine, const Pose& pose) {
         QScriptValue obj = engine->newObject();
-        obj.setProperty("translation", vec3ToScriptValue(engine, pose.translation));
+        obj.setProperty("translation", vec3FloatToScriptValue(engine, pose.translation));
         obj.setProperty("rotation", quatToScriptValue(engine, pose.rotation));
-        obj.setProperty("velocity", vec3ToScriptValue(engine, pose.velocity));
-        obj.setProperty("angularVelocity", vec3ToScriptValue(engine, pose.angularVelocity));
+        obj.setProperty("velocity", vec3FloatToScriptValue(engine, pose.velocity));
+        obj.setProperty("angularVelocity", vec3FloatToScriptValue(engine, pose.angularVelocity));
         obj.setProperty("valid", pose.valid);
         return obj;
     }
@@ -58,10 +58,10 @@ namespace controller {
                 rotation.isValid() &&
                 velocity.isValid() &&
                 angularVelocity.isValid()) {
-            vec3FromScriptValue(translation, pose.translation);
+            vec3FloatFromScriptValue(translation, pose.translation);
             quatFromScriptValue(rotation, pose.rotation);
-            vec3FromScriptValue(velocity, pose.velocity);
-            vec3FromScriptValue(angularVelocity, pose.angularVelocity);
+            vec3FloatFromScriptValue(velocity, pose.velocity);
+            vec3FloatFromScriptValue(angularVelocity, pose.angularVelocity);
             pose.valid = true;
         } else {
             pose.valid = false;

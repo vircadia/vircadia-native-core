@@ -69,7 +69,7 @@ void Volume3DOverlay::setProperties(const QVariantMap& properties) {
  */
 QVariant Volume3DOverlay::getProperty(const QString& property) {
     if (property == "dimensions" || property == "scale" || property == "size") {
-        return vec3ToVariant(getDimensions());
+        return vec3toVariant(getDimensions());
     }
 
     return Base3DOverlay::getProperty(property);

@@ -498,9 +498,9 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     return somethingChanged;
 }
 
-void ParticleEffectEntityItem::setColor(const ScriptVec3UChar& value) {
+void ParticleEffectEntityItem::setColor(const glm::u8vec3& value) {
     withWriteLock([&] {
-        _particleProperties.color.gradient.target = value.toGlm();
+        _particleProperties.color.gradient.target = value;
     });
 }
 
@@ -512,15 +512,15 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY(PROP_COLOR, ScriptVec3UChar, setColor);
+    READ_ENTITY_PROPERTY(PROP_COLOR, glm::u8vec3, setColor);
     READ_ENTITY_PROPERTY(PROP_EMITTING_PARTICLES, bool, setIsEmitting);
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
     READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, setMaxParticles);
     READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, setLifespan);
     READ_ENTITY_PROPERTY(PROP_EMIT_RATE, float, setEmitRate);
 
-    READ_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, ScriptVec3Float, setEmitAcceleration);
-    READ_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, ScriptVec3Float, setAccelerationSpread);
+    READ_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, glm::vec3, setEmitAcceleration);
+    READ_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, glm::vec3, setAccelerationSpread);
     READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
 
@@ -528,9 +528,9 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     READ_ENTITY_PROPERTY(PROP_RADIUS_START, float, setRadiusStart);
     READ_ENTITY_PROPERTY(PROP_RADIUS_FINISH, float, setRadiusFinish);
 
-    READ_ENTITY_PROPERTY(PROP_COLOR_SPREAD, ScriptVec3UChar, setColorSpread);
-    READ_ENTITY_PROPERTY(PROP_COLOR_START, ScriptVec3Float, setColorStart);
-    READ_ENTITY_PROPERTY(PROP_COLOR_FINISH, ScriptVec3Float, setColorFinish);
+    READ_ENTITY_PROPERTY(PROP_COLOR_SPREAD, glm::u8vec3, setColorSpread);
+    READ_ENTITY_PROPERTY(PROP_COLOR_START, glm::vec3, setColorStart);
+    READ_ENTITY_PROPERTY(PROP_COLOR_FINISH, glm::vec3, setColorFinish);
     READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
     READ_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, float, setAlphaSpread);
     READ_ENTITY_PROPERTY(PROP_ALPHA_START, float, setAlphaStart);
@@ -539,7 +539,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     READ_ENTITY_PROPERTY(PROP_EMIT_SPEED, float, setEmitSpeed);
     READ_ENTITY_PROPERTY(PROP_SPEED_SPREAD, float, setSpeedSpread);
     READ_ENTITY_PROPERTY(PROP_EMIT_ORIENTATION, quat, setEmitOrientation);
-    READ_ENTITY_PROPERTY(PROP_EMIT_DIMENSIONS, ScriptVec3Float, setEmitDimensions);
+    READ_ENTITY_PROPERTY(PROP_EMIT_DIMENSIONS, glm::vec3, setEmitDimensions);
     READ_ENTITY_PROPERTY(PROP_EMIT_RADIUS_START, float, setEmitRadiusStart);
     READ_ENTITY_PROPERTY(PROP_POLAR_START, float, setPolarStart);
     READ_ENTITY_PROPERTY(PROP_POLAR_FINISH, float, setPolarFinish);
@@ -614,16 +614,16 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, getMaxParticles());
     APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, getLifespan());
     APPEND_ENTITY_PROPERTY(PROP_EMIT_RATE, getEmitRate());
-    APPEND_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, getScriptEmitAcceleration());
-    APPEND_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, getScriptAccelerationSpread());
+    APPEND_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, getEmitAcceleration());
+    APPEND_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, getAccelerationSpread());
     APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, getParticleRadius());
     APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
     APPEND_ENTITY_PROPERTY(PROP_RADIUS_SPREAD, getRadiusSpread());
     APPEND_ENTITY_PROPERTY(PROP_RADIUS_START, getRadiusStart());
     APPEND_ENTITY_PROPERTY(PROP_RADIUS_FINISH, getRadiusFinish());
     APPEND_ENTITY_PROPERTY(PROP_COLOR_SPREAD, getColorSpread());
-    APPEND_ENTITY_PROPERTY(PROP_COLOR_START, getScriptColorStart());
-    APPEND_ENTITY_PROPERTY(PROP_COLOR_FINISH, getScriptColorFinish());
+    APPEND_ENTITY_PROPERTY(PROP_COLOR_START, getColorStart());
+    APPEND_ENTITY_PROPERTY(PROP_COLOR_FINISH, getColorFinish());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, getAlphaSpread());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA_START, getAlphaStart());
@@ -631,7 +631,7 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_EMIT_SPEED, getEmitSpeed());
     APPEND_ENTITY_PROPERTY(PROP_SPEED_SPREAD, getSpeedSpread());
     APPEND_ENTITY_PROPERTY(PROP_EMIT_ORIENTATION, getEmitOrientation());
-    APPEND_ENTITY_PROPERTY(PROP_EMIT_DIMENSIONS, getScriptEmitDimensions());
+    APPEND_ENTITY_PROPERTY(PROP_EMIT_DIMENSIONS, getEmitDimensions());
     APPEND_ENTITY_PROPERTY(PROP_EMIT_RADIUS_START, getEmitRadiusStart());
     APPEND_ENTITY_PROPERTY(PROP_POLAR_START, getPolarStart());
     APPEND_ENTITY_PROPERTY(PROP_POLAR_FINISH, getPolarFinish());
@@ -692,9 +692,9 @@ void ParticleEffectEntityItem::setColorFinish(const vec3& colorFinish) {
     });
 }
 
-void ParticleEffectEntityItem::setColorSpread(const ScriptVec3UChar& value) {
+void ParticleEffectEntityItem::setColorSpread(const glm::u8vec3& value) {
     withWriteLock([&] {
-        _particleProperties.color.gradient.spread = value.toGlm();
+        _particleProperties.color.gradient.spread = value;
     });
 }
 
@@ -717,10 +717,10 @@ particle::Properties ParticleEffectEntityItem::getParticleProperties() const {
 
         // Special case the properties that get treated differently if they're unintialized
         if (glm::any(glm::isnan(result.color.range.start))) {
-            result.color.range.start = getColor().toGlm();
+            result.color.range.start = getColor();
         }
         if (glm::any(glm::isnan(result.color.range.finish))) {
-            result.color.range.finish = getColor().toGlm();
+            result.color.range.finish = getColor();
         }
         if (glm::isnan(result.alpha.range.start)) {
             result.alpha.range.start = getAlpha();

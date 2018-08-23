@@ -175,7 +175,7 @@ int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     const unsigned char* dataAt = data;
 
     READ_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, bool, setIsSpotlight);
-    READ_ENTITY_PROPERTY(PROP_COLOR, ScriptVec3UChar, setColor);
+    READ_ENTITY_PROPERTY(PROP_COLOR, glm::u8vec3, setColor);
     READ_ENTITY_PROPERTY(PROP_INTENSITY, float, setIntensity);
     READ_ENTITY_PROPERTY(PROP_EXPONENT, float, setExponent);
     READ_ENTITY_PROPERTY(PROP_CUTOFF, float, setCutoff);
@@ -213,13 +213,13 @@ void LightEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_FALLOFF_RADIUS, getFalloffRadius());
 }
 
-ScriptVec3UChar LightEntityItem::getColor() const {
-    return resultWithReadLock<ScriptVec3UChar>([&] {
+glm::u8vec3 LightEntityItem::getColor() const {
+    return resultWithReadLock<glm::u8vec3>([&] {
         return _color;
     });
 }
 
-void LightEntityItem::setColor(const ScriptVec3UChar& value) {
+void LightEntityItem::setColor(const glm::u8vec3& value) {
     withWriteLock([&] {
         _color = value;
         _lightPropertiesChanged = true;

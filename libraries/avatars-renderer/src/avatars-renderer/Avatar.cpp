@@ -1504,7 +1504,7 @@ void Avatar::renderJointConnectingCone(gpu::Batch& batch, glm::vec3 position1, g
         perpSin = glm::cross(perpCos, axis);
 
         float angleb = 0.0f;
-        QVector<ScriptVec3Float> points;
+        QVector<glm::vec3> points;
 
         for (int i = 0; i < NUM_BODY_CONE_SIDES; i ++) {
 

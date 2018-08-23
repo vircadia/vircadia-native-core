@@ -1061,7 +1061,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
     updateVertices(id, points, QVector<glm::vec4>({ color }));
 }
 
-void GeometryCache::updateVertices(int id, const QVector<ScriptVec3Float>& points, const QVector<glm::vec4>& colors) {
+void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, const QVector<glm::vec4>& colors) {
     BatchItemDetails& details = _registeredVertices[id];
     if (details.isCreated) {
         details.clear();
@@ -1109,7 +1109,7 @@ void GeometryCache::updateVertices(int id, const QVector<ScriptVec3Float>& point
     auto pointCount = points.size();
     auto colorCount = colors.size();
     for (auto i = 0; i < pointCount; i++) {
-        const glm::vec3& point = points[i].toGlm();
+        const glm::vec3& point = points[i];
         if (i < colorCount) {
             const glm::vec4& color = colors[i];
             compactColor = ((int(color.x * 255.0f) & 0xFF)) |
@@ -1136,11 +1136,11 @@ void GeometryCache::updateVertices(int id, const QVector<ScriptVec3Float>& point
 #endif
 }
 
-void GeometryCache::updateVertices(int id, const QVector<ScriptVec3Float>& points, const glm::vec4& color) {
+void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, const glm::vec4& color) {
     updateVertices(id, points, QVector<glm::vec4>({ color }));
 }
 
-void GeometryCache::updateVertices(int id, const QVector<ScriptVec3Float>& points, const QVector<glm::vec2>& texCoords, const glm::vec4& color) {
+void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, const QVector<glm::vec2>& texCoords, const glm::vec4& color) {
     BatchItemDetails& details = _registeredVertices[id];
 
     if (details.isCreated) {
@@ -1195,7 +1195,7 @@ void GeometryCache::updateVertices(int id, const QVector<ScriptVec3Float>& point
 
     const glm::vec3 NORMAL(0.0f, 0.0f, 1.0f);
     for (int i = 0; i < points.size(); i++) {
-        glm::vec3 point = points[i].toGlm();
+        glm::vec3 point = points[i];
         glm::vec2 texCoord = texCoords[i];
         *(vertex++) = point.x;
         *(vertex++) = point.y;

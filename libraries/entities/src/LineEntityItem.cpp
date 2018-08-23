@@ -69,7 +69,7 @@ bool LineEntityItem::setProperties(const EntityItemProperties& properties) {
     return somethingChanged;
 }
 
-bool LineEntityItem::appendPoint(const ScriptVec3Float& point) {
+bool LineEntityItem::appendPoint(const glm::vec3& point) {
     if (_points.size() > MAX_POINTS_PER_LINE - 1) {
         qCDebug(entities) << "MAX POINTS REACHED!";
         return false;
@@ -86,13 +86,13 @@ bool LineEntityItem::appendPoint(const ScriptVec3Float& point) {
     return true;
 }
 
-bool LineEntityItem::setLinePoints(const QVector<ScriptVec3Float>& points) {
+bool LineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
     if (points.size() > MAX_POINTS_PER_LINE) {
         return false;
     }
     glm::vec3 halfBox = getScaledDimensions() * 0.5f;
     for (int i = 0; i < points.size(); i++) {
-        ScriptVec3Float point = points.at(i);
+        glm::vec3 point = points.at(i);
         if ( (point.x < - halfBox.x || point.x > halfBox.x) || (point.y < -halfBox.y || point.y > halfBox.y) || (point.z < - halfBox.z || point.z > halfBox.z) ) {
             qCDebug(entities) << "Point is outside entity's bounding box";
             return false;
@@ -114,9 +114,9 @@ int LineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY(PROP_COLOR, ScriptVec3UChar, setColor);
+    READ_ENTITY_PROPERTY(PROP_COLOR, glm::u8vec3, setColor);
     READ_ENTITY_PROPERTY(PROP_LINE_WIDTH, float, setLineWidth);
-    READ_ENTITY_PROPERTY(PROP_LINE_POINTS, QVector<ScriptVec3Float>, setLinePoints);
+    READ_ENTITY_PROPERTY(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
 
     return bytesRead;
 }
@@ -154,13 +154,13 @@ void LineEntityItem::debugDump() const {
     qCDebug(entities) << "       getLastEdited:" << debugTime(getLastEdited(), now);
 }
 
-ScriptVec3UChar LineEntityItem::getColor() const {
-    return resultWithReadLock<ScriptVec3UChar>([&] {
+glm::u8vec3 LineEntityItem::getColor() const {
+    return resultWithReadLock<glm::u8vec3>([&] {
         return _color;
     });
 }
 
-void LineEntityItem::setColor(const ScriptVec3UChar& value) {
+void LineEntityItem::setColor(const glm::u8vec3& value) {
     withWriteLock([&] {
         _color = value;
     });
@@ -180,8 +180,8 @@ float LineEntityItem::getLineWidth() const {
     return result;
 }
 
-QVector<ScriptVec3Float> LineEntityItem::getLinePoints() const { 
-    QVector<ScriptVec3Float> result;
+QVector<glm::vec3> LineEntityItem::getLinePoints() const { 
+    QVector<glm::vec3> result;
     withReadLock([&] {
         result = _points;
     });

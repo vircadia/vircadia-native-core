@@ -423,10 +423,10 @@ QVariant ModelOverlay::getProperty(const QString& property) {
         return _url.toString();
     }
     if (property == "dimensions" || property == "size") {
-        return vec3ToVariant(getDimensions());
+        return vec3toVariant(getDimensions());
     }
     if (property == "scale") {
-        return vec3ToVariant(getSNScale());
+        return vec3toVariant(getSNScale());
     }
     if (property == "textures") {
         if (_modelTextures.size() > 0) {
@@ -470,7 +470,7 @@ QVariant ModelOverlay::getProperty(const QString& property) {
             [this](int jointIndex) -> QVariant {
                 glm::vec3 translation;
                 _model->getJointTranslation(jointIndex, translation);
-                return vec3ToVariant(translation);
+                return vec3toVariant(translation);
             });
     }
 
@@ -490,7 +490,7 @@ QVariant ModelOverlay::getProperty(const QString& property) {
             [this](int jointIndex) -> QVariant {
                 glm::vec3 position;
                 _model->getJointPositionInWorldFrame(jointIndex, position);
-                return vec3ToVariant(position);
+                return vec3toVariant(position);
             });
     }
 

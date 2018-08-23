@@ -15,7 +15,7 @@
 
 #include "Application.h"
 
-const ScriptVec3UChar Overlay::DEFAULT_OVERLAY_COLOR = { 255, 255, 255 };
+const glm::u8vec3 Overlay::DEFAULT_OVERLAY_COLOR = { 255, 255, 255 };
 const float Overlay::DEFAULT_ALPHA = 0.7f;
 
 Overlay::Overlay() :
@@ -116,7 +116,7 @@ QVariant Overlay::getProperty(const QString& property) {
         return QVariant(getType());
     }
     if (property == "color") {
-        return vec3ToVariant(_color.toGlm());
+        return vec3toVariant(_color);
     }
     if (property == "alpha") {
         return _alpha;
@@ -143,13 +143,13 @@ QVariant Overlay::getProperty(const QString& property) {
     return QVariant();
 }
 
-ScriptVec3UChar Overlay::getColor() {
+glm::u8vec3 Overlay::getColor() {
     if (_colorPulse == 0.0f) {
         return _color; 
     }
 
     float pulseLevel = updatePulse();
-    ScriptVec3UChar result = _color;
+    glm::u8vec3 result = _color;
     if (_colorPulse < 0.0f) {
         result.x *= (1.0f - pulseLevel);
         result.y *= (1.0f - pulseLevel);

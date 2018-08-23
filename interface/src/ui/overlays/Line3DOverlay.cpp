@@ -128,7 +128,7 @@ void Line3DOverlay::render(RenderArgs* args) {
     }
 
     float alpha = getAlpha();
-    ScriptVec3UChar color = getColor();
+    glm::u8vec3 color = getColor();
     glm::vec4 colorv4(toGlm(color), alpha);
     auto batch = args->_batch;
     if (batch) {
@@ -312,10 +312,10 @@ void Line3DOverlay::setProperties(const QVariantMap& originalProperties) {
  */
 QVariant Line3DOverlay::getProperty(const QString& property) {
     if (property == "start" || property == "startPoint" || property == "p1") {
-        return vec3ToVariant(getStart());
+        return vec3toVariant(getStart());
     }
     if (property == "end" || property == "endPoint" || property == "p2") {
-        return vec3ToVariant(getEnd());
+        return vec3toVariant(getEnd());
     }
     if (property == "length") {
         return QVariant(getLength());
@@ -327,10 +327,10 @@ QVariant Line3DOverlay::getProperty(const QString& property) {
         return _endParentJointIndex;
     }
     if (property == "localStart") {
-        return vec3ToVariant(getLocalStart());
+        return vec3toVariant(getLocalStart());
     }
     if (property == "localEnd") {
-        return vec3ToVariant(getLocalEnd());
+        return vec3toVariant(getLocalEnd());
     }
     if (property == "glow") {
         return getGlow();

@@ -57,8 +57,8 @@ public:
 
     // TODO: Move these to subclasses, or other appropriate abstraction
     // getters/setters applicable to models and particles
-    ScriptVec3UChar getColor() const;
-    void setColor(const ScriptVec3UChar& value);
+    glm::u8vec3 getColor() const;
+    void setColor(const glm::u8vec3& value);
 
     bool hasModel() const;
     virtual bool hasCompoundShapeURL() const;
@@ -115,14 +115,14 @@ public:
 
     virtual void setJointRotations(const QVector<glm::quat>& rotations);
     virtual void setJointRotationsSet(const QVector<bool>& rotationsSet);
-    virtual void setJointTranslations(const QVector<ScriptVec3Float>& translations);
+    virtual void setJointTranslations(const QVector<glm::vec3>& translations);
     virtual void setJointTranslationsSet(const QVector<bool>& translationsSet);
 
     virtual void setAnimationJointsData(const QVector<EntityJointData>& jointsData);
 
     QVector<glm::quat> getJointRotations() const;
     QVector<bool> getJointRotationsSet() const;
-    QVector<ScriptVec3Float> getJointTranslations() const;
+    QVector<glm::vec3> getJointTranslations() const;
     QVector<bool> getJointTranslationsSet() const;
 
 private:
@@ -153,7 +153,7 @@ protected:
     QVector<ModelJointData> _localJointData;
     int _lastKnownCurrentFrame{-1};
 
-    ScriptVec3UChar _color;
+    glm::u8vec3 _color;
     QString _modelURL;
     bool _relayParentJoints;
 

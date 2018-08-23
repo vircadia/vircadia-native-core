@@ -2723,10 +2723,10 @@ QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, c
     obj.setProperty("avatarID", avatarIDValue);
     obj.setProperty("distance", value.distance);
     obj.setProperty("face", boxFaceToString(value.face));
-    QScriptValue intersection = vec3ToScriptValue(engine, value.intersection);
+    QScriptValue intersection = vec3FloatToScriptValue(engine, value.intersection);
 
     obj.setProperty("intersection", intersection);
-    QScriptValue surfaceNormal = vec3ToScriptValue(engine, value.surfaceNormal);
+    QScriptValue surfaceNormal = vec3FloatToScriptValue(engine, value.surfaceNormal);
     obj.setProperty("surfaceNormal", surfaceNormal);
     obj.setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
     return obj;
@@ -2741,11 +2741,11 @@ void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, Ra
 
     QScriptValue intersection = object.property("intersection");
     if (intersection.isValid()) {
-        vec3FromScriptValue(intersection, value.intersection);
+        vec3FloatFromScriptValue(intersection, value.intersection);
     }
     QScriptValue surfaceNormal = object.property("surfaceNormal");
     if (surfaceNormal.isValid()) {
-        vec3FromScriptValue(surfaceNormal, value.surfaceNormal);
+        vec3FloatFromScriptValue(surfaceNormal, value.surfaceNormal);
     }
     value.extraInfo = object.property("extraInfo").toVariant().toMap();
 }

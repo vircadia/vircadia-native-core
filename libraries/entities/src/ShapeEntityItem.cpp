@@ -184,7 +184,7 @@ int ShapeEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     const unsigned char* dataAt = data;
 
     READ_ENTITY_PROPERTY(PROP_SHAPE, QString, setShape);
-    READ_ENTITY_PROPERTY(PROP_COLOR, ScriptVec3UChar, setColor);
+    READ_ENTITY_PROPERTY(PROP_COLOR, glm::u8vec3, setColor);
     READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
 
     return bytesRead;
@@ -212,15 +212,15 @@ void ShapeEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
 }
 
-void ShapeEntityItem::setColor(const ScriptVec3UChar& value) {
+void ShapeEntityItem::setColor(const glm::u8vec3& value) {
     withWriteLock([&] {
         _color = value;
         _material->setAlbedo(toGlm(_color));
     });
 }
 
-ScriptVec3UChar ShapeEntityItem::getColor() const {
-    return resultWithReadLock<ScriptVec3UChar>([&] {
+glm::u8vec3 ShapeEntityItem::getColor() const {
+    return resultWithReadLock<glm::u8vec3>([&] {
         return _color;
     });
 }

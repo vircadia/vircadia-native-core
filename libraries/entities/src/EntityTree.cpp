@@ -1071,7 +1071,7 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
     if (properties.velocityChanged()) {
         int index = changedProperties.indexOf("velocity");
         if (index >= 0) {
-            glm::vec3 value = properties.getVelocity().toGlm();
+            glm::vec3 value = properties.getVelocity();
             changedProperties[index] = QString("velocity:") +
                 QString::number((int)value.x) + "," +
                 QString::number((int)value.y) + "," +
@@ -1082,7 +1082,7 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
     if (properties.gravityChanged()) {
         int index = changedProperties.indexOf("gravity");
         if (index >= 0) {
-            glm::vec3 value = properties.getGravity().toGlm();
+            glm::vec3 value = properties.getGravity();
             QString changeHint = "0";
             if (value.x + value.y + value.z > 0) {
                 changeHint = "+";
@@ -1200,7 +1200,7 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
     }
     if (properties.positionChanged()) {
         int index = changedProperties.indexOf("position");
-        glm::vec3 pos = properties.getPosition().toGlm();
+        glm::vec3 pos = properties.getPosition();
         changedProperties[index] = QString("position:") +
             QString::number((int)pos.x) + "," +
             QString::number((int)pos.y) + "," +
@@ -1220,7 +1220,7 @@ bool EntityTree::filterProperties(EntityItemPointer& existingEntity, EntityItemP
     bool accepted = true;
     auto entityEditFilters = DependencyManager::get<EntityEditFilters>();
     if (entityEditFilters) {
-        auto position = existingEntity ? existingEntity->getWorldPosition() : propertiesIn.getPosition().toGlm();
+        auto position = existingEntity ? existingEntity->getWorldPosition() : propertiesIn.getPosition();
         auto entityID = existingEntity ? existingEntity->getEntityItemID() : EntityItemID();
         accepted = entityEditFilters->filter(position, propertiesIn, propertiesOut, wasChanged, filterType, entityID, existingEntity);
     }
@@ -2379,7 +2379,7 @@ bool EntityTree::sendEntitiesOperation(const OctreeElementPointer& element, void
 
         EntityItemID oldParentID = properties.getParentID();
         if (oldParentID.isInvalidID()) {  // no parent
-            properties.setPosition(properties.getPosition().toGlm() + args->root);
+            properties.setPosition(properties.getPosition() + args->root);
         } else {
             EntityItemPointer parentEntity = args->ourTree->findEntityByEntityItemID(oldParentID);
             if (parentEntity || oldParentID == AVATAR_SELF_ID) { // map the parent

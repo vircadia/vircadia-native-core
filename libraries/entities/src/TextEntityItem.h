@@ -63,13 +63,13 @@ public:
     void setLineHeight(float value);
     float getLineHeight() const;
 
-    static const ScriptVec3UChar DEFAULT_TEXT_COLOR;
-    ScriptVec3UChar getTextColor() const;
-    void setTextColor(const ScriptVec3UChar& value);
+    static const glm::u8vec3 DEFAULT_TEXT_COLOR;
+    glm::u8vec3 getTextColor() const;
+    void setTextColor(const glm::u8vec3& value);
 
-    static const ScriptVec3UChar DEFAULT_BACKGROUND_COLOR;
-    ScriptVec3UChar getBackgroundColor() const;
-    void setBackgroundColor(const ScriptVec3UChar& value);
+    static const glm::u8vec3 DEFAULT_BACKGROUND_COLOR;
+    glm::u8vec3 getBackgroundColor() const;
+    void setBackgroundColor(const glm::u8vec3& value);
 
     static const bool DEFAULT_FACE_CAMERA;
     bool getFaceCamera() const;
@@ -78,8 +78,8 @@ public:
 private:
     QString _text;
     float _lineHeight;
-    ScriptVec3UChar _textColor;
-    ScriptVec3UChar _backgroundColor;
+    glm::u8vec3 _textColor;
+    glm::u8vec3 _backgroundColor;
     bool _faceCamera;
 };
 

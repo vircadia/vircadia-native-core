@@ -30,7 +30,7 @@ void Shape3DOverlay::render(RenderArgs* args) {
     }
 
     float alpha = getAlpha();
-    ScriptVec3UChar color = getColor();
+    glm::u8vec3 color = getColor();
     glm::vec4 shapeColor(toGlm(color), alpha);
 
     auto batch = args->_batch;

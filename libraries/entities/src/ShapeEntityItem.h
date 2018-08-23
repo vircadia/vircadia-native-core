@@ -77,8 +77,8 @@ public:
     float getAlpha() const { return _alpha; };
     void setAlpha(float alpha);
 
-    ScriptVec3UChar getColor() const;
-    void setColor(const ScriptVec3UChar& value);
+    glm::u8vec3 getColor() const;
+    void setColor(const glm::u8vec3& value);
 
     void setUnscaledDimensions(const glm::vec3& value) override;
 
@@ -104,7 +104,7 @@ public:
 protected:
 
     float _alpha { 1.0f };
-    ScriptVec3UChar _color;
+    glm::u8vec3 _color;
     entity::Shape _shape { entity::Shape::Sphere };
 
     //! This is SHAPE_TYPE_ELLIPSOID rather than SHAPE_TYPE_NONE to maintain

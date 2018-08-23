@@ -230,16 +230,16 @@ void PointerEvent::fromScriptValue(const QScriptValue& object, PointerEvent& eve
         event._id = id.isNumber() ? (uint32_t)id.toNumber() : 0;
 
         glm::vec2 pos2D;
-        vec2FromScriptValue(object.property("pos2D"), event._pos2D);
+        vec2FloatFromScriptValue(object.property("pos2D"), event._pos2D);
 
         glm::vec3 pos3D;
-        vec3FromScriptValue(object.property("pos3D"), event._pos3D);
+        vec3FloatFromScriptValue(object.property("pos3D"), event._pos3D);
 
         glm::vec3 normal;
-        vec3FromScriptValue(object.property("normal"), event._normal);
+        vec3FloatFromScriptValue(object.property("normal"), event._normal);
 
         glm::vec3 direction;
-        vec3FromScriptValue(object.property("direction"), event._direction);
+        vec3FloatFromScriptValue(object.property("direction"), event._direction);
 
         QScriptValue button = object.property("button");
         QString buttonStr = type.isString() ? button.toString() : "NoButtons";

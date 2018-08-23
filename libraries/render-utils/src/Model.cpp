@@ -415,8 +415,8 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                         face = triangleSetFace;
                         bestModelTriangle = triangleSetTriangle;
                         bestWorldTriangle = triangleSetTriangle * meshToWorldMatrix;
-                        extraInfo["worldIntersectionPoint"] = vec3ToVariant(worldIntersectionPoint);
-                        extraInfo["meshIntersectionPoint"] = vec3ToVariant(meshIntersectionPoint);
+                        extraInfo["worldIntersectionPoint"] = vec3toVariant(worldIntersectionPoint);
+                        extraInfo["meshIntersectionPoint"] = vec3toVariant(meshIntersectionPoint);
                         extraInfo["partIndex"] = partIndex;
                         extraInfo["shapeID"] = shapeID;
                         bestSubMeshIndex = subMeshIndex;
@@ -435,15 +435,15 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                 extraInfo["subMeshIndex"] = bestSubMeshIndex;
                 extraInfo["subMeshName"] = geometry.getModelNameOfMesh(bestSubMeshIndex);
                 extraInfo["subMeshTriangleWorld"] = QVariantMap{
-                    { "v0", vec3ToVariant(bestWorldTriangle.v0) },
-                    { "v1", vec3ToVariant(bestWorldTriangle.v1) },
-                    { "v2", vec3ToVariant(bestWorldTriangle.v2) },
+                    { "v0", vec3toVariant(bestWorldTriangle.v0) },
+                    { "v1", vec3toVariant(bestWorldTriangle.v1) },
+                    { "v2", vec3toVariant(bestWorldTriangle.v2) },
                 };
-                extraInfo["subMeshNormal"] = vec3ToVariant(bestModelTriangle.getNormal());
+                extraInfo["subMeshNormal"] = vec3toVariant(bestModelTriangle.getNormal());
                 extraInfo["subMeshTriangle"] = QVariantMap{
-                    { "v0", vec3ToVariant(bestModelTriangle.v0) },
-                    { "v1", vec3ToVariant(bestModelTriangle.v1) },
-                    { "v2", vec3ToVariant(bestModelTriangle.v2) },
+                    { "v0", vec3toVariant(bestModelTriangle.v0) },
+                    { "v1", vec3toVariant(bestModelTriangle.v1) },
+                    { "v2", vec3toVariant(bestModelTriangle.v2) },
                 };
             }
         }
@@ -520,8 +520,8 @@ bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, co
                             0.5f * meshFrameAcceleration * triangleSetDistance * triangleSetDistance;
                         glm::vec3 worldIntersectionPoint = origin + velocity * triangleSetDistance +
                             0.5f * acceleration * triangleSetDistance * triangleSetDistance;
-                        extraInfo["worldIntersectionPoint"] = vec3ToVariant(worldIntersectionPoint);
-                        extraInfo["meshIntersectionPoint"] = vec3ToVariant(meshIntersectionPoint);
+                        extraInfo["worldIntersectionPoint"] = vec3toVariant(worldIntersectionPoint);
+                        extraInfo["meshIntersectionPoint"] = vec3toVariant(meshIntersectionPoint);
                         extraInfo["partIndex"] = partIndex;
                         extraInfo["shapeID"] = shapeID;
                         bestSubMeshIndex = subMeshIndex;
@@ -540,15 +540,15 @@ bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, co
                 extraInfo["subMeshIndex"] = bestSubMeshIndex;
                 extraInfo["subMeshName"] = geometry.getModelNameOfMesh(bestSubMeshIndex);
                 extraInfo["subMeshTriangleWorld"] = QVariantMap{
-                    { "v0", vec3ToVariant(bestWorldTriangle.v0) },
-                    { "v1", vec3ToVariant(bestWorldTriangle.v1) },
-                    { "v2", vec3ToVariant(bestWorldTriangle.v2) },
+                    { "v0", vec3toVariant(bestWorldTriangle.v0) },
+                    { "v1", vec3toVariant(bestWorldTriangle.v1) },
+                    { "v2", vec3toVariant(bestWorldTriangle.v2) },
                 };
-                extraInfo["subMeshNormal"] = vec3ToVariant(bestModelTriangle.getNormal());
+                extraInfo["subMeshNormal"] = vec3toVariant(bestModelTriangle.getNormal());
                 extraInfo["subMeshTriangle"] = QVariantMap{
-                    { "v0", vec3ToVariant(bestModelTriangle.v0) },
-                    { "v1", vec3ToVariant(bestModelTriangle.v1) },
-                    { "v2", vec3ToVariant(bestModelTriangle.v2) },
+                    { "v0", vec3toVariant(bestModelTriangle.v0) },
+                    { "v1", vec3toVariant(bestModelTriangle.v1) },
+                    { "v2", vec3toVariant(bestModelTriangle.v2) },
                 };
             }
         }
@@ -999,7 +999,7 @@ void Model::renderDebugMeshBoxes(gpu::Batch& batch) {
             if (_debugMeshBoxesID == GeometryCache::UNKNOWN_ID) {
                 _debugMeshBoxesID = DependencyManager::get<GeometryCache>()->allocateID();
             }
-            QVector<ScriptVec3Float> points;
+            QVector<glm::vec3> points;
 
             glm::vec3 brn = box.getCorner();
             glm::vec3 bln = brn + glm::vec3(box.getDimensions().x, 0, 0);

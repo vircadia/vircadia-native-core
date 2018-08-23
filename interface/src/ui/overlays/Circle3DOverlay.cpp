@@ -265,7 +265,7 @@ template<typename T> T fromVariant(const QVariant& v, bool& valid) {
     return qvariant_cast<T>(v);
 }
 
-template<> ScriptVec3UChar fromVariant(const QVariant& v, bool& valid) {
+template<> glm::u8vec3 fromVariant(const QVariant& v, bool& valid) {
     return vec3FromVariant(v, valid);
 }
 
@@ -329,11 +329,11 @@ void Circle3DOverlay::setProperties(const QVariantMap& properties) {
     _dirty |= updateIfValid(properties, "outerStartAlpha", _outerStartAlpha);
     _dirty |= updateIfValid(properties, "outerEndAlpha", _outerEndAlpha);
 
-    _dirty |= updateIfValid<ScriptVec3UChar>(properties, "color", { _innerStartColor, _innerEndColor, _outerStartColor, _outerEndColor });
-    _dirty |= updateIfValid<ScriptVec3UChar>(properties, "startColor", { _innerStartColor, _outerStartColor } );
-    _dirty |= updateIfValid<ScriptVec3UChar>(properties, "endColor", { _innerEndColor, _outerEndColor } );
-    _dirty |= updateIfValid<ScriptVec3UChar>(properties, "innerColor", { _innerStartColor, _innerEndColor } );
-    _dirty |= updateIfValid<ScriptVec3UChar>(properties, "outerColor", { _outerStartColor, _outerEndColor } );
+    _dirty |= updateIfValid<glm::u8vec3>(properties, "color", { _innerStartColor, _innerEndColor, _outerStartColor, _outerEndColor });
+    _dirty |= updateIfValid<glm::u8vec3>(properties, "startColor", { _innerStartColor, _outerStartColor } );
+    _dirty |= updateIfValid<glm::u8vec3>(properties, "endColor", { _innerEndColor, _outerEndColor } );
+    _dirty |= updateIfValid<glm::u8vec3>(properties, "innerColor", { _innerStartColor, _innerEndColor } );
+    _dirty |= updateIfValid<glm::u8vec3>(properties, "outerColor", { _outerStartColor, _outerEndColor } );
     _dirty |= updateIfValid(properties, "innerStartColor", _innerStartColor);
     _dirty |= updateIfValid(properties, "innerEndColor", _innerEndColor);
     _dirty |= updateIfValid(properties, "outerStartColor", _outerStartColor);
@@ -463,16 +463,16 @@ QVariant Circle3DOverlay::getProperty(const QString& property) {
         return _innerRadius;
     }
     if (property == "innerStartColor") {
-        return vec3ToVariant(_innerStartColor.toGlm());
+        return vec3toVariant(_innerStartColor);
     }
     if (property == "innerEndColor") {
-        return vec3ToVariant(_innerEndColor.toGlm());
+        return vec3toVariant(_innerEndColor);
     }
     if (property == "outerStartColor") {
-        return vec3ToVariant(_outerStartColor.toGlm());
+        return vec3toVariant(_outerStartColor);
     }
     if (property == "outerEndColor") {
-        return vec3ToVariant(_outerEndColor.toGlm());
+        return vec3toVariant(_outerEndColor);
     }
     if (property == "innerStartAlpha") {
         return _innerStartAlpha;
@@ -502,10 +502,10 @@ QVariant Circle3DOverlay::getProperty(const QString& property) {
         return _minorTickMarksLength;
     }
     if (property == "majorTickMarksColor") {
-        return vec3ToVariant(_majorTickMarksColor.toGlm());
+        return vec3toVariant(_majorTickMarksColor);
     }
     if (property == "minorTickMarksColor") {
-        return vec3ToVariant(_minorTickMarksColor.toGlm());
+        return vec3toVariant(_minorTickMarksColor);
     }
 
     return Planar3DOverlay::getProperty(property);

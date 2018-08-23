@@ -64,13 +64,13 @@ void Text3DOverlay::setText(const QString& text) {
     _text = text;
 }
 
-ScriptVec3UChar Text3DOverlay::getBackgroundColor() {
+glm::u8vec3 Text3DOverlay::getBackgroundColor() {
     if (_colorPulse == 0.0f) {
         return _backgroundColor;
     }
 
     float pulseLevel = updatePulse();
-    ScriptVec3UChar result = _backgroundColor;
+    glm::u8vec3 result = _backgroundColor;
     if (_colorPulse < 0.0f) {
         result.x *= (1.0f - pulseLevel);
         result.y *= (1.0f - pulseLevel);
@@ -94,7 +94,7 @@ void Text3DOverlay::render(RenderArgs* args) {
     auto transform = getRenderTransform();
     batch.setModelTransform(transform);
 
-    ScriptVec3UChar backgroundColor = getBackgroundColor();
+    glm::u8vec3 backgroundColor = getBackgroundColor();
     glm::vec4 quadColor(toGlm(backgroundColor), getBackgroundAlpha());
 
     glm::vec2 dimensions = getDimensions();
@@ -258,7 +258,7 @@ QVariant Text3DOverlay::getProperty(const QString& property) {
         return _textAlpha;
     }
     if (property == "backgroundColor") {
-        return vec3ToVariant(_backgroundColor.toGlm());
+        return vec3toVariant(_backgroundColor);
     }
     if (property == "backgroundAlpha") {
         return Billboard3DOverlay::getProperty("alpha");
