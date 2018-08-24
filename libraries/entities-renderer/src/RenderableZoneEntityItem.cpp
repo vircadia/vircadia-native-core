@@ -258,6 +258,16 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     if (hazeChanged) {
         updateHazeFromEntity(entity);
     }
+
+    bool visuallyReady = true;
+    uint32_t skyboxMode = entity->getSkyboxMode();
+    if (skyboxMode == COMPONENT_MODE_ENABLED) {
+        bool skyboxLoadedOrFailed = (_skyboxTexture && (_skyboxTexture->isLoaded() || _skyboxTexture->isFailed()));
+        qDebug() << "------> " << skyboxLoadedOrFailed;
+        visuallyReady = (!_skyboxTextureURL.isEmpty() || skyboxLoadedOrFailed);
+    }
+
+    entity->setVisuallyReady(visuallyReady);
 }
 
 void ZoneEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {

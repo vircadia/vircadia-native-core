@@ -32,6 +32,7 @@
     var BUTTON_PROPERTIES = {
         text: "Interstitial"
     };
+
     var tablet = null;
     var button = null;
 
@@ -336,10 +337,11 @@
         Overlays.editOverlay(loadingBarPlacard, properties);
         Overlays.editOverlay(loadingBarProgress, loadingBarProperties);
 
-        if (physicsEnabled) {
+        if (physicsEnabled && !HMD.active) {
             toolbar.writeProperty("visible", true);
-            resetValues();
         }
+
+        resetValues();
 
         Camera.mode = "first person";
     }
@@ -356,7 +358,13 @@
         Overlays.editOverlay(anchorOverlay, { localPosition: localPosition });
     }
 
+
+    Window.interstitialStatusChanged.connect(function(interstitialMode) {
+        print("------> insterstitial mode changed " + interstitialMode + " <------");
+    });
+
     function update() {
+        var downloadInfo = GlobalServices.getDownloadInfo();
         var physicsEnabled = Window.isPhysicsEnabled();
         var thisInterval = Date.now();
         var deltaTime = (thisInterval - lastInterval);
@@ -365,7 +373,7 @@
         var domainLoadingProgressPercentage = Window.domainLoadingProgress();
 
         var progress = MAX_X_SIZE * domainLoadingProgressPercentage;
-        print(progress);
+        //print(progress);
         if (progress >= target) {
             target = progress;
         }
@@ -383,6 +391,7 @@
         };
 
         Overlays.editOverlay(loadingBarProgress, properties);
+        print(JSON.stringify(downloadInfo));
         if ((physicsEnabled && (currentProgress >= (MAX_X_SIZE - EPSILON)))) {
             updateOverlays((physicsEnabled || connectionToDomainFailed));
             endAudio();
@@ -431,7 +440,9 @@
         renderViewTask.getConfig("LightingModel")["enableAmbientLight"] = true;
         renderViewTask.getConfig("LightingModel")["enableDirectionalLight"] = true;
         renderViewTask.getConfig("LightingModel")["enablePointLight"] = true;
-        toolbar.writeProperty("visible", true);
+        if (!HMD.active) {
+            toolbar.writeProperty("visible", true);
+        }
     }
 
     Script.scriptEnding.connect(cleanup);

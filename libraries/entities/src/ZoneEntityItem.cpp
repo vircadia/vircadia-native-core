@@ -42,6 +42,7 @@ ZoneEntityItem::ZoneEntityItem(const EntityItemID& entityItemID) : EntityItem(en
 
     _shapeType = DEFAULT_SHAPE_TYPE;
     _compoundShapeURL = DEFAULT_COMPOUND_SHAPE_URL;
+    _visuallyReady = false;
 }
 
 EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {

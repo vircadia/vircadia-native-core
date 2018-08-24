@@ -18,6 +18,7 @@
 #include <QtCore/QSharedPointer>
 
 #include "EntityItem.h"
+#include "EntityDynamicInterface.h"
 
 class EntityTreeRenderer;
 class EntityItemID;
@@ -29,6 +30,7 @@ public:
     void setCompletionSequenceNumbers(int first, int last);  // 'last' exclusive.
     void noteReceivedsequenceNumber(int sequenceNumber);
     bool isLoadSequenceComplete();
+    bool entitiesRenderReady();
     float loadingProgressPercentage();
 
 private slots:
@@ -46,6 +48,7 @@ private:
     EntityTreePointer _entityTree;
     using EntityMap = std::map<EntityItemID, EntityItemPointer>;
     EntityMap _trackedEntities;
+    EntityMap _trackedEntitiesRenderStatus;
 
     static constexpr int INVALID_SEQUENCE = -1;
     int _initialStart { INVALID_SEQUENCE };

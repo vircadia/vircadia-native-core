@@ -38,11 +38,13 @@ class ModelEntityWrapper : public ModelEntityItem {
     using Parent = ModelEntityItem;
     friend class render::entities::ModelEntityRenderer;
 
+public:
+    bool isModelLoaded() const;
+
 protected:
     ModelEntityWrapper(const EntityItemID& entityItemID) : Parent(entityItemID) {}
     void setModel(const ModelPointer& model);
     ModelPointer getModel() const;
-    bool isModelLoaded() const;
 
     bool _needsInitialSimulation{ true };
 private:
@@ -161,6 +163,8 @@ protected:
     virtual bool needsRenderUpdate() const override;
     virtual void doRender(RenderArgs* args) override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
+
+    virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
 
     render::hifi::Tag getTagMask() const override;
 

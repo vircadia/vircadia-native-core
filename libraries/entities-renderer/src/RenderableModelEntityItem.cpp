@@ -1441,7 +1441,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     // That is where _currentFrame and _lastAnimated were updated.
     if (_animating) {
         DETAILED_PROFILE_RANGE(simulation_physics, "Animate");
-        
+
         if (!jointsMapped()) {
             mapJoints(entity, model->getJointNames());
         //else the joint have been mapped before but we have a new animation to load
@@ -1455,6 +1455,14 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         }
         emit requestRenderUpdate();
     }
+}
+
+
+void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
+    withWriteLock([&] {
+        bool visuallyReady = (_prevModelLoaded && _texturesLoaded);
+        entity->setVisuallyReady(visuallyReady);
+    });
 }
 
 void ModelEntityRenderer::setIsVisibleInSecondaryCamera(bool value) {

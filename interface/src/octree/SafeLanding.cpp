@@ -36,6 +36,7 @@ void SafeLanding::startEntitySequence(QSharedPointer<EntityTreeRenderer> entityT
     if (entityTree) {
         Locker lock(_lock);
         _entityTree = entityTree;
+        _trackedEntitiesRenderStatus.clear();
         _trackedEntities.clear();
         _trackingEntities = true;
         connect(std::const_pointer_cast<EntityTree>(_entityTree).get(),
@@ -76,15 +77,16 @@ void SafeLanding::addTrackedEntity(const EntityItemID& entityID) {
                 if (hasAABox && downloadedCollisionTypes.count(modelEntity->getShapeType()) != 0) {
                     // Only track entities with downloaded collision bodies.
                     _trackedEntities.emplace(entityID, entity);
-
-                    float trackedEntityCount = (float)_trackedEntities.size();
-
-                    if (trackedEntityCount > _maxTrackedEntityCount) {
-                        _maxTrackedEntityCount = trackedEntityCount;
-                    }
                     qCDebug(interfaceapp) << "Safe Landing: Tracking entity " << entity->getItemName();
                 }
             }
+        }
+
+        _trackedEntitiesRenderStatus.emplace(entityID, entity);
+        float trackedEntityCount = (float)_trackedEntitiesRenderStatus.size();
+
+        if (trackedEntityCount > _maxTrackedEntityCount) {
+            _maxTrackedEntityCount = trackedEntityCount;
         }
     }
 }
@@ -92,6 +94,7 @@ void SafeLanding::addTrackedEntity(const EntityItemID& entityID) {
 void SafeLanding::deleteTrackedEntity(const EntityItemID& entityID) {
     Locker lock(_lock);
     _trackedEntities.erase(entityID);
+    _trackedEntitiesRenderStatus.erase(entityID);
 }
 
 void SafeLanding::setCompletionSequenceNumbers(int first, int last) {
@@ -163,6 +166,24 @@ bool SafeLanding::isEntityPhysicsComplete() {
         }
     }
     return _trackedEntities.empty();
+}
+
+bool SafeLanding::entitiesRenderReady() {
+    Locker lock(_lock);
+
+    for (auto entityMapIter = _trackedEntitiesRenderStatus.begin(); entityMapIter != _trackedEntitiesRenderStatus.end(); ++entityMapIter) {
+        auto entity = entityMapIter->second;
+        bool visuallyReady = entity->isVisuallyReady();
+        qDebug() << "is entityType: " << EntityTypes::getEntityTypeName(entity->getType()) << " " << visuallyReady;
+        if (visuallyReady) {
+            entityMapIter = _trackedEntitiesRenderStatus.erase(entityMapIter);
+            if (entityMapIter == _trackedEntitiesRenderStatus.end()) {
+                break;
+            }
+        }
+    }
+    qDebug() << "list size: -> " << _trackedEntitiesRenderStatus.size();
+    return _trackedEntitiesRenderStatus.empty();
 }
 
 float SafeLanding::ElevatedPriority(const EntityItem& entityItem) {

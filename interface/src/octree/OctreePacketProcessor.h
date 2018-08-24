@@ -27,6 +27,7 @@ public:
 
     void startEntitySequence();
     bool isLoadSequenceComplete() const;
+    bool isEntitiesRenderReady() const;
     float domainLoadProgress();
 
 signals:

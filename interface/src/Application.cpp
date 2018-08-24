@@ -5519,6 +5519,7 @@ void Application::update(float deltaTime) {
         return;
     }
 
+
     if (!_physicsEnabled) {
         if (!domainLoadingInProgress) {
             PROFILE_ASYNC_BEGIN(app, "Scene Loading", "");
@@ -5528,7 +5529,9 @@ void Application::update(float deltaTime) {
         // we haven't yet enabled physics.  we wait until we think we have all the collision information
         // for nearby entities before starting bullet up.
         quint64 now = usecTimestampNow();
-        if (isServerlessMode() || _octreeProcessor.isLoadSequenceComplete()) {
+        bool renderReady = _octreeProcessor.isEntitiesRenderReady();
+        qDebug() << "--> render ready: " << renderReady;
+        if (isServerlessMode() || (_octreeProcessor.isLoadSequenceComplete() && renderReady)) {
             // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
             _lastPhysicsCheckTime = now;
             _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
