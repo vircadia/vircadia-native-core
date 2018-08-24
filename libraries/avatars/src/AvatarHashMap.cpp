@@ -32,15 +32,15 @@ void AvatarReplicas::addReplica(const QUuid& parentID, AvatarSharedPointer repli
     replicas.push_back(replica);
 }
 
-std::vector<QUuid> AvatarReplicas::getReplicaIDs(const QUuid& parentID, int count) {
+std::vector<QUuid> AvatarReplicas::getReplicaIDs(const QUuid& parentID) {
     std::vector<QUuid> ids;
     if (_replicasMap.find(parentID) != _replicasMap.end()) {
         auto &replicas = _replicasMap[parentID];
         for (int i = 0; i < replicas.size(); i++) {
             ids.push_back(replicas[i]->getID());
         }
-    } else if (count > 0) {
-        for (int i = 0; i < count; i++) {
+    } else if (_replicaCount > 0) {
+        for (int i = 0; i < _replicaCount; i++) {
             ids.push_back(QUuid::createUuid());
         }
     }
@@ -139,6 +139,19 @@ bool AvatarHashMap::isAvatarInRange(const glm::vec3& position, const float range
     return false;
 }
 
+void AvatarHashMap::setReplicaCount(int count) {
+    _replicas.setReplicaCount(count);
+    auto avatars = getAvatarIdentifiers();
+    for (int i = 0; i < avatars.size(); i++) {
+        KillAvatarReason reason = KillAvatarReason::NoReason;
+        removeAvatar(avatars[i], reason);
+        auto replicaIDs = _replicas.getReplicaIDs(avatars[i]);
+        for (auto id : replicaIDs) {
+            removeAvatar(id, reason);
+        }
+    }
+}
+
 int AvatarHashMap::numberOfAvatarsInRange(const glm::vec3& position, float rangeMeters) {
     auto hashCopy = getHashCopy();
     auto rangeMeters2 = rangeMeters * rangeMeters;
@@ -210,9 +223,6 @@ AvatarSharedPointer AvatarHashMap::parseAvatarData(QSharedPointer<ReceivedMessag
 
     // make sure this isn't our own avatar data or for a previously ignored node
     auto nodeList = DependencyManager::get<NodeList>();
-
-    const int REPLICAS_COUNT = 8;
-
     bool isNewAvatar;
     if (sessionUUID != _lastOwnerSessionUUID && (!nodeList->isIgnoringNode(sessionUUID) || nodeList->getRequestsDomainListData())) {
         auto avatar = newOrExistingAvatar(sessionUUID, sendingNode, isNewAvatar);
@@ -220,7 +230,7 @@ AvatarSharedPointer AvatarHashMap::parseAvatarData(QSharedPointer<ReceivedMessag
         if (isNewAvatar) {
             QWriteLocker locker(&_hashLock);
             _pendingAvatars.insert(sessionUUID, { std::chrono::steady_clock::now(), 0, avatar });
-            auto replicaIDs = _replicas.getReplicaIDs(sessionUUID, REPLICAS_COUNT);
+            auto replicaIDs = _replicas.getReplicaIDs(sessionUUID);
             for (auto replicaID : replicaIDs) {
                 auto replicaAvatar = addAvatar(replicaID, sendingNode);
                 _replicas.addReplica(sessionUUID, replicaAvatar);

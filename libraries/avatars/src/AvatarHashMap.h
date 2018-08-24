@@ -43,9 +43,9 @@
 
 class AvatarReplicas {
 public:
-    AvatarReplicas() {};
+    AvatarReplicas() : _replicaCount(0) {}
     void addReplica(const QUuid& parentID, AvatarSharedPointer replica);
-    std::vector<QUuid> getReplicaIDs(const QUuid& parentID, int count = 0);
+    std::vector<QUuid> getReplicaIDs(const QUuid& parentID);
     void parseDataFromBuffer(const QUuid& parentID, const QByteArray& buffer);
     void processAvatarIdentity(const QUuid& parentID, const QByteArray& identityData, bool& identityChanged, bool& displayNameChanged);
     void removeReplicas(const QUuid& parentID);
@@ -53,9 +53,11 @@ public:
     void processDeletedTraitInstance(const QUuid& parentID, AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID);
     void processTraitInstance(const QUuid& parentID, AvatarTraits::TraitType traitType,
                                 AvatarTraits::TraitInstanceID instanceID, QByteArray traitBinaryData);
+    void setReplicaCount(int count) { _replicaCount = count; }
 
 private:
     std::map<QUuid, std::vector<AvatarSharedPointer>> _replicasMap;
+    int _replicaCount;
 };
 
 
@@ -91,6 +93,12 @@ public:
      */
     // Null/Default-constructed QUuids will return MyAvatar
     Q_INVOKABLE virtual ScriptAvatarData* getAvatar(QUuid avatarID) { return new ScriptAvatarData(getAvatarBySessionID(avatarID)); }
+
+    /**jsdoc
+    * @function AvatarList.setReplicaCount
+    * @param {number} count // The times an avatar will get replicated
+    */
+    Q_INVOKABLE void setReplicaCount(int count);
 
     virtual AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) const { return findAvatar(sessionID); }
     int numberOfAvatarsInRange(const glm::vec3& position, float rangeMeters);
