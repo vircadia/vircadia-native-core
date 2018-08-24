@@ -458,9 +458,11 @@ void MyAvatar::update(float deltaTime) {
     glm::vec3 handHipAzimuthSensorSpace = transformVectorFast(worldToSensorMat, glm::vec3(handHipAzimuthWorldSpace.x, 0.0f, handHipAzimuthWorldSpace.z));
     glm::vec2 normedHandHip = glm::normalize(glm::vec2(handHipAzimuthSensorSpace.x, handHipAzimuthSensorSpace.z));
     glm::vec2 headFacingPlusHandHipAzimuthMix = lerp(normedHandHip, _headControllerFacing, 0.5f);
-    //qCDebug(interfaceapp) << "the hand hip azimuth " << normedHandHip << "the head look at" << _headControllerFacing;
+    // if head facing dot mid point hands facing is close to -1 and the hands midpoint is close to -1 you then flip
+
+    // qCDebug(interfaceapp) << "the hand hip azimuth " << normedHandHip << "the head look at" << _headControllerFacing;
     _headControllerFacingMovingAverage = lerp(_headControllerFacingMovingAverage, headFacingPlusHandHipAzimuthMix, tau);
-    qCDebug(interfaceapp) << "the hand hip azimuth average " << _headControllerFacingMovingAverage;
+    // qCDebug(interfaceapp) << "the hand hip azimuth average " << _headControllerFacingMovingAverage;
 
     if (_smoothOrientationTimer < SMOOTH_TIME_ORIENTATION) {
         _rotationChanged = usecTimestampNow();
@@ -831,11 +833,22 @@ void MyAvatar::computeHandAzimuth() {
 
     // qCDebug(interfaceapp) << "the right hand in avatar space" << rightHandRigSpace;
     if (leftHandPoseAvatarSpace.isValid() && rightHandPoseAvatarSpace.isValid()) {
+        vec2 oldAzimuthReading = _hipToHandController;
         _hipToHandController = lerp(glm::normalize(glm::vec2(rightHandPoseAvatarSpace.translation.x, rightHandPoseAvatarSpace.translation.z)), glm::normalize(glm::vec2(leftHandPoseAvatarSpace.translation.x, leftHandPoseAvatarSpace.translation.z)), 0.5f);
+        
+        //if they are 180 apart
+        float cosForwardAngle = glm::dot(_hipToHandController, oldAzimuthReading);
+        float cosBackwardAngle = glm::dot(_hipToHandController, -oldAzimuthReading);
+        if (cosBackwardAngle > cosForwardAngle) {
+            // this means we have lost continuity with the current chest position
+            _hipToHandController = -_hipToHandController;
+        }
+
+        
         //need to use easing function here.
         //var rotateAngle = ((Math.cos((leftRightMidpoint / 180.0) * Math.PI) + 2.0) / 3.0) * leftRightMidpoint;
     } else {
-        _hipToHandController = glm::vec2(0.0f, 1.0f);
+        // _hipToHandController = glm::vec2(0.0f, -1.0f);
     }
 }
 
