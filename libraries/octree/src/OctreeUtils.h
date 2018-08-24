@@ -29,6 +29,7 @@ float calculateRenderAccuracy(const glm::vec3& position,
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale);
 
+float getPerspectiveAccuracyAngleTan(float octreeSizeScale, int boundaryLevelAdjust);
 float getPerspectiveAccuracyAngle(float octreeSizeScale, int boundaryLevelAdjust);
 float getOrthographicAccuracySize(float octreeSizeScale, int boundaryLevelAdjust);
 

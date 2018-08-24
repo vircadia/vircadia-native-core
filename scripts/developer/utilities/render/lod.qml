@@ -158,7 +158,21 @@ Item {
                     color: "#9999FF"
                 }
             ]
-        }  
+        }
+        PlotPerf {
+            title: "Solid Angle Half Tan"
+            height: parent.evalEvenHeight()
+            object: LODManager
+            valueScale: 1.0
+            valueUnit: ""
+            plots: [
+                {
+                    prop: "solidAngleHalfTan",
+                    label: "SAHT",
+                    color: "#9999FF"
+                }
+            ]
+        }   
         Separator {
             id: bottomLine
         }

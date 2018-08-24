@@ -319,3 +319,9 @@ float LODManager::getWorldDetailQuality() const {
     }
     return HIGH;
 }
+
+
+float LODManager::getSolidAngleHalfTan() const {
+    return getPerspectiveAccuracyAngleTan(_octreeSizeScale, _boundaryLevelAdjust);
+}
+

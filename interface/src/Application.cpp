@@ -5987,7 +5987,7 @@ void Application::updateRenderArgs(float deltaTime) {
                 _viewFrustum.calculate();
             }
             appRenderArgs._renderArgs = RenderArgs(_gpuContext, lodManager->getOctreeSizeScale(),
-                lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
+                lodManager->getBoundaryLevelAdjust(), lodManager->getSolidAngleHalfTan(), RenderArgs::DEFAULT_RENDER_MODE,
                 RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
             appRenderArgs._renderArgs._scene = getMain3DScene();
 
