@@ -125,6 +125,7 @@ void Stats::updateStats(bool force) {
     auto avatarManager = DependencyManager::get<AvatarManager>();
     // we need to take one avatar out so we don't include ourselves
     STAT_UPDATE(avatarCount, avatarManager->size() - 1);
+    STAT_UPDATE(physicsObjectCount, qApp->getNumCollisionObjects());
     STAT_UPDATE(updatedAvatarCount, avatarManager->getNumAvatarsUpdated());
     STAT_UPDATE(notUpdatedAvatarCount, avatarManager->getNumAvatarsNotUpdated());
     STAT_UPDATE(serverCount, (int)nodeList->size());

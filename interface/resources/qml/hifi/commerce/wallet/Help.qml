@@ -66,47 +66,6 @@ Get it by going to <br><br><b><font color='#0093C5'><a href='#bank'>BankOfHighFi
         }
         ListElement {
             isExpanded: false;
-            question: "What are private keys and where are they stored?";
-            answer: 
-                "A private key is a secret piece of text that is used to prove ownership, unlock confidential information, and sign transactions. \
-In High Fidelity, your private key is used to securely access the contents of your Wallet and Purchases. \
-After wallet setup, a hifikey file is stored on your computer in High Fidelity Interface's AppData directory. \
-Your hifikey file contains your private key and is protected by your wallet passphrase. \
-<br><br>It is very important to back up your hifikey file! \
-<b><font color='#0093C5'><a href='#privateKeyPath'>Tap here to open the folder where your HifiKeys are stored on your main display.</a></font></b>"
-        }
-        ListElement {
-            isExpanded: false;
-            question: "How do I back up my private keys?";
-            answer: "You can back up your hifikey file (which contains your private key and is encrypted using your wallet passphrase) by copying it to a USB flash drive, or to a service like Dropbox or Google Drive. \
-Restore your hifikey file by replacing the file in Interface's AppData directory with your backup copy. \
-Others with access to your back up should not be able to spend your HFC without your passphrase. \
-<b><font color='#0093C5'><a href='#privateKeyPath'>Tap here to open the folder where your HifiKeys are stored on your main display.</a></font></b>";
-        }
-        ListElement {
-            isExpanded: false;
-            question: "What happens if I lose my private keys?";
-            answer: "We cannot stress enough that you should keep a backup! For security reasons, High Fidelity does not keep a copy, and cannot restore it for you. \
-If you lose your private key, you will no longer have access to the contents of your Wallet or My Purchases. \
-Here are some things to try:<ul>\
-<li>If you have backed up your hifikey file before, search your backup location</li>\
-<li>Search your AppData directory in the last machine you used to set up the Wallet</li>\
-<li>If you are a developer and have installed multiple builds of High Fidelity, your hifikey file might be in another folder</li>\
-</ul><br><br>As a last resort, you can set up your Wallet again and generate a new hifikey file. \
-Unfortunately, this means you will start with 0 HFC and your purchased items will not be transferred over.";
-        }
-        ListElement {
-            isExpanded: false;
-            question: "What if I forget my wallet passphrase?";
-            answer: "Your wallet passphrase is used to encrypt your private keys. Please write it down and store it securely! \
-<br><br>If you forget your passphrase, you will no longer be able to decrypt the hifikey file that the passphrase protects. \
-You will also no longer have access to the contents of your Wallet or My Purchases. \
-For security reasons, High Fidelity does not keep a copy of your passphrase, and can't restore it for you. \
-<br><br>If you still cannot remember your wallet passphrase, you can set up your Wallet again and generate a new hifikey file. \
-Unfortunately, this means you will start with 0 HFC and your purchased items will not be transferred over.";
-        }
-        ListElement {
-            isExpanded: false;
             question: "How do I send HFC to other people?";
             answer: "You can send HFC to a High Fidelity connection (someone you've shaken hands with in-world) or somebody Nearby (currently in the same domain as you). \
 In your Wallet's Send Money tab, choose from your list of connections, or choose Nearby and select the glowing sphere of the person's avatar.";
@@ -114,11 +73,9 @@ In your Wallet's Send Money tab, choose from your list of connections, or choose
         ListElement {
             isExpanded: false;
             question: "What is a Security Pic?"
-            answer: "Your Security Pic is an encrypted image that you select during Wallet Setup. \
-It acts as an extra layer of Wallet security. \
-When you see your Security Pic, you know that your actions and data are securely making use of your private keys.\
-<br><br>Don't enter your passphrase anywhere that doesn't display your Security Pic! \
-If you don't see your Security Pic on a page that requests your Wallet passphrase, someone untrustworthy may be trying to access your Wallet.";
+            answer: "Your Security Pic acts as an extra layer of Wallet security. \
+When you see your Security Pic, you know that your actions and data are securely making use of your account. \
+<br><br><b><font color='#0093C5'><a href='#securitypic'>Tap here to change your Security Pic.</a></font></b>";
         }
         ListElement {
             isExpanded: false;
@@ -260,6 +217,8 @@ At the moment, there is currently no way to convert HFC to other currencies. Sta
                             }
                         } else if (link === "#support") {
                             Qt.openUrlExternally("mailto:support@highfidelity.com");
+                        } else if (link === "#securitypic") {
+                            sendSignalToWallet({method: 'walletSecurity_changeSecurityImage'});
                         }
                     }
                 }

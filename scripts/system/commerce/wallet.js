@@ -406,6 +406,11 @@
         sendMoneyRecipient = null;
     }
 
+    function onUsernameChanged() {
+        Settings.setValue("wallet/autoLogout", false);
+        Settings.setValue("wallet/savedUsername", "");
+    }
+
     // Function Name: fromQml()
     //
     // Description:
@@ -581,6 +586,7 @@
     var tablet = null;
     var walletEnabled = Settings.getValue("commerce", true);
     function startup() {
+        GlobalServices.myUsernameChanged.connect(onUsernameChanged);
         if (walletEnabled) {
             tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
             button = tablet.addButton({
@@ -612,6 +618,7 @@
         removeOverlays();
     }
     function shutdown() {
+        GlobalServices.myUsernameChanged.disconnect(onUsernameChanged);
         button.clicked.disconnect(onButtonClicked);
         tablet.removeButton(button);
         deleteSendMoneyParticleEffect();
