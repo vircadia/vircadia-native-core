@@ -1050,6 +1050,8 @@ public:
     // results are in sensor frame (-z forward)
     glm::mat4 deriveBodyFromHMDSensor() const;
 
+    glm::mat4 getSpine2RotationRigSpace() const;
+
     glm::vec3 computeCounterBalance();
 
     // derive avatar body position and orientation from using the current HMD Sensor location in relation to the previous

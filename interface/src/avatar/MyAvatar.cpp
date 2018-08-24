@@ -3349,6 +3349,21 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     return createMatFromQuatAndPos(headOrientationYawOnly, bodyPos);
 }
 
+glm::mat4 MyAvatar::getSpine2RotationRigSpace() const {
+
+    static const glm::quat RIG_CHANGE_OF_BASIS = Quaternions::Y_180;
+    glm::vec3 hipToHandRigSpace = RIG_CHANGE_OF_BASIS * glm::vec3(_hipToHandController.x, 0.0f, _hipToHandController.y);
+
+    //to do: check for zero before normalizing.
+    glm::vec3 u, v, w;
+    generateBasisVectors(glm::vec3(0.0f,1.0f,0.0f), hipToHandRigSpace, u, v, w);
+    glm::mat4 spine2RigSpace(glm::vec4(w, 0.0f), glm::vec4(u, 0.0f), glm::vec4(v, 0.0f), glm::vec4(glm::vec3(0.0f, 0.0f, 0.0f), 1.0f));
+
+    //glm::quat spine2RigSpace = glm::quat_cast(glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::normalize(hipToHandRigSpace), glm::vec3(0.0f, 1.0f, 0.0f)));
+
+    return spine2RigSpace;
+}
+
 // ease in function for dampening cg movement
 static float slope(float num) {
     const float CURVE_CONSTANT = 1.0f;
