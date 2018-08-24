@@ -656,7 +656,13 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
         ((currentLocalID != Node::NULL_LOCAL_ID && newLocalID != currentLocalID) ||
         (!currentSessionID.isNull() && newUUID != currentSessionID))) {
             qCDebug(networking) << "Local ID or Session ID changed while connected to domain - forcing NodeList reset";
+
+            // reset the nodelist, but don't do a domain handler reset since we're about to process a good domain list
             reset(true);
+
+            // tell the domain handler that we're no longer connected so that below
+            // it can re-perform actions as if we just connected
+            _domainHandler.setIsConnected(false);
     }
 
     setSessionLocalID(newLocalID);
