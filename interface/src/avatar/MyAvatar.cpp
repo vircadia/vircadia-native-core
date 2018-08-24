@@ -449,7 +449,18 @@ void MyAvatar::update(float deltaTime) {
     const float HMD_FACING_TIMESCALE = getRotationRecenterFilterLength();
 
     float tau = deltaTime / HMD_FACING_TIMESCALE;
-    _headControllerFacingMovingAverage = lerp(_headControllerFacingMovingAverage, _headControllerFacing, tau);
+
+    // put the spine facing in sensor space.
+    // then mix it with head facing to determine rotation recenter
+    glm::vec3 handHipAzimuthWorldSpace = transformVectorFast(getTransform().getMatrix(), glm::vec3(_hipToHandController.x, 0.0f, _hipToHandController.y));
+    glm::mat4 sensorToWorldMat = getSensorToWorldMatrix();
+    glm::mat4 worldToSensorMat = glm::inverse(sensorToWorldMat);
+    glm::vec3 handHipAzimuthSensorSpace = transformVectorFast(worldToSensorMat, glm::vec3(handHipAzimuthWorldSpace.x, 0.0f, handHipAzimuthWorldSpace.z));
+    glm::vec2 normedHandHip = glm::normalize(glm::vec2(handHipAzimuthSensorSpace.x, handHipAzimuthSensorSpace.z));
+    glm::vec2 headFacingPlusHandHipAzimuthMix = lerp(normedHandHip, _headControllerFacing, 0.5f);
+    //qCDebug(interfaceapp) << "the hand hip azimuth " << normedHandHip << "the head look at" << _headControllerFacing;
+    _headControllerFacingMovingAverage = lerp(_headControllerFacingMovingAverage, headFacingPlusHandHipAzimuthMix, tau);
+    qCDebug(interfaceapp) << "the hand hip azimuth average " << _headControllerFacingMovingAverage;
 
     if (_smoothOrientationTimer < SMOOTH_TIME_ORIENTATION) {
         _rotationChanged = usecTimestampNow();
@@ -479,7 +490,7 @@ void MyAvatar::update(float deltaTime) {
         glm::vec3 handAzimuthMidpoint = transformPoint(getTransform().getMatrix(), glm::vec3(_hipToHandController.x, 0.0f, _hipToHandController.y));
         glm::vec3 worldRHandAzimuth = transformPoint(getTransform().getMatrix(), getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).getTranslation());
         glm::vec3 worldLHandAzimuth = transformPoint(getTransform().getMatrix(), getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).getTranslation());
-        qCDebug(interfaceapp) << "the right hand in avatar space" << worldRHandAzimuth << " " << getWorldPosition();
+        //qCDebug(interfaceapp) << "the right hand in avatar space" << worldRHandAzimuth << " " << getWorldPosition();
         DebugDraw::getInstance().drawRay(getWorldPosition(), worldRHandAzimuth, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
         DebugDraw::getInstance().drawRay(getWorldPosition(), worldLHandAzimuth, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
         DebugDraw::getInstance().drawRay(getWorldPosition(), handAzimuthMidpoint, glm::vec4(0.0f, 1.0f, 1.0f, 1.0f));
@@ -815,13 +826,17 @@ void MyAvatar::computeHandAzimuth() {
     auto leftHandPoseAvatarSpace = getLeftHandPose();
     auto rightHandPoseAvatarSpace = getRightHandPose();
     glm::vec3 localLookat(0.0f, 0.0f, 1.0f);
-    glm::vec3 rightHandRigSpace = rightHandPoseAvatarSpace.translation;// transformVectorFast(getTransform().getMatrix(), rightHandPoseAvatarSpace.translation);
-    glm::vec3 leftHandRigSpace = leftHandPoseAvatarSpace.translation;// transformVectorFast(getTransform().getMatrix(), leftHandPoseAvatarSpace.translation);
+    // glm::vec3 rightHandRigSpace = rightHandPoseAvatarSpace.translation;// transformVectorFast(getTransform().getMatrix(), rightHandPoseAvatarSpace.translation);
+    // glm::vec3 leftHandRigSpace = leftHandPoseAvatarSpace.translation;// transformVectorFast(getTransform().getMatrix(), leftHandPoseAvatarSpace.translation);
 
-    //qCDebug(interfaceapp) << "the right hand in avatar space" << rightHandRigSpace;
-
-    _hipToHandController = lerp(glm::vec2(rightHandRigSpace.x, rightHandRigSpace.z), glm::vec2(leftHandRigSpace.x, leftHandRigSpace.z),0.5f);
-
+    // qCDebug(interfaceapp) << "the right hand in avatar space" << rightHandRigSpace;
+    if (leftHandPoseAvatarSpace.isValid() && rightHandPoseAvatarSpace.isValid()) {
+        _hipToHandController = lerp(glm::normalize(glm::vec2(rightHandPoseAvatarSpace.translation.x, rightHandPoseAvatarSpace.translation.z)), glm::normalize(glm::vec2(leftHandPoseAvatarSpace.translation.x, leftHandPoseAvatarSpace.translation.z)), 0.5f);
+        //need to use easing function here.
+        //var rotateAngle = ((Math.cos((leftRightMidpoint / 180.0) * Math.PI) + 2.0) / 3.0) * leftRightMidpoint;
+    } else {
+        _hipToHandController = glm::vec2(0.0f, 1.0f);
+    }
 }
 
 void MyAvatar::updateJointFromController(controller::Action poseKey, ThreadSafeValueCache<glm::mat4>& matrixCache) {
@@ -3359,8 +3374,6 @@ glm::mat4 MyAvatar::getSpine2RotationRigSpace() const {
     generateBasisVectors(glm::vec3(0.0f,1.0f,0.0f), hipToHandRigSpace, u, v, w);
     glm::mat4 spine2RigSpace(glm::vec4(w, 0.0f), glm::vec4(u, 0.0f), glm::vec4(v, 0.0f), glm::vec4(glm::vec3(0.0f, 0.0f, 0.0f), 1.0f));
 
-    //glm::quat spine2RigSpace = glm::quat_cast(glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::normalize(hipToHandRigSpace), glm::vec3(0.0f, 1.0f, 0.0f)));
-
     return spine2RigSpace;
 }
 
@@ -3977,15 +3990,15 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
 
     if (myAvatar.getHMDLeanRecenterEnabled() &&
         qApp->getCamera().getMode() != CAMERA_MODE_MIRROR) {
-        if (!isActive(Rotation) && getForceActivateRotation()) {
-            activate(Rotation);
-            myAvatar.setHeadControllerFacingMovingAverage(myAvatar._headControllerFacing);
-            setForceActivateRotation(false);
-        }
-        //if (!isActive(Rotation) && (shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
+        //if (!isActive(Rotation) && getForceActivateRotation()) {
         //    activate(Rotation);
         //    myAvatar.setHeadControllerFacingMovingAverage(myAvatar._headControllerFacing);
+        //    setForceActivateRotation(false);
         //}
+        if (!isActive(Rotation) && (shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
+            activate(Rotation);
+            myAvatar.setHeadControllerFacingMovingAverage(myAvatar._headControllerFacing);
+        }
         if (myAvatar.getCenterOfGravityModelEnabled()) {
             if ((!isActive(Horizontal) && (shouldActivateHorizontalCG(myAvatar) || hasDriveInput)) || (isActive(Horizontal) && (currentVelocity > VELOCITY_THRESHHOLD))) {
                 activate(Horizontal);

@@ -29,6 +29,7 @@ var spine2Rotation = { x: 0, y: 0, z: 0, w: 1 };
 var hipToLHandAverage = { x: 0, y: 0, z: 0, w: 1 };
 var hipToRHandAverage = { x: 0, y: 0, z: 0, w: 1 };
 
+/*
 var ikTypes = {
     RotationAndPosition: 0,
     RotationOnly: 1,
@@ -65,7 +66,7 @@ var handlerId = MyAvatar.addAnimationStateHandler(function (props) {
     
     return result;
 }, ANIM_VARS);
-
+*/
 // define state readings constructor
 function StateReading(headPose, rhandPose, lhandPose, diffFromAverageEulers) {
     this.headPose = headPose;
@@ -298,7 +299,7 @@ function computeHandAzimuths(timeElapsed) {
     var raySpineRotation = Quat.fromVec3Degrees({ x: 0, y: leftRightMidpointAverage, z: 0 });
     var zAxisSpineRotation = Vec3.multiplyQbyV(raySpineRotation, { x: 0, y: 0, z: -1 });
     var zAxisWorldSpace = Vec3.multiplyQbyV(MyAvatar.orientation, zAxisSpineRotation);
-    DebugDraw.drawRay(MyAvatar.position, Vec3.sum(MyAvatar.position, zAxisWorldSpace), { x: 1, y: 0, z: 0, w: 1 });
+    // DebugDraw.drawRay(MyAvatar.position, Vec3.sum(MyAvatar.position, zAxisWorldSpace), { x: 1, y: 0, z: 0, w: 1 });
 
     //print(leftRightMidpoint);
 
@@ -312,7 +313,7 @@ function computeHandAzimuths(timeElapsed) {
     var headPlusHands = (leftRightMidpointAverage + headPoseAverageEulers.y) / 2.0;
     if ((Math.abs(headPlusHands / 180.0) * Math.PI) > angleThresholdProperty.value) {
         //print("recenter the feet under the head");
-        MyAvatar.triggerRotationRecenter();
+        // MyAvatar.triggerRotationRecenter();
         hipToLHandAverage = { x: 0, y: 0, z: 0, w: 1 };
         hipToRHandAverage = { x: 0, y: 0, z: 0, w: 1 };
         headPoseAverageOrientation = { x: 0, y: 0, z: 0, w: 1 };

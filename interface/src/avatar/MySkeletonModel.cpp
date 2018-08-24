@@ -240,9 +240,12 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
 
         // spine 2 hack to be improved.
+        AnimPose currentPose;
+        bool ret = _rig.getAbsoluteJointPoseInRigFrame(_rig.indexOfJoint("Spine2"),currentPose);
         AnimPose newSpinePose(myAvatar->getSpine2RotationRigSpace());
+        currentPose.rot() = newSpinePose.rot();
         //newSpinePose.rot() = myAvatar->getSpine2RotationRigSpace();// *newSpinePose.rot();
-        params.primaryControllerPoses[Rig::PrimaryControllerType_Spine2] = newSpinePose;
+        params.primaryControllerPoses[Rig::PrimaryControllerType_Spine2] = currentPose;
         params.primaryControllerFlags[Rig::PrimaryControllerType_Spine2] = (uint8_t)Rig::ControllerFlags::Enabled | (uint8_t)Rig::ControllerFlags::Estimated;
 
     } else {
