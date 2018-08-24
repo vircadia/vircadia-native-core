@@ -382,6 +382,17 @@ Rectangle {
                 } else if (msg.method === 'walletSecurity_changeSecurityImage') {
                     securityImageChange.initModel();
                     root.activeView = "securityImageChange";
+                } else if (msg.method === 'walletSecurity_autoLogoutHelp') {
+                    lightboxPopup.titleText = "Automatically Log Out";
+                    lightboxPopup.bodyText = "By default, after you log in to High Fidelity, you will stay logged in to your High Fidelity " +
+                        "account even after you close and re-open Interface. This means anyone who opens Interface on your computer " +
+                        "could make purchases with your Wallet.\n\n" +
+                        "If you do not want to stay logged in across Interface sessions, check this box.";
+                    lightboxPopup.button1text = "CLOSE";
+                    lightboxPopup.button1method = function() {
+                        lightboxPopup.visible = false;
+                    }
+                    lightboxPopup.visible = true;
                 }
             }
         }
