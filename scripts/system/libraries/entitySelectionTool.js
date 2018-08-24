@@ -495,6 +495,8 @@ SelectionDisplay = (function() {
     var worldRotationX;
     var worldRotationY;
     var worldRotationZ;
+    
+    var activeStretchCubePanelOffset = null;
 
     var previousHandle = null;
     var previousHandleHelper = null;
@@ -1435,34 +1437,7 @@ SelectionDisplay = (function() {
             Overlays.editOverlay(handleScaleNLEdge, { start: LTNPosition, end: LBNPosition });
             Overlays.editOverlay(handleScaleFREdge, { start: RTFPosition, end: RBFPosition });
             Overlays.editOverlay(handleScaleFLEdge, { start: LTFPosition, end: LBFPosition });
-
-            // UPDATE STRETCH CUBES
-            var stretchCubeDimension = rotateDimension * STRETCH_CUBE_CAMERA_DISTANCE_MULTIPLE / 
-                                                           ROTATE_RING_CAMERA_DISTANCE_MULTIPLE;
-            var stretchCubeDimensions = { x: stretchCubeDimension, y: stretchCubeDimension, z: stretchCubeDimension };
-            var stretchCubeOffset = rotateDimension * STRETCH_CUBE_OFFSET / ROTATE_RING_CAMERA_DISTANCE_MULTIPLE;
-            var stretchXPosition = { x: stretchCubeOffset, y: 0, z: 0 };
-            stretchXPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, stretchXPosition));
-            Overlays.editOverlay(handleStretchXCube, { 
-                position: stretchXPosition, 
-                rotation: rotationX,
-                dimensions: stretchCubeDimensions 
-            });
-            var stretchYPosition = { x: 0, y: stretchCubeOffset, z: 0 };
-            stretchYPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, stretchYPosition));
-            Overlays.editOverlay(handleStretchYCube, { 
-                position: stretchYPosition, 
-                rotation: rotationY,
-                dimensions: stretchCubeDimensions 
-            });
-            var stretchZPosition = { x: 0, y: 0, z: stretchCubeOffset };
-            stretchZPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, stretchZPosition));
-            Overlays.editOverlay(handleStretchZCube, { 
-                position: stretchZPosition,
-                rotation: rotationZ,
-                dimensions: stretchCubeDimensions 
-            });
-
+            
             // UPDATE STRETCH HIGHLIGHT PANELS
             var RBFPositionRotated = Vec3.multiplyQbyV(rotationInverse, RBFPosition);
             var RTFPositionRotated = Vec3.multiplyQbyV(rotationInverse, RTFPosition);
@@ -1500,6 +1475,46 @@ SelectionDisplay = (function() {
                 position: stretchPanelZPosition, 
                 rotation: rotationX,
                 dimensions: stretchPanelZDimensions
+            });
+
+            // UPDATE STRETCH CUBES
+            var stretchCubeDimension = rotateDimension * STRETCH_CUBE_CAMERA_DISTANCE_MULTIPLE / 
+                                                           ROTATE_RING_CAMERA_DISTANCE_MULTIPLE;
+            var stretchCubeDimensions = { x: stretchCubeDimension, y: stretchCubeDimension, z: stretchCubeDimension };
+            var stretchCubeOffset = rotateDimension * STRETCH_CUBE_OFFSET / ROTATE_RING_CAMERA_DISTANCE_MULTIPLE;
+            var stretchXPosition, stretchYPosition, stretchZPosition;
+            if (isActiveTool(handleStretchXCube)) {
+                stretchXPosition = Vec3.subtract(stretchPanelXPosition, activeStretchCubePanelOffset);
+            } else {
+                stretchXPosition = { x: stretchCubeOffset, y: 0, z: 0 };
+                stretchXPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, stretchXPosition));
+            }
+            if (isActiveTool(handleStretchYCube)) {
+                stretchYPosition = Vec3.subtract(stretchPanelYPosition, activeStretchCubePanelOffset);
+            } else {
+                stretchYPosition = { x: 0, y: stretchCubeOffset, z: 0 };
+                stretchYPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, stretchYPosition));
+            }
+            if (isActiveTool(handleStretchZCube)) {
+                stretchZPosition = Vec3.subtract(stretchPanelZPosition, activeStretchCubePanelOffset);
+            } else {
+                stretchZPosition = { x: 0, y: 0, z: stretchCubeOffset };
+                stretchZPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, stretchZPosition));
+            }
+            Overlays.editOverlay(handleStretchXCube, { 
+                position: stretchXPosition, 
+                rotation: rotationX,
+                dimensions: stretchCubeDimensions 
+            });
+            Overlays.editOverlay(handleStretchYCube, { 
+                position: stretchYPosition, 
+                rotation: rotationY,
+                dimensions: stretchCubeDimensions 
+            });
+            Overlays.editOverlay(handleStretchZCube, { 
+                position: stretchZPosition,
+                rotation: rotationZ,
+                dimensions: stretchCubeDimensions 
             });
 
             // UPDATE SELECTION BOX (CURRENTLY INVISIBLE WITH 0 ALPHA FOR TRANSLATE XZ TOOL)
@@ -2035,7 +2050,7 @@ SelectionDisplay = (function() {
     };
 
     // TOOL DEFINITION: HANDLE STRETCH TOOL   
-    function makeStretchTool(stretchMode, directionEnum, directionVec, pivot, offset, stretchPanel, scaleHandle) {
+    function makeStretchTool(stretchMode, directionEnum, directionVec, pivot, offset, stretchPanel, cubeHandle) {
         var directionFor3DStretch = directionVec;
         var distanceFor3DStretch = 0;
         var DISTANCE_INFLUENCE_THRESHOLD = 1.2;
@@ -2069,7 +2084,9 @@ SelectionDisplay = (function() {
         var previousPickRay = null;
         var beginMouseEvent = null;
 
-        var onBegin = function(event, pickRay, pickResult) {            
+        var onBegin = function(event, pickRay, pickResult) {     
+            var proportional = directionEnum === STRETCH_DIRECTION.ALL;     
+            
             var properties = Entities.getEntityProperties(SelectionManager.selections[0]);
             initialProperties = properties;
             rotation = (spaceMode === SPACE_LOCAL) ? properties.rotation : Quat.IDENTITY;
@@ -2185,15 +2202,18 @@ SelectionDisplay = (function() {
             if (stretchPanel !== null) {
                 Overlays.editOverlay(stretchPanel, { visible: true });
             }
-            if (scaleHandle !== null) {
-                Overlays.editOverlay(scaleHandle, { color: COLOR_SCALE_CUBE_SELECTED });
-            }
-            
+
             var collisionToRemove = "myAvatar";
             if (properties.collidesWith.indexOf(collisionToRemove) > -1) {
                 var newCollidesWith = properties.collidesWith.replace(collisionToRemove, "");
                 Entities.editEntity(SelectionManager.selections[0], {collidesWith: newCollidesWith});
                 that.replaceCollisionsAfterStretch = true;
+            }
+            
+            if (!proportional) {
+                var stretchCubePosition = Overlays.getProperty(cubeHandle, "position");
+                var stretchPanelPosition = Overlays.getProperty(stretchPanel, "position");
+                activeStretchCubePanelOffset = Vec3.subtract(stretchPanelPosition, stretchCubePosition);
             }
             
             previousPickRay = pickRay;
@@ -2204,15 +2224,14 @@ SelectionDisplay = (function() {
             if (stretchPanel !== null) {
                 Overlays.editOverlay(stretchPanel, { visible: false });
             }
-            if (scaleHandle !== null) {
-                Overlays.editOverlay(scaleHandle, { color: COLOR_SCALE_CUBE });
-            }
             
             if (that.replaceCollisionsAfterStretch) {
                 var newCollidesWith = SelectionManager.savedProperties[SelectionManager.selections[0]].collidesWith;
                 Entities.editEntity(SelectionManager.selections[0], {collidesWith: newCollidesWith});
                 that.replaceCollisionsAfterStretch = false;
             }
+            
+            activeStretchCubePanelOffset = null;
             
             pushCommandForSelections();
         };
@@ -2347,19 +2366,22 @@ SelectionDisplay = (function() {
     }
 
     function addHandleStretchTool(overlay, mode, directionEnum) {
-        var directionVector, offset, stretchPanel;
+        var directionVector, offset, stretchPanel, handleStretchCube;
         if (directionEnum === STRETCH_DIRECTION.X) {
             stretchPanel = handleStretchXPanel;
+            handleStretchCube = handleStretchXCube;
             directionVector = { x: -1, y: 0, z: 0 };
         } else if (directionEnum === STRETCH_DIRECTION.Y) {
             stretchPanel = handleStretchYPanel;
+            handleStretchCube = handleStretchYCube;
             directionVector = { x: 0, y: -1, z: 0 };
         } else if (directionEnum === STRETCH_DIRECTION.Z) {
             stretchPanel = handleStretchZPanel;
+            handleStretchCube = handleStretchZCube;
             directionVector = { x: 0, y: 0, z: -1 };
         }
         offset = Vec3.multiply(directionVector, NEGATE_VECTOR);
-        var tool = makeStretchTool(mode, directionEnum, directionVector, directionVector, offset, stretchPanel, null);
+        var tool = makeStretchTool(mode, directionEnum, directionVector, directionVector, offset, stretchPanel, handleStretchCube);
         return addHandleTool(overlay, tool);
     }
 
