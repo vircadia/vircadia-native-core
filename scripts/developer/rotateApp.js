@@ -320,7 +320,7 @@ function computeHandAzimuths(timeElapsed) {
     
     // put a hard max on this easing function.  
     var rotateAngle = ((Math.cos((leftRightMidpoint / 180.0) * Math.PI) + 2.0)/3.0) * leftRightMidpoint;
-    print("rotate angle " + rotateAngle);
+    //print("rotate angle " + rotateAngle);
 
     return Quat.fromVec3Degrees({ x: 0, y: rotateAngle, z: 0 });
 

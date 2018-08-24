@@ -462,7 +462,7 @@ void MyAvatar::update(float deltaTime) {
     setCurrentStandingHeight(computeStandingHeightMode(getControllerPoseInAvatarFrame(controller::Action::HEAD)));
     setAverageHeadRotation(computeAverageHeadRotation(getControllerPoseInAvatarFrame(controller::Action::HEAD)));
 
-
+    computeHandAzimuth();
 
 
 #ifdef DEBUG_DRAW_HMD_MOVING_AVERAGE
@@ -473,6 +473,14 @@ void MyAvatar::update(float deltaTime) {
         glm::vec3 worldFacing = transformVectorFast(getSensorToWorldMatrix(), glm::vec3(_headControllerFacing.x, 0.0f, _headControllerFacing.y));
         DebugDraw::getInstance().drawRay(worldHeadPos, worldHeadPos + worldFacing, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
         DebugDraw::getInstance().drawRay(worldHeadPos, worldHeadPos + worldFacingAverage, glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+
+        // draw hand azimuth vector
+        
+        glm::vec3 worldRHandAzimuth = transformPoint(getTransform().getMatrix(), getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).getTranslation());
+        glm::vec3 worldLHandAzimuth = transformPoint(getTransform().getMatrix(), getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).getTranslation());
+        qCDebug(interfaceapp) << "the right hand in avatar space" << worldRHandAzimuth << " " << getWorldPosition();
+        DebugDraw::getInstance().drawRay(getWorldPosition(), worldRHandAzimuth, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+        DebugDraw::getInstance().drawRay(getWorldPosition(), worldLHandAzimuth, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
     }
 #endif
 
@@ -802,11 +810,13 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
 }
 
 void MyAvatar::computeHandAzimuth() {
-    controller::Pose leftHandPoseAvatarSpace = getLeftHandPose();
-    controller::Pose rightHandPoseAvatarSpace = getRightHandPose();
+    auto leftHandPoseAvatarSpace = getLeftHandPose();
+    auto rightHandPoseAvatarSpace = getRightHandPose();
     glm::vec3 localLookat(0.0f, 0.0f, 1.0f);
-    glm::vec3 rightHandRigSpace = rightHandPoseAvatarSpace.rotation * localLookat;
-    glm::vec3 lefttHandRigSpace = leftHandPoseAvatarSpace.rotation * localLookat;
+    glm::vec3 rightHandRigSpace = rightHandPoseAvatarSpace.translation;// transformVectorFast(getTransform().getMatrix(), rightHandPoseAvatarSpace.translation);
+    glm::vec3 leftHandRigSpace = leftHandPoseAvatarSpace.translation;// transformVectorFast(getTransform().getMatrix(), leftHandPoseAvatarSpace.translation);
+
+    //qCDebug(interfaceapp) << "the right hand in avatar space" << rightHandRigSpace;
 
     _hipToHandController = glm::vec2(rightHandRigSpace.x, rightHandRigSpace.z);
 
