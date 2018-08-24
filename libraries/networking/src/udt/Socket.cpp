@@ -344,7 +344,7 @@ void Socket::readPendingDatagrams() {
             continue;
         }
 
-        _incomingDatagrams.push({ senderAddress, senderPort, packetSizeWithHeader,
+        _incomingDatagrams.push_back({ senderAddress, senderPort, packetSizeWithHeader,
             std::move(buffer), receiveTime });
         ++packetsRead;
 
@@ -361,6 +361,28 @@ void Socket::processPendingDatagrams(int) {
     // setup a HifiSockAddr to read into
     HifiSockAddr senderSockAddr;
 
+    // Process unfiltered packets first.
+    for (auto datagramIter = _incomingDatagrams.begin(); datagramIter != _incomingDatagrams.end(); ++datagramIter) {
+        senderSockAddr.setAddress(datagramIter->_senderAddress);
+        senderSockAddr.setPort(datagramIter->_senderPort);
+        auto it = _unfilteredHandlers.find(senderSockAddr);
+        if (it != _unfilteredHandlers.end()) {
+            // we have a registered unfiltered handler for this HifiSockAddr (eg. STUN packet) - call that and return
+            if (it->second) {
+                auto basePacket = BasePacket::fromReceivedPacket(std::move(datagramIter->_datagram),
+                    datagramIter->_datagramLength,
+                    senderSockAddr);
+                basePacket->setReceiveTime(datagramIter->_receiveTime);
+                it->second(std::move(basePacket));
+            }
+
+            datagramIter = _incomingDatagrams.erase(datagramIter);
+            if (datagramIter == _incomingDatagrams.end()) {
+                break;
+            }
+        }
+    }
+
     while (!_incomingDatagrams.empty()) {
         auto& datagram = _incomingDatagrams.front();
         senderSockAddr.setAddress(datagram._senderAddress);
@@ -369,19 +391,6 @@ void Socket::processPendingDatagrams(int) {
         auto receiveTime = datagram._receiveTime;
 
         auto it = _unfilteredHandlers.find(senderSockAddr);
-
-        if (it != _unfilteredHandlers.end()) {
-            // we have a registered unfiltered handler for this HifiSockAddr (eg. STUN packet) - call that and return
-            if (it->second) {
-                auto basePacket = BasePacket::fromReceivedPacket(std::move(datagram._datagram), datagramSize,
-                    senderSockAddr);
-                basePacket->setReceiveTime(datagram._receiveTime);
-                it->second(std::move(basePacket));
-            }
-
-            _incomingDatagrams.pop();
-            continue;
-        }
 
         // we're reading a packet so re-start the readyRead backup timer
         _readyReadBackupTimer->start();
@@ -427,7 +436,7 @@ void Socket::processPendingDatagrams(int) {
                         qCDebug(networking) << "Can't process packet: version" << (unsigned int)NLPacket::versionInHeader(*packet)
                             << ", type" << NLPacket::typeInHeader(*packet);
 #endif
-                        _incomingDatagrams.pop();
+                        _incomingDatagrams.pop_front();
                         continue;
                     }
                 }
@@ -444,7 +453,7 @@ void Socket::processPendingDatagrams(int) {
             }
         }
 
-        _incomingDatagrams.pop();
+        _incomingDatagrams.pop_front();
     }
 }
 

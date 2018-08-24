@@ -17,7 +17,7 @@
 #include <functional>
 #include <unordered_map>
 #include <mutex>
-#include <queue>
+#include <list>
 
 #include <QtCore/QObject>
 #include <QtCore/QTimer>
@@ -156,7 +156,7 @@ private:
         p_high_resolution_clock::time_point _receiveTime;
     };
 
-    std::queue<Datagram> _incomingDatagrams;
+    std::list<Datagram> _incomingDatagrams;
     int _maxDatagramsRead { 0 };
     
     friend UDTTest;
