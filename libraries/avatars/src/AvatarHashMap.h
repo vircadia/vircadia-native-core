@@ -95,20 +95,11 @@ public:
     // Null/Default-constructed QUuids will return MyAvatar
     Q_INVOKABLE virtual ScriptAvatarData* getAvatar(QUuid avatarID) { return new ScriptAvatarData(getAvatarBySessionID(avatarID)); }
 
-    /**jsdoc
-    * @function AvatarList.setReplicaCount
-    * @param {number} count // The times an avatar will get replicated
-    */
-    Q_INVOKABLE void setReplicaCount(int count);
-    
-    /**jsdoc
-    * @function AvatarList.setReplicaCount
-    * @param {number} count // The times an avatar will get replicated
-    */
-    Q_INVOKABLE int getReplicaCount() { return _replicas.getReplicaCount(); };
-
     virtual AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) const { return findAvatar(sessionID); }
     int numberOfAvatarsInRange(const glm::vec3& position, float rangeMeters);
+
+    void setReplicaCount(int count);
+    int getReplicaCount() { return _replicas.getReplicaCount(); };
 
 signals:
 
