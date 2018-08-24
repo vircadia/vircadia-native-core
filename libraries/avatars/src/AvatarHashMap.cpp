@@ -36,7 +36,7 @@ std::vector<QUuid> AvatarReplicas::getReplicaIDs(const QUuid& parentID) {
     std::vector<QUuid> ids;
     if (_replicasMap.find(parentID) != _replicasMap.end()) {
         auto &replicas = _replicasMap[parentID];
-        for (int i = 0; i < replicas.size(); i++) {
+        for (int i = 0; i < (int)replicas.size(); i++) {
             ids.push_back(replicas[i]->getID());
         }
     } else if (_replicaCount > 0) {
@@ -288,92 +288,12 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
         // In this case, the "sendingNode" is the Avatar Mixer.
         avatar->processAvatarIdentity(message->getMessage(), identityChanged, displayNameChanged);
         _replicas.processAvatarIdentity(identityUUID, message->getMessage(), identityChanged, displayNameChanged);
-    }
-}
 
-void AvatarHashMap::processBulkAvatarTraitsForID(QUuid sessionUUID, QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-    message->seek(0);
-    while (message->getBytesLeftToRead()) {
-        // read the avatar ID to figure out which avatar this is for
-        auto avatarID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-        avatarID = sessionUUID;
-
-        // grab the avatar so we can ask it to process trait data
-        bool isNewAvatar;
-        auto avatar = newOrExistingAvatar(avatarID, sendingNode, isNewAvatar);
-
-        // read the first trait type for this avatar
-        AvatarTraits::TraitType traitType;
-        message->readPrimitive(&traitType);
-
-        // grab the last trait versions for this avatar
-        auto& lastProcessedVersions = _processedTraitVersions[avatarID];
-
-        while (traitType != AvatarTraits::NullTrait) {
-            AvatarTraits::TraitVersion packetTraitVersion;
-            message->readPrimitive(&packetTraitVersion);
-
-            AvatarTraits::TraitWireSize traitBinarySize;
-            bool skipBinaryTrait = false;
-
-
-            if (AvatarTraits::isSimpleTrait(traitType)) {
-                message->readPrimitive(&traitBinarySize);
-
-                // check if this trait version is newer than what we already have for this avatar
-                if (packetTraitVersion > lastProcessedVersions[traitType]) {
-                    avatar->processTrait(traitType, message->read(traitBinarySize));
-                    lastProcessedVersions[traitType] = packetTraitVersion;
-                }
-                else {
-                    skipBinaryTrait = true;
-                }
-            }
-            else {
-                AvatarTraits::TraitInstanceID traitInstanceID =
-                    QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-
-                message->readPrimitive(&traitBinarySize);
-
-                auto& processedInstanceVersion = lastProcessedVersions.getInstanceValueRef(traitType, traitInstanceID);
-                if (packetTraitVersion > processedInstanceVersion) {
-                    if (traitBinarySize == AvatarTraits::DELETED_TRAIT_SIZE) {
-                        avatar->processDeletedTraitInstance(traitType, traitInstanceID);
-                    }
-                    else {
-                        avatar->processTraitInstance(traitType, traitInstanceID, message->read(traitBinarySize));
-                    }
-                    processedInstanceVersion = packetTraitVersion;
-                }
-                else {
-                    skipBinaryTrait = true;
-                }
-            }
-
-            if (skipBinaryTrait) {
-                // we didn't read this trait because it was older or because we didn't have an avatar to process it for
-                message->seek(message->getPosition() + traitBinarySize);
-            }
-
-            // read the next trait type, which is null if there are no more traits for this avatar
-            message->readPrimitive(&traitType);
-        }
     }
 }
 
 void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-    /*
-    while (message->getBytesLeftToRead()) {
-        // read the avatar ID to figure out which avatar this is for
-        auto avatarID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-        processBulkAvatarTraitsForID(avatarID, message, sendingNode);
-        auto replicaIDs = _replicas.getReplicaIDs(avatarID);
-        for (auto id : replicaIDs) {
-            processBulkAvatarTraitsForID(id, message, sendingNode);
-        }
-    }
-    */
-    int position = 0;
+
     while (message->getBytesLeftToRead()) {
         // read the avatar ID to figure out which avatar this is for
         auto avatarID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
@@ -381,7 +301,6 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
         // grab the avatar so we can ask it to process trait data
         bool isNewAvatar;
         auto avatar = newOrExistingAvatar(avatarID, sendingNode, isNewAvatar);
-
         // read the first trait type for this avatar
         AvatarTraits::TraitType traitType;
         message->readPrimitive(&traitType);
@@ -402,10 +321,9 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
 
                 // check if this trait version is newer than what we already have for this avatar
                 if (packetTraitVersion > lastProcessedVersions[traitType]) {
-                    position = message->getPosition();
-                    avatar->processTrait(traitType, message->read(traitBinarySize));
-                    message->seek(position);
-                    _replicas.processTrait(avatarID, traitType, message->read(traitBinarySize));
+                    auto traitData = message->read(traitBinarySize);
+                    avatar->processTrait(traitType, traitData);
+                    _replicas.processTrait(avatarID, traitType, traitData);
                     lastProcessedVersions[traitType] = packetTraitVersion;
                 }
                 else {
@@ -425,10 +343,9 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
                         _replicas.processDeletedTraitInstance(avatarID, traitType, traitInstanceID);
                     }
                     else {
-                        position = message->getPosition();
-                        avatar->processTraitInstance(traitType, traitInstanceID, message->read(traitBinarySize));
-                        message->seek(position);
-                        _replicas.processTraitInstance(avatarID, traitType, traitInstanceID, message->read(traitBinarySize));
+                        auto traitData = message->read(traitBinarySize);
+                        avatar->processTraitInstance(traitType, traitInstanceID, traitData);
+                        _replicas.processTraitInstance(avatarID, traitType, traitInstanceID, traitData);
                     }
                     processedInstanceVersion = packetTraitVersion;
                 }

@@ -54,6 +54,7 @@ public:
     void processTraitInstance(const QUuid& parentID, AvatarTraits::TraitType traitType,
                                 AvatarTraits::TraitInstanceID instanceID, QByteArray traitBinaryData);
     void setReplicaCount(int count) { _replicaCount = count; }
+    int getReplicaCount() { return _replicaCount; }
 
 private:
     std::map<QUuid, std::vector<AvatarSharedPointer>> _replicasMap;
@@ -99,6 +100,12 @@ public:
     * @param {number} count // The times an avatar will get replicated
     */
     Q_INVOKABLE void setReplicaCount(int count);
+    
+    /**jsdoc
+    * @function AvatarList.setReplicaCount
+    * @param {number} count // The times an avatar will get replicated
+    */
+    Q_INVOKABLE int getReplicaCount() { return _replicas.getReplicaCount(); };
 
     virtual AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) const { return findAvatar(sessionID); }
     int numberOfAvatarsInRange(const glm::vec3& position, float rangeMeters);
@@ -160,7 +167,6 @@ protected slots:
      */
     void processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     
-    void processBulkAvatarTraitsForID(QUuid sessionUUID, QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void processBulkAvatarTraits(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     
     /**jsdoc
