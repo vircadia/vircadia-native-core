@@ -2308,6 +2308,15 @@ void AvatarData::setRecordingBasis(std::shared_ptr<Transform> recordingBasis) {
     _recordingBasis = recordingBasis;
 }
 
+void AvatarData::createRecordingIDs() {
+    _avatarEntitiesLock.withReadLock([&] {
+        _avatarEntityForRecording.clear();
+        for (int i = 0; i < _avatarEntityData.size(); i++) {
+            _avatarEntityForRecording.insert(QUuid::createUuid());
+        }
+    });
+}
+
 void AvatarData::clearRecordingBasis() {
     _recordingBasis.reset();
 }
@@ -2368,21 +2377,15 @@ QJsonObject AvatarData::toJson() const {
     if (!getDisplayName().isEmpty()) {
         root[JSON_AVATAR_DISPLAY_NAME] = getDisplayName();
     }
-    if (!getAttachmentData().isEmpty()) {
-        QJsonArray attachmentsJson;
-        for (auto attachment : getAttachmentData()) {
-            attachmentsJson.push_back(attachment.toJson());
-        }
-        root[JSON_AVATAR_ATTACHMENTS] = attachmentsJson;
-    }
-
     _avatarEntitiesLock.withReadLock([&] {
         if (!_avatarEntityData.empty()) {
             QJsonArray avatarEntityJson;
+            int entityCount = 0;
             for (auto entityID : _avatarEntityData.keys()) {
                 QVariantMap entityData;
-                entityData.insert("id", entityID);
-                entityData.insert("properties", _avatarEntityData.value(entityID));
+                QUuid newId = _avatarEntityForRecording.size() == _avatarEntityData.size() ? _avatarEntityForRecording.values()[entityCount++] : entityID;
+                entityData.insert("id", newId);                
+                entityData.insert("properties", _avatarEntityData.value(entityID).toBase64());
                 avatarEntityJson.push_back(QVariant(entityData).toJsonObject());
             }
             root[JSON_AVATAR_ENTITIES] = avatarEntityJson;
@@ -2504,12 +2507,17 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
         setAttachmentData(attachments);
     }
 
-    // if (json.contains(JSON_AVATAR_ENTITIES) && json[JSON_AVATAR_ENTITIES].isArray()) {
-    //     QJsonArray attachmentsJson = json[JSON_AVATAR_ATTACHMENTS].toArray();
-    //     for (auto attachmentJson : attachmentsJson) {
-    //         // TODO -- something
-    //     }
-    // }
+    if (json.contains(JSON_AVATAR_ENTITIES) && json[JSON_AVATAR_ENTITIES].isArray()) {
+        QJsonArray attachmentsJson = json[JSON_AVATAR_ENTITIES].toArray();
+        for (auto attachmentJson : attachmentsJson) {
+            if (attachmentJson.isObject()) {
+                QVariantMap entityData = attachmentJson.toObject().toVariantMap();
+                QUuid entityID = entityData.value("id").toUuid();
+                QByteArray properties = QByteArray::fromBase64(entityData.value("properties").toByteArray());
+                updateAvatarEntity(entityID, properties);
+            }
+        }
+    }
 
     if (json.contains(JSON_AVATAR_JOINT_ARRAY)) {
         if (version == (int)JsonAvatarFrameVersion::JointRotationsInRelativeFrame) {

@@ -376,6 +376,9 @@ void Avatar::updateAvatarEntities() {
                 }
             }
         }
+        if (avatarEntities.size() != _avatarEntityForRecording.size()) {
+            createRecordingIDs();
+        }
     });
 
     setAvatarEntityDataChanged(false);
