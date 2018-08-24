@@ -9,6 +9,8 @@
 #include "OtherAvatar.h"
 #include "Application.h"
 
+#include "AvatarMotionState.h"
+
 OtherAvatar::OtherAvatar(QThread* thread) : Avatar(thread) {
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = new Head(this);
@@ -56,5 +58,40 @@ void OtherAvatar::createOrb() {
         _otherAvatarOrbMeshPlaceholder->setWorldPosition(getHead()->getPosition());
         _otherAvatarOrbMeshPlaceholder->setDimensions(glm::vec3(0.5f, 0.5f, 0.5f));
         _otherAvatarOrbMeshPlaceholder->setVisible(true);
+    }
+}
+
+void OtherAvatar::setSpaceIndex(int32_t index) {
+    assert(_spaceIndex == -1);
+    _spaceIndex = index;
+}
+
+void OtherAvatar::updateSpaceProxy(workload::Transaction& transaction) const {
+    if (_spaceIndex > -1) {
+        float approximateBoundingRadius = glm::length(getTargetScale());
+        workload::Sphere sphere(getWorldPosition(), approximateBoundingRadius);
+        transaction.update(_spaceIndex, sphere);
+    }
+}
+
+int OtherAvatar::parseDataFromBuffer(const QByteArray& buffer) {
+    int32_t bytesRead = Avatar::parseDataFromBuffer(buffer);
+    if (_moving && _motionState) {
+        _motionState->addDirtyFlags(Simulation::DIRTY_POSITION);
+    }
+    return bytesRead;
+}
+
+void OtherAvatar::setWorkloadRegion(uint8_t region) {
+    _workloadRegion = region;
+}
+
+bool OtherAvatar::shouldBeInPhysicsSimulation() const {
+    return (_workloadRegion < workload::Region::R3 && !isDead());
+}
+
+void OtherAvatar::rebuildCollisionShape() {
+    if (_motionState) {
+        _motionState->addDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
     }
 }
