@@ -28,13 +28,11 @@ Item {
     function defaultSet(value) { }
 
     property var labelAreaWidthScale: 0.5
-
     property bool integral: false
-    property var valueVarGetter: defaultGet
+
     property var valueVarSetter: defaultSet
-  //  property string property
-    property  alias valueVar : sliderControl.value
-  //  property  alias valueSetter : sliderControl.value
+    property alias valueVar : sliderControl.value
+
     property alias min: sliderControl.minimumValue
     property alias max: sliderControl.maximumValue
 

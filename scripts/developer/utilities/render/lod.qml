@@ -42,17 +42,33 @@ Item {
             checked: Render.getConfig("RenderMainView.DrawSceneOctree").enabled
             onCheckedChanged: { Render.getConfig("RenderMainView.DrawSceneOctree").enabled = checked }
         }
-        HifiControls.CheckBox {
-            boxSize: 20
-            text: "Auto LOD"
-            checked: LODManager.automaticLODAdjust
-            onCheckedChanged: { LODManager.automaticLODAdjust = (checked) }
-        }
-property var lodObject: LODManager
 
         RichSlider {
             showLabel: true
-            label: "lodLevel"
+            showValue: false
+            label: "World Quality"
+            valueVar: LODManager["worldDetailQuality"]
+            valueVarSetter: (function (v) { LODManager["worldDetailQuality"] = v })
+            max: 0.75
+            min: 0.25
+            integral: false
+
+            anchors.left: autoLOD.left
+            anchors.right: parent.right 
+        }
+
+        HifiControls.CheckBox {
+            id: autoLOD
+            boxSize: 20
+            text: "Auto LOD"
+            checked: LODManager.automaticLODAdjust
+            onCheckedChanged: { LODManager.automaticLODAdjust = (checked) } 
+        }
+ 
+        RichSlider {
+            visible: !LODManager.automaticLODAdjust
+            showLabel: true
+            label: "LOD Level"
             valueVar: LODManager["lodLevel"]
             valueVarSetter: (function (v) { LODManager["lodLevel"] = v })
             max: 1.0
@@ -62,33 +78,6 @@ property var lodObject: LODManager
             anchors.left: parent.left
             anchors.right: parent.right 
         }
-        RichSlider {
-            showLabel: true
-           // config:  lodObject
-           // property: "worldDetailQuality"
-           // valueVar: LODManager["worldDetailQuality"]
-            label: "World Quality"
-            valueVar: LODManager["worldDetailQuality"]
-            // valueVarGetter: { return LODManager["worldDetailQuality"] }
-            valueVarSetter: (function (v) { LODManager["worldDetailQuality"] = v })
-            max: 0.75
-            min: 0.25
-            integral: false
-
-            anchors.left: parent.left
-            anchors.right: parent.right 
-        }
-     /*   HifiControls.Slider {
-            id: sliderControl
-            stepSize: 0.0
-            minimumValue: 0.0
-            maximumValue: 1.2
-            anchors.left: parent.left
-            anchors.right: parent.right 
-            value: LODManager["lodLevel"]
-            onValueChanged: { LODManager["lodLevel"] = value }
-        }*/
-
     }
 
     Column {
