@@ -135,6 +135,8 @@ public:
 
     AvatarTraits::TraitVersions& getLastSentTraitVersions(Node::LocalID otherAvatar) { return _sentTraitVersions[otherAvatar]; }
 
+    void resetSentTraitData(Node::LocalID nodeID);
+
 private:
     struct PacketQueue : public std::queue<QSharedPointer<ReceivedMessage>> {
         QWeakPointer<Node> node;

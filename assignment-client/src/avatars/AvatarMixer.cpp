@@ -541,7 +541,8 @@ void AvatarMixer::handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMess
                     // ...For those nodes, reset the lastBroadcastTime to 0
                     // so that the AvatarMixer will send Identity data to us
                     [&](const SharedNodePointer& node) {
-                    nodeData->setLastBroadcastTime(node->getUUID(), 0);
+                        nodeData->setLastBroadcastTime(node->getUUID(), 0);
+                        nodeData->resetSentTraitData(node->getLocalID());
                 }
                 );
             }
@@ -588,10 +589,10 @@ void AvatarMixer::handleAvatarIdentityRequestPacket(QSharedPointer<ReceivedMessa
     QUuid avatarID(QUuid::fromRfc4122(message->getMessage()) );
     if (!avatarID.isNull()) {
         auto nodeList = DependencyManager::get<NodeList>();
-        auto node = nodeList->nodeWithUUID(avatarID);
-        if (node) {
-            QMutexLocker lock(&node->getMutex());
-            AvatarMixerClientData* avatarClientData = dynamic_cast<AvatarMixerClientData*>(node->getLinkedData());
+        auto requestedNode = nodeList->nodeWithUUID(avatarID);
+
+        if (requestedNode) {
+            AvatarMixerClientData* avatarClientData = static_cast<AvatarMixerClientData*>(requestedNode->getLinkedData());
             if (avatarClientData) {
                 const AvatarData& avatarData = avatarClientData->getAvatar();
                 QByteArray serializedAvatar = avatarData.identityByteArray();
@@ -599,6 +600,11 @@ void AvatarMixer::handleAvatarIdentityRequestPacket(QSharedPointer<ReceivedMessa
                 identityPackets->write(serializedAvatar);
                 nodeList->sendPacketList(std::move(identityPackets), *senderNode);
                 ++_sumIdentityPackets;
+            }
+
+            AvatarMixerClientData* senderData = static_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
+            if (senderData) {
+                senderData->resetSentTraitData(requestedNode->getLocalID());
             }
         }
     }
@@ -625,23 +631,24 @@ void AvatarMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> 
     while (message->getBytesLeftToRead()) {
         // parse out the UUID being ignored from the packet
         QUuid ignoredUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-
-        if (nodeList->nodeWithUUID(ignoredUUID)) {
+        auto ignoredNode = nodeList->nodeWithUUID(ignoredUUID);
+        if (ignoredNode) {
             if (nodeData) {
                 // Reset the lastBroadcastTime for the ignored avatar to 0
                 // so the AvatarMixer knows it'll have to send identity data about the ignored avatar
                 // to the ignorer if the ignorer unignores.
                 nodeData->setLastBroadcastTime(ignoredUUID, 0);
+                nodeData->resetSentTraitData(ignoredNode->getLocalID());
             }
 
 
             // Reset the lastBroadcastTime for the ignorer (FROM THE PERSPECTIVE OF THE IGNORED) to 0
             // so the AvatarMixer knows it'll have to send identity data about the ignorer
             // to the ignored if the ignorer unignores.
-            auto ignoredNode = nodeList->nodeWithUUID(ignoredUUID);
             AvatarMixerClientData* ignoredNodeData = reinterpret_cast<AvatarMixerClientData*>(ignoredNode->getLinkedData());
             if (ignoredNodeData) {
                 ignoredNodeData->setLastBroadcastTime(senderNode->getUUID(), 0);
+                ignoredNodeData->resetSentTraitData(senderNode->getLocalID());
             }
         }
 
