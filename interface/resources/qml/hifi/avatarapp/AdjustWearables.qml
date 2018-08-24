@@ -1,5 +1,6 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
+import QtQuick.Layouts 1.3
 import "../../styles-uit"
 import "../../controls-uit" as HifiControlsUit
 import "../../controls" as HifiControls
@@ -17,6 +18,7 @@ Rectangle {
 
     signal adjustWearablesOpened(var avatarName);
     signal adjustWearablesClosed(bool status, var avatarName);
+    signal addWearable(string avatarName, string url);
 
     property bool modified: false;
     Component.onCompleted: {
@@ -30,6 +32,7 @@ Rectangle {
     function open(avatar) {
         adjustWearablesOpened(avatar.name);
 
+        modified = false;
         visible = true;
         avatarName = avatar.name;
         wearablesModel = avatar.wearables;
@@ -38,43 +41,47 @@ Rectangle {
 
     function refresh(avatar) {
         wearablesCombobox.model.clear();
-        for(var i = 0; i < avatar.wearables.count; ++i) {
+        wearablesCombobox.currentIndex = -1;
+
+        for (var i = 0; i < avatar.wearables.count; ++i) {
             var wearable = avatar.wearables.get(i).properties;
-            for(var j = (wearable.modelURL.length - 1); j >= 0; --j) {
-                if(wearable.modelURL[j] === '/') {
-                    wearable.text = wearable.modelURL.substring(j + 1) + ' [%jointIndex%]'.replace('%jointIndex%', jointNames[wearable.parentJointIndex]);
+            for (var j = (wearable.modelURL.length - 1); j >= 0; --j) {
+                if (wearable.modelURL[j] === '/') {
+                    wearable.text = wearable.modelURL.substring(j + 1);
                     break;
                 }
             }
             wearablesCombobox.model.append(wearable);
         }
 
-        wearablesCombobox.currentIndex = 0;
+        if (wearablesCombobox.model.count !== 0) {
+            wearablesCombobox.currentIndex = 0;
+        }
     }
 
     function refreshWearable(wearableID, wearableIndex, properties, updateUI) {
-        if(wearableIndex === -1) {
+        if (wearableIndex === -1) {
             wearableIndex = wearablesCombobox.model.findIndexById(wearableID);
         }
 
         var wearable = wearablesCombobox.model.get(wearableIndex);
 
-        if(!wearable) {
+        if (!wearable) {
             return;
         }
 
         var wearableModelItemProperties = wearablesModel.get(wearableIndex).properties;
 
-        for(var prop in properties) {
+        for (var prop in properties) {
             wearable[prop] = properties[prop];
             wearableModelItemProperties[prop] = wearable[prop];
 
-            if(updateUI) {
-                if(prop === 'localPosition') {
-                    position.set(wearable[prop]);
-                } else if(prop === 'localRotationAngles') {
-                    rotation.set(wearable[prop]);
-                } else if(prop === 'dimensions') {
+            if (updateUI) {
+                if (prop === 'localPosition') {
+                    positionVector.set(wearable[prop]);
+                } else if (prop === 'localRotationAngles') {
+                    rotationVector.set(wearable[prop]);
+                } else if (prop === 'dimensions') {
                     scalespinner.set(wearable[prop].x / wearable.naturalDimensions.x);
                 }
             }
@@ -84,13 +91,13 @@ Rectangle {
     }
 
     function getCurrentWearable() {
-        return wearablesCombobox.model.get(wearablesCombobox.currentIndex)
+        return wearablesCombobox.currentIndex !== -1 ? wearablesCombobox.model.get(wearablesCombobox.currentIndex) : null;
     }
 
     function selectWearableByID(entityID) {
-        for(var i = 0; i < wearablesCombobox.model.count; ++i) {
+        for (var i = 0; i < wearablesCombobox.model.count; ++i) {
             var wearable = wearablesCombobox.model.get(i);
-            if(wearable.id === entityID) {
+            if (wearable.id === entityID) {
                 wearablesCombobox.currentIndex = i;
                 break;
             }
@@ -115,72 +122,216 @@ Rectangle {
 
     Column {
         anchors.top: parent.top
-        anchors.topMargin: 15
+        anchors.topMargin: 12
         anchors.horizontalCenter: parent.horizontalCenter
 
         spacing: 20
-        width: parent.width - 30 * 2
+        width: parent.width - 22 * 2
 
-        HifiControlsUit.ComboBox {
-            id: wearablesCombobox
-            anchors.left: parent.left
-            anchors.right: parent.right
-            comboBox.textRole: "text"
+        Column {
+            width: parent.width
 
-            model: ListModel {
-                function findIndexById(id) {
+            Rectangle {
+                color: hifi.colors.orangeHighlight
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 70
+                visible: HMD.active
 
-                    for(var i = 0; i < count; ++i) {
-                        var wearable = get(i);
-                        if(wearable.id === id) {
-                            return i;
-                        }
-                    }
-
-                    return -1;
+                RalewayRegular {
+                    anchors.fill: parent
+                    anchors.leftMargin: 18
+                    anchors.rightMargin: 18
+                    size: 20;
+                    lineHeightMode: Text.FixedHeight
+                    lineHeight: 23;
+                    text: "Tip: You can use hand controllers to grab and adjust your wearables"
+                    wrapMode: Text.WordWrap
                 }
             }
 
-            comboBox.onCurrentIndexChanged: {
-                var currentWearable = getCurrentWearable();
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 12 // spacing
+                visible: HMD.active
+            }
 
-                if(currentWearable) {
-                    position.set(currentWearable.localPosition);
-                    rotation.set(currentWearable.localRotationAngles);
-                    scalespinner.set(currentWearable.dimensions.x / currentWearable.naturalDimensions.x)
+            RowLayout {
+                anchors.left: parent.left
+                anchors.right: parent.right
 
-                    wearableSelected(currentWearable.id);
+                RalewayBold {
+                    size: 15;
+                    lineHeightMode: Text.FixedHeight
+                    lineHeight: 18;
+                    text: "Wearable"
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                spacing: 10
+
+                RalewayBold {
+                    size: 15;
+                    lineHeightMode: Text.FixedHeight
+                    lineHeight: 18;
+                    text: "<a href='#'>Get more</a>"
+                    linkColor: hifi.colors.blueHighlight
+                    anchors.verticalCenter: parent.verticalCenter
+                    onLinkActivated: {
+                        popup.showGetWearables(function() {
+                            emitSendToScript({'method' : 'navigate', 'url' : 'hifi://AvatarIsland/11.5848,-8.10862,-2.80195'})
+                        }, function(link) {
+                            emitSendToScript({'method' : 'navigate', 'url' : link})
+                        });
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+
+                    RalewayBold {
+                        size: 15;
+                        lineHeightMode: Text.FixedHeight
+                        lineHeight: 18;
+                        text: "<a href='#'>Add custom</a>"
+                        linkColor: hifi.colors.blueHighlight
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.right: parent.right
+                        onLinkActivated: {
+                            popup.showSpecifyWearableUrl(function(url) {
+                                console.debug('popup.showSpecifyWearableUrl: ', url);
+                                addWearable(root.avatarName, url);
+                                modified = true;
+                            });
+                        }
+                    }
+                }
+            }
+
+            HifiControlsUit.ComboBox {
+                id: wearablesCombobox
+                anchors.left: parent.left
+                anchors.right: parent.right
+                enabled: getCurrentWearable() !== null
+                comboBox.textRole: "text"
+
+                model: ListModel {
+                    function findIndexById(id) {
+
+                        for (var i = 0; i < count; ++i) {
+                            var wearable = get(i);
+                            if (wearable.id === id) {
+                                return i;
+                            }
+                        }
+
+                        return -1;
+                    }
+                }
+
+                comboBox.onCurrentIndexChanged: {
+                    var currentWearable = getCurrentWearable();
+                    var position = currentWearable ? currentWearable.localPosition : { x : 0, y : 0, z : 0 };
+                    var rotation = currentWearable ? currentWearable.localRotationAngles : { x : 0, y : 0, z : 0 };
+                    var scale = currentWearable ? currentWearable.dimensions.x / currentWearable.naturalDimensions.x : 1.0;
+                    var joint = currentWearable ? currentWearable.parentJointIndex : -1;
+                    var soft = currentWearable ? currentWearable.relayParentJoints : false;
+
+                    positionVector.set(position);
+                    rotationVector.set(rotation);
+                    scalespinner.set(scale);
+                    jointsCombobox.set(joint);
+                    isSoft.set(soft);
+
+                    if (currentWearable) {
+                        wearableSelected(currentWearable.id);
+                    }
                 }
             }
         }
 
         Column {
             width: parent.width
-            spacing: 5
+
+            RalewayBold {
+                size: 15;
+                lineHeightMode: Text.FixedHeight
+                lineHeight: 18;
+                text: "Joint"
+            }
+
+            HifiControlsUit.ComboBox {
+                id: jointsCombobox
+                anchors.left: parent.left
+                anchors.right: parent.right
+                enabled: getCurrentWearable() !== null &&  !isSoft.checked
+                comboBox.displayText: isSoft.checked ? 'Hips' : comboBox.currentText
+
+                model: jointNames
+                property bool notify: false
+
+                function set(jointIndex) {
+                    notify = false;
+                    currentIndex = jointIndex;
+                    notify = true;
+                }
+
+                function notifyJointChanged() {
+                    modified = true;
+                    var properties = {
+                        parentJointIndex: currentIndex,
+                        localPosition: {
+                            x: positionVector.xvalue,
+                            y: positionVector.yvalue,
+                            z: positionVector.zvalue
+                        },
+                        localRotationAngles: {
+                            x: rotationVector.xvalue,
+                            y: rotationVector.yvalue,
+                            z: rotationVector.zvalue,
+                        }
+                    };
+
+                    wearableUpdated(getCurrentWearable().id, wearablesCombobox.currentIndex, properties);
+                }
+
+                onCurrentIndexChanged: {
+                    if (notify) notifyJointChanged();
+                }
+            }
+        }
+
+        Column {
+            width: parent.width
 
             Row {
                 spacing: 20
 
                 // TextStyle5
-                FiraSansSemiBold {
+                RalewayBold {
                     id: positionLabel
-                    size: 22;
+                    size: 15;
+                    lineHeightMode: Text.FixedHeight
+                    lineHeight: 18;
                     text: "Position"
                 }
 
                 // TextStyle7
-                FiraSansRegular {
-                    size: 18;
+                RalewayBold {
+                    size: 15;
                     lineHeightMode: Text.FixedHeight
-                    lineHeight: 16.9;
+                    lineHeight: 18;
                     text: "m"
                     anchors.verticalCenter: positionLabel.verticalCenter
                 }
             }
 
             Vector3 {
-                id: position
+                id: positionVector
                 backgroundColor: "lightgray"
+                enabled: getCurrentWearable() !== null
 
                 function set(localPosition) {
                     notify = false;
@@ -201,9 +352,9 @@ Rectangle {
 
                 property bool notify: false;
 
-                onXvalueChanged: if(notify) notifyPositionChanged();
-                onYvalueChanged: if(notify) notifyPositionChanged();
-                onZvalueChanged: if(notify) notifyPositionChanged();
+                onXvalueChanged: if (notify) notifyPositionChanged();
+                onYvalueChanged: if (notify) notifyPositionChanged();
+                onZvalueChanged: if (notify) notifyPositionChanged();
 
                 decimals: 2
                 realFrom: -10
@@ -214,31 +365,33 @@ Rectangle {
 
         Column {
             width: parent.width
-            spacing: 5
 
             Row {
                 spacing: 20
 
                 // TextStyle5
-                FiraSansSemiBold {
+                RalewayBold {
                     id: rotationLabel
-                    size: 22;
+                    size: 15;
+                    lineHeightMode: Text.FixedHeight
+                    lineHeight: 18;
                     text: "Rotation"
                 }
 
                 // TextStyle7
-                FiraSansRegular {
-                    size: 18;
+                RalewayBold {
+                    size: 15;
                     lineHeightMode: Text.FixedHeight
-                    lineHeight: 16.9;
+                    lineHeight: 18;
                     text: "deg"
                     anchors.verticalCenter: rotationLabel.verticalCenter
                 }
             }
 
             Vector3 {
-                id: rotation
+                id: rotationVector
                 backgroundColor: "lightgray"
+                enabled: getCurrentWearable() !== null
 
                 function set(localRotationAngles) {
                     notify = false;
@@ -259,9 +412,9 @@ Rectangle {
 
                 property bool notify: false;
 
-                onXvalueChanged: if(notify) notifyRotationChanged();
-                onYvalueChanged: if(notify) notifyRotationChanged();
-                onZvalueChanged: if(notify) notifyRotationChanged();
+                onXvalueChanged: if (notify) notifyRotationChanged();
+                onYvalueChanged: if (notify) notifyRotationChanged();
+                onZvalueChanged: if (notify) notifyRotationChanged();
 
                 decimals: 0
                 realFrom: -180
@@ -270,33 +423,66 @@ Rectangle {
             }
         }
 
-        Column {
+        Item {
             width: parent.width
-            spacing: 5
+            height: childrenRect.height
 
-            // TextStyle5
-            FiraSansSemiBold {
-                size: 22;
-                text: "Scale"
+            HifiControlsUit.CheckBox {
+                id: isSoft
+                enabled: getCurrentWearable() !== null
+                text: "Is soft"
+                labelFontSize: 15
+                labelFontWeight: Font.Bold
+                color:  Qt.black
+                y: scalespinner.y
+
+                function set(value) {
+                    notify = false;
+                    checked = value
+                    notify = true;
+                }
+
+                function notifyIsSoftChanged() {
+                    modified = true;
+                    var properties = {
+                        relayParentJoints: checked
+                    };
+
+                    wearableUpdated(getCurrentWearable().id, wearablesCombobox.currentIndex, properties);
+                }
+
+                property bool notify: false;
+
+                onCheckedChanged: if (notify) notifyIsSoftChanged();
             }
 
-            Item {
-                width: parent.width
-                height: childrenRect.height
+            Column {
+                id: scalesColumn
+                anchors.right: parent.right
+
+                // TextStyle5
+                RalewayBold {
+                    id: scaleLabel
+                    size: 15;
+                    lineHeightMode: Text.FixedHeight
+                    lineHeight: 18;
+                    text: "Scale"
+                }
 
                 HifiControlsUit.SpinBox {
                     id: scalespinner
+                    enabled: getCurrentWearable() !== null
                     decimals: 2
                     realStepSize: 0.1
                     realFrom: 0.1
                     realTo: 3.0
                     realValue: 1.0
                     backgroundColor: "lightgray"
-                    width: position.spinboxWidth
+                    width: positionVector.spinboxWidth
                     colorScheme: hifi.colorSchemes.light
 
                     property bool notify: false;
-                    onValueChanged: if(notify) notifyScaleChanged();
+                    onRealValueChanged: if (notify) notifyScaleChanged();
 
                     function set(value) {
                         notify = false;
@@ -320,26 +506,34 @@ Rectangle {
                         wearableUpdated(currentWearable.id, wearablesCombobox.currentIndex, properties);
                     }
                 }
-
-                HifiControlsUit.Button {
-                    fontSize: 18
-                    height: 40
-                    anchors.right: parent.right
-                    color: hifi.buttons.red;
-                    colorScheme: hifi.colorSchemes.light;
-                    text: "TAKE IT OFF"
-                    onClicked: wearableDeleted(root.avatarName, getCurrentWearable().id);
-                    enabled: wearablesCombobox.model.count !== 0
-                    anchors.verticalCenter: scalespinner.verticalCenter
-                }
             }
+        }
 
+        Column {
+            width: parent.width
+
+            HifiControlsUit.Button {
+                fontSize: 18
+                height: 40
+                width: scalespinner.width
+                anchors.right: parent.right
+                color: hifi.buttons.red;
+                colorScheme: hifi.colorSchemes.light;
+                text: "TAKE IT OFF"
+                onClicked: {
+                    modified = true;
+                    wearableDeleted(root.avatarName, getCurrentWearable().id);
+                }
+                enabled: wearablesCombobox.model.count !== 0
+            }
         }
     }
 
     DialogButtons {
+        yesButton.enabled: modified
+
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 30
+        anchors.bottomMargin: 57
         anchors.left: parent.left
         anchors.leftMargin: 30
         anchors.right: parent.right

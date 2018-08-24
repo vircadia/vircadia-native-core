@@ -15,45 +15,12 @@
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
-<@include gpu/Color.slh@>
-<$declareColorWheel()$>
-
-layout(location=0) uniform vec4 inColor;
-
-
-struct WorkloadView {
-    vec4 direction_far;
-    vec4 fov;
-    vec4 origin;
-    vec4 backFront[2];
-    vec4 regions[3];
-};
-
-#if defined(GPU_GL410)
-layout(binding=1) uniform samplerBuffer workloadViewsBuffer;
-WorkloadView getWorkloadView(int i) {
-    int offset = 2 * i;
-    WorkloadView view;
-    view.origin = texelFetch(workloadViewsBuffer, offset);
-    //view.radiuses = texelFetch(workloadViewsBuffer, offset + 1);
-    return view;
-}
-#else
-layout(std140,binding=1) buffer workloadViewsBuffer {
-    WorkloadView _views[];
-};
-WorkloadView getWorkloadView(int i) {
-    WorkloadView view = _views[i];
-    return view;
-}
-#endif
-
-
-
-
+<@include WorkloadResource.slh@>
+<$declareWorkloadViews()$>
 
 out vec4 varColor;
 out vec3 varTexcoord;
+out vec3 varEyePos;
 
 const int NUM_VERTICES_PER_SEGMENT = 2;
 const int NUM_SEGMENT_PER_VIEW_REGION = 65;
@@ -112,12 +79,13 @@ void main(void) {
     <$transformModelToEyeDir(cam, obj, originSpaceTan, tanEye)$>
 
     lateralDir = normalize(cross(vec3(0.0, 0.0, 1.0), normalize(tanEye)));
-    posEye.xyz += (0.05 * (regionID + 1)) * (-1.0 + 2.0 * float(segmentVertexID)) * lateralDir;
+    posEye.xyz += (0.005 * abs(posEye.z) * (regionID + 1)) * (-1.0 + 2.0 * float(segmentVertexID)) * lateralDir;
+    varEyePos = posEye.xyz;
 
     <$transformEyeToClipPos(cam, posEye, gl_Position)$>
 
     varTexcoord = spriteVert.xyz;
 
     // Convert region to color
-    varColor = vec4(colorWheel(float(regionID) / 4.0), -1.0);
+    varColor = vec4(REGION_COLOR[regionID].xyz, -1.0);
 }

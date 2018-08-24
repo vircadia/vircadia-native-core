@@ -21,10 +21,7 @@
 #include <shared/QtHelpers.h>
 #include <AccountManager.h>
 #include <AddressManager.h>
-#include <AnimationCacheScriptingInterface.h>
 #include <Assignment.h>
-#include <AvatarHashMap.h>
-#include <EntityScriptingInterface.h>
 #include <LogHandler.h>
 #include <LogUtils.h>
 #include <LimitedNodeList.h>
@@ -32,16 +29,12 @@
 #include <udt/PacketHeaders.h>
 #include <SharedUtil.h>
 #include <ShutdownEventListener.h>
-#include <SoundCache.h>
-#include <ResourceScriptingInterface.h>
-#include <UserActivityLoggerScriptingInterface.h>
+
 #include <Trace.h>
 #include <StatTracker.h>
 
 #include "AssignmentClientLogging.h"
-#include "AssignmentDynamicFactory.h"
 #include "AssignmentFactory.h"
-#include "avatars/ScriptableAvatar.h"
 
 const QString ASSIGNMENT_CLIENT_TARGET_NAME = "assignment-client";
 const long long ASSIGNMENT_REQUEST_INTERVAL_MSECS = 1 * 1000;
@@ -57,20 +50,10 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     DependencyManager::set<StatTracker>();
     DependencyManager::set<AccountManager>();
 
-    auto scriptableAvatar = DependencyManager::set<ScriptableAvatar>();
     auto addressManager = DependencyManager::set<AddressManager>();
 
     // create a NodeList as an unassigned client, must be after addressManager
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned, listenPort);
-
-    auto animationCache = DependencyManager::set<AnimationCache>();
-    DependencyManager::set<AnimationCacheScriptingInterface>();
-    auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>(false);
-
-    DependencyManager::registerInheritance<EntityDynamicFactoryInterface, AssignmentDynamicFactory>();
-    auto dynamicFactory = DependencyManager::set<AssignmentDynamicFactory>();
-    DependencyManager::set<ResourceScriptingInterface>();
-    DependencyManager::set<UserActivityLoggerScriptingInterface>();
 
     nodeList->startThread();
     // set the logging target to the the CHILD_TARGET_NAME

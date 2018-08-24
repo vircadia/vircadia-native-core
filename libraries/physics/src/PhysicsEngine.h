@@ -70,11 +70,24 @@ using CollisionEvents = std::vector<Collision>;
 
 class PhysicsEngine {
 public:
+    class Transaction {
+    public:
+        void clear() {
+            objectsToRemove.clear();
+            objectsToAdd.clear();
+            objectsToChange.clear();
+        }
+        std::vector<ObjectMotionState*> objectsToRemove;
+        std::vector<ObjectMotionState*> objectsToAdd;
+        std::vector<ObjectMotionState*> objectsToChange;
+    };
+
     PhysicsEngine(const glm::vec3& offset);
     ~PhysicsEngine();
     void init();
 
     uint32_t getNumSubsteps() const;
+    int32_t getNumCollisionObjects() const;
 
     void removeObjects(const VectorOfMotionStates& objects);
     void removeSetOfObjects(const SetOfMotionStates& objects); // only called during teardown
@@ -82,6 +95,8 @@ public:
     void addObjects(const VectorOfMotionStates& objects);
     VectorOfMotionStates changeObjects(const VectorOfMotionStates& objects);
     void reinsertObject(ObjectMotionState* object);
+
+    void processTransaction(Transaction& transaction);
 
     void stepSimulation();
     void harvestPerformanceStats();
@@ -125,8 +140,9 @@ public:
     void setShowBulletConstraints(bool value);
     void setShowBulletConstraintLimits(bool value);
 
-    // Function for getting colliding ObjectMotionStates in the world of specified type
-    const std::vector<ContactTestResult> getCollidingInRegion(MotionStateType desiredObjectType, const ShapeInfo& regionShapeInfo, const Transform& regionTransform) const;
+    // Function for getting colliding objects in the world of specified type
+    // See PhysicsCollisionGroups.h for mask flags.
+    std::vector<ContactTestResult> contactTest(uint16_t mask, const ShapeInfo& regionShapeInfo, const Transform& regionTransform, uint16_t group = USER_COLLISION_GROUP_DYNAMIC) const;
 
 private:
     QList<EntityDynamicPointer> removeDynamicsForBody(btRigidBody* body);
@@ -159,7 +175,7 @@ private:
 
     CharacterController* _myAvatarController;
 
-    uint32_t _numContactFrames = 0;
+    uint32_t _numContactFrames { 0 };
 
     bool _dumpNextStats { false };
     bool _saveNextStats { false };
