@@ -392,24 +392,34 @@ Triangle Triangle::operator*(const glm::mat4& transform) const {
     };
 }
 
+// https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& distance, bool allowBackface) {
-    glm::vec3 firstSide = v0 - v1;
-    glm::vec3 secondSide = v2 - v1;
-    glm::vec3 normal = glm::cross(secondSide, firstSide);
-    float dividend = glm::dot(normal, v1) - glm::dot(origin, normal);
-    if (!allowBackface && dividend > 0.0f) {
-        return false; // origin below plane
-    }
-    float divisor = glm::dot(normal, direction);
-    if (divisor >= 0.0f) {
+    glm::vec3 firstSide = v1 - v0;
+    glm::vec3 secondSide = v2 - v0;
+    glm::vec3 P = glm::cross(direction, secondSide);
+    float det = glm::dot(firstSide, P);
+    if (!allowBackface && det < EPSILON) {
+        return false;
+    } else if (fabsf(det) < EPSILON) {
         return false;
     }
-    float t = dividend / divisor;
-    glm::vec3 point = origin + direction * t;
-    if (glm::dot(normal, glm::cross(point - v1, firstSide)) > 0.0f &&
-            glm::dot(normal, glm::cross(secondSide, point - v1)) > 0.0f &&
-            glm::dot(normal, glm::cross(point - v0, v2 - v0)) > 0.0f) {
+
+    float invDet = 1.0f / det;
+    glm::vec3 T = origin - v0;
+    float u = glm::dot(T, P) * invDet;
+    if (u < 0.0f || u > 1.0f) {
+        return false;
+    }
+
+    glm::vec3 Q = glm::cross(T, firstSide);
+    float v = glm::dot(direction, Q) * invDet;
+    if (v < 0.0f || u + v > 1.0f) {
+        return false;
+    }
+
+    float t = glm::dot(secondSide, Q) * invDet;
+    if (t > EPSILON) {
         distance = t;
         return true;
     }
