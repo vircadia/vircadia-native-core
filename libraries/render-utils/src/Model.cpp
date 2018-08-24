@@ -319,7 +319,7 @@ bool Model::updateGeometry() {
 
                 // Interleave normals and tangents
                 // Parallel version for performance
-                tbb::parallel_for(tbb::blocked_range<size_t>(0, mesh.normals.size()), [&](const tbb::blocked_range<size_t>& range) {
+                tbb::parallel_for(tbb::blocked_range<int>(0, mesh.normals.size()), [&](const tbb::blocked_range<int>& range) {
                     auto normalsRange = std::make_pair(mesh.normals.begin() + range.begin(), mesh.normals.begin() + range.end());
                     auto tangentsRange = std::make_pair(mesh.tangents.begin() + range.begin(), mesh.tangents.begin() + range.end());
                     auto normalsAndTangentsIt = normalsAndTangents.begin() + 2 * range.begin();
@@ -1281,7 +1281,7 @@ void Blender::run() {
                 }
                 float normalCoefficient = vertexCoefficient * NORMAL_COEFFICIENT_SCALE;
                 const FBXBlendshape& blendshape = mesh.blendshapes.at(i);
-                tbb::parallel_for(tbb::blocked_range<size_t>(0, blendshape.indices.size()), [&](const tbb::blocked_range<size_t>& range) {
+                tbb::parallel_for(tbb::blocked_range<int>(0, blendshape.indices.size()), [&](const tbb::blocked_range<int>& range) {
                     for (auto j = range.begin(); j < range.end(); j++) {
                         int index = blendshape.indices.at(j);
                         meshVertices[index] += blendshape.vertices.at(j) * vertexCoefficient;
