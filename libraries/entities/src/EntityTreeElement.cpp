@@ -145,7 +145,6 @@ EntityItemID EntityTreeElement::findRayIntersection(const glm::vec3& origin, con
     bool visibleOnly, bool collidableOnly, QVariantMap& extraInfo, bool precisionPicking) {
 
     EntityItemID result;
-    float distanceToElementCube = FLT_MAX;
     BoxFace localFace;
     glm::vec3 localSurfaceNormal;
 
@@ -153,8 +152,6 @@ EntityItemID EntityTreeElement::findRayIntersection(const glm::vec3& origin, con
         return result;
     }
 
-    // if the distance to the element cube is not less than the current best distance, then it's not possible
-    // for any details inside the cube to be closer so we don't need to consider them.
     QVariantMap localExtraInfo;
     float distanceToElementDetails = distance;
     EntityItemID entityID = findDetailedRayIntersection(origin, direction, element, distanceToElementDetails,
@@ -285,7 +282,6 @@ EntityItemID EntityTreeElement::findParabolaIntersection(const glm::vec3& origin
     QVariantMap& extraInfo, bool precisionPicking) {
 
     EntityItemID result;
-    float distanceToElementCube = std::numeric_limits<float>::max();
     BoxFace localFace;
     glm::vec3 localSurfaceNormal;
 
@@ -293,8 +289,6 @@ EntityItemID EntityTreeElement::findParabolaIntersection(const glm::vec3& origin
         return result;
     }
 
-    // if the distance to the element cube is not less than the current best distance, then it's not possible
-    // for any details inside the cube to be closer so we don't need to consider them.
     QVariantMap localExtraInfo;
     float distanceToElementDetails = parabolicDistance;
     // We can precompute the world-space parabola normal and reuse it for the parabola plane intersects AABox sphere check

@@ -571,7 +571,6 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
     }
 
     glm::mat4 wtvMatrix = worldToVoxelMatrix();
-    glm::mat4 vtwMatrix = voxelToWorldMatrix();
     glm::vec3 normDirection = glm::normalize(direction);
 
     // the PolyVox ray intersection code requires a near and far point.

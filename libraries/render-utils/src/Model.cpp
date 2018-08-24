@@ -385,9 +385,9 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         Triangle bestWorldTriangle;
         glm::vec3 bestWorldIntersectionPoint;
         glm::vec3 bestMeshIntersectionPoint;
-        int bestPartIndex;
-        int bestShapeID;
-        int bestSubMeshIndex;
+        int bestPartIndex = 0;
+        int bestShapeID = 0;
+        int bestSubMeshIndex = 0;
 
         const FBXGeometry& geometry = getFBXGeometry();
         if (!_triangleSetsValid) {
@@ -527,9 +527,9 @@ bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, co
         Triangle bestWorldTriangle;
         glm::vec3 bestWorldIntersectionPoint;
         glm::vec3 bestMeshIntersectionPoint;
-        int bestPartIndex;
-        int bestShapeID;
-        int bestSubMeshIndex;
+        int bestPartIndex = 0;
+        int bestShapeID = 0;
+        int bestSubMeshIndex = 0;
 
         const FBXGeometry& geometry = getFBXGeometry();
         if (!_triangleSetsValid) {

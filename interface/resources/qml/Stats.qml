@@ -116,6 +116,22 @@ Item {
                         visible: root.expanded
                         text: "Avatars NOT Updated: " + root.notUpdatedAvatarCount
                     }
+                    StatText {
+                        visible: root.expanded
+                        text: "Total picks:\n    " +
+                                    root.stylusPicksCount + " styluses\n    " +
+                                    root.rayPicksCount + " rays\n    " +
+                                    root.parabolaPicksCount + " parabolas\n    " +
+                                    root.collisionPicksCount + " colliders"
+                    }
+                    StatText {
+                        visible: root.expanded
+                        text: "Intersection calls: Entities/Overlays/Avatars/HUD\n    " +
+                                    root.stylusPicksUpdated.x + "/" + root.stylusPicksUpdated.y + "/" + root.stylusPicksUpdated.z + "/" + root.stylusPicksUpdated.w + "\n    " +
+                                    root.rayPicksUpdated.x + "/" + root.rayPicksUpdated.y + "/" + root.rayPicksUpdated.z + "/" + root.rayPicksUpdated.w + "\n    " +
+                                    root.parabolaPicksUpdated.x + "/" + root.parabolaPicksUpdated.y + "/" + root.parabolaPicksUpdated.z + "/" + root.parabolaPicksUpdated.w + "\n    " +
+                                    root.collisionPicksUpdated.x + "/" + root.collisionPicksUpdated.y + "/" + root.collisionPicksUpdated.z + "/" + root.collisionPicksUpdated.w
+                    }
                 }
             }
 
