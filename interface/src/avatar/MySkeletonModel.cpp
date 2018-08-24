@@ -238,6 +238,14 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         params.primaryControllerPoses[Rig::PrimaryControllerType_Hips] = sensorToRigPose * hips;
         params.primaryControllerFlags[Rig::PrimaryControllerType_Hips] = (uint8_t)Rig::ControllerFlags::Enabled | (uint8_t)Rig::ControllerFlags::Estimated;
 
+
+        // spine 2 hack to be improved.
+        AnimPose newSpinePose;
+        bool fred = _rig.getAbsoluteJointPoseInRigFrame(_rig.indexOfJoint("Spine2"), newSpinePose);
+        newSpinePose.rot() = glm::quat(0.7071f, 0.0f, 0.0f, 0.7071f)*newSpinePose.rot();
+        params.primaryControllerPoses[Rig::PrimaryControllerType_Spine2] = newSpinePose;
+        params.primaryControllerFlags[Rig::PrimaryControllerType_Spine2] = (uint8_t)Rig::ControllerFlags::Enabled | (uint8_t)Rig::ControllerFlags::Estimated;
+
     } else {
         _prevHipsValid = false;
     }

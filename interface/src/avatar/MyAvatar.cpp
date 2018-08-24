@@ -476,11 +476,13 @@ void MyAvatar::update(float deltaTime) {
 
         // draw hand azimuth vector
         
+        glm::vec3 handAzimuthMidpoint = transformPoint(getTransform().getMatrix(), glm::vec3(_hipToHandController.x, 0.0f, _hipToHandController.y));
         glm::vec3 worldRHandAzimuth = transformPoint(getTransform().getMatrix(), getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).getTranslation());
         glm::vec3 worldLHandAzimuth = transformPoint(getTransform().getMatrix(), getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).getTranslation());
         qCDebug(interfaceapp) << "the right hand in avatar space" << worldRHandAzimuth << " " << getWorldPosition();
         DebugDraw::getInstance().drawRay(getWorldPosition(), worldRHandAzimuth, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
         DebugDraw::getInstance().drawRay(getWorldPosition(), worldLHandAzimuth, glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+        DebugDraw::getInstance().drawRay(getWorldPosition(), handAzimuthMidpoint, glm::vec4(0.0f, 1.0f, 1.0f, 1.0f));
     }
 #endif
 
@@ -818,7 +820,7 @@ void MyAvatar::computeHandAzimuth() {
 
     //qCDebug(interfaceapp) << "the right hand in avatar space" << rightHandRigSpace;
 
-    _hipToHandController = glm::vec2(rightHandRigSpace.x, rightHandRigSpace.z);
+    _hipToHandController = lerp(glm::vec2(rightHandRigSpace.x, rightHandRigSpace.z), glm::vec2(leftHandRigSpace.x, leftHandRigSpace.z),0.5f);
 
 }
 
