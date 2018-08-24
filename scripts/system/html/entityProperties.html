@@ -678,6 +678,52 @@
                     </div>
                 </fieldset-->
             </fieldset>
+            <fieldset class="minor">
+                <legend class="sub-section-header zone-group zone-section">
+                    Bloom
+                </legend>
+                <form>
+                    <input type="radio" name="bloomMode" value="inherit" id="property-zone-bloom-mode-inherit" checked> Inherit
+                    <input type="radio" name="bloomMode" value="disabled" id="property-zone-bloom-mode-disabled"> Off
+                    <input type="radio" name="bloomMode" value="enabled" id="property-zone-bloom-mode-enabled"> On
+                </form>
+                <fieldset class="zone-group zone-section bloom-section property gen fstuple">
+                    <div class="tuple">
+                        <div>
+                            <br>
+                            <table>
+                                <td><label>Bloom Intensity&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0</label></td>
+                                <td><input type="range" class="slider" id="property-zone-bloom-intensity" min="0" max="1" step="0.01"></td>
+                                <td><label>1</label>
+                            </table>
+                        </div>
+                    </div>
+                </fieldset>
+                <fieldset class="zone-group zone-section bloom-section property gen fstuple">
+                    <div class="tuple">
+                        <div>
+                            <br>
+                            <table>
+                                <td><label>Bloom Threshold&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0</label></td>
+                                <td><input type="range" class="slider" id="property-zone-bloom-threshold" min="0" max="1" step="0.01"></td>
+                                <td><label>1</label>
+                            </table>
+                        </div>
+                    </div>
+                </fieldset>
+                <fieldset class="zone-group zone-section bloom-section property gen fstuple">
+                    <div class="tuple">
+                        <div>
+                            <br>
+                            <table>
+                                <td><label>Bloom Size&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0</label></td>
+                                <td><input type="range" class="slider" id="property-zone-bloom-size" min="0" max="2" step="0.01"></td>
+                                <td><label>2</label>
+                            </table>
+                        </div>
+                    </div>
+                </fieldset>
+            </fieldset>
         </fieldset>
         <fieldset id="text" class="major">
             <legend class="section-header text-group text-section">
