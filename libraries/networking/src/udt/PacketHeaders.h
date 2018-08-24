@@ -241,7 +241,8 @@ enum class EntityVersion : PacketVersion {
     CollisionMask16Bytes,
     YieldSimulationOwnership,
     ParticleEntityFix,
-    ParticleSpin
+    ParticleSpin,
+    BloomEffect
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {

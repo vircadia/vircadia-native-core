@@ -375,6 +375,7 @@ static const int INTERVAL_TO_CHECK_HMD_WORN_STATUS = 500; // milliseconds
 static const QString DESKTOP_DISPLAY_PLUGIN_NAME = "Desktop";
 static const QString ACTIVE_DISPLAY_PLUGIN_SETTING_NAME = "activeDisplayPlugin";
 static const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
+static const QString AUTO_LOGOUT_SETTING_NAME = "wallet/autoLogout";
 
 const std::vector<std::pair<QString, Application::AcceptURLMethod>> Application::_acceptedExtensions {
     { SVO_EXTENSION, &Application::importSVOFromURL },
@@ -1094,6 +1095,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Set File Logger Session UUID
     auto avatarManager = DependencyManager::get<AvatarManager>();
     auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
+    if (avatarManager) {
+        workload::SpacePointer space = getEntities()->getWorkloadSpace();
+        avatarManager->setSpace(space);
+    }
     auto accountManager = DependencyManager::get<AccountManager>();
 
     _logger->setSessionID(accountManager->getSessionID());
@@ -1730,6 +1735,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QTimer* settingsTimer = new QTimer();
     moveToNewNamedThread(settingsTimer, "Settings Thread", [this, settingsTimer]{
         connect(qApp, &Application::beforeAboutToQuit, [this, settingsTimer]{
+            bool autoLogout = Setting::Handle<bool>(AUTO_LOGOUT_SETTING_NAME, false).get();
+            if (autoLogout) {
+                auto accountManager = DependencyManager::get<AccountManager>();
+                accountManager->logout();
+            }
             // Disconnect the signal from the save settings
             QObject::disconnect(settingsTimer, &QTimer::timeout, this, &Application::saveSettings);
             // Stop the settings timer
@@ -2536,11 +2546,15 @@ void Application::cleanupBeforeQuit() {
 
 Application::~Application() {
     // remove avatars from physics engine
-    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
-    VectorOfMotionStates motionStates;
-    DependencyManager::get<AvatarManager>()->getObjectsToRemoveFromPhysics(motionStates);
-    _physicsEngine->removeObjects(motionStates);
-    DependencyManager::get<AvatarManager>()->deleteAllAvatars();
+    auto avatarManager = DependencyManager::get<AvatarManager>();
+    avatarManager->clearOtherAvatars();
+
+    PhysicsEngine::Transaction transaction;
+    avatarManager->buildPhysicsTransaction(transaction);
+    _physicsEngine->processTransaction(transaction);
+    avatarManager->handleProcessedPhysicsTransaction(transaction);
+
+    avatarManager->deleteAllAvatars();
 
     _physicsEngine->setCharacterController(nullptr);
 
@@ -5702,12 +5716,10 @@ void Application::update(float deltaTime) {
 
                 t1 = std::chrono::high_resolution_clock::now();
 
-                avatarManager->getObjectsToRemoveFromPhysics(motionStates);
-                _physicsEngine->removeObjects(motionStates);
-                avatarManager->getObjectsToAddToPhysics(motionStates);
-                _physicsEngine->addObjects(motionStates);
-                avatarManager->getObjectsToChange(motionStates);
-                _physicsEngine->changeObjects(motionStates);
+                PhysicsEngine::Transaction transaction;
+                avatarManager->buildPhysicsTransaction(transaction);
+                _physicsEngine->processTransaction(transaction);
+                avatarManager->handleProcessedPhysicsTransaction(transaction);
 
                 myAvatar->prepareForPhysicsSimulation();
                 _physicsEngine->forEachDynamic([&](EntityDynamicPointer dynamic) {
@@ -6176,6 +6188,10 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType) {
 
 bool Application::isHMDMode() const {
     return getActiveDisplayPlugin()->isHmd();
+}
+
+float Application::getNumCollisionObjects() const {
+    return _physicsEngine ? _physicsEngine->getNumCollisionObjects() : 0;
 }
 
 float Application::getTargetRenderFrameRate() const { return getActiveDisplayPlugin()->getTargetFrameRate(); }

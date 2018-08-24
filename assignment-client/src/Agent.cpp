@@ -53,6 +53,7 @@
 #include <EntityScriptingInterface.h> // TODO: consider moving to scriptengine.h
 
 #include "entities/AssignmentParentFinder.h"
+#include "AssignmentDynamicFactory.h"
 #include "RecordingScriptingInterface.h"
 #include "AbstractAudioInterface.h"
 #include "AgentScriptingInterface.h"
@@ -66,6 +67,9 @@ Agent::Agent(ReceivedMessage& message) :
     _avatarAudioTimer(this)
 {
     DependencyManager::set<ScriptableAvatar>();
+
+    DependencyManager::registerInheritance<EntityDynamicFactoryInterface, AssignmentDynamicFactory>();
+    DependencyManager::set<AssignmentDynamicFactory>();
 
     DependencyManager::set<AnimationCache>();
     DependencyManager::set<AnimationCacheScriptingInterface>();
@@ -859,6 +863,8 @@ void Agent::aboutToFinish() {
     DependencyManager::destroy<recording::Recorder>();
     DependencyManager::destroy<recording::ClipCache>();
     DependencyManager::destroy<ScriptEngine>();
+
+    DependencyManager::destroy<AssignmentDynamicFactory>();
 
     DependencyManager::destroy<ScriptableAvatar>();
 
