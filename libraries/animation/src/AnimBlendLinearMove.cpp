@@ -139,8 +139,6 @@ void AnimBlendLinearMove::setFrameAndPhase(float dt, float alpha, int prevPoseIn
     auto nextClipNode = std::dynamic_pointer_cast<AnimClip>(_children[nextPoseIndex]);
     assert(nextClipNode);
 
-    
-
     float v0 = _characteristicSpeeds[prevPoseIndex];
     float n0 = (prevClipNode->getEndFrame() - prevClipNode->getStartFrame()) + 1.0f;
     float v1 = _characteristicSpeeds[nextPoseIndex];
