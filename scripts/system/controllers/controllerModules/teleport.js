@@ -110,7 +110,7 @@ Script.include("/~/system/libraries/controllers.js");
         SEAT: 'seat' // The current target is a seat
     };
 
-    var speed = 12.0;
+    var speed = 9.3;
     var accelerationAxis = {x: 0.0, y: -5.0, z: 0.0};
 
     function Teleporter(hand) {
@@ -190,8 +190,42 @@ Script.include("/~/system/libraries/controllers.js");
             Pointers.removePointer(this.teleportParabolaHeadInvisible);
         };
 
-        this.buttonPress = function(value) {
-            _this.buttonValue = value;
+        this.axisButtonStateX = 0; // Left/right axis button pressed.
+        this.axisButtonStateY = 0; // Up/down axis button pressed.
+        this.BUTTON_TRANSITION_DELAY = 100; // Allow time for transition from direction buttons to touch-pad.
+
+        this.axisButtonChangeX = function (value) {
+            if (value !== 0) {
+                _this.axisButtonStateX = value;
+            } else {
+                // Delay direction button release until after teleport possibly pressed.
+                Script.setTimeout(function () {
+                    _this.axisButtonStateX = value;
+                }, _this.BUTTON_TRANSITION_DELAY);
+            }
+        };
+
+        this.axisButtonChangeY = function (value) {
+            if (value !== 0) {
+                _this.axisButtonStateY = value;
+            } else {
+                // Delay direction button release until after teleport possibly pressed.
+                Script.setTimeout(function () {
+                    _this.axisButtonStateY = value;
+                }, _this.BUTTON_TRANSITION_DELAY);
+            }
+        };
+
+        this.teleportLocked = function () {
+            // Lock teleport if in advanced movement mode and have just transitioned from pressing a direction button.
+            return Controller.getValue(Controller.Hardware.Application.AdvancedMovement)
+                && (_this.axisButtonStateX !== 0 || _this.axisButtonStateY !== 0);
+        };
+
+        this.buttonPress = function (value) {
+            if (value === 0 || !_this.teleportLocked()) {
+                _this.buttonValue = value;
+            }
         };
 
         this.parameters = makeDispatcherModuleParameters(
@@ -347,6 +381,7 @@ Script.include("/~/system/libraries/controllers.js");
     }
 
     var mappingName, teleportMapping;
+    var isViveMapped = false;
 
     function parseJSON(json) {
         try {
@@ -390,12 +425,39 @@ Script.include("/~/system/libraries/controllers.js");
         }
     }
 
+    function registerViveTeleportMapping() {
+        // Disable Vive teleport if touch is transitioning across touch-pad after pressing a direction button.
+        if (Controller.Hardware.Vive) {
+            var mappingName = 'Hifi-Teleporter-Dev-Vive-' + Math.random();
+            var viveTeleportMapping = Controller.newMapping(mappingName);
+            viveTeleportMapping.from(Controller.Hardware.Vive.LSX).peek().to(leftTeleporter.axisButtonChangeX);
+            viveTeleportMapping.from(Controller.Hardware.Vive.LSY).peek().to(leftTeleporter.axisButtonChangeY);
+            viveTeleportMapping.from(Controller.Hardware.Vive.RSX).peek().to(rightTeleporter.axisButtonChangeX);
+            viveTeleportMapping.from(Controller.Hardware.Vive.RSY).peek().to(rightTeleporter.axisButtonChangeY);
+            Controller.enableMapping(mappingName);
+            isViveMapped = true;
+        }
+    }
+
+    function onHardwareChanged() {
+        // Controller.Hardware.Vive is not immediately available at Interface start-up.
+        if (!isViveMapped && Controller.Hardware.Vive) {
+            registerViveTeleportMapping();
+        }
+    }
+
+    Controller.hardwareChanged.connect(onHardwareChanged);
+
     function registerMappings() {
         mappingName = 'Hifi-Teleporter-Dev-' + Math.random();
         teleportMapping = Controller.newMapping(mappingName);
 
-        teleportMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(rightTeleporter.buttonPress);
+        // Vive teleport button lock-out.
+        registerViveTeleportMapping();
+
+        // Teleport actions.
         teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftTeleporter.buttonPress);
+        teleportMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(rightTeleporter.buttonPress);
     }
 
     var leftTeleporter = new Teleporter(LEFT_HAND);
@@ -407,6 +469,7 @@ Script.include("/~/system/libraries/controllers.js");
     Controller.enableMapping(mappingName);
 
     function cleanup() {
+        Controller.hardwareChanged.disconnect(onHardwareChanged);
         teleportMapping.disable();
         leftTeleporter.cleanup();
         rightTeleporter.cleanup();

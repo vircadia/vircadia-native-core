@@ -89,75 +89,8 @@ Item {
         }
 
         Item {
-            id: changePassphraseContainer;
-            anchors.top: securityTextSeparator.bottom;
-            anchors.topMargin: 8;
-            anchors.left: parent.left;
-            anchors.leftMargin: 40;
-            anchors.right: parent.right;
-            anchors.rightMargin: 55;
-            height: 75;
-
-            HiFiGlyphs {
-                id: changePassphraseImage;
-                text: hifi.glyphs.passphrase;
-                // Size
-                size: 80;
-                // Anchors
-                anchors.top: parent.top;
-                anchors.bottom: parent.bottom;
-                anchors.left: parent.left;
-                // Style
-                color: hifi.colors.white;
-            }
-
-            RalewaySemiBold {
-                text: "Passphrase";
-                // Anchors
-                anchors.top: parent.top;
-                anchors.bottom: parent.bottom;
-                anchors.left: changePassphraseImage.right;
-                anchors.leftMargin: 30;
-                width: 50;
-                // Text size
-                size: 18;
-                // Style
-                color: hifi.colors.white;
-            }
-
-            // "Change Passphrase" button
-            HifiControlsUit.Button {
-                id: changePassphraseButton;
-                color: hifi.buttons.blue;
-                colorScheme: hifi.colorSchemes.dark;
-                anchors.right: parent.right;
-                anchors.verticalCenter: parent.verticalCenter;
-                width: 140;
-                height: 40;
-                text: "Change";
-                onClicked: {
-                    sendSignalToWallet({method: 'walletSecurity_changePassphrase'});
-                }
-            }
-        }
-
-        Rectangle {
-            id: changePassphraseSeparator;
-            // Size
-            width: parent.width;
-            height: 1;
-            // Anchors
-            anchors.left: parent.left;
-            anchors.right: parent.right;
-            anchors.top: changePassphraseContainer.bottom;
-            anchors.topMargin: 8;
-            // Style
-            color: hifi.colors.faintGray;
-        }
-
-        Item {
             id: changeSecurityImageContainer;
-            anchors.top: changePassphraseSeparator.bottom;
+            anchors.top: securityTextSeparator.bottom;
             anchors.topMargin: 8;
             anchors.left: parent.left;
             anchors.leftMargin: 40;
@@ -208,139 +141,77 @@ Item {
             }
         }
 
-        Rectangle {
-            id: privateKeysSeparator;
-            // Size
-            width: parent.width;
-            height: 1;
-            // Anchors
-            anchors.left: parent.left;
-            anchors.right: parent.right;
+        Item {
+            id: autoLogoutContainer;
             anchors.top: changeSecurityImageContainer.bottom;
             anchors.topMargin: 8;
-            // Style
-            color: hifi.colors.faintGray;
-        }
-
-        Item {
-            id: yourPrivateKeysContainer;
-            anchors.top: privateKeysSeparator.bottom;
             anchors.left: parent.left;
             anchors.leftMargin: 40;
             anchors.right: parent.right;
             anchors.rightMargin: 55;
-            anchors.bottom: parent.bottom;
+            height: 75;
 
-            onVisibleChanged: {
-                if (visible) {
-                    Commerce.getKeyFilePathIfExists();
-                }
+            HiFiGlyphs {	
+                id: autoLogoutImage;	
+                text: hifi.glyphs.walletKey;	
+                // Size	
+                size: 80;	
+                // Anchors	
+                anchors.top: parent.top;	
+                anchors.topMargin: 20;	
+                anchors.left: parent.left;	
+                // Style	
+                color: hifi.colors.white;	
             }
 
-            HiFiGlyphs {
-                id: yourPrivateKeysImage;
-                text: hifi.glyphs.walletKey;
-                // Size
-                size: 80;
+            HifiControlsUit.CheckBox {
+                id: autoLogoutCheckbox;
+                checked: Settings.getValue("wallet/autoLogout", false);
+                text: "Automatically Log Out when Exiting Interface"
                 // Anchors
-                anchors.top: parent.top;
-                anchors.topMargin: 20;
-                anchors.left: parent.left;
-                // Style
+                anchors.verticalCenter: autoLogoutImage.verticalCenter;
+                anchors.left: autoLogoutImage.right;
+                anchors.leftMargin: 20;
+                anchors.right: autoLogoutHelp.left;
+                anchors.rightMargin: 12;
+                boxSize: 28;
+                labelFontSize: 18;
                 color: hifi.colors.white;
+                onCheckedChanged: {
+                    Settings.setValue("wallet/autoLogout", checked);
+                    if (checked) {
+                        Settings.setValue("wallet/savedUsername", Account.username);
+                    } else {
+                        Settings.setValue("wallet/savedUsername", "");
+                    }
+                }
             }
 
             RalewaySemiBold {
-                id: yourPrivateKeysText;
-                text: "Private Keys";
-                size: 18;
+                id: autoLogoutHelp;
+                text: '[?]';
                 // Anchors
-                anchors.top: parent.top;
-                anchors.topMargin: 32;
-                anchors.left: yourPrivateKeysImage.right;
-                anchors.leftMargin: 30;
+                anchors.verticalCenter: autoLogoutImage.verticalCenter;
                 anchors.right: parent.right;
+                width: 30;
                 height: 30;
-                // Style
-                color: hifi.colors.white;
-            }
-
-            // Text below "private keys"
-            RalewayRegular {
-                id: explanitoryText;
-                text: "Your money and purchases are secured with private keys that only you have access to.";
                 // Text size
                 size: 18;
-                // Anchors
-                anchors.top: yourPrivateKeysText.bottom;
-                anchors.topMargin: 10;
-                anchors.left: yourPrivateKeysText.left;
-                anchors.right: yourPrivateKeysText.right;
-                height: paintedHeight;
                 // Style
-                color: hifi.colors.white;
-                wrapMode: Text.WordWrap;
-                // Alignment
-                horizontalAlignment: Text.AlignLeft;
-                verticalAlignment: Text.AlignVCenter;
-            }
+                color: hifi.colors.blueHighlight;
 
-            Rectangle {
-                id: removeHmdContainer;
-                z: 998;
-                visible: false;
-
-                gradient: Gradient {
-                    GradientStop {
-                        position: 0.2;
-                        color: hifi.colors.baseGrayHighlight;
-                    }
-                    GradientStop {
-                        position: 1.0;
-                        color: hifi.colors.baseGrayShadow;
-                    }
-                }
-                anchors.fill: backupInstructionsButton;
-                radius: 5;
                 MouseArea {
                     anchors.fill: parent;
-                    propagateComposedEvents: false;
                     hoverEnabled: true;
-                }
-
-                RalewayBold {
-                    anchors.fill: parent;
-                    text: "INSTRUCTIONS OPEN ON DESKTOP";
-                    size: 15;
-                    color: hifi.colors.white;
-                    verticalAlignment: Text.AlignVCenter;
-                    horizontalAlignment: Text.AlignHCenter;
-                }
-
-                    Timer {
-                        id: removeHmdContainerTimer;
-                        interval: 5000;
-                        onTriggered: removeHmdContainer.visible = false
+                    onEntered: {
+                        parent.color = hifi.colors.blueAccent;
                     }
-            }
-
-            HifiControlsUit.Button {
-                id: backupInstructionsButton;
-                text: "View Backup Instructions";
-                color: hifi.buttons.blue;
-                colorScheme: hifi.colorSchemes.dark;
-                anchors.left: explanitoryText.left;
-                anchors.right: explanitoryText.right;
-                anchors.top: explanitoryText.bottom;
-                anchors.topMargin: 16;
-                height: 40;
-
-                onClicked: {
-                    var keyPath = "file:///" + root.keyFilePath.substring(0, root.keyFilePath.lastIndexOf('/'));
-                    Qt.openUrlExternally(keyPath + "/backup_instructions.html");
-                    Qt.openUrlExternally(keyPath);
-                    removeHmdContainer.visible = true;
-                    removeHmdContainerTimer.start();
+                    onExited: {
+                        parent.color = hifi.colors.blueHighlight;
+                    }
+                    onClicked: {
+                        sendSignalToWallet({method: 'walletSecurity_autoLogoutHelp'});
+                    }
                 }
             }
         }

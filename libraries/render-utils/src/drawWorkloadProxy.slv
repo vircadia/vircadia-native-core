@@ -15,40 +15,13 @@
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
-<@include gpu/Color.slh@>
-<$declareColorWheel()$>
-
-layout(location=0) uniform vec4 inColor;
-
-
-struct WorkloadProxy {
-    vec4 sphere;
-    vec4 region;
-};
-
-#if defined(GPU_GL410)
-layout(binding=0) uniform samplerBuffer workloadProxiesBuffer;
-WorkloadProxy getWorkloadProxy(int i) {
-    int offset = 2 * i;
-    WorkloadProxy proxy;
-    proxy.sphere = texelFetch(workloadProxiesBuffer, offset);
-    proxy.region = texelFetch(workloadProxiesBuffer, offset + 1);
-    return proxy;
-}
-#else
-layout(std140, binding=0) buffer workloadProxiesBuffer {
-    WorkloadProxy _proxies[];
-};
-WorkloadProxy getWorkloadProxy(int i) {
-    WorkloadProxy proxy = _proxies[i];
-    return proxy;
-}
-#endif
-
+<@include WorkloadResource.slh@>
+<$declareWorkloadProxies()$>
 
 
 out vec4 varColor;
 out vec3 varTexcoord;
+out vec3 varEyePos;
 
 void main(void) {
     const vec4 UNIT_SPRITE[3] = vec4[3](
@@ -79,6 +52,7 @@ void main(void) {
     vec3 dirY = vec3(0.0, 1.0, 0.0);
 
     vec4 pos = vec4(proxyPosEye.xyz + proxy.sphere.w * ( dirX * spriteVert.x + dirY * spriteVert.y /* + dirZ * spriteVert.z*/), 1.0);
+    varEyePos = pos.xyz;
     varTexcoord = spriteVert.xyz;
     <$transformEyeToClipPos(cam, pos, gl_Position)$>
 
@@ -86,7 +60,7 @@ void main(void) {
     int region = floatBitsToInt(proxy.region.x);
     region = (0x000000FF & region);
 
-    varColor = vec4(colorWheel(float(region) / 4.0), proxy.sphere.w);
+    varColor = vec4(REGION_COLOR[region].xyz, proxy.sphere.w);
 
     if (region == 4) {
         gl_Position = vec4(0.0);

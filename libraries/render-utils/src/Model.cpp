@@ -282,6 +282,7 @@ void Model::reset() {
         const FBXGeometry& geometry = getFBXGeometry();
         _rig.reset(geometry);
         emit rigReset();
+        emit rigReady();
     }
 }
 

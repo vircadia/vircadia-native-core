@@ -295,7 +295,8 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
                 auto spaceIndex = _space->allocateID();
                 workload::Sphere sphere(entity->getWorldPosition(), entity->getBoundingRadius());
                 workload::Transaction transaction;
-                transaction.reset(spaceIndex, sphere, workload::Owner(entity));
+                SpatiallyNestablePointer nestable = std::static_pointer_cast<SpatiallyNestable>(entity);
+                transaction.reset(spaceIndex, sphere, workload::Owner(nestable));
                 _space->enqueueTransaction(transaction);
                 entity->setSpaceIndex(spaceIndex);
                 connect(entity.get(), &EntityItem::spaceUpdate, this, &EntityTreeRenderer::handleSpaceUpdate, Qt::QueuedConnection);
@@ -642,6 +643,14 @@ bool EntityTreeRenderer::applyLayeredZones() {
 }
 
 void EntityTreeRenderer::processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
+    OCTREE_PACKET_FLAGS flags;
+    message.readPrimitive(&flags);
+
+    OCTREE_PACKET_SEQUENCE sequence;
+    message.readPrimitive(&sequence);
+
+    _lastOctreeMessageSequence = sequence;
+    message.seek(0);
     std::static_pointer_cast<EntityTree>(_tree)->processEraseMessage(message, sourceNode);
 }
 

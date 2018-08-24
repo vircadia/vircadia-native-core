@@ -20,7 +20,6 @@ Script.include("/~/system/libraries/controllers.js");
 
 // constants from AvatarBookmarks.h
 var ENTRY_AVATAR_URL = "avatarUrl";
-var ENTRY_AVATAR_ATTACHMENTS = "attachments";
 var ENTRY_AVATAR_ENTITIES = "avatarEntites";
 var ENTRY_AVATAR_SCALE = "avatarScale";
 var ENTRY_VERSION = "version";
@@ -31,7 +30,7 @@ function executeLater(callback) {
 
 var INVALID_JOINT_INDEX = -1
 function isWearable(avatarEntity) {
-    return avatarEntity.properties.visible === true && avatarEntity.properties.parentJointIndex !== INVALID_JOINT_INDEX &&
+    return avatarEntity.properties.visible === true && (avatarEntity.properties.parentJointIndex !== INVALID_JOINT_INDEX || avatarEntity.properties.relayParentJoints === true) &&
         (avatarEntity.properties.parentID === MyAvatar.sessionUUID || avatarEntity.properties.parentID === MyAvatar.SELF_ID);
 }
 
@@ -57,7 +56,6 @@ function getMyAvatar() {
     var avatar = {}
     avatar[ENTRY_AVATAR_URL] = MyAvatar.skeletonModelURL;
     avatar[ENTRY_AVATAR_SCALE] = MyAvatar.getAvatarScale();
-    avatar[ENTRY_AVATAR_ATTACHMENTS] = MyAvatar.getAttachmentsVariant();
     avatar[ENTRY_AVATAR_ENTITIES] = getMyAvatarWearables();
     return avatar;
 }
@@ -72,12 +70,15 @@ function getMyAvatarSettings() {
     }
 }
 
-function updateAvatarWearables(avatar, bookmarkAvatarName) {
+function updateAvatarWearables(avatar, bookmarkAvatarName, callback) {
     executeLater(function() {
         var wearables = getMyAvatarWearables();
         avatar[ENTRY_AVATAR_ENTITIES] = wearables;
 
         sendToQml({'method' : 'wearablesUpdated', 'wearables' : wearables, 'avatarName' : bookmarkAvatarName})
+
+        if(callback)
+            callback();
     });
 }
 
@@ -234,6 +235,32 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         Entities.mousePressOnEntity.disconnect(onSelectedEntity);
         Messages.messageReceived.disconnect(handleWearableMessages);
         Messages.unsubscribe('Hifi-Object-Manipulation');
+        break;
+    case 'addWearable':
+
+        var joints = MyAvatar.getJointNames();
+        var hipsIndex = -1;
+
+        for(var i = 0; i < joints.length; ++i) {
+            if(joints[i] === 'Hips') {
+                hipsIndex = i;
+                break;
+            }
+        }
+
+        var properties = {
+            name: "Custom wearable",
+            type: "Model",
+            modelURL: message.url,
+            parentID: MyAvatar.sessionUUID,
+            relayParentJoints: false,
+            parentJointIndex: hipsIndex
+        };
+
+        var entityID = Entities.addEntity(properties, true);
+        updateAvatarWearables(currentAvatar, message.avatarName, function() {
+            onSelectedEntity(entityID);
+        });
         break;
     case 'selectWearable':
         ensureWearableSelected(message.entityID);

@@ -29,20 +29,32 @@
 #include <gl/GLHelpers.h>
 #include <gpu/gl/GLBackend.h>
 #include <gpu/gl/GLShader.h>
+#include <gl/QOpenGLContextWrapper.h>
 
 QTEST_MAIN(ShaderTests)
 
 #pragma optimize("", off)
 void ShaderTests::initTestCase() {
     _window = new QWindow();
+    _window->setSurfaceType(QSurface::SurfaceType::OpenGLSurface);
     _context = new ::gl::Context(_window);
     getDefaultOpenGLSurfaceFormat();
     _context->create();
     if (!_context->makeCurrent()) {
         qFatal("Unable to make test GL context current");
     }
+    QOpenGLContextWrapper(_context->qglContext()).makeCurrent(_window);
+    if (!_context->makeCurrent()) {
+        qFatal("Unable to make test GL context current");
+    }
     gl::initModuleGl();
+    if (!_context->makeCurrent()) {
+        qFatal("Unable to make test GL context current");
+    }
     gpu::Context::init<gpu::gl::GLBackend>();
+    if (!_context->makeCurrent()) {
+        qFatal("Unable to make test GL context current");
+    }
     _gpuContext = std::make_shared<gpu::Context>();
 }
 
@@ -185,7 +197,7 @@ void ShaderTests::testShaderLoad() {
     uint32_t maxShader = 0;
     try {
 
-#if 1
+#if 0
         uint32_t testPrograms[] = {
             shader::render_utils::program::parabola,
             shader::INVALID_PROGRAM,
@@ -229,12 +241,6 @@ void ShaderTests::testShaderLoad() {
                 // Uniforms
                 {
                     auto uniforms = gl::Uniform::load(program);
-                    for (const auto& uniform : uniforms) {
-                        GLint offset, size;
-                        glGetActiveUniformsiv(program, 1, (GLuint*)&uniform.index, GL_UNIFORM_OFFSET, &offset);
-                        glGetActiveUniformsiv(program, 1, (GLuint*)&uniform.index, GL_UNIFORM_SIZE, &size);
-                        qDebug() << uniform.name.c_str() << " size " << size << "offset" << offset;
-                    }
                     const auto& uniformRemap = shaderObject.uniformRemap;
                     auto expectedUniforms = expectedBindings[gpu::Shader::BindingType::UNIFORM];
                     if (!compareBindings(uniforms, expectedUniforms)) {

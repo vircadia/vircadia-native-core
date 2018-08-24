@@ -59,7 +59,6 @@ private slots:
     void handlePacketVersionMismatch(PacketType type, const HifiSockAddr& senderSockAddr, const QUuid& senderUUID);
     void start();
 
-
 private:
     AvatarMixerClientData* getOrCreateClientData(SharedNodePointer node);
     std::chrono::microseconds timeFrame(p_high_resolution_clock::time_point& timestamp);
@@ -69,11 +68,6 @@ private:
     void sendIdentityPacket(AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode);
 
     void manageIdentityData(const SharedNodePointer& node);
-    bool isAvatarInWhitelist(const QUrl& url);
-
-    const QString REPLACEMENT_AVATAR_DEFAULT{ "" };
-    QStringList _avatarWhitelist { };
-    QString _replacementAvatar { REPLACEMENT_AVATAR_DEFAULT };
 
     void optionallyReplicatePacket(ReceivedMessage& message, const Node& node);
 
@@ -82,7 +76,6 @@ private:
     // FIXME - new throttling - use these values somehow
     float _trailingMixRatio { 0.0f };
     float _throttlingRatio { 0.0f };
-
 
     int _sumListeners { 0 };
     int _numStatFrames { 0 };
@@ -126,9 +119,8 @@ private:
 
     RateCounter<> _loopRate; // this is the rate that the main thread tight loop runs
 
-
     AvatarMixerSlavePool _slavePool;
-
+    SlaveSharedData _slaveSharedData;
 };
 
 #endif // hifi_AvatarMixer_h

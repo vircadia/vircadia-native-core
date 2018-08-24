@@ -266,19 +266,10 @@ class RenderEventHandler : public QObject {
     using Parent = QObject;
     Q_OBJECT
 public:
-    RenderEventHandler(QOpenGLContext* context) {
-        _renderContext = new OffscreenGLCanvas();
-        _renderContext->setObjectName("RenderContext");
-        _renderContext->create(context);
-        if (!_renderContext->makeCurrent()) {
-            qFatal("Unable to make rendering context current");
-        }
-        _renderContext->doneCurrent();
-
+    RenderEventHandler() {
         // Transfer to a new thread
         moveToNewNamedThread(this, "RenderThread", [this](QThread* renderThread) {
             hifi::qt::addBlockingForbiddenThread("Render", renderThread);
-            _renderContext->moveToThreadWithContext(renderThread);
             qApp->_lastTimeRendered.start();
         }, std::bind(&RenderEventHandler::initialize, this), QThread::HighestPriority);
     }
@@ -288,9 +279,6 @@ private:
         setObjectName("Render");
         PROFILE_SET_THREAD_NAME("Render");
         setCrashAnnotation("render_thread_id", std::to_string((size_t)QThread::currentThreadId()));
-        if (!_renderContext->makeCurrent()) {
-            qFatal("Unable to make rendering context current on render thread");
-        }
     }
 
     void render() {
@@ -311,8 +299,6 @@ private:
         }
         return Parent::event(event);
     }
-
-    OffscreenGLCanvas* _renderContext { nullptr };
 };
 
 
@@ -389,6 +375,7 @@ static const int INTERVAL_TO_CHECK_HMD_WORN_STATUS = 500; // milliseconds
 static const QString DESKTOP_DISPLAY_PLUGIN_NAME = "Desktop";
 static const QString ACTIVE_DISPLAY_PLUGIN_SETTING_NAME = "activeDisplayPlugin";
 static const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
+static const QString AUTO_LOGOUT_SETTING_NAME = "wallet/autoLogout";
 
 const std::vector<std::pair<QString, Application::AcceptURLMethod>> Application::_acceptedExtensions {
     { SVO_EXTENSION, &Application::importSVOFromURL },
@@ -1027,7 +1014,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 // This is done so as not break previous command line scripts
                 if (testScriptPath.left(URL_SCHEME_HTTP.length()) == URL_SCHEME_HTTP ||
                     testScriptPath.left(URL_SCHEME_FTP.length()) == URL_SCHEME_FTP) {
-                    
+
                     setProperty(hifi::properties::TEST, QUrl::fromUserInput(testScriptPath));
                 } else if (QFileInfo(testScriptPath).exists()) {
                     setProperty(hifi::properties::TEST, QUrl::fromLocalFile(testScriptPath));
@@ -1108,6 +1095,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Set File Logger Session UUID
     auto avatarManager = DependencyManager::get<AvatarManager>();
     auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
+    if (avatarManager) {
+        workload::SpacePointer space = getEntities()->getWorkloadSpace();
+        avatarManager->setSpace(space);
+    }
     auto accountManager = DependencyManager::get<AccountManager>();
 
     _logger->setSessionID(accountManager->getSessionID());
@@ -1744,6 +1735,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QTimer* settingsTimer = new QTimer();
     moveToNewNamedThread(settingsTimer, "Settings Thread", [this, settingsTimer]{
         connect(qApp, &Application::beforeAboutToQuit, [this, settingsTimer]{
+            bool autoLogout = Setting::Handle<bool>(AUTO_LOGOUT_SETTING_NAME, false).get();
+            if (autoLogout) {
+                auto accountManager = DependencyManager::get<AccountManager>();
+                accountManager->logout();
+            }
             // Disconnect the signal from the save settings
             QObject::disconnect(settingsTimer, &QTimer::timeout, this, &Application::saveSettings);
             // Stop the settings timer
@@ -1841,14 +1837,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::deletingEntity, [this](const EntityItemID& entityItemID) {
         if (entityItemID == _keyboardFocusedEntity.get()) {
             setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
-        }
-    });
-
-    connect(getEntities()->getTree().get(), &EntityTree::deletingEntity, [](const EntityItemID& entityItemID) {
-        auto avatarManager = DependencyManager::get<AvatarManager>();
-        auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
-        if (myAvatar) {
-            myAvatar->clearAvatarEntity(entityItemID);
         }
     });
 
@@ -2558,11 +2546,15 @@ void Application::cleanupBeforeQuit() {
 
 Application::~Application() {
     // remove avatars from physics engine
-    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
-    VectorOfMotionStates motionStates;
-    DependencyManager::get<AvatarManager>()->getObjectsToRemoveFromPhysics(motionStates);
-    _physicsEngine->removeObjects(motionStates);
-    DependencyManager::get<AvatarManager>()->deleteAllAvatars();
+    auto avatarManager = DependencyManager::get<AvatarManager>();
+    avatarManager->clearOtherAvatars();
+
+    PhysicsEngine::Transaction transaction;
+    avatarManager->buildPhysicsTransaction(transaction);
+    _physicsEngine->processTransaction(transaction);
+    avatarManager->handleProcessedPhysicsTransaction(transaction);
+
+    avatarManager->deleteAllAvatars();
 
     _physicsEngine->setCharacterController(nullptr);
 
@@ -2631,7 +2623,7 @@ Application::~Application() {
 
     // Can't log to file passed this point, FileLogger about to be deleted
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
-    
+
     _renderEventHandler->deleteLater();
 }
 
@@ -2695,26 +2687,14 @@ void Application::initializeGL() {
         }
     }
 
-    // Build an offscreen GL context for the main thread.
-    _offscreenContext = new OffscreenGLCanvas();
-    _offscreenContext->setObjectName("MainThreadContext");
-    _offscreenContext->create(_glWidget->qglContext());
-    if (!_offscreenContext->makeCurrent()) {
-        qFatal("Unable to make offscreen context current");
-    }
-    _offscreenContext->doneCurrent();
-    _offscreenContext->setThreadContext();
+    _renderEventHandler = new RenderEventHandler();
 
+    // Build an offscreen GL context for the main thread.
     _glWidget->makeCurrent();
     glClearColor(0.2f, 0.2f, 0.2f, 1);
     glClear(GL_COLOR_BUFFER_BIT);
     _glWidget->swapBuffers();
 
-    // Move the GL widget context to the render event handler thread
-    _renderEventHandler = new RenderEventHandler(_glWidget->qglContext());
-    if (!_offscreenContext->makeCurrent()) {
-        qFatal("Unable to make offscreen context current");
-    }
 
     // Create the GPU backend
 
@@ -2727,9 +2707,6 @@ void Application::initializeGL() {
     _gpuContext = std::make_shared<gpu::Context>();
 
     DependencyManager::get<TextureCache>()->setGPUContext(_gpuContext);
-
-    // Restore the default main thread context
-    _offscreenContext->makeCurrent();
 }
 
 static const QString SPLASH_SKYBOX{ "{\"ProceduralEntity\":{ \"version\":2, \"shaderUrl\":\"qrc:///shaders/splashSkybox.frag\" } }" };
@@ -2767,8 +2744,6 @@ void Application::initializeDisplayPlugins() {
 
     // Submit a default frame to render until the engine starts up
     updateRenderArgs(0.0f);
-
-    _offscreenContext->makeCurrent();
 
 #define ENABLE_SPLASH_FRAME 0
 #if ENABLE_SPLASH_FRAME
@@ -2811,8 +2786,6 @@ void Application::initializeDisplayPlugins() {
 }
 
 void Application::initializeRenderEngine() {
-    _offscreenContext->makeCurrent();
-
     // FIXME: on low end systems os the shaders take up to 1 minute to compile, so we pause the deadlock watchdog thread.
     DeadlockWatchdogThread::withPause([&] {
         // Set up the render engine
@@ -3700,7 +3673,7 @@ bool Application::event(QEvent* event) {
 
 bool Application::eventFilter(QObject* object, QEvent* event) {
 
-    if (_aboutToQuit) {
+    if (_aboutToQuit && event->type() != QEvent::DeferredDelete && event->type() != QEvent::Destroy) {
         return true;
     }
 
@@ -4562,7 +4535,6 @@ void Application::idle() {
         if (offscreenUi->size() != fromGlm(uiSize)) {
             qCDebug(interfaceapp) << "Device pixel ratio changed, triggering resize to " << uiSize;
             offscreenUi->resize(fromGlm(uiSize));
-            _offscreenContext->makeCurrent();
         }
     }
 
@@ -4619,10 +4591,6 @@ void Application::idle() {
     // details normally.
     bool showWarnings = getLogger()->extraDebugging();
     PerformanceWarning warn(showWarnings, "idle()");
-
-    if (!_offscreenContext->makeCurrent()) {
-        qFatal("Unable to make main thread context current");
-    }
 
     {
         _gameWorkload.updateViews(_viewFrustum, getMyAvatar()->getHeadPosition());
@@ -4951,7 +4919,6 @@ QVector<EntityItemID> Application::pasteEntities(float x, float y, float z) {
 }
 
 void Application::init() {
-    _offscreenContext->makeCurrent();
     // Make sure Login state is up to date
     DependencyManager::get<DialogsManager>()->toggleLoginDialog();
     if (!DISABLE_DEFERRED) {
@@ -5300,6 +5267,7 @@ void Application::resetPhysicsReadyInformation() {
     _nearbyEntitiesCountAtLastPhysicsCheck = 0;
     _nearbyEntitiesStabilityCount = 0;
     _physicsEnabled = false;
+    _octreeProcessor.startEntitySequence();
 }
 
 
@@ -5534,10 +5502,7 @@ void Application::update(float deltaTime) {
         // we haven't yet enabled physics.  we wait until we think we have all the collision information
         // for nearby entities before starting bullet up.
         quint64 now = usecTimestampNow();
-        // Check for flagged EntityData having arrived.
-        auto entityTreeRenderer = getEntities();
-        if (isServerlessMode() || 
-            (entityTreeRenderer && _octreeProcessor.octreeSequenceIsComplete(entityTreeRenderer->getLastOctreeMessageSequence()) )) {
+        if (isServerlessMode() || _octreeProcessor.isLoadSequenceComplete()) {
             // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
             _lastPhysicsCheckTime = now;
             _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
@@ -5546,7 +5511,7 @@ void Application::update(float deltaTime) {
             // process octree stats packets are sent in between full sends of a scene (this isn't currently true).
             // We keep physics disabled until we've received a full scene and everything near the avatar in that
             // scene is ready to compute its collision shape.
-            if (nearbyEntitiesAreReadyForPhysics() && getMyAvatar()->isReadyForPhysics()) {
+            if (getMyAvatar()->isReadyForPhysics()) {
                 _physicsEnabled = true;
                 getMyAvatar()->updateMotionBehaviorFromMenu();
             }
@@ -5751,12 +5716,10 @@ void Application::update(float deltaTime) {
 
                 t1 = std::chrono::high_resolution_clock::now();
 
-                avatarManager->getObjectsToRemoveFromPhysics(motionStates);
-                _physicsEngine->removeObjects(motionStates);
-                avatarManager->getObjectsToAddToPhysics(motionStates);
-                _physicsEngine->addObjects(motionStates);
-                avatarManager->getObjectsToChange(motionStates);
-                _physicsEngine->changeObjects(motionStates);
+                PhysicsEngine::Transaction transaction;
+                avatarManager->buildPhysicsTransaction(transaction);
+                _physicsEngine->processTransaction(transaction);
+                avatarManager->handleProcessedPhysicsTransaction(transaction);
 
                 myAvatar->prepareForPhysicsSimulation();
                 _physicsEngine->forEachDynamic([&](EntityDynamicPointer dynamic) {
@@ -6227,6 +6190,10 @@ bool Application::isHMDMode() const {
     return getActiveDisplayPlugin()->isHmd();
 }
 
+float Application::getNumCollisionObjects() const {
+    return _physicsEngine ? _physicsEngine->getNumCollisionObjects() : 0;
+}
+
 float Application::getTargetRenderFrameRate() const { return getActiveDisplayPlugin()->getTargetFrameRate(); }
 
 QRect Application::getDesirableApplicationGeometry() const {
@@ -6350,7 +6317,6 @@ void Application::clearDomainOctreeDetails() {
         _octreeServerSceneStats.clear();
     });
 
-    _octreeProcessor.resetCompletionSequenceNumber();
     // reset the model renderer
     getEntities()->clear();
 
@@ -6432,8 +6398,8 @@ void Application::nodeActivated(SharedNodePointer node) {
         if (_avatarOverrideUrl.isValid()) {
             getMyAvatar()->useFullAvatarURL(_avatarOverrideUrl);
         }
-        static const QUrl empty{};
-        if (getMyAvatar()->getFullAvatarURLFromPreferences() != getMyAvatar()->cannonicalSkeletonModelURL(empty)) {
+
+        if (getMyAvatar()->getFullAvatarURLFromPreferences() != getMyAvatar()->getSkeletonModelURL()) {
             getMyAvatar()->resetFullAvatarURL();
         }
         getMyAvatar()->markIdentityDataChanged();
@@ -8342,7 +8308,7 @@ QOpenGLContext* Application::getPrimaryContext() {
 }
 
 bool Application::makeRenderingContextCurrent() {
-    return _offscreenContext->makeCurrent();
+    return true;
 }
 
 bool Application::isForeground() const {
