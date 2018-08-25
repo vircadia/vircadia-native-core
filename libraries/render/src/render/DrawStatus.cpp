@@ -208,7 +208,7 @@ void DrawStatus::run(const RenderContextPointer& renderContext, const Input& inp
             }
             _instanceBuffer->setSubData(0, instanceData);
             batch.setInputBuffer(0, _instanceBuffer, 0, sizeof(InstanceData));
-            batch.drawInstanced(instanceData.size(), gpu::TRIANGLES, 24 * NUM_STATUS_VEC4_PER_ITEM);
+            batch.drawInstanced((uint32_t)instanceData.size(), gpu::TRIANGLES, 24 * NUM_STATUS_VEC4_PER_ITEM);
         }
         batch.setResourceTexture(0, 0);
     });

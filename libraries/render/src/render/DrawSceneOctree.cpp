@@ -116,7 +116,7 @@ void DrawSceneOctree::run(const RenderContextPointer& renderContext, const ItemS
         }
         _cellBoundsBuffer->setSubData(0, cellBounds);
         batch.setInputBuffer(0, _cellBoundsBuffer, 0, sizeof(ivec4));
-        batch.drawInstanced(cellBounds.size(), gpu::LINES, 24);
+        batch.drawInstanced((uint32_t)cellBounds.size(), gpu::LINES, 24);
 
         // Draw the LOD Reticle
         {
