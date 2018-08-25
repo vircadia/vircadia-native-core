@@ -1455,12 +1455,9 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         }
         emit requestRenderUpdate();
     }
-}
 
-
-void ModelEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     withWriteLock([&] {
-        bool visuallyReady = (_prevModelLoaded && _texturesLoaded);
+        bool visuallyReady = ((_prevModelLoaded && _texturesLoaded) || model->getURL().isEmpty());
         entity->setVisuallyReady(visuallyReady);
     });
 }

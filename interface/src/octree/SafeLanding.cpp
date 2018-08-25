@@ -174,7 +174,7 @@ bool SafeLanding::entitiesRenderReady() {
     for (auto entityMapIter = _trackedEntitiesRenderStatus.begin(); entityMapIter != _trackedEntitiesRenderStatus.end(); ++entityMapIter) {
         auto entity = entityMapIter->second;
         bool visuallyReady = entity->isVisuallyReady();
-        qDebug() << "is entityType: " << EntityTypes::getEntityTypeName(entity->getType()) << " " << visuallyReady;
+        qDebug() << "is entityType: " << EntityTypes::getEntityTypeName(entity->getType()) << " " << visuallyReady << " " << entityMapIter->first;
         if (visuallyReady) {
             entityMapIter = _trackedEntitiesRenderStatus.erase(entityMapIter);
             if (entityMapIter == _trackedEntitiesRenderStatus.end()) {

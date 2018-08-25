@@ -164,8 +164,6 @@ protected:
     virtual void doRender(RenderArgs* args) override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
 
-    virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
-
     render::hifi::Tag getTagMask() const override;
 
     void setIsVisibleInSecondaryCamera(bool value) override;
