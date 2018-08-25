@@ -14,8 +14,15 @@
 <@include render-utils/ShaderConstants.h@>
 
 layout(binding=0) uniform sampler2D Font;
-layout(location=RENDER_UTILS_UNIFORM_TEXT_OUTLINE) uniform bool Outline;
-layout(location=RENDER_UTILS_UNIFORM_TEXT_COLOR) uniform vec4 Color;
+
+struct TextParams {
+    vec4 color;
+    float outline;
+};
+
+layout(binding=0) uniform textParamsBuffer {
+    TextParams params;
+};
 
 // the interpolated normal
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
@@ -32,7 +39,7 @@ const float taaBias = pow(2.0, TAA_TEXTURE_LOD_BIAS);
 float evalSDF(vec2 texCoord) {
     // retrieve signed distance
     float sdf = textureLod(Font, texCoord, TAA_TEXTURE_LOD_BIAS).g;
-    if (Outline) {
+    if (params.outline > 0.0) {
         if (sdf > interiorCutoff) {
             sdf = 1.0 - sdf;
         } else {
@@ -62,8 +69,8 @@ void main() {
 
     packDeferredFragment(
         normalize(_normalWS),
-        a * Color.a,
-        Color.rgb,
+        a * params.color.a,
+        params.color.rgb,
         DEFAULT_ROUGHNESS,
         DEFAULT_METALLIC,
         DEFAULT_EMISSIVE,
