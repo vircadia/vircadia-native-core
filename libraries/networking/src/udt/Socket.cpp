@@ -390,8 +390,6 @@ void Socket::processPendingDatagrams(int) {
         int datagramSize = datagram._datagramLength;
         auto receiveTime = datagram._receiveTime;
 
-        auto it = _unfilteredHandlers.find(senderSockAddr);
-
         // we're reading a packet so re-start the readyRead backup timer
         _readyReadBackupTimer->start();
 
