@@ -210,6 +210,7 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
 }
 
 void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node) {
+    const Node* nodeRaw = node.data();
 
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -220,7 +221,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
     _stats.nodesBroadcastedTo++;
 
-    AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
+    AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(nodeRaw->getLinkedData());
 
     nodeData->resetInViewStats();
 
@@ -260,7 +261,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     bool PALIsOpen = nodeData->getRequestsDomainListData();
 
     // When this is true, the AvatarMixer will send Avatar data to a client about avatars that have ignored them
-    bool getsAnyIgnored = PALIsOpen && node->getCanKick();
+    bool getsAnyIgnored = PALIsOpen && nodeRaw->getCanKick();
 
     if (PALIsOpen) {
         // Increase minimumBytesPerAvatar if the PAL is open
@@ -286,8 +287,8 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
 
     // setup list of AvatarData as well as maps to map betweeen the AvatarData and the original nodes
-    std::vector<AvatarSharedPointer> avatarsToSort;
-    std::unordered_map<AvatarSharedPointer, SharedNodePointer> avatarDataToNodes;
+    std::vector<AvatarData*> avatarsToSort;
+    std::unordered_map<const AvatarData*, SharedNodePointer> avatarDataToNodes;
     std::unordered_map<QUuid, uint64_t> avatarEncodeTimes;
     std::for_each(_begin, _end, [&](const SharedNodePointer& otherNode) {
         // make sure this is an agent that we have avatar data for before considering it for inclusion
@@ -295,7 +296,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             && otherNode->getLinkedData()) {
             const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNode->getLinkedData());
 
-            AvatarSharedPointer otherAvatar = otherNodeData->getAvatarSharedPointer();
+            AvatarData* otherAvatar = otherNodeData->getAvatarSharedPointer().get();
             avatarsToSort.push_back(otherAvatar);
             avatarDataToNodes[otherAvatar] = otherNode;
             QUuid id = otherAvatar->getSessionUUID();
@@ -306,7 +307,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     class SortableAvatar: public PrioritySortUtil::Sortable {
     public:
         SortableAvatar() = delete;
-        SortableAvatar(const AvatarSharedPointer& avatar, uint64_t lastEncodeTime)
+        SortableAvatar(const AvatarData* avatar, uint64_t lastEncodeTime)
             : _avatar(avatar), _lastEncodeTime(lastEncodeTime) {}
         glm::vec3 getPosition() const override { return _avatar->getWorldPosition(); }
         float getRadius() const override {
@@ -316,10 +317,10 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         uint64_t getTimestamp() const override {
             return _lastEncodeTime;
         }
-        AvatarSharedPointer getAvatar() const { return _avatar; }
+        const AvatarData* getAvatar() const { return _avatar; }
 
     private:
-        AvatarSharedPointer _avatar;
+        const AvatarData* _avatar;
         uint64_t _lastEncodeTime;
     };
 
@@ -332,8 +333,8 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
     // ignore or sort
     const AvatarSharedPointer& thisAvatar = nodeData->getAvatarSharedPointer();
-    for (const auto& avatar : avatarsToSort) {
-        if (avatar == thisAvatar) {
+    for (const auto avatar : avatarsToSort) {
+        if (avatar == thisAvatar.get()) {
             // don't echo updates to self
             continue;
         }
@@ -356,14 +357,14 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         // and isn't an avatar that the viewing node has ignored
         // or that has ignored the viewing node
         if (!avatarNode->getLinkedData()
-            || avatarNode->getUUID() == node->getUUID()
-            || (node->isIgnoringNodeWithID(avatarNode->getUUID()) && !PALIsOpen)
-            || (avatarNode->isIgnoringNodeWithID(node->getUUID()) && !getsAnyIgnored)) {
+            || avatarNode->getUUID() == nodeRaw->getUUID()
+            || (nodeRaw->isIgnoringNodeWithID(avatarNode->getUUID()) && !PALIsOpen)
+            || (avatarNode->isIgnoringNodeWithID(nodeRaw->getUUID()) && !getsAnyIgnored)) {
             shouldIgnore = true;
         } else {
             // Check to see if the space bubble is enabled
             // Don't bother with these checks if the other avatar has their bubble enabled and we're gettingAnyIgnored
-            if (node->isIgnoreRadiusEnabled() || (avatarNode->isIgnoreRadiusEnabled() && !getsAnyIgnored)) {
+            if (nodeRaw->isIgnoreRadiusEnabled() || (avatarNode->isIgnoreRadiusEnabled() && !getsAnyIgnored)) {
                 float sensorToWorldScale = avatarNodeData->getAvatarSharedPointer()->getSensorToWorldScale();
                 // Define the scale of the box for the current other node
                 glm::vec3 otherNodeBoxScale = (avatarNodeData->getPosition() - avatarNodeData->getGlobalBoundingBoxCorner()) * 2.0f * sensorToWorldScale;
@@ -430,7 +431,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     int remainingAvatars = (int)sortedAvatars.size();
     auto traitsPacketList = NLPacketList::create(PacketType::BulkAvatarTraits, QByteArray(), true, true);
     while (!sortedAvatars.empty()) {
-        const auto avatarData = sortedAvatars.top().getAvatar();
+        const AvatarData* avatarData = sortedAvatars.top().getAvatar();
         sortedAvatars.pop();
         remainingAvatars--;
 
@@ -565,7 +566,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     _stats.numBytesSent += numAvatarDataBytes;
 
     // send the avatar data PacketList
-    nodeList->sendPacketList(std::move(avatarPacketList), *node);
+    nodeList->sendPacketList(std::move(avatarPacketList), *nodeRaw);
 
     // record the bytes sent for other avatar data in the AvatarMixerClientData
     nodeData->recordSentAvatarData(numAvatarDataBytes);
@@ -575,7 +576,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
     if (traitsPacketList->getNumPackets() >= 1) {
         // send the traits packet list
-        nodeList->sendPacketList(std::move(traitsPacketList), *node);
+        nodeList->sendPacketList(std::move(traitsPacketList), *nodeRaw);
     }
 
     // record the number of avatars held back this frame
