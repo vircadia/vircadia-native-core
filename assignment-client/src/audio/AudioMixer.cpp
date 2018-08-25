@@ -196,17 +196,6 @@ const pair<QString, CodecPluginPointer> AudioMixer::negotiateCodec(vector<QStrin
     return make_pair(selectedCodecName, _availableCodecs[selectedCodecName]);
 }
 
-void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
-    // enumerate the connected listeners to remove HRTF objects for the disconnected node
-    auto nodeList = DependencyManager::get<NodeList>();
-
-    nodeList->eachNode([&killedNode](const SharedNodePointer& node) {
-        auto clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
-        if (clientData) {
-            clientData->removeNode(killedNode->getLocalID());
-        }
-    });
-}
 
 void AudioMixer::handleNodeMuteRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
     auto nodeList = DependencyManager::get<NodeList>();
@@ -225,32 +214,31 @@ void AudioMixer::handleNodeMuteRequestPacket(QSharedPointer<ReceivedMessage> pac
     }
 }
 
+void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
+    auto clientData = dynamic_cast<AudioMixerClientData*>(killedNode->getLinkedData());
+    if (clientData) {
+        // stage the removal of all streams from this node, workers handle when preparing mixes for listeners
+        _workerSharedData.removedNodes.emplace_back(killedNode->getLocalID());
+    }
+}
+
 void AudioMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
     auto clientData = dynamic_cast<AudioMixerClientData*>(sendingNode->getLinkedData());
     if (clientData) {
         clientData->removeAgentAvatarAudioStream();
-        auto nodeList = DependencyManager::get<NodeList>();
-        nodeList->eachNode([sendingNode](const SharedNodePointer& node){
-            auto listenerClientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
-            if (listenerClientData) {
-                listenerClientData->removeHRTFForStream(sendingNode->getLocalID());
-            }
-        });
+
+        // stage a removal of the avatar audio stream from this Agent, workers handle when preparing mixes for listeners
+        _workerSharedData.removedStreams.emplace_back(sendingNode->getUUID(), sendingNode->getLocalID(), QUuid());
     }
 }
 
 void AudioMixer::removeHRTFsForFinishedInjector(const QUuid& streamID) {
     auto injectorClientData = qobject_cast<AudioMixerClientData*>(sender());
-    if (injectorClientData) {
-        // enumerate the connected listeners to remove HRTF objects for the disconnected injector
-        auto nodeList = DependencyManager::get<NodeList>();
 
-        nodeList->eachNode([injectorClientData, &streamID](const SharedNodePointer& node){
-            auto listenerClientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
-            if (listenerClientData) {
-                listenerClientData->removeHRTFForStream(injectorClientData->getNodeLocalID(), streamID);
-            }
-        });
+    if (injectorClientData) {
+        // stage the removal of this stream, workers handle when preparing mixes for listeners
+        _workerSharedData.removedStreams.emplace_back(injectorClientData->getNodeID(), injectorClientData->getNodeLocalID(),
+                                                      streamID);
     }
 }
 
@@ -370,7 +358,6 @@ AudioMixerClientData* AudioMixer::getOrCreateClientData(Node* node) {
     if (!clientData) {
         node->setLinkedData(unique_ptr<NodeData> { new AudioMixerClientData(node->getUUID(), node->getLocalID()) });
         clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
-        clientData->setNodeLocalID(node->getLocalID());
         connect(clientData, &AudioMixerClientData::injectorStreamFinished, this, &AudioMixer::removeHRTFsForFinishedInjector);
     }
 
@@ -409,6 +396,30 @@ void AudioMixer::start() {
 
         auto frameTimer = _frameTiming.timer();
 
+        // process (node-isolated) audio packets across slave threads
+        {
+            auto packetsTimer = _packetsTiming.timer();
+
+            // first clear the concurrent vector of added streams that the slaves will add to when they process packets
+            _workerSharedData.addedStreams.clear();
+
+            nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
+                _slavePool.processPackets(cbegin, cend);
+            });
+        }
+
+        // process queued events (networking, global audio packets, &c.)
+        {
+            auto eventsTimer = _eventsTiming.timer();
+
+            // clear removed nodes and removed streams before we process events that will setup the new set
+            _workerSharedData.removedNodes.clear();
+            _workerSharedData.removedStreams.clear();
+
+            // since we're a while loop we need to yield to qt's event processing
+            QCoreApplication::processEvents();
+        }
+
         nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
             // prepare frames; pop off any new audio from their streams
             {
@@ -434,21 +445,6 @@ void AudioMixer::start() {
         ++frame;
         ++_numStatFrames;
 
-        // process queued events (networking, global audio packets, &c.)
-        {
-            auto eventsTimer = _eventsTiming.timer();
-
-            // since we're a while loop we need to yield to qt's event processing
-            QCoreApplication::processEvents();
-
-            // process (node-isolated) audio packets across slave threads
-            {
-                nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
-                    auto packetsTimer = _packetsTiming.timer();
-                    _slavePool.processPackets(cbegin, cend);
-                });
-            }
-        }
 
         if (_isFinished) {
             // alert qt eventing that this is finished

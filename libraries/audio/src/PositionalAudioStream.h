@@ -19,6 +19,21 @@
 
 const int AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY = 100;
 
+using StreamID = QUuid;
+
+struct NodeIDStreamID {
+    QUuid nodeID;
+    Node::LocalID nodeLocalID;
+    StreamID streamID;
+
+    NodeIDStreamID(QUuid nodeID, Node::LocalID nodeLocalID, StreamID streamID)
+        : nodeID(nodeID), nodeLocalID(nodeLocalID), streamID(streamID) {};
+
+    bool operator==(const NodeIDStreamID& other) const {
+        return (nodeLocalID == other.nodeLocalID || nodeID == other.nodeID) && streamID == other.streamID;
+    }
+};
+
 class PositionalAudioStream : public InboundAudioStream {
     Q_OBJECT
 public:
@@ -30,7 +45,7 @@ public:
     PositionalAudioStream(PositionalAudioStream::Type type, bool isStereo, int numStaticJitterFrames = -1);
 
     const QUuid DEFAULT_STREAM_IDENTIFIER = QUuid();
-    virtual const QUuid& getStreamIdentifier() const { return DEFAULT_STREAM_IDENTIFIER; }
+    virtual const StreamID& getStreamIdentifier() const { return DEFAULT_STREAM_IDENTIFIER; }
 
     virtual void resetStats() override;
 
@@ -53,6 +68,16 @@ public:
 
     bool hasValidPosition() const { return _hasValidPosition; }
 
+    using IgnoreBox = AABox;
+
+    // called from single AudioMixerSlave while processing packets for node
+    void enableIgnoreBox();
+    void disableIgnoreBox() { _isIgnoreBoxEnabled = false; }
+
+    // thread-safe, called from AudioMixerSlave(s) while preparing mixes
+    bool isIgnoreBoxEnabled() const { return _isIgnoreBoxEnabled; }
+    const IgnoreBox& getIgnoreBox() const { return _ignoreBox; }
+
 protected:
     // disallow copying of PositionalAudioStream objects
     PositionalAudioStream(const PositionalAudioStream&);
@@ -61,6 +86,8 @@ protected:
     int parsePositionalData(const QByteArray& positionalByteArray);
 
 protected:
+    void calculateIgnoreBox();
+
     Type _type;
     glm::vec3 _position;
     glm::quat _orientation;
@@ -80,6 +107,9 @@ protected:
     int _frameCounter;
 
     bool _hasValidPosition { false };
+
+    bool _isIgnoreBoxEnabled { false };
+    IgnoreBox _ignoreBox;
 };
 
 #endif // hifi_PositionalAudioStream_h

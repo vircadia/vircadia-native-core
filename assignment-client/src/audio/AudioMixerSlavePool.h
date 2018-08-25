@@ -31,7 +31,8 @@ class AudioMixerSlaveThread : public QThread, public AudioMixerSlave {
     using Lock = std::unique_lock<Mutex>;
 
 public:
-    AudioMixerSlaveThread(AudioMixerSlavePool& pool) : _pool(pool) {}
+    AudioMixerSlaveThread(AudioMixerSlavePool& pool, AudioMixerSlave::SharedData& sharedData)
+        : AudioMixerSlave(sharedData), _pool(pool) {}
 
     void run() override final;
 
@@ -58,7 +59,8 @@ class AudioMixerSlavePool {
 public:
     using ConstIter = NodeList::const_iterator;
 
-    AudioMixerSlavePool(int numThreads = QThread::idealThreadCount()) { setNumThreads(numThreads); }
+    AudioMixerSlavePool(AudioMixerSlave::SharedData& sharedData, int numThreads = QThread::idealThreadCount())
+        : _workerSharedData(sharedData) { setNumThreads(numThreads); }
     ~AudioMixerSlavePool() { resize(0); }
 
     // process packets on slave threads
@@ -100,6 +102,8 @@ private:
     float _throttlingRatio { 0.0f };
     ConstIter _begin;
     ConstIter _end;
+
+    AudioMixerSlave::SharedData& _workerSharedData;
 };
 
 #endif // hifi_AudioMixerSlavePool_h

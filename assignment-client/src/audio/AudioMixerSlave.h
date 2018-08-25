@@ -12,23 +12,33 @@
 #ifndef hifi_AudioMixerSlave_h
 #define hifi_AudioMixerSlave_h
 
+#include <tbb/concurrent_vector.h>
+
 #include <AABox.h>
 #include <AudioHRTF.h>
 #include <AudioRingBuffer.h>
 #include <ThreadedAssignment.h>
 #include <UUIDHasher.h>
 #include <NodeList.h>
+#include <PositionalAudioStream.h>
 
+#include "AudioMixerClientData.h"
 #include "AudioMixerStats.h"
 
-class PositionalAudioStream;
 class AvatarAudioStream;
 class AudioHRTF;
-class AudioMixerClientData;
 
 class AudioMixerSlave {
 public:
     using ConstIter = NodeList::const_iterator;
+    
+    struct SharedData {
+        AudioMixerClientData::ConcurrentAddedStreams addedStreams;
+        std::vector<Node::LocalID> removedNodes;
+        std::vector<NodeIDStreamID> removedStreams;
+    };
+
+    AudioMixerSlave(SharedData& sharedData) : _sharedData(sharedData) {};
 
     // process packets for a given node (requires no configuration)
     void processPackets(const SharedNodePointer& node);
@@ -45,13 +55,8 @@ public:
 private:
     // create mix, returns true if mix has audio
     bool prepareMix(const SharedNodePointer& listener);
-    void throttleStream(AudioMixerClientData& listenerData, Node::LocalID streamerID,
-            const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer);
-    void mixStream(AudioMixerClientData& listenerData, Node::LocalID streamerID,
-            const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer);
-    void addStream(AudioMixerClientData& listenerData, Node::LocalID streamerID,
-            const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer,
-            bool throttle);
+    void addStream(AudioMixerClientData::MixableStream& mixableStream, AvatarAudioStream& listeningNodeStream,
+                   float masterListenerGain, bool throttle);
 
     // mixing buffers
     float _mixSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
@@ -62,6 +67,8 @@ private:
     ConstIter _end;
     unsigned int _frame { 0 };
     float _throttlingRatio { 0.0f };
+
+    SharedData& _sharedData;
 };
 
 #endif // hifi_AudioMixerSlave_h

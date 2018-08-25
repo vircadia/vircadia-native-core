@@ -86,6 +86,7 @@ private:
     // mixing helpers
     std::chrono::microseconds timeFrame(p_high_resolution_clock::time_point& timestamp);
     void throttle(std::chrono::microseconds frameDuration, int frame);
+
     // pop a frame from any streams on the node
     // returns the number of available streams
     int prepareFrame(const SharedNodePointer& node, unsigned int frame);
@@ -105,7 +106,7 @@ private:
     int _numStatFrames { 0 };
     AudioMixerStats _stats;
 
-    AudioMixerSlavePool _slavePool;
+    AudioMixerSlavePool _slavePool { _workerSharedData };
 
     class Timer {
     public:
@@ -147,6 +148,7 @@ private:
     static std::vector<ZoneSettings> _zoneSettings;
     static std::vector<ReverbSettings> _zoneReverbSettings;
 
+    AudioMixerSlave::SharedData _workerSharedData;
 };
 
 #endif // hifi_AudioMixer_h

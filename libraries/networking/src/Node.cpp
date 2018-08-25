@@ -96,7 +96,6 @@ Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
 {
     // Update socket's object name
     setType(_type);
-    _ignoreRadiusEnabled = false;
 }
 
 void Node::setType(char type) {
@@ -114,9 +113,12 @@ void Node::updateClockSkewUsec(qint64 clockSkewSample) {
     _clockSkewUsec = (quint64)_clockSkewMovingPercentile.getValueAtPercentile();
 }
 
-void Node::parseIgnoreRequestMessage(QSharedPointer<ReceivedMessage> message) {
+Node::NodesIgnoredPair Node::parseIgnoreRequestMessage(QSharedPointer<ReceivedMessage> message) {
     bool addToIgnore;
     message->readPrimitive(&addToIgnore);
+
+    std::vector<QUuid> nodesIgnored;
+
     while (message->getBytesLeftToRead()) {
         // parse out the UUID being ignored from the packet
         QUuid ignoredUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
@@ -126,7 +128,11 @@ void Node::parseIgnoreRequestMessage(QSharedPointer<ReceivedMessage> message) {
         } else {
             removeIgnoredNode(ignoredUUID);
         }
+
+        nodesIgnored.push_back(ignoredUUID);
     }
+
+    return { nodesIgnored, addToIgnore };
 }
 
 void Node::addIgnoredNode(const QUuid& otherNodeID) {
@@ -165,12 +171,6 @@ bool Node::isIgnoringNodeWithID(const QUuid& nodeID) const {
 
     // check if this node ID is present in the ignore node ID set
     return std::find(_ignoredNodeIDs.begin(), _ignoredNodeIDs.end(), nodeID) != _ignoredNodeIDs.end();
-}
-
-void Node::parseIgnoreRadiusRequestMessage(QSharedPointer<ReceivedMessage> message) {
-    bool enabled;
-    message->readPrimitive(&enabled);
-    _ignoreRadiusEnabled = enabled;
 }
 
 QDataStream& operator<<(QDataStream& out, const Node& node) {

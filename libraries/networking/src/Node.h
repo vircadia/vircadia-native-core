@@ -81,16 +81,18 @@ public:
     bool getCanKick() const { return _permissions.can(NodePermissions::Permission::canKick); }
     bool getCanReplaceContent() const { return _permissions.can(NodePermissions::Permission::canReplaceDomainContent); }
 
-    void parseIgnoreRequestMessage(QSharedPointer<ReceivedMessage> message);
+    using NodesIgnoredPair = std::pair<std::vector<QUuid>, bool>;
+
+    NodesIgnoredPair parseIgnoreRequestMessage(QSharedPointer<ReceivedMessage> message);
     void addIgnoredNode(const QUuid& otherNodeID);
     void removeIgnoredNode(const QUuid& otherNodeID);
     bool isIgnoringNodeWithID(const QUuid& nodeID) const;
-    void parseIgnoreRadiusRequestMessage(QSharedPointer<ReceivedMessage> message);
+
+    using IgnoredNodeIDs = std::vector<QUuid>;
+    const IgnoredNodeIDs& getIgnoredNodeIDs() const { return _ignoredNodeIDs; }
 
     friend QDataStream& operator<<(QDataStream& out, const Node& node);
     friend QDataStream& operator>>(QDataStream& in, Node& node);
-
-    bool isIgnoreRadiusEnabled() const { return _ignoreRadiusEnabled; }
 
 private:
     // privatize copy and assignment operator to disallow Node copying
@@ -109,11 +111,10 @@ private:
     MovingPercentile _clockSkewMovingPercentile;
     NodePermissions _permissions;
     bool _isUpstream { false };
-    std::vector<QUuid> _ignoredNodeIDs;
+
+    IgnoredNodeIDs _ignoredNodeIDs;
     mutable QReadWriteLock _ignoredNodeIDSetLock;
     std::vector<QString> _replicatedUsernames { };
-
-    std::atomic_bool _ignoreRadiusEnabled;
 };
 
 Q_DECLARE_METATYPE(Node*)

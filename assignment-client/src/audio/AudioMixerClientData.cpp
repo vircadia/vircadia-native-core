@@ -28,7 +28,6 @@
 AudioMixerClientData::AudioMixerClientData(const QUuid& nodeID, Node::LocalID nodeLocalID) :
     NodeData(nodeID, nodeLocalID),
     audioLimiter(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO),
-    _ignoreZone(*this),
     _outgoingMixedAudioSequenceNumber(0),
     _downstreamAudioStreamStats()
 {
@@ -56,7 +55,7 @@ void AudioMixerClientData::queuePacket(QSharedPointer<ReceivedMessage> message, 
     _packetQueue.push(message);
 }
 
-void AudioMixerClientData::processPackets() {
+void AudioMixerClientData::processPackets(ConcurrentAddedStreams& addedStreams) {
     SharedNodePointer node = _packetQueue.node;
     assert(_packetQueue.empty() || node);
     _packetQueue.node.clear();
@@ -69,22 +68,17 @@ void AudioMixerClientData::processPackets() {
             case PacketType::MicrophoneAudioWithEcho:
             case PacketType::InjectAudio:
             case PacketType::SilentAudioFrame: {
-
                 if (node->isUpstream()) {
                     setupCodecForReplicatedAgent(packet);
                 }
 
-                QMutexLocker lock(&getMutex());
-                parseData(*packet);
+                processStreamPacket(*packet, addedStreams);
 
                 optionallyReplicatePacket(*packet, *node);
-
                 break;
             }
             case PacketType::AudioStreamStats: {
-                QMutexLocker lock(&getMutex());
                 parseData(*packet);
-
                 break;
             }
             case PacketType::NegotiateAudioFormat:
@@ -186,29 +180,113 @@ void AudioMixerClientData::parseRequestsDomainListData(ReceivedMessage& message)
 void AudioMixerClientData::parsePerAvatarGainSet(ReceivedMessage& message, const SharedNodePointer& node) {
     QUuid uuid = node->getUUID();
     // parse the UUID from the packet
-    QUuid avatarUuid = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+    QUuid avatarUUID = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
     uint8_t packedGain;
     message.readPrimitive(&packedGain);
     float gain = unpackFloatGainFromByte(packedGain);
 
-    if (avatarUuid.isNull()) {
+    if (avatarUUID.isNull()) {
         // set the MASTER avatar gain
         setMasterAvatarGain(gain);
         qCDebug(audio) << "Setting MASTER avatar gain for " << uuid << " to " << gain;
     } else {
         // set the per-source avatar gain
-        auto nodeList = DependencyManager::get<NodeList>();
-        hrtfForStream(nodeList->nodeWithUUID(avatarUuid)->getLocalID(), QUuid()).setGainAdjustment(gain);
-        qCDebug(audio) << "Setting avatar gain adjustment for hrtf[" << uuid << "][" << avatarUuid << "] to " << gain;
+        setGainForAvatar(avatarUUID, gain);
+        qCDebug(audio) << "Setting avatar gain adjustment for hrtf[" << uuid << "][" << avatarUUID << "] to " << gain;
+    }
+}
+
+void AudioMixerClientData::setGainForAvatar(QUuid nodeID, uint8_t gain) {
+    auto it = std::find_if(_mixableStreams.cbegin(), _mixableStreams.cend(), [nodeID](const MixableStream& mixableStream){
+        return mixableStream.nodeStreamID.nodeID == nodeID && mixableStream.nodeStreamID.streamID.isNull();
+    });
+
+    if (it != _mixableStreams.cend()) {
+        it->hrtf->setGainAdjustment(gain);
     }
 }
 
 void AudioMixerClientData::parseNodeIgnoreRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node) {
-    node->parseIgnoreRequestMessage(message);
+    auto ignoredNodesPair = node->parseIgnoreRequestMessage(message);
+
+    // we have a vector of ignored or unignored node UUIDs - update our internal data structures so that
+    // streams can be included or excluded next time a mix is being created
+    if (ignoredNodesPair.second) {
+        // we have newly ignored nodes, add them to our vector
+        _newIgnoredNodeIDs.insert(std::end(_newIgnoredNodeIDs),
+                                  std::begin(ignoredNodesPair.first), std::end(ignoredNodesPair.first));
+    } else {
+        // we have newly unignored nodes, add them to our vector
+        _newUnignoredNodeIDs.insert(std::end(_newUnignoredNodeIDs),
+                                    std::begin(ignoredNodesPair.first), std::end(ignoredNodesPair.first));
+    }
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    for (auto& nodeID : ignoredNodesPair.first) {
+        auto otherNode = nodeList->nodeWithUUID(nodeID);
+        if (otherNode) {
+            auto otherNodeMixerClientData = static_cast<AudioMixerClientData*>(otherNode->getLinkedData());
+            if (otherNodeMixerClientData) {
+                if (ignoredNodesPair.second) {
+                    otherNodeMixerClientData->ignoredByNode(getNodeID());
+                } else {
+                    otherNodeMixerClientData->unignoredByNode(getNodeID());
+                }
+            }
+        }
+    }
+}
+
+void AudioMixerClientData::ignoredByNode(QUuid nodeID) {
+    // first add this ID to the concurrent vector for newly ignoring nodes
+    _newIgnoringNodeIDs.push_back(nodeID);
+
+    // now take a lock and on the consistent vector of ignoring nodes and make sure this node is in it
+    std::lock_guard<std::mutex> lock(_ignoringNodeIDsMutex);
+    if (std::find(_ignoringNodeIDs.begin(), _ignoringNodeIDs.end(), nodeID) == _ignoringNodeIDs.end()) {
+        _ignoringNodeIDs.push_back(nodeID);
+    }
+}
+
+void AudioMixerClientData::unignoredByNode(QUuid nodeID) {
+    // first add this ID to the concurrent vector for newly unignoring nodes
+    _newUnignoringNodeIDs.push_back(nodeID);
+
+    // now take a lock on the consistent vector of ignoring nodes and make sure this node isn't in it
+    std::lock_guard<std::mutex> lock(_ignoringNodeIDsMutex);
+    auto it = _ignoringNodeIDs.begin();
+    while (it != _ignoringNodeIDs.end()) {
+        if (*it == nodeID) {
+            it = _ignoringNodeIDs.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
+void AudioMixerClientData::clearStagedIgnoreChanges() {
+    _newIgnoredNodeIDs.clear();
+    _newUnignoredNodeIDs.clear();
+    _newIgnoringNodeIDs.clear();
+    _newUnignoringNodeIDs.clear();
 }
 
 void AudioMixerClientData::parseRadiusIgnoreRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node) {
-    node->parseIgnoreRadiusRequestMessage(message);
+    bool enabled;
+    message->readPrimitive(&enabled);
+
+    _isIgnoreRadiusEnabled = enabled;
+
+    auto avatarAudioStream = getAvatarAudioStream();
+
+    // if we have an avatar audio stream, tell it wether its ignore box should be enabled or disabled
+    if (avatarAudioStream) {
+        if (_isIgnoreRadiusEnabled) {
+            avatarAudioStream->enableIgnoreBox();
+        } else {
+            avatarAudioStream->disableIgnoreBox();
+        }
+    }
 }
 
 AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {
@@ -224,40 +302,6 @@ AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {
 
     // no mic stream found - return NULL
     return NULL;
-}
-
-AudioHRTF& AudioMixerClientData::hrtfForStream(Node::LocalID nodeID, const QUuid& streamID) {
-    auto& hrtfVector = _nodeSourcesHRTFMap[nodeID];
-
-    auto streamIt = std::find_if(hrtfVector.begin(), hrtfVector.end(), [&streamID](IdentifiedHRTF& identifiedHRTF){
-        return identifiedHRTF.streamIdentifier == streamID;
-    });
-
-    if (streamIt == hrtfVector.end()) {
-        hrtfVector.push_back({ streamID, std::unique_ptr<AudioHRTF>(new AudioHRTF) });
-
-        return *hrtfVector.back().hrtf;
-    } else {
-        return *streamIt->hrtf;
-    }
-}
-
-void AudioMixerClientData::removeHRTFForStream(Node::LocalID nodeID, const QUuid& streamID) {
-    auto it = _nodeSourcesHRTFMap.find(nodeID);
-    if (it != _nodeSourcesHRTFMap.end()) {
-        auto streamIt = std::find_if(it->second.begin(), it->second.end(), [&streamID](IdentifiedHRTF& identifiedHRTF){
-            return identifiedHRTF.streamIdentifier == streamID;
-        });
-
-        // erase the stream with the given ID from the given node
-        it->second.erase(streamIt);
-
-        // is the map for this node now empty?
-        // if so we can remove it
-        if (it->second.size() == 0) {
-            _nodeSourcesHRTFMap.erase(it);
-        }
-    }
 }
 
 void AudioMixerClientData::removeAgentAvatarAudioStream() {
@@ -283,112 +327,127 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
         message.readPrimitive(&_downstreamAudioStreamStats);
 
         return message.getPosition();
+    }
 
-    } else {
-        SharedStreamPointer matchingStream;
+    return 0;
+}
 
-        bool isMicStream = false;
+void AudioMixerClientData::processStreamPacket(ReceivedMessage& message, ConcurrentAddedStreams &addedStreams) {
+    SharedStreamPointer matchingStream;
 
-        if (packetType == PacketType::MicrophoneAudioWithEcho
-            || packetType == PacketType::ReplicatedMicrophoneAudioWithEcho
-            || packetType == PacketType::MicrophoneAudioNoEcho
-            || packetType == PacketType::ReplicatedMicrophoneAudioNoEcho
-            || packetType == PacketType::SilentAudioFrame
-            || packetType == PacketType::ReplicatedSilentAudioFrame) {
+    auto packetType = message.getType();
+    bool newStream = false;
 
-            QWriteLocker writeLocker { &_streamsLock };
+    if (packetType == PacketType::MicrophoneAudioWithEcho
+        || packetType == PacketType::ReplicatedMicrophoneAudioWithEcho
+        || packetType == PacketType::MicrophoneAudioNoEcho
+        || packetType == PacketType::ReplicatedMicrophoneAudioNoEcho
+        || packetType == PacketType::SilentAudioFrame
+        || packetType == PacketType::ReplicatedSilentAudioFrame) {
 
-            auto micStreamIt = std::find_if(_audioStreams.begin(), _audioStreams.end(), [](const SharedStreamPointer& stream){
-                return stream->getStreamIdentifier().isNull();
-            });
-            if (micStreamIt == _audioStreams.end()) {
-                // we don't have a mic stream yet, so add it
+        QWriteLocker writeLocker { &_streamsLock };
 
-                // hop past the sequence number that leads the packet
-                message.seek(sizeof(quint16));
+        auto micStreamIt = std::find_if(_audioStreams.begin(), _audioStreams.end(), [](const SharedStreamPointer& stream){
+            return stream->getStreamIdentifier().isNull();
+        });
 
-                // pull the codec string from the packet
-                auto codecString = message.readString();
+        if (micStreamIt == _audioStreams.end()) {
+            // we don't have a mic stream yet, so add it
 
-                // determine if the stream is stereo or not
-                bool isStereo;
-                if (packetType == PacketType::SilentAudioFrame
-                    || packetType == PacketType::ReplicatedSilentAudioFrame) {
-                    quint16 numSilentSamples;
-                    message.readPrimitive(&numSilentSamples);
-                    isStereo = numSilentSamples == AudioConstants::NETWORK_FRAME_SAMPLES_STEREO;
-                } else {
-                    quint8 channelFlag;
-                    message.readPrimitive(&channelFlag);
-                    isStereo = channelFlag == 1;
-                }
-
-                auto avatarAudioStream = new AvatarAudioStream(isStereo, AudioMixer::getStaticJitterFrames());
-                avatarAudioStream->setupCodec(_codec, _selectedCodecName, isStereo ? AudioConstants::STEREO : AudioConstants::MONO);
-                qCDebug(audio) << "creating new AvatarAudioStream... codec:" << _selectedCodecName << "isStereo:" << isStereo;
-
-                connect(avatarAudioStream, &InboundAudioStream::mismatchedAudioCodec,
-                        this, &AudioMixerClientData::handleMismatchAudioFormat);
-
-                matchingStream = SharedStreamPointer(avatarAudioStream);
-                _audioStreams.push_back(matchingStream);
-            } else {
-                matchingStream = *micStreamIt;
-            }
-
-            writeLocker.unlock();
-
-            isMicStream = true;
-        } else if (packetType == PacketType::InjectAudio
-                   || packetType == PacketType::ReplicatedInjectAudio) {
-            // this is injected audio
-            // grab the stream identifier for this injected audio
+            // hop past the sequence number that leads the packet
             message.seek(sizeof(quint16));
 
-            QUuid streamIdentifier = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+            // pull the codec string from the packet
+            auto codecString = message.readString();
 
+            // determine if the stream is stereo or not
             bool isStereo;
-            message.readPrimitive(&isStereo);
-
-            QWriteLocker writeLock { &_streamsLock };
-
-            auto streamIt = std::find_if(_audioStreams.begin(), _audioStreams.end(), [&streamIdentifier](const SharedStreamPointer& stream) {
-                return stream->getStreamIdentifier() == streamIdentifier;
-            });
-
-            if (streamIt == _audioStreams.end()) {
-                // we don't have this injected stream yet, so add it
-                auto injectorStream = new InjectedAudioStream(streamIdentifier, isStereo, AudioMixer::getStaticJitterFrames());
-
-#if INJECTORS_SUPPORT_CODECS
-                injectorStream->setupCodec(_codec, _selectedCodecName, isStereo ? AudioConstants::STEREO : AudioConstants::MONO);
-                qCDebug(audio) << "creating new injectorStream... codec:" << _selectedCodecName << "isStereo:" << isStereo;
-#endif
-
-                matchingStream = SharedStreamPointer(injectorStream);
-                _audioStreams.push_back(matchingStream);
+            if (packetType == PacketType::SilentAudioFrame || packetType == PacketType::ReplicatedSilentAudioFrame) {
+                quint16 numSilentSamples;
+                message.readPrimitive(&numSilentSamples);
+                isStereo = numSilentSamples == AudioConstants::NETWORK_FRAME_SAMPLES_STEREO;
             } else {
-                matchingStream = *streamIt;
+                quint8 channelFlag;
+                message.readPrimitive(&channelFlag);
+                isStereo = channelFlag == 1;
             }
 
-            writeLock.unlock();
+            auto avatarAudioStream = new AvatarAudioStream(isStereo, AudioMixer::getStaticJitterFrames());
+            avatarAudioStream->setupCodec(_codec, _selectedCodecName, isStereo ? AudioConstants::STEREO : AudioConstants::MONO);
+
+            if (_isIgnoreRadiusEnabled) {
+                avatarAudioStream->enableIgnoreBox();
+            } else {
+                avatarAudioStream->disableIgnoreBox();
+            }
+
+            qCDebug(audio) << "creating new AvatarAudioStream... codec:" << _selectedCodecName << "isStereo:" << isStereo;
+
+            connect(avatarAudioStream, &InboundAudioStream::mismatchedAudioCodec,
+                    this, &AudioMixerClientData::handleMismatchAudioFormat);
+
+            matchingStream = SharedStreamPointer(avatarAudioStream);
+            _audioStreams.push_back(matchingStream);
+
+            newStream = true;
+        } else {
+            matchingStream = *micStreamIt;
         }
 
-        // seek to the beginning of the packet so that the next reader is in the right spot
-        message.seek(0);
+        writeLocker.unlock();
+    } else if (packetType == PacketType::InjectAudio
+               || packetType == PacketType::ReplicatedInjectAudio) {
+        // this is injected audio
+        // grab the stream identifier for this injected audio
+        message.seek(sizeof(quint16));
 
-        // check the overflow count before we parse data
-        auto overflowBefore = matchingStream->getOverflowCount();
-        auto parseResult = matchingStream->parseData(message);
+        QUuid streamIdentifier = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
-        if (matchingStream->getOverflowCount() > overflowBefore) {
-            qCDebug(audio) << "Just overflowed on stream from" << message.getSourceID() << "at" << message.getSenderSockAddr();
-            qCDebug(audio) << "This stream is for" << (isMicStream ? "microphone audio" : "injected audio");
+        bool isStereo;
+        message.readPrimitive(&isStereo);
+
+        QWriteLocker writeLock { &_streamsLock };
+
+        auto streamIt = std::find_if(_audioStreams.begin(), _audioStreams.end(), [&streamIdentifier](const SharedStreamPointer& stream) {
+            return stream->getStreamIdentifier() == streamIdentifier;
+        });
+
+        if (streamIt == _audioStreams.end()) {
+            // we don't have this injected stream yet, so add it
+            auto injectorStream = new InjectedAudioStream(streamIdentifier, isStereo, AudioMixer::getStaticJitterFrames());
+
+#if INJECTORS_SUPPORT_CODECS
+            injectorStream->setupCodec(_codec, _selectedCodecName, isStereo ? AudioConstants::STEREO : AudioConstants::MONO);
+            qCDebug(audio) << "creating new injectorStream... codec:" << _selectedCodecName << "isStereo:" << isStereo;
+#endif
+
+            matchingStream = SharedStreamPointer(injectorStream);
+            _audioStreams.push_back(matchingStream);
+
+            newStream = true;
+        } else {
+            matchingStream = *streamIt;
         }
 
-        return parseResult;
+        writeLock.unlock();
     }
-    return 0;
+
+    // seek to the beginning of the packet so that the next reader is in the right spot
+    message.seek(0);
+
+    // check the overflow count before we parse data
+    auto overflowBefore = matchingStream->getOverflowCount();
+    matchingStream->parseData(message);
+
+    if (matchingStream->getOverflowCount() > overflowBefore) {
+        qCDebug(audio) << "Just overflowed on stream" << matchingStream->getStreamIdentifier()
+            << "from" << message.getSourceID();
+    }
+
+    if (newStream) {
+        // whenever a stream is added, push it to the concurrent vector of streams added this frame
+        addedStreams.emplace_back(getNodeID(), getNodeLocalID(), matchingStream->getStreamIdentifier(), matchingStream.get());
+    }
 }
 
 int AudioMixerClientData::checkBuffersBeforeFrameSend() {
@@ -630,74 +689,6 @@ void AudioMixerClientData::cleanupCodec() {
             _encoder = nullptr;
         }
     }
-}
-
-AudioMixerClientData::IgnoreZone& AudioMixerClientData::IgnoreZoneMemo::get(unsigned int frame) {
-    // check for a memoized zone
-    if (frame != _frame.load(std::memory_order_acquire)) {
-        AvatarAudioStream* stream = _data.getAvatarAudioStream();
-
-        // get the initial dimensions from the stream
-        glm::vec3 corner = stream ? stream->getAvatarBoundingBoxCorner() : glm::vec3(0);
-        glm::vec3 scale = stream ? stream->getAvatarBoundingBoxScale() : glm::vec3(0);
-
-        // enforce a minimum scale
-        static const glm::vec3 MIN_IGNORE_BOX_SCALE = glm::vec3(0.3f, 1.3f, 0.3f);
-        if (glm::any(glm::lessThan(scale, MIN_IGNORE_BOX_SCALE))) {
-            scale = MIN_IGNORE_BOX_SCALE;
-        }
-
-        // (this is arbitrary number determined empirically for comfort)
-        const float IGNORE_BOX_SCALE_FACTOR = 2.4f;
-        scale *= IGNORE_BOX_SCALE_FACTOR;
-
-        // create the box (we use a box for the zone for convenience)
-        AABox box(corner, scale);
-
-        // update the memoized zone
-        // This may be called by multiple threads concurrently,
-        // so take a lock and only update the memo if this call is first.
-        // This prevents concurrent updates from invalidating the returned reference
-        // (contingent on the preconditions listed in the header).
-        std::lock_guard<std::mutex> lock(_mutex);
-        if (frame != _frame.load(std::memory_order_acquire)) {
-            _zone = box;
-            unsigned int oldFrame = _frame.exchange(frame, std::memory_order_release);
-            Q_UNUSED(oldFrame);
-        }
-    }
-
-    return _zone;
-}
-
-bool AudioMixerClientData::shouldIgnore(const SharedNodePointer self, const SharedNodePointer node, unsigned int frame) {
-    // this is symmetric over self / node; if computed, it is cached in the other
-
-    AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
-    if (!nodeData) {
-        return false;
-    }
-
-    // compute shouldIgnore
-    bool shouldIgnore = true;
-    if ( // the nodes are not ignoring each other explicitly (or are but get data regardless)
-            (!self->isIgnoringNodeWithID(node->getUUID()) ||
-             (nodeData->getRequestsDomainListData() && node->getCanKick())) &&
-            (!node->isIgnoringNodeWithID(self->getUUID()) ||
-             (getRequestsDomainListData() && self->getCanKick())))  {
-
-        // if either node is enabling an ignore radius, check their proximity
-        if ((self->isIgnoreRadiusEnabled() || node->isIgnoreRadiusEnabled())) {
-            auto& zone = _ignoreZone.get(frame);
-            auto& nodeZone = nodeData->_ignoreZone.get(frame);
-            shouldIgnore = zone.touches(nodeZone);
-        } else {
-            shouldIgnore = false;
-        }
-    }
-
-
-    return shouldIgnore;
 }
 
 void AudioMixerClientData::setupCodecForReplicatedAgent(QSharedPointer<ReceivedMessage> message) {
