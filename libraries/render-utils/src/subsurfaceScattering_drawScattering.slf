@@ -26,7 +26,8 @@
 layout(location=0) in vec2 varTexCoord0;
 layout(location=0) out vec4 _fragColor;
 
-layout(location=GPU_UNIFORM_EXTRA0) uniform vec2 uniformCursorTexcoord = vec2(0.5);
+// FIXME make into a uniform buffer or push constant if this shader ever comes into use
+vec2 uniformCursorTexcoord = vec2(0.5);
 
 //uniform vec3 uniformLightVector = vec3(1.0);
 

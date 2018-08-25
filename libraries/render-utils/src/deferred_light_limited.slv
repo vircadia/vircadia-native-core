@@ -18,7 +18,8 @@
 
 <$declareStandardTransform()$>
 
-uniform vec4 sphereParam;
+// FIXME make into a uniform buffer or push constant if this shader ever comes into use
+vec4 sphereParam = vec4(0.0);
 
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
 
