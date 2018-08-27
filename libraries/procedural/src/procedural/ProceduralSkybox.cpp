@@ -19,7 +19,7 @@
 
 ProceduralSkybox::ProceduralSkybox() : graphics::Skybox() {
     _procedural._vertexSource = gpu::Shader::createVertex(shader::graphics::vertex::skybox)->getSource();
-    _procedural._opaquefragmentSource = gpu::Shader::createPixel(shader::procedural::fragment::proceduralSkybox)->getSource();
+    _procedural._opaqueFragmentSource = shader::Source::get(shader::procedural::fragment::proceduralSkybox);
     // Adjust the pipeline state for background using the stencil test
     _procedural.setDoesFade(false);
     // Must match PrepareStencil::STENCIL_BACKGROUND

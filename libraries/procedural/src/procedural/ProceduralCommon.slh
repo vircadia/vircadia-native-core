@@ -14,18 +14,51 @@
  
 <$declareStandardCameraTransform()$>
 
-#define PROCEDURAL 1
+#ifdef GL_EXT_shader_non_constant_global_initializers
+#extension GL_EXT_shader_non_constant_global_initializers : enable
+#endif
 
-//PROCEDURAL_VERSION
+LAYOUT(binding=PROCEDURAL_TEXTURE_CHANNEL0) uniform sampler2D iChannel0;
+LAYOUT(binding=PROCEDURAL_TEXTURE_CHANNEL1) uniform sampler2D iChannel1;
+LAYOUT(binding=PROCEDURAL_TEXTURE_CHANNEL2) uniform sampler2D iChannel2;
+LAYOUT(binding=PROCEDURAL_TEXTURE_CHANNEL3) uniform sampler2D iChannel3;
 
-#ifdef PROCEDURAL_V1
+struct StandardInputs {
+    vec4 date;
+    vec4 posAndTime;
+    vec4 scaleAndCount;
+    mat4 orientation;
+    vec4 resolution[4];
+};
+
+
+LAYOUT(binding=0) uniform standardInputsBuffer {
+    StandardInputs params;
+};
 
 // shader playback time (in seconds)
-layout(location=PROCEDURAL_UNIFORM_TIME) uniform float iGlobalTime;
-// the dimensions of the object being rendered
-layout(location=PROCEDURAL_UNIFORM_SCALE) uniform vec3 iWorldScale;
+float iGlobalTime = params.posAndTime.w;
 
-#else
+vec4 iDate = params.date;
+
+int iFrameCount = int(params.scaleAndCount.w);
+
+// the position of the object being rendered
+vec3 iWorldPosition = params.posAndTime.xyz;
+
+// the dimensions of the object being rendered
+vec3 iWorldScale = params.scaleAndCount.xyz;
+
+// the orientation of the object being rendered
+mat3 iWorldOrientation = mat3(params.orientation);
+
+vec3 iChannelResolution[4] = vec3[4](
+    params.resolution[0].xyz, 
+    params.resolution[1].xyz, 
+    params.resolution[2].xyz, 
+    params.resolution[3].xyz
+);
+
 
 // Unimplemented uniforms
 // Resolution doesn't make sense in the VR context
@@ -37,20 +70,9 @@ const float iSampleRate = 1.0;
 // No support for video input
 const vec4 iChannelTime = vec4(0.0);
 
+#define PROCEDURAL 1
 
-layout(location=PROCEDURAL_UNIFORM_TIME) uniform float iGlobalTime;                  // shader playback time (in seconds)
-layout(location=PROCEDURAL_UNIFORM_DATE) uniform vec4 iDate;
-layout(location=PROCEDURAL_UNIFORM_FRAME_COUNT) uniform int iFrameCount;
-layout(location=PROCEDURAL_UNIFORM_POSITION) uniform vec3 iWorldPosition;                // the position of the object being rendered
-layout(location=PROCEDURAL_UNIFORM_SCALE) uniform vec3 iWorldScale;                   // the dimensions of the object being rendered
-layout(location=PROCEDURAL_UNIFORM_ORIENTATION) uniform mat3 iWorldOrientation;             // the orientation of the object being rendered
-layout(location=PROCEDURAL_UNIFORM_CHANNEL_RESOLUTION) uniform vec3 iChannelResolution[4];
-layout(binding=PROCEDURAL_TEXTURE_CHANNEL0) uniform sampler2D iChannel0;
-layout(binding=PROCEDURAL_TEXTURE_CHANNEL1) uniform sampler2D iChannel1;
-layout(binding=PROCEDURAL_TEXTURE_CHANNEL2) uniform sampler2D iChannel2;
-layout(binding=PROCEDURAL_TEXTURE_CHANNEL3) uniform sampler2D iChannel3;
-
-#endif
+//PROCEDURAL_VERSION
 
 // hack comment for extra whitespace 
 

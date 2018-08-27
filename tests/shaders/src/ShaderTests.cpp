@@ -31,19 +31,21 @@
 #include <gpu/gl/GLShader.h>
 #include <gl/QOpenGLContextWrapper.h>
 
+#define RUNTIME_SHADER_COMPILE_TEST 0
+
+#if RUNTIME_SHADER_COMPILE_TEST
+#include <glslang/Public/ShaderLang.h>
+#include <SPIRV/GlslangToSpv.h>
+#include <spirv-tools/libspirv.hpp>
+#include <spirv-tools/optimizer.hpp>
+#endif
+
 QTEST_MAIN(ShaderTests)
 
-#pragma optimize("", off)
 void ShaderTests::initTestCase() {
-    _window = new QWindow();
-    _window->setSurfaceType(QSurface::SurfaceType::OpenGLSurface);
-    _context = new ::gl::Context(_window);
+    _context = new ::gl::OffscreenContext();
     getDefaultOpenGLSurfaceFormat();
     _context->create();
-    if (!_context->makeCurrent()) {
-        qFatal("Unable to make test GL context current");
-    }
-    QOpenGLContextWrapper(_context->qglContext()).makeCurrent(_window);
     if (!_context->makeCurrent()) {
         qFatal("Unable to make test GL context current");
     }
@@ -61,6 +63,8 @@ void ShaderTests::initTestCase() {
 void ShaderTests::cleanupTestCase() {
     qDebug() << "Done";
 }
+
+#if RUNTIME_SHADER_COMPILE_TEST
 
 template <typename C>
 QStringList toQStringList(const C& c) {
@@ -80,7 +84,7 @@ std::unordered_set<std::string> toStringSet(const C& c, F f) {
     return result;
 }
 
-template<typename C>
+template <typename C>
 bool isSubset(const C& parent, const C& child) {
     for (const auto& v : child) {
         if (0 == parent.count(v)) {
@@ -120,6 +124,7 @@ gpu::Shader::ReflectionMap mergeReflection(const std::initializer_list<const gpu
     }
     return result;
 }
+#endif
 
 template <typename K, typename V>
 std::unordered_map<V, K> invertMap(const std::unordered_map<K, V>& map) {
@@ -127,58 +132,52 @@ std::unordered_map<V, K> invertMap(const std::unordered_map<K, V>& map) {
     for (const auto& entry : map) {
         result[entry.second] = entry.first;
     }
+    if (result.size() != map.size()) {
+        throw std::runtime_error("Map inversion failure, result size does not match input size");
+    }
     return result;
 }
 
-static void verifyBindings(const gpu::Shader::Source& source) {
-    const auto reflection = source.getReflection();
-    for (const auto& entry : reflection) {
-        const auto& map = entry.second;
-        const auto reverseMap = invertMap(map);
-        if (map.size() != reverseMap.size()) {
-            QFAIL("Bindings are not unique");
-        }
-    }
-
-}
-
-
-static void verifyInterface(const gpu::Shader::Source& vertexSource, const gpu::Shader::Source& fragmentSource) {
-    if (0 == fragmentSource.getReflection().count(gpu::Shader::BindingType::INPUT)) {
+static void verifyInterface(const gpu::Shader::Source& vertexSource,
+                            const gpu::Shader::Source& fragmentSource,
+                            shader::Dialect dialect,
+                            shader::Variant variant) {
+    const auto& fragmentReflection = fragmentSource.getReflection(dialect, variant);
+    if (fragmentReflection.inputs.empty()) {
         return;
     }
-    auto fragIn = fragmentSource.getReflection().at(gpu::Shader::BindingType::INPUT);
-    if (0 == vertexSource.getReflection().count(gpu::Shader::BindingType::OUTPUT)) {
-        qDebug() << "No vertex output for fragment input";
-        //QFAIL("No vertex output for fragment input");
-        return;
+
+    const auto& vertexReflection = vertexSource.getReflection(dialect, variant);
+    const auto& fragIn = fragmentReflection.inputs;
+    if (vertexReflection.outputs.empty()) {
+        throw std::runtime_error("No vertex outputs for fragment inputs");
     }
-    auto vout = vertexSource.getReflection().at(gpu::Shader::BindingType::OUTPUT);
+
+    const auto& vout = vertexReflection.outputs;
     auto vrev = invertMap(vout);
-    static const std::string IN_STEREO_SIDE_STRING = "_inStereoSide";
     for (const auto entry : fragIn) {
         const auto& name = entry.first;
-        // The presence of "_inStereoSide" in fragment shaders is a bug due to the way we do reflection
-        // and use preprocessor macros in the shaders
-        if (name == IN_STEREO_SIDE_STRING) {
-            continue;
-        }
         if (0 == vout.count(name)) {
-            qDebug() << "Vertex output missing";
-            //QFAIL("Vertex output missing");
-            continue;
+            throw std::runtime_error("Vertex outputs missing");
         }
         const auto& inLocation = entry.second;
         const auto& outLocation = vout.at(name);
         if (inLocation != outLocation) {
-            qDebug() << "Mismatch in vertex / fragment interface";
-            //QFAIL("Mismatch in vertex / fragment interface");
-            continue;
+            throw std::runtime_error("Mismatch in vertex / fragment interface");
         }
     }
 }
 
-template<typename C>
+static void verifyInterface(const gpu::Shader::Source& vertexSource, const gpu::Shader::Source& fragmentSource) {
+    for (const auto& dialect : shader::allDialects()) {
+        for (const auto& variant : shader::allVariants()) {
+            verifyInterface(vertexSource, fragmentSource, dialect, variant);
+        }
+    }
+}
+
+#if RUNTIME_SHADER_COMPILE_TEST
+template <typename C>
 bool compareBindings(const C& actual, const gpu::Shader::LocationMap& expected) {
     if (actual.size() != expected.size()) {
         auto actualNames = toStringSet(actual, [](const auto& v) { return v.name; });
@@ -192,48 +191,341 @@ bool compareBindings(const C& actual, const gpu::Shader::LocationMap& expected) 
     return true;
 }
 
-void ShaderTests::testShaderLoad() {
-    std::set<uint32_t> usedShaders;
-    uint32_t maxShader = 0;
-    try {
+void configureGLSLCompilerResources(TBuiltInResource* glslCompilerResources) {
+    glslCompilerResources->maxLights = 32;
+    glslCompilerResources->maxClipPlanes = 6;
+    glslCompilerResources->maxTextureUnits = 32;
+    glslCompilerResources->maxTextureCoords = 32;
+    glslCompilerResources->maxVertexAttribs = 64;
+    glslCompilerResources->maxVertexUniformComponents = 4096;
+    glslCompilerResources->maxVaryingFloats = 64;
+    glslCompilerResources->maxVertexTextureImageUnits = 32;
+    glslCompilerResources->maxCombinedTextureImageUnits = 80;
+    glslCompilerResources->maxTextureImageUnits = 32;
+    glslCompilerResources->maxFragmentUniformComponents = 4096;
+    glslCompilerResources->maxDrawBuffers = 32;
+    glslCompilerResources->maxVertexUniformVectors = 128;
+    glslCompilerResources->maxVaryingVectors = 8;
+    glslCompilerResources->maxFragmentUniformVectors = 16;
+    glslCompilerResources->maxVertexOutputVectors = 16;
+    glslCompilerResources->maxFragmentInputVectors = 15;
+    glslCompilerResources->minProgramTexelOffset = -8;
+    glslCompilerResources->maxProgramTexelOffset = 7;
+    glslCompilerResources->maxClipDistances = 8;
+    glslCompilerResources->maxComputeWorkGroupCountX = 65535;
+    glslCompilerResources->maxComputeWorkGroupCountY = 65535;
+    glslCompilerResources->maxComputeWorkGroupCountZ = 65535;
+    glslCompilerResources->maxComputeWorkGroupSizeX = 1024;
+    glslCompilerResources->maxComputeWorkGroupSizeY = 1024;
+    glslCompilerResources->maxComputeWorkGroupSizeZ = 64;
+    glslCompilerResources->maxComputeUniformComponents = 1024;
+    glslCompilerResources->maxComputeTextureImageUnits = 16;
+    glslCompilerResources->maxComputeImageUniforms = 8;
+    glslCompilerResources->maxComputeAtomicCounters = 8;
+    glslCompilerResources->maxComputeAtomicCounterBuffers = 1;
+    glslCompilerResources->maxVaryingComponents = 60;
+    glslCompilerResources->maxVertexOutputComponents = 64;
+    glslCompilerResources->maxGeometryInputComponents = 64;
+    glslCompilerResources->maxGeometryOutputComponents = 128;
+    glslCompilerResources->maxFragmentInputComponents = 128;
+    glslCompilerResources->maxImageUnits = 8;
+    glslCompilerResources->maxCombinedImageUnitsAndFragmentOutputs = 8;
+    glslCompilerResources->maxCombinedShaderOutputResources = 8;
+    glslCompilerResources->maxImageSamples = 0;
+    glslCompilerResources->maxVertexImageUniforms = 0;
+    glslCompilerResources->maxTessControlImageUniforms = 0;
+    glslCompilerResources->maxTessEvaluationImageUniforms = 0;
+    glslCompilerResources->maxGeometryImageUniforms = 0;
+    glslCompilerResources->maxFragmentImageUniforms = 8;
+    glslCompilerResources->maxCombinedImageUniforms = 8;
+    glslCompilerResources->maxGeometryTextureImageUnits = 16;
+    glslCompilerResources->maxGeometryOutputVertices = 256;
+    glslCompilerResources->maxGeometryTotalOutputComponents = 1024;
+    glslCompilerResources->maxGeometryUniformComponents = 1024;
+    glslCompilerResources->maxGeometryVaryingComponents = 64;
+    glslCompilerResources->maxTessControlInputComponents = 128;
+    glslCompilerResources->maxTessControlOutputComponents = 128;
+    glslCompilerResources->maxTessControlTextureImageUnits = 16;
+    glslCompilerResources->maxTessControlUniformComponents = 1024;
+    glslCompilerResources->maxTessControlTotalOutputComponents = 4096;
+    glslCompilerResources->maxTessEvaluationInputComponents = 128;
+    glslCompilerResources->maxTessEvaluationOutputComponents = 128;
+    glslCompilerResources->maxTessEvaluationTextureImageUnits = 16;
+    glslCompilerResources->maxTessEvaluationUniformComponents = 1024;
+    glslCompilerResources->maxTessPatchComponents = 120;
+    glslCompilerResources->maxPatchVertices = 32;
+    glslCompilerResources->maxTessGenLevel = 64;
+    glslCompilerResources->maxViewports = 16;
+    glslCompilerResources->maxVertexAtomicCounters = 0;
+    glslCompilerResources->maxTessControlAtomicCounters = 0;
+    glslCompilerResources->maxTessEvaluationAtomicCounters = 0;
+    glslCompilerResources->maxGeometryAtomicCounters = 0;
+    glslCompilerResources->maxFragmentAtomicCounters = 8;
+    glslCompilerResources->maxCombinedAtomicCounters = 8;
+    glslCompilerResources->maxAtomicCounterBindings = 1;
+    glslCompilerResources->maxVertexAtomicCounterBuffers = 0;
+    glslCompilerResources->maxTessControlAtomicCounterBuffers = 0;
+    glslCompilerResources->maxTessEvaluationAtomicCounterBuffers = 0;
+    glslCompilerResources->maxGeometryAtomicCounterBuffers = 0;
+    glslCompilerResources->maxFragmentAtomicCounterBuffers = 1;
+    glslCompilerResources->maxCombinedAtomicCounterBuffers = 1;
+    glslCompilerResources->maxAtomicCounterBufferSize = 16384;
+    glslCompilerResources->maxTransformFeedbackBuffers = 4;
+    glslCompilerResources->maxTransformFeedbackInterleavedComponents = 64;
+    glslCompilerResources->maxCullDistances = 8;
+    glslCompilerResources->maxCombinedClipAndCullDistances = 8;
+    glslCompilerResources->maxSamples = 4;
+    glslCompilerResources->limits.nonInductiveForLoops = 1;
+    glslCompilerResources->limits.whileLoops = 1;
+    glslCompilerResources->limits.doWhileLoops = 1;
+    glslCompilerResources->limits.generalUniformIndexing = 1;
+    glslCompilerResources->limits.generalAttributeMatrixVectorIndexing = 1;
+    glslCompilerResources->limits.generalVaryingIndexing = 1;
+    glslCompilerResources->limits.generalSamplerIndexing = 1;
+    glslCompilerResources->limits.generalVariableIndexing = 1;
+    glslCompilerResources->limits.generalConstantMatrixVectorIndexing = 1;
+}
 
-#if 0
-        uint32_t testPrograms[] = {
-            shader::render_utils::program::parabola,
-            shader::INVALID_PROGRAM,
-        };
-#else
-        const auto& testPrograms = shader::all_programs;
+void writeSpirv(const std::string& filename, const std::vector<uint32_t>& spirv) {
+    std::ofstream o(filename, std::ios::trunc | std::ios::binary);
+    for (const auto& word : spirv) {
+        o.write((const char*)&word, sizeof(word));
+    }
+    o.close();
+}
+
+void write(const std::string& filename, const std::string& text) {
+    std::ofstream o(filename, std::ios::trunc);
+    o.write(text.c_str(), text.size());
+    o.close();
+}
+
+bool endsWith(const std::string& s, const std::string& f) {
+    auto end = s.substr(s.size() - f.size());
+    return (end == f);
+}
+
+EShLanguage getShaderStage(const std::string& shaderName) {
+    static const std::string VERT_EXT{ ".vert" };
+    static const std::string FRAG_EXT{ ".frag" };
+    static const std::string GEOM_EXT{ ".geom" };
+    static const size_t EXT_SIZE = VERT_EXT.size();
+    if (shaderName.size() < EXT_SIZE) {
+        throw std::runtime_error("Invalid shader name");
+    }
+    std::string ext = shaderName.substr(shaderName.size() - EXT_SIZE);
+    if (ext == VERT_EXT) {
+        return EShLangVertex;
+    } else if (ext == FRAG_EXT) {
+        return EShLangFragment;
+    } else if (ext == GEOM_EXT) {
+        return EShLangGeometry;
+    }
+    throw std::runtime_error("Invalid shader name");
+}
+
+const gpu::Shader::Source& loadShader(uint32_t shaderId);
+
+bool compileSpirv(uint32_t shaderId, bool stereo) {
+    const gpu::Shader::Source& source = loadShader(shaderId);
+    using namespace glslang;
+
+    static const std::string CORE_HEADER(
+        R"SHADER(#version 450 core
+#define GPU_GL450
+#define BITFIELD int
+#define GPU_SSBO_TRANSFORM_OBJECT
+#define gl_VertexID gl_VertexIndex
+#define gl_InstanceID gl_InstanceIndex
+)SHADER");
+
+    static const std::string DOMAIN_HEADER[] = {
+        "#define GPU_VERTEX_SHADER\r\n",
+        "#define GPU_PIXEL_SHADER\r\n",
+        "#define GPU_GEOMETRY_SHADER\r\n",
+    };
+
+    static const std::string STEREO_HEADER(
+        R"SHADER(
+#define GPU_TRANSFORM_IS_STEREO
+#define GPU_TRANSFORM_STEREO_CAMERA
+#define GPU_TRANSFORM_STEREO_CAMERA_INSTANCED
+#define GPU_TRANSFORM_STEREO_SPLIT_SCREEN
+)SHADER");
+
+    static std::once_flag once;
+    static TBuiltInResource glslCompilerResources;
+    std::call_once(once, [&] { configureGLSLCompilerResources(&glslCompilerResources); });
+
+    static const EShMessages messages = (EShMessages)(EShMsgDefault | EShMsgSpvRules | EShMsgVulkanRules);
+    auto shaderName = shader::loadShaderName(shaderId);
+    auto stage = getShaderStage(shaderName);
+
+    TShader shader(stage);
+    std::vector<const char*> strings;
+    strings.push_back(CORE_HEADER.c_str());
+    strings.push_back(DOMAIN_HEADER[stage == EShLangVertex ? 0 : 1].c_str());
+    if (stereo) {
+        strings.push_back(STEREO_HEADER.c_str());
+    }
+    strings.push_back(source.getCode().c_str());
+    shader.setStrings(strings.data(), (int)strings.size());
+    shader.setEnvInput(EShSourceGlsl, stage, EShClientOpenGL, 450);
+    shader.setEnvClient(EShClientVulkan, EShTargetVulkan_1_1);
+    shader.setEnvTarget(EShTargetSpv, EShTargetSpv_1_3);
+    bool success = shader.parse(&glslCompilerResources, 450, false, messages);
+    if (!success) {
+        qWarning() << "Failed to parse shader " << shaderName.c_str();
+        qWarning() << shader.getInfoLog();
+        qWarning() << shader.getInfoDebugLog();
+        return false;
+    }
+
+    // Create and link a shader program containing the single shader
+    glslang::TProgram program;
+    program.addShader(&shader);
+    if (!program.link(messages)) {
+        qWarning() << "Failed to compile shader " << shaderName.c_str();
+        qWarning() << program.getInfoLog();
+        qWarning() << program.getInfoDebugLog();
+        return false;
+    }
+
+    std::string baseOutName = "d:/shaders/" + shaderName;
+    if (stereo) {
+        baseOutName += ".stereo";
+    }
+
+    // Output the SPIR-V code from the shader program
+    std::vector<uint32_t> spirv;
+    glslang::GlslangToSpv(*program.getIntermediate(stage), spirv);
+
+    spvtools::SpirvTools core(SPV_ENV_VULKAN_1_1);
+    spvtools::Optimizer opt(SPV_ENV_VULKAN_1_1);
+
+    auto outputLambda = [](spv_message_level_t, const char*, const spv_position_t&, const char* m) { qWarning() << m; };
+    core.SetMessageConsumer(outputLambda);
+    opt.SetMessageConsumer(outputLambda);
+
+    if (!core.Validate(spirv)) {
+        throw std::runtime_error("invalid spirv");
+    }
+    writeSpirv(baseOutName + ".spv", spirv);
+
+    opt.RegisterPass(spvtools::CreateFreezeSpecConstantValuePass())
+        .RegisterPass(spvtools::CreateStrengthReductionPass())
+        .RegisterPass(spvtools::CreateEliminateDeadConstantPass())
+        .RegisterPass(spvtools::CreateEliminateDeadFunctionsPass())
+        .RegisterPass(spvtools::CreateUnifyConstantPass());
+
+    std::vector<uint32_t> optspirv;
+    if (!opt.Run(spirv.data(), spirv.size(), &optspirv)) {
+        throw std::runtime_error("bad optimize run");
+    }
+    writeSpirv(baseOutName + ".opt.spv", optspirv);
+
+    std::string disassembly;
+    if (!core.Disassemble(optspirv, &disassembly)) {
+        throw std::runtime_error("bad disassembly");
+    }
+
+    write(baseOutName + ".spv.txt", disassembly);
+
+    return true;
+}
 #endif
 
-        size_t index = 0;
-        while (shader::INVALID_PROGRAM != testPrograms[index]) {
-            auto programId = testPrograms[index];
-            ++index;
+void validateDialectVariantSource(const shader::DialectVariantSource& source) {
+    if (source.scribe.empty()) {
+        throw std::runtime_error("Missing scribe source");
+    }
 
-            uint32_t vertexId = shader::getVertexId(programId);
-            uint32_t fragmentId = shader::getFragmentId(programId);
-            usedShaders.insert(vertexId);
-            usedShaders.insert(fragmentId);
-            maxShader = std::max(maxShader, std::max(fragmentId, vertexId));
-            auto vertexSource = gpu::Shader::getShaderSource(vertexId);
-            QVERIFY(!vertexSource.getCode().empty());
-            verifyBindings(vertexSource);
-            auto fragmentSource = gpu::Shader::getShaderSource(fragmentId);
-            QVERIFY(!fragmentSource.getCode().empty());
-            verifyBindings(fragmentSource);
+    if (source.spirv.empty()) {
+        throw std::runtime_error("Missing SPIRV");
+    }
+
+    if (source.glsl.empty()) {
+        throw std::runtime_error("Missing GLSL");
+    }
+}
+
+void validaDialectSource(const shader::DialectSource& dialectSource) {
+    for (const auto& variant : shader::allVariants()) {
+        validateDialectVariantSource(dialectSource.variantSources.find(variant)->second);
+    }
+}
+
+void validateSource(const shader::Source& shader) {
+    if (shader.id == shader::INVALID_SHADER) {
+        throw std::runtime_error("Missing stored shader ID");
+    }
+
+    if (shader.name.empty()) {
+        throw std::runtime_error("Missing shader name");
+    }
+
+    static const auto& dialects = shader::allDialects();
+    for (const auto dialect : dialects) {
+        if (!shader.dialectSources.count(dialect)) {
+            throw std::runtime_error("Missing platform shader");
+        }
+        const auto& platformShader = shader.dialectSources.find(dialect)->second;
+        validaDialectSource(platformShader);
+    }
+}
+
+void ShaderTests::testShaderLoad() {
+    try {
+        const auto& shaderIds = shader::allShaders();
+
+        // For debugging compile or link failures on individual programs, enable the following block and change the array values
+        // Be sure to end with the sentinal value of shader::INVALID_PROGRAM
+        const auto& programIds = shader::allPrograms();
+
+        for (auto shaderId : shaderIds) {
+            validateSource(shader::Source::get(shaderId));
+        }
+
+        {
+            std::unordered_set<uint32_t> programUsedShaders;
+#pragma omp parallel for
+            for (auto programId : programIds) {
+                auto vertexId = shader::getVertexId(programId);
+                shader::Source::get(vertexId);
+                programUsedShaders.insert(vertexId);
+                auto fragmentId = shader::getFragmentId(programId);
+                shader::Source::get(fragmentId);
+                programUsedShaders.insert(fragmentId);
+            }
+
+            for (const auto& shaderId : shaderIds) {
+                if (programUsedShaders.count(shaderId)) {
+                    continue;
+                }
+                const auto& shader = shader::Source::get(shaderId);
+                qDebug() << "Unused shader found" << shader.name.c_str();
+            }
+        }
+
+        // Traverse all programs again to do program level tests
+        for (const auto& programId : programIds) {
+            auto vertexId = shader::getVertexId(programId);
+            const auto& vertexSource = shader::Source::get(vertexId);
+            auto fragmentId = shader::getFragmentId(programId);
+            const auto& fragmentSource = shader::Source::get(fragmentId);
             verifyInterface(vertexSource, fragmentSource);
-
-            auto expectedBindings = mergeReflection({ vertexSource, fragmentSource });
 
             auto program = gpu::Shader::createProgram(programId);
             auto glBackend = std::static_pointer_cast<gpu::gl::GLBackend>(_gpuContext->getBackend());
             auto glshader = gpu::gl::GLShader::sync(*glBackend, *program);
+
             if (!glshader) {
-                qWarning() << "Failed to compile or link vertex " << vertexId << " fragment " << fragmentId;
+                qWarning() << "Failed to compile or link vertex " << vertexSource.name.c_str() << " fragment "
+                           << fragmentSource.name.c_str();
                 QFAIL("Program link error");
             }
-
+#if RUNTIME_SHADER_COMPILE_TEST
+            auto expectedBindings = mergeReflection({ vertexSource, fragmentSource });
             QVERIFY(glshader != nullptr);
             for (const auto& shaderObject : glshader->_shaderObjects) {
                 const auto& program = shaderObject.glprogram;
@@ -260,9 +552,10 @@ void ShaderTests::testShaderLoad() {
                 // Textures
                 {
                     auto textures = gl::Uniform::loadTextures(program);
-                    auto expiredBegin = std::remove_if(textures.begin(), textures.end(), [&](const gl::Uniform& uniform) -> bool {
-                        return uniform.name == "transformObjectBuffer";
-                    });
+                    auto expiredBegin =
+                        std::remove_if(textures.begin(), textures.end(), [&](const gl::Uniform& uniform) -> bool {
+                            return uniform.name == "transformObjectBuffer";
+                        });
                     textures.erase(expiredBegin, textures.end());
 
                     const auto expectedTextures = expectedBindings[gpu::Shader::BindingType::TEXTURE];
@@ -296,11 +589,13 @@ void ShaderTests::testShaderLoad() {
 
                 // FIXME add storage buffer validation
             }
+#endif
         }
     } catch (const std::runtime_error& error) {
         QFAIL(error.what());
     }
 
+#if RUNTIME_SHADER_COMPILE_TEST
     for (uint32_t i = 1; i <= maxShader; ++i) {
         auto used = usedShaders.count(i);
         if (0 != usedShaders.count(i)) {
@@ -310,6 +605,7 @@ void ShaderTests::testShaderLoad() {
         auto name = QJsonDocument::fromJson(reflectionJson.c_str()).object()["name"].toString();
         qDebug() << "Unused shader" << name;
     }
+#endif
 
     qDebug() << "Completed all shaders";
 }

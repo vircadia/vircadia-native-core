@@ -421,6 +421,10 @@ void DebugSubsurfaceScattering::configure(const Config& config) {
     _showSpecularTable = config.showSpecularTable;
     _showCursorPixel = config.showCursorPixel;
     _debugCursorTexcoord = config.debugCursorTexcoord;
+    if (!_debugParams) {
+        _debugParams = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), nullptr);
+    }
+    _debugParams->setSubData(0, _debugCursorTexcoord);
 }
 
 
@@ -479,6 +483,10 @@ void DebugSubsurfaceScattering::run(const render::RenderContextPointer& renderCo
     assert(lightStage);
    // const auto light = DependencyManager::get<DeferredLightingEffect>()->getLightStage()->getLight(0);
     const auto light = lightStage->getLight(0);
+    if (!_debugParams) {
+        _debugParams = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), nullptr);
+        _debugParams->setSubData(0, _debugCursorTexcoord);
+    }
     
     gpu::doInBatch("DebugSubsurfaceScattering::run", args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -521,9 +529,7 @@ void DebugSubsurfaceScattering::run(const render::RenderContextPointer& renderCo
                 batch.setResourceTexture(ru::Texture::DeferredNormal, deferredFramebuffer->getDeferredNormalTexture());
                 batch.setResourceTexture(ru::Texture::DeferredColor, deferredFramebuffer->getDeferredColorTexture());
                	batch.setResourceTexture(ru::Texture::DeferredDepth, linearDepthTexture);
-
-
-                batch._glUniform2f(gpu::slot::uniform::Extra0, _debugCursorTexcoord.x, _debugCursorTexcoord.y);
+                batch.setUniformBuffer(1, _debugParams);
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
             }
         }
