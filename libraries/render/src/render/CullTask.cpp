@@ -445,7 +445,7 @@ void ApplyCullFunctorOnItemBounds::run(const RenderContextPointer& renderContext
     }
 }
 
-void FetchSpatialSelection::run(const RenderContextPointer& renderContext,
+void FilterSpatialSelection::run(const RenderContextPointer& renderContext,
                                const Inputs& inputs, ItemBounds& outItems) {
     assert(renderContext->args);
     auto& scene = renderContext->_scene;

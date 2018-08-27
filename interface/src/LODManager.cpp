@@ -237,8 +237,14 @@ QString LODManager::getLODFeedbackText() {
 bool LODManager::shouldRender(const RenderArgs* args, const AABox& bounds) {
     // FIXME - eventually we want to use the render accuracy as an indicator for the level of detail
     // to use in rendering.
-    float renderAccuracy = calculateRenderAccuracy(args->getViewFrustum().getPosition(), bounds, args->_sizeScale, args->_boundaryLevelAdjust);
-    return (renderAccuracy > 0.0f);
+  //  float renderAccuracy = calculateRenderAccuracy(args->getViewFrustum().getPosition(), bounds, args->_sizeScale, args->_boundaryLevelAdjust);
+  //  return (renderAccuracy > 0.0f);
+
+    auto pos = args->getViewFrustum().getPosition() - bounds.calcCenter();
+    auto dim = bounds.getDimensions();
+    auto halfTanSq = 0.25f * glm::dot(dim, dim) / glm::dot(pos, pos);
+    return (halfTanSq >= args->_solidAngleHalfTan * args->_solidAngleHalfTan);
+
 };
 
 void LODManager::setOctreeSizeScale(float sizeScale) {
@@ -325,3 +331,6 @@ float LODManager::getSolidAngleHalfTan() const {
     return getPerspectiveAccuracyAngleTan(_octreeSizeScale, _boundaryLevelAdjust);
 }
 
+float LODManager::getSolidAngle() const {
+    return glm::degrees(2.0 * atan(getSolidAngleHalfTan()));
+}

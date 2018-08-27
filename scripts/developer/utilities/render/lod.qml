@@ -160,15 +160,16 @@ Item {
             ]
         }
         PlotPerf {
-            title: "Solid Angle Half Tan"
+            title: "Solid Angle"
             height: parent.evalEvenHeight()
             object: LODManager
             valueScale: 1.0
-            valueUnit: ""
+            valueUnit: "deg"
+            //valueNumDigits: 0
             plots: [
                 {
-                    prop: "solidAngleHalfTan",
-                    label: "SAHT",
+                    prop: "solidAngle",
+                    label: "Solid Angle",
                     color: "#9999FF"
                 }
             ]

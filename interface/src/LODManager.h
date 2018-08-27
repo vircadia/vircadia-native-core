@@ -70,6 +70,7 @@ class LODManager : public QObject, public Dependency {
     Q_PROPERTY(float worldDetailQuality READ getWorldDetailQuality WRITE setWorldDetailQuality NOTIFY worldDetailQualityChanged)
 
     Q_PROPERTY(float solidAngleHalfTan READ getSolidAngleHalfTan)
+    Q_PROPERTY(float solidAngle READ getSolidAngle)
 
 public:
      
@@ -187,6 +188,7 @@ public:
     float getWorldDetailQuality() const;
 
     float getSolidAngleHalfTan() const;
+    float getSolidAngle() const;
 
 signals:
 
