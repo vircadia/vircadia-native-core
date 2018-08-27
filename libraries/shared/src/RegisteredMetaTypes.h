@@ -271,10 +271,7 @@ public:
     CollisionRegion(const CollisionRegion& collisionRegion) :
         modelURL(collisionRegion.modelURL),
         shapeInfo(std::make_shared<ShapeInfo>()),
-        transform(collisionRegion.transform),
-        parentID(collisionRegion.parentID),
-        parentJointIndex(collisionRegion.parentJointIndex),
-        joint(collisionRegion.joint)
+        transform(collisionRegion.transform)
     {
         shapeInfo->setParams(collisionRegion.shapeInfo->getType(), collisionRegion.shapeInfo->getHalfExtents(), collisionRegion.modelURL.toString());
     }
@@ -308,15 +305,6 @@ public:
         if (pickVariant["orientation"].isValid()) {
             transform.setRotation(quatFromVariant(pickVariant["orientation"]));
         }
-        if (pickVariant["parentID"].isValid()) {
-            parentID = pickVariant["parentID"].toString();
-        }
-        if (pickVariant["parentJointIndex"].isValid()) {
-            parentJointIndex = pickVariant["parentJointIndex"].toInt();
-        }
-        if (pickVariant["joint"].isValid()) {
-            joint = pickVariant["joint"].toString();
-        }
     }
 
     QVariantMap toVariantMap() const override {
@@ -331,14 +319,6 @@ public:
 
         collisionRegion["position"] = vec3toVariant(transform.getTranslation());
         collisionRegion["orientation"] = quatToVariant(transform.getRotation());
-
-        if (!parentID.isNull()) {
-            collisionRegion["parentID"] = parentID;
-        }
-        collisionRegion["parentJointIndex"] = parentJointIndex;
-        if (!joint.isNull()) {
-            collisionRegion["joint"] = joint;
-        }
 
         return collisionRegion;
     }
@@ -374,11 +354,6 @@ public:
     // We can't compute the shapeInfo here without loading the model first, so we delegate that responsibility to the owning CollisionPick
     std::shared_ptr<ShapeInfo> shapeInfo = std::make_shared<ShapeInfo>();
     Transform transform;
-
-    // Parenting information
-    QUuid parentID;
-    int parentJointIndex = 0;
-    QString joint; 
 };
 
 namespace std {
