@@ -176,7 +176,7 @@ void TriangleSet::TriangleTreeCell::insert(size_t triangleIndex) {
     _triangleIndices.push_back(triangleIndex);
 }
 
-bool TriangleSet::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
+bool TriangleSet::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& invDirection, float& distance,
                                       BoxFace& face, Triangle& triangle, bool precision, bool allowBackface) {
     if (!_isBalanced) {
         balanceTree();
@@ -184,7 +184,7 @@ bool TriangleSet::findRayIntersection(const glm::vec3& origin, const glm::vec3& 
 
     float localDistance = distance;
     int trianglesTouched = 0;
-    bool hit = _triangleTree.findRayIntersection(origin, direction, localDistance, face, triangle, precision, trianglesTouched, allowBackface);
+    bool hit = _triangleTree.findRayIntersection(origin, direction, invDirection, localDistance, face, triangle, precision, trianglesTouched, allowBackface);
     if (hit) {
         distance = localDistance;
     }
@@ -232,9 +232,9 @@ bool TriangleSet::TriangleTreeCell::findRayIntersectionInternal(const glm::vec3&
     return intersectedSomething;
 }
 
-bool TriangleSet::TriangleTreeCell::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                                          BoxFace& face, Triangle& triangle, bool precision, int& trianglesTouched,
-                                                          bool allowBackface) {
+bool TriangleSet::TriangleTreeCell::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& invDirection,
+                                                        float& distance, BoxFace& face, Triangle& triangle, bool precision, int& trianglesTouched,
+                                                        bool allowBackface) {
     if (_population < 1) {
         return false; // no triangles below here, so we can't intersect
     }
@@ -270,7 +270,7 @@ bool TriangleSet::TriangleTreeCell::findRayIntersection(const glm::vec3& origin,
                     float childBoundDistance = FLT_MAX;
                     BoxFace childBoundFace;
                     glm::vec3 childBoundNormal;
-                    if (child->getBounds().findRayIntersection(origin, direction, childBoundDistance, childBoundFace, childBoundNormal)) {
+                    if (child->getBounds().findRayIntersection(origin, direction, invDirection, childBoundDistance, childBoundFace, childBoundNormal)) {
                         // We only need to add this cell if it's closer than the local triangle set intersection (if there was one)
                         if (childBoundDistance < bestLocalDistance) {
                             priority = childBoundDistance;
@@ -301,11 +301,11 @@ bool TriangleSet::TriangleTreeCell::findRayIntersection(const glm::vec3& origin,
             if (!precision && childDistance < EPSILON) {
                 BoxFace childBoundFace;
                 glm::vec3 childBoundNormal;
-                sortedTriangleCell.second->getBounds().findRayIntersection(origin, direction, childDistance, childBoundFace, childBoundNormal);
+                sortedTriangleCell.second->getBounds().findRayIntersection(origin, direction, invDirection, childDistance, childBoundFace, childBoundNormal);
             }
             BoxFace childFace;
             Triangle childTriangle;
-            if (sortedTriangleCell.second->findRayIntersection(origin, direction, childDistance, childFace, childTriangle, precision, trianglesTouched)) {
+            if (sortedTriangleCell.second->findRayIntersection(origin, direction, invDirection, childDistance, childFace, childTriangle, precision, trianglesTouched)) {
                 if (childDistance < bestLocalDistance) {
                     bestLocalDistance = childDistance;
                     bestLocalFace = childFace;

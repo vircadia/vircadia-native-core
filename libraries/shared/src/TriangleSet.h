@@ -28,7 +28,7 @@ class TriangleSet {
         void reset(const AABox& bounds, int depth = 0);
         void clear();
 
-        bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& invDirection,
             float& distance, BoxFace& face, Triangle& triangle, bool precision, int& trianglesTouched,
             bool allowBackface = false);
         bool findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
@@ -69,7 +69,7 @@ public:
 
     void insert(const Triangle& t);
 
-    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& invDirection,
         float& distance, BoxFace& face, Triangle& triangle, bool precision, bool allowBackface = false);
     bool findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
         float& parabolicDistance, BoxFace& face, Triangle& triangle, bool precision, bool allowBackface = false);

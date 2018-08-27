@@ -215,7 +215,7 @@ EntityItemID EntityTreeElement::findDetailedRayIntersection(const glm::vec3& ori
         float localDistance;
         BoxFace localFace;
         glm::vec3 localSurfaceNormal;
-        if (entityFrameBox.findRayIntersection(entityFrameOrigin, entityFrameDirection, localDistance,
+        if (entityFrameBox.findRayIntersection(entityFrameOrigin, entityFrameDirection, 1.0f / entityFrameDirection, localDistance,
                                                 localFace, localSurfaceNormal)) {
             if (entityFrameBox.contains(entityFrameOrigin) || localDistance < distance) {
                 // now ask the entity if we actually intersect

@@ -376,7 +376,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
     // we can use the AABox's intersection by mapping our origin and direction into the model frame
     // and testing intersection there.
-    if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face, surfaceNormal)) {
+    if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, 1.0f / modelFrameDirection, distance, face, surfaceNormal)) {
         QMutexLocker locker(&_mutex);
 
         float bestDistance = FLT_MAX;
@@ -400,6 +400,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
         glm::vec3 meshFrameOrigin = glm::vec3(worldToMeshMatrix * glm::vec4(origin, 1.0f));
         glm::vec3 meshFrameDirection = glm::vec3(worldToMeshMatrix * glm::vec4(direction, 0.0f));
+        glm::vec3 meshFrameInvDirection = 1.0f / meshFrameDirection;
 
         int shapeID = 0;
         int subMeshIndex = 0;
@@ -415,8 +416,8 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                     float partBoundDistance = FLT_MAX;
                     BoxFace partBoundFace;
                     glm::vec3 partBoundNormal;
-                    if (partTriangleSet.getBounds().findRayIntersection(meshFrameOrigin, meshFrameDirection, partBoundDistance,
-                                                                        partBoundFace, partBoundNormal)) {
+                    if (partTriangleSet.getBounds().findRayIntersection(meshFrameOrigin, meshFrameDirection, meshFrameInvDirection,
+                                                                        partBoundDistance, partBoundFace, partBoundNormal)) {
                         priority = partBoundDistance;
                     }
                 }
@@ -444,7 +445,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
             float triangleSetDistance = FLT_MAX;
             BoxFace triangleSetFace;
             Triangle triangleSetTriangle;
-            if (sortedTriangleSet.triangleSet->findRayIntersection(meshFrameOrigin, meshFrameDirection, triangleSetDistance, triangleSetFace,
+            if (sortedTriangleSet.triangleSet->findRayIntersection(meshFrameOrigin, meshFrameDirection, meshFrameInvDirection, triangleSetDistance, triangleSetFace,
                                                                    triangleSetTriangle, pickAgainstTriangles, allowBackface)) {
                 if (triangleSetDistance < bestDistance) {
                     bestDistance = triangleSetDistance;

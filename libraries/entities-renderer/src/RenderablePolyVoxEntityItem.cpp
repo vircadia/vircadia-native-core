@@ -596,8 +596,8 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
     voxelBox += result3 - Vectors::HALF;
     voxelBox += result3 + Vectors::HALF;
 
-    glm::vec4 directionInVoxel = wtvMatrix * glm::vec4(direction, 0.0f);
-    return voxelBox.findRayIntersection(glm::vec3(originInVoxel), glm::vec3(directionInVoxel),
+    glm::vec3 directionInVoxel = vec3(wtvMatrix * glm::vec4(direction, 0.0f));
+    return voxelBox.findRayIntersection(glm::vec3(originInVoxel), directionInVoxel, 1.0f / directionInVoxel,
                                         distance, face, surfaceNormal);
 }
 

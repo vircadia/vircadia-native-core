@@ -48,6 +48,7 @@ public:
     // Inputs
     glm::vec3 origin;
     glm::vec3 direction;
+    glm::vec3 invDirection;
     const QVector<EntityItemID>& entityIdsToInclude;
     const QVector<EntityItemID>& entityIdsToDiscard;
     bool visibleOnly;
@@ -847,7 +848,7 @@ float findRayIntersectionSortingOp(const OctreeElementPointer& element, void* ex
         float boundDistance = FLT_MAX;
         BoxFace face;
         glm::vec3 surfaceNormal;
-        if (entityTreeElementPointer->getAACube().findRayIntersection(args->origin, args->direction, boundDistance, face, surfaceNormal)) {
+        if (entityTreeElementPointer->getAACube().findRayIntersection(args->origin, args->direction, args->invDirection, boundDistance, face, surfaceNormal)) {
             // Don't add this cell if it's already farther than our best distance so far
             if (boundDistance < args->distance) {
                 distance = boundDistance;
@@ -863,7 +864,7 @@ EntityItemID EntityTree::findRayIntersection(const glm::vec3& origin, const glm:
                                     OctreeElementPointer& element, float& distance,
                                     BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
                                     Octree::lockType lockType, bool* accurateResult) {
-    RayArgs args = { origin, direction, entityIdsToInclude, entityIdsToDiscard,
+    RayArgs args = { origin, direction, 1.0f / direction, entityIdsToInclude, entityIdsToDiscard,
             visibleOnly, collidableOnly, precisionPicking, element, distance, face, surfaceNormal, extraInfo, EntityItemID() };
     distance = FLT_MAX;
 
