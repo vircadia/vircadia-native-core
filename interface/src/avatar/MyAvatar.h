@@ -285,7 +285,7 @@ public:
     Q_INVOKABLE void centerBody(); // thread-safe
 
 
-    /**jsdoc
+    /**jsdoc_hmdSensorMatrix
      * The internal inverse-kinematics system maintains a record of which joints are "locked". Sometimes it is useful to forget this history, to prevent
      * contorted joints.
      * @function MyAvatar.clearIKJointLimitHistory
@@ -914,6 +914,8 @@ public:
 
     virtual void rebuildCollisionShape() override;
 
+    const glm::vec2& getHeadControllerFacing() const { return _headControllerFacing; }
+    void setHeadControllerFacing(glm::vec2 currentHeadControllerFacing) { _headControllerFacing = currentHeadControllerFacing; }
     const glm::vec2& getHeadControllerFacingMovingAverage() const { return _headControllerFacingMovingAverage; }
     void setHeadControllerFacingMovingAverage(glm::vec2 currentHeadControllerFacing) { _headControllerFacingMovingAverage = currentHeadControllerFacing; }
     float getCurrentStandingHeight() const { return _currentStandingHeight; }
