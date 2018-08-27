@@ -352,7 +352,7 @@ function fillImageDataFromPrevious() {
         containsGif: previousAnimatedSnapPath !== "",
         processingGif: false,
         shouldUpload: false,
-        canBlast: location.domainID === Settings.getValue("previousSnapshotDomainID"),
+        canBlast: snapshotDomainID === Settings.getValue("previousSnapshotDomainID"),
         isLoggedIn: isLoggedIn
     };
     imageData = [];
@@ -427,7 +427,7 @@ function snapshotUploaded(isError, reply) {
     }
     isUploadingPrintableStill = false;
 }
-var href, domainID;
+var href, snapshotDomainID;
 function takeSnapshot() {
     tablet.emitScriptEvent(JSON.stringify({
         type: "snapshot",
@@ -452,8 +452,8 @@ function takeSnapshot() {
     // Even the domainID could change (e.g., if the user falls into a teleporter while recording).
     href = location.href;
     Settings.setValue("previousSnapshotHref", href);
-    domainID = location.domainID;
-    Settings.setValue("previousSnapshotDomainID", domainID);
+    snapshotDomainID = location.domainID;
+    Settings.setValue("previousSnapshotDomainID", snapshotDomainID);
 
     maybeDeleteSnapshotStories();
 
@@ -551,7 +551,7 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
 
     HMD.openTablet();
 
-    isDomainOpen(domainID, function (canShare) {
+    isDomainOpen(snapshotDomainID, function (canShare) {
         snapshotOptions = {
             containsGif: false,
             processingGif: false,
@@ -594,7 +594,7 @@ function processingGifStarted(pathStillSnapshot) {
 
     HMD.openTablet();
     
-    isDomainOpen(domainID, function (canShare) {
+    isDomainOpen(snapshotDomainID, function (canShare) {
         snapshotOptions = {
             containsGif: true,
             processingGif: true,
@@ -622,7 +622,7 @@ function processingGifCompleted(pathAnimatedSnapshot) {
 
     Settings.setValue("previousAnimatedSnapPath", pathAnimatedSnapshot);
 
-    isDomainOpen(domainID, function (canShare) {
+    isDomainOpen(snapshotDomainID, function (canShare) {
         snapshotOptions = {
             containsGif: true,
             processingGif: false,

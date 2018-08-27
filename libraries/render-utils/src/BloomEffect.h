@@ -14,43 +14,22 @@
 
 #include <render/Engine.h>
 
+#include "graphics/Bloom.h"
+
 #include "DeferredFrameTransform.h"
 
 class BloomConfig : public render::Task::Config {
     Q_OBJECT
-        Q_PROPERTY(float intensity READ getIntensity WRITE setIntensity NOTIFY dirty)
-        Q_PROPERTY(float size MEMBER size WRITE setSize NOTIFY dirty)
-
-public:
-
-    BloomConfig() : render::Task::Config(false) {}
-
-    float size{ 0.7f };
-
-    void setIntensity(float value);
-    float getIntensity() const;
-    void setSize(float value);
-
-signals:
-    void dirty();
 };
 
 class BloomThresholdConfig : public render::Job::Config {
     Q_OBJECT
-        Q_PROPERTY(float threshold MEMBER threshold NOTIFY dirty)
-
-public:
-
-    float threshold{ 0.9f };
-
-signals:
-    void dirty();
 };
 
 class BloomThreshold {
 public:
-    using Inputs = render::VaryingSet2<DeferredFrameTransformPointer, gpu::FramebufferPointer>;
-    using Outputs = gpu::FramebufferPointer;
+    using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, gpu::FramebufferPointer, graphics::BloomPointer>;
+    using Outputs = render::VaryingSet2<gpu::FramebufferPointer, float>;
     using Config = BloomThresholdConfig;
     using JobModel = render::Job::ModelIO<BloomThreshold, Inputs, Outputs, Config>;
 
@@ -71,21 +50,11 @@ private:
 
 class BloomApplyConfig : public render::Job::Config {
     Q_OBJECT
-        Q_PROPERTY(float intensity MEMBER intensity NOTIFY dirty)
-		Q_PROPERTY(float sigma MEMBER sigma NOTIFY dirty)
-
-public:
-
-    float intensity{ 0.25f };
-	float sigma{ 1.0f };
-
-signals:
-    void dirty();
 };
 
 class BloomApply {
 public:
-    using Inputs = render::VaryingSet4<gpu::FramebufferPointer, gpu::FramebufferPointer, gpu::FramebufferPointer, gpu::FramebufferPointer>;
+    using Inputs = render::VaryingSet5<gpu::FramebufferPointer, gpu::FramebufferPointer, gpu::FramebufferPointer, gpu::FramebufferPointer, graphics::BloomPointer>;
     using Config = BloomApplyConfig;
     using JobModel = render::Job::ModelI<BloomApply, Inputs, Config>;
 
@@ -118,7 +87,7 @@ private:
 
 class DebugBloomConfig : public render::Job::Config {
     Q_OBJECT
-        Q_PROPERTY(int mode MEMBER mode NOTIFY dirty)
+    Q_PROPERTY(int mode MEMBER mode NOTIFY dirty)
 
 public:
 
@@ -155,13 +124,13 @@ private:
     DebugBloomConfig::Mode _mode;
 };
 
-class Bloom {
+class BloomEffect {
 public:
-    using Inputs = render::VaryingSet2<DeferredFrameTransformPointer, gpu::FramebufferPointer>;
+    using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, gpu::FramebufferPointer, graphics::BloomPointer>;
     using Config = BloomConfig;
-	using JobModel = render::Task::ModelI<Bloom, Inputs, Config>;
+	using JobModel = render::Task::ModelI<BloomEffect, Inputs, Config>;
 
-	Bloom();
+	BloomEffect();
 
 	void configure(const Config& config);
 	void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);

@@ -110,7 +110,7 @@ Script.include("/~/system/libraries/controllers.js");
         SEAT: 'seat' // The current target is a seat
     };
 
-    var speed = 12.0;
+    var speed = 9.3;
     var accelerationAxis = {x: 0.0, y: -5.0, z: 0.0};
 
     function Teleporter(hand) {

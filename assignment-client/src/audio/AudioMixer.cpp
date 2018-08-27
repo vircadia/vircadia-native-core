@@ -366,7 +366,7 @@ AudioMixerClientData* AudioMixer::getOrCreateClientData(Node* node) {
     auto clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
 
     if (!clientData) {
-        node->setLinkedData(std::unique_ptr<NodeData> { new AudioMixerClientData(node->getUUID()) });
+        node->setLinkedData(std::unique_ptr<NodeData> { new AudioMixerClientData(node->getUUID(), node->getLocalID()) });
         clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
         connect(clientData, &AudioMixerClientData::injectorStreamFinished, this, &AudioMixer::removeHRTFsForFinishedInjector);
     }

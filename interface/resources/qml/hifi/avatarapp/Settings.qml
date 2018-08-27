@@ -33,13 +33,13 @@ Rectangle {
         scaleSlider.value = Math.round(avatarScale * 10);
         scaleSlider.notify = true;;
 
-        if(settings.dominantHand === 'left') {
+        if (settings.dominantHand === 'left') {
             leftHandRadioButton.checked = true;
         } else {
             rightHandRadioButton.checked = true;
         }
 
-        if(settings.collisionsEnabled) {
+        if (settings.collisionsEnabled) {
             collisionsEnabledRadiobutton.checked = true;
         } else {
             collisionsDisabledRadioButton.checked = true;
@@ -113,7 +113,7 @@ Rectangle {
 
                     onValueChanged: {
                         console.debug('value changed: ', value);
-                        if(notify) {
+                        if (notify) {
                             console.debug('notifying.. ');
                             root.scaleChanged(value / 10);
                         }

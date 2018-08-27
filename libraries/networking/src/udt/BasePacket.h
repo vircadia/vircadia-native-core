@@ -16,16 +16,15 @@
 
 #include <memory>
 
-#include <QtCore/QIODevice>
-
 #include <PortableHighResolutionClock.h>
 
 #include "../HifiSockAddr.h"
 #include "Constants.h"
+#include "../ExtendedIODevice.h"
 
 namespace udt {
     
-class BasePacket : public QIODevice {
+class BasePacket : public ExtendedIODevice {
     Q_OBJECT
 public:
     static const qint64 PACKET_WRITE_ERROR;
@@ -85,15 +84,11 @@ public:
 
     void setReceiveTime(p_high_resolution_clock::time_point receiveTime) { _receiveTime = receiveTime; }
     p_high_resolution_clock::time_point getReceiveTime() const { return _receiveTime; }
-   
-    template<typename T> qint64 peekPrimitive(T* data);
-    template<typename T> qint64 readPrimitive(T* data);
-    template<typename T> qint64 writePrimitive(const T& data);
     
 protected:
     BasePacket(qint64 size);
     BasePacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr);
-    BasePacket(const BasePacket& other);
+    BasePacket(const BasePacket& other) : ExtendedIODevice() { *this = other; }
     BasePacket& operator=(const BasePacket& other);
     BasePacket(BasePacket&& other);
     BasePacket& operator=(BasePacket&& other);
@@ -116,19 +111,6 @@ protected:
 
     p_high_resolution_clock::time_point _receiveTime; // captures the time the packet received (only used on receiving end)
 };
-
-template<typename T> qint64 BasePacket::peekPrimitive(T* data) {
-    return peek(reinterpret_cast<char*>(data), sizeof(T));
-}
-
-template<typename T> qint64 BasePacket::readPrimitive(T* data) {
-    return read(reinterpret_cast<char*>(data), sizeof(T));
-}
-
-template<typename T> qint64 BasePacket::writePrimitive(const T& data) {
-    static_assert(!std::is_pointer<T>::value, "T must not be a pointer");
-    return write(reinterpret_cast<const char*>(&data), sizeof(T));
-}
     
 } // namespace udt
 
