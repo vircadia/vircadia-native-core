@@ -452,6 +452,9 @@ Menu::Menu() {
         });
     }
 
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ComputeBlendshapes, 0, true,
+        DependencyManager::get<ModelBlender>().data(), SLOT(setComputeBlendshapes(bool)));
+
     // Developer > Assets >>>
     // Menu item is not currently needed but code should be kept in case it proves useful again at some stage.
 //#define WANT_ASSET_MIGRATION

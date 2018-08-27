@@ -233,9 +233,8 @@ bool findRayAABoxIntersection(const glm::vec3& origin, const glm::vec3& directio
         tmax = glm::min(tmax, newTmax);
     }
 
-    bool inside = tmin < 0.0f;
     if (tmax >= glm::max(tmin, 0.0f)) {
-        if (inside) {
+        if (tmin < 0.0f) {
             distance = tmax;
             bool positiveDirection = direction[maxAxis] > 0.0f;
             surfaceNormal = glm::vec3(0.0f);

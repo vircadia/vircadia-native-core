@@ -119,7 +119,7 @@ bool Octree::recurseElementWithOperationSorted(const OctreeElementPointer& eleme
     }
 
     if (sortedChildren.size() > 1) {
-        static auto comparator = [](const SortedChild& left, const SortedChild& right) { return left.first > right.first; };
+        static auto comparator = [](const SortedChild& left, const SortedChild& right) { return left.first < right.first; };
         std::sort(sortedChildren.begin(), sortedChildren.end(), comparator);
     }
 

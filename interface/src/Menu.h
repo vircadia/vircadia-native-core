@@ -222,6 +222,7 @@ namespace MenuOption {
     const QString NotificationSoundsSnapshot = "play_notification_sounds_snapshot";
     const QString NotificationSoundsTablet = "play_notification_sounds_tablet";
     const QString ForceCoarsePicking = "Force Coarse Picking";
+    const QString ComputeBlendshapes = "Compute Blendshapes";
 }
 
 #endif // hifi_Menu_h

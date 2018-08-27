@@ -44,7 +44,6 @@
 #include "InterfaceLogging.h"
 #include "Menu.h"
 #include "MyAvatar.h"
-#include "OtherAvatar.h"
 #include "SceneScriptingInterface.h"
 
 // 50 times per second - target is 45hz, but this helps account for any small deviations
@@ -81,8 +80,25 @@ AvatarManager::AvatarManager(QObject* parent) :
     });
 }
 
+AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
+    AvatarSharedPointer avatar = AvatarHashMap::addAvatar(sessionUUID, mixerWeakPointer);
+
+    const auto otherAvatar = std::static_pointer_cast<OtherAvatar>(avatar);
+    if (otherAvatar && _space) {
+        std::unique_lock<std::mutex> lock(_spaceLock);
+        auto spaceIndex = _space->allocateID();
+        otherAvatar->setSpaceIndex(spaceIndex);
+        workload::Sphere sphere(otherAvatar->getWorldPosition(), otherAvatar->getBoundingRadius());
+        workload::Transaction transaction;
+        SpatiallyNestablePointer nestable = std::static_pointer_cast<SpatiallyNestable>(otherAvatar);
+        transaction.reset(spaceIndex, sphere, workload::Owner(nestable));
+        _space->enqueueTransaction(transaction);
+    }
+    return avatar;
+}
+
 AvatarManager::~AvatarManager() {
-    assert(_motionStates.empty());
+    assert(_avatarsToChangeInPhysics.empty());
 }
 
 void AvatarManager::init() {
@@ -102,6 +118,11 @@ void AvatarManager::init() {
         _myAvatar->addToScene(_myAvatar, scene, transaction);
         scene->enqueueTransaction(transaction);
     }
+}
+
+void AvatarManager::setSpace(workload::SpacePointer& space ) {
+    assert(!_space);
+    _space = space;
 }
 
 void AvatarManager::updateMyAvatar(float deltaTime) {
@@ -192,20 +213,20 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     uint64_t updateExpiry = startTime + UPDATE_BUDGET;
     int numAvatarsUpdated = 0;
     int numAVatarsNotUpdated = 0;
-    bool physicsEnabled = qApp->isPhysicsEnabled();
 
-    render::Transaction transaction;
+    render::Transaction renderTransaction;
+    workload::Transaction workloadTransaction;
     while (!sortedAvatars.empty()) {
         const SortableAvatar& sortData = sortedAvatars.top();
-        const auto avatar = std::static_pointer_cast<Avatar>(sortData.getAvatar());
-        const auto otherAvatar = std::static_pointer_cast<OtherAvatar>(sortData.getAvatar());
+        const auto avatar = std::static_pointer_cast<OtherAvatar>(sortData.getAvatar());
 
+        // TODO: to help us scale to more avatars it would be nice to not have to poll orb state here
         // if the geometry is loaded then turn off the orb
         if (avatar->getSkeletonModel()->isLoaded()) {
             // remove the orb if it is there
-            otherAvatar->removeOrb();
+            avatar->removeOrb();
         } else {
-            otherAvatar->updateOrbPosition();
+            avatar->updateOrbPosition();
         }
 
         bool ignoring = DependencyManager::get<NodeList>()->isPersonalMutingNode(avatar->getID());
@@ -218,18 +239,6 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         if (_shouldRender) {
             avatar->ensureInScene(avatar, qApp->getMain3DScene());
         }
-        if (physicsEnabled && !avatar->isInPhysicsSimulation()) {
-            ShapeInfo shapeInfo;
-            avatar->computeShapeInfo(shapeInfo);
-            btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
-            if (shape) {
-                AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
-                motionState->setMass(avatar->computeMass());
-                avatar->setPhysicsCallback([=] (uint32_t flags) { motionState->addDirtyFlags(flags); });
-                _motionStates.insert(avatar.get(), motionState);
-                _motionStatesToAddToPhysics.insert(motionState);
-            }
-        }
         avatar->animateScaleChanges(deltaTime);
 
         const float OUT_OF_VIEW_THRESHOLD = 0.5f * AvatarData::OUT_OF_VIEW_PENALTY;
@@ -241,15 +250,16 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
                 numAvatarsUpdated++;
             }
             avatar->simulate(deltaTime, inView);
-            avatar->updateRenderItem(transaction);
+            avatar->updateRenderItem(renderTransaction);
+            avatar->updateSpaceProxy(workloadTransaction);
             avatar->setLastRenderUpdateTime(startTime);
         } else {
             // we've spent our full time budget --> bail on the rest of the avatar updates
             // --> more avatars may freeze until their priority trickles up
-            // --> some scale or fade animations may glitch
+            // --> some scale animations may glitch
             // --> some avatar velocity measurements may be a little off
 
-            // no time simulate, but we take the time to count how many were tragically missed
+            // no time to simulate, but we take the time to count how many were tragically missed
             bool inView = sortData.getPriority() > OUT_OF_VIEW_THRESHOLD;
             if (!inView) {
                 break;
@@ -273,8 +283,16 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     }
 
     if (_shouldRender) {
-        qApp->getMain3DScene()->enqueueTransaction(transaction);
+        qApp->getMain3DScene()->enqueueTransaction(renderTransaction);
     }
+
+    if (!_spaceProxiesToDelete.empty() && _space) {
+        std::unique_lock<std::mutex> lock(_spaceLock);
+        workloadTransaction.remove(_spaceProxiesToDelete);
+        _spaceProxiesToDelete.clear();
+    }
+    _space->enqueueTransaction(workloadTransaction);
+
     _numAvatarsUpdated = numAvatarsUpdated;
     _numAvatarsNotUpdated = numAVatarsNotUpdated;
 
@@ -341,40 +359,85 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     QReadLocker locker(&_hashLock);
     QVector<AvatarSharedPointer>::iterator avatarItr = _avatarsToFade.begin();
     const render::ScenePointer& scene = qApp->getMain3DScene();
+    render::Transaction transaction;
     while (avatarItr != _avatarsToFade.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(*avatarItr);
         avatar->updateFadingStatus(scene);
         if (!avatar->isFading()) {
             // fading to zero is such a rare event we push a unique transaction for each
             if (avatar->isInScene()) {
-                render::Transaction transaction;
                 avatar->removeFromScene(*avatarItr, scene, transaction);
-                scene->enqueueTransaction(transaction);
             }
             avatarItr = _avatarsToFade.erase(avatarItr);
         } else {
             ++avatarItr;
         }
     }
+    scene->enqueueTransaction(transaction);
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
     return AvatarSharedPointer(new OtherAvatar(qApp->thread()), [](OtherAvatar* ptr) { ptr->deleteLater(); });
 }
 
-void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
-    AvatarHashMap::handleRemovedAvatar(removedAvatar, removalReason);
+void AvatarManager::queuePhysicsChange(const OtherAvatarPointer& avatar) {
+    _avatarsToChangeInPhysics.insert(avatar);
+}
 
-    // remove from physics
-    auto avatar = std::static_pointer_cast<Avatar>(removedAvatar);
-    avatar->setPhysicsCallback(nullptr);
-    AvatarMotionStateMap::iterator itr = _motionStates.find(avatar.get());
-    if (itr != _motionStates.end()) {
-        AvatarMotionState* motionState = *itr;
-        _motionStatesToAddToPhysics.remove(motionState);
-        _motionStatesToRemoveFromPhysics.push_back(motionState);
-        _motionStates.erase(itr);
+void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transaction) {
+    SetOfOtherAvatars failedShapeBuilds;
+    for (auto avatar : _avatarsToChangeInPhysics) {
+        bool isInPhysics = avatar->isInPhysicsSimulation();
+        if (isInPhysics != avatar->shouldBeInPhysicsSimulation()) {
+            if (isInPhysics) {
+                transaction.objectsToRemove.push_back(avatar->_motionState);
+                avatar->_motionState = nullptr;
+            } else {
+                ShapeInfo shapeInfo;
+                avatar->computeShapeInfo(shapeInfo);
+                btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
+                if (shape) {
+                    AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
+                    motionState->setMass(avatar->computeMass());
+                    avatar->_motionState = motionState;
+                    transaction.objectsToAdd.push_back(motionState);
+                } else {
+                    failedShapeBuilds.insert(avatar);
+                }
+            }
+        } else if (isInPhysics) {
+            transaction.objectsToChange.push_back(avatar->_motionState);
+        }
     }
+    _avatarsToChangeInPhysics.swap(failedShapeBuilds);
+}
+
+void AvatarManager::handleProcessedPhysicsTransaction(PhysicsEngine::Transaction& transaction) {
+    // things on objectsToChange correspond to failed changes
+    // so we push them back onto _avatarsToChangeInPhysics
+    for (auto object : transaction.objectsToChange) {
+        AvatarMotionState* motionState = static_cast<AvatarMotionState*>(object);
+        assert(motionState);
+        assert(motionState->_avatar);
+        _avatarsToChangeInPhysics.insert(motionState->_avatar);
+    }
+    // things on objectsToRemove are ready for delete
+    for (auto object : transaction.objectsToRemove) {
+        delete object;
+    }
+    transaction.clear();
+}
+
+void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
+    auto avatar = std::static_pointer_cast<OtherAvatar>(removedAvatar);
+    {
+        std::unique_lock<std::mutex> lock(_spaceLock);
+        _spaceProxiesToDelete.push_back(avatar->getSpaceIndex());
+    }
+    AvatarHashMap::handleRemovedAvatar(avatar, removalReason);
+
+    avatar->die();
+    queuePhysicsChange(avatar);
 
     if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
         emit DependencyManager::get<UsersScriptingInterface>()->enteredIgnoreRadius();
@@ -410,48 +473,15 @@ void AvatarManager::clearOtherAvatars() {
 }
 
 void AvatarManager::deleteAllAvatars() {
-    assert(_motionStates.empty()); // should have called clearOtherAvatars() before getting here
-    deleteMotionStates();
+    assert(_avatarsToChangeInPhysics.empty());
 
     QReadLocker locker(&_hashLock);
     AvatarHash::iterator avatarIterator =  _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
-        auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
+        auto avatar = std::static_pointer_cast<OtherAvatar>(avatarIterator.value());
         avatarIterator = _avatarHash.erase(avatarIterator);
         avatar->die();
-    }
-}
-
-void AvatarManager::deleteMotionStates() {
-    // delete motionstates that were removed from physics last frame
-    for (auto state : _motionStatesToDelete) {
-        delete state;
-    }
-    _motionStatesToDelete.clear();
-}
-
-void AvatarManager::getObjectsToRemoveFromPhysics(VectorOfMotionStates& result) {
-    deleteMotionStates();
-    result = _motionStatesToRemoveFromPhysics;
-    _motionStatesToDelete.swap(_motionStatesToRemoveFromPhysics);
-}
-
-void AvatarManager::getObjectsToAddToPhysics(VectorOfMotionStates& result) {
-    result.clear();
-    for (auto motionState : _motionStatesToAddToPhysics) {
-        result.push_back(motionState);
-    }
-    _motionStatesToAddToPhysics.clear();
-}
-
-void AvatarManager::getObjectsToChange(VectorOfMotionStates& result) {
-    result.clear();
-    AvatarMotionStateMap::iterator motionStateItr = _motionStates.begin();
-    while (motionStateItr != _motionStates.end()) {
-        if ((*motionStateItr)->getIncomingDirtyFlags() != 0) {
-            result.push_back(*motionStateItr);
-        }
-        ++motionStateItr;
+        assert(!avatar->_motionState);
     }
 }
 
@@ -598,7 +628,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
     }
 
     if (sortedAvatars.size() > 1) {
-        static auto comparator = [](const SortedAvatar& left, const SortedAvatar& right) { return left.first > right.first; };
+        static auto comparator = [](const SortedAvatar& left, const SortedAvatar& right) { return left.first < right.first; };
         std::sort(sortedAvatars.begin(), sortedAvatars.end(), comparator);
     }
 
@@ -691,7 +721,7 @@ ParabolaToAvatarIntersectionResult AvatarManager::findParabolaIntersectionVector
     }
 
     if (sortedAvatars.size() > 1) {
-        static auto comparator = [](const SortedAvatar& left, const SortedAvatar& right) { return left.first > right.first; };
+        static auto comparator = [](const SortedAvatar& left, const SortedAvatar& right) { return left.first < right.first; };
         std::sort(sortedAvatars.begin(), sortedAvatars.end(), comparator);
     }
 
