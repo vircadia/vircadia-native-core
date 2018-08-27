@@ -38,13 +38,11 @@ class ModelEntityWrapper : public ModelEntityItem {
     using Parent = ModelEntityItem;
     friend class render::entities::ModelEntityRenderer;
 
-public:
-    bool isModelLoaded() const;
-
 protected:
     ModelEntityWrapper(const EntityItemID& entityItemID) : Parent(entityItemID) {}
     void setModel(const ModelPointer& model);
     ModelPointer getModel() const;
+    bool isModelLoaded() const;
 
     bool _needsInitialSimulation{ true };
 private:

@@ -1305,7 +1305,6 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         if (_hasModel) {
             if (model && _didLastVisualGeometryRequestSucceed) {
                 visuallyReady = (_prevModelLoaded && _texturesLoaded);
-                // qDebug() << visuallyReady;
             }
         }
         entity->setVisuallyReady(visuallyReady);

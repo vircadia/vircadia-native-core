@@ -233,7 +233,7 @@ public:
     bool getPreferAvatarFingerOverStylus() { return false; }
     void setPreferAvatarFingerOverStylus(bool value);
 
-    float getDomainLoadProgress() { return _octreeProcessor.domainLoadProgress(); }
+    float getDomainLoadingProgress() { return _octreeProcessor.domainLoadingProgress(); }
 
     float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
     void setSettingConstrainToolbarPosition(bool setting);

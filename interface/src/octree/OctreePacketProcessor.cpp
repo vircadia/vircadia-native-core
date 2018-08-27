@@ -142,6 +142,6 @@ bool OctreePacketProcessor::isEntitiesRenderReady() const {
     return _safeLanding->entitiesRenderReady();
 }
 
-float OctreePacketProcessor::domainLoadProgress() {
+float OctreePacketProcessor::domainLoadingProgress() {
     return _safeLanding->loadingProgressPercentage();
 }

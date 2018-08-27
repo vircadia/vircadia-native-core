@@ -590,5 +590,5 @@ void WindowScriptingInterface::onMessageBoxSelected(int button) {
 
 
 float WindowScriptingInterface::domainLoadingProgress() {
-    return qApp->getDomainLoadProgress();
+    return qApp->getDomainLoadingProgress();
 }

@@ -2432,7 +2432,6 @@ void MyAvatar::setHasScriptedBlendshapes(bool hasScriptedBlendshapes) {
         // send a forced avatarData update to make sure the script can send neutal blendshapes on unload
         // without having to wait for the update loop, make sure _hasScriptedBlendShapes is still true
         // before sending the update, or else it won't send the neutal blendshapes to the receiving clients
-
         sendAvatarDataPacket(true);
     }
     _hasScriptedBlendShapes = hasScriptedBlendshapes;
