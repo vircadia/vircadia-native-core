@@ -23,6 +23,9 @@
 
 
 void AvatarReplicas::addReplica(const QUuid& parentID, AvatarSharedPointer replica) {
+    if (parentID == QUuid()) {
+        return;
+    }
     if (_replicasMap.find(parentID) == _replicasMap.end()) {
         std::vector<AvatarSharedPointer> emptyReplicas = std::vector<AvatarSharedPointer>();
         _replicasMap.insert(std::pair<QUuid, std::vector<AvatarSharedPointer>>(parentID, emptyReplicas));
@@ -144,10 +147,12 @@ void AvatarHashMap::setReplicaCount(int count) {
     auto avatars = getAvatarIdentifiers();
     for (int i = 0; i < avatars.size(); i++) {
         KillAvatarReason reason = KillAvatarReason::NoReason;
-        removeAvatar(avatars[i], reason);
-        auto replicaIDs = _replicas.getReplicaIDs(avatars[i]);
-        for (auto id : replicaIDs) {
-            removeAvatar(id, reason);
+        if (avatars[i] != QUuid()) {
+            removeAvatar(avatars[i], reason);
+            auto replicaIDs = _replicas.getReplicaIDs(avatars[i]);
+            for (auto id : replicaIDs) {
+                removeAvatar(id, reason);
+            }
         }
     }
 }
@@ -315,7 +320,6 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
             AvatarTraits::TraitWireSize traitBinarySize;
             bool skipBinaryTrait = false;
 
-
             if (AvatarTraits::isSimpleTrait(traitType)) {
                 message->readPrimitive(&traitBinarySize);
 
@@ -325,12 +329,10 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
                     avatar->processTrait(traitType, traitData);
                     _replicas.processTrait(avatarID, traitType, traitData);
                     lastProcessedVersions[traitType] = packetTraitVersion;
-                }
-                else {
+                } else {
                     skipBinaryTrait = true;
                 }
-            }
-            else {
+            } else {
                 AvatarTraits::TraitInstanceID traitInstanceID =
                     QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
@@ -341,15 +343,13 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
                     if (traitBinarySize == AvatarTraits::DELETED_TRAIT_SIZE) {
                         avatar->processDeletedTraitInstance(traitType, traitInstanceID);
                         _replicas.processDeletedTraitInstance(avatarID, traitType, traitInstanceID);
-                    }
-                    else {
+                    } else {
                         auto traitData = message->read(traitBinarySize);
                         avatar->processTraitInstance(traitType, traitInstanceID, traitData);
                         _replicas.processTraitInstance(avatarID, traitType, traitInstanceID, traitData);
                     }
                     processedInstanceVersion = packetTraitVersion;
-                }
-                else {
+                } else {
                     skipBinaryTrait = true;
                 }
             }

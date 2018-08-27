@@ -43,7 +43,7 @@
 
 class AvatarReplicas {
 public:
-    AvatarReplicas() : _replicaCount(0) {}
+    AvatarReplicas() {}
     void addReplica(const QUuid& parentID, AvatarSharedPointer replica);
     std::vector<QUuid> getReplicaIDs(const QUuid& parentID);
     void parseDataFromBuffer(const QUuid& parentID, const QByteArray& buffer);
@@ -58,7 +58,7 @@ public:
 
 private:
     std::map<QUuid, std::vector<AvatarSharedPointer>> _replicasMap;
-    int _replicaCount;
+    int _replicaCount { 0 };
 };
 
 
