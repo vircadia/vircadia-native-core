@@ -239,7 +239,6 @@ AvatarSharedPointer AvatarHashMap::parseAvatarData(QSharedPointer<ReceivedMessag
             for (auto replicaID : replicaIDs) {
                 auto replicaAvatar = addAvatar(replicaID, sendingNode);
                 _replicas.addReplica(sessionUUID, replicaAvatar);
-                _pendingAvatars.insert(replicaID, { std::chrono::steady_clock::now(), 0, replicaAvatar });
             }
         } 
 
@@ -384,7 +383,6 @@ void AvatarHashMap::removeAvatar(const QUuid& sessionUUID, KillAvatarReason remo
     auto replicaIDs = _replicas.getReplicaIDs(sessionUUID);
     _replicas.removeReplicas(sessionUUID);
     for (auto id : replicaIDs) {
-        _pendingAvatars.remove(id);
         auto removedReplica = _avatarHash.take(id);
         if (removedReplica) {
             handleRemovedAvatar(removedReplica, removalReason);
