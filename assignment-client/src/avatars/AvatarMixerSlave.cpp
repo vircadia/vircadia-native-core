@@ -288,7 +288,8 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
     // setup list of AvatarData as well as maps to map betweeen the AvatarData and the original nodes
     std::vector<AvatarData*> avatarsToSort;
-    std::unordered_map<const AvatarData*, SharedNodePointer> avatarDataToNodes;
+    std::unordered_map<const AvatarData*, Node*> avatarDataToNodes;
+    std::unordered_map<const AvatarData*, SharedNodePointer> avatarDataToNodesShared;
     std::unordered_map<QUuid, uint64_t> avatarEncodeTimes;
     std::for_each(_begin, _end, [&](const SharedNodePointer& otherNode) {
         // make sure this is an agent that we have avatar data for before considering it for inclusion
@@ -298,7 +299,8 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
             AvatarData* otherAvatar = otherNodeData->getAvatarSharedPointer().get();
             avatarsToSort.push_back(otherAvatar);
-            avatarDataToNodes[otherAvatar] = otherNode;
+            avatarDataToNodes[otherAvatar] = otherNode.data();
+            avatarDataToNodesShared[otherAvatar] = otherNode;
             QUuid id = otherAvatar->getSessionUUID();
             avatarEncodeTimes[id] = nodeData->getLastOtherAvatarEncodeTime(id);
         }
@@ -332,9 +334,9 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             AvatarData::_avatarSortCoefficientAge);
 
     // ignore or sort
-    const AvatarSharedPointer& thisAvatar = nodeData->getAvatarSharedPointer();
+    const AvatarData* thisAvatar = nodeData->getAvatarSharedPointer().get();
     for (const auto avatar : avatarsToSort) {
-        if (avatar == thisAvatar.get()) {
+        if (avatar == thisAvatar) {
             // don't echo updates to self
             continue;
         }
@@ -380,7 +382,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
                 // Perform the collision check between the two bounding boxes
                 if (nodeBox.touches(otherNodeBox)) {
-                    nodeData->ignoreOther(node, avatarNode);
+                    nodeData->ignoreOther(node, avatarDataToNodesShared[avatar]);
                     shouldIgnore = !getsAnyIgnored;
                 }
             }
