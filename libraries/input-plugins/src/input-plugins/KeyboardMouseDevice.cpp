@@ -302,6 +302,8 @@ controller::Input::NamedVector KeyboardMouseDevice::InputDevice::getAvailableInp
         availableInputs.append(Input::NamedPair(makeInput(Qt::Key_PageDown), QKeySequence(Qt::Key_PageDown).toString()));
         availableInputs.append(Input::NamedPair(makeInput(Qt::Key_Tab), QKeySequence(Qt::Key_Tab).toString()));
         availableInputs.append(Input::NamedPair(makeInput(Qt::Key_Control), "Control"));
+        availableInputs.append(Input::NamedPair(makeInput(Qt::Key_Delete), "Delete"));
+        availableInputs.append(Input::NamedPair(makeInput(Qt::Key_Backspace), QKeySequence(Qt::Key_Backspace).toString()));
 
         availableInputs.append(Input::NamedPair(makeInput(Qt::LeftButton), "LeftMouseButton"));
         availableInputs.append(Input::NamedPair(makeInput(Qt::MiddleButton), "MiddleMouseButton"));

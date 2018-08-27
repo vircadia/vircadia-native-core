@@ -20,6 +20,8 @@
 
 var EDIT_TOGGLE_BUTTON = "com.highfidelity.interface.system.editButton";
 
+var CONTROLLER_MAPPING_NAME = "com.highfidelity.editMode";
+
 Script.include([
     "libraries/stringHelpers.js",
     "libraries/dataViewHelpers.js",
@@ -860,6 +862,7 @@ var toolBar = (function () {
             cameraManager.disable();
             selectionDisplay.triggerMapping.disable();
             tablet.landscape = false;
+            Controller.disableMapping(CONTROLLER_MAPPING_NAME);
         } else {
             if (shouldUseEditTabletApp()) {
                 tablet.loadQMLSource("hifi/tablet/Edit.qml", true);
@@ -876,6 +879,7 @@ var toolBar = (function () {
             selectionDisplay.triggerMapping.enable();
             print("starting tablet in landscape mode");
             tablet.landscape = true;
+            Controller.enableMapping(CONTROLLER_MAPPING_NAME);
             // Not sure what the following was meant to accomplish, but it currently causes
             // everybody else to think that Interface has lost focus overall. fogbugzid:558
             // Window.setFocus();
@@ -1859,9 +1863,7 @@ var keyReleaseEvent = function (event) {
         cameraManager.keyReleaseEvent(event);
     }
     // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
-    if (event.text === "DELETE") {
-        deleteSelectedEntities();
-    } else if (event.text === 'd' && event.isControl) {
+    if (event.text === 'd' && event.isControl) {
         selectionManager.clearSelections();
     } else if (event.text === "t") {
         selectionDisplay.toggleSpaceMode();
@@ -1892,6 +1894,15 @@ var keyReleaseEvent = function (event) {
 };
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
 Controller.keyPressEvent.connect(keyPressEvent);
+
+function deleteKey(value) {
+    if (value === 0) { // on release
+        deleteSelectedEntities();
+    }
+}
+var mapping = Controller.newMapping(CONTROLLER_MAPPING_NAME);
+mapping.from([Controller.Hardware.Keyboard.Delete]).when([Controller.Hardware.Application.PlatformWindows]).peek().to(deleteKey);
+mapping.from([Controller.Hardware.Keyboard.Backspace]).when([Controller.Hardware.Application.PlatformMac]).peek().to(deleteKey);
 
 function recursiveAdd(newParentID, parentData) {
     if (parentData.children !== undefined) {
