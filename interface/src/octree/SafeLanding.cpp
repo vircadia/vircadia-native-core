@@ -13,6 +13,7 @@
 #include "EntityTreeRenderer.h"
 #include "ModelEntityItem.h"
 #include "InterfaceLogging.h"
+#include "Application.h"
 
 const int SafeLanding::SEQUENCE_MODULO = std::numeric_limits<OCTREE_PACKET_SEQUENCE>::max() + 1;
 
@@ -129,7 +130,7 @@ bool SafeLanding::isLoadSequenceComplete() {
 float SafeLanding::loadingProgressPercentage() {
     Locker lock(_lock);
     if (_maxTrackedEntityCount > 0) {
-        float trackedEntityCount = (float)_trackedEntities.size();
+        float trackedEntityCount = (float)_trackedEntitiesRenderStatus.size();
         return ((_maxTrackedEntityCount - trackedEntityCount) / _maxTrackedEntityCount);
     }
 
@@ -170,16 +171,18 @@ bool SafeLanding::isEntityPhysicsComplete() {
 
 bool SafeLanding::entitiesRenderReady() {
     Locker lock(_lock);
-
+    auto entityTree = qApp->getEntities();
     for (auto entityMapIter = _trackedEntitiesRenderStatus.begin(); entityMapIter != _trackedEntitiesRenderStatus.end(); ++entityMapIter) {
         auto entity = entityMapIter->second;
         bool visuallyReady = entity->isVisuallyReady();
         qDebug() << "is entityType: " << EntityTypes::getEntityTypeName(entity->getType()) << " " << visuallyReady << " " << entityMapIter->first;
-        if (visuallyReady) {
+        if (visuallyReady || !entityTree->renderableForEntityId(entityMapIter->first)) {
             entityMapIter = _trackedEntitiesRenderStatus.erase(entityMapIter);
             if (entityMapIter == _trackedEntitiesRenderStatus.end()) {
                 break;
             }
+        } else {
+            entity->requestRenderUpdate();
         }
     }
     qDebug() << "list size: -> " << _trackedEntitiesRenderStatus.size();

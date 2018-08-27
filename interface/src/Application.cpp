@@ -5544,7 +5544,6 @@ void Application::update(float deltaTime) {
         // for nearby entities before starting bullet up.
         quint64 now = usecTimestampNow();
         bool renderReady = _octreeProcessor.isEntitiesRenderReady();
-        qDebug() << "--> render ready: " << renderReady;
         if (isServerlessMode() || (_octreeProcessor.isLoadSequenceComplete() && renderReady)) {
             // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
             _lastPhysicsCheckTime = now;

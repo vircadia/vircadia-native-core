@@ -223,7 +223,7 @@
 
     function startInterstitialPage() {
         if (timer === null) {
-            updateOverlays(Window.isPhysicsEnabled());
+            updateOverlays(false);
             startAudio();
             target = 0;
             currentProgress = 0.1;
@@ -364,7 +364,6 @@
     });
 
     function update() {
-        var downloadInfo = GlobalServices.getDownloadInfo();
         var physicsEnabled = Window.isPhysicsEnabled();
         var thisInterval = Date.now();
         var deltaTime = (thisInterval - lastInterval);
@@ -373,14 +372,11 @@
         var domainLoadingProgressPercentage = Window.domainLoadingProgress();
 
         var progress = MAX_X_SIZE * domainLoadingProgressPercentage;
-        //print(progress);
-        if (progress >= target) {
+        print(progress);
+        //if (progress >= target) {
             target = progress;
-        }
+        //}
 
-        if (physicsEnabled && target < MAX_X_SIZE) {
-            target = MAX_X_SIZE;
-        }
         currentProgress = lerp(currentProgress, target, 0.2);
         var properties = {
             localPosition: { x: (1.85 - (currentProgress / 2) - (-0.029 * (currentProgress / MAX_X_SIZE))), y: -0.935, z: 0.0 },
@@ -391,7 +387,6 @@
         };
 
         Overlays.editOverlay(loadingBarProgress, properties);
-        print(JSON.stringify(downloadInfo));
         if ((physicsEnabled && (currentProgress >= (MAX_X_SIZE - EPSILON)))) {
             updateOverlays((physicsEnabled || connectionToDomainFailed));
             endAudio();

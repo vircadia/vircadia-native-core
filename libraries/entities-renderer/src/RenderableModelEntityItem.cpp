@@ -1297,9 +1297,21 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         }
     });
 
-    // Check for removal
     ModelPointer model;
     withReadLock([&] { model = _model; });
+
+    withWriteLock([&] {
+        bool visuallyReady = true;
+        if (_hasModel) {
+            if (model && _didLastVisualGeometryRequestSucceed) {
+                visuallyReady = (_prevModelLoaded && _texturesLoaded);
+                // qDebug() << visuallyReady;
+            }
+        }
+        entity->setVisuallyReady(visuallyReady);
+    });
+
+    // Check for removal
     if (!_hasModel) {
         if (model) {
             model->removeFromScene(scene, transaction);
@@ -1445,7 +1457,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         if (!jointsMapped()) {
             mapJoints(entity, model->getJointNames());
         //else the joint have been mapped before but we have a new animation to load
-        } else if (_animation && (_animation->getURL().toString() != entity->getAnimationURL())) {             
+        } else if (_animation && (_animation->getURL().toString() != entity->getAnimationURL())) {
             _animation = DependencyManager::get<AnimationCache>()->getAnimation(entity->getAnimationURL());
             _jointMappingCompleted = false;
             mapJoints(entity, model->getJointNames());
@@ -1455,11 +1467,6 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         }
         emit requestRenderUpdate();
     }
-
-    withWriteLock([&] {
-        bool visuallyReady = ((_prevModelLoaded && _texturesLoaded) || model->getURL().isEmpty());
-        entity->setVisuallyReady(visuallyReady);
-    });
 }
 
 void ModelEntityRenderer::setIsVisibleInSecondaryCamera(bool value) {

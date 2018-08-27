@@ -291,11 +291,12 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
 
     bool visuallyReady = true;
     uint32_t skyboxMode = entity->getSkyboxMode();
-    if (skyboxMode == COMPONENT_MODE_ENABLED) {
+    if (skyboxMode == COMPONENT_MODE_ENABLED && !_skyboxTextureURL.isEmpty()) {
         bool skyboxLoadedOrFailed = (_skyboxTexture && (_skyboxTexture->isLoaded() || _skyboxTexture->isFailed()));
-        qDebug() << entity->getEntityItemID() << "------> " << _skyboxTexture->isFailed() << _skyboxTexture->isLoaded() << _skyboxTextureURL.isEmpty();
-        visuallyReady = (_skyboxTextureURL.isEmpty() || skyboxLoadedOrFailed);
+
+        visuallyReady = skyboxLoadedOrFailed;
     }
+
     entity->setVisuallyReady(visuallyReady);
 
     if (bloomChanged) {
