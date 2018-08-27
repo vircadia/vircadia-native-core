@@ -36,7 +36,6 @@ namespace MenuOption {
     const QString AskToResetSettings = "Ask To Reset Settings on Start";
     const QString AssetMigration = "ATP Asset Migration";
     const QString AssetServer = "Asset Browser";
-    const QString Attachments = "Attachments...";
     const QString AudioScope = "Show Scope";
     const QString AudioScopeFiftyFrames = "Fifty";
     const QString AudioScopeFiveFrames = "Five";
@@ -222,6 +221,7 @@ namespace MenuOption {
     const QString NotificationSounds = "play_notification_sounds";
     const QString NotificationSoundsSnapshot = "play_notification_sounds_snapshot";
     const QString NotificationSoundsTablet = "play_notification_sounds_tablet";
+    const QString ComputeBlendshapes = "Compute Blendshapes";
 }
 
 #endif // hifi_Menu_h

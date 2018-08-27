@@ -42,6 +42,8 @@
 #include <BitVectorHelpers.h>
 
 #include "AvatarLogging.h"
+#include "AvatarTraits.h"
+#include "ClientTraitsHandler.h"
 
 //#define WANT_DEBUG
 
@@ -1749,14 +1751,8 @@ glm::quat AvatarData::getOrientationOutbound() const {
     return (getLocalOrientation());
 }
 
-static const QUrl emptyURL("");
-QUrl AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) const {
-    // We don't put file urls on the wire, but instead convert to empty.
-    return _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
-}
-
 void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& identityChanged,
-                                       bool& displayNameChanged, bool& skeletonModelUrlChanged) {
+                                       bool& displayNameChanged) {
 
     QDataStream packetStream(identityData);
 
@@ -1777,27 +1773,16 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
     if (incomingSequenceNumber > _identitySequenceNumber) {
         Identity identity;
 
-        packetStream >> identity.skeletonModelURL
+        packetStream
             >> identity.attachmentData
             >> identity.displayName
             >> identity.sessionDisplayName
             >> identity.isReplicated
-            >> identity.avatarEntityData
             >> identity.lookAtSnappingEnabled
         ;
 
         // set the store identity sequence number to match the incoming identity
         _identitySequenceNumber = incomingSequenceNumber;
-
-        if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
-            setSkeletonModelURL(identity.skeletonModelURL);
-            identityChanged = true;
-            skeletonModelUrlChanged = true;
-            if (_firstSkeletonCheck) {
-                displayNameChanged = true;
-            }
-            _firstSkeletonCheck = false;
-        }
 
         if (identity.displayName != _displayName) {
             _displayName = identity.displayName;
@@ -1816,16 +1801,6 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
             identityChanged = true;
         }
 
-        bool avatarEntityDataChanged = false;
-        _avatarEntitiesLock.withReadLock([&] {
-            avatarEntityDataChanged = (identity.avatarEntityData != _avatarEntityData);
-        });
-        
-        if (avatarEntityDataChanged) {
-            setAvatarEntityData(identity.avatarEntityData);
-            identityChanged = true;
-        }
-
     if (identity.lookAtSnappingEnabled != _lookAtSnappingEnabled) {
         setProperty("lookAtSnappingEnabled", identity.lookAtSnappingEnabled);
         identityChanged = true;
@@ -1834,7 +1809,6 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
 #ifdef WANT_DEBUG
         qCDebug(avatars) << __FUNCTION__
             << "identity.uuid:" << identity.uuid
-            << "identity.skeletonModelURL:" << identity.skeletonModelURL
             << "identity.displayName:" << identity.displayName
             << "identity.sessionDisplayName:" << identity.sessionDisplayName;
     } else {
@@ -1846,26 +1820,105 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
     }
 }
 
+QUrl AvatarData::getWireSafeSkeletonModelURL() const {
+    if (_skeletonModelURL.scheme() != "file" && _skeletonModelURL.scheme() != "qrc") {
+        return _skeletonModelURL;
+    } else {
+        return QUrl();
+    }
+}
+
+qint64 AvatarData::packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice& destination,
+                           AvatarTraits::TraitVersion traitVersion) {
+    qint64 bytesWritten = 0;
+    bytesWritten += destination.writePrimitive(traitType);
+
+    if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
+        bytesWritten += destination.writePrimitive(traitVersion);
+    }
+
+    if (traitType == AvatarTraits::SkeletonModelURL) {
+        QByteArray encodedSkeletonURL = getWireSafeSkeletonModelURL().toEncoded();
+        
+        AvatarTraits::TraitWireSize encodedURLSize = encodedSkeletonURL.size();
+        bytesWritten += destination.writePrimitive(encodedURLSize);
+
+        bytesWritten += destination.write(encodedSkeletonURL);
+    }
+
+    return bytesWritten;
+}
+
+qint64 AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID traitInstanceID,
+                                   ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion) {
+    qint64 bytesWritten = 0;
+
+    bytesWritten += destination.writePrimitive(traitType);
+
+    if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
+        bytesWritten += destination.writePrimitive(traitVersion);
+    }
+
+    bytesWritten += destination.write(traitInstanceID.toRfc4122());
+
+    if (traitType == AvatarTraits::AvatarEntity) {
+        // grab a read lock on the avatar entities and check for entity data for the given ID
+        QByteArray entityBinaryData;
+
+        _avatarEntitiesLock.withReadLock([this, &entityBinaryData, &traitInstanceID] {
+            if (_avatarEntityData.contains(traitInstanceID)) {
+                entityBinaryData = _avatarEntityData[traitInstanceID];
+            }
+        });
+
+        if (!entityBinaryData.isNull()) {
+            AvatarTraits::TraitWireSize entityBinarySize = entityBinaryData.size();
+
+            bytesWritten += destination.writePrimitive(entityBinarySize);
+            bytesWritten += destination.write(entityBinaryData);
+        } else {
+            bytesWritten += destination.writePrimitive(AvatarTraits::DELETED_TRAIT_SIZE);
+        }
+    }
+
+    return bytesWritten;
+}
+
+void AvatarData::processTrait(AvatarTraits::TraitType traitType, QByteArray traitBinaryData) {
+    if (traitType == AvatarTraits::SkeletonModelURL) {
+        // get the URL from the binary data
+        auto skeletonModelURL = QUrl::fromEncoded(traitBinaryData);
+        setSkeletonModelURL(skeletonModelURL);
+    }
+}
+
+void AvatarData::processTraitInstance(AvatarTraits::TraitType traitType,
+                                      AvatarTraits::TraitInstanceID instanceID, QByteArray traitBinaryData) {
+    if (traitType == AvatarTraits::AvatarEntity) {
+        updateAvatarEntity(instanceID, traitBinaryData);
+    }
+}
+
+void AvatarData::processDeletedTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID) {
+    if (traitType == AvatarTraits::AvatarEntity) {
+        clearAvatarEntity(instanceID);
+    }
+}
+
 QByteArray AvatarData::identityByteArray(bool setIsReplicated) const {
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
-    const QUrl& urlToSend = cannonicalSkeletonModelURL(emptyURL); // depends on _skeletonModelURL
 
     // when mixers send identity packets to agents, they simply forward along the last incoming sequence number they received
     // whereas agents send a fresh outgoing sequence number when identity data has changed
 
-    _avatarEntitiesLock.withReadLock([&] {
-        identityStream << getSessionUUID()
-            << (udt::SequenceNumber::Type) _identitySequenceNumber
-            << urlToSend
-            << _attachmentData
-            << _displayName
-            << getSessionDisplayNameForTransport() // depends on _sessionDisplayName
-            << (_isReplicated || setIsReplicated)
-            << _avatarEntityData
-            << _lookAtSnappingEnabled
-        ;
-    });
+    identityStream << getSessionUUID()
+        << (udt::SequenceNumber::Type) _identitySequenceNumber
+        << _attachmentData
+        << _displayName
+        << getSessionDisplayNameForTransport() // depends on _sessionDisplayName
+        << (_isReplicated || setIsReplicated)
+        << _lookAtSnappingEnabled;
 
     return identityData;
 }
@@ -1879,11 +1932,17 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     if (expanded == _skeletonModelURL) {
         return;
     }
+    
     _skeletonModelURL = expanded;
     qCDebug(avatars) << "Changing skeleton model for avatar" << getSessionUUID() << "to" << _skeletonModelURL.toString();
 
     updateJointMappings();
-    markIdentityDataChanged();
+
+    if (_clientTraitsHandler) {
+        _clientTraitsHandler->markTraitUpdated(AvatarTraits::SkeletonModelURL);
+    }
+
+    emit skeletonModelURLChanged();
 }
 
 void AvatarData::setDisplayName(const QString& displayName) {
@@ -1977,6 +2036,13 @@ void AvatarData::detachAll(const QString& modelURL, const QString& jointName) {
 void AvatarData::setJointMappingsFromNetworkReply() {
 
     QNetworkReply* networkReply = static_cast<QNetworkReply*>(sender());
+
+    // before we process this update, make sure that the skeleton model URL hasn't changed
+    // since we made the FST request
+    if (networkReply->url() != _skeletonModelURL) {
+        qCDebug(avatars) << "Refusing to set joint mappings for FST URL that does not match the current URL";
+        return;
+    }
 
     {
         QWriteLocker writeLock(&_jointDataLock);
@@ -2076,7 +2142,6 @@ void AvatarData::sendIdentityPacket() {
             nodeList->sendPacketList(std::move(packetList), *node);
     });
 
-    _avatarEntityDataLocallyEdited = false;
     _identityDataChanged = false;
 }
 
@@ -2243,6 +2308,15 @@ void AvatarData::setRecordingBasis(std::shared_ptr<Transform> recordingBasis) {
     _recordingBasis = recordingBasis;
 }
 
+void AvatarData::createRecordingIDs() {
+    _avatarEntitiesLock.withReadLock([&] {
+        _avatarEntityForRecording.clear();
+        for (int i = 0; i < _avatarEntityData.size(); i++) {
+            _avatarEntityForRecording.insert(QUuid::createUuid());
+        }
+    });
+}
+
 void AvatarData::clearRecordingBasis() {
     _recordingBasis.reset();
 }
@@ -2303,21 +2377,15 @@ QJsonObject AvatarData::toJson() const {
     if (!getDisplayName().isEmpty()) {
         root[JSON_AVATAR_DISPLAY_NAME] = getDisplayName();
     }
-    if (!getAttachmentData().isEmpty()) {
-        QJsonArray attachmentsJson;
-        for (auto attachment : getAttachmentData()) {
-            attachmentsJson.push_back(attachment.toJson());
-        }
-        root[JSON_AVATAR_ATTACHMENTS] = attachmentsJson;
-    }
-
     _avatarEntitiesLock.withReadLock([&] {
         if (!_avatarEntityData.empty()) {
             QJsonArray avatarEntityJson;
+            int entityCount = 0;
             for (auto entityID : _avatarEntityData.keys()) {
                 QVariantMap entityData;
-                entityData.insert("id", entityID);
-                entityData.insert("properties", _avatarEntityData.value(entityID));
+                QUuid newId = _avatarEntityForRecording.size() == _avatarEntityData.size() ? _avatarEntityForRecording.values()[entityCount++] : entityID;
+                entityData.insert("id", newId);                
+                entityData.insert("properties", _avatarEntityData.value(entityID).toBase64());
                 avatarEntityJson.push_back(QVariant(entityData).toJsonObject());
             }
             root[JSON_AVATAR_ENTITIES] = avatarEntityJson;
@@ -2439,12 +2507,17 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
         setAttachmentData(attachments);
     }
 
-    // if (json.contains(JSON_AVATAR_ENTITIES) && json[JSON_AVATAR_ENTITIES].isArray()) {
-    //     QJsonArray attachmentsJson = json[JSON_AVATAR_ATTACHMENTS].toArray();
-    //     for (auto attachmentJson : attachmentsJson) {
-    //         // TODO -- something
-    //     }
-    // }
+    if (json.contains(JSON_AVATAR_ENTITIES) && json[JSON_AVATAR_ENTITIES].isArray()) {
+        QJsonArray attachmentsJson = json[JSON_AVATAR_ENTITIES].toArray();
+        for (auto attachmentJson : attachmentsJson) {
+            if (attachmentJson.isObject()) {
+                QVariantMap entityData = attachmentJson.toObject().toVariantMap();
+                QUuid entityID = entityData.value("id").toUuid();
+                QByteArray properties = QByteArray::fromBase64(entityData.value("properties").toByteArray());
+                updateAvatarEntity(entityID, properties);
+            }
+        }
+    }
 
     if (json.contains(JSON_AVATAR_JOINT_ARRAY)) {
         if (version == (int)JsonAvatarFrameVersion::JointRotationsInRelativeFrame) {
@@ -2631,23 +2704,36 @@ void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& ent
         if (itr == _avatarEntityData.end()) {
             if (_avatarEntityData.size() < MAX_NUM_AVATAR_ENTITIES) {
                 _avatarEntityData.insert(entityID, entityData);
-                _avatarEntityDataLocallyEdited = true;
-                markIdentityDataChanged();
             }
         } else {
             itr.value() = entityData;
-            _avatarEntityDataLocallyEdited = true;
-            markIdentityDataChanged();
         }
     });
+
+    _avatarEntityDataChanged = true;
+
+    if (_clientTraitsHandler) {
+        // we have a client traits handler, so we need to mark this instanced trait as changed
+        // so that changes will be sent next frame
+        _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
+    }
 }
 
-void AvatarData::clearAvatarEntity(const QUuid& entityID) {
-    _avatarEntitiesLock.withWriteLock([&] {
-        _avatarEntityData.remove(entityID);
-        _avatarEntityDataLocallyEdited = true;
-        markIdentityDataChanged();
+void AvatarData::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree) {
+
+    bool removedEntity = false;
+
+    _avatarEntitiesLock.withWriteLock([this, &removedEntity, &entityID] {
+        removedEntity = _avatarEntityData.remove(entityID);
     });
+
+    insertDetachedEntityID(entityID);
+
+    if (removedEntity && _clientTraitsHandler) {
+        // we have a client traits handler, so we need to mark this removed instance trait as deleted
+        // so that changes are sent next frame
+        _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, entityID);
+    }
 }
 
 AvatarEntityMap AvatarData::getAvatarEntityData() const {
@@ -2662,6 +2748,8 @@ void AvatarData::insertDetachedEntityID(const QUuid entityID) {
     _avatarEntitiesLock.withWriteLock([&] {
         _avatarEntityDetached.insert(entityID);
     });
+
+    _avatarEntityDataChanged = true;
 }
 
 void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
@@ -2681,6 +2769,20 @@ void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
             foreach (auto entityID, previousAvatarEntityIDs) {
                 if (!_avatarEntityData.contains(entityID)) {
                     _avatarEntityDetached.insert(entityID);
+
+                    if (_clientTraitsHandler) {
+                        // we have a client traits handler, so we flag this removed entity as deleted
+                        // so that changes are sent next frame
+                        _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, entityID);
+                    }
+                }
+            }
+
+            if (_clientTraitsHandler) {
+                // if we have a client traits handler, flag any updated or created entities
+                // so that we send changes for them next frame
+                foreach (auto entityID, _avatarEntityData) {
+                    _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
                 }
             }
         }

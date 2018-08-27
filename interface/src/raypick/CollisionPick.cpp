@@ -12,8 +12,32 @@
 
 #include <glm/gtx/transform.hpp>
 
+#include "PhysicsCollisionGroups.h"
 #include "ScriptEngineLogging.h"
 #include "UUIDHasher.h"
+
+PickResultPointer CollisionPickResult::compareAndProcessNewResult(const PickResultPointer& newRes) {
+    const std::shared_ptr<CollisionPickResult> newCollisionResult = std::static_pointer_cast<CollisionPickResult>(newRes);
+
+    if (entityIntersections.size()) {
+        entityIntersections.insert(entityIntersections.cend(), newCollisionResult->entityIntersections.begin(), newCollisionResult->entityIntersections.end());
+    } else {
+        entityIntersections = newCollisionResult->entityIntersections;
+    }
+
+    if (avatarIntersections.size()) {
+        avatarIntersections.insert(avatarIntersections.cend(), newCollisionResult->avatarIntersections.begin(), newCollisionResult->avatarIntersections.end());
+    } else {
+        avatarIntersections = newCollisionResult->avatarIntersections;
+    }
+
+    intersects = entityIntersections.size() || avatarIntersections.size();
+    if (newCollisionResult->loadState == LOAD_STATE_NOT_LOADED || loadState == LOAD_STATE_UNKNOWN) {
+        loadState = (LoadState)newCollisionResult->loadState;
+    }
+
+    return std::make_shared<CollisionPickResult>(*this);
+}
 
 void buildObjectIntersectionsMap(IntersectionType intersectionType, const std::vector<ContactTestResult>& objectIntersections, std::unordered_map<QUuid, QVariantMap>& intersections, std::unordered_map<QUuid, QVariantList>& collisionPointPairs) {
     for (auto& objectIntersection : objectIntersections) {
@@ -308,20 +332,27 @@ CollisionRegion CollisionPick::getMathematicalPick() const {
     return _mathPick;
 }
 
-const std::vector<ContactTestResult> CollisionPick::filterIntersections(const std::vector<ContactTestResult>& intersections) const {
-    std::vector<ContactTestResult> filteredIntersections;
-
+void CollisionPick::filterIntersections(std::vector<ContactTestResult>& intersections) const {
     const QVector<QUuid>& ignoreItems = getIgnoreItems();
     const QVector<QUuid>& includeItems = getIncludeItems();
-    bool isWhitelist = includeItems.size();
-    for (const auto& intersection : intersections) {
+    bool isWhitelist = !includeItems.empty();
+
+    if (!isWhitelist && ignoreItems.empty()) {
+        return;
+    }
+
+    std::vector<ContactTestResult> filteredIntersections;
+
+    int n = (int)intersections.size();
+    for (int i = 0; i < n; i++) {
+        auto& intersection = intersections[i];
         const QUuid& id = intersection.foundID;
         if (!ignoreItems.contains(id) && (!isWhitelist || includeItems.contains(id))) {
             filteredIntersections.push_back(intersection);
         }
     }
 
-    return filteredIntersections;
+    intersections = filteredIntersections;
 }
 
 PickResultPointer CollisionPick::getEntityIntersection(const CollisionRegion& pick) {
@@ -330,7 +361,8 @@ PickResultPointer CollisionPick::getEntityIntersection(const CollisionRegion& pi
         return std::make_shared<CollisionPickResult>(pick.toVariantMap(), CollisionPickResult::LOAD_STATE_NOT_LOADED, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
     }
     
-    const auto& entityIntersections = filterIntersections(_physicsEngine->getCollidingInRegion(MOTIONSTATE_TYPE_ENTITY, *pick.shapeInfo, pick.transform));
+    auto entityIntersections = _physicsEngine->contactTest(USER_COLLISION_MASK_ENTITIES, *pick.shapeInfo, pick.transform);
+    filterIntersections(entityIntersections);
     return std::make_shared<CollisionPickResult>(pick, CollisionPickResult::LOAD_STATE_LOADED, entityIntersections, std::vector<ContactTestResult>());
 }
 
@@ -343,8 +375,9 @@ PickResultPointer CollisionPick::getAvatarIntersection(const CollisionRegion& pi
         // Cannot compute result
         return std::make_shared<CollisionPickResult>(pick.toVariantMap(), CollisionPickResult::LOAD_STATE_NOT_LOADED, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
     }
-
-    const auto& avatarIntersections = filterIntersections(_physicsEngine->getCollidingInRegion(MOTIONSTATE_TYPE_AVATAR, *pick.shapeInfo, pick.transform));
+    
+    auto avatarIntersections = _physicsEngine->contactTest(USER_COLLISION_MASK_AVATARS, *pick.shapeInfo, pick.transform);
+    filterIntersections(avatarIntersections);
     return std::make_shared<CollisionPickResult>(pick, CollisionPickResult::LOAD_STATE_LOADED, std::vector<ContactTestResult>(), avatarIntersections);
 }
 

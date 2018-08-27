@@ -1,0 +1,82 @@
+//
+//  Created by Sam Gateau on 7/31/2018.
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+<@if not WORKLOAD_RESOURCE_SLH@>
+<@def WORKLOAD_RESOURCE_SLH@>
+
+<@include gpu/Color.slh@>
+<$declareColorWheel()$>
+
+const vec4 REGION_COLOR[4] = vec4[4](
+    vec4(0.0, 1.0, 0.0, 1.0),
+    vec4(1.0, 0.6, 0.0, 1.0),
+    vec4(1.0, 0.0, 0.0, 1.0),
+    vec4(0.3, 0.0, 0.8, 1.0)
+);
+
+<@func declareWorkloadProxies() @>
+
+struct WorkloadProxy {
+    vec4 sphere;
+    vec4 region;
+};
+
+#if defined(GPU_GL410)
+layout(binding=0) uniform samplerBuffer workloadProxiesBuffer;
+WorkloadProxy getWorkloadProxy(int i) {
+    int offset = 2 * i;
+    WorkloadProxy proxy;
+    proxy.sphere = texelFetch(workloadProxiesBuffer, offset);
+    proxy.region = texelFetch(workloadProxiesBuffer, offset + 1);
+    return proxy;
+}
+#else
+layout(std140, binding=0) buffer workloadProxiesBuffer {
+    WorkloadProxy _proxies[];
+};
+WorkloadProxy getWorkloadProxy(int i) {
+    WorkloadProxy proxy = _proxies[i];
+    return proxy;
+}
+#endif
+
+<@endfunc@>
+
+
+<@func declareWorkloadViews() @>
+
+struct WorkloadView {
+    vec4 direction_far;
+    vec4 fov;
+    vec4 origin;
+    vec4 backFront[2];
+    vec4 regions[3];
+};
+
+#if defined(GPU_GL410)
+layout(binding=1) uniform samplerBuffer workloadViewsBuffer;
+WorkloadView getWorkloadView(int i) {
+    int offset = 2 * i;
+    WorkloadView view;
+    view.origin = texelFetch(workloadViewsBuffer, offset);
+    view.radiuses = texelFetch(workloadViewsBuffer, offset + 1);
+    return view;
+}
+#else
+layout(std140, binding=1) buffer workloadViewsBuffer {
+    WorkloadView _views[];
+};
+WorkloadView getWorkloadView(int i) {
+    WorkloadView view = _views[i];
+    return view;
+}
+#endif
+
+<@endfunc@>
+
+<@endif@>
+

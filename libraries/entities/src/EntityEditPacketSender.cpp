@@ -149,11 +149,6 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
 
 void EntityEditPacketSender::queueEraseEntityMessage(const EntityItemID& entityItemID) {
 
-    // in case this was a clientOnly entity:
-    if(_myAvatar) {
-        _myAvatar->clearAvatarEntity(entityItemID);
-    }
-
     QByteArray bufferOut(NLPacket::maxPayloadSize(PacketType::EntityErase), 0);
 
     if (EntityItemProperties::encodeEraseEntityMessage(entityItemID, bufferOut)) {

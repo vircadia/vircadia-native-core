@@ -212,6 +212,8 @@ GLShader* GLBackend::compileBackendProgram(const Shader& program, const Shader::
             glprogram = ::gl::buildProgram(shaderGLObjects);
 
             if (!::gl::linkProgram(glprogram, compilationLogs[version].message)) {
+                qCWarning(gpugllogging) << "GLBackend::compileBackendProgram - Program didn't link:\n" << compilationLogs[version].message.c_str();
+                compilationLogs[version].compiled = false;                
                 glDeleteProgram(glprogram);
                 glprogram = 0;
                 return nullptr;
@@ -254,7 +256,7 @@ GLint GLBackend::getRealUniformLocation(GLint location) const {
         // uniforms.  If someone is requesting a uniform that isn't in the remapping structure
         // that's a bug from the calling code, because it means that location wasn't in the 
         // reflection
-        qWarning() << "Unexpected location requested for shader";
+        qWarning() << "Unexpected location requested for shader: #" << location;
         return INVALID_UNIFORM_INDEX;
     }
     return itr->second;

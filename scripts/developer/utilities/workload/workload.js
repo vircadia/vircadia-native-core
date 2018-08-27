@@ -16,16 +16,9 @@
     var ICON_URL = Script.resolvePath("../../../system/assets/images/luci-i.svg");
     var ACTIVE_ICON_URL = Script.resolvePath("../../../system/assets/images/luci-a.svg");
 
-   
-    var onAppScreen = false;
+    var onTablet = false; // set this to true to use the tablet, false use a floating window
 
-    function onClicked() {
-        if (onAppScreen) {
-            tablet.gotoHomeScreen();
-        } else {
-            tablet.loadQMLSource(QMLAPP_URL);
-        }
-    }
+    var onAppScreen = false;
 
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var button = tablet.addButton({
@@ -36,42 +29,90 @@
 
     var hasEventBridge = false;
 
-    function wireEventBridge(on) {
-        if (!tablet) {
-            print("Warning in wireEventBridge(): 'tablet' undefined!");
-            return;
-        }
-        if (on) {
-            if (!hasEventBridge) {
-                tablet.fromQml.connect(fromQml);
-                hasEventBridge = true;
+    var onScreen = false;
+    var window;
+    
+    function onClicked() {
+        if (onTablet) {
+            if (onAppScreen) {
+                tablet.gotoHomeScreen();
+            } else {
+                tablet.loadQMLSource(QMLAPP_URL);
             }
         } else {
-            if (hasEventBridge) {
-                tablet.fromQml.disconnect(fromQml);
-                hasEventBridge = false;
+            if (onScreen) {
+                killWindow()
+            } else {
+                createWindow()    
+            }
+        }
+    }
+
+    function createWindow() {
+        var qml = Script.resolvePath(QMLAPP_URL);
+        window = Desktop.createWindow(Script.resolvePath(QMLAPP_URL), {
+            title: 'Workload Inspector',
+            flags: Desktop.ALWAYS_ON_TOP,
+            presentationMode: Desktop.PresentationMode.NATIVE,
+            size: {x: 400, y: 600}
+        });
+      //  window.setPosition(200, 50);
+        window.closed.connect(killWindow);
+        window.fromQml.connect(fromQml);
+        onScreen = true
+        button.editProperties({isActive: true});
+    }
+
+    function killWindow() {
+        if (window !==  undefined) { 
+            window.closed.disconnect(killWindow);
+            window.fromQml.disconnect(fromQml);
+            window.close()
+            window = undefined
+        }
+        onScreen = false
+        button.editProperties({isActive: false})
+    }
+
+    function wireEventBridge(on) {
+        if (onTablet) {
+            if (!tablet) {
+                print("Warning in wireEventBridge(): 'tablet' undefined!");
+                return;
+            }
+            if (on) {
+                if (!hasEventBridge) {
+                    tablet.fromQml.connect(fromQml);
+                    hasEventBridge = true;
+                }
+            } else {
+                if (hasEventBridge) {
+                    tablet.fromQml.disconnect(fromQml);
+                    hasEventBridge = false;
+                }
             }
         }
     }
 
     function onScreenChanged(type, url) {
-        if (url === QMLAPP_URL) {
-            onAppScreen = true;
-        } else { 
-            onAppScreen = false;
+        if (onTablet) {
+            if (url === QMLAPP_URL) {
+                onAppScreen = true;
+            } else { 
+                onAppScreen = false;
+            }
+            
+            button.editProperties({isActive: onAppScreen});
+            wireEventBridge(onAppScreen);
         }
-        
-        button.editProperties({isActive: onAppScreen});
-        wireEventBridge(onAppScreen);
     }
 
-    function fromQml(message) {
-    }
-        
+  
     button.clicked.connect(onClicked);
     tablet.screenChanged.connect(onScreenChanged);
 
     Script.scriptEnding.connect(function () {
+        killWindow()
         if (onAppScreen) {
             tablet.gotoHomeScreen();
         }
@@ -84,6 +125,7 @@
     Script.include("./test_physics_scene.js")
 
     function fromQml(message) {
+        print("fromQml: " + JSON.stringify(message))
         switch (message.method) {
         case "createScene":
             createScene();
@@ -113,7 +155,13 @@
     }
 
     function sendToQml(message) {
-        tablet.sendToQml(message);
+        if (onTablet) {
+            tablet.sendToQml(message);
+        } else {
+            if (window) {
+                window.sendToQml(message);
+            }
+        }
     }
 
     updateGridInQML()

@@ -21,6 +21,7 @@
 #include <QtCore/QTimer>
 #include <QUuid>
 
+#include <ClientTraitsHandler.h>
 #include <EntityEditPacketSender.h>
 #include <EntityTree.h>
 #include <ScriptEngine.h>

@@ -81,7 +81,6 @@
 
 #include "Sound.h"
 
-class OffscreenGLCanvas;
 class GLCanvas;
 class FaceTracker;
 class MainWindow;
@@ -208,6 +207,7 @@ public:
 
     size_t getRenderFrameCount() const { return _renderFrameCount; }
     float getRenderLoopRate() const { return _renderLoopCounter.rate(); }
+    float getNumCollisionObjects() const;
     float getTargetRenderFrameRate() const; // frames/second
 
     float getFieldOfView() { return _fieldOfView.get(); }
@@ -554,7 +554,6 @@ private:
 
     bool _previousSessionCrashed;
 
-    OffscreenGLCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
     QMetaObject::Connection _displayPluginPresentConnection;
     mutable std::mutex _displayPluginLock;

@@ -574,7 +574,7 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
     _activityTracking.deletedEntityCount++;
 
     EntityItemID entityID(id);
-    bool shouldDelete = true;
+    bool shouldSendDeleteToServer = true;
 
     // If we have a local entity tree set, then also update it.
     if (_entityTree) {
@@ -591,16 +591,21 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
                     auto avatarHashMap = DependencyManager::get<AvatarHashMap>();
                     AvatarSharedPointer myAvatar = avatarHashMap->getAvatarBySessionID(myNodeID);
                     myAvatar->insertDetachedEntityID(id);
-                    shouldDelete = false;
+                    shouldSendDeleteToServer = false;
                     return;
                 }
 
                 if (entity->getLocked()) {
-                    shouldDelete = false;
+                    shouldSendDeleteToServer = false;
                 } else {
                     // only delete local entities, server entities will round trip through the server filters
                     if (entity->getClientOnly() || _entityTree->isServerlessMode()) {
+                        shouldSendDeleteToServer = false;
                         _entityTree->deleteEntity(entityID);
+
+                        if (entity->getClientOnly() && getEntityPacketSender()->getMyAvatar()) {
+                            getEntityPacketSender()->getMyAvatar()->clearAvatarEntity(entityID, false);
+                        }
                     }
                 }
             }
@@ -608,7 +613,7 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
     }
 
     // if at this point, we know the id, and we should still delete the entity, send the update to the entity server
-    if (shouldDelete) {
+    if (shouldSendDeleteToServer) {
         getEntityPacketSender()->queueEraseEntityMessage(entityID);
     }
 }
