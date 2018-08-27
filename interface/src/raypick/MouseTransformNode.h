@@ -12,12 +12,7 @@
 
 class MouseTransformNode : public TransformNode {
 public:
-    MouseTransformNode();
-    ~MouseTransformNode();
     Transform getTransform() override;
-
-protected:
-    unsigned int _parentMouseRayPick = 0;
 };
 
 #endif // hifi_MouseTransformNode_h

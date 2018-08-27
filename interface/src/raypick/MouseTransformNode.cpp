@@ -8,36 +8,20 @@
 
 #include "MouseTransformNode.h"
 
-#include "DependencyManager.h"
-#include "PickManager.h"
-#include "MouseRayPick.h"
-
-const PickFilter MOUSE_TRANSFORM_NODE_PICK_FILTER(
-    1 << PickFilter::PICK_ENTITIES |
-    1 << PickFilter::PICK_AVATARS |
-    1 << PickFilter::PICK_INCLUDE_NONCOLLIDABLE
-);
-const float MOUSE_TRANSFORM_NODE_MAX_DISTANCE = 1000.0f;
-
-MouseTransformNode::MouseTransformNode() {
-    _parentMouseRayPick = DependencyManager::get<PickManager>()->addPick(PickQuery::Ray,
-        std::make_shared<MouseRayPick>(MOUSE_TRANSFORM_NODE_PICK_FILTER, MOUSE_TRANSFORM_NODE_MAX_DISTANCE, true));
-}
-
-MouseTransformNode::~MouseTransformNode() {
-    if (DependencyManager::isSet<PickManager>()) {
-        auto pickManager = DependencyManager::get<PickManager>();
-        if (pickManager) {
-            pickManager->removePick(_parentMouseRayPick);
-        }
-    }
-}
+#include "Application.h"
+#include "display-plugins/CompositorHelper.h"
+#include "RayPick.h"
 
 Transform MouseTransformNode::getTransform() {
-    Transform transform;
-    std::shared_ptr<RayPickResult> rayPickResult = DependencyManager::get<PickManager>()->getPrevPickResultTyped<RayPickResult>(_parentMouseRayPick);
-    if (rayPickResult) {
-        transform.setTranslation(rayPickResult->intersection);
+    QVariant position = qApp->getApplicationCompositor().getReticleInterface()->getPosition();
+    if (position.isValid()) {
+        Transform transform;
+        QVariantMap posMap = position.toMap();
+        PickRay pickRay = qApp->getCamera().computePickRay(posMap["x"].toFloat(), posMap["y"].toFloat());
+        transform.setTranslation(pickRay.origin);
+        transform.setRotation(rotationBetween(Vectors::UP, pickRay.direction));
+        return transform;
     }
-    return transform;
+
+    return Transform();
 }
