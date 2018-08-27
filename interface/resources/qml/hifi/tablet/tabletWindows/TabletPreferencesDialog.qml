@@ -50,7 +50,11 @@ Item {
             section.restoreAll();
         }
 
-        closeDialog();
+        if (HMD.active) {
+            tablet.popFromStack();
+        } else {
+            closeDialog();
+        }
     }
 
     function closeDialog() {
