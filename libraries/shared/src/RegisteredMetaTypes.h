@@ -254,12 +254,13 @@ public:
 };
 
 /**jsdoc
-* A CollisionPick defines a volume for checking collisions in the physics simulation.
+* A CollisionRegion defines a volume for checking collisions in the physics simulation.
 
-* @typedef {object} CollisionPick
+* @typedef {object} CollisionRegion
 * @property {Shape} shape - The information about the collision region's size and shape.
 * @property {Vec3} position - The position of the collision region, relative to a parent if defined.
 * @property {Quat} orientation - The orientation of the collision region, relative to a parent if defined.
+* @property {float} threshold - The approximate minimum penetration depth for a test object to be considered in contact with the collision region.
 * @property {Uuid} parentID - The ID of the parent, either an avatar, an entity, or an overlay.
 * @property {number} parentJointIndex - The joint of the parent to parent to, for example, the joints on the model of an avatar. (default = 0, no joint)
 * @property {string} joint - If "Mouse," parents the pick to the mouse. If "Head," parents the pick to MyAvatar's head. Otherwise, parents to the joint of the given name on MyAvatar.
@@ -269,6 +270,7 @@ public:
     CollisionRegion() { }
 
     CollisionRegion(const CollisionRegion& collisionRegion) :
+        threshold(collisionRegion.threshold),
         modelURL(collisionRegion.modelURL),
         shapeInfo(std::make_shared<ShapeInfo>()),
         transform(collisionRegion.transform)
@@ -299,6 +301,10 @@ public:
             }
         }
 
+        if (pickVariant["threshold"].isValid()) {
+            threshold = glm::max(0.0f, pickVariant["threshold"].toFloat());
+        }
+
         if (pickVariant["position"].isValid()) {
             transform.setTranslation(vec3FromVariant(pickVariant["position"]));
         }
@@ -317,6 +323,8 @@ public:
 
         collisionRegion["shape"] = shape;
 
+        collisionRegion["threshold"] = threshold;
+
         collisionRegion["position"] = vec3toVariant(transform.getTranslation());
         collisionRegion["orientation"] = quatToVariant(transform.getRotation());
 
@@ -324,13 +332,15 @@ public:
     }
 
     operator bool() const override {
-        return !(glm::any(glm::isnan(transform.getTranslation())) ||
+        return !std::isnan(threshold) &&
+            !(glm::any(glm::isnan(transform.getTranslation())) ||
             glm::any(glm::isnan(transform.getRotation())) ||
             shapeInfo->getType() == SHAPE_TYPE_NONE);
     }
 
     bool operator==(const CollisionRegion& other) const {
-        return glm::all(glm::equal(transform.getTranslation(), other.transform.getTranslation())) &&
+        return threshold == other.threshold &&
+            glm::all(glm::equal(transform.getTranslation(), other.transform.getTranslation())) &&
             glm::all(glm::equal(transform.getRotation(), other.transform.getRotation())) &&
             glm::all(glm::equal(transform.getScale(), other.transform.getScale())) &&
             shapeInfo->getType() == other.shapeInfo->getType() &&
@@ -354,6 +364,7 @@ public:
     // We can't compute the shapeInfo here without loading the model first, so we delegate that responsibility to the owning CollisionPick
     std::shared_ptr<ShapeInfo> shapeInfo = std::make_shared<ShapeInfo>();
     Transform transform;
+    float threshold;
 };
 
 namespace std {
