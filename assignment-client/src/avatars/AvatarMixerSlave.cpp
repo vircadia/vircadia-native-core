@@ -287,30 +287,39 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
 
     // setup list of AvatarData as well as maps to map betweeen the AvatarData and the original nodes
-    std::vector<AvatarData*> avatarsToSort;
-    std::unordered_map<const AvatarData*, Node*> avatarDataToNodes;
-    std::unordered_map<const AvatarData*, SharedNodePointer> avatarDataToNodesShared;
-    std::unordered_map<QUuid, uint64_t> avatarEncodeTimes;
+    struct AvatarSortData {
+        SharedNodePointer _nodeShared;
+        Node* _node;
+        AvatarData* _avatarData;
+        quint64 _lastEncodeTime;
+    };
+    std::vector<AvatarSortData> avatarsToSort;
+    avatarsToSort.reserve(nodeList->size());
+    //std::unordered_map<const AvatarData*, Node*> avatarDataToNodes;
+    //std::unordered_map<const AvatarData*, SharedNodePointer> avatarDataToNodesShared;
+    //std::unordered_map<QUuid, uint64_t> avatarEncodeTimes;
     std::for_each(_begin, _end, [&](const SharedNodePointer& otherNode) {
+        Node* otherNodeRaw = otherNode.data();
         // make sure this is an agent that we have avatar data for before considering it for inclusion
-        if (otherNode->getType() == NodeType::Agent
-            && otherNode->getLinkedData()) {
-            const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNode->getLinkedData());
+        if (otherNodeRaw->getType() == NodeType::Agent
+            && otherNodeRaw->getLinkedData()) {
+            const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNodeRaw->getLinkedData());
+
 
             AvatarData* otherAvatar = otherNodeData->getAvatarSharedPointer().get();
-            avatarsToSort.push_back(otherAvatar);
-            avatarDataToNodes[otherAvatar] = otherNode.data();
-            avatarDataToNodesShared[otherAvatar] = otherNode;
-            QUuid id = otherAvatar->getSessionUUID();
-            avatarEncodeTimes[id] = nodeData->getLastOtherAvatarEncodeTime(id);
+            //avatarsToSort.push_back(otherAvatar);
+            //avatarDataToNodes[otherAvatar] = otherNode.data();
+            //avatarDataToNodesShared[otherAvatar] = otherNode;
+            auto lastEncodeTime = nodeData->getLastOtherAvatarEncodeTime(otherAvatar->getSessionUUID());
+            avatarsToSort.emplace_back(AvatarSortData({ otherNode,  otherNodeRaw, otherAvatar, lastEncodeTime }));
         }
     });
 
     class SortableAvatar: public PrioritySortUtil::Sortable {
     public:
         SortableAvatar() = delete;
-        SortableAvatar(const AvatarData* avatar, uint64_t lastEncodeTime)
-            : _avatar(avatar), _lastEncodeTime(lastEncodeTime) {}
+        SortableAvatar(const AvatarData* avatar, const Node* avatarNode, uint64_t lastEncodeTime)
+            : _avatar(avatar), _node(avatarNode), _lastEncodeTime(lastEncodeTime) {}
         glm::vec3 getPosition() const override { return _avatar->getWorldPosition(); }
         float getRadius() const override {
             glm::vec3 nodeBoxHalfScale = (_avatar->getWorldPosition() - _avatar->getGlobalBoundingBoxCorner() * _avatar->getSensorToWorldScale());
@@ -320,9 +329,11 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             return _lastEncodeTime;
         }
         const AvatarData* getAvatar() const { return _avatar; }
+        const Node* getNode() const { return _node; }
 
     private:
         const AvatarData* _avatar;
+        const Node* _node;
         uint64_t _lastEncodeTime;
     };
 
@@ -335,8 +346,8 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
     // ignore or sort
     const AvatarData* thisAvatar = nodeData->getAvatarSharedPointer().get();
-    for (const auto avatar : avatarsToSort) {
-        if (avatar == thisAvatar) {
+    for (const auto& avatar : avatarsToSort) {
+        if (avatar._node == nodeRaw) {
             // don't echo updates to self
             continue;
         }
@@ -348,7 +359,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         //      happen if for example the avatar is connected on a desktop and sending
         //      updates at ~30hz. So every 3 frames we skip a frame.
 
-        auto avatarNode = avatarDataToNodes[avatar];
+        auto avatarNode = avatar._node;
         assert(avatarNode); // we can't have gotten here without the avatarData being a valid key in the map
 
         const AvatarMixerClientData* avatarNodeData = reinterpret_cast<const AvatarMixerClientData*>(avatarNode->getLinkedData());
@@ -358,9 +369,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         // make sure we have data for this avatar, that it isn't the same node,
         // and isn't an avatar that the viewing node has ignored
         // or that has ignored the viewing node
-        if (!avatarNode->getLinkedData()
-            || avatarNode->getUUID() == nodeRaw->getUUID()
-            || (nodeRaw->isIgnoringNodeWithID(avatarNode->getUUID()) && !PALIsOpen)
+        if ((nodeRaw->isIgnoringNodeWithID(avatarNode->getUUID()) && !PALIsOpen)
             || (avatarNode->isIgnoringNodeWithID(nodeRaw->getUUID()) && !getsAnyIgnored)) {
             shouldIgnore = true;
         } else {
@@ -382,7 +391,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
                 // Perform the collision check between the two bounding boxes
                 if (nodeBox.touches(otherNodeBox)) {
-                    nodeData->ignoreOther(node, avatarDataToNodesShared[avatar]);
+                    nodeData->ignoreOther(node, avatar._nodeShared);
                     shouldIgnore = !getsAnyIgnored;
                 }
             }
@@ -419,12 +428,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
         if (!shouldIgnore) {
             // sort this one for later
-            uint64_t lastEncodeTime = 0;
-            std::unordered_map<QUuid, uint64_t>::const_iterator itr = avatarEncodeTimes.find(avatar->getSessionUUID());
-            if (itr != avatarEncodeTimes.end()) {
-                lastEncodeTime = itr->second;
-            }
-            sortedAvatars.push(SortableAvatar(avatar, lastEncodeTime));
+            sortedAvatars.push(SortableAvatar(avatar._avatarData, avatar._node, avatar._lastEncodeTime));
         }
     }
 
@@ -434,10 +438,10 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     auto traitsPacketList = NLPacketList::create(PacketType::BulkAvatarTraits, QByteArray(), true, true);
     while (!sortedAvatars.empty()) {
         const AvatarData* avatarData = sortedAvatars.top().getAvatar();
+        const Node* otherNode = sortedAvatars.top().getNode();
         sortedAvatars.pop();
         remainingAvatars--;
 
-        auto otherNode = avatarDataToNodes[avatarData];
         assert(otherNode); // we can't have gotten here without the avatarData being a valid key in the map
 
         // NOTE: Here's where we determine if we are over budget and drop to bare minimum data

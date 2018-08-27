@@ -236,9 +236,7 @@ void AvatarMixerClientData::ignoreOther(SharedNodePointer self, SharedNodePointe
 }
 
 void AvatarMixerClientData::removeFromRadiusIgnoringSet(SharedNodePointer self, const QUuid& other) {
-    if (isRadiusIgnoring(other)) {
-        _radiusIgnoredOthers.erase(other);
-    }
+    _radiusIgnoredOthers.erase(other);
 }
 
 void AvatarMixerClientData::resetSentTraitData(Node::LocalID nodeLocalID) {
