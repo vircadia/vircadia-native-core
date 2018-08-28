@@ -75,9 +75,41 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
         return;
     }
 
+    auto Kp = _pid.x;
+    auto Ki = _pid.y;
+    auto Kd = _pid.z;
+
     float oldOctreeSizeScale = _octreeSizeScale;
+    float oldSolidAngle = getSolidAngle();
+
+    float targetFPS = getLODDecreaseFPS();
+    float targetPeriod = 1.0f / targetFPS;
+
     float currentFPS = (float)MSECS_PER_SECOND / _avgRenderTime;
+    static uint64_t lastTime = usecTimestampNow();
     uint64_t now = usecTimestampNow();
+    auto dt = (float) ((now - lastTime) / double(USECS_PER_MSEC));
+    if (dt < targetPeriod * _pid.w) return;
+
+    float deltaFPS = currentFPS - getLODDecreaseFPS();
+    
+    lastTime = now;
+    auto previous_error = 0.f;
+    auto integral = 0.f;
+
+    auto error = getLODDecreaseFPS() - currentFPS;
+    integral = integral + error * dt;
+    auto derivative = (error - previous_error) / dt;
+    auto output = Kp * error + Ki * integral + Kd * derivative;
+    previous_error = error;
+
+    auto newSolidAngle = std::max( 0.1f, std::min(output, 45.f));
+
+    auto halTan = glm::tan(glm::radians(newSolidAngle * 0.5f));
+
+    auto octreeSizeScale = TREE_SCALE * OCTREE_TO_MESH_RATIO / halTan;
+    _octreeSizeScale = octreeSizeScale;
+/*
     if (currentFPS < getLODDecreaseFPS()) {
         if (now > _decreaseFPSExpiry) {
             _decreaseFPSExpiry = now + LOD_AUTO_ADJUST_PERIOD;
@@ -123,7 +155,7 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
         _increaseFPSExpiry = now + LOD_AUTO_ADJUST_PERIOD;
         _decreaseFPSExpiry = _increaseFPSExpiry;
     }
-
+*/
     if (oldOctreeSizeScale != _octreeSizeScale) {
         auto lodToolsDialog = DependencyManager::get<DialogsManager>()->getLodToolsDialog();
         if (lodToolsDialog) {
@@ -243,7 +275,7 @@ bool LODManager::shouldRender(const RenderArgs* args, const AABox& bounds) {
     auto pos = args->getViewFrustum().getPosition() - bounds.calcCenter();
     auto dim = bounds.getDimensions();
     auto halfTanSq = 0.25f * glm::dot(dim, dim) / glm::dot(pos, pos);
-    return (halfTanSq >= args->_solidAngleHalfTan * args->_solidAngleHalfTan);
+    return (halfTanSq >= args->_solidAngleHalfTanSq);
 
 };
 
@@ -279,10 +311,10 @@ void LODManager::setWorldDetailQuality(float quality) {
     bool isHMDMode = qApp->isHMDMode();
 
     float maxFPS = isHMDMode ? MAX_HMD_FPS : MAX_DESKTOP_FPS;
-    float desiredFPS = maxFPS - THRASHING_DIFFERENCE;
+    float desiredFPS = maxFPS /* - THRASHING_DIFFERENCE*/;
 
     if (!isLowestValue) {
-        float calculatedFPS = (maxFPS - (maxFPS * quality)) - THRASHING_DIFFERENCE;
+        float calculatedFPS = (maxFPS - (maxFPS * quality))/* - THRASHING_DIFFERENCE*/;
         desiredFPS = calculatedFPS < MIN_FPS ? MIN_FPS : calculatedFPS;
     }
 
@@ -315,14 +347,15 @@ float LODManager::getWorldDetailQuality() const {
         increaseFPS = getDesktopLODDecreaseFPS();
     }
     float maxFPS = inHMD ? MAX_HMD_FPS : MAX_DESKTOP_FPS;
-    float percentage = increaseFPS / maxFPS;
+    float percentage = 1.0 - increaseFPS / maxFPS;
 
-    if (percentage >= HIGH) {
+    if (percentage <= LOW) {
         return LOW;
     }
-    else if (percentage >= LOW) {
+    else if (percentage <= MEDIUM) {
         return MEDIUM;
     }
+
     return HIGH;
 }
 
@@ -333,4 +366,30 @@ float LODManager::getSolidAngleHalfTan() const {
 
 float LODManager::getSolidAngle() const {
     return glm::degrees(2.0 * atan(getSolidAngleHalfTan()));
+}
+
+
+float LODManager::getPidKp() const {
+    return _pid.x;
+}
+float LODManager::getPidKi() const {
+    return _pid.y;
+}
+float LODManager::getPidKd() const {
+    return _pid.z;
+}
+float LODManager::getPidT() const {
+    return _pid.w;
+}
+void LODManager::setPidKp(float k) {
+    _pid.x = k;
+}
+void LODManager::setPidKi(float k) {
+    _pid.y = k;
+}
+void LODManager::setPidKd(float k) {
+    _pid.z = k;
+}
+void LODManager::setPidT(float t) {
+    _pid.w = t;
 }

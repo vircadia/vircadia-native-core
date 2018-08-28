@@ -81,6 +81,7 @@ namespace render {
             _context(context),
             _sizeScale(sizeScale),
             _solidAngleHalfTan(solidAngleHalfTan),
+            _solidAngleHalfTanSq(solidAngleHalfTan * solidAngleHalfTan),
             _boundaryLevelAdjust(boundaryLevelAdjust),
             _renderMode(renderMode),
             _displayMode(displayMode),
@@ -111,6 +112,7 @@ namespace render {
         float _sizeScale { 1.0f };
         int _boundaryLevelAdjust { 0 };
         float _solidAngleHalfTan{ 0.1f };
+        float _solidAngleHalfTanSq{ _solidAngleHalfTan  * _solidAngleHalfTan };
 
         RenderMode _renderMode { DEFAULT_RENDER_MODE };
         DisplayMode _displayMode { MONO };

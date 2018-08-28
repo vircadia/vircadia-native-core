@@ -23,8 +23,8 @@ const float DEFAULT_DESKTOP_LOD_DOWN_FPS = 30.0f;
 const float DEFAULT_HMD_LOD_DOWN_FPS = 34.0f;
 const float DEFAULT_DESKTOP_MAX_RENDER_TIME = (float)MSECS_PER_SECOND / DEFAULT_DESKTOP_LOD_DOWN_FPS; // msec
 const float DEFAULT_HMD_MAX_RENDER_TIME = (float)MSECS_PER_SECOND / DEFAULT_HMD_LOD_DOWN_FPS; // msec
-const float MAX_LIKELY_DESKTOP_FPS = 59.0f; // this is essentially, V-synch - 1 fps
-const float MAX_LIKELY_HMD_FPS = 74.0f; // this is essentially, V-synch - 1 fps
+const float MAX_LIKELY_DESKTOP_FPS = 61.0f; // this is essentially, V-synch - 1 fps
+const float MAX_LIKELY_HMD_FPS = 91.0f; // this is essentially, V-synch - 1 fps
 const float INCREASE_LOD_GAP_FPS = 10.0f; // fps
 
 // The default value DEFAULT_OCTREE_SIZE_SCALE means you can be 400 meters away from a 1 meter object in order to see it (which is ~20:20 vision).
@@ -71,6 +71,12 @@ class LODManager : public QObject, public Dependency {
 
     Q_PROPERTY(float solidAngleHalfTan READ getSolidAngleHalfTan)
     Q_PROPERTY(float solidAngle READ getSolidAngle)
+
+    Q_PROPERTY(float pidKp READ getPidKp WRITE setPidKp)
+    Q_PROPERTY(float pidKi READ getPidKi WRITE setPidKi)
+    Q_PROPERTY(float pidKd READ getPidKd WRITE setPidKd)
+    Q_PROPERTY(float pidT READ getPidT WRITE setPidT)
+
 
 public:
      
@@ -190,6 +196,15 @@ public:
     float getSolidAngleHalfTan() const;
     float getSolidAngle() const;
 
+    float getPidKp() const;
+    float getPidKi() const;
+    float getPidKd() const;
+    float getPidT() const;
+    void setPidKp(float k);
+    void setPidKi(float k);
+    void setPidKd(float k);
+    void setPidT(float t);
+
 signals:
 
     /**jsdoc
@@ -221,6 +236,8 @@ private:
 
     float _octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE;
     int _boundaryLevelAdjust = 0;
+
+    glm::vec4 _pid{ 0.1f, 0.0f, 0.0f, 3.0f };
 
     uint64_t _decreaseFPSExpiry { 0 };
     uint64_t _increaseFPSExpiry { 0 };

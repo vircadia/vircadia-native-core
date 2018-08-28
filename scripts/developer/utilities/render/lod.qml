@@ -78,6 +78,59 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right 
         }
+
+        RichSlider {
+            visible: LODManager.automaticLODAdjust
+            showLabel: true
+            label: "LOD PID Kp"
+            valueVar: LODManager["pidKp"]
+            valueVarSetter: (function (v) { LODManager["pidKp"] = v })
+            max: 1.0
+            min: 0.0
+            integral: false
+
+            anchors.left: parent.left
+            anchors.right: parent.right 
+        }
+        RichSlider {
+            visible: LODManager.automaticLODAdjust
+            showLabel: true
+            label: "LOD PID Ki"
+            valueVar: LODManager["pidKi"]
+            valueVarSetter: (function (v) { LODManager["pidKi"] = v })
+            max: 1.0
+            min: 0.0
+            integral: false
+
+            anchors.left: parent.left
+            anchors.right: parent.right 
+        }
+        RichSlider {
+            visible: LODManager.automaticLODAdjust
+            showLabel: true
+            label: "LOD PID Kd"
+            valueVar: LODManager["pidKd"]
+            valueVarSetter: (function (v) { LODManager["pidKd"] = v })
+            max: 1.0
+            min: 0.0
+            integral: false
+
+            anchors.left: parent.left
+            anchors.right: parent.right 
+        }
+        RichSlider {
+            visible: LODManager.automaticLODAdjust
+            showLabel: true
+            label: "LOD PID Num T"
+            valueVar: LODManager["pidT"]
+            valueVarSetter: (function (v) { LODManager["pidT"] = v })
+            max: 5.0
+            min: 0.0
+            integral: false
+
+            anchors.left: parent.left
+            anchors.right: parent.right 
+        }
     }
 
     Column {
