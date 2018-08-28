@@ -103,7 +103,10 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
     auto output = Kp * error + Ki * integral + Kd * derivative;
     previous_error = error;
 
-    auto newSolidAngle = std::max( 0.1f, std::min(output, 45.f));
+
+    auto newSolidAngle = oldSolidAngle + output;
+
+    newSolidAngle = std::max( 0.5f, std::min(newSolidAngle, 90.f));
 
     auto halTan = glm::tan(glm::radians(newSolidAngle * 0.5f));
 

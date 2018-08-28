@@ -237,7 +237,7 @@ private:
     float _octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE;
     int _boundaryLevelAdjust = 0;
 
-    glm::vec4 _pid{ 0.1f, 0.0f, 0.0f, 3.0f };
+    glm::vec4 _pid{ 0.06f, 0.005f, 0.01f, 4.0f };
 
     uint64_t _decreaseFPSExpiry { 0 };
     uint64_t _increaseFPSExpiry { 0 };
