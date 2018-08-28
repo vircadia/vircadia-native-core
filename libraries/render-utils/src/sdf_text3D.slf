@@ -54,12 +54,12 @@ void main() {
     vec2 dxTexCoord = dFdx(_texCoord0) * 0.5 * taaBias;
     vec2 dyTexCoord = dFdy(_texCoord0) * 0.5 * taaBias;
 
-	// Perform 4x supersampling for anisotropic filtering
+    // Perform 4x supersampling for anisotropic filtering
     float a;
-	a = evalSDF(_texCoord0);
-	a += evalSDF(_texCoord0+dxTexCoord);
-	a += evalSDF(_texCoord0+dyTexCoord);
-	a += evalSDF(_texCoord0+dxTexCoord+dyTexCoord);
+    a = evalSDF(_texCoord0);
+    a += evalSDF(_texCoord0+dxTexCoord);
+    a += evalSDF(_texCoord0+dyTexCoord);
+    a += evalSDF(_texCoord0+dxTexCoord+dyTexCoord);
     a *= 0.25;
 
     // discard if invisible

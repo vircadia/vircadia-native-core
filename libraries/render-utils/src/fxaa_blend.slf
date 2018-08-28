@@ -44,7 +44,7 @@ void main(void) {
 
     sharpenedPixel = pixels[4]*6.8 - (pixels[1]+pixels[3]+pixels[5]+pixels[7]) - (pixels[0]+pixels[2]+pixels[6]+pixels[8])*0.7;
 
-	vec4 minColor = max(vec4(0), pixels[4]-vec4(0.5));
-	vec4 maxColor = pixels[4]+vec4(0.5);
+    vec4 minColor = max(vec4(0), pixels[4]-vec4(0.5));
+    vec4 maxColor = pixels[4]+vec4(0.5);
     outFragColor = clamp(pixels[4] + sharpenedPixel * params.sharpenIntensity, minColor, maxColor);
 }

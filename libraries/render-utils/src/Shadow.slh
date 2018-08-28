@@ -45,7 +45,7 @@ struct ShadowSampleOffsets {
 };
 
 ShadowSampleOffsets evalShadowFilterOffsets(vec4 position) {
-	float shadowScale = getShadowScale();
+    float shadowScale = getShadowScale();
     ShadowSampleOffsets offsets;
 
 #if SHADOW_SCREEN_SPACE_DITHER
