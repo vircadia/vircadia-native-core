@@ -270,10 +270,10 @@ public:
     CollisionRegion() { }
 
     CollisionRegion(const CollisionRegion& collisionRegion) :
-        threshold(collisionRegion.threshold),
         modelURL(collisionRegion.modelURL),
         shapeInfo(std::make_shared<ShapeInfo>()),
-        transform(collisionRegion.transform)
+        transform(collisionRegion.transform),
+        threshold(collisionRegion.threshold)
     {
         shapeInfo->setParams(collisionRegion.shapeInfo->getType(), collisionRegion.shapeInfo->getHalfExtents(), collisionRegion.modelURL.toString());
     }
