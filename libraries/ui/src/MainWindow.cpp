@@ -43,7 +43,7 @@ MainWindow::~MainWindow() {
 QWindow* MainWindow::findMainWindow() {
     auto windows = qApp->topLevelWindows();
     QWindow* result = nullptr;
-    for (auto window : windows) {
+    for (const auto& window : windows) {
         if (window->objectName().contains("MainWindow")) {
             result = window;
             break;
