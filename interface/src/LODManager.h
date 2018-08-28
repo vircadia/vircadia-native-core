@@ -69,14 +69,17 @@ class LODManager : public QObject, public Dependency {
 
     Q_PROPERTY(float worldDetailQuality READ getWorldDetailQuality WRITE setWorldDetailQuality NOTIFY worldDetailQualityChanged)
 
-    Q_PROPERTY(float solidAngleHalfTan READ getSolidAngleHalfTan)
-    Q_PROPERTY(float solidAngle READ getSolidAngle)
+    Q_PROPERTY(float lodAngleDeg READ getLODAngleDeg WRITE setLODAngleDeg)
 
     Q_PROPERTY(float pidKp READ getPidKp WRITE setPidKp)
     Q_PROPERTY(float pidKi READ getPidKi WRITE setPidKi)
     Q_PROPERTY(float pidKd READ getPidKd WRITE setPidKd)
     Q_PROPERTY(float pidT READ getPidT WRITE setPidT)
 
+    Q_PROPERTY(float pidOp READ getPidOp)
+    Q_PROPERTY(float pidOi READ getPidOi)
+    Q_PROPERTY(float pidOd READ getPidOd)
+    Q_PROPERTY(float pidO READ getPidO)
 
 public:
      
@@ -187,14 +190,17 @@ public:
 
     float getAverageRenderTime() const { return _avgRenderTime; };
     float getMaxTheoreticalFPS() const { return (float)MSECS_PER_SECOND / _avgRenderTime; };
+
     float getLODLevel() const;
     void setLODLevel(float level);
 
     void setWorldDetailQuality(float quality);
     float getWorldDetailQuality() const;
 
-    float getSolidAngleHalfTan() const;
-    float getSolidAngle() const;
+    float getLODAngleDeg() const;
+    void setLODAngleDeg(float lodAngle);
+    float getLODAngleHalfTan() const;
+    float getLODAngle() const;
 
     float getPidKp() const;
     float getPidKi() const;
@@ -204,6 +210,11 @@ public:
     void setPidKi(float k);
     void setPidKd(float k);
     void setPidT(float t);
+
+    float getPidOp() const;
+    float getPidOi() const;
+    float getPidOd() const;
+    float getPidO() const;
 
 signals:
 
@@ -237,7 +248,9 @@ private:
     float _octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE;
     int _boundaryLevelAdjust = 0;
 
-    glm::vec4 _pid{ 0.06f, 0.005f, 0.01f, 4.0f };
+    glm::vec4 _pidCoefs{ 0.1526f, 0.00000015f, 15.f, 4.0f };
+    glm::vec4 _pidHistory{ 0.0f };
+    glm::vec4 _pidOutputs{ 0.0f };
 
     uint64_t _decreaseFPSExpiry { 0 };
     uint64_t _increaseFPSExpiry { 0 };

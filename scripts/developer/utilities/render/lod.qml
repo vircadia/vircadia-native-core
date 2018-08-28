@@ -68,11 +68,11 @@ Item {
         RichSlider {
             visible: !LODManager.automaticLODAdjust
             showLabel: true
-            label: "LOD Level"
-            valueVar: LODManager["lodLevel"]
-            valueVarSetter: (function (v) { LODManager["lodLevel"] = v })
-            max: 1.0
-            min: 0.0
+            label: "LOD Angle [deg]"
+            valueVar: LODManager["lodAngleDeg"]
+            valueVarSetter: (function (v) { LODManager["lodAngleDeg"] = v })
+            max: 90.0
+            min: 0.5
             integral: false
 
             anchors.left: parent.left
@@ -85,9 +85,10 @@ Item {
             label: "LOD PID Kp"
             valueVar: LODManager["pidKp"]
             valueVarSetter: (function (v) { LODManager["pidKp"] = v })
-            max: 1.0
+            max: 0.2
             min: 0.0
             integral: false
+            numDigits: 3
 
             anchors.left: parent.left
             anchors.right: parent.right 
@@ -98,9 +99,10 @@ Item {
             label: "LOD PID Ki"
             valueVar: LODManager["pidKi"]
             valueVarSetter: (function (v) { LODManager["pidKi"] = v })
-            max: 0.02
+            max: 0.000005
             min: 0.0
             integral: false
+            numDigits: 8
 
             anchors.left: parent.left
             anchors.right: parent.right 
@@ -111,9 +113,10 @@ Item {
             label: "LOD PID Kd"
             valueVar: LODManager["pidKd"]
             valueVarSetter: (function (v) { LODManager["pidKd"] = v })
-            max: 0.1
+            max: 10.0
             min: 0.0
             integral: false
+            numDigits: 3
 
             anchors.left: parent.left
             anchors.right: parent.right 
@@ -124,9 +127,9 @@ Item {
             label: "LOD PID Num T"
             valueVar: LODManager["pidT"]
             valueVarSetter: (function (v) { LODManager["pidT"] = v })
-            max: 5.0
+            max: 10.0
             min: 0.0
-            integral: false
+            integral: true
 
             anchors.left: parent.left
             anchors.right: parent.right 
@@ -199,34 +202,43 @@ Item {
             ]
         }
         PlotPerf {
-            title: "LOD"
+            title: "LOD Angle"
             height: parent.evalEvenHeight()
             object: LODManager
-            valueScale: 0.1
-            valueUnit: ""
+            valueScale: 1.0
+            valueUnit: "deg"
             plots: [
                 {
-                    prop: "lodLevel",
-                    label: "LOD",
+                    prop: "lodAngleDeg",
+                    label: "LOD Angle",
                     color: "#9999FF"
                 }
             ]
         }
         PlotPerf {
-            title: "Solid Angle"
+            title: "PID Output"
             height: parent.evalEvenHeight()
             object: LODManager
             valueScale: 1.0
             valueUnit: "deg"
-            //valueNumDigits: 0
             plots: [
                 {
-                    prop: "solidAngle",
-                    label: "Solid Angle",
+                    prop: "pidOp",
+                    label: "Op",
                     color: "#9999FF"
+                },
+                {
+                    prop: "pidOi",
+                    label: "Oi",
+                    color: "#FFFFFF"
+                },
+                {
+                    prop: "pidOd",
+                    label: "Od",
+                    color: "#FF6666"
                 }
             ]
-        }   
+        }      
         Separator {
             id: bottomLine
         }

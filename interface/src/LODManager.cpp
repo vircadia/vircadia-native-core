@@ -75,12 +75,8 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
         return;
     }
 
-    auto Kp = _pid.x;
-    auto Ki = _pid.y;
-    auto Kd = _pid.z;
-
     float oldOctreeSizeScale = _octreeSizeScale;
-    float oldSolidAngle = getSolidAngle();
+    float oldSolidAngle = getLODAngleDeg();
 
     float targetFPS = getLODDecreaseFPS();
     float targetPeriod = 1.0f / targetFPS;
@@ -89,29 +85,44 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
     static uint64_t lastTime = usecTimestampNow();
     uint64_t now = usecTimestampNow();
     auto dt = (float) ((now - lastTime) / double(USECS_PER_MSEC));
-    if (dt < targetPeriod * _pid.w) return;
+    if (dt < targetPeriod * _pidCoefs.w) return;
 
     float deltaFPS = currentFPS - getLODDecreaseFPS();
     
     lastTime = now;
-    auto previous_error = 0.f;
-    auto integral = 0.f;
+    auto previous_error = _pidHistory.x;
+    auto previous_integral = _pidHistory.y;
 
     auto error = getLODDecreaseFPS() - currentFPS;
-    integral = integral + error * dt;
+    auto integral = previous_integral + error * dt;
     auto derivative = (error - previous_error) / dt;
-    auto output = Kp * error + Ki * integral + Kd * derivative;
-    previous_error = error;
 
+    _pidHistory.x = error;
+    _pidHistory.y = integral;
+    _pidHistory.z = derivative;
+
+    auto Kp = _pidCoefs.x;
+    auto Ki = _pidCoefs.y;
+    auto Kd = _pidCoefs.z;
+
+    _pidOutputs.x = Kp * error;
+    _pidOutputs.y = Ki * integral;
+    _pidOutputs.z = Kd * derivative;
+
+    auto output = _pidOutputs.x + _pidOutputs.y + _pidOutputs.z;
+
+    _pidOutputs.w = output;
 
     auto newSolidAngle = oldSolidAngle + output;
 
-    newSolidAngle = std::max( 0.5f, std::min(newSolidAngle, 90.f));
+    setLODAngleDeg(newSolidAngle);
 
-    auto halTan = glm::tan(glm::radians(newSolidAngle * 0.5f));
+    //newSolidAngle = std::max( 0.5f, std::min(newSolidAngle, 90.f));
 
-    auto octreeSizeScale = TREE_SCALE * OCTREE_TO_MESH_RATIO / halTan;
-    _octreeSizeScale = octreeSizeScale;
+    //auto halTan = glm::tan(glm::radians(newSolidAngle * 0.5f));
+
+    //auto octreeSizeScale = TREE_SCALE * OCTREE_TO_MESH_RATIO / halTan;
+   // _octreeSizeScale = octreeSizeScale;
 /*
     if (currentFPS < getLODDecreaseFPS()) {
         if (now > _decreaseFPSExpiry) {
@@ -363,36 +374,57 @@ float LODManager::getWorldDetailQuality() const {
 }
 
 
-float LODManager::getSolidAngleHalfTan() const {
+float LODManager::getLODAngleHalfTan() const {
     return getPerspectiveAccuracyAngleTan(_octreeSizeScale, _boundaryLevelAdjust);
 }
-
-float LODManager::getSolidAngle() const {
-    return glm::degrees(2.0 * atan(getSolidAngleHalfTan()));
+float LODManager::getLODAngle() const {
+    return 2.0f * atan(getLODAngleHalfTan());
+}
+float LODManager::getLODAngleDeg() const {
+    return glm::degrees(getLODAngle());
 }
 
+void LODManager::setLODAngleDeg(float lodAngle) {
+    auto newSolidAngle = std::max(0.5f, std::min(lodAngle, 90.f));
+    auto halTan = glm::tan(glm::radians(newSolidAngle * 0.5f));
+    auto octreeSizeScale = TREE_SCALE * OCTREE_TO_MESH_RATIO / halTan;
+    setOctreeSizeScale(octreeSizeScale);
+}
 
 float LODManager::getPidKp() const {
-    return _pid.x;
+    return _pidCoefs.x;
 }
 float LODManager::getPidKi() const {
-    return _pid.y;
+    return _pidCoefs.y;
 }
 float LODManager::getPidKd() const {
-    return _pid.z;
+    return _pidCoefs.z;
 }
 float LODManager::getPidT() const {
-    return _pid.w;
+    return _pidCoefs.w;
 }
 void LODManager::setPidKp(float k) {
-    _pid.x = k;
+    _pidCoefs.x = k;
 }
 void LODManager::setPidKi(float k) {
-    _pid.y = k;
+    _pidCoefs.y = k;
 }
 void LODManager::setPidKd(float k) {
-    _pid.z = k;
+    _pidCoefs.z = k;
 }
 void LODManager::setPidT(float t) {
-    _pid.w = t;
+    _pidCoefs.w = t;
+}
+
+float LODManager::getPidOp() const {
+    return _pidOutputs.x;
+}
+float LODManager::getPidOi() const {
+    return _pidOutputs.y;
+}
+float LODManager::getPidOd() const {
+    return _pidOutputs.z;
+}
+float LODManager::getPidO() const {
+    return _pidOutputs.w;
 }

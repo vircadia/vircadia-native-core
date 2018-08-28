@@ -29,6 +29,7 @@ Item {
 
     property var labelAreaWidthScale: 0.5
     property bool integral: false
+    property var numDigits: 2
 
     property var valueVarSetter: defaultSet
     property alias valueVar : sliderControl.value
@@ -71,7 +72,7 @@ Item {
     HifiControls.Label {
         id: labelValue
         enabled: root.showValue
-        text: sliderControl.value.toFixed(root.integral ? 0 : 2)
+        text: sliderControl.value.toFixed(root.integral ? 0 : root.numDigits)
         anchors.right: labelControl.right
         anchors.rightMargin: 5
         anchors.verticalCenter: root.verticalCenter
