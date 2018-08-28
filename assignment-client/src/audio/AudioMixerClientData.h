@@ -50,7 +50,7 @@ public:
     using AudioStreamVector = std::vector<SharedStreamPointer>;
 
     void queuePacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer node);
-    void processPackets(ConcurrentAddedStreams& addedStreams);
+    int processPackets(ConcurrentAddedStreams& addedStreams); // returns the number of available streams this frame
 
     AudioStreamVector& getAudioStreams() { return _audioStreams; }
     AvatarAudioStream* getAvatarAudioStream();
@@ -165,8 +165,7 @@ private:
     };
     PacketQueue _packetQueue;
 
-    QReadWriteLock _streamsLock;
-    AudioStreamVector _audioStreams; // microphone stream from avatar is stored under key of null UUID
+    AudioStreamVector _audioStreams; // microphone stream from avatar has a null stream ID
 
     void optionallyReplicatePacket(ReceivedMessage& packet, const Node& node);
 

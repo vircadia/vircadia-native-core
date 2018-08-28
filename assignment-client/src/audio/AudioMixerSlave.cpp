@@ -55,7 +55,8 @@ inline float computeAzimuth(const AvatarAudioStream& listeningNodeStream, const 
 void AudioMixerSlave::processPackets(const SharedNodePointer& node) {
     AudioMixerClientData* data = (AudioMixerClientData*)node->getLinkedData();
     if (data) {
-        data->processPackets(_sharedData.addedStreams);
+        // process packets and collect the number of streams available for this frame
+        stats.sumStreams += data->processPackets(_sharedData.addedStreams);
     }
 }
 

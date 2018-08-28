@@ -285,10 +285,9 @@ void AudioMixer::sendStatsPacket() {
     addTiming(_ticTiming, "tic");
     addTiming(_sleepTiming, "sleep");
     addTiming(_frameTiming, "frame");
-    addTiming(_prepareTiming, "prepare");
+    addTiming(_packetsTiming, "packets");
     addTiming(_mixTiming, "mix");
     addTiming(_eventsTiming, "events");
-    addTiming(_packetsTiming, "packets");
 
 #ifdef HIFI_AUDIO_MIXER_DEBUG
     timingStats["ns_per_mix"] = (_stats.totalMixes > 0) ?  (float)(_stats.mixTime / _stats.totalMixes) : 0;
@@ -421,14 +420,6 @@ void AudioMixer::start() {
         }
 
         nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
-            // prepare frames; pop off any new audio from their streams
-            {
-                auto prepareTimer = _prepareTiming.timer();
-                for_each(cbegin, cend, [&](const SharedNodePointer& node) {
-                    _stats.sumStreams += prepareFrame(node, frame);
-                });
-            }
-
             // mix across slave threads
             {
                 auto mixTimer = _mixTiming.timer();
@@ -518,15 +509,6 @@ void AudioMixer::throttle(chrono::microseconds duration, int frame) {
                 << _throttlingRatio << "of streams";
         }
     }
-}
-
-int AudioMixer::prepareFrame(const SharedNodePointer& node, unsigned int frame) {
-    AudioMixerClientData* data = (AudioMixerClientData*)node->getLinkedData();
-    if (data == nullptr) {
-        return 0;
-    }
-
-    return data->checkBuffersBeforeFrameSend();
 }
 
 void AudioMixer::clearDomainSettings() {
