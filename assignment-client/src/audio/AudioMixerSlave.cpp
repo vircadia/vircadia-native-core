@@ -135,12 +135,6 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
     AvatarAudioStream* listenerAudioStream = static_cast<AudioMixerClientData*>(listener->getLinkedData())->getAvatarAudioStream();
     AudioMixerClientData* listenerData = static_cast<AudioMixerClientData*>(listener->getLinkedData());
 
-    // if we received an invalid position from this listener, then refuse to make them a mix
-    // because we don't know how to do it properly
-    if (!listenerAudioStream->hasValidPosition()) {
-        return false;
-    }
-
     // zero out the mix for this listener
     memset(_mixSamples, 0, sizeof(_mixSamples));
 
@@ -195,6 +189,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
     auto it = mixableStreams.begin();
     auto end = mixableStreams.end();
     while (it != end) {
+
         // check if this node (and therefore all of the node's streams) has been removed
         auto& nodeIDStreamID = it->nodeStreamID;
         auto matchedRemovedNode = std::find(_sharedData.removedNodes.cbegin(), _sharedData.removedNodes.cend(),
@@ -279,7 +274,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
         } else {
             // we're throttling, so we need to update the approximate volume for any un-skipped streams
             // unless this is simply for an echo (in which case the approx volume is 1.0)
-            if (!it->skippedStream) {
+            if (!it->skippedStream && it->positionalStream->getLastPopOutputTrailingLoudness() > 0.0f) {
                 if (it->positionalStream != listenerAudioStream) {
                     // approximate the gain
                     float gain = approximateGain(*listenerAudioStream, *(it->positionalStream));

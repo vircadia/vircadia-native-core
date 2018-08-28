@@ -172,6 +172,8 @@ private:
 
     void setGainForAvatar(QUuid nodeID, uint8_t gain);
 
+    bool containsValidPosition(ReceivedMessage& message) const;
+
     MixableStreamsVector _mixableStreams;
 
     quint16 _outgoingMixedAudioSequenceNumber;

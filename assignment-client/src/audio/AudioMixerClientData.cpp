@@ -13,6 +13,8 @@
 
 #include <random>
 
+#include <glm/detail/func_common.hpp>
+
 #include <QtCore/QDebug>
 #include <QtCore/QJsonArray>
 
@@ -332,18 +334,65 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
     return 0;
 }
 
+bool AudioMixerClientData::containsValidPosition(ReceivedMessage& message) const {
+    static const int SEQUENCE_NUMBER_BYTES = sizeof(quint16);
+
+    auto posBefore = message.getPosition();
+
+    message.seek(SEQUENCE_NUMBER_BYTES);
+
+    // skip over the codec string
+    message.readString();
+
+    switch (message.getType()) {
+        case PacketType::MicrophoneAudioNoEcho:
+        case PacketType::MicrophoneAudioWithEcho: {
+            // skip over the stereo flag
+            message.seek(message.getPosition() + sizeof(ChannelFlag));
+            break;
+        }
+        case PacketType::SilentAudioFrame: {
+            // skip the number of silent samples
+            message.seek(message.getPosition() + sizeof(SilentSamplesBytes));
+            break;
+        }
+        case PacketType::InjectAudio: {
+            // skip the stream ID, stereo flag, and loopback flag
+            message.seek(message.getPosition() + NUM_STREAM_ID_BYTES + sizeof(ChannelFlag) + sizeof(LoopbackFlag));
+        }
+        default:
+            Q_UNREACHABLE();
+            break;
+    }
+
+    glm::vec3 peekPosition;
+    message.readPrimitive(&peekPosition);
+
+    // reset the position the message was at before we were called
+    message.seek(posBefore);
+
+    if (glm::any(glm::isnan(peekPosition))) {
+        return false;
+    }
+
+    return true;
+}
+
 void AudioMixerClientData::processStreamPacket(ReceivedMessage& message, ConcurrentAddedStreams &addedStreams) {
+
+    if (!containsValidPosition(message)) {
+        qDebug() << "Refusing to process audio stream from" << message.getSourceID() << "with invalid position";
+        return;
+    }
+
     SharedStreamPointer matchingStream;
 
     auto packetType = message.getType();
     bool newStream = false;
 
     if (packetType == PacketType::MicrophoneAudioWithEcho
-        || packetType == PacketType::ReplicatedMicrophoneAudioWithEcho
         || packetType == PacketType::MicrophoneAudioNoEcho
-        || packetType == PacketType::ReplicatedMicrophoneAudioNoEcho
-        || packetType == PacketType::SilentAudioFrame
-        || packetType == PacketType::ReplicatedSilentAudioFrame) {
+        || packetType == PacketType::SilentAudioFrame) {
 
         QWriteLocker writeLocker { &_streamsLock };
 
@@ -355,7 +404,7 @@ void AudioMixerClientData::processStreamPacket(ReceivedMessage& message, Concurr
             // we don't have a mic stream yet, so add it
 
             // hop past the sequence number that leads the packet
-            message.seek(sizeof(quint16));
+            message.seek(sizeof(StreamSequenceNumber));
 
             // pull the codec string from the packet
             auto codecString = message.readString();
@@ -363,11 +412,11 @@ void AudioMixerClientData::processStreamPacket(ReceivedMessage& message, Concurr
             // determine if the stream is stereo or not
             bool isStereo;
             if (packetType == PacketType::SilentAudioFrame || packetType == PacketType::ReplicatedSilentAudioFrame) {
-                quint16 numSilentSamples;
+                SilentSamplesBytes numSilentSamples;
                 message.readPrimitive(&numSilentSamples);
                 isStereo = numSilentSamples == AudioConstants::NETWORK_FRAME_SAMPLES_STEREO;
             } else {
-                quint8 channelFlag;
+                ChannelFlag channelFlag;
                 message.readPrimitive(&channelFlag);
                 isStereo = channelFlag == 1;
             }
@@ -395,16 +444,14 @@ void AudioMixerClientData::processStreamPacket(ReceivedMessage& message, Concurr
         }
 
         writeLocker.unlock();
-    } else if (packetType == PacketType::InjectAudio
-               || packetType == PacketType::ReplicatedInjectAudio) {
+    } else if (packetType == PacketType::InjectAudio) {
+
         // this is injected audio
-        // grab the stream identifier for this injected audio
-        message.seek(sizeof(quint16));
+        // skip the sequence number and codec string and grab the stream identifier for this injected audio
+        message.seek(sizeof(StreamSequenceNumber));
+        message.readString();
 
         QUuid streamIdentifier = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-
-        bool isStereo;
-        message.readPrimitive(&isStereo);
 
         QWriteLocker writeLock { &_streamsLock };
 
@@ -413,6 +460,9 @@ void AudioMixerClientData::processStreamPacket(ReceivedMessage& message, Concurr
         });
 
         if (streamIt == _audioStreams.end()) {
+            bool isStereo;
+            message.readPrimitive(&isStereo);
+
             // we don't have this injected stream yet, so add it
             auto injectorStream = new InjectedAudioStream(streamIdentifier, isStereo, AudioMixer::getStaticJitterFrames());
 

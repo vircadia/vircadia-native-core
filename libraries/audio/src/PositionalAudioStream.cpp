@@ -14,7 +14,6 @@
 
 #include <cstring>
 
-#include <glm/detail/func_common.hpp>
 #include <QtCore/QDataStream>
 #include <QtCore/QLoggingCategory>
 
@@ -78,16 +77,6 @@ int PositionalAudioStream::parsePositionalData(const QByteArray& positionalByteA
     QDataStream packetStream(positionalByteArray);
 
     packetStream.readRawData(reinterpret_cast<char*>(&_position), sizeof(_position));
-
-    // if the client sends us a bad position, flag it so that we don't consider this stream for mixing
-    if (glm::isnan(_position.x) || glm::isnan(_position.y) || glm::isnan(_position.z)) {
-        HIFI_FDEBUG("PositionalAudioStream unpacked invalid position for node" << uuidStringWithoutCurlyBraces(getNodeID()) );
-
-        _hasValidPosition = false;
-    } else {
-        _hasValidPosition = true;
-    }
-
     packetStream.readRawData(reinterpret_cast<char*>(&_orientation), sizeof(_orientation));
     packetStream.readRawData(reinterpret_cast<char*>(&_avatarBoundingBoxCorner), sizeof(_avatarBoundingBoxCorner));
     packetStream.readRawData(reinterpret_cast<char*>(&_avatarBoundingBoxScale), sizeof(_avatarBoundingBoxScale));

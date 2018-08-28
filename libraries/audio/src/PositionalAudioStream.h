@@ -20,6 +20,7 @@
 const int AUDIOMIXER_INBOUND_RING_BUFFER_FRAME_CAPACITY = 100;
 
 using StreamID = QUuid;
+const int NUM_STREAM_ID_BYTES = NUM_BYTES_RFC4122_UUID;
 
 struct NodeIDStreamID {
     QUuid nodeID;
@@ -33,6 +34,8 @@ struct NodeIDStreamID {
         return (nodeLocalID == other.nodeLocalID || nodeID == other.nodeID) && streamID == other.streamID;
     }
 };
+
+using ChannelFlag = quint8;
 
 class PositionalAudioStream : public InboundAudioStream {
     Q_OBJECT
@@ -65,8 +68,6 @@ public:
     const glm::quat& getOrientation() const { return _orientation; }
     const glm::vec3& getAvatarBoundingBoxCorner() const { return _avatarBoundingBoxCorner; }
     const glm::vec3& getAvatarBoundingBoxScale() const { return _avatarBoundingBoxScale; }
-
-    bool hasValidPosition() const { return _hasValidPosition; }
 
     using IgnoreBox = AABox;
 
@@ -105,8 +106,6 @@ protected:
     float _quietestTrailingFrameLoudness;
     float _quietestFrameLoudness;
     int _frameCounter;
-
-    bool _hasValidPosition { false };
 
     bool _isIgnoreBoxEnabled { false };
     IgnoreBox _ignoreBox;
