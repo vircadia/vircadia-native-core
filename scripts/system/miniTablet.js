@@ -64,10 +64,11 @@
         PROXY_HIDING = 2,
         PROXY_SHOWING = 3,
         PROXY_VISIBLE = 4,
-        PROXY_EXPANDING = 5,
-        TABLET_OPEN = 6,
-        STATE_STRINGS = ["PROXY_DISABLED", "PROXY_HIDDEN", "PROXY_HIDING", "PROXY_SHOWING", "PROXY_VISIBLE", "PROXY_EXPANDING",
-            "TABLET_OPEN"],
+        PROXY_GRABBED = 5,
+        PROXY_EXPANDING = 6,
+        TABLET_OPEN = 7,
+        STATE_STRINGS = ["PROXY_DISABLED", "PROXY_HIDDEN", "PROXY_HIDING", "PROXY_SHOWING", "PROXY_VISIBLE", "PROXY_GRABBED",
+            "PROXY_EXPANDING", "TABLET_OPEN"],
         STATE_MACHINE,
         rezzerState = PROXY_DISABLED,
         proxyHand,
@@ -513,6 +514,13 @@
         }
     }
 
+    function updateProxyGrabbed() {
+        // Hide proxy if tablet has been displayed by other means.
+        if (HMD.showTablet) {
+            setState(PROXY_HIDDEN);
+        }
+    }
+
     function expandProxy() {
         var scaleFactor = (Date.now() - proxyExpandStart) / PROXY_EXPAND_DURATION;
         if (scaleFactor < 1) {
@@ -598,7 +606,12 @@
             update: updateProxyVisible,
             exit: null
         },
-        PROXY_EXPANDING: { // Tablet proxy has been grabbed and is expanding before showing tablet proper.
+        PROXY_GRABBED: { // Tablet proxy is grabbed by other hand.
+            enter: null,
+            update: updateProxyGrabbed,
+            exit: null
+        },
+        PROXY_EXPANDING: { // Tablet proxy is expanding before showing tablet proper.
             enter: enterProxyExpanding,
             update: updateProxyExanding,
             exit: exitProxyExpanding
@@ -655,6 +668,13 @@
         }
 
         if (message.action === "grab" && rezzerState === PROXY_VISIBLE) {
+            hand = message.joint === HAND_NAMES[proxyHand] ? proxyHand : otherHand(proxyHand);
+            if (hand === proxyHand) {
+                setState(PROXY_EXPANDING, hand);
+            } else {
+                setState(PROXY_GRABBED);
+            }
+        } else if (message.action === "release" && rezzerState === PROXY_GRABBED) {
             hand = message.joint === HAND_NAMES[proxyHand] ? proxyHand : otherHand(proxyHand);
             setState(PROXY_EXPANDING, hand);
         }
