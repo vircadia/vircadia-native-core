@@ -22,12 +22,12 @@
         PROXY_DIMENSIONS = { x: 0.0637, y: 0.0965, z: 0.0046 }, // Proportional to tablet proper.
         PROXY_POSITION_LEFT_HAND = {
             x: 0,
-            y: 0.07, // Distance from joint.
+            y: 0.1, // Distance from joint.
             z: 0.07 // Distance above palm.
         },
         PROXY_POSITION_RIGHT_HAND = {
             x: 0,
-            y: 0.07, // Distance from joint.
+            y: 0.1, // Distance from joint.
             z: 0.07 // Distance above palm.
         },
         /*
@@ -36,8 +36,8 @@
         PROXY_ROTATION_RIGHT_HAND = Quat.fromVec3Degrees({ x: 0, y: 180, z: -90 }),
         */
         // Aligned with palm.
-        PROXY_ROTATION_LEFT_HAND = Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }),
-        PROXY_ROTATION_RIGHT_HAND = Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }),
+        PROXY_ROTATION_LEFT_HAND = Quat.fromVec3Degrees({ x: -40, y: 180, z: 0 }),
+        PROXY_ROTATION_RIGHT_HAND = Quat.fromVec3Degrees({ x: -40, y: 180, z: 0 }),
 
         // UI overlay.
         proxyUIOverlay = null,
@@ -79,7 +79,7 @@
             { x: 0.5, y: -0.75, z: 0 },
             { x: -0.5, y: -0.75, z: 0 }
         ],
-        PROXY_EXPAND_DELTA_ROTATION = Quat.fromVec3Degrees({ x: -45, y: 0, z: 0 }),
+        PROXY_EXPAND_DELTA_ROTATION = Quat.fromVec3Degrees({ x: -5, y: 0, z: 0 }),
         proxyExpandHand,
         proxyExpandLocalPosition,
         proxyExpandLocalRotation = Quat.IDENTITY,
