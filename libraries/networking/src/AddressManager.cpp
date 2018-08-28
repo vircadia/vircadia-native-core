@@ -31,6 +31,7 @@
 #include "udt/PacketHeaders.h"
 
 const QString DEFAULT_HIFI_ADDRESS = "file:///~/serverless/tutorial.json";
+const QString REDIRECT_HIFI_ADDRESS = "file:///~/serverless/redirect.json";
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
 const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
 
@@ -708,7 +709,6 @@ bool AddressManager::handleViewpoint(const QString& viewpointString, bool should
         //
         // We use _newHostLookupPath to determine if the client has already stored its last address
         // before moving to a new host thanks to the information in the same lookup URL.
-
 
         if (definitelyPathOnly || (!pathString.isEmpty() && pathString != _newHostLookupPath)
             || trigger == Back || trigger == Forward) {

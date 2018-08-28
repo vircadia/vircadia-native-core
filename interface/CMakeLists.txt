@@ -341,6 +341,8 @@ else()
   set(INTERFACE_EXEC_DIR "$<TARGET_FILE_DIR:${TARGET_NAME}>")
   set(RESOURCES_DEV_DIR "${INTERFACE_EXEC_DIR}/resources")
 
+  message(STATUS "${RESOURCES_DEV_DIR}")
+
   # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
@@ -360,6 +362,9 @@ else()
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
       "${PROJECT_SOURCE_DIR}/resources/serverless/tutorial.json"
       "${RESOURCES_DEV_DIR}/serverless/tutorial.json"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+      "${PROJECT_SOURCE_DIR}/resources/serverless/redirect.json"
+      "${RESOURCES_DEV_DIR}/serverless/redirect.json"
     # copy JSDoc files beside the executable
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${CMAKE_SOURCE_DIR}/tools/jsdoc/out"

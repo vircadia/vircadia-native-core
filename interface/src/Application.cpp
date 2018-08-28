@@ -1193,7 +1193,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         getOverlays().deleteOverlay(getTabletHomeButtonID());
         getOverlays().deleteOverlay(getTabletFrameID());
     });
+#if defined(Q_OS_ANDROID)
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &Application::domainConnectionRefused);
+#else
+    connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &Application::domainConnectionRedirect);
+#endif
 
     // We could clear ATP assets only when changing domains, but it's possible that the domain you are connected
     // to has gone down and switched to a new content set, so when you reconnect the cached ATP assets will no longer be valid.
@@ -2312,6 +2316,35 @@ void Application::domainConnectionRefused(const QString& reasonMessage, int reas
             break;
     }
 }
+
+void Application::domainConnectionRedirect(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
+    DomainHandler::ConnectionRefusedReason reasonCode = static_cast<DomainHandler::ConnectionRefusedReason>(reasonCodeInt);
+    auto addressManager = DependencyManager::get<AddressManager>();
+
+    if (reasonCode == DomainHandler::ConnectionRefusedReason::TooManyUsers && !extraInfo.isEmpty()) {
+        addressManager->handleLookupString(extraInfo);
+        return;
+    }
+
+    switch (reasonCode) {
+        case DomainHandler::ConnectionRefusedReason::ProtocolMismatch:
+        case DomainHandler::ConnectionRefusedReason::TooManyUsers:
+        case DomainHandler::ConnectionRefusedReason::Unknown: {
+            QString message = "Unable to connect to the location you are visiting.\n";
+            message += reasonMessage;
+            //OffscreenUi::asyncWarning("", message);
+            addressManager->handleLookupString(REDIRECT_HIFI_ADDRESS);
+            getMyAvatar()->setWorldVelocity(glm::vec3(0.0f));
+            // in (w, x, y, z) component-structure for the constructor
+            getMyAvatar()->setWorldOrientation(glm::quat(0.8775935173034668f, 0.0f, 0.4794054925441742f, 0.0f));
+            break;
+        }
+        default:
+            // nothing to do.
+            break;
+    }
+}
+
 
 QString Application::getUserAgent() {
     if (QThread::currentThread() != thread()) {
