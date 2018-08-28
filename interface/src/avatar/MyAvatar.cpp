@@ -447,12 +447,12 @@ void MyAvatar::reset(bool andRecenter, bool andReload, bool andHead) {
 void MyAvatar::update(float deltaTime) {
     // update moving average of HMD facing in xz plane.
     const float HMD_FACING_TIMESCALE = getRotationRecenterFilterLength();
-    const float PERCENTAGE_WEIGHT_SHOULDERS_VS_HEAD_AZIMUTH = 0.0f; // 100 percent shoulders
+    const float PERCENTAGE_WEIGHT_HEAD_VS_SHOULDERS_AZIMUTH = 0.0f; // 100 percent shoulders
 
     float tau = deltaTime / HMD_FACING_TIMESCALE;
 
-    // put the spine facing in sensor space.
-    // then mix it with head facing to determine rotation recenter
+    // put the average hand azimuth into sensor space.
+    // then mix it with head facing direction to determine rotation recenter
     if (getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).isValid() && getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).isValid()) {
         glm::vec3 handHipAzimuthWorldSpace = transformVectorFast(getTransform().getMatrix(), glm::vec3(_hipToHandController.x, 0.0f, _hipToHandController.y));
         glm::mat4 sensorToWorldMat = getSensorToWorldMatrix();
@@ -462,7 +462,7 @@ void MyAvatar::update(float deltaTime) {
         if (glm::length(glm::vec2(handHipAzimuthSensorSpace.x, handHipAzimuthSensorSpace.z)) > 0.0f) {
             normedHandHipAzimuthSensorSpace = glm::normalize(glm::vec2(handHipAzimuthSensorSpace.x, handHipAzimuthSensorSpace.z));
         }
-        glm::vec2 headFacingPlusHandHipAzimuthMix = lerp(normedHandHipAzimuthSensorSpace, _headControllerFacing, PERCENTAGE_WEIGHT_SHOULDERS_VS_HEAD_AZIMUTH);
+        glm::vec2 headFacingPlusHandHipAzimuthMix = lerp(normedHandHipAzimuthSensorSpace, _headControllerFacing, PERCENTAGE_WEIGHT_HEAD_VS_SHOULDERS_AZIMUTH);
         _headControllerFacingMovingAverage = lerp(_headControllerFacingMovingAverage, headFacingPlusHandHipAzimuthMix, tau);
     } else {
         _headControllerFacingMovingAverage = _headControllerFacing;
@@ -497,7 +497,7 @@ void MyAvatar::update(float deltaTime) {
 
     if (_goToPending) {
         setWorldPosition(_goToPosition);
-        setWorldOrientation(_goToOrientation);        
+        setWorldOrientation(_goToOrientation);
         _headControllerFacingMovingAverage = _headControllerFacing;
         _goToPending = false;
         // updateFromHMDSensorMatrix (called from paintGL) expects that the sensorToWorldMatrix is updated for any position changes
@@ -834,15 +834,14 @@ void MyAvatar::computeHandAzimuth() {
         if ((glm::length(glm::vec2(rightHandPoseAvatarSpace.translation.x, rightHandPoseAvatarSpace.translation.z)) > 0.0f) && (glm::length(glm::vec2(leftHandPoseAvatarSpace.translation.x, leftHandPoseAvatarSpace.translation.z)) > 0.0f)) {
             _hipToHandController = lerp(glm::normalize(glm::vec2(rightHandPoseAvatarSpace.translation.x, rightHandPoseAvatarSpace.translation.z)), glm::normalize(glm::vec2(leftHandPoseAvatarSpace.translation.x, leftHandPoseAvatarSpace.translation.z)), HALFWAY);
         } else {
-            _hipToHandController = glm::vec2(0.0f, 1.0f);
+            _hipToHandController = glm::vec2(0.0f, -1.0f);
         }
         // check the angular distance from forward and back
         float cosForwardAngle = glm::dot(_hipToHandController, oldAzimuthReading);
         float cosBackwardAngle = glm::dot(_hipToHandController, -oldAzimuthReading);
         // if we are now closer to the 180 flip of the previous chest forward
-        // then we negate our computed _hipToHandController to keep the chest in the same direction.
+        // then we negate our computed _hipToHandController to keep the chest from flipping.
         if (cosBackwardAngle > cosForwardAngle) {
-            // this means we have lost continuity with the current chest position
             _hipToHandController = -_hipToHandController;
         }
     }
@@ -3375,12 +3374,10 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
 
 glm::mat4 MyAvatar::getSpine2RotationRigSpace() const {
 
-    static const glm::quat RIG_CHANGE_OF_BASIS = Quaternions::Y_180;
-    // RIG_CHANGE_OF_BASIS * INITIAL_RIG_ROTATION * Quaternions::IDENTITY(explicit rig rotation) * inverse(RIG_CHANGE_OF_BASIS) = Quaternions::Y_180(avatar Space);
-    // INITIAL_RIG_ROTATION = Quaternions::Y_180;
-    static const glm::quat INITIAL_RIG_ROTATION = Quaternions::Y_180;
-    glm::quat avatarToRigSpace = INITIAL_RIG_ROTATION * Quaternions::IDENTITY;
-    glm::vec3 hipToHandRigSpace = avatarToRigSpace * glm::vec3(_hipToHandController.x, 0.0f, _hipToHandController.y);
+    // static const glm::quat RIG_CHANGE_OF_BASIS = Quaternions::Y_180;
+    // RIG_CHANGE_OF_BASIS * AVATAR_TO_RIG_ROTATION * inverse(RIG_CHANGE_OF_BASIS) = Quaternions::Y_180; //avatar Space;
+    const glm::quat AVATAR_TO_RIG_ROTATION = Quaternions::Y_180;
+    glm::vec3 hipToHandRigSpace = AVATAR_TO_RIG_ROTATION * glm::vec3(_hipToHandController.x, 0.0f, _hipToHandController.y);
 
     glm::vec3 u, v, w;
     generateBasisVectors(glm::vec3(0.0f,1.0f,0.0f), hipToHandRigSpace, u, v, w);
@@ -3971,7 +3968,7 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontalCG(MyAvatar& myAvatar) cons
         glm::vec3 currentHeadPosition = currentHeadPose.getTranslation();
         float anatomicalHeadToHipsDistance = glm::length(defaultHeadPosition - defaultHipsPosition);
         if (!isActive(Horizontal) &&
-            (glm::length(currentHeadPosition - defaultHipsPosition) > (anatomicalHeadToHipsDistance + (DEFAULT_AVATAR_SPINE_STRETCH_LIMIT * anatomicalHeadToHipsDistance * myAvatar.getAvatarScale())))) {
+            (glm::length(currentHeadPosition - defaultHipsPosition) > (anatomicalHeadToHipsDistance + (DEFAULT_AVATAR_SPINE_STRETCH_LIMIT * anatomicalHeadToHipsDistance)))) {
             myAvatar.setResetMode(true);
             stepDetected = true;
         }
@@ -3995,14 +3992,14 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
         qApp->getCamera().getMode() != CAMERA_MODE_MIRROR) {
         if (!isActive(Rotation) && (shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
             activate(Rotation);
-            myAvatar.setHeadControllerFacingMovingAverage(myAvatar._headControllerFacing);
+            myAvatar.setHeadControllerFacingMovingAverage(myAvatar.getHeadControllerFacing());
         }
         if (myAvatar.getCenterOfGravityModelEnabled()) {
             if (!isActive(Horizontal) && (shouldActivateHorizontalCG(myAvatar) || hasDriveInput)) {
                 activate(Horizontal);
                 if (myAvatar.getEnableStepResetRotation()) {
                     activate(Rotation);
-                    myAvatar.setHeadControllerFacingMovingAverage(myAvatar._headControllerFacing);
+                    myAvatar.setHeadControllerFacingMovingAverage(myAvatar.getHeadControllerFacing());
                 }
             }
         } else {
@@ -4010,7 +4007,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
                 activate(Horizontal);
                 if (myAvatar.getEnableStepResetRotation()) {
                     activate(Rotation);
-                    myAvatar.setHeadControllerFacingMovingAverage(myAvatar._headControllerFacing);
+                    myAvatar.setHeadControllerFacingMovingAverage(myAvatar.getHeadControllerFacing());
                 }
             }
         }
@@ -4020,7 +4017,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
     } else {
         if (!isActive(Rotation) && getForceActivateRotation()) {
             activate(Rotation);
-            myAvatar.setHeadControllerFacingMovingAverage(myAvatar._headControllerFacing);
+            myAvatar.setHeadControllerFacingMovingAverage(myAvatar.getHeadControllerFacing());
             setForceActivateRotation(false);
         }
         if (!isActive(Horizontal) && getForceActivateHorizontal()) {

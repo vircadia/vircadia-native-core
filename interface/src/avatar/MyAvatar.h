@@ -914,6 +914,8 @@ public:
 
     virtual void rebuildCollisionShape() override;
 
+    const glm::vec2& getHipToHandController() const { return _hipToHandController; }
+    void setHipToHandController(glm::vec2 currentHipToHandController) { _hipToHandController = currentHipToHandController; }
     const glm::vec2& getHeadControllerFacing() const { return _headControllerFacing; }
     void setHeadControllerFacing(glm::vec2 currentHeadControllerFacing) { _headControllerFacing = currentHeadControllerFacing; }
     const glm::vec2& getHeadControllerFacingMovingAverage() const { return _headControllerFacingMovingAverage; }
