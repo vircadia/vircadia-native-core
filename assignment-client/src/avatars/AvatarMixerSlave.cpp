@@ -288,13 +288,19 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
     // setup list of AvatarData as well as maps to map betweeen the AvatarData and the original nodes
     struct AvatarSortData {
-        SharedNodePointer _nodeShared;
+        AvatarSortData(const SharedNodePointer& nodeShared, AvatarData* avatarData, quint64 lastEncodeTime)
+            : _nodeShared(nodeShared)
+            , _node(nodeShared.data())
+            , _avatarData(avatarData)
+            , _lastEncodeTime(lastEncodeTime)
+        { }
+        const SharedNodePointer& _nodeShared;
         Node* _node;
         AvatarData* _avatarData;
         quint64 _lastEncodeTime;
     };
+    // Temporary info about the avatars we're sending:
     std::vector<AvatarSortData> avatarsToSort;
-    avatarsToSort.reserve(nodeList->size());
     //std::unordered_map<const AvatarData*, Node*> avatarDataToNodes;
     //std::unordered_map<const AvatarData*, SharedNodePointer> avatarDataToNodesShared;
     //std::unordered_map<QUuid, uint64_t> avatarEncodeTimes;
@@ -311,7 +317,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             //avatarDataToNodes[otherAvatar] = otherNode.data();
             //avatarDataToNodesShared[otherAvatar] = otherNode;
             auto lastEncodeTime = nodeData->getLastOtherAvatarEncodeTime(otherAvatar->getSessionUUID());
-            avatarsToSort.emplace_back(AvatarSortData({ otherNode,  otherNodeRaw, otherAvatar, lastEncodeTime }));
+            avatarsToSort.emplace_back(AvatarSortData(otherNode, otherAvatar, lastEncodeTime));
         }
     });
 
@@ -345,7 +351,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             AvatarData::_avatarSortCoefficientAge);
 
     // ignore or sort
-    const AvatarData* thisAvatar = nodeData->getAvatarSharedPointer().get();
     for (const auto& avatar : avatarsToSort) {
         if (avatar._node == nodeRaw) {
             // don't echo updates to self
@@ -437,7 +442,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     int remainingAvatars = (int)sortedAvatars.size();
     auto traitsPacketList = NLPacketList::create(PacketType::BulkAvatarTraits, QByteArray(), true, true);
     while (!sortedAvatars.empty()) {
-        const AvatarData* avatarData = sortedAvatars.top().getAvatar();
         const Node* otherNode = sortedAvatars.top().getNode();
         sortedAvatars.pop();
         remainingAvatars--;
