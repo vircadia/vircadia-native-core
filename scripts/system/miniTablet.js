@@ -81,7 +81,14 @@
             { x: -0.5, y: -0.75, z: 0 }
         ],
         PROXY_EXPAND_DELTA_ROTATION = Quat.fromVec3Degrees({ x: -5, y: 0, z: 0 }),
+        PROXY_EXPAND_HANDLES_OTHER = [ // Different handles when expanding after being grabbed by other hand,
+            { x: 0.5, y: -0.4, z: 0 },
+            { x: -0.5, y: -0.4, z: 0 }
+        ],
+        PROXY_EXPAND_DELTA_ROTATION_OTHER = Quat.IDENTITY,
         proxyExpandHand,
+        proxyExpandHandles = PROXY_EXPAND_HANDLES,
+        proxyExpandDeltaRotation = PROXY_EXPAND_HANDLES_OTHER,
         proxyExpandLocalPosition,
         proxyExpandLocalRotation = Quat.IDENTITY,
         PROXY_EXPAND_DURATION = 250,
@@ -331,7 +338,7 @@
             Vec3.sum(proxyExpandLocalPosition,
                 Vec3.multiplyQbyV(proxyExpandLocalRotation,
                     Vec3.multiply(-tabletScaleFactor,
-                        Vec3.multiplyVbyV(PROXY_EXPAND_HANDLES[proxyExpandHand], PROXY_DIMENSIONS)))
+                        Vec3.multiplyVbyV(proxyExpandHandles[proxyExpandHand], PROXY_DIMENSIONS)))
             );
         localPosition = Vec3.sum(localPosition,
             Vec3.multiplyQbyV(proxyExpandLocalRotation, { x: 0, y: 0.5 * -dimensions.y, z: 0 }));
@@ -533,18 +540,27 @@
     }
 
     function enterProxyExpanding(hand) {
+        // Expansion details.
+        if (hand === proxyHand) {
+            proxyExpandHandles = PROXY_EXPAND_HANDLES;
+            proxyExpandDeltaRotation = PROXY_EXPAND_DELTA_ROTATION;
+        } else {
+            proxyExpandHandles = PROXY_EXPAND_HANDLES_OTHER;
+            proxyExpandDeltaRotation = PROXY_EXPAND_DELTA_ROTATION_OTHER;
+        }
+
         // Grab details.
         var properties = Overlays.getProperties(proxyOverlay, ["localPosition", "localRotation"]);
         proxyExpandHand = hand;
         proxyExpandLocalRotation = properties.localRotation;
         proxyExpandLocalPosition = Vec3.sum(properties.localPosition,
             Vec3.multiplyQbyV(proxyExpandLocalRotation,
-                Vec3.multiplyVbyV(PROXY_EXPAND_HANDLES[proxyExpandHand], PROXY_DIMENSIONS)));
+                Vec3.multiplyVbyV(proxyExpandHandles[proxyExpandHand], PROXY_DIMENSIONS)));
 
         // Start expanding.
         proxyInitialWidth = PROXY_DIMENSIONS.x;
         proxyTargetWidth = getTabletWidthFromSettings();
-        proxyTargetLocalRotation = Quat.multiply(proxyExpandLocalRotation, PROXY_EXPAND_DELTA_ROTATION);
+        proxyTargetLocalRotation = Quat.multiply(proxyExpandLocalRotation, proxyExpandDeltaRotation);
         proxyExpandStart = Date.now();
         proxyExpandTimer = Script.setTimeout(expandProxy, PROXY_EXPAND_TIMEOUT);
     }
