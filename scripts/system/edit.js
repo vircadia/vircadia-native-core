@@ -1912,7 +1912,7 @@ function gridKey(value) {
     }
 }
 var mapping = Controller.newMapping(CONTROLLER_MAPPING_NAME);
-mapping.from([Controller.Hardware.Keyboard.Delete]).when([Controller.Hardware.Application.PlatformWindows]).to(deleteKey);
+mapping.from([Controller.Hardware.Keyboard.Delete]).when([!Controller.Hardware.Application.PlatformMac]).to(deleteKey);
 mapping.from([Controller.Hardware.Keyboard.Backspace]).when([Controller.Hardware.Application.PlatformMac]).to(deleteKey);
 mapping.from([Controller.Hardware.Keyboard.D]).when([Controller.Hardware.Keyboard.Control]).to(deselectKey);
 mapping.from([Controller.Hardware.Keyboard.T]).to(toggleKey);
