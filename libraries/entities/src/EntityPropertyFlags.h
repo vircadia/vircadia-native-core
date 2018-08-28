@@ -257,6 +257,11 @@ enum EntityPropertyList {
     PROP_SPIN_SPREAD,
     PROP_PARTICLE_ROTATE_WITH_ENTITY,
 
+    PROP_BLOOM_MODE,
+    PROP_BLOOM_INTENSITY,
+    PROP_BLOOM_THRESHOLD,
+    PROP_BLOOM_SIZE,
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,

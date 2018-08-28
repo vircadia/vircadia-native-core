@@ -34,20 +34,6 @@
 class QIODevice;
 class FBXNode;
 
-#if defined(Q_OS_ANDROID)
-#define FBX_PACK_NORMALS 0
-#else
-#define FBX_PACK_NORMALS 1
-#endif
-
-#if FBX_PACK_NORMALS
-using NormalType = glm::uint32;
-#define FBX_NORMAL_ELEMENT gpu::Element::VEC4F_NORMALIZED_XYZ10W2
-#else
-using NormalType = glm::vec3;
-#define FBX_NORMAL_ELEMENT gpu::Element::VEC3F_XYZ
-#endif
-
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
 FBXGeometry* readFBX(const QByteArray& model, const QVariantHash& mapping, const QString& url = "", bool loadLightmaps = true, float lightmapLevel = 1.0f);
