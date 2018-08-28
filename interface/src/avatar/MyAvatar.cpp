@@ -453,13 +453,16 @@ void MyAvatar::update(float deltaTime) {
 
     // put the spine facing in sensor space.
     // then mix it with head facing to determine rotation recenter
-    glm::vec3 handHipAzimuthWorldSpace = transformVectorFast(getTransform().getMatrix(), glm::vec3(_hipToHandController.x, 0.0f, _hipToHandController.y));
-    glm::mat4 sensorToWorldMat = getSensorToWorldMatrix();
-    glm::mat4 worldToSensorMat = glm::inverse(sensorToWorldMat);
-    glm::vec3 handHipAzimuthSensorSpace = transformVectorFast(worldToSensorMat, glm::vec3(handHipAzimuthWorldSpace.x, 0.0f, handHipAzimuthWorldSpace.z));
-    glm::vec2 normedHandHipAzimuthSensorSpace = glm::normalize(glm::vec2(handHipAzimuthSensorSpace.x, handHipAzimuthSensorSpace.z));
-    glm::vec2 headFacingPlusHandHipAzimuthMix = lerp(normedHandHipAzimuthSensorSpace, _headControllerFacing, PERCENTAGE_WEIGHT_SHOULDERS_VS_HEAD_AZIMUTH);
     if (getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).isValid() && getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).isValid()) {
+        glm::vec3 handHipAzimuthWorldSpace = transformVectorFast(getTransform().getMatrix(), glm::vec3(_hipToHandController.x, 0.0f, _hipToHandController.y));
+        glm::mat4 sensorToWorldMat = getSensorToWorldMatrix();
+        glm::mat4 worldToSensorMat = glm::inverse(sensorToWorldMat);
+        glm::vec3 handHipAzimuthSensorSpace = transformVectorFast(worldToSensorMat, handHipAzimuthWorldSpace);
+        glm::vec2 normedHandHipAzimuthSensorSpace(0.0f, 1.0f);
+        if (glm::length(glm::vec2(handHipAzimuthSensorSpace.x, handHipAzimuthSensorSpace.z)) > 0.0f) {
+            normedHandHipAzimuthSensorSpace = glm::normalize(glm::vec2(handHipAzimuthSensorSpace.x, handHipAzimuthSensorSpace.z));
+        }
+        glm::vec2 headFacingPlusHandHipAzimuthMix = lerp(normedHandHipAzimuthSensorSpace, _headControllerFacing, PERCENTAGE_WEIGHT_SHOULDERS_VS_HEAD_AZIMUTH);
         _headControllerFacingMovingAverage = lerp(_headControllerFacingMovingAverage, headFacingPlusHandHipAzimuthMix, tau);
     } else {
         _headControllerFacingMovingAverage = _headControllerFacing;
@@ -475,7 +478,6 @@ void MyAvatar::update(float deltaTime) {
     _recentModeReadings.insert(newHeightReadingInCentimeters);
     setCurrentStandingHeight(computeStandingHeightMode(getControllerPoseInAvatarFrame(controller::Action::HEAD)));
     setAverageHeadRotation(computeAverageHeadRotation(getControllerPoseInAvatarFrame(controller::Action::HEAD)));
-
     computeHandAzimuth();
 
 #ifdef DEBUG_DRAW_HMD_MOVING_AVERAGE
@@ -495,12 +497,8 @@ void MyAvatar::update(float deltaTime) {
 
     if (_goToPending) {
         setWorldPosition(_goToPosition);
-        setWorldOrientation(_goToOrientation);
-        if (getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).isValid() && getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).isValid()) {
-            _headControllerFacingMovingAverage = headFacingPlusHandHipAzimuthMix;
-        } else {
-            _headControllerFacingMovingAverage = _headControllerFacing;  // reset moving average
-        }
+        setWorldOrientation(_goToOrientation);        
+        _headControllerFacingMovingAverage = _headControllerFacing;
         _goToPending = false;
         // updateFromHMDSensorMatrix (called from paintGL) expects that the sensorToWorldMatrix is updated for any position changes
         // that happen between render and Application::update (which calls updateSensorToWorldMatrix to do so).
@@ -827,15 +825,17 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
 void MyAvatar::computeHandAzimuth() {
     auto leftHandPoseAvatarSpace = getLeftHandPose();
     auto rightHandPoseAvatarSpace = getRightHandPose();
-    glm::vec3 localLookat(0.0f, 0.0f, 1.0f);
     const float HALFWAY = 0.50f;
 
     if (leftHandPoseAvatarSpace.isValid() && rightHandPoseAvatarSpace.isValid()) {
         // we need the old azimuth reading to prevent flipping the facing direction 180
         // in the case where the hands go from being slightly less than 180 apart to slightly more than 180 apart.
         vec2 oldAzimuthReading = _hipToHandController;
-        _hipToHandController = lerp(glm::normalize(glm::vec2(rightHandPoseAvatarSpace.translation.x, rightHandPoseAvatarSpace.translation.z)), glm::normalize(glm::vec2(leftHandPoseAvatarSpace.translation.x, leftHandPoseAvatarSpace.translation.z)), HALFWAY);
-
+        if ((glm::length(glm::vec2(rightHandPoseAvatarSpace.translation.x, rightHandPoseAvatarSpace.translation.z)) > 0.0f) && (glm::length(glm::vec2(leftHandPoseAvatarSpace.translation.x, leftHandPoseAvatarSpace.translation.z)) > 0.0f)) {
+            _hipToHandController = lerp(glm::normalize(glm::vec2(rightHandPoseAvatarSpace.translation.x, rightHandPoseAvatarSpace.translation.z)), glm::normalize(glm::vec2(leftHandPoseAvatarSpace.translation.x, leftHandPoseAvatarSpace.translation.z)), HALFWAY);
+        } else {
+            _hipToHandController = glm::vec2(0.0f, 1.0f);
+        }
         // check the angular distance from forward and back
         float cosForwardAngle = glm::dot(_hipToHandController, oldAzimuthReading);
         float cosBackwardAngle = glm::dot(_hipToHandController, -oldAzimuthReading);
@@ -3376,7 +3376,11 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
 glm::mat4 MyAvatar::getSpine2RotationRigSpace() const {
 
     static const glm::quat RIG_CHANGE_OF_BASIS = Quaternions::Y_180;
-    glm::vec3 hipToHandRigSpace = RIG_CHANGE_OF_BASIS * glm::vec3(_hipToHandController.x, 0.0f, _hipToHandController.y);
+    // RIG_CHANGE_OF_BASIS * INITIAL_RIG_ROTATION * Quaternions::IDENTITY(explicit rig rotation) * inverse(RIG_CHANGE_OF_BASIS) = Quaternions::Y_180(avatar Space);
+    // INITIAL_RIG_ROTATION = Quaternions::Y_180;
+    static const glm::quat INITIAL_RIG_ROTATION = Quaternions::Y_180;
+    glm::quat avatarToRigSpace = INITIAL_RIG_ROTATION * Quaternions::IDENTITY;
+    glm::vec3 hipToHandRigSpace = avatarToRigSpace * glm::vec3(_hipToHandController.x, 0.0f, _hipToHandController.y);
 
     glm::vec3 u, v, w;
     generateBasisVectors(glm::vec3(0.0f,1.0f,0.0f), hipToHandRigSpace, u, v, w);

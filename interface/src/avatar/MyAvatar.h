@@ -285,7 +285,7 @@ public:
     Q_INVOKABLE void centerBody(); // thread-safe
 
 
-    /**jsdoc_hmdSensorMatrix
+    /**jsdoc
      * The internal inverse-kinematics system maintains a record of which joints are "locked". Sometimes it is useful to forget this history, to prevent
      * contorted joints.
      * @function MyAvatar.clearIKJointLimitHistory
@@ -1650,7 +1650,7 @@ private:
     std::atomic<bool> _hasScriptedBlendShapes { false };
     std::atomic<float> _rotationRecenterFilterLength { 4.0f };
     std::atomic<float> _rotationThreshold { 0.5235f };  // 30 degrees in radians
-    std::atomic<bool> _stepResetRotationEnabled { false };
+    std::atomic<bool> _stepResetRotationEnabled { true };
     std::atomic<bool> _drawAverageFacingEnabled { false };
 
     // working copy -- see AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
