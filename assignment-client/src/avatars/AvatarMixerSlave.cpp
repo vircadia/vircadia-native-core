@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <random>
+#include <chrono>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
@@ -32,6 +33,8 @@
 
 #include "AvatarMixer.h"
 #include "AvatarMixerClientData.h"
+
+namespace chrono = std::chrono;
 
 void AvatarMixerSlave::configure(ConstIter begin, ConstIter end) {
     _begin = begin;
@@ -301,9 +304,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     };
     // Temporary info about the avatars we're sending:
     std::vector<AvatarSortData> avatarsToSort;
-    //std::unordered_map<const AvatarData*, Node*> avatarDataToNodes;
-    //std::unordered_map<const AvatarData*, SharedNodePointer> avatarDataToNodesShared;
-    //std::unordered_map<QUuid, uint64_t> avatarEncodeTimes;
+    avatarsToSort.reserve(_end - _begin);
     std::for_each(_begin, _end, [&](const SharedNodePointer& otherNode) {
         Node* otherNodeRaw = otherNode.data();
         // make sure this is an agent that we have avatar data for before considering it for inclusion
@@ -313,9 +314,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
 
             AvatarData* otherAvatar = otherNodeData->getAvatarSharedPointer().get();
-            //avatarsToSort.push_back(otherAvatar);
-            //avatarDataToNodes[otherAvatar] = otherNode.data();
-            //avatarDataToNodesShared[otherAvatar] = otherNode;
             auto lastEncodeTime = nodeData->getLastOtherAvatarEncodeTime(otherAvatar->getSessionUUID());
             avatarsToSort.emplace_back(AvatarSortData(otherNode, otherAvatar, lastEncodeTime));
         }
@@ -326,7 +324,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         SortableAvatar() = delete;
         SortableAvatar(const AvatarData* avatar, const Node* avatarNode, uint64_t lastEncodeTime)
             : _avatar(avatar), _node(avatarNode), _lastEncodeTime(lastEncodeTime) {}
-        glm::vec3 getPosition() const override { return _avatar->getWorldPosition(); }
+        glm::vec3 getPosition() const override { return _avatar->getClientGlobalPosition(); }
         float getRadius() const override {
             glm::vec3 nodeBoxHalfScale = (_avatar->getWorldPosition() - _avatar->getGlobalBoundingBoxCorner() * _avatar->getSensorToWorldScale());
             return glm::max(nodeBoxHalfScale.x, glm::max(nodeBoxHalfScale.y, nodeBoxHalfScale.z));
@@ -452,7 +450,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         int minimRemainingAvatarBytes = minimumBytesPerAvatar * remainingAvatars;
         bool overBudget = (identityBytesSent + numAvatarDataBytes + minimRemainingAvatarBytes) > maxAvatarBytesPerFrame;
 
-        quint64 startAvatarDataPacking = usecTimestampNow();
+        auto startAvatarDataPacking = chrono::high_resolution_clock::now();
 
         ++numOtherAvatars;
 
@@ -504,12 +502,13 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         AvatarDataPacket::HasFlags hasFlagsOut; // the result of the toByteArray
         bool dropFaceTracking = false;
 
-        quint64 start = usecTimestampNow();
+        auto startSerialize = chrono::high_resolution_clock::now();
         QByteArray bytes = otherAvatar->toByteArray(detail, lastEncodeForOther, lastSentJointsForOther,
                                                     hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition,
                                                     &lastSentJointsForOther);
-        quint64 end = usecTimestampNow();
-        _stats.toByteArrayElapsedTime += (end - start);
+        auto endSerialize = chrono::high_resolution_clock::now();
+        _stats.toByteArrayElapsedTime +=
+            (quint64) chrono::duration_cast<chrono::microseconds>(endSerialize - startSerialize).count();
 
         static auto maxAvatarDataBytes = avatarPacketList->getMaxSegmentSize() - NUM_BYTES_RFC4122_UUID;
         if (bytes.size() > maxAvatarDataBytes) {
@@ -558,8 +557,9 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
         avatarPacketList->endSegment();
 
-        quint64 endAvatarDataPacking = usecTimestampNow();
-        _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
+        auto endAvatarDataPacking = chrono::high_resolution_clock::now();
+        _stats.avatarDataPackingElapsedTime +=
+            (quint64) chrono::duration_cast<chrono::microseconds>(endAvatarDataPacking - startAvatarDataPacking).count();
 
         // use helper to add any changed traits to our packet list
         traitBytesSent += addChangedTraitsToBulkPacket(nodeData, otherNodeData, *traitsPacketList);

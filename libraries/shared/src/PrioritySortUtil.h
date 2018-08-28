@@ -87,6 +87,7 @@ namespace PrioritySortUtil {
         PriorityQueue(const ConicalViewFrustums& views) : _views(views) { }
         PriorityQueue(const ConicalViewFrustums& views, float angularWeight, float centerWeight, float ageWeight)
                 : _views(views), _angularWeight(angularWeight), _centerWeight(centerWeight), _ageWeight(ageWeight)
+                , _usecCurrentTime(usecTimestampNow())
         { }
 
         void setViews(const ConicalViewFrustums& views) { _views = views; }
@@ -95,6 +96,7 @@ namespace PrioritySortUtil {
             _angularWeight = angularWeight;
             _centerWeight = centerWeight;
             _ageWeight = ageWeight;
+            _usecCurrentTime = usecTimestampNow();
         }
 
         size_t size() const { return _queue.size(); }
@@ -129,16 +131,17 @@ namespace PrioritySortUtil {
             glm::vec3 offset = position - view.getPosition();
             float distance = glm::length(offset) + 0.001f; // add 1mm to avoid divide by zero
             const float MIN_RADIUS = 0.1f; // WORKAROUND for zero size objects (we still want them to sort by distance)
-            float radius = glm::min(thing.getRadius(), MIN_RADIUS);
+            float radius = glm::max(thing.getRadius(), MIN_RADIUS);
+            // Other item's angle from view centre:
             float cosineAngle = (glm::dot(offset, view.getDirection()) / distance);
-            float age = (float)(usecTimestampNow() - thing.getTimestamp());
+            float age = (float)(_usecCurrentTime - thing.getTimestamp());
 
-            // we modulatate "age" drift rate by the cosineAngle term to make periphrial objects sort forward
+            // we modulate "age" drift rate by the cosineAngle term to make peripheral objects sort forward
             // at a reduced rate but we don't want the "age" term to go zero or negative so we clamp it
             const float MIN_COSINE_ANGLE_FACTOR = 0.1f;
             float cosineAngleFactor = glm::max(cosineAngle, MIN_COSINE_ANGLE_FACTOR);
 
-            float priority = _angularWeight * glm::max(radius, MIN_RADIUS) / distance
+            float priority = _angularWeight * radius / distance
                 + _centerWeight * cosineAngle
                 + _ageWeight * cosineAngleFactor * age;
 
@@ -157,6 +160,7 @@ namespace PrioritySortUtil {
         float _angularWeight { DEFAULT_ANGULAR_COEF };
         float _centerWeight { DEFAULT_CENTER_COEF };
         float _ageWeight { DEFAULT_AGE_COEF };
+        quint64 _usecCurrentTime { 0 };
     };
 } // namespace PrioritySortUtil
 
