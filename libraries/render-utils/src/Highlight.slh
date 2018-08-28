@@ -22,8 +22,8 @@ layout(binding=RENDER_UTILS_BUFFER_HIGHLIGHT_PARAMS) uniform highlightParamsBuff
 layout(binding=RENDER_UTILS_TEXTURE_HIGHLIGHT_SCENE_DEPTH) uniform sampler2D sceneDepthMap;
 layout(binding=RENDER_UTILS_TEXTURE_HIGHLIGHT_DEPTH) uniform sampler2D highlightedDepthMap;
 
-in vec2 varTexCoord0;
-out vec4 outFragColor;
+layout(location=0) in vec2 varTexCoord0;
+layout(location=0) out vec4 outFragColor;
 
 const float FAR_Z = 1.0;
 const float LINEAR_DEPTH_BIAS = 5e-3;

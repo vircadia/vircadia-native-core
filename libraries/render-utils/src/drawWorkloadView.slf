@@ -14,9 +14,9 @@
 <@include DeferredBufferWrite.slh@>
 <@include gpu/Paint.slh@>
 
-in vec4 varColor;
-in vec3 varTexcoord;
-in vec3 varEyePos;
+layout(location=0) in vec4 varColor;
+layout(location=1) in vec3 varTexcoord;
+layout(location=2) in vec3 varEyePos;
 
 void main(void) {
     if (varColor.w > 0.0) {

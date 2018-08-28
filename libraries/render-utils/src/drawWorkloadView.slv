@@ -18,9 +18,9 @@
 <@include WorkloadResource.slh@>
 <$declareWorkloadViews()$>
 
-out vec4 varColor;
-out vec3 varTexcoord;
-out vec3 varEyePos;
+layout(location=0) out vec4 varColor;
+layout(location=1) out vec3 varTexcoord;
+layout(location=2) out vec3 varEyePos;
 
 const int NUM_VERTICES_PER_SEGMENT = 2;
 const int NUM_SEGMENT_PER_VIEW_REGION = 65;
