@@ -457,8 +457,12 @@ static void interleave_4x4(float* src0, float* src1, float* src2, float* src3, f
     interleave_4x4_SSE(src0, src1, src2, src3, dst, numFrames);
 }
 
+void biquad2_4x4_AVX2(float* src, float* dst, float coef[5][8], float state[3][8], int numFrames);
+
 static void biquad2_4x4(float* src, float* dst, float coef[5][8], float state[3][8], int numFrames) {
-    biquad2_4x4_SSE(src, dst, coef, state, numFrames);
+
+    static auto f = cpuSupportsAVX2() ? biquad2_4x4_AVX2 : biquad2_4x4_SSE;
+    (*f)(src, dst, coef, state, numFrames); // dispatch
 }
 
 static void crossfade_4x2(float* src, float* dst, const float* win, int numFrames) {
