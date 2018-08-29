@@ -8,14 +8,6 @@ Distributed under the Apache License, Version 2.0.
 See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 */
 
-@font-face {
-    font-family: HiFi-Glyphs;
-    src: url(../../../../resources/fonts/hifi-glyphs.ttf),
-         url(../../../../fonts/hifi-glyphs.ttf),
-         url(../../../../interface/resources/fonts/hifi-glyphs.ttf),
-         url(../fonts/hifi-glyphs.ttf);
-}
-
 * {
     box-sizing: border-box;
     padding: 0;
@@ -37,34 +29,14 @@ section {
     padding: 13px;
 }
 
-section .button {
+.button {
     width: 100%;
     height: 90px;
-    background-color: #252525;
     margin-top: 10px;
     text-align: center;
-    border-radius: 8px;
 }
 
-    section .button.off {
-        border: 2px solid #6a6a6a;
-        background-color: #303030;
-    }
-
-        section .button.off:hover {
-            border: 2px solid #1fc6a6;
-        }
-
-    section .button.on {
-        border: 2px solid #1fc6a6;
-        background-color: #1fc6a6;
-    }
-
-        section .button.on:hover {
-            border: 2px solid #e3e3e3;
-        }
-
-    section .button:first-child {
+    .button:first-child {
         margin-top: 0;
     }
 
@@ -74,28 +46,56 @@ img {
 
 #mute {
     padding-top: 19px;
+    background-size: 100% 100%;
 }
+
+    #mute.off {
+        background-image: url("./img/mt-mute-normal.svg");
+    }
+
+        #mute.off:hover {
+            background-image: url("./img/mt-mute-hover.svg");
+        }
 
 #bubble {
     padding-top: 19px;
+    background-size: 100% 100%;
 }
+
+    #bubble.off {
+        background-image: url("./img/mt-bubble-i-normal.svg");
+    }
+
+        #bubble.off:hover {
+            background-image: url("./img/mt-bubble-i-hover.svg");
+        }
+
+    #bubble.on {
+        background-image: url("./img/mt-bubble-a-normal.svg");
+    }
+
+        #bubble.on:hover {
+            background-image: url("./img/mt-bubble-a-hover.svg");
+        }
+
+    #bubble img {
+        position: relative;
+        left: -2px;
+    }
 
 #expand {
     position: absolute;
-    right: 13px;
+    right: 14px;
     bottom: 13px;
     width: 40px;
     height: 40px;
-    border-radius: 20px;
+    background-size: 100% 100%;
 }
 
-    #expand span {
-        display: inline-block;
-        transform: rotate(45deg);
-        position: relative;
-        left: 0;
-        top: 5px;
-        font-family: hifi-glyphs;
-        font-size: 24px;
-        color: #ffffff;
+    #expand.off {
+        background-image: url("./img/mt-expand-normal.svg");
     }
+
+        #expand.off:hover {
+            background-image: url("./img/mt-expand-hover.svg");
+        }
