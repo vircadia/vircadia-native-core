@@ -312,6 +312,9 @@ public:
 
     Q_INVOKABLE void copyToClipboard(const QString& text);
 
+    int getOtherAvatarsReplicaCount() { return DependencyManager::get<AvatarHashMap>()->getReplicaCount(); }
+    void setOtherAvatarsReplicaCount(int count) { DependencyManager::get<AvatarHashMap>()->setReplicaCount(count); }
+
 #if defined(Q_OS_ANDROID)
     void beforeEnterBackground();
     void enterBackground();
