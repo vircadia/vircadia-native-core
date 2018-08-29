@@ -16,18 +16,11 @@
 
 class CollisionPickResult : public PickResult {
 public:
-    enum LoadState {
-        LOAD_STATE_UNKNOWN,
-        LOAD_STATE_NOT_LOADED,
-        LOAD_STATE_LOADED
-    };
-
     CollisionPickResult() {}
     CollisionPickResult(const QVariantMap& pickVariant) : PickResult(pickVariant) {}
 
-    CollisionPickResult(const CollisionRegion& searchRegion, LoadState loadState, const std::vector<ContactTestResult>& entityIntersections, const std::vector<ContactTestResult>& avatarIntersections) :
+    CollisionPickResult(const CollisionRegion& searchRegion, const std::vector<ContactTestResult>& entityIntersections, const std::vector<ContactTestResult>& avatarIntersections) :
         PickResult(searchRegion.toVariantMap()),
-        loadState(loadState),
         intersects(entityIntersections.size() || avatarIntersections.size()),
         entityIntersections(entityIntersections),
         avatarIntersections(avatarIntersections)
@@ -38,10 +31,8 @@ public:
         avatarIntersections = collisionPickResult.avatarIntersections;
         entityIntersections = collisionPickResult.entityIntersections;
         intersects = collisionPickResult.intersects;
-        loadState = collisionPickResult.loadState;
     }
 
-    LoadState loadState { LOAD_STATE_UNKNOWN };
     bool intersects { false };
     std::vector<ContactTestResult> entityIntersections;
     std::vector<ContactTestResult> avatarIntersections;
@@ -61,7 +52,7 @@ public:
 
     CollisionRegion getMathematicalPick() const override;
     PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const override {
-        return std::make_shared<CollisionPickResult>(pickVariant, CollisionPickResult::LOAD_STATE_UNKNOWN, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
+        return std::make_shared<CollisionPickResult>(pickVariant, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
     }
     PickResultPointer getEntityIntersection(const CollisionRegion& pick) override;
     PickResultPointer getOverlayIntersection(const CollisionRegion& pick) override;
@@ -69,7 +60,9 @@ public:
     PickResultPointer getHUDIntersection(const CollisionRegion& pick) override;
     Transform getResultTransform() const override;
 protected:
-    // Returns true if pick.shapeInfo is valid. Otherwise, attempts to get the shapeInfo ready for use.
+    // Returns true if the resource for _mathPick.shapeInfo is loaded or if a resource is not needed.
+    bool isLoaded() const;
+    // Returns true if _mathPick.shapeInfo is valid. Otherwise, attempts to get the _mathPick ready for use.
     bool getShapeInfoReady();
     void computeShapeInfo(CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<GeometryResource> resource);
     void computeShapeInfoDimensionsOnly(CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<GeometryResource> resource);

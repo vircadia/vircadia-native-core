@@ -253,6 +253,8 @@ public:
     }
 };
 
+// TODO: Add "loaded" to CollisionRegion jsdoc once model collision picks are supported.
+
 /**jsdoc
 * A CollisionRegion defines a volume for checking collisions in the physics simulation.
 
@@ -270,6 +272,7 @@ public:
     CollisionRegion() { }
 
     CollisionRegion(const CollisionRegion& collisionRegion) :
+        loaded(collisionRegion.loaded),
         modelURL(collisionRegion.modelURL),
         shapeInfo(std::make_shared<ShapeInfo>()),
         transform(collisionRegion.transform),
@@ -279,6 +282,7 @@ public:
     }
 
     CollisionRegion(const QVariantMap& pickVariant) {
+        // "loaded" is not deserialized here because there is no way to know if the shape is actually loaded
         if (pickVariant["shape"].isValid()) {
             auto shape = pickVariant["shape"].toMap();
             if (!shape.empty()) {
@@ -322,6 +326,7 @@ public:
         shape["dimensions"] = vec3toVariant(transform.getScale());
 
         collisionRegion["shape"] = shape;
+        collisionRegion["loaded"] = loaded;
 
         collisionRegion["threshold"] = threshold;
 
@@ -339,7 +344,8 @@ public:
     }
 
     bool operator==(const CollisionRegion& other) const {
-        return threshold == other.threshold &&
+        return loaded == other.loaded &&
+            threshold == other.threshold &&
             glm::all(glm::equal(transform.getTranslation(), other.transform.getTranslation())) &&
             glm::all(glm::equal(transform.getRotation(), other.transform.getRotation())) &&
             glm::all(glm::equal(transform.getScale(), other.transform.getScale())) &&
@@ -359,6 +365,7 @@ public:
     }
 
     // We can't load the model here because it would create a circular dependency, so we delegate that responsibility to the owning CollisionPick
+    bool loaded = false;
     QUrl modelURL;
 
     // We can't compute the shapeInfo here without loading the model first, so we delegate that responsibility to the owning CollisionPick
