@@ -2369,7 +2369,6 @@ void Application::domainConnectionRedirect(const QString& reasonMessage, int rea
             addressManager->handleLookupString(REDIRECT_HIFI_ADDRESS);
             getMyAvatar()->setWorldVelocity(glm::vec3(0.0f));
             // in (w, x, y, z) component-structure for the constructor
-            getMyAvatar()->setWorldOrientation(glm::quat(0.8775935173034668f, 0.0f, 0.4794054925441742f, 0.0f));
             break;
         }
         default:
