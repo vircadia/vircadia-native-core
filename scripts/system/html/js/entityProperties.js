@@ -1059,13 +1059,13 @@ const GROUPS = [
             {
                 label: "Grabbable",
                 type: "bool",
-                propertyID: "grabbable",
+                propertyID: "grab.grabbable",
                 column: 1,
             },
             {
                 label: "Triggerable",
                 type: "bool",
-                propertyID: "triggerable",
+                propertyID: "grab.triggerable",
                 column: 2,
             },
             {
@@ -1075,9 +1075,9 @@ const GROUPS = [
                 column: 1,
             },
             {
-                label: "Ignore inverse kinematics",
+                label: "Follow Controller",
                 type: "bool",
-                propertyID: "ignoreIK",
+                propertyID: "grab.grabFollowsController",
                 column: 2,
             },
             {
@@ -2767,7 +2767,7 @@ function loaded() {
                         showUserDataTextArea();
                         showSaveUserDataButton();
                         showNewJSONEditorButton();
-                      
+
                         deleteJSONMaterialEditor();
                         getPropertyInputElement("materialData").value = "";
                         showMaterialDataTextArea();
@@ -2937,46 +2937,6 @@ function loaded() {
                             }
                         }
                         
-                        let elGrabbable = getPropertyInputElement("grabbable");
-                        let elTriggerable = getPropertyInputElement("triggerable");
-                        let elIgnoreIK = getPropertyInputElement("ignoreIK");
-                        elGrabbable.checked = getPropertyInputElement("dynamic").checked;
-                        elTriggerable.checked = false;
-                        elIgnoreIK.checked = true;
-                        let grabbablesSet = false;
-                        let parsedUserData = {};
-                        try {
-                            parsedUserData = JSON.parse(selectedEntityProperties.userData);
-                            if ("grabbableKey" in parsedUserData) {
-                                grabbablesSet = true;
-                                let grabbableData = parsedUserData.grabbableKey;
-                                if ("grabbable" in grabbableData) {
-                                    elGrabbable.checked = grabbableData.grabbable;
-                                } else {
-                                    elGrabbable.checked = true;
-                                }
-                                if ("triggerable" in grabbableData) {
-                                    elTriggerable.checked = grabbableData.triggerable;
-                                } else if ("wantsTrigger" in grabbableData) {
-                                    elTriggerable.checked = grabbableData.wantsTrigger;
-                                } else {
-                                    elTriggerable.checked = false;
-                                }
-                                if ("ignoreIK" in grabbableData) {
-                                    elIgnoreIK.checked = grabbableData.ignoreIK;
-                                } else {
-                                    elIgnoreIK.checked = true;
-                                }
-                            }
-                        } catch (e) {
-                            // TODO:  What should go here?
-                        }
-                        if (!grabbablesSet) {
-                            elGrabbable.checked = true;
-                            elTriggerable.checked = false;
-                            elIgnoreIK.checked = true;
-                        }
-                        
                         if (selectedEntityProperties.type === "Image") {
                             let imageLink = JSON.parse(selectedEntityProperties.textures)["tex.picture"];
                             getPropertyInputElement("image").value = imageLink;
@@ -3118,20 +3078,6 @@ function loaded() {
         elDiv.childNodes[2].appendChild(elMaterialDataSaved);
         elDiv.insertBefore(elStaticMaterialData, elMaterialData);
         elDiv.insertBefore(elMaterialDataEditor, elMaterialData);
-        
-        // User Data Fields
-        let elGrabbable = getPropertyInputElement("grabbable");
-        let elTriggerable = getPropertyInputElement("triggerable");
-        let elIgnoreIK = getPropertyInputElement("ignoreIK");
-        elGrabbable.addEventListener('change', function() {
-            userDataChanger("grabbableKey", "grabbable", elGrabbable, elUserData, true);
-        });
-        elTriggerable.addEventListener('change', function() {
-            userDataChanger("grabbableKey", "triggerable", elTriggerable, elUserData, false, ['wantsTrigger']);
-        });
-        elIgnoreIK.addEventListener('change', function() {
-            userDataChanger("grabbableKey", "ignoreIK", elIgnoreIK, elUserData, true);
-        });
         
         // Special Property Callbacks
         let elParentMaterialNameString = getPropertyInputElement("materialNameToReplace");
