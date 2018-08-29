@@ -46,6 +46,8 @@ namespace VirtualPad {
         void setExtraBottomMargin(int margin);
         glm::vec2 getJumpButtonPosition();
         void setJumpButtonPosition(glm::vec2 point);
+        glm::vec2 getRbButtonPosition();
+        void setRbButtonPosition(glm::vec2 point);
         void requestHapticFeedback(int duration);
 
         static const float DPI;
@@ -65,6 +67,7 @@ namespace VirtualPad {
         bool _enabled {true};
         bool _hidden;
         glm::vec2 _jumpButtonPosition;
+        glm::vec2 _rbButtonPosition;
         int _extraBottomMargin {0};
     };
 }

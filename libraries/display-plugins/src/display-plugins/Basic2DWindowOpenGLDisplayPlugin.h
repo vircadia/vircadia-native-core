@@ -49,5 +49,8 @@ private:
 
     gpu::TexturePointer _virtualPadJumpBtnTexture;
     qreal _virtualPadJumpBtnPixelSize;
+
+    gpu::TexturePointer _virtualPadRbBtnTexture;
+    qreal _virtualPadRbBtnPixelSize;
 #endif
 };

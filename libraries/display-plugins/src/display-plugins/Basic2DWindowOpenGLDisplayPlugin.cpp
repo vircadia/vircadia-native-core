@@ -99,6 +99,31 @@ void Basic2DWindowOpenGLDisplayPlugin::customizeContext() {
             _virtualPadJumpBtnTexture->setAutoGenerateMips(true);
         }
     }
+
+    _virtualPadRbBtnPixelSize = dpi * VirtualPad::Manager::JUMP_BTN_FULL_PIXELS / VirtualPad::Manager::DPI;
+    if (!_virtualPadRbBtnTexture) {
+        auto iconPath = PathUtils::resourcesPath() + "images/handshake.png";
+        auto image = QImage(iconPath);
+        if (image.format() != QImage::Format_ARGB32) {
+            image = image.convertToFormat(QImage::Format_ARGB32);
+        }
+        if ((image.width() > 0) && (image.height() > 0)) {
+            image = image.scaled(_virtualPadRbBtnPixelSize, _virtualPadRbBtnPixelSize, Qt::KeepAspectRatio);
+            image = image.mirrored();
+
+            _virtualPadRbBtnTexture = gpu::Texture::createStrict(
+                    gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA),
+                    image.width(), image.height(),
+                    gpu::Texture::MAX_NUM_MIPS,
+                    gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
+            _virtualPadRbBtnTexture->setSource("virtualPad handshake");
+            auto usage = gpu::Texture::Usage::Builder().withColor().withAlpha();
+            _virtualPadRbBtnTexture->setUsage(usage.build());
+            _virtualPadRbBtnTexture->setStoredMipFormat(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
+            _virtualPadRbBtnTexture->assignStoredMip(0, image.byteCount(), image.constBits());
+            _virtualPadRbBtnTexture->setAutoGenerateMips(true);
+        }
+    }
 #endif
     Parent::customizeContext();
 }
@@ -135,6 +160,8 @@ void Basic2DWindowOpenGLDisplayPlugin::compositeExtra() {
                                                                                               _virtualPadPixelSize, _virtualPadPixelSize);
         auto jumpTransform = DependencyManager::get<CompositorHelper>()->getPoint2DTransform(virtualPadManager.getJumpButtonPosition(),
                                                                                              _virtualPadJumpBtnPixelSize, _virtualPadJumpBtnPixelSize);
+        auto rbTransform = DependencyManager::get<CompositorHelper>()->getPoint2DTransform(virtualPadManager.getRbButtonPosition(),
+                                                                                             _virtualPadRbBtnPixelSize, _virtualPadRbBtnPixelSize);
 
         render([&](gpu::Batch& batch) {
             batch.enableStereo(false);
@@ -153,6 +180,10 @@ void Basic2DWindowOpenGLDisplayPlugin::compositeExtra() {
 
             batch.setResourceTexture(0, _virtualPadJumpBtnTexture);
             batch.setModelTransform(jumpTransform);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+            batch.setResourceTexture(0, _virtualPadRbBtnTexture);
+            batch.setModelTransform(rbTransform);
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         });
     }

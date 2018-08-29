@@ -84,6 +84,14 @@ namespace VirtualPad {
         _jumpButtonPosition = point;
     }
 
+    glm::vec2 Manager::getRbButtonPosition() {
+        return _rbButtonPosition;
+    }
+
+    void Manager::setRbButtonPosition(glm::vec2 point) {
+        _rbButtonPosition = point;
+    }
+
     void Manager::requestHapticFeedback(int duration) {
         emit hapticFeedbackRequested(duration);
     }

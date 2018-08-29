@@ -23,7 +23,9 @@
                 "invert"
             ],
             "to": "Actions.Pitch"
-        }
+        },
+
+        { "from": "TouchscreenVirtualPad.RB", "to": "Standard.RB"}
 
     ]
 }

@@ -51,7 +51,8 @@ public:
     };
 
     enum TouchButtonChannel {
-        JUMP_BUTTON_PRESS
+        JUMP_BUTTON_PRESS,
+        RB
     };
 
 protected:
@@ -82,7 +83,8 @@ protected:
     enum TouchType {
         MOVE = 1,
         VIEW,
-        JUMP
+        JUMP,
+        RB_BUTTON
     };
 
     float _lastPinchScale;
@@ -104,6 +106,9 @@ protected:
     bool _jumpHasValidTouch;
     int _jumpCurrentTouchId;
 
+    bool _rbHasValidTouch;
+    int _rbCurrentTouchId;
+
     std::map<int, TouchType> _unusedTouches;
 
     int _touchPointCount;
@@ -119,6 +124,9 @@ protected:
     glm::vec2 _jumpButtonPosition;
     float _jumpButtonRadius;
 
+    glm::vec2 _rbButtonPosition;
+    float _rbButtonRadius;
+
     void moveTouchBegin(glm::vec2 touchPoint);
     void moveTouchUpdate(glm::vec2 touchPoint);
     void moveTouchEnd();
@@ -133,6 +141,11 @@ protected:
     void jumpTouchUpdate(glm::vec2 touchPoint);
     void jumpTouchEnd();
     bool jumpTouchBeginIsValid(glm::vec2 touchPoint);
+
+    void rbTouchBegin(glm::vec2 touchPoint);
+    void rbTouchUpdate(glm::vec2 touchPoint);
+    void rbTouchEnd();
+    bool rbTouchBeginIsValid(glm::vec2 touchPoint);
 
     void setupControlsPositions(VirtualPad::Manager& virtualPadManager, bool force = false);
 
