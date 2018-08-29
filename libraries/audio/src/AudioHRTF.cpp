@@ -276,23 +276,8 @@ static void FIR_1x4_SSE(float* src, float* dst0, float* dst1, float* dst2, float
     }
 }
 
-//
-// Runtime CPU dispatch
-//
-
-#include "CPUDetect.h"
-
-void FIR_1x4_AVX2(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames);
-void FIR_1x4_AVX512(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames);
-
-static void FIR_1x4(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames) {
-
-    static auto f = cpuSupportsAVX512() ? FIR_1x4_AVX512 : (cpuSupportsAVX2() ? FIR_1x4_AVX2 : FIR_1x4_SSE);
-    (*f)(src, dst0, dst1, dst2, dst3, coef, numFrames); // dispatch
-}
-
 // 4 channel planar to interleaved
-static void interleave_4x4(float* src0, float* src1, float* src2, float* src3, float* dst, int numFrames) {
+static void interleave_4x4_SSE(float* src0, float* src1, float* src2, float* src3, float* dst, int numFrames) {
 
     assert(numFrames % 4 == 0);
 
@@ -323,7 +308,7 @@ static void interleave_4x4(float* src0, float* src1, float* src2, float* src3, f
 
 // process 2 cascaded biquads on 4 channels (interleaved)
 // biquads computed in parallel, by adding one sample of delay
-static void biquad2_4x4(float* src, float* dst, float coef[5][8], float state[3][8], int numFrames) {
+static void biquad2_4x4_SSE(float* src, float* dst, float coef[5][8], float state[3][8], int numFrames) {
 
     // enable flush-to-zero mode to prevent denormals
     unsigned int ftz = _MM_GET_FLUSH_ZERO_MODE();
@@ -388,7 +373,7 @@ static void biquad2_4x4(float* src, float* dst, float coef[5][8], float state[3]
 }
 
 // crossfade 4 inputs into 2 outputs with accumulation (interleaved)
-static void crossfade_4x2(float* src, float* dst, const float* win, int numFrames) {
+static void crossfade_4x2_SSE(float* src, float* dst, const float* win, int numFrames) {
 
     assert(numFrames % 4 == 0);
 
@@ -435,7 +420,7 @@ static void crossfade_4x2(float* src, float* dst, const float* win, int numFrame
 }
 
 // linear interpolation with gain
-static void interpolate(float* dst, const float* src0, const float* src1, float frac, float gain) {
+static void interpolate_SSE(float* dst, const float* src0, const float* src1, float frac, float gain) {
 
     __m128 f0 = _mm_set1_ps(gain * (1.0f - frac));
     __m128 f1 = _mm_set1_ps(gain * frac);
@@ -451,6 +436,37 @@ static void interpolate(float* dst, const float* src0, const float* src1, float 
 
         _mm_storeu_ps(&dst[k], x0);
     }
+}
+
+//
+// Runtime CPU dispatch
+//
+
+#include "CPUDetect.h"
+
+void FIR_1x4_AVX2(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames);
+void FIR_1x4_AVX512(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames);
+
+static void FIR_1x4(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames) {
+
+    static auto f = cpuSupportsAVX512() ? FIR_1x4_AVX512 : (cpuSupportsAVX2() ? FIR_1x4_AVX2 : FIR_1x4_SSE);
+    (*f)(src, dst0, dst1, dst2, dst3, coef, numFrames); // dispatch
+}
+
+static void interleave_4x4(float* src0, float* src1, float* src2, float* src3, float* dst, int numFrames) {
+    interleave_4x4_SSE(src0, src1, src2, src3, dst, numFrames);
+}
+
+static void biquad2_4x4(float* src, float* dst, float coef[5][8], float state[3][8], int numFrames) {
+    biquad2_4x4_SSE(src, dst, coef, state, numFrames);
+}
+
+static void crossfade_4x2(float* src, float* dst, const float* win, int numFrames) {
+    crossfade_4x2_SSE(src, dst, win, numFrames);
+}
+
+static void interpolate(float* dst, const float* src0, const float* src1, float frac, float gain) {
+    interpolate_SSE(dst, src0, src1, frac, gain);
 }
 
 #else   // portable reference code
