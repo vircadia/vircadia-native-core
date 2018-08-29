@@ -21,7 +21,7 @@ Transform NestableTransformNode::getTransform() {
     }
 
     bool success;
-    Transform jointWorldTransform = nestable->getTransform(_jointIndex, success, 30);
+    Transform jointWorldTransform = nestable->getTransform(_jointIndex, success);
 
     if (success) {
         return jointWorldTransform;
