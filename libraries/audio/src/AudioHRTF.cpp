@@ -240,7 +240,7 @@ static void FIR_1x4_SSE(float* src, float* dst0, float* dst1, float* dst2, float
 
         float* ps = &src[i - HRTF_TAPS + 1];    // process forwards
 
-        assert(HRTF_TAPS % 4 == 0);
+        static_assert(HRTF_TAPS % 4 == 0, "HRTF_TAPS must be a multiple of 4");
 
         for (int k = 0; k < HRTF_TAPS; k += 4) {
 
@@ -425,7 +425,7 @@ static void interpolate_SSE(const float* src0, const float* src1, float* dst, fl
     __m128 f0 = _mm_set1_ps(gain * (1.0f - frac));
     __m128 f1 = _mm_set1_ps(gain * frac);
 
-    assert(HRTF_TAPS % 4 == 0);
+    static_assert(HRTF_TAPS % 4 == 0, "HRTF_TAPS must be a multiple of 4");
 
     for (int k = 0; k < HRTF_TAPS; k += 4) {
 
@@ -505,7 +505,7 @@ static void FIR_1x4(float* src, float* dst0, float* dst1, float* dst2, float* ds
 
         float* ps = &src[i - HRTF_TAPS + 1];    // process forwards
 
-        assert(HRTF_TAPS % 4 == 0);
+        static_assert(HRTF_TAPS % 4 == 0, "HRTF_TAPS must be a multiple of 4");
 
         for (int k = 0; k < HRTF_TAPS; k += 4) {
 
