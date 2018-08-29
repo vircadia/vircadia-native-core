@@ -26,78 +26,76 @@ body {
 section {
     background-color: #404040;
     position: relative;
-    padding: 15px;
+    padding: 13px;
 }
 
-section .button {
+.button {
     width: 100%;
-    height: 88px;
-    background-color: #252525;
+    height: 90px;
     margin-top: 10px;
     text-align: center;
-    border-radius: 8px;
 }
 
-    section .button.off {
-        border: 2px solid #6a6a6a;
-        background-color: #303030;
-    }
-
-        section .button.off:hover {
-            border: 2px solid #1fc6a6;
-        }
-
-    section .button.on {
-        border: 2px solid #1fc6a6;
-        background-color: #1fc6a6;
-    }
-
-        section .button.on:hover {
-            border: 2px solid #e3e3e3;
-        }
-
-    section .button:first-child {
+    .button:first-child {
         margin-top: 0;
     }
 
 img {
-    width: 60px;
+    width: 44px;
 }
 
 #mute {
-    padding-top: 12px;
+    padding-top: 19px;
+    background-size: 100% 100%;
 }
 
-#bubble {
-    padding-top: 14px;
-}
-
-footer {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    height: 30px;
-    text-align: center;
-    color: #e3e3e3;
-    font-weight: bold;
-    font-size: 26px;
-}
-
-    footer div {
-        display: inline-block;
-        height: 14px;
-        width: 30px;
-        position: relative;
-        top: 14px;
+    #mute.off {
+        background-image: url("./img/mt-mute-normal.svg");
     }
 
-        footer div p {
-            position: relative;
-            top: -15px;
+        #mute.off:hover {
+            background-image: url("./img/mt-mute-hover.svg");
         }
 
-    footer .button:hover {
-        border: 1px solid #e3e3e3;
-        border-radius: 3px;
-        margin: -8px;
+#bubble {
+    padding-top: 19px;
+    background-size: 100% 100%;
+}
+
+    #bubble.off {
+        background-image: url("./img/mt-bubble-i-normal.svg");
     }
+
+        #bubble.off:hover {
+            background-image: url("./img/mt-bubble-i-hover.svg");
+        }
+
+    #bubble.on {
+        background-image: url("./img/mt-bubble-a-normal.svg");
+    }
+
+        #bubble.on:hover {
+            background-image: url("./img/mt-bubble-a-hover.svg");
+        }
+
+    #bubble img {
+        position: relative;
+        left: -2px;
+    }
+
+#expand {
+    position: absolute;
+    right: 14px;
+    bottom: 13px;
+    width: 40px;
+    height: 40px;
+    background-size: 100% 100%;
+}
+
+    #expand.off {
+        background-image: url("./img/mt-expand-normal.svg");
+    }
+
+        #expand.off:hover {
+            background-image: url("./img/mt-expand-hover.svg");
+        }

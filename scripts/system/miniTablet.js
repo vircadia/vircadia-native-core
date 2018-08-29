@@ -19,7 +19,7 @@
     var // Base overlay
         proxyOverlay = null,
         PROXY_MODEL = Script.resolvePath("./assets/models/tinyTablet.fbx"),
-        PROXY_DIMENSIONS = { x: 0.0637, y: 0.0965, z: 0.0046 }, // Proportional to tablet proper.
+        PROXY_DIMENSIONS = { x: 0.0637, y: 0.0965, z: 0.0045 }, // Proportional to tablet proper.
         PROXY_POSITION_LEFT_HAND = {
             x: 0,
             y: 0.1, // Distance from joint.
@@ -42,12 +42,12 @@
         // UI overlay.
         proxyUIOverlay = null,
         PROXY_UI_HTML = Script.resolvePath("./html/miniTablet.html"),
-        PROXY_UI_DIMENSIONS = { x: 0.0577, y: 0.0905 },
+        PROXY_UI_DIMENSIONS = { x: 0.059, y: 0.0865 },
         PROXY_UI_WIDTH_PIXELS = 150,
         METERS_TO_INCHES = 39.3701,
         PROXY_UI_DPI = PROXY_UI_WIDTH_PIXELS / (PROXY_UI_DIMENSIONS.x * METERS_TO_INCHES),
         PROXY_UI_OFFSET = 0.001, // Above model surface.
-        PROXY_UI_LOCAL_POSITION = { x: 0, y: 0, z: -(PROXY_DIMENSIONS.z / 2 + PROXY_UI_OFFSET) },
+        PROXY_UI_LOCAL_POSITION = { x: 0.0002, y: 0.0024, z: -(PROXY_DIMENSIONS.z / 2 + PROXY_UI_OFFSET) },
         PROXY_UI_LOCAL_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }),
         proxyUIOverlayEnabled = false,
         PROXY_UI_OVERLAY_ENABLED_DELAY = 500,
