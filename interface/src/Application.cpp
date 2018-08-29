@@ -726,6 +726,9 @@ static const QString STATE_SNAP_TURN = "SnapTurn";
 static const QString STATE_ADVANCED_MOVEMENT_CONTROLS = "AdvancedMovement";
 static const QString STATE_GROUNDED = "Grounded";
 static const QString STATE_NAV_FOCUSED = "NavigationFocused";
+static const QString STATE_PLATFORM_WINDOWS = "PlatformWindows";
+static const QString STATE_PLATFORM_MAC = "PlatformMac";
+static const QString STATE_PLATFORM_ANDROID = "PlatformAndroid";
 
 // Statically provided display and input plugins
 extern DisplayPluginList getDisplayPlugins();
@@ -909,7 +912,8 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<MessagesClient>();
     controller::StateController::setStateVariables({ { STATE_IN_HMD, STATE_CAMERA_FULL_SCREEN_MIRROR,
                     STATE_CAMERA_FIRST_PERSON, STATE_CAMERA_THIRD_PERSON, STATE_CAMERA_ENTITY, STATE_CAMERA_INDEPENDENT,
-                    STATE_SNAP_TURN, STATE_ADVANCED_MOVEMENT_CONTROLS, STATE_GROUNDED, STATE_NAV_FOCUSED } });
+                    STATE_SNAP_TURN, STATE_ADVANCED_MOVEMENT_CONTROLS, STATE_GROUNDED, STATE_NAV_FOCUSED,
+                    STATE_PLATFORM_WINDOWS, STATE_PLATFORM_MAC, STATE_PLATFORM_WINDOWS } });
     DependencyManager::set<UserInputMapper>();
     DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
     DependencyManager::set<InterfaceParentFinder>();
@@ -1682,6 +1686,27 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
     _applicationStateDevice->setInputVariant(STATE_NAV_FOCUSED, []() -> float {
         return DependencyManager::get<OffscreenUi>()->navigationFocused() ? 1 : 0;
+    });
+    _applicationStateDevice->setInputVariant(STATE_PLATFORM_WINDOWS, []() -> float {
+#if defined(Q_OS_WIN) 
+        return 1;
+#else
+        return 0;
+#endif
+    });
+    _applicationStateDevice->setInputVariant(STATE_PLATFORM_MAC, []() -> float {
+#if defined(Q_OS_MAC) 
+        return 1;
+#else
+        return 0;
+#endif
+    });
+    _applicationStateDevice->setInputVariant(STATE_PLATFORM_ANDROID, []() -> float {
+#if defined(Q_OS_ANDROID) 
+        return 1;
+#else
+        return 0;
+#endif
     });
 
     // Setup the _keyboardMouseDevice, _touchscreenDevice, _touchscreenVirtualPadDevice and the user input mapper with the default bindings
