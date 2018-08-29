@@ -243,23 +243,25 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             AnimPose currentSpine2Pose;
             AnimPose currentHeadPose;
             AnimPose currentHipsPose;
-            bool ret = _rig.getAbsoluteJointPoseInRigFrame(_rig.indexOfJoint("Spine2"), currentSpine2Pose);
-            bool ret1 = _rig.getAbsoluteJointPoseInRigFrame(_rig.indexOfJoint("Head"), currentHeadPose);
-            bool ret2 = _rig.getAbsoluteJointPoseInRigFrame(_rig.indexOfJoint("Hips"), currentHipsPose);
-            AnimPose rigSpaceYaw(myAvatar->getSpine2RotationRigSpace());
-            glm::vec3 u, v, w;
-            glm::vec3 fwd = rigSpaceYaw.rot() * glm::vec3(0.0f, 0.0f, 1.0f);
-            glm::vec3 up = currentHeadPose.trans() - currentHipsPose.trans();
-            if (glm::length(up) > 0.0f) {
-                up = glm::normalize(up);
-            } else {
-                up = glm::vec3(0.0f, 1.0f, 0.0f);
+            bool spine2Exists = _rig.getAbsoluteJointPoseInRigFrame(_rig.indexOfJoint("Spine2"), currentSpine2Pose);
+            bool headExists = _rig.getAbsoluteJointPoseInRigFrame(_rig.indexOfJoint("Head"), currentHeadPose);
+            bool hipsExists = _rig.getAbsoluteJointPoseInRigFrame(_rig.indexOfJoint("Hips"), currentHipsPose);
+            if (spine2Exists && headExists && hipsExists) {
+                AnimPose rigSpaceYaw(myAvatar->getSpine2RotationRigSpace());
+                glm::vec3 u, v, w;
+                glm::vec3 fwd = rigSpaceYaw.rot() * glm::vec3(0.0f, 0.0f, 1.0f);
+                glm::vec3 up = currentHeadPose.trans() - currentHipsPose.trans();
+                if (glm::length(up) > 0.0f) {
+                    up = glm::normalize(up);
+                } else {
+                    up = glm::vec3(0.0f, 1.0f, 0.0f);
+                }
+                generateBasisVectors(up, fwd, u, v, w);
+                AnimPose newSpinePose(glm::mat4(glm::vec4(w, 0.0f), glm::vec4(u, 0.0f), glm::vec4(v, 0.0f), glm::vec4(glm::vec3(0.0f, 0.0f, 0.0f), 1.0f)));
+                currentSpine2Pose.rot() = newSpinePose.rot();
+                params.primaryControllerPoses[Rig::PrimaryControllerType_Spine2] = currentSpine2Pose;
+                params.primaryControllerFlags[Rig::PrimaryControllerType_Spine2] = (uint8_t)Rig::ControllerFlags::Enabled | (uint8_t)Rig::ControllerFlags::Estimated;
             }
-            generateBasisVectors(up, fwd, u, v, w);
-            AnimPose newSpinePose(glm::mat4(glm::vec4(w, 0.0f), glm::vec4(u, 0.0f), glm::vec4(v, 0.0f), glm::vec4(glm::vec3(0.0f, 0.0f, 0.0f), 1.0f)));
-            currentSpine2Pose.rot() = newSpinePose.rot();
-            params.primaryControllerPoses[Rig::PrimaryControllerType_Spine2] = currentSpine2Pose;
-            params.primaryControllerFlags[Rig::PrimaryControllerType_Spine2] = (uint8_t)Rig::ControllerFlags::Enabled | (uint8_t)Rig::ControllerFlags::Estimated;
         }
 
     } else {

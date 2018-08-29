@@ -91,8 +91,6 @@ const float MIN_SCALE_CHANGED_DELTA = 0.001f;
 const int MODE_READINGS_RING_BUFFER_SIZE = 500;
 const float CENTIMETERS_PER_METER = 100.0f;
 
-#define DEBUG_DRAW_HMD_MOVING_AVERAGE
-
 MyAvatar::MyAvatar(QThread* thread) :
     Avatar(thread),
     _yawSpeed(YAW_SPEED_DEFAULT),
@@ -450,6 +448,7 @@ void MyAvatar::update(float deltaTime) {
     const float PERCENTAGE_WEIGHT_HEAD_VS_SHOULDERS_AZIMUTH = 0.0f; // 100 percent shoulders
 
     float tau = deltaTime / HMD_FACING_TIMESCALE;
+    setHipToHandController(computeHandAzimuth());
 
     // put the average hand azimuth into sensor space.
     // then mix it with head facing direction to determine rotation recenter
@@ -465,7 +464,7 @@ void MyAvatar::update(float deltaTime) {
         glm::vec2 headFacingPlusHandHipAzimuthMix = lerp(normedHandHipAzimuthSensorSpace, _headControllerFacing, PERCENTAGE_WEIGHT_HEAD_VS_SHOULDERS_AZIMUTH);
         _headControllerFacingMovingAverage = lerp(_headControllerFacingMovingAverage, headFacingPlusHandHipAzimuthMix, tau);
     } else {
-        _headControllerFacingMovingAverage = _headControllerFacing;
+        _headControllerFacingMovingAverage = lerp(_headControllerFacingMovingAverage, _headControllerFacing, tau);
     }
 
     if (_smoothOrientationTimer < SMOOTH_TIME_ORIENTATION) {
@@ -478,10 +477,8 @@ void MyAvatar::update(float deltaTime) {
     _recentModeReadings.insert(newHeightReadingInCentimeters);
     setCurrentStandingHeight(computeStandingHeightMode(getControllerPoseInAvatarFrame(controller::Action::HEAD)));
     setAverageHeadRotation(computeAverageHeadRotation(getControllerPoseInAvatarFrame(controller::Action::HEAD)));
-    computeHandAzimuth();
 
-#ifdef DEBUG_DRAW_HMD_MOVING_AVERAGE
-    if (_drawAverageFacingEnabled) {
+   if (_drawAverageFacingEnabled) {
         auto sensorHeadPose = getControllerPoseInSensorFrame(controller::Action::HEAD);
         glm::vec3 worldHeadPos = transformPoint(getSensorToWorldMatrix(), sensorHeadPose.getTranslation());
         glm::vec3 worldFacingAverage = transformVectorFast(getSensorToWorldMatrix(), glm::vec3(_headControllerFacingMovingAverage.x, 0.0f, _headControllerFacingMovingAverage.y));
@@ -493,12 +490,11 @@ void MyAvatar::update(float deltaTime) {
         glm::vec3 handAzimuthMidpoint = transformPoint(getTransform().getMatrix(), glm::vec3(_hipToHandController.x, 0.0f, _hipToHandController.y));
         DebugDraw::getInstance().drawRay(getWorldPosition(), handAzimuthMidpoint, glm::vec4(0.0f, 1.0f, 1.0f, 1.0f));
     }
-#endif
 
     if (_goToPending) {
         setWorldPosition(_goToPosition);
         setWorldOrientation(_goToOrientation);
-        _headControllerFacingMovingAverage = _headControllerFacing;
+        _headControllerFacingMovingAverage = _headControllerFacing; // reset moving average
         _goToPending = false;
         // updateFromHMDSensorMatrix (called from paintGL) expects that the sensorToWorldMatrix is updated for any position changes
         // that happen between render and Application::update (which calls updateSensorToWorldMatrix to do so).
@@ -822,29 +818,30 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
 
 // Find the vector halfway between the hip to hand azimuth vectors
 // This midpoint hand azimuth is in Avatar space
-void MyAvatar::computeHandAzimuth() {
+glm::vec2 MyAvatar::computeHandAzimuth() const {
     auto leftHandPoseAvatarSpace = getLeftHandPose();
     auto rightHandPoseAvatarSpace = getRightHandPose();
     const float HALFWAY = 0.50f;
+    glm::vec2 latestHipToHandController = _hipToHandController;
 
     if (leftHandPoseAvatarSpace.isValid() && rightHandPoseAvatarSpace.isValid()) {
         // we need the old azimuth reading to prevent flipping the facing direction 180
         // in the case where the hands go from being slightly less than 180 apart to slightly more than 180 apart.
-        vec2 oldAzimuthReading = _hipToHandController;
+        glm::vec2 oldAzimuthReading = _hipToHandController;
         if ((glm::length(glm::vec2(rightHandPoseAvatarSpace.translation.x, rightHandPoseAvatarSpace.translation.z)) > 0.0f) && (glm::length(glm::vec2(leftHandPoseAvatarSpace.translation.x, leftHandPoseAvatarSpace.translation.z)) > 0.0f)) {
-            _hipToHandController = lerp(glm::normalize(glm::vec2(rightHandPoseAvatarSpace.translation.x, rightHandPoseAvatarSpace.translation.z)), glm::normalize(glm::vec2(leftHandPoseAvatarSpace.translation.x, leftHandPoseAvatarSpace.translation.z)), HALFWAY);
+            latestHipToHandController = lerp(glm::normalize(glm::vec2(rightHandPoseAvatarSpace.translation.x, rightHandPoseAvatarSpace.translation.z)), glm::normalize(glm::vec2(leftHandPoseAvatarSpace.translation.x, leftHandPoseAvatarSpace.translation.z)), HALFWAY);
         } else {
-            _hipToHandController = glm::vec2(0.0f, -1.0f);
+            latestHipToHandController = glm::vec2(0.0f, -1.0f);
         }
         // check the angular distance from forward and back
-        float cosForwardAngle = glm::dot(_hipToHandController, oldAzimuthReading);
-        float cosBackwardAngle = glm::dot(_hipToHandController, -oldAzimuthReading);
+        float cosForwardAngle = glm::dot(latestHipToHandController, oldAzimuthReading);
         // if we are now closer to the 180 flip of the previous chest forward
-        // then we negate our computed _hipToHandController to keep the chest from flipping.
-        if (cosBackwardAngle > cosForwardAngle) {
-            _hipToHandController = -_hipToHandController;
+        // then we negate our computed latestHipToHandController to keep the chest from flipping.
+        if (cosForwardAngle < 0.0f) {
+            latestHipToHandController = -latestHipToHandController;
         }
     }
+    return latestHipToHandController;
 }
 
 void MyAvatar::updateJointFromController(controller::Action poseKey, ThreadSafeValueCache<glm::mat4>& matrixCache) {
@@ -3380,6 +3377,11 @@ glm::mat4 MyAvatar::getSpine2RotationRigSpace() const {
     glm::vec3 hipToHandRigSpace = AVATAR_TO_RIG_ROTATION * glm::vec3(_hipToHandController.x, 0.0f, _hipToHandController.y);
 
     glm::vec3 u, v, w;
+    if (glm::length(hipToHandRigSpace) > 0.0f) {
+        hipToHandRigSpace = glm::normalize(hipToHandRigSpace);
+    } else {
+        hipToHandRigSpace = glm::vec3(0.0f, 0.0f, 1.0f);
+    }
     generateBasisVectors(glm::vec3(0.0f,1.0f,0.0f), hipToHandRigSpace, u, v, w);
     glm::mat4 spine2RigSpace(glm::vec4(w, 0.0f), glm::vec4(u, 0.0f), glm::vec4(v, 0.0f), glm::vec4(glm::vec3(0.0f, 0.0f, 0.0f), 1.0f));
     return spine2RigSpace;

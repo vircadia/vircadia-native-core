@@ -321,7 +321,7 @@ public:
     void updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix);
 
     // compute the hip to hand average azimuth.
-    void computeHandAzimuth();
+    glm::vec2 computeHandAzimuth() const;
 
     // read the location of a hand controller and save the transform
     void updateJointFromController(controller::Action poseKey, ThreadSafeValueCache<glm::mat4>& matrixCache);
