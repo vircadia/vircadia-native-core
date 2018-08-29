@@ -105,7 +105,7 @@ PickResultPointer PathPointer::getVisualPickResult(const PickResultPointer& pick
                 glm::mat4 entityMat = createMatFromQuatAndPos(props.getRotation(), props.getPosition());
                 glm::mat4 finalPosAndRotMat = entityMat * _lockEndObject.offsetMat;
                 pos = extractTranslation(finalPosAndRotMat);
-                rot = glmExtractRotation(finalPosAndRotMat);
+                rot = props.getRotation();
                 dim = props.getDimensions();
                 registrationPoint = props.getRegistrationPoint();
             }
