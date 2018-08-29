@@ -85,7 +85,7 @@ Item {
             label: "LOD PID Kp"
             valueVar: LODManager["pidKp"]
             valueVarSetter: (function (v) { LODManager["pidKp"] = v })
-            max: 0.2
+            max: 2.0
             min: 0.0
             integral: false
             numDigits: 3

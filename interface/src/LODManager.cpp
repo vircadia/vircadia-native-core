@@ -58,18 +58,21 @@ const uint64_t LOD_AUTO_ADJUST_PERIOD = 4 * (uint64_t)(LOD_ADJUST_RUNNING_AVG_TI
 const float LOD_AUTO_ADJUST_DECREMENT_FACTOR = 0.8f;
 const float LOD_AUTO_ADJUST_INCREMENT_FACTOR = 1.2f;
 
-void LODManager::setRenderTimes(float presentTime, float engineRunTime, float gpuTime) {
+void LODManager::setRenderTimes(float presentTime, float engineRunTime, float batchTime, float gpuTime) {
     _presentTime = presentTime;
     _engineRunTime = engineRunTime;
+    _batchTime = batchTime;
     _gpuTime = gpuTime;
 }
 
 void LODManager::autoAdjustLOD(float realTimeDelta) {
+   // float maxRenderTime = glm::max(glm::max(_presentTime, _engineRunTime), _gpuTime);
     float maxRenderTime = glm::max(glm::max(_presentTime, _engineRunTime), _gpuTime);
     // compute time-weighted running average maxRenderTime
     // Note: we MUST clamp the blend to 1.0 for stability
     float blend = (realTimeDelta < LOD_ADJUST_RUNNING_AVG_TIMESCALE) ? realTimeDelta / LOD_ADJUST_RUNNING_AVG_TIMESCALE : 1.0f;
     _avgRenderTime = (1.0f - blend) * _avgRenderTime + blend * maxRenderTime; // msec
+  // _avgRenderTime = maxRenderTime;
     if (!_automaticLODAdjust || _avgRenderTime == 0.0f) {
         // early exit
         return;
@@ -78,7 +81,7 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
     float oldOctreeSizeScale = _octreeSizeScale;
     float oldSolidAngle = getLODAngleDeg();
 
-    float targetFPS = getLODDecreaseFPS();
+    float targetFPS = 0.5 * (getLODDecreaseFPS() + getLODIncreaseFPS());
     float targetPeriod = 1.0f / targetFPS;
 
     float currentFPS = (float)MSECS_PER_SECOND / _avgRenderTime;
@@ -87,13 +90,12 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
     auto dt = (float) ((now - lastTime) / double(USECS_PER_MSEC));
     if (dt < targetPeriod * _pidCoefs.w) return;
 
-    float deltaFPS = currentFPS - getLODDecreaseFPS();
-    
     lastTime = now;
     auto previous_error = _pidHistory.x;
     auto previous_integral = _pidHistory.y;
 
-    auto error = getLODDecreaseFPS() - currentFPS;
+    auto error = (targetFPS - currentFPS) / targetFPS;
+    error = glm::clamp(error, -1.0f, 1.0f);
     auto integral = previous_integral + error * dt;
     auto derivative = (error - previous_error) / dt;
 

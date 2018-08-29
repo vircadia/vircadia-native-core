@@ -48,6 +48,7 @@ Item {
     
 
     property var valueMax : 1
+    property var valueMin : 0
 
     property var _values
     property var tick : 0
@@ -90,6 +91,11 @@ Item {
             _values[i].valueMax *= 0.25 // Fast reduce the max value  as we click                   
         }
     }
+    function resetMin() {
+        for (var i = 0; i < _values.length; i++) {
+            _values[i].valueMin *= 0.25 // Fast reduce the min value  as we click                   
+        }
+    }
 
     function pullFreshValues() {
         // Wait until values are created to begin pulling
@@ -99,6 +105,7 @@ Item {
         tick++;
                 
         var currentValueMax = 0
+        var currentValueMin = 0
         for (var i = 0; i < _values.length; i++) {
 
             var currentVal = (+_values[i].object[_values[i].value]) * _values[i].scale;
@@ -112,25 +119,43 @@ Item {
                     _values[i].valueMax *= 0.99
                     _values[i].numSamplesConstantMax = 0
                 }
+                if (lostValue <= _values[i].valueMin) {
+                    _values[i].valueMin *= 0.99
+                    _values[i].numSamplesConstantMin = 0
+                }
             }
 
             if (_values[i].valueMax < currentVal) {
                 _values[i].valueMax = currentVal;
                 _values[i].numSamplesConstantMax = 0 
             }                    
+            if (_values[i].valueMin < currentVal) {
+                _values[i].valueMin = currentVal;
+                _values[i].numSamplesConstantMin = 0 
+            }   
 
             if (_values[i].numSamplesConstantMax > VALUE_HISTORY_SIZE) {
                 _values[i].numSamplesConstantMax = 0     
                 _values[i].valueMax *= 0.95 // lower slowly the current max if no new above max since a while                      
             }
- 
+            if (_values[i].numSamplesConstantMin > VALUE_HISTORY_SIZE) {
+                _values[i].numSamplesConstantMin = 0     
+                _values[i].valueMin *= 0.95 // lower slowly the current min if no new above min since a while                      
+            }
+
             if (currentValueMax < _values[i].valueMax) {
                 currentValueMax = _values[i].valueMax
+            }
+            if (currentValueMin < _values[i].valueMin) {
+                currentValueMin = _values[i].valueMin
             }
         }
 
         if ((valueMax < currentValueMax) || (tick % VALUE_HISTORY_SIZE == 0)) {
             valueMax = currentValueMax;
+        }
+        if ((valueMin < currentValueMin) || (tick % VALUE_HISTORY_SIZE == 0)) {
+            valueMin = currentValueMin;
         }
         mycanvas.requestPaint()
     }

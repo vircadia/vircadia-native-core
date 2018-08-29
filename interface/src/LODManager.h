@@ -59,6 +59,7 @@ class LODManager : public QObject, public Dependency {
 
     Q_PROPERTY(float presentTime READ getPresentTime)
     Q_PROPERTY(float engineRunTime READ getEngineRunTime)
+    Q_PROPERTY(float batchTime READ getBatchTime)
     Q_PROPERTY(float gpuTime READ getGPUTime)
     Q_PROPERTY(float avgRenderTime READ getAverageRenderTime)
     Q_PROPERTY(float fps READ getMaxTheoreticalFPS)
@@ -178,10 +179,11 @@ public:
 
     float getPresentTime() const { return _presentTime; }
     float getEngineRunTime() const { return _engineRunTime; }
+    float getBatchTime() const { return _batchTime; }
     float getGPUTime() const { return _gpuTime; }
 
     static bool shouldRender(const RenderArgs* args, const AABox& bounds);
-    void setRenderTimes(float presentTime, float engineRunTime, float gpuTime);
+    void setRenderTimes(float presentTime, float engineRunTime, float batchTime, float gpuTime);
     void autoAdjustLOD(float realTimeDelta);
 
     void loadSettings();
@@ -240,7 +242,9 @@ private:
     bool _automaticLODAdjust = true;
     float _presentTime { 0.0f }; // msec
     float _engineRunTime { 0.0f }; // msec
+    float _batchTime{ 0.0f }; // msec
     float _gpuTime { 0.0f }; // msec
+
     float _avgRenderTime { 0.0f }; // msec
     float _desktopMaxRenderTime { DEFAULT_DESKTOP_MAX_RENDER_TIME };
     float _hmdMaxRenderTime { DEFAULT_HMD_MAX_RENDER_TIME };
@@ -248,7 +252,7 @@ private:
     float _octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE;
     int _boundaryLevelAdjust = 0;
 
-    glm::vec4 _pidCoefs{ 0.1526f, 0.00000015f, 15.f, 4.0f };
+    glm::vec4 _pidCoefs{ 4.0f, 0.0000000f, 0.f, 4.0f };
     glm::vec4 _pidHistory{ 0.0f };
     glm::vec4 _pidOutputs{ 0.0f };
 
