@@ -142,9 +142,9 @@ glm::vec2 Regulator::run(const Timing_ns& deltaTime, const Timing_ns& measuredTi
     }
 
     // clamp the step factor
-    del = budgetDelta < 0.0f ? -_relativeStepDown: _relativeStepUp;
+    glm::vec2 stepDelta = budgetDelta < 0.0f ? -_relativeStepDown : _relativeStepUp;
 
-    return currentFrontBack * (1.0f + del);
+    return currentFrontBack * (1.0f + stepDelta);
 }
 
 glm::vec2 Regulator::clamp(const glm::vec2& backFront) const {
