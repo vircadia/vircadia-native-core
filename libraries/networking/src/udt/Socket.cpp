@@ -37,7 +37,7 @@ Socket::Socket(QObject* parent, bool shouldChangeSocketOptions) :
     _shouldChangeSocketOptions(shouldChangeSocketOptions)
 {
     connect(&_udpSocket, &QUdpSocket::readyRead, this, &Socket::readPendingDatagrams);
-    connect(this, &Socket::pendingDatagrams, this, &Socket::processPendingDatagrams);
+    connect(this, &Socket::pendingDatagrams, this, &Socket::processPendingDatagrams, Qt::QueuedConnection);
 
     // make sure we hear about errors and state changes from the underlying socket
     connect(&_udpSocket, SIGNAL(error(QAbstractSocket::SocketError)),
