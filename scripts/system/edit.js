@@ -1891,17 +1891,9 @@ function toggleKey(value) {
 }
 function focusKey(value) {
     if (value === 0) { // on release
-        if (selectionManager.hasSelection()) {
-            cameraManager.enable();
-            cameraManager.focus(selectionManager.worldPosition, 
-                                selectionManager.worldDimensions, 
-                                Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
-        }
-    }
-}
-function cameraKey(value) {
-    if (value === 0) { // on release
         cameraManager.enable();
+        cameraManager.focus(selectionManager.worldPosition, selectionManager.worldDimensions, 
+                            Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
     }
 }
 function gridKey(value) {
@@ -1917,7 +1909,6 @@ mapping.from([Controller.Hardware.Keyboard.Backspace]).when([Controller.Hardware
 mapping.from([Controller.Hardware.Keyboard.D]).when([Controller.Hardware.Keyboard.Control]).to(deselectKey);
 mapping.from([Controller.Hardware.Keyboard.T]).to(toggleKey);
 mapping.from([Controller.Hardware.Keyboard.F]).to(focusKey);
-mapping.from([Controller.Hardware.Keyboard.BracketLeft]).to(cameraKey);
 mapping.from([Controller.Hardware.Keyboard.G]).to(gridKey);
 
 function recursiveAdd(newParentID, parentData) {
