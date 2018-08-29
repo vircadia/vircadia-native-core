@@ -27,7 +27,6 @@ public:
 
     void setMyAvatar(AvatarData* myAvatar) { _myAvatar = myAvatar; }
     AvatarData* getMyAvatar() { return _myAvatar; }
-    void clearAvatarEntity(QUuid entityID) { assert(_myAvatar); _myAvatar->clearAvatarEntity(entityID); }
 
     /// Queues an array of several voxel edit messages. Will potentially send a pending multi-command packet. Determines
     /// which voxel-server node or nodes the packet should be sent to. Can be called even before voxel servers are known, in

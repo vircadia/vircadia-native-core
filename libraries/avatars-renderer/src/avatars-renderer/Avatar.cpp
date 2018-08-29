@@ -224,13 +224,23 @@ void Avatar::setAvatarEntityDataChanged(bool value) {
 
 void Avatar::updateAvatarEntities() {
     PerformanceTimer perfTimer("attachments");
+
+    // AVATAR ENTITY UPDATE FLOW
     // - if queueEditEntityMessage sees clientOnly flag it does _myAvatar->updateAvatarEntity()
-    // - updateAvatarEntity saves the bytes and sets _avatarEntityDataLocallyEdited
-    // - MyAvatar::update notices _avatarEntityDataLocallyEdited and calls sendIdentityPacket
-    // - sendIdentityPacket sends the entity bytes to the server which relays them to other interfaces
-    // - AvatarHashMap::processAvatarIdentityPacket on other interfaces call avatar->setAvatarEntityData()
-    // - setAvatarEntityData saves the bytes and sets _avatarEntityDataChanged = true
+    // - updateAvatarEntity saves the bytes and flags the trait instance for the entity as updated
+    // - ClientTraitsHandler::sendChangedTraitsToMixer sends the entity bytes to the mixer which relays them to other interfaces
+    // - AvatarHashMap::processBulkAvatarTraits on other interfaces calls avatar->processTraitInstace
+    // - AvatarData::processTraitInstance calls updateAvatarEntity, which sets _avatarEntityDataChanged = true
     // - (My)Avatar::simulate notices _avatarEntityDataChanged and here we are...
+
+    // AVATAR ENTITY DELETE FLOW
+    // - EntityScriptingInterface::deleteEntity calls _myAvatar->clearAvatarEntity() for deleted avatar entities
+    // - clearAvatarEntity removes the avatar entity and flags the trait instance for the entity as deleted
+    // - ClientTraitsHandler::sendChangedTraitsToMixer sends a deletion to the mixer which relays to other interfaces
+    // - AvatarHashMap::processBulkAvatarTraits on other interfaces calls avatar->processDeletedTraitInstace
+    // - AvatarData::processDeletedTraitInstance calls clearAvatarEntity
+    // - AvatarData::clearAvatarEntity sets _avatarEntityDataChanged = true and adds the ID to the detached list
+    // - Avatar::simulate notices _avatarEntityDataChanged and here we are...
 
     if (!_avatarEntityDataChanged) {
         return;
@@ -345,26 +355,29 @@ void Avatar::updateAvatarEntities() {
             stateItr.value().success = success;
         }
 
-        AvatarEntityIDs recentlyDettachedAvatarEntities = getAndClearRecentlyDetachedIDs();
-        if (!recentlyDettachedAvatarEntities.empty()) {
+        AvatarEntityIDs recentlyDetachedAvatarEntities = getAndClearRecentlyDetachedIDs();
+        if (!recentlyDetachedAvatarEntities.empty()) {
             // only lock this thread when absolutely necessary
             AvatarEntityMap avatarEntityData;
             _avatarEntitiesLock.withReadLock([&] {
                 avatarEntityData = _avatarEntityData;
             });
-            foreach (auto entityID, recentlyDettachedAvatarEntities) {
+            foreach (auto entityID, recentlyDetachedAvatarEntities) {
                 if (!avatarEntityData.contains(entityID)) {
                     entityTree->deleteEntity(entityID, true, true);
                 }
             }
 
             // remove stale data hashes
-            foreach (auto entityID, recentlyDettachedAvatarEntities) {
+            foreach (auto entityID, recentlyDetachedAvatarEntities) {
                 MapOfAvatarEntityDataHashes::iterator stateItr = _avatarEntityDataHashes.find(entityID);
                 if (stateItr != _avatarEntityDataHashes.end()) {
                     _avatarEntityDataHashes.erase(stateItr);
                 }
             }
+        }
+        if (avatarEntities.size() != _avatarEntityForRecording.size()) {
+            createRecordingIDs();
         }
     });
 
@@ -1470,9 +1483,6 @@ int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
 
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, getWorldPosition()) > MOVE_DISTANCE_THRESHOLD;
-    if (_moving) {
-        addPhysicsFlags(Simulation::DIRTY_POSITION);
-    }
     if (_moving || _hasNewJointData) {
         locationChanged();
     }
@@ -1612,20 +1622,6 @@ float Avatar::computeMass() {
     // volumeOfCapsule = (2PI * R^2 * H) + (4PI * R^3 / 3)
     // volumeOfCapsule = 2PI * R^2 * (H + 2R/3)
     return _density * TWO_PI * radius * radius * (glm::length(end - start) + 2.0f * radius / 3.0f);
-}
-
-void Avatar::rebuildCollisionShape() {
-    addPhysicsFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
-}
-
-void Avatar::setPhysicsCallback(AvatarPhysicsCallback cb) {
-    _physicsCallback = cb;
-}
-
-void Avatar::addPhysicsFlags(uint32_t flags) {
-    if (_physicsCallback) {
-        _physicsCallback(flags);
-    }
 }
 
 // thread-safe

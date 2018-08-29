@@ -25,6 +25,7 @@
 #include <avatar/AvatarManager.h>
 #include <EntityItemID.h>
 #include <EntityTree.h>
+#include <ModelEntityItem.h>
 #include <PhysicalEntitySimulation.h>
 #include <EntityEditPacketSender.h>
 #include <VariantMapToScriptValue.h>
@@ -35,7 +36,7 @@
 #include "QVariantGLM.h"
 
 #include <QtQuick/QQuickWindow>
-
+#include <memory>
 
 void addAvatarEntities(const QVariantList& avatarEntities) {
     auto nodeList = DependencyManager::get<NodeList>();
@@ -145,8 +146,8 @@ void AvatarBookmarks::removeBookmark(const QString& bookmarkName) {
 }
 
 bool isWearableEntity(const EntityItemPointer& entity) {
-    return entity->isVisible() && entity->getParentJointIndex() != INVALID_JOINT_INDEX &&
-        (entity->getParentID() == DependencyManager::get<NodeList>()->getSessionUUID() || entity->getParentID() == DependencyManager::get<AvatarManager>()->getMyAvatar()->getSelfID());
+    return entity->isVisible() && (entity->getParentJointIndex() != INVALID_JOINT_INDEX || (entity->getType() == EntityTypes::Model && (std::static_pointer_cast<ModelEntityItem>(entity))->getRelayParentJoints()))
+        && (entity->getParentID() == DependencyManager::get<NodeList>()->getSessionUUID() || entity->getParentID() == DependencyManager::get<AvatarManager>()->getMyAvatar()->getSelfID());
 }
 
 void AvatarBookmarks::updateAvatarEntities(const QVariantList &avatarEntities) {
@@ -254,7 +255,6 @@ QVariantMap AvatarBookmarks::getAvatarDataToBookmark() {
     bookmark.insert(ENTRY_VERSION, AVATAR_BOOKMARK_VERSION);
     bookmark.insert(ENTRY_AVATAR_URL, avatarUrl);
     bookmark.insert(ENTRY_AVATAR_SCALE, avatarScale);
-    bookmark.insert(ENTRY_AVATAR_ATTACHMENTS, myAvatar->getAttachmentsVariant());
 
     QScriptEngine scriptEngine;
     QVariantList wearableEntities;

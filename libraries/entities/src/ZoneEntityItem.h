@@ -18,6 +18,7 @@
 #include "EntityTree.h"
 #include "SkyboxPropertyGroup.h"
 #include "HazePropertyGroup.h"
+#include "BloomPropertyGroup.h"
 #include <ComponentMode.h>
 
 class ZoneEntityItem : public EntityItem {
@@ -79,9 +80,13 @@ public:
     void setSkyboxMode(uint32_t value);
     uint32_t getSkyboxMode() const;
 
+    void setBloomMode(const uint32_t value);
+    uint32_t getBloomMode() const;
+
     SkyboxPropertyGroup getSkyboxProperties() const { return resultWithReadLock<SkyboxPropertyGroup>([&] { return _skyboxProperties; }); }
     
     const HazePropertyGroup& getHazeProperties() const { return _hazeProperties; }
+    const BloomPropertyGroup& getBloomProperties() const { return _bloomProperties; }
 
     bool getFlyingAllowed() const { return _flyingAllowed; }
     void setFlyingAllowed(bool value) { _flyingAllowed = value; }
@@ -93,10 +98,8 @@ public:
     bool keyLightPropertiesChanged() const { return _keyLightPropertiesChanged; }
     bool ambientLightPropertiesChanged() const { return _ambientLightPropertiesChanged; }
     bool skyboxPropertiesChanged() const { return _skyboxPropertiesChanged; }
-
-    bool hazePropertiesChanged() const { 
-        return _hazePropertiesChanged; 
-    }
+    bool hazePropertiesChanged() const { return _hazePropertiesChanged; }
+    bool bloomPropertiesChanged() const { return _bloomPropertiesChanged; }
 
     bool stagePropertiesChanged() const { return _stagePropertiesChanged; }
 
@@ -133,9 +136,11 @@ protected:
     uint32_t _ambientLightMode { COMPONENT_MODE_INHERIT };
 
     uint32_t _hazeMode { COMPONENT_MODE_INHERIT };
+    uint32_t _bloomMode { COMPONENT_MODE_INHERIT };
 
     SkyboxPropertyGroup _skyboxProperties;
     HazePropertyGroup _hazeProperties;
+    BloomPropertyGroup _bloomProperties;
 
     bool _flyingAllowed { DEFAULT_FLYING_ALLOWED };
     bool _ghostingAllowed { DEFAULT_GHOSTING_ALLOWED };
@@ -146,6 +151,7 @@ protected:
     bool _ambientLightPropertiesChanged { false };
     bool _skyboxPropertiesChanged { false };
     bool _hazePropertiesChanged{ false };
+    bool _bloomPropertiesChanged { false };
     bool _stagePropertiesChanged { false };
 
     static bool _drawZoneBoundaries;

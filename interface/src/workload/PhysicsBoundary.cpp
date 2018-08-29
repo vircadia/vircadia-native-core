@@ -10,9 +10,13 @@
 
 #include "PhysicsBoundary.h"
 
+#include <EntityItem.h>
+#include <PhysicalEntitySimulation.h>
 #include <PhysicsLogging.h>
 #include <workload/Space.h>
 
+#include "avatar/AvatarManager.h"
+#include "avatar/OtherAvatar.h"
 #include "workload/GameWorkload.h"
 
 void PhysicsBoundary::run(const workload::WorkloadContextPointer& context, const Inputs& inputs) {
@@ -21,13 +25,27 @@ void PhysicsBoundary::run(const workload::WorkloadContextPointer& context, const
         return;
     }
     GameWorkloadContext* gameContext = static_cast<GameWorkloadContext*>(context.get());
-    PhysicalEntitySimulationPointer simulation = gameContext->_simulation;
     const auto& regionChanges = inputs.get0();
     for (uint32_t i = 0; i < (uint32_t)regionChanges.size(); ++i) {
         const workload::Space::Change& change = regionChanges[i];
-        auto entity = space->getOwner(change.proxyId).get<EntityItemPointer>();
-        if (entity) {
-            simulation->changeEntity(entity);
+        auto nestable = space->getOwner(change.proxyId).get<SpatiallyNestablePointer>();
+        if (nestable) {
+            switch (nestable->getNestableType()) {
+                case NestableType::Entity: {
+                    gameContext->_simulation->changeEntity(std::static_pointer_cast<EntityItem>(nestable));
+                }
+                break;
+                case NestableType::Avatar: {
+                    auto avatar = std::static_pointer_cast<OtherAvatar>(nestable);
+                    avatar->setWorkloadRegion(change.region);
+                    if (avatar->isInPhysicsSimulation() != avatar->shouldBeInPhysicsSimulation()) {
+                        DependencyManager::get<AvatarManager>()->queuePhysicsChange(avatar);
+                    }
+                }
+                break;
+                default:
+                break;
+            }
         }
     }
 }

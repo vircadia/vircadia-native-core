@@ -125,9 +125,9 @@ Rectangle {
                     size: 15
                     color: 'red'
                     visible: {
-                        for(var i = 0; i < avatars.count; ++i) {
+                        for (var i = 0; i < avatars.count; ++i) {
                             var avatarName = avatars.get(i).name;
-                            if(avatarName === favoriteName.text) {
+                            if (avatarName === favoriteName.text) {
                                 return true;
                             }
                         }
@@ -165,7 +165,7 @@ Rectangle {
             }
 
             onYesClicked: function() {
-                if(onSaveClicked) {
+                if (onSaveClicked) {
                     onSaveClicked();
                 } else {
                     root.close();
@@ -173,7 +173,7 @@ Rectangle {
             }
 
             onNoClicked: function() {
-                if(onCancelClicked) {
+                if (onCancelClicked) {
                     onCancelClicked();
                 } else {
                     root.close();

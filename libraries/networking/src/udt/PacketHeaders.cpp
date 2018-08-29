@@ -33,14 +33,14 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityEdit:
         case PacketType::EntityData:
         case PacketType::EntityPhysics:
-            return static_cast<PacketVersion>(EntityVersion::ParticleSpin);
+            return static_cast<PacketVersion>(EntityVersion::BloomEffect);
         case PacketType::EntityQuery:
             return static_cast<PacketVersion>(EntityQueryPacketVersion::ConicalFrustums);
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::FarGrabJoints);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::MigrateAvatarEntitiesToTraits);
         case PacketType::MessagesData:
             return static_cast<PacketVersion>(MessageDataVersion::TextOrBinaryData);
         // ICE packets
@@ -94,6 +94,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(AvatarQueryVersion::ConicalFrustums);
         case PacketType::AvatarIdentityRequest:
             return 22;
+        case PacketType::EntityQueryInitialResultsComplete:
+            return static_cast<PacketVersion>(EntityVersion::ParticleSpin);
         default:
             return 22;
     }

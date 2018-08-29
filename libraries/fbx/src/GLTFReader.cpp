@@ -935,7 +935,7 @@ FBXGeometry* GLTFReader::readGLTF(QByteArray& model, const QVariantHash& mapping
 }
 
 bool GLTFReader::readBinary(const QString& url, QByteArray& outdata) {
-    QUrl binaryUrl = _url.resolved(QUrl(url).fileName());
+    QUrl binaryUrl = _url.resolved(url);
 
     qCDebug(modelformat) << "binaryUrl: " << binaryUrl << "  OriginalUrl: " << _url;
     bool success;
@@ -948,7 +948,7 @@ bool GLTFReader::doesResourceExist(const QString& url) {
     if (_url.isEmpty()) {
         return false;
     }
-    QUrl candidateUrl = _url.resolved(QUrl(url).fileName());
+    QUrl candidateUrl = _url.resolved(url);
     return DependencyManager::get<ResourceManager>()->resourceExists(candidateUrl);
 }
 
@@ -1001,8 +1001,9 @@ FBXTexture GLTFReader::getFBXTexture(const GLTFTexture& texture) {
     fbxtex.texcoordSet = 0;
     
     if (texture.defined["source"]) {
-        QString fname = QUrl(_file.images[texture.source].uri).fileName();
-        QUrl textureUrl = _url.resolved(fname);
+        QString url = _file.images[texture.source].uri;
+        QString fname = QUrl(url).fileName();
+        QUrl textureUrl = _url.resolved(url);
         qCDebug(modelformat) << "fname: " << fname;
         qCDebug(modelformat) << "textureUrl: " << textureUrl;
         qCDebug(modelformat) << "Url: " << _url;

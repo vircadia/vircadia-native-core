@@ -20,6 +20,7 @@ Row {
 
     spacing: spinboxSpace
 
+    property bool enabled: false;
     property alias xvalue: xspinner.realValue
     property alias yvalue: yspinner.realValue
     property alias zvalue: zspinner.realValue
@@ -35,6 +36,7 @@ Row {
         realFrom: root.realFrom
         realTo: root.realTo
         realStepSize: root.realStepSize
+        enabled: root.enabled
     }
 
     HifiControlsUit.SpinBox {
@@ -48,6 +50,7 @@ Row {
         realFrom: root.realFrom
         realTo: root.realTo
         realStepSize: root.realStepSize
+        enabled: root.enabled
     }
 
     HifiControlsUit.SpinBox {
@@ -61,5 +64,6 @@ Row {
         realFrom: root.realFrom
         realTo: root.realTo
         realStepSize: root.realStepSize
+        enabled: root.enabled
     }
 }

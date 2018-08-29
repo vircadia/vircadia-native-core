@@ -295,7 +295,8 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
                 auto spaceIndex = _space->allocateID();
                 workload::Sphere sphere(entity->getWorldPosition(), entity->getBoundingRadius());
                 workload::Transaction transaction;
-                transaction.reset(spaceIndex, sphere, workload::Owner(entity));
+                SpatiallyNestablePointer nestable = std::static_pointer_cast<SpatiallyNestable>(entity);
+                transaction.reset(spaceIndex, sphere, workload::Owner(nestable));
                 _space->enqueueTransaction(transaction);
                 entity->setSpaceIndex(spaceIndex);
                 connect(entity.get(), &EntityItem::spaceUpdate, this, &EntityTreeRenderer::handleSpaceUpdate, Qt::QueuedConnection);

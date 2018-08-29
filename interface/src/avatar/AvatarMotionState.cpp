@@ -16,7 +16,7 @@
 #include <PhysicsHelpers.h>
 
 
-AvatarMotionState::AvatarMotionState(AvatarSharedPointer avatar, const btCollisionShape* shape) : ObjectMotionState(shape), _avatar(avatar) {
+AvatarMotionState::AvatarMotionState(OtherAvatarPointer avatar, const btCollisionShape* shape) : ObjectMotionState(shape), _avatar(avatar) {
     assert(_avatar);
     _type = MOTIONSTATE_TYPE_AVATAR;
     cacheShapeDiameter();
@@ -57,7 +57,7 @@ PhysicsMotionType AvatarMotionState::computePhysicsMotionType() const {
 // virtual and protected
 const btCollisionShape* AvatarMotionState::computeNewShape() {
     ShapeInfo shapeInfo;
-    std::static_pointer_cast<Avatar>(_avatar)->computeShapeInfo(shapeInfo);
+    _avatar->computeShapeInfo(shapeInfo);
     return getShapeManager()->getShape(shapeInfo);
 }
 
@@ -151,7 +151,7 @@ glm::vec3 AvatarMotionState::getObjectAngularVelocity() const {
 
 // virtual
 glm::vec3 AvatarMotionState::getObjectGravity() const {
-    return std::static_pointer_cast<Avatar>(_avatar)->getAcceleration();
+    return _avatar->getAcceleration();
 }
 
 // virtual
@@ -176,7 +176,7 @@ void AvatarMotionState::computeCollisionGroupAndMask(int32_t& group, int32_t& ma
 
 // virtual
 float AvatarMotionState::getMass() const {
-    return std::static_pointer_cast<Avatar>(_avatar)->computeMass();
+    return _avatar->computeMass();
 }
 
 void AvatarMotionState::cacheShapeDiameter() {

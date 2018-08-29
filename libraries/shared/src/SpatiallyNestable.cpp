@@ -22,8 +22,8 @@ const float defaultAACubeSize = 1.0f;
 const int MAX_PARENTING_CHAIN_SIZE = 30;
 
 SpatiallyNestable::SpatiallyNestable(NestableType nestableType, QUuid id) :
-    _nestableType(nestableType),
     _id(id),
+    _nestableType(nestableType),
     _transform() {
     // set flags in _transform
     _transform.setTranslation(glm::vec3(0.0f));
