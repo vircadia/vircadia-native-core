@@ -407,8 +407,10 @@
     }
 
     function onUsernameChanged() {
-        Settings.setValue("wallet/autoLogout", false);
-        Settings.setValue("wallet/savedUsername", "");
+        if (Account.username !== Settings.getValue("wallet/savedUsername")) {
+            Settings.setValue("wallet/autoLogout", false);
+            Settings.setValue("wallet/savedUsername", "");
+        }
     }
 
     // Function Name: fromQml()
