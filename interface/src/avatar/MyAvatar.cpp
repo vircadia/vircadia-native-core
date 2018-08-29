@@ -819,12 +819,13 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
 // Find the vector halfway between the hip to hand azimuth vectors
 // This midpoint hand azimuth is in Avatar space
 glm::vec2 MyAvatar::computeHandAzimuth() const {
-    auto leftHandPoseAvatarSpace = getLeftHandPose();
-    auto rightHandPoseAvatarSpace = getRightHandPose();
+    controller::Pose leftHandPoseAvatarSpace = getLeftHandPose();
+    controller::Pose rightHandPoseAvatarSpace = getRightHandPose();
+    controller::Pose headPoseAvatarSpace = getControllerPoseInAvatarFrame(controller::Action::HEAD);
     const float HALFWAY = 0.50f;
     glm::vec2 latestHipToHandController = _hipToHandController;
 
-    if (leftHandPoseAvatarSpace.isValid() && rightHandPoseAvatarSpace.isValid()) {
+    if (leftHandPoseAvatarSpace.isValid() && rightHandPoseAvatarSpace.isValid() && headPoseAvatarSpace.isValid()) {
         // we need the old azimuth reading to prevent flipping the facing direction 180
         // in the case where the hands go from being slightly less than 180 apart to slightly more than 180 apart.
         glm::vec2 oldAzimuthReading = _hipToHandController;
@@ -833,11 +834,23 @@ glm::vec2 MyAvatar::computeHandAzimuth() const {
         } else {
             latestHipToHandController = glm::vec2(0.0f, -1.0f);
         }
+
+        glm::vec3 headLookAtAvatarSpace = transformVectorFast(headPoseAvatarSpace.getMatrix(), glm::vec3(0.0f, 0.0f, 1.0f));
+        glm::vec2 headAzimuthAvatarSpace = glm::vec2(headLookAtAvatarSpace.x, headLookAtAvatarSpace.z);
+        if (glm::length(headAzimuthAvatarSpace) > 0.0f) {
+            headAzimuthAvatarSpace = glm::normalize(headAzimuthAvatarSpace);
+        } else {
+            headAzimuthAvatarSpace = -latestHipToHandController;
+        }
+
         // check the angular distance from forward and back
         float cosForwardAngle = glm::dot(latestHipToHandController, oldAzimuthReading);
+        float cosHeadShoulder = glm::dot(-latestHipToHandController, headAzimuthAvatarSpace);
         // if we are now closer to the 180 flip of the previous chest forward
         // then we negate our computed latestHipToHandController to keep the chest from flipping.
-        if (cosForwardAngle < 0.0f) {
+        // also check the head to shoulder azimuth difference if we negate.
+        // don't negate the chest azimuth if this is greater than 100 degrees.
+        if ((cosForwardAngle < 0.0f) && !(cosHeadShoulder < -0.2f)) {
             latestHipToHandController = -latestHipToHandController;
         }
     }
