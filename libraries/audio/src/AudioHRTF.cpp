@@ -420,7 +420,7 @@ static void crossfade_4x2_SSE(float* src, float* dst, const float* win, int numF
 }
 
 // linear interpolation with gain
-static void interpolate_SSE(float* dst, const float* src0, const float* src1, float frac, float gain) {
+static void interpolate_SSE(const float* src0, const float* src1, float* dst, float frac, float gain) {
 
     __m128 f0 = _mm_set1_ps(gain * (1.0f - frac));
     __m128 f1 = _mm_set1_ps(gain * frac);
@@ -465,8 +465,8 @@ static void crossfade_4x2(float* src, float* dst, const float* win, int numFrame
     crossfade_4x2_SSE(src, dst, win, numFrames);
 }
 
-static void interpolate(float* dst, const float* src0, const float* src1, float frac, float gain) {
-    interpolate_SSE(dst, src0, src1, frac, gain);
+static void interpolate(const float* src0, const float* src1, float* dst, float frac, float gain) {
+    interpolate_SSE(src0, src1, dst, frac, gain);
 }
 
 #else   // portable reference code
@@ -731,7 +731,7 @@ static void crossfade_4x2(float* src, float* dst, const float* win, int numFrame
 }
 
 // linear interpolation with gain
-static void interpolate(float* dst, const float* src0, const float* src1, float frac, float gain) {
+static void interpolate(const float* src0, const float* src1, float* dst, float frac, float gain) {
 
     float f0 = gain * (1.0f - frac);
     float f1 = gain * frac;
@@ -983,8 +983,8 @@ static void setFilters(float firCoef[4][HRTF_TAPS], float bqCoef[5][8], int dela
     azimuthToIndex(azimuth, az0, az1, frac);
 
     // interpolate FIR
-    interpolate(firCoef[channel+0], ir_table_table[index][azL0][0], ir_table_table[index][azL1][0], fracL, gain * gainL);
-    interpolate(firCoef[channel+1], ir_table_table[index][azR0][1], ir_table_table[index][azR1][1], fracR, gain * gainR);
+    interpolate(ir_table_table[index][azL0][0], ir_table_table[index][azL1][0], firCoef[channel+0], fracL, gain * gainL);
+    interpolate(ir_table_table[index][azR0][1], ir_table_table[index][azR1][1], firCoef[channel+1], fracR, gain * gainR);
 
     // interpolate ITD
     float itd = (1.0f - frac) * itd_table_table[index][az0] + frac * itd_table_table[index][az1];
