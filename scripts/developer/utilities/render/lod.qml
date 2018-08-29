@@ -99,7 +99,7 @@ Item {
             label: "LOD PID Ki"
             valueVar: LODManager["pidKi"]
             valueVarSetter: (function (v) { LODManager["pidKi"] = v })
-            max: 0.000005
+            max: 0.1
             min: 0.0
             integral: false
             numDigits: 8
@@ -166,6 +166,11 @@ Item {
                     color: "#FFFF00"
                 },
                 {
+                    prop: "batchTime",
+                    label: "batch",
+                    color: "#00FF00"
+                },
+                {
                     prop: "engineRunTime",
                     label: "engineRun",
                     color: "#FF00FF"
@@ -192,7 +197,12 @@ Item {
                 {
                     prop: "fps",
                     label: "FPS",
-                    color: "#FFFFFF"
+                    color: "#FFFF55"
+                },
+                {
+                    prop: "smoothFPS",
+                    label: "Smooth FPS",
+                    color: "#9999FF"
                 },
                 {
                     prop: "lodDecreaseFPS",
@@ -221,6 +231,8 @@ Item {
             object: LODManager
             valueScale: 1.0
             valueUnit: "deg"
+            valueNumDigits: 1
+            displayMinAt0: false
             plots: [
                 {
                     prop: "pidOp",

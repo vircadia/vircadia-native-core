@@ -61,8 +61,13 @@ class LODManager : public QObject, public Dependency {
     Q_PROPERTY(float engineRunTime READ getEngineRunTime)
     Q_PROPERTY(float batchTime READ getBatchTime)
     Q_PROPERTY(float gpuTime READ getGPUTime)
+
     Q_PROPERTY(float avgRenderTime READ getAverageRenderTime)
     Q_PROPERTY(float fps READ getMaxTheoreticalFPS)
+
+    Q_PROPERTY(float smoothRenderTime READ getSmoothRenderTime)
+    Q_PROPERTY(float smoothFPS READ getSmoothFPS)
+
     Q_PROPERTY(float lodLevel READ getLODLevel WRITE setLODLevel NOTIFY LODChanged)
     Q_PROPERTY(float lodDecreaseFPS READ getLODDecreaseFPS)
     Q_PROPERTY(float lodIncreaseFPS READ getLODIncreaseFPS)
@@ -193,6 +198,10 @@ public:
     float getAverageRenderTime() const { return _avgRenderTime; };
     float getMaxTheoreticalFPS() const { return (float)MSECS_PER_SECOND / _avgRenderTime; };
 
+    float getSmoothRenderTime() const { return _smoothRenderTime; };
+    float getSmoothFPS() const { return (float)MSECS_PER_SECOND / _smoothRenderTime; };
+
+
     float getLODLevel() const;
     void setLODLevel(float level);
 
@@ -246,13 +255,14 @@ private:
     float _gpuTime { 0.0f }; // msec
 
     float _avgRenderTime { 0.0f }; // msec
+    float _smoothRenderTime{ 0.0f };
     float _desktopMaxRenderTime { DEFAULT_DESKTOP_MAX_RENDER_TIME };
     float _hmdMaxRenderTime { DEFAULT_HMD_MAX_RENDER_TIME };
 
     float _octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE;
     int _boundaryLevelAdjust = 0;
 
-    glm::vec4 _pidCoefs{ 4.0f, 0.0000000f, 0.f, 4.0f };
+    glm::vec4 _pidCoefs{ 1.0f, 0.0000000f, 0.f, 8.0f };
     glm::vec4 _pidHistory{ 0.0f };
     glm::vec4 _pidOutputs{ 0.0f };
 

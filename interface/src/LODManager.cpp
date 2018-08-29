@@ -72,6 +72,11 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
     // Note: we MUST clamp the blend to 1.0 for stability
     float blend = (realTimeDelta < LOD_ADJUST_RUNNING_AVG_TIMESCALE) ? realTimeDelta / LOD_ADJUST_RUNNING_AVG_TIMESCALE : 1.0f;
     _avgRenderTime = (1.0f - blend) * _avgRenderTime + blend * maxRenderTime; // msec
+
+    float smoothBlend = (realTimeDelta <  LOD_ADJUST_RUNNING_AVG_TIMESCALE * _pidCoefs.w) ? realTimeDelta / (LOD_ADJUST_RUNNING_AVG_TIMESCALE * _pidCoefs.w) : 1.0f;
+    _smoothRenderTime = (1.0f - smoothBlend) * _smoothRenderTime + smoothBlend * maxRenderTime; // msec
+
+
   // _avgRenderTime = maxRenderTime;
     if (!_automaticLODAdjust || _avgRenderTime == 0.0f) {
         // early exit
@@ -82,13 +87,17 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
     float oldSolidAngle = getLODAngleDeg();
 
     float targetFPS = 0.5 * (getLODDecreaseFPS() + getLODIncreaseFPS());
+ //   float targetFPS = (getLODDecreaseFPS());
     float targetPeriod = 1.0f / targetFPS;
 
     float currentFPS = (float)MSECS_PER_SECOND / _avgRenderTime;
+
     static uint64_t lastTime = usecTimestampNow();
+
     uint64_t now = usecTimestampNow();
     auto dt = (float) ((now - lastTime) / double(USECS_PER_MSEC));
-    if (dt < targetPeriod * _pidCoefs.w) return;
+ //   if (dt < targetPeriod * _pidCoefs.w) return;
+    dt = realTimeDelta;
 
     lastTime = now;
     auto previous_error = _pidHistory.x;
@@ -96,7 +105,12 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
 
     auto error = (targetFPS - currentFPS) / targetFPS;
     error = glm::clamp(error, -1.0f, 1.0f);
+    if (error <= 0.0f) {
+    //    error = error * 2.0f;
+    }
     auto integral = previous_integral + error * dt;
+    glm::clamp(integral, -1.0f, 1.0f);
+
     auto derivative = (error - previous_error) / dt;
 
     _pidHistory.x = error;
