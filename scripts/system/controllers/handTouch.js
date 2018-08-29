@@ -11,7 +11,7 @@
 
 /* jslint bitwise: true */
 
-/* global Script, Overlays, Controller, Vec3, MyAvatar, Entities
+/* global Script, Overlays, Controller, Vec3, MyAvatar, Entities, RayPick
 */
 
 (function () {
@@ -20,8 +20,8 @@
     var MSECONDS_AFTER_LOAD = 2000;
     var updateFingerWithIndex = 0;
     var untouchableEntities = [];
-    
-        // Keys to access finger data
+
+    // Keys to access finger data
     var fingerKeys = ["pinky", "ring", "middle", "index", "thumb"];
 
     // Additionally close the hands to achieve a grabbing effect
@@ -45,7 +45,7 @@
         left: new Palm(),
         right: new Palm()
     };
-    
+
     var handJointNames = {left: "LeftHand", right: "RightHand"};
 
     // Store which fingers are touching - if all false restate the default poses

@@ -8,11 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Script, Controller, RIGHT_HAND, LEFT_HAND, MyAvatar, getGrabPointSphereOffset,
-   makeRunningValues, Entities, enableDispatcherModule, disableDispatcherModule, makeDispatcherModuleParameters,
-   PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
-   DEFAULT_SEARCH_SPHERE_DISTANCE, getGrabbableData, makeLaserParams, entityIsCloneable, Messages, print
-*/
+/* global Script, MyAvatar, entityIsCloneable, Messages, print */
 
 "use strict";
 
@@ -134,7 +130,7 @@
                         rightHighlightNearbyEntities.removeEntityFromHighlightList(data.entityID);
                     }
                 } catch (e) {
-                    print("Failed to parse message");
+                    print("highlightNearbyEntities -- Failed to parse message: " + JSON.stringify(message));
                 }
             } else if (channel === 'Hifi-unhighlight-all') {
                 leftHighlightNearbyEntities.clearAll();
