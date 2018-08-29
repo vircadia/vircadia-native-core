@@ -38,7 +38,7 @@ void ConnectionMonitor::init() {
 
     connect(&_timer, &QTimer::timeout, this, []() {
         qDebug() << "ConnectionMonitor: Showing connection failure window";
-        DependencyManager::get<DialogsManager>()->setDomainConnectionFailureVisibility(true);
+        //DependencyManager::get<DialogsManager>()->setDomainConnectionFailureVisibility(true);
     });
 }
 
@@ -48,5 +48,5 @@ void ConnectionMonitor::startTimer() {
 
 void ConnectionMonitor::stopTimer() {
     _timer.stop();
-    DependencyManager::get<DialogsManager>()->setDomainConnectionFailureVisibility(false);
+    //DependencyManager::get<DialogsManager>()->setDomainConnectionFailureVisibility(false);
 }

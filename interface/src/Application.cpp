@@ -1845,6 +1845,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
 
     EntityTree::setAddMaterialToEntityOperator([this](const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
+        if (_aboutToQuit) {
+            return false;
+        }
+
         // try to find the renderable
         auto renderable = getEntities()->renderableForEntityId(entityID);
         if (renderable) {
@@ -1860,6 +1864,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return false;
     });
     EntityTree::setRemoveMaterialFromEntityOperator([this](const QUuid& entityID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
+        if (_aboutToQuit) {
+            return false;
+        }
+
         // try to find the renderable
         auto renderable = getEntities()->renderableForEntityId(entityID);
         if (renderable) {
