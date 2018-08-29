@@ -52,12 +52,18 @@ Item {
                 id: back
                 enabledColor: hifi.colors.darkGray
                 disabledColor: hifi.colors.lightGrayText
-                enabled: historyIndex > 0
+                enabled: true
                 text: "BACK"
 
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: goBack()
+                    onClicked: {
+                        if (historyIndex > 0) {
+                            goBack();
+                        } else {
+                            closeWebEngine();
+                        }
+                    }
                 }
             }
 
