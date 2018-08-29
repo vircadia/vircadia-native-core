@@ -94,8 +94,7 @@ bool CollisionPick::getShapeInfoReady() {
         }
 
         return false;
-    }
-    else {
+    } else {
         computeShapeInfoDimensionsOnly(_mathPick, *_mathPick.shapeInfo, _cachedResource);
         return true;
     }

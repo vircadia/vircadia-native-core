@@ -25,11 +25,7 @@ public:
     CollisionPickResult() {}
     CollisionPickResult(const QVariantMap& pickVariant) : PickResult(pickVariant) {}
 
-    CollisionPickResult(const CollisionRegion& searchRegion,
-        LoadState loadState,
-        const std::vector<ContactTestResult>& entityIntersections,
-        const std::vector<ContactTestResult>& avatarIntersections
-    ) :
+    CollisionPickResult(const CollisionRegion& searchRegion, LoadState loadState, const std::vector<ContactTestResult>& entityIntersections, const std::vector<ContactTestResult>& avatarIntersections) :
         PickResult(searchRegion.toVariantMap()),
         loadState(loadState),
         intersects(entityIntersections.size() || avatarIntersections.size()),
