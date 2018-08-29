@@ -19,5 +19,5 @@ Transform MyAvatarHeadTransformNode::getTransform() {
     glm::quat headOri = myAvatar->getHeadOrientation();
     glm::quat ori = headOri * glm::angleAxis(-PI / 2.0f, Vectors::RIGHT);
 
-    return Transform(ori, myAvatar->scaleForChildren(), pos);
+    return Transform(ori, glm::vec3(1.0f), pos);
 }
