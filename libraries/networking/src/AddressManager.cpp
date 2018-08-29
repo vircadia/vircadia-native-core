@@ -48,6 +48,8 @@ QString AddressManager::getProtocol() const {
 QUrl AddressManager::currentAddress(bool domainOnly) const {
     QUrl hifiURL = _domainURL;
 
+    auto urlStr = hifiURL.toString().toStdString();
+
     if (!domainOnly && hifiURL.scheme() == URL_SCHEME_HIFI) {
         hifiURL.setPath(currentPath());
     }
