@@ -1892,8 +1892,10 @@ function toggleKey(value) {
 function focusKey(value) {
     if (value === 0) { // on release
         cameraManager.enable();
-        cameraManager.focus(selectionManager.worldPosition, selectionManager.worldDimensions, 
-                            Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+        if (selectionManager.hasSelection()) {
+            cameraManager.focus(selectionManager.worldPosition, selectionManager.worldDimensions, 
+                                Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+        }
     }
 }
 function gridKey(value) {
