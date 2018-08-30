@@ -67,6 +67,7 @@ class LODManager : public QObject, public Dependency {
 
     Q_PROPERTY(float smoothRenderTime READ getSmoothRenderTime)
     Q_PROPERTY(float smoothFPS READ getSmoothFPS)
+    Q_PROPERTY(float smoothScale READ getSmoothScale WRITE setSmoothScale)
 
     Q_PROPERTY(float lodLevel READ getLODLevel WRITE setLODLevel NOTIFY LODChanged)
     Q_PROPERTY(float lodDecreaseFPS READ getLODDecreaseFPS)
@@ -80,7 +81,7 @@ class LODManager : public QObject, public Dependency {
     Q_PROPERTY(float pidKp READ getPidKp WRITE setPidKp)
     Q_PROPERTY(float pidKi READ getPidKi WRITE setPidKi)
     Q_PROPERTY(float pidKd READ getPidKd WRITE setPidKd)
-    Q_PROPERTY(float pidT READ getPidT WRITE setPidT)
+    Q_PROPERTY(float pidKv READ getPidKv WRITE setPidKv)
 
     Q_PROPERTY(float pidOp READ getPidOp)
     Q_PROPERTY(float pidOi READ getPidOi)
@@ -195,6 +196,9 @@ public:
     void saveSettings();
     void resetLODAdjust();
 
+    void setSmoothScale(float t);
+    float getSmoothScale() const { return _smoothScale; }
+
     float getAverageRenderTime() const { return _avgRenderTime; };
     float getMaxTheoreticalFPS() const { return (float)MSECS_PER_SECOND / _avgRenderTime; };
 
@@ -216,12 +220,12 @@ public:
     float getPidKp() const;
     float getPidKi() const;
     float getPidKd() const;
-    float getPidT() const;
+    float getPidKv() const;
     void setPidKp(float k);
     void setPidKi(float k);
     void setPidKd(float k);
-    void setPidT(float t);
-
+    void setPidKv(float t);
+    
     float getPidOp() const;
     float getPidOi() const;
     float getPidOd() const;
@@ -254,6 +258,7 @@ private:
     float _batchTime{ 0.0f }; // msec
     float _gpuTime { 0.0f }; // msec
 
+    float _smoothScale{ 8.0f };
     float _avgRenderTime { 0.0f }; // msec
     float _smoothRenderTime{ 0.0f };
     float _desktopMaxRenderTime { DEFAULT_DESKTOP_MAX_RENDER_TIME };
@@ -262,7 +267,7 @@ private:
     float _octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE;
     int _boundaryLevelAdjust = 0;
 
-    glm::vec4 _pidCoefs{ 1.0f, 0.0000000f, 0.f, 8.0f };
+    glm::vec4 _pidCoefs{ 1.0f, 0.0f, 0.0f, 1.0f }; // Kp, Ki, Kd, Kv
     glm::vec4 _pidHistory{ 0.0f };
     glm::vec4 _pidOutputs{ 0.0f };
 

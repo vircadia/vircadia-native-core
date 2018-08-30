@@ -217,9 +217,9 @@ Item {
             function displayTitle(ctx, text, maxVal) {
                 ctx.fillStyle = "grey";
                 ctx.textAlign = "right";
-                ctx.fillText("max" + displayValue(_displayMaxValue, root.valueUnit), width, pixelFromVal(_displayMaxValue));
+                ctx.fillText("max " + displayValue(_displayMaxValue, root.valueUnit), width, pixelFromVal(_displayMaxValue));
                 
-                ctx.fillText("min" + displayValue(_displayMinValue, root.valueUnit), width, pixelFromVal(_displayMinValue));
+                ctx.fillText("min " + displayValue(_displayMinValue, root.valueUnit), width, pixelFromVal(_displayMinValue));
                
                 ctx.fillStyle = "white";
                 ctx.textAlign = "left";
@@ -245,7 +245,6 @@ Item {
                 
                 ctx.strokeStyle= "LightSlateGray";
                 ctx.lineWidth="1";
-               // ctx.strokeStyle= "grey";
                 ctx.beginPath();
                 ctx.moveTo(0, maxY); 
                 ctx.lineTo(width, maxY);
@@ -254,7 +253,6 @@ Item {
                 if (_displayMinValue != 0) { 
                     var zeroY = pixelFromVal(0);
                     var minY = pixelFromVal(_displayMinValue);
-                  //  ctx.strokeStyle= "DarkRed";
                     ctx.beginPath();
                     ctx.moveTo(0, zeroY); 
                     ctx.lineTo(width, zeroY);

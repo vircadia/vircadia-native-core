@@ -53,18 +53,26 @@ Item {
             min: 0.25
             integral: false
 
-            anchors.left: autoLOD.left
+            anchors.left: parent.left
             anchors.right: parent.right 
         }
 
-        HifiControls.CheckBox {
-            id: autoLOD
-            boxSize: 20
-            text: "Auto LOD"
-            checked: LODManager.automaticLODAdjust
-            onCheckedChanged: { LODManager.automaticLODAdjust = (checked) } 
+        Row {
+            HifiControls.CheckBox {
+                id: autoLOD
+                boxSize: 20
+                text: "Auto LOD"
+                checked: LODManager.automaticLODAdjust
+                onCheckedChanged: { LODManager.automaticLODAdjust = (checked) } 
+            }
+            HifiControls.CheckBox {
+                id: showLODRegulatorDetails
+                visible: LODManager.automaticLODAdjust
+                boxSize: 20
+                text: "Show LOD Details"
+            }
         }
- 
+
         RichSlider {
             visible: !LODManager.automaticLODAdjust
             showLabel: true
@@ -78,67 +86,85 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right 
         }
-
-        RichSlider {
-            visible: LODManager.automaticLODAdjust
-            showLabel: true
-            label: "LOD PID Kp"
-            valueVar: LODManager["pidKp"]
-            valueVarSetter: (function (v) { LODManager["pidKp"] = v })
-            max: 2.0
-            min: 0.0
-            integral: false
-            numDigits: 3
-
+        Column {
+            id: lodRegulatorDetails
+            visible: LODManager.automaticLODAdjust && showLODRegulatorDetails.checked 
             anchors.left: parent.left
             anchors.right: parent.right 
-        }
-        RichSlider {
-            visible: LODManager.automaticLODAdjust
-            showLabel: true
-            label: "LOD PID Ki"
-            valueVar: LODManager["pidKi"]
-            valueVarSetter: (function (v) { LODManager["pidKi"] = v })
-            max: 0.1
-            min: 0.0
-            integral: false
-            numDigits: 8
+            RichSlider {
+                visible: lodRegulatorDetails.visible
+                showLabel: true
+                label: "LOD Kp"
+                valueVar: LODManager["pidKp"]
+                valueVarSetter: (function (v) { LODManager["pidKp"] = v })
+                max: 2.0
+                min: 0.0
+                integral: false
+                numDigits: 3
 
-            anchors.left: parent.left
-            anchors.right: parent.right 
-        }
-        RichSlider {
-            visible: LODManager.automaticLODAdjust
-            showLabel: true
-            label: "LOD PID Kd"
-            valueVar: LODManager["pidKd"]
-            valueVarSetter: (function (v) { LODManager["pidKd"] = v })
-            max: 10.0
-            min: 0.0
-            integral: false
-            numDigits: 3
+                anchors.left: parent.left
+                anchors.right: parent.right 
+            }
+            RichSlider {
+                visible: false && lodRegulatorDetails.visible
+                showLabel: true
+                label: "LOD Ki"
+                valueVar: LODManager["pidKi"]
+                valueVarSetter: (function (v) { LODManager["pidKi"] = v })
+                max: 0.1
+                min: 0.0
+                integral: false
+                numDigits: 8
 
-            anchors.left: parent.left
-            anchors.right: parent.right 
-        }
-        RichSlider {
-            visible: LODManager.automaticLODAdjust
-            showLabel: true
-            label: "LOD PID Num T"
-            valueVar: LODManager["pidT"]
-            valueVarSetter: (function (v) { LODManager["pidT"] = v })
-            max: 10.0
-            min: 0.0
-            integral: true
+                anchors.left: parent.left
+                anchors.right: parent.right 
+            }
+            RichSlider {
+                visible: false && lodRegulatorDetails.visible
+                showLabel: true
+                label: "LOD Kd"
+                valueVar: LODManager["pidKd"]
+                valueVarSetter: (function (v) { LODManager["pidKd"] = v })
+                max: 10.0
+                min: 0.0
+                integral: false
+                numDigits: 3
 
-            anchors.left: parent.left
-            anchors.right: parent.right 
+                anchors.left: parent.left
+                anchors.right: parent.right 
+            }
+            RichSlider {
+                visible: lodRegulatorDetails.visible
+                showLabel: true
+                label: "LOD Kv"
+                valueVar: LODManager["pidKv"]
+                valueVarSetter: (function (v) { LODManager["pidKv"] = v })
+                max: 2.0
+                min: 0.0
+                integral: false
+
+                anchors.left: parent.left
+                anchors.right: parent.right 
+            }
+            RichSlider {
+                visible: lodRegulatorDetails.visible
+                showLabel: true
+                label: "LOD Smooth Scale"
+                valueVar: LODManager["smoothScale"]
+                valueVarSetter: (function (v) { LODManager["smoothScale"] = v })
+                max: 20.0
+                min: 1.0
+                integral: true
+
+                anchors.left: parent.left
+                anchors.right: parent.right 
+            }
         }
     }
 
     Column {
         id: stats
-        spacing: 8
+        spacing: 4
         anchors.right: parent.right
         anchors.left: parent.left
         anchors.top: topHeader.bottom
@@ -146,7 +172,8 @@ Item {
 
         function evalEvenHeight() {
             // Why do we have to do that manually ? cannot seem to find a qml / anchor / layout mode that does that ?
-            return (height - topLine.height - bottomLine.height - spacing * (children.length - 3)) / (children.length - 2)
+            var numPlots = (children.length + (lodRegulatorDetails.visible ? 1 : 0) - 2)
+            return (height - topLine.height - bottomLine.height - spacing * (numPlots - 1)) / (numPlots)
         }
 
         Separator {
@@ -226,6 +253,7 @@ Item {
             ]
         }
         PlotPerf {
+          //  visible: lodRegulatorDetails.visible
             title: "PID Output"
             height: parent.evalEvenHeight()
             object: LODManager
@@ -248,6 +276,11 @@ Item {
                     prop: "pidOd",
                     label: "Od",
                     color: "#FF6666"
+                },
+                {
+                    prop: "pidO",
+                    label: "Output",
+                    color: "#66FF66"
                 }
             ]
         }      
