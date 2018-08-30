@@ -302,52 +302,11 @@ bool Model::updateGeometry() {
         assert(_meshStates.empty());
 
         const FBXGeometry& fbxGeometry = getFBXGeometry();
-        int i = 0;
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
             MeshState state;
             state.clusterDualQuaternions.resize(mesh.clusters.size());
             state.clusterMatrices.resize(mesh.clusters.size());
             _meshStates.push_back(state);
-
-            if (!mesh.blendshapes.isEmpty()) {
-                if (!_blendedVertexBuffers[i]) {
-                    _blendedVertexBuffers[i] = std::make_shared<gpu::Buffer>();
-                }
-                const auto& buffer = _blendedVertexBuffers[i];
-                QVector<NormalType> normalsAndTangents;
-                normalsAndTangents.resize(2 * mesh.normals.size());
-
-                // Interleave normals and tangents
-                // Parallel version for performance
-                tbb::parallel_for(tbb::blocked_range<int>(0, mesh.normals.size()), [&](const tbb::blocked_range<int>& range) {
-                    auto normalsRange = std::make_pair(mesh.normals.begin() + range.begin(), mesh.normals.begin() + range.end());
-                    auto tangentsRange = std::make_pair(mesh.tangents.begin() + range.begin(), mesh.tangents.begin() + range.end());
-                    auto normalsAndTangentsIt = normalsAndTangents.begin() + 2 * range.begin();
-
-                    for (auto normalIt = normalsRange.first, tangentIt = tangentsRange.first;
-                         normalIt != normalsRange.second;
-                         ++normalIt, ++tangentIt) {
-#if FBX_PACK_NORMALS
-                        glm::uint32 finalNormal;
-                        glm::uint32 finalTangent;
-                        buffer_helpers::packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
-#else
-                        const auto& finalNormal = *normalIt;
-                        const auto& finalTangent = *tangentIt;
-#endif
-                        *normalsAndTangentsIt = finalNormal;
-                        ++normalsAndTangentsIt;
-                        *normalsAndTangentsIt = finalTangent;
-                        ++normalsAndTangentsIt;
-                    }
-                });
-                const auto verticesSize = mesh.vertices.size() * sizeof(glm::vec3);
-                buffer->resize(mesh.vertices.size() * sizeof(glm::vec3) + normalsAndTangents.size() * sizeof(NormalType));
-                buffer->setSubData(0, verticesSize, (const gpu::Byte*) mesh.vertices.constData());
-                buffer->setSubData(verticesSize, 2 * mesh.normals.size() * sizeof(NormalType), (const gpu::Byte*) normalsAndTangents.data());
-                mesh.normalsAndTangents = normalsAndTangents;
-            }
-            i++;
         }
         needFullUpdate = true;
         emit rigReady();
@@ -1514,10 +1473,10 @@ void Model::setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geo
         assert(buffer);
         buffer->resize(mesh.vertices.size() * sizeof(glm::vec3) + mesh.normalsAndTangents.size() * sizeof(NormalType));
         buffer->setSubData(0, verticesSize, (gpu::Byte*) vertices.constData() + index * sizeof(glm::vec3));
-        buffer->setSubData(verticesSize, 2 * mesh.normals.size() * sizeof(NormalType), (const gpu::Byte*) normalsAndTangents.data() + normalAndTangentIndex * sizeof(NormalType));
+        buffer->setSubData(verticesSize, mesh.normalsAndTangents.size() * sizeof(NormalType), (const gpu::Byte*) normalsAndTangents.data() + normalAndTangentIndex * sizeof(NormalType));
 
         index += vertexCount;
-        normalAndTangentIndex += 2 * mesh.normals.size();
+        normalAndTangentIndex += mesh.normalsAndTangents.size();
     }
 }
 
@@ -1555,6 +1514,42 @@ const render::ItemIDs& Model::fetchRenderItemIDs() const {
     return _modelMeshRenderItemIDs;
 }
 
+void Model::initializeBlendshapes(const FBXMesh& mesh, int index) {
+    QVector<NormalType> normalsAndTangents;
+    normalsAndTangents.resize(2 * mesh.normals.size());
+
+    // Interleave normals and tangents
+    // Parallel version for performance
+    tbb::parallel_for(tbb::blocked_range<int>(0, mesh.normals.size()), [&](const tbb::blocked_range<int>& range) {
+        auto normalsRange = std::make_pair(mesh.normals.begin() + range.begin(), mesh.normals.begin() + range.end());
+        auto tangentsRange = std::make_pair(mesh.tangents.begin() + range.begin(), mesh.tangents.begin() + range.end());
+        auto normalsAndTangentsIt = normalsAndTangents.begin() + 2 * range.begin();
+
+        for (auto normalIt = normalsRange.first, tangentIt = tangentsRange.first;
+            normalIt != normalsRange.second;
+            ++normalIt, ++tangentIt) {
+#if FBX_PACK_NORMALS
+            glm::uint32 finalNormal;
+            glm::uint32 finalTangent;
+            buffer_helpers::packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
+#else
+            const auto& finalNormal = *normalIt;
+            const auto& finalTangent = *tangentIt;
+#endif
+            *normalsAndTangentsIt = finalNormal;
+            ++normalsAndTangentsIt;
+            *normalsAndTangentsIt = finalTangent;
+            ++normalsAndTangentsIt;
+        }
+    });
+    const auto verticesSize = mesh.vertices.size() * sizeof(glm::vec3);
+    _blendedVertexBuffers[index] = std::make_shared<gpu::Buffer>();
+    _blendedVertexBuffers[index]->resize(mesh.vertices.size() * sizeof(glm::vec3) + normalsAndTangents.size() * sizeof(NormalType));
+    _blendedVertexBuffers[index]->setSubData(0, verticesSize, (const gpu::Byte*) mesh.vertices.constData());
+    _blendedVertexBuffers[index]->setSubData(verticesSize, normalsAndTangents.size() * sizeof(NormalType), (const gpu::Byte*) normalsAndTangents.data());
+    mesh.normalsAndTangents = normalsAndTangents;
+}
+
 void Model::createRenderItemSet() {
     assert(isLoaded());
     const auto& meshes = _renderGeometry->getMeshes();
@@ -1583,7 +1578,7 @@ void Model::createRenderItemSet() {
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
     int shapeID = 0;
     uint32_t numMeshes = (uint32_t)meshes.size();
-    auto fbxGeometry = getFBXGeometry();
+    auto& fbxGeometry = getFBXGeometry();
     for (uint32_t i = 0; i < numMeshes; i++) {
         const auto& mesh = meshes.at(i);
         if (!mesh) {
@@ -1593,8 +1588,8 @@ void Model::createRenderItemSet() {
         // Create the render payloads
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
-            if (fbxGeometry.meshes[i].blendshapes.empty() && !_blendedVertexBuffers[i]) {
-                _blendedVertexBuffers[i] = std::make_shared<gpu::Buffer>();
+            if (!fbxGeometry.meshes[i].blendshapes.empty()) {
+                initializeBlendshapes(fbxGeometry.meshes[i], i);
             }
             _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
             auto material = getGeometry()->getShapeMaterial(shapeID);

@@ -482,6 +482,8 @@ protected:
 
     bool shouldInvalidatePayloadShapeKey(int meshIndex);
 
+    void initializeBlendshapes(const FBXMesh& mesh, int index);
+
 private:
     float _loadingPriority { 0.0f };
 
