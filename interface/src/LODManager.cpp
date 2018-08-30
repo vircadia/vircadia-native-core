@@ -105,9 +105,7 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
 
     auto error = (targetFPS - currentFPS) / targetFPS;
     error = glm::clamp(error, -1.0f, 1.0f);
-    if (error <= 0.0f) {
-    //    error = error * 2.0f;
-    }
+
     auto integral = previous_integral + error * dt;
     glm::clamp(integral, -1.0f, 1.0f);
 

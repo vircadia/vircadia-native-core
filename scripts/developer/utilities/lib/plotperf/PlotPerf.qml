@@ -186,10 +186,10 @@ Item {
             }
 
             function pixelFromVal(val, valScale) {
-                return lineHeight + (height - lineHeight) * (1 - (0.9) * (val - _displayMinValue) / (_displayMaxValue - _displayMinValue));
+                return lineHeight + (height - lineHeight) * (1 - (0.99) * (val - _displayMinValue) / (_displayMaxValue - _displayMinValue));
             }
             function valueFromPixel(pixY) {
-                return _displayMinValue + (((pixY - lineHeight) / (height - lineHeight) - 1) * (_displayMaxValue - _displayMinValue) / (-0.9));
+                return _displayMinValue + (((pixY - lineHeight) / (height - lineHeight) - 1) * (_displayMaxValue - _displayMinValue) / (-0.99));
             }
             function plotValueHistory(ctx, valHistory, color) {
                 var widthStep= width / (valHistory.length - 1);
