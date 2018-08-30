@@ -30,7 +30,7 @@ Rectangle {
         jointsModel.clear();
         for (var i = 0; i < jointNames.length; ++i) {
             var jointName = jointNames[i];
-            if(jointName !== 'LeftHand' && jointName !== 'RightHand') {
+            if (jointName !== 'LeftHand' && jointName !== 'RightHand') {
                 jointsModel.append({'text' : jointName, 'jointIndex' : i});
             }
         }
@@ -287,8 +287,8 @@ Rectangle {
 
                 function set(jointIndex) {
                     notify = false;
-                    for(var i = 0; i < jointsModel.count; ++i) {
-                        if(jointsModel.get(i).jointIndex === jointIndex) {
+                    for (var i = 0; i < jointsModel.count; ++i) {
+                        if (jointsModel.get(i).jointIndex === jointIndex) {
                             currentIndex = i;
                             break;
                         }
