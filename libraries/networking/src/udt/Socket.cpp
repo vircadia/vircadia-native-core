@@ -361,28 +361,6 @@ void Socket::processPendingDatagrams(int) {
     // setup a HifiSockAddr to read into
     HifiSockAddr senderSockAddr;
 
-    // Process unfiltered packets first.
-    for (auto datagramIter = _incomingDatagrams.begin(); datagramIter != _incomingDatagrams.end(); ++datagramIter) {
-        senderSockAddr.setAddress(datagramIter->_senderAddress);
-        senderSockAddr.setPort(datagramIter->_senderPort);
-        auto it = _unfilteredHandlers.find(senderSockAddr);
-        if (it != _unfilteredHandlers.end()) {
-            // we have a registered unfiltered handler for this HifiSockAddr (eg. STUN packet) - call that and return
-            if (it->second) {
-                auto basePacket = BasePacket::fromReceivedPacket(std::move(datagramIter->_datagram),
-                    datagramIter->_datagramLength,
-                    senderSockAddr);
-                basePacket->setReceiveTime(datagramIter->_receiveTime);
-                it->second(std::move(basePacket));
-            }
-
-            datagramIter = _incomingDatagrams.erase(datagramIter);
-            if (datagramIter == _incomingDatagrams.end()) {
-                break;
-            }
-        }
-    }
-
     while (!_incomingDatagrams.empty()) {
         auto& datagram = _incomingDatagrams.front();
         senderSockAddr.setAddress(datagram._senderAddress);
@@ -396,6 +374,20 @@ void Socket::processPendingDatagrams(int) {
         // save information for this packet, in case it is the one that sticks readyRead
         _lastPacketSizeRead = datagramSize;
         _lastPacketSockAddr = senderSockAddr;
+
+        // Process unfiltered packets first.
+        auto it = _unfilteredHandlers.find(senderSockAddr);
+        if (it != _unfilteredHandlers.end()) {
+            // we have a registered unfiltered handler for this HifiSockAddr (eg. STUN packet) - call that and return
+            if (it->second) {
+                auto basePacket = BasePacket::fromReceivedPacket(std::move(datagram._datagram),
+                    datagramSize, senderSockAddr);
+                basePacket->setReceiveTime(receiveTime);
+                it->second(std::move(basePacket));
+            }
+            _incomingDatagrams.pop_front();
+            continue;
+        }
 
         // check if this was a control packet or a data packet
         bool isControlPacket = *reinterpret_cast<uint32_t*>(datagram._datagram.get()) & CONTROL_BIT_MASK;
