@@ -175,7 +175,6 @@ bool SafeLanding::entitiesRenderReady() {
     for (auto entityMapIter = _trackedEntitiesRenderStatus.begin(); entityMapIter != _trackedEntitiesRenderStatus.end(); ++entityMapIter) {
         auto entity = entityMapIter->second;
         bool visuallyReady = entity->isVisuallyReady();
-        qDebug() << "is entityType: " << EntityTypes::getEntityTypeName(entity->getType()) << " " << visuallyReady << " " << entityMapIter->first;
         if (visuallyReady || !entityTree->renderableForEntityId(entityMapIter->first)) {
             entityMapIter = _trackedEntitiesRenderStatus.erase(entityMapIter);
             if (entityMapIter == _trackedEntitiesRenderStatus.end()) {
@@ -185,7 +184,6 @@ bool SafeLanding::entitiesRenderReady() {
             entity->requestRenderUpdate();
         }
     }
-    qDebug() << "list size: -> " << _trackedEntitiesRenderStatus.size();
     return _trackedEntitiesRenderStatus.empty();
 }
 
