@@ -64,6 +64,16 @@ class Model;
 using ModelPointer = std::shared_ptr<Model>;
 using ModelWeakPointer = std::weak_ptr<Model>;
 
+struct SortedTriangleSet {
+    SortedTriangleSet(float distance, TriangleSet* triangleSet, int partIndex, int shapeID, int subMeshIndex) :
+        distance(distance), triangleSet(triangleSet), partIndex(partIndex), shapeID(shapeID), subMeshIndex(subMeshIndex) {}
+
+    float distance;
+    TriangleSet* triangleSet;
+    int partIndex;
+    int shapeID;
+    int subMeshIndex;
+};
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject, public std::enable_shared_from_this<Model>, public scriptable::ModelProvider {
