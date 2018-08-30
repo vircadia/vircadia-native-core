@@ -13,6 +13,7 @@
 #include <glm/detail/type_vec.hpp>
 
 #include "GpuHelpers.h"
+#include "GLMHelpers.h"
 
 namespace graphics {
     class Mesh;
@@ -55,8 +56,8 @@ namespace buffer_helpers {
         tangent = glm::clamp(tangent, -1.0f, 1.0f);
         normal *= 511.0f;
         tangent *= 511.0f;
-        normal = glm::round(normal);
-        tangent = glm::round(tangent);
+        normal = fastRoundf(normal);
+        tangent = fastRoundf(tangent);
 
         glm::detail::i10i10i10i2 normalStruct;
         glm::detail::i10i10i10i2 tangentStruct;

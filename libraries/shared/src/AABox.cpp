@@ -79,33 +79,23 @@ void AABox::setBox(const glm::vec3& corner, const glm::vec3& scale) {
 
 glm::vec3 AABox::getFarthestVertex(const glm::vec3& normal) const {
     glm::vec3 result = _corner;
-    if (normal.x > 0.0f) {
-        result.x += _scale.x;
-    }
-    if (normal.y > 0.0f) {
-        result.y += _scale.y;
-    }
-    if (normal.z > 0.0f) {
-        result.z += _scale.z;
-    }
+    float blend = (float)(normal.x > 0.0f);
+    result.x += blend * _scale.x + (1.0f - blend) * 0.0f;
+    blend = (float)(normal.y > 0.0f);
+    result.y += blend * _scale.y + (1.0f - blend) * 0.0f;
+    blend = (float)(normal.z > 0.0f);
+    result.z += blend * _scale.z + (1.0f - blend) * 0.0f;
     return result;
 }
 
 glm::vec3 AABox::getNearestVertex(const glm::vec3& normal) const {
     glm::vec3 result = _corner;
-
-    if (normal.x < 0.0f) {
-        result.x += _scale.x;
-    }
-
-    if (normal.y < 0.0f) {
-        result.y += _scale.y;
-    }
-
-    if (normal.z < 0.0f) {
-        result.z += _scale.z;
-    }
-
+    float blend = (float)(normal.x < 0.0f);
+    result.x += blend * _scale.x + (1.0f - blend) * 0.0f;
+    blend = (float)(normal.y < 0.0f);
+    result.y += blend * _scale.y + (1.0f - blend) * 0.0f;
+    blend = (float)(normal.z < 0.0f);
+    result.z += blend * _scale.z + (1.0f - blend) * 0.0f;
     return result;
 }
 
@@ -457,28 +447,6 @@ AABox AABox::clamp(float min, float max) const {
     glm::vec3 clampedScale = clampedTopFarLeft - clampedCorner;
 
     return AABox(clampedCorner, clampedScale);
-}
-
-AABox& AABox::operator += (const glm::vec3& point) {
-
-    if (isInvalid()) {
-        _corner = glm::min(_corner, point);
-    } else {
-        glm::vec3 maximum(_corner + _scale);
-        _corner = glm::min(_corner, point);
-        maximum = glm::max(maximum, point);
-        _scale = maximum - _corner;
-    }
-
-    return (*this);
-}
-
-AABox& AABox::operator += (const AABox& box) {
-    if (!box.isInvalid()) {
-        (*this) += box._corner;
-        (*this) += box.calcTopFarLeft();
-    }
-    return (*this);
 }
 
 void AABox::embiggen(float scale) {

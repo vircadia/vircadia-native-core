@@ -173,7 +173,7 @@ void AACubeTests::rayVsParabolaPerformance() {
     glm::vec3 normal;
     auto start = std::chrono::high_resolution_clock::now();
     for (auto& cube : cubes) {
-        if (cube.findRayIntersection(origin, direction, distance, face, normal)) {
+        if (cube.findRayIntersection(origin, direction, 1.0f / direction, distance, face, normal)) {
             numRayHits++;
         }
     }
