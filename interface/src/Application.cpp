@@ -1760,11 +1760,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QTimer* settingsTimer = new QTimer();
     moveToNewNamedThread(settingsTimer, "Settings Thread", [this, settingsTimer]{
         connect(qApp, &Application::beforeAboutToQuit, [this, settingsTimer]{
-            bool autoLogout = Setting::Handle<bool>(AUTO_LOGOUT_SETTING_NAME, false).get();
-            if (autoLogout) {
-                auto accountManager = DependencyManager::get<AccountManager>();
-                accountManager->logout();
-            }
             // Disconnect the signal from the save settings
             QObject::disconnect(settingsTimer, &QTimer::timeout, this, &Application::saveSettings);
             // Stop the settings timer
@@ -2515,6 +2510,11 @@ void Application::cleanupBeforeQuit() {
         DependencyManager::destroy<EntityTreeRenderer>();
     }
     DependencyManager::destroy<ScriptEngines>();
+
+    bool autoLogout = Setting::Handle<bool>(AUTO_LOGOUT_SETTING_NAME, false).get();
+    if (autoLogout) {
+        DependencyManager::get<AccountManager>()->removeAccountFromFile();
+    }
 
     _displayPlugin.reset();
     PluginManager::getInstance()->shutdown();
