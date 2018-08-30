@@ -175,7 +175,14 @@ Rectangle {
             displayNameInput.text = getAvatarsData.displayName;
             currentAvatarSettings = getAvatarsData.currentAvatarSettings;
 
-            updateCurrentAvatarInBookmarks(currentAvatar);
+            var bookmarkAvatarIndex = allAvatars.findAvatarIndexByValue(currentAvatar);
+            if (bookmarkAvatarIndex === -1) {
+                currentAvatar.name = '';
+            } else {
+                currentAvatar.name = allAvatars.get(bookmarkAvatarIndex).name;
+                allAvatars.move(bookmarkAvatarIndex, 0, 1);
+            }
+            view.setPage(0);
         } else if (message.method === 'updateAvatarInBookmarks') {
             updateCurrentAvatarInBookmarks(currentAvatar);
         } else if (message.method === 'selectAvatarEntity') {
