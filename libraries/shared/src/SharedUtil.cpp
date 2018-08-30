@@ -128,9 +128,9 @@ void usecTimestampNowForceClockSkew(qint64 clockSkew) {
     ::usecTimestampNowAdjust = clockSkew;
 }
 
-static std::atomic<qint64> TIME_REFERENCE { 0 }; // in usec
-static std::once_flag usecTimestampNowIsInitialized;
-static QElapsedTimer timestampTimer;
+//static std::atomic<qint64> TIME_REFERENCE { 0 }; // in usec
+//static std::once_flag usecTimestampNowIsInitialized;
+//static QElapsedTimer timestampTimer;
 
 quint64 usecTimestampNow(bool wantDebug) {
     using namespace std::chrono;

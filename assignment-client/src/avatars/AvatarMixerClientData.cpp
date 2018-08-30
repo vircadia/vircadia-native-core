@@ -239,7 +239,7 @@ void AvatarMixerClientData::ignoreOther(const Node* self, const Node* other) {
     }
 }
 
-void AvatarMixerClientData::removeFromRadiusIgnoringSet(SharedNodePointer self, const QUuid& other) {
+void AvatarMixerClientData::removeFromRadiusIgnoringSet(const QUuid& other) {
     _radiusIgnoredOthers.erase(other);
 }
 

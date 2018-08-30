@@ -276,16 +276,16 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     auto avatarPacketList = NLPacketList::create(PacketType::BulkAvatarData);
 
     // Define the minimum bubble size
-    static const glm::vec3 minBubbleSize = avatar.getSensorToWorldScale() * glm::vec3(0.3f, 1.3f, 0.3f);
+    const glm::vec3 minBubbleSize = avatar.getSensorToWorldScale() * glm::vec3(0.3f, 1.3f, 0.3f);
     // Define the scale of the box for the current node
-    glm::vec3 nodeBoxScale = (nodeData->getPosition() - nodeData->getGlobalBoundingBoxCorner()) * 2.0f * avatar.getSensorToWorldScale();
+    glm::vec3 nodeBoxScale = (avatar.getClientGlobalPosition() - avatar.getGlobalBoundingBoxCorner()) * 2.0f * avatar.getSensorToWorldScale();
     // Set up the bounding box for the current node
-    AABox nodeBox(nodeData->getGlobalBoundingBoxCorner(), nodeBoxScale);
+    AABox nodeBox(avatar.getGlobalBoundingBoxCorner(), nodeBoxScale);
     // Clamp the size of the bounding box to a minimum scale
     if (glm::any(glm::lessThan(nodeBoxScale, minBubbleSize))) {
         nodeBox.setScaleStayCentered(minBubbleSize);
     }
-    // Quadruple the scale of both bounding boxes
+    // Quadruple the scale of first bounding box
     nodeBox.embiggen(4.0f);
 
 
@@ -386,7 +386,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
                 if (glm::any(glm::lessThan(otherNodeBoxScale, minBubbleSize))) {
                     otherNodeBox.setScaleStayCentered(minBubbleSize);
                 }
-                // Change the scale of both bounding boxes
+                // Change the scale of other bounding box
                 // (This is an arbitrary number determined empirically)
                 otherNodeBox.embiggen(2.4f);
 
@@ -398,7 +398,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             }
             // Not close enough to ignore
             if (!shouldIgnore) {
-                nodeData->removeFromRadiusIgnoringSet(node, avatarNode->getUUID());
+                nodeData->removeFromRadiusIgnoringSet(avatarNode->getUUID());
             }
         }
 
@@ -439,6 +439,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     auto traitsPacketList = NLPacketList::create(PacketType::BulkAvatarTraits, QByteArray(), true, true);
     while (!sortedAvatars.empty()) {
         const Node* otherNode = sortedAvatars.top().getNode();
+        auto lastEncodeForOther = sortedAvatars.top().getTimestamp();
         sortedAvatars.pop();
         remainingAvatars--;
 
@@ -490,7 +491,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         }
 
         bool includeThisAvatar = true;
-        auto lastEncodeForOther = nodeData->getLastOtherAvatarEncodeTime(otherNode->getUUID());
         QVector<JointData>& lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getUUID());
 
         lastSentJointsForOther.resize(otherAvatar->getJointCount());
@@ -561,8 +561,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
         // use helper to add any changed traits to our packet list
         traitBytesSent += addChangedTraitsToBulkPacket(nodeData, otherNodeData, *traitsPacketList);
-
-        traitsPacketList->getDataSize();
     }
 
     quint64 startPacketSending = usecTimestampNow();

@@ -93,7 +93,7 @@ public:
     glm::vec3 getGlobalBoundingBoxCorner() const { return _avatar ? _avatar->getGlobalBoundingBoxCorner() : glm::vec3(0); }
     bool isRadiusIgnoring(const QUuid& other) const { return _radiusIgnoredOthers.find(other) != _radiusIgnoredOthers.end(); }
     void addToRadiusIgnoringSet(const QUuid& other) { _radiusIgnoredOthers.insert(other); }
-    void removeFromRadiusIgnoringSet(SharedNodePointer self, const QUuid& other);
+    void removeFromRadiusIgnoringSet(const QUuid& other);
     void ignoreOther(SharedNodePointer self, SharedNodePointer other);
     void ignoreOther(const Node* self, const Node* other);
 
