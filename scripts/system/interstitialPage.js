@@ -18,13 +18,13 @@
     var MAX_X_SIZE = 3.8;
     var EPSILON = 0.01;
     var isVisible = false;
-    var STABILITY = 3.0;
     var VOLUME = 0.4;
     var tune = SoundCache.getSound("http://hifi-content.s3.amazonaws.com/alexia/LoadingScreens/crystals_and_voices.wav");
     var sample = null;
     var MAX_LEFT_MARGIN = 1.9;
     var INNER_CIRCLE_WIDTH = 4.7;
     var DEFAULT_Z_OFFSET = 5.45;
+    var previousCameraMode = Camera.mode;
 
     var renderViewTask = Render.getConfig("RenderMainView");
     var toolbar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
@@ -181,7 +181,7 @@
     var TARGET_UPDATE_HZ = 60; // 50hz good enough, but we're using update
     var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ;
     var lastInterval = Date.now();
-    var currentDomain = "";
+    var currentDomain = "no domain";
     var timer = null;
     var target = 0;
 
@@ -228,6 +228,8 @@
             target = 0;
             currentProgress = 0.1;
             connectionToDomainFailed = false;
+            previousCameraMode = Camera.mode;
+            Camera.mode = "first person";
             timer = Script.setTimeout(update, BASIC_TIMER_INTERVAL_MS);
         }
     }
@@ -249,30 +251,42 @@
         print("domain changed: " + domain);
         if (domain !== currentDomain) {
             MyAvatar.restoreAnimation();
-            var name = AddressManager.placename;
+            var name = location.placename;
             domainName = name.charAt(0).toUpperCase() + name.slice(1);
+            var doRequest = true;
+            if (name.length === 0 && location.href === "file:///~/serverless/tutorial.json") {
+                domainName = "Serveless Domain (Tutorial)";
+                doRequest = false;
+            }
             var domainNameLeftMargin = getLeftMargin(domainNameTextID, domainName);
             var textProperties = {
                 text: domainName,
                 leftMargin: domainNameLeftMargin
             };
 
-            var url = Account.metaverseServerURL + '/api/v1/places/' + domain;
-            request({
-                uri: url
-            }, function(error, data) {
-                if (data.status === "success") {
-                    var domainInfo = data.data;
-                    var domainDescriptionText = domainInfo.place.description;
-                    print("domainText: " + domainDescriptionText);
-                    var leftMargin = getLeftMargin(domainDescription, domainDescriptionText);
-                    var domainDescriptionProperties = {
-                        text: domainDescriptionText,
-                        leftMargin: leftMargin
-                    };
-                    Overlays.editOverlay(domainDescription, domainDescriptionProperties);
-                }
-            });
+            if (doRequest) {
+                var url = Account.metaverseServerURL + '/api/v1/places/' + domain;
+                request({
+                    uri: url
+                }, function(error, data) {
+                    if (data.status === "success") {
+                        var domainInfo = data.data;
+                        var domainDescriptionText = domainInfo.place.description;
+                        print("domainText: " + domainDescriptionText);
+                        var leftMargin = getLeftMargin(domainDescription, domainDescriptionText);
+                        var domainDescriptionProperties = {
+                            text: domainDescriptionText,
+                            leftMargin: leftMargin
+                        };
+                        Overlays.editOverlay(domainDescription, domainDescriptionProperties);
+                    }
+                });
+            } else {
+                var domainDescriptionProperties = {
+                    text: ""
+                };
+                Overlays.editOverlay(domainDescription, domainDescriptionProperties);
+            }
 
             var randomIndex = Math.floor(Math.random() * userTips.length);
             var tip = userTips[randomIndex];
@@ -320,8 +334,6 @@
             visible: !physicsEnabled
         };
 
-        // Menu.setIsOptionChecked("Show Overlays", physicsEnabled);
-
         if (!HMD.active) {
             MyAvatar.headOrientation = Quat.multiply(Quat.cancelOutRollAndPitch(MyAvatar.headOrientation), Quat.fromPitchYawRollDegrees(-3.0, 0, 0));
         }
@@ -343,7 +355,9 @@
 
         resetValues();
 
-        Camera.mode = "first person";
+        if (physicsEnabled) {
+            Camera.mode = previousCameraMode;
+        }
     }
 
 
@@ -358,11 +372,6 @@
         Overlays.editOverlay(anchorOverlay, { localPosition: localPosition });
     }
 
-
-    Window.interstitialStatusChanged.connect(function(interstitialMode) {
-        print("------> insterstitial mode changed " + interstitialMode + " <------");
-    });
-
     function update() {
         var physicsEnabled = Window.isPhysicsEnabled();
         var thisInterval = Date.now();
@@ -372,10 +381,13 @@
         var domainLoadingProgressPercentage = Window.domainLoadingProgress();
 
         var progress = MAX_X_SIZE * domainLoadingProgressPercentage;
-        print(progress);
-        //if (progress >= target) {
+        if (progress >= target) {
             target = progress;
-        //}
+        }
+
+        if ((physicsEnabled && (currentProgress < MAX_X_SIZE))) {
+            target = MAX_X_SIZE;
+        }
 
         currentProgress = lerp(currentProgress, target, 0.2);
         var properties = {
@@ -393,6 +405,7 @@
             timer = null;
             return;
         }
+
         timer = Script.setTimeout(update, BASIC_TIMER_INTERVAL_MS);
     }
 
@@ -400,7 +413,6 @@
     location.hostChanged.connect(domainChanged);
     location.lookupResultsFinished.connect(function() {
         Script.setTimeout(function() {
-            print("location connected: " + location.isConnected);
             connectionToDomainFailed = !location.isConnected;
         }, 1200);
     });
