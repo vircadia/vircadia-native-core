@@ -2305,7 +2305,11 @@ void MyAvatar::initHeadBones() {
         neckJointIndex = _skeletonModel->getFBXGeometry().neckJointIndex;
     }
     if (neckJointIndex == -1) {
-        return;
+        neckJointIndex = (_skeletonModel->getFBXGeometry().headJointIndex - 1);
+        if (neckJointIndex < 0) {
+            // return if the head is not even there. can't cauterize!!
+            return;
+        }
     }
     _headBoneSet.clear();
     std::queue<int> q;
