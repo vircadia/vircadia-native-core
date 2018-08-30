@@ -135,7 +135,7 @@ public:
 
     /// Sets blended vertices computed in a separate thread.
     void setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geometry,
-        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, const QVector<glm::vec3>& tangents);
+        const QVector<glm::vec3>& vertices, const QVector<NormalType>& normalsAndTangents);
 
     bool isLoaded() const { return (bool)_renderGeometry && _renderGeometry->isGeometryLoaded(); }
     bool isAddedToScene() const { return _addedToScene; }
@@ -413,7 +413,7 @@ protected:
 
     QUrl _url;
 
-    gpu::Buffers _blendedVertexBuffers;
+    std::unordered_map<int, gpu::BufferPointer> _blendedVertexBuffers;
 
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
 
@@ -503,9 +503,12 @@ public:
     /// Adds the specified model to the list requiring vertex blends.
     void noteRequiresBlend(ModelPointer model);
 
+    bool shouldComputeBlendshapes() { return _computeBlendshapes; }
+
 public slots:
     void setBlendedVertices(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry,
-        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, const QVector<glm::vec3>& tangents);
+        const QVector<glm::vec3>& vertices, const QVector<NormalType>& normalsAndTangents);
+    void setComputeBlendshapes(bool computeBlendshapes) { _computeBlendshapes = computeBlendshapes; }
 
 private:
     using Mutex = std::mutex;
@@ -517,6 +520,8 @@ private:
     std::set<ModelWeakPointer, std::owner_less<ModelWeakPointer>> _modelsRequiringBlends;
     int _pendingBlenders;
     Mutex _mutex;
+
+    bool _computeBlendshapes { true };
 };
 
 
