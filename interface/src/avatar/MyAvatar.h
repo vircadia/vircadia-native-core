@@ -931,7 +931,8 @@ public:
     * @returns {object[]}
     */
     Q_INVOKABLE QVariantList getAvatarEntitiesVariant();
-    void removeAvatarEntities(const std::function<bool(const QUuid& entityID)>& condition = {});
+    void clearAvatarEntities();
+    void removeWearableAvatarEntities();
 
     /**jsdoc
      * @function MyAvatar.isFlying
@@ -1781,5 +1782,7 @@ void audioListenModeFromScriptValue(const QScriptValue& object, AudioListenerMod
 
 QScriptValue driveKeysToScriptValue(QScriptEngine* engine, const MyAvatar::DriveKeys& driveKeys);
 void driveKeysFromScriptValue(const QScriptValue& object, MyAvatar::DriveKeys& driveKeys);
+
+bool isWearableEntity(const EntityItemPointer& entity);
 
 #endif // hifi_MyAvatar_h
