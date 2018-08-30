@@ -10,6 +10,7 @@
 
 #include "TransformNode.h"
 
+// TODO: Remove this class when Picks are converted to SpatiallyNestables
 class PickTransformNode : public TransformNode {
 public:
     PickTransformNode(unsigned int uid);
