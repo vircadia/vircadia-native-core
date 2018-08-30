@@ -13,10 +13,12 @@
 #include "avatar/AvatarManager.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "DependencyManager.h"
+#include "PickManager.h"
 
 PickResultPointer RayPick::getEntityIntersection(const PickRay& pick) {
+    bool precisionPicking = !(getFilter().doesPickCoarse() || DependencyManager::get<PickManager>()->getForceCoarsePicking());
     RayToEntityIntersectionResult entityRes =
-        DependencyManager::get<EntityScriptingInterface>()->findRayIntersectionVector(pick, !getFilter().doesPickCoarse(),
+        DependencyManager::get<EntityScriptingInterface>()->findRayIntersectionVector(pick, precisionPicking,
             getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>(), !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());
     if (entityRes.intersects) {
         return std::make_shared<RayPickResult>(IntersectionType::ENTITY, entityRes.entityID, entityRes.distance, entityRes.intersection, pick, entityRes.surfaceNormal, entityRes.extraInfo);
@@ -26,8 +28,9 @@ PickResultPointer RayPick::getEntityIntersection(const PickRay& pick) {
 }
 
 PickResultPointer RayPick::getOverlayIntersection(const PickRay& pick) {
+    bool precisionPicking = !(getFilter().doesPickCoarse() || DependencyManager::get<PickManager>()->getForceCoarsePicking());
     RayToOverlayIntersectionResult overlayRes =
-        qApp->getOverlays().findRayIntersectionVector(pick, !getFilter().doesPickCoarse(),
+        qApp->getOverlays().findRayIntersectionVector(pick, precisionPicking,
             getIncludeItemsAs<OverlayID>(), getIgnoreItemsAs<OverlayID>(), !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());
     if (overlayRes.intersects) {
         return std::make_shared<RayPickResult>(IntersectionType::OVERLAY, overlayRes.overlayID, overlayRes.distance, overlayRes.intersection, pick, overlayRes.surfaceNormal, overlayRes.extraInfo);

@@ -180,7 +180,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 float distance;
                 BoxFace face;
                 glm::vec3 normal;
-                boundingBox.findRayIntersection(cameraPosition, direction, distance, face, normal);
+                boundingBox.findRayIntersection(cameraPosition, direction, 1.0f / direction, distance, face, normal);
                 float offsetAngle = -CONTEXT_OVERLAY_OFFSET_ANGLE;
                 if (event.getID() == 1) { // "1" is left hand
                     offsetAngle *= -1.0f;

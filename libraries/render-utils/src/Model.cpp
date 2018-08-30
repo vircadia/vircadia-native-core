@@ -388,17 +388,20 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
     // we can use the AABox's intersection by mapping our origin and direction into the model frame
     // and testing intersection there.
-    if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face, surfaceNormal)) {
+    if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, 1.0f / modelFrameDirection, distance, face, surfaceNormal)) {
         QMutexLocker locker(&_mutex);
 
-        float bestDistance = std::numeric_limits<float>::max();
+        float bestDistance = FLT_MAX;
+        BoxFace bestFace;
         Triangle bestModelTriangle;
         Triangle bestWorldTriangle;
+        glm::vec3 bestWorldIntersectionPoint;
+        glm::vec3 bestMeshIntersectionPoint;
+        int bestPartIndex = 0;
+        int bestShapeID = 0;
         int bestSubMeshIndex = 0;
 
-        int subMeshIndex = 0;
         const FBXGeometry& geometry = getFBXGeometry();
-
         if (!_triangleSetsValid) {
             calculateTriangleSets(geometry);
         }
@@ -409,31 +412,30 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
         glm::vec3 meshFrameOrigin = glm::vec3(worldToMeshMatrix * glm::vec4(origin, 1.0f));
         glm::vec3 meshFrameDirection = glm::vec3(worldToMeshMatrix * glm::vec4(direction, 0.0f));
+        glm::vec3 meshFrameInvDirection = 1.0f / meshFrameDirection;
 
         int shapeID = 0;
+        int subMeshIndex = 0;
+
+        std::vector<SortedTriangleSet> sortedTriangleSets;
         for (auto& meshTriangleSets : _modelSpaceMeshTriangleSets) {
             int partIndex = 0;
-            for (auto &partTriangleSet : meshTriangleSets) {
-                float triangleSetDistance;
-                BoxFace triangleSetFace;
-                Triangle triangleSetTriangle;
-                if (partTriangleSet.findRayIntersection(meshFrameOrigin, meshFrameDirection, triangleSetDistance, triangleSetFace, triangleSetTriangle, pickAgainstTriangles, allowBackface)) {
-                    glm::vec3 meshIntersectionPoint = meshFrameOrigin + (meshFrameDirection * triangleSetDistance);
-                    glm::vec3 worldIntersectionPoint = glm::vec3(meshToWorldMatrix * glm::vec4(meshIntersectionPoint, 1.0f));
-                    float worldDistance = glm::distance(origin, worldIntersectionPoint);
-
-                    if (worldDistance < bestDistance) {
-                        bestDistance = worldDistance;
-                        intersectedSomething = true;
-                        face = triangleSetFace;
-                        bestModelTriangle = triangleSetTriangle;
-                        bestWorldTriangle = triangleSetTriangle * meshToWorldMatrix;
-                        extraInfo["worldIntersectionPoint"] = vec3toVariant(worldIntersectionPoint);
-                        extraInfo["meshIntersectionPoint"] = vec3toVariant(meshIntersectionPoint);
-                        extraInfo["partIndex"] = partIndex;
-                        extraInfo["shapeID"] = shapeID;
-                        bestSubMeshIndex = subMeshIndex;
+            for (auto& partTriangleSet : meshTriangleSets) {
+                float priority = FLT_MAX;
+                if (partTriangleSet.getBounds().contains(meshFrameOrigin)) {
+                    priority = 0.0f;
+                } else {
+                    float partBoundDistance = FLT_MAX;
+                    BoxFace partBoundFace;
+                    glm::vec3 partBoundNormal;
+                    if (partTriangleSet.getBounds().findRayIntersection(meshFrameOrigin, meshFrameDirection, meshFrameInvDirection,
+                                                                        partBoundDistance, partBoundFace, partBoundNormal)) {
+                        priority = partBoundDistance;
                     }
+                }
+
+                if (priority < FLT_MAX) {
+                    sortedTriangleSets.emplace_back(priority, &partTriangleSet, partIndex, shapeID, subMeshIndex);
                 }
                 partIndex++;
                 shapeID++;
@@ -441,9 +443,47 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
             subMeshIndex++;
         }
 
+        if (sortedTriangleSets.size() > 1) {
+            static auto comparator = [](const SortedTriangleSet& left, const SortedTriangleSet& right) { return left.distance < right.distance; };
+            std::sort(sortedTriangleSets.begin(), sortedTriangleSets.end(), comparator);
+        }
+
+        for (auto it = sortedTriangleSets.begin(); it != sortedTriangleSets.end(); ++it) {
+            const SortedTriangleSet& sortedTriangleSet = *it;
+            // We can exit once triangleSetDistance > bestDistance
+            if (sortedTriangleSet.distance > bestDistance) {
+                break;
+            }
+            float triangleSetDistance = FLT_MAX;
+            BoxFace triangleSetFace;
+            Triangle triangleSetTriangle;
+            if (sortedTriangleSet.triangleSet->findRayIntersection(meshFrameOrigin, meshFrameDirection, meshFrameInvDirection, triangleSetDistance, triangleSetFace,
+                                                                   triangleSetTriangle, pickAgainstTriangles, allowBackface)) {
+                if (triangleSetDistance < bestDistance) {
+                    bestDistance = triangleSetDistance;
+                    intersectedSomething = true;
+                    bestFace = triangleSetFace;
+                    bestModelTriangle = triangleSetTriangle;
+                    bestWorldTriangle = triangleSetTriangle * meshToWorldMatrix;
+                    glm::vec3 meshIntersectionPoint = meshFrameOrigin + (meshFrameDirection * triangleSetDistance);
+                    glm::vec3 worldIntersectionPoint = glm::vec3(meshToWorldMatrix * glm::vec4(meshIntersectionPoint, 1.0f));
+                    bestWorldIntersectionPoint = worldIntersectionPoint;
+                    bestMeshIntersectionPoint = meshIntersectionPoint;
+                    bestPartIndex = sortedTriangleSet.partIndex;
+                    bestShapeID = sortedTriangleSet.shapeID;
+                    bestSubMeshIndex = sortedTriangleSet.subMeshIndex;
+                }
+            }
+        }
+
         if (intersectedSomething) {
             distance = bestDistance;
+            face = bestFace;
             surfaceNormal = bestWorldTriangle.getNormal();
+            extraInfo["worldIntersectionPoint"] = vec3toVariant(bestWorldIntersectionPoint);
+            extraInfo["meshIntersectionPoint"] = vec3toVariant(bestMeshIntersectionPoint);
+            extraInfo["partIndex"] = bestPartIndex;
+            extraInfo["shapeID"] = bestShapeID;
             if (pickAgainstTriangles) {
                 extraInfo["subMeshIndex"] = bestSubMeshIndex;
                 extraInfo["subMeshName"] = geometry.getModelNameOfMesh(bestSubMeshIndex);
@@ -495,13 +535,16 @@ bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, co
         QMutexLocker locker(&_mutex);
 
         float bestDistance = FLT_MAX;
+        BoxFace bestFace;
         Triangle bestModelTriangle;
         Triangle bestWorldTriangle;
+        glm::vec3 bestWorldIntersectionPoint;
+        glm::vec3 bestMeshIntersectionPoint;
+        int bestPartIndex = 0;
+        int bestShapeID = 0;
         int bestSubMeshIndex = 0;
 
-        int subMeshIndex = 0;
         const FBXGeometry& geometry = getFBXGeometry();
-
         if (!_triangleSetsValid) {
             calculateTriangleSets(geometry);
         }
@@ -515,30 +558,27 @@ bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, co
         glm::vec3 meshFrameAcceleration = glm::vec3(worldToMeshMatrix * glm::vec4(acceleration, 0.0f));
 
         int shapeID = 0;
+        int subMeshIndex = 0;
+
+        std::vector<SortedTriangleSet> sortedTriangleSets;
         for (auto& meshTriangleSets : _modelSpaceMeshTriangleSets) {
             int partIndex = 0;
-            for (auto &partTriangleSet : meshTriangleSets) {
-                float triangleSetDistance;
-                BoxFace triangleSetFace;
-                Triangle triangleSetTriangle;
-                if (partTriangleSet.findParabolaIntersection(meshFrameOrigin, meshFrameVelocity, meshFrameAcceleration,
-                    triangleSetDistance, triangleSetFace, triangleSetTriangle, pickAgainstTriangles, allowBackface)) {
-                    if (triangleSetDistance < bestDistance) {
-                        bestDistance = triangleSetDistance;
-                        intersectedSomething = true;
-                        face = triangleSetFace;
-                        bestModelTriangle = triangleSetTriangle;
-                        bestWorldTriangle = triangleSetTriangle * meshToWorldMatrix;
-                        glm::vec3 meshIntersectionPoint = meshFrameOrigin + meshFrameVelocity * triangleSetDistance +
-                            0.5f * meshFrameAcceleration * triangleSetDistance * triangleSetDistance;
-                        glm::vec3 worldIntersectionPoint = origin + velocity * triangleSetDistance +
-                            0.5f * acceleration * triangleSetDistance * triangleSetDistance;
-                        extraInfo["worldIntersectionPoint"] = vec3toVariant(worldIntersectionPoint);
-                        extraInfo["meshIntersectionPoint"] = vec3toVariant(meshIntersectionPoint);
-                        extraInfo["partIndex"] = partIndex;
-                        extraInfo["shapeID"] = shapeID;
-                        bestSubMeshIndex = subMeshIndex;
+            for (auto& partTriangleSet : meshTriangleSets) {
+                float priority = FLT_MAX;
+                if (partTriangleSet.getBounds().contains(meshFrameOrigin)) {
+                    priority = 0.0f;
+                } else {
+                    float partBoundDistance = FLT_MAX;
+                    BoxFace partBoundFace;
+                    glm::vec3 partBoundNormal;
+                    if (partTriangleSet.getBounds().findParabolaIntersection(meshFrameOrigin, meshFrameVelocity, meshFrameAcceleration,
+                                                                             partBoundDistance, partBoundFace, partBoundNormal)) {
+                        priority = partBoundDistance;
                     }
+                }
+
+                if (priority < FLT_MAX) {
+                    sortedTriangleSets.emplace_back(priority, &partTriangleSet, partIndex, shapeID, subMeshIndex);
                 }
                 partIndex++;
                 shapeID++;
@@ -546,9 +586,51 @@ bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, co
             subMeshIndex++;
         }
 
+        if (sortedTriangleSets.size() > 1) {
+            static auto comparator = [](const SortedTriangleSet& left, const SortedTriangleSet& right) { return left.distance < right.distance; };
+            std::sort(sortedTriangleSets.begin(), sortedTriangleSets.end(), comparator);
+        }
+
+        for (auto it = sortedTriangleSets.begin(); it != sortedTriangleSets.end(); ++it) {
+            const SortedTriangleSet& sortedTriangleSet = *it;
+            // We can exit once triangleSetDistance > bestDistance
+            if (sortedTriangleSet.distance > bestDistance) {
+                break;
+            }
+            float triangleSetDistance = FLT_MAX;
+            BoxFace triangleSetFace;
+            Triangle triangleSetTriangle;
+            if (sortedTriangleSet.triangleSet->findParabolaIntersection(meshFrameOrigin, meshFrameVelocity, meshFrameAcceleration,
+                                                                        triangleSetDistance, triangleSetFace, triangleSetTriangle,
+                                                                        pickAgainstTriangles, allowBackface)) {
+                if (triangleSetDistance < bestDistance) {
+                    bestDistance = triangleSetDistance;
+                    intersectedSomething = true;
+                    bestFace = triangleSetFace;
+                    bestModelTriangle = triangleSetTriangle;
+                    bestWorldTriangle = triangleSetTriangle * meshToWorldMatrix;
+                    glm::vec3 meshIntersectionPoint = meshFrameOrigin + meshFrameVelocity * triangleSetDistance +
+                        0.5f * meshFrameAcceleration * triangleSetDistance * triangleSetDistance;
+                    glm::vec3 worldIntersectionPoint = origin + velocity * triangleSetDistance +
+                        0.5f * acceleration * triangleSetDistance * triangleSetDistance;
+                    bestWorldIntersectionPoint = worldIntersectionPoint;
+                    bestMeshIntersectionPoint = meshIntersectionPoint;
+                    bestPartIndex = sortedTriangleSet.partIndex;
+                    bestShapeID = sortedTriangleSet.shapeID;
+                    bestSubMeshIndex = sortedTriangleSet.subMeshIndex;
+                    // These sets can overlap, so we can't exit early if we find something
+                }
+            }
+        }
+
         if (intersectedSomething) {
             parabolicDistance = bestDistance;
+            face = bestFace;
             surfaceNormal = bestWorldTriangle.getNormal();
+            extraInfo["worldIntersectionPoint"] = vec3toVariant(bestWorldIntersectionPoint);
+            extraInfo["meshIntersectionPoint"] = vec3toVariant(bestMeshIntersectionPoint);
+            extraInfo["partIndex"] = bestPartIndex;
+            extraInfo["shapeID"] = bestShapeID;
             if (pickAgainstTriangles) {
                 extraInfo["subMeshIndex"] = bestSubMeshIndex;
                 extraInfo["subMeshName"] = geometry.getModelNameOfMesh(bestSubMeshIndex);
