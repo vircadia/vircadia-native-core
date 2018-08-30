@@ -60,6 +60,37 @@ void ParabolaPointer::editRenderStatePath(const std::string& state, const QVaria
     }
 }
 
+QVariantMap ParabolaPointer::toVariantMap() const {
+    QVariantMap qVariantMap;
+
+    QVariantList qRenderStates;
+    for (auto iter = _renderStates.cbegin(); iter != _renderStates.cend(); iter++) {
+        auto renderState = iter->second;
+        QVariantMap qRenderState;
+        qRenderState["name"] = iter->first.c_str();
+        qRenderState["start"] = renderState->getStartID();
+        qRenderState["end"] = renderState->getEndID();
+        qRenderStates.append(qRenderState);
+    }
+    qVariantMap["renderStates"] = qRenderStates;
+
+    QVariantList qDefaultRenderStates;
+    for (auto iter = _defaultRenderStates.cbegin(); iter != _defaultRenderStates.cend(); iter++) {
+        float distance = iter->second.first;
+        auto defaultRenderState = iter->second.second;
+        QVariantMap qDefaultRenderState;
+
+        qDefaultRenderState["name"] = iter->first.c_str();
+        qDefaultRenderState["distance"] = distance;
+        qDefaultRenderState["start"] = defaultRenderState->getStartID();
+        qDefaultRenderState["end"] = defaultRenderState->getEndID();
+        qDefaultRenderStates.append(qDefaultRenderState);
+    }
+    qVariantMap["defaultRenderStates"] = qDefaultRenderStates;
+
+    return qVariantMap;
+}
+
 glm::vec3 ParabolaPointer::getPickOrigin(const PickResultPointer& pickResult) const {
     auto parabolaPickResult = std::static_pointer_cast<ParabolaPickResult>(pickResult);
     return (parabolaPickResult ? vec3FromVariant(parabolaPickResult->pickVariant["origin"]) : glm::vec3(0.0f));

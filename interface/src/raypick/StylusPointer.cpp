@@ -203,6 +203,10 @@ void StylusPointer::setRenderState(const std::string& state) {
     }
 }
 
+QVariantMap StylusPointer::toVariantMap() const {
+    return QVariantMap();
+}
+
 glm::vec3 StylusPointer::findIntersection(const PickedObject& pickedObject, const glm::vec3& origin, const glm::vec3& direction) {
     switch (pickedObject.type) {
         case ENTITY:
