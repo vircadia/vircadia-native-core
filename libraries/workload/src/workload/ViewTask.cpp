@@ -135,15 +135,15 @@ glm::vec2 Regulator::run(const Timing_ns& deltaTime, const Timing_ns& measuredTi
     float noise = sqrtf(_measuredTimeNoiseSquared);
 
     // check budget
-    float budgetDelta = _budget.count() - _measuredTimeAverage;
-    if (abs(budgetDelta) < noise) {
-        // budget is within the noise
+    float offsetFromTarget = _budget.count() - _measuredTimeAverage;
+    if (fabsf(offsetFromTarget) < noise) {
+        // budget is within the noise --> do nothing
         return currentFrontBack;
     }
 
-    // clamp the step factor
-    glm::vec2 stepDelta = budgetDelta < 0.0f ? -_relativeStepDown : _relativeStepUp;
-
+    // compute response
+    glm::vec2 stepDelta = offsetFromTarget < 0.0f ? -_relativeStepDown : _relativeStepUp;
+    stepDelta *= glm::min(1.0f, (fabsf(offsetFromTarget) - noise) / noise); // ease out of "do nothing"
     return currentFrontBack * (1.0f + stepDelta);
 }
 
