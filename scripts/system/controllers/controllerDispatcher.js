@@ -37,20 +37,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         PROFILE = true;
     }
 
-    var TABLET_GRABBABLE_SELECTION_NAME = "tabletGrabbableSelection";
-    var TABLET_GRABBABLE_SELECTION_STYLE = {
-        outlineUnoccludedColor: { red: 0, green: 180, blue: 239 }, // #00b4ef
-        outlineUnoccludedAlpha: 1,
-        outlineOccludedColor: { red: 0, green: 0, blue: 0 },
-        outlineOccludedAlpha: 0,
-        fillUnoccludedColor: { red: 0, green: 0, blue: 0 },
-        fillUnoccludedAlpha: 0,
-        fillOccludedColor: { red: 0, green: 0, blue: 0 },
-        fillOccludedAlpha: 0,
-        outlineWidth: 2,
-        isOutlineSmooth: false
-    };
-
     function ControllerDispatcher() {
         var _this = this;
         this.lastInterval = Date.now();
@@ -182,8 +168,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             Script.setTimeout(_this.update, BASIC_TIMER_INTERVAL_MS);
         };
 
-        this.isTabletNearGrabbable = false;
-
         this.updateInternal = function () {
             if (PROFILE) {
                 Script.beginProfileRange("dispatch.pre");
@@ -222,7 +206,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
             // find 3d overlays near each hand
             var nearbyOverlayIDs = [];
-            var isTabletNearGrabbable = false;
             var h;
             for (h = LEFT_HAND; h <= RIGHT_HAND; h++) {
                 if (controllerLocations[h].valid) {
@@ -235,25 +218,11 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                         var bDistance = Vec3.distance(bPosition, controllerLocations[h].position);
                         return aDistance - bDistance;
                     });
-                    if (HMD.tabletID && nearbyOverlays.indexOf(HMD.tabletID) !== -1) {
-                        isTabletNearGrabbable = true;
-                    }
                     nearbyOverlayIDs.push(nearbyOverlays);
                 } else {
                     nearbyOverlayIDs.push([]);
                 }
             }
-
-            // Highlight tablet if it is near-grabbable.
-            if (isTabletNearGrabbable !== _this.isTabletNearGrabbable) {
-                if (isTabletNearGrabbable) {
-                    Selection.addToSelectedItemsList(TABLET_GRABBABLE_SELECTION_NAME, "overlay", HMD.tabletID);
-                } else {
-                    Selection.removeFromSelectedItemsList(TABLET_GRABBABLE_SELECTION_NAME, "overlay", HMD.tabletID);
-                }
-                _this.isTabletNearGrabbable = isTabletNearGrabbable;
-            }
-
 
             // find entities near each hand
             var nearbyEntityProperties = [[], []];
@@ -540,24 +509,9 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     Overlays.mousePressOnOverlay.connect(mousePress);
     Entities.mousePressOnEntity.connect(mousePress);
 
-    function onDisplayModeChanged() {
-        if (HMD.active) {
-            Selection.enableListHighlight(TABLET_GRABBABLE_SELECTION_NAME, TABLET_GRABBABLE_SELECTION_STYLE);
-        } else {
-            Selection.disableListHighlight(TABLET_GRABBABLE_SELECTION_NAME);
-            Selection.clearSelectedItemsList(TABLET_GRABBABLE_SELECTION_NAME);
-        }
-    }
-
-    HMD.displayModeChanged.connect(onDisplayModeChanged);
-    HMD.mountedChanged.connect(onDisplayModeChanged);
-
     var controllerDispatcher = new ControllerDispatcher();
     Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
     Messages.messageReceived.connect(controllerDispatcher.handleHandMessage);
-    Script.scriptEnding.connect(function () {
-        controllerDispatcher.cleanup();
-        Selection.disableListHighlight(TABLET_GRABBABLE_SELECTION_NAME);
-    });
+    Script.scriptEnding.connect(controllerDispatcher.cleanup);
     Script.setTimeout(controllerDispatcher.update, BASIC_TIMER_INTERVAL_MS);
 }());
