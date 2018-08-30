@@ -46,6 +46,7 @@
 #include "InterfaceLogging.h"
 #include "LocationBookmarks.h"
 #include "DeferredLightingEffect.h"
+#include "PickManager.h"
 
 #include "AmbientOcclusionEffect.h"
 #include "RenderShadowTask.h"
@@ -751,8 +752,16 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletConstraints, 0, false, qApp, SLOT(setShowBulletConstraints(bool)));
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletConstraintLimits, 0, false, qApp, SLOT(setShowBulletConstraintLimits(bool)));
 
+    // Developer > Picking >>>
+    MenuWrapper* pickingOptionsMenu = developerMenu->addMenu("Picking");
+    addCheckableActionToQMenuAndActionHash(pickingOptionsMenu, MenuOption::ForceCoarsePicking, 0, false,
+        DependencyManager::get<PickManager>().data(), SLOT(setForceCoarsePicking(bool)));
+
     // Developer > Crash >>>
     MenuWrapper* crashMenu = developerMenu->addMenu("Crash");
+  
+    // Developer > Crash > Display Crash Options
+    addCheckableActionToQMenuAndActionHash(crashMenu, MenuOption::DisplayCrashOptions, 0, true);
     
     // Developer > Crash > Display Crash Options
     addCheckableActionToQMenuAndActionHash(crashMenu, MenuOption::DisplayCrashOptions, 0, true);

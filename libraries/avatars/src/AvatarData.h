@@ -1565,7 +1565,7 @@ class RayToAvatarIntersectionResult {
 public:
     bool intersects { false };
     QUuid avatarID;
-    float distance { 0.0f };
+    float distance { FLT_MAX };
     BoxFace face;
     glm::vec3 intersection;
     glm::vec3 surfaceNormal;

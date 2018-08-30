@@ -64,7 +64,9 @@ void StylusPointer::updateVisuals(const PickResultPointer& pickResult) {
             return;
         }
     }
-    hide();
+    if (_showing) {
+        hide();
+    }
 }
 
 void StylusPointer::show(const StylusTip& tip) {
@@ -80,6 +82,7 @@ void StylusPointer::show(const StylusTip& tip) {
         props["visible"] = true;
         qApp->getOverlays().editOverlay(_stylusOverlay, props);
     }
+    _showing = true;
 }
 
 void StylusPointer::hide() {
@@ -88,6 +91,7 @@ void StylusPointer::hide() {
         props.insert("visible", false);
         qApp->getOverlays().editOverlay(_stylusOverlay, props);
     }
+    _showing = false;
 }
 
 bool StylusPointer::shouldHover(const PickResultPointer& pickResult) {
