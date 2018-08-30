@@ -100,8 +100,12 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
 
     float currentFPS = (float)MSECS_PER_SECOND / _avgRenderTime;
     float currentSmoothFPS = (float)MSECS_PER_SECOND / _smoothRenderTime;
+ 
+    // Compute the Variance of the FPS signal (FPS - smouthFPS)^2
+    // Also scale it by a percentage for fine tuning (default is 100%)
     float currentVarianceFPS = (currentSmoothFPS - currentFPS);
     currentVarianceFPS *= currentVarianceFPS;
+    currentVarianceFPS *= _pidCoefs.w;
 
     auto dt = realTimeDelta;
 
@@ -114,11 +118,22 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
 
     auto errorSquare = smoothError * smoothError;
 
-    auto noiseCoef = (errorSquare <  _pidCoefs.w * currentVarianceFPS ? 0.0f : 1.0f);
+    // Define a noiseCoef that is trying to adjust the error to the FPS target value based on its strength
+    // relative to the current Variance of the FPS signal.
+    // If the error is within the variance, just set to 0.
+    // if its within 2x the variance scale the control
+    // and full control if error is bigger than 2x variance
+    auto noiseCoef = 1.0f;
+    if (errorSquare < currentVarianceFPS) {
+        noiseCoef = 0.0f;
+    } else if (errorSquare < 2.0f * currentVarianceFPS) {
+        noiseCoef = (errorSquare - currentVarianceFPS) / currentVarianceFPS;
+    }
 
-    auto normalizedError = noiseCoef * smoothError / targetFPS;
-
-    auto error = glm::clamp(normalizedError, -1.0f, 1.0f);
+    // The final normalized error is the the error to the FPS target, weighted by the noiseCoef, then normailzed by the target FPS.
+    // it s also clamped in the [-1, 1] range
+    auto error = noiseCoef * smoothError / targetFPS;
+    error = glm::clamp(error, -1.0f, 1.0f);
 
     auto integral = previous_integral + error * dt;
     glm::clamp(integral, -1.0f, 1.0f);
