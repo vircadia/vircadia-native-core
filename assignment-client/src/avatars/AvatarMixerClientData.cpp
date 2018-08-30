@@ -218,6 +218,10 @@ uint16_t AvatarMixerClientData::getLastBroadcastSequenceNumber(const QUuid& node
 }
 
 void AvatarMixerClientData::ignoreOther(SharedNodePointer self, SharedNodePointer other) {
+    ignoreOther(self.data(), other.data());
+}
+
+void AvatarMixerClientData::ignoreOther(const Node* self, const Node* other) {
     if (!isRadiusIgnoring(other->getUUID())) {
         addToRadiusIgnoringSet(other->getUUID());
         auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason), true);

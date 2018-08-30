@@ -95,6 +95,7 @@ public:
     void addToRadiusIgnoringSet(const QUuid& other) { _radiusIgnoredOthers.insert(other); }
     void removeFromRadiusIgnoringSet(SharedNodePointer self, const QUuid& other);
     void ignoreOther(SharedNodePointer self, SharedNodePointer other);
+    void ignoreOther(const Node* self, const Node* other);
 
     void readViewFrustumPacket(const QByteArray& message);
 
