@@ -87,6 +87,43 @@ void FIR_1x4_AVX2(float* src, float* dst0, float* dst1, float* dst2, float* dst3
     _mm256_zeroupper();
 }
 
+// 4 channel planar to interleaved
+void interleave_4x4_AVX2(float* src0, float* src1, float* src2, float* src3, float* dst, int numFrames) {
+
+    assert(numFrames % 8 == 0);
+
+    for (int i = 0; i < numFrames; i += 8) {
+
+        __m256 x0 = _mm256_loadu_ps(&src0[i]);
+        __m256 x1 = _mm256_loadu_ps(&src1[i]);
+        __m256 x2 = _mm256_loadu_ps(&src2[i]);
+        __m256 x3 = _mm256_loadu_ps(&src3[i]);
+
+        // interleave (4x4 matrix transpose)
+        __m256 t0 = _mm256_unpacklo_ps(x0, x1);
+        __m256 t1 = _mm256_unpackhi_ps(x0, x1);
+        __m256 t2 = _mm256_unpacklo_ps(x2, x3);
+        __m256 t3 = _mm256_unpackhi_ps(x2, x3);
+
+        x0 = _mm256_shuffle_ps(t0, t2, _MM_SHUFFLE(1,0,1,0));
+        x1 = _mm256_shuffle_ps(t0, t2, _MM_SHUFFLE(3,2,3,2));
+        x2 = _mm256_shuffle_ps(t1, t3, _MM_SHUFFLE(1,0,1,0));
+        x3 = _mm256_shuffle_ps(t1, t3, _MM_SHUFFLE(3,2,3,2));
+
+        t0 = _mm256_permute2f128_ps(x0, x1, 0x20);
+        t1 = _mm256_permute2f128_ps(x2, x3, 0x20);
+        t2 = _mm256_permute2f128_ps(x0, x1, 0x31);
+        t3 = _mm256_permute2f128_ps(x2, x3, 0x31);
+
+        _mm256_storeu_ps(&dst[4*i+0], t0);
+        _mm256_storeu_ps(&dst[4*i+8], t1);
+        _mm256_storeu_ps(&dst[4*i+16], t2);
+        _mm256_storeu_ps(&dst[4*i+24], t3);
+    }
+
+    _mm256_zeroupper();
+}
+
 // process 2 cascaded biquads on 4 channels (interleaved)
 // biquads are computed in parallel, by adding one sample of delay
 void biquad2_4x4_AVX2(float* src, float* dst, float coef[5][8], float state[3][8], int numFrames) {

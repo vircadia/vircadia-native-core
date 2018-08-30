@@ -453,8 +453,12 @@ static void FIR_1x4(float* src, float* dst0, float* dst1, float* dst2, float* ds
     (*f)(src, dst0, dst1, dst2, dst3, coef, numFrames); // dispatch
 }
 
+void interleave_4x4_AVX2(float* src0, float* src1, float* src2, float* src3, float* dst, int numFrames);
+
 static void interleave_4x4(float* src0, float* src1, float* src2, float* src3, float* dst, int numFrames) {
-    interleave_4x4_SSE(src0, src1, src2, src3, dst, numFrames);
+
+    static auto f = cpuSupportsAVX2() ? interleave_4x4_AVX2 : interleave_4x4_SSE;
+    (*f)(src0, src1, src2, src3, dst, numFrames); // dispatch
 }
 
 void biquad2_4x4_AVX2(float* src, float* dst, float coef[5][8], float state[3][8], int numFrames);
