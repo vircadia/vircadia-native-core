@@ -1895,6 +1895,16 @@ qint64 AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTr
     return bytesWritten;
 }
 
+void AvatarData::prepareResetTraitInstances() {
+    if (_clientTraitsHandler) {
+        _avatarEntitiesLock.withReadLock([this]{
+            foreach (auto entityID, _avatarEntityData.keys()) {
+                _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
+            }
+        });
+    }
+}
+
 void AvatarData::processTrait(AvatarTraits::TraitType traitType, QByteArray traitBinaryData) {
     if (traitType == AvatarTraits::SkeletonModelURL) {
         // get the URL from the binary data
@@ -2792,7 +2802,7 @@ void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
             if (_clientTraitsHandler) {
                 // if we have a client traits handler, flag any updated or created entities
                 // so that we send changes for them next frame
-                foreach (auto entityID, _avatarEntityData) {
+                foreach (auto entityID, _avatarEntityData.keys()) {
                     _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
                 }
             }
