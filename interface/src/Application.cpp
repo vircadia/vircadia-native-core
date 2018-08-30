@@ -6366,7 +6366,6 @@ void Application::clearDomainOctreeDetails() {
 }
 
 void Application::clearDomainAvatars() {
-    getMyAvatar()->setAvatarEntityDataChanged(true); // to recreate worn entities
     DependencyManager::get<AvatarManager>()->clearOtherAvatars();
 }
 

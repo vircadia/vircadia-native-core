@@ -41,7 +41,7 @@ namespace AvatarTraits {
     const TraitWireSize DELETED_TRAIT_SIZE = -1;
 
     inline qint64 packInstancedTraitDelete(TraitType traitType, TraitInstanceID instanceID, ExtendedIODevice& destination,
-                                         TraitVersion traitVersion = NULL_TRAIT_VERSION) {
+                                           TraitVersion traitVersion = NULL_TRAIT_VERSION) {
         qint64 bytesWritten = 0;
 
         bytesWritten += destination.writePrimitive(traitType);
