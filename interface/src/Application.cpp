@@ -1192,7 +1192,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&domainHandler, SIGNAL(resetting()), SLOT(resettingDomain()));
     connect(&domainHandler, SIGNAL(connectedToDomain(QUrl)), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
-    connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &Application::clearDomainAvatars);
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, [this]() {
         getOverlays().deleteOverlay(getTabletScreenID());
         getOverlays().deleteOverlay(getTabletHomeButtonID());
@@ -6368,10 +6367,6 @@ void Application::clearDomainOctreeDetails() {
     getMyAvatar()->setAvatarEntityDataChanged(true);
 }
 
-void Application::clearDomainAvatars() {
-    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
-}
-
 void Application::domainURLChanged(QUrl domainURL) {
     // disable physics until we have enough information about our new location to not cause craziness.
     resetPhysicsReadyInformation();
@@ -6459,9 +6454,6 @@ void Application::nodeKilled(SharedNodePointer node) {
     } else if (node->getType() == NodeType::EntityServer) {
         // we lost an entity server, clear all of the domain octree details
         clearDomainOctreeDetails();
-    } else if (node->getType() == NodeType::AvatarMixer) {
-        // our avatar mixer has gone away - clear the hash of avatars
-        DependencyManager::get<AvatarManager>()->clearOtherAvatars();
     } else if (node->getType() == NodeType::AssetServer) {
         // asset server going away - check if we have the asset browser showing
 

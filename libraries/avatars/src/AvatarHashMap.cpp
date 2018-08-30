@@ -112,6 +112,12 @@ AvatarHashMap::AvatarHashMap() {
     packetReceiver.registerListener(PacketType::BulkAvatarTraits, this, "processBulkAvatarTraits");
 
     connect(nodeList.data(), &NodeList::uuidChanged, this, &AvatarHashMap::sessionUUIDChanged);
+
+    connect(nodeList.data(), &NodeList::nodeKilled, this, [this](SharedNodePointer killedNode){
+        if (killedNode->getType() == NodeType::AvatarMixer) {
+            clearOtherAvatars();
+        }
+    });
 }
 
 QVector<QUuid> AvatarHashMap::getAvatarIdentifiers() {
@@ -427,3 +433,12 @@ void AvatarHashMap::sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& ol
     emit avatarSessionChangedEvent(sessionUUID, oldUUID);
 }
 
+void AvatarHashMap::clearOtherAvatars() {
+    QWriteLocker locker(&_hashLock);
+
+    AvatarHash::iterator avatarIterator =  _avatarHash.begin();
+    while (avatarIterator != _avatarHash.end()) {
+        handleRemovedAvatar(*avatarIterator);
+        avatarIterator = _avatarHash.erase(avatarIterator);
+    }
+}
