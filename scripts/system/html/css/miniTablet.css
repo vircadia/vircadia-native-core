@@ -26,11 +26,11 @@ body {
 section {
     background-color: #404040;
     position: relative;
-    padding: 13px;
+    padding: 13px 9px;
 }
 
 .button {
-    width: 100%;
+    width: 128px;
     height: 90px;
     margin-top: 10px;
     text-align: center;
@@ -41,7 +41,7 @@ section {
     }
 
 img {
-    width: 44px;
+    width: 46px;
 }
 
 #mute {
@@ -78,14 +78,9 @@ img {
             background-image: url("./img/mt-bubble-a-hover.svg");
         }
 
-    #bubble img {
-        position: relative;
-        left: -2px;
-    }
-
 #expand {
     position: absolute;
-    right: 14px;
+    right: 12px;
     bottom: 13px;
     width: 40px;
     height: 40px;
