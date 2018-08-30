@@ -43,6 +43,13 @@ Script.include("/~/system/libraries/controllers.js");
                     }
                 }
             }
+
+            var nearTabletHighlightModule = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightNearTabletHighlight" : "LeftNearTabletHighlight");
+            if (nearTabletHighlightModule) {
+                return nearTabletHighlightModule.isNearTablet(controllerData);
+            }
+
             return false;
         };
 

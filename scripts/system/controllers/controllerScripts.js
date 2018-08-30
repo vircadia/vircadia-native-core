@@ -35,7 +35,8 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/scaleEntity.js",
     "controllerModules/highlightNearbyEntities.js",
     "controllerModules/nearGrabHyperLinkEntity.js",
-    "controllerModules/mouseHighlightEntities.js"
+    "controllerModules/mouseHighlightEntities.js",
+    "controllerModules/nearTabletHighlight.js"
 ];
 
 if (Settings.getValue("useFarGrabJoints", false)) {
