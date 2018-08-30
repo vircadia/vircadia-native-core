@@ -21,6 +21,7 @@
 #include <thread>
 #include <set>
 #include <unordered_map>
+#include <chrono>
 
 #include <glm/glm.hpp>
 
@@ -132,6 +133,9 @@ static std::once_flag usecTimestampNowIsInitialized;
 static QElapsedTimer timestampTimer;
 
 quint64 usecTimestampNow(bool wantDebug) {
+    using namespace std::chrono;
+    return duration_cast<microseconds>(high_resolution_clock::now().time_since_epoch()).count();
+#if 0
     std::call_once(usecTimestampNowIsInitialized, [&] {
         TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * USECS_PER_MSEC; // ms to usec
         timestampTimer.start();
@@ -203,6 +207,7 @@ quint64 usecTimestampNow(bool wantDebug) {
     }
     
     return now;
+#endif
 }
 
 float secTimestampNow() {
