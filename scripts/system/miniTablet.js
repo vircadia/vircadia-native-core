@@ -20,24 +20,22 @@
         proxyOverlay = null,
         PROXY_MODEL = Script.resolvePath("./assets/models/tinyTablet.fbx"),
         PROXY_DIMENSIONS = { x: 0.0637, y: 0.0965, z: 0.0045 }, // Proportional to tablet proper.
-        PROXY_POSITION_LEFT_HAND = {
-            x: 0,
-            y: 0.1, // Distance from joint.
-            z: 0.07 // Distance above palm.
-        },
-        PROXY_POSITION_RIGHT_HAND = {
-            x: 0,
-            y: 0.1, // Distance from joint.
-            z: 0.07 // Distance above palm.
-        },
-        /*
-        // Aligned cross-palm.
-        PROXY_ROTATION_LEFT_HAND = Quat.fromVec3Degrees({ x: 0, y: 180, z: 90 }),
-        PROXY_ROTATION_RIGHT_HAND = Quat.fromVec3Degrees({ x: 0, y: 180, z: -90 }),
-        */
-        // Aligned with palm.
-        PROXY_ROTATION_LEFT_HAND = Quat.fromVec3Degrees({ x: -40, y: 180, z: 0 }),
-        PROXY_ROTATION_RIGHT_HAND = Quat.fromVec3Degrees({ x: -40, y: 180, z: 0 }),
+        PROXY_POSITIONS = [
+            {
+                x: -0.03, // Distance across hand.
+                y: 0.08, // Distance from joint.
+                z: 0.06 // Distance above palm.
+            },
+            {
+                x: 0.03, // Distance across hand.
+                y: 0.08, // Distance from joint.
+                z: 0.06 // Distance above palm.
+            }
+        ],
+        PROXY_ROTATIONS = [
+            Quat.fromVec3Degrees({ x: 0, y: 180 - 40, z: 90 }),
+            Quat.fromVec3Degrees({ x: 0, y: 180 + 40, z: -90 }),
+        ],
 
         // UI overlay.
         proxyUIOverlay = null,
@@ -76,10 +74,10 @@
         proxyScaleTimer = null,
         proxyScaleStart,
         PROXY_EXPAND_HANDLES = [ // Normalized coordinates in range [-0.5, 0.5] about center of mini tablet.
-            { x: 0.5, y: -0.75, z: 0 },
-            { x: -0.5, y: -0.75, z: 0 }
+            { x: 0.5, y: -0.65, z: 0 },
+            { x: -0.5, y: -0.65, z: 0 }
         ],
-        PROXY_EXPAND_DELTA_ROTATION = Quat.fromVec3Degrees({ x: -5, y: 0, z: 0 }),
+        PROXY_EXPAND_DELTA_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 0, z: 0 }),
         proxyExpandHand,
         proxyExpandLocalPosition,
         proxyExpandLocalRotation = Quat.IDENTITY,
@@ -284,9 +282,8 @@
         Overlays.editOverlay(proxyOverlay, {
             parentID: MyAvatar.SELF_ID,
             parentJointIndex: handJointIndex(proxyHand),
-            localPosition: Vec3.multiply(avatarScale,
-                proxyHand === LEFT_HAND ? PROXY_POSITION_LEFT_HAND : PROXY_POSITION_RIGHT_HAND),
-            localRotation: proxyHand === LEFT_HAND ? PROXY_ROTATION_LEFT_HAND : PROXY_ROTATION_RIGHT_HAND,
+            localPosition: Vec3.multiply(avatarScale, PROXY_POSITIONS[proxyHand]),
+            localRotation: PROXY_ROTATIONS[proxyHand],
             dimensions: Vec3.multiply(initialScale, PROXY_DIMENSIONS),
             visible: true
         });
@@ -402,12 +399,14 @@
     }
 
     function shouldShowProxy(hand) {
-        // Should show tablet proxy if hand is oriented toward the camera and the camera is oriented toward the proxy tablet.
+        // Should show proxy if it would be oriented toward the camera.
         var pose,
             jointIndex,
             handPosition,
             handOrientation,
-            cameraToHandDirection;
+            proxyPosition,
+            proxyOrientation,
+            proxyToCameraDirection;
 
         pose = Controller.getPoseValue(hand === LEFT_HAND ? Controller.Standard.LeftHand : Controller.Standard.RightHand);
         if (!pose.valid) {
@@ -418,9 +417,11 @@
         handPosition = Vec3.sum(MyAvatar.position,
             Vec3.multiplyQbyV(MyAvatar.orientation, MyAvatar.getAbsoluteJointTranslationInObjectFrame(jointIndex)));
         handOrientation = Quat.multiply(MyAvatar.orientation, MyAvatar.getAbsoluteJointRotationInObjectFrame(jointIndex));
-        cameraToHandDirection = Vec3.normalize(Vec3.subtract(handPosition, Camera.position));
-
-        return Vec3.dot(cameraToHandDirection, Quat.getForward(handOrientation)) > MIN_HAND_CAMERA_ANGLE_COS;
+        proxyPosition = Vec3.sum(handPosition, Vec3.multiply(avatarScale,
+            Vec3.multiplyQbyV(handOrientation, PROXY_POSITIONS[hand])));
+        proxyOrientation = Quat.multiply(handOrientation, PROXY_ROTATIONS[hand]);
+        proxyToCameraDirection = Vec3.normalize(Vec3.subtract(Camera.position, proxyPosition));
+        return Vec3.dot(proxyToCameraDirection, Quat.getForward(proxyOrientation)) > MIN_HAND_CAMERA_ANGLE_COS;
     }
 
     function enterProxyHidden() {
