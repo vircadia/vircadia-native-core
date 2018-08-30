@@ -273,7 +273,7 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
                                      " diffuse texture:" << currentMaterial.diffuseTextureFilename << 
                                      " specular texture:" << currentMaterial.specularTextureFilename << 
                                      " emissive texture:" << currentMaterial.emissiveTextureFilename << 
-                                     " bump texture:" << currentMaterial.bumpTextureFilename;
+                                     " bump texture:" << currentMaterial.bumpTextureFilename <<
                                      " opacity texture:" << currentMaterial.opacityTextureFilename;
 #endif
                 return;
