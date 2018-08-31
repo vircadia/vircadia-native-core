@@ -586,22 +586,19 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             const JointData& last = lastSentJointData[i];
 
             if (!data.rotationIsDefaultPose) {
-                bool mustSend = sendAll || last.rotationIsDefaultPose;
-                if (mustSend || last.rotation != data.rotation) {
-
-                    // The dot product for larger rotations is a lower number.
-                    // So if the dot() is less than the value, then the rotation is a larger angle of rotation
-                    if (!cullSmallChanges || fabsf(glm::dot(last.rotation, data.rotation)) < minRotationDOT) {
-                        validity |= (1 << validityBit);
+                // The dot product for larger rotations is a lower number.
+                // So if the dot() is less than the value, then the rotation is a larger angle of rotation
+                if (sendAll || last.rotationIsDefaultPose || (!cullSmallChanges && last.rotation != data.rotation)
+                    || (cullSmallChanges && glm::dot(last.rotation, data.rotation) < minRotationDOT) ) {
+                    validity |= (1 << validityBit);
 #ifdef WANT_DEBUG
-                        rotationSentCount++;
+                    rotationSentCount++;
 #endif
-                        destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, data.rotation);
+                    destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, data.rotation);
 
-                        if (sentJointDataOut) {
-                            localSentJointDataOut[i].rotation = data.rotation;
-                            localSentJointDataOut[i].rotationIsDefaultPose = false;
-                        }
+                    if (sentJointDataOut) {
+                        localSentJointDataOut[i].rotation = data.rotation;
+                        localSentJointDataOut[i].rotationIsDefaultPose = false;
                     }
                 }
             }
@@ -634,24 +631,23 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             const JointData& last = lastSentJointData[i];
 
             if (!data.translationIsDefaultPose) {
-                bool mustSend = sendAll || last.translationIsDefaultPose;
-                if (mustSend || last.translation != data.translation) {
-                    if (!cullSmallChanges || glm::distance(data.translation, lastSentJointData[i].translation) > minTranslation) {
-                        validity |= (1 << validityBit);
+                if (sendAll || last.translationIsDefaultPose || (!cullSmallChanges && last.translation != data.translation)
+                    || (cullSmallChanges && glm::distance(data.translation, lastSentJointData[i].translation) > minTranslation)) {
+                   
+                    validity |= (1 << validityBit);
 #ifdef WANT_DEBUG
-                        translationSentCount++;
+                    translationSentCount++;
 #endif
-                        maxTranslationDimension = glm::max(fabsf(data.translation.x), maxTranslationDimension);
-                        maxTranslationDimension = glm::max(fabsf(data.translation.y), maxTranslationDimension);
-                        maxTranslationDimension = glm::max(fabsf(data.translation.z), maxTranslationDimension);
+                    maxTranslationDimension = glm::max(fabsf(data.translation.x), maxTranslationDimension);
+                    maxTranslationDimension = glm::max(fabsf(data.translation.y), maxTranslationDimension);
+                    maxTranslationDimension = glm::max(fabsf(data.translation.z), maxTranslationDimension);
 
-                        destinationBuffer +=
-                            packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
+                    destinationBuffer +=
+                        packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
 
-                        if (sentJointDataOut) {
-                            localSentJointDataOut[i].translation = data.translation;
-                            localSentJointDataOut[i].translationIsDefaultPose = false;
-                        }
+                    if (sentJointDataOut) {
+                        localSentJointDataOut[i].translation = data.translation;
+                        localSentJointDataOut[i].translationIsDefaultPose = false;
                     }
                 }
             }
