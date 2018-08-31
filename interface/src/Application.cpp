@@ -1199,7 +1199,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &Application::domainConnectionRefused);
 
-    &domainHandler.setErrorDomainURL(QUrl(REDIRECT_HIFI_ADDRESS));
+    nodeList->getDomainHandler().setErrorDomainURL(QUrl(REDIRECT_HIFI_ADDRESS));
 
     // We could clear ATP assets only when changing domains, but it's possible that the domain you are connected
     // to has gone down and switched to a new content set, so when you reconnect the cached ATP assets will no longer be valid.
