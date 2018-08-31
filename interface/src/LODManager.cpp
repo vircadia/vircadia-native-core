@@ -36,12 +36,6 @@ LODManager::LODManager() {
 // faster than the runningAverage is computed, the error between the value and its runningAverage will be
 // reduced by 1/e every timescale of real-time that passes.
 const float LOD_ADJUST_RUNNING_AVG_TIMESCALE = 0.08f; // sec
-//
-// Assuming the measured value is affected by logic invoked by the runningAverage bumping up against its
-// thresholds, we expect the adjustment to introduce a step-function.  We want the runningAverage to settle
-// to the new value BEFORE we test it aginst its thresholds again.  Hence we test on a period that is a few
-// multiples of the running average timescale:
-const uint64_t LOD_AUTO_ADJUST_PERIOD = 4 * (uint64_t)(LOD_ADJUST_RUNNING_AVG_TIMESCALE * (float)USECS_PER_MSEC); // usec
 
 // batchTIme is always contained in presentTime.
 // We favor using batchTime instead of presentTime as a representative value for rendering duration (on present thread) 
@@ -220,7 +214,6 @@ float LODManager::getPidO() const {
 }
 
 void LODManager::resetLODAdjust() {
-   // _decreaseFPSExpiry = _increaseFPSExpiry = usecTimestampNow() + LOD_AUTO_ADJUST_PERIOD;
 }
 
 void LODManager::setAutomaticLODAdjust(bool value) {
