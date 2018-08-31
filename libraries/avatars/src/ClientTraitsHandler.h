@@ -37,8 +37,6 @@ public:
 
     void resetForNewMixer();
 
-    AvatarTraits::TraitInstanceID xorInstanceID(AvatarTraits::TraitInstanceID localInstanceID);
-
 public slots:
     void processTraitOverride(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
 
@@ -55,8 +53,6 @@ private:
     AvatarTraits::TraitVersion _currentTraitVersion { AvatarTraits::DEFAULT_TRAIT_VERSION };
 
     AvatarTraits::TraitVersion _currentSkeletonVersion { AvatarTraits::NULL_TRAIT_VERSION };
-
-    QByteArray _sessionXORID { NUM_BYTES_RFC4122_UUID, 0};
     
     bool _shouldPerformInitialSend { false };
     bool _hasChangedTraits { false };

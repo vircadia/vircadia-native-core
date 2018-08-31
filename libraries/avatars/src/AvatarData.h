@@ -1193,6 +1193,9 @@ public:
     void setReplicaIndex(int replicaIndex) { _replicaIndex = replicaIndex; }
     int getReplicaIndex() { return _replicaIndex; }
 
+    const AvatarTraits::TraitInstanceID getTraitInstanceXORID() const { return _traitInstanceXORID; }
+    void cycleTraitInstanceXORID() { _traitInstanceXORID = QUuid::createUuid(); }
+
 signals:
 
     /**jsdoc
@@ -1499,6 +1502,8 @@ private:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);
     AvatarData& operator= (const AvatarData&);
+
+    AvatarTraits::TraitInstanceID _traitInstanceXORID { QUuid::createUuid() };
 };
 Q_DECLARE_METATYPE(AvatarData*)
 
