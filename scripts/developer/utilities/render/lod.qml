@@ -217,24 +217,19 @@ Item {
             valueUnit: "Hz"
             plots: [
                 {
-                    prop: "lodIncreaseFPS",
-                    label: "LOD++",
+                    prop: "lodTargetFPS",
+                    label: "target",
                     color: "#66FF66"
                 },
                 {
-                    prop: "fps",
+                    prop: "nowRenderFPS",
                     label: "FPS",
                     color: "#FFFF55"
                 },
                 {
-                    prop: "smoothFPS",
+                    prop: "smoothRenderFPS",
                     label: "Smooth FPS",
                     color: "#9999FF"
-                },
-                {
-                    prop: "lodDecreaseFPS",
-                    label: "LOD--",
-                    color: "#FF6666"
                 }
             ]
         }

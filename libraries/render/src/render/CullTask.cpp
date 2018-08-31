@@ -155,7 +155,7 @@ void FetchSpatialTree::run(const RenderContextPointer& renderContext, const Inpu
         // Octree selection!
         float threshold = 0.0f;
         if (queryFrustum.isPerspective()) {
-            threshold = getPerspectiveAccuracyAngle(args->_sizeScale, args->_boundaryLevelAdjust);
+            threshold = args->_lodAngleHalfTan;
             if (frustumResolution.y > 0) {
                 threshold = glm::max(queryFrustum.getFieldOfView() / frustumResolution.y, threshold);
             }

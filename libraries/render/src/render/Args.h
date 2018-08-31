@@ -73,16 +73,16 @@ namespace render {
         Args(const gpu::ContextPointer& context,
             float sizeScale = 1.0f,
             int boundaryLevelAdjust = 0,
-            float solidAngleHalfTan = 0.1f,
+            float lodAngleHalfTan = 0.1f,
             RenderMode renderMode = DEFAULT_RENDER_MODE,
             DisplayMode displayMode = MONO,
             DebugFlags debugFlags = RENDER_DEBUG_NONE,
             gpu::Batch* batch = nullptr) :
             _context(context),
             _sizeScale(sizeScale),
-            _solidAngleHalfTan(solidAngleHalfTan),
-            _solidAngleHalfTanSq(solidAngleHalfTan * solidAngleHalfTan),
             _boundaryLevelAdjust(boundaryLevelAdjust),
+            _lodAngleHalfTan(lodAngleHalfTan),
+            _lodAngleHalfTanSq(lodAngleHalfTan * lodAngleHalfTan),
             _renderMode(renderMode),
             _displayMode(displayMode),
             _debugFlags(debugFlags),
@@ -111,8 +111,8 @@ namespace render {
 
         float _sizeScale { 1.0f };
         int _boundaryLevelAdjust { 0 };
-        float _solidAngleHalfTan{ 0.1f };
-        float _solidAngleHalfTanSq{ _solidAngleHalfTan  * _solidAngleHalfTan };
+        float _lodAngleHalfTan{ 0.1f };
+        float _lodAngleHalfTanSq{ _lodAngleHalfTan  * _lodAngleHalfTan };
 
         RenderMode _renderMode { DEFAULT_RENDER_MODE };
         DisplayMode _displayMode { MONO };
