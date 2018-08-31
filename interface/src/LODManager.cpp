@@ -19,8 +19,8 @@
 #include "ui/DialogsManager.h"
 #include "InterfaceLogging.h"
 
-const float LODManager::DEFAULT_DESKTOP_LOD_DOWN_FPS = LOD_OFFSET_FPS + LOD_DEFAULT_QUALITY_LEVEL * LOD_MAX_LIKELY_DESKTOP_FPS;
-const float LODManager::DEFAULT_HMD_LOD_DOWN_FPS = LOD_OFFSET_FPS + LOD_DEFAULT_QUALITY_LEVEL * LOD_MAX_LIKELY_HMD_FPS;
+const float LODManager::DEFAULT_DESKTOP_LOD_DOWN_FPS = LOD_DEFAULT_QUALITY_LEVEL * LOD_MAX_LIKELY_DESKTOP_FPS;
+const float LODManager::DEFAULT_HMD_LOD_DOWN_FPS = LOD_DEFAULT_QUALITY_LEVEL * LOD_MAX_LIKELY_HMD_FPS;
 
 Setting::Handle<float> desktopLODDecreaseFPS("desktopLODDecreaseFPS", LODManager::DEFAULT_DESKTOP_LOD_DOWN_FPS);
 Setting::Handle<float> hmdLODDecreaseFPS("hmdLODDecreaseFPS", LODManager::DEFAULT_HMD_LOD_DOWN_FPS);
@@ -81,8 +81,10 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
     float oldOctreeSizeScale = getOctreeSizeScale();
     float oldLODAngle = getLODAngleDeg();
 
-    // Target fps and current fps based on latest measurments
-    float targetFPS = getLODTargetFPS();
+    // Target fps is slightly overshooted by 5hz
+    float targetFPS = getLODTargetFPS() + LOD_OFFSET_FPS;
+
+    // Current fps based on latest measurments
     float currentNowFPS = (float)MSECS_PER_SECOND / _nowRenderTime;
     float currentSmoothFPS = (float)MSECS_PER_SECOND / _smoothRenderTime;
  
