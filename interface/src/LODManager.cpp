@@ -160,7 +160,7 @@ float LODManager::getLODAngleHalfTan() const {
     return getPerspectiveAccuracyAngleTan(_octreeSizeScale, _boundaryLevelAdjust);
 }
 float LODManager::getLODAngle() const {
-    return 2.0f * atan(getLODAngleHalfTan());
+    return 2.0f * atanf(getLODAngleHalfTan());
 }
 float LODManager::getLODAngleDeg() const {
     return glm::degrees(getLODAngle());
@@ -367,14 +367,14 @@ float LODManager::getWorldDetailQuality() const {
 
     bool inHMD = qApp->isHMDMode();
 
-    float targetFPS = 0;
+    float targetFPS = 0.0f;
     if (inHMD) {
         targetFPS = getHMDLODTargetFPS();
     } else {
         targetFPS = getDesktopLODTargetFPS();
     }
     float maxFPS = inHMD ? LOD_MAX_LIKELY_HMD_FPS : LOD_MAX_LIKELY_DESKTOP_FPS;
-    float percentage = 1.0 - targetFPS / maxFPS;
+    float percentage = 1.0f - targetFPS / maxFPS;
 
     if (percentage <= LOW) {
         return LOW;
