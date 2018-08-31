@@ -92,7 +92,7 @@ void PickCacheOptimizer<T>::update(std::unordered_map<uint32_t, std::shared_ptr<
                 if (!checkAndCompareCachedResults(mathematicalPick, results, res, entityKey)) {
                     PickResultPointer entityRes = pick->getEntityIntersection(mathematicalPick);
                     if (entityRes) {
-                        cacheResult(entityRes->needsToCompareResults(), entityRes, entityKey, res, mathematicalPick, results, pick);
+                        cacheResult(entityRes->doesIntersect(), entityRes, entityKey, res, mathematicalPick, results, pick);
                     }
                 }
             }
@@ -102,7 +102,7 @@ void PickCacheOptimizer<T>::update(std::unordered_map<uint32_t, std::shared_ptr<
                 if (!checkAndCompareCachedResults(mathematicalPick, results, res, overlayKey)) {
                     PickResultPointer overlayRes = pick->getOverlayIntersection(mathematicalPick);
                     if (overlayRes) {
-                        cacheResult(overlayRes->needsToCompareResults(), overlayRes, overlayKey, res, mathematicalPick, results, pick);
+                        cacheResult(overlayRes->doesIntersect(), overlayRes, overlayKey, res, mathematicalPick, results, pick);
                     }
                 }
             }
@@ -112,7 +112,7 @@ void PickCacheOptimizer<T>::update(std::unordered_map<uint32_t, std::shared_ptr<
                 if (!checkAndCompareCachedResults(mathematicalPick, results, res, avatarKey)) {
                     PickResultPointer avatarRes = pick->getAvatarIntersection(mathematicalPick);
                     if (avatarRes) {
-                        cacheResult(avatarRes->needsToCompareResults(), avatarRes, avatarKey, res, mathematicalPick, results, pick);
+                        cacheResult(avatarRes->doesIntersect(), avatarRes, avatarKey, res, mathematicalPick, results, pick);
                     }
                 }
             }

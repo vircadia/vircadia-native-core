@@ -115,7 +115,6 @@ public:
     }
 
     virtual bool doesIntersect() const = 0;
-    virtual bool needsToCompareResults() const { return doesIntersect(); }
 
     // for example: if we want the closest result, compare based on distance
     // if we want all results, combine them
