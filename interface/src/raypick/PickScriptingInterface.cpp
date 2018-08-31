@@ -373,7 +373,8 @@ std::shared_ptr<TransformNode> PickScriptingInterface::createTransformNode(const
             if (propMap["parentJointIndex"].isValid()) {
                 parentJointIndex = propMap["parentJointIndex"].toInt();
             }
-            if (success && !nestablePointer.expired()) {
+            auto sharedNestablePointer = nestablePointer.lock();
+            if (success && sharedNestablePointer) {
                 return std::make_shared<NestableTransformNode>(nestablePointer, parentJointIndex);
             }
         }
