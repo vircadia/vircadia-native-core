@@ -42,7 +42,7 @@ const float LOD_ADJUST_RUNNING_AVG_TIMESCALE = 0.08f; // sec
 // if batchTime + cushionTime < presentTime.
 // since we are shooting for fps around 60, 90Hz, the ideal frames are around 10ms
 // so we are picking a cushion time of 3ms 
-const float LOD_BATCH_TO_PRESENT_CUSHION_TIME = 10.0f; // msec
+const float LOD_BATCH_TO_PRESENT_CUSHION_TIME = 3.0f; // msec
 
 void LODManager::setRenderTimes(float presentTime, float engineRunTime, float batchTime, float gpuTime) {
     _presentTime = presentTime;
