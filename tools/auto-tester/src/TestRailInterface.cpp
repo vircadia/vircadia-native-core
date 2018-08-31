@@ -25,7 +25,7 @@ TestRailInterface::TestRailInterface() {
     _testRailTestCasesSelectorWindow.setUser("@highfidelity.io");
     ////_testRailTestCasesSelectorWindow.setUser("nissim.hadar@gmail.com");
 
-    _testRailTestCasesSelectorWindow.setProjectID(INTERFACE_PROJECT_ID);
+    _testRailTestCasesSelectorWindow.setProjectID(INTERFACE_AUTOMATION_PROJECT_ID);
     ////_testRailTestCasesSelectorWindow.setProjectID(2);
 
     _testRailTestCasesSelectorWindow.setSuiteID(INTERFACE_SUITE_ID);
@@ -36,7 +36,7 @@ TestRailInterface::TestRailInterface() {
     _testRailRunSelectorWindow.setUser("@highfidelity.io");
     ////_testRailRunSelectorWindow.setUser("nissim.hadar@gmail.com");
 
-    _testRailRunSelectorWindow.setProjectID(INTERFACE_PROJECT_ID);
+    _testRailRunSelectorWindow.setProjectID(INTERFACE_AUTOMATION_PROJECT_ID);
     ////_testRailRunSelectorWindow.setProjectID(2);
 
     _testRailRunSelectorWindow.setSuiteID(INTERFACE_SUITE_ID);
@@ -47,7 +47,7 @@ TestRailInterface::TestRailInterface() {
     _testRailResultsSelectorWindow.setUser("@highfidelity.io");
     ////_testRailResultsSelectorWindow.setUser("nissim.hadar@gmail.com");
 
-    _testRailResultsSelectorWindow.setProjectID(INTERFACE_PROJECT_ID);
+    _testRailResultsSelectorWindow.setProjectID(INTERFACE_AUTOMATION_PROJECT_ID);
     ////_testRailResultsSelectorWindow.setProjectID(2);
 
     _testRailResultsSelectorWindow.setSuiteID(INTERFACE_SUITE_ID);
@@ -908,7 +908,7 @@ QDomElement TestRailInterface::processTestXML(const QString& fullDirectory,
     ++i;
     QString title{ words[i] };
     for (++i; i < words.length() - 1; ++i) {
-        title += " / " + words[i];
+        title += "/" + words[i];
     }
 
     QDomElement titleElement = _document.createElement("title");
