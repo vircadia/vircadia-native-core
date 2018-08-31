@@ -56,7 +56,6 @@
             presentationMode: Desktop.PresentationMode.NATIVE,
             size: {x: 400, y: 600}
         });
-      //  window.setPosition(200, 50);
         window.closed.connect(killWindow);
         window.fromQml.connect(fromQml);
         onScreen = true
@@ -94,11 +93,7 @@
 
     function onScreenChanged(type, url) {
         if (onTablet) {
-            if (url === QMLAPP_URL) {
-                onAppScreen = true;
-            } else { 
-                onAppScreen = false;
-            }
+            onAppScreen = (url === QMLAPP_URL);
             
             button.editProperties({isActive: onAppScreen});
             wireEventBridge(onAppScreen);
