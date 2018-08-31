@@ -72,7 +72,7 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
     float smoothBlend = (realTimeDelta <  LOD_ADJUST_RUNNING_AVG_TIMESCALE * _smoothScale) ? realTimeDelta / (LOD_ADJUST_RUNNING_AVG_TIMESCALE * _smoothScale) : 1.0f;
     _smoothRenderTime = (1.0f - smoothBlend) * _smoothRenderTime + smoothBlend * maxRenderTime; // msec
 
-    if (!_automaticLODAdjust || _nowRenderTime == 0.0f) {
+    if (!_automaticLODAdjust || _nowRenderTime == 0.0f || _smoothRenderTime == 0.0f) {
         // early exit
         return;
     }

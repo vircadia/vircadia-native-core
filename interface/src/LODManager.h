@@ -173,13 +173,13 @@ public:
     void resetLODAdjust();
 
     float getNowRenderTime() const { return _nowRenderTime; };
-    float getNowRenderFPS() const { return (float)MSECS_PER_SECOND / _nowRenderTime; };
+    float getNowRenderFPS() const { return (_nowRenderTime > 0.0f ? (float)MSECS_PER_SECOND / _nowRenderTime : 0.0f); };
 
     void setSmoothScale(float t);
     float getSmoothScale() const { return _smoothScale; }
 
     float getSmoothRenderTime() const { return _smoothRenderTime; };
-    float getSmoothRenderFPS() const { return (float)MSECS_PER_SECOND / _smoothRenderTime; };
+    float getSmoothRenderFPS() const { return (_smoothRenderTime > 0.0f ? (float)MSECS_PER_SECOND / _smoothRenderTime : 0.0f); };
 
     void setWorldDetailQuality(float quality);
     float getWorldDetailQuality() const;
