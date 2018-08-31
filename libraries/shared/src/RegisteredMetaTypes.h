@@ -365,7 +365,7 @@ public:
     }
 
     // We can't load the model here because it would create a circular dependency, so we delegate that responsibility to the owning CollisionPick
-    bool loaded = false;
+    bool loaded { false };
     QUrl modelURL;
 
     // We can't compute the shapeInfo here without loading the model first, so we delegate that responsibility to the owning CollisionPick
