@@ -5821,15 +5821,13 @@ void Application::update(float deltaTime) {
                     auto t5 = std::chrono::high_resolution_clock::now();
 
                     workload::Timings timings(6);
-                    timings[0] = (t4 - t0);
-                    timings[1] = (t5 - t4);
-                    timings[2] = (t4 - t3);
-                    timings[3] = (t3 - t2);
-                    timings[4] = (t2 - t1);
-                    timings[5] = (t1 - t0);
-
+                    timings[0] = t1 - t0; // prePhysics entities
+                    timings[1] = t2 - t1; // prePhysics avatars
+                    timings[2] = t3 - t2; // stepPhysics
+                    timings[3] = t4 - t3; // postPhysics
+                    timings[4] = t5 - t4; // non-physical kinematics
+                    timings[5] = workload::Timing_ns((int32_t)(NSECS_PER_SECOND * deltaTime)); // game loop duration
                     _gameWorkload.updateSimulationTimings(timings);
-
                 }
             }
         } else {
