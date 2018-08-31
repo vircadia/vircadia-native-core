@@ -42,6 +42,9 @@ glm::vec3 LaserPointer::getPickOrigin(const PickResultPointer& pickResult) const
 
 glm::vec3 LaserPointer::getPickEnd(const PickResultPointer& pickResult, float distance) const {
     auto rayPickResult = std::static_pointer_cast<RayPickResult>(pickResult);
+    if (!rayPickResult) {
+        return glm::vec3(0.0f);
+    }
     if (distance > 0.0f) {
         PickRay pick = PickRay(rayPickResult->pickVariant);
         return pick.origin + distance * pick.direction;

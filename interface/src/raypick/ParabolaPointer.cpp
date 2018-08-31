@@ -67,6 +67,9 @@ glm::vec3 ParabolaPointer::getPickOrigin(const PickResultPointer& pickResult) co
 
 glm::vec3 ParabolaPointer::getPickEnd(const PickResultPointer& pickResult, float distance) const {
     auto parabolaPickResult = std::static_pointer_cast<ParabolaPickResult>(pickResult);
+    if (!parabolaPickResult) {
+        return glm::vec3(0.0f);
+    }
     if (distance > 0.0f) {
         PickParabola pick = PickParabola(parabolaPickResult->pickVariant);
         return pick.origin + pick.velocity * distance + 0.5f * pick.acceleration * distance * distance;
