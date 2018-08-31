@@ -976,7 +976,7 @@ bool Model::addToScene(const render::ScenePointer& scene,
                        render::Transaction& transaction,
                        render::Item::Status::Getters& statusGetters) {
     if (!_addedToScene && isLoaded()) {
-        updateClusterMatrices();
+        updateClusterMatrices(false);
         if (_modelMeshRenderItems.empty()) {
             createRenderItemSet();
         }
@@ -1486,7 +1486,7 @@ void Model::computeMeshPartLocalBounds() {
 }
 
 // virtual
-void Model::updateClusterMatrices() {
+void Model::updateClusterMatrices(bool triggerBlendshapes) {
     DETAILED_PERFORMANCE_TIMER("Model::updateClusterMatrices");
 
     if (!_needsUpdateClusterMatrices || !isLoaded()) {
@@ -1515,7 +1515,7 @@ void Model::updateClusterMatrices() {
 
     // post the blender if we're not currently waiting for one to finish
     auto modelBlender = DependencyManager::get<ModelBlender>();
-    if (modelBlender->shouldComputeBlendshapes() && geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
+    if (triggerBlendshapes && modelBlender->shouldComputeBlendshapes() && geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
         modelBlender->noteRequiresBlend(getThisPointer());
     }
