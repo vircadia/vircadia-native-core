@@ -79,7 +79,7 @@ unsigned int PointerScriptingInterface::createStylus(const QVariant& properties)
  * A set of properties which define the visual aspect of a Ray Pointer in the case that the Pointer is intersecting something.
  *
  * @typedef {object} Pointers.RayPointerRenderState
- * @property {string} name The name of this render state, used by {@link Pointers.setRenderState} and {@link Pointers.editRenderState}
+ * @property {string} name When using {@link Pointers.createPointer}, the name of this render state, used by {@link Pointers.setRenderState} and {@link Pointers.editRenderState}
  * @property {Overlays.OverlayProperties|QUuid} [start] When using {@link Pointers.createPointer}, an optionally defined overlay to represent the beginning of the Ray Pointer,
  * using the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
  * When returned from {@link Pointers.getPointerProperties}, the ID of the created overlay if it exists, or a null ID otherwise.
@@ -102,8 +102,12 @@ unsigned int PointerScriptingInterface::createStylus(const QVariant& properties)
  * @property {number} [followNormalStrength=0.0] The strength of the interpolation between the real normal and the visual normal if followNormal is true. <code>0-1</code>.  If 0 or 1,
  * the normal will follow exactly.
  * @property {boolean} [enabled=false]
- * @property {Pointers.RayPointerRenderState[]} [renderStates] A list of different visual states to switch between.
- * @property {Pointers.DefaultRayPointerRenderState[]} [defaultRenderStates] A list of different visual states to use if there is no intersection.
+ * @property {Pointers.RayPointerRenderState[]|Object.<string, Pointers.RayPointerRenderState>} [renderStates] A collection of different visual states to switch between.
+ * When using {@link Pointers.createPointer}, a list of RayPointerRenderStates.
+ * When returned from {@link Pointers.getPointerProperties}, a map between render state names and RayPointRenderStates.
+ * @property {Pointers.DefaultRayPointerRenderState[]|Object.<string, Pointers.DefaultRayPointerRenderState>} [defaultRenderStates] A collection of different visual states to use if there is no intersection.
+ * When using {@link Pointers.createPointer}, a list of DefaultRayPointerRenderStates.
+ * When returned from {@link Pointers.getPointerProperties}, a map between render state names and DefaultRayPointRenderStates.
  * @property {boolean} [hover=false] If this Pointer should generate hover events.
  * @property {Pointers.Trigger[]} [triggers] A list of different triggers mechanisms that control this Pointer's click event generation.
  */
@@ -227,7 +231,7 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
 * A set of properties used to define the visual aspect of a Parabola Pointer in the case that the Pointer is intersecting something.
 *
 * @typedef {object} Pointers.ParabolaPointerRenderState
-* @property {string} name The name of this render state, used by {@link Pointers.setRenderState} and {@link Pointers.editRenderState}
+* @property {string} name When using {@link Pointers.createPointer}, the name of this render state, used by {@link Pointers.setRenderState} and {@link Pointers.editRenderState}
 * @property {Overlays.OverlayProperties|QUuid} [start] When using {@link Pointers.createPointer}, an optionally defined overlay to represent the beginning of the Parabola Pointer,
 * using the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
 * When returned from {@link Pointers.getPointerProperties}, the ID of the created overlay if it exists, or a null ID otherwise.
@@ -249,8 +253,12 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
 * @property {number} [followNormalStrength=0.0] The strength of the interpolation between the real normal and the visual normal if followNormal is true. <code>0-1</code>.  If 0 or 1,
 * the normal will follow exactly.
 * @property {boolean} [enabled=false]
-* @property {Pointers.ParabolaPointerRenderState[]} [renderStates] A list of different visual states to switch between.
-* @property {Pointers.DefaultParabolaPointerRenderState[]} [defaultRenderStates] A list of different visual states to use if there is no intersection.
+* @property {Pointers.ParabolaPointerRenderState[]|Object.<string, Pointers.ParabolaPointerRenderState>} [renderStates] A collection of different visual states to switch between.
+* When using {@link Pointers.createPointer}, a list of ParabolaPointerRenderStates.
+* When returned from {@link Pointers.getPointerProperties}, a map between render state names and ParabolaPointerRenderStates.
+* @property {Pointers.DefaultParabolaPointerRenderState[]|Object.<string, Pointers.DefaultParabolaPointerRenderState>} [defaultRenderStates] A collection of different visual states to use if there is no intersection.
+* When using {@link Pointers.createPointer}, a list of DefaultParabolaPointerRenderStates.
+* When returned from {@link Pointers.getPointerProperties}, a map between render state names and DefaultParabolaPointerRenderStates.
 * @property {boolean} [hover=false] If this Pointer should generate hover events.
 * @property {Pointers.Trigger[]} [triggers] A list of different triggers mechanisms that control this Pointer's click event generation.
 */

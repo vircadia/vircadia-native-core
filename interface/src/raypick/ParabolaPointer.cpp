@@ -63,28 +63,26 @@ void ParabolaPointer::editRenderStatePath(const std::string& state, const QVaria
 QVariantMap ParabolaPointer::toVariantMap() const {
     QVariantMap qVariantMap;
 
-    QVariantList qRenderStates;
+    QVariantMap qRenderStates;
     for (auto iter = _renderStates.cbegin(); iter != _renderStates.cend(); iter++) {
         auto renderState = iter->second;
         QVariantMap qRenderState;
-        qRenderState["name"] = iter->first.c_str();
         qRenderState["start"] = renderState->getStartID();
         qRenderState["end"] = renderState->getEndID();
-        qRenderStates.append(qRenderState);
+        qRenderStates[iter->first.c_str()] = qRenderState;
     }
     qVariantMap["renderStates"] = qRenderStates;
 
-    QVariantList qDefaultRenderStates;
+    QVariantMap qDefaultRenderStates;
     for (auto iter = _defaultRenderStates.cbegin(); iter != _defaultRenderStates.cend(); iter++) {
         float distance = iter->second.first;
         auto defaultRenderState = iter->second.second;
         QVariantMap qDefaultRenderState;
 
-        qDefaultRenderState["name"] = iter->first.c_str();
         qDefaultRenderState["distance"] = distance;
         qDefaultRenderState["start"] = defaultRenderState->getStartID();
         qDefaultRenderState["end"] = defaultRenderState->getEndID();
-        qDefaultRenderStates.append(qDefaultRenderState);
+        qDefaultRenderStates[iter->first.c_str()] = qDefaultRenderState;
     }
     qVariantMap["defaultRenderStates"] = qDefaultRenderStates;
 
