@@ -303,11 +303,7 @@ Menu::Menu() {
         defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/utilities/tools/currentAPI.js");
         DependencyManager::get<ScriptEngines>()->loadScript(defaultScriptsLoc.toString());
     });
-
-    // Developer > Scripting > Log...
-    addActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::Log, Qt::CTRL | Qt::SHIFT | Qt::Key_L,
-                                  qApp, SLOT(toggleLogDialog()));
-                                  
+    
     // Developer > Scripting > Entity Script Server Log
     auto essLogAction = addActionToQMenuAndActionHash(scriptingOptionsMenu, MenuOption::EntityScriptServerLog, 0,
                                                       qApp, SLOT(toggleEntityScriptServerLogDialog()));
@@ -792,6 +788,10 @@ Menu::Menu() {
 
     // Developer > Show Statistics
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Stats);
+    
+    // Developer > Log
+    addActionToQMenuAndActionHash(developerMenu, MenuOption::Log, Qt::CTRL | Qt::SHIFT | Qt::Key_L,
+                                  qApp, SLOT(toggleLogDialog()));
 
 #if 0 ///  -------------- REMOVED FOR NOW --------------
     addDisabledActionAndSeparator(navigateMenu, "History");
