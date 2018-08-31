@@ -128,6 +128,10 @@ void DomainHandler::hardReset() {
     _pendingPath.clear();
 }
 
+void DomainHandler::setErrorDomainURL(const QUrl& url) {
+    return;
+}
+
 void DomainHandler::setSockAddr(const HifiSockAddr& sockAddr, const QString& hostname) {
     if (_sockAddr != sockAddr) {
         // we should reset on a sockAddr change
@@ -451,7 +455,17 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
 
     if (!_domainConnectionRefusals.contains(reasonMessage)) {
         _domainConnectionRefusals.insert(reasonMessage);
+#if defined(Q_OS_ANDROID)
         emit domainConnectionRefused(reasonMessage, (int)reasonCode, extraInfo);
+#else
+        if (reasonCode == ConnectionRefusedReason::ProtocolMismatch || reasonCode == ConnectionRefusedReason::NotAuthorized) {
+            _isInErrorState = true;
+            // ingest the error - this is a "hard" connection refusal.
+            emit domainURLChanged(_errorDomainURL);
+        } else {
+            emit domainConnectionRefused(reasonMessage, (int)reasonCode, extraInfo);
+        }
+#endif
     }
 
     auto accountManager = DependencyManager::get<AccountManager>();

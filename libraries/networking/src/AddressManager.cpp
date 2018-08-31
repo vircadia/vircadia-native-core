@@ -319,7 +319,9 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         // lookupUrl.scheme() == URL_SCHEME_HTTPS ||
         _previousLookup.clear();
         _shareablePlaceName.clear();
-        setDomainInfo(lookupUrl, trigger);
+        if (lookupUrl.toString() != REDIRECT_HIFI_ADDRESS) {
+            setDomainInfo(lookupUrl, trigger);
+        }
         emit lookupResultsFinished();
 
         QString path = DOMAIN_SPAWNING_POINT;

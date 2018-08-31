@@ -474,7 +474,7 @@ private slots:
     void updateDisplayMode();
     void setDisplayPlugin(DisplayPluginPointer newPlugin);
     void domainConnectionRefused(const QString& reasonMessage, int reason, const QString& extraInfo);
-    void domainConnectionRedirect(const QString& reasonMessage, int reason, const QString& extraInfo);
+    void domainConnectionRedirect();
 
     void addAssetToWorldCheckModelSize();
 

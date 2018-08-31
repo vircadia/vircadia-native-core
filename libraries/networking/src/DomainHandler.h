@@ -50,6 +50,9 @@ public:
 
     QString getHostname() const { return _domainURL.host(); }
 
+    QUrl getErrorDomainURL(){ return _errorDomainURL; }
+    void setErrorDomainURL(const QUrl& url);
+
     const QHostAddress& getIP() const { return _sockAddr.getAddress(); }
     void setIPToLocalhost() { _sockAddr.setAddress(QHostAddress(QHostAddress::LocalHost)); }
 
@@ -179,6 +182,7 @@ signals:
     void settingsReceiveFail();
 
     void domainConnectionRefused(QString reasonMessage, int reason, const QString& extraInfo);
+    void redirectToErrorDomainURL();
 
     void limitOfSilentDomainCheckInsReached();
 
@@ -190,6 +194,7 @@ private:
     QUuid _uuid;
     Node::LocalID _localID;
     QUrl _domainURL;
+    QUrl _errorDomainURL;
     HifiSockAddr _sockAddr;
     QUuid _assignmentUUID;
     QUuid _connectionToken;
@@ -198,6 +203,7 @@ private:
     HifiSockAddr _iceServerSockAddr;
     NetworkPeer _icePeer;
     bool _isConnected { false };
+    bool _isInErrorState { false };
     QJsonObject _settingsObject;
     QString _pendingPath;
     QTimer _settingsTimer;
