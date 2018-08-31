@@ -516,7 +516,8 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     if (hasAvatarLocalPosition) {
         auto startSection = destinationBuffer;
-        AVATAR_MEMCPY(getLocalPosition());
+        const auto localPosition = getLocalPosition();
+        AVATAR_MEMCPY(localPosition);
 
         int numBytes = destinationBuffer - startSection;
         if (outboundDataRateOut) {
@@ -677,7 +678,6 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         if (hasGrabJoints) {
             // the far-grab joints may range further than 3 meters, so we can't use packFloatVec3ToSignedTwoByteFixed etc
             auto startSection = destinationBuffer;
-            auto data = reinterpret_cast<AvatarDataPacket::FarGrabJoints*>(destinationBuffer);
             glm::vec3 leftFarGrabPosition = extractTranslation(leftFarGrabMatrix);
             glm::quat leftFarGrabRotation = extractRotation(leftFarGrabMatrix);
             glm::vec3 rightFarGrabPosition = extractTranslation(rightFarGrabMatrix);
