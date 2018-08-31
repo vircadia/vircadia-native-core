@@ -350,8 +350,7 @@ void LODManager::setWorldDetailQuality(float quality) {
 
     if (isHMDMode) {
         setHMDLODTargetFPS(desiredFPS);
-    }
-    else {
+    } else {
         setDesktopLODTargetFPS(desiredFPS);
     }
 
@@ -377,8 +376,7 @@ float LODManager::getWorldDetailQuality() const {
 
     if (percentage <= LOW) {
         return LOW;
-    }
-    else if (percentage <= MEDIUM) {
+    } else if (percentage <= MEDIUM) {
         return MEDIUM;
     }
 
