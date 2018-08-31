@@ -76,18 +76,22 @@ public class HomeFragment extends Fragment {
         });
         mDomainAdapter.setListener(new DomainAdapter.AdapterListener() {
             @Override
-            public void onEmptyAdapter() {
+            public void onEmptyAdapter(boolean shouldStopRefreshing) {
                 searchNoResultsView.setText(R.string.search_no_results);
                 searchNoResultsView.setVisibility(View.VISIBLE);
                 mDomainsView.setVisibility(View.GONE);
-                mSwipeRefreshLayout.setRefreshing(false);
+                if (shouldStopRefreshing) {
+                    mSwipeRefreshLayout.setRefreshing(false);
+                }
             }
 
             @Override
-            public void onNonEmptyAdapter() {
+            public void onNonEmptyAdapter(boolean shouldStopRefreshing) {
                 searchNoResultsView.setVisibility(View.GONE);
                 mDomainsView.setVisibility(View.VISIBLE);
-                mSwipeRefreshLayout.setRefreshing(false);
+                if (shouldStopRefreshing) {
+                    mSwipeRefreshLayout.setRefreshing(false);
+                }
             }
 
             @Override
@@ -96,11 +100,20 @@ public class HomeFragment extends Fragment {
             }
         });
         mDomainsView.setAdapter(mDomainAdapter);
+        mDomainAdapter.startLoad();
 
         mSearchView = rootView.findViewById(R.id.searchView);
         mSearchIconView = rootView.findViewById(R.id.search_mag_icon);
         mClearSearch = rootView.findViewById(R.id.search_clear);
 
+        getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+
+        return rootView;
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
         mSearchView.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {}
@@ -142,10 +155,6 @@ public class HomeFragment extends Fragment {
                 mDomainAdapter.loadDomains(mSearchView.getText().toString(), true);
             }
         });
-
-        getActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
-
-        return rootView;
     }
 
     @Override

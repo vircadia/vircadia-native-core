@@ -458,7 +458,6 @@ protected:
     glm::vec3 _lastAngularVelocity;
     glm::vec3 _angularAcceleration;
     glm::quat _lastOrientation;
-
     glm::vec3 _worldUpDirection { Vectors::UP };
     bool _moving { false }; ///< set when position is changing
 

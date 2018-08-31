@@ -136,10 +136,9 @@ public:
 
     virtual bool canPickIntersect() const override { return hasEntities(); }
     virtual EntityItemID findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-        bool& keepSearching, OctreeElementPointer& element, float& distance,
-        BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
-        const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
-        QVariantMap& extraInfo, bool precisionPicking = false);
+        OctreeElementPointer& element, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
+        const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard,
+        bool visibleOnly, bool collidableOnly, QVariantMap& extraInfo, bool precisionPicking = false);
     virtual EntityItemID findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
@@ -149,7 +148,7 @@ public:
                         glm::vec3& penetration, void** penetratedObject) const override;
 
     virtual EntityItemID findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
-        const glm::vec3& acceleration, bool& keepSearching, OctreeElementPointer& element, float& parabolicDistance,
+        const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
         BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
         const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
         QVariantMap& extraInfo, bool precisionPicking = false);
