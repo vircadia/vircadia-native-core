@@ -385,7 +385,7 @@ float LODManager::getWorldDetailQuality() const {
 
 
 void LODManager::setLODQualityLevel(float quality) {
-    _lodQualityLevel;
+    _lodQualityLevel = quality;
 }
 
 float LODManager::getLODQualityLevel() const {
