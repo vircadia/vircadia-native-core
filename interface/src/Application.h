@@ -207,6 +207,7 @@ public:
 
     size_t getRenderFrameCount() const { return _renderFrameCount; }
     float getRenderLoopRate() const { return _renderLoopCounter.rate(); }
+    float getNumCollisionObjects() const;
     float getTargetRenderFrameRate() const; // frames/second
 
     float getFieldOfView() { return _fieldOfView.get(); }
@@ -310,6 +311,9 @@ public:
     void unloadAvatarScripts();
 
     Q_INVOKABLE void copyToClipboard(const QString& text);
+
+    int getOtherAvatarsReplicaCount() { return DependencyManager::get<AvatarHashMap>()->getReplicaCount(); }
+    void setOtherAvatarsReplicaCount(int count) { DependencyManager::get<AvatarHashMap>()->setReplicaCount(count); }
 
 #if defined(Q_OS_ANDROID)
     void beforeEnterBackground();

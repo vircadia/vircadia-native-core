@@ -80,6 +80,8 @@ private:
     static glm::vec3 findIntersection(const PickedObject& pickedObject, const glm::vec3& origin, const glm::vec3& direction);
     static glm::vec2 findPos2D(const PickedObject& pickedObject, const glm::vec3& origin);
 
+    bool _showing { true };
+
 };
 
 #endif // hifi_StylusPointer_h

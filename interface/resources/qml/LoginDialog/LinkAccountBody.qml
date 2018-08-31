@@ -120,6 +120,7 @@ Item {
 
         TextField {
             id: usernameField
+            text: Settings.getValue("wallet/savedUsername", "");
             width: parent.width
             focus: true
             label: "Username or Email"

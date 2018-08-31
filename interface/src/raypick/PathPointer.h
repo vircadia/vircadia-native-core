@@ -47,6 +47,8 @@ public:
     virtual void update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
                         bool faceAvatar, bool followNormal, float followNormalStrength, float distance, const PickResultPointer& pickResult);
 
+    bool isEnabled() const { return _enabled; }
+
 protected:
     OverlayID _startID;
     OverlayID _endID;
@@ -59,6 +61,8 @@ protected:
 
     glm::quat _avgEndRot;
     bool _avgEndRotInitialized { false };
+
+    bool _enabled { true };
 };
 
 typedef std::unordered_map<std::string, std::shared_ptr<StartEndRenderState>> RenderStateMap;

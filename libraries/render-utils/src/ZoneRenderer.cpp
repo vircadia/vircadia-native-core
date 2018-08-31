@@ -21,10 +21,11 @@
 #include "StencilMaskPass.h"
 #include "DeferredLightingEffect.h"
 
-
 #include "render-utils/ShaderConstants.h"
 #include "StencilMaskPass.h"
 #include "DeferredLightingEffect.h"
+
+#include "BloomStage.h"
 
 namespace ru {
     using render_utils::slot::texture::Texture;
@@ -63,7 +64,7 @@ void ZoneRendererTask::build(JobModel& task, const Varying& input, Varying& oupu
 }
 
 void SetupZones::run(const RenderContextPointer& context, const Inputs& inputs) {
-    // Grab light, background and haze stages and clear them
+    // Grab light, background, haze, and bloom stages and clear them
     auto lightStage = context->_scene->getStage<LightStage>();
     assert(lightStage);
     lightStage->_currentFrame.clear();
@@ -76,6 +77,10 @@ void SetupZones::run(const RenderContextPointer& context, const Inputs& inputs) 
     assert(hazeStage);
     hazeStage->_currentFrame.clear();
 
+    auto bloomStage = context->_scene->getStage<BloomStage>();
+    assert(bloomStage);
+    bloomStage->_currentFrame.clear();
+
     // call render over the zones to grab their components in the correct order first...
     render::renderItems(context, inputs);
 
@@ -84,6 +89,7 @@ void SetupZones::run(const RenderContextPointer& context, const Inputs& inputs) 
     lightStage->_currentFrame.pushAmbientLight(lightStage->getDefaultLight());
     backgroundStage->_currentFrame.pushBackground(0);
     hazeStage->_currentFrame.pushHaze(0);
+    bloomStage->_currentFrame.pushBloom(INVALID_INDEX);
 }
 
 const gpu::PipelinePointer& DebugZoneLighting::getKeyLightPipeline() {

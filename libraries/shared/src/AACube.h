@@ -56,10 +56,10 @@ public:
     bool touches(const AABox& otherBox) const;
     bool expandedContains(const glm::vec3& point, float expansion) const;
     bool expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& end, float expansion) const;
-    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                BoxFace& face, glm::vec3& surfaceNormal) const;
+    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& invDirection,
+                             float& distance, BoxFace& face, glm::vec3& surfaceNormal) const;
     bool findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
-                                float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal) const;
+                                  float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal) const;
     bool touchesSphere(const glm::vec3& center, float radius) const;
     bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) const;
     bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration) const;

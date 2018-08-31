@@ -32,9 +32,9 @@ namespace workload {
     };
 
     const std::vector<glm::vec2> MAX_VIEW_BACK_FRONTS = {
-        { 100.0f, 200.0f },
-        { 150.0f, 300.0f },
-        { 250.0f, 500.0f }
+        { 100.0f, 1600.0f },
+        { 150.0f, 10000.0f },
+        { 250.0f, 16000.0f }
     };
 
     const float RELATIVE_STEP_DOWN = 0.05f;
@@ -192,7 +192,7 @@ namespace workload {
 
 
         struct Data {
-            bool regulateViewRanges{ false };
+            bool regulateViewRanges{ false }; // regulation is OFF by default
         } data;
 
         struct DataExport {

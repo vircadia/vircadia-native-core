@@ -128,7 +128,7 @@ Rectangle {
                 wrapMode: Text.WordWrap;
 
                 onLinkActivated: {
-                    if(onLinkClicked)
+                    if (onLinkClicked)
                         onLinkClicked(link);
                 }
             }
@@ -166,7 +166,7 @@ Rectangle {
             noText: root.button1text
 
             onYesClicked: function() {
-                if(onButton2Clicked) {
+                if (onButton2Clicked) {
                     onButton2Clicked();
                 } else {
                     root.close();
@@ -174,7 +174,7 @@ Rectangle {
             }
 
             onNoClicked: function() {
-                if(onButton1Clicked) {
+                if (onButton1Clicked) {
                     onButton1Clicked();
                 } else {
                     root.close();

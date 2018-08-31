@@ -14,7 +14,6 @@
 #include <string>
 
 #include <QScriptEngine>
-#include <QtCore/QJsonDocument>
 
 #include "AvatarLogging.h"
 
@@ -45,7 +44,6 @@
 #include "InterfaceLogging.h"
 #include "Menu.h"
 #include "MyAvatar.h"
-#include "OtherAvatar.h"
 #include "SceneScriptingInterface.h"
 
 // 50 times per second - target is 45hz, but this helps account for any small deviations
@@ -72,10 +70,6 @@ AvatarManager::AvatarManager(QObject* parent) :
     qRegisterMetaType<QWeakPointer<Node> >("NodeWeakPointer");
 
     auto nodeList = DependencyManager::get<NodeList>();
-    auto& packetReceiver = nodeList->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
-    packetReceiver.registerListener(PacketType::KillAvatar, this, "processKillAvatar");
-    packetReceiver.registerListener(PacketType::AvatarIdentity, this, "processAvatarIdentityPacket");
 
     // when we hear that the user has ignored an avatar by session UUID
     // immediately remove that avatar instead of waiting for the absence of packets from avatar mixer
@@ -86,8 +80,25 @@ AvatarManager::AvatarManager(QObject* parent) :
     });
 }
 
+AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
+    AvatarSharedPointer avatar = AvatarHashMap::addAvatar(sessionUUID, mixerWeakPointer);
+
+    const auto otherAvatar = std::static_pointer_cast<OtherAvatar>(avatar);
+    if (otherAvatar && _space) {
+        std::unique_lock<std::mutex> lock(_spaceLock);
+        auto spaceIndex = _space->allocateID();
+        otherAvatar->setSpaceIndex(spaceIndex);
+        workload::Sphere sphere(otherAvatar->getWorldPosition(), otherAvatar->getBoundingRadius());
+        workload::Transaction transaction;
+        SpatiallyNestablePointer nestable = std::static_pointer_cast<SpatiallyNestable>(otherAvatar);
+        transaction.reset(spaceIndex, sphere, workload::Owner(nestable));
+        _space->enqueueTransaction(transaction);
+    }
+    return avatar;
+}
+
 AvatarManager::~AvatarManager() {
-    assert(_motionStates.empty());
+    assert(_avatarsToChangeInPhysics.empty());
 }
 
 void AvatarManager::init() {
@@ -107,6 +118,11 @@ void AvatarManager::init() {
         _myAvatar->addToScene(_myAvatar, scene, transaction);
         scene->enqueueTransaction(transaction);
     }
+}
+
+void AvatarManager::setSpace(workload::SpacePointer& space ) {
+    assert(!_space);
+    _space = space;
 }
 
 void AvatarManager::updateMyAvatar(float deltaTime) {
@@ -197,20 +213,20 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     uint64_t updateExpiry = startTime + UPDATE_BUDGET;
     int numAvatarsUpdated = 0;
     int numAVatarsNotUpdated = 0;
-    bool physicsEnabled = qApp->isPhysicsEnabled();
 
-    render::Transaction transaction;
+    render::Transaction renderTransaction;
+    workload::Transaction workloadTransaction;
     while (!sortedAvatars.empty()) {
         const SortableAvatar& sortData = sortedAvatars.top();
-        const auto avatar = std::static_pointer_cast<Avatar>(sortData.getAvatar());
-        const auto otherAvatar = std::static_pointer_cast<OtherAvatar>(sortData.getAvatar());
+        const auto avatar = std::static_pointer_cast<OtherAvatar>(sortData.getAvatar());
 
+        // TODO: to help us scale to more avatars it would be nice to not have to poll orb state here
         // if the geometry is loaded then turn off the orb
         if (avatar->getSkeletonModel()->isLoaded()) {
             // remove the orb if it is there
-            otherAvatar->removeOrb();
+            avatar->removeOrb();
         } else {
-            otherAvatar->updateOrbPosition();
+            avatar->updateOrbPosition();
         }
 
         bool ignoring = DependencyManager::get<NodeList>()->isPersonalMutingNode(avatar->getID());
@@ -223,18 +239,6 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         if (_shouldRender) {
             avatar->ensureInScene(avatar, qApp->getMain3DScene());
         }
-        if (physicsEnabled && !avatar->isInPhysicsSimulation()) {
-            ShapeInfo shapeInfo;
-            avatar->computeShapeInfo(shapeInfo);
-            btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
-            if (shape) {
-                AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
-                motionState->setMass(avatar->computeMass());
-                avatar->setPhysicsCallback([=] (uint32_t flags) { motionState->addDirtyFlags(flags); });
-                _motionStates.insert(avatar.get(), motionState);
-                _motionStatesToAddToPhysics.insert(motionState);
-            }
-        }
         avatar->animateScaleChanges(deltaTime);
 
         const float OUT_OF_VIEW_THRESHOLD = 0.5f * AvatarData::OUT_OF_VIEW_PENALTY;
@@ -246,15 +250,16 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
                 numAvatarsUpdated++;
             }
             avatar->simulate(deltaTime, inView);
-            avatar->updateRenderItem(transaction);
+            avatar->updateRenderItem(renderTransaction);
+            avatar->updateSpaceProxy(workloadTransaction);
             avatar->setLastRenderUpdateTime(startTime);
         } else {
             // we've spent our full time budget --> bail on the rest of the avatar updates
             // --> more avatars may freeze until their priority trickles up
-            // --> some scale or fade animations may glitch
+            // --> some scale animations may glitch
             // --> some avatar velocity measurements may be a little off
 
-            // no time simulate, but we take the time to count how many were tragically missed
+            // no time to simulate, but we take the time to count how many were tragically missed
             bool inView = sortData.getPriority() > OUT_OF_VIEW_THRESHOLD;
             if (!inView) {
                 break;
@@ -278,8 +283,16 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     }
 
     if (_shouldRender) {
-        qApp->getMain3DScene()->enqueueTransaction(transaction);
+        qApp->getMain3DScene()->enqueueTransaction(renderTransaction);
     }
+
+    if (!_spaceProxiesToDelete.empty() && _space) {
+        std::unique_lock<std::mutex> lock(_spaceLock);
+        workloadTransaction.remove(_spaceProxiesToDelete);
+        _spaceProxiesToDelete.clear();
+    }
+    _space->enqueueTransaction(workloadTransaction);
+
     _numAvatarsUpdated = numAvatarsUpdated;
     _numAvatarsNotUpdated = numAVatarsNotUpdated;
 
@@ -346,40 +359,85 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     QReadLocker locker(&_hashLock);
     QVector<AvatarSharedPointer>::iterator avatarItr = _avatarsToFade.begin();
     const render::ScenePointer& scene = qApp->getMain3DScene();
+    render::Transaction transaction;
     while (avatarItr != _avatarsToFade.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(*avatarItr);
         avatar->updateFadingStatus(scene);
         if (!avatar->isFading()) {
             // fading to zero is such a rare event we push a unique transaction for each
             if (avatar->isInScene()) {
-                render::Transaction transaction;
                 avatar->removeFromScene(*avatarItr, scene, transaction);
-                scene->enqueueTransaction(transaction);
             }
             avatarItr = _avatarsToFade.erase(avatarItr);
         } else {
             ++avatarItr;
         }
     }
+    scene->enqueueTransaction(transaction);
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
     return AvatarSharedPointer(new OtherAvatar(qApp->thread()), [](OtherAvatar* ptr) { ptr->deleteLater(); });
 }
 
-void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
-    AvatarHashMap::handleRemovedAvatar(removedAvatar, removalReason);
+void AvatarManager::queuePhysicsChange(const OtherAvatarPointer& avatar) {
+    _avatarsToChangeInPhysics.insert(avatar);
+}
 
-    // remove from physics
-    auto avatar = std::static_pointer_cast<Avatar>(removedAvatar);
-    avatar->setPhysicsCallback(nullptr);
-    AvatarMotionStateMap::iterator itr = _motionStates.find(avatar.get());
-    if (itr != _motionStates.end()) {
-        AvatarMotionState* motionState = *itr;
-        _motionStatesToAddToPhysics.remove(motionState);
-        _motionStatesToRemoveFromPhysics.push_back(motionState);
-        _motionStates.erase(itr);
+void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transaction) {
+    SetOfOtherAvatars failedShapeBuilds;
+    for (auto avatar : _avatarsToChangeInPhysics) {
+        bool isInPhysics = avatar->isInPhysicsSimulation();
+        if (isInPhysics != avatar->shouldBeInPhysicsSimulation()) {
+            if (isInPhysics) {
+                transaction.objectsToRemove.push_back(avatar->_motionState);
+                avatar->_motionState = nullptr;
+            } else {
+                ShapeInfo shapeInfo;
+                avatar->computeShapeInfo(shapeInfo);
+                btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
+                if (shape) {
+                    AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
+                    motionState->setMass(avatar->computeMass());
+                    avatar->_motionState = motionState;
+                    transaction.objectsToAdd.push_back(motionState);
+                } else {
+                    failedShapeBuilds.insert(avatar);
+                }
+            }
+        } else if (isInPhysics) {
+            transaction.objectsToChange.push_back(avatar->_motionState);
+        }
     }
+    _avatarsToChangeInPhysics.swap(failedShapeBuilds);
+}
+
+void AvatarManager::handleProcessedPhysicsTransaction(PhysicsEngine::Transaction& transaction) {
+    // things on objectsToChange correspond to failed changes
+    // so we push them back onto _avatarsToChangeInPhysics
+    for (auto object : transaction.objectsToChange) {
+        AvatarMotionState* motionState = static_cast<AvatarMotionState*>(object);
+        assert(motionState);
+        assert(motionState->_avatar);
+        _avatarsToChangeInPhysics.insert(motionState->_avatar);
+    }
+    // things on objectsToRemove are ready for delete
+    for (auto object : transaction.objectsToRemove) {
+        delete object;
+    }
+    transaction.clear();
+}
+
+void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
+    auto avatar = std::static_pointer_cast<OtherAvatar>(removedAvatar);
+    {
+        std::unique_lock<std::mutex> lock(_spaceLock);
+        _spaceProxiesToDelete.push_back(avatar->getSpaceIndex());
+    }
+    AvatarHashMap::handleRemovedAvatar(avatar, removalReason);
+
+    avatar->die();
+    queuePhysicsChange(avatar);
 
     if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
         emit DependencyManager::get<UsersScriptingInterface>()->enteredIgnoreRadius();
@@ -415,48 +473,15 @@ void AvatarManager::clearOtherAvatars() {
 }
 
 void AvatarManager::deleteAllAvatars() {
-    assert(_motionStates.empty()); // should have called clearOtherAvatars() before getting here
-    deleteMotionStates();
+    assert(_avatarsToChangeInPhysics.empty());
 
     QReadLocker locker(&_hashLock);
     AvatarHash::iterator avatarIterator =  _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
-        auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
+        auto avatar = std::static_pointer_cast<OtherAvatar>(avatarIterator.value());
         avatarIterator = _avatarHash.erase(avatarIterator);
         avatar->die();
-    }
-}
-
-void AvatarManager::deleteMotionStates() {
-    // delete motionstates that were removed from physics last frame
-    for (auto state : _motionStatesToDelete) {
-        delete state;
-    }
-    _motionStatesToDelete.clear();
-}
-
-void AvatarManager::getObjectsToRemoveFromPhysics(VectorOfMotionStates& result) {
-    deleteMotionStates();
-    result = _motionStatesToRemoveFromPhysics;
-    _motionStatesToDelete.swap(_motionStatesToRemoveFromPhysics);
-}
-
-void AvatarManager::getObjectsToAddToPhysics(VectorOfMotionStates& result) {
-    result.clear();
-    for (auto motionState : _motionStatesToAddToPhysics) {
-        result.push_back(motionState);
-    }
-    _motionStatesToAddToPhysics.clear();
-}
-
-void AvatarManager::getObjectsToChange(VectorOfMotionStates& result) {
-    result.clear();
-    AvatarMotionStateMap::iterator motionStateItr = _motionStates.begin();
-    while (motionStateItr != _motionStates.end()) {
-        if ((*motionStateItr)->getIncomingDirtyFlags() != 0) {
-            result.push_back(*motionStateItr);
-        }
-        ++motionStateItr;
+        assert(!avatar->_motionState);
     }
 }
 
@@ -558,8 +583,14 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
         return result;
     }
 
-    glm::vec3 normDirection = glm::normalize(ray.direction);
+    // It's better to intersect the ray against the avatar's actual mesh, but this is currently difficult to
+    // do, because the transformed mesh data only exists over in GPU-land.  As a compromise, this code
+    // intersects against the avatars capsule and then against the (T-pose) mesh.  The end effect is that picking
+    // against the avatar is sort-of right, but you likely wont be able to pick against the arms.
 
+    // TODO -- find a way to extract transformed avatar mesh data from the rendering engine.
+
+    std::vector<SortedAvatar> sortedAvatars;
     auto avatarHashCopy = getHashCopy();
     for (auto avatarData : avatarHashCopy) {
         auto avatar = std::static_pointer_cast<Avatar>(avatarData);
@@ -568,52 +599,65 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
             continue;
         }
 
-        float distance;
-        BoxFace face;
-        glm::vec3 surfaceNormal;
-
-        SkeletonModelPointer avatarModel = avatar->getSkeletonModel();
-
-        // It's better to intersect the ray against the avatar's actual mesh, but this is currently difficult to
-        // do, because the transformed mesh data only exists over in GPU-land.  As a compromise, this code
-        // intersects against the avatars capsule and then against the (T-pose) mesh.  The end effect is that picking
-        // against the avatar is sort-of right, but you likely wont be able to pick against the arms.
-
-        // TODO -- find a way to extract transformed avatar mesh data from the rendering engine.
-
+        float distance = FLT_MAX;
+#if 0
         // if we weren't picking against the capsule, we would want to pick against the avatarBounds...
-        // AABox avatarBounds = avatarModel->getRenderableMeshBound();
-        // if (!avatarBounds.findRayIntersection(ray.origin, normDirection, distance, face, surfaceNormal)) {
-        //     // ray doesn't intersect avatar's bounding-box
-        //     continue;
-        // }
-
+        SkeletonModelPointer avatarModel = avatar->getSkeletonModel();
+        AABox avatarBounds = avatarModel->getRenderableMeshBound();
+        if (avatarBounds.contains(ray.origin)) {
+            distance = 0.0f;
+        } else {
+            float boundDistance = FLT_MAX;
+            BoxFace face;
+            glm::vec3 surfaceNormal;
+            if (avatarBounds.findRayIntersection(ray.origin, ray.direction, boundDistance, face, surfaceNormal)) {
+                distance = boundDistance;
+            }
+        }
+#else
         glm::vec3 start;
         glm::vec3 end;
         float radius;
         avatar->getCapsule(start, end, radius);
-        bool intersects = findRayCapsuleIntersection(ray.origin, normDirection, start, end, radius, distance);
-        if (!intersects) {
-            // ray doesn't intersect avatar's capsule
-            continue;
+        findRayCapsuleIntersection(ray.origin, ray.direction, start, end, radius, distance);
+#endif
+
+        if (distance < FLT_MAX) {
+            sortedAvatars.emplace_back(distance, avatar);
+        }
+    }
+
+    if (sortedAvatars.size() > 1) {
+        static auto comparator = [](const SortedAvatar& left, const SortedAvatar& right) { return left.first < right.first; };
+        std::sort(sortedAvatars.begin(), sortedAvatars.end(), comparator);
+    }
+
+    for (auto it = sortedAvatars.begin(); it != sortedAvatars.end(); ++it) {
+        const SortedAvatar& sortedAvatar = *it;
+        // We can exit once avatarCapsuleDistance > bestDistance
+        if (sortedAvatar.first > result.distance) {
+            break;
         }
 
+        float distance = FLT_MAX;
+        BoxFace face;
+        glm::vec3 surfaceNormal;
         QVariantMap extraInfo;
-        intersects = avatarModel->findRayIntersectionAgainstSubMeshes(ray.origin, normDirection,
-                                                                      distance, face, surfaceNormal, extraInfo, true);
-
-        if (intersects && (!result.intersects || distance < result.distance)) {
-            result.intersects = true;
-            result.avatarID = avatar->getID();
-            result.distance = distance;
-            result.face = face;
-            result.surfaceNormal = surfaceNormal;
-            result.extraInfo = extraInfo;
+        SkeletonModelPointer avatarModel = sortedAvatar.second->getSkeletonModel();
+        if (avatarModel->findRayIntersectionAgainstSubMeshes(ray.origin, ray.direction, distance, face, surfaceNormal, extraInfo, true)) {
+            if (distance < result.distance) {
+                result.intersects = true;
+                result.avatarID = sortedAvatar.second->getID();
+                result.distance = distance;
+                result.face = face;
+                result.surfaceNormal = surfaceNormal;
+                result.extraInfo = extraInfo;
+            }
         }
     }
 
     if (result.intersects) {
-        result.intersection = ray.origin + normDirection * result.distance;
+        result.intersection = ray.origin + ray.direction * result.distance;
     }
 
     return result;
@@ -632,6 +676,14 @@ ParabolaToAvatarIntersectionResult AvatarManager::findParabolaIntersectionVector
         return result;
     }
 
+    // It's better to intersect the ray against the avatar's actual mesh, but this is currently difficult to
+    // do, because the transformed mesh data only exists over in GPU-land.  As a compromise, this code
+    // intersects against the avatars capsule and then against the (T-pose) mesh.  The end effect is that picking
+    // against the avatar is sort-of right, but you likely wont be able to pick against the arms.
+
+    // TODO -- find a way to extract transformed avatar mesh data from the rendering engine.
+
+    std::vector<SortedAvatar> sortedAvatars;
     auto avatarHashCopy = getHashCopy();
     for (auto avatarData : avatarHashCopy) {
         auto avatar = std::static_pointer_cast<Avatar>(avatarData);
@@ -640,47 +692,60 @@ ParabolaToAvatarIntersectionResult AvatarManager::findParabolaIntersectionVector
             continue;
         }
 
-        float parabolicDistance;
-        BoxFace face;
-        glm::vec3 surfaceNormal;
-
-        SkeletonModelPointer avatarModel = avatar->getSkeletonModel();
-
-        // It's better to intersect the parabola against the avatar's actual mesh, but this is currently difficult to
-        // do, because the transformed mesh data only exists over in GPU-land.  As a compromise, this code
-        // intersects against the avatars capsule and then against the (T-pose) mesh.  The end effect is that picking
-        // against the avatar is sort-of right, but you likely wont be able to pick against the arms.
-
-        // TODO -- find a way to extract transformed avatar mesh data from the rendering engine.
-
+        float distance = FLT_MAX;
+#if 0
         // if we weren't picking against the capsule, we would want to pick against the avatarBounds...
-        // AABox avatarBounds = avatarModel->getRenderableMeshBound();
-        // if (!avatarBounds.findParabolaIntersection(pick.origin, pick.velocity, pick.acceleration, parabolicDistance, face, surfaceNormal)) {
-        //     // parabola doesn't intersect avatar's bounding-box
-        //     continue;
-        // }
-
+        SkeletonModelPointer avatarModel = avatar->getSkeletonModel();
+        AABox avatarBounds = avatarModel->getRenderableMeshBound();
+        if (avatarBounds.contains(pick.origin)) {
+            distance = 0.0f;
+        } else {
+            float boundDistance = FLT_MAX;
+            BoxFace face;
+            glm::vec3 surfaceNormal;
+            if (avatarBounds.findParabolaIntersection(pick.origin, pick.velocity, pick.acceleration, boundDistance, face, surfaceNormal)) {
+                distance = boundDistance;
+            }
+        }
+#else
         glm::vec3 start;
         glm::vec3 end;
         float radius;
         avatar->getCapsule(start, end, radius);
-        bool intersects = findParabolaCapsuleIntersection(pick.origin, pick.velocity, pick.acceleration, start, end, radius, avatar->getWorldOrientation(), parabolicDistance);
-        if (!intersects) {
-            // ray doesn't intersect avatar's capsule
-            continue;
+        findParabolaCapsuleIntersection(pick.origin, pick.velocity, pick.acceleration, start, end, radius, avatar->getWorldOrientation(), distance);
+#endif
+
+        if (distance < FLT_MAX) {
+            sortedAvatars.emplace_back(distance, avatar);
+        }
+    }
+
+    if (sortedAvatars.size() > 1) {
+        static auto comparator = [](const SortedAvatar& left, const SortedAvatar& right) { return left.first < right.first; };
+        std::sort(sortedAvatars.begin(), sortedAvatars.end(), comparator);
+    }
+
+    for (auto it = sortedAvatars.begin(); it != sortedAvatars.end(); ++it) {
+        const SortedAvatar& sortedAvatar = *it;
+        // We can exit once avatarCapsuleDistance > bestDistance
+        if (sortedAvatar.first > result.parabolicDistance) {
+            break;
         }
 
+        float parabolicDistance = FLT_MAX;
+        BoxFace face;
+        glm::vec3 surfaceNormal;
         QVariantMap extraInfo;
-        intersects = avatarModel->findParabolaIntersectionAgainstSubMeshes(pick.origin, pick.velocity, pick.acceleration,
-                                                                           parabolicDistance, face, surfaceNormal, extraInfo, true);
-
-        if (intersects && (!result.intersects || parabolicDistance < result.parabolicDistance)) {
-            result.intersects = true;
-            result.avatarID = avatar->getID();
-            result.parabolicDistance = parabolicDistance;
-            result.face = face;
-            result.surfaceNormal = surfaceNormal;
-            result.extraInfo = extraInfo;
+        SkeletonModelPointer avatarModel = sortedAvatar.second->getSkeletonModel();
+        if (avatarModel->findParabolaIntersectionAgainstSubMeshes(pick.origin, pick.velocity, pick.acceleration, parabolicDistance, face, surfaceNormal, extraInfo, true)) {
+            if (parabolicDistance < result.parabolicDistance) {
+                result.intersects = true;
+                result.avatarID = sortedAvatar.second->getID();
+                result.parabolicDistance = parabolicDistance;
+                result.face = face;
+                result.surfaceNormal = surfaceNormal;
+                result.extraInfo = extraInfo;
+            }
         }
     }
 

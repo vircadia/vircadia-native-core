@@ -160,9 +160,9 @@ Rectangle {
                 }
                 Repeater {
                     model: [ 
-                        "r1Front:500:1.0",
-                        "r2Front:500:1.0",
-                        "r3Front:500:1.0"
+                        "r1Front:16000:1.0",
+                        "r2Front:16000:1.0",
+                        "r3Front:16000:1.0"
                     ]
                     ConfigSlider {
                         showLabel: false
@@ -259,18 +259,71 @@ Rectangle {
                 }
             ]
         }
+      /*  PlotPerf {
+            title: "Ranges"
+            height: 100
+            object: stats.controlViews
+            valueScale: 1.0
+            valueUnit: "m"
+            plots: [
+                {
+                    prop: "r3RangeFront",
+                    label: "R3 F",
+                    color: "#FF0000"
+                },
+                {
+                    prop: "r3RangeBack",
+                    label: "R3 B",
+                    color: "#EF0000"
+                },
+                {
+                    prop: "r2RangeFront",
+                    label: "R2 F",
+                    color: "orange"
+                },
+                {
+                    prop: "r2RangeBack",
+                    label: "R2 B",
+                    color: "magenta"
+                },
+                {
+                    prop: "r1RangeFront",
+                    label: "R1 F",
+                    color: "#00FF00"
+                },
+                {
+                    prop: "r1RangeBack",
+                    label: "R1 B",
+                    color: "#00EF00"
+                },
+            ]
+        }*/
         Separator {} 
         HifiControls.Label {
-            text: "Numbers:";     
+            text: "Ranges & Numbers:";     
         }
-        HifiControls.Label {
-            text: "R1= " + Workload.getConfig("regionState")["numR1"];     
-        } 
-        HifiControls.Label {
-            text: "R2= " + Workload.getConfig("regionState")["numR2"];     
-        } 
-        HifiControls.Label {
-            text: "R3= " + Workload.getConfig("regionState")["numR3"];     
+        Repeater {
+            model: [ 
+                "green:R1:numR1:r1RangeBack:r1RangeFront",
+                "orange:R2:numR2:r2RangeBack:r2RangeFront",
+                "red:R3:numR3:r3RangeBack:r3RangeFront"
+            ]
+            RowLayout {
+                anchors.left: parent.left
+                anchors.right: parent.right 
+                HifiControls.Label {
+                    text: modelData.split(":")[1] + " : " + Workload.getConfig("regionState")[modelData.split(":")[2]] ;
+                    color: modelData.split(":")[0]     
+                }
+                HifiControls.Label {
+                    text: Workload.getConfig("controlViews")[modelData.split(":")[3]].toFixed(0) ;
+                    color: modelData.split(":")[0]     
+                }
+                HifiControls.Label {
+                    text: Workload.getConfig("controlViews")[modelData.split(":")[4]].toFixed(0) ;
+                    color: modelData.split(":")[0]     
+                } 
+            } 
         }
 
         Separator {}
