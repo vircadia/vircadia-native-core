@@ -134,7 +134,8 @@ void usecTimestampNowForceClockSkew(qint64 clockSkew) {
 
 quint64 usecTimestampNow(bool wantDebug) {
     using namespace std::chrono;
-    return duration_cast<microseconds>(high_resolution_clock::now().time_since_epoch()).count();
+    static const auto unixEpoch = system_clock::from_time_t(0);
+    return duration_cast<microseconds>(system_clock::now() - unixEpoch).count();
 #if 0
     std::call_once(usecTimestampNowIsInitialized, [&] {
         TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * USECS_PER_MSEC; // ms to usec
