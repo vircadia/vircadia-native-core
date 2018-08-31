@@ -234,7 +234,7 @@ void GLMHelpersTests::roundPerf() {
     auto glmTime = std::chrono::high_resolution_clock::now() - start;
     start = std::chrono::high_resolution_clock::now();
     for (auto& vec : vecs2) {
-        vec = fastRoundf(vec);
+        vec = glm::vec3(fastLrintf(vec.x), fastLrintf(vec.y), fastLrintf(vec.z));
     }
     auto manualTime = std::chrono::high_resolution_clock::now() - start;
 
