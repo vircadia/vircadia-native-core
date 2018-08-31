@@ -262,20 +262,18 @@ bool ShapeEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const
     glm::mat4 entityToWorldMatrix = getEntityToWorldMatrix();
     glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
     glm::vec3 entityFrameOrigin = glm::vec3(worldToEntityMatrix * glm::vec4(origin, 1.0f));
-    glm::vec3 entityFrameDirection = glm::normalize(glm::vec3(worldToEntityMatrix * glm::vec4(direction, 0.0f)));
+    glm::vec3 entityFrameDirection = glm::vec3(worldToEntityMatrix * glm::vec4(direction, 0.0f));
 
-    float localDistance;
     // NOTE: unit sphere has center of 0,0,0 and radius of 0.5
-    if (findRaySphereIntersection(entityFrameOrigin, entityFrameDirection, glm::vec3(0.0f), 0.5f, localDistance)) {
-        // determine where on the unit sphere the hit point occured
-        glm::vec3 entityFrameHitAt = entityFrameOrigin + (entityFrameDirection * localDistance);
-        // then translate back to work coordinates
-        glm::vec3 hitAt = glm::vec3(entityToWorldMatrix * glm::vec4(entityFrameHitAt, 1.0f));
-        distance = glm::distance(origin, hitAt);
+    if (findRaySphereIntersection(entityFrameOrigin, entityFrameDirection, glm::vec3(0.0f), 0.5f, distance)) {
         bool success;
-        // FIXME: this is only correct for uniformly scaled spheres
-        surfaceNormal = glm::normalize(hitAt - getCenterPosition(success));
-        if (!success) {
+        glm::vec3 center = getCenterPosition(success);
+        if (success) {
+            // FIXME: this is only correct for uniformly scaled spheres
+            // determine where on the unit sphere the hit point occured
+            glm::vec3 hitAt = origin + (direction * distance);
+            surfaceNormal = glm::normalize(hitAt - center);
+        } else {
             return false;
         }
         return true;
@@ -297,9 +295,11 @@ bool ShapeEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, 
     // NOTE: unit sphere has center of 0,0,0 and radius of 0.5
     if (findParabolaSphereIntersection(entityFrameOrigin, entityFrameVelocity, entityFrameAcceleration, glm::vec3(0.0f), 0.5f, parabolicDistance)) {
         bool success;
-        // FIXME: this is only correct for uniformly scaled spheres
-        surfaceNormal = glm::normalize((origin + velocity * parabolicDistance + 0.5f * acceleration * parabolicDistance * parabolicDistance) - getCenterPosition(success));
-        if (!success) {
+        glm::vec3 center = getCenterPosition(success);
+        if (success) {
+            // FIXME: this is only correct for uniformly scaled spheres
+            surfaceNormal = glm::normalize((origin + velocity * parabolicDistance + 0.5f * acceleration * parabolicDistance * parabolicDistance) - center);
+        } else {
             return false;
         }
         return true;

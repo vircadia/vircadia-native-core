@@ -68,53 +68,10 @@ Octree::~Octree() {
     eraseAllOctreeElements(false);
 }
 
-
-// Inserts the value and key into three arrays sorted by the key array, the first array is the value,
-// the second array is a sorted key for the value, the third array is the index for the value in it original
-// non-sorted array
-// returns -1 if size exceeded
-// originalIndexArray is optional
-int insertOctreeElementIntoSortedArrays(const OctreeElementPointer& value, float key, int originalIndex,
-                                        OctreeElementPointer* valueArray, float* keyArray, int* originalIndexArray,
-                                        int currentCount, int maxCount) {
-
-    if (currentCount < maxCount) {
-        int i = 0;
-        if (currentCount > 0) {
-            while (i < currentCount && key > keyArray[i]) {
-                i++;
-            }
-            // i is our desired location
-            // shift array elements to the right
-            if (i < currentCount && i+1 < maxCount) {
-                for (int j = currentCount - 1; j > i; j--) {
-                    valueArray[j] = valueArray[j - 1];
-                    keyArray[j] = keyArray[j - 1];
-                }
-            }
-        }
-        // place new element at i
-        valueArray[i] = value;
-        keyArray[i] = key;
-        if (originalIndexArray) {
-            originalIndexArray[i] = originalIndex;
-        }
-        return currentCount + 1;
-    }
-    return -1; // error case
-}
-
-
-
 // Recurses voxel tree calling the RecurseOctreeOperation function for each element.
 // stops recursion if operation function returns false.
 void Octree::recurseTreeWithOperation(const RecurseOctreeOperation& operation, void* extraData) {
     recurseElementWithOperation(_rootElement, operation, extraData);
-}
-
-// Recurses voxel tree calling the RecurseOctreePostFixOperation function for each element in post-fix order.
-void Octree::recurseTreeWithPostOperation(const RecurseOctreeOperation& operation, void* extraData) {
-    recurseElementWithPostOperation(_rootElement, operation, extraData);
 }
 
 // Recurses voxel element with an operation function
@@ -129,71 +86,53 @@ void Octree::recurseElementWithOperation(const OctreeElementPointer& element, co
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             OctreeElementPointer child = element->getChildAtIndex(i);
             if (child) {
-                recurseElementWithOperation(child, operation, extraData, recursionCount+1);
+                recurseElementWithOperation(child, operation, extraData, recursionCount + 1);
             }
         }
     }
 }
 
-// Recurses voxel element with an operation function
-void Octree::recurseElementWithPostOperation(const OctreeElementPointer& element, const RecurseOctreeOperation& operation,
-                                             void* extraData, int recursionCount) {
+void Octree::recurseTreeWithOperationSorted(const RecurseOctreeOperation& operation, const RecurseOctreeSortingOperation& sortingOperation, void* extraData) {
+    recurseElementWithOperationSorted(_rootElement, operation, sortingOperation, extraData);
+}
+
+// Recurses voxel element with an operation function, calling operation on its children in a specific order
+bool Octree::recurseElementWithOperationSorted(const OctreeElementPointer& element, const RecurseOctreeOperation& operation,
+                                               const RecurseOctreeSortingOperation& sortingOperation, void* extraData, int recursionCount) {
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
-        HIFI_FCDEBUG(octree(), "Octree::recurseElementWithPostOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!");
-        return;
+        HIFI_FCDEBUG(octree(), "Octree::recurseElementWithOperationSorted() reached DANGEROUSLY_DEEP_RECURSION, bailing!");
+        // If we go too deep, we want to keep searching other paths
+        return true;
     }
 
+    bool keepSearching = operation(element, extraData);
+
+    std::vector<SortedChild> sortedChildren;
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         OctreeElementPointer child = element->getChildAtIndex(i);
         if (child) {
-            recurseElementWithPostOperation(child, operation, extraData, recursionCount+1);
-        }
-    }
-    operation(element, extraData);
-}
-
-// Recurses voxel tree calling the RecurseOctreeOperation function for each element.
-// stops recursion if operation function returns false.
-void Octree::recurseTreeWithOperationDistanceSorted(const RecurseOctreeOperation& operation,
-                                                       const glm::vec3& point, void* extraData) {
-
-    recurseElementWithOperationDistanceSorted(_rootElement, operation, point, extraData);
-}
-
-// Recurses voxel element with an operation function
-void Octree::recurseElementWithOperationDistanceSorted(const OctreeElementPointer& element, const RecurseOctreeOperation& operation,
-                                                       const glm::vec3& point, void* extraData, int recursionCount) {
-
-    if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
-        HIFI_FCDEBUG(octree(), "Octree::recurseElementWithOperationDistanceSorted() reached DANGEROUSLY_DEEP_RECURSION, bailing!");
-        return;
-    }
-
-    if (operation(element, extraData)) {
-        // determine the distance sorted order of our children
-        OctreeElementPointer sortedChildren[NUMBER_OF_CHILDREN] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
-        float distancesToChildren[NUMBER_OF_CHILDREN] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-        int indexOfChildren[NUMBER_OF_CHILDREN] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-        int currentCount = 0;
-
-        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-            OctreeElementPointer childElement = element->getChildAtIndex(i);
-            if (childElement) {
-                // chance to optimize, doesn't need to be actual distance!! Could be distance squared
-                float distanceSquared = childElement->distanceSquareToPoint(point);
-                currentCount = insertOctreeElementIntoSortedArrays(childElement, distanceSquared, i,
-                                                                   sortedChildren, (float*)&distancesToChildren,
-                                                                   (int*)&indexOfChildren, currentCount, NUMBER_OF_CHILDREN);
-            }
-        }
-
-        for (int i = 0; i < currentCount; i++) {
-            OctreeElementPointer childElement = sortedChildren[i];
-            if (childElement) {
-                recurseElementWithOperationDistanceSorted(childElement, operation, point, extraData);
+            float priority = sortingOperation(child, extraData);
+            if (priority < FLT_MAX) {
+                sortedChildren.emplace_back(priority, child);
             }
         }
     }
+
+    if (sortedChildren.size() > 1) {
+        static auto comparator = [](const SortedChild& left, const SortedChild& right) { return left.first < right.first; };
+        std::sort(sortedChildren.begin(), sortedChildren.end(), comparator);
+    }
+
+    for (auto it = sortedChildren.begin(); it != sortedChildren.end(); ++it) {
+        const SortedChild& sortedChild = *it;
+        // Our children were sorted, so if one hits something, we don't need to check the others
+        if (!recurseElementWithOperationSorted(sortedChild.second, operation, sortingOperation, extraData, recursionCount + 1)) {
+            return false;
+        }
+    }
+    // We checked all our children and didn't find anything.
+    // Stop if we hit something in this element.  Continue if we didn't.
+    return keepSearching;
 }
 
 void Octree::recurseTreeWithOperator(RecurseOctreeOperator* operatorObject) {
