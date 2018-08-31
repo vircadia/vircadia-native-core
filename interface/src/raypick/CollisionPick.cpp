@@ -356,9 +356,7 @@ CollisionPick::CollisionPick(const PickFilter& filter, float maxDistance, bool e
 
 CollisionRegion CollisionPick::getMathematicalPick() const {
     CollisionRegion mathPick = _mathPick;
-    if (!mathPick.loaded) {
-        mathPick.loaded = isLoaded();
-    }
+    mathPick.loaded = isLoaded();
     if (!parentTransform) {
         return mathPick;
     } else {
