@@ -15,6 +15,7 @@
 #include <controllers/InputDevice.h>
 #include "InputPlugin.h"
 #include <QtGui/qtouchdevice.h>
+#include <QtGui/QList>
 #include "VirtualPadManager.h"
 
 class QTouchEvent;
@@ -87,6 +88,58 @@ protected:
         RB_BUTTON
     };
 
+    class TouchscreenButton {
+    public:
+
+        TouchscreenButton() {};
+
+        TouchscreenButton(TouchButtonChannel channelIn, TouchType touchTypeIn, float buttonRadiusIn, glm::vec2 buttonPositionIn,
+                          std::shared_ptr<InputDevice> inputDeviceIn);
+
+        void touchBegin(glm::vec2 touchPoint);
+        void touchUpdate(glm::vec2 touchPoint);
+        void touchEnd();
+        bool touchBeginIsValid(glm::vec2 touchPoint);
+
+        bool hasValidTouch { false };
+        int currentTouchId;
+
+        // per event tmp values
+        int _candidatePointIdx { -1 };
+        bool _found { false };
+        void resetEventValues();
+
+        glm::vec2 buttonPosition;
+        float buttonRadius;
+        TouchType touchType;
+        TouchButtonChannel channel;
+
+        std::shared_ptr<InputDevice> _inputDevice;
+
+    };
+
+    class TouchscreenButtonsManager {
+    public:
+
+        TouchscreenButtonsManager();
+
+        QVector<TouchscreenButton> buttons;
+
+        void addButton(TouchscreenButton button);
+        int buttonsCount() {
+            return buttons.size();
+        }
+
+        void resetEventValues();
+        bool processOngoingTouch(glm::vec2 thisPoint, int thisPointId);
+        bool findStartingTouchPointCandidate(glm::vec2 thisPoint, int thisPointId, int thisPointIdx, std::map<int, TouchType> &globalUnusedTouches);
+        void saveUnusedTouches(std::map<int, TouchType> &unusedTouchesInEvent, glm::vec2 thisPoint, int thisPointId);
+        void processBeginOrEnd(glm::vec2 thisPoint, const QList<QTouchEvent::TouchPoint>& tPoints, std::map<int, TouchType> globalUnusedTouches);
+
+        void endTouchForAll();
+        bool touchBeginInvalidForAllButtons(glm::vec2 touchPoint);
+    };
+
     float _lastPinchScale;
     float _pinchScale;
     float _screenDPI;
@@ -106,9 +159,6 @@ protected:
     bool _jumpHasValidTouch;
     int _jumpCurrentTouchId;
 
-    bool _rbHasValidTouch;
-    int _rbCurrentTouchId;
-
     std::map<int, TouchType> _unusedTouches;
 
     int _touchPointCount;
@@ -127,6 +177,8 @@ protected:
     glm::vec2 _rbButtonPosition;
     float _rbButtonRadius;
 
+    TouchscreenButtonsManager _buttonsManager;
+
     void moveTouchBegin(glm::vec2 touchPoint);
     void moveTouchUpdate(glm::vec2 touchPoint);
     void moveTouchEnd();
@@ -141,11 +193,6 @@ protected:
     void jumpTouchUpdate(glm::vec2 touchPoint);
     void jumpTouchEnd();
     bool jumpTouchBeginIsValid(glm::vec2 touchPoint);
-
-    void rbTouchBegin(glm::vec2 touchPoint);
-    void rbTouchUpdate(glm::vec2 touchPoint);
-    void rbTouchEnd();
-    bool rbTouchBeginIsValid(glm::vec2 touchPoint);
 
     void setupControlsPositions(VirtualPad::Manager& virtualPadManager, bool force = false);
 
