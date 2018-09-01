@@ -91,16 +91,17 @@ void TouchscreenVirtualPadDevice::setupControlsPositions(VirtualPad::Manager& vi
     float rightMargin = _screenDPI * VirtualPad::Manager::JUMP_BTN_RIGHT_MARGIN_PIXELS / VirtualPad::Manager::DPI;
     float bottomMargin = _screenDPI * VirtualPad::Manager::JUMP_BTN_BOTTOM_MARGIN_PIXELS/ VirtualPad::Manager::DPI;
     _jumpButtonPosition = glm::vec2( eventScreen->availableSize().width() - rightMargin - jumpBtnPixelSize, eventScreen->availableSize().height() - bottomMargin - _jumpButtonRadius - _extraBottomMargin);
-    virtualPadManager.setJumpButtonPosition(_jumpButtonPosition);
 
     // RB button (use same size as jump)
     _rbButtonPosition = glm::vec2( eventScreen->availableSize().width() - rightMargin - jumpBtnPixelSize, eventScreen->availableSize().height() - 2 * bottomMargin - 3 * _rbButtonRadius - _extraBottomMargin);
-    virtualPadManager.setRbButtonPosition(_rbButtonPosition);
 
     // Avoid generating buttons in portrait mode
     if ( eventScreen->availableSize().width() > eventScreen->availableSize().height() && _buttonsManager.buttonsCount() == 0) {
-        //_buttonsManager.addButton(TouchscreenButton(JUMP_BUTTON_PRESS, JUMP, _jumpButtonRadius, _jumpButtonPosition, _inputDevice ));
+        _buttonsManager.addButton(TouchscreenButton(JUMP_BUTTON_PRESS, JUMP, _jumpButtonRadius, _jumpButtonPosition, _inputDevice ));
         _buttonsManager.addButton(TouchscreenButton(RB, RB_BUTTON, _rbButtonRadius, _rbButtonPosition, _inputDevice ));
+
+        virtualPadManager.setJumpButtonPosition(_jumpButtonPosition);
+        virtualPadManager.setRbButtonPosition(_rbButtonPosition);
     }
 
 }
@@ -247,7 +248,6 @@ void TouchscreenVirtualPadDevice::touchEndEvent(const QTouchEvent* event) {
     if (!virtualPadManager.isEnabled() && !virtualPadManager.isHidden()) {
         moveTouchEnd();
         viewTouchEnd();
-        jumpTouchEnd();
         _buttonsManager.endTouchForAll();
         return;
     }
@@ -257,7 +257,6 @@ void TouchscreenVirtualPadDevice::touchEndEvent(const QTouchEvent* event) {
     debugPoints(event, " END ----------------");
     moveTouchEnd();
     viewTouchEnd();
-    jumpTouchEnd();
     _buttonsManager.endTouchForAll();
     _inputDevice->_axisStateMap.clear();
     _inputDevice->_buttonPressedMap.clear();
@@ -294,12 +293,9 @@ void TouchscreenVirtualPadDevice::touchUpdateEvent(const QTouchEvent* event) {
     const QList<QTouchEvent::TouchPoint>& tPoints = event->touchPoints();
     bool moveTouchFound = false;
     bool viewTouchFound = false;
-    bool jumpTouchFound = false;
 
     int idxMoveStartingPointCandidate = -1;
     int idxViewStartingPointCandidate = -1;
-    int idxJumpStartingPointCandidate = -1;
-    int idxRbStartingPointCandidate = -1;
 
     _buttonsManager.resetEventValues();
 
@@ -326,13 +322,6 @@ void TouchscreenVirtualPadDevice::touchUpdateEvent(const QTouchEvent* event) {
             continue;
         }
 
-        if (!jumpTouchFound && _jumpHasValidTouch && _jumpCurrentTouchId == thisPointId) {
-            // valid if it's an ongoing touch
-            jumpTouchFound = true;
-            jumpTouchUpdate(thisPoint);
-            continue;
-        }
-
         if (_buttonsManager.processOngoingTouch(thisPoint, thisPointId)) {
             continue;
         }
@@ -349,20 +338,12 @@ void TouchscreenVirtualPadDevice::touchUpdateEvent(const QTouchEvent* event) {
             continue;
         }
 
-        if (!jumpTouchFound && idxJumpStartingPointCandidate == -1 && jumpTouchBeginIsValid(thisPoint) &&
-                (!_unusedTouches.count(thisPointId) || _unusedTouches[thisPointId] == JUMP )) {
-            idxJumpStartingPointCandidate = i;
-            continue;
-        }
-
         if (_buttonsManager.findStartingTouchPointCandidate(thisPoint, thisPointId, i, _unusedTouches)) {
             continue;
         }
 
         if (moveTouchBeginIsValid(thisPoint)) {
             unusedTouchesInEvent[thisPointId] = MOVE;
-        } else if (jumpTouchBeginIsValid(thisPoint)) {
-            unusedTouchesInEvent[thisPointId] = JUMP;
         } else if (viewTouchBeginIsValid(thisPoint))  {
             unusedTouchesInEvent[thisPointId] = VIEW;
         } else {
@@ -395,26 +376,13 @@ void TouchscreenVirtualPadDevice::touchUpdateEvent(const QTouchEvent* event) {
             viewTouchEnd();
         }
     }
-    if (!jumpTouchFound) {
-        if (idxJumpStartingPointCandidate != -1) {
-            _jumpCurrentTouchId = tPoints[idxJumpStartingPointCandidate].id();
-            _unusedTouches.erase(_jumpCurrentTouchId);
-            thisPoint.x = tPoints[idxJumpStartingPointCandidate].pos().x();
-            thisPoint.y = tPoints[idxJumpStartingPointCandidate].pos().y();
-            jumpTouchBegin(thisPoint);
-        } else {
-            if (_jumpHasValidTouch) {
-                jumpTouchEnd();
-            }
-        }
-    }
 
     _buttonsManager.processBeginOrEnd(thisPoint, tPoints, _unusedTouches);
 
 }
 
 bool TouchscreenVirtualPadDevice::viewTouchBeginIsValid(glm::vec2 touchPoint) {
-    return !moveTouchBeginIsValid(touchPoint) && !jumpTouchBeginIsValid(touchPoint) && _buttonsManager.touchBeginInvalidForAllButtons(touchPoint);
+    return !moveTouchBeginIsValid(touchPoint) && _buttonsManager.touchBeginInvalidForAllButtons(touchPoint);
 }
 
 bool TouchscreenVirtualPadDevice::moveTouchBeginIsValid(glm::vec2 touchPoint) {
@@ -424,30 +392,6 @@ bool TouchscreenVirtualPadDevice::moveTouchBeginIsValid(glm::vec2 touchPoint) {
     } else {
         // left side
         return touchPoint.x < _screenWidthCenter;
-    }
-}
-
-bool TouchscreenVirtualPadDevice::jumpTouchBeginIsValid(glm::vec2 touchPoint) {
-    // position of button and boundaries
-    return glm::distance2(touchPoint, _jumpButtonPosition) < _jumpButtonRadius * _jumpButtonRadius;
-}
-
-void TouchscreenVirtualPadDevice::jumpTouchBegin(glm::vec2 touchPoint) {
-    auto& virtualPadManager = VirtualPad::Manager::instance();
-    if (virtualPadManager.isEnabled() && !virtualPadManager.isHidden()) {
-        _jumpHasValidTouch = true;
-
-        _inputDevice->_buttonPressedMap.insert(TouchButtonChannel::JUMP_BUTTON_PRESS);
-    }
-}
-
-void TouchscreenVirtualPadDevice::jumpTouchUpdate(glm::vec2 touchPoint) {}
-
-void TouchscreenVirtualPadDevice::jumpTouchEnd() {
-    if (_jumpHasValidTouch) {
-        _jumpHasValidTouch = false;
-
-        _inputDevice->_buttonPressedMap.erase(TouchButtonChannel::JUMP_BUTTON_PRESS);
     }
 }
 

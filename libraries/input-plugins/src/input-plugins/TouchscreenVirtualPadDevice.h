@@ -156,9 +156,6 @@ protected:
     glm::vec2 _viewCurrentTouchPoint;
     int _viewCurrentTouchId;
 
-    bool _jumpHasValidTouch;
-    int _jumpCurrentTouchId;
-
     std::map<int, TouchType> _unusedTouches;
 
     int _touchPointCount;
@@ -188,11 +185,6 @@ protected:
     void viewTouchUpdate(glm::vec2 touchPoint);
     void viewTouchEnd();
     bool viewTouchBeginIsValid(glm::vec2 touchPoint);
-
-    void jumpTouchBegin(glm::vec2 touchPoint);
-    void jumpTouchUpdate(glm::vec2 touchPoint);
-    void jumpTouchEnd();
-    bool jumpTouchBeginIsValid(glm::vec2 touchPoint);
 
     void setupControlsPositions(VirtualPad::Manager& virtualPadManager, bool force = false);
 
