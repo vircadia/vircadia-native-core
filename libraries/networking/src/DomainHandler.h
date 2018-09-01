@@ -84,6 +84,8 @@ public:
 
     void connectedToServerless(std::map<QString, QString> namedPaths);
 
+    void DomainHandler::loadedErrorDomain(std::map<QString, QString> namedPaths);
+
     QString getViewPointFromNamedPath(QString namedPath);
 
     bool hasSettings() const { return !_settingsObject.isEmpty(); }
@@ -182,7 +184,7 @@ signals:
     void settingsReceiveFail();
 
     void domainConnectionRefused(QString reasonMessage, int reason, const QString& extraInfo);
-    void redirectToErrorDomainURL();
+    void redirectToErrorDomainURL(QUrl errorDomaunURL);
 
     void limitOfSilentDomainCheckInsReached();
 

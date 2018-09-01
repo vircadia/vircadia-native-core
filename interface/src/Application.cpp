@@ -1185,6 +1185,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
 
     connect(&domainHandler, SIGNAL(domainURLChanged(QUrl)), SLOT(domainURLChanged(QUrl)));
+    connect(&domainHandler, SIGNAL(redirectToErrorDomainURL(QUrl)), SLOT(goToErrorDomainURL(QUrl)));
     connect(&domainHandler, &DomainHandler::domainURLChanged, [](QUrl domainURL){
         setCrashAnnotation("domain", domainURL.toString().toStdString());
     });
@@ -2251,6 +2252,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     connect(this, &QCoreApplication::aboutToQuit, this, &Application::addAssetToWorldMessageClose);
     connect(&domainHandler, &DomainHandler::domainURLChanged, this, &Application::addAssetToWorldMessageClose);
+    connect(&domainHandler, &DomainHandler::redirectToErrorDomainURL, this, &Application::addAssetToWorldMessageClose);
 
     updateSystemTabletMode();
 
@@ -2342,14 +2344,6 @@ void Application::domainConnectionRefused(const QString& reasonMessage, int reas
             break;
     }
 }
-
-void Application::domainConnectionRedirect() {
-    auto addressManager = DependencyManager::get<AddressManager>();
-
-    addressManager->handleLookupString(REDIRECT_HIFI_ADDRESS);
-    getMyAvatar()->setWorldVelocity(glm::vec3(0.0f));
-}
-
 
 QString Application::getUserAgent() {
     if (QThread::currentThread() != thread()) {
@@ -3481,7 +3475,7 @@ void Application::setIsServerlessMode(bool serverlessDomain) {
     }
 }
 
-void Application::loadServerlessDomain(QUrl domainURL) {
+void Application::loadServerlessDomain(QUrl domainURL, bool errorDomain) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "loadServerlessDomain", Q_ARG(QUrl, domainURL));
         return;
@@ -3515,8 +3509,11 @@ void Application::loadServerlessDomain(QUrl domainURL) {
     }
 
     std::map<QString, QString> namedPaths = tmpTree->getNamedPaths();
-    nodeList->getDomainHandler().connectedToServerless(namedPaths);
-
+    if (errorDomain) {
+        nodeList->getDomainHandler().loadedErrorDomain(namedPaths);
+    } else {
+        nodeList->getDomainHandler().connectedToServerless(namedPaths);
+    }
 
     _fullSceneReceivedCounter++;
 }
@@ -6381,9 +6378,21 @@ void Application::clearDomainAvatars() {
 void Application::domainURLChanged(QUrl domainURL) {
     // disable physics until we have enough information about our new location to not cause craziness.
     resetPhysicsReadyInformation();
+    auto urlStr = domainURL.toString().toStdString();
     setIsServerlessMode(domainURL.scheme() != URL_SCHEME_HIFI);
     if (isServerlessMode()) {
         loadServerlessDomain(domainURL);
+    }
+    updateWindowTitle();
+}
+
+void Application::goToErrorDomainURL(QUrl errorDomainURL) {
+    // disable physics until we have enough information about our new location to not cause craziness.
+    resetPhysicsReadyInformation();
+    auto urlStr = errorDomainURL.toString().toStdString();
+    setIsServerlessMode(errorDomainURL.scheme() != URL_SCHEME_HIFI);
+    if (isServerlessMode()) {
+        loadServerlessDomain(errorDomainURL, true);
     }
     updateWindowTitle();
 }

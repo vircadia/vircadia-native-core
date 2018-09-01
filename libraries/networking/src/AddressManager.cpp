@@ -114,6 +114,9 @@ QUrl AddressManager::currentFacingPublicAddress() const {
     return shareableAddress;
 }
 
+QUrl AddressManager::lastAddress() const {
+    return _lastVisitedURL;
+}
 
 void AddressManager::loadSettings(const QString& lookupString) {
 #if defined(USE_GLES) && defined(Q_OS_WIN)
@@ -149,6 +152,12 @@ void AddressManager::goForward() {
             emit goForwardPossible(false);
         }
     }
+}
+
+void AddressManager::goToLastAddress() {
+    // this should always return something as long as the URL isn't empty.
+    auto urlStr = _lastVisitedURL.toString().toStdString();
+    handleUrl(_lastVisitedURL, LookupTrigger::AttemptedRefresh);
 }
 
 void AddressManager::storeCurrentAddress() {
@@ -250,9 +259,12 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
 
             UserActivityLogger::getInstance().wentTo(trigger, URL_TYPE_USER, lookupUrl.toString());
 
+                // save the last visited domain URL.
+                _lastVisitedURL = lookupUrl;
+
             // in case we're failing to connect to where we thought this user was
             // store their username as previous lookup so we can refresh their location via API
-            _previousLookup = lookupUrl;
+            _previousAPILookup = lookupUrl;
         } else {
             // we're assuming this is either a network address or global place name
             // check if it is a network address first
@@ -262,8 +274,11 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
 
                 UserActivityLogger::getInstance().wentTo(trigger, URL_TYPE_NETWORK_ADDRESS, lookupUrl.toString());
 
+                // save the last visited domain URL.
+                _lastVisitedURL = lookupUrl;
+
                 // a network address lookup clears the previous lookup since we don't expect to re-attempt it
-                _previousLookup.clear();
+                _previousAPILookup.clear();
 
                 // If the host changed then we have already saved to history
                 if (hostChanged) {
@@ -281,8 +296,11 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
             } else if (handleDomainID(lookupUrl.host())){
                 UserActivityLogger::getInstance().wentTo(trigger, URL_TYPE_DOMAIN_ID, lookupUrl.toString());
 
+                // save the last visited domain URL.
+                _lastVisitedURL = lookupUrl;
+
                 // store this domain ID as the previous lookup in case we're failing to connect and want to refresh API info
-                _previousLookup = lookupUrl;
+                _previousAPILookup = lookupUrl;
 
                 // no place name - this is probably a domain ID
                 // try to look up the domain ID on the metaverse API
@@ -290,8 +308,11 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
             } else {
                 UserActivityLogger::getInstance().wentTo(trigger, URL_TYPE_PLACE, lookupUrl.toString());
 
+                // save the last visited domain URL.
+                _lastVisitedURL = lookupUrl;
+
                 // store this place name as the previous lookup in case we fail to connect and want to refresh API info
-                _previousLookup = lookupUrl;
+                _previousAPILookup = lookupUrl;
 
                 // wasn't an address - lookup the place name
                 // we may have a path that defines a relative viewpoint - pass that through the lookup so we can go to it after
@@ -305,7 +326,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         qCDebug(networking) << "Going to relative path" << lookupUrl.path();
 
         // a path lookup clears the previous lookup since we don't expect to re-attempt it
-        _previousLookup.clear();
+        _previousAPILookup.clear();
 
         // if this is a relative path then handle it as a relative viewpoint
         handlePath(lookupUrl.path(), trigger, true);
@@ -317,7 +338,10 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         // be loaded over http(s)
         // lookupUrl.scheme() == URL_SCHEME_HTTP ||
         // lookupUrl.scheme() == URL_SCHEME_HTTPS ||
-        _previousLookup.clear();
+        // TODO once a file can return a connection refusal if there were to be some kind of load error, we'd 
+        // need to store the previous domain tried in _lastVisitedURL. For now , do not store it.
+
+        _previousAPILookup.clear();
         _shareablePlaceName.clear();
         if (lookupUrl.toString() != REDIRECT_HIFI_ADDRESS) {
             setDomainInfo(lookupUrl, trigger);
@@ -386,7 +410,7 @@ void AddressManager::handleAPIResponse(QNetworkReply* requestReply) {
     QJsonObject dataObject = responseObject["data"].toObject();
 
     // Lookup succeeded, don't keep re-trying it (especially on server restarts)
-    _previousLookup.clear();
+    _previousAPILookup.clear();
 
     if (!dataObject.isEmpty()) {
         goToAddressFromObject(dataObject.toVariantMap(), requestReply);
@@ -552,7 +576,7 @@ void AddressManager::handleAPIError(QNetworkReply* errorReply) {
 
     if (errorReply->error() == QNetworkReply::ContentNotFoundError) {
         // if this is a lookup that has no result, don't keep re-trying it
-        _previousLookup.clear();
+        _previousAPILookup.clear();
 
         emit lookupResultIsNotFound();
     }
@@ -847,8 +871,8 @@ void AddressManager::goToUser(const QString& username, bool shouldMatchOrientati
 
 void AddressManager::refreshPreviousLookup() {
     // if we have a non-empty previous lookup, fire it again now (but don't re-store it in the history)
-    if (!_previousLookup.isEmpty()) {
-        handleUrl(_previousLookup, LookupTrigger::AttemptedRefresh);
+    if (!_previousAPILookup.isEmpty()) {
+        handleUrl(_previousAPILookup, LookupTrigger::AttemptedRefresh);
     } else {
         handleUrl(currentAddress(), LookupTrigger::AttemptedRefresh);
     }

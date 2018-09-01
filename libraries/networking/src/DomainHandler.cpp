@@ -99,6 +99,7 @@ void DomainHandler::softReset() {
 
     clearSettings();
 
+    _isInErrorState = false;
     _connectionDenialsSinceKeypairRegen = 0;
     _checkInPacketsSinceLastReply = 0;
 
@@ -129,6 +130,7 @@ void DomainHandler::hardReset() {
 }
 
 void DomainHandler::setErrorDomainURL(const QUrl& url) {
+    _errorDomainURL = url;
     return;
 }
 
@@ -175,7 +177,8 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
         domainPort = DEFAULT_DOMAIN_SERVER_PORT;
     }
 
-    if (_domainURL != domainURL || _sockAddr.getPort() != domainPort) {
+    // if it's in the error state, reset and try again.
+    if ((_domainURL != domainURL || _sockAddr.getPort() != domainPort) || _isInErrorState) {
         // re-set the domain info so that auth information is reloaded
         hardReset();
 
@@ -210,7 +213,8 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
 
 void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id) {
 
-    if (_iceServerSockAddr.getAddress().toString() != iceServerHostname || id != _pendingDomainID) {
+    // if it's in the error state, reset and try again.
+    if ((_iceServerSockAddr.getAddress().toString() != iceServerHostname || id != _pendingDomainID) || _isInErrorState) {
         // re-set the domain info to connect to new domain
         hardReset();
 
@@ -318,6 +322,17 @@ void DomainHandler::setIsConnected(bool isConnected) {
 void DomainHandler::connectedToServerless(std::map<QString, QString> namedPaths) {
     _namedPaths = namedPaths;
     setIsConnected(true);
+}
+
+void DomainHandler::loadedErrorDomain(std::map<QString, QString> namedPaths) {
+    auto lookup = namedPaths.find("/");
+    QString viewpoint;
+    if (lookup != namedPaths.end()) {
+        viewpoint = lookup->second;
+    } else {
+        viewpoint = DOMAIN_SPAWNING_POINT;
+    }
+    DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, QString());
 }
 
 void DomainHandler::requestDomainSettings() {
@@ -461,7 +476,7 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
         if (reasonCode == ConnectionRefusedReason::ProtocolMismatch || reasonCode == ConnectionRefusedReason::NotAuthorized) {
             _isInErrorState = true;
             // ingest the error - this is a "hard" connection refusal.
-            emit domainURLChanged(_errorDomainURL);
+            emit redirectToErrorDomainURL(_errorDomainURL);
         } else {
             emit domainConnectionRefused(reasonMessage, (int)reasonCode, extraInfo);
         }

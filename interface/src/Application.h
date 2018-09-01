@@ -426,7 +426,7 @@ public slots:
     void setPreferredCursor(const QString& cursor);
 
     void setIsServerlessMode(bool serverlessDomain);
-    void loadServerlessDomain(QUrl domainURL);
+    void loadServerlessDomain(QUrl domainURL, bool errorDomain = false);
 
     void updateVerboseLogging();
 
@@ -465,6 +465,7 @@ private slots:
     void setSessionUUID(const QUuid& sessionUUID) const;
 
     void domainURLChanged(QUrl domainURL);
+    void goToErrorDomainURL(QUrl errorDomainURL);
     void updateWindowTitle() const;
     void nodeAdded(SharedNodePointer node) const;
     void nodeActivated(SharedNodePointer node);
@@ -474,7 +475,6 @@ private slots:
     void updateDisplayMode();
     void setDisplayPlugin(DisplayPluginPointer newPlugin);
     void domainConnectionRefused(const QString& reasonMessage, int reason, const QString& extraInfo);
-    void domainConnectionRedirect();
 
     void addAssetToWorldCheckModelSize();
 

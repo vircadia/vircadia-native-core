@@ -145,6 +145,7 @@ public:
         UserInput,
         Back,
         Forward,
+        //Retry,
         StartupFromSettings,
         DomainPathResponse,
         Internal,
@@ -164,6 +165,8 @@ public:
     QUrl currentFacingPublicAddress() const;
     QString currentPath(bool withOrientation = true) const;
     QString currentFacingPath() const;
+
+    QUrl lastAddress() const;
 
     const QUuid& getRootPlaceID() const { return _rootPlaceID; }
     QString getPlaceName() const;
@@ -245,6 +248,12 @@ public slots:
      *     them, otherwise go to the user's exact location and orientation.
      */
     void goToUser(const QString& username, bool shouldMatchOrientation = true);
+
+    /**jsdoc
+    * Go to the last address tried.  This will be the last URL tried from location.handleLookupString
+    * @function location.goToLastAddress
+    */
+    void goToLastAddress();
 
     /**jsdoc
      * Refresh the current address, e.g., after connecting to a domain in order to position the user to the desired location.
@@ -447,6 +456,7 @@ private:
     void addCurrentAddressToHistory(LookupTrigger trigger);
 
     QUrl _domainURL;
+    QUrl _lastVisitedURL;
 
     QUuid _rootPlaceID;
     PositionGetter _positionGetter;
@@ -460,7 +470,7 @@ private:
 
     QString _newHostLookupPath;
 
-    QUrl _previousLookup;
+    QUrl _previousAPILookup;
 };
 
 #endif // hifi_AddressManager_h
