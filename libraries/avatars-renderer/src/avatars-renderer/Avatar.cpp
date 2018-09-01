@@ -376,6 +376,9 @@ void Avatar::updateAvatarEntities() {
                 }
             }
         }
+        if (avatarEntities.size() != _avatarEntityForRecording.size()) {
+            createRecordingIDs();
+        }
     });
 
     setAvatarEntityDataChanged(false);
@@ -1480,9 +1483,6 @@ int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
 
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, getWorldPosition()) > MOVE_DISTANCE_THRESHOLD;
-    if (_moving) {
-        addPhysicsFlags(Simulation::DIRTY_POSITION);
-    }
     if (_moving || _hasNewJointData) {
         locationChanged();
     }
@@ -1622,20 +1622,6 @@ float Avatar::computeMass() {
     // volumeOfCapsule = (2PI * R^2 * H) + (4PI * R^3 / 3)
     // volumeOfCapsule = 2PI * R^2 * (H + 2R/3)
     return _density * TWO_PI * radius * radius * (glm::length(end - start) + 2.0f * radius / 3.0f);
-}
-
-void Avatar::rebuildCollisionShape() {
-    addPhysicsFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
-}
-
-void Avatar::setPhysicsCallback(AvatarPhysicsCallback cb) {
-    _physicsCallback = cb;
-}
-
-void Avatar::addPhysicsFlags(uint32_t flags) {
-    if (_physicsCallback) {
-        _physicsCallback(flags);
-    }
 }
 
 // thread-safe

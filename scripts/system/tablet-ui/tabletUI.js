@@ -306,7 +306,7 @@
         }
         wantsMenu = clicked;
     });
-    
+
     clickMapping.from(Controller.Standard.Start).peek().to(function (clicked) {
     if (clicked) {
         //activeHudPoint2dGamePad();

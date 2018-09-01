@@ -33,6 +33,7 @@ void PickItemsJob::run(const render::RenderContextPointer& renderContext, const 
 render::ItemBound PickItemsJob::findNearestItem(const render::RenderContextPointer& renderContext, const render::ItemBounds& inputs, float& minIsectDistance) const {
     const glm::vec3 rayOrigin = renderContext->args->getViewFrustum().getPosition();
     const glm::vec3 rayDirection = renderContext->args->getViewFrustum().getDirection();
+    const glm::vec3 rayInvDirection = 1.0f / rayDirection;
     BoxFace face;
     glm::vec3 normal;
     float isectDistance;
@@ -42,7 +43,7 @@ render::ItemBound PickItemsJob::findNearestItem(const render::RenderContextPoint
     render::ItemKey itemKey;
 
     for (const auto& itemBound : inputs) {
-        if (!itemBound.bound.contains(rayOrigin) && itemBound.bound.findRayIntersection(rayOrigin, rayDirection, isectDistance, face, normal)) {
+        if (!itemBound.bound.contains(rayOrigin) && itemBound.bound.findRayIntersection(rayOrigin, rayDirection, rayInvDirection, isectDistance, face, normal)) {
             auto& item = renderContext->_scene->getItem(itemBound.id);
             itemKey = item.getKey();
             if (itemKey.isWorldSpace() && isectDistance>minDistance && isectDistance < minIsectDistance && isectDistance<maxDistance

@@ -208,7 +208,9 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
 
     bool useDualQuaternionSkinning = model->getUseDualQuaternionSkinning();
 
-    _blendedVertexBuffer = model->_blendedVertexBuffers[_meshIndex];
+    if (!model->getFBXGeometry().meshes[meshIndex].blendshapes.isEmpty()) {
+        _blendedVertexBuffer = model->_blendedVertexBuffers[meshIndex];
+    }
     auto& modelMesh = model->getGeometry()->getMeshes().at(_meshIndex);
     const Model::MeshState& state = model->getMeshState(_meshIndex);
 

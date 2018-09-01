@@ -45,6 +45,7 @@
 #include "TextureCache.h"
 #include "ZoneRenderer.h"
 #include "FadeEffect.h"
+#include "BloomStage.h"
 #include "RenderUtilsLogging.h"
 
 #include "AmbientOcclusionEffect.h"
@@ -173,7 +174,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto velocityBufferOutputs = task.addJob<VelocityBufferPass>("VelocityBuffer", velocityBufferInputs);
     const auto velocityBuffer = velocityBufferOutputs.getN<VelocityBufferPass::Outputs>(0);
 
-    // Clear Light, Haze and Skybox Stages and render zones from the general metas bucket
+    // Clear Light, Haze, Bloom, and Skybox Stages and render zones from the general metas bucket
     const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
 
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
@@ -245,8 +246,9 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
 
     // Add bloom
-    const auto bloomInputs = Bloom::Inputs(deferredFrameTransform, lightingFramebuffer).asVarying();
-    task.addJob<Bloom>("Bloom", bloomInputs);
+    const auto bloomModel = task.addJob<FetchBloomStage>("BloomModel");
+    const auto bloomInputs = BloomEffect::Inputs(deferredFrameTransform, lightingFramebuffer, bloomModel).asVarying();
+    task.addJob<BloomEffect>("Bloom", bloomInputs);
 
     // Lighting Buffer ready for tone mapping
     const auto toneMappingInputs = ToneMappingDeferred::Inputs(lightingFramebuffer, scaledPrimaryFramebuffer).asVarying();

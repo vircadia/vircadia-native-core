@@ -72,6 +72,7 @@ using BlurParamsPointer = std::shared_ptr<BlurParams>;
 
 class BlurInOutResource {
 public:
+    BlurInOutResource() {}
     BlurInOutResource(bool generateOutputFramebuffer, unsigned int downsampleFactor);
 
     struct Resources {
@@ -113,13 +114,14 @@ protected:
 
 class BlurGaussian {
 public:
+    using Inputs = VaryingSet5<gpu::FramebufferPointer, bool, unsigned int, int, float>;
     using Config = BlurGaussianConfig;
-    using JobModel = Job::ModelIO<BlurGaussian, gpu::FramebufferPointer, gpu::FramebufferPointer, Config>;
+    using JobModel = Job::ModelIO<BlurGaussian, Inputs, gpu::FramebufferPointer, Config>;
 
-    BlurGaussian(bool generateOutputFramebuffer = false, unsigned int downsampleFactor = 1U);
+    BlurGaussian();
 
     void configure(const Config& config);
-    void run(const RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceFramebuffer, gpu::FramebufferPointer& blurredFramebuffer);
+    void run(const RenderContextPointer& renderContext, const Inputs& inputs, gpu::FramebufferPointer& blurredFramebuffer);
 
     BlurParamsPointer getParameters() const { return _parameters; }
 
