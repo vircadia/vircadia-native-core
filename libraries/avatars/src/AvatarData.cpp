@@ -666,6 +666,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, controllerLeftHandTransform.getRotation());
         destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, controllerLeftHandTransform.getTranslation(),
             TRANSLATION_COMPRESSION_RADIX);
+
         Transform controllerRightHandTransform = Transform(getControllerRightHandMatrix());
         destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, controllerRightHandTransform.getRotation());
         destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, controllerRightHandTransform.getTranslation(),
@@ -674,6 +675,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         if (hasGrabJoints) {
             // the far-grab joints may range further than 3 meters, so we can't use packFloatVec3ToSignedTwoByteFixed etc
             auto startSection = destinationBuffer;
+            auto data = reinterpret_cast<AvatarDataPacket::FarGrabJoints*>(destinationBuffer);
             glm::vec3 leftFarGrabPosition = extractTranslation(leftFarGrabMatrix);
             glm::quat leftFarGrabRotation = extractRotation(leftFarGrabMatrix);
             glm::vec3 rightFarGrabPosition = extractTranslation(rightFarGrabMatrix);
@@ -682,11 +684,25 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             glm::quat mouseFarGrabRotation = extractRotation(mouseFarGrabMatrix);
 
             AVATAR_MEMCPY(leftFarGrabPosition);
-            AVATAR_MEMCPY(leftFarGrabRotation);
+            data->leftFarGrabRotation[0] = leftFarGrabRotation.w;
+            data->leftFarGrabRotation[1] = leftFarGrabRotation.x;
+            data->leftFarGrabRotation[2] = leftFarGrabRotation.y;
+            data->leftFarGrabRotation[3] = leftFarGrabRotation.z;
+            destinationBuffer += sizeof(data->leftFarGrabPosition);
+
             AVATAR_MEMCPY(rightFarGrabPosition);
-            AVATAR_MEMCPY(rightFarGrabRotation);
+            data->rightFarGrabRotation[0] = rightFarGrabRotation.w;
+            data->rightFarGrabRotation[1] = rightFarGrabRotation.x;
+            data->rightFarGrabRotation[2] = rightFarGrabRotation.y;
+            data->rightFarGrabRotation[3] = rightFarGrabRotation.z;
+            destinationBuffer += sizeof(data->rightFarGrabRotation);
+
             AVATAR_MEMCPY(mouseFarGrabPosition);
-            AVATAR_MEMCPY(mouseFarGrabRotation);
+            data->mouseFarGrabRotation[0] = mouseFarGrabRotation.w;
+            data->mouseFarGrabRotation[1] = mouseFarGrabRotation.x;
+            data->mouseFarGrabRotation[2] = mouseFarGrabRotation.y;
+            data->mouseFarGrabRotation[3] = mouseFarGrabRotation.z;
+            destinationBuffer += sizeof(data->mouseFarGrabRotation);
 
             int numBytes = destinationBuffer - startSection;
 
