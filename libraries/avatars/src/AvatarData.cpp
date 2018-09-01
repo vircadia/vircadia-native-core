@@ -573,10 +573,8 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         destinationBuffer += numValidityBytes; // Move pointer past the validity bytes
 
         // sentJointDataOut and lastSentJointData might be the same vector
-        // build sentJointDataOut locally and then swap it at the end.
-        QVector<JointData> localSentJointDataOut;
         if (sentJointDataOut) {
-            localSentJointDataOut.resize(numJoints); // Make sure the destination is resized before using it
+            sentJointDataOut->resize(numJoints); // Make sure the destination is resized before using it
         }
 
         float minRotationDOT = (distanceAdjust && cullSmallChanges) ? getDistanceBasedMinRotationDOT(viewerPosition) : AVATAR_MIN_ROTATION_DOT;
@@ -597,11 +595,13 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                     destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, data.rotation);
 
                     if (sentJointDataOut) {
-                        localSentJointDataOut[i].rotation = data.rotation;
-                        localSentJointDataOut[i].rotationIsDefaultPose = false;
+                        (*sentJointDataOut)[i].rotation = data.rotation;
                     }
                 }
             }
+
+            (*sentJointDataOut)[i].rotationIsDefaultPose = data.rotationIsDefaultPose;
+
             if (++validityBit == BITS_IN_BYTE) {
                 *validityPosition++ = validity;
                 validityBit = validity = 0;
@@ -646,11 +646,13 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                         packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
 
                     if (sentJointDataOut) {
-                        localSentJointDataOut[i].translation = data.translation;
-                        localSentJointDataOut[i].translationIsDefaultPose = false;
+                        (*sentJointDataOut)[i].translation = data.translation;
                     }
                 }
             }
+
+            (*sentJointDataOut)[i].translationIsDefaultPose = data.translationIsDefaultPose;
+
             if (++validityBit == BITS_IN_BYTE) {
                 *validityPosition++ = validity;
                 validityBit = validity = 0;
@@ -727,24 +729,6 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         int numBytes = destinationBuffer - startSection;
         if (outboundDataRateOut) {
             outboundDataRateOut->jointDataRate.increment(numBytes);
-        }
-
-        if (sentJointDataOut) {
-
-            // Mark default poses in lastSentJointData, so when they become non-default we send them.
-            for (int i = 0; i < jointData.size(); i++) {
-                const JointData& data = jointData[i];
-                JointData& local = localSentJointDataOut[i];
-                if (data.rotationIsDefaultPose) {
-                    local.rotationIsDefaultPose = true;
-                }
-                if (data.translationIsDefaultPose) {
-                    local.translationIsDefaultPose = true;
-                }
-            }
-
-            // Push new sent joint data to sentJointDataOut
-            sentJointDataOut->swap(localSentJointDataOut);
         }
 
         // Always true, currently:
