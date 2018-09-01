@@ -228,6 +228,9 @@ void AvatarMixerClientData::ignoreOther(SharedNodePointer self, SharedNodePointe
             killPacket->writePrimitive(KillAvatarReason::YourAvatarEnteredTheirBubble);
         }
         setLastBroadcastTime(other->getUUID(), 0);
+
+        resetSentTraitData(other->getLocalID());
+
         DependencyManager::get<NodeList>()->sendPacket(std::move(killPacket), *self);
     }
 }
@@ -236,6 +239,11 @@ void AvatarMixerClientData::removeFromRadiusIgnoringSet(SharedNodePointer self, 
     if (isRadiusIgnoring(other)) {
         _radiusIgnoredOthers.erase(other);
     }
+}
+
+void AvatarMixerClientData::resetSentTraitData(Node::LocalID nodeLocalID) {
+    _lastSentTraitsTimestamps[nodeLocalID] = TraitsCheckTimestamp();
+    _sentTraitVersions[nodeLocalID].reset();
 }
 
 void AvatarMixerClientData::readViewFrustumPacket(const QByteArray& message) {

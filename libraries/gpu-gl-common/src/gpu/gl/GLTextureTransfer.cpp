@@ -405,6 +405,7 @@ bool GLTextureTransferEngineDefault::processActiveBufferQueue() {
         _activeTransferQueue.splice(_activeTransferQueue.end(), activeBufferQueue);
     }
 
+    Texture::KtxStorage::releaseOpenKtxFiles();
     return true;
 }
 

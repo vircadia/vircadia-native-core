@@ -64,6 +64,16 @@ class Model;
 using ModelPointer = std::shared_ptr<Model>;
 using ModelWeakPointer = std::weak_ptr<Model>;
 
+struct SortedTriangleSet {
+    SortedTriangleSet(float distance, TriangleSet* triangleSet, int partIndex, int shapeID, int subMeshIndex) :
+        distance(distance), triangleSet(triangleSet), partIndex(partIndex), shapeID(shapeID), subMeshIndex(subMeshIndex) {}
+
+    float distance;
+    TriangleSet* triangleSet;
+    int partIndex;
+    int shapeID;
+    int subMeshIndex;
+};
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject, public std::enable_shared_from_this<Model>, public scriptable::ModelProvider {
@@ -135,7 +145,7 @@ public:
 
     /// Sets blended vertices computed in a separate thread.
     void setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geometry,
-        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, const QVector<glm::vec3>& tangents);
+        const QVector<glm::vec3>& vertices, const QVector<NormalType>& normalsAndTangents);
 
     bool isLoaded() const { return (bool)_renderGeometry && _renderGeometry->isGeometryLoaded(); }
     bool isAddedToScene() const { return _addedToScene; }
@@ -149,7 +159,7 @@ public:
     bool getSnapModelToRegistrationPoint() { return _snapModelToRegistrationPoint; }
 
     virtual void simulate(float deltaTime, bool fullUpdate = true);
-    virtual void updateClusterMatrices();
+    virtual void updateClusterMatrices(bool triggerBlendshapes = true);
 
     /// Returns a reference to the shared geometry.
     const Geometry::Pointer& getGeometry() const { return _renderGeometry; }
@@ -413,7 +423,7 @@ protected:
 
     QUrl _url;
 
-    gpu::Buffers _blendedVertexBuffers;
+    std::unordered_map<int, gpu::BufferPointer> _blendedVertexBuffers;
 
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
 
@@ -482,6 +492,8 @@ protected:
 
     bool shouldInvalidatePayloadShapeKey(int meshIndex);
 
+    void initializeBlendshapes(const FBXMesh& mesh, int index);
+
 private:
     float _loadingPriority { 0.0f };
 
@@ -503,9 +515,12 @@ public:
     /// Adds the specified model to the list requiring vertex blends.
     void noteRequiresBlend(ModelPointer model);
 
+    bool shouldComputeBlendshapes() { return _computeBlendshapes; }
+
 public slots:
     void setBlendedVertices(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry,
-        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, const QVector<glm::vec3>& tangents);
+        const QVector<glm::vec3>& vertices, const QVector<NormalType>& normalsAndTangents);
+    void setComputeBlendshapes(bool computeBlendshapes) { _computeBlendshapes = computeBlendshapes; }
 
 private:
     using Mutex = std::mutex;
@@ -517,6 +532,8 @@ private:
     std::set<ModelWeakPointer, std::owner_less<ModelWeakPointer>> _modelsRequiringBlends;
     int _pendingBlenders;
     Mutex _mutex;
+
+    bool _computeBlendshapes { true };
 };
 
 
