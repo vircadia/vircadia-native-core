@@ -98,6 +98,10 @@ void AutoTester::on_createTestRailRunButton_clicked() {
     _test->createTestRailRun();
 }
 
+void AutoTester::on_runNowButton_clicked() {
+    _test->runNow();
+}
+
 void AutoTester::on_updateTestRailRunResultsButton_clicked() {
     _test->updateTestRailRunResult();
 }

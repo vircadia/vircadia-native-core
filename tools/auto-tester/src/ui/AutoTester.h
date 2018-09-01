@@ -57,6 +57,9 @@ private slots:
 
     void on_createTestRailTestCasesButton_clicked();
     void on_createTestRailRunButton_clicked();
+
+    void on_runNowButton_clicked();
+
     void on_updateTestRailRunResultsButton_clicked();
 
     void on_hideTaskbarButton_clicked();

@@ -920,6 +920,38 @@ void Test::createTestRailRun() {
     _testRailInterface.createTestRailRun(outputDirectory);
 }
 
+void Test::runNow() {
+    // Rename the existing data directory, and create an empty one
+    QString dataDirectory{ "NOT FOUND" };
+
+#ifdef Q_OS_WIN
+    dataDirectory = qgetenv("USERPROFILE") + "\\AppData\\Roaming";
+#endif
+
+    QDir highfidelityDirectory{ dataDirectory + "\\High Fidelity" };
+
+    if (!highfidelityDirectory.exists()) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "The High Fidelity data folder was not found in " + dataDirectory);
+        exit(-1);
+    }
+
+    // The original folder is saved in a unique name
+    QDir savedDataFolder{ dataDirectory  + "/fgadhcUDHSFaidsfh3478JJJFSDFIUSOEIrf" };
+    highfidelityDirectory.rename(QDir::fromNativeSeparators(highfidelityDirectory.path()),
+                                 QDir::toNativeSeparators(savedDataFolder.path()));
+
+    QDir().mkdir(highfidelityDirectory.path());
+
+    ////////////////////////////////////////////////////////////////////////////////
+
+    // Finally - restore the data folder
+    QDir().rmdir(highfidelityDirectory.path());
+
+    highfidelityDirectory.rename(QDir::fromNativeSeparators(savedDataFolder.path()),
+                                 QDir::toNativeSeparators(highfidelityDirectory.path()));
+}
+
 void Test::updateTestRailRunResult() {
     QString testResults = QFileDialog::getOpenFileName(nullptr, "Please select the zipped test results to update from", nullptr,
                                                        "Zipped Test Results (*.zip)");   

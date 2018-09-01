@@ -21,37 +21,25 @@
 
 TestRailInterface::TestRailInterface() {
     _testRailTestCasesSelectorWindow.setURL("https://highfidelity.testrail.net");
-    ////_testRailTestCasesSelectorWindow.setURL("https://nissimhadar.testrail.io");
     _testRailTestCasesSelectorWindow.setUser("@highfidelity.io");
-    ////_testRailTestCasesSelectorWindow.setUser("nissim.hadar@gmail.com");
 
     _testRailTestCasesSelectorWindow.setProjectID(INTERFACE_AUTOMATION_PROJECT_ID);
-    ////_testRailTestCasesSelectorWindow.setProjectID(2);
 
     _testRailTestCasesSelectorWindow.setSuiteID(INTERFACE_SUITE_ID);
-    ////_testRailTestCasesSelectorWindow.setSuiteID(2);
 
     _testRailRunSelectorWindow.setURL("https://highfidelity.testrail.net");
-    ////_testRailRunSelectorWindow.setURL("https://nissimhadar.testrail.io");
     _testRailRunSelectorWindow.setUser("@highfidelity.io");
-    ////_testRailRunSelectorWindow.setUser("nissim.hadar@gmail.com");
 
     _testRailRunSelectorWindow.setProjectID(INTERFACE_AUTOMATION_PROJECT_ID);
-    ////_testRailRunSelectorWindow.setProjectID(2);
 
     _testRailRunSelectorWindow.setSuiteID(INTERFACE_SUITE_ID);
-    ////_testRailRunSelectorWindow.setSuiteID(2);
 
     _testRailResultsSelectorWindow.setURL("https://highfidelity.testrail.net");
-    ////_testRailResultsSelectorWindow.setURL("https://nissimhadar.testrail.io");
     _testRailResultsSelectorWindow.setUser("@highfidelity.io");
-    ////_testRailResultsSelectorWindow.setUser("nissim.hadar@gmail.com");
 
     _testRailResultsSelectorWindow.setProjectID(INTERFACE_AUTOMATION_PROJECT_ID);
-    ////_testRailResultsSelectorWindow.setProjectID(2);
 
     _testRailResultsSelectorWindow.setSuiteID(INTERFACE_SUITE_ID);
-    ////_testRailResultsSelectorWindow.setSuiteID(2);
 }
 
 QString TestRailInterface::getObject(const QString& path) {

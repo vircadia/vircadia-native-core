@@ -63,6 +63,9 @@ public:
 
     void createTestRailTestCases();
     void createTestRailRun();
+
+    void runNow();
+
     void updateTestRailRunResult();
 
     void createRecursiveScript();
