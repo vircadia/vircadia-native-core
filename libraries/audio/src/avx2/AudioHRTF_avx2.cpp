@@ -169,4 +169,61 @@ void biquad2_4x4_AVX2(float* src, float* dst, float coef[5][8], float state[3][8
     _mm256_zeroupper();
 }
 
+// crossfade 4 inputs into 2 outputs with accumulation (interleaved)
+void crossfade_4x2_AVX2(float* src, float* dst, const float* win, int numFrames) {
+
+    assert(numFrames % 8 == 0);
+
+    for (int i = 0; i < numFrames; i += 8) {
+
+        __m256 f0 = _mm256_loadu_ps(&win[i]);
+
+        __m256 x0 = _mm256_castps128_ps256(_mm_loadu_ps(&src[4*i+0]));
+        __m256 x1 = _mm256_castps128_ps256(_mm_loadu_ps(&src[4*i+4]));
+        __m256 x2 = _mm256_castps128_ps256(_mm_loadu_ps(&src[4*i+8]));
+        __m256 x3 = _mm256_castps128_ps256(_mm_loadu_ps(&src[4*i+12]));
+
+        x0 = _mm256_insertf128_ps(x0, _mm_loadu_ps(&src[4*i+16]), 1);
+        x1 = _mm256_insertf128_ps(x1, _mm_loadu_ps(&src[4*i+20]), 1);
+        x2 = _mm256_insertf128_ps(x2, _mm_loadu_ps(&src[4*i+24]), 1);
+        x3 = _mm256_insertf128_ps(x3, _mm_loadu_ps(&src[4*i+28]), 1);
+
+        __m256 y0 = _mm256_loadu_ps(&dst[2*i+0]);
+        __m256 y1 = _mm256_loadu_ps(&dst[2*i+8]);
+
+        // deinterleave (4x4 matrix transpose)
+        __m256 t0 = _mm256_unpacklo_ps(x0, x1);
+        __m256 t1 = _mm256_unpackhi_ps(x0, x1);
+        __m256 t2 = _mm256_unpacklo_ps(x2, x3);
+        __m256 t3 = _mm256_unpackhi_ps(x2, x3);
+
+        x0 = _mm256_shuffle_ps(t0, t2, _MM_SHUFFLE(1,0,1,0));
+        x1 = _mm256_shuffle_ps(t0, t2, _MM_SHUFFLE(3,2,3,2));
+        x2 = _mm256_shuffle_ps(t1, t3, _MM_SHUFFLE(1,0,1,0));
+        x3 = _mm256_shuffle_ps(t1, t3, _MM_SHUFFLE(3,2,3,2));
+
+        // crossfade
+        x0 = _mm256_sub_ps(x0, x2);
+        x1 = _mm256_sub_ps(x1, x3);
+        x2 = _mm256_fmadd_ps(f0, x0, x2);
+        x3 = _mm256_fmadd_ps(f0, x1, x3);
+
+        // interleave
+        t0 = _mm256_unpacklo_ps(x2, x3);
+        t1 = _mm256_unpackhi_ps(x2, x3);
+
+        x0 = _mm256_permute2f128_ps(t0, t1, 0x20);
+        x1 = _mm256_permute2f128_ps(t0, t1, 0x31);
+
+        // accumulate
+        y0 = _mm256_add_ps(y0, x0);
+        y1 = _mm256_add_ps(y1, x1);
+
+        _mm256_storeu_ps(&dst[2*i+0], y0);
+        _mm256_storeu_ps(&dst[2*i+8], y1);
+    }
+
+    _mm256_zeroupper();
+}
+
 #endif

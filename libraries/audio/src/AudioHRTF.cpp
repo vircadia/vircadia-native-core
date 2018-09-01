@@ -469,8 +469,12 @@ static void biquad2_4x4(float* src, float* dst, float coef[5][8], float state[3]
     (*f)(src, dst, coef, state, numFrames); // dispatch
 }
 
+void crossfade_4x2_AVX2(float* src, float* dst, const float* win, int numFrames);
+
 static void crossfade_4x2(float* src, float* dst, const float* win, int numFrames) {
-    crossfade_4x2_SSE(src, dst, win, numFrames);
+
+    static auto f = cpuSupportsAVX2() ? crossfade_4x2_AVX2 : crossfade_4x2_SSE;
+    (*f)(src, dst, win, numFrames); // dispatch
 }
 
 static void interpolate(const float* src0, const float* src1, float* dst, float frac, float gain) {
