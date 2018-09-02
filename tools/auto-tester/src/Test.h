@@ -41,10 +41,14 @@ enum TestRailCreateMode {
 
 class Test {
 public: 
-    Test();
+    Test(QProgressBar* progressBar, QCheckBox* checkBoxInteractiveMode);
 
-    void startTestsEvaluation(const QString& testFolder = QString(), const QString& branchFromCommandLine = QString(), const QString& userFromCommandLine = QString());
-    void finishTestsEvaluation(bool isRunningFromCommandline, bool interactiveMode, QProgressBar* progressBar);
+    void startTestsEvaluation(const bool isRunningFromCommandLine,
+                              const QString& testFolder = QString(),
+                              const QString& branchFromCommandLine = QString(),
+                              const QString& userFromCommandLine = QString());
+
+    void finishTestsEvaluation();
 
     void createTests();
 
@@ -70,7 +74,7 @@ public:
     void createAllRecursiveScripts();
     void createRecursiveScript(const QString& topLevelDirectory, bool interactiveMode);
 
-    bool compareImageLists(bool isInteractiveMode, QProgressBar* progressBar);
+    bool compareImageLists();
 
     QStringList createListOfAll_imagesInDirectory(const QString& imageFormat, const QString& pathToImageDirectory);
 
@@ -93,6 +97,11 @@ public:
     void setTestRailCreateMode(TestRailCreateMode testRailCreateMode);
 
 private:
+    QProgressBar* _progressBar;
+    QCheckBox* _checkBoxInteractiveMode;
+
+    bool _isRunningFromCommandLine{ false };
+
     const QString TEST_FILENAME { "test.js" };
     const QString TEST_RESULTS_FOLDER { "TestResults" };
     const QString TEST_RESULTS_FILENAME { "TestResults.txt" };

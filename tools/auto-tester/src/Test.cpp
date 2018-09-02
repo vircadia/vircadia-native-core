@@ -23,7 +23,10 @@ extern AutoTester* autoTester;
 
 #include <math.h>
 
-Test::Test() {
+Test::Test(QProgressBar* progressBar, QCheckBox* checkBoxInteractiveMode) {
+    _progressBar = progressBar;
+    _checkBoxInteractiveMode = checkBoxInteractiveMode;
+
     _mismatchWindow.setModal(true);
 
     if (autoTester) {
@@ -58,11 +61,11 @@ void Test::zipAndDeleteTestResultsFolder() {
     _index = 1;
 }
 
-bool Test::compareImageLists(bool isInteractiveMode, QProgressBar* progressBar) {
-    progressBar->setMinimum(0);
-    progressBar->setMaximum(_expectedImagesFullFilenames.length() - 1);
-    progressBar->setValue(0);
-    progressBar->setVisible(true);
+bool Test::compareImageLists() {
+    _progressBar->setMinimum(0);
+    _progressBar->setMaximum(_expectedImagesFullFilenames.length() - 1);
+    _progressBar->setValue(0);
+    _progressBar->setVisible(true);
 
     // Loop over both lists and compare each pair of images
     // Quit loop if user has aborted due to a failed test.
@@ -74,6 +77,8 @@ bool Test::compareImageLists(bool isInteractiveMode, QProgressBar* progressBar) 
         QImage expectedImage(_expectedImagesFullFilenames[i]);
 
         double similarityIndex;  // in [-1.0 .. 1.0], where 1.0 means images are identical
+
+        bool isInteractiveMode = (!_isRunningFromCommandLine && _checkBoxInteractiveMode->isChecked());
                                  
         // similarityIndex is set to -100.0 to indicate images are not the same size
         if (isInteractiveMode && (resultImage.width() != expectedImage.width() || resultImage.height() != expectedImage.height())) {
@@ -117,10 +122,10 @@ bool Test::compareImageLists(bool isInteractiveMode, QProgressBar* progressBar) 
             }
         }
 
-        progressBar->setValue(i);
+        _progressBar->setValue(i);
     }
 
-    progressBar->setVisible(false);
+    _progressBar->setVisible(false);
     return success;
 }
 
@@ -173,7 +178,13 @@ void Test::appendTestResultsToFile(const QString& _testResultsFolderPath, TestFa
     comparisonImage.save(failureFolderPath + "/" + "Difference Image.png");
 }
 
-void Test::startTestsEvaluation(const QString& testFolder, const QString& branchFromCommandLine, const QString& userFromCommandLine) {
+void Test::startTestsEvaluation(const bool isRunningFromCommandLine, 
+                                const QString& testFolder,
+                                const QString& branchFromCommandLine,
+                                const QString& userFromCommandLine
+) {
+    _isRunningFromCommandLine = isRunningFromCommandLine;
+
     if (testFolder.isNull()) {
         // Get list of JPEG images in folder, sorted by name
         QString previousSelection = _snapshotDirectory;
@@ -240,11 +251,10 @@ void Test::startTestsEvaluation(const QString& testFolder, const QString& branch
 
     autoTester->downloadFiles(expectedImagesURLs, _snapshotDirectory, _expectedImagesFilenames);
 }
-
-void Test::finishTestsEvaluation(bool isRunningFromCommandline, bool interactiveMode, QProgressBar* progressBar) {
-    bool success = compareImageLists((!isRunningFromCommandline && interactiveMode), progressBar);
+void Test::finishTestsEvaluation() {
+    bool success = compareImageLists();
     
-    if (!isRunningFromCommandline) {
+    if (!_isRunningFromCommandLine) {
         if (success) {
             QMessageBox::information(0, "Success", "All images are as expected");
         } else {

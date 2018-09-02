@@ -36,12 +36,11 @@ AutoTester::AutoTester(QWidget* parent) : QMainWindow(parent) {
 }
 
 void AutoTester::setup() {
-    _test = new Test();
+    _test = new Test(_ui.progressBar, _ui.checkBoxInteractiveMode);
 }
 
 void AutoTester::runFromCommandLine(const QString& testFolder, const QString& branch, const QString& user) {
-    _isRunningFromCommandline = true;
-    _test->startTestsEvaluation(testFolder, branch, user);
+    _test->startTestsEvaluation(true, testFolder, branch, user);
 }
 
 void AutoTester::on_tabWidget_currentChanged(int index) {
@@ -55,7 +54,7 @@ void AutoTester::on_tabWidget_currentChanged(int index) {
 }
 
 void AutoTester::on_evaluateTestsButton_clicked() {
-    _test->startTestsEvaluation();
+    _test->startTestsEvaluation(false);
 }
 
 void AutoTester::on_createRecursiveScriptButton_clicked() {
@@ -188,7 +187,7 @@ void AutoTester::saveFile(int index) {
 
     if (_numberOfFilesDownloaded == _numberOfFilesToDownload) {
         disconnect(_signalMapper, SIGNAL(mapped(int)), this, SLOT(saveFile(int)));
-        _test->finishTestsEvaluation(_isRunningFromCommandline, _ui.checkBoxInteractiveMode->isChecked(), _ui.progressBar);
+        _test->finishTestsEvaluation();
     } else {
         _ui.progressBar->setValue(_numberOfFilesDownloaded);
     }
