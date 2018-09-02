@@ -238,7 +238,7 @@ void Test::startTestsEvaluation(const QString& testFolder, const QString& branch
         }
     }
 
-    autoTester->downloadImages(expectedImagesURLs, _snapshotDirectory, _expectedImagesFilenames);
+    autoTester->downloadFiles(expectedImagesURLs, _snapshotDirectory, _expectedImagesFilenames);
 }
 
 void Test::finishTestsEvaluation(bool isRunningFromCommandline, bool interactiveMode, QProgressBar* progressBar) {
@@ -314,7 +314,7 @@ void Test::createTests() {
     _snapshotDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", parent,
                                                           QFileDialog::ShowDirsOnly);
 
-    // If user cancelled then restore previous selection and return
+    // If user canceled then restore previous selection and return
     if (_snapshotDirectory == "") {
         _snapshotDirectory = previousSelection;
         return;
@@ -329,7 +329,7 @@ void Test::createTests() {
     _testsRootDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select test root folder", parent,
                                                               QFileDialog::ShowDirsOnly);
 
-    // If user cancelled then restore previous selection and return
+    // If user canceled then restore previous selection and return
     if (_testsRootDirectory == "") {
         _testsRootDirectory = previousSelection;
         return;
@@ -456,7 +456,7 @@ bool Test::createFileSetup() {
     _testDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test", parent,
                                                        QFileDialog::ShowDirsOnly);
 
-    // If user cancelled then restore previous selection and return
+    // If user canceled then restore previous selection and return
     if (_testDirectory == "") {
         _testDirectory = previousSelection;
         return false;
@@ -798,7 +798,7 @@ void Test::createTestsOutline() {
     _testDirectory =
         QFileDialog::getExistingDirectory(nullptr, "Please select the tests root folder", parent, QFileDialog::ShowDirsOnly);
 
-    // If user cancelled then restore previous selection and return
+    // If user canceled then restore previous selection and return
     if (_testDirectory == "") {
         _testDirectory = previousSelection;
         return;
@@ -918,10 +918,6 @@ void Test::createTestRailRun() {
     }
 
     _testRailInterface.createTestRailRun(outputDirectory);
-}
-
-void Test::runNow() {
-    testRunner.run();
 }
 
 void Test::updateTestRailRunResult() {

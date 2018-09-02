@@ -19,6 +19,8 @@
 #include "../Test.h"
 
 #include "HelpWindow.h"
+#include "../TestRunner.h"
+
 
 class AutoTester : public QMainWindow {
     Q_OBJECT
@@ -30,8 +32,8 @@ public:
 
     void runFromCommandLine(const QString& testFolder, const QString& branch, const QString& user);
 
-    void downloadImage(const QUrl& url);
-    void downloadImages(const QStringList& URLs, const QString& directoryName, const QStringList& filenames);
+    void downloadFile(const QUrl& url);
+    void downloadFiles(const QStringList& URLs, const QString& directoryName, const QStringList& filenames);
 
     void setUserText(const QString& user);
     QString getSelectedUser();
@@ -70,7 +72,7 @@ private slots:
 
     void on_closeButton_clicked();
 
-    void saveImage(int index);
+    void saveFile(int index);
 
     void about();
     void content();
@@ -88,13 +90,15 @@ private:
     // Used to enable passing a parameter to slots
     QSignalMapper* _signalMapper;
 
-    int _numberOfImagesToDownload { 0 };
-    int _numberOfImagesDownloaded { 0 };
+    int _numberOfFilesToDownload { 0 };
+    int _numberOfFilesDownloaded { 0 };
     int _index { 0 };
 
     bool _isRunningFromCommandline { false };
 
-    HelpWindow helpWindow;
+    HelpWindow _helpWindow;
+
+    TestRunner _testRunner;
 };
 
 #endif // hifi_AutoTester_h

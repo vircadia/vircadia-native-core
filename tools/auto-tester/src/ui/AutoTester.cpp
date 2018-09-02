@@ -32,7 +32,7 @@ AutoTester::AutoTester(QWidget* parent) : QMainWindow(parent) {
     _ui.tabWidget->setTabEnabled(3, false);
 #endif
 
-   // helpWindow.textBrowser->setText()
+   // _helpWindow.textBrowser->setText()
 }
 
 void AutoTester::setup() {
@@ -99,7 +99,7 @@ void AutoTester::on_createTestRailRunButton_clicked() {
 }
 
 void AutoTester::on_runNowButton_clicked() {
-    _test->runNow();
+    _testRunner.run();
 }
 
 void AutoTester::on_updateTestRailRunResultsButton_clicked() {
@@ -142,7 +142,7 @@ void AutoTester::on_createXMLScriptRadioButton_clicked() {
     _test->setTestRailCreateMode(XML);
 }
 
-void AutoTester::downloadImage(const QUrl& url) {
+void AutoTester::downloadFile(const QUrl& url) {
     _downloaders.emplace_back(new Downloader(url, this));
     connect(_downloaders[_index], SIGNAL(downloaded()), _signalMapper, SLOT(map()));
 
@@ -151,47 +151,46 @@ void AutoTester::downloadImage(const QUrl& url) {
     ++_index;
 }
 
-void AutoTester::downloadImages(const QStringList& URLs, const QString& directoryName, const QStringList& filenames) {
+void AutoTester::downloadFiles(const QStringList& URLs, const QString& directoryName, const QStringList& filenames) {
     _directoryName = directoryName;
     _filenames = filenames;
 
-    _numberOfImagesToDownload = URLs.size();
-    _numberOfImagesDownloaded = 0;
+    _numberOfFilesToDownload = URLs.size();
+    _numberOfFilesDownloaded = 0;
     _index = 0;
 
     _ui.progressBar->setMinimum(0);
-    _ui.progressBar->setMaximum(_numberOfImagesToDownload - 1);
+    _ui.progressBar->setMaximum(_numberOfFilesToDownload - 1);
     _ui.progressBar->setValue(0);
     _ui.progressBar->setVisible(true);
 
     _downloaders.clear();
-    for (int i = 0; i < _numberOfImagesToDownload; ++i) {
-        QUrl imageURL(URLs[i]);
-        downloadImage(imageURL);
+    for (int i = 0; i < _numberOfFilesToDownload; ++i) {
+        downloadFile(URLs[i]);
     }
 
-    connect(_signalMapper, SIGNAL(mapped(int)), this, SLOT(saveImage(int)));
+    connect(_signalMapper, SIGNAL(mapped(int)), this, SLOT(saveFile(int)));
 }
 
-void AutoTester::saveImage(int index) {
+void AutoTester::saveFile(int index) {
     try {
         QFile file(_directoryName + "/" + _filenames[index]);
         file.open(QIODevice::WriteOnly);
         file.write(_downloaders[index]->downloadedData());
         file.close();
     } catch (...) {
-        QMessageBox::information(0, "Test Aborted", "Failed to save image: " + _filenames[index]);
+        QMessageBox::information(0, "Test Aborted", "Failed to save file: " + _filenames[index]);
         _ui.progressBar->setVisible(false);
         return;
     }
 
-    ++_numberOfImagesDownloaded;
+    ++_numberOfFilesDownloaded;
 
-    if (_numberOfImagesDownloaded == _numberOfImagesToDownload) {
-        disconnect(_signalMapper, SIGNAL(mapped(int)), this, SLOT(saveImage(int)));
+    if (_numberOfFilesDownloaded == _numberOfFilesToDownload) {
+        disconnect(_signalMapper, SIGNAL(mapped(int)), this, SLOT(saveFile(int)));
         _test->finishTestsEvaluation(_isRunningFromCommandline, _ui.checkBoxInteractiveMode->isChecked(), _ui.progressBar);
     } else {
-        _ui.progressBar->setValue(_numberOfImagesDownloaded);
+        _ui.progressBar->setValue(_numberOfFilesDownloaded);
     }
 }
 
@@ -200,7 +199,7 @@ void AutoTester::about() {
 }
 
 void AutoTester::content() {
-    helpWindow.show();
+    _helpWindow.show();
 }
 
 void AutoTester::setUserText(const QString& user) {

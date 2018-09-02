@@ -23,7 +23,7 @@
    <widget class="QPushButton" name="closeButton">
     <property name="geometry">
      <rect>
-      <x>235</x>
+      <x>430</x>
       <y>620</y>
       <width>100</width>
       <height>40</height>
@@ -43,7 +43,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>2</number>
     </property>
     <widget class="QWidget" name="tab_1">
      <attribute name="title">
@@ -176,25 +176,12 @@
      <attribute name="title">
       <string>Evaluate</string>
      </attribute>
-     <widget class="QProgressBar" name="progressBar">
-      <property name="geometry">
-       <rect>
-        <x>150</x>
-        <y>230</y>
-        <width>255</width>
-        <height>23</height>
-       </rect>
-      </property>
-      <property name="value">
-       <number>24</number>
-      </property>
-     </widget>
      <widget class="QCheckBox" name="checkBoxInteractiveMode">
       <property name="geometry">
        <rect>
-        <x>150</x>
+        <x>130</x>
         <y>180</y>
-        <width>131</width>
+        <width>120</width>
         <height>20</height>
        </rect>
       </property>
@@ -327,9 +314,9 @@
    <widget class="QLabel" name="label_3">
     <property name="geometry">
      <rect>
-      <x>160</x>
+      <x>120</x>
       <y>80</y>
-      <width>81</width>
+      <width>110</width>
       <height>16</height>
      </rect>
     </property>
@@ -365,9 +352,9 @@
    <widget class="QLabel" name="label_4">
     <property name="geometry">
      <rect>
-      <x>160</x>
+      <x>120</x>
       <y>40</y>
-      <width>81</width>
+      <width>110</width>
       <height>16</height>
      </rect>
     </property>
@@ -380,6 +367,19 @@
      <string>GitHub User</string>
     </property>
    </widget>
+   <widget class="QProgressBar" name="progressBar">
+    <property name="geometry">
+     <rect>
+      <x>80</x>
+      <y>630</y>
+      <width>255</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="value">
+     <number>24</number>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
@@ -387,7 +387,7 @@
      <x>0</x>
      <y>0</y>
      <width>582</width>
-     <height>21</height>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

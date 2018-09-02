@@ -12,7 +12,9 @@
 #define hifi_testRunner_h
 
 #include <QObject>
-#include <QDirIterator>
+#include <QDir>
+
+#include "Downloader.h"
 
 class TestRunner : public QObject {
 Q_OBJECT
@@ -23,10 +25,15 @@ public:
 
     void saveExistingHighFidelityAppDataFolder();
     void restoreHighFidelityAppDataFolder();
+    void selectTemporaryFolder();
 
 private:
     QDir appDataFolder;
     QDir savedAppDataFolder;
+
+    QString _tempDirectory;
+
+    Downloader* _downloader;
 };
 
 #endif // hifi_testRunner_h
