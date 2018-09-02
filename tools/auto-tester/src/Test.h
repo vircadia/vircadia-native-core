@@ -19,6 +19,7 @@
 #include "ImageComparer.h"
 #include "ui/MismatchWindow.h"
 #include "TestRailInterface.h"
+#include "TestRunner.h"
 
 class Step {
 public:
@@ -106,6 +107,8 @@ private:
     MismatchWindow _mismatchWindow;
 
     ImageComparer _imageComparer;
+
+    TestRunner testRunner;
 
     QString _testResultsFolderPath;
     int _index { 1 };
