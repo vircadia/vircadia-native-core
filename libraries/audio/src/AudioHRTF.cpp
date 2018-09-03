@@ -446,41 +446,32 @@ static void interpolate_SSE(const float* src0, const float* src1, float* dst, fl
 
 void FIR_1x4_AVX2(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames);
 void FIR_1x4_AVX512(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames);
+void interleave_4x4_AVX2(float* src0, float* src1, float* src2, float* src3, float* dst, int numFrames);
+void biquad2_4x4_AVX2(float* src, float* dst, float coef[5][8], float state[3][8], int numFrames);
+void crossfade_4x2_AVX2(float* src, float* dst, const float* win, int numFrames);
+void interpolate_AVX2(const float* src0, const float* src1, float* dst, float frac, float gain);
 
 static void FIR_1x4(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames) {
-
     static auto f = cpuSupportsAVX512() ? FIR_1x4_AVX512 : (cpuSupportsAVX2() ? FIR_1x4_AVX2 : FIR_1x4_SSE);
     (*f)(src, dst0, dst1, dst2, dst3, coef, numFrames); // dispatch
 }
 
-void interleave_4x4_AVX2(float* src0, float* src1, float* src2, float* src3, float* dst, int numFrames);
-
 static void interleave_4x4(float* src0, float* src1, float* src2, float* src3, float* dst, int numFrames) {
-
     static auto f = cpuSupportsAVX2() ? interleave_4x4_AVX2 : interleave_4x4_SSE;
     (*f)(src0, src1, src2, src3, dst, numFrames); // dispatch
 }
 
-void biquad2_4x4_AVX2(float* src, float* dst, float coef[5][8], float state[3][8], int numFrames);
-
 static void biquad2_4x4(float* src, float* dst, float coef[5][8], float state[3][8], int numFrames) {
-
     static auto f = cpuSupportsAVX2() ? biquad2_4x4_AVX2 : biquad2_4x4_SSE;
     (*f)(src, dst, coef, state, numFrames); // dispatch
 }
 
-void crossfade_4x2_AVX2(float* src, float* dst, const float* win, int numFrames);
-
 static void crossfade_4x2(float* src, float* dst, const float* win, int numFrames) {
-
     static auto f = cpuSupportsAVX2() ? crossfade_4x2_AVX2 : crossfade_4x2_SSE;
     (*f)(src, dst, win, numFrames); // dispatch
 }
 
-void interpolate_AVX2(const float* src0, const float* src1, float* dst, float frac, float gain);
-
 static void interpolate(const float* src0, const float* src1, float* dst, float frac, float gain) {
-
     static auto f = cpuSupportsAVX2() ? interpolate_AVX2 : interpolate_SSE;
     (*f)(src0, src1, dst, frac, gain); // dispatch
 }
