@@ -56,12 +56,7 @@ git tags
 
 Then checkout last tag with:
 ```bash
-git checkout tags/RELEASE-6819
-```
-
-Or go to the highfidelity download page (https://highfidelity.com/download) to get the release version. For example, if there is a BETA 6731 type:
-```bash
-git checkout tags/RELEASE-6731
+git checkout tags/v0.71.0
 ```
 
 ### Compiling
