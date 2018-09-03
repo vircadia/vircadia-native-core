@@ -76,28 +76,23 @@ namespace VirtualPad {
         _extraBottomMargin = margin;
     }
 
-    glm::vec2 Manager::getJumpButtonPosition() {
-        return _jumpButtonPosition;
-    }
-
-    void Manager::setJumpButtonPosition(glm::vec2 point) {
-        _jumpButtonPosition = point;
-    }
-
-    glm::vec2 Manager::getRbButtonPosition() {
-        return _rbButtonPosition;
-    }
-
-    void Manager::setRbButtonPosition(glm::vec2 point) {
-        _rbButtonPosition = point;
-    }
-
     void Manager::requestHapticFeedback(int duration) {
         emit hapticFeedbackRequested(duration);
     }
 
     Instance* Manager::getLeftVirtualPad() {
         return &_leftVPadInstance;
+    }
+
+    glm::vec2 Manager::getButtonPosition(Manager::Button button) {
+        if (_buttonsPositions.count(button)) {
+            return _buttonsPositions.at(button);
+        }
+        return glm::vec2();
+    }
+
+    void Manager::setButtonPosition(Manager::Button button, glm::vec2 point) {
+        _buttonsPositions[button] = point;
     }
 
     bool Instance::isShown() {

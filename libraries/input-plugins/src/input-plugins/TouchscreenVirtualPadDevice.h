@@ -168,11 +168,7 @@ protected:
     float _fixedRadiusForCalc;
     int _extraBottomMargin {0};
 
-    glm::vec2 _jumpButtonPosition;
-    float _jumpButtonRadius;
-
-    glm::vec2 _rbButtonPosition;
-    float _rbButtonRadius;
+    float _buttonRadius;
 
     TouchscreenButtonsManager _buttonsManager;
 

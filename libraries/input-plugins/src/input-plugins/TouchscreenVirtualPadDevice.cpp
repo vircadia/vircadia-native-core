@@ -66,8 +66,7 @@ void TouchscreenVirtualPadDevice::resize() {
         _fixedRadius = _screenDPI * 0.5f * VirtualPad::Manager::BASE_DIAMETER_PIXELS / VirtualPad::Manager::DPI;
         _fixedRadiusForCalc = _fixedRadius - _screenDPI * VirtualPad::Manager::STICK_RADIUS_PIXELS / VirtualPad::Manager::DPI;
 
-        _jumpButtonRadius = _screenDPI * VirtualPad::Manager::JUMP_BTN_TRIMMED_RADIUS_PIXELS / VirtualPad::Manager::DPI;
-        _rbButtonRadius = _jumpButtonRadius;
+        _buttonRadius = _screenDPI * VirtualPad::Manager::JUMP_BTN_TRIMMED_RADIUS_PIXELS / VirtualPad::Manager::DPI;
     }
 
     auto& virtualPadManager = VirtualPad::Manager::instance();
@@ -90,18 +89,16 @@ void TouchscreenVirtualPadDevice::setupControlsPositions(VirtualPad::Manager& vi
     float jumpBtnPixelSize = _screenDPI * VirtualPad::Manager::JUMP_BTN_FULL_PIXELS / VirtualPad::Manager::DPI;
     float rightMargin = _screenDPI * VirtualPad::Manager::JUMP_BTN_RIGHT_MARGIN_PIXELS / VirtualPad::Manager::DPI;
     float bottomMargin = _screenDPI * VirtualPad::Manager::JUMP_BTN_BOTTOM_MARGIN_PIXELS/ VirtualPad::Manager::DPI;
-    _jumpButtonPosition = glm::vec2( eventScreen->availableSize().width() - rightMargin - jumpBtnPixelSize, eventScreen->availableSize().height() - bottomMargin - _jumpButtonRadius - _extraBottomMargin);
-
-    // RB button (use same size as jump)
-    _rbButtonPosition = glm::vec2( eventScreen->availableSize().width() - rightMargin - jumpBtnPixelSize, eventScreen->availableSize().height() - 2 * bottomMargin - 3 * _rbButtonRadius - _extraBottomMargin);
+    glm::vec2 jumpButtonPosition = glm::vec2( eventScreen->availableSize().width() - rightMargin - jumpBtnPixelSize, eventScreen->availableSize().height() - bottomMargin - _buttonRadius - _extraBottomMargin);
+    glm::vec2 rbButtonPosition = glm::vec2( eventScreen->availableSize().width() - rightMargin - jumpBtnPixelSize, eventScreen->availableSize().height() - 2 * bottomMargin - 3 * _buttonRadius - _extraBottomMargin);
 
     // Avoid generating buttons in portrait mode
     if ( eventScreen->availableSize().width() > eventScreen->availableSize().height() && _buttonsManager.buttonsCount() == 0) {
-        _buttonsManager.addButton(TouchscreenButton(JUMP_BUTTON_PRESS, JUMP, _jumpButtonRadius, _jumpButtonPosition, _inputDevice ));
-        _buttonsManager.addButton(TouchscreenButton(RB, RB_BUTTON, _rbButtonRadius, _rbButtonPosition, _inputDevice ));
+        _buttonsManager.addButton(TouchscreenButton(JUMP_BUTTON_PRESS, JUMP, _buttonRadius, jumpButtonPosition, _inputDevice ));
+        _buttonsManager.addButton(TouchscreenButton(RB, RB_BUTTON, _buttonRadius, rbButtonPosition, _inputDevice ));
 
-        virtualPadManager.setJumpButtonPosition(_jumpButtonPosition);
-        virtualPadManager.setRbButtonPosition(_rbButtonPosition);
+        virtualPadManager.setButtonPosition(VirtualPad::Manager::Button::JUMP, jumpButtonPosition);
+        virtualPadManager.setButtonPosition(VirtualPad::Manager::Button::HANDSHAKE, rbButtonPosition);
     }
 
 }
@@ -484,10 +481,10 @@ TouchscreenVirtualPadDevice::TouchscreenButton::TouchscreenButton(
         TouchscreenVirtualPadDevice::TouchButtonChannel channelIn,
         TouchscreenVirtualPadDevice::TouchType touchTypeIn, float buttonRadiusIn,
         glm::vec2 buttonPositionIn, std::shared_ptr<InputDevice> inputDeviceIn) :
-    channel(channelIn),
-    touchType(touchTypeIn),
-    buttonRadius(buttonRadiusIn),
     buttonPosition(buttonPositionIn),
+    buttonRadius(buttonRadiusIn),
+    touchType(touchTypeIn),
+    channel(channelIn),
     _inputDevice(inputDeviceIn)
 {
 }
@@ -514,8 +511,6 @@ void TouchscreenVirtualPadDevice::TouchscreenButton::touchEnd() {
 }
 
 bool TouchscreenVirtualPadDevice::TouchscreenButton::touchBeginIsValid(glm::vec2 touchPoint) {
-    qDebug() << "[HANDSHAKE] isValid " <<  (glm::distance2(touchPoint, buttonPosition) < buttonRadius * buttonRadius) <<
-                " dist2 " << glm::distance2(touchPoint, buttonPosition) << " vs " << buttonRadius * buttonRadius;
     return glm::distance2(touchPoint, buttonPosition) < buttonRadius * buttonRadius;
 }
 
@@ -560,15 +555,7 @@ bool TouchscreenVirtualPadDevice::TouchscreenButtonsManager::findStartingTouchPo
 
     for(int i = 0; i < buttons.size(); i++) {
         TouchscreenButton &button = buttons[i];
-        qDebug() << "[HANDSHAKE] !button._found && button._candidatePointIdx == -1 " << (!button._found && button._candidatePointIdx == -1);
-        qDebug() << "[HANDSHAKE] button.touchBeginIsValid(thisPoint) " << (button.touchBeginIsValid(thisPoint));
-        qDebug() << "[HANDSHAKE] !globalUnusedTouches.count(thisPointId) " << (!globalUnusedTouches.count(thisPointId));
-        if (globalUnusedTouches.count(thisPointId)) {
-            qDebug() << "[HANDSHAKE] globalUnusedTouches[thisPointId] == button.touchType " << (globalUnusedTouches[thisPointId] == button.touchType);
-        }
         if (!button._found && button._candidatePointIdx == -1 && button.touchBeginIsValid(thisPoint)) {
-            qDebug() << "[HANDSHAKE] CHECK AGAIN !globalUnusedTouches.count(thisPointId) " << (!globalUnusedTouches.count(thisPointId));
-            qDebug() << "[HANDSHAKE] CHECK AGAIN double-check !globalUnusedTouches.count(thisPointId) " << (!globalUnusedTouches.count(thisPointId));
             if (!globalUnusedTouches.count(thisPointId) ) {
                 button._candidatePointIdx = thisPointIdx;
                 return true;
