@@ -477,8 +477,12 @@ static void crossfade_4x2(float* src, float* dst, const float* win, int numFrame
     (*f)(src, dst, win, numFrames); // dispatch
 }
 
+void interpolate_AVX2(const float* src0, const float* src1, float* dst, float frac, float gain);
+
 static void interpolate(const float* src0, const float* src1, float* dst, float frac, float gain) {
-    interpolate_SSE(src0, src1, dst, frac, gain);
+
+    static auto f = cpuSupportsAVX2() ? interpolate_AVX2 : interpolate_SSE;
+    (*f)(src0, src1, dst, frac, gain); // dispatch
 }
 
 #else   // portable reference code

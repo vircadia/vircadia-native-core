@@ -226,4 +226,26 @@ void crossfade_4x2_AVX2(float* src, float* dst, const float* win, int numFrames)
     _mm256_zeroupper();
 }
 
+// linear interpolation with gain
+void interpolate_AVX2(const float* src0, const float* src1, float* dst, float frac, float gain) {
+
+    __m256 f0 = _mm256_set1_ps(gain * (1.0f - frac));
+    __m256 f1 = _mm256_set1_ps(gain * frac);
+
+    static_assert(HRTF_TAPS % 8 == 0, "HRTF_TAPS must be a multiple of 8");
+
+    for (int k = 0; k < HRTF_TAPS; k += 8) {
+
+        __m256 x0 = _mm256_loadu_ps(&src0[k]);
+        __m256 x1 = _mm256_loadu_ps(&src1[k]);
+
+        x0 = _mm256_mul_ps(f0, x0);
+        x0 = _mm256_fmadd_ps(f1, x1, x0);
+
+        _mm256_storeu_ps(&dst[k], x0);
+    }
+
+    _mm256_zeroupper();
+}
+
 #endif
