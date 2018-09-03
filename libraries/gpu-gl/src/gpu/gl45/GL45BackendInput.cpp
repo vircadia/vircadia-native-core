@@ -27,6 +27,8 @@ void GL45Backend::resetInputStage() {
 }
 
 void GL45Backend::updateInput() {
+  //  PROFILE_RANGE(render_gpu, __FUNCTION__);
+
     bool isStereoNow = isStereo();
     // track stereo state change potentially happening wihtout changing the input format
     // this is a rare case requesting to invalid the format
@@ -36,6 +38,7 @@ void GL45Backend::updateInput() {
     _input._lastUpdateStereoState = isStereoNow;
 
     if (_input._invalidFormat) {
+        PROFILE_RANGE(render_gpu, "bindInputFormat");
         InputStageState::ActivationCache newActivation;
 
         // Assign the vertex format required
@@ -128,15 +131,21 @@ void GL45Backend::updateInput() {
     }
 
     if (_input._invalidBuffers.any()) {
+      //  PROFILE_RANGE(render_gpu, "bindInputBuffers");
         auto vbo = _input._bufferVBOs.data();
         auto offset = _input._bufferOffsets.data();
         auto stride = _input._bufferStrides.data();
 
-        for (GLuint buffer = 0; buffer < _input._buffers.size(); buffer++, vbo++, offset++, stride++) {
+        int numSet = 0;
+        auto numBuffers = _input._buffers.size();
+        for (GLuint buffer = 0; buffer < numBuffers; buffer++, vbo++, offset++, stride++) {
             if (_input._invalidBuffers.test(buffer)) {
                 glBindVertexBuffer(buffer, (*vbo), (*offset), (GLsizei)(*stride));
+                numSet++;
             }
         }
+
+        PROFILE_COUNTER_IF_CHANGED(render_gpu, "numVBSbound", int, numSet);
 
         _input._invalidBuffers.reset();
         (void)CHECK_GL_ERROR();

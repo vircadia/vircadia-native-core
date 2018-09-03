@@ -32,6 +32,13 @@ Mesh::Mesh(const Mesh& mesh) :
 Mesh::~Mesh() {
 }
 
+void Mesh::setVertexFormatAndStream(const gpu::Stream::FormatPointer& vf, const gpu::BufferStreamPointer& vbs) {
+    _vertexFormat = vf;
+    _vertexStream = (*vbs);
+
+    _vertexBuffer = BufferView(vbs->getBuffers()[0], vbs->getOffsets()[0], vbs->getBuffers()[0]->getSize(), vbs->getStrides()[0], gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+}
+
 void Mesh::setVertexBuffer(const BufferView& buffer) {
     _vertexBuffer = buffer;
     evalVertexFormat();

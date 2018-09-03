@@ -585,13 +585,15 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
 
     FBXMesh& fbxMesh = extractedMesh;
     graphics::MeshPointer mesh(new graphics::Mesh());
+    bool blendShapes = !fbxMesh.blendshapes.empty();
+    int numVerts = extractedMesh.vertices.size();
 
     // Grab the vertices in a buffer
     auto vb = std::make_shared<gpu::Buffer>();
     vb->setData(extractedMesh.vertices.size() * sizeof(glm::vec3),
                 (const gpu::Byte*) extractedMesh.vertices.data());
     gpu::BufferView vbv(vb, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-    mesh->setVertexBuffer(vbv);
+   // mesh->setVertexBuffer(vbv);
 
     if (!fbxMesh.normals.empty() && fbxMesh.tangents.empty()) {
         // Fill with a dummy value to force tangents to be present if there are normals
@@ -634,7 +636,10 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     // Normals and tangents are interleaved
     const int normalsOffset = 0;
     const int tangentsOffset = normalsOffset + sizeof(NormalType);
-    const int colorsOffset = normalsOffset + normalsSize + tangentsSize;
+    const int totalNTSize = normalsOffset + normalsSize + tangentsSize;
+    //const int colorsOffset = normalsOffset + normalsSize + tangentsSize;
+
+    const int colorsOffset = 0;
     const int texCoordsOffset = colorsOffset + colorsSize;
     const int texCoords1Offset = texCoordsOffset + texCoordsSize;
     const int clusterIndicesOffset = texCoords1Offset + texCoords1Size;
@@ -642,6 +647,10 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     const int totalAttributeSize = clusterWeightsOffset + clusterWeightsSize;
 
     // Copy all attribute data in a single attribute buffer
+
+    auto attribNTBuffer = std::make_shared<gpu::Buffer>();
+    attribNTBuffer->resize(totalNTSize);
+
     auto attribBuffer = std::make_shared<gpu::Buffer>();
     attribBuffer->resize(totalAttributeSize);
 
@@ -665,8 +674,9 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
             normalsAndTangents.push_back(packedNormal);
             normalsAndTangents.push_back(packedTangent);
         }
-        attribBuffer->setSubData(normalsOffset, normalsAndTangentsSize, (const gpu::Byte*) normalsAndTangents.data());
+        attribNTBuffer->setSubData(normalsOffset, normalsAndTangentsSize, (const gpu::Byte*) normalsAndTangents.data());
     }
+
 
     if (colorsSize > 0) {
 #if FBX_PACK_COLORS
@@ -723,50 +733,123 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     }
     attribBuffer->setSubData(clusterWeightsOffset, clusterWeightsSize, (const gpu::Byte*) fbxMesh.clusterWeights.constData());
 
+    auto vf = std::make_shared<gpu::Stream::Format>();
+    auto vbs = std::make_shared<gpu::BufferStream>();
+    
+    gpu::Offset buf0Offset = 12;
+    vf->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+    vbs->addBuffer(vb, 0, buf0Offset);
+
+    gpu::Offset buf1Offset = 0;
     if (normalsSize) {
-        mesh->addAttribute(gpu::Stream::NORMAL,
+   /*     mesh->addAttribute(gpu::Stream::NORMAL,
                            graphics::BufferView(attribBuffer, normalsOffset, normalsAndTangentsSize,
                            normalsAndTangentsStride, FBX_NORMAL_ELEMENT));
         mesh->addAttribute(gpu::Stream::TANGENT,
                            graphics::BufferView(attribBuffer, tangentsOffset, normalsAndTangentsSize,
                            normalsAndTangentsStride, FBX_NORMAL_ELEMENT));
+*/
+        vf->setAttribute(gpu::Stream::NORMAL, 1, FBX_NORMAL_ELEMENT, 0);
+        vf->setAttribute(gpu::Stream::TANGENT, 1, FBX_NORMAL_ELEMENT, 4);
+        buf1Offset = 8;
+        vbs->addBuffer(attribNTBuffer, 0, buf1Offset);
     }
+
+    gpu::Offset buf2Offset = 0;
     if (colorsSize) {
-        mesh->addAttribute(gpu::Stream::COLOR,
+    /*    mesh->addAttribute(gpu::Stream::COLOR,
                            graphics::BufferView(attribBuffer, colorsOffset, colorsSize, FBX_COLOR_ELEMENT));
+*/
+        vf->setAttribute(gpu::Stream::COLOR, 2, FBX_COLOR_ELEMENT, buf2Offset);
+        buf2Offset += 4;
     }
     if (texCoordsSize) {
-        mesh->addAttribute(gpu::Stream::TEXCOORD,
+  /*      mesh->addAttribute(gpu::Stream::TEXCOORD,
                            graphics::BufferView( attribBuffer, texCoordsOffset, texCoordsSize,
                            gpu::Element(gpu::VEC2, gpu::HALF, gpu::UV)));
+    */    vf->setAttribute(gpu::Stream::TEXCOORD, 2, gpu::Element(gpu::VEC2, gpu::HALF, gpu::UV), buf2Offset);
+        buf2Offset += 4;
     }
     if (texCoords1Size) {
-        mesh->addAttribute( gpu::Stream::TEXCOORD1,
+    /*    mesh->addAttribute( gpu::Stream::TEXCOORD1,
                             graphics::BufferView(attribBuffer, texCoords1Offset, texCoords1Size,
                             gpu::Element(gpu::VEC2, gpu::HALF, gpu::UV)));
+     */   vf->setAttribute(gpu::Stream::TEXCOORD1, 2, gpu::Element(gpu::VEC2, gpu::HALF, gpu::UV), buf2Offset);
+        buf2Offset += 4;
     } else if (texCoordsSize) {
-        mesh->addAttribute(gpu::Stream::TEXCOORD1,
+   /*     mesh->addAttribute(gpu::Stream::TEXCOORD1,
                            graphics::BufferView(attribBuffer, texCoordsOffset, texCoordsSize,
                            gpu::Element(gpu::VEC2, gpu::HALF, gpu::UV)));
+     */   vf->setAttribute(gpu::Stream::TEXCOORD1, 2, gpu::Element(gpu::VEC2, gpu::HALF, gpu::UV), buf2Offset - 4);
     }
 
     if (clusterIndicesSize) {
         if (fbxMesh.clusters.size() < UINT8_MAX) {
-            mesh->addAttribute(gpu::Stream::SKIN_CLUSTER_INDEX,
+        /*    mesh->addAttribute(gpu::Stream::SKIN_CLUSTER_INDEX,
                                graphics::BufferView(attribBuffer, clusterIndicesOffset, clusterIndicesSize,
                                                  gpu::Element(gpu::VEC4, gpu::UINT8, gpu::XYZW)));
+*/
+            vf->setAttribute(gpu::Stream::SKIN_CLUSTER_INDEX, 2, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::XYZW), buf2Offset);
+            buf2Offset += 4;
+
         } else {
-            mesh->addAttribute(gpu::Stream::SKIN_CLUSTER_INDEX,
+           /* mesh->addAttribute(gpu::Stream::SKIN_CLUSTER_INDEX,
                                graphics::BufferView(attribBuffer, clusterIndicesOffset, clusterIndicesSize,
                                                  gpu::Element(gpu::VEC4, gpu::UINT16, gpu::XYZW)));
+         */   vf->setAttribute(gpu::Stream::SKIN_CLUSTER_INDEX, 2, gpu::Element(gpu::VEC4, gpu::UINT16, gpu::XYZW), buf2Offset);
+            buf2Offset += 8;
         }
     }
     if (clusterWeightsSize) {
-        mesh->addAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT,
+    /*    mesh->addAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT,
                           graphics::BufferView(attribBuffer, clusterWeightsOffset, clusterWeightsSize,
                                             gpu::Element(gpu::VEC4, gpu::NUINT16, gpu::XYZW)));
+    */    vf->setAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT, 2, gpu::Element(gpu::VEC4, gpu::NUINT16, gpu::XYZW), buf2Offset);
+        buf2Offset += 8;
     }
 
+    {
+        auto vColorOffset = 0;
+        auto vColorSize = colorsSize / numVerts;
+    
+        auto vTexcoord0Offset = vColorOffset + vColorSize;
+        auto vTexcoord0Size = texCoordsSize / numVerts;
+
+        auto vTexcoord1Offset = vTexcoord0Offset + vTexcoord0Size;
+        auto vTexcoord1Size = texCoords1Size / numVerts;
+
+        auto vClusterIndiceOffset = vTexcoord1Offset + vTexcoord1Size;
+        auto vClusterIndiceSize = clusterIndicesSize / numVerts;
+
+        auto vClusterWeightOffset = vClusterIndiceOffset + vClusterIndiceSize;
+        auto vClusterWeightSize = clusterWeightsSize / numVerts;
+
+        auto vStride = vClusterWeightOffset + vClusterWeightSize;
+        //int vStride = buf2Offset;
+        std::vector<gpu::Byte> dest;
+        dest.resize(totalAttributeSize);
+        auto vDest = dest.data();
+
+        auto source = attribBuffer->getData();
+
+
+        for (int i = 0; i < numVerts; i++) {
+            
+            if (vColorSize) memcpy(vDest + vColorOffset, source + colorsOffset + i * vColorSize, vColorSize);
+            if (vTexcoord0Size) memcpy(vDest + vTexcoord0Offset, source + texCoordsOffset + i * vTexcoord0Size, vTexcoord0Size);
+            if (vTexcoord1Size) memcpy(vDest + vTexcoord1Offset, source + texCoords1Offset + i * vTexcoord1Size, vTexcoord1Size);
+            if (vClusterIndiceSize) memcpy(vDest + vClusterIndiceOffset, source + clusterIndicesOffset + i * vClusterIndiceSize, vClusterIndiceSize);
+            if (vClusterWeightSize) memcpy(vDest + vClusterWeightOffset, source + clusterWeightsOffset + i * vClusterWeightSize, vClusterWeightSize);
+
+            vDest += vStride;
+        }
+
+        attribBuffer->setData(totalAttributeSize, dest.data());
+
+        vbs->addBuffer(attribBuffer, 0, vStride);
+    }
+
+    mesh->setVertexFormatAndStream(vf, vbs);
 
     unsigned int totalIndices = 0;
     foreach(const FBXMeshPart& part, extractedMesh.parts) {
