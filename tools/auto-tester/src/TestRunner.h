@@ -15,26 +15,33 @@
 #include <QDir>
 
 #include "Downloader.h"
+#include "ui/BusyWindow.h"
 
 class TestRunner : public QObject {
-Q_OBJECT
+    Q_OBJECT
 public:
-    explicit TestRunner(QObject *parent = 0);
+    explicit TestRunner(QObject* parent = 0);
 
     void run();
     void installerDownloadComplete();
+    void runInstaller();
 
     void saveExistingHighFidelityAppDataFolder();
     void restoreHighFidelityAppDataFolder();
     void selectTemporaryFolder();
 
 private:
-    QDir appDataFolder;
-    QDir savedAppDataFolder;
+    QDir _appDataFolder;
+    QDir _savedAppDataFolder;
 
     QString _tempDirectory;
 
     Downloader* _downloader;
+
+    const QString _uniqueFolderName{ "fgadhcUDHSFaidsfh3478JJJFSDFIUSOEIrf" };
+    const QString _installerFilename{ "HighFidelity-Beta-latest-dev.exe" };
+
+    BusyWindow _busyWindow;
 };
 
-#endif // hifi_testRunner_h
+#endif  // hifi_testRunner_h

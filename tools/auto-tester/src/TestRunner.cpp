@@ -19,6 +19,12 @@ TestRunner::TestRunner(QObject *parent) : QObject(parent) {
 }
 
 void TestRunner::run() {
+    selectTemporaryFolder();
+    runInstaller();
+
+
+
+
     saveExistingHighFidelityAppDataFolder();
     selectTemporaryFolder();
     
@@ -26,7 +32,7 @@ void TestRunner::run() {
     urls << "http://builds.highfidelity.com/HighFidelity-Beta-latest-dev.exe";
 
     QStringList filenames;
-    filenames << "HighFidelity-Beta-latest-dev.exe";
+    filenames << _installerFilename;
 
     autoTester->downloadFiles(urls, _tempDirectory, filenames, (void *)this);
 
@@ -34,7 +40,19 @@ void TestRunner::run() {
 }
 
 void TestRunner::installerDownloadComplete() {
+    runInstaller();
+
     restoreHighFidelityAppDataFolder(); 
+}
+
+void TestRunner::runInstaller() {
+    QProcess installProcess;
+
+    QStringList arguments{ QStringList() << QString("/S") << QString("/D=") + QDir::toNativeSeparators(_tempDirectory) };
+    
+    QString installerFullPath = _tempDirectory + "/" + _installerFilename;
+    qint64 pid;
+    QProcess::startDetached(installerFullPath, arguments, QString(), &pid);
 }
 
 void TestRunner::saveExistingHighFidelityAppDataFolder() {
@@ -44,25 +62,25 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
     dataDirectory = qgetenv("USERPROFILE") + "\\AppData\\Roaming";
 #endif
 
-    appDataFolder = dataDirectory + "\\High Fidelity";
+    _appDataFolder = dataDirectory + "\\High Fidelity";
 
-    if (!appDataFolder.exists()) {
+    if (!_appDataFolder.exists()) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
                               "The High Fidelity data folder was not found in " + dataDirectory);
         exit(-1);
     }
 
     // The original folder is saved in a unique name
-    savedAppDataFolder = dataDirectory + "/fgadhcUDHSFaidsfh3478JJJFSDFIUSOEIrf";
-    appDataFolder.rename(QDir::fromNativeSeparators(appDataFolder.path()), QDir::toNativeSeparators(savedAppDataFolder.path()));
+    _savedAppDataFolder = dataDirectory + "/" + _uniqueFolderName;
+    _appDataFolder.rename(_appDataFolder.path(), _savedAppDataFolder.path());
 
-    QDir().mkdir(appDataFolder.path());
+    QDir().mkdir(_appDataFolder.path());
 }
 
 void TestRunner::restoreHighFidelityAppDataFolder() {
-    QDir().rmdir(appDataFolder.path());
+    QDir().rmdir(_appDataFolder.path());
 
-    appDataFolder.rename(QDir::fromNativeSeparators(savedAppDataFolder.path()), QDir::toNativeSeparators(appDataFolder.path()));
+    _appDataFolder.rename(_savedAppDataFolder.path(), _appDataFolder.path());
 }
 
 void TestRunner::selectTemporaryFolder() {
