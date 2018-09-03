@@ -77,7 +77,7 @@ Start compilation of the server and get a cup of coffee:
 make domain-server assignment-client
 ```
 
-To compile interferace:
+To compile interface:
 ```bash
 make interface
 ```
