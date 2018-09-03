@@ -11,15 +11,15 @@ Should you choose not to install Qt5 via a package manager that handles dependen
 ## Ubuntu 16.04/18.04 specific build guide
 
 ### Ubuntu 18.04 only
-Add the universe repository (not enabled by default on the server edition):
+Add the universe repository:  
+_(This is not enabled by default on the server edition)_
 ```bash
 sudo add-apt-repository universe
 sudo apt-get update
 ```
 
 ### Prepare environment
-hifiqt5.10.1
-Install qt:
+Install Qt 5.10.1:
 ```bash
 wget http://debian.highfidelity.com/pool/h/hi/hifiqt5.10.1_5.10.1_amd64.deb
 sudo dpkg -i hifiqt5.10.1_5.10.1_amd64.deb
