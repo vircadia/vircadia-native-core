@@ -72,12 +72,17 @@ Prepare makefiles:
 cmake -DQT_CMAKE_PREFIX_PATH=/usr/local/Qt5.10.1/5.10.1/gcc_64/lib/cmake ..
 ```
 
-Start compilation and get a cup of coffee:
+Start compilation of the server and get a cup of coffee:
 ```bash
-make domain-server assignment-client interface
+make domain-server assignment-client
 ```
 
-In a server does not make sense to compile interface
+To compile interferace:
+```bash
+make interface
+```
+
+In a server, it does not make sense to compile interface
 
 ### Running the software
 
