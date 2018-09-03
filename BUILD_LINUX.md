@@ -6,7 +6,7 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 
 Should you choose not to install Qt5 via a package manager that handles dependencies for you, you may be missing some Qt5 dependencies. On Ubuntu, for example, the following additional packages are required:
 
-    libasound2 libxmu-dev libxi-dev freeglut3-dev libasound2-dev libjack0 libjack-dev libxrandr-dev libudev-dev libssl-dev
+    libasound2 libxmu-dev libxi-dev freeglut3-dev libasound2-dev libjack0 libjack-dev libxrandr-dev libudev-dev libssl-dev zlib1g-dev
 
 ## Ubuntu 16.04 specific build guide
 
@@ -20,7 +20,7 @@ sudo dpkg -i hifiqt5.10.1_5.10.1_amd64.deb
 
 Install build dependencies:
 ```bash
-sudo apt-get install libasound2 libxmu-dev libxi-dev freeglut3-dev libasound2-dev libjack0 libjack-dev libxrandr-dev libudev-dev libssl-dev
+sudo apt-get install libasound2 libxmu-dev libxi-dev freeglut3-dev libasound2-dev libjack0 libjack-dev libxrandr-dev libudev-dev libssl-dev zlib1g-dev
 ```
 
 To compile interface in a server you must install:
