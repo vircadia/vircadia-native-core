@@ -66,7 +66,7 @@ void TouchscreenVirtualPadDevice::resize() {
         _fixedRadius = _screenDPI * 0.5f * VirtualPad::Manager::BASE_DIAMETER_PIXELS / VirtualPad::Manager::DPI;
         _fixedRadiusForCalc = _fixedRadius - _screenDPI * VirtualPad::Manager::STICK_RADIUS_PIXELS / VirtualPad::Manager::DPI;
 
-        _buttonRadius = _screenDPI * VirtualPad::Manager::JUMP_BTN_TRIMMED_RADIUS_PIXELS / VirtualPad::Manager::DPI;
+        _buttonRadius = _screenDPI * VirtualPad::Manager::BTN_TRIMMED_RADIUS_PIXELS / VirtualPad::Manager::DPI;
     }
 
     auto& virtualPadManager = VirtualPad::Manager::instance();
@@ -86,15 +86,15 @@ void TouchscreenVirtualPadDevice::setupControlsPositions(VirtualPad::Manager& vi
     virtualPadManager.getLeftVirtualPad()->setFirstTouch(_moveRefTouchPoint);
 
     // Jump button
-    float jumpBtnPixelSize = _screenDPI * VirtualPad::Manager::JUMP_BTN_FULL_PIXELS / VirtualPad::Manager::DPI;
-    float rightMargin = _screenDPI * VirtualPad::Manager::JUMP_BTN_RIGHT_MARGIN_PIXELS / VirtualPad::Manager::DPI;
-    float bottomMargin = _screenDPI * VirtualPad::Manager::JUMP_BTN_BOTTOM_MARGIN_PIXELS/ VirtualPad::Manager::DPI;
-    glm::vec2 jumpButtonPosition = glm::vec2( eventScreen->availableSize().width() - rightMargin - jumpBtnPixelSize, eventScreen->availableSize().height() - bottomMargin - _buttonRadius - _extraBottomMargin);
-    glm::vec2 rbButtonPosition = glm::vec2( eventScreen->availableSize().width() - rightMargin - jumpBtnPixelSize, eventScreen->availableSize().height() - 2 * bottomMargin - 3 * _buttonRadius - _extraBottomMargin);
+    float btnPixelSize = _screenDPI * VirtualPad::Manager::BTN_FULL_PIXELS / VirtualPad::Manager::DPI;
+    float rightMargin = _screenDPI * VirtualPad::Manager::BTN_RIGHT_MARGIN_PIXELS / VirtualPad::Manager::DPI;
+    float bottomMargin = _screenDPI * VirtualPad::Manager::BTN_BOTTOM_MARGIN_PIXELS/ VirtualPad::Manager::DPI;
+    glm::vec2 jumpButtonPosition = glm::vec2( eventScreen->availableSize().width() - rightMargin - btnPixelSize, eventScreen->availableSize().height() - bottomMargin - _buttonRadius - _extraBottomMargin);
+    glm::vec2 rbButtonPosition = glm::vec2( eventScreen->availableSize().width() - rightMargin - btnPixelSize, eventScreen->availableSize().height() - 2 * bottomMargin - 3 * _buttonRadius - _extraBottomMargin);
 
     // Avoid generating buttons in portrait mode
     if ( eventScreen->availableSize().width() > eventScreen->availableSize().height() && _buttonsManager.buttonsCount() == 0) {
-        _buttonsManager.addButton(TouchscreenButton(JUMP_BUTTON_PRESS, JUMP, _buttonRadius, jumpButtonPosition, _inputDevice ));
+        _buttonsManager.addButton(TouchscreenButton(JUMP, JUMP_BUTTON, _buttonRadius, jumpButtonPosition, _inputDevice ));
         _buttonsManager.addButton(TouchscreenButton(RB, RB_BUTTON, _buttonRadius, rbButtonPosition, _inputDevice ));
 
         virtualPadManager.setButtonPosition(VirtualPad::Manager::Button::JUMP, jumpButtonPosition);
@@ -466,7 +466,7 @@ controller::Input::NamedVector TouchscreenVirtualPadDevice::InputDevice::getAvai
         Input::NamedPair(makeInput(TouchAxisChannel::LY), "LY"),
         Input::NamedPair(makeInput(TouchAxisChannel::RX), "RX"),
         Input::NamedPair(makeInput(TouchAxisChannel::RY), "RY"),
-        Input::NamedPair(makeInput(TouchButtonChannel::JUMP_BUTTON_PRESS), "JUMP_BUTTON_PRESS"),
+        Input::NamedPair(makeInput(TouchButtonChannel::JUMP), "JUMP_BUTTON_PRESS"),
         Input::NamedPair(makeInput(TouchButtonChannel::RB), "RB")
     };
     return availableInputs;

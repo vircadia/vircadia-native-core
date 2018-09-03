@@ -76,11 +76,11 @@ void Basic2DWindowOpenGLDisplayPlugin::customizeContext() {
 
     if (_virtualPadButtons.size() == 0) {
         _virtualPadButtons.append(VirtualPadButton(
-                dpi * VirtualPad::Manager::JUMP_BTN_FULL_PIXELS / VirtualPad::Manager::DPI,
+                dpi * VirtualPad::Manager::BTN_FULL_PIXELS / VirtualPad::Manager::DPI,
                 PathUtils::resourcesPath() + "images/fly.png",
                 VirtualPad::Manager::Button::JUMP));
         _virtualPadButtons.append(VirtualPadButton(
-                dpi * VirtualPad::Manager::JUMP_BTN_FULL_PIXELS / VirtualPad::Manager::DPI,
+                dpi * VirtualPad::Manager::BTN_FULL_PIXELS / VirtualPad::Manager::DPI,
                 PathUtils::resourcesPath() + "images/handshake.png",
                 VirtualPad::Manager::Button::HANDSHAKE));
     }

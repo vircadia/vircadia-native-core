@@ -52,7 +52,7 @@ public:
     };
 
     enum TouchButtonChannel {
-        JUMP_BUTTON_PRESS,
+        JUMP,
         RB
     };
 
@@ -84,7 +84,7 @@ protected:
     enum TouchType {
         MOVE = 1,
         VIEW,
-        JUMP,
+        JUMP_BUTTON,
         RB_BUTTON
     };
 

@@ -59,21 +59,19 @@ namespace VirtualPad {
         static const float BASE_DIAMETER_PIXELS;
         static const float BASE_MARGIN_PIXELS;
         static const float STICK_RADIUS_PIXELS;
-        static const float JUMP_BTN_TRIMMED_RADIUS_PIXELS;
-        static const float JUMP_BTN_FULL_PIXELS;
-        static const float JUMP_BTN_BOTTOM_MARGIN_PIXELS;
-        static const float JUMP_BTN_RIGHT_MARGIN_PIXELS;
+        static const float BTN_TRIMMED_RADIUS_PIXELS;
+        static const float BTN_FULL_PIXELS;
+        static const float BTN_BOTTOM_MARGIN_PIXELS;
+        static const float BTN_RIGHT_MARGIN_PIXELS;
 
     signals:
         void hapticFeedbackRequested(int duration);
 
     private:
         Instance _leftVPadInstance;
-        bool _enabled {true};
+        bool _enabled { true };
         bool _hidden;
-        glm::vec2 _jumpButtonPosition;
-        glm::vec2 _rbButtonPosition;
-        int _extraBottomMargin {0};
+        int _extraBottomMargin { 0 };
         std::map<Button, glm::vec2> _buttonsPositions;
     };
 }
