@@ -66,7 +66,7 @@ cd hifi/build
 
 Prepare makefiles:
 ```bash
-cmake -DQT_CMAKE_PREFIX_PATH=/usr/local/Qt5.10.1/5.10/gcc_64/lib/cmake ..
+cmake -DQT_CMAKE_PREFIX_PATH=/usr/local/Qt5.10.1/5.10.1/gcc_64/lib/cmake ..
 ```
 
 Start compilation and get a cup of coffee:
