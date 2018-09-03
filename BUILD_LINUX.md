@@ -8,7 +8,14 @@ Should you choose not to install Qt5 via a package manager that handles dependen
 
     libasound2 libxmu-dev libxi-dev freeglut3-dev libasound2-dev libjack0 libjack-dev libxrandr-dev libudev-dev libssl-dev zlib1g-dev
 
-## Ubuntu 16.04 specific build guide
+## Ubuntu 16.04/18.04 specific build guide
+
+### Ubuntu 18.04 only
+Add the universe repository (not enabled by default on the server edition):
+```bash
+sudo add-apt-repository universe
+sudo apt-get update
+```
 
 ### Prepare environment
 hifiqt5.10.1
@@ -32,6 +39,7 @@ Install build tools:
 ```bash
 sudo apt install cmake
 ```
+
 
 ### Get code and checkout the tag you need
 
