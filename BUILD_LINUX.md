@@ -32,12 +32,12 @@ sudo apt-get install libasound2 libxmu-dev libxi-dev freeglut3-dev libasound2-de
 
 To compile interface in a server you must install:
 ```bash
-sudo apt -y install libpulse0 libnss3 libnspr4 libfontconfig1 libxcursor1 libxcomposite1 libxtst6 libxslt1.1
+sudo apt-get -y install libpulse0 libnss3 libnspr4 libfontconfig1 libxcursor1 libxcomposite1 libxtst6 libxslt1.1
 ```
 
 Install build tools:
 ```bash
-sudo apt install cmake
+sudo apt-get install cmake
 ```
 
 
@@ -101,4 +101,4 @@ Running interface:
 ./interface/interface
 ```
 
-Go to localhost in running interface.
+Go to localhost in the running interface.
