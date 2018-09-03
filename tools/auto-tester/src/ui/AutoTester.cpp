@@ -37,6 +37,7 @@ AutoTester::AutoTester(QWidget* parent) : QMainWindow(parent) {
 
 void AutoTester::setup() {
     _test = new Test(_ui.progressBar, _ui.checkBoxInteractiveMode);
+    _testRunner = new TestRunner();
 }
 
 void AutoTester::runFromCommandLine(const QString& testFolder, const QString& branch, const QString& user) {
@@ -98,7 +99,7 @@ void AutoTester::on_createTestRailRunButton_clicked() {
 }
 
 void AutoTester::on_runNowButton_clicked() {
-    _testRunner.run();
+    _testRunner->run();
 }
 
 void AutoTester::on_updateTestRailRunResultsButton_clicked() {
@@ -150,9 +151,10 @@ void AutoTester::downloadFile(const QUrl& url) {
     ++_index;
 }
 
-void AutoTester::downloadFiles(const QStringList& URLs, const QString& directoryName, const QStringList& filenames) {
+void AutoTester::downloadFiles(const QStringList& URLs, const QString& directoryName, const QStringList& filenames, void *caller) {
     _directoryName = directoryName;
     _filenames = filenames;
+    _caller = caller;
 
     _numberOfFilesToDownload = URLs.size();
     _numberOfFilesDownloaded = 0;
@@ -187,7 +189,11 @@ void AutoTester::saveFile(int index) {
 
     if (_numberOfFilesDownloaded == _numberOfFilesToDownload) {
         disconnect(_signalMapper, SIGNAL(mapped(int)), this, SLOT(saveFile(int)));
-        _test->finishTestsEvaluation();
+        if (_caller == _test) {
+            _test->finishTestsEvaluation();
+        } else if (_caller == _testRunner) {
+            _testRunner->installerDownloadComplete();
+        }
     } else {
         _ui.progressBar->setValue(_numberOfFilesDownloaded);
     }

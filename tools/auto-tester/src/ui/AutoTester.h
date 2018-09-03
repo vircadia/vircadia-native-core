@@ -33,7 +33,7 @@ public:
     void runFromCommandLine(const QString& testFolder, const QString& branch, const QString& user);
 
     void downloadFile(const QUrl& url);
-    void downloadFiles(const QStringList& URLs, const QString& directoryName, const QStringList& filenames);
+    void downloadFiles(const QStringList& URLs, const QString& directoryName, const QStringList& filenames, void *caller);
 
     void setUserText(const QString& user);
     QString getSelectedUser();
@@ -80,6 +80,7 @@ private slots:
 private:
     Ui::AutoTesterClass _ui;
     Test* _test;
+    TestRunner* _testRunner;
 
     std::vector<Downloader*> _downloaders;
 
@@ -98,7 +99,8 @@ private:
 
     HelpWindow _helpWindow;
 
-    TestRunner _testRunner;
+
+    void* _caller;
 };
 
 #endif // hifi_AutoTester_h

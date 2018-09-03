@@ -22,6 +22,7 @@ public:
     explicit TestRunner(QObject *parent = 0);
 
     void run();
+    void installerDownloadComplete();
 
     void saveExistingHighFidelityAppDataFolder();
     void restoreHighFidelityAppDataFolder();

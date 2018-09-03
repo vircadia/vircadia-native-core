@@ -249,7 +249,7 @@ void Test::startTestsEvaluation(const bool isRunningFromCommandLine,
         }
     }
 
-    autoTester->downloadFiles(expectedImagesURLs, _snapshotDirectory, _expectedImagesFilenames);
+    autoTester->downloadFiles(expectedImagesURLs, _snapshotDirectory, _expectedImagesFilenames, (void *)this);
 }
 void Test::finishTestsEvaluation() {
     bool success = compareImageLists();

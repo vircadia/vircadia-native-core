@@ -28,10 +28,13 @@ void TestRunner::run() {
     QStringList filenames;
     filenames << "HighFidelity-Beta-latest-dev.exe";
 
-    autoTester->downloadFiles(urls, _tempDirectory, filenames);
+    autoTester->downloadFiles(urls, _tempDirectory, filenames, (void *)this);
 
+    // Will continue after download complete
+}
 
-    restoreHighFidelityAppDataFolder();
+void TestRunner::installerDownloadComplete() {
+    restoreHighFidelityAppDataFolder(); 
 }
 
 void TestRunner::saveExistingHighFidelityAppDataFolder() {
