@@ -24,6 +24,8 @@ Slider {
 
     property alias minimumValue: slider.from
     property alias maximumValue: slider.to
+    property alias step: slider.stepSize
+    property bool tickmarksEnabled: false
 
     height: hifi.fontSizes.textFieldInput + 14  // Match height of TextField control.
     y: sliderLabel.visible ? sliderLabel.height + sliderLabel.anchors.bottomMargin : 0

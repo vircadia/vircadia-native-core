@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "HTTPManager.h"
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDebug>
 #include <QtCore/QFile>
@@ -18,13 +20,11 @@
 
 #include "HTTPConnection.h"
 #include "EmbeddedWebserverLogging.h"
-#include "HTTPManager.h"
 
 const int SOCKET_ERROR_EXIT_CODE = 2;
 const int SOCKET_CHECK_INTERVAL_IN_MS = 30000;
 
-HTTPManager::HTTPManager(const QHostAddress& listenAddress, quint16 port, const QString& documentRoot, HTTPRequestHandler* requestHandler, QObject* parent) :
-    QTcpServer(parent),
+HTTPManager::HTTPManager(const QHostAddress& listenAddress, quint16 port, const QString& documentRoot, HTTPRequestHandler* requestHandler) :
     _listenAddress(listenAddress),
     _documentRoot(documentRoot),
     _requestHandler(requestHandler),
@@ -48,6 +48,13 @@ void HTTPManager::incomingConnection(qintptr socketDescriptor) {
 }
 
 bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
+    // Reject paths with embedded NULs
+    if (url.path().contains(QChar(0x00))) {
+        connection->respond(HTTPConnection::StatusCode400, "Embedded NULs not allowed in requests");
+        qCWarning(embeddedwebserver) << "Received a request with embedded NULs";
+        return true;
+    }
+
     if (!skipSubHandler && requestHandledByRequestHandler(connection, url)) {
         // this request was handled by our request handler object
         // so we don't need to attempt to do so in the document root
@@ -57,17 +64,27 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QUrl& url,
     if (!_documentRoot.isEmpty()) {
         // check to see if there is a file to serve from the document root for this path
         QString subPath = url.path();
-        
+
         // remove any slash at the beginning of the path
         if (subPath.startsWith('/')) {
             subPath.remove(0, 1);
         }
-        
+
+        QString absoluteDocumentRoot { QFileInfo(_documentRoot).absolutePath() };
         QString filePath;
-        
-        if (QFileInfo(_documentRoot + subPath).isFile()) {
-            filePath = _documentRoot + subPath;
-        } else if (subPath.size() > 0 && !subPath.endsWith('/')) {
+        QFileInfo pathFileInfo { _documentRoot + subPath };
+        QString absoluteFilePath { pathFileInfo.absoluteFilePath() };
+
+        // The absolute path for this file isn't under the document root
+        if (absoluteFilePath.indexOf(absoluteDocumentRoot) != 0) {
+            qCWarning(embeddedwebserver) << absoluteFilePath << "is outside the document root";
+            connection->respond(HTTPConnection::StatusCode400, "Requested path outside document root");
+            return true;
+        }
+
+        if (pathFileInfo.isFile()) {
+            filePath = absoluteFilePath;
+        } else if (subPath.size() > 0 && !subPath.endsWith('/') && pathFileInfo.isDir()) {
             // this could be a directory with a trailing slash
             // send a redirect to the path with a slash so we can
             QString redirectLocation = '/' + subPath + '/';
@@ -80,6 +97,7 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QUrl& url,
             redirectHeader.insert(QByteArray("Location"), redirectLocation.toUtf8());
             
             connection->respond(HTTPConnection::StatusCode302, "", HTTPConnection::DefaultContentType, redirectHeader);
+            return true;
         }
         
         // if the last thing is a trailing slash then we want to look for index file
@@ -87,8 +105,8 @@ bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QUrl& url,
             QStringList possibleIndexFiles = QStringList() << "index.html" << "index.shtml";
             
             foreach (const QString& possibleIndexFilename, possibleIndexFiles) {
-                if (QFileInfo(_documentRoot + subPath + possibleIndexFilename).exists()) {
-                    filePath = _documentRoot + subPath + possibleIndexFilename;
+                if (QFileInfo(absoluteFilePath + possibleIndexFilename).exists()) {
+                    filePath = absoluteFilePath + possibleIndexFilename;
                     break;
                 }
             }

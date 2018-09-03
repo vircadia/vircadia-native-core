@@ -12,8 +12,12 @@
 #ifndef hifi_DiscoverabilityManager_h
 #define hifi_DiscoverabilityManager_h
 
+#include <QJsonObject>
+
 #include <DependencyManager.h>
 #include <SettingHandle.h>
+
+class QNetworkReply;
 
 namespace Discoverability {
     enum Mode {
@@ -47,7 +51,7 @@ public:
     static QString findableByString(Discoverability::Mode discoverabilityMode);
 
 private slots:
-    void handleHeartbeatResponse(QNetworkReply& requestReply);
+    void handleHeartbeatResponse(QNetworkReply* requestReply);
     
 private:
     DiscoverabilityManager();

@@ -40,7 +40,6 @@ private:
 
     Procedural _procedural;
     QString _lastUserData;
-    Transform _renderTransform;
     entity::Shape _shape { entity::Sphere };
     std::shared_ptr<graphics::Material> _material;
     glm::vec3 _position;

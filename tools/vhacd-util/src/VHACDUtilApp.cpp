@@ -9,10 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "VHACDUtilApp.h"
+
 #include <QCommandLineParser>
+
 #include <Trace.h>
 #include <VHACD.h>
-#include "VHACDUtilApp.h"
+
 #include "VHACDUtil.h"
 #include "PathUtils.h"
 

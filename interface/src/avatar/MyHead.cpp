@@ -46,32 +46,18 @@ void MyHead::simulate(float deltaTime) {
     auto player = DependencyManager::get<recording::Deck>();
     // Only use face trackers when not playing back a recording.
     if (!player->isPlaying()) {
-        FaceTracker* faceTracker = qApp->getActiveFaceTracker();
-        _isFaceTrackerConnected = faceTracker != nullptr && !faceTracker->isMuted();
+        auto faceTracker = qApp->getActiveFaceTracker();
+        const bool hasActualFaceTrackerConnected = faceTracker && !faceTracker->isMuted();
+        _isFaceTrackerConnected = hasActualFaceTrackerConnected || _owningAvatar->getHasScriptedBlendshapes();
         if (_isFaceTrackerConnected) {
-            _transientBlendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
-
-            if (typeid(*faceTracker) == typeid(DdeFaceTracker)) {
-
-                if (Menu::getInstance()->isOptionChecked(MenuOption::UseAudioForMouth)) {
-                    calculateMouthShapes(deltaTime);
-
-                    const int JAW_OPEN_BLENDSHAPE = 21;
-                    const int MMMM_BLENDSHAPE = 34;
-                    const int FUNNEL_BLENDSHAPE = 40;
-                    const int SMILE_LEFT_BLENDSHAPE = 28;
-                    const int SMILE_RIGHT_BLENDSHAPE = 29;
-                    _transientBlendshapeCoefficients[JAW_OPEN_BLENDSHAPE] += _audioJawOpen;
-                    _transientBlendshapeCoefficients[SMILE_LEFT_BLENDSHAPE] += _mouth4;
-                    _transientBlendshapeCoefficients[SMILE_RIGHT_BLENDSHAPE] += _mouth4;
-                    _transientBlendshapeCoefficients[MMMM_BLENDSHAPE] += _mouth2;
-                    _transientBlendshapeCoefficients[FUNNEL_BLENDSHAPE] += _mouth3;
-                }
-                applyEyelidOffset(getFinalOrientationInWorldFrame());
+            if (hasActualFaceTrackerConnected) {
+                _blendshapeCoefficients = faceTracker->getBlendshapeCoefficients();
             }
         }
+
         auto eyeTracker = DependencyManager::get<EyeTracker>();
         _isEyeTrackerConnected = eyeTracker->isTracking();
+        // if eye tracker is connected we should get the data here.
     }
     Parent::simulate(deltaTime);
 }

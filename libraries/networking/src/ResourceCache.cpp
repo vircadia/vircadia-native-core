@@ -131,6 +131,24 @@ QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
     return highestResource;
 }
 
+
+ScriptableResourceCache::ScriptableResourceCache(QSharedPointer<ResourceCache> resourceCache) {
+    _resourceCache = resourceCache;
+}
+
+QVariantList ScriptableResourceCache::getResourceList() {
+    return _resourceCache->getResourceList();
+}
+
+void ScriptableResourceCache::updateTotalSize(const qint64& deltaSize) {
+    _resourceCache->updateTotalSize(deltaSize);
+}
+
+ScriptableResource* ScriptableResourceCache::prefetch(const QUrl& url, void* extra) {
+    return _resourceCache->prefetch(url, extra);
+}
+
+
 ScriptableResource::ScriptableResource(const QUrl& url) :
     QObject(nullptr),
     _url(url) { }
@@ -218,8 +236,8 @@ ScriptableResource* ResourceCache::prefetch(const QUrl& url, void* extra) {
 }
 
 ResourceCache::ResourceCache(QObject* parent) : QObject(parent) {
-    auto nodeList = DependencyManager::get<NodeList>();
-    if (nodeList) {
+    if (DependencyManager::isSet<NodeList>()) {
+        auto nodeList = DependencyManager::get<NodeList>();
         auto& domainHandler = nodeList->getDomainHandler();
         connect(&domainHandler, &DomainHandler::disconnectedFromDomain,
             this, &ResourceCache::clearATPAssets, Qt::DirectConnection);
@@ -581,6 +599,7 @@ void Resource::refresh() {
         ResourceCache::requestCompleted(_self);
     }
     
+    _activeUrl = _url;
     init();
     ensureLoading();
     emit onRefresh();
@@ -618,7 +637,6 @@ void Resource::init(bool resetLoaded) {
         _loaded = false;
     }
     _attempts = 0;
-    _activeUrl = _url;
     
     if (_url.isEmpty()) {
         _startedLoading = _loaded = true;
@@ -636,7 +654,10 @@ void Resource::attemptRequest() {
             << "- retrying asset load - attempt" << _attempts << " of " << MAX_ATTEMPTS;
     }
 
-    ResourceCache::attemptRequest(_self);
+    auto self = _self.lock();
+    if (self) {
+        ResourceCache::attemptRequest(self);
+    }
 }
 
 void Resource::finishedLoading(bool success) {
@@ -703,7 +724,16 @@ void Resource::handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTota
 }
 
 void Resource::handleReplyFinished() {
-    Q_ASSERT_X(_request, "Resource::handleReplyFinished", "Request should not be null while in handleReplyFinished");
+    if (!_request || _request != sender()) {
+        // This can happen in the edge case that a request is timed out, but a `finished` signal is emitted before it is deleted.
+        qWarning(networking) << "Received signal Resource::handleReplyFinished from ResourceRequest that is not the current"
+            << " request: " << sender() << ", " << _request;
+        PROFILE_ASYNC_END(resource, "Resource:" + getType(), QString::number(_requestID), {
+            { "from_cache", false },
+            { "size_mb", _bytesTotal / 1000000.0 }
+            });
+        return;
+    }
 
     PROFILE_ASYNC_END(resource, "Resource:" + getType(), QString::number(_requestID), {
         { "from_cache", _request->loadedFromCache() },
@@ -712,25 +742,18 @@ void Resource::handleReplyFinished() {
 
     setSize(_bytesTotal);
 
-    if (!_request || _request != sender()) {
-        // This can happen in the edge case that a request is timed out, but a `finished` signal is emitted before it is deleted.
-        qWarning(networking) << "Received signal Resource::handleReplyFinished from ResourceRequest that is not the current"
-            << " request: " << sender() << ", " << _request;
-        return;
-    }
-    
     ResourceCache::requestCompleted(_self);
-    
+
     auto result = _request->getResult();
     if (result == ResourceRequest::Success) {
         auto extraInfo = _url == _activeUrl ? "" : QString(", %1").arg(_activeUrl.toDisplayString());
-        qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_url.toDisplayString(), extraInfo);
+        qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_activeUrl.toDisplayString(), extraInfo);
 
         auto relativePathURL = _request->getRelativePathUrl();
         if (!relativePathURL.isEmpty()) {
             _effectiveBaseURL = relativePathURL;
         }
-        
+
         auto data = _request->getData();
         emit loaded(data);
         downloadFinished(data);
@@ -750,6 +773,7 @@ bool Resource::handleFailedRequest(ResourceRequest::Result result) {
             qCDebug(networking) << "Timed out loading" << _url << "received" << _bytesReceived << "total" << _bytesTotal;
             // Fall through to other cases
         }
+        // FALLTHRU
         case ResourceRequest::Result::ServerUnavailable: {
             _attempts++;
             _attemptsRemaining--;
@@ -768,6 +792,7 @@ bool Resource::handleFailedRequest(ResourceRequest::Result result) {
             }
             // fall through to final failure
         }
+        // FALLTHRU
         default: {
             _attemptsRemaining = 0;
             qCDebug(networking) << "Error loading " << _url << "attempt:" << _attempts << "attemptsRemaining:" << _attemptsRemaining;

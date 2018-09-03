@@ -89,8 +89,6 @@ int MaterialEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* da
     return bytesRead;
 }
 
-
-// TODO: eventually only include properties changed since the params.nodeData->getLastTimeBagEmpty() time
 EntityPropertyFlags MaterialEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_MATERIAL_URL;

@@ -41,12 +41,10 @@ public:
 
     /// are we in sending mode. If we're not in sending mode then all packets and messages will be ignored and
     /// not queued and not sent
-    bool getShouldSend() const { return _shouldSend; }
 
     /// set sending mode. By default we are set to shouldSend=TRUE and packets will be sent. If shouldSend=FALSE, then we'll
     /// switch to not sending mode, and all packets and messages will be ignored, not queued, and not sent. This might be used
     /// in an application like interface when all octree features are disabled.
-    void setShouldSend(bool shouldSend) { _shouldSend = shouldSend; }
 
     /// if you're running in non-threaded mode, you must call this method regularly
     virtual bool process() override;
@@ -76,7 +74,6 @@ public slots:
 protected:
     using EditMessagePair = std::pair<PacketType, QByteArray>;
 
-    bool _shouldSend;
     void queuePacketToNode(const QUuid& nodeID, std::unique_ptr<NLPacket> packet);
     void queuePacketListToNode(const QUuid& nodeUUID, std::unique_ptr<NLPacketList> packetList);
 

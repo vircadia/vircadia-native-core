@@ -12,11 +12,11 @@
 #include "QVariantGLM.h"
 #include "OctalCode.h"
 
-QVariantList glmToQList(const glm::vec3& g) {
+QVariantList vec3ToQList(const glm::vec3& g) {
     return QVariantList() << g[0] << g[1] << g[2];
 }
 
-QVariantList glmToQList(const glm::quat& g) {
+QVariantList quatToQList(const glm::quat& g) {
     return QVariantList() << g.x << g.y << g.z << g.w;
 }
 
@@ -24,7 +24,7 @@ QVariantList rgbColorToQList(const rgbColor& v) {
     return QVariantList() << (int)(v[0]) << (int)(v[1]) << (int)(v[2]);
 }
 
-QVariantMap glmToQMap(const glm::vec3& glmVector) {
+QVariantMap vec3ToQMap(const glm::vec3& glmVector) {
     QVariantMap vectorAsVariantMap;
     vectorAsVariantMap["x"] = glmVector.x;
     vectorAsVariantMap["y"] = glmVector.y;
@@ -32,7 +32,7 @@ QVariantMap glmToQMap(const glm::vec3& glmVector) {
     return vectorAsVariantMap;
 }
 
-QVariantMap glmToQMap(const glm::quat& glmQuat) {
+QVariantMap quatToQMap(const glm::quat& glmQuat) {
     QVariantMap quatAsVariantMap;
     quatAsVariantMap["x"] = glmQuat.x;
     quatAsVariantMap["y"] = glmQuat.y;
@@ -42,12 +42,12 @@ QVariantMap glmToQMap(const glm::quat& glmQuat) {
 }
 
 
-glm::vec3 qListToGlmVec3(const QVariant& q) {
+glm::vec3 qListToVec3(const QVariant& q) {
     QVariantList qList = q.toList();
     return glm::vec3(qList[RED_INDEX].toFloat(), qList[GREEN_INDEX].toFloat(), qList[BLUE_INDEX].toFloat());
 }
 
-glm::quat qListToGlmQuat(const QVariant& q) {
+glm::quat qListToQuat(const QVariant& q) {
     QVariantList qList = q.toList();
     float x = qList[0].toFloat();
     float y = qList[1].toFloat();
@@ -56,7 +56,7 @@ glm::quat qListToGlmQuat(const QVariant& q) {
     return glm::quat(w, x, y, z);
 }
 
-void qListtoRgbColor(const QVariant& q, rgbColor& returnValue) {
+void qListToRgbColor(const QVariant& q, rgbColor& returnValue) {
     QVariantList qList = q.toList();
     returnValue[RED_INDEX] = qList[RED_INDEX].toInt();
     returnValue[GREEN_INDEX] = qList[GREEN_INDEX].toInt();
@@ -64,7 +64,7 @@ void qListtoRgbColor(const QVariant& q, rgbColor& returnValue) {
 }
 
 
-glm::vec3 qMapToGlmVec3(const QVariant& q) {
+glm::vec3 qMapToVec3(const QVariant& q) {
     QVariantMap qMap = q.toMap();
     if (qMap.contains("x") && qMap.contains("y") && qMap.contains("z")) {
         return glm::vec3(
@@ -77,7 +77,7 @@ glm::vec3 qMapToGlmVec3(const QVariant& q) {
     }
 }
 
-glm::quat qMapToGlmQuat(const QVariant& q) {
+glm::quat qMapToQuat(const QVariant& q) {
     QVariantMap qMap = q.toMap();
     if (qMap.contains("w") && qMap.contains("x") && qMap.contains("y") && qMap.contains("z")) {
         return glm::quat(
@@ -91,7 +91,7 @@ glm::quat qMapToGlmQuat(const QVariant& q) {
     }
 }
 
-glm::mat4 qMapToGlmMat4(const QVariant& q) {
+glm::mat4 qMapToMat4(const QVariant& q) {
     QVariantMap qMap = q.toMap();
     if (qMap.contains("r0c0") && qMap.contains("r1c0") && qMap.contains("r2c0") && qMap.contains("r3c0")
             && qMap.contains("r0c1") && qMap.contains("r1c1") && qMap.contains("r2c1") && qMap.contains("r3c1")

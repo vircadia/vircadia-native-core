@@ -33,6 +33,7 @@ public:
 
     virtual uint32_t fetchMetaSubItems(render::ItemIDs& subItems) const override;
 
+    render::ItemKey getKey() override;
     void clearSubRenderItemIDs();
     void setSubRenderItemIDs(const render::ItemIDs& ids);
 
@@ -44,9 +45,13 @@ public:
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                        BoxFace& face, glm::vec3& surfaceNormal) override;
+                                     BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking = false) override;
     virtual bool findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction,
-        float& distance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo) override;
+                                              float& distance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking = false) override;
+    virtual bool findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration, float& parabolicDistance,
+                                          BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking = false) override;
+    virtual bool findParabolaIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration, float& parabolicDistance,
+                                                   BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking = false) override;
 
     virtual ModelOverlay* createClone() const override;
 
@@ -63,6 +68,7 @@ public:
     void setVisible(bool visible) override;
     void setDrawInFront(bool drawInFront) override;
     void setDrawHUDLayer(bool drawHUDLayer) override;
+    void setGroupCulled(bool groupCulled);
 
     void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) override;
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) override;
@@ -92,6 +98,7 @@ private:
     ModelPointer _model;
     QVariantMap _modelTextures;
     bool _texturesLoaded { false };
+    bool _texturesDirty { false };
 
     render::ItemIDs _subRenderItemIDs;
 
@@ -121,6 +128,8 @@ private:
     bool _visibleDirty { true };
     bool _drawInFrontDirty { false };
     bool _drawInHUDDirty { false };
+    bool _isGroupCulled { false };
+    bool _groupCulledDirty { false };
 
     void processMaterials();
 

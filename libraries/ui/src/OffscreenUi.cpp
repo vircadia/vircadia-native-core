@@ -30,6 +30,15 @@
 
 #include <PointerManager.h>
 
+/**jsdoc
+ * @namespace OffscreenFlags
+ * 
+ * @hifi-interface
+ * @hifi-client-entity
+ * @property {boolean} navigationFocused
+ * @property {boolean} navigationFocusDisabled
+ */
+
 // Needs to match the constants in resources/qml/Global.js
 class OffscreenFlags : public QObject {
     Q_OBJECT
@@ -58,7 +67,17 @@ public:
     }
     
 signals:
+
+    /**jsdoc
+     * @function OffscreenFlags.navigationFocusedChanged
+     * @returns {Signal}
+     */
     void navigationFocusedChanged();
+
+    /**jsdoc
+     * @function OffscreenFlags.navigationFocusDisabledChanged
+     * @returns {Signal}
+     */
     void navigationFocusDisabledChanged();
 
 private:
@@ -77,10 +96,13 @@ static OffscreenFlags* offscreenFlags { nullptr };
 // so I think it's OK for the time being.
 bool OffscreenUi::shouldSwallowShortcut(QEvent* event) {
     Q_ASSERT(event->type() == QEvent::ShortcutOverride);
-    QObject* focusObject = getWindow()->focusObject();
-    if (focusObject != getWindow() && focusObject != getRootItem()) {
-        event->accept();
-        return true;
+    auto window = getWindow();
+    if (window) {
+        QObject* focusObject = getWindow()->focusObject();
+        if (focusObject != getWindow() && focusObject != getRootItem()) {
+            event->accept();
+            return true;
+        }
     }
     return false;
 }

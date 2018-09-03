@@ -9,14 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "StandAloneJSConsole.h"
+
 #include <QMainWindow>
 #include <QDialog>
 #include <QVBoxLayout>
 
 #include <Application.h>
 #include <MainWindow.h>
-
-#include "StandAloneJSConsole.h"
 
 void StandAloneJSConsole::toggleConsole()  {
     QMainWindow* mainWindow = qApp->getWindow();

@@ -30,23 +30,20 @@ signals:
     void rollingLogFile(QString newFilename);
 
 protected:
-    void rollFileIfNecessary(QFile& file, bool notifyListenersIfRolled = true);
+    void rollFileIfNecessary(QFile& file, bool force = false, bool notifyListenersIfRolled = true);
     virtual bool processQueueItems(const Queue& messages) override;
 
 private:
     const FileLogger& _logger;
     QMutex _fileMutex;
-    uint64_t _lastRollTime;
 };
-
-
 
 static const QString FILENAME_FORMAT = "hifi-log_%1%2.txt";
 static const QString DATETIME_FORMAT = "yyyy-MM-dd_hh.mm.ss";
 static const QString LOGS_DIRECTORY = "Logs";
-static const QString IPADDR_WILDCARD = "[0-9]*.[0-9]*.[0-9]*.[0-9]*";
-static const QString DATETIME_WILDCARD = "20[0-9][0-9]-[0,1][0-9]-[0-3][0-9]_[0-2][0-9].[0-6][0-9].[0-6][0-9]";
-static const QString FILENAME_WILDCARD = "hifi-log_" + IPADDR_WILDCARD + "_" + DATETIME_WILDCARD + ".txt";
+static const QString DATETIME_WILDCARD = "20[0-9][0-9]-[01][0-9]-[0-3][0-9]_[0-2][0-9]\\.[0-6][0-9]\\.[0-6][0-9]";
+static const QString SESSION_WILDCARD = "[0-9a-z]{8}(-[0-9a-z]{4}){3}-[0-9a-z]{12}";
+static QRegExp LOG_FILENAME_REGEX { "hifi-log_" + DATETIME_WILDCARD + "(_" + SESSION_WILDCARD + ")?\\.txt" };
 static QUuid SESSION_ID;
 
 // Max log size is 512 KB. We send log files to our crash reporter, so we want to keep this relatively
@@ -54,8 +51,6 @@ static QUuid SESSION_ID;
 static const qint64 MAX_LOG_SIZE = 512 * 1024;
 // Max log files found in the log directory is 100.
 static const qint64 MAX_LOG_DIR_SIZE = 512 * 1024 * 100;
-// Max log age is 1 hour
-static const uint64_t MAX_LOG_AGE_USECS = USECS_PER_SECOND * 3600;
 
 static FilePersistThread* _persistThreadInstance;
 
@@ -84,40 +79,36 @@ FilePersistThread::FilePersistThread(const FileLogger& logger) : _logger(logger)
     // A file may exist from a previous run - if it does, roll the file and suppress notifying listeners.
     QFile file(_logger._fileName);
     if (file.exists()) {
-        rollFileIfNecessary(file, false);
+        rollFileIfNecessary(file, true, false);
     }
-    _lastRollTime = usecTimestampNow();
 }
 
-void FilePersistThread::rollFileIfNecessary(QFile& file, bool notifyListenersIfRolled) {
-    uint64_t now = usecTimestampNow();
-    if ((file.size() > MAX_LOG_SIZE) || (now - _lastRollTime) > MAX_LOG_AGE_USECS) {
+void FilePersistThread::rollFileIfNecessary(QFile& file, bool force, bool notifyListenersIfRolled) {
+    if (force || (file.size() > MAX_LOG_SIZE)) {
         QString newFileName = getLogRollerFilename();
         if (file.copy(newFileName)) {
             file.open(QIODevice::WriteOnly | QIODevice::Truncate);
             file.close();
-            qCDebug(shared) << "Rolled log file:" << newFileName;
 
             if (notifyListenersIfRolled) {
                 emit rollingLogFile(newFileName);
             }
-
-            _lastRollTime = now;
         }
-        QStringList nameFilters;
-        nameFilters << FILENAME_WILDCARD;
 
-        QDir logQDir(FileUtils::standardPath(LOGS_DIRECTORY));
-        logQDir.setNameFilters(nameFilters);
-        logQDir.setSorting(QDir::Time);
-        QFileInfoList filesInDir = logQDir.entryInfoList();
+        QDir logDir(FileUtils::standardPath(LOGS_DIRECTORY));
+        logDir.setSorting(QDir::Time);
+        logDir.setFilter(QDir::Files);
         qint64 totalSizeOfDir = 0;
-        foreach(QFileInfo dirItm, filesInDir){
-            if (totalSizeOfDir < MAX_LOG_DIR_SIZE){
-                totalSizeOfDir += dirItm.size();
-            } else {
-                QFile file(dirItm.filePath());
-                file.remove();
+        QFileInfoList filesInDir = logDir.entryInfoList();
+        for (auto& fileInfo : filesInDir) {
+            if (!LOG_FILENAME_REGEX.exactMatch(fileInfo.fileName())) {
+                continue;
+            }
+            totalSizeOfDir += fileInfo.size();
+            if (totalSizeOfDir > MAX_LOG_DIR_SIZE){
+                qDebug() << "Removing log file: " << fileInfo.fileName();
+                QFile oldLogFile(fileInfo.filePath());
+                oldLogFile.remove();
             }
         }
     }
@@ -129,7 +120,7 @@ bool FilePersistThread::processQueueItems(const Queue& messages) {
     rollFileIfNecessary(file);
     if (file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
         QTextStream out(&file);
-        foreach(const QString& message, messages) {
+        for (const QString& message : messages) {
             out << message;
         }
     }

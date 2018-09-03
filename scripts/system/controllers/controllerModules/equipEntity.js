@@ -6,11 +6,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
-   getControllerJointIndex, enableDispatcherModule, disableDispatcherModule,
+/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, Camera,
+   getControllerJointIndex, enableDispatcherModule, disableDispatcherModule, entityIsFarGrabbedByOther,
    Messages, makeDispatcherModuleParameters, makeRunningValues, Settings, entityHasActions,
    Vec3, Overlays, flatten, Xform, getControllerWorldLocation, ensureDynamic, entityIsCloneable,
-   cloneEntity, DISPATCHER_PROPERTIES, TEAR_AWAY_DISTANCE, Uuid
+   cloneEntity, DISPATCHER_PROPERTIES, Uuid, unhighlightTargetEntity, isInEditMode
 */
 
 Script.include("/~/system/libraries/Xform.js");
@@ -176,7 +176,10 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
     var TRIGGER_OFF_VALUE = 0.1;
     var TRIGGER_ON_VALUE = TRIGGER_OFF_VALUE + 0.05; //  Squeezed just enough to activate search or near grab
     var BUMPER_ON_VALUE = 0.5;
-
+    
+    var EMPTY_PARENT_ID = "{00000000-0000-0000-0000-000000000000}";
+    
+    var UNEQUIP_KEY = "u";
 
     function getWearableData(props) {
         var wearable = {};
@@ -408,8 +411,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
         this.cloneHotspot = function(props, controllerData) {
             if (entityIsCloneable(props)) {
-                var worldEntityProps = controllerData.nearbyEntityProperties[this.hand];
-                var cloneID = cloneEntity(props, worldEntityProps);
+                var cloneID = cloneEntity(props);
                 return cloneID;
             }
 
@@ -483,7 +485,13 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             this.dropGestureReset();
             this.clearEquipHaptics();
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
+            unhighlightTargetEntity(this.targetEntityID);
+            var message = {
+                hand: this.hand,
+                entityID: this.targetEntityID
+            };
 
+            Messages.sendLocalMessage('Hifi-unhighlight-entity', JSON.stringify(message));
             var grabbedProperties = Entities.getEntityProperties(this.targetEntityID);
 
             // if an object is "equipped" and has a predefined offset, use it.
@@ -619,14 +627,12 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
             // if the potentialHotspot is cloneable, clone it and return it
             // if the potentialHotspot os not cloneable and locked return null
-
             if (potentialEquipHotspot &&
                 (((this.triggerSmoothedSqueezed() || this.secondarySmoothedSqueezed()) && !this.waitForTriggerRelease) ||
                  this.messageGrabEntity)) {
                 this.grabbedHotspot = potentialEquipHotspot;
                 this.targetEntityID = this.grabbedHotspot.entityID;
                 this.startEquipEntity(controllerData);
-                this.messageGrabEntity = false;
                 this.equipedWithSecondary = this.secondarySmoothedSqueezed();
                 return makeRunningValues(true, [potentialEquipHotspot.entityID], []);
             } else {
@@ -650,7 +656,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             var timestamp = Date.now();
             this.updateInputs(controllerData);
 
-            if (!this.isTargetIDValid(controllerData)) {
+            if (!this.messageGrabEntity && !this.isTargetIDValid(controllerData)) {
                 this.endEquipEntity();
                 return makeRunningValues(false, [], []);
             }
@@ -752,7 +758,6 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                     var entityProperties = Entities.getEntityProperties(data.entityID, DISPATCHER_PROPERTIES);
                     entityProperties.id = data.entityID;
                     equipModule.setMessageGrabData(entityProperties);
-
                 } catch (e) {
                     print("WARNING: equipEntity.js -- error parsing Hifi-Hand-Grab message: " + message);
                 }
@@ -769,9 +774,86 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         }
     };
 
+    var clearGrabActions = function(entityID) {
+        var actionIDs = Entities.getActionIDs(entityID);
+        var myGrabTag = "grab-" + MyAvatar.sessionUUID;
+        for (var actionIndex = 0; actionIndex < actionIDs.length; actionIndex++) {
+            var actionID = actionIDs[actionIndex];
+            var actionArguments = Entities.getActionArguments(entityID, actionID);
+            var tag = actionArguments.tag;
+            if (tag === myGrabTag) {
+                Entities.deleteAction(entityID, actionID);
+            }
+        }
+    };
+
+    var onMousePress = function(event) {
+        if (isInEditMode() || !event.isLeftButton) { // don't consider any left clicks on the entity while in edit
+            return;
+        }
+        var pickRay = Camera.computePickRay(event.x, event.y);
+        var intersection = Entities.findRayIntersection(pickRay, true);
+        if (intersection.intersects) {
+            var entityID = intersection.entityID;
+            var entityProperties = Entities.getEntityProperties(entityID, DISPATCHER_PROPERTIES);
+            var hasEquipData = getWearableData(entityProperties).joints || getEquipHotspotsData(entityProperties).length > 0;
+            if (hasEquipData && entityProperties.parentID === EMPTY_PARENT_ID && !entityIsFarGrabbedByOther(entityID)) {
+                entityProperties.id = entityID;
+                var rightHandPosition = MyAvatar.getJointPosition("RightHand");
+                var leftHandPosition = MyAvatar.getJointPosition("LeftHand");
+                var distanceToRightHand = Vec3.distance(entityProperties.position, rightHandPosition);
+                var distanceToLeftHand = Vec3.distance(entityProperties.position, leftHandPosition);
+                var leftHandAvailable = leftEquipEntity.targetEntityID === null;
+                var rightHandAvailable = rightEquipEntity.targetEntityID === null;          
+                if (rightHandAvailable && (distanceToRightHand < distanceToLeftHand || !leftHandAvailable)) {
+                    // clear any existing grab actions on the entity now (their later removal could affect bootstrapping flags)
+                    clearGrabActions(entityID);
+                    rightEquipEntity.setMessageGrabData(entityProperties);
+                } else if (leftHandAvailable && (distanceToLeftHand < distanceToRightHand || !rightHandAvailable)) {
+                    // clear any existing grab actions on the entity now (their later removal could affect bootstrapping flags)
+                    clearGrabActions(entityID);
+                    leftEquipEntity.setMessageGrabData(entityProperties);
+                }
+            }
+        }
+    };
+    
+    var onKeyPress = function(event) {
+        if (event.text.toLowerCase() === UNEQUIP_KEY) {
+            if (rightEquipEntity.targetEntityID) {
+                rightEquipEntity.endEquipEntity();
+            }
+            if (leftEquipEntity.targetEntityID) {
+                leftEquipEntity.endEquipEntity();
+            }
+        }
+    };
+    
+    var deleteEntity = function(entityID) {
+        if (rightEquipEntity.targetEntityID === entityID) {
+            rightEquipEntity.endEquipEntity();
+        }
+        if (leftEquipEntity.targetEntityID === entityID) {
+            leftEquipEntity.endEquipEntity();
+        }
+    };
+    
+    var clearEntities = function() {
+        if (rightEquipEntity.targetEntityID) {
+            rightEquipEntity.endEquipEntity();
+        }
+        if (leftEquipEntity.targetEntityID) {
+            leftEquipEntity.endEquipEntity();
+        }
+    };
+    
     Messages.subscribe('Hifi-Hand-Grab');
     Messages.subscribe('Hifi-Hand-Drop');
     Messages.messageReceived.connect(handleMessage);
+    Controller.mousePressEvent.connect(onMousePress);
+    Controller.keyPressEvent.connect(onKeyPress);
+    Entities.deletingEntity.connect(deleteEntity);
+    Entities.clearingEntities.connect(clearEntities);
 
     var leftEquipEntity = new EquipEntity(LEFT_HAND);
     var rightEquipEntity = new EquipEntity(RIGHT_HAND);
@@ -785,6 +867,11 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         disableDispatcherModule("LeftEquipEntity");
         disableDispatcherModule("RightEquipEntity");
         clearAttachPoints();
+        Messages.messageReceived.disconnect(handleMessage);
+        Controller.mousePressEvent.disconnect(onMousePress);
+        Controller.keyPressEvent.disconnect(onKeyPress);
+        Entities.deletingEntity.disconnect(deleteEntity);
+        Entities.clearingEntities.disconnect(clearEntities);
     }
     Script.scriptEnding.connect(cleanup);
 }());

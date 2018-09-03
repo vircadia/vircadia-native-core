@@ -7,20 +7,27 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ResourceTests.h"
+
 #include <QNetworkDiskCache>
 
-#include "ResourceCache.h"
-#include "NetworkAccessManager.h"
-#include "DependencyManager.h"
-
-#include "ResourceTests.h"
+#include <ResourceCache.h>
+#include <LimitedNodeList.h>
+#include <NodeList.h>
+#include <NetworkAccessManager.h>
+#include <DependencyManager.h>
+#include <StatTracker.h>
 
 QTEST_MAIN(ResourceTests)
 
 void ResourceTests::initTestCase() {
 
-    auto resourceCacheSharedItems = DependencyManager::set<ResourceCacheSharedItems>();
-
+    //DependencyManager::set<AddressManager>();
+    DependencyManager::set<StatTracker>();
+    DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
+    DependencyManager::set<NodeList>(NodeType::Agent, INVALID_PORT);
+    DependencyManager::set<ResourceCacheSharedItems>();
+    DependencyManager::set<ResourceManager>();
     const qint64 MAXIMUM_CACHE_SIZE = 1024 * 1024 * 1024; // 1GB
 
     // set up the file cache
@@ -32,6 +39,10 @@ void ResourceTests::initTestCase() {
     cache->setCacheDirectory(cachePath);
     cache->clear(); // clear the cache
     networkAccessManager.setCache(cache);
+}
+
+void ResourceTests::cleanupTestCase() {
+    DependencyManager::get<ResourceManager>()->cleanup();
 }
 
 static QSharedPointer<Resource> resource;

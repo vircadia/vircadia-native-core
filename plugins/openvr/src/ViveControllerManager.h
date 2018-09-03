@@ -52,10 +52,10 @@ public:
     bool activate() override;
     void deactivate() override;
 
+    QString getDeviceName() { return QString::fromStdString(_inputDevice->_headsetName); }
+
     void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
     void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
-
-    void setRenderControllers(bool renderControllers) { _renderControllers = renderControllers; }
 
     virtual void saveSettings() const override;
     virtual void loadSettings() override;
@@ -161,6 +161,7 @@ private:
         HandConfig _handConfig { HandConfig::HandController };
         FilteredStick _filteredLeftStick;
         FilteredStick _filteredRightStick;
+        std::string _headsetName {""};
 
         std::vector<PuckPosePair> _validTrackedObjects;
         std::map<uint32_t, glm::mat4> _pucksPostOffset;
@@ -216,7 +217,6 @@ private:
     int _leftHandRenderID { 0 };
     int _rightHandRenderID { 0 };
 
-    bool _renderControllers { false };
     vr::IVRSystem* _system { nullptr };
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>(_system) };
 

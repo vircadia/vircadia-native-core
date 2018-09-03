@@ -113,7 +113,7 @@ private:
 class DrawHighlightMask {
 public:
 
-    using Inputs = render::VaryingSet2<render::ShapeBounds, HighlightRessourcesPointer>;
+    using Inputs = render::VaryingSet3<render::ShapeBounds, HighlightRessourcesPointer, glm::vec2>;
     using Outputs = glm::ivec4;
     using JobModel = render::Job::ModelIO<DrawHighlightMask, Inputs, Outputs>;
 
@@ -127,6 +127,7 @@ protected:
     render::ShapePlumberPointer _shapePlumber;
     HighlightSharedParametersPointer _sharedParameters;
     gpu::BufferPointer _boundsBuffer;
+    gpu::StructBuffer<glm::vec2> _outlineWidth;
 
     static gpu::PipelinePointer _stencilMaskPipeline;
     static gpu::PipelinePointer _stencilMaskFillPipeline;
@@ -135,7 +136,7 @@ protected:
 class DrawHighlight {
 public:
 
-    using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, HighlightRessourcesPointer, DeferredFramebufferPointer, glm::ivec4>;
+    using Inputs = render::VaryingSet5<DeferredFrameTransformPointer, HighlightRessourcesPointer, DeferredFramebufferPointer, glm::ivec4, gpu::FramebufferPointer>;
     using Config = render::Job::Config;
     using JobModel = render::Job::ModelI<DrawHighlight, Inputs, Config>;
 
@@ -146,14 +147,6 @@ public:
 private:
 
 #include "Highlight_shared.slh"
-
-    enum {
-        SCENE_DEPTH_MAP_SLOT = 0,
-        HIGHLIGHTED_DEPTH_MAP_SLOT,
-
-        HIGHLIGHT_PARAMS_SLOT = 0,
-        FRAME_TRANSFORM_SLOT,
-    };
 
     using HighlightConfigurationBuffer = gpu::StructBuffer<HighlightParameters>;
 
@@ -182,7 +175,7 @@ signals:
 
 class DebugHighlight {
 public:
-    using Inputs = render::VaryingSet2<HighlightRessourcesPointer, glm::ivec4>;
+    using Inputs = render::VaryingSet4<HighlightRessourcesPointer, glm::ivec4, glm::vec2, gpu::FramebufferPointer>;
     using Config = DebugHighlightConfig;
     using JobModel = render::Job::ModelI<DebugHighlight, Inputs, Config>;
 
@@ -205,7 +198,7 @@ private:
 class DrawHighlightTask {
 public:
 
-    using Inputs = render::VaryingSet4<RenderFetchCullSortTask::BucketList, DeferredFramebufferPointer, gpu::FramebufferPointer, DeferredFrameTransformPointer>;
+    using Inputs = render::VaryingSet5<RenderFetchCullSortTask::BucketList, DeferredFramebufferPointer, gpu::FramebufferPointer, DeferredFrameTransformPointer, glm::vec2>;
     using Config = render::Task::Config;
     using JobModel = render::Task::ModelI<DrawHighlightTask, Inputs, Config>;
 

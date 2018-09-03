@@ -6,9 +6,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QStringList>
-
 #include "StringHelpers.h"
+
+#include <QStringList>
 
 /// Note: this will not preserve line breaks in the original input.
 QString simpleWordWrap(const QString& input, int maxCharactersPerLine) {

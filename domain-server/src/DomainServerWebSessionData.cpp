@@ -9,12 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "DomainServerWebSessionData.h"
+
 #include <QtCore/QDataStream>
 #include <QtCore/QDebug>
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonObject>
-
-#include "DomainServerWebSessionData.h"
 
 DomainServerWebSessionData::DomainServerWebSessionData() :
     _username(),

@@ -9,18 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AudioDevices.h"
+
 #include <map>
 #include <algorithm>
 
 #include <shared/QtHelpers.h>
 #include <plugins/DisplayPlugin.h>
 
-#include "AudioDevices.h"
-
 #include "Application.h"
 #include "AudioClient.h"
 #include "Audio.h"
-
 #include "UserActivityLogger.h"
 
 using namespace scripting;
@@ -108,11 +107,9 @@ AudioDeviceList::~AudioDeviceList() {
     // store the selected device
     foreach(std::shared_ptr<AudioDevice> adevice, _devices) {
         if (adevice->selectedDesktop) {
-            qDebug() << "Saving Desktop for" << _mode << "name" << adevice->info.deviceName();
             settingDesktop.set(adevice->info.deviceName());
         }
         if (adevice->selectedHMD) {
-            qDebug() << "Saving HMD for" << _mode << "name" << adevice->info.deviceName();
             settingHMD.set(adevice->info.deviceName());
         }
     }
@@ -188,7 +185,7 @@ void AudioDeviceList::onDeviceChanged(const QAudioDeviceInfo& device, bool isHMD
 
     for (auto i = 0; i < _devices.size(); ++i) {
         std::shared_ptr<AudioDevice> device = _devices[i];
-        bool &isSelected = isHMD ? device->selectedHMD : device->selectedDesktop;
+        bool& isSelected = isHMD ? device->selectedHMD : device->selectedDesktop;
         if (isSelected && device->info != selectedDevice) {
             isSelected = false;
         } else if (device->info == selectedDevice) {
@@ -259,7 +256,7 @@ void AudioDeviceList::onDevicesChanged(const QList<QAudioDeviceInfo>& devices) {
 
     foreach(const QAudioDeviceInfo& deviceInfo, devices) {
         for (bool isHMD : {false, true}) {
-            auto &backupSelectedDeviceName = isHMD ? _backupSelectedHMDDeviceName : _backupSelectedDesktopDeviceName;
+            auto& backupSelectedDeviceName = isHMD ? _backupSelectedHMDDeviceName : _backupSelectedDesktopDeviceName;
             if (deviceInfo.deviceName() == backupSelectedDeviceName) {
                 QAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
                 selectedDevice = deviceInfo;
@@ -278,7 +275,7 @@ void AudioDeviceList::onDevicesChanged(const QList<QAudioDeviceInfo>& devices) {
 
         for (bool isHMD : {false, true}) {
             QAudioDeviceInfo& selectedDevice = isHMD ? _selectedHMDDevice : _selectedDesktopDevice;
-            bool &isSelected = isHMD ? device.selectedHMD : device.selectedDesktop;
+            bool& isSelected = isHMD ? device.selectedHMD : device.selectedDesktop;
 
             if (!selectedDevice.isNull()) {
                 isSelected = (device.info == selectedDevice);
@@ -311,7 +308,6 @@ void AudioDeviceList::onDevicesChanged(const QList<QAudioDeviceInfo>& devices) {
             }
         }
 
-        qDebug() << "adding audio device:" << device.display << device.selectedDesktop << device.selectedHMD << _mode;
         newDevices.push_back(newDevice(device));
     }
 
@@ -364,11 +360,11 @@ void AudioInputDeviceList::onPeakValueListChanged(const QList<float>& peakValueL
 }
 
 AudioDevices::AudioDevices(bool& contextIsHMD) : _contextIsHMD(contextIsHMD) {
-    auto client = DependencyManager::get<AudioClient>();
+    auto client = DependencyManager::get<AudioClient>().data();
 
-    connect(client.data(), &AudioClient::deviceChanged, this, &AudioDevices::onDeviceChanged, Qt::QueuedConnection);
-    connect(client.data(), &AudioClient::devicesChanged, this, &AudioDevices::onDevicesChanged, Qt::QueuedConnection);
-    connect(client.data(), &AudioClient::peakValueListChanged, &_inputs, &AudioInputDeviceList::onPeakValueListChanged, Qt::QueuedConnection);
+    connect(client, &AudioClient::deviceChanged, this, &AudioDevices::onDeviceChanged, Qt::QueuedConnection);
+    connect(client, &AudioClient::devicesChanged, this, &AudioDevices::onDevicesChanged, Qt::QueuedConnection);
+    connect(client, &AudioClient::peakValueListChanged, &_inputs, &AudioInputDeviceList::onPeakValueListChanged, Qt::QueuedConnection);
 
     _inputs.onDeviceChanged(client->getActiveAudioDevice(QAudio::AudioInput), contextIsHMD);
     _outputs.onDeviceChanged(client->getActiveAudioDevice(QAudio::AudioOutput), contextIsHMD);
@@ -450,7 +446,7 @@ void AudioDevices::onDevicesChanged(QAudio::Mode mode, const QList<QAudioDeviceI
     static std::once_flag once;
     std::call_once(once, [&] {
         //readout settings
-        auto client = DependencyManager::get<AudioClient>();
+        auto client = DependencyManager::get<AudioClient>().data();
 
         _inputs._hmdSavedDeviceName = getTargetDevice(true, QAudio::AudioInput);
         _inputs._desktopSavedDeviceName = getTargetDevice(false, QAudio::AudioInput);
@@ -498,9 +494,9 @@ void AudioDevices::onDevicesChanged(QAudio::Mode mode, const QList<QAudioDeviceI
 void AudioDevices::chooseInputDevice(const QAudioDeviceInfo& device, bool isHMD) {
     //check if current context equals device to change
     if (_contextIsHMD == isHMD) {
-        auto client = DependencyManager::get<AudioClient>();
+        auto client = DependencyManager::get<AudioClient>().data();
         _requestedInputDevice = device;
-        QMetaObject::invokeMethod(client.data(), "switchAudioDevice",
+        QMetaObject::invokeMethod(client, "switchAudioDevice",
                                   Q_ARG(QAudio::Mode, QAudio::AudioInput),
                                   Q_ARG(const QAudioDeviceInfo&, device));
     } else {
@@ -515,9 +511,9 @@ void AudioDevices::chooseInputDevice(const QAudioDeviceInfo& device, bool isHMD)
 void AudioDevices::chooseOutputDevice(const QAudioDeviceInfo& device, bool isHMD) {
     //check if current context equals device to change
     if (_contextIsHMD == isHMD) {
-        auto client = DependencyManager::get<AudioClient>();
+        auto client = DependencyManager::get<AudioClient>().data();
         _requestedOutputDevice = device;
-        QMetaObject::invokeMethod(client.data(), "switchAudioDevice",
+        QMetaObject::invokeMethod(client, "switchAudioDevice",
                                   Q_ARG(QAudio::Mode, QAudio::AudioOutput),
                                   Q_ARG(const QAudioDeviceInfo&, device));
     } else {

@@ -9,10 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ModelOverlay.h"
+
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 
-#include "ModelOverlay.h"
 #include <Rig.h>
 
 #include "Application.h"
@@ -26,6 +27,8 @@ ModelOverlay::ModelOverlay()
 {
     _model->setLoadingPriority(_loadPriority);
     _isLoaded = false;
+    render::ScenePointer scene = qApp->getMain3DScene();
+    _model->setVisibleInScene(false, scene);
 }
 
 ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
@@ -99,26 +102,45 @@ void ModelOverlay::update(float deltatime) {
         processMaterials();
         emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelAddedToScene(getID(), NestableType::Overlay, _model);
     }
-    if (_visibleDirty) {
+    bool metaDirty = false;
+    if (_visibleDirty && _texturesLoaded) {
         _visibleDirty = false;
         // don't show overlays in mirrors or spectator-cam unless _isVisibleInSecondaryCamera is true
-        _model->setVisibleInScene(getVisible(), scene,
-                                  render::ItemKey::TAG_BITS_0 |
-                                  (_isVisibleInSecondaryCamera ? render::ItemKey::TAG_BITS_1 : render::ItemKey::TAG_BITS_NONE),
-                                  false);
+        uint8_t modelRenderTagMask = (_isVisibleInSecondaryCamera ? render::hifi::TAG_ALL_VIEWS : render::hifi::TAG_MAIN_VIEW);
+
+        _model->setTagMask(modelRenderTagMask, scene);
+        _model->setVisibleInScene(getVisible(), scene);
+        metaDirty = true;
     }
     if (_drawInFrontDirty) {
         _drawInFrontDirty = false;
         _model->setLayeredInFront(getDrawInFront(), scene);
+        metaDirty = true;
     }
     if (_drawInHUDDirty) {
         _drawInHUDDirty = false;
         _model->setLayeredInHUD(getDrawHUDLayer(), scene);
+        metaDirty = true;
+    }
+    if (_groupCulledDirty) {
+        _groupCulledDirty = false;
+        _model->setGroupCulled(_isGroupCulled, scene);
+        metaDirty = true;
+    }
+    if (metaDirty) {
+        transaction.updateItem<Overlay>(getRenderItemID(), [](Overlay& data) {});
     }
     scene->enqueueTransaction(transaction);
 
+    if (_texturesDirty && !_modelTextures.isEmpty()) {
+        _texturesDirty = false;
+        _model->setTextures(_modelTextures);
+    }
+
     if (!_texturesLoaded && _model->getGeometry() && _model->getGeometry()->areTexturesLoaded()) {
         _texturesLoaded = true;
+
+        _model->setVisibleInScene(getVisible(), scene);
         _model->updateRenderItems();
     }
 }
@@ -149,13 +171,24 @@ void ModelOverlay::setVisible(bool visible) {
 }
 
 void ModelOverlay::setDrawInFront(bool drawInFront) {
-    Base3DOverlay::setDrawInFront(drawInFront);
-    _drawInFrontDirty = true;
+    if (drawInFront != getDrawInFront()) {
+        Base3DOverlay::setDrawInFront(drawInFront);
+        _drawInFrontDirty = true;
+    }
 }
 
 void ModelOverlay::setDrawHUDLayer(bool drawHUDLayer) {
-    Base3DOverlay::setDrawHUDLayer(drawHUDLayer);
-    _drawInHUDDirty = true;
+    if (drawHUDLayer != getDrawHUDLayer()) {
+        Base3DOverlay::setDrawHUDLayer(drawHUDLayer);
+        _drawInHUDDirty = true;
+    }
+}
+
+void ModelOverlay::setGroupCulled(bool groupCulled) {
+    if (groupCulled != _isGroupCulled) {
+        _isGroupCulled = groupCulled;
+        _groupCulledDirty = true;
+    }
 }
 
 void ModelOverlay::setProperties(const QVariantMap& properties) {
@@ -206,8 +239,13 @@ void ModelOverlay::setProperties(const QVariantMap& properties) {
     if (texturesValue.isValid() && texturesValue.canConvert(QVariant::Map)) {
         _texturesLoaded = false;
         QVariantMap textureMap = texturesValue.toMap();
-        QMetaObject::invokeMethod(_model.get(), "setTextures", Qt::AutoConnection,
-                                  Q_ARG(const QVariantMap&, textureMap));
+        _modelTextures = textureMap;
+        _texturesDirty = true;
+    }
+
+    auto groupCulledValue = properties["isGroupCulled"];
+    if (groupCulledValue.isValid() && groupCulledValue.canConvert(QVariant::Bool)) {
+        setGroupCulled(groupCulledValue.toBool());
     }
 
     // jointNames is read-only.
@@ -343,10 +381,11 @@ vectorType ModelOverlay::mapJoints(mapFunction<itemType> function) const {
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
  *     <code>dashed</code>.
- * @property {boolean} ignoreRayIntersection=false - If <code>true</code>,
- *     {@link Overlays.findRayIntersection|findRayIntersection} ignores the overlay.
+ * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
  *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.
+ * @property {boolean} isGroupCulled=false - If <code>true</code>, the mesh parts of the model are LOD culled as a group.
+ *     If <code>false</code>, separate mesh parts will be LOD culled individually.
  * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
  * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
@@ -477,16 +516,25 @@ QVariant ModelOverlay::getProperty(const QString& property) {
 }
 
 bool ModelOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                        float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
-
+                                       float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking) {
     QVariantMap extraInfo;
-    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, surfaceNormal, extraInfo);
+    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, surfaceNormal, extraInfo, precisionPicking);
 }
 
 bool ModelOverlay::findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction,
-                                        float& distance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo) {
+                                                float& distance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking) {
+    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, surfaceNormal, extraInfo, precisionPicking);
+}
 
-    return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, surfaceNormal, extraInfo);
+bool ModelOverlay::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+                                            float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking) {
+    QVariantMap extraInfo;
+    return _model->findParabolaIntersectionAgainstSubMeshes(origin, velocity, acceleration, parabolicDistance, face, surfaceNormal, extraInfo, precisionPicking);
+}
+
+bool ModelOverlay::findParabolaIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+                                                     float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo, bool precisionPicking) {
+    return _model->findParabolaIntersectionAgainstSubMeshes(origin, velocity, acceleration, parabolicDistance, face, surfaceNormal, extraInfo, precisionPicking);
 }
 
 ModelOverlay* ModelOverlay::createClone() const {
@@ -710,4 +758,12 @@ scriptable::ScriptableModelBase ModelOverlay::getScriptableModel() {
         result.appendMaterials(_materials);
     }
     return result;
+}
+
+render::ItemKey ModelOverlay::getKey() {
+    auto builder = render::ItemKey::Builder(Base3DOverlay::getKey());
+    if (_isGroupCulled) {
+        builder.withMetaCullGroup();
+    }
+    return builder.build();
 }

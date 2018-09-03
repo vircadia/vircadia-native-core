@@ -40,7 +40,8 @@ static QSize clampSize(const QSize& qsize, uint32_t maxDimension) {
     return fromGlm(clampSize(toGlm(qsize), maxDimension));
 }
 
-const QmlContextObjectCallback OffscreenSurface::DEFAULT_CONTEXT_CALLBACK = [](QQmlContext*, QQuickItem*) {};
+const QmlContextObjectCallback OffscreenSurface::DEFAULT_CONTEXT_OBJECT_CALLBACK = [](QQmlContext*, QQuickItem*) {};
+const QmlContextCallback OffscreenSurface::DEFAULT_CONTEXT_CALLBACK = [](QQmlContext*) {};
 
 void OffscreenSurface::initializeEngine(QQmlEngine* engine) {
 }
@@ -66,14 +67,10 @@ OffscreenSurface::OffscreenSurface()
 }
 
 OffscreenSurface::~OffscreenSurface() {
-    disconnect(qApp);
-    _sharedObject->destroy();
+    _sharedObject->deleteLater();
 }
 
 bool OffscreenSurface::fetchTexture(TextureAndFence& textureAndFence) {
-    if (!_sharedObject) {
-        return false;
-    }
     hifi::qml::impl::TextureAndFence typedTextureAndFence;
     bool result = _sharedObject->fetchTexture(typedTextureAndFence);
     textureAndFence = typedTextureAndFence;
@@ -103,7 +100,7 @@ QPointF OffscreenSurface::mapToVirtualScreen(const QPointF& originalPoint) {
 //
 
 bool OffscreenSurface::filterEnabled(QObject* originalDestination, QEvent* event) const {
-    if (!_sharedObject || _sharedObject->getWindow() == originalDestination) {
+    if (!_sharedObject || !_sharedObject->getWindow() || _sharedObject->getWindow() == originalDestination) {
         return false;
     }
     // Only intercept events while we're in an active state
@@ -270,8 +267,8 @@ void OffscreenSurface::load(const QUrl& qmlSource, bool createNewContext, const 
     loadInternal(qmlSource, createNewContext, nullptr, callback);
 }
 
-void OffscreenSurface::loadInNewContext(const QUrl& qmlSource, const QmlContextObjectCallback& callback) {
-    load(qmlSource, true, callback);
+void OffscreenSurface::loadInNewContext(const QUrl& qmlSource, const QmlContextObjectCallback& callback, const QmlContextCallback& contextCallback) {
+    loadInternal(qmlSource, true, nullptr, callback, contextCallback);
 }
 
 void OffscreenSurface::load(const QUrl& qmlSource, const QmlContextObjectCallback& callback) {
@@ -285,11 +282,19 @@ void OffscreenSurface::load(const QString& qmlSourceFile, const QmlContextObject
 void OffscreenSurface::loadInternal(const QUrl& qmlSource,
                                     bool createNewContext,
                                     QQuickItem* parent,
-                                    const QmlContextObjectCallback& callback) {
+                                    const QmlContextObjectCallback& callback,
+                                    const QmlContextCallback& contextCallback) {
     PROFILE_RANGE_EX(app, "OffscreenSurface::loadInternal", 0xffff00ff, 0, { std::make_pair("url", qmlSource.toDisplayString()) });
     if (QThread::currentThread() != thread()) {
         qFatal("Called load on a non-surface thread");
     }
+
+    // For desktop toolbar mode window: stop script when window is closed.
+    if (qmlSource.isEmpty()) {
+        getSurfaceContext()->engine()->quit();
+        return;
+    }
+
     // Synchronous loading may take a while; restart the deadlock timer
     QMetaObject::invokeMethod(qApp, "updateHeartbeat", Qt::DirectConnection);
 
@@ -307,6 +312,7 @@ void OffscreenSurface::loadInternal(const QUrl& qmlSource,
     }
 
     auto targetContext = contextForUrl(finalQmlSource, parent, createNewContext);
+    contextCallback(targetContext);
     QQmlComponent* qmlComponent;
     {
         PROFILE_RANGE(app, "new QQmlComponent");
@@ -390,9 +396,6 @@ void OffscreenSurface::finishQmlLoad(QQmlComponent* qmlComponent,
         _sharedObject->setRootItem(newItem);
     }
 
-    qmlComponent->completeCreate();
-    qmlComponent->deleteLater();
-
     onItemCreated(qmlContext, newItem);
 
     if (!rootCreated) {
@@ -402,6 +405,8 @@ void OffscreenSurface::finishQmlLoad(QQmlComponent* qmlComponent,
         // Call this callback after rootitem is set, otherwise VrMenu wont work
         callback(qmlContext, newItem);
     }
+    qmlComponent->completeCreate();
+    qmlComponent->deleteLater();
 }
 
 QQmlContext* OffscreenSurface::contextForUrl(const QUrl& qmlSource, QQuickItem* parent, bool forceNewContext) {

@@ -12,20 +12,10 @@
 #pragma once
 #ifndef hifi_SecondaryCamera_h
 #define hifi_SecondaryCamera_h
-    
-#include <RenderShadowTask.h>
+
 #include <render/RenderFetchCullSortTask.h>
-#include <RenderDeferredTask.h>
-#include <RenderForwardTask.h>
-
-class MainRenderTask {
-public:
-    using JobModel = render::Task::Model<MainRenderTask>;
-
-    MainRenderTask() {}
-
-    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred = true);
-};
+#include <TextureCache.h>
+#include <ViewFrustum.h>
 
 class SecondaryCameraJobConfig : public render::Task::Config { // Exposes secondary camera parameters to JavaScript.
     Q_OBJECT

@@ -32,6 +32,7 @@ public:
     void createContext();
     bool makeCurrent();
     void doneCurrent();
+    void swapBuffers();
     gl::Context* context() { return _context; }
     QOpenGLContext* qglContext();
 

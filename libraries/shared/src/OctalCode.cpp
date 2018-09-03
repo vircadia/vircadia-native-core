@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OctalCode.h"
+
 #include <algorithm> // std:min
 #include <cassert>
 #include <cmath>
@@ -17,7 +19,6 @@
 #include <QtCore/QDebug>
 
 #include "NumericalConstants.h"
-#include "OctalCode.h"
 #include "SharedUtil.h"
 
 int numberOfThreeBitSectionsInCode(const unsigned char* octalCode, int maxBytes) {
@@ -213,7 +214,7 @@ void setOctalCodeSectionValue(unsigned char* octalCode, int section, char sectio
     int byteForSection = (BITS_IN_OCTAL * section / BITS_IN_BYTE);
     unsigned char* byteAt = octalCode + 1 + byteForSection;
     char bitInByte = (BITS_IN_OCTAL * section) % BITS_IN_BYTE;
-    char shiftBy = BITS_IN_BYTE - bitInByte - BITS_IN_OCTAL;
+    int8_t shiftBy = BITS_IN_BYTE - bitInByte - BITS_IN_OCTAL;
     const unsigned char UNSHIFTED_MASK = 0x07;
     unsigned char shiftedMask;
     unsigned char shiftedValue;
@@ -246,22 +247,6 @@ void setOctalCodeSectionValue(unsigned char* octalCode, int section, char sectio
         newValue = oldValue | shiftedValue;
         byteAt[1] = newValue;
     }
-}
-
-unsigned char* chopOctalCode(const unsigned char* originalOctalCode, int chopLevels) {
-    int codeLength = numberOfThreeBitSectionsInCode(originalOctalCode);
-    unsigned char* newCode = NULL;
-    if (codeLength > chopLevels) {
-        int newLength = codeLength - chopLevels;
-        newCode = new unsigned char[newLength+1];
-        *newCode = newLength; // set the length byte
-
-        for (int section = chopLevels; section < codeLength; section++) {
-            char sectionValue = getOctalCodeSectionValue(originalOctalCode, section);
-            setOctalCodeSectionValue(newCode, section - chopLevels, sectionValue);
-        }
-    }
-    return newCode;
 }
 
 bool isAncestorOf(const unsigned char* possibleAncestor, const unsigned char* possibleDescendent, int descendentsChild) {

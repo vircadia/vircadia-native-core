@@ -9,7 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "DiscoverabilityManager.h"
+
 #include <QtCore/QJsonDocument>
+#include <QThread>
 
 #include <AccountManager.h>
 #include <AddressManager.h>
@@ -20,10 +23,8 @@
 #include <UserActivityLogger.h>
 #include <UUID.h>
 
-#include "DiscoverabilityManager.h"
+#include "CrashHandler.h"
 #include "Menu.h"
-
-#include <QThread>
 
 const Discoverability::Mode DEFAULT_DISCOVERABILITY_MODE = Discoverability::Connections;
 
@@ -96,7 +97,7 @@ void DiscoverabilityManager::updateLocation() {
         locationObject.insert(AVAILABILITY_KEY_IN_LOCATION, findableByString(static_cast<Discoverability::Mode>(_mode.get())));
 
         JSONCallbackParameters callbackParameters;
-        callbackParameters.jsonCallbackReceiver = this;
+        callbackParameters.callbackReceiver = this;
         callbackParameters.jsonCallbackMethod = "handleHeartbeatResponse";
 
         // figure out if we'll send a fresh location or just a simple heartbeat
@@ -120,20 +121,22 @@ void DiscoverabilityManager::updateLocation() {
         // we still send a heartbeat to the metaverse server for stats collection
 
         JSONCallbackParameters callbackParameters;
-        callbackParameters.jsonCallbackReceiver = this;
+        callbackParameters.callbackReceiver = this;
         callbackParameters.jsonCallbackMethod = "handleHeartbeatResponse";
 
         accountManager->sendRequest(API_USER_HEARTBEAT_PATH, AccountManagerAuth::Optional,
                                    QNetworkAccessManager::PutOperation, callbackParameters);
     }
 
-    // Update Steam
+    // Update Steam and crash logger
+    QUrl currentAddress = addressManager->currentFacingPublicAddress();
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
-        steamClient->updateLocation(domainHandler.getHostname(), addressManager->currentFacingPublicAddress());
+        steamClient->updateLocation(domainHandler.getHostname(), currentAddress);
     }
+    setCrashAnnotation("address", currentAddress.toString().toStdString());
 }
 
-void DiscoverabilityManager::handleHeartbeatResponse(QNetworkReply& requestReply) {
+void DiscoverabilityManager::handleHeartbeatResponse(QNetworkReply* requestReply) {
     auto dataObject = AccountManager::dataObjectFromResponse(requestReply);
 
     if (!dataObject.isEmpty()) {

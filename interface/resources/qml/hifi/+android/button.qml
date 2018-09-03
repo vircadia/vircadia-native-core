@@ -32,6 +32,9 @@ Item {
     property string hoverTextColor: "#ffffff"
     property string activeTextColor: "#ffffff"
     property string activeHoverTextColor: "#ffffff"
+    property string fontFamily: "FiraSans"
+    property bool fontBold: false
+
     property int bottomMargin: 30
     
     property bool isEntered: false
@@ -92,8 +95,8 @@ Item {
         id: text
         color: "#ffffff"
         text: button.text
-        font.family: "FiraSans"
-        //font.bold: true
+        font.family: button.fontFamily
+        font.bold: button.fontBold
         font.pixelSize: textSize
         anchors.bottom: parent.bottom
         anchors.bottomMargin: bottomMargin
@@ -143,15 +146,12 @@ Item {
 
             PropertyChanges {
                 target: buttonBg
-                //color: "#cfcfcf"
-                //opacity: 1
                 color: button.hoverBgColor
                 opacity: button.hoverBgOpacity
             }
 
             PropertyChanges {
                 target: text
-                //color: "#ffffff"
                 color: button.hoverTextColor
                 text: button.hoverText
             }
@@ -166,15 +166,12 @@ Item {
 
             PropertyChanges {
                 target: buttonBg
-                //color: "#1fc6a6"
-                //opacity: 1
                 color: button.activeBgColor
                 opacity: button.activeBgOpacity
             }
 
             PropertyChanges {
                 target: text
-                //color: "#333333"
                 color: button.activeTextColor
                 text: button.activeText
             }
@@ -189,15 +186,12 @@ Item {
 
             PropertyChanges {
                 target: buttonBg
-                //color: "#ff0000"
-                //opacity: 1
                 color: button.activeHoverBgColor
                 opacity: button.activeHoverBgOpacity
             }
 
             PropertyChanges {
                 target: text
-                //color: "#333333"
                 color: button.activeHoverTextColor
                 text: button.activeHoverText
             }
@@ -212,15 +206,12 @@ Item {
 
             PropertyChanges {
                 target: buttonBg
-                //color: "#9A9A9A"
-                //opacity: 0.1
                 color: button.bgColor
                 opacity: button.bgOpacity
             }
 
             PropertyChanges {
                 target: text
-                //color: "#ffffff"
                 color: button.textColor
                 text: button.text
             }

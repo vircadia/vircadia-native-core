@@ -121,17 +121,6 @@ public:
     virtual bool requiresSplit() const override { return false; }
 
     virtual void debugExtraEncodeData(EncodeBitstreamParams& params) const override;
-    virtual void initializeExtraEncodeData(EncodeBitstreamParams& params) override;
-    virtual bool shouldIncludeChildData(int childIndex, EncodeBitstreamParams& params) const override;
-    virtual bool shouldRecurseChildTree(int childIndex, EncodeBitstreamParams& params) const override;
-    virtual void updateEncodedData(int childIndex, AppendState childAppendState, EncodeBitstreamParams& params) const override;
-    virtual void elementEncodeComplete(EncodeBitstreamParams& params) const override;
-
-    bool alreadyFullyEncoded(EncodeBitstreamParams& params) const;
-
-    /// Override to serialize the state of this element. This is used for persistance and for transmission across the network.
-    virtual OctreeElement::AppendState appendElementData(OctreePacketData* packetData,
-                                                         EncodeBitstreamParams& params) const override;
 
     /// Override to deserialize the state of this element. This is used for loading from a persisted file or from reading
     /// from the network.
@@ -145,12 +134,11 @@ public:
     virtual bool isRendered() const override { return getShouldRender(); }
     virtual bool deleteApproved() const override { return !hasEntities(); }
 
-    virtual bool canRayIntersect() const override { return hasEntities(); }
+    virtual bool canPickIntersect() const override { return hasEntities(); }
     virtual EntityItemID findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-        bool& keepSearching, OctreeElementPointer& node, float& distance,
-        BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
-        const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
-        QVariantMap& extraInfo, bool precisionPicking = false);
+        OctreeElementPointer& element, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
+        const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard,
+        bool visibleOnly, bool collidableOnly, QVariantMap& extraInfo, bool precisionPicking = false);
     virtual EntityItemID findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          OctreeElementPointer& element, float& distance,
                          BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
@@ -159,6 +147,16 @@ public:
     virtual bool findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const override;
 
+    virtual EntityItemID findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
+        const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
+        BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
+        const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
+        QVariantMap& extraInfo, bool precisionPicking = false);
+    virtual EntityItemID findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
+        const glm::vec3& normal, const glm::vec3& acceleration, OctreeElementPointer& element, float& parabolicDistance,
+        BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
+        const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly,
+        QVariantMap& extraInfo, bool precisionPicking);
 
     template <typename F>
     void forEachEntity(F f) const {

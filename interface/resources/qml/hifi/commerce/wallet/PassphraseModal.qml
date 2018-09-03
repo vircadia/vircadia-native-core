@@ -47,6 +47,13 @@ Item {
 
         onWalletAuthenticatedStatusResult: {
             submitPassphraseInputButton.enabled = true;
+
+            // It's not possible to auth with a blank passphrase,
+            // so bail early if we get this signal without anything in the passphrase field
+            if (passphraseField.text === "") {
+                return;
+            }
+
             if (!isAuthenticated) {
                 errorText.text = "Authentication failed - please try again.";
                 passphraseField.error = true;
@@ -211,6 +218,10 @@ Item {
                     error = false;
                     focus = true;
                     forceActiveFocus();
+                } else {
+                    showPassphrase.checked = false;
+                    passphraseField.text = "";
+                    error = false;
                 }
             }
 

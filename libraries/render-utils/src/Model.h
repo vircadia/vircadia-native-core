@@ -33,6 +33,7 @@
 #include <TriangleSet.h>
 #include <DualQuaternion.h>
 
+#include "RenderHifi.h"
 #include "GeometryCache.h"
 #include "TextureCache.h"
 #include "Rig.h"
@@ -63,6 +64,16 @@ class Model;
 using ModelPointer = std::shared_ptr<Model>;
 using ModelWeakPointer = std::weak_ptr<Model>;
 
+struct SortedTriangleSet {
+    SortedTriangleSet(float distance, TriangleSet* triangleSet, int partIndex, int shapeID, int subMeshIndex) :
+        distance(distance), triangleSet(triangleSet), partIndex(partIndex), shapeID(shapeID), subMeshIndex(subMeshIndex) {}
+
+    float distance;
+    TriangleSet* triangleSet;
+    int partIndex;
+    int shapeID;
+    int subMeshIndex;
+};
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject, public std::enable_shared_from_this<Model>, public scriptable::ModelProvider {
@@ -87,13 +98,27 @@ public:
     const QUrl& getURL() const { return _url; }
 
     // new Scene/Engine rendering support
-    void setVisibleInScene(bool isVisible, const render::ScenePointer& scene, uint8_t viewTagBits, bool isGroupCulled);
+    void setVisibleInScene(bool isVisible, const render::ScenePointer& scene = nullptr);
+    bool isVisible() const;
 
-    bool canCastShadow() const { return _canCastShadow; }
-    void setCanCastShadow(bool canCastShadow, const render::ScenePointer& scene, uint8_t viewTagBits, bool isGroupCulled);
+    render::hifi::Tag getTagMask() const;
+    void setTagMask(uint8_t mask, const render::ScenePointer& scene = nullptr);
 
-    void setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene);
-    void setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene);
+    bool isGroupCulled() const;
+    void setGroupCulled(bool isGroupCulled, const render::ScenePointer& scene = nullptr);
+
+    bool canCastShadow() const;
+    void setCanCastShadow(bool canCastShadow, const render::ScenePointer& scene = nullptr);
+
+    void setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene = nullptr);
+    void setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene = nullptr);
+
+    bool isLayeredInFront() const;
+    bool isLayeredInHUD() const;
+
+    // Access the current RenderItemKey Global Flags used by the model and applied to the render items  representing the parts of the model.
+    const render::ItemKey getRenderItemKeyGlobalFlags() const;
+
     bool needsFixupInScene() const;
 
     bool needsReload() const { return _needsReload; }
@@ -108,13 +133,7 @@ public:
     void removeFromScene(const render::ScenePointer& scene, render::Transaction& transaction);
     bool isRenderable() const;
 
-    bool isVisible() const { return _isVisible; }
-    uint8_t getViewTagBits() const { return _viewTagBits; }
-
-    bool isLayeredInFront() const { return _isLayeredInFront; }
-    bool isLayeredInHUD() const { return _isLayeredInHUD; }
-
-    bool isGroupCulled() const { return _isGroupCulled; }
+    void updateRenderItemsKey(const render::ScenePointer& scene);
 
     virtual void updateRenderItems();
     void setRenderItemsNeedUpdate();
@@ -126,7 +145,7 @@ public:
 
     /// Sets blended vertices computed in a separate thread.
     void setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geometry,
-        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, const QVector<glm::vec3>& tangents);
+        const QVector<glm::vec3>& vertices, const QVector<NormalType>& normalsAndTangents);
 
     bool isLoaded() const { return (bool)_renderGeometry && _renderGeometry->isGeometryLoaded(); }
     bool isAddedToScene() const { return _addedToScene; }
@@ -140,12 +159,10 @@ public:
     bool getSnapModelToRegistrationPoint() { return _snapModelToRegistrationPoint; }
 
     virtual void simulate(float deltaTime, bool fullUpdate = true);
-    virtual void updateClusterMatrices();
+    virtual void updateClusterMatrices(bool triggerBlendshapes = true);
 
     /// Returns a reference to the shared geometry.
     const Geometry::Pointer& getGeometry() const { return _renderGeometry; }
-    /// Returns a reference to the shared collision geometry.
-    const Geometry::Pointer& getCollisionGeometry() const { return _collisionGeometry; }
 
     const QVariantMap getTextures() const { assert(isLoaded()); return _renderGeometry->getTextures(); }
     Q_INVOKABLE virtual void setTextures(const QVariantMap& textures);
@@ -171,6 +188,9 @@ public:
     bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
                                              BoxFace& face, glm::vec3& surfaceNormal,
                                              QVariantMap& extraInfo, bool pickAgainstTriangles = false, bool allowBackface = false);
+    bool findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+                                                  float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
+                                                  QVariantMap& extraInfo, bool pickAgainstTriangles = false, bool allowBackface = false);
 
     void setOffset(const glm::vec3& offset);
     const glm::vec3& getOffset() const { return _offset; }
@@ -251,7 +271,6 @@ public:
 
     // returns 'true' if needs fullUpdate after geometry change
     virtual bool updateGeometry();
-    void setCollisionMesh(graphics::MeshPointer mesh);
 
     void setLoadingPriority(float priority) { _loadingPriority = priority; }
 
@@ -353,7 +372,6 @@ protected:
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
 
     Geometry::Pointer _renderGeometry; // only ever set by its watcher
-    Geometry::Pointer _collisionGeometry;
 
     GeometryResourceWatcher _renderWatcher;
 
@@ -404,12 +422,8 @@ protected:
     QVector<float> _blendshapeCoefficients;
 
     QUrl _url;
-    bool _isVisible;
-    uint8_t _viewTagBits{ render::ItemKey::TAG_BITS_ALL };
 
-    bool _canCastShadow;
-
-    gpu::Buffers _blendedVertexBuffers;
+    std::unordered_map<int, gpu::BufferPointer> _blendedVertexBuffers;
 
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
 
@@ -422,12 +436,9 @@ protected:
     bool _overrideModelTransform { false };
     bool _triangleSetsValid { false };
     void calculateTriangleSets(const FBXGeometry& geometry);
-    QVector<TriangleSet> _modelSpaceMeshTriangleSets; // model space triangles for all sub meshes
+    std::vector<std::vector<TriangleSet>> _modelSpaceMeshTriangleSets; // model space triangles for all sub meshes
 
-
-    void createRenderItemSet();
-    virtual void createVisibleRenderItemSet();
-    virtual void createCollisionRenderItemSet();
+    virtual void createRenderItemSet();
 
     bool _isWireframe;
     bool _useDualQuaternionSkinning { false };
@@ -437,9 +448,6 @@ protected:
 
 
     static AbstractViewStateInterface* _viewState;
-
-    QVector<std::shared_ptr<MeshPartPayload>> _collisionRenderItems;
-    QMap<render::ItemID, render::PayloadPointer> _collisionRenderItemsMap;
 
     QVector<std::shared_ptr<ModelMeshPartPayload>> _modelMeshRenderItems;
     QMap<render::ItemID, render::PayloadPointer> _modelMeshRenderItemsMap;
@@ -452,7 +460,7 @@ protected:
     bool _needsFixupInScene { true }; // needs to be removed/re-added to scene
     bool _needsReload { true };
     bool _needsUpdateClusterMatrices { true };
-    mutable bool _needsUpdateTextures { true };
+    QVariantMap _pendingTextures { };
 
     friend class ModelMeshPartPayload;
     Rig _rig;
@@ -471,12 +479,20 @@ protected:
     int _renderInfoDrawCalls { 0 };
     int _renderInfoHasTransparent { false };
 
-    bool _isLayeredInFront { false };
-    bool _isLayeredInHUD { false };
-
-    bool _isGroupCulled{ false };
+    // This Render ItemKey Global Flags capture the Model wide global set of flags that should be communicated to all the render items representing the Model.
+    // The flags concerned are:
+    //  - isVisible: if true the Model is visible globally in the scene, regardless of the other flags in the item keys (tags or layer or shadow caster).
+    //  - TagBits: the view mask defined through the TagBits telling in which view the Model is rendered if visible.
+    //  - Layer: In which Layer this Model lives.
+    //  - CastShadow: if true and visible and rendered in the view, the Model cast shadows if in a Light volume casting shadows.
+    //  - CullGroup: if true, the render items representing the parts of the Model are culled by a single Meta render item that knows about them, they are not culled individually.
+    //               For this to work, a Meta RI must exists and knows about the RIs of this Model.
+    //  
+    render::ItemKey _renderItemKeyGlobalFlags;
 
     bool shouldInvalidatePayloadShapeKey(int meshIndex);
+
+    void initializeBlendshapes(const FBXMesh& mesh, int index);
 
 private:
     float _loadingPriority { 0.0f };
@@ -499,9 +515,12 @@ public:
     /// Adds the specified model to the list requiring vertex blends.
     void noteRequiresBlend(ModelPointer model);
 
+    bool shouldComputeBlendshapes() { return _computeBlendshapes; }
+
 public slots:
     void setBlendedVertices(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry,
-        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals, const QVector<glm::vec3>& tangents);
+        const QVector<glm::vec3>& vertices, const QVector<NormalType>& normalsAndTangents);
+    void setComputeBlendshapes(bool computeBlendshapes) { _computeBlendshapes = computeBlendshapes; }
 
 private:
     using Mutex = std::mutex;
@@ -513,6 +532,8 @@ private:
     std::set<ModelWeakPointer, std::owner_less<ModelWeakPointer>> _modelsRequiringBlends;
     int _pendingBlenders;
     Mutex _mutex;
+
+    bool _computeBlendshapes { true };
 };
 
 

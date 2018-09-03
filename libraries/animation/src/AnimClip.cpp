@@ -8,8 +8,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "GLMHelpers.h"
 #include "AnimClip.h"
+
+#include "GLMHelpers.h"
 #include "AnimationLogging.h"
 #include "AnimUtil.h"
 
@@ -29,7 +30,7 @@ AnimClip::~AnimClip() {
 
 }
 
-const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut) {
+const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
 
     // lookup parameters from animVars, using current instance variables as defaults.
     _startFrame = animVars.lookup(_startFrameVar, _startFrame);
@@ -76,6 +77,8 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, const Anim
         ::blend(_poses.size(), &prevFrame[0], &nextFrame[0], alpha, &_poses[0]);
     }
 
+    processOutputJoints(triggersOut);
+
     return _poses;
 }
 
@@ -88,7 +91,7 @@ void AnimClip::loadURL(const QString& url) {
 void AnimClip::setCurrentFrameInternal(float frame) {
     // because dt is 0, we should not encounter any triggers
     const float dt = 0.0f;
-    Triggers triggers;
+    AnimVariantMap triggers;
     _frame = ::accumulateTime(_startFrame, _endFrame, _timeScale, frame + _startFrame, dt, _loopFlag, _id, triggers);
 }
 

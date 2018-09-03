@@ -6,12 +6,13 @@
 //  Copyright 2017 High Fidelity, Inc.
 //
 
+#include "AudioGate.h"
+
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
 
 #include "AudioDynamics.h"
-#include "AudioGate.h"
 
 // log2 domain headroom bits above 0dB (int32_t)
 static const int LOG2_HEADROOM_Q30 = 1;

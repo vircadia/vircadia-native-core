@@ -50,47 +50,50 @@ enum Type : uint8_t {
 };
 // Array providing the size in bytes for a given scalar type
 static const int TYPE_SIZE[NUM_TYPES] = {
-    4,
-    4,
-    4,
-    2,
-    2,
-    2,
-    1,
-    1,
+    4, // FLOAT
+    4, // INT32
+    4, // UINT32
+    2, // HALF
+    2, // INT16
+    2, // UINT16
+    1, // INT8
+    1, // UINT8
 
     // normalized values
-    4,
-    4,
-    2,
-    2,
-    1,
-    1,
-    4,
+    4, // NINT32
+    4, // NUINT32
+    2, // NINT16 
+    2, // NUINT16
+    1, // NINT8
+    1, // NUINT8
+    1, // NUINT2
+    1, // NINT2_10_10_10
 
-    1
+    1, // COMPRESSED
 };
+
 // Array answering the question Does this type is integer or not 
 static const bool TYPE_IS_INTEGER[NUM_TYPES] = {
-    false,
-    true,
-    true,
-    false,
-    true,
-    true,
-    true,
-    true,
+    false, // FLOAT
+    true, // INT32
+    true, // UINT32
+    false, // HALF
+    true, // INT16
+    true, // UINT16
+    true, // INT8
+    true, // UINT8
 
     // Normalized values
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
+    false, // NINT32
+    false, // NUINT32
+    false, // NINT16 
+    false, // NUINT16
+    false, // NINT8
+    false, // NUINT8
+    false, // NUINT2
+    false, // NINT2_10_10_10
 
-    false,
+    false, // COMPRESSED
 };
 
 // Dimension of an Element
@@ -367,9 +370,9 @@ public:
     static const Element PART_DRAWCALL;
     
  protected:
-    uint8 _semantic;
-    uint8 _dimension : 4;
-    uint8 _type : 4;
+    uint16 _semantic : 7;
+    uint16 _dimension : 4;
+    uint16 _type : 5;
 };
 
   

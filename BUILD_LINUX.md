@@ -11,11 +11,11 @@ Should you choose not to install Qt5 via a package manager that handles dependen
 ## Ubuntu 16.04 specific build guide
 
 ### Prepare environment
-
+hifiqt5.10.1
 Install qt:
 ```bash
-wget http://debian.highfidelity.com/pool/h/hi/hifi-qt5.10.1_5.10.1_amd64.deb
-sudo dpkg -i hifi-qt5.10.1_5.10.1_amd64.deb
+wget http://debian.highfidelity.com/pool/h/hi/hifiqt5.10.1_5.10.1_amd64.deb
+sudo dpkg -i hifiqt5.10.1_5.10.1_amd64.deb
 ```
 
 Install build dependencies:

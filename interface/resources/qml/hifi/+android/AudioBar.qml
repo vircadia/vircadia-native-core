@@ -38,13 +38,26 @@ Item {
         }
     }
 
-    Component.onCompleted: {
-        // put on bottom
-        x = 0;
-        y = 0;
+    function relocateAndResize(newWindowWidth, newWindowHeight) {
+        x = newWindowWidth-328;
+        y = 19;
         width = 300;
         height = 300;
     }
+
+    function onWindowGeometryChanged(rect) {
+        relocateAndResize(rect.width, rect.height);
+    }
+
+    Component.onCompleted: {
+        relocateAndResize(parent.width, parent.height);
+        Window.geometryChanged.connect(onWindowGeometryChanged); // In devices with bars appearing at startup we should listen for this
+    }
+
+    Component.onDestruction: {
+        Window.geometryChanged.disconnect(onWindowGeometryChanged);
+    }
+
     
     function addButton(properties) {
         var component = Qt.createComponent("button.qml");

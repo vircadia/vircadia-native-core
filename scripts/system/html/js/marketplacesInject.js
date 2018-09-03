@@ -250,7 +250,7 @@
         });
     }
 
-    function buyButtonClicked(id, name, author, price, href, referrer, edition) {
+    function buyButtonClicked(id, name, author, price, href, referrer, edition, type) {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "CHECKOUT",
             itemId: id,
@@ -259,7 +259,8 @@
             itemHref: href,
             referrer: referrer,
             itemAuthor: author,
-            itemEdition: edition
+            itemEdition: edition,
+            itemType: type.trim()
         }));
     }
 
@@ -305,13 +306,21 @@
         // change pricing to GET/BUY on button hover
         $('body').on('mouseenter', '#price-or-edit .price', function () {
             var $this = $(this);
+            var buyString = "BUY";
+            var getString = "GET";
+            // Protection against the button getting stuck in the "BUY"/"GET" state.
+            // That happens when the browser gets two MOUSEENTER events before getting a
+            // MOUSELEAVE event.
+            if ($this.text() === buyString || $this.text() === getString) {
+                return;
+            }
             $this.data('initialHtml', $this.html());
 
             var cost = $(this).parent().siblings().text();
             if (parseInt(cost) > 0) {
-                $this.text('BUY');
+                $this.text(buyString);
             } else {
-                $this.text('GET');
+                $this.text(getString);
             }
         });
 
@@ -328,7 +337,8 @@
                 $(this).closest('.grid-item').find('.item-cost').text(),
                 $(this).attr('data-href'),
                 "mainPage",
-                -1);
+                -1,
+                $(this).closest('.grid-item').find('.item-type').text());
         });
     }
 
@@ -419,6 +429,7 @@
                 }
 
                 var cost = $('.item-cost').text();
+                var type = $('.item-type').text();
                 var isUpdating = window.location.href.indexOf('edition=') > -1;
                 var urlParams = new URLSearchParams(window.location.search);
                 if (isUpdating) {
@@ -438,7 +449,8 @@
                             cost,
                             href,
                             "itemPage",
-                            urlParams.get('edition'));
+                            urlParams.get('edition'),
+                            type);
                         }
                     });
                 maybeAddPurchasesButton();

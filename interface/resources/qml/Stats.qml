@@ -61,6 +61,9 @@ Item {
                         text: "Game Rate: " + root.gameLoopRate
                     }
                     StatText {
+                        text: "Physics Object Count: " + root.physicsObjectCount
+                    }
+                    StatText {
                         visible: root.expanded
                         text: root.gameUpdateStats
                     }
@@ -115,6 +118,22 @@ Item {
                     StatText {
                         visible: root.expanded
                         text: "Avatars NOT Updated: " + root.notUpdatedAvatarCount
+                    }
+                    StatText {
+                        visible: root.expanded
+                        text: "Total picks:\n    " +
+                                    root.stylusPicksCount + " styluses\n    " +
+                                    root.rayPicksCount + " rays\n    " +
+                                    root.parabolaPicksCount + " parabolas\n    " +
+                                    root.collisionPicksCount + " colliders"
+                    }
+                    StatText {
+                        visible: root.expanded
+                        text: "Intersection calls: Entities/Overlays/Avatars/HUD\n    " +
+                                    "Styluses:\t" + root.stylusPicksUpdated.x + "/" + root.stylusPicksUpdated.y + "/" + root.stylusPicksUpdated.z + "/" + root.stylusPicksUpdated.w + "\n    " +
+                                    "Rays:\t" + root.rayPicksUpdated.x + "/" + root.rayPicksUpdated.y + "/" + root.rayPicksUpdated.z + "/" + root.rayPicksUpdated.w + "\n    " +
+                                    "Parabolas:\t" + root.parabolaPicksUpdated.x + "/" + root.parabolaPicksUpdated.y + "/" + root.parabolaPicksUpdated.z + "/" + root.parabolaPicksUpdated.w + "\n    " +
+                                    "Colliders:\t" + root.collisionPicksUpdated.x + "/" + root.collisionPicksUpdated.y + "/" + root.collisionPicksUpdated.z + "/" + root.collisionPicksUpdated.w
                     }
                 }
             }
@@ -172,6 +191,21 @@ Item {
                     }
                     StatText {
                         text: "Yaw: " + root.yaw.toFixed(1)
+                    }
+                    StatText {
+                        visible: root.animStackNames.length > 0;
+                        text: "Anim Stack Names:"
+                    }
+                    ListView {
+                        width: geoCol.width
+                        height: root.animStackNames.length * 15
+                        visible: root.animStackNames.length > 0;
+                        model: root.animStackNames
+                        delegate: StatText {
+                            text: modelData.length > 30
+                                ?  modelData.substring(0, 5) + "..." + modelData.substring(modelData.length - 22)
+                                : modelData
+                        }
                     }
                     StatText {
                         visible: root.expanded;
@@ -263,6 +297,12 @@ Item {
                     }
                     StatText {
                         text: "GPU: " + root.gpuFrameTime.toFixed(1) + " ms"
+                    }                    
+                    StatText {
+                        text: "GPU (Per pixel): " + root.gpuFrameTimePerPixel.toFixed(5) + " ns/pp"
+                    }                    
+                    StatText {
+                        text: "GPU frame size: " + root.gpuFrameSize.x + " x " + root.gpuFrameSize.y
                     }
                     StatText {
                         text: "Triangles: " + root.triangles +
@@ -281,10 +321,12 @@ Item {
                         text: "  Pressure State: " + root.gpuTextureMemoryPressureState;
                     }
                     StatText {
-                        text: "  Resource Allocated / Populated / Pending: ";
+                        property bool showIdeal: (root.gpuTextureResourceIdealMemory != root.gpuTextureResourceMemory);
+                        text: "  Resource Allocated " + (showIdeal ? "(Ideal)" : "") + " / Populated / Pending: ";
                     }
                     StatText {
-                        text: "       " + root.gpuTextureResourceMemory + " / " + root.gpuTextureResourcePopulatedMemory + " / " + root.texturePendingTransfers + " MB";
+                        property bool showIdeal: (root.gpuTextureResourceIdealMemory != root.gpuTextureResourceMemory);
+                        text: "       " + root.gpuTextureResourceMemory + (showIdeal ? ("(" +  root.gpuTextureResourceIdealMemory + ")") : "") + " / " + root.gpuTextureResourcePopulatedMemory + " / " + root.texturePendingTransfers + " MB";
                     }
                     StatText {
                         text: "  Resident Memory: " + root.gpuTextureResidentMemory + " MB";

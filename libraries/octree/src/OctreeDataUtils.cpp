@@ -40,9 +40,10 @@ bool readOctreeFile(QString path, QJsonDocument* doc) {
 }
 
 bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromJSON(QJsonObject root) {
-    if (root.contains("Id") && root.contains("DataVersion")) {
+    if (root.contains("Id") && root.contains("DataVersion") && root.contains("Version")) {
         id = root["Id"].toVariant().toUuid();
-        version = root["DataVersion"].toInt();
+        dataVersion = root["DataVersion"].toInt();
+        version = root["Version"].toInt();
     }
     readSubclassData(root);
     return true;
@@ -76,11 +77,10 @@ bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromFile(QString path) {
 }
 
 QByteArray OctreeUtils::RawOctreeData::toByteArray() {
-    const auto protocolVersion = (int)versionForPacketType((PacketTypeEnum::Value)dataPacketType());
     QJsonObject obj {
-        { "DataVersion", QJsonValue((qint64)version) },
+        { "DataVersion", QJsonValue((qint64)dataVersion) },
         { "Id", QJsonValue(id.toString()) },
-        { "Version", protocolVersion },
+        { "Version", QJsonValue((qint64)version) },
     };
 
     writeSubclassData(obj);
@@ -111,8 +111,8 @@ PacketType OctreeUtils::RawOctreeData::dataPacketType() const {
 
 void OctreeUtils::RawOctreeData::resetIdAndVersion() {
     id = QUuid::createUuid();
-    version = OctreeUtils::INITIAL_VERSION;
-    qDebug() << "Reset octree data to: " << id << version;
+    dataVersion = OctreeUtils::INITIAL_VERSION;
+    qDebug() << "Reset octree data to: " << id << dataVersion;
 }
 
 void OctreeUtils::RawEntityData::readSubclassData(const QJsonObject& root) {

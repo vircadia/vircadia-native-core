@@ -42,26 +42,31 @@ glm::quat computeBulletRotationStep(const glm::vec3& angularVelocity, float time
     // Exponential map
     // google for "Practical Parameterization of Rotations Using the Exponential Map", F. Sebastian Grassia
 
-    float speed = glm::length(angularVelocity);
+    glm::vec3 axis = angularVelocity;
+    float angle = glm::length(axis) * timeStep;
     // limit the angular motion because the exponential approximation fails for large steps
     const float ANGULAR_MOTION_THRESHOLD = 0.5f * PI_OVER_TWO;
-    if (speed * timeStep > ANGULAR_MOTION_THRESHOLD) {
-        speed = ANGULAR_MOTION_THRESHOLD / timeStep;
+    if (angle > ANGULAR_MOTION_THRESHOLD) {
+        angle = ANGULAR_MOTION_THRESHOLD;
     }
 
-    glm::vec3 axis = angularVelocity;
-    if (speed < 0.001f) {
-        // use Taylor's expansions of sync function
-        axis *= (0.5f * timeStep - (timeStep * timeStep * timeStep) * (0.020833333333f * speed * speed));
+    const float MIN_ANGLE = 0.001f;
+    if (angle < MIN_ANGLE) {
+        // for small angles use Taylor's expansion of sin(x):
+        //   sin(x) = x - (x^3)/(3!) + ...
+        // where: x = angle/2
+        //   sin(angle/2) = angle/2 - (angle*angle*angle)/48
+        // but (angle = speed * timeStep) and we want to normalize the axis by dividing by speed
+        // which gives us:
+        axis *= timeStep * (0.5f - 0.020833333333f * angle * angle);
     } else {
-        // sync(speed) = sin(c * speed)/t
-        axis *= (sinf(0.5f * speed * timeStep) / speed );
+        axis *= (sinf(0.5f * angle) * timeStep / angle);
     }
-    return glm::quat(cosf(0.5f * speed * timeStep), axis.x, axis.y, axis.z);
+    return glm::quat(cosf(0.5f * angle), axis.x, axis.y, axis.z);
 }
 /* end Bullet code derivation*/
 
-int16_t Physics::getDefaultCollisionMask(int16_t group) {
+int32_t Physics::getDefaultCollisionMask(int32_t group) {
     switch(group) {
         case  BULLET_COLLISION_GROUP_STATIC:
             return BULLET_COLLISION_MASK_STATIC;

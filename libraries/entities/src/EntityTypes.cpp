@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "EntityTypes.h"
+
 #include <QtCore/QObject>
 
 #include <ByteCountCoding.h>
@@ -16,7 +18,6 @@
 
 #include "EntityItem.h"
 #include "EntityItemProperties.h"
-#include "EntityTypes.h"
 #include "EntitiesLogging.h"
 
 #include "LightEntityItem.h"

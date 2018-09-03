@@ -39,6 +39,8 @@ private slots:
     void onMessageLogged(const QOpenGLDebugMessage &debugMessage);
 
 protected:
+    void clearThreadContext();
+
     std::once_flag _reportOnce;
     QOpenGLContext* _context{ nullptr };
     QOffscreenSurface* _offscreenSurface{ nullptr };

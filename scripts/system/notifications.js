@@ -79,11 +79,7 @@
     var frame = 0;
     var ctrlIsPressed = false;
     var ready = true;
-    var MENU_NAME = 'Tools > Notifications';
-    var PLAY_NOTIFICATION_SOUNDS_MENU_ITEM = "Play Notification Sounds";
     var NOTIFICATION_MENU_ITEM_POST = " Notifications";
-    var PLAY_NOTIFICATION_SOUNDS_SETTING = "play_notification_sounds";
-    var PLAY_NOTIFICATION_SOUNDS_TYPE_SETTING_PRE = "play_notification_sounds_type_";
     var NOTIFICATIONS_MESSAGE_CHANNEL = "Hifi-Notifications";
 
     var NotificationType = {
@@ -401,11 +397,6 @@
             alpha: backgroundAlpha
         };
 
-        if (Menu.isOptionChecked(PLAY_NOTIFICATION_SOUNDS_MENU_ITEM) &&
-            Menu.isOptionChecked(NotificationType.getMenuString(notificationType))) {
-            randomSounds.playRandom();
-        }
-
         return notify(noticeProperties, buttonProperties, height, imageProperties);
     }
 
@@ -618,30 +609,6 @@
         }
     }
 
-    function setup() {
-        var type;
-        Menu.addMenu(MENU_NAME);
-        var checked = Settings.getValue(PLAY_NOTIFICATION_SOUNDS_SETTING);
-        checked = checked === '' ? true : checked;
-        Menu.addMenuItem({
-            menuName: MENU_NAME,
-            menuItemName: PLAY_NOTIFICATION_SOUNDS_MENU_ITEM,
-            isCheckable: true,
-            isChecked: Settings.getValue(PLAY_NOTIFICATION_SOUNDS_SETTING)
-        });
-        Menu.addSeparator(MENU_NAME, "Play sounds for:");
-        for (type in NotificationType.properties) {
-            checked = Settings.getValue(PLAY_NOTIFICATION_SOUNDS_TYPE_SETTING_PRE + (parseInt(type, 10) + 1));
-            checked = checked === '' ? true : checked;
-            Menu.addMenuItem({
-                menuName: MENU_NAME,
-                menuItemName: NotificationType.properties[type].text + NOTIFICATION_MENU_ITEM_POST,
-                isCheckable: true,
-                isChecked: checked
-            });
-        }
-    }
-
     //  When our script shuts down, we should clean up all of our overlays
     function scriptEnding() {
         var notificationIndex;
@@ -649,19 +616,7 @@
             Overlays.deleteOverlay(notifications[notificationIndex]);
             Overlays.deleteOverlay(buttons[notificationIndex]);
         }
-        Menu.removeMenu(MENU_NAME);
         Messages.unsubscribe(NOTIFICATIONS_MESSAGE_CHANNEL);
-    }
-
-    function menuItemEvent(menuItem) {
-        if (menuItem === PLAY_NOTIFICATION_SOUNDS_MENU_ITEM) {
-            Settings.setValue(PLAY_NOTIFICATION_SOUNDS_SETTING, Menu.isOptionChecked(PLAY_NOTIFICATION_SOUNDS_MENU_ITEM));
-            return;
-        }
-        var notificationType = NotificationType.getTypeFromMenuItem(menuItem);
-        if (notificationType !== notificationType.UNKNOWN) {
-            Settings.setValue(PLAY_NOTIFICATION_SOUNDS_TYPE_SETTING_PRE + notificationType, Menu.isOptionChecked(menuItem));
-        }
     }
 
     Controller.keyPressEvent.connect(keyPressEvent);
@@ -669,9 +624,9 @@
     Controller.keyReleaseEvent.connect(keyReleaseEvent);
     Script.update.connect(update);
     Script.scriptEnding.connect(scriptEnding);
-    Menu.menuItemEvent.connect(menuItemEvent);
     Window.domainConnectionRefused.connect(onDomainConnectionRefused);
     Window.stillSnapshotTaken.connect(onSnapshotTaken);
+    Window.snapshot360Taken.connect(onSnapshotTaken);
     Window.processingGifStarted.connect(processingGif);
     Window.connectionAdded.connect(connectionAdded);
     Window.connectionError.connect(connectionError);
@@ -683,7 +638,4 @@
 
     Messages.subscribe(NOTIFICATIONS_MESSAGE_CHANNEL);
     Messages.messageReceived.connect(onMessageReceived);
-
-    setup();
-
 }()); // END LOCAL_SCOPE

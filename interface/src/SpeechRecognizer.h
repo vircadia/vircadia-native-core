@@ -22,6 +22,12 @@
 
 #include <DependencyManager.h>
 
+/**jsdoc
+ * @namespace SpeechRecognizer
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ */
 class SpeechRecognizer : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -31,12 +37,39 @@ public:
     bool getEnabled() const { return _enabled; }
 
 public slots:
+
+    /**jsdoc
+     * @function SpeechRecognizer.setEnabled
+     * @param {boolean} enabled
+     */
     void setEnabled(bool enabled);
+
+    /**jsdoc
+     * @function SpeechRecognizer.addCommand
+     * @param {string} command
+     */
     void addCommand(const QString& command);
+
+    /**jsdoc
+     * @function SpeechRecognizer.removeCommand
+     * @param {string} command
+     */
     void removeCommand(const QString& command);
 
 signals:
+
+    /**jsdoc
+     * @function SpeechRecognizer.commandRecognized
+     * @param {string} command
+     * @returns {Signal}
+     */
     void commandRecognized(const QString& command);
+
+    /**jsdoc
+     * @function SpeechRecognizer.enabledUpdated
+     * @param {boolean} enabled
+     * @returns {Signal}
+     */
     void enabledUpdated(bool enabled);
 
 protected:

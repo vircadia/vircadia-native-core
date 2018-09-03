@@ -13,72 +13,100 @@
 //
 
 #include "Space.h"
-
+#include <cstring>
 #include <algorithm>
 
 #include <glm/gtx/quaternion.hpp>
 
 using namespace workload;
 
-int32_t Space::createProxy(const Space::Sphere& newSphere) {
-    if (_freeIndices.empty()) {
-        _proxies.emplace_back(Space::Proxy(newSphere));
-        return (int32_t)_proxies.size() - 1;
-    } else {
-        int32_t index = _freeIndices.back();
-        _freeIndices.pop_back();
-        _proxies[index].sphere = newSphere;
-        _proxies[index].region = Space::REGION_UNKNOWN;
-        _proxies[index].prevRegion = Space::REGION_UNKNOWN;
-        return index;
-    }
+Space::Space() : Collection() {
 }
 
-void Space::deleteProxy(int32_t proxyId) {
-    if (proxyId >= (int32_t)_proxies.size() || _proxies.empty()) {
-        return;
+void Space::processTransactionFrame(const Transaction& transaction) {
+    std::unique_lock<std::mutex> lock(_proxiesMutex);
+    // Here we should be able to check the value of last ProxyID allocated
+    // and allocate new proxies accordingly
+    ProxyID maxID = _IDAllocator.getNumAllocatedIndices();
+    if (maxID > (Index) _proxies.size()) {
+        _proxies.resize(maxID + 100); // allocate the maxId and more
+        _owners.resize(maxID + 100);
     }
-    if (proxyId == (int32_t)_proxies.size() - 1) {
-        // remove proxy on back
-        _proxies.pop_back();
-        if (!_freeIndices.empty()) {
-            // remove any freeIndices on back
-            std::sort(_freeIndices.begin(), _freeIndices.end());
-            while(!_freeIndices.empty() && _freeIndices.back() == (int32_t)_proxies.size() - 1) {
-                _freeIndices.pop_back();
-                _proxies.pop_back();
-            }
+    // Now we know for sure that we have enough items in the array to
+    // capture anything coming from the transaction
+
+    processResets(transaction._resetItems);
+    processUpdates(transaction._updatedItems);
+    processRemoves(transaction._removedItems);
+}
+
+void Space::processResets(const Transaction::Resets& transactions) {
+    for (auto& reset : transactions) {
+        // Access the true item
+        auto proxyID = std::get<0>(reset);
+
+        // Guard against proxyID being past the end of the list.
+        if (!_IDAllocator.checkIndex(proxyID)) {
+            continue;
         }
-    } else {
-        _proxies[proxyId].region = Space::REGION_INVALID;
-        _freeIndices.push_back(proxyId);
+        auto& item = _proxies[proxyID];
+
+        // Reset the item with a new payload
+        item.sphere = (std::get<1>(reset));
+        item.prevRegion = item.region = Region::UNKNOWN;
+
+        _owners[proxyID] = (std::get<2>(reset));
     }
 }
 
-void Space::updateProxy(int32_t proxyId, const Space::Sphere& newSphere) {
-    if (proxyId >= (int32_t)_proxies.size()) {
-        return;
+void Space::processRemoves(const Transaction::Removes& transactions) {
+    for (auto removedID : transactions) {
+        if (!_IDAllocator.checkIndex(removedID)) {
+            continue;
+        }
+        _IDAllocator.freeIndex(removedID);
+
+        // Access the true item
+        auto& item = _proxies[removedID];
+
+        // Kill it
+        item.prevRegion = item.region = Region::INVALID;
+        _owners[removedID] = Owner();
     }
-    _proxies[proxyId].sphere = newSphere;
 }
 
-void Space::setViews(const std::vector<Space::View>& views) {
-    _views = views;
+void Space::processUpdates(const Transaction::Updates& transactions) {
+    for (auto& update : transactions) {
+        auto updateID = std::get<0>(update);
+        if (!_IDAllocator.checkIndex(updateID)) {
+            continue;
+        }
+
+        // Access the true item
+        auto& item = _proxies[updateID];
+
+        // Update the item
+        item.sphere = (std::get<1>(update));
+    }
 }
 
 void Space::categorizeAndGetChanges(std::vector<Space::Change>& changes) {
+    std::unique_lock<std::mutex> lock(_proxiesMutex);
     uint32_t numProxies = (uint32_t)_proxies.size();
     uint32_t numViews = (uint32_t)_views.size();
     for (uint32_t i = 0; i < numProxies; ++i) {
         Proxy& proxy = _proxies[i];
-        if (proxy.region < Space::REGION_INVALID) {
-            uint8_t region = Space::REGION_UNKNOWN;
+        if (proxy.region < Region::INVALID) {
+            glm::vec3 proxyCenter = glm::vec3(proxy.sphere);
+            float proxyRadius = proxy.sphere.w;
+            uint8_t region = Region::UNKNOWN;
             for (uint32_t j = 0; j < numViews; ++j) {
-                float distance2 = glm::distance2(_views[j].center, glm::vec3(_proxies[i].sphere));
-                for (uint8_t c = 0; c < region; ++c) {
-                    float touchDistance = _views[j].radiuses[c] + _proxies[i].sphere.w;
-                    if (distance2 < touchDistance * touchDistance) {
-                        region = c;
+                auto& view = _views[j];
+                // for each 'view' we need only increment 'k' below the current value of 'region'
+                for (uint8_t k = 0; k < region; ++k) {
+                    float touchDistance = proxyRadius + view.regions[k].w;
+                    if (distance2(proxyCenter, glm::vec3(view.regions[k])) < touchDistance * touchDistance) {
+                        region = k;
                         break;
                     }
                 }
@@ -92,3 +120,42 @@ void Space::categorizeAndGetChanges(std::vector<Space::Change>& changes) {
     }
 }
 
+uint32_t Space::copyProxyValues(Proxy* proxies, uint32_t numDestProxies) const {
+    std::unique_lock<std::mutex> lock(_proxiesMutex);
+    auto numCopied = std::min(numDestProxies, (uint32_t)_proxies.size());
+    memcpy(proxies, _proxies.data(), numCopied * sizeof(Proxy));
+    return numCopied;
+}
+
+const Owner Space::getOwner(int32_t proxyID) const {
+    std::unique_lock<std::mutex> lock(_proxiesMutex);
+    if (isAllocatedID(proxyID) && (proxyID < (Index)_proxies.size())) {
+        return _owners[proxyID];
+    }
+    return Owner();
+}
+
+uint8_t Space::getRegion(int32_t proxyID) const {
+    std::unique_lock<std::mutex> lock(_proxiesMutex);
+    if (isAllocatedID(proxyID) && (proxyID < (Index)_proxies.size())) {
+        return _proxies[proxyID].region;
+    }
+    return (uint8_t)Region::INVALID;
+}
+
+void Space::clear() {
+    Collection::clear();
+    std::unique_lock<std::mutex> lock(_proxiesMutex);
+    _IDAllocator.clear();
+    _proxies.clear();
+    _owners.clear();
+    _views.clear();
+}
+
+void Space::setViews(const Views& views) {
+    _views = views;
+}
+
+void Space::copyViews(std::vector<View>& copy) const {
+    copy = _views;
+}

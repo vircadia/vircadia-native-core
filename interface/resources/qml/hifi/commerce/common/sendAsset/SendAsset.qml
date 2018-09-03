@@ -19,6 +19,7 @@ import "../../../../styles-uit"
 import "../../../../controls-uit" as HifiControlsUit
 import "../../../../controls" as HifiControls
 import "../" as HifiCommerceCommon
+import "qrc:////qml//hifi//models" as HifiModels  // Absolute path so the same code works everywhere.
 
 Item {
     HifiConstants { id: hifi; }
@@ -36,6 +37,8 @@ Item {
     property string assetName: "";
     property string assetCertID: "";
     property string sendingPubliclyEffectImage;
+    property var http;
+    property var listModelName;
         
     // This object is always used in a popup or full-screen Wallet section.
     // This MouseArea is used to prevent a user from being
@@ -118,9 +121,7 @@ Item {
 
         if (root.currentActiveView === 'chooseRecipientConnection') {
             // Refresh connections model
-            connectionsLoading.visible = false;
-            connectionsLoading.visible = true;
-            sendSignalToParent({method: 'refreshConnections'});
+            connectionsModel.getFirstPage();
         } else if (root.currentActiveView === 'sendAssetHome') {
             Commerce.balance();
         } else if (root.currentActiveView === 'chooseRecipientNearby') {
@@ -258,7 +259,9 @@ Item {
                 anchors.topMargin: 26;
                 anchors.left: parent.left;
                 anchors.leftMargin: 20;
-                width: paintedWidth;
+                anchors.right: parent.right;
+                anchors.rightMargin: 20;
+                elide: Text.ElideRight;
                 height: 30;
                 // Text size
                 size: 22;
@@ -390,11 +393,17 @@ Item {
             hoverEnabled: true;
         }
         
-        ListModel {
+        HifiModels.PSFListModel {
             id: connectionsModel;
-        }
-        ListModel {
-            id: filteredConnectionsModel;
+            http: root.http;
+            listModelName: root.listModelName;
+            endpoint: "/api/v1/users?filter=connections";
+            itemsPerPage: 9;
+            listView: connectionsList;
+            processPage: function (data) {
+                return data.users;
+            };
+            searchFilter: filterBar.text;
         }
 
         Rectangle {
@@ -470,10 +479,6 @@ Item {
                     anchors.fill: parent;
                     centerPlaceholderGlyph: hifi.glyphs.search;
 
-                    onTextChanged: {
-                        buildFilteredConnectionsModel();
-                    }
-
                     onAccepted: {
                         focus = false;
                     }
@@ -493,6 +498,7 @@ Item {
                 
                 AnimatedImage {
                     id: connectionsLoading;
+                    visible: !connectionsModel.retrievedAtLeastOnePage;
                     source: "../../../../../icons/profilePicLoading.gif"
                     width: 120;
                     height: width;
@@ -513,14 +519,14 @@ Item {
                     }
                     visible: !connectionsLoading.visible;
                     clip: true;
-                    model: filteredConnectionsModel;
+                    model: connectionsModel;
                     snapMode: ListView.SnapToItem;
                     // Anchors
                     anchors.fill: parent;
                     delegate: ConnectionItem {
                         isSelected: connectionsList.currentIndex === index;
-                        userName: model.userName;
-                        profilePicUrl: model.profileUrl;
+                        userName: model.username;
+                        profilePicUrl: model.images.thumbnail;
                         anchors.topMargin: 6;
                         anchors.bottomMargin: 6;
 
@@ -551,7 +557,7 @@ Item {
                 // "Make a Connection" instructions
                 Rectangle {
                     id: connectionInstructions;
-                    visible: connectionsModel.count === 0 && !connectionsLoading.visible;
+                    visible: connectionsModel.count === 0 && !connectionsModel.searchFilter && !connectionsLoading.visible;
                     anchors.fill: parent;
                     color: "white";
 
@@ -844,7 +850,7 @@ Item {
         property string selectedRecipientUserName;
         property string selectedRecipientProfilePic;
 
-        visible: root.currentActiveView === "sendAssetStep";
+        visible: root.currentActiveView === "sendAssetStep" || paymentSuccess.visible || paymentFailure.visible;
         anchors.fill: parent;
         anchors.topMargin: root.parentAppTitleBarHeight;
 
@@ -856,7 +862,9 @@ Item {
             anchors.topMargin: 26;
             anchors.left: parent.left;
             anchors.leftMargin: 20;
-            width: paintedWidth;
+            anchors.right: parent.right;
+            anchors.rightMargin: 20;
+            elide: Text.ElideRight;
             height: 30;
             // Text size
             size: 22;
@@ -907,7 +915,7 @@ Item {
             // "CHANGE" button
             HifiControlsUit.Button {
                 id: changeButton;
-                color: root.assetName === "" ? hifi.buttons.none : hifi.buttons.noneBorderlessGray;
+                color: root.assetName === "" ? hifi.buttons.none : hifi.buttons.white;
                 colorScheme: hifi.colorSchemes.dark;
                 anchors.right: parent.right;
                 anchors.verticalCenter: parent.verticalCenter;
@@ -1238,7 +1246,7 @@ Item {
     // Sending Asset Overlay START
     Rectangle {
         id: sendingAssetOverlay;
-        z: 998;
+        z: 999;
 
         visible: root.isCurrentlySendingAsset;
         anchors.fill: parent;
@@ -1281,26 +1289,43 @@ Item {
     // Payment Success BEGIN
     Rectangle {
         id: paymentSuccess;
+        z: 998;
 
         visible: root.currentActiveView === "paymentSuccess";
         anchors.fill: parent;
         color: Qt.rgba(0.0, 0.0, 0.0, 0.8);
 
+        // This object is always used in a popup or full-screen Wallet section.
+        // This MouseArea is used to prevent a user from being
+        //     able to click on a button/mouseArea underneath the popup/section.
+        MouseArea {
+            anchors.fill: parent;
+            propagateComposedEvents: false;
+            hoverEnabled: true;
+        }
+
         Rectangle {
-            anchors.centerIn: parent;
-            width: parent.width - 30;
-            height: parent.height - 30;
+            anchors.top: parent.top;
+            anchors.topMargin: root.assetName === "" ? 15 : 150;
+            anchors.left: parent.left;
+            anchors.leftMargin: root.assetName === "" ? 15 : 50;
+            anchors.right: parent.right;
+            anchors.rightMargin: root.assetName === "" ? 15 : 50;
+            anchors.bottom: parent.bottom;
+            anchors.bottomMargin: root.assetName === "" ? 15 : 240;
             color: "#FFFFFF";
 
             RalewaySemiBold {
                 id: paymentSentText;
-                text: root.assetName === "" ? "Payment Sent" : '"' + root.assetName + '"';
+                text: root.assetName === "" ? "Payment Sent" : "Gift Sent";
                 // Anchors
                 anchors.top: parent.top;
                 anchors.topMargin: 26;
                 anchors.left: parent.left;
                 anchors.leftMargin: 20;
-                width: paintedWidth;
+                anchors.right: parent.right;
+                anchors.rightMargin: 20;
+                elide: Text.ElideRight;
                 height: 30;
                 // Text size
                 size: 22;
@@ -1310,6 +1335,7 @@ Item {
             
             HiFiGlyphs {
                 id: closeGlyphButton_paymentSuccess;
+                visible: root.assetName === "";
                 text: hifi.glyphs.close;
                 color: hifi.colors.lightGrayText;
                 size: 26;
@@ -1375,6 +1401,49 @@ Item {
                     isDisplayingNearby: sendAssetStep.referrer === "nearby";
                 }
             }
+            
+
+            Item {
+                id: giftContainer_paymentSuccess;
+                visible: root.assetName !== "";
+                anchors.top: sendToContainer_paymentSuccess.bottom;
+                anchors.topMargin: 8;
+                anchors.left: parent.left;
+                anchors.leftMargin: 20;
+                anchors.right: parent.right;
+                anchors.rightMargin: 20;
+                height: 30;
+
+                RalewaySemiBold {
+                    id: gift_paymentSuccess;
+                    text: "Gift:";
+                    // Anchors
+                    anchors.top: parent.top;
+                    anchors.left: parent.left;
+                    anchors.bottom: parent.bottom;
+                    width: 90;
+                    // Text size
+                    size: 18;
+                    // Style
+                    color: hifi.colors.baseGray;
+                    verticalAlignment: Text.AlignVCenter;
+                }
+
+                RalewaySemiBold {
+                    text: root.assetName;
+                    // Anchors
+                    anchors.top: parent.top;
+                    anchors.left: gift_paymentSuccess.right;
+                    anchors.right: parent.right;
+                    height: parent.height;
+                    // Text size
+                    size: 18;
+                    // Style
+                    elide: Text.ElideRight;
+                    color: hifi.colors.baseGray;
+                    verticalAlignment: Text.AlignVCenter;
+                }
+            }
 
             Item {
                 id: amountContainer_paymentSuccess;
@@ -1433,6 +1502,7 @@ Item {
 
             RalewaySemiBold {
                 id: optionalMessage_paymentSuccess;
+                visible: root.assetName === "";
                 text: optionalMessage.text;
                 // Anchors
                 anchors.top: amountContainer_paymentSuccess.visible ? amountContainer_paymentSuccess.bottom : sendToContainer_paymentSuccess.bottom;
@@ -1457,7 +1527,7 @@ Item {
                 colorScheme: root.assetName === "" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
                 anchors.horizontalCenter: parent.horizontalCenter;
                 anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 80;
+                anchors.bottomMargin: root.assetName === "" ? 80 : 30;
                 height: 50;
                 width: 120;
                 text: "Close";
@@ -1476,26 +1546,43 @@ Item {
     // Payment Failure BEGIN
     Rectangle {
         id: paymentFailure;
+        z: 998;
 
         visible: root.currentActiveView === "paymentFailure";
         anchors.fill: parent;
         color: Qt.rgba(0.0, 0.0, 0.0, 0.8);
 
+        // This object is always used in a popup or full-screen Wallet section.
+        // This MouseArea is used to prevent a user from being
+        //     able to click on a button/mouseArea underneath the popup/section.
+        MouseArea {
+            anchors.fill: parent;
+            propagateComposedEvents: false;
+            hoverEnabled: true;
+        }
+
         Rectangle {
-            anchors.centerIn: parent;
-            width: parent.width - 30;
-            height: parent.height - 30;
+            anchors.top: parent.top;
+            anchors.topMargin: root.assetName === "" ? 15 : 150;
+            anchors.left: parent.left;
+            anchors.leftMargin: root.assetName === "" ? 15 : 50;
+            anchors.right: parent.right;
+            anchors.rightMargin: root.assetName === "" ? 15 : 50;
+            anchors.bottom: parent.bottom;
+            anchors.bottomMargin: root.assetName === "" ? 15 : 300;
             color: "#FFFFFF";
 
             RalewaySemiBold {
                 id: paymentFailureText;
-                text: root.assetName === "" ? "Payment Failed" : '"' + root.assetName + '"';
+                text: root.assetName === "" ? "Payment Failed" : "Failed";
                 // Anchors
                 anchors.top: parent.top;
                 anchors.topMargin: 26;
                 anchors.left: parent.left;
                 anchors.leftMargin: 20;
-                width: paintedWidth;
+                anchors.right: parent.right;
+                anchors.rightMargin: 20;
+                elide: Text.ElideRight;
                 height: 30;
                 // Text size
                 size: 22;
@@ -1505,6 +1592,7 @@ Item {
             
             HiFiGlyphs {
                 id: closeGlyphButton_paymentFailure;
+                visible: root.assetName === "";
                 text: hifi.glyphs.close;
                 color: hifi.colors.lightGrayText;
                 size: 26;
@@ -1551,6 +1639,7 @@ Item {
 
             Item {
                 id: sendToContainer_paymentFailure;
+                visible: root.assetName === "";
                 anchors.top: paymentFailureDetailText.bottom;
                 anchors.topMargin: 8;
                 anchors.left: parent.left;
@@ -1645,7 +1734,8 @@ Item {
             }
 
             RalewaySemiBold {
-                id: optionalMessage_paymentFailuire;
+                id: optionalMessage_paymentFailure;
+                visible: root.assetName === "";
                 text: optionalMessage.text;
                 // Anchors
                 anchors.top: amountContainer_paymentFailure.visible ? amountContainer_paymentFailure.bottom : sendToContainer_paymentFailure.bottom;
@@ -1663,14 +1753,15 @@ Item {
                 verticalAlignment: Text.AlignTop;
             }
 
-            // "Close" button
+            // "Cancel" button
             HifiControlsUit.Button {
                 id: closeButton_paymentFailure;
                 color: hifi.buttons.noneBorderless;
                 colorScheme: root.assetName === "" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
-                anchors.horizontalCenter: parent.horizontalCenter;
+                anchors.right: retryButton_paymentFailure.left;
+                anchors.rightMargin: 12;
                 anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 80;
+                anchors.bottomMargin: root.assetName === "" ? 80 : 30;
                 height: 50;
                 width: 120;
                 text: "Cancel";
@@ -1691,7 +1782,7 @@ Item {
                 anchors.right: parent.right;
                 anchors.rightMargin: 12;
                 anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 80;
+                anchors.bottomMargin: root.assetName === "" ? 80 : 30;
                 height: 50;
                 width: 120;
                 text: "Retry";
@@ -1718,22 +1809,6 @@ Item {
     //
     // FUNCTION DEFINITIONS START
     //
-
-    function updateConnections(connections) {
-        connectionsModel.clear();
-        connectionsModel.append(connections);
-        buildFilteredConnectionsModel();
-        connectionsLoading.visible = false;
-    }
-
-    function buildFilteredConnectionsModel() {
-        filteredConnectionsModel.clear();
-        for (var i = 0; i < connectionsModel.count; i++) {
-            if (connectionsModel.get(i).userName.toLowerCase().indexOf(filterBar.text.toLowerCase()) !== -1) {
-                filteredConnectionsModel.append(connectionsModel.get(i));
-            }
-        }
-    }
 
     function resetSendAssetData() {
         amountTextField.focus = false;
@@ -1768,7 +1843,7 @@ Item {
         switch (message.method) {
             case 'selectRecipient':
                 if (message.isSelected) {
-                    chooseRecipientNearby.selectedRecipient = message.id[0];
+                    chooseRecipientNearby.selectedRecipient = message.id;
                     sendAssetStep.selectedRecipientDisplayName = message.displayName;
                     sendAssetStep.selectedRecipientUserName = message.userName;
                 } else {

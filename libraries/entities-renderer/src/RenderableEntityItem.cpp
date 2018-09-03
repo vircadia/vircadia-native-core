@@ -14,7 +14,6 @@
 
 #include <ObjectMotionState.h>
 
-#include "EntityTreeRenderer.h"
 #include "RenderableLightEntityItem.h"
 #include "RenderableLineEntityItem.h"
 #include "RenderableModelEntityItem.h"
@@ -43,8 +42,6 @@ enum class RenderItemStatusIcon {
     CLIENT_ONLY = 6,
     NONE = 255
 };
-
-std::function<bool()> EntityRenderer::_entitiesShouldFadeFunction = []() { return true; };
 
 void EntityRenderer::initEntityRenderers() {
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Model, RenderableModelEntityItem::factory)
@@ -157,16 +154,20 @@ Item::Bound EntityRenderer::getBound() {
     return _bound;
 }
 
+render::hifi::Tag EntityRenderer::getTagMask() const {
+    return _isVisibleInSecondaryCamera ? render::hifi::TAG_ALL_VIEWS : render::hifi::TAG_MAIN_VIEW;
+}
+
 ItemKey EntityRenderer::getKey() {
     if (isTransparent()) {
-        return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
+        return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getTagMask());
     }
 
     // This allows shapes to cast shadows
     if (_canCastShadow) {
-        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1).withShadowCaster();
+        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getTagMask()).withShadowCaster();
     } else {
-        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
+        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getTagMask());
     }
 }
 
@@ -280,8 +281,8 @@ bool EntityRenderer::addToScene(const ScenePointer& scene, Transaction& transact
     makeStatusGetters(_entity, statusGetters);
     renderPayload->addStatusGetters(statusGetters);
     transaction.resetItem(_renderItemID, renderPayload);
-    updateInScene(scene, transaction);
     onAddToScene(_entity);
+    updateInScene(scene, transaction);
     return true;
 }
 
@@ -332,6 +333,11 @@ bool EntityRenderer::needsRenderUpdate() const {
     if (_needsRenderUpdate) {
         return true;
     }
+
+    if (isFading()) {
+        return true;
+    }
+
     if (_prevIsTransparent != isTransparent()) {
         return true;
     }
@@ -359,27 +365,38 @@ bool EntityRenderer::needsRenderUpdateFromEntity(const EntityItemPointer& entity
     return false;
 }
 
+void EntityRenderer::updateModelTransformAndBound() {
+    bool success = false;
+    auto newModelTransform = _entity->getTransformToCenter(success);
+    if (success) {
+        _modelTransform = newModelTransform;
+    }
+
+    success = false;
+    auto bound = _entity->getAABox(success);
+    if (success) {
+        _bound = bound;
+    }
+}
+
 void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transaction& transaction, const EntityItemPointer& entity) {
     DETAILED_PROFILE_RANGE(simulation_physics, __FUNCTION__);
     withWriteLock([&] {
         auto transparent = isTransparent();
-        if (_prevIsTransparent && !transparent) {
-            _isFading = false;
+        auto fading = isFading();
+        if (fading || _prevIsTransparent != transparent) {
+            emit requestRenderUpdate();
+        }
+        if (fading) {
+            _isFading = Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f;
         }
         _prevIsTransparent = transparent;
 
-        bool success = false;
-        auto bound = entity->getAABox(success);
-        if (success) {
-            _bound = bound;
-        }
-        auto newModelTransform = entity->getTransformToCenter(success);
-        if (success) {
-            _modelTransform = newModelTransform;
-        }
+        updateModelTransformAndBound();
 
         _moving = entity->isMovingRelativeToParent();
         _visible = entity->getVisible();
+        setIsVisibleInSecondaryCamera(entity->isVisibleInSecondaryCamera());
         _canCastShadow = entity->getCanCastShadow();
         _cauterized = entity->getCauterized();
         _needsRenderUpdate = false;

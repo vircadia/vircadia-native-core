@@ -29,13 +29,13 @@ CharacterGhostObject::~CharacterGhostObject() {
     }
 }
 
-void CharacterGhostObject::setCollisionGroupAndMask(int16_t group, int16_t mask) {
+void CharacterGhostObject::setCollisionGroupAndMask(int32_t group, int32_t mask) {
     _collisionFilterGroup = group;
     _collisionFilterMask = mask;
     // TODO: if this probe is in the world reset ghostObject overlap cache
 }
 
-void CharacterGhostObject::getCollisionGroupAndMask(int16_t& group, int16_t& mask) const {
+void CharacterGhostObject::getCollisionGroupAndMask(int32_t& group, int32_t& mask) const {
     group = _collisionFilterGroup;
     mask = _collisionFilterMask;
 }
@@ -69,7 +69,7 @@ bool CharacterGhostObject::rayTest(const btVector3& start,
         const btVector3& end,
         CharacterRayResult& result) const {
     if (_world && _inWorld) {
-        _world->rayTest(start, end, result);
+        btGhostObject::rayTest(start, end, result);
     }
     return result.hasHit();
 }

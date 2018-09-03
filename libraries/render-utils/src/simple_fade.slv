@@ -20,26 +20,28 @@
 <@include Fade.slh@>
 <$declareFadeVertexInstanced()$>
 
+<@include render-utils/ShaderConstants.h@>
+
 // the interpolated normal
-out vec3 _normal;
-out vec3 _modelNormal;
-out vec4 _color;
-out vec2 _texCoord0;
-out vec4 _position;
-out vec4 _eyePosition;
-out vec4 _worldPosition;
+layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
+layout(location=RENDER_UTILS_ATTR_NORMAL_MS) out vec3 _normalMS;
+layout(location=RENDER_UTILS_ATTR_COLOR) out vec4 _color;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
+layout(location=RENDER_UTILS_ATTR_POSITION_MS) out vec4 _positionMS;
+layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
+layout(location=RENDER_UTILS_ATTR_POSITION_WS) out vec4 _positionWS;
 
 void main(void) {
     _color = color_sRGBAToLinear(inColor);
-    _texCoord0 = inTexCoord0.st;
-    _position = inPosition;
-    _modelNormal = inNormal.xyz;
+    _texCoord01.xy = inTexCoord0.st;
+    _positionMS = inPosition;
+    _normalMS = inNormal.xyz;
 
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToEyeAndClipPos(cam, obj, inPosition, _eyePosition, gl_Position)$>
-    <$transformModelToWorldPos(obj, inPosition, _worldPosition)$>
-    <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normal)$>
+    <$transformModelToEyeAndClipPos(cam, obj, inPosition, _positionES, gl_Position)$>
+    <$transformModelToWorldPos(obj, inPosition, _positionWS)$>
+    <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normalWS)$>
     <$passThroughFadeObjectParams()$>
 }

@@ -32,17 +32,26 @@ const QString GET_PLACE = "/api/v1/places/%1";
 /**jsdoc
  * The location API provides facilities related to your current location in the metaverse.
  *
+ * <h5>Getter/Setter</h5>
+ * <p>You can get and set your current metaverse address by directly reading a string value from and writing a string value to 
+ * the <code>location</code> object. This is an alternative to using the <code>location.href</code> property or this object's
+ * functions.</p>
+ *
  * @namespace location
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-assignment-client
+ *
  * @property {Uuid} domainID - A UUID uniquely identifying the domain you're visiting. Is {@link Uuid|Uuid.NULL} if you're not
- *     connected to the domain.
+ *     connected to the domain or are in a serverless domain.
  *     <em>Read-only.</em>
- * @property {Uuid} domainId - Synonym for <code>domainId</code>. <em>Read-only.</em> <strong>Deprecated:</strong> This property
- *     is deprecated and will soon be removed.
  * @property {string} hostname - The name of the domain for your current metaverse address (e.g., <code>"AvatarIsland"</code>,
- *     <code>localhost</code>, or an IP address).
+ *     <code>localhost</code>, or an IP address). Is blank if you're in a serverless domain.
  *     <em>Read-only.</em>
  * @property {string} href - Your current metaverse address (e.g., <code>"hifi://avatarisland/15,-10,26/0,0,0,1"</code>)
- *     regardless of whether or not you're connected to the domain.
+ *     regardless of whether or not you're connected to the domain. Starts with <code>"file:///"</code> if you're in a 
+ *     serverless domain.
  *     <em>Read-only.</em>
  * @property {boolean} isConnected - <code>true</code> if you're connected to the domain in your current <code>href</code>
  *     metaverse address, otherwise <code>false</code>.
@@ -67,7 +76,6 @@ class AddressManager : public QObject, public Dependency {
     Q_PROPERTY(QString pathname READ currentPath)
     Q_PROPERTY(QString placename READ getPlaceName)
     Q_PROPERTY(QString domainID READ getDomainID)
-    Q_PROPERTY(QString domainId READ getDomainID)
 public:
     using PositionGetter = std::function<glm::vec3()>;
     using OrientationGetter = std::function<glm::quat()>;
@@ -130,7 +138,7 @@ public:
      *     </tr>
      *   </tbody>
      * </table>
-     * @typedef location.LookupTrigger
+     * @typedef {number} location.LookupTrigger
      */
     enum LookupTrigger {
         UserInput,
@@ -176,7 +184,7 @@ public slots:
     /**jsdoc
      * Go to a specified metaverse address.
      * @function location.handleLookupString
-     * @param {string} address - The address to go to: a <code>"hifi:/"<code> address, an IP address (e.g., 
+     * @param {string} address - The address to go to: a <code>"hifi://"<code> address, an IP address (e.g., 
      * <code>"127.0.0.1"</code> or <code>"localhost"</code>), a domain name, a named path on a domain (starts with 
      * <code>"/"</code>), a position or position and orientation, or a user (starts with <code>"@"</code>).
      * @param {boolean} fromSuggestions=false - Set to <code>true</code> if the address is obtained from the "Goto" dialog.
@@ -409,13 +417,13 @@ signals:
     void goForwardPossible(bool isPossible);
 
 private slots:
-    void handleAPIResponse(QNetworkReply& requestReply);
-    void handleAPIError(QNetworkReply& errorReply);
+    void handleAPIResponse(QNetworkReply* requestReply);
+    void handleAPIError(QNetworkReply* errorReply);
 
-    void handleShareableNameAPIResponse(QNetworkReply& requestReply);
+    void handleShareableNameAPIResponse(QNetworkReply* requestReply);
 
 private:
-    void goToAddressFromObject(const QVariantMap& addressMap, const QNetworkReply& reply);
+    void goToAddressFromObject(const QVariantMap& addressMap, const QNetworkReply*  reply);
 
     // Set host and port, and return `true` if it was changed.
     bool setHost(const QString& host, LookupTrigger trigger, quint16 port = 0);

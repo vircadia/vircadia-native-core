@@ -40,9 +40,20 @@
 
 #include <PointerManager.h>
 
-size_t std::hash<EntityItemID>::operator()(const EntityItemID& id) const { return qHash(id); }
-std::function<bool()> EntityTreeRenderer::_entitiesShouldFadeFunction;
-std::function<bool()> EntityTreeRenderer::_renderDebugHullsOperator = [] { return false; };
+std::function<bool()> EntityTreeRenderer::_entitiesShouldFadeFunction = []() { return true; };
+
+QString resolveScriptURL(const QString& scriptUrl) {
+    auto normalizedScriptUrl = DependencyManager::get<ResourceManager>()->normalizeURL(scriptUrl);
+    QUrl url { normalizedScriptUrl };
+    if (url.isLocalFile()) {
+        // Outside of the ScriptEngine, /~/ resolves to the /resources directory.
+        // Inside of the ScriptEngine, /~/ resolves to the /scripts directory.
+        // Here we expand local paths in case they are /~/ paths, so they aren't
+        // incorrectly recognized as being located in /scripts when utilized in ScriptEngine.
+        return PathUtils::expandToLocalDataAbsolutePath(url).toString();
+    }
+    return normalizedScriptUrl;
+}
 
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState,
                                             AbstractScriptingServicesInterface* scriptingServices) :
@@ -194,6 +205,7 @@ void EntityTreeRenderer::clear() {
     }
 
     // remove all entities from the scene
+    _space->clear();
     auto scene = _viewState->getMain3DScene();
     if (scene) {
         render::Transaction transaction;
@@ -221,7 +233,7 @@ void EntityTreeRenderer::reloadEntityScripts() {
         const auto& renderer = entry.second;
         const auto& entity = renderer->getEntity();
         if (!entity->getScript().isEmpty()) {
-            _entitiesScriptEngine->loadEntityScript(entity->getEntityItemID(), entity->getScript(), true);
+            _entitiesScriptEngine->loadEntityScript(entity->getEntityItemID(), resolveScriptURL(entity->getScript()), true);
         }
     }
 }
@@ -278,6 +290,17 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
             if (!entity->isParentPathComplete()) {
                 continue;
             }
+            if (entity->getSpaceIndex() == -1) {
+                std::unique_lock<std::mutex> lock(_spaceLock);
+                auto spaceIndex = _space->allocateID();
+                workload::Sphere sphere(entity->getWorldPosition(), entity->getBoundingRadius());
+                workload::Transaction transaction;
+                SpatiallyNestablePointer nestable = std::static_pointer_cast<SpatiallyNestable>(entity);
+                transaction.reset(spaceIndex, sphere, workload::Owner(nestable));
+                _space->enqueueTransaction(transaction);
+                entity->setSpaceIndex(spaceIndex);
+                connect(entity.get(), &EntityItem::spaceUpdate, this, &EntityTreeRenderer::handleSpaceUpdate, Qt::QueuedConnection);
+            }
 
             auto entityID = entity->getEntityItemID();
             processedIds.insert(entityID);
@@ -287,7 +310,6 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
             }
         }
 
-
         if (!processedIds.empty()) {
             for (const auto& processedId : processedIds) {
                 _entitiesToAdd.erase(processedId);
@@ -296,7 +318,7 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
     }
 }
 
-void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene, const ViewFrustum& view, render::Transaction& transaction) {
+void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene, render::Transaction& transaction) {
     PROFILE_RANGE_EX(simulation_physics, "ChangeInScene", 0xffff00ff, (uint64_t)_changedEntities.size());
     PerformanceTimer pt("change");
     std::unordered_set<EntityItemID> changedEntities;
@@ -357,7 +379,9 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
 
         // prioritize and sort the renderables
         uint64_t sortStart = usecTimestampNow();
-        PrioritySortUtil::PriorityQueue<SortableRenderer> sortedRenderables(view);
+
+        const auto& views = _viewState->getConicalViews();
+        PrioritySortUtil::PriorityQueue<SortableRenderer> sortedRenderables(views);
         {
             PROFILE_RANGE_EX(simulation_physics, "SortRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
             std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr = _renderablesToUpdate.begin();
@@ -380,7 +404,6 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
             uint64_t expiry = updateStart + timeBudget;
 
             // process the sorted renderables
-            std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr;
             size_t numSorted = sortedRenderables.size();
             while (!sortedRenderables.empty() && usecTimestampNow() < expiry) {
                 const auto renderable = sortedRenderables.top().getRenderer();
@@ -405,20 +428,39 @@ void EntityTreeRenderer::update(bool simulate) {
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
 
         // here we update _currentFrame and _lastAnimated and sync with the server properties.
-        tree->update(simulate);
-
-        // Update the rendereable entities as needed
         {
+            PerformanceTimer perfTimer("tree::update");
+            tree->update(simulate);
+        }
+
+        {   // Update the rendereable entities as needed
             PROFILE_RANGE(simulation_physics, "Scene");
             PerformanceTimer sceneTimer("scene");
             auto scene = _viewState->getMain3DScene();
             if (scene) {
                 render::Transaction transaction;
                 addPendingEntities(scene, transaction);
-                ViewFrustum view;
-                _viewState->copyCurrentViewFrustum(view);
-                updateChangedEntities(scene, view, transaction);
+
+                updateChangedEntities(scene, transaction);
                 scene->enqueueTransaction(transaction);
+            }
+        }
+        {
+            PerformanceTimer perfTimer("workload::transaction");
+            workload::Transaction spaceTransaction;
+            {   // update proxies in the workload::Space
+                std::unique_lock<std::mutex> lock(_spaceLock);
+                spaceTransaction.update(_spaceUpdates);
+                _spaceUpdates.clear();
+            }
+            {
+                std::vector<int32_t> staleProxies;
+                tree->swapStaleProxies(staleProxies);
+                spaceTransaction.remove(staleProxies);
+                {
+                    std::unique_lock<std::mutex> lock(_spaceLock);
+                    _space->enqueueTransaction(spaceTransaction);
+                }
             }
         }
 
@@ -435,6 +477,11 @@ void EntityTreeRenderer::update(bool simulate) {
         }
 
     }
+}
+
+void EntityTreeRenderer::handleSpaceUpdate(std::pair<int32_t, glm::vec4> proxyUpdate) {
+    std::unique_lock<std::mutex> lock(_spaceLock);
+    _spaceUpdates.emplace_back(proxyUpdate.first, proxyUpdate.second);
 }
 
 bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(QVector<EntityItemID>* entitiesContainingAvatar) {
@@ -596,6 +643,14 @@ bool EntityTreeRenderer::applyLayeredZones() {
 }
 
 void EntityTreeRenderer::processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
+    OCTREE_PACKET_FLAGS flags;
+    message.readPrimitive(&flags);
+
+    OCTREE_PACKET_SEQUENCE sequence;
+    message.readPrimitive(&sequence);
+
+    _lastOctreeMessageSequence = sequence;
+    message.seek(0);
     std::static_pointer_cast<EntityTree>(_tree)->processEraseMessage(message, sourceNode);
 }
 
@@ -913,8 +968,7 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, bool 
             entity->scriptHasUnloaded();
         }
         if (shouldLoad) {
-            scriptUrl = DependencyManager::get<ResourceManager>()->normalizeURL(scriptUrl);
-            _entitiesScriptEngine->loadEntityScript(entityID, scriptUrl, reload);
+            _entitiesScriptEngine->loadEntityScript(entityID, resolveScriptURL(scriptUrl), reload);
             entity->scriptHasPreloaded();
         }
     }

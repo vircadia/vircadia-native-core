@@ -9,10 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QDebug>
-#include "SharedLogging.h"
 #include "VariantMapToScriptValue.h"
 
+#include <QDebug>
+
+#include "SharedLogging.h"
 
 QScriptValue variantToScriptValue(QVariant& qValue, QScriptEngine& scriptEngine) {
     switch(qValue.type()) {

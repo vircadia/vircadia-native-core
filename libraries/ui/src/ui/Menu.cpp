@@ -402,8 +402,10 @@ MenuWrapper* Menu::addMenu(const QString& menuName, const QString& grouping) {
 
     // hook our show/hide for popup menus, so we can keep track of whether or not one
     // of our submenus is currently showing.
-    connect(menu->_realMenu, &QMenu::aboutToShow, []() { _isSomeSubmenuShown = true; });
-    connect(menu->_realMenu, &QMenu::aboutToHide, []() { _isSomeSubmenuShown = false; });
+    if (menu && menu->_realMenu) {
+        connect(menu->_realMenu, &QMenu::aboutToShow, []() { _isSomeSubmenuShown = true; });
+        connect(menu->_realMenu, &QMenu::aboutToHide, []() { _isSomeSubmenuShown = false; });
+    }
 
     return menu;
 }

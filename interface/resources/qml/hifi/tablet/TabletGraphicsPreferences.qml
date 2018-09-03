@@ -32,6 +32,6 @@ StackView {
     TabletPreferencesDialog {
         id: root
         objectName: "TabletGraphicsPreferences"
-        showCategories: ["Graphics"]
+        showCategories: ["Graphics Quality"]
     }
 }

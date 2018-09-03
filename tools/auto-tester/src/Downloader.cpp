@@ -9,6 +9,8 @@
 //
 #include "Downloader.h"
 
+#include <QtWidgets/QMessageBox>
+
 Downloader::Downloader(QUrl imageUrl, QObject *parent) : QObject(parent) {
     connect(
         &_networkAccessManager, SIGNAL (finished(QNetworkReply*)),
@@ -20,6 +22,12 @@ Downloader::Downloader(QUrl imageUrl, QObject *parent) : QObject(parent) {
 }
 
 void Downloader::fileDownloaded(QNetworkReply* reply) {
+    QNetworkReply::NetworkError error = reply->error();
+    if (error != QNetworkReply::NetworkError::NoError) {
+        QMessageBox::information(0, "Test Aborted", "Failed to download image: " + reply->errorString());
+        return;
+    }
+
     _downloadedData = reply->readAll();
 
     //emit a signal

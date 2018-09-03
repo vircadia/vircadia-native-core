@@ -28,7 +28,11 @@ class QScriptEngine;
  * The HMD API provides access to the HMD used in VR display mode.
  *
  * @namespace HMD
- * @property {Vec3} position - The position of the HMD if currently in VR display mode, otherwise 
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
+ * @property {Vec3} position - The position of the HMD if currently in VR display mode, otherwise
  *     {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
  * @property {Quat} orientation - The orientation of the HMD if currently in VR display mode, otherwise 
  *     {@link Quat(0)|Quat.IDENTITY}. <em>Read-only.</em>
@@ -63,11 +67,11 @@ class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Depen
     Q_PROPERTY(bool tabletContextualMode READ getTabletContextualMode)
     Q_PROPERTY(QUuid tabletID READ getCurrentTabletFrameID WRITE setCurrentTabletFrameID)
     Q_PROPERTY(QUuid homeButtonID READ getCurrentHomeButtonID WRITE setCurrentHomeButtonID)
-    Q_PROPERTY(QUuid homeButtonHighlightID READ getCurrentHomeButtonHightlightID WRITE setCurrentHomeButtonHightlightID)
     Q_PROPERTY(QUuid tabletScreenID READ getCurrentTabletScreenID WRITE setCurrentTabletScreenID)
+    Q_PROPERTY(QUuid homeButtonHighlightID READ getCurrentHomeButtonHighlightID WRITE setCurrentHomeButtonHighlightID)
 
 public:
-    
+
     /**jsdoc
      * Calculate the intersection of a ray with the HUD overlay.
      * @function HMD.calculateRayUICollisionPoint
@@ -93,6 +97,8 @@ public:
      * });
      */
     Q_INVOKABLE glm::vec3 calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction) const;
+
+    glm::vec3 calculateParabolaUICollisionPoint(const glm::vec3& position, const glm::vec3& velocity, const glm::vec3& acceleration, float& parabolicDistance) const;
 
     /**jsdoc
      * Get the 2D HUD overlay coordinates of a 3D point on the HUD overlay.
@@ -339,17 +345,6 @@ signals:
      */
     bool shouldShowHandControllersChanged();
 
-    /**jsdoc
-     * Triggered when the <code>HMD.mounted</code> property value changes.
-     * @function HMD.mountedChanged
-     * @returns {Signal}
-     * @example <caption>Report when there's a change in the HMD being worn.</caption>
-     * HMD.mountedChanged.connect(function () {
-     *     print("Mounted changed. HMD is mounted: " + HMD.mounted);
-     * });
-     */
-    void mountedChanged();
-
 public:
     HMDScriptingInterface();
     static QScriptValue getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine);
@@ -368,8 +363,8 @@ public:
     void setCurrentHomeButtonID(QUuid homeButtonID) { _homeButtonID = homeButtonID; }
     QUuid getCurrentHomeButtonID() const { return _homeButtonID; }
 
-    void setCurrentHomeButtonHightlightID(QUuid homeButtonHightlightID) { _homeButtonHightlightID = homeButtonHightlightID; }
-    QUuid getCurrentHomeButtonHightlightID() const { return _homeButtonHightlightID; }
+    void setCurrentHomeButtonHighlightID(QUuid homeButtonHighlightID) { _homeButtonHighlightID = homeButtonHighlightID; }
+    QUuid getCurrentHomeButtonHighlightID() const { return _homeButtonHighlightID; }
 
     void setCurrentTabletScreenID(QUuid tabletID) { _tabletScreenID = tabletID; }
     QUuid getCurrentTabletScreenID() const { return _tabletScreenID; }
@@ -380,8 +375,8 @@ private:
     QUuid _tabletUIID; // this is the entityID of the tablet frame
     QUuid _tabletScreenID; // this is the overlayID which is part of (a child of) the tablet-ui.
     QUuid _homeButtonID;
-    QUuid _homeButtonHightlightID;
     QUuid _tabletEntityID;
+    QUuid _homeButtonHighlightID;
 
     // Get the position of the HMD
     glm::vec3 getPosition() const;

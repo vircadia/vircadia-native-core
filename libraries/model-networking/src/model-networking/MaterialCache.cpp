@@ -194,7 +194,7 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
         } else if (key == "emissiveMap") {
             auto value = materialJSON.value(key);
             if (value.isString()) {
-                material->setEmissiveMap(value.toString());
+                material->setEmissiveMap(baseUrl.resolved(value.toString()));
             }
         } else if (key == "albedoMap") {
             auto value = materialJSON.value(key);

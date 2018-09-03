@@ -35,13 +35,13 @@ void KeyLightPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desired
 void KeyLightPropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(keyLight, color, xColor, setColor);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(keyLight, intensity, float, setIntensity);
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(keyLight, direction, glmVec3, setDirection);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(keyLight, direction, vec3, setDirection);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(keyLight, castShadows, bool, setCastShadows);
 
     // legacy property support
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(keyLightColor, xColor, setColor, getColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(keyLightIntensity, float, setIntensity, getIntensity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(keyLightDirection, glmVec3, setDirection, getDirection);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(keyLightDirection, vec3, setDirection, getDirection);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(keyLightCastShadows, bool, setCastShadows, getCastShadows);
 }
 

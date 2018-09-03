@@ -13,8 +13,9 @@
 
 #include <display-plugins/CompositorHelper.h>
 #include <FramebufferCache.h>
-#include "ui/Stats.h"
+#include <plugins/PluginManager.h>
 #include <SceneScriptingInterface.h>
+#include "ui/Stats.h"
 #include "Util.h"
 
 
@@ -29,9 +30,6 @@ void Application::editRenderArgs(RenderArgsEditor editor) {
 
 void Application::paintGL() {
     // Some plugins process message events, allowing paintGL to be called reentrantly.
-    if (_aboutToQuit || _window->isMinimized()) {
-        return;
-    }
 
     _renderFrameCount++;
     _lastTimeRendered.start();
@@ -120,7 +118,7 @@ void Application::paintGL() {
         // Primary rendering pass
         auto framebufferCache = DependencyManager::get<FramebufferCache>();
         finalFramebufferSize = framebufferCache->getFrameBufferSize();
-        // Final framebuffer that will be handled to the display-plugin
+        // Final framebuffer that will be handed to the display-plugin
         finalFramebuffer = framebufferCache->getFramebuffer();
     }
 
@@ -141,7 +139,10 @@ void Application::paintGL() {
     frame->frameIndex = _renderFrameCount;
     frame->framebuffer = finalFramebuffer;
     frame->framebufferRecycler = [](const gpu::FramebufferPointer& framebuffer) {
-        DependencyManager::get<FramebufferCache>()->releaseFramebuffer(framebuffer);
+        auto frameBufferCache = DependencyManager::get<FramebufferCache>();
+        if (frameBufferCache) {
+            frameBufferCache->releaseFramebuffer(framebuffer);
+        }
     };
     // deliver final scene rendering commands to the display plugin
     {
@@ -207,10 +208,6 @@ void Application::runRenderFrame(RenderArgs* renderArgs) {
 
         RenderArgs::DebugFlags renderDebugFlags = RenderArgs::RENDER_DEBUG_NONE;
 
-        if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowHulls)) {
-            renderDebugFlags = static_cast<RenderArgs::DebugFlags>(renderDebugFlags |
-                static_cast<int>(RenderArgs::RENDER_DEBUG_HULLS));
-        }
         renderArgs->_debugFlags = renderDebugFlags;
     }
 
@@ -233,3 +230,4 @@ void Application::runRenderFrame(RenderArgs* renderArgs) {
         _renderEngine->run();
     }
 }
+

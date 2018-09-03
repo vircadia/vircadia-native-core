@@ -21,6 +21,9 @@
  * The Clipboard API enables you to export and import entities to and from JSON files.
  *
  * @namespace Clipboard
+ *
+ * @hifi-interface
+ * @hifi-client-entity
  */
 class ClipboardScriptingInterface : public QObject {
     Q_OBJECT

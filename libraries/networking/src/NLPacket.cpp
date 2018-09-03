@@ -11,10 +11,12 @@
 
 #include "NLPacket.h"
 
+#include "HMACAuth.h"
+
 int NLPacket::localHeaderSize(PacketType type) {
     bool nonSourced = PacketTypeEnum::getNonSourcedPackets().contains(type);
     bool nonVerified = PacketTypeEnum::getNonVerifiedPackets().contains(type);
-    qint64 optionalSize = (nonSourced ? 0 : NUM_BYTES_RFC4122_UUID) + ((nonSourced || nonVerified) ? 0 : NUM_BYTES_MD5_HASH);
+    qint64 optionalSize = (nonSourced ? 0 : NUM_BYTES_LOCALID) + ((nonSourced || nonVerified) ? 0 : NUM_BYTES_MD5_HASH);
     return sizeof(PacketType) + sizeof(PacketVersion) + optionalSize;
 }
 int NLPacket::totalHeaderSize(PacketType type, bool isPartOfMessage) {
@@ -139,28 +141,27 @@ PacketVersion NLPacket::versionInHeader(const udt::Packet& packet) {
     return *reinterpret_cast<const PacketVersion*>(packet.getData() + headerOffset + sizeof(PacketType));
 }
 
-QUuid NLPacket::sourceIDInHeader(const udt::Packet& packet) {
+NLPacket::LocalID NLPacket::sourceIDInHeader(const udt::Packet& packet) {
     int offset = Packet::totalHeaderSize(packet.isPartOfMessage()) + sizeof(PacketType) + sizeof(PacketVersion);
-    return QUuid::fromRfc4122(QByteArray::fromRawData(packet.getData() + offset, NUM_BYTES_RFC4122_UUID));
+    return *reinterpret_cast<const LocalID*>(packet.getData() + offset);
 }
 
 QByteArray NLPacket::verificationHashInHeader(const udt::Packet& packet) {
-    int offset = Packet::totalHeaderSize(packet.isPartOfMessage()) + sizeof(PacketType) + sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;
+    int offset = Packet::totalHeaderSize(packet.isPartOfMessage()) + sizeof(PacketType) +
+        sizeof(PacketVersion) + NUM_BYTES_LOCALID;
     return QByteArray(packet.getData() + offset, NUM_BYTES_MD5_HASH);
 }
 
-QByteArray NLPacket::hashForPacketAndSecret(const udt::Packet& packet, const QUuid& connectionSecret) {
-    QCryptographicHash hash(QCryptographicHash::Md5);
-    
+QByteArray NLPacket::hashForPacketAndHMAC(const udt::Packet& packet, HMACAuth& hash) {
     int offset = Packet::totalHeaderSize(packet.isPartOfMessage()) + sizeof(PacketType) + sizeof(PacketVersion)
-        + NUM_BYTES_RFC4122_UUID + NUM_BYTES_MD5_HASH;
+        + NUM_BYTES_LOCALID + NUM_BYTES_MD5_HASH;
     
     // add the packet payload and the connection UUID
-    hash.addData(packet.getData() + offset, packet.getDataSize() - offset);
-    hash.addData(connectionSecret.toRfc4122());
-    
-    // return the hash
-    return hash.result();
+    HMACAuth::HMACHash hashResult;
+    if (!hash.calculateHash(hashResult, packet.getData() + offset, packet.getDataSize() - offset)) {
+        return QByteArray();
+    }
+    return QByteArray((const char*) hashResult.data(), (int) hashResult.size());
 }
 
 void NLPacket::writeTypeAndVersion() {
@@ -198,27 +199,31 @@ void NLPacket::readVersion() {
 }
 
 void NLPacket::readSourceID() {
-    if (!PacketTypeEnum::getNonSourcedPackets().contains(_type)) {
+    if (PacketTypeEnum::getNonSourcedPackets().contains(_type)) {
+        _sourceID = NULL_LOCAL_ID;
+    } else {
         _sourceID = sourceIDInHeader(*this);
     }
 }
 
-void NLPacket::writeSourceID(const QUuid& sourceID) const {
+void NLPacket::writeSourceID(LocalID sourceID) const {
     Q_ASSERT(!PacketTypeEnum::getNonSourcedPackets().contains(_type));
     
     auto offset = Packet::totalHeaderSize(isPartOfMessage()) + sizeof(PacketType) + sizeof(PacketVersion);
-    memcpy(_packet.get() + offset, sourceID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
+
+    memcpy(_packet.get() + offset, &sourceID, sizeof(sourceID));
     
     _sourceID = sourceID;
 }
 
-void NLPacket::writeVerificationHashGivenSecret(const QUuid& connectionSecret) const {
+void NLPacket::writeVerificationHash(HMACAuth& hmacAuth) const {
     Q_ASSERT(!PacketTypeEnum::getNonSourcedPackets().contains(_type) &&
              !PacketTypeEnum::getNonVerifiedPackets().contains(_type));
     
     auto offset = Packet::totalHeaderSize(isPartOfMessage()) + sizeof(PacketType) + sizeof(PacketVersion)
-                + NUM_BYTES_RFC4122_UUID;
-    QByteArray verificationHash = hashForPacketAndSecret(*this, connectionSecret);
+                + NUM_BYTES_LOCALID;
+
+    QByteArray verificationHash = hashForPacketAndHMAC(*this, hmacAuth);
     
     memcpy(_packet.get() + offset, verificationHash.data(), verificationHash.size());
 }

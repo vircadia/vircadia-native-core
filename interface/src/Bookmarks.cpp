@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Bookmarks.h"
+
 #include <QAction>
 #include <QDebug>
 #include <QInputDialog>
@@ -21,8 +23,6 @@
 #include "MainWindow.h"
 #include "Menu.h"
 #include "InterfaceLogging.h"
-
-#include "Bookmarks.h"
 
 Bookmarks::Bookmarks() :
 _isMenuSorted(false)
@@ -46,6 +46,10 @@ void Bookmarks::deleteBookmark() {
         return;
     }
 
+    deleteBookmark(bookmarkName);
+}
+
+void Bookmarks::deleteBookmark(const QString& bookmarkName) {
     removeBookmarkFromMenu(Menu::getInstance(), bookmarkName);
     remove(bookmarkName);
 

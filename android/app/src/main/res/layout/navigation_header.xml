@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="176dp"
+    android:minHeight="176dp">
+    <LinearLayout
+        android:id="@+id/loginPanel"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginLeft="@dimen/activity_horizontal_margin"
+        android:visibility="visible">
+        <ImageView
+            android:id="@+id/hifiLogo"
+            android:layout_width="74dp"
+            android:layout_height="74dp"
+            android:src="@drawable/hifi_logo_header"
+            android:layout_gravity="center_vertical|left" />
+
+        <TextView
+            android:id="@+id/login"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/raleway_semibold"
+            android:text="@string/login"
+            android:textSize="18sp"
+            android:layout_marginLeft="22dp"
+            android:layout_gravity="center_vertical"
+            android:onClick="onLoginClicked"
+            />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/profilePanel"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginLeft="@dimen/activity_horizontal_margin"
+        android:visibility="gone">
+    <ImageView
+        android:id="@+id/profilePicture"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:src="@drawable/default_profile_avatar"
+        android:layout_gravity="center_vertical|left" />
+
+    <TextView
+        android:id="@+id/displayName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/raleway_semibold"
+        android:text=""
+        android:textSize="18sp"
+        app:layout_constraintLeft_toRightOf="@id/profilePicture"
+        android:layout_marginLeft="22dp"
+        android:layout_gravity="center_vertical"/>
+    </LinearLayout>
+</android.support.constraint.ConstraintLayout>

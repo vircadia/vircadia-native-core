@@ -26,7 +26,7 @@ ScrollingWindow {
     property var showCategories: []
     minSize: Qt.vector2d(400, 500)
 
-    //HifiConstants { id: hifi }
+    HifiConstants { id: hifi }
 
     function saveAll() {
         for (var i = 0; i < sections.length; ++i) {
@@ -96,9 +96,9 @@ ScrollingWindow {
         anchors {
             top: parent.top
             right: parent.right
-            rightMargin: 10//hifi.dimensions.contentMargin.x
+            rightMargin: hifi.dimensions.contentMargin.x
         }
-        spacing: 1//hifi.dimensions.contentSpacing.x
+        spacing: hifi.dimensions.contentSpacing.x
 
         HifiControls.Button {
             text: "Save changes"

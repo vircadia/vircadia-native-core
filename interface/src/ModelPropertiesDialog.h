@@ -37,6 +37,7 @@ public:
 private slots:
     void reset();
     void chooseTextureDirectory();
+    void chooseScriptDirectory();
     void updatePivotJoint();
     void createNewFreeJoint(const QString& joint = QString());
     
@@ -52,6 +53,7 @@ private:
     FBXGeometry _geometry;
     QLineEdit* _name = nullptr;
     QPushButton* _textureDirectory = nullptr;
+    QPushButton* _scriptDirectory = nullptr;
     QDoubleSpinBox* _scale = nullptr;
     QDoubleSpinBox* _translationX = nullptr;
     QDoubleSpinBox* _translationY = nullptr;

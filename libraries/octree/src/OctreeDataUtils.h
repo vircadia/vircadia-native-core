@@ -28,6 +28,7 @@ constexpr Version INITIAL_VERSION = 0;
 class RawOctreeData {
 public:
     QUuid id { QUuid() };
+    Version dataVersion { -1 };
     Version version { -1 };
 
     virtual PacketType dataPacketType() const;

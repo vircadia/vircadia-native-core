@@ -22,7 +22,7 @@ public:
                                                 bool isReliable = false, bool isOrdered = false);
     
     PacketVersion getVersion() const { return _packetVersion; }
-    const QUuid& getSourceID() const { return _sourceID; }
+    NLPacket::LocalID getSourceID() const { return _sourceID; }
 
     qint64 getMaxSegmentSize() const override { return NLPacket::maxPayloadSize(_packetType, _isOrdered); }
     
@@ -37,7 +37,7 @@ private:
 
 
     PacketVersion _packetVersion;
-    QUuid _sourceID;
+    NLPacket::LocalID _sourceID;
 };
 
 Q_DECLARE_METATYPE(QSharedPointer<NLPacketList>)

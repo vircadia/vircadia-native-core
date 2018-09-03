@@ -23,7 +23,6 @@
 #include <gpu/Frame.h>
 #include <gpu/gl/GLBackend.h>
 
-
 #include <ViewFrustum.h>
 #include <PathUtils.h>
 #include <shared/NsightHelpers.h>
@@ -36,9 +35,7 @@
 
 Q_DECLARE_LOGGING_CATEGORY(displayplugins)
 
-const char* OpenVrDisplayPlugin::NAME { "OpenVR (Vive)" };
-const char* StandingHMDSensorMode { "Standing HMD Sensor Mode" }; // this probably shouldn't be hardcoded here
-const char* OpenVrThreadedSubmit { "OpenVR Threaded Submit" }; // this probably shouldn't be hardcoded here
+const char* OpenVrThreadedSubmit{ "OpenVR Threaded Submit" };  // this probably shouldn't be hardcoded here
 
 PoseData _nextRenderPoseData;
 PoseData _nextSimPoseData;
@@ -46,8 +43,8 @@ PoseData _nextSimPoseData;
 #define MIN_CORES_FOR_NORMAL_RENDER 5
 bool forceInterleavedReprojection = (QThread::idealThreadCount() < MIN_CORES_FOR_NORMAL_RENDER);
 
-static std::array<vr::Hmd_Eye, 2> VR_EYES { { vr::Eye_Left, vr::Eye_Right } };
-bool _openVrDisplayActive { false };
+static std::array<vr::Hmd_Eye, 2> VR_EYES{ { vr::Eye_Left, vr::Eye_Right } };
+bool _openVrDisplayActive{ false };
 // Flip y-axis since GL UV coords are backwards.
 static vr::VRTextureBounds_t OPENVR_TEXTURE_BOUNDS_LEFT{ 0, 0, 0.5f, 1 };
 static vr::VRTextureBounds_t OPENVR_TEXTURE_BOUNDS_RIGHT{ 0.5f, 0, 1, 1 };
@@ -166,9 +163,7 @@ public:
     friend class OpenVrDisplayPlugin;
     std::shared_ptr<gl::OffscreenContext> _canvas;
 
-    OpenVrSubmitThread(OpenVrDisplayPlugin& plugin) : _plugin(plugin) { 
-        setObjectName("OpenVR Submit Thread");
-    }
+    OpenVrSubmitThread(OpenVrDisplayPlugin& plugin) : _plugin(plugin) { setObjectName("OpenVR Submit Thread"); }
 
     void updateSource() {
         _plugin.withNonPresentThreadLock([&] {
@@ -192,18 +187,18 @@ public:
         });
     }
 
-    GLuint _program { 0 };
+    GLuint _program{ 0 };
 
     void updateProgram() {
         if (!_program) {
             std::string vsSource = HMD_REPROJECTION_VERT;
             std::string fsSource = HMD_REPROJECTION_FRAG;
-            GLuint vertexShader { 0 }, fragmentShader { 0 };
+            GLuint vertexShader{ 0 }, fragmentShader{ 0 };
             std::string error;
-            std::vector<char> binary;
-            ::gl::compileShader(GL_VERTEX_SHADER, vsSource, "", vertexShader, error);
-            ::gl::compileShader(GL_FRAGMENT_SHADER, fsSource, "", fragmentShader, error);
-            _program = ::gl::compileProgram({ { vertexShader, fragmentShader } }, error, binary);
+            ::gl::compileShader(GL_VERTEX_SHADER, vsSource, vertexShader, error);
+            ::gl::compileShader(GL_FRAGMENT_SHADER, fsSource, fragmentShader, error);
+            _program = ::gl::buildProgram({ { vertexShader, fragmentShader } });
+            ::gl::linkProgram(_program, error);
             glDeleteShader(vertexShader);
             glDeleteShader(fragmentShader);
             qDebug() << "Rebuild proigram";
@@ -213,14 +208,13 @@ public:
 #define COLOR_BUFFER_COUNT 4
 
     void run() override {
-
-        GLuint _framebuffer { 0 };
+        GLuint _framebuffer{ 0 };
         std::array<GLuint, COLOR_BUFFER_COUNT> _colors;
-        size_t currentColorBuffer { 0 };
-        size_t globalColorBufferCount { 0 };
-        GLuint _uniformBuffer { 0 };
-        GLuint _vao { 0 };
-        GLuint _depth { 0 };
+        size_t currentColorBuffer{ 0 };
+        size_t globalColorBufferCount{ 0 };
+        GLuint _uniformBuffer{ 0 };
+        GLuint _vao{ 0 };
+        GLuint _depth{ 0 };
         Reprojection _reprojection;
 
         QThread::currentThread()->setPriority(QThread::Priority::TimeCriticalPriority);
@@ -230,7 +224,6 @@ public:
         glNamedBufferStorage(_uniformBuffer, sizeof(Reprojection), 0, GL_DYNAMIC_STORAGE_BIT);
         glCreateVertexArrays(1, &_vao);
         glBindVertexArray(_vao);
-
 
         glCreateFramebuffers(1, &_framebuffer);
         {
@@ -254,7 +247,6 @@ public:
                 QThread::usleep(1);
                 continue;
             }
-
 
             updateProgram();
             {
@@ -283,13 +275,15 @@ public:
                 static const vr::VRTextureBounds_t leftBounds{ 0, 0, 0.5f, 1 };
                 static const vr::VRTextureBounds_t rightBounds{ 0.5f, 0, 1, 1 };
 
-                vr::Texture_t texture{ (void*)(uintptr_t)_colors[currentColorBuffer], vr::TextureType_OpenGL, vr::ColorSpace_Auto };
+                vr::Texture_t texture{ (void*)(uintptr_t)_colors[currentColorBuffer], vr::TextureType_OpenGL,
+                                       vr::ColorSpace_Auto };
                 vr::VRCompositor()->Submit(vr::Eye_Left, &texture, &leftBounds);
                 vr::VRCompositor()->Submit(vr::Eye_Right, &texture, &rightBounds);
                 _plugin._presentRate.increment();
                 PoseData nextRender, nextSim;
                 nextRender.frameIndex = _plugin.presentCount();
-                vr::VRCompositor()->WaitGetPoses(nextRender.vrPoses, vr::k_unMaxTrackedDeviceCount, nextSim.vrPoses, vr::k_unMaxTrackedDeviceCount);
+                vr::VRCompositor()->WaitGetPoses(nextRender.vrPoses, vr::k_unMaxTrackedDeviceCount, nextSim.vrPoses,
+                                                 vr::k_unMaxTrackedDeviceCount);
 
                 // Copy invalid poses in nextSim from nextRender
                 for (uint32_t i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i) {
@@ -299,9 +293,7 @@ public:
                 }
 
                 mat4 sensorResetMat;
-                _plugin.withNonPresentThreadLock([&] {
-                    sensorResetMat = _plugin._sensorResetMat;
-                });
+                _plugin.withNonPresentThreadLock([&] { sensorResetMat = _plugin._sensorResetMat; });
 
                 nextRender.update(sensorResetMat);
                 nextSim.update(sensorResetMat);
@@ -329,16 +321,12 @@ public:
         _canvas->doneCurrent();
     }
 
-    void update(const CompositeInfo& newCompositeInfo) {
-        _queue.push(newCompositeInfo);
-    }
+    void update(const CompositeInfo& newCompositeInfo) { _queue.push(newCompositeInfo); }
 
     void waitForPresent() {
         auto lastCount = _presentCount.load();
         Lock lock(_plugin._presentMutex);
-        _presented.wait(lock, [&]()->bool {
-            return _presentCount.load() > lastCount;
-        });
+        _presented.wait(lock, [&]() -> bool { return _presentCount.load() > lastCount; });
         _nextSimPoseData = _nextSim;
         _nextRenderPoseData = _nextRender;
     }
@@ -347,9 +335,9 @@ public:
     CompositeInfo::Queue _queue;
 
     PoseData _nextRender, _nextSim;
-    bool _quit { false };
-    GLuint _currentTexture { 0 };
-    std::atomic<uint32_t> _presentCount { 0 };
+    bool _quit{ false };
+    GLuint _currentTexture{ 0 };
+    std::atomic<uint32_t> _presentCount{ 0 };
     Condition _presented;
     OpenVrDisplayPlugin& _plugin;
 };
@@ -410,6 +398,15 @@ void OpenVrDisplayPlugin::init() {
     emit deviceConnected(getName());
 }
 
+const QString OpenVrDisplayPlugin::getName() const {
+    std::string headsetName = getOpenVrDeviceName();
+    if (headsetName == "HTC") {
+        headsetName += " Vive";
+    }
+
+    return QString::fromStdString(headsetName);
+}
+
 bool OpenVrDisplayPlugin::internalActivate() {
     if (!_system) {
         _system = acquireOpenVrSystem();
@@ -443,10 +440,8 @@ bool OpenVrDisplayPlugin::internalActivate() {
     qDebug() << "OpenVR Threaded submit enabled:  " << _threadedSubmit;
 
     _openVrDisplayActive = true;
-    _container->setIsOptionChecked(StandingHMDSensorMode, true);
-
     _system->GetRecommendedRenderTargetSize(&_renderTargetSize.x, &_renderTargetSize.y);
-    // Recommended render target size is per-eye, so double the X size for 
+    // Recommended render target size is per-eye, so double the X size for
     // left + right eyes
     _renderTargetSize.x *= 2;
 
@@ -463,7 +458,6 @@ bool OpenVrDisplayPlugin::internalActivate() {
     if (forceInterleavedReprojection) {
         vr::VRCompositor()->ForceInterleavedReprojectionOn(true);
     }
-    
 
     // set up default sensor space such that the UI overlay will align with the front of the room.
     auto chaperone = vr::VRChaperone();
@@ -477,9 +471,9 @@ bool OpenVrDisplayPlugin::internalActivate() {
         glm::vec3 uiPos(0.0f, UI_HEIGHT, UI_RADIUS - (0.5f * zSize) - UI_Z_OFFSET);
         _sensorResetMat = glm::inverse(createMatFromQuatAndPos(glm::quat(), uiPos));
     } else {
-        #if DEV_BUILD
-            qDebug() << "OpenVR: error could not get chaperone pointer";
-        #endif
+#if DEV_BUILD
+        qDebug() << "OpenVR: error could not get chaperone pointer";
+#endif
     }
 
     if (_threadedSubmit) {
@@ -500,7 +494,6 @@ void OpenVrDisplayPlugin::internalDeactivate() {
     Parent::internalDeactivate();
 
     _openVrDisplayActive = false;
-    _container->setIsOptionChecked(StandingHMDSensorMode, false);
     if (_system) {
         // TODO: Invalidate poses. It's fine if someone else sets these shared values, but we're about to stop updating them, and
         // we don't want ViveControllerManager to consider old values to be valid.
@@ -519,7 +512,9 @@ void OpenVrDisplayPlugin::customizeContext() {
         _compositeInfos[0].texture = _compositeFramebuffer->getRenderBuffer(0);
         for (size_t i = 0; i < COMPOSITING_BUFFER_SIZE; ++i) {
             if (0 != i) {
-                _compositeInfos[i].texture = gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, _renderTargetSize.x, _renderTargetSize.y, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT));
+                _compositeInfos[i].texture = gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, _renderTargetSize.x,
+                                                                              _renderTargetSize.y, gpu::Texture::SINGLE_MIP,
+                                                                              gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT));
             }
             _compositeInfos[i].textureID = getGLBackend()->getTextureID(_compositeInfos[i].texture);
         }
@@ -540,9 +535,7 @@ void OpenVrDisplayPlugin::uncustomizeContext() {
 
 void OpenVrDisplayPlugin::resetSensors() {
     glm::mat4 m;
-    withNonPresentThreadLock([&] {
-        m = toGlm(_nextSimPoseData.vrPoses[0].mDeviceToAbsoluteTracking);
-    });
+    withNonPresentThreadLock([&] { m = toGlm(_nextSimPoseData.vrPoses[0].mDeviceToAbsoluteTracking); });
     _sensorResetMat = glm::inverse(cancelOutRollAndPitch(m));
 }
 
@@ -563,9 +556,7 @@ bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     _currentRenderFrameInfo = FrameInfo();
 
     PoseData nextSimPoseData;
-    withNonPresentThreadLock([&] {
-        nextSimPoseData = _nextSimPoseData;
-    });
+    withNonPresentThreadLock([&] { nextSimPoseData = _nextSimPoseData; });
 
     // HACK: when interface is launched and steam vr is NOT running, openvr will return bad HMD poses for a few frames
     // To workaround this, filter out any hmd poses that are obviously bad, i.e. beneath the floor.
@@ -578,10 +569,11 @@ bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
         _lastGoodHMDPose = nextSimPoseData.vrPoses[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking;
     }
 
-    vr::TrackedDeviceIndex_t handIndices[2] { vr::k_unTrackedDeviceIndexInvalid, vr::k_unTrackedDeviceIndexInvalid };
+    vr::TrackedDeviceIndex_t handIndices[2]{ vr::k_unTrackedDeviceIndexInvalid, vr::k_unTrackedDeviceIndexInvalid };
     {
-        vr::TrackedDeviceIndex_t controllerIndices[2] ;
-        auto trackedCount = _system->GetSortedTrackedDeviceIndicesOfClass(vr::TrackedDeviceClass_Controller, controllerIndices, 2);
+        vr::TrackedDeviceIndex_t controllerIndices[2];
+        auto trackedCount =
+            _system->GetSortedTrackedDeviceIndicesOfClass(vr::TrackedDeviceClass_Controller, controllerIndices, 2);
         // Find the left and right hand controllers, if they exist
         for (uint32_t i = 0; i < std::min<uint32_t>(trackedCount, 2); ++i) {
             if (nextSimPoseData.vrPoses[i].bPoseIsValid) {
@@ -610,13 +602,12 @@ bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
             const vec3& angularVelocity = nextSimPoseData.angularVelocities[deviceIndex];
             auto correctedPose = openVrControllerPoseToHandPose(i == 0, mat, linearVelocity, angularVelocity);
             static const glm::quat HAND_TO_LASER_ROTATION = glm::rotation(Vectors::UNIT_Z, Vectors::UNIT_NEG_Y);
-            handPoses[i] = glm::translate(glm::mat4(), correctedPose.translation) * glm::mat4_cast(correctedPose.rotation * HAND_TO_LASER_ROTATION);
+            handPoses[i] = glm::translate(glm::mat4(), correctedPose.translation) *
+                           glm::mat4_cast(correctedPose.rotation * HAND_TO_LASER_ROTATION);
         }
     }
 
-    withNonPresentThreadLock([&] {
-        _frameInfos[frameIndex] = _currentRenderFrameInfo;
-    });
+    withNonPresentThreadLock([&] { _frameInfos[frameIndex] = _currentRenderFrameInfo; });
     return Parent::beginFrameRender(frameIndex);
 }
 
@@ -648,9 +639,7 @@ void OpenVrDisplayPlugin::compositeLayers() {
         if (!newComposite.textureID) {
             newComposite.textureID = getGLBackend()->getTextureID(newComposite.texture);
         }
-        withPresentThreadLock([&] {
-            _submitThread->update(newComposite);
-        });
+        withPresentThreadLock([&] { _submitThread->update(newComposite); });
     }
 }
 
@@ -661,7 +650,7 @@ void OpenVrDisplayPlugin::hmdPresent() {
         _submitThread->waitForPresent();
     } else {
         GLuint glTexId = getGLBackend()->getTextureID(_compositeFramebuffer->getRenderBuffer(0));
-        vr::Texture_t vrTexture { (void*)(uintptr_t)glTexId, vr::TextureType_OpenGL, vr::ColorSpace_Auto };
+        vr::Texture_t vrTexture{ (void*)(uintptr_t)glTexId, vr::TextureType_OpenGL, vr::ColorSpace_Auto };
         vr::VRCompositor()->Submit(vr::Eye_Left, &vrTexture, &OPENVR_TEXTURE_BOUNDS_LEFT);
         vr::VRCompositor()->Submit(vr::Eye_Right, &vrTexture, &OPENVR_TEXTURE_BOUNDS_RIGHT);
         vr::VRCompositor()->PostPresentHandoff();
@@ -683,19 +672,20 @@ void OpenVrDisplayPlugin::postPreview() {
     _hmdActivityLevel = _system->GetTrackedDeviceActivityLevel(vr::k_unTrackedDeviceIndex_Hmd);
 
     if (!_threadedSubmit) {
-        vr::VRCompositor()->WaitGetPoses(nextRender.vrPoses, vr::k_unMaxTrackedDeviceCount, nextSim.vrPoses, vr::k_unMaxTrackedDeviceCount);
+        vr::VRCompositor()->WaitGetPoses(nextRender.vrPoses, vr::k_unMaxTrackedDeviceCount, nextSim.vrPoses,
+                                         vr::k_unMaxTrackedDeviceCount);
 
         glm::mat4 resetMat;
-        withPresentThreadLock([&] {
-            resetMat = _sensorResetMat;
-        });
+        withPresentThreadLock([&] { resetMat = _sensorResetMat; });
         nextRender.update(resetMat);
         nextSim.update(resetMat);
-        withPresentThreadLock([&] {
-            _nextSimPoseData = nextSim;
-        });
+        withPresentThreadLock([&] { _nextSimPoseData = nextSim; });
         _nextRenderPoseData = nextRender;
+    }
 
+    if (isHmdMounted() != _hmdMounted) {
+        _hmdMounted = !_hmdMounted;
+        emit hmdMountedChanged();
     }
 }
 
@@ -707,7 +697,7 @@ void OpenVrDisplayPlugin::updatePresentPose() {
     _currentPresentFrameInfo.presentPose = _nextRenderPoseData.poses[vr::k_unTrackedDeviceIndex_Hmd];
 }
 
-bool OpenVrDisplayPlugin::suppressKeyboard() { 
+bool OpenVrDisplayPlugin::suppressKeyboard() {
     if (isOpenVrKeyboardShown()) {
         return false;
     }
@@ -728,10 +718,10 @@ void OpenVrDisplayPlugin::unsuppressKeyboard() {
 }
 
 bool OpenVrDisplayPlugin::isKeyboardVisible() {
-    return isOpenVrKeyboardShown(); 
+    return isOpenVrKeyboardShown();
 }
 
-int OpenVrDisplayPlugin::getRequiredThreadCount() const { 
+int OpenVrDisplayPlugin::getRequiredThreadCount() const {
     return Parent::getRequiredThreadCount() + (_threadedSubmit ? 1 : 0);
 }
 
@@ -760,4 +750,3 @@ QString OpenVrDisplayPlugin::getPreferredAudioOutDevice() const {
     }
     return device;
 }
-

@@ -9,11 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "SpeechRecognizer.h"
+
 #include <QtGlobal>
 #include <QDebug>
 
 #include "InterfaceLogging.h"
-#include "SpeechRecognizer.h"
 
 #if defined(Q_OS_WIN)
 

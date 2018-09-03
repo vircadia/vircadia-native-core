@@ -12,6 +12,8 @@
 //    * need to add expected results and accumulation of test success/failure
 //
 
+#include "OctreeTests.h"
+
 #include <QDebug>
 
 #include <ByteCountCoding.h>
@@ -22,8 +24,6 @@
 #include <OctreeConstants.h>
 #include <PropertyFlags.h>
 #include <SharedUtil.h>
-
-#include "OctreeTests.h"
 
 enum ExamplePropertyList {
     EXAMPLE_PROP_PAGED_PROPERTY,

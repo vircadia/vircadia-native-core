@@ -101,12 +101,15 @@
         this.isReady = function(controllerData, deltaTime) {
             var now = Date.now();
             this.triggersPressed(controllerData, now);
-            if ((HMD.active && !this.mouseActivity.expired(now)) && _this.handControllerActivity.expired()) {
-                Reticle.visible = true;
-                return ControllerDispatcherUtils.makeRunningValues(true, [], []);
-            }
             if (HMD.active) {
-                Reticle.visible = false;
+                if (!this.mouseActivity.expired(now) && _this.handControllerActivity.expired()) {
+                    Reticle.visible = true;
+                    return ControllerDispatcherUtils.makeRunningValues(true, [], []);
+                } else {
+                    Reticle.visible = false;
+                }
+            } else if (!Reticle.visible) {
+                Reticle.visible = true;
             }
 
             return ControllerDispatcherUtils.makeRunningValues(false, [], []);

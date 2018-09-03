@@ -91,58 +91,7 @@ QVariantMap HifiConfigVariantMap::mergeCLParametersWithJSONConfig(const QStringL
     return mergedMap;
 }
 
-void HifiConfigVariantMap::loadConfig(const QStringList& argumentList) {
-    // load the user config
-    const QString USER_CONFIG_FILE_OPTION = "--user-config";
-    static const QString USER_CONFIG_FILE_NAME = "config.json";
-
-    int userConfigIndex = argumentList.indexOf(USER_CONFIG_FILE_OPTION);
-    if (userConfigIndex != -1) {
-        _userConfigFilename = argumentList[userConfigIndex + 1];
-    } else {
-        // we weren't passed a user config path
-        _userConfigFilename = PathUtils::getAppDataFilePath(USER_CONFIG_FILE_NAME);
-
-        // as of 1/19/2016 this path was moved so we attempt a migration for first run post migration here
-
-        // figure out what the old path was
-
-        // if our build version is "dev" we should migrate from a different organization folder
-
-        auto oldConfigFilename = QString("%1/%2/%3/%4").arg(QStandardPaths::writableLocation(QStandardPaths::ConfigLocation),
-                                                            QCoreApplication::organizationName(),
-                                                            QCoreApplication::applicationName(),
-                                                            USER_CONFIG_FILE_NAME);
-
-        oldConfigFilename = oldConfigFilename.replace("High Fidelity - dev", "High Fidelity");
-
-
-        // check if there's already a config file at the new path
-        QFile newConfigFile { _userConfigFilename };
-        if (!newConfigFile.exists()) {
-
-            QFile oldConfigFile { oldConfigFilename };
-
-            if (oldConfigFile.exists()) {
-                // we have the old file and not the new file - time to copy the file
-
-                // make the destination directory if it doesn't exist
-                auto dataDirectory = PathUtils::getAppDataPath();
-                if (QDir().mkpath(dataDirectory)) {
-                    if (oldConfigFile.copy(_userConfigFilename)) {
-                        qCDebug(shared) << "Migrated config file from" << oldConfigFilename << "to" << _userConfigFilename;
-                    } else {
-                        qCWarning(shared) << "Could not copy previous config file from" << oldConfigFilename << "to" << _userConfigFilename
-                        << "- please try to copy manually and restart.";
-                    }
-                } else {
-                    qCWarning(shared) << "Could not create application data directory" << dataDirectory << "- unable to migrate previous config file.";
-                }
-            }
-        }
-        
-    }
-    
+void HifiConfigVariantMap::loadConfig() {
     loadMapFromJSONFile(_userConfig, _userConfigFilename);
 }
 

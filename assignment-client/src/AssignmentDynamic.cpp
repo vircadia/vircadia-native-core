@@ -9,9 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "EntitySimulation.h"
-
 #include "AssignmentDynamic.h"
+
+#include "EntitySimulation.h"
 
 AssignmentDynamic::AssignmentDynamic(EntityDynamicType type, const QUuid& id, EntityItemPointer ownerEntity) :
     EntityDynamicInterface(type, id),

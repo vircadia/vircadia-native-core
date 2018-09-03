@@ -153,6 +153,12 @@
                     max: 5
                 },
                 {
+                    id: "speedSpread",
+                    name: "Speed Spread",
+                    type: "SliderFloat",
+                    max: 5
+                },
+                {
                     type: "Row"
                 },
                 {
@@ -321,7 +327,8 @@
                 {
                     id: "alpha",
                     name: "Alpha",
-                    type: "SliderFloat"
+                    type: "SliderFloat",
+                    max: 1.0
                 },
                 {
                     type: "Row"
@@ -329,7 +336,8 @@
                 {
                     id: "alphaSpread",
                     name: "Alpha Spread",
-                    type: "SliderFloat"
+                    type: "SliderFloat",
+                    max: 1.0
                 },
                 {
                     type: "Row"
@@ -337,7 +345,8 @@
                 {
                     id: "alphaStart",
                     name: "Alpha Start",
-                    type: "SliderFloat"
+                    type: "SliderFloat",
+                    max: 1.0
                 },
                 {
                     type: "Row"
@@ -345,7 +354,57 @@
                 {
                     id: "alphaFinish",
                     name: "Alpha Finish",
-                    type: "SliderFloat"
+                    type: "SliderFloat",
+                    max: 1.0
+                },
+                {
+                    type: "Row"
+                }
+            ],
+            Spin: [
+                {
+                    id: "particleSpin",
+                    name: "Particle Spin",
+                    type: "SliderRadian",
+                    min: -360.0,
+                    max: 360.0
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "spinSpread",
+                    name: "Spin Spread",
+                    type: "SliderRadian",
+                    max: 360.0
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "spinStart",
+                    name: "Spin Start",
+                    type: "SliderRadian",
+                    min: -360.0,
+                    max: 360.0
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "spinFinish",
+                    name: "Spin Finish",
+                    type: "SliderRadian",
+                    min: -360.0,
+                    max: 360.0
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "rotateWithEntity",
+                    name: "Rotate with Entity",
+                    type: "Boolean"
                 },
                 {
                     type: "Row"

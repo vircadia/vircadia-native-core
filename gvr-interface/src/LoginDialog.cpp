@@ -9,13 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "LoginDialog.h"
+
 #include <QtWidgets/QDialogButtonBox>
 #include <QtWidgets/QGridLayout>
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QPushButton>
-
-#include "LoginDialog.h"
 
 LoginDialog::LoginDialog(QWidget* parent) :
     QDialog(parent)

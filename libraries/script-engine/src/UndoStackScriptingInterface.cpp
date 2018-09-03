@@ -9,12 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "UndoStackScriptingInterface.h"
+
 #include <QDebug>
 #include <QScriptValue>
 #include <QScriptValueList>
 #include <QScriptEngine>
-
-#include "UndoStackScriptingInterface.h"
 
 UndoStackScriptingInterface::UndoStackScriptingInterface(QUndoStack* undoStack) : _undoStack(undoStack) {
 }

@@ -43,14 +43,6 @@ bool recommendedSparseTextures = (QThread::idealThreadCount() >= MIN_CORES_FOR_I
 
 std::atomic<bool> Texture::_enableSparseTextures { recommendedSparseTextures };
 
-struct ReportTextureState {
-    ReportTextureState() {
-        qCDebug(gpulogging) << "[TEXTURE TRANSFER SUPPORT]"
-            << "\n\tidealThreadCount:" << QThread::idealThreadCount()
-            << "\n\tRECOMMENDED enableSparseTextures:" << recommendedSparseTextures;
-    }
-} report;
-
 void Texture::setEnableSparseTextures(bool enabled) {
 #ifdef Q_OS_WIN
     qCDebug(gpulogging) << "[TEXTURE TRANSFER SUPPORT] SETTING - Enable Sparse Textures and Dynamic Texture Management:" << enabled;
@@ -184,12 +176,20 @@ TexturePointer Texture::createRenderBuffer(const Element& texelFormat, uint16 wi
     return create(TextureUsageType::RENDERBUFFER, TEX_2D, texelFormat, width, height, 1, 1, 0, numMips, sampler);
 }
 
+TexturePointer Texture::createRenderBufferArray(const Element& texelFormat, uint16 width, uint16 height, uint16 numSlices, uint16 numMips, const Sampler& sampler) {
+    return create(TextureUsageType::RENDERBUFFER, TEX_2D, texelFormat, width, height, 1, 1, numSlices, numMips, sampler);
+}
+
 TexturePointer Texture::create1D(const Element& texelFormat, uint16 width, uint16 numMips, const Sampler& sampler) {
     return create(TextureUsageType::RESOURCE, TEX_1D, texelFormat, width, 1, 1, 1, 0, numMips, sampler);
 }
 
 TexturePointer Texture::create2D(const Element& texelFormat, uint16 width, uint16 height, uint16 numMips, const Sampler& sampler) {
     return create(TextureUsageType::RESOURCE, TEX_2D, texelFormat, width, height, 1, 1, 0, numMips, sampler);
+}
+
+TexturePointer Texture::create2DArray(const Element& texelFormat, uint16 width, uint16 height, uint16 numSlices, uint16 numMips, const Sampler& sampler) {
+    return create(TextureUsageType::STRICT_RESOURCE, TEX_2D, texelFormat, width, height, 1, 1, numSlices, numMips, sampler);
 }
 
 TexturePointer Texture::createStrict(const Element& texelFormat, uint16 width, uint16 height, uint16 numMips, const Sampler& sampler) {
@@ -502,7 +502,7 @@ void Texture::setSampler(const Sampler& sampler) {
 }
 
 
-bool Texture::generateIrradiance() {
+bool Texture::generateIrradiance(gpu::BackendTarget target) {
     if (getType() != TEX_CUBE) {
         return false;
     }
@@ -513,7 +513,7 @@ bool Texture::generateIrradiance() {
         _irradiance = std::make_shared<SphericalHarmonics>();
     }
 
-    _irradiance->evalFromTexture(*this);
+    _irradiance->evalFromTexture(*this, target);
     return true;
 }
 
@@ -676,28 +676,13 @@ void sphericalHarmonicsEvaluateDirection(float * result, int order,  const glm::
    result[8] = P_2_2 * ((double)dir.x * (double)dir.x - (double)dir.y * (double)dir.y);
 }
 
-bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<glm::vec3> & output, const uint order) {
+bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<glm::vec3> & output, const uint order, gpu::BackendTarget target) {
     int width = cubeTexture.getWidth();
     if(width != cubeTexture.getHeight()) {
         return false;
     }
 
     PROFILE_RANGE(render_gpu, "sphericalHarmonicsFromTexture");
-
-    auto mipFormat = cubeTexture.getStoredMipFormat();
-    std::function<glm::vec3(uint32)> unpackFunc;
-
-    switch (mipFormat.getSemantic()) {
-        case gpu::R11G11B10:
-            unpackFunc = glm::unpackF2x11_1x10;
-            break;
-        case gpu::RGB9E5:
-            unpackFunc = glm::unpackF3x9_E1x5;
-            break;
-        default:
-            assert(false);
-            break;
-    }
 
     const uint sqOrder = order*order;
 
@@ -732,7 +717,7 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
     for(int face=0; face < gpu::Texture::NUM_CUBE_FACES; face++) {
         PROFILE_RANGE(render_gpu, "ProcessFace");
 
-        auto data = reinterpret_cast<const uint32*>( cubeTexture.accessStoredMipFace(0, face)->readData() );
+        auto data = cubeTexture.accessStoredMipFace(0, face)->readData();
         if (data == nullptr) {
             continue;
         }
@@ -814,12 +799,39 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
 
                 // get color from texture
                 glm::vec3 color{ 0.0f, 0.0f, 0.0f };
-                for (int i = 0; i < stride; ++i) {
-                    for (int j = 0; j < stride; ++j) {
-                        int k = (int)(x + i - halfStride + (y + j - halfStride) * width);
-                        color += unpackFunc(data[k]);
+
+                if (target != gpu::BackendTarget::GLES32) {
+                    auto mipFormat = cubeTexture.getStoredMipFormat();
+                    std::function<glm::vec3(uint32)> unpackFunc;
+                    switch (mipFormat.getSemantic()) {
+                    case gpu::R11G11B10:
+                        unpackFunc = glm::unpackF2x11_1x10;
+                        break;
+                    case gpu::RGB9E5:
+                        unpackFunc = glm::unpackF3x9_E1x5;
+                        break;
+                    default:
+                        assert(false);
+                        break;
+                    }
+                    auto data32 = reinterpret_cast<const uint32*>(data);
+                    for (int i = 0; i < stride; ++i) {
+                        for (int j = 0; j < stride; ++j) {
+                            int k = (int)(x + i - halfStride + (y + j - halfStride) * width);
+                            color += unpackFunc(data32[k]);
+                        }
+                    }
+                } else {
+                    // BGRA -> RGBA
+                    const int NUM_COMPONENTS_PER_PIXEL = 4;
+                    for (int i = 0; i < stride; ++i) {
+                        for (int j = 0; j < stride; ++j) {
+                            int k = NUM_COMPONENTS_PER_PIXEL * (int)(x + i - halfStride + (y + j - halfStride) * width);
+                            color += glm::pow(glm::vec3(data[k + 2], data[k + 1], data[k]) / 255.0f, glm::vec3(2.2f));
+                        }
                     }
                 }
+
 
                 // scale color and add to previously accumulated coefficients
                 // red
@@ -849,10 +861,10 @@ bool sphericalHarmonicsFromTexture(const gpu::Texture& cubeTexture, std::vector<
     return true;
 }
 
-void SphericalHarmonics::evalFromTexture(const Texture& texture) {
+void SphericalHarmonics::evalFromTexture(const Texture& texture, gpu::BackendTarget target) {
     if (texture.isDefined()) {
         std::vector< glm::vec3 > coefs;
-        sphericalHarmonicsFromTexture(texture, coefs, 3);
+        sphericalHarmonicsFromTexture(texture, coefs, 3, target);
 
         L00 = coefs[0];
         L1m1 = coefs[1];

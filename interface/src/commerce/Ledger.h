@@ -26,10 +26,11 @@ class Ledger : public QObject, public Dependency {
 
 public:
     void buy(const QString& hfc_key, int cost, const QString& asset_id, const QString& inventory_key, const bool controlled_failure = false);
-    bool receiveAt(const QString& hfc_key, const QString& signing_key);
+    bool receiveAt(const QString& hfc_key, const QString& signing_key, const QByteArray& locker);
+    bool receiveAt();
     void balance(const QStringList& keys);
-    void inventory(const QStringList& keys);
-    void history(const QStringList& keys, const int& pageNumber);
+    void inventory(const QString& editionFilter, const QString& typeFilter, const QString& titleFilter, const int& page, const int& perPage);
+    void history(const QStringList& keys, const int& pageNumber, const int& itemsPerPage);
     void account();
     void updateLocation(const QString& asset_id, const QString& location, const bool& alsoUpdateSiblings = false, const bool controlledFailure = false);
     void certificateInfo(const QString& certificateId);
@@ -65,36 +66,36 @@ signals:
     void updateCertificateStatus(const QString& certID, uint certStatus);
 
 public slots:
-    void buySuccess(QNetworkReply& reply);
-    void buyFailure(QNetworkReply& reply);
-    void receiveAtSuccess(QNetworkReply& reply);
-    void receiveAtFailure(QNetworkReply& reply);
-    void balanceSuccess(QNetworkReply& reply);
-    void balanceFailure(QNetworkReply& reply);
-    void inventorySuccess(QNetworkReply& reply);
-    void inventoryFailure(QNetworkReply& reply);
-    void historySuccess(QNetworkReply& reply);
-    void historyFailure(QNetworkReply& reply);
-    void accountSuccess(QNetworkReply& reply);
-    void accountFailure(QNetworkReply& reply);
-    void updateLocationSuccess(QNetworkReply& reply);
-    void updateLocationFailure(QNetworkReply& reply);
-    void certificateInfoSuccess(QNetworkReply& reply);
-    void certificateInfoFailure(QNetworkReply& reply);
-    void transferAssetToNodeSuccess(QNetworkReply& reply);
-    void transferAssetToNodeFailure(QNetworkReply& reply);
-    void transferAssetToUsernameSuccess(QNetworkReply& reply);
-    void transferAssetToUsernameFailure(QNetworkReply& reply);
-    void alreadyOwnedSuccess(QNetworkReply& reply);
-    void alreadyOwnedFailure(QNetworkReply& reply);
-    void availableUpdatesSuccess(QNetworkReply& reply);
-    void availableUpdatesFailure(QNetworkReply& reply);
-    void updateItemSuccess(QNetworkReply& reply);
-    void updateItemFailure(QNetworkReply& reply);
+    void buySuccess(QNetworkReply* reply);
+    void buyFailure(QNetworkReply* reply);
+    void receiveAtSuccess(QNetworkReply* reply);
+    void receiveAtFailure(QNetworkReply* reply);
+    void balanceSuccess(QNetworkReply* reply);
+    void balanceFailure(QNetworkReply* reply);
+    void inventorySuccess(QNetworkReply* reply);
+    void inventoryFailure(QNetworkReply* reply);
+    void historySuccess(QNetworkReply* reply);
+    void historyFailure(QNetworkReply* reply);
+    void accountSuccess(QNetworkReply* reply);
+    void accountFailure(QNetworkReply* reply);
+    void updateLocationSuccess(QNetworkReply* reply);
+    void updateLocationFailure(QNetworkReply* reply);
+    void certificateInfoSuccess(QNetworkReply* reply);
+    void certificateInfoFailure(QNetworkReply* reply);
+    void transferAssetToNodeSuccess(QNetworkReply* reply);
+    void transferAssetToNodeFailure(QNetworkReply* reply);
+    void transferAssetToUsernameSuccess(QNetworkReply* reply);
+    void transferAssetToUsernameFailure(QNetworkReply* reply);
+    void alreadyOwnedSuccess(QNetworkReply* reply);
+    void alreadyOwnedFailure(QNetworkReply* reply);
+    void availableUpdatesSuccess(QNetworkReply* reply);
+    void availableUpdatesFailure(QNetworkReply* reply);
+    void updateItemSuccess(QNetworkReply* reply);
+    void updateItemFailure(QNetworkReply* reply);
 
 private:
-    QJsonObject apiResponse(const QString& label, QNetworkReply& reply);
-    QJsonObject failResponse(const QString& label, QNetworkReply& reply);
+    QJsonObject apiResponse(const QString& label, QNetworkReply* reply);
+    QJsonObject failResponse(const QString& label, QNetworkReply* reply);
     void send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, AccountManagerAuth::Type authType, QJsonObject request);
     void keysQuery(const QString& endpoint, const QString& success, const QString& fail, QJsonObject& extraRequestParams);
     void keysQuery(const QString& endpoint, const QString& success, const QString& fail);

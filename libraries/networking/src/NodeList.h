@@ -90,10 +90,14 @@ public:
     bool getRequestsDomainListData() { return _requestsDomainListData; }
     void setRequestsDomainListData(bool isRequesting);
 
+    bool getSendDomainServerCheckInEnabled() { return _sendDomainServerCheckInEnabled; }
+    void setSendDomainServerCheckInEnabled(bool enabled) { _sendDomainServerCheckInEnabled = enabled; }
+
     void removeFromIgnoreMuteSets(const QUuid& nodeID);
 
     virtual bool isDomainServer() const override { return false; }
     virtual QUuid getDomainUUID() const override { return _domainHandler.getUUID(); }
+    virtual Node::LocalID getDomainLocalID() const override { return _domainHandler.getLocalID(); }
     virtual HifiSockAddr getDomainSockAddr() const override { return _domainHandler.getSockAddr(); }
 
 public slots:
@@ -166,7 +170,9 @@ private:
     HifiSockAddr _assignmentServerSocket;
     bool _isShuttingDown { false };
     QTimer _keepAlivePingTimer;
-    bool _requestsDomainListData;
+    bool _requestsDomainListData { false };
+
+    bool _sendDomainServerCheckInEnabled { true };
 
     mutable QReadWriteLock _ignoredSetLock;
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDs;
@@ -179,7 +185,7 @@ private:
 #if defined(Q_OS_ANDROID)
     Setting::Handle<bool> _ignoreRadiusEnabled { "IgnoreRadiusEnabled", false };
 #else
-    Setting::Handle<bool> _ignoreRadiusEnabled { "IgnoreRadiusEnabled", true };
+    Setting::Handle<bool> _ignoreRadiusEnabled { "IgnoreRadiusEnabled", false }; // False, until such time as it is made to work better.
 #endif
 
 #if (PR_BUILD || DEV_BUILD)

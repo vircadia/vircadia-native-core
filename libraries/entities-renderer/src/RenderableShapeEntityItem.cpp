@@ -15,12 +15,7 @@
 #include <StencilMaskPass.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
-
-#include "render-utils/simple_vert.h"
-#include "render-utils/simple_frag.h"
-#include "render-utils/simple_transparent_frag.h"
-#include "render-utils/forward_simple_frag.h"
-#include "render-utils/forward_simple_transparent_frag.h"
+#include <shaders/Shaders.h>
 
 #include "RenderPipelines.h"
 
@@ -37,12 +32,10 @@ static const float SPHERE_ENTITY_SCALE = 0.5f;
 
 
 ShapeEntityRenderer::ShapeEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {
-    _procedural._vertexSource = simple_vert::getSource();
+    _procedural._vertexSource = gpu::Shader::getVertexShaderSource(shader::render_utils::vertex::simple);
     // FIXME: Setup proper uniform slots and use correct pipelines for forward rendering
-    _procedural._opaquefragmentSource = simple_frag::getSource();
-    // FIXME: Transparent procedural entities only seem to work if they use the opaque pipelines
-    //_procedural._transparentfragmentSource = simple_transparent_frag::getSource();
-    _procedural._transparentfragmentSource = simple_frag::getSource();
+    _procedural._opaquefragmentSource = gpu::Shader::getFragmentShaderSource(shader::render_utils::fragment::simple);
+    _procedural._transparentfragmentSource = gpu::Shader::getFragmentShaderSource(shader::render_utils::fragment::simple_transparent);
     _procedural._opaqueState->setCullMode(gpu::State::CULL_NONE);
     _procedural._opaqueState->setDepthTest(true, true, gpu::LESS_EQUAL);
     PrepareStencil::testMaskDrawShape(*_procedural._opaqueState);
@@ -97,16 +90,23 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         addMaterial(graphics::MaterialLayer(_material, 0), "0");
 
         _shape = entity->getShape();
-        _position = entity->getWorldPosition();
-        _dimensions = entity->getScaledDimensions();
-        _orientation = entity->getWorldOrientation();
-        _renderTransform = getModelTransform();
+    });
 
-        if (_shape == entity::Sphere) {
-            _renderTransform.postScale(SPHERE_ENTITY_SCALE);
-        }
+    void* key = (void*)this;
+    AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this] () {
+        withWriteLock([&] {
+            auto entity = getEntity();
+            _position = entity->getWorldPosition();
+            _dimensions = entity->getScaledDimensions();
+            _orientation = entity->getWorldOrientation();
+            updateModelTransformAndBound();
+            _renderTransform = getModelTransform();
+            if (_shape == entity::Sphere) {
+                _renderTransform.postScale(SPHERE_ENTITY_SCALE);
+            }
 
-        _renderTransform.postScale(_dimensions);
+            _renderTransform.postScale(_dimensions);
+        });;
     });
 }
 
@@ -139,7 +139,7 @@ bool ShapeEntityRenderer::isTransparent() const {
 
 ItemKey ShapeEntityRenderer::getKey() {
     ItemKey::Builder builder;
-    builder.withTypeShape().withTypeMeta().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
+    builder.withTypeShape().withTypeMeta().withTagBits(getTagMask());
 
     withReadLock([&] {
         if (isTransparent()) {
@@ -209,7 +209,14 @@ ShapeKey ShapeEntityRenderer::getShapeKey() {
 
         return builder.build();
     } else {
-        return Parent::getShapeKey();
+        ShapeKey::Builder builder;
+        if (_procedural.isReady()) {
+            builder.withOwnPipeline();
+        }
+        if (isTransparent()) {
+            builder.withTranslucent();
+        }
+        return builder.build();
     }
 }
 
@@ -259,8 +266,10 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
             geometryCache->renderSolidShapeInstance(args, batch, geometryShape, outColor, pipeline);
         }
     } else {
-        RenderPipelines::bindMaterial(mat, batch, args->_enableTexturing);
-        args->_details._materialSwitches++;
+        if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
+            RenderPipelines::bindMaterial(mat, batch, args->_enableTexturing);
+            args->_details._materialSwitches++;
+        }
 
         geometryCache->renderShape(batch, geometryShape);
     }

@@ -39,6 +39,9 @@
 class EntityTree;
 class MeshProxy;
 
+extern const QString GRABBABLE_USER_DATA;
+extern const QString NOT_GRABBABLE_USER_DATA;
+
 // helper factory to compose standardized, async metadata queries for "magic" Entity properties
 // like .script and .serverScripts.  This is used for automated testing of core scripting features
 // as well as to provide early adopters a self-discoverable, consistent way to diagnose common
@@ -71,22 +74,31 @@ private:
 // "accurate" is currently always true because the ray intersection is always performed with an Octree::Lock.
 class RayToEntityIntersectionResult {
 public:
-    RayToEntityIntersectionResult();
-    bool intersects;
-    bool accurate;
+    bool intersects { false };
+    bool accurate { true };
     QUuid entityID;
-    float distance;
+    float distance { 0.0f };
     BoxFace face;
     glm::vec3 intersection;
     glm::vec3 surfaceNormal;
     QVariantMap extraInfo;
 };
-
 Q_DECLARE_METATYPE(RayToEntityIntersectionResult)
-
 QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, const RayToEntityIntersectionResult& results);
 void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, RayToEntityIntersectionResult& results);
 
+class ParabolaToEntityIntersectionResult {
+public:
+    bool intersects { false };
+    bool accurate { true };
+    QUuid entityID;
+    float distance { 0.0f };
+    float parabolicDistance { 0.0f };
+    BoxFace face;
+    glm::vec3 intersection;
+    glm::vec3 surfaceNormal;
+    QVariantMap extraInfo;
+};
 
 /**jsdoc
  * The Entities API provides facilities to create and interact with entities. Entities are 2D and 3D objects that are visible
@@ -94,6 +106,12 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
  * Interface has displayed and so knows about.
  *
  * @namespace Entities
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
+ *
  * @property {Uuid} keyboardFocusEntity - Get or set the {@link Entities.EntityType|Web} entity that has keyboard focus.
  *     If no entity has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid|Uuid.NULL} to 
  *     clear keyboard focus.
@@ -125,6 +143,12 @@ public:
 
     void resetActivityTracking();
     ActivityTracking getActivityTracking() const { return _activityTracking; }
+
+    // TODO: expose to script?
+    ParabolaToEntityIntersectionResult findParabolaIntersectionVector(const PickParabola& parabola, bool precisionPicking,
+        const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard,
+        bool visibleOnly, bool collidableOnly);
+
 public slots:
 
     /**jsdoc
@@ -216,7 +240,17 @@ public slots:
     /// temporary method until addEntity can be used from QJSEngine
     /// Deliberately not adding jsdoc, only used internally.
     Q_INVOKABLE QUuid addModelEntity(const QString& name, const QString& modelUrl, const QString& textures, const QString& shapeType, bool dynamic,
-                                     bool collisionless, const glm::vec3& position, const glm::vec3& gravity);
+                                     bool collisionless, bool grabbable, const glm::vec3& position, const glm::vec3& gravity);
+
+    /**jsdoc
+     * Create a clone of an entity. A clone can be created by a client that doesn't have rez permissions in the current domain.
+     * The entity must have its <code>cloneable</code> property set to <code>true</code>. The clone has a modified name, other 
+     * properties set per its clone related-properties, and its clone-related properties are set to defaults. 
+     * @function Entities.cloneEntity
+     * @param {Uuid} entityID - The ID of the entity to clone.
+     * @returns {Uuid} The ID of the new entity if successfully cloned, otherwise {@link Uuid|Uuid.NULL}.
+     */
+    Q_INVOKABLE QUuid cloneEntity(QUuid entityIDToClone);
 
     /**jsdoc
      * Get the properties of an entity.
@@ -388,6 +422,22 @@ public slots:
     Q_INVOKABLE QVector<QUuid> findEntitiesByType(const QString entityType, const glm::vec3& center, float radius) const;
 
     /**jsdoc
+    * Find all entities of a particular name that intersect a sphere defined by a center point and radius.
+    * @function Entities.findEntitiesByName
+    * @param {string} entityName - The name of the entity to search for.
+    * @param {Vec3} center - The point about which to search.
+    * @param {number} radius - The radius within which to search.
+    * @param {boolean} [caseSensitive=false] - If <code>true</code> then the search is case-sensitive.
+    * @returns {Uuid[]} An array of entity IDs that have the specified name and intersect the search sphere. The array is empty 
+    *     if no entities could be found.
+    * @example <caption>Report the number of entities with the name, "Light-Target".</caption>
+    * var entityIDs = Entities.findEntitiesByName("Light-Target", MyAvatar.position, 10, false);
+    * print("Number of entities with the name "Light-Target": " + entityIDs.length);
+    */
+    Q_INVOKABLE QVector<QUuid> findEntitiesByName(const QString entityName, const glm::vec3& center, float radius, 
+        bool caseSensitiveSearch = false ) const;
+
+    /**jsdoc
      * Find the first entity intersected by a {@link PickRay}. <code>Light</code> and <code>Zone</code> entities are not 
      * intersected unless they've been configured as pickable using {@link Entities.setLightsArePickable|setLightsArePickable}
      * and {@link Entities.setZonesArePickable|setZonesArePickable}, respectively.<br />
@@ -459,8 +509,8 @@ public slots:
     /**jsdoc
      * Gets the status of server entity script attached to an entity
      * @function Entities.getServerScriptStatus
-     * @property {Uuid} entityID - The ID of the entity to get the server entity script status for.
-     * @property {Entities~getServerScriptStatusCallback} callback - The function to call upon completion.
+     * @param {Uuid} entityID - The ID of the entity to get the server entity script status for.
+     * @param {Entities~getServerScriptStatusCallback} callback - The function to call upon completion.
      * @returns {boolean} <code>true</code> always.
      */
     /**jsdoc
@@ -1194,12 +1244,11 @@ public slots:
 
 
     /**jsdoc
-     * Get the IDs of entities, overlays, and avatars that are directly parented to an entity. To get all descendants of an 
-     * entity, recurse on the IDs returned by the function.
+     * Get the IDs of entities, overlays, and avatars that are directly parented to an entity, overlay, or avatar model. Recurse on the IDs returned by the function to get all descendants of an entity, overlay, or avatar. 
      * @function Entities.getChildrenIDs
-     * @param {Uuid} parentID - The ID of the entity to get the children IDs of.
+     * @param {Uuid} parentID - The ID of the entity, overlay, or avatar to get the children IDs of.
      * @returns {Uuid[]} An array of entity, overlay, and avatar IDs that are parented directly to the <code>parentID</code> 
-     *     entity. Does not include children's children, etc. The array is empty if no children can be found or 
+     *     entity, overlay, or avatar. Does not include children's children, etc. The array is empty if no children can be found or 
      *     <code>parentID</code> cannot be found.
      * @example <caption>Report the children of an entity.</caption>
      * function createEntity(description, position, parent) {
@@ -1649,7 +1698,7 @@ signals:
 
     /**jsdoc
      * Triggered when a mouse button is double-clicked while the mouse cursor is on an entity.
-     * @function Entities.mousePressOnEntity
+     * @function Entities.mouseDoublePressOnEntity
      * @param {Uuid} entityID - The ID of the entity that was double-pressed.
      * @param {PointerEvent} event - Details of the event.
      * @returns {Signal}
@@ -1853,6 +1902,7 @@ private:
     bool polyVoxWorker(QUuid entityID, std::function<bool(PolyVoxEntityItem&)> actor);
     bool setPoints(QUuid entityID, std::function<bool(LineEntityItem&)> actor);
     void queueEntityMessage(PacketType packetType, EntityItemID entityID, const EntityItemProperties& properties);
+    bool addLocalEntityCopy(EntityItemProperties& propertiesWithSimID, EntityItemID& id, bool isClone = false);
 
     EntityItemPointer checkForTreeEntityAndTypeMatch(const QUuid& entityID,
                                                      EntityTypes::EntityType entityType = EntityTypes::Unknown);
@@ -1860,6 +1910,11 @@ private:
 
     /// actually does the work of finding the ray intersection, can be called in locking mode or tryLock mode
     RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
+        bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard,
+        bool visibleOnly = false, bool collidableOnly = false);
+
+    /// actually does the work of finding the parabola intersection, can be called in locking mode or tryLock mode
+    ParabolaToEntityIntersectionResult findParabolaIntersectionWorker(const PickParabola& parabola, Octree::lockType lockType,
         bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard,
         bool visibleOnly = false, bool collidableOnly = false);
 

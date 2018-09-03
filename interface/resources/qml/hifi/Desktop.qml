@@ -36,6 +36,29 @@ OriginalDesktop.Desktop {
         }
     }
 
+    onHeightChanged: {
+        if (height > 100) {
+            adjustToolbarPosition();
+        }
+    }
+
+    function adjustToolbarPosition() {
+        var toolbar = getToolbar("com.highfidelity.interface.toolbar.system")
+        // check if Y position was changed, if toolbar height is assigned etc
+        // default position is adjusted to border width
+        var toolbarY = toolbar.settings.y > 6 ?
+                    toolbar.settings.y :
+                    desktop.height - (toolbar.height > 0 ? toolbar.height : 50)  - 56
+
+        if (toolbar.settings.desktopHeight > 100 && desktop.height !== toolbar.settings.desktopHeight) {
+            toolbarY += desktop.height - toolbar.settings.desktopHeight
+        }
+
+        toolbar.y = toolbarY
+        toolbar.settings.y = toolbarY
+        toolbar.settings.desktopHeight = desktop.height
+    }
+
     Component { id: toolbarBuilder; Toolbar { } }
     // This used to create sysToolbar dynamically with a call to getToolbar() within onCompleted.
     // Beginning with QT 5.6, this stopped working, as anything added to toolbars too early got
@@ -47,7 +70,6 @@ OriginalDesktop.Desktop {
         anchors.horizontalCenter: settings.constrainToolbarToCenterX ? desktop.horizontalCenter : undefined;
         // Literal 50 is overwritten by settings from previous session, and sysToolbar.x comes from settings when not constrained.
         x: sysToolbar.x
-        y: 50
         buttonModel: tablet.buttons;
         shown: tablet.toolbarMode;
     }

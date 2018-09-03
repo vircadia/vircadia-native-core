@@ -9,11 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "PCMCodecManager.h"
+
 #include <QtCore/QCoreApplication>
 
 #include <PerfStat.h>
-
-#include "PCMCodecManager.h"
 
 const char* PCMCodec::NAME { "pcm" };
 

@@ -9,10 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AudioMixerSlavePool.h"
+
 #include <assert.h>
 #include <algorithm>
-
-#include "AudioMixerSlavePool.h"
 
 void AudioMixerSlaveThread::run() {
     while (true) {

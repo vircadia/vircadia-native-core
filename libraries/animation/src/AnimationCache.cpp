@@ -105,8 +105,10 @@ QStringList Animation::getJointNames() const {
         return result;
     }
     QStringList names;
-    foreach (const FBXJoint& joint, _geometry->joints) {
-        names.append(joint.name);
+    if (_geometry) {
+        foreach (const FBXJoint& joint, _geometry->joints) {
+            names.append(joint.name);
+        }
     }
     return names;
 }
@@ -114,11 +116,15 @@ QStringList Animation::getJointNames() const {
 QVector<FBXAnimationFrame> Animation::getFrames() const {
     if (QThread::currentThread() != thread()) {
         QVector<FBXAnimationFrame> result;
-        BLOCKING_INVOKE_METHOD(const_cast<Animation*>(this), "getFrames", 
+        BLOCKING_INVOKE_METHOD(const_cast<Animation*>(this), "getFrames",
             Q_RETURN_ARG(QVector<FBXAnimationFrame>, result));
         return result;
     }
-    return _geometry->animationFrames;
+    if (_geometry) {
+        return _geometry->animationFrames;
+    } else {
+        return QVector<FBXAnimationFrame>();
+    }
 }
 
 const QVector<FBXAnimationFrame>& Animation::getFramesReference() const {

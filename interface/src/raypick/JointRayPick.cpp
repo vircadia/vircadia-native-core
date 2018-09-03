@@ -36,7 +36,7 @@ PickRay JointRayPick::getMathematicalPick() const {
 
         // Apply offset
         pos = pos + (rot * (myAvatar->getSensorToWorldScale() * _posOffset));
-        glm::vec3 dir = rot * glm::normalize(_dirOffset);
+        glm::vec3 dir = glm::normalize(rot * glm::normalize(_dirOffset));
 
         return PickRay(pos, dir);
     }

@@ -23,13 +23,13 @@
 
 class CharacterGhostShape;
 
-class CharacterGhostObject : public btPairCachingGhostObject {
+class CharacterGhostObject : public btGhostObject {
 public:
     CharacterGhostObject() { }
     ~CharacterGhostObject();
 
-    void setCollisionGroupAndMask(int16_t group, int16_t mask);
-    void getCollisionGroupAndMask(int16_t& group, int16_t& mask) const;
+    void setCollisionGroupAndMask(int32_t group, int32_t mask);
+    void getCollisionGroupAndMask(int32_t& group, int32_t& mask) const;
 
     void setRadiusAndHalfHeight(btScalar radius, btScalar halfHeight);
     void setUpDirection(const btVector3& up);
@@ -54,8 +54,8 @@ protected:
     btScalar _radius { 0.0f };
     btConvexHullShape* _characterShape { nullptr }; // input, shape of character
     CharacterGhostShape* _ghostShape { nullptr }; // internal, shape whose Aabb is used for overlap cache
-    int16_t _collisionFilterGroup { 0 };
-    int16_t _collisionFilterMask { 0 };
+    int32_t _collisionFilterGroup { 0 };
+    int32_t _collisionFilterMask { 0 };
     bool _inWorld { false }; // internal, was added to world
 };
 

@@ -9,13 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "InboundAudioStream.h"
+
 #include <glm/glm.hpp>
 
 #include <NLPacket.h>
 #include <Node.h>
 #include <NodeList.h>
 
-#include "InboundAudioStream.h"
 #include "AudioLogging.h"
 
 const bool InboundAudioStream::DEFAULT_DYNAMIC_JITTER_BUFFER_ENABLED = true;
@@ -120,8 +121,8 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
     // parse sequence number and track it
     quint16 sequence;
     message.readPrimitive(&sequence);
-    SequenceNumberStats::ArrivalInfo arrivalInfo = _incomingSequenceNumberStats.sequenceNumberReceived(sequence,
-                                                                                                       message.getSourceID());
+    SequenceNumberStats::ArrivalInfo arrivalInfo =
+        _incomingSequenceNumberStats.sequenceNumberReceived(sequence, message.getSourceID());
     QString codecInPacket = message.readString();
 
     packetReceivedUpdateTimingStats();
@@ -150,6 +151,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
 
             // fall through to OnTime case
         }
+        // FALLTHRU
         case SequenceNumberStats::OnTime: {
             // Packet is on time; parse its data to the ringbuffer
             if (message.getType() == PacketType::SilentAudioFrame
@@ -186,7 +188,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
                         _mismatchedAudioCodecCount = 0;
 
                         // inform others of the mismatch
-                        auto sendingNode = DependencyManager::get<NodeList>()->nodeWithUUID(message.getSourceID());
+                        auto sendingNode = DependencyManager::get<NodeList>()->nodeWithLocalID(message.getSourceID());
                         if (sendingNode) {
                             emit mismatchedAudioCodec(sendingNode, _selectedCodecName, codecInPacket);
                             qDebug(audio) << "Codec mismatch threshold exceeded, SelectedAudioFormat(" << _selectedCodecName << " ) sent";

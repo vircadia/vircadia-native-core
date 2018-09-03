@@ -14,10 +14,9 @@
 var DEFAULT_SCRIPTS_COMBINED = [
     "system/progress.js",
     "system/+android/touchscreenvirtualpad.js",
-    "system/+android/bottombar.js",
+    "system/+android/actionbar.js",
     "system/+android/audio.js" ,
-    "system/+android/modes.js",
-    "system/+android/stats.js"/*,
+    "system/+android/modes.js"/*,
     "system/away.js",
     "system/controllers/controllerDisplayManager.js",
     "system/controllers/handControllerGrabAndroid.js",
@@ -31,6 +30,10 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/bubble.js",
     "system/android.js",
     "developer/debugging/debugAndroidMouse.js"*/
+];
+
+var DEBUG_SCRIPTS = [
+    "system/+android/stats.js"
 ];
 
 var DEFAULT_SCRIPTS_SEPARATE = [ ];
@@ -70,12 +73,22 @@ function runDefaultsTogether() {
     for (var i in DEFAULT_SCRIPTS_COMBINED) {
         Script.include(DEFAULT_SCRIPTS_COMBINED[i]);
     }
+    if (Script.isDebugMode()) {
+        for (var i in DEBUG_SCRIPTS) {
+            Script.include(DEBUG_SCRIPTS[i]);
+        }
+    }
     loadSeparateDefaults();
 }
 
 function runDefaultsSeparately() {
     for (var i in DEFAULT_SCRIPTS_COMBINED) {
         Script.load(DEFAULT_SCRIPTS_COMBINED[i]);
+    }
+    if (Script.isDebugMode()) {
+        for (var i in DEBUG_SCRIPTS) {
+            Script.load(DEBUG_SCRIPTS[i]);
+        }
     }
     loadSeparateDefaults();
 }

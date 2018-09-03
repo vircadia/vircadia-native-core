@@ -15,6 +15,7 @@
 #include <QtCore/QVariant>
 #include <QtCore/QList>
 #include <QtCore/QString>
+#include <QtCore/QVariantMap>
 
 #include "DependencyManager.h"
 
@@ -58,7 +59,8 @@ public:
         ComboBox,
         PrimaryHand,
         // Special casing for an unusual preference
-        Avatar
+        Avatar,
+        RadioButtons
     };
 
     explicit Preference(QObject* parent = nullptr) : QObject(parent) {}
@@ -79,7 +81,6 @@ public:
     }
 
     void setEnabler(BoolPreference* enabler, bool inverse = false);
-
     virtual Type getType() { return Invalid; };
 
     Q_INVOKABLE virtual void load() {};
@@ -198,6 +199,7 @@ class IntPreference : public TypedPreference<int> {
     Q_PROPERTY(float min READ getMin CONSTANT)
     Q_PROPERTY(float max READ getMax CONSTANT)
     Q_PROPERTY(float step READ getStep CONSTANT)
+    Q_PROPERTY(int decimals READ getDecimals CONSTANT)
 
 public:
     IntPreference(const QString& category, const QString& name, Getter getter, Setter setter)
@@ -212,6 +214,9 @@ public:
     float getStep() const { return _step; }
     void setStep(float step) { _step = step; };
 
+    int getDecimals() const { return _decimals; }
+    void setDecimals(int decimals) { _decimals = decimals; };
+
 signals:
     void valueChanged();
 
@@ -221,6 +226,7 @@ protected:
     int _min { std::numeric_limits<int>::min() };
     int _max { std::numeric_limits<int>::max() };
     int _step { 1 };
+    int _decimals { 0 };
 };
 
 class StringPreference : public TypedPreference<QString> {
@@ -348,6 +354,20 @@ public:
     Type getType() override { return PrimaryHand; }
 };
 
+class RadioButtonsPreference : public IntPreference {
+    Q_OBJECT
+    Q_PROPERTY(QStringList items READ getItems CONSTANT)
+public:
+    RadioButtonsPreference(const QString& category, const QString& name, Getter getter, Setter setter)
+        : IntPreference(category, name, getter, setter) { }
+    Type getType() override { return RadioButtons; }
+
+    const QStringList& getItems() { return _items; }
+    void setItems(const QStringList& items) { _items = items; }
+
+protected:
+    QStringList _items;
+};
 #endif
 
 

@@ -60,7 +60,11 @@ public:
                     }
 
                     if (gltexture) {
-                        glNamedFramebufferTexture(_id, colorAttachments[unit], gltexture->_texture, 0);
+                        if (gltexture->_target == GL_TEXTURE_2D) {
+                            glNamedFramebufferTexture(_id, colorAttachments[unit], gltexture->_texture, 0);
+                        } else {
+                            glNamedFramebufferTextureLayer(_id, colorAttachments[unit], gltexture->_texture, 0, b._subresource);
+                        }
                         _colorBuffers.push_back(colorAttachments[unit]);
                     } else {
                         glNamedFramebufferTexture(_id, colorAttachments[unit], 0, 0);
@@ -87,13 +91,17 @@ public:
             }
 
             if (gltexture) {
-                glNamedFramebufferTexture(_id, attachement, gltexture->_texture, 0);
+                if (gltexture->_target == GL_TEXTURE_2D) {
+                    glNamedFramebufferTexture(_id, attachement, gltexture->_texture, 0);
+                } else {
+                    glNamedFramebufferTextureLayer(_id, attachement, gltexture->_texture, 0,
+                                                   _gpuObject.getDepthStencilBufferSubresource());
+                }
             } else {
                 glNamedFramebufferTexture(_id, attachement, 0, 0);
             }
             _depthStamp = _gpuObject.getDepthStamp();
         }
-
 
         // Last but not least, define where we draw
         if (!_colorBuffers.empty()) {

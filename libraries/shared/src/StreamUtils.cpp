@@ -9,11 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QDataStream>
+#include "StreamUtils.h"
 
 #include <glm/gtc/type_ptr.hpp>
 
-#include "StreamUtils.h"
+#include <QDataStream>
 
 
 void StreamUtil::dump(std::ostream& s, const QByteArray& buffer) {

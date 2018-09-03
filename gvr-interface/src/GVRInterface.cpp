@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "GVRInterface.h"
+
 #ifdef ANDROID
 
 #include <jni.h>
@@ -31,8 +33,6 @@
 
 #include "GVRMainWindow.h"
 #include "RenderingClient.h"
-
-#include "GVRInterface.h"
 
 static QString launchURLString = QString();
 

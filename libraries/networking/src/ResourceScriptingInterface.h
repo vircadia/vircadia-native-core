@@ -17,11 +17,30 @@
 
 #include <DependencyManager.h>
 
+/**jsdoc
+ * @namespace Resources
+ * 
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
+ */
+
 class ResourceScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 public:
+
+    /**jsdoc
+     * @function Resources.overrideUrlPrefix
+     * @param {string} prefix
+     * @param {string} replacement
+     */
     Q_INVOKABLE void overrideUrlPrefix(const QString& prefix, const QString& replacement);
 
+    /**jsdoc
+     * @function Resources.restoreUrlPrefix
+     * @param {string} prefix
+     */
     Q_INVOKABLE void restoreUrlPrefix(const QString& prefix) {
         overrideUrlPrefix(prefix, "");
     }
