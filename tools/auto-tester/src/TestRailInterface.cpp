@@ -50,10 +50,10 @@ QString TestRailInterface::getObject(const QString& path) {
 bool TestRailInterface::setPythonCommand() {
     if (QProcessEnvironment::systemEnvironment().contains("PYTHON_PATH")) {
         QString _pythonPath = QProcessEnvironment::systemEnvironment().value("PYTHON_PATH");
-        if (!QFile::exists(_pythonPath + "/" + pythonExe)) {
-            QMessageBox::critical(0, pythonExe, QString("Python executable not found in ") + _pythonPath);
+        if (!QFile::exists(_pythonPath + "/" + _pythonExe)) {
+            QMessageBox::critical(0, _pythonExe, QString("Python executable not found in ") + _pythonPath);
         }
-        _pythonCommand = _pythonPath + "/" + pythonExe;
+        _pythonCommand = _pythonPath + "/" + _pythonExe;
         return true;
     } else {
         QMessageBox::critical(0, "PYTHON_PATH not defined",
@@ -228,7 +228,7 @@ bool TestRailInterface::requestTestRailTestCasesDataFromUser() {
     _url = _testRailTestCasesSelectorWindow.getURL() + "/";
     _user = _testRailTestCasesSelectorWindow.getUser();
     _password = _testRailTestCasesSelectorWindow.getPassword();
-    ////_password = "tutKA76";////
+
     _projectID = QString::number(_testRailTestCasesSelectorWindow.getProjectID());
     _suiteID = QString::number(_testRailTestCasesSelectorWindow.getSuiteID());
 
@@ -246,7 +246,7 @@ bool TestRailInterface::requestTestRailRunDataFromUser() {
     _url = _testRailRunSelectorWindow.getURL() + "/";
     _user = _testRailRunSelectorWindow.getUser();
     _password = _testRailRunSelectorWindow.getPassword();
-    ////_password = "tutKA76";////
+
     _projectID = QString::number(_testRailRunSelectorWindow.getProjectID());
     _suiteID = QString::number(_testRailRunSelectorWindow.getSuiteID());
 
@@ -264,7 +264,7 @@ bool TestRailInterface::requestTestRailResultsDataFromUser() {
     _url = _testRailResultsSelectorWindow.getURL() + "/";
     _user = _testRailResultsSelectorWindow.getUser();
     _password = _testRailResultsSelectorWindow.getPassword();
-    ////_password = "tutKA76";////
+
     _projectID = QString::number(_testRailResultsSelectorWindow.getProjectID());
     _suiteID = QString::number(_testRailResultsSelectorWindow.getSuiteID());
 
@@ -365,8 +365,8 @@ void TestRailInterface::createAddTestCasesPythonScript(const QString& testDirect
                                         QMessageBox::Yes | QMessageBox::No).exec()
     ) {
         QProcess* process = new QProcess();
-        connect(process, &QProcess::started, this, [=]() { _busyWindow.exec(); });
 
+        connect(process, &QProcess::started, this, [=]() { _busyWindow.exec(); });
         connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
                 [=](int exitCode, QProcess::ExitStatus exitStatus) { _busyWindow.hide(); });
 

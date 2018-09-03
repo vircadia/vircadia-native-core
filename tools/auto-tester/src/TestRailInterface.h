@@ -115,7 +115,7 @@ private:
     QString _userGitHub;
     QString _branchGitHub;
 
-    const QString pythonExe{ "python.exe" };
+    const QString _pythonExe{ "python.exe" };
     QString _pythonCommand;
 
     QStringList _releaseNames;
