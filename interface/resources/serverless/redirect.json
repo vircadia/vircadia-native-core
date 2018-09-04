@@ -44,7 +44,7 @@
                 "y": -0.22495104372501373,
                 "z": 0
             },
-            "script": "https://raw.githubusercontent.com/wayne-chen/hifi/404DomainRedirect/scripts/redirect/zoneTryAgainEntityScript.js",
+            "script": "https://hifi-content.s3.amazonaws.com/wayne/404redirectionScripts/zoneTryAgainEntityScript.js",
             "shapeType": "box",
             "type": "Zone",
             "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
@@ -88,7 +88,7 @@
                 "y": -0.36650121212005615,
                 "z": 0
             },
-            "script": "https://raw.githubusercontent.com/wayne-chen/hifi/404DomainRedirect/scripts/redirect/zoneBackEntityScript.js",
+            "script": "https://hifi-content.s3.amazonaws.com/wayne/404redirectionScripts/zoneBackEntityScript.js",
             "shapeType": "box",
             "type": "Zone",
             "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
@@ -364,7 +364,7 @@
                 "y": 0.4179598093032837,
                 "z": -0.0001068115234375
             },
-            "script": "https://raw.githubusercontent.com/wayne-chen/hifi/404DomainRedirect/scripts/redirect/backEntityScript.js",
+            "script": "https://hifi-content.s3.amazonaws.com/wayne/404redirectionScripts/backEntityScript.js",
             "scriptTimestamp": 1535751754379,
             "shapeType": "static-mesh",
             "type": "Model",
@@ -454,7 +454,7 @@
                 "y": 0.5693598985671997,
                 "z": -0.0001068115234375
             },
-            "script": "https://raw.githubusercontent.com/wayne-chen/hifi/404DomainRedirect/scripts/redirect/tryAgainEntityScript.js",
+            "script": "https://hifi-content.s3.amazonaws.com/wayne/404redirectionScripts/tryAgainEntityScript.js",
             "shapeType": "static-mesh",
             "type": "Model",
             "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
