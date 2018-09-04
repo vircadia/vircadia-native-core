@@ -9,6 +9,7 @@
 //
 #include "TestRunner.h"
 
+#include <QThread>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QFileDialog>
 
@@ -30,15 +31,18 @@ void TestRunner::run() {
 
     autoTester->downloadFiles(urls, _tempFolder, filenames, (void *)this);
 
-    // installerDownloadComplete will run after download complete
+    // After  download has finished, `installerDownloadComplete` will run after download complete
 }
 
 void TestRunner::installerDownloadComplete() {
     runInstaller();
     createSnapshotFolder();
     killProcesses();
+    startLocalServerProcesses();
+    runInterfaceWithTestScript();
 
-    restoreHighFidelityAppDataFolder(); 
+    killProcesses();
+    restoreHighFidelityAppDataFolder();
 }
 
 void TestRunner::runInstaller() {
@@ -48,7 +52,7 @@ void TestRunner::runInstaller() {
     
     QString installerFullPath = _tempFolder + "/" + INSTALLER_FILENAME;
     
-    QString commandLine = QDir::toNativeSeparators(installerFullPath + " /S /D=" + _tempFolder);
+    QString commandLine = QDir::toNativeSeparators(installerFullPath) + " /S /D=" + QDir::toNativeSeparators(_tempFolder);
     system(commandLine.toStdString().c_str());
 }
 
@@ -70,8 +74,6 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
     // The original folder is saved in a unique name
     _savedAppDataFolder = dataDirectory + "/" + UNIQUE_FOLDER_NAME;
     _appDataFolder.rename(_appDataFolder.path(), _savedAppDataFolder.path());
-
-    QDir().mkdir(_appDataFolder.path());
 }
 
 void TestRunner::restoreHighFidelityAppDataFolder() {
@@ -98,7 +100,8 @@ void TestRunner::selectTemporaryFolder() {
 }
 
 void TestRunner::createSnapshotFolder() {
-    QDir().mkdir(_tempFolder + "/" + SNAPSHOT_FOLDER_NAME);
+    _snapshotFolder = _tempFolder + "/" + SNAPSHOT_FOLDER_NAME;
+    QDir().mkdir(_snapshotFolder);
 }
 void TestRunner::killProcesses() {
     killProcessByName("assignment-client.exe");
@@ -109,6 +112,36 @@ void TestRunner::killProcesses() {
 void TestRunner::killProcessByName(QString processName) {
 #ifdef Q_OS_WIN
     QString commandLine = "taskkill /im " + processName + " /f >nul";
+    system(commandLine.toStdString().c_str());
+#endif
+}
+
+void TestRunner::startLocalServerProcesses() {
+    QDir::setCurrent(_tempFolder);
+
+#ifdef Q_OS_WIN
+    QString commandLine;
+
+    commandLine = "start \"domain-server.exe\" domain-server.exe";
+    system(commandLine.toStdString().c_str());
+
+    commandLine = "start \"assignment-client.exe\" assignment-client.exe -n 6";
+    system(commandLine.toStdString().c_str());
+#endif
+    // Give server processes time to stabilize
+    QThread::sleep(8);
+}
+
+void TestRunner::runInterfaceWithTestScript() {
+    QDir::setCurrent(_tempFolder);
+    QString branch = autoTester->getSelectedBranch();
+    QString user = autoTester->getSelectedUser();
+
+#ifdef Q_OS_WIN
+    QString commandLine = "interface.exe --url hifi://localhost --testScript https://raw.githubusercontent.com/" + user +
+                          "/hifi_tests/" + branch + "/tests/testRecursive.js quitWhenFinished --testResultsLocation " +
+                          _snapshotFolder;
+
     system(commandLine.toStdString().c_str());
 #endif
 }

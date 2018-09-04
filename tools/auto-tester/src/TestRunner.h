@@ -13,6 +13,7 @@
 
 #include <QObject>
 #include <QDir>
+#include <QProcess>
 
 #include "Downloader.h"
 #include "ui/BusyWindow.h"
@@ -32,12 +33,15 @@ public:
     void createSnapshotFolder();
     void killProcesses();
     void killProcessByName(QString processName);
+    void startLocalServerProcesses();
+    void runInterfaceWithTestScript();
 
-    private:
+private:
     QDir _appDataFolder;
     QDir _savedAppDataFolder;
 
     QString _tempFolder;
+    QString _snapshotFolder;
 
     Downloader* _downloader;
 
