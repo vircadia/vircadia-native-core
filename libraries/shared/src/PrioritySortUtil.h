@@ -102,6 +102,9 @@ namespace PrioritySortUtil {
             thing.setPriority(computePriority(thing));
             _vector.push_back(thing);
         }
+        void reserve(size_t num) {
+            _vector.reserve(num);
+        }
         const std::vector<T>& getSortedVector() {
             std::sort(_vector.begin(), _vector.end(), [](const T& left, const T& right) { return left.getPriority() > right.getPriority(); });
             return _vector;

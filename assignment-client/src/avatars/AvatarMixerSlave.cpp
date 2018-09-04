@@ -345,6 +345,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             AvatarData::_avatarSortCoefficientSize,
             AvatarData::_avatarSortCoefficientCenter,
             AvatarData::_avatarSortCoefficientAge);
+    sortedAvatars.reserve(avatarsToSort.size());
 
     // ignore or sort
     for (const auto& avatar : avatarsToSort) {
