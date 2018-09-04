@@ -159,7 +159,7 @@ public:
     bool getSnapModelToRegistrationPoint() { return _snapModelToRegistrationPoint; }
 
     virtual void simulate(float deltaTime, bool fullUpdate = true);
-    virtual void updateClusterMatrices();
+    virtual void updateClusterMatrices(bool triggerBlendshapes = true);
 
     /// Returns a reference to the shared geometry.
     const Geometry::Pointer& getGeometry() const { return _renderGeometry; }

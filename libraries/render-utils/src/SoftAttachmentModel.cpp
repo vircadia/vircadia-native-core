@@ -31,7 +31,7 @@ int SoftAttachmentModel::getJointIndexOverride(int i) const {
 
 // virtual
 // use the _rigOverride matrices instead of the Model::_rig
-void SoftAttachmentModel::updateClusterMatrices() {
+void SoftAttachmentModel::updateClusterMatrices(bool triggerBlendshapes) {
     if (!_needsUpdateClusterMatrices) {
         return;
     }
@@ -78,7 +78,7 @@ void SoftAttachmentModel::updateClusterMatrices() {
 
     // post the blender if we're not currently waiting for one to finish
     auto modelBlender = DependencyManager::get<ModelBlender>();
-    if (modelBlender->shouldComputeBlendshapes() && geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
+    if (triggerBlendshapes && modelBlender->shouldComputeBlendshapes() && geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
         modelBlender->noteRequiresBlend(getThisPointer());
     }
