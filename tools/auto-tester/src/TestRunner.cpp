@@ -46,13 +46,16 @@ void TestRunner::installerDownloadComplete() {
 }
 
 void TestRunner::runInstaller() {
-    QProcess installProcess;
-
+    // Qt cannot start an installation process using QProcess::start (Qt Bug 9761)
+    // To allow installation, the installer is run using the `system` command
     QStringList arguments{ QStringList() << QString("/S") << QString("/D=") + QDir::toNativeSeparators(_tempDirectory) };
     
     QString installerFullPath = _tempDirectory + "/" + _installerFilename;
-    qint64 pid;
-    QProcess::startDetached(installerFullPath, arguments, QString(), &pid);
+    QString commandLine = installerFullPath + " /S /D=" +  QDir::toNativeSeparators(_tempDirectory);
+    system(commandLine.toStdString().c_str());
+    int i = 34;
+    //qint64 pid;
+    //QProcess::startDetached(installerFullPath, arguments, QString(), &pid);
 }
 
 void TestRunner::saveExistingHighFidelityAppDataFolder() {
