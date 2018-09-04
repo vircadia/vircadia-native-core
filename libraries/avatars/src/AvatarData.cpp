@@ -600,7 +600,9 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                 }
             }
 
-            (*sentJointDataOut)[i].rotationIsDefaultPose = data.rotationIsDefaultPose;
+            if (sentJointDataOut) {
+                (*sentJointDataOut)[i].rotationIsDefaultPose = data.rotationIsDefaultPose;
+            }
 
             if (++validityBit == BITS_IN_BYTE) {
                 *validityPosition++ = validity;
@@ -651,7 +653,9 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                 }
             }
 
-            (*sentJointDataOut)[i].translationIsDefaultPose = data.translationIsDefaultPose;
+            if (sentJointDataOut) {
+                (*sentJointDataOut)[i].translationIsDefaultPose = data.translationIsDefaultPose;
+            }
 
             if (++validityBit == BITS_IN_BYTE) {
                 *validityPosition++ = validity;
