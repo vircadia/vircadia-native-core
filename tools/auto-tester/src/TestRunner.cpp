@@ -41,6 +41,8 @@ void TestRunner::installerDownloadComplete() {
     startLocalServerProcesses();
     runInterfaceWithTestScript();
 
+    evaluateResults();
+
     killProcesses();
     restoreHighFidelityAppDataFolder();
 }
@@ -134,14 +136,18 @@ void TestRunner::startLocalServerProcesses() {
 
 void TestRunner::runInterfaceWithTestScript() {
     QDir::setCurrent(_tempFolder);
-    QString branch = autoTester->getSelectedBranch();
-    QString user = autoTester->getSelectedUser();
+    _branch = autoTester->getSelectedBranch();
+    _user = autoTester->getSelectedUser();
 
 #ifdef Q_OS_WIN
-    QString commandLine = "interface.exe --url hifi://localhost --testScript https://raw.githubusercontent.com/" + user +
-                          "/hifi_tests/" + branch + "/tests/testRecursive.js quitWhenFinished --testResultsLocation " +
+    QString commandLine = "interface.exe --url hifi://localhost --testScript https://raw.githubusercontent.com/" + _user +
+                          "/hifi_tests/" + _branch + "/tests/testRecursive.js quitWhenFinished --testResultsLocation " +
                           _snapshotFolder;
 
     system(commandLine.toStdString().c_str());
 #endif
+}
+
+void TestRunner::evaluateResults() {
+    autoTester->runFromCommandLine(_snapshotFolder, _branch, _user);
 }

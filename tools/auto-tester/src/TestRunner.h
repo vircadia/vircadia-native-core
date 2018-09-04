@@ -16,7 +16,6 @@
 #include <QProcess>
 
 #include "Downloader.h"
-#include "ui/BusyWindow.h"
 
 class TestRunner : public QObject {
     Q_OBJECT
@@ -35,6 +34,7 @@ public:
     void killProcessByName(QString processName);
     void startLocalServerProcesses();
     void runInterfaceWithTestScript();
+    void evaluateResults();
 
 private:
     QDir _appDataFolder;
@@ -51,7 +51,8 @@ private:
     const QString INSTALLER_URL{ "http://builds.highfidelity.com/HighFidelity-Beta-latest-dev.exe" };
     const QString INSTALLER_FILENAME{ "HighFidelity-Beta-latest-dev.exe" };
 
-    BusyWindow _busyWindow;
+    QString _branch;
+    QString _user;
 };
 
 #endif  // hifi_testRunner_h
