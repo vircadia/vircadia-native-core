@@ -187,12 +187,10 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
     particle.basePosition = baseTransform.getTranslation();
 
     // Position, velocity, and acceleration
+    glm::vec3 emitDirection;
     if (polarStart == 0.0f && polarFinish == 0.0f && emitDimensions.z == 0.0f) {
         // Emit along z-axis from position
-
-        particle.velocity = (emitSpeed + randFloatInRange(-1.0f, 1.0f) * speedSpread) * (emitOrientation * Vectors::UNIT_Z);
-        particle.acceleration = emitAcceleration + randFloatInRange(-1.0f, 1.0f) * accelerationSpread;
-
+        emitDirection = Vectors::UNIT_Z;
     } else {
         // Emit around point or from ellipsoid
         // - Distribute directions evenly around point
@@ -210,7 +208,6 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
             azimuth = azimuthStart + (TWO_PI + azimuthFinish - azimuthStart) * randFloat();
         }
 
-        glm::vec3 emitDirection;
         if (emitDimensions == Vectors::ZERO) {
             // Point
             emitDirection = glm::quat(glm::vec3(PI_OVER_TWO - elevation, 0.0f, azimuth)) * Vectors::UNIT_Z;
@@ -235,10 +232,10 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
             ));
             particle.relativePosition += emitOrientation * emitPosition;
         }
-
-        particle.velocity = (emitSpeed + randFloatInRange(-1.0f, 1.0f) * speedSpread) * (emitOrientation * emitDirection);
-        particle.acceleration = emitAcceleration + randFloatInRange(-1.0f, 1.0f) * accelerationSpread;
     }
+    particle.velocity = (emitSpeed + randFloatInRange(-1.0f, 1.0f) * speedSpread) * (emitOrientation * emitDirection);
+    particle.acceleration = emitAcceleration +
+        glm::vec3(randFloatInRange(-1.0f, 1.0f), randFloatInRange(-1.0f, 1.0f), randFloatInRange(-1.0f, 1.0f)) * accelerationSpread;
 
     return particle;
 }
