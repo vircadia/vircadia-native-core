@@ -47,7 +47,7 @@ bool Test::createTestResultsFolderPath(const QString& directory) {
 void Test::zipAndDeleteTestResultsFolder() {
     QString zippedResultsFileName { _testResultsFolderPath + ".zip" };
     QFileInfo fileInfo(zippedResultsFileName);
-    if (!fileInfo.exists()) {
+    if (fileInfo.exists()) {
         QFile::remove(zippedResultsFileName);
     }
 
