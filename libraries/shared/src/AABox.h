@@ -86,19 +86,12 @@ public:
     AABox clamp(float min, float max) const;
 
     inline AABox& operator+=(const glm::vec3& point) {
-        // Branchless version of:
-        //if (isInvalid()) {
-        //    _corner = glm::min(_corner, point);
-        //} else {
-        //    glm::vec3 maximum(_corner + _scale);
-        //    _corner = glm::min(_corner, point);
-        //    maximum = glm::max(maximum, point);
-        //    _scale = maximum - _corner;
-        //}
-        float blend = (float)isInvalid();
-        glm::vec3 maximumScale(glm::max(_scale, point - _corner));
+        bool valid = !isInvalid();
+        glm::vec3 maximum = glm::max(_corner + _scale, point);
         _corner = glm::min(_corner, point);
-        _scale = blend * _scale + (1.0f - blend) * maximumScale;
+        if (valid) {
+            _scale = maximum - _corner;
+        }
         return (*this);
     }
 
@@ -136,7 +129,7 @@ public:
 
     static const glm::vec3 INFINITY_VECTOR;
 
-    bool isInvalid() const { return _corner == INFINITY_VECTOR; }
+    bool isInvalid() const { return _corner.x == std::numeric_limits<float>::infinity(); }
 
     void clear() { _corner = INFINITY_VECTOR; _scale = glm::vec3(0.0f); }
 
