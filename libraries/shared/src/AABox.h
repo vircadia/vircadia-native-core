@@ -86,6 +86,15 @@ public:
     AABox clamp(float min, float max) const;
 
     inline AABox& operator+=(const glm::vec3& point) {
+        // Branchless version of:
+        //if (isInvalid()) {
+        //    _corner = glm::min(_corner, point);
+        //} else {
+        //    glm::vec3 maximum(_corner + _scale);
+        //    _corner = glm::min(_corner, point);
+        //    maximum = glm::max(maximum, point);
+        //    _scale = maximum - _corner;
+        //}
         float blend = (float)isInvalid();
         glm::vec3 maximumScale(glm::max(_scale, point - _corner));
         _corner = glm::min(_corner, point);

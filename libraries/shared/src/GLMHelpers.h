@@ -316,11 +316,16 @@ inline void glm_mat4u_mul(const glm::mat4& m1, const glm::mat4& m2, glm::mat4& r
 #endif
 }
 
-inline glm::vec3 fastRoundf(const glm::vec3& vec) {
+// convert float to int, using round-to-nearest-even (undefined on overflow)
+inline int fastLrintf(float x) {
 #if GLM_ARCH & GLM_ARCH_SSE2_BIT
-    return glm::vec3(_mm_cvt_ss2si(_mm_set_ss(vec.x)), _mm_cvt_ss2si(_mm_set_ss(vec.y)), _mm_cvt_ss2si(_mm_set_ss(vec.z)));
+    return _mm_cvt_ss2si(_mm_set_ss(x));
 #else
-    return glm::round(vec);
+    // return lrintf(x);
+    static_assert(std::numeric_limits<double>::is_iec559, "Requires IEEE-754 double precision format");
+    union { double d; int64_t i; } bits = { (double)x };
+    bits.d += (3ULL << 51);
+    return (int)bits.i;
 #endif
 }
 

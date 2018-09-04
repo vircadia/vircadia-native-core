@@ -79,6 +79,16 @@ void AABox::setBox(const glm::vec3& corner, const glm::vec3& scale) {
 
 glm::vec3 AABox::getFarthestVertex(const glm::vec3& normal) const {
     glm::vec3 result = _corner;
+    // This is a branchless version of:
+    //if (normal.x > 0.0f) {
+    //    result.x += _scale.x;
+    //}
+    //if (normal.y > 0.0f) {
+    //    result.y += _scale.y;
+    //}
+    //if (normal.z > 0.0f) {
+    //    result.z += _scale.z;
+    //}
     float blend = (float)(normal.x > 0.0f);
     result.x += blend * _scale.x + (1.0f - blend) * 0.0f;
     blend = (float)(normal.y > 0.0f);
@@ -90,6 +100,16 @@ glm::vec3 AABox::getFarthestVertex(const glm::vec3& normal) const {
 
 glm::vec3 AABox::getNearestVertex(const glm::vec3& normal) const {
     glm::vec3 result = _corner;
+    // This is a branchless version of:
+    //if (normal.x < 0.0f) {
+    //    result.x += _scale.x;
+    //}
+    //if (normal.y < 0.0f) {
+    //    result.y += _scale.y;
+    //}
+    //if (normal.z < 0.0f) {
+    //    result.z += _scale.z;
+    //}
     float blend = (float)(normal.x < 0.0f);
     result.x += blend * _scale.x + (1.0f - blend) * 0.0f;
     blend = (float)(normal.y < 0.0f);
