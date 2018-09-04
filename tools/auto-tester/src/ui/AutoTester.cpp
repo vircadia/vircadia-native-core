@@ -152,6 +152,8 @@ void AutoTester::downloadFile(const QUrl& url) {
 }
 
 void AutoTester::downloadFiles(const QStringList& URLs, const QString& directoryName, const QStringList& filenames, void *caller) {
+    connect(_signalMapper, SIGNAL(mapped(int)), this, SLOT(saveFile(int)));
+    
     _directoryName = directoryName;
     _filenames = filenames;
     _caller = caller;
@@ -169,8 +171,6 @@ void AutoTester::downloadFiles(const QStringList& URLs, const QString& directory
     for (int i = 0; i < _numberOfFilesToDownload; ++i) {
         downloadFile(URLs[i]);
     }
-
-    connect(_signalMapper, SIGNAL(mapped(int)), this, SLOT(saveFile(int)));
 }
 
 void AutoTester::saveFile(int index) {
