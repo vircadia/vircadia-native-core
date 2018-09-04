@@ -463,19 +463,15 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     limitedNodeList->eachNodeBreakable([nodeConnection, username, &existingNodeID](const SharedNodePointer& node){
 
         if (node->getPublicSocket() == nodeConnection.publicSockAddr && node->getLocalSocket() == nodeConnection.localSockAddr) {
-            // we have a node that already has these exact sockets - this can occur if a node
-            // is failing to connect to the domain
-
-            // we'll re-use the existing node ID
-            // as long as the user hasn't changed their username (by logging in or logging out)
-            auto existingNodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
-
-            if (existingNodeData->getUsername() == username) {
-                qDebug() << "Deleting existing connection from same sockaddr: " << node->getUUID();
-                existingNodeID = node->getUUID();
-                return false;
-            }
+            // we have a node that already has these exact sockets
+            // this can occur if a node is failing to connect to the domain
+            
+            // remove the old node before adding the new node
+            qDebug() << "Deleting existing connection from same sockaddr: " << node->getUUID();
+            existingNodeID = node->getUUID();
+            return false;
         }
+
         return true;
     });
 

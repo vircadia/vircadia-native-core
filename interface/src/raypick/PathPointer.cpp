@@ -54,11 +54,13 @@ PathPointer::~PathPointer() {
 void PathPointer::setRenderState(const std::string& state) {
     withWriteLock([&] {
         if (!_currentRenderState.empty() && state != _currentRenderState) {
-            if (_renderStates.find(_currentRenderState) != _renderStates.end()) {
-                _renderStates[_currentRenderState]->disable();
+            auto renderState = _renderStates.find(_currentRenderState);
+            if (renderState != _renderStates.end()) {
+                renderState->second->disable();
             }
-            if (_defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {
-                _defaultRenderStates[_currentRenderState].second->disable();
+            auto defaultRenderState = _defaultRenderStates.find(_currentRenderState);
+            if (defaultRenderState != _defaultRenderStates.end()) {
+                defaultRenderState->second.second->disable();
             }
         }
         _currentRenderState = state;
@@ -105,7 +107,7 @@ PickResultPointer PathPointer::getVisualPickResult(const PickResultPointer& pick
                 glm::mat4 entityMat = createMatFromQuatAndPos(props.getRotation(), props.getPosition());
                 glm::mat4 finalPosAndRotMat = entityMat * _lockEndObject.offsetMat;
                 pos = extractTranslation(finalPosAndRotMat);
-                rot = glmExtractRotation(finalPosAndRotMat);
+                rot = props.getRotation();
                 dim = props.getDimensions();
                 registrationPoint = props.getRegistrationPoint();
             }
@@ -142,52 +144,57 @@ PickResultPointer PathPointer::getVisualPickResult(const PickResultPointer& pick
 
 void PathPointer::updateVisuals(const PickResultPointer& pickResult) {
     IntersectionType type = getPickedObjectType(pickResult);
-    if (_enabled && !_currentRenderState.empty() && _renderStates.find(_currentRenderState) != _renderStates.end() &&
+    auto renderState = _renderStates.find(_currentRenderState);
+    auto defaultRenderState = _defaultRenderStates.find(_currentRenderState);
+    if (_enabled && !_currentRenderState.empty() && renderState != _renderStates.end() &&
         (type != IntersectionType::NONE || _pathLength > 0.0f)) {
         glm::vec3 origin = getPickOrigin(pickResult);
         glm::vec3 end = getPickEnd(pickResult, _pathLength);
         glm::vec3 surfaceNormal = getPickedObjectNormal(pickResult);
-        _renderStates[_currentRenderState]->update(origin, end, surfaceNormal, _scaleWithAvatar, _distanceScaleEnd, _centerEndY, _faceAvatar,
-                                                   _followNormal, _followNormalStrength, _pathLength, pickResult);
-        if (_defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {
-            _defaultRenderStates[_currentRenderState].second->disable();
+        renderState->second->update(origin, end, surfaceNormal, _scaleWithAvatar, _distanceScaleEnd, _centerEndY, _faceAvatar,
+                                    _followNormal, _followNormalStrength, _pathLength, pickResult);
+        if (defaultRenderState != _defaultRenderStates.end() && defaultRenderState->second.second->isEnabled()) {
+            defaultRenderState->second.second->disable();
         }
-    } else if (_enabled && !_currentRenderState.empty() && _defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {
-        if (_renderStates.find(_currentRenderState) != _renderStates.end()) {
-            _renderStates[_currentRenderState]->disable();
+    } else if (_enabled && !_currentRenderState.empty() && defaultRenderState != _defaultRenderStates.end()) {
+        if (renderState != _renderStates.end() && renderState->second->isEnabled()) {
+            renderState->second->disable();
         }
         glm::vec3 origin = getPickOrigin(pickResult);
-        glm::vec3 end = getPickEnd(pickResult, _defaultRenderStates[_currentRenderState].first);
-        _defaultRenderStates[_currentRenderState].second->update(origin, end, Vectors::UP, _scaleWithAvatar, _distanceScaleEnd, _centerEndY,
-                                                                _faceAvatar, _followNormal, _followNormalStrength, _defaultRenderStates[_currentRenderState].first, pickResult);
+        glm::vec3 end = getPickEnd(pickResult, defaultRenderState->second.first);
+        defaultRenderState->second.second->update(origin, end, Vectors::UP, _scaleWithAvatar, _distanceScaleEnd, _centerEndY,
+                                                  _faceAvatar, _followNormal, _followNormalStrength, defaultRenderState->second.first, pickResult);
     } else if (!_currentRenderState.empty()) {
-        if (_renderStates.find(_currentRenderState) != _renderStates.end()) {
-            _renderStates[_currentRenderState]->disable();
+        if (renderState != _renderStates.end() && renderState->second->isEnabled()) {
+            renderState->second->disable();
         }
-        if (_defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {
-            _defaultRenderStates[_currentRenderState].second->disable();
+        if (defaultRenderState != _defaultRenderStates.end() && defaultRenderState->second.second->isEnabled()) {
+            defaultRenderState->second.second->disable();
         }
     }
 }
 
 void PathPointer::editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) {
     withWriteLock([&] {
-        updateRenderStateOverlay(_renderStates[state]->getStartID(), startProps);
-        updateRenderStateOverlay(_renderStates[state]->getEndID(), endProps);
-        QVariant startDim = startProps.toMap()["dimensions"];
-        if (startDim.isValid()) {
-            _renderStates[state]->setStartDim(vec3FromVariant(startDim));
-        }
-        QVariant endDim = endProps.toMap()["dimensions"];
-        if (endDim.isValid()) {
-            _renderStates[state]->setEndDim(vec3FromVariant(endDim));
-        }
-        QVariant rotation = endProps.toMap()["rotation"];
-        if (rotation.isValid()) {
-            _renderStates[state]->setEndRot(quatFromVariant(rotation));
-        }
+        auto renderState = _renderStates.find(state);
+        if (renderState != _renderStates.end()) {
+            updateRenderStateOverlay(renderState->second->getStartID(), startProps);
+            updateRenderStateOverlay(renderState->second->getEndID(), endProps);
+            QVariant startDim = startProps.toMap()["dimensions"];
+            if (startDim.isValid()) {
+                renderState->second->setStartDim(vec3FromVariant(startDim));
+            }
+            QVariant endDim = endProps.toMap()["dimensions"];
+            if (endDim.isValid()) {
+                renderState->second->setEndDim(vec3FromVariant(endDim));
+            }
+            QVariant rotation = endProps.toMap()["rotation"];
+            if (rotation.isValid()) {
+                renderState->second->setEndRot(quatFromVariant(rotation));
+            }
 
-        editRenderStatePath(state, pathProps);
+            editRenderStatePath(state, pathProps);
+        }
     });
 }
 
@@ -271,6 +278,7 @@ void StartEndRenderState::disable() {
         endProps.insert("ignoreRayIntersection", true);
         qApp->getOverlays().editOverlay(getEndID(), endProps);
     }
+    _enabled = false;
 }
 
 void StartEndRenderState::update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, bool scaleWithAvatar, bool distanceScaleEnd, bool centerEndY,
@@ -337,6 +345,7 @@ void StartEndRenderState::update(const glm::vec3& origin, const glm::vec3& end, 
         endProps.insert("ignoreRayIntersection", doesEndIgnoreRays());
         qApp->getOverlays().editOverlay(getEndID(), endProps);
     }
+    _enabled = true;
 }
 
 glm::vec2 PathPointer::findPos2D(const PickedObject& pickedObject, const glm::vec3& origin) {

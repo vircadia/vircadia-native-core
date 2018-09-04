@@ -37,7 +37,7 @@ template<typename T>
 class PickCacheOptimizer {
 
 public:
-    void update(std::unordered_map<uint32_t, std::shared_ptr<PickQuery>>& picks, uint32_t& nextToUpdate, uint64_t expiry, bool shouldPickHUD);
+    QVector4D update(std::unordered_map<uint32_t, std::shared_ptr<PickQuery>>& picks, uint32_t& nextToUpdate, uint64_t expiry, bool shouldPickHUD);
 
 protected:
     typedef std::unordered_map<T, std::unordered_map<PickCacheKey, PickResultPointer>> PickCache;
@@ -57,8 +57,8 @@ bool PickCacheOptimizer<T>::checkAndCompareCachedResults(T& pick, PickCache& cac
 }
 
 template<typename T>
-void PickCacheOptimizer<T>::cacheResult(const bool intersects, const PickResultPointer& resTemp, const PickCacheKey& key, PickResultPointer& res, T& mathPick, PickCache& cache, const std::shared_ptr<Pick<T>> pick) {
-    if (intersects) {
+void PickCacheOptimizer<T>::cacheResult(const bool needToCompareResults, const PickResultPointer& resTemp, const PickCacheKey& key, PickResultPointer& res, T& mathPick, PickCache& cache, const std::shared_ptr<Pick<T>> pick) {
+    if (needToCompareResults) {
         cache[mathPick][key] = resTemp;
         res = res->compareAndProcessNewResult(resTemp);
     } else {
@@ -67,8 +67,9 @@ void PickCacheOptimizer<T>::cacheResult(const bool intersects, const PickResultP
 }
 
 template<typename T>
-void PickCacheOptimizer<T>::update(std::unordered_map<uint32_t, std::shared_ptr<PickQuery>>& picks,
+QVector4D PickCacheOptimizer<T>::update(std::unordered_map<uint32_t, std::shared_ptr<PickQuery>>& picks,
         uint32_t& nextToUpdate, uint64_t expiry, bool shouldPickHUD) {
+    QVector4D numIntersectionsComputed;
     PickCache results;
     const uint32_t INVALID_PICK_ID = 0;
     auto itr = picks.begin();
@@ -91,6 +92,7 @@ void PickCacheOptimizer<T>::update(std::unordered_map<uint32_t, std::shared_ptr<
                 PickCacheKey entityKey = { pick->getFilter().getEntityFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
                 if (!checkAndCompareCachedResults(mathematicalPick, results, res, entityKey)) {
                     PickResultPointer entityRes = pick->getEntityIntersection(mathematicalPick);
+                    numIntersectionsComputed[0]++;
                     if (entityRes) {
                         cacheResult(entityRes->doesIntersect(), entityRes, entityKey, res, mathematicalPick, results, pick);
                     }
@@ -101,6 +103,7 @@ void PickCacheOptimizer<T>::update(std::unordered_map<uint32_t, std::shared_ptr<
                 PickCacheKey overlayKey = { pick->getFilter().getOverlayFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
                 if (!checkAndCompareCachedResults(mathematicalPick, results, res, overlayKey)) {
                     PickResultPointer overlayRes = pick->getOverlayIntersection(mathematicalPick);
+                    numIntersectionsComputed[1]++;
                     if (overlayRes) {
                         cacheResult(overlayRes->doesIntersect(), overlayRes, overlayKey, res, mathematicalPick, results, pick);
                     }
@@ -111,6 +114,7 @@ void PickCacheOptimizer<T>::update(std::unordered_map<uint32_t, std::shared_ptr<
                 PickCacheKey avatarKey = { pick->getFilter().getAvatarFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
                 if (!checkAndCompareCachedResults(mathematicalPick, results, res, avatarKey)) {
                     PickResultPointer avatarRes = pick->getAvatarIntersection(mathematicalPick);
+                    numIntersectionsComputed[2]++;
                     if (avatarRes) {
                         cacheResult(avatarRes->doesIntersect(), avatarRes, avatarKey, res, mathematicalPick, results, pick);
                     }
@@ -122,6 +126,7 @@ void PickCacheOptimizer<T>::update(std::unordered_map<uint32_t, std::shared_ptr<
                 PickCacheKey hudKey = { pick->getFilter().getHUDFlags(), QVector<QUuid>(), QVector<QUuid>() };
                 if (!checkAndCompareCachedResults(mathematicalPick, results, res, hudKey)) {
                     PickResultPointer hudRes = pick->getHUDIntersection(mathematicalPick);
+                    numIntersectionsComputed[3]++;
                     if (hudRes) {
                         cacheResult(true, hudRes, hudKey, res, mathematicalPick, results, pick);
                     }
@@ -145,6 +150,7 @@ void PickCacheOptimizer<T>::update(std::unordered_map<uint32_t, std::shared_ptr<
             break;
         }
     }
+    return numIntersectionsComputed;
 }
 
 #endif // hifi_PickCacheOptimizer_h

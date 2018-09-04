@@ -226,3 +226,15 @@ PickResultPointer StylusPick::getAvatarIntersection(const StylusTip& pick) {
 PickResultPointer StylusPick::getHUDIntersection(const StylusTip& pick) {
     return std::make_shared<StylusPickResult>(pick.toVariantMap());
 }
+
+Transform StylusPick::getResultTransform() const {
+    PickResultPointer result = getPrevPickResult();
+    if (!result) {
+        return Transform();
+    }
+
+    auto stylusResult = std::static_pointer_cast<StylusPickResult>(result);
+    Transform transform;
+    transform.setTranslation(stylusResult->intersection);
+    return transform;
+}

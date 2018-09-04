@@ -48,6 +48,7 @@ public:
     // Inputs
     glm::vec3 origin;
     glm::vec3 direction;
+    glm::vec3 invDirection;
     const QVector<EntityItemID>& entityIdsToInclude;
     const QVector<EntityItemID>& entityIdsToDiscard;
     bool visibleOnly;
@@ -825,13 +826,36 @@ bool findRayIntersectionOp(const OctreeElementPointer& element, void* extraData)
     RayArgs* args = static_cast<RayArgs*>(extraData);
     bool keepSearching = true;
     EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
-    EntityItemID entityID = entityTreeElementPointer->findRayIntersection(args->origin, args->direction, keepSearching,
+    EntityItemID entityID = entityTreeElementPointer->findRayIntersection(args->origin, args->direction,
         args->element, args->distance, args->face, args->surfaceNormal, args->entityIdsToInclude,
         args->entityIdsToDiscard, args->visibleOnly, args->collidableOnly, args->extraInfo, args->precisionPicking);
     if (!entityID.isNull()) {
         args->entityID = entityID;
+        // We recurse OctreeElements in order, so if we hit something, we can stop immediately
+        keepSearching = false;
     }
     return keepSearching;
+}
+
+float findRayIntersectionSortingOp(const OctreeElementPointer& element, void* extraData) {
+    RayArgs* args = static_cast<RayArgs*>(extraData);
+    EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
+    float distance = FLT_MAX;
+    // If origin is inside the cube, always check this element first
+    if (entityTreeElementPointer->getAACube().contains(args->origin)) {
+        distance = 0.0f;
+    } else {
+        float boundDistance = FLT_MAX;
+        BoxFace face;
+        glm::vec3 surfaceNormal;
+        if (entityTreeElementPointer->getAACube().findRayIntersection(args->origin, args->direction, args->invDirection, boundDistance, face, surfaceNormal)) {
+            // Don't add this cell if it's already farther than our best distance so far
+            if (boundDistance < args->distance) {
+                distance = boundDistance;
+            }
+        }
+    }
+    return distance;
 }
 
 EntityItemID EntityTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -840,13 +864,13 @@ EntityItemID EntityTree::findRayIntersection(const glm::vec3& origin, const glm:
                                     OctreeElementPointer& element, float& distance,
                                     BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
                                     Octree::lockType lockType, bool* accurateResult) {
-    RayArgs args = { origin, direction, entityIdsToInclude, entityIdsToDiscard,
+    RayArgs args = { origin, direction, 1.0f / direction, entityIdsToInclude, entityIdsToDiscard,
             visibleOnly, collidableOnly, precisionPicking, element, distance, face, surfaceNormal, extraInfo, EntityItemID() };
     distance = FLT_MAX;
 
     bool requireLock = lockType == Octree::Lock;
     bool lockResult = withReadLock([&]{
-        recurseTreeWithOperation(findRayIntersectionOp, &args);
+        recurseTreeWithOperationSorted(findRayIntersectionOp, findRayIntersectionSortingOp, &args);
     }, requireLock);
 
     if (accurateResult) {
@@ -860,13 +884,36 @@ bool findParabolaIntersectionOp(const OctreeElementPointer& element, void* extra
     ParabolaArgs* args = static_cast<ParabolaArgs*>(extraData);
     bool keepSearching = true;
     EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
-    EntityItemID entityID = entityTreeElementPointer->findParabolaIntersection(args->origin, args->velocity, args->acceleration, keepSearching,
+    EntityItemID entityID = entityTreeElementPointer->findParabolaIntersection(args->origin, args->velocity, args->acceleration,
         args->element, args->parabolicDistance, args->face, args->surfaceNormal, args->entityIdsToInclude,
         args->entityIdsToDiscard, args->visibleOnly, args->collidableOnly, args->extraInfo, args->precisionPicking);
     if (!entityID.isNull()) {
         args->entityID = entityID;
+        // We recurse OctreeElements in order, so if we hit something, we can stop immediately
+        keepSearching = false;
     }
     return keepSearching;
+}
+
+float findParabolaIntersectionSortingOp(const OctreeElementPointer& element, void* extraData) {
+    ParabolaArgs* args = static_cast<ParabolaArgs*>(extraData);
+    EntityTreeElementPointer entityTreeElementPointer = std::static_pointer_cast<EntityTreeElement>(element);
+    float distance = FLT_MAX;
+    // If origin is inside the cube, always check this element first
+    if (entityTreeElementPointer->getAACube().contains(args->origin)) {
+        distance = 0.0f;
+    } else {
+        float boundDistance = FLT_MAX;
+        BoxFace face;
+        glm::vec3 surfaceNormal;
+        if (entityTreeElementPointer->getAACube().findParabolaIntersection(args->origin, args->velocity, args->acceleration, boundDistance, face, surfaceNormal)) {
+            // Don't add this cell if it's already farther than our best distance so far
+            if (boundDistance < args->parabolicDistance) {
+                distance = boundDistance;
+            }
+        }
+    }
+    return distance;
 }
 
 EntityItemID EntityTree::findParabolaIntersection(const PickParabola& parabola,
@@ -882,7 +929,7 @@ EntityItemID EntityTree::findParabolaIntersection(const PickParabola& parabola,
 
     bool requireLock = lockType == Octree::Lock;
     bool lockResult = withReadLock([&] {
-        recurseTreeWithOperation(findParabolaIntersectionOp, &args);
+        recurseTreeWithOperationSorted(findParabolaIntersectionOp, findParabolaIntersectionSortingOp, &args);
     }, requireLock);
 
     if (accurateResult) {

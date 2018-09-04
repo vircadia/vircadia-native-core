@@ -35,6 +35,37 @@ void LaserPointer::editRenderStatePath(const std::string& state, const QVariant&
     }
 }
 
+QVariantMap LaserPointer::toVariantMap() const {
+    QVariantMap qVariantMap;
+
+    QVariantMap qRenderStates;
+    for (auto iter = _renderStates.cbegin(); iter != _renderStates.cend(); iter++) {
+        auto renderState = iter->second;
+        QVariantMap qRenderState;
+        qRenderState["start"] = renderState->getStartID();
+        qRenderState["path"] = std::static_pointer_cast<RenderState>(renderState)->getPathID();
+        qRenderState["end"] = renderState->getEndID();
+        qRenderStates[iter->first.c_str()] = qRenderState;
+    }
+    qVariantMap["renderStates"] = qRenderStates;
+
+    QVariantMap qDefaultRenderStates;
+    for (auto iter = _defaultRenderStates.cbegin(); iter != _defaultRenderStates.cend(); iter++) {
+        float distance = iter->second.first;
+        auto defaultRenderState = iter->second.second;
+        QVariantMap qDefaultRenderState;
+
+        qDefaultRenderState["distance"] = distance;
+        qDefaultRenderState["start"] = defaultRenderState->getStartID();
+        qDefaultRenderState["path"] = std::static_pointer_cast<RenderState>(defaultRenderState)->getPathID();
+        qDefaultRenderState["end"] = defaultRenderState->getEndID();
+        qDefaultRenderStates[iter->first.c_str()] = qDefaultRenderState;
+    }
+    qVariantMap["defaultRenderStates"] = qDefaultRenderStates;
+
+    return qVariantMap;
+}
+
 glm::vec3 LaserPointer::getPickOrigin(const PickResultPointer& pickResult) const {
     auto rayPickResult = std::static_pointer_cast<RayPickResult>(pickResult);
     return (rayPickResult ? vec3FromVariant(rayPickResult->pickVariant["origin"]) : glm::vec3(0.0f));
@@ -42,6 +73,9 @@ glm::vec3 LaserPointer::getPickOrigin(const PickResultPointer& pickResult) const
 
 glm::vec3 LaserPointer::getPickEnd(const PickResultPointer& pickResult, float distance) const {
     auto rayPickResult = std::static_pointer_cast<RayPickResult>(pickResult);
+    if (!rayPickResult) {
+        return glm::vec3(0.0f);
+    }
     if (distance > 0.0f) {
         PickRay pick = PickRay(rayPickResult->pickVariant);
         return pick.origin + distance * pick.direction;
