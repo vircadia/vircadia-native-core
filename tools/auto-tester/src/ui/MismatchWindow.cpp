@@ -22,6 +22,11 @@ MismatchWindow::MismatchWindow(QWidget *parent) : QDialog(parent) {
 }
 
 QPixmap MismatchWindow::computeDiffPixmap(QImage expectedImage, QImage resultImage) {
+    // Create an empty difference image if the images differ in size
+    if (expectedImage.height() != resultImage.height() || expectedImage.width() != resultImage.width()) {
+        return QPixmap();
+    }
+
 	// This is an optimization, as QImage.setPixel() is embarrassingly slow
     unsigned char* buffer = new unsigned char[expectedImage.height() * expectedImage.width() * 3];
 
