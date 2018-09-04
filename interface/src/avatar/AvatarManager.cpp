@@ -187,16 +187,17 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         AvatarSharedPointer _avatar;
     };
 
+    auto avatarMap = getHashCopy();
+    AvatarHash::iterator itr = avatarMap.begin();
 
     const auto& views = qApp->getConicalViews();
     PrioritySortUtil::PriorityQueue<SortableAvatar> sortedAvatars(views,
             AvatarData::_avatarSortCoefficientSize,
             AvatarData::_avatarSortCoefficientCenter,
             AvatarData::_avatarSortCoefficientAge);
+    sortedAvatars.reserve(avatarMap.size() - 1); // don't include MyAvatar
 
     // sort
-    auto avatarMap = getHashCopy();
-    AvatarHash::iterator itr = avatarMap.begin();
     while (itr != avatarMap.end()) {
         const auto& avatar = std::static_pointer_cast<Avatar>(*itr);
         // DO NOT update _myAvatar!  Its update has already been done earlier in the main loop.

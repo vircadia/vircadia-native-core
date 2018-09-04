@@ -382,6 +382,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
 
         const auto& views = _viewState->getConicalViews();
         PrioritySortUtil::PriorityQueue<SortableRenderer> sortedRenderables(views);
+        sortedRenderables.reserve(_renderablesToUpdate.size());
         {
             PROFILE_RANGE_EX(simulation_physics, "SortRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
             std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr = _renderablesToUpdate.begin();
