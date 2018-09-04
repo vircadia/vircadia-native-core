@@ -585,7 +585,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
 
     FBXMesh& fbxMesh = extractedMesh;
     graphics::MeshPointer mesh(new graphics::Mesh());
-    bool blendShapes = !fbxMesh.blendshapes.empty();
+   // bool blendShapes = !fbxMesh.blendshapes.empty();
     int numVerts = extractedMesh.vertices.size();
 
     // Grab the vertices in a buffer
@@ -619,7 +619,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
         qWarning() << "Unexpected tangents in " << url;
     }
     const auto normalsAndTangentsSize = normalsSize + tangentsSize;
-    const int normalsAndTangentsStride = 2 * sizeof(NormalType);
+   // const int normalsAndTangentsStride = 2 * sizeof(NormalType);
     const int colorsSize = fbxMesh.colors.size() * sizeof(ColorType);
     // Texture coordinates are stored in 2 half floats
     const int texCoordsSize = fbxMesh.texCoords.size() * sizeof(vec2h);
@@ -635,7 +635,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
 
     // Normals and tangents are interleaved
     const int normalsOffset = 0;
-    const int tangentsOffset = normalsOffset + sizeof(NormalType);
+ //   const int tangentsOffset = normalsOffset + sizeof(NormalType);
     const int totalNTSize = normalsOffset + normalsSize + tangentsSize;
     //const int colorsOffset = normalsOffset + normalsSize + tangentsSize;
 
