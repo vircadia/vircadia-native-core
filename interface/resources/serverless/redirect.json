@@ -1,37 +1,42 @@
 {
     "DataVersion": 0,
+    "Paths":
+    {
+        "/": "/4,1.4,4/0,0.49544,0,0.868645"
+    },
     "Entities": [
         {
             "clientOnly": false,
             "collidesWith": "static,dynamic,kinematic,otherAvatar,",
             "collisionMask": 23,
-            "created": "2018-08-31T21:40:18Z",
+            "created": "2018-09-04T20:35:23Z",
             "dimensions": {
-                "blue": 0.8231174349784851,
-                "green": 1.8264780044555664,
-                "red": 1.2112245559692383,
-                "x": 1.2112245559692383,
-                "y": 1.8264780044555664,
-                "z": 0.8231174349784851
+                "blue": 0.8660923838615417,
+                "green": 1.921838402748108,
+                "red": 1.2744625806808472,
+                "x": 1.2744625806808472,
+                "y": 1.921838402748108,
+                "z": 0.8660923838615417
             },
-            "id": "{1a8bf6e0-6f03-4761-9aba-1f624fae1236}",
-            "lastEdited": 1535751992686833,
-            "lastEditedBy": "{ace8f357-ad94-49e1-b4d0-39c4d5a936f3}",
+            "id": "{3889145e-9db2-46dc-9765-9ba7594457dc}",
+            "lastEdited": 1536093329670067,
+            "lastEditedBy": "{b5bba536-25e5-4b12-a1be-5c7cd196a06a}",
+            "locked": true,
             "name": "Try Again Zone",
             "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
             "position": {
-                "blue": 4.442525863647461,
+                "blue": 4.524896621704102,
                 "green": 1.9289360046386719,
-                "red": 2.600449562072754,
-                "x": -1.399550437927246,
-                "y": -7.571063995361328,
-                "z": 0.44252586364746094
+                "red": 2.893861770629883,
+                "x": 2.893861770629883,
+                "y": 1.9289360046386719,
+                "z": 4.524896621704102
             },
             "queryAACube": {
-                "scale": 2.3410699367523193,
-                "x": 1.4299145936965942,
-                "y": 0.7584010362625122,
-                "z": 3.2719907760620117
+                "scale": 2.4632973670959473,
+                "x": 1.6622130870819092,
+                "y": 0.6972873210906982,
+                "z": 3.293247938156128
             },
             "rotation": {
                 "w": 0.9743700623512268,
@@ -39,7 +44,7 @@
                 "y": -0.22495104372501373,
                 "z": 0
             },
-            "script": "file:///C:/Users/wayne/development/zoneTryAgainEntityScript.js",
+            "script": "https://raw.githubusercontent.com/wayne-chen/hifi/404DomainRedirect/scripts/redirect/zoneTryAgainEntityScript.js",
             "shapeType": "box",
             "type": "Zone",
             "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
@@ -48,33 +53,34 @@
             "clientOnly": false,
             "collidesWith": "static,dynamic,kinematic,otherAvatar,",
             "collisionMask": 23,
-            "created": "2018-08-31T21:44:40Z",
+            "created": "2018-09-04T20:35:23Z",
             "dimensions": {
-                "blue": 0.7544999718666077,
-                "green": 1.8265000581741333,
-                "red": 1.0555000305175781,
-                "x": 1.0555000305175781,
-                "y": 1.8265000581741333,
-                "z": 0.7544999718666077
+                "blue": 1.159199833869934,
+                "green": 2.8062009811401367,
+                "red": 1.6216505765914917,
+                "x": 1.6216505765914917,
+                "y": 2.8062009811401367,
+                "z": 1.159199833869934
             },
-            "id": "{eb439982-948a-4393-8e8c-fdd833e6d9a7}",
-            "lastEdited": 1535752005525769,
-            "lastEditedBy": "{ace8f357-ad94-49e1-b4d0-39c4d5a936f3}",
+            "id": "{8facc8e1-bc17-4460-8a9c-868b07c1b387}",
+            "lastEdited": 1536093329669913,
+            "lastEditedBy": "{b5bba536-25e5-4b12-a1be-5c7cd196a06a}",
+            "locked": true,
             "name": "Back Zone",
             "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
             "position": {
-                "blue": 2.538674831390381,
+                "blue": 1.8632707595825195,
                 "green": 1.8022732734680176,
-                "red": 3.5101304054260254,
-                "x": -0.4898695945739746,
-                "y": -7.697726726531982,
-                "z": -1.4613251686096191
+                "red": 3.3276727199554443,
+                "x": 3.3276727199554443,
+                "y": 1.8022732734680176,
+                "z": 1.8632707595825195
             },
             "queryAACube": {
-                "scale": 2.2404136657714844,
-                "x": 2.389923572540283,
-                "y": 0.6820664405822754,
-                "z": 1.4184679985046387
+                "scale": 3.4421300888061523,
+                "x": 1.6066076755523682,
+                "y": 0.0812082290649414,
+                "z": 0.14220571517944336
             },
             "rotation": {
                 "w": 0.9304176568984985,
@@ -82,185 +88,10 @@
                 "y": -0.36650121212005615,
                 "z": 0
             },
-            "script": "file:///C:/Users/wayne/development/zoneBackEntityScript.js",
+            "script": "https://raw.githubusercontent.com/wayne-chen/hifi/404DomainRedirect/scripts/redirect/zoneBackEntityScript.js",
             "shapeType": "box",
             "type": "Zone",
             "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
-        },
-        {
-            "clientOnly": false,
-            "created": "2018-08-31T21:35:56Z",
-            "dimensions": {
-                "blue": 14.40000057220459,
-                "green": 14.40000057220459,
-                "red": 14.40000057220459,
-                "x": 14.40000057220459,
-                "y": 14.40000057220459,
-                "z": 14.40000057220459
-            },
-            "id": "{dbae0b3a-a7ff-4eb1-9177-fd1f20b3cec8}",
-            "lastEdited": 1535751789461074,
-            "lastEditedBy": "{ace8f357-ad94-49e1-b4d0-39c4d5a936f3}",
-            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
-            "position": {
-                "blue": 2.3440732955932617,
-                "green": 1.7684326171875,
-                "red": 1.8812973499298096,
-                "x": -2.1187026500701904,
-                "y": -7.7315673828125,
-                "z": -1.6559267044067383
-            },
-            "queryAACube": {
-                "scale": 24.9415340423584,
-                "x": -10.589469909667969,
-                "y": -10.7023344039917,
-                "z": -10.126693725585938
-            },
-            "rotation": {
-                "w": 0.8697794675827026,
-                "x": -1.52587890625e-05,
-                "y": 0.4933699369430542,
-                "z": -4.57763671875e-05
-            },
-            "shapeType": "box",
-            "skyboxMode": "enabled",
-            "type": "Zone",
-            "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
-        },
-        {
-            "clientOnly": false,
-            "color": {
-                "blue": 0,
-                "green": 0,
-                "red": 0
-            },
-            "created": "2018-08-31T21:35:56Z",
-            "dimensions": {
-                "blue": 11.117486953735352,
-                "green": 3.580313205718994,
-                "red": 0.20000000298023224,
-                "x": 0.20000000298023224,
-                "y": 3.580313205718994,
-                "z": 11.117486953735352
-            },
-            "id": "{c92b026b-e13c-448a-903c-2773f9fdc2e8}",
-            "lastEdited": 1535751961512543,
-            "lastEditedBy": "{ace8f357-ad94-49e1-b4d0-39c4d5a936f3}",
-            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
-            "position": {
-                "blue": 1.9063844680786133,
-                "green": 1.15850830078125,
-                "red": 0.16632509231567383,
-                "x": -3.833674907684326,
-                "y": -8.34149169921875,
-                "z": -2.0936155319213867
-            },
-            "queryAACube": {
-                "scale": 11.681488037109375,
-                "x": -5.674418926239014,
-                "y": -4.6822357177734375,
-                "z": -3.934359550476074
-            },
-            "rotation": {
-                "w": 0.9666743278503418,
-                "x": -4.57763671875e-05,
-                "y": -0.2560006380081177,
-                "z": 1.52587890625e-05
-            },
-            "shape": "Cube",
-            "type": "Box",
-            "userData": "{\"grabbableKey\":{\"grabbable\":false}}",
-            "visible": false
-        },
-        {
-            "clientOnly": false,
-            "color": {
-                "blue": 0,
-                "green": 0,
-                "red": 0
-            },
-            "created": "2018-08-31T21:35:56Z",
-            "dimensions": {
-                "blue": 11.117486953735352,
-                "green": 3.580313205718994,
-                "red": 0.20000000298023224,
-                "x": 0.20000000298023224,
-                "y": 3.580313205718994,
-                "z": 11.117486953735352
-            },
-            "id": "{cd72debb-75a6-420d-b39f-b903fb069798}",
-            "lastEdited": 1535751362199714,
-            "lastEditedBy": "{8cc0d68c-b354-4c5f-992d-56b89e8072c5}",
-            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
-            "position": {
-                "blue": 6.1806135177612305,
-                "green": 1.1588134765625,
-                "red": 1.4755167961120605,
-                "x": -2.5244832038879395,
-                "y": -8.3411865234375,
-                "z": 2.1806135177612305
-            },
-            "queryAACube": {
-                "scale": 11.681488037109375,
-                "x": -4.365227222442627,
-                "y": -4.6819305419921875,
-                "z": 0.33986949920654297
-            },
-            "rotation": {
-                "w": 0.8637980222702026,
-                "x": -4.57763671875e-05,
-                "y": 0.5038070678710938,
-                "z": -1.52587890625e-05
-            },
-            "shape": "Cube",
-            "type": "Box",
-            "userData": "{\"grabbableKey\":{\"grabbable\":false}}",
-            "visible": false
-        },
-        {
-            "clientOnly": false,
-            "color": {
-                "blue": 0,
-                "green": 0,
-                "red": 0
-            },
-            "created": "2018-08-31T21:35:56Z",
-            "dimensions": {
-                "blue": 11.117486953735352,
-                "green": 3.580313205718994,
-                "red": 0.20000000298023224,
-                "x": 0.20000000298023224,
-                "y": 3.580313205718994,
-                "z": 11.117486953735352
-            },
-            "id": "{abe300d5-32b8-4d0c-bf82-e78005b79b70}",
-            "lastEdited": 1535751362199153,
-            "lastEditedBy": "{8cc0d68c-b354-4c5f-992d-56b89e8072c5}",
-            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
-            "position": {
-                "blue": 5.268576622009277,
-                "green": 1.1588134765625,
-                "red": 6.100250244140625,
-                "x": 2.100250244140625,
-                "y": -8.3411865234375,
-                "z": 1.2685766220092773
-            },
-            "queryAACube": {
-                "scale": 11.681488037109375,
-                "x": 0.2595062255859375,
-                "y": -4.6819305419921875,
-                "z": -0.5721673965454102
-            },
-            "rotation": {
-                "w": 0.9662165641784668,
-                "x": -4.57763671875e-05,
-                "y": -0.2576791048049927,
-                "z": 1.52587890625e-05
-            },
-            "shape": "Cube",
-            "type": "Box",
-            "userData": "{\"grabbableKey\":{\"grabbable\":false}}",
-            "visible": false
         },
         {
             "angularDamping": 0,
@@ -270,7 +101,7 @@
                 "green": 0,
                 "red": 255
             },
-            "created": "2018-08-31T21:35:56Z",
+            "created": "2018-09-04T20:35:23Z",
             "dimensions": {
                 "blue": 0.20000000298023224,
                 "green": 0.20000000298023224,
@@ -279,18 +110,19 @@
                 "y": 0.20000000298023224,
                 "z": 0.20000000298023224
             },
-            "id": "{66757fda-b7ad-4858-83ab-724b01710cc2}",
-            "lastEdited": 1535751362198937,
-            "lastEditedBy": "{8cc0d68c-b354-4c5f-992d-56b89e8072c5}",
+            "id": "{ed4142db-f3c9-441b-9091-cd1755b6aeb1}",
+            "lastEdited": 1536093329672493,
+            "lastEditedBy": "{b5bba536-25e5-4b12-a1be-5c7cd196a06a}",
+            "locked": true,
             "name": "Particle Rotate",
             "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
             "position": {
                 "blue": 1.3116319179534912,
                 "green": 0.15618896484375,
                 "red": 2.705613613128662,
-                "x": -1.294386386871338,
-                "y": -9.34381103515625,
-                "z": -2.688368082046509
+                "x": 2.705613613128662,
+                "y": 0.15618896484375,
+                "z": 1.3116319179534912
             },
             "queryAACube": {
                 "scale": 0.3464101552963257,
@@ -312,155 +144,13 @@
             "visible": false
         },
         {
-            "angularDamping": 0,
-            "clientOnly": false,
-            "color": {
-                "blue": 0,
-                "green": 0,
-                "red": 255
-            },
-            "created": "2018-08-31T21:35:56Z",
-            "dimensions": {
-                "blue": 0.20000000298023224,
-                "green": 0.20000000298023224,
-                "red": 0.20000000298023224,
-                "x": 0.20000000298023224,
-                "y": 0.20000000298023224,
-                "z": 0.20000000298023224
-            },
-            "id": "{24eda146-92f8-4e43-b084-fb555626427b}",
-            "lastEdited": 1535751362198263,
-            "lastEditedBy": "{8cc0d68c-b354-4c5f-992d-56b89e8072c5}",
-            "name": "Particle Rotate",
-            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
-            "position": {
-                "blue": 1.3116319179534912,
-                "green": 0,
-                "red": 2.705613613128662,
-                "x": -1.294386386871338,
-                "y": -9.5,
-                "z": -2.688368082046509
-            },
-            "queryAACube": {
-                "scale": 0.3464101552963257,
-                "x": 2.5324084758758545,
-                "y": -0.17320507764816284,
-                "z": 1.1384267807006836
-            },
-            "rotation": {
-                "w": 0.9127794504165649,
-                "x": 0.2575265169143677,
-                "y": 0.15553522109985352,
-                "z": 0.2761729955673218
-            },
-            "script": "http://hifi-content.s3.amazonaws.com/alexia/Models/Portal/rotate.js",
-            "scriptTimestamp": 1532724769253,
-            "shape": "Cube",
-            "type": "Box",
-            "userData": "{\"grabbableKey\":{\"grabbable\":false}}",
-            "visible": false
-        },
-        {
-            "alpha": 0,
-            "alphaFinish": 0,
-            "alphaStart": 0.25,
-            "clientOnly": false,
-            "colorFinish": {
-                "blue": 0,
-                "green": 0,
-                "red": 0,
-                "x": 0,
-                "y": 0,
-                "z": 0
-            },
-            "colorStart": {
-                "blue": 255,
-                "green": 255,
-                "red": 255,
-                "x": 255,
-                "y": 255,
-                "z": 255
-            },
-            "created": "2018-08-31T21:35:56Z",
-            "dimensions": {
-                "blue": 13.24000072479248,
-                "green": 13.24000072479248,
-                "red": 13.24000072479248,
-                "x": 13.24000072479248,
-                "y": 13.24000072479248,
-                "z": 13.24000072479248
-            },
-            "emitAcceleration": {
-                "blue": 0,
-                "green": 0.10000000149011612,
-                "red": 0,
-                "x": 0,
-                "y": 0.10000000149011612,
-                "z": 0
-            },
-            "emitDimensions": {
-                "blue": 1,
-                "green": 1,
-                "red": 1,
-                "x": 1,
-                "y": 1,
-                "z": 1
-            },
-            "emitOrientation": {
-                "w": 1,
-                "x": -1.52587890625e-05,
-                "y": -1.52587890625e-05,
-                "z": -1.52587890625e-05
-            },
-            "emitRate": 6,
-            "emitSpeed": 0,
-            "emitterShouldTrail": true,
-            "id": "{b9a46e3e-f982-4a46-b38d-2a38e5cc5fbc}",
-            "lastEdited": 1535751362199964,
-            "lastEditedBy": "{8cc0d68c-b354-4c5f-992d-56b89e8072c5}",
-            "lifespan": 10,
-            "maxParticles": 10,
-            "name": "Stars",
-            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
-            "particleRadius": 0.07000000029802322,
-            "polarFinish": 3.1415927410125732,
-            "position": {
-                "blue": 3.78922963142395,
-                "green": 0.5220947265625,
-                "red": 1.1928560733795166,
-                "x": -2.8071439266204834,
-                "y": -8.9779052734375,
-                "z": -0.2107703685760498
-            },
-            "queryAACube": {
-                "scale": 22.932353973388672,
-                "x": -10.273321151733398,
-                "y": -10.944082260131836,
-                "z": -7.676947593688965
-            },
-            "radiusFinish": 0,
-            "radiusStart": 0,
-            "rotation": {
-                "w": 0.996429443359375,
-                "x": -1.52587890625e-05,
-                "y": -0.08442819118499756,
-                "z": -4.57763671875e-05
-            },
-            "speedSpread": 0,
-            "spinFinish": null,
-            "spinStart": null,
-            "textures": "http://hifi-content.s3.amazonaws.com/alexia/Models/Portal/star.png",
-            "type": "ParticleEffect",
-            "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
-        },
-        {
             "clientOnly": false,
             "color": {
                 "blue": 0,
                 "green": 0,
                 "red": 0
             },
-            "created": "2018-08-31T21:35:56Z",
+            "created": "2018-09-04T20:35:23Z",
             "dimensions": {
                 "blue": 11.117486953735352,
                 "green": 3.580313205718994,
@@ -469,17 +159,18 @@
                 "y": 3.580313205718994,
                 "z": 11.117486953735352
             },
-            "id": "{e6897ca3-1c22-429f-a1b6-173ff47397a7}",
-            "lastEdited": 1535751362197848,
-            "lastEditedBy": "{8cc0d68c-b354-4c5f-992d-56b89e8072c5}",
+            "id": "{d49f29ca-72b6-473d-917c-f7bf7d66f219}",
+            "lastEdited": 1536093329670344,
+            "lastEditedBy": "{b5bba536-25e5-4b12-a1be-5c7cd196a06a}",
+            "locked": true,
             "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
             "position": {
                 "blue": 0,
                 "green": 1.1583251953125,
                 "red": 4.971565246582031,
-                "x": 0.9715652465820312,
-                "y": -8.3416748046875,
-                "z": -4
+                "x": 4.971565246582031,
+                "y": 1.1583251953125,
+                "z": 0
             },
             "queryAACube": {
                 "scale": 11.681488037109375,
@@ -499,6 +190,47 @@
             "visible": false
         },
         {
+            "clientOnly": false,
+            "created": "2018-09-04T20:35:23Z",
+            "dimensions": {
+                "blue": 0.06014331430196762,
+                "green": 2.582186460494995,
+                "red": 2.582186698913574,
+                "x": 2.582186698913574,
+                "y": 2.582186460494995,
+                "z": 0.06014331430196762
+            },
+            "id": "{6ccf519b-4e0b-4c23-a51b-305d0a64ab06}",
+            "lastEdited": 1536093329671943,
+            "lastEditedBy": "{b5bba536-25e5-4b12-a1be-5c7cd196a06a}",
+            "locked": true,
+            "modelURL": "http://hifi-content.s3.amazonaws.com/alexia/LoadingScreens/oopsDialog.fbx",
+            "name": "Oops Dialog",
+            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+            "position": {
+                "blue": 1.45927095413208,
+                "green": 1.6763916015625,
+                "red": 0,
+                "x": 0,
+                "y": 1.6763916015625,
+                "z": 1.45927095413208
+            },
+            "queryAACube": {
+                "scale": 3.6522583961486816,
+                "x": -1.8261291980743408,
+                "y": -0.14973759651184082,
+                "z": -0.36685824394226074
+            },
+            "rotation": {
+                "w": 0.8684672117233276,
+                "x": -4.57763671875e-05,
+                "y": 0.4957197904586792,
+                "z": -7.62939453125e-05
+            },
+            "type": "Model",
+            "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
+        },
+        {
             "angularDamping": 0,
             "clientOnly": false,
             "color": {
@@ -506,7 +238,7 @@
                 "green": 0,
                 "red": 255
             },
-            "created": "2018-08-31T21:35:56Z",
+            "created": "2018-09-04T20:35:23Z",
             "dimensions": {
                 "blue": 0.20000000298023224,
                 "green": 0.20000000298023224,
@@ -515,18 +247,19 @@
                 "y": 0.20000000298023224,
                 "z": 0.20000000298023224
             },
-            "id": "{16ca16ab-eee3-41b1-b583-159245aa2010}",
-            "lastEdited": 1535751362197055,
-            "lastEditedBy": "{8cc0d68c-b354-4c5f-992d-56b89e8072c5}",
+            "id": "{625c95a4-1592-4996-bd48-7aa3fdbe6aee}",
+            "lastEdited": 1536093329671797,
+            "lastEditedBy": "{b5bba536-25e5-4b12-a1be-5c7cd196a06a}",
+            "locked": true,
             "name": "Particle Rotate",
             "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
             "position": {
                 "blue": 1.3116319179534912,
                 "green": 0.0772705078125,
                 "red": 2.705613613128662,
-                "x": -1.294386386871338,
-                "y": -9.4227294921875,
-                "z": -2.688368082046509
+                "x": 2.705613613128662,
+                "y": 0.0772705078125,
+                "z": 1.3116319179534912
             },
             "queryAACube": {
                 "scale": 0.3464101552963257,
@@ -549,7 +282,53 @@
         },
         {
             "clientOnly": false,
-            "created": "2018-08-31T21:35:56Z",
+            "color": {
+                "blue": 0,
+                "green": 0,
+                "red": 255
+            },
+            "created": "2018-09-04T20:35:23Z",
+            "dimensions": {
+                "blue": 8.645400047302246,
+                "green": 0.20000000298023224,
+                "red": 20.025121688842773,
+                "x": 20.025121688842773,
+                "y": 0.20000000298023224,
+                "z": 8.645400047302246
+            },
+            "id": "{d356bb44-7888-476a-821e-961ae7d9330e}",
+            "lastEdited": 1536093329671479,
+            "lastEditedBy": "{b5bba536-25e5-4b12-a1be-5c7cd196a06a}",
+            "locked": true,
+            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+            "position": {
+                "blue": 4.846520900726318,
+                "green": 3.0651936531066895,
+                "red": 5.746071815490723,
+                "x": 5.746071815490723,
+                "y": 3.0651936531066895,
+                "z": 4.846520900726318
+            },
+            "queryAACube": {
+                "scale": 21.812576293945312,
+                "x": -5.160216331481934,
+                "y": -7.841094493865967,
+                "z": -6.059767246246338
+            },
+            "rotation": {
+                "w": 0.970295786857605,
+                "x": 0,
+                "y": -0.24192190170288086,
+                "z": 0
+            },
+            "shape": "Cube",
+            "type": "Box",
+            "userData": "{\"grabbableKey\":{\"grabbable\":false}}",
+            "visible": false
+        },
+        {
+            "clientOnly": false,
+            "created": "2018-09-04T20:35:23Z",
             "dimensions": {
                 "blue": 2.1097896099090576,
                 "green": 0.04847164824604988,
@@ -558,9 +337,10 @@
                 "y": 0.04847164824604988,
                 "z": 2.1097896099090576
             },
-            "id": "{482ae172-c411-41fb-9a41-4215eef25478}",
-            "lastEdited": 1535751754378548,
-            "lastEditedBy": "{ace8f357-ad94-49e1-b4d0-39c4d5a936f3}",
+            "id": "{737f1b31-0342-4764-89fb-2ef7ddf83983}",
+            "lastEdited": 1536093329672351,
+            "lastEditedBy": "{b5bba536-25e5-4b12-a1be-5c7cd196a06a}",
+            "locked": true,
             "modelURL": "http://hifi-content.s3.amazonaws.com/alexia/Models/Portal/portal2.fbx",
             "name": "Back",
             "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
@@ -568,9 +348,9 @@
                 "blue": 1.5835940837860107,
                 "green": 0.2467041015625,
                 "red": 3.0345542430877686,
-                "x": -0.9654457569122314,
-                "y": -9.2532958984375,
-                "z": -2.4164059162139893
+                "x": 3.0345542430877686,
+                "y": 0.2467041015625,
+                "z": 1.5835940837860107
             },
             "queryAACube": {
                 "scale": 2.5651814937591553,
@@ -584,7 +364,7 @@
                 "y": 0.4179598093032837,
                 "z": -0.0001068115234375
             },
-            "script": "file:///C:/Users/wayne/development/backEntityScript.js",
+            "script": "https://raw.githubusercontent.com/wayne-chen/hifi/404DomainRedirect/scripts/redirect/backEntityScript.js",
             "scriptTimestamp": 1535751754379,
             "shapeType": "static-mesh",
             "type": "Model",
@@ -592,89 +372,45 @@
         },
         {
             "clientOnly": false,
-            "created": "2018-08-31T21:35:56Z",
-            "dimensions": {
-                "blue": 9.030570983886719,
-                "green": 0.0719478651881218,
-                "red": 9.030570983886719,
-                "x": 9.030570983886719,
-                "y": 0.0719478651881218,
-                "z": 9.030570983886719
-            },
-            "id": "{33440bf8-f9ce-4d52-9b29-1b321e226982}",
-            "lastEdited": 1535751362197214,
-            "lastEditedBy": "{8cc0d68c-b354-4c5f-992d-56b89e8072c5}",
-            "modelURL": "http://hifi-content.s3.amazonaws.com/alexia/LoadingScreens/floor.fbx",
-            "name": "Floor",
-            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
-            "position": {
-                "blue": 4.2324604988098145,
-                "green": 0.17547607421875,
-                "red": 4.802988529205322,
-                "x": 0.8029885292053223,
-                "y": -9.32452392578125,
-                "z": 0.23246049880981445
-            },
-            "queryAACube": {
-                "scale": 12.771358489990234,
-                "x": -1.582690715789795,
-                "y": -6.210203170776367,
-                "z": -2.1532187461853027
-            },
-            "rotation": {
-                "w": 0.8648051023483276,
-                "x": -1.52587890625e-05,
-                "y": 0.5020675659179688,
-                "z": -4.57763671875e-05
-            },
-            "shapeType": "simple-hull",
-            "type": "Model",
-            "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
-        },
-        {
-            "angularDamping": 0,
-            "clientOnly": false,
             "color": {
                 "blue": 0,
                 "green": 0,
-                "red": 255
+                "red": 0
             },
-            "created": "2018-08-31T21:35:56Z",
+            "created": "2018-09-04T20:35:23Z",
             "dimensions": {
-                "blue": 0.20000000298023224,
-                "green": 0.20000000298023224,
+                "blue": 11.117486953735352,
+                "green": 3.580313205718994,
                 "red": 0.20000000298023224,
                 "x": 0.20000000298023224,
-                "y": 0.20000000298023224,
-                "z": 0.20000000298023224
+                "y": 3.580313205718994,
+                "z": 11.117486953735352
             },
-            "id": "{7639140e-cd6f-4f86-97f7-00a19f50253e}",
-            "lastEdited": 1535751362198721,
-            "lastEditedBy": "{8cc0d68c-b354-4c5f-992d-56b89e8072c5}",
-            "name": "Particle Rotate",
+            "id": "{87f734c8-37bb-4ac0-b300-5028f7fe6f9d}",
+            "lastEdited": 1536093329670472,
+            "lastEditedBy": "{b5bba536-25e5-4b12-a1be-5c7cd196a06a}",
+            "locked": true,
             "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
             "position": {
-                "blue": 3.8216662406921387,
-                "green": 0,
-                "red": 1.2409718036651611,
-                "x": -2.759028196334839,
-                "y": -9.5,
-                "z": -0.17833375930786133
+                "blue": 2.662257671356201,
+                "green": 1.1585893630981445,
+                "red": 1.493349552154541,
+                "x": 1.493349552154541,
+                "y": 1.1585893630981445,
+                "z": 2.662257671356201
             },
             "queryAACube": {
-                "scale": 0.3464101552963257,
-                "x": 1.0677666664123535,
-                "y": -0.17320507764816284,
-                "z": 3.648461103439331
+                "scale": 11.681488037109375,
+                "x": -4.3473944664001465,
+                "y": -4.682154655456543,
+                "z": -3.1784863471984863
             },
             "rotation": {
-                "w": 0.6444342136383057,
-                "x": -0.08220034837722778,
-                "y": -0.6649118661880493,
-                "z": 0.3684900999069214
+                "w": 0.9666743278503418,
+                "x": -4.57763671875e-05,
+                "y": -0.2560006380081177,
+                "z": 1.52587890625e-05
             },
-            "script": "http://hifi-content.s3.amazonaws.com/alexia/Models/Portal/rotate.js",
-            "scriptTimestamp": 1532724769253,
             "shape": "Cube",
             "type": "Box",
             "userData": "{\"grabbableKey\":{\"grabbable\":false}}",
@@ -682,7 +418,7 @@
         },
         {
             "clientOnly": false,
-            "created": "2018-08-31T21:35:56Z",
+            "created": "2018-09-04T20:35:23Z",
             "dimensions": {
                 "blue": 2.1097896099090576,
                 "green": 0.04847164824604988,
@@ -691,9 +427,10 @@
                 "y": 0.04847164824604988,
                 "z": 2.1097896099090576
             },
-            "id": "{7755bf99-b026-490d-a682-edadd3f65701}",
-            "lastEdited": 1535751900322535,
-            "lastEditedBy": "{ace8f357-ad94-49e1-b4d0-39c4d5a936f3}",
+            "id": "{9584bb57-b543-4d2b-af98-f3de618eef19}",
+            "lastEdited": 1536093329672070,
+            "lastEditedBy": "{b5bba536-25e5-4b12-a1be-5c7cd196a06a}",
+            "locked": true,
             "modelURL": "http://hifi-content.s3.amazonaws.com/alexia/Models/Portal/portal1.fbx",
             "name": "Try Again",
             "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
@@ -701,9 +438,9 @@
                 "blue": 3.946338653564453,
                 "green": 0.2467041015625,
                 "red": 1.6013128757476807,
-                "x": -2.3986871242523193,
-                "y": -9.2532958984375,
-                "z": -0.053661346435546875
+                "x": 1.6013128757476807,
+                "y": 0.2467041015625,
+                "z": 3.946338653564453
             },
             "queryAACube": {
                 "scale": 2.5651814937591553,
@@ -717,249 +454,9 @@
                 "y": 0.5693598985671997,
                 "z": -0.0001068115234375
             },
-            "script": "file:///C:/Users/wayne/development/tryAgainEntityScript.js",
+            "script": "https://raw.githubusercontent.com/wayne-chen/hifi/404DomainRedirect/scripts/redirect/tryAgainEntityScript.js",
             "shapeType": "static-mesh",
             "type": "Model",
-            "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
-        },
-        {
-            "angularDamping": 0,
-            "clientOnly": false,
-            "color": {
-                "blue": 0,
-                "green": 0,
-                "red": 255
-            },
-            "created": "2018-08-31T21:35:56Z",
-            "dimensions": {
-                "blue": 0.20000000298023224,
-                "green": 0.20000000298023224,
-                "red": 0.20000000298023224,
-                "x": 0.20000000298023224,
-                "y": 0.20000000298023224,
-                "z": 0.20000000298023224
-            },
-            "id": "{81207b9c-e3f2-4ee1-bb81-0e14f37e4687}",
-            "lastEdited": 1535751362197613,
-            "lastEditedBy": "{8cc0d68c-b354-4c5f-992d-56b89e8072c5}",
-            "name": "Particle Rotate",
-            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
-            "position": {
-                "blue": 3.8216662406921387,
-                "green": 0.15618896484375,
-                "red": 1.2409718036651611,
-                "x": -2.759028196334839,
-                "y": -9.34381103515625,
-                "z": -0.17833375930786133
-            },
-            "queryAACube": {
-                "scale": 0.3464101552963257,
-                "x": 1.0677666664123535,
-                "y": -0.017016112804412842,
-                "z": 3.648461103439331
-            },
-            "rotation": {
-                "w": 0.6747081279754639,
-                "x": -0.06532388925552368,
-                "y": -0.6342412233352661,
-                "z": 0.37175559997558594
-            },
-            "script": "http://hifi-content.s3.amazonaws.com/alexia/Models/Portal/rotate.js",
-            "scriptTimestamp": 1532724769253,
-            "shape": "Cube",
-            "type": "Box",
-            "userData": "{\"grabbableKey\":{\"grabbable\":false}}",
-            "visible": false
-        },
-        {
-            "alpha": 0,
-            "alphaFinish": 0,
-            "alphaStart": 0.25,
-            "clientOnly": false,
-            "colorFinish": {
-                "blue": 0,
-                "green": 0,
-                "red": 0,
-                "x": 0,
-                "y": 0,
-                "z": 0
-            },
-            "colorStart": {
-                "blue": 255,
-                "green": 255,
-                "red": 255,
-                "x": 255,
-                "y": 255,
-                "z": 255
-            },
-            "created": "2018-08-31T21:35:56Z",
-            "dimensions": {
-                "blue": 13.24000072479248,
-                "green": 13.24000072479248,
-                "red": 13.24000072479248,
-                "x": 13.24000072479248,
-                "y": 13.24000072479248,
-                "z": 13.24000072479248
-            },
-            "emitAcceleration": {
-                "blue": 0,
-                "green": 0.10000000149011612,
-                "red": 0,
-                "x": 0,
-                "y": 0.10000000149011612,
-                "z": 0
-            },
-            "emitDimensions": {
-                "blue": 1,
-                "green": 1,
-                "red": 1,
-                "x": 1,
-                "y": 1,
-                "z": 1
-            },
-            "emitOrientation": {
-                "w": 1,
-                "x": -1.52587890625e-05,
-                "y": -1.52587890625e-05,
-                "z": -1.52587890625e-05
-            },
-            "emitRate": 6,
-            "emitSpeed": 0,
-            "id": "{b8f11bf5-410e-4e35-b4c3-91c86c01351d}",
-            "lastEdited": 1535751362196710,
-            "lastEditedBy": "{8cc0d68c-b354-4c5f-992d-56b89e8072c5}",
-            "lifespan": 10,
-            "maxParticles": 10,
-            "name": "Stars",
-            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
-            "particleRadius": 0.07000000029802322,
-            "polarFinish": 3.1415927410125732,
-            "position": {
-                "blue": 1.3712034225463867,
-                "green": 0.5220947265625,
-                "red": 2.6281180381774902,
-                "x": -1.3718819618225098,
-                "y": -8.9779052734375,
-                "z": -2.6287965774536133
-            },
-            "queryAACube": {
-                "scale": 22.932353973388672,
-                "x": -8.838058471679688,
-                "y": -10.944082260131836,
-                "z": -10.09497356414795
-            },
-            "radiusFinish": 0,
-            "radiusStart": 0,
-            "rotation": {
-                "w": 0.9852597713470459,
-                "x": -1.52587890625e-05,
-                "y": -0.17106890678405762,
-                "z": -7.62939453125e-05
-            },
-            "speedSpread": 0,
-            "spinFinish": null,
-            "spinStart": null,
-            "textures": "http://hifi-content.s3.amazonaws.com/alexia/Models/Portal/star.png",
-            "type": "ParticleEffect",
-            "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
-        },
-        {
-            "alpha": 0,
-            "alphaFinish": 0,
-            "alphaStart": 1,
-            "clientOnly": false,
-            "color": {
-                "blue": 255,
-                "green": 205,
-                "red": 3
-            },
-            "colorFinish": {
-                "blue": 0,
-                "green": 0,
-                "red": 0,
-                "x": 0,
-                "y": 0,
-                "z": 0
-            },
-            "colorStart": {
-                "blue": 255,
-                "green": 204,
-                "red": 0,
-                "x": 0,
-                "y": 204,
-                "z": 255
-            },
-            "created": "2018-08-31T21:35:56Z",
-            "dimensions": {
-                "blue": 2.5,
-                "green": 2.5,
-                "red": 2.5,
-                "x": 2.5,
-                "y": 2.5,
-                "z": 2.5
-            },
-            "emitAcceleration": {
-                "blue": 0,
-                "green": 0,
-                "red": 0,
-                "x": 0,
-                "y": 0,
-                "z": 0
-            },
-            "emitDimensions": {
-                "blue": 1,
-                "green": 1,
-                "red": 1,
-                "x": 1,
-                "y": 1,
-                "z": 1
-            },
-            "emitOrientation": {
-                "w": 0.9993909597396851,
-                "x": 0.034897372126579285,
-                "y": -1.525880907138344e-05,
-                "z": -1.525880907138344e-05
-            },
-            "emitRate": 2,
-            "emitSpeed": 0,
-            "emitterShouldTrail": true,
-            "id": "{4e72df75-67d7-4ce2-bdea-e78adae8904a}",
-            "lastEdited": 1535751362199482,
-            "lastEditedBy": "{8cc0d68c-b354-4c5f-992d-56b89e8072c5}",
-            "lifespan": 10,
-            "maxParticles": 40,
-            "name": "Rays",
-            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
-            "particleRadius": 0.75,
-            "polarFinish": 3.1415927410125732,
-            "position": {
-                "blue": 3.814434051513672,
-                "green": 1.44122314453125,
-                "red": 1.2319090366363525,
-                "x": -2.7680909633636475,
-                "y": -8.05877685546875,
-                "z": -0.18556594848632812
-            },
-            "queryAACube": {
-                "scale": 4.330127239227295,
-                "x": -0.9331545829772949,
-                "y": -0.7238404750823975,
-                "z": 1.6493704319000244
-            },
-            "radiusFinish": 0.10000000149011612,
-            "radiusStart": 0,
-            "rotation": {
-                "w": 0.9594720602035522,
-                "x": -1.52587890625e-05,
-                "y": 0.28178834915161133,
-                "z": -4.57763671875e-05
-            },
-            "script": "file:///C:/Users/wayne/development/raysTryAgainEntityScript.js",
-            "speedSpread": 0,
-            "spinFinish": null,
-            "spinStart": null,
-            "textures": "http://hifi-content.s3.amazonaws.com/alexia/Models/Portal/stripe.png",
-            "type": "ParticleEffect",
             "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
         },
         {
@@ -988,7 +485,7 @@
                 "y": 227,
                 "z": 211
             },
-            "created": "2018-08-31T21:35:56Z",
+            "created": "2018-09-04T20:35:23Z",
             "dimensions": {
                 "blue": 2.5,
                 "green": 2.5,
@@ -1021,10 +518,11 @@
             },
             "emitRate": 2,
             "emitSpeed": 0,
-            "id": "{3482eecd-0acc-4fb9-bd67-b160fa7c14d7}",
-            "lastEdited": 1535751362200185,
-            "lastEditedBy": "{8cc0d68c-b354-4c5f-992d-56b89e8072c5}",
+            "id": "{4b942dd2-dcfa-4959-8758-073c56d6a380}",
+            "lastEdited": 1536093329670643,
+            "lastEditedBy": "{b5bba536-25e5-4b12-a1be-5c7cd196a06a}",
             "lifespan": 10,
+            "locked": true,
             "maxParticles": 40,
             "name": "Rays",
             "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
@@ -1034,9 +532,9 @@
                 "blue": 1.3553659915924072,
                 "green": 1.44122314453125,
                 "red": 2.572803497314453,
-                "x": -1.4271965026855469,
-                "y": -8.05877685546875,
-                "z": -2.6446340084075928
+                "x": 2.572803497314453,
+                "y": 1.44122314453125,
+                "z": 1.3553659915924072
             },
             "queryAACube": {
                 "scale": 4.330127239227295,
@@ -1052,52 +550,11 @@
                 "y": 0.19707024097442627,
                 "z": -7.62939453125e-05
             },
-            "script": "file:///C:/Users/wayne/development/raysBackEntityScript.js",
             "speedSpread": 0,
             "spinFinish": null,
             "spinStart": null,
             "textures": "http://hifi-content.s3.amazonaws.com/alexia/Models/Portal/stripe.png",
             "type": "ParticleEffect",
-            "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
-        },
-        {
-            "clientOnly": false,
-            "created": "2018-08-31T21:35:56Z",
-            "dimensions": {
-                "blue": 0.06014331430196762,
-                "green": 2.582186460494995,
-                "red": 2.582186698913574,
-                "x": 2.582186698913574,
-                "y": 2.582186460494995,
-                "z": 0.06014331430196762
-            },
-            "id": "{729e9f39-5750-42a4-97a8-0fc79b300a32}",
-            "lastEdited": 1535751362197365,
-            "lastEditedBy": "{8cc0d68c-b354-4c5f-992d-56b89e8072c5}",
-            "modelURL": "http://hifi-content.s3.amazonaws.com/alexia/LoadingScreens/oopsDialog.fbx",
-            "name": "Oops Dialog",
-            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
-            "position": {
-                "blue": 1.45927095413208,
-                "green": 1.6763916015625,
-                "red": 0,
-                "x": -4,
-                "y": -7.8236083984375,
-                "z": -2.54072904586792
-            },
-            "queryAACube": {
-                "scale": 3.6522583961486816,
-                "x": -1.8261291980743408,
-                "y": -0.14973759651184082,
-                "z": -0.36685824394226074
-            },
-            "rotation": {
-                "w": 0.8684672117233276,
-                "x": -4.57763671875e-05,
-                "y": 0.4957197904586792,
-                "z": -7.62939453125e-05
-            },
-            "type": "Model",
             "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
         },
         {
@@ -1108,7 +565,7 @@
                 "green": 0,
                 "red": 255
             },
-            "created": "2018-08-31T21:35:56Z",
+            "created": "2018-09-04T20:35:23Z",
             "dimensions": {
                 "blue": 0.20000000298023224,
                 "green": 0.20000000298023224,
@@ -1117,18 +574,163 @@
                 "y": 0.20000000298023224,
                 "z": 0.20000000298023224
             },
-            "id": "{bd032130-bbd7-4c0b-9b98-ab9c9362be9b}",
-            "lastEdited": 1535751362198499,
-            "lastEditedBy": "{8cc0d68c-b354-4c5f-992d-56b89e8072c5}",
+            "id": "{3b13d766-763a-4d44-99d8-42c7b9d7139e}",
+            "lastEdited": 1536093329671361,
+            "lastEditedBy": "{b5bba536-25e5-4b12-a1be-5c7cd196a06a}",
+            "locked": true,
+            "name": "Particle Rotate",
+            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+            "position": {
+                "blue": 3.8216662406921387,
+                "green": 0,
+                "red": 1.2409718036651611,
+                "x": 1.2409718036651611,
+                "y": 0,
+                "z": 3.8216662406921387
+            },
+            "queryAACube": {
+                "scale": 0.3464101552963257,
+                "x": 1.0677666664123535,
+                "y": -0.17320507764816284,
+                "z": 3.648461103439331
+            },
+            "rotation": {
+                "w": 0.6444342136383057,
+                "x": -0.08220034837722778,
+                "y": -0.6649118661880493,
+                "z": 0.3684900999069214
+            },
+            "script": "http://hifi-content.s3.amazonaws.com/alexia/Models/Portal/rotate.js",
+            "scriptTimestamp": 1532724769253,
+            "shape": "Cube",
+            "type": "Box",
+            "userData": "{\"grabbableKey\":{\"grabbable\":false}}",
+            "visible": false
+        },
+        {
+            "alpha": 0,
+            "alphaFinish": 0,
+            "alphaStart": 0.25,
+            "clientOnly": false,
+            "colorFinish": {
+                "blue": 0,
+                "green": 0,
+                "red": 0,
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "colorStart": {
+                "blue": 255,
+                "green": 255,
+                "red": 255,
+                "x": 255,
+                "y": 255,
+                "z": 255
+            },
+            "created": "2018-09-04T20:35:23Z",
+            "dimensions": {
+                "blue": 13.24000072479248,
+                "green": 13.24000072479248,
+                "red": 13.24000072479248,
+                "x": 13.24000072479248,
+                "y": 13.24000072479248,
+                "z": 13.24000072479248
+            },
+            "emitAcceleration": {
+                "blue": 0,
+                "green": 0.10000000149011612,
+                "red": 0,
+                "x": 0,
+                "y": 0.10000000149011612,
+                "z": 0
+            },
+            "emitDimensions": {
+                "blue": 1,
+                "green": 1,
+                "red": 1,
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "emitOrientation": {
+                "w": 1,
+                "x": -1.52587890625e-05,
+                "y": -1.52587890625e-05,
+                "z": -1.52587890625e-05
+            },
+            "emitRate": 6,
+            "emitSpeed": 0,
+            "emitterShouldTrail": true,
+            "id": "{e36388d2-7209-4f26-974b-54d314e106a5}",
+            "lastEdited": 1536093329671654,
+            "lastEditedBy": "{b5bba536-25e5-4b12-a1be-5c7cd196a06a}",
+            "lifespan": 10,
+            "locked": true,
+            "maxParticles": 10,
+            "name": "Stars",
+            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+            "particleRadius": 0.07000000029802322,
+            "polarFinish": 3.1415927410125732,
+            "position": {
+                "blue": 3.78922963142395,
+                "green": 0.5220947265625,
+                "red": 1.1928560733795166,
+                "x": 1.1928560733795166,
+                "y": 0.5220947265625,
+                "z": 3.78922963142395
+            },
+            "queryAACube": {
+                "scale": 22.932353973388672,
+                "x": -10.273321151733398,
+                "y": -10.944082260131836,
+                "z": -7.676947593688965
+            },
+            "radiusFinish": 0,
+            "radiusStart": 0,
+            "rotation": {
+                "w": 0.996429443359375,
+                "x": -1.52587890625e-05,
+                "y": -0.08442819118499756,
+                "z": -4.57763671875e-05
+            },
+            "speedSpread": 0,
+            "spinFinish": null,
+            "spinStart": null,
+            "textures": "http://hifi-content.s3.amazonaws.com/alexia/Models/Portal/star.png",
+            "type": "ParticleEffect",
+            "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
+        },
+        {
+            "angularDamping": 0,
+            "clientOnly": false,
+            "color": {
+                "blue": 0,
+                "green": 0,
+                "red": 255
+            },
+            "created": "2018-09-04T20:35:23Z",
+            "dimensions": {
+                "blue": 0.20000000298023224,
+                "green": 0.20000000298023224,
+                "red": 0.20000000298023224,
+                "x": 0.20000000298023224,
+                "y": 0.20000000298023224,
+                "z": 0.20000000298023224
+            },
+            "id": "{1dbde8e2-c715-4c09-814e-e411803278c9}",
+            "lastEdited": 1536093329670778,
+            "lastEditedBy": "{b5bba536-25e5-4b12-a1be-5c7cd196a06a}",
+            "locked": true,
             "name": "Particle Rotate",
             "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
             "position": {
                 "blue": 3.8216662406921387,
                 "green": 0.0772705078125,
                 "red": 1.2409718036651611,
-                "x": -2.759028196334839,
-                "y": -9.4227294921875,
-                "z": -0.17833375930786133
+                "x": 1.2409718036651611,
+                "y": 0.0772705078125,
+                "z": 3.8216662406921387
             },
             "queryAACube": {
                 "scale": 0.3464101552963257,
@@ -1148,8 +750,479 @@
             "type": "Box",
             "userData": "{\"grabbableKey\":{\"grabbable\":false}}",
             "visible": false
+        },
+        {
+            "clientOnly": false,
+            "color": {
+                "blue": 0,
+                "green": 0,
+                "red": 0
+            },
+            "created": "2018-09-04T20:35:23Z",
+            "dimensions": {
+                "blue": 11.117486953735352,
+                "green": 3.580313205718994,
+                "red": 0.20000000298023224,
+                "x": 0.20000000298023224,
+                "y": 3.580313205718994,
+                "z": 11.117486953735352
+            },
+            "id": "{a06f47da-06e5-4bcd-baa2-37816130f2bd}",
+            "lastEdited": 1536093329671244,
+            "lastEditedBy": "{b5bba536-25e5-4b12-a1be-5c7cd196a06a}",
+            "locked": true,
+            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+            "position": {
+                "blue": 6.1806135177612305,
+                "green": 1.1588134765625,
+                "red": 1.4755167961120605,
+                "x": 1.4755167961120605,
+                "y": 1.1588134765625,
+                "z": 6.1806135177612305
+            },
+            "queryAACube": {
+                "scale": 11.681488037109375,
+                "x": -4.365227222442627,
+                "y": -4.6819305419921875,
+                "z": 0.33986949920654297
+            },
+            "rotation": {
+                "w": 0.8637980222702026,
+                "x": -4.57763671875e-05,
+                "y": 0.5038070678710938,
+                "z": -1.52587890625e-05
+            },
+            "shape": "Cube",
+            "type": "Box",
+            "userData": "{\"grabbableKey\":{\"grabbable\":false}}",
+            "visible": false
+        },
+        {
+            "alpha": 0,
+            "alphaFinish": 0,
+            "alphaStart": 1,
+            "clientOnly": false,
+            "color": {
+                "blue": 255,
+                "green": 205,
+                "red": 3
+            },
+            "colorFinish": {
+                "blue": 0,
+                "green": 0,
+                "red": 0,
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "colorStart": {
+                "blue": 255,
+                "green": 204,
+                "red": 0,
+                "x": 0,
+                "y": 204,
+                "z": 255
+            },
+            "created": "2018-09-04T20:35:23Z",
+            "dimensions": {
+                "blue": 2.5,
+                "green": 2.5,
+                "red": 2.5,
+                "x": 2.5,
+                "y": 2.5,
+                "z": 2.5
+            },
+            "emitAcceleration": {
+                "blue": 0,
+                "green": 0,
+                "red": 0,
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "emitDimensions": {
+                "blue": 1,
+                "green": 1,
+                "red": 1,
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "emitOrientation": {
+                "w": 0.9993909597396851,
+                "x": 0.034897372126579285,
+                "y": -1.525880907138344e-05,
+                "z": -1.525880907138344e-05
+            },
+            "emitRate": 2,
+            "emitSpeed": 0,
+            "emitterShouldTrail": true,
+            "id": "{0b1d2de0-39bf-4416-ac72-aae7ddbb3ff0}",
+            "lastEdited": 1536093329672220,
+            "lastEditedBy": "{b5bba536-25e5-4b12-a1be-5c7cd196a06a}",
+            "lifespan": 10,
+            "locked": true,
+            "maxParticles": 40,
+            "name": "Rays",
+            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+            "particleRadius": 0.75,
+            "polarFinish": 3.1415927410125732,
+            "position": {
+                "blue": 3.814434051513672,
+                "green": 1.44122314453125,
+                "red": 1.2319090366363525,
+                "x": 1.2319090366363525,
+                "y": 1.44122314453125,
+                "z": 3.814434051513672
+            },
+            "queryAACube": {
+                "scale": 4.330127239227295,
+                "x": -0.9331545829772949,
+                "y": -0.7238404750823975,
+                "z": 1.6493704319000244
+            },
+            "radiusFinish": 0.10000000149011612,
+            "radiusStart": 0,
+            "rotation": {
+                "w": 0.9594720602035522,
+                "x": -1.52587890625e-05,
+                "y": 0.28178834915161133,
+                "z": -4.57763671875e-05
+            },
+            "speedSpread": 0,
+            "spinFinish": null,
+            "spinStart": null,
+            "textures": "http://hifi-content.s3.amazonaws.com/alexia/Models/Portal/stripe.png",
+            "type": "ParticleEffect",
+            "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
+        },
+        {
+            "angularDamping": 0,
+            "clientOnly": false,
+            "color": {
+                "blue": 0,
+                "green": 0,
+                "red": 255
+            },
+            "created": "2018-09-04T20:35:23Z",
+            "dimensions": {
+                "blue": 0.20000000298023224,
+                "green": 0.20000000298023224,
+                "red": 0.20000000298023224,
+                "x": 0.20000000298023224,
+                "y": 0.20000000298023224,
+                "z": 0.20000000298023224
+            },
+            "id": "{01d9478b-50ae-4f09-b67a-e62a4d133cdf}",
+            "lastEdited": 1536093329672981,
+            "lastEditedBy": "{b5bba536-25e5-4b12-a1be-5c7cd196a06a}",
+            "locked": true,
+            "name": "Particle Rotate",
+            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+            "position": {
+                "blue": 3.8216662406921387,
+                "green": 0.15618896484375,
+                "red": 1.2409718036651611,
+                "x": 1.2409718036651611,
+                "y": 0.15618896484375,
+                "z": 3.8216662406921387
+            },
+            "queryAACube": {
+                "scale": 0.3464101552963257,
+                "x": 1.0677666664123535,
+                "y": -0.017016112804412842,
+                "z": 3.648461103439331
+            },
+            "rotation": {
+                "w": 0.6747081279754639,
+                "x": -0.06532388925552368,
+                "y": -0.6342412233352661,
+                "z": 0.37175559997558594
+            },
+            "script": "http://hifi-content.s3.amazonaws.com/alexia/Models/Portal/rotate.js",
+            "scriptTimestamp": 1532724769253,
+            "shape": "Cube",
+            "type": "Box",
+            "userData": "{\"grabbableKey\":{\"grabbable\":false}}",
+            "visible": false
+        },
+        {
+            "clientOnly": false,
+            "color": {
+                "blue": 0,
+                "green": 0,
+                "red": 0
+            },
+            "created": "2018-09-04T20:35:23Z",
+            "dimensions": {
+                "blue": 6.9401350021362305,
+                "green": 0.04553089290857315,
+                "red": 7.004304885864258,
+                "x": 7.004304885864258,
+                "y": 0.04553089290857315,
+                "z": 6.9401350021362305
+            },
+            "id": "{718b3532-0c3c-4689-ac41-dca8fedffc4a}",
+            "lastEdited": 1536093496994604,
+            "lastEditedBy": "{4eecd88f-ef9b-4a83-bb9a-7f7496209c6b}",
+            "locked": true,
+            "name": "floor",
+            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+            "position": {
+                "blue": 3.6175529956817627,
+                "green": 0.15221074223518372,
+                "red": 4.108861923217773,
+                "x": 4.108861923217773,
+                "y": 0.15221074223518372,
+                "z": 3.6175529956817627
+            },
+            "queryAACube": {
+                "scale": 9.860417366027832,
+                "x": -0.8213467597961426,
+                "y": -4.777997970581055,
+                "z": -1.3126556873321533
+            },
+            "rotation": {
+                "w": 0.8660253882408142,
+                "x": -1.5922749298624694e-05,
+                "y": 0.5,
+                "z": -4.572480611386709e-05
+            },
+            "shape": "Cube",
+            "type": "Box",
+            "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
+        },
+        {
+            "clientOnly": false,
+            "color": {
+                "blue": 0,
+                "green": 0,
+                "red": 0
+            },
+            "created": "2018-09-04T20:35:23Z",
+            "dimensions": {
+                "blue": 11.117486953735352,
+                "green": 3.580313205718994,
+                "red": 0.20000000298023224,
+                "x": 0.20000000298023224,
+                "y": 3.580313205718994,
+                "z": 11.117486953735352
+            },
+            "id": "{44442e52-e0cf-45d3-9916-678b8aa56a22}",
+            "lastEdited": 1536093329672691,
+            "lastEditedBy": "{b5bba536-25e5-4b12-a1be-5c7cd196a06a}",
+            "locked": true,
+            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+            "position": {
+                "blue": 5.268576622009277,
+                "green": 1.1588134765625,
+                "red": 6.100250244140625,
+                "x": 6.100250244140625,
+                "y": 1.1588134765625,
+                "z": 5.268576622009277
+            },
+            "queryAACube": {
+                "scale": 11.681488037109375,
+                "x": 0.2595062255859375,
+                "y": -4.6819305419921875,
+                "z": -0.5721673965454102
+            },
+            "rotation": {
+                "w": 0.9662165641784668,
+                "x": -4.57763671875e-05,
+                "y": -0.2576791048049927,
+                "z": 1.52587890625e-05
+            },
+            "shape": "Cube",
+            "type": "Box",
+            "userData": "{\"grabbableKey\":{\"grabbable\":false}}",
+            "visible": false
+        },
+        {
+            "clientOnly": false,
+            "created": "2018-09-04T20:35:23Z",
+            "dimensions": {
+                "blue": 14.40000057220459,
+                "green": 14.40000057220459,
+                "red": 14.40000057220459,
+                "x": 14.40000057220459,
+                "y": 14.40000057220459,
+                "z": 14.40000057220459
+            },
+            "id": "{8a045310-b82f-4021-9963-0b98d317995c}",
+            "lastEdited": 1536093329670891,
+            "lastEditedBy": "{b5bba536-25e5-4b12-a1be-5c7cd196a06a}",
+            "locked": true,
+            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+            "position": {
+                "blue": 2.3440732955932617,
+                "green": 1.7684326171875,
+                "red": 1.8812973499298096,
+                "x": 1.8812973499298096,
+                "y": 1.7684326171875,
+                "z": 2.3440732955932617
+            },
+            "queryAACube": {
+                "scale": 24.9415340423584,
+                "x": -10.589469909667969,
+                "y": -10.7023344039917,
+                "z": -10.126693725585938
+            },
+            "rotation": {
+                "w": 0.8697794675827026,
+                "x": -1.52587890625e-05,
+                "y": 0.4933699369430542,
+                "z": -4.57763671875e-05
+            },
+            "shapeType": "box",
+            "skyboxMode": "enabled",
+            "type": "Zone",
+            "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
+        },
+        {
+            "alpha": 0,
+            "alphaFinish": 0,
+            "alphaStart": 0.25,
+            "clientOnly": false,
+            "colorFinish": {
+                "blue": 0,
+                "green": 0,
+                "red": 0,
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "colorStart": {
+                "blue": 255,
+                "green": 255,
+                "red": 255,
+                "x": 255,
+                "y": 255,
+                "z": 255
+            },
+            "created": "2018-09-04T20:35:23Z",
+            "dimensions": {
+                "blue": 13.24000072479248,
+                "green": 13.24000072479248,
+                "red": 13.24000072479248,
+                "x": 13.24000072479248,
+                "y": 13.24000072479248,
+                "z": 13.24000072479248
+            },
+            "emitAcceleration": {
+                "blue": 0,
+                "green": 0.10000000149011612,
+                "red": 0,
+                "x": 0,
+                "y": 0.10000000149011612,
+                "z": 0
+            },
+            "emitDimensions": {
+                "blue": 1,
+                "green": 1,
+                "red": 1,
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "emitOrientation": {
+                "w": 1,
+                "x": -1.52587890625e-05,
+                "y": -1.52587890625e-05,
+                "z": -1.52587890625e-05
+            },
+            "emitRate": 6,
+            "emitSpeed": 0,
+            "id": "{b310070f-6af8-4c1d-9ad7-ea1070b53763}",
+            "lastEdited": 1536093329670211,
+            "lastEditedBy": "{b5bba536-25e5-4b12-a1be-5c7cd196a06a}",
+            "lifespan": 10,
+            "locked": true,
+            "maxParticles": 10,
+            "name": "Stars",
+            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+            "particleRadius": 0.07000000029802322,
+            "polarFinish": 3.1415927410125732,
+            "position": {
+                "blue": 1.3712034225463867,
+                "green": 0.5220947265625,
+                "red": 2.6281180381774902,
+                "x": 2.6281180381774902,
+                "y": 0.5220947265625,
+                "z": 1.3712034225463867
+            },
+            "queryAACube": {
+                "scale": 22.932353973388672,
+                "x": -8.838058471679688,
+                "y": -10.944082260131836,
+                "z": -10.09497356414795
+            },
+            "radiusFinish": 0,
+            "radiusStart": 0,
+            "rotation": {
+                "w": 0.9852597713470459,
+                "x": -1.52587890625e-05,
+                "y": -0.17106890678405762,
+                "z": -7.62939453125e-05
+            },
+            "speedSpread": 0,
+            "spinFinish": null,
+            "spinStart": null,
+            "textures": "http://hifi-content.s3.amazonaws.com/alexia/Models/Portal/star.png",
+            "type": "ParticleEffect",
+            "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
+        },
+        {
+            "angularDamping": 0,
+            "clientOnly": false,
+            "color": {
+                "blue": 0,
+                "green": 0,
+                "red": 255
+            },
+            "created": "2018-09-04T20:35:23Z",
+            "dimensions": {
+                "blue": 0.20000000298023224,
+                "green": 0.20000000298023224,
+                "red": 0.20000000298023224,
+                "x": 0.20000000298023224,
+                "y": 0.20000000298023224,
+                "z": 0.20000000298023224
+            },
+            "id": "{7c24a30b-47d3-4cf6-af92-5a7959a3cb5d}",
+            "lastEdited": 1536093329671011,
+            "lastEditedBy": "{b5bba536-25e5-4b12-a1be-5c7cd196a06a}",
+            "locked": true,
+            "name": "Particle Rotate",
+            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+            "position": {
+                "blue": 1.3116319179534912,
+                "green": 0,
+                "red": 2.705613613128662,
+                "x": 2.705613613128662,
+                "y": 0,
+                "z": 1.3116319179534912
+            },
+            "queryAACube": {
+                "scale": 0.3464101552963257,
+                "x": 2.5324084758758545,
+                "y": -0.17320507764816284,
+                "z": 1.1384267807006836
+            },
+            "rotation": {
+                "w": 0.9127794504165649,
+                "x": 0.2575265169143677,
+                "y": 0.15553522109985352,
+                "z": 0.2761729955673218
+            },
+            "script": "http://hifi-content.s3.amazonaws.com/alexia/Models/Portal/rotate.js",
+            "scriptTimestamp": 1532724769253,
+            "shape": "Cube",
+            "type": "Box",
+            "userData": "{\"grabbableKey\":{\"grabbable\":false}}",
+            "visible": false
         }
     ],
-    "Id": "{99bc5288-05fd-4d80-a406-a44c948f7066}",
+    "Id": "{c9a2e576-13f3-44fa-8d41-a466b33d16c6}",
     "Version": 93
 }

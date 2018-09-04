@@ -624,7 +624,7 @@
     Controller.keyReleaseEvent.connect(keyReleaseEvent);
     Script.update.connect(update);
     Script.scriptEnding.connect(scriptEnding);
-    //Window.domainConnectionRefused.connect(onDomainConnectionRefused);
+    Window.domainConnectionRefused.connect(onDomainConnectionRefused);
     Window.stillSnapshotTaken.connect(onSnapshotTaken);
     Window.snapshot360Taken.connect(onSnapshotTaken);
     Window.processingGifStarted.connect(processingGif);
