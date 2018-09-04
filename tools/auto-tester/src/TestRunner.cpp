@@ -1,7 +1,7 @@
 //
 //  TestRunner.cpp
 //
-//  Created by Nissim Hadar on 1 Sep 2018.
+//  Created by Nissim Hadar on 1 Sept 2018.
 //  Copyright 2013 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -19,28 +19,23 @@ TestRunner::TestRunner(QObject *parent) : QObject(parent) {
 }
 
 void TestRunner::run() {
-    selectTemporaryFolder();
-    runInstaller();
-
-
-
-
     saveExistingHighFidelityAppDataFolder();
     selectTemporaryFolder();
     
     QStringList urls;
-    urls << "http://builds.highfidelity.com/HighFidelity-Beta-latest-dev.exe";
+    urls << INSTALLER_URL;
 
     QStringList filenames;
-    filenames << _installerFilename;
+    filenames << INSTALLER_FILENAME;
 
-    autoTester->downloadFiles(urls, _tempDirectory, filenames, (void *)this);
+    autoTester->downloadFiles(urls, _tempFolder, filenames, (void *)this);
 
-    // Will continue after download complete
+    // installerDownloadComplete will run after download complete
 }
 
 void TestRunner::installerDownloadComplete() {
     runInstaller();
+    createSnapshotFolder();
 
     restoreHighFidelityAppDataFolder(); 
 }
@@ -48,14 +43,12 @@ void TestRunner::installerDownloadComplete() {
 void TestRunner::runInstaller() {
     // Qt cannot start an installation process using QProcess::start (Qt Bug 9761)
     // To allow installation, the installer is run using the `system` command
-    QStringList arguments{ QStringList() << QString("/S") << QString("/D=") + QDir::toNativeSeparators(_tempDirectory) };
+    QStringList arguments{ QStringList() << QString("/S") << QString("/D=") + QDir::toNativeSeparators(_tempFolder) };
     
-    QString installerFullPath = _tempDirectory + "/" + _installerFilename;
-    QString commandLine = installerFullPath + " /S /D=" +  QDir::toNativeSeparators(_tempDirectory);
+    QString installerFullPath = _tempFolder + "/" + INSTALLER_FILENAME;
+    QString commandLine = QDir::toNativeSeparators(installerFullPath + " /S /D=" + _tempFolder);
+
     system(commandLine.toStdString().c_str());
-    int i = 34;
-    //qint64 pid;
-    //QProcess::startDetached(installerFullPath, arguments, QString(), &pid);
 }
 
 void TestRunner::saveExistingHighFidelityAppDataFolder() {
@@ -74,7 +67,7 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
     }
 
     // The original folder is saved in a unique name
-    _savedAppDataFolder = dataDirectory + "/" + _uniqueFolderName;
+    _savedAppDataFolder = dataDirectory + "/" + UNIQUE_FOLDER_NAME;
     _appDataFolder.rename(_appDataFolder.path(), _savedAppDataFolder.path());
 
     QDir().mkdir(_appDataFolder.path());
@@ -87,18 +80,22 @@ void TestRunner::restoreHighFidelityAppDataFolder() {
 }
 
 void TestRunner::selectTemporaryFolder() {
-    QString previousSelection = _tempDirectory;
+    QString previousSelection = _tempFolder;
     QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
     if (!parent.isNull() && parent.right(1) != "/") {
         parent += "/";
     }
 
-    _tempDirectory =
+    _tempFolder =
         QFileDialog::getExistingDirectory(nullptr, "Please select a temporary folder for installation", parent, QFileDialog::ShowDirsOnly);
 
     // If user canceled then restore previous selection and return
-    if (_tempDirectory == "") {
-        _tempDirectory = previousSelection;
+    if (_tempFolder == "") {
+        _tempFolder = previousSelection;
         return;
     }
+}
+
+void TestRunner::createSnapshotFolder() {
+    QDir().mkdir(_tempFolder + "/" + SNAPSHOT_FOLDER_NAME);
 }

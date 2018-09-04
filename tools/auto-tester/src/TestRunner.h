@@ -1,7 +1,7 @@
 //
 //  Downloader.h
 //
-//  Created by Nissim Hadar on 1 Sep 2018.
+//  Created by Nissim Hadar on 1 Sept 2018.
 //  Copyright 2013 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -29,17 +29,21 @@ public:
     void saveExistingHighFidelityAppDataFolder();
     void restoreHighFidelityAppDataFolder();
     void selectTemporaryFolder();
+    void createSnapshotFolder();
 
-private:
+    private:
     QDir _appDataFolder;
     QDir _savedAppDataFolder;
 
-    QString _tempDirectory;
+    QString _tempFolder;
 
     Downloader* _downloader;
 
-    const QString _uniqueFolderName{ "fgadhcUDHSFaidsfh3478JJJFSDFIUSOEIrf" };
-    const QString _installerFilename{ "HighFidelity-Beta-latest-dev.exe" };
+    const QString UNIQUE_FOLDER_NAME{ "fgadhcUDHSFaidsfh3478JJJFSDFIUSOEIrf" };
+    const QString SNAPSHOT_FOLDER_NAME{ "snapshots" };
+
+    const QString INSTALLER_URL{ "http://builds.highfidelity.com/HighFidelity-Beta-latest-dev.exe" };
+    const QString INSTALLER_FILENAME{ "HighFidelity-Beta-latest-dev.exe" };
 
     BusyWindow _busyWindow;
 };
