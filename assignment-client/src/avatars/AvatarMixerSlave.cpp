@@ -437,10 +437,11 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
     int remainingAvatars = (int)sortedAvatars.size();
     auto traitsPacketList = NLPacketList::create(PacketType::BulkAvatarTraits, QByteArray(), true, true);
-    while (!sortedAvatars.empty()) {
-        const Node* otherNode = sortedAvatars.top().getNode();
-        auto lastEncodeForOther = sortedAvatars.top().getTimestamp();
-        sortedAvatars.pop();
+    const auto& sortedAvatarVector = sortedAvatars.getSortedVector();
+    for (const auto& sortedAvatar : sortedAvatarVector) {
+        const auto& avatarData = sortedAvatar.getAvatar();
+        const Node* otherNode = sortedAvatar.getNode();
+        auto lastEncodeForOther = sortedAvatar.getTimestamp();
         remainingAvatars--;
 
         assert(otherNode); // we can't have gotten here without the avatarData being a valid key in the map

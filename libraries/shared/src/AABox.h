@@ -85,8 +85,21 @@ public:
     AABox clamp(const glm::vec3& min, const glm::vec3& max) const;
     AABox clamp(float min, float max) const;
 
-    AABox& operator += (const glm::vec3& point);
-    AABox& operator += (const AABox& box);
+    inline AABox& operator+=(const glm::vec3& point) {
+        float blend = (float)isInvalid();
+        glm::vec3 maximumScale(glm::max(_scale, point - _corner));
+        _corner = glm::min(_corner, point);
+        _scale = blend * _scale + (1.0f - blend) * maximumScale;
+        return (*this);
+    }
+
+    inline AABox& operator+=(const AABox& box) {
+        if (!box.isInvalid()) {
+            (*this) += box._corner;
+            (*this) += box.calcTopFarLeft();
+        }
+        return (*this);
+    }
 
     // Translate the AABox just moving the corner
     void translate(const glm::vec3& translation) { _corner += translation; }

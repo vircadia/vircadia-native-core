@@ -316,4 +316,12 @@ inline void glm_mat4u_mul(const glm::mat4& m1, const glm::mat4& m2, glm::mat4& r
 #endif
 }
 
+inline glm::vec3 fastRoundf(const glm::vec3& vec) {
+#if GLM_ARCH & GLM_ARCH_SSE2_BIT
+    return glm::vec3(_mm_cvt_ss2si(_mm_set_ss(vec.x)), _mm_cvt_ss2si(_mm_set_ss(vec.y)), _mm_cvt_ss2si(_mm_set_ss(vec.z)));
+#else
+    return glm::round(vec);
+#endif
+}
+
 #endif // hifi_GLMHelpers_h

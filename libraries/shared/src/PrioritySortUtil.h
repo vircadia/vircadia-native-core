@@ -12,7 +12,6 @@
 #define hifi_PrioritySortUtil_h
 
 #include <glm/glm.hpp>
-#include <queue>
 
 #include "NumericalConstants.h"
 #include "shared/ConicalViewFrustum.h"
@@ -75,7 +74,6 @@ namespace PrioritySortUtil {
 
         void setPriority(float priority) { _priority = priority; }
         float getPriority() const { return _priority; }
-        bool operator<(const Sortable& other) const { return _priority < other._priority; }
     private:
         float _priority { 0.0f };
     };
@@ -99,14 +97,15 @@ namespace PrioritySortUtil {
             _usecCurrentTime = usecTimestampNow();
         }
 
-        size_t size() const { return _queue.size(); }
+        size_t size() const { return _vector.size(); }
         void push(T thing) {
             thing.setPriority(computePriority(thing));
-            _queue.push(thing);
+            _vector.push_back(thing);
         }
-        const T& top() const { return _queue.top(); }
-        void pop() { return _queue.pop(); }
-        bool empty() const { return _queue.empty(); }
+        const std::vector<T>& getSortedVector() {
+            std::sort(_vector.begin(), _vector.end(), [](const T& left, const T& right) { return left.getPriority() > right.getPriority(); });
+            return _vector;
+        }
 
     private:
 
@@ -156,7 +155,7 @@ namespace PrioritySortUtil {
         }
 
         ConicalViewFrustums _views;
-        std::priority_queue<T> _queue;
+        std::vector<T> _vector;
         float _angularWeight { DEFAULT_ANGULAR_COEF };
         float _centerWeight { DEFAULT_CENTER_COEF };
         float _ageWeight { DEFAULT_AGE_COEF };
