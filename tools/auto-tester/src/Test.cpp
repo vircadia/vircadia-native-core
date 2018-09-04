@@ -195,7 +195,7 @@ void Test::startTestsEvaluation(const bool isRunningFromCommandLine,
         _snapshotDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select folder containing the test images", parent,
             QFileDialog::ShowDirsOnly);
 
-        // If user cancelled then restore previous selection and return
+        // If user canceled then restore previous selection and return
         if (_snapshotDirectory == "") {
             _snapshotDirectory = previousSelection;
             return;
