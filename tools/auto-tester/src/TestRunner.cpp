@@ -36,6 +36,7 @@ void TestRunner::run() {
 void TestRunner::installerDownloadComplete() {
     runInstaller();
     createSnapshotFolder();
+    killProcesses();
 
     restoreHighFidelityAppDataFolder(); 
 }
@@ -46,8 +47,8 @@ void TestRunner::runInstaller() {
     QStringList arguments{ QStringList() << QString("/S") << QString("/D=") + QDir::toNativeSeparators(_tempFolder) };
     
     QString installerFullPath = _tempFolder + "/" + INSTALLER_FILENAME;
+    
     QString commandLine = QDir::toNativeSeparators(installerFullPath + " /S /D=" + _tempFolder);
-
     system(commandLine.toStdString().c_str());
 }
 
@@ -98,4 +99,16 @@ void TestRunner::selectTemporaryFolder() {
 
 void TestRunner::createSnapshotFolder() {
     QDir().mkdir(_tempFolder + "/" + SNAPSHOT_FOLDER_NAME);
+}
+void TestRunner::killProcesses() {
+    killProcessByName("assignment-client.exe");
+    killProcessByName("domain-server.exe");
+    killProcessByName("server-console.exe");
+}
+
+void TestRunner::killProcessByName(QString processName) {
+#ifdef Q_OS_WIN
+    QString commandLine = "taskkill /im " + processName + " /f >nul";
+    system(commandLine.toStdString().c_str());
+#endif
 }

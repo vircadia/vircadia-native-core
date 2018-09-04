@@ -30,6 +30,8 @@ public:
     void restoreHighFidelityAppDataFolder();
     void selectTemporaryFolder();
     void createSnapshotFolder();
+    void killProcesses();
+    void killProcessByName(QString processName);
 
     private:
     QDir _appDataFolder;
