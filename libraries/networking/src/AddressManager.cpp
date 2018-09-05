@@ -259,8 +259,8 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
 
             UserActivityLogger::getInstance().wentTo(trigger, URL_TYPE_USER, lookupUrl.toString());
 
-                // save the last visited domain URL.
-                _lastVisitedURL = lookupUrl;
+            // save the last visited domain URL.
+            _lastVisitedURL = lookupUrl;
 
             // in case we're failing to connect to where we thought this user was
             // store their username as previous lookup so we can refresh their location via API
