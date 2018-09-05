@@ -898,11 +898,12 @@ void PhysicsEngine::setShowBulletConstraintLimits(bool value) {
 }
 
 struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
-    AllContactsCallback(int32_t mask, int32_t group, const ShapeInfo& shapeInfo, const Transform& transform, btCollisionObject* myAvatarCollisionObject) :
+    AllContactsCallback(int32_t mask, int32_t group, const ShapeInfo& shapeInfo, const Transform& transform, btCollisionObject* myAvatarCollisionObject, float threshold) :
         btCollisionWorld::ContactResultCallback(),
         collisionObject(),
         contacts(),
-        myAvatarCollisionObject(myAvatarCollisionObject) {
+        myAvatarCollisionObject(myAvatarCollisionObject),
+        threshold(threshold) {
         const btCollisionShape* collisionShape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
 
         collisionObject.setCollisionShape(const_cast<btCollisionShape*>(collisionShape));
@@ -924,8 +925,13 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
     btCollisionObject collisionObject;
     std::vector<ContactTestResult> contacts;
     btCollisionObject* myAvatarCollisionObject;
+    btScalar threshold;
 
     btScalar addSingleResult(btManifoldPoint& cp, const btCollisionObjectWrapper* colObj0, int partId0, int index0, const btCollisionObjectWrapper* colObj1, int partId1, int index1) override {
+        if (cp.m_distance1 > -threshold) {
+            return 0;
+        }
+
         const btCollisionObject* otherBody;
         btVector3 penetrationPoint;
         btVector3 otherPenetrationPoint;
@@ -968,14 +974,14 @@ protected:
     }
 };
 
-std::vector<ContactTestResult> PhysicsEngine::contactTest(uint16_t mask, const ShapeInfo& regionShapeInfo, const Transform& regionTransform, uint16_t group) const {
+std::vector<ContactTestResult> PhysicsEngine::contactTest(uint16_t mask, const ShapeInfo& regionShapeInfo, const Transform& regionTransform, uint16_t group, float threshold) const {
     // TODO: Give MyAvatar a motion state so we don't have to do this
     btCollisionObject* myAvatarCollisionObject = nullptr;
     if ((mask & USER_COLLISION_GROUP_MY_AVATAR) && _myAvatarController) {
         myAvatarCollisionObject = _myAvatarController->getCollisionObject();
     }
 
-    auto contactCallback = AllContactsCallback((int32_t)mask, (int32_t)group, regionShapeInfo, regionTransform, myAvatarCollisionObject);
+    auto contactCallback = AllContactsCallback((int32_t)mask, (int32_t)group, regionShapeInfo, regionTransform, myAvatarCollisionObject, threshold);
     _dynamicsWorld->contactTest(&contactCallback.collisionObject, contactCallback);
 
     return contactCallback.contacts;

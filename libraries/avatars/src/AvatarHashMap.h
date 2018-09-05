@@ -41,6 +41,27 @@
  * @hifi-assignment-client
  */
 
+class AvatarReplicas {
+public:
+    AvatarReplicas() {}
+    void addReplica(const QUuid& parentID, AvatarSharedPointer replica);
+    std::vector<QUuid> getReplicaIDs(const QUuid& parentID);
+    void parseDataFromBuffer(const QUuid& parentID, const QByteArray& buffer);
+    void processAvatarIdentity(const QUuid& parentID, const QByteArray& identityData, bool& identityChanged, bool& displayNameChanged);
+    void removeReplicas(const QUuid& parentID);
+    void processTrait(const QUuid& parentID, AvatarTraits::TraitType traitType, QByteArray traitBinaryData);
+    void processDeletedTraitInstance(const QUuid& parentID, AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID);
+    void processTraitInstance(const QUuid& parentID, AvatarTraits::TraitType traitType,
+                                AvatarTraits::TraitInstanceID instanceID, QByteArray traitBinaryData);
+    void setReplicaCount(int count) { _replicaCount = count; }
+    int getReplicaCount() { return _replicaCount; }
+
+private:
+    std::map<QUuid, std::vector<AvatarSharedPointer>> _replicasMap;
+    int _replicaCount { 0 };
+};
+
+
 class AvatarHashMap : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -76,6 +97,9 @@ public:
 
     virtual AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) const { return findAvatar(sessionID); }
     int numberOfAvatarsInRange(const glm::vec3& position, float rangeMeters);
+
+    void setReplicaCount(int count);
+    int getReplicaCount() { return _replicas.getReplicaCount(); };
 
 signals:
 
@@ -167,6 +191,8 @@ protected:
     mutable QReadWriteLock _hashLock;
 
     std::unordered_map<QUuid, AvatarTraits::TraitVersions> _processedTraitVersions;
+    AvatarReplicas _replicas;
+
 private:
     QUuid _lastOwnerSessionUUID;
 };

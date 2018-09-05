@@ -263,15 +263,19 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             default:
                 materials[matName] = currentMaterial;
                 #ifdef WANT_DEBUG
-                qCDebug(modelformat) << "OBJ Reader Last material illumination model:" << currentMaterial.illuminationModel <<
-                                     " shininess:" << currentMaterial.shininess << " opacity:" << currentMaterial.opacity <<
-                                     " diffuse color:" << currentMaterial.diffuseColor << " specular color:" << 
-                                     currentMaterial.specularColor << " emissive color:" << currentMaterial.emissiveColor << 
-                                     " diffuse texture:" << currentMaterial.diffuseTextureFilename << " specular texture:" <<
-                                     currentMaterial.specularTextureFilename << " emissive texture:" <<
-                                     currentMaterial.emissiveTextureFilename << " bump texture:" <<
-                                     currentMaterial.bumpTextureFilename;
-                #endif
+                qCDebug(modelformat) << 
+                                     "OBJ Reader Last material illumination model:" << currentMaterial.illuminationModel <<
+                                     " shininess:" << currentMaterial.shininess << 
+                                     " opacity:" << currentMaterial.opacity <<
+                                     " diffuse color:" << currentMaterial.diffuseColor << 
+                                     " specular color:" << currentMaterial.specularColor << 
+                                     " emissive color:" << currentMaterial.emissiveColor << 
+                                     " diffuse texture:" << currentMaterial.diffuseTextureFilename << 
+                                     " specular texture:" << currentMaterial.specularTextureFilename << 
+                                     " emissive texture:" << currentMaterial.emissiveTextureFilename << 
+                                     " bump texture:" << currentMaterial.bumpTextureFilename <<
+                                     " opacity texture:" << currentMaterial.opacityTextureFilename;
+#endif
                 return;
         }
         QByteArray token = tokenizer.getDatum();
@@ -289,6 +293,8 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             currentMaterial.emissiveTextureFilename = "";
             currentMaterial.specularTextureFilename = "";
             currentMaterial.bumpTextureFilename = "";
+            currentMaterial.opacityTextureFilename = "";
+
         } else if (token == "Ns") {
             currentMaterial.shininess = tokenizer.getFloat();
         } else if (token == "Ni") {
@@ -321,7 +327,7 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             currentMaterial.emissiveColor = tokenizer.getVec3();
         } else if (token == "Ks") {
             currentMaterial.specularColor = tokenizer.getVec3();
-        } else if ((token == "map_Kd") || (token == "map_Ke") || (token == "map_Ks") || (token == "map_bump") || (token == "bump")) {
+        } else if ((token == "map_Kd") || (token == "map_Ke") || (token == "map_Ks") || (token == "map_bump") || (token == "bump") || (token == "map_d")) {
             const QByteArray textureLine = tokenizer.getLineAsDatum();
             QByteArray filename;
             OBJMaterialTextureOptions textureOptions;
@@ -341,6 +347,8 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             } else if ((token == "map_bump") || (token == "bump")) {
                 currentMaterial.bumpTextureFilename = filename;
                 currentMaterial.bumpTextureOptions = textureOptions;
+            } else if (token == "map_d") {
+                currentMaterial.opacityTextureFilename = filename;
             }
         }
     }
@@ -899,6 +907,9 @@ FBXGeometry::Pointer OBJReader::readOBJ(QByteArray& model, const QVariantHash& m
             fbxMaterial.normalTexture.filename = objMaterial.bumpTextureFilename;
             fbxMaterial.normalTexture.isBumpmap = true;
             fbxMaterial.bumpMultiplier = objMaterial.bumpTextureOptions.bumpMultiplier;
+        }
+        if (!objMaterial.opacityTextureFilename.isEmpty()) {
+            fbxMaterial.opacityTexture.filename = objMaterial.opacityTextureFilename;
         }
 
         modelMaterial->setEmissive(fbxMaterial.emissiveColor);

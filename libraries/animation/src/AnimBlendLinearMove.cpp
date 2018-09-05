@@ -156,6 +156,10 @@ void AnimBlendLinearMove::setFrameAndPhase(float dt, float alpha, int prevPoseIn
     // integrate phase forward in time.
     _phase += omega * dt;
 
+    if (_phase < 0.0f) {
+        _phase = 0.0f;
+    }
+    
     // detect loop trigger events
     if (_phase >= 1.0f) {
         triggersOut.setTrigger(_id + "Loop");

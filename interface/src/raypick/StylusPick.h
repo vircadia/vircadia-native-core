@@ -66,6 +66,7 @@ public:
     PickResultPointer getOverlayIntersection(const StylusTip& pick) override;
     PickResultPointer getAvatarIntersection(const StylusTip& pick) override;
     PickResultPointer getHUDIntersection(const StylusTip& pick) override;
+    Transform getResultTransform() const override;
 
     bool isLeftHand() const override { return _side == Side::Left; }
     bool isRightHand() const override { return _side == Side::Right; }

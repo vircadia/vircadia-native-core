@@ -918,7 +918,18 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         PACKET_READ_CHECK(AvatarGlobalPosition, sizeof(AvatarDataPacket::AvatarGlobalPosition));
         auto data = reinterpret_cast<const AvatarDataPacket::AvatarGlobalPosition*>(sourceBuffer);
-        auto newValue = glm::vec3(data->globalPosition[0], data->globalPosition[1], data->globalPosition[2]);
+
+        glm::vec3 offset = glm::vec3(0.0f, 0.0f, 0.0f);
+
+        if (_replicaIndex > 0) {
+            const float SPACE_BETWEEN_AVATARS = 2.0f;
+            const int AVATARS_PER_ROW = 3;
+            int row = _replicaIndex % AVATARS_PER_ROW;
+            int col = floor(_replicaIndex / AVATARS_PER_ROW);
+            offset = glm::vec3(row * SPACE_BETWEEN_AVATARS, 0.0f, col * SPACE_BETWEEN_AVATARS);
+        }
+
+        auto newValue = glm::vec3(data->globalPosition[0], data->globalPosition[1], data->globalPosition[2]) + offset;
         if (_globalPosition != newValue) {
             _globalPosition = newValue;
             _globalPositionChanged = usecTimestampNow();
@@ -1850,7 +1861,9 @@ qint64 AvatarData::packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice
 }
 
 qint64 AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID traitInstanceID,
-                                   ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion) {
+                                     ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion,
+                                     AvatarTraits::TraitInstanceID wireInstanceID) {
+
     qint64 bytesWritten = 0;
 
     bytesWritten += destination.writePrimitive(traitType);
@@ -1859,7 +1872,11 @@ qint64 AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTr
         bytesWritten += destination.writePrimitive(traitVersion);
     }
 
-    bytesWritten += destination.write(traitInstanceID.toRfc4122());
+    if (!wireInstanceID.isNull()) {
+        bytesWritten += destination.write(wireInstanceID.toRfc4122());
+    } else {
+        bytesWritten += destination.write(traitInstanceID.toRfc4122());
+    }
 
     if (traitType == AvatarTraits::AvatarEntity) {
         // grab a read lock on the avatar entities and check for entity data for the given ID
@@ -1882,6 +1899,16 @@ qint64 AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTr
     }
 
     return bytesWritten;
+}
+
+void AvatarData::prepareResetTraitInstances() {
+    if (_clientTraitsHandler) {
+        _avatarEntitiesLock.withReadLock([this]{
+            foreach (auto entityID, _avatarEntityData.keys()) {
+                _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
+            }
+        });
+    }
 }
 
 void AvatarData::processTrait(AvatarTraits::TraitType traitType, QByteArray traitBinaryData) {
@@ -2781,7 +2808,7 @@ void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
             if (_clientTraitsHandler) {
                 // if we have a client traits handler, flag any updated or created entities
                 // so that we send changes for them next frame
-                foreach (auto entityID, _avatarEntityData) {
+                foreach (auto entityID, _avatarEntityData.keys()) {
                     _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
                 }
             }
