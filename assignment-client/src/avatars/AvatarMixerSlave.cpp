@@ -329,6 +329,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             AvatarData::_avatarSortCoefficientSize,
             AvatarData::_avatarSortCoefficientCenter,
             AvatarData::_avatarSortCoefficientAge);
+    sortedAvatars.reserve(avatarsToSort.size());
 
     // ignore or sort
     const AvatarSharedPointer& thisAvatar = nodeData->getAvatarSharedPointer();
@@ -429,9 +430,9 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
     int remainingAvatars = (int)sortedAvatars.size();
     auto traitsPacketList = NLPacketList::create(PacketType::BulkAvatarTraits, QByteArray(), true, true);
-    while (!sortedAvatars.empty()) {
-        const auto avatarData = sortedAvatars.top().getAvatar();
-        sortedAvatars.pop();
+    const auto& sortedAvatarVector = sortedAvatars.getSortedVector();
+    for (const auto& sortedAvatar : sortedAvatarVector) {
+        const auto& avatarData = sortedAvatar.getAvatar();
         remainingAvatars--;
 
         auto otherNode = avatarDataToNodes[avatarData];

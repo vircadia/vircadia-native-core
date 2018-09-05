@@ -30,9 +30,9 @@ public:
 
     void markTraitUpdated(AvatarTraits::TraitType updatedTrait)
         { _traitStatuses[updatedTrait] = Updated; _hasChangedTraits = true; }
-    void markInstancedTraitUpdated(AvatarTraits::TraitType traitType, QUuid updatedInstanceID)
+    void markInstancedTraitUpdated(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID updatedInstanceID)
         { _traitStatuses.instanceInsert(traitType, updatedInstanceID, Updated); _hasChangedTraits = true; }
-    void markInstancedTraitDeleted(AvatarTraits::TraitType traitType, QUuid deleteInstanceID)
+    void markInstancedTraitDeleted(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID deleteInstanceID)
         { _traitStatuses.instanceInsert(traitType, deleteInstanceID, Deleted); _hasChangedTraits = true; }
 
     void resetForNewMixer();
