@@ -283,6 +283,7 @@ void AudioMixer::sendStatsPacket() {
     };
 
     addTiming(_ticTiming, "tic");
+    addTiming(_checkTimeTiming, "check_time");
     addTiming(_sleepTiming, "sleep");
     addTiming(_frameTiming, "frame");
     addTiming(_packetsTiming, "packets");
@@ -391,7 +392,7 @@ void AudioMixer::start() {
         auto ticTimer = _ticTiming.timer();
 
         {
-            auto timer = _sleepTiming.timer();
+            auto timer = _checkTimeTiming.timer();
             auto frameDuration = timeFrame(frameTimestamp);
             throttle(frameDuration, frame);
         }
@@ -459,10 +460,14 @@ chrono::microseconds AudioMixer::timeFrame(p_high_resolution_clock::time_point& 
     // set the new frame timestamp
     timestamp = max(now, nextTimestamp);
 
-    // sleep until the next frame should start
-    // WIN32 sleep_until is broken until VS2015 Update 2
-    // instead, max (above) guarantees that timestamp >= now, so we can sleep_for
-    this_thread::sleep_for(timestamp - now);
+    {
+        auto timer = _sleepTiming.timer();
+
+        // sleep until the next frame should start
+        // WIN32 sleep_until is broken until VS2015 Update 2
+        // instead, max (above) guarantees that timestamp >= now, so we can sleep_for
+        this_thread::sleep_for(timestamp - now);
+    }
 
     return duration;
 }
