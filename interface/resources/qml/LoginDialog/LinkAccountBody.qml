@@ -124,6 +124,7 @@ Item {
             width: parent.width
             focus: true
             label: "Username or Email"
+            placeholderText: "Username or Email"
             activeFocusOnPress: true
 
             ShortcutText {
@@ -151,8 +152,8 @@ Item {
         TextField {
             id: passwordField
             width: parent.width
-
             label: "Password"
+            placeholderText: "Password"
             echoMode: showPassword.checked ? TextInput.Normal : TextInput.Password
             activeFocusOnPress: true
 
