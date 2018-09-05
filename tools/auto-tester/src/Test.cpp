@@ -313,7 +313,7 @@ void Test::includeTest(QTextStream& textStream, const QString& testPathname) {
 }
 
 void Test::createTests() {
-    // Rename files sequentially, as ExpectedResult_00000.jpeg, ExpectedResult_00001.jpg and so on
+    // Rename files sequentially, as ExpectedResult_00000.png, ExpectedResult_00001.png and so on
     // Any existing expected result images will be deleted
     QString previousSelection = _snapshotDirectory;
     QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
