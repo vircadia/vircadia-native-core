@@ -224,10 +224,16 @@ public:
     void setHmdTabletBecomesToolbarSetting(bool value);
     bool getPreferStylusOverLaser() { return _preferStylusOverLaserSetting.get(); }
     void setPreferStylusOverLaser(bool value);
+
+    uint32_t getEntitiesStabilityCount() { return _nearbyEntitiesStabilityCount; }
+    uint32_t getNearbyEntitiesReadyCount() { return _nearbyEntitiesReadyCount; }
+    uint32_t getNearbyEntitiesCount() { return _nearbyEntitiesCountAtLastPhysicsCheck; }
     // FIXME: Remove setting completely or make available through JavaScript API?
     //bool getPreferAvatarFingerOverStylus() { return _preferAvatarFingerOverStylusSetting.get(); }
     bool getPreferAvatarFingerOverStylus() { return false; }
     void setPreferAvatarFingerOverStylus(bool value);
+
+    float getDomainLoadingProgress() { return _octreeProcessor.domainLoadingProgress(); }
 
     float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
     void setSettingConstrainToolbarPosition(bool setting);
@@ -304,6 +310,7 @@ public:
     void saveNextPhysicsStats(QString filename);
 
     bool isServerlessMode() const;
+    bool isInterstitialMode() const;
 
     void replaceDomainContent(const QString& url);
 
@@ -330,6 +337,7 @@ signals:
     void activeDisplayPluginChanged();
 
     void uploadRequest(QString path);
+    void interstitialModeChanged(bool interstitialMode);
 
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
@@ -427,6 +435,8 @@ public slots:
 
     void setIsServerlessMode(bool serverlessDomain);
     void loadServerlessDomain(QUrl domainURL, bool errorDomain = false);
+    void setIsInterstitialMode(bool interstialMode);
+    void loadServerlessDomain(QUrl domainURL);
 
     void updateVerboseLogging();
 
@@ -627,6 +637,7 @@ private:
     QHash<int, QKeyEvent> _keysPressed;
 
     bool _enableProcessOctreeThread;
+    bool _interstitialMode { false };
 
     OctreePacketProcessor _octreeProcessor;
     EntityEditPacketSender _entityEditSender;
@@ -722,6 +733,7 @@ private:
     uint32_t _fullSceneCounterAtLastPhysicsCheck { 0 }; // _fullSceneReceivedCounter last time we checked physics ready
     uint32_t _nearbyEntitiesCountAtLastPhysicsCheck { 0 }; // how many in-range entities last time we checked physics ready
     uint32_t _nearbyEntitiesStabilityCount { 0 }; // how many times has _nearbyEntitiesCountAtLastPhysicsCheck been the same
+    uint32_t _nearbyEntitiesReadyCount { 0 };
     quint64 _lastPhysicsCheckTime { usecTimestampNow() }; // when did we last check to see if physics was ready
 
     bool _keyboardDeviceHasFocus { true };

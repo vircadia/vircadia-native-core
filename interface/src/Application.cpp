@@ -1387,6 +1387,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         });
         connect(this, &Application::activeDisplayPluginChanged,
             reinterpret_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::onContextChanged);
+        connect(this, &Application::interstitialModeChanged, audioIO, &AudioClient::setInterstitialStatus);
     }
 
     // Create the rendering engine.  This can be slow on some machines due to lots of
@@ -1645,7 +1646,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 audioClient->setMuted(!audioClient->isMuted());
             } else if (action == controller::toInt(controller::Action::CYCLE_CAMERA)) {
                 cycleCamera();
-            } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
+            } else if (action == controller::toInt(controller::Action::CONTEXT_MENU) && !isInterstitialMode()) {
                 toggleTabletUI();
             } else if (action == controller::toInt(controller::Action::RETICLE_X)) {
                 auto oldPos = getApplicationCompositor().getReticlePosition();
@@ -2293,6 +2294,25 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // Preload Tablet sounds
     DependencyManager::get<TabletScriptingInterface>()->preloadSounds();
+
+    connect(this, &Application::interstitialModeChanged, this, [this] (bool interstitialMode) {
+        if (!interstitialMode) {
+            DependencyManager::get<AudioClient>()->negotiateAudioFormat();
+            _queryExpiry = SteadyClock::now();
+            if (_avatarOverrideUrl.isValid()) {
+                getMyAvatar()->useFullAvatarURL(_avatarOverrideUrl);
+            }
+
+            if (getMyAvatar()->getFullAvatarURLFromPreferences() != getMyAvatar()->getSkeletonModelURL()) {
+                getMyAvatar()->resetFullAvatarURL();
+            }
+            getMyAvatar()->markIdentityDataChanged();
+            getMyAvatar()->resetLastSent();
+
+            // transmit a "sendAll" packet to the AvatarMixer we just connected to.
+            getMyAvatar()->sendAvatarDataPacket(true);
+        }
+    });
 
     _pendingIdleEvent = false;
     _pendingRenderEvent = false;
@@ -2994,6 +3014,9 @@ void Application::initializeUi() {
     if (_window && _window->isFullScreen()) {
         setFullscreen(nullptr, true);
     }
+
+
+    setIsInterstitialMode(true);
 }
 
 
@@ -3470,6 +3493,22 @@ bool Application::isServerlessMode() const {
     return false;
 }
 
+bool Application::isInterstitialMode() const {
+    bool interstitialModeEnabled = Menu::getInstance()->isOptionChecked("Enable Interstitial");
+    return interstitialModeEnabled ? _interstitialMode : false;
+}
+
+void Application::setIsInterstitialMode(bool interstitialMode) {
+    auto menu = Menu::getInstance();
+    bool interstitialModeEnabled = menu->isOptionChecked("Enable Interstitial");
+    if (_interstitialMode != interstitialMode && interstitialModeEnabled) {
+        _interstitialMode = interstitialMode;
+
+        DependencyManager::get<OffscreenUi>()->setPinned(_interstitialMode);
+        emit interstitialModeChanged(_interstitialMode);
+    }
+}
+
 void Application::setIsServerlessMode(bool serverlessDomain) {
     auto tree = getEntities()->getTree();
     if (tree) {
@@ -3750,7 +3789,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
     _controllerScriptingInterface->emitKeyPressEvent(event); // send events to any registered scripts
     // if one of our scripts have asked to capture this event, then stop processing it
-    if (_controllerScriptingInterface->isKeyCaptured(event)) {
+    if (_controllerScriptingInterface->isKeyCaptured(event) || isInterstitialMode()) {
         return;
     }
 
@@ -5308,6 +5347,7 @@ void Application::resetPhysicsReadyInformation() {
     _fullSceneCounterAtLastPhysicsCheck = 0;
     _nearbyEntitiesCountAtLastPhysicsCheck = 0;
     _nearbyEntitiesStabilityCount = 0;
+    _nearbyEntitiesReadyCount = 0;
     _physicsEnabled = false;
     _octreeProcessor.startEntitySequence();
 }
@@ -5535,6 +5575,7 @@ void Application::update(float deltaTime) {
         return;
     }
 
+
     if (!_physicsEnabled) {
         if (!domainLoadingInProgress) {
             PROFILE_ASYNC_BEGIN(app, "Scene Loading", "");
@@ -5544,7 +5585,8 @@ void Application::update(float deltaTime) {
         // we haven't yet enabled physics.  we wait until we think we have all the collision information
         // for nearby entities before starting bullet up.
         quint64 now = usecTimestampNow();
-        if (isServerlessMode() || _octreeProcessor.isLoadSequenceComplete()) {
+        bool renderReady = _octreeProcessor.isEntitiesRenderReady();
+        if (isServerlessMode() || (_octreeProcessor.isLoadSequenceComplete() && renderReady)) {
             // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
             _lastPhysicsCheckTime = now;
             _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
@@ -5555,6 +5597,7 @@ void Application::update(float deltaTime) {
             // scene is ready to compute its collision shape.
             if (getMyAvatar()->isReadyForPhysics()) {
                 _physicsEnabled = true;
+                setIsInterstitialMode(false);
                 getMyAvatar()->updateMotionBehaviorFromMenu();
             }
         }
@@ -5634,7 +5677,7 @@ void Application::update(float deltaTime) {
         // Transfer the user inputs to the driveKeys
         // FIXME can we drop drive keys and just have the avatar read the action states directly?
         myAvatar->clearDriveKeys();
-        if (_myCamera.getMode() != CAMERA_MODE_INDEPENDENT) {
+        if (_myCamera.getMode() != CAMERA_MODE_INDEPENDENT && !isInterstitialMode()) {
             if (!_controllerScriptingInterface->areActionsCaptured() && _myCamera.getMode() != CAMERA_MODE_MIRROR) {
                 myAvatar->setDriveKey(MyAvatar::TRANSLATE_Z, -1.0f * userInputMapper->getActionState(controller::Action::TRANSLATE_Z));
                 myAvatar->setDriveKey(MyAvatar::TRANSLATE_Y, userInputMapper->getActionState(controller::Action::TRANSLATE_Y));
@@ -5952,7 +5995,7 @@ void Application::update(float deltaTime) {
     // send packet containing downstream audio stats to the AudioMixer
     {
         quint64 sinceLastNack = now - _lastSendDownstreamAudioStats;
-        if (sinceLastNack > TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS) {
+        if (sinceLastNack > TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS && !isInterstitialMode()) {
             _lastSendDownstreamAudioStats = now;
 
             QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "sendDownstreamAudioStatsPacket", Qt::QueuedConnection);
@@ -6115,21 +6158,23 @@ void Application::updateRenderArgs(float deltaTime) {
 }
 
 void Application::queryAvatars() {
-    auto avatarPacket = NLPacket::create(PacketType::AvatarQuery);
-    auto destinationBuffer = reinterpret_cast<unsigned char*>(avatarPacket->getPayload());
-    unsigned char* bufferStart = destinationBuffer;
+    if (!isInterstitialMode()) {
+        auto avatarPacket = NLPacket::create(PacketType::AvatarQuery);
+        auto destinationBuffer = reinterpret_cast<unsigned char*>(avatarPacket->getPayload());
+        unsigned char* bufferStart = destinationBuffer;
 
-    uint8_t numFrustums = (uint8_t)_conicalViews.size();
-    memcpy(destinationBuffer, &numFrustums, sizeof(numFrustums));
-    destinationBuffer += sizeof(numFrustums);
+        uint8_t numFrustums = (uint8_t)_conicalViews.size();
+        memcpy(destinationBuffer, &numFrustums, sizeof(numFrustums));
+        destinationBuffer += sizeof(numFrustums);
 
-    for (const auto& view : _conicalViews) {
-        destinationBuffer += view.serialize(destinationBuffer);
+        for (const auto& view : _conicalViews) {
+            destinationBuffer += view.serialize(destinationBuffer);
+        }
+
+        avatarPacket->setPayloadSize(destinationBuffer - bufferStart);
+
+        DependencyManager::get<NodeList>()->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);
     }
-
-    avatarPacket->setPayloadSize(destinationBuffer - bufferStart);
-
-    DependencyManager::get<NodeList>()->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);
 }
 
 
@@ -6352,6 +6397,7 @@ void Application::clearDomainOctreeDetails() {
     qCDebug(interfaceapp) << "Clearing domain octree details...";
 
     resetPhysicsReadyInformation();
+    setIsInterstitialMode(true);
 
     _octreeServerSceneStats.withWriteLock([&] {
         _octreeServerSceneStats.clear();
@@ -6437,11 +6483,11 @@ void Application::nodeActivated(SharedNodePointer node) {
         _octreeQuery.incrementConnectionID();
     }
 
-    if (node->getType() == NodeType::AudioMixer) {
+    if (node->getType() == NodeType::AudioMixer && !isInterstitialMode()) {
         DependencyManager::get<AudioClient>()->negotiateAudioFormat();
     }
 
-    if (node->getType() == NodeType::AvatarMixer) {
+    if (node->getType() == NodeType::AvatarMixer && !isInterstitialMode()) {
         _queryExpiry = SteadyClock::now();
 
         // new avatar mixer, send off our identity packet on next update loop
@@ -6558,6 +6604,7 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
     _nearbyEntitiesCountAtLastPhysicsCheck = nearbyCount;
 
     const uint32_t MINIMUM_NEARBY_ENTITIES_STABILITY_COUNT = 3;
+    uint32_t readyNearbyEntities = 0;
     if (_nearbyEntitiesStabilityCount >= MINIMUM_NEARBY_ENTITIES_STABILITY_COUNT) {
         // We've seen the same number of nearby entities for several stats packets in a row.  assume we've got all
         // the local entities.
@@ -6567,8 +6614,11 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
                 HIFI_FCDEBUG(interfaceapp(), "Physics disabled until entity loads: " << entity->getID() << entity->getName());
                 // don't break here because we want all the relevant entities to start their downloads
                 result = false;
+            } else {
+                readyNearbyEntities++;
             }
         }
+        _nearbyEntitiesReadyCount = readyNearbyEntities;
         return result;
     }
     return false;
@@ -7809,7 +7859,7 @@ float Application::getRenderResolutionScale() const {
 }
 
 void Application::notifyPacketVersionMismatch() {
-    if (!_notifiedPacketVersionMismatchThisDomain) {
+    if (!_notifiedPacketVersionMismatchThisDomain && !isInterstitialMode()) {
         _notifiedPacketVersionMismatchThisDomain = true;
 
         QString message = "The location you are visiting is running an incompatible server version.\n";

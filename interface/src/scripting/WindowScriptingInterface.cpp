@@ -584,3 +584,8 @@ void WindowScriptingInterface::onMessageBoxSelected(int button) {
         _messageBoxes.remove(id);
     }
 }
+
+
+float WindowScriptingInterface::domainLoadingProgress() {
+    return qApp->getDomainLoadingProgress();
+}

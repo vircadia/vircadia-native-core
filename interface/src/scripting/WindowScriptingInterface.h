@@ -561,6 +561,8 @@ public slots:
      */
     void closeMessageBox(int id);
 
+    float domainLoadingProgress();
+
 private slots:
     void onWindowGeometryChanged(const QRect& geometry);
     void onMessageBoxSelected(int button);

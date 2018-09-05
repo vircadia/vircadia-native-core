@@ -106,6 +106,10 @@ extern std::atomic<size_t> DECIMATED_TEXTURE_COUNT;
 extern std::atomic<size_t> RECTIFIED_TEXTURE_COUNT;
 
 void Stats::updateStats(bool force) {
+
+    if (qApp->isInterstitialMode()) {
+        return;
+    }
     QQuickItem* parent = parentItem();
     if (!force) {
         if (!Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {

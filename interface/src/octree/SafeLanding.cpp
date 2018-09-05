@@ -13,6 +13,7 @@
 #include "EntityTreeRenderer.h"
 #include "ModelEntityItem.h"
 #include "InterfaceLogging.h"
+#include "Application.h"
 
 const int SafeLanding::SEQUENCE_MODULO = std::numeric_limits<OCTREE_PACKET_SEQUENCE>::max() + 1;
 
@@ -36,6 +37,7 @@ void SafeLanding::startEntitySequence(QSharedPointer<EntityTreeRenderer> entityT
     if (entityTree) {
         Locker lock(_lock);
         _entityTree = entityTree;
+        _trackedEntitiesRenderStatus.clear();
         _trackedEntities.clear();
         _trackingEntities = true;
         connect(std::const_pointer_cast<EntityTree>(_entityTree).get(),
@@ -53,6 +55,7 @@ void SafeLanding::startEntitySequence(QSharedPointer<EntityTreeRenderer> entityT
 void SafeLanding::stopEntitySequence() {
     Locker lock(_lock);
     _trackingEntities = false;
+    _maxTrackedEntityCount = 0;
     _initialStart = INVALID_SEQUENCE;
     _initialEnd = INVALID_SEQUENCE;
     _trackedEntities.clear();
@@ -79,12 +82,20 @@ void SafeLanding::addTrackedEntity(const EntityItemID& entityID) {
                 }
             }
         }
+
+        _trackedEntitiesRenderStatus.emplace(entityID, entity);
+        float trackedEntityCount = (float)_trackedEntitiesRenderStatus.size();
+
+        if (trackedEntityCount > _maxTrackedEntityCount) {
+            _maxTrackedEntityCount = trackedEntityCount;
+        }
     }
 }
 
 void SafeLanding::deleteTrackedEntity(const EntityItemID& entityID) {
     Locker lock(_lock);
     _trackedEntities.erase(entityID);
+    _trackedEntitiesRenderStatus.erase(entityID);
 }
 
 void SafeLanding::setCompletionSequenceNumbers(int first, int last) {
@@ -114,6 +125,16 @@ bool SafeLanding::isLoadSequenceComplete() {
     }
 
     return !_trackingEntities;
+}
+
+float SafeLanding::loadingProgressPercentage() {
+    Locker lock(_lock);
+    if (_maxTrackedEntityCount > 0) {
+        float trackedEntityCount = (float)_trackedEntitiesRenderStatus.size();
+        return ((_maxTrackedEntityCount - trackedEntityCount) / _maxTrackedEntityCount);
+    }
+
+    return 0.0f;
 }
 
 bool SafeLanding::isSequenceNumbersComplete() {
@@ -146,6 +167,24 @@ bool SafeLanding::isEntityPhysicsComplete() {
         }
     }
     return _trackedEntities.empty();
+}
+
+bool SafeLanding::entitiesRenderReady() {
+    Locker lock(_lock);
+    auto entityTree = qApp->getEntities();
+    for (auto entityMapIter = _trackedEntitiesRenderStatus.begin(); entityMapIter != _trackedEntitiesRenderStatus.end(); ++entityMapIter) {
+        auto entity = entityMapIter->second;
+        bool visuallyReady = entity->isVisuallyReady();
+        if (visuallyReady || !entityTree->renderableForEntityId(entityMapIter->first)) {
+            entityMapIter = _trackedEntitiesRenderStatus.erase(entityMapIter);
+            if (entityMapIter == _trackedEntitiesRenderStatus.end()) {
+                break;
+            }
+        } else {
+            entity->requestRenderUpdate();
+        }
+    }
+    return _trackedEntitiesRenderStatus.empty();
 }
 
 float SafeLanding::ElevatedPriority(const EntityItem& entityItem) {
