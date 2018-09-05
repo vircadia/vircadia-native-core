@@ -625,7 +625,7 @@
             "lastEdited": 1536108160862286,
             "lastEditedBy": "{4656d4a8-5e61-4230-ab34-2888d7945bd6}",
             "locked": true,
-            "modelURL": "https://raw.githubusercontent.com/wayne-chen/hifi/interstitalMerged/interface/resources/meshes/redirect/oopsDialog_protocol.fbx",
+            "modelURL": "",
             "name": "Oops Dialog",
             "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
             "position": {
@@ -648,7 +648,7 @@
                 "y": 0.4957197904586792,
                 "z": -7.62939453125e-05
             },
-            "script": "https://raw.githubusercontent.com/wayne-chen/hifi/interstitalMerged/scripts/system/oopsEntityScript.js",
+            "script": "https://hifi-content.s3.amazonaws.com/wayne/404redirectionScripts/oopsEntityScript.js",
             "scriptTimestamp": 1536102551825,
             "type": "Model",
             "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
