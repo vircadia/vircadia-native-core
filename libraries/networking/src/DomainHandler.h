@@ -84,7 +84,7 @@ public:
 
     void connectedToServerless(std::map<QString, QString> namedPaths);
 
-    void DomainHandler::loadedErrorDomain(std::map<QString, QString> namedPaths);
+    void loadedErrorDomain(std::map<QString, QString> namedPaths);
 
     QString getViewPointFromNamedPath(QString namedPath);
 
