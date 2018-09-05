@@ -30,6 +30,10 @@ struct AudioMixerStats {
     int manualStereoMixes { 0 };
     int manualEchoMixes { 0 };
 
+    int skippedThrottle { 0 };
+    int skippedSilent { 0 };
+    int skippedOther { 0 };
+
 #ifdef HIFI_AUDIO_MIXER_DEBUG
     uint64_t mixTime { 0 };
 #endif

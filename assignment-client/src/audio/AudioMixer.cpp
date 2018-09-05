@@ -302,6 +302,9 @@ void AudioMixer::sendStatsPacket() {
     mixStats["%_hrtf_mixes"] = percentageForMixStats(_stats.hrtfRenders);
     mixStats["%_hrtf_silent_mixes"] = percentageForMixStats(_stats.hrtfSilentRenders);
     mixStats["%_hrtf_throttle_mixes"] = percentageForMixStats(_stats.hrtfThrottleRenders);
+    mixStats["%_skipped_throttle_mixes"] = percentageForMixStats(_stats.skippedThrottle);
+    mixStats["%_skipped_silent_mixes"] = percentageForMixStats(_stats.skippedSilent);
+    mixStats["%_skipped_other_mixes"] = percentageForMixStats(_stats.skippedOther);
     mixStats["%_manual_stereo_mixes"] = percentageForMixStats(_stats.manualStereoMixes);
     mixStats["%_manual_echo_mixes"] = percentageForMixStats(_stats.manualEchoMixes);
 
