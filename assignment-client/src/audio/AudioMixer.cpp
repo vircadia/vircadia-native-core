@@ -386,15 +386,18 @@ void AudioMixer::start() {
 
     // mix state
     unsigned int frame = 1;
-    auto frameTimestamp = p_high_resolution_clock::now();
 
     while (!_isFinished) {
         auto ticTimer = _ticTiming.timer();
 
-        {
-            auto timer = _checkTimeTiming.timer();
-            auto frameDuration = timeFrame(frameTimestamp);
-            throttle(frameDuration, frame);
+        if (_startFrameTimestamp.time_since_epoch().count() == 0) {
+            _startFrameTimestamp = _idealFrameTimestamp = p_high_resolution_clock::now();
+        } else {
+            {
+                auto timer = _checkTimeTiming.timer();
+                auto frameDuration = timeFrame();
+                throttle(frameDuration, frame);
+            }
         }
 
         auto frameTimer = _frameTiming.timer();
@@ -449,25 +452,21 @@ void AudioMixer::start() {
     }
 }
 
-chrono::microseconds AudioMixer::timeFrame(p_high_resolution_clock::time_point& timestamp) {
+chrono::microseconds AudioMixer::timeFrame() {
     // advance the next frame
-    auto nextTimestamp = timestamp + chrono::microseconds(AudioConstants::NETWORK_FRAME_USECS);
     auto now = p_high_resolution_clock::now();
 
     // compute how long the last frame took
-    auto duration = chrono::duration_cast<chrono::microseconds>(now - timestamp);
+    auto duration = chrono::duration_cast<chrono::microseconds>(now - _startFrameTimestamp);
 
-    // set the new frame timestamp
-    timestamp = max(now, nextTimestamp);
+    _idealFrameTimestamp += chrono::microseconds(AudioConstants::NETWORK_FRAME_USECS);
 
     {
         auto timer = _sleepTiming.timer();
-
-        // sleep until the next frame should start
-        // WIN32 sleep_until is broken until VS2015 Update 2
-        // instead, max (above) guarantees that timestamp >= now, so we can sleep_for
-        this_thread::sleep_for(timestamp - now);
+        this_thread::sleep_until(_idealFrameTimestamp);
     }
+
+    _startFrameTimestamp = p_high_resolution_clock::now();
 
     return duration;
 }

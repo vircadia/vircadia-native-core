@@ -84,7 +84,7 @@ private slots:
 
 private:
     // mixing helpers
-    std::chrono::microseconds timeFrame(p_high_resolution_clock::time_point& timestamp);
+    std::chrono::microseconds timeFrame();
     void throttle(std::chrono::microseconds frameDuration, int frame);
 
     AudioMixerClientData* getOrCreateClientData(Node* node);
@@ -93,6 +93,9 @@ private:
 
     void parseSettingsObject(const QJsonObject& settingsObject);
     void clearDomainSettings();
+
+    p_high_resolution_clock::time_point _idealFrameTimestamp;
+    p_high_resolution_clock::time_point _startFrameTimestamp;
 
     float _trailingMixRatio { 0.0f };
     float _throttlingRatio { 0.0f };
