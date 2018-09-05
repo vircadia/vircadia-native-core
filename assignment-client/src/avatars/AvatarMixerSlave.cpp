@@ -440,7 +440,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     auto traitsPacketList = NLPacketList::create(PacketType::BulkAvatarTraits, QByteArray(), true, true);
     const auto& sortedAvatarVector = sortedAvatars.getSortedVector();
     for (const auto& sortedAvatar : sortedAvatarVector) {
-        const auto& avatarData = sortedAvatar.getAvatar();
         const Node* otherNode = sortedAvatar.getNode();
         auto lastEncodeForOther = sortedAvatar.getTimestamp();
         remainingAvatars--;
