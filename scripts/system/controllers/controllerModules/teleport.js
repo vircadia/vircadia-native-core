@@ -136,9 +136,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.state = TELEPORTER_STATES.IDLE;
         this.currentTarget = TARGET.INVALID;
         this.currentResult = null;
-        this.capsuleHeight = 2.0;
-        this.capsuleRadius = 0.25;
-        this.pickHeightOffset = 0.01;
+        this.capsuleThreshold = 0.05;
 
         this.getOtherModule = function() {
             var otherModule = this.hand === RIGHT_HAND ? leftTeleporter : rightTeleporter;
@@ -176,18 +174,38 @@ Script.include("/~/system/libraries/controllers.js");
             maxDistance: 8.0
         });
         
-        this.teleportCollisionPick = Picks.createPick(PickType.Collision, {
-            enabled: true,
-            filter: Picks.PICK_ENTITIES + Picks.PICK_AVATARS,
-            shape: {
-                shapeType: "capsule-y",
-                dimensions: { x: _this.capsuleRadius * 2.0, y: _this.capsuleHeight - (_this.capsuleRadius * 2.0), z: _this.capsuleRadius * 2.0 }
-            },
-            position: { x: 0, y: _this.pickHeightOffset + (_this.capsuleHeight * 0.5), z: 0 },
-            parentID: Pointers.getPointerProperties(_this.teleportParabolaHandInvisible).renderStates["invisible"].end,
-            threshold: 0.05
-        });
-
+        this.teleportCollisionPick;
+        
+        this.recreateCollisionPick = function() {
+            if (_this.teleportCollisionPick !== undefined) {
+                Picks.removePick(_this.teleportCollisionPick);
+            }
+            
+            var capsuleData = MyAvatar.getCollisionCapsule();
+            var capsuleHeight = Vec3.distance(capsuleData.start, capsuleData.end);
+            var offset = Vec3.distance(Vec3.sum(capsuleData.start, {x: 0, y: 0.5*capsuleHeight, z: 0}), MyAvatar.position);
+            var radius = capsuleData.radius;
+            var height = 2.0 * radius + capsuleHeight;
+            
+            _this.teleportCollisionPick = Picks.createPick(PickType.Collision, {
+                enabled: true,
+                parentID: Pointers.getPointerProperties(_this.teleportParabolaHandInvisible).renderStates["invisible"].end,
+                filter: Picks.PICK_ENTITIES + Picks.PICK_AVATARS,
+                shape: {
+                    shapeType: "capsule-y",
+                    dimensions: { 
+                        x: radius * 2.0, 
+                        y: height - (radius * 2.0), 
+                        z: radius * 2.0 
+                    }
+                },
+                position: { x: 0, y: offset + (height * 0.5), z: 0 },
+                threshold: _this.capsuleThreshold
+            });
+        }
+        
+        _this.recreateCollisionPick();
+       
         this.teleportParabolaHeadVisible = Pointers.createPointer(PickType.Parabola, {
             joint: "Avatar",
             filter: Picks.PICK_ENTITIES,
@@ -222,8 +240,6 @@ Script.include("/~/system/libraries/controllers.js");
             Pointers.removePointer(_this.teleportParabolaHeadInvisible);
             Picks.removePick(_this.teleportCollisionPick);
         };
-        
-        // Picks.setIgnoreItems(_this.teleportCollisionPick, []);
 
         this.axisButtonStateX = 0; // Left/right axis button pressed.
         this.axisButtonStateY = 0; // Up/down axis button pressed.
@@ -355,7 +371,7 @@ Script.include("/~/system/libraries/controllers.js");
             } else if (target === TARGET.SURFACE) {
                 var offset = getAvatarFootOffset();
                 result.intersection.y += offset;
-                MyAvatar.goToLocation(result.intersection, true, HMD.orientation, false);
+                MyAvatar.goToLocation(result.intersection, true, HMD.orientation, false, false);
                 HMD.centerUI();
                 MyAvatar.centerBody();
             }
@@ -558,7 +574,55 @@ Script.include("/~/system/libraries/controllers.js");
             }
         }
     };
+    
+    // This class execute a function after the param value haven't been set for a certain time
+    // It's used in this case to recreate the collision picks once when the avatar scale process ends
+    
+    var AfterSet = function(time, maxsteps, callback) {
+        var self = this;
+        this.time = time;
+        this.callback = callback;
+        this.init = false;
+        this.value = 0;
+        this.interval;
+        this.maxsteps = maxsteps;
+        this.steps = 0;
+        this.restateValue = function(value) {
+            if (self.steps++ > self.maxsteps) {
+                self.callback.call(this, self.value);
+                self.steps = 0;
+            }
+            if (!self.init) {
+                console.log("Starting apply after");
+            }
+            self.init = true;
+            self.value = value;
+            if (self.interval !== undefined) {
+                Script.clearInterval(self.interval);
+            }
+            self.interval = Script.setInterval(function() {
+                self.callback.call(this, self.value);
+                self.init = false;
+                Script.clearInterval(self.interval);
+                self.interval = undefined;
+            }, self.time);
+        }
+    }
+    
+    var afterSet = new AfterSet(100, 30, function(value) {
+        leftTeleporter.recreateCollisionPick();
+        rightTeleporter.recreateCollisionPick();
+    });
 
+    MyAvatar.onLoadComplete.connect(function () {
+        leftTeleporter.recreateCollisionPick();
+        rightTeleporter.recreateCollisionPick();
+    });
+    
+    MyAvatar.sensorToWorldScaleChanged.connect(function() {
+        afterSet.restateValue(MyAvatar.getSensorToWorldScale());
+    });
+    
     Messages.subscribe('Hifi-Teleport-Disabler');
     Messages.subscribe('Hifi-Teleport-Ignore-Add');
     Messages.subscribe('Hifi-Teleport-Ignore-Remove');
