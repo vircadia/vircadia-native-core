@@ -43,7 +43,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>2</number>
+     <number>1</number>
     </property>
     <widget class="QWidget" name="tab_1">
      <attribute name="title">
@@ -151,6 +151,37 @@
       </property>
       <property name="text">
        <string>Create all testAuto scripts</string>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="tab_4">
+     <attribute name="title">
+      <string>Windows</string>
+     </attribute>
+     <widget class="QPushButton" name="hideTaskbarButton">
+      <property name="geometry">
+       <rect>
+        <x>160</x>
+        <y>130</y>
+        <width>211</width>
+        <height>40</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Hide Windows Taskbar</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="showTaskbarButton">
+      <property name="geometry">
+       <rect>
+        <x>160</x>
+        <y>200</y>
+        <width>211</width>
+        <height>40</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Show Windows Taskbar</string>
       </property>
      </widget>
     </widget>
@@ -279,37 +310,6 @@
       </property>
      </widget>
     </widget>
-    <widget class="QWidget" name="tab_4">
-     <attribute name="title">
-      <string>Windows</string>
-     </attribute>
-     <widget class="QPushButton" name="hideTaskbarButton">
-      <property name="geometry">
-       <rect>
-        <x>160</x>
-        <y>130</y>
-        <width>211</width>
-        <height>40</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Hide Windows Taskbar</string>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="showTaskbarButton">
-      <property name="geometry">
-       <rect>
-        <x>160</x>
-        <y>200</y>
-        <width>211</width>
-        <height>40</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Show Windows Taskbar</string>
-      </property>
-     </widget>
-    </widget>
    </widget>
    <widget class="QLabel" name="label_3">
     <property name="geometry">
@@ -387,7 +387,7 @@
      <x>0</x>
      <y>0</y>
      <width>582</width>
-     <height>26</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

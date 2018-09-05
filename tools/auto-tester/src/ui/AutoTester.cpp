@@ -28,11 +28,12 @@ AutoTester::AutoTester(QWidget* parent) : QMainWindow(parent) {
     connect(_ui.actionAbout, &QAction::triggered, this, &AutoTester::about);
     connect(_ui.actionContent, &QAction::triggered, this, &AutoTester::content);
 
+    // The second tab hides and shows the Windows task bar
 #ifndef Q_OS_WIN
-    _ui.tabWidget->setTabEnabled(3, false);
+    _ui.tabWidget->removeTab(1);
 #endif
 
-   // _helpWindow.textBrowser->setText()
+   //// _helpWindow.textBrowser->setText()
 }
 
 void AutoTester::setup() {
