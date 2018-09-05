@@ -648,7 +648,7 @@
                 "y": 0.4957197904586792,
                 "z": -7.62939453125e-05
             },
-            "script": "https://raw.githubusercontent.com/wayne-chen/hifi/404DomainRedirect/scripts/system/oopsEntityScript.js",
+            "script": "https://raw.githubusercontent.com/wayne-chen/hifi/interstitalMerged/scripts/system/oopsEntityScript.js",
             "scriptTimestamp": 1536102551825,
             "type": "Model",
             "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
