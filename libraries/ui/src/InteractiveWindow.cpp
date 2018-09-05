@@ -97,6 +97,7 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
 #ifdef Q_OS_WIN
         connect(object, SIGNAL(nativeWindowChanged()), this, SLOT(parentNativeWindowToMainWindow()), Qt::QueuedConnection);
         connect(object, SIGNAL(interactiveWindowVisibleChanged()), this, SLOT(parentNativeWindowToMainWindow()), Qt::QueuedConnection);
+        connect(object, SIGNAL(presentationModeChanged()), this, SLOT(parentNativeWindowToMainWindow()), Qt::QueuedConnection);
 #endif
 
         QUrl sourceURL{ sourceUrl };
