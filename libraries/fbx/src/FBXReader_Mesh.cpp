@@ -781,25 +781,6 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
         attribChannel = 2;
 
         totalAttribBufferSize = totalVertsSize - positionsSize - normalsAndTangentsSize;
-    } else {
-/*
-        auto posBuffer = std::make_shared<gpu::Buffer>();
-        posBuffer->setData(positionsSize, (const gpu::Byte*) vertBuffer->getData() + positionsOffset);
-        vertexBufferStream->addBuffer(posBuffer, 0, positionElement.getSize());
-
-        // update channels and attribBuffer size accordingly
-        interleavePositions = false;
-
-        auto tangentBuffer = std::make_shared<gpu::Buffer>();
-        tangentBuffer->setData(normalsAndTangentsSize, (const gpu::Byte*) vertBuffer->getData() + normalsAndTangentsOffset);
-        vertexBufferStream->addBuffer(tangentBuffer, 0, normalsAndTangentsStride);
-
-        interleaveNormalsTangents = false;
-
-        tangentChannel = 1;
-        attribChannel = 2;
-
-        totalAttribBufferSize = totalVertsSize - positionsSize - normalsAndTangentsSize;*/
     }
 
     // Define the vertex format, compute the offset for each attributes as we append them to the vertex format
@@ -813,9 +794,9 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     }
     if (normalsSize) {
         vertexFormat->setAttribute(gpu::Stream::NORMAL, tangentChannel, normalElement, bufOffset);
-        bufOffset = normalElement.getSize();
+        bufOffset += normalElement.getSize();
         vertexFormat->setAttribute(gpu::Stream::TANGENT, tangentChannel, normalElement, bufOffset);
-        bufOffset = normalElement.getSize();
+        bufOffset += normalElement.getSize();
         if (!interleaveNormalsTangents) {
             bufOffset = 0;
         }
@@ -895,7 +876,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
         vertexBufferStream->addBuffer(attribBuffer, 0, vStride);
     }
 
-    // MEsh vertex format and vertex stream is ready
+    // Mesh vertex format and vertex stream is ready
     mesh->setVertexFormatAndStream(vertexFormat, vertexBufferStream);
 
     // Index and Part Buffers

@@ -78,7 +78,10 @@ void GL41Backend::updateInput() {
 
             const Stream::Format::AttributeMap& attributes = _input._format->getAttributes();
             auto& inputChannels = _input._format->getChannels();
-            _stats._ISNumInputBufferChanges++;
+            _stats._ISNumInputBufferChanges += _input._invalidBuffers.count();
+
+            // Profile the count of buffers to update
+            PROFILE_COUNTER_IF_CHANGED(render_gpu, "numInputBuffersbound", int, _input._invalidBuffers.count());
 
             GLuint boundVBO = 0;
             for (auto& channelIt : inputChannels) {
