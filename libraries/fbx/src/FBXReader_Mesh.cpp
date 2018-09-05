@@ -763,8 +763,8 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     bool interleaveNormalsTangents = true;
 
     // If has blend shapes allocate and assign buffers for pos and tangents now
+    hasBlendShapes = true;
     if (hasBlendShapes) {
-
         auto posBuffer = std::make_shared<gpu::Buffer>();
         posBuffer->setData(positionsSize, (const gpu::Byte*) vertBuffer->getData() + positionsOffset);
         vertexBufferStream->addBuffer(posBuffer, 0, positionElement.getSize());
@@ -781,6 +781,19 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
         attribChannel = 2;
 
         totalAttribBufferSize = totalVertsSize - positionsSize - normalsAndTangentsSize;
+    } else {
+        auto posBuffer = std::make_shared<gpu::Buffer>();
+        posBuffer->setData(positionsSize, (const gpu::Byte*) vertBuffer->getData() + positionsOffset);
+        vertexBufferStream->addBuffer(posBuffer, 0, positionElement.getSize());
+
+        // update channels and attribBuffer size accordingly
+        interleavePositions = false;
+        interleaveNormalsTangents = true;
+
+        tangentChannel = 1;
+        attribChannel = 1;
+
+        totalAttribBufferSize = totalVertsSize - positionsSize;
     }
 
     // Define the vertex format, compute the offset for each attributes as we append them to the vertex format
