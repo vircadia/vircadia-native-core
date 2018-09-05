@@ -95,7 +95,7 @@ void Overlay::setProperties(const QVariantMap& properties) {
 // JSDoc for copying to @typedefs of overlay types that inherit Overlay.
 /**jsdoc
   * @property {string} type=TODO - Has the value <code>"TODO"</code>. <em>Read-only.</em>
-  * @property {Vec3Color} color=255,255,255 - The color of the overlay.
+  * @property {Color} color=255,255,255 - The color of the overlay.
   * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
   * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
   * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.

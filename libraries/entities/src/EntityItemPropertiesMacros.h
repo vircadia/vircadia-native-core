@@ -101,9 +101,11 @@
         changedProperties += P;    \
     }
 
-inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::vec2& v) { return vec2FloatToScriptValue(e, v); }
-inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::vec3& v) { return vec3FloatToScriptValue(e, v); }
-inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::u8vec3& v) { return vec3UCharToScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::vec2& v) { return vec2ToScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::vec3& v) { return vec3ToScriptValue(e, v); }
+inline QScriptValue vec3Color_convertScriptValue(QScriptEngine* e, const glm::vec3& v) { return vec3ColorToScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::u8vec3& v) { return u8vec3ToScriptValue(e, v); }
+inline QScriptValue u8vec3Color_convertScriptValue(QScriptEngine* e, const glm::u8vec3& v) { return u8vec3ColorToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, float v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, int v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, bool v) { return QScriptValue(v); }
@@ -114,7 +116,8 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const QString& v) { ret
 
 inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::quat& v) { return quatToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QScriptValue& v) { return v; }
-inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<glm::vec3>& v) {return qVectorVec3FloatToScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<glm::vec3>& v) {return qVectorVec3ToScriptValue(e, v); }
+inline QScriptValue qVectorVec3Color_convertScriptValue(QScriptEngine* e, const QVector<glm::vec3>& v) {return qVectorVec3ColorToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<glm::quat>& v) {return qVectorQuatToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<bool>& v) {return qVectorBoolToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<float>& v) { return qVectorFloatToScriptValue(e, v); }
@@ -128,8 +131,6 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const EntityItemID& v) 
 
 inline QScriptValue convertScriptValue(QScriptEngine* e, const AACube& v) { return aaCubeToScriptValue(e, v); }
 
-
-
 #define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(X,G,g,P,p) \
     if ((desiredProperties.isEmpty() || desiredProperties.getHasProperty(X)) && \
         (!skipDefaults || defaultEntityProperties.get##G().get##P() != get##P())) { \
@@ -138,6 +139,18 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const AACube& v) { retu
             groupProperties = engine->newObject(); \
         } \
         QScriptValue V = convertScriptValue(engine, get##P()); \
+        groupProperties.setProperty(#p, V); \
+        properties.setProperty(#g, groupProperties); \
+    }
+
+#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_TYPED(X,G,g,P,p,T) \
+    if ((desiredProperties.isEmpty() || desiredProperties.getHasProperty(X)) && \
+        (!skipDefaults || defaultEntityProperties.get##G().get##P() != get##P())) { \
+        QScriptValue groupProperties = properties.property(#g); \
+        if (!groupProperties.isValid()) { \
+            groupProperties = engine->newObject(); \
+        } \
+        QScriptValue V = T##_convertScriptValue(engine, get##P()); \
         groupProperties.setProperty(#p, V); \
         properties.setProperty(#g, groupProperties); \
     }
@@ -161,6 +174,13 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const AACube& v) { retu
         properties.setProperty(#P, V); \
     }
 
+#define COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(p,P,T) \
+    if ((_desiredProperties.isEmpty() || _desiredProperties.getHasProperty(p)) && \
+        (!skipDefaults || defaultEntityProperties._##P != _##P)) { \
+        QScriptValue V = T##_convertScriptValue(engine, _##P); \
+        properties.setProperty(#P, V); \
+    }
+
 #define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(P, G) \
     properties.setProperty(#P, G);
 
@@ -168,6 +188,13 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const AACube& v) { retu
     if ((_desiredProperties.isEmpty() || _desiredProperties.getHasProperty(p)) && \
         (!skipDefaults || defaultEntityProperties._##P != _##P)) { \
         QScriptValue V = convertScriptValue(engine, G); \
+        properties.setProperty(#P, V); \
+    }
+
+#define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_TYPED(p, P, G, T) \
+    if ((_desiredProperties.isEmpty() || _desiredProperties.getHasProperty(p)) && \
+        (!skipDefaults || defaultEntityProperties._##P != _##P)) { \
+        QScriptValue V = T##_convertScriptValue(engine, G); \
         properties.setProperty(#P, V); \
     }
 
@@ -205,15 +232,12 @@ inline QUuid QUuid_convertFromScriptValue(const QScriptValue& v, bool& isValid) 
 inline EntityItemID EntityItemID_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toUuid(); }
 
 
-
 inline QDateTime QDateTime_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;
     auto result = QDateTime::fromString(v.toVariant().toString().trimmed(), Qt::ISODate);
     // result.setTimeSpec(Qt::OffsetFromUTC);
     return result;
 }
-
-
 
 inline QByteArray QByteArray_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;
@@ -224,21 +248,28 @@ inline QByteArray QByteArray_convertFromScriptValue(const QScriptValue& v, bool&
 inline glm::vec2 vec2_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;
     glm::vec2 vec2;
-    vec2FloatFromScriptValue(v, vec2);
+    vec2FromScriptValue(v, vec2);
     return vec2;
 }
 
 inline glm::vec3 vec3_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;
     glm::vec3 vec3;
-    vec3FloatFromScriptValue(v, vec3);
+    vec3FromScriptValue(v, vec3);
     return vec3;
 }
 
-inline glm::u8vec3 u8vec3_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+inline glm::vec3 vec3Color_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = true;
+    glm::vec3 vec3;
+    vec3FromScriptValue(v, vec3);
+    return vec3;
+}
+
+inline glm::u8vec3 u8vec3Color_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;
     glm::u8vec3 vec3;
-    vec3UCharFromScriptValue(v, vec3);
+    u8vec3FromScriptValue(v, vec3);
     return vec3;
 }
 
@@ -256,7 +287,7 @@ inline qVectorFloat qVectorFloat_convertFromScriptValue(const QScriptValue& v, b
 
 inline qVectorVec3 qVectorVec3_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;
-    return qVectorVec3FloatFromScriptValue(v);
+    return qVectorVec3FromScriptValue(v);
 }
 
 inline qVectorQuat qVectorQuat_convertFromScriptValue(const QScriptValue& v, bool& isValid) {

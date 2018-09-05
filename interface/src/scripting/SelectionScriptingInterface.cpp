@@ -482,10 +482,10 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
 
 /**jsdoc
  * @typedef {object} Selection.HighlightStyle
- * @property {Vec3Color} outlineUnoccludedColor - Color of the specified highlight region.
- * @property {Vec3Color} outlineOccludedColor - ""
- * @property {Vec3Color} fillUnoccludedColor- ""
- * @property {Vec3Color} fillOccludedColor- ""
+ * @property {Color} outlineUnoccludedColor - Color of the specified highlight region.
+ * @property {Color} outlineOccludedColor - ""
+ * @property {Color} fillUnoccludedColor- ""
+ * @property {Color} fillOccludedColor- ""
  * @property {number} outlineUnoccludedAlpha - Alpha value ranging from <code>0.0</code> (not visible) to <code>1.0</code> 
  *     (fully opaque) for the specified highlight region.
  * @property {number} outlineOccludedAlpha - ""

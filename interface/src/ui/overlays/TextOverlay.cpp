@@ -48,9 +48,9 @@ QUrl const TextOverlay::URL(QString("hifi/overlays/TextOverlay.qml"));
  *     is clipped to the <code>bounds</code>. <em>Write-only.</em>
  * @property {number} font.size=18 - The size of the text, in pixels. <em>Write-only.</em>
  * @property {number} lineHeight=18 - The height of a line of text, in pixels. <em>Write-only.</em>
- * @property {Vec3Color} color=255,255,255 - The color of the text. Synonym: <code>textColor</code>. <em>Write-only.</em>
+ * @property {Color} color=255,255,255 - The color of the text. Synonym: <code>textColor</code>. <em>Write-only.</em>
  * @property {number} alpha=1.0 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>. <em>Write-only.</em>
- * @property {Vec3Color} backgroundColor=0,0,0 - The color of the background rectangle. <em>Write-only.</em>
+ * @property {Color} backgroundColor=0,0,0 - The color of the background rectangle. <em>Write-only.</em>
  * @property {number} backgroundAlpha=0.7 - The opacity of the background rectangle. <em>Write-only.</em>
  * @property {boolean} visible=true - If <code>true</code>, the overlay is rendered, otherwise it is not rendered.
  *     <em>Write-only.</em>

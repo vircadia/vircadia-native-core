@@ -406,20 +406,20 @@ void Circle3DOverlay::setProperties(const QVariantMap& properties) {
  * @property {number} endAt=360 - The counter-clockwise angle from the overlay's x-axis that drawing ends at, in degrees.
  * @property {number} outerRadius=1 - The outer radius of the overlay, in meters. Synonym: <code>radius</code>.
  * @property {number} innerRadius=0 - The inner radius of the overlay, in meters.
-  * @property {Vec3Color} color=255,255,255 - The color of the overlay. Setting this value also sets the values of 
+  * @property {Color} color=255,255,255 - The color of the overlay. Setting this value also sets the values of
  *     <code>innerStartColor</code>, <code>innerEndColor</code>, <code>outerStartColor</code>, and <code>outerEndColor</code>.
- * @property {Vec3Color} startColor - Sets the values of <code>innerStartColor</code> and <code>outerStartColor</code>.
+ * @property {Color} startColor - Sets the values of <code>innerStartColor</code> and <code>outerStartColor</code>.
  *     <em>Write-only.</em>
- * @property {Vec3Color} endColor - Sets the values of <code>innerEndColor</code> and <code>outerEndColor</code>.
+ * @property {Color} endColor - Sets the values of <code>innerEndColor</code> and <code>outerEndColor</code>.
  *     <em>Write-only.</em>
- * @property {Vec3Color} innerColor - Sets the values of <code>innerStartColor</code> and <code>innerEndColor</code>.
+ * @property {Color} innerColor - Sets the values of <code>innerStartColor</code> and <code>innerEndColor</code>.
  *     <em>Write-only.</em>
- * @property {Vec3Color} outerColor - Sets the values of <code>outerStartColor</code> and <code>outerEndColor</code>.
+ * @property {Color} outerColor - Sets the values of <code>outerStartColor</code> and <code>outerEndColor</code>.
  *     <em>Write-only.</em>
- * @property {Vec3Color} innerStartcolor - The color at the inner start point of the overlay.
- * @property {Vec3Color} innerEndColor - The color at the inner end point of the overlay.
- * @property {Vec3Color} outerStartColor - The color at the outer start point of the overlay.
- * @property {Vec3Color} outerEndColor - The color at the outer end point of the overlay.
+ * @property {Color} innerStartcolor - The color at the inner start point of the overlay.
+ * @property {Color} innerEndColor - The color at the inner end point of the overlay.
+ * @property {Color} outerStartColor - The color at the outer start point of the overlay.
+ * @property {Color} outerEndColor - The color at the outer end point of the overlay.
  * @property {number} alpha=0.5 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>. Setting this value also sets
  *     the values of <code>innerStartAlpha</code>, <code>innerEndAlpha</code>, <code>outerStartAlpha</code>, and 
  *     <code>outerEndAlpha</code>. Synonym: <code>Alpha</code>; <em>write-only</em>.
@@ -443,8 +443,8 @@ void Circle3DOverlay::setProperties(const QVariantMap& properties) {
  *     outwards from the inner radius; a negative value draws tick marks inwards from the outer radius.
  * @property {number} minorTickMarksLength=0 - The length of the minor tick marks, in meters. A positive value draws tick marks
  *     outwards from the inner radius; a negative value draws tick marks inwards from the outer radius.
- * @property {Vec3Color} majorTickMarksColor=0,0,0 - The color of the major tick marks.
- * @property {Vec3Color} minorTickMarksColor=0,0,0 - The color of the minor tick marks.
+ * @property {Color} majorTickMarksColor=0,0,0 - The color of the major tick marks.
+ * @property {Color} minorTickMarksColor=0,0,0 - The color of the minor tick marks.
  */
 QVariant Circle3DOverlay::getProperty(const QString& property) {
     if (property == "startAt") {

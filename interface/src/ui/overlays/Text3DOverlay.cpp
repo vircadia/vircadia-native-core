@@ -198,7 +198,7 @@ void Text3DOverlay::setProperties(const QVariantMap& properties) {
  * @typedef {object} Overlays.Text3DProperties
  *
  * @property {string} type=text3d - Has the value <code>"text3d"</code>. <em>Read-only.</em>
- * @property {Vec3Color} color=255,255,255 - The color of the overlay.
+ * @property {Color} color=255,255,255 - The color of the overlay.
  * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
  * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
  * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
@@ -241,7 +241,7 @@ void Text3DOverlay::setProperties(const QVariantMap& properties) {
  *
  * @property {string} text="" - The text to display. Text does not automatically wrap; use <code>\n</code> for a line break.
  * @property {number} textAlpha=1 - The text alpha value.
- * @property {Vec3Color} backgroundColor=0,0,0 - The background color.
+ * @property {Color} backgroundColor=0,0,0 - The background color.
  * @property {number} backgroundAlpha=0.7 - The background alpha value.
  * @property {number} lineHeight=1 - The height of a line of text in meters.
  * @property {number} leftMargin=0.1 - The left margin, in meters.

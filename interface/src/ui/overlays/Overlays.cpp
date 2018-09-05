@@ -629,9 +629,9 @@ QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, 
     obj.setProperty("distance", value.distance);
     obj.setProperty("face", boxFaceToString(value.face));
 
-    QScriptValue intersection = vec3FloatToScriptValue(engine, value.intersection);
+    QScriptValue intersection = vec3ToScriptValue(engine, value.intersection);
     obj.setProperty("intersection", intersection);
-    QScriptValue surfaceNormal = vec3FloatToScriptValue(engine, value.surfaceNormal);
+    QScriptValue surfaceNormal = vec3ToScriptValue(engine, value.surfaceNormal);
     obj.setProperty("surfaceNormal", surfaceNormal);
     obj.setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
     return obj;
@@ -646,11 +646,11 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
 
     QScriptValue intersection = object.property("intersection");
     if (intersection.isValid()) {
-        vec3FloatFromScriptValue(intersection, value.intersection);
+        vec3FromScriptValue(intersection, value.intersection);
     }
     QScriptValue surfaceNormal = object.property("surfaceNormal");
     if (surfaceNormal.isValid()) {
-        vec3FloatFromScriptValue(surfaceNormal, value.surfaceNormal);
+        vec3FromScriptValue(surfaceNormal, value.surfaceNormal);
     }
     value.extraInfo = object.property("extraInfo").toVariant().toMap();
 }

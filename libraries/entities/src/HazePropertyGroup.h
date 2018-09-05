@@ -48,10 +48,10 @@ static const float INITIAL_KEY_LIGHT_ALTITUDE{ 200.0f };
  *
  * @property {number} hazeRange=1000 - The horizontal distance at which visibility is reduced to 95%; i.e., 95% of each pixel's 
  *     color is haze.
- * @property {Vec3Color} hazeColor=128,154,179 - The color of the haze when looking away from the key light.
+ * @property {Color} hazeColor=128,154,179 - The color of the haze when looking away from the key light.
  * @property {boolean} hazeEnableGlare=false - If <code>true</code> then the haze is colored with glare from the key light;
  *     <code>hazeGlareColor</code> and <code>hazeGlareAngle</code> are used.
- * @property {Vec3Color} hazeGlareColor=255,299,179 - The color of the haze when looking towards the key light.
+ * @property {Color} hazeGlareColor=255,299,179 - The color of the haze when looking towards the key light.
  * @property {number} hazeGlareAngle=20 - The angle in degrees across the circle around the key light that the glare color and 
  *     haze color are blended 50/50.
  *

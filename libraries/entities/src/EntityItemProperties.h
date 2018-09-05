@@ -57,6 +57,9 @@ const std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT> COMPONENT_MODES = { {
     ComponentPair { COMPONENT_MODE_ENABLED, { "enabled" } }
 } };
 
+using vec3Color = glm::vec3;
+using u8vec3Color = glm::u8vec3;
+
 /// A collection of properties of an entity item used in the scripting API. Translates between the actual properties of an
 /// entity and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete
 /// set of entity item properties via JavaScript hashes/QScriptValues
@@ -135,8 +138,8 @@ public:
     DEFINE_PROPERTY_REF(PROP_SCRIPT, Script, script, QString, ENTITY_ITEM_DEFAULT_SCRIPT);
     DEFINE_PROPERTY(PROP_SCRIPT_TIMESTAMP, ScriptTimestamp, scriptTimestamp, quint64, ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP);
     DEFINE_PROPERTY_REF(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString, ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL);
-    DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, glm::u8vec3, particle::DEFAULT_COLOR);
-    DEFINE_PROPERTY_REF(PROP_COLOR_SPREAD, ColorSpread, colorSpread, glm::u8vec3, particle::DEFAULT_COLOR_SPREAD);
+    DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, u8vec3Color, particle::DEFAULT_COLOR);
+    DEFINE_PROPERTY_REF(PROP_COLOR_SPREAD, ColorSpread, colorSpread, u8vec3Color, particle::DEFAULT_COLOR_SPREAD);
     DEFINE_PROPERTY_REF(PROP_COLOR_START, ColorStart, colorStart, glm::vec3, particle::DEFAULT_COLOR_UNINITIALIZED);
     DEFINE_PROPERTY_REF(PROP_COLOR_FINISH, ColorFinish, colorFinish, glm::vec3, particle::DEFAULT_COLOR_UNINITIALIZED);
     DEFINE_PROPERTY(PROP_ALPHA, Alpha, alpha, float, particle::DEFAULT_ALPHA);
@@ -162,8 +165,8 @@ public:
     DEFINE_PROPERTY_REF(PROP_SIMULATION_OWNER, SimulationOwner, simulationOwner, SimulationOwner, SimulationOwner());
     DEFINE_PROPERTY_REF(PROP_TEXT, Text, text, QString, TextEntityItem::DEFAULT_TEXT);
     DEFINE_PROPERTY(PROP_LINE_HEIGHT, LineHeight, lineHeight, float, TextEntityItem::DEFAULT_LINE_HEIGHT);
-    DEFINE_PROPERTY_REF(PROP_TEXT_COLOR, TextColor, textColor, glm::u8vec3, TextEntityItem::DEFAULT_TEXT_COLOR);
-    DEFINE_PROPERTY_REF(PROP_BACKGROUND_COLOR, BackgroundColor, backgroundColor, glm::u8vec3, TextEntityItem::DEFAULT_BACKGROUND_COLOR);
+    DEFINE_PROPERTY_REF(PROP_TEXT_COLOR, TextColor, textColor, u8vec3Color, TextEntityItem::DEFAULT_TEXT_COLOR);
+    DEFINE_PROPERTY_REF(PROP_BACKGROUND_COLOR, BackgroundColor, backgroundColor, u8vec3Color, TextEntityItem::DEFAULT_BACKGROUND_COLOR);
     DEFINE_PROPERTY_REF_ENUM(PROP_SHAPE_TYPE, ShapeType, shapeType, ShapeType, SHAPE_TYPE_NONE);
     DEFINE_PROPERTY(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32, particle::DEFAULT_MAX_PARTICLES);
     DEFINE_PROPERTY(PROP_LIFESPAN, Lifespan, lifespan, float, particle::DEFAULT_LIFESPAN);

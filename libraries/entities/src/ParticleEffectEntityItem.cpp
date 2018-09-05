@@ -512,7 +512,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY(PROP_COLOR, glm::u8vec3, setColor);
+    READ_ENTITY_PROPERTY(PROP_COLOR, u8vec3Color, setColor);
     READ_ENTITY_PROPERTY(PROP_EMITTING_PARTICLES, bool, setIsEmitting);
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
     READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, setMaxParticles);
@@ -528,9 +528,9 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     READ_ENTITY_PROPERTY(PROP_RADIUS_START, float, setRadiusStart);
     READ_ENTITY_PROPERTY(PROP_RADIUS_FINISH, float, setRadiusFinish);
 
-    READ_ENTITY_PROPERTY(PROP_COLOR_SPREAD, glm::u8vec3, setColorSpread);
-    READ_ENTITY_PROPERTY(PROP_COLOR_START, glm::vec3, setColorStart);
-    READ_ENTITY_PROPERTY(PROP_COLOR_FINISH, glm::vec3, setColorFinish);
+    READ_ENTITY_PROPERTY(PROP_COLOR_SPREAD, u8vec3Color, setColorSpread);
+    READ_ENTITY_PROPERTY(PROP_COLOR_START, vec3Color, setColorStart);
+    READ_ENTITY_PROPERTY(PROP_COLOR_FINISH, vec3Color, setColorFinish);
     READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
     READ_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, float, setAlphaSpread);
     READ_ENTITY_PROPERTY(PROP_ALPHA_START, float, setAlphaStart);

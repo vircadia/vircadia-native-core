@@ -22,12 +22,12 @@ QUrl const RectangleOverlay::URL(QString("hifi/overlays/RectangleOverlay.qml"));
  * @property {number} width - Integer width of the rectangle = <code>bounds.width</code>. <em>Write-only.</em>
  * @property {number} height - Integer height of the rectangle = <code>bounds.height</code>. <em>Write-only.</em>
  *
- * @property {Vec3Color} color=0,0,0 - The color of the overlay. <em>Write-only.</em>
+ * @property {Color} color=0,0,0 - The color of the overlay. <em>Write-only.</em>
  * @property {number} alpha=1.0 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>. <em>Write-only.</em>
  * @property {number} borderWidth=1 - Integer width of the border, in pixels. The border is drawn within the rectangle's bounds.
  *     It is not drawn unless either <code>borderColor</code> or <code>borderAlpha</code> are specified. <em>Write-only.</em>
  * @property {number} radius=0 - Integer corner radius, in pixels. <em>Write-only.</em>
- * @property {Vec3Color} borderColor=0,0,0 - The color of the border. <em>Write-only.</em>
+ * @property {Color} borderColor=0,0,0 - The color of the border. <em>Write-only.</em>
  * @property {number} borderAlpha=1.0 - The opacity of the border, <code>0.0</code> - <code>1.0</code>.
  *     <em>Write-only.</em>
  * @property {boolean} visible=true - If <code>true</code>, the overlay is rendered, otherwise it is not rendered.

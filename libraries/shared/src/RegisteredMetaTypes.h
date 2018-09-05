@@ -52,8 +52,8 @@ void mat4FromScriptValue(const QScriptValue& object, glm::mat4& mat4);
 * @property {number} x - X-coordinate of the vector. Synonyms: <code>u</code> and <code>width</code>.
 * @property {number} y - Y-coordinate of the vector. Synonyms: <code>v</code> and <code>height</code>.
 */
-QScriptValue vec2FloatToScriptValue(QScriptEngine* engine, const glm::vec2& vec2);
-void vec2FloatFromScriptValue(const QScriptValue& object, glm::vec2& vec2);
+QScriptValue vec2ToScriptValue(QScriptEngine* engine, const glm::vec2& vec2);
+void vec2FromScriptValue(const QScriptValue& object, glm::vec2& vec2);
 
 QVariant vec2ToVariant(const glm::vec2& vec2);
 glm::vec2 vec2FromVariant(const QVariant& object, bool& valid);
@@ -67,19 +67,29 @@ glm::vec2 vec2FromVariant(const QVariant& object);
 * @property {number} y - Y-coordinate of the vector. Synonyms: <code>g</code>, <code>green</code>, and <code>height</code>.
 * @property {number} z - Z-coordinate of the vector. Synonyms: <code>b</code>, <code>blue</code>, and <code>depth</code>.
 */
-QScriptValue vec3FloatToScriptValue(QScriptEngine* engine, const glm::vec3& vec3);
-void vec3FloatFromScriptValue(const QScriptValue& object, glm::vec3& vec3);
+QScriptValue vec3ToScriptValue(QScriptEngine* engine, const glm::vec3& vec3);
+QScriptValue vec3ColorToScriptValue(QScriptEngine* engine, const glm::vec3& vec3);
+void vec3FromScriptValue(const QScriptValue& object, glm::vec3& vec3);
 
 /**jsdoc
 * A color vector. See also the {@link Vec3(0)|Vec3} object.
 *
-* @typedef {object} Vec3Color
-* @property {number} x - Red component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>r</code>, <code>red</code>, and <code>width</code>.
-* @property {number} y - Green component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>g</code>, <code>green</code>, and <code>height</code>.
-* @property {number} z - Blue component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>b</code>, <code>blue</code>, and <code>depth</code>.
+* @typedef {object} Color
+* @property {number} red - Red component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>r</code>, <code>x</code>, and <code>width</code>.
+* @property {number} green - Green component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>g</code>, <code>y</code>, and <code>height</code>.
+* @property {number} blue - Blue component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>b</code>, <code>z</code>, and <code>depth</code>.
 */
-QScriptValue vec3UCharToScriptValue(QScriptEngine* engine, const glm::u8vec3& vec3);
-void vec3UCharFromScriptValue(const QScriptValue& object, glm::u8vec3& vec3);
+/**jsdoc
+* A color vector. See also the {@link Vec3(0)|Vec3} object.
+*
+* @typedef {object} ColorFloat
+* @property {number} red - Red component value. Float in the range <code>0</code> - <code>255</code>.  Synonyms: <code>r</code>, <code>x</code>, and <code>width</code>.
+* @property {number} green - Green component value. Float in the range <code>0</code> - <code>255</code>.  Synonyms: <code>g</code>, <code>y</code>, and <code>height</code>.
+* @property {number} blue - Blue component value. Float in the range <code>0</code> - <code>255</code>.  Synonyms: <code>b</code>, <code>z</code>, and <code>depth</code>.
+*/
+QScriptValue u8vec3ToScriptValue(QScriptEngine* engine, const glm::u8vec3& vec3);
+QScriptValue u8vec3ColorToScriptValue(QScriptEngine* engine, const glm::u8vec3& vec3);
+void u8vec3FromScriptValue(const QScriptValue& object, glm::u8vec3& vec3);
 
 QVariant vec3toVariant(const glm::vec3& vec3);
 glm::vec3 vec3FromVariant(const QVariant &object, bool& valid);
@@ -124,9 +134,10 @@ void qURLFromScriptValue(const QScriptValue& object, QUrl& url);
 
 // vector<vec3>
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
-QScriptValue qVectorVec3FloatToScriptValue(QScriptEngine* engine, const QVector<glm::vec3>& vector);
-void qVectorVec3FloatFromScriptValue(const QScriptValue& array, QVector<glm::vec3>& vector);
-QVector<glm::vec3> qVectorVec3FloatFromScriptValue(const QScriptValue& array);
+QScriptValue qVectorVec3ToScriptValue(QScriptEngine* engine, const QVector<glm::vec3>& vector);
+QScriptValue qVectorVec3ColorToScriptValue(QScriptEngine* engine, const QVector<glm::vec3>& vector);
+void qVectorVec3FromScriptValue(const QScriptValue& array, QVector<glm::vec3>& vector);
+QVector<glm::vec3> qVectorVec3FromScriptValue(const QScriptValue& array);
 
 // vector<quat>
 Q_DECLARE_METATYPE(QVector<glm::quat>)

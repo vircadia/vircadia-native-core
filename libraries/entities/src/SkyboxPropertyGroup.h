@@ -32,7 +32,7 @@ class ReadBitstreamToTreeParams;
 /**jsdoc
  * A skybox is defined by the following properties.
  * @typedef {object} Entities.Skybox
- * @property {Vec3Color} color=0,0,0 - Sets the color of the sky if <code>url</code> is <code>""</code>, otherwise modifies the 
+ * @property {Color} color=0,0,0 - Sets the color of the sky if <code>url</code> is <code>""</code>, otherwise modifies the
  *     color of the cube map image.
  * @property {string} url="" - A cube map image that is used to render the sky.
  */
