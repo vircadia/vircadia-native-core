@@ -1,0 +1,71 @@
+<!--
+//  entityList.html
+//
+//  Created by Ryan Huffman on 19 Nov 2014
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+-->
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="css/edit-style.css">
+        <script src="js/list.min.js"></script>
+        <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+        <script type="text/javascript" src="js/eventBridgeLoader.js"></script>
+        <script type="text/javascript" src="js/spinButtons.js"></script>
+		<script type="text/javascript" src="js/listView.js"></script>
+        <script type="text/javascript" src="js/entityListNew.js"></script>
+    </head>
+    <body onload='loaded();'>
+        <div id="entity-list-header">
+            <input type="button" class="glyph" id="refresh" value="F" />
+            <div>
+                <input type="button" id="locked" class="glyph" value="&#xe006;" />
+                <input type="button" id="visible" class="glyph" value="&#xe007;" />
+            </div>
+            <input type="button" id="export" value="Export Selection" />
+            <input type="button" id="pal" class="glyph" value="&#xe00c;" />
+            <input type="button" class="red" id="delete" value="Delete" />
+        </div>
+        <div id="entity-list">
+            <div id="search-area">
+                <span class="icon-input"><input type="text" class="search" id="filter" placeholder="Filter" /><span>Y</span></span>
+                <input type="button" id="in-view" class="glyph" value="&#xe007;" />
+                <div id="radius-and-unit" class="number">
+                    <label for="radius">Search radius <span class="unit">m</span></label>
+                    <input type="number" id="radius" value="100" />
+                </div>
+            </div>
+            <div id="entity-table-scroll">
+                <table id="entity-table">
+                    <colgroup>
+						<col span="1" id="col-type" />
+                        <col span="1" id="col-name" />
+                    </colgroup>
+                    <thead id="entity-table-header">
+                        <tr>
+							<th id="entity-type">Type<span class="sort-order"></span><span id="info-toggle"><span class="glyph">D</span></span></th>
+                            <th id="entity-name">Name<span class="sort-order"></span></th>
+                        </tr>
+                    </thead>
+                    <tbody class="list" id="entity-table-body">
+                        <tr>
+							<td class="type"></td>
+                            <td class="name"></td>
+                        </tr>
+                    </tbody>
+                    <tfoot id="entity-table-footer">
+                        <tr>
+                            <td id="footer-text" colspan="12"> </td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                <div id="no-entities">
+                    No entities found <span id="no-entities-in-view">in view</span> within a <span id="no-entities-radius">100</span> meter radius. Try moving to a different location and refreshing.
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

@@ -19,28 +19,12 @@ EntityListTool = function(shouldUseEditTabletApp) {
     var TITLE_OFFSET = 60;
     var ENTITY_LIST_WIDTH = 495;
     var MAX_DEFAULT_CREATE_TOOLS_HEIGHT = 778;
-    var entityListWindow = new CreateWindow(
-        Script.resourcesPath() + "qml/hifi/tablet/EditEntityList.qml",
-        'Entity List',
-        'com.highfidelity.create.entityListWindow',
-        function () {
-            var windowHeight = Window.innerHeight - TITLE_OFFSET;
-            if (windowHeight > MAX_DEFAULT_CREATE_TOOLS_HEIGHT) {
-                windowHeight = MAX_DEFAULT_CREATE_TOOLS_HEIGHT;
-            }
-            return {
-                size: {
-                    x: ENTITY_LIST_WIDTH,
-                    y: windowHeight
-                },
-                position: {
-                    x: Window.x,
-                    y: Window.y + TITLE_OFFSET
-                }
-            };
-        },
-        false
-    );
+    
+    var defaultEntityListWindow = createEntityListWindow(Script.resourcesPath() + "qml/hifi/tablet/EditEntityList.qml", 
+                                                         'Entity List');
+    var newEntityListWindow = createEntityListWindow(Script.resourcesPath() + "qml/hifi/tablet/EditEntityListNew.qml", 
+                                                     'Entity List (New)');
+    var entityListWindow = defaultEntityListWindow;
 
     var webView = null;
     webView = Tablet.getTablet("com.highfidelity.interface.tablet.system");
@@ -52,6 +36,36 @@ EntityListTool = function(shouldUseEditTabletApp) {
     var visible = false;
 
     that.webView = webView;
+    
+    function createEntityListWindow(entityListPath, windowName) {
+        var listWindow = new CreateWindow(
+            entityListPath,
+            windowName,
+            'com.highfidelity.create.entityListWindow',
+            function () {
+                var windowHeight = Window.innerHeight - TITLE_OFFSET;
+                if (windowHeight > MAX_DEFAULT_CREATE_TOOLS_HEIGHT) {
+                    windowHeight = MAX_DEFAULT_CREATE_TOOLS_HEIGHT;
+                }
+                return {
+                    size: {
+                        x: ENTITY_LIST_WIDTH,
+                        y: windowHeight
+                    },
+                    position: {
+                        x: Window.x,
+                        y: Window.y + TITLE_OFFSET
+                    }
+                };
+            },
+            false
+        );
+        return listWindow;
+    }
+    
+    that.setUseNewEntityList = function(useNewEntityList) {
+        entityListWindow = useNewEntityList ? newEntityListWindow : defaultEntityListWindow;
+    };
 
     that.setVisible = function(newVisible) {
         visible = newVisible;
@@ -247,7 +261,8 @@ EntityListTool = function(shouldUseEditTabletApp) {
     };
 
     webView.webEventReceived.connect(onWebEventReceived);
-    entityListWindow.webEventReceived.addListener(onWebEventReceived);
+    defaultEntityListWindow.webEventReceived.addListener(onWebEventReceived);
+    newEntityListWindow.webEventReceived.addListener(onWebEventReceived);
     that.interactiveWindowHidden = entityListWindow.interactiveWindowHidden;
 
     return that;

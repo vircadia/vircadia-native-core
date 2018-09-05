@@ -1,7 +1,7 @@
-//  entityList.js
+//  entityListNew.js
 //
-//  Created by Ryan Huffman on 19 Nov 2014
-//  Copyright 2014 High Fidelity, Inc.
+//  Created by David Back on 27 Aug 2018
+//  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -12,16 +12,6 @@ var currentSortColumn = 'type';
 var currentSortOrder = 'des';
 var entityList = null;
 var refreshEntityListTimer = null;
-const ASCENDING_STRING = '&#x25B4;';
-const DESCENDING_STRING = '&#x25BE;';
-const LOCKED_GLYPH = "&#xe006;";
-const VISIBLE_GLYPH = "&#xe007;";
-const TRANSPARENCY_GLYPH = "&#xe00b;";
-const BAKED_GLYPH = "&#xe01a;"
-const SCRIPT_GLYPH = "k";
-const DELETE = 46; // Key code for the delete key.
-const KEY_P = 80; // Key code for letter p used for Parenting hotkey.
-const MAX_ITEMS = Number.MAX_VALUE; // Used to set the max length of the list of discovered entities.
 
 debugPrint = function (message) {
     console.log(message);
@@ -29,10 +19,11 @@ debugPrint = function (message) {
 
 function loaded() {
     openEventBridge(function() {
-        entityList = new List('entity-list', { valueNames: ['name', 'type', 'url', 'locked', 'visible'], page: MAX_ITEMS});
-        entityList.clear();
         elEntityTable = document.getElementById("entity-table");
         elEntityTableBody = document.getElementById("entity-table-body");
+        elEntityTableScroll = document.getElementById("entity-table-scroll");
+        elEntityTableHeader = document.getElementById("entity-table-header");
+        elEntityTableFooter = document.getElementById("entity-table-footer");
         elRefresh = document.getElementById("refresh");
         elToggleLocked = document.getElementById("locked");
         elToggleVisible = document.getElementById("visible");
@@ -43,53 +34,57 @@ function loaded() {
         elExport = document.getElementById("export");
         elPal = document.getElementById("pal");
         elInfoToggle = document.getElementById("info-toggle");
-        elInfoToggleGlyph = elInfoToggle.firstChild;
+        //elInfoToggleGlyph = elInfoToggle.firstChild;
         elFooter = document.getElementById("footer-text");
         elNoEntitiesMessage = document.getElementById("no-entities");
         elNoEntitiesInView = document.getElementById("no-entities-in-view");
         elNoEntitiesRadius = document.getElementById("no-entities-radius");
-        elEntityTableScroll = document.getElementById("entity-table-scroll");
 
-        document.getElementById("entity-name").onclick = function() {
-            setSortColumn('name');
-        };
-        document.getElementById("entity-type").onclick = function() {
-            setSortColumn('type');
-        };
-        document.getElementById("entity-url").onclick = function() {
-            setSortColumn('url');
-        };
-        document.getElementById("entity-locked").onclick = function () {
-            setSortColumn('locked');
-        };
-        document.getElementById("entity-visible").onclick = function () {
-            setSortColumn('visible');
-        };
-        document.getElementById("entity-verticesCount").onclick = function () {
-            setSortColumn('verticesCount');
-        };
-        document.getElementById("entity-texturesCount").onclick = function () {
-            setSortColumn('texturesCount');
-        };
-        document.getElementById("entity-texturesSize").onclick = function () {
-            setSortColumn('texturesSize');
-        };
-        document.getElementById("entity-hasTransparent").onclick = function () {
-            setSortColumn('hasTransparent');
-        };
-        document.getElementById("entity-isBaked").onclick = function () {
-            setSortColumn('isBaked');
-        };
-        document.getElementById("entity-drawCalls").onclick = function () {
-            setSortColumn('drawCalls');
-        };
-        document.getElementById("entity-hasScript").onclick = function () {
-            setSortColumn('hasScript');
-        };
+        entityList = new ListView("entity-table", "entity-table-body", "entity-table-scroll", createRowFunction, updateRowFunction, clearRowFunction);
+
+        function createRowFunction(elBottomBuffer) {
+            var row = document.createElement("tr");
+            var typeCell = document.createElement("td");
+            var typeCellText = document.createTextNode("");
+            var nameCell = document.createElement("td");
+            var nameCellText = document.createTextNode("");
+            typeCell.appendChild(typeCellText);
+            nameCell.appendChild(nameCellText);
+            row.appendChild(typeCell);
+            row.appendChild(nameCell);
+            row.onclick = onRowClicked;
+            row.ondblclick = onRowDoubleClicked;
+            elEntityTableBody.insertBefore(row, elBottomBuffer);
+            return row;
+        }
+        
+        function updateRowFunction(elRow, itemData) {
+            var typeCell = elRow.childNodes[0];
+            var nameCell = elRow.childNodes[1];
+            typeCell.innerHTML = itemData.type;
+            nameCell.innerHTML = itemData.name;
+            
+            var id = elRow.getAttribute("id");
+            entities[id].el = elRow;
+        }
+        
+        function clearRowFunction(elRow) {
+            var typeCell = elRow.childNodes[0];
+            var nameCell = elRow.childNodes[1];
+            typeCell.innerHTML = "";
+            nameCell.innerHTML = "";
+            
+            var id = elRow.getAttribute("id");
+            if (id && entities[id]) {
+                entities[id].el = null;
+            }
+        }
 
         function onRowClicked(clickEvent) {
-            var id = this.dataset.entityId;
-            var selection = [this.dataset.entityId];
+            var id = this.getAttribute("id");
+            var selection = [id];
+
+            /*
             if (clickEvent.ctrlKey) {
                 var selectedIndex = selectedEntities.indexOf(id);
                 if (selectedIndex >= 0) {
@@ -123,6 +118,7 @@ function loaded() {
                     selection = selection.concat(betweenItems, selectedEntities);
                 }
             }
+            */
 
             selectedEntities = selection;
 
@@ -138,67 +134,37 @@ function loaded() {
         }
 
         function onRowDoubleClicked() {
+            var id = this.getAttribute("id");
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "selectionUpdate",
                 focus: true,
-                entityIds: [this.dataset.entityId],
+                entityIds: [id],
             }));
         }
 
-        const BYTES_PER_MEGABYTE = 1024 * 1024;
-
-        function decimalMegabytes(number) {
-            return number ? (number / BYTES_PER_MEGABYTE).toFixed(1) : "";
-        }
-
-        function displayIfNonZero(number) {
-            return number ? number : "";
-        }
-
-        function addEntity(id, name, type, url, locked, visible, verticesCount, texturesCount, texturesSize, hasTransparent,
-                           isBaked, drawCalls, hasScript) {
-
-            var urlParts = url.split('/');
-            var filename = urlParts[urlParts.length - 1];
+        function addEntity(id, name, type) {            
+            //var urlParts = url.split('/');
+            //var filename = urlParts[urlParts.length - 1];
 
             var IMAGE_MODEL_NAME = 'default-image-model.fbx';
 
-            if (filename === IMAGE_MODEL_NAME) {
-                type = "Image";
-            }
+            //if (filename === IMAGE_MODEL_NAME) {
+            //    type = "Image";
+            //}
 
             if (entities[id] === undefined) {
-                entityList.add([{
-                    id: id, name: name, type: type, url: filename, locked: locked, visible: visible,
-                    verticesCount: displayIfNonZero(verticesCount), texturesCount: displayIfNonZero(texturesCount),
-                    texturesSize: decimalMegabytes(texturesSize), hasTransparent: hasTransparent,
-                    isBaked: isBaked, drawCalls: displayIfNonZero(drawCalls), hasScript: hasScript
-                }],
-                function (items) {
-                    var currentElement = items[0].elm;
-                    var id = items[0]._values.id;
-                    entities[id] = {
-                        id: id,
-                        name: name,
-                        el: currentElement,
-                        item: items[0]
-                    };
-                    currentElement.setAttribute('id', 'entity_' + id);
-                    currentElement.setAttribute('title', url);
-                    currentElement.dataset.entityId = id;
-                    currentElement.onclick = onRowClicked;
-                    currentElement.ondblclick = onRowDoubleClicked;
-                });
-            } else {
-                var item = entities[id].item;
-                item.values({ name: name, url: filename, locked: locked, visible: visible });
+                var entityData = {name: name, type: type};
+                entityList.addItem(id, entityData);
+                entityData.el = null;
+                entities[id] = entityData;
             }
         }
 
         function removeEntities(deletedIDs) {
-            for (i = 0, length = deletedIDs.length; i < length; i++) {
-                delete entities[deletedIDs[i]];
-                entityList.remove("id", deletedIDs[i]);
+            for (var i = 0, length = deletedIDs.length; i < length; i++) {
+                var deleteID = deletedIDs[i];
+                delete entities[deleteID];
+                entityList.removeItem(deleteID);
             }
         }
 
@@ -219,16 +185,6 @@ function loaded() {
         var elSortOrder = {
             name: document.querySelector('#entity-name .sort-order'),
             type: document.querySelector('#entity-type .sort-order'),
-            url: document.querySelector('#entity-url .sort-order'),
-            locked: document.querySelector('#entity-locked .sort-order'),
-            visible: document.querySelector('#entity-visible .sort-order'),
-            verticesCount: document.querySelector('#entity-verticesCount .sort-order'),
-            texturesCount: document.querySelector('#entity-texturesCount .sort-order'),
-            texturesSize: document.querySelector('#entity-texturesSize .sort-order'),
-            hasTransparent: document.querySelector('#entity-hasTransparent .sort-order'),
-            isBaked: document.querySelector('#entity-isBaked .sort-order'),
-            drawCalls: document.querySelector('#entity-drawCalls .sort-order'),
-            hasScript: document.querySelector('#entity-hasScript .sort-order'),
         }
         function setSortColumn(column) {
             if (currentSortColumn == column) {
@@ -239,9 +195,8 @@ function loaded() {
                 currentSortOrder = "asc";
             }
             elSortOrder[column].innerHTML = currentSortOrder == "asc" ? ASCENDING_STRING : DESCENDING_STRING;
-            entityList.sort(currentSortColumn, { order: currentSortOrder });
+            //entityList.sort(currentSortColumn, { order: currentSortOrder });
         }
-        setSortColumn('type');
 
         function refreshEntities() {
             clearEntities();
@@ -253,24 +208,27 @@ function loaded() {
                 elFooter.firstChild.nodeValue = selectedEntities.length + " entities selected";
             } else if (selectedEntities.length === 1) {
                 elFooter.firstChild.nodeValue = "1 entity selected";
-            } else if (entityList.visibleItems.length === 1) {
+            } /* else if (entityList.visibleItems.length === 1) {
                 elFooter.firstChild.nodeValue = "1 entity found";
             } else {
                 elFooter.firstChild.nodeValue = entityList.visibleItems.length + " entities found";
-            }
+            } */
         }
 
         function refreshEntityListObject() {
             refreshEntityListTimer = null;
-            entityList.sort(currentSortColumn, { order: currentSortOrder });
-            entityList.search(elFilter.value);
+            //entityList.sort(currentSortColumn, { order: currentSortOrder });
+            //entityList.search(elFilter.value);
+            entityList.refresh();
             refreshFooter();
         }
 
         function updateSelectedEntities(selectedIDs) {
             var notFound = false;
             for (var id in entities) {
-                entities[id].el.className = '';
+                if (entities[id].el) {
+                    entities[id].el.className = '';
+                }
             }
 
             selectedEntities = [];
@@ -290,19 +248,74 @@ function loaded() {
             return notFound;
         }
 
+        function resize() {
+            // Take up available window space
+            elEntityTableScroll.style.height = window.innerHeight - 207;
+            
+            var SCROLLABAR_WIDTH = 21;
+            var tds = document.querySelectorAll("#entity-table-body tr:first-child td");
+            var ths = document.querySelectorAll("#entity-table thead th");
+            if (tds.length >= ths.length) {
+                // Update the widths of the header cells to match the body
+                for (var i = 0; i < ths.length; i++) {
+                    ths[i].width = tds[i].offsetWidth;
+                }
+            } else {
+                // Reasonable widths if nothing is displayed
+                var tableWidth = document.getElementById("entity-table").offsetWidth - SCROLLABAR_WIDTH;
+                if (showExtraInfo) {
+                    ths[0].width = 0.10 * tableWidth;
+                    ths[1].width = 0.20 * tableWidth;
+                    ths[2].width = 0.20 * tableWidth;
+                    ths[3].width = 0.04 * tableWidth;
+                    ths[4].width = 0.04 * tableWidth;
+                    ths[5].width = 0.08 * tableWidth;
+                    ths[6].width = 0.08 * tableWidth;
+                    ths[7].width = 0.10 * tableWidth;
+                    ths[8].width = 0.04 * tableWidth;
+                    ths[9].width = 0.08 * tableWidth;
+                    ths[10].width = 0.04 * tableWidth + SCROLLABAR_WIDTH;
+                } else {
+                    ths[0].width = 0.16 * tableWidth;
+                    ths[1].width = 0.34 * tableWidth;
+                    //ths[2].width = 0.34 * tableWidth;
+                    //ths[3].width = 0.08 * tableWidth;
+                    //ths[4].width = 0.08 * tableWidth;
+                }
+            }
+        };
+        
+        var showExtraInfo = false;
+        var COLLAPSE_EXTRA_INFO = "E";
+        var EXPAND_EXTRA_INFO = "D";
+
+        function toggleInfo(event) {
+            showExtraInfo = !showExtraInfo;
+            if (showExtraInfo) {
+                elEntityTable.className = "showExtraInfo";
+                elInfoToggleGlyph.innerHTML = COLLAPSE_EXTRA_INFO;
+            } else {
+                elEntityTable.className = "";
+                elInfoToggleGlyph.innerHTML = EXPAND_EXTRA_INFO;
+            }
+            resize();
+            event.stopPropagation();
+        }
+        elInfoToggle.addEventListener("click", toggleInfo, true);
+        
         elRefresh.onclick = function() {
             refreshEntities();
         }
-        elToggleLocked.onclick = function () {
+        elToggleLocked.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleLocked' }));
         }
-        elToggleVisible.onclick = function () {
+        elToggleVisible.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'toggleVisible' }));
         }
         elExport.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'export'}));
         }
-        elPal.onclick = function () {
+        elPal.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'pal' }));
         }
         elDelete.onclick = function() {
@@ -349,11 +362,10 @@ function loaded() {
             refreshEntities();
             elNoEntitiesRadius.firstChild.nodeValue = elRadius.value;
         }
-
+        
         if (window.EventBridge !== undefined) {
             EventBridge.scriptEventReceived.connect(function(data) {
                 data = JSON.parse(data);
-
                 if (data.type === "clearEntityList") {
                     clearEntities();
                 } else if (data.type == "selectionUpdate") {
@@ -369,97 +381,28 @@ function loaded() {
                     } else if (newEntities) {
                         elNoEntitiesMessage.style.display = "none";
                         for (var i = 0; i < newEntities.length; i++) {
-                            var id = newEntities[i].id;
-                            addEntity(id, newEntities[i].name, newEntities[i].type, newEntities[i].url,
-                                      newEntities[i].locked ? LOCKED_GLYPH : null,
-                                      newEntities[i].visible ? VISIBLE_GLYPH : null,
-                                      newEntities[i].verticesCount, newEntities[i].texturesCount, newEntities[i].texturesSize,
-                                      newEntities[i].hasTransparent ? TRANSPARENCY_GLYPH : null,
-                                      newEntities[i].isBaked ? BAKED_GLYPH : null,
-                                      newEntities[i].drawCalls,
-                                      newEntities[i].hasScript ? SCRIPT_GLYPH : null);
+                            addEntity(newEntities[i].id, newEntities[i].name, newEntities[i].type);
                         }
                         updateSelectedEntities(data.selectedIDs);
-                        scheduleRefreshEntityList();
+                        entityList.refresh();
+                        //scheduleRefreshEntityList();
                         resize();
                     }
                 } else if (data.type === "removeEntities" && data.deletedIDs !== undefined && data.selectedIDs !== undefined) {
                     removeEntities(data.deletedIDs);
                     updateSelectedEntities(data.selectedIDs);
-                    scheduleRefreshEntityList();
+                    //scheduleRefreshEntityList();
                 } else if (data.type === "deleted" && data.ids) {
                     removeEntities(data.ids);
                     refreshFooter();
                 }
             });
-            setTimeout(refreshEntities, 1000);
         }
-
-        function resize() {
-            // Take up available window space
-            elEntityTableScroll.style.height = window.innerHeight - 207;
-
-            var SCROLLABAR_WIDTH = 21;
-            var tds = document.querySelectorAll("#entity-table-body tr:first-child td");
-            var ths = document.querySelectorAll("#entity-table thead th");
-            if (tds.length >= ths.length) {
-                // Update the widths of the header cells to match the body
-                for (var i = 0; i < ths.length; i++) {
-                    ths[i].width = tds[i].offsetWidth;
-                }
-            } else {
-                // Reasonable widths if nothing is displayed
-                var tableWidth = document.getElementById("entity-table").offsetWidth - SCROLLABAR_WIDTH;
-                if (showExtraInfo) {
-                    ths[0].width = 0.10 * tableWidth;
-                    ths[1].width = 0.20 * tableWidth;
-                    ths[2].width = 0.20 * tableWidth;
-                    ths[3].width = 0.04 * tableWidth;
-                    ths[4].width = 0.04 * tableWidth;
-                    ths[5].width = 0.08 * tableWidth;
-                    ths[6].width = 0.08 * tableWidth;
-                    ths[7].width = 0.10 * tableWidth;
-                    ths[8].width = 0.04 * tableWidth;
-                    ths[9].width = 0.08 * tableWidth;
-                    ths[10].width = 0.04 * tableWidth + SCROLLABAR_WIDTH;
-                } else {
-                    ths[0].width = 0.16 * tableWidth;
-                    ths[1].width = 0.34 * tableWidth;
-                    ths[2].width = 0.34 * tableWidth;
-                    ths[3].width = 0.08 * tableWidth;
-                    ths[4].width = 0.08 * tableWidth;
-                }
-            }
-        };
-
-        window.onresize = resize;
-        elFilter.onchange = resize;
-        elFilter.onblur = refreshFooter;
-
-
-        var showExtraInfo = false;
-        var COLLAPSE_EXTRA_INFO = "E";
-        var EXPAND_EXTRA_INFO = "D";
-
-        function toggleInfo(event) {
-            showExtraInfo = !showExtraInfo;
-            if (showExtraInfo) {
-                elEntityTable.className = "showExtraInfo";
-                elInfoToggleGlyph.innerHTML = COLLAPSE_EXTRA_INFO;
-            } else {
-                elEntityTable.className = "";
-                elInfoToggleGlyph.innerHTML = EXPAND_EXTRA_INFO;
-            }
-            resize();
-            event.stopPropagation();
-        }
-        elInfoToggle.addEventListener("click", toggleInfo, true);
-
-
+        
         resize();
+        entityList.initialize(572);
+        refreshEntities();
     });
-
-    augmentSpinButtons();
 
     // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked
     document.addEventListener("contextmenu", function (event) {

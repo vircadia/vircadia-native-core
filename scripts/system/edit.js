@@ -156,6 +156,7 @@ var MENU_AUTO_FOCUS_ON_SELECT = "Auto Focus on Select";
 var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
 var MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE = "Show Lights and Particle Systems in Create Mode";
 var MENU_SHOW_ZONES_IN_EDIT_MODE = "Show Zones in Create Mode";
+var MENU_USE_NEW_ENTITY_LIST = "Use New Entity List";
 
 var MENU_CREATE_ENTITIES_GRABBABLE = "Create Entities As Grabbable (except Zones, Particles, and Lights)";
 var MENU_ALLOW_SELECTION_LARGE = "Allow Selecting of Large Models";
@@ -166,6 +167,7 @@ var SETTING_AUTO_FOCUS_ON_SELECT = "autoFocusOnSelect";
 var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
 var SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE = "showLightsAndParticlesInEditMode";
 var SETTING_SHOW_ZONES_IN_EDIT_MODE = "showZonesInEditMode";
+var SETTING_USE_NEW_ENTITY_LIST = "useNewEntityList";
 
 var SETTING_EDIT_PREFIX = "Edit/";
 
@@ -813,7 +815,7 @@ var toolBar = (function () {
         };
         entityListTool.interactiveWindowHidden.addListener(this, deactivateCreateIfDesktopWindowsHidden);
         createToolsWindow.interactiveWindowHidden.addListener(this, deactivateCreateIfDesktopWindowsHidden);
-
+        
         that.setActive(false);
     }
 
@@ -871,8 +873,11 @@ var toolBar = (function () {
                 tablet.gotoHomeScreen();
             }
             UserActivityLogger.enabledEdit();
+            entityListTool.setUseNewEntityList(Menu.isOptionChecked(MENU_USE_NEW_ENTITY_LIST));
             entityListTool.setVisible(true);
-            entityListTool.sendUpdate();
+            if (!Menu.isOptionChecked(MENU_USE_NEW_ENTITY_LIST)) {
+                entityListTool.sendUpdate();
+            }
             gridTool.setVisible(true);
             grid.setEnabled(true);
             propertiesTool.setVisible(true);
@@ -1349,6 +1354,13 @@ function setupModelMenus() {
         isCheckable: true,
         isChecked: Settings.getValue(SETTING_SHOW_ZONES_IN_EDIT_MODE) !== "false"
     });
+    Menu.addMenuItem({
+        menuName: "Edit",
+        menuItemName: MENU_USE_NEW_ENTITY_LIST,
+        afterItem: MENU_SHOW_ZONES_IN_EDIT_MODE,
+        isCheckable: true,
+        isChecked: Settings.getValue(SETTING_USE_NEW_ENTITY_LIST, false)
+    });
 
     Entities.setLightsArePickable(false);
 }
@@ -1387,6 +1399,7 @@ Script.scriptEnding.connect(function () {
     Settings.setValue(SETTING_EASE_ON_FOCUS, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
     Settings.setValue(SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
     Settings.setValue(SETTING_SHOW_ZONES_IN_EDIT_MODE, Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
+    Settings.setValue(SETTING_USE_NEW_ENTITY_LIST, Menu.isOptionChecked(MENU_USE_NEW_ENTITY_LIST));
 
     Settings.setValue(SETTING_EDIT_PREFIX + MENU_CREATE_ENTITIES_GRABBABLE, Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE));
     Settings.setValue(SETTING_EDIT_PREFIX + MENU_ALLOW_SELECTION_LARGE, Menu.isOptionChecked(MENU_ALLOW_SELECTION_LARGE));
