@@ -84,7 +84,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 return makeRunningValues(false, [], []);
             }
 
-            if (controllerData.triggerClicks[this.hand]) {
+            if (controllerData.triggerClicks[this.hand] || controllerData.secondaryValues[this.hand]) {
                 setTabletNearGrabbable(this.hand, false);
                 return makeRunningValues(false, [], []);
             }
