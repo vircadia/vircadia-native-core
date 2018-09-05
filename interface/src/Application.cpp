@@ -2299,6 +2299,19 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
     AndroidHelper::instance().notifyLoadComplete();
 #endif
+
+    static int CHECK_LOGIN_TIMER = 3000;
+    QTimer* checkLoginTimer = new QTimer(this);
+    checkLoginTimer->setInterval(CHECK_LOGIN_TIMER);
+    checkLoginTimer->setSingleShot(true);
+    connect(checkLoginTimer, &QTimer::timeout, this, []() {
+        auto accountManager = DependencyManager::get<AccountManager>();
+        auto dialogsManager = DependencyManager::get<DialogsManager>();
+        if (!accountManager->isLoggedIn()) {
+            dialogsManager->showLoginDialog();
+        }
+    });
+    checkLoginTimer->start();
 }
 
 void Application::updateVerboseLogging() {
