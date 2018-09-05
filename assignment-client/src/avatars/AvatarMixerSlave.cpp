@@ -288,35 +288,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     // Quadruple the scale of first bounding box
     nodeBox.embiggen(4.0f);
 
-
-    // setup list of AvatarData as well as maps to map betweeen the AvatarData and the original nodes
-    struct AvatarSortData {
-        AvatarSortData(const Node* node, AvatarData* avatarData, quint64 lastEncodeTime)
-            : _node(node)
-            , _avatarData(avatarData)
-            , _lastEncodeTime(lastEncodeTime)
-        { }
-        const Node* _node;
-        AvatarData* _avatarData;
-        quint64 _lastEncodeTime;
-    };
-    // Temporary info about the avatars we're sending:
-    std::vector<AvatarSortData> avatarsToSort;
-    avatarsToSort.reserve(_end - _begin);
-    std::for_each(_begin, _end, [&](const SharedNodePointer& otherNode) {
-        Node* otherNodeRaw = otherNode.data();
-        // make sure this is an agent that we have avatar data for before considering it for inclusion
-        if (otherNodeRaw->getType() == NodeType::Agent
-            && otherNodeRaw->getLinkedData()) {
-            const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNodeRaw->getLinkedData());
-
-
-            AvatarData* otherAvatar = otherNodeData->getAvatarSharedPointer().get();
-            auto lastEncodeTime = nodeData->getLastOtherAvatarEncodeTime(otherAvatar->getSessionUUID());
-            avatarsToSort.emplace_back(AvatarSortData(otherNodeRaw, otherAvatar, lastEncodeTime));
-        }
-    });
-
     class SortableAvatar: public PrioritySortUtil::Sortable {
     public:
         SortableAvatar() = delete;
@@ -345,15 +316,17 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             AvatarData::_avatarSortCoefficientSize,
             AvatarData::_avatarSortCoefficientCenter,
             AvatarData::_avatarSortCoefficientAge);
-    sortedAvatars.reserve(avatarsToSort.size());
+    sortedAvatars.reserve(_end - _begin);
 
-    // ignore or sort
-    for (const auto& avatar : avatarsToSort) {
-        auto avatarNode = avatar._node;
-        if (avatarNode == destinationNode) {
-            // don't echo updates to self
+    for (auto listedNode = _begin; listedNode != _end; ++listedNode) {
+        Node* otherNodeRaw = (*listedNode).data();
+        if (otherNodeRaw->getType() != NodeType::Agent
+            || !otherNodeRaw->getLinkedData()
+            || otherNodeRaw == destinationNode) {
             continue;
         }
+
+        auto avatarNode = otherNodeRaw;
 
         bool shouldIgnore = false;
         // We ignore other nodes for a couple of reasons:
@@ -364,8 +337,8 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
         assert(avatarNode); // we can't have gotten here without the avatarData being a valid key in the map
 
-        const AvatarMixerClientData* avatarNodeData = reinterpret_cast<const AvatarMixerClientData*>(avatarNode->getLinkedData());
-        assert(avatarNodeData); // we can't have gotten here without avatarNode having valid data
+        const AvatarMixerClientData* avatarClientNodeData = reinterpret_cast<const AvatarMixerClientData*>(avatarNode->getLinkedData());
+        assert(avatarClientNodeData); // we can't have gotten here without avatarNode having valid data
         quint64 startIgnoreCalculation = usecTimestampNow();
 
         // make sure we have data for this avatar, that it isn't the same node,
@@ -378,11 +351,11 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             // Check to see if the space bubble is enabled
             // Don't bother with these checks if the other avatar has their bubble enabled and we're gettingAnyIgnored
             if (destinationNode->isIgnoreRadiusEnabled() || (avatarNode->isIgnoreRadiusEnabled() && !getsAnyIgnored)) {
-                float sensorToWorldScale = avatarNodeData->getAvatarSharedPointer()->getSensorToWorldScale();
+                float sensorToWorldScale = avatarClientNodeData->getAvatarSharedPointer()->getSensorToWorldScale();
                 // Define the scale of the box for the current other node
-                glm::vec3 otherNodeBoxScale = (avatarNodeData->getPosition() - avatarNodeData->getGlobalBoundingBoxCorner()) * 2.0f * sensorToWorldScale;
+                glm::vec3 otherNodeBoxScale = (avatarClientNodeData->getPosition() - avatarClientNodeData->getGlobalBoundingBoxCorner()) * 2.0f * sensorToWorldScale;
                 // Set up the bounding box for the current other node
-                AABox otherNodeBox(avatarNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
+                AABox otherNodeBox(avatarClientNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
                 // Clamp the size of the bounding box to a minimum scale
                 if (glm::any(glm::lessThan(otherNodeBoxScale, minBubbleSize))) {
                     otherNodeBox.setScaleStayCentered(minBubbleSize);
@@ -405,7 +378,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
         if (!shouldIgnore) {
             AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(avatarNode->getUUID());
-            AvatarDataSequenceNumber lastSeqFromSender = avatarNodeData->getLastReceivedSequenceNumber();
+            AvatarDataSequenceNumber lastSeqFromSender = avatarClientNodeData->getLastReceivedSequenceNumber();
 
             // FIXME - This code does appear to be working. But it seems brittle.
             //         It supports determining if the frame of data for this "other"
@@ -430,7 +403,10 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
         if (!shouldIgnore) {
             // sort this one for later
-            sortedAvatars.push(SortableAvatar(avatar._avatarData, avatar._node, avatar._lastEncodeTime));
+            const AvatarData* avatarNodeData = avatarClientNodeData->getConstAvatarData();
+            auto lastEncodeTime = nodeData->getLastOtherAvatarEncodeTime(avatarNodeData->getSessionUUID());
+
+            sortedAvatars.push(SortableAvatar(avatarNodeData, avatarNode, lastEncodeTime));
         }
     }
 
