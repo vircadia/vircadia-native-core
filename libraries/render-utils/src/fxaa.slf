@@ -68,7 +68,7 @@ void main() {
               outFragColor.w = 1.0;
 
           }*/
-    if (gl_FragCoord.x > 800) {
+    if (gl_FragCoord.x > 800.0) {
      /*  // filter width limit for dependent "two-tap" texture samples
         float FXAA_SPAN_MAX = 8.0;
 

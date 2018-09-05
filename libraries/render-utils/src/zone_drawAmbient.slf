@@ -44,7 +44,7 @@ void main(void) {
    // vec3 ambient = sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(lightAmbient), fragNormal).xyz;
   //  _fragColor = vec4( 0.5  * (fragNormal + vec3(1.0)), 1.0);
 
-    vec3 color = (sphereUV.x > 0 ? ambientMap : ambientSH);
+    vec3 color = (sphereUV.x > 0.0 ? ambientMap : ambientSH);
 
     color = color * 1.0 - base.w + base.xyz * base.w;
     const float INV_GAMMA_22 = 1.0 / 2.2;

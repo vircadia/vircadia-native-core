@@ -57,7 +57,7 @@ void main(void) {
             vec2 cursorVelocityDir = cursorVelocity / cursorVelocityLength;
             vec2 cursorVelocityNor = vec2(cursorVelocityDir.y, -cursorVelocityDir.x);
 
-            if ((dot(cursorVelocityDir, cursorToFragVec) < 0) && abs(dot(cursorVelocityNor, cursorToFragVec)) < 1.0) {
+            if ((dot(cursorVelocityDir, cursorToFragVec) < 0.0) && abs(dot(cursorVelocityNor, cursorToFragVec)) < 1.0) {
 
                 vec3 speedColor = taa_getVelocityColorRelative(cursorToFragLength);
 
@@ -69,7 +69,7 @@ void main(void) {
         float tenPercentHeight = 0.1 * imageSize.y;
         float centerWidth = imageSize.x * 0.5;
 
-        //vec2 nextOrbPos = vec2(centerWidth, imageSize.y - 3 * tenPercentHeight);
+        //vec2 nextOrbPos = vec2(centerWidth, imageSize.y - 3.0 * tenPercentHeight);
         vec2 nextOrbPos = cursorPos;
         vec2 nextOrbPosToPix = pixPos - nextOrbPos;
         float nextOrbPosToPixLength = length(nextOrbPosToPix);
@@ -146,7 +146,7 @@ void main(void) {
         prevColor = texture(historyMap, prevTexCoord).xyz;
     }
 
-    outFragColor.xyz = mix(prevColor, vec3(1,0,1), clamp(distance(prevColor, nextColor) - 0.01, 0, 1));
+    outFragColor.xyz = mix(prevColor, vec3(1,0,1), clamp(distance(prevColor, nextColor) - 0.01, 0.0, 1.0));
 
     if (pixVelocityLength > params.debugShowVelocityThreshold) {
         vec3 speedColor = taa_getVelocityColorAboveThreshold(pixVelocityLength);

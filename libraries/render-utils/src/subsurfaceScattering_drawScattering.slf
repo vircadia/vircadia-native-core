@@ -80,7 +80,7 @@ vec3 drawScatteringTableUV(vec2 cursor, vec2 texcoord) {
 
     vec3 distance = vec3(0.0);
     for (int c = 0; c < 3; c++) {
-        vec2 BRDFuv = vec2(clamp(bentNdotL[c] * 0.5 + 0.5, 0.0, 1.0), clamp(2 * curvature, 0.0, 1.0));
+        vec2 BRDFuv = vec2(clamp(bentNdotL[c] * 0.5 + 0.5, 0.0, 1.0), clamp(2.0 * curvature, 0.0, 1.0));
         vec2 delta = BRDFuv - texcoord;
         distance[c] = 1.0 - dot(delta, delta);
     }

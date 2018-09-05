@@ -117,7 +117,7 @@ vec2 taa_fetchVelocityMap(vec2 uv) {
 }
 
 float taa_fetchDepth(vec2 uv) {
-    return -texture(depthMap, vec2(uv), 0).x;
+    return -texture(depthMap, vec2(uv), 0.0).x;
 }
 
 
@@ -230,7 +230,7 @@ vec2 taa_fromEyeUVToFragUV(vec2 eyeUV, int stereoSide) {
     vec2 fragUV = eyeUV;
     if (isStereo()) {
         fragUV.x *= 0.5;
-        fragUV.x += stereoSide*0.5;
+        fragUV.x += float(stereoSide)*0.5;
     }
     return fragUV;
 }
