@@ -32,7 +32,7 @@ AutoTester::AutoTester(QWidget* parent) : QMainWindow(parent) {
 #ifndef Q_OS_WIN
     _ui.tabWidget->removeTab(1);
 #endif
-
+   //// Coming soon...
    //// _helpWindow.textBrowser->setText()
 }
 
