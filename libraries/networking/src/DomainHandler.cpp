@@ -480,6 +480,7 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
         } else {
             emit domainConnectionRefused(reasonMessage, (int)reasonCode, extraInfo);
         }
+        emit domainConnectionErrorChanged((int)reasonCode);
 #endif
     }
 

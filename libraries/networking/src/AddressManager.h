@@ -56,6 +56,8 @@ const QString GET_PLACE = "/api/v1/places/%1";
  *     <em>Read-only.</em>
  * @property {boolean} isConnected - <code>true</code> if you're connected to the domain in your current <code>href</code>
  *     metaverse address, otherwise <code>false</code>.
+ * @property {Window.ConnectionRefusedReason} lastDomainConnectionError - The last error saved from connecting to a domain
+ *     unsuccessfully.
  *     <em>Read-only.</em>
  * @property {string} pathname - The location and orientation in your current <code>href</code> metaverse address 
  *     (e.g., <code>"/15,-10,26/0,0,0,1"</code>).
@@ -74,6 +76,7 @@ class AddressManager : public QObject, public Dependency {
     Q_PROPERTY(QUrl href READ currentShareableAddress)
     Q_PROPERTY(QString protocol READ getProtocol)
     Q_PROPERTY(QString hostname READ getHost)
+    Q_PROPERTY(int lastDomainConnectionError READ getLastDomainConnectionError)
     Q_PROPERTY(QString pathname READ currentPath)
     Q_PROPERTY(QString placename READ getPlaceName)
     Q_PROPERTY(QString domainID READ getDomainID)
@@ -141,7 +144,8 @@ public:
      * </table>
      * @typedef {number} location.LookupTrigger
      */
-    enum LookupTrigger {
+    enum LookupTrigger
+    {
         UserInput,
         Back,
         Forward,
@@ -184,6 +188,9 @@ public:
 
     QUrl getDomainURL() { return _domainURL; }
 
+    int getLastDomainConnectionError() { return _lastDomainConnectionError; }
+    void setLastDomainConnectionError(int reasonCode) { _lastDomainConnectionError = reasonCode; }
+
 public slots:
     /**jsdoc
      * Go to a specified metaverse address.
@@ -195,7 +202,7 @@ public slots:
      *    Helps ensure that user's location history is correctly maintained.
      */
     void handleLookupString(const QString& lookupString, bool fromSuggestions = false);
-    
+
     /**jsdoc
      * Go to a position and orientation resulting from a lookup for a named path in the domain (set in the domain server's 
      * settings).
@@ -208,8 +215,9 @@ public slots:
     // functions and signals that should be exposed are moved to a scripting interface class.
     //
     // we currently expect this to be called from NodeList once handleLookupString has been called with a path
-    bool goToViewpointForPath(const QString& viewpointString, const QString& pathString)
-        { return handleViewpoint(viewpointString, false, DomainPathResponse, false, pathString); }
+    bool goToViewpointForPath(const QString& viewpointString, const QString& pathString) {
+        return handleViewpoint(viewpointString, false, DomainPathResponse, false, pathString);
+    }
 
     /**jsdoc
      * Go back to the previous location in your navigation history, if there is one.
@@ -230,8 +238,10 @@ public slots:
      * @param {location.LookupTrigger} trigger=StartupFromSettings - The reason for the function call. Helps ensure that user's
      *     location history is correctly maintained.
      */
-    void goToLocalSandbox(QString path = "", LookupTrigger trigger = LookupTrigger::StartupFromSettings) { handleUrl(SANDBOX_HIFI_ADDRESS + path, trigger); }
-    
+    void goToLocalSandbox(QString path = "", LookupTrigger trigger = LookupTrigger::StartupFromSettings) {
+        handleUrl(SANDBOX_HIFI_ADDRESS + path, trigger);
+    }
+
     /**jsdoc
      * Go to the default "welcome" metaverse address.
      * @function location.goToEntry
@@ -362,7 +372,8 @@ signals:
      * location.locationChangeRequired.connect(onLocationChangeRequired);
      */
     void locationChangeRequired(const glm::vec3& newPosition,
-                                bool hasOrientationChange, const glm::quat& newOrientation,
+                                bool hasOrientationChange,
+                                const glm::quat& newOrientation,
                                 bool shouldFaceLocation);
 
     /**jsdoc
@@ -433,7 +444,7 @@ private slots:
     void handleShareableNameAPIResponse(QNetworkReply* requestReply);
 
 private:
-    void goToAddressFromObject(const QVariantMap& addressMap, const QNetworkReply*  reply);
+    void goToAddressFromObject(const QVariantMap& addressMap, const QNetworkReply* reply);
 
     // Set host and port, and return `true` if it was changed.
     bool setHost(const QString& host, LookupTrigger trigger, quint16 port = 0);
@@ -445,8 +456,11 @@ private:
 
     bool handleNetworkAddress(const QString& lookupString, LookupTrigger trigger, bool& hostChanged);
     void handlePath(const QString& path, LookupTrigger trigger, bool wasPathOnly = false);
-    bool handleViewpoint(const QString& viewpointString, bool shouldFace, LookupTrigger trigger,
-                         bool definitelyPathOnly = false, const QString& pathString = QString());
+    bool handleViewpoint(const QString& viewpointString,
+                         bool shouldFace,
+                         LookupTrigger trigger,
+                         bool definitelyPathOnly = false,
+                         const QString& pathString = QString());
     bool handleUsername(const QString& lookupString);
     bool handleDomainID(const QString& host);
 
@@ -457,6 +471,8 @@ private:
 
     QUrl _domainURL;
     QUrl _lastVisitedURL;
+    // domain connection error from domain handler.
+    int _lastDomainConnectionError{ -1 };
 
     QUuid _rootPlaceID;
     PositionGetter _positionGetter;
@@ -473,4 +489,4 @@ private:
     QUrl _previousAPILookup;
 };
 
-#endif // hifi_AddressManager_h
+#endif  // hifi_AddressManager_h

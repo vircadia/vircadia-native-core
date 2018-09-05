@@ -1211,6 +1211,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
     connect(&locationUpdateTimer, &QTimer::timeout, discoverabilityManager.data(), &DiscoverabilityManager::updateLocation);
+    connect(&domainHandler, &DomainHandler::domainConnectionErrorChanged, DependencyManager::get<AddressManager>().data(),
+               &AddressManager::setLastDomainConnectionError);
     connect(&locationUpdateTimer, &QTimer::timeout,
         DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
     locationUpdateTimer.start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
