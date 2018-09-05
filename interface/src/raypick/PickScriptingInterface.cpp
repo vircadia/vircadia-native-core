@@ -24,11 +24,13 @@
 #include "CollisionPick.h"
 
 #include "SpatialParentFinder.h"
-#include "NestableTransformNode.h"
 #include "PickTransformNode.h"
 #include "MouseTransformNode.h"
 #include "avatar/MyAvatarHeadTransformNode.h"
 #include "avatar/AvatarManager.h"
+#include "avatars-renderer/AvatarTransformNode.h"
+#include "ui/overlays/OverlayTransformNode.h"
+#include "EntityTransformNode.h"
 
 #include <ScriptEngine.h>
 
@@ -375,6 +377,16 @@ std::shared_ptr<TransformNode> PickScriptingInterface::createTransformNode(const
             }
             auto sharedNestablePointer = nestablePointer.lock();
             if (success && sharedNestablePointer) {
+                NestableType nestableType = sharedNestablePointer->getNestableType();
+                if (nestableType == NestableType::Avatar) {
+                    return std::make_shared<AvatarTransformNode>(std::static_pointer_cast<Avatar>(sharedNestablePointer), parentJointIndex);
+                }
+                if (nestableType == NestableType::Overlay) {
+                    return std::make_shared<OverlayTransformNode>(std::static_pointer_cast<Base3DOverlay>(sharedNestablePointer), parentJointIndex);
+                }
+                if (nestableType == NestableType::Entity) {
+                    return std::make_shared<EntityTransformNode>(std::static_pointer_cast<EntityItem>(sharedNestablePointer), parentJointIndex);
+                }
                 return std::make_shared<NestableTransformNode>(nestablePointer, parentJointIndex);
             }
         }
@@ -394,7 +406,7 @@ std::shared_ptr<TransformNode> PickScriptingInterface::createTransformNode(const
         } else if (!joint.isNull()) {
             auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
             int jointIndex = myAvatar->getJointIndex(joint);
-            return std::make_shared<NestableTransformNode>(myAvatar, jointIndex);
+            return std::make_shared<AvatarTransformNode>(myAvatar, jointIndex);
         }
     }
 
