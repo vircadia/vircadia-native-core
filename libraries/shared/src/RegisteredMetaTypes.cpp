@@ -88,7 +88,9 @@ QScriptValue vec2ToScriptValue(QScriptEngine* engine, const glm::vec2& vec2) {
 }
 
 void vec2FromScriptValue(const QScriptValue& object, glm::vec2& vec2) {
-    if (object.isArray()) {
+    if (object.isNumber()) {
+        vec2 = glm::vec2(object.toVariant().toFloat());
+    } else if (object.isArray()) {
         QVariantList list = object.toVariant().toList();
         if (list.length() == 2) {
             vec2.x = list[0].toFloat();
@@ -228,7 +230,9 @@ QScriptValue vec3ColorToScriptValue(QScriptEngine* engine, const glm::vec3& vec3
 }
 
 void vec3FromScriptValue(const QScriptValue& object, glm::vec3& vec3) {
-    if (object.isString()) {
+    if (object.isNumber()) {
+        vec3 = glm::vec3(object.toVariant().toFloat());
+    } else if (object.isString()) {
         QColor qColor(object.toString());
         if (qColor.isValid()) {
             vec3.x = qColor.red();
@@ -341,7 +345,9 @@ QScriptValue u8vec3ColorToScriptValue(QScriptEngine* engine, const glm::u8vec3& 
 }
 
 void u8vec3FromScriptValue(const QScriptValue& object, glm::u8vec3& vec3) {
-    if (object.isString()) {
+    if (object.isNumber()) {
+        vec3 = glm::vec3(object.toVariant().toUInt());
+    } else if (object.isString()) {
         QColor qColor(object.toString());
         if (qColor.isValid()) {
             vec3.x = (uint8_t)qColor.red();
