@@ -105,6 +105,7 @@ void TestRunner::createSnapshotFolder() {
     _snapshotFolder = _tempFolder + "/" + SNAPSHOT_FOLDER_NAME;
     QDir().mkdir(_snapshotFolder);
 }
+
 void TestRunner::killProcesses() {
     killProcessByName("assignment-client.exe");
     killProcessByName("domain-server.exe");
