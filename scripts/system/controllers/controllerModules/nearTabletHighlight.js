@@ -29,7 +29,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         fillUnoccludedAlpha: 0,
         fillOccludedColor: { red: 0, green: 0, blue: 0 },
         fillOccludedAlpha: 0,
-        outlineWidth: 2,
+        outlineWidth: 4,
         isOutlineSmooth: false
     };
 
