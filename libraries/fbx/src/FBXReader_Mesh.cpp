@@ -745,66 +745,116 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
 
 
     // Now we decide on how to interleave the attributes and provide the vertices among bufers:
-    // Aka the Vertex format
-    auto vf = std::make_shared<gpu::Stream::Format>();
-    gpu::Offset buf0Offset = 0;
-    vf->setAttribute(gpu::Stream::POSITION, 0, positionElement);
-    buf0Offset += positionElement.getSize();
+    // Aka the Vertex format and the vertexBufferStream
+    auto vertexFormat = std::make_shared<gpu::Stream::Format>();
+    auto vertexBufferStream = std::make_shared<gpu::BufferStream>();
 
-    gpu::Offset buf1Offset = 0;
-    if (normalsSize) {
-        vf->setAttribute(gpu::Stream::NORMAL, 1, normalElement, buf1Offset);
-        buf1Offset = normalElement.getSize();
-        vf->setAttribute(gpu::Stream::TANGENT, 1, normalElement, buf1Offset);
-        buf1Offset = normalElement.getSize();
+    // Decision time:
+    // if blendshapes then keep position and normals/tangents as separated channel buffers from interleaved attributes
+    // else everything is interleaved in one buffer
+    
+    // Default case is no blend shapes
+    gpu::BufferPointer attribBuffer;
+    int totalAttribBufferSize = totalVertsSize;
+    gpu::uint8 posChannel = 0;
+    gpu::uint8 tangentChannel = posChannel;
+    gpu::uint8 attribChannel = posChannel;
+    bool interleavePositions = true;
+    bool interleaveNormalsTangents = true;
+
+    // If has blend shapes allocate and assign buffers for pos and tangents now
+    if (hasBlendShapes) {
+
+        auto posBuffer = std::make_shared<gpu::Buffer>();
+        posBuffer->setData(positionsSize, (const gpu::Byte*) vertBuffer->getData() + positionsOffset);
+        vertexBufferStream->addBuffer(posBuffer, 0, positionElement.getSize());
+
+        auto tangentBuffer = std::make_shared<gpu::Buffer>();
+        tangentBuffer->setData(normalsAndTangentsSize, (const gpu::Byte*) vertBuffer->getData() + normalsAndTangentsOffset);
+        vertexBufferStream->addBuffer(tangentBuffer, 0, normalsAndTangentsStride);
+
+        // update channels and attribBuffer size accordingly
+        interleavePositions = false;
+        interleaveNormalsTangents = false;
+
+        tangentChannel = 1;
+        attribChannel = 2;
+
+        totalAttribBufferSize = totalVertsSize - positionsSize - normalsAndTangentsSize;
+    } else {
+/*
+        auto posBuffer = std::make_shared<gpu::Buffer>();
+        posBuffer->setData(positionsSize, (const gpu::Byte*) vertBuffer->getData() + positionsOffset);
+        vertexBufferStream->addBuffer(posBuffer, 0, positionElement.getSize());
+
+        // update channels and attribBuffer size accordingly
+        interleavePositions = false;
+
+        auto tangentBuffer = std::make_shared<gpu::Buffer>();
+        tangentBuffer->setData(normalsAndTangentsSize, (const gpu::Byte*) vertBuffer->getData() + normalsAndTangentsOffset);
+        vertexBufferStream->addBuffer(tangentBuffer, 0, normalsAndTangentsStride);
+
+        interleaveNormalsTangents = false;
+
+        tangentChannel = 1;
+        attribChannel = 2;
+
+        totalAttribBufferSize = totalVertsSize - positionsSize - normalsAndTangentsSize;*/
     }
 
-    gpu::Offset buf2Offset = (0);
+    // Define the vertex format, compute the offset for each attributes as we append them to the vertex format
+    gpu::Offset bufOffset = 0;
+    if (positionsSize) {
+        vertexFormat->setAttribute(gpu::Stream::POSITION, posChannel, positionElement, bufOffset);
+        bufOffset += positionElement.getSize();
+        if (!interleavePositions) {
+            bufOffset = 0;
+        }
+    }
+    if (normalsSize) {
+        vertexFormat->setAttribute(gpu::Stream::NORMAL, tangentChannel, normalElement, bufOffset);
+        bufOffset = normalElement.getSize();
+        vertexFormat->setAttribute(gpu::Stream::TANGENT, tangentChannel, normalElement, bufOffset);
+        bufOffset = normalElement.getSize();
+        if (!interleaveNormalsTangents) {
+            bufOffset = 0;
+        }
+    }
+
+    // Pack normal and Tangent with the rest of atributes if no blend shapes
     if (colorsSize) {
-        vf->setAttribute(gpu::Stream::COLOR, 2, colorElement, buf2Offset);
-        buf2Offset += colorElement.getSize();
+        vertexFormat->setAttribute(gpu::Stream::COLOR, attribChannel, colorElement, bufOffset);
+        bufOffset += colorElement.getSize();
     }
     if (texCoordsSize) {
-        vf->setAttribute(gpu::Stream::TEXCOORD, 2, texCoordsElement, buf2Offset);
-        buf2Offset += texCoordsElement.getSize();
+        vertexFormat->setAttribute(gpu::Stream::TEXCOORD, attribChannel, texCoordsElement, bufOffset);
+        bufOffset += texCoordsElement.getSize();
     }
     if (texCoords1Size) {
-        vf->setAttribute(gpu::Stream::TEXCOORD1, 2, texCoordsElement, buf2Offset);
-        buf2Offset += texCoordsElement.getSize();
+        vertexFormat->setAttribute(gpu::Stream::TEXCOORD1, attribChannel, texCoordsElement, bufOffset);
+        bufOffset += texCoordsElement.getSize();
     }
     else if (texCoordsSize) {
-        vf->setAttribute(gpu::Stream::TEXCOORD1, 2, texCoordsElement, buf2Offset - texCoordsElement.getSize());
+        vertexFormat->setAttribute(gpu::Stream::TEXCOORD1, attribChannel, texCoordsElement, bufOffset - texCoordsElement.getSize());
     }
     if (clusterIndicesSize) {
-        vf->setAttribute(gpu::Stream::SKIN_CLUSTER_INDEX, 2, clusterIndiceElement, buf2Offset);
-        buf2Offset += clusterIndiceElement.getSize();
+        vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_INDEX, attribChannel, clusterIndiceElement, bufOffset);
+        bufOffset += clusterIndiceElement.getSize();
     }
     if (clusterWeightsSize) {
-        vf->setAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT, 2, clusterWeightElement, buf2Offset);
-        buf2Offset += clusterWeightElement.getSize();
+        vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT, attribChannel, clusterWeightElement, bufOffset);
+        bufOffset += clusterWeightElement.getSize();
     }
 
-    auto vbs = std::make_shared<gpu::BufferStream>();
-
-
-    auto vb = std::make_shared<gpu::Buffer>();
-    vb->setData(extractedMesh.vertices.size() * sizeof(glm::vec3),
-        (const gpu::Byte*) extractedMesh.vertices.data());
-    gpu::BufferView vbv(vb, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
-    vbs->addBuffer(vb, 0, buf0Offset);
-
-    auto attribNTBuffer = std::make_shared<gpu::Buffer>();
-    attribNTBuffer->resize(totalNTSize);
-
-    auto attribBuffer = std::make_shared<gpu::Buffer>();
-    attribBuffer->resize(totalAttributeSize);
-
-    
-
+    // Finally, allocate and fill the attribBuffer interleaving the attributes as needed:
     {
-        vbs->addBuffer(attribNTBuffer, 0, buf1Offset);
+        auto vPositionOffset = 0;
+        auto vPositionSize = (interleavePositions ? positionsSize / numVerts : 0);
 
-        auto vColorOffset = 0;
+        auto vNormalsAndTangentsOffset = vPositionOffset + vPositionSize;
+        auto vNormalsAndTangentsSize = (interleaveNormalsTangents ? normalsAndTangentsSize / numVerts : 0);
+
+        auto vColorOffset = vNormalsAndTangentsOffset + vNormalsAndTangentsSize;
         auto vColorSize = colorsSize / numVerts;
     
         auto vTexcoord0Offset = vColorOffset + vColorSize;
@@ -820,16 +870,17 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
         auto vClusterWeightSize = clusterWeightsSize / numVerts;
 
         auto vStride = vClusterWeightOffset + vClusterWeightSize;
-        //int vStride = buf2Offset;
+
         std::vector<gpu::Byte> dest;
-        dest.resize(totalAttributeSize);
+        dest.resize(totalAttribBufferSize);
         auto vDest = dest.data();
 
-        auto source = attribBuffer->getData();
-
+        auto source = vertBuffer->getData();
 
         for (int i = 0; i < numVerts; i++) {
             
+            if (vPositionSize) memcpy(vDest + vPositionOffset, source + positionsOffset + i * vPositionSize, vPositionSize);
+            if (vNormalsAndTangentsSize) memcpy(vDest + vNormalsAndTangentsOffset, source + normalsAndTangentsOffset + i * vNormalsAndTangentsSize, vNormalsAndTangentsSize);
             if (vColorSize) memcpy(vDest + vColorOffset, source + colorsOffset + i * vColorSize, vColorSize);
             if (vTexcoord0Size) memcpy(vDest + vTexcoord0Offset, source + texCoordsOffset + i * vTexcoord0Size, vTexcoord0Size);
             if (vTexcoord1Size) memcpy(vDest + vTexcoord1Offset, source + texCoords1Offset + i * vTexcoord1Size, vTexcoord1Size);
@@ -839,12 +890,15 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
             vDest += vStride;
         }
 
-        attribBuffer->setData(totalAttributeSize, dest.data());
-
-        vbs->addBuffer(attribBuffer, 0, vStride);
+        auto attribBuffer = std::make_shared<gpu::Buffer>();
+        attribBuffer->setData(totalAttribBufferSize, dest.data());
+        vertexBufferStream->addBuffer(attribBuffer, 0, vStride);
     }
-    mesh->setVertexFormatAndStream(vf, vbs);
 
+    // MEsh vertex format and vertex stream is ready
+    mesh->setVertexFormatAndStream(vertexFormat, vertexBufferStream);
+
+    // Index and Part Buffers
     unsigned int totalIndices = 0;
     foreach(const FBXMeshPart& part, extractedMesh.parts) {
         totalIndices += (part.quadTrianglesIndices.size() + part.triangleIndices.size());
