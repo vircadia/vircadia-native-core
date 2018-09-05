@@ -64,6 +64,16 @@ class Model;
 using ModelPointer = std::shared_ptr<Model>;
 using ModelWeakPointer = std::weak_ptr<Model>;
 
+struct SortedTriangleSet {
+    SortedTriangleSet(float distance, TriangleSet* triangleSet, int partIndex, int shapeID, int subMeshIndex) :
+        distance(distance), triangleSet(triangleSet), partIndex(partIndex), shapeID(shapeID), subMeshIndex(subMeshIndex) {}
+
+    float distance;
+    TriangleSet* triangleSet;
+    int partIndex;
+    int shapeID;
+    int subMeshIndex;
+};
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject, public std::enable_shared_from_this<Model>, public scriptable::ModelProvider {
@@ -149,7 +159,7 @@ public:
     bool getSnapModelToRegistrationPoint() { return _snapModelToRegistrationPoint; }
 
     virtual void simulate(float deltaTime, bool fullUpdate = true);
-    virtual void updateClusterMatrices();
+    virtual void updateClusterMatrices(bool triggerBlendshapes = true);
 
     /// Returns a reference to the shared geometry.
     const Geometry::Pointer& getGeometry() const { return _renderGeometry; }
@@ -481,6 +491,8 @@ protected:
     render::ItemKey _renderItemKeyGlobalFlags;
 
     bool shouldInvalidatePayloadShapeKey(int meshIndex);
+
+    void initializeBlendshapes(const FBXMesh& mesh, int index);
 
 private:
     float _loadingPriority { 0.0f };

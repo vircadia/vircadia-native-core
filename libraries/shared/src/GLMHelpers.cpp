@@ -458,11 +458,6 @@ vec4 toGlm(const glm::u8vec3& color, float alpha) {
     return vec4(glm::vec3(color) / MAX_COLOR, alpha);
 }
 
-glm::u8vec3 vec3UCharFromGlm(const glm::vec3 & color) {
-    static const float MAX_COLOR = 255.0f;
-    return { (uint8_t)(color.x * MAX_COLOR), (uint8_t)(color.y * MAX_COLOR), (uint8_t)(color.z * MAX_COLOR) };
-}
-
 glm::vec4 toGlm(const QColor& color) {
     return glm::vec4(color.redF(), color.greenF(), color.blueF(), color.alphaF());
 }

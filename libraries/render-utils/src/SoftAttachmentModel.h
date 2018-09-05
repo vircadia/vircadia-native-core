@@ -27,7 +27,7 @@ public:
     ~SoftAttachmentModel();
 
     void updateRig(float deltaTime, glm::mat4 parentTransform) override;
-    void updateClusterMatrices() override;
+    void updateClusterMatrices(bool triggerBlendshapes = true) override;
 
 protected:
     int getJointIndexOverride(int i) const;

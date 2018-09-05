@@ -180,8 +180,6 @@ vec4 toGlm(const QColor& color);
 ivec4 toGlm(const QRect& rect);
 vec4 toGlm(const glm::u8vec3& color, float alpha);
 
-glm::u8vec3 vec3UCharFromGlm(const glm::vec3 & c);
-
 QSize fromGlm(const glm::ivec2 & v);
 QMatrix4x4 fromGlm(const glm::mat4 & m);
 

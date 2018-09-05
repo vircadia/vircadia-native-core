@@ -86,9 +86,8 @@ void CauterizedModel::createRenderItemSet() {
             // Create the render payloads
             int numParts = (int)mesh->getNumParts();
             for (int partIndex = 0; partIndex < numParts; partIndex++) {
-                if (!fbxGeometry.meshes[i].blendshapes.empty() && !_blendedVertexBuffers[i]) {
-                    _blendedVertexBuffers[i] = std::make_shared<gpu::Buffer>();
-                    _blendedVertexBuffers[i]->resize(fbxGeometry.meshes[i].vertices.size() * (sizeof(glm::vec3) + 2 * sizeof(NormalType)));
+                if (!fbxGeometry.meshes[i].blendshapes.empty()) {
+                    initializeBlendshapes(fbxGeometry.meshes[i], i);
                 }
                 auto ptr = std::make_shared<CauterizedMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
                 _modelMeshRenderItems << std::static_pointer_cast<ModelMeshPartPayload>(ptr);
@@ -103,7 +102,7 @@ void CauterizedModel::createRenderItemSet() {
     }
 }
 
-void CauterizedModel::updateClusterMatrices() {
+void CauterizedModel::updateClusterMatrices(bool triggerBlendshapes) {
     PerformanceTimer perfTimer("CauterizedModel::updateClusterMatrices");
 
     if (!_needsUpdateClusterMatrices || !isLoaded()) {
@@ -176,7 +175,7 @@ void CauterizedModel::updateClusterMatrices() {
 
     // post the blender if we're not currently waiting for one to finish
     auto modelBlender = DependencyManager::get<ModelBlender>();
-    if (modelBlender->shouldComputeBlendshapes() && geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
+    if (triggerBlendshapes && modelBlender->shouldComputeBlendshapes() && geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
         modelBlender->noteRequiresBlend(getThisPointer());
     }
