@@ -22,6 +22,7 @@ Script.include("/~/system/libraries/controllers.js");
 (function() { // BEGIN LOCAL_SCOPE
 
     var TARGET_MODEL_URL = Script.resolvePath("../../assets/models/teleport-destination.fbx");
+    var CANCEL_MODEL_URL = Script.resolvePath("../../assets/models/teleport-cancel.fbx");
     var SEAT_MODEL_URL = Script.resolvePath("../../assets/models/teleport-seat.fbx");
 
     var TARGET_MODEL_DIMENSIONS = {
@@ -72,6 +73,12 @@ Script.include("/~/system/libraries/controllers.js");
         alpha: 1,
         width: 0.025
     };
+    var cancelEnd = {
+        type: "model",
+        url: CANCEL_MODEL_URL,
+        dimensions: TARGET_MODEL_DIMENSIONS,
+        ignorePickIntersection: true
+    };
     var teleportEnd = {
         type: "model",
         url: TARGET_MODEL_URL,
@@ -84,17 +91,23 @@ Script.include("/~/system/libraries/controllers.js");
         dimensions: TARGET_MODEL_DIMENSIONS,
         ignorePickIntersection: true
     };
-
-
-    var teleportRenderStates = [{name: "cancel", path: cancelPath},
+    
+    var collisionEnd = {
+        type: "sphere",
+        dimensions: {x: 0, y: 0, z: 0},
+        ignorePickIntersection: true
+    };
+    
+    var teleportRenderStates = [{name: "noend", path: cancelPath},
+        {name: "cancel", path: cancelPath, end: cancelEnd},
         {name: "teleport", path: teleportPath, end: teleportEnd},
-        {name: "seat", path: seatPath, end: seatEnd}];
+        {name: "seat", path: seatPath, end: seatEnd},
+        {name: "invisible", end: collisionEnd}];
 
     var DEFAULT_DISTANCE = 8.0;
-    var teleportDefaultRenderStates = [{name: "cancel", distance: DEFAULT_DISTANCE, path: cancelPath}];
+    var teleportDefaultRenderStates = [{name: "noend", distance: DEFAULT_DISTANCE, path: cancelPath}];
 
     var ignoredEntities = [];
-
 
     var TELEPORTER_STATES = {
         IDLE: 'idle',
@@ -106,6 +119,7 @@ Script.include("/~/system/libraries/controllers.js");
         NONE: 'none', // Not currently targetting anything
         INVISIBLE: 'invisible', // The current target is an invvsible surface
         INVALID: 'invalid', // The current target is invalid (wall, ceiling, etc.)
+        CANCEL: 'cancel', // Insufficient space to accommodate the avatar capsule
         SURFACE: 'surface', // The current target is a valid surface
         SEAT: 'seat' // The current target is a seat
     };
@@ -122,6 +136,9 @@ Script.include("/~/system/libraries/controllers.js");
         this.state = TELEPORTER_STATES.IDLE;
         this.currentTarget = TARGET.INVALID;
         this.currentResult = null;
+        this.capsuleHeight = 2.0;
+        this.capsuleRadius = 0.25;
+        this.pickHeightOffset = 0.01;
 
         this.getOtherModule = function() {
             var otherModule = this.hand === RIGHT_HAND ? leftTeleporter : rightTeleporter;
@@ -143,6 +160,7 @@ Script.include("/~/system/libraries/controllers.js");
             defaultRenderStates: teleportDefaultRenderStates,
             maxDistance: 8.0
         });
+        
         this.teleportParabolaHandInvisible = Pointers.createPointer(PickType.Parabola, {
             joint: (_this.hand === RIGHT_HAND) ? "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" : "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
             dirOffset: { x: 0, y: 1, z: 0.1 },
@@ -157,6 +175,19 @@ Script.include("/~/system/libraries/controllers.js");
             renderStates: teleportRenderStates,
             maxDistance: 8.0
         });
+        
+        this.teleportCollisionPick = Picks.createPick(PickType.Collision, {
+            enabled: true,
+            filter: Picks.PICK_ENTITIES + Picks.PICK_AVATARS,
+            shape: {
+                shapeType: "capsule-y",
+                dimensions: { x: _this.capsuleRadius * 2.0, y: _this.capsuleHeight - (_this.capsuleRadius * 2.0), z: _this.capsuleRadius * 2.0 }
+            },
+            position: { x: 0, y: _this.pickHeightOffset + (_this.capsuleHeight * 0.5), z: 0 },
+            parentID: Pointers.getPointerProperties(_this.teleportParabolaHandInvisible).renderStates["invisible"].end,
+            threshold: 0.05
+        });
+
         this.teleportParabolaHeadVisible = Pointers.createPointer(PickType.Parabola, {
             joint: "Avatar",
             filter: Picks.PICK_ENTITIES,
@@ -170,6 +201,7 @@ Script.include("/~/system/libraries/controllers.js");
             defaultRenderStates: teleportDefaultRenderStates,
             maxDistance: 8.0
         });
+
         this.teleportParabolaHeadInvisible = Pointers.createPointer(PickType.Parabola, {
             joint: "Avatar",
             filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_INVISIBLE,
@@ -184,11 +216,14 @@ Script.include("/~/system/libraries/controllers.js");
         });
 
         this.cleanup = function() {
-            Pointers.removePointer(this.teleportParabolaHandVisible);
-            Pointers.removePointer(this.teleportParabolaHandInvisible);
-            Pointers.removePointer(this.teleportParabolaHeadVisible);
-            Pointers.removePointer(this.teleportParabolaHeadInvisible);
+            Pointers.removePointer(_this.teleportParabolaHandVisible);
+            Pointers.removePointer(_this.teleportParabolaHandInvisible);
+            Pointers.removePointer(_this.teleportParabolaHeadVisible);
+            Pointers.removePointer(_this.teleportParabolaHeadInvisible);
+            Picks.removePick(_this.teleportCollisionPick);
         };
+        
+        // Picks.setIgnoreItems(_this.teleportCollisionPick, []);
 
         this.axisButtonStateX = 0; // Left/right axis button pressed.
         this.axisButtonStateY = 0; // Up/down axis button pressed.
@@ -280,8 +315,9 @@ Script.include("/~/system/libraries/controllers.js");
             } else {
                 result = Pointers.getPrevPickResult(_this.teleportParabolaHandInvisible);
             }
-
-            var teleportLocationType = getTeleportTargetType(result);
+            var collisionResult = Picks.getPrevPickResult(_this.teleportCollisionPick);
+           
+            var teleportLocationType = getTeleportTargetType(result, collisionResult);
             if (teleportLocationType === TARGET.INVISIBLE) {
                 if (mode === 'head') {
                     result = Pointers.getPrevPickResult(_this.teleportParabolaHeadVisible);
@@ -293,11 +329,13 @@ Script.include("/~/system/libraries/controllers.js");
 
             if (teleportLocationType === TARGET.NONE) {
                 // Use the cancel default state
-                this.setTeleportState(mode, "cancel", "");
+                this.setTeleportState(mode, "noend", "");
             } else if (teleportLocationType === TARGET.INVALID || teleportLocationType === TARGET.INVISIBLE) {
-                this.setTeleportState(mode, "", "cancel");
+                this.setTeleportState(mode, "", "noend");
+            } else if (teleportLocationType === TARGET.CANCEL) {
+                this.setTeleportState(mode, "cancel", "invisible");
             } else if (teleportLocationType === TARGET.SURFACE) {
-                this.setTeleportState(mode, "teleport", "");
+                this.setTeleportState(mode, "teleport", "invisible");
             } else if (teleportLocationType === TARGET.SEAT) {
                 this.setTeleportState(mode, "", "seat");
             }
@@ -355,6 +393,7 @@ Script.include("/~/system/libraries/controllers.js");
     // related to repositioning the avatar after you teleport
     var FOOT_JOINT_NAMES = ["RightToe_End", "RightToeBase", "RightFoot"];
     var DEFAULT_ROOT_TO_FOOT_OFFSET = 0.5;
+    
     function getAvatarFootOffset() {
 
         // find a valid foot jointIndex
@@ -395,7 +434,8 @@ Script.include("/~/system/libraries/controllers.js");
     // than MAX_ANGLE_FROM_UP_TO_TELEPORT degrees from your avatar's up, then
     // you can't teleport there.
     var MAX_ANGLE_FROM_UP_TO_TELEPORT = 70;
-    function getTeleportTargetType(result) {
+    
+    function getTeleportTargetType(result, collisionResult) {
         if (result.type === Picks.INTERSECTED_NONE) {
             return TARGET.NONE;
         }
@@ -421,6 +461,11 @@ Script.include("/~/system/libraries/controllers.js");
         if (angle > MAX_ANGLE_FROM_UP_TO_TELEPORT) {
             return TARGET.INVALID;
         } else {
+            if (collisionResult.collisionRegion != undefined) {
+                if (collisionResult.intersects) {
+                    return TARGET.CANCEL;
+                }
+            }
             return TARGET.SURFACE;
         }
     }
