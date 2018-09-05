@@ -1034,7 +1034,7 @@ public:
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
 
-    // all calibration matrices are in absolute avatar space.
+    // all calibration matrices are in absolute sensor space.
     glm::mat4 getCenterEyeCalibrationMat() const;
     glm::mat4 getHeadCalibrationMat() const;
     glm::mat4 getSpine2CalibrationMat() const;
