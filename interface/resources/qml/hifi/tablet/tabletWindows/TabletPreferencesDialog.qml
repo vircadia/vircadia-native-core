@@ -41,7 +41,11 @@ Item {
             section.saveAll();
         }
 
-        closeDialog();
+        if (HMD.active) {
+            tablet.popFromStack();
+        } else {
+            closeDialog();
+        }
     }
 
     function restoreAll() {
