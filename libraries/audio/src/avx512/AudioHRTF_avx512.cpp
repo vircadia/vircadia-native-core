@@ -44,7 +44,7 @@ void FIR_1x4_AVX512(float* src, float* dst0, float* dst1, float* dst2, float* ds
 
         float* ps = &src[i - HRTF_TAPS + 1];    // process forwards
 
-        assert(HRTF_TAPS % 4 == 0);
+        static_assert(HRTF_TAPS % 4 == 0, "HRTF_TAPS must be a multiple of 4");
 
         for (int k = 0; k < HRTF_TAPS; k += 4) {
 
