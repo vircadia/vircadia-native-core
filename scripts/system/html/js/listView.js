@@ -63,11 +63,11 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
         
     };
     
-    that.scrollDown = function() {
+    that.scrollDown = function(numScrollRows) {             
         var prevTopHeight = parseInt(elTopBuffer.getAttribute("height"));
         var prevBottomHeight =  parseInt(elBottomBuffer.getAttribute("height"));
         
-        for (var i = 0; i < SCROLL_ROWS; i++) {
+        for (var i = 0; i < numScrollRows; i++) {
             var topRow = elTableBody.childNodes[FIRST_ROW_INDEX];
             elTableBody.removeChild(topRow);
             elTableBody.insertBefore(topRow, elBottomBuffer);
@@ -83,18 +83,18 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
             rowOffset++;
         }
         
-        var newTopHeight = prevTopHeight + (rowHeight * SCROLL_ROWS);
-        var newBottomHeight = prevBottomHeight - (rowHeight * SCROLL_ROWS);
+        var newTopHeight = prevTopHeight + (rowHeight * numScrollRows);
+        var newBottomHeight = prevBottomHeight - (rowHeight * numScrollRows);
         elTopBuffer.setAttribute("height", newTopHeight);
         elBottomBuffer.setAttribute("height", newBottomHeight);
-        lastRowChangeScrollTop += rowHeight * SCROLL_ROWS;
+        lastRowChangeScrollTop += rowHeight * numScrollRows;
     };
     
-    that.scrollUp = function() {
+    that.scrollUp = function(numScrollRows) {    
         var prevTopHeight = parseInt(elTopBuffer.getAttribute("height"));
         var prevBottomHeight =  parseInt(elBottomBuffer.getAttribute("height"));
         
-        for (var i = 0; i < SCROLL_ROWS; i++) {
+        for (var i = 0; i < numScrollRows; i++) {
             var topRow = elTableBody.childNodes[FIRST_ROW_INDEX];
             var bottomRow = elTableBody.childNodes[FIRST_ROW_INDEX + numRows - 1];
             elTableBody.removeChild(bottomRow);
@@ -111,22 +111,33 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
             rowOffset--;
         }
         
-        var newTopHeight = prevTopHeight - (rowHeight * SCROLL_ROWS);
-        var newBottomHeight = prevBottomHeight + (rowHeight * SCROLL_ROWS);
+        var newTopHeight = prevTopHeight - (rowHeight * numScrollRows);
+        var newBottomHeight = prevBottomHeight + (rowHeight * numScrollRows);
         elTopBuffer.setAttribute("height", newTopHeight);
         elBottomBuffer.setAttribute("height", newBottomHeight);
-        lastRowChangeScrollTop -= rowHeight * SCROLL_ROWS;
+        lastRowChangeScrollTop -= rowHeight * numScrollRows;
     };
     
     that.onScroll = function()  {
         var scrollTop = elTableScroll.scrollTop;
         var nextRowChangeScrollTop = lastRowChangeScrollTop + (rowHeight * SCROLL_ROWS);
         var totalItems = Object.keys(itemData).length;
+        var scrollHeight = rowHeight * SCROLL_ROWS;
         
-        if (scrollTop >= nextRowChangeScrollTop && numRows + rowOffset < totalItems) {  
-            that.scrollDown();
+        if (scrollTop >= nextRowChangeScrollTop && numRows + rowOffset < totalItems) {
+            var numScrolls = Math.ceil((scrollTop - nextRowChangeScrollTop) / scrollHeight);
+            var numScrollRows = numScrolls * SCROLL_ROWS;
+            if (numScrollRows + rowOffset > totalItems) {
+                numScrollRows = totalItems - rowOffset;
+            }
+            that.scrollDown(numScrollRows);
         } else if (scrollTop < lastRowChangeScrollTop && rowOffset >= SCROLL_ROWS) {
-            that.scrollUp();
+            var numScrolls = Math.ceil((lastRowChangeScrollTop - scrollTop) / scrollHeight);
+            var numScrollRows = numScrolls * SCROLL_ROWS;
+            if (rowOffset - numScrollRows < 0) {
+                numScrollRows = rowOffset;
+            }
+            that.scrollUp(numScrollRows);
         }
     };
     
