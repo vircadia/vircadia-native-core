@@ -147,12 +147,12 @@ namespace render {
 
     };
 
-    class FetchSpatialSelection {
+    class FilterSpatialSelection {
     public:
         using Inputs = render::VaryingSet2<ItemSpatialTree::ItemSelection, ItemFilter>;
-        using JobModel = Job::ModelIO<FetchSpatialSelection, Inputs, ItemBounds>;
+        using JobModel = Job::ModelIO<FilterSpatialSelection, Inputs, ItemBounds>;
 
-        FetchSpatialSelection() {}
+        FilterSpatialSelection() {}
         void run(const RenderContextPointer& renderContext, const Inputs& inputs, ItemBounds& outItems);
     };
 
