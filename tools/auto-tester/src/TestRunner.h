@@ -36,6 +36,8 @@ public:
     void runInterfaceWithTestScript();
     void evaluateResults();
 
+    void copyFolder(const QString& source, const QString& destination);
+
 private:
     QDir _appDataFolder;
     QDir _savedAppDataFolder;
