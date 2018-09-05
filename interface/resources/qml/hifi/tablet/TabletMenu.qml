@@ -49,11 +49,11 @@ FocusScope {
 
         HiFiGlyphs {
             id: menuRootIcon
-            text: hifi.glyphs.backward
+            text: breadcrumbText.text !== "Menu" ? hifi.glyphs.backward : ""
             size: 72
             anchors.verticalCenter: parent.verticalCenter
             anchors.left: parent.left
-            width: breadcrumbText.text === "Menu" ? 15 : 50
+            width: breadcrumbText.text === "Menu" ? 32 : 50
             visible: breadcrumbText.text !== "Menu"
 
             MouseArea {
@@ -79,23 +79,10 @@ FocusScope {
             id: breadcrumbText
             text: "Menu"
             size: 26
-            color: "#34a2c7"
+            color: "#e3e3e3"
             anchors.verticalCenter: parent.verticalCenter
             anchors.left: menuRootIcon.right
             anchors.leftMargin: 15
-            MouseArea {
-                anchors.fill: parent
-                hoverEnabled: true
-                onEntered: breadcrumbText.color = "#1fc6a6";
-                onExited: breadcrumbText.color = "#34a2c7";
-                // navigate back to parent level menu if there is one
-                onClicked: { 
-                    if (breadcrumbText.text !== "Menu") {
-                        menuPopperUpper.closeLastMenu();
-                    }
-                    tabletRoot.playButtonClickSound();
-                }
-            }
         }
     }
 
