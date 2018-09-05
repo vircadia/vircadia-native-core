@@ -152,9 +152,6 @@ public:
      * @property {CollisionRegion} collisionRegion The CollisionRegion that was used. Valid even if there was no intersection.
      */
 
-    // TODO: Add this to the CollisionPickResult jsdoc once model collision picks are working
-    //* @property {boolean} loaded If the CollisionRegion was successfully loaded (may be false if a model was used)
-
     /**jsdoc
     * Information about the Collision Pick's intersection with an object
     *
@@ -320,6 +317,9 @@ public slots:
      * @returns {number}
      */
     static constexpr unsigned int INTERSECTED_HUD() { return IntersectionType::HUD; }
+
+protected:
+    static std::shared_ptr<TransformNode> createTransformNode(const QVariantMap& propMap);
 };
 
 #endif // hifi_PickScriptingInterface_h

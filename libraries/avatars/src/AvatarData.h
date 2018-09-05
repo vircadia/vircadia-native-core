@@ -962,7 +962,10 @@ public:
     qint64 packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice& destination,
                      AvatarTraits::TraitVersion traitVersion = AvatarTraits::NULL_TRAIT_VERSION);
     qint64 packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID,
-                             ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion = AvatarTraits::NULL_TRAIT_VERSION);
+                             ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion = AvatarTraits::NULL_TRAIT_VERSION,
+                             AvatarTraits::TraitInstanceID wireInstanceID = AvatarTraits::TraitInstanceID());
+
+    void prepareResetTraitInstances();
 
     void processTrait(AvatarTraits::TraitType traitType, QByteArray traitBinaryData);
     void processTraitInstance(AvatarTraits::TraitType traitType,
@@ -1189,6 +1192,9 @@ public:
     virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {}
     void setReplicaIndex(int replicaIndex) { _replicaIndex = replicaIndex; }
     int getReplicaIndex() { return _replicaIndex; }
+
+    const AvatarTraits::TraitInstanceID getTraitInstanceXORID() const { return _traitInstanceXORID; }
+    void cycleTraitInstanceXORID() { _traitInstanceXORID = QUuid::createUuid(); }
 
 signals:
 
@@ -1496,6 +1502,8 @@ private:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);
     AvatarData& operator= (const AvatarData&);
+
+    AvatarTraits::TraitInstanceID _traitInstanceXORID { QUuid::createUuid() };
 };
 Q_DECLARE_METATYPE(AvatarData*)
 

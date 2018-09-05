@@ -156,10 +156,12 @@ bool FileUtils::canCreateFile(const QString& fullPath) {
         qDebug(shared) << "unable to overwrite file '" << fullPath << "'";
         return false;
     }
-    QDir dir(fileInfo.absolutePath());
+
+    QString absolutePath = fileInfo.absolutePath();
+    QDir dir(absolutePath);
     if (!dir.exists()) {
-        if (!dir.mkpath(fullPath)) {
-            qDebug(shared) << "unable to create dir '" << dir.absolutePath() << "'";
+        if (!dir.mkpath(absolutePath)) {
+            qDebug(shared) << "unable to create dir '" << absolutePath << "'";
             return false;
         }
     }

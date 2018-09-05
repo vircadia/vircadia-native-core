@@ -187,16 +187,17 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         AvatarSharedPointer _avatar;
     };
 
+    auto avatarMap = getHashCopy();
+    AvatarHash::iterator itr = avatarMap.begin();
 
     const auto& views = qApp->getConicalViews();
     PrioritySortUtil::PriorityQueue<SortableAvatar> sortedAvatars(views,
             AvatarData::_avatarSortCoefficientSize,
             AvatarData::_avatarSortCoefficientCenter,
             AvatarData::_avatarSortCoefficientAge);
+    sortedAvatars.reserve(avatarMap.size() - 1); // don't include MyAvatar
 
     // sort
-    auto avatarMap = getHashCopy();
-    AvatarHash::iterator itr = avatarMap.begin();
     while (itr != avatarMap.end()) {
         const auto& avatar = std::static_pointer_cast<Avatar>(*itr);
         // DO NOT update _myAvatar!  Its update has already been done earlier in the main loop.
@@ -206,6 +207,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         }
         ++itr;
     }
+    const auto& sortedAvatarVector = sortedAvatars.getSortedVector();
 
     // process in sorted order
     uint64_t startTime = usecTimestampNow();
@@ -216,8 +218,8 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 
     render::Transaction renderTransaction;
     workload::Transaction workloadTransaction;
-    while (!sortedAvatars.empty()) {
-        const SortableAvatar& sortData = sortedAvatars.top();
+    for (auto it = sortedAvatarVector.begin(); it != sortedAvatarVector.end(); ++it) {
+        const SortableAvatar& sortData = *it;
         const auto avatar = std::static_pointer_cast<OtherAvatar>(sortData.getAvatar());
 
         // TODO: to help us scale to more avatars it would be nice to not have to poll orb state here
@@ -231,7 +233,6 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 
         bool ignoring = DependencyManager::get<NodeList>()->isPersonalMutingNode(avatar->getID());
         if (ignoring) {
-            sortedAvatars.pop();
             continue;
         }
 
@@ -260,26 +261,19 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             // --> some avatar velocity measurements may be a little off
 
             // no time to simulate, but we take the time to count how many were tragically missed
-            bool inView = sortData.getPriority() > OUT_OF_VIEW_THRESHOLD;
-            if (!inView) {
-                break;
-            }
-            if (inView && avatar->hasNewJointData()) {
-                numAVatarsNotUpdated++;
-            }
-            sortedAvatars.pop();
-            while (inView && !sortedAvatars.empty()) {
-                const SortableAvatar& newSortData = sortedAvatars.top();
+            while (it != sortedAvatarVector.end()) {
+                const SortableAvatar& newSortData = *it;
                 const auto newAvatar = std::static_pointer_cast<Avatar>(newSortData.getAvatar());
-                inView = newSortData.getPriority() > OUT_OF_VIEW_THRESHOLD;
-                if (inView && newAvatar->hasNewJointData()) {
-                    numAVatarsNotUpdated++;
+                bool inView = newSortData.getPriority() > OUT_OF_VIEW_THRESHOLD;
+                // Once we reach an avatar that's not in view, all avatars after it will also be out of view
+                if (!inView) {
+                    break;
                 }
-                sortedAvatars.pop();
+                numAVatarsNotUpdated += (int)(newAvatar->hasNewJointData());
+                ++it;
             }
             break;
         }
-        sortedAvatars.pop();
     }
 
     if (_shouldRender) {
