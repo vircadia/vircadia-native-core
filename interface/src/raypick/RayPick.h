@@ -77,6 +77,7 @@ public:
     PickResultPointer getOverlayIntersection(const PickRay& pick) override;
     PickResultPointer getAvatarIntersection(const PickRay& pick) override;
     PickResultPointer getHUDIntersection(const PickRay& pick) override;
+    Transform getResultTransform() const override;
 
     // These are helper functions for projecting and intersecting rays
     static glm::vec3 intersectRayWithEntityXYPlane(const QUuid& entityID, const glm::vec3& origin, const glm::vec3& direction);

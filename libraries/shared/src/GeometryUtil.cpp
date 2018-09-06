@@ -214,65 +214,39 @@ bool findInsideOutIntersection(float origin, float direction, float corner, floa
     return false;
 }
 
-bool findRayAABoxIntersection(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& corner, const glm::vec3& scale, float& distance,
-                              BoxFace& face, glm::vec3& surfaceNormal) {
-    // handle the trivial case where the box contains the origin
-    if (aaBoxContains(origin, corner, scale)) {
-        // We still want to calculate the distance from the origin to the inside out plane
-        float axisDistance;
-        if ((findInsideOutIntersection(origin.x, direction.x, corner.x, scale.x, axisDistance) && axisDistance >= 0 &&
-            isWithin(origin.y + axisDistance * direction.y, corner.y, scale.y) &&
-            isWithin(origin.z + axisDistance * direction.z, corner.z, scale.z))) {
-            distance = axisDistance;
-            face = direction.x > 0 ? MAX_X_FACE : MIN_X_FACE;
-            surfaceNormal = glm::vec3(direction.x > 0 ? 1.0f : -1.0f, 0.0f, 0.0f);
-            return true;
-        }
-        if ((findInsideOutIntersection(origin.y, direction.y, corner.y, scale.y, axisDistance) && axisDistance >= 0 &&
-            isWithin(origin.x + axisDistance * direction.x, corner.x, scale.x) &&
-            isWithin(origin.z + axisDistance * direction.z, corner.z, scale.z))) {
-            distance = axisDistance;
-            face = direction.y > 0 ? MAX_Y_FACE : MIN_Y_FACE;
-            surfaceNormal = glm::vec3(0.0f, direction.y > 0 ? 1.0f : -1.0f, 0.0f);
-            return true;
-        }
-        if ((findInsideOutIntersection(origin.z, direction.z, corner.z, scale.z, axisDistance) && axisDistance >= 0 &&
-            isWithin(origin.y + axisDistance * direction.y, corner.y, scale.y) &&
-            isWithin(origin.x + axisDistance * direction.x, corner.x, scale.x))) {
-            distance = axisDistance;
-            face = direction.z > 0 ? MAX_Z_FACE : MIN_Z_FACE;
-            surfaceNormal = glm::vec3(0.0f, 0.0f, direction.z > 0 ? 1.0f : -1.0f);
-            return true;
-        }
-        // This case is unexpected, but mimics the previous behavior for inside out intersections
-        distance = 0;
-        return true;
+// https://tavianator.com/fast-branchless-raybounding-box-intersections/
+bool findRayAABoxIntersection(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& invDirection,
+                              const glm::vec3& corner, const glm::vec3& scale, float& distance, BoxFace& face, glm::vec3& surfaceNormal) {
+    float t1, t2, newTmin, newTmax, tmin = -INFINITY, tmax = INFINITY;
+    int minAxis = -1, maxAxis = -1;
+
+    for (int i = 0; i < 3; ++i) {
+        t1 = (corner[i] - origin[i]) * invDirection[i];
+        t2 = (corner[i] + scale[i] - origin[i]) * invDirection[i];
+
+        newTmin = glm::min(t1, t2);
+        newTmax = glm::max(t1, t2);
+
+        minAxis = newTmin > tmin ? i : minAxis;
+        tmin = glm::max(tmin, newTmin);
+        maxAxis = newTmax < tmax ? i : maxAxis;
+        tmax = glm::min(tmax, newTmax);
     }
 
-    // check each axis
-    float axisDistance;
-    if ((findIntersection(origin.x, direction.x, corner.x, scale.x, axisDistance) && axisDistance >= 0 &&
-        isWithin(origin.y + axisDistance * direction.y, corner.y, scale.y) &&
-        isWithin(origin.z + axisDistance * direction.z, corner.z, scale.z))) {
-        distance = axisDistance;
-        face = direction.x > 0 ? MIN_X_FACE : MAX_X_FACE;
-        surfaceNormal = glm::vec3(direction.x > 0 ? -1.0f : 1.0f, 0.0f, 0.0f);
-        return true;
-    }
-    if ((findIntersection(origin.y, direction.y, corner.y, scale.y, axisDistance) && axisDistance >= 0 &&
-        isWithin(origin.x + axisDistance * direction.x, corner.x, scale.x) &&
-        isWithin(origin.z + axisDistance * direction.z, corner.z, scale.z))) {
-        distance = axisDistance;
-        face = direction.y > 0 ? MIN_Y_FACE : MAX_Y_FACE;
-        surfaceNormal = glm::vec3(0.0f, direction.y > 0 ? -1.0f : 1.0f, 0.0f);
-        return true;
-    }
-    if ((findIntersection(origin.z, direction.z, corner.z, scale.z, axisDistance) && axisDistance >= 0 &&
-        isWithin(origin.y + axisDistance * direction.y, corner.y, scale.y) &&
-        isWithin(origin.x + axisDistance * direction.x, corner.x, scale.x))) {
-        distance = axisDistance;
-        face = direction.z > 0 ? MIN_Z_FACE : MAX_Z_FACE;
-        surfaceNormal = glm::vec3(0.0f, 0.0f, direction.z > 0 ? -1.0f : 1.0f);
+    if (tmax >= glm::max(tmin, 0.0f)) {
+        if (tmin < 0.0f) {
+            distance = tmax;
+            bool positiveDirection = direction[maxAxis] > 0.0f;
+            surfaceNormal = glm::vec3(0.0f);
+            surfaceNormal[maxAxis] = positiveDirection ? -1.0f : 1.0f;
+            face = positiveDirection ? BoxFace(2 * maxAxis + 1) : BoxFace(2 * maxAxis);
+        } else {
+            distance = tmin;
+            bool positiveDirection = direction[minAxis] > 0.0f;
+            surfaceNormal = glm::vec3(0.0f);
+            surfaceNormal[minAxis] = positiveDirection ? -1.0f : 1.0f;
+            face = positiveDirection ? BoxFace(2 * minAxis) : BoxFace(2 * minAxis + 1);
+        }
         return true;
     }
     return false;
@@ -286,12 +260,13 @@ bool findRaySphereIntersection(const glm::vec3& origin, const glm::vec3& directi
         distance = 0.0f;
         return true; // starts inside the sphere
     }
-    float b = glm::dot(direction, relativeOrigin);
-    float radicand = b * b - c;
+    float b = 2.0f * glm::dot(direction, relativeOrigin);
+    float a = glm::dot(direction, direction);
+    float radicand = b * b - 4.0f * a * c;
     if (radicand < 0.0f) {
         return false; // doesn't hit the sphere
     }
-    float t = -b - sqrtf(radicand);
+    float t = 0.5f * (-b - sqrtf(radicand)) / a;
     if (t < 0.0f) {
         return false; // doesn't hit the sphere
     }
@@ -391,24 +366,34 @@ Triangle Triangle::operator*(const glm::mat4& transform) const {
     };
 }
 
+// https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& distance, bool allowBackface) {
-    glm::vec3 firstSide = v0 - v1;
-    glm::vec3 secondSide = v2 - v1;
-    glm::vec3 normal = glm::cross(secondSide, firstSide);
-    float dividend = glm::dot(normal, v1) - glm::dot(origin, normal);
-    if (!allowBackface && dividend > 0.0f) {
-        return false; // origin below plane
-    }
-    float divisor = glm::dot(normal, direction);
-    if (divisor >= 0.0f) {
+    glm::vec3 firstSide = v1 - v0;
+    glm::vec3 secondSide = v2 - v0;
+    glm::vec3 P = glm::cross(direction, secondSide);
+    float det = glm::dot(firstSide, P);
+    if (!allowBackface && det < EPSILON) {
+        return false;
+    } else if (fabsf(det) < EPSILON) {
         return false;
     }
-    float t = dividend / divisor;
-    glm::vec3 point = origin + direction * t;
-    if (glm::dot(normal, glm::cross(point - v1, firstSide)) > 0.0f &&
-            glm::dot(normal, glm::cross(secondSide, point - v1)) > 0.0f &&
-            glm::dot(normal, glm::cross(point - v0, v2 - v0)) > 0.0f) {
+
+    float invDet = 1.0f / det;
+    glm::vec3 T = origin - v0;
+    float u = glm::dot(T, P) * invDet;
+    if (u < 0.0f || u > 1.0f) {
+        return false;
+    }
+
+    glm::vec3 Q = glm::cross(T, firstSide);
+    float v = glm::dot(direction, Q) * invDet;
+    if (v < 0.0f || u + v > 1.0f) {
+        return false;
+    }
+
+    float t = glm::dot(secondSide, Q) * invDet;
+    if (t > EPSILON) {
         distance = t;
         return true;
     }
