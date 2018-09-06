@@ -313,9 +313,9 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     // prepare to sort
     const auto& cameraViews = nodeData->getViewFrustums();
     PrioritySortUtil::PriorityQueue<SortableAvatar> sortedAvatars(cameraViews,
-            AvatarData::_avatarSortCoefficientSize,
-            AvatarData::_avatarSortCoefficientCenter,
-            AvatarData::_avatarSortCoefficientAge);
+            /*AvatarData::_avatarSortCoefficientSize*/ 1.0f,    // Suggested weights from Andrew M.
+            /*AvatarData::_avatarSortCoefficientCenter*/ 0.5f,
+            /*AvatarData::_avatarSortCoefficientAge*/ 0.25f);
     sortedAvatars.reserve(_end - _begin);
 
     for (auto listedNode = _begin; listedNode != _end; ++listedNode) {

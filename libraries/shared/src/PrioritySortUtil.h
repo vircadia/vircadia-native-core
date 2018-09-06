@@ -16,49 +16,7 @@
 #include "NumericalConstants.h"
 #include "shared/ConicalViewFrustum.h"
 
-/*   PrioritySortUtil is a helper for sorting 3D things relative to a ViewFrustum.  To use:
-
-(1) Derive a class from pure-virtual PrioritySortUtil::Sortable that wraps a copy of
-    the Thing you want to prioritize and sort:
-
-    class SortableWrapper: public PrioritySortUtil::Sortable {
-    public:
-        SortableWrapper(const Thing& thing) : _thing(thing) { }
-        glm::vec3 getPosition() const override { return _thing->getPosition(); }
-        float getRadius() const override { return 0.5f * _thing->getBoundingRadius(); }
-        uint64_t getTimestamp() const override { return _thing->getLastTime(); }
-        Thing getThing() const { return _thing; }
-    private:
-        Thing _thing;
-    };
-
-(2) Make a PrioritySortUtil::PriorityQueue<Thing> and add them to the queue:
-
-    PrioritySortUtil::PriorityQueue<SortableWrapper> sortedThings(viewFrustum);
-    std::priority_queue< PrioritySortUtil::Sortable<Thing> > sortedThings;
-    for (thing in things) {
-        sortedThings.push(SortableWrapper(thing));
-    }
-
-(3) Loop over your priority queue and do timeboxed work:
-
-    NOTE: Be careful using references to members of instances of T from std::priority_queue<T>.
-          Under the hood std::priority_queue<T> may re-use instances of T.
-          For example, after a pop() or a push() the top T may have the same memory address
-          as the top T before the pop() or push() (but point to a swapped instance of T).
-          This causes a reference to member variable of T to point to a different value
-          when operations taken on std::priority_queue<T> shuffle around the instances of T.
-
-    uint64_t cutoffTime = usecTimestampNow() + TIME_BUDGET;
-    while (!sortedThings.empty()) {
-        const Thing& thing = sortedThings.top();
-        // ...do work on thing...
-        sortedThings.pop();
-        if (usecTimestampNow() > cutoffTime) {
-            break;
-        }
-    }
-*/
+//   PrioritySortUtil is a helper for sorting 3D things relative to a ViewFrustum.
 
 namespace PrioritySortUtil {
 
@@ -84,9 +42,9 @@ namespace PrioritySortUtil {
         PriorityQueue() = delete;
         PriorityQueue(const ConicalViewFrustums& views) : _views(views) { }
         PriorityQueue(const ConicalViewFrustums& views, float angularWeight, float centerWeight, float ageWeight)
-                : _views(views), _angularWeight(angularWeight), _centerWeight(centerWeight), _ageWeight(ageWeight)
-                , _usecCurrentTime(usecTimestampNow())
-        { }
+            : _views(views), _angularWeight(angularWeight), _centerWeight(centerWeight), _ageWeight(ageWeight)
+            , _usecCurrentTime(usecTimestampNow()) {
+        }
 
         void setViews(const ConicalViewFrustums& views) { _views = views; }
 
@@ -138,14 +96,9 @@ namespace PrioritySortUtil {
             float cosineAngle = (glm::dot(offset, view.getDirection()) / distance);
             float age = (float)(_usecCurrentTime - thing.getTimestamp());
 
-            // we modulate "age" drift rate by the cosineAngle term to make peripheral objects sort forward
-            // at a reduced rate but we don't want the "age" term to go zero or negative so we clamp it
-            const float MIN_COSINE_ANGLE_FACTOR = 0.1f;
-            float cosineAngleFactor = glm::max(cosineAngle, MIN_COSINE_ANGLE_FACTOR);
-
-            float priority = _angularWeight * radius / distance
-                + _centerWeight * cosineAngle
-                + _ageWeight * cosineAngleFactor * age;
+            // the "age" term accumulates at the sum of all weights
+            float angularSize = glm::max(radius, MIN_RADIUS) / distance;
+            float priority = (_angularWeight * angularSize + _centerWeight * cosineAngle) * (age + 1.0f) + _ageWeight * age;
 
             // decrement priority of things outside keyhole
             if (distance - radius > view.getRadius()) {
@@ -166,9 +119,8 @@ namespace PrioritySortUtil {
     };
 } // namespace PrioritySortUtil
 
-// for now we're keeping hard-coded sorted time budgets in one spot
+  // for now we're keeping hard-coded sorted time budgets in one spot
 const uint64_t MAX_UPDATE_RENDERABLES_TIME_BUDGET = 2000; // usec
 const uint64_t MIN_SORTED_UPDATE_RENDERABLES_TIME_BUDGET = 1000; // usec
 
 #endif // hifi_PrioritySortUtil_h
-
