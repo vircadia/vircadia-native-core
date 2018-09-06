@@ -8,7 +8,7 @@
 #ifndef hifi_OverlayTransformNode_h
 #define hifi_OverlayTransformNode_h
 
-#include "NestableTransformNode.h"
+#include "TransformNode.h"
 
 #include "Base3DOverlay.h"
 

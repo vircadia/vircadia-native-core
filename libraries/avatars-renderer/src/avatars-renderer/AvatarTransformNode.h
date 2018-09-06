@@ -8,7 +8,7 @@
 #ifndef hifi_AvatarTransformNode_h
 #define hifi_AvatarTransformNode_h
 
-#include "NestableTransformNode.h"
+#include "TransformNode.h"
 
 #include "Avatar.h"
 

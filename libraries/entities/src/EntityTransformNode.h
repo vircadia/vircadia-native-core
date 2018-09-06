@@ -8,7 +8,7 @@
 #ifndef hifi_EntityTransformNode_h
 #define hifi_EntityTransformNode_h
 
-#include "NestableTransformNode.h"
+#include "TransformNode.h"
 
 #include "EntityItem.h"
 
