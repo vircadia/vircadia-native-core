@@ -119,7 +119,6 @@ Box Mesh::evalPartBound(int partNum) const {
         for (;index != endIndex; index++) {
             // skip primitive restart indices
             if ((*index) != PRIMITIVE_RESTART_INDEX) {
-               // box += vertices[(*index)];
                 box += _vertexBuffer.get<Vec3>(part._baseVertex + (*index));
             }
         }
@@ -140,7 +139,6 @@ Box Mesh::evalPartsBound(int partStart, int partEnd) const {
         for (;index != endIndex; index++) {
             // skip primitive restart indices
             if ((*index) != (uint) PRIMITIVE_RESTART_INDEX) {
-                //partBound += vertices[(*index)];
                 partBound += _vertexBuffer.get<Vec3>((*part)._baseVertex + (*index));
             }
         }
