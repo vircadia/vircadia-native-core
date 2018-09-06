@@ -2283,39 +2283,25 @@ SelectionDisplay = (function() {
     
             var changeInDimensions = Vec3.multiply(NEGATE_VECTOR, vec3Mult(localSigns, vector));
             
+            var newDimensions;
             if (proportional) {
                 var viewportDimensions = Controller.getViewportDimensions();
                 var mouseXDifference = (event.x - beginMouseEvent.x) / viewportDimensions.x;
                 var mouseYDifference = (beginMouseEvent.y - event.y) / viewportDimensions.y;
                 var mouseDifference = mouseXDifference + mouseYDifference;
-                changeInDimensions = { x:mouseDifference, y:mouseDifference, z:mouseDifference };
                 var toCameraDistance = getDistanceToCamera(position);   
                 var dimensionsMultiple = toCameraDistance * STRETCH_DIRECTION_ALL_CAMERA_DISTANCE_MULTIPLE; 
-                changeInDimensions = Vec3.multiply(changeInDimensions, dimensionsMultiple); 
-            }
-
-            var newDimensions;
-            if (proportional) {
-                var absoluteX = Math.abs(changeInDimensions.x);
-                var absoluteY = Math.abs(changeInDimensions.y);
-                var absoluteZ = Math.abs(changeInDimensions.z);
-                var percentChange = 0;
-                if (absoluteX > absoluteY && absoluteX > absoluteZ) {
-                    percentChange = changeInDimensions.x / initialProperties.dimensions.x;
-                    percentChange = changeInDimensions.x / initialDimensions.x;
-                } else if (absoluteY > absoluteZ) {
-                    percentChange = changeInDimensions.y / initialProperties.dimensions.y;
-                    percentChange = changeInDimensions.y / initialDimensions.y;
-                } else {
-                    percentChange = changeInDimensions.z / initialProperties.dimensions.z;
-                    percentChange = changeInDimensions.z / initialDimensions.z;
-                }
+                var dimensionChange = mouseDifference * dimensionsMultiple;
+                percentChange = dimensionChange / initialDimensions.z;
                 percentChange += 1.0;
                 newDimensions = Vec3.multiply(percentChange, initialDimensions);
+                newDimensions.x = Math.abs(newDimensions.x);
+                newDimensions.y = Math.abs(newDimensions.y);
+                newDimensions.z = Math.abs(newDimensions.z);
             } else {
                 newDimensions = Vec3.sum(initialDimensions, changeInDimensions);
             }
-    
+
             var minimumDimension = directionEnum ===
                 STRETCH_DIRECTION.ALL ? STRETCH_ALL_MINIMUM_DIMENSION : STRETCH_MINIMUM_DIMENSION; 
             if (newDimensions.x < minimumDimension) {
