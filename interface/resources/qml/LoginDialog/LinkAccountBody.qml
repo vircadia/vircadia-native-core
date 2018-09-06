@@ -86,7 +86,7 @@ Item {
         width: 48
         height: 48
     }
-
+    
     ShortcutText {
         id: mainTextContainer
         anchors {
@@ -97,7 +97,6 @@ Item {
         }
 
         visible: false
-
         text: qsTr("Username or password incorrect.")
         wrapMode: Text.WordWrap
         color: hifi.colors.redAccent
@@ -123,14 +122,14 @@ Item {
             text: Settings.getValue("wallet/savedUsername", "");
             width: parent.width
             focus: true
-            label: "Username or Email"
+            placeholderText: "Username or Email"
             activeFocusOnPress: true
 
             ShortcutText {
                 z: 10
                 anchors {
-                    left: usernameField.left
-                    top: usernameField.top
+                    left: usernameField.right
+                    top: usernameField.bottom
                     leftMargin: usernameField.textFieldLabel.contentWidth + 10
                     topMargin: -19
                 }
@@ -151,16 +150,15 @@ Item {
         TextField {
             id: passwordField
             width: parent.width
-
-            label: "Password"
+            placeholderText: "Password"
             echoMode: showPassword.checked ? TextInput.Normal : TextInput.Password
             activeFocusOnPress: true
 
             ShortcutText {
                 z: 10
                 anchors {
-                    left: passwordField.left
-                    top: passwordField.top
+                    left: passwordField.right
+                    top: passwordField.bottom
                     leftMargin: passwordField.textFieldLabel.contentWidth + 10
                     topMargin: -19
                 }
