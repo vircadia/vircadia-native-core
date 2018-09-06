@@ -220,9 +220,7 @@ static const std::string DEFAULT_DEBUG_SCATTERING_SHADER{
 
 static const std::string DEFAULT_AMBIENT_OCCLUSION_SHADER{
     "vec4 getFragmentColor() {"
-    "    return vec4(vec3(texture(obscuranceMap, uv).x), 1.0);"
-    // When drawing color "    return vec4(vec3(texture(debugTexture0, uv).xyz), 1.0);"
-    // when drawing normal"    return vec4(normalize(texture(debugTexture0, uv).xyz * 2.0 - vec3(1.0)), 1.0);"
+    "    return vec4(vec3(texture(debugTexture0, uv).x), 1.0);"
     " }"
 };
 static const std::string DEFAULT_AMBIENT_OCCLUSION_BLURRED_SHADER{
