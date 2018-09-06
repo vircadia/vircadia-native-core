@@ -129,6 +129,7 @@ Item {
             }
         }
         ShortcutText {
+            id: forgotUsernameShortcut
             z: 10
             anchors {
                 leftMargin: usernameField.textFieldLabel.contentWidth + 10
@@ -149,24 +150,26 @@ Item {
             width: parent.width
             placeholderText: "Password"
             activeFocusOnPress: true
+            echoMode: TextInput.Password
 
             onFocusChanged: {
                 root.text = "";
                 root.isPassword = true;
             }
-
             Image {
                 id: showPasswordImage
-                x: parent.width - 40
-                height: parent.height
-                width: parent.width - (parent.width - 40)
+                x: parent.width - ((parent.height) * 31 / 23)
+                y: (parent.height - (parent.height * 16 / 23)) / 2
+                width: parent.width - (parent.width - (((parent.height) * 31/23)))
+                height: parent.height * 16 / 23
                 source: "../../images/eyeOpen.svg"
             }
 
             Rectangle {
+                id: showPasswordHitbox
                 z: 10
-                x: parent.width - 40
-                width: parent.width - (parent.width - 40)
+                x: parent.width - (parent.height * 31/16)
+                width: parent.width - (parent.width - (parent.height * 31/16))
                 height: parent.height
                 color: "transparent"
                 MouseArea {
@@ -178,6 +181,13 @@ Item {
                         showPassword = !showPassword;
                         passwordField.echoMode = showPassword ? TextInput.Normal : TextInput.Password;
                         showPasswordImage.source = showPassword ?  "../../images/eyeClosed.svg" : "../../images/eyeOpen.svg";
+                        showPasswordImage.width = passwordField.width - (passwordField.width - (passwordField.height * 31/23));
+                        showPasswordImage.x = -(showPasswordImage.width - passwordField.width);
+                        showPasswordImage.height = showPassword ?  passwordField.height : passwordField.height * 16 / 23;
+                        showPasswordImage.y = showPassword ? 0 : (passwordField.height - showPasswordImage.height) / 2;
+                        showPasswordHitbox.width = showPasswordImage.width;
+                        showPasswordHitbox.x = showPasswordImage.x;
+
                     }
                 }
             }
@@ -186,6 +196,7 @@ Item {
         }
 
         ShortcutText {
+            id: forgotPasswordShortcut
             z: 10
             anchors {
                 leftMargin: passwordField.textFieldLabel.contentWidth + 10
