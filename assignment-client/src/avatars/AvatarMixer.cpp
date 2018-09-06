@@ -655,11 +655,14 @@ void AvatarMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> 
         if (addToIgnore) {
             senderNode->addIgnoredNode(ignoredUUID);
 
-            // send a reliable kill packet to remove the sending avatar for the ignored avatar
-            auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason), true);
-            killPacket->write(senderNode->getUUID().toRfc4122());
-            killPacket->writePrimitive(KillAvatarReason::AvatarDisconnected);
-            nodeList->sendPacket(std::move(killPacket), *ignoredNode);
+            if (ignoredNode) {
+                // send a reliable kill packet to remove the sending avatar for the ignored avatar
+                auto killPacket = NLPacket::create(PacketType::KillAvatar,
+                                                   NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason), true);
+                killPacket->write(senderNode->getUUID().toRfc4122());
+                killPacket->writePrimitive(KillAvatarReason::AvatarDisconnected);
+                nodeList->sendPacket(std::move(killPacket), *ignoredNode);
+            }
         } else {
             senderNode->removeIgnoredNode(ignoredUUID);
         }
