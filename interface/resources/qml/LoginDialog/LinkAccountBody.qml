@@ -86,21 +86,6 @@ Item {
         width: 48
         height: 48
     }
-
-    FlavorText {
-        id: flavorTextContainer
-        anchors {
-            top: parent.top
-            margins: 0
-            topMargin: hifi.dimensions.contentSpacing.y
-        }
-
-        text: qsTr("Sign in to High Fidelity to make friends, get HFC, and buy interesting things on the Marketplace!")
-        wrapMode: Text.WordWrap
-        lineHeight: 2
-        lineHeightMode: Text.ProportionalHeight
-        horizontalAlignment: Text.AlignHCenter
-    }
     
     ShortcutText {
         id: mainTextContainer
