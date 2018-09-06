@@ -254,7 +254,7 @@ Item {
             RalewaySemiBold {
                 size: hifi.fontSizes.inputLabel
                 anchors.verticalCenter: parent.verticalCenter
-                text: qsTr("Don't have an account?")
+                text: qsTr("New to High Fidelity?")
             }
 
             Button {
