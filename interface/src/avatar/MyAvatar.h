@@ -1086,6 +1086,8 @@ public:
 
     const QUuid& getSelfID() const { return AVATAR_SELF_ID; }
 
+    void setIsInWalkingState(bool isWalking);
+    bool getIsInWalkingState() const;
     void setWalkSpeed(float value);
     float getWalkSpeed() const;
     void setWalkBackwardSpeed(float value);
