@@ -37,6 +37,15 @@ void ClientTraitsHandler::resetForNewMixer() {
 
     // mark that all traits should be sent next time
     _shouldPerformInitialSend = true;
+
+    // reset the trait statuses
+    _traitStatuses.reset();
+
+    // pre-fill the instanced statuses that we will need to send next frame
+    _owningAvatar->prepareResetTraitInstances();
+
+    // reset the trait XOR ID since we're resetting for a new avatar mixer
+    _owningAvatar->cycleTraitInstanceXORID();
 }
 
 void ClientTraitsHandler::sendChangedTraitsToMixer() {
@@ -87,11 +96,19 @@ void ClientTraitsHandler::sendChangedTraitsToMixer() {
                     || instanceIDValuePair.value == Updated) {
                     // this is a changed trait we need to send or we haven't send out trait information yet
                     // ask the owning avatar to pack it
-                    _owningAvatar->packTraitInstance(instancedIt->traitType, instanceIDValuePair.id, *traitsPacketList);
+
+                    // since this is going to the mixer, use the XORed instance ID (to anonymize trait instance IDs
+                    // that would typically persist across sessions)
+                    _owningAvatar->packTraitInstance(instancedIt->traitType, instanceIDValuePair.id, *traitsPacketList,
+                                                     AvatarTraits::NULL_TRAIT_VERSION,
+                                                     AvatarTraits::xoredInstanceID(instanceIDValuePair.id,
+                                                                                   _owningAvatar->getTraitInstanceXORID()));
                 } else if (!_shouldPerformInitialSend && instanceIDValuePair.value == Deleted) {
                     // pack delete for this trait instance
                     AvatarTraits::packInstancedTraitDelete(instancedIt->traitType, instanceIDValuePair.id,
-                                                           *traitsPacketList);
+                                                           *traitsPacketList, AvatarTraits::NULL_TRAIT_VERSION,
+                                                           AvatarTraits::xoredInstanceID(instanceIDValuePair.id,
+                                                                                         _owningAvatar->getTraitInstanceXORID()));
                 }
             }
 
