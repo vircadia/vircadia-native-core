@@ -307,7 +307,6 @@
 
     var THE_PLACE = "hifi://TheSpot-dev";
     function clickedOnOverlay(overlayID, event) {
-        print(overlayID + " other: " + loadingToTheSpotID);
         if (loadingToTheSpotID === overlayID) {
             location.handleLookupString(THE_PLACE);
         }
@@ -349,8 +348,10 @@
         Overlays.editOverlay(loadingBarPlacard, properties);
         Overlays.editOverlay(loadingBarProgress, loadingBarProperties);
 
-        if (physicsEnabled && !HMD.active) {
-            toolbar.writeProperty("visible", true);
+
+        Menu.setIsOptionChecked("Show Overlays", physicsEnabled);
+        if (!HMD.active) {
+            toolbar.writeProperty("visible", physicsEnabled);
         }
 
         resetValues();
