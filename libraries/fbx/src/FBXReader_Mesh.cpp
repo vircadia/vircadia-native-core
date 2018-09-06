@@ -781,7 +781,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
         attribChannel = 2;
 
         totalAttribBufferSize = totalVertsSize - positionsSize - normalsAndTangentsSize;
-    } else {
+    } /*else {
         auto posBuffer = std::make_shared<gpu::Buffer>();
         posBuffer->setData(positionsSize, (const gpu::Byte*) vertBuffer->getData() + positionsOffset);
         vertexBufferStream->addBuffer(posBuffer, 0, positionElement.getSize());
@@ -794,7 +794,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
         attribChannel = 1;
 
         totalAttribBufferSize = totalVertsSize - positionsSize;
-    }
+    }*/
 
     // Define the vertex format, compute the offset for each attributes as we append them to the vertex format
     gpu::Offset bufOffset = 0;
