@@ -134,7 +134,7 @@ void GL45Backend::updateInput() {
         auto stride = _input._bufferStrides.data();
 
         // Profile the count of buffers to update and use it to short cut the for loop
-        int numInvalids = _input._invalidBuffers.count();
+        int numInvalids = (int) _input._invalidBuffers.count();
         _stats._ISNumInputBufferChanges += numInvalids;
         PROFILE_COUNTER_IF_CHANGED(render_gpu, "numInputBuffersbound", int, numInvalids);
 
