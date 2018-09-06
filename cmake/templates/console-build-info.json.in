@@ -1,4 +1,8 @@
 {
     "releaseType": "@RELEASE_TYPE@",
-    "buildIdentifier": "@BUILD_VERSION@" 
+    "buildNumber": "@BUILD_NUMBER@",
+    "stableBuild": "@STABLE_BUILD@",
+    "buildIdentifier": "@BUILD_VERSION@",
+    "organization": "@BUILD_ORGANIZATION@",
+    "appUserModelId": "@APP_USER_MODEL_ID@"
 }

@@ -9,9 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "ModelBakingLoggingCategory.h"
-
 #include "Baker.h"
+
+#include "ModelBakingLoggingCategory.h"
 
 bool Baker::shouldStop() {
     if (_shouldAbort) {

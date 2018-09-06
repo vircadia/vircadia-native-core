@@ -12,8 +12,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "ScriptEngine.h"
 #include "WebSocketClass.h"
+
+#include "ScriptEngine.h"
 
 WebSocketClass::WebSocketClass(QScriptEngine* engine, QString url) :
     _webSocket(new QWebSocket()),

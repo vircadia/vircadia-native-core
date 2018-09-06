@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  stencil_drawMask.slf
+//  stencil_drawMask.frag
 //  fragment shader
 //
 //  Created by Sam Gateau on 5/31/17.
@@ -12,7 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-in vec2 varTexCoord0;
+layout(location=0) in vec2 varTexCoord0;
 
 float aspectRatio = 0.95;
 

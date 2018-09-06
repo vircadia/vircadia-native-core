@@ -21,7 +21,7 @@ Preference {
 
     Component.onCompleted: {
         slider.value = preference.value;
-        spinner.value = preference.value;
+        spinner.realValue = preference.value;
     }
 
     function save() {
@@ -56,11 +56,11 @@ Preference {
             id: slider
             value: preference.value
             width: 100
-            minimumValue: MyAvatar.getDomainMinScale()
-            maximumValue: MyAvatar.getDomainMaxScale()
+            minimumValue: preference.min
+            maximumValue: preference.max
             stepSize: preference.step
             onValueChanged: {
-                spinner.value = value
+                spinner.realValue = value
             }
             anchors {
                 right: spinner.left
@@ -73,12 +73,12 @@ Preference {
         SpinBox {
             id: spinner
             decimals: preference.decimals
-            value: preference.value
-            minimumValue: MyAvatar.getDomainMinScale()
-            maximumValue: MyAvatar.getDomainMaxScale()
+            realValue: preference.value
+            minimumValue: preference.min
+            maximumValue: preference.max
             width: 100
             onValueChanged: {
-                slider.value = value;
+                slider.value = realValue;
             }
             anchors {
                 right: button.left
@@ -92,10 +92,10 @@ Preference {
             id: button
             onClicked: {
                 if (spinner.maximumValue >= 1) {
-                    spinner.value = 1
+                    spinner.realValue = 1
                     slider.value = 1
                 } else {
-                    spinner.value = spinner.maximumValue
+                    spinner.realValue = spinner.maximumValue
                     slider.value = spinner.maximumValue
                 }
             }

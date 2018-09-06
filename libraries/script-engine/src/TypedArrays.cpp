@@ -9,12 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "TypedArrays.h"
+
 #include <glm/glm.hpp>
 
 #include "ScriptEngine.h"
 #include "TypedArrayPrototype.h"
-
-#include "TypedArrays.h"
 
 Q_DECLARE_METATYPE(QByteArray*)
 

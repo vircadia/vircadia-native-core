@@ -19,6 +19,7 @@ import "../../../controls-uit" as HifiControlsUit
 import "../../../controls" as HifiControls
 import "../common" as HifiCommerceCommon
 import "../common/sendAsset"
+import "../.." as HifiCommon
 
 Rectangle {
     HifiConstants { id: hifi; }
@@ -343,8 +344,14 @@ Rectangle {
         }
     }
 
+    HifiCommon.RootHttpRequest {
+        id: http;
+    }
+
     SendAsset {
         id: sendMoney;
+        http: http;
+        listModelName: "Send Money Connections";
         z: 997;
         visible: root.activeView === "sendMoney";
         anchors.fill: parent;
@@ -375,6 +382,17 @@ Rectangle {
                 } else if (msg.method === 'walletSecurity_changeSecurityImage') {
                     securityImageChange.initModel();
                     root.activeView = "securityImageChange";
+                } else if (msg.method === 'walletSecurity_autoLogoutHelp') {
+                    lightboxPopup.titleText = "Automatically Log Out";
+                    lightboxPopup.bodyText = "By default, after you log in to High Fidelity, you will stay logged in to your High Fidelity " +
+                        "account even after you close and re-open Interface. This means anyone who opens Interface on your computer " +
+                        "could make purchases with your Wallet.\n\n" +
+                        "If you do not want to stay logged in across Interface sessions, check this box.";
+                    lightboxPopup.button1text = "CLOSE";
+                    lightboxPopup.button1method = function() {
+                        lightboxPopup.visible = false;
+                    }
+                    lightboxPopup.visible = true;
                 }
             }
         }
@@ -392,6 +410,9 @@ Rectangle {
             onSendSignalToWallet: {
                 if (msg.method === 'walletReset' || msg.method === 'passphraseReset') {
                     sendToScript(msg);
+                } else if (msg.method === 'walletSecurity_changeSecurityImage') {
+                    securityImageChange.initModel();
+                    root.activeView = "securityImageChange";
                 }
             }
         }
@@ -768,6 +789,13 @@ Rectangle {
             case 'updateSelectedRecipientUsername':
                 sendMoney.fromScript(message);
             break;
+            case 'http.response':
+                http.handleHttpResponse(message);
+            break;
+            case 'palIsStale':
+            case 'avatarDisconnected':
+                // Because we don't have "channels" for sending messages to a specific QML object, the messages are broadcast to all QML Items. If an Item of yours happens to be visible when some script sends a message with a method you don't expect, you'll get "Unrecognized message..." logs.
+            break;
             default:
                 console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
         }
@@ -789,12 +817,24 @@ Rectangle {
     }
 
     function walletResetSetup() {
+        /* Bypass all this and do it automatically
         root.activeView = "walletSetup";
         var timestamp = new Date();
         walletSetup.startingTimestamp = timestamp;
         walletSetup.setupAttemptID = generateUUID();
         UserActivityLogger.commerceWalletSetupStarted(timestamp, walletSetup.setupAttemptID, walletSetup.setupFlowVersion, walletSetup.referrer ? walletSetup.referrer : "wallet app",
             (AddressManager.placename || AddressManager.hostname || '') + (AddressManager.pathname ? AddressManager.pathname.match(/\/[^\/]+/)[0] : ''));
+            */
+
+        var randomNumber = Math.floor(Math.random() * 34) + 1;
+        var securityImagePath = "images/" + addLeadingZero(randomNumber) + ".jpg";
+        Commerce.getWalletAuthenticatedStatus(); // before writing security image, ensures that salt/account password is set.
+        Commerce.chooseSecurityImage(securityImagePath);
+        Commerce.generateKeyPair();
+    }
+
+    function addLeadingZero(n) {
+        return n < 10 ? '0' + n : '' + n;
     }
 
     function followReferrer(msg) {

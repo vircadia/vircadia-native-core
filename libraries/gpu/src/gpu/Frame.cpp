@@ -21,15 +21,12 @@ Frame::~Frame() {
         framebuffer.reset();
     }
 
-    assert(bufferUpdates.empty());
-    if (!bufferUpdates.empty()) {
-        qFatal("Buffer sync error... frame destroyed without buffer updates being applied");
-    }
+    bufferUpdates.clear();
 }
 
 void Frame::finish() {
-    for (Batch& batch : batches) {
-        batch.finishFrame(bufferUpdates);
+    for (const auto& batch : batches) {
+        batch->finishFrame(bufferUpdates);
     }
 }
 

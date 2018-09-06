@@ -14,32 +14,21 @@
 #include <NodeList.h>
 #include <OctreeLogging.h>
 
-
-OctreeHeadlessViewer::OctreeHeadlessViewer() {
-    _viewFrustum.setProjection(glm::perspective(glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES), DEFAULT_ASPECT_RATIO, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
-}
-
 void OctreeHeadlessViewer::queryOctree() {
     char serverType = getMyNodeType();
     PacketType packetType = getMyQueryMessageType();
 
-    _octreeQuery.setCameraPosition(_viewFrustum.getPosition());
-    _octreeQuery.setCameraOrientation(_viewFrustum.getOrientation());
-    _octreeQuery.setCameraFov(_viewFrustum.getFieldOfView());
-    _octreeQuery.setCameraAspectRatio(_viewFrustum.getAspectRatio());
-    _octreeQuery.setCameraNearClip(_viewFrustum.getNearClip());
-    _octreeQuery.setCameraFarClip(_viewFrustum.getFarClip());
-    _octreeQuery.setCameraEyeOffsetPosition(glm::vec3());
-    _octreeQuery.setCameraCenterRadius(_viewFrustum.getCenterRadius());
-    _octreeQuery.setOctreeSizeScale(_voxelSizeScale);
-    _octreeQuery.setBoundaryLevelAdjust(_boundaryLevelAdjust);
+    if (_hasViewFrustum) {
+        ConicalViewFrustums views { _viewFrustum };
+        _octreeQuery.setConicalViews(views);
+    } else {
+        _octreeQuery.clearConicalViews();
+    }
 
     auto nodeList = DependencyManager::get<NodeList>();
 
     auto node = nodeList->soloNodeOfType(serverType);
     if (node && node->getActiveSocket()) {
-        _octreeQuery.setMaxQueryPacketsPerSecond(getMaxPacketsPerSecond());
-
         auto queryPacket = NLPacket::create(packetType);
 
         // encode the query data

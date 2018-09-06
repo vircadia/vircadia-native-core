@@ -9,14 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "EventTypes.h"
+
 #include "KeyEvent.h"
 #include "MouseEvent.h"
 #include "SpatialEvent.h"
 #include "PointerEvent.h"
 #include "TouchEvent.h"
 #include "WheelEvent.h"
-
-#include "EventTypes.h"
 
 void registerEventTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, KeyEvent::toScriptValue, KeyEvent::fromScriptValue);

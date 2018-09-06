@@ -25,8 +25,8 @@
 #include "AudioHelpers.h"
 #include "AudioMixer.h"
 
-AudioMixerClientData::AudioMixerClientData(const QUuid& nodeID) :
-    NodeData(nodeID),
+AudioMixerClientData::AudioMixerClientData(const QUuid& nodeID, Node::LocalID nodeLocalID) :
+    NodeData(nodeID, nodeLocalID),
     audioLimiter(AudioConstants::SAMPLE_RATE, AudioConstants::STEREO),
     _ignoreZone(*this),
     _outgoingMixedAudioSequenceNumber(0),
@@ -624,8 +624,8 @@ AudioMixerClientData::IgnoreZone& AudioMixerClientData::IgnoreZoneMemo::get(unsi
             scale = MIN_IGNORE_BOX_SCALE;
         }
 
-        // quadruple the scale (this is arbitrary number chosen for comfort)
-        const float IGNORE_BOX_SCALE_FACTOR = 4.0f;
+        // (this is arbitrary number determined empirically for comfort)
+        const float IGNORE_BOX_SCALE_FACTOR = 2.4f;
         scale *= IGNORE_BOX_SCALE_FACTOR;
 
         // create the box (we use a box for the zone for convenience)

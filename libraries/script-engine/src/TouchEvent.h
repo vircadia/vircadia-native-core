@@ -13,7 +13,12 @@
 #define hifi_TouchEvent_h
 
 #include <glm/glm.hpp>
+
+#include <QVector>
 #include <QTouchEvent>
+
+class QScriptValue;
+class QScriptEngine;
 
 class TouchEvent {
 public:

@@ -22,13 +22,14 @@ const float AnimationPropertyGroup::MAXIMUM_POSSIBLE_FRAME = 100000.0f;
 
 bool operator==(const AnimationPropertyGroup& a, const AnimationPropertyGroup& b) {
     return
-
         (a._currentFrame == b._currentFrame) &&
         (a._running == b._running) &&
         (a._loop == b._loop) &&
         (a._hold == b._hold) &&
         (a._firstFrame == b._firstFrame) &&
         (a._lastFrame == b._lastFrame) &&
+        (a._fps == b._fps) &&
+        (a._allowTranslation == b._allowTranslation) &&
         (a._url == b._url);
 }
 
@@ -40,13 +41,15 @@ bool operator!=(const AnimationPropertyGroup& a, const AnimationPropertyGroup& b
         (a._hold != b._hold) ||
         (a._firstFrame != b._firstFrame) ||
         (a._lastFrame != b._lastFrame) ||
+        (a._fps != b._fps) ||
+        (a._allowTranslation != b._allowTranslation) ||
         (a._url != b._url);
 }
 
 
 /**jsdoc
  * The AnimationProperties are used to configure an animation.
- * @typedef Entities.AnimationProperties
+ * @typedef {object} Entities.AnimationProperties
  * @property {string} url="" - The URL of the FBX file that has the animation.
  * @property {number} fps=30 - The speed in frames/s that the animation is played at.
  * @property {number} firstFrame=0 - The first frame to play in the animation.
@@ -216,7 +219,6 @@ bool AnimationPropertyGroup::appendToEditPacket(OctreePacketData* packetData,
 
 
 bool AnimationPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags, const unsigned char*& dataAt , int& processedBytes) {
-
     int bytesRead = 0;
     bool overwriteLocalData = true;
     bool somethingChanged = false;
@@ -359,4 +361,22 @@ int AnimationPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char
     READ_ENTITY_PROPERTY(PROP_ANIMATION_LAST_FRAME, float, setLastFrame);
     READ_ENTITY_PROPERTY(PROP_ANIMATION_HOLD, bool, setHold);
     return bytesRead;
+}
+
+float AnimationPropertyGroup::getNumFrames() const {
+    return _lastFrame - _firstFrame + 1.0f;
+}
+
+float AnimationPropertyGroup::computeLoopedFrame(float frame) const {
+    float numFrames = getNumFrames();
+    if (numFrames > 1.0f) {
+        frame = getFirstFrame() + fmodf(frame - getFirstFrame(), numFrames);
+    } else {
+        frame = getFirstFrame();
+    }
+    return frame;
+}
+
+bool AnimationPropertyGroup::isValidAndRunning() const {
+    return getRunning() && (getFPS() > 0.0f) && (getNumFrames() > 1.0f) && !(getURL().isEmpty());
 }

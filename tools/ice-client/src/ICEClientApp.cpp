@@ -9,14 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ICEClientApp.h"
+
 #include <QDataStream>
 #include <QLoggingCategory>
 #include <QCommandLineParser>
+
 #include <PathUtils.h>
 #include <LimitedNodeList.h>
 #include <NetworkLogging.h>
-
-#include "ICEClientApp.h"
 
 ICEClientApp::ICEClientApp(int argc, char* argv[]) :
     QCoreApplication(argc, argv)

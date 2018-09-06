@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "FBXBaker.h"
+
 #include <cmath> // need this include so we don't get an error looking for std::isnan
 
 #include <QtConcurrent>
@@ -31,7 +33,9 @@
 #include "ModelBakingLoggingCategory.h"
 #include "TextureBaker.h"
 
-#include "FBXBaker.h"
+#ifdef HIFI_DUMP_FBX
+#include "FBXToJSON.h"
+#endif
 
 void FBXBaker::bake() {    
     qDebug() << "FBXBaker" << _modelURL << "bake starting";
@@ -65,13 +69,6 @@ void FBXBaker::bakeSourceCopy() {
     }
 
     rewriteAndBakeSceneModels();
-
-    if (shouldStop()) {
-        return;
-    }
-
-    // export the FBX with re-written texture references
-    exportScene();
 
     if (shouldStop()) {
         return;
@@ -194,6 +191,21 @@ void FBXBaker::importScene() {
 
     qCDebug(model_baking) << "Parsing" << _modelURL;
     _rootNode = reader._rootNode = reader.parseFBX(&fbxFile);
+
+#ifdef HIFI_DUMP_FBX
+    {
+        FBXToJSON fbxToJSON;
+        fbxToJSON << _rootNode;
+        QFileInfo modelFile(_originalModelFilePath);
+        QString outFilename(_bakedOutputDir + "/" + modelFile.completeBaseName() + "_FBX.json");
+        QFile jsonFile(outFilename);
+        if (jsonFile.open(QIODevice::WriteOnly)) {
+            jsonFile.write(fbxToJSON.str().c_str(), fbxToJSON.str().length());
+            jsonFile.close();
+        }
+    }
+#endif
+
     _geometry = reader.extractFBXGeometry({}, _modelURL.toString());
     _textureContentMap = reader._textureContent;
 }
@@ -238,39 +250,40 @@ void FBXBaker::rewriteAndBakeSceneModels() {
                         } else if (hasWarnings()) {
                             continue;
                         }
-                    }
-                    
-                    objectChild.children.push_back(dracoMeshNode);
+                    } else {
+                        objectChild.children.push_back(dracoMeshNode);
 
-                    static const std::vector<QString> nodeNamesToDelete {
-                        // Node data that is packed into the draco mesh
-                        "Vertices",
-                        "PolygonVertexIndex",
-                        "LayerElementNormal",
-                        "LayerElementColor",
-                        "LayerElementUV",
-                        "LayerElementMaterial",
-                        "LayerElementTexture",
+                        static const std::vector<QString> nodeNamesToDelete {
+                            // Node data that is packed into the draco mesh
+                            "Vertices",
+                            "PolygonVertexIndex",
+                            "LayerElementNormal",
+                            "LayerElementColor",
+                            "LayerElementUV",
+                            "LayerElementMaterial",
+                            "LayerElementTexture",
 
-                        // Node data that we don't support
-                        "Edges",
-                        "LayerElementTangent",
-                        "LayerElementBinormal",
-                        "LayerElementSmoothing"
-                    };
-                    auto& children = objectChild.children;
-                    auto it = children.begin();
-                    while (it != children.end()) {
-                        auto begin = nodeNamesToDelete.begin();
-                        auto end = nodeNamesToDelete.end();
-                        if (find(begin, end, it->name) != end) {
-                            it = children.erase(it);
-                        } else {
-                            ++it;
+                            // Node data that we don't support
+                            "Edges",
+                            "LayerElementTangent",
+                            "LayerElementBinormal",
+                            "LayerElementSmoothing"
+                        };
+                        auto& children = objectChild.children;
+                        auto it = children.begin();
+                        while (it != children.end()) {
+                            auto begin = nodeNamesToDelete.begin();
+                            auto end = nodeNamesToDelete.end();
+                            if (find(begin, end, it->name) != end) {
+                                it = children.erase(it);
+                            } else {
+                                ++it;
+                            }
                         }
                     }
-                }
-            }
+                }  // Geometry Object
+
+            } // foreach root child
         }
     }
 }
@@ -351,28 +364,4 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
             }
         }
     }
-}
-
-void FBXBaker::exportScene() {
-    // save the relative path to this FBX inside our passed output folder
-    auto fileName = _modelURL.fileName();
-    auto baseName = fileName.left(fileName.lastIndexOf('.'));
-    auto bakedFilename = baseName + BAKED_FBX_EXTENSION;
-
-    _bakedModelFilePath = _bakedOutputDir + "/" + bakedFilename;
-
-    auto fbxData = FBXWriter::encodeFBX(_rootNode);
-
-    QFile bakedFile(_bakedModelFilePath);
-
-    if (!bakedFile.open(QIODevice::WriteOnly)) {
-        handleError("Error opening " + _bakedModelFilePath + " for writing");
-        return;
-    }
-
-    bakedFile.write(fbxData);
-
-    _outputFiles.push_back(_bakedModelFilePath);
-
-    qCDebug(model_baking) << "Exported" << _modelURL << "with re-written paths to" << _bakedModelFilePath;
 }

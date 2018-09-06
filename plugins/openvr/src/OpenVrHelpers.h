@@ -14,6 +14,7 @@
 
 #include <controllers/Forward.h>
 #include <plugins/Forward.h>
+#include <string>
 
 bool oculusViaOpenVR(); // is the user using Oculus via OpenVR
 bool openVrSupported();
@@ -26,6 +27,7 @@ void enableOpenVrKeyboard(PluginContainer* container);
 void disableOpenVrKeyboard();
 bool isOpenVrKeyboardShown();
 QString getVrSettingString(const char* section, const char* setting);
+std::string getOpenVrDeviceName();
 
 
 template<typename F>

@@ -20,9 +20,6 @@
 #include <AABox.h>
 #include <Extents.h>
 
-#include <glm/gtc/packing.hpp>
-#include <glm/detail/type_vec.hpp>
-
 namespace glm {
     using hvec2 = glm::tvec2<glm::detail::hdata>;
     using hvec4 = glm::tvec4<glm::detail::hdata>;
@@ -60,32 +57,6 @@ namespace {
             index * byteLength < (view._size - 1) * byteLength
         );
     }
-}
-
-void packNormalAndTangent(glm::vec3 normal, glm::vec3 tangent, glm::uint32& packedNormal, glm::uint32& packedTangent) {
-    auto absNormal = glm::abs(normal);
-    auto absTangent = glm::abs(tangent);
-    normal /= glm::max(1e-6f, glm::max(glm::max(absNormal.x, absNormal.y), absNormal.z));
-    tangent /= glm::max(1e-6f, glm::max(glm::max(absTangent.x, absTangent.y), absTangent.z));
-    normal = glm::clamp(normal, -1.0f, 1.0f);
-    tangent = glm::clamp(tangent, -1.0f, 1.0f);
-    normal *= 511.0f;
-    tangent *= 511.0f;
-    normal = glm::round(normal);
-    tangent = glm::round(tangent);
-
-    glm::detail::i10i10i10i2 normalStruct;
-    glm::detail::i10i10i10i2 tangentStruct;
-    normalStruct.data.x = int(normal.x);
-    normalStruct.data.y = int(normal.y);
-    normalStruct.data.z = int(normal.z);
-    normalStruct.data.w = 0;
-    tangentStruct.data.x = int(tangent.x);
-    tangentStruct.data.y = int(tangent.y);
-    tangentStruct.data.z = int(tangent.z);
-    tangentStruct.data.w = 0;
-    packedNormal = normalStruct.pack;
-    packedTangent = tangentStruct.pack;
 }
 
 template <typename T>

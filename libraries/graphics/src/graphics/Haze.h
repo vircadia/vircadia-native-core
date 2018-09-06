@@ -57,7 +57,7 @@ namespace graphics {
         // limit range and altitude to no less than 1.0 metres
         static inline float convertHazeRangeToHazeRangeFactor(const float hazeRange) { return -LOG_P_005 / glm::max(hazeRange, 1.0f); }
 
-        static inline float convertHazeAltitudeToHazeAltitudeFactor(const float hazeHeight) { return -LOG_P_005 / glm::max(hazeHeight, 1.0f); }
+        static inline float convertHazeAltitudeToHazeAltitudeFactor(const float hazeHeight) { return -(LOG_P_005 * glm::sign(hazeHeight)) / glm::max(glm::abs(hazeHeight), 1.0f); }
 
         // Derivation (s is the proportion of sun blend, a is the angle at which the blend is 50%, solve for m = 0.5
         //  s = dot(lookAngle, sunAngle) = cos(a)

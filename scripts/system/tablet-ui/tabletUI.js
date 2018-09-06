@@ -13,7 +13,7 @@
 //
 
 /* global Script, HMD, WebTablet, UIWebTablet, UserActivityLogger, Settings, Entities, Messages, Tablet, Overlays,
-   MyAvatar, Menu, AvatarInputs, Vec3 */
+   MyAvatar, Menu, AvatarInputs, Vec3, cleanUpOldMaterialEntities */
 
 (function() { // BEGIN LOCAL_SCOPE
     var tabletRezzed = false;
@@ -24,12 +24,20 @@
     var validCheckTime = Date.now();
     var debugTablet = false;
     var tabletScalePercentage = 70.0;
-    UIWebTablet = null;
+    var UIWebTablet = null;
     var MSECS_PER_SEC = 1000.0;
     var MUTE_MICROPHONE_MENU_ITEM = "Mute Microphone";
     var gTablet = null;
 
     Script.include("../libraries/WebTablet.js");
+
+    function cleanupMaterialEntities() {
+        if (Window.isPhysicsEnabled()) {
+            cleanUpOldMaterialEntities();
+            return;
+        }
+        Script.setTimeout(cleanupMaterialEntities, 100);
+    }
 
     function checkTablet() {
         if (gTablet === null) {
@@ -103,8 +111,8 @@
         UIWebTablet.register();
         HMD.tabletID = UIWebTablet.tabletEntityID;
         HMD.homeButtonID = UIWebTablet.homeButtonID;
-        HMD.homeButtonHighlightID = UIWebTablet.homeButtonHighlightID;
         HMD.tabletScreenID = UIWebTablet.webOverlayID;
+        HMD.homeButtonHighlightID = UIWebTablet.homeButtonHighlightID;
         HMD.displayModeChanged.connect(onHmdChanged);
         MyAvatar.sensorToWorldScaleChanged.connect(onSensorToWorldScaleChanged);
 
@@ -298,7 +306,7 @@
         }
         wantsMenu = clicked;
     });
-    
+
     clickMapping.from(Controller.Standard.Start).peek().to(function (clicked) {
     if (clicked) {
         //activeHudPoint2dGamePad();
@@ -328,4 +336,5 @@
         HMD.homeButtonHighlightID = null;
         HMD.tabletScreenID = null;
     });
+    Script.setTimeout(cleanupMaterialEntities, 100);
 }()); // END LOCAL_SCOPE

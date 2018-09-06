@@ -84,7 +84,7 @@ private:
     const gpu::PipelinePointer& getLinearDepthPipeline(const render::RenderContextPointer& renderContext);
     gpu::PipelinePointer _linearDepthPipeline;
 
-    const gpu::PipelinePointer& getDownsamplePipeline();
+    const gpu::PipelinePointer& getDownsamplePipeline(const render::RenderContextPointer& renderContext);
     gpu::PipelinePointer _downsamplePipeline;
 
     gpu::RangeTimerPointer _gpuTimer;

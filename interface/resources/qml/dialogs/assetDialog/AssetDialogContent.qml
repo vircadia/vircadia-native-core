@@ -20,15 +20,10 @@ import "../fileDialog"
 Item {
     // Set from OffscreenUi::assetDialog()
     property alias dir: assetTableModel.folder
-    property alias filter: selectionType.filtersString  // FIXME: Currently only supports simple filters, "*.xxx".
-    property int options  // Not used.
+    property alias filter: selectionType.filtersString
+    property int options
 
     property bool selectDirectory: false
-
-    // Not implemented.
-    //property bool saveDialog: false;
-    //property bool multiSelect: false;
-
     property bool singleClickNavigate: false
 
     HifiConstants { id: hifi }
@@ -85,7 +80,6 @@ Item {
                 size: 28
                 width: height
                 enabled: destination !== ""
-                //onClicked: d.navigateHome();
                 onClicked: assetTableModel.folder = destination;
             }
         }
@@ -228,7 +222,9 @@ Item {
 
             function onGetAllMappings(error, map) {
                 var mappings,
-                    fileTypeFilter,
+                    fileTypeFilters = [],
+                    filterListStart,
+                    filterListEnd,
                     index,
                     path,
                     fileName,
@@ -249,7 +245,16 @@ Item {
 
                 if (error === "") {
                     mappings = Object.keys(map);
-                    fileTypeFilter = filter.replace("*", "").toLowerCase();
+                    filter = filter.replace(/\s/g, '');
+                    filterListStart = filter.indexOf("(");
+                    filterListEnd = filter.indexOf(")");
+                    if (filterListStart !== -1 && filterListEnd !== -1) {
+                        var FIRST_EXTENSION_OFFSET = 2;
+                        fileTypeFilters = filter.substring(filterListStart + FIRST_EXTENSION_OFFSET
+                            , filterListEnd).toLowerCase().split("*");
+                    } else if (filter !== "") {
+                        fileTypeFilters[0] = filter.replace("*", "").toLowerCase();
+                    }
 
                     for (i = 0, length = mappings.length; i < length; i++) {
                         index = mappings[i].lastIndexOf("/");
@@ -260,7 +265,24 @@ Item {
                         fileIsDir = false;
                         isValid = false;
 
-                        if (fileType.toLowerCase() === fileTypeFilter) {
+                        if (fileTypeFilters.length > 1) {
+                            if (fileTypeFilters.indexOf(fileType.toLowerCase()) !== -1) {
+                                if (path === folder) {
+                                    isValid = !selectDirectory;
+                                } else if (path.length > folder.length) {
+                                    subDirectory = path.slice(folder.length);
+                                    index = subDirectory.indexOf("/");
+                                    if (index === subDirectory.lastIndexOf("/")) {
+                                        fileName = subDirectory.slice(0, index);
+                                        if (subDirectories.indexOf(fileName) === -1) {
+                                            fileIsDir = true;
+                                            isValid = true;
+                                            subDirectories.push(fileName);
+                                        }
+                                    }
+                                }
+                            }
+                        } else if (fileType.toLowerCase() === fileTypeFilters[0] || fileTypeFilters.length === 0) {
                             if (path === folder) {
                                 isValid = !selectDirectory;
                             } else if (path.length > folder.length) {

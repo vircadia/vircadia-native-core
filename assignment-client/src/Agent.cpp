@@ -19,20 +19,25 @@
 #include <QtNetwork/QNetworkReply>
 #include <QThread>
 
+#include <AnimationCacheScriptingInterface.h>
 #include <AssetClient.h>
 #include <AvatarHashMap.h>
 #include <AudioInjectorManager.h>
 #include <AssetClient.h>
 #include <DebugDraw.h>
+#include <EntityScriptingInterface.h>
 #include <LocationScriptingInterface.h>
 #include <MessagesClient.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
 #include <ResourceCache.h>
+#include <ResourceScriptingInterface.h>
 #include <ScriptCache.h>
 #include <ScriptEngines.h>
+#include <SoundCacheScriptingInterface.h>
 #include <SoundCache.h>
+#include <UserActivityLoggerScriptingInterface.h>
 #include <UsersScriptingInterface.h>
 #include <UUID.h>
 
@@ -48,9 +53,10 @@
 #include <EntityScriptingInterface.h> // TODO: consider moving to scriptengine.h
 
 #include "entities/AssignmentParentFinder.h"
+#include "AssignmentDynamicFactory.h"
 #include "RecordingScriptingInterface.h"
 #include "AbstractAudioInterface.h"
-
+#include "AgentScriptingInterface.h"
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
 
@@ -60,15 +66,29 @@ Agent::Agent(ReceivedMessage& message) :
     _audioGate(AudioConstants::SAMPLE_RATE, AudioConstants::MONO),
     _avatarAudioTimer(this)
 {
+    DependencyManager::set<ScriptableAvatar>();
+
+    DependencyManager::registerInheritance<EntityDynamicFactoryInterface, AssignmentDynamicFactory>();
+    DependencyManager::set<AssignmentDynamicFactory>();
+
+    DependencyManager::set<AnimationCache>();
+    DependencyManager::set<AnimationCacheScriptingInterface>();
+    DependencyManager::set<EntityScriptingInterface>(false);
+
+    DependencyManager::set<ResourceScriptingInterface>();
+    DependencyManager::set<UserActivityLoggerScriptingInterface>();
+
     _entityEditSender.setPacketsPerSecond(DEFAULT_ENTITY_PPS_PER_SCRIPT);
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
     DependencyManager::set<ResourceManager>();
+    DependencyManager::set<PluginManager>();
 
     DependencyManager::registerInheritance<SpatialParentFinder, AssignmentParentFinder>();
 
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<SoundCache>();
+    DependencyManager::set<SoundCacheScriptingInterface>();
     DependencyManager::set<AudioScriptingInterface>();
     DependencyManager::set<AudioInjectorManager>();
 
@@ -77,8 +97,6 @@ Agent::Agent(ReceivedMessage& message) :
     DependencyManager::set<recording::ClipCache>();
 
     DependencyManager::set<ScriptCache>();
-    DependencyManager::set<ScriptEngines>(ScriptEngine::AGENT_SCRIPT);
-
     DependencyManager::set<RecordingScriptingInterface>();
     DependencyManager::set<UsersScriptingInterface>();
 
@@ -95,7 +113,6 @@ Agent::Agent(ReceivedMessage& message) :
         { PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
         this, "handleOctreePacket");
     packetReceiver.registerListener(PacketType::SelectedAudioFormat, this, "handleSelectedAudioFormat");
-
 
     // 100Hz timer for audio
     const int TARGET_INTERVAL_MSEC = 10; // 10ms
@@ -157,6 +174,8 @@ void Agent::handleAudioPacket(QSharedPointer<ReceivedMessage> message) {
 static const QString AGENT_LOGGING_NAME = "agent";
 
 void Agent::run() {
+    // Create ScriptEngines on threaded-assignment thread then move to main thread.
+    DependencyManager::set<ScriptEngines>(ScriptEngine::AGENT_SCRIPT)->moveToThread(qApp->thread());
 
     // make sure we request our script once the agent connects to the domain
     auto nodeList = DependencyManager::get<NodeList>();
@@ -343,10 +362,10 @@ void Agent::scriptRequestFinished() {
 void Agent::executeScript() {
     _scriptEngine = scriptEngineFactory(ScriptEngine::AGENT_SCRIPT, _scriptContents, _payload);
 
-    DependencyManager::get<RecordingScriptingInterface>()->setScriptEngine(_scriptEngine);
-
     // setup an Avatar for the script to use
     auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
+
+    scriptedAvatar->setID(getSessionUUID());
 
     connect(_scriptEngine.data(), SIGNAL(update(float)),
             scriptedAvatar.data(), SLOT(update(float)), Qt::ConnectionType::QueuedConnection);
@@ -365,7 +384,6 @@ void Agent::executeScript() {
     // give scripts access to the Users object
     _scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
 
-
     auto player = DependencyManager::get<recording::Deck>();
     connect(player.data(), &recording::Deck::playbackStateChanged, [=] {
         if (player->isPlaying()) {
@@ -380,7 +398,7 @@ void Agent::executeScript() {
 
     using namespace recording;
     static const FrameType AVATAR_FRAME_TYPE = Frame::registerFrameType(AvatarData::FRAME_NAME);
-    Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [this, scriptedAvatar](Frame::ConstPointer frame) {
+    Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [scriptedAvatar](Frame::ConstPointer frame) {
 
         auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
         bool useFrameSkeleton = recordingInterface->getPlayerUseSkeletonModel();
@@ -437,7 +455,7 @@ void Agent::executeScript() {
             encodedBuffer = audio;
         }
 
-        AbstractAudioInterface::emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), audioSequenceNumber, false, 
+        AbstractAudioInterface::emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), audioSequenceNumber, false,
             audioTransform, scriptedAvatar->getWorldPosition(), glm::vec3(0),
             packetType, _selectedCodecName);
     });
@@ -445,16 +463,11 @@ void Agent::executeScript() {
     auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
     _scriptEngine->registerGlobalObject("AvatarList", avatarHashMap.data());
 
-    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::BulkAvatarData, avatarHashMap.data(), "processAvatarDataPacket");
-    packetReceiver.registerListener(PacketType::KillAvatar, avatarHashMap.data(), "processKillAvatar");
-    packetReceiver.registerListener(PacketType::AvatarIdentity, avatarHashMap.data(), "processAvatarIdentityPacket");
-
     // register ourselves to the script engine
-    _scriptEngine->registerGlobalObject("Agent", this);
+    _scriptEngine->registerGlobalObject("Agent", new AgentScriptingInterface(this));
 
-    _scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCache>().data());
-    _scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
+    _scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCacheScriptingInterface>().data());
+    _scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCacheScriptingInterface>().data());
 
     QScriptValue webSocketServerConstructorValue = _scriptEngine->newFunction(WebSocketServerClass::constructor);
     _scriptEngine->globalObject().setProperty("WebSocketServer", webSocketServerConstructorValue);
@@ -495,7 +508,6 @@ void Agent::executeScript() {
     Frame::clearFrameHandler(AVATAR_FRAME_TYPE);
 
     DependencyManager::destroy<RecordingScriptingInterface>();
-
     setFinished(true);
 }
 
@@ -514,7 +526,7 @@ void Agent::setIsListeningToAudioStream(bool isListeningToAudioStream) {
 
         auto nodeList = DependencyManager::get<NodeList>();
         nodeList->eachMatchingNode(
-            [&](const SharedNodePointer& node)->bool {
+            [](const SharedNodePointer& node)->bool {
             return (node->getType() == NodeType::AudioMixer) && node->getActiveSocket();
         },
             [&](const SharedNodePointer& node) {
@@ -548,16 +560,21 @@ void Agent::setIsAvatar(bool isAvatar) {
     if (_isAvatar && !_avatarIdentityTimer) {
         // set up the avatar timers
         _avatarIdentityTimer = new QTimer(this);
+        _avatarQueryTimer = new QTimer(this);
 
         // connect our slot
         connect(_avatarIdentityTimer, &QTimer::timeout, this, &Agent::sendAvatarIdentityPacket);
+        connect(_avatarQueryTimer, &QTimer::timeout, this, &Agent::queryAvatars);
+
+        static const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
+        static const int AVATAR_VIEW_PACKET_SEND_INTERVAL_MSECS = 1000;
 
         // start the timers
         _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);  // FIXME - we shouldn't really need to constantly send identity packets
+        _avatarQueryTimer->start(AVATAR_VIEW_PACKET_SEND_INTERVAL_MSECS);
 
         // tell the avatarAudioTimer to start ticking
         QMetaObject::invokeMethod(&_avatarAudioTimer, "start");
-
     }
 
     if (!_isAvatar) {
@@ -566,6 +583,10 @@ void Agent::setIsAvatar(bool isAvatar) {
             _avatarIdentityTimer->stop();
             delete _avatarIdentityTimer;
             _avatarIdentityTimer = nullptr;
+
+            _avatarQueryTimer->stop();
+            delete _avatarQueryTimer;
+            _avatarQueryTimer = nullptr;
 
             // The avatar mixer never times out a connection (e.g., based on identity or data packets)
             // but rather keeps avatars in its list as long as "connected". As a result, clients timeout
@@ -585,7 +606,13 @@ void Agent::setIsAvatar(bool isAvatar) {
                 nodeList->sendPacket(std::move(packet), *node);
             });
         }
+
         QMetaObject::invokeMethod(&_avatarAudioTimer, "stop");
+
+        _entityEditSender.setMyAvatar(nullptr);
+    } else {
+        auto scriptableAvatar = DependencyManager::get<ScriptableAvatar>();
+        _entityEditSender.setMyAvatar(scriptableAvatar.data());
     }
 }
 
@@ -595,6 +622,31 @@ void Agent::sendAvatarIdentityPacket() {
         scriptedAvatar->markIdentityDataChanged();
         scriptedAvatar->sendIdentityPacket();
     }
+}
+
+void Agent::queryAvatars() {
+    auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
+
+    ViewFrustum view;
+    view.setPosition(scriptedAvatar->getWorldPosition());
+    view.setOrientation(scriptedAvatar->getHeadOrientation());
+    view.calculate();
+    ConicalViewFrustum conicalView { view };
+
+    auto avatarPacket = NLPacket::create(PacketType::AvatarQuery);
+    auto destinationBuffer = reinterpret_cast<unsigned char*>(avatarPacket->getPayload());
+    auto bufferStart = destinationBuffer;
+
+    uint8_t numFrustums = 1;
+    memcpy(destinationBuffer, &numFrustums, sizeof(numFrustums));
+    destinationBuffer += sizeof(numFrustums);
+
+    destinationBuffer += conicalView.serialize(destinationBuffer);
+
+    avatarPacket->setPayloadSize(destinationBuffer - bufferStart);
+
+    DependencyManager::get<NodeList>()->broadcastToNodes(std::move(avatarPacket),
+                                                         { NodeType::AvatarMixer });
 }
 
 void Agent::processAgentAvatar() {
@@ -789,29 +841,32 @@ void Agent::processAgentAvatarAudio() {
 void Agent::aboutToFinish() {
     setIsAvatar(false);// will stop timers for sending identity packets
 
-    if (_scriptEngine) {
-        _scriptEngine->stop();
-    }
-
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(nullptr);
 
     DependencyManager::get<ResourceManager>()->cleanup();
+
+    DependencyManager::destroy<PluginManager>();
 
     // cleanup the AudioInjectorManager (and any still running injectors)
     DependencyManager::destroy<AudioInjectorManager>();
 
     // destroy all other created dependencies
     DependencyManager::destroy<ScriptCache>();
-    DependencyManager::destroy<ScriptEngines>();
 
     DependencyManager::destroy<ResourceCacheSharedItems>();
+    DependencyManager::destroy<SoundCacheScriptingInterface>();
     DependencyManager::destroy<SoundCache>();
     DependencyManager::destroy<AudioScriptingInterface>();
 
     DependencyManager::destroy<recording::Deck>();
     DependencyManager::destroy<recording::Recorder>();
     DependencyManager::destroy<recording::ClipCache>();
+    DependencyManager::destroy<ScriptEngine>();
+
+    DependencyManager::destroy<AssignmentDynamicFactory>();
+
+    DependencyManager::destroy<ScriptableAvatar>();
 
     QMetaObject::invokeMethod(&_avatarAudioTimer, "stop");
 
@@ -819,5 +874,13 @@ void Agent::aboutToFinish() {
     if (_codec && _encoder) {
         _codec->releaseEncoder(_encoder);
         _encoder = nullptr;
+    }
+}
+
+void Agent::stop() {
+    if (_scriptEngine) {
+        _scriptEngine->stop();
+    } else {
+        setFinished(true);
     }
 }

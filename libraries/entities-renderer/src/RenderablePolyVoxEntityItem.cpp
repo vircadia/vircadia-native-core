@@ -25,13 +25,14 @@
 #include <EntityEditPacketSender.h>
 #include <PhysicalEntitySimulation.h>
 #include <StencilMaskPass.h>
+#include <graphics/ShaderConstants.h>
+#include <render/ShapePipeline.h>
+
+#include "entities-renderer/ShaderConstants.h"
+
+#include <shaders/Shaders.h>
 
 #include "EntityTreeRenderer.h"
-
-#include "polyvox_vert.h"
-#include "polyvox_frag.h"
-#include "polyvox_fade_vert.h"
-#include "polyvox_fade_frag.h"
 
 #ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
 #   include <FadeEffect.h>
@@ -71,11 +72,6 @@
 #include "StencilMaskPass.h"
 
 #include "EntityTreeRenderer.h"
-
-#include "polyvox_vert.h"
-#include "polyvox_frag.h"
-#include "polyvox_fade_vert.h"
-#include "polyvox_fade_frag.h"
 
 #include "RenderablePolyVoxEntityItem.h"
 #include "EntityEditPacketSender.h"
@@ -567,8 +563,7 @@ public:
 bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                               OctreeElementPointer& element,
                                                               float& distance, BoxFace& face, glm::vec3& surfaceNormal,
-                                                              QVariantMap& extraInfo, bool precisionPicking) const
-{
+                                                              QVariantMap& extraInfo, bool precisionPicking) const {
     // TODO -- correctly pick against marching-cube generated meshes
     if (!precisionPicking) {
         // just intersect with bounding box
@@ -576,7 +571,6 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
     }
 
     glm::mat4 wtvMatrix = worldToVoxelMatrix();
-    glm::mat4 vtwMatrix = voxelToWorldMatrix();
     glm::vec3 normDirection = glm::normalize(direction);
 
     // the PolyVox ray intersection code requires a near and far point.
@@ -588,8 +582,6 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
 
     glm::vec4 originInVoxel = wtvMatrix * glm::vec4(origin, 1.0f);
     glm::vec4 farInVoxel = wtvMatrix * glm::vec4(farPoint, 1.0f);
-
-    glm::vec4 directionInVoxel = glm::normalize(farInVoxel - originInVoxel);
 
     glm::vec4 result = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
     PolyVox::RaycastResult raycastResult = doRayCast(originInVoxel, farInVoxel, result);
@@ -604,17 +596,92 @@ bool RenderablePolyVoxEntityItem::findDetailedRayIntersection(const glm::vec3& o
     voxelBox += result3 - Vectors::HALF;
     voxelBox += result3 + Vectors::HALF;
 
-    float voxelDistance;
-
-    bool hit = voxelBox.findRayIntersection(glm::vec3(originInVoxel), glm::vec3(directionInVoxel),
-                                            voxelDistance, face, surfaceNormal);
-
-    glm::vec4 voxelIntersectionPoint = glm::vec4(glm::vec3(originInVoxel) + glm::vec3(directionInVoxel) * voxelDistance, 1.0);
-    glm::vec4 intersectionPoint = vtwMatrix * voxelIntersectionPoint;
-    distance = glm::distance(origin, glm::vec3(intersectionPoint));
-    return hit;
+    glm::vec3 directionInVoxel = vec3(wtvMatrix * glm::vec4(direction, 0.0f));
+    return voxelBox.findRayIntersection(glm::vec3(originInVoxel), directionInVoxel, 1.0f / directionInVoxel,
+                                        distance, face, surfaceNormal);
 }
 
+bool RenderablePolyVoxEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity,
+                                                                   const glm::vec3& acceleration, OctreeElementPointer& element,
+                                                                   float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal,
+                                                                   QVariantMap& extraInfo, bool precisionPicking) const {
+    // TODO -- correctly pick against marching-cube generated meshes
+    if (!precisionPicking) {
+        // just intersect with bounding box
+        return true;
+    }
+
+    glm::mat4 wtvMatrix = worldToVoxelMatrix();
+    glm::vec4 originInVoxel = wtvMatrix * glm::vec4(origin, 1.0f);
+    glm::vec4 velocityInVoxel = wtvMatrix * glm::vec4(velocity, 0.0f);
+    glm::vec4 accelerationInVoxel = wtvMatrix * glm::vec4(acceleration, 0.0f);
+
+    // find the first intersection with the voxel bounding box (slightly enlarged so we can catch voxels that touch the sides)
+    bool success;
+    glm::vec3 center = getCenterPosition(success);
+    glm::vec3 dimensions = getScaledDimensions();
+    const float FIRST_BOX_HALF_SCALE = 0.51f;
+    AABox voxelBox1(wtvMatrix * vec4(center - FIRST_BOX_HALF_SCALE * dimensions, 1.0f),
+                    wtvMatrix * vec4(2.0f * FIRST_BOX_HALF_SCALE * dimensions, 0.0f));
+    bool hit1;
+    float parabolicDistance1;
+    // If we're starting inside the box, our first point is originInVoxel
+    if (voxelBox1.contains(originInVoxel)) {
+        parabolicDistance1 = 0.0f;
+        hit1 = true;
+    } else {
+        BoxFace face1;
+        glm::vec3 surfaceNormal1;
+        hit1 = voxelBox1.findParabolaIntersection(glm::vec3(originInVoxel), glm::vec3(velocityInVoxel), glm::vec3(accelerationInVoxel),
+                                                  parabolicDistance1, face1, surfaceNormal1);
+    }
+
+    if (hit1) {
+        // find the second intersection, which should be with the inside of the box (use a slightly large box again)
+        const float SECOND_BOX_HALF_SCALE = 0.52f;
+        AABox voxelBox2(wtvMatrix * vec4(center - SECOND_BOX_HALF_SCALE * dimensions, 1.0f),
+                        wtvMatrix * vec4(2.0f * SECOND_BOX_HALF_SCALE * dimensions, 0.0f));
+        glm::vec4 originInVoxel2 = originInVoxel + velocityInVoxel * parabolicDistance1 + 0.5f * accelerationInVoxel * parabolicDistance1 * parabolicDistance1;
+        glm::vec4 velocityInVoxel2 = velocityInVoxel + accelerationInVoxel * parabolicDistance1;
+        glm::vec4 accelerationInVoxel2 = accelerationInVoxel;
+        float parabolicDistance2;
+        BoxFace face2;
+        glm::vec3 surfaceNormal2;
+        // this should always be true
+        if (voxelBox2.findParabolaIntersection(glm::vec3(originInVoxel2), glm::vec3(velocityInVoxel2), glm::vec3(accelerationInVoxel2),
+                                               parabolicDistance2, face2, surfaceNormal2)) {
+            const int MAX_SECTIONS = 15;
+            PolyVox::RaycastResult raycastResult = PolyVox::RaycastResults::Completed;
+            glm::vec4 result = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+            glm::vec4 segmentStartVoxel = originInVoxel2;
+            for (int i = 0; i < MAX_SECTIONS; i++) {
+                float t = parabolicDistance2 * ((float)(i + 1)) / ((float)MAX_SECTIONS);
+                glm::vec4 segmentEndVoxel = originInVoxel2 + velocityInVoxel2 * t + 0.5f * accelerationInVoxel2 * t * t;
+                raycastResult = doRayCast(segmentStartVoxel, segmentEndVoxel, result);
+                if (raycastResult != PolyVox::RaycastResults::Completed) {
+                    // We hit something!
+                    break;
+                }
+                segmentStartVoxel = segmentEndVoxel;
+            }
+
+            if (raycastResult == PolyVox::RaycastResults::Completed) {
+                // the parabola completed its path -- nothing was hit.
+                return false;
+            }
+
+            glm::vec3 result3 = glm::vec3(result);
+
+            AABox voxelBox;
+            voxelBox += result3 - Vectors::HALF;
+            voxelBox += result3 + Vectors::HALF;
+
+            return voxelBox.findParabolaIntersection(glm::vec3(originInVoxel), glm::vec3(velocityInVoxel), glm::vec3(accelerationInVoxel),
+                                                     parabolicDistance, face, surfaceNormal);
+        }
+    }
+    return false;
+}
 
 PolyVox::RaycastResult RenderablePolyVoxEntityItem::doRayCast(glm::vec4 originInVoxel,
                                                               glm::vec4 farInVoxel,
@@ -1485,7 +1552,6 @@ scriptable::ScriptableModelBase RenderablePolyVoxEntityItem::getScriptableModel(
 using namespace render;
 using namespace render::entities;
 
-static const int MATERIAL_GPU_SLOT { 3 };
 static uint8_t CUSTOM_PIPELINE_NUMBER;
 static gpu::PipelinePointer _pipelines[2];
 static gpu::PipelinePointer _wireframePipelines[2];
@@ -1493,17 +1559,8 @@ static gpu::Stream::FormatPointer _vertexFormat;
 
 ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const ShapeKey& key, gpu::Batch& batch) {
     if (!_pipelines[0]) {
-        gpu::ShaderPointer vertexShaders[2] = { polyvox_vert::getShader(), polyvox_fade_vert::getShader() };
-        gpu::ShaderPointer pixelShaders[2] = { polyvox_frag::getShader(), polyvox_fade_frag::getShader() };
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
-        slotBindings.insert(gpu::Shader::Binding(std::string("xMap"), 0));
-        slotBindings.insert(gpu::Shader::Binding(std::string("yMap"), 1));
-        slotBindings.insert(gpu::Shader::Binding(std::string("zMap"), 2));
-#ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
-        slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), 3));
-#endif
+        using namespace shader::entities_renderer::program;
+        int programsIds[2] = { polyvox, polyvox_fade };
 
         auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_BACK);
@@ -1518,12 +1575,7 @@ ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const Sha
 
         // Two sets of pipelines: normal and fading
         for (auto i = 0; i < 2; i++) {
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShaders[i], pixelShaders[i]);
-         
-            batch.runLambda([program, slotBindings] {
-                gpu::Shader::makeProgram(*program, slotBindings);
-            });
-
+            gpu::ShaderPointer program = gpu::Shader::createProgram(programsIds[i]);
             _pipelines[i] = gpu::Pipeline::create(program, state);
             _wireframePipelines[i] = gpu::Pipeline::create(program, wireframeState);
         }
@@ -1658,8 +1710,7 @@ void PolyVoxEntityRenderer::doRender(RenderArgs* args) {
         }
     }
 
-    int voxelVolumeSizeLocation = args->_shapePipeline->pipeline->getProgram()->getUniforms().findLocation("voxelVolumeSize");
-    batch._glUniform3f(voxelVolumeSizeLocation, _lastVoxelVolumeSize.x, _lastVoxelVolumeSize.y, _lastVoxelVolumeSize.z);
+    batch._glUniform3f(entities_renderer::slot::uniform::PolyvoxVoxelSize, _lastVoxelVolumeSize.x, _lastVoxelVolumeSize.y, _lastVoxelVolumeSize.z);
     batch.drawIndexed(gpu::TRIANGLES, (gpu::uint32)_mesh->getNumIndices(), 0);
 }
 

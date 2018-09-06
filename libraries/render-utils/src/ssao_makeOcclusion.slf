@@ -2,6 +2,8 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
+//  ssao_makeOcclusion.frag
+//
 //  Created by Sam Gateau on 1/1/16.
 //  Copyright 2016 High Fidelity, Inc.
 //
@@ -17,7 +19,7 @@
 
 <$declarePackOcclusionDepth()$>
 
-out vec4 outFragColor;
+layout(location=0) out vec4 outFragColor;
 
 void main(void) {
     vec2 imageSize = getSideImageSize(getResolutionLevel());

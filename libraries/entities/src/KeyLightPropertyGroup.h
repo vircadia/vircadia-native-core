@@ -35,7 +35,7 @@ class ReadBitstreamToTreeParams;
  * @property {Vec3} direction=0,-1,0 - The direction the light is shining.
  * @property {boolean} castShadows=false - If <code>true</code> then shadows are cast. Shadows are cast by avatars, plus 
  *     {@link Entities.EntityType|Model} and {@link Entities.EntityType|Shape} entities that have their 
- *     <code>{@link Entities.EntityProperties|canCastShadows}</code> property set to <code>true</code>.
+ *     <code>{@link Entities.EntityProperties|canCastShadow}</code> property set to <code>true</code>.
  */
 class KeyLightPropertyGroup : public PropertyGroup {
 public:

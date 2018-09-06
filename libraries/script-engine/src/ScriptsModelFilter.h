@@ -15,6 +15,15 @@
 #include "ScriptsModel.h"
 #include <QSortFilterProxyModel>
 
+/**jsdoc
+ * <p>Provided as a property of {@link ScriptDiscoveryService}.</p>
+ * <p>Has properties and functions per <a href="http://doc.qt.io/qt-5/qsortfilterproxymodel.html">
+ * http://doc.qt.io/qt-5/qsortfilterproxymodel.html</a>.</p>
+ * @class ScriptsModelFilter
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ */
 class ScriptsModelFilter : public QSortFilterProxyModel {
     Q_OBJECT
 public:

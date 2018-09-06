@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ResultsWindow.h"
+
 #include <QtCore/QUrl>
 #include <QtGui/QDesktopServices>
 #include <QtWidgets/QHeaderView>
@@ -16,8 +18,6 @@
 #include <QtWidgets/QVBoxLayout>
 
 #include "OvenMainWindow.h"
-
-#include "ResultsWindow.h"
 
 ResultsWindow::ResultsWindow(QWidget* parent) :
     QWidget(parent)

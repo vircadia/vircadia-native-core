@@ -42,6 +42,8 @@
 #include <BitVectorHelpers.h>
 
 #include "AvatarLogging.h"
+#include "AvatarTraits.h"
+#include "ClientTraitsHandler.h"
 
 //#define WANT_DEBUG
 
@@ -62,7 +64,7 @@ size_t AvatarDataPacket::maxFaceTrackerInfoSize(size_t numBlendshapeCoefficients
     return FACE_TRACKER_INFO_SIZE + numBlendshapeCoefficients * sizeof(float);
 }
 
-size_t AvatarDataPacket::maxJointDataSize(size_t numJoints) {
+size_t AvatarDataPacket::maxJointDataSize(size_t numJoints, bool hasGrabJoints) {
     const size_t validityBitsSize = (size_t)std::ceil(numJoints / (float)BITS_IN_BYTE);
 
     size_t totalSize = sizeof(uint8_t); // numJoints
@@ -73,7 +75,8 @@ size_t AvatarDataPacket::maxJointDataSize(size_t numJoints) {
     totalSize += numJoints * sizeof(SixByteTrans); // Translations
 
     size_t NUM_FAUX_JOINT = 2;
-    totalSize += NUM_FAUX_JOINT * (sizeof(SixByteQuat) + sizeof(SixByteTrans)); // faux joints
+    size_t num_grab_joints = (hasGrabJoints ? 2 : 0);
+    totalSize += (NUM_FAUX_JOINT + num_grab_joints) * (sizeof(SixByteQuat) + sizeof(SixByteTrans)); // faux joints
 
     return totalSize;
 }
@@ -227,7 +230,8 @@ QByteArray AvatarData::toByteArrayStateful(AvatarDataDetail dataDetail, bool dro
                         &_outboundDataRate);
 }
 
-QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
+QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime,
+                                   const QVector<JointData>& lastSentJointData,
     AvatarDataPacket::HasFlags& hasFlagsOut, bool dropFaceTracking, bool distanceAdjust,
     glm::vec3 viewerPosition, QVector<JointData>* sentJointDataOut, AvatarDataRate* outboundDataRateOut) const {
 
@@ -284,6 +288,11 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     bool hasFaceTrackerInfo = false;
     bool hasJointData = false;
     bool hasJointDefaultPoseFlags = false;
+    bool hasGrabJoints = false;
+
+    glm::mat4 leftFarGrabMatrix;
+    glm::mat4 rightFarGrabMatrix;
+    glm::mat4 mouseFarGrabMatrix;
 
     if (sendPALMinimum) {
         hasAudioLoudness = true;
@@ -300,15 +309,34 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             tranlationChangedSince(lastSentTime) ||
             parentInfoChangedSince(lastSentTime));
 
-        hasFaceTrackerInfo = !dropFaceTracking && hasFaceTracker() && (sendAll || faceTrackerInfoChangedSince(lastSentTime));
+        hasFaceTrackerInfo = !dropFaceTracking && (hasFaceTracker() || getHasScriptedBlendshapes()) &&
+            (sendAll || faceTrackerInfoChangedSince(lastSentTime));
         hasJointData = sendAll || !sendMinimum;
         hasJointDefaultPoseFlags = hasJointData;
+        if (hasJointData) {
+            bool leftValid;
+            leftFarGrabMatrix = _farGrabLeftMatrixCache.get(leftValid);
+            if (!leftValid) {
+                leftFarGrabMatrix = glm::mat4();
+            }
+            bool rightValid;
+            rightFarGrabMatrix = _farGrabRightMatrixCache.get(rightValid);
+            if (!rightValid) {
+                rightFarGrabMatrix = glm::mat4();
+            }
+            bool mouseValid;
+            mouseFarGrabMatrix = _farGrabMouseMatrixCache.get(mouseValid);
+            if (!mouseValid) {
+                mouseFarGrabMatrix = glm::mat4();
+            }
+            hasGrabJoints = (leftValid || rightValid || mouseValid);
+        }
     }
 
 
     const size_t byteArraySize = AvatarDataPacket::MAX_CONSTANT_HEADER_SIZE +
-        (hasFaceTrackerInfo ? AvatarDataPacket::maxFaceTrackerInfoSize(_headData->getNumSummedBlendshapeCoefficients()) : 0) +
-        (hasJointData ? AvatarDataPacket::maxJointDataSize(_jointData.size()) : 0) +
+        (hasFaceTrackerInfo ? AvatarDataPacket::maxFaceTrackerInfoSize(_headData->getBlendshapeCoefficients().size()) : 0) +
+        (hasJointData ? AvatarDataPacket::maxJointDataSize(_jointData.size(), hasGrabJoints) : 0) +
         (hasJointDefaultPoseFlags ? AvatarDataPacket::maxJointDefaultPoseFlagsSize(_jointData.size()) : 0);
 
     QByteArray avatarDataByteArray((int)byteArraySize, 0);
@@ -329,7 +357,8 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         | (hasAvatarLocalPosition ? AvatarDataPacket::PACKET_HAS_AVATAR_LOCAL_POSITION : 0)
         | (hasFaceTrackerInfo ? AvatarDataPacket::PACKET_HAS_FACE_TRACKER_INFO : 0)
         | (hasJointData ? AvatarDataPacket::PACKET_HAS_JOINT_DATA : 0)
-        | (hasJointDefaultPoseFlags ? AvatarDataPacket::PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS : 0);
+        | (hasJointDefaultPoseFlags ? AvatarDataPacket::PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS : 0)
+        | (hasGrabJoints ? AvatarDataPacket::PACKET_HAS_GRAB_JOINTS : 0);
 
     memcpy(destinationBuffer, &packetStateFlags, sizeof(packetStateFlags));
     destinationBuffer += sizeof(packetStateFlags);
@@ -442,7 +471,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         auto startSection = destinationBuffer;
         auto data = reinterpret_cast<AvatarDataPacket::AdditionalFlags*>(destinationBuffer);
 
-        uint8_t flags { 0 };
+        uint16_t flags { 0 };
 
         setSemiNibbleAt(flags, KEY_STATE_START_BIT, _keyState);
 
@@ -450,20 +479,33 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         bool isFingerPointing = _handState & IS_FINGER_POINTING_FLAG;
         setSemiNibbleAt(flags, HAND_STATE_START_BIT, _handState & ~IS_FINGER_POINTING_FLAG);
         if (isFingerPointing) {
-            setAtBit(flags, HAND_STATE_FINGER_POINTING_BIT);
+            setAtBit16(flags, HAND_STATE_FINGER_POINTING_BIT);
         }
         // face tracker state
         if (_headData->_isFaceTrackerConnected) {
-            setAtBit(flags, IS_FACE_TRACKER_CONNECTED);
+            setAtBit16(flags, IS_FACE_TRACKER_CONNECTED);
         }
         // eye tracker state
         if (_headData->_isEyeTrackerConnected) {
-            setAtBit(flags, IS_EYE_TRACKER_CONNECTED);
+            setAtBit16(flags, IS_EYE_TRACKER_CONNECTED);
         }
         // referential state
         if (!parentID.isNull()) {
-            setAtBit(flags, HAS_REFERENTIAL);
+            setAtBit16(flags, HAS_REFERENTIAL);
         }
+        // audio face movement
+        if (_headData->getHasAudioEnabledFaceMovement()) {
+            setAtBit16(flags, AUDIO_ENABLED_FACE_MOVEMENT);
+        }
+        // procedural eye face movement
+        if (_headData->getHasProceduralEyeFaceMovement()) {
+            setAtBit16(flags, PROCEDURAL_EYE_FACE_MOVEMENT);
+        }
+        // procedural blink face movement
+        if (_headData->getHasProceduralBlinkFaceMovement()) {
+            setAtBit16(flags, PROCEDURAL_BLINK_FACE_MOVEMENT);
+        }
+
         data->flags = flags;
         destinationBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
 
@@ -506,8 +548,9 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     if (hasFaceTrackerInfo) {
         auto startSection = destinationBuffer;
         auto faceTrackerInfo = reinterpret_cast<AvatarDataPacket::FaceTrackerInfo*>(destinationBuffer);
-        const auto& blendshapeCoefficients = _headData->getSummedBlendshapeCoefficients();
-
+        const auto& blendshapeCoefficients = _headData->getBlendshapeCoefficients();
+        // note: we don't use the blink and average loudness, we just use the numBlendShapes and
+        // compute the procedural info on the client side.
         faceTrackerInfo->leftEyeBlink = _headData->_leftEyeBlink;
         faceTrackerInfo->rightEyeBlink = _headData->_rightEyeBlink;
         faceTrackerInfo->averageLoudness = _headData->_averageLoudness;
@@ -652,6 +695,53 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, controllerRightHandTransform.getRotation());
         destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, controllerRightHandTransform.getTranslation(),
             TRANSLATION_COMPRESSION_RADIX);
+
+        if (hasGrabJoints) {
+            // the far-grab joints may range further than 3 meters, so we can't use packFloatVec3ToSignedTwoByteFixed etc
+            auto startSection = destinationBuffer;
+            auto data = reinterpret_cast<AvatarDataPacket::FarGrabJoints*>(destinationBuffer);
+            glm::vec3 leftFarGrabPosition = extractTranslation(leftFarGrabMatrix);
+            glm::quat leftFarGrabRotation = extractRotation(leftFarGrabMatrix);
+            glm::vec3 rightFarGrabPosition = extractTranslation(rightFarGrabMatrix);
+            glm::quat rightFarGrabRotation = extractRotation(rightFarGrabMatrix);
+            glm::vec3 mouseFarGrabPosition = extractTranslation(mouseFarGrabMatrix);
+            glm::quat mouseFarGrabRotation = extractRotation(mouseFarGrabMatrix);
+
+            data->leftFarGrabPosition[0] = leftFarGrabPosition.x;
+            data->leftFarGrabPosition[1] = leftFarGrabPosition.y;
+            data->leftFarGrabPosition[2] = leftFarGrabPosition.z;
+
+            data->leftFarGrabRotation[0] = leftFarGrabRotation.w;
+            data->leftFarGrabRotation[1] = leftFarGrabRotation.x;
+            data->leftFarGrabRotation[2] = leftFarGrabRotation.y;
+            data->leftFarGrabRotation[3] = leftFarGrabRotation.z;
+
+            data->rightFarGrabPosition[0] = rightFarGrabPosition.x;
+            data->rightFarGrabPosition[1] = rightFarGrabPosition.y;
+            data->rightFarGrabPosition[2] = rightFarGrabPosition.z;
+
+            data->rightFarGrabRotation[0] = rightFarGrabRotation.w;
+            data->rightFarGrabRotation[1] = rightFarGrabRotation.x;
+            data->rightFarGrabRotation[2] = rightFarGrabRotation.y;
+            data->rightFarGrabRotation[3] = rightFarGrabRotation.z;
+
+            data->mouseFarGrabPosition[0] = mouseFarGrabPosition.x;
+            data->mouseFarGrabPosition[1] = mouseFarGrabPosition.y;
+            data->mouseFarGrabPosition[2] = mouseFarGrabPosition.z;
+
+            data->mouseFarGrabRotation[0] = mouseFarGrabRotation.w;
+            data->mouseFarGrabRotation[1] = mouseFarGrabRotation.x;
+            data->mouseFarGrabRotation[2] = mouseFarGrabRotation.y;
+            data->mouseFarGrabRotation[3] = mouseFarGrabRotation.z;
+
+            destinationBuffer += sizeof(AvatarDataPacket::FarGrabJoints);
+
+            int numBytes = destinationBuffer - startSection;
+
+            if (outboundDataRateOut) {
+                outboundDataRateOut->farGrabJointRate.increment(numBytes);
+            }
+        }
 
 #ifdef WANT_DEBUG
         if (sendAll) {
@@ -819,6 +909,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     bool hasFaceTrackerInfo       = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_FACE_TRACKER_INFO);
     bool hasJointData             = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_JOINT_DATA);
     bool hasJointDefaultPoseFlags = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS);
+    bool hasGrabJoints            = HAS_FLAG(packetStateFlags, AvatarDataPacket::PACKET_HAS_GRAB_JOINTS);
 
     quint64 now = usecTimestampNow();
 
@@ -827,7 +918,18 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         PACKET_READ_CHECK(AvatarGlobalPosition, sizeof(AvatarDataPacket::AvatarGlobalPosition));
         auto data = reinterpret_cast<const AvatarDataPacket::AvatarGlobalPosition*>(sourceBuffer);
-        auto newValue = glm::vec3(data->globalPosition[0], data->globalPosition[1], data->globalPosition[2]);
+
+        glm::vec3 offset = glm::vec3(0.0f, 0.0f, 0.0f);
+
+        if (_replicaIndex > 0) {
+            const float SPACE_BETWEEN_AVATARS = 2.0f;
+            const int AVATARS_PER_ROW = 3;
+            int row = _replicaIndex % AVATARS_PER_ROW;
+            int col = floor(_replicaIndex / AVATARS_PER_ROW);
+            offset = glm::vec3(row * SPACE_BETWEEN_AVATARS, 0.0f, col * SPACE_BETWEEN_AVATARS);
+        }
+
+        auto newValue = glm::vec3(data->globalPosition[0], data->globalPosition[1], data->globalPosition[2]) + offset;
         if (_globalPosition != newValue) {
             _globalPosition = newValue;
             _globalPositionChanged = usecTimestampNow();
@@ -972,7 +1074,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         PACKET_READ_CHECK(AdditionalFlags, sizeof(AvatarDataPacket::AdditionalFlags));
         auto data = reinterpret_cast<const AvatarDataPacket::AdditionalFlags*>(sourceBuffer);
-        uint8_t bitItems = data->flags;
+        uint16_t bitItems = data->flags;
 
         // key state, stored as a semi-nibble in the bitItems
         auto newKeyState = (KeyState)getSemiNibbleAt(bitItems, KEY_STATE_START_BIT);
@@ -980,26 +1082,38 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         // hand state, stored as a semi-nibble plus a bit in the bitItems
         // we store the hand state as well as other items in a shared bitset. The hand state is an octal, but is split
         // into two sections to maintain backward compatibility. The bits are ordered as such (0-7 left to right).
-        //     +---+-----+-----+--+
-        //     |x,x|H0,H1|x,x,x|H2|
-        //     +---+-----+-----+--+
+        // AA 6/1/18 added three more flags bits 8,9, and 10 for procedural audio, blink, and eye saccade enabled
+        //     +---+-----+-----+--+--+--+--+-----+
+        //     |x,x|H0,H1|x,x,x|H2|Au|Bl|Ey|xxxxx|
+        //     +---+-----+-----+--+--+--+--+-----+
         // Hand state - H0,H1,H2 is found in the 3rd, 4th, and 8th bits
         auto newHandState = getSemiNibbleAt(bitItems, HAND_STATE_START_BIT)
-            + (oneAtBit(bitItems, HAND_STATE_FINGER_POINTING_BIT) ? IS_FINGER_POINTING_FLAG : 0);
+            + (oneAtBit16(bitItems, HAND_STATE_FINGER_POINTING_BIT) ? IS_FINGER_POINTING_FLAG : 0);
 
-        auto newFaceTrackerConnected = oneAtBit(bitItems, IS_FACE_TRACKER_CONNECTED);
-        auto newEyeTrackerConnected = oneAtBit(bitItems, IS_EYE_TRACKER_CONNECTED);
+        auto newFaceTrackerConnected = oneAtBit16(bitItems, IS_FACE_TRACKER_CONNECTED);
+        auto newEyeTrackerConnected = oneAtBit16(bitItems, IS_EYE_TRACKER_CONNECTED);
 
+        auto newHasAudioEnabledFaceMovement = oneAtBit16(bitItems, AUDIO_ENABLED_FACE_MOVEMENT);
+        auto newHasProceduralEyeFaceMovement = oneAtBit16(bitItems, PROCEDURAL_EYE_FACE_MOVEMENT);
+        auto newHasProceduralBlinkFaceMovement = oneAtBit16(bitItems, PROCEDURAL_BLINK_FACE_MOVEMENT);
+
+        
         bool keyStateChanged = (_keyState != newKeyState);
         bool handStateChanged = (_handState != newHandState);
         bool faceStateChanged = (_headData->_isFaceTrackerConnected != newFaceTrackerConnected);
         bool eyeStateChanged = (_headData->_isEyeTrackerConnected != newEyeTrackerConnected);
-        bool somethingChanged = keyStateChanged || handStateChanged || faceStateChanged || eyeStateChanged;
+        bool audioEnableFaceMovementChanged = (_headData->getHasAudioEnabledFaceMovement() != newHasAudioEnabledFaceMovement);
+        bool proceduralEyeFaceMovementChanged = (_headData->getHasProceduralEyeFaceMovement() != newHasProceduralEyeFaceMovement);
+        bool proceduralBlinkFaceMovementChanged = (_headData->getHasProceduralBlinkFaceMovement() != newHasProceduralBlinkFaceMovement);
+        bool somethingChanged = keyStateChanged || handStateChanged || faceStateChanged || eyeStateChanged || audioEnableFaceMovementChanged || proceduralEyeFaceMovementChanged || proceduralBlinkFaceMovementChanged;
 
         _keyState = newKeyState;
         _handState = newHandState;
         _headData->_isFaceTrackerConnected = newFaceTrackerConnected;
         _headData->_isEyeTrackerConnected = newEyeTrackerConnected;
+        _headData->setHasAudioEnabledFaceMovement(newHasAudioEnabledFaceMovement);
+        _headData->setHasProceduralEyeFaceMovement(newHasProceduralEyeFaceMovement);
+        _headData->setHasProceduralBlinkFaceMovement(newHasProceduralBlinkFaceMovement);
 
         sourceBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
 
@@ -1060,23 +1174,21 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         PACKET_READ_CHECK(FaceTrackerInfo, sizeof(AvatarDataPacket::FaceTrackerInfo));
         auto faceTrackerInfo = reinterpret_cast<const AvatarDataPacket::FaceTrackerInfo*>(sourceBuffer);
-        sourceBuffer += sizeof(AvatarDataPacket::FaceTrackerInfo);
-
-        _headData->_leftEyeBlink = faceTrackerInfo->leftEyeBlink;
-        _headData->_rightEyeBlink = faceTrackerInfo->rightEyeBlink;
-        _headData->_averageLoudness = faceTrackerInfo->averageLoudness;
-        _headData->_browAudioLift = faceTrackerInfo->browAudioLift;
-
         int numCoefficients = faceTrackerInfo->numBlendshapeCoefficients;
         const int coefficientsSize = sizeof(float) * numCoefficients;
+        sourceBuffer += sizeof(AvatarDataPacket::FaceTrackerInfo);
+
         PACKET_READ_CHECK(FaceTrackerCoefficients, coefficientsSize);
         _headData->_blendshapeCoefficients.resize(numCoefficients);  // make sure there's room for the copy!
-        _headData->_transientBlendshapeCoefficients.resize(numCoefficients);
+        //only copy the blendshapes to headData, not the procedural face info
         memcpy(_headData->_blendshapeCoefficients.data(), sourceBuffer, coefficientsSize);
         sourceBuffer += coefficientsSize;
+
         int numBytesRead = sourceBuffer - startSection;
         _faceTrackerRate.increment(numBytesRead);
         _faceTrackerUpdateRate.increment();
+    } else {
+        _headData->_blendshapeCoefficients.fill(0, _headData->_blendshapeCoefficients.size());
     }
 
     if (hasJointData) {
@@ -1170,6 +1282,34 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         int numBytesRead = sourceBuffer - startSection;
         _jointDataRate.increment(numBytesRead);
         _jointDataUpdateRate.increment();
+
+        if (hasGrabJoints) {
+            auto startSection = sourceBuffer;
+
+            PACKET_READ_CHECK(FarGrabJoints, sizeof(AvatarDataPacket::FarGrabJoints));
+            auto data = reinterpret_cast<const AvatarDataPacket::FarGrabJoints*>(sourceBuffer);
+            glm::vec3 leftFarGrabPosition = glm::vec3(data->leftFarGrabPosition[0], data->leftFarGrabPosition[1],
+                                                      data->leftFarGrabPosition[2]);
+            glm::quat leftFarGrabRotation = glm::quat(data->leftFarGrabRotation[0], data->leftFarGrabRotation[1],
+                                                      data->leftFarGrabRotation[2], data->leftFarGrabRotation[3]);
+            glm::vec3 rightFarGrabPosition = glm::vec3(data->rightFarGrabPosition[0], data->rightFarGrabPosition[1],
+                                                       data->rightFarGrabPosition[2]);
+            glm::quat rightFarGrabRotation = glm::quat(data->rightFarGrabRotation[0], data->rightFarGrabRotation[1],
+                                                       data->rightFarGrabRotation[2], data->rightFarGrabRotation[3]);
+            glm::vec3 mouseFarGrabPosition = glm::vec3(data->mouseFarGrabPosition[0], data->mouseFarGrabPosition[1],
+                                                       data->mouseFarGrabPosition[2]);
+            glm::quat mouseFarGrabRotation = glm::quat(data->mouseFarGrabRotation[0], data->mouseFarGrabRotation[1],
+                                                       data->mouseFarGrabRotation[2], data->mouseFarGrabRotation[3]);
+
+            _farGrabLeftMatrixCache.set(createMatFromQuatAndPos(leftFarGrabRotation, leftFarGrabPosition));
+            _farGrabRightMatrixCache.set(createMatFromQuatAndPos(rightFarGrabRotation, rightFarGrabPosition));
+            _farGrabMouseMatrixCache.set(createMatFromQuatAndPos(mouseFarGrabRotation, mouseFarGrabPosition));
+
+            sourceBuffer += sizeof(AvatarDataPacket::AvatarGlobalPosition);
+            int numBytesRead = sourceBuffer - startSection;
+            _farGrabJointRate.increment(numBytesRead);
+            _farGrabJointUpdateRate.increment();
+        }
     }
 
     if (hasJointDefaultPoseFlags) {
@@ -1236,6 +1376,8 @@ float AvatarData::getDataRate(const QString& rateName) const {
         return _jointDataRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "jointDefaultPoseFlagsRate") {
         return _jointDefaultPoseFlagsRate.rate() / BYTES_PER_KILOBIT;
+    } else if (rateName == "farGrabJointRate") {
+        return _farGrabJointRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "globalPositionOutbound") {
         return _outboundDataRate.globalPositionRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "localPositionOutbound") {
@@ -1293,6 +1435,8 @@ float AvatarData::getUpdateRate(const QString& rateName) const {
         return _faceTrackerUpdateRate.rate();
     } else if (rateName == "jointData") {
         return _jointDataUpdateRate.rate();
+    } else if (rateName == "farGrabJointData") {
+        return _farGrabJointUpdateRate.rate();
     }
     return 0.0f;
 }
@@ -1319,7 +1463,7 @@ void AvatarData::setRawJointData(QVector<JointData> data) {
 }
 
 void AvatarData::setJointData(int index, const glm::quat& rotation, const glm::vec3& translation) {
-    if (index == -1) {
+    if (index < 0 || index >= LOWEST_PSEUDO_JOINT_INDEX) {
         return;
     }
     QWriteLocker writeLock(&_jointDataLock);
@@ -1334,7 +1478,7 @@ void AvatarData::setJointData(int index, const glm::quat& rotation, const glm::v
 }
 
 void AvatarData::clearJointData(int index) {
-    if (index == -1) {
+    if (index < 0 || index >= LOWEST_PSEUDO_JOINT_INDEX) {
         return;
     }
     QWriteLocker writeLock(&_jointDataLock);
@@ -1346,27 +1490,72 @@ void AvatarData::clearJointData(int index) {
 }
 
 bool AvatarData::isJointDataValid(int index) const {
-    if (index == -1) {
-        return false;
+    switch (index) {
+        case FARGRAB_RIGHTHAND_INDEX: {
+            bool valid;
+            _farGrabRightMatrixCache.get(valid);
+            return valid;
+        }
+        case FARGRAB_LEFTHAND_INDEX: {
+            bool valid;
+            _farGrabLeftMatrixCache.get(valid);
+            return valid;
+        }
+        case FARGRAB_MOUSE_INDEX: {
+            bool valid;
+            _farGrabMouseMatrixCache.get(valid);
+            return valid;
+        }
+        default: {
+            if (index < 0 || index >= LOWEST_PSEUDO_JOINT_INDEX) {
+                return false;
+            }
+            QReadLocker readLock(&_jointDataLock);
+            return index < _jointData.size();
+        }
     }
-    QReadLocker readLock(&_jointDataLock);
-    return index < _jointData.size();
 }
 
 glm::quat AvatarData::getJointRotation(int index) const {
-    if (index == -1) {
-        return glm::quat();
+    switch (index) {
+        case FARGRAB_RIGHTHAND_INDEX: {
+            return extractRotation(_farGrabRightMatrixCache.get());
+        }
+        case FARGRAB_LEFTHAND_INDEX: {
+            return extractRotation(_farGrabLeftMatrixCache.get());
+        }
+        case FARGRAB_MOUSE_INDEX: {
+            return extractRotation(_farGrabMouseMatrixCache.get());
+        }
+        default: {
+            if (index < 0 || index >= LOWEST_PSEUDO_JOINT_INDEX) {
+                return glm::quat();
+            }
+            QReadLocker readLock(&_jointDataLock);
+            return index < _jointData.size() ? _jointData.at(index).rotation : glm::quat();
+        }
     }
-    QReadLocker readLock(&_jointDataLock);
-    return index < _jointData.size() ? _jointData.at(index).rotation : glm::quat();
 }
 
 glm::vec3 AvatarData::getJointTranslation(int index) const {
-    if (index == -1) {
-        return glm::vec3();
+    switch (index) {
+        case FARGRAB_RIGHTHAND_INDEX: {
+            return extractTranslation(_farGrabRightMatrixCache.get());
+        }
+        case FARGRAB_LEFTHAND_INDEX: {
+            return extractTranslation(_farGrabLeftMatrixCache.get());
+        }
+        case FARGRAB_MOUSE_INDEX: {
+            return extractTranslation(_farGrabMouseMatrixCache.get());
+        }
+        default: {
+            if (index < 0 || index >= LOWEST_PSEUDO_JOINT_INDEX) {
+                return glm::vec3();
+            }
+            QReadLocker readLock(&_jointDataLock);
+            return index < _jointData.size() ? _jointData.at(index).translation : glm::vec3();
+        }
     }
-    QReadLocker readLock(&_jointDataLock);
-    return index < _jointData.size() ? _jointData.at(index).translation : glm::vec3();
 }
 
 glm::vec3 AvatarData::getJointTranslation(const QString& name) const {
@@ -1375,6 +1564,7 @@ glm::vec3 AvatarData::getJointTranslation(const QString& name) const {
     // return getJointTranslation(getJointIndex(name));
     return readLockWithNamedJointIndex<glm::vec3>(name, [this](int index) {
         return _jointData.at(index).translation;
+        return getJointTranslation(index);
     });
 }
 
@@ -1412,7 +1602,7 @@ void AvatarData::setJointTranslation(const QString& name, const glm::vec3& trans
 }
 
 void AvatarData::setJointRotation(int index, const glm::quat& rotation) {
-    if (index == -1) {
+    if (index < 0 || index >= LOWEST_PSEUDO_JOINT_INDEX) {
         return;
     }
     QWriteLocker writeLock(&_jointDataLock);
@@ -1425,7 +1615,7 @@ void AvatarData::setJointRotation(int index, const glm::quat& rotation) {
 }
 
 void AvatarData::setJointTranslation(int index, const glm::vec3& translation) {
-    if (index == -1) {
+    if (index < 0 || index >= LOWEST_PSEUDO_JOINT_INDEX) {
         return;
     }
     QWriteLocker writeLock(&_jointDataLock);
@@ -1542,6 +1732,15 @@ int AvatarData::getFauxJointIndex(const QString& name) const {
     if (name == "_CAMERA_MATRIX") {
         return CAMERA_MATRIX_INDEX;
     }
+    if (name == "_FARGRAB_RIGHTHAND") {
+        return FARGRAB_RIGHTHAND_INDEX;
+    }
+    if (name == "_FARGRAB_LEFTHAND") {
+        return FARGRAB_LEFTHAND_INDEX;
+    }
+    if (name == "_FARGRAB_MOUSE") {
+        return FARGRAB_MOUSE_INDEX;
+    }
     return -1;
 }
 
@@ -1563,14 +1762,8 @@ glm::quat AvatarData::getOrientationOutbound() const {
     return (getLocalOrientation());
 }
 
-static const QUrl emptyURL("");
-QUrl AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) const {
-    // We don't put file urls on the wire, but instead convert to empty.
-    return _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
-}
-
 void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& identityChanged,
-                                       bool& displayNameChanged, bool& skeletonModelUrlChanged) {
+                                       bool& displayNameChanged) {
 
     QDataStream packetStream(identityData);
 
@@ -1591,27 +1784,16 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
     if (incomingSequenceNumber > _identitySequenceNumber) {
         Identity identity;
 
-        packetStream >> identity.skeletonModelURL
+        packetStream
             >> identity.attachmentData
             >> identity.displayName
             >> identity.sessionDisplayName
             >> identity.isReplicated
-            >> identity.avatarEntityData
             >> identity.lookAtSnappingEnabled
         ;
 
         // set the store identity sequence number to match the incoming identity
         _identitySequenceNumber = incomingSequenceNumber;
-
-        if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
-            setSkeletonModelURL(identity.skeletonModelURL);
-            identityChanged = true;
-            skeletonModelUrlChanged = true;
-            if (_firstSkeletonCheck) {
-                displayNameChanged = true;
-            }
-            _firstSkeletonCheck = false;
-        }
 
         if (identity.displayName != _displayName) {
             _displayName = identity.displayName;
@@ -1630,16 +1812,6 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
             identityChanged = true;
         }
 
-        bool avatarEntityDataChanged = false;
-        _avatarEntitiesLock.withReadLock([&] {
-            avatarEntityDataChanged = (identity.avatarEntityData != _avatarEntityData);
-        });
-        
-        if (avatarEntityDataChanged) {
-            setAvatarEntityData(identity.avatarEntityData);
-            identityChanged = true;
-        }
-
     if (identity.lookAtSnappingEnabled != _lookAtSnappingEnabled) {
         setProperty("lookAtSnappingEnabled", identity.lookAtSnappingEnabled);
         identityChanged = true;
@@ -1648,7 +1820,6 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
 #ifdef WANT_DEBUG
         qCDebug(avatars) << __FUNCTION__
             << "identity.uuid:" << identity.uuid
-            << "identity.skeletonModelURL:" << identity.skeletonModelURL
             << "identity.displayName:" << identity.displayName
             << "identity.sessionDisplayName:" << identity.sessionDisplayName;
     } else {
@@ -1660,26 +1831,121 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
     }
 }
 
+QUrl AvatarData::getWireSafeSkeletonModelURL() const {
+    if (_skeletonModelURL.scheme() != "file" && _skeletonModelURL.scheme() != "qrc") {
+        return _skeletonModelURL;
+    } else {
+        return QUrl();
+    }
+}
+
+qint64 AvatarData::packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice& destination,
+                           AvatarTraits::TraitVersion traitVersion) {
+    qint64 bytesWritten = 0;
+    bytesWritten += destination.writePrimitive(traitType);
+
+    if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
+        bytesWritten += destination.writePrimitive(traitVersion);
+    }
+
+    if (traitType == AvatarTraits::SkeletonModelURL) {
+        QByteArray encodedSkeletonURL = getWireSafeSkeletonModelURL().toEncoded();
+        
+        AvatarTraits::TraitWireSize encodedURLSize = encodedSkeletonURL.size();
+        bytesWritten += destination.writePrimitive(encodedURLSize);
+
+        bytesWritten += destination.write(encodedSkeletonURL);
+    }
+
+    return bytesWritten;
+}
+
+qint64 AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID traitInstanceID,
+                                     ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion,
+                                     AvatarTraits::TraitInstanceID wireInstanceID) {
+
+    qint64 bytesWritten = 0;
+
+    bytesWritten += destination.writePrimitive(traitType);
+
+    if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
+        bytesWritten += destination.writePrimitive(traitVersion);
+    }
+
+    if (!wireInstanceID.isNull()) {
+        bytesWritten += destination.write(wireInstanceID.toRfc4122());
+    } else {
+        bytesWritten += destination.write(traitInstanceID.toRfc4122());
+    }
+
+    if (traitType == AvatarTraits::AvatarEntity) {
+        // grab a read lock on the avatar entities and check for entity data for the given ID
+        QByteArray entityBinaryData;
+
+        _avatarEntitiesLock.withReadLock([this, &entityBinaryData, &traitInstanceID] {
+            if (_avatarEntityData.contains(traitInstanceID)) {
+                entityBinaryData = _avatarEntityData[traitInstanceID];
+            }
+        });
+
+        if (!entityBinaryData.isNull()) {
+            AvatarTraits::TraitWireSize entityBinarySize = entityBinaryData.size();
+
+            bytesWritten += destination.writePrimitive(entityBinarySize);
+            bytesWritten += destination.write(entityBinaryData);
+        } else {
+            bytesWritten += destination.writePrimitive(AvatarTraits::DELETED_TRAIT_SIZE);
+        }
+    }
+
+    return bytesWritten;
+}
+
+void AvatarData::prepareResetTraitInstances() {
+    if (_clientTraitsHandler) {
+        _avatarEntitiesLock.withReadLock([this]{
+            foreach (auto entityID, _avatarEntityData.keys()) {
+                _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
+            }
+        });
+    }
+}
+
+void AvatarData::processTrait(AvatarTraits::TraitType traitType, QByteArray traitBinaryData) {
+    if (traitType == AvatarTraits::SkeletonModelURL) {
+        // get the URL from the binary data
+        auto skeletonModelURL = QUrl::fromEncoded(traitBinaryData);
+        setSkeletonModelURL(skeletonModelURL);
+    }
+}
+
+void AvatarData::processTraitInstance(AvatarTraits::TraitType traitType,
+                                      AvatarTraits::TraitInstanceID instanceID, QByteArray traitBinaryData) {
+    if (traitType == AvatarTraits::AvatarEntity) {
+        updateAvatarEntity(instanceID, traitBinaryData);
+    }
+}
+
+void AvatarData::processDeletedTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID) {
+    if (traitType == AvatarTraits::AvatarEntity) {
+        clearAvatarEntity(instanceID);
+    }
+}
+
 QByteArray AvatarData::identityByteArray(bool setIsReplicated) const {
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
-    const QUrl& urlToSend = cannonicalSkeletonModelURL(emptyURL); // depends on _skeletonModelURL
 
     // when mixers send identity packets to agents, they simply forward along the last incoming sequence number they received
     // whereas agents send a fresh outgoing sequence number when identity data has changed
 
-    _avatarEntitiesLock.withReadLock([&] {
-        identityStream << getSessionUUID()
-            << (udt::SequenceNumber::Type) _identitySequenceNumber
-            << urlToSend
-            << _attachmentData
-            << _displayName
-            << getSessionDisplayNameForTransport() // depends on _sessionDisplayName
-            << (_isReplicated || setIsReplicated)
-            << _avatarEntityData
-            << _lookAtSnappingEnabled
-        ;
-    });
+    identityStream << getSessionUUID()
+        << (udt::SequenceNumber::Type) _identitySequenceNumber
+        << _attachmentData
+        << _displayName
+        << getSessionDisplayNameForTransport() // depends on _sessionDisplayName
+        << (_isReplicated || setIsReplicated)
+        << _lookAtSnappingEnabled;
 
     return identityData;
 }
@@ -1693,11 +1959,17 @@ void AvatarData::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     if (expanded == _skeletonModelURL) {
         return;
     }
+    
     _skeletonModelURL = expanded;
     qCDebug(avatars) << "Changing skeleton model for avatar" << getSessionUUID() << "to" << _skeletonModelURL.toString();
 
     updateJointMappings();
-    markIdentityDataChanged();
+
+    if (_clientTraitsHandler) {
+        _clientTraitsHandler->markTraitUpdated(AvatarTraits::SkeletonModelURL);
+    }
+
+    emit skeletonModelURLChanged();
 }
 
 void AvatarData::setDisplayName(const QString& displayName) {
@@ -1792,6 +2064,13 @@ void AvatarData::setJointMappingsFromNetworkReply() {
 
     QNetworkReply* networkReply = static_cast<QNetworkReply*>(sender());
 
+    // before we process this update, make sure that the skeleton model URL hasn't changed
+    // since we made the FST request
+    if (networkReply->url() != _skeletonModelURL) {
+        qCDebug(avatars) << "Refusing to set joint mappings for FST URL that does not match the current URL";
+        return;
+    }
+
     {
         QWriteLocker writeLock(&_jointDataLock);
         QByteArray line;
@@ -1883,14 +2162,13 @@ void AvatarData::sendIdentityPacket() {
     auto packetList = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
     packetList->write(identityData);
     nodeList->eachMatchingNode(
-        [&](const SharedNodePointer& node)->bool {
+        [](const SharedNodePointer& node)->bool {
             return node->getType() == NodeType::AvatarMixer && node->getActiveSocket();
         },
         [&](const SharedNodePointer& node) {
             nodeList->sendPacketList(std::move(packetList), *node);
     });
 
-    _avatarEntityDataLocallyEdited = false;
     _identityDataChanged = false;
 }
 
@@ -2057,6 +2335,15 @@ void AvatarData::setRecordingBasis(std::shared_ptr<Transform> recordingBasis) {
     _recordingBasis = recordingBasis;
 }
 
+void AvatarData::createRecordingIDs() {
+    _avatarEntitiesLock.withReadLock([&] {
+        _avatarEntityForRecording.clear();
+        for (int i = 0; i < _avatarEntityData.size(); i++) {
+            _avatarEntityForRecording.insert(QUuid::createUuid());
+        }
+    });
+}
+
 void AvatarData::clearRecordingBasis() {
     _recordingBasis.reset();
 }
@@ -2117,21 +2404,15 @@ QJsonObject AvatarData::toJson() const {
     if (!getDisplayName().isEmpty()) {
         root[JSON_AVATAR_DISPLAY_NAME] = getDisplayName();
     }
-    if (!getAttachmentData().isEmpty()) {
-        QJsonArray attachmentsJson;
-        for (auto attachment : getAttachmentData()) {
-            attachmentsJson.push_back(attachment.toJson());
-        }
-        root[JSON_AVATAR_ATTACHMENTS] = attachmentsJson;
-    }
-
     _avatarEntitiesLock.withReadLock([&] {
         if (!_avatarEntityData.empty()) {
             QJsonArray avatarEntityJson;
+            int entityCount = 0;
             for (auto entityID : _avatarEntityData.keys()) {
                 QVariantMap entityData;
-                entityData.insert("id", entityID);
-                entityData.insert("properties", _avatarEntityData.value(entityID));
+                QUuid newId = _avatarEntityForRecording.size() == _avatarEntityData.size() ? _avatarEntityForRecording.values()[entityCount++] : entityID;
+                entityData.insert("id", newId);                
+                entityData.insert("properties", _avatarEntityData.value(entityID).toBase64());
                 avatarEntityJson.push_back(QVariant(entityData).toJsonObject());
             }
             root[JSON_AVATAR_ENTITIES] = avatarEntityJson;
@@ -2253,12 +2534,17 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
         setAttachmentData(attachments);
     }
 
-    // if (json.contains(JSON_AVATAR_ENTITIES) && json[JSON_AVATAR_ENTITIES].isArray()) {
-    //     QJsonArray attachmentsJson = json[JSON_AVATAR_ATTACHMENTS].toArray();
-    //     for (auto attachmentJson : attachmentsJson) {
-    //         // TODO -- something
-    //     }
-    // }
+    if (json.contains(JSON_AVATAR_ENTITIES) && json[JSON_AVATAR_ENTITIES].isArray()) {
+        QJsonArray attachmentsJson = json[JSON_AVATAR_ENTITIES].toArray();
+        for (auto attachmentJson : attachmentsJson) {
+            if (attachmentJson.isObject()) {
+                QVariantMap entityData = attachmentJson.toObject().toVariantMap();
+                QUuid entityID = entityData.value("id").toUuid();
+                QByteArray properties = QByteArray::fromBase64(entityData.value("properties").toByteArray());
+                updateAvatarEntity(entityID, properties);
+            }
+        }
+    }
 
     if (json.contains(JSON_AVATAR_JOINT_ARRAY)) {
         if (version == (int)JsonAvatarFrameVersion::JointRotationsInRelativeFrame) {
@@ -2362,12 +2648,21 @@ glm::vec3 AvatarData::getAbsoluteJointTranslationInObjectFrame(int index) const 
     return glm::vec3();
 }
 
+/**jsdoc
+ * @typedef {object} AttachmentData
+ * @property {string} modelUrl
+ * @property {string} jointName
+ * @property {Vec3} translation
+ * @property {Vec3} rotation
+ * @property {number} scale
+ * @property {boolean} soft
+ */
 QVariant AttachmentData::toVariant() const {
     QVariantMap result;
     result["modelUrl"] = modelURL;
     result["jointName"] = jointName;
-    result["translation"] = glmToQMap(translation);
-    result["rotation"] = glmToQMap(glm::degrees(safeEulerAngles(rotation)));
+    result["translation"] = vec3ToQMap(translation);
+    result["rotation"] = vec3ToQMap(glm::degrees(safeEulerAngles(rotation)));
     result["scale"] = scale;
     result["soft"] = isSoft;
     return result;
@@ -2436,23 +2731,36 @@ void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& ent
         if (itr == _avatarEntityData.end()) {
             if (_avatarEntityData.size() < MAX_NUM_AVATAR_ENTITIES) {
                 _avatarEntityData.insert(entityID, entityData);
-                _avatarEntityDataLocallyEdited = true;
-                markIdentityDataChanged();
             }
         } else {
             itr.value() = entityData;
-            _avatarEntityDataLocallyEdited = true;
-            markIdentityDataChanged();
         }
     });
+
+    _avatarEntityDataChanged = true;
+
+    if (_clientTraitsHandler) {
+        // we have a client traits handler, so we need to mark this instanced trait as changed
+        // so that changes will be sent next frame
+        _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
+    }
 }
 
-void AvatarData::clearAvatarEntity(const QUuid& entityID) {
-    _avatarEntitiesLock.withWriteLock([&] {
-        _avatarEntityData.remove(entityID);
-        _avatarEntityDataLocallyEdited = true;
-        markIdentityDataChanged();
+void AvatarData::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree) {
+
+    bool removedEntity = false;
+
+    _avatarEntitiesLock.withWriteLock([this, &removedEntity, &entityID] {
+        removedEntity = _avatarEntityData.remove(entityID);
     });
+
+    insertDetachedEntityID(entityID);
+
+    if (removedEntity && _clientTraitsHandler) {
+        // we have a client traits handler, so we need to mark this removed instance trait as deleted
+        // so that changes are sent next frame
+        _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, entityID);
+    }
 }
 
 AvatarEntityMap AvatarData::getAvatarEntityData() const {
@@ -2467,6 +2775,8 @@ void AvatarData::insertDetachedEntityID(const QUuid entityID) {
     _avatarEntitiesLock.withWriteLock([&] {
         _avatarEntityDetached.insert(entityID);
     });
+
+    _avatarEntityDataChanged = true;
 }
 
 void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
@@ -2486,6 +2796,20 @@ void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
             foreach (auto entityID, previousAvatarEntityIDs) {
                 if (!_avatarEntityData.contains(entityID)) {
                     _avatarEntityDetached.insert(entityID);
+
+                    if (_clientTraitsHandler) {
+                        // we have a client traits handler, so we flag this removed entity as deleted
+                        // so that changes are sent next frame
+                        _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, entityID);
+                    }
+                }
+            }
+
+            if (_clientTraitsHandler) {
+                // if we have a client traits handler, flag any updated or created entities
+                // so that we send changes for them next frame
+                foreach (auto entityID, _avatarEntityData.keys()) {
+                    _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
                 }
             }
         }
@@ -2521,15 +2845,18 @@ glm::mat4 AvatarData::getControllerRightHandMatrix() const {
     return _controllerRightHandMatrixCache.get();
 }
 
-
 QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, const RayToAvatarIntersectionResult& value) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("intersects", value.intersects);
     QScriptValue avatarIDValue = quuidToScriptValue(engine, value.avatarID);
     obj.setProperty("avatarID", avatarIDValue);
     obj.setProperty("distance", value.distance);
+    obj.setProperty("face", boxFaceToString(value.face));
+
     QScriptValue intersection = vec3toScriptValue(engine, value.intersection);
     obj.setProperty("intersection", intersection);
+    QScriptValue surfaceNormal = vec3toScriptValue(engine, value.surfaceNormal);
+    obj.setProperty("surfaceNormal", surfaceNormal);
     obj.setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
     return obj;
 }
@@ -2539,9 +2866,15 @@ void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, Ra
     QScriptValue avatarIDValue = object.property("avatarID");
     quuidFromScriptValue(avatarIDValue, value.avatarID);
     value.distance = object.property("distance").toVariant().toFloat();
+    value.face = boxFaceFromString(object.property("face").toVariant().toString());
+
     QScriptValue intersection = object.property("intersection");
     if (intersection.isValid()) {
         vec3FromScriptValue(intersection, value.intersection);
+    }
+    QScriptValue surfaceNormal = object.property("surfaceNormal");
+    if (surfaceNormal.isValid()) {
+        vec3FromScriptValue(surfaceNormal, value.surfaceNormal);
     }
     value.extraInfo = object.property("extraInfo").toVariant().toMap();
 }

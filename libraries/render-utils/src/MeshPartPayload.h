@@ -32,7 +32,7 @@ public:
     typedef render::Payload<MeshPartPayload> Payload;
     typedef Payload::DataPointer Pointer;
 
-    virtual void updateKey(bool isVisible, bool isLayered, bool canCastShadow, uint8_t tagBits, bool isGroupCulled = false);
+    virtual void updateKey(const render::ItemKey& key);
 
     virtual void updateMeshPart(const std::shared_ptr<const graphics::Mesh>& drawMesh, int partIndex);
 
@@ -95,7 +95,7 @@ public:
 
     void notifyLocationChanged() override;
 
-    void updateKey(bool isVisible, bool isLayered, bool canCastShadow, uint8_t tagBits, bool isGroupCulled = false) override;
+    void updateKey(const render::ItemKey& key) override;
 
     // matrix palette skinning
     void updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices);
@@ -105,11 +105,9 @@ public:
     void updateTransformForSkinnedMesh(const Transform& renderTransform, const Transform& boundTransform);
 
     // Render Item interface
-    int getLayer() const;
     render::ShapeKey getShapeKey() const override; // shape interface
     void render(RenderArgs* args) override;
 
-    void setLayer(bool isLayeredInFront, bool isLayeredInHUD);
     void setShapeKey(bool invalidateShapeKey, bool isWireframe, bool useDualQuaternionSkinning);
 
     // ModelMeshPartPayload functions to perform render
@@ -139,13 +137,11 @@ private:
 
     gpu::BufferPointer _blendedVertexBuffer;
     render::ShapeKey _shapeKey { render::ShapeKey::Builder::invalid() };
-    int _layer { render::Item::LAYER_3D };
 };
 
 namespace render {
     template <> const ItemKey payloadGetKey(const ModelMeshPartPayload::Pointer& payload);
     template <> const Item::Bound payloadGetBound(const ModelMeshPartPayload::Pointer& payload);
-    template <> int payloadGetLayer(const ModelMeshPartPayload::Pointer& payload);
     template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer& payload);
     template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args);
 }

@@ -22,7 +22,7 @@ namespace gpu {
     public:
         Frame();
         virtual ~Frame();
-        using Batches = std::vector<Batch>;
+        using Batches = std::vector<BatchPointer>;
         using FramebufferRecycler = std::function<void(const FramebufferPointer&)>;
         using OverlayRecycler = std::function<void(const TexturePointer&)>;
 

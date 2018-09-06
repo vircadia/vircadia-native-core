@@ -9,10 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ReceivedPacketProcessor.h"
+
 #include <NumericalConstants.h>
 
 #include "NodeList.h"
-#include "ReceivedPacketProcessor.h"
 #include "SharedUtil.h"
 
 ReceivedPacketProcessor::ReceivedPacketProcessor() {

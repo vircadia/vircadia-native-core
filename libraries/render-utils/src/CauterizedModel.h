@@ -31,10 +31,9 @@ public:
     void deleteGeometry() override;
     bool updateGeometry() override;
 
-    void createVisibleRenderItemSet() override;
-    void createCollisionRenderItemSet() override;
-
-    virtual void updateClusterMatrices() override;
+    void createRenderItemSet() override;
+    
+    virtual void updateClusterMatrices(bool triggerBlendshapes = true) override;
     void updateRenderItems() override;
 
     const Model::MeshState& getCauterizeMeshState(int index) const;

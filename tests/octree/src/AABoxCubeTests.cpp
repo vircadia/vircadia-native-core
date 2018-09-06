@@ -9,10 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AABoxCubeTests.h"
+
 #include <AABox.h>
 #include <AACube.h>
-
-#include "AABoxCubeTests.h"
 
 QTEST_MAIN(AABoxCubeTests)
 

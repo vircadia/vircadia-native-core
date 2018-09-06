@@ -59,6 +59,21 @@ const glm::vec3 DEFAULT_RIGHT_EYE_POS(-0.3f, 0.9f, 0.0f);
 const glm::vec3 DEFAULT_LEFT_EYE_POS(0.3f, 0.9f, 0.0f);
 const glm::vec3 DEFAULT_HEAD_POS(0.0f, 0.75f, 0.0f);
 
+static const QString LEFT_FOOT_POSITION("leftFootPosition");
+static const QString LEFT_FOOT_ROTATION("leftFootRotation");
+static const QString LEFT_FOOT_IK_POSITION_VAR("leftFootIKPositionVar");
+static const QString LEFT_FOOT_IK_ROTATION_VAR("leftFootIKRotationVar");
+static const QString MAIN_STATE_MACHINE_LEFT_FOOT_POSITION("mainStateMachineLeftFootPosition");
+static const QString MAIN_STATE_MACHINE_LEFT_FOOT_ROTATION("mainStateMachineLeftFootRotation");
+
+static const QString RIGHT_FOOT_POSITION("rightFootPosition");
+static const QString RIGHT_FOOT_ROTATION("rightFootRotation");
+static const QString RIGHT_FOOT_IK_POSITION_VAR("rightFootIKPositionVar");
+static const QString RIGHT_FOOT_IK_ROTATION_VAR("rightFootIKRotationVar");
+static const QString MAIN_STATE_MACHINE_RIGHT_FOOT_ROTATION("mainStateMachineRightFootRotation");
+static const QString MAIN_STATE_MACHINE_RIGHT_FOOT_POSITION("mainStateMachineRightFootPosition");
+
+
 Rig::Rig() {
     // Ensure thread-safe access to the rigRegistry.
     std::lock_guard<std::mutex> guard(rigRegistryMutex);
@@ -575,28 +590,6 @@ bool Rig::getAbsoluteJointPoseInRigFrame(int jointIndex, AnimPose& returnPose) c
     }
 }
 
-void Rig::calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const {
-
-    ASSERT(referenceSpeeds.size() > 0);
-
-    // calculate alpha from linear combination of referenceSpeeds.
-    float alpha = 0.0f;
-    if (speed <= referenceSpeeds.front()) {
-        alpha = 0.0f;
-    } else if (speed > referenceSpeeds.back()) {
-        alpha = (float)(referenceSpeeds.size() - 1);
-    } else {
-        for (size_t i = 0; i < referenceSpeeds.size() - 1; i++) {
-            if (referenceSpeeds[i] < speed && speed < referenceSpeeds[i + 1]) {
-                alpha = (float)i + ((speed - referenceSpeeds[i]) / (referenceSpeeds[i + 1] - referenceSpeeds[i]));
-                break;
-            }
-        }
-    }
-
-    *alphaOut = alpha;
-}
-
 void Rig::setEnableInverseKinematics(bool enable) {
     _enableInverseKinematics = enable;
 }
@@ -636,11 +629,6 @@ bool Rig::getRelativeDefaultJointTranslation(int index, glm::vec3& translationOu
     }
 }
 
-// animation reference speeds.
-static const std::vector<float> FORWARD_SPEEDS = { 0.4f, 1.4f, 4.5f }; // m/s
-static const std::vector<float> BACKWARD_SPEEDS = { 0.6f, 1.45f }; // m/s
-static const std::vector<float> LATERAL_SPEEDS = { 0.2f, 0.65f }; // m/s
-
 void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation, CharacterControllerState ccState) {
 
     glm::vec3 forward = worldRotation * IDENTITY_FORWARD;
@@ -660,24 +648,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         // sine wave LFO var for testing.
         static float t = 0.0f;
         _animVars.set("sine", 2.0f * 0.5f * sinf(t) + 0.5f);
-
-        float moveForwardAlpha = 0.0f;
-        float moveBackwardAlpha = 0.0f;
-        float moveLateralAlpha = 0.0f;
-
-        // calcuate the animation alpha and timeScale values based on current speeds and animation reference speeds.
-        calcAnimAlpha(_averageForwardSpeed.getAverage(), FORWARD_SPEEDS, &moveForwardAlpha);
-        calcAnimAlpha(-_averageForwardSpeed.getAverage(), BACKWARD_SPEEDS, &moveBackwardAlpha);
-        calcAnimAlpha(fabsf(_averageLateralSpeed.getAverage()), LATERAL_SPEEDS, &moveLateralAlpha);
-
         _animVars.set("moveForwardSpeed", _averageForwardSpeed.getAverage());
-        _animVars.set("moveForwardAlpha", moveForwardAlpha);
-
         _animVars.set("moveBackwardSpeed", -_averageForwardSpeed.getAverage());
-        _animVars.set("moveBackwardAlpha", moveBackwardAlpha);
-
         _animVars.set("moveLateralSpeed", fabsf(_averageLateralSpeed.getAverage()));
-        _animVars.set("moveLateralAlpha", moveLateralAlpha);
 
         const float MOVE_ENTER_SPEED_THRESHOLD = 0.2f; // m/sec
         const float MOVE_EXIT_SPEED_THRESHOLD = 0.07f;  // m/sec
@@ -762,6 +735,8 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                         _animVars.set("isMovingBackward", false);
                         _animVars.set("isMovingRight", false);
                         _animVars.set("isMovingLeft", false);
+                        _animVars.set("isMovingRightHmd", false);
+                        _animVars.set("isMovingLeftHmd", false);
                         _animVars.set("isNotMoving", false);
 
                     } else {
@@ -770,28 +745,48 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                         _animVars.set("isMovingForward", false);
                         _animVars.set("isMovingRight", false);
                         _animVars.set("isMovingLeft", false);
+                        _animVars.set("isMovingRightHmd", false);
+                        _animVars.set("isMovingLeftHmd", false);
                         _animVars.set("isNotMoving", false);
                     }
                 } else {
                     if (lateralSpeed > 0.0f) {
                         // right
-                        _animVars.set("isMovingRight", true);
-                        _animVars.set("isMovingLeft", false);
+                        if (!_headEnabled) {
+                            _animVars.set("isMovingRight", true);
+                            _animVars.set("isMovingLeft", false);
+                            _animVars.set("isMovingRightHmd", false);
+                            _animVars.set("isMovingLeftHmd", false);
+                        } else {
+                            _animVars.set("isMovingRight", false);
+                            _animVars.set("isMovingLeft", false);
+                            _animVars.set("isMovingRightHmd", true);
+                            _animVars.set("isMovingLeftHmd", false);
+                        }
                         _animVars.set("isMovingForward", false);
                         _animVars.set("isMovingBackward", false);
                         _animVars.set("isNotMoving", false);
                     } else {
                         // left
-                        _animVars.set("isMovingLeft", true);
-                        _animVars.set("isMovingRight", false);
+                        if (!_headEnabled) {
+                            _animVars.set("isMovingRight", false);
+                            _animVars.set("isMovingLeft", true);
+                            _animVars.set("isMovingRightHmd", false);
+                            _animVars.set("isMovingLeftHmd", false);
+                        } else {
+                            _animVars.set("isMovingRight", false);
+                            _animVars.set("isMovingLeft", false);
+                            _animVars.set("isMovingRightHmd", false);
+                            _animVars.set("isMovingLeftHmd", true);
+                        }
                         _animVars.set("isMovingForward", false);
                         _animVars.set("isMovingBackward", false);
                         _animVars.set("isNotMoving", false);
                     }
                 }
             }
-            _animVars.set("isTurningLeft", false);
             _animVars.set("isTurningRight", false);
+            _animVars.set("isTurningLeft", false);
             _animVars.set("isNotTurning", true);
             _animVars.set("isFlying", false);
             _animVars.set("isNotFlying", true);
@@ -810,14 +805,16 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                 _animVars.set("isNotTurning", false);
             } else {
                 // turning left
-                _animVars.set("isTurningLeft", true);
                 _animVars.set("isTurningRight", false);
+                _animVars.set("isTurningLeft", true);
                 _animVars.set("isNotTurning", false);
             }
             _animVars.set("isMovingForward", false);
             _animVars.set("isMovingBackward", false);
             _animVars.set("isMovingRight", false);
             _animVars.set("isMovingLeft", false);
+            _animVars.set("isMovingRightHmd", false);
+            _animVars.set("isMovingLeftHmd", false);
             _animVars.set("isNotMoving", true);
             _animVars.set("isFlying", false);
             _animVars.set("isNotFlying", true);
@@ -828,15 +825,17 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isInAirRun", false);
             _animVars.set("isNotInAir", true);
 
-        } else if (_state == RigRole::Idle ) {
+        } else if (_state == RigRole::Idle) {
             // default anim vars to notMoving and notTurning
             _animVars.set("isMovingForward", false);
             _animVars.set("isMovingBackward", false);
-            _animVars.set("isMovingLeft", false);
             _animVars.set("isMovingRight", false);
+            _animVars.set("isMovingLeft", false);
+            _animVars.set("isMovingRightHmd", false);
+            _animVars.set("isMovingLeftHmd", false);
             _animVars.set("isNotMoving", true);
-            _animVars.set("isTurningLeft", false);
             _animVars.set("isTurningRight", false);
+            _animVars.set("isTurningLeft", false);
             _animVars.set("isNotTurning", true);
             _animVars.set("isFlying", false);
             _animVars.set("isNotFlying", true);
@@ -851,11 +850,13 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             // flying.
             _animVars.set("isMovingForward", false);
             _animVars.set("isMovingBackward", false);
-            _animVars.set("isMovingLeft", false);
             _animVars.set("isMovingRight", false);
+            _animVars.set("isMovingLeft", false);
+            _animVars.set("isMovingRightHmd", false);
+            _animVars.set("isMovingLeftHmd", false);
             _animVars.set("isNotMoving", true);
-            _animVars.set("isTurningLeft", false);
             _animVars.set("isTurningRight", false);
+            _animVars.set("isTurningLeft", false);
             _animVars.set("isNotTurning", true);
             _animVars.set("isFlying", true);
             _animVars.set("isNotFlying", false);
@@ -870,11 +871,13 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             // jumping in-air
             _animVars.set("isMovingForward", false);
             _animVars.set("isMovingBackward", false);
-            _animVars.set("isMovingLeft", false);
             _animVars.set("isMovingRight", false);
+            _animVars.set("isMovingLeft", false);
+            _animVars.set("isMovingRightHmd", false);
+            _animVars.set("isMovingLeftHmd", false);
             _animVars.set("isNotMoving", true);
-            _animVars.set("isTurningLeft", false);
             _animVars.set("isTurningRight", false);
+            _animVars.set("isTurningLeft", false);
             _animVars.set("isNotTurning", true);
             _animVars.set("isFlying", false);
             _animVars.set("isNotFlying", true);
@@ -897,11 +900,13 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             // jumping in-air
             _animVars.set("isMovingForward", false);
             _animVars.set("isMovingBackward", false);
-            _animVars.set("isMovingLeft", false);
             _animVars.set("isMovingRight", false);
+            _animVars.set("isMovingLeft", false);
+            _animVars.set("isMovingRightHmd", false);
+            _animVars.set("isMovingLeftHmd", false);
             _animVars.set("isNotMoving", true);
-            _animVars.set("isTurningLeft", false);
             _animVars.set("isTurningRight", false);
+            _animVars.set("isTurningLeft", false);
             _animVars.set("isNotTurning", true);
             _animVars.set("isFlying", false);
             _animVars.set("isNotFlying", true);
@@ -921,7 +926,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
             // compute blend based on velocity
             const float JUMP_SPEED = 3.5f;
-            float alpha = glm::clamp(-_lastVelocity.y / JUMP_SPEED, -1.0f, 1.0f) + 1.0f;
+            float alpha = glm::clamp(-workingVelocity.y / JUMP_SPEED, -1.0f, 1.0f) + 1.0f;
             _animVars.set("inAirAlpha", alpha);
         }
 
@@ -1049,7 +1054,7 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
                             getGeometryToRigTransform(), rigToWorldTransform);
 
         // evaluate the animation
-        AnimNode::Triggers triggersOut;
+        AnimVariantMap triggersOut;
 
         _internalPoseSet._relativePoses = _animNode->evaluate(_animVars, context, deltaTime, triggersOut);
         if ((int)_internalPoseSet._relativePoses.size() != _animSkeleton->getNumJoints()) {
@@ -1057,9 +1062,7 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
             _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
         }
         _animVars.clearTriggers();
-        for (auto& trigger : triggersOut) {
-            _animVars.setTrigger(trigger);
-        }
+        _animVars = triggersOut;
     }
     applyOverridePoses();
     buildAbsoluteRigPoses(_internalPoseSet._relativePoses, _internalPoseSet._absolutePoses);
@@ -1241,15 +1244,14 @@ glm::vec3 Rig::deflectHandFromTorso(const glm::vec3& handPosition, const FBXJoin
 }
 
 void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, bool hipsEstimated,
-                      bool leftArmEnabled, bool rightArmEnabled, float dt,
+                      bool leftArmEnabled, bool rightArmEnabled, bool headEnabled, float dt,
                       const AnimPose& leftHandPose, const AnimPose& rightHandPose,
                       const FBXJointShapeInfo& hipsShapeInfo, const FBXJointShapeInfo& spineShapeInfo,
-                      const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo) {
+                      const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo,
+                      const glm::mat4& rigToSensorMatrix, const glm::mat4& sensorToRigMatrix) {
 
-    const bool ENABLE_POLE_VECTORS = false;
+    const bool ENABLE_POLE_VECTORS = true;
     const float ELBOW_POLE_VECTOR_BLEND_FACTOR = 0.95f;
-
-    int hipsIndex = indexOfJoint("Hips");
 
     if (leftHandEnabled) {
 
@@ -1269,21 +1271,33 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         int handJointIndex = _animSkeleton->nameToJointIndex("LeftHand");
         int armJointIndex = _animSkeleton->nameToJointIndex("LeftArm");
         int elbowJointIndex = _animSkeleton->nameToJointIndex("LeftForeArm");
-        if (ENABLE_POLE_VECTORS && !leftArmEnabled && handJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0) {
-            glm::vec3 poleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, hipsIndex, true);
+        int oppositeArmJointIndex = _animSkeleton->nameToJointIndex("RightArm");
+        if (ENABLE_POLE_VECTORS && handJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0 && oppositeArmJointIndex >= 0) {
+            glm::vec3 poleVector;
+            bool usePoleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, oppositeArmJointIndex, poleVector);
+            if (usePoleVector) {
+                glm::vec3 sensorPoleVector = transformVectorFast(rigToSensorMatrix, poleVector);
 
-            // smooth toward desired pole vector from previous pole vector...  to reduce jitter
-            if (!_prevLeftHandPoleVectorValid) {
-                _prevLeftHandPoleVectorValid = true;
-                _prevLeftHandPoleVector = poleVector;
+                if (_smoothPoleVectors) {
+                    // smooth toward desired pole vector from previous pole vector...  to reduce jitter
+                    if (!_prevLeftHandPoleVectorValid) {
+                        _prevLeftHandPoleVectorValid = true;
+                        _prevLeftHandPoleVector = sensorPoleVector;
+                    }
+                    glm::quat deltaRot = rotationBetween(_prevLeftHandPoleVector, sensorPoleVector);
+                    glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, ELBOW_POLE_VECTOR_BLEND_FACTOR);
+                    _prevLeftHandPoleVector = smoothDeltaRot * _prevLeftHandPoleVector;
+                } else {
+                    _prevLeftHandPoleVector = sensorPoleVector;
+                }
+                _animVars.set("leftHandPoleVectorEnabled", true);
+                _animVars.set("leftHandPoleReferenceVector", Vectors::UNIT_X);
+                _animVars.set("leftHandPoleVector", transformVectorFast(sensorToRigMatrix, _prevLeftHandPoleVector));
+            } else {
+                _prevLeftHandPoleVectorValid = false;
+                _animVars.set("leftHandPoleVectorEnabled", false);
             }
-            glm::quat deltaRot = rotationBetween(_prevLeftHandPoleVector, poleVector);
-            glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, ELBOW_POLE_VECTOR_BLEND_FACTOR);
-            _prevLeftHandPoleVector = smoothDeltaRot * _prevLeftHandPoleVector;
 
-            _animVars.set("leftHandPoleVectorEnabled", true);
-            _animVars.set("leftHandPoleReferenceVector", Vectors::UNIT_X);
-            _animVars.set("leftHandPoleVector", _prevLeftHandPoleVector);
         } else {
             _prevLeftHandPoleVectorValid = false;
             _animVars.set("leftHandPoleVectorEnabled", false);
@@ -1294,8 +1308,13 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
 
         _animVars.unset("leftHandPosition");
         _animVars.unset("leftHandRotation");
-        _animVars.set("leftHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
 
+        if (headEnabled) {
+            _animVars.set("leftHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
+        } else {
+            // disable hand IK for desktop mode
+            _animVars.set("leftHandType", (int)IKTarget::Type::Unknown);
+        }
     }
 
     if (rightHandEnabled) {
@@ -1316,21 +1335,34 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         int handJointIndex = _animSkeleton->nameToJointIndex("RightHand");
         int armJointIndex = _animSkeleton->nameToJointIndex("RightArm");
         int elbowJointIndex = _animSkeleton->nameToJointIndex("RightForeArm");
-        if (ENABLE_POLE_VECTORS && !rightArmEnabled && handJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0) {
-            glm::vec3 poleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, hipsIndex, false);
+        int oppositeArmJointIndex = _animSkeleton->nameToJointIndex("LeftArm");
 
-            // smooth toward desired pole vector from previous pole vector...  to reduce jitter
-            if (!_prevRightHandPoleVectorValid) {
-                _prevRightHandPoleVectorValid = true;
-                _prevRightHandPoleVector = poleVector;
+        if (ENABLE_POLE_VECTORS && handJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0 && oppositeArmJointIndex >= 0) {
+            glm::vec3 poleVector;
+            bool usePoleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, oppositeArmJointIndex, poleVector);
+            if (usePoleVector) {
+                glm::vec3 sensorPoleVector = transformVectorFast(rigToSensorMatrix, poleVector);
+
+                if (_smoothPoleVectors) {
+                    // smooth toward desired pole vector from previous pole vector...  to reduce jitter
+                    if (!_prevRightHandPoleVectorValid) {
+                        _prevRightHandPoleVectorValid = true;
+                        _prevRightHandPoleVector = sensorPoleVector;
+                    }
+                    glm::quat deltaRot = rotationBetween(_prevRightHandPoleVector, sensorPoleVector);
+                    glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, ELBOW_POLE_VECTOR_BLEND_FACTOR);
+                    _prevRightHandPoleVector = smoothDeltaRot * _prevRightHandPoleVector;
+                } else {
+                    _prevRightHandPoleVector = sensorPoleVector;
+                }
+
+                _animVars.set("rightHandPoleVectorEnabled", true);
+                _animVars.set("rightHandPoleReferenceVector", -Vectors::UNIT_X);
+                _animVars.set("rightHandPoleVector", transformVectorFast(sensorToRigMatrix, _prevRightHandPoleVector));
+            } else {
+                _prevRightHandPoleVectorValid = false;
+                _animVars.set("rightHandPoleVectorEnabled", false);
             }
-            glm::quat deltaRot = rotationBetween(_prevRightHandPoleVector, poleVector);
-            glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, ELBOW_POLE_VECTOR_BLEND_FACTOR);
-            _prevRightHandPoleVector = smoothDeltaRot * _prevRightHandPoleVector;
-
-            _animVars.set("rightHandPoleVectorEnabled", true);
-            _animVars.set("rightHandPoleReferenceVector", -Vectors::UNIT_X);
-            _animVars.set("rightHandPoleVector", _prevRightHandPoleVector);
         } else {
             _prevRightHandPoleVectorValid = false;
             _animVars.set("rightHandPoleVectorEnabled", false);
@@ -1341,73 +1373,104 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
 
         _animVars.unset("rightHandPosition");
         _animVars.unset("rightHandRotation");
-        _animVars.set("rightHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
+
+        if (headEnabled) {
+            _animVars.set("rightHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
+        } else {
+            // disable hand IK for desktop mode
+            _animVars.set("rightHandType", (int)IKTarget::Type::Unknown);
+        }
     }
 }
 
-void Rig::updateFeet(bool leftFootEnabled, bool rightFootEnabled, const AnimPose& leftFootPose, const AnimPose& rightFootPose) {
-
-    const float KNEE_POLE_VECTOR_BLEND_FACTOR = 0.95f;
+void Rig::updateFeet(bool leftFootEnabled, bool rightFootEnabled, bool headEnabled,
+                     const AnimPose& leftFootPose, const AnimPose& rightFootPose,
+                     const glm::mat4& rigToSensorMatrix, const glm::mat4& sensorToRigMatrix) {
 
     int hipsIndex = indexOfJoint("Hips");
+    const float KNEE_POLE_VECTOR_BLEND_FACTOR = 0.85f;
+
+    if (headEnabled) {
+        // always do IK if head is enabled
+        _animVars.set("leftFootIKEnabled", true);
+        _animVars.set("rightFootIKEnabled", true);
+    } else {
+        // only do IK if we have a valid foot.
+        _animVars.set("leftFootIKEnabled", leftFootEnabled);
+        _animVars.set("rightFootIKEnabled", rightFootEnabled);
+    }
 
     if (leftFootEnabled) {
-        _animVars.set("leftFootPosition", leftFootPose.trans());
-        _animVars.set("leftFootRotation", leftFootPose.rot());
-        _animVars.set("leftFootType", (int)IKTarget::Type::RotationAndPosition);
+
+        _animVars.set(LEFT_FOOT_POSITION, leftFootPose.trans());
+        _animVars.set(LEFT_FOOT_ROTATION, leftFootPose.rot());
+
+        // We want to drive the IK directly from the trackers.
+        _animVars.set(LEFT_FOOT_IK_POSITION_VAR, LEFT_FOOT_POSITION);
+        _animVars.set(LEFT_FOOT_IK_ROTATION_VAR, LEFT_FOOT_ROTATION);
 
         int footJointIndex = _animSkeleton->nameToJointIndex("LeftFoot");
         int kneeJointIndex = _animSkeleton->nameToJointIndex("LeftLeg");
         int upLegJointIndex = _animSkeleton->nameToJointIndex("LeftUpLeg");
         glm::vec3 poleVector = calculateKneePoleVector(footJointIndex, kneeJointIndex, upLegJointIndex, hipsIndex, leftFootPose);
+        glm::vec3 sensorPoleVector = transformVectorFast(rigToSensorMatrix, poleVector);
 
-        // smooth toward desired pole vector from previous pole vector...  to reduce jitter
+        // smooth toward desired pole vector from previous pole vector...  to reduce jitter, but in sensor space.
         if (!_prevLeftFootPoleVectorValid) {
             _prevLeftFootPoleVectorValid = true;
-            _prevLeftFootPoleVector = poleVector;
+            _prevLeftFootPoleVector = sensorPoleVector;
         }
-        glm::quat deltaRot = rotationBetween(_prevLeftFootPoleVector, poleVector);
+        glm::quat deltaRot = rotationBetween(_prevLeftFootPoleVector, sensorPoleVector);
         glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, KNEE_POLE_VECTOR_BLEND_FACTOR);
         _prevLeftFootPoleVector = smoothDeltaRot * _prevLeftFootPoleVector;
 
         _animVars.set("leftFootPoleVectorEnabled", true);
-        _animVars.set("leftFootPoleReferenceVector", Vectors::UNIT_Z);
-        _animVars.set("leftFootPoleVector", _prevLeftFootPoleVector);
+        _animVars.set("leftFootPoleVector", transformVectorFast(sensorToRigMatrix, _prevLeftFootPoleVector));
     } else {
-        _animVars.unset("leftFootPosition");
-        _animVars.unset("leftFootRotation");
-        _animVars.set("leftFootType", (int)IKTarget::Type::RotationAndPosition);
+        // We want to drive the IK from the underlying animation.
+        // This gives us the ability to squat while in the HMD, without the feet from dipping under the floor.
+        _animVars.set(LEFT_FOOT_IK_POSITION_VAR, MAIN_STATE_MACHINE_LEFT_FOOT_POSITION);
+        _animVars.set(LEFT_FOOT_IK_ROTATION_VAR, MAIN_STATE_MACHINE_LEFT_FOOT_ROTATION);
+
+        // We want to match the animated knee pose as close as possible, so don't use poleVectors
         _animVars.set("leftFootPoleVectorEnabled", false);
         _prevLeftFootPoleVectorValid = false;
     }
 
     if (rightFootEnabled) {
-        _animVars.set("rightFootPosition", rightFootPose.trans());
-        _animVars.set("rightFootRotation", rightFootPose.rot());
-        _animVars.set("rightFootType", (int)IKTarget::Type::RotationAndPosition);
+        _animVars.set(RIGHT_FOOT_POSITION, rightFootPose.trans());
+        _animVars.set(RIGHT_FOOT_ROTATION, rightFootPose.rot());
+
+        // We want to drive the IK directly from the trackers.
+        _animVars.set(RIGHT_FOOT_IK_POSITION_VAR, RIGHT_FOOT_POSITION);
+        _animVars.set(RIGHT_FOOT_IK_ROTATION_VAR, RIGHT_FOOT_ROTATION);
 
         int footJointIndex = _animSkeleton->nameToJointIndex("RightFoot");
         int kneeJointIndex = _animSkeleton->nameToJointIndex("RightLeg");
         int upLegJointIndex = _animSkeleton->nameToJointIndex("RightUpLeg");
         glm::vec3 poleVector = calculateKneePoleVector(footJointIndex, kneeJointIndex, upLegJointIndex, hipsIndex, rightFootPose);
+        glm::vec3 sensorPoleVector = transformVectorFast(rigToSensorMatrix, poleVector);
 
         // smooth toward desired pole vector from previous pole vector...  to reduce jitter
         if (!_prevRightFootPoleVectorValid) {
             _prevRightFootPoleVectorValid = true;
-            _prevRightFootPoleVector = poleVector;
+            _prevRightFootPoleVector = sensorPoleVector;
         }
-        glm::quat deltaRot = rotationBetween(_prevRightFootPoleVector, poleVector);
+        glm::quat deltaRot = rotationBetween(_prevRightFootPoleVector, sensorPoleVector);
         glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, KNEE_POLE_VECTOR_BLEND_FACTOR);
         _prevRightFootPoleVector = smoothDeltaRot * _prevRightFootPoleVector;
 
         _animVars.set("rightFootPoleVectorEnabled", true);
-        _animVars.set("rightFootPoleReferenceVector", Vectors::UNIT_Z);
-        _animVars.set("rightFootPoleVector", _prevRightFootPoleVector);
+        _animVars.set("rightFootPoleVector", transformVectorFast(sensorToRigMatrix, _prevRightFootPoleVector));
     } else {
-        _animVars.unset("rightFootPosition");
-        _animVars.unset("rightFootRotation");
+        // We want to drive the IK from the underlying animation.
+        // This gives us the ability to squat while in the HMD, without the feet from dipping under the floor.
+        _animVars.set(RIGHT_FOOT_IK_POSITION_VAR, MAIN_STATE_MACHINE_RIGHT_FOOT_POSITION);
+        _animVars.set(RIGHT_FOOT_IK_ROTATION_VAR, MAIN_STATE_MACHINE_RIGHT_FOOT_ROTATION);
+
+        // We want to match the animated knee pose as close as possible, so don't use poleVectors
         _animVars.set("rightFootPoleVectorEnabled", false);
-        _animVars.set("rightFootType", (int)IKTarget::Type::RotationAndPosition);
+        _prevRightFootPoleVectorValid = false;
     }
 }
 
@@ -1434,9 +1497,9 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
 
         glm::quat deltaQuat = desiredQuat * glm::inverse(headQuat);
 
-        // limit swing rotation of the deltaQuat by a 30 degree cone.
+        // limit swing rotation of the deltaQuat by a 25 degree cone.
         // TODO: use swing twist decomposition constraint instead, for off axis rotation clamping.
-        const float MAX_ANGLE = 30.0f * RADIANS_PER_DEGREE;
+        const float MAX_ANGLE = 25.0f * RADIANS_PER_DEGREE;
         if (fabsf(glm::angle(deltaQuat)) > MAX_ANGLE) {
             deltaQuat = glm::angleAxis(glm::clamp(glm::angle(deltaQuat), -MAX_ANGLE, MAX_ANGLE), glm::axis(deltaQuat));
         }
@@ -1449,83 +1512,97 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
         for (int i = 0; i < (int)children.size(); i++) {
             int jointIndex = children[i];
             int parentIndex = _animSkeleton->getParentIndex(jointIndex);
-            _internalPoseSet._absolutePoses[jointIndex] = 
+            _internalPoseSet._absolutePoses[jointIndex] =
                 _internalPoseSet._absolutePoses[parentIndex] * _internalPoseSet._relativePoses[jointIndex];
         }
     }
 }
 
-static glm::quat quatLerp(const glm::quat& q1, const glm::quat& q2, float alpha) {
-    float dot = glm::dot(q1, q2);
-    glm::quat temp;
-    if (dot < 0.0f) {
-        temp = -q2;
-    } else {
-        temp = q2;
-    }
-    return glm::normalize(glm::lerp(q1, temp, alpha));
-}
+bool Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, int oppositeArmIndex, glm::vec3& poleVector) const {
+    // The resulting Pole Vector is calculated as the sum of a three vectors.
+    // The first is the vector with direction shoulder-hand. The module of this vector is inversely proportional to the strength of the resulting Pole Vector.
+    // The second vector is always perpendicular to previous vector and is part of the plane that contains a point located on the horizontal line,
+    // pointing forward and with height aprox to the avatar head. The position of the horizontal point will be determined by the hands Y component.
+    // The third vector apply a weighted correction to the resulting pole vector to avoid interpenetration and force a more natural pose.
 
-glm::vec3 Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, int hipsIndex, bool isLeft) const {
-    AnimPose hipsPose = _externalPoseSet._absolutePoses[hipsIndex];
+    AnimPose oppositeArmPose = _externalPoseSet._absolutePoses[oppositeArmIndex];
     AnimPose handPose = _externalPoseSet._absolutePoses[handIndex];
-    AnimPose elbowPose = _externalPoseSet._absolutePoses[elbowIndex];
     AnimPose armPose = _externalPoseSet._absolutePoses[armIndex];
+    AnimPose elbowPose = _externalPoseSet._absolutePoses[elbowIndex];
 
-    // ray from hand to arm.
-    glm::vec3 d = glm::normalize(handPose.trans() - armPose.trans());
+    glm::vec3 armToHand = handPose.trans() - armPose.trans();
+    glm::vec3 armToElbow = elbowPose.trans() - armPose.trans();
+    glm::vec3 elbowToHand = handPose.trans() - elbowPose.trans();
 
-    float sign = isLeft ? 1.0f : -1.0f;
+    glm::vec3 backVector = oppositeArmPose.trans() - armPose.trans();
+    glm::vec3 backCenter = armPose.trans() + 0.5f * backVector;
 
-    // form a plane normal to the hips x-axis.
-    glm::vec3 n = hipsPose.rot() * Vectors::UNIT_X;
-    glm::vec3 y = hipsPose.rot() * Vectors::UNIT_Y;
+    glm::vec3 frontVector = glm::normalize(glm::cross(backVector, Vectors::UNIT_Y));
+    glm::vec3 topVector = glm::normalize(glm::cross(frontVector, backVector));
 
-    // project d onto this plane
-    glm::vec3 dProj = d - glm::dot(d, n) * n;
+    glm::vec3 centerToHand = handPose.trans() - backCenter;
+    glm::vec3 headCenter = backCenter + glm::length(backVector) * topVector;
 
-    // give dProj a bit of offset away from the body.
-    float avatarScale = extractUniformScale(_modelOffset);
-    const float LATERAL_OFFSET = 1.0f * avatarScale;
-    const float VERTICAL_OFFSET = -0.333f * avatarScale;
-    glm::vec3 dProjWithOffset = dProj + sign * LATERAL_OFFSET * n + y * VERTICAL_OFFSET;
+    // Make sure is pointing forward
+    frontVector = frontVector.z < 0 ? -frontVector : frontVector;
 
-    // rotate dProj by 90 degrees to get the poleVector.
-    glm::vec3 poleVector = glm::angleAxis(PI / 2.0f, n) * dProjWithOffset;
+    float horizontalModule = glm::dot(centerToHand, -topVector);
 
-    // blend the wrist oreintation into the pole vector to reduce the painfully bent wrist problem.
-    glm::quat elbowToHandDelta = handPose.rot() * glm::inverse(elbowPose.rot());
-    const float WRIST_POLE_ADJUST_FACTOR = 0.5f;
-    glm::quat poleAdjust = quatLerp(Quaternions::IDENTITY, elbowToHandDelta, WRIST_POLE_ADJUST_FACTOR);
+    glm::vec3 headForward = headCenter + glm::max(0.0f, horizontalModule) * frontVector;
+    glm::vec3 armToHead = headForward - armPose.trans();
 
-    return glm::normalize(poleAdjust * poleVector);
+    float armToHandDistance = glm::length(armToHand);
+    float armToElbowDistance = glm::length(armToElbow);
+    float elbowToHandDistance = glm::length(elbowToHand);
+    float armTotalDistance = armToElbowDistance + elbowToHandDistance;
+
+    glm::vec3 armToHandDir = armToHand / armToHandDistance;
+    glm::vec3 armToHeadPlaneNormal = glm::cross(armToHead, armToHandDir);
+
+    // How much the hand is reaching for the opposite side
+    float oppositeProjection = glm::dot(armToHandDir, glm::normalize(backVector));
+
+    bool isCrossed = glm::dot(centerToHand, backVector) > 0;
+    bool isBehind = glm::dot(frontVector, armToHand) < 0;
+    // Don't use pole vector when the hands are behind the back and the arms are not crossed
+    if (isBehind && !isCrossed) {
+        return false;
+    }
+
+    // The strenght of the resulting pole determined by the arm flex.
+    float armFlexCoeficient = armToHandDistance / armTotalDistance;
+    glm::vec3 attenuationVector = armFlexCoeficient * armToHandDir;
+    // Pole vector is perpendicular to the shoulder-hand direction and located on the plane that contains the head-forward line
+    glm::vec3 fullPoleVector = glm::normalize(glm::cross(armToHeadPlaneNormal, armToHandDir));
+
+    // Push elbow forward when hand reaches opposite side
+    glm::vec3 correctionVector = glm::vec3(0, 0, 0);
+
+    const float FORWARD_TRIGGER_PERCENTAGE = 0.2f;
+    const float FORWARD_CORRECTOR_WEIGHT = 2.3f;
+
+    float elbowForwardTrigger = FORWARD_TRIGGER_PERCENTAGE * armToHandDistance;
+
+    if (oppositeProjection > -elbowForwardTrigger) {
+        float forwardAmount = FORWARD_CORRECTOR_WEIGHT * (elbowForwardTrigger + oppositeProjection);
+        correctionVector = forwardAmount * frontVector;
+    }
+    poleVector = glm::normalize(attenuationVector + fullPoleVector + correctionVector);
+    return true;
 }
 
+// returns a poleVector for the knees that is a blend of the foot and the hips.
+// targetFootPose is in rig space
+// result poleVector is also in rig space.
 glm::vec3 Rig::calculateKneePoleVector(int footJointIndex, int kneeIndex, int upLegIndex, int hipsIndex, const AnimPose& targetFootPose) const {
+    const float FOOT_THETA = 0.8969f;  // 51.39 degrees
+    const glm::vec3 localFootForward(0.0f, cosf(FOOT_THETA), sinf(FOOT_THETA));
 
+    glm::vec3 footForward = targetFootPose.rot() * localFootForward;
     AnimPose hipsPose = _externalPoseSet._absolutePoses[hipsIndex];
-    AnimPose footPose = targetFootPose;
-    AnimPose kneePose = _externalPoseSet._absolutePoses[kneeIndex];
-    AnimPose upLegPose = _externalPoseSet._absolutePoses[upLegIndex];
+    glm::vec3 hipsForward = hipsPose.rot() * Vectors::UNIT_Z;
 
-    // ray from foot to upLeg
-    glm::vec3 d = glm::normalize(footPose.trans() - upLegPose.trans());
-
-    // form a plane normal to the hips x-axis
-    glm::vec3 n = hipsPose.rot() * Vectors::UNIT_X;
-
-    // project d onto this plane
-    glm::vec3 dProj = d - glm::dot(d, n) * n;
-
-    // rotate dProj by 90 degrees to get the poleVector.
-    glm::vec3 poleVector = glm::angleAxis(-PI / 2.0f, n) * dProj;
-
-    // blend the foot oreintation into the pole vector
-    glm::quat kneeToFootDelta = footPose.rot() * glm::inverse(kneePose.rot());
-    const float WRIST_POLE_ADJUST_FACTOR = 0.5f;
-    glm::quat poleAdjust = quatLerp(Quaternions::IDENTITY, kneeToFootDelta, WRIST_POLE_ADJUST_FACTOR);
-
-    return glm::normalize(poleAdjust * poleVector);
+    return glm::normalize(lerp(hipsForward, footForward, 0.75f));
 }
 
 void Rig::updateFromControllerParameters(const ControllerParameters& params, float dt) {
@@ -1536,7 +1613,7 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     _animVars.set("isTalking", params.isTalking);
     _animVars.set("notIsTalking", !params.isTalking);
 
-    bool headEnabled = params.primaryControllerFlags[PrimaryControllerType_Head] & (uint8_t)ControllerFlags::Enabled;
+    _headEnabled = params.primaryControllerFlags[PrimaryControllerType_Head] & (uint8_t)ControllerFlags::Enabled;
     bool leftHandEnabled = params.primaryControllerFlags[PrimaryControllerType_LeftHand] & (uint8_t)ControllerFlags::Enabled;
     bool rightHandEnabled = params.primaryControllerFlags[PrimaryControllerType_RightHand] & (uint8_t)ControllerFlags::Enabled;
     bool hipsEnabled = params.primaryControllerFlags[PrimaryControllerType_Hips] & (uint8_t)ControllerFlags::Enabled;
@@ -1546,18 +1623,20 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     bool spine2Enabled = params.primaryControllerFlags[PrimaryControllerType_Spine2] & (uint8_t)ControllerFlags::Enabled;
     bool leftArmEnabled = params.secondaryControllerFlags[SecondaryControllerType_LeftArm] & (uint8_t)ControllerFlags::Enabled;
     bool rightArmEnabled = params.secondaryControllerFlags[SecondaryControllerType_RightArm] & (uint8_t)ControllerFlags::Enabled;
+    glm::mat4 sensorToRigMatrix = glm::inverse(params.rigToSensorMatrix);
 
-    updateHead(headEnabled, hipsEnabled, params.primaryControllerPoses[PrimaryControllerType_Head]);
+    updateHead(_headEnabled, hipsEnabled, params.primaryControllerPoses[PrimaryControllerType_Head]);
 
-    updateHands(leftHandEnabled, rightHandEnabled, hipsEnabled, hipsEstimated, leftArmEnabled, rightArmEnabled, dt,
+    updateHands(leftHandEnabled, rightHandEnabled, hipsEnabled, hipsEstimated, leftArmEnabled, rightArmEnabled, _headEnabled, dt,
                 params.primaryControllerPoses[PrimaryControllerType_LeftHand], params.primaryControllerPoses[PrimaryControllerType_RightHand],
-                params.hipsShapeInfo, params.spineShapeInfo, params.spine1ShapeInfo, params.spine2ShapeInfo);
+                params.hipsShapeInfo, params.spineShapeInfo, params.spine1ShapeInfo, params.spine2ShapeInfo,
+                params.rigToSensorMatrix, sensorToRigMatrix);
 
-    updateFeet(leftFootEnabled, rightFootEnabled,
-               params.primaryControllerPoses[PrimaryControllerType_LeftFoot], params.primaryControllerPoses[PrimaryControllerType_RightFoot]);
+    updateFeet(leftFootEnabled, rightFootEnabled, _headEnabled,
+               params.primaryControllerPoses[PrimaryControllerType_LeftFoot], params.primaryControllerPoses[PrimaryControllerType_RightFoot],
+               params.rigToSensorMatrix, sensorToRigMatrix);
 
-
-    if (headEnabled) {
+    if (_headEnabled) {
         // Blend IK chains toward the joint limit centers, this should stablize head and hand ik.
         _animVars.set("solutionSource", (int)AnimInverseKinematics::SolutionSource::RelaxToLimitCenterPoses);
     } else {

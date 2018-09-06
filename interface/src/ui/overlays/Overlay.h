@@ -40,6 +40,7 @@ public:
     virtual void update(float deltatime) {}
     virtual void render(RenderArgs* args) = 0;
 
+    virtual render::ItemKey getKey();
     virtual AABox getBounds() const = 0;
     virtual bool supportsGetProperty() const { return true; }
 
@@ -132,7 +133,6 @@ private:
 namespace render {
    template <> const ItemKey payloadGetKey(const Overlay::Pointer& overlay);
    template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay);
-   template <> int payloadGetLayer(const Overlay::Pointer& overlay);
    template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args);
    template <> const ShapeKey shapeGetShapeKey(const Overlay::Pointer& overlay);
    template <> uint32_t metaFetchMetaSubItems(const Overlay::Pointer& overlay, ItemIDs& subItems);

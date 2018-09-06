@@ -269,6 +269,9 @@ For usage and examples: colpick.com/plugin
             },
             // Show/hide the color picker
             show = function (ev) {
+                if ($(this).attr('disabled')) {
+                    return;
+                }
                 // Prevent the trigger of any direct parent
                 ev.stopPropagation();
                 var cal = $('#' + $(this).data('colpickId'));

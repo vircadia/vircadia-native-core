@@ -50,7 +50,3 @@ GLBackend& getBackend() {
     }
     return *INSTANCE;
 }
-
-bool GLBackend::makeProgram(Shader& shader, const Shader::BindingSet& slotBindings, const Shader::CompilationHandler& handler) {
-    return GLShader::makeProgram(getBackend(), shader, slotBindings, handler);
-}

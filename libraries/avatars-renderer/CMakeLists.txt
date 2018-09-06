@@ -1,5 +1,4 @@
 set(TARGET_NAME avatars-renderer)
-AUTOSCRIBE_SHADER_LIB(gpu graphics render render-utils)
 setup_hifi_library(Network Script)
 link_hifi_libraries(shared gpu graphics animation model-networking script-engine render render-utils image trackers entities-renderer)
 include_hifi_library_headers(avatars)
@@ -14,6 +13,7 @@ include_hifi_library_headers(audio)
 include_hifi_library_headers(entities)
 include_hifi_library_headers(octree)
 include_hifi_library_headers(task)
+include_hifi_library_headers(workload)
 include_hifi_library_headers(graphics-scripting) # for ScriptableModel.h
 
 target_bullet()

@@ -28,18 +28,14 @@
 
 class JSONCallbackParameters {
 public:
-    JSONCallbackParameters(QObject* jsonCallbackReceiver = nullptr, const QString& jsonCallbackMethod = QString(),
-                           QObject* errorCallbackReceiver = nullptr, const QString& errorCallbackMethod = QString(),
-                           QObject* updateReceiver = nullptr, const QString& updateSlot = QString());
+    JSONCallbackParameters(QObject* callbackReceiver = nullptr, const QString& jsonCallbackMethod = QString(),
+                           const QString& errorCallbackMethod = QString());
 
-    bool isEmpty() const { return !jsonCallbackReceiver && !errorCallbackReceiver; }
+    bool isEmpty() const { return !callbackReceiver; }
 
-    QObject* jsonCallbackReceiver;
+    QObject* callbackReceiver;
     QString jsonCallbackMethod;
-    QObject* errorCallbackReceiver;
     QString errorCallbackMethod;
-    QObject* updateReciever;
-    QString updateSlot;
 };
 
 namespace AccountManagerAuth {
@@ -88,8 +84,9 @@ public:
     void requestProfile();
 
     DataServerAccountInfo& getAccountInfo() { return _accountInfo; }
+    void setAccountInfo(const DataServerAccountInfo &newAccountInfo);
 
-    static QJsonObject dataObjectFromResponse(QNetworkReply& requestReply);
+    static QJsonObject dataObjectFromResponse(QNetworkReply* requestReply);
 
     QUuid getSessionID() const { return _sessionID; }
     void setSessionID(const QUuid& sessionID);
@@ -98,6 +95,8 @@ public:
     const QString& getTemporaryDomainKey(const QUuid& domainID) { return _accountInfo.getTemporaryDomainKey(domainID); }
 
     QUrl getMetaverseServerURL() { return NetworkingConstants::METAVERSE_SERVER_URL(); }
+
+    void removeAccountFromFile();
 
 public slots:
     void requestAccessToken(const QString& login, const QString& password);
@@ -125,11 +124,10 @@ signals:
     void newKeypair();
 
 private slots:
-    void processReply();
     void handleKeypairGenerationError();
-    void processGeneratedKeypair();
-    void publicKeyUploadSucceeded(QNetworkReply& reply);
-    void publicKeyUploadFailed(QNetworkReply& reply);
+    void processGeneratedKeypair(QByteArray publicKey, QByteArray privateKey);
+    void publicKeyUploadSucceeded(QNetworkReply* reply);
+    void publicKeyUploadFailed(QNetworkReply* reply);
     void generateNewKeypair(bool isUserKeypair = true, const QUuid& domainID = QUuid());
 
 private:
@@ -137,7 +135,6 @@ private:
     void operator=(AccountManager const& other) = delete;
 
     void persistAccountToFile();
-    void removeAccountFromFile();
 
     void passSuccessToCallback(QNetworkReply* reply);
     void passErrorToCallback(QNetworkReply* reply);
@@ -145,8 +142,6 @@ private:
     UserAgentGetter _userAgentGetter;
 
     QUrl _authURL;
-    
-    QMap<QNetworkReply*, JSONCallbackParameters> _pendingCallbackMap;
 
     DataServerAccountInfo _accountInfo;
     bool _isWaitingForTokenRefresh { false };

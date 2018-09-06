@@ -58,9 +58,8 @@ void AddressBarDialog::loadHome() {
     qDebug() << "Called LoadHome";
     auto locationBookmarks = DependencyManager::get<LocationBookmarks>();
     QString homeLocation = locationBookmarks->addressForBookmark(LocationBookmarks::HOME_BOOKMARK);
-    const QString DEFAULT_HOME_LOCATION = "localhost";
     if (homeLocation == "") {
-        homeLocation = DEFAULT_HOME_LOCATION;
+        homeLocation = DEFAULT_HIFI_ADDRESS;
     }
     DependencyManager::get<AddressManager>()->handleLookupString(homeLocation);
 }

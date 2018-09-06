@@ -43,7 +43,7 @@ void MaterialEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& 
 
 ItemKey MaterialEntityRenderer::getKey() {
     ItemKey::Builder builder;
-    builder.withTypeShape().withTagBits(render::ItemKey::TAG_BITS_0 | render::ItemKey::TAG_BITS_1);
+    builder.withTypeShape().withTagBits(getTagMask());
 
     if (!_visible) {
         builder.withInvisible();
@@ -112,11 +112,14 @@ void MaterialEntityRenderer::doRender(RenderArgs* args) {
     }
 
     batch.setModelTransform(renderTransform);
-    drawMaterial->setTextureTransforms(textureTransform);
 
-    // bind the material
-    RenderPipelines::bindMaterial(drawMaterial, batch, args->_enableTexturing);
-    args->_details._materialSwitches++;
+    if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
+        drawMaterial->setTextureTransforms(textureTransform);
+
+        // bind the material
+        RenderPipelines::bindMaterial(drawMaterial, batch, args->_enableTexturing);
+        args->_details._materialSwitches++;
+    }
 
     // Draw!
     DependencyManager::get<GeometryCache>()->renderSphere(batch);

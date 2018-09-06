@@ -18,6 +18,9 @@
 /**jsdoc
  * The Settings API provides a facility to store and retrieve values that persist between Interface runs.
  * @namespace Settings
+ *
+ * @hifi-interface
+ * @hifi-client-entity
  */
 
 class SettingsScriptingInterface : public QObject {

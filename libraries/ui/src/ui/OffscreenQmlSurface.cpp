@@ -102,7 +102,7 @@ class AudioHandler : public QObject, QRunnable {
 public:
     AudioHandler(OffscreenQmlSurface* surface, const QString& deviceName, QObject* parent = nullptr);
 
-    virtual ~AudioHandler() { qDebug() << "Audio Handler Destroyed"; }
+    virtual ~AudioHandler() { }
 
     void run() override;
 
@@ -115,6 +115,7 @@ private:
 class UrlHandler : public QObject {
     Q_OBJECT
 public:
+    UrlHandler(QObject* parent = nullptr) : QObject(parent) {}
     Q_INVOKABLE bool canHandleUrl(const QString& url) {
         static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
         return handler && handler->canAcceptURL(url);
@@ -223,6 +224,17 @@ void AudioHandler::run() {
     qDebug() << "QML Audio changed to " << _newTargetDevice;
 }
 
+OffscreenQmlSurface::~OffscreenQmlSurface() {
+    clearFocusItem();
+}
+
+void OffscreenQmlSurface::clearFocusItem() {
+    if (_currentFocusItem) {
+        disconnect(_currentFocusItem, &QObject::destroyed, this, &OffscreenQmlSurface::focusDestroyed);
+    }
+    _currentFocusItem = nullptr;
+}
+
 void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
     Parent::initializeEngine(engine);
     new QQmlFileSelector(engine);
@@ -246,26 +258,13 @@ void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
 
     auto rootContext = engine->rootContext();
     rootContext->setContextProperty("GL", ::getGLContextData());
-    rootContext->setContextProperty("urlHandler", new UrlHandler());
+    rootContext->setContextProperty("urlHandler", new UrlHandler(rootContext));
     rootContext->setContextProperty("resourceDirectoryUrl", QUrl::fromLocalFile(PathUtils::resourcesPath()));
     rootContext->setContextProperty("ApplicationInterface", qApp);
     auto javaScriptToInject = getEventBridgeJavascript();
     if (!javaScriptToInject.isEmpty()) {
         rootContext->setContextProperty("eventBridgeJavaScriptToInject", QVariant(javaScriptToInject));
     }
-#if !defined(Q_OS_ANDROID)
-    rootContext->setContextProperty("FileTypeProfile", new FileTypeProfile(rootContext));
-    rootContext->setContextProperty("HFWebEngineProfile", new HFWebEngineProfile(rootContext));
-    {
-        PROFILE_RANGE(startup, "FileTypeProfile");
-        rootContext->setContextProperty("FileTypeProfile", new FileTypeProfile(rootContext));
-    }
-    {
-        PROFILE_RANGE(startup, "HFWebEngineProfile");
-        rootContext->setContextProperty("HFWebEngineProfile", new HFWebEngineProfile(rootContext));
-        
-    }
-#endif
     rootContext->setContextProperty("Paths", DependencyManager::get<PathUtils>().data());
     rootContext->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
     rootContext->setContextProperty("Toolbars", DependencyManager::get<ToolbarScriptingInterface>().data());
@@ -288,6 +287,17 @@ void OffscreenQmlSurface::onRootContextCreated(QQmlContext* qmlContext) {
     // FIXME Compatibility mechanism for existing HTML and JS that uses eventBridgeWrapper
     // Find a way to flag older scripts using this mechanism and wanr that this is deprecated
     qmlContext->setContextProperty("eventBridgeWrapper", new EventBridgeWrapper(this, qmlContext));
+#if !defined(Q_OS_ANDROID)
+    {
+        PROFILE_RANGE(startup, "FileTypeProfile");
+        FileTypeProfile::registerWithContext(qmlContext);
+    }
+    {
+        PROFILE_RANGE(startup, "HFWebEngineProfile");
+        HFWebEngineProfile::registerWithContext(qmlContext);
+
+    }
+#endif
 }
 
 QQmlContext* OffscreenQmlSurface::contextForUrl(const QUrl& qmlSource, QQuickItem* parent, bool forceNewContext) {
@@ -319,8 +329,7 @@ void OffscreenQmlSurface::onRootCreated() {
     getSurfaceContext()->setContextProperty("offscreenWindow", QVariant::fromValue(getWindow()));
 
     // Connect with the audio client and listen for audio device changes
-    auto audioIO = DependencyManager::get<AudioClient>();
-    connect(audioIO.data(), &AudioClient::deviceChanged, this, [&](QAudio::Mode mode, const QAudioDeviceInfo& device) {
+    connect(DependencyManager::get<AudioClient>().data(), &AudioClient::deviceChanged, this, [this](QAudio::Mode mode, const QAudioDeviceInfo& device) {
         if (mode == QAudio::Mode::AudioOutput) {
             QMetaObject::invokeMethod(this, "changeAudioOutputDevice", Qt::QueuedConnection, Q_ARG(QString, device.deviceName()));
         }
@@ -414,11 +423,17 @@ PointerEvent::EventType OffscreenQmlSurface::choosePointerEventType(QEvent::Type
 }
 
 void OffscreenQmlSurface::hoverBeginEvent(const PointerEvent& event, class QTouchDevice& device) {
+#if defined(DISABLE_QML)
+    return;
+#endif
     handlePointerEvent(event, device);
     _activeTouchPoints[event.getID()].hovering = true;
 }
 
 void OffscreenQmlSurface::hoverEndEvent(const PointerEvent& event, class QTouchDevice& device) {
+#if defined(DISABLE_QML)
+    return;
+#endif
     _activeTouchPoints[event.getID()].hovering = false;
     // Send a fake mouse move event if
     // - the event told us to
@@ -432,6 +447,10 @@ void OffscreenQmlSurface::hoverEndEvent(const PointerEvent& event, class QTouchD
 }
 
 bool OffscreenQmlSurface::handlePointerEvent(const PointerEvent& event, class QTouchDevice& device, bool release) {
+#if defined(DISABLE_QML)
+    return false;
+#endif
+
     // Ignore mouse interaction if we're paused
     if (!getRootItem() || isPaused()) {
         return false;
@@ -545,27 +564,21 @@ bool OffscreenQmlSurface::handlePointerEvent(const PointerEvent& event, class QT
 }
 
 void OffscreenQmlSurface::focusDestroyed(QObject* obj) {
-    if (_currentFocusItem) {
-        disconnect(_currentFocusItem, &QObject::destroyed, this, &OffscreenQmlSurface::focusDestroyed);
-    }
-    _currentFocusItem = nullptr;
+    clearFocusItem();
 }
 
 void OffscreenQmlSurface::onFocusObjectChanged(QObject* object) {
+    clearFocusItem();
+
     QQuickItem* item = static_cast<QQuickItem*>(object);
     if (!item) {
         setFocusText(false);
-        _currentFocusItem = nullptr;
         return;
     }
 
     QInputMethodQueryEvent query(Qt::ImEnabled);
     qApp->sendEvent(object, &query);
     setFocusText(query.value(Qt::ImEnabled).toBool());
-
-    if (_currentFocusItem) {
-        disconnect(_currentFocusItem, &QObject::destroyed, this, 0);
-    }
 
     // Raise and lower keyboard for QML text fields.
     // HTML text fields are handled in emitWebEvent() methods - testing READ_ONLY_PROPERTY prevents action for HTML files.

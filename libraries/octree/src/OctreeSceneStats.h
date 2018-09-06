@@ -79,9 +79,6 @@ public:
     /// Track that a element was due to be sent, but didn't fit in the packet and was moved to next packet
     void didntFit(const OctreeElementPointer& element);
 
-    /// Track that the color bitmask was was sent as part of computation of a scene
-    void colorBitsWritten();
-
     /// Track that the exists in tree bitmask was was sent as part of computation of a scene
     void existsBitsWritten();
 

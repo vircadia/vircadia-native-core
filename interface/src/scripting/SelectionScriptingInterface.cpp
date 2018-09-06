@@ -56,6 +56,19 @@ bool GameplayObjects::removeFromGameplayObjects(const OverlayID& overlayID) {
 SelectionScriptingInterface::SelectionScriptingInterface() {
 }
 
+/**jsdoc
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>"avatar"</code></td><td></td></tr>
+ *     <tr><td><code>"entity"</code></td><td></td></tr>
+ *     <tr><td><code>"overlay"</code></td><td></td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {string} Selection.ItemType
+ */
 bool SelectionScriptingInterface::addToSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id) {
     if (itemType == "avatar") {
         return addToGameplayObjects(listName, (QUuid)id);
@@ -255,6 +268,12 @@ void SelectionScriptingInterface::printList(const QString& listName) {
     }
 }
 
+/**jsdoc
+ * @typedef {object} Selection.SelectedItemsList
+ * @property {Uuid[]} avatars - The IDs of the avatars in the selection.
+ * @property {Uuid[]} entities - The IDs of the entities in the selection.
+ * @property {Uuid[]} overlays - The IDs of the overlays in the selection.
+ */
 QVariantMap SelectionScriptingInterface::getSelectedItemsList(const QString& listName) const {
     QReadLocker lock(&_selectionListsLock);
     QVariantMap list;
@@ -461,6 +480,20 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
     return true;
 }
 
+/**jsdoc
+ * @typedef {object} Selection.HighlightStyle
+ * @property {Color} outlineUnoccludedColor - Color of the specified highlight region.
+ * @property {Color} outlineOccludedColor - ""
+ * @property {Color} fillUnoccludedColor- ""
+ * @property {Color} fillOccludedColor- ""
+ * @property {number} outlineUnoccludedAlpha - Alpha value ranging from <code>0.0</code> (not visible) to <code>1.0</code> 
+ *     (fully opaque) for the specified highlight region.
+ * @property {number} outlineOccludedAlpha - ""
+ * @property {number} fillUnoccludedAlpha - ""
+ * @property {number} fillOccludedAlpha - ""
+ * @property {number} outlineWidth - Width of the outline, in pixels.
+ * @property {boolean} isOutlineSmooth - <code>true</code> to enable outline smooth fall-off.
+ */
 QVariantMap SelectionHighlightStyle::toVariantMap() const {
     QVariantMap properties;
 

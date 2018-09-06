@@ -70,7 +70,7 @@ public:
     virtual void preStep(btCollisionWorld *collisionWorld) override;
     virtual void playerStep(btCollisionWorld *collisionWorld, btScalar dt) override;
     virtual bool canJump() const override { assert(false); return false; } // never call this
-    virtual void jump() override;
+    virtual void jump(const btVector3& dir = btVector3(0.0f, 0.0f, 0.0f)) override;
     virtual bool onGround() const override;
 
     void clearMotors();
@@ -120,7 +120,7 @@ public:
     bool isStuck() const { return _isStuck; }
 
     void setCollisionless(bool collisionless);
-    int16_t computeCollisionGroup() const;
+    int32_t computeCollisionGroup() const;
     void handleChangedCollisionGroup();
 
     bool getRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation);

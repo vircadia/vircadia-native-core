@@ -13,8 +13,11 @@
 #define hifi_EntityDynamicInterface_h
 
 #include <memory>
-#include <QUuid>
+
 #include <glm/glm.hpp>
+
+#include <QUuid>
+#include <QVariantMap>
 
 class EntityItem;
 class EntityItemID;

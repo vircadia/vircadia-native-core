@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "RenderingClient.h"
+
 #include <QtCore/QThread>
 #include <QtWidgets/QInputDialog>
 
@@ -16,8 +18,6 @@
 #include <AudioClient.h>
 #include <AvatarHashMap.h>
 #include <NodeList.h>
-
-#include "RenderingClient.h"
 
 RenderingClient* RenderingClient::_instance = NULL;
 

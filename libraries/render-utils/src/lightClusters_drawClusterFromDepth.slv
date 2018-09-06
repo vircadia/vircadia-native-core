@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  lightClusters_drawClusterFrom Depth.slv
+//  lightClusters_drawClusterFrom Depth.vert
 //  Vertex shader
 //
 //  Created by Sam Gateau on 9/8/2016
@@ -23,7 +23,7 @@
 
 
 
-out vec4 varColor;
+layout(location=0) out vec4 varColor;
 
 
 void main(void) {

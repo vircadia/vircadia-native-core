@@ -30,6 +30,14 @@ public:
 };
 
 
+/**jsdoc
+ * @namespace Wallet
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
+ * @property {number} walletStatus
+ */
 class WalletScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 
@@ -38,17 +46,53 @@ class WalletScriptingInterface : public QObject, public Dependency {
 public:
     WalletScriptingInterface();
 
+    /**jsdoc
+     * @function Wallet.refreshWalletStatus
+     */
     Q_INVOKABLE void refreshWalletStatus();
+
+    /**jsdoc
+     * @function Wallet.getWalletStatus
+     * @returns {number}
+     */
     Q_INVOKABLE uint getWalletStatus() { return _walletStatus; }
+
+    /**jsdoc
+     * @function Wallet.proveAvatarEntityOwnershipVerification
+     * @param {Uuid} entityID
+     */
     Q_INVOKABLE void proveAvatarEntityOwnershipVerification(const QUuid& entityID);
+
     // setWalletStatus() should never be made Q_INVOKABLE. If it were,
     //     scripts could cause the Wallet to incorrectly report its status.
     void setWalletStatus(const uint& status);
 
 signals:
+
+    /**jsdoc
+     * @function Wallet.walletStatusChanged
+     * @returns {Signal}
+     */
     void walletStatusChanged();
+
+    /**jsdoc
+     * @function Wallet.walletNotSetup
+     * @returns {Signal}
+     */
     void walletNotSetup();
+
+    /**jsdoc
+     * @function Wallet.ownershipVerificationSuccess
+     * @param {Uuid} entityID
+     * @returns {Signal}
+     */
     void ownershipVerificationSuccess(const QUuid& entityID);
+
+    /**jsdoc
+     * @function Wallet.ownershipVerificationFailed
+     * @param {Uuid} entityID
+     * @returns {Signal}
+     */
     void ownershipVerificationFailed(const QUuid& entityID);
 
 private:

@@ -312,7 +312,7 @@ JSConsole::~JSConsole() {
     delete _ui;
 }
 
-void JSConsole::setScriptEngine(const ScriptEnginePointer&  scriptEngine) {
+void JSConsole::setScriptEngine(const ScriptEnginePointer& scriptEngine) {
     if (_scriptEngine == scriptEngine && scriptEngine != nullptr) {
         return;
     }

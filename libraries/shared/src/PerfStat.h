@@ -84,8 +84,7 @@ public:
 
     static QString getContextName();
     static void addTimerRecord(const QString& fullName, quint64 elapsedUsec);
-    static const PerformanceTimerRecord& getTimerRecord(const QString& name) { return _records[name]; };
-    static const QMap<QString, PerformanceTimerRecord>& getAllTimerRecords() { return _records; };
+    static QMap<QString, PerformanceTimerRecord> getAllTimerRecords();
     static void tallyAllTimerRecords();
     static void dumpAllTimerRecords();
 
@@ -93,6 +92,8 @@ private:
     quint64 _start = 0;
     QString _name;
     static std::atomic<bool> _isActive;
+
+    static std::mutex _mutex;  // used to guard multi-threaded access to _fullNames and _records
     static QHash<QThread*, QString> _fullNames;
     static QMap<QString, PerformanceTimerRecord> _records;
 };

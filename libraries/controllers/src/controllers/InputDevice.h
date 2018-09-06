@@ -31,12 +31,67 @@ namespace controller {
 class Endpoint;
 using EndpointPointer = std::shared_ptr<Endpoint>;
 
+/**jsdoc
+ * <p>Some controller actions may be associated with one or both hands:</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>0</code></td><td>Left hand.</td></tr>
+ *     <tr><td><code>1</code></td><td>Right hand.</td></tr>
+ *     <tr><td><code>2</code></td><td>Both hands.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {number} Controller.Hand
+ */
 enum Hand {
     LEFT = 0,
     RIGHT,
     BOTH
 };
 
+/**jsdoc
+ * <p>The <code>Controller.Hardware</code> object has properties representing standard and hardware-specific controller and 
+ * computer outputs, plus predefined actions on Interface and the user's avatar. <em>Read-only.</em> The outputs can be mapped 
+ * to actions or functions in a {@link RouteObject} mapping. Additionally, hardware-specific controller outputs can be mapped 
+ * to standard controller outputs. 
+ * 
+ * <p>Controllers typically implement a subset of the {@link Controller.Standard} controls, plus they may implement some extras. 
+ * Some common controllers are included in the table. You can see the outputs provided by these and others by 
+ * viewing their {@link Controller.MappingJSON|MappingJSON} files at 
+ * <a href="https://github.com/highfidelity/hifi/tree/master/interface/resources/controllers">
+ * https://github.com/highfidelity/hifi/tree/master/interface/resources/controllers</a>.</p>
+ *
+ * <table>
+ *   <thead>
+ *     <tr><th>Property</th><th>Type</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>Controller.Hardware.Actions</code></td><td>object</td><td>Synonym for {@link Controller.Actions}.</td></tr>
+ *     <tr><td><code>Controller.Hardware.Application</code></td><td>object</td><td>Interface state outputs. See 
+ *       {@link Controller.Hardware-Application}.</td></tr>
+ *     <tr><td><code>Controller.Hardware.Keyboard</code></td><td>object</td><td>Keyboard, mouse, and touch pad outputs. See
+ *       {@link Controller.Hardware-Keyboard}.</td></tr>
+ *     <tr><td><code>Controller.Hardware.OculusTouch</code></td><td>object</td><td>Oculus Rift HMD outputs. See
+ *       {@link Controller.Hardware-OculusTouch}.</td></tr>
+ *     <tr><td><code>Controller.Hardware.Vive</code></td><td>object</td><td>Vive HMD outputs. See
+ *       {@link Controller.Hardware-Vive}.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {object} Controller.Hardware
+ * @example <caption>List all the currently available <code>Controller.Hardware</code> properties.</caption>
+ * function printProperties(string, item) {
+ *     print(string);
+ *     for (var key in item) {
+ *         if (item.hasOwnProperty(key)) {
+ *             printProperties(string + "." + key, item[key]);
+ *         }
+ *     }
+ * }
+ *
+ * printProperties("Controller.Hardware", Controller.Hardware);
+ */
 // NOTE: If something inherits from both InputDevice and InputPlugin, InputPlugin must go first.
 // e.g. class Example : public InputPlugin, public InputDevice
 // instead of class Example : public InputDevice, public InputPlugin

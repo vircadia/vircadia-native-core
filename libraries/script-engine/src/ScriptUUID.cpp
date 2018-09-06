@@ -11,11 +11,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ScriptUUID.h"
+
 #include <QDebug>
 
 #include "ScriptEngineLogging.h"
 #include "ScriptEngine.h"
-#include "ScriptUUID.h"
 
 QUuid ScriptUUID::fromString(const QString& s) {
     return QUuid(s);

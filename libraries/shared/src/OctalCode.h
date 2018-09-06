@@ -40,8 +40,6 @@ const int UNKNOWN_OCTCODE_LENGTH = -2;
 /// \param int maxBytes number of bytes that octalCode is expected to be, -1 if unknown
 int numberOfThreeBitSectionsInCode(const unsigned char* octalCode, int maxBytes = UNKNOWN_OCTCODE_LENGTH);
 
-unsigned char* chopOctalCode(const unsigned char* originalOctalCode, int chopLevels);
-
 const int CHECK_NODE_ONLY = -1;
 bool isAncestorOf(const unsigned char* possibleAncestor, const unsigned char* possibleDescendent, 
         int descendentsChild = CHECK_NODE_ONLY);

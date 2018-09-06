@@ -30,6 +30,16 @@ Item {
         color: "black"
         opacity: 0.5
         radius: popupRadius
+
+        MouseArea {
+            anchors.fill: parent;
+            hoverEnabled: true;
+            acceptedButtons: Qt.LeftButton;
+            propagateComposedEvents: false;
+            onClicked: {
+                letterbox.visible = false;
+            }
+        }
     }
     Rectangle {
         id: textContainer;
@@ -38,6 +48,14 @@ Item {
         anchors.centerIn: parent
         radius: popupRadius
         color: "white"
+
+        // Prevent dismissing the popup by clicking on the textContainer
+        MouseArea {
+            anchors.fill: parent;
+            hoverEnabled: true;
+            propagateComposedEvents: false;
+        }
+
         Item {
             id: contentContainer
             width: parent.width - 50
@@ -133,13 +151,6 @@ Item {
                     Qt.openUrlExternally(link)
                 }
             }
-        }
-    }
-    MouseArea {
-        anchors.fill: parent
-        acceptedButtons: Qt.LeftButton
-        onClicked: {
-            letterbox.visible = false;
         }
     }
 }

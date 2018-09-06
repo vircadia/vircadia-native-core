@@ -84,11 +84,9 @@ Item {
             height: undefined // invalidate so that the image's size sets the height
             focus: true
 
-            style: OriginalStyles.ButtonStyle {
-                background: Image {
-                    id: buttonImage
-                    source: "../../images/steam-sign-in.png"
-                }
+            background: Image {
+                id: buttonImage
+                source: "../../images/steam-sign-in.png"
             }
             onClicked: signInBody.login()
         }

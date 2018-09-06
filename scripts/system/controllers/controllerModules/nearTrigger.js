@@ -7,7 +7,7 @@
 
 
 /* global Script, Entities, MyAvatar, RIGHT_HAND, LEFT_HAND, enableDispatcherModule, disableDispatcherModule, getGrabbableData,
-   Vec3, TRIGGER_OFF_VALUE, makeDispatcherModuleParameters, makeRunningValues, NEAR_GRAB_RADIUS
+   Vec3, TRIGGER_OFF_VALUE, makeDispatcherModuleParameters, makeRunningValues, NEAR_GRAB_RADIUS, unhighlightTargetEntity
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -55,6 +55,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.startNearTrigger = function (controllerData) {
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.targetEntityID, "startNearTrigger", args);
+            unhighlightTargetEntity(this.targetEntityID);
         };
 
         this.continueNearTrigger = function (controllerData) {

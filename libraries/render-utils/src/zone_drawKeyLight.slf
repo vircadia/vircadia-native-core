@@ -18,8 +18,8 @@
 <@include LightDirectional.slh@>
 <$declareLightingDirectional(_SCRIBE_NULL)$>
 
-in vec2 varTexCoord0;
-out vec4 _fragColor;
+layout(location=0) in vec2 varTexCoord0;
+layout(location=0) out vec4 _fragColor;
 
 void main(void) {
 

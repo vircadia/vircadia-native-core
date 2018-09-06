@@ -49,6 +49,7 @@ Item {
     property string upgradeTitle;
     property bool updateAvailable: root.upgradeUrl !== "" && !root.isShowingMyItems;
     property bool isShowingMyItems;
+    property bool valid;
 
     property string originalStatusText;
     property string originalStatusColor;
@@ -66,13 +67,13 @@ Item {
         }
 
         onAppInstalled: {
-            if (appHref === root.itemHref) {
+            if (appID === root.itemId) {
                 root.isInstalled = true;
             }
         }
 
         onAppUninstalled: {
-            if (appHref === root.itemHref) {
+            if (appID === root.itemId) {
                 root.isInstalled = false;
             }
         }
@@ -162,7 +163,6 @@ Item {
 
             Rectangle {
                 id: contextCard;
-                z: 2;
                 anchors.left: parent.left;
                 anchors.leftMargin: 30;
                 anchors.top: parent.top;
@@ -239,7 +239,7 @@ Item {
                     width: 62;
 
                     onLoaded: {
-                        item.enabled = (root.purchaseStatus === "confirmed");
+                        item.enabled = root.valid;
                         item.buttonGlyphText = hifi.glyphs.gift;
                         item.buttonText = "Gift";
                         item.buttonClicked = function() {
@@ -328,7 +328,16 @@ Item {
                         item.buttonColor = "#E2334D";
                         item.buttonClicked = function() {
                             sendToPurchases({ method: 'flipCard', closeAll: true });
-                            sendToPurchases({method: 'updateItemClicked', itemId: root.itemId, itemEdition: root.itemEdition, upgradeUrl: root.upgradeUrl});
+                            sendToPurchases({
+                                method: 'updateItemClicked',
+                                itemId: root.itemId,
+                                itemEdition: root.itemEdition,
+                                upgradeUrl: root.upgradeUrl,
+                                itemHref: root.itemHref,
+                                itemType: root.itemType,
+                                isInstalled: root.isInstalled,
+                                wornEntityID: root.wornEntityID
+                            });
                         }
                     }
                 }
@@ -336,7 +345,6 @@ Item {
 
             Rectangle {
                 id: permissionExplanationCard;
-                z: 1;
                 anchors.left: parent.left;
                 anchors.leftMargin: 30;
                 anchors.top: parent.top;
@@ -464,7 +472,7 @@ Item {
 
         Item {
             id: statusContainer;
-            visible: root.purchaseStatus === "pending" || root.purchaseStatus === "invalidated" || root.numberSold > -1;
+            visible: root.purchaseStatus === "pending" || !root.valid || root.numberSold > -1;
             anchors.left: itemName.left;
             anchors.right: itemName.right;
             anchors.top: itemName.bottom;
@@ -481,7 +489,7 @@ Item {
                 text: {
                         if (root.purchaseStatus === "pending") {
                             "PENDING..."
-                        } else if (root.purchaseStatus === "invalidated") {
+                        } else if (!root.valid) {
                             "INVALIDATED"
                         } else if (root.numberSold > -1) {
                             ("Sales: " + root.numberSold + "/" + (root.limitedRun === -1 ? "\u221e" : root.limitedRun))
@@ -493,7 +501,7 @@ Item {
                 color: {
                         if (root.purchaseStatus === "pending") {
                             hifi.colors.blueAccent
-                        } else if (root.purchaseStatus === "invalidated") {
+                        } else if (!root.valid) {
                             hifi.colors.redAccent
                         } else {
                             hifi.colors.baseGray
@@ -507,7 +515,7 @@ Item {
                 text: {
                         if (root.purchaseStatus === "pending") {
                             hifi.glyphs.question
-                        } else if (root.purchaseStatus === "invalidated") {
+                        } else if (!root.valid) {
                             hifi.glyphs.question
                         } else {
                             ""
@@ -524,7 +532,7 @@ Item {
                 color: {
                         if (root.purchaseStatus === "pending") {
                             hifi.colors.blueAccent
-                        } else if (root.purchaseStatus === "invalidated") {
+                        } else if (!root.valid) {
                             hifi.colors.redAccent
                         } else {
                             hifi.colors.baseGray
@@ -539,7 +547,7 @@ Item {
                 onClicked: {
                     if (root.purchaseStatus === "pending") {
                         sendToPurchases({method: 'showPendingLightbox'});
-                    } else if (root.purchaseStatus === "invalidated") {
+                    } else if (!root.valid) {
                         sendToPurchases({method: 'showInvalidatedLightbox'});
                     }
                 }
@@ -547,7 +555,7 @@ Item {
                     if (root.purchaseStatus === "pending") {
                         statusText.color = hifi.colors.blueHighlight;
                         statusIcon.color = hifi.colors.blueHighlight;
-                    } else if (root.purchaseStatus === "invalidated") {
+                    } else if (!root.valid) {
                         statusText.color = hifi.colors.redAccent;
                         statusIcon.color = hifi.colors.redAccent;
                     }
@@ -556,7 +564,7 @@ Item {
                     if (root.purchaseStatus === "pending") {
                         statusText.color = hifi.colors.blueAccent;
                         statusIcon.color = hifi.colors.blueAccent;
-                    } else if (root.purchaseStatus === "invalidated") {
+                    } else if (!root.valid) {
                         statusText.color = hifi.colors.redHighlight;
                         statusIcon.color = hifi.colors.redHighlight;
                     }
@@ -595,8 +603,8 @@ Item {
                 anchors.fill: parent;
                 hoverEnabled: enabled;
                 onClicked: {
-                    contextCard.z = 1;
-                    permissionExplanationCard.z = 0;
+                    contextCard.visible = true;
+                    permissionExplanationCard.visible = false;
                     root.sendToPurchases({ method: 'flipCard' });
                 }
                 onEntered: {
@@ -646,8 +654,9 @@ Item {
             width: 160;
             height: 40;
             enabled: root.hasPermissionToRezThis &&
-                root.purchaseStatus !== "invalidated" &&
-                MyAvatar.skeletonModelURL !== root.itemHref;
+                MyAvatar.skeletonModelURL !== root.itemHref &&
+                !root.wornEntityID &&
+                root.valid;
 
             onHoveredChanged: {
                 if (hovered) {
@@ -723,7 +732,7 @@ Item {
                     }
                     HiFiGlyphs {
                         id: rezIcon;
-                        text: (root.buttonGlyph)[itemTypesArray.indexOf(root.itemType)];
+                        text: root.isInstalled ? "" : (root.buttonGlyph)[itemTypesArray.indexOf(root.itemType)];
                         anchors.right: rezIconLabel.left;
                         anchors.rightMargin: 2;
                         anchors.verticalCenter: parent.verticalCenter;
@@ -778,8 +787,8 @@ Item {
                     noPermissionGlyph.color = hifi.colors.redAccent;
                 }
                 onClicked: {
-                    contextCard.z = 0;
-                    permissionExplanationCard.z = 1;
+                    contextCard.visible = false;
+                    permissionExplanationCard.visible = true;
                     root.sendToPurchases({ method: 'flipCard' });
                 }
             }

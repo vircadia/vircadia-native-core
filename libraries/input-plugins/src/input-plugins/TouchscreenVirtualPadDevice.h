@@ -26,6 +26,7 @@ public:
 
     // Plugin functions
     virtual void init() override;
+    virtual void resize();
     virtual bool isSupported() const override;
     virtual const QString getName() const override { return NAME; }
 
@@ -62,6 +63,8 @@ protected:
         // Device functions
         virtual controller::Input::NamedVector getAvailableInputs() const override;
         virtual QString getDefaultMappingConfig() const override;
+
+        virtual bool triggerHapticPulse(float strength, float duration, controller::Hand hand) override;
         virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
         virtual void focusOutEvent() override;
 

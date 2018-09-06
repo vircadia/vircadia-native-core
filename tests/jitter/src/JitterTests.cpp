@@ -6,6 +6,8 @@
 //  Copyright (c) 2014 High Fidelity, Inc. All rights reserved.
 //
 
+#include "JitterTests.h"
+
 #include <iostream>
 #ifdef _WINDOWS
 #include <WS2tcpip.h>
@@ -22,8 +24,6 @@
 #include <SharedUtil.h> // for usecTimestampNow
 #include <SimpleMovingAverage.h>
 #include <StDev.h>
-
-#include "JitterTests.h"
 
 // Uncomment this to run manually
 //#define RUN_MANUALLY

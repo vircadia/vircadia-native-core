@@ -5,21 +5,22 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "Forward.h"
-
 #include "ScriptableMeshPart.h"
 
-#include "GraphicsScriptingUtil.h"
-#include "OBJWriter.h"
-#include <BaseScriptEngine.h>
-#include <QtScript/QScriptValue>
-#include <RegisteredMetaTypes.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
 #include <glm/gtx/transform.hpp>
+
+#include <BaseScriptEngine.h>
+#include <QtScript/QScriptValue>
+#include <RegisteredMetaTypes.h>
 #include <graphics/BufferViewHelpers.h>
 #include <graphics/GpuHelpers.h>
 #include <graphics/Geometry.h>
+
+#include "Forward.h"
+#include "GraphicsScriptingUtil.h"
+#include "OBJWriter.h"
 
 
 QString scriptable::ScriptableMeshPart::toOBJ() {

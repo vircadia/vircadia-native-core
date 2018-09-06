@@ -49,13 +49,21 @@ const float DISPLAYNAME_FADE_FACTOR = pow(0.01f, 1.0f / DISPLAYNAME_FADE_TIME);
 const float DISPLAYNAME_ALPHA = 1.0f;
 const float DISPLAYNAME_BACKGROUND_ALPHA = 0.4f;
 const glm::vec3 HAND_TO_PALM_OFFSET(0.0f, 0.12f, 0.08f);
+const float Avatar::MYAVATAR_LOADING_PRIORITY = (float)M_PI; // Entity priority is computed as atan2(maxDim, distance) which is <= PI / 2
+const float Avatar::OTHERAVATAR_LOADING_PRIORITY = MYAVATAR_LOADING_PRIORITY - EPSILON;
+const float Avatar::ATTACHMENT_LOADING_PRIORITY = OTHERAVATAR_LOADING_PRIORITY - EPSILON;
 
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar) {
-        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(ItemKey::TAG_BITS_0 | ItemKey::TAG_BITS_1).withMetaCullGroup();
+        ItemKey::Builder keyBuilder = ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(render::hifi::TAG_ALL_VIEWS).withMetaCullGroup();
+        auto avatarPtr = static_pointer_cast<Avatar>(avatar);
+        if (!avatarPtr->getEnableMeshVisible()) {
+            keyBuilder.withInvisible();
+        }
+        return keyBuilder.build();
     }
     template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar) {
-        return static_pointer_cast<Avatar>(avatar)->getBounds();
+        return static_pointer_cast<Avatar>(avatar)->getRenderBounds();
     }
     template <> void payloadRender(const AvatarSharedPointer& avatar, RenderArgs* args) {
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
@@ -131,7 +139,6 @@ Avatar::~Avatar() {
             }
         });
     }
-
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (geometryCache) {
         geometryCache->releaseID(_nameRectGeometryID);
@@ -162,6 +169,11 @@ AABox Avatar::getBounds() const {
         return AABox(getWorldPosition() - glm::vec3(getModelScale()), getModelScale() * 2.0f);
     }
     return _skeletonModel->getRenderableMeshBound();
+}
+
+
+AABox Avatar::getRenderBounds() const {
+    return _renderBound;
 }
 
 void Avatar::animateScaleChanges(float deltaTime) {
@@ -199,6 +211,8 @@ void Avatar::setTargetScale(float targetScale) {
         _targetScale = newValue;
         _scaleChanged = usecTimestampNow();
         _isAnimatingScale = true;
+
+        emit targetScaleChanged(targetScale);
     }
 }
 
@@ -209,13 +223,23 @@ void Avatar::setAvatarEntityDataChanged(bool value) {
 
 void Avatar::updateAvatarEntities() {
     PerformanceTimer perfTimer("attachments");
+
+    // AVATAR ENTITY UPDATE FLOW
     // - if queueEditEntityMessage sees clientOnly flag it does _myAvatar->updateAvatarEntity()
-    // - updateAvatarEntity saves the bytes and sets _avatarEntityDataLocallyEdited
-    // - MyAvatar::update notices _avatarEntityDataLocallyEdited and calls sendIdentityPacket
-    // - sendIdentityPacket sends the entity bytes to the server which relays them to other interfaces
-    // - AvatarHashMap::processAvatarIdentityPacket on other interfaces call avatar->setAvatarEntityData()
-    // - setAvatarEntityData saves the bytes and sets _avatarEntityDataChanged = true
+    // - updateAvatarEntity saves the bytes and flags the trait instance for the entity as updated
+    // - ClientTraitsHandler::sendChangedTraitsToMixer sends the entity bytes to the mixer which relays them to other interfaces
+    // - AvatarHashMap::processBulkAvatarTraits on other interfaces calls avatar->processTraitInstace
+    // - AvatarData::processTraitInstance calls updateAvatarEntity, which sets _avatarEntityDataChanged = true
     // - (My)Avatar::simulate notices _avatarEntityDataChanged and here we are...
+
+    // AVATAR ENTITY DELETE FLOW
+    // - EntityScriptingInterface::deleteEntity calls _myAvatar->clearAvatarEntity() for deleted avatar entities
+    // - clearAvatarEntity removes the avatar entity and flags the trait instance for the entity as deleted
+    // - ClientTraitsHandler::sendChangedTraitsToMixer sends a deletion to the mixer which relays to other interfaces
+    // - AvatarHashMap::processBulkAvatarTraits on other interfaces calls avatar->processDeletedTraitInstace
+    // - AvatarData::processDeletedTraitInstance calls clearAvatarEntity
+    // - AvatarData::clearAvatarEntity sets _avatarEntityDataChanged = true and adds the ID to the detached list
+    // - Avatar::simulate notices _avatarEntityDataChanged and here we are...
 
     if (!_avatarEntityDataChanged) {
         return;
@@ -294,7 +318,6 @@ void Avatar::updateAvatarEntities() {
             // NOTE: if this avatar entity is not attached to us, strip its entity script completely...
             auto attachedScript = properties.getScript();
             if (!isMyAvatar() && !attachedScript.isEmpty()) {
-                qCDebug(avatars_renderer) << "removing entity script from avatar attached entity:" << entityID << "old script:" << attachedScript;
                 QString noScript;
                 properties.setScript(noScript);
             }
@@ -331,26 +354,29 @@ void Avatar::updateAvatarEntities() {
             stateItr.value().success = success;
         }
 
-        AvatarEntityIDs recentlyDettachedAvatarEntities = getAndClearRecentlyDetachedIDs();
-        if (!recentlyDettachedAvatarEntities.empty()) {
+        AvatarEntityIDs recentlyDetachedAvatarEntities = getAndClearRecentlyDetachedIDs();
+        if (!recentlyDetachedAvatarEntities.empty()) {
             // only lock this thread when absolutely necessary
             AvatarEntityMap avatarEntityData;
             _avatarEntitiesLock.withReadLock([&] {
                 avatarEntityData = _avatarEntityData;
             });
-            foreach (auto entityID, recentlyDettachedAvatarEntities) {
+            foreach (auto entityID, recentlyDetachedAvatarEntities) {
                 if (!avatarEntityData.contains(entityID)) {
                     entityTree->deleteEntity(entityID, true, true);
                 }
             }
 
             // remove stale data hashes
-            foreach (auto entityID, recentlyDettachedAvatarEntities) {
+            foreach (auto entityID, recentlyDetachedAvatarEntities) {
                 MapOfAvatarEntityDataHashes::iterator stateItr = _avatarEntityDataHashes.find(entityID);
                 if (stateItr != _avatarEntityDataHashes.end()) {
                     _avatarEntityDataHashes.erase(stateItr);
                 }
             }
+        }
+        if (avatarEntities.size() != _avatarEntityForRecording.size()) {
+            createRecordingIDs();
         }
     });
 
@@ -541,10 +567,17 @@ void Avatar::measureMotionDerivatives(float deltaTime) {
 
     // angular
     glm::quat orientation = getWorldOrientation();
-    glm::quat delta = glm::inverse(_lastOrientation) * orientation;
-    glm::vec3 angularVelocity = glm::axis(delta) * glm::angle(delta) * invDeltaTime;
-    setWorldAngularVelocity(angularVelocity);
-    _lastOrientation = getWorldOrientation();
+    float changeDot = glm::abs(glm::dot(orientation, _lastOrientation));
+    float CHANGE_DOT_THRESHOLD = 0.9999f;
+    if (changeDot < CHANGE_DOT_THRESHOLD) {
+        float angle = 2.0f * acosf(changeDot);
+        glm::quat delta = glm::inverse(_lastOrientation) * orientation;
+        glm::vec3 angularVelocity = (angle * invDeltaTime) * glm::axis(delta);
+        setWorldAngularVelocity(angularVelocity);
+        _lastOrientation = orientation;
+    } else {
+        setWorldAngularVelocity(glm::vec3(0.0f));
+    }
 }
 
 enum TextRendererType {
@@ -569,16 +602,26 @@ static TextRenderer3D* textRenderer(TextRendererType type) {
 
 void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
     auto avatarPayload = new render::Payload<AvatarData>(self);
-    auto avatarPayloadPointer = Avatar::PayloadPointer(avatarPayload);
-
+    auto avatarPayloadPointer = std::shared_ptr<render::Payload<AvatarData>>(avatarPayload);
     if (_renderItemID == render::Item::INVALID_ITEM_ID) {
         _renderItemID = scene->allocateID();
     }
+    // INitialize the _render bound as we are creating the avatar render item
+    _renderBound = getBounds();
     transaction.resetItem(_renderItemID, avatarPayloadPointer);
     _skeletonModel->addToScene(scene, transaction);
+    _skeletonModel->setTagMask(render::hifi::TAG_ALL_VIEWS);
+    _skeletonModel->setGroupCulled(true);
+    _skeletonModel->setCanCastShadow(true);
+    _skeletonModel->setVisibleInScene(_isMeshVisible, scene);
+
     processMaterials();
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->addToScene(scene, transaction);
+        attachmentModel->setTagMask(render::hifi::TAG_ALL_VIEWS);
+        attachmentModel->setGroupCulled(false);
+        attachmentModel->setCanCastShadow(true);
+        attachmentModel->setVisibleInScene(_isMeshVisible, scene);
     }
 
     _mustFadeIn = true;
@@ -637,7 +680,15 @@ void Avatar::removeFromScene(AvatarSharedPointer self, const render::ScenePointe
 
 void Avatar::updateRenderItem(render::Transaction& transaction) {
     if (render::Item::isValidID(_renderItemID)) {
-        transaction.updateItem<render::Payload<AvatarData>>(_renderItemID, [](render::Payload<AvatarData>& p) {});
+        auto renderBound = getBounds();
+        transaction.updateItem<AvatarData>(_renderItemID,
+            [renderBound](AvatarData& avatar) {
+                auto avatarPtr = dynamic_cast<Avatar*>(&avatar);
+                if (avatarPtr) {
+                    avatarPtr->_renderBound = renderBound;
+                }
+            }
+      );
     }
 }
 
@@ -759,6 +810,18 @@ void Avatar::render(RenderArgs* renderArgs) {
     }
 }
 
+
+void Avatar::setEnableMeshVisible(bool isEnabled) {
+    if (_isMeshVisible != isEnabled) {
+        _isMeshVisible = isEnabled;
+        _needMeshVisibleSwitch = true;
+    }
+}
+
+bool Avatar::getEnableMeshVisible() const {
+    return _isMeshVisible;
+}
+
 void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
     bool canTryFade{ false };
 
@@ -770,6 +833,12 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
     if (_skeletonModel->isRenderable() && _skeletonModel->needsFixupInScene()) {
         _skeletonModel->removeFromScene(scene, transaction);
         _skeletonModel->addToScene(scene, transaction);
+
+        _skeletonModel->setTagMask(render::hifi::TAG_ALL_VIEWS);
+        _skeletonModel->setGroupCulled(true);
+        _skeletonModel->setCanCastShadow(true);
+        _skeletonModel->setVisibleInScene(_isMeshVisible, scene);
+
         processMaterials();
         canTryFade = true;
         _isAnimatingScale = true;
@@ -778,7 +847,23 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
         if (attachmentModel->isRenderable() && attachmentModel->needsFixupInScene()) {
             attachmentModel->removeFromScene(scene, transaction);
             attachmentModel->addToScene(scene, transaction);
+
+            attachmentModel->setTagMask(render::hifi::TAG_ALL_VIEWS);
+            attachmentModel->setGroupCulled(false);
+            attachmentModel->setCanCastShadow(true);
+            attachmentModel->setVisibleInScene(_isMeshVisible, scene);
         }
+    }
+
+    if (_needMeshVisibleSwitch) {
+        _skeletonModel->setVisibleInScene(_isMeshVisible, scene);
+        for (auto attachmentModel : _attachmentModels) {
+            if (attachmentModel->isRenderable()) {
+                attachmentModel->setVisibleInScene(_isMeshVisible, scene);
+            }
+        }
+        updateRenderItem(transaction);
+        _needMeshVisibleSwitch = false;
     }
 
     if (_mustFadeIn && canTryFade) {
@@ -799,7 +884,6 @@ bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {
     return true;
 }
 
-// virtual
 void Avatar::simulateAttachments(float deltaTime) {
     assert(_attachmentModels.size() == _attachmentModelsTexturesLoaded.size());
     PerformanceTimer perfTimer("attachments");
@@ -1112,6 +1196,15 @@ glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
             }
             return Quaternions::Y_180 * rotation * Quaternions::Y_180;
         }
+        case FARGRAB_RIGHTHAND_INDEX: {
+            return extractRotation(_farGrabRightMatrixCache.get());
+        }
+        case FARGRAB_LEFTHAND_INDEX: {
+            return extractRotation(_farGrabLeftMatrixCache.get());
+        }
+        case FARGRAB_MOUSE_INDEX: {
+            return extractRotation(_farGrabMouseMatrixCache.get());
+        }
         default: {
             glm::quat rotation;
             _skeletonModel->getAbsoluteJointRotationInRigFrame(index, rotation);
@@ -1151,6 +1244,15 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
                 }
             }
             return Quaternions::Y_180 * translation * Quaternions::Y_180;
+        }
+        case FARGRAB_RIGHTHAND_INDEX: {
+            return extractTranslation(_farGrabRightMatrixCache.get());
+        }
+        case FARGRAB_LEFTHAND_INDEX: {
+            return extractTranslation(_farGrabLeftMatrixCache.get());
+        }
+        case FARGRAB_MOUSE_INDEX: {
+            return extractTranslation(_farGrabMouseMatrixCache.get());
         }
         default: {
             glm::vec3 translation;
@@ -1268,6 +1370,9 @@ void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
 }
 
 void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
+    if (!isMyAvatar()) {
+        createOrb();
+    }
     AvatarData::setSkeletonModelURL(skeletonModelURL);
     if (QThread::currentThread() == thread()) {
         _skeletonModel->setURL(_skeletonModelURL);
@@ -1357,6 +1462,7 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
         if (_attachmentModels[i]->getURL() != attachmentData[i].modelURL) {
             _attachmentModelsTexturesLoaded[i] = false;
         }
+        _attachmentModels[i]->setLoadingPriority(ATTACHMENT_LOADING_PRIORITY);
         _attachmentModels[i]->setURL(attachmentData[i].modelURL);
     }
 }
@@ -1376,9 +1482,6 @@ int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
 
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, getWorldPosition()) > MOVE_DISTANCE_THRESHOLD;
-    if (_moving) {
-        addPhysicsFlags(Simulation::DIRTY_POSITION);
-    }
     if (_moving || _hasNewJointData) {
         locationChanged();
     }
@@ -1482,21 +1585,31 @@ void Avatar::updateDisplayNameAlpha(bool showDisplayName) {
     }
 }
 
-// virtual
 void Avatar::computeShapeInfo(ShapeInfo& shapeInfo) {
     float uniformScale = getModelScale();
-    shapeInfo.setCapsuleY(uniformScale * _skeletonModel->getBoundingCapsuleRadius(),
-            0.5f * uniformScale *  _skeletonModel->getBoundingCapsuleHeight());
-    shapeInfo.setOffset(uniformScale * _skeletonModel->getBoundingCapsuleOffset());
+    float radius = glm::max(MIN_AVATAR_RADIUS, uniformScale * _skeletonModel->getBoundingCapsuleRadius());
+    float height = glm::max(MIN_AVATAR_HEIGHT, uniformScale *  _skeletonModel->getBoundingCapsuleHeight());
+    shapeInfo.setCapsuleY(radius, 0.5f * height);
+    glm::vec3 offset = uniformScale * _skeletonModel->getBoundingCapsuleOffset();
+    shapeInfo.setOffset(offset);
 }
 
 void Avatar::getCapsule(glm::vec3& start, glm::vec3& end, float& radius) {
+    // FIXME: this doesn't take into account Avatar rotation
     ShapeInfo shapeInfo;
     computeShapeInfo(shapeInfo);
     glm::vec3 halfExtents = shapeInfo.getHalfExtents(); // x = radius, y = halfHeight
     start = getWorldPosition() - glm::vec3(0, halfExtents.y, 0) + shapeInfo.getOffset();
     end = getWorldPosition() + glm::vec3(0, halfExtents.y, 0) + shapeInfo.getOffset();
     radius = halfExtents.x;
+}
+
+glm::vec3 Avatar::getWorldFeetPosition() {
+    ShapeInfo shapeInfo;
+    computeShapeInfo(shapeInfo);
+    glm::vec3 halfExtents = shapeInfo.getHalfExtents(); // x = radius, y = halfHeight
+    glm::vec3 localFeet(0.0f, shapeInfo.getOffset().y - halfExtents.y - halfExtents.x, 0.0f);
+    return getWorldOrientation() * localFeet + getWorldPosition();
 }
 
 float Avatar::computeMass() {
@@ -1508,21 +1621,6 @@ float Avatar::computeMass() {
     // volumeOfCapsule = (2PI * R^2 * H) + (4PI * R^3 / 3)
     // volumeOfCapsule = 2PI * R^2 * (H + 2R/3)
     return _density * TWO_PI * radius * radius * (glm::length(end - start) + 2.0f * radius / 3.0f);
-}
-
-// virtual
-void Avatar::rebuildCollisionShape() {
-    addPhysicsFlags(Simulation::DIRTY_SHAPE);
-}
-
-void Avatar::setPhysicsCallback(AvatarPhysicsCallback cb) {
-    _physicsCallback = cb;
-}
-
-void Avatar::addPhysicsFlags(uint32_t flags) {
-    if (_physicsCallback) {
-        _physicsCallback(flags);
-    }
 }
 
 // thread-safe

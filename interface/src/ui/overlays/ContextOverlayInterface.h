@@ -31,9 +31,6 @@
 #include "EntityTree.h"
 #include "ContextOverlayLogging.h"
 
-/**jsdoc
-* @namespace ContextOverlay
-*/
 class ContextOverlayInterface : public QObject, public Dependency {
     Q_OBJECT
 

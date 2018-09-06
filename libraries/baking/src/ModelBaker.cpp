@@ -24,6 +24,10 @@
 #include <draco/mesh/triangle_soup_mesh_builder.h>
 #include <draco/compression/encode.h>
 
+#ifdef HIFI_DUMP_FBX
+#include "FBXToJSON.h"
+#endif
+
 #ifdef _WIN32
 #pragma warning( pop )
 #endif
@@ -246,9 +250,9 @@ bool ModelBaker::compressMesh(FBXMesh& mesh, bool hasDeformers, FBXNode& dracoMe
 
 QString ModelBaker::compressTexture(QString modelTextureFileName, image::TextureUsage::Type textureType) {
 
-    QFileInfo modelTextureFileInfo{ modelTextureFileName.replace("\\", "/") };
+    QFileInfo modelTextureFileInfo { modelTextureFileName.replace("\\", "/") };
     
-    if (modelTextureFileInfo.suffix() == BAKED_TEXTURE_EXT.mid(1)) {
+    if (modelTextureFileInfo.suffix().toLower() == BAKED_TEXTURE_KTX_EXT.mid(1)) {
         // re-baking a model that already references baked textures
         // this is an error - return from here
         handleError("Cannot re-bake a file that already references compressed textures");
@@ -273,31 +277,31 @@ QString ModelBaker::compressTexture(QString modelTextureFileName, image::Texture
         }
         auto urlToTexture = getTextureURL(modelTextureFileInfo, modelTextureFileName, !textureContent.isNull());
 
-        QString bakedTextureFileName;
+        QString baseTextureFileName;
         if (_remappedTexturePaths.contains(urlToTexture)) {
-            bakedTextureFileName = _remappedTexturePaths[urlToTexture];
+            baseTextureFileName = _remappedTexturePaths[urlToTexture];
         } else {
             // construct the new baked texture file name and file path
             // ensuring that the baked texture will have a unique name
             // even if there was another texture with the same name at a different path
-            bakedTextureFileName = createBakedTextureFileName(modelTextureFileInfo);
-            _remappedTexturePaths[urlToTexture] = bakedTextureFileName;
+            baseTextureFileName = createBaseTextureFileName(modelTextureFileInfo);
+            _remappedTexturePaths[urlToTexture] = baseTextureFileName;
         }
 
         qCDebug(model_baking).noquote() << "Re-mapping" << modelTextureFileName
-            << "to" << bakedTextureFileName;
+            << "to" << baseTextureFileName;
 
-        QString bakedTextureFilePath{
-            _bakedOutputDir + "/" + bakedTextureFileName
+        QString bakedTextureFilePath {
+            _bakedOutputDir + "/" + baseTextureFileName + BAKED_META_TEXTURE_SUFFIX
         };
 
-        textureChild = bakedTextureFileName;
+        textureChild = baseTextureFileName + BAKED_META_TEXTURE_SUFFIX;
 
         if (!_bakingTextures.contains(urlToTexture)) {
             _outputFiles.push_back(bakedTextureFilePath);
 
             // bake this texture asynchronously
-            bakeTexture(urlToTexture, textureType, _bakedOutputDir, bakedTextureFileName, textureContent);
+            bakeTexture(urlToTexture, textureType, _bakedOutputDir, baseTextureFileName, textureContent);
         }
     }
    
@@ -309,7 +313,7 @@ void ModelBaker::bakeTexture(const QUrl& textureURL, image::TextureUsage::Type t
     
     // start a bake for this texture and add it to our list to keep track of
     QSharedPointer<TextureBaker> bakingTexture{
-        new TextureBaker(textureURL, textureType, outputDir, bakedFilename, textureContent),
+        new TextureBaker(textureURL, textureType, outputDir, "../", bakedFilename, textureContent),
         &TextureBaker::deleteLater
     };
     
@@ -484,30 +488,30 @@ void ModelBaker::checkIfTexturesFinished() {
         } else {
             qCDebug(model_baking) << "Finished baking, emitting finished" << _modelURL;
 
+            texturesFinished();
+
             setIsFinished(true);
         }
     }
 }
 
-QString ModelBaker::createBakedTextureFileName(const QFileInfo& textureFileInfo) {
+QString ModelBaker::createBaseTextureFileName(const QFileInfo& textureFileInfo) {
     // first make sure we have a unique base name for this texture
     // in case another texture referenced by this model has the same base name
     auto& nameMatches = _textureNameMatchCount[textureFileInfo.baseName()];
 
-    QString bakedTextureFileName{ textureFileInfo.completeBaseName() };
+    QString baseTextureFileName{ textureFileInfo.completeBaseName() };
 
     if (nameMatches > 0) {
         // there are already nameMatches texture with this name
         // append - and that number to our baked texture file name so that it is unique
-        bakedTextureFileName += "-" + QString::number(nameMatches);
+        baseTextureFileName += "-" + QString::number(nameMatches);
     }
-
-    bakedTextureFileName += BAKED_TEXTURE_EXT;
 
     // increment the number of name matches
     ++nameMatches;
 
-    return bakedTextureFileName;
+    return baseTextureFileName;
 }
 
 void ModelBaker::setWasAborted(bool wasAborted) {
@@ -518,4 +522,106 @@ void ModelBaker::setWasAborted(bool wasAborted) {
             qCDebug(model_baking) << "Aborted baking" << _modelURL;
         }
     }
+}
+
+void ModelBaker::texturesFinished() {
+    embedTextureMetaData();
+    exportScene();
+}
+
+void ModelBaker::embedTextureMetaData() {
+    std::vector<FBXNode> embeddedTextureNodes;
+
+    for (FBXNode& rootChild : _rootNode.children) {
+        if (rootChild.name == "Objects") {
+            qlonglong maxId = 0;
+            for (auto &child : rootChild.children) {
+                if (child.properties.length() == 3) {
+                    maxId = std::max(maxId, child.properties[0].toLongLong());
+                }
+            }
+
+            for (auto& object : rootChild.children) {
+                if (object.name == "Texture") {
+                    QVariant relativeFilename;
+                    for (auto& child : object.children) {
+                        if (child.name == "RelativeFilename") {
+                            relativeFilename = child.properties[0];
+                            break;
+                        }
+                    }
+
+                    if (relativeFilename.isNull()
+                        || !relativeFilename.toString().endsWith(BAKED_META_TEXTURE_SUFFIX)) {
+                        continue;
+                    }
+                    if (object.properties.length() < 2) {
+                        qWarning() << "Found texture with unexpected number of properties: " << object.name;
+                        continue;
+                    }
+
+                    FBXNode videoNode;
+                    videoNode.name = "Video";
+                    videoNode.properties.append(++maxId);
+                    videoNode.properties.append(object.properties[1]);
+                    videoNode.properties.append("Clip");
+
+                    QString bakedTextureFilePath {
+                        _bakedOutputDir + "/" + relativeFilename.toString()
+                    };
+
+                    QFile textureFile { bakedTextureFilePath };
+                    if (!textureFile.open(QIODevice::ReadOnly)) {
+                        qWarning() << "Failed to open: " << bakedTextureFilePath;
+                        continue;
+                    }
+
+                    videoNode.children.append({ "RelativeFilename", { relativeFilename }, { } });
+                    videoNode.children.append({ "Content", { textureFile.readAll() }, { } });
+
+                    rootChild.children.append(videoNode);
+
+                    textureFile.close();
+                }
+            }
+        }
+    }
+}
+
+void ModelBaker::exportScene() {
+    // save the relative path to this FBX inside our passed output folder
+    auto fileName = _modelURL.fileName();
+    auto baseName = fileName.left(fileName.lastIndexOf('.'));
+    auto bakedFilename = baseName + BAKED_FBX_EXTENSION;
+
+    _bakedModelFilePath = _bakedOutputDir + "/" + bakedFilename;
+
+    auto fbxData = FBXWriter::encodeFBX(_rootNode);
+
+    QFile bakedFile(_bakedModelFilePath);
+
+    if (!bakedFile.open(QIODevice::WriteOnly)) {
+        handleError("Error opening " + _bakedModelFilePath + " for writing");
+        return;
+    }
+
+    bakedFile.write(fbxData);
+
+    _outputFiles.push_back(_bakedModelFilePath);
+
+#ifdef HIFI_DUMP_FBX
+    {
+        FBXToJSON fbxToJSON;
+        fbxToJSON << _rootNode;
+        QFileInfo modelFile(_bakedModelFilePath);
+        QString outFilename(modelFile.dir().absolutePath() + "/" + modelFile.completeBaseName() + "_FBX.json");
+        QFile jsonFile(outFilename);
+        if (jsonFile.open(QIODevice::WriteOnly)) {
+            jsonFile.write(fbxToJSON.str().c_str(), fbxToJSON.str().length());
+            jsonFile.close();
+        }
+    }
+#endif
+
+    qCDebug(model_baking) << "Exported" << _modelURL << "with re-written paths to" << _bakedModelFilePath;
 }

@@ -137,6 +137,8 @@ int unpackFloatScalarFromSignedTwoByteFixed(const int16_t* byteFixedPointer, flo
 int packFloatVec3ToSignedTwoByteFixed(unsigned char* destBuffer, const glm::vec3& srcVector, int radix);
 int unpackFloatVec3FromSignedTwoByteFixed(const unsigned char* sourceBuffer, glm::vec3& destination, int radix);
 
+bool closeEnough(float a, float b, float relativeError);
+
 /// \return vec3 with euler angles in radians
 glm::vec3 safeEulerAngles(const glm::quat& q);
 
@@ -248,7 +250,10 @@ glm::vec3 transformVectorFull(const glm::mat4& m, const glm::vec3& v);
 void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& secondaryAxis,
                           glm::vec3& uAxisOut, glm::vec3& vAxisOut, glm::vec3& wAxisOut);
 
+// assumes z-forward and y-up
 glm::vec2 getFacingDir2D(const glm::quat& rot);
+
+// assumes z-forward and y-up
 glm::vec2 getFacingDir2D(const glm::mat4& m);
 
 inline bool isNaN(const glm::vec3& value) { return isNaN(value.x) || isNaN(value.y) || isNaN(value.z); }
@@ -308,6 +313,19 @@ inline void glm_mat4u_mul(const glm::mat4& m1, const glm::mat4& m2, glm::mat4& r
     _mm_storeu_ps((float*)&r[3][0], v3);
 #else
     r = m1 * m2;
+#endif
+}
+
+// convert float to int, using round-to-nearest-even (undefined on overflow)
+inline int fastLrintf(float x) {
+#if GLM_ARCH & GLM_ARCH_SSE2_BIT
+    return _mm_cvt_ss2si(_mm_set_ss(x));
+#else
+    // return lrintf(x);
+    static_assert(std::numeric_limits<double>::is_iec559, "Requires IEEE-754 double precision format");
+    union { double d; int64_t i; } bits = { (double)x };
+    bits.d += (3ULL << 51);
+    return (int)bits.i;
 #endif
 }
 

@@ -42,7 +42,7 @@ Rectangle {
     property bool alreadyOwned: false;
     property int itemPrice: -1;
     property bool isCertified;
-    property string itemType;
+    property string itemType: "unknown";
     property var itemTypesArray: ["entity", "wearable", "contentSet", "app", "avatar", "unknown"];
     property var itemTypesText: ["entity", "wearable", "content set", "app", "avatar", "item"];
     property var buttonTextNormal: ["REZ", "WEAR", "REPLACE CONTENT SET", "INSTALL", "WEAR", "REZ"];
@@ -92,15 +92,12 @@ Rectangle {
 
         onBuyResult: {
             if (result.status !== 'success') {
-                failureErrorText.text = result.message;
+                failureErrorText.text = result.data.message;
                 root.activeView = "checkoutFailure";
-                UserActivityLogger.commercePurchaseFailure(root.itemId, root.itemAuthor, root.itemPrice, !root.alreadyOwned, result.message);
+                UserActivityLogger.commercePurchaseFailure(root.itemId, root.itemAuthor, root.itemPrice, !root.alreadyOwned, result.data.message);
             } else {
                 root.certificateId = result.data.certificate_id;
                 root.itemHref = result.data.download_url;
-                if (result.data.categories.indexOf("Wearables") > -1) {
-                    root.itemType = "wearable";
-                }
                 root.activeView = "checkoutSuccess";
                 UserActivityLogger.commercePurchaseSuccess(root.itemId, root.itemAuthor, root.itemPrice, !root.alreadyOwned);
             }
@@ -132,7 +129,7 @@ Rectangle {
         }
 
         onAppInstalled: {
-            if (appHref === root.itemHref) {
+            if (appID === root.itemId) {
                 root.isInstalled = true;
             }
         }
@@ -170,9 +167,6 @@ Rectangle {
                 root.activeView = "checkoutFailure";
             } else {
                 root.itemHref = result.data.download_url;
-                if (result.data.categories.indexOf("Wearables") > -1) {
-                    root.itemType = "wearable";
-                }
                 root.activeView = "checkoutSuccess";
             }
         }
@@ -184,20 +178,6 @@ Rectangle {
         root.availableUpdatesReceived = false;
         Commerce.getAvailableUpdates(root.itemId);
         itemPreviewImage.source = "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/" + itemId + "/thumbnail/hifi-mp-" + itemId + ".jpg";
-    }
-
-    onItemHrefChanged: {
-        if (root.itemHref.indexOf(".fst") > -1) {
-            root.itemType = "avatar";
-        } else if (root.itemHref.indexOf('.json.gz') > -1 || root.itemHref.indexOf('.content.zip') > -1) {
-            root.itemType = "contentSet";
-        } else if (root.itemHref.indexOf('.app.json') > -1) {
-            root.itemType = "app";
-        } else if (root.itemHref.indexOf('.json') > -1) {
-            root.itemType = "entity"; // "wearable" type handled later
-        } else {
-            root.itemType = "unknown";
-        }
     }
 
     onItemTypeChanged: {
@@ -787,7 +767,7 @@ Rectangle {
                     }
                     lightboxPopup.button2text = "CONFIRM";
                     lightboxPopup.button2method = function() {
-                        Commerce.replaceContentSet(root.itemHref);
+                        Commerce.replaceContentSet(root.itemHref, root.certificateId);
                         lightboxPopup.visible = false;
                         rezzedNotifContainer.visible = true;
                         rezzedNotifContainerTimer.start();
@@ -896,7 +876,7 @@ Rectangle {
             horizontalAlignment: Text.AlignLeft;
             verticalAlignment: Text.AlignVCenter;
             onLinkActivated: {
-                sendToScript({method: 'checkout_goToPurchases'});
+                sendToScript({method: 'checkout_goToPurchases', filterText: root.itemName});
             }
         }
 
@@ -1102,6 +1082,7 @@ Rectangle {
                 root.referrer = message.params.referrer;
                 root.itemAuthor = message.params.itemAuthor;
                 root.itemEdition = message.params.itemEdition || -1;
+                root.itemType = message.params.itemType || "unknown";
                 refreshBuyUI();
             break;
             default:

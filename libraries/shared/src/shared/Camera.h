@@ -40,13 +40,18 @@ class Camera : public QObject {
      * The Camera API provides access to the "camera" that defines your view in desktop and HMD display modes.
      *
      * @namespace Camera
-     * @property position {Vec3} The position of the camera. You can set this value only when the camera is in independent mode.
-     * @property orientation {Quat} The orientation of the camera. You can set this value only when the camera is in independent
+     *
+     * @hifi-interface
+     * @hifi-client-entity
+     *
+     * @property {Vec3} position - The position of the camera. You can set this value only when the camera is in independent 
      *     mode.
-     * @property mode {Camera.Mode} The camera mode.
-     * @property frustum {ViewFrustum} The camera frustum.
-     * @property cameraEntity {Uuid} The ID of the entity that is used for the camera position and orientation when the camera
-     *     is in entity mode.
+     * @property {Quat} orientation - The orientation of the camera. You can set this value only when the camera is in 
+     *     independent mode.
+     * @property {Camera.Mode} mode - The camera mode.
+     * @property {ViewFrustum} frustum - The camera frustum.
+     * @property {Uuid} cameraEntity - The ID of the entity that is used for the camera position and orientation when the 
+     *     camera is in entity mode.
      */
     // FIXME: The cameraEntity property definition is copied from FancyCamera.h.
     Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)

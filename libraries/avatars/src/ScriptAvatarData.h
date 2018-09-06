@@ -116,6 +116,10 @@ public:
     Q_INVOKABLE QStringList getJointNames() const;
     Q_INVOKABLE QVector<AttachmentData> getAttachmentData() const;
 
+#if DEV_BUILD || PR_BUILD
+    Q_INVOKABLE AvatarEntityMap getAvatarEntities() const;
+#endif
+
     //
     // AUDIO PROPERTIES
     //

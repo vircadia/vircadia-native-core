@@ -9,14 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ArrayBufferClass.h"
+
 #include <QDebug>
 
 #include "ArrayBufferPrototype.h"
 #include "DataViewClass.h"
 #include "ScriptEngine.h"
 #include "TypedArrays.h"
-
-#include "ArrayBufferClass.h"
 
 
 static const QString CLASS_NAME = "ArrayBuffer";

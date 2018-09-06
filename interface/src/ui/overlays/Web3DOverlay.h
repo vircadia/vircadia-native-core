@@ -52,9 +52,6 @@ public:
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
 
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-        BoxFace& face, glm::vec3& surfaceNormal) override;
-
     virtual Web3DOverlay* createClone() const override;
 
     enum InputMode {
@@ -82,7 +79,7 @@ protected:
     Transform evalRenderTransform() override;
 
 private:
-    void setupQmlSurface();
+    void setupQmlSurface(bool isTablet);
     void rebuildWebSurface();
     bool isWebContent() const;
 

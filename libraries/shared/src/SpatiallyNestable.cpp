@@ -22,8 +22,8 @@ const float defaultAACubeSize = 1.0f;
 const int MAX_PARENTING_CHAIN_SIZE = 30;
 
 SpatiallyNestable::SpatiallyNestable(NestableType nestableType, QUuid id) :
-    _nestableType(nestableType),
     _id(id),
+    _nestableType(nestableType),
     _transform() {
     // set flags in _transform
     _transform.setTranslation(glm::vec3(0.0f));
@@ -165,6 +165,10 @@ void SpatiallyNestable::forgetChild(SpatiallyNestablePointer newChild) const {
 
 void SpatiallyNestable::setParentJointIndex(quint16 parentJointIndex) {
     _parentJointIndex = parentJointIndex;
+    auto parent = _parent.lock();
+    if (parent) {
+        parent->recalculateChildCauterization();
+    }
 }
 
 glm::vec3 SpatiallyNestable::worldToLocal(const glm::vec3& position,

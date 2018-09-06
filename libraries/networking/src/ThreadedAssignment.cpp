@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ThreadedAssignment.h"
+
 #include <QtCore/QCoreApplication>
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonObject>
@@ -16,8 +18,6 @@
 #include <QtCore/QTimer>
 
 #include <LogHandler.h>
-
-#include "ThreadedAssignment.h"
 
 #include "NetworkLogging.h"
 
@@ -84,7 +84,8 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
     _domainServerTimer.start();
 
     // start sending stats packet once we connect to the domain
-    connect(&nodeList->getDomainHandler(), SIGNAL(connectedToDomain(const QString&)), &_statsTimer, SLOT(start()));
+    connect(&nodeList->getDomainHandler(), &DomainHandler::connectedToDomain,
+            &_statsTimer, static_cast<void (QTimer::*)()>(&QTimer::start));
 
     // stop sending stats if we disconnect
     connect(&nodeList->getDomainHandler(), &DomainHandler::disconnectedFromDomain, &_statsTimer, &QTimer::stop);
@@ -119,7 +120,7 @@ void ThreadedAssignment::checkInWithDomainServerOrExit() {
     if (_numQueuedCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
         qCDebug(networking) << "At least" << MAX_SILENT_DOMAIN_SERVER_CHECK_INS << "have been queued without a response from domain-server"
             << "Stopping the current assignment";
-        setFinished(true);
+        stop();
     } else {
         auto nodeList = DependencyManager::get<NodeList>();
         QMetaObject::invokeMethod(nodeList.data(), "sendDomainServerCheckIn");
@@ -131,5 +132,5 @@ void ThreadedAssignment::checkInWithDomainServerOrExit() {
 
 void ThreadedAssignment::domainSettingsRequestFailed() {
     qCDebug(networking) << "Failed to retreive settings object from domain-server. Bailing on assignment.";
-    setFinished(true);
+    stop();
 }

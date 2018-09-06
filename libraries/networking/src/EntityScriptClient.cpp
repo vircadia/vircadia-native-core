@@ -192,8 +192,6 @@ void EntityScriptClient::handleNodeClientConnectionReset(SharedNodePointer node)
         return;
     }
 
-    //qCDebug(entity_script_client) << "EntityScriptClient detected client connection reset handshake with Asset Server - failing any pending requests";
-
     forceFailureOfPendingRequests(node);
 }
 

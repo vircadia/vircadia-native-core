@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "GooglePolyScriptingInterface.h"
+
 #include <QEventLoop>
 #include <QtGlobal>
 #include <QJsonArray>
@@ -20,9 +22,7 @@
 #include <QString>
 #include <QTime>
 #include <QUrl>
-#include <random>
 
-#include "GooglePolyScriptingInterface.h"
 #include "ScriptEngineLogging.h"
 
 const QString LIST_POLY_URL = "https://poly.googleapis.com/v1/assets?";

@@ -24,6 +24,7 @@
 #include <TextureCache.h>
 #include <OctreeProcessor.h>
 #include <render/Forward.h>
+#include <workload/Space.h>
 
 class AbstractScriptingServicesInterface;
 class AbstractViewStateInterface;
@@ -38,9 +39,6 @@ namespace render { namespace entities {
     using EntityRendererWeakPointer = std::weak_ptr<EntityRenderer>;
 
 } }
-
-// Allow the use of std::unordered_map with QUuid keys
-namespace std { template<> struct hash<EntityItemID> { size_t operator()(const EntityItemID& id) const; }; }
 
 using EntityRenderer = render::entities::EntityRenderer;
 using EntityRendererPointer = render::entities::EntityRendererPointer;
@@ -116,14 +114,13 @@ public:
     EntityItemPointer getEntity(const EntityItemID& id);
     void onEntityChanged(const EntityItemID& id);
 
-    static void setRenderDebugHullsOperator(std::function<bool()> renderDebugHullsOperator) { _renderDebugHullsOperator = renderDebugHullsOperator; }
-    static bool shouldRenderDebugHulls() { return _renderDebugHullsOperator(); }
+    // Access the workload Space
+    workload::SpacePointer getWorkloadSpace() const { return _space; }
 
 signals:
     void enterEntity(const EntityItemID& entityItemID);
     void leaveEntity(const EntityItemID& entityItemID);
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
-    void setRenderDebugHulls();
 
 public slots:
     void addingEntity(const EntityItemID& entityID);
@@ -139,6 +136,8 @@ public slots:
     EntityRendererPointer renderableForEntityId(const EntityItemID& id) const;
     render::ItemID renderableIdForEntityId(const EntityItemID& id) const;
 
+    void handleSpaceUpdate(std::pair<int32_t, glm::vec4> proxyUpdate);
+
 protected:
     virtual OctreePointer createTree() override {
         EntityTreePointer newTree = EntityTreePointer(new EntityTree(true));
@@ -148,7 +147,7 @@ protected:
 
 private:
     void addPendingEntities(const render::ScenePointer& scene, render::Transaction& transaction);
-    void updateChangedEntities(const render::ScenePointer& scene, const ViewFrustum& view, render::Transaction& transaction);
+    void updateChangedEntities(const render::ScenePointer& scene, render::Transaction& transaction);
     EntityRendererPointer renderableForEntity(const EntityItemPointer& entity) const { return renderableForEntityId(entity->getID()); }
     render::ItemID renderableIdForEntity(const EntityItemPointer& entity) const { return renderableIdForEntityId(entity->getID()); }
 
@@ -260,7 +259,9 @@ private:
     static CalculateEntityLoadingPriority _calculateEntityLoadingPriorityFunc;
     static std::function<bool()> _entitiesShouldFadeFunction;
 
-    static std::function<bool()> _renderDebugHullsOperator;
+    mutable std::mutex _spaceLock;
+    workload::SpacePointer _space{ new workload::Space() };
+    workload::Transaction::Updates _spaceUpdates;
 };
 
 

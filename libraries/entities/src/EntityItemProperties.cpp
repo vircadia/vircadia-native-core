@@ -9,30 +9,35 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QDebug>
-#include <QHash>
-#include <QObject>
-#include <QtCore/QJsonDocument>
+#include "EntityItemProperties.h"
+
 #include <openssl/err.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <openssl/ecdsa.h>
-#include <NetworkAccessManager.h>
+
+#include <QDebug>
+#include <QHash>
+#include <QObject>
+#include <QtCore/QJsonDocument>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
+
+#include <NetworkAccessManager.h>
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
 #include <Extents.h>
+
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
-#include "EntityItemProperties.h"
 #include "ModelEntityItem.h"
 #include "PolyLineEntityItem.h"
 
 AnimationPropertyGroup EntityItemProperties::_staticAnimation;
 SkyboxPropertyGroup EntityItemProperties::_staticSkybox;
 HazePropertyGroup EntityItemProperties::_staticHaze;
+BloomPropertyGroup EntityItemProperties::_staticBloom;
 KeyLightPropertyGroup EntityItemProperties::_staticKeyLight;
 AmbientLightPropertyGroup EntityItemProperties::_staticAmbientLight;
 
@@ -80,6 +85,7 @@ void EntityItemProperties::debugDump() const {
     getHaze().debugDump();
     getKeyLight().debugDump();
     getAmbientLight().debugDump();
+    getBloom().debugDump();
 
     qCDebug(entities) << "   changed properties...";
     EntityPropertyFlags props = getChangedProperties();
@@ -126,7 +132,7 @@ void buildStringToMaterialMappingModeLookup() {
     addMaterialMappingMode(PROJECTED);
 }
 
-QString getCollisionGroupAsString(uint8_t group) {
+QString getCollisionGroupAsString(uint16_t group) {
     switch (group) {
         case USER_COLLISION_GROUP_DYNAMIC:
             return "dynamic";
@@ -142,7 +148,7 @@ QString getCollisionGroupAsString(uint8_t group) {
     return "";
 }
 
-uint8_t getCollisionGroupAsBitMask(const QStringRef& name) {
+uint16_t getCollisionGroupAsBitMask(const QStringRef& name) {
     if (0 == name.compare(QString("dynamic"))) {
         return USER_COLLISION_GROUP_DYNAMIC;
     } else if (0 == name.compare(QString("static"))) {
@@ -160,7 +166,7 @@ uint8_t getCollisionGroupAsBitMask(const QStringRef& name) {
 QString EntityItemProperties::getCollisionMaskAsString() const {
     QString maskString("");
     for (int i = 0; i < NUM_USER_COLLISION_GROUPS; ++i) {
-        uint8_t group = 0x01 << i;
+        uint16_t group = 0x0001 << i;
         if (group & _collisionMask) {
             maskString.append(getCollisionGroupAsString(group));
             maskString.append(',');
@@ -171,7 +177,7 @@ QString EntityItemProperties::getCollisionMaskAsString() const {
 
 void EntityItemProperties::setCollisionMaskFromString(const QString& maskString) {
     QVector<QStringRef> groups = maskString.splitRef(',');
-    uint8_t mask = 0x00;
+    uint16_t mask = 0x0000;
     for (auto groupName : groups) {
         mask |= getCollisionGroupAsBitMask(groupName);
     }
@@ -207,6 +213,10 @@ QString EntityItemProperties::getHazeModeAsString() const {
     return getComponentModeAsString(_hazeMode);
 }
 
+QString EntityItemProperties::getBloomModeAsString() const {
+    return getComponentModeAsString(_bloomMode);
+}
+
 QString EntityItemProperties::getComponentModeString(uint32_t mode) {
     // return "inherit" if mode is not valid
     if (mode < COMPONENT_MODE_ITEM_COUNT) {
@@ -228,6 +238,15 @@ void EntityItemProperties::setHazeModeFromString(const QString& hazeMode) {
     if (result != COMPONENT_MODES.end()) {
         _hazeMode = result->first;
         _hazeModeChanged = true;
+    }
+}
+
+void EntityItemProperties::setBloomModeFromString(const QString& bloomMode) {
+    auto result = findComponent(bloomMode);
+
+    if (result != COMPONENT_MODES.end()) {
+        _bloomMode = result->first;
+        _bloomModeChanged = true;
     }
 }
 
@@ -364,6 +383,12 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_SCALE, materialMappingScale);
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_ROT, materialMappingRot);
     CHECK_PROPERTY_CHANGE(PROP_MATERIAL_DATA, materialData);
+    CHECK_PROPERTY_CHANGE(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
+    CHECK_PROPERTY_CHANGE(PROP_PARTICLE_SPIN, particleSpin);
+    CHECK_PROPERTY_CHANGE(PROP_SPIN_SPREAD, spinSpread);
+    CHECK_PROPERTY_CHANGE(PROP_SPIN_START, spinStart);
+    CHECK_PROPERTY_CHANGE(PROP_SPIN_FINISH, spinFinish);
+    CHECK_PROPERTY_CHANGE(PROP_PARTICLE_ROTATE_WITH_ENTITY, rotateWithEntity);
 
     // Certifiable Properties
     CHECK_PROPERTY_CHANGE(PROP_ITEM_NAME, itemName);
@@ -384,6 +409,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_KEY_LIGHT_MODE, keyLightMode);
     CHECK_PROPERTY_CHANGE(PROP_AMBIENT_LIGHT_MODE, ambientLightMode);
     CHECK_PROPERTY_CHANGE(PROP_SKYBOX_MODE, skyboxMode);
+    CHECK_PROPERTY_CHANGE(PROP_BLOOM_MODE, bloomMode);
 
     CHECK_PROPERTY_CHANGE(PROP_SOURCE_URL, sourceUrl);
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_VOLUME_SIZE, voxelVolumeSize);
@@ -432,11 +458,19 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_DPI, dpi);
     CHECK_PROPERTY_CHANGE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
 
+    CHECK_PROPERTY_CHANGE(PROP_CLONEABLE, cloneable);
+    CHECK_PROPERTY_CHANGE(PROP_CLONE_LIFETIME, cloneLifetime);
+    CHECK_PROPERTY_CHANGE(PROP_CLONE_LIMIT, cloneLimit);
+    CHECK_PROPERTY_CHANGE(PROP_CLONE_DYNAMIC, cloneDynamic);
+    CHECK_PROPERTY_CHANGE(PROP_CLONE_AVATAR_ENTITY, cloneAvatarEntity);
+    CHECK_PROPERTY_CHANGE(PROP_CLONE_ORIGIN_ID, cloneOriginID);
+
     changedProperties += _animation.getChangedProperties();
     changedProperties += _keyLight.getChangedProperties();
     changedProperties += _ambientLight.getChangedProperties();
     changedProperties += _skybox.getChangedProperties();
     changedProperties += _haze.getChangedProperties();
+    changedProperties += _bloom.getChangedProperties();
 
     return changedProperties;
 }
@@ -475,10 +509,11 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {boolean} locked=false - Whether or not the entity can be edited or deleted. If <code>true</code> then the 
  *     entity's properties other than <code>locked</code> cannot be changed, and the entity cannot be deleted.
  * @property {boolean} visible=true - Whether or not the entity is rendered. If <code>true</code> then the entity is rendered.
- * @property {boolean} canCastShadows=true - Whether or not the entity casts shadows. Currently applicable only to 
+ * @property {boolean} canCastShadow=true - Whether or not the entity can cast a shadow. Currently applicable only to 
  *     {@link Entities.EntityType|Model} and {@link Entities.EntityType|Shape} entities. Shadows are cast if inside a 
  *     {@link Entities.EntityType|Zone} entity with <code>castShadows</code> enabled in its 
  *     {@link Entities.EntityProperties-Zone|keyLight} property.
+ * @property {boolean} isVisibleInSecondaryCamera=true - Whether or not the entity is rendered in the secondary camera. If <code>true</code> then the entity is rendered.
  *
  * @property {Vec3} position=0,0,0 - The position of the entity.
  * @property {Quat} rotation=0,0,0,1 - The orientation of the entity with respect to world coordinates.
@@ -583,6 +618,15 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <em>Read-only.</em>
  * @property {Entities.RenderInfo} renderInfo - Information on the cost of rendering the entity. Currently information is only 
  *     provided for <code>Model</code> entities. <em>Read-only.</em>
+ *
+ * @property {boolean} cloneable=false - If <code>true</code> then the entity can be cloned via {@link Entities.cloneEntity}.
+ * @property {number} cloneLifetime=300 - The entity lifetime for clones created from this entity.
+ * @property {number} cloneLimit=0 - The total number of clones of this entity that can exist in the domain at any given time.
+ * @property {boolean} cloneDynamic=false - If <code>true</code> then clones created from this entity will have their 
+ *     <code>dynamic</code> property set to <code>true</code>.
+ * @property {boolean} cloneAvatarEntity=false - If <code>true</code> then clones created from this entity will be created as 
+ *     avatar entities: their <code>clientOnly</code> property will be set to <code>true</code>.
+ * @property {Uuid} cloneOriginID - The ID of the entity that this entity was cloned from.
  *
  * @property {string} itemName="" - Certifiable name of the Marketplace item.
  * @property {string} itemDescription="" - Certifiable description of the Marketplace item.
@@ -695,8 +739,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @typedef {object} Entities.EntityProperties-Material
  * @property {string} materialURL="" - URL to a {@link MaterialResource}. If you append <code>?name</code> to the URL, the 
  *     material with that name in the {@link MaterialResource} will be applied to the entity. <br />
- *     Alternatively, set the property value to <code>"userData"</code> to use the {@link Entities.EntityProperties|userData} 
- *     entity property to live edit the material resource values.
+ *     Alternatively, set the property value to <code>"materialData"</code> to use the <code>materialData</code> property  
+ *     for the {@link MaterialResource} values.
  * @property {number} priority=0 - The priority for applying the material to its parent. Only the highest priority material is 
  *     applied, with materials of the same priority randomly assigned. Materials that come with the model have a priority of 
  *     <code>0</code>.
@@ -710,6 +754,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <code>{ x: 0, y: 0 }</code> &ndash; <code>{ x: 1, y: 1 }</code>.
  * @property {Vec2} materialMappingScale=1,1 - How much to scale the material within the parent's UV-space.
  * @property {number} materialMappingRot=0 - How much to rotate the material within the parent's UV-space, in degrees.
+ * @property {string} materialData="" - Used to store {@link MaterialResource} data as a JSON string. You can use 
+ *     <code>JSON.parse()</code> to parse the string into a JavaScript object which you can manipulate the properties of, and 
+ *     use <code>JSON.stringify()</code> to convert the object into a string to put in the property.
  * @example <caption>Color a sphere using a Material entity.</caption>
  * var entityID = Entities.addEntity({
  *     type: "Sphere",
@@ -722,13 +769,14 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * var materialID = Entities.addEntity({
  *     type: "Material",
  *     parentID: entityID,
- *     materialURL: "userData",
+ *     materialURL: "materialData",
  *     priority: 1,
- *     userData: JSON.stringify({
+ *     materialData: JSON.stringify({
+ *         materialVersion: 1,
  *         materials: {
  *             // Can only set albedo on a Shape entity.
  *             // Value overrides entity's "color" property.
- *             albedo: [1.0, 0, 0]
+ *             albedo: [1.0, 1.0, 0]  // Yellow
  *         }
  *     }),
  * });
@@ -828,7 +876,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     default is Earth's gravity value.
  * @property {vec3} accelerationSpread=0,0,0 - The spread in accelerations that each particle is given. If
  *     <code>emitAccelerations == {x: 0, y: -9.8, z: 0}</code> and <code>accelerationSpread ==
- *     {x: 0, y: 1, z: 0}</code>, each particle will have an acceleration in the range, <code>{x: 0, y: -10.8, z: 0}</code> 
+ *     {x: 0, y: 1, z: 0}</code>, each particle will have an acceleration in the range <code>{x: 0, y: -10.8, z: 0}</code>
  *     &ndash; <code>{x: 0, y: -8.8, z: 0}</code>.
  * @property {Vec3} dimensions - The dimensions of the particle effect, i.e., a bounding box containing all the particles
  *     during their lifetimes, assuming that <code>emitterShouldTrail</code> is <code>false</code>. <em>Read-only.</em>
@@ -853,30 +901,46 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} azimuthStart=-Math.PI - The angle in radians from the entity's local x-axis about the entity's local 
  *     z-axis at which particles start being emitted; range <code>-Math.PI</code> &ndash; <code>Math.PI</code>. Particles are 
  *     emitted from the portion of the ellipsoid that lies between <code>azimuthStart<code> and <code>azimuthFinish</code>.
- * @property {number} azimuthFinish=Math.PI - The angle in radians from the entity's local x-axis about the entity's local 
- *     z-axis at which particles stop being emitted; range <code>-Math.PI</code> &ndash; <code>Math.PI</code>. Particles are 
+ * @property {number} azimuthFinish=Math.PI - The angle in radians from the entity's local x-axis about the entity's local
+ *     z-axis at which particles stop being emitted; range <code>-Math.PI</code> &ndash; <code>Math.PI</code>. Particles are
  *     emitted from the portion of the ellipsoid that lies between <code>azimuthStart<code> and <code>azimuthFinish</code>.
  *
- * @property {string} textures="" - The URL of a JPG or PNG image file to display for each particle. If you want transparency, 
+ * @property {string} textures="" - The URL of a JPG or PNG image file to display for each particle. If you want transparency,
  *     use PNG format.
  * @property {number} particleRadius=0.025 - The radius of each particle at the middle of its life.
- * @property {number} radiusStart=0.025 - The radius of each particle at the start of its life. If not explicitly set, the 
+ * @property {number} radiusStart=NaN - The radius of each particle at the start of its life. If <code>NaN</code>, the
  *     <code>particleRadius</code> value is used.
- * @property {number} radiusFinish=0.025 - The radius of each particle at the end of its life. If not explicitly set, the 
+ * @property {number} radiusFinish=NaN - The radius of each particle at the end of its life. If <code>NaN</code>, the
  *     <code>particleRadius</code> value is used.
- * @property {number} radiusSpread=0 - <em>Currently not used.</em>
+ * @property {number} radiusSpread=0 - The spread in radius that each particle is given. If <code>particleRadius == 0.5</code>
+ *     and <code>radiusSpread == 0.25</code>, each particle will have a radius in the range <code>0.25</code> &ndash; 
+ *     <code>0.75</code>.
  * @property {Color} color=255,255,255 - The color of each particle at the middle of its life.
- * @property {Color} colorStart=255,255,255 - The color of each particle at the start of its life. If not explicitly set, the 
- *     <code>color</code> value is used.
- * @property {Color} colorFinish=255,255,255 - The color of each particle at the end of its life. If not explicitly set, the 
- *     <code>color</code> value is used.
- * @property {Color} colorSpread=0,0,0 - <em>Currently not used.</em>
+ * @property {Color} colorStart={} - The color of each particle at the start of its life. If any of the component values are 
+ *     undefined, the <code>color</code> value is used.
+ * @property {Color} colorFinish={} - The color of each particle at the end of its life. If any of the component values are 
+ *     undefined, the <code>color</code> value is used.
+ * @property {Color} colorSpread=0,0,0 - The spread in color that each particle is given. If
+ *     <code>color == {red: 100, green: 100, blue: 100}</code> and <code>colorSpread ==
+ *     {red: 10, green: 25, blue: 50}</code>, each particle will have a color in the range 
+ *     <code>{red: 90, green: 75, blue: 50}</code> &ndash; <code>{red: 110, green: 125, blue: 150}</code>.
  * @property {number} alpha=1 - The alpha of each particle at the middle of its life.
- * @property {number} alphaStart=1 - The alpha of each particle at the start of its life. If not explicitly set, the 
+ * @property {number} alphaStart=NaN - The alpha of each particle at the start of its life. If <code>NaN</code>, the
  *     <code>alpha</code> value is used.
- * @property {number} alphaFinish=1 - The alpha of each particle at the end of its life. If not explicitly set, the 
+ * @property {number} alphaFinish=NaN - The alpha of each particle at the end of its life. If <code>NaN</code>, the
  *     <code>alpha</code> value is used.
- * @property {number} alphaSpread=0 - <em>Currently not used.</em>
+ * @property {number} alphaSpread=0 - The spread in alpha that each particle is given. If <code>alpha == 0.5</code>
+ *     and <code>alphaSpread == 0.25</code>, each particle will have an alpha in the range <code>0.25</code> &ndash; 
+ *     <code>0.75</code>.
+ * @property {number} particleSpin=0 - The spin of each particle at the middle of its life. In the range <code>-2*PI</code> &ndash; <code>2*PI</code>.
+ * @property {number} spinStart=NaN - The spin of each particle at the start of its life. In the range <code>-2*PI</code> &ndash; <code>2*PI</code>.
+ *     If <code>NaN</code>, the <code>particleSpin</code> value is used.
+ * @property {number} spinFinish=NaN - The spin of each particle at the end of its life. In the range <code>-2*PI</code> &ndash; <code>2*PI</code>.
+ *     If <code>NaN</code>, the <code>particleSpin</code> value is used.
+ * @property {number} spinSpread=0 - The spread in spin that each particle is given. In the range <code>0</code> &ndash; <code>2*PI</code>.  If <code>particleSpin == PI</code>
+ *     and <code>spinSpread == PI/2</code>, each particle will have a spin in the range <code>PI/2</code> &ndash; <code>3*PI/2</code>.
+ * @property {boolean} rotateWithEntity=false - Whether or not the particles' spin will rotate with the entity.  If false, when <code>particleSpin == 0</code>, the particles will point
+ * up in the world.  If true, they will point towards the entity's up vector, based on its orientation.
  *
  * @property {ShapeType} shapeType="none" - <em>Currently not used.</em> <em>Read-only.</em>
  *
@@ -1117,6 +1181,12 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <code>"enabled"</code>: The haze properties of this zone are enabled, overriding the haze from any enclosing zone.
  * @property {Entities.Haze} haze - The haze properties of the zone.
  *
+ * @property {string} bloomMode="inherit" - Configures the bloom in the zone. Possible values:<br />
+ *     <code>"inherit"</code>: The bloom from any enclosing zone continues into this zone.<br />
+ *     <code>"disabled"</code>: The bloom from any enclosing zone and the bloom of this zone are disabled in this zone.<br />
+ *     <code>"enabled"</code>: The bloom properties of this zone are enabled, overriding the bloom from any enclosing zone.
+ * @property {Entities.Bloom} bloom - The bloom properties of the zone.
+ *
  * @property {boolean} flyingAllowed=true - If <code>true</code> then visitors can fly in the zone; otherwise they cannot.
  * @property {boolean} ghostingAllowed=true - If <code>true</code> then visitors with avatar collisions turned off will not 
  *     collide with content in the zone; otherwise visitors will always collide with content in the zone.
@@ -1211,6 +1281,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCKED, locked);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_USER_DATA, userData);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
 
     // Certifiable Properties
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ITEM_NAME, itemName);
@@ -1259,6 +1330,11 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_START, alphaStart);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_FINISH, alphaFinish);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMITTER_SHOULD_TRAIL, emitterShouldTrail);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARTICLE_SPIN, particleSpin);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SPIN_SPREAD, spinSpread);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SPIN_START, spinStart);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SPIN_FINISH, spinFinish);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARTICLE_ROTATE_WITH_ENTITY, rotateWithEntity);
     }
 
     // Models only
@@ -1329,6 +1405,9 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_HAZE_MODE, hazeMode, getHazeModeAsString());
         _haze.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BLOOM_MODE, bloomMode, getBloomModeAsString());
+        _bloom.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_KEY_LIGHT_MODE, keyLightMode, getKeyLightModeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_AMBIENT_LIGHT_MODE, ambientLightMode, getAmbientLightModeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SKYBOX_MODE, skyboxMode, getSkyboxModeAsString());
@@ -1383,7 +1462,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     /**jsdoc
      * The axis-aligned bounding box of an entity.
-     * @typedef Entities.BoundingBox
+     * @typedef {object} Entities.BoundingBox
      * @property {Vec3} brn - The bottom right near (minimum axes values) corner of the AA box.
      * @property {Vec3} tfl - The top far left (maximum axes values) corner of the AA box.
      * @property {Vec3} center - The center of the AA box.
@@ -1421,6 +1500,13 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLIENT_ONLY, clientOnly);  // Gettable but not settable except at entity creation
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);  // Gettable but not settable
+
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONEABLE, cloneable);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_LIFETIME, cloneLifetime);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_LIMIT, cloneLimit);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_DYNAMIC, cloneDynamic);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_AVATAR_ENTITY, cloneAvatarEntity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_ORIGIN_ID, cloneOriginID);
 
     // Rendering info
     if (!skipDefaults && !strictSemantics) {
@@ -1465,13 +1551,13 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     }
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lastEditedBy, QUuid, setLastEditedBy);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(position, glmVec3, setPosition);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(dimensions, glmVec3, setDimensions);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(rotation, glmQuat, setRotation);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(position, vec3, setPosition);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(dimensions, vec3, setDimensions);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(rotation, quat, setRotation);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(density, float, setDensity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(velocity, glmVec3, setVelocity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(gravity, glmVec3, setGravity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(acceleration, glmVec3, setAcceleration);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(velocity, vec3, setVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(gravity, vec3, setGravity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(acceleration, vec3, setAcceleration);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(damping, float, setDamping);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(restitution, float, setRestitution);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(friction, float, setFriction);
@@ -1479,15 +1565,15 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(script, QString, setScript);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(scriptTimestamp, quint64, setScriptTimestamp);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(serverScripts, QString, setServerScripts);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(registrationPoint, glmVec3, setRegistrationPoint);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(angularVelocity, glmVec3, setAngularVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(registrationPoint, vec3, setRegistrationPoint);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(angularVelocity, vec3, setAngularVelocity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(angularDamping, float, setAngularDamping);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(visible, bool, setVisible);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(canCastShadow, bool, setCanCastShadow);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(color, xColor, setColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(colorSpread, xColor, setColorSpread);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorStart, xColor, setColorStart);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorFinish, xColor, setColorFinish);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorStart, vec3, setColorStart);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorFinish, vec3, setColorFinish);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alpha, float, setAlpha);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaSpread, float, setAlphaSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaStart, float, setAlphaStart);
@@ -1498,7 +1584,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localRenderAlpha, float, setLocalRenderAlpha);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionless, bool, setCollisionless);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(ignoreForCollisions, bool, setCollisionless, getCollisionless); // legacy support
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionMask, uint8_t, setCollisionMask);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionMask, uint16_t, setCollisionMask);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(collidesWith, CollisionMask);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(collisionsWillMove, bool, setDynamic, getDynamic); // legacy support
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dynamic, bool, setDynamic);
@@ -1521,15 +1607,15 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitRate, float, setEmitRate);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitSpeed, float, setEmitSpeed);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(speedSpread, float, setSpeedSpread);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitOrientation, glmQuat, setEmitOrientation);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitDimensions, glmVec3, setEmitDimensions);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitOrientation, quat, setEmitOrientation);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitDimensions, vec3, setEmitDimensions);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(emitRadiusStart, float, setEmitRadiusStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(polarStart, float, setPolarStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(polarFinish, float, setPolarFinish);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(azimuthStart, float, setAzimuthStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(azimuthFinish, float, setAzimuthFinish);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitAcceleration, glmVec3, setEmitAcceleration);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(accelerationSpread, glmVec3, setAccelerationSpread);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitAcceleration, vec3, setEmitAcceleration);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(accelerationSpread, vec3, setAccelerationSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(particleRadius, float, setParticleRadius);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusSpread, float, setRadiusSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusStart, float, setRadiusStart);
@@ -1539,10 +1625,16 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(materialMappingMode, MaterialMappingMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(priority, quint16, setPriority);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(parentMaterialName, QString, setParentMaterialName);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingPos, glmVec2, setMaterialMappingPos);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingScale, glmVec2, setMaterialMappingScale);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingPos, vec2, setMaterialMappingPos);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingScale, vec2, setMaterialMappingScale);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingRot, float, setMaterialMappingRot);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialData, QString, setMaterialData);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(isVisibleInSecondaryCamera, bool, setIsVisibleInSecondaryCamera);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(particleSpin, float, setParticleSpin);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(spinSpread, float, setSpinSpread);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(spinStart, float, setSpinStart);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(spinFinish, float, setSpinFinish);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(rotateWithEntity, bool, setRotateWithEntity);
 
     // Certifiable Properties
     COPY_PROPERTY_FROM_QSCRIPTVALUE(itemName, QString, setItemName);
@@ -1564,9 +1656,10 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(keyLightMode, KeyLightMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(ambientLightMode, AmbientLightMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(skyboxMode, SkyboxMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(bloomMode, BloomMode);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(sourceUrl, QString, setSourceUrl);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, glmVec3, setVoxelVolumeSize);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, vec3, setVoxelVolumeSize);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelData, QByteArray, setVoxelData);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelSurfaceStyle, uint16_t, setVoxelSurfaceStyle);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lineWidth, float, setLineWidth);
@@ -1596,6 +1689,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     _ambientLight.copyFromScriptValue(object, _defaultSettings);
     _skybox.copyFromScriptValue(object, _defaultSettings);
     _haze.copyFromScriptValue(object, _defaultSettings);
+    _bloom.copyFromScriptValue(object, _defaultSettings);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(xTextureURL, QString, setXTextureURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(yTextureURL, QString, setYTextureURL);
@@ -1613,11 +1707,11 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(parentJointIndex, quint16, setParentJointIndex);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(queryAACube, AACube, setQueryAACube);
 
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localPosition, glmVec3, setLocalPosition);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localRotation, glmQuat, setLocalRotation);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localVelocity, glmVec3, setLocalVelocity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localAngularVelocity, glmVec3, setLocalAngularVelocity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localDimensions, glmVec3, setLocalDimensions);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localPosition, vec3, setLocalPosition);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localRotation, quat, setLocalRotation);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localVelocity, vec3, setLocalVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localAngularVelocity, vec3, setLocalAngularVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localDimensions, vec3, setLocalDimensions);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotationsSet, qVectorBool, setJointRotationsSet);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotations, qVectorQuat, setJointRotations);
@@ -1633,6 +1727,13 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(owningAvatarID, QUuid, setOwningAvatarID);
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dpi, uint16_t, setDPI);
+
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneable, bool, setCloneable);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneLifetime, float, setCloneLifetime);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneLimit, float, setCloneLimit);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneDynamic, bool, setCloneDynamic);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneAvatarEntity, bool, setCloneAvatarEntity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneOriginID, QUuid, setCloneOriginID);
 
     _lastEdited = usecTimestampNow();
 }
@@ -1704,6 +1805,11 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(radiusSpread);
     COPY_PROPERTY_IF_CHANGED(radiusStart);
     COPY_PROPERTY_IF_CHANGED(radiusFinish);
+    COPY_PROPERTY_IF_CHANGED(particleSpin);
+    COPY_PROPERTY_IF_CHANGED(spinSpread);
+    COPY_PROPERTY_IF_CHANGED(spinStart);
+    COPY_PROPERTY_IF_CHANGED(spinFinish);
+    COPY_PROPERTY_IF_CHANGED(rotateWithEntity);
 
     // Certifiable Properties
     COPY_PROPERTY_IF_CHANGED(itemName);
@@ -1725,6 +1831,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(keyLightMode);
     COPY_PROPERTY_IF_CHANGED(ambientLightMode);
     COPY_PROPERTY_IF_CHANGED(skyboxMode);
+    COPY_PROPERTY_IF_CHANGED(bloomMode);
 
     COPY_PROPERTY_IF_CHANGED(sourceUrl);
     COPY_PROPERTY_IF_CHANGED(voxelVolumeSize);
@@ -1747,6 +1854,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     _ambientLight.merge(other._ambientLight);
     _skybox.merge(other._skybox);
     _haze.merge(other._haze);
+    _bloom.merge(other._bloom);
 
     COPY_PROPERTY_IF_CHANGED(xTextureURL);
     COPY_PROPERTY_IF_CHANGED(yTextureURL);
@@ -1784,6 +1892,13 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(owningAvatarID);
 
     COPY_PROPERTY_IF_CHANGED(dpi);
+
+    COPY_PROPERTY_IF_CHANGED(cloneable);
+    COPY_PROPERTY_IF_CHANGED(cloneLifetime);
+    COPY_PROPERTY_IF_CHANGED(cloneLimit);
+    COPY_PROPERTY_IF_CHANGED(cloneDynamic);
+    COPY_PROPERTY_IF_CHANGED(cloneAvatarEntity);
+    COPY_PROPERTY_IF_CHANGED(cloneOriginID);
 
     _lastEdited = usecTimestampNow();
 }
@@ -1847,8 +1962,8 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_COLOR, Color, color, xColor);
         ADD_PROPERTY_TO_MAP(PROP_COLOR_SPREAD, ColorSpread, colorSpread, xColor);
-        ADD_PROPERTY_TO_MAP(PROP_COLOR_START, ColorStart, colorStart, xColor);
-        ADD_PROPERTY_TO_MAP(PROP_COLOR_FINISH, ColorFinish, colorFinish, xColor);
+        ADD_PROPERTY_TO_MAP(PROP_COLOR_START, ColorStart, colorStart, vec3);
+        ADD_PROPERTY_TO_MAP(PROP_COLOR_FINISH, ColorFinish, colorFinish, vec3);
         ADD_PROPERTY_TO_MAP(PROP_ALPHA, Alpha, alpha, float);
         ADD_PROPERTY_TO_MAP(PROP_ALPHA_SPREAD, AlphaSpread, alphaSpread, float);
         ADD_PROPERTY_TO_MAP(PROP_ALPHA_START, AlphaStart, alphaStart, float);
@@ -1860,7 +1975,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_ANGULAR_DAMPING, AngularDamping, angularDamping, float);
         ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, Collisionless, collisionless, bool);
-        ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, ignoreForCollisions, unused); // legacy support
+        ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, unused, ignoreForCollisions, unused); // legacy support
         ADD_PROPERTY_TO_MAP(PROP_COLLISION_MASK, unused, collisionMask, unused);
         ADD_PROPERTY_TO_MAP(PROP_COLLISION_MASK, unused, collidesWith, unused);
         ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, collisionsWillMove, unused); // legacy support
@@ -1903,10 +2018,18 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_MODE, MaterialMappingMode, materialMappingMode, MaterialMappingMode);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_PRIORITY, Priority, priority, quint16);
         ADD_PROPERTY_TO_MAP(PROP_PARENT_MATERIAL_NAME, ParentMaterialName, parentMaterialName, QString);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_POS, MaterialMappingPos, materialMappingPos, glmVec2);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale, glmVec2);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_POS, MaterialMappingPos, materialMappingPos, vec2);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale, vec2);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_ROT, MaterialMappingRot, materialMappingRot, float);
         ADD_PROPERTY_TO_MAP(PROP_MATERIAL_DATA, MaterialData, materialData, QString);
+
+        ADD_PROPERTY_TO_MAP(PROP_VISIBLE_IN_SECONDARY_CAMERA, IsVisibleInSecondaryCamera, isVisibleInSecondaryCamera, bool);
+
+        ADD_PROPERTY_TO_MAP(PROP_PARTICLE_SPIN, ParticleSpin, particleSpin, float);
+        ADD_PROPERTY_TO_MAP(PROP_SPIN_SPREAD, SpinSpread, spinSpread, float);
+        ADD_PROPERTY_TO_MAP(PROP_SPIN_START, SpinStart, spinStart, float);
+        ADD_PROPERTY_TO_MAP(PROP_SPIN_FINISH, SpinFinish, spinFinish, float);
+        ADD_PROPERTY_TO_MAP(PROP_PARTICLE_ROTATE_WITH_ENTITY, RotateWithEntity, rotateWithEntity, float);
 
         // Certifiable Properties
         ADD_PROPERTY_TO_MAP(PROP_ITEM_NAME, ItemName, itemName, QString);
@@ -2003,11 +2126,23 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_RANGE, Haze, haze, HazeKeyLightRange, hazeKeyLightRange);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_ALTITUDE, Haze, haze, HazeKeyLightAltitude, hazeKeyLightAltitude);
 
+        ADD_PROPERTY_TO_MAP(PROP_BLOOM_MODE, BloomMode, bloomMode, uint32_t);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_BLOOM_INTENSITY, Bloom, bloom, BloomIntensity, bloomIntensity);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_BLOOM_THRESHOLD, Bloom, bloom, BloomThreshold, bloomThreshold);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_BLOOM_SIZE, Bloom, bloom, BloomSize, bloomSize);
+
         ADD_PROPERTY_TO_MAP(PROP_KEY_LIGHT_MODE, KeyLightMode, keyLightMode, uint32_t);
         ADD_PROPERTY_TO_MAP(PROP_AMBIENT_LIGHT_MODE, AmbientLightMode, ambientLightMode, uint32_t);
         ADD_PROPERTY_TO_MAP(PROP_SKYBOX_MODE, SkyboxMode, skyboxMode, uint32_t);
 
         ADD_PROPERTY_TO_MAP(PROP_DPI, DPI, dpi, uint16_t);
+
+        ADD_PROPERTY_TO_MAP(PROP_CLONEABLE, Cloneable, cloneable, bool);
+        ADD_PROPERTY_TO_MAP(PROP_CLONE_LIFETIME, CloneLifetime, cloneLifetime, float);
+        ADD_PROPERTY_TO_MAP(PROP_CLONE_LIMIT, CloneLimit, cloneLimit, float);
+        ADD_PROPERTY_TO_MAP(PROP_CLONE_DYNAMIC, CloneDynamic, cloneDynamic, bool);
+        ADD_PROPERTY_TO_MAP(PROP_CLONE_AVATAR_ENTITY, CloneAvatarEntity, cloneAvatarEntity, bool);
+        ADD_PROPERTY_TO_MAP(PROP_CLONE_ORIGIN_ID, CloneOriginID, cloneOriginID, QUuid);
 
         // FIXME - these are not yet handled
         //ADD_PROPERTY_TO_MAP(PROP_CREATED, Created, created, quint64);
@@ -2229,6 +2364,11 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA_START, properties.getAlphaStart());
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA_FINISH, properties.getAlphaFinish());
                 APPEND_ENTITY_PROPERTY(PROP_EMITTER_SHOULD_TRAIL, properties.getEmitterShouldTrail());
+                APPEND_ENTITY_PROPERTY(PROP_PARTICLE_SPIN, properties.getParticleSpin());
+                APPEND_ENTITY_PROPERTY(PROP_SPIN_SPREAD, properties.getSpinSpread());
+                APPEND_ENTITY_PROPERTY(PROP_SPIN_START, properties.getSpinStart());
+                APPEND_ENTITY_PROPERTY(PROP_SPIN_FINISH, properties.getSpinFinish());
+                APPEND_ENTITY_PROPERTY(PROP_PARTICLE_ROTATE_WITH_ENTITY, properties.getRotateWithEntity())
             }
 
             if (properties.getType() == EntityTypes::Zone) {
@@ -2251,6 +2391,10 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, (uint32_t)properties.getHazeMode());
                 _staticHaze.setProperties(properties);
                 _staticHaze.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
+
+                APPEND_ENTITY_PROPERTY(PROP_BLOOM_MODE, (uint32_t)properties.getBloomMode());
+                _staticBloom.setProperties(properties);
+                _staticBloom.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
                 APPEND_ENTITY_PROPERTY(PROP_KEY_LIGHT_MODE, (uint32_t)properties.getKeyLightMode());
                 APPEND_ENTITY_PROPERTY(PROP_AMBIENT_LIGHT_MODE, (uint32_t)properties.getAmbientLightMode());
@@ -2323,6 +2467,12 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             APPEND_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, properties.getEntityInstanceNumber());
             APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, properties.getCertificateID());
             APPEND_ENTITY_PROPERTY(PROP_STATIC_CERTIFICATE_VERSION, properties.getStaticCertificateVersion());
+
+            APPEND_ENTITY_PROPERTY(PROP_CLONEABLE, properties.getCloneable());
+            APPEND_ENTITY_PROPERTY(PROP_CLONE_LIFETIME, properties.getCloneLifetime());
+            APPEND_ENTITY_PROPERTY(PROP_CLONE_LIMIT, properties.getCloneLimit());
+            APPEND_ENTITY_PROPERTY(PROP_CLONE_DYNAMIC, properties.getCloneDynamic());
+            APPEND_ENTITY_PROPERTY(PROP_CLONE_AVATAR_ENTITY, properties.getCloneAvatarEntity());
         }
 
         if (propertyCount > 0) {
@@ -2359,9 +2509,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
         if (appendState != OctreeElement::COMPLETED) {
             didntFitProperties = propertiesDidntFit;
         }
-    }
 
-    if (success) {
         packetData->endSubTree();
 
         const char* finalizedData = reinterpret_cast<const char*>(packetData->getFinalizedData());
@@ -2372,14 +2520,12 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             buffer.resize(finalizedSize);
         } else {
             qCDebug(entities) << "ERROR - encoded edit message doesn't fit in output buffer.";
-            success = false;
             appendState = OctreeElement::NONE; // if we got here, then we didn't include the item
             // maybe we should assert!!!
         }
     } else {
         packetData->discardSubTree();
     }
-
 
     return appendState;
 }
@@ -2527,7 +2673,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE, bool, setVisible);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONLESS, bool, setCollisionless);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_MASK, uint8_t, setCollisionMask);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_MASK, uint16_t, setCollisionMask);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DYNAMIC, bool, setDynamic);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_USER_DATA, QString, setUserData);
@@ -2596,12 +2742,17 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_START, float, setRadiusStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_FINISH, float, setRadiusFinish);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_SPREAD, xColor, setColorSpread);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_START, xColor, setColorStart);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_FINISH, xColor, setColorFinish);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_START, vec3, setColorStart);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_FINISH, vec3, setColorFinish);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_SPREAD, float, setAlphaSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_START, float, setAlphaStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_FINISH, float, setAlphaFinish);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMITTER_SHOULD_TRAIL, bool, setEmitterShouldTrail);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARTICLE_SPIN, float, setParticleSpin);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SPIN_SPREAD, float, setSpinSpread);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SPIN_START, float, setSpinStart);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SPIN_FINISH, float, setSpinFinish);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARTICLE_ROTATE_WITH_ENTITY, bool, setRotateWithEntity);
     }
 
     if (properties.getType() == EntityTypes::Zone) {
@@ -2618,6 +2769,9 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
  
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HAZE_MODE, uint32_t, setHazeMode);
         properties.getHaze().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BLOOM_MODE, uint32_t, setBloomMode);
+        properties.getBloom().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEY_LIGHT_MODE, uint32_t, setKeyLightMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_AMBIENT_LIGHT_MODE, uint32_t, setAmbientLightMode);
@@ -2669,8 +2823,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_MODE, MaterialMappingMode, setMaterialMappingMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_PRIORITY, quint16, setPriority);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARENT_MATERIAL_NAME, QString, setParentMaterialName);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_POS, glmVec2, setMaterialMappingPos);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_SCALE, glmVec2, setMaterialMappingScale);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_POS, vec2, setMaterialMappingPos);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_SCALE, vec2, setMaterialMappingScale);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_ROT, float, setMaterialMappingRot);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_DATA, QString, setMaterialData);
     }
@@ -2692,6 +2846,12 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ENTITY_INSTANCE_NUMBER, quint32, setEntityInstanceNumber);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CERTIFICATE_ID, QString, setCertificateID);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STATIC_CERTIFICATE_VERSION, quint32, setStaticCertificateVersion);
+
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONEABLE, bool, setCloneable);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONE_LIFETIME, float, setCloneLifetime);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONE_LIMIT, float, setCloneLimit);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONE_DYNAMIC, bool, setCloneDynamic);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONE_AVATAR_ENTITY, bool, setCloneAvatarEntity);
 
     return valid;
 }
@@ -2734,7 +2894,7 @@ QVector<glm::vec3> EntityItemProperties::unpackStrokeColors(const QByteArray& st
             float r = (uint8_t)strokeColors[i++] / 255.0f;
             float g = (uint8_t)strokeColors[i++] / 255.0f;
             float b = (uint8_t)strokeColors[i++] / 255.0f;
-            unpackedStrokeColors[j++] = glmVec3(r, g, b);
+            unpackedStrokeColors[j++] = vec3(r, g, b);
         }
     } else {
         qCDebug(entities) << "WARNING - Expected received size for stroke colors does not match. Expected: " 
@@ -2764,10 +2924,54 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
     outputLength = sizeof(numberOfIds);
 
     memcpy(copyAt, entityItemID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
-    copyAt += NUM_BYTES_RFC4122_UUID;
     outputLength += NUM_BYTES_RFC4122_UUID;
 
     buffer.resize(outputLength);
+
+    return true;
+}
+
+bool EntityItemProperties::encodeCloneEntityMessage(const EntityItemID& entityIDToClone, const EntityItemID& newEntityID, QByteArray& buffer) {
+    char* copyAt = buffer.data();
+    int outputLength = 0;
+
+    if (buffer.size() < (int)(NUM_BYTES_RFC4122_UUID * 2)) {
+        qCDebug(entities) << "ERROR - encodeCloneEntityMessage() called with buffer that is too small!";
+        return false;
+    }
+
+    memcpy(copyAt, entityIDToClone.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
+    copyAt += NUM_BYTES_RFC4122_UUID;
+    outputLength += NUM_BYTES_RFC4122_UUID;
+
+    memcpy(copyAt, newEntityID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
+    outputLength += NUM_BYTES_RFC4122_UUID;
+
+    buffer.resize(outputLength);
+
+    return true;
+}
+
+bool EntityItemProperties::decodeCloneEntityMessage(const QByteArray& buffer, int& processedBytes, EntityItemID& entityIDToClone, EntityItemID& newEntityID) {
+    const unsigned char* packetData = (const unsigned char*)buffer.constData();
+    const unsigned char* dataAt = packetData;
+    size_t packetLength = buffer.size();
+    processedBytes = 0;
+
+    if (NUM_BYTES_RFC4122_UUID * 2 > packetLength) {
+        qCDebug(entities) << "EntityItemProperties::processEraseMessageDetails().... bailing because not enough bytes in buffer";
+        return false; // bail to prevent buffer overflow
+    }
+
+    QByteArray encodedID = buffer.mid((int)processedBytes, NUM_BYTES_RFC4122_UUID);
+    entityIDToClone = QUuid::fromRfc4122(encodedID);
+    dataAt += encodedID.size();
+    processedBytes += encodedID.size();
+
+    encodedID = buffer.mid((int)processedBytes, NUM_BYTES_RFC4122_UUID);
+    newEntityID = QUuid::fromRfc4122(encodedID);
+    dataAt += encodedID.size();
+    processedBytes += encodedID.size();
 
     return true;
 }
@@ -2821,6 +3025,7 @@ void EntityItemProperties::markAllChanged() {
     _shapeTypeChanged = true;
 
     _isEmittingChanged = true;
+    _emitterShouldTrailChanged = true;
     _maxParticlesChanged = true;
     _lifespanChanged = true;
     _emitRateChanged = true;
@@ -2839,15 +3044,17 @@ void EntityItemProperties::markAllChanged() {
     _radiusSpreadChanged = true;
     _colorSpreadChanged = true;
     _alphaSpreadChanged = true;
-
-    // Only mark the following as changed if their values are specified in the properties when the particle is created. If their
-    // values are specified then they are marked as changed in getChangedProperties().
-    //_radiusStartChanged = true;
-    //_radiusFinishChanged = true;
-    //_colorStartChanged = true;
-    //_colorFinishChanged = true;
-    //_alphaStartChanged = true;
-    //_alphaFinishChanged = true;
+    _radiusStartChanged = true;
+    _radiusFinishChanged = true;
+    _colorStartChanged = true;
+    _colorFinishChanged = true;
+    _alphaStartChanged = true;
+    _alphaFinishChanged = true;
+    _particleSpinChanged = true;
+    _spinStartChanged = true;
+    _spinFinishChanged = true;
+    _spinSpreadChanged = true;
+    _rotateWithEntityChanged = true;
 
     _materialURLChanged = true;
     _materialMappingModeChanged = true;
@@ -2879,10 +3086,12 @@ void EntityItemProperties::markAllChanged() {
     _skyboxModeChanged = true;
     _ambientLightModeChanged = true;
     _hazeModeChanged = true;
+    _bloomModeChanged = true;
 
     _animation.markAllChanged();
     _skybox.markAllChanged();
     _haze.markAllChanged();
+    _bloom.markAllChanged();
 
     _sourceUrlChanged = true;
     _voxelVolumeSizeChanged = true;
@@ -2933,6 +3142,15 @@ void EntityItemProperties::markAllChanged() {
 
     _dpiChanged = true;
     _relayParentJointsChanged = true;
+
+    _cloneableChanged = true;
+    _cloneLifetimeChanged = true;
+    _cloneLimitChanged = true;
+    _cloneDynamicChanged = true;
+    _cloneAvatarEntityChanged = true;
+    _cloneOriginIDChanged = true;
+
+    _isVisibleInSecondaryCameraChanged = true;
 }
 
 // The minimum bounding box for the entity.
@@ -3187,6 +3405,21 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (radiusFinishChanged()) {
         out += "radiusFinish";
     }
+    if (particleSpinChanged()) {
+        out += "particleSpin";
+    }
+    if (spinSpreadChanged()) {
+        out += "spinSpread";
+    }
+    if (spinStartChanged()) {
+        out += "spinStart";
+    }
+    if (spinFinishChanged()) {
+        out += "spinFinish";
+    }
+    if (rotateWithEntityChanged()) {
+        out += "rotateWithEntity";
+    }
     if (materialURLChanged()) {
         out += "materialURL";
     }
@@ -3210,6 +3443,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (materialDataChanged()) {
         out += "materialData";
+    }
+    if (isVisibleInSecondaryCameraChanged()) {
+        out += "isVisibleInSecondaryCamera";
     }
 
     // Certifiable Properties
@@ -3250,15 +3486,15 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (hazeModeChanged()) {
         out += "hazeMode";
     }
-
+    if (bloomModeChanged()) {
+        out += "bloomMode";
+    }
     if (keyLightModeChanged()) {
         out += "keyLightMode";
     }
-
     if (ambientLightModeChanged()) {
         out += "ambientLightMode";
     }
-
     if (skyboxModeChanged()) {
         out += "skyboxMode";
     }
@@ -3365,11 +3601,31 @@ QList<QString> EntityItemProperties::listChangedProperties() {
         out += "isUVModeStretch";
     }
 
+    if (cloneableChanged()) {
+        out += "cloneable";
+    }
+    if (cloneLifetimeChanged()) {
+        out += "cloneLifetime";
+    }
+    if (cloneLimitChanged()) {
+        out += "cloneLimit";
+    }
+    if (cloneDynamicChanged()) {
+        out += "cloneDynamic";
+    }
+    if (cloneAvatarEntityChanged()) {
+        out += "cloneAvatarEntity";
+    }
+    if (cloneOriginIDChanged()) {
+        out += "cloneOriginID";
+    }
+
     getAnimation().listChangedProperties(out);
     getKeyLight().listChangedProperties(out);
     getAmbientLight().listChangedProperties(out);
     getSkybox().listChangedProperties(out);
     getHaze().listChangedProperties(out);
+    getBloom().listChangedProperties(out);
 
     return out;
 }
@@ -3527,4 +3783,21 @@ bool EntityItemProperties::verifyStaticCertificateProperties() {
     // True IFF a non-empty certificateID matches the static certificate json.
     // I.e., if we can verify that the certificateID was produced by High Fidelity signing the static certificate hash.
     return verifySignature(EntityItem::_marketplacePublicKey, getStaticCertificateHash(), QByteArray::fromBase64(getCertificateID().toUtf8()));
+}
+
+void EntityItemProperties::convertToCloneProperties(const EntityItemID& entityIDToClone) {
+    setName(getName() + "-clone-" + entityIDToClone.toString());
+    setLocked(false);
+    setParentID(QUuid());
+    setParentJointIndex(-1);
+    setLifetime(getCloneLifetime());
+    setDynamic(getCloneDynamic());
+    setClientOnly(getCloneAvatarEntity());
+    setCreated(usecTimestampNow());
+    setLastEdited(usecTimestampNow());
+    setCloneable(ENTITY_ITEM_DEFAULT_CLONEABLE);
+    setCloneLifetime(ENTITY_ITEM_DEFAULT_CLONE_LIFETIME);
+    setCloneLimit(ENTITY_ITEM_DEFAULT_CLONE_LIMIT);
+    setCloneDynamic(ENTITY_ITEM_DEFAULT_CLONE_DYNAMIC);
+    setCloneAvatarEntity(ENTITY_ITEM_DEFAULT_CLONE_AVATAR_ENTITY);
 }

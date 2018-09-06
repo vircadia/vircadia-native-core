@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "SnapshotAnimated.h"
+
 #include <QtCore/QDateTime>
 #include <QtCore/QObject>
 #include <QtCore/QString>
@@ -16,7 +18,6 @@
 #include <QtConcurrent/QtConcurrentRun>
 
 #include <plugins/DisplayPlugin.h>
-#include "SnapshotAnimated.h"
 
 QTimer* SnapshotAnimated::snapshotAnimatedTimer = NULL;
 qint64 SnapshotAnimated::snapshotAnimatedTimestamp = 0;
@@ -102,18 +103,40 @@ void SnapshotAnimated::captureFrames() {
     }
 }
 
+void SnapshotAnimated::clearTempVariables() {
+    // Clear out the frame and frame delay vectors.
+    // Also release the memory not required to store the items.
+    SnapshotAnimated::snapshotAnimatedFrameVector.clear();
+    SnapshotAnimated::snapshotAnimatedFrameVector.squeeze();
+    SnapshotAnimated::snapshotAnimatedFrameDelayVector.clear();
+    SnapshotAnimated::snapshotAnimatedFrameDelayVector.squeeze();
+    // Reset the current frame timestamp
+    SnapshotAnimated::snapshotAnimatedTimestamp = 0;
+    SnapshotAnimated::snapshotAnimatedFirstFrameTimestamp = 0;
+}
+
 void SnapshotAnimated::processFrames() {
     uint32_t width = SnapshotAnimated::snapshotAnimatedFrameVector[0].width();
     uint32_t height = SnapshotAnimated::snapshotAnimatedFrameVector[0].height();
 
     // Create the GIF from the temporary files
     // Write out the header and beginning of the GIF file
-    GifBegin(
+    if (!GifBegin(
         &(SnapshotAnimated::snapshotAnimatedGifWriter),
         qPrintable(SnapshotAnimated::snapshotAnimatedPath),
         width,
         height,
-        1); // "1" means "yes there is a delay" with this GifCreator library.
+        1)) { // "1" means "yes there is a delay" with this GifCreator library.
+
+        // We should never, ever get here. If we do, that means that writing a still JPG to the filesystem
+        // has succeeded, but that writing the tiny header to a GIF file in the same directory failed.
+        // If that happens, we _could_ throw up the "Folder Chooser" dialog like we do for still JPG images,
+        // but I have no way of testing whether or not that'll work or get properly exercised,
+        // so I'm not going to bother for now.
+        SnapshotAnimated::clearTempVariables();
+        qDebug() << "Animated snapshot header failed to write - aborting GIF processing.";
+        return;
+    }
     for (int itr = 0; itr < SnapshotAnimated::snapshotAnimatedFrameVector.size(); itr++) {
         // Write each frame to the GIF
         GifWriteFrame(&(SnapshotAnimated::snapshotAnimatedGifWriter),
@@ -125,15 +148,7 @@ void SnapshotAnimated::processFrames() {
     // Write out the end of the GIF
     GifEnd(&(SnapshotAnimated::snapshotAnimatedGifWriter));
 
-    // Clear out the frame and frame delay vectors.
-    // Also release the memory not required to store the items.
-    SnapshotAnimated::snapshotAnimatedFrameVector.clear();
-    SnapshotAnimated::snapshotAnimatedFrameVector.squeeze();
-    SnapshotAnimated::snapshotAnimatedFrameDelayVector.clear();
-    SnapshotAnimated::snapshotAnimatedFrameDelayVector.squeeze();
-    // Reset the current frame timestamp
-    SnapshotAnimated::snapshotAnimatedTimestamp = 0;
-    SnapshotAnimated::snapshotAnimatedFirstFrameTimestamp = 0;
+    SnapshotAnimated::clearTempVariables();
     
     // Update the "Share" dialog with the processed GIF.
     emit SnapshotAnimated::snapshotAnimatedDM->processingGifCompleted(SnapshotAnimated::snapshotAnimatedPath);

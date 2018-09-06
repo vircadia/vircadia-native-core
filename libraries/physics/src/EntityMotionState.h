@@ -14,6 +14,7 @@
 
 #include <EntityTypes.h>
 #include <AACube.h>
+#include <workload/Region.h>
 
 #include "ObjectMotionState.h"
 
@@ -84,14 +85,19 @@ public:
 
     virtual QString getName() const override;
 
-    virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const override;
+    virtual void computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const override;
 
-    bool shouldSendBid();
+    bool shouldSendBid() const;
+    uint8_t computeFinalBidPriority() const;
+
     bool isLocallyOwned() const override;
     bool isLocallyOwnedOrShouldBe() const override; // aka shouldEmitCollisionEvents()
 
     friend class PhysicalEntitySimulation;
     OwnershipState getOwnershipState() const { return _ownershipState; }
+
+    void setRegion(uint8_t region);
+    void saveKinematicState(btScalar timeStep) override;
 
 protected:
     void updateSendVelocities();
@@ -102,11 +108,7 @@ protected:
     void updateServerPhysicsVariables();
     bool remoteSimulationOutOfSync(uint32_t simulationStep);
 
-    // changes _bidPriority only if priority is larger
-    void upgradeBidPriority(uint8_t priority);
-
-    // upgradeBidPriority to value stored in _entity
-    void slaveBidPriority();
+    void slaveBidPriority(); // computeNewBidPriority() with value stored in _entity
 
     void clearObjectVelocities() const;
 
@@ -116,7 +118,6 @@ protected:
 
     bool isReadyToComputeShape() const override;
     const btCollisionShape* computeNewShape() override;
-    void setShape(const btCollisionShape* shape) override;
     void setMotionType(PhysicsMotionType motionType) override;
 
     // EntityMotionState keeps a SharedPointer to its EntityItem which is only set in the CTOR
@@ -132,7 +133,7 @@ protected:
     //
     // (2) For locally owned simulation: we store the last values sent to the server, integrated forward over time
     //     according to how we think the server doing it.  We calculate the error between the true local transform
-    //     and the remote to decide when to send another update.
+    //     and the remote to decide whether to send another update or not.
     //
     glm::vec3 _serverPosition;    // in simulation-frame (not world-frame)
     glm::quat _serverRotation;
@@ -154,8 +155,10 @@ protected:
     uint8_t _loopsWithoutOwner;
     mutable uint8_t _accelerationNearlyGravityCount;
     uint8_t _numInactiveUpdates { 1 };
-    uint8_t _bidPriority { 0 };
-    bool _serverVariablesSet { false };
+    uint8_t _bumpedPriority { 0 }; // the target simulation priority according to collision history
+    uint8_t _region { workload::Region::INVALID };
+
+    bool isServerlessMode();
 };
 
 #endif // hifi_EntityMotionState_h

@@ -14,7 +14,7 @@
 
 #include <SharedLogging.h>
 
-#include "../QTestExtensions.h"
+#include <test-utils/QTestExtensions.h>
 #include <QtCore/QDebug>
 #include <Transform.h>
 #include <StreamUtils.h>
@@ -29,7 +29,7 @@ const quat rot90 = glm::angleAxis((float)M_PI / 2.0f, yAxis);
 
 QTEST_MAIN(TransformTests)
 
-const float EPSILON = 0.001f;
+const float TEST_EPSILON = 0.001f;
 
 void TransformTests::getMatrix() {
 
@@ -55,7 +55,7 @@ void TransformTests::getMatrix() {
     mat4 result_b;
     xform.getMatrix(result_b);
 
-    QCOMPARE_WITH_ABS_ERROR(result_a, result_b, EPSILON);
+    QCOMPARE_WITH_ABS_ERROR(result_a, result_b, TEST_EPSILON);
 }
 
 void TransformTests::getInverseMatrix() {
@@ -92,7 +92,7 @@ void TransformTests::getInverseMatrix() {
     auto yb = transformPoint(result_b, yAxis);
     auto zb = transformPoint(result_b, zAxis);
 
-    QCOMPARE_WITH_ABS_ERROR(xa, xb, EPSILON);
-    QCOMPARE_WITH_ABS_ERROR(ya, yb, EPSILON);
-    QCOMPARE_WITH_ABS_ERROR(za, zb, EPSILON);
+    QCOMPARE_WITH_ABS_ERROR(xa, xb, TEST_EPSILON);
+    QCOMPARE_WITH_ABS_ERROR(ya, yb, TEST_EPSILON);
+    QCOMPARE_WITH_ABS_ERROR(za, zb, TEST_EPSILON);
 }

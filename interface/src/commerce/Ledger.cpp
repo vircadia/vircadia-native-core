@@ -9,15 +9,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Ledger.h"
+
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QTimeZone>
 #include <QJsonDocument>
-#include "Wallet.h"
-#include "Ledger.h"
-#include "CommerceLogging.h"
+
 #include <NetworkingConstants.h>
 #include <AddressManager.h>
+
+#include "Wallet.h"
+#include "CommerceLogging.h"
 
 // inventory answers {status: 'success', data: {assets: [{id: "guid", title: "name", preview: "url"}....]}}
 // balance answers {status: 'success', data: {balance: integer}}
@@ -25,15 +28,17 @@
 // account synthesizes a result {status: 'success', data: {keyStatus: "preexisting"|"conflicting"|"ok"}}
 
 
-QJsonObject Ledger::apiResponse(const QString& label, QNetworkReply& reply) {
-    QByteArray response = reply.readAll();
+QJsonObject Ledger::apiResponse(const QString& label, QNetworkReply* reply) {
+    QByteArray response = reply->readAll();
     QJsonObject data = QJsonDocument::fromJson(response).object();
+#if defined(DEV_BUILD)  // Don't expose user's personal data in the wild. But during development this can be handy.
     qInfo(commerce) << label << "response" << QJsonDocument(data).toJson(QJsonDocument::Compact);
+#endif
     return data;
 }
 // Non-200 responses are not json:
-QJsonObject Ledger::failResponse(const QString& label, QNetworkReply& reply) {
-    QString response = reply.readAll();
+QJsonObject Ledger::failResponse(const QString& label, QNetworkReply* reply) {
+    QString response = reply->readAll();
     qWarning(commerce) << "FAILED" << label << response;
 
     // tempResult will be NULL if the response isn't valid JSON.
@@ -49,8 +54,8 @@ QJsonObject Ledger::failResponse(const QString& label, QNetworkReply& reply) {
         return tempResult.object();
     }
 }
-#define ApiHandler(NAME) void Ledger::NAME##Success(QNetworkReply& reply) { emit NAME##Result(apiResponse(#NAME, reply)); }
-#define FailHandler(NAME) void Ledger::NAME##Failure(QNetworkReply& reply) { emit NAME##Result(failResponse(#NAME, reply)); }
+#define ApiHandler(NAME) void Ledger::NAME##Success(QNetworkReply* reply) { emit NAME##Result(apiResponse(#NAME, reply)); }
+#define FailHandler(NAME) void Ledger::NAME##Failure(QNetworkReply* reply) { emit NAME##Result(failResponse(#NAME, reply)); }
 #define Handler(NAME) ApiHandler(NAME) FailHandler(NAME)
 Handler(buy)
 Handler(receiveAt)
@@ -65,8 +70,10 @@ Handler(updateItem)
 void Ledger::send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, AccountManagerAuth::Type authType, QJsonObject request) {
     auto accountManager = DependencyManager::get<AccountManager>();
     const QString URL = "/api/v1/commerce/";
-    JSONCallbackParameters callbackParams(this, success, this, fail);
+    JSONCallbackParameters callbackParams(this, success, fail);
+#if defined(DEV_BUILD)  // Don't expose user's personal data in the wild. But during development this can be handy.
     qCInfo(commerce) << "Sending" << endpoint << QJsonDocument(request).toJson(QJsonDocument::Compact);
+#endif
     accountManager->sendRequest(URL + endpoint,
         authType,
         method,
@@ -114,7 +121,7 @@ void Ledger::buy(const QString& hfc_key, int cost, const QString& asset_id, cons
     signedSend("transaction", transactionString, hfc_key, "buy", "buySuccess", "buyFailure", controlled_failure);
 }
 
-bool Ledger::receiveAt(const QString& hfc_key, const QString& signing_key) {
+bool Ledger::receiveAt(const QString& hfc_key, const QString& signing_key, const QByteArray& locker) {
     auto accountManager = DependencyManager::get<AccountManager>();
     if (!accountManager->isLoggedIn()) {
         qCWarning(commerce) << "Cannot set receiveAt when not logged in.";
@@ -122,17 +129,37 @@ bool Ledger::receiveAt(const QString& hfc_key, const QString& signing_key) {
         emit receiveAtResult(result);
         return false; // We know right away that we will fail, so tell the caller.
     }
-
-    signedSend("public_key", hfc_key.toUtf8(), signing_key, "receive_at", "receiveAtSuccess", "receiveAtFailure");
+    QJsonObject transaction;
+    transaction["public_key"] = hfc_key;
+    transaction["locker"] = QString::fromUtf8(locker);
+    QJsonDocument transactionDoc{ transaction };
+    auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
+    signedSend("text", transactionString, signing_key, "receive_at", "receiveAtSuccess", "receiveAtFailure");
     return true; // Note that there may still be an asynchronous signal of failure that callers might be interested in.
+}
+
+bool Ledger::receiveAt() {
+    auto wallet = DependencyManager::get<Wallet>();
+    auto keys = wallet->listPublicKeys();
+    if (keys.isEmpty()) {
+        return false;
+    }
+    auto key = keys.first();
+    return receiveAt(key, key, wallet->getWallet());
 }
 
 void Ledger::balance(const QStringList& keys) {
     keysQuery("balance", "balanceSuccess", "balanceFailure");
 }
 
-void Ledger::inventory(const QStringList& keys) {
-    keysQuery("inventory", "inventorySuccess", "inventoryFailure");
+void Ledger::inventory(const QString& editionFilter, const QString& typeFilter, const QString& titleFilter, const int& page, const int& perPage) {
+    QJsonObject params;
+    params["edition_filter"] = editionFilter;
+    params["type_filter"] = typeFilter;
+    params["title_filter"] = titleFilter;
+    params["page"] = page;
+    params["per_page"] = perPage;
+    keysQuery("inventory", "inventorySuccess", "inventoryFailure", params);
 }
 
 QString hfcString(const QJsonValue& sentValue, const QJsonValue& receivedValue) {
@@ -214,12 +241,12 @@ QString transactionString(const QJsonObject& valueObject) {
 }
 
 static const QString MARKETPLACE_ITEMS_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/marketplace/items/";
-void Ledger::historySuccess(QNetworkReply& reply) {
+void Ledger::historySuccess(QNetworkReply* reply) {
     // here we send a historyResult with some extra stuff in it
     // Namely, the styled text we'd like to show.  The issue is the
     // QML cannot do that easily since it doesn't know what the wallet
     // public key(s) are.  Let's keep it that way
-    QByteArray response = reply.readAll();
+    QByteArray response = reply->readAll();
     QJsonObject data = QJsonDocument::fromJson(response).object();
     qInfo(commerce) << "history" << "response" << QJsonDocument(data).toJson(QJsonDocument::Compact);
 
@@ -253,45 +280,51 @@ void Ledger::historySuccess(QNetworkReply& reply) {
     emit historyResult(newData);
 }
 
-void Ledger::historyFailure(QNetworkReply& reply) {
+void Ledger::historyFailure(QNetworkReply* reply) {
     failResponse("history", reply);
 }
 
-void Ledger::history(const QStringList& keys, const int& pageNumber) {
+void Ledger::history(const QStringList& keys, const int& pageNumber, const int& itemsPerPage) {
     QJsonObject params;
-    params["per_page"] = 100;
+    params["per_page"] = itemsPerPage;
     params["page"] = pageNumber;
     keysQuery("history", "historySuccess", "historyFailure", params);
 }
 
-void Ledger::accountSuccess(QNetworkReply& reply) {
+void Ledger::accountSuccess(QNetworkReply* reply) {
     // lets set the appropriate stuff in the wallet now
     auto wallet = DependencyManager::get<Wallet>();
-    QByteArray response = reply.readAll();
+    QByteArray response = reply->readAll();
     QJsonObject data = QJsonDocument::fromJson(response).object()["data"].toObject();
 
     auto salt = QByteArray::fromBase64(data["salt"].toString().toUtf8());
     auto iv = QByteArray::fromBase64(data["iv"].toString().toUtf8());
     auto ckey = QByteArray::fromBase64(data["ckey"].toString().toUtf8());
     QString remotePublicKey = data["public_key"].toString();
+    const QByteArray locker = data["locker"].toString().toUtf8();
     bool isOverride = wallet->wasSoftReset();
 
     wallet->setSalt(salt);
     wallet->setIv(iv);
     wallet->setCKey(ckey);
+    if (!locker.isEmpty()) {
+        wallet->setWallet(locker);
+        wallet->setPassphrase("ACCOUNT"); // We only locker wallets that have been converted to account-based auth.
+    }
 
     QString keyStatus = "ok";
     QStringList localPublicKeys = wallet->listPublicKeys();
     if (remotePublicKey.isEmpty() || isOverride) {
-        if (!localPublicKeys.isEmpty()) {
-            QString key = localPublicKeys.first();
-            receiveAt(key, key);
+        if (!localPublicKeys.isEmpty()) { // Let the metaverse know about a local wallet.
+            receiveAt();
         }
     } else {
         if (localPublicKeys.isEmpty()) {
             keyStatus = "preexisting";
         } else if (localPublicKeys.first() != remotePublicKey) {
             keyStatus = "conflicting";
+        } else if (locker.isEmpty()) { // Matches metaverse data, but we haven't lockered it yet.
+            receiveAt();
         }
     }
 
@@ -303,7 +336,7 @@ void Ledger::accountSuccess(QNetworkReply& reply) {
     emit accountResult(responseData);
 }
 
-void Ledger::accountFailure(QNetworkReply& reply) {
+void Ledger::accountFailure(QNetworkReply* reply) {
     failResponse("account", reply);
 }
 void Ledger::account() {
@@ -311,8 +344,8 @@ void Ledger::account() {
 }
 
 // The api/failResponse is called just for the side effect of logging.
-void Ledger::updateLocationSuccess(QNetworkReply& reply) { apiResponse("updateLocation", reply); }
-void Ledger::updateLocationFailure(QNetworkReply& reply) { failResponse("updateLocation", reply); }
+void Ledger::updateLocationSuccess(QNetworkReply* reply) { apiResponse("updateLocation", reply); }
+void Ledger::updateLocationFailure(QNetworkReply* reply) { failResponse("updateLocation", reply); }
 void Ledger::updateLocation(const QString& asset_id, const QString& location, const bool& alsoUpdateSiblings, const bool controlledFailure) {
     auto wallet = DependencyManager::get<Wallet>();
     auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
@@ -340,11 +373,11 @@ void Ledger::updateLocation(const QString& asset_id, const QString& location, co
     }
 }
 
-void Ledger::certificateInfoSuccess(QNetworkReply& reply) {
+void Ledger::certificateInfoSuccess(QNetworkReply* reply) {
     auto wallet = DependencyManager::get<Wallet>();
     auto accountManager = DependencyManager::get<AccountManager>();
 
-    QByteArray response = reply.readAll();
+    QByteArray response = reply->readAll();
     QJsonObject replyObject = QJsonDocument::fromJson(response).object();
 
     QStringList keys = wallet->listPublicKeys();
@@ -357,7 +390,7 @@ void Ledger::certificateInfoSuccess(QNetworkReply& reply) {
     qInfo(commerce) << "certificateInfo" << "response" << QJsonDocument(replyObject).toJson(QJsonDocument::Compact);
     emit certificateInfoResult(replyObject);
 }
-void Ledger::certificateInfoFailure(QNetworkReply& reply) {
+void Ledger::certificateInfoFailure(QNetworkReply* reply) {
     emit certificateInfoResult(failResponse("certificateInfo", reply));
 }
 void Ledger::certificateInfo(const QString& certificateId) {

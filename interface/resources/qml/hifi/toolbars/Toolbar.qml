@@ -25,12 +25,24 @@ Window {
     property bool horizontal: true
     property real buttonSize: 50;
 
+    property alias settings: settings
+
     Settings {
+        id: settings
         category: "toolbar/" + window.objectName
         property alias x: window.x
-        property alias y: window.y
+        property real y: 0
+        property real desktopHeight: 0 //placeholder for desktop height
     }
-    
+
+    onYChanged: {
+        //check if Y changed not due to Desktop size changed. ie. mouse manipulations
+        //otherwise it will be save by Desktop
+        if (desktop.height > 100 && desktop.height === settings.desktopHeight) {
+            settings.y = window.y
+        }
+    }
+
     Component {
         id: buttonComponent
         ToolbarButton {

@@ -11,6 +11,35 @@
 
 include(BundleUtilities)
 
+# replace copy_resolved_item_into_bundle
+#
+# The official version of copy_resolved_item_into_bundle will print out a "warning:" when
+# the resolved item matches the resolved embedded item. This not not really an issue that
+# should rise to the level of a "warning" so we replace this message with a "status:"
+#
+# Source: https://github.com/jherico/OculusMinimalExample/blob/master/cmake/templates/FixupBundlePostBuild.cmake.in
+#
+function(copy_resolved_item_into_bundle resolved_item resolved_embedded_item)
+  if (WIN32)
+    # ignore case on Windows
+    string(TOLOWER "${resolved_item}" resolved_item_compare)
+    string(TOLOWER "${resolved_embedded_item}" resolved_embedded_item_compare)
+  else()
+    set(resolved_item_compare "${resolved_item}")
+    set(resolved_embedded_item_compare "${resolved_embedded_item}")
+  endif()
+
+  if ("${resolved_item_compare}" STREQUAL "${resolved_embedded_item_compare}")
+    # this is our only change from the original version
+    message(STATUS "status: resolved_item == resolved_embedded_item - not copying...")
+  else()
+    execute_process(COMMAND ${CMAKE_COMMAND} -E copy "${resolved_item}" "${resolved_embedded_item}")
+    if (UNIX AND NOT APPLE)
+      file(RPATH_REMOVE FILE "${resolved_embedded_item}")
+    endif()
+  endif()
+endfunction()
+
 function(gp_resolved_file_type_override resolved_file type_var)
   if( file MATCHES ".*VCRUNTIME140.*" )
     set(type "system" PARENT_SCOPE)

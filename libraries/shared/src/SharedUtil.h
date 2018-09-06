@@ -25,6 +25,7 @@
 #include <QtCore/QCoreApplication>
 #include <QUuid>
 
+#include "NumericalConstants.h"
 // When writing out avatarEntities to a QByteArray, if the parentID is the ID of MyAvatar, use this ID instead.  This allows
 // the value to be reset when the sessionID changes.
 const QUuid AVATAR_SELF_ID = QUuid("{00000000-0000-0000-0000-000000000001}");
@@ -91,6 +92,8 @@ inline QDebug& operator<<(QDebug& dbg, const rgbColor& c) {
 }
 
 struct xColor {
+    xColor() {}
+    xColor(unsigned char r, unsigned char g, unsigned char b) : red(r), green(g), blue(b) {}
     unsigned char red;
     unsigned char green;
     unsigned char blue;
@@ -122,6 +125,27 @@ const QByteArray HIGH_FIDELITY_USER_AGENT = "Mozilla/5.0 (HighFidelityInterface)
 quint64 usecTimestampNow(bool wantDebug = false);
 void usecTimestampNowForceClockSkew(qint64 clockSkew);
 
+inline bool afterUsecs(quint64& startUsecs, quint64 maxIntervalUecs) {
+    auto now = usecTimestampNow();
+    auto interval = now - startUsecs;
+    if (interval > maxIntervalUecs) {
+        startUsecs = now;
+        return true;
+    }
+    return false;
+}
+
+inline bool afterSecs(quint64& startUsecs, quint64 maxIntervalSecs) {
+    return afterUsecs(startUsecs, maxIntervalSecs * USECS_PER_SECOND);
+}
+
+template <typename F>
+void doEvery(quint64& lastReportUsecs, quint64 secs, F lamdba) {
+    if (afterSecs(lastReportUsecs, secs)) {
+        lamdba();
+    }
+}
+
 // Number of seconds expressed since the first call to this function, expressed as a float
 // Maximum accuracy in msecs
 float secTimestampNow();
@@ -141,9 +165,11 @@ void printVoxelCode(unsigned char* voxelCode);
 int numberOfOnes(unsigned char byte);
 bool oneAtBit(unsigned char byte, int bitIndex);
 void setAtBit(unsigned char& byte, int bitIndex);
+bool oneAtBit16(unsigned short word, int bitIndex);
+void setAtBit16(unsigned short& word, int bitIndex);
 void clearAtBit(unsigned char& byte, int bitIndex);
-int  getSemiNibbleAt(unsigned char byte, int bitIndex);
-void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value);
+int  getSemiNibbleAt(unsigned short word, int bitIndex);
+void setSemiNibbleAt(unsigned short& word, int bitIndex, int value);
 
 int getNthBit(unsigned char byte, int ordinal); /// determines the bit placement 0-7 of the ordinal set bit
 

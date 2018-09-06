@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Sound.h"
+
 #include <stdint.h>
 
 #include <glm/glm.hpp>
@@ -29,7 +31,7 @@
 #include "AudioLogging.h"
 #include "AudioSRC.h"
 
-#include "Sound.h"
+#include "flump3dec.h"
 
 QScriptValue soundSharedPointerToScriptValue(QScriptEngine* engine, const SharedSoundPointer& in) {
     return engine->newQObject(new SoundScriptingInterface(in), QScriptEngine::ScriptOwnership);
@@ -90,19 +92,35 @@ void SoundProcessor::run() {
     QString fileName = _url.fileName().toLower();
 
     static const QString WAV_EXTENSION = ".wav";
+    static const QString MP3_EXTENSION = ".mp3";
     static const QString RAW_EXTENSION = ".raw";
+
     if (fileName.endsWith(WAV_EXTENSION)) {
 
         QByteArray outputAudioByteArray;
 
         int sampleRate = interpretAsWav(rawAudioByteArray, outputAudioByteArray);
         if (sampleRate == 0) {
-            qCDebug(audio) << "Unsupported WAV file type";
+            qCWarning(audio) << "Unsupported WAV file type";
             emit onError(300, "Failed to load sound file, reason: unsupported WAV file type");
             return;
         }
 
         downSample(outputAudioByteArray, sampleRate);
+
+    } else if (fileName.endsWith(MP3_EXTENSION)) {
+
+        QByteArray outputAudioByteArray;
+
+        int sampleRate = interpretAsMP3(rawAudioByteArray, outputAudioByteArray);
+        if (sampleRate == 0) {
+            qCWarning(audio) << "Unsupported MP3 file type";
+            emit onError(300, "Failed to load sound file, reason: unsupported MP3 file type");
+            return;
+        }
+
+        downSample(outputAudioByteArray, sampleRate);
+
     } else if (fileName.endsWith(RAW_EXTENSION)) {
         // check if this was a stereo raw file
         // since it's raw the only way for us to know that is if the file was called .stereo.raw
@@ -113,8 +131,9 @@ void SoundProcessor::run() {
 
         // Process as 48khz RAW file
         downSample(rawAudioByteArray, 48000);
+
     } else {
-        qCDebug(audio) << "Unknown sound file type";
+        qCWarning(audio) << "Unknown sound file type";
         emit onError(300, "Failed to load sound file, reason: unknown sound file type");
         return;
     }
@@ -204,7 +223,7 @@ int SoundProcessor::interpretAsWav(const QByteArray& inputAudioByteArray, QByteA
     // Read the "RIFF" chunk
     RIFFHeader riff;
     if (waveStream.readRawData((char*)&riff, sizeof(RIFFHeader)) != sizeof(RIFFHeader)) {
-        qCDebug(audio) << "Not a valid WAVE file.";
+        qCWarning(audio) << "Not a valid WAVE file.";
         return 0;
     }
 
@@ -212,11 +231,11 @@ int SoundProcessor::interpretAsWav(const QByteArray& inputAudioByteArray, QByteA
     if (strncmp(riff.descriptor.id, "RIFF", 4) == 0) {
         waveStream.setByteOrder(QDataStream::LittleEndian);
     } else {
-        qCDebug(audio) << "Currently not supporting big-endian audio files.";
+        qCWarning(audio) << "Currently not supporting big-endian audio files.";
         return 0;
     }
     if (strncmp(riff.type, "WAVE", 4) != 0) {
-        qCDebug(audio) << "Not a valid WAVE file.";
+        qCWarning(audio) << "Not a valid WAVE file.";
         return 0;
     }
 
@@ -224,7 +243,7 @@ int SoundProcessor::interpretAsWav(const QByteArray& inputAudioByteArray, QByteA
     chunk fmt;
     while (true) {
         if (waveStream.readRawData((char*)&fmt, sizeof(chunk)) != sizeof(chunk)) {
-            qCDebug(audio) << "Not a valid WAVE file.";
+            qCWarning(audio) << "Not a valid WAVE file.";
             return 0;
         }
         if (strncmp(fmt.id, "fmt ", 4) == 0) {
@@ -236,14 +255,14 @@ int SoundProcessor::interpretAsWav(const QByteArray& inputAudioByteArray, QByteA
     // Read the "fmt " chunk
     WAVEFormat wave;
     if (waveStream.readRawData((char*)&wave, sizeof(WAVEFormat)) != sizeof(WAVEFormat)) {
-        qCDebug(audio) << "Not a valid WAVE file.";
+        qCWarning(audio) << "Not a valid WAVE file.";
         return 0;
     }
 
     // Parse the "fmt " chunk
     if (qFromLittleEndian<quint16>(wave.audioFormat) != WAVEFORMAT_PCM &&
         qFromLittleEndian<quint16>(wave.audioFormat) != WAVEFORMAT_EXTENSIBLE) {
-        qCDebug(audio) << "Currently not supporting non PCM audio files.";
+        qCWarning(audio) << "Currently not supporting non PCM audio files.";
         return 0;
     }
     if (qFromLittleEndian<quint16>(wave.numChannels) == 2) {
@@ -251,11 +270,11 @@ int SoundProcessor::interpretAsWav(const QByteArray& inputAudioByteArray, QByteA
     } else if (qFromLittleEndian<quint16>(wave.numChannels) == 4) {
         _isAmbisonic = true;
     } else if (qFromLittleEndian<quint16>(wave.numChannels) != 1) {
-        qCDebug(audio) << "Currently not supporting audio files with other than 1/2/4 channels.";
+        qCWarning(audio) << "Currently not supporting audio files with other than 1/2/4 channels.";
         return 0;
     }
     if (qFromLittleEndian<quint16>(wave.bitsPerSample) != 16) {
-        qCDebug(audio) << "Currently not supporting non 16bit audio files.";
+        qCWarning(audio) << "Currently not supporting non 16bit audio files.";
         return 0;
     }
 
@@ -266,7 +285,7 @@ int SoundProcessor::interpretAsWav(const QByteArray& inputAudioByteArray, QByteA
     chunk data;
     while (true) {
         if (waveStream.readRawData((char*)&data, sizeof(chunk)) != sizeof(chunk)) {
-            qCDebug(audio) << "Not a valid WAVE file.";
+            qCWarning(audio) << "Not a valid WAVE file.";
             return 0;
         }
         if (strncmp(data.id, "data", 4) == 0) {
@@ -279,10 +298,101 @@ int SoundProcessor::interpretAsWav(const QByteArray& inputAudioByteArray, QByteA
     quint32 outputAudioByteArraySize = qFromLittleEndian<quint32>(data.size);
     outputAudioByteArray.resize(outputAudioByteArraySize);
     if (waveStream.readRawData(outputAudioByteArray.data(), outputAudioByteArraySize) != (int)outputAudioByteArraySize) {
-        qCDebug(audio) << "Error reading WAV file";
+        qCWarning(audio) << "Error reading WAV file";
         return 0;
     }
 
     _duration = (float)(outputAudioByteArraySize / (wave.sampleRate * wave.numChannels * wave.bitsPerSample / 8.0f));
     return wave.sampleRate;
+}
+
+// returns MP3 sample rate, used for resampling
+int SoundProcessor::interpretAsMP3(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray) {
+    using namespace flump3dec;
+
+    static const int MP3_SAMPLES_MAX = 1152;
+    static const int MP3_CHANNELS_MAX = 2;
+    static const int MP3_BUFFER_SIZE = MP3_SAMPLES_MAX * MP3_CHANNELS_MAX * sizeof(int16_t);
+    uint8_t mp3Buffer[MP3_BUFFER_SIZE];
+
+    // create bitstream
+    Bit_stream_struc *bitstream = bs_new();
+    if (bitstream == nullptr) {
+        return 0;
+    }
+
+    // create decoder
+    mp3tl *decoder = mp3tl_new(bitstream, MP3TL_MODE_16BIT);
+    if (decoder == nullptr) {
+        bs_free(bitstream);
+        return 0;
+    }
+
+    // initialize
+    bs_set_data(bitstream, (uint8_t*)inputAudioByteArray.data(), inputAudioByteArray.size());
+    int frameCount = 0;
+    int sampleRate = 0;
+    int numChannels = 0;
+
+    // skip ID3 tag, if present
+    Mp3TlRetcode result = mp3tl_skip_id3(decoder);
+
+    while (!(result == MP3TL_ERR_NO_SYNC || result == MP3TL_ERR_NEED_DATA)) {
+
+        mp3tl_sync(decoder);
+
+        // find MP3 header
+        const fr_header *header = nullptr;
+        result = mp3tl_decode_header(decoder, &header);
+
+        if (result == MP3TL_ERR_OK) {
+
+            if (frameCount++ == 0) {
+
+                qCDebug(audio) << "Decoding MP3 with bitrate =" << header->bitrate
+                               << "sample rate =" << header->sample_rate
+                               << "channels =" << header->channels;
+
+                // save header info
+                sampleRate = header->sample_rate;
+                numChannels = header->channels;
+
+                // skip Xing header, if present
+                result = mp3tl_skip_xing(decoder, header);
+            }
+
+            // decode MP3 frame
+            if (result == MP3TL_ERR_OK) {
+
+                result = mp3tl_decode_frame(decoder, mp3Buffer, MP3_BUFFER_SIZE);
+
+                // fill bad frames with silence
+                int len = header->frame_samples * header->channels * sizeof(int16_t);
+                if (result == MP3TL_ERR_BAD_FRAME) {
+                    memset(mp3Buffer, 0, len);
+                }
+
+                if (result == MP3TL_ERR_OK || result == MP3TL_ERR_BAD_FRAME) {
+                    outputAudioByteArray.append((char*)mp3Buffer, len);
+                }
+            }
+        }
+    }
+
+    // free decoder
+    mp3tl_free(decoder);
+
+    // free bitstream
+    bs_free(bitstream);
+
+    int outputAudioByteArraySize = outputAudioByteArray.size();
+    if (outputAudioByteArraySize == 0) {
+        qCWarning(audio) << "Error decoding MP3 file";
+        return 0;
+    }
+
+    _isStereo = (numChannels == 2);
+    _isAmbisonic = false;
+    _duration = (float)outputAudioByteArraySize / (sampleRate * numChannels * sizeof(int16_t));
+    return sampleRate;
 }

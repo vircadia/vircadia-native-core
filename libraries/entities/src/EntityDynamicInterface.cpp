@@ -89,10 +89,9 @@ variables.  These argument variables are used by the code which is run when bull
 
 */
 
-#include "EntityItem.h"
-
 #include "EntityDynamicInterface.h"
 
+#include "EntityItem.h"
 
 /**jsdoc
 * <p>An entity action may be one of the following types:</p>

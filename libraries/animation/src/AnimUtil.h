@@ -19,7 +19,7 @@ void blend(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, A
 glm::quat averageQuats(size_t numQuats, const glm::quat* quats);
 
 float accumulateTime(float startFrame, float endFrame, float timeScale, float currentFrame, float dt, bool loopFlag,
-                     const QString& id, AnimNode::Triggers& triggersOut);
+                     const QString& id, AnimVariantMap& triggersOut);
 
 inline glm::quat safeLerp(const glm::quat& a, const glm::quat& b, float alpha) {
     // adjust signs if necessary
@@ -32,5 +32,10 @@ inline glm::quat safeLerp(const glm::quat& a, const glm::quat& b, float alpha) {
 }
 
 AnimPose boneLookAt(const glm::vec3& target, const AnimPose& bone);
+
+// This will attempt to determine the proper body facing of a characters body
+// assumes headRot is z-forward and y-up.
+// and returns a bodyRot that is also z-forward and y-up
+glm::quat computeBodyFacingFromHead(const glm::quat& headRot, const glm::vec3& up);
 
 #endif

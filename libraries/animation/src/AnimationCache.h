@@ -24,24 +24,12 @@ class Animation;
 
 typedef QSharedPointer<Animation> AnimationPointer;
 
-/// Scriptable interface for FBX animation loading.
 class AnimationCache : public ResourceCache, public Dependency  {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
-    /**jsdoc
-     * @namespace AnimationCache
-     * @augments ResourceCache
-     */
-
 public:
 
-    /**jsdoc
-     * Returns animation resource for particular animation
-     * @function AnimationCache.getAnimation
-     * @param url {string} url to load
-     * @return {Resource} animation
-     */
     Q_INVOKABLE AnimationPointer getAnimation(const QString& url) { return getAnimation(QUrl(url)); }
     Q_INVOKABLE AnimationPointer getAnimation(const QUrl& url);
 
@@ -57,6 +45,17 @@ private:
 
 Q_DECLARE_METATYPE(AnimationPointer)
 
+/**jsdoc
+ * @class AnimationObject
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-server-entity
+ * @hifi-assignment-client
+ *
+ * @property {string[]} jointNames
+ * @property {FBXAnimationFrame[]} frames
+ */
 /// An animation loaded from the network.
 class Animation : public Resource {
     Q_OBJECT
@@ -71,9 +70,16 @@ public:
 
     virtual bool isLoaded() const override;
 
-    
+    /**jsdoc
+     * @function AnimationObject.getJointNames
+     * @returns {string[]}
+     */
     Q_INVOKABLE QStringList getJointNames() const;
     
+    /**jsdoc
+     * @function AnimationObject.getFrames
+     * @returns {FBXAnimationFrame[]}
+     */
     Q_INVOKABLE QVector<FBXAnimationFrame> getFrames() const;
 
     const QVector<FBXAnimationFrame>& getFramesReference() const;

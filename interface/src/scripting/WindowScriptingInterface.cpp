@@ -15,12 +15,13 @@
 #include <QtCore/QDir>
 #include <QMessageBox>
 #include <QScriptValue>
-
+#include <QtGui/QDesktopServices>
 #include <shared/QtHelpers.h>
 #include <SettingHandle.h>
 
 #include <display-plugins/CompositorHelper.h>
-
+#include <AddressManager.h>
+#include "AndroidHelper.h"
 #include "Application.h"
 #include "DomainHandler.h"
 #include "MainWindow.h"
@@ -85,10 +86,6 @@ void WindowScriptingInterface::raise() {
     });
 }
 
-void WindowScriptingInterface::raiseMainWindow() {
-    raise();
-}
-
 /// Display an alert box
 /// \param const QString& message message to display
 /// \return QScriptValue::UndefinedValue
@@ -130,6 +127,29 @@ void WindowScriptingInterface::promptAsync(const QString& message, const QString
 void WindowScriptingInterface::disconnectedFromDomain() {
     emit domainChanged(QUrl());
 }
+
+void WindowScriptingInterface::openUrl(const QUrl& url) {
+    if (!url.isEmpty()) {
+        if (url.scheme() == URL_SCHEME_HIFI) {
+            DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
+        } else {
+#if defined(Q_OS_ANDROID)
+            QList<QString> args = { url.toString() };
+            AndroidHelper::instance().requestActivity("WebView", true, args);
+#else
+            // address manager did not handle - ask QDesktopServices to handle
+            QDesktopServices::openUrl(url);
+#endif
+        }
+    }
+}
+
+void WindowScriptingInterface::openAndroidActivity(const QString& activityName, const bool backToScene) {
+#if defined(Q_OS_ANDROID)
+    AndroidHelper::instance().requestActivity(activityName, backToScene);
+#endif
+}
+
 
 QString fixupPathForMac(const QString& directory) {
     // On OS X `directory` does not work as expected unless a file is included in the path, so we append a bogus
@@ -427,8 +447,12 @@ void WindowScriptingInterface::takeSnapshot(bool notify, bool includeAnimated, f
     qApp->takeSnapshot(notify, includeAnimated, aspectRatio, filename);
 }
 
-void WindowScriptingInterface::takeSecondaryCameraSnapshot(const QString& filename) {
-    qApp->takeSecondaryCameraSnapshot(filename);
+void WindowScriptingInterface::takeSecondaryCameraSnapshot(const bool& notify, const QString& filename) {
+    qApp->takeSecondaryCameraSnapshot(notify, filename);
+}
+
+void WindowScriptingInterface::takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat, const bool& notify, const QString& filename) {
+    qApp->takeSecondaryCamera360Snapshot(cameraPosition, cubemapOutputFormat, notify, filename);
 }
 
 void WindowScriptingInterface::shareSnapshot(const QString& path, const QUrl& href) {
@@ -499,7 +523,7 @@ int WindowScriptingInterface::openMessageBox(QString title, QString text, int bu
  *     <tr> <td><strong>RestoreDefaults</strong></td> <td><code>0x8000000</code></td> <td>"Restore Defaults"</td> </tr>
  *   </tbody>
  * </table>
- * @typedef Window.MessageBoxButton
+ * @typedef {number} Window.MessageBoxButton
  */
 int WindowScriptingInterface::createMessageBox(QString title, QString text, int buttons, int defaultButton) {
     auto messageBox = DependencyManager::get<OffscreenUi>()->createMessageBox(OffscreenUi::ICON_INFORMATION, title, text,

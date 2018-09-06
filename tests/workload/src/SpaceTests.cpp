@@ -55,7 +55,9 @@ void SpaceTests::testOverlaps() {
         float newRadius = 1.0f;
         glm::vec3 newPosition = viewCenter + glm::vec3(0.0f, 0.0f, far + newRadius - DELTA);
         workload::Space::Sphere newSphere(newPosition, newRadius);
-        space.updateProxy(proxyId, newSphere);
+        std::vector<workload::Space::ProxyUpdate> updates;
+        updates.push_back(workload::Space::ProxyUpdate(proxyId, newSphere));
+        space.updateProxies(updates);
         Changes changes;
         space.categorizeAndGetChanges(changes);
         QVERIFY(changes.size() == 1);
@@ -68,7 +70,9 @@ void SpaceTests::testOverlaps() {
         float newRadius = 1.0f;
         glm::vec3 newPosition = viewCenter + glm::vec3(0.0f, 0.0f, mid + newRadius - DELTA);
         workload::Space::Sphere newSphere(newPosition, newRadius);
-        space.updateProxy(proxyId, newSphere);
+        std::vector<workload::Space::ProxyUpdate> updates;
+        updates.push_back(workload::Space::ProxyUpdate(proxyId, newSphere));
+        space.updateProxies(updates);
         Changes changes;
         space.categorizeAndGetChanges(changes);
         QVERIFY(changes.size() == 1);
@@ -81,7 +85,9 @@ void SpaceTests::testOverlaps() {
         float newRadius = 1.0f;
         glm::vec3 newPosition = viewCenter + glm::vec3(0.0f, 0.0f, near + newRadius - DELTA);
         workload::Space::Sphere newSphere(newPosition, newRadius);
-        space.updateProxy(proxyId, newSphere);
+        std::vector<workload::Space::ProxyUpdate> updates;
+        updates.push_back(workload::Space::ProxyUpdate(proxyId, newSphere));
+        space.updateProxies(updates);
         Changes changes;
         space.categorizeAndGetChanges(changes);
         QVERIFY(changes.size() == 1);
@@ -92,7 +98,9 @@ void SpaceTests::testOverlaps() {
 
     { // delete proxy
         // NOTE: atm deleting a proxy doesn't result in a "Change"
-        space.deleteProxy(proxyId);
+        std::vector<int32_t> deadProxies;
+        deadProxies.push_back(proxyId);
+        space.deleteProxies(deadProxies);
         Changes changes;
         space.categorizeAndGetChanges(changes);
         QVERIFY(changes.size() == 0);
@@ -145,9 +153,9 @@ void SpaceTests::benchmark() {
     uint32_t numProxies[] = { 100, 1000, 10000, 100000 };
     uint32_t numTests = 4;
     std::vector<uint64_t> timeToAddAll;
-    std::vector<uint64_t> timeToRemoveAll;
     std::vector<uint64_t> timeToMoveView;
     std::vector<uint64_t> timeToMoveProxies;
+    std::vector<uint64_t> timeToRemoveAll;
     for (uint32_t i = 0; i < numTests; ++i) {
 
         workload::Space space;

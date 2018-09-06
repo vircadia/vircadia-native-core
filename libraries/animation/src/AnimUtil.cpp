@@ -9,7 +9,9 @@
 //
 
 #include "AnimUtil.h"
-#include "GLMHelpers.h"
+#include <GLMHelpers.h>
+#include <NumericalConstants.h>
+#include <DebugDraw.h>
 
 // TODO: use restrict keyword
 // TODO: excellent candidate for simd vectorization.
@@ -18,14 +20,6 @@ void blend(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, A
     for (size_t i = 0; i < numPoses; i++) {
         const AnimPose& aPose = a[i];
         const AnimPose& bPose = b[i];
-
-        // adjust signs if necessary
-        const glm::quat& q1 = aPose.rot();
-        glm::quat q2 = bPose.rot();
-        float dot = glm::dot(q1, q2);
-        if (dot < 0.0f) {
-            q2 = -q2;
-        }
 
         result[i].scale() = lerp(aPose.scale(), bPose.scale(), alpha);
         result[i].rot() = safeLerp(aPose.rot(), bPose.rot(), alpha);
@@ -51,7 +45,7 @@ glm::quat averageQuats(size_t numQuats, const glm::quat* quats) {
 }
 
 float accumulateTime(float startFrame, float endFrame, float timeScale, float currentFrame, float dt, bool loopFlag,
-                     const QString& id, AnimNode::Triggers& triggersOut) {
+                     const QString& id, AnimVariantMap& triggersOut) {
 
     const float EPSILON = 0.0001f;
     float frame = currentFrame;
@@ -77,12 +71,12 @@ float accumulateTime(float startFrame, float endFrame, float timeScale, float cu
             if (framesRemaining >= framesTillEnd) {
                 if (loopFlag) {
                     // anim loop
-                    triggersOut.push_back(id + "OnLoop");
+                    triggersOut.setTrigger(id + "OnLoop");
                     framesRemaining -= framesTillEnd;
                     frame = clampedStartFrame;
                 } else {
                     // anim end
-                    triggersOut.push_back(id + "OnDone");
+                    triggersOut.setTrigger(id + "OnDone");
                     frame = endFrame;
                     framesRemaining = 0.0f;
                 }
@@ -106,4 +100,45 @@ AnimPose boneLookAt(const glm::vec3& target, const AnimPose& bone) {
                      glm::vec4(glm::normalize(glm::cross(v, u)), 0.0f),
                      glm::vec4(bone.trans(), 1.0f));
     return AnimPose(lookAt);
+}
+
+// This will attempt to determine the proper body facing of a characters body
+// assumes headRot is z-forward and y-up.
+// and returns a bodyRot that is also z-forward and y-up
+glm::quat computeBodyFacingFromHead(const glm::quat& headRot, const glm::vec3& up) {
+
+    glm::vec3 bodyUp = glm::normalize(up);
+
+    // initially take the body facing from the head.
+    glm::vec3 headUp = headRot * Vectors::UNIT_Y;
+    glm::vec3 headForward = headRot * Vectors::UNIT_Z;
+    glm::vec3 headLeft = headRot * Vectors::UNIT_X;
+    const float NOD_THRESHOLD = cosf(glm::radians(45.0f));
+    const float TILT_THRESHOLD = cosf(glm::radians(30.0f));
+
+    glm::vec3 bodyForward = headForward;
+
+    float nodDot = glm::dot(headForward, bodyUp);
+    float tiltDot = glm::dot(headLeft, bodyUp);
+
+    if (fabsf(tiltDot) < TILT_THRESHOLD) { // if we are not tilting too much
+        if (nodDot < -NOD_THRESHOLD) { // head is looking downward
+            // the body should face in the same direction as the top the head.
+            bodyForward = headUp;
+        } else if (nodDot > NOD_THRESHOLD) {  // head is looking upward
+            // the body should face away from the top of the head.
+            bodyForward = -headUp;
+        }
+    }
+
+    // cancel out upward component
+    bodyForward = glm::normalize(bodyForward - nodDot * bodyUp);
+
+    glm::vec3 u, v, w;
+    generateBasisVectors(bodyForward, bodyUp, u, v, w);
+
+    // create matrix from orthogonal basis vectors
+    glm::mat4 bodyMat(glm::vec4(w, 0.0f), glm::vec4(v, 0.0f), glm::vec4(u, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+
+    return glmExtractRotation(bodyMat);
 }

@@ -30,7 +30,7 @@
 class AudioMixerClientData : public NodeData {
     Q_OBJECT
 public:
-    AudioMixerClientData(const QUuid& nodeID);
+    AudioMixerClientData(const QUuid& nodeID, Node::LocalID nodeLocalID);
     ~AudioMixerClientData();
 
     using SharedStreamPointer = std::shared_ptr<PositionalAudioStream>;

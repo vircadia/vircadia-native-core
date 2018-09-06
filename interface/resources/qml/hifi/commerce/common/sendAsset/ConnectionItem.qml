@@ -44,7 +44,7 @@ Item {
         
         Item {
             id: avatarImage;
-            visible: profileUrl !== "" && userName !== "";
+            visible: profilePicUrl !== "" && userName !== "";
             // Size
             anchors.verticalCenter: parent.verticalCenter;
             anchors.left: parent.left;

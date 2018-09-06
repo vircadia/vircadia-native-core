@@ -9,10 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ObjectActionTravelOriented.h"
+
 #include <glm/gtc/quaternion.hpp>
 
 #include "QVariantGLM.h"
-#include "ObjectActionTravelOriented.h"
 #include "PhysicsLogging.h"
 
 const uint16_t ObjectActionTravelOriented::actionVersion = 1;
@@ -160,7 +161,7 @@ bool ObjectActionTravelOriented::updateArguments(QVariantMap arguments) {
 QVariantMap ObjectActionTravelOriented::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();
     withReadLock([&] {
-        arguments["forward"] = glmToQMap(_forward);
+        arguments["forward"] = vec3ToQMap(_forward);
         arguments["angularTimeScale"] = _angularTimeScale;
     });
     return arguments;

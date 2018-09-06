@@ -31,6 +31,10 @@ bool GL41Backend::supportedTextureFormat(const gpu::Element& format) {
         case gpu::Semantic::COMPRESSED_EAC_RED_SIGNED:
         case gpu::Semantic::COMPRESSED_EAC_XY:
         case gpu::Semantic::COMPRESSED_EAC_XY_SIGNED:
+        // The ARB_texture_compression_bptc extension is not supported on 4.1
+        // See https://www.g-truc.net/doc/OpenGL%204%20Hardware%20Matrix.pdf
+        case gpu::Semantic::COMPRESSED_BC6_RGB:
+        case gpu::Semantic::COMPRESSED_BC7_SRGBA:
             return false;
         default:
             return true;
@@ -72,7 +76,7 @@ GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texturePointer) {
             case TextureUsageType::RESOURCE:
                 qCDebug(gpugllogging) << "variable / Strict texture " << texture.source().c_str();
                 object = new GL41ResourceTexture(shared_from_this(), texture);
-                GLVariableAllocationSupport::addMemoryManagedTexture(texturePointer);
+                _textureManagement._transferEngine->addMemoryManagedTexture(texturePointer);
                 break;
 
             default:
@@ -86,7 +90,6 @@ GLTexture* GL41Backend::syncGPUObject(const TexturePointer& texturePointer) {
                 auto minAvailableMip = texture.minAvailableMipLevel();
                 if (minAvailableMip < varTex->_minAllocatedMip) {
                     varTex->_minAllocatedMip = minAvailableMip;
-                    GL41VariableAllocationTexture::_memoryPressureStateStale = true;
                 }
             }
         }
@@ -179,7 +182,7 @@ void GL41Texture::syncSampler() const {
     glTexParameteri(_target, GL_TEXTURE_MAG_FILTER, fm.magFilter);
 
     if (sampler.doComparison()) {
-        glTexParameteri(_target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE_ARB);
+        glTexParameteri(_target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
         glTexParameteri(_target, GL_TEXTURE_COMPARE_FUNC, COMPARISON_TO_GL[sampler.getComparisonFunction()]);
     } else {
         glTexParameteri(_target, GL_TEXTURE_COMPARE_MODE, GL_NONE);
@@ -194,7 +197,7 @@ void GL41Texture::syncSampler() const {
     glTexParameterf(_target, GL_TEXTURE_MIN_LOD, (float)sampler.getMinMip());
     glTexParameterf(_target, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.f : sampler.getMaxMip()));
 
-    glTexParameterf(_target, GL_TEXTURE_MAX_ANISOTROPY_EXT, sampler.getMaxAnisotropy());
+    glTexParameterf(_target, GL_TEXTURE_MAX_ANISOTROPY, sampler.getMaxAnisotropy());
 }
 
 using GL41FixedAllocationTexture = GL41Backend::GL41FixedAllocationTexture;
@@ -212,12 +215,19 @@ GL41FixedAllocationTexture::~GL41FixedAllocationTexture() {
 void GL41FixedAllocationTexture::allocateStorage() const {
     const GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
     const auto numMips = _gpuObject.getNumMips();
+    const auto numSlices = _gpuObject.getNumSlices();
 
     // glTextureStorage2D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y);
     for (GLint level = 0; level < numMips; level++) {
         Vec3u dimensions = _gpuObject.evalMipDimensions(level);
         for (GLenum target : getFaceTargets(_target)) {
-            glTexImage2D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, texelFormat.format, texelFormat.type, nullptr);
+            if (!_gpuObject.isArray()) {
+                glTexImage2D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, texelFormat.format,
+                             texelFormat.type, nullptr);
+            } else {
+                glTexImage3D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, numSlices, 0,
+                             texelFormat.format, texelFormat.type, nullptr);
+            }
         }
     }
 
@@ -280,8 +290,6 @@ using GL41VariableAllocationTexture = GL41Backend::GL41VariableAllocationTexture
 GL41VariableAllocationTexture::GL41VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) :
      GL41Texture(backend, texture)
 {
-    Backend::textureResourceCount.increment();
-
     auto mipLevels = texture.getNumMips();
     _allocatedMip = mipLevels;
     _maxAllocatedMip = _populatedMip = mipLevels;
@@ -299,16 +307,11 @@ GL41VariableAllocationTexture::GL41VariableAllocationTexture(const std::weak_ptr
     uint16_t allocatedMip = std::max<uint16_t>(_minAllocatedMip, targetMip);
 
     allocateStorage(allocatedMip);
-    _memoryPressureStateStale = true;
     copyMipsFromTexture();
-
     syncSampler();
 }
 
 GL41VariableAllocationTexture::~GL41VariableAllocationTexture() {
-    Backend::textureResourceCount.decrement();
-    Backend::textureResourceGPUMemSize.update(_size, 0);
-    Backend::textureResourcePopulatedGPUMemSize.update(_populatedSize, 0);
 }
 
 void GL41VariableAllocationTexture::allocateStorage(uint16 allocatedMip) {
@@ -341,8 +344,7 @@ Size GL41VariableAllocationTexture::copyMipsFromTexture() {
             amount += copyMipFaceFromTexture(sourceMip, targetMip, face);
         }
     }
-
-
+    incrementPopulatedSize(amount);
     return amount;
 }
 
@@ -351,7 +353,6 @@ Size GL41VariableAllocationTexture::copyMipFaceLinesFromTexture(uint16_t mip, ui
     withPreservedTexture([&] {
         amountCopied = Parent::copyMipFaceLinesFromTexture(mip, face, size, yOffset, internalFormat, format, type, sourceSize, sourcePointer);
     });
-    incrementPopulatedSize(amountCopied);
     return amountCopied;
 }
 
@@ -496,7 +497,7 @@ void GL41VariableAllocationTexture::copyTextureMipsInGPUMem(GLuint srcId, GLuint
     });
 }
 
-void GL41VariableAllocationTexture::promote() {
+size_t GL41VariableAllocationTexture::promote() {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     Q_ASSERT(_allocatedMip > 0);
 
@@ -524,12 +525,11 @@ void GL41VariableAllocationTexture::promote() {
 
     // update the memory usage
     Backend::textureResourceGPUMemSize.update(oldSize, 0);
+    return (_size - oldSize);
     // no change to Backend::textureResourcePopulatedGPUMemSize
-
-    populateTransferQueue();
 }
 
-void GL41VariableAllocationTexture::demote() {
+size_t GL41VariableAllocationTexture::demote() {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     Q_ASSERT(_allocatedMip < _maxAllocatedMip);
     auto oldId = _id;
@@ -563,16 +563,16 @@ void GL41VariableAllocationTexture::demote() {
         }
         decrementPopulatedSize(amountUnpopulated);
     }
-    populateTransferQueue();
+
+    return oldSize - _size;
 }
 
 
-void GL41VariableAllocationTexture::populateTransferQueue() {
+void GL41VariableAllocationTexture::populateTransferQueue(TransferQueue& pendingTransfers) {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     if (_populatedMip <= _allocatedMip) {
         return;
     }
-    _pendingTransfers = TransferQueue();
 
     const uint8_t maxFace = GLTexture::getFaceCount(_target);
     uint16_t sourceMip = _populatedMip;
@@ -588,7 +588,7 @@ void GL41VariableAllocationTexture::populateTransferQueue() {
             // If the mip is less than the max transfer size, then just do it in one transfer
             if (glm::all(glm::lessThanEqual(mipDimensions, MAX_TRANSFER_DIMENSIONS))) {
                 // Can the mip be transferred in one go
-                _pendingTransfers.emplace(new TransferJob(*this, sourceMip, targetMip, face));
+                pendingTransfers.emplace(new TransferJob(_gpuObject, sourceMip, targetMip, face));
                 continue;
             }
 
@@ -605,14 +605,16 @@ void GL41VariableAllocationTexture::populateTransferQueue() {
             uint32_t lineOffset = 0;
             while (lineOffset < lines) {
                 uint32_t linesToCopy = std::min<uint32_t>(lines - lineOffset, linesPerTransfer);
-                _pendingTransfers.emplace(new TransferJob(*this, sourceMip, targetMip, face, linesToCopy, lineOffset));
+                pendingTransfers.emplace(new TransferJob(_gpuObject, sourceMip, targetMip, face, linesToCopy, lineOffset));
                 lineOffset += linesToCopy;
             }
         }
 
         // queue up the sampler and populated mip change for after the transfer has completed
-        _pendingTransfers.emplace(new TransferJob(*this, [=] {
+        pendingTransfers.emplace(new TransferJob(sourceMip, [=] {
             _populatedMip = sourceMip;
+            incrementPopulatedSize(_gpuObject.evalMipSize(sourceMip));
+            sanityCheck();
             syncSampler();
         }));
     } while (sourceMip != _allocatedMip);

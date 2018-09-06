@@ -31,6 +31,7 @@ void EntitySimulation::setEntityTree(EntityTreePointer tree) {
 void EntitySimulation::updateEntities() {
     QMutexLocker lock(&_mutex);
     uint64_t now = usecTimestampNow();
+    PerformanceTimer perfTimer("EntitySimulation::updateEntities");
 
     // these methods may accumulate entries in _entitiesToBeDeleted
     expireMortalEntities(now);
@@ -65,6 +66,7 @@ void EntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
         removeEntityInternal(entity);
         if (entity->getElement()) {
             _deadEntities.insert(entity);
+            _entityTree->cleanupCloneIDs(entity->getEntityItemID());
         }
     }
 }

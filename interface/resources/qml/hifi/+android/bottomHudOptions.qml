@@ -47,17 +47,14 @@ Item {
             spacing: 0
             flow: Flow.LeftToRight
             layoutDirection: Flow.LeftToRight
-            anchors.fill: parent
+            anchors.horizontalCenter: parent.horizontalCenter
             anchors.margins: 12
 
             Rectangle {
                 id: hideButton
-                height: android.dimen.headerHideWidth
-                width: android.dimen.headerHideHeight
+                height: android.dimen.headerHideHeight
+                width: android.dimen.headerHideWidth
                 color: "#00000000"
-                anchors {
-                    horizontalCenter: parent.horizontalCenter
-                }
                 Image {
                     id: hideIcon
                     source: "../../../icons/show-up.svg"

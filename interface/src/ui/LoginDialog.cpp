@@ -31,10 +31,13 @@ HIFI_QML_DEF(LoginDialog)
 
 LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
     auto accountManager = DependencyManager::get<AccountManager>();
+#if !defined(Q_OS_ANDROID)
     connect(accountManager.data(), &AccountManager::loginComplete,
         this, &LoginDialog::handleLoginCompleted);
     connect(accountManager.data(), &AccountManager::loginFailed,
             this, &LoginDialog::handleLoginFailed);
+#endif
+
 }
 
 void LoginDialog::showWithSelection()
@@ -110,9 +113,8 @@ void LoginDialog::linkSteam() {
             }
 
             JSONCallbackParameters callbackParams;
-            callbackParams.jsonCallbackReceiver = this;
+            callbackParams.callbackReceiver = this;
             callbackParams.jsonCallbackMethod = "linkCompleted";
-            callbackParams.errorCallbackReceiver = this;
             callbackParams.errorCallbackMethod = "linkFailed";
 
             const QString LINK_STEAM_PATH = "api/v1/user/steam/link";
@@ -138,9 +140,8 @@ void LoginDialog::createAccountFromStream(QString username) {
             }
 
             JSONCallbackParameters callbackParams;
-            callbackParams.jsonCallbackReceiver = this;
+            callbackParams.callbackReceiver = this;
             callbackParams.jsonCallbackMethod = "createCompleted";
-            callbackParams.errorCallbackReceiver = this;
             callbackParams.errorCallbackMethod = "createFailed";
 
             const QString CREATE_ACCOUNT_FROM_STEAM_PATH = "api/v1/user/steam/create";
@@ -161,9 +162,7 @@ void LoginDialog::createAccountFromStream(QString username) {
 }
 
 void LoginDialog::openUrl(const QString& url) const {
-
-    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    auto tablet = dynamic_cast<TabletProxy*>(DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
@@ -171,39 +170,40 @@ void LoginDialog::openUrl(const QString& url) const {
         offscreenUi->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
             newObject->setProperty("url", url);
         });
+        LoginDialog::hide();
     } else {
         if (!hmd->getShouldShowTablet() && !qApp->isHMDMode()) {
             offscreenUi->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
                 newObject->setProperty("url", url);
             });
+            LoginDialog::hide();
         } else {
             tablet->gotoWebScreen(url);
         }
     }
 }
 
-void LoginDialog::linkCompleted(QNetworkReply& reply) {
+void LoginDialog::linkCompleted(QNetworkReply* reply) {
     emit handleLinkCompleted();
 }
 
-void LoginDialog::linkFailed(QNetworkReply& reply) {
-    emit handleLinkFailed(reply.errorString());
+void LoginDialog::linkFailed(QNetworkReply* reply) {
+    emit handleLinkFailed(reply->errorString());
 }
 
-void LoginDialog::createCompleted(QNetworkReply& reply) {
+void LoginDialog::createCompleted(QNetworkReply* reply) {
     emit handleCreateCompleted();
 }
 
-void LoginDialog::createFailed(QNetworkReply& reply) {
-    emit handleCreateFailed(reply.errorString());
+void LoginDialog::createFailed(QNetworkReply* reply) {
+    emit handleCreateFailed(reply->errorString());
 }
 
 void LoginDialog::signup(const QString& email, const QString& username, const QString& password) {
     
     JSONCallbackParameters callbackParams;
-    callbackParams.jsonCallbackReceiver = this;
+    callbackParams.callbackReceiver = this;
     callbackParams.jsonCallbackMethod = "signupCompleted";
-    callbackParams.errorCallbackReceiver = this;
     callbackParams.errorCallbackMethod = "signupFailed";
     
     QJsonObject payload;
@@ -225,7 +225,7 @@ void LoginDialog::signup(const QString& email, const QString& username, const QS
                                 QJsonDocument(payload).toJson());
 }
 
-void LoginDialog::signupCompleted(QNetworkReply& reply) {
+void LoginDialog::signupCompleted(QNetworkReply* reply) {
     emit handleSignupCompleted();
 }
 
@@ -239,10 +239,10 @@ QString errorStringFromAPIObject(const QJsonValue& apiObject) {
     }
 }
 
-void LoginDialog::signupFailed(QNetworkReply& reply) {
+void LoginDialog::signupFailed(QNetworkReply* reply) {
     
     // parse the returned JSON to see what the problem was
-    auto jsonResponse = QJsonDocument::fromJson(reply.readAll());
+    auto jsonResponse = QJsonDocument::fromJson(reply->readAll());
     
     static const QString RESPONSE_DATA_KEY = "data";
     

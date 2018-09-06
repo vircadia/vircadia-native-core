@@ -163,10 +163,18 @@ TextField {
         text: textField.label
         colorScheme: textField.colorScheme
         anchors.left: parent.left
-        anchors.right: parent.right
+
+        Binding on anchors.right {
+            when: textField.right
+            value: textField.right
+        }
+        Binding on wrapMode {
+            when: textField.right
+            value: Text.WordWrap
+        }
+
         anchors.bottom: parent.top
         anchors.bottomMargin: 3
-        wrapMode: Text.WordWrap
         visible: label != ""
     }
 }

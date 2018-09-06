@@ -32,7 +32,8 @@ class AvatarMixerSlaveThread : public QThread, public AvatarMixerSlave {
     using Lock = std::unique_lock<Mutex>;
 
 public:
-    AvatarMixerSlaveThread(AvatarMixerSlavePool& pool) : _pool(pool) {}
+    AvatarMixerSlaveThread(AvatarMixerSlavePool& pool, SlaveSharedData* slaveSharedData) :
+        AvatarMixerSlave(slaveSharedData), _pool(pool) {};
 
     void run() override final;
 
@@ -59,7 +60,8 @@ class AvatarMixerSlavePool {
 public:
     using ConstIter = NodeList::const_iterator;
 
-    AvatarMixerSlavePool(int numThreads = QThread::idealThreadCount()) { setNumThreads(numThreads); }
+    AvatarMixerSlavePool(SlaveSharedData* slaveSharedData, int numThreads = QThread::idealThreadCount()) :
+        _slaveSharedData(slaveSharedData) { setNumThreads(numThreads); }
     ~AvatarMixerSlavePool() { resize(0); }
 
     // Jobs the slave pool can do...
@@ -98,6 +100,8 @@ private:
     Queue _queue;
     ConstIter _begin;
     ConstIter _end;
+
+    SlaveSharedData* _slaveSharedData;
 };
 
 #endif // hifi_AvatarMixerSlavePool_h

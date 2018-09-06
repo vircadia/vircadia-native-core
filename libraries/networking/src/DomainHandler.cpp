@@ -166,7 +166,12 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
         }
     }
 
-    if (_domainURL != domainURL || _sockAddr.getPort() != domainURL.port()) {
+    auto domainPort = domainURL.port();
+    if (domainPort == -1) {
+        domainPort = DEFAULT_DOMAIN_SERVER_PORT;
+    }
+
+    if (_domainURL != domainURL || _sockAddr.getPort() != domainPort) {
         // re-set the domain info so that auth information is reloaded
         hardReset();
 
@@ -192,12 +197,10 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
 
         emit domainURLChanged(_domainURL);
 
-        if (_sockAddr.getPort() != domainURL.port()) {
-            qCDebug(networking) << "Updated domain port to" << domainURL.port();
+        if (_sockAddr.getPort() != domainPort) {
+            qCDebug(networking) << "Updated domain port to" << domainPort;
+            _sockAddr.setPort(domainPort);
         }
-
-        // grab the port by reading the string after the colon
-        _sockAddr.setPort(domainURL.port());
     }
 }
 
@@ -472,13 +475,16 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
     }
 }
 
-void DomainHandler::sentCheckInPacket() {
+bool DomainHandler::checkInPacketTimeout() {
     ++_checkInPacketsSinceLastReply;
 
-    if (_checkInPacketsSinceLastReply >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+    if (_checkInPacketsSinceLastReply > MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
         // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
         // so emit our signal that says that
         qCDebug(networking) << "Limit of silent domain checkins reached";
         emit limitOfSilentDomainCheckInsReached();
+        return true;
+    } else {
+        return false;
     }
 }

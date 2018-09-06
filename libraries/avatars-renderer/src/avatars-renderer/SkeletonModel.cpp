@@ -35,7 +35,7 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) :
     _useDualQuaternionSkinning = true;
 
     // Avatars all cast shadow
-    _canCastShadow = true;
+    setCanCastShadow(true);
 
     assert(_owningAvatar);
 }
@@ -293,6 +293,15 @@ bool SkeletonModel::getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3&
         float headHeight = glm::distance(neckPosition, headPosition);
         firstEyePosition = baseEyePosition + headRotation * glm::vec3(EYE_SEPARATION, 0.0f, EYES_FORWARD) * headHeight;
         secondEyePosition = baseEyePosition + headRotation * glm::vec3(-EYE_SEPARATION, 0.0f, EYES_FORWARD) * headHeight;
+        return true;
+    } else if (getJointPosition(geometry.headJointIndex, headPosition)) {
+        glm::vec3 baseEyePosition = headPosition;
+        glm::quat headRotation;
+        getJointRotation(geometry.headJointIndex, headRotation);
+        const float EYES_FORWARD_HEAD_ONLY = 0.30f;
+        const float EYE_SEPARATION = 0.1f;
+        firstEyePosition = baseEyePosition + headRotation * glm::vec3(EYE_SEPARATION, 0.0f, EYES_FORWARD_HEAD_ONLY);
+        secondEyePosition = baseEyePosition + headRotation * glm::vec3(-EYE_SEPARATION, 0.0f, EYES_FORWARD_HEAD_ONLY);
         return true;
     }
     return false;

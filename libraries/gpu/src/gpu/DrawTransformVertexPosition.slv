@@ -2,6 +2,8 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
+//  DrawTransformVertexPosition.vert
+// 
 //  Draw and transform the fed vertex position with the standard MVP stack
 // Output the clip position
 //
@@ -16,9 +18,9 @@
 
 <$declareStandardTransform()$>
 
-layout(location = 0) in vec4 inPosition;
+layout(location=0) in vec4 inPosition;
 
-out vec3 varWorldPos;
+layout(location=0) out vec3 varWorldPos;
 
 void main(void) {
     // standard transform

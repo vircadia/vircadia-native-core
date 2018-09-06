@@ -18,6 +18,8 @@
 
 #include <QtScript/QScriptEngine>
 
+#include <ColorUtils.h>
+
 #include "PropertyGroup.h"
 #include "EntityItemPropertiesMacros.h"
 

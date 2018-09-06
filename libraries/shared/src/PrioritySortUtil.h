@@ -12,10 +12,9 @@
 #define hifi_PrioritySortUtil_h
 
 #include <glm/glm.hpp>
-#include <queue>
 
 #include "NumericalConstants.h"
-#include "ViewFrustum.h"
+#include "shared/ConicalViewFrustum.h"
 
 /*   PrioritySortUtil is a helper for sorting 3D things relative to a ViewFrustum.  To use:
 
@@ -75,7 +74,6 @@ namespace PrioritySortUtil {
 
         void setPriority(float priority) { _priority = priority; }
         float getPriority() const { return _priority; }
-        bool operator<(const Sortable& other) const { return _priority < other._priority; }
     private:
         float _priority { 0.0f };
     };
@@ -84,14 +82,12 @@ namespace PrioritySortUtil {
     class PriorityQueue {
     public:
         PriorityQueue() = delete;
-
-        PriorityQueue(const ViewFrustum& view) : _view(view) { }
-
-        PriorityQueue(const ViewFrustum& view, float angularWeight, float centerWeight, float ageWeight)
-                : _view(view), _angularWeight(angularWeight), _centerWeight(centerWeight), _ageWeight(ageWeight)
+        PriorityQueue(const ConicalViewFrustums& views) : _views(views) { }
+        PriorityQueue(const ConicalViewFrustums& views, float angularWeight, float centerWeight, float ageWeight)
+                : _views(views), _angularWeight(angularWeight), _centerWeight(centerWeight), _ageWeight(ageWeight)
         { }
 
-        void setView(const ViewFrustum& view) { _view = view; }
+        void setViews(const ConicalViewFrustums& views) { _views = views; }
 
         void setWeights(float angularWeight, float centerWeight, float ageWeight) {
             _angularWeight = angularWeight;
@@ -99,17 +95,32 @@ namespace PrioritySortUtil {
             _ageWeight = ageWeight;
         }
 
-        size_t size() const { return _queue.size(); }
+        size_t size() const { return _vector.size(); }
         void push(T thing) {
             thing.setPriority(computePriority(thing));
-            _queue.push(thing);
+            _vector.push_back(thing);
         }
-        const T& top() const { return _queue.top(); }
-        void pop() { return _queue.pop(); }
-        bool empty() const { return _queue.empty(); }
+        void reserve(size_t num) {
+            _vector.reserve(num);
+        }
+        const std::vector<T>& getSortedVector() {
+            std::sort(_vector.begin(), _vector.end(), [](const T& left, const T& right) { return left.getPriority() > right.getPriority(); });
+            return _vector;
+        }
 
     private:
+
         float computePriority(const T& thing) const {
+            float priority = std::numeric_limits<float>::min();
+
+            for (const auto& view : _views) {
+                priority = std::max(priority, computePriority(view, thing));
+            }
+
+            return priority;
+        }
+
+        float computePriority(const ConicalViewFrustum& view, const T& thing) const {
             // priority = weighted linear combination of multiple values:
             //   (a) angular size
             //   (b) proximity to center of view
@@ -117,11 +128,11 @@ namespace PrioritySortUtil {
             // where the relative "weights" are tuned to scale the contributing values into units of "priority".
 
             glm::vec3 position = thing.getPosition();
-            glm::vec3 offset = position - _view.getPosition();
+            glm::vec3 offset = position - view.getPosition();
             float distance = glm::length(offset) + 0.001f; // add 1mm to avoid divide by zero
             const float MIN_RADIUS = 0.1f; // WORKAROUND for zero size objects (we still want them to sort by distance)
             float radius = glm::min(thing.getRadius(), MIN_RADIUS);
-            float cosineAngle = (glm::dot(offset, _view.getDirection()) / distance);
+            float cosineAngle = (glm::dot(offset, view.getDirection()) / distance);
             float age = (float)(usecTimestampNow() - thing.getTimestamp());
 
             // we modulatate "age" drift rate by the cosineAngle term to make periphrial objects sort forward
@@ -134,8 +145,8 @@ namespace PrioritySortUtil {
                 + _ageWeight * cosineAngleFactor * age;
 
             // decrement priority of things outside keyhole
-            if (distance - radius > _view.getCenterRadius()) {
-                if (!_view.sphereIntersectsFrustum(position, radius)) {
+            if (distance - radius > view.getRadius()) {
+                if (!view.intersects(offset, distance, radius)) {
                     constexpr float OUT_OF_VIEW_PENALTY = -10.0f;
                     priority += OUT_OF_VIEW_PENALTY;
                 }
@@ -143,8 +154,8 @@ namespace PrioritySortUtil {
             return priority;
         }
 
-        ViewFrustum _view;
-        std::priority_queue<T> _queue;
+        ConicalViewFrustums _views;
+        std::vector<T> _vector;
         float _angularWeight { DEFAULT_ANGULAR_COEF };
         float _centerWeight { DEFAULT_CENTER_COEF };
         float _ageWeight { DEFAULT_AGE_COEF };

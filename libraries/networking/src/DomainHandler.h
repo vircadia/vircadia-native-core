@@ -45,6 +45,9 @@ public:
     const QUuid& getUUID() const { return _uuid; }
     void setUUID(const QUuid& uuid);
 
+    Node::LocalID getLocalID() const { return _localID; }
+    void setLocalID(Node::LocalID localID) { _localID = localID; }
+
     QString getHostname() const { return _domainURL.host(); }
 
     const QHostAddress& getIP() const { return _sockAddr.getAddress(); }
@@ -93,8 +96,8 @@ public:
     void softReset();
 
     int getCheckInPacketsSinceLastReply() const { return _checkInPacketsSinceLastReply; }
-    void sentCheckInPacket();
-    void domainListReceived() { _checkInPacketsSinceLastReply = 0; }
+    bool checkInPacketTimeout();
+    void clearPendingCheckins() { _checkInPacketsSinceLastReply = 0; }
 
     /**jsdoc
      * <p>The reasons that you may be refused connection to a domain are defined by numeric values:</p>
@@ -134,7 +137,7 @@ public:
      *     </tr>
      *   </tbody>
      * </table>
-     * @typedef Window.ConnectionRefusedReason
+     * @typedef {number} Window.ConnectionRefusedReason
      */
     enum class ConnectionRefusedReason : uint8_t {
         Unknown,
@@ -185,6 +188,7 @@ private:
     void hardReset();
 
     QUuid _uuid;
+    Node::LocalID _localID;
     QUrl _domainURL;
     HifiSockAddr _sockAddr;
     QUuid _assignmentUUID;

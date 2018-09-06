@@ -65,6 +65,18 @@ Item {
         return false;
     }
 
+    function closeDialog() {
+        if (openMessage != null) {
+            openMessage.destroy();
+            openMessage = null;
+        }
+
+        if (openModal != null) {
+            openModal.destroy();
+            openModal = null;
+        }
+    }
+
     function isUrlLoaded(url) {
         if (currentApp >= 0) {
             var currentAppUrl = tabletApps.get(currentApp).appUrl;

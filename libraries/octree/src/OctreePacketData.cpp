@@ -9,11 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OctreePacketData.h"
+
 #include <GLMHelpers.h>
 #include <PerfStat.h>
 
 #include "OctreeLogging.h"
-#include "OctreePacketData.h"
 #include "NumericalConstants.h"
 
 bool OctreePacketData::_debug = false;

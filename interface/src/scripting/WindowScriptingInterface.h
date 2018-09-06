@@ -28,7 +28,11 @@
  * physics.
  *
  * @namespace Window
- * @property {number} innerWidth - The width of the drawable area of the Interface window (i.e., without borders or other 
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ *
+ * @property {number} innerWidth - The width of the drawable area of the Interface window (i.e., without borders or other
  *     chrome), in pixels. <em>Read-only.</em>
  * @property {number} innerHeight - The height of the drawable area of the Interface window (i.e., without borders or other
  *     chrome), in pixels. <em>Read-only.</em>
@@ -77,17 +81,10 @@ public slots:
     void raise();
 
     /**jsdoc
-     * Raise the Interface window if it is minimized. If raised, the window gains focus.
-     * @function Window.raiseMainWindow
-     * @deprecated Use {@link Window.raise|raise} instead.
-     */
-    void raiseMainWindow();
-
-    /**jsdoc
      * Display a dialog with the specified message and an "OK" button. The dialog is non-modal; the script continues without
      * waiting for a user response.
      * @function Window.alert
-     * @param {string} message="" - The message to display.
+     * @param {string} [message=""] - The message to display.
      * @example <caption>Display a friendly greeting.</caption>
      * Window.alert("Welcome!");
      * print("Script continues without waiting");
@@ -98,7 +95,7 @@ public slots:
      * Prompt the user to confirm something. Displays a modal dialog with a message plus "Yes" and "No" buttons.
      * responds.
      * @function Window.confirm
-     * @param {string} message="" - The question to display.
+     * @param {string} [message=""] - The question to display.
      * @returns {boolean} <code>true</code> if the user selects "Yes", otherwise <code>false</code>.
      * @example <caption>Ask the user a question requiring a yes/no answer.</caption>
      * var answer = Window.confirm("Are you sure?");
@@ -128,8 +125,8 @@ public slots:
      * buttons. A {@link Window.promptTextChanged|promptTextChanged} signal is emitted when the user OKs the dialog; no signal 
      * is emitted if the user cancels the dialog.
      * @function Window.promptAsync
-     * @param {string} message - The question to display.
-     * @param {string} defaultText - The default answer text.
+     * @param {string} [message=""] - The question to display.
+     * @param {string} [defaultText=""] - The default answer text.
      * @example <caption>Ask the user a question requiring a text answer without waiting for the answer.</caption>
      * function onPromptTextChanged(text) {
      *     print("User answer: " + text);
@@ -144,8 +141,8 @@ public slots:
     /**jsdoc
      * Prompt the user to choose a directory. Displays a modal dialog that navigates the directory tree.
      * @function Window.browseDir
-     * @param {string} title="" - The title to display at the top of the dialog.
-     * @param {string} directory="" - The initial directory to start browsing at.
+     * @param {string} [title=""] - The title to display at the top of the dialog.
+     * @param {string} [directory=""] - The initial directory to start browsing at.
      * @returns {string} The path of the directory if one is chosen, otherwise <code>null</code>.
      * @example <caption>Ask the user to choose a directory.</caption>
      * var directory = Window.browseDir("Select Directory", Paths.resources);
@@ -158,8 +155,8 @@ public slots:
      * {@link Window.browseDirChanged|browseDirChanged} signal is emitted when a directory is chosen; no signal is emitted if
      * the user cancels the dialog.
      * @function Window.browseDirAsync
-     * @param {string} title="" - The title to display at the top of the dialog.
-     * @param {string} directory="" - The initial directory to start browsing at.
+     * @param {string} [title=""] - The title to display at the top of the dialog.
+     * @param {string} [directory=""] - The initial directory to start browsing at.
      * @example <caption>Ask the user to choose a directory without waiting for the answer.</caption>
      * function onBrowseDirChanged(directory) {
      *     print("Directory: " + directory);
@@ -174,9 +171,9 @@ public slots:
     /**jsdoc
      * Prompt the user to choose a file. Displays a modal dialog that navigates the directory tree.
      * @function Window.browse
-     * @param {string} title="" - The title to display at the top of the dialog.
-     * @param {string} directory="" - The initial directory to start browsing at.
-     * @param {string} nameFilter="" - The types of files to display. Examples: <code>"*.json"</code> and 
+     * @param {string} [title=""] - The title to display at the top of the dialog.
+     * @param {string} [directory=""] - The initial directory to start browsing at.
+     * @param {string} [nameFilter=""] - The types of files to display. Examples: <code>"*.json"</code> and 
      *     <code>"Images (*.png *.jpg *.svg)"</code>. All files are displayed if a filter isn't specified.
      * @returns {string} The path and name of the file if one is chosen, otherwise <code>null</code>.
      * @example <caption>Ask the user to choose an image file.</caption>
@@ -190,9 +187,9 @@ public slots:
      * {@link Window.browseChanged|browseChanged} signal is emitted when a file is chosen; no signal is emitted if the user
      * cancels the dialog.
      * @function Window.browseAsync
-     * @param {string} title="" - The title to display at the top of the dialog.
-     * @param {string} directory="" - The initial directory to start browsing at.
-     * @param {string} nameFilter="" - The types of files to display. Examples: <code>"*.json"</code> and
+     * @param {string} [title=""] - The title to display at the top of the dialog.
+     * @param {string} [directory=""] - The initial directory to start browsing at.
+     * @param {string} [nameFilter=""] - The types of files to display. Examples: <code>"*.json"</code> and
      *     <code>"Images (*.png *.jpg *.svg)"</code>. All files are displayed if a filter isn't specified.
      * @example <caption>Ask the user to choose an image file without waiting for the answer.</caption>
      * function onBrowseChanged(filename) {
@@ -209,9 +206,9 @@ public slots:
      * Prompt the user to specify the path and name of a file to save to. Displays a model dialog that navigates the directory
      * tree and allows the user to type in a file name.
      * @function Window.save
-     * @param {string} title="" - The title to display at the top of the dialog.
-     * @param {string} directory="" - The initial directory to start browsing at.
-     * @param {string} nameFilter="" - The types of files to display. Examples: <code>"*.json"</code> and
+     * @param {string} [title=""] - The title to display at the top of the dialog.
+     * @param {string} [directory=""] - The initial directory to start browsing at.
+     * @param {string} [nameFilter=""] - The types of files to display. Examples: <code>"*.json"</code> and
      *     <code>"Images (*.png *.jpg *.svg)"</code>. All files are displayed if a filter isn't specified.
      * @returns {string} The path and name of the file if one is specified, otherwise <code>null</code>. If a single file type
      *     is specified in the nameFilter, that file type extension is automatically appended to the result when appropriate.
@@ -226,9 +223,9 @@ public slots:
      * directory tree and allows the user to type in a file name. A {@link Window.saveFileChanged|saveFileChanged} signal is
      * emitted when a file is specified; no signal is emitted if the user cancels the dialog.
      * @function Window.saveAsync
-     * @param {string} title="" - The title to display at the top of the dialog.
-     * @param {string} directory="" - The initial directory to start browsing at.
-     * @param {string} nameFilter="" - The types of files to display. Examples: <code>"*.json"</code> and
+     * @param {string} [title=""] - The title to display at the top of the dialog.
+     * @param {string} [directory=""] - The initial directory to start browsing at.
+     * @param {string} [nameFilter=""] - The types of files to display. Examples: <code>"*.json"</code> and
      *     <code>"Images (*.png *.jpg *.svg)"</code>. All files are displayed if a filter isn't specified.
      * @example <caption>Ask the user to specify a file to save to without waiting for an answer.</caption>
      * function onSaveFileChanged(filename) {
@@ -245,9 +242,9 @@ public slots:
      * Prompt the user to choose an Asset Server item. Displays a modal dialog that navigates the tree of assets on the Asset
      * Server.
      * @function Window.browseAssets
-     * @param {string} title="" - The title to display at the top of the dialog.
-     * @param {string} directory="" - The initial directory to start browsing at.
-     * @param {string} nameFilter="" - The types of files to display. Examples: <code>"*.json"</code> and 
+     * @param {string} [title=""] - The title to display at the top of the dialog.
+     * @param {string} [directory=""] - The initial directory to start browsing at.
+     * @param {string} [nameFilter=""] - The types of files to display. Examples: <code>"*.json"</code> and 
      *     <code>"Images (*.png *.jpg *.svg)"</code>. All files are displayed if a filter isn't specified.
      * @returns {string} The path and name of the asset if one is chosen, otherwise <code>null</code>.
      * @example <caption>Ask the user to select an FBX asset.</caption>
@@ -261,9 +258,9 @@ public slots:
      * Asset Server. A {@link Window.assetsDirChanged|assetsDirChanged} signal is emitted when an asset is chosen; no signal is
      * emitted if the user cancels the dialog.
      * @function Window.browseAssetsAsync
-     * @param {string} title="" - The title to display at the top of the dialog.
-     * @param {string} directory="" - The initial directory to start browsing at.
-     * @param {string} nameFilter="" - The types of files to display. Examples: <code>"*.json"</code> and
+     * @param {string} [title=""] - The title to display at the top of the dialog.
+     * @param {string} [directory=""] - The initial directory to start browsing at.
+     * @param {string} [nameFilter=""] - The types of files to display. Examples: <code>"*.json"</code> and
      *     <code>"Images (*.png *.jpg *.svg)"</code>. All files are displayed if a filter isn't specified.
      * @example
      * function onAssetsDirChanged(asset) {
@@ -280,7 +277,7 @@ public slots:
      * Open the Asset Browser dialog. If a file to upload is specified, the user is prompted to enter the folder and name to
      * map the file to on the asset server.
      * @function Window.showAssetServer
-     * @param {string} uploadFile="" - The path and name of a file to upload to the asset server.
+     * @param {string} [uploadFile=""] - The path and name of a file to upload to the asset server.
      * @example <caption>Upload a file to the asset server.</caption>
      * var filename = Window.browse("Select File to Add to Asset Server", Paths.resources);
      * print("File: " + filename);
@@ -314,17 +311,25 @@ public slots:
      * {@link Window.stillSnapshotTaken|stillSnapshotTaken} is emitted; when a still image plus moving images are captured, 
      * {@link Window.processingGifStarted|processingGifStarted} and {@link Window.processingGifCompleted|processingGifCompleted}
      * are emitted. The path to store the snapshots and the length of the animated GIF to capture are specified in Settings >
-     * NOTE:  to provide a non-default value - all previous parameters must be provided.
      * General > Snapshots.
+     *
+     * If user has supplied a specific filename for the snapshot:
+     *     If the user's requested filename has a suffix that's contained within SUPPORTED_IMAGE_FORMATS,
+     *         DON'T append ".jpg" to the filename. QT will save the image in the format associated with the
+     *         filename's suffix.
+     *         If you want lossless Snapshots, supply a `.png` filename. Otherwise, use `.jpeg` or `.jpg`.
+     *     Otherwise, ".jpg" is appended to the user's requested filename so that the image is saved in JPG format.
+     * If the user hasn't supplied a specific filename for the snapshot:
+     *     Save the snapshot in JPG format according to FILENAME_PATH_FORMAT
      * @function Window.takeSnapshot
-     * @param {boolean} notify=true - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
+     * @param {boolean} [notify=true] - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
      *     signal.
-     * @param {boolean} includeAnimated=false - If <code>true</code>, a moving image is captured as an animated GIF in addition 
+     * @param {boolean} [includeAnimated=false] - If <code>true</code>, a moving image is captured as an animated GIF in addition 
      *     to a still image.
-     * @param {number} aspectRatio=0 - The width/height ratio of the snapshot required. If the value is <code>0</code> the
+     * @param {number} [aspectRatio=0] - The width/height ratio of the snapshot required. If the value is <code>0</code> the
      *     full resolution is used (window dimensions in desktop mode; HMD display dimensions in HMD mode), otherwise one of the
      *     dimensions is adjusted in order to match the aspect ratio.
-     * @param {string} filename="" - If this parameter is not given, the image will be saved as 'hifi-snap-by-<user name>-YYYY-MM-DD_HH-MM-SS'.
+     * @param {string} [filename=""] - If this parameter is not given, the image will be saved as "hifi-snap-by-&lt;user name&gt-YYYY-MM-DD_HH-MM-SS".
      *     If this parameter is <code>""</code> then the image will be saved as ".jpg".
      *     Otherwise, the image will be saved to this filename, with an appended ".jpg".
      *
@@ -356,15 +361,29 @@ public slots:
 
     /**jsdoc
      * Takes a still snapshot of the current view from the secondary camera that can be set up through the {@link Render} API.
-     * NOTE:  to provide a non-default value - all previous parameters must be provided.
      * @function Window.takeSecondaryCameraSnapshot
-     * @param {string} filename="" - If this parameter is not given, the image will be saved as 'hifi-snap-by-<user name>-YYYY-MM-DD_HH-MM-SS'.
+     * @param {boolean} [notify=true] - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
+     *     signal.
+     * @param {string} [filename=""] - If this parameter is not given, the image will be saved as "hifi-snap-by-&lt;user name&gt;-YYYY-MM-DD_HH-MM-SS".
      *     If this parameter is <code>""</code> then the image will be saved as ".jpg".
      *     Otherwise, the image will be saved to this filename, with an appended ".jpg".
-     *
-     * var filename = QString();
      */
-    void takeSecondaryCameraSnapshot(const QString& filename = QString());
+    void takeSecondaryCameraSnapshot(const bool& notify = true, const QString& filename = QString());
+
+    /**jsdoc
+     * Takes a 360&deg; snapshot at a given position for the secondary camera. The secondary camera does not need to have been 
+     *     set up.
+     * @function Window.takeSecondaryCamera360Snapshot
+     * @param {Vec3} cameraPosition - The position of the camera for the snapshot.
+     * @param {boolean} [cubemapOutputFormat=false] - If <code>true</code> then the snapshot is saved as a cube map image, 
+     *     otherwise is saved as an equirectangular image.
+     * @param {boolean} [notify=true] - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
+     *     signal.
+     * @param {string} [filename=""] - If this parameter is not supplied, the image will be saved as "hifi-snap-by-&lt;user name&gt;-YYYY-MM-DD_HH-MM-SS".
+     *     If this parameter is <code>""</code> then the image will be saved as ".jpg".
+     *     Otherwise, the image will be saved to this filename, with an appended ".jpg".
+     */
+    void takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat = false, const bool& notify = true, const QString& filename = QString());
 
     /**jsdoc
      * Emit a {@link Window.connectionAdded|connectionAdded} or a {@link Window.connectionError|connectionError} signal that
@@ -397,7 +416,7 @@ public slots:
      * has been prepared.
      * @function Window.shareSnapshot
      * @param {string} path - The path and name of the image file to share.
-     * @param {string} href="" - The metaverse location where the snapshot was taken.
+     * @param {string} [href=""] - The metaverse location where the snapshot was taken.
      */
     void shareSnapshot(const QString& path, const QUrl& href = QUrl(""));
 
@@ -452,7 +471,7 @@ public slots:
      *     </tr>
      *   </tbody>
      * </table>
-     * @typedef Window.DisplayTexture
+     * @typedef {string} Window.DisplayTexture
      */
     bool setDisplayTexture(const QString& name);
 
@@ -505,6 +524,25 @@ public slots:
     int openMessageBox(QString title, QString text, int buttons, int defaultButton);
 
     /**jsdoc
+     * Open a URL in the Interface window or other application, depending on the URL's scheme. If the URL starts with 
+     * <code>hifi://</code> then that URL is navigated to in Interface, otherwise the URL is opened in the application the OS 
+     * associates with the URL's scheme (e.g., a Web browser for <code>http://</code>).
+     * @function Window.openUrl
+     * @param {string} url - The URL to open.
+     */
+    void openUrl(const QUrl& url);
+
+    /**jsdoc
+     * Open an Android activity and optionally return back to the scene when the activity is completed. <em>Android only.</em>
+     * @function Window.openAndroidActivity
+     * @param {string} activityName - The name of the activity to open: one of <code>"Home"</code>, <code>"Login"</code>, or 
+     *     <code>"Privacy Policy"</code>.
+     * @param {boolean} backToScene - If <code>true</code>, the user is automatically returned back to the scene when the 
+     *     activity is completed.
+     */
+    void openAndroidActivity(const QString& activityName, const bool backToScene);
+
+    /**jsdoc
      * Update the content of a message box that was opened with {@link Window.openMessageBox|openMessageBox}.
      * @function Window.updateMessageBox
      * @param {number} id - The ID of the message box.
@@ -531,8 +569,8 @@ private slots:
 signals:
 
     /**jsdoc
-     * Triggered when you change the domain you're visiting. <strong>Warning:</strong> Is not emitted if you go to domain that 
-     * isn't running.
+     * Triggered when you change the domain you're visiting. <strong>Warning:</strong> Is not emitted if you go to a domain 
+     * that isn't running.
      * @function Window.domainChanged
      * @param {string} domainURL - The domain's URL.
      * @returns {Signal}
@@ -573,6 +611,17 @@ signals:
      * @returns {Signal}
      */
     void stillSnapshotTaken(const QString& pathStillSnapshot, bool notify);
+
+    /**jsdoc
+    * Triggered when a still 360&deg; snapshot has been taken by calling 
+    *     {@link Window.takeSecondaryCamera360Snapshot|takeSecondaryCamera360Snapshot}.
+    * @function Window.snapshot360Taken
+    * @param {string} pathStillSnapshot - The path and name of the snapshot image file.
+    * @param {boolean} notify - The value of the <code>notify</code> parameter that {@link Window.takeSecondaryCamera360Snapshot|takeSecondaryCamera360Snapshot}
+    *     was called with.
+    * @returns {Signal}
+    */
+    void snapshot360Taken(const QString& path360Snapshot, bool notify);
 
     /**jsdoc
      * Triggered when a snapshot submitted via {@link Window.shareSnapshot|shareSnapshot} is ready for sharing. The snapshot
