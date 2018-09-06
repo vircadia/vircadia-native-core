@@ -419,6 +419,10 @@
     });
 
     MyAvatar.sensorToWorldScaleChanged.connect(scaleInterstitialPage);
+    MyAvatar.sessionUUIDChanged.connect(function() {
+        var avatarSessionUUID = MyAvatar.sessionUUID;
+        Overlays.editOverlay(loadingSphereID, { parentID: avatarSessionUUID });
+    });
 
     var toggle = true;
     if (DEBUG) {
