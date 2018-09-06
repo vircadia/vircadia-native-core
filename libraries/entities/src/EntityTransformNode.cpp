@@ -7,24 +7,6 @@
 //
 #include "EntityTransformNode.h"
 
-EntityTransformNode::EntityTransformNode(EntityItemWeakPointer entity, int jointIndex) :
-    _entity(entity),
-    _jointIndex(jointIndex)
-{}
-
-Transform EntityTransformNode::getTransform() {
-    auto entity = _entity.lock();
-    if (!entity) {
-        return Transform();
-    }
-
-    bool success;
-    Transform jointWorldTransform = entity->getTransform(_jointIndex, success);
-    if (!success) {
-        return Transform();
-    }
-
-    jointWorldTransform.setScale(entity->getScaledDimensions());
-
-    return jointWorldTransform;
+glm::vec3 BaseNestableTransformNode<EntityItem>::getActualScale(const std::shared_ptr<EntityItem>& nestablePointer) const {
+    return nestablePointer->getScaledDimensions();
 }

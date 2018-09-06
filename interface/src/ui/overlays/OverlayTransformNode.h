@@ -8,19 +8,14 @@
 #ifndef hifi_OverlayTransformNode_h
 #define hifi_OverlayTransformNode_h
 
-#include "TransformNode.h"
+#include "NestableTransformNode.h"
 
 #include "Base3DOverlay.h"
 
 // For 3D overlays only
-class OverlayTransformNode : public TransformNode {
+class OverlayTransformNode : public BaseNestableTransformNode<Base3DOverlay> {
 public:
-    OverlayTransformNode(std::weak_ptr<Base3DOverlay> overlay, int jointIndex);
-    Transform getTransform() override;
-
-protected:
-    std::weak_ptr<Base3DOverlay> _overlay;
-    int _jointIndex;
+    OverlayTransformNode(std::weak_ptr<Base3DOverlay> spatiallyNestable, int jointIndex) : BaseNestableTransformNode(spatiallyNestable, jointIndex) {};
 };
 
 #endif // hifi_OverlayTransformNode_h

@@ -7,24 +7,6 @@
 //
 #include "AvatarTransformNode.h"
 
-AvatarTransformNode::AvatarTransformNode(AvatarWeakPointer avatar, int jointIndex) :
-    _avatar(avatar),
-    _jointIndex(jointIndex)
-{}
-
-Transform AvatarTransformNode::getTransform() {
-    auto avatar = _avatar.lock();
-    if (!avatar) {
-        return Transform();
-    }
-
-    bool success;
-    Transform jointWorldTransform = avatar->getTransform(_jointIndex, success);
-    if (!success) {
-        return Transform();
-    }
-
-    jointWorldTransform.setScale(avatar->scaleForChildren());
-
-    return jointWorldTransform;
+glm::vec3 BaseNestableTransformNode<Avatar>::getActualScale(const std::shared_ptr<Avatar>& nestablePointer) const {
+    return nestablePointer->scaleForChildren();
 }

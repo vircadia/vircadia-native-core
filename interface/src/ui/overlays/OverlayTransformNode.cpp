@@ -7,24 +7,6 @@
 //
 #include "OverlayTransformNode.h"
 
-OverlayTransformNode::OverlayTransformNode(std::weak_ptr<Base3DOverlay> overlay, int jointIndex) :
-    _overlay(overlay),
-    _jointIndex(jointIndex)
-{}
-
-Transform OverlayTransformNode::getTransform() {
-    auto overlay = _overlay.lock();
-    if (!overlay) {
-        return Transform();
-    }
-    
-    bool success;
-    Transform jointWorldTransform = overlay->getTransform(_jointIndex, success);
-    if (!success) {
-        return Transform();
-    }
-
-    jointWorldTransform.setScale(overlay->getBounds().getScale());
-
-    return jointWorldTransform;
+glm::vec3 BaseNestableTransformNode<Base3DOverlay>::getActualScale(const std::shared_ptr<Base3DOverlay>& nestablePointer) const {
+    return nestablePointer->getBounds().getScale();
 }

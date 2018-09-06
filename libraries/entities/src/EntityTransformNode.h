@@ -8,18 +8,13 @@
 #ifndef hifi_EntityTransformNode_h
 #define hifi_EntityTransformNode_h
 
-#include "TransformNode.h"
+#include "NestableTransformNode.h"
 
 #include "EntityItem.h"
 
-class EntityTransformNode : public TransformNode {
+class EntityTransformNode : public BaseNestableTransformNode<EntityItem> {
 public:
-    EntityTransformNode(EntityItemWeakPointer entity, int jointIndex);
-    Transform getTransform() override;
-
-protected:
-    EntityItemWeakPointer _entity;
-    int _jointIndex;
+    EntityTransformNode(std::weak_ptr<EntityItem> spatiallyNestable, int jointIndex) : BaseNestableTransformNode(spatiallyNestable, jointIndex) {};
 };
 
 #endif // hifi_EntityTransformNode_h

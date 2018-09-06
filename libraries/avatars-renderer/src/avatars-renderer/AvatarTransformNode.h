@@ -8,18 +8,13 @@
 #ifndef hifi_AvatarTransformNode_h
 #define hifi_AvatarTransformNode_h
 
-#include "TransformNode.h"
+#include "NestableTransformNode.h"
 
 #include "Avatar.h"
 
-class AvatarTransformNode : public TransformNode {
+class AvatarTransformNode : public BaseNestableTransformNode<Avatar> {
 public:
-    AvatarTransformNode(AvatarWeakPointer avatar, int jointIndex);
-    Transform getTransform() override;
-
-protected:
-    AvatarWeakPointer _avatar;
-    int _jointIndex;
+    AvatarTransformNode(std::weak_ptr<Avatar> spatiallyNestable, int jointIndex) : BaseNestableTransformNode(spatiallyNestable, jointIndex) {};
 };
 
 #endif // hifi_AvatarTransformNode_h
