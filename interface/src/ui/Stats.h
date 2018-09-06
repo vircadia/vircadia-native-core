@@ -14,6 +14,7 @@
 #include <OffscreenQmlElement.h>
 #include <AudioIOStats.h>
 #include <render/Args.h>
+#include <AnimContext.h>
 
 #define STATS_PROPERTY(type, name, initialValue) \
     Q_PROPERTY(type name READ name NOTIFY name##Changed) \
@@ -134,7 +135,6 @@ private: \
  * @property {number} batchFrameTime - <em>Read-only.</em>
  * @property {number} engineFrameTime - <em>Read-only.</em>
  * @property {number} avatarSimulationTime - <em>Read-only.</em>
- * @property {string[]} animStackNames - <em>Read-only.</em>
  *
  *
  * @property {number} x
@@ -292,7 +292,8 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(float, batchFrameTime, 0)
     STATS_PROPERTY(float, engineFrameTime, 0)
     STATS_PROPERTY(float, avatarSimulationTime, 0)
-    Q_PROPERTY(QStringList animStackNames READ animStackNames NOTIFY animStackNamesChanged)
+    Q_PROPERTY(QStringList animAlphaValues READ animAlphaValues NOTIFY animAlphaValuesChanged)
+    Q_PROPERTY(QStringList animVars READ animVars NOTIFY animVarsChanged)
 
     STATS_PROPERTY(int, stylusPicksCount, 0)
     STATS_PROPERTY(int, rayPicksCount, 0)
@@ -326,7 +327,8 @@ public:
     }
 
     QStringList downloadUrls () { return _downloadUrls; }
-    QStringList animStackNames() { return _animStackNames; }
+    QStringList animAlphaValues() { return _animAlphaValues; }
+    QStringList animVars() { return _animVarsList; }
 
 public slots:
     void forceUpdateStats() { updateStats(true); }
@@ -1028,12 +1030,8 @@ signals:
      */
     void avatarSimulationTimeChanged();
 
-    /**jsdoc
-    * Triggered when the value of the <code>animStackNames</code> property changes.
-    * @function Stats.animStackNamesChanged
-    * @returns {Signal}
-    */
-    void animStackNamesChanged();
+    void animAlphaValuesChanged();
+    void animVarsChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>rectifiedTextureCount</code> property changes.
@@ -1336,7 +1334,14 @@ private:
     QString _monospaceFont;
     const AudioIOStats* _audioStats;
     QStringList _downloadUrls = QStringList();
-    QStringList _animStackNames = QStringList();
+
+    QStringList _animAlphaValues = QStringList();
+    AnimContext::DebugAlphaMap _prevDebugAlphaMap;  // alpha values from previous frame
+    std::map<QString, qint64> _animAlphaValueChangedTimers; // last time alpha value has changed
+
+    QStringList _animVarsList = QStringList();
+    std::map<QString, QString> _prevAnimVars;  // anim vars from previous frame
+    std::map<QString, qint64> _animVarChangedTimers; // last time animVar value has changed.
 };
 
 #endif // hifi_Stats_h

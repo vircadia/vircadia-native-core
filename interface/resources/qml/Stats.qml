@@ -193,18 +193,63 @@ Item {
                         text: "Yaw: " + root.yaw.toFixed(1)
                     }
                     StatText {
-                        visible: root.animStackNames.length > 0;
-                        text: "Anim Stack Names:"
+                        visible: root.animAlphaValues.length > 0;
+                        text: "Anim Alpha Values:"
                     }
                     ListView {
                         width: geoCol.width
-                        height: root.animStackNames.length * 15
-                        visible: root.animStackNames.length > 0;
-                        model: root.animStackNames
+                        height: root.animAlphaValues.length * 15
+                        visible: root.animAlphaValues.length > 0;
+                        model: root.animAlphaValues
                         delegate: StatText {
-                            text: modelData.length > 30
-                                ?  modelData.substring(0, 5) + "..." + modelData.substring(modelData.length - 22)
-                                : modelData
+                            text: {
+                                var actualText = modelData.split("|")[1];
+                                if (actualText) {
+                                    if (actualText.length > 30) {
+                                        return actualText.substring(0, 5) + "..." + actualText.substring(actualText.length - 22);
+                                    } else {
+                                        return actualText;
+                                    }
+                                } else {
+                                    return modelData;
+                                }
+                            }
+                            color: {
+                                var grayScale = parseFloat(modelData.split("|")[0]);
+                                return Qt.rgba(0.3 * grayScale + 0.7,
+                                               0.3 * grayScale + 0.7,
+                                               0.3 * grayScale + 0.7, 1.0);
+                            }
+                        }
+                    }
+                    StatText {
+                        visible: root.animVars.length > 0;
+                        text: "AnimVars:"
+                    }
+                    ListView {
+                        width: geoCol.width
+                        height: root.animVars.length * 15
+                        visible: root.animVars.length > 0;
+                        model: root.animVars
+                        delegate: StatText {
+                            text: {
+                                var actualText = modelData.split("|")[1];
+                                if (actualText) {
+                                    if (actualText.length > 30) {
+                                        return actualText.substring(0, 5) + "..." + actualText.substring(actualText.length - 22);
+                                    } else {
+                                        return actualText;
+                                    }
+                                } else {
+                                    return modelData;
+                                }
+                            }
+                            color: {
+                                var grayScale = parseFloat(modelData.split("|")[0]);
+                                return Qt.rgba(0.3 * grayScale + 0.7,
+                                               0.3 * grayScale + 0.7,
+                                               0.3 * grayScale + 0.7, 1.0);
+                            }
                         }
                     }
                     StatText {

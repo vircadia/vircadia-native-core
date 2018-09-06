@@ -222,7 +222,9 @@ public:
     // input assumed to be in rig space
     void computeHeadFromHMD(const AnimPose& hmdPose, glm::vec3& headPositionOut, glm::quat& headOrientationOut) const;
 
-    const std::map<QString, float> getAnimStack() { return _animNode->getAnimStack(); }
+    // used to debug animation playback
+    const AnimContext::DebugAlphaMap& getDebugAlphaMap() const { return _lastContext.getDebugAlphaMap(); }
+    const AnimVariantMap& getAnimVars() const { return _lastAnimVars; }
 
     void toggleSmoothPoleVectors() { _smoothPoleVectors = !_smoothPoleVectors; };
 signals:
@@ -388,6 +390,9 @@ protected:
 
     int _rigId;
     bool _headEnabled { false };
+
+    AnimContext _lastContext;
+    AnimVariantMap _lastAnimVars;
 };
 
 #endif /* defined(__hifi__Rig__) */

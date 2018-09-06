@@ -14,8 +14,27 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <QString.h>
+#include <QStringList.h>
+#include <map>
+
+enum class AnimNodeType {
+    Clip = 0,
+    BlendLinear,
+    BlendLinearMove,
+    Overlay,
+    StateMachine,
+    Manipulator,
+    InverseKinematics,
+    DefaultPose,
+    TwoBoneIK,
+    PoleVectorConstraint,
+    NumTypes
+};
+
 class AnimContext {
 public:
+    AnimContext() {}
     AnimContext(bool enableDebugDrawIKTargets, bool enableDebugDrawIKConstraints, bool enableDebugDrawIKChains,
                 const glm::mat4& geometryToRigMatrix, const glm::mat4& rigToWorldMatrix);
 
@@ -25,6 +44,26 @@ public:
     const glm::mat4& getGeometryToRigMatrix() const { return _geometryToRigMatrix; }
     const glm::mat4& getRigToWorldMatrix() const { return _rigToWorldMatrix; }
 
+    float getDebugAlpha(const QString& key) const {
+        auto it = _debugAlphaMap.find(key);
+        if (it != _debugAlphaMap.end()) {
+            return std::get<0>(it->second);
+        } else {
+            return 1.0f;
+        }
+    }
+
+    using DebugAlphaMapValue = std::tuple<float, AnimNodeType>;
+    using DebugAlphaMap = std::map<QString, DebugAlphaMapValue>;
+
+    void setDebugAlpha(const QString& key, float alpha, AnimNodeType type) const {
+        _debugAlphaMap[key] = DebugAlphaMapValue(alpha, type);
+    }
+
+    const DebugAlphaMap& getDebugAlphaMap() const {
+        return _debugAlphaMap;
+    }
+
 protected:
 
     bool _enableDebugDrawIKTargets { false };
@@ -32,6 +71,9 @@ protected:
     bool _enableDebugDrawIKChains { false };
     glm::mat4 _geometryToRigMatrix;
     glm::mat4 _rigToWorldMatrix;
+
+    // used for debugging internal state of animation system.
+    mutable DebugAlphaMap _debugAlphaMap;
 };
 
 #endif  // hifi_AnimContext_h
