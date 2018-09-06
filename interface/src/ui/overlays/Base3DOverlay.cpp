@@ -240,7 +240,7 @@ QVariant Base3DOverlay::getProperty(const QString& property) {
     if (property == "name") {
         return _nameLock.resultWithReadLock<QString>([&] {
             return _name;
-        }
+        });
     }
     if (property == "position" || property == "start" || property == "p1" || property == "point") {
         return vec3toVariant(getWorldPosition());
