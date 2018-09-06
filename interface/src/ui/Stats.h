@@ -93,7 +93,6 @@ private: \
  * @property {number} processing - <em>Read-only.</em>
  * @property {number} processingPending - <em>Read-only.</em>
  * @property {number} triangles - <em>Read-only.</em>
- * @property {number} quads - <em>Read-only.</em>
  * @property {number} materialSwitches - <em>Read-only.</em>
  * @property {number} itemConsidered - <em>Read-only.</em>
  * @property {number} itemOutOfView - <em>Read-only.</em>
@@ -249,7 +248,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, processing, 0)
     STATS_PROPERTY(int, processingPending, 0)
     STATS_PROPERTY(int, triangles, 0)
-    STATS_PROPERTY(int, quads, 0)
+    STATS_PROPERTY(int, drawcalls, 0)
     STATS_PROPERTY(int, materialSwitches, 0)
     STATS_PROPERTY(int, itemConsidered, 0)
     STATS_PROPERTY(int, itemOutOfView, 0)
@@ -735,11 +734,12 @@ signals:
     void trianglesChanged();
 
     /**jsdoc
-     * Triggered when the value of the <code>quads</code> property changes.
-     * @function Stats.quadsChanged
-     * @returns {Signal}
-     */
-    void quadsChanged();
+    * Triggered when the value of the <code>drawcalls</code> property changes.
+    * This 
+    * @function Stats.drawcallsChanged
+    * @returns {Signal}
+    */
+    void drawcallsChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>materialSwitches</code> property changes.
