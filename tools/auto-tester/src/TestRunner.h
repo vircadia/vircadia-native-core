@@ -35,6 +35,7 @@ public:
     void startLocalServerProcesses();
     void runInterfaceWithTestScript();
     void evaluateResults();
+    void automaticTestRunEvaluationComplete();
 
     void copyFolder(const QString& source, const QString& destination);
 

@@ -56,7 +56,7 @@ void TestRunner::installerDownloadComplete() {
 
     evaluateResults();
 
-    restoreHighFidelityAppDataFolder();
+    // The High Fidelity AppData folder will be restored after evaluation has completed
 }
 
 void TestRunner::runInstaller() {
@@ -173,7 +173,7 @@ void TestRunner::runInterfaceWithTestScript() {
 }
 
 void TestRunner::evaluateResults() {
-    autoTester->runFromCommandLine(_snapshotFolder, _branch, _user);
+    autoTester->startTestsEvaluation(false, true, _snapshotFolder, _branch, _user);
 }
 
 // Copies a folder recursively
@@ -206,4 +206,8 @@ void TestRunner::copyFolder(const QString& source, const QString& destination) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "unknown error");
         exit(-1);
     }
+}
+
+void TestRunner::automaticTestRunEvaluationComplete() {
+    restoreHighFidelityAppDataFolder();
 }

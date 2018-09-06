@@ -44,7 +44,8 @@ public:
     Test(QProgressBar* progressBar, QCheckBox* checkBoxInteractiveMode);
 
     void startTestsEvaluation(const bool isRunningFromCommandLine,
-                              const QString& testFolder = QString(),
+                              const bool isRunningInAutomaticTestRun, 
+                              const QString& snapshotDirectory = QString(),
                               const QString& branchFromCommandLine = QString(),
                               const QString& userFromCommandLine = QString());
 
@@ -101,6 +102,7 @@ private:
     QCheckBox* _checkBoxInteractiveMode;
 
     bool _isRunningFromCommandLine{ false };
+    bool _isRunningInAutomaticTestRun{ false };
 
     const QString TEST_FILENAME { "test.js" };
     const QString TEST_RESULTS_FOLDER { "TestResults" };
