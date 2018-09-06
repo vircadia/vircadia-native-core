@@ -837,7 +837,6 @@ const unsigned char* unpackFauxJoint(const unsigned char* sourceBuffer, ThreadSa
 
 // read data in packet starting at byte offset and return number of bytes parsed
 int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
-
     // lazily allocate memory for HeadData in case we're not an Avatar instance
     lazyInitHeadData();
 
@@ -889,7 +888,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         auto newValue = glm::vec3(data->globalPosition[0], data->globalPosition[1], data->globalPosition[2]) + offset;
         if (_globalPosition != newValue) {
             _globalPosition = newValue;
-            _globalPositionChanged = usecTimestampNow();
+            _globalPositionChanged = now;
         }
         sourceBuffer += sizeof(AvatarDataPacket::AvatarGlobalPosition);
         int numBytesRead = sourceBuffer - startSection;
@@ -913,11 +912,11 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         if (_globalBoundingBoxDimensions != newDimensions) {
             _globalBoundingBoxDimensions = newDimensions;
-            _avatarBoundingBoxChanged = usecTimestampNow();
+            _avatarBoundingBoxChanged = now;
         }
         if (_globalBoundingBoxOffset != newOffset) {
             _globalBoundingBoxOffset = newOffset;
-            _avatarBoundingBoxChanged = usecTimestampNow();
+            _avatarBoundingBoxChanged = now;
         }
 
         sourceBuffer += sizeof(AvatarDataPacket::AvatarBoundingBox);
@@ -1018,7 +1017,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         glm::mat4 sensorToWorldMatrix = createMatFromScaleQuatAndPos(glm::vec3(sensorToWorldScale), sensorToWorldQuat, sensorToWorldTrans);
         if (_sensorToWorldMatrixCache.get() != sensorToWorldMatrix) {
             _sensorToWorldMatrixCache.set(sensorToWorldMatrix);
-            _sensorToWorldMatrixChanged = usecTimestampNow();
+            _sensorToWorldMatrixChanged = now;
         }
         sourceBuffer += sizeof(AvatarDataPacket::SensorToWorldMatrix);
         int numBytesRead = sourceBuffer - startSection;
@@ -1075,7 +1074,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         sourceBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
 
         if (somethingChanged) {
-            _additionalFlagsChanged = usecTimestampNow();
+            _additionalFlagsChanged = now;
         }
         int numBytesRead = sourceBuffer - startSection;
         _additionalFlagsRate.increment(numBytesRead);
@@ -1095,7 +1094,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         if ((getParentID() != newParentID) || (getParentJointIndex() != parentInfo->parentJointIndex)) {
             SpatiallyNestable::setParentID(newParentID);
             SpatiallyNestable::setParentJointIndex(parentInfo->parentJointIndex);
-            _parentChanged = usecTimestampNow();
+            _parentChanged = now;
         }
 
         int numBytesRead = sourceBuffer - startSection;
@@ -1144,8 +1143,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         int numBytesRead = sourceBuffer - startSection;
         _faceTrackerRate.increment(numBytesRead);
         _faceTrackerUpdateRate.increment();
-    } else {
-        _headData->_blendshapeCoefficients.fill(0, _headData->_blendshapeCoefficients.size());
     }
 
     if (hasJointData) {
@@ -2819,8 +2816,6 @@ void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, Ra
     }
     value.extraInfo = object.property("extraInfo").toVariant().toMap();
 }
-
-const float AvatarData::OUT_OF_VIEW_PENALTY = -10.0f;
 
 float AvatarData::_avatarSortCoefficientSize { 8.0f };
 float AvatarData::_avatarSortCoefficientCenter { 4.0f };

@@ -261,8 +261,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     // FIXME - find a way to not send the sessionID for every avatar
     int minimumBytesPerAvatar = AvatarDataPacket::AVATAR_HAS_FLAGS_SIZE + NUM_BYTES_RFC4122_UUID;
 
-    int overBudgetAvatars = 0;
-
     // keep track of the number of other avatars held back in this frame
     int numAvatarsHeldBack = 0;
 
@@ -287,7 +285,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
     // compute node bounding box
     const float MY_AVATAR_BUBBLE_EXPANSION_FACTOR = 4.0f; // magic number determined emperically
-    AABox nodeBox = computeBubbleBox(avatar, MY_AVATAR_BUBBLE_EXPANSION_FACTOR );
+    AABox nodeBox = computeBubbleBox(avatar, MY_AVATAR_BUBBLE_EXPANSION_FACTOR);
 
     class SortableAvatar: public PrioritySortUtil::Sortable {
     public:
@@ -296,13 +294,12 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             : _avatar(avatar), _node(avatarNode), _lastEncodeTime(lastEncodeTime) {}
         glm::vec3 getPosition() const override { return _avatar->getClientGlobalPosition(); }
         float getRadius() const override {
-            glm::vec3 nodeBoxHalfScale = 0.5f * _avatar->getGlobalBoundingBox().getScale();
-            return glm::max(nodeBoxHalfScale.x, glm::max(nodeBoxHalfScale.y, nodeBoxHalfScale.z));
+            glm::vec3 nodeBoxScale = _avatar->getGlobalBoundingBox().getScale();
+            return 0.5f * glm::max(nodeBoxScale.x, glm::max(nodeBoxScale.y, nodeBoxScale.z));
         }
         uint64_t getTimestamp() const override {
             return _lastEncodeTime;
         }
-        const AvatarData* getAvatar() const { return _avatar; }
         const Node* getNode() const { return _node; }
 
     private:
@@ -412,13 +409,19 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
         assert(otherNode); // we can't have gotten here without the avatarData being a valid key in the map
 
+        AvatarData::AvatarDataDetail detail;
+
         // NOTE: Here's where we determine if we are over budget and drop to bare minimum data
         int minimRemainingAvatarBytes = minimumBytesPerAvatar * remainingAvatars;
         bool overBudget = (identityBytesSent + numAvatarDataBytes + minimRemainingAvatarBytes) > maxAvatarBytesPerFrame;
         if (overBudget) {
-            _stats.overBudgetAvatars += remainingAvatars + 1;
-            overBudgetAvatars += remainingAvatars + 1;
-            break;
+            if (PALIsOpen) {
+                _stats.overBudgetAvatars++;
+                detail = AvatarData::PALMinimum;
+            } else {
+                _stats.overBudgetAvatars += remainingAvatars;
+                break;
+            }
         }
 
         auto startAvatarDataPacking = chrono::high_resolution_clock::now();
@@ -439,23 +442,13 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         }
 
         // determine if avatar is in view which determines how much data to send
-        bool isInView = nodeData->otherAvatarInView(otherAvatar->getGlobalBoundingBox());
+        bool isInView = sortedAvatar.getPriority() > OUT_OF_VIEW_THRESHOLD;
 
-        // start a new segment in the PacketList for this avatar
-        avatarPacketList->startSegment();
-
-        AvatarData::AvatarDataDetail detail;
-
-        if (overBudget) {
-            overBudgetAvatars++;
-            _stats.overBudgetAvatars++;
-            detail = PALIsOpen ? AvatarData::PALMinimum : AvatarData::NoData;
-        } else if (!isInView) {
+        if (!isInView) {
             detail = PALIsOpen ? AvatarData::PALMinimum : AvatarData::MinimumData;
             nodeData->incrementAvatarOutOfView();
-        } else {
-            detail = distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO
-            ? AvatarData::SendAllData : AvatarData::CullSmallData;
+        } else if (!overBudget) {
+            detail = distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO ? AvatarData::SendAllData : AvatarData::CullSmallData;
             nodeData->incrementAvatarInView();
         }
 
@@ -503,8 +496,11 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         }
 
         if (includeThisAvatar) {
+            // start a new segment in the PacketList for this avatar
+            avatarPacketList->startSegment();
             numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
             numAvatarDataBytes += avatarPacketList->write(bytes);
+            avatarPacketList->endSegment();
 
             if (detail != AvatarData::NoData) {
                 _stats.numOthersIncluded++;
@@ -522,14 +518,13 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             // It would be nice if we could tweak its future sort priority to put it at the back of the list.
         }
 
-        avatarPacketList->endSegment();
-
         auto endAvatarDataPacking = chrono::high_resolution_clock::now();
         _stats.avatarDataPackingElapsedTime +=
             (quint64) chrono::duration_cast<chrono::microseconds>(endAvatarDataPacking - startAvatarDataPacking).count();
 
         // use helper to add any changed traits to our packet list
         traitBytesSent += addChangedTraitsToBulkPacket(nodeData, otherNodeData, *traitsPacketList);
+        remainingAvatars--;
     }
 
     quint64 startPacketSending = usecTimestampNow();

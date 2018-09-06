@@ -1167,8 +1167,6 @@ public:
     // A method intended to be overriden by MyAvatar for polling orientation for network transmission.
     virtual glm::quat getOrientationOutbound() const;
 
-    static const float OUT_OF_VIEW_PENALTY;
-
     // TODO: remove this HACK once we settle on optimal sort coefficients
     // These coefficients exposed for fine tuning the sort priority for transfering new _jointData to the render pipeline.
     static float _avatarSortCoefficientSize;
