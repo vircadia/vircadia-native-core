@@ -381,14 +381,13 @@ std::shared_ptr<TransformNode> PickScriptingInterface::createTransformNode(const
                 NestableType nestableType = sharedNestablePointer->getNestableType();
                 if (nestableType == NestableType::Avatar) {
                     return std::make_shared<AvatarTransformNode>(std::static_pointer_cast<Avatar>(sharedNestablePointer), parentJointIndex);
-                }
-                if (nestableType == NestableType::Overlay) {
+                } else if (nestableType == NestableType::Overlay) {
                     return std::make_shared<OverlayTransformNode>(std::static_pointer_cast<Base3DOverlay>(sharedNestablePointer), parentJointIndex);
-                }
-                if (nestableType == NestableType::Entity) {
+                } else if (nestableType == NestableType::Entity) {
                     return std::make_shared<EntityTransformNode>(std::static_pointer_cast<EntityItem>(sharedNestablePointer), parentJointIndex);
+                } else {
+                    return std::make_shared<NestableTransformNode>(nestablePointer, parentJointIndex);
                 }
-                return std::make_shared<NestableTransformNode>(nestablePointer, parentJointIndex);
             }
         }
 
