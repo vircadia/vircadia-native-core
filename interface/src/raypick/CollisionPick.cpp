@@ -357,12 +357,14 @@ CollisionPick::CollisionPick(const PickFilter& filter, float maxDistance, bool e
 CollisionRegion CollisionPick::getMathematicalPick() const {
     CollisionRegion mathPick = _mathPick;
     mathPick.loaded = isLoaded();
-    if (!parentTransform) {
-        return mathPick;
-    } else {
-        mathPick.transform = parentTransform->getTransform().worldTransform(mathPick.transform);
-        return mathPick;
+    if (parentTransform) {
+        Transform parentTransformValue = parentTransform->getTransform();
+        mathPick.transform = parentTransformValue.worldTransform(mathPick.transform);
+        glm::vec3 scale = parentTransformValue.getScale();
+        float largestDimension = glm::max(glm::max(scale.x, scale.y), scale.z);
+        mathPick.threshold *= largestDimension;
     }
+    return mathPick;
 }
 
 void CollisionPick::filterIntersections(std::vector<ContactTestResult>& intersections) const {
