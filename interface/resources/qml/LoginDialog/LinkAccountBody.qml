@@ -145,7 +145,7 @@ Item {
                 z: 10
                 anchors {
                     right: usernameField.right
-                    top: usernameField.top
+                    top: usernameField.bottom
                     topMargin: -19
                 }
 
@@ -173,7 +173,7 @@ Item {
                 z: 10
                 anchors {
                     right: passwordField.right
-                    top: passwordField.top
+                    top: passwordField.bottom
                     topMargin: -19
                 }
 
