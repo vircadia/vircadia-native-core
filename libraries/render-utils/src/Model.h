@@ -159,7 +159,7 @@ public:
     bool getSnapModelToRegistrationPoint() { return _snapModelToRegistrationPoint; }
 
     virtual void simulate(float deltaTime, bool fullUpdate = true);
-    virtual void updateClusterMatrices(bool triggerBlendshapes = true);
+    virtual void updateClusterMatrices();
 
     /// Returns a reference to the shared geometry.
     const Geometry::Pointer& getGeometry() const { return _renderGeometry; }
@@ -345,6 +345,8 @@ public:
     void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
 
+    bool areBlendedVertexBuffersInitialized(int index) { return _blendedVertexBuffersInitialized; }
+
 public slots:
     void loadURLFinished(bool success);
 
@@ -424,8 +426,9 @@ protected:
     QUrl _url;
 
     std::unordered_map<int, gpu::BufferPointer> _blendedVertexBuffers;
+    bool _blendedVertexBuffersInitialized { false };
 
-    QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
+    QVector<QVector<QSharedPointer<Texture>>> _dilatedTextures;
 
     QVector<float> _blendedBlendshapeCoefficients;
     int _blendNumber;
