@@ -116,7 +116,6 @@ Item {
         }
         spacing: 2 * hifi.dimensions.contentSpacing.y
 
-
         TextField {
             id: usernameField
             text: Settings.getValue("wallet/savedUsername", "");
@@ -125,27 +124,24 @@ Item {
             placeholderText: "Username or Email"
             activeFocusOnPress: true
 
-            ShortcutText {
-                z: 10
-                anchors {
-                    left: usernameField.right
-                    top: usernameField.bottom
-                    leftMargin: usernameField.textFieldLabel.contentWidth + 10
-                    topMargin: -19
-                }
-
-                text: "<a href='https://highfidelity.com/users/password/new'>Forgot Username?</a>"
-
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
-                linkColor: hifi.colors.blueAccent
-
-                onLinkActivated: loginDialog.openUrl(link)
-            }
-
             onFocusChanged: {
                 root.text = "";
             }
+        }
+        ShortcutText {
+            z: 10
+            anchors {
+                leftMargin: usernameField.textFieldLabel.contentWidth + 10
+                topMargin: -19
+            }
+
+            text: "<a href='https://highfidelity.com/users/password/new'>Forgot Username?</a>"
+
+            verticalAlignment: Text.AlignVCenter
+            horizontalAlignment: Text.AlignRight
+            linkColor: hifi.colors.blueAccent
+
+            onLinkActivated: loginDialog.openUrl(link)
         }
 
         TextField {
@@ -153,24 +149,6 @@ Item {
             width: parent.width
             placeholderText: "Password"
             activeFocusOnPress: true
-
-            ShortcutText {
-                z: 10
-                anchors {
-                    left: passwordField.right
-                    top: passwordField.bottom
-                    leftMargin: passwordField.textFieldLabel.contentWidth + 10
-                    topMargin: -19
-                }
-
-                text: "<a href='https://highfidelity.com/users/password/new'>Forgot Password?</a>"
-
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
-                linkColor: hifi.colors.blueAccent
-
-                onLinkActivated: loginDialog.openUrl(link)
-            }
 
             onFocusChanged: {
                 root.text = "";
@@ -205,6 +183,22 @@ Item {
             }
 
             Keys.onReturnPressed: linkAccountBody.login()
+        }
+
+        ShortcutText {
+            z: 10
+            anchors {
+                leftMargin: passwordField.textFieldLabel.contentWidth + 10
+                topMargin: -19
+            }
+
+            text: "<a href='https://highfidelity.com/users/password/new'>Forgot Password?</a>"
+
+            verticalAlignment: Text.AlignVCenter
+            horizontalAlignment: Text.AlignHCenter
+            linkColor: hifi.colors.blueAccent
+
+            onLinkActivated: loginDialog.openUrl(link)
         }
 
         InfoItem {
