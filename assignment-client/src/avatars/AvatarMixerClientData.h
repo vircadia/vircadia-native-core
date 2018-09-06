@@ -45,6 +45,7 @@ public:
 
     int parseData(ReceivedMessage& message) override;
     AvatarData& getAvatar() { return *_avatar; }
+    const AvatarData& getAvatar() const { return *_avatar; }
     const AvatarData* getConstAvatarData() const { return _avatar.get(); }
     AvatarSharedPointer getAvatarSharedPointer() const { return _avatar; }
 

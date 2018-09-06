@@ -212,6 +212,15 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
     _stats.jobElapsedTime += (end - start);
 }
 
+AABox computeBubbleBox(const AvatarData& avatar, float bubbleExpansionFactor) {
+    glm::vec3 position = avatar.getClientGlobalPosition();
+    glm::vec3 scale = 2.0f * (avatar.getClientGlobalPosition()- avatar.getGlobalBoundingBoxCorner());
+    scale *= bubbleExpansionFactor;
+    const glm::vec3 MIN_BUBBLE_SCALE(0.3f, 1.3f, 0.3);
+    scale = glm::max(scale, MIN_BUBBLE_SCALE);
+    return AABox(position - 0.5f * scale, scale);
+}
+
 void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node) {
     const Node* destinationNode = node.data();
 
@@ -275,18 +284,9 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     // setup a PacketList for the avatarPackets
     auto avatarPacketList = NLPacketList::create(PacketType::BulkAvatarData);
 
-    // Define the minimum bubble size
-    const glm::vec3 minBubbleSize = avatar.getSensorToWorldScale() * glm::vec3(0.3f, 1.3f, 0.3f);
-    // Define the scale of the box for the current node
-    glm::vec3 nodeBoxScale = (avatar.getClientGlobalPosition() - avatar.getGlobalBoundingBoxCorner()) * 2.0f * avatar.getSensorToWorldScale();
-    // Set up the bounding box for the current node
-    AABox nodeBox(avatar.getGlobalBoundingBoxCorner(), nodeBoxScale);
-    // Clamp the size of the bounding box to a minimum scale
-    if (glm::any(glm::lessThan(nodeBoxScale, minBubbleSize))) {
-        nodeBox.setScaleStayCentered(minBubbleSize);
-    }
-    // Quadruple the scale of first bounding box
-    nodeBox.embiggen(4.0f);
+    // compute node bounding box
+    const float MY_AVATAR_BUBBLE_EXPANSION_FACTOR = 4.0f; // magic number determined emperically
+    AABox nodeBox = computeBubbleBox(avatar, MY_AVATAR_BUBBLE_EXPANSION_FACTOR );
 
     class SortableAvatar: public PrioritySortUtil::Sortable {
     public:
@@ -295,7 +295,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             : _avatar(avatar), _node(avatarNode), _lastEncodeTime(lastEncodeTime) {}
         glm::vec3 getPosition() const override { return _avatar->getClientGlobalPosition(); }
         float getRadius() const override {
-            glm::vec3 nodeBoxHalfScale = (_avatar->getClientGlobalPosition() - _avatar->getGlobalBoundingBoxCorner() * _avatar->getSensorToWorldScale());
+            glm::vec3 nodeBoxHalfScale = _avatar->getClientGlobalPosition() - _avatar->getGlobalBoundingBoxCorner();
             return glm::max(nodeBoxHalfScale.x, glm::max(nodeBoxHalfScale.y, nodeBoxHalfScale.z));
         }
         uint64_t getTimestamp() const override {
@@ -351,20 +351,9 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             // Check to see if the space bubble is enabled
             // Don't bother with these checks if the other avatar has their bubble enabled and we're gettingAnyIgnored
             if (destinationNode->isIgnoreRadiusEnabled() || (avatarNode->isIgnoreRadiusEnabled() && !getsAnyIgnored)) {
-                float sensorToWorldScale = avatarClientNodeData->getAvatarSharedPointer()->getSensorToWorldScale();
-                // Define the scale of the box for the current other node
-                glm::vec3 otherNodeBoxScale = (avatarClientNodeData->getPosition() - avatarClientNodeData->getGlobalBoundingBoxCorner()) * 2.0f * sensorToWorldScale;
-                // Set up the bounding box for the current other node
-                AABox otherNodeBox(avatarClientNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
-                // Clamp the size of the bounding box to a minimum scale
-                if (glm::any(glm::lessThan(otherNodeBoxScale, minBubbleSize))) {
-                    otherNodeBox.setScaleStayCentered(minBubbleSize);
-                }
-                // Change the scale of other bounding box
-                // (This is an arbitrary number determined empirically)
-                otherNodeBox.embiggen(2.4f);
-
                 // Perform the collision check between the two bounding boxes
+                const float OTHER_AVATAR_BUBBLE_EXPANSION_FACTOR = 2.4f; // magic number determined empirically
+                AABox otherNodeBox = computeBubbleBox(avatarClientNodeData->getAvatar(), OTHER_AVATAR_BUBBLE_EXPANSION_FACTOR);
                 if (nodeBox.touches(otherNodeBox)) {
                     nodeData->ignoreOther(destinationNode, avatarNode);
                     shouldIgnore = !getsAnyIgnored;
@@ -445,7 +434,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
         // determine if avatar is in view which determines how much data to send
         glm::vec3 otherPosition = otherAvatar->getClientGlobalPosition();
-        glm::vec3 otherNodeBoxScale = (otherPosition - otherNodeData->getGlobalBoundingBoxCorner()) * 2.0f * otherAvatar->getSensorToWorldScale();
+        glm::vec3 otherNodeBoxScale = otherPosition - otherNodeData->getGlobalBoundingBoxCorner();
         AABox otherNodeBox(otherNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
         bool isInView = nodeData->otherAvatarInView(otherNodeBox);
 
