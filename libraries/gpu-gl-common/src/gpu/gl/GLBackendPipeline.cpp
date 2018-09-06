@@ -23,7 +23,7 @@ using namespace gpu;
 using namespace gpu::gl;
 
 void GLBackend::do_setPipeline(const Batch& batch, size_t paramOffset) {
-    PipelinePointer pipeline = batch._pipelines.get(batch._params[paramOffset + 0]._uint);
+    const auto& pipeline = batch._pipelines.get(batch._params[paramOffset + 0]._uint);
 
     if (_pipeline._pipeline == pipeline) {
         return;
@@ -193,7 +193,7 @@ void GLBackend::do_setUniformBuffer(const Batch& batch, size_t paramOffset) {
         return;
     }
 
-    BufferPointer uniformBuffer = batch._buffers.get(batch._params[paramOffset + 2]._uint);
+    const auto& uniformBuffer = batch._buffers.get(batch._params[paramOffset + 2]._uint);
     GLintptr rangeStart = batch._params[paramOffset + 1]._uint;
     GLsizeiptr rangeSize = batch._params[paramOffset + 0]._uint;
 
