@@ -38,33 +38,6 @@ void DebugDeferredBufferConfig::setMode(int newMode) {
     emit dirty();
 }
 
-#if 0
-enum TextureSlot {
-    Albedo = 0,
-    Normal,
-    Specular,
-    Depth,
-    Lighting,
-    Shadow,
-    LinearDepth,
-    HalfLinearDepth,
-    HalfNormal,
-    Curvature,
-    DiffusedCurvature,
-    Scattering,
-    AmbientOcclusion,
-    AmbientOcclusionBlurred,
-    Velocity,
-};
-
-enum ParamSlot {
-    CameraCorrection = 0,
-    DeferredFrameTransform,
-    ShadowTransform,
-    DebugParametersBuffer
-};
-#endif
-
 static const std::string DEFAULT_ALBEDO_SHADER{
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
@@ -178,19 +151,19 @@ static const std::string DEFAULT_SHADOW_CASCADE_SHADER{
 
 static const std::string DEFAULT_LINEAR_DEPTH_SHADER{
     "vec4 getFragmentColor() {"
-    "    return vec4(vec3(1.0 - texture(linearDepthMap, uv).x * 0.01), 1.0);"
+    "    return vec4(vec3(1.0 - texture(debugTexture0, uv).x * 0.01), 1.0);"
     "}"
 };
 
 static const std::string DEFAULT_HALF_LINEAR_DEPTH_SHADER{
     "vec4 getFragmentColor() {"
-    "    return vec4(vec3(1.0 - texture(halfLinearDepthMap, uv).x * 0.01), 1.0);"
+    "    return vec4(vec3(1.0 - texture(debugTexture0, uv).x * 0.01), 1.0);"
     " }"
 };
 
 static const std::string DEFAULT_HALF_NORMAL_SHADER{
     "vec4 getFragmentColor() {"
-    "    return vec4(vec3(texture(halfNormalMap, uv).xyz), 1.0);"
+    "    return vec4(vec3(texture(debugTexture0, uv).xyz), 1.0);"
     " }"
 };
 
@@ -240,27 +213,27 @@ static const std::string DEFAULT_CURVATURE_OCCLUSION_SHADER{
 
 static const std::string DEFAULT_DEBUG_SCATTERING_SHADER{
     "vec4 getFragmentColor() {"
-    "    return vec4(pow(vec3(texture(scatteringMap, uv).xyz), vec3(1.0 / 2.2)), 1.0);"
-    //  "    return vec4(vec3(texture(scatteringMap, uv).xyz), 1.0);"
+    "    return vec4(pow(vec3(texture(debugTexture0, uv).xyz), vec3(1.0 / 2.2)), 1.0);"
+    //  "    return vec4(vec3(texture(debugTexture0, uv).xyz), 1.0);"
     " }"
 };
 
 static const std::string DEFAULT_AMBIENT_OCCLUSION_SHADER{
     "vec4 getFragmentColor() {"
     "    return vec4(vec3(texture(obscuranceMap, uv).x), 1.0);"
-    // When drawing color "    return vec4(vec3(texture(occlusionMap, uv).xyz), 1.0);"
-    // when drawing normal"    return vec4(normalize(texture(occlusionMap, uv).xyz * 2.0 - vec3(1.0)), 1.0);"
+    // When drawing color "    return vec4(vec3(texture(debugTexture0, uv).xyz), 1.0);"
+    // when drawing normal"    return vec4(normalize(texture(debugTexture0, uv).xyz * 2.0 - vec3(1.0)), 1.0);"
     " }"
 };
 static const std::string DEFAULT_AMBIENT_OCCLUSION_BLURRED_SHADER{
     "vec4 getFragmentColor() {"
-    "    return vec4(vec3(texture(occlusionBlurredMap, uv).xyz), 1.0);"
+    "    return vec4(vec3(texture(debugTexture0, uv).xyz), 1.0);"
     " }"
 };
 
 static const std::string DEFAULT_VELOCITY_SHADER{
     "vec4 getFragmentColor() {"
-    "    return vec4(vec2(texture(velocityMap, uv).xy), 0.0, 1.0);"
+    "    return vec4(vec2(texture(debugTexture0, uv).xy), 0.0, 1.0);"
     " }"
 };
 
@@ -463,12 +436,9 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
             batch.setResourceTexture(Textures::DeferredDepth, deferredFramebuffer->getPrimaryDepthTexture());
             batch.setResourceTexture(Textures::DeferredLighting, deferredFramebuffer->getLightingTexture());
         }
-        if (velocityFramebuffer) {
-            batch.setResourceTexture(Textures::DebugVelocity, velocityFramebuffer->getVelocityTexture());
+        if (velocityFramebuffer && _mode == VelocityMode) {
+            batch.setResourceTexture(Textures::DebugTexture0, velocityFramebuffer->getVelocityTexture());
         }
-
-        // FIXME can't find the corresponding buffer
-        // batch.setUniformBuffer(UBOs:: DebugParametersBuffer, _parameters);
 
         auto lightStage = renderContext->_scene->getStage<LightStage>();
         assert(lightStage);
@@ -479,12 +449,17 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
             batch.setResourceTexture(Textures::Shadow, globalShadow->map);
             batch.setUniformBuffer(UBOs::ShadowParams, globalShadow->getBuffer());
             batch.setUniformBuffer(UBOs::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
+            batch.setUniformBuffer(UBOs::DebugDeferredParams, _parameters);
         }
 
         if (linearDepthTarget) {
-            batch.setResourceTexture(Textures::DebugDepth, linearDepthTarget->getLinearDepthTexture());
-            batch.setResourceTexture(Textures::DebugHalfDepth, linearDepthTarget->getHalfLinearDepthTexture());
-            batch.setResourceTexture(Textures::DebugHalfNormal, linearDepthTarget->getHalfNormalTexture());
+            if (_mode == DepthMode) {
+                batch.setResourceTexture(Textures::DebugTexture0, linearDepthTarget->getLinearDepthTexture());
+            } else if (_mode == HalfLinearDepthMode) {
+                batch.setResourceTexture(Textures::DebugTexture0, linearDepthTarget->getHalfLinearDepthTexture());
+            } else if (_mode == HalfNormalMode) {
+                batch.setResourceTexture(Textures::DebugTexture0, linearDepthTarget->getHalfNormalTexture());
+            }
         }
         if (surfaceGeometryFramebuffer) {
             batch.setResourceTexture(Textures::DeferredCurvature, surfaceGeometryFramebuffer->getCurvatureTexture());
@@ -492,9 +467,11 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
                                      surfaceGeometryFramebuffer->getLowCurvatureTexture());
         }
         if (ambientOcclusionFramebuffer) {
-            batch.setResourceTexture(Textures::DebugOcclusion, ambientOcclusionFramebuffer->getOcclusionTexture());
-            batch.setResourceTexture(Textures::DebugOcclusionBlurred,
-                                     ambientOcclusionFramebuffer->getOcclusionBlurredTexture());
+            if (_mode == AmbientOcclusionMode) {
+                batch.setResourceTexture(Textures::DebugTexture0, ambientOcclusionFramebuffer->getOcclusionTexture());
+            } else if (_mode == AmbientOcclusionBlurredMode) {
+                batch.setResourceTexture(Textures::DebugTexture0, ambientOcclusionFramebuffer->getOcclusionBlurredTexture());
+            }
         }
         const glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
         const glm::vec2 bottomLeft(_size.x, _size.y);
@@ -505,19 +482,14 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
         batch.setResourceTexture(Textures::DeferredNormal, nullptr);
         batch.setResourceTexture(Textures::DeferredSpecular, nullptr);
         batch.setResourceTexture(Textures::DeferredDepth, nullptr);
-        batch.setResourceTexture(Textures::DeferredLighting, nullptr);
-        batch.setResourceTexture(Textures::Shadow, nullptr);
-        batch.setResourceTexture(Textures::DebugDepth, nullptr);
-        batch.setResourceTexture(Textures::DebugHalfDepth, nullptr);
-        batch.setResourceTexture(Textures::DebugHalfNormal, nullptr);
-
         batch.setResourceTexture(Textures::DeferredCurvature, nullptr);
         batch.setResourceTexture(Textures::DeferredDiffusedCurvature, nullptr);
+        batch.setResourceTexture(Textures::DeferredLighting, nullptr);
 
-        batch.setResourceTexture(Textures::DebugOcclusion, nullptr);
-        batch.setResourceTexture(Textures::DebugOcclusionBlurred, nullptr);
+        for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
+            batch.setResourceTexture(Textures::Shadow + i, nullptr);
+        }
 
-        batch.setResourceTexture(Textures::DebugVelocity, nullptr);
-
+        batch.setResourceTexture(Textures::DebugTexture0, nullptr);
     });
 }

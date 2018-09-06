@@ -29,20 +29,23 @@ OtherAvatar::~OtherAvatar() {
 }
 
 void OtherAvatar::removeOrb() {
-    if (qApp->getOverlays().isAddedOverlay(_otherAvatarOrbMeshPlaceholderID)) {
+    if (!_otherAvatarOrbMeshPlaceholderID.isNull()) {
         qApp->getOverlays().deleteOverlay(_otherAvatarOrbMeshPlaceholderID);
+        _otherAvatarOrbMeshPlaceholderID = UNKNOWN_OVERLAY_ID;
     }
 }
 
 void OtherAvatar::updateOrbPosition() {
     if (_otherAvatarOrbMeshPlaceholder != nullptr) {
         _otherAvatarOrbMeshPlaceholder->setWorldPosition(getHead()->getPosition());
+        if (_otherAvatarOrbMeshPlaceholderID.isNull()) {
+            _otherAvatarOrbMeshPlaceholderID = qApp->getOverlays().addOverlay(_otherAvatarOrbMeshPlaceholder);
+        }
     }
 }
 
 void OtherAvatar::createOrb() {
-    if (_otherAvatarOrbMeshPlaceholderID == UNKNOWN_OVERLAY_ID ||
-        !qApp->getOverlays().isAddedOverlay(_otherAvatarOrbMeshPlaceholderID)) {
+    if (_otherAvatarOrbMeshPlaceholderID.isNull()) {
         _otherAvatarOrbMeshPlaceholder = std::make_shared<Sphere3DOverlay>();
         _otherAvatarOrbMeshPlaceholder->setAlpha(1.0f);
         _otherAvatarOrbMeshPlaceholder->setColor({ 0xFF, 0x00, 0xFF });

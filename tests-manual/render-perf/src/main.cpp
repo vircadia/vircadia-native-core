@@ -659,7 +659,7 @@ private:
         update();
 
         _initContext.makeCurrent();
-        RenderArgs renderArgs(_renderThread._gpuContext, DEFAULT_OCTREE_SIZE_SCALE, 0, RenderArgs::DEFAULT_RENDER_MODE,
+        RenderArgs renderArgs(_renderThread._gpuContext, DEFAULT_OCTREE_SIZE_SCALE, 0, getPerspectiveAccuracyAngleTan(DEFAULT_OCTREE_SIZE_SCALE, 0), RenderArgs::DEFAULT_RENDER_MODE,
                               RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
 
         QSize windowSize = _size;
