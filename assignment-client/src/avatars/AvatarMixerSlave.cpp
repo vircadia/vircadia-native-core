@@ -213,12 +213,13 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
 }
 
 AABox computeBubbleBox(const AvatarData& avatar, float bubbleExpansionFactor) {
-    glm::vec3 position = avatar.getClientGlobalPosition();
-    glm::vec3 scale = 2.0f * (avatar.getClientGlobalPosition()- avatar.getGlobalBoundingBoxCorner());
+    AABox box = avatar.getGlobalBoundingBox();
+    glm::vec3 scale = box.getScale();
     scale *= bubbleExpansionFactor;
     const glm::vec3 MIN_BUBBLE_SCALE(0.3f, 1.3f, 0.3);
     scale = glm::max(scale, MIN_BUBBLE_SCALE);
-    return AABox(position - 0.5f * scale, scale);
+    box.setScaleStayCentered(glm::max(scale, MIN_BUBBLE_SCALE));
+    return box;
 }
 
 void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node) {
@@ -295,7 +296,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             : _avatar(avatar), _node(avatarNode), _lastEncodeTime(lastEncodeTime) {}
         glm::vec3 getPosition() const override { return _avatar->getClientGlobalPosition(); }
         float getRadius() const override {
-            glm::vec3 nodeBoxHalfScale = _avatar->getClientGlobalPosition() - _avatar->getGlobalBoundingBoxCorner();
+            glm::vec3 nodeBoxHalfScale = 0.5f * _avatar->getGlobalBoundingBox().getScale();
             return glm::max(nodeBoxHalfScale.x, glm::max(nodeBoxHalfScale.y, nodeBoxHalfScale.z));
         }
         uint64_t getTimestamp() const override {
@@ -433,10 +434,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         }
 
         // determine if avatar is in view which determines how much data to send
-        glm::vec3 otherPosition = otherAvatar->getClientGlobalPosition();
-        glm::vec3 otherNodeBoxScale = otherPosition - otherNodeData->getGlobalBoundingBoxCorner();
-        AABox otherNodeBox(otherNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
-        bool isInView = nodeData->otherAvatarInView(otherNodeBox);
+        bool isInView = nodeData->otherAvatarInView(otherAvatar->getGlobalBoundingBox());
 
         // start a new segment in the PacketList for this avatar
         avatarPacketList->startSegment();
