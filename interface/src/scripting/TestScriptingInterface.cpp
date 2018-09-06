@@ -191,3 +191,11 @@ void TestScriptingInterface::saveObject(QVariant variant, const QString& filenam
 void TestScriptingInterface::showMaximized() {
     qApp->getWindow()->showMaximized();
 }
+
+void TestScriptingInterface::setOtherAvatarsReplicaCount(int count) {
+    qApp->setOtherAvatarsReplicaCount(count);
+}
+
+int TestScriptingInterface::getOtherAvatarsReplicaCount() {
+    return qApp->getOtherAvatarsReplicaCount();
+}

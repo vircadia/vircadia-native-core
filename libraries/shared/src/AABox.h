@@ -69,7 +69,7 @@ public:
 
     bool expandedContains(const glm::vec3& point, float expansion) const;
     bool expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& end, float expansion) const;
-    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
+    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& invDirection, float& distance,
                              BoxFace& face, glm::vec3& surfaceNormal) const;
     bool findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
                                   float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal) const;
@@ -85,8 +85,23 @@ public:
     AABox clamp(const glm::vec3& min, const glm::vec3& max) const;
     AABox clamp(float min, float max) const;
 
-    AABox& operator += (const glm::vec3& point);
-    AABox& operator += (const AABox& box);
+    inline AABox& operator+=(const glm::vec3& point) {
+        bool valid = !isInvalid();
+        glm::vec3 maximum = glm::max(_corner + _scale, point);
+        _corner = glm::min(_corner, point);
+        if (valid) {
+            _scale = maximum - _corner;
+        }
+        return (*this);
+    }
+
+    inline AABox& operator+=(const AABox& box) {
+        if (!box.isInvalid()) {
+            (*this) += box._corner;
+            (*this) += box.calcTopFarLeft();
+        }
+        return (*this);
+    }
 
     // Translate the AABox just moving the corner
     void translate(const glm::vec3& translation) { _corner += translation; }
@@ -114,7 +129,7 @@ public:
 
     static const glm::vec3 INFINITY_VECTOR;
 
-    bool isInvalid() const { return _corner == INFINITY_VECTOR; }
+    bool isInvalid() const { return _corner.x == std::numeric_limits<float>::infinity(); }
 
     void clear() { _corner = INFINITY_VECTOR; _scale = glm::vec3(0.0f); }
 

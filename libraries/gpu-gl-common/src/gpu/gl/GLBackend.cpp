@@ -765,7 +765,6 @@ void GLBackend::recycle() const {
     }
     
     _textureManagement._transferEngine->manageMemory();
-    Texture::KtxStorage::releaseOpenKtxFiles();
 }
 
 void GLBackend::setCameraCorrection(const Mat4& correction, const Mat4& prevRenderView, bool reset) {
