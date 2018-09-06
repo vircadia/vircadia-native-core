@@ -83,8 +83,8 @@ GLuint GL41Backend::getBufferID(const Buffer& buffer) {
     return GL41Buffer::getId<GL41Buffer>(*this, buffer);
 }
 
-GLuint GL41Backend::getBufferIDUnsafe(const Buffer& buffer) {
-    return GL41Backend::getBufferID(buffer);
+GLuint GL41Backend::getBufferIDUnsynced(const Buffer& buffer) {
+    return GL41Buffer::getIdUnsynced<GL41Buffer>(*this, buffer);
 }
 
 GLuint GL41Backend::getResourceBufferID(const Buffer& buffer) {

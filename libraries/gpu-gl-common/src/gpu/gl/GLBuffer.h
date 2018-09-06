@@ -50,13 +50,11 @@ public:
     }
 
     template <typename GLBufferType>
-    static GLuint getIdUnsafe(GLBackend& backend, const Buffer& buffer) {
+    static GLuint getIdUnsynced(GLBackend& backend, const Buffer& buffer) {
         GLBufferType* object = Backend::getGPUObject<GLBufferType>(buffer);
-
         if (object) {
             return object->_buffer;
-        }
-        else {
+        } else {
             return 0;
         }
     }
