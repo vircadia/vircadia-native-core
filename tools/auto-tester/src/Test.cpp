@@ -78,7 +78,7 @@ bool Test::compareImageLists() {
 
         double similarityIndex;  // in [-1.0 .. 1.0], where 1.0 means images are identical
 
-        bool isInteractiveMode = (!_isRunningFromCommandLine && _checkBoxInteractiveMode->isChecked());
+        bool isInteractiveMode = (!_isRunningFromCommandLine && _checkBoxInteractiveMode->isChecked() && !_isRunningInAutomaticTestRun);
                                  
         // similarityIndex is set to -100.0 to indicate images are not the same size
         if (isInteractiveMode && (resultImage.width() != expectedImage.width() || resultImage.height() != expectedImage.height())) {
@@ -178,14 +178,16 @@ void Test::appendTestResultsToFile(const QString& _testResultsFolderPath, TestFa
     comparisonImage.save(failureFolderPath + "/" + "Difference Image.png");
 }
 
-void Test::startTestsEvaluation(const bool isRunningFromCommandLine, 
-                                const QString& testFolder,
+void Test::startTestsEvaluation(const bool isRunningFromCommandLine,
+                                const bool isRunningInAutomaticTestRun, 
+                                const QString& snapshotDirectory,
                                 const QString& branchFromCommandLine,
                                 const QString& userFromCommandLine
 ) {
     _isRunningFromCommandLine = isRunningFromCommandLine;
+    _isRunningInAutomaticTestRun = isRunningInAutomaticTestRun;
 
-    if (testFolder.isNull()) {
+    if (snapshotDirectory.isNull()) {
         // Get list of JPEG images in folder, sorted by name
         QString previousSelection = _snapshotDirectory;
         QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
@@ -201,8 +203,8 @@ void Test::startTestsEvaluation(const bool isRunningFromCommandLine,
             return;
         }
     } else {
-        _snapshotDirectory = testFolder;
-        _exitWhenComplete = true;
+        _snapshotDirectory = snapshotDirectory;
+        _exitWhenComplete = (isRunningFromCommandLine && !isRunningInAutomaticTestRun);
     }
 
     // Quit if test results folder could not be created
@@ -254,7 +256,7 @@ void Test::startTestsEvaluation(const bool isRunningFromCommandLine,
 void Test::finishTestsEvaluation() {
     bool success = compareImageLists();
     
-    if (!_isRunningFromCommandLine) {
+    if (!_isRunningFromCommandLine && !_isRunningInAutomaticTestRun) {
         if (success) {
             QMessageBox::information(0, "Success", "All images are as expected");
         } else {
@@ -266,6 +268,10 @@ void Test::finishTestsEvaluation() {
 
     if (_exitWhenComplete) {
         exit(0);
+    }
+
+    if (_isRunningInAutomaticTestRun) {
+        autoTester->automaticTestRunEvaluationComplete();
     }
 }
 
@@ -313,7 +319,7 @@ void Test::includeTest(QTextStream& textStream, const QString& testPathname) {
 }
 
 void Test::createTests() {
-    // Rename files sequentially, as ExpectedResult_00000.jpeg, ExpectedResult_00001.jpg and so on
+    // Rename files sequentially, as ExpectedResult_00000.png, ExpectedResult_00001.png and so on
     // Any existing expected result images will be deleted
     QString previousSelection = _snapshotDirectory;
     QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));

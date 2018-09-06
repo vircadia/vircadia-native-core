@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
     autoTester->setup();
 
     if (!testFolder.isNull()) {
-        autoTester->runFromCommandLine(testFolder, branch, user);
+        autoTester->startTestsEvaluation(true ,false, testFolder, branch, user);
     } else {
         autoTester->show();
     }

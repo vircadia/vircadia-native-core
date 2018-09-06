@@ -30,7 +30,13 @@ public:
 
     void setup();
 
-    void runFromCommandLine(const QString& testFolder, const QString& branch, const QString& user);
+    void startTestsEvaluation(const bool isRunningFromCommandLine,
+                              const bool isRunningInAutomaticTestRun,
+                              const QString& snapshotDirectory,
+                              const QString& branch,
+                              const QString& user);
+
+    void automaticTestRunEvaluationComplete();
 
     void downloadFile(const QUrl& url);
     void downloadFiles(const QStringList& URLs, const QString& directoryName, const QStringList& filenames, void *caller);

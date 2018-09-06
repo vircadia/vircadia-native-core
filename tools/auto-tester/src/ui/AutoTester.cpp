@@ -32,7 +32,7 @@ AutoTester::AutoTester(QWidget* parent) : QMainWindow(parent) {
 #ifndef Q_OS_WIN
     _ui.tabWidget->removeTab(1);
 #endif
-
+   //// Coming soon...
    //// _helpWindow.textBrowser->setText()
 }
 
@@ -41,8 +41,12 @@ void AutoTester::setup() {
     _testRunner = new TestRunner();
 }
 
-void AutoTester::runFromCommandLine(const QString& testFolder, const QString& branch, const QString& user) {
-    _test->startTestsEvaluation(true, testFolder, branch, user);
+void AutoTester::startTestsEvaluation(const bool isRunningFromCommandLine,
+                                      const bool isRunningInAutomaticTestRun,
+                                      const QString& snapshotDirectory,
+                                      const QString& branch,
+                                      const QString& user) {
+    _test->startTestsEvaluation(isRunningFromCommandLine, isRunningInAutomaticTestRun, snapshotDirectory, branch, user);
 }
 
 void AutoTester::on_tabWidget_currentChanged(int index) {
@@ -56,7 +60,7 @@ void AutoTester::on_tabWidget_currentChanged(int index) {
 }
 
 void AutoTester::on_evaluateTestsButton_clicked() {
-    _test->startTestsEvaluation(false);
+    _test->startTestsEvaluation(false, false);
 }
 
 void AutoTester::on_createRecursiveScriptButton_clicked() {
@@ -101,6 +105,10 @@ void AutoTester::on_createTestRailRunButton_clicked() {
 
 void AutoTester::on_runNowButton_clicked() {
     _testRunner->run();
+}
+
+void AutoTester::automaticTestRunEvaluationComplete() {
+    _testRunner->automaticTestRunEvaluationComplete();
 }
 
 void AutoTester::on_updateTestRailRunResultsButton_clicked() {
