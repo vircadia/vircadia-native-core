@@ -10,6 +10,7 @@
 //
 #include "AndroidHelper.h"
 #include <QDebug>
+#include <AudioClient.h>
 #include "Application.h"
 
 #if defined(qApp)
@@ -18,6 +19,7 @@
 #define qApp (static_cast<Application*>(QCoreApplication::instance()))
 
 AndroidHelper::AndroidHelper() {
+    qRegisterMetaType<QAudio::Mode>("QAudio::Mode");
 }
 
 AndroidHelper::~AndroidHelper() {
@@ -55,4 +57,19 @@ void AndroidHelper::processURL(const QString &url) {
     if (qApp->canAcceptURL(url)) {
         qApp->acceptURL(url);
     }
+}
+
+void AndroidHelper::notifyHeadsetOn(bool pluggedIn) {
+#if defined (Q_OS_ANDROID)
+    auto audioClient = DependencyManager::get<AudioClient>();
+    if (audioClient) {
+        QAudioDeviceInfo activeDev =  audioClient->getActiveAudioDevice(QAudio::AudioInput);
+        Setting::Handle<bool> enableAEC(QStringList() << ANDROID_SETTINGS_GROUP << SETTING_AEC_KEY, false);
+        if ((pluggedIn || !enableAEC.get()) && !activeDev.isNull() && activeDev.deviceName() != VOICE_RECOGNITION) {
+            QMetaObject::invokeMethod(audioClient.get(), "switchAudioDevice", Q_ARG(QAudio::Mode, QAudio::AudioInput), Q_ARG(QString, VOICE_RECOGNITION));
+        } else if ( (!pluggedIn && enableAEC.get()) && !activeDev.isNull() && activeDev.deviceName() != VOICE_COMMUNICATION) {
+            QMetaObject::invokeMethod(audioClient.get(), "switchAudioDevice", Q_ARG(QAudio::Mode, QAudio::AudioInput), Q_ARG(QString, VOICE_COMMUNICATION));
+        }
+    }
+#endif
 }

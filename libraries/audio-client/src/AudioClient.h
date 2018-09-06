@@ -64,6 +64,14 @@
 #pragma warning( pop )
 #endif
 
+#if defined (Q_OS_ANDROID)
+#define VOICE_RECOGNITION "voicerecognition"
+#define VOICE_COMMUNICATION "voicecommunication"
+
+#define ANDROID_SETTINGS_GROUP "Android"
+#define SETTING_AEC_KEY "aec"
+#endif
+
 class QAudioInput;
 class QAudioOutput;
 class QIODevice;

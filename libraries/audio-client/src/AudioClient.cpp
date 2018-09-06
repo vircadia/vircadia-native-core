@@ -53,7 +53,6 @@
 #include "AudioHelpers.h"
 
 #if defined(Q_OS_ANDROID)
-#define VOICE_RECOGNITION "voicerecognition"
 #include <QtAndroidExtras/QAndroidJniObject>
 #endif
 
@@ -451,9 +450,12 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
 
 #if defined (Q_OS_ANDROID)
     if (mode == QAudio::AudioInput) {
+        Setting::Handle<bool> enableAEC(QStringList() << ANDROID_SETTINGS_GROUP << SETTING_AEC_KEY, false);
+        bool aecEnabled = enableAEC.get();
         auto inputDevices = QAudioDeviceInfo::availableDevices(QAudio::AudioInput);
         for (auto inputDevice : inputDevices) {
-            if (inputDevice.deviceName() == VOICE_RECOGNITION) {
+            if ((aecEnabled && inputDevice.deviceName() == VOICE_COMMUNICATION) ||
+                    (!aecEnabled && inputDevice.deviceName() == VOICE_RECOGNITION)) {
                 return inputDevice;
             }
         }
