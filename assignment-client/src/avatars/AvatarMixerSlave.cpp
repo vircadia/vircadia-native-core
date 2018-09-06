@@ -425,6 +425,11 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         // NOTE: Here's where we determine if we are over budget and drop to bare minimum data
         int minimRemainingAvatarBytes = minimumBytesPerAvatar * remainingAvatars;
         bool overBudget = (identityBytesSent + numAvatarDataBytes + minimRemainingAvatarBytes) > maxAvatarBytesPerFrame;
+        if (overBudget) {
+            _stats.overBudgetAvatars += remainingAvatars + 1;
+            overBudgetAvatars += remainingAvatars + 1;
+            break;
+        }
 
         auto startAvatarDataPacking = chrono::high_resolution_clock::now();
 
