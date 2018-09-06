@@ -186,7 +186,7 @@ void AmbientOcclusionEffect::configure(const Config& config) {
 
     if (config.obscuranceLevel != _parametersBuffer->getObscuranceLevel()) {
         auto& current = _parametersBuffer.edit().radiusInfo;
-        current.w = config.obscuranceLevel;
+        current.w = config.obscuranceLevel * 10.0;
     }
 
     if (config.falloffBias != _parametersBuffer->getFalloffBias()) {
@@ -343,12 +343,6 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 
     auto framebufferSize = _framebuffer->getSourceFrameSize();
     
-    float sMin = occlusionViewport.x / (float)framebufferSize.x;
-    float sWidth = occlusionViewport.z / (float)framebufferSize.x;
-    float tMin = occlusionViewport.y / (float)framebufferSize.y;
-    float tHeight = occlusionViewport.w / (float)framebufferSize.y;
-
-
     auto occlusionPipeline = getOcclusionPipeline();
     auto firstHBlurPipeline = getHBlurPipeline();
     auto lastVBlurPipeline = getVBlurPipeline();
@@ -372,10 +366,6 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 		batch.setPipeline(mipCreationPipeline);
 		batch.generateTextureMipsWithPipeline(_framebuffer->getLinearDepthTexture());
 		batch.popProfileRange();
-
-		model.setTranslation(glm::vec3(sMin, tMin, 0.0f));
-        model.setScale(glm::vec3(sWidth, tHeight, 1.0f));
-        batch.setModelTransform(model);
 
         batch.setUniformBuffer(render_utils::slot::buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
         batch.setUniformBuffer(render_utils::slot::buffer::SsaoParams, _parametersBuffer);

@@ -64,7 +64,7 @@ void main(void) {
 #endif
     }
 
-    float occlusion = max(0.0, 1.0 - visibilitySum * getObscuranceScaling() * 5.0 * getInvNumSamples());
+    float occlusion = clamp(1.0 - visibilitySum * getObscuranceScaling() * getInvNumSamples(), 0.0, 1.0);
 
      // KEEP IT for Debugging
     // Bilateral box-filter over a quad for free, respecting depth edges

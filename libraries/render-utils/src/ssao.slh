@@ -412,7 +412,7 @@ vec2 fetchOcclusionDepth(ivec2 coords) {
 
 const int RADIUS_SCALE = 1;
 const float BLUR_WEIGHT_OFFSET = 0.05;
-const float BLUR_EDGE_SCALE = 2000.0;
+const float BLUR_EDGE_SCALE = 5000.0;
 
 vec2 evalTapWeightedValue(ivec3 side, int r, ivec2 ssC, float key) {
     ivec2 tapOffset = <$axis$> * (r * RADIUS_SCALE);
