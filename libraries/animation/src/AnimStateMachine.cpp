@@ -87,10 +87,13 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, co
     }
     processOutputJoints(triggersOut);
 
+    context.addStateMachineInfo(_id, _currentState->getID(), _previousState->getID(), _duringInterp, _alpha);
+
     return _poses;
 }
 
 void AnimStateMachine::setCurrentState(State::Pointer state) {
+    _previousState = _currentState ? _currentState : state;
     _currentState = state;
 }
 
@@ -135,7 +138,7 @@ void AnimStateMachine::switchState(const AnimVariantMap& animVars, const AnimCon
     qCDebug(animation) << "AnimStateMachine::switchState:" << _currentState->getID() << "->" << desiredState->getID() << "duration =" << duration << "targetFrame =" << desiredState->_interpTarget << "interpType = " << (int)_interpType;
 #endif
 
-    _currentState = desiredState;
+    setCurrentState(desiredState);
 }
 
 AnimStateMachine::State::Pointer AnimStateMachine::evaluateTransitions(const AnimVariantMap& animVars) const {

@@ -225,6 +225,7 @@ public:
     // used to debug animation playback
     const AnimContext::DebugAlphaMap& getDebugAlphaMap() const { return _lastContext.getDebugAlphaMap(); }
     const AnimVariantMap& getAnimVars() const { return _lastAnimVars; }
+    const AnimContext::DebugStateMachineMap& getStateMachineMap() const { return _lastContext.getStateMachineMap(); }
 
     void toggleSmoothPoleVectors() { _smoothPoleVectors = !_smoothPoleVectors; };
 signals:

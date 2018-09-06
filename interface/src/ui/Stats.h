@@ -184,6 +184,7 @@ class Stats : public QQuickItem {
     HIFI_QML_DECL
     Q_PROPERTY(bool expanded READ isExpanded WRITE setExpanded NOTIFY expandedChanged)
     Q_PROPERTY(bool timingExpanded READ isTimingExpanded NOTIFY timingExpandedChanged)
+
     Q_PROPERTY(QString monospaceFont READ monospaceFont CONSTANT)
 
     STATS_PROPERTY(int, serverCount, 0)
@@ -294,6 +295,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(float, avatarSimulationTime, 0)
     Q_PROPERTY(QStringList animAlphaValues READ animAlphaValues NOTIFY animAlphaValuesChanged)
     Q_PROPERTY(QStringList animVars READ animVars NOTIFY animVarsChanged)
+    Q_PROPERTY(QStringList animStateMachines READ animStateMachines NOTIFY animStateMachinesChanged)
 
     STATS_PROPERTY(int, stylusPicksCount, 0)
     STATS_PROPERTY(int, rayPicksCount, 0)
@@ -329,6 +331,7 @@ public:
     QStringList downloadUrls () { return _downloadUrls; }
     QStringList animAlphaValues() { return _animAlphaValues; }
     QStringList animVars() { return _animVarsList; }
+    QStringList animStateMachines() { return _animStateMachines; }
 
 public slots:
     void forceUpdateStats() { updateStats(true); }
@@ -1032,6 +1035,7 @@ signals:
 
     void animAlphaValuesChanged();
     void animVarsChanged();
+    void animStateMachinesChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>rectifiedTextureCount</code> property changes.
@@ -1333,15 +1337,17 @@ private:
     bool _showGameUpdateStats{ false };
     QString _monospaceFont;
     const AudioIOStats* _audioStats;
-    QStringList _downloadUrls = QStringList();
+    QStringList _downloadUrls;
 
-    QStringList _animAlphaValues = QStringList();
+    QStringList _animAlphaValues;
     AnimContext::DebugAlphaMap _prevDebugAlphaMap;  // alpha values from previous frame
     std::map<QString, qint64> _animAlphaValueChangedTimers; // last time alpha value has changed
 
-    QStringList _animVarsList = QStringList();
+    QStringList _animVarsList;
     std::map<QString, QString> _prevAnimVars;  // anim vars from previous frame
     std::map<QString, qint64> _animVarChangedTimers; // last time animVar value has changed.
+
+    QStringList _animStateMachines;
 };
 
 #endif // hifi_Stats_h

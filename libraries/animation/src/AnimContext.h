@@ -64,6 +64,19 @@ public:
         return _debugAlphaMap;
     }
 
+    using DebugStateMachineMapValue = QString;
+    using DebugStateMachineMap = std::map<QString, DebugStateMachineMapValue>;
+
+    void addStateMachineInfo(const QString& stateMachineName, const QString& currentState, const QString& previousState, bool duringInterp, float alpha) const {
+        if (duringInterp) {
+            _stateMachineMap[stateMachineName] = QString("%1: %2 -> %3 (%4)").arg(stateMachineName).arg(previousState).arg(currentState).arg(QString::number(alpha, 'f', 2));
+        } else {
+            _stateMachineMap[stateMachineName] = QString("%1: %2").arg(stateMachineName).arg(currentState);
+        }
+    }
+
+    const DebugStateMachineMap& getStateMachineMap() const { return _stateMachineMap; }
+
 protected:
 
     bool _enableDebugDrawIKTargets { false };
@@ -74,6 +87,7 @@ protected:
 
     // used for debugging internal state of animation system.
     mutable DebugAlphaMap _debugAlphaMap;
+    mutable DebugStateMachineMap _stateMachineMap;
 };
 
 #endif  // hifi_AnimContext_h

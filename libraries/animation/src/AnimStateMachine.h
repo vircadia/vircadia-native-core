@@ -140,6 +140,7 @@ protected:
     AnimPoseVec _nextPoses;
 
     State::Pointer _currentState;
+    State::Pointer _previousState;
     std::vector<State::Pointer> _states;
 
     QString _currentStateVar;

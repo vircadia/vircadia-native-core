@@ -239,7 +239,7 @@ void Stats::updateStats(bool force) {
             if (secondsElapsed < LIT_TIME) {
                 grayScale = 1.0f;
             } else if (secondsElapsed < LIT_TIME + FADE_OUT_TIME) {
-                grayScale = (LIT_TIME - (secondsElapsed - FADE_OUT_TIME)) / LIT_TIME;
+                grayScale = (FADE_OUT_TIME - (secondsElapsed - LIT_TIME)) / FADE_OUT_TIME;
             } else {
                 grayScale = 0.0f;
             }
@@ -283,7 +283,7 @@ void Stats::updateStats(bool force) {
         if (secondsElapsed < LIT_TIME) {
             grayScale = 1.0f;
         } else if (secondsElapsed < LIT_TIME + FADE_OUT_TIME) {
-            grayScale = (LIT_TIME - (secondsElapsed - FADE_OUT_TIME)) / LIT_TIME;
+            grayScale = (FADE_OUT_TIME - (secondsElapsed - LIT_TIME)) / FADE_OUT_TIME;
         } else {
             grayScale = 0.0f;
         }
@@ -295,6 +295,14 @@ void Stats::updateStats(bool force) {
     }
     _prevAnimVars = animVars;
     emit animVarsChanged();
+
+    // animation state machines
+    _animStateMachines.clear();
+    auto stateMachineMap = myAvatar->getSkeletonModel()->getRig().getStateMachineMap();
+    for (auto& iter : stateMachineMap) {
+        _animStateMachines << iter.second;
+    }
+    emit animStateMachinesChanged();
 
     glm::vec3 avatarPos = myAvatar->getWorldPosition();
     STAT_UPDATE(position, QVector3D(avatarPos.x, avatarPos.y, avatarPos.z));

@@ -193,6 +193,25 @@ Item {
                         text: "Yaw: " + root.yaw.toFixed(1)
                     }
                     StatText {
+                        visible: root.animStateMachines.length > 0;
+                        text: "Anim State Machines:"
+                    }
+                    ListView {
+                        width: geoCol.width
+                        height: root.animStateMachines.length * 15
+                        visible: root.animStateMchines.length > 0;
+                        model: root.animStateMachines
+                        delegate: StatText {
+                            text: {
+                                if (modelData.length > 30) {
+                                    return modelData.substring(0, 5) + "..." + modelData.substring(.length - 22);
+                                } else {
+                                    return modelData;
+                                }
+                            }
+                        }
+                    }
+                    StatText {
                         visible: root.animAlphaValues.length > 0;
                         text: "Anim Alpha Values:"
                     }
@@ -216,9 +235,11 @@ Item {
                             }
                             color: {
                                 var grayScale = parseFloat(modelData.split("|")[0]);
-                                return Qt.rgba(0.3 * grayScale + 0.7,
-                                               0.3 * grayScale + 0.7,
-                                               0.3 * grayScale + 0.7, 1.0);
+                                return Qt.rgba(1.0, 1.0, 1.0, grayScale);
+                            }
+                            styleColor: {
+                                var grayScale = parseFloat(modelData.split("|")[0]);
+                                return Qt.rgba(0.0, 0.0, 0.0, grayScale);
                             }
                         }
                     }
@@ -246,9 +267,11 @@ Item {
                             }
                             color: {
                                 var grayScale = parseFloat(modelData.split("|")[0]);
-                                return Qt.rgba(0.3 * grayScale + 0.7,
-                                               0.3 * grayScale + 0.7,
-                                               0.3 * grayScale + 0.7, 1.0);
+                                return Qt.rgba(1.0, 1.0, 1.0, grayScale);
+                            }
+                            styleColor: {
+                                var grayScale = parseFloat(modelData.split("|")[0]);
+                                return Qt.rgba(0.0, 0.0, 0.0, grayScale);
                             }
                         }
                     }
