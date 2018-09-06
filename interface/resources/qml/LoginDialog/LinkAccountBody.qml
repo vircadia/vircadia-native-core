@@ -143,6 +143,9 @@ Item {
             linkColor: hifi.colors.blueAccent
 
             onLinkActivated: loginDialog.openUrl(link)
+            Component.onCompleted: {
+                forgotUsernameShortcut.x = root.implicitWidth - forgotUsernameShortcut.width;
+            }
         }
 
         TextField {
@@ -210,6 +213,9 @@ Item {
             linkColor: hifi.colors.blueAccent
 
             onLinkActivated: loginDialog.openUrl(link)
+            Component.onCompleted: {
+                forgotPasswordShortcut.x = root.implicitWidth - forgotPasswordShortcut.width;
+            }
         }
 
         InfoItem {
