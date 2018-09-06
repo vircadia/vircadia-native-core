@@ -86,7 +86,7 @@ Item {
         width: 48
         height: 48
     }
-    
+
     ShortcutText {
         id: mainTextContainer
         anchors {
@@ -142,6 +142,7 @@ Item {
 
                 onLinkActivated: loginDialog.openUrl(link)
             }
+
             onFocusChanged: {
                 root.text = "";
             }
@@ -151,7 +152,6 @@ Item {
             id: passwordField
             width: parent.width
             placeholderText: "Password"
-            echoMode: showPassword.checked ? TextInput.Normal : TextInput.Password
             activeFocusOnPress: true
 
             ShortcutText {
@@ -177,12 +177,34 @@ Item {
                 root.isPassword = true;
             }
 
-            Keys.onReturnPressed: linkAccountBody.login()
-        }
+            Image {
+                id: showPasswordImage
+                x: parent.width - 40
+                height: parent.height
+                width: parent.width - (parent.width - 40)
+                source: "../../images/eyeOpen.svg"
+            }
 
-        CheckBox {
-            id: showPassword
-            text: "Show password"
+            Rectangle {
+                z: 10
+                x: parent.width - 40
+                width: parent.width - (parent.width - 40)
+                height: parent.height
+                color: "transparent"
+                MouseArea {
+                    id: passwordFieldMouseArea
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton
+                    property bool showPassword: false
+                    onClicked: {
+                        showPassword = !showPassword;
+                        passwordField.echoMode = showPassword ? TextInput.Normal : TextInput.Password;
+                        showPasswordImage.source = showPassword ?  "../../images/eyeClosed.svg" : "../../images/eyeOpen.svg";
+                    }
+                }
+            }
+
+            Keys.onReturnPressed: linkAccountBody.login()
         }
 
         InfoItem {
