@@ -22,30 +22,16 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
     
     var elTopBuffer = null;
     var elBottomBuffer = null;
-    
-    var itemData = {};
+
+    var visibleItemData = [];
     
     var rowOffset = 0;
     var numRows = 0;
     var rowHeight = 0;
     var lastRowChangeScrollTop = 0;
     
-    that.addItem = function(id, data) {
-        if (itemData[id] === undefined) {
-            itemData[id] = data;
-        }
-    };
-    
-    that.updateItem = function(id, data) {
-        if (itemData[id] !== undefined) {
-
-        }
-    };
-    
-    that.removeItem = function(id) {
-        if (itemData[id] !== undefined) {
-            delete itemData[id];
-        }
+    that.setVisibleItemData = function(itemData) {
+        visibleItemData = itemData;
     };
     
     that.clear = function() {
@@ -63,23 +49,16 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
         
     };
     
-    that.scrollDown = function(numScrollRows) {             
+    that.scrollDown = function(numScrollRows) {     
         var prevTopHeight = parseInt(elTopBuffer.getAttribute("height"));
         var prevBottomHeight =  parseInt(elBottomBuffer.getAttribute("height"));
         
         for (var i = 0; i < numScrollRows; i++) {
-            var topRow = elTableBody.childNodes[FIRST_ROW_INDEX];
-            elTableBody.removeChild(topRow);
-            elTableBody.insertBefore(topRow, elBottomBuffer);
-            var rowIndex = 0;
-            for (var id in itemData) {
-                if (rowIndex === numRows + rowOffset) {
-                    topRow.setAttribute("id", id);
-                    updateRowFunction(topRow, itemData[id]);
-                    break;
-                }
-                rowIndex++;
-            }
+            var rowMovedTopToBottom = elTableBody.childNodes[FIRST_ROW_INDEX];
+            var rowIndex = numRows + rowOffset;
+            elTableBody.removeChild(rowMovedTopToBottom);
+            elTableBody.insertBefore(rowMovedTopToBottom, elBottomBuffer);
+            updateRowFunction(rowMovedTopToBottom, visibleItemData[rowIndex]);
             rowOffset++;
         }
         
@@ -90,24 +69,17 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
         lastRowChangeScrollTop += rowHeight * numScrollRows;
     };
     
-    that.scrollUp = function(numScrollRows) {    
+    that.scrollUp = function(numScrollRows) {
         var prevTopHeight = parseInt(elTopBuffer.getAttribute("height"));
         var prevBottomHeight =  parseInt(elBottomBuffer.getAttribute("height"));
-        
+
         for (var i = 0; i < numScrollRows; i++) {
             var topRow = elTableBody.childNodes[FIRST_ROW_INDEX];
-            var bottomRow = elTableBody.childNodes[FIRST_ROW_INDEX + numRows - 1];
-            elTableBody.removeChild(bottomRow);
-            elTableBody.insertBefore(bottomRow, topRow);
-            var rowIndex = 0;
-            for (var id in itemData) {
-                if (rowIndex === rowOffset - 1) {
-                    bottomRow.setAttribute("id", id);
-                    updateRowFunction(bottomRow, itemData[id]);
-                    break;
-                }
-                rowIndex++;
-            }
+            var rowMovedBottomToTop = elTableBody.childNodes[FIRST_ROW_INDEX + numRows - 1];
+            var rowIndex = rowOffset - 1;
+            elTableBody.removeChild(rowMovedBottomToTop);
+            elTableBody.insertBefore(rowMovedBottomToTop, topRow);
+            updateRowFunction(rowMovedBottomToTop, visibleItemData[rowIndex]);
             rowOffset--;
         }
         
@@ -121,14 +93,14 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
     that.onScroll = function()  {
         var scrollTop = elTableScroll.scrollTop;
         var nextRowChangeScrollTop = lastRowChangeScrollTop + (rowHeight * SCROLL_ROWS);
-        var totalItems = Object.keys(itemData).length;
         var scrollHeight = rowHeight * SCROLL_ROWS;
+        var totalItems = visibleItemData.length;
         
         if (scrollTop >= nextRowChangeScrollTop && numRows + rowOffset < totalItems) {
             var numScrolls = Math.ceil((scrollTop - nextRowChangeScrollTop) / scrollHeight);
             var numScrollRows = numScrolls * SCROLL_ROWS;
-            if (numScrollRows + rowOffset > totalItems) {
-                numScrollRows = totalItems - rowOffset;
+            if (numScrollRows + rowOffset + numRows > totalItems) {
+                numScrollRows = totalItems - rowOffset - numRows;
             }
             that.scrollDown(numScrollRows);
         } else if (scrollTop < lastRowChangeScrollTop && rowOffset >= SCROLL_ROWS) {
@@ -142,25 +114,23 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
     };
     
     that.refresh = function() {
-        var rowIndex = 0;
-        for (var id in itemData) {
-            if (rowIndex >= rowOffset) {
-                var rowElementIndex = rowIndex + FIRST_ROW_INDEX;
-                var elRow = elTableBody.childNodes[rowElementIndex];
-                var data = itemData[id];
-                elRow.setAttribute("id", id);
-                updateRowFunction(elRow, data); 
-            }           
-            
-            rowIndex++;
-            
-            if (rowIndex - rowOffset === numRows) {
-                break;
-            }
+        // block refreshing before rows are initialized
+        if (numRows === 0) {
+            return;
         }
         
-        var totalItems = Object.keys(itemData).length;
-        var bottomHiddenRows = totalItems - numRows - rowOffset;
+        for (var i = 0; i < numRows; i++) {
+            var rowIndex = i + rowOffset;
+            if (rowIndex >= visibleItemData.length) {
+                break;
+            }
+            var rowElementIndex = i + FIRST_ROW_INDEX;
+            var elRow = elTableBody.childNodes[rowElementIndex];
+            var itemData = visibleItemData[rowIndex];
+            updateRowFunction(elRow, itemData);          
+        }
+        
+        var bottomHiddenRows = visibleItemData.length - numRows - rowOffset;
         var bottomBufferHeight = rowHeight * bottomHiddenRows;
         if (bottomHiddenRows < 0) {
             bottomBufferHeight = 0;
