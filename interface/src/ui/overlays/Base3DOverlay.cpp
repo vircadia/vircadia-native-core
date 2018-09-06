@@ -351,7 +351,7 @@ void Base3DOverlay::setVisible(bool visible) {
 QString Base3DOverlay::getName() const {
     return _nameLock.resultWithReadLock<QString>([&] {
         return QString("Overlay:") + _name;
-    }
+    });
 }
 
 void Base3DOverlay::setName(QString name) {
