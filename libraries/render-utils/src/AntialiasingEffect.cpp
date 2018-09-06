@@ -90,7 +90,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         batch.setViewportTransform(args->_viewport);
 
         if (!_paramsBuffer) {
-            _paramsBuffer = std::make_shared<gpu::Buffer>(sizeof(glm::vec2), nullptr);
+            _paramsBuffer = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), nullptr);
         }
 
         {
@@ -109,7 +109,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
                 _antialiasingBuffer->setRenderBuffer(0, _antialiasingTexture);
                 glm::vec2 fbExtent { args->_viewport.z, args->_viewport.w };
                 glm::vec2 inverseFbExtent = 1.0f / fbExtent;
-                _paramsBuffer->setSubData(0, inverseFbExtent);
+                _paramsBuffer->setSubData(0, glm::vec4(inverseFbExtent, 0.0, 0.0));
             }
         }
 
@@ -280,7 +280,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
             batch.setResourceFramebufferSwapChainTexture(0, _antialiasingBuffers, 1);
             // Disable sharpen if FXAA
             if (!_blendParamsBuffer) {
-                _blendParamsBuffer = std::make_shared<gpu::Buffer>(sizeof(float), nullptr);
+                _blendParamsBuffer = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), nullptr);
             }
             _blendParamsBuffer->setSubData(0, _sharpen * _params.get().regionInfo.z);
             batch.setUniformBuffer(0, _blendParamsBuffer);

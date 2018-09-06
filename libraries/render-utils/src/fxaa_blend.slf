@@ -20,7 +20,7 @@ layout(location=0) out vec4 outFragColor;
 layout(binding=0) uniform sampler2D colorTexture;
 
 struct FxaaBlendParams {
-    float sharpenIntensity;
+    vec4 sharpenIntensity;
 };
 
 layout(binding=0) uniform fxaaBlendParamsBuffer {
@@ -46,5 +46,5 @@ void main(void) {
 
     vec4 minColor = max(vec4(0), pixels[4]-vec4(0.5));
     vec4 maxColor = pixels[4]+vec4(0.5);
-    outFragColor = clamp(pixels[4] + sharpenedPixel * params.sharpenIntensity, minColor, maxColor);
+    outFragColor = clamp(pixels[4] + sharpenedPixel * params.sharpenIntensity.x, minColor, maxColor);
 }

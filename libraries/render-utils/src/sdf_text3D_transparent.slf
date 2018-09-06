@@ -17,7 +17,7 @@ layout(binding=0) uniform sampler2D Font;
 
 struct TextParams {
     vec4 color;
-    float outline;
+    vec4 outline;
 };
 
 layout(binding=0) uniform textParamsBuffer {
@@ -38,7 +38,7 @@ const float outlineExpansion = 0.2;
 void main() {
     // retrieve signed distance
     float sdf = texture(Font, _texCoord0).g;
-    if (params.outline > 0.0) {
+    if (params.outline.x > 0.0) {
         if (sdf > interiorCutoff) {
             sdf = 1.0 - sdf;
         } else {

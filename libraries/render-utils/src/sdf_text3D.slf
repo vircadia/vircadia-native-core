@@ -17,7 +17,7 @@ layout(binding=0) uniform sampler2D Font;
 
 struct TextParams {
     vec4 color;
-    float outline;
+    vec4 outline;
 };
 
 layout(binding=0) uniform textParamsBuffer {
@@ -39,7 +39,7 @@ const float taaBias = pow(2.0, TAA_TEXTURE_LOD_BIAS);
 float evalSDF(vec2 texCoord) {
     // retrieve signed distance
     float sdf = textureLod(Font, texCoord, TAA_TEXTURE_LOD_BIAS).g;
-    if (params.outline > 0.0) {
+    if (params.outline.x > 0.0) {
         if (sdf > interiorCutoff) {
             sdf = 1.0 - sdf;
         } else {

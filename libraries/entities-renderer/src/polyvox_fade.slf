@@ -28,7 +28,7 @@ layout(binding=ENTITIES_TEXTURE_POLYVOX_YMAP) uniform sampler2D yMap;
 layout(binding=ENTITIES_TEXTURE_POLYVOX_ZMAP) uniform sampler2D zMap;
 
 struct PolyvoxParams {
-    vec3 voxelVolumeSize;
+    vec4 voxelVolumeSize;
 };
 
 layout(binding=0) uniform polyvoxParamsBuffer {

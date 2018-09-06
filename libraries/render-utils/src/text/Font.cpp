@@ -356,7 +356,7 @@ void Font::drawString(gpu::Batch& batch, Font::DrawInfo& drawInfo, const QString
 
     struct GpuDrawParams {
         glm::vec4 color;
-        float outline;
+        glm::vec4 outline;
     };
 
     if (!drawInfo.paramsBuffer || drawInfo.params.color != color || drawInfo.params.effect != effectType) {
@@ -364,7 +364,7 @@ void Font::drawString(gpu::Batch& batch, Font::DrawInfo& drawInfo, const QString
         drawInfo.params.effect = effectType;
         GpuDrawParams gpuDrawParams;
         gpuDrawParams.color = ColorUtils::sRGBToLinearVec4(drawInfo.params.color);
-        gpuDrawParams.outline = (drawInfo.params.effect == OUTLINE_EFFECT) ? 1 : 0;
+        gpuDrawParams.outline.x = (drawInfo.params.effect == OUTLINE_EFFECT) ? 1 : 0;
         drawInfo.paramsBuffer = std::make_shared<gpu::Buffer>(sizeof(GpuDrawParams), nullptr);
         drawInfo.paramsBuffer->setSubData(0, sizeof(GpuDrawParams), (const gpu::Byte*)&gpuDrawParams);
     }

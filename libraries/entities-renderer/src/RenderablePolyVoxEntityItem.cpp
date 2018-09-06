@@ -1609,7 +1609,7 @@ PolyVoxEntityRenderer::PolyVoxEntityRenderer(const EntityItemPointer& entity) : 
         _vertexFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
         _vertexFormat->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 12);
     });
-    _params = std::make_shared<gpu::Buffer>(sizeof(glm::vec3), nullptr);
+    _params = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), nullptr);
 }
 
 ShapeKey PolyVoxEntityRenderer::getShapeKey() {
@@ -1673,7 +1673,7 @@ void PolyVoxEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& s
 void PolyVoxEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     _lastVoxelToWorldMatrix = entity->voxelToWorldMatrix();
     _lastVoxelVolumeSize = entity->getVoxelVolumeSize();
-    _params->setSubData(0, _lastVoxelVolumeSize);
+    _params->setSubData(0, vec4(_lastVoxelVolumeSize, 0.0));
     graphics::MeshPointer newMesh;
     entity->withReadLock([&] {
         newMesh = entity->_mesh;
