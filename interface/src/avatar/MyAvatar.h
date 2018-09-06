@@ -1788,6 +1788,7 @@ private:
     ThreadSafeValueCache<float> _walkBackwardSpeed { DEFAULT_AVATAR_MAX_WALKING_BACKWARD_SPEED };
     ThreadSafeValueCache<float> _sprintSpeed { AVATAR_SPRINT_SPEED_SCALAR };
     float _walkSpeedScalar { AVATAR_WALK_SPEED_SCALAR };
+    bool _isInWalkingState { false };
 
     // load avatar scripts once when rig is ready
     bool _shouldLoadScripts { false };

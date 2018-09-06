@@ -516,6 +516,10 @@ void MyAvatar::update(float deltaTime) {
     head->relax(deltaTime);
     updateFromTrackers(deltaTime);
 
+    if (_isInWalkingState && glm::length(getControllerPoseInAvatarFrame(controller::Action::HEAD).getVelocity()) < 0.15f) {
+        _isInWalkingState = false;
+    }
+
     //  Get audio loudness data from audio input device
     // Also get the AudioClient so we can update the avatar bounding box data
     // on the AudioClient side.
@@ -3912,7 +3916,7 @@ void MyAvatar::lateUpdatePalms() {
     Avatar::updatePalms();
 }
 
-static const float FOLLOW_TIME = 0.1f;
+static const float FOLLOW_TIME = 0.5f;
 
 MyAvatar::FollowHelper::FollowHelper() {
     deactivate();
@@ -4002,7 +4006,8 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontalCG(MyAvatar& myAvatar) cons
     controller::Pose currentLeftHandPose = myAvatar.getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND);
     controller::Pose currentRightHandPose = myAvatar.getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND);
 
-    
+    qCDebug(interfaceapp) << "currentVelocity is " <<currentHeadPose.velocity;
+
     bool stepDetected = false;
     float myScale = myAvatar.getAvatarScale();
     if (!withinBaseOfSupport(currentHeadPose) &&
@@ -4014,6 +4019,9 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontalCG(MyAvatar& myAvatar) cons
             isHeadLevel(currentHeadPose, myAvatar.getAverageHeadRotation())) {
         // a step is detected
         stepDetected = true;
+        if (glm::length(currentHeadPose.velocity) > 0.15f) {
+            myAvatar._isInWalkingState = true;
+        }
     } else {
         glm::vec3 defaultHipsPosition = myAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar.getJointIndex("Hips"));
         glm::vec3 defaultHeadPosition = myAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar.getJointIndex("Head"));
@@ -4024,6 +4032,9 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontalCG(MyAvatar& myAvatar) cons
             myAvatar.setResetMode(true);
             qCDebug(interfaceapp) << "failsafe called, default back " << anatomicalHeadToHipsDistance << " scale " << myAvatar.getAvatarScale() << " current length " << glm::length(currentHeadPosition - defaultHipsPosition);
             stepDetected = true;
+            if (glm::length(currentHeadPose.velocity) > 0.15f) {
+                myAvatar._isInWalkingState = true;
+            }
         }
         qCDebug(interfaceapp) << "current head height " << currentHeadPose.getTranslation().y << " scale " << myAvatar.getAvatarScale() << " anatomical " << anatomicalHeadToHipsDistance;
     }
