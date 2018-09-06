@@ -72,14 +72,14 @@ GLBuffer* GLESBackend::syncGPUObject(const Buffer& buffer) {
     return GLESBuffer::sync<GLESBuffer>(*this, buffer);
 }
 
-bool GLESBackend::bindResourceBuffer(uint32_t slot, BufferPointer& buffer) {
+bool GLESBackend::bindResourceBuffer(uint32_t slot, const BufferPointer& buffer) {
     GLBuffer* object = syncGPUObject((*buffer));
     if (object) {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, slot, object->_id);
 
         (void)CHECK_GL_ERROR();
 
-        _resource._buffers[slot] = buffer;
+        assign(_resource._buffers[slot], buffer);
 
         return true;
     }
@@ -91,7 +91,7 @@ void GLESBackend::releaseResourceBuffer(uint32_t slot) {
     auto& buf = _resource._buffers[slot];
     if (buf) {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, slot, 0);
-        buf.reset();
+        reset(buf);
     }
 }
 
