@@ -29,7 +29,7 @@ void TestRunner::run() {
 
     // This will be restored at the end of the tests
     saveExistingHighFidelityAppDataFolder();
-    
+
     // Download the latest High Fidelity installer
     QStringList urls;
     urls << INSTALLER_URL;
@@ -79,15 +79,11 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
 
     _appDataFolder = dataDirectory + "\\High Fidelity";
 
-    if (!_appDataFolder.exists()) {
-        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "The High Fidelity data folder was not found in " + dataDirectory);
-        exit(-1);
+    if (_appDataFolder.exists()) {
+        // The original folder is saved in a unique name
+        _savedAppDataFolder = dataDirectory + "/" + UNIQUE_FOLDER_NAME;
+        _appDataFolder.rename(_appDataFolder.path(), _savedAppDataFolder.path());
     }
-
-    // The original folder is saved in a unique name
-    _savedAppDataFolder = dataDirectory + "/" + UNIQUE_FOLDER_NAME;
-    _appDataFolder.rename(_appDataFolder.path(), _savedAppDataFolder.path());
 
     // Copy an "empty" AppData folder (i.e. no entities)
     copyFolder(QDir::currentPath() +  "/AppDataHighFidelity", _appDataFolder.path());
@@ -95,7 +91,10 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
 
 void TestRunner::restoreHighFidelityAppDataFolder() {
     _appDataFolder.removeRecursively();
-    _appDataFolder.rename(_savedAppDataFolder.path(), _appDataFolder.path());
+
+    if (_savedAppDataFolder != QDir()) {
+        _appDataFolder.rename(_savedAppDataFolder.path(), _appDataFolder.path());
+    }
 }
 
 void TestRunner::selectTemporaryFolder() {
@@ -176,6 +175,10 @@ void TestRunner::evaluateResults() {
     autoTester->startTestsEvaluation(false, true, _snapshotFolder, _branch, _user);
 }
 
+void TestRunner::automaticTestRunEvaluationComplete() {
+    restoreHighFidelityAppDataFolder();
+}
+
 // Copies a folder recursively
 void TestRunner::copyFolder(const QString& source, const QString& destination) {
     try {
@@ -206,8 +209,4 @@ void TestRunner::copyFolder(const QString& source, const QString& destination) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "unknown error");
         exit(-1);
     }
-}
-
-void TestRunner::automaticTestRunEvaluationComplete() {
-    restoreHighFidelityAppDataFolder();
 }

@@ -105,7 +105,6 @@ private:
 
     HelpWindow _helpWindow;
 
-
     void* _caller;
 };
 
