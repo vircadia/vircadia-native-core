@@ -173,38 +173,6 @@ Script.include("/~/system/libraries/controllers.js");
             renderStates: teleportRenderStates,
             maxDistance: 8.0
         });
-        
-        this.teleportCollisionPick;
-        
-        this.recreateCollisionPick = function() {
-            if (_this.teleportCollisionPick !== undefined) {
-                Picks.removePick(_this.teleportCollisionPick);
-            }
-            
-            var capsuleData = MyAvatar.getCollisionCapsule();
-            var capsuleHeight = Vec3.distance(capsuleData.start, capsuleData.end);
-            var offset = Vec3.distance(Vec3.sum(capsuleData.start, {x: 0, y: 0.5*capsuleHeight, z: 0}), MyAvatar.position);
-            var radius = capsuleData.radius;
-            var height = 2.0 * radius + capsuleHeight;
-            
-            _this.teleportCollisionPick = Picks.createPick(PickType.Collision, {
-                enabled: true,
-                parentID: Pointers.getPointerProperties(_this.teleportParabolaHandInvisible).renderStates["invisible"].end,
-                filter: Picks.PICK_ENTITIES + Picks.PICK_AVATARS,
-                shape: {
-                    shapeType: "capsule-y",
-                    dimensions: { 
-                        x: radius * 2.0, 
-                        y: height - (radius * 2.0), 
-                        z: radius * 2.0 
-                    }
-                },
-                position: { x: 0, y: offset + (height * 0.5), z: 0 },
-                threshold: _this.capsuleThreshold
-            });
-        }
-        
-        _this.recreateCollisionPick();
        
         this.teleportParabolaHeadVisible = Pointers.createPointer(PickType.Parabola, {
             joint: "Avatar",
@@ -232,13 +200,67 @@ Script.include("/~/system/libraries/controllers.js");
             renderStates: teleportRenderStates,
             maxDistance: 8.0
         });
+        
+        this.teleportHeadCollisionPick;
+        this.teleportHandCollisionPick;
+        
+        this.recreateCollisionPicks = function() {
+
+            if (_this.teleportHandCollisionPick !== undefined) {
+                Picks.removePick(_this.teleportHandCollisionPick);
+            }
+            if (_this.teleportHeadCollisionPick !== undefined) {
+                Picks.removePick(_this.teleportHeadCollisionPick);
+            }
+            var capsuleData = MyAvatar.getCollisionCapsule();
+            var capsuleHeight = Vec3.distance(capsuleData.start, capsuleData.end);
+            var offset = Vec3.distance(Vec3.sum(capsuleData.start, {x: 0, y: 0.5*capsuleHeight, z: 0}), MyAvatar.position);
+            var radius = capsuleData.radius;
+            var height = 2.0 * radius + capsuleHeight;
+            var scale = height/2.0;
+            
+            _this.teleportHandCollisionPick = Picks.createPick(PickType.Collision, {
+                enabled: true,
+                parentID: Pointers.getPointerProperties(_this.teleportParabolaHandInvisible).renderStates["invisible"].end,
+                filter: Picks.PICK_ENTITIES + Picks.PICK_AVATARS,
+                shape: {
+                    shapeType: "capsule-y",
+                    dimensions: { 
+                        x: radius * 2.0, 
+                        y: height - (radius * 2.0), 
+                        z: radius * 2.0 
+                    }
+                },
+                position: { x: 0, y: offset + (height * 0.5), z: 0 },
+                threshold: scale * _this.capsuleThreshold
+            });
+            
+            _this.teleportHeadCollisionPick = Picks.createPick(PickType.Collision, {
+                enabled: true,
+                parentID: Pointers.getPointerProperties(_this.teleportParabolaHeadInvisible).renderStates["invisible"].end,
+                filter: Picks.PICK_ENTITIES + Picks.PICK_AVATARS,
+                shape: {
+                    shapeType: "capsule-y",
+                    dimensions: { 
+                        x: radius * 2.0, 
+                        y: height - (radius * 2.0), 
+                        z: radius * 2.0 
+                    }
+                },
+                position: { x: 0, y: offset + (height * 0.5), z: 0 },
+                threshold: scale * _this.capsuleThreshold
+            });
+        }
+        
+        _this.recreateCollisionPicks();
 
         this.cleanup = function() {
             Pointers.removePointer(_this.teleportParabolaHandVisible);
             Pointers.removePointer(_this.teleportParabolaHandInvisible);
             Pointers.removePointer(_this.teleportParabolaHeadVisible);
             Pointers.removePointer(_this.teleportParabolaHeadInvisible);
-            Picks.removePick(_this.teleportCollisionPick);
+            Picks.removePick(_this.teleportHandCollisionPick);
+            Picks.removePick(_this.teleportHeadCollisionPick);
         };
 
         this.axisButtonStateX = 0; // Left/right axis button pressed.
@@ -307,13 +329,17 @@ Script.include("/~/system/libraries/controllers.js");
             if (!pose.valid) {
                 Pointers.disablePointer(_this.teleportParabolaHandVisible);
                 Pointers.disablePointer(_this.teleportParabolaHandInvisible);
+                Picks.disablePick(_this.teleportHandCollisionPick);
                 Pointers.enablePointer(_this.teleportParabolaHeadVisible);
                 Pointers.enablePointer(_this.teleportParabolaHeadInvisible);
+                Picks.enablePick(_this.teleportHeadCollisionPick);
             } else {
                 Pointers.enablePointer(_this.teleportParabolaHandVisible);
                 Pointers.enablePointer(_this.teleportParabolaHandInvisible);
+                Picks.enablePick(_this.teleportHandCollisionPick);
                 Pointers.disablePointer(_this.teleportParabolaHeadVisible);
                 Pointers.disablePointer(_this.teleportParabolaHeadInvisible);
+                Picks.disablePick(_this.teleportHeadCollisionPick);
             }
 
             // We do up to 2 picks to find a teleport location.
@@ -325,15 +351,17 @@ Script.include("/~/system/libraries/controllers.js");
             //    We might hit an invisible entity that is not a seat, so we need to do a second pass.
             //  * In the second pass we pick against visible entities only.
             //
-            var result;
+            var result, collisionResult;
             if (mode === 'head') {
                 result = Pointers.getPrevPickResult(_this.teleportParabolaHeadInvisible);
+                collisionResult = Picks.getPrevPickResult(_this.teleportHeadCollisionPick);
             } else {
                 result = Pointers.getPrevPickResult(_this.teleportParabolaHandInvisible);
+                collisionResult = Picks.getPrevPickResult(_this.teleportHandCollisionPick);
             }
-            var collisionResult = Picks.getPrevPickResult(_this.teleportCollisionPick);
            
             var teleportLocationType = getTeleportTargetType(result, collisionResult);
+            
             if (teleportLocationType === TARGET.INVISIBLE) {
                 if (mode === 'head') {
                     result = Pointers.getPrevPickResult(_this.teleportParabolaHeadVisible);
@@ -386,6 +414,8 @@ Script.include("/~/system/libraries/controllers.js");
             Pointers.disablePointer(_this.teleportParabolaHandInvisible);
             Pointers.disablePointer(_this.teleportParabolaHeadVisible);
             Pointers.disablePointer(_this.teleportParabolaHeadInvisible);
+            Picks.disablePick(_this.teleportParabolaHeadInvisible);
+            Picks.disablePick(_this.teleportParabolaHandInvisible);
         };
 
         this.setTeleportState = function(mode, visibleState, invisibleState) {
@@ -610,13 +640,13 @@ Script.include("/~/system/libraries/controllers.js");
     }
     
     var afterSet = new AfterSet(100, 30, function(value) {
-        leftTeleporter.recreateCollisionPick();
-        rightTeleporter.recreateCollisionPick();
+        leftTeleporter.recreateCollisionPicks();
+        rightTeleporter.recreateCollisionPicks();
     });
 
     MyAvatar.onLoadComplete.connect(function () {
-        leftTeleporter.recreateCollisionPick();
-        rightTeleporter.recreateCollisionPick();
+        leftTeleporter.recreateCollisionPicks();
+        rightTeleporter.recreateCollisionPicks();
     });
     
     MyAvatar.sensorToWorldScaleChanged.connect(function() {
