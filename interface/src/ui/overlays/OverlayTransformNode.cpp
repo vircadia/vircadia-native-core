@@ -21,7 +21,7 @@ Transform OverlayTransformNode::getTransform() {
     bool success;
     Transform jointWorldTransform = overlay->getTransform(_jointIndex, success);
     if (!success) {
-        jointWorldTransform = Transform();
+        return Transform();
     }
 
     jointWorldTransform.setScale(overlay->getBounds().getScale());

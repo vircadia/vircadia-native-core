@@ -21,7 +21,7 @@ Transform EntityTransformNode::getTransform() {
     bool success;
     Transform jointWorldTransform = entity->getTransform(_jointIndex, success);
     if (!success) {
-        jointWorldTransform = Transform();
+        return Transform();
     }
 
     jointWorldTransform.setScale(entity->getScaledDimensions());

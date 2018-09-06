@@ -21,7 +21,7 @@ Transform AvatarTransformNode::getTransform() {
     bool success;
     Transform jointWorldTransform = avatar->getTransform(_jointIndex, success);
     if (!success) {
-        jointWorldTransform = Transform();
+        return Transform();
     }
 
     jointWorldTransform.setScale(avatar->scaleForChildren());
