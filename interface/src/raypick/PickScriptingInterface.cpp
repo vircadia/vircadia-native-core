@@ -28,6 +28,7 @@
 #include "MouseTransformNode.h"
 #include "avatar/MyAvatarHeadTransformNode.h"
 #include "avatar/AvatarManager.h"
+#include "NestableTransformNode.h"
 #include "avatars-renderer/AvatarTransformNode.h"
 #include "ui/overlays/OverlayTransformNode.h"
 #include "EntityTransformNode.h"
