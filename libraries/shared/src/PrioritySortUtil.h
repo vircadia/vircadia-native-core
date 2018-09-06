@@ -22,7 +22,7 @@ namespace PrioritySortUtil {
 
     constexpr float DEFAULT_ANGULAR_COEF { 1.0f };
     constexpr float DEFAULT_CENTER_COEF { 0.5f };
-    constexpr float DEFAULT_AGE_COEF { 0.25f / (float)(USECS_PER_SECOND) };
+    constexpr float DEFAULT_AGE_COEF { 0.25f };
 
     class Sortable {
     public:
@@ -94,7 +94,7 @@ namespace PrioritySortUtil {
             float radius = glm::max(thing.getRadius(), MIN_RADIUS);
             // Other item's angle from view centre:
             float cosineAngle = (glm::dot(offset, view.getDirection()) / distance);
-            float age = (float)(_usecCurrentTime - thing.getTimestamp());
+            float age = float((_usecCurrentTime - thing.getTimestamp()) / USECS_PER_SECOND);
 
             // the "age" term accumulates at the sum of all weights
             float angularSize = glm::max(radius, MIN_RADIUS) / distance;
