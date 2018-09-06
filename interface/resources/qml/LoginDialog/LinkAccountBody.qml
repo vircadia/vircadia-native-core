@@ -128,9 +128,8 @@ Item {
             ShortcutText {
                 z: 10
                 anchors {
-                    left: usernameField.right
-                    top: usernameField.bottom
-                    leftMargin: usernameField.textFieldLabel.contentWidth + 10
+                    right: usernameField.right
+                    top: usernameField.top
                     topMargin: -19
                 }
 
@@ -157,9 +156,8 @@ Item {
             ShortcutText {
                 z: 10
                 anchors {
-                    left: passwordField.right
-                    top: passwordField.bottom
-                    leftMargin: passwordField.textFieldLabel.contentWidth + 10
+                    right: passwordField.right
+                    top: passwordField.top
                     topMargin: -19
                 }
 
@@ -232,7 +230,7 @@ Item {
             RalewaySemiBold {
                 size: hifi.fontSizes.inputLabel
                 anchors.verticalCenter: parent.verticalCenter
-                text: qsTr("Don't have an account?")
+                text: qsTr("New to High Fidelity?")
             }
 
             Button {
