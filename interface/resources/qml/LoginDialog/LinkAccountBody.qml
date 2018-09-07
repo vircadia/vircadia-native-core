@@ -97,6 +97,7 @@ Item {
         }
 
         text: qsTr("Sign in to High Fidelity to make friends, get HFC, and buy interesting things on the Marketplace!")
+        width: parent.width
         wrapMode: Text.WordWrap
         lineHeight: 1
         lineHeightMode: Text.ProportionalHeight
@@ -146,7 +147,6 @@ Item {
                 anchors {
                     right: usernameField.right
                     top: usernameField.bottom
-                    topMargin: -19
                 }
 
                 text: "<a href='https://highfidelity.com/users/password/new'>Forgot Username?</a>"
@@ -174,7 +174,6 @@ Item {
                 anchors {
                     right: passwordField.right
                     top: passwordField.bottom
-                    topMargin: -19
                 }
 
                 text: "<a href='https://highfidelity.com/users/password/new'>Forgot Password?</a>"
