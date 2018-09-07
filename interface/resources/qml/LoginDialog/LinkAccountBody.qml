@@ -15,13 +15,14 @@ import QtQuick.Controls.Styles 1.4 as OriginalStyles
 
 import "../controls-uit"
 import "../styles-uit"
-
 Item {
     id: linkAccountBody
     clip: true
     height: root.pane.height
     width: root.pane.width
     property bool failAfterSignUp: false
+    property var locale: Qt.locale()
+    property string dateTimeString
 
     function login() {
         mainTextContainer.visible = false
@@ -124,27 +125,25 @@ Item {
             placeholderText: "Username or Email"
             activeFocusOnPress: true
 
+            ShortcutText {
+                z: 10
+                y: usernameField.height
+                anchors {
+                    right: usernameField.right
+                    topMargin: -19
+                }
+
+                text: "<a href='https://highfidelity.com/users/password/new'>Forgot Username?</a>"
+
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                linkColor: hifi.colors.blueAccent
+
+                onLinkActivated: loginDialog.openUrl(link)
+            }
+
             onFocusChanged: {
                 root.text = "";
-            }
-        }
-        ShortcutText {
-            id: forgotUsernameShortcut
-            z: 10
-            anchors {
-                leftMargin: usernameField.textFieldLabel.contentWidth + 10
-                topMargin: -19
-            }
-
-            text: "<a href='https://highfidelity.com/users/password/new'>Forgot Username?</a>"
-
-            verticalAlignment: Text.AlignVCenter
-            horizontalAlignment: Text.AlignRight
-            linkColor: hifi.colors.blueAccent
-
-            onLinkActivated: loginDialog.openUrl(link)
-            Component.onCompleted: {
-                forgotUsernameShortcut.x = root.implicitWidth - forgotUsernameShortcut.width;
             }
         }
 
@@ -154,11 +153,30 @@ Item {
             placeholderText: "Password"
             activeFocusOnPress: true
             echoMode: TextInput.Password
+            onHeightChanged: d.resize(); onWidthChanged: d.resize();
+
+            ShortcutText {
+                id: forgotPasswordShortcut
+                y: passwordField.height
+                z: 10
+                anchors {
+                    right: passwordField.right
+                }
+
+                text: "<a href='https://highfidelity.com/users/password/new'>Forgot Password?</a>"
+
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                linkColor: hifi.colors.blueAccent
+
+                onLinkActivated: loginDialog.openUrl(link)
+            }
 
             onFocusChanged: {
                 root.text = "";
                 root.isPassword = true;
             }
+
             Image {
                 id: showPasswordImage
                 x: parent.width - ((parent.height) * 31 / 23)
@@ -190,32 +208,11 @@ Item {
                         showPasswordImage.y = showPassword ? 0 : (passwordField.height - showPasswordImage.height) / 2;
                         showPasswordHitbox.width = showPasswordImage.width;
                         showPasswordHitbox.x = showPasswordImage.x;
-
                     }
                 }
             }
 
             Keys.onReturnPressed: linkAccountBody.login()
-        }
-
-        ShortcutText {
-            id: forgotPasswordShortcut
-            z: 10
-            anchors {
-                leftMargin: passwordField.textFieldLabel.contentWidth + 10
-                topMargin: -19
-            }
-
-            text: "<a href='https://highfidelity.com/users/password/new'>Forgot Password?</a>"
-
-            verticalAlignment: Text.AlignVCenter
-            horizontalAlignment: Text.AlignHCenter
-            linkColor: hifi.colors.blueAccent
-
-            onLinkActivated: loginDialog.openUrl(link)
-            Component.onCompleted: {
-                forgotPasswordShortcut.x = root.implicitWidth - forgotPasswordShortcut.width;
-            }
         }
 
         InfoItem {
@@ -304,6 +301,14 @@ Item {
         }
 
         usernameField.forceActiveFocus();
+
+        var data = {
+            "date": new Date().toLocaleString(),
+        };
+        print(new Date().toLocaleString());
+        print(model.sessionId);
+
+        //UserActivityLogger.logAction("login_screen_shown", )
     }
 
     Connections {
