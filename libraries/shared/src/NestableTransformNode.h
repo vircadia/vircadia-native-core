@@ -21,9 +21,7 @@ public:
         auto nestablePointer = _spatiallyNestable.lock();
         if (nestablePointer) {
             glm::vec3 nestableDimensions = getActualScale(nestablePointer);
-            if (!glm::any(glm::equal(nestableDimensions, glm::vec3(0.0f)))) {
-                _baseScale = nestableDimensions;
-            }
+            _baseScale = glm::max(glm::vec3(0.001f), nestableDimensions);
         }
     }
 
