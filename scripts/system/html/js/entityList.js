@@ -34,9 +34,6 @@ const COMPARE_DESCENDING = function(a, b) {
     return COMPARE_ASCENDING(b, a);
 }
 
-//console.log = function() { };
-
-
 
 // List of all entities
 let entities = []
@@ -49,7 +46,7 @@ var selectedEntities = [];
 var currentSortColumn = 'type';
 var currentSortOrder = ASCENDING_SORT;
 
-const ENABLE_PROFILING = true;
+const ENABLE_PROFILING = false;
 var profileIndent = '';
 const PROFILE = !ENABLE_PROFILING ? function() { } : function(name, fn, args) {
     console.log("PROFILE-Web " + profileIndent + "(" + name + ") Begin");
@@ -60,10 +57,6 @@ const PROFILE = !ENABLE_PROFILING ? function() { } : function(name, fn, args) {
     var delta = Date.now() - before;
     profileIndent = previousIndent;
     console.log("PROFILE-Web " + profileIndent + "(" + name + ") End " + delta + "ms");
-};
-
-debugPrint = function (message) {
-    console.log(message);
 };
 
 function loaded() {
@@ -127,7 +120,6 @@ function loaded() {
 
         function onRowClicked(clickEvent) {
             let entityID = this.dataset.entityID;
-            console.log("CLICKED", entityID, this);
             let selection = [entityID];
             if (clickEvent.ctrlKey) {
                 let selectedIndex = selectedEntities.indexOf(entityID);
@@ -212,7 +204,6 @@ function loaded() {
 
         // Update the entity list with the new set of data sent from edit.js
         function updateEntityList(entityData) {
-            console.warn("updating entity list");
             const IMAGE_MODEL_NAME = 'default-image-model.fbx';
 
             entities = []
@@ -291,13 +282,11 @@ function loaded() {
 
         function refreshEntityList() {
             PROFILE("refresh-entity-list", function() {
-                console.warn("refreshing entity list");
                 PROFILE("filter", function() {
                     let searchTerm = elFilter.value;
                     if (searchTerm === '') {
                         visibleEntities = entities.slice(0);
                     } else {
-                        console.log("Filtering on: ", searchTerm);
                         visibleEntities = entities.filter(function(e) {
                             return e.name.indexOf(searchTerm) > -1
                                 || e.type.indexOf(searchTerm) > -1
@@ -308,7 +297,6 @@ function loaded() {
 
                 PROFILE("sort", function() {
                     let cmp = currentSortOrder === ASCENDING_SORT ? COMPARE_ASCENDING : COMPARE_DESCENDING;
-                    console.log("Doing sort", currentSortColumn, currentSortOrder);
                     visibleEntities.sort(cmp);
                 });
 
@@ -322,16 +310,27 @@ function loaded() {
         }
 
         function removeEntities(deletedIDs) {
-            return;
-            for (i = 0, length = deletedIDs.length; i < length; i++) {
-                let id = deletedIDs[i];
-                entities[id].el.remove();
-                delete entities[id];
+            // Loop from the back so we can pop items off while iterating
+            for (let j = entities.length - 1; j >= 0; --j) {
+                let id = entities[j];
+                for (let i = 0, length = deletedIDs.length; i < length; ++i) {
+                    if (id === deletedIDs[i]) {
+                        entities.splice(j, 1);
+                        entitiesByID[id].el.remove();
+                        delete entitiesByID[id];
+                        break;
+                    }
+                }
             }
+            refreshEntities();
         }
 
         function clearEntities() {
-            entities = {};
+            entities = []
+            entitiesByID = {};
+            visibleEntities = [];
+            elEntityTableBody.innerHTML = '';
+
             refreshFooter();
         }
 
@@ -351,14 +350,14 @@ function loaded() {
         }
         function setSortColumn(column) {
             PROFILE("set-sort-column", function() {
-                if (currentSortColumn == column) {
+                if (currentSortColumn === column) {
                     currentSortOrder *= -1;
                 } else {
                     elSortOrder[currentSortColumn].innerHTML = "";
                     currentSortColumn = column;
                     currentSortOrder = ASCENDING_SORT;
                 }
-                elSortOrder[column].innerHTML = currentSortOrder == ASCENDING_SORT ? ASCENDING_STRING : DESCENDING_STRING;
+                elSortOrder[column].innerHTML = currentSortOrder === ASCENDING_SORT ? ASCENDING_STRING : DESCENDING_STRING;
                 refreshEntityList();
             });
         }
@@ -485,11 +484,8 @@ function loaded() {
                             elFooter.firstChild.nodeValue = "0 entities found";
                         } else if (newEntities) {
                             elNoEntitiesMessage.style.display = "none";
-                            //entityData = newEntities;
                             updateEntityList(newEntities);
-                            //refreshEntityList();
                             updateSelectedEntities(data.selectedIDs);
-                            //resize();
                         }
                     });
                 } else if (data.type === "removeEntities" && data.deletedIDs !== undefined && data.selectedIDs !== undefined) {
