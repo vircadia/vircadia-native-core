@@ -62,11 +62,13 @@ void TestRunner::installerDownloadComplete() {
 void TestRunner::runInstaller() {
     // Qt cannot start an installation process using QProcess::start (Qt Bug 9761)
     // To allow installation, the installer is run using the `system` command
-    QStringList arguments{ QStringList() << QString("/S") << QString("/D=") + QDir::toNativeSeparators(_tempFolder) };
+    QStringList arguments{ QStringList() << QString("/S") << QString("/D=") + QDir::toNativeSeparators(_installationFolder) };
     
     QString installerFullPath = _tempFolder + "/" + INSTALLER_FILENAME;
     
-    QString commandLine = QDir::toNativeSeparators(installerFullPath) + " /S /D=" + QDir::toNativeSeparators(_tempFolder);
+    QString commandLine =
+        QDir::toNativeSeparators(installerFullPath) + " /S /D=" + QDir::toNativeSeparators(_installationFolder);
+
     system(commandLine.toStdString().c_str());
 }
 
@@ -112,6 +114,8 @@ void TestRunner::selectTemporaryFolder() {
         _tempFolder = previousSelection;
         return;
     }
+
+    _installationFolder = _tempFolder + "/High Fidelity";
 }
 
 void TestRunner::createSnapshotFolder() {
@@ -150,10 +154,11 @@ void TestRunner::startLocalServerProcesses() {
 #ifdef Q_OS_WIN
     QString commandLine;
 
-    commandLine = "start \"domain-server.exe\" " + QDir::toNativeSeparators(_tempFolder) + "\\domain-server.exe";
+    commandLine = "start \"domain-server.exe\" \"" + QDir::toNativeSeparators(_installationFolder) + "\\domain-server.exe\"";
     system(commandLine.toStdString().c_str());
 
-    commandLine = "start \"assignment-client.exe\" " + QDir::toNativeSeparators(_tempFolder) + "\\assignment-client.exe -n 6";
+    commandLine =
+        "start \"assignment-client.exe\" \"" + QDir::toNativeSeparators(_installationFolder) + "\\assignment-client.exe\" -n 6";
     system(commandLine.toStdString().c_str());
 #endif
     // Give server processes time to stabilize
@@ -162,8 +167,8 @@ void TestRunner::startLocalServerProcesses() {
 
 void TestRunner::runInterfaceWithTestScript() {
 #ifdef Q_OS_WIN
-        QString commandLine = QDir::toNativeSeparators(_tempFolder) +
-                              "\\interface.exe --url hifi://localhost --testScript https://raw.githubusercontent.com/" + _user +
+    QString commandLine = QString("\"") + QDir::toNativeSeparators(_installationFolder) +
+                              "\\interface.exe\" --url hifi://localhost --testScript https://raw.githubusercontent.com/" + _user +
                               "/hifi_tests/" + _branch + "/tests/testRecursive.js quitWhenFinished --testResultsLocation " +
                               _snapshotFolder;
 

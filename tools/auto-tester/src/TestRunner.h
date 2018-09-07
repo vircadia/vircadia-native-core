@@ -46,6 +46,8 @@ private:
     QString _tempFolder;
     QString _snapshotFolder;
 
+    QString _installationFolder;
+
     Downloader* _downloader;
 
     const QString UNIQUE_FOLDER_NAME{ "fgadhcUDHSFaidsfh3478JJJFSDFIUSOEIrf" };
