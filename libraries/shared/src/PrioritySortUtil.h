@@ -18,6 +18,9 @@
 
 //   PrioritySortUtil is a helper for sorting 3D things relative to a ViewFrustum.
 
+const float OUT_OF_VIEW_PENALTY = -10.0f;
+const float OUT_OF_VIEW_THRESHOLD = 0.5f * OUT_OF_VIEW_PENALTY;
+
 namespace PrioritySortUtil {
 
     constexpr float DEFAULT_ANGULAR_COEF { 1.0f };
@@ -93,17 +96,16 @@ namespace PrioritySortUtil {
             const float MIN_RADIUS = 0.1f; // WORKAROUND for zero size objects (we still want them to sort by distance)
             float radius = glm::max(thing.getRadius(), MIN_RADIUS);
             // Other item's angle from view centre:
-            float cosineAngle = (glm::dot(offset, view.getDirection()) / distance);
+            float cosineAngle = glm::dot(offset, view.getDirection()) / distance;
             float age = float((_usecCurrentTime - thing.getTimestamp()) / USECS_PER_SECOND);
 
             // the "age" term accumulates at the sum of all weights
-            float angularSize = glm::max(radius, MIN_RADIUS) / distance;
+            float angularSize = radius / distance;
             float priority = (_angularWeight * angularSize + _centerWeight * cosineAngle) * (age + 1.0f) + _ageWeight * age;
 
             // decrement priority of things outside keyhole
             if (distance - radius > view.getRadius()) {
                 if (!view.intersects(offset, distance, radius)) {
-                    constexpr float OUT_OF_VIEW_PENALTY = -10.0f;
                     priority += OUT_OF_VIEW_PENALTY;
                 }
             }
@@ -122,5 +124,6 @@ namespace PrioritySortUtil {
   // for now we're keeping hard-coded sorted time budgets in one spot
 const uint64_t MAX_UPDATE_RENDERABLES_TIME_BUDGET = 2000; // usec
 const uint64_t MIN_SORTED_UPDATE_RENDERABLES_TIME_BUDGET = 1000; // usec
+const uint64_t MAX_UPDATE_AVATARS_TIME_BUDGET = 2000; // usec
 
 #endif // hifi_PrioritySortUtil_h

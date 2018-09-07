@@ -21,7 +21,6 @@
 #include "AvatarLogging.h"
 #include "AvatarTraits.h"
 
-
 void AvatarReplicas::addReplica(const QUuid& parentID, AvatarSharedPointer replica) {
     if (parentID == QUuid()) {
         return;
