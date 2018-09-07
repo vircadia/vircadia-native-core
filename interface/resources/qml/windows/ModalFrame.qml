@@ -94,5 +94,23 @@ Frame {
                 color: hifi.colors.lightGray
             }
         }
+
+
+        GlyphButton {
+            id: closeButton
+            visible: window.closeButtonVisible
+            width: 30
+            y: -hifi.dimensions.modalDialogTitleHeight
+            anchors {
+                top: parent.top
+                right: parent.right
+                topMargin: 10
+                rightMargin: 10
+            }
+            glyph: hifi.glyphs.close
+            onClicked: {
+                window.destroy();
+            }
+        }
     }
 }

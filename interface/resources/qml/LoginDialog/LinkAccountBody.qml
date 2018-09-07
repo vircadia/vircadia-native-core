@@ -234,6 +234,23 @@ Item {
             onHeightChanged: d.resize(); onWidthChanged: d.resize();
             anchors.horizontalCenter: parent.horizontalCenter
 
+            CheckBox {
+                id: autoLogoutCheckbox;
+                checked: Settings.getValue("wallet/autoLogout", true);
+                text: "Keep me signed in"
+                boxSize: 20;
+                labelFontSize: 15;
+                color: hifi.colors.black;
+                onCheckedChanged: {
+                    Settings.setValue("wallet/autoLogout", !checked);
+                    if (checked) {
+                        Settings.setValue("wallet/savedUsername", "");
+                    } else {
+                        Settings.setValue("wallet/savedUsername", Account.username);
+                    }
+                }
+            }
+
             Button {
                 id: linkAccountButton
                 anchors.verticalCenter: parent.verticalCenter
@@ -243,12 +260,6 @@ Item {
                 color: hifi.buttons.blue
 
                 onClicked: linkAccountBody.login()
-            }
-
-            Button {
-                anchors.verticalCenter: parent.verticalCenter
-                text: qsTr("Cancel")
-                onClicked: root.tryDestroy()
             }
         }
 
