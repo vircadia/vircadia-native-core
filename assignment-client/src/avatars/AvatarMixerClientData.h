@@ -15,7 +15,7 @@
 #include <algorithm>
 #include <cfloat>
 #include <unordered_map>
-#include <unordered_set>
+#include <vector>
 #include <queue>
 
 #include <QtCore/QJsonObject>
@@ -91,8 +91,8 @@ public:
     void loadJSONStats(QJsonObject& jsonObject) const;
 
     glm::vec3 getPosition() const { return _avatar ? _avatar->getWorldPosition() : glm::vec3(0); }
-    bool isRadiusIgnoring(const QUuid& other) const { return _radiusIgnoredOthers.find(other) != _radiusIgnoredOthers.end(); }
-    void addToRadiusIgnoringSet(const QUuid& other) { _radiusIgnoredOthers.insert(other); }
+    bool isRadiusIgnoring(const QUuid& other) const;
+    void addToRadiusIgnoringSet(const QUuid& other);
     void removeFromRadiusIgnoringSet(const QUuid& other);
     void ignoreOther(SharedNodePointer self, SharedNodePointer other);
     void ignoreOther(const Node* self, const Node* other);
@@ -167,7 +167,7 @@ private:
     int _numOutOfOrderSends = 0;
 
     SimpleMovingAverage _avgOtherAvatarDataRate;
-    std::unordered_set<QUuid> _radiusIgnoredOthers;
+    std::vector<QUuid> _radiusIgnoredOthers;
     ConicalViewFrustums _currentViewFrustums;
 
     int _recentOtherAvatarsInView { 0 };
