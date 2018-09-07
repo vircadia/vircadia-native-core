@@ -976,7 +976,7 @@ bool Model::addToScene(const render::ScenePointer& scene,
                        render::Transaction& transaction,
                        render::Item::Status::Getters& statusGetters) {
     if (!_addedToScene && isLoaded()) {
-        updateClusterMatrices(false);
+        updateClusterMatrices();
         if (_modelMeshRenderItems.empty()) {
             createRenderItemSet();
         }
@@ -1307,6 +1307,7 @@ void Blender::run() {
             if (mesh.blendshapes.isEmpty()) {
                 continue;
             }
+
             vertices += mesh.vertices;
             normalsAndTangents += mesh.normalsAndTangents;
             glm::vec3* meshVertices = vertices.data() + offset;
@@ -1486,7 +1487,7 @@ void Model::computeMeshPartLocalBounds() {
 }
 
 // virtual
-void Model::updateClusterMatrices(bool triggerBlendshapes) {
+void Model::updateClusterMatrices() {
     DETAILED_PERFORMANCE_TIMER("Model::updateClusterMatrices");
 
     if (!_needsUpdateClusterMatrices || !isLoaded()) {
@@ -1515,7 +1516,7 @@ void Model::updateClusterMatrices(bool triggerBlendshapes) {
 
     // post the blender if we're not currently waiting for one to finish
     auto modelBlender = DependencyManager::get<ModelBlender>();
-    if (triggerBlendshapes && modelBlender->shouldComputeBlendshapes() && geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
+    if (_blendedVertexBuffersInitialized && modelBlender->shouldComputeBlendshapes() && geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
         modelBlender->noteRequiresBlend(getThisPointer());
     }
@@ -1552,7 +1553,7 @@ void Model::setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geo
         const auto vertexCount = mesh.vertices.size();
         const auto verticesSize = vertexCount * sizeof(glm::vec3);
         const auto& buffer = _blendedVertexBuffers[i];
-        assert(buffer);
+        assert(buffer && _blendedVertexBuffersInitialized);
         buffer->resize(mesh.vertices.size() * sizeof(glm::vec3) + mesh.normalsAndTangents.size() * sizeof(NormalType));
         buffer->setSubData(0, verticesSize, (gpu::Byte*) vertices.constData() + index * sizeof(glm::vec3));
         buffer->setSubData(verticesSize, mesh.normalsAndTangents.size() * sizeof(NormalType), (const gpu::Byte*) normalsAndTangents.data() + normalAndTangentIndex * sizeof(NormalType));
@@ -1565,6 +1566,7 @@ void Model::setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geo
 void Model::deleteGeometry() {
     _deleteGeometryCounter++;
     _blendedVertexBuffers.clear();
+    _blendedVertexBuffersInitialized = false;
     _meshStates.clear();
     _rig.destroyAnimGraph();
     _blendedBlendshapeCoefficients.clear();
@@ -1630,6 +1632,7 @@ void Model::initializeBlendshapes(const FBXMesh& mesh, int index) {
     _blendedVertexBuffers[index]->setSubData(0, verticesSize, (const gpu::Byte*) mesh.vertices.constData());
     _blendedVertexBuffers[index]->setSubData(verticesSize, normalsAndTangents.size() * sizeof(NormalType), (const gpu::Byte*) normalsAndTangents.data());
     mesh.normalsAndTangents = normalsAndTangents;
+    _blendedVertexBuffersInitialized = true;
 }
 
 void Model::createRenderItemSet() {

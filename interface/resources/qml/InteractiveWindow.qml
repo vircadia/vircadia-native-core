@@ -146,7 +146,8 @@ Windows.Window {
             Qt.WindowCloseButtonHint |
             Qt.WindowMaximizeButtonHint |
             Qt.WindowMinimizeButtonHint;
-        if ((flags & Desktop.ALWAYS_ON_TOP) === Desktop.ALWAYS_ON_TOP) {
+        // only use the always on top feature for non Windows OS
+        if (Qt.platform.os !== "windows" && (flags & Desktop.ALWAYS_ON_TOP)) {
             nativeWindowFlags |= Qt.WindowStaysOnTopHint;
         }
         nativeWindow.flags = nativeWindowFlags;
