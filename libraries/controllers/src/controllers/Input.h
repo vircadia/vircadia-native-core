@@ -19,16 +19,16 @@ struct InputCalibrationData {
     glm::mat4 sensorToWorldMat;    // sensor to world
     glm::mat4 avatarMat;           // avatar to world
     glm::mat4 hmdSensorMat;        // hmd pos and orientation in sensor space
-    glm::mat4 defaultCenterEyeMat; // default pose for the center of the eyes in avatar space.
-    glm::mat4 defaultHeadMat;      // default pose for head joint in avatar space
-    glm::mat4 defaultSpine2;       // default pose for spine2 joint in avatar space
-    glm::mat4 defaultHips;         // default pose for hips joint in avatar space
-    glm::mat4 defaultLeftFoot;     // default pose for leftFoot joint in avatar space
-    glm::mat4 defaultRightFoot;    // default pose for rightFoot joint in avatar space
-    glm::mat4 defaultRightArm;     // default pose for rightArm joint in avatar space
-    glm::mat4 defaultLeftArm;      // default pose for leftArm joint in avatar space
-    glm::mat4 defaultRightHand;    // default pose for rightHand joint in avatar space
-    glm::mat4 defaultLeftHand;     // default pose for leftHand joint in avatar space
+    glm::mat4 defaultCenterEyeMat; // default pose for the center of the eyes in sensor space.
+    glm::mat4 defaultHeadMat;      // default pose for head joint in sensor space
+    glm::mat4 defaultSpine2;       // default pose for spine2 joint in sensor space
+    glm::mat4 defaultHips;         // default pose for hips joint in sensor space
+    glm::mat4 defaultLeftFoot;     // default pose for leftFoot joint in sensor space
+    glm::mat4 defaultRightFoot;    // default pose for rightFoot joint in sensor space
+    glm::mat4 defaultRightArm;     // default pose for rightArm joint in sensor space
+    glm::mat4 defaultLeftArm;      // default pose for leftArm joint in sensor space
+    glm::mat4 defaultRightHand;    // default pose for rightHand joint in sensor space
+    glm::mat4 defaultLeftHand;     // default pose for leftHand joint in sensor space
 };
 
 enum class ChannelType {

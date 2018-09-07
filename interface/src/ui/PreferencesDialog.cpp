@@ -55,53 +55,12 @@ void setupPreferences() {
     // Graphics quality
     static const QString GRAPHICS_QUALITY { "Graphics Quality" };
     {
-        static const float MAX_DESKTOP_FPS = 60;
-        static const float MAX_HMD_FPS = 90;
-        static const float MIN_FPS = 10;
-        static const float LOW = 0.25f;
-        static const float MEDIUM = 0.5f;
-        static const float HIGH = 0.75f;
         auto getter = []()->float {
-            auto lodManager = DependencyManager::get<LODManager>();
-            bool inHMD = qApp->isHMDMode();
-
-            float increaseFPS = 0;
-            if (inHMD) {
-                increaseFPS = lodManager->getHMDLODDecreaseFPS();
-            } else {
-                increaseFPS = lodManager->getDesktopLODDecreaseFPS();
-            }
-            float maxFPS = inHMD ? MAX_HMD_FPS : MAX_DESKTOP_FPS;
-            float percentage = increaseFPS / maxFPS;
-
-            if (percentage >= HIGH) {
-                return LOW;
-            } else if (percentage >= LOW) {
-                return MEDIUM;
-            }
-            return HIGH;
+            return DependencyManager::get<LODManager>()->getWorldDetailQuality();
         };
 
         auto setter = [](float value) {
-            static const float THRASHING_DIFFERENCE = 10;
-            auto lodManager = DependencyManager::get<LODManager>();
-
-            bool isLowestValue = value == LOW;
-            bool isHMDMode = qApp->isHMDMode();
-
-            float maxFPS = isHMDMode ? MAX_HMD_FPS : MAX_DESKTOP_FPS;
-            float desiredFPS = maxFPS - THRASHING_DIFFERENCE;
-
-            if (!isLowestValue) {
-                float calculatedFPS = (maxFPS - (maxFPS * value)) - THRASHING_DIFFERENCE;
-                desiredFPS = calculatedFPS < MIN_FPS ? MIN_FPS : calculatedFPS;
-            }
-
-            if (isHMDMode) {
-                lodManager->setHMDLODDecreaseFPS(desiredFPS);
-            } else {
-                lodManager->setDesktopLODDecreaseFPS(desiredFPS);
-            }
+            DependencyManager::get<LODManager>()->setWorldDetailQuality(value);
         };
 
         auto wodSlider = new SliderPreference(GRAPHICS_QUALITY, "World Detail", getter, setter);

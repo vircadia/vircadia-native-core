@@ -29,6 +29,7 @@
 #include "ui/Logging.h"
 
 #include <PointerManager.h>
+#include "MainWindow.h"
 
 /**jsdoc
  * @namespace OffscreenFlags
@@ -649,20 +650,7 @@ public:
     }
 
 private:
-    
-    static QWindow* findMainWindow() {
-        auto windows = qApp->topLevelWindows();
-        QWindow* result = nullptr;
-        for (auto window : windows) {
-            if (window->objectName().contains("MainWindow")) {
-                result = window;
-                break;
-            }
-        }
-        return result;
-    }
-
-    QWindow* const _mainWindow { findMainWindow() };
+    QWindow* const _mainWindow { MainWindow::findMainWindow() };
     QWindow* _hackWindow { nullptr };
 };
 
