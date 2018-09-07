@@ -16,118 +16,20 @@
 
     Script.include("./libraries/utils.js");
 
-    var // Base overlay
-        proxyOverlay = null,
-        PROXY_MODEL = Script.resolvePath("./assets/models/tinyTablet.fbx"),
-        PROXY_DIMENSIONS = { x: 0.0637, y: 0.0965, z: 0.0045 }, // Proportional to tablet proper.
-        PROXY_POSITIONS = [
-            {
-                x: -0.03, // Distance across hand.
-                y: 0.08, // Distance from joint.
-                z: 0.06 // Distance above palm.
-            },
-            {
-                x: 0.03, // Distance across hand.
-                y: 0.08, // Distance from joint.
-                z: 0.06 // Distance above palm.
-            }
-        ],
-        PROXY_ROTATIONS = [
-            Quat.fromVec3Degrees({ x: 0, y: 180 - 40, z: 90 }),
-            Quat.fromVec3Degrees({ x: 0, y: 180 + 40, z: -90 }),
-        ],
+    var UI,
+        ui = null,
+        State,
+        miniState = null,
 
-        // UI overlay.
-        proxyUIOverlay = null,
-        PROXY_UI_HTML = Script.resolvePath("./html/miniTablet.html"),
-        PROXY_UI_DIMENSIONS = { x: 0.059, y: 0.0865 },
-        PROXY_UI_WIDTH_PIXELS = 150,
-        METERS_TO_INCHES = 39.3701,
-        PROXY_UI_DPI = PROXY_UI_WIDTH_PIXELS / (PROXY_UI_DIMENSIONS.x * METERS_TO_INCHES),
-        PROXY_UI_OFFSET = 0.001, // Above model surface.
-        PROXY_UI_LOCAL_POSITION = { x: 0.0002, y: 0.0024, z: -(PROXY_DIMENSIONS.z / 2 + PROXY_UI_OFFSET) },
-        PROXY_UI_LOCAL_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }),
-        proxyUIOverlayEnabled = false,
-        PROXY_UI_OVERLAY_ENABLED_DELAY = 500,
-        proxyOverlayObject = null,
-
-        MUTE_ON_ICON = Script.resourcesPath() + "icons/tablet-icons/mic-mute-a.svg",
-        MUTE_OFF_ICON = Script.resourcesPath() + "icons/tablet-icons/mic-unmute-i.svg",
-        BUBBLE_ON_ICON = Script.resourcesPath() + "icons/tablet-icons/bubble-a.svg",
-        BUBBLE_OFF_ICON = Script.resourcesPath() + "icons/tablet-icons/bubble-i.svg",
-
-        // State machine
-        PROXY_DISABLED = 0,
-        PROXY_HIDDEN = 1,
-        PROXY_HIDING = 2,
-        PROXY_SHOWING = 3,
-        PROXY_VISIBLE = 4,
-        PROXY_GRABBED = 5,
-        PROXY_EXPANDING = 6,
-        TABLET_OPEN = 7,
-        STATE_STRINGS = ["PROXY_DISABLED", "PROXY_HIDDEN", "PROXY_HIDING", "PROXY_SHOWING", "PROXY_VISIBLE", "PROXY_GRABBED",
-            "PROXY_EXPANDING", "TABLET_OPEN"],
-        STATE_MACHINE,
-        rezzerState = PROXY_DISABLED,
-        proxyHand,
-        PROXY_SCALE_DURATION = 150,
-        PROXY_SCALE_TIMEOUT = 20,
-        proxyScaleTimer = null,
-        proxyScaleStart,
-        PROXY_EXPAND_HANDLES = [ // Normalized coordinates in range [-0.5, 0.5] about center of mini tablet.
-            { x: 0.5, y: -0.65, z: 0 },
-            { x: -0.5, y: -0.65, z: 0 }
-        ],
-        PROXY_EXPAND_DELTA_ROTATION = Quat.fromVec3Degrees({ x: -5, y: 0, z: 0 }),
-        PROXY_EXPAND_HANDLES_OTHER = [ // Different handles when expanding after being grabbed by other hand,
-            { x: 0.5, y: -0.4, z: 0 },
-            { x: -0.5, y: -0.4, z: 0 }
-        ],
-        PROXY_EXPAND_DELTA_ROTATION_OTHER = Quat.IDENTITY,
-        proxyExpandHand,
-        proxyExpandHandles = PROXY_EXPAND_HANDLES,
-        proxyExpandDeltaRotation = PROXY_EXPAND_HANDLES_OTHER,
-        proxyExpandLocalPosition,
-        proxyExpandLocalRotation = Quat.IDENTITY,
-        PROXY_EXPAND_DURATION = 250,
-        PROXY_EXPAND_TIMEOUT = 20,
-        proxyExpandTimer = null,
-        proxyExpandStart,
-        proxyInitialWidth,
-        proxyTargetWidth,
-        proxyTargetLocalRotation,
-
-        // EventBridge
-        READY_MESSAGE = "ready", // Engine <== Dialog
-        HOVER_MESSAGE = "hover", // Engine <== Dialog
-        MUTE_MESSAGE = "mute", // Engine <=> Dialog
-        BUBBLE_MESSAGE = "bubble", // Engine <=> Dialog
-        EXPAND_MESSAGE = "expand", // Engine <== Dialog
-
-        // Events
-        MIN_HAND_CAMERA_ANGLE = 30,
-        DEGREES_180 = 180,
-        MIN_HAND_CAMERA_ANGLE_COS = Math.cos(Math.PI * MIN_HAND_CAMERA_ANGLE / DEGREES_180),
-        updateTimer = null,
-        UPDATE_INTERVAL = 300,
-        HIFI_OBJECT_MANIPULATION_CHANNEL = "Hifi-Object-Manipulation",
-        avatarScale = 1,
-
-        // Sounds
-        HOVER_SOUND = "./assets/sounds/button-hover.wav",
-        HOVER_VOLUME = 0.5,
-        CLICK_SOUND = "./assets/sounds/button-click.wav",
-        CLICK_VOLUME = 0.8,
-        hoverSound = SoundCache.getSound(Script.resolvePath(HOVER_SOUND)),
-        clickSound = SoundCache.getSound(Script.resolvePath(CLICK_SOUND)),
-
-        // Hands
+        // Hands.
         LEFT_HAND = 0,
         RIGHT_HAND = 1,
         HAND_NAMES = ["LeftHand", "RightHand"],
 
         // Miscellaneous.
+        HIFI_OBJECT_MANIPULATION_CHANNEL = "Hifi-Object-Manipulation",
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system"),
+        avatarScale = 1, // Sanitized MyAvatar.scale.
         DEBUG = false;
 
     // #region Utilities =======================================================================================================
@@ -173,498 +75,713 @@
         return hand === LEFT_HAND ? RIGHT_HAND : LEFT_HAND;
     }
 
-    function playSound(sound, volume) {
-        Audio.playSound(sound, {
-            position: proxyHand === LEFT_HAND ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition(),
-            volume: volume,
-            localOnly: true
-        });
-    }
-
-    // #endregion
-
-    // #region Communications ==================================================================================================
-
-    function updateMiniTabletID() {
-        // Send mini-tablet overlay ID to controllerDispatcher so that it can use a smaller near grab distance.
-        Messages.sendLocalMessage("Hifi-MiniTablet-ID", proxyOverlay);
-        // Send mini-tablet UI overlay ID to stylusInput so that it styluses can be used on it.
-        Messages.sendLocalMessage("Hifi-MiniTablet-UI-ID", proxyUIOverlay);
-    }
-
-    function updateMutedStatus() {
-        var isMuted = Audio.muted;
-        proxyOverlayObject.emitScriptEvent(JSON.stringify({
-            type: MUTE_MESSAGE,
-            on: isMuted,
-            icon: isMuted ? MUTE_ON_ICON : MUTE_OFF_ICON
-        }));
-    }
-
-    function updateBubbleStatus() {
-        var isBubbleOn = Users.getIgnoreRadiusEnabled();
-        proxyOverlayObject.emitScriptEvent(JSON.stringify({
-            type: BUBBLE_MESSAGE,
-            on: isBubbleOn,
-            icon: isBubbleOn ? BUBBLE_ON_ICON : BUBBLE_OFF_ICON
-        }));
-    }
-
-    function onWebEventReceived(data) {
-        var message;
-
-        try {
-            message = JSON.parse(data);
-        } catch (e) {
-            console.error("EventBridge message error");
-            return;
-        }
-
-        switch (message.type) {
-            case READY_MESSAGE:
-                // Send initial button statuses.
-                updateMutedStatus();
-                updateBubbleStatus();
-                break;
-            case HOVER_MESSAGE:
-                // Audio feedback.
-                playSound(hoverSound, HOVER_VOLUME);
-                break;
-            case MUTE_MESSAGE:
-                // Toggle mute.
-                playSound(clickSound, CLICK_VOLUME);
-                Audio.muted = !Audio.muted;
-                break;
-            case BUBBLE_MESSAGE:
-                // Toggle bubble.
-                playSound(clickSound, CLICK_VOLUME);
-                Users.toggleIgnoreRadius();
-                break;
-            case EXPAND_MESSAGE:
-                // Expand tablet;
-                playSound(clickSound, CLICK_VOLUME);
-                setState(PROXY_EXPANDING, proxyHand);
-                break;
-        }
-    }
-
     // #endregion
 
     // #region UI ==============================================================================================================
 
-    function createUI() {
-        proxyOverlay = Overlays.addOverlay("model", {
-            url: PROXY_MODEL,
-            dimensions: Vec3.multiply(avatarScale, PROXY_DIMENSIONS),
-            solid: true,
-            grabbable: true,
-            showKeyboardFocusHighlight: false,
-            displayInFront: true,
-            visible: false
-        });
-        proxyUIOverlay = Overlays.addOverlay("web3d", {
-            url: PROXY_UI_HTML,
-            parentID: proxyOverlay,
-            localPosition: Vec3.multiply(avatarScale, PROXY_UI_LOCAL_POSITION),
-            localRotation: PROXY_UI_LOCAL_ROTATION,
-            dimensions: Vec3.multiply(avatarScale, PROXY_UI_DIMENSIONS),
-            dpi: PROXY_UI_DPI / avatarScale,
-            alpha: 0, // Hide overlay while its content is being created.
-            grabbable: false,
-            showKeyboardFocusHighlight: false,
-            displayInFront: true,
-            visible: false
-        });
+    UI = function () {
 
-        proxyUIOverlayEnabled = false; // This and alpha = 0 hides overlay while its content is being created.
-
-        proxyOverlayObject = Overlays.getOverlayObject(proxyUIOverlay);
-        proxyOverlayObject.webEventReceived.connect(onWebEventReceived);
-
-        // updateMiniTabletID(); Other scripts relying on this may not be ready yet so do this in showUI().
-    }
-
-    function showUI() {
-        var initialScale = 0.01; // Start very small.
-
-        Overlays.editOverlay(proxyOverlay, {
-            parentID: MyAvatar.SELF_ID,
-            parentJointIndex: handJointIndex(proxyHand),
-            localPosition: Vec3.multiply(avatarScale, PROXY_POSITIONS[proxyHand]),
-            localRotation: PROXY_ROTATIONS[proxyHand],
-            dimensions: Vec3.multiply(initialScale, PROXY_DIMENSIONS),
-            visible: true
-        });
-        Overlays.editOverlay(proxyUIOverlay, {
-            localPosition: Vec3.multiply(avatarScale, PROXY_UI_LOCAL_POSITION),
-            localRotation: PROXY_UI_LOCAL_ROTATION,
-            dimensions: Vec3.multiply(initialScale, PROXY_UI_DIMENSIONS),
-            dpi: PROXY_UI_DPI / initialScale,
-            visible: true
-        });
-
-        updateMiniTabletID();
-
-        if (!proxyUIOverlayEnabled) {
-            // Overlay content is created the first time it is visible to the user. The initial creation displays artefacts.
-            // Delay showing UI overlay until after giving it time for its content to be created.
-            Script.setTimeout(function () {
-                Overlays.editOverlay(proxyUIOverlay, { alpha: 1.0 });
-            }, PROXY_UI_OVERLAY_ENABLED_DELAY);
+        if (!(this instanceof UI)) {
+            return new UI();
         }
-    }
 
-    function sizeUI(scaleFactor) {
-        // Scale UI in place.
-        Overlays.editOverlay(proxyOverlay, {
-            dimensions: Vec3.multiply(scaleFactor, PROXY_DIMENSIONS)
-        });
-        Overlays.editOverlay(proxyUIOverlay, {
-            localPosition: Vec3.multiply(scaleFactor, PROXY_UI_LOCAL_POSITION),
-            dimensions: Vec3.multiply(scaleFactor, PROXY_UI_DIMENSIONS),
-            dpi: PROXY_UI_DPI / scaleFactor
-        });
-    }
+        var // Base overlay
+            miniOverlay = null,
+            MINI_MODEL = Script.resolvePath("./assets/models/tinyTablet.fbx"),
+            MINI_DIMENSIONS = { x: 0.0637, y: 0.0965, z: 0.0045 }, // Proportional to tablet proper.
+            MINI_POSITIONS = [
+                {
+                    x: -0.03, // Distance across hand.
+                    y: 0.08, // Distance from joint.
+                    z: 0.06 // Distance above palm.
+                },
+                {
+                    x: 0.03, // Distance across hand.
+                    y: 0.08, // Distance from joint.
+                    z: 0.06 // Distance above palm.
+                }
+            ],
+            DEGREES_180 = 180,
+            MINI_PICTH = 40,
+            MINI_ROTATIONS = [
+                Quat.fromVec3Degrees({ x: 0, y: DEGREES_180 - MINI_PICTH, z: 90 }),
+                Quat.fromVec3Degrees({ x: 0, y: DEGREES_180 + MINI_PICTH, z: -90 })
+            ],
 
-    function sizeUIAboutHandles(scaleFactor) {
-        // Scale UI and move per handles.
-        var tabletScaleFactor = avatarScale * (1 + scaleFactor * (proxyTargetWidth - proxyInitialWidth) / proxyInitialWidth);
-        var dimensions = Vec3.multiply(tabletScaleFactor, PROXY_DIMENSIONS);
-        var localRotation = Quat.mix(proxyExpandLocalRotation, proxyTargetLocalRotation, scaleFactor);
-        var localPosition =
-            Vec3.sum(proxyExpandLocalPosition,
-                Vec3.multiplyQbyV(proxyExpandLocalRotation,
-                    Vec3.multiply(-tabletScaleFactor,
-                        Vec3.multiplyVbyV(proxyExpandHandles[proxyExpandHand], PROXY_DIMENSIONS)))
-            );
-        localPosition = Vec3.sum(localPosition,
-            Vec3.multiplyQbyV(proxyExpandLocalRotation, { x: 0, y: 0.5 * -dimensions.y, z: 0 }));
-        localPosition = Vec3.sum(localPosition,
-            Vec3.multiplyQbyV(localRotation, { x: 0, y: 0.5 * dimensions.y, z: 0 }));
-        Overlays.editOverlay(proxyOverlay, {
-            localPosition: localPosition,
-            localRotation: localRotation,
-            dimensions: dimensions
-        });
-        Overlays.editOverlay(proxyUIOverlay, {
-            localPosition: Vec3.multiply(tabletScaleFactor, PROXY_UI_LOCAL_POSITION),
-            dimensions: Vec3.multiply(tabletScaleFactor, PROXY_UI_DIMENSIONS),
-            dpi: PROXY_UI_DPI / tabletScaleFactor
-        });
-    }
+            // UI overlay.
+            uiHand = LEFT_HAND,
+            miniUIOverlay = null,
+            MINI_UI_HTML = Script.resolvePath("./html/miniTablet.html"),
+            MINI_UI_DIMENSIONS = { x: 0.059, y: 0.0865 },
+            MINI_UI_WIDTH_PIXELS = 150,
+            METERS_TO_INCHES = 39.3701,
+            MINI_UI_DPI = MINI_UI_WIDTH_PIXELS / (MINI_UI_DIMENSIONS.x * METERS_TO_INCHES),
+            MINI_UI_OFFSET = 0.001, // Above model surface.
+            MINI_UI_LOCAL_POSITION = { x: 0.0002, y: 0.0024, z: -(MINI_DIMENSIONS.z / 2 + MINI_UI_OFFSET) },
+            MINI_UI_LOCAL_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 180, z: 0 }),
+            miniUIOverlayEnabled = false,
+            MINI_UI_OVERLAY_ENABLED_DELAY = 500,
+            miniOverlayObject = null,
 
-    function hideUI() {
-        Overlays.editOverlay(proxyOverlay, {
-            parentID: Uuid.NULL, // Release hold so that hand can grab tablet proper.
-            visible: false
-        });
-        Overlays.editOverlay(proxyUIOverlay, {
-            visible: false
-        });
-    }
+            // Button icons.
+            MUTE_ON_ICON = Script.resourcesPath() + "icons/tablet-icons/mic-mute-a.svg",
+            MUTE_OFF_ICON = Script.resourcesPath() + "icons/tablet-icons/mic-unmute-i.svg",
+            BUBBLE_ON_ICON = Script.resourcesPath() + "icons/tablet-icons/bubble-a.svg",
+            BUBBLE_OFF_ICON = Script.resourcesPath() + "icons/tablet-icons/bubble-i.svg",
 
-    function destroyUI() {
-        if (proxyOverlayObject) {
-            proxyOverlayObject.webEventReceived.disconnect(onWebEventReceived);
-            Overlays.deleteOverlay(proxyUIOverlay);
-            Overlays.deleteOverlay(proxyOverlay);
-            proxyOverlayObject = null;
-            proxyUIOverlay = null;
-            proxyOverlay = null;
+            // Expansion to tablet.
+            MINI_EXPAND_HANDLES = [ // Normalized coordinates in range [-0.5, 0.5] about center of mini tablet.
+                { x: 0.5, y: -0.65, z: 0 },
+                { x: -0.5, y: -0.65, z: 0 }
+            ],
+            MINI_EXPAND_DELTA_ROTATION = Quat.fromVec3Degrees({ x: -5, y: 0, z: 0 }),
+            MINI_EXPAND_HANDLES_OTHER = [ // Different handles when expanding after being grabbed by other hand,
+                { x: 0.5, y: -0.4, z: 0 },
+                { x: -0.5, y: -0.4, z: 0 }
+            ],
+            MINI_EXPAND_DELTA_ROTATION_OTHER = Quat.IDENTITY,
+            miniExpandHand,
+            miniExpandHandles = MINI_EXPAND_HANDLES,
+            miniExpandDeltaRotation = MINI_EXPAND_HANDLES_OTHER,
+            miniExpandLocalPosition,
+            miniExpandLocalRotation = Quat.IDENTITY,
+            miniInitialWidth,
+            miniTargetWidth,
+            miniTargetLocalRotation,
+
+            // EventBridge
+            READY_MESSAGE = "ready", // Engine <== Dialog
+            HOVER_MESSAGE = "hover", // Engine <== Dialog
+            MUTE_MESSAGE = "mute", // Engine <=> Dialog
+            BUBBLE_MESSAGE = "bubble", // Engine <=> Dialog
+            EXPAND_MESSAGE = "expand", // Engine <== Dialog
+
+            // Sounds
+            HOVER_SOUND = "./assets/sounds/button-hover.wav",
+            HOVER_VOLUME = 0.5,
+            CLICK_SOUND = "./assets/sounds/button-click.wav",
+            CLICK_VOLUME = 0.8,
+            hoverSound = SoundCache.getSound(Script.resolvePath(HOVER_SOUND)),
+            clickSound = SoundCache.getSound(Script.resolvePath(CLICK_SOUND));
+
+
+        function updateMutedStatus() {
+            var isMuted = Audio.muted;
+            miniOverlayObject.emitScriptEvent(JSON.stringify({
+                type: MUTE_MESSAGE,
+                on: isMuted,
+                icon: isMuted ? MUTE_ON_ICON : MUTE_OFF_ICON
+            }));
+        }
+
+        function updateBubbleStatus() {
+            var isBubbleOn = Users.getIgnoreRadiusEnabled();
+            miniOverlayObject.emitScriptEvent(JSON.stringify({
+                type: BUBBLE_MESSAGE,
+                on: isBubbleOn,
+                icon: isBubbleOn ? BUBBLE_ON_ICON : BUBBLE_OFF_ICON
+            }));
+        }
+
+        function onWebEventReceived(data) {
+            var message;
+
+            try {
+                message = JSON.parse(data);
+            } catch (e) {
+                console.error("EventBridge message error");
+                return;
+            }
+
+            switch (message.type) {
+                case READY_MESSAGE:
+                    // Send initial button statuses.
+                    updateMutedStatus();
+                    updateBubbleStatus();
+                    break;
+                case HOVER_MESSAGE:
+                    // Audio feedback.
+                    playSound(hoverSound, HOVER_VOLUME);
+                    break;
+                case MUTE_MESSAGE:
+                    // Toggle mute.
+                    playSound(clickSound, CLICK_VOLUME);
+                    Audio.muted = !Audio.muted;
+                    break;
+                case BUBBLE_MESSAGE:
+                    // Toggle bubble.
+                    playSound(clickSound, CLICK_VOLUME);
+                    Users.toggleIgnoreRadius();
+                    break;
+                case EXPAND_MESSAGE:
+                    // Expand tablet;
+                    playSound(clickSound, CLICK_VOLUME);
+                    miniState.setState(miniState.MINI_EXPANDING, uiHand);
+                    break;
+            }
+        }
+
+
+        function updateMiniTabletID() {
+            // Send mini-tablet overlay ID to controllerDispatcher so that it can use a smaller near grab distance.
+            Messages.sendLocalMessage("Hifi-MiniTablet-ID", miniOverlay);
+            // Send mini-tablet UI overlay ID to stylusInput so that it styluses can be used on it.
+            Messages.sendLocalMessage("Hifi-MiniTablet-UI-ID", miniUIOverlay);
+        }
+
+        function playSound(sound, volume) {
+            Audio.playSound(sound, {
+                position: uiHand === LEFT_HAND ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition(),
+                volume: volume,
+                localOnly: true
+            });
+        }
+
+
+        function getUIPositionAndRotation(hand) {
+            return {
+                position: MINI_POSITIONS[hand],
+                rotation: MINI_ROTATIONS[hand]
+            };
+        }
+
+        function getMiniTabletID() {
+            return miniOverlay;
+        }
+
+        function getMiniTabletProperties() {
+            var properties = Overlays.getProperties(miniOverlay, ["position", "orientation"]);
+            return {
+                position: properties.position,
+                orientation: properties.orientation
+            };
+        }
+
+
+        function show(hand) {
+            var initialScale = 0.01; // Start very small.
+
+            uiHand = hand;
+
+            Overlays.editOverlay(miniOverlay, {
+                parentID: MyAvatar.SELF_ID,
+                parentJointIndex: handJointIndex(hand),
+                localPosition: Vec3.multiply(avatarScale, MINI_POSITIONS[hand]),
+                localRotation: MINI_ROTATIONS[hand],
+                dimensions: Vec3.multiply(initialScale, MINI_DIMENSIONS),
+                visible: true
+            });
+            Overlays.editOverlay(miniUIOverlay, {
+                localPosition: Vec3.multiply(avatarScale, MINI_UI_LOCAL_POSITION),
+                localRotation: MINI_UI_LOCAL_ROTATION,
+                dimensions: Vec3.multiply(initialScale, MINI_UI_DIMENSIONS),
+                dpi: MINI_UI_DPI / initialScale,
+                visible: true
+            });
+
             updateMiniTabletID();
+
+            if (!miniUIOverlayEnabled) {
+                // Overlay content is created the first time it is visible to the user. The initial creation displays artefacts.
+                // Delay showing UI overlay until after giving it time for its content to be created.
+                Script.setTimeout(function () {
+                    Overlays.editOverlay(miniUIOverlay, { alpha: 1.0 });
+                }, MINI_UI_OVERLAY_ENABLED_DELAY);
+            }
         }
-    }
+
+        function size(scaleFactor) {
+            // Scale UI in place.
+            Overlays.editOverlay(miniOverlay, {
+                dimensions: Vec3.multiply(scaleFactor, MINI_DIMENSIONS)
+            });
+            Overlays.editOverlay(miniUIOverlay, {
+                localPosition: Vec3.multiply(scaleFactor, MINI_UI_LOCAL_POSITION),
+                dimensions: Vec3.multiply(scaleFactor, MINI_UI_DIMENSIONS),
+                dpi: MINI_UI_DPI / scaleFactor
+            });
+        }
+
+        function startExpandingTablet(hand) {
+            // Expansion details.
+            if (hand === uiHand) {
+                miniExpandHandles = MINI_EXPAND_HANDLES;
+                miniExpandDeltaRotation = MINI_EXPAND_DELTA_ROTATION;
+            } else {
+                miniExpandHandles = MINI_EXPAND_HANDLES_OTHER;
+                miniExpandDeltaRotation = MINI_EXPAND_DELTA_ROTATION_OTHER;
+            }
+
+            // Grab details.
+            var properties = Overlays.getProperties(miniOverlay, ["localPosition", "localRotation"]);
+            miniExpandHand = hand;
+            miniExpandLocalRotation = properties.localRotation;
+            miniExpandLocalPosition = Vec3.sum(properties.localPosition,
+                Vec3.multiplyQbyV(miniExpandLocalRotation,
+                    Vec3.multiplyVbyV(miniExpandHandles[miniExpandHand], MINI_DIMENSIONS)));
+
+            // Start expanding.
+            miniInitialWidth = MINI_DIMENSIONS.x;
+            miniTargetWidth = getTabletWidthFromSettings();
+            miniTargetLocalRotation = Quat.multiply(miniExpandLocalRotation, miniExpandDeltaRotation);
+        }
+
+        function sizeAboutHandles(scaleFactor) {
+            // Scale UI and move per handles.
+            var tabletScaleFactor,
+                dimensions,
+                localRotation,
+                localPosition;
+
+            tabletScaleFactor = avatarScale * (1 + scaleFactor * (miniTargetWidth - miniInitialWidth) / miniInitialWidth);
+            dimensions = Vec3.multiply(tabletScaleFactor, MINI_DIMENSIONS);
+            localRotation = Quat.mix(miniExpandLocalRotation, miniTargetLocalRotation, scaleFactor);
+            localPosition =
+                Vec3.sum(miniExpandLocalPosition,
+                    Vec3.multiplyQbyV(miniExpandLocalRotation,
+                        Vec3.multiply(-tabletScaleFactor,
+                            Vec3.multiplyVbyV(miniExpandHandles[miniExpandHand], MINI_DIMENSIONS)))
+                );
+            localPosition = Vec3.sum(localPosition,
+                Vec3.multiplyQbyV(miniExpandLocalRotation, { x: 0, y: 0.5 * -dimensions.y, z: 0 }));
+            localPosition = Vec3.sum(localPosition,
+                Vec3.multiplyQbyV(localRotation, { x: 0, y: 0.5 * dimensions.y, z: 0 }));
+            Overlays.editOverlay(miniOverlay, {
+                localPosition: localPosition,
+                localRotation: localRotation,
+                dimensions: dimensions
+            });
+            Overlays.editOverlay(miniUIOverlay, {
+                localPosition: Vec3.multiply(tabletScaleFactor, MINI_UI_LOCAL_POSITION),
+                dimensions: Vec3.multiply(tabletScaleFactor, MINI_UI_DIMENSIONS),
+                dpi: MINI_UI_DPI / tabletScaleFactor
+            });
+        }
+
+        function hide() {
+            Overlays.editOverlay(miniOverlay, {
+                parentID: Uuid.NULL, // Release hold so that hand can grab tablet proper.
+                visible: false
+            });
+            Overlays.editOverlay(miniUIOverlay, {
+                visible: false
+            });
+        }
+
+        function create() {
+            miniOverlay = Overlays.addOverlay("model", {
+                url: MINI_MODEL,
+                dimensions: Vec3.multiply(avatarScale, MINI_DIMENSIONS),
+                solid: true,
+                grabbable: true,
+                showKeyboardFocusHighlight: false,
+                displayInFront: true,
+                visible: false
+            });
+            miniUIOverlay = Overlays.addOverlay("web3d", {
+                url: MINI_UI_HTML,
+                parentID: miniOverlay,
+                localPosition: Vec3.multiply(avatarScale, MINI_UI_LOCAL_POSITION),
+                localRotation: MINI_UI_LOCAL_ROTATION,
+                dimensions: Vec3.multiply(avatarScale, MINI_UI_DIMENSIONS),
+                dpi: MINI_UI_DPI / avatarScale,
+                alpha: 0, // Hide overlay while its content is being created.
+                grabbable: false,
+                showKeyboardFocusHighlight: false,
+                displayInFront: true,
+                visible: false
+            });
+
+            miniUIOverlayEnabled = false; // This and alpha = 0 hides overlay while its content is being created.
+
+            miniOverlayObject = Overlays.getOverlayObject(miniUIOverlay);
+            miniOverlayObject.webEventReceived.connect(onWebEventReceived);
+
+            // updateMiniTabletID(); Other scripts relying on this may not be ready yet so do this in showUI().
+        }
+
+        function destroy() {
+            if (miniOverlayObject) {
+                miniOverlayObject.webEventReceived.disconnect(onWebEventReceived);
+                Overlays.deleteOverlay(miniUIOverlay);
+                Overlays.deleteOverlay(miniOverlay);
+                miniOverlayObject = null;
+                miniUIOverlay = null;
+                miniOverlay = null;
+                updateMiniTabletID();
+            }
+        }
+
+        create();
+
+        return {
+            getUIPositionAndRotation: getUIPositionAndRotation,
+            getMiniTabletID: getMiniTabletID,
+            getMiniTabletProperties: getMiniTabletProperties,
+            updateMutedStatus: updateMutedStatus,
+            updateBubbleStatus: updateBubbleStatus,
+            show: show,
+            size: size,
+            startExpandingTablet: startExpandingTablet,
+            sizeAboutHandles: sizeAboutHandles,
+            hide: hide,
+            destroy: destroy
+        };
+
+    };
 
     // #endregion
 
     // #region State Machine ===================================================================================================
 
-    function enterProxyDisabled() {
-        // Stop updates.
-        if (updateTimer !== null) {
-            Script.clearTimeout(updateTimer);
-            updateTimer = null;
+    State = function () {
+
+        if (!(this instanceof State)) {
+            return new State();
         }
 
-        // Stop monitoring mute and bubble changes.
-        Audio.mutedChanged.disconnect(updateMutedStatus);
-        Users.ignoreRadiusEnabledChanged.disconnect(updateBubbleStatus);
+        var
+            // States.
+            MINI_DISABLED = 0,
+            MINI_HIDDEN = 1,
+            MINI_HIDING = 2,
+            MINI_SHOWING = 3,
+            MINI_VISIBLE = 4,
+            MINI_GRABBED = 5,
+            MINI_EXPANDING = 6,
+            TABLET_OPEN = 7,
+            STATE_STRINGS = ["MINI_DISABLED", "MINI_HIDDEN", "MINI_HIDING", "MINI_SHOWING", "MINI_VISIBLE", "MINI_GRABBED",
+                "MINI_EXPANDING", "TABLET_OPEN"],
+            STATE_MACHINE,
+            miniState = MINI_DISABLED,
+            miniHand,
+            updateTimer = null,
+            UPDATE_INTERVAL = 300,
 
-        // Don't keep overlays prepared if in desktop mode.
-        destroyUI();
-    }
+            // Mini tablet scaling.
+            MINI_SCALE_DURATION = 150,
+            MINI_SCALE_TIMEOUT = 20,
+            miniScaleTimer = null,
+            miniScaleStart,
 
-    function exitProxyDisabled() {
-        // Create UI so that it's ready to be displayed without seeing artefacts from creating the UI.
-        createUI();
+            // Expansion to tablet.
+            MINI_EXPAND_DURATION = 250,
+            MINI_EXPAND_TIMEOUT = 20,
+            miniExpandTimer = null,
+            miniExpandStart,
 
-        // Start monitoring mute and bubble changes.
-        Audio.mutedChanged.connect(updateMutedStatus);
-        Users.ignoreRadiusEnabledChanged.connect(updateBubbleStatus);
+            // Visibility.
+            MIN_HAND_CAMERA_ANGLE = 30,
+            DEGREES_180 = 180,
+            MIN_HAND_CAMERA_ANGLE_COS = Math.cos(Math.PI * MIN_HAND_CAMERA_ANGLE / DEGREES_180);
 
-        // Start updates.
-        updateTimer = Script.setTimeout(updateState, UPDATE_INTERVAL);
-    }
 
-    function shouldShowProxy(hand) {
-        // Should show proxy if it would be oriented toward the camera.
-        var pose,
-            jointIndex,
-            handPosition,
-            handOrientation,
-            proxyPosition,
-            proxyOrientation,
-            proxyToCameraDirection;
+        function enterMiniDisabled() {
+            // Stop updates.
+            if (updateTimer !== null) {
+                Script.clearTimeout(updateTimer);
+                updateTimer = null;
+            }
 
-        pose = Controller.getPoseValue(hand === LEFT_HAND ? Controller.Standard.LeftHand : Controller.Standard.RightHand);
-        if (!pose.valid) {
-            return false;
+            // Stop monitoring mute and bubble changes.
+            Audio.mutedChanged.disconnect(ui.updateMutedStatus);
+            Users.ignoreRadiusEnabledChanged.disconnect(ui.updateBubbleStatus);
+
+            // Don't keep overlays prepared if in desktop mode.
+            ui.destroy();
+            ui = null;
         }
 
-        jointIndex = handJointIndex(hand);
-        handPosition = Vec3.sum(MyAvatar.position,
-            Vec3.multiplyQbyV(MyAvatar.orientation, MyAvatar.getAbsoluteJointTranslationInObjectFrame(jointIndex)));
-        handOrientation = Quat.multiply(MyAvatar.orientation, MyAvatar.getAbsoluteJointRotationInObjectFrame(jointIndex));
-        proxyPosition = Vec3.sum(handPosition, Vec3.multiply(avatarScale,
-            Vec3.multiplyQbyV(handOrientation, PROXY_POSITIONS[hand])));
-        proxyOrientation = Quat.multiply(handOrientation, PROXY_ROTATIONS[hand]);
-        proxyToCameraDirection = Vec3.normalize(Vec3.subtract(Camera.position, proxyPosition));
-        return Vec3.dot(proxyToCameraDirection, Quat.getForward(proxyOrientation)) > MIN_HAND_CAMERA_ANGLE_COS;
-    }
+        function exitMiniDisabled() {
+            // Create UI so that it's ready to be displayed without seeing artefacts from creating the UI.
+            ui = new UI();
 
-    function enterProxyHidden() {
-        hideUI();
-    }
+            // Start monitoring mute and bubble changes.
+            Audio.mutedChanged.connect(ui.updateMutedStatus);
+            Users.ignoreRadiusEnabledChanged.connect(ui.updateBubbleStatus);
 
-    function updateProxyHidden() {
-        // Don't show proxy if tablet is already displayed or in toolbar mode.
-        if (HMD.showTablet || tablet.toolbarMode) {
-            return;
-        }
-        // Compare palm directions of hands with vectors from palms to camera.
-        if (shouldShowProxy(LEFT_HAND)) {
-            setState(PROXY_SHOWING, LEFT_HAND);
-        } else if (shouldShowProxy(RIGHT_HAND)) {
-            setState(PROXY_SHOWING, RIGHT_HAND);
-        }
-    }
-
-    function scaleProxyDown() {
-        var scaleFactor = (Date.now() - proxyScaleStart) / PROXY_SCALE_DURATION;
-        if (scaleFactor < 1) {
-            sizeUI((1 - scaleFactor) * avatarScale);
-            proxyScaleTimer = Script.setTimeout(scaleProxyDown, PROXY_SCALE_TIMEOUT);
-            return;
-        }
-        proxyScaleTimer = null;
-        setState(PROXY_HIDDEN);
-    }
-
-    function enterProxyHiding() {
-        proxyScaleStart = Date.now();
-        proxyScaleTimer = Script.setTimeout(scaleProxyDown, PROXY_SCALE_TIMEOUT);
-    }
-
-    function updateProxyHiding() {
-        if (HMD.showTablet) {
-            setState(PROXY_HIDDEN);
-        }
-    }
-
-    function exitProxyHiding() {
-        if (proxyScaleTimer) {
-            Script.clearTimeout(proxyScaleTimer);
-            proxyScaleTimer = null;
-        }
-    }
-
-    function scaleProxyUp() {
-        var scaleFactor = (Date.now() - proxyScaleStart) / PROXY_SCALE_DURATION;
-        if (scaleFactor < 1) {
-            sizeUI(scaleFactor * avatarScale);
-            proxyScaleTimer = Script.setTimeout(scaleProxyUp, PROXY_SCALE_TIMEOUT);
-            return;
-        }
-        proxyScaleTimer = null;
-        sizeUI(avatarScale);
-        setState(PROXY_VISIBLE);
-    }
-
-    function enterProxyShowing(hand) {
-        proxyHand = hand;
-        showUI();
-        proxyScaleStart = Date.now();
-        proxyScaleTimer = Script.setTimeout(scaleProxyUp, PROXY_SCALE_TIMEOUT);
-    }
-
-    function updateProxyShowing() {
-        if (HMD.showTablet) {
-            setState(PROXY_HIDDEN);
-        }
-    }
-
-    function exitProxyShowing() {
-        if (proxyScaleTimer) {
-            Script.clearTimeout(proxyScaleTimer);
-            proxyScaleTimer = null;
-        }
-    }
-
-    function updateProxyVisible() {
-        // Hide proxy if tablet has been displayed by other means.
-        if (HMD.showTablet) {
-            setState(PROXY_HIDDEN);
-            return;
-        }
-        // Check that palm direction of proxy hand still less than maximum angle.
-        if (!shouldShowProxy(proxyHand)) {
-            setState(PROXY_HIDING);
-        }
-    }
-
-    function updateProxyGrabbed() {
-        // Hide proxy if tablet has been displayed by other means.
-        if (HMD.showTablet) {
-            setState(PROXY_HIDDEN);
-        }
-    }
-
-    function expandProxy() {
-        var scaleFactor = (Date.now() - proxyExpandStart) / PROXY_EXPAND_DURATION;
-        if (scaleFactor < 1) {
-            sizeUIAboutHandles(scaleFactor);
-            proxyExpandTimer = Script.setTimeout(expandProxy, PROXY_EXPAND_TIMEOUT);
-            return;
-        }
-        proxyExpandTimer = null;
-        setState(TABLET_OPEN);
-    }
-
-    function enterProxyExpanding(hand) {
-        // Expansion details.
-        if (hand === proxyHand) {
-            proxyExpandHandles = PROXY_EXPAND_HANDLES;
-            proxyExpandDeltaRotation = PROXY_EXPAND_DELTA_ROTATION;
-        } else {
-            proxyExpandHandles = PROXY_EXPAND_HANDLES_OTHER;
-            proxyExpandDeltaRotation = PROXY_EXPAND_DELTA_ROTATION_OTHER;
+            // Start updates.
+            updateTimer = Script.setTimeout(updateState, UPDATE_INTERVAL);
         }
 
-        // Grab details.
-        var properties = Overlays.getProperties(proxyOverlay, ["localPosition", "localRotation"]);
-        proxyExpandHand = hand;
-        proxyExpandLocalRotation = properties.localRotation;
-        proxyExpandLocalPosition = Vec3.sum(properties.localPosition,
-            Vec3.multiplyQbyV(proxyExpandLocalRotation,
-                Vec3.multiplyVbyV(proxyExpandHandles[proxyExpandHand], PROXY_DIMENSIONS)));
+        function shouldShowMini(hand) {
+            // Should show mini tablet if it would be oriented toward the camera.
+            var pose,
+                jointIndex,
+                handPosition,
+                handOrientation,
+                uiPositionAndOrientation,
+                miniPosition,
+                miniOrientation,
+                miniToCameraDirection;
 
-        // Start expanding.
-        proxyInitialWidth = PROXY_DIMENSIONS.x;
-        proxyTargetWidth = getTabletWidthFromSettings();
-        proxyTargetLocalRotation = Quat.multiply(proxyExpandLocalRotation, proxyExpandDeltaRotation);
-        proxyExpandStart = Date.now();
-        proxyExpandTimer = Script.setTimeout(expandProxy, PROXY_EXPAND_TIMEOUT);
-    }
+            pose = Controller.getPoseValue(hand === LEFT_HAND ? Controller.Standard.LeftHand : Controller.Standard.RightHand);
+            if (!pose.valid) {
+                return false;
+            }
 
-    function updateProxyExanding() {
-        // Hide proxy immediately if tablet has been displayed by other means.
-        if (HMD.showTablet) {
-            setState(PROXY_HIDDEN);
+            jointIndex = handJointIndex(hand);
+            handPosition = Vec3.sum(MyAvatar.position,
+                Vec3.multiplyQbyV(MyAvatar.orientation, MyAvatar.getAbsoluteJointTranslationInObjectFrame(jointIndex)));
+            handOrientation = Quat.multiply(MyAvatar.orientation, MyAvatar.getAbsoluteJointRotationInObjectFrame(jointIndex));
+            uiPositionAndOrientation = ui.getUIPositionAndRotation(hand);
+            miniPosition = Vec3.sum(handPosition, Vec3.multiply(avatarScale,
+                Vec3.multiplyQbyV(handOrientation, uiPositionAndOrientation.position)));
+            miniOrientation = Quat.multiply(handOrientation, uiPositionAndOrientation.rotation);
+            miniToCameraDirection = Vec3.normalize(Vec3.subtract(Camera.position, miniPosition));
+            return Vec3.dot(miniToCameraDirection, Quat.getForward(miniOrientation)) > MIN_HAND_CAMERA_ANGLE_COS;
         }
-    }
 
-    function exitProxyExpanding() {
-        if (proxyExpandTimer !== null) {
-            Script.clearTimeout(proxyExpandTimer);
-            proxyExpandTimer = null;
+        function enterMiniHidden() {
+            ui.hide();
         }
-    }
 
-    function enterTabletOpen() {
-        var proxyOverlayProperties = Overlays.getProperties(proxyOverlay, ["position", "orientation"]);
-
-        hideUI();
-
-        Overlays.editOverlay(HMD.tabletID, {
-            position: proxyOverlayProperties.position,
-            orientation: proxyOverlayProperties.orientation
-        });
-        HMD.openTablet(true);
-    }
-
-    function updateTabletOpen() {
-        // Immediately transition back to PROXY_HIDDEN.
-        setState(PROXY_HIDDEN);
-    }
-
-    STATE_MACHINE = {
-        PROXY_DISABLED: { // Tablet proxy cannot be shown because in desktop mode.
-            enter: enterProxyDisabled,
-            update: null,
-            exit: exitProxyDisabled
-        },
-        PROXY_HIDDEN: { // Tablet proxy could be shown but isn't because hand is oriented to show it or aren't in HMD mode.
-            enter: enterProxyHidden,
-            update: updateProxyHidden,
-            exit: null
-        },
-        PROXY_HIDING: { // Tablet proxy is reducing from PROXY_VISIBLE to PROXY_HIDDEN.
-            enter: enterProxyHiding,
-            update: updateProxyHiding,
-            exit: exitProxyHiding
-        },
-        PROXY_SHOWING: { // Tablet proxy is expanding from PROXY_HIDDN to PROXY_VISIBLE.
-            enter: enterProxyShowing,
-            update: updateProxyShowing,
-            exit: exitProxyShowing
-        },
-        PROXY_VISIBLE: { // Tablet proxy is visible and attached to hand.
-            enter: null,
-            update: updateProxyVisible,
-            exit: null
-        },
-        PROXY_GRABBED: { // Tablet proxy is grabbed by other hand.
-            enter: null,
-            update: updateProxyGrabbed,
-            exit: null
-        },
-        PROXY_EXPANDING: { // Tablet proxy is expanding before showing tablet proper.
-            enter: enterProxyExpanding,
-            update: updateProxyExanding,
-            exit: exitProxyExpanding
-        },
-        TABLET_OPEN: { // Tablet proper is being displayed.
-            enter: enterTabletOpen,
-            update: updateTabletOpen,
-            exit: null
+        function updateMiniHidden() {
+            // Don't show mini tablet if tablet proper is already displayed or in toolbar mode.
+            if (HMD.showTablet || tablet.toolbarMode) {
+                return;
+            }
+            // Compare palm directions of hands with vectors from palms to camera.
+            if (shouldShowMini(LEFT_HAND)) {
+                setState(MINI_SHOWING, LEFT_HAND);
+            } else if (shouldShowMini(RIGHT_HAND)) {
+                setState(MINI_SHOWING, RIGHT_HAND);
+            }
         }
+
+        function scaleMiniDown() {
+            var scaleFactor = (Date.now() - miniScaleStart) / MINI_SCALE_DURATION;
+            if (scaleFactor < 1) {
+                ui.size((1 - scaleFactor) * avatarScale);
+                miniScaleTimer = Script.setTimeout(scaleMiniDown, MINI_SCALE_TIMEOUT);
+                return;
+            }
+            miniScaleTimer = null;
+            setState(MINI_HIDDEN);
+        }
+
+        function enterMiniHiding() {
+            miniScaleStart = Date.now();
+            miniScaleTimer = Script.setTimeout(scaleMiniDown, MINI_SCALE_TIMEOUT);
+        }
+
+        function updateMiniHiding() {
+            if (HMD.showTablet) {
+                setState(MINI_HIDDEN);
+            }
+        }
+
+        function exitMiniHiding() {
+            if (miniScaleTimer) {
+                Script.clearTimeout(miniScaleTimer);
+                miniScaleTimer = null;
+            }
+        }
+
+        function scaleMiniUp() {
+            var scaleFactor = (Date.now() - miniScaleStart) / MINI_SCALE_DURATION;
+            if (scaleFactor < 1) {
+                ui.size(scaleFactor * avatarScale);
+                miniScaleTimer = Script.setTimeout(scaleMiniUp, MINI_SCALE_TIMEOUT);
+                return;
+            }
+            miniScaleTimer = null;
+            ui.size(avatarScale);
+            setState(MINI_VISIBLE);
+        }
+
+        function enterMiniShowing(hand) {
+            miniHand = hand;
+            ui.show(miniHand);
+            miniScaleStart = Date.now();
+            miniScaleTimer = Script.setTimeout(scaleMiniUp, MINI_SCALE_TIMEOUT);
+        }
+
+        function updateMiniShowing() {
+            if (HMD.showTablet) {
+                setState(MINI_HIDDEN);
+            }
+        }
+
+        function exitMiniShowing() {
+            if (miniScaleTimer) {
+                Script.clearTimeout(miniScaleTimer);
+                miniScaleTimer = null;
+            }
+        }
+
+        function updateMiniVisible() {
+            // Hide mini tablet if tablet proper has been displayed by other means.
+            if (HMD.showTablet) {
+                setState(MINI_HIDDEN);
+                return;
+            }
+            // Check that palm direction of mini tablet hand still less than maximum angle.
+            if (!shouldShowMini(miniHand)) {
+                setState(MINI_HIDING);
+            }
+        }
+
+        function updateMiniGrabbed() {
+            // Hide mini tablet if tablet proper has been displayed by other means.
+            if (HMD.showTablet) {
+                setState(MINI_HIDDEN);
+            }
+        }
+
+        function expandMini() {
+            var scaleFactor = (Date.now() - miniExpandStart) / MINI_EXPAND_DURATION;
+            if (scaleFactor < 1) {
+                ui.sizeAboutHandles(scaleFactor);
+                miniExpandTimer = Script.setTimeout(expandMini, MINI_EXPAND_TIMEOUT);
+                return;
+            }
+            miniExpandTimer = null;
+            setState(TABLET_OPEN);
+        }
+
+        function enterMiniExpanding(hand) {
+            ui.startExpandingTablet(hand);
+            miniExpandStart = Date.now();
+            miniExpandTimer = Script.setTimeout(expandMini, MINI_EXPAND_TIMEOUT);
+        }
+
+        function updateMiniExanding() {
+            // Hide mini tablet immediately if tablet proper has been displayed by other means.
+            if (HMD.showTablet) {
+                setState(MINI_HIDDEN);
+            }
+        }
+
+        function exitMiniExpanding() {
+            if (miniExpandTimer !== null) {
+                Script.clearTimeout(miniExpandTimer);
+                miniExpandTimer = null;
+            }
+        }
+
+        function enterTabletOpen() {
+            var miniTabletProperties = ui.getMiniTabletProperties();
+
+            ui.hide();
+
+            Overlays.editOverlay(HMD.tabletID, {
+                position: miniTabletProperties.position,
+                orientation: miniTabletProperties.orientation
+            });
+            HMD.openTablet(true);
+        }
+
+        function updateTabletOpen() {
+            // Immediately transition back to MINI_HIDDEN.
+            setState(MINI_HIDDEN);
+        }
+
+        STATE_MACHINE = {
+            MINI_DISABLED: { // Mini tablet cannot be shown because in desktop mode.
+                enter: enterMiniDisabled,
+                update: null,
+                exit: exitMiniDisabled
+            },
+            MINI_HIDDEN: { // Mini tablet could be shown but isn't because hand is oriented to show it or aren't in HMD mode.
+                enter: enterMiniHidden,
+                update: updateMiniHidden,
+                exit: null
+            },
+            MINI_HIDING: { // Mini tablet is reducing from MINI_VISIBLE to MINI_HIDDEN.
+                enter: enterMiniHiding,
+                update: updateMiniHiding,
+                exit: exitMiniHiding
+            },
+            MINI_SHOWING: { // Mini tablet is expanding from MINI_HIDDN to MINI_VISIBLE.
+                enter: enterMiniShowing,
+                update: updateMiniShowing,
+                exit: exitMiniShowing
+            },
+            MINI_VISIBLE: { // Mini tablet is visible and attached to hand.
+                enter: null,
+                update: updateMiniVisible,
+                exit: null
+            },
+            MINI_GRABBED: { // Mini tablet is grabbed by other hand.
+                enter: null,
+                update: updateMiniGrabbed,
+                exit: null
+            },
+            MINI_EXPANDING: { // Mini tablet is expanding before showing tablet proper.
+                enter: enterMiniExpanding,
+                update: updateMiniExanding,
+                exit: exitMiniExpanding
+            },
+            TABLET_OPEN: { // Tablet proper is being displayed.
+                enter: enterTabletOpen,
+                update: updateTabletOpen,
+                exit: null
+            }
+        };
+
+        function setState(state, data) {
+            if (state !== miniState) {
+                debug("State transition from " + STATE_STRINGS[miniState] + " to " + STATE_STRINGS[state]);
+                if (STATE_MACHINE[STATE_STRINGS[miniState]].exit) {
+                    STATE_MACHINE[STATE_STRINGS[miniState]].exit(data);
+                }
+                if (STATE_MACHINE[STATE_STRINGS[state]].enter) {
+                    STATE_MACHINE[STATE_STRINGS[state]].enter(data);
+                }
+                miniState = state;
+            } else {
+                error("Null state transition: " + state + "!");
+            }
+        }
+
+        function getState() {
+            return miniState;
+        }
+
+        function getHand() {
+            return miniHand;
+        }
+
+        function updateState() {
+            if (STATE_MACHINE[STATE_STRINGS[miniState]].update) {
+                STATE_MACHINE[STATE_STRINGS[miniState]].update();
+            }
+            updateTimer = Script.setTimeout(updateState, UPDATE_INTERVAL);
+        }
+
+        function create() {
+            // Nothing to do.
+        }
+
+        function destroy() {
+            if (miniState !== MINI_DISABLED) {
+                setState(MINI_DISABLED);
+            }
+        }
+
+        create();
+
+        return {
+            MINI_DISABLED: MINI_DISABLED,
+            MINI_HIDDEN: MINI_HIDDEN,
+            MINI_HIDING: MINI_HIDING,
+            MINI_SHOWING: MINI_SHOWING,
+            MINI_VISIBLE: MINI_VISIBLE,
+            MINI_GRABBED: MINI_GRABBED,
+            MINI_EXPANDING: MINI_EXPANDING,
+            TABLET_OPEN: TABLET_OPEN,
+            updateState: updateState,
+            setState: setState,
+            getState: getState,
+            getHand: getHand,
+            destroy: destroy
+        };
     };
-
-    function setState(state, data) {
-        if (state !== rezzerState) {
-            debug("State transition from " + STATE_STRINGS[rezzerState] + " to " + STATE_STRINGS[state]);
-            if (STATE_MACHINE[STATE_STRINGS[rezzerState]].exit) {
-                STATE_MACHINE[STATE_STRINGS[rezzerState]].exit(data);
-            }
-            if (STATE_MACHINE[STATE_STRINGS[state]].enter) {
-                STATE_MACHINE[STATE_STRINGS[state]].enter(data);
-            }
-            rezzerState = state;
-        } else {
-            error("Null state transition: " + state + "!");
-        }
-    }
-
-    function updateState() {
-        if (STATE_MACHINE[STATE_STRINGS[rezzerState]].update) {
-            STATE_MACHINE[STATE_STRINGS[rezzerState]].update();
-        }
-        updateTimer = Script.setTimeout(updateState, UPDATE_INTERVAL);
-    }
 
     // #endregion
 
-    // #region Events ==========================================================================================================
+    // #region External Events =================================================================================================
 
     function onScaleChanged() {
         avatarScale = MyAvatar.scale;
@@ -673,44 +790,49 @@
     }
 
     function onMessageReceived(channel, data, senderID, localOnly) {
-        var message, hand;
+        var message,
+            miniHand,
+            hand;
 
         if (channel !== HIFI_OBJECT_MANIPULATION_CHANNEL) {
             return;
         }
 
         message = JSON.parse(data);
-        if (message.grabbedEntity !== proxyOverlay) {
+        if (message.grabbedEntity !== ui.getMiniTabletID()) {
             return;
         }
 
-        if (message.action === "grab" && rezzerState === PROXY_VISIBLE) {
-            hand = message.joint === HAND_NAMES[proxyHand] ? proxyHand : otherHand(proxyHand);
-            if (hand === proxyHand) {
-                setState(PROXY_EXPANDING, hand);
+        miniHand = miniState.getHand();
+        if (message.action === "grab" && miniState.getState() === miniState.MINI_VISIBLE) {
+            hand = message.joint === HAND_NAMES[miniHand] ? miniHand : otherHand(miniHand);
+            if (hand === miniHand) {
+                miniState.setState(miniState.MINI_EXPANDING, hand);
             } else {
-                setState(PROXY_GRABBED);
+                miniState.setState(miniState.MINI_GRABBED);
             }
-        } else if (message.action === "release" && rezzerState === PROXY_GRABBED) {
-            hand = message.joint === HAND_NAMES[proxyHand] ? proxyHand : otherHand(proxyHand);
-            setState(PROXY_EXPANDING, hand);
+        } else if (message.action === "release" && miniState.getState() === miniState.MINI_GRABBED) {
+            hand = message.joint === HAND_NAMES[miniHand] ? miniHand : otherHand(miniHand);
+            miniState.setState(miniState.MINI_EXPANDING, hand);
         }
     }
 
     function onDisplayModeChanged() {
-        // Tablet proxy only available when HMD is active.
+        // Mini tablet only available when HMD is active.
         if (HMD.active) {
-            setState(PROXY_HIDDEN);
+            miniState.setState(miniState.MINI_HIDDEN);
         } else {
-            setState(PROXY_DISABLED);
+            miniState.setState(miniState.MINI_DISABLED);
         }
     }
 
     // #endregion
 
-    // #region Start-up and tear-down ==========================================================================================
+    // #region Set-up and tear-down ============================================================================================
 
     function setUp() {
+        miniState = new State();
+
         MyAvatar.scaleChanged.connect(onScaleChanged);
 
         Messages.subscribe(HIFI_OBJECT_MANIPULATION_CHANNEL);
@@ -718,17 +840,12 @@
 
         HMD.displayModeChanged.connect(onDisplayModeChanged);
         if (HMD.active) {
-            setState(PROXY_HIDDEN);
+            miniState.setState(miniState.MINI_HIDDEN);
         }
     }
 
     function tearDown() {
-        if (updateTimer !== null) {
-            Script.clearTimeout(updateTimer);
-            updateTimer = null;
-        }
-
-        setState(PROXY_DISABLED);
+        miniState.setState(miniState.MINI_DISABLED);
 
         HMD.displayModeChanged.disconnect(onDisplayModeChanged);
 
@@ -736,6 +853,9 @@
         Messages.unsubscribe(HIFI_OBJECT_MANIPULATION_CHANNEL);
 
         MyAvatar.scaleChanged.disconnect(onScaleChanged);
+
+        miniState.destroy();
+        miniState = null;
     }
 
     setUp();
