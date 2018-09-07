@@ -36,7 +36,6 @@ void GL45Backend::updateInput() {
     _input._lastUpdateStereoState = isStereoNow;
 
     if (_input._invalidFormat) {
-        PROFILE_RANGE(render_gpu, "bindInputFormat");
         InputStageState::ActivationCache newActivation;
 
         // Assign the vertex format required
@@ -136,7 +135,6 @@ void GL45Backend::updateInput() {
         // Profile the count of buffers to update and use it to short cut the for loop
         int numInvalids = (int) _input._invalidBuffers.count();
         _stats._ISNumInputBufferChanges += numInvalids;
-        PROFILE_COUNTER_IF_CHANGED(render_gpu, "numInputBuffersbound", int, numInvalids);
 
         auto numBuffers = _input._buffers.size();
         for (GLuint buffer = 0; buffer < numBuffers; buffer++, vbo++, offset++, stride++) {
@@ -148,7 +146,6 @@ void GL45Backend::updateInput() {
                 }
             }
         }
-
 
         _input._invalidBuffers.reset();
         (void)CHECK_GL_ERROR();

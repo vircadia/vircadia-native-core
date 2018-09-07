@@ -80,10 +80,7 @@ void GL41Backend::updateInput() {
             auto& inputChannels = _input._format->getChannels();
             int numInvalids = (int)_input._invalidBuffers.count();
             _stats._ISNumInputBufferChanges += numInvalids;
-
-            // Profile the count of buffers to update
-            PROFILE_COUNTER_IF_CHANGED(render_gpu, "numInputBuffersbound", int, numInvalids);
-
+            
             GLuint boundVBO = 0;
             for (auto& channelIt : inputChannels) {
                 const Stream::Format::ChannelMap::value_type::second_type& channel = (channelIt).second;

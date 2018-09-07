@@ -259,7 +259,6 @@ void GLBackend::updateInput() {
         // Profile the count of buffers to update and use it to short cut the for loop
         int numInvalids = (int) _input._invalidBuffers.count();
         _stats._ISNumInputBufferChanges += numInvalids;
-        PROFILE_COUNTER_IF_CHANGED(render_gpu, "numInputBuffersbound", int, numInvalids);
 
         for (GLuint buffer = 0; buffer < _input._buffers.size(); buffer++, vbo++, offset++, stride++) {
             if (_input._invalidBuffers.test(buffer)) {
