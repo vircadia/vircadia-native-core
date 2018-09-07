@@ -409,7 +409,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
         assert(otherNode); // we can't have gotten here without the avatarData being a valid key in the map
 
-        AvatarData::AvatarDataDetail detail;
+        AvatarData::AvatarDataDetail detail = AvatarData::NoData;
 
         // NOTE: Here's where we determine if we are over budget and drop to bare minimum data
         int minimRemainingAvatarBytes = minimumBytesPerAvatar * remainingAvatars;
