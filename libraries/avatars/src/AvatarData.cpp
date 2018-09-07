@@ -625,7 +625,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
         destinationBuffer += numValidityBytes; // Move pointer past the validity bytes
 
-        float minTranslation = (distanceAdjust && cullSmallChanges) ? getDistanceBasedMinTranslationDistance(viewerPosition) : AVATAR_MIN_ROTATION_DOT;
+        float minTranslation = (distanceAdjust && cullSmallChanges) ? getDistanceBasedMinTranslationDistance(viewerPosition) : AVATAR_MIN_TRANSLATION;
 
         float maxTranslationDimension = 0.0;
         for (int i = 0; i < jointData.size(); i++) {
