@@ -21,6 +21,7 @@ SpinBox {
         id: hifi
     }
 
+    inputMethodHints: Qt.ImhFormattedNumbersOnly
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme === hifi.colorSchemes.light
     property string label: ""
@@ -91,7 +92,6 @@ SpinBox {
     }
 
     valueFromText: function(text, locale) {
-        spinBox.value = 0; // Force valueChanged signal to be emitted so that validator fires.
         return Number.fromLocaleString(locale, text)*factor;
     }
 
@@ -104,6 +104,8 @@ SpinBox {
         selectedTextColor: hifi.colors.black
         selectionColor: hifi.colors.primaryHighlight
         text: spinBox.textFromValue(spinBox.value, spinBox.locale) + suffix
+        inputMethodHints: spinBox.inputMethodHints
+        validator: spinBox.validator
         verticalAlignment: Qt.AlignVCenter
         leftPadding: spinBoxLabelInside.visible ? 30 : hifi.dimensions.textPadding
         //rightPadding: hifi.dimensions.spinnerSize
@@ -124,6 +126,11 @@ SpinBox {
             color: spinBox.up.pressed || spinBox.up.hovered ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
         }
     }
+    up.onPressedChanged: {
+        if(value) {
+            spinBox.forceActiveFocus();
+        }
+    }
 
     down.indicator: Item {
             x: spinBox.width - implicitWidth - 5
@@ -137,6 +144,11 @@ SpinBox {
                 size: hifi.dimensions.spinnerSize
                 color: spinBox.down.pressed || spinBox.down.hovered ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
             }
+    }
+    down.onPressedChanged: {
+        if(value) {
+            spinBox.forceActiveFocus();
+        }
     }
 
     HifiControls.Label {

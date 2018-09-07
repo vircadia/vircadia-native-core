@@ -59,7 +59,11 @@ const int32_t BULLET_COLLISION_MASK_KINEMATIC = BULLET_COLLISION_MASK_STATIC;
 // MY_AVATAR does not collide with itself
 const int32_t BULLET_COLLISION_MASK_MY_AVATAR = ~(BULLET_COLLISION_GROUP_COLLISIONLESS | BULLET_COLLISION_GROUP_MY_AVATAR);
 
-const int32_t BULLET_COLLISION_MASK_OTHER_AVATAR = BULLET_COLLISION_MASK_DEFAULT;
+// OTHER_AVATARs are dynamic, but are slammed to whatever the avatar-mixer says, which means
+// their motion can't actually be affected by the local physics simulation -- we rely on the remote simulation
+// to move its avatar around correctly and to communicate its motion through the avatar-mixer.
+// Therefore, they only need to collide against things that can be affected by their motion: dynamic and MyAvatar
+const int32_t BULLET_COLLISION_MASK_OTHER_AVATAR = BULLET_COLLISION_GROUP_DYNAMIC | BULLET_COLLISION_GROUP_MY_AVATAR;
 
 // COLLISIONLESS gets an empty mask.
 const int32_t BULLET_COLLISION_MASK_COLLISIONLESS = 0;
@@ -100,6 +104,7 @@ const uint16_t ENTITY_COLLISION_MASK_DEFAULT =
     USER_COLLISION_GROUP_OTHER_AVATAR;
 
 const uint16_t USER_COLLISION_MASK_AVATARS = USER_COLLISION_GROUP_MY_AVATAR | USER_COLLISION_GROUP_OTHER_AVATAR;
+const uint16_t USER_COLLISION_MASK_ENTITIES = USER_COLLISION_GROUP_STATIC | USER_COLLISION_GROUP_DYNAMIC | USER_COLLISION_GROUP_KINEMATIC;
 
 const int32_t NUM_USER_COLLISION_GROUPS = 5;
 

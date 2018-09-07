@@ -40,8 +40,7 @@
 
 #include <PointerManager.h>
 
-size_t std::hash<EntityItemID>::operator()(const EntityItemID& id) const { return qHash(id); }
-std::function<bool()> EntityTreeRenderer::_entitiesShouldFadeFunction;
+std::function<bool()> EntityTreeRenderer::_entitiesShouldFadeFunction = []() { return true; };
 
 QString resolveScriptURL(const QString& scriptUrl) {
     auto normalizedScriptUrl = DependencyManager::get<ResourceManager>()->normalizeURL(scriptUrl);
@@ -296,7 +295,8 @@ void EntityTreeRenderer::addPendingEntities(const render::ScenePointer& scene, r
                 auto spaceIndex = _space->allocateID();
                 workload::Sphere sphere(entity->getWorldPosition(), entity->getBoundingRadius());
                 workload::Transaction transaction;
-                transaction.reset(spaceIndex, sphere, workload::Owner(entity));
+                SpatiallyNestablePointer nestable = std::static_pointer_cast<SpatiallyNestable>(entity);
+                transaction.reset(spaceIndex, sphere, workload::Owner(nestable));
                 _space->enqueueTransaction(transaction);
                 entity->setSpaceIndex(spaceIndex);
                 connect(entity.get(), &EntityItem::spaceUpdate, this, &EntityTreeRenderer::handleSpaceUpdate, Qt::QueuedConnection);
@@ -382,6 +382,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
 
         const auto& views = _viewState->getConicalViews();
         PrioritySortUtil::PriorityQueue<SortableRenderer> sortedRenderables(views);
+        sortedRenderables.reserve(_renderablesToUpdate.size());
         {
             PROFILE_RANGE_EX(simulation_physics, "SortRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
             std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr = _renderablesToUpdate.begin();
@@ -405,11 +406,14 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
 
             // process the sorted renderables
             size_t numSorted = sortedRenderables.size();
-            while (!sortedRenderables.empty() && usecTimestampNow() < expiry) {
-                const auto renderable = sortedRenderables.top().getRenderer();
+            const auto& sortedRenderablesVector = sortedRenderables.getSortedVector();
+            for (const auto& sortedRenderable : sortedRenderablesVector) {
+                if (usecTimestampNow() > expiry) {
+                    break;
+                }
+                const auto& renderable = sortedRenderable.getRenderer();
                 renderable->updateInScene(scene, transaction);
                 _renderablesToUpdate.erase(renderable->getEntity()->getID());
-                sortedRenderables.pop();
             }
 
             // compute average per-renderable update cost
@@ -643,6 +647,14 @@ bool EntityTreeRenderer::applyLayeredZones() {
 }
 
 void EntityTreeRenderer::processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
+    OCTREE_PACKET_FLAGS flags;
+    message.readPrimitive(&flags);
+
+    OCTREE_PACKET_SEQUENCE sequence;
+    message.readPrimitive(&sequence);
+
+    _lastOctreeMessageSequence = sequence;
+    message.seek(0);
     std::static_pointer_cast<EntityTree>(_tree)->processEraseMessage(message, sourceNode);
 }
 

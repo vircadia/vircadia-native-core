@@ -11,12 +11,14 @@
 <@if not SKINNING_SLH@>
 <@def SKINNING_SLH@>
 
+<@include graphics/ShaderConstants.h@>
+
 const int MAX_CLUSTERS = 128;
 const int INDICES_PER_VERTEX = 4;
 
 <@func declareUseDualQuaternionSkinning(USE_DUAL_QUATERNION_SKINNING)@>
 
-layout(std140) uniform skinClusterBuffer {
+layout(std140, binding=GRAPHICS_BUFFER_SKINNING) uniform skinClusterBuffer {
     mat4 clusterMatrices[MAX_CLUSTERS];
 };
 

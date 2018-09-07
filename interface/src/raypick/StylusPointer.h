@@ -33,6 +33,8 @@ public:
     void setRenderState(const std::string& state) override;
     void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) override {}
 
+    QVariantMap toVariantMap() const override;
+
     static OverlayID buildStylusOverlay(const QVariantMap& properties);
 
 protected:
@@ -75,6 +77,8 @@ private:
     static bool isWithinBounds(float distance, float min, float max, float hysteresis);
     static glm::vec3 findIntersection(const PickedObject& pickedObject, const glm::vec3& origin, const glm::vec3& direction);
     static glm::vec2 findPos2D(const PickedObject& pickedObject, const glm::vec3& origin);
+
+    bool _showing { true };
 
 };
 

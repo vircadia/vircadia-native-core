@@ -216,8 +216,7 @@ void Image3DOverlay::setProperties(const QVariantMap& properties) {
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
  *     <code>dashed</code>.
- * @property {boolean} ignoreRayIntersection=false - If <code>true</code>, 
- *     {@link Overlays.findRayIntersection|findRayIntersection} ignores the overlay.
+ * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
  *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.
  * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
@@ -260,10 +259,7 @@ void Image3DOverlay::setURL(const QString& url) {
 bool Image3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                          float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking) {
     if (_texture && _texture->isLoaded()) {
-        // Make sure position and rotation is updated.
         Transform transform = getTransform();
-        
-        // Don't call applyTransformTo() or setTransform() here because this code runs too frequently.
 
         // Produce the dimensions of the overlay based on the image's aspect ratio and the overlay's scale.
         bool isNull = _fromImage.isNull();
@@ -271,12 +267,55 @@ bool Image3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec
         float height = isNull ? _texture->getHeight() : _fromImage.height();
         float maxSize = glm::max(width, height);
         glm::vec2 dimensions = _dimensions * glm::vec2(width / maxSize, height / maxSize);
+        glm::quat rotation = transform.getRotation();
 
-        // FIXME - face and surfaceNormal not being set
-        return findRayRectangleIntersection(origin, direction,
-                                            transform.getRotation(),
-                                            transform.getTranslation(),
-                                            dimensions, distance);
+        if (findRayRectangleIntersection(origin, direction, rotation, transform.getTranslation(), dimensions, distance)) {
+            glm::vec3 forward = rotation * Vectors::FRONT;
+            if (glm::dot(forward, direction) > 0.0f) {
+                face = MAX_Z_FACE;
+                surfaceNormal = -forward;
+            } else {
+                face = MIN_Z_FACE;
+                surfaceNormal = forward;
+            }
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool Image3DOverlay::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+                                              float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking) {
+    if (_texture && _texture->isLoaded()) {
+        Transform transform = getTransform();
+
+        // Produce the dimensions of the overlay based on the image's aspect ratio and the overlay's scale.
+        bool isNull = _fromImage.isNull();
+        float width = isNull ? _texture->getWidth() : _fromImage.width();
+        float height = isNull ? _texture->getHeight() : _fromImage.height();
+        float maxSize = glm::max(width, height);
+        glm::vec2 dimensions = _dimensions * glm::vec2(width / maxSize, height / maxSize);
+        glm::quat rotation = transform.getRotation();
+        glm::vec3 position = getWorldPosition();
+
+        glm::quat inverseRot = glm::inverse(rotation);
+        glm::vec3 localOrigin = inverseRot * (origin - position);
+        glm::vec3 localVelocity = inverseRot * velocity;
+        glm::vec3 localAcceleration = inverseRot * acceleration;
+
+        if (findParabolaRectangleIntersection(localOrigin, localVelocity, localAcceleration, dimensions, parabolicDistance)) {
+            float localIntersectionVelocityZ = localVelocity.z + localAcceleration.z * parabolicDistance;
+            glm::vec3 forward = rotation * Vectors::FRONT;
+            if (localIntersectionVelocityZ > 0.0f) {
+                face = MIN_Z_FACE;
+                surfaceNormal = forward;
+            } else {
+                face = MAX_Z_FACE;
+                surfaceNormal = -forward;
+            }
+            return true;
+        }
     }
 
     return false;

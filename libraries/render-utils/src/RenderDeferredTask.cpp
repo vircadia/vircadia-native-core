@@ -12,12 +12,15 @@
 
 #include "RenderDeferredTask.h"
 
+#include <QtCore/qglobal.h>
+
 #include <DependencyManager.h>
 
 #include <PerfStat.h>
 #include <PathUtils.h>
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
+#include <graphics/ShaderConstants.h>
 
 #include <render/CullTask.h>
 #include <render/FilterTask.h>
@@ -29,6 +32,7 @@
 #include <render/ResampleTask.h>
 
 #include "RenderHifi.h"
+#include "render-utils/ShaderConstants.h"
 #include "RenderCommonTask.h"
 #include "LightingModel.h"
 #include "StencilMaskPass.h"
@@ -41,6 +45,7 @@
 #include "TextureCache.h"
 #include "ZoneRenderer.h"
 #include "FadeEffect.h"
+#include "BloomStage.h"
 #include "RenderUtilsLogging.h"
 
 #include "AmbientOcclusionEffect.h"
@@ -55,6 +60,17 @@
 
 using namespace render;
 extern void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
+
+namespace ru {
+    using render_utils::slot::texture::Texture;
+    using render_utils::slot::buffer::Buffer;
+}
+
+namespace gr {
+    using graphics::slot::texture::Texture;
+    using graphics::slot::buffer::Buffer;
+}
+
 
 RenderDeferredTask::RenderDeferredTask()
 {
@@ -83,7 +99,9 @@ const render::Varying RenderDeferredTask::addSelectItemJobs(JobModel& task, cons
 }
 
 void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output, bool renderShadows) {
-    const auto& items = input.get<Input>();
+    const auto& inputs = input.get<Input>();
+    const auto& items = inputs.get0();
+
     auto fadeEffect = DependencyManager::get<FadeEffect>();
 
     // Prepare the ShapePipelines
@@ -156,7 +174,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto velocityBufferOutputs = task.addJob<VelocityBufferPass>("VelocityBuffer", velocityBufferInputs);
     const auto velocityBuffer = velocityBufferOutputs.getN<VelocityBufferPass::Outputs>(0);
 
-    // Clear Light, Haze and Skybox Stages and render zones from the general metas bucket
+    // Clear Light, Haze, Bloom, and Skybox Stages and render zones from the general metas bucket
     const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
 
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
@@ -211,6 +229,9 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto overlaysInFrontOpaque = filteredOverlaysOpaque.getN<FilterLayeredItems::Outputs>(0);
     const auto overlaysInFrontTransparent = filteredOverlaysTransparent.getN<FilterLayeredItems::Outputs>(0);
 
+    // We don't want the overlay to clear the deferred frame buffer depth because we would like to keep it for debugging visualisation
+   // task.addJob<SetSeparateDeferredDepthBuffer>("SeparateDepthForOverlay", deferredFramebuffer);
+
     const auto overlayInFrontOpaquesInputs = DrawOverlay3D::Inputs(overlaysInFrontOpaque, lightingModel, jitter).asVarying();
     const auto overlayInFrontTransparentsInputs = DrawOverlay3D::Inputs(overlaysInFrontTransparent, lightingModel, jitter).asVarying();
     task.addJob<DrawOverlay3D>("DrawOverlayInFrontOpaque", overlayInFrontOpaquesInputs, true);
@@ -225,8 +246,9 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
 
     // Add bloom
-    const auto bloomInputs = Bloom::Inputs(deferredFrameTransform, lightingFramebuffer).asVarying();
-    task.addJob<Bloom>("Bloom", bloomInputs);
+    const auto bloomModel = task.addJob<FetchBloomStage>("BloomModel");
+    const auto bloomInputs = BloomEffect::Inputs(deferredFrameTransform, lightingFramebuffer, bloomModel).asVarying();
+    task.addJob<BloomEffect>("Bloom", bloomInputs);
 
     // Lighting Buffer ready for tone mapping
     const auto toneMappingInputs = ToneMappingDeferred::Inputs(lightingFramebuffer, scaledPrimaryFramebuffer).asVarying();
@@ -241,13 +263,19 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         task.addJob<DrawBounds>("DrawZones", zones);
         const auto frustums = task.addJob<ExtractFrustums>("ExtractFrustums");
         const auto viewFrustum = frustums.getN<ExtractFrustums::Output>(ExtractFrustums::VIEW_FRUSTUM);
-        task.addJob<DrawFrustum>("DrawViewFrustum", viewFrustum, glm::vec3(1.0f, 1.0f, 0.0f));
+        task.addJob<DrawFrustum>("DrawViewFrustum", viewFrustum, glm::vec3(0.0f, 1.0f, 0.0f));
         for (auto i = 0; i < ExtractFrustums::SHADOW_CASCADE_FRUSTUM_COUNT; i++) {
-            const auto shadowFrustum = frustums.getN<ExtractFrustums::Output>(ExtractFrustums::SHADOW_CASCADE0_FRUSTUM+i);
+            const auto shadowFrustum = frustums.getN<ExtractFrustums::Output>(ExtractFrustums::SHADOW_CASCADE0_FRUSTUM + i);
             float tint = 1.0f - i / float(ExtractFrustums::SHADOW_CASCADE_FRUSTUM_COUNT - 1);
             char jobName[64];
             sprintf(jobName, "DrawShadowFrustum%d", i);
             task.addJob<DrawFrustum>(jobName, shadowFrustum, glm::vec3(0.0f, tint, 1.0f));
+            if (!inputs[1].isNull()) {
+                const auto& shadowCascadeSceneBBoxes = inputs.get1();
+                const auto shadowBBox = shadowCascadeSceneBBoxes[ExtractFrustums::SHADOW_CASCADE0_FRUSTUM + i];
+                sprintf(jobName, "DrawShadowBBox%d", i);
+                task.addJob<DrawAABox>(jobName, shadowBBox, glm::vec3(1.0f, tint, 0.0f));
+            }
         }
 
         // Render.getConfig("RenderMainView.DrawSelectionBounds").enabled = true
@@ -347,27 +375,18 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         batch.setViewTransform(viewMat);
 
         // Setup lighting model for all items;
-        batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
+        batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
 
         // Set the light
-        deferredLightingEffect->setupKeyLightBatch(args, batch,
-            render::ShapePipeline::Slot::KEY_LIGHT,
-            render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER,
-            render::ShapePipeline::Slot::LIGHT_AMBIENT_MAP);
-
-        deferredLightingEffect->setupLocalLightsBatch(batch,
-            render::ShapePipeline::Slot::LIGHT_ARRAY_BUFFER,
-            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
-            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
-            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT,
-            lightClusters);
+        deferredLightingEffect->setupKeyLightBatch(args, batch);
+        deferredLightingEffect->setupLocalLightsBatch(batch, lightClusters);
 
         // Setup haze if current zone has haze
         auto hazeStage = args->_scene->getStage<HazeStage>();
         if (hazeStage && hazeStage->_currentFrame._hazes.size() > 0) {
             graphics::HazePointer hazePointer = hazeStage->getHaze(hazeStage->_currentFrame._hazes.front());
             if (hazePointer) {
-                batch.setUniformBuffer(render::ShapePipeline::Slot::HAZE_MODEL, hazePointer->getHazeParametersBuffer());
+                batch.setUniformBuffer(ru::Buffer::HazeParams, hazePointer->getHazeParametersBuffer());
             }
         }
 
@@ -385,16 +404,8 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         args->_batch = nullptr;
         args->_globalShapeKey = 0;
 
-        deferredLightingEffect->unsetLocalLightsBatch(batch,
-            render::ShapePipeline::Slot::LIGHT_ARRAY_BUFFER,
-            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT,
-            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT,
-            render::ShapePipeline::Slot::LIGHT_CLUSTER_GRID_FRUSTUM_GRID_SLOT);
-
-        deferredLightingEffect->unsetKeyLightBatch(batch,
-            render::ShapePipeline::Slot::KEY_LIGHT,
-            render::ShapePipeline::Slot::LIGHT_AMBIENT_BUFFER,
-            render::ShapePipeline::Slot::LIGHT_AMBIENT_MAP);
+        deferredLightingEffect->unsetLocalLightsBatch(batch);
+        deferredLightingEffect->unsetKeyLightBatch(batch);
     });
 
     config->setNumDrawn((int)inItems.size());
@@ -429,7 +440,7 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
         batch.setViewTransform(viewMat);
 
         // Setup lighting model for all items;
-        batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
+        batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
 
         // From the lighting model define a global shapeKey ORED with individiual keys
         ShapeKey::Builder keyBuilder;
@@ -450,4 +461,27 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
     });
 
     config->setNumDrawn((int)inItems.size());
+}
+
+void SetSeparateDeferredDepthBuffer::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
+    assert(renderContext->args);
+
+    const auto deferredFramebuffer = inputs->getDeferredFramebuffer();
+    const auto frameSize = deferredFramebuffer->getSize();
+    const auto renderbufferCount = deferredFramebuffer->getNumRenderBuffers();
+
+    if (!_framebuffer || _framebuffer->getSize() != frameSize || _framebuffer->getNumRenderBuffers() != renderbufferCount) {
+        auto depthFormat = deferredFramebuffer->getDepthStencilBufferFormat();
+        auto depthStencilTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(depthFormat, frameSize.x, frameSize.y));
+        _framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("deferredFramebufferSeparateDepth"));
+        _framebuffer->setDepthStencilBuffer(depthStencilTexture, depthFormat);
+        for (decltype(deferredFramebuffer->getNumRenderBuffers()) i = 0; i < renderbufferCount; i++) {
+            _framebuffer->setRenderBuffer(i, deferredFramebuffer->getRenderBuffer(i));
+        }
+    }
+
+    RenderArgs* args = renderContext->args;
+    gpu::doInBatch("SetSeparateDeferredDepthBuffer::run", args->_context, [this](gpu::Batch& batch) {
+        batch.setFramebuffer(_framebuffer);
+    });
 }

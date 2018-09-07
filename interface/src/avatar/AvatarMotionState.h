@@ -14,14 +14,14 @@
 
 #include <QSet>
 
-#include <avatars-renderer/Avatar.h>
 #include <ObjectMotionState.h>
 #include <BulletUtil.h>
 
+#include "OtherAvatar.h"
 
 class AvatarMotionState : public ObjectMotionState {
 public:
-    AvatarMotionState(AvatarSharedPointer avatar, const btCollisionShape* shape);
+    AvatarMotionState(OtherAvatarPointer avatar, const btCollisionShape* shape);
 
     virtual void handleEasyChanges(uint32_t& flags) override;
     virtual bool handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) override;
@@ -74,6 +74,10 @@ public:
     friend class Avatar;
 
 protected:
+    void setRigidBody(btRigidBody* body) override;
+    void setShape(const btCollisionShape* shape) override;
+    void cacheShapeDiameter();
+
     // the dtor had been made protected to force the compiler to verify that it is only
     // ever called by the Avatar class dtor.
     ~AvatarMotionState();
@@ -81,7 +85,7 @@ protected:
     virtual bool isReadyToComputeShape() const override { return true; }
     virtual const btCollisionShape* computeNewShape() override;
 
-    AvatarSharedPointer _avatar;
+    OtherAvatarPointer _avatar;
     float _diameter { 0.0f };
 
     uint32_t _dirtyFlags;

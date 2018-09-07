@@ -35,6 +35,12 @@ glm::vec3 HMDScriptingInterface::calculateRayUICollisionPoint(const glm::vec3& p
     return result;
 }
 
+glm::vec3 HMDScriptingInterface::calculateParabolaUICollisionPoint(const glm::vec3& position, const glm::vec3& velocity, const glm::vec3& acceleration, float& parabolicDistance) const {
+    glm::vec3 result;
+    qApp->getApplicationCompositor().calculateParabolaUICollisionPoint(position, velocity, acceleration, result, parabolicDistance);
+    return result;
+}
+
 glm::vec2 HMDScriptingInterface::overlayFromWorldPoint(const glm::vec3& position) const {
     return qApp->getApplicationCompositor().overlayFromSphereSurface(position);
 }

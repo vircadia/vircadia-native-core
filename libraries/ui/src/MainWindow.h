@@ -21,6 +21,8 @@ class MainWindow : public QMainWindow {
 public:
     explicit MainWindow(QWidget* parent = NULL);
     ~MainWindow();
+
+    static QWindow* findMainWindow();
     
 public slots:
     void restoreGeometry();

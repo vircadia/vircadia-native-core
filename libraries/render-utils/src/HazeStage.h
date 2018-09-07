@@ -163,6 +163,5 @@ public:
 
 private:
     graphics::HazePointer _haze;
-    gpu::PipelinePointer _hazePipeline;
 };
 #endif

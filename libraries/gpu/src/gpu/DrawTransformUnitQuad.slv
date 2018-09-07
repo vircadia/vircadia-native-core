@@ -2,6 +2,8 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
+//  DrawTransformUnitQuad.vert
+// 
 //  Draw and transform the unit quad [-1,-1 -> 1,1]
 //  Simply draw a Triangle_strip of 2 triangles, no input buffers or index buffer needed
 //
@@ -16,7 +18,7 @@
 
 <$declareStandardTransform()$>
 
-out vec2 varTexCoord0;
+layout(location=0) out vec2 varTexCoord0;
 
 void main(void) {
     const vec4 UNIT_QUAD[4] = vec4[4](

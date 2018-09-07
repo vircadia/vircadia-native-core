@@ -14,6 +14,7 @@ Rectangle {
     property string titleText: ''
     property string bodyText: ''
     property alias inputText: input;
+    property alias dialogButtons: buttons
 
     property string imageSource: null
     onImageSourceChanged: {
@@ -36,6 +37,7 @@ Rectangle {
     function close() {
         visible = false;
 
+        dialogButtons.yesButton.fontCapitalization = Font.AllUppercase;
         onButton1Clicked = null;
         onButton2Clicked = null;
         button1text = '';
@@ -126,7 +128,7 @@ Rectangle {
                 wrapMode: Text.WordWrap;
 
                 onLinkActivated: {
-                    if(onLinkClicked)
+                    if (onLinkClicked)
                         onLinkClicked(link);
                 }
             }
@@ -164,7 +166,7 @@ Rectangle {
             noText: root.button1text
 
             onYesClicked: function() {
-                if(onButton2Clicked) {
+                if (onButton2Clicked) {
                     onButton2Clicked();
                 } else {
                     root.close();
@@ -172,7 +174,7 @@ Rectangle {
             }
 
             onNoClicked: function() {
-                if(onButton1Clicked) {
+                if (onButton1Clicked) {
                     onButton1Clicked();
                 } else {
                     root.close();

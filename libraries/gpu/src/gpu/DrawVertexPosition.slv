@@ -2,6 +2,8 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
+// DrawVertexPosition.vert
+//
 // Draw the fed vertex position, pass straight as clip pos
 // Output the clip position
 //
@@ -12,7 +14,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-layout(location = 0) in vec4 inPosition;
+layout(location=0) in vec4 inPosition;
 
 void main(void) {
     gl_Position = inPosition;

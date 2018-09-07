@@ -64,9 +64,9 @@ ShapeManager* ObjectMotionState::getShapeManager() {
 }
 
 ObjectMotionState::ObjectMotionState(const btCollisionShape* shape) :
-    _shape(shape),
     _lastKinematicStep(worldSimulationStep)
 {
+    setShape(shape);
 }
 
 ObjectMotionState::~ObjectMotionState() {
@@ -155,26 +155,25 @@ void ObjectMotionState::setMotionType(PhysicsMotionType motionType) {
 // Update the Continuous Collision Detection (CCD) configuration settings of our RigidBody so that
 // CCD will be enabled automatically when its speed surpasses a certain threshold.
 void ObjectMotionState::updateCCDConfiguration() {
-    if (_body) {
-        if (_shape) {
-            // If this object moves faster than its bounding radius * RADIUS_MOTION_THRESHOLD_MULTIPLIER,
-            // CCD will be enabled for this object.
-            const auto RADIUS_MOTION_THRESHOLD_MULTIPLIER = 0.5f;
+    assert(_body);
+    if (_shape && _shape->getShapeType() != TRIANGLE_MESH_SHAPE_PROXYTYPE) {
+        // find minumum dimension of shape
+        btVector3 aabbMin, aabbMax;
+        btTransform transform;
+        transform.setIdentity();
+        _shape->getAabb(transform, aabbMin, aabbMax);
+        aabbMin = aabbMax - aabbMin;
+        btScalar radius = *((btScalar*)(aabbMin) + aabbMin.minAxis());
 
-            btVector3 center;
-            btScalar radius;
-            _shape->getBoundingSphere(center, radius);
-            _body->setCcdMotionThreshold(radius * RADIUS_MOTION_THRESHOLD_MULTIPLIER);
+        // use the minimum dimension as the radius of the CCD proxy sphere
+        _body->setCcdSweptSphereRadius(radius);
 
-            // TODO: Ideally the swept sphere radius would be contained by the object. Using the bounding sphere
-            // radius works well for spherical objects, but may cause issues with other shapes. For arbitrary
-            // objects we may want to consider a different approach, such as grouping rigid bodies together.
-
-            _body->setCcdSweptSphereRadius(radius);
-        } else {
-            // Disable CCD
-            _body->setCcdMotionThreshold(0);
-        }
+        // also use the radius as the motion threshold for enabling CCD
+        _body->setCcdMotionThreshold(radius);
+    } else {
+        // disable CCD
+        _body->setCcdSweptSphereRadius(0.0f);
+        _body->setCcdMotionThreshold(0.0f);
     }
 }
 
@@ -188,8 +187,8 @@ void ObjectMotionState::setRigidBody(btRigidBody* body) {
         if (_body) {
             _body->setUserPointer(this);
             assert(_body->getCollisionShape() == _shape);
+            updateCCDConfiguration();
         }
-        updateCCDConfiguration();
     }
 }
 
@@ -199,6 +198,9 @@ void ObjectMotionState::setShape(const btCollisionShape* shape) {
             getShapeManager()->releaseShape(_shape);
         }
         _shape = shape;
+        if (_body) {
+            updateCCDConfiguration();
+        }
     }
 }
 
@@ -312,7 +314,6 @@ bool ObjectMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine*
         } else {
             _body->setCollisionShape(const_cast<btCollisionShape*>(newShape));
             setShape(newShape);
-            updateCCDConfiguration();
         }
     }
     if (flags & EASY_DIRTY_PHYSICS_FLAGS) {

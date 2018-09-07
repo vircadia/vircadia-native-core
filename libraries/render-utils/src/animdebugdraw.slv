@@ -13,7 +13,9 @@
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
-out vec4 _color;
+<@include render-utils/ShaderConstants.h@>
+
+layout(location=RENDER_UTILS_ATTR_COLOR) out vec4 _color;
 
 void main(void) {
     // pass along the color

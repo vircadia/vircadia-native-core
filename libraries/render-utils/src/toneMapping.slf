@@ -2,6 +2,8 @@
 <$VERSION_HEADER$>
 //  Generated on Sat Oct 24 09:34:37 2015
 //
+//  toneMapping.frag
+//
 //  Draw texture 0 fetched at texcoord.xy
 //
 //  Created by Sam Gateau on 6/22/2015
@@ -10,6 +12,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+<@include render-utils/ShaderConstants.h@>
 
 struct ToneMappingParams {
     vec4 _exp_2powExp_s0_s1;
@@ -22,7 +26,7 @@ const int ToneCurveGamma22 = 1;
 const int ToneCurveReinhard = 2;
 const int ToneCurveFilmic = 3;
 
-uniform toneMappingParamsBuffer {
+layout(binding=RENDER_UTILS_BUFFER_TM_PARAMS) uniform toneMappingParamsBuffer {
     ToneMappingParams params;
 };
 float getTwoPowExposure() {
@@ -32,10 +36,10 @@ int getToneCurve() {
     return params._toneCurve_s0_s1_s2.x;
 }
 
-uniform sampler2D colorMap;
+layout(binding=RENDER_UTILS_TEXTURE_TM_COLOR) uniform sampler2D colorMap;
         
-in vec2 varTexCoord0;
-out vec4 outFragColor;
+layout(location=0) in vec2 varTexCoord0;
+layout(location=0) out vec4 outFragColor;
         
 void main(void) {
     vec4 fragColorRaw = texture(colorMap, varTexCoord0);

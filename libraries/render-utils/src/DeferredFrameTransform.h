@@ -43,20 +43,20 @@ protected:
         glm::vec4 depthInfo;
         // Stereo info is { isStereoFrame, halfWidth }
         glm::vec4 stereoInfo{ 0.0 };
-		// Mono proj matrix or Left and Right proj matrix going from Mono Eye space to side clip space
-		glm::mat4 projection[2];
-		// Inverse proj matrix or Left and Right proj matrix going from Mono Eye space to side clip space
-		glm::mat4 invProjection[2];
-		// THe mono projection for sure
+        // Mono proj matrix or Left and Right proj matrix going from Mono Eye space to side clip space
+        glm::mat4 projection[2];
+        // Inverse proj matrix or Left and Right proj matrix going from Mono Eye space to side clip space
+        glm::mat4 invProjection[2];
+        // THe mono projection for sure
         glm::mat4 projectionMono;
         // Inv View matrix from eye space (mono) to world space
         glm::mat4 invView;
         // View matrix from world space to eye space (mono)
         glm::mat4 view;
-		// Mono proj matrix or Left and Right proj matrix going from Mono Eye space to side clip space without jittering
-		glm::mat4 projectionUnjittered[2];
-		// Inverse proj matrix or Left and Right proj matrix going from Mono Eye space to side clip space without jittering
-		glm::mat4 invProjectionUnjittered[2];
+        // Mono proj matrix or Left and Right proj matrix going from Mono Eye space to side clip space without jittering
+        glm::mat4 projectionUnjittered[2];
+        // Inverse proj matrix or Left and Right proj matrix going from Mono Eye space to side clip space without jittering
+        glm::mat4 invProjectionUnjittered[2];
 
         FrameTransform() {}
     };

@@ -1,7 +1,6 @@
 //
 //  RenderableZoneEntityItem.h
 //
-//
 //  Created by Clement on 4/22/15.
 //  Copyright 2015 High Fidelity, Inc.
 //
@@ -15,10 +14,12 @@
 #include <ZoneEntityItem.h>
 #include <graphics/Skybox.h>
 #include <graphics/Haze.h>
+#include <graphics/Bloom.h>
 #include <graphics/Stage.h>
 #include <LightStage.h>
 #include <BackgroundStage.h>
 #include <HazeStage.h>
+#include <BloomStage.h>
 #include <TextureCache.h>
 #include "RenderableEntityItem.h"
 #include <ComponentMode.h>
@@ -50,6 +51,7 @@ private:
     void updateAmbientLightFromEntity(const TypedEntityPointer& entity);
     void updateHazeFromEntity(const TypedEntityPointer& entity);
     void updateKeyBackgroundFromEntity(const TypedEntityPointer& entity);
+    void updateBloomFromEntity(const TypedEntityPointer& entity);
     void updateAmbientMap();
     void updateSkyboxMap();
     void setAmbientURL(const QString& ambientUrl);
@@ -59,6 +61,7 @@ private:
     void setKeyLightMode(ComponentMode mode);
     void setAmbientLightMode(ComponentMode mode);
     void setSkyboxMode(ComponentMode mode);
+    void setBloomMode(ComponentMode mode);
 
     void setSkyboxColor(const glm::vec3& color);
     void setProceduralUserData(const QString& userData);
@@ -68,6 +71,7 @@ private:
     graphics::SunSkyStagePointer editBackground() { _needBackgroundUpdate = true; return _background; }
     graphics::SkyboxPointer editSkybox() { return editBackground()->getSkybox(); }
     graphics::HazePointer editHaze() { _needHazeUpdate = true; return _haze; }
+    graphics::BloomPointer editBloom() { _needBloomUpdate = true; return _bloom; }
 
     glm::vec3 _lastPosition;
     glm::vec3 _lastDimensions;
@@ -82,36 +86,43 @@ private:
 #endif
 
     LightStagePointer _stage;
-    const graphics::LightPointer _sunLight{ std::make_shared<graphics::Light>() };
-    const graphics::LightPointer _ambientLight{ std::make_shared<graphics::Light>() };
-    const graphics::SunSkyStagePointer _background{ std::make_shared<graphics::SunSkyStage>() };
-    const graphics::HazePointer _haze{ std::make_shared<graphics::Haze>() };
+    const graphics::LightPointer _sunLight { std::make_shared<graphics::Light>() };
+    const graphics::LightPointer _ambientLight { std::make_shared<graphics::Light>() };
+    const graphics::SunSkyStagePointer _background { std::make_shared<graphics::SunSkyStage>() };
+    const graphics::HazePointer _haze { std::make_shared<graphics::Haze>() };
+    const graphics::BloomPointer _bloom { std::make_shared<graphics::Bloom>() };
 
     ComponentMode _keyLightMode { COMPONENT_MODE_INHERIT };
     ComponentMode _ambientLightMode { COMPONENT_MODE_INHERIT };
     ComponentMode _skyboxMode { COMPONENT_MODE_INHERIT };
     ComponentMode _hazeMode { COMPONENT_MODE_INHERIT };
+    ComponentMode _bloomMode { COMPONENT_MODE_INHERIT };
 
-    indexed_container::Index _sunIndex{ LightStage::INVALID_INDEX };
-    indexed_container::Index _shadowIndex{ LightStage::INVALID_INDEX };
-    indexed_container::Index _ambientIndex{ LightStage::INVALID_INDEX };
+    indexed_container::Index _sunIndex { LightStage::INVALID_INDEX };
+    indexed_container::Index _shadowIndex { LightStage::INVALID_INDEX };
+    indexed_container::Index _ambientIndex { LightStage::INVALID_INDEX };
 
     BackgroundStagePointer _backgroundStage;
-    BackgroundStage::Index _backgroundIndex{ BackgroundStage::INVALID_INDEX };
+    BackgroundStage::Index _backgroundIndex { BackgroundStage::INVALID_INDEX };
 
     HazeStagePointer _hazeStage;
-    HazeStage::Index _hazeIndex{ HazeStage::INVALID_INDEX };
+    HazeStage::Index _hazeIndex { HazeStage::INVALID_INDEX };
+
+    BloomStagePointer _bloomStage;
+    BloomStage::Index _bloomIndex { BloomStage::INVALID_INDEX };
 
     bool _needUpdate{ true };
     bool _needSunUpdate{ true };
     bool _needAmbientUpdate{ true };
     bool _needBackgroundUpdate{ true };
     bool _needHazeUpdate{ true };
+    bool _needBloomUpdate { true };
 
     KeyLightPropertyGroup _keyLightProperties;
     AmbientLightPropertyGroup _ambientLightProperties;
     HazePropertyGroup _hazeProperties;
     SkyboxPropertyGroup _skyboxProperties;
+    BloomPropertyGroup _bloomProperties;
 
     // More attributes used for rendering:
     QString _ambientTextureURL;

@@ -180,7 +180,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 float distance;
                 BoxFace face;
                 glm::vec3 normal;
-                boundingBox.findRayIntersection(cameraPosition, direction, distance, face, normal);
+                boundingBox.findRayIntersection(cameraPosition, direction, 1.0f / direction, distance, face, normal);
                 float offsetAngle = -CONTEXT_OVERLAY_OFFSET_ANGLE;
                 if (event.getID() == 1) { // "1" is left hand
                     offsetAngle *= -1.0f;
@@ -197,7 +197,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 _contextOverlay->setPulseMin(CONTEXT_OVERLAY_UNHOVERED_PULSEMIN);
                 _contextOverlay->setPulseMax(CONTEXT_OVERLAY_UNHOVERED_PULSEMAX);
                 _contextOverlay->setColorPulse(CONTEXT_OVERLAY_UNHOVERED_COLORPULSE);
-                _contextOverlay->setIgnoreRayIntersection(false);
+                _contextOverlay->setIgnorePickIntersection(false);
                 _contextOverlay->setDrawInFront(true);
                 _contextOverlay->setURL(PathUtils::resourcesUrl() + "images/inspect-icon.png");
                 _contextOverlay->setIsFacingAvatar(true);

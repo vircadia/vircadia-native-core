@@ -20,6 +20,8 @@
 
 var EDIT_TOGGLE_BUTTON = "com.highfidelity.interface.system.editButton";
 
+var CONTROLLER_MAPPING_NAME = "com.highfidelity.editMode";
+
 Script.include([
     "libraries/stringHelpers.js",
     "libraries/dataViewHelpers.js",
@@ -314,12 +316,10 @@ var toolBar = (function () {
                 direction = MyAvatar.orientation;
             }
             direction = Vec3.multiplyQbyV(direction, Vec3.UNIT_Z);
-            // Align entity with Avatar orientation.
-            properties.rotation = MyAvatar.orientation;
-            
+
             var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Web", "Material"];
             if (PRE_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
-                    
+
                 // Adjust position of entity per bounding box prior to creating it.
                 var registration = properties.registration;
                 if (registration === undefined) {
@@ -352,7 +352,12 @@ var toolBar = (function () {
                 properties.userData = JSON.stringify({ grabbableKey: { grabbable: false } });
             }
 
+            SelectionManager.saveProperties();
             entityID = Entities.addEntity(properties);
+            pushCommandForSelections([{
+                entityID: entityID,
+                properties: properties
+            }], [], true);
 
             if (properties.type === "ParticleEffect") {
                 selectParticleEntity(entityID);
@@ -391,6 +396,8 @@ var toolBar = (function () {
         selectionManager.clearSelections();
         entityListTool.sendUpdate();
         selectionManager.setSelections([entityID]);
+
+        Window.setFocus();
 
         return entityID;
     }
@@ -799,6 +806,14 @@ var toolBar = (function () {
 
         addButton("newMaterialButton", createNewEntityDialogButtonCallback("Material"));
 
+        var deactivateCreateIfDesktopWindowsHidden = function() {
+            if (!shouldUseEditTabletApp() && !entityListTool.isVisible() && !createToolsWindow.isVisible()) {
+                that.setActive(false);
+            }
+        };
+        entityListTool.interactiveWindowHidden.addListener(this, deactivateCreateIfDesktopWindowsHidden);
+        createToolsWindow.interactiveWindowHidden.addListener(this, deactivateCreateIfDesktopWindowsHidden);
+
         that.setActive(false);
     }
 
@@ -847,6 +862,7 @@ var toolBar = (function () {
             cameraManager.disable();
             selectionDisplay.triggerMapping.disable();
             tablet.landscape = false;
+            Controller.disableMapping(CONTROLLER_MAPPING_NAME);
         } else {
             if (shouldUseEditTabletApp()) {
                 tablet.loadQMLSource("hifi/tablet/Edit.qml", true);
@@ -856,12 +872,14 @@ var toolBar = (function () {
             }
             UserActivityLogger.enabledEdit();
             entityListTool.setVisible(true);
+            entityListTool.sendUpdate();
             gridTool.setVisible(true);
             grid.setEnabled(true);
             propertiesTool.setVisible(true);
             selectionDisplay.triggerMapping.enable();
             print("starting tablet in landscape mode");
             tablet.landscape = true;
+            Controller.enableMapping(CONTROLLER_MAPPING_NAME);
             // Not sure what the following was meant to accomplish, but it currently causes
             // everybody else to think that Interface has lost focus overall. fogbugzid:558
             // Window.setFocus();
@@ -961,13 +979,15 @@ function handleOverlaySelectionToolUpdates(channel, message, sender) {
     var data = JSON.parse(message);
 
     if (data.method === "selectOverlay") {
-        if (wantDebug) {
-            print("setting selection to overlay " + data.overlayID);
-        }
-        var entity = entityIconOverlayManager.findEntity(data.overlayID);
+        if (!selectionDisplay.triggered() || selectionDisplay.triggeredHand === data.hand) {
+            if (wantDebug) {
+                print("setting selection to overlay " + data.overlayID);
+            }
+            var entity = entityIconOverlayManager.findEntity(data.overlayID);
 
-        if (entity !== null) {
-            selectionManager.setSelections([entity]);
+            if (entity !== null) {
+                selectionManager.setSelections([entity]);
+            }
         }
     }
 }
@@ -1588,7 +1608,7 @@ function deleteSelectedEntities() {
                 Entities.deleteEntity(entityID);
             }
         }
-        
+
         if (savedProperties.length > 0) {
             SelectionManager.clearSelections();
             pushCommandForSelections([], savedProperties);
@@ -1843,30 +1863,7 @@ var keyReleaseEvent = function (event) {
         cameraManager.keyReleaseEvent(event);
     }
     // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
-    if (event.text === "DELETE") {
-        deleteSelectedEntities();
-    } else if (event.text === 'd' && event.isControl) {
-        selectionManager.clearSelections();
-    } else if (event.text === "t") {
-        selectionDisplay.toggleSpaceMode();
-    } else if (event.text === "f") {
-        if (isActive) {
-            if (selectionManager.hasSelection()) {
-                cameraManager.enable();
-                cameraManager.focus(selectionManager.worldPosition,
-                    selectionManager.worldDimensions,
-                    Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
-            }
-        }
-    } else if (event.text === '[') {
-        if (isActive) {
-            cameraManager.enable();
-        }
-    } else if (event.text === 'g') {
-        if (isActive && selectionManager.hasSelection()) {
-            grid.moveToSelection();
-        }
-    } else if (event.key === KEY_P && event.isControl && !event.isAutoRepeat ) {
+    if (event.key === KEY_P && event.isControl && !event.isAutoRepeat) {
         if (event.isShifted) {
             unparentSelectedEntities();
         } else {
@@ -1877,13 +1874,54 @@ var keyReleaseEvent = function (event) {
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
 Controller.keyPressEvent.connect(keyPressEvent);
 
+function deleteKey(value) {
+    if (value === 0) { // on release
+        deleteSelectedEntities();
+    }
+}
+function deselectKey(value) {
+    if (value === 0) { // on release
+        selectionManager.clearSelections();
+    }
+}
+function toggleKey(value) {
+    if (value === 0) { // on release
+        selectionDisplay.toggleSpaceMode();
+    }
+}
+function focusKey(value) {
+    if (value === 0) { // on release
+        cameraManager.enable();
+        if (selectionManager.hasSelection()) {
+            cameraManager.focus(selectionManager.worldPosition, selectionManager.worldDimensions, 
+                                Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+        }
+    }
+}
+function gridKey(value) {
+    if (value === 0) { // on release
+        if (selectionManager.hasSelection()) {
+            grid.moveToSelection();
+        }
+    }
+}
+var mapping = Controller.newMapping(CONTROLLER_MAPPING_NAME);
+mapping.from([Controller.Hardware.Keyboard.Delete]).when([!Controller.Hardware.Application.PlatformMac]).to(deleteKey);
+mapping.from([Controller.Hardware.Keyboard.Backspace]).when([Controller.Hardware.Application.PlatformMac]).to(deleteKey);
+mapping.from([Controller.Hardware.Keyboard.D]).when([Controller.Hardware.Keyboard.Control]).to(deselectKey);
+mapping.from([Controller.Hardware.Keyboard.T]).to(toggleKey);
+mapping.from([Controller.Hardware.Keyboard.F]).to(focusKey);
+mapping.from([Controller.Hardware.Keyboard.G]).to(gridKey);
+
 function recursiveAdd(newParentID, parentData) {
-    var children = parentData.children;
-    for (var i = 0; i < children.length; i++) {
-        var childProperties = children[i].properties;
-        childProperties.parentID = newParentID;
-        var newChildID = Entities.addEntity(childProperties);
-        recursiveAdd(newChildID, children[i]);
+    if (parentData.children !== undefined) {
+        var children = parentData.children;
+        for (var i = 0; i < children.length; i++) {
+            var childProperties = children[i].properties;
+            childProperties.parentID = newParentID;
+            var newChildID = Entities.addEntity(childProperties);
+            recursiveAdd(newChildID, children[i]);
+        }
     }
 }
 
@@ -1893,16 +1931,22 @@ function recursiveAdd(newParentID, parentData) {
 var DELETED_ENTITY_MAP = {};
 
 function applyEntityProperties(data) {
-    var properties = data.setProperties;
+    var editEntities = data.editEntities;
     var selectedEntityIDs = [];
+    var selectEdits = data.createEntities.length == 0 || !data.selectCreated;
     var i, entityID;
-    for (i = 0; i < properties.length; i++) {
-        entityID = properties[i].entityID;
+    for (i = 0; i < editEntities.length; i++) {
+        var entityID = editEntities[i].entityID;
         if (DELETED_ENTITY_MAP[entityID] !== undefined) {
             entityID = DELETED_ENTITY_MAP[entityID];
         }
-        Entities.editEntity(entityID, properties[i].properties);
-        selectedEntityIDs.push(entityID);
+        var entityProperties = editEntities[i].properties;
+        if (entityProperties !== null) {
+            Entities.editEntity(entityID, entityProperties);
+        }
+        if (selectEdits) {
+            selectedEntityIDs.push(entityID);
+        }
     }
     for (i = 0; i < data.createEntities.length; i++) {
         entityID = data.createEntities[i].entityID;
@@ -1931,31 +1975,39 @@ function applyEntityProperties(data) {
 
 // For currently selected entities, push a command to the UndoStack that uses the current entity properties for the
 // redo command, and the saved properties for the undo command.  Also, include create and delete entity data.
-function pushCommandForSelections(createdEntityData, deletedEntityData) {
+function pushCommandForSelections(createdEntityData, deletedEntityData, doNotSaveEditProperties) {
+    doNotSaveEditProperties = false;
     var undoData = {
-        setProperties: [],
+        editEntities: [],
         createEntities: deletedEntityData || [],
         deleteEntities: createdEntityData || [],
         selectCreated: true
     };
     var redoData = {
-        setProperties: [],
+        editEntities: [],
         createEntities: createdEntityData || [],
         deleteEntities: deletedEntityData || [],
-        selectCreated: false
+        selectCreated: true
     };
     for (var i = 0; i < SelectionManager.selections.length; i++) {
         var entityID = SelectionManager.selections[i];
         var initialProperties = SelectionManager.savedProperties[entityID];
-        var currentProperties = Entities.getEntityProperties(entityID);
+        var currentProperties = null;
         if (!initialProperties) {
             continue;
         }
-        undoData.setProperties.push({
+
+        if (doNotSaveEditProperties) {
+            initialProperties = null;
+        } else {
+            currentProperties = Entities.getEntityProperties(entityID);
+        }
+
+        undoData.editEntities.push({
             entityID: entityID,
             properties: initialProperties
         });
-        redoData.setProperties.push({
+        redoData.editEntities.push({
             entityID: entityID,
             properties: currentProperties
         });
@@ -2013,10 +2065,16 @@ var PropertiesTool = function (opts) {
     };
 
     that.setVisible(false);
+    
+    function emitScriptEvent(data) {
+        var dataString = JSON.stringify(data);
+        webView.emitScriptEvent(dataString);
+        createToolsWindow.emitScriptEvent(dataString);
+    }
 
     function updateScriptStatus(info) {
         info.type = "server_script_status";
-        webView.emitScriptEvent(JSON.stringify(info));
+        emitScriptEvent(info);
     }
 
     function resetScriptStatus() {
@@ -2069,8 +2127,7 @@ var PropertiesTool = function (opts) {
         }
         data.selections = selections;
 
-        webView.emitScriptEvent(JSON.stringify(data));
-        createToolsWindow.emitScriptEvent(JSON.stringify(data));
+        emitScriptEvent(data);
     }
     selectionManager.addEventListener(updateSelections);
 
@@ -2227,7 +2284,7 @@ var PropertiesTool = function (opts) {
             updateSelections(true);
         }
     };
-    
+
     createToolsWindow.webEventReceived.addListener(this, onWebEventReceived);
 
     webView.webEventReceived.connect(onWebEventReceived);

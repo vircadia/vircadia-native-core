@@ -131,7 +131,7 @@ bool Wallet::writeBackupInstructions() {
     QFile outputFile(outputFilename);
     bool retval = false;
 
-    if (getKeyFilePath() == "")
+    if (getKeyFilePath().isEmpty())
     {
         return false;
     }
@@ -188,6 +188,30 @@ bool writeKeys(const char* filename, EC_KEY* keys) {
         qCDebug(commerce) << "failed to open key file" << filename;
     }
     return retval;
+}
+
+bool Wallet::setWallet(const QByteArray& wallet) {
+    QFile file(keyFilePath());
+    if (!file.open(QIODevice::WriteOnly)) {
+        qCCritical(commerce) << "Unable to open wallet for write in" << keyFilePath();
+        return false;
+    }
+    if (file.write(wallet) != wallet.count()) {
+        qCCritical(commerce) << "Unable to write wallet in" << keyFilePath();
+        return false;
+    }
+    file.close();
+    return true;
+}
+QByteArray Wallet::getWallet() {
+    QFile file(keyFilePath());
+    if (!file.open(QIODevice::ReadOnly)) {
+        qCInfo(commerce) << "No existing wallet in" << keyFilePath();
+        return QByteArray();
+    }
+    QByteArray wallet = file.readAll();
+    file.close();
+    return wallet;
 }
 
 QPair<QByteArray*, QByteArray*> generateECKeypair() {
@@ -328,13 +352,13 @@ Wallet::Wallet() {
     packetReceiver.registerListener(PacketType::ChallengeOwnership, this, "handleChallengeOwnershipPacket");
     packetReceiver.registerListener(PacketType::ChallengeOwnershipRequest, this, "handleChallengeOwnershipPacket");
 
-    connect(ledger.data(), &Ledger::accountResult, this, [&](QJsonObject result) {
+    connect(ledger.data(), &Ledger::accountResult, this, [](QJsonObject result) {
         auto wallet = DependencyManager::get<Wallet>();
         auto walletScriptingInterface = DependencyManager::get<WalletScriptingInterface>();
         uint status;
         QString keyStatus = result.contains("data") ? result["data"].toObject()["keyStatus"].toString() : "";
 
-        if (wallet->getKeyFilePath() == "" || !wallet->getSecurityImage()) {
+        if (wallet->getKeyFilePath().isEmpty() || !wallet->getSecurityImage()) {
             if (keyStatus == "preexisting") {
                 status = (uint) WalletStatus::WALLET_STATUS_PREEXISTING;
             } else{
@@ -524,15 +548,23 @@ bool Wallet::walletIsAuthenticatedWithPassphrase() {
 
     // FIXME: initialize OpenSSL elsewhere soon
     initialize();
+    qCDebug(commerce) << "walletIsAuthenticatedWithPassphrase: checking" << (!_passphrase || !_passphrase->isEmpty());
 
     // this should always be false if we don't have a passphrase
     // cached yet
     if (!_passphrase || _passphrase->isEmpty()) {
-        return false;
+        if (!getKeyFilePath().isEmpty()) { // If file exists, then it is an old school file that has not been lockered. Must get user's passphrase.
+            qCDebug(commerce) << "walletIsAuthenticatedWithPassphrase: No passphrase, but there is an existing wallet.";
+            return false;
+        } else {
+            qCDebug(commerce) << "walletIsAuthenticatedWithPassphrase: New setup.";
+            setPassphrase("ACCOUNT"); // Going forward, consider this an account-based client.
+        }
     }
     if (_publicKeys.count() > 0) {
         // we _must_ be authenticated if the publicKeys are there
         DependencyManager::get<WalletScriptingInterface>()->setWalletStatus((uint)WalletStatus::WALLET_STATUS_READY);
+        qCDebug(commerce) << "walletIsAuthenticatedWithPassphrase: wallet was ready";
         return true;
     }
 
@@ -545,10 +577,15 @@ bool Wallet::walletIsAuthenticatedWithPassphrase() {
 
             // be sure to add the public key so we don't do this over and over
             _publicKeys.push_back(publicKey.toBase64());
+
+            if (*_passphrase != "ACCOUNT") {
+                changePassphrase("ACCOUNT"); // Rewrites with salt and constant, and will be lockered that way.
+            }
+            qCDebug(commerce) << "walletIsAuthenticatedWithPassphrase: wallet now ready";
             return true;
         }
     }
-
+    qCDebug(commerce) << "walletIsAuthenticatedWithPassphrase: wallet not ready";
     return false;
 }
 
@@ -559,6 +596,7 @@ bool Wallet::generateKeyPair() {
     qCInfo(commerce) << "Generating keypair.";
     auto keyPair = generateECKeypair();
     if (!keyPair.first) {
+        qCWarning(commerce) << "Empty keypair";
         return false;
     }
 
@@ -576,7 +614,7 @@ bool Wallet::generateKeyPair() {
     // 2. It is maximally private, and we can step back from that later if desired.
     // 3. It maximally exercises all the machinery, so we are most likely to surface issues now.
     auto ledger = DependencyManager::get<Ledger>();
-    return ledger->receiveAt(key, key);
+    return ledger->receiveAt(key, key, getWallet());
 }
 
 QStringList Wallet::listPublicKeys() {
@@ -666,11 +704,13 @@ void Wallet::chooseSecurityImage(const QString& filename) {
     // there _is_ a keyfile, we need to update it (similar to changing the
     // passphrase, we need to do so into a temp file and move it).
     if (!QFile(keyFilePath()).exists()) {
+        qCDebug(commerce) << "initial security pic set for empty wallet";
         emit securityImageResult(true);
         return;
     }
 
     bool success = writeWallet();
+    qCDebug(commerce) << "updated security pic" << success;
     emit securityImageResult(success);
 }
 
@@ -715,6 +755,11 @@ QString Wallet::getKeyFilePath() {
 
 bool Wallet::writeWallet(const QString& newPassphrase) {
     EC_KEY* keys = readKeys(keyFilePath().toStdString().c_str());
+    auto ledger = DependencyManager::get<Ledger>();
+    // Remove any existing locker, because it will be out of date.
+    if (!_publicKeys.isEmpty() && !ledger->receiveAt(_publicKeys.first(), _publicKeys.first(), QByteArray())) {
+        return false;  // FIXME: receiveAt could fail asynchronously.
+    }
     if (keys) {
         // we read successfully, so now write to a new temp file
         QString tempFileName = QString("%1.%2").arg(keyFilePath(), QString("temp"));
@@ -722,6 +767,7 @@ bool Wallet::writeWallet(const QString& newPassphrase) {
         if (!newPassphrase.isEmpty()) {
             setPassphrase(newPassphrase);
         }
+
         if (writeKeys(tempFileName.toStdString().c_str(), keys)) {
             if (writeSecurityImage(_securityImage, tempFileName)) {
                 // ok, now move the temp file to the correct spot
@@ -729,6 +775,11 @@ bool Wallet::writeWallet(const QString& newPassphrase) {
                 QFile(tempFileName).rename(QString(keyFilePath()));
                 qCDebug(commerce) << "wallet written successfully";
                 emit keyFilePathIfExistsResult(getKeyFilePath());
+                if (!walletIsAuthenticatedWithPassphrase() || !ledger->receiveAt()) {
+                    // FIXME: Should we fail the whole operation?
+                    // Tricky, because we'll need the the key and file from the TEMP location...
+                    qCWarning(commerce) << "Failed to update locker";
+                }
                 return true;
             } else {
                 qCDebug(commerce) << "couldn't write security image to temp wallet";

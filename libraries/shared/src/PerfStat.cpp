@@ -80,16 +80,19 @@ void PerformanceTimerRecord::tallyResult(const quint64& now) {
 // ----------------------------------------------------------------------------
 
 std::atomic<bool> PerformanceTimer::_isActive(false);
+std::mutex PerformanceTimer::_mutex;
 QHash<QThread*, QString> PerformanceTimer::_fullNames;
 QMap<QString, PerformanceTimerRecord> PerformanceTimer::_records;
-
 
 PerformanceTimer::PerformanceTimer(const QString& name) {
     if (_isActive) {
         _name = name;
-        QString& fullName = _fullNames[QThread::currentThread()];
-        fullName.append("/");
-        fullName.append(_name);
+        {
+            std::lock_guard<std::mutex> guard(_mutex);
+            QString& fullName = _fullNames[QThread::currentThread()];
+            fullName.append("/");
+            fullName.append(_name);
+        }
         _start = usecTimestampNow();
     }
 }
@@ -97,6 +100,7 @@ PerformanceTimer::PerformanceTimer(const QString& name) {
 PerformanceTimer::~PerformanceTimer() {
     if (_isActive && _start != 0) {
         quint64 elapsedUsec = (usecTimestampNow() - _start);
+        std::lock_guard<std::mutex> guard(_mutex);
         QString& fullName = _fullNames[QThread::currentThread()];
         PerformanceTimerRecord& namedRecord = _records[fullName];
         namedRecord.accumulateResult(elapsedUsec);
@@ -111,11 +115,13 @@ bool PerformanceTimer::isActive() {
 
 // static
 QString PerformanceTimer::getContextName() {
+    std::lock_guard<std::mutex> guard(_mutex);
     return _fullNames[QThread::currentThread()];
 }
 
 // static
 void PerformanceTimer::addTimerRecord(const QString& fullName, quint64 elapsedUsec) {
+    std::lock_guard<std::mutex> guard(_mutex);
     PerformanceTimerRecord& namedRecord = _records[fullName];
     namedRecord.accumulateResult(elapsedUsec);
 }
@@ -125,6 +131,7 @@ void PerformanceTimer::setActive(bool active) {
     if (active != _isActive) {
         _isActive.store(active);
         if (!active) {
+            std::lock_guard<std::mutex> guard(_mutex);
             _fullNames.clear();
             _records.clear();
         }
@@ -134,7 +141,14 @@ void PerformanceTimer::setActive(bool active) {
 }
 
 // static
+QMap<QString, PerformanceTimerRecord> PerformanceTimer::getAllTimerRecords() {
+    std::lock_guard<std::mutex> guard(_mutex);
+    return _records;
+};
+
+// static
 void PerformanceTimer::tallyAllTimerRecords() {
+    std::lock_guard<std::mutex> guard(_mutex);
     QMap<QString, PerformanceTimerRecord>::iterator recordsItr = _records.begin();
     QMap<QString, PerformanceTimerRecord>::const_iterator recordsEnd = _records.end();
     quint64 now = usecTimestampNow();
@@ -150,6 +164,7 @@ void PerformanceTimer::tallyAllTimerRecords() {
 }
 
 void PerformanceTimer::dumpAllTimerRecords() {
+    std::lock_guard<std::mutex> guard(_mutex);
     QMapIterator<QString, PerformanceTimerRecord> i(_records);
     while (i.hasNext()) {
         i.next();

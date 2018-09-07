@@ -138,7 +138,7 @@ void TextureBaker::processTexture() {
         // IMPORTANT: _originalTexture is empty past this point
         _originalTexture.clear();
         _outputFiles.push_back(originalCopyFilePath);
-        meta.original = _metaTexturePathPrefix +_textureURL.fileName();
+        meta.original = _metaTexturePathPrefix + _textureURL.fileName();
     }
 
     auto buffer = std::static_pointer_cast<QIODevice>(std::make_shared<QFile>(originalCopyFilePath));
@@ -149,49 +149,56 @@ void TextureBaker::processTexture() {
 
     // Compressed KTX
     if (_compressionEnabled) {
-        auto processedTexture = image::processImage(buffer, _textureURL.toString().toStdString(),
-                                                    ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType, true, _abortProcessing);
-        if (!processedTexture) {
-            handleError("Could not process texture " + _textureURL.toString());
-            return;
-        }
-        processedTexture->setSourceHash(hash);
+        constexpr std::array<gpu::BackendTarget, 2> BACKEND_TARGETS {{
+            gpu::BackendTarget::GL45,
+            gpu::BackendTarget::GLES32
+        }};
+        for (auto target : BACKEND_TARGETS) {
+            auto processedTexture = image::processImage(buffer, _textureURL.toString().toStdString(),
+                                                        ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType, true,
+                                                        target, _abortProcessing);
+            if (!processedTexture) {
+                handleError("Could not process texture " + _textureURL.toString());
+                return;
+            }
+            processedTexture->setSourceHash(hash);
 
-        if (shouldStop()) {
-            return;
-        }
+            if (shouldStop()) {
+                return;
+            }
 
-        auto memKTX = gpu::Texture::serialize(*processedTexture);
-        if (!memKTX) {
-            handleError("Could not serialize " + _textureURL.toString() + " to KTX");
-            return;
-        }
+            auto memKTX = gpu::Texture::serialize(*processedTexture);
+            if (!memKTX) {
+                handleError("Could not serialize " + _textureURL.toString() + " to KTX");
+                return;
+            }
 
-        const char* name = khronos::gl::texture::toString(memKTX->_header.getGLInternaFormat());
-        if (name == nullptr) {
-            handleError("Could not determine internal format for compressed KTX: " + _textureURL.toString());
-            return;
-        }
+            const char* name = khronos::gl::texture::toString(memKTX->_header.getGLInternaFormat());
+            if (name == nullptr) {
+                handleError("Could not determine internal format for compressed KTX: " + _textureURL.toString());
+                return;
+            }
 
-        const char* data = reinterpret_cast<const char*>(memKTX->_storage->data());
-        const size_t length = memKTX->_storage->size();
+            const char* data = reinterpret_cast<const char*>(memKTX->_storage->data());
+            const size_t length = memKTX->_storage->size();
 
-        auto fileName = _baseFilename + "_" + name + ".ktx";
-        auto filePath = _outputDirectory.absoluteFilePath(fileName);
-        QFile bakedTextureFile { filePath };
-        if (!bakedTextureFile.open(QIODevice::WriteOnly) || bakedTextureFile.write(data, length) == -1) {
-            handleError("Could not write baked texture for " + _textureURL.toString());
-            return;
+            auto fileName = _baseFilename + "_" + name + ".ktx";
+            auto filePath = _outputDirectory.absoluteFilePath(fileName);
+            QFile bakedTextureFile { filePath };
+            if (!bakedTextureFile.open(QIODevice::WriteOnly) || bakedTextureFile.write(data, length) == -1) {
+                handleError("Could not write baked texture for " + _textureURL.toString());
+                return;
+            }
+            _outputFiles.push_back(filePath);
+            meta.availableTextureTypes[memKTX->_header.getGLInternaFormat()] = _metaTexturePathPrefix + fileName;
         }
-        _outputFiles.push_back(filePath);
-        meta.availableTextureTypes[memKTX->_header.getGLInternaFormat()] = _metaTexturePathPrefix + fileName;
     }
 
     // Uncompressed KTX
     if (_textureType == image::TextureUsage::Type::CUBE_TEXTURE) {
         buffer->reset();
         auto processedTexture = image::processImage(std::move(buffer), _textureURL.toString().toStdString(),
-                                                    ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType, false, _abortProcessing);
+                                                    ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType, false, gpu::BackendTarget::GL45, _abortProcessing);
         if (!processedTexture) {
             handleError("Could not process texture " + _textureURL.toString());
             return;

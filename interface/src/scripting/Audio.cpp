@@ -56,26 +56,24 @@ Audio::Audio() : _devices(_contextIsHMD) {
     connect(client, &AudioClient::inputVolumeChanged, this, &Audio::setInputVolume);
     connect(this, &Audio::contextChanged, &_devices, &AudioDevices::onContextChanged);
     enableNoiseReduction(enableNoiseReductionSetting.get());
+    onContextChanged();
 }
 
 bool Audio::startRecording(const QString& filepath) {
-    auto client = DependencyManager::get<AudioClient>().data();
     return resultWithWriteLock<bool>([&] {
-        return client->startRecording(filepath);
+        return DependencyManager::get<AudioClient>()->startRecording(filepath);
     });
 }
 
 bool Audio::getRecording() {
-    auto client = DependencyManager::get<AudioClient>().data();
     return resultWithReadLock<bool>([&] {
-        return client->getRecording();
+        return DependencyManager::get<AudioClient>()->getRecording();
     });
 }
 
 void Audio::stopRecording() {
-    auto client = DependencyManager::get<AudioClient>().data();
     withWriteLock([&] {
-        client->stopRecording();
+        DependencyManager::get<AudioClient>()->stopRecording();
     });
 }
 

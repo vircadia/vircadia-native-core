@@ -51,6 +51,7 @@
 #include <udt/SequenceNumber.h>
 
 #include "AABox.h"
+#include "AvatarTraits.h"
 #include "HeadData.h"
 #include "PathUtils.h"
 
@@ -138,6 +139,7 @@ namespace AvatarDataPacket {
     const HasFlags PACKET_HAS_FACE_TRACKER_INFO        = 1U << 10;
     const HasFlags PACKET_HAS_JOINT_DATA               = 1U << 11;
     const HasFlags PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS = 1U << 12;
+    const HasFlags PACKET_HAS_GRAB_JOINTS              = 1U << 13;
     const size_t AVATAR_HAS_FLAGS_SIZE = 2;
 
     using SixByteQuat = uint8_t[6];
@@ -273,7 +275,7 @@ namespace AvatarDataPacket {
         SixByteTrans rightHandControllerTranslation;
     };
     */
-    size_t maxJointDataSize(size_t numJoints);
+    size_t maxJointDataSize(size_t numJoints, bool hasGrabJoints);
 
     /*
     struct JointDefaultPoseFlags {
@@ -283,6 +285,17 @@ namespace AvatarDataPacket {
     };
     */
     size_t maxJointDefaultPoseFlagsSize(size_t numJoints);
+
+    PACKED_BEGIN struct FarGrabJoints {
+        float leftFarGrabPosition[3]; // left controller far-grab joint position
+        float leftFarGrabRotation[4]; // left controller far-grab joint rotation
+        float rightFarGrabPosition[3]; // right controller far-grab joint position
+        float rightFarGrabRotation[4]; // right controller far-grab joint rotation
+        float mouseFarGrabPosition[3]; // mouse far-grab joint position
+        float mouseFarGrabRotation[4]; // mouse far-grab joint rotation
+    } PACKED_END;
+    const size_t FAR_GRAB_JOINTS_SIZE = 84;
+    static_assert(sizeof(FarGrabJoints) == FAR_GRAB_JOINTS_SIZE, "AvatarDataPacket::FarGrabJoints size doesn't match.");
 }
 
 const float MAX_AUDIO_LOUDNESS = 1000.0f; // close enough for mouth animation
@@ -324,6 +337,7 @@ enum KillAvatarReason : uint8_t {
     TheirAvatarEnteredYourBubble,
     YourAvatarEnteredTheirBubble
 };
+
 Q_DECLARE_METATYPE(KillAvatarReason);
 
 class QDataStream;
@@ -347,6 +361,7 @@ public:
     RateCounter<> faceTrackerRate;
     RateCounter<> jointDataRate;
     RateCounter<> jointDefaultPoseFlagsRate;
+    RateCounter<> farGrabJointRate;
 };
 
 class AvatarPriority {
@@ -358,12 +373,14 @@ public:
     bool operator<(const AvatarPriority& other) const { return priority < other.priority; }
 };
 
+class ClientTraitsHandler;
+
 class AvatarData : public QObject, public SpatiallyNestable {
     Q_OBJECT
 
     // The following properties have JSDoc in MyAvatar.h and ScriptableAvatar.h
     Q_PROPERTY(glm::vec3 position READ getWorldPosition WRITE setPositionViaScript)
-    Q_PROPERTY(float scale READ getTargetScale WRITE setTargetScale)
+    Q_PROPERTY(float scale READ getDomainLimitedScale WRITE setTargetScale)
     Q_PROPERTY(float density READ getDensity)
     Q_PROPERTY(glm::vec3 handPosition READ getHandPosition WRITE setHandPosition)
     Q_PROPERTY(float bodyYaw READ getBodyYaw WRITE setBodyYaw)
@@ -412,7 +429,6 @@ public:
     virtual ~AvatarData();
 
     static const QUrl& defaultFullAvatarModelUrl();
-    QUrl cannonicalSkeletonModelURL(const QUrl& empty) const;
 
     virtual bool isMyAvatar() const { return false; }
 
@@ -895,14 +911,14 @@ public:
      * @returns {object} 
      */
     // FIXME: Can this name be improved? Can it be deprecated?
-    Q_INVOKABLE QVariantList getAttachmentsVariant() const;
+    Q_INVOKABLE virtual QVariantList getAttachmentsVariant() const;
 
     /**jsdoc
      * @function MyAvatar.setAttachmentsVariant
      * @param {object} variant
      */
     // FIXME: Can this name be improved? Can it be deprecated?
-    Q_INVOKABLE void setAttachmentsVariant(const QVariantList& variant);
+    Q_INVOKABLE virtual void setAttachmentsVariant(const QVariantList& variant);
 
 
     /**jsdoc
@@ -911,11 +927,12 @@ public:
      * @param {string} entityData
      */
     Q_INVOKABLE void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData);
+
     /**jsdoc
      * @function MyAvatar.clearAvatarEntity
      * @param {Uuid} entityID
      */
-    Q_INVOKABLE void clearAvatarEntity(const QUuid& entityID);
+    Q_INVOKABLE void clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree = true);
 
 
     /**jsdoc
@@ -931,23 +948,35 @@ public:
     const HeadData* getHeadData() const { return _headData; }
 
     struct Identity {
-        QUrl skeletonModelURL;
         QVector<AttachmentData> attachmentData;
         QString displayName;
         QString sessionDisplayName;
         bool isReplicated;
-        AvatarEntityMap avatarEntityData;
         bool lookAtSnappingEnabled;
     };
 
     // identityChanged returns true if identity has changed, false otherwise.
     // identityChanged returns true if identity has changed, false otherwise. Similarly for displayNameChanged and skeletonModelUrlChange.
-    void processAvatarIdentity(const QByteArray& identityData, bool& identityChanged,
-                               bool& displayNameChanged, bool& skeletonModelUrlChanged);
+    void processAvatarIdentity(const QByteArray& identityData, bool& identityChanged, bool& displayNameChanged);
+
+    qint64 packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice& destination,
+                     AvatarTraits::TraitVersion traitVersion = AvatarTraits::NULL_TRAIT_VERSION);
+    qint64 packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID,
+                             ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion = AvatarTraits::NULL_TRAIT_VERSION,
+                             AvatarTraits::TraitInstanceID wireInstanceID = AvatarTraits::TraitInstanceID());
+
+    void prepareResetTraitInstances();
+
+    void processTrait(AvatarTraits::TraitType traitType, QByteArray traitBinaryData);
+    void processTraitInstance(AvatarTraits::TraitType traitType,
+                              AvatarTraits::TraitInstanceID instanceID, QByteArray traitBinaryData);
+    void processDeletedTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID);
 
     QByteArray identityByteArray(bool setIsReplicated = false) const;
 
+    QUrl getWireSafeSkeletonModelURL() const;
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
+
     const QString& getDisplayName() const { return _displayName; }
     const QString& getSessionDisplayName() const { return _sessionDisplayName; }
     bool getLookAtSnappingEnabled() const { return _lookAtSnappingEnabled; }
@@ -969,7 +998,7 @@ public:
      *     print (attachments[i].modelURL);
      * }
      */
-    Q_INVOKABLE QVector<AttachmentData> getAttachmentData() const;
+    Q_INVOKABLE virtual QVector<AttachmentData> getAttachmentData() const;
 
     /**jsdoc
      * Set all models currently attached to your avatar. For example, if you retrieve attachment data using 
@@ -1040,7 +1069,7 @@ public:
      * @param {string} [jointName=""] - The name of the joint to detach the model from. If <code>""</code>, then the most 
      *     recently attached model is removed from which ever joint it was attached to.
      */
-    Q_INVOKABLE void detachOne(const QString& modelURL, const QString& jointName = QString());
+    Q_INVOKABLE virtual void detachOne(const QString& modelURL, const QString& jointName = QString());
 
     /**jsdoc
      * Detach all instances of a particular model from either a specific joint or all joints.
@@ -1049,7 +1078,7 @@ public:
      * @param {string} [jointName=""] - The name of the joint to detach the model from. If <code>""</code>, then the model is 
      *     detached from all joints.
      */
-    Q_INVOKABLE void detachAll(const QString& modelURL, const QString& jointName = QString());
+    Q_INVOKABLE virtual void detachAll(const QString& modelURL, const QString& jointName = QString());
 
     QString getSkeletonModelURLFromScript() const { return _skeletonModelURL.toString(); }
     void setSkeletonModelURLFromScript(const QString& skeletonModelString) { setSkeletonModelURL(QUrl(skeletonModelString)); }
@@ -1064,6 +1093,7 @@ public:
     void clearRecordingBasis();
     TransformPointer getRecordingBasis() const;
     void setRecordingBasis(TransformPointer recordingBasis = TransformPointer());
+    void createRecordingIDs();
     QJsonObject toJson() const;
     void fromJson(const QJsonObject& json, bool useFrameSkeleton = true);
 
@@ -1160,6 +1190,11 @@ public:
 
     virtual void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {}
     virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {}
+    void setReplicaIndex(int replicaIndex) { _replicaIndex = replicaIndex; }
+    int getReplicaIndex() { return _replicaIndex; }
+
+    const AvatarTraits::TraitInstanceID getTraitInstanceXORID() const { return _traitInstanceXORID; }
+    void cycleTraitInstanceXORID() { _traitInstanceXORID = QUuid::createUuid(); }
 
 signals:
 
@@ -1314,9 +1349,9 @@ protected:
     mutable HeadData* _headData { nullptr };
 
     QUrl _skeletonModelURL;
-    bool _firstSkeletonCheck { true };
     QUrl _skeletonFBXURL;
     QVector<AttachmentData> _attachmentData;
+    QVector<AttachmentData> _oldAttachmentData;
     QString _displayName;
     QString _sessionDisplayName { };
     bool _lookAtSnappingEnabled { true };
@@ -1369,6 +1404,7 @@ protected:
     RateCounter<> _faceTrackerRate;
     RateCounter<> _jointDataRate;
     RateCounter<> _jointDefaultPoseFlagsRate;
+    RateCounter<> _farGrabJointRate;
 
     // Some rate data for incoming data updates
     RateCounter<> _parseBufferUpdateRate;
@@ -1385,6 +1421,7 @@ protected:
     RateCounter<> _faceTrackerUpdateRate;
     RateCounter<> _jointDataUpdateRate;
     RateCounter<> _jointDefaultPoseFlagsUpdateRate;
+    RateCounter<> _farGrabJointUpdateRate;
 
     // Some rate data for outgoing data
     AvatarDataRate _outboundDataRate;
@@ -1394,14 +1431,18 @@ protected:
 
     mutable ReadWriteLockable _avatarEntitiesLock;
     AvatarEntityIDs _avatarEntityDetached; // recently detached from this avatar
+    AvatarEntityIDs _avatarEntityForRecording; // create new entities id for avatar recording
     AvatarEntityMap _avatarEntityData;
-    bool _avatarEntityDataLocallyEdited { false };
     bool _avatarEntityDataChanged { false };
 
     // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
     ThreadSafeValueCache<glm::mat4> _sensorToWorldMatrixCache { glm::mat4() };
     ThreadSafeValueCache<glm::mat4> _controllerLeftHandMatrixCache { glm::mat4() };
     ThreadSafeValueCache<glm::mat4> _controllerRightHandMatrixCache { glm::mat4() };
+
+    ThreadSafeValueCache<glm::mat4> _farGrabRightMatrixCache { glm::mat4() };
+    ThreadSafeValueCache<glm::mat4> _farGrabLeftMatrixCache { glm::mat4() };
+    ThreadSafeValueCache<glm::mat4> _farGrabMouseMatrixCache { glm::mat4() };
 
     int getFauxJointIndex(const QString& name) const;
 
@@ -1413,6 +1454,10 @@ protected:
     udt::SequenceNumber _identitySequenceNumber { 0 };
     bool _hasProcessedFirstIdentity { false };
     float _density;
+    int _replicaIndex { 0 };
+
+    // null unless MyAvatar or ScriptableAvatar sending traits data to mixer
+    std::unique_ptr<ClientTraitsHandler> _clientTraitsHandler;
 
     template <typename T, typename F>
     T readLockWithNamedJointIndex(const QString& name, const T& defaultValue, F f) const {
@@ -1457,6 +1502,8 @@ private:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);
     AvatarData& operator= (const AvatarData&);
+
+    AvatarTraits::TraitInstanceID _traitInstanceXORID { QUuid::createUuid() };
 };
 Q_DECLARE_METATYPE(AvatarData*)
 
@@ -1524,18 +1571,29 @@ void registerAvatarTypes(QScriptEngine* engine);
 
 class RayToAvatarIntersectionResult {
 public:
-RayToAvatarIntersectionResult() : intersects(false), avatarID(), distance(0) {}
-    bool intersects;
+    bool intersects { false };
     QUuid avatarID;
-    float distance;
+    float distance { FLT_MAX };
+    BoxFace face;
     glm::vec3 intersection;
+    glm::vec3 surfaceNormal;
     QVariantMap extraInfo;
 };
-
 Q_DECLARE_METATYPE(RayToAvatarIntersectionResult)
-
 QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, const RayToAvatarIntersectionResult& results);
 void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, RayToAvatarIntersectionResult& results);
+
+class ParabolaToAvatarIntersectionResult {
+public:
+    bool intersects { false };
+    QUuid avatarID;
+    float distance { 0.0f };
+    float parabolicDistance { 0.0f };
+    BoxFace face;
+    glm::vec3 intersection;
+    glm::vec3 surfaceNormal;
+    QVariantMap extraInfo;
+};
 
 Q_DECLARE_METATYPE(AvatarEntityMap)
 
@@ -1549,5 +1607,11 @@ const int CONTROLLER_LEFTHAND_INDEX = 65532; // -4
 const int CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX = 65531; // -5
 const int CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX = 65530; // -6
 const int CAMERA_MATRIX_INDEX = 65529; // -7
+const int FARGRAB_RIGHTHAND_INDEX = 65528; // -8
+const int FARGRAB_LEFTHAND_INDEX = 65527; // -9
+const int FARGRAB_MOUSE_INDEX = 65526; // -10
+
+const int LOWEST_PSEUDO_JOINT_INDEX = 65526;
+
 
 #endif // hifi_AvatarData_h

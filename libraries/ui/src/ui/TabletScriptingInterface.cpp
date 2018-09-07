@@ -140,8 +140,7 @@ int TabletButtonsProxyModel::buttonIndex(const QString &uuid) {
     return -1;
 }
 
-void TabletButtonsProxyModel::setPageIndex(int pageIndex)
-{
+void TabletButtonsProxyModel::setPageIndex(int pageIndex) {
     if (_pageIndex == pageIndex)
         return;
 
@@ -334,6 +333,8 @@ static const char* VRMENU_SOURCE_URL = "hifi/tablet/TabletMenu.qml";
 
 class TabletRootWindow : public QmlWindowClass {
     virtual QString qmlSource() const override { return "hifi/tablet/WindowRoot.qml"; }
+public:
+    TabletRootWindow() : QmlWindowClass(false) {}
 };
 
 TabletProxy::TabletProxy(QObject* parent, const QString& name) : QObject(parent), _name(name) {
@@ -462,6 +463,9 @@ void TabletProxy::onTabletShown() {
         if (_showRunningScripts) {
             _showRunningScripts = false;
             pushOntoStack("hifi/dialogs/TabletRunningScripts.qml");
+        }
+        if (_currentPathLoaded == TABLET_HOME_SOURCE_URL) {
+            loadHomeScreen(true);
         }
     }
 }

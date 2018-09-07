@@ -52,6 +52,10 @@ public:
 
     bool hasReceivedFirstQuery() const  { return _hasReceivedFirstQuery; }
 
+    // Want a report when the initial query is complete.
+    bool wantReportInitialCompletion() const { return _reportInitialCompletion; }
+    void setReportInitialCompletion(bool reportInitialCompletion) { _reportInitialCompletion = reportInitialCompletion; }
+
 signals:
     void incomingConnectionIDChanged();
 
@@ -73,8 +77,12 @@ protected:
     
     QJsonObject _jsonParameters;
     QReadWriteLock _jsonParametersLock;
+    
+    enum OctreeQueryFlags : uint16_t { NoFlags = 0x0, WantInitialCompletion = 0x1 };
+    friend OctreeQuery::OctreeQueryFlags operator|=(OctreeQuery::OctreeQueryFlags& lhs, const int rhs);
 
     bool _hasReceivedFirstQuery { false };
+    bool _reportInitialCompletion { false };
 };
 
 #endif // hifi_OctreeQuery_h

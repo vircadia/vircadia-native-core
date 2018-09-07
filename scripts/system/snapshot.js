@@ -279,9 +279,21 @@ function onMessage(message) {
 }
 
 var POLAROID_PRINT_SOUND = SoundCache.getSound(Script.resourcesPath() + "sounds/snapshot/sound-print-photo.wav");
-var POLAROID_MODEL_URL  = 'http://hifi-content.s3.amazonaws.com/alan/dev/Test/snapshot.fbx';
+var POLAROID_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/alan/dev/Test/snapshot.fbx';
+var POLAROID_RATE_LIMIT_MS = 1000;
+var polaroidPrintingIsRateLimited = false;
 
 function printToPolaroid(image_url) {
+
+    // Rate-limit printing
+    if (polaroidPrintingIsRateLimited) {
+        return;
+    }
+    polaroidPrintingIsRateLimited = true;
+    Script.setTimeout(function () {
+        polaroidPrintingIsRateLimited = false;
+    }, POLAROID_RATE_LIMIT_MS);
+
     var polaroid_url = image_url;                  
 
     var model_pos = Vec3.sum(MyAvatar.position, Vec3.multiply(1.25, Quat.getForward(MyAvatar.orientation)));
@@ -340,7 +352,7 @@ function fillImageDataFromPrevious() {
         containsGif: previousAnimatedSnapPath !== "",
         processingGif: false,
         shouldUpload: false,
-        canBlast: location.domainID === Settings.getValue("previousSnapshotDomainID"),
+        canBlast: snapshotDomainID === Settings.getValue("previousSnapshotDomainID"),
         isLoggedIn: isLoggedIn
     };
     imageData = [];
@@ -415,7 +427,7 @@ function snapshotUploaded(isError, reply) {
     }
     isUploadingPrintableStill = false;
 }
-var href, domainID;
+var href, snapshotDomainID;
 function takeSnapshot() {
     tablet.emitScriptEvent(JSON.stringify({
         type: "snapshot",
@@ -440,8 +452,8 @@ function takeSnapshot() {
     // Even the domainID could change (e.g., if the user falls into a teleporter while recording).
     href = location.href;
     Settings.setValue("previousSnapshotHref", href);
-    domainID = location.domainID;
-    Settings.setValue("previousSnapshotDomainID", domainID);
+    snapshotDomainID = location.domainID;
+    Settings.setValue("previousSnapshotDomainID", snapshotDomainID);
 
     maybeDeleteSnapshotStories();
 
@@ -539,7 +551,7 @@ function stillSnapshotTaken(pathStillSnapshot, notify) {
 
     HMD.openTablet();
 
-    isDomainOpen(domainID, function (canShare) {
+    isDomainOpen(snapshotDomainID, function (canShare) {
         snapshotOptions = {
             containsGif: false,
             processingGif: false,
@@ -582,7 +594,7 @@ function processingGifStarted(pathStillSnapshot) {
 
     HMD.openTablet();
     
-    isDomainOpen(domainID, function (canShare) {
+    isDomainOpen(snapshotDomainID, function (canShare) {
         snapshotOptions = {
             containsGif: true,
             processingGif: true,
@@ -610,7 +622,7 @@ function processingGifCompleted(pathAnimatedSnapshot) {
 
     Settings.setValue("previousAnimatedSnapPath", pathAnimatedSnapshot);
 
-    isDomainOpen(domainID, function (canShare) {
+    isDomainOpen(snapshotDomainID, function (canShare) {
         snapshotOptions = {
             containsGif: true,
             processingGif: false,

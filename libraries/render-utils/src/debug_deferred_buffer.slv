@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  debug_deferred_buffer.slv
+//  debug_deferred_buffer.vert
 //  vertex shader
 //
 //  Created by Clement on 12/3
@@ -14,7 +14,7 @@
 
 <@include gpu/Inputs.slh@>
 
-out vec2 uv;
+layout(location=0) out vec2 uv;
 
 void main(void) {
     uv = (inPosition.xy + 1.0) * 0.5;

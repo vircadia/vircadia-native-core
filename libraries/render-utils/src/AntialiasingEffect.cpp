@@ -16,14 +16,28 @@
 #include <PathUtils.h>
 #include <SharedUtil.h>
 #include <gpu/Context.h>
-#include <gpu/StandardShaderLib.h>
+#include <shaders/Shaders.h>
+#include <graphics/ShaderConstants.h>
 
+#include "render-utils/ShaderConstants.h"
 #include "StencilMaskPass.h"
 #include "TextureCache.h"
 #include "DependencyManager.h"
 #include "ViewFrustum.h"
 #include "GeometryCache.h"
 #include "FramebufferCache.h"
+
+
+namespace ru {
+    using render_utils::slot::uniform::Uniform;
+    using render_utils::slot::texture::Texture;
+    using render_utils::slot::buffer::Buffer;
+}
+
+namespace gr {
+    using graphics::slot::texture::Texture;
+    using graphics::slot::buffer::Buffer;
+}
 
 #define ANTIALIASING_USE_TAA    1
 
@@ -66,11 +80,6 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline(RenderArgs* ar
         auto ps = fxaa_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("colorTexture"), 0));
-
-        gpu::Shader::makeProgram(*program, slotBindings);
-
         _texcoordOffsetLoc = program->getUniforms().findLocation("texcoordOffset");
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
@@ -90,14 +99,7 @@ const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
         auto vs = fxaa_vert::getShader();
         auto ps = fxaa_blend_frag::getShader();
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("colorTexture"), 0));
-
-        gpu::Shader::makeProgram(*program, slotBindings);
-
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-
         state->setDepthTest(false, false, gpu::LESS_EQUAL);
         PrepareStencil::testNoAA(*state);
 
@@ -172,21 +174,6 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
 }
 #else
 
-#include "taa_frag.h"
-#include "fxaa_blend_frag.h"
-#include "taa_blend_frag.h"
-
-const int AntialiasingPass_ParamsSlot = 0;
-const int AntialiasingPass_FrameTransformSlot = 1;
-
-const int AntialiasingPass_HistoryMapSlot = 0;
-const int AntialiasingPass_SourceMapSlot = 1;
-const int AntialiasingPass_VelocityMapSlot = 2;
-const int AntialiasingPass_DepthMapSlot = 3;
-
-const int AntialiasingPass_NextMapSlot = 4;
-
-
 Antialiasing::Antialiasing(bool isSharpenEnabled) : 
     _isSharpenEnabled{ isSharpenEnabled } {
 }
@@ -200,34 +187,13 @@ Antialiasing::~Antialiasing() {
 const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline(const render::RenderContextPointer& renderContext) {
    
     if (!_antialiasingPipeline) {
-        
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = taa_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-        
-        gpu::Shader::BindingSet slotBindings;
-        
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::taa);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         
         PrepareStencil::testNoAA(*state);
 
         // Good to go add the brand new pipeline
         _antialiasingPipeline = gpu::Pipeline::create(program, state);
-
-        gpu::doInBatch("SurfaceGeometryPass::CurvaturePipeline", renderContext->args->_context, [program](gpu::Batch& batch) {
-            batch.runLambda([program]() {
-                gpu::Shader::BindingSet slotBindings;
-                slotBindings.insert(gpu::Shader::Binding(std::string("taaParamsBuffer"), AntialiasingPass_ParamsSlot));
-
-                slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), AntialiasingPass_FrameTransformSlot));
-
-                slotBindings.insert(gpu::Shader::Binding(std::string("historyMap"), AntialiasingPass_HistoryMapSlot));
-                slotBindings.insert(gpu::Shader::Binding(std::string("sourceMap"), AntialiasingPass_SourceMapSlot));
-                slotBindings.insert(gpu::Shader::Binding(std::string("velocityMap"), AntialiasingPass_VelocityMapSlot));
-                slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), AntialiasingPass_DepthMapSlot));
-                gpu::Shader::makeProgram(*program, slotBindings);
-            });
-        });
     }
     
     return _antialiasingPipeline;
@@ -235,46 +201,18 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline(const render::
 
 const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
     if (!_blendPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = fxaa_blend_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-        
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("colorTexture"), AntialiasingPass_NextMapSlot));
-
-        gpu::Shader::makeProgram(*program, slotBindings);
-        
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::fxaa_blend);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         PrepareStencil::testNoAA(*state);
-
-    
         // Good to go add the brand new pipeline
         _blendPipeline = gpu::Pipeline::create(program, state);
-        _sharpenLoc = program->getUniforms().findLocation("sharpenIntensity");
-
     }
     return _blendPipeline;
 }
 
 const gpu::PipelinePointer& Antialiasing::getDebugBlendPipeline() {
     if (!_debugBlendPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = taa_blend_frag::getShader();
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("taaParamsBuffer"), AntialiasingPass_ParamsSlot));
-
-        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), AntialiasingPass_FrameTransformSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("nextMap"), AntialiasingPass_NextMapSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("historyMap"), AntialiasingPass_HistoryMapSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("sourceMap"), AntialiasingPass_SourceMapSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("velocityMap"), AntialiasingPass_VelocityMapSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), AntialiasingPass_DepthMapSlot));
-
-
-        gpu::Shader::makeProgram(*program, slotBindings);
-
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::taa_blend);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         PrepareStencil::testNoAA(*state);
 
@@ -351,41 +289,43 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
 
         // TAA step
         getAntialiasingPipeline(renderContext);
-        batch.setResourceFramebufferSwapChainTexture(AntialiasingPass_HistoryMapSlot, _antialiasingBuffers, 0);
-        batch.setResourceTexture(AntialiasingPass_SourceMapSlot, sourceBuffer->getRenderBuffer(0));
-        batch.setResourceTexture(AntialiasingPass_VelocityMapSlot, velocityBuffer->getVelocityTexture());
+        batch.setResourceFramebufferSwapChainTexture(ru::Texture::TaaHistory, _antialiasingBuffers, 0);
+        batch.setResourceTexture(ru::Texture::TaaSource, sourceBuffer->getRenderBuffer(0));
+        batch.setResourceTexture(ru::Texture::TaaVelocity, velocityBuffer->getVelocityTexture());
         // This is only used during debug
-        batch.setResourceTexture(AntialiasingPass_DepthMapSlot, linearDepthBuffer->getLinearDepthTexture());
+        batch.setResourceTexture(ru::Texture::TaaDepth, linearDepthBuffer->getLinearDepthTexture());
 
-        batch.setUniformBuffer(AntialiasingPass_ParamsSlot, _params);
-        batch.setUniformBuffer(AntialiasingPass_FrameTransformSlot, deferredFrameTransform->getFrameTransformBuffer());
+        batch.setUniformBuffer(ru::Buffer::TaaParams, _params);
+        batch.setUniformBuffer(ru::Buffer::DeferredFrameTransform, deferredFrameTransform->getFrameTransformBuffer());
         
         batch.setFramebufferSwapChain(_antialiasingBuffers, 1);
         batch.setPipeline(getAntialiasingPipeline(renderContext));
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         // Blend step
-        batch.setResourceTexture(AntialiasingPass_SourceMapSlot, nullptr);
+        batch.setResourceTexture(ru::Texture::TaaSource, nullptr);
 
         batch.setFramebuffer(sourceBuffer);
         if (_params->isDebug()) {
             batch.setPipeline(getDebugBlendPipeline());
+            batch.setResourceFramebufferSwapChainTexture(ru::Texture::TaaNext, _antialiasingBuffers, 1);
         }  else {
             batch.setPipeline(getBlendPipeline());
+            // Must match the bindg point in the fxaa_blend.slf shader
+            batch.setResourceFramebufferSwapChainTexture(0, _antialiasingBuffers, 1);
             // Disable sharpen if FXAA
-            batch._glUniform1f(_sharpenLoc, _sharpen * _params.get().regionInfo.z);
+            batch._glUniform1f(ru::Uniform::TaaSharpenIntensity, _sharpen * _params.get().regionInfo.z);
         }
-        batch.setResourceFramebufferSwapChainTexture(AntialiasingPass_NextMapSlot, _antialiasingBuffers, 1);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
         batch.advance(_antialiasingBuffers);
         
-        batch.setUniformBuffer(AntialiasingPass_ParamsSlot, nullptr);
-        batch.setUniformBuffer(AntialiasingPass_FrameTransformSlot, nullptr);
+        batch.setUniformBuffer(ru::Buffer::TaaParams, nullptr);
+        batch.setUniformBuffer(ru::Buffer::DeferredFrameTransform, nullptr);
 
-        batch.setResourceTexture(AntialiasingPass_DepthMapSlot, nullptr);
-        batch.setResourceTexture(AntialiasingPass_HistoryMapSlot, nullptr);
-        batch.setResourceTexture(AntialiasingPass_VelocityMapSlot, nullptr);
-        batch.setResourceTexture(AntialiasingPass_NextMapSlot, nullptr);
+        batch.setResourceTexture(ru::Texture::TaaDepth, nullptr);
+        batch.setResourceTexture(ru::Texture::TaaHistory, nullptr);
+        batch.setResourceTexture(ru::Texture::TaaVelocity, nullptr);
+        batch.setResourceTexture(ru::Texture::TaaNext, nullptr);
     });
 }
 
@@ -514,6 +454,5 @@ void JitterSample::run(const render::RenderContextPointer& renderContext, Output
         jitter = _sampleSequence.offsets[current];
     }
 }
-
 
 #endif

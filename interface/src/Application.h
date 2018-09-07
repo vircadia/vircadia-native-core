@@ -81,7 +81,6 @@
 
 #include "Sound.h"
 
-class OffscreenGLCanvas;
 class GLCanvas;
 class FaceTracker;
 class MainWindow;
@@ -208,6 +207,7 @@ public:
 
     size_t getRenderFrameCount() const { return _renderFrameCount; }
     float getRenderLoopRate() const { return _renderLoopCounter.rate(); }
+    float getNumCollisionObjects() const;
     float getTargetRenderFrameRate() const; // frames/second
 
     float getFieldOfView() { return _fieldOfView.get(); }
@@ -311,6 +311,9 @@ public:
     void unloadAvatarScripts();
 
     Q_INVOKABLE void copyToClipboard(const QString& text);
+
+    int getOtherAvatarsReplicaCount() { return DependencyManager::get<AvatarHashMap>()->getReplicaCount(); }
+    void setOtherAvatarsReplicaCount(int count) { DependencyManager::get<AvatarHashMap>()->setReplicaCount(count); }
 
 #if defined(Q_OS_ANDROID)
     void beforeEnterBackground();
@@ -554,7 +557,6 @@ private:
 
     bool _previousSessionCrashed;
 
-    OffscreenGLCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
     QMetaObject::Connection _displayPluginPresentConnection;
     mutable std::mutex _displayPluginLock;
@@ -621,7 +623,7 @@ private:
     float _mirrorYawOffset;
     float _raiseMirror;
 
-    QSet<int> _keysPressed;
+    QHash<int, QKeyEvent> _keysPressed;
 
     bool _enableProcessOctreeThread;
 

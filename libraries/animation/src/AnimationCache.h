@@ -24,71 +24,12 @@ class Animation;
 
 typedef QSharedPointer<Animation> AnimationPointer;
 
-/// Scriptable interface for FBX animation loading.
 class AnimationCache : public ResourceCache, public Dependency  {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
 public:
 
-    // Properties are copied over from ResourceCache (see ResourceCache.h for reason).
-
-    /**jsdoc
-     * API to manage animation cache resources.
-     * @namespace AnimationCache
-     *
-     * @hifi-interface
-     * @hifi-client-entity
-     * @hifi-assignment-client
-     *
-     * @property {number} numTotal - Total number of total resources. <em>Read-only.</em>
-     * @property {number} numCached - Total number of cached resource. <em>Read-only.</em>
-     * @property {number} sizeTotal - Size in bytes of all resources. <em>Read-only.</em>
-     * @property {number} sizeCached - Size in bytes of all cached resources. <em>Read-only.</em>
-     */
-
-    // Functions are copied over from ResourceCache (see ResourceCache.h for reason).
-
-    /**jsdoc
-     * Get the list of all resource URLs.
-     * @function AnimationCache.getResourceList
-     * @returns {string[]}
-     */
-
-    /**jsdoc
-     * @function AnimationCache.dirty
-     * @returns {Signal}
-     */
-
-    /**jsdoc
-     * @function AnimationCache.updateTotalSize
-     * @param {number} deltaSize
-     */
-
-    /**jsdoc
-     * Prefetches a resource.
-     * @function AnimationCache.prefetch
-     * @param {string} url - URL of the resource to prefetch.
-     * @param {object} [extra=null]
-     * @returns {ResourceObject}
-     */
-
-    /**jsdoc
-     * Asynchronously loads a resource from the specified URL and returns it.
-     * @function AnimationCache.getResource
-     * @param {string} url - URL of the resource to load.
-     * @param {string} [fallback=""] - Fallback URL if load of the desired URL fails.
-     * @param {} [extra=null]
-     * @returns {object}
-     */
-
-
-    /**jsdoc
-     * Returns animation resource for particular animation.
-     * @function AnimationCache.getAnimation
-     * @param {string} url - URL to load.
-     * @returns {AnimationObject} animation
-     */
     Q_INVOKABLE AnimationPointer getAnimation(const QString& url) { return getAnimation(QUrl(url)); }
     Q_INVOKABLE AnimationPointer getAnimation(const QUrl& url);
 

@@ -22,7 +22,6 @@ Script.include("/~/system/libraries/controllers.js");
 (function() { // BEGIN LOCAL_SCOPE
 
     var TARGET_MODEL_URL = Script.resolvePath("../../assets/models/teleport-destination.fbx");
-    var TOO_CLOSE_MODEL_URL = Script.resolvePath("../../assets/models/teleport-cancel.fbx");
     var SEAT_MODEL_URL = Script.resolvePath("../../assets/models/teleport-seat.fbx");
 
     var TARGET_MODEL_DIMENSIONS = {
@@ -49,9 +48,6 @@ Script.include("/~/system/libraries/controllers.js");
         blue: 73
     };
 
-    var TELEPORT_CANCEL_RANGE = 1;
-    var COOL_IN_DURATION = 300;
-
     var handInfo = {
         right: {
             controllerInput: Controller.Standard.RightHand
@@ -62,66 +58,46 @@ Script.include("/~/system/libraries/controllers.js");
     };
 
     var cancelPath = {
-        type: "line3d",
         color: COLORS_TELEPORT_CANCEL,
-        ignoreRayIntersection: true,
         alpha: 1,
-        solid: true,
-        drawInFront: true,
-        glow: 1.0
+        width: 0.025
     };
     var teleportPath = {
-        type: "line3d",
         color: COLORS_TELEPORT_CAN_TELEPORT,
-        ignoreRayIntersection: true,
         alpha: 1,
-        solid: true,
-        drawInFront: true,
-        glow: 1.0
+        width: 0.025
     };
     var seatPath = {
-        type: "line3d",
         color: COLORS_TELEPORT_SEAT,
-        ignoreRayIntersection: true,
         alpha: 1,
-        solid: true,
-        drawInFront: true,
-        glow: 1.0
-    };
-    var cancelEnd = {
-        type: "model",
-        url: TOO_CLOSE_MODEL_URL,
-        dimensions: TARGET_MODEL_DIMENSIONS,
-        ignoreRayIntersection: true
+        width: 0.025
     };
     var teleportEnd = {
         type: "model",
         url: TARGET_MODEL_URL,
         dimensions: TARGET_MODEL_DIMENSIONS,
-        ignoreRayIntersection: true
+        ignorePickIntersection: true
     };
     var seatEnd = {
         type: "model",
         url: SEAT_MODEL_URL,
         dimensions: TARGET_MODEL_DIMENSIONS,
-        ignoreRayIntersection: true
+        ignorePickIntersection: true
     };
 
 
-    var teleportRenderStates = [{name: "cancel", path: cancelPath, end: cancelEnd},
+    var teleportRenderStates = [{name: "cancel", path: cancelPath},
         {name: "teleport", path: teleportPath, end: teleportEnd},
         {name: "seat", path: seatPath, end: seatEnd}];
 
-    var DEFAULT_DISTANCE = 50;
+    var DEFAULT_DISTANCE = 8.0;
     var teleportDefaultRenderStates = [{name: "cancel", distance: DEFAULT_DISTANCE, path: cancelPath}];
 
-    var coolInTimeout = null;
     var ignoredEntities = [];
 
 
     var TELEPORTER_STATES = {
         IDLE: 'idle',
-        COOL_IN: 'cool_in',
         TARGETTING: 'targetting',
         TARGETTING_INVALID: 'targetting_invalid'
     };
@@ -133,6 +109,9 @@ Script.include("/~/system/libraries/controllers.js");
         SURFACE: 'surface', // The current target is a valid surface
         SEAT: 'seat' // The current target is a seat
     };
+
+    var speed = 9.3;
+    var accelerationAxis = {x: 0.0, y: -5.0, z: 0.0};
 
     function Teleporter(hand) {
         var _this = this;
@@ -149,50 +128,104 @@ Script.include("/~/system/libraries/controllers.js");
             return otherModule;
         };
 
-        this.teleportRayHandVisible = Pointers.createPointer(PickType.Ray, {
-            joint: (_this.hand === RIGHT_HAND) ? "RightHand" : "LeftHand",
+        this.teleportParabolaHandVisible = Pointers.createPointer(PickType.Parabola, {
+            joint: (_this.hand === RIGHT_HAND) ? "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" : "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
+            dirOffset: { x: 0, y: 1, z: 0.1 },
+            posOffset: { x: (_this.hand === RIGHT_HAND) ? 0.03 : -0.03, y: 0.2, z: 0.02 },
             filter: Picks.PICK_ENTITIES,
             faceAvatar: true,
             scaleWithAvatar: true,
             centerEndY: false,
+            speed: speed,
+            accelerationAxis: accelerationAxis,
+            rotateAccelerationWithAvatar: true,
             renderStates: teleportRenderStates,
-            defaultRenderStates: teleportDefaultRenderStates
+            defaultRenderStates: teleportDefaultRenderStates,
+            maxDistance: 8.0
         });
-        this.teleportRayHandInvisible = Pointers.createPointer(PickType.Ray, {
-            joint: (_this.hand === RIGHT_HAND) ? "RightHand" : "LeftHand",
+        this.teleportParabolaHandInvisible = Pointers.createPointer(PickType.Parabola, {
+            joint: (_this.hand === RIGHT_HAND) ? "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" : "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
+            dirOffset: { x: 0, y: 1, z: 0.1 },
+            posOffset: { x: (_this.hand === RIGHT_HAND) ? 0.03 : -0.03, y: 0.2, z: 0.02 },
             filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_INVISIBLE,
             faceAvatar: true,
             scaleWithAvatar: true,
             centerEndY: false,
-            renderStates: teleportRenderStates
+            speed: speed,
+            accelerationAxis: accelerationAxis,
+            rotateAccelerationWithAvatar: true,
+            renderStates: teleportRenderStates,
+            maxDistance: 8.0
         });
-        this.teleportRayHeadVisible = Pointers.createPointer(PickType.Ray, {
+        this.teleportParabolaHeadVisible = Pointers.createPointer(PickType.Parabola, {
             joint: "Avatar",
             filter: Picks.PICK_ENTITIES,
             faceAvatar: true,
             scaleWithAvatar: true,
             centerEndY: false,
+            speed: speed,
+            accelerationAxis: accelerationAxis,
+            rotateAccelerationWithAvatar: true,
             renderStates: teleportRenderStates,
-            defaultRenderStates: teleportDefaultRenderStates
+            defaultRenderStates: teleportDefaultRenderStates,
+            maxDistance: 8.0
         });
-        this.teleportRayHeadInvisible = Pointers.createPointer(PickType.Ray, {
+        this.teleportParabolaHeadInvisible = Pointers.createPointer(PickType.Parabola, {
             joint: "Avatar",
             filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_INVISIBLE,
             faceAvatar: true,
             scaleWithAvatar: true,
             centerEndY: false,
-            renderStates: teleportRenderStates
+            speed: speed,
+            accelerationAxis: accelerationAxis,
+            rotateAccelerationWithAvatar: true,
+            renderStates: teleportRenderStates,
+            maxDistance: 8.0
         });
 
         this.cleanup = function() {
-            Pointers.removePointer(this.teleportRayHandVisible);
-            Pointers.removePointer(this.teleportRayHandInvisible);
-            Pointers.removePointer(this.teleportRayHeadVisible);
-            Pointers.removePointer(this.teleportRayHeadInvisible);
+            Pointers.removePointer(this.teleportParabolaHandVisible);
+            Pointers.removePointer(this.teleportParabolaHandInvisible);
+            Pointers.removePointer(this.teleportParabolaHeadVisible);
+            Pointers.removePointer(this.teleportParabolaHeadInvisible);
         };
 
-        this.buttonPress = function(value) {
-            _this.buttonValue = value;
+        this.axisButtonStateX = 0; // Left/right axis button pressed.
+        this.axisButtonStateY = 0; // Up/down axis button pressed.
+        this.BUTTON_TRANSITION_DELAY = 100; // Allow time for transition from direction buttons to touch-pad.
+
+        this.axisButtonChangeX = function (value) {
+            if (value !== 0) {
+                _this.axisButtonStateX = value;
+            } else {
+                // Delay direction button release until after teleport possibly pressed.
+                Script.setTimeout(function () {
+                    _this.axisButtonStateX = value;
+                }, _this.BUTTON_TRANSITION_DELAY);
+            }
+        };
+
+        this.axisButtonChangeY = function (value) {
+            if (value !== 0) {
+                _this.axisButtonStateY = value;
+            } else {
+                // Delay direction button release until after teleport possibly pressed.
+                Script.setTimeout(function () {
+                    _this.axisButtonStateY = value;
+                }, _this.BUTTON_TRANSITION_DELAY);
+            }
+        };
+
+        this.teleportLocked = function () {
+            // Lock teleport if in advanced movement mode and have just transitioned from pressing a direction button.
+            return Controller.getValue(Controller.Hardware.Application.AdvancedMovement)
+                && (_this.axisButtonStateX !== 0 || _this.axisButtonStateY !== 0);
+        };
+
+        this.buttonPress = function (value) {
+            if (value === 0 || !_this.teleportLocked()) {
+                _this.buttonValue = value;
+            }
         };
 
         this.parameters = makeDispatcherModuleParameters(
@@ -202,44 +235,7 @@ Script.include("/~/system/libraries/controllers.js");
             100);
 
         this.enterTeleport = function() {
-            if (coolInTimeout !== null) {
-                Script.clearTimeout(coolInTimeout);
-            }
-
-            this.state = TELEPORTER_STATES.COOL_IN;
-            coolInTimeout = Script.setTimeout(function() {
-                if (_this.state === TELEPORTER_STATES.COOL_IN) {
-                    _this.state = TELEPORTER_STATES.TARGETTING;
-                }
-            }, COOL_IN_DURATION);
-
-            // pad scale with avatar size
-            var AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS = Vec3.multiply(MyAvatar.sensorToWorldScale, TARGET_MODEL_DIMENSIONS);
-
-            if (!Vec3.equal(AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS, cancelEnd.dimensions)) {
-                cancelEnd.dimensions = AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS;
-                teleportEnd.dimensions = AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS;
-                seatEnd.dimensions = AVATAR_PROPORTIONAL_TARGET_MODEL_DIMENSIONS;
-
-                teleportRenderStates = [{name: "cancel", path: cancelPath, end: cancelEnd},
-                    {name: "teleport", path: teleportPath, end: teleportEnd},
-                    {name: "seat", path: seatPath, end: seatEnd}];
-
-                Pointers.editRenderState(this.teleportRayHandVisible, "cancel", teleportRenderStates[0]);
-                Pointers.editRenderState(this.teleportRayHandInvisible, "cancel", teleportRenderStates[0]);
-                Pointers.editRenderState(this.teleportRayHeadVisible, "cancel", teleportRenderStates[0]);
-                Pointers.editRenderState(this.teleportRayHeadInvisible, "cancel", teleportRenderStates[0]);
-
-                Pointers.editRenderState(this.teleportRayHandVisible, "teleport", teleportRenderStates[1]);
-                Pointers.editRenderState(this.teleportRayHandInvisible, "teleport", teleportRenderStates[1]);
-                Pointers.editRenderState(this.teleportRayHeadVisible, "teleport", teleportRenderStates[1]);
-                Pointers.editRenderState(this.teleportRayHeadInvisible, "teleport", teleportRenderStates[1]);
-
-                Pointers.editRenderState(this.teleportRayHandVisible, "seat", teleportRenderStates[2]);
-                Pointers.editRenderState(this.teleportRayHandInvisible, "seat", teleportRenderStates[2]);
-                Pointers.editRenderState(this.teleportRayHeadVisible, "seat", teleportRenderStates[2]);
-                Pointers.editRenderState(this.teleportRayHeadInvisible, "seat", teleportRenderStates[2]);
-            }
+            this.state = TELEPORTER_STATES.TARGETTING;
         };
 
         this.isReady = function(controllerData, deltaTime) {
@@ -258,18 +254,18 @@ Script.include("/~/system/libraries/controllers.js");
             var pose = Controller.getPoseValue(handInfo[(_this.hand === RIGHT_HAND) ? 'right' : 'left'].controllerInput);
             var mode = pose.valid ? _this.hand : 'head';
             if (!pose.valid) {
-                Pointers.disablePointer(_this.teleportRayHandVisible);
-                Pointers.disablePointer(_this.teleportRayHandInvisible);
-                Pointers.enablePointer(_this.teleportRayHeadVisible);
-                Pointers.enablePointer(_this.teleportRayHeadInvisible);
+                Pointers.disablePointer(_this.teleportParabolaHandVisible);
+                Pointers.disablePointer(_this.teleportParabolaHandInvisible);
+                Pointers.enablePointer(_this.teleportParabolaHeadVisible);
+                Pointers.enablePointer(_this.teleportParabolaHeadInvisible);
             } else {
-                Pointers.enablePointer(_this.teleportRayHandVisible);
-                Pointers.enablePointer(_this.teleportRayHandInvisible);
-                Pointers.disablePointer(_this.teleportRayHeadVisible);
-                Pointers.disablePointer(_this.teleportRayHeadInvisible);
+                Pointers.enablePointer(_this.teleportParabolaHandVisible);
+                Pointers.enablePointer(_this.teleportParabolaHandInvisible);
+                Pointers.disablePointer(_this.teleportParabolaHeadVisible);
+                Pointers.disablePointer(_this.teleportParabolaHeadInvisible);
             }
 
-            // We do up to 2 ray picks to find a teleport location.
+            // We do up to 2 picks to find a teleport location.
             // There are 2 types of teleport locations we are interested in:
             //   1. A visible floor. This can be any entity surface that points within some degree of "up"
             //   2. A seat. The seat can be visible or invisible.
@@ -280,17 +276,17 @@ Script.include("/~/system/libraries/controllers.js");
             //
             var result;
             if (mode === 'head') {
-                result = Pointers.getPrevPickResult(_this.teleportRayHeadInvisible);
+                result = Pointers.getPrevPickResult(_this.teleportParabolaHeadInvisible);
             } else {
-                result = Pointers.getPrevPickResult(_this.teleportRayHandInvisible);
+                result = Pointers.getPrevPickResult(_this.teleportParabolaHandInvisible);
             }
 
             var teleportLocationType = getTeleportTargetType(result);
             if (teleportLocationType === TARGET.INVISIBLE) {
                 if (mode === 'head') {
-                    result = Pointers.getPrevPickResult(_this.teleportRayHeadVisible);
+                    result = Pointers.getPrevPickResult(_this.teleportParabolaHeadVisible);
                 } else {
-                    result = Pointers.getPrevPickResult(_this.teleportRayHandVisible);
+                    result = Pointers.getPrevPickResult(_this.teleportParabolaHandVisible);
                 }
                 teleportLocationType = getTeleportTargetType(result);
             }
@@ -301,11 +297,7 @@ Script.include("/~/system/libraries/controllers.js");
             } else if (teleportLocationType === TARGET.INVALID || teleportLocationType === TARGET.INVISIBLE) {
                 this.setTeleportState(mode, "", "cancel");
             } else if (teleportLocationType === TARGET.SURFACE) {
-                if (this.state === TELEPORTER_STATES.COOL_IN) {
-                    this.setTeleportState(mode, "cancel", "");
-                } else {
-                    this.setTeleportState(mode, "teleport", "");
-                }
+                this.setTeleportState(mode, "teleport", "");
             } else if (teleportLocationType === TARGET.SEAT) {
                 this.setTeleportState(mode, "", "seat");
             }
@@ -318,14 +310,14 @@ Script.include("/~/system/libraries/controllers.js");
                 return makeRunningValues(true, [], []);
             }
 
-            if (target === TARGET.NONE || target === TARGET.INVALID || this.state === TELEPORTER_STATES.COOL_IN) {
+            if (target === TARGET.NONE || target === TARGET.INVALID) {
                 // Do nothing
             } else if (target === TARGET.SEAT) {
                 Entities.callEntityMethod(result.objectID, 'sit');
             } else if (target === TARGET.SURFACE) {
                 var offset = getAvatarFootOffset();
                 result.intersection.y += offset;
-                MyAvatar.goToLocation(result.intersection, false, {x: 0, y: 0, z: 0, w: 1}, false);
+                MyAvatar.goToLocation(result.intersection, true, HMD.orientation, false);
                 HMD.centerUI();
                 MyAvatar.centerBody();
             }
@@ -336,27 +328,27 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.disableLasers = function() {
-            Pointers.disablePointer(_this.teleportRayHandVisible);
-            Pointers.disablePointer(_this.teleportRayHandInvisible);
-            Pointers.disablePointer(_this.teleportRayHeadVisible);
-            Pointers.disablePointer(_this.teleportRayHeadInvisible);
+            Pointers.disablePointer(_this.teleportParabolaHandVisible);
+            Pointers.disablePointer(_this.teleportParabolaHandInvisible);
+            Pointers.disablePointer(_this.teleportParabolaHeadVisible);
+            Pointers.disablePointer(_this.teleportParabolaHeadInvisible);
         };
 
         this.setTeleportState = function(mode, visibleState, invisibleState) {
             if (mode === 'head') {
-                Pointers.setRenderState(_this.teleportRayHeadVisible, visibleState);
-                Pointers.setRenderState(_this.teleportRayHeadInvisible, invisibleState);
+                Pointers.setRenderState(_this.teleportParabolaHeadVisible, visibleState);
+                Pointers.setRenderState(_this.teleportParabolaHeadInvisible, invisibleState);
             } else {
-                Pointers.setRenderState(_this.teleportRayHandVisible, visibleState);
-                Pointers.setRenderState(_this.teleportRayHandInvisible, invisibleState);
+                Pointers.setRenderState(_this.teleportParabolaHandVisible, visibleState);
+                Pointers.setRenderState(_this.teleportParabolaHandInvisible, invisibleState);
             }
         };
 
         this.setIgnoreEntities = function(entitiesToIgnore) {
-            Pointers.setIgnoreItems(this.teleportRayHandVisible, entitiesToIgnore);
-            Pointers.setIgnoreItems(this.teleportRayHandInvisible, entitiesToIgnore);
-            Pointers.setIgnoreItems(this.teleportRayHeadVisible, entitiesToIgnore);
-            Pointers.setIgnoreItems(this.teleportRayHeadInvisible, entitiesToIgnore);
+            Pointers.setIgnoreItems(this.teleportParabolaHandVisible, entitiesToIgnore);
+            Pointers.setIgnoreItems(this.teleportParabolaHandInvisible, entitiesToIgnore);
+            Pointers.setIgnoreItems(this.teleportParabolaHeadVisible, entitiesToIgnore);
+            Pointers.setIgnoreItems(this.teleportParabolaHeadInvisible, entitiesToIgnore);
         };
     }
 
@@ -389,6 +381,7 @@ Script.include("/~/system/libraries/controllers.js");
     }
 
     var mappingName, teleportMapping;
+    var isViveMapped = false;
 
     function parseJSON(json) {
         try {
@@ -399,7 +392,7 @@ Script.include("/~/system/libraries/controllers.js");
     }
     // When determininig whether you can teleport to a location, the normal of the
     // point that is being intersected with is looked at. If this normal is more
-    // than MAX_ANGLE_FROM_UP_TO_TELEPORT degrees from <0, 1, 0> (straight up), then
+    // than MAX_ANGLE_FROM_UP_TO_TELEPORT degrees from your avatar's up, then
     // you can't teleport there.
     var MAX_ANGLE_FROM_UP_TO_TELEPORT = 70;
     function getTeleportTargetType(result) {
@@ -423,24 +416,48 @@ Script.include("/~/system/libraries/controllers.js");
         }
 
         var surfaceNormal = result.surfaceNormal;
-        var adj = Math.sqrt(surfaceNormal.x * surfaceNormal.x + surfaceNormal.z * surfaceNormal.z);
-        var angleUp = Math.atan2(surfaceNormal.y, adj) * (180 / Math.PI);
+        var angle = Math.acos(Vec3.dot(surfaceNormal, Quat.getUp(MyAvatar.orientation))) * (180.0 / Math.PI);
 
-        if (angleUp < (90 - MAX_ANGLE_FROM_UP_TO_TELEPORT) ||
-            angleUp > (90 + MAX_ANGLE_FROM_UP_TO_TELEPORT) ||
-            Vec3.distance(MyAvatar.position, result.intersection) <= TELEPORT_CANCEL_RANGE * MyAvatar.sensorToWorldScale) {
+        if (angle > MAX_ANGLE_FROM_UP_TO_TELEPORT) {
             return TARGET.INVALID;
         } else {
             return TARGET.SURFACE;
         }
     }
 
+    function registerViveTeleportMapping() {
+        // Disable Vive teleport if touch is transitioning across touch-pad after pressing a direction button.
+        if (Controller.Hardware.Vive) {
+            var mappingName = 'Hifi-Teleporter-Dev-Vive-' + Math.random();
+            var viveTeleportMapping = Controller.newMapping(mappingName);
+            viveTeleportMapping.from(Controller.Hardware.Vive.LSX).peek().to(leftTeleporter.axisButtonChangeX);
+            viveTeleportMapping.from(Controller.Hardware.Vive.LSY).peek().to(leftTeleporter.axisButtonChangeY);
+            viveTeleportMapping.from(Controller.Hardware.Vive.RSX).peek().to(rightTeleporter.axisButtonChangeX);
+            viveTeleportMapping.from(Controller.Hardware.Vive.RSY).peek().to(rightTeleporter.axisButtonChangeY);
+            Controller.enableMapping(mappingName);
+            isViveMapped = true;
+        }
+    }
+
+    function onHardwareChanged() {
+        // Controller.Hardware.Vive is not immediately available at Interface start-up.
+        if (!isViveMapped && Controller.Hardware.Vive) {
+            registerViveTeleportMapping();
+        }
+    }
+
+    Controller.hardwareChanged.connect(onHardwareChanged);
+
     function registerMappings() {
         mappingName = 'Hifi-Teleporter-Dev-' + Math.random();
         teleportMapping = Controller.newMapping(mappingName);
 
-        teleportMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(rightTeleporter.buttonPress);
+        // Vive teleport button lock-out.
+        registerViveTeleportMapping();
+
+        // Teleport actions.
         teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftTeleporter.buttonPress);
+        teleportMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(rightTeleporter.buttonPress);
     }
 
     var leftTeleporter = new Teleporter(LEFT_HAND);
@@ -452,6 +469,7 @@ Script.include("/~/system/libraries/controllers.js");
     Controller.enableMapping(mappingName);
 
     function cleanup() {
+        Controller.hardwareChanged.disconnect(onHardwareChanged);
         teleportMapping.disable();
         leftTeleporter.cleanup();
         rightTeleporter.cleanup();

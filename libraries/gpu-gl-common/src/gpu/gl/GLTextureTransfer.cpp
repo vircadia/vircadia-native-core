@@ -129,9 +129,10 @@ void GLBackend::killTextureManagementStage() {
 }
 
 std::vector<TexturePointer> GLTextureTransferEngine::getAllTextures() {
-    std::remove_if(_registeredTextures.begin(), _registeredTextures.end(), [&](const std::weak_ptr<Texture>& weak) -> bool {
-        return weak.expired(); 
+    auto expiredBegin = std::remove_if(_registeredTextures.begin(), _registeredTextures.end(), [&](const std::weak_ptr<Texture>& weak) -> bool {
+        return weak.expired();
     });
+    _registeredTextures.erase(expiredBegin, _registeredTextures.end());
 
     std::vector<TexturePointer> result;
     result.reserve(_registeredTextures.size());
@@ -404,6 +405,7 @@ bool GLTextureTransferEngineDefault::processActiveBufferQueue() {
         _activeTransferQueue.splice(_activeTransferQueue.end(), activeBufferQueue);
     }
 
+    Texture::KtxStorage::releaseOpenKtxFiles();
     return true;
 }
 

@@ -79,6 +79,14 @@ private:
 typedef QSharedPointer<Sound> SharedSoundPointer;
 
 /**jsdoc
+ * An audio resource, created by {@link SoundCache.getSound}, to be played back using {@link Audio.playSound}.
+ * <p>Supported formats:</p>
+ * <ul>
+ *   <li>WAV: 16-bit uncompressed WAV at any sample rate, with 1 (mono), 2(stereo), or 4 (ambisonic) channels.</li>
+ *   <li>MP3: Mono or stereo, at any sample rate.</li>
+ *   <li>RAW: 48khz 16-bit mono or stereo. Filename must include <code>".stereo"</code> to be interpreted as stereo.</li>
+ * </ul>
+ *
  * @class SoundObject
  * 
  * @hifi-interface
@@ -86,8 +94,9 @@ typedef QSharedPointer<Sound> SharedSoundPointer;
  * @hifi-server-entity
  * @hifi-assignment-client
  *
- * @property {boolean} downloaded
- * @property {number} duration
+ * @property {boolean} downloaded - <code>true</code> if the sound has been downloaded and is ready to be played, otherwise 
+ *     <code>false</code>.
+ * @property {number} duration - The duration of the sound, in seconds.
  */
 class SoundScriptingInterface : public QObject {
     Q_OBJECT
@@ -103,6 +112,7 @@ public:
     float getDuration() { return _sound->getDuration(); }
 
 /**jsdoc
+ * Triggered when the sound has been downloaded and is ready to be played.
  * @function SoundObject.ready
  * @returns {Signal}
  */

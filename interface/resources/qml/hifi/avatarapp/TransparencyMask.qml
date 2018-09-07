@@ -32,7 +32,7 @@ Item {
                 highp vec4 maskColor = texture2D(mask, vec2(qt_TexCoord0.x, qt_TexCoord0.y));
                 highp vec4 sourceColor = texture2D(source, vec2(qt_TexCoord0.x, qt_TexCoord0.y));
 
-                if(maskColor.a > 0.0)
+                if (maskColor.a > 0.0)
                     gl_FragColor = sourceColor;
                 else
                     gl_FragColor = maskColor;

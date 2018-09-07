@@ -38,6 +38,8 @@
 #include <EntityScriptClient.h>
 #include <Profile.h>
 
+const QString GRABBABLE_USER_DATA = "{\"grabbableKey\":{\"grabbable\":true}}";
+const QString NOT_GRABBABLE_USER_DATA = "{\"grabbableKey\":{\"grabbable\":false}}";
 
 EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership) :
     _entityTree(NULL),
@@ -303,7 +305,7 @@ bool EntityScriptingInterface::addLocalEntityCopy(EntityItemProperties& properti
 }
 
 QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QString& modelUrl, const QString& textures,
-                                                const QString& shapeType, bool dynamic, bool collisionless,
+                                                const QString& shapeType, bool dynamic, bool collisionless, bool grabbable,
                                                 const glm::vec3& position, const glm::vec3& gravity) {
     _activityTracking.addedEntityCount++;
 
@@ -314,6 +316,7 @@ QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QStrin
     properties.setShapeTypeFromString(shapeType);
     properties.setDynamic(dynamic);
     properties.setCollisionless(collisionless);
+    properties.setUserData(grabbable ? GRABBABLE_USER_DATA : NOT_GRABBABLE_USER_DATA);
     properties.setPosition(position);
     properties.setGravity(gravity);
     if (!textures.isEmpty()) {
@@ -571,7 +574,7 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
     _activityTracking.deletedEntityCount++;
 
     EntityItemID entityID(id);
-    bool shouldDelete = true;
+    bool shouldSendDeleteToServer = true;
 
     // If we have a local entity tree set, then also update it.
     if (_entityTree) {
@@ -588,16 +591,21 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
                     auto avatarHashMap = DependencyManager::get<AvatarHashMap>();
                     AvatarSharedPointer myAvatar = avatarHashMap->getAvatarBySessionID(myNodeID);
                     myAvatar->insertDetachedEntityID(id);
-                    shouldDelete = false;
+                    shouldSendDeleteToServer = false;
                     return;
                 }
 
                 if (entity->getLocked()) {
-                    shouldDelete = false;
+                    shouldSendDeleteToServer = false;
                 } else {
                     // only delete local entities, server entities will round trip through the server filters
                     if (entity->getClientOnly() || _entityTree->isServerlessMode()) {
+                        shouldSendDeleteToServer = false;
                         _entityTree->deleteEntity(entityID);
+
+                        if (entity->getClientOnly() && getEntityPacketSender()->getMyAvatar()) {
+                            getEntityPacketSender()->getMyAvatar()->clearAvatarEntity(entityID, false);
+                        }
                     }
                 }
             }
@@ -605,7 +613,7 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
     }
 
     // if at this point, we know the id, and we should still delete the entity, send the update to the entity server
-    if (shouldDelete) {
+    if (shouldSendDeleteToServer) {
         getEntityPacketSender()->queueEraseEntityMessage(entityID);
     }
 }
@@ -871,6 +879,30 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
     return result;
 }
 
+ParabolaToEntityIntersectionResult EntityScriptingInterface::findParabolaIntersectionVector(const PickParabola& parabola, bool precisionPicking,
+    const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
+    return findParabolaIntersectionWorker(parabola, Octree::Lock, precisionPicking, entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly);
+}
+
+ParabolaToEntityIntersectionResult EntityScriptingInterface::findParabolaIntersectionWorker(const PickParabola& parabola,
+    Octree::lockType lockType, bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude,
+    const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly) {
+
+
+    ParabolaToEntityIntersectionResult result;
+    if (_entityTree) {
+        OctreeElementPointer element;
+        result.entityID = _entityTree->findParabolaIntersection(parabola,
+            entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly, precisionPicking,
+            element, result.intersection, result.distance, result.parabolicDistance, result.face, result.surfaceNormal,
+            result.extraInfo, lockType, &result.accurate);
+        result.intersects = !result.entityID.isNull();
+    }
+    return result;
+}
+
 bool EntityScriptingInterface::reloadServerScripts(QUuid entityID) {
     auto client = DependencyManager::get<EntityScriptClient>();
     return client->reloadServerScript(entityID);
@@ -1025,75 +1057,17 @@ bool EntityScriptingInterface::getDrawZoneBoundaries() const {
     return ZoneEntityItem::getDrawZoneBoundaries();
 }
 
-RayToEntityIntersectionResult::RayToEntityIntersectionResult() :
-    intersects(false),
-    accurate(true), // assume it's accurate
-    entityID(),
-    distance(0),
-    face()
-{
-}
-
 QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, const RayToEntityIntersectionResult& value) {
-    PROFILE_RANGE(script_entities, __FUNCTION__);
-
     QScriptValue obj = engine->newObject();
     obj.setProperty("intersects", value.intersects);
     obj.setProperty("accurate", value.accurate);
     QScriptValue entityItemValue = EntityItemIDtoScriptValue(engine, value.entityID);
     obj.setProperty("entityID", entityItemValue);
-
     obj.setProperty("distance", value.distance);
-
-    QString faceName = "";
-    // handle BoxFace
-    /**jsdoc
-     * <p>A <code>BoxFace</code> specifies the face of an axis-aligned (AA) box.
-     * <table>
-     *   <thead>
-     *     <tr><th>Value</th><th>Description</th></tr>
-     *   </thead>
-     *   <tbody>
-     *     <tr><td><code>"MIN_X_FACE"</code></td><td>The minimum x-axis face.</td></tr>
-     *     <tr><td><code>"MAX_X_FACE"</code></td><td>The maximum x-axis face.</td></tr>
-     *     <tr><td><code>"MIN_Y_FACE"</code></td><td>The minimum y-axis face.</td></tr>
-     *     <tr><td><code>"MAX_Y_FACE"</code></td><td>The maximum y-axis face.</td></tr>
-     *     <tr><td><code>"MIN_Z_FACE"</code></td><td>The minimum z-axis face.</td></tr>
-     *     <tr><td><code>"MAX_Z_FACE"</code></td><td>The maximum z-axis face.</td></tr>
-     *     <tr><td><code>"UNKNOWN_FACE"</code></td><td>Unknown value.</td></tr>
-     *   </tbody>
-     * </table>
-     * @typedef {string} BoxFace
-     */
-    //  FIXME: Move enum to string function to BoxBase.cpp.
-    switch (value.face) {
-        case MIN_X_FACE:
-            faceName = "MIN_X_FACE";
-            break;
-        case MAX_X_FACE:
-            faceName = "MAX_X_FACE";
-            break;
-        case MIN_Y_FACE:
-            faceName = "MIN_Y_FACE";
-            break;
-        case MAX_Y_FACE:
-            faceName = "MAX_Y_FACE";
-            break;
-        case MIN_Z_FACE:
-            faceName = "MIN_Z_FACE";
-            break;
-        case MAX_Z_FACE:
-            faceName = "MAX_Z_FACE";
-            break;
-        case UNKNOWN_FACE:
-            faceName = "UNKNOWN_FACE";
-            break;
-    }
-    obj.setProperty("face", faceName);
+    obj.setProperty("face", boxFaceToString(value.face));
 
     QScriptValue intersection = vec3toScriptValue(engine, value.intersection);
     obj.setProperty("intersection", intersection);
-
     QScriptValue surfaceNormal = vec3toScriptValue(engine, value.surfaceNormal);
     obj.setProperty("surfaceNormal", surfaceNormal);
     obj.setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
@@ -1101,29 +1075,13 @@ QScriptValue RayToEntityIntersectionResultToScriptValue(QScriptEngine* engine, c
 }
 
 void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, RayToEntityIntersectionResult& value) {
-    PROFILE_RANGE(script_entities, __FUNCTION__);
-
     value.intersects = object.property("intersects").toVariant().toBool();
     value.accurate = object.property("accurate").toVariant().toBool();
     QScriptValue entityIDValue = object.property("entityID");
-    // EntityItemIDfromScriptValue(entityIDValue, value.entityID);
     quuidFromScriptValue(entityIDValue, value.entityID);
     value.distance = object.property("distance").toVariant().toFloat();
+    value.face = boxFaceFromString(object.property("face").toVariant().toString());
 
-    QString faceName = object.property("face").toVariant().toString();
-    if (faceName == "MIN_X_FACE") {
-        value.face = MIN_X_FACE;
-    } else if (faceName == "MAX_X_FACE") {
-        value.face = MAX_X_FACE;
-    } else if (faceName == "MIN_Y_FACE") {
-        value.face = MIN_Y_FACE;
-    } else if (faceName == "MAX_Y_FACE") {
-        value.face = MAX_Y_FACE;
-    } else if (faceName == "MIN_Z_FACE") {
-        value.face = MIN_Z_FACE;
-    } else {
-        value.face = MAX_Z_FACE;
-    };
     QScriptValue intersection = object.property("intersection");
     if (intersection.isValid()) {
         vec3FromScriptValue(intersection, value.intersection);
@@ -1299,7 +1257,7 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
 
     EntityItemPointer entity;
     bool doTransmit = false;
-    _entityTree->withWriteLock([&] {
+    _entityTree->withWriteLock([this, &entity, entityID, myNodeID, &doTransmit, actor, &properties] {
         EntitySimulationPointer simulation = _entityTree->getSimulation();
         entity = _entityTree->findEntityByEntityItemID(entityID);
         if (!entity) {

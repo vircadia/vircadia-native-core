@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  debug_deferred_buffer.slf
+//  debug_deferred_buffer.frag
 //  fragment shader
 //
 //  Created by Clement on 12/3
@@ -16,14 +16,8 @@
 <@include gpu/Color.slh@>
 <$declareColorWheel()$>
 
-uniform sampler2D linearDepthMap;
-uniform sampler2D halfLinearDepthMap;
-uniform sampler2D halfNormalMap;
-uniform sampler2D occlusionMap;
-uniform sampler2D occlusionBlurredMap;
-uniform sampler2D scatteringMap;
-uniform sampler2D velocityMap;
-uniform sampler2DArrayShadow shadowMaps;
+layout(binding=RENDER_UTILS_DEBUG_TEXTURE0) uniform sampler2D debugTexture0;
+layout(binding=RENDER_UTILS_TEXTURE_SHADOW) uniform sampler2DArrayShadow shadowMaps;
 
 <@include ShadowCore.slh@>
 
@@ -31,7 +25,7 @@ uniform sampler2DArrayShadow shadowMaps;
 
 <@include debug_deferred_buffer_shared.slh@>
 
-layout(std140) uniform parametersBuffer {
+layout(std140, binding=RENDER_UTILS_BUFFER_DEBUG_DEFERRED_PARAMS) uniform parametersBuffer {
     DebugParameters parameters;
 };
 
@@ -39,8 +33,8 @@ float curvatureAO(float k) {
     return 1.0f - (0.0022f * k * k) + (0.0776f * k) + 0.7369f;
 }
 
-in vec2 uv;
-out vec4 outFragColor;
+layout(location=0) in vec2 uv;
+layout(location=0) out vec4 outFragColor;
 
 //SOURCE_PLACEHOLDER
 

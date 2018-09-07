@@ -91,23 +91,60 @@ void ControlViews::run(const workload::WorkloadContextPointer& runContext, const
         regulateViews(outViews, inTimings);
     }
 
-    // Export the timings for debuging
-    if (inTimings.size()) {
-        _dataExport.timings[workload::Region::R1] = std::chrono::duration<float, std::milli>(inTimings[0]).count();
-        _dataExport.timings[workload::Region::R2] = _dataExport.timings[workload::Region::R1];
-        _dataExport.timings[workload::Region::R3] = std::chrono::duration<float, std::milli>(inTimings[1]).count();
+    // Export the ranges for debuging
+    bool doExport = false;
+    if (outViews.size()) {
+        _dataExport.ranges[workload::Region::R1] = outViews[0].regionBackFronts[workload::Region::R1];
+        _dataExport.ranges[workload::Region::R2] = outViews[0].regionBackFronts[workload::Region::R2];
+        _dataExport.ranges[workload::Region::R3] = outViews[0].regionBackFronts[workload::Region::R3];
+        doExport = true;
+    }
 
+    // Export the ranges and timings for debuging
+    if (inTimings.size()) {
+        // NOTE for reference:
+        // inTimings[0] = prePhysics entities
+        // inTimings[1] = prePhysics avatars
+        // inTimings[2] = stepPhysics
+        // inTimings[3] = postPhysics
+        // inTimings[4] = non-physical kinematics
+        // inTimings[5] = game loop
+        _dataExport.timings[workload::Region::R1] = std::chrono::duration<float, std::milli>(inTimings[2] + inTimings[3]).count();
+        _dataExport.timings[workload::Region::R2] = _dataExport.timings[workload::Region::R1];
+        _dataExport.timings[workload::Region::R3] = std::chrono::duration<float, std::milli>(inTimings[4]).count();
+        doExport = true;
+    }
+
+    if (doExport) {
         auto config = std::static_pointer_cast<Config>(runContext->jobConfig);
         config->dataExport = _dataExport;
         config->emitDirty();
     }
 }
 
-glm::vec2 Regulator::run(const Timing_ns& regulationDuration, const Timing_ns& measured, const glm::vec2& current) {
-    // Regulate next value based on current moving toward the goal budget
-    float error_ms = std::chrono::duration<float, std::milli>(_budget - measured).count();
-    float coef = glm::clamp(error_ms / std::chrono::duration<float, std::milli>(regulationDuration).count(), -1.0f, 1.0f);
-    return current * (1.0f + coef * (error_ms < 0.0f ? _relativeStepDown : _relativeStepUp));
+glm::vec2 Regulator::run(const Timing_ns& deltaTime, const Timing_ns& measuredTime, const glm::vec2& currentFrontBack) {
+    // measure signal: average and noise
+    const float FILTER_TIMESCALE = 0.5f * (float)NSECS_PER_SECOND;
+    float del = deltaTime.count() / FILTER_TIMESCALE;
+    if (del > 1.0f) {
+        del = 1.0f; // clamp for stability
+    }
+    _measuredTimeAverage = (1.0f - del) * _measuredTimeAverage + del * measuredTime.count();
+    float diff = measuredTime.count() - _measuredTimeAverage;
+    _measuredTimeNoiseSquared = (1.0f - del) * _measuredTimeNoiseSquared + del * diff * diff;
+    float noise = sqrtf(_measuredTimeNoiseSquared);
+
+    // check budget
+    float offsetFromTarget = _budget.count() - _measuredTimeAverage;
+    if (fabsf(offsetFromTarget) < noise) {
+        // budget is within the noise --> do nothing
+        return currentFrontBack;
+    }
+
+    // compute response
+    glm::vec2 stepDelta = offsetFromTarget < 0.0f ? -_relativeStepDown : _relativeStepUp;
+    stepDelta *= glm::min(1.0f, (fabsf(offsetFromTarget) - noise) / noise); // ease out of "do nothing"
+    return currentFrontBack * (1.0f + stepDelta);
 }
 
 glm::vec2 Regulator::clamp(const glm::vec2& backFront) const {
@@ -116,24 +153,26 @@ glm::vec2 Regulator::clamp(const glm::vec2& backFront) const {
 }
 
 void ControlViews::regulateViews(workload::Views& outViews, const workload::Timings& timings) {
-
     for (auto& outView : outViews) {
         for (int32_t r = 0; r < workload::Region::NUM_VIEW_REGIONS; r++) {
             outView.regionBackFronts[r] = regionBackFronts[r];
         }
     }
 
-    auto loopDuration = std::chrono::nanoseconds{ std::chrono::milliseconds(16) };
-    regionBackFronts[workload::Region::R1] = regionRegulators[workload::Region::R1].run(loopDuration, timings[0], regionBackFronts[workload::Region::R1]);
-    regionBackFronts[workload::Region::R2] = regionRegulators[workload::Region::R2].run(loopDuration, timings[0], regionBackFronts[workload::Region::R2]);
-    regionBackFronts[workload::Region::R3] = regionRegulators[workload::Region::R3].run(loopDuration, timings[1], regionBackFronts[workload::Region::R3]);
+    // Note: for reference:
+    // timings[0] = prePhysics entities
+    // timings[1] = prePhysics avatars
+    // timings[2] = stepPhysics
+    // timings[3] = postPhysics
+    // timings[4] = non-physical kinematics
+    // timings[5] = game loop
+
+    auto loopDuration = timings[5];
+    regionBackFronts[workload::Region::R1] = regionRegulators[workload::Region::R1].run(loopDuration, timings[2] + timings[3], regionBackFronts[workload::Region::R1]);
+    regionBackFronts[workload::Region::R2] = regionRegulators[workload::Region::R2].run(loopDuration, timings[2] + timings[3], regionBackFronts[workload::Region::R2]);
+    regionBackFronts[workload::Region::R3] = regionRegulators[workload::Region::R3].run(loopDuration, timings[4], regionBackFronts[workload::Region::R3]);
 
     enforceRegionContainment();
-
-    _dataExport.ranges[workload::Region::R1] = regionBackFronts[workload::Region::R1];
-    _dataExport.ranges[workload::Region::R2] = regionBackFronts[workload::Region::R2];
-    _dataExport.ranges[workload::Region::R3] = regionBackFronts[workload::Region::R3];
-
     for (auto& outView : outViews) {
         outView.regionBackFronts[workload::Region::R1] = regionBackFronts[workload::Region::R1];
         outView.regionBackFronts[workload::Region::R2] = regionBackFronts[workload::Region::R2];

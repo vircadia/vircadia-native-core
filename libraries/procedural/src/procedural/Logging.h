@@ -11,6 +11,6 @@
 
 #include <QLoggingCategory>
 
-Q_DECLARE_LOGGING_CATEGORY(procedural)
+Q_DECLARE_LOGGING_CATEGORY(proceduralLog)
 
 #endif // hifi_octree_Logging_h

@@ -24,6 +24,7 @@
 #include <NetworkingConstants.h>
 #include <AddressManager.h>
 
+#include "../AssignmentDynamicFactory.h"
 #include "AssignmentParentFinder.h"
 #include "EntityNodeData.h"
 #include "EntityServerConsts.h"
@@ -41,6 +42,9 @@ EntityServer::EntityServer(ReceivedMessage& message) :
     DependencyManager::set<ResourceManager>();
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<ScriptCache>();
+
+    DependencyManager::registerInheritance<EntityDynamicFactoryInterface, AssignmentDynamicFactory>();
+    DependencyManager::set<AssignmentDynamicFactory>();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListenerForTypes({ PacketType::EntityAdd,
@@ -70,6 +74,8 @@ EntityServer::~EntityServer() {
 
 void EntityServer::aboutToFinish() {
     DependencyManager::get<ResourceManager>()->cleanup();
+
+    DependencyManager::destroy<AssignmentDynamicFactory>();
 
     OctreeServer::aboutToFinish();
 }
@@ -522,11 +528,8 @@ void EntityServer::startDynamicDomainVerification() {
                             qCDebug(entities) << "Entity passed dynamic domain verification:" << entityID;
                         }
                     } else {
-                        qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() << "; deleting entity" << entityID
+                        qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() << "; NOT deleting entity" << entityID
                             << "More info:" << jsonObject;
-                        tree->withWriteLock([&] {
-                            tree->deleteEntity(entityID, true);
-                        });
                     }
 
                     networkReply->deleteLater();

@@ -34,7 +34,6 @@ void ContextStats::evalDelta(const ContextStats& begin, const ContextStats& end)
 
 
 Context::CreateBackend Context::_createBackendCallback = nullptr;
-Context::MakeProgram Context::_makeProgramCallback = nullptr;
 std::once_flag Context::_initialized;
 
 Context::Context() {
@@ -137,20 +136,6 @@ void Context::executeFrame(const FramePointer& frame) const {
     ContextStats endStats;
     getStats(endStats);
     _frameStats.evalDelta(beginStats, endStats);
-}
-
-bool Context::makeProgram(Shader& shader, const Shader::BindingSet& bindings, const Shader::CompilationHandler& handler) {
-    PROFILE_RANGE_EX(app, "makeProgram", 0xff4040c0, shader.getID());
-    // If we're running in another DLL context, we need to fetch the program callback out of the application
-    // FIXME find a way to do this without reliance on Qt app properties
-    if (!_makeProgramCallback) {
-        void* rawCallback = qApp->property(hifi::properties::gl::MAKE_PROGRAM_CALLBACK).value<void*>();
-        _makeProgramCallback = reinterpret_cast<Context::MakeProgram>(rawCallback);
-    }
-    if (shader.isProgram() && _makeProgramCallback) {
-        return _makeProgramCallback(shader, bindings, handler);
-    }
-    return false;
 }
 
 void Context::enableStereo(bool enable) {

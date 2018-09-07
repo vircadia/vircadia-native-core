@@ -32,13 +32,13 @@ namespace workload {
     };
 
     const std::vector<glm::vec2> MAX_VIEW_BACK_FRONTS = {
-        { 100.0f, 200.0f },
-        { 150.0f, 300.0f },
-        { 250.0f, 500.0f }
+        { 100.0f, 1600.0f },
+        { 150.0f, 10000.0f },
+        { 250.0f, 16000.0f }
     };
 
-    const float RELATIVE_STEP_DOWN = 0.05f;
-    const float RELATIVE_STEP_UP = 0.04f;
+    const float RELATIVE_STEP_DOWN = 0.11f;
+    const float RELATIVE_STEP_UP = 0.09f;
 
     class SetupViewsConfig : public Job::Config{
         Q_OBJECT
@@ -192,7 +192,7 @@ namespace workload {
 
 
         struct Data {
-            bool regulateViewRanges{ false };
+            bool regulateViewRanges{ true }; // regulation is ON by default
         } data;
 
         struct DataExport {
@@ -212,20 +212,31 @@ namespace workload {
     };
 
     struct Regulator {
-        using Timing_ns = std::chrono::nanoseconds;
-        Timing_ns _budget{ std::chrono::milliseconds(2) };
         glm::vec2 _minRange{ MIN_VIEW_BACK_FRONTS[0] };
         glm::vec2 _maxRange{ MAX_VIEW_BACK_FRONTS[0] };
-
         glm::vec2 _relativeStepDown{ RELATIVE_STEP_DOWN };
         glm::vec2 _relativeStepUp{ RELATIVE_STEP_UP };
-
+        Timing_ns _budget{ std::chrono::milliseconds(2) };
+        float _measuredTimeAverage { 0.0f };
+        float _measuredTimeNoiseSquared { 0.0f };
 
         Regulator() {}
-        Regulator(const Timing_ns& budget_ns, const glm::vec2& minRange, const glm::vec2& maxRange, const glm::vec2& relativeStepDown, const glm::vec2& relativeStepUp) :
-            _budget(budget_ns), _minRange(minRange), _maxRange(maxRange), _relativeStepDown(relativeStepDown), _relativeStepUp(relativeStepUp) {}
+        Regulator(const Timing_ns& budget_ns,
+                const glm::vec2& minRange,
+                const glm::vec2& maxRange,
+                const glm::vec2& relativeStepDown,
+                const glm::vec2& relativeStepUp) :
+            _minRange(minRange),
+            _maxRange(maxRange),
+            _relativeStepDown(relativeStepDown),
+            _relativeStepUp(relativeStepUp),
+            _budget(budget_ns),
+            _measuredTimeAverage(budget_ns.count()),
+            _measuredTimeNoiseSquared(0.0f)
+        {}
 
-        glm::vec2 run(const Timing_ns& regulationDuration, const Timing_ns& measured, const glm::vec2& current);
+        void setBudget(const Timing_ns& budget) { _budget = budget; }
+        glm::vec2 run(const Timing_ns& deltaTime, const Timing_ns& measuredTime, const glm::vec2& currentFrontBack);
         glm::vec2 clamp(const glm::vec2& backFront) const;
     };
 

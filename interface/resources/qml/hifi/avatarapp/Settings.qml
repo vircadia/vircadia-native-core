@@ -20,7 +20,8 @@ Rectangle {
     property real scaleValue: scaleSlider.value / 10
     property alias dominantHandIsLeft: leftHandRadioButton.checked
     property alias avatarCollisionsOn: collisionsEnabledRadiobutton.checked
-    property alias avatarAnimationJSON: avatarAnimationUrlInputText.text
+    property alias avatarAnimationOverrideJSON: avatarAnimationUrlInputText.text
+    property alias avatarAnimationJSON: avatarAnimationUrlInputText.placeholderText
     property alias avatarCollisionSoundUrl: avatarCollisionSoundUrlInputText.text
 
     property real avatarScaleBackup;
@@ -32,19 +33,20 @@ Rectangle {
         scaleSlider.value = Math.round(avatarScale * 10);
         scaleSlider.notify = true;;
 
-        if(settings.dominantHand === 'left') {
+        if (settings.dominantHand === 'left') {
             leftHandRadioButton.checked = true;
         } else {
             rightHandRadioButton.checked = true;
         }
 
-        if(settings.collisionsEnabled) {
+        if (settings.collisionsEnabled) {
             collisionsEnabledRadiobutton.checked = true;
         } else {
             collisionsDisabledRadioButton.checked = true;
         }
 
         avatarAnimationJSON = settings.animGraphUrl;
+        avatarAnimationOverrideJSON = settings.animGraphOverrideUrl;
         avatarCollisionSoundUrl = settings.collisionSoundUrl;
 
         visible = true;
@@ -111,7 +113,7 @@ Rectangle {
 
                     onValueChanged: {
                         console.debug('value changed: ', value);
-                        if(notify) {
+                        if (notify) {
                             console.debug('notifying.. ');
                             root.scaleChanged(value / 10);
                         }

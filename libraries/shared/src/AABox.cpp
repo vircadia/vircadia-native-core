@@ -79,39 +79,44 @@ void AABox::setBox(const glm::vec3& corner, const glm::vec3& scale) {
 
 glm::vec3 AABox::getFarthestVertex(const glm::vec3& normal) const {
     glm::vec3 result = _corner;
-    if (normal.x > 0.0f) {
-        result.x += _scale.x;
-    }
-    if (normal.y > 0.0f) {
-        result.y += _scale.y;
-    }
-    if (normal.z > 0.0f) {
-        result.z += _scale.z;
-    }
+    // This is a branchless version of:
+    //if (normal.x > 0.0f) {
+    //    result.x += _scale.x;
+    //}
+    //if (normal.y > 0.0f) {
+    //    result.y += _scale.y;
+    //}
+    //if (normal.z > 0.0f) {
+    //    result.z += _scale.z;
+    //}
+    float blend = (float)(normal.x > 0.0f);
+    result.x += blend * _scale.x + (1.0f - blend) * 0.0f;
+    blend = (float)(normal.y > 0.0f);
+    result.y += blend * _scale.y + (1.0f - blend) * 0.0f;
+    blend = (float)(normal.z > 0.0f);
+    result.z += blend * _scale.z + (1.0f - blend) * 0.0f;
     return result;
 }
 
 glm::vec3 AABox::getNearestVertex(const glm::vec3& normal) const {
     glm::vec3 result = _corner;
-
-    if (normal.x < 0.0f) {
-        result.x += _scale.x;
-    }
-
-    if (normal.y < 0.0f) {
-        result.y += _scale.y;
-    }
-
-    if (normal.z < 0.0f) {
-        result.z += _scale.z;
-    }
-
+    // This is a branchless version of:
+    //if (normal.x < 0.0f) {
+    //    result.x += _scale.x;
+    //}
+    //if (normal.y < 0.0f) {
+    //    result.y += _scale.y;
+    //}
+    //if (normal.z < 0.0f) {
+    //    result.z += _scale.z;
+    //}
+    float blend = (float)(normal.x < 0.0f);
+    result.x += blend * _scale.x + (1.0f - blend) * 0.0f;
+    blend = (float)(normal.y < 0.0f);
+    result.y += blend * _scale.y + (1.0f - blend) * 0.0f;
+    blend = (float)(normal.z < 0.0f);
+    result.z += blend * _scale.z + (1.0f - blend) * 0.0f;
     return result;
-}
-
-// determines whether a value is within the extents
-static bool isWithin(float value, float corner, float size) {
-    return value >= corner && value <= corner + size;
 }
 
 bool AABox::contains(const Triangle& triangle) const {
@@ -119,9 +124,7 @@ bool AABox::contains(const Triangle& triangle) const {
 }
 
 bool AABox::contains(const glm::vec3& point) const {
-    return isWithin(point.x, _corner.x, _scale.x) &&
-        isWithin(point.y, _corner.y, _scale.y) &&
-        isWithin(point.z, _corner.z, _scale.z);
+    return aaBoxContains(point, _corner, _scale);
 }
 
 bool AABox::contains(const AABox& otherBox) const {
@@ -175,30 +178,6 @@ bool AABox::expandedContains(const glm::vec3& point, float expansion) const {
         isWithinExpanded(point.z, _corner.z, _scale.z, expansion);
 }
 
-// finds the intersection between a ray and the facing plane on one axis
-static bool findIntersection(float origin, float direction, float corner, float size, float& distance) {
-    if (direction > EPSILON) {
-        distance = (corner - origin) / direction;
-        return true;
-    } else if (direction < -EPSILON) {
-        distance = (corner + size - origin) / direction;
-        return true;
-    }
-    return false;
-}
-
-// finds the intersection between a ray and the inside facing plane on one axis
-static bool findInsideOutIntersection(float origin, float direction, float corner, float size, float& distance) {
-    if (direction > EPSILON) {
-        distance = -1.0f * (origin - (corner + size)) / direction;
-        return true;
-    } else if (direction < -EPSILON) {
-        distance = -1.0f * (origin - corner) / direction;
-        return true;
-    }
-    return false;
-}
-
 bool AABox::expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& end, float expansion) const {
     // handle the trivial cases where the expanded box contains the start or end
     if (expandedContains(start, expansion) || expandedContains(end, expansion)) {
@@ -223,68 +202,14 @@ bool AABox::expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& e
                 isWithin(start.x + axisDistance*direction.x, expandedCorner.x, expandedSize.x));
 }
 
-bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
-                                BoxFace& face, glm::vec3& surfaceNormal) const {
-    // handle the trivial case where the box contains the origin
-    if (contains(origin)) {
-        // We still want to calculate the distance from the origin to the inside out plane
-        float axisDistance;
-        if ((findInsideOutIntersection(origin.x, direction.x, _corner.x, _scale.x, axisDistance) && axisDistance >= 0 &&
-                isWithin(origin.y + axisDistance*direction.y, _corner.y, _scale.y) &&
-                isWithin(origin.z + axisDistance*direction.z, _corner.z, _scale.z))) {
-            distance = axisDistance;
-            face = direction.x > 0 ? MAX_X_FACE : MIN_X_FACE;
-            surfaceNormal = glm::vec3(direction.x > 0 ? 1.0f : -1.0f, 0.0f, 0.0f);
-            return true;
-        }
-        if ((findInsideOutIntersection(origin.y, direction.y, _corner.y, _scale.y, axisDistance) && axisDistance >= 0 &&
-                isWithin(origin.x + axisDistance*direction.x, _corner.x, _scale.x) &&
-                isWithin(origin.z + axisDistance*direction.z, _corner.z, _scale.z))) {
-            distance = axisDistance;
-            face = direction.y > 0 ? MAX_Y_FACE : MIN_Y_FACE;
-            surfaceNormal = glm::vec3(0.0f, direction.y > 0 ? 1.0f : -1.0f, 0.0f);
-            return true;
-        }
-        if ((findInsideOutIntersection(origin.z, direction.z, _corner.z, _scale.z, axisDistance) && axisDistance >= 0 &&
-                isWithin(origin.y + axisDistance*direction.y, _corner.y, _scale.y) &&
-                isWithin(origin.x + axisDistance*direction.x, _corner.x, _scale.x))) {
-            distance = axisDistance;
-            face = direction.z > 0 ? MAX_Z_FACE : MIN_Z_FACE;
-            surfaceNormal = glm::vec3(0.0f, 0.0f, direction.z > 0 ? 1.0f : -1.0f);
-            return true;
-        }
-        // This case is unexpected, but mimics the previous behavior for inside out intersections
-        distance = 0;
-        return true;
-    }
+bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& invDirection,
+                                float& distance, BoxFace& face, glm::vec3& surfaceNormal) const {
+    return findRayAABoxIntersection(origin, direction, invDirection, _corner, _scale, distance, face, surfaceNormal);
+}
 
-    // check each axis
-    float axisDistance;
-    if ((findIntersection(origin.x, direction.x, _corner.x, _scale.x, axisDistance) && axisDistance >= 0 &&
-            isWithin(origin.y + axisDistance*direction.y, _corner.y, _scale.y) &&
-            isWithin(origin.z + axisDistance*direction.z, _corner.z, _scale.z))) {
-        distance = axisDistance;
-        face = direction.x > 0 ? MIN_X_FACE : MAX_X_FACE;
-        surfaceNormal = glm::vec3(direction.x > 0 ? -1.0f : 1.0f, 0.0f, 0.0f);
-        return true;
-    }
-    if ((findIntersection(origin.y, direction.y, _corner.y, _scale.y, axisDistance) && axisDistance >= 0 &&
-            isWithin(origin.x + axisDistance*direction.x, _corner.x, _scale.x) &&
-            isWithin(origin.z + axisDistance*direction.z, _corner.z, _scale.z))) {
-        distance = axisDistance;
-        face = direction.y > 0 ? MIN_Y_FACE : MAX_Y_FACE;
-        surfaceNormal = glm::vec3(0.0f, direction.y > 0 ? -1.0f : 1.0f, 0.0f);
-        return true;
-    }
-    if ((findIntersection(origin.z, direction.z, _corner.z, _scale.z, axisDistance) && axisDistance >= 0 &&
-            isWithin(origin.y + axisDistance*direction.y, _corner.y, _scale.y) &&
-            isWithin(origin.x + axisDistance*direction.x, _corner.x, _scale.x))) {
-        distance = axisDistance;
-        face = direction.z > 0 ? MIN_Z_FACE : MAX_Z_FACE;
-        surfaceNormal = glm::vec3(0.0f, 0.0f, direction.z > 0 ? -1.0f : 1.0f);
-        return true;
-    }
-    return false;
+bool AABox::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,
+                                     float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal) const {
+    return findParabolaAABoxIntersection(origin, velocity, acceleration, _corner, _scale, parabolicDistance, face, surfaceNormal);
 }
 
 bool AABox::rayHitsBoundingSphere(const glm::vec3& origin, const glm::vec3& direction) const {
@@ -294,6 +219,29 @@ bool AABox::rayHitsBoundingSphere(const glm::vec3& origin, const glm::vec3& dire
     float radiusSquared = ONE_OVER_TWO_SQUARED * glm::length2(_scale);
     return (glm::length2(localCenter) < radiusSquared
             || (glm::abs(distance) > 0.0f && glm::distance2(distance * direction, localCenter) < radiusSquared));
+}
+
+bool AABox::parabolaPlaneIntersectsBoundingSphere(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration, const glm::vec3& normal) const {
+    glm::vec3 localCenter = calcCenter() - origin;
+    const float ONE_OVER_TWO_SQUARED = 0.25f;
+    float radiusSquared = ONE_OVER_TWO_SQUARED * glm::length2(_scale);
+
+    // origin is inside the sphere
+    if (glm::length2(localCenter) < radiusSquared) {
+        return true;
+    }
+
+    if (glm::length2(acceleration) < EPSILON) {
+        // Handle the degenerate case where acceleration == (0, 0, 0)
+        return rayHitsBoundingSphere(origin, glm::normalize(velocity));
+    } else {
+        // Project vector from plane to sphere center onto the normal
+        float distance = glm::dot(localCenter, normal);
+        if (distance * distance < radiusSquared) {
+            return true;
+        }
+    }
+    return false;
 }
 
 bool AABox::touchesSphere(const glm::vec3& center, float radius) const {
@@ -519,28 +467,6 @@ AABox AABox::clamp(float min, float max) const {
     glm::vec3 clampedScale = clampedTopFarLeft - clampedCorner;
 
     return AABox(clampedCorner, clampedScale);
-}
-
-AABox& AABox::operator += (const glm::vec3& point) {
-
-    if (isInvalid()) {
-        _corner = glm::min(_corner, point);
-    } else {
-        glm::vec3 maximum(_corner + _scale);
-        _corner = glm::min(_corner, point);
-        maximum = glm::max(maximum, point);
-        _scale = maximum - _corner;
-    }
-
-    return (*this);
-}
-
-AABox& AABox::operator += (const AABox& box) {
-    if (!box.isInvalid()) {
-        (*this) += box._corner;
-        (*this) += box.calcTopFarLeft();
-    }
-    return (*this);
 }
 
 void AABox::embiggen(float scale) {

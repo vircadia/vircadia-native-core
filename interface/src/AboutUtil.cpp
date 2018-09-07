@@ -45,9 +45,7 @@ QString AboutUtil::getQtVersion() const {
 }
 
 void AboutUtil::openUrl(const QString& url) const {
-
-    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
+    auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 

@@ -259,14 +259,6 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
                         jointChainInfoVec[i].jointInfoVec[j].rot = safeMix(_prevJointChainInfoVec[i].jointInfoVec[j].rot, jointChainInfoVec[i].jointInfoVec[j].rot, alpha);
                         jointChainInfoVec[i].jointInfoVec[j].trans = lerp(_prevJointChainInfoVec[i].jointInfoVec[j].trans, jointChainInfoVec[i].jointInfoVec[j].trans, alpha);
                     }
-
-                    // if joint chain was just disabled, ramp the weight toward zero.
-                    if (_prevJointChainInfoVec[i].target.getType() != IKTarget::Type::Unknown &&
-                        jointChainInfoVec[i].target.getType() == IKTarget::Type::Unknown) {
-                        IKTarget newTarget = _prevJointChainInfoVec[i].target;
-                        newTarget.setWeight((1.0f - alpha) * _prevJointChainInfoVec[i].target.getWeight());
-                        jointChainInfoVec[i].target = newTarget;
-                    }
                 }
             }
         }
@@ -489,29 +481,6 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
                     // reduce angle by a flexCoefficient
                     angle *= target.getFlexCoefficient(chainDepth);
                     deltaRotation = glm::angleAxis(angle, axis);
-
-                    // The swing will re-orient the tip but there will tend to be be a non-zero delta between the tip's
-                    // new orientation and its target.  This is the final parent-relative orientation that the tip joint have
-                    // make to achieve its target orientation.
-                    glm::quat tipRelativeRotation = glm::inverse(deltaRotation * tipParentOrientation) * target.getRotation();
-
-                    // enforce tip's constraint
-                    RotationConstraint* constraint = getConstraint(tipIndex);
-                    if (constraint) {
-                        bool constrained = constraint->apply(tipRelativeRotation);
-                        if (constrained) {
-                            // The tip's final parent-relative rotation would violate its constraint
-                            // so we try to pre-twist this pivot to compensate.
-                            glm::quat constrainedTipRotation = deltaRotation * tipParentOrientation * tipRelativeRotation;
-                            glm::quat missingRotation = target.getRotation() * glm::inverse(constrainedTipRotation);
-                            glm::quat swingPart;
-                            glm::quat twistPart;
-                            glm::vec3 axis = glm::normalize(deltaRotation * leverArm);
-                            swingTwistDecomposition(missingRotation, axis, swingPart, twistPart);
-                            const float LIMIT_LEAK_FRACTION = 0.1f;
-                            deltaRotation = safeLerp(glm::quat(), twistPart, LIMIT_LEAK_FRACTION);
-                        }
-                    }
                 }
             }
         } else if (targetType == IKTarget::Type::HmdHead) {
@@ -874,14 +843,14 @@ void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, co
 }
 
 //virtual
-const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimNode::Triggers& triggersOut) {
+const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
     // don't call this function, call overlay() instead
     assert(false);
     return _relativePoses;
 }
 
 //virtual
-const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
+const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut, const AnimPoseVec& underPoses) {
 #ifdef Q_OS_ANDROID
     // disable IK on android
     return underPoses;
@@ -961,6 +930,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 PROFILE_RANGE_EX(simulation_animation, "ik/shiftHips", 0xffff00ff, 0);
 
                 if (_hipsTargetIndex >= 0) {
+
                     assert(_hipsTargetIndex < (int)targets.size());
 
                     // slam the hips to match the _hipsTarget
@@ -1045,6 +1015,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 PROFILE_RANGE_EX(simulation_animation, "ik/ccd", 0xffff00ff, 0);
 
                 setSecondaryTargets(context);
+
                 preconditionRelativePosesToAvoidLimbLock(context, targets);
 
                 solve(context, targets, dt, jointChainInfoVec);
@@ -1055,6 +1026,8 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             debugDrawConstraints(context);
         }
     }
+
+    processOutputJoints(triggersOut);
 
     return _relativePoses;
 }
@@ -1259,48 +1232,7 @@ void AnimInverseKinematics::initConstraints() {
 
             constraint = static_cast<RotationConstraint*>(stConstraint);
         } else if (0 == baseName.compare("Hand", Qt::CaseSensitive)) {
-            SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
-            stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot());
-            stConstraint->setTwistLimits(0.0f, 0.0f); // max == min, disables twist limits
-
-            /* KEEP THIS CODE for future experimentation -- twist limits for hands
-            const float MAX_HAND_TWIST = 3.0f * PI / 5.0f;
-            const float MIN_HAND_TWIST = -PI / 2.0f;
-            if (isLeft) {
-                stConstraint->setTwistLimits(-MAX_HAND_TWIST, -MIN_HAND_TWIST);
-            } else {
-                stConstraint->setTwistLimits(MIN_HAND_TWIST, MAX_HAND_TWIST);
-            }
-            */
-
-            /* KEEP THIS CODE for future experimentation -- non-symmetrical swing limits for wrist
-             * a more complicated wrist with asymmetric cone
-            // these directions are approximate swing limits in parent-frame
-            // NOTE: they don't need to be normalized
-            std::vector<glm::vec3> swungDirections;
-            swungDirections.push_back(glm::vec3(1.0f, 1.0f, 0.0f));
-            swungDirections.push_back(glm::vec3(0.75f, 1.0f, -1.0f));
-            swungDirections.push_back(glm::vec3(-0.75f, 1.0f, -1.0f));
-            swungDirections.push_back(glm::vec3(-1.0f, 1.0f, 0.0f));
-            swungDirections.push_back(glm::vec3(-0.75f, 1.0f, 1.0f));
-            swungDirections.push_back(glm::vec3(0.75f, 1.0f, 1.0f));
-
-            // rotate directions into joint-frame
-            glm::quat invRelativeRotation = glm::inverse(_defaultRelativePoses[i].rot);
-            int numDirections = (int)swungDirections.size();
-            for (int j = 0; j < numDirections; ++j) {
-                swungDirections[j] = invRelativeRotation * swungDirections[j];
-            }
-            stConstraint->setSwingLimits(swungDirections);
-            */
-
-            // simple cone
-            std::vector<float> minDots;
-            const float MAX_HAND_SWING = PI / 2.0f;
-            minDots.push_back(cosf(MAX_HAND_SWING));
-            stConstraint->setSwingLimits(minDots);
-
-            constraint = static_cast<RotationConstraint*>(stConstraint);
+            // hand/wrist constraints have been disabled.
         } else if (baseName.startsWith("Shoulder", Qt::CaseSensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot());
@@ -1750,7 +1682,7 @@ void AnimInverseKinematics::preconditionRelativePosesToAvoidLimbLock(const AnimC
     const float MIN_AXIS_LENGTH = 1.0e-4f;
 
     for (auto& target : targets) {
-        if (target.getIndex() != -1) {
+        if (target.getIndex() != -1 && target.getType() == IKTarget::Type::RotationAndPosition) {
             for (int i = 0; i < NUM_LIMBS; i++) {
                 if (limbs[i].first == target.getIndex()) {
                     int tipIndex = limbs[i].first;
@@ -1843,6 +1775,10 @@ void AnimInverseKinematics::initRelativePosesFromSolutionSource(SolutionSource s
     default:
     case SolutionSource::RelaxToUnderPoses:
         blendToPoses(underPoses, underPoses, RELAX_BLEND_FACTOR);
+        // special case for hips: don't dampen hip motion from underposes
+        if (_hipsIndex >= 0 && _hipsIndex < (int)_relativePoses.size()) {
+            _relativePoses[_hipsIndex] = underPoses[_hipsIndex];
+        }
         break;
     case SolutionSource::RelaxToLimitCenterPoses:
         blendToPoses(_limitCenterPoses, underPoses, RELAX_BLEND_FACTOR);

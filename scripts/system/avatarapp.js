@@ -20,7 +20,6 @@ Script.include("/~/system/libraries/controllers.js");
 
 // constants from AvatarBookmarks.h
 var ENTRY_AVATAR_URL = "avatarUrl";
-var ENTRY_AVATAR_ATTACHMENTS = "attachments";
 var ENTRY_AVATAR_ENTITIES = "avatarEntites";
 var ENTRY_AVATAR_SCALE = "avatarScale";
 var ENTRY_VERSION = "version";
@@ -29,13 +28,25 @@ function executeLater(callback) {
     Script.setTimeout(callback, 300);
 }
 
-function getMyAvatarWearables() {
-    var wearablesArray = MyAvatar.getAvatarEntitiesVariant();
+var INVALID_JOINT_INDEX = -1
+function isWearable(avatarEntity) {
+    return avatarEntity.properties.visible === true && (avatarEntity.properties.parentJointIndex !== INVALID_JOINT_INDEX || avatarEntity.properties.relayParentJoints === true) &&
+        (avatarEntity.properties.parentID === MyAvatar.sessionUUID || avatarEntity.properties.parentID === MyAvatar.SELF_ID);
+}
 
-    for(var i = 0; i < wearablesArray.length; ++i) {
-        var wearable = wearablesArray[i];
-        var localRotation = wearable.properties.localRotation;
-        wearable.properties.localRotationAngles = Quat.safeEulerAngles(localRotation)
+function getMyAvatarWearables() {
+    var entitiesArray = MyAvatar.getAvatarEntitiesVariant();
+    var wearablesArray = [];
+
+    for (var i = 0; i < entitiesArray.length; ++i) {
+        var entity = entitiesArray[i];
+        if (!isWearable(entity)) {
+            continue;
+        }
+
+        var localRotation = entity.properties.localRotation;
+        entity.properties.localRotationAngles = Quat.safeEulerAngles(localRotation)
+        wearablesArray.push(entity);
     }
 
     return wearablesArray;
@@ -45,7 +56,6 @@ function getMyAvatar() {
     var avatar = {}
     avatar[ENTRY_AVATAR_URL] = MyAvatar.skeletonModelURL;
     avatar[ENTRY_AVATAR_SCALE] = MyAvatar.getAvatarScale();
-    avatar[ENTRY_AVATAR_ATTACHMENTS] = MyAvatar.getAttachmentsVariant();
     avatar[ENTRY_AVATAR_ENTITIES] = getMyAvatarWearables();
     return avatar;
 }
@@ -55,16 +65,20 @@ function getMyAvatarSettings() {
         dominantHand: MyAvatar.getDominantHand(),
         collisionsEnabled : MyAvatar.getCollisionsEnabled(),
         collisionSoundUrl : MyAvatar.collisionSoundURL,
-        animGraphUrl : MyAvatar.getAnimGraphUrl(),
+        animGraphUrl: MyAvatar.getAnimGraphUrl(),
+        animGraphOverrideUrl : MyAvatar.getAnimGraphOverrideUrl(),
     }
 }
 
-function updateAvatarWearables(avatar, bookmarkAvatarName) {
+function updateAvatarWearables(avatar, bookmarkAvatarName, callback) {
     executeLater(function() {
         var wearables = getMyAvatarWearables();
         avatar[ENTRY_AVATAR_ENTITIES] = wearables;
 
         sendToQml({'method' : 'wearablesUpdated', 'wearables' : wearables, 'avatarName' : bookmarkAvatarName})
+
+        if(callback)
+            callback();
     });
 }
 
@@ -130,9 +144,14 @@ function onNewCollisionSoundUrl(url) {
 }
 
 function onAnimGraphUrlChanged(url) {
-    if(currentAvatarSettings.animGraphUrl !== url) {
+    if (currentAvatarSettings.animGraphUrl !== url) {
         currentAvatarSettings.animGraphUrl = url;
-        sendToQml({'method' : 'settingChanged', 'name' : 'animGraphUrl', 'value' : url})
+        sendToQml({ 'method': 'settingChanged', 'name': 'animGraphUrl', 'value': currentAvatarSettings.animGraphUrl })
+
+        if (currentAvatarSettings.animGraphOverrideUrl !== MyAvatar.getAnimGraphOverrideUrl()) {
+            currentAvatarSettings.animGraphOverrideUrl = MyAvatar.getAnimGraphOverrideUrl();
+            sendToQml({ 'method': 'settingChanged', 'name': 'animGraphOverrideUrl', 'value': currentAvatarSettings.animGraphOverrideUrl })
+        }
     }
 }
 
@@ -159,13 +178,12 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
 
         for(var bookmarkName in message.data.bookmarks) {
             var bookmark = message.data.bookmarks[bookmarkName];
-            if (!bookmark.avatarEntites) { // ensure avatarEntites always exist
-                bookmark.avatarEntites = [];
-            }
 
-            bookmark.avatarEntites.forEach(function(avatarEntity) {
-                avatarEntity.properties.localRotationAngles = Quat.safeEulerAngles(avatarEntity.properties.localRotation)
-            })
+            if (bookmark.avatarEntites) {
+                bookmark.avatarEntites.forEach(function(avatarEntity) {
+                    avatarEntity.properties.localRotationAngles = Quat.safeEulerAngles(avatarEntity.properties.localRotation);
+                });
+            }
         }
 
         sendToQml(message)
@@ -217,6 +235,32 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         Entities.mousePressOnEntity.disconnect(onSelectedEntity);
         Messages.messageReceived.disconnect(handleWearableMessages);
         Messages.unsubscribe('Hifi-Object-Manipulation');
+        break;
+    case 'addWearable':
+
+        var joints = MyAvatar.getJointNames();
+        var hipsIndex = -1;
+
+        for(var i = 0; i < joints.length; ++i) {
+            if(joints[i] === 'Hips') {
+                hipsIndex = i;
+                break;
+            }
+        }
+
+        var properties = {
+            name: "Custom wearable",
+            type: "Model",
+            modelURL: message.url,
+            parentID: MyAvatar.sessionUUID,
+            relayParentJoints: false,
+            parentJointIndex: hipsIndex
+        };
+
+        var entityID = Entities.addEntity(properties, true);
+        updateAvatarWearables(currentAvatar, message.avatarName, function() {
+            onSelectedEntity(entityID);
+        });
         break;
     case 'selectWearable':
         ensureWearableSelected(message.entityID);
@@ -271,7 +315,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         MyAvatar.setDominantHand(message.settings.dominantHand);
         MyAvatar.setCollisionsEnabled(message.settings.collisionsEnabled);
         MyAvatar.collisionSoundURL = message.settings.collisionSoundUrl;
-        MyAvatar.setAnimGraphUrl(message.settings.animGraphUrl);
+        MyAvatar.setAnimGraphOverrideUrl(message.settings.animGraphOverrideUrl);
 
         settings = getMyAvatarSettings();
         break;
@@ -444,10 +488,6 @@ startup();
 
 var isWired = false;
 function off() {
-    if (isWired) { // It is not ok to disconnect these twice, hence guard.
-        isWired = false;
-    }
-
     if(adjustWearables.opened) {
         adjustWearables.setOpened(false);
         ensureWearableSelected(null);
@@ -457,16 +497,20 @@ function off() {
         Messages.unsubscribe('Hifi-Object-Manipulation');
     }
 
-    AvatarBookmarks.bookmarkLoaded.disconnect(onBookmarkLoaded);
-    AvatarBookmarks.bookmarkDeleted.disconnect(onBookmarkDeleted);
-    AvatarBookmarks.bookmarkAdded.disconnect(onBookmarkAdded);
+    if (isWired) { // It is not ok to disconnect these twice, hence guard.
+        isWired = false;
 
-    MyAvatar.skeletonModelURLChanged.disconnect(onSkeletonModelURLChanged);
-    MyAvatar.dominantHandChanged.disconnect(onDominantHandChanged);
-    MyAvatar.collisionsEnabledChanged.disconnect(onCollisionsEnabledChanged);
-    MyAvatar.newCollisionSoundURL.disconnect(onNewCollisionSoundUrl);
-    MyAvatar.animGraphUrlChanged.disconnect(onAnimGraphUrlChanged);
-    MyAvatar.targetScaleChanged.disconnect(onTargetScaleChanged);
+        AvatarBookmarks.bookmarkLoaded.disconnect(onBookmarkLoaded);
+        AvatarBookmarks.bookmarkDeleted.disconnect(onBookmarkDeleted);
+        AvatarBookmarks.bookmarkAdded.disconnect(onBookmarkAdded);
+
+        MyAvatar.skeletonModelURLChanged.disconnect(onSkeletonModelURLChanged);
+        MyAvatar.dominantHandChanged.disconnect(onDominantHandChanged);
+        MyAvatar.collisionsEnabledChanged.disconnect(onCollisionsEnabledChanged);
+        MyAvatar.newCollisionSoundURL.disconnect(onNewCollisionSoundUrl);
+        MyAvatar.animGraphUrlChanged.disconnect(onAnimGraphUrlChanged);
+        MyAvatar.targetScaleChanged.disconnect(onTargetScaleChanged);
+    }
 }
 
 function on() {

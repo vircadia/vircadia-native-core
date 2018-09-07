@@ -1,3 +1,10 @@
+### OS Specific Build Guides
+
+* [BUILD_WIN.md](BUILD_WIN.md) - complete instructions for Windows.
+* [BUILD_OSX.md](BUILD_OSX.md) - additional instructions for OS X.
+* [BUILD_LINUX.md](BUILD_LINUX.md) - additional instructions for Linux.
+* [BUILD_ANDROID.md](BUILD_ANDROID.md) - additional instructions for Android
+
 ### Dependencies
 
 - [cmake](https://cmake.org/download/):  3.9
@@ -27,14 +34,7 @@ These are not placed in your normal build tree when doing an out of source build
 
 If you would like to use a specific install of a dependency instead of the version that would be grabbed as a CMake ExternalProject, you can pass -DUSE\_LOCAL\_$NAME=0 (where $NAME is the name of the subfolder in [cmake/externals](cmake/externals)) when you run CMake to tell it not to get that dependency as an external project.
 
-### OS Specific Build Guides
-
-* [BUILD_OSX.md](BUILD_OSX.md) - additional instructions for OS X.
-* [BUILD_LINUX.md](BUILD_LINUX.md) - additional instructions for Linux.
-* [BUILD_WIN.md](BUILD_WIN.md) - additional instructions for Windows.
-* [BUILD_ANDROID.md](BUILD_ANDROID.md) - additional instructions for Android
-
-### CMake
+#### CMake
 
 Hifi uses CMake to generate build files and project files for your platform.
 
@@ -46,6 +46,7 @@ This can either be entered directly into your shell session before you build or 
 
 The path it needs to be set to will depend on where and how Qt5 was installed. e.g.
 
+    export QT_CMAKE_PREFIX_PATH=/usr/local/Qt5.10.1/5.10.1/gcc_64/lib/cmake
     export QT_CMAKE_PREFIX_PATH=/usr/local/qt/5.10.1/clang_64/lib/cmake/
     export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.10.1/lib/cmake
     export QT_CMAKE_PREFIX_PATH=/usr/local/opt/qt5/lib/cmake
@@ -79,6 +80,7 @@ In the examples below the variable $NAME would be replaced by the name of the de
 * $NAME_ROOT_DIR - pass this variable to Cmake with the -DNAME_ROOT_DIR= flag when running Cmake to generate build files
 * $NAME_ROOT_DIR - set this variable in your ENV
 * HIFI_LIB_DIR - set this variable in your ENV to your High Fidelity lib folder, should contain a folder '$name'
+
 
 ### Optional Components
 

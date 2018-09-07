@@ -16,8 +16,10 @@
 #include <DependencyManager.h>
 #include <NodeList.h>
 
-AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID) :
-    NodeData(nodeID)
+#include "AvatarMixerSlave.h"
+
+AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID, Node::LocalID nodeLocalID) :
+    NodeData(nodeID, nodeLocalID)
 {
     // in case somebody calls getSessionUUID on the AvatarData instance, make sure it has the right ID
     _avatar->setID(nodeID);
@@ -47,7 +49,7 @@ void AvatarMixerClientData::queuePacket(QSharedPointer<ReceivedMessage> message,
     _packetQueue.push(message);
 }
 
-int AvatarMixerClientData::processPackets() {
+int AvatarMixerClientData::processPackets(const SlaveSharedData& slaveSharedData) {
     int packetsProcessed = 0;
     SharedNodePointer node = _packetQueue.node;
     assert(_packetQueue.empty() || node);
@@ -61,6 +63,9 @@ int AvatarMixerClientData::processPackets() {
         switch (packet->getType()) {
             case PacketType::AvatarData:
                 parseData(*packet);
+                break;
+            case PacketType::SetAvatarTraits:
+                processSetTraitsMessage(*packet, slaveSharedData, *node);
                 break;
             default:
                 Q_UNREACHABLE();
@@ -87,6 +92,113 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message) {
     // compute the offset to the data payload
     return _avatar->parseDataFromBuffer(message.readWithoutCopy(message.getBytesLeftToRead()));
 }
+
+void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
+                                                    const SlaveSharedData& slaveSharedData, Node& sendingNode) {
+    // pull the trait version from the message
+    AvatarTraits::TraitVersion packetTraitVersion;
+    message.readPrimitive(&packetTraitVersion);
+
+    bool anyTraitsChanged = false;
+
+    while (message.getBytesLeftToRead() > 0) {
+        // for each trait in the packet, apply it if the trait version is newer than what we have
+
+        AvatarTraits::TraitType traitType;
+        message.readPrimitive(&traitType);
+
+        if (AvatarTraits::isSimpleTrait(traitType)) {
+            AvatarTraits::TraitWireSize traitSize;
+            message.readPrimitive(&traitSize);
+
+            if (packetTraitVersion > _lastReceivedTraitVersions[traitType]) {
+                _avatar->processTrait(traitType, message.read(traitSize));
+                _lastReceivedTraitVersions[traitType] = packetTraitVersion;
+
+                if (traitType == AvatarTraits::SkeletonModelURL) {
+                    // special handling for skeleton model URL, since we need to make sure it is in the whitelist
+                    checkSkeletonURLAgainstWhitelist(slaveSharedData, sendingNode, packetTraitVersion);
+                }
+
+                anyTraitsChanged = true;
+            } else {
+                message.seek(message.getPosition() + traitSize);
+            }
+        } else {
+            AvatarTraits::TraitInstanceID instanceID = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+            AvatarTraits::TraitWireSize traitSize;
+            message.readPrimitive(&traitSize);
+
+            auto& instanceVersionRef = _lastReceivedTraitVersions.getInstanceValueRef(traitType, instanceID);
+
+            if (packetTraitVersion > instanceVersionRef) {
+                if (traitSize == AvatarTraits::DELETED_TRAIT_SIZE) {
+                    _avatar->processDeletedTraitInstance(traitType, instanceID);
+
+                    // to track a deleted instance but keep version information
+                    // the avatar mixer uses the negative value of the sent version
+                    instanceVersionRef = -packetTraitVersion;
+                } else {
+                    _avatar->processTraitInstance(traitType, instanceID, message.read(traitSize));
+                    instanceVersionRef = packetTraitVersion;
+                }
+
+                anyTraitsChanged = true;
+            } else {
+                message.seek(message.getPosition() + traitSize);
+            }
+        }
+    }
+
+    if (anyTraitsChanged) {
+        _lastReceivedTraitsChange = std::chrono::steady_clock::now();
+    }
+}
+
+void AvatarMixerClientData::checkSkeletonURLAgainstWhitelist(const SlaveSharedData &slaveSharedData, Node& sendingNode,
+                                                             AvatarTraits::TraitVersion traitVersion) {
+    const auto& whitelist = slaveSharedData.skeletonURLWhitelist;
+
+    if (!whitelist.isEmpty()) {
+        bool inWhitelist = false;
+        auto avatarURL = _avatar->getSkeletonModelURL();
+
+        // The avatar is in the whitelist if:
+        // 1. The avatar's URL's host matches one of the hosts of the URLs in the whitelist AND
+        // 2. The avatar's URL's path starts with the path of that same URL in the whitelist
+        for (const auto& whiteListedPrefix : whitelist) {
+            auto whiteListURL = QUrl::fromUserInput(whiteListedPrefix);
+            // check if this script URL matches the whitelist domain and, optionally, is beneath the path
+            if (avatarURL.host().compare(whiteListURL.host(), Qt::CaseInsensitive) == 0 &&
+                avatarURL.path().startsWith(whiteListURL.path(), Qt::CaseInsensitive)) {
+                inWhitelist = true;
+
+                break;
+            }
+        }
+
+        if (!inWhitelist) {
+            // make sure we're not unecessarily overriding the default avatar with the default avatar
+            if (_avatar->getWireSafeSkeletonModelURL() != slaveSharedData.skeletonReplacementURL) {
+                // we need to change this avatar's skeleton URL, and send them a traits packet informing them of the change
+                qDebug() << "Overwriting avatar URL" << _avatar->getWireSafeSkeletonModelURL()
+                    << "to replacement" << slaveSharedData.skeletonReplacementURL << "for" << sendingNode.getUUID();
+                _avatar->setSkeletonModelURL(slaveSharedData.skeletonReplacementURL);
+
+                auto packet = NLPacket::create(PacketType::SetAvatarTraits, -1, true);
+
+                // the returned set traits packet uses the trait version from the incoming packet
+                // so the client knows they should not overwrite if they have since changed the trait
+                _avatar->packTrait(AvatarTraits::SkeletonModelURL, *packet, traitVersion);
+
+                auto nodeList = DependencyManager::get<NodeList>();
+                nodeList->sendPacket(std::move(packet), sendingNode);
+            }
+        }
+    }
+}
+
 uint64_t AvatarMixerClientData::getLastBroadcastTime(const QUuid& nodeUUID) const {
     // return the matching PacketSequenceNumber, or the default if we don't have it
     auto nodeMatch = _lastBroadcastTimes.find(nodeUUID);
@@ -108,7 +220,7 @@ uint16_t AvatarMixerClientData::getLastBroadcastSequenceNumber(const QUuid& node
 void AvatarMixerClientData::ignoreOther(SharedNodePointer self, SharedNodePointer other) {
     if (!isRadiusIgnoring(other->getUUID())) {
         addToRadiusIgnoringSet(other->getUUID());
-        auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason));
+        auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason), true);
         killPacket->write(other->getUUID().toRfc4122());
         if (self->isIgnoreRadiusEnabled()) {
             killPacket->writePrimitive(KillAvatarReason::TheirAvatarEnteredYourBubble);
@@ -116,7 +228,10 @@ void AvatarMixerClientData::ignoreOther(SharedNodePointer self, SharedNodePointe
             killPacket->writePrimitive(KillAvatarReason::YourAvatarEnteredTheirBubble);
         }
         setLastBroadcastTime(other->getUUID(), 0);
-        DependencyManager::get<NodeList>()->sendUnreliablePacket(*killPacket, *self);
+
+        resetSentTraitData(other->getLocalID());
+
+        DependencyManager::get<NodeList>()->sendPacket(std::move(killPacket), *self);
     }
 }
 
@@ -124,6 +239,11 @@ void AvatarMixerClientData::removeFromRadiusIgnoringSet(SharedNodePointer self, 
     if (isRadiusIgnoring(other)) {
         _radiusIgnoredOthers.erase(other);
     }
+}
+
+void AvatarMixerClientData::resetSentTraitData(Node::LocalID nodeLocalID) {
+    _lastSentTraitsTimestamps[nodeLocalID] = TraitsCheckTimestamp();
+    _sentTraitVersions[nodeLocalID].reset();
 }
 
 void AvatarMixerClientData::readViewFrustumPacket(const QByteArray& message) {
@@ -163,4 +283,21 @@ void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
     jsonObject["av_data_receive_rate"] = _avatar->getReceiveRate();
     jsonObject["recent_other_av_in_view"] = _recentOtherAvatarsInView;
     jsonObject["recent_other_av_out_of_view"] = _recentOtherAvatarsOutOfView;
+}
+
+AvatarMixerClientData::TraitsCheckTimestamp AvatarMixerClientData::getLastOtherAvatarTraitsSendPoint(Node::LocalID otherAvatar) const {
+    auto it = _lastSentTraitsTimestamps.find(otherAvatar);
+
+    if (it != _lastSentTraitsTimestamps.end()) {
+        return it->second;
+    } else {
+        return TraitsCheckTimestamp();
+    }
+}
+
+void AvatarMixerClientData::cleanupKilledNode(const QUuid& nodeUUID, Node::LocalID nodeLocalID) {
+    removeLastBroadcastSequenceNumber(nodeUUID);
+    removeLastBroadcastTime(nodeUUID);
+    _lastSentTraitsTimestamps.erase(nodeLocalID);
+    _sentTraitVersions.erase(nodeLocalID);
 }

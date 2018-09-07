@@ -17,6 +17,7 @@
 #include <QVariant>
 
 #include <shared/ReadWriteLockable.h>
+#include <TransformNode.h>
 
 enum IntersectionType {
     NONE = 0,
@@ -145,6 +146,7 @@ public:
      *
      * @property {number} Ray Ray Picks intersect a ray with the nearest object in front of them, along a given direction.
      * @property {number} Stylus Stylus Picks provide "tapping" functionality on/into flat surfaces.
+     * @property {number} Parabola Parabola Picks intersect a parabola with the nearest object in front of them, with a given initial velocity and acceleration.
      */
     /**jsdoc
      * <table>
@@ -154,6 +156,7 @@ public:
      *   <tbody>
      *     <tr><td><code>{@link PickType(0)|PickType.Ray}</code></td><td></td></tr>
      *     <tr><td><code>{@link PickType(0)|PickType.Stylus}</code></td><td></td></tr>
+     *     <tr><td><code>{@link PickType(0)|PickType.Parabola}</code></td><td></td></tr>
      *   </tbody>
      * </table>
      * @typedef {number} PickType
@@ -161,7 +164,8 @@ public:
     enum PickType {
         Ray = 0,
         Stylus,
-
+        Parabola,
+        Collision,
         NUM_PICK_TYPES
     };
     Q_ENUM(PickType)
@@ -209,6 +213,10 @@ public:
     virtual bool isLeftHand() const { return false; }
     virtual bool isRightHand() const { return false; }
     virtual bool isMouse() const { return false; }
+
+    virtual Transform getResultTransform() const = 0;
+
+    std::shared_ptr<TransformNode> parentTransform;
 
 private:
     PickFilter _filter;

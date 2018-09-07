@@ -29,6 +29,7 @@
 #include "ui/Logging.h"
 
 #include <PointerManager.h>
+#include "MainWindow.h"
 
 /**jsdoc
  * @namespace OffscreenFlags
@@ -96,10 +97,13 @@ static OffscreenFlags* offscreenFlags { nullptr };
 // so I think it's OK for the time being.
 bool OffscreenUi::shouldSwallowShortcut(QEvent* event) {
     Q_ASSERT(event->type() == QEvent::ShortcutOverride);
-    QObject* focusObject = getWindow()->focusObject();
-    if (focusObject != getWindow() && focusObject != getRootItem()) {
-        event->accept();
-        return true;
+    auto window = getWindow();
+    if (window) {
+        QObject* focusObject = getWindow()->focusObject();
+        if (focusObject != getWindow() && focusObject != getRootItem()) {
+            event->accept();
+            return true;
+        }
     }
     return false;
 }
@@ -646,20 +650,7 @@ public:
     }
 
 private:
-    
-    static QWindow* findMainWindow() {
-        auto windows = qApp->topLevelWindows();
-        QWindow* result = nullptr;
-        for (auto window : windows) {
-            if (window->objectName().contains("MainWindow")) {
-                result = window;
-                break;
-            }
-        }
-        return result;
-    }
-
-    QWindow* const _mainWindow { findMainWindow() };
+    QWindow* const _mainWindow { MainWindow::findMainWindow() };
     QWindow* _hackWindow { nullptr };
 };
 

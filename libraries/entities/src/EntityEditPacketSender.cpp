@@ -84,9 +84,15 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
                                                     EntityTreePointer entityTree,
                                                     EntityItemID entityItemID,
                                                     const EntityItemProperties& properties) {
-    if (properties.getClientOnly() && properties.getOwningAvatarID() == _myAvatar->getID()) {
-        // this is an avatar-based entity --> update our avatar-data rather than sending to the entity-server
-        queueEditAvatarEntityMessage(type, entityTree, entityItemID, properties);
+    if (properties.getClientOnly()) {
+        if (!_myAvatar) {
+            qCWarning(entities) << "Suppressing entity edit message: cannot send clientOnly edit with no myAvatar";
+        } else if (properties.getOwningAvatarID() == _myAvatar->getID()) {
+            // this is an avatar-based entity --> update our avatar-data rather than sending to the entity-server
+            queueEditAvatarEntityMessage(type, entityTree, entityItemID, properties);
+        } else {
+            qCWarning(entities) << "Suppressing entity edit message: cannot send clientOnly edit for another avatar";
+        }
         return;
     }
 
@@ -142,11 +148,6 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
 }
 
 void EntityEditPacketSender::queueEraseEntityMessage(const EntityItemID& entityItemID) {
-
-    // in case this was a clientOnly entity:
-    if(_myAvatar) {
-        _myAvatar->clearAvatarEntity(entityItemID);
-    }
 
     QByteArray bufferOut(NLPacket::maxPayloadSize(PacketType::EntityErase), 0);
 

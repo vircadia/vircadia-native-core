@@ -876,7 +876,7 @@ Rectangle {
             horizontalAlignment: Text.AlignLeft;
             verticalAlignment: Text.AlignVCenter;
             onLinkActivated: {
-                sendToScript({method: 'checkout_goToPurchases'});
+                sendToScript({method: 'checkout_goToPurchases', filterText: root.itemName});
             }
         }
 

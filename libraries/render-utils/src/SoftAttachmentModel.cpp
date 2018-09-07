@@ -77,8 +77,9 @@ void SoftAttachmentModel::updateClusterMatrices() {
     }
 
     // post the blender if we're not currently waiting for one to finish
-    if (geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
+    auto modelBlender = DependencyManager::get<ModelBlender>();
+    if (_blendedVertexBuffersInitialized && modelBlender->shouldComputeBlendshapes() && geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
-        DependencyManager::get<ModelBlender>()->noteRequiresBlend(getThisPointer());
+        modelBlender->noteRequiresBlend(getThisPointer());
     }
 }

@@ -18,6 +18,7 @@
 #include <PerfStat.h>
 #include <PhysicsCollisionGroups.h>
 #include <Profile.h>
+#include <BulletCollision/CollisionShapes/btTriangleShape.h>
 
 #include "CharacterController.h"
 #include "ObjectMotionState.h"
@@ -25,6 +26,7 @@
 #include "PhysicsDebugDraw.h"
 #include "ThreadSafeDynamicsWorld.h"
 #include "PhysicsLogging.h"
+
 
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset) :
         _originOffset(offset),
@@ -73,6 +75,10 @@ void PhysicsEngine::init() {
 
 uint32_t PhysicsEngine::getNumSubsteps() const {
     return _dynamicsWorld->getNumSubsteps();
+}
+
+int32_t PhysicsEngine::getNumCollisionObjects() const {
+    return _dynamicsWorld ? _dynamicsWorld->getNumCollisionObjects() : 0;
 }
 
 // private
@@ -275,6 +281,57 @@ void PhysicsEngine::reinsertObject(ObjectMotionState* object) {
         // add it back
         addObjectToDynamicsWorld(object);
     }
+}
+
+void PhysicsEngine::processTransaction(PhysicsEngine::Transaction& transaction) {
+    // removes
+    for (auto object : transaction.objectsToRemove) {
+        btRigidBody* body = object->getRigidBody();
+        if (body) {
+            removeDynamicsForBody(body);
+            _dynamicsWorld->removeRigidBody(body);
+
+            // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
+            object->setRigidBody(nullptr);
+            body->setMotionState(nullptr);
+            delete body;
+        }
+        object->clearIncomingDirtyFlags();
+    }
+
+    // adds
+    for (auto object : transaction.objectsToAdd) {
+        addObjectToDynamicsWorld(object);
+    }
+
+    // changes
+    std::vector<ObjectMotionState*> failedChanges;
+    for (auto object : transaction.objectsToChange) {
+        uint32_t flags = object->getIncomingDirtyFlags() & DIRTY_PHYSICS_FLAGS;
+        if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
+            if (object->handleHardAndEasyChanges(flags, this)) {
+                object->clearIncomingDirtyFlags();
+            } else {
+                failedChanges.push_back(object);
+            }
+        } else if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
+            object->handleEasyChanges(flags);
+            object->clearIncomingDirtyFlags();
+        }
+        if (object->getMotionType() == MOTION_TYPE_STATIC && object->isActive()) {
+            _activeStaticBodies.insert(object->getRigidBody());
+        }
+    }
+    // activeStaticBodies have changed (in an Easy way) and need their Aabbs updated
+    // but we've configured Bullet to NOT update them automatically (for improved performance)
+    // so we must do it ourselves
+    std::set<btRigidBody*>::const_iterator itr = _activeStaticBodies.begin();
+    while (itr != _activeStaticBodies.end()) {
+        _dynamicsWorld->updateSingleAabb(*itr);
+        ++itr;
+    }
+    // we replace objectsToChange with any that failed
+    transaction.objectsToChange.swap(failedChanges);
 }
 
 void PhysicsEngine::removeContacts(ObjectMotionState* motionState) {
@@ -838,5 +895,95 @@ void PhysicsEngine::setShowBulletConstraintLimits(bool value) {
     } else {
         _physicsDebugDraw->setDebugMode(mode & ~btIDebugDraw::DBG_DrawConstraintLimits);
     }
+}
+
+struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
+    AllContactsCallback(int32_t mask, int32_t group, const ShapeInfo& shapeInfo, const Transform& transform, btCollisionObject* myAvatarCollisionObject, float threshold) :
+        btCollisionWorld::ContactResultCallback(),
+        collisionObject(),
+        contacts(),
+        myAvatarCollisionObject(myAvatarCollisionObject),
+        threshold(threshold) {
+        const btCollisionShape* collisionShape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
+
+        collisionObject.setCollisionShape(const_cast<btCollisionShape*>(collisionShape));
+
+        btTransform bulletTransform;
+        bulletTransform.setOrigin(glmToBullet(transform.getTranslation()));
+        bulletTransform.setRotation(glmToBullet(transform.getRotation()));
+
+        collisionObject.setWorldTransform(bulletTransform);
+
+        m_collisionFilterMask = mask;
+        m_collisionFilterGroup = group;
+    }
+
+    ~AllContactsCallback() {
+        ObjectMotionState::getShapeManager()->releaseShape(collisionObject.getCollisionShape());
+    }
+
+    btCollisionObject collisionObject;
+    std::vector<ContactTestResult> contacts;
+    btCollisionObject* myAvatarCollisionObject;
+    btScalar threshold;
+
+    btScalar addSingleResult(btManifoldPoint& cp, const btCollisionObjectWrapper* colObj0, int partId0, int index0, const btCollisionObjectWrapper* colObj1, int partId1, int index1) override {
+        if (cp.m_distance1 > -threshold) {
+            return 0;
+        }
+
+        const btCollisionObject* otherBody;
+        btVector3 penetrationPoint;
+        btVector3 otherPenetrationPoint;
+        if (colObj0->m_collisionObject == &collisionObject) {
+            otherBody = colObj1->m_collisionObject;
+            penetrationPoint = getWorldPoint(cp.m_localPointB, colObj1->getWorldTransform());
+            otherPenetrationPoint = getWorldPoint(cp.m_localPointA, colObj0->getWorldTransform());
+        } else {
+            otherBody = colObj0->m_collisionObject;
+            penetrationPoint = getWorldPoint(cp.m_localPointA, colObj0->getWorldTransform());
+            otherPenetrationPoint = getWorldPoint(cp.m_localPointB, colObj1->getWorldTransform());
+        }
+
+        // TODO: Give MyAvatar a motion state so we don't have to do this
+        if ((m_collisionFilterMask & BULLET_COLLISION_GROUP_MY_AVATAR) && myAvatarCollisionObject && myAvatarCollisionObject == otherBody) {
+            contacts.emplace_back(Physics::getSessionUUID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint));
+            return 0;
+        }
+
+        if (!(otherBody->getInternalType() & btCollisionObject::CO_RIGID_BODY)) {
+            return 0;
+        }
+        const btRigidBody* collisionCandidate = static_cast<const btRigidBody*>(otherBody);
+
+        const btMotionState* motionStateCandidate = collisionCandidate->getMotionState();
+        const ObjectMotionState* candidate = dynamic_cast<const ObjectMotionState*>(motionStateCandidate);
+        if (!candidate) {
+            return 0;
+        }
+
+        // This is the correct object type. Add it to the list.
+        contacts.emplace_back(candidate->getObjectID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint));
+
+        return 0;
+    }
+
+protected:
+    static btVector3 getWorldPoint(const btVector3& localPoint, const btTransform& transform) {
+        return quatRotate(transform.getRotation(), localPoint) + transform.getOrigin();
+    }
+};
+
+std::vector<ContactTestResult> PhysicsEngine::contactTest(uint16_t mask, const ShapeInfo& regionShapeInfo, const Transform& regionTransform, uint16_t group, float threshold) const {
+    // TODO: Give MyAvatar a motion state so we don't have to do this
+    btCollisionObject* myAvatarCollisionObject = nullptr;
+    if ((mask & USER_COLLISION_GROUP_MY_AVATAR) && _myAvatarController) {
+        myAvatarCollisionObject = _myAvatarController->getCollisionObject();
+    }
+
+    auto contactCallback = AllContactsCallback((int32_t)mask, (int32_t)group, regionShapeInfo, regionTransform, myAvatarCollisionObject, threshold);
+    _dynamicsWorld->contactTest(&contactCallback.collisionObject, contactCallback);
+
+    return contactCallback.contacts;
 }
 

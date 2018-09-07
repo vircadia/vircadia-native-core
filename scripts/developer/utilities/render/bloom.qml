@@ -14,20 +14,11 @@ import "configSlider"
 
 Item {
     id: root
-    property var config: Render.getConfig("RenderMainView.Bloom")
-    property var configThreshold: Render.getConfig("RenderMainView.BloomThreshold")
     property var configDebug: Render.getConfig("RenderMainView.DebugBloom")
 
     Column {
         spacing: 8
 
-        CheckBox {
-            text: "Enable"
-            checked: root.config["enabled"]
-            onCheckedChanged: {
-                root.config["enabled"] = checked;
-            }
-        }
         GroupBox {
             title: "Debug"
             Row {
@@ -88,35 +79,5 @@ Item {
                 }
             }
         }
-        ConfigSlider {
-            label: "Intensity"
-            integral: false
-            config: root.config
-            property: "intensity"
-            max: 1.0
-            min: 0.0
-            width: 280
-            height:38
-        }  
-        ConfigSlider {
-            label: "Size"
-            integral: false
-            config: root.config
-            property: "size"
-            max: 1.0
-            min: 0.0
-            width: 280
-            height:38
-        }  
-        ConfigSlider {
-            label: "Threshold"
-            integral: false
-            config: root.configThreshold
-            property: "threshold"
-            max: 2.0
-            min: 0.0
-            width: 280
-            height:38
-        }  
     }
 }

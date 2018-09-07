@@ -1,7 +1,8 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//  drawItemBounds.frag
+//
+//  drawWorkloadView.frag
 //  fragment shader
 //
 //  Created by Sam Gateau on 6/29/15.
@@ -15,11 +16,13 @@
 
 in vec4 varColor;
 in vec3 varTexcoord;
+in vec3 varEyePos;
 
 void main(void) {
     if (varColor.w > 0.0) {
         float r = sqrt(dot(varTexcoord.xyz,varTexcoord.xyz));
-        float a = paintStripe(r * varColor.w, 0.0, 1.0 / varColor.w, 0.05 / varColor.w);
+        float d = varColor.w / abs(varEyePos.z);
+        float a = paintStripe(r * d, 0.0, 1.0 / d, 0.005 / d);
         if (a <= 0.1 || r > 1.1) {
             discard;
         }
