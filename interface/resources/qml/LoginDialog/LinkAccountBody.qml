@@ -21,8 +21,6 @@ Item {
     height: root.pane.height
     width: root.pane.width
     property bool failAfterSignUp: false
-    property var locale: Qt.locale()
-    property string dateTimeString
 
     function login() {
         mainTextContainer.visible = false
