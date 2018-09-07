@@ -3488,14 +3488,11 @@ bool Application::isServerlessMode() const {
 }
 
 bool Application::isInterstitialMode() const {
-    bool interstitialModeEnabled = Menu::getInstance()->isOptionChecked("Enable Interstitial");
-    return interstitialModeEnabled ? _interstitialMode : false;
+    return _interstitialMode;
 }
 
 void Application::setIsInterstitialMode(bool interstitialMode) {
-    auto menu = Menu::getInstance();
-    bool interstitialModeEnabled = menu->isOptionChecked("Enable Interstitial");
-    if (_interstitialMode != interstitialMode && interstitialModeEnabled) {
+    if (_interstitialMode != interstitialMode) {
         _interstitialMode = interstitialMode;
         emit interstitialModeChanged(_interstitialMode);
     }
