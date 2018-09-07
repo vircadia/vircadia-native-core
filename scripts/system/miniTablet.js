@@ -527,7 +527,10 @@
                 Vec3.multiplyQbyV(handOrientation, uiPositionAndOrientation.position)));
             miniOrientation = Quat.multiply(handOrientation, uiPositionAndOrientation.rotation);
             miniToCameraDirection = Vec3.normalize(Vec3.subtract(Camera.position, miniPosition));
-            return Vec3.dot(miniToCameraDirection, Quat.getForward(miniOrientation)) > MIN_HAND_CAMERA_ANGLE_COS;
+            return {
+                show: Vec3.dot(miniToCameraDirection, Quat.getForward(miniOrientation)) > MIN_HAND_CAMERA_ANGLE_COS,
+                cameraToHand: -Vec3.dot(miniToCameraDirection, Quat.getForward(Camera.orientation))
+            };
         }
 
         function enterMiniHidden() {
@@ -535,14 +538,27 @@
         }
 
         function updateMiniHidden() {
+            var showLeft,
+                showRight;
+
             // Don't show mini tablet if tablet proper is already displayed or in toolbar mode.
             if (HMD.showTablet || tablet.toolbarMode) {
                 return;
             }
-            // Compare palm directions of hands with vectors from palms to camera.
-            if (shouldShowMini(LEFT_HAND)) {
+
+            // Show mini tablet if it would be pointing at the camera.
+            showLeft = shouldShowMini(LEFT_HAND);
+            showRight = shouldShowMini(RIGHT_HAND);
+            if (showLeft.show && showRight.show) {
+                // Both hands would be pointing at camera; show the one the camera is gazing at.
+                if (showLeft.cameraToHand > showRight.cameraToHand) {
+                    setState(MINI_SHOWING, LEFT_HAND);
+                } else {
+                    setState(MINI_SHOWING, RIGHT_HAND);
+                }
+            } else if (showLeft.show) {
                 setState(MINI_SHOWING, LEFT_HAND);
-            } else if (shouldShowMini(RIGHT_HAND)) {
+            } else if (showRight.show) {
                 setState(MINI_SHOWING, RIGHT_HAND);
             }
         }
@@ -609,13 +625,38 @@
         }
 
         function updateMiniVisible() {
+            var showLeft,
+                showRight;
+
             // Hide mini tablet if tablet proper has been displayed by other means.
             if (HMD.showTablet) {
                 setState(MINI_HIDDEN);
                 return;
             }
-            // Check that palm direction of mini tablet hand still less than maximum angle.
-            if (!shouldShowMini(miniHand)) {
+
+            // Check that the mini tablet should still be visible and if so then ensure it's on the hand that the camera is 
+            // gazing at.
+            showLeft = shouldShowMini(LEFT_HAND);
+            showRight = shouldShowMini(RIGHT_HAND);
+            if (showLeft.show && showRight.show) {
+                if (showLeft.cameraToHand > showRight.cameraToHand) {
+                    if (miniHand !== LEFT_HAND) {
+                        setState(MINI_HIDING);
+                    }
+                } else {
+                    if (miniHand !== RIGHT_HAND) {
+                        setState(MINI_HIDING);
+                    }
+                }
+            } else if (showLeft.show) {
+                if (miniHand !== LEFT_HAND) {
+                    setState(MINI_HIDING);
+                }
+            } else if (showRight.show) {
+                if (miniHand !== RIGHT_HAND) {
+                    setState(MINI_HIDING);
+                }
+            } else {
                 setState(MINI_HIDING);
             }
         }
@@ -728,7 +769,8 @@
 
         function setState(state, data) {
             if (state !== miniState) {
-                debug("State transition from " + STATE_STRINGS[miniState] + " to " + STATE_STRINGS[state]);
+                debug("State transition from " + STATE_STRINGS[miniState] + " to " + STATE_STRINGS[state]
+                    + ( data ? " " + JSON.stringify(data) : ""));
                 if (STATE_MACHINE[STATE_STRINGS[miniState]].exit) {
                     STATE_MACHINE[STATE_STRINGS[miniState]].exit(data);
                 }
