@@ -30,6 +30,9 @@
 #include "DependencyManager.h"
 #include "ViewFrustum.h"
 
+// Should match value in ssao_makeOcclusion.slf
+#define SSAO_USE_HORIZON_BASED  1
+
 gpu::PipelinePointer AmbientOcclusionEffect::_occlusionPipeline;
 gpu::PipelinePointer AmbientOcclusionEffect::_hBlurPipeline;
 gpu::PipelinePointer AmbientOcclusionEffect::_vBlurPipeline;
@@ -346,7 +349,9 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     auto occlusionPipeline = getOcclusionPipeline();
     auto firstHBlurPipeline = getHBlurPipeline();
     auto lastVBlurPipeline = getVBlurPipeline();
-	auto mipCreationPipeline = getMipCreationPipeline();
+#if SSAO_USE_HORIZON_BASED
+    auto mipCreationPipeline = getMipCreationPipeline();
+#endif
     
     gpu::doInBatch("AmbientOcclusionEffect::run", args->_context, [=](gpu::Batch& batch) {
 		PROFILE_RANGE_BATCH(batch, "AmbientOcclusion");
@@ -363,8 +368,12 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 		// We need this with the mips levels
 		batch.pushProfileRange("Depth mip creation");
 		batch.setModelTransform(model);
-		batch.setPipeline(mipCreationPipeline);
-		batch.generateTextureMipsWithPipeline(_framebuffer->getLinearDepthTexture());
+#if SSAO_USE_HORIZON_BASED
+        batch.setPipeline(mipCreationPipeline);
+        batch.generateTextureMipsWithPipeline(_framebuffer->getLinearDepthTexture());
+#else
+        batch.generateTextureMips(_framebuffer->getLinearDepthTexture());
+#endif
 		batch.popProfileRange();
 
         batch.setUniformBuffer(render_utils::slot::buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());

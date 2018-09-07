@@ -11,8 +11,6 @@
 <@if not SSAO_SLH@>
 <@def SSAO_SLH@>
 
-#define SSAO_USE_HORIZON_BASED	0
-
 <@include render-utils/ShaderConstants.h@>
 
 <@func declarePackOcclusionDepth()@>
@@ -253,23 +251,15 @@ vec3 fetchTapUnfiltered(ivec4 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
 vec3 fetchTap(ivec4 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
     int mipLevel = evalMipFromRadius(tap.z * doFetchMips());
 
-    ivec2 ssP = ivec2(tap.xy) + ssC;
-    ivec2 ssPFull = ivec2(ssP.x + side.y, ssP.y);
+    vec2 ssP = tap.xy + vec2(ssC);
 
     // We need to divide by 2^mipLevel to read the appropriately scaled coordinate from a MIP-map.
     // Manually clamp to the texture size because texelFetch bypasses the texture unit
-   //  ivec2 mipSize = textureSize(pyramidMap, mipLevel);
-   ivec2 mipSize = max(ivec2(imageSize) >> mipLevel, ivec2(1));
-
-    ivec2 mipP = clamp(ssPFull >> mipLevel, ivec2(0), mipSize - ivec2(1));
-   
     vec2 tapUV = (vec2(ssP) + vec2(0.5)) / imageSize;
     vec2 fetchUV = vec2(tapUV.x + side.w * 0.5 * (side.x - tapUV.x), tapUV.y);
-    // vec2 tapUV = (vec2(mipP) + vec2(0.5)) / vec2(mipSize);
 
     vec3 P;
     P.xy = tapUV;
-  //  P.z = -texelFetch(pyramidMap, mipP, mipLevel).x;
     P.z = -textureLod(pyramidMap, fetchUV, float(mipLevel)).x;
 
    return P;
@@ -295,88 +285,126 @@ float evalVisibilitySSAO(in vec3 centerPosition, in vec3 centerNormal, in vec3 t
     float vv = dot(v, v);
     float vn = dot(v, centerNormal);
 
-    // Fall off function as recommended in SAO paper
+    // Fall off function as recommended in SSAO paper
     const float epsilon = 0.01;
     float f = max(getRadius2() - vv, 0.0);
     return f * f * f * max((vn - getFalloffBias()) / (epsilon + vv), 0.0);
 }
 
-vec2 searchHorizons(int side, float centerDepth, vec2 centerPixelUV, vec2 imageSize, vec2 deltaTap, float ssDiskRadius, vec3 fragNormalES) {
+<@func updateHorizon(horizon, deltaPixelTap)@>
+    {
+        int stepIndex;
+        vec2 tapPixelPos = vec2(0);
+        float radius = 0.0;
+
+        for (stepIndex=stepCount ; stepIndex>0 ; stepIndex--) {
+            tapPixelPos += deltaPixelTap;
+            radius += deltaRadius;
+
+            vec3 tap = vec3(tapPixelPos, radius);
+            vec3 tapUVZ = fetchTap(side, centerPixelPos, tap, imageSize);
+            vec3 tapPositionES = evalEyePositionFromZeye(side.x, tapUVZ.z, tapUVZ.xy);
+            vec3 deltaVec = normalize(tapPositionES - fragPositionES);
+
+            <$horizon$> = max(<$horizon$>, dot(deltaVec, fragNormalES));
+        }
+    }
+<@endfunc@>
+
+<@func searchBresenhamHorizon(deltaPixelCoord)@>
+    {
+        float epsilon = 1e-8;
+        vec2 deltaPixelTap = searchVec / absSearchVec.<$deltaPixelCoord$>;
+        vec2 absDeltaPixelTap = abs(deltaPixelTap);
+        bvec2 nullDelta = absDeltaPixelTap < epsilon;
+
+        pixelDelta1 = mix(pixelDelta1, vec2(1.0), pixelDelta1 < epsilon && nullDelta);
+        pixelDelta2 = mix(pixelDelta2, vec2(1.0), pixelDelta2 < epsilon && nullDelta);
+
+        pixelDelta1 = ceil(pixelDelta1 / absDeltaPixelTap);
+        pixelDelta2 = ceil(pixelDelta2 / absDeltaPixelTap);
+
+        int maxStepCount = max(0, int(ceil(absSearchVec.<$deltaPixelCoord$>)));
+        float deltaRadius = ssDiskRadius / maxStepCount;
+        int stepCount;
+
+        // Forward search for h1
+        stepCount = clamp(int(min(pixelDelta1.x, pixelDelta1.y)), 0, maxStepCount);
+        <$updateHorizon(horizons.x, deltaPixelTap)$>
+
+        // Backward search for h2
+        stepCount = clamp(int(min(pixelDelta2.x, pixelDelta2.y)), 0, maxStepCount);
+        <$updateHorizon(horizons.y, -deltaPixelTap)$>
+    }
+<@endfunc@>
+
+vec2 clampSearchVec(vec2 imageSize, vec2 centerPixelPos, vec2 searchVec) {
+    vec2 clampdSearchVec = searchVec;
+    vec2 endPixel = centerPixelPos + clampdSearchVec;
+
+    if (endPixel.x < 0) {
+        clampdSearchVec = clampdSearchVec * ((0-centerPixelPos.x) / clampdSearchVec.x);
+        endPixel = centerPixelPos + clampdSearchVec;
+    }
+    if (endPixel.x >= imageSize.x) {
+        clampdSearchVec = clampdSearchVec * ((imageSize.x-1-centerPixelPos.x) / clampdSearchVec.x);
+        endPixel = centerPixelPos + clampdSearchVec;
+    }
+    if (endPixel.y < 0) {
+        clampdSearchVec = clampdSearchVec * ((0-centerPixelPos.y) / clampdSearchVec.y);
+        endPixel = centerPixelPos + clampdSearchVec;
+    }
+    if (endPixel.y >= imageSize.y) {
+        clampdSearchVec = clampdSearchVec * ((imageSize.y-1-centerPixelPos.y) / clampdSearchVec.y);
+    }
+
+    return clampdSearchVec;
+}
+
+vec2 searchHorizons(ivec4 side, ivec2 centerPixelPos, vec2 imageSize, vec2 deltaTap, float ssDiskRadius, 
+                    vec3 fragPositionES, vec3 fragNormalES) {
 	vec2 searchVec = deltaTap * ssDiskRadius;
-	vec2 absSearchVec = abs(searchVec);
-	vec2 horizons = vec2(-PI/2.0, -PI/2.0);
-	vec3 centerPoint = vec3(centerPixelUV, centerDepth);
-	int stepIndex;
-	vec2 tapPixelUV;
+	vec2 horizons = vec2(0.0);
 
+    // Forward search for h1
+    vec2 clampedSearchVec = clampSearchVec(imageSize, vec2(centerPixelPos), searchVec);
+    int stepCount = int(floor(length(clampedSearchVec)+0.5));
+    if (stepCount>0) {
+        vec2 deltaPixelTap = clampedSearchVec / float(stepCount);
+        float deltaRadius = length(deltaPixelTap);
+        <$updateHorizon(horizons.x, deltaPixelTap)$>
+    }
+    // Backward search for h2
+    clampedSearchVec = clampSearchVec(imageSize, vec2(centerPixelPos), -searchVec);
+    stepCount = int(floor(length(clampedSearchVec)+0.5));
+    if (stepCount>0) {
+        vec2 deltaPixelTap = clampedSearchVec / float(stepCount);
+        float deltaRadius = length(deltaPixelTap);
+        <$updateHorizon(horizons.y, deltaPixelTap)$>
+    }
+
+//
+// <!
+//
+
+/* TEMPO OP
+    // Bresenham style walk along segment
 	if (absSearchVec.x > absSearchVec.y) {
-		int stepCount = int(ceil(absSearchVec.x));
-
-		// Positive search for h2
-		tapPixelUV = centerPixelUV;
-		deltaTap = (searchVec / searchVec.x) / imageSize;
-		stepIndex = stepCount;
-		while (stepIndex>0 && tapPixelUV.x < 1.0) {
-			tapPixelUV += deltaTap;
-			// Don't clamp for the moment
-
-			float tapDepth = getZEyeAtUV(tapPixelUV, 0);
-			vec3 deltaVec = vec3(tapPixelUV, tapDepth) - centerPoint;
-
-			horizons.y = max(horizons.y, normalize(deltaVec).z);
-			--stepIndex;
-		}
-
-		// Negative search for h1
-		tapPixelUV = centerPixelUV;
-		stepIndex = stepCount;
-		while (stepIndex>0 && tapPixelUV.x > 0.0) {
-			tapPixelUV -= deltaTap;
-			// Don't clamp for the moment
-
-			float tapDepth = getZEyeAtUV(tapPixelUV, 0);
-			vec3 deltaVec = vec3(tapPixelUV, tapDepth) - centerPoint;
-
-			horizons.x = max(horizons.x, normalize(deltaVec).z);
-			--stepIndex;
-		}
+        <$searchBresenhamHorizon(x)$>
 	} else {
-		int stepCount = int(ceil(absSearchVec.y));
-
-		// Positive search for h2
-		tapPixelUV = centerPixelUV;
-		deltaTap = (searchVec / searchVec.y) / imageSize;
-		stepIndex = stepCount;
-		while (stepIndex>0 && tapPixelUV.y < 1.0) {
-			tapPixelUV += deltaTap;
-			// Don't clamp for the moment
-
-			float tapDepth = getZEyeAtUV(tapPixelUV, 0);
-			vec3 deltaVec = vec3(tapPixelUV, tapDepth) - centerPoint;
-
-			horizons.y = max(horizons.y, normalize(deltaVec).z);
-			--stepIndex;
-		}
-
-		// Negative search for h1
-		tapPixelUV = centerPixelUV;
-		stepIndex = stepCount;
-		while (stepIndex>0 && tapPixelUV.y > 0.0) {
-			tapPixelUV -= deltaTap;
-			// Don't clamp for the moment
-
-			float tapDepth = getZEyeAtUV(tapPixelUV, 0);
-			vec3 deltaVec = vec3(tapPixelUV, tapDepth) - centerPoint;
-
-			horizons.x = max(horizons.x, normalize(deltaVec).z);
-			--stepIndex;
-		}
+        <$searchBresenhamHorizon(y)$>
 	}
 
-	vec3 angles = acos(vec3(horizons, fragNormalES.z))-PI/2.0;
+	vec3 angles = acos(vec3(horizons, fragNormalES.z)) - PI/2.0;
 	angles.x = -angles.x;
 	// Clamp to limit horizon defined by normal plane
 	horizons.xy = angles.zz + max(angles.xy - angles.zz, vec2(-PI/2.0, PI/2.0));
+    */
+
+//
+// !>
+//
+
 	return horizons;
 }
 
@@ -385,9 +413,10 @@ float integrateArc(float h1, float h2) {
 	return 2.0 - cosh.x - cosh.y;
 }
 
-float evalVisibilityHBAO(int side, float centerDepth, vec2 centerPixelUV, vec2 imageSize, vec2 deltaTap, float ssDiskRadius, vec3 fragNormalES) {
-	vec2 horizonAngles = searchHorizons(side, centerDepth, centerPixelUV, imageSize, deltaTap, ssDiskRadius, fragNormalES);
-	return integrateArc(horizonAngles.x, horizonAngles.y);
+float evalVisibilityHBAO(ivec4 side, ivec2 centerPixelPos, vec2 imageSize, vec2 deltaTap, float ssDiskRadius, 
+                         vec3 fragPositionES, vec3 fragNormalES) {
+	vec2 horizonAngles = searchHorizons(side, centerPixelPos, imageSize, deltaTap, ssDiskRadius, fragPositionES, fragNormalES);
+	return min(1.0, integrateArc(horizonAngles.x, horizonAngles.y) * 0.5);
 }
 
 <@endfunc@>

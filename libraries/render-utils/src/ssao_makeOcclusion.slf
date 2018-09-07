@@ -19,6 +19,8 @@
 
 <$declarePackOcclusionDepth()$>
 
+#define SSAO_USE_HORIZON_BASED	1
+
 layout(location=0) out vec4 outFragColor;
 
 void main(void) {
@@ -52,10 +54,11 @@ void main(void) {
 
     // Accumulate the visibility for each samples
     float visibilitySum = 0.0;
-    for (int i = 0; i < getNumSamples(); ++i) {
+    int numSamples = 1; // TEMPO OP getNumSamples()
+    for (int i = 0; i < numSamples; ++i) {
 #if SSAO_USE_HORIZON_BASED
-		vec3 deltaTap = getUnitTapLocation(i, 1, randomPatternRotationAngle, PI);
-        visibilitySum += evalVisibilityHBAO(side.x, Zeye, fragUVPos, imageSize, deltaTap.xy, ssDiskRadius, fragNormalES);
+		vec3 deltaTap = getUnitTapLocation(i, 1.0, randomPatternRotationAngle, PI);
+        visibilitySum += evalVisibilityHBAO(side, centerPixelPos, imageSize, deltaTap.xy, ssDiskRadius, fragPositionES, fragNormalES);
 #else
         vec3 tap = getTapLocationClampedSSAO(i, randomPatternRotationAngle, ssDiskRadius, centerPixelPos, imageSize);
         vec3 tapUVZ = fetchTap(side, centerPixelPos, tap, imageSize);
@@ -64,7 +67,12 @@ void main(void) {
 #endif
     }
 
-    float occlusion = clamp(1.0 - visibilitySum * getObscuranceScaling() * getInvNumSamples(), 0.0, 1.0);
+#if SSAO_USE_HORIZON_BASED
+    visibilitySum = 1.0 - visibilitySum * getInvNumSamples();
+#else
+    visibilitySum = visibilitySum * getInvNumSamples();
+#endif
+    float occlusion = clamp(1.0 - visibilitySum * getObscuranceScaling(), 0.0, 1.0);
 
      // KEEP IT for Debugging
     // Bilateral box-filter over a quad for free, respecting depth edges
@@ -77,4 +85,5 @@ void main(void) {
     }*/
     
     outFragColor = vec4(packOcclusionDepth(occlusion, CSZToDepthKey(fragPositionES.z)), 1.0);
+
 }
