@@ -14,7 +14,7 @@
 
 (function() {
     Script.include("/~/system/libraries/Xform.js");
-    var DEBUG = true;
+    var DEBUG = false;
     var MIN_LOADING_PROGRESS = 3.6;
     var TOTAL_LOADING_PROGRESS = 3.8;
     var EPSILON = 0.01;
@@ -410,8 +410,21 @@
 
         timer = Script.setTimeout(update, BASIC_TIMER_INTERVAL_MS);
     }
-
+    var whiteColor = {red: 255, green: 255, blue: 255};
+    var greyColor = {red: 125, green: 125, blue: 125};
     Overlays.mouseReleaseOnOverlay.connect(clickedOnOverlay);
+    Overlays.hoverEnterOverlay.connect(function(overlayID, event) {
+        if (overlayID === loadingToTheSpotID) {
+            Overlays.editOverlay(loadingToTheSpotID, { color: greyColor});
+        }
+    });
+
+    Overlays.hoverLeaveOverlay.connect(function(overlayID, event) {
+        if (overlayID === loadingToTheSpotID) {
+            Overlays.editOverlay(loadingToTheSpotID, { color: whiteColor});
+        }
+    });
+
     location.hostChanged.connect(domainChanged);
     location.lookupResultsFinished.connect(function() {
         Script.setTimeout(function() {
@@ -453,7 +466,7 @@
         renderViewTask.getConfig("LightingModel")["enableAmbientLight"] = true;
         renderViewTask.getConfig("LightingModel")["enableDirectionalLight"] = true;
         renderViewTask.getConfig("LightingModel")["enablePointLight"] = true;
-        Menu.setIsOptionChecked("Show Overlays", physicsEnabled);
+        Menu.setIsOptionChecked("Show Overlays", true);
         if (!HMD.active) {
             toolbar.writeProperty("visible", true);
         }
