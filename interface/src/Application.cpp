@@ -375,6 +375,7 @@ static const int INTERVAL_TO_CHECK_HMD_WORN_STATUS = 500; // milliseconds
 static const QString DESKTOP_DISPLAY_PLUGIN_NAME = "Desktop";
 static const QString ACTIVE_DISPLAY_PLUGIN_SETTING_NAME = "activeDisplayPlugin";
 static const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
+static const QString AUTO_LOGOUT_SETTING_NAME = "wallet/autoLogout";
 
 const std::vector<std::pair<QString, Application::AcceptURLMethod>> Application::_acceptedExtensions {
     { SVO_EXTENSION, &Application::importSVOFromURL },
@@ -725,6 +726,9 @@ static const QString STATE_SNAP_TURN = "SnapTurn";
 static const QString STATE_ADVANCED_MOVEMENT_CONTROLS = "AdvancedMovement";
 static const QString STATE_GROUNDED = "Grounded";
 static const QString STATE_NAV_FOCUSED = "NavigationFocused";
+static const QString STATE_PLATFORM_WINDOWS = "PlatformWindows";
+static const QString STATE_PLATFORM_MAC = "PlatformMac";
+static const QString STATE_PLATFORM_ANDROID = "PlatformAndroid";
 
 // Statically provided display and input plugins
 extern DisplayPluginList getDisplayPlugins();
@@ -908,7 +912,8 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<MessagesClient>();
     controller::StateController::setStateVariables({ { STATE_IN_HMD, STATE_CAMERA_FULL_SCREEN_MIRROR,
                     STATE_CAMERA_FIRST_PERSON, STATE_CAMERA_THIRD_PERSON, STATE_CAMERA_ENTITY, STATE_CAMERA_INDEPENDENT,
-                    STATE_SNAP_TURN, STATE_ADVANCED_MOVEMENT_CONTROLS, STATE_GROUNDED, STATE_NAV_FOCUSED } });
+                    STATE_SNAP_TURN, STATE_ADVANCED_MOVEMENT_CONTROLS, STATE_GROUNDED, STATE_NAV_FOCUSED,
+                    STATE_PLATFORM_WINDOWS, STATE_PLATFORM_MAC, STATE_PLATFORM_ANDROID } });
     DependencyManager::set<UserInputMapper>();
     DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
     DependencyManager::set<InterfaceParentFinder>();
@@ -1013,7 +1018,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 // This is done so as not break previous command line scripts
                 if (testScriptPath.left(URL_SCHEME_HTTP.length()) == URL_SCHEME_HTTP ||
                     testScriptPath.left(URL_SCHEME_FTP.length()) == URL_SCHEME_FTP) {
-                    
+
                     setProperty(hifi::properties::TEST, QUrl::fromUserInput(testScriptPath));
                 } else if (QFileInfo(testScriptPath).exists()) {
                     setProperty(hifi::properties::TEST, QUrl::fromLocalFile(testScriptPath));
@@ -1094,6 +1099,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Set File Logger Session UUID
     auto avatarManager = DependencyManager::get<AvatarManager>();
     auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
+    if (avatarManager) {
+        workload::SpacePointer space = getEntities()->getWorkloadSpace();
+        avatarManager->setSpace(space);
+    }
     auto accountManager = DependencyManager::get<AccountManager>();
 
     _logger->setSessionID(accountManager->getSessionID());
@@ -1678,6 +1687,27 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _applicationStateDevice->setInputVariant(STATE_NAV_FOCUSED, []() -> float {
         return DependencyManager::get<OffscreenUi>()->navigationFocused() ? 1 : 0;
     });
+    _applicationStateDevice->setInputVariant(STATE_PLATFORM_WINDOWS, []() -> float {
+#if defined(Q_OS_WIN) 
+        return 1;
+#else
+        return 0;
+#endif
+    });
+    _applicationStateDevice->setInputVariant(STATE_PLATFORM_MAC, []() -> float {
+#if defined(Q_OS_MAC) 
+        return 1;
+#else
+        return 0;
+#endif
+    });
+    _applicationStateDevice->setInputVariant(STATE_PLATFORM_ANDROID, []() -> float {
+#if defined(Q_OS_ANDROID) 
+        return 1;
+#else
+        return 0;
+#endif
+    });
 
     // Setup the _keyboardMouseDevice, _touchscreenDevice, _touchscreenVirtualPadDevice and the user input mapper with the default bindings
     userInputMapper->registerDevice(_keyboardMouseDevice->getInputDevice());
@@ -1830,15 +1860,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     });
 
-    connect(getEntities()->getTree().get(), &EntityTree::deletingEntity, [](const EntityItemID& entityItemID) {
-        auto avatarManager = DependencyManager::get<AvatarManager>();
-        auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
-        if (myAvatar) {
-            myAvatar->clearAvatarEntity(entityItemID);
-        }
-    });
-
     EntityTree::setAddMaterialToEntityOperator([this](const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
+        if (_aboutToQuit) {
+            return false;
+        }
+
         // try to find the renderable
         auto renderable = getEntities()->renderableForEntityId(entityID);
         if (renderable) {
@@ -1854,6 +1880,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return false;
     });
     EntityTree::setRemoveMaterialFromEntityOperator([this](const QUuid& entityID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
+        if (_aboutToQuit) {
+            return false;
+        }
+
         // try to find the renderable
         auto renderable = getEntities()->renderableForEntityId(entityID);
         if (renderable) {
@@ -2481,6 +2511,11 @@ void Application::cleanupBeforeQuit() {
     }
     DependencyManager::destroy<ScriptEngines>();
 
+    bool autoLogout = Setting::Handle<bool>(AUTO_LOGOUT_SETTING_NAME, false).get();
+    if (autoLogout) {
+        DependencyManager::get<AccountManager>()->removeAccountFromFile();
+    }
+
     _displayPlugin.reset();
     PluginManager::getInstance()->shutdown();
 
@@ -2544,11 +2579,15 @@ void Application::cleanupBeforeQuit() {
 
 Application::~Application() {
     // remove avatars from physics engine
-    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
-    VectorOfMotionStates motionStates;
-    DependencyManager::get<AvatarManager>()->getObjectsToRemoveFromPhysics(motionStates);
-    _physicsEngine->removeObjects(motionStates);
-    DependencyManager::get<AvatarManager>()->deleteAllAvatars();
+    auto avatarManager = DependencyManager::get<AvatarManager>();
+    avatarManager->clearOtherAvatars();
+
+    PhysicsEngine::Transaction transaction;
+    avatarManager->buildPhysicsTransaction(transaction);
+    _physicsEngine->processTransaction(transaction);
+    avatarManager->handleProcessedPhysicsTransaction(transaction);
+
+    avatarManager->deleteAllAvatars();
 
     _physicsEngine->setCharacterController(nullptr);
 
@@ -2617,7 +2656,7 @@ Application::~Application() {
 
     // Can't log to file passed this point, FileLogger about to be deleted
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
-    
+
     _renderEventHandler->deleteLater();
 }
 
@@ -3667,7 +3706,7 @@ bool Application::event(QEvent* event) {
 
 bool Application::eventFilter(QObject* object, QEvent* event) {
 
-    if (_aboutToQuit) {
+    if (_aboutToQuit && event->type() != QEvent::DeferredDelete && event->type() != QEvent::Destroy) {
         return true;
     }
 
@@ -5022,8 +5061,9 @@ void Application::updateLOD(float deltaTime) const {
         float presentTime = getActiveDisplayPlugin()->getAveragePresentTime();
         float engineRunTime = (float)(_renderEngine->getConfiguration().get()->getCPURunTime());
         float gpuTime = getGPUContext()->getFrameTimerGPUAverage();
+        float batchTime = getGPUContext()->getFrameTimerBatchAverage();
         auto lodManager = DependencyManager::get<LODManager>();
-        lodManager->setRenderTimes(presentTime, engineRunTime, gpuTime);
+        lodManager->setRenderTimes(presentTime, engineRunTime, batchTime, gpuTime);
         lodManager->autoAdjustLOD(deltaTime);
     } else {
         DependencyManager::get<LODManager>()->resetLODAdjust();
@@ -5496,10 +5536,7 @@ void Application::update(float deltaTime) {
         // we haven't yet enabled physics.  we wait until we think we have all the collision information
         // for nearby entities before starting bullet up.
         quint64 now = usecTimestampNow();
-        // Check for flagged EntityData having arrived.
-        auto entityTreeRenderer = getEntities();
-        if (isServerlessMode() || 
-            (_octreeProcessor.isLoadSequenceComplete() )) {
+        if (isServerlessMode() || _octreeProcessor.isLoadSequenceComplete()) {
             // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
             _lastPhysicsCheckTime = now;
             _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
@@ -5713,12 +5750,10 @@ void Application::update(float deltaTime) {
 
                 t1 = std::chrono::high_resolution_clock::now();
 
-                avatarManager->getObjectsToRemoveFromPhysics(motionStates);
-                _physicsEngine->removeObjects(motionStates);
-                avatarManager->getObjectsToAddToPhysics(motionStates);
-                _physicsEngine->addObjects(motionStates);
-                avatarManager->getObjectsToChange(motionStates);
-                _physicsEngine->changeObjects(motionStates);
+                PhysicsEngine::Transaction transaction;
+                avatarManager->buildPhysicsTransaction(transaction);
+                _physicsEngine->processTransaction(transaction);
+                avatarManager->handleProcessedPhysicsTransaction(transaction);
 
                 myAvatar->prepareForPhysicsSimulation();
                 _physicsEngine->forEachDynamic([&](EntityDynamicPointer dynamic) {
@@ -5786,15 +5821,13 @@ void Application::update(float deltaTime) {
                     auto t5 = std::chrono::high_resolution_clock::now();
 
                     workload::Timings timings(6);
-                    timings[0] = (t4 - t0);
-                    timings[1] = (t5 - t4);
-                    timings[2] = (t4 - t3);
-                    timings[3] = (t3 - t2);
-                    timings[4] = (t2 - t1);
-                    timings[5] = (t1 - t0);
-
+                    timings[0] = t1 - t0; // prePhysics entities
+                    timings[1] = t2 - t1; // prePhysics avatars
+                    timings[2] = t3 - t2; // stepPhysics
+                    timings[3] = t4 - t3; // postPhysics
+                    timings[4] = t5 - t4; // non-physical kinematics
+                    timings[5] = workload::Timing_ns((int32_t)(NSECS_PER_SECOND * deltaTime)); // game loop duration
                     _gameWorkload.updateSimulationTimings(timings);
-
                 }
             }
         } else {
@@ -5986,7 +6019,7 @@ void Application::updateRenderArgs(float deltaTime) {
                 _viewFrustum.calculate();
             }
             appRenderArgs._renderArgs = RenderArgs(_gpuContext, lodManager->getOctreeSizeScale(),
-                lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
+                lodManager->getBoundaryLevelAdjust(), lodManager->getLODAngleHalfTan(), RenderArgs::DEFAULT_RENDER_MODE,
                 RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
             appRenderArgs._renderArgs._scene = getMain3DScene();
 
@@ -6189,6 +6222,10 @@ bool Application::isHMDMode() const {
     return getActiveDisplayPlugin()->isHmd();
 }
 
+float Application::getNumCollisionObjects() const {
+    return _physicsEngine ? _physicsEngine->getNumCollisionObjects() : 0;
+}
+
 float Application::getTargetRenderFrameRate() const { return getActiveDisplayPlugin()->getTargetFrameRate(); }
 
 QRect Application::getDesirableApplicationGeometry() const {
@@ -6328,7 +6365,6 @@ void Application::clearDomainOctreeDetails() {
 }
 
 void Application::clearDomainAvatars() {
-    getMyAvatar()->setAvatarEntityDataChanged(true); // to recreate worn entities
     DependencyManager::get<AvatarManager>()->clearOtherAvatars();
 }
 
@@ -6393,8 +6429,8 @@ void Application::nodeActivated(SharedNodePointer node) {
         if (_avatarOverrideUrl.isValid()) {
             getMyAvatar()->useFullAvatarURL(_avatarOverrideUrl);
         }
-        static const QUrl empty{};
-        if (getMyAvatar()->getFullAvatarURLFromPreferences() != getMyAvatar()->cannonicalSkeletonModelURL(empty)) {
+
+        if (getMyAvatar()->getFullAvatarURLFromPreferences() != getMyAvatar()->getSkeletonModelURL()) {
             getMyAvatar()->resetFullAvatarURL();
         }
         getMyAvatar()->markIdentityDataChanged();

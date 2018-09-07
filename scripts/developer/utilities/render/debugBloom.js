@@ -15,6 +15,6 @@ var window = new OverlayWindow({
     title: 'Bloom',
     source: qml,
     width: 285, 
-    height: 210,
+    height: 40,
 });
 window.closed.connect(function() { Script.stop(); });

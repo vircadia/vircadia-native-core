@@ -5,7 +5,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* global module, Camera, HMD, MyAvatar, controllerDispatcherPlugins:true, Quat, Vec3, Overlays, Xform,
+/* global module, Camera, HMD, MyAvatar, controllerDispatcherPlugins:true, Quat, Vec3, Overlays, Xform, Mat4,
    Selection, Uuid,
    MSECS_PER_SEC:true , LEFT_HAND:true, RIGHT_HAND:true, FORBIDDEN_GRAB_TYPES:true,
    HAPTIC_PULSE_STRENGTH:true, HAPTIC_PULSE_DURATION:true, ZERO_VEC:true, ONE_VEC:true,
@@ -58,7 +58,8 @@
    highlightTargetEntity:true,
    clearHighlightedEntities:true,
    unhighlightTargetEntity:true,
-   distanceBetweenEntityLocalPositionAndBoundingBox: true
+   distanceBetweenEntityLocalPositionAndBoundingBox: true,
+   worldPositionToRegistrationFrameMatrix: true
 */
 
 MSECS_PER_SEC = 1000.0;
@@ -487,6 +488,30 @@ entityIsFarGrabbedByOther = function(entityID) {
     return false;
 };
 
+
+worldPositionToRegistrationFrameMatrix = function(wptrProps, pos) {
+    // get world matrix for intersection point
+    var intersectionMat = new Xform({ x: 0, y: 0, z:0, w: 1 }, pos);
+
+    // calculate world matrix for registrationPoint addjusted entity
+    var DEFAULT_REGISTRATION_POINT = { x: 0.5, y: 0.5, z: 0.5 };
+    var regRatio = Vec3.subtract(DEFAULT_REGISTRATION_POINT, wptrProps.registrationPoint);
+    var regOffset = Vec3.multiplyVbyV(regRatio, wptrProps.dimensions);
+    var regOffsetRot = Vec3.multiplyQbyV(wptrProps.rotation, regOffset);
+    var modelMat = new Xform(wptrProps.rotation, Vec3.sum(wptrProps.position, regOffsetRot));
+
+    // get inverse of model matrix
+    var modelMatInv = modelMat.inv();
+
+    // transform world intersection point into object's registrationPoint frame
+    var xformMat = Xform.mul(modelMatInv, intersectionMat);
+
+    // convert to Mat4
+    var offsetMat = Mat4.createFromRotAndTrans(xformMat.rot, xformMat.pos);
+    return offsetMat;
+};
+
+
 if (typeof module !== 'undefined') {
     module.exports = {
         makeDispatcherModuleParameters: makeDispatcherModuleParameters,
@@ -508,6 +533,7 @@ if (typeof module !== 'undefined') {
         projectOntoEntityXYPlane: projectOntoEntityXYPlane,
         TRIGGER_OFF_VALUE: TRIGGER_OFF_VALUE,
         TRIGGER_ON_VALUE: TRIGGER_ON_VALUE,
-        DISPATCHER_HOVERING_LIST: DISPATCHER_HOVERING_LIST
+        DISPATCHER_HOVERING_LIST: DISPATCHER_HOVERING_LIST,
+        worldPositionToRegistrationFrameMatrix: worldPositionToRegistrationFrameMatrix
     };
 }

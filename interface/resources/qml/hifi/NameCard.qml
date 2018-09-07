@@ -530,9 +530,7 @@ Item {
         maximumValue: 20.0
         stepSize: 5
         updateValueWhileDragging: true
-        Component.onCompleted: {
-            value = Users.getAvatarGain(uuid);
-        }
+        value: Users.getAvatarGain(uuid)
         onValueChanged: {
             updateGainFromQML(uuid, value, false);
         }

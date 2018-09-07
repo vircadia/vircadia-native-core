@@ -14,8 +14,7 @@
 
 #include <memory>
 
-#include <QtCore/QIODevice>
-
+#include "../ExtendedIODevice.h"
 #include "Packet.h"
 #include "PacketHeaders.h"
 
@@ -25,7 +24,7 @@ namespace udt {
 
 class Packet;
 
-class PacketList : public QIODevice {
+class PacketList : public ExtendedIODevice {
     Q_OBJECT
 public:
     using MessageNumber = uint32_t;
@@ -59,9 +58,6 @@ public:
     virtual bool isSequential() const override { return false; }
     virtual qint64 size() const override { return getDataSize(); }
     
-    template<typename T> qint64 readPrimitive(T* data);
-    template<typename T> qint64 writePrimitive(const T& data);
-
     qint64 writeString(const QString& string);
     
 protected:
@@ -104,16 +100,6 @@ private:
     
     QByteArray _extendedHeader;
 };
-
-template <typename T> qint64 PacketList::readPrimitive(T* data) {
-    static_assert(!std::is_pointer<T>::value, "T must not be a pointer");
-    return read(reinterpret_cast<char*>(data), sizeof(T));
-}
-
-template <typename T> qint64 PacketList::writePrimitive(const T& data) {
-    static_assert(!std::is_pointer<T>::value, "T must not be a pointer");
-    return write(reinterpret_cast<const char*>(&data), sizeof(T));
-}
 
 template<typename T> std::unique_ptr<T> PacketList::takeFront() {
     static_assert(std::is_base_of<Packet, T>::value, "T must derive from Packet.");

@@ -51,6 +51,7 @@
 #include <udt/SequenceNumber.h>
 
 #include "AABox.h"
+#include "AvatarTraits.h"
 #include "HeadData.h"
 #include "PathUtils.h"
 
@@ -336,6 +337,7 @@ enum KillAvatarReason : uint8_t {
     TheirAvatarEnteredYourBubble,
     YourAvatarEnteredTheirBubble
 };
+
 Q_DECLARE_METATYPE(KillAvatarReason);
 
 class QDataStream;
@@ -370,6 +372,8 @@ public:
     // NOTE: we invert the less-than operator to sort high priorities to front
     bool operator<(const AvatarPriority& other) const { return priority < other.priority; }
 };
+
+class ClientTraitsHandler;
 
 class AvatarData : public QObject, public SpatiallyNestable {
     Q_OBJECT
@@ -425,7 +429,6 @@ public:
     virtual ~AvatarData();
 
     static const QUrl& defaultFullAvatarModelUrl();
-    QUrl cannonicalSkeletonModelURL(const QUrl& empty) const;
 
     virtual bool isMyAvatar() const { return false; }
 
@@ -924,11 +927,12 @@ public:
      * @param {string} entityData
      */
     Q_INVOKABLE void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData);
+
     /**jsdoc
      * @function MyAvatar.clearAvatarEntity
      * @param {Uuid} entityID
      */
-    Q_INVOKABLE void clearAvatarEntity(const QUuid& entityID);
+    Q_INVOKABLE void clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree = true);
 
 
     /**jsdoc
@@ -944,23 +948,35 @@ public:
     const HeadData* getHeadData() const { return _headData; }
 
     struct Identity {
-        QUrl skeletonModelURL;
         QVector<AttachmentData> attachmentData;
         QString displayName;
         QString sessionDisplayName;
         bool isReplicated;
-        AvatarEntityMap avatarEntityData;
         bool lookAtSnappingEnabled;
     };
 
     // identityChanged returns true if identity has changed, false otherwise.
     // identityChanged returns true if identity has changed, false otherwise. Similarly for displayNameChanged and skeletonModelUrlChange.
-    void processAvatarIdentity(const QByteArray& identityData, bool& identityChanged,
-                               bool& displayNameChanged, bool& skeletonModelUrlChanged);
+    void processAvatarIdentity(const QByteArray& identityData, bool& identityChanged, bool& displayNameChanged);
+
+    qint64 packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice& destination,
+                     AvatarTraits::TraitVersion traitVersion = AvatarTraits::NULL_TRAIT_VERSION);
+    qint64 packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID,
+                             ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion = AvatarTraits::NULL_TRAIT_VERSION,
+                             AvatarTraits::TraitInstanceID wireInstanceID = AvatarTraits::TraitInstanceID());
+
+    void prepareResetTraitInstances();
+
+    void processTrait(AvatarTraits::TraitType traitType, QByteArray traitBinaryData);
+    void processTraitInstance(AvatarTraits::TraitType traitType,
+                              AvatarTraits::TraitInstanceID instanceID, QByteArray traitBinaryData);
+    void processDeletedTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID);
 
     QByteArray identityByteArray(bool setIsReplicated = false) const;
 
+    QUrl getWireSafeSkeletonModelURL() const;
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
+
     const QString& getDisplayName() const { return _displayName; }
     const QString& getSessionDisplayName() const { return _sessionDisplayName; }
     bool getLookAtSnappingEnabled() const { return _lookAtSnappingEnabled; }
@@ -1077,6 +1093,7 @@ public:
     void clearRecordingBasis();
     TransformPointer getRecordingBasis() const;
     void setRecordingBasis(TransformPointer recordingBasis = TransformPointer());
+    void createRecordingIDs();
     QJsonObject toJson() const;
     void fromJson(const QJsonObject& json, bool useFrameSkeleton = true);
 
@@ -1173,6 +1190,11 @@ public:
 
     virtual void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {}
     virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {}
+    void setReplicaIndex(int replicaIndex) { _replicaIndex = replicaIndex; }
+    int getReplicaIndex() { return _replicaIndex; }
+
+    const AvatarTraits::TraitInstanceID getTraitInstanceXORID() const { return _traitInstanceXORID; }
+    void cycleTraitInstanceXORID() { _traitInstanceXORID = QUuid::createUuid(); }
 
 signals:
 
@@ -1327,7 +1349,6 @@ protected:
     mutable HeadData* _headData { nullptr };
 
     QUrl _skeletonModelURL;
-    bool _firstSkeletonCheck { true };
     QUrl _skeletonFBXURL;
     QVector<AttachmentData> _attachmentData;
     QVector<AttachmentData> _oldAttachmentData;
@@ -1410,8 +1431,8 @@ protected:
 
     mutable ReadWriteLockable _avatarEntitiesLock;
     AvatarEntityIDs _avatarEntityDetached; // recently detached from this avatar
+    AvatarEntityIDs _avatarEntityForRecording; // create new entities id for avatar recording
     AvatarEntityMap _avatarEntityData;
-    bool _avatarEntityDataLocallyEdited { false };
     bool _avatarEntityDataChanged { false };
 
     // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
@@ -1433,6 +1454,10 @@ protected:
     udt::SequenceNumber _identitySequenceNumber { 0 };
     bool _hasProcessedFirstIdentity { false };
     float _density;
+    int _replicaIndex { 0 };
+
+    // null unless MyAvatar or ScriptableAvatar sending traits data to mixer
+    std::unique_ptr<ClientTraitsHandler> _clientTraitsHandler;
 
     template <typename T, typename F>
     T readLockWithNamedJointIndex(const QString& name, const T& defaultValue, F f) const {
@@ -1477,6 +1502,8 @@ private:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);
     AvatarData& operator= (const AvatarData&);
+
+    AvatarTraits::TraitInstanceID _traitInstanceXORID { QUuid::createUuid() };
 };
 Q_DECLARE_METATYPE(AvatarData*)
 
@@ -1546,7 +1573,7 @@ class RayToAvatarIntersectionResult {
 public:
     bool intersects { false };
     QUuid avatarID;
-    float distance { 0.0f };
+    float distance { FLT_MAX };
     BoxFace face;
     glm::vec3 intersection;
     glm::vec3 surfaceNormal;

@@ -176,9 +176,7 @@ ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const
     _timerFunctionMap(),
     _fileNameString(fileNameString),
     _arrayBufferClass(new ArrayBufferClass(this)),
-    _assetScriptingInterface(new AssetScriptingInterface(this)),
-    // don't delete `ScriptEngines` until all `ScriptEngine`s are gone
-    _scriptEngines(DependencyManager::get<ScriptEngines>())
+    _assetScriptingInterface(new AssetScriptingInterface(this))
 {
     switch (_context) {
         case Context::CLIENT_SCRIPT:

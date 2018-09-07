@@ -25,6 +25,7 @@
 #include <avatar/AvatarManager.h>
 #include <EntityItemID.h>
 #include <EntityTree.h>
+#include <ModelEntityItem.h>
 #include <PhysicalEntitySimulation.h>
 #include <EntityEditPacketSender.h>
 #include <VariantMapToScriptValue.h>
@@ -35,7 +36,7 @@
 #include "QVariantGLM.h"
 
 #include <QtQuick/QQuickWindow>
-
+#include <memory>
 
 void addAvatarEntities(const QVariantList& avatarEntities) {
     auto nodeList = DependencyManager::get<NodeList>();
@@ -144,20 +145,9 @@ void AvatarBookmarks::removeBookmark(const QString& bookmarkName) {
     emit bookmarkDeleted(bookmarkName);
 }
 
-bool isWearableEntity(const EntityItemPointer& entity) {
-    return entity->isVisible() && entity->getParentJointIndex() != INVALID_JOINT_INDEX &&
-        (entity->getParentID() == DependencyManager::get<NodeList>()->getSessionUUID() || entity->getParentID() == DependencyManager::get<AvatarManager>()->getMyAvatar()->getSelfID());
-}
-
 void AvatarBookmarks::updateAvatarEntities(const QVariantList &avatarEntities) {
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
-    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
-    myAvatar->removeAvatarEntities([&](const QUuid& entityID) {
-        auto entity = entityTree->findEntityByID(entityID);
-        return entity && isWearableEntity(entity);
-    });
-
+    myAvatar->removeWearableAvatarEntities();
     addAvatarEntities(avatarEntities);
 }
 
@@ -182,10 +172,7 @@ void AvatarBookmarks::loadBookmark(const QString& bookmarkName) {
             auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
             auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
             EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
-            myAvatar->removeAvatarEntities([&](const QUuid& entityID) {
-                auto entity = entityTree->findEntityByID(entityID);
-                return entity && isWearableEntity(entity);
-            });
+            myAvatar->removeWearableAvatarEntities();
             const QString& avatarUrl = bookmark.value(ENTRY_AVATAR_URL, "").toString();
             myAvatar->useFullAvatarURL(avatarUrl);
             qCDebug(interfaceapp) << "Avatar On " << avatarUrl;
@@ -254,7 +241,6 @@ QVariantMap AvatarBookmarks::getAvatarDataToBookmark() {
     bookmark.insert(ENTRY_VERSION, AVATAR_BOOKMARK_VERSION);
     bookmark.insert(ENTRY_AVATAR_URL, avatarUrl);
     bookmark.insert(ENTRY_AVATAR_SCALE, avatarScale);
-    bookmark.insert(ENTRY_AVATAR_ATTACHMENTS, myAvatar->getAttachmentsVariant());
 
     QScriptEngine scriptEngine;
     QVariantList wearableEntities;

@@ -187,9 +187,9 @@ bool AACube::expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& 
                 isWithin(start.x + axisDistance*direction.x, expandedCorner.x, expandedSize.x));
 }
 
-bool AACube::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
-                                    BoxFace& face, glm::vec3& surfaceNormal) const {
-    return findRayAABoxIntersection(origin, direction, _corner, glm::vec3(_scale), distance, face, surfaceNormal);
+bool AACube::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& invDirection,
+                                 float& distance, BoxFace& face, glm::vec3& surfaceNormal) const {
+    return findRayAABoxIntersection(origin, direction, invDirection, _corner, glm::vec3(_scale), distance, face, surfaceNormal);
 }
 
 bool AACube::findParabolaIntersection(const glm::vec3& origin, const glm::vec3& velocity, const glm::vec3& acceleration,

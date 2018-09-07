@@ -46,6 +46,7 @@
 #include "InterfaceLogging.h"
 #include "LocationBookmarks.h"
 #include "DeferredLightingEffect.h"
+#include "PickManager.h"
 
 #include "AmbientOcclusionEffect.h"
 #include "RenderShadowTask.h"
@@ -277,13 +278,6 @@ Menu::Menu() {
             QString("hifi/tablet/TabletGraphicsPreferences.qml"), "GraphicsPreferencesDialog");
     });
 
-    // Settings > Attachments...
-    action = addActionToQMenuAndActionHash(settingsMenu, MenuOption::Attachments);
-    connect(action, &QAction::triggered, [] {
-        qApp->showDialog(QString("hifi/dialogs/AttachmentsDialog.qml"),
-                         QString("hifi/tablet/TabletAttachmentsDialog.qml"), "AttachmentsDialog");
-    });
-
     // Settings > Developer Menu
     addCheckableActionToQMenuAndActionHash(settingsMenu, "Developer Menu", 0, false, this, SLOT(toggleDeveloperMenus()));
 
@@ -457,6 +451,9 @@ Menu::Menu() {
             DEV_DECIMATE_TEXTURES = checked;
         });
     }
+
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ComputeBlendshapes, 0, true,
+        DependencyManager::get<ModelBlender>().data(), SLOT(setComputeBlendshapes(bool)));
 
     // Developer > Assets >>>
     // Menu item is not currently needed but code should be kept in case it proves useful again at some stage.
@@ -694,6 +691,11 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletContactPoints, 0, false, qApp, SLOT(setShowBulletContactPoints(bool)));
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletConstraints, 0, false, qApp, SLOT(setShowBulletConstraints(bool)));
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowBulletConstraintLimits, 0, false, qApp, SLOT(setShowBulletConstraintLimits(bool)));
+
+    // Developer > Picking >>>
+    MenuWrapper* pickingOptionsMenu = developerMenu->addMenu("Picking");
+    addCheckableActionToQMenuAndActionHash(pickingOptionsMenu, MenuOption::ForceCoarsePicking, 0, false,
+        DependencyManager::get<PickManager>().data(), SLOT(setForceCoarsePicking(bool)));
 
     // Developer > Display Crash Options
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DisplayCrashOptions, 0, true);

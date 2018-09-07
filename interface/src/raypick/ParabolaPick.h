@@ -83,6 +83,7 @@ public:
     PickResultPointer getOverlayIntersection(const PickParabola& pick) override;
     PickResultPointer getAvatarIntersection(const PickParabola& pick) override;
     PickResultPointer getHUDIntersection(const PickParabola& pick) override;
+    Transform getResultTransform() const override;
 
 protected:
     float _speed;

@@ -149,6 +149,20 @@ public slots:
     */
     void showMaximized();
 
+    /**jsdoc
+    * Values higher than 0 will create replicas of other-avatars when entering a domain for testing purpouses
+    * @function Test.setOtherAvatarsReplicaCount
+    * @param {number} count - Number of replicas we want to create
+    */
+    Q_INVOKABLE void setOtherAvatarsReplicaCount(int count);
+
+    /**jsdoc
+    * Return the number of replicas that are being created of other-avatars when entering a domain
+    * @function Test.getOtherAvatarsReplicaCount
+    * @returns {number} Current number of replicas of other-avatars.
+    */
+    Q_INVOKABLE int getOtherAvatarsReplicaCount();
+
 private:
     bool waitForCondition(qint64 maxWaitMs, std::function<bool()> condition);
     QString _testResultsLocation;

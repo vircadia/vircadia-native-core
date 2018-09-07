@@ -11,7 +11,8 @@
    Entities, enableDispatcherModule, disableDispatcherModule, entityIsGrabbable, makeDispatcherModuleParameters, MSECS_PER_SEC,
    HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, getControllerWorldLocation,
    projectOntoEntityXYPlane, ContextOverlay, HMD, Picks, makeLaserLockInfo, Xform, makeLaserParams, AddressManager,
-   getEntityParents, Selection, DISPATCHER_HOVERING_LIST, unhighlightTargetEntity, Messages, Uuid, findGroupParent
+   getEntityParents, Selection, DISPATCHER_HOVERING_LIST, unhighlightTargetEntity, Messages, Uuid, findGroupParent,
+   worldPositionToRegistrationFrameMatrix
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -615,18 +616,9 @@ Script.include("/~/system/libraries/Xform.js");
 
         this.calculateOffset = function(controllerData) {
             if (this.distanceHolding || this.distanceRotating) {
-                var targetProps = Entities.getEntityProperties(this.targetObject.entityID, [
-                    "position",
-                    "rotation"
-                ]);
-                var zeroVector = { x: 0, y: 0, z:0, w: 0 };
-                var intersection = controllerData.rayPicks[this.hand].intersection;
-                var intersectionMat = new Xform(zeroVector, intersection);
-                var modelMat = new Xform(targetProps.rotation, targetProps.position);
-                var modelMatInv = modelMat.inv();
-                var xformMat = Xform.mul(modelMatInv, intersectionMat);
-                var offsetMat = Mat4.createFromRotAndTrans(xformMat.rot, xformMat.pos);
-                return offsetMat;
+                var targetProps = Entities.getEntityProperties(this.targetObject.entityID,
+                                                               [ "position", "rotation", "registrationPoint", "dimensions" ]);
+                return worldPositionToRegistrationFrameMatrix(targetProps, controllerData.rayPicks[this.hand].intersection);
             }
             return undefined;
         };
