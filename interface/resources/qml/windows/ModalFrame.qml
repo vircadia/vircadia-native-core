@@ -108,6 +108,7 @@ Frame {
                 rightMargin: 10
             }
             glyph: hifi.glyphs.close
+            size: 23
             onClicked: {
                 window.destroy();
             }

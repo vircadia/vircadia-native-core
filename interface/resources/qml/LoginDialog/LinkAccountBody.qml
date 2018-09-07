@@ -87,6 +87,23 @@ Item {
     }
 
     ShortcutText {
+        id: flavorText
+        anchors {
+            top: parent.top
+            left: parent.left
+            margins: 0
+            topMargin: hifi.dimensions.contentSpacing.y
+        }
+
+        text: qsTr("Sign in to High Fidelity to make friends, get HFC, and buy interesting things on the Marketplace!")
+        width: parent.width
+        wrapMode: Text.WordWrap
+        lineHeight: 1
+        lineHeightMode: Text.ProportionalHeight
+        horizontalAlignment: Text.AlignHCenter
+    }
+
+    ShortcutText {
         id: mainTextContainer
         anchors {
             top: parent.top
@@ -128,7 +145,8 @@ Item {
                 y: usernameField.height
                 anchors {
                     right: usernameField.right
-                    topMargin: -19
+                    top: usernameField.bottom
+                    topMargin: 4
                 }
 
                 text: "<a href='https://highfidelity.com/users/password/new'>Forgot Username?</a>"
@@ -159,6 +177,8 @@ Item {
                 z: 10
                 anchors {
                     right: passwordField.right
+                    top: passwordField.bottom
+                    topMargin: 4
                 }
 
                 text: "<a href='https://highfidelity.com/users/password/new'>Forgot Password?</a>"
@@ -246,6 +266,9 @@ Item {
                     } else {
                         Settings.setValue("wallet/savedUsername", Account.username);
                     }
+                }
+                Component.onDestruction: {
+                    Settings.setValue("wallet/autoLogout", !checked);
                 }
             }
 
