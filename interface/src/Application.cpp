@@ -3494,17 +3494,12 @@ bool Application::isServerlessMode() const {
 }
 
 bool Application::isInterstitialMode() const {
-    bool interstitialModeEnabled = Menu::getInstance()->isOptionChecked("Enable Interstitial");
-    return interstitialModeEnabled ? _interstitialMode : false;
+    return _interstitialMode;
 }
 
 void Application::setIsInterstitialMode(bool interstitialMode) {
-    auto menu = Menu::getInstance();
-    bool interstitialModeEnabled = menu->isOptionChecked("Enable Interstitial");
-    if (_interstitialMode != interstitialMode && interstitialModeEnabled) {
+    if (_interstitialMode != interstitialMode) {
         _interstitialMode = interstitialMode;
-
-        DependencyManager::get<OffscreenUi>()->setPinned(_interstitialMode);
         emit interstitialModeChanged(_interstitialMode);
     }
 }
@@ -5109,8 +5104,9 @@ void Application::updateLOD(float deltaTime) const {
         float presentTime = getActiveDisplayPlugin()->getAveragePresentTime();
         float engineRunTime = (float)(_renderEngine->getConfiguration().get()->getCPURunTime());
         float gpuTime = getGPUContext()->getFrameTimerGPUAverage();
+        float batchTime = getGPUContext()->getFrameTimerBatchAverage();
         auto lodManager = DependencyManager::get<LODManager>();
-        lodManager->setRenderTimes(presentTime, engineRunTime, gpuTime);
+        lodManager->setRenderTimes(presentTime, engineRunTime, batchTime, gpuTime);
         lodManager->autoAdjustLOD(deltaTime);
     } else {
         DependencyManager::get<LODManager>()->resetLODAdjust();
@@ -6070,7 +6066,7 @@ void Application::updateRenderArgs(float deltaTime) {
                 _viewFrustum.calculate();
             }
             appRenderArgs._renderArgs = RenderArgs(_gpuContext, lodManager->getOctreeSizeScale(),
-                lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
+                lodManager->getBoundaryLevelAdjust(), lodManager->getLODAngleHalfTan(), RenderArgs::DEFAULT_RENDER_MODE,
                 RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
             appRenderArgs._renderArgs._scene = getMain3DScene();
 
@@ -6419,7 +6415,6 @@ void Application::clearDomainOctreeDetails() {
 }
 
 void Application::clearDomainAvatars() {
-    getMyAvatar()->setAvatarEntityDataChanged(true); // to recreate worn entities
     DependencyManager::get<AvatarManager>()->clearOtherAvatars();
 }
 

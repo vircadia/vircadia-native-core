@@ -14,8 +14,9 @@
 
 (function() {
     Script.include("/~/system/libraries/Xform.js");
-    var DEBUG = false;
-    var MAX_X_SIZE = 3.8;
+    var DEBUG = true;
+    var MIN_LOADING_PROGRESS = 3.6;
+    var TOTAL_LOADING_PROGRESS = 3.8;
     var EPSILON = 0.01;
     var isVisible = false;
     var VOLUME = 0.4;
@@ -55,7 +56,7 @@
         "Tip: Log in to make friends, visit new domains, and save avatars!"
     ];
 
-    var DEFAULT_DIMENSIONS = { x: 20, y: 20, z: 20 };
+    var DEFAULT_DIMENSIONS = { x: 24, y: 24, z: 24 };
 
     var loadingSphereID = Overlays.addOverlay("model", {
         name: "Loading-Sphere",
@@ -87,10 +88,10 @@
     var domainName = "";
     var domainNameTextID = Overlays.addOverlay("text3d", {
         name: "Loading-Destination-Card-Text",
-        localPosition: { x: 0.0, y: 0.8, z: 0.0 },
+        localPosition: { x: 0.0, y: 0.8, z: -0.001 },
         text: domainName,
         textAlpha: 1,
-        backgroundAlpha: 0,
+        backgroundAlpha: 1,
         lineHeight: 0.42,
         visible: isVisible,
         ignoreRayIntersection: true,
@@ -106,9 +107,10 @@
         localPosition: { x: 0.0, y: 0.32, z: 0.0 },
         text: domainText,
         textAlpha: 1,
-        backgroundAlpha: 0,
+        backgroundAlpha: 1,
         lineHeight: 0.13,
         visible: isVisible,
+        backgroundAlpha: 0,
         ignoreRayIntersection: true,
         drawInFront: true,
         grabbable: false,
@@ -123,7 +125,7 @@
         localPosition: { x: 0.0 , y: -1.6, z: 0.0 },
         text: toolTip,
         textAlpha: 1,
-        backgroundAlpha: 0,
+        backgroundAlpha: 1,
         lineHeight: 0.13,
         visible: isVisible,
         ignoreRayIntersection: true,
@@ -248,7 +250,6 @@
     }
 
     function domainChanged(domain) {
-        print("domain changed: " + domain);
         if (domain !== currentDomain) {
             MyAvatar.restoreAnimation();
             var name = location.placename;
@@ -272,7 +273,6 @@
                     if (data.status === "success") {
                         var domainInfo = data.data;
                         var domainDescriptionText = domainInfo.place.description;
-                        print("domainText: " + domainDescriptionText);
                         var leftMargin = getLeftMargin(domainDescription, domainDescriptionText);
                         var domainDescriptionProperties = {
                             text: domainDescriptionText,
@@ -307,7 +307,6 @@
 
     var THE_PLACE = "hifi://TheSpot-dev";
     function clickedOnOverlay(overlayID, event) {
-        print(overlayID + " other: " + loadingToTheSpotID);
         if (loadingToTheSpotID === overlayID) {
             location.handleLookupString(THE_PLACE);
         }
@@ -349,8 +348,10 @@
         Overlays.editOverlay(loadingBarPlacard, properties);
         Overlays.editOverlay(loadingBarProgress, loadingBarProperties);
 
-        if (physicsEnabled && !HMD.active) {
-            toolbar.writeProperty("visible", true);
+
+        Menu.setIsOptionChecked("Show Overlays", physicsEnabled);
+        if (!HMD.active) {
+            toolbar.writeProperty("visible", physicsEnabled);
         }
 
         resetValues();
@@ -380,18 +381,18 @@
 
         var domainLoadingProgressPercentage = Window.domainLoadingProgress();
 
-        var progress = MAX_X_SIZE * domainLoadingProgressPercentage;
+        var progress = MIN_LOADING_PROGRESS * domainLoadingProgressPercentage;
         if (progress >= target) {
             target = progress;
         }
 
-        if ((physicsEnabled && (currentProgress < MAX_X_SIZE))) {
-            target = MAX_X_SIZE;
+        if ((physicsEnabled && (currentProgress < TOTAL_LOADING_PROGRESS))) {
+            target = TOTAL_LOADING_PROGRESS;
         }
 
         currentProgress = lerp(currentProgress, target, 0.2);
         var properties = {
-            localPosition: { x: (1.85 - (currentProgress / 2) - (-0.029 * (currentProgress / MAX_X_SIZE))), y: -0.935, z: 0.0 },
+            localPosition: { x: (1.85 - (currentProgress / 2) - (-0.029 * (currentProgress / TOTAL_LOADING_PROGRESS))), y: -0.935, z: 0.0 },
             dimensions: {
                 x: currentProgress,
                 y: 2.8
@@ -399,9 +400,10 @@
         };
 
         Overlays.editOverlay(loadingBarProgress, properties);
-        if ((physicsEnabled && (currentProgress >= (MAX_X_SIZE - EPSILON)))) {
+        if ((physicsEnabled && (currentProgress >= (TOTAL_LOADING_PROGRESS - EPSILON)))) {
             updateOverlays((physicsEnabled || connectionToDomainFailed));
             endAudio();
+            currentDomain = "no domain";
             timer = null;
             return;
         }
@@ -418,6 +420,10 @@
     });
 
     MyAvatar.sensorToWorldScaleChanged.connect(scaleInterstitialPage);
+    MyAvatar.sessionUUIDChanged.connect(function() {
+        var avatarSessionUUID = MyAvatar.sessionUUID;
+        Overlays.editOverlay(loadingSphereID, { parentID: avatarSessionUUID });
+    });
 
     var toggle = true;
     if (DEBUG) {
@@ -447,6 +453,7 @@
         renderViewTask.getConfig("LightingModel")["enableAmbientLight"] = true;
         renderViewTask.getConfig("LightingModel")["enableDirectionalLight"] = true;
         renderViewTask.getConfig("LightingModel")["enablePointLight"] = true;
+        Menu.setIsOptionChecked("Show Overlays", physicsEnabled);
         if (!HMD.active) {
             toolbar.writeProperty("visible", true);
         }

@@ -787,7 +787,6 @@ Menu::Menu() {
 
     // Developer > Show Overlays
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Overlays, 0, true);
-    addCheckableActionToQMenuAndActionHash(developerMenu, "Enable Interstitial", 0, false);
 
 #if 0 ///  -------------- REMOVED FOR NOW --------------
     addDisabledActionAndSeparator(navigateMenu, "History");
