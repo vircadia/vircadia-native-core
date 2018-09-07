@@ -242,9 +242,9 @@ Item {
                 onCheckedChanged: {
                     Settings.setValue("wallet/autoLogout", !checked);
                     if (checked) {
-                        Settings.setValue("wallet/savedUsername", Account.username);
-                    } else {
                         Settings.setValue("wallet/savedUsername", "");
+                    } else {
+                        Settings.setValue("wallet/savedUsername", Account.username);
                     }
                 }
             }
@@ -310,14 +310,6 @@ Item {
         }
 
         usernameField.forceActiveFocus();
-
-        var data = {
-            "date": new Date().toLocaleString(),
-        };
-        print(new Date().toLocaleString());
-        print(model.sessionId);
-
-        //UserActivityLogger.logAction("login_screen_shown", )
     }
 
     Connections {
