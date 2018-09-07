@@ -87,7 +87,7 @@
 
         var // Base overlay
             miniOverlay = null,
-            MINI_MODEL = Script.resolvePath("./assets/models/tinyTablet.fbx"),
+            MINI_MODEL = Script.resolvePath("./assets/models/miniTabletBlank.fbx"),
             MINI_DIMENSIONS = { x: 0.0637, y: 0.0965, z: 0.0045 }, // Proportional to tablet proper.
             MINI_POSITIONS = [
                 {
