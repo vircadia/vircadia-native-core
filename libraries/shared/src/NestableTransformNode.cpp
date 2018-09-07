@@ -8,6 +8,7 @@
 
 #include "NestableTransformNode.h"
 
+template<>
 glm::vec3 BaseNestableTransformNode<SpatiallyNestable>::getActualScale(const std::shared_ptr<SpatiallyNestable>& nestablePointer) const {
     return nestablePointer->getAbsoluteJointScaleInObjectFrame(_jointIndex);
 }

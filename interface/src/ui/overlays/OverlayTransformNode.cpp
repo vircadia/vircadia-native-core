@@ -7,6 +7,7 @@
 //
 #include "OverlayTransformNode.h"
 
+template<>
 glm::vec3 BaseNestableTransformNode<Base3DOverlay>::getActualScale(const std::shared_ptr<Base3DOverlay>& nestablePointer) const {
     return nestablePointer->getBounds().getScale();
 }

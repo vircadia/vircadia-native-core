@@ -7,6 +7,7 @@
 //
 #include "EntityTransformNode.h"
 
+template<>
 glm::vec3 BaseNestableTransformNode<EntityItem>::getActualScale(const std::shared_ptr<EntityItem>& nestablePointer) const {
     return nestablePointer->getScaledDimensions();
 }

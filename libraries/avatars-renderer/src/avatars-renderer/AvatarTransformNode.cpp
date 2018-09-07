@@ -7,6 +7,7 @@
 //
 #include "AvatarTransformNode.h"
 
+template<>
 glm::vec3 BaseNestableTransformNode<Avatar>::getActualScale(const std::shared_ptr<Avatar>& nestablePointer) const {
     return nestablePointer->scaleForChildren();
 }
