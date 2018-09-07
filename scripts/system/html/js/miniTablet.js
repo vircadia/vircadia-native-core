@@ -19,13 +19,13 @@
         READY_MESSAGE = "ready", // Engine <== Dialog
         HOVER_MESSAGE = "hover", // Engine <== Dialog
         MUTE_MESSAGE = "mute", // Engine <=> Dialog
-        BUBBLE_MESSAGE = "bubble", // Engine <=> Dialog
+        GOTO_MESSAGE = "goto", // Engine <=> Dialog
         EXPAND_MESSAGE = "expand", // Engine <== Dialog
 
         muteButton,
         muteImage,
-        bubbleButton,
-        bubbleImage,
+        gotoButton,
+        gotoImage,
         expandButton;
 
     // #region Communications ==================================================================================================
@@ -44,10 +44,8 @@
             case MUTE_MESSAGE:
                 muteImage.src = message.icon;
                 break;
-            case BUBBLE_MESSAGE:
-                bubbleButton.classList.remove(message.on ? "off" : "on");
-                bubbleButton.classList.add(message.on ? "on" : "off");
-                bubbleImage.src = message.icon;
+            case GOTO_MESSAGE:
+                gotoImage.src = message.icon;
                 break;
         }
     }
@@ -64,9 +62,9 @@
         }));
     }
 
-    function onBubbleButtonClick() {
+    function onGotoButtonClick() {
         EventBridge.emitWebEvent(JSON.stringify({
-            type: BUBBLE_MESSAGE
+            type: GOTO_MESSAGE
         }));
     }
 
@@ -98,17 +96,17 @@
     function onLoad() {
         muteButton = document.getElementById("mute");
         muteImage = document.getElementById("mute-img");
-        bubbleButton = document.getElementById("bubble");
-        bubbleImage = document.getElementById("bubble-img");
+        gotoButton = document.getElementById("goto");
+        gotoImage = document.getElementById("goto-img");
         expandButton = document.getElementById("expand");
 
         connectEventBridge();
 
         muteButton.addEventListener("mouseenter", onButtonHover, false);
-        bubbleButton.addEventListener("mouseenter", onButtonHover, false);
+        gotoButton.addEventListener("mouseenter", onButtonHover, false);
         expandButton.addEventListener("mouseenter", onButtonHover, false);
         muteButton.addEventListener("click", onMuteButtonClick, true);
-        bubbleButton.addEventListener("click", onBubbleButtonClick, true);
+        gotoButton.addEventListener("click", onGotoButtonClick, true);
         expandButton.addEventListener("click", onExpandButtonClick, true);
 
         document.body.onunload = function () {

@@ -126,8 +126,7 @@
             // Button icons.
             MUTE_ON_ICON = Script.resourcesPath() + "icons/tablet-icons/mic-mute-a.svg",
             MUTE_OFF_ICON = Script.resourcesPath() + "icons/tablet-icons/mic-unmute-i.svg",
-            BUBBLE_ON_ICON = Script.resourcesPath() + "icons/tablet-icons/bubble-a.svg",
-            BUBBLE_OFF_ICON = Script.resourcesPath() + "icons/tablet-icons/bubble-i.svg",
+            GOTO_ICON = Script.resourcesPath() + "icons/tablet-icons/goto-i.svg",
 
             // Expansion to tablet.
             MINI_EXPAND_HANDLES = [ // Normalized coordinates in range [-0.5, 0.5] about center of mini tablet.
@@ -149,14 +148,14 @@
             miniTargetWidth,
             miniTargetLocalRotation,
 
-            // EventBridge
+            // EventBridge.
             READY_MESSAGE = "ready", // Engine <== Dialog
             HOVER_MESSAGE = "hover", // Engine <== Dialog
             MUTE_MESSAGE = "mute", // Engine <=> Dialog
-            BUBBLE_MESSAGE = "bubble", // Engine <=> Dialog
+            GOTO_MESSAGE = "goto", // Engine <=> Dialog
             EXPAND_MESSAGE = "expand", // Engine <== Dialog
 
-            // Sounds
+            // Sounds.
             HOVER_SOUND = "./assets/sounds/button-hover.wav",
             HOVER_VOLUME = 0.5,
             CLICK_SOUND = "./assets/sounds/button-click.wav",
@@ -174,12 +173,10 @@
             }));
         }
 
-        function updateBubbleStatus() {
-            var isBubbleOn = Users.getIgnoreRadiusEnabled();
+        function setGotoIcon() {
             miniOverlayObject.emitScriptEvent(JSON.stringify({
-                type: BUBBLE_MESSAGE,
-                on: isBubbleOn,
-                icon: isBubbleOn ? BUBBLE_ON_ICON : BUBBLE_OFF_ICON
+                type: GOTO_MESSAGE,
+                icon: GOTO_ICON
             }));
         }
 
@@ -197,7 +194,7 @@
                 case READY_MESSAGE:
                     // Send initial button statuses.
                     updateMutedStatus();
-                    updateBubbleStatus();
+                    setGotoIcon();
                     break;
                 case HOVER_MESSAGE:
                     // Audio feedback.
@@ -208,15 +205,15 @@
                     playSound(clickSound, CLICK_VOLUME);
                     Audio.muted = !Audio.muted;
                     break;
-                case BUBBLE_MESSAGE:
-                    // Toggle bubble.
+                case GOTO_MESSAGE:
+                    // Goto.
                     playSound(clickSound, CLICK_VOLUME);
-                    Users.toggleIgnoreRadius();
+                    miniState.setState(miniState.MINI_EXPANDING, { hand: uiHand, goto: true });
                     break;
                 case EXPAND_MESSAGE:
                     // Expand tablet;
                     playSound(clickSound, CLICK_VOLUME);
-                    miniState.setState(miniState.MINI_EXPANDING, uiHand);
+                    miniState.setState(miniState.MINI_EXPANDING, { hand: uiHand, goto: false });
                     break;
             }
         }
@@ -419,7 +416,6 @@
             getMiniTabletID: getMiniTabletID,
             getMiniTabletProperties: getMiniTabletProperties,
             updateMutedStatus: updateMutedStatus,
-            updateBubbleStatus: updateBubbleStatus,
             show: show,
             size: size,
             startExpandingTablet: startExpandingTablet,
@@ -470,6 +466,10 @@
             miniExpandTimer = null,
             miniExpandStart,
 
+            // Tablet targets.
+            isGoto = false,
+            TABLET_ADDRESS_DIALOG = "hifi/tablet/TabletAddressDialog.qml",
+
             // Visibility.
             MIN_HAND_CAMERA_ANGLE = 30,
             DEGREES_180 = 180,
@@ -483,9 +483,8 @@
                 updateTimer = null;
             }
 
-            // Stop monitoring mute and bubble changes.
+            // Stop monitoring mute changes.
             Audio.mutedChanged.disconnect(ui.updateMutedStatus);
-            Users.ignoreRadiusEnabledChanged.disconnect(ui.updateBubbleStatus);
 
             // Don't keep overlays prepared if in desktop mode.
             ui.destroy();
@@ -496,9 +495,8 @@
             // Create UI so that it's ready to be displayed without seeing artefacts from creating the UI.
             ui = new UI();
 
-            // Start monitoring mute and bubble changes.
+            // Start monitoring mute changes.
             Audio.mutedChanged.connect(ui.updateMutedStatus);
-            Users.ignoreRadiusEnabledChanged.connect(ui.updateBubbleStatus);
 
             // Start updates.
             updateTimer = Script.setTimeout(updateState, UPDATE_INTERVAL);
@@ -640,8 +638,9 @@
             setState(TABLET_OPEN);
         }
 
-        function enterMiniExpanding(hand) {
-            ui.startExpandingTablet(hand);
+        function enterMiniExpanding(data) {
+            isGoto = data.goto;
+            ui.startExpandingTablet(data.hand);
             miniExpandStart = Date.now();
             miniExpandTimer = Script.setTimeout(expandMini, MINI_EXPAND_TIMEOUT);
         }
@@ -665,10 +664,17 @@
 
             ui.hide();
 
+            if (isGoto) {
+                tablet.loadQMLSource(TABLET_ADDRESS_DIALOG);
+            } else {
+                tablet.gotoHomeScreen();
+            }
+
             Overlays.editOverlay(HMD.tabletID, {
                 position: miniTabletProperties.position,
                 orientation: miniTabletProperties.orientation
             });
+
             HMD.openTablet(true);
         }
 
@@ -807,13 +813,13 @@
         if (message.action === "grab" && miniState.getState() === miniState.MINI_VISIBLE) {
             hand = message.joint === HAND_NAMES[miniHand] ? miniHand : otherHand(miniHand);
             if (hand === miniHand) {
-                miniState.setState(miniState.MINI_EXPANDING, hand);
+                miniState.setState(miniState.MINI_EXPANDING, { hand: hand, goto: false });
             } else {
                 miniState.setState(miniState.MINI_GRABBED);
             }
         } else if (message.action === "release" && miniState.getState() === miniState.MINI_GRABBED) {
             hand = message.joint === HAND_NAMES[miniHand] ? miniHand : otherHand(miniHand);
-            miniState.setState(miniState.MINI_EXPANDING, hand);
+            miniState.setState(miniState.MINI_EXPANDING, { hand: hand, goto: false });
         }
     }
 

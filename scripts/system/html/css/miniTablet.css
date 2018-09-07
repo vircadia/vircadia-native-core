@@ -57,25 +57,17 @@ img {
             background-image: url("./img/mt-mute-hover.svg");
         }
 
-#bubble {
+#goto {
     padding-top: 19px;
     background-size: 100% 100%;
 }
 
-    #bubble.off {
-        background-image: url("./img/mt-bubble-i-normal.svg");
+    #goto.off {
+        background-image: url("./img/mt-goto-normal.svg");
     }
 
-        #bubble.off:hover {
-            background-image: url("./img/mt-bubble-i-hover.svg");
-        }
-
-    #bubble.on {
-        background-image: url("./img/mt-bubble-a-normal.svg");
-    }
-
-        #bubble.on:hover {
-            background-image: url("./img/mt-bubble-a-hover.svg");
+        #goto.off:hover {
+            background-image: url("./img/mt-goto-hover.svg");
         }
 
 #expand {
