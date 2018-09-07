@@ -214,6 +214,7 @@ Flickable {
 
                     onEditingFinished: {
                         sendConfigurationSettings();
+                        openVrConfiguration.forceActiveFocus();
                     }
                 }
 
@@ -231,6 +232,7 @@ Flickable {
 
                     onEditingFinished: {
                         sendConfigurationSettings();
+                        openVrConfiguration.forceActiveFocus();
                     }
                 }
             }
@@ -323,6 +325,7 @@ Flickable {
 
                     onEditingFinished: {
                         sendConfigurationSettings();
+                        openVrConfiguration.forceActiveFocus();
                     }
                 }
 
@@ -339,6 +342,7 @@ Flickable {
 
                     onEditingFinished: {
                         sendConfigurationSettings();
+                        openVrConfiguration.forceActiveFocus();
                     }
                 }
             }
@@ -571,6 +575,7 @@ Flickable {
 
                     onEditingFinished: {
                         sendConfigurationSettings();
+                        openVrConfiguration.forceActiveFocus();
                     }
                 }
 
@@ -587,6 +592,7 @@ Flickable {
 
                     onEditingFinished: {
                         sendConfigurationSettings();
+                        openVrConfiguration.forceActiveFocus();
                     }
                 }
             }
@@ -765,6 +771,7 @@ Flickable {
                     calibrationTimer.interval = realValue * 1000;
                     openVrConfiguration.countDown = realValue;
                     numberAnimation.duration = calibrationTimer.interval;
+                    openVrConfiguration.forceActiveFocus();
                 }
             }
 
