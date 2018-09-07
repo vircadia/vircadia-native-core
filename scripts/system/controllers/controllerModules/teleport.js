@@ -22,7 +22,6 @@ Script.include("/~/system/libraries/controllers.js");
 (function() { // BEGIN LOCAL_SCOPE
 
     var TARGET_MODEL_URL = Script.resolvePath("../../assets/models/teleport-destination.fbx");
-    var CANCEL_MODEL_URL = Script.resolvePath("../../assets/models/teleport-cancel.fbx");
     var SEAT_MODEL_URL = Script.resolvePath("../../assets/models/teleport-seat.fbx");
 
     var TARGET_MODEL_DIMENSIONS = {
@@ -63,28 +62,26 @@ Script.include("/~/system/libraries/controllers.js");
         alpha: 1,
         width: 0.025
     };
+    
     var teleportPath = {
         color: COLORS_TELEPORT_CAN_TELEPORT,
         alpha: 1,
         width: 0.025
     };
+    
     var seatPath = {
         color: COLORS_TELEPORT_SEAT,
         alpha: 1,
         width: 0.025
     };
-    var cancelEnd = {
-        type: "model",
-        url: CANCEL_MODEL_URL,
-        dimensions: TARGET_MODEL_DIMENSIONS,
-        ignorePickIntersection: true
-    };
+    
     var teleportEnd = {
         type: "model",
         url: TARGET_MODEL_URL,
         dimensions: TARGET_MODEL_DIMENSIONS,
         ignorePickIntersection: true
     };
+    
     var seatEnd = {
         type: "model",
         url: SEAT_MODEL_URL,
@@ -93,19 +90,20 @@ Script.include("/~/system/libraries/controllers.js");
     };
     
     var collisionEnd = {
-        type: "sphere",
-        dimensions: {x: 0, y: 0, z: 0},
+        type: "shape",
+        shape: "box",
+        dimensions: TARGET_MODEL_DIMENSIONS,
+        alpha: 0.0,
         ignorePickIntersection: true
     };
     
-    var teleportRenderStates = [{name: "noend", path: cancelPath},
-        {name: "cancel", path: cancelPath, end: cancelEnd},
+    var teleportRenderStates = [{name: "cancel", path: cancelPath},
         {name: "teleport", path: teleportPath, end: teleportEnd},
         {name: "seat", path: seatPath, end: seatEnd},
         {name: "invisible", end: collisionEnd}];
 
     var DEFAULT_DISTANCE = 8.0;
-    var teleportDefaultRenderStates = [{name: "noend", distance: DEFAULT_DISTANCE, path: cancelPath}];
+    var teleportDefaultRenderStates = [{name: "cancel", distance: DEFAULT_DISTANCE, path: cancelPath}];
 
     var ignoredEntities = [];
 
@@ -117,9 +115,9 @@ Script.include("/~/system/libraries/controllers.js");
 
     var TARGET = {
         NONE: 'none', // Not currently targetting anything
-        INVISIBLE: 'invisible', // The current target is an invvsible surface
+        INVISIBLE: 'invisible', // The current target is an invisible surface
         INVALID: 'invalid', // The current target is invalid (wall, ceiling, etc.)
-        CANCEL: 'cancel', // Insufficient space to accommodate the avatar capsule
+        COLLIDES: 'collides', // Insufficient space to accommodate the avatar capsule
         SURFACE: 'surface', // The current target is a valid surface
         SEAT: 'seat' // The current target is a seat
     };
@@ -205,20 +203,20 @@ Script.include("/~/system/libraries/controllers.js");
         this.teleportHandCollisionPick;
         
         this.recreateCollisionPicks = function() {
-
             if (_this.teleportHandCollisionPick !== undefined) {
                 Picks.removePick(_this.teleportHandCollisionPick);
             }
             if (_this.teleportHeadCollisionPick !== undefined) {
                 Picks.removePick(_this.teleportHeadCollisionPick);
             }
+            
             var capsuleData = MyAvatar.getCollisionCapsule();
             var capsuleHeight = Vec3.distance(capsuleData.start, capsuleData.end);
-            var offset = Vec3.distance(Vec3.sum(capsuleData.start, {x: 0, y: 0.5*capsuleHeight, z: 0}), MyAvatar.position);
-            var radius = capsuleData.radius;
-            var height = 2.0 * radius + capsuleHeight;
-            var scale = height/2.0;
-            
+            var scale = capsuleData.scale;
+            var offset = Vec3.distance(Vec3.sum(capsuleData.start, {x: 0, y: 0.5*capsuleHeight, z: 0}), MyAvatar.position)/scale;
+            var radius = capsuleData.radius/scale;
+            var height = 2.0 * radius + capsuleHeight/scale;
+
             _this.teleportHandCollisionPick = Picks.createPick(PickType.Collision, {
                 enabled: true,
                 parentID: Pointers.getPointerProperties(_this.teleportParabolaHandInvisible).renderStates["invisible"].end,
@@ -232,7 +230,7 @@ Script.include("/~/system/libraries/controllers.js");
                     }
                 },
                 position: { x: 0, y: offset + (height * 0.5), z: 0 },
-                threshold: scale * _this.capsuleThreshold
+                threshold: _this.capsuleThreshold * scale
             });
             
             _this.teleportHeadCollisionPick = Picks.createPick(PickType.Collision, {
@@ -248,7 +246,7 @@ Script.include("/~/system/libraries/controllers.js");
                     }
                 },
                 position: { x: 0, y: offset + (height * 0.5), z: 0 },
-                threshold: scale * _this.capsuleThreshold
+                threshold: _this.capsuleThreshold * scale
             });
         }
         
@@ -368,15 +366,15 @@ Script.include("/~/system/libraries/controllers.js");
                 } else {
                     result = Pointers.getPrevPickResult(_this.teleportParabolaHandVisible);
                 }
-                teleportLocationType = getTeleportTargetType(result);
+                teleportLocationType = getTeleportTargetType(result, collisionResult);
             }
 
             if (teleportLocationType === TARGET.NONE) {
                 // Use the cancel default state
-                this.setTeleportState(mode, "noend", "");
+                this.setTeleportState(mode, "cancel", "");
             } else if (teleportLocationType === TARGET.INVALID || teleportLocationType === TARGET.INVISIBLE) {
-                this.setTeleportState(mode, "", "noend");
-            } else if (teleportLocationType === TARGET.CANCEL) {
+                this.setTeleportState(mode, "", "cancel");
+            } else if (teleportLocationType === TARGET.COLLIDES) {
                 this.setTeleportState(mode, "cancel", "invisible");
             } else if (teleportLocationType === TARGET.SURFACE) {
                 this.setTeleportState(mode, "teleport", "invisible");
@@ -496,6 +494,12 @@ Script.include("/~/system/libraries/controllers.js");
                 return TARGET.INVALID;
             }
         }
+        
+        if (collisionResult.collisionRegion != undefined) {
+            if (collisionResult.intersects) {
+                return TARGET.COLLIDES;
+            }
+        }
 
         if (!props.visible) {
             return TARGET.INVISIBLE;
@@ -507,11 +511,6 @@ Script.include("/~/system/libraries/controllers.js");
         if (angle > MAX_ANGLE_FROM_UP_TO_TELEPORT) {
             return TARGET.INVALID;
         } else {
-            if (collisionResult.collisionRegion != undefined) {
-                if (collisionResult.intersects) {
-                    return TARGET.CANCEL;
-                }
-            }
             return TARGET.SURFACE;
         }
     }
@@ -605,52 +604,9 @@ Script.include("/~/system/libraries/controllers.js");
         }
     };
     
-    // This class execute a function after the param value haven't been set for a certain time
-    // It's used in this case to recreate the collision picks once when the avatar scale process ends
-    
-    var AfterSet = function(time, maxsteps, callback) {
-        var self = this;
-        this.time = time;
-        this.callback = callback;
-        this.init = false;
-        this.value = 0;
-        this.interval;
-        this.maxsteps = maxsteps;
-        this.steps = 0;
-        this.restateValue = function(value) {
-            if (self.steps++ > self.maxsteps) {
-                self.callback.call(this, self.value);
-                self.steps = 0;
-            }
-            if (!self.init) {
-                console.log("Starting apply after");
-            }
-            self.init = true;
-            self.value = value;
-            if (self.interval !== undefined) {
-                Script.clearInterval(self.interval);
-            }
-            self.interval = Script.setInterval(function() {
-                self.callback.call(this, self.value);
-                self.init = false;
-                Script.clearInterval(self.interval);
-                self.interval = undefined;
-            }, self.time);
-        }
-    }
-    
-    var afterSet = new AfterSet(100, 30, function(value) {
-        leftTeleporter.recreateCollisionPicks();
-        rightTeleporter.recreateCollisionPicks();
-    });
-
     MyAvatar.onLoadComplete.connect(function () {
         leftTeleporter.recreateCollisionPicks();
         rightTeleporter.recreateCollisionPicks();
-    });
-    
-    MyAvatar.sensorToWorldScaleChanged.connect(function() {
-        afterSet.restateValue(MyAvatar.getSensorToWorldScale());
     });
     
     Messages.subscribe('Hifi-Teleport-Disabler');

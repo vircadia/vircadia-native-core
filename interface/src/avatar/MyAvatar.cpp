@@ -3315,6 +3315,7 @@ QVariantMap MyAvatar::getCollisionCapsule() {
     capsule["start"] = vec3toVariant(start);
     capsule["end"] = vec3toVariant(end);
     capsule["radius"] = QVariant(radius);
+    capsule["scale"] = QVariant(getModelScale());
     return capsule;
 }
 
