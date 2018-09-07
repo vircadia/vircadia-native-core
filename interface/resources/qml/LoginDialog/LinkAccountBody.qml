@@ -147,7 +147,7 @@ Item {
                 anchors {
                     right: usernameField.right
                     top: usernameField.bottom
-                    topMargin: 2
+                    topMargin: 4
                 }
 
                 text: "<a href='https://highfidelity.com/users/password/new'>Forgot Username?</a>"
@@ -175,7 +175,7 @@ Item {
                 anchors {
                     right: passwordField.right
                     top: passwordField.bottom
-                    topMargin: 2
+                    topMargin: 4
                 }
 
                 text: "<a href='https://highfidelity.com/users/password/new'>Forgot Password?</a>"
