@@ -14,8 +14,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include <QString.h>
-#include <QStringList.h>
+#include <QString>
+#include <QStringList>
 #include <map>
 
 enum class AnimNodeType {
