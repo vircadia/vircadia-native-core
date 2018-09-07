@@ -367,6 +367,7 @@ bool AudioMixerClientData::containsValidPosition(ReceivedMessage& message) const
         case PacketType::InjectAudio: {
             // skip the stream ID, stereo flag, and loopback flag
             message.seek(message.getPosition() + NUM_STREAM_ID_BYTES + sizeof(ChannelFlag) + sizeof(LoopbackFlag));
+            break;
         }
         default:
             Q_UNREACHABLE();
