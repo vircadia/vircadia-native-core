@@ -25,7 +25,7 @@ public:
         }
     }
 
-    Transform getTransform() {
+    Transform getTransform() override {
         std::shared_ptr<T> nestable = _spatiallyNestable.lock();
         if (!nestable) {
             return Transform();
