@@ -455,7 +455,7 @@
             UPDATE_INTERVAL = 300,
 
             // Mini tablet scaling.
-            MINI_SCALE_DURATION = 150,
+            MINI_SCALE_DURATION = 250,
             MINI_SCALE_TIMEOUT = 20,
             miniScaleTimer = null,
             miniScaleStart,
