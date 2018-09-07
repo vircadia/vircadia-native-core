@@ -65,7 +65,7 @@ public:
 
     ~GLBuffer();
 
-    virtual void transfer() {};
+    virtual void transfer() = 0;
 
 protected:
     GLBuffer(const std::weak_ptr<GLBackend>& backend, const Buffer& buffer, GLuint id);
