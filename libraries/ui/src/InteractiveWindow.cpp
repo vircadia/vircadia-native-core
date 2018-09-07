@@ -13,12 +13,19 @@
 
 #include <QtQml/QQmlContext>
 #include <QtCore/QThread>
+#include <QtGui/QGuiApplication>
+#include <QtQuick/QQuickWindow>
 
 #include <DependencyManager.h>
 #include <RegisteredMetaTypes.h>
 
 #include "OffscreenUi.h"
 #include "shared/QtHelpers.h"
+#include "MainWindow.h"
+
+#ifdef Q_OS_WIN
+#include <WinUser.h>
+#endif
 
 static auto CONTENT_WINDOW_QML = QUrl("InteractiveWindow.qml");
 
@@ -86,6 +93,12 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         connect(object, SIGNAL(titleChanged()), this, SIGNAL(titleChanged()), Qt::QueuedConnection);
         connect(object, SIGNAL(windowClosed()), this, SIGNAL(closed()), Qt::QueuedConnection);
         connect(object, SIGNAL(selfDestruct()), this, SLOT(close()), Qt::QueuedConnection);
+
+#ifdef Q_OS_WIN
+        connect(object, SIGNAL(nativeWindowChanged()), this, SLOT(parentNativeWindowToMainWindow()), Qt::QueuedConnection);
+        connect(object, SIGNAL(interactiveWindowVisibleChanged()), this, SLOT(parentNativeWindowToMainWindow()), Qt::QueuedConnection);
+        connect(object, SIGNAL(presentationModeChanged()), this, SLOT(parentNativeWindowToMainWindow()), Qt::QueuedConnection);
+#endif
 
         QUrl sourceURL{ sourceUrl };
         // If the passed URL doesn't correspond to a known scheme, assume it's a local file path
@@ -278,6 +291,24 @@ int InteractiveWindow::getPresentationMode() const {
     }
     return _qmlWindow->property(PRESENTATION_MODE_PROPERTY).toInt();
 }
+
+#ifdef Q_OS_WIN
+void InteractiveWindow::parentNativeWindowToMainWindow() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "parentNativeWindowToMainWindow");
+        return;
+    }
+    if (_qmlWindow.isNull()) {
+        return;
+    }
+    const auto nativeWindowProperty = _qmlWindow->property("nativeWindow");
+    if (nativeWindowProperty.isNull() || !nativeWindowProperty.isValid()) {
+        return;
+    }
+    const auto nativeWindow = qvariant_cast<QQuickWindow*>(nativeWindowProperty);
+    SetWindowLongPtr((HWND)nativeWindow->winId(), GWLP_HWNDPARENT, (LONG)MainWindow::findMainWindow()->winId());
+}
+#endif
 
 void InteractiveWindow::setPresentationMode(int presentationMode) {
     if (QThread::currentThread() != thread()) {
