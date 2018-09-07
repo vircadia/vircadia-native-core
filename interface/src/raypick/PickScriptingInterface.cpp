@@ -383,10 +383,6 @@ std::shared_ptr<TransformNode> PickScriptingInterface::createTransformNode(const
             if (propMap["parentJointIndex"].isValid()) {
                 parentJointIndex = propMap["parentJointIndex"].toInt();
             }
-            glm::vec3 baseScale = glm::vec3(1);
-            if (propMap["baseScale"].isValid()) {
-                baseScale = vec3FromVariant(propMap["baseScale"]);
-            }
             auto sharedNestablePointer = nestablePointer.lock();
             if (success && sharedNestablePointer) {
                 NestableType nestableType = sharedNestablePointer->getNestableType();
