@@ -32,6 +32,18 @@ Flickable {
         }
     }
 
+    function bringToView(item) {
+        var yTop = item.mapToItem(contentItem, 0, 0).y;
+        var yBottom = yTop + item.height;
+
+        var surfaceTop = contentY;
+        var surfaceBottom = contentY + height;
+
+        if(yTop < surfaceTop || yBottom > surfaceBottom) {
+            contentY = yTop - height / 2 + item.height
+        }
+    }
+
     Component.onCompleted: {
         page = config.createObject(flick.contentItem);
     }
@@ -39,6 +51,8 @@ Flickable {
         id: config
         Rectangle {
             id: openVrConfiguration
+            anchors.fill: parent
+
             property int leftMargin: 75
             property int countDown: 0
             property string pluginName: ""
