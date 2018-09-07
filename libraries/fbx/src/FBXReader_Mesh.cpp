@@ -734,8 +734,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
                 clusterIndices[i] = (uint8_t)(fbxMesh.clusterIndices[i]);
             }
             vertBuffer->setSubData(clusterIndicesOffset, clusterIndicesSize, (const gpu::Byte*) clusterIndices.constData());
-        }
-        else {
+        } else {
             vertBuffer->setSubData(clusterIndicesOffset, clusterIndicesSize, (const gpu::Byte*) fbxMesh.clusterIndices.constData());
         }
     }
@@ -763,15 +762,14 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     bool interleaveNormalsTangents = true;
 
     // If has blend shapes allocate and assign buffers for pos and tangents now
-    hasBlendShapes = true;
     if (hasBlendShapes) {
         auto posBuffer = std::make_shared<gpu::Buffer>();
         posBuffer->setData(positionsSize, (const gpu::Byte*) vertBuffer->getData() + positionsOffset);
         vertexBufferStream->addBuffer(posBuffer, 0, positionElement.getSize());
 
-        auto tangentBuffer = std::make_shared<gpu::Buffer>();
-        tangentBuffer->setData(normalsAndTangentsSize, (const gpu::Byte*) vertBuffer->getData() + normalsAndTangentsOffset);
-        vertexBufferStream->addBuffer(tangentBuffer, 0, normalsAndTangentsStride);
+        auto normalsAndTangentsBuffer = std::make_shared<gpu::Buffer>();
+        normalsAndTangentsBuffer->setData(normalsAndTangentsSize, (const gpu::Byte*) vertBuffer->getData() + normalsAndTangentsOffset);
+        vertexBufferStream->addBuffer(normalsAndTangentsBuffer, 0, normalsAndTangentsStride);
 
         // update channels and attribBuffer size accordingly
         interleavePositions = false;
@@ -814,8 +812,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     if (texCoords1Size) {
         vertexFormat->setAttribute(gpu::Stream::TEXCOORD1, attribChannel, texCoordsElement, bufOffset);
         bufOffset += texCoordsElement.getSize();
-    }
-    else if (texCoordsSize) {
+    } else if (texCoordsSize) {
         vertexFormat->setAttribute(gpu::Stream::TEXCOORD1, attribChannel, texCoordsElement, bufOffset - texCoordsElement.getSize());
     }
     if (clusterIndicesSize) {
