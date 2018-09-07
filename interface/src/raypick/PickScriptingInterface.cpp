@@ -24,11 +24,14 @@
 #include "CollisionPick.h"
 
 #include "SpatialParentFinder.h"
-#include "NestableTransformNode.h"
 #include "PickTransformNode.h"
 #include "MouseTransformNode.h"
 #include "avatar/MyAvatarHeadTransformNode.h"
 #include "avatar/AvatarManager.h"
+#include "NestableTransformNode.h"
+#include "avatars-renderer/AvatarTransformNode.h"
+#include "ui/overlays/OverlayTransformNode.h"
+#include "EntityTransformNode.h"
 
 #include <ScriptEngine.h>
 
@@ -260,9 +263,16 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
 * A set of properties that can be passed to {@link Picks.createPick} to create a new Collision Pick.
 
 * @typedef {object} Picks.CollisionPickProperties
-* @property {Shape} shape - The information about the collision region's size and shape.
-* @property {Vec3} position - The position of the collision region.
-* @property {Quat} orientation - The orientation of the collision region.
+* @property {boolean} [enabled=false] If this Pick should start enabled or not.  Disabled Picks do not updated their pick results.
+* @property {number} [filter=Picks.PICK_NOTHING] The filter for this Pick to use, constructed using filter flags combined using bitwise OR.
+* @property {Shape} shape - The information about the collision region's size and shape. Dimensions are in world space, but will scale with the parent if defined.
+* @property {Vec3} position - The position of the collision region, relative to a parent if defined.
+* @property {Quat} orientation - The orientation of the collision region, relative to a parent if defined.
+* @property {float} threshold - The approximate minimum penetration depth for a test object to be considered in contact with the collision region.
+* The depth is measured in world space, but will scale with the parent if defined.
+* @property {Uuid} parentID - The ID of the parent, either an avatar, an entity, or an overlay.
+* @property {number} parentJointIndex - The joint of the parent to parent to, for example, the joints on the model of an avatar. (default = 0, no joint)
+* @property {string} joint - If "Mouse," parents the pick to the mouse. If "Avatar," parents the pick to MyAvatar's head. Otherwise, parents to the joint of the given name on MyAvatar.
 */
 unsigned int PickScriptingInterface::createCollisionPick(const QVariant& properties) {
     QVariantMap propMap = properties.toMap();
@@ -375,7 +385,16 @@ std::shared_ptr<TransformNode> PickScriptingInterface::createTransformNode(const
             }
             auto sharedNestablePointer = nestablePointer.lock();
             if (success && sharedNestablePointer) {
-                return std::make_shared<NestableTransformNode>(nestablePointer, parentJointIndex);
+                NestableType nestableType = sharedNestablePointer->getNestableType();
+                if (nestableType == NestableType::Avatar) {
+                    return std::make_shared<AvatarTransformNode>(std::static_pointer_cast<Avatar>(sharedNestablePointer), parentJointIndex);
+                } else if (nestableType == NestableType::Overlay) {
+                    return std::make_shared<OverlayTransformNode>(std::static_pointer_cast<Base3DOverlay>(sharedNestablePointer), parentJointIndex);
+                } else if (nestableType == NestableType::Entity) {
+                    return std::make_shared<EntityTransformNode>(std::static_pointer_cast<EntityItem>(sharedNestablePointer), parentJointIndex);
+                } else {
+                    return std::make_shared<NestableTransformNode>(nestablePointer, parentJointIndex);
+                }
             }
         }
 
@@ -394,7 +413,7 @@ std::shared_ptr<TransformNode> PickScriptingInterface::createTransformNode(const
         } else if (!joint.isNull()) {
             auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
             int jointIndex = myAvatar->getJointIndex(joint);
-            return std::make_shared<NestableTransformNode>(myAvatar, jointIndex);
+            return std::make_shared<AvatarTransformNode>(myAvatar, jointIndex);
         }
     }
 
