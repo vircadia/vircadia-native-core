@@ -242,9 +242,9 @@ Item {
                 onCheckedChanged: {
                     Settings.setValue("wallet/autoLogout", !checked);
                     if (checked) {
-                        Settings.setValue("wallet/savedUsername", "");
-                    } else {
                         Settings.setValue("wallet/savedUsername", Account.username);
+                    } else {
+                        Settings.setValue("wallet/savedUsername", "");
                     }
                 }
             }
