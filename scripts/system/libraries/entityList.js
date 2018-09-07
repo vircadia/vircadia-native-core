@@ -11,8 +11,9 @@
 /* global EntityListTool, Tablet, selectionManager, Entities, Camera, MyAvatar, Vec3, Menu, Messages,
    cameraManager, MENU_EASE_ON_FOCUS, deleteSelectedEntities, toggleSelectedEntitiesLocked, toggleSelectedEntitiesVisible */
 
+var PROFILING_ENABLED = false;
 var profileIndent = '';
-PROFILE = function(name, fn, args) {
+PROFILE = !PROFILING_ENABLED ? function() { } : function(name, fn, args) {
     console.log("PROFILE-Script " + profileIndent + "(" + name + ") Begin");
     var previousIndent = profileIndent;
     profileIndent += '  ';
@@ -21,7 +22,7 @@ PROFILE = function(name, fn, args) {
     var delta = Date.now() - before;
     profileIndent = previousIndent;
     console.log("PROFILE-Script " + profileIndent + "(" + name + ") End " + delta + "ms");
-}
+};
 
 EntityListTool = function(shouldUseEditTabletApp) {
     var that = {};
@@ -82,7 +83,6 @@ EntityListTool = function(shouldUseEditTabletApp) {
         PROFILE("Script-JSON.stringify", function() {
             dataString = JSON.stringify(data);
         });
-        console.log("Length: ", dataString.length, data.type);
         PROFILE("Script-emitScriptEvent", function() {
             webView.emitScriptEvent(dataString);
             if (entityListWindow.window) {
@@ -90,7 +90,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
             }
         });
     }
-    
+
     that.toggleVisible = function() {
         that.setVisible(!visible);
     };
@@ -121,7 +121,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
             selectedIDs: selectedIDs
         });
     };
-    
+
     that.deleteEntities = function (deletedIDs) {
         emitJSONScriptEvent({
             type: "deleted",
@@ -150,7 +150,6 @@ EntityListTool = function(shouldUseEditTabletApp) {
             PROFILE("getProperties", function() {
             for (var i = 0; i < ids.length; i++) {
                 var id = ids[i];
-                //var properties = Entities.getEntityProperties(id);
                 var properties = Entities.getEntityProperties(id, ['name', 'type', 'locked',
                     'visible', 'renderInfo', 'type', 'modelURL', 'materialURL', 'script']);
 
@@ -168,16 +167,16 @@ EntityListTool = function(shouldUseEditTabletApp) {
                         url: url,
                         locked: properties.locked,
                         visible: properties.visible,
-                        verticesCount: (properties.renderInfo !== undefined ? 
+                        verticesCount: (properties.renderInfo !== undefined ?
                             valueIfDefined(properties.renderInfo.verticesCount) : ""),
-                        texturesCount: (properties.renderInfo !== undefined ? 
+                        texturesCount: (properties.renderInfo !== undefined ?
                             valueIfDefined(properties.renderInfo.texturesCount) : ""),
-                        texturesSize: (properties.renderInfo !== undefined ? 
+                        texturesSize: (properties.renderInfo !== undefined ?
                             valueIfDefined(properties.renderInfo.texturesSize) : ""),
-                        hasTransparent: (properties.renderInfo !== undefined ? 
+                        hasTransparent: (properties.renderInfo !== undefined ?
                             valueIfDefined(properties.renderInfo.hasTransparent) : ""),
                         isBaked: properties.type === "Model" ? url.toLowerCase().endsWith(".baked.fbx") : false,
-                        drawCalls: (properties.renderInfo !== undefined ? 
+                        drawCalls: (properties.renderInfo !== undefined ?
                             valueIfDefined(properties.renderInfo.drawCalls) : ""),
                         hasScript: properties.script !== ""
                     });
@@ -212,8 +211,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
         try {
             data = JSON.parse(data);
         } catch(e) {
-            console.log(data);
-            //print("entityList.js: Error parsing JSON: " + e.name + " data " + data);
+            print("entityList.js: Error parsing JSON: " + e.name + " data " + data);
             return;
         }
 
