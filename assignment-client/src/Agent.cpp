@@ -391,8 +391,18 @@ void Agent::executeScript() {
             if (recordingInterface->getPlayFromCurrentLocation()) {
                 scriptedAvatar->setRecordingBasis();
             }
+
+            // these procedural movements are included in the recordings
+            scriptedAvatar->setHasProceduralEyeFaceMovement(false);
+            scriptedAvatar->setHasProceduralBlinkFaceMovement(false);
+            scriptedAvatar->setHasAudioEnabledFaceMovement(false);
         } else {
             scriptedAvatar->clearRecordingBasis();
+
+            // restore procedural blendshape movement
+            scriptedAvatar->setHasProceduralEyeFaceMovement(true);
+            scriptedAvatar->setHasProceduralBlinkFaceMovement(true);
+            scriptedAvatar->setHasAudioEnabledFaceMovement(true);
         }
     });
 
