@@ -26,7 +26,30 @@
         muteImage,
         gotoButton,
         gotoImage,
-        expandButton;
+        expandButton,
+
+        // Work around buttons staying hovered when mini tablet is replaced by tablet proper then subsequently redisplayed.
+        isUnhover = true;
+
+    // #region Utilites ========================================================================================================
+
+    function setUnhover() {
+        if (!isUnhover) {
+            gotoButton.classList.add("unhover");
+            expandButton.classList.add("unhover");
+            isUnhover = true;
+        }
+    }
+
+    function clearUnhover() {
+        if (isUnhover) {
+            gotoButton.classList.remove("unhover");
+            expandButton.classList.remove("unhover");
+            isUnhover = false;
+        }
+    }
+
+    // #endregion
 
     // #region Communications ==================================================================================================
 
@@ -50,25 +73,28 @@
         }
     }
 
+    function onButtonHover() {
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: HOVER_MESSAGE
+        }));
+        clearUnhover();
+    }
+
     function onMuteButtonClick() {
         EventBridge.emitWebEvent(JSON.stringify({
             type: MUTE_MESSAGE
         }));
     }
 
-    function onButtonHover() {
-        EventBridge.emitWebEvent(JSON.stringify({
-            type: HOVER_MESSAGE
-        }));
-    }
-
     function onGotoButtonClick() {
+        setUnhover();
         EventBridge.emitWebEvent(JSON.stringify({
             type: GOTO_MESSAGE
         }));
     }
 
     function onExpandButtonClick() {
+        setUnhover();
         EventBridge.emitWebEvent(JSON.stringify({
             type: EXPAND_MESSAGE
         }));

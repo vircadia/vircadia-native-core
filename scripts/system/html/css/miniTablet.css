@@ -64,6 +64,10 @@ img {
         background-image: url("./img/mt-goto-hover.svg");
     }
 
+        #goto:hover.unhover {
+            background-image: url("./img/mt-goto-normal.svg");
+        }
+
 #expand {
     position: absolute;
     right: 1px;
@@ -76,6 +80,10 @@ img {
 
     #expand:hover {
         background-image: url("./img/mt-expand-hover.svg");
+    }
+
+    #expand:hover.unhover {
+        background-image: url("./img/mt-expand-normal.svg");
     }
 
     #expand img {
