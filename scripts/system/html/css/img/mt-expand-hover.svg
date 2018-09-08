@@ -1,31 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="full" width="40" height="40" viewBox="0 0 40.00 40.00" enable-background="new 0 0 40.00 40.00" xml:space="preserve">
-	<ellipse fill="#303030" fill-opacity="1" stroke-width="2" stroke-linejoin="round" stroke="#1FC6A6" stroke-opacity="1" cx="20" cy="20" rx="19" ry="19"/>
-	<g>
-		<g>
-			<g>
-				<path fill="#FFFFFF" fill-opacity="1" stroke-width="0.2" stroke-linejoin="round" stroke="#FFFFFF" stroke-opacity="1" d="M 21.4151,17.1695L 25.6577,12.9268C 26.0483,12.5363 26.6814,12.5363 27.0719,12.9268L 27.0719,12.9268C 27.4625,13.3173 27.4625,13.9505 27.0719,14.341L 22.8293,18.5837C 22.4388,18.9742 21.8056,18.9742 21.4151,18.5837L 21.4151,18.5837C 21.0246,18.1931 21.0246,17.56 21.4151,17.1695 Z "/>
-				<path fill="#FFFFFF" fill-opacity="1" stroke-width="0.2" stroke-linejoin="round" stroke="#FFFFFF" stroke-opacity="1" d="M 28.8044,11.1944L 24.8446,11.1944L 28.8044,15.1541L 28.8044,11.1944 Z "/>
-				<path fill="#FFFFFF" fill-opacity="1" stroke-width="0.2" stroke-linejoin="round" stroke="#FFFFFF" stroke-opacity="1" d="M 24.2435,11.5126L 24.2435,11.5126C 24.634,11.1221 25.2672,11.1221 25.6577,11.5126L 28.4862,14.3411C 28.8767,14.7316 28.8767,15.3647 28.4862,15.7553L 28.4862,15.7553C 28.0956,16.1458 27.4625,16.1458 27.0719,15.7553L 24.2435,12.9268C 23.853,12.5363 23.853,11.9032 24.2435,11.5126 Z "/>
-			</g>
-			<g>
-				<path fill="#FFFFFF" fill-opacity="1" stroke-width="0.2" stroke-linejoin="round" stroke="#FFFFFF" stroke-opacity="1" d="M 18.5831,22.8299L 14.3405,27.0724C 13.95,27.463 13.3168,27.463 12.9263,27.0724L 12.9263,27.0724C 12.5358,26.6819 12.5358,26.0488 12.9263,25.6582L 17.1689,21.4156C 17.5594,21.0251 18.1926,21.0251 18.5831,21.4156L 18.5831,21.4156C 18.9737,21.8062 18.9737,22.4393 18.5831,22.8299 Z "/>
-				<path fill="#FFFFFF" fill-opacity="1" stroke-width="0.2" stroke-linejoin="round" stroke="#FFFFFF" stroke-opacity="1" d="M 11.1939,28.8049L 15.1537,28.8049L 11.1939,24.8452L 11.1939,28.8049 Z "/>
-				<path fill="#FFFFFF" fill-opacity="1" stroke-width="0.2" stroke-linejoin="round" stroke="#FFFFFF" stroke-opacity="1" d="M 15.7547,28.4866L 15.7547,28.4866C 15.3642,28.8772 14.731,28.8772 14.3405,28.4866L 11.5121,25.6582C 11.1216,25.2677 11.1216,24.6345 11.5121,24.244L 11.5121,24.244C 11.9026,23.8535 12.5358,23.8535 12.9263,24.244L 15.7547,27.0724C 16.1452,27.463 16.1452,28.0961 15.7547,28.4866 Z "/>
-			</g>
-		</g>
-		<g>
-			<g>
-				<path fill="#FFFFFF" fill-opacity="1" stroke-width="0.2" stroke-linejoin="round" stroke="#FFFFFF" stroke-opacity="1" d="M 17.1707,18.5819L 12.9281,14.3393C 12.5376,13.9488 12.5376,13.3156 12.9281,12.9251L 12.9281,12.9251C 13.3186,12.5346 13.9518,12.5346 14.3423,12.9251L 18.5849,17.1677C 18.9754,17.5582 18.9754,18.1914 18.5849,18.5819L 18.5849,18.5819C 18.1944,18.9725 17.5612,18.9725 17.1707,18.5819 Z "/>
-				<path fill="#FFFFFF" fill-opacity="1" stroke-width="0.2" stroke-linejoin="round" stroke="#FFFFFF" stroke-opacity="1" d="M 11.196,11.193L 11.196,15.1528L 15.1558,11.193L 11.196,11.193 Z "/>
-				<path fill="#FFFFFF" fill-opacity="1" stroke-width="0.2" stroke-linejoin="round" stroke="#FFFFFF" stroke-opacity="1" d="M 11.5139,15.7535L 11.5139,15.7535C 11.1233,15.363 11.1233,14.7298 11.5139,14.3393L 14.3423,11.5109C 14.7328,11.1203 15.366,11.1203 15.7565,11.5109L 15.7565,11.5109C 16.147,11.9014 16.147,12.5345 15.7565,12.9251L 12.9281,15.7535C 12.5376,16.144 11.9044,16.144 11.5139,15.7535 Z "/>
-			</g>
-			<g>
-				<path fill="#FFFFFF" fill-opacity="1" stroke-width="0.2" stroke-linejoin="round" stroke="#FFFFFF" stroke-opacity="1" d="M 22.8311,21.4139L 27.0737,25.6564C 27.4642,26.047 27.4642,26.6801 27.0737,27.0706L 27.0737,27.0706C 26.6832,27.4612 26.05,27.4612 25.6595,27.0706L 21.4169,22.8281C 21.0264,22.4375 21.0264,21.8044 21.4169,21.4138L 21.4169,21.4138C 21.8074,21.0233 22.4406,21.0233 22.8311,21.4139 Z "/>
-				<path fill="#FFFFFF" fill-opacity="1" stroke-width="0.2" stroke-linejoin="round" stroke="#FFFFFF" stroke-opacity="1" d="M 28.8061,28.8031L 28.8061,24.8433L 24.8463,28.8031L 28.8061,28.8031 Z "/>
-				<path fill="#FFFFFF" fill-opacity="1" stroke-width="0.2" stroke-linejoin="round" stroke="#FFFFFF" stroke-opacity="1" d="M 28.4879,24.2423L 28.4879,24.2423C 28.8784,24.6328 28.8784,25.2659 28.4879,25.6565L 25.6594,28.4849C 25.2689,28.8754 24.6357,28.8754 24.2452,28.4849L 24.2452,28.4849C 23.8547,28.0944 23.8547,27.4612 24.2452,27.0707L 27.0737,24.2423C 27.4642,23.8517 28.0973,23.8517 28.4879,24.2423 Z "/>
-			</g>
-		</g>
-	</g>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="full" width="50" height="50" viewBox="0 0 50.00 50.00" enable-background="new 0 0 50.00 50.00" xml:space="preserve">
+	<ellipse fill="#303030" fill-opacity="1" stroke-width="2" stroke-linejoin="round" stroke="#1FC6A6" stroke-opacity="1" cx="25" cy="25" rx="24" ry="24"/>
 </svg>

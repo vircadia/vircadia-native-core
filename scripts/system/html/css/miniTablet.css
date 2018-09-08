@@ -26,13 +26,13 @@ body {
 section {
     background-color: #404040;
     position: relative;
-    padding: 13px 9px;
+    padding: 16px 16px;
 }
 
 .button {
-    width: 128px;
-    height: 90px;
-    margin-top: 10px;
+    width: 116px;
+    height: 84px;
+    margin-top: 16px;
     text-align: center;
 }
 
@@ -41,7 +41,7 @@ section {
     }
 
 img {
-    width: 46px;
+    width: 40px;
 }
 
 #mute {
@@ -72,10 +72,10 @@ img {
 
 #expand {
     position: absolute;
-    right: 12px;
-    bottom: 13px;
-    width: 40px;
-    height: 40px;
+    right: 1px;
+    bottom: -1px;
+    width: 50px;
+    height: 50px;
     background-size: 100% 100%;
 }
 
@@ -86,3 +86,8 @@ img {
         #expand.off:hover {
             background-image: url("./img/mt-expand-hover.svg");
         }
+
+    #expand img {
+        width:34px;
+        margin-top: 7px;
+    }
