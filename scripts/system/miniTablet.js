@@ -29,7 +29,6 @@
         // Miscellaneous.
         HIFI_OBJECT_MANIPULATION_CHANNEL = "Hifi-Object-Manipulation",
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system"),
-        avatarScale = 1, // Sanitized MyAvatar.scale.
         DEBUG = false;
 
     // #region Utilities =======================================================================================================
@@ -263,13 +262,13 @@
             Overlays.editOverlay(miniOverlay, {
                 parentID: MyAvatar.SELF_ID,
                 parentJointIndex: handJointIndex(hand),
-                localPosition: Vec3.multiply(avatarScale, MINI_POSITIONS[hand]),
+                localPosition: Vec3.multiply(MyAvatar.scale, MINI_POSITIONS[hand]),
                 localRotation: MINI_ROTATIONS[hand],
                 dimensions: Vec3.multiply(initialScale, MINI_DIMENSIONS),
                 visible: true
             });
             Overlays.editOverlay(miniUIOverlay, {
-                localPosition: Vec3.multiply(avatarScale, MINI_UI_LOCAL_POSITION),
+                localPosition: Vec3.multiply(MyAvatar.scale, MINI_UI_LOCAL_POSITION),
                 localRotation: MINI_UI_LOCAL_ROTATION,
                 dimensions: Vec3.multiply(initialScale, MINI_UI_DIMENSIONS),
                 dpi: MINI_UI_DPI / initialScale,
@@ -330,7 +329,7 @@
                 localRotation,
                 localPosition;
 
-            tabletScaleFactor = avatarScale * (1 + scaleFactor * (miniTargetWidth - miniInitialWidth) / miniInitialWidth);
+            tabletScaleFactor = MyAvatar.scale * (1 + scaleFactor * (miniTargetWidth - miniInitialWidth) / miniInitialWidth);
             dimensions = Vec3.multiply(tabletScaleFactor, MINI_DIMENSIONS);
             localRotation = Quat.mix(miniExpandLocalRotation, miniTargetLocalRotation, scaleFactor);
             localPosition =
@@ -368,7 +367,7 @@
         function create() {
             miniOverlay = Overlays.addOverlay("model", {
                 url: MINI_MODEL,
-                dimensions: Vec3.multiply(avatarScale, MINI_DIMENSIONS),
+                dimensions: Vec3.multiply(MyAvatar.scale, MINI_DIMENSIONS),
                 solid: true,
                 grabbable: true,
                 showKeyboardFocusHighlight: false,
@@ -378,10 +377,10 @@
             miniUIOverlay = Overlays.addOverlay("web3d", {
                 url: MINI_UI_HTML,
                 parentID: miniOverlay,
-                localPosition: Vec3.multiply(avatarScale, MINI_UI_LOCAL_POSITION),
+                localPosition: Vec3.multiply(MyAvatar.scale, MINI_UI_LOCAL_POSITION),
                 localRotation: MINI_UI_LOCAL_ROTATION,
-                dimensions: Vec3.multiply(avatarScale, MINI_UI_DIMENSIONS),
-                dpi: MINI_UI_DPI / avatarScale,
+                dimensions: Vec3.multiply(MyAvatar.scale, MINI_UI_DIMENSIONS),
+                dpi: MINI_UI_DPI / MyAvatar.scale,
                 alpha: 0, // Hide overlay while its content is being created.
                 grabbable: false,
                 showKeyboardFocusHighlight: false,
@@ -394,7 +393,7 @@
             miniOverlayObject = Overlays.getOverlayObject(miniUIOverlay);
             miniOverlayObject.webEventReceived.connect(onWebEventReceived);
 
-            // updateMiniTabletID(); Other scripts relying on this may not be ready yet so do this in showUI().
+            // updateMiniTabletID(); Other scripts relying on this may not be ready yet so do this in show().
         }
 
         function destroy() {
@@ -523,7 +522,7 @@
                 Vec3.multiplyQbyV(MyAvatar.orientation, MyAvatar.getAbsoluteJointTranslationInObjectFrame(jointIndex)));
             handOrientation = Quat.multiply(MyAvatar.orientation, MyAvatar.getAbsoluteJointRotationInObjectFrame(jointIndex));
             uiPositionAndOrientation = ui.getUIPositionAndRotation(hand);
-            miniPosition = Vec3.sum(handPosition, Vec3.multiply(avatarScale,
+            miniPosition = Vec3.sum(handPosition, Vec3.multiply(MyAvatar.scale,
                 Vec3.multiplyQbyV(handOrientation, uiPositionAndOrientation.position)));
             miniOrientation = Quat.multiply(handOrientation, uiPositionAndOrientation.rotation);
             miniToCameraDirection = Vec3.normalize(Vec3.subtract(Camera.position, miniPosition));
@@ -566,7 +565,7 @@
         function scaleMiniDown() {
             var scaleFactor = (Date.now() - miniScaleStart) / MINI_SCALE_DURATION;
             if (scaleFactor < 1) {
-                ui.size((1 - scaleFactor) * avatarScale);
+                ui.size((1 - scaleFactor) * MyAvatar.scale);
                 miniScaleTimer = Script.setTimeout(scaleMiniDown, MINI_SCALE_TIMEOUT);
                 return;
             }
@@ -595,12 +594,12 @@
         function scaleMiniUp() {
             var scaleFactor = (Date.now() - miniScaleStart) / MINI_SCALE_DURATION;
             if (scaleFactor < 1) {
-                ui.size(scaleFactor * avatarScale);
+                ui.size(scaleFactor * MyAvatar.scale);
                 miniScaleTimer = Script.setTimeout(scaleMiniUp, MINI_SCALE_TIMEOUT);
                 return;
             }
             miniScaleTimer = null;
-            ui.size(avatarScale);
+            ui.size(MyAvatar.scale);
             setState(MINI_VISIBLE);
         }
 
@@ -831,12 +830,6 @@
 
     // #region External Events =================================================================================================
 
-    function onScaleChanged() {
-        avatarScale = MyAvatar.scale;
-        // Clamp scale in order to work around M17434.
-        avatarScale = Math.max(MyAvatar.getDomainMinScale(), Math.min(MyAvatar.getDomainMaxScale(), avatarScale));
-    }
-
     function onMessageReceived(channel, data, senderID, localOnly) {
         var message,
             miniHand,
@@ -846,7 +839,12 @@
             return;
         }
 
-        message = JSON.parse(data);
+        try {
+            message = JSON.parse(data);
+        } catch (e) {
+            return;
+        }
+
         if (message.grabbedEntity !== ui.getMiniTabletID()) {
             return;
         }
@@ -881,8 +879,6 @@
     function setUp() {
         miniState = new State();
 
-        MyAvatar.scaleChanged.connect(onScaleChanged);
-
         Messages.subscribe(HIFI_OBJECT_MANIPULATION_CHANNEL);
         Messages.messageReceived.connect(onMessageReceived);
 
@@ -899,8 +895,6 @@
 
         Messages.messageReceived.disconnect(onMessageReceived);
         Messages.unsubscribe(HIFI_OBJECT_MANIPULATION_CHANNEL);
-
-        MyAvatar.scaleChanged.disconnect(onScaleChanged);
 
         miniState.destroy();
         miniState = null;
