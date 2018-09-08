@@ -1861,7 +1861,9 @@ qint64 AvatarData::packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice
 }
 
 qint64 AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID traitInstanceID,
-                                   ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion) {
+                                     ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion,
+                                     AvatarTraits::TraitInstanceID wireInstanceID) {
+
     qint64 bytesWritten = 0;
 
     bytesWritten += destination.writePrimitive(traitType);
@@ -1870,7 +1872,11 @@ qint64 AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTr
         bytesWritten += destination.writePrimitive(traitVersion);
     }
 
-    bytesWritten += destination.write(traitInstanceID.toRfc4122());
+    if (!wireInstanceID.isNull()) {
+        bytesWritten += destination.write(wireInstanceID.toRfc4122());
+    } else {
+        bytesWritten += destination.write(traitInstanceID.toRfc4122());
+    }
 
     if (traitType == AvatarTraits::AvatarEntity) {
         // grab a read lock on the avatar entities and check for entity data for the given ID
@@ -1893,6 +1899,16 @@ qint64 AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTr
     }
 
     return bytesWritten;
+}
+
+void AvatarData::prepareResetTraitInstances() {
+    if (_clientTraitsHandler) {
+        _avatarEntitiesLock.withReadLock([this]{
+            foreach (auto entityID, _avatarEntityData.keys()) {
+                _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
+            }
+        });
+    }
 }
 
 void AvatarData::processTrait(AvatarTraits::TraitType traitType, QByteArray traitBinaryData) {
@@ -2792,7 +2808,7 @@ void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
             if (_clientTraitsHandler) {
                 // if we have a client traits handler, flag any updated or created entities
                 // so that we send changes for them next frame
-                foreach (auto entityID, _avatarEntityData) {
+                foreach (auto entityID, _avatarEntityData.keys()) {
                     _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
                 }
             }

@@ -23,6 +23,16 @@
 #include "MouseParabolaPick.h"
 #include "CollisionPick.h"
 
+#include "SpatialParentFinder.h"
+#include "PickTransformNode.h"
+#include "MouseTransformNode.h"
+#include "avatar/MyAvatarHeadTransformNode.h"
+#include "avatar/AvatarManager.h"
+#include "NestableTransformNode.h"
+#include "avatars-renderer/AvatarTransformNode.h"
+#include "ui/overlays/OverlayTransformNode.h"
+#include "EntityTransformNode.h"
+
 #include <ScriptEngine.h>
 
 unsigned int PickScriptingInterface::createPick(const PickQuery::PickType type, const QVariant& properties) {
@@ -253,9 +263,16 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
 * A set of properties that can be passed to {@link Picks.createPick} to create a new Collision Pick.
 
 * @typedef {object} Picks.CollisionPickProperties
-* @property {Shape} shape - The information about the collision region's size and shape.
-* @property {Vec3} position - The position of the collision region.
-* @property {Quat} orientation - The orientation of the collision region.
+* @property {boolean} [enabled=false] If this Pick should start enabled or not.  Disabled Picks do not updated their pick results.
+* @property {number} [filter=Picks.PICK_NOTHING] The filter for this Pick to use, constructed using filter flags combined using bitwise OR.
+* @property {Shape} shape - The information about the collision region's size and shape. Dimensions are in world space, but will scale with the parent if defined.
+* @property {Vec3} position - The position of the collision region, relative to a parent if defined.
+* @property {Quat} orientation - The orientation of the collision region, relative to a parent if defined.
+* @property {float} threshold - The approximate minimum penetration depth for a test object to be considered in contact with the collision region.
+* The depth is measured in world space, but will scale with the parent if defined.
+* @property {Uuid} parentID - The ID of the parent, either an avatar, an entity, or an overlay.
+* @property {number} parentJointIndex - The joint of the parent to parent to, for example, the joints on the model of an avatar. (default = 0, no joint)
+* @property {string} joint - If "Mouse," parents the pick to the mouse. If "Avatar," parents the pick to MyAvatar's head. Otherwise, parents to the joint of the given name on MyAvatar.
 */
 unsigned int PickScriptingInterface::createCollisionPick(const QVariant& properties) {
     QVariantMap propMap = properties.toMap();
@@ -276,8 +293,10 @@ unsigned int PickScriptingInterface::createCollisionPick(const QVariant& propert
     }
 
     CollisionRegion collisionRegion(propMap);
+    auto collisionPick = std::make_shared<CollisionPick>(filter, maxDistance, enabled, collisionRegion, qApp->getPhysicsEngine());
+    collisionPick->parentTransform = createTransformNode(propMap);
 
-    return DependencyManager::get<PickManager>()->addPick(PickQuery::Collision, std::make_shared<CollisionPick>(filter, maxDistance, enabled, collisionRegion, qApp->getPhysicsEngine()));
+    return DependencyManager::get<PickManager>()->addPick(PickQuery::Collision, collisionPick);
 }
 
 void PickScriptingInterface::enablePick(unsigned int uid) {
@@ -350,4 +369,53 @@ unsigned int PickScriptingInterface::getPerFrameTimeBudget() const {
 
 void PickScriptingInterface::setPerFrameTimeBudget(unsigned int numUsecs) {
     DependencyManager::get<PickManager>()->setPerFrameTimeBudget(numUsecs);
+}
+
+std::shared_ptr<TransformNode> PickScriptingInterface::createTransformNode(const QVariantMap& propMap) {
+    if (propMap["parentID"].isValid()) {
+        QUuid parentUuid = propMap["parentID"].toUuid();
+        if (!parentUuid.isNull()) {
+            // Infer object type from parentID
+            // For now, assume a QUuuid is a SpatiallyNestable. This should change when picks are converted over to QUuids.
+            bool success;
+            std::weak_ptr<SpatiallyNestable> nestablePointer = DependencyManager::get<SpatialParentFinder>()->find(parentUuid, success, nullptr);
+            int parentJointIndex = 0;
+            if (propMap["parentJointIndex"].isValid()) {
+                parentJointIndex = propMap["parentJointIndex"].toInt();
+            }
+            auto sharedNestablePointer = nestablePointer.lock();
+            if (success && sharedNestablePointer) {
+                NestableType nestableType = sharedNestablePointer->getNestableType();
+                if (nestableType == NestableType::Avatar) {
+                    return std::make_shared<AvatarTransformNode>(std::static_pointer_cast<Avatar>(sharedNestablePointer), parentJointIndex);
+                } else if (nestableType == NestableType::Overlay) {
+                    return std::make_shared<OverlayTransformNode>(std::static_pointer_cast<Base3DOverlay>(sharedNestablePointer), parentJointIndex);
+                } else if (nestableType == NestableType::Entity) {
+                    return std::make_shared<EntityTransformNode>(std::static_pointer_cast<EntityItem>(sharedNestablePointer), parentJointIndex);
+                } else {
+                    return std::make_shared<NestableTransformNode>(nestablePointer, parentJointIndex);
+                }
+            }
+        }
+
+        unsigned int pickID = propMap["parentID"].toUInt();
+        if (pickID != 0) {
+            return std::make_shared<PickTransformNode>(pickID);
+        }
+    }
+    
+    if (propMap["joint"].isValid()) {
+        QString joint = propMap["joint"].toString();
+        if (joint == "Mouse") {
+            return std::make_shared<MouseTransformNode>();
+        } else if (joint == "Avatar") {
+            return std::make_shared<MyAvatarHeadTransformNode>();
+        } else if (!joint.isNull()) {
+            auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+            int jointIndex = myAvatar->getJointIndex(joint);
+            return std::make_shared<AvatarTransformNode>(myAvatar, jointIndex);
+        }
+    }
+
+    return std::shared_ptr<TransformNode>();
 }

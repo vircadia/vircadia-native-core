@@ -197,6 +197,7 @@ namespace MenuOption {
     const QString SMIEyeTracking = "SMI Eye Tracking";
     const QString SparseTextureManagement = "Enable Sparse Texture Management";
     const QString Stats = "Show Statistics";
+    const QString AnimStats = "Show Animation Stats";
     const QString StopAllScripts = "Stop All Scripts";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString ThirdPerson = "Third Person";
@@ -221,6 +222,7 @@ namespace MenuOption {
     const QString NotificationSounds = "play_notification_sounds";
     const QString NotificationSoundsSnapshot = "play_notification_sounds_snapshot";
     const QString NotificationSoundsTablet = "play_notification_sounds_tablet";
+    const QString ForceCoarsePicking = "Force Coarse Picking";
     const QString ComputeBlendshapes = "Compute Blendshapes";
 }
 

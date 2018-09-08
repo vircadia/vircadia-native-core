@@ -64,6 +64,16 @@ class Model;
 using ModelPointer = std::shared_ptr<Model>;
 using ModelWeakPointer = std::weak_ptr<Model>;
 
+struct SortedTriangleSet {
+    SortedTriangleSet(float distance, TriangleSet* triangleSet, int partIndex, int shapeID, int subMeshIndex) :
+        distance(distance), triangleSet(triangleSet), partIndex(partIndex), shapeID(shapeID), subMeshIndex(subMeshIndex) {}
+
+    float distance;
+    TriangleSet* triangleSet;
+    int partIndex;
+    int shapeID;
+    int subMeshIndex;
+};
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject, public std::enable_shared_from_this<Model>, public scriptable::ModelProvider {
@@ -335,6 +345,8 @@ public:
     void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
 
+    bool areBlendedVertexBuffersInitialized(int index) { return _blendedVertexBuffersInitialized; }
+
 public slots:
     void loadURLFinished(bool success);
 
@@ -414,8 +426,9 @@ protected:
     QUrl _url;
 
     std::unordered_map<int, gpu::BufferPointer> _blendedVertexBuffers;
+    bool _blendedVertexBuffersInitialized { false };
 
-    QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
+    QVector<QVector<QSharedPointer<Texture>>> _dilatedTextures;
 
     QVector<float> _blendedBlendshapeCoefficients;
     int _blendNumber;
@@ -481,6 +494,8 @@ protected:
     render::ItemKey _renderItemKeyGlobalFlags;
 
     bool shouldInvalidatePayloadShapeKey(int meshIndex);
+
+    void initializeBlendshapes(const FBXMesh& mesh, int index);
 
 private:
     float _loadingPriority { 0.0f };

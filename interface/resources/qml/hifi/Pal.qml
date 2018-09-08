@@ -780,6 +780,12 @@ Rectangle {
             headerVisible: true;
             sortIndicatorColumn: settings.connectionsSortIndicatorColumn;
             sortIndicatorOrder: settings.connectionsSortIndicatorOrder;
+            onSortIndicatorColumnChanged: {
+                settings.connectionsSortIndicatorColumn = sortIndicatorColumn;
+            }
+            onSortIndicatorOrderChanged: {
+                settings.connectionsSortIndicatorOrder = sortIndicatorOrder;
+            }
 
             TableViewColumn {
                 id: connectionsUserNameHeader;

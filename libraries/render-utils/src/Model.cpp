@@ -302,52 +302,11 @@ bool Model::updateGeometry() {
         assert(_meshStates.empty());
 
         const FBXGeometry& fbxGeometry = getFBXGeometry();
-        int i = 0;
         foreach (const FBXMesh& mesh, fbxGeometry.meshes) {
             MeshState state;
             state.clusterDualQuaternions.resize(mesh.clusters.size());
             state.clusterMatrices.resize(mesh.clusters.size());
             _meshStates.push_back(state);
-
-            if (!mesh.blendshapes.isEmpty()) {
-                if (!_blendedVertexBuffers[i]) {
-                    _blendedVertexBuffers[i] = std::make_shared<gpu::Buffer>();
-                }
-                const auto& buffer = _blendedVertexBuffers[i];
-                QVector<NormalType> normalsAndTangents;
-                normalsAndTangents.resize(2 * mesh.normals.size());
-
-                // Interleave normals and tangents
-                // Parallel version for performance
-                tbb::parallel_for(tbb::blocked_range<int>(0, mesh.normals.size()), [&](const tbb::blocked_range<int>& range) {
-                    auto normalsRange = std::make_pair(mesh.normals.begin() + range.begin(), mesh.normals.begin() + range.end());
-                    auto tangentsRange = std::make_pair(mesh.tangents.begin() + range.begin(), mesh.tangents.begin() + range.end());
-                    auto normalsAndTangentsIt = normalsAndTangents.begin() + 2 * range.begin();
-
-                    for (auto normalIt = normalsRange.first, tangentIt = tangentsRange.first;
-                         normalIt != normalsRange.second;
-                         ++normalIt, ++tangentIt) {
-#if FBX_PACK_NORMALS
-                        glm::uint32 finalNormal;
-                        glm::uint32 finalTangent;
-                        buffer_helpers::packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
-#else
-                        const auto& finalNormal = *normalIt;
-                        const auto& finalTangent = *tangentIt;
-#endif
-                        *normalsAndTangentsIt = finalNormal;
-                        ++normalsAndTangentsIt;
-                        *normalsAndTangentsIt = finalTangent;
-                        ++normalsAndTangentsIt;
-                    }
-                });
-                const auto verticesSize = mesh.vertices.size() * sizeof(glm::vec3);
-                buffer->resize(mesh.vertices.size() * sizeof(glm::vec3) + normalsAndTangents.size() * sizeof(NormalType));
-                buffer->setSubData(0, verticesSize, (const gpu::Byte*) mesh.vertices.constData());
-                buffer->setSubData(verticesSize, 2 * mesh.normals.size() * sizeof(NormalType), (const gpu::Byte*) normalsAndTangents.data());
-                mesh.normalsAndTangents = normalsAndTangents;
-            }
-            i++;
         }
         needFullUpdate = true;
         emit rigReady();
@@ -388,17 +347,20 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
     // we can use the AABox's intersection by mapping our origin and direction into the model frame
     // and testing intersection there.
-    if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face, surfaceNormal)) {
+    if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, 1.0f / modelFrameDirection, distance, face, surfaceNormal)) {
         QMutexLocker locker(&_mutex);
 
-        float bestDistance = std::numeric_limits<float>::max();
+        float bestDistance = FLT_MAX;
+        BoxFace bestFace;
         Triangle bestModelTriangle;
         Triangle bestWorldTriangle;
+        glm::vec3 bestWorldIntersectionPoint;
+        glm::vec3 bestMeshIntersectionPoint;
+        int bestPartIndex = 0;
+        int bestShapeID = 0;
         int bestSubMeshIndex = 0;
 
-        int subMeshIndex = 0;
         const FBXGeometry& geometry = getFBXGeometry();
-
         if (!_triangleSetsValid) {
             calculateTriangleSets(geometry);
         }
@@ -409,31 +371,30 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
         glm::vec3 meshFrameOrigin = glm::vec3(worldToMeshMatrix * glm::vec4(origin, 1.0f));
         glm::vec3 meshFrameDirection = glm::vec3(worldToMeshMatrix * glm::vec4(direction, 0.0f));
+        glm::vec3 meshFrameInvDirection = 1.0f / meshFrameDirection;
 
         int shapeID = 0;
+        int subMeshIndex = 0;
+
+        std::vector<SortedTriangleSet> sortedTriangleSets;
         for (auto& meshTriangleSets : _modelSpaceMeshTriangleSets) {
             int partIndex = 0;
-            for (auto &partTriangleSet : meshTriangleSets) {
-                float triangleSetDistance;
-                BoxFace triangleSetFace;
-                Triangle triangleSetTriangle;
-                if (partTriangleSet.findRayIntersection(meshFrameOrigin, meshFrameDirection, triangleSetDistance, triangleSetFace, triangleSetTriangle, pickAgainstTriangles, allowBackface)) {
-                    glm::vec3 meshIntersectionPoint = meshFrameOrigin + (meshFrameDirection * triangleSetDistance);
-                    glm::vec3 worldIntersectionPoint = glm::vec3(meshToWorldMatrix * glm::vec4(meshIntersectionPoint, 1.0f));
-                    float worldDistance = glm::distance(origin, worldIntersectionPoint);
-
-                    if (worldDistance < bestDistance) {
-                        bestDistance = worldDistance;
-                        intersectedSomething = true;
-                        face = triangleSetFace;
-                        bestModelTriangle = triangleSetTriangle;
-                        bestWorldTriangle = triangleSetTriangle * meshToWorldMatrix;
-                        extraInfo["worldIntersectionPoint"] = vec3toVariant(worldIntersectionPoint);
-                        extraInfo["meshIntersectionPoint"] = vec3toVariant(meshIntersectionPoint);
-                        extraInfo["partIndex"] = partIndex;
-                        extraInfo["shapeID"] = shapeID;
-                        bestSubMeshIndex = subMeshIndex;
+            for (auto& partTriangleSet : meshTriangleSets) {
+                float priority = FLT_MAX;
+                if (partTriangleSet.getBounds().contains(meshFrameOrigin)) {
+                    priority = 0.0f;
+                } else {
+                    float partBoundDistance = FLT_MAX;
+                    BoxFace partBoundFace;
+                    glm::vec3 partBoundNormal;
+                    if (partTriangleSet.getBounds().findRayIntersection(meshFrameOrigin, meshFrameDirection, meshFrameInvDirection,
+                                                                        partBoundDistance, partBoundFace, partBoundNormal)) {
+                        priority = partBoundDistance;
                     }
+                }
+
+                if (priority < FLT_MAX) {
+                    sortedTriangleSets.emplace_back(priority, &partTriangleSet, partIndex, shapeID, subMeshIndex);
                 }
                 partIndex++;
                 shapeID++;
@@ -441,9 +402,47 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
             subMeshIndex++;
         }
 
+        if (sortedTriangleSets.size() > 1) {
+            static auto comparator = [](const SortedTriangleSet& left, const SortedTriangleSet& right) { return left.distance < right.distance; };
+            std::sort(sortedTriangleSets.begin(), sortedTriangleSets.end(), comparator);
+        }
+
+        for (auto it = sortedTriangleSets.begin(); it != sortedTriangleSets.end(); ++it) {
+            const SortedTriangleSet& sortedTriangleSet = *it;
+            // We can exit once triangleSetDistance > bestDistance
+            if (sortedTriangleSet.distance > bestDistance) {
+                break;
+            }
+            float triangleSetDistance = FLT_MAX;
+            BoxFace triangleSetFace;
+            Triangle triangleSetTriangle;
+            if (sortedTriangleSet.triangleSet->findRayIntersection(meshFrameOrigin, meshFrameDirection, meshFrameInvDirection, triangleSetDistance, triangleSetFace,
+                                                                   triangleSetTriangle, pickAgainstTriangles, allowBackface)) {
+                if (triangleSetDistance < bestDistance) {
+                    bestDistance = triangleSetDistance;
+                    intersectedSomething = true;
+                    bestFace = triangleSetFace;
+                    bestModelTriangle = triangleSetTriangle;
+                    bestWorldTriangle = triangleSetTriangle * meshToWorldMatrix;
+                    glm::vec3 meshIntersectionPoint = meshFrameOrigin + (meshFrameDirection * triangleSetDistance);
+                    glm::vec3 worldIntersectionPoint = glm::vec3(meshToWorldMatrix * glm::vec4(meshIntersectionPoint, 1.0f));
+                    bestWorldIntersectionPoint = worldIntersectionPoint;
+                    bestMeshIntersectionPoint = meshIntersectionPoint;
+                    bestPartIndex = sortedTriangleSet.partIndex;
+                    bestShapeID = sortedTriangleSet.shapeID;
+                    bestSubMeshIndex = sortedTriangleSet.subMeshIndex;
+                }
+            }
+        }
+
         if (intersectedSomething) {
             distance = bestDistance;
+            face = bestFace;
             surfaceNormal = bestWorldTriangle.getNormal();
+            extraInfo["worldIntersectionPoint"] = vec3toVariant(bestWorldIntersectionPoint);
+            extraInfo["meshIntersectionPoint"] = vec3toVariant(bestMeshIntersectionPoint);
+            extraInfo["partIndex"] = bestPartIndex;
+            extraInfo["shapeID"] = bestShapeID;
             if (pickAgainstTriangles) {
                 extraInfo["subMeshIndex"] = bestSubMeshIndex;
                 extraInfo["subMeshName"] = geometry.getModelNameOfMesh(bestSubMeshIndex);
@@ -495,13 +494,16 @@ bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, co
         QMutexLocker locker(&_mutex);
 
         float bestDistance = FLT_MAX;
+        BoxFace bestFace;
         Triangle bestModelTriangle;
         Triangle bestWorldTriangle;
+        glm::vec3 bestWorldIntersectionPoint;
+        glm::vec3 bestMeshIntersectionPoint;
+        int bestPartIndex = 0;
+        int bestShapeID = 0;
         int bestSubMeshIndex = 0;
 
-        int subMeshIndex = 0;
         const FBXGeometry& geometry = getFBXGeometry();
-
         if (!_triangleSetsValid) {
             calculateTriangleSets(geometry);
         }
@@ -515,30 +517,27 @@ bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, co
         glm::vec3 meshFrameAcceleration = glm::vec3(worldToMeshMatrix * glm::vec4(acceleration, 0.0f));
 
         int shapeID = 0;
+        int subMeshIndex = 0;
+
+        std::vector<SortedTriangleSet> sortedTriangleSets;
         for (auto& meshTriangleSets : _modelSpaceMeshTriangleSets) {
             int partIndex = 0;
-            for (auto &partTriangleSet : meshTriangleSets) {
-                float triangleSetDistance;
-                BoxFace triangleSetFace;
-                Triangle triangleSetTriangle;
-                if (partTriangleSet.findParabolaIntersection(meshFrameOrigin, meshFrameVelocity, meshFrameAcceleration,
-                    triangleSetDistance, triangleSetFace, triangleSetTriangle, pickAgainstTriangles, allowBackface)) {
-                    if (triangleSetDistance < bestDistance) {
-                        bestDistance = triangleSetDistance;
-                        intersectedSomething = true;
-                        face = triangleSetFace;
-                        bestModelTriangle = triangleSetTriangle;
-                        bestWorldTriangle = triangleSetTriangle * meshToWorldMatrix;
-                        glm::vec3 meshIntersectionPoint = meshFrameOrigin + meshFrameVelocity * triangleSetDistance +
-                            0.5f * meshFrameAcceleration * triangleSetDistance * triangleSetDistance;
-                        glm::vec3 worldIntersectionPoint = origin + velocity * triangleSetDistance +
-                            0.5f * acceleration * triangleSetDistance * triangleSetDistance;
-                        extraInfo["worldIntersectionPoint"] = vec3toVariant(worldIntersectionPoint);
-                        extraInfo["meshIntersectionPoint"] = vec3toVariant(meshIntersectionPoint);
-                        extraInfo["partIndex"] = partIndex;
-                        extraInfo["shapeID"] = shapeID;
-                        bestSubMeshIndex = subMeshIndex;
+            for (auto& partTriangleSet : meshTriangleSets) {
+                float priority = FLT_MAX;
+                if (partTriangleSet.getBounds().contains(meshFrameOrigin)) {
+                    priority = 0.0f;
+                } else {
+                    float partBoundDistance = FLT_MAX;
+                    BoxFace partBoundFace;
+                    glm::vec3 partBoundNormal;
+                    if (partTriangleSet.getBounds().findParabolaIntersection(meshFrameOrigin, meshFrameVelocity, meshFrameAcceleration,
+                                                                             partBoundDistance, partBoundFace, partBoundNormal)) {
+                        priority = partBoundDistance;
                     }
+                }
+
+                if (priority < FLT_MAX) {
+                    sortedTriangleSets.emplace_back(priority, &partTriangleSet, partIndex, shapeID, subMeshIndex);
                 }
                 partIndex++;
                 shapeID++;
@@ -546,9 +545,51 @@ bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, co
             subMeshIndex++;
         }
 
+        if (sortedTriangleSets.size() > 1) {
+            static auto comparator = [](const SortedTriangleSet& left, const SortedTriangleSet& right) { return left.distance < right.distance; };
+            std::sort(sortedTriangleSets.begin(), sortedTriangleSets.end(), comparator);
+        }
+
+        for (auto it = sortedTriangleSets.begin(); it != sortedTriangleSets.end(); ++it) {
+            const SortedTriangleSet& sortedTriangleSet = *it;
+            // We can exit once triangleSetDistance > bestDistance
+            if (sortedTriangleSet.distance > bestDistance) {
+                break;
+            }
+            float triangleSetDistance = FLT_MAX;
+            BoxFace triangleSetFace;
+            Triangle triangleSetTriangle;
+            if (sortedTriangleSet.triangleSet->findParabolaIntersection(meshFrameOrigin, meshFrameVelocity, meshFrameAcceleration,
+                                                                        triangleSetDistance, triangleSetFace, triangleSetTriangle,
+                                                                        pickAgainstTriangles, allowBackface)) {
+                if (triangleSetDistance < bestDistance) {
+                    bestDistance = triangleSetDistance;
+                    intersectedSomething = true;
+                    bestFace = triangleSetFace;
+                    bestModelTriangle = triangleSetTriangle;
+                    bestWorldTriangle = triangleSetTriangle * meshToWorldMatrix;
+                    glm::vec3 meshIntersectionPoint = meshFrameOrigin + meshFrameVelocity * triangleSetDistance +
+                        0.5f * meshFrameAcceleration * triangleSetDistance * triangleSetDistance;
+                    glm::vec3 worldIntersectionPoint = origin + velocity * triangleSetDistance +
+                        0.5f * acceleration * triangleSetDistance * triangleSetDistance;
+                    bestWorldIntersectionPoint = worldIntersectionPoint;
+                    bestMeshIntersectionPoint = meshIntersectionPoint;
+                    bestPartIndex = sortedTriangleSet.partIndex;
+                    bestShapeID = sortedTriangleSet.shapeID;
+                    bestSubMeshIndex = sortedTriangleSet.subMeshIndex;
+                    // These sets can overlap, so we can't exit early if we find something
+                }
+            }
+        }
+
         if (intersectedSomething) {
             parabolicDistance = bestDistance;
+            face = bestFace;
             surfaceNormal = bestWorldTriangle.getNormal();
+            extraInfo["worldIntersectionPoint"] = vec3toVariant(bestWorldIntersectionPoint);
+            extraInfo["meshIntersectionPoint"] = vec3toVariant(bestMeshIntersectionPoint);
+            extraInfo["partIndex"] = bestPartIndex;
+            extraInfo["shapeID"] = bestShapeID;
             if (pickAgainstTriangles) {
                 extraInfo["subMeshIndex"] = bestSubMeshIndex;
                 extraInfo["subMeshName"] = geometry.getModelNameOfMesh(bestSubMeshIndex);
@@ -1266,6 +1307,7 @@ void Blender::run() {
             if (mesh.blendshapes.isEmpty()) {
                 continue;
             }
+
             vertices += mesh.vertices;
             normalsAndTangents += mesh.normalsAndTangents;
             glm::vec3* meshVertices = vertices.data() + offset;
@@ -1474,7 +1516,7 @@ void Model::updateClusterMatrices() {
 
     // post the blender if we're not currently waiting for one to finish
     auto modelBlender = DependencyManager::get<ModelBlender>();
-    if (modelBlender->shouldComputeBlendshapes() && geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
+    if (_blendedVertexBuffersInitialized && modelBlender->shouldComputeBlendshapes() && geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
         modelBlender->noteRequiresBlend(getThisPointer());
     }
@@ -1511,19 +1553,20 @@ void Model::setBlendedVertices(int blendNumber, const Geometry::WeakPointer& geo
         const auto vertexCount = mesh.vertices.size();
         const auto verticesSize = vertexCount * sizeof(glm::vec3);
         const auto& buffer = _blendedVertexBuffers[i];
-        assert(buffer);
+        assert(buffer && _blendedVertexBuffersInitialized);
         buffer->resize(mesh.vertices.size() * sizeof(glm::vec3) + mesh.normalsAndTangents.size() * sizeof(NormalType));
         buffer->setSubData(0, verticesSize, (gpu::Byte*) vertices.constData() + index * sizeof(glm::vec3));
-        buffer->setSubData(verticesSize, 2 * mesh.normals.size() * sizeof(NormalType), (const gpu::Byte*) normalsAndTangents.data() + normalAndTangentIndex * sizeof(NormalType));
+        buffer->setSubData(verticesSize, mesh.normalsAndTangents.size() * sizeof(NormalType), (const gpu::Byte*) normalsAndTangents.data() + normalAndTangentIndex * sizeof(NormalType));
 
         index += vertexCount;
-        normalAndTangentIndex += 2 * mesh.normals.size();
+        normalAndTangentIndex += mesh.normalsAndTangents.size();
     }
 }
 
 void Model::deleteGeometry() {
     _deleteGeometryCounter++;
     _blendedVertexBuffers.clear();
+    _blendedVertexBuffersInitialized = false;
     _meshStates.clear();
     _rig.destroyAnimGraph();
     _blendedBlendshapeCoefficients.clear();
@@ -1555,6 +1598,43 @@ const render::ItemIDs& Model::fetchRenderItemIDs() const {
     return _modelMeshRenderItemIDs;
 }
 
+void Model::initializeBlendshapes(const FBXMesh& mesh, int index) {
+    QVector<NormalType> normalsAndTangents;
+    normalsAndTangents.resize(2 * mesh.normals.size());
+
+    // Interleave normals and tangents
+    // Parallel version for performance
+    tbb::parallel_for(tbb::blocked_range<int>(0, mesh.normals.size()), [&](const tbb::blocked_range<int>& range) {
+        auto normalsRange = std::make_pair(mesh.normals.begin() + range.begin(), mesh.normals.begin() + range.end());
+        auto tangentsRange = std::make_pair(mesh.tangents.begin() + range.begin(), mesh.tangents.begin() + range.end());
+        auto normalsAndTangentsIt = normalsAndTangents.begin() + 2 * range.begin();
+
+        for (auto normalIt = normalsRange.first, tangentIt = tangentsRange.first;
+            normalIt != normalsRange.second;
+            ++normalIt, ++tangentIt) {
+#if FBX_PACK_NORMALS
+            glm::uint32 finalNormal;
+            glm::uint32 finalTangent;
+            buffer_helpers::packNormalAndTangent(*normalIt, *tangentIt, finalNormal, finalTangent);
+#else
+            const auto& finalNormal = *normalIt;
+            const auto& finalTangent = *tangentIt;
+#endif
+            *normalsAndTangentsIt = finalNormal;
+            ++normalsAndTangentsIt;
+            *normalsAndTangentsIt = finalTangent;
+            ++normalsAndTangentsIt;
+        }
+    });
+    const auto verticesSize = mesh.vertices.size() * sizeof(glm::vec3);
+    _blendedVertexBuffers[index] = std::make_shared<gpu::Buffer>();
+    _blendedVertexBuffers[index]->resize(mesh.vertices.size() * sizeof(glm::vec3) + normalsAndTangents.size() * sizeof(NormalType));
+    _blendedVertexBuffers[index]->setSubData(0, verticesSize, (const gpu::Byte*) mesh.vertices.constData());
+    _blendedVertexBuffers[index]->setSubData(verticesSize, normalsAndTangents.size() * sizeof(NormalType), (const gpu::Byte*) normalsAndTangents.data());
+    mesh.normalsAndTangents = normalsAndTangents;
+    _blendedVertexBuffersInitialized = true;
+}
+
 void Model::createRenderItemSet() {
     assert(isLoaded());
     const auto& meshes = _renderGeometry->getMeshes();
@@ -1583,7 +1663,7 @@ void Model::createRenderItemSet() {
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
     int shapeID = 0;
     uint32_t numMeshes = (uint32_t)meshes.size();
-    auto fbxGeometry = getFBXGeometry();
+    auto& fbxGeometry = getFBXGeometry();
     for (uint32_t i = 0; i < numMeshes; i++) {
         const auto& mesh = meshes.at(i);
         if (!mesh) {
@@ -1593,8 +1673,8 @@ void Model::createRenderItemSet() {
         // Create the render payloads
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
-            if (fbxGeometry.meshes[i].blendshapes.empty() && !_blendedVertexBuffers[i]) {
-                _blendedVertexBuffers[i] = std::make_shared<gpu::Buffer>();
+            if (!fbxGeometry.meshes[i].blendshapes.empty()) {
+                initializeBlendshapes(fbxGeometry.meshes[i], i);
             }
             _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
             auto material = getGeometry()->getShapeMaterial(shapeID);
