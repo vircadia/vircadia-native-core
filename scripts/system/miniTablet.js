@@ -91,12 +91,12 @@
             MINI_DIMENSIONS = { x: 0.0637, y: 0.0965, z: 0.0045 }, // Proportional to tablet proper.
             MINI_POSITIONS = [
                 {
-                    x: -0.03, // Distance across hand.
+                    x: -0.01, // Distance across hand.
                     y: 0.08, // Distance from joint.
                     z: 0.06 // Distance above palm.
                 },
                 {
-                    x: 0.03, // Distance across hand.
+                    x: 0.01, // Distance across hand.
                     y: 0.08, // Distance from joint.
                     z: 0.06 // Distance above palm.
                 }
