@@ -47,28 +47,22 @@ img {
 #mute {
     padding-top: 19px;
     background-size: 100% 100%;
+    background-image: url("./img/mt-mute-normal.svg");
 }
 
-    #mute.off {
-        background-image: url("./img/mt-mute-normal.svg");
+    #mute:hover {
+        background-image: url("./img/mt-mute-hover.svg");
     }
-
-        #mute.off:hover {
-            background-image: url("./img/mt-mute-hover.svg");
-        }
 
 #goto {
     padding-top: 19px;
     background-size: 100% 100%;
+    background-image: url("./img/mt-goto-normal.svg");
 }
 
-    #goto.off {
-        background-image: url("./img/mt-goto-normal.svg");
+    #goto:hover {
+        background-image: url("./img/mt-goto-hover.svg");
     }
-
-        #goto.off:hover {
-            background-image: url("./img/mt-goto-hover.svg");
-        }
 
 #expand {
     position: absolute;
@@ -77,15 +71,12 @@ img {
     width: 50px;
     height: 50px;
     background-size: 100% 100%;
+    background-image: url("./img/mt-expand-normal.svg");
 }
 
-    #expand.off {
-        background-image: url("./img/mt-expand-normal.svg");
+    #expand:hover {
+        background-image: url("./img/mt-expand-hover.svg");
     }
-
-        #expand.off:hover {
-            background-image: url("./img/mt-expand-hover.svg");
-        }
 
     #expand img {
         width:34px;
