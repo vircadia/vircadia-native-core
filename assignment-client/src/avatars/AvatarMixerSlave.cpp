@@ -256,7 +256,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     int traitBytesSent = 0;
 
     // max number of avatarBytes per frame
-    auto maxAvatarBytesPerFrame = (_maxKbpsPerNode * BYTES_PER_KILOBIT) / AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND;
+    int maxAvatarBytesPerFrame = int(_maxKbpsPerNode * BYTES_PER_KILOBIT / AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND);
 
     // FIXME - find a way to not send the sessionID for every avatar
     int minimumBytesPerAvatar = AvatarDataPacket::AVATAR_HAS_FLAGS_SIZE + NUM_BYTES_RFC4122_UUID;
@@ -412,6 +412,8 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         AvatarData::AvatarDataDetail detail = AvatarData::NoData;
 
         // NOTE: Here's where we determine if we are over budget and drop to bare minimum data
+        // If we're going to just drop the over-budget avatars entirely the decision should
+        // just use numAvatarDataBytes, not minimRemainingAvatarBytes.
         int minimRemainingAvatarBytes = minimumBytesPerAvatar * remainingAvatars;
         bool overBudget = (identityBytesSent + numAvatarDataBytes + minimRemainingAvatarBytes) > maxAvatarBytesPerFrame;
         if (overBudget) {
@@ -441,10 +443,10 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             nodeData->setLastBroadcastTime(otherNode->getUUID(), usecTimestampNow());
         }
 
-        // determine if avatar is in view which determines how much data to send
-        bool isInView = sortedAvatar.getPriority() > OUT_OF_VIEW_THRESHOLD;
+        // Typically all out-of-view avatars but such avatars' priorities will rise with time:
+        bool isLowerPriority = sortedAvatar.getPriority() <= OUT_OF_VIEW_THRESHOLD;
 
-        if (!isInView) {
+        if (isLowerPriority) {
             detail = PALIsOpen ? AvatarData::PALMinimum : AvatarData::MinimumData;
             nodeData->incrementAvatarOutOfView();
         } else if (!overBudget) {
