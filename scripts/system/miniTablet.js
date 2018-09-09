@@ -265,6 +265,7 @@
                 localPosition: Vec3.multiply(MyAvatar.scale, MINI_POSITIONS[hand]),
                 localRotation: MINI_ROTATIONS[hand],
                 dimensions: Vec3.multiply(initialScale, MINI_DIMENSIONS),
+                grabbable: true,
                 visible: true
             });
             Overlays.editOverlay(miniUIOverlay, {
@@ -320,6 +321,11 @@
             miniInitialWidth = MINI_DIMENSIONS.x;
             miniTargetWidth = getTabletWidthFromSettings();
             miniTargetLocalRotation = Quat.multiply(miniExpandLocalRotation, miniExpandDeltaRotation);
+
+            // Don't let other hand grab while expanding.
+            Overlays.editOverlay(miniOverlay, {
+                grabbable: false
+            });
         }
 
         function sizeAboutHandles(scaleFactor) {
