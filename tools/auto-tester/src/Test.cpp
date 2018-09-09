@@ -44,7 +44,7 @@ bool Test::createTestResultsFolderPath(const QString& directory) {
     return QDir().mkdir(_testResultsFolderPath);
 }
 
-void Test::zipAndDeleteTestResultsFolder() {
+QString Test::zipAndDeleteTestResultsFolder() {
     QString zippedResultsFileName { _testResultsFolderPath + ".zip" };
     QFileInfo fileInfo(zippedResultsFileName);
     if (fileInfo.exists()) {
@@ -59,6 +59,8 @@ void Test::zipAndDeleteTestResultsFolder() {
     //In all cases, for the next evaluation
     _testResultsFolderPath = "";
     _index = 1;
+
+    return zippedResultsFileName;
 }
 
 bool Test::compareImageLists() {
@@ -264,14 +266,14 @@ void Test::finishTestsEvaluation() {
         }
     }
 
-    zipAndDeleteTestResultsFolder();
+    QString zippedFolderName = zipAndDeleteTestResultsFolder();
 
     if (_exitWhenComplete) {
         exit(0);
     }
 
     if (_isRunningInAutomaticTestRun) {
-        autoTester->automaticTestRunEvaluationComplete();
+        autoTester->automaticTestRunEvaluationComplete(zippedFolderName);
     }
 }
 

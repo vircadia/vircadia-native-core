@@ -107,8 +107,8 @@ void AutoTester::on_runNowButton_clicked() {
     _testRunner->run();
 }
 
-void AutoTester::automaticTestRunEvaluationComplete() {
-    _testRunner->automaticTestRunEvaluationComplete();
+void AutoTester::automaticTestRunEvaluationComplete(QString zippedFolderName) {
+    _testRunner->automaticTestRunEvaluationComplete(zippedFolderName);
 }
 
 void AutoTester::on_updateTestRailRunResultsButton_clicked() {

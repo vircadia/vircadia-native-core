@@ -16,7 +16,7 @@
 #include "ui/AutoTester.h"
 extern AutoTester* autoTester;
 
-TestRunner::TestRunner(QObject *parent) : QObject(parent) {
+TestRunner::TestRunner(QObject* parent) : QObject(parent) {
 }
 
 void TestRunner::run() {
@@ -30,14 +30,14 @@ void TestRunner::run() {
     // This will be restored at the end of the tests
     saveExistingHighFidelityAppDataFolder();
 
-    // Download the latest High Fidelity installer
+    // Download the latest High Fidelity installer and build XML.
     QStringList urls;
-    urls << INSTALLER_URL;
+    urls << INSTALLER_URL << BUILD_XML_URL;
 
     QStringList filenames;
-    filenames << INSTALLER_FILENAME;
+    filenames << INSTALLER_FILENAME << BUILD_XML_FILENAME;
 
-    autoTester->downloadFiles(urls, _tempFolder, filenames, (void *)this);
+    autoTester->downloadFiles(urls, _tempFolder, filenames, (void*)this);
 
     // `installerDownloadComplete` will run after download has completed
 }
@@ -47,7 +47,7 @@ void TestRunner::installerDownloadComplete() {
     killProcesses();
 
     runInstaller();
-    
+
     createSnapshotFolder();
 
     startLocalServerProcesses();
@@ -63,9 +63,9 @@ void TestRunner::runInstaller() {
     // Qt cannot start an installation process using QProcess::start (Qt Bug 9761)
     // To allow installation, the installer is run using the `system` command
     QStringList arguments{ QStringList() << QString("/S") << QString("/D=") + QDir::toNativeSeparators(_installationFolder) };
-    
+
     QString installerFullPath = _tempFolder + "/" + INSTALLER_FILENAME;
-    
+
     QString commandLine =
         QDir::toNativeSeparators(installerFullPath) + " /S /D=" + QDir::toNativeSeparators(_installationFolder);
 
@@ -88,7 +88,7 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
     }
 
     // Copy an "empty" AppData folder (i.e. no entities)
-    copyFolder(QDir::currentPath() +  "/AppDataHighFidelity", _appDataFolder.path());
+    copyFolder(QDir::currentPath() + "/AppDataHighFidelity", _appDataFolder.path());
 }
 
 void TestRunner::restoreHighFidelityAppDataFolder() {
@@ -106,8 +106,8 @@ void TestRunner::selectTemporaryFolder() {
         parent += "/";
     }
 
-    _tempFolder =
-        QFileDialog::getExistingDirectory(nullptr, "Please select a temporary folder for installation", parent, QFileDialog::ShowDirsOnly);
+    _tempFolder = QFileDialog::getExistingDirectory(nullptr, "Please select a temporary folder for installation", parent,
+                                                    QFileDialog::ShowDirsOnly);
 
     // If user canceled then restore previous selection and return
     if (_tempFolder == "") {
@@ -168,9 +168,9 @@ void TestRunner::startLocalServerProcesses() {
 void TestRunner::runInterfaceWithTestScript() {
 #ifdef Q_OS_WIN
     QString commandLine = QString("\"") + QDir::toNativeSeparators(_installationFolder) +
-                              "\\interface.exe\" --url hifi://localhost --testScript https://raw.githubusercontent.com/" + _user +
-                              "/hifi_tests/" + _branch + "/tests/testRecursive.js quitWhenFinished --testResultsLocation " +
-                              _snapshotFolder;
+                          "\\interface.exe\" --url hifi://localhost --testScript https://raw.githubusercontent.com/" + _user +
+                          "/hifi_tests/" + _branch + "/tests/testRecursive.js quitWhenFinished --testResultsLocation " +
+                          _snapshotFolder;
 
     system(commandLine.toStdString().c_str());
 #endif
@@ -180,8 +180,76 @@ void TestRunner::evaluateResults() {
     autoTester->startTestsEvaluation(false, true, _snapshotFolder, _branch, _user);
 }
 
-void TestRunner::automaticTestRunEvaluationComplete() {
+void TestRunner::automaticTestRunEvaluationComplete(QString zippedFolder) {
+    addBuildNumberToResults(zippedFolder);
     restoreHighFidelityAppDataFolder();
+}
+
+void TestRunner::addBuildNumberToResults(QString zippedFolderName) {
+    try {
+        QDomDocument domDocument;
+        QString filename{ _tempFolder + "/" + BUILD_XML_FILENAME };
+        QFile file(filename);
+        if (!file.open(QIODevice::ReadOnly) || !domDocument.setContent(&file)) {
+            throw QString("Could not open " + filename);
+        }
+
+        QString platformOfInterest;
+#ifdef Q_OS_WIN
+        platformOfInterest = "windows";
+#else if Q_OS_MAC
+        platformOfInterest = "mac";
+#endif
+        QDomElement element = domDocument.documentElement();
+
+        // Verify first element is "projects"
+        if (element.tagName() != "projects") {
+            throw("File seems to be in wrong format");
+        }
+
+        element = element.firstChild().toElement();
+        if (element.tagName() != "project") {
+            throw("File seems to be in wrong format");
+        }
+
+        if (element.attribute("name") != "interface") {
+            throw("File is not from 'interface' build");
+        }
+
+        // Now loop over the platforms
+        while (!element.isNull()) {
+            element = element.firstChild().toElement();
+            QString sdf = element.tagName();
+            if (element.tagName() != "platform" || element.attribute("name") != platformOfInterest) {
+                continue;
+            }
+
+            // Next element should be the build
+            element = element.firstChild().toElement();
+            if (element.tagName() != "build") {
+                throw("File seems to be in wrong format");
+            }
+
+            // Next element should be the version
+            element = element.firstChild().toElement();
+            if (element.tagName() != "version") {
+                throw("File seems to be in wrong format");
+            }
+
+            // Add the build number to the end of the filename
+            QString build = element.text();
+            QStringList filenameParts = zippedFolderName.split(".");
+            QString augmentedFilename = filenameParts[0] + "_" + build + "." + filenameParts[1];
+            QFile::rename(zippedFolderName, augmentedFilename);
+        }
+
+    } catch (QString errorMessage) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), errorMessage);
+        exit(-1);
+    } catch (...) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "unknown error");
+        exit(-1);
+    }
 }
 
 // Copies a folder recursively

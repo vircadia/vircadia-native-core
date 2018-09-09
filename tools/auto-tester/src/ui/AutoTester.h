@@ -36,7 +36,7 @@ public:
                               const QString& branch,
                               const QString& user);
 
-    void automaticTestRunEvaluationComplete();
+    void automaticTestRunEvaluationComplete(QString zippedFolderName);
 
     void downloadFile(const QUrl& url);
     void downloadFiles(const QStringList& URLs, const QString& directoryName, const QStringList& filenames, void *caller);

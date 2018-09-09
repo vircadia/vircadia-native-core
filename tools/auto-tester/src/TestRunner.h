@@ -35,7 +35,8 @@ public:
     void startLocalServerProcesses();
     void runInterfaceWithTestScript();
     void evaluateResults();
-    void automaticTestRunEvaluationComplete();
+    void automaticTestRunEvaluationComplete(QString zippedFolderName);
+    void addBuildNumberToResults(QString zippedFolderName);
 
     void copyFolder(const QString& source, const QString& destination);
 
@@ -55,6 +56,9 @@ private:
 
     const QString INSTALLER_URL{ "http://builds.highfidelity.com/HighFidelity-Beta-latest-dev.exe" };
     const QString INSTALLER_FILENAME{ "HighFidelity-Beta-latest-dev.exe" };
+
+    const QString BUILD_XML_URL{ "https://highfidelity.com/dev-builds.xml" };
+    const QString BUILD_XML_FILENAME{ "dev-builds.xml" };
 
     QString _branch;
     QString _user;

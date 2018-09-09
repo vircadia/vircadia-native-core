@@ -86,7 +86,7 @@ public:
     void appendTestResultsToFile(const QString& testResultsFolderPath, TestFailure testFailure, QPixmap comparisonImage);
 
     bool createTestResultsFolderPath(const QString& directory);
-    void zipAndDeleteTestResultsFolder();
+    QString zipAndDeleteTestResultsFolder();
 
     static bool isAValidDirectory(const QString& pathname);
 	QString extractPathFromTestsDown(const QString& fullPath);
