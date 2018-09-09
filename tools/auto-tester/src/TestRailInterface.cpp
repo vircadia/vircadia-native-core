@@ -800,6 +800,7 @@ void TestRailInterface::createTestSuiteXML(const QString& testDirectory,
     QDomElement suiteName = _document.createElement("name");
     suiteName.appendChild(
         _document.createTextNode("Test Suite - " + QDateTime::currentDateTime().toString("yyyy-MM-ddTHH:mm")));
+
     topLevelSection.appendChild(suiteName);
 
     // This is the first call to 'process'.  This is then called recursively to build the full XML tree
