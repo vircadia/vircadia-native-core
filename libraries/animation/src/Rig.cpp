@@ -1061,8 +1061,10 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
             // animations haven't fully loaded yet.
             _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
         }
+        _lastAnimVars = _animVars;
         _animVars.clearTriggers();
         _animVars = triggersOut;
+        _lastContext = context;
     }
     applyOverridePoses();
     buildAbsoluteRigPoses(_internalPoseSet._relativePoses, _internalPoseSet._absolutePoses);
