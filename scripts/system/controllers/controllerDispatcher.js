@@ -26,6 +26,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 (function() {
     Script.include("/~/system/libraries/pointersUtils.js");
     var NEAR_MAX_RADIUS = 0.1;
+    var NEAR_TABLET_MAX_RADIUS = 0.05;
 
     var TARGET_UPDATE_HZ = 60; // 50hz good enough, but we're using update
     var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ;
@@ -211,6 +212,17 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 if (controllerLocations[h].valid) {
                     var nearbyOverlays =
                         Overlays.findOverlays(controllerLocations[h].position, NEAR_MAX_RADIUS * sensorScaleFactor);
+
+                    // Tablet must be within NEAR_TABLET_MAX_RADIUS in order to be grabbed.
+                    var tabletIndex = nearbyOverlays.indexOf(HMD.tabletID);
+                    if (tabletIndex !== -1) {
+                        var closebyOverlays =
+                            Overlays.findOverlays(controllerLocations[h].position, NEAR_TABLET_MAX_RADIUS * sensorScaleFactor);
+                        if (tabletIndex !== -1 && closebyOverlays.indexOf(HMD.tabletID) === -1) {
+                            nearbyOverlays.splice(tabletIndex, 1);
+                        }
+                    }
+
                     nearbyOverlays.sort(function (a, b) {
                         var aPosition = Overlays.getProperty(a, "position");
                         var aDistance = Vec3.distance(aPosition, controllerLocations[h].position);
