@@ -21,8 +21,6 @@ Item {
     height: root.pane.height
     width: root.pane.width
     property bool failAfterSignUp: false
-    property var locale: Qt.locale()
-    property string dateTimeString
 
     function login() {
         mainTextContainer.visible = false
@@ -89,6 +87,23 @@ Item {
     }
 
     ShortcutText {
+        id: flavorText
+        anchors {
+            top: parent.top
+            left: parent.left
+            margins: 0
+            topMargin: hifi.dimensions.contentSpacing.y
+        }
+
+        text: qsTr("Sign in to High Fidelity to make friends, get HFC, and buy interesting things on the Marketplace!")
+        width: parent.width
+        wrapMode: Text.WordWrap
+        lineHeight: 1
+        lineHeightMode: Text.ProportionalHeight
+        horizontalAlignment: Text.AlignHCenter
+    }
+
+    ShortcutText {
         id: mainTextContainer
         anchors {
             top: parent.top
@@ -130,7 +145,8 @@ Item {
                 y: usernameField.height
                 anchors {
                     right: usernameField.right
-                    topMargin: -19
+                    top: usernameField.bottom
+                    topMargin: 4
                 }
 
                 text: "<a href='https://highfidelity.com/users/password/new'>Forgot Username?</a>"
@@ -161,6 +177,8 @@ Item {
                 z: 10
                 anchors {
                     right: passwordField.right
+                    top: passwordField.bottom
+                    topMargin: 4
                 }
 
                 text: "<a href='https://highfidelity.com/users/password/new'>Forgot Password?</a>"
@@ -234,6 +252,26 @@ Item {
             onHeightChanged: d.resize(); onWidthChanged: d.resize();
             anchors.horizontalCenter: parent.horizontalCenter
 
+            CheckBox {
+                id: autoLogoutCheckbox;
+                checked: Settings.getValue("wallet/autoLogout", true);
+                text: "Keep me signed in"
+                boxSize: 20;
+                labelFontSize: 15;
+                color: hifi.colors.black;
+                onCheckedChanged: {
+                    Settings.setValue("wallet/autoLogout", !checked);
+                    if (checked) {
+                        Settings.setValue("wallet/savedUsername", "");
+                    } else {
+                        Settings.setValue("wallet/savedUsername", Account.username);
+                    }
+                }
+                Component.onDestruction: {
+                    Settings.setValue("wallet/autoLogout", !checked);
+                }
+            }
+
             Button {
                 id: linkAccountButton
                 anchors.verticalCenter: parent.verticalCenter
@@ -243,12 +281,6 @@ Item {
                 color: hifi.buttons.blue
 
                 onClicked: linkAccountBody.login()
-            }
-
-            Button {
-                anchors.verticalCenter: parent.verticalCenter
-                text: qsTr("Cancel")
-                onClicked: root.tryDestroy()
             }
         }
 
@@ -301,14 +333,6 @@ Item {
         }
 
         usernameField.forceActiveFocus();
-
-        var data = {
-            "date": new Date().toLocaleString(),
-        };
-        print(new Date().toLocaleString());
-        print(model.sessionId);
-
-        //UserActivityLogger.logAction("login_screen_shown", )
     }
 
     Connections {

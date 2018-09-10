@@ -19,6 +19,7 @@ ScrollingWindow {
     destroyOnHidden: true
     frame: ModalFrame { }
 
+    property bool closeButtonVisible: false
     property int colorScheme: hifi.colorSchemes.light
     property bool draggable: false
 
