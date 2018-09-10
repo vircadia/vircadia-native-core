@@ -11,6 +11,7 @@
 
 #include "ConnectionMonitor.h"
 
+#include "Application.h"
 #include "ui/DialogsManager.h"
 
 #include <DependencyManager.h>
@@ -21,6 +22,7 @@
 // should be longer to allow the application to initialize.
 static const int ON_INITIAL_LOAD_DISPLAY_AFTER_DISCONNECTED_FOR_X_MS = 10000;
 static const int DISPLAY_AFTER_DISCONNECTED_FOR_X_MS = 5000;
+static const QString ERROR_DOMAIN_URL =  "file:///~/serverless/redirect.json";
 
 void ConnectionMonitor::init() {
     // Connect to domain disconnected message
@@ -38,7 +40,7 @@ void ConnectionMonitor::init() {
 
     connect(&_timer, &QTimer::timeout, this, []() {
         qDebug() << "ConnectionMonitor: Showing connection failure window";
-        //DependencyManager::get<DialogsManager>()->setDomainConnectionFailureVisibility(true);
+        qApp->goToErrorDomainURL(ERROR_DOMAIN_URL);
     });
 }
 
@@ -48,5 +50,4 @@ void ConnectionMonitor::startTimer() {
 
 void ConnectionMonitor::stopTimer() {
     _timer.stop();
-    //DependencyManager::get<DialogsManager>()->setDomainConnectionFailureVisibility(false);
 }

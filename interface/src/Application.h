@@ -346,6 +346,7 @@ public slots:
     bool importEntities(const QString& url);
     void updateThreadPoolCount() const;
     void updateSystemTabletMode();
+    void goToErrorDomainURL(QUrl errorDomainURL);
 
     Q_INVOKABLE void loadDialog();
     Q_INVOKABLE void loadScriptURLDialog() const;
@@ -474,7 +475,6 @@ private slots:
     void setSessionUUID(const QUuid& sessionUUID) const;
 
     void domainURLChanged(QUrl domainURL);
-    void goToErrorDomainURL(QUrl errorDomainURL);
     void updateWindowTitle() const;
     void nodeAdded(SharedNodePointer node) const;
     void nodeActivated(SharedNodePointer node);
