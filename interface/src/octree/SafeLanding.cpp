@@ -75,7 +75,6 @@ void SafeLanding::addTrackedEntity(const EntityItemID& entityID) {
                 if (hasAABox && downloadedCollisionTypes.count(modelEntity->getShapeType()) != 0) {
                     // Only track entities with downloaded collision bodies.
                     _trackedEntities.emplace(entityID, entity);
-                    qCDebug(interfaceapp) << "Safe Landing: Tracking entity " << entity->getItemName();
                 }
             }
         }
@@ -110,7 +109,6 @@ bool SafeLanding::isLoadSequenceComplete() {
         _initialEnd = INVALID_SEQUENCE;
         _entityTree = nullptr;
         EntityTreeRenderer::setEntityLoadingPriorityFunction(StandardPriority);
-        qCDebug(interfaceapp) << "Safe Landing: load sequence complete";
     }
 
     return !_trackingEntities;

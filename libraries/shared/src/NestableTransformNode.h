@@ -12,14 +12,48 @@
 
 #include "SpatiallyNestable.h"
 
-class NestableTransformNode : public TransformNode {
+template <typename T>
+class BaseNestableTransformNode : public TransformNode {
 public:
-    NestableTransformNode(SpatiallyNestableWeakPointer spatiallyNestable, int jointIndex);
-    Transform getTransform() override;
+    BaseNestableTransformNode(std::weak_ptr<T> spatiallyNestable, int jointIndex) :
+        _spatiallyNestable(spatiallyNestable),
+        _jointIndex(jointIndex) {
+        auto nestablePointer = _spatiallyNestable.lock();
+        if (nestablePointer) {
+            glm::vec3 nestableDimensions = getActualScale(nestablePointer);
+            _baseScale = glm::max(glm::vec3(0.001f), nestableDimensions);
+        }
+    }
+
+    Transform getTransform() override {
+        std::shared_ptr<T> nestable = _spatiallyNestable.lock();
+        if (!nestable) {
+            return Transform();
+        }
+
+        bool success;
+        Transform jointWorldTransform = nestable->getTransform(_jointIndex, success);
+
+        if (!success) {
+            return Transform();
+        }
+
+        jointWorldTransform.setScale(getActualScale(nestable) / _baseScale);
+
+        return jointWorldTransform;
+    }
+
+    glm::vec3 getActualScale(const std::shared_ptr<T>& nestablePointer) const;
 
 protected:
-    SpatiallyNestableWeakPointer _spatiallyNestable;
+    std::weak_ptr<T> _spatiallyNestable;
     int _jointIndex;
+    glm::vec3 _baseScale { 1.0f };
+};
+
+class NestableTransformNode : public BaseNestableTransformNode<SpatiallyNestable> {
+public:
+    NestableTransformNode(std::weak_ptr<SpatiallyNestable> spatiallyNestable, int jointIndex) : BaseNestableTransformNode(spatiallyNestable, jointIndex) {};
 };
 
 #endif // hifi_NestableTransformNode_h
