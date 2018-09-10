@@ -2664,6 +2664,10 @@ Application::~Application() {
 void Application::initializeGL() {
     qCDebug(interfaceapp) << "Created Display Window.";
 
+#ifdef DISABLE_QML
+    setAttribute(Qt::AA_DontCheckOpenGLContextThreadAffinity);
+#endif
+
     // initialize glut for shape drawing; Qt apparently initializes it on OS X
     if (_isGLInitialized) {
         return;
@@ -6872,6 +6876,9 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
         shortName = shortName.mid(startIndex, endIndex - startIndex);
     }
 
+#ifdef DISABLE_QML
+    DependencyManager::get<ScriptEngines>()->loadScript(scriptFilenameOrURL);
+#else
     QString message = "Would you like to run this script:\n" + shortName;
     ModalDialogListener* dlg = OffscreenUi::asyncQuestion(getWindow(), "Run Script", message,
                                                            QMessageBox::Yes | QMessageBox::No);
@@ -6886,7 +6893,7 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
         }
         QObject::disconnect(dlg, &ModalDialogListener::response, this, nullptr);
     });
-
+#endif
     return true;
 }
 

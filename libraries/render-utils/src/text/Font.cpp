@@ -256,29 +256,30 @@ void Font::setupGPU() {
     }
 }
 
-void Font::rebuildVertices(float x, float y, const QString& str, const glm::vec2& bounds) {
-    _verticesBuffer = std::make_shared<gpu::Buffer>();
-    _numVertices = 0;
-    _indicesBuffer = std::make_shared<gpu::Buffer>();
-    _numIndices = 0;
+void Font::buildVertices(Font::DrawInfo& drawInfo, const QString& str, const glm::vec2& origin, const glm::vec2& bounds) {
+    drawInfo.verticesBuffer = std::make_shared<gpu::Buffer>();
+    drawInfo.indicesBuffer = std::make_shared<gpu::Buffer>();
+    drawInfo.indexCount = 0;
+    int numVertices = 0;
 
-    _lastStringRendered = str;
-    _lastBounds = bounds;
+    drawInfo.string = str;
+    drawInfo.bounds = bounds;
+    drawInfo.origin = origin;
 
     // Top left of text
-    glm::vec2 advance = glm::vec2(x, y);
+    glm::vec2 advance = origin;
     foreach(const QString& token, tokenizeForWrapping(str)) {
         bool isNewLine = (token == QString('\n'));
         bool forceNewLine = false;
 
         // Handle wrapping
-        if (!isNewLine && (bounds.x != -1) && (advance.x + computeExtent(token).x > x + bounds.x)) {
+        if (!isNewLine && (bounds.x != -1) && (advance.x + computeExtent(token).x > origin.x + bounds.x)) {
             // We are out of the x bound, force new line
             forceNewLine = true;
         }
         if (isNewLine || forceNewLine) {
             // Character return, move the advance to a new line
-            advance = glm::vec2(x, advance.y - _leading);
+            advance = glm::vec2(origin.x, advance.y - _leading);
 
             if (isNewLine) {
                 // No need to draw anything, go directly to next token
@@ -288,7 +289,7 @@ void Font::rebuildVertices(float x, float y, const QString& str, const glm::vec2
                 break;
             }
         }
-        if ((bounds.y != -1) && (advance.y - _fontSize < -y - bounds.y)) {
+        if ((bounds.y != -1) && (advance.y - _fontSize < -origin.y - bounds.y)) {
             // We are out of the y bound, stop drawing
             break;
         }
@@ -297,11 +298,11 @@ void Font::rebuildVertices(float x, float y, const QString& str, const glm::vec2
         if (!isNewLine) {
             for (auto c : token) {
                 auto glyph = _glyphs[c];
-                quint16 verticesOffset = _numVertices;
+                quint16 verticesOffset = numVertices;
 
                 QuadBuilder qd(glyph, advance - glm::vec2(0.0f, _ascent));
-                _verticesBuffer->append(sizeof(QuadBuilder), (const gpu::Byte*)&qd);
-                _numVertices += 4;
+                drawInfo.verticesBuffer->append(qd);
+                numVertices += 4;
                 
                 // Sam's recommended triangle slices
                 // Triangle tri1 = { v0, v1, v3 };
@@ -327,8 +328,8 @@ void Font::rebuildVertices(float x, float y, const QString& str, const glm::vec2
                 indices[3] = verticesOffset + 2;
                 indices[4] = verticesOffset + 1;
                 indices[5] = verticesOffset + 3;
-                _indicesBuffer->append(sizeof(indices), (const gpu::Byte*)indices);
-                _numIndices += NUMBER_OF_INDICES_PER_QUAD;
+                drawInfo.indicesBuffer->append(sizeof(indices), (const gpu::Byte*)indices);
+                drawInfo.indexCount += NUMBER_OF_INDICES_PER_QUAD;
                 
 
                 // Advance by glyph size
@@ -341,26 +342,39 @@ void Font::rebuildVertices(float x, float y, const QString& str, const glm::vec2
     }
 }
 
-void Font::drawString(gpu::Batch& batch, float x, float y, const QString& str, const glm::vec4* color,
-                      EffectType effectType, const glm::vec2& bounds, bool layered) {
+void Font::drawString(gpu::Batch& batch, Font::DrawInfo& drawInfo, const QString& str, const glm::vec4& color,
+                      EffectType effectType, const glm::vec2& origin, const glm::vec2& bounds, bool layered) {
     if (str == "") {
         return;
     }
 
-    if (str != _lastStringRendered || bounds != _lastBounds) {
-        rebuildVertices(x, y, str, bounds);
+    if (str != drawInfo.string || bounds != drawInfo.bounds || origin != drawInfo.origin) {
+        buildVertices(drawInfo, str, origin, bounds);
     }
 
     setupGPU();
 
-    batch.setPipeline(((*color).a < 1.0f || layered) ? _transparentPipeline : _pipeline);
-    batch.setResourceTexture(render_utils::slot::texture::TextFont, _texture);
-    batch._glUniform1i(render_utils::slot::uniform::TextOutline, (effectType == OUTLINE_EFFECT));
+    struct GpuDrawParams {
+        glm::vec4 color;
+        glm::vec4 outline;
+    };
+
+    if (!drawInfo.paramsBuffer || drawInfo.params.color != color || drawInfo.params.effect != effectType) {
+        drawInfo.params.color = color;
+        drawInfo.params.effect = effectType;
+        GpuDrawParams gpuDrawParams;
+        gpuDrawParams.color = ColorUtils::sRGBToLinearVec4(drawInfo.params.color);
+        gpuDrawParams.outline.x = (drawInfo.params.effect == OUTLINE_EFFECT) ? 1 : 0;
+        drawInfo.paramsBuffer = std::make_shared<gpu::Buffer>(sizeof(GpuDrawParams), nullptr);
+        drawInfo.paramsBuffer->setSubData(0, sizeof(GpuDrawParams), (const gpu::Byte*)&gpuDrawParams);
+    }
     // need the gamma corrected color here
-    glm::vec4 lrgba = ColorUtils::sRGBToLinearVec4(*color);
-    batch._glUniform4fv(render_utils::slot::uniform::TextColor, 1, (const float*)&lrgba);
+
+    batch.setPipeline((color.a < 1.0f || layered) ? _transparentPipeline : _pipeline);
     batch.setInputFormat(_format);
-    batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);
-    batch.setIndexBuffer(gpu::UINT16, _indicesBuffer, 0);
-    batch.drawIndexed(gpu::TRIANGLES, _numIndices, 0);
+    batch.setInputBuffer(0, drawInfo.verticesBuffer, 0, _format->getChannels().at(0)._stride);
+    batch.setResourceTexture(render_utils::slot::texture::TextFont, _texture);
+    batch.setUniformBuffer(0, drawInfo.paramsBuffer, 0, sizeof(GpuDrawParams));
+    batch.setIndexBuffer(gpu::UINT16, drawInfo.indicesBuffer, 0);
+    batch.drawIndexed(gpu::TRIANGLES, drawInfo.indexCount, 0);
 }
