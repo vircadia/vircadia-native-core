@@ -349,12 +349,14 @@ public:
         return !std::isnan(threshold) &&
             !(glm::any(glm::isnan(transform.getTranslation())) ||
             glm::any(glm::isnan(transform.getRotation())) ||
-            shapeInfo->getType() == SHAPE_TYPE_NONE);
+            shapeInfo->getType() == SHAPE_TYPE_NONE ||
+            collisionGroup == 0);
     }
 
     bool operator==(const CollisionRegion& other) const {
         return loaded == other.loaded &&
             threshold == other.threshold &&
+            collisionGroup == other.collisionGroup &&
             glm::all(glm::equal(transform.getTranslation(), other.transform.getTranslation())) &&
             glm::all(glm::equal(transform.getRotation(), other.transform.getRotation())) &&
             glm::all(glm::equal(transform.getScale(), other.transform.getScale())) &&
@@ -367,6 +369,10 @@ public:
             (shapeInfo->getType() >= SHAPE_TYPE_COMPOUND &&
                 shapeInfo->getType() <= SHAPE_TYPE_STATIC_MESH)
             )) {
+            return false;
+        }
+
+        if (collisionGroup == 0) {
             return false;
         }
 
