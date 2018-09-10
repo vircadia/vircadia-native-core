@@ -15,6 +15,9 @@
 #define hifi_LoginDialog_h
 
 #include <OffscreenQmlDialog.h>
+#include <QLoggingCategory>
+
+Q_DECLARE_LOGGING_CATEGORY(login_dialog)
 
 class QNetworkReply;
 
@@ -26,6 +29,8 @@ public:
     static void toggleAction();
 
     LoginDialog(QQuickItem* parent = nullptr);
+
+    virtual ~LoginDialog();
 
     static void showWithSelection();
 signals:

@@ -173,7 +173,7 @@ TabletModalWindow {
                 break
         }
     }
-    onDestroy: {
+    Component.onDestruction: {
         var data = {
             "action": "userOptedOut"
         };

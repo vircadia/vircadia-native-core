@@ -28,6 +28,7 @@
 #include "scripting/HMDScriptingInterface.h"
 
 HIFI_QML_DEF(LoginDialog)
+Q_LOGGING_CATEGORY(login_dialog, "hifi.login.dialog")
 
 LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -38,6 +39,10 @@ LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
             this, &LoginDialog::handleLoginFailed);
 #endif
 
+}
+
+LoginDialog::~LoginDialog() {
+    qCDebug(login_dialog) << "killing";
 }
 
 void LoginDialog::showWithSelection()

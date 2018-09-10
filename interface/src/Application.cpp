@@ -2308,8 +2308,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(checkLoginTimer, &QTimer::timeout, this, []() {
         auto accountManager = DependencyManager::get<AccountManager>();
         auto dialogsManager = DependencyManager::get<DialogsManager>();
-        if (!accountManager->isLoggedIn()) {
+        if (!accountManager->isLoggedIn() && !qApp->isHMDMode()) {
             dialogsManager->showLoginDialog();
+            QJsonObject loginData = {};
+            loginData["action"] = "login dialog shown";
+            UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
         }
     });
     checkLoginTimer->start();

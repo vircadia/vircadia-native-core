@@ -110,6 +110,7 @@ Frame {
             glyph: hifi.glyphs.close
             size: 23
             onClicked: {
+                window.clickedCloseButton = true;
                 window.destroy();
             }
         }

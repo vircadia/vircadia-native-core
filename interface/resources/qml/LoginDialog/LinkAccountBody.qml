@@ -195,22 +195,25 @@ Item {
                 root.isPassword = true;
             }
 
-            Image {
-                id: showPasswordImage
-                x: parent.width - ((parent.height) * 31 / 23)
-                y: (parent.height - (parent.height * 16 / 23)) / 2
-                width: parent.width - (parent.width - (((parent.height) * 31/23)))
-                height: parent.height * 16 / 23
-                source: "../../images/eyeOpen.svg"
-            }
-
             Rectangle {
                 id: showPasswordHitbox
                 z: 10
-                x: parent.width - (parent.height * 31/16)
+                // x: parent.width - (parent.height * 31/16)
+                x: passwordField.width - ((passwordField.height) * 31 / 23)
                 width: parent.width - (parent.width - (parent.height * 31/16))
+                // width: passwordField.width - (passwordField.width - (((passwordField.height) * 31/23)))
                 height: parent.height
                 color: "transparent"
+
+                Image {
+                    id: showPasswordImage
+                    // x: passwordField.width - ((passwordField.height) * 31 / 23)
+                    y: (passwordField.height - (passwordField.height * 16 / 23)) / 2
+                    width: passwordField.width - (passwordField.width - (((passwordField.height) * 31/23)))
+                    height: passwordField.height * 16 / 23
+                    source: "../../images/eyeOpen.svg"
+                }
+
                 MouseArea {
                     id: passwordFieldMouseArea
                     anchors.fill: parent
