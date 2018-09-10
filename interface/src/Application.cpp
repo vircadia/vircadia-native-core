@@ -195,6 +195,7 @@
 #include "ui/SnapshotAnimated.h"
 #include "ui/StandAloneJSConsole.h"
 #include "ui/Stats.h"
+#include "ui/AnimStats.h"
 #include "ui/UpdateDialog.h"
 #include "ui/overlays/Overlays.h"
 #include "ui/DomainConnectionModel.h"
@@ -3081,8 +3082,10 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
 
 void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
     Stats::show();
+    AnimStats::show();
     auto surfaceContext = DependencyManager::get<OffscreenUi>()->getSurfaceContext();
     surfaceContext->setContextProperty("Stats", Stats::getInstance());
+    surfaceContext->setContextProperty("AnimStats", AnimStats::getInstance());
 
 #if !defined(Q_OS_ANDROID)
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
@@ -4618,6 +4621,7 @@ void Application::idle() {
     checkChangeCursor();
 
     Stats::getInstance()->updateStats();
+    AnimStats::getInstance()->updateStats();
 
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
     // details if we're in ExtraDebugging mode. However, the ::update() and its subcomponents will show their timing
@@ -5061,8 +5065,9 @@ void Application::updateLOD(float deltaTime) const {
         float presentTime = getActiveDisplayPlugin()->getAveragePresentTime();
         float engineRunTime = (float)(_renderEngine->getConfiguration().get()->getCPURunTime());
         float gpuTime = getGPUContext()->getFrameTimerGPUAverage();
+        float batchTime = getGPUContext()->getFrameTimerBatchAverage();
         auto lodManager = DependencyManager::get<LODManager>();
-        lodManager->setRenderTimes(presentTime, engineRunTime, gpuTime);
+        lodManager->setRenderTimes(presentTime, engineRunTime, batchTime, gpuTime);
         lodManager->autoAdjustLOD(deltaTime);
     } else {
         DependencyManager::get<LODManager>()->resetLODAdjust();
@@ -5854,9 +5859,7 @@ void Application::update(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::update()");
 
-#if !defined(Q_OS_ANDROID)
     updateLOD(deltaTime);
-#endif
 
     // TODO: break these out into distinct perfTimers when they prove interesting
     {
@@ -6018,7 +6021,7 @@ void Application::updateRenderArgs(float deltaTime) {
                 _viewFrustum.calculate();
             }
             appRenderArgs._renderArgs = RenderArgs(_gpuContext, lodManager->getOctreeSizeScale(),
-                lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
+                lodManager->getBoundaryLevelAdjust(), lodManager->getLODAngleHalfTan(), RenderArgs::DEFAULT_RENDER_MODE,
                 RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
             appRenderArgs._renderArgs._scene = getMain3DScene();
 

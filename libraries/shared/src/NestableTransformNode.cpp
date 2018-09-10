@@ -8,24 +8,7 @@
 
 #include "NestableTransformNode.h"
 
-NestableTransformNode::NestableTransformNode(SpatiallyNestableWeakPointer spatiallyNestable, int jointIndex) :
-    _spatiallyNestable(spatiallyNestable),
-    _jointIndex(jointIndex)
-{
-}
-
-Transform NestableTransformNode::getTransform() {
-    auto nestable = _spatiallyNestable.lock();
-    if (!nestable) {
-        return Transform();
-    }
-
-    bool success;
-    Transform jointWorldTransform = nestable->getTransform(_jointIndex, success);
-
-    if (success) {
-        return jointWorldTransform;
-    } else {
-        return Transform();
-    }
+template<>
+glm::vec3 BaseNestableTransformNode<SpatiallyNestable>::getActualScale(const std::shared_ptr<SpatiallyNestable>& nestablePointer) const {
+    return nestablePointer->getAbsoluteJointScaleInObjectFrame(_jointIndex);
 }

@@ -67,6 +67,7 @@ QScriptValue AnimVariantMap::animVariantMapToScriptValue(QScriptEngine* engine, 
     }
     return target;
 }
+
 void AnimVariantMap::copyVariantsFrom(const AnimVariantMap& other) {
     for (auto& pair : other._map) {
         _map[pair.first] = pair.second;
@@ -123,4 +124,44 @@ void AnimVariantMap::animVariantMapFromScriptValue(const QScriptValue& source) {
             Q_ASSERT(false);
         }
     }
+}
+
+std::map<QString, QString> AnimVariantMap::toDebugMap() const {
+    std::map<QString, QString> result;
+    for (auto& pair : _map) {
+        switch (pair.second.getType()) {
+        case AnimVariant::Type::Bool:
+            result[pair.first] = QString("%1").arg(pair.second.getBool());
+            break;
+        case AnimVariant::Type::Int:
+            result[pair.first] = QString("%1").arg(pair.second.getInt());
+            break;
+        case AnimVariant::Type::Float:
+            result[pair.first] = QString::number(pair.second.getFloat(), 'f', 3);
+            break;
+        case AnimVariant::Type::Vec3: {
+            glm::vec3 value = pair.second.getVec3();
+            result[pair.first] = QString("(%1, %2, %3)").
+                arg(QString::number(value.x, 'f', 3)).
+                arg(QString::number(value.y, 'f', 3)).
+                arg(QString::number(value.z, 'f', 3));
+            break;
+        }
+        case AnimVariant::Type::Quat: {
+            glm::quat value = pair.second.getQuat();
+            result[pair.first] = QString("(%1, %2, %3, %4)").
+                arg(QString::number(value.x, 'f', 3)).
+                arg(QString::number(value.y, 'f', 3)).
+                arg(QString::number(value.z, 'f', 3)).
+                arg(QString::number(value.w, 'f', 3));
+            break;
+        }
+        case AnimVariant::Type::String:
+            result[pair.first] = pair.second.getString();
+            break;
+        default:
+            assert(("invalid AnimVariant::Type", false));
+        }
+    }
+    return result;
 }

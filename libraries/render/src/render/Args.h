@@ -73,6 +73,7 @@ namespace render {
         Args(const gpu::ContextPointer& context,
             float sizeScale = 1.0f,
             int boundaryLevelAdjust = 0,
+            float lodAngleHalfTan = 0.1f,
             RenderMode renderMode = DEFAULT_RENDER_MODE,
             DisplayMode displayMode = MONO,
             DebugFlags debugFlags = RENDER_DEBUG_NONE,
@@ -80,6 +81,8 @@ namespace render {
             _context(context),
             _sizeScale(sizeScale),
             _boundaryLevelAdjust(boundaryLevelAdjust),
+            _lodAngleHalfTan(lodAngleHalfTan),
+            _lodAngleHalfTanSq(lodAngleHalfTan * lodAngleHalfTan),
             _renderMode(renderMode),
             _displayMode(displayMode),
             _debugFlags(debugFlags),
@@ -105,8 +108,12 @@ namespace render {
         std::stack<ViewFrustum> _viewFrustums;
         glm::ivec4 _viewport { 0.0f, 0.0f, 1.0f, 1.0f };
         glm::vec3 _boomOffset { 0.0f, 0.0f, 1.0f };
+
         float _sizeScale { 1.0f };
         int _boundaryLevelAdjust { 0 };
+        float _lodAngleHalfTan{ 0.1f };
+        float _lodAngleHalfTanSq{ _lodAngleHalfTan  * _lodAngleHalfTan };
+
         RenderMode _renderMode { DEFAULT_RENDER_MODE };
         DisplayMode _displayMode { MONO };
         DebugFlags _debugFlags { RENDER_DEBUG_NONE };
