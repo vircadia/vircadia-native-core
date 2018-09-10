@@ -137,7 +137,7 @@ function loaded() {
                 let clickedItemFound = -1;
                 for (let i = 0, len = visibleEntities.length; i < len; ++i) {
                     let entity = visibleEntities[i];
-                    if (clickedItemFound === -1 && entityID == entity.id) {
+                    if (clickedItemFound === -1 && entityID === entity.id) {
                         clickedItemFound = i;
                     } else if (previousItemFound === -1 && selectedEntities[0] === entity.id) {
                         previousItemFound = i;
@@ -200,10 +200,6 @@ function loaded() {
             let urlParts = url.split('/');
             return urlParts[urlParts.length - 1];
         }
-
-        elFilter.onkeyup = refreshEntityList;
-        elFilter.onpaste = refreshEntityList;
-        elFilter.onchange = refreshEntityList;
 
         // Update the entity list with the new set of data sent from edit.js
         function updateEntityList(entityData) {
@@ -482,7 +478,7 @@ function loaded() {
                 } else if (data.type === "update" && data.selectedIDs !== undefined) {
                     PROFILE("update", function() {
                         var newEntities = data.entities;
-                        if (newEntities && newEntities.length == 0) {
+                        if (newEntities && newEntities.length === 0) {
                             elNoEntitiesMessage.style.display = "block";
                             elFooter.firstChild.nodeValue = "0 entities found";
                         } else if (newEntities) {
@@ -540,7 +536,13 @@ function loaded() {
         };
 
         window.onresize = resize;
-        elFilter.onchange = resize;
+
+        elFilter.onkeyup = refreshEntityList;
+        elFilter.onpaste = refreshEntityList;
+        elFilter.onchange = function() {
+            refreshEntityList();
+            resize();
+        };
         elFilter.onblur = refreshFooter;
 
 

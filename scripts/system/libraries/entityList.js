@@ -142,49 +142,49 @@ EntityListTool = function(shouldUseEditTabletApp) {
 
             var ids;
             PROFILE("findEntities", function() {
-            if (filterInView) {
-                ids = Entities.findEntitiesInFrustum(Camera.frustum);
-            } else {
-                ids = Entities.findEntities(MyAvatar.position, searchRadius);
-            }
+                if (filterInView) {
+                    ids = Entities.findEntitiesInFrustum(Camera.frustum);
+                } else {
+                    ids = Entities.findEntities(MyAvatar.position, searchRadius);
+                }
             });
 
             var cameraPosition = Camera.position;
             PROFILE("getProperties", function() {
-            for (var i = 0; i < ids.length; i++) {
-                var id = ids[i];
-                var properties = Entities.getEntityProperties(id, ['name', 'type', 'locked',
-                    'visible', 'renderInfo', 'type', 'modelURL', 'materialURL', 'script']);
+                for (var i = 0; i < ids.length; i++) {
+                    var id = ids[i];
+                    var properties = Entities.getEntityProperties(id, ['name', 'type', 'locked',
+                        'visible', 'renderInfo', 'type', 'modelURL', 'materialURL', 'script']);
 
-                if (!filterInView || Vec3.distance(properties.position, cameraPosition) <= searchRadius) {
-                    var url = "";
-                    if (properties.type === "Model") {
-                        url = properties.modelURL;
-                    } else if (properties.type === "Material") {
-                        url = properties.materialURL;
+                    if (!filterInView || Vec3.distance(properties.position, cameraPosition) <= searchRadius) {
+                        var url = "";
+                        if (properties.type === "Model") {
+                            url = properties.modelURL;
+                        } else if (properties.type === "Material") {
+                            url = properties.materialURL;
+                        }
+                        entities.push({
+                            id: id,
+                            name: properties.name,
+                            type: properties.type,
+                            url: url,
+                            locked: properties.locked,
+                            visible: properties.visible,
+                            verticesCount: (properties.renderInfo !== undefined ?
+                                valueIfDefined(properties.renderInfo.verticesCount) : ""),
+                            texturesCount: (properties.renderInfo !== undefined ?
+                                valueIfDefined(properties.renderInfo.texturesCount) : ""),
+                            texturesSize: (properties.renderInfo !== undefined ?
+                                valueIfDefined(properties.renderInfo.texturesSize) : ""),
+                            hasTransparent: (properties.renderInfo !== undefined ?
+                                valueIfDefined(properties.renderInfo.hasTransparent) : ""),
+                            isBaked: properties.type === "Model" ? url.toLowerCase().endsWith(".baked.fbx") : false,
+                            drawCalls: (properties.renderInfo !== undefined ?
+                                valueIfDefined(properties.renderInfo.drawCalls) : ""),
+                            hasScript: properties.script !== ""
+                        });
                     }
-                    entities.push({
-                        id: id,
-                        name: properties.name,
-                        type: properties.type,
-                        url: url,
-                        locked: properties.locked,
-                        visible: properties.visible,
-                        verticesCount: (properties.renderInfo !== undefined ?
-                            valueIfDefined(properties.renderInfo.verticesCount) : ""),
-                        texturesCount: (properties.renderInfo !== undefined ?
-                            valueIfDefined(properties.renderInfo.texturesCount) : ""),
-                        texturesSize: (properties.renderInfo !== undefined ?
-                            valueIfDefined(properties.renderInfo.texturesSize) : ""),
-                        hasTransparent: (properties.renderInfo !== undefined ?
-                            valueIfDefined(properties.renderInfo.hasTransparent) : ""),
-                        isBaked: properties.type === "Model" ? url.toLowerCase().endsWith(".baked.fbx") : false,
-                        drawCalls: (properties.renderInfo !== undefined ?
-                            valueIfDefined(properties.renderInfo.drawCalls) : ""),
-                        hasScript: properties.script !== ""
-                    });
                 }
-            }
             });
 
             var selectedIDs = [];
