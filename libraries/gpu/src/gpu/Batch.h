@@ -417,7 +417,7 @@ public:
             }
 
             const Data& get(uint32 offset) const {
-                assert((offset >= _items.size()));
+                assert((offset < _items.size()));
                 return (_items.data() + offset)->_data;
             }
 
