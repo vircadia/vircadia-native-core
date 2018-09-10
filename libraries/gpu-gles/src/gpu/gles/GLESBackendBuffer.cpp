@@ -64,6 +64,10 @@ GLuint GLESBackend::getBufferID(const Buffer& buffer) {
     return GLESBuffer::getId<GLESBuffer>(*this, buffer);
 }
 
+GLuint GLESBackend::getBufferIDUnsynced(const Buffer& buffer) {
+    return GLESBuffer::getIdUnsynced<GLESBuffer>(*this, buffer);
+}
+
 GLBuffer* GLESBackend::syncGPUObject(const Buffer& buffer) {
     return GLESBuffer::sync<GLESBuffer>(*this, buffer);
 }
