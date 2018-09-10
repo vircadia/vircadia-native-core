@@ -259,10 +259,11 @@ public:
 * A CollisionRegion defines a volume for checking collisions in the physics simulation.
 
 * @typedef {object} CollisionRegion
-* @property {Shape} shape - The information about the collision region's size and shape.
+* @property {Shape} shape - The information about the collision region's size and shape. Dimensions are in world space, but will scale with the parent if defined.
 * @property {Vec3} position - The position of the collision region, relative to a parent if defined.
 * @property {Quat} orientation - The orientation of the collision region, relative to a parent if defined.
 * @property {float} threshold - The approximate minimum penetration depth for a test object to be considered in contact with the collision region.
+* The depth is measured in world space, but will scale with the parent if defined.
 * @property {Uuid} parentID - The ID of the parent, either an avatar, an entity, or an overlay.
 * @property {number} parentJointIndex - The joint of the parent to parent to, for example, the joints on the model of an avatar. (default = 0, no joint)
 * @property {string} joint - If "Mouse," parents the pick to the mouse. If "Avatar," parents the pick to MyAvatar's head. Otherwise, parents to the joint of the given name on MyAvatar.

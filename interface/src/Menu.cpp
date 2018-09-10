@@ -737,6 +737,7 @@ Menu::Menu() {
 
     // Developer > Stats
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Stats);
+    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::AnimStats);
 
     // Settings > Enable Speech Control API
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
