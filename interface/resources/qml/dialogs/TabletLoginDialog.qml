@@ -173,4 +173,10 @@ TabletModalWindow {
                 break
         }
     }
+    onDestroy: {
+        var data = {
+            "action": "userOptedOut"
+        };
+        UserActivityLogger.logAction("LoginDialogAction", data);
+    }
 }

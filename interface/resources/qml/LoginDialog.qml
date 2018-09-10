@@ -84,4 +84,11 @@ ModalWindow {
                 break
         }
     }
+    Component.onDestruction: {
+/*        var data = {
+            "action": "userOptedOut"
+        };
+        UserActivityLogger.logAction("LoginDialogAction", data); */
+        print("destroyed");
+    }
 }
