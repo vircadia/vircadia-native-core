@@ -436,9 +436,9 @@ void AvatarHashMap::sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& ol
 void AvatarHashMap::clearOtherAvatars() {
     QWriteLocker locker(&_hashLock);
 
-    AvatarHash::iterator avatarIterator =  _avatarHash.begin();
-    while (avatarIterator != _avatarHash.end()) {
-        handleRemovedAvatar(*avatarIterator);
-        avatarIterator = _avatarHash.erase(avatarIterator);
+    for (auto& av : _avatarHash) {
+        handleRemovedAvatar(av);
     }
+
+    _avatarHash.clear();
 }
