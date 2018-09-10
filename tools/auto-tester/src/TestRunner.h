@@ -31,7 +31,6 @@ public:
     void selectTemporaryFolder();
     void createSnapshotFolder();
     void killProcesses();
-    void killProcessByName(QString processName);
     void startLocalServerProcesses();
     void runInterfaceWithTestScript();
     void evaluateResults();

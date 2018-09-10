@@ -16,6 +16,11 @@
 #include "ui/AutoTester.h"
 extern AutoTester* autoTester;
 
+#ifdef Q_OS_WIN
+#include <windows.h>
+#include <tlhelp32.h>
+#endif
+
 TestRunner::TestRunner(QObject* parent) : QObject(parent) {
 }
 
@@ -138,15 +143,48 @@ void TestRunner::createSnapshotFolder() {
 }
 
 void TestRunner::killProcesses() {
-    killProcessByName("assignment-client.exe");
-    killProcessByName("domain-server.exe");
-    killProcessByName("server-console.exe");
-}
-
-void TestRunner::killProcessByName(QString processName) {
 #ifdef Q_OS_WIN
-    QString commandLine = "taskkill /im " + processName + " /f >nul";
-    system(commandLine.toStdString().c_str());
+    try {
+        QStringList processesToKill = QStringList() << "interface.exe" << "assignment-client.exe" << "domain-server.exe" << "server-console.exe";
+
+        // Loop until all pending processes to kill have actually died
+        QStringList pendingProcessesToKill;
+        do {
+            pendingProcessesToKill.clear();
+
+            // Get list of running tasks
+            HANDLE processSnapHandle = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+            if (processSnapHandle == INVALID_HANDLE_VALUE) {
+                throw("Process snapshot creation failure");
+            }
+
+            PROCESSENTRY32 processEntry32;
+            processEntry32.dwSize = sizeof(PROCESSENTRY32);
+            if (!Process32First(processSnapHandle, &processEntry32)) {
+                CloseHandle(processSnapHandle);
+                throw("Process32First failed");
+            }
+
+            // Kill any task in the list
+            do {
+                foreach (QString process, processesToKill) 
+                if (QString(processEntry32.szExeFile) == process) {
+                    QString commandLine = "taskkill /im " + process + " /f >nul";
+                    system(commandLine.toStdString().c_str());
+                    pendingProcessesToKill << process;
+                }
+            } while (Process32Next(processSnapHandle, &processEntry32));
+
+            QThread::sleep(2);
+        } while (!pendingProcessesToKill.isEmpty());
+
+    } catch (QString errorMessage) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), errorMessage);
+        exit(-1);
+    } catch (...) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "unknown error");
+        exit(-1);
+    }
 #endif
 }
 
@@ -239,7 +277,7 @@ void TestRunner::addBuildNumberToResults(QString zippedFolderName) {
             // Add the build number to the end of the filename
             QString build = element.text();
             QStringList filenameParts = zippedFolderName.split(".");
-            QString augmentedFilename = filenameParts[0] + "_" + build + "." + filenameParts[1];
+            QString augmentedFilename = filenameParts[0] + "(" + build + ")." + filenameParts[1];
             QFile::rename(zippedFolderName, augmentedFilename);
         }
 
