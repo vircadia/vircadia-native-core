@@ -410,7 +410,7 @@ SelectionDisplay = (function() {
     var COLOR_RED = { red: 226, green: 51, blue: 77 };
     var COLOR_HOVER = { red: 227, green: 227, blue: 227 };
     var COLOR_ROTATE_CURRENT_RING = { red: 255, green: 99, blue: 9 };
-    var COLOR_SCALE_EDGE = { red: 87, green: 87, blue: 87 };
+    var COLOR_BOUNDING_EDGE = { red: 87, green: 87, blue: 87 };
     var COLOR_SCALE_CUBE = { red: 106, green: 106, blue: 106 };
     var COLOR_SCALE_CUBE_SELECTED = { red: 18, green: 18, blue: 18 };
 
@@ -440,7 +440,7 @@ SelectionDisplay = (function() {
     var STRETCH_DIRECTION_ALL_CAMERA_DISTANCE_MULTIPLE = 2;
     var STRETCH_PANEL_WIDTH = 0.01;
 
-    var SCALE_EDGE_OFFSET = 0.5;
+    var BOUNDING_EDGE_OFFSET = 0.5;
     var SCALE_CUBE_CAMERA_DISTANCE_MULTIPLE = 0.02;
 
     var CLONER_OFFSET = { x: 0.9, y: -0.9, z: 0.9 };    
@@ -629,26 +629,26 @@ SelectionDisplay = (function() {
         borderSize: 1.4
     });
 
-    var handlePropertiesScaleEdge = {
+    var handlePropertiesBoundingEdge = {
         alpha: 1,
-        color: COLOR_SCALE_EDGE,
+        color: COLOR_BOUNDING_EDGE,
         visible: false,
         ignoreRayIntersection: true,
         drawInFront: true,
         lineWidth: 0.2
     };
-    var handleScaleTREdge = Overlays.addOverlay("line3d", handlePropertiesScaleEdge);
-    var handleScaleTLEdge = Overlays.addOverlay("line3d", handlePropertiesScaleEdge);
-    var handleScaleTFEdge = Overlays.addOverlay("line3d", handlePropertiesScaleEdge);
-    var handleScaleTNEdge = Overlays.addOverlay("line3d", handlePropertiesScaleEdge);
-    var handleScaleBREdge = Overlays.addOverlay("line3d", handlePropertiesScaleEdge);
-    var handleScaleBLEdge = Overlays.addOverlay("line3d", handlePropertiesScaleEdge);
-    var handleScaleBFEdge = Overlays.addOverlay("line3d", handlePropertiesScaleEdge);
-    var handleScaleBNEdge = Overlays.addOverlay("line3d", handlePropertiesScaleEdge);
-    var handleScaleNREdge = Overlays.addOverlay("line3d", handlePropertiesScaleEdge);
-    var handleScaleNLEdge = Overlays.addOverlay("line3d", handlePropertiesScaleEdge);
-    var handleScaleFREdge = Overlays.addOverlay("line3d", handlePropertiesScaleEdge);
-    var handleScaleFLEdge = Overlays.addOverlay("line3d", handlePropertiesScaleEdge);
+    var handleBoundingTREdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
+    var handleBoundingTLEdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
+    var handleBoundingTFEdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
+    var handleBoundingTNEdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
+    var handleBoundingBREdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
+    var handleBoundingBLEdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
+    var handleBoundingBFEdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
+    var handleBoundingBNEdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
+    var handleBoundingNREdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
+    var handleBoundingNLEdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
+    var handleBoundingFREdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
+    var handleBoundingFLEdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
 
     var handleCloner = Overlays.addOverlay("cube", {
         alpha: 1,
@@ -736,18 +736,18 @@ SelectionDisplay = (function() {
         handleStretchYPanel,
         handleStretchZPanel,
         handleScaleCube,
-        handleScaleTREdge,
-        handleScaleTLEdge,
-        handleScaleTFEdge,
-        handleScaleTNEdge,
-        handleScaleBREdge,
-        handleScaleBLEdge,
-        handleScaleBFEdge,
-        handleScaleBNEdge,
-        handleScaleNREdge,
-        handleScaleNLEdge,
-        handleScaleFREdge,
-        handleScaleFLEdge,
+        handleBoundingTREdge,
+        handleBoundingTLEdge,
+        handleBoundingTFEdge,
+        handleBoundingTNEdge,
+        handleBoundingBREdge,
+        handleBoundingBLEdge,
+        handleBoundingBFEdge,
+        handleBoundingBNEdge,
+        handleBoundingNREdge,
+        handleBoundingNLEdge,
+        handleBoundingFREdge,
+        handleBoundingFLEdge,
         handleCloner,
         selectionBox,
         iconSelectionBox,
@@ -780,18 +780,18 @@ SelectionDisplay = (function() {
 
     overlayNames[handleScaleCube] = "handleScaleCube";
 
-    overlayNames[handleScaleTREdge] = "handleScaleTREdge";
-    overlayNames[handleScaleTLEdge] = "handleScaleTLEdge";
-    overlayNames[handleScaleTFEdge] = "handleScaleTFEdge";
-    overlayNames[handleScaleTNEdge] = "handleScaleTNEdge";
-    overlayNames[handleScaleBREdge] = "handleScaleBREdge";
-    overlayNames[handleScaleBLEdge] = "handleScaleBLEdge";
-    overlayNames[handleScaleBFEdge] = "handleScaleBFEdge";
-    overlayNames[handleScaleBNEdge] = "handleScaleBNEdge";
-    overlayNames[handleScaleNREdge] = "handleScaleNREdge";
-    overlayNames[handleScaleNLEdge] = "handleScaleNLEdge";
-    overlayNames[handleScaleFREdge] = "handleScaleFREdge";
-    overlayNames[handleScaleFLEdge] = "handleScaleFLEdge";
+    overlayNames[handleBoundingTREdge] = "handleBoundingTREdge";
+    overlayNames[handleBoundingTLEdge] = "handleBoundingTLEdge";
+    overlayNames[handleBoundingTFEdge] = "handleBoundingTFEdge";
+    overlayNames[handleBoundingTNEdge] = "handleBoundingTNEdge";
+    overlayNames[handleBoundingBREdge] = "handleBoundingBREdge";
+    overlayNames[handleBoundingBLEdge] = "handleBoundingBLEdge";
+    overlayNames[handleBoundingBFEdge] = "handleBoundingBFEdge";
+    overlayNames[handleBoundingBNEdge] = "handleBoundingBNEdge";
+    overlayNames[handleBoundingNREdge] = "handleBoundingNREdge";
+    overlayNames[handleBoundingNLEdge] = "handleBoundingNLEdge";
+    overlayNames[handleBoundingFREdge] = "handleBoundingFREdge";
+    overlayNames[handleBoundingFLEdge] = "handleBoundingFLEdge";
 
     overlayNames[handleCloner] = "handleCloner";
     overlayNames[selectionBox] = "selectionBox";
@@ -1405,10 +1405,10 @@ SelectionDisplay = (function() {
                 dimensions: scaleCubeDimensions
             });
 
-            // UPDATE SCALE EDGES
-            var edgeOffsetX = SCALE_EDGE_OFFSET * dimensions.x;
-            var edgeOffsetY = SCALE_EDGE_OFFSET * dimensions.y;
-            var edgeOffsetZ = SCALE_EDGE_OFFSET * dimensions.z;
+            // UPDATE BOUNDING BOX EDGES
+            var edgeOffsetX = BOUNDING_EDGE_OFFSET * dimensions.x;
+            var edgeOffsetY = BOUNDING_EDGE_OFFSET * dimensions.y;
+            var edgeOffsetZ = BOUNDING_EDGE_OFFSET * dimensions.z;
             var LBNPosition = { x: -edgeOffsetX, y: -edgeOffsetY, z: -edgeOffsetZ };
             LBNPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, LBNPosition));
             var RBNPosition = { x: edgeOffsetX, y: -edgeOffsetY, z: -edgeOffsetZ };
@@ -1425,18 +1425,18 @@ SelectionDisplay = (function() {
             LTFPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, LTFPosition));
             var RTFPosition = { x: edgeOffsetX, y: edgeOffsetY, z: edgeOffsetZ };
             RTFPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, RTFPosition));
-            Overlays.editOverlay(handleScaleTREdge, { start: RTNPosition, end: RTFPosition });
-            Overlays.editOverlay(handleScaleTLEdge, { start: LTNPosition, end: LTFPosition });
-            Overlays.editOverlay(handleScaleTFEdge, { start: LTFPosition, end: RTFPosition });
-            Overlays.editOverlay(handleScaleTNEdge, { start: LTNPosition, end: RTNPosition });
-            Overlays.editOverlay(handleScaleBREdge, { start: RBNPosition, end: RBFPosition });
-            Overlays.editOverlay(handleScaleBLEdge, { start: LBNPosition, end: LBFPosition });
-            Overlays.editOverlay(handleScaleBFEdge, { start: LBFPosition, end: RBFPosition });
-            Overlays.editOverlay(handleScaleBNEdge, { start: LBNPosition, end: RBNPosition });
-            Overlays.editOverlay(handleScaleNREdge, { start: RTNPosition, end: RBNPosition });
-            Overlays.editOverlay(handleScaleNLEdge, { start: LTNPosition, end: LBNPosition });
-            Overlays.editOverlay(handleScaleFREdge, { start: RTFPosition, end: RBFPosition });
-            Overlays.editOverlay(handleScaleFLEdge, { start: LTFPosition, end: LBFPosition });
+            Overlays.editOverlay(handleBoundingTREdge, { start: RTNPosition, end: RTFPosition });
+            Overlays.editOverlay(handleBoundingTLEdge, { start: LTNPosition, end: LTFPosition });
+            Overlays.editOverlay(handleBoundingTFEdge, { start: LTFPosition, end: RTFPosition });
+            Overlays.editOverlay(handleBoundingTNEdge, { start: LTNPosition, end: RTNPosition });
+            Overlays.editOverlay(handleBoundingBREdge, { start: RBNPosition, end: RBFPosition });
+            Overlays.editOverlay(handleBoundingBLEdge, { start: LBNPosition, end: LBFPosition });
+            Overlays.editOverlay(handleBoundingBFEdge, { start: LBFPosition, end: RBFPosition });
+            Overlays.editOverlay(handleBoundingBNEdge, { start: LBNPosition, end: RBNPosition });
+            Overlays.editOverlay(handleBoundingNREdge, { start: RTNPosition, end: RBNPosition });
+            Overlays.editOverlay(handleBoundingNLEdge, { start: LTNPosition, end: LBNPosition });
+            Overlays.editOverlay(handleBoundingFREdge, { start: RTFPosition, end: RBFPosition });
+            Overlays.editOverlay(handleBoundingFLEdge, { start: LTFPosition, end: LBFPosition });
             
             // UPDATE STRETCH HIGHLIGHT PANELS
             var RBFPositionRotated = Vec3.multiplyQbyV(rotationInverse, RBFPosition);
@@ -1569,7 +1569,7 @@ SelectionDisplay = (function() {
         var showOutlineForZone = (SelectionManager.selections.length === 1 && 
                                     typeof SelectionManager.savedProperties[SelectionManager.selections[0]] !== "undefined" &&
                                     SelectionManager.savedProperties[SelectionManager.selections[0]].type === "Zone");
-        that.setHandleScaleEdgeVisible(showOutlineForZone || (!isActiveTool(handleRotatePitchRing) &&
+        that.setHandleBoundingEdgeVisible(showOutlineForZone || (!isActiveTool(handleRotatePitchRing) &&
                                                               !isActiveTool(handleRotateYawRing) &&
                                                               !isActiveTool(handleRotateRollRing)));
 
@@ -1669,26 +1669,26 @@ SelectionDisplay = (function() {
     // FUNCTION: SET HANDLE SCALE VISIBLE
     that.setHandleScaleVisible = function(isVisible) {
         that.setHandleScaleCubeVisible(isVisible);
-        that.setHandleScaleEdgeVisible(isVisible);
+        that.setHandleBoundingEdgeVisible(isVisible);
     };
 
     that.setHandleScaleCubeVisible = function(isVisible) {
         Overlays.editOverlay(handleScaleCube, { visible: isVisible });
     };
 
-    that.setHandleScaleEdgeVisible = function(isVisible) {
-        Overlays.editOverlay(handleScaleTREdge, { visible: isVisible });
-        Overlays.editOverlay(handleScaleTLEdge, { visible: isVisible });
-        Overlays.editOverlay(handleScaleTFEdge, { visible: isVisible });
-        Overlays.editOverlay(handleScaleTNEdge, { visible: isVisible });
-        Overlays.editOverlay(handleScaleBREdge, { visible: isVisible });
-        Overlays.editOverlay(handleScaleBLEdge, { visible: isVisible });
-        Overlays.editOverlay(handleScaleBFEdge, { visible: isVisible });
-        Overlays.editOverlay(handleScaleBNEdge, { visible: isVisible });
-        Overlays.editOverlay(handleScaleNREdge, { visible: isVisible });
-        Overlays.editOverlay(handleScaleNLEdge, { visible: isVisible });
-        Overlays.editOverlay(handleScaleFREdge, { visible: isVisible });
-        Overlays.editOverlay(handleScaleFLEdge, { visible: isVisible });
+    that.setHandleBoundingEdgeVisible = function(isVisible) {
+        Overlays.editOverlay(handleBoundingTREdge, { visible: isVisible });
+        Overlays.editOverlay(handleBoundingTLEdge, { visible: isVisible });
+        Overlays.editOverlay(handleBoundingTFEdge, { visible: isVisible });
+        Overlays.editOverlay(handleBoundingTNEdge, { visible: isVisible });
+        Overlays.editOverlay(handleBoundingBREdge, { visible: isVisible });
+        Overlays.editOverlay(handleBoundingBLEdge, { visible: isVisible });
+        Overlays.editOverlay(handleBoundingBFEdge, { visible: isVisible });
+        Overlays.editOverlay(handleBoundingBNEdge, { visible: isVisible });
+        Overlays.editOverlay(handleBoundingNREdge, { visible: isVisible });
+        Overlays.editOverlay(handleBoundingNLEdge, { visible: isVisible });
+        Overlays.editOverlay(handleBoundingFREdge, { visible: isVisible });
+        Overlays.editOverlay(handleBoundingFLEdge, { visible: isVisible });
     };
 
     // FUNCTION: SET HANDLE CLONER VISIBLE
@@ -2292,7 +2292,8 @@ SelectionDisplay = (function() {
                 var toCameraDistance = getDistanceToCamera(position);   
                 var dimensionsMultiple = toCameraDistance * STRETCH_DIRECTION_ALL_CAMERA_DISTANCE_MULTIPLE; 
                 var dimensionChange = mouseDifference * dimensionsMultiple;
-                percentChange = dimensionChange / initialDimensions.z;
+                var averageInitialDimension = (initialDimensions.x + initialDimensions.y + initialDimensions.z) / 3;
+                percentChange = dimensionChange / averageInitialDimension;
                 percentChange += 1.0;
                 newDimensions = Vec3.multiply(percentChange, initialDimensions);
                 newDimensions.x = Math.abs(newDimensions.x);
