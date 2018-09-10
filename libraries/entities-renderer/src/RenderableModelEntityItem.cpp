@@ -1311,6 +1311,8 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             emit DependencyManager::get<scriptable::ModelProviderFactory>()->
                 modelRemovedFromScene(entity->getEntityItemID(), NestableType::Entity, _model);
         }
+        setKey(false);
+        _didLastVisualGeometryRequestSucceed = false;
         return;
     }
 
