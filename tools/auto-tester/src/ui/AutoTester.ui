@@ -43,7 +43,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>2</number>
     </property>
     <widget class="QWidget" name="tab_1">
      <attribute name="title">
@@ -190,16 +190,260 @@
       <string>Run</string>
      </attribute>
      <widget class="QPushButton" name="runNowButton">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <property name="geometry">
        <rect>
-        <x>200</x>
-        <y>200</y>
-        <width>93</width>
+        <x>10</x>
+        <y>70</y>
+        <width>161</width>
         <height>28</height>
        </rect>
       </property>
       <property name="text">
        <string>Run now</string>
+      </property>
+     </widget>
+     <widget class="QGroupBox" name="daysGroupBox">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>150</y>
+        <width>91</width>
+        <height>241</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string>Days</string>
+      </property>
+      <widget class="QCheckBox" name="sundayCheckBox">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>210</y>
+         <width>80</width>
+         <height>17</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Sunday</string>
+       </property>
+      </widget>
+      <widget class="QCheckBox" name="wednesdayCheckBox">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>90</y>
+         <width>80</width>
+         <height>17</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Wednesday</string>
+       </property>
+      </widget>
+      <widget class="QCheckBox" name="tuesdayCheckBox">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>60</y>
+         <width>80</width>
+         <height>17</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Tuesday</string>
+       </property>
+      </widget>
+      <widget class="QCheckBox" name="thursdayCheckBox">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>120</y>
+         <width>80</width>
+         <height>17</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Thursday</string>
+       </property>
+      </widget>
+      <widget class="QCheckBox" name="fridayCheckBox">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>150</y>
+         <width>80</width>
+         <height>17</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Friday</string>
+       </property>
+      </widget>
+      <widget class="QCheckBox" name="saturdayCheckBox">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>180</y>
+         <width>80</width>
+         <height>17</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Saturday</string>
+       </property>
+      </widget>
+      <widget class="QCheckBox" name="mondayCheckBox">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>30</y>
+         <width>80</width>
+         <height>17</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Monday</string>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QGroupBox" name="timesGroupBox">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>130</x>
+        <y>150</y>
+        <width>181</width>
+        <height>191</height>
+       </rect>
+      </property>
+      <property name="title">
+       <string>Times</string>
+      </property>
+      <widget class="QTimeEdit" name="timeEdit1">
+       <property name="geometry">
+        <rect>
+         <x>30</x>
+         <y>20</y>
+         <width>118</width>
+         <height>22</height>
+        </rect>
+       </property>
+      </widget>
+      <widget class="QTimeEdit" name="timeEdit2">
+       <property name="geometry">
+        <rect>
+         <x>30</x>
+         <y>60</y>
+         <width>118</width>
+         <height>22</height>
+        </rect>
+       </property>
+      </widget>
+      <widget class="QTimeEdit" name="timeEdit3">
+       <property name="geometry">
+        <rect>
+         <x>30</x>
+         <y>100</y>
+         <width>118</width>
+         <height>22</height>
+        </rect>
+       </property>
+      </widget>
+      <widget class="QTimeEdit" name="timeEdit4">
+       <property name="geometry">
+        <rect>
+         <x>30</x>
+         <y>140</y>
+         <width>118</width>
+         <height>22</height>
+        </rect>
+       </property>
+      </widget>
+      <widget class="QCheckBox" name="timeEdit1checkBox">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>23</y>
+         <width>21</width>
+         <height>17</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+      <widget class="QCheckBox" name="timeEdit2checkBox">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>63</y>
+         <width>21</width>
+         <height>17</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+      <widget class="QCheckBox" name="timeEdit3checkBox">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>103</y>
+         <width>21</width>
+         <height>17</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+      <widget class="QCheckBox" name="timeEdit4checkBox">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>143</y>
+         <width>21</width>
+         <height>17</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </widget>
+     <widget class="QPushButton" name="setWorkingFolderButton">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>20</y>
+        <width>161</width>
+        <height>28</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Set Working Folder</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="workingFolderLabel">
+      <property name="geometry">
+       <rect>
+        <x>190</x>
+        <y>20</y>
+        <width>321</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>#######</string>
       </property>
      </widget>
     </widget>

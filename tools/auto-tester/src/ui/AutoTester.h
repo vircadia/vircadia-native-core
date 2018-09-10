@@ -47,6 +47,8 @@ public:
     void setBranchText(const QString& branch);
     QString getSelectedBranch();
 
+    void enableRunTabControls();
+
 private slots:
     void on_tabWidget_currentChanged(int index);
 
@@ -66,6 +68,7 @@ private slots:
     void on_createTestRailTestCasesButton_clicked();
     void on_createTestRailRunButton_clicked();
 
+    void on_setWorkingFolderButton_clicked();
     void on_runNowButton_clicked();
 
     void on_updateTestRailRunResultsButton_clicked();

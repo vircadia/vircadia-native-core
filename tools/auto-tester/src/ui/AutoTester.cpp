@@ -32,13 +32,35 @@ AutoTester::AutoTester(QWidget* parent) : QMainWindow(parent) {
 #ifndef Q_OS_WIN
     _ui.tabWidget->removeTab(1);
 #endif
-   //// Coming soon...
+   //// Coming soon to an auto-tester near you...
    //// _helpWindow.textBrowser->setText()
 }
 
 void AutoTester::setup() {
     _test = new Test(_ui.progressBar, _ui.checkBoxInteractiveMode);
-    _testRunner = new TestRunner();
+
+    std::vector<QCheckBox*> dayCheckboxes;
+    dayCheckboxes.emplace_back(_ui.mondayCheckBox);
+    dayCheckboxes.emplace_back(_ui.tuesdayCheckBox);
+    dayCheckboxes.emplace_back(_ui.wednesdayCheckBox);
+    dayCheckboxes.emplace_back(_ui.thursdayCheckBox);
+    dayCheckboxes.emplace_back(_ui.fridayCheckBox);
+    dayCheckboxes.emplace_back(_ui.saturdayCheckBox);
+    dayCheckboxes.emplace_back(_ui.sundayCheckBox);
+
+    std::vector<QCheckBox*> timeEditCheckboxes;
+    timeEditCheckboxes.emplace_back(_ui.timeEdit1checkBox);
+    timeEditCheckboxes.emplace_back(_ui.timeEdit2checkBox);
+    timeEditCheckboxes.emplace_back(_ui.timeEdit3checkBox);
+    timeEditCheckboxes.emplace_back(_ui.timeEdit4checkBox);
+
+    std::vector<QTimeEdit*> timeEdits;
+    timeEdits.emplace_back(_ui.timeEdit1);
+    timeEdits.emplace_back(_ui.timeEdit2);
+    timeEdits.emplace_back(_ui.timeEdit3);
+    timeEdits.emplace_back(_ui.timeEdit4);
+
+    _testRunner = new TestRunner(dayCheckboxes, timeEditCheckboxes, timeEdits, _ui.workingFolderLabel);
 }
 
 void AutoTester::startTestsEvaluation(const bool isRunningFromCommandLine,
@@ -101,6 +123,16 @@ void AutoTester::on_createTestRailTestCasesButton_clicked() {
 
 void AutoTester::on_createTestRailRunButton_clicked() {
     _test->createTestRailRun();
+}
+
+void AutoTester::on_setWorkingFolderButton_clicked() {
+    _testRunner->setWorkingFolder();
+}
+
+void AutoTester::enableRunTabControls() {
+    _ui.runNowButton->setEnabled(true);
+    _ui.daysGroupBox->setEnabled(true);
+    _ui.timesGroupBox->setEnabled(true);
 }
 
 void AutoTester::on_runNowButton_clicked() {

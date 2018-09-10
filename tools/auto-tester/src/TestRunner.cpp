@@ -21,16 +21,57 @@ extern AutoTester* autoTester;
 #include <tlhelp32.h>
 #endif
 
-TestRunner::TestRunner(QObject* parent) : QObject(parent) {
+TestRunner::TestRunner(std::vector<QCheckBox*> dayCheckboxes,
+                       std::vector<QCheckBox*> timeEditCheckboxes,
+                       std::vector<QTimeEdit*> timeEdits,
+                       QLabel* workingFolderLabel,
+                       QObject* parent) :
+    QObject(parent) 
+{
+    _dayCheckboxes = dayCheckboxes;
+    _timeEditCheckboxes = timeEditCheckboxes;
+    _timeEdits = timeEdits;
+    _workingFolderLabel = workingFolderLabel;
+}
+
+TestRunner::~TestRunner() {
+    disconnect(_timer, SIGNAL(timeout()), this, SLOT(checkTime()));
+}
+
+void TestRunner::setWorkingFolder() {
+    // Everything will be written to this folder
+    QString previousSelection = _workingFolder;
+    QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
+    if (!parent.isNull() && parent.right(1) != "/") {
+        parent += "/";
+    }
+
+    _workingFolder = QFileDialog::getExistingDirectory(nullptr, "Please select a temporary folder for installation", parent,
+                                                    QFileDialog::ShowDirsOnly);
+
+    // If user canceled then restore previous selection and return
+    if (_workingFolder == "") {
+        _workingFolder = previousSelection;
+        return;
+    }
+
+    _installationFolder = _workingFolder + "/High Fidelity";
+
+    autoTester->enableRunTabControls();
+    _workingFolderLabel->setText(QDir::toNativeSeparators(_workingFolder));
+
+    // The time is checked every 30 seconds for automatic test start
+    _timer = new QTimer(this);
+    connect(_timer, SIGNAL(timeout()), this, SLOT(checkTime()));
+    _timer->start(30 * 1000);  //time specified in ms
 }
 
 void TestRunner::run() {
+    _automatedTestIsRunning = true;
+
     // Initial setup
     _branch = autoTester->getSelectedBranch();
     _user = autoTester->getSelectedUser();
-
-    // Everything will be written to this folder
-    selectTemporaryFolder();
 
     // This will be restored at the end of the tests
     saveExistingHighFidelityAppDataFolder();
@@ -42,7 +83,7 @@ void TestRunner::run() {
     QStringList filenames;
     filenames << INSTALLER_FILENAME << BUILD_XML_FILENAME;
 
-    autoTester->downloadFiles(urls, _tempFolder, filenames, (void*)this);
+    autoTester->downloadFiles(urls, _workingFolder, filenames, (void*)this);
 
     // `installerDownloadComplete` will run after download has completed
 }
@@ -69,7 +110,7 @@ void TestRunner::runInstaller() {
     // To allow installation, the installer is run using the `system` command
     QStringList arguments{ QStringList() << QString("/S") << QString("/D=") + QDir::toNativeSeparators(_installationFolder) };
 
-    QString installerFullPath = _tempFolder + "/" + INSTALLER_FILENAME;
+    QString installerFullPath = _workingFolder + "/" + INSTALLER_FILENAME;
 
     QString commandLine =
         QDir::toNativeSeparators(installerFullPath) + " /S /D=" + QDir::toNativeSeparators(_installationFolder);
@@ -96,35 +137,8 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
     copyFolder(QDir::currentPath() + "/AppDataHighFidelity", _appDataFolder.path());
 }
 
-void TestRunner::restoreHighFidelityAppDataFolder() {
-    _appDataFolder.removeRecursively();
-
-    if (_savedAppDataFolder != QDir()) {
-        _appDataFolder.rename(_savedAppDataFolder.path(), _appDataFolder.path());
-    }
-}
-
-void TestRunner::selectTemporaryFolder() {
-    QString previousSelection = _tempFolder;
-    QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
-    if (!parent.isNull() && parent.right(1) != "/") {
-        parent += "/";
-    }
-
-    _tempFolder = QFileDialog::getExistingDirectory(nullptr, "Please select a temporary folder for installation", parent,
-                                                    QFileDialog::ShowDirsOnly);
-
-    // If user canceled then restore previous selection and return
-    if (_tempFolder == "") {
-        _tempFolder = previousSelection;
-        return;
-    }
-
-    _installationFolder = _tempFolder + "/High Fidelity";
-}
-
 void TestRunner::createSnapshotFolder() {
-    _snapshotFolder = _tempFolder + "/" + SNAPSHOT_FOLDER_NAME;
+    _snapshotFolder = _workingFolder + "/" + SNAPSHOT_FOLDER_NAME;
 
     // Just delete all PNGs from the folder if it already exists
     if (QDir(_snapshotFolder).exists()) {
@@ -145,7 +159,10 @@ void TestRunner::createSnapshotFolder() {
 void TestRunner::killProcesses() {
 #ifdef Q_OS_WIN
     try {
-        QStringList processesToKill = QStringList() << "interface.exe" << "assignment-client.exe" << "domain-server.exe" << "server-console.exe";
+        QStringList processesToKill = QStringList() << "interface.exe"
+                                                    << "assignment-client.exe"
+                                                    << "domain-server.exe"
+                                                    << "server-console.exe";
 
         // Loop until all pending processes to kill have actually died
         QStringList pendingProcessesToKill;
@@ -167,12 +184,12 @@ void TestRunner::killProcesses() {
 
             // Kill any task in the list
             do {
-                foreach (QString process, processesToKill) 
-                if (QString(processEntry32.szExeFile) == process) {
-                    QString commandLine = "taskkill /im " + process + " /f >nul";
-                    system(commandLine.toStdString().c_str());
-                    pendingProcessesToKill << process;
-                }
+                foreach (QString process, processesToKill)
+                    if (QString(processEntry32.szExeFile) == process) {
+                        QString commandLine = "taskkill /im " + process + " /f >nul";
+                        system(commandLine.toStdString().c_str());
+                        pendingProcessesToKill << process;
+                    }
             } while (Process32Next(processSnapHandle, &processEntry32));
 
             QThread::sleep(2);
@@ -200,7 +217,7 @@ void TestRunner::startLocalServerProcesses() {
     system(commandLine.toStdString().c_str());
 #endif
     // Give server processes time to stabilize
-    QThread::sleep(8);
+    QThread::sleep(12);
 }
 
 void TestRunner::runInterfaceWithTestScript() {
@@ -221,12 +238,14 @@ void TestRunner::evaluateResults() {
 void TestRunner::automaticTestRunEvaluationComplete(QString zippedFolder) {
     addBuildNumberToResults(zippedFolder);
     restoreHighFidelityAppDataFolder();
+
+    _automatedTestIsRunning = false;
 }
 
 void TestRunner::addBuildNumberToResults(QString zippedFolderName) {
     try {
         QDomDocument domDocument;
-        QString filename{ _tempFolder + "/" + BUILD_XML_FILENAME };
+        QString filename{ _workingFolder + "/" + BUILD_XML_FILENAME };
         QFile file(filename);
         if (!file.open(QIODevice::ReadOnly) || !domDocument.setContent(&file)) {
             throw QString("Could not open " + filename);
@@ -290,6 +309,14 @@ void TestRunner::addBuildNumberToResults(QString zippedFolderName) {
     }
 }
 
+void TestRunner::restoreHighFidelityAppDataFolder() {
+    _appDataFolder.removeRecursively();
+
+    if (_savedAppDataFolder != QDir()) {
+        _appDataFolder.rename(_savedAppDataFolder.path(), _appDataFolder.path());
+    }
+}
+
 // Copies a folder recursively
 void TestRunner::copyFolder(const QString& source, const QString& destination) {
     try {
@@ -319,5 +346,40 @@ void TestRunner::copyFolder(const QString& source, const QString& destination) {
     } catch (...) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "unknown error");
         exit(-1);
+    }
+}
+
+void TestRunner::checkTime() {
+    // No processing is done if a test is running
+    if (_automatedTestIsRunning) {
+        return;
+    }
+
+    QDateTime now = QDateTime::currentDateTime();
+
+    // Check day of week
+    if (!_dayCheckboxes.at(now.date().dayOfWeek() - 1)->isChecked()) {
+        return;
+    }
+
+    // Check the time
+    bool timeToRun{ false };
+    QTime time = now.time();
+    int h = time.hour();
+    int m = time.minute();
+
+    for (int i = 0; i < std::min(_timeEditCheckboxes.size(), _timeEdits.size()); ++i) {
+        bool is = _timeEditCheckboxes[i]->isChecked();
+        int hh = _timeEdits[i]->time().hour();
+        int mm = _timeEdits[i]->time().minute();
+        if (_timeEditCheckboxes[i]->isChecked() && (_timeEdits[i]->time().hour() == now.time().hour()) &&
+            (_timeEdits[i]->time().minute() == now.time().minute())) {
+            timeToRun = true;
+            break;
+        }
+    }
+
+    if (timeToRun) {
+        run();
     }
 }
