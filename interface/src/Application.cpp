@@ -2301,6 +2301,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     AndroidHelper::instance().notifyLoadComplete();
 #endif
 
+    connect(this, &Application::loginDialogPoppedUp, DependencyManager::get<DialogsManager>().data(), &DialogsManager::loginDialogPoppedUp);
+
     static int CHECK_LOGIN_TIMER = 3000;
     QTimer* checkLoginTimer = new QTimer(this);
     checkLoginTimer->setInterval(CHECK_LOGIN_TIMER);
@@ -2309,6 +2311,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         auto accountManager = DependencyManager::get<AccountManager>();
         auto dialogsManager = DependencyManager::get<DialogsManager>();
         if (!accountManager->isLoggedIn() && !qApp->isHMDMode()) {
+            emit loginDialogPoppedUp();
             dialogsManager->showLoginDialog();
             QJsonObject loginData = {};
             loginData["action"] = "login dialog shown";

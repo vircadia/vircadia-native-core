@@ -23,6 +23,7 @@ class QNetworkReply;
 
 class LoginDialog : public OffscreenQmlDialog {
     Q_OBJECT
+    Q_PROPERTY(bool poppedUp READ getLoginDialogPoppedUp)
     HIFI_QML_DECL
 
 public:
@@ -33,6 +34,9 @@ public:
     virtual ~LoginDialog();
 
     static void showWithSelection();
+
+    bool getLoginDialogPoppedUp() { return _poppedUp; }
+    void setLoginDialogPoppedUp(bool poppedUp) { _poppedUp = poppedUp; }
 signals:
     void handleLoginCompleted();
     void handleLoginFailed();
@@ -68,6 +72,8 @@ protected slots:
 
     Q_INVOKABLE void openUrl(const QString& url) const;
 
+private:
+    bool _poppedUp {false};
 };
 
 #endif // hifi_LoginDialog_h
