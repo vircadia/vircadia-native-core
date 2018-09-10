@@ -942,7 +942,7 @@
                                                                                                 "id": "idleTalk",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                    				    "url": "qrc:///avatar/animations/talk.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/talk.fbx",
                                                                                                     "startFrame": 0.0,
                                                                                                     "endFrame": 800.0,
                                                                                                     "timeScale": 1.0,
@@ -979,7 +979,7 @@
                                                                                                 "id": "walkFwdNormal_c",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                    				    "url": "qrc:///avatar/animations/walk_fwd.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/walk_fwd.fbx",
                                                                                                     "startFrame": 0.0,
                                                                                                     "endFrame": 30.0,
                                                                                                     "timeScale": 1.0,
@@ -991,7 +991,7 @@
                                                                                                 "id": "walkFwdFast_c",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                   				    "url": "qrc:///avatar/animations/walk_fwd_fast.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/walk_fwd_fast.fbx",
                                                                                                     "startFrame": 0.0,
                                                                                                     "endFrame": 25.0,
                                                                                                     "timeScale": 1.0,
@@ -1003,7 +1003,7 @@
                                                                                                 "id": "walkFwdJog_c",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                  				    "url": "qrc:///avatar/animations/jog_fwd.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/jog_fwd.fbx",
                                                                                                     "startFrame": 0.0,
                                                                                                     "endFrame": 25.0,
                                                                                                     "timeScale": 1.0,
@@ -1041,7 +1041,7 @@
                                                                                         "id": "idleSettle",
                                                                                         "type": "clip",
                                                                                         "data": {
-                                                            				    "url": "qrc:///avatar/animations/settle_to_idle.fbx",
+                                                                                            "url": "qrc:///avatar/animations/settle_to_idle.fbx",
                                                                                             "startFrame": 1.0,
                                                                                             "endFrame": 59.0,
                                                                                             "timeScale": 1.0,
@@ -1076,7 +1076,7 @@
                                                                                                 "id": "walkBwdFast_c",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                 				    "url": "qrc:///avatar/animations/walk_bwd_fast.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/walk_bwd_fast.fbx",
                                                                                                     "startFrame": 0.0,
                                                                                                     "endFrame": 27.0,
                                                                                                     "timeScale": 1.0,
@@ -1088,7 +1088,7 @@
                                                                                                 "id": "jogBwd_c",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                 				    "url": "qrc:///avatar/animations/jog_bwd.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/jog_bwd.fbx",
                                                                                                     "startFrame": 0.0,
                                                                                                     "endFrame": 24.0,
                                                                                                     "timeScale": 1.0,
@@ -1100,7 +1100,7 @@
                                                                                                 "id": "runBwd_c",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                 				    "url": "qrc:///avatar/animations/run_bwd.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/run_bwd.fbx",
                                                                                                     "startFrame": 0.0,
                                                                                                     "endFrame": 16.0,
                                                                                                     "timeScale": 1.0,
@@ -1126,7 +1126,7 @@
                                                                                         "id": "turnRight",
                                                                                         "type": "clip",
                                                                                         "data": {
-                                                           				    "url": "qrc:///avatar/animations/turn_left.fbx",
+                                                                                            "url": "qrc:///avatar/animations/turn_left.fbx",
                                                                                             "startFrame": 0.0,
                                                                                             "endFrame": 32.0,
                                                                                             "timeScale": 1.0,
@@ -1150,7 +1150,7 @@
                                                                                                 "id": "strafeLeftShortStep_c",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                   				    "url": "qrc:///avatar/animations/side_step_short_left.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/side_step_short_left.fbx",
                                                                                                     "startFrame": 0.0,
                                                                                                     "endFrame": 29.0,
                                                                                                     "timeScale": 1.0,
@@ -1162,7 +1162,7 @@
                                                                                                 "id": "strafeLeftStep_c",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                 				    "url": "qrc:///avatar/animations/side_step_left.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/side_step_left.fbx",
                                                                                                     "startFrame": 0.0,
                                                                                                     "endFrame": 20.0,
                                                                                                     "timeScale": 1.0,
@@ -1174,7 +1174,7 @@
                                                                                                 "id": "strafeLeftWalk_c",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                				    "url": "qrc:///avatar/animations/walk_left.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/walk_left.fbx",
                                                                                                     "startFrame": 0.0,
                                                                                                     "endFrame": 35.0,
                                                                                                     "timeScale": 1.0,
@@ -1186,7 +1186,7 @@
                                                                                                 "id": "strafeLeftWalkFast_c",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                 				    "url": "qrc:///avatar/animations/walk_left_fast.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/walk_left_fast.fbx",
                                                                                                     "startFrame": 0.0,
                                                                                                     "endFrame": 21.0,
                                                                                                     "timeScale": 1.0,
@@ -1198,7 +1198,7 @@
                                                                                                 "id": "strafeLeftJog_c",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                             					    "url": "qrc:///avatar/animations/jog_left.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/jog_left.fbx",
                                                                                                     "startFrame": 0.0,
                                                                                                     "endFrame": 24.0,
                                                                                                     "timeScale": 1.0,
@@ -1222,7 +1222,7 @@
                                                                                                 "id": "strafeRightShortStep_c",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                  				    "url": "qrc:///avatar/animations/side_step_short_left.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/side_step_short_left.fbx",
                                                                                                     "startFrame": 0.0,
                                                                                                     "endFrame": 29.0,
                                                                                                     "timeScale": 1.0,
@@ -1235,7 +1235,7 @@
                                                                                                 "id": "strafeRightStep_c",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                  				    "url": "qrc:///avatar/animations/side_step_left.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/side_step_left.fbx",
                                                                                                     "startFrame": 0.0,
                                                                                                     "endFrame": 20.0,
                                                                                                     "timeScale": 1.0,
@@ -1248,7 +1248,7 @@
                                                                                                 "id": "strafeRightWalk_c",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                 				    "url": "qrc:///avatar/animations/walk_left.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/walk_left.fbx",
                                                                                                     "startFrame": 0.0,
                                                                                                     "endFrame": 35.0,
                                                                                                     "timeScale": 1.0,
@@ -1261,7 +1261,7 @@
                                                                                                 "id": "strafeRightFast_c",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                   				    "url": "qrc:///avatar/animations/walk_left_fast.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/walk_left_fast.fbx",
                                                                                                     "startFrame": 0.0,
                                                                                                     "endFrame": 21.0,
                                                                                                     "timeScale": 1.0,
@@ -1274,7 +1274,7 @@
                                                                                                 "id": "strafeRightJog_c",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                 				    "url": "qrc:///avatar/animations/jog_left.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/jog_left.fbx",
                                                                                                     "startFrame": 0.0,
                                                                                                     "endFrame": 24.0,
                                                                                                     "timeScale": 1.0,
