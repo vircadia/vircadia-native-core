@@ -255,7 +255,7 @@ Menu::Menu() {
     connect(action, &QAction::triggered, [] {
             auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
             auto hmd = DependencyManager::get<HMDScriptingInterface>();
-            tablet->loadQMLSource("hifi/tablet/ControllerSettings.qml");
+            tablet->pushOntoStack("hifi/tablet/ControllerSettings.qml");
 
             if (!hmd->getShouldShowTablet()) {
                 hmd->toggleShouldShowTablet();
@@ -737,6 +737,7 @@ Menu::Menu() {
 
     // Developer > Stats
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Stats);
+    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::AnimStats);
 
     // Settings > Enable Speech Control API
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)

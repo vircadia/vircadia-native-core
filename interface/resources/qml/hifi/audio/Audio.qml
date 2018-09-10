@@ -26,7 +26,7 @@ Rectangle {
     HifiConstants { id: hifi; }
 
     property var eventBridge;
-    property string title: "Audio Settings - " + AudioScriptingInterface.context;
+    property string title: "Audio Settings"
     signal sendToScript(var message);
 
     color: hifi.colors.baseGray;

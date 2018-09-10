@@ -207,14 +207,6 @@ void Stats::updateStats(bool force) {
 
     // Third column, avatar stats
     auto myAvatar = avatarManager->getMyAvatar();
-    auto animStack = myAvatar->getSkeletonModel()->getRig().getAnimStack();
-
-    _animStackNames.clear();
-    for (auto animStackIterator = animStack.begin(); animStackIterator != animStack.end(); ++animStackIterator) {
-        _animStackNames << animStackIterator->first + ":   " +  QString::number(animStackIterator->second,'f',3);
-    }
-    emit animStackNamesChanged();
-
     glm::vec3 avatarPos = myAvatar->getWorldPosition();
     STAT_UPDATE(position, QVector3D(avatarPos.x, avatarPos.y, avatarPos.z));
     STAT_UPDATE_FLOAT(speed, glm::length(myAvatar->getWorldVelocity()), 0.01f);
