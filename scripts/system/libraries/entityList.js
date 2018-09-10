@@ -13,7 +13,10 @@
 
 var PROFILING_ENABLED = false;
 var profileIndent = '';
-PROFILE = !PROFILING_ENABLED ? function() { } : function(name, fn, args) {
+const PROFILE_NOOP = function(_name, fn, args) {
+    fn.apply(this, args);
+} ;
+PROFILE = !PROFILING_ENABLED ? PROFILE_NOOP : function(name, fn, args) {
     console.log("PROFILE-Script " + profileIndent + "(" + name + ") Begin");
     var previousIndent = profileIndent;
     profileIndent += '  ';

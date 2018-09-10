@@ -48,7 +48,10 @@ var currentSortOrder = ASCENDING_SORT;
 
 const ENABLE_PROFILING = false;
 var profileIndent = '';
-const PROFILE = !ENABLE_PROFILING ? function() { } : function(name, fn, args) {
+const PROFILE_NOOP = function(_name, fn, args) {
+    fn.apply(this, args);
+} ;
+const PROFILE = !ENABLE_PROFILING ? PROFILE_NOOP : function(name, fn, args) {
     console.log("PROFILE-Web " + profileIndent + "(" + name + ") Begin");
     var previousIndent = profileIndent;
     profileIndent += '  ';
