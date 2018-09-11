@@ -53,6 +53,8 @@ public:
     QUrl getErrorDomainURL(){ return _errorDomainURL; }
     void setErrorDomainURL(const QUrl& url);
 
+    int getLastDomainConnectionError() { return _lastDomainConnectionError; }
+
     const QHostAddress& getIP() const { return _sockAddr.getAddress(); }
     void setIPToLocalhost() { _sockAddr.setAddress(QHostAddress(QHostAddress::LocalHost)); }
 
@@ -220,6 +222,9 @@ private:
     QTimer _apiRefreshTimer;
 
     std::map<QString, QString> _namedPaths;
+
+    // domain connection error upon connection refusal.
+    int _lastDomainConnectionError{ -1 };
 };
 
 const QString DOMAIN_SPAWNING_POINT { "/0, -10, 0" };

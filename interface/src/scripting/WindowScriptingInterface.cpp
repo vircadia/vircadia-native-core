@@ -39,6 +39,9 @@ WindowScriptingInterface::WindowScriptingInterface() {
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &WindowScriptingInterface::disconnectedFromDomain);
 
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &WindowScriptingInterface::domainConnectionRefused);
+    connect(&domainHandler, &DomainHandler::domainConnectionErrorChanged, this, [this](int reasonCode) {
+            _lastDomainConnectionError = reasonCode;
+        });
 
     connect(qApp, &Application::svoImportRequested, [this](const QString& urlString) {
         static const QMetaMethod svoImportRequestedSignal =
@@ -407,6 +410,10 @@ int WindowScriptingInterface::getInnerHeight() {
 
 glm::vec2 WindowScriptingInterface::getDeviceSize() const {
     return qApp->getDeviceSize();
+}
+
+int WindowScriptingInterface::getLastDominConnectionError() const {
+    return DependencyManager::get<NodeList>()->getDomainHandler().getLastDomainConnectionError();
 }
 
 int WindowScriptingInterface::getX() {

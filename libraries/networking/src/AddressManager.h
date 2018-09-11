@@ -56,9 +56,6 @@ const QString GET_PLACE = "/api/v1/places/%1";
  *     <em>Read-only.</em>
  * @property {boolean} isConnected - <code>true</code> if you're connected to the domain in your current <code>href</code>
  *     metaverse address, otherwise <code>false</code>.
- * @property {Window.ConnectionRefusedReason} lastDomainConnectionError - The last error saved from connecting to a domain
- *     unsuccessfully.
- *     <em>Read-only.</em>
  * @property {string} pathname - The location and orientation in your current <code>href</code> metaverse address 
  *     (e.g., <code>"/15,-10,26/0,0,0,1"</code>).
  *     <em>Read-only.</em>
@@ -76,7 +73,6 @@ class AddressManager : public QObject, public Dependency {
     Q_PROPERTY(QUrl href READ currentShareableAddress)
     Q_PROPERTY(QString protocol READ getProtocol)
     Q_PROPERTY(QString hostname READ getHost)
-    Q_PROPERTY(int lastDomainConnectionError READ getLastDomainConnectionError)
     Q_PROPERTY(QString pathname READ currentPath)
     Q_PROPERTY(QString placename READ getPlaceName)
     Q_PROPERTY(QString domainID READ getDomainID)
@@ -186,9 +182,6 @@ public:
     const QStack<QUrl>& getForwardStack() const { return _forwardStack; }
 
     QUrl getDomainURL() { return _domainURL; }
-
-    int getLastDomainConnectionError() { return _lastDomainConnectionError; }
-    void setLastDomainConnectionError(int reasonCode) { _lastDomainConnectionError = reasonCode; }
 
 public slots:
     /**jsdoc
@@ -470,8 +463,6 @@ private:
 
     QUrl _domainURL;
     QUrl _lastVisitedURL;
-    // domain connection error from domain handler.
-    int _lastDomainConnectionError{ -1 };
 
     QUuid _rootPlaceID;
     PositionGetter _positionGetter;
