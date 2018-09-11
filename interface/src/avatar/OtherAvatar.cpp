@@ -25,6 +25,7 @@ static xColor getLoadingOrbColor(Avatar::LoadingStatus loadingStatus) {
     case Avatar::LoadingStatus::LoadSuccess:
         return LOAD_SUCCESS_COLOR;
     case Avatar::LoadingStatus::LoadFailure:
+    default:
         return LOAD_FAILURE_COLOR;
     }
 }
