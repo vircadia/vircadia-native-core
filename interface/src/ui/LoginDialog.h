@@ -27,7 +27,7 @@ public:
 
     LoginDialog(QQuickItem* parent = nullptr);
 
-    virtual ~LoginDialog();
+    ~LoginDialog();
 
     static void showWithSelection();
 
