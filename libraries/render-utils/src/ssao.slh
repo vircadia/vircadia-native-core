@@ -408,15 +408,10 @@ vec2 searchHorizons(ivec4 side, ivec2 centerPixelPos, vec2 imageSize, vec2 delta
 	return horizons;
 }
 
-float integrateArc(float h1, float h2) {
-	vec2 cosh = cos(vec2(h1, h2));
-	return 2.0 - cosh.x - cosh.y;
-}
-
 float evalVisibilityHBAO(ivec4 side, ivec2 centerPixelPos, vec2 imageSize, vec2 deltaTap, float ssDiskRadius, 
                          vec3 fragPositionES, vec3 fragNormalES) {
-	vec2 horizonAngles = searchHorizons(side, centerPixelPos, imageSize, deltaTap, ssDiskRadius, fragPositionES, fragNormalES);
-	return min(1.0, integrateArc(horizonAngles.x, horizonAngles.y) * 0.5);
+	vec2 horizons = searchHorizons(side, centerPixelPos, imageSize, deltaTap, ssDiskRadius, fragPositionES, fragNormalES);
+	return (horizons.x + horizons.y) * 0.5;
 }
 
 <@endfunc@>
