@@ -516,6 +516,10 @@ void MyAvatar::update(float deltaTime) {
     head->relax(deltaTime);
     updateFromTrackers(deltaTime);
 
+    if (getIsInWalkingState() && glm::length(getControllerPoseInAvatarFrame(controller::Action::HEAD).getVelocity()) < DEFAULT_AVATAR_WALK_SPEED_THRESHOLD) {
+        setIsInWalkingState(false);
+    }
+
     //  Get audio loudness data from audio input device
     // Also get the AudioClient so we can update the avatar bounding box data
     // on the AudioClient side.
@@ -3678,10 +3682,10 @@ static bool headAngularVelocityBelowThreshold(const controller::Pose& head) {
     return isBelowThreshold;
 }
 
-static bool isWithinThresholdHeightMode(const controller::Pose& head,const float& newMode) {
+static bool isWithinThresholdHeightMode(const controller::Pose& head, const float& newMode, const float& scale) {
     bool isWithinThreshold = true;
     if (head.isValid()) {
-        isWithinThreshold = (head.getTranslation().y - newMode) > DEFAULT_AVATAR_MODE_HEIGHT_STEPPING_THRESHOLD;
+        isWithinThreshold = (head.getTranslation().y - newMode) > (DEFAULT_AVATAR_MODE_HEIGHT_STEPPING_THRESHOLD * scale);
     }
     return isWithinThreshold;
 }
@@ -3802,6 +3806,10 @@ float MyAvatar::getUserEyeHeight() const {
     return userHeight - userHeight * ratio;
 }
 
+bool MyAvatar::getIsInWalkingState() const {
+    return _isInWalkingState;
+}
+
 float MyAvatar::getWalkSpeed() const {
     return _walkSpeed.get() * _walkSpeedScalar;
 }
@@ -3816,6 +3824,10 @@ bool MyAvatar::isReadyForPhysics() const {
 
 void MyAvatar::setSprintMode(bool sprint) {
     _walkSpeedScalar = sprint ? _sprintSpeed.get() : AVATAR_WALK_SPEED_SCALAR;
+}
+
+void MyAvatar::setIsInWalkingState(bool isWalking) {
+    _isInWalkingState = isWalking;
 }
 
 void MyAvatar::setWalkSpeed(float value) {
@@ -3912,7 +3924,6 @@ void MyAvatar::lateUpdatePalms() {
     Avatar::updatePalms();
 }
 
-
 static const float FOLLOW_TIME = 0.5f;
 
 MyAvatar::FollowHelper::FollowHelper() {
@@ -4004,24 +4015,36 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontalCG(MyAvatar& myAvatar) cons
     controller::Pose currentRightHandPose = myAvatar.getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND);
 
     bool stepDetected = false;
-    if (!withinBaseOfSupport(currentHeadPose) &&
+    float myScale = myAvatar.getAvatarScale();
+
+    if (myAvatar.getIsInWalkingState()) {
+        stepDetected = true;
+    } else {
+        if (!withinBaseOfSupport(currentHeadPose) &&
             headAngularVelocityBelowThreshold(currentHeadPose) &&
-            isWithinThresholdHeightMode(currentHeadPose, myAvatar.getCurrentStandingHeight()) &&
+            isWithinThresholdHeightMode(currentHeadPose, myAvatar.getCurrentStandingHeight(), myScale) &&
             handDirectionMatchesHeadDirection(currentLeftHandPose, currentRightHandPose, currentHeadPose) &&
             handAngularVelocityBelowThreshold(currentLeftHandPose, currentRightHandPose) &&
             headVelocityGreaterThanThreshold(currentHeadPose) &&
             isHeadLevel(currentHeadPose, myAvatar.getAverageHeadRotation())) {
-        // a step is detected
-        stepDetected = true;
-    } else {
-        glm::vec3 defaultHipsPosition = myAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar.getJointIndex("Hips"));
-        glm::vec3 defaultHeadPosition = myAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar.getJointIndex("Head"));
-        glm::vec3 currentHeadPosition = currentHeadPose.getTranslation();
-        float anatomicalHeadToHipsDistance = glm::length(defaultHeadPosition - defaultHipsPosition);
-        if (!isActive(Horizontal) &&
-            (glm::length(currentHeadPosition - defaultHipsPosition) > (anatomicalHeadToHipsDistance + (DEFAULT_AVATAR_SPINE_STRETCH_LIMIT * anatomicalHeadToHipsDistance)))) {
-            myAvatar.setResetMode(true);
+            // a step is detected
             stepDetected = true;
+            if (glm::length(currentHeadPose.velocity) > DEFAULT_AVATAR_WALK_SPEED_THRESHOLD) {
+                myAvatar.setIsInWalkingState(true);
+            }
+        } else {
+            glm::vec3 defaultHipsPosition = myAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar.getJointIndex("Hips"));
+            glm::vec3 defaultHeadPosition = myAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar.getJointIndex("Head"));
+            glm::vec3 currentHeadPosition = currentHeadPose.getTranslation();
+            float anatomicalHeadToHipsDistance = glm::length(defaultHeadPosition - defaultHipsPosition);
+            if (!isActive(Horizontal) &&
+                (glm::length(currentHeadPosition - defaultHipsPosition) > (anatomicalHeadToHipsDistance + (DEFAULT_AVATAR_SPINE_STRETCH_LIMIT * anatomicalHeadToHipsDistance)))) {
+                myAvatar.setResetMode(true);
+                stepDetected = true;
+                if (glm::length(currentHeadPose.velocity) > DEFAULT_AVATAR_WALK_SPEED_THRESHOLD) {
+                    myAvatar.setIsInWalkingState(true);
+                }
+            }
         }
     }
     return stepDetected;

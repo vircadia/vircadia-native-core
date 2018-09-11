@@ -27,7 +27,13 @@ layout(binding=ENTITIES_TEXTURE_POLYVOX_XMAP) uniform sampler2D xMap;
 layout(binding=ENTITIES_TEXTURE_POLYVOX_YMAP) uniform sampler2D yMap;
 layout(binding=ENTITIES_TEXTURE_POLYVOX_ZMAP) uniform sampler2D zMap;
 
-layout(location=ENTITIES_UNIFORM_POLYVOX_VOXEL_SIZE) uniform vec3 voxelVolumeSize;
+struct PolyvoxParams {
+    vec4 voxelVolumeSize;
+};
+
+layout(binding=0) uniform polyvoxParamsBuffer {
+    PolyvoxParams params;
+};
 
 // Declare after all samplers to prevent sampler location mix up with voxel shading (sampler locations are hardcoded in RenderablePolyVoxEntityItem)
 <$declareFadeFragment()$>
@@ -42,9 +48,9 @@ void main(void) {
     vec3 worldNormal = cross(dFdy(_worldPosition.xyz), dFdx(_worldPosition.xyz));
     worldNormal = normalize(worldNormal);
 
-    float inPositionX = (_worldPosition.x - 0.5) / voxelVolumeSize.x;
-    float inPositionY = (_worldPosition.y - 0.5) / voxelVolumeSize.y;
-    float inPositionZ = (_worldPosition.z - 0.5) / voxelVolumeSize.z;
+    float inPositionX = (_worldPosition.x - 0.5) / params.voxelVolumeSize.x;
+    float inPositionY = (_worldPosition.y - 0.5) / params.voxelVolumeSize.y;
+    float inPositionZ = (_worldPosition.z - 0.5) / params.voxelVolumeSize.z;
 
     vec4 xyDiffuse = texture(xMap, vec2(-inPositionX, -inPositionY));
     vec4 xzDiffuse = texture(yMap, vec2(-inPositionX, inPositionZ));
