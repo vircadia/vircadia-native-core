@@ -67,7 +67,7 @@ void SafeLanding::addTrackedEntity(const EntityItemID& entityID) {
         EntityItemPointer entity = _entityTree->findEntityByID(entityID);
 
         _trackedEntities.emplace(entityID, entity);
-        int trackedEntityCount = _trackedEntities.size();
+        int trackedEntityCount = (int)_trackedEntities.size();
 
         if (trackedEntityCount > _maxTrackedEntityCount) {
             _maxTrackedEntityCount = trackedEntityCount;

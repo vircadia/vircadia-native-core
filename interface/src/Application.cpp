@@ -3477,8 +3477,6 @@ void Application::setIsInterstitialMode(bool interstitialMode) {
 
         DependencyManager::get<AudioClient>()->setAudioPaused(_interstitialMode);
         DependencyManager::get<AvatarManager>()->setMyAvatarDataPacketsPaused(_interstitialMode);
-
-        emit interstitialModeChanged(_interstitialMode);
     }
 }
 
@@ -5321,7 +5319,6 @@ void Application::resetPhysicsReadyInformation() {
     _fullSceneCounterAtLastPhysicsCheck = 0;
     _nearbyEntitiesCountAtLastPhysicsCheck = 0;
     _nearbyEntitiesStabilityCount = 0;
-    _nearbyEntitiesReadyCount = 0;
     _physicsEnabled = false;
     _octreeProcessor.startEntitySequence();
 }
@@ -6590,7 +6587,6 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
                 readyNearbyEntities++;
             }
         }
-        _nearbyEntitiesReadyCount = readyNearbyEntities;
         return result;
     }
     return false;

@@ -225,9 +225,6 @@ public:
     bool getPreferStylusOverLaser() { return _preferStylusOverLaserSetting.get(); }
     void setPreferStylusOverLaser(bool value);
 
-    uint32_t getEntitiesStabilityCount() { return _nearbyEntitiesStabilityCount; }
-    uint32_t getNearbyEntitiesReadyCount() { return _nearbyEntitiesReadyCount; }
-    uint32_t getNearbyEntitiesCount() { return _nearbyEntitiesCountAtLastPhysicsCheck; }
     // FIXME: Remove setting completely or make available through JavaScript API?
     //bool getPreferAvatarFingerOverStylus() { return _preferAvatarFingerOverStylusSetting.get(); }
     bool getPreferAvatarFingerOverStylus() { return false; }
@@ -337,7 +334,6 @@ signals:
     void activeDisplayPluginChanged();
 
     void uploadRequest(QString path);
-    void interstitialModeChanged(bool interstitialMode);
 
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
@@ -732,7 +728,6 @@ private:
     uint32_t _fullSceneCounterAtLastPhysicsCheck { 0 }; // _fullSceneReceivedCounter last time we checked physics ready
     uint32_t _nearbyEntitiesCountAtLastPhysicsCheck { 0 }; // how many in-range entities last time we checked physics ready
     uint32_t _nearbyEntitiesStabilityCount { 0 }; // how many times has _nearbyEntitiesCountAtLastPhysicsCheck been the same
-    uint32_t _nearbyEntitiesReadyCount { 0 };
     quint64 _lastPhysicsCheckTime { usecTimestampNow() }; // when did we last check to see if physics was ready
 
     bool _keyboardDeviceHasFocus { true };

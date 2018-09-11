@@ -255,7 +255,7 @@ public slots:
     * Go to the last address tried.  This will be the last URL tried from location.handleLookupString
     * @function location.goToLastAddress
     */
-    void goToLastAddress();
+    void goToLastAddress() { handleUrl(_lastVisitedURL, LookupTrigger::AttemptedRefresh); }
 
     /**jsdoc
      * Refresh the current address, e.g., after connecting to a domain in order to position the user to the desired location.
