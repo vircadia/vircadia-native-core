@@ -16,6 +16,7 @@
 
 #include <DependencyManager.h>
 #include <DomainHandler.h>
+#include <AddressManager.h>
 #include <NodeList.h>
 
 // Because the connection monitor is created at startup, the time we wait on initial load
@@ -40,7 +41,7 @@ void ConnectionMonitor::init() {
 
     connect(&_timer, &QTimer::timeout, this, []() {
         qDebug() << "ConnectionMonitor: Showing connection failure window";
-        qApp->goToErrorDomainURL(ERROR_DOMAIN_URL);
+        qApp->goToErrorDomainURL(REDIRECT_HIFI_ADDRESS);
     });
 }
 

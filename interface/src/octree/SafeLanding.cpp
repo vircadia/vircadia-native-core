@@ -113,8 +113,7 @@ bool SafeLanding::isLoadSequenceComplete() {
 float SafeLanding::loadingProgressPercentage() {
     Locker lock(_lock);
     if (_maxTrackedEntityCount > 0) {
-        int trackedEntityCount = _trackedEntities.size();
-        return ((_maxTrackedEntityCount - trackedEntityCount) / (float)_maxTrackedEntityCount);
+        return ((_maxTrackedEntityCount - _trackedEntities.size()) / (float)_maxTrackedEntityCount);
     }
 
     return 0.0f;
