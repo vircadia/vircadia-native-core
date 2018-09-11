@@ -437,7 +437,6 @@ private slots:
     void onDesktopRootContextCreated(QQmlContext* qmlContext);
     void showDesktop();
     void clearDomainOctreeDetails();
-    void clearDomainAvatars();
     void onAboutToQuit();
     void onPresent(quint32 frameCount);
 
