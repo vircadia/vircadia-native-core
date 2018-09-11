@@ -128,15 +128,11 @@ void usecTimestampNowForceClockSkew(qint64 clockSkew) {
     ::usecTimestampNowAdjust = clockSkew;
 }
 
-//static std::atomic<qint64> TIME_REFERENCE { 0 }; // in usec
-//static std::once_flag usecTimestampNowIsInitialized;
-//static QElapsedTimer timestampTimer;
+static std::atomic<qint64> TIME_REFERENCE { 0 }; // in usec
+static std::once_flag usecTimestampNowIsInitialized;
+static QElapsedTimer timestampTimer;
 
 quint64 usecTimestampNow(bool wantDebug) {
-    using namespace std::chrono;
-    static const auto unixEpoch = system_clock::from_time_t(0);
-    return duration_cast<microseconds>(system_clock::now() - unixEpoch).count();
-#if 0
     std::call_once(usecTimestampNowIsInitialized, [&] {
         TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * USECS_PER_MSEC; // ms to usec
         timestampTimer.start();
@@ -208,7 +204,6 @@ quint64 usecTimestampNow(bool wantDebug) {
     }
     
     return now;
-#endif
 }
 
 float secTimestampNow() {
