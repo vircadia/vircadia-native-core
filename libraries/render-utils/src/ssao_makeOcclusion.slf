@@ -46,9 +46,7 @@ void main(void) {
 
     // Choose the screen-space sample radius
     float ssDiskRadius = evalDiskRadius(fragPositionES.z, imageSize);
-#if SSAO_USE_HORIZON_BASED
-	ssDiskRadius = min(ssDiskRadius, 3.0);
-#endif
+
     // Let's make noise 
     float randomPatternRotationAngle = getAngleDithering(centerPixelPos);
 

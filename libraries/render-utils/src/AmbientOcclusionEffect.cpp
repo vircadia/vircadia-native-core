@@ -184,12 +184,15 @@ void AmbientOcclusionEffect::configure(const Config& config) {
         auto& current = _parametersBuffer.edit().radiusInfo;
         current.x = radius;
         current.y = radius * radius;
-        current.z = (float)(1.0 / pow((double)radius, RADIUS_POWER));
+        current.z = 10.0f;
+#if !SSAO_USE_HORIZON_BASED
+        current.z *= (float)(1.0 / pow((double)radius, RADIUS_POWER));
+#endif
     }
 
     if (config.obscuranceLevel != _parametersBuffer->getObscuranceLevel()) {
         auto& current = _parametersBuffer.edit().radiusInfo;
-        current.w = config.obscuranceLevel * 10.0;
+        current.w = config.obscuranceLevel;
     }
 
     if (config.falloffBias != _parametersBuffer->getFalloffBias()) {
