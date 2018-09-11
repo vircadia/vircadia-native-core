@@ -187,6 +187,7 @@ private:
 #endif
 
     graphics::MeshPointer _mesh;
+    gpu::BufferPointer _params;
     std::array<NetworkTexturePointer, 3> _xyzTextures;
     glm::vec3 _lastVoxelVolumeSize;
     glm::mat4 _lastVoxelToWorldMatrix;

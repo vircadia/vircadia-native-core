@@ -40,8 +40,6 @@
 // OSX seems to have an issue using 14 as an attribute location for passing from the vertex to the fragment shader
 #define GPU_ATTR_V2F_STEREO_SIDE 8
 
-#define GPU_UNIFORM_COLOR 101
-#define GPU_UNIFORM_TEXCOORD_RECT 102
 #define GPU_UNIFORM_EXTRA0 110
 #define GPU_UNIFORM_EXTRA1 111
 #define GPU_UNIFORM_EXTRA2 112
@@ -98,8 +96,6 @@ enum Attribute {
 
 namespace uniform {
 enum Uniform {
-    Color = GPU_UNIFORM_COLOR,
-    TexCoordRect = GPU_UNIFORM_TEXCOORD_RECT,
     Extra0 = GPU_UNIFORM_EXTRA0,
     Extra1 = GPU_UNIFORM_EXTRA1,
     Extra2 = GPU_UNIFORM_EXTRA2,

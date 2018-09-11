@@ -121,6 +121,7 @@ public:
 
 private:
     gpu::PipelinePointer _pipeline;
+    gpu::BufferPointer _params;
     DebugBloomConfig::Mode _mode;
 };
 

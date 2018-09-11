@@ -46,7 +46,7 @@ Rectangle {
         }
     }
 
-    property var jointNames;
+    property var jointNames: []
     property var currentAvatarSettings;
 
     function fetchAvatarModelName(marketId, avatar) {

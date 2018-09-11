@@ -11,6 +11,7 @@
 #include "GLBackend.h"
 #include "GLShared.h"
 #include "GLInputFormat.h"
+#include "GLBuffer.h"
 
 using namespace gpu;
 using namespace gpu::gl;
@@ -43,13 +44,7 @@ void GLBackend::do_setInputBuffer(const Batch& batch, size_t paramOffset) {
         bool isModified = false;
         if (_input._buffers[channel] != buffer) {
             _input._buffers[channel] = buffer;
-         
-            GLuint vbo = 0;
-            if (buffer) {
-                vbo = getBufferID((*buffer));
-            }
-            _input._bufferVBOs[channel] = vbo;
-
+            _input._bufferVBOs[channel] = getBufferIDUnsynced((*buffer));
             isModified = true;
         }
 
@@ -128,7 +123,7 @@ void GLBackend::do_setIndexBuffer(const Batch& batch, size_t paramOffset) {
     if (indexBuffer != _input._indexBuffer) {
         _input._indexBuffer = indexBuffer;
         if (indexBuffer) {
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, getBufferID(*indexBuffer));
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, getBufferIDUnsynced(*indexBuffer));
         } else {
             // FIXME do we really need this?  Is there ever a draw call where we care that the element buffer is null?
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -145,7 +140,7 @@ void GLBackend::do_setIndirectBuffer(const Batch& batch, size_t paramOffset) {
     if (buffer != _input._indirectBuffer) {
         _input._indirectBuffer = buffer;
         if (buffer) {
-            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, getBufferID(*buffer));
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, getBufferIDUnsynced(*buffer));
         } else {
             // FIXME do we really need this?  Is there ever a draw call where we care that the element buffer is null?
             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
@@ -261,9 +256,17 @@ void GLBackend::updateInput() {
         auto offset = _input._bufferOffsets.data();
         auto stride = _input._bufferStrides.data();
 
+        // Profile the count of buffers to update and use it to short cut the for loop
+        int numInvalids = (int) _input._invalidBuffers.count();
+        _stats._ISNumInputBufferChanges += numInvalids;
+
         for (GLuint buffer = 0; buffer < _input._buffers.size(); buffer++, vbo++, offset++, stride++) {
             if (_input._invalidBuffers.test(buffer)) {
                 glBindVertexBuffer(buffer, (*vbo), (*offset), (GLsizei)(*stride));
+                numInvalids--;
+                if (numInvalids <= 0) {
+                    break;
+                }
             }
         }
 
