@@ -11,16 +11,19 @@
 
 #include "ConnectionMonitor.h"
 
+#include "Application.h"
 #include "ui/DialogsManager.h"
 
 #include <DependencyManager.h>
 #include <DomainHandler.h>
+#include <AddressManager.h>
 #include <NodeList.h>
 
 // Because the connection monitor is created at startup, the time we wait on initial load
 // should be longer to allow the application to initialize.
 static const int ON_INITIAL_LOAD_DISPLAY_AFTER_DISCONNECTED_FOR_X_MS = 10000;
 static const int DISPLAY_AFTER_DISCONNECTED_FOR_X_MS = 5000;
+static const QString ERROR_DOMAIN_URL =  "file:///~/serverless/redirect.json";
 
 void ConnectionMonitor::init() {
     // Connect to domain disconnected message
@@ -38,6 +41,7 @@ void ConnectionMonitor::init() {
 
     connect(&_timer, &QTimer::timeout, this, []() {
         qDebug() << "ConnectionMonitor: Showing connection failure window";
+        qApp->goToErrorDomainURL(REDIRECT_HIFI_ADDRESS);
     });
 }
 
