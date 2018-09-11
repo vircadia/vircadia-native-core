@@ -16,6 +16,7 @@
 (function () { // BEGIN LOCAL_SCOPE
     Script.include("/~/system/libraries/accountUtils.js");
     Script.include("/~/system/libraries/connectionUtils.js");
+    var AppUi = Script.require('appUi');
 
     var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace";
 
@@ -190,7 +191,7 @@
                 method: 'updateSelectedRecipientUsername',
                 userName: username === "" ? "unknown username" : username
             };
-            sendToQml(message);
+            ui.sendMessage(message);
         }
     }
     function handleClick(pickRay) {
@@ -208,7 +209,7 @@
                 displayName: '"' + AvatarList.getAvatar(avatarId).sessionDisplayName + '"',
                 userName: ''
             };
-            sendToQml(message);
+            ui.sendMessage(message);
 
             ExtendedOverlay.some(function (overlay) {
                 var id = overlay.key;
@@ -299,39 +300,6 @@
     triggerPressMapping.from(Controller.Standard.LT).peek().to(makePressHandler(Controller.Standard.LeftHand));
     // END AVATAR SELECTOR LOGIC
 
-    // Function Name: onButtonClicked()
-    //
-    // Description:
-    //   -Fired when the app button is pressed.
-    //
-    // Relevant Variables:
-    //   -WALLET_QML_SOURCE: The path to the Wallet QML
-    //   -onWalletScreen: true/false depending on whether we're looking at the app.
-    var WALLET_QML_SOURCE = "hifi/commerce/wallet/Wallet.qml";
-    var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/purchases/Purchases.qml";
-    var onWalletScreen = false;
-    function onButtonClicked() {
-        if (!tablet) {
-            print("Warning in buttonClicked(): 'tablet' undefined!");
-            return;
-        }
-        if (onWalletScreen) {
-            // for toolbar-mode: go back to home screen, this will close the window.
-            tablet.gotoHomeScreen();
-        } else {
-            tablet.loadQMLSource(WALLET_QML_SOURCE);
-        }
-    }
-
-    // Function Name: sendToQml()
-    //
-    // Description:
-    //   -Use this function to send a message to the QML (i.e. to change appearances). The "message" argument is what is sent to
-    //    the QML in the format "{method, params}", like json-rpc. See also fromQml().
-    function sendToQml(message) {
-        tablet.sendToQml(message);
-    }
-
     var sendMoneyRecipient;
     var sendMoneyParticleEffectUpdateTimer;
     var particleEffectTimestamp;
@@ -419,28 +387,28 @@
     //   -Called when a message is received from SpectatorCamera.qml. The "message" argument is what is sent from the QML
     //    in the format "{method, params}", like json-rpc. See also sendToQml().
     var isHmdPreviewDisabled = true;
+    var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/purchases/Purchases.qml";
     var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
-
     function fromQml(message) {
         switch (message.method) {
             case 'passphrasePopup_cancelClicked':
             case 'needsLogIn_cancelClicked':
-                tablet.gotoHomeScreen();
+                ui.close();
                 break;
             case 'walletSetup_cancelClicked':
                 switch (message.referrer) {
                     case '': // User clicked "Wallet" app
                     case undefined:
                     case null:
-                        tablet.gotoHomeScreen();
+                        ui.close();
                         break;
                     case 'purchases':
                     case 'marketplace cta':
                     case 'mainPage':
-                        tablet.gotoWebScreen(MARKETPLACE_URL, MARKETPLACES_INJECT_SCRIPT_URL);
+                        ui.openNewApp(MARKETPLACE_URL, MARKETPLACES_INJECT_SCRIPT_URL);
                         break;
                     default: // User needs to return to an individual marketplace item URL
-                        tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.referrer, MARKETPLACES_INJECT_SCRIPT_URL);
+                        ui.openNewApp(MARKETPLACE_URL + '/items/' + message.referrer, MARKETPLACES_INJECT_SCRIPT_URL);
                         break;
                 }
                 break;
@@ -451,27 +419,18 @@
                 break; // do nothing here, handled in marketplaces.js
             case 'maybeEnableHmdPreview':
                 break; // do nothing here, handled in marketplaces.js
-            case 'passphraseReset':
-                onButtonClicked();
-                onButtonClicked();
-                break;
-            case 'walletReset':
-                Settings.setValue("isFirstUseOfPurchases", true);
-                onButtonClicked();
-                onButtonClicked();
-                break;
             case 'transactionHistory_linkClicked':
-                tablet.gotoWebScreen(message.marketplaceLink, MARKETPLACES_INJECT_SCRIPT_URL);
+                ui.openNewApp(message.marketplaceLink, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
             case 'goToPurchases_fromWalletHome':
             case 'goToPurchases':
-                tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
+                ui.openNewApp(MARKETPLACE_PURCHASES_QML_PATH);
                 break;
             case 'goToMarketplaceMainPage':
-                tablet.gotoWebScreen(MARKETPLACE_URL, MARKETPLACES_INJECT_SCRIPT_URL);
+                ui.openNewApp(MARKETPLACE_URL, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
             case 'goToMarketplaceItemPage':
-                tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
+                ui.openNewApp(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
             case 'refreshConnections':
                 print('Refreshing Connections...');
@@ -526,93 +485,43 @@
         }
     }
 
-    // Function Name: wireEventBridge()
-    //
-    // Description:
-    //   -Used to connect/disconnect the script's response to the tablet's "fromQml" signal. Set the "on" argument to enable or
-    //    disable to event bridge.
-    //
-    // Relevant Variables:
-    //   -hasEventBridge: true/false depending on whether we've already connected the event bridge.
-    var hasEventBridge = false;
-    function wireEventBridge(on) {
-        if (!tablet) {
-            print("Warning in wireEventBridge(): 'tablet' undefined!");
-            return;
-        }
-        if (on) {
-            if (!hasEventBridge) {
-                tablet.fromQml.connect(fromQml);
-                hasEventBridge = true;
-            }
-        } else {
-            if (hasEventBridge) {
-                tablet.fromQml.disconnect(fromQml);
-                hasEventBridge = false;
-            }
-        }
+    function walletOpened() {
+        Users.usernameFromIDReply.connect(usernameFromIDReply);
+        Controller.mousePressEvent.connect(handleMouseEvent);
+        Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
+        triggerMapping.enable();
+        triggerPressMapping.enable();
     }
 
-    // Function Name: onTabletScreenChanged()
-    //
-    // Description:
-    //   -Called when the TabletScriptingInterface::screenChanged() signal is emitted. The "type" argument can be either the string
-    //    value of "Home", "Web", "Menu", "QML", or "Closed". The "url" argument is only valid for Web and QML.
-    function onTabletScreenChanged(type, url) {
-        onWalletScreen = (type === "QML" && url === WALLET_QML_SOURCE);
-        wireEventBridge(onWalletScreen);
-        // Change button to active when window is first openend, false otherwise.
-        if (button) {
-            button.editProperties({ isActive: onWalletScreen });
-        }
-
-        if (onWalletScreen) {
-            if (!isWired) {
-                Users.usernameFromIDReply.connect(usernameFromIDReply);
-                Controller.mousePressEvent.connect(handleMouseEvent);
-                Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
-                triggerMapping.enable();
-                triggerPressMapping.enable();
-            }
-            isWired = true;
-        } else {
-            off();
-        }
+    function walletClosed() {
+        off();
     }
 
     //
     // Manage the connection between the button and the window.
     //
-    var button;
-    var buttonName = "WALLET";
-    var tablet = null;
+    var BUTTON_NAME = "WALLET";
+    var WALLET_QML_SOURCE = "hifi/commerce/wallet/Wallet.qml";
     var walletEnabled = Settings.getValue("commerce", true);
     function startup() {
+        ui = new AppUi({
+            buttonName: BUTTON_NAME,
+            sortOrder: 10,
+            home: WALLET_QML_SOURCE,
+            onOpened: walletOpened,
+            onClosed: walletClosed,
+            onMessage: fromQml
+        });
         GlobalServices.myUsernameChanged.connect(onUsernameChanged);
-        if (walletEnabled) {
-            tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-            button = tablet.addButton({
-                text: buttonName,
-                icon: "icons/tablet-icons/wallet-i.svg",
-                activeIcon: "icons/tablet-icons/wallet-a.svg",
-                sortOrder: 10
-            });
-            button.clicked.connect(onButtonClicked);
-            tablet.screenChanged.connect(onTabletScreenChanged);
-        }
     }
-    var isWired = false;
     var isUpdateOverlaysWired = false;
     function off() {
-        if (isWired) {
-            Users.usernameFromIDReply.disconnect(usernameFromIDReply);
-            Controller.mousePressEvent.disconnect(handleMouseEvent);
-            Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
-            triggerMapping.disable();
-            triggerPressMapping.disable();
+        Users.usernameFromIDReply.disconnect(usernameFromIDReply);
+        Controller.mousePressEvent.disconnect(handleMouseEvent);
+        Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
+        triggerMapping.disable();
+        triggerPressMapping.disable();
 
-            isWired = false;
-        }
         if (isUpdateOverlaysWired) {
             Script.update.disconnect(updateOverlays);
             isUpdateOverlaysWired = false;
@@ -621,15 +530,7 @@
     }
     function shutdown() {
         GlobalServices.myUsernameChanged.disconnect(onUsernameChanged);
-        button.clicked.disconnect(onButtonClicked);
-        tablet.removeButton(button);
         deleteSendMoneyParticleEffect();
-        if (tablet) {
-            tablet.screenChanged.disconnect(onTabletScreenChanged);
-            if (onWalletScreen) {
-                tablet.gotoHomeScreen();
-            }
-        }
         off();
     }
 

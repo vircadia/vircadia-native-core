@@ -111,7 +111,7 @@ function onMessage(message) {
                 || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar", true))) {
                 Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "GeneralPreferencesDialog");
             } else {
-                ui.openOnTop("hifi/tablet/TabletGeneralPreferences.qml");
+                ui.openNewAppOnTop("hifi/tablet/TabletGeneralPreferences.qml");
             }
             break;
         case 'captureStillAndGif':

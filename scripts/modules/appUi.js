@@ -54,7 +54,18 @@ function AppUi(properties) {
             that.tablet.gotoWebScreen(url, that.inject);
         }
     };
-    that.openOnTop = function openOnTop(url, optionalInject) { // Opens some app on top of the current app
+    that.openNewApp = function openNewApp(url, optionalInject) { // Opens some app and replaces the current app
+        if (that.isQML(url)) {
+            that.tablet.pushOntoStack(url);
+        } else {
+            if (optionalInject) {
+                that.tablet.gotoWebScreen(url, optionalInject);
+            } else {
+                that.tablet.gotoWebScreen(url);
+            }
+        }
+    }
+    that.openNewAppOnTop = function openNewAppOnTop(url, optionalInject) { // Opens some app on top of the current app (on desktop, opens new window)
         if (that.isQML(url)) {
             that.tablet.loadQMLOnTop(url);
         } else {
