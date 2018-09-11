@@ -12,50 +12,17 @@
 //
 /* globals Tablet, Script, HMD, Controller, Menu */
 
-(function() { // BEGIN LOCAL_SCOPE
-    
-    var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
+(function () { // BEGIN LOCAL_SCOPE
+    var AppUi = Script.require('appUi');
+
     var HELP_URL = Script.resourcesPath() + "html/tabletHelp.html";
-    var buttonName = "HELP";
-    var onHelpScreen = false;
-    var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-    var button = tablet.addButton({
-        icon: "icons/tablet-icons/help-i.svg",
-        activeIcon: "icons/tablet-icons/help-a.svg",
-        text: buttonName,
-        sortOrder: 6
-    });
-
-    var enabled = false;
-    function onClicked() {
-        if (onHelpScreen) {
-            tablet.gotoHomeScreen();
-        } else {
-            if (HMD.tabletID) {
-                Entities.editEntity(HMD.tabletID, {textures: JSON.stringify({"tex.close" : HOME_BUTTON_TEXTURE})});
-            }
-            Menu.triggerOption('Help...');
-            onHelpScreen = true;
-        }
+    var HELP_BUTTON_NAME = "HELP";
+    function startup() {
+        ui = new AppUi({
+            buttonName: HELP_BUTTON_NAME,
+            sortOrder: 6,
+            home: HELP_URL
+        });
     }
-
-    function onScreenChanged(type, url) {
-        onHelpScreen = type === "Web" && (url.indexOf(HELP_URL) === 0);
-        button.editProperties({ isActive: onHelpScreen });
-    }
-
-    button.clicked.connect(onClicked);
-    tablet.screenChanged.connect(onScreenChanged);
-
-    Script.scriptEnding.connect(function () {
-        if (onHelpScreen) {
-            tablet.gotoHomeScreen();
-        }
-        button.clicked.disconnect(onClicked);
-        tablet.screenChanged.disconnect(onScreenChanged);
-        if (tablet) {
-            tablet.removeButton(button);
-        }
-    });
-
+    startup();
 }()); // END LOCAL_SCOPE
