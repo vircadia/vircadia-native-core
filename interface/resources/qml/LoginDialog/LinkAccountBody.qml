@@ -198,19 +198,23 @@ Item {
             Rectangle {
                 id: showPasswordHitbox
                 z: 10
-                // x: parent.width - (parent.height * 31/16)
                 x: passwordField.width - ((passwordField.height) * 31 / 23)
                 width: parent.width - (parent.width - (parent.height * 31/16))
-                // width: passwordField.width - (passwordField.width - (((passwordField.height) * 31/23)))
                 height: parent.height
+                anchors {
+                    right: parent.right
+                }
                 color: "transparent"
 
                 Image {
                     id: showPasswordImage
-                    // x: passwordField.width - ((passwordField.height) * 31 / 23)
                     y: (passwordField.height - (passwordField.height * 16 / 23)) / 2
                     width: passwordField.width - (passwordField.width - (((passwordField.height) * 31/23)))
                     height: passwordField.height * 16 / 23
+                    anchors {
+                        right: parent.right
+                        rightMargin: 3
+                    }
                     source: "../../images/eyeOpen.svg"
                 }
 
@@ -223,12 +227,8 @@ Item {
                         showPassword = !showPassword;
                         passwordField.echoMode = showPassword ? TextInput.Normal : TextInput.Password;
                         showPasswordImage.source = showPassword ?  "../../images/eyeClosed.svg" : "../../images/eyeOpen.svg";
-                        showPasswordImage.width = passwordField.width - (passwordField.width - (passwordField.height * 31/23));
-                        showPasswordImage.x = -(showPasswordImage.width - passwordField.width);
                         showPasswordImage.height = showPassword ?  passwordField.height : passwordField.height * 16 / 23;
                         showPasswordImage.y = showPassword ? 0 : (passwordField.height - showPasswordImage.height) / 2;
-                        showPasswordHitbox.width = showPasswordImage.width;
-                        showPasswordHitbox.x = showPasswordImage.x;
                     }
                 }
             }
