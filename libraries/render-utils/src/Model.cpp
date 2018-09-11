@@ -976,7 +976,7 @@ bool Model::addToScene(const render::ScenePointer& scene,
                        render::Transaction& transaction,
                        render::Item::Status::Getters& statusGetters) {
     if (!_addedToScene && isLoaded()) {
-        updateClusterMatrices(false);
+        updateClusterMatrices();
         if (_modelMeshRenderItems.empty()) {
             createRenderItemSet();
         }
@@ -1487,7 +1487,7 @@ void Model::computeMeshPartLocalBounds() {
 }
 
 // virtual
-void Model::updateClusterMatrices(bool triggerBlendshapes) {
+void Model::updateClusterMatrices() {
     DETAILED_PERFORMANCE_TIMER("Model::updateClusterMatrices");
 
     if (!_needsUpdateClusterMatrices || !isLoaded()) {

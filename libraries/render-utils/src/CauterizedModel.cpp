@@ -102,7 +102,7 @@ void CauterizedModel::createRenderItemSet() {
     }
 }
 
-void CauterizedModel::updateClusterMatrices(bool triggerBlendshapes) {
+void CauterizedModel::updateClusterMatrices() {
     PerformanceTimer perfTimer("CauterizedModel::updateClusterMatrices");
 
     if (!_needsUpdateClusterMatrices || !isLoaded()) {
