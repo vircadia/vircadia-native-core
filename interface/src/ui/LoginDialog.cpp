@@ -20,6 +20,8 @@
 #include <plugins/SteamClientPlugin.h>
 #include <ui/TabletScriptingInterface.h>
 
+#include <UserActivityLogger.h>
+
 #include "AccountManager.h"
 #include "DependencyManager.h"
 #include "Menu.h"
@@ -38,11 +40,18 @@ LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
     connect(accountManager.data(), &AccountManager::loginFailed,
             this, &LoginDialog::handleLoginFailed);
 #endif
-
 }
 
 LoginDialog::~LoginDialog() {
-    qCDebug(login_dialog) << "killing";
+    Settings settings;
+    Setting::Handle<bool> loginDialogPoppedUp{ "loginDialogPoppedUp", false };
+    auto poppedUp = loginDialogPoppedUp.get();
+    if (poppedUp) {
+        QJsonObject data;
+        data["action"] = "user opted out";
+        UserActivityLogger::getInstance().logAction("encourageLoginDialog", data);
+    }
+    settings.setValue("loginDialogPoppedUp", false);
 }
 
 void LoginDialog::showWithSelection()

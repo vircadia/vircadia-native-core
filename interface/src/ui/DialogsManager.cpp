@@ -117,10 +117,6 @@ void DialogsManager::showLoginDialog() {
     LoginDialog::showWithSelection();
 }
 
-void DialogsManager::loginDialogPoppedUp() {
-    LoginDialog::setLoginDialogPoppedUp(true);
-}
-
 void DialogsManager::showUpdateDialog() {
     UpdateDialog::show();
 }

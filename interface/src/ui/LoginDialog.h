@@ -23,7 +23,6 @@ class QNetworkReply;
 
 class LoginDialog : public OffscreenQmlDialog {
     Q_OBJECT
-    Q_PROPERTY(bool poppedUp READ getLoginDialogPoppedUp)
     HIFI_QML_DECL
 
 public:
@@ -35,8 +34,6 @@ public:
 
     static void showWithSelection();
 
-    bool getLoginDialogPoppedUp() { return _poppedUp; }
-    void setLoginDialogPoppedUp(bool poppedUp) { _poppedUp = poppedUp; }
 signals:
     void handleLoginCompleted();
     void handleLoginFailed();

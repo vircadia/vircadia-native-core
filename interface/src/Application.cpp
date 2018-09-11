@@ -2301,23 +2301,24 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     AndroidHelper::instance().notifyLoadComplete();
 #endif
 
-    connect(this, &Application::loginDialogPoppedUp, DependencyManager::get<DialogsManager>().data(), &DialogsManager::loginDialogPoppedUp);
-
     static int CHECK_LOGIN_TIMER = 3000;
     QTimer* checkLoginTimer = new QTimer(this);
     checkLoginTimer->setInterval(CHECK_LOGIN_TIMER);
     checkLoginTimer->setSingleShot(true);
-    connect(checkLoginTimer, &QTimer::timeout, this, []() {
+    connect(checkLoginTimer, &QTimer::timeout, this, [this]() {
         auto accountManager = DependencyManager::get<AccountManager>();
         auto dialogsManager = DependencyManager::get<DialogsManager>();
         if (!accountManager->isLoggedIn() && !qApp->isHMDMode()) {
-            emit loginDialogPoppedUp();
+            Settings settings;
+            settings.setValue("loginDialogPoppedUp", true);
             dialogsManager->showLoginDialog();
             QJsonObject loginData = {};
             loginData["action"] = "login dialog shown";
             UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
         }
     });
+    Settings settings;
+    settings.setValue("loginDialogPoppedUp", false);
     checkLoginTimer->start();
 }
 
@@ -4948,6 +4949,9 @@ void Application::loadSettings() {
 }
 
 void Application::saveSettings() const {
+    Settings settings;
+    settings.setValue("loginDialogPoppedUp", false);
+
     sessionRunTime.set(_sessionRunTimer.elapsed() / MSECS_PER_SECOND);
     DependencyManager::get<AudioClient>()->saveSettings();
     DependencyManager::get<LODManager>()->saveSettings();
