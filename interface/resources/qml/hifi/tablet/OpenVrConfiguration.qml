@@ -568,7 +568,8 @@ Flickable {
                     width: 160
                     suffix: " cm"
                     label: "Arm Circumference"
-                    minimumValue: 0
+                    minimumValue: 10.0
+                    maximumValue: 50.0
                     realStepSize: 1.0
                     colorScheme: hifi.colorSchemes.dark
                     realValue: 33.0
@@ -585,6 +586,7 @@ Flickable {
                     label: "Shoulder Width"
                     suffix: " cm"
                     minimumValue: 0
+                    maximumValue: 50.0
                     realStepSize: 1.0
                     decimals: 1
                     colorScheme: hifi.colorSchemes.dark
@@ -763,8 +765,10 @@ Flickable {
                 anchors.left: parent.left
                 anchors.leftMargin: leftMargin
 
-                minimumValue: 5
+                minimumValue: 0
+                maximumValue: 5
                 realValue: 5
+                realStepSize: 1.0
                 colorScheme: hifi.colorSchemes.dark
 
                 onEditingFinished: {
