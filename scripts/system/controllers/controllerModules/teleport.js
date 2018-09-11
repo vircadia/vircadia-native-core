@@ -135,7 +135,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.currentTarget = TARGET.INVALID;
         this.currentResult = null;
         this.capsuleThreshold = 0.05;
-        this.pickHeightOffset = 0.1;
+        this.pickHeightOffset = 0.15;
 
         this.getOtherModule = function() {
             var otherModule = this.hand === RIGHT_HAND ? leftTeleporter : rightTeleporter;
