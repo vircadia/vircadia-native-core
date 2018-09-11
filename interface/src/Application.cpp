@@ -2309,16 +2309,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         auto accountManager = DependencyManager::get<AccountManager>();
         auto dialogsManager = DependencyManager::get<DialogsManager>();
         if (!accountManager->isLoggedIn() && !qApp->isHMDMode()) {
-            Settings settings;
-            settings.setValue("loginDialogPoppedUp", true);
+            Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(true);
             dialogsManager->showLoginDialog();
             QJsonObject loginData = {};
             loginData["action"] = "login dialog shown";
             UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
         }
     });
-    Settings settings;
-    settings.setValue("loginDialogPoppedUp", false);
+    Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(false);
     checkLoginTimer->start();
 }
 
@@ -2452,6 +2450,8 @@ void Application::onAboutToQuit() {
     // The active display plugin needs to be loaded before the menu system is active,
     // so its persisted explicitly here
     Setting::Handle<QString>{ ACTIVE_DISPLAY_PLUGIN_SETTING_NAME }.set(getActiveDisplayPlugin()->getName());
+
+    Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(false);
 
     getActiveDisplayPlugin()->deactivate();
     if (_autoSwitchDisplayModeSupportedHMDPlugin
@@ -4949,9 +4949,6 @@ void Application::loadSettings() {
 }
 
 void Application::saveSettings() const {
-    Settings settings;
-    settings.setValue("loginDialogPoppedUp", false);
-
     sessionRunTime.set(_sessionRunTimer.elapsed() / MSECS_PER_SECOND);
     DependencyManager::get<AudioClient>()->saveSettings();
     DependencyManager::get<LODManager>()->saveSettings();

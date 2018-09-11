@@ -43,7 +43,6 @@ LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
 }
 
 LoginDialog::~LoginDialog() {
-    Settings settings;
     Setting::Handle<bool> loginDialogPoppedUp{ "loginDialogPoppedUp", false };
     auto poppedUp = loginDialogPoppedUp.get();
     if (poppedUp) {
@@ -51,7 +50,7 @@ LoginDialog::~LoginDialog() {
         data["action"] = "user opted out";
         UserActivityLogger::getInstance().logAction("encourageLoginDialog", data);
     }
-    settings.setValue("loginDialogPoppedUp", false);
+    loginDialogPoppedUp.set(false);
 }
 
 void LoginDialog::showWithSelection()

@@ -85,13 +85,4 @@ ModalWindow {
                 break
         }
     }
-    Component.onDestruction: {
-        if (closeButtonVisible && clickedCloseButton && Settings.getValue("loginDialogPoppedUp", false)) {
-            var data = {
-                "action": "opted out"
-            };
-            UserActivityLogger.logAction("encourageLoginDialog", data);
-        }
-        Settings.setValue("loginDialogPoppedUp", false);
-    }
 }

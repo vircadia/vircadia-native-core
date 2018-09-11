@@ -350,11 +350,23 @@ Item {
                 bodyLoader.item.width = root.pane.width
                 bodyLoader.item.height = root.pane.height
             }
+            if (Settings.getValue("loginDialogPoppedUp", false)) {
+                var data = {
+                    "action": "user logged in"
+                };
+                UserActivityLogger.logAction("encourageLoginDialog", data);
+            }
         }
         onHandleLoginFailed: {
             console.log("Login Failed")
             mainTextContainer.visible = true
             toggleLoading(false)
+            if (Settings.getValue("loginDialogPoppedUp", false)) {
+                var data = {
+                    "action": "user failed logging in"
+                };
+                UserActivityLogger.logAction("encourageLoginDialog", data);
+            }
         }
         onHandleLinkCompleted: {
             console.log("Link Succeeded")
