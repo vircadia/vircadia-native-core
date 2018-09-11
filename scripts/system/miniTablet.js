@@ -8,13 +8,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global getTabletWidthFromSettings */
+/* global getTabletWidthFromSettings, TRIGGER_OFF_VALUE */
 
 (function () {
 
     "use strict";
 
     Script.include("./libraries/utils.js");
+    Script.include("./libraries/controllerDispatcherUtils.js");
 
     var UI,
         ui = null,
@@ -147,9 +148,13 @@
             miniTargetWidth,
             miniTargetLocalRotation,
 
+            // Laser pointing at.
+            isBodyHovered = false,
+
             // EventBridge.
             READY_MESSAGE = "ready", // Engine <== Dialog
             HOVER_MESSAGE = "hover", // Engine <== Dialog
+            UNHOVER_MESSAGE = "unhover", // Engine <== Dialog
             MUTE_MESSAGE = "mute", // Engine <=> Dialog
             GOTO_MESSAGE = "goto", // Engine <=> Dialog
             EXPAND_MESSAGE = "expand", // Engine <== Dialog
@@ -196,8 +201,19 @@
                     setGotoIcon();
                     break;
                 case HOVER_MESSAGE:
-                    // Audio feedback.
-                    playSound(hoverSound, HOVER_VOLUME);
+                    if (message.target === "body") {
+                        // Laser status.
+                        isBodyHovered = true;
+                    } else if (message.target === "button") {
+                        // Audio feedback.
+                        playSound(hoverSound, HOVER_VOLUME);
+                    }
+                    break;
+                case UNHOVER_MESSAGE:
+                    if (message.target === "body") {
+                        // Laser status.
+                        isBodyHovered = false;
+                    }
                     break;
                 case MUTE_MESSAGE:
                     // Toggle mute.
@@ -251,6 +267,10 @@
                 position: properties.position,
                 orientation: properties.orientation
             };
+        }
+
+        function isLaserPointingAt() {
+            return isBodyHovered;
         }
 
 
@@ -420,6 +440,7 @@
             getUIPositionAndRotation: getUIPositionAndRotation,
             getMiniTabletID: getMiniTabletID,
             getMiniTabletProperties: getMiniTabletProperties,
+            isLaserPointingAt: isLaserPointingAt,
             updateMutedStatus: updateMutedStatus,
             show: show,
             size: size,
@@ -509,32 +530,49 @@
 
         function shouldShowMini(hand) {
             // Should show mini tablet if it would be oriented toward the camera.
-            var pose,
+            var show,
+                pose,
                 jointIndex,
                 handPosition,
                 handOrientation,
                 uiPositionAndOrientation,
                 miniPosition,
                 miniOrientation,
-                miniToCameraDirection;
+                miniToCameraDirection,
+                cameraToHand;
 
+            // Shouldn't show mini tablet if hand isn't being controlled.
             pose = Controller.getPoseValue(hand === LEFT_HAND ? Controller.Standard.LeftHand : Controller.Standard.RightHand);
-            if (!pose.valid) {
-                return false;
+            show = pose.valid;
+
+            // Shouldn't show mini tablet on hand if that hand's trigger is pressed (i.e., laser is searching or grabbing
+            // something) or the other hand's trigger is pressed unless it is pointing at the mini tablet.
+            if (show) {
+                show = Controller.getValue(hand === LEFT_HAND ? Controller.Standard.LT : Controller.Standard.RT) <
+                        TRIGGER_OFF_VALUE
+                    && (Controller.getValue(hand === LEFT_HAND ? Controller.Standard.RT : Controller.Standard.LT) <
+                        TRIGGER_OFF_VALUE || ui.isLaserPointingAt());
             }
 
-            jointIndex = handJointIndex(hand);
-            handPosition = Vec3.sum(MyAvatar.position,
-                Vec3.multiplyQbyV(MyAvatar.orientation, MyAvatar.getAbsoluteJointTranslationInObjectFrame(jointIndex)));
-            handOrientation = Quat.multiply(MyAvatar.orientation, MyAvatar.getAbsoluteJointRotationInObjectFrame(jointIndex));
-            uiPositionAndOrientation = ui.getUIPositionAndRotation(hand);
-            miniPosition = Vec3.sum(handPosition, Vec3.multiply(MyAvatar.scale,
-                Vec3.multiplyQbyV(handOrientation, uiPositionAndOrientation.position)));
-            miniOrientation = Quat.multiply(handOrientation, uiPositionAndOrientation.rotation);
-            miniToCameraDirection = Vec3.normalize(Vec3.subtract(Camera.position, miniPosition));
+            // Should show mini tablet if it would be oriented toward the camera.
+            if (show) {
+                jointIndex = handJointIndex(hand);
+                handPosition = Vec3.sum(MyAvatar.position,
+                    Vec3.multiplyQbyV(MyAvatar.orientation, MyAvatar.getAbsoluteJointTranslationInObjectFrame(jointIndex)));
+                handOrientation =
+                    Quat.multiply(MyAvatar.orientation, MyAvatar.getAbsoluteJointRotationInObjectFrame(jointIndex));
+                uiPositionAndOrientation = ui.getUIPositionAndRotation(hand);
+                miniPosition = Vec3.sum(handPosition, Vec3.multiply(MyAvatar.scale,
+                    Vec3.multiplyQbyV(handOrientation, uiPositionAndOrientation.position)));
+                miniOrientation = Quat.multiply(handOrientation, uiPositionAndOrientation.rotation);
+                miniToCameraDirection = Vec3.normalize(Vec3.subtract(Camera.position, miniPosition));
+                show = Vec3.dot(miniToCameraDirection, Quat.getForward(miniOrientation)) > MIN_HAND_CAMERA_ANGLE_COS;
+                cameraToHand = -Vec3.dot(miniToCameraDirection, Quat.getForward(Camera.orientation));
+            }
+
             return {
-                show: Vec3.dot(miniToCameraDirection, Quat.getForward(miniOrientation)) > MIN_HAND_CAMERA_ANGLE_COS,
-                cameraToHand: -Vec3.dot(miniToCameraDirection, Quat.getForward(Camera.orientation))
+                show: show,
+                cameraToHand: cameraToHand
             };
         }
 

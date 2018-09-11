@@ -18,6 +18,7 @@
     var // EventBridge
         READY_MESSAGE = "ready", // Engine <== Dialog
         HOVER_MESSAGE = "hover", // Engine <== Dialog
+        UNHOVER_MESSAGE = "unhover", // Engine <== Dialog
         MUTE_MESSAGE = "mute", // Engine <=> Dialog
         GOTO_MESSAGE = "goto", // Engine <=> Dialog
         EXPAND_MESSAGE = "expand", // Engine <== Dialog
@@ -73,9 +74,24 @@
         }
     }
 
+    function onBodyHover() {
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: HOVER_MESSAGE,
+            target: "body"
+        }));
+    }
+
+    function onBodyUnhover() {
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: UNHOVER_MESSAGE,
+            target: "body"
+        }));
+    }
+
     function onButtonHover() {
         EventBridge.emitWebEvent(JSON.stringify({
-            type: HOVER_MESSAGE
+            type: HOVER_MESSAGE,
+            target: "button"
         }));
         clearUnhover();
     }
@@ -127,6 +143,9 @@
         expandButton = document.getElementById("expand");
 
         connectEventBridge();
+
+        document.body.addEventListener("mouseenter", onBodyHover, false);
+        document.body.addEventListener("mouseleave", onBodyUnhover, false);
 
         muteButton.addEventListener("mouseenter", onButtonHover, false);
         gotoButton.addEventListener("mouseenter", onButtonHover, false);
