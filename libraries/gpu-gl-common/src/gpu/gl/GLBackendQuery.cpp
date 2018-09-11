@@ -94,7 +94,7 @@ void GLBackend::do_getQuery(const Batch& batch, size_t paramOffset) {
             }
 #else 
             // gles3 is not supporting true time query returns just the batch elapsed time
-            query->triggerReturnHandler(glquery->_result, glquery->_batchElapsedTime);
+            query->triggerReturnHandler(0, glquery->_batchElapsedTime);
 #endif
             (void)CHECK_GL_ERROR();
         }
