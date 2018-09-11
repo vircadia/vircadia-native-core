@@ -258,8 +258,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     // max number of avatarBytes per frame
     int maxAvatarBytesPerFrame = int(_maxKbpsPerNode * BYTES_PER_KILOBIT / AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND);
 
-    // FIXME - find a way to not send the sessionID for every avatar
-    int minimumBytesPerAvatar = AvatarDataPacket::AVATAR_HAS_FLAGS_SIZE + NUM_BYTES_RFC4122_UUID;
 
     // keep track of the number of other avatars held back in this frame
     int numAvatarsHeldBack = 0;
@@ -274,14 +272,13 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     // When this is true, the AvatarMixer will send Avatar data to a client about avatars that have ignored them
     bool getsAnyIgnored = PALIsOpen && destinationNode->getCanKick();
 
-    if (PALIsOpen) {
-        // Increase minimumBytesPerAvatar if the PAL is open
-        minimumBytesPerAvatar += sizeof(AvatarDataPacket::AvatarGlobalPosition) +
-        sizeof(AvatarDataPacket::AudioLoudness);
-    }
+    // Bandwidth allowance for data that must be sent.
+    int minimumBytesPerAvatar = PALIsOpen ? AvatarDataPacket::AVATAR_HAS_FLAGS_SIZE + NUM_BYTES_RFC4122_UUID +
+        sizeof(AvatarDataPacket::AvatarGlobalPosition) + sizeof(AvatarDataPacket::AudioLoudness) : 0;
 
     // setup a PacketList for the avatarPackets
     auto avatarPacketList = NLPacketList::create(PacketType::BulkAvatarData);
+    static auto maxAvatarDataBytes = avatarPacketList->getMaxSegmentSize() - NUM_BYTES_RFC4122_UUID;
 
     // compute node bounding box
     const float MY_AVATAR_BUBBLE_EXPANSION_FACTOR = 4.0f; // magic number determined emperically
@@ -401,19 +398,18 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
     int remainingAvatars = (int)sortedAvatars.size();
     auto traitsPacketList = NLPacketList::create(PacketType::BulkAvatarTraits, QByteArray(), true, true);
+
     const auto& sortedAvatarVector = sortedAvatars.getSortedVector();
     for (const auto& sortedAvatar : sortedAvatarVector) {
         const Node* otherNode = sortedAvatar.getNode();
         auto lastEncodeForOther = sortedAvatar.getTimestamp();
-        remainingAvatars--;
 
         assert(otherNode); // we can't have gotten here without the avatarData being a valid key in the map
 
         AvatarData::AvatarDataDetail detail = AvatarData::NoData;
 
-        // NOTE: Here's where we determine if we are over budget and drop to bare minimum data
-        // If we're going to just drop the over-budget avatars entirely the decision should
-        // just use numAvatarDataBytes, not minimRemainingAvatarBytes.
+        // NOTE: Here's where we determine if we are over budget and drop remaining avatars,
+        // or send minimal avatar data in uncommon case of PALIsOpen.
         int minimRemainingAvatarBytes = minimumBytesPerAvatar * remainingAvatars;
         bool overBudget = (identityBytesSent + numAvatarDataBytes + minimRemainingAvatarBytes) > maxAvatarBytesPerFrame;
         if (overBudget) {
@@ -472,7 +468,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         _stats.toByteArrayElapsedTime +=
             (quint64) chrono::duration_cast<chrono::microseconds>(endSerialize - startSerialize).count();
 
-        static auto maxAvatarDataBytes = avatarPacketList->getMaxSegmentSize() - NUM_BYTES_RFC4122_UUID;
         if (bytes.size() > maxAvatarDataBytes) {
             qCWarning(avatars) << "otherAvatar.toByteArray() for" << otherNode->getUUID()
                 << "resulted in very large buffer of" << bytes.size() << "bytes - dropping facial data";
