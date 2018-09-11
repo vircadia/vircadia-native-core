@@ -1024,7 +1024,7 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
 }
 
 void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
-    if (!_interstitialMode) {
+    if (!_audioPaused) {
         if (_muted) {
             _lastInputLoudness = 0.0f;
             _timeSinceLastClip = 0.0f;

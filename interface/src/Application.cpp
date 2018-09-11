@@ -1387,7 +1387,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         });
         connect(this, &Application::activeDisplayPluginChanged,
             reinterpret_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::onContextChanged);
-        connect(this, &Application::interstitialModeChanged, audioIO, &AudioClient::setInterstitialStatus);
     }
 
     // Create the rendering engine.  This can be slow on some machines due to lots of
@@ -3500,6 +3499,9 @@ bool Application::isInterstitialMode() const {
 void Application::setIsInterstitialMode(bool interstitialMode) {
     if (_interstitialMode != interstitialMode) {
         _interstitialMode = interstitialMode;
+
+        auto audioClient = DependencyManager::get<AudioClient>();
+        audioClient->setAudioPaused(_interstitialMode);
         emit interstitialModeChanged(_interstitialMode);
     }
 }
@@ -5581,8 +5583,7 @@ void Application::update(float deltaTime) {
         // we haven't yet enabled physics.  we wait until we think we have all the collision information
         // for nearby entities before starting bullet up.
         quint64 now = usecTimestampNow();
-        bool renderReady = _octreeProcessor.isEntitiesRenderReady();
-        if (isServerlessMode() || (_octreeProcessor.isLoadSequenceComplete() && renderReady)) {
+        if (isServerlessMode() || _octreeProcessor.isLoadSequenceComplete()) {
             // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
             _lastPhysicsCheckTime = now;
             _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;

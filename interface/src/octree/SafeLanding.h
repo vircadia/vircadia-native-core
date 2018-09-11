@@ -30,7 +30,6 @@ public:
     void setCompletionSequenceNumbers(int first, int last);  // 'last' exclusive.
     void noteReceivedsequenceNumber(int sequenceNumber);
     bool isLoadSequenceComplete();
-    bool entitiesRenderReady();
     float loadingProgressPercentage();
 
 private slots:
@@ -40,7 +39,7 @@ private slots:
 private:
     bool isSequenceNumbersComplete();
     void debugDumpSequenceIDs() const;
-    bool isEntityPhysicsComplete();
+    bool isEntityLoadingComplete();
 
     std::mutex _lock;
     using Locker = std::lock_guard<std::mutex>;
@@ -48,12 +47,11 @@ private:
     EntityTreePointer _entityTree;
     using EntityMap = std::map<EntityItemID, EntityItemPointer>;
     EntityMap _trackedEntities;
-    EntityMap _trackedEntitiesRenderStatus;
 
     static constexpr int INVALID_SEQUENCE = -1;
     int _initialStart { INVALID_SEQUENCE };
     int _initialEnd { INVALID_SEQUENCE };
-    float _maxTrackedEntityCount { 0.0f };
+    int _maxTrackedEntityCount { 0 };
 
     struct SequenceLessThan {
         bool operator()(const int& a, const int& b) const;
