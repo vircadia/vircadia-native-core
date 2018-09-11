@@ -32,7 +32,8 @@ void GLBackend::do_beginQuery(const Batch& batch, size_t paramOffset) {
         PROFILE_RANGE_BEGIN(render_gpu_gl_detail, glquery->_profileRangeId, query->getName().c_str(), 0xFFFF7F00);
 
         ++_queryStage._rangeQueryDepth;
-        glGetInteger64v(GL_TIMESTAMP, (GLint64*)&glquery->_batchElapsedTime);
+        glquery->_batchElapsedTimeBegin = std::chrono::high_resolution_clock::now();
+   //     glGetInteger64v(GL_TIMESTAMP, (GLint64*)&glquery->_batchElapsedTime);
 
         if (timeElapsed) {
             if (_queryStage._rangeQueryDepth <= MAX_RANGE_QUERY_DEPTH) {
@@ -61,9 +62,10 @@ void GLBackend::do_endQuery(const Batch& batch, size_t paramOffset) {
         }
 
         --_queryStage._rangeQueryDepth;
-        GLint64 now;
-        glGetInteger64v(GL_TIMESTAMP, &now);
-        glquery->_batchElapsedTime = now - glquery->_batchElapsedTime;
+      //  GLint64 now;
+      //  glGetInteger64v(GL_TIMESTAMP, &now);
+        auto duration_ns = (std::chrono::high_resolution_clock::now() - glquery->_batchElapsedTimeBegin);
+        glquery->_batchElapsedTime = duration_ns.count();
 
         PROFILE_RANGE_END(render_gpu_gl_detail, glquery->_profileRangeId);
 
