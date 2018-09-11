@@ -15,12 +15,14 @@
 #include <memory>
 #include <glm/glm.hpp>
 #include <QColor>
+#include <gpu/Forward.h>
 
 namespace gpu {
 class Batch;
 }
 class Font;
 
+#include "text/Font.h"
 #include "text/EffectType.h"
 #include "text/FontFamilies.h"
 
@@ -51,7 +53,7 @@ private:
 
     // text color
     glm::vec4 _color;
-
+    Font::DrawInfo _drawInfo;
     std::shared_ptr<Font> _font;
 };
 

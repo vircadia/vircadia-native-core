@@ -239,6 +239,7 @@ public:
     virtual GLuint getFramebufferID(const FramebufferPointer& framebuffer) = 0;
     virtual GLuint getTextureID(const TexturePointer& texture) final;
     virtual GLuint getBufferID(const Buffer& buffer) = 0;
+    virtual GLuint getBufferIDUnsynced(const Buffer& buffer) = 0;
     virtual GLuint getQueryID(const QueryPointer& query) = 0;
 
     virtual GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) = 0;

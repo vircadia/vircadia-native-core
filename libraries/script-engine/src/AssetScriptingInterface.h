@@ -108,6 +108,10 @@ public:
     Q_INVOKABLE void setBakingEnabled(QString path, bool enabled, QScriptValue callback);
 
 #if (PR_BUILD || DEV_BUILD)
+    /**
+     * This function is purely for development purposes, and not meant for use in a
+     * production context. It is not a public-facing API, so it should not contain jsdoc.
+     */
     Q_INVOKABLE void sendFakedHandshake();
 #endif
 

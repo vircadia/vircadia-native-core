@@ -41,7 +41,11 @@ Item {
             section.saveAll();
         }
 
-        closeDialog();
+        if (HMD.active) {
+            tablet.popFromStack();
+        } else {
+            closeDialog();
+        }
     }
 
     function restoreAll() {
@@ -50,7 +54,11 @@ Item {
             section.restoreAll();
         }
 
-        closeDialog();
+        if (HMD.active) {
+            tablet.popFromStack();
+        } else {
+            closeDialog();
+        }
     }
 
     function closeDialog() {

@@ -20,7 +20,14 @@
 <@include gpu/Color.slh@>
 <$declareColorWheel()$>
 
-layout(location=GPU_UNIFORM_COLOR) uniform vec4 inColor;
+struct DrawItemBoundsParams {
+    vec4 color;
+};
+
+layout(binding=0) uniform drawItemBoundsParamsBuffer {
+    DrawItemBoundsParams params;
+};
+
 
 struct ItemBound {
     vec4 id_boundPos;
@@ -91,10 +98,10 @@ void main(void) {
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, pos, gl_Position)$>
 
-    if (inColor.w < 0.0) {
-        varColor = vec4(colorWheel(float(boundID)/(-inColor.w)), 1.0);
+    if (params.color.w < 0.0) {
+        varColor = vec4(colorWheel(float(boundID)/(-params.color.w)), 1.0);
     } else {
-        varColor = vec4(colorWheel(float(inColor.w)), 1.0);
+        varColor = vec4(colorWheel(float(params.color.w)), 1.0);
     }
     varTexcoord = vec2(cubeVec.w, length(boundDim));
 
