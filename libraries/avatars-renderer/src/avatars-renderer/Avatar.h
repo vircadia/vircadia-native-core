@@ -107,6 +107,14 @@ public:
     virtual bool isMyAvatar() const override { return false; }
     virtual void createOrb() { }
 
+    enum class LoadingStatus {
+        NoModel,
+        LoadModel,
+        LoadSuccess,
+        LoadFailure
+    };
+    virtual void indicateLoadingStatus(LoadingStatus loadingStatus) { _loadingStatus = loadingStatus; }
+
     virtual QVector<glm::quat> getJointRotations() const override;
     using AvatarData::getJointRotation;
     virtual glm::quat getJointRotation(int index) const override;
@@ -540,6 +548,8 @@ protected:
     static const float MYAVATAR_LOADING_PRIORITY;
     static const float OTHERAVATAR_LOADING_PRIORITY;
     static const float ATTACHMENT_LOADING_PRIORITY;
+
+    LoadingStatus _loadingStatus { LoadingStatus::NoModel };
 };
 
 #endif // hifi_Avatar_h
