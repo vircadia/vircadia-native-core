@@ -146,7 +146,7 @@ Script.include("/~/system/libraries/controllers.js");
             var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE;
             var laserOn = isTriggerPressed || this.parameters.handLaser.allwaysOn;
             if (allowThisModule && (laserOn && this.isPointingAtTriggerable(controllerData, isTriggerPressed)) &&
-                !this.isPointingAtNearGrabbableEntity(controllerData, isTriggerPressed)) {
+                (controllerData.nearbyEntityProperties[this.hand] !== [])) {
                 this.running = true;
                 return makeRunningValues(true, [], []);
             }
