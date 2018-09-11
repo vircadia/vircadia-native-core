@@ -305,6 +305,16 @@ void AudioClient::audioMixerKilled() {
     emit disconnected();
 }
 
+void AudioClient::setAudioPaused(bool pause) {
+    if (_audioPaused != pause) {
+        _audioPaused = pause;
+
+        if (!_audioPaused) {
+            negotiateAudioFormat();
+        }
+    }
+}
+
 QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
     QAudioDeviceInfo result;
     foreach(QAudioDeviceInfo audioDevice, getAvailableDevices(mode)) {
@@ -1024,7 +1034,7 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
 }
 
 void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
-    if (!_interstitialMode) {
+    if (!_audioPaused) {
         if (_muted) {
             _lastInputLoudness = 0.0f;
             _timeSinceLastClip = 0.0f;

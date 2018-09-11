@@ -37,7 +37,6 @@ void SafeLanding::startEntitySequence(QSharedPointer<EntityTreeRenderer> entityT
     if (entityTree) {
         Locker lock(_lock);
         _entityTree = entityTree;
-        _trackedEntitiesRenderStatus.clear();
         _trackedEntities.clear();
         _trackingEntities = true;
         connect(std::const_pointer_cast<EntityTree>(_entityTree).get(),
@@ -67,35 +66,19 @@ void SafeLanding::addTrackedEntity(const EntityItemID& entityID) {
         Locker lock(_lock);
         EntityItemPointer entity = _entityTree->findEntityByID(entityID);
 
-        if (entity && !entity->getCollisionless()) {
-            const auto& entityType = entity->getType();
-            if (entityType == EntityTypes::Model) {
-                ModelEntityItem * modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity).get();
-                static const std::set<ShapeType> downloadedCollisionTypes
-                    { SHAPE_TYPE_COMPOUND, SHAPE_TYPE_SIMPLE_COMPOUND, SHAPE_TYPE_STATIC_MESH,  SHAPE_TYPE_SIMPLE_HULL };
-                bool hasAABox;
-                entity->getAABox(hasAABox);
-                if (hasAABox && downloadedCollisionTypes.count(modelEntity->getShapeType()) != 0) {
-                    // Only track entities with downloaded collision bodies.
-                    _trackedEntities.emplace(entityID, entity);
-                    qCDebug(interfaceapp) << "Safe Landing: Tracking entity " << entity->getItemName();
-                }
-            }
-        }
-
-        _trackedEntitiesRenderStatus.emplace(entityID, entity);
-        float trackedEntityCount = (float)_trackedEntitiesRenderStatus.size();
+        _trackedEntities.emplace(entityID, entity);
+        int trackedEntityCount = _trackedEntities.size();
 
         if (trackedEntityCount > _maxTrackedEntityCount) {
             _maxTrackedEntityCount = trackedEntityCount;
         }
+        qCDebug(interfaceapp) << "Safe Landing: Tracking entity " << entity->getItemName();
     }
 }
 
 void SafeLanding::deleteTrackedEntity(const EntityItemID& entityID) {
     Locker lock(_lock);
     _trackedEntities.erase(entityID);
-    _trackedEntitiesRenderStatus.erase(entityID);
 }
 
 void SafeLanding::setCompletionSequenceNumbers(int first, int last) {
@@ -114,7 +97,7 @@ void SafeLanding::noteReceivedsequenceNumber(int sequenceNumber) {
 }
 
 bool SafeLanding::isLoadSequenceComplete() {
-    if (isEntityPhysicsComplete() && isSequenceNumbersComplete()) {
+    if (isEntityLoadingComplete() && isSequenceNumbersComplete()) {
         Locker lock(_lock);
         _trackedEntities.clear();
         _initialStart = INVALID_SEQUENCE;
@@ -130,7 +113,7 @@ bool SafeLanding::isLoadSequenceComplete() {
 float SafeLanding::loadingProgressPercentage() {
     Locker lock(_lock);
     if (_maxTrackedEntityCount > 0) {
-        return ((_maxTrackedEntityCount - _trackedEntitiesRenderStatus.size()) / (float)_maxTrackedEntityCount);
+        return ((_maxTrackedEntityCount - _trackedEntities.size()) / (float)_maxTrackedEntityCount);
     }
 
     return 0.0f;
@@ -154,36 +137,43 @@ bool SafeLanding::isSequenceNumbersComplete() {
     return false;
 }
 
-bool SafeLanding::isEntityPhysicsComplete() {
-    Locker lock(_lock);
-    for (auto entityMapIter = _trackedEntities.begin(); entityMapIter != _trackedEntities.end(); ++entityMapIter) {
-        auto entity = entityMapIter->second;
-        if (!entity->shouldBePhysical() || entity->isReadyToComputeShape()) {
-            entityMapIter = _trackedEntities.erase(entityMapIter);
-            if (entityMapIter == _trackedEntities.end()) {
-                break;
+bool isEntityPhysicsReady(const EntityItemPointer& entity) {
+    if (entity && !entity->getCollisionless()) {
+        const auto& entityType = entity->getType();
+        if (entityType == EntityTypes::Model) {
+            ModelEntityItem * modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity).get();
+            static const std::set<ShapeType> downloadedCollisionTypes
+                { SHAPE_TYPE_COMPOUND, SHAPE_TYPE_SIMPLE_COMPOUND, SHAPE_TYPE_STATIC_MESH,  SHAPE_TYPE_SIMPLE_HULL };
+            bool hasAABox;
+            entity->getAABox(hasAABox);
+            if (hasAABox && downloadedCollisionTypes.count(modelEntity->getShapeType()) != 0) {
+                return entity->isReadyToComputeShape();
             }
+        }
+    }
+
+    return true;
+}
+
+bool SafeLanding::isEntityLoadingComplete() {
+    Locker lock(_lock);
+    auto entityTree = qApp->getEntities();
+    auto entityMapIter = _trackedEntities.begin();
+
+    while (entityMapIter != _trackedEntities.end()) {
+        auto entity = entityMapIter->second;
+        bool isVisuallyReady = (entity->isVisuallyReady() || !entityTree->renderableForEntityId(entityMapIter->first));
+        if (isEntityPhysicsReady(entity) && isVisuallyReady) {
+            entityMapIter = _trackedEntities.erase(entityMapIter);
+        } else {
+            if (!isVisuallyReady) {
+                entity->requestRenderUpdate();
+            }
+
+            entityMapIter++;
         }
     }
     return _trackedEntities.empty();
-}
-
-bool SafeLanding::entitiesRenderReady() {
-    Locker lock(_lock);
-    auto entityTree = qApp->getEntities();
-    for (auto entityMapIter = _trackedEntitiesRenderStatus.begin(); entityMapIter != _trackedEntitiesRenderStatus.end(); ++entityMapIter) {
-        auto entity = entityMapIter->second;
-        bool visuallyReady = entity->isVisuallyReady();
-        if (visuallyReady || !entityTree->renderableForEntityId(entityMapIter->first)) {
-            entityMapIter = _trackedEntitiesRenderStatus.erase(entityMapIter);
-            if (entityMapIter == _trackedEntitiesRenderStatus.end()) {
-                break;
-            }
-        } else {
-            entity->requestRenderUpdate();
-        }
-    }
-    return _trackedEntitiesRenderStatus.empty();
 }
 
 float SafeLanding::ElevatedPriority(const EntityItem& entityItem) {

@@ -137,7 +137,7 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     quint64 now = usecTimestampNow();
     quint64 dt = now - _lastSendAvatarDataTime;
 
-    if (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS && !qApp->isInterstitialMode()) {
+    if (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS && !_myAvatarDataPacketsPaused) {
         // send head/hand data to the avatar mixer and voxel server
         PerformanceTimer perfTimer("send");
         _myAvatar->sendAvatarDataPacket();
@@ -153,6 +153,16 @@ Q_LOGGING_CATEGORY(trace_simulation_avatar, "trace.simulation.avatar");
 float AvatarManager::getAvatarDataRate(const QUuid& sessionID, const QString& rateName) const {
     auto avatar = getAvatarBySessionID(sessionID);
     return avatar ? avatar->getDataRate(rateName) : 0.0f;
+}
+
+void AvatarManager::setMyAvatarDataPacketsPaused(bool pause) {
+    if (_myAvatarDataPacketsPaused != pause) {
+        _myAvatarDataPacketsPaused = pause;
+
+        if (!_myAvatarDataPacketsPaused) {
+            _myAvatar->sendAvatarDataPacket(true);
+        }
+    }
 }
 
 float AvatarManager::getAvatarUpdateRate(const QUuid& sessionID, const QString& rateName) const {

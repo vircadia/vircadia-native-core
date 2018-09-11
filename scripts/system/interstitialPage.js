@@ -305,7 +305,7 @@
         }
     }
 
-    var THE_PLACE = "hifi://TheSpot-dev";
+    var THE_PLACE = (HifiAbout.buildVersion === "dev") ? "hifi://TheSpot-dev": "hifi://TheSpot";
     function clickedOnOverlay(overlayID, event) {
         if (loadingToTheSpotID === overlayID) {
             location.handleLookupString(THE_PLACE);

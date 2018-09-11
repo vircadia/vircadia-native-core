@@ -27,8 +27,8 @@ public:
 
     void startEntitySequence();
     bool isLoadSequenceComplete() const { return _safeLanding->isLoadSequenceComplete(); }
-    bool isEntitiesRenderReady() const { return _safeLanding->entitiesRenderReady(); }
     float domainLoadingProgress() { return _safeLanding->loadingProgressPercentage(); }
+
 signals:
     void packetVersionMismatch();
 
