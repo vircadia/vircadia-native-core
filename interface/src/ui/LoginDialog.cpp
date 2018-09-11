@@ -32,20 +32,17 @@
 HIFI_QML_DEF(LoginDialog)
 Q_LOGGING_CATEGORY(login_dialog, "hifi.login.dialog")
 
-LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
+LoginDialog::LoginDialog(QQuickItem* parent) : OffscreenQmlDialog(parent) {
     auto accountManager = DependencyManager::get<AccountManager>();
 #if !defined(Q_OS_ANDROID)
-    connect(accountManager.data(), &AccountManager::loginComplete,
-        this, &LoginDialog::handleLoginCompleted);
-    connect(accountManager.data(), &AccountManager::loginFailed,
-            this, &LoginDialog::handleLoginFailed);
+    connect(accountManager.data(), &AccountManager::loginComplete, this, &LoginDialog::handleLoginCompleted);
+    connect(accountManager.data(), &AccountManager::loginFailed, this, &LoginDialog::handleLoginFailed);
 #endif
 }
 
 LoginDialog::~LoginDialog() {
     Setting::Handle<bool> loginDialogPoppedUp{ "loginDialogPoppedUp", false };
-    auto poppedUp = loginDialogPoppedUp.get();
-    if (poppedUp) {
+    if (loginDialogPoppedUp.get()) {
         QJsonObject data;
         data["action"] = "user opted out";
         UserActivityLogger::getInstance().logAction("encourageLoginDialog", data);
@@ -53,8 +50,7 @@ LoginDialog::~LoginDialog() {
     loginDialogPoppedUp.set(false);
 }
 
-void LoginDialog::showWithSelection()
-{
+void LoginDialog::showWithSelection() {
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
@@ -86,9 +82,7 @@ void LoginDialog::toggleAction() {
     } else {
         // change the menu item to login
         loginAction->setText("Login / Sign Up");
-        connection = connect(loginAction, &QAction::triggered, [] {
-            LoginDialog::showWithSelection();
-        });
+        connection = connect(loginAction, &QAction::triggered, [] { LoginDialog::showWithSelection(); });
     }
 }
 
@@ -136,9 +130,8 @@ void LoginDialog::linkSteam() {
             payload.insert("steam_auth_ticket", QJsonValue::fromVariant(QVariant(ticket)));
 
             auto accountManager = DependencyManager::get<AccountManager>();
-            accountManager->sendRequest(LINK_STEAM_PATH, AccountManagerAuth::Required,
-                                        QNetworkAccessManager::PostOperation, callbackParams,
-                                        QJsonDocument(payload).toJson());
+            accountManager->sendRequest(LINK_STEAM_PATH, AccountManagerAuth::Required, QNetworkAccessManager::PostOperation,
+                                        callbackParams, QJsonDocument(payload).toJson());
         });
     }
 }
@@ -167,28 +160,24 @@ void LoginDialog::createAccountFromStream(QString username) {
 
             auto accountManager = DependencyManager::get<AccountManager>();
             accountManager->sendRequest(CREATE_ACCOUNT_FROM_STEAM_PATH, AccountManagerAuth::None,
-                                        QNetworkAccessManager::PostOperation, callbackParams,
-                                        QJsonDocument(payload).toJson());
+                                        QNetworkAccessManager::PostOperation, callbackParams, QJsonDocument(payload).toJson());
         });
     }
-
 }
 
 void LoginDialog::openUrl(const QString& url) const {
-    auto tablet = dynamic_cast<TabletProxy*>(DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
+    auto tablet = dynamic_cast<TabletProxy*>(
+        DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
     if (tablet->getToolbarMode()) {
-        offscreenUi->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
-            newObject->setProperty("url", url);
-        });
+        offscreenUi->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) { newObject->setProperty("url", url); });
         LoginDialog::hide();
     } else {
         if (!hmd->getShouldShowTablet() && !qApp->isHMDMode()) {
-            offscreenUi->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
-                newObject->setProperty("url", url);
-            });
+            offscreenUi->load("Browser.qml",
+                              [=](QQmlContext* context, QObject* newObject) { newObject->setProperty("url", url); });
             LoginDialog::hide();
         } else {
             tablet->gotoWebScreen(url);
@@ -213,28 +202,26 @@ void LoginDialog::createFailed(QNetworkReply* reply) {
 }
 
 void LoginDialog::signup(const QString& email, const QString& username, const QString& password) {
-    
     JSONCallbackParameters callbackParams;
     callbackParams.callbackReceiver = this;
     callbackParams.jsonCallbackMethod = "signupCompleted";
     callbackParams.errorCallbackMethod = "signupFailed";
-    
+
     QJsonObject payload;
-    
+
     QJsonObject userObject;
     userObject.insert("email", email);
     userObject.insert("username", username);
     userObject.insert("password", password);
-    
+
     payload.insert("user", userObject);
-    
+
     static const QString API_SIGNUP_PATH = "api/v1/users";
-    
+
     qDebug() << "Sending a request to create an account for" << username;
-    
+
     auto accountManager = DependencyManager::get<AccountManager>();
-    accountManager->sendRequest(API_SIGNUP_PATH, AccountManagerAuth::None,
-                                QNetworkAccessManager::PostOperation, callbackParams,
+    accountManager->sendRequest(API_SIGNUP_PATH, AccountManagerAuth::None, QNetworkAccessManager::PostOperation, callbackParams,
                                 QJsonDocument(payload).toJson());
 }
 
@@ -253,41 +240,38 @@ QString errorStringFromAPIObject(const QJsonValue& apiObject) {
 }
 
 void LoginDialog::signupFailed(QNetworkReply* reply) {
-    
     // parse the returned JSON to see what the problem was
     auto jsonResponse = QJsonDocument::fromJson(reply->readAll());
-    
+
     static const QString RESPONSE_DATA_KEY = "data";
-    
+
     auto dataJsonValue = jsonResponse.object()[RESPONSE_DATA_KEY];
-    
+
     if (dataJsonValue.isObject()) {
         auto dataObject = dataJsonValue.toObject();
-        
+
         static const QString EMAIL_DATA_KEY = "email";
         static const QString USERNAME_DATA_KEY = "username";
         static const QString PASSWORD_DATA_KEY = "password";
-        
+
         QStringList errorStringList;
-        
+
         if (dataObject.contains(EMAIL_DATA_KEY)) {
             errorStringList.append(QString("Email %1.").arg(errorStringFromAPIObject(dataObject[EMAIL_DATA_KEY])));
         }
-        
+
         if (dataObject.contains(USERNAME_DATA_KEY)) {
             errorStringList.append(QString("Username %1.").arg(errorStringFromAPIObject(dataObject[USERNAME_DATA_KEY])));
         }
-        
+
         if (dataObject.contains(PASSWORD_DATA_KEY)) {
             errorStringList.append(QString("Password %1.").arg(errorStringFromAPIObject(dataObject[PASSWORD_DATA_KEY])));
         }
-        
+
         emit handleSignupFailed(errorStringList.join('\n'));
     } else {
-        static const QString DEFAULT_SIGN_UP_FAILURE_MESSAGE = "There was an unknown error while creating your account. Please try again later.";
+        static const QString DEFAULT_SIGN_UP_FAILURE_MESSAGE =
+            "There was an unknown error while creating your account. Please try again later.";
         emit handleSignupFailed(DEFAULT_SIGN_UP_FAILURE_MESSAGE);
     }
-    
-    
 }
-

@@ -161,6 +161,10 @@ Item {
             onFocusChanged: {
                 root.text = "";
             }
+            Component.onCompleted: {
+                var savedUsername = Settings.getValue("wallet/savedUsername", "");
+                usernameField.text = savedUsername === "Unknown user" ? "" : savedUsername;
+            }
         }
 
         TextField {
@@ -256,18 +260,18 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
 
             CheckBox {
-                id: autoLogoutCheckbox;
-                checked: Settings.getValue("wallet/autoLogout", true);
+                id: autoLogoutCheckbox
+                checked: !Settings.getValue("wallet/autoLogout", true)
                 text: "Keep me signed in"
                 boxSize: 20;
-                labelFontSize: 15;
-                color: hifi.colors.black;
+                labelFontSize: 15
+                color: hifi.colors.black
                 onCheckedChanged: {
                     Settings.setValue("wallet/autoLogout", !checked);
                     if (checked) {
-                        Settings.setValue("wallet/savedUsername", "");
-                    } else {
                         Settings.setValue("wallet/savedUsername", Account.username);
+                    } else {
+                        Settings.setValue("wallet/savedUsername", "");
                     }
                 }
                 Component.onDestruction: {
