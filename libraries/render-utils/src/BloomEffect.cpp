@@ -184,6 +184,7 @@ void BloomDraw::run(const render::RenderContextPointer& renderContext, const Inp
 }
 
 DebugBloom::DebugBloom() {
+    _params = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), nullptr);
 }
 
 void DebugBloom::configure(const Config& config) {
@@ -227,7 +228,8 @@ void DebugBloom::run(const render::RenderContextPointer& renderContext, const In
 
         Transform modelTransform;
         if (_mode == DebugBloomConfig::MODE_ALL_LEVELS) {
-            batch._glUniform4f(gpu::slot::uniform::TexCoordRect, 0.0f, 0.0f, 1.f, 1.f);
+            _params->setSubData(0, vec4(0.0f, 0.0f, 1.f, 1.f));
+            batch.setUniformBuffer(0, _params);
 
             modelTransform = gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, args->_viewport / 2);
             modelTransform.postTranslate(glm::vec3(-1.0f, 1.0f, 0.0f));
@@ -255,7 +257,8 @@ void DebugBloom::run(const render::RenderContextPointer& renderContext, const In
 
             viewport.z /= 2;
 
-            batch._glUniform4f(gpu::slot::uniform::TexCoordRect, 0.5f, 0.0f, 0.5f, 1.f);
+            _params->setSubData(0, vec4(0.5f, 0.0f, 0.5f, 1.f));
+            batch.setUniformBuffer(0, _params);
 
             modelTransform = gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, viewport);
             modelTransform.postTranslate(glm::vec3(-1.0f, 0.0f, 0.0f));

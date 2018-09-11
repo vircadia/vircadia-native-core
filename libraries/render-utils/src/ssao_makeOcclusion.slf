@@ -52,8 +52,9 @@ void main(void) {
 
     // Accumulate the Obscurance for each samples
     float sum = 0.0;
-    for (int i = 0; i < getNumSamples(); ++i) {
-        vec3 tap = getTapLocationClamped(i, randomPatternRotationAngle, ssDiskRadius, ssC, imageSize);
+    int sampleCount = int(getNumSamples());
+    for (int i = 0; i < sampleCount; ++i) {
+        vec3 tap = getTapLocationClamped(i, randomPatternRotationAngle, ssDiskRadius, vec2(ssC), imageSize);
 
         vec3 tapUVZ = fetchTap(side, ssC, tap, imageSize);
 
@@ -68,10 +69,10 @@ void main(void) {
     // Bilateral box-filter over a quad for free, respecting depth edges
     // (the difference that this makes is subtle)
     if (abs(dFdx(Cp.z)) < 0.02) {
-        A -= dFdx(A) * ((ssC.x & 1) - 0.5);
+        A -= dFdx(A) * (float(ssC.x & 1) - 0.5);
     }
     if (abs(dFdy(Cp.z)) < 0.02) {
-        A -= dFdy(A) * ((ssC.y & 1) - 0.5);
+        A -= dFdy(A) * (float(ssC.y & 1) - 0.5);
     }
     
 
