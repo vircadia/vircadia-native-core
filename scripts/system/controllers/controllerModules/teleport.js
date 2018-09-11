@@ -135,7 +135,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.currentTarget = TARGET.INVALID;
         this.currentResult = null;
         this.capsuleThreshold = 0.05;
-        this.pickHeightOffset = 0.15;
+        this.pickHeightOffset = 0.1;
 
         this.getOtherModule = function() {
             var otherModule = this.hand === RIGHT_HAND ? leftTeleporter : rightTeleporter;
@@ -224,7 +224,7 @@ Script.include("/~/system/libraries/controllers.js");
             var capsuleData = MyAvatar.getCollisionCapsule();
 
             var radius = capsuleData.radius / MyAvatar.scale;
-            var height = (capsuleData.height + (radius * 2.0)) / MyAvatar.scale;
+            var height = (capsuleData.height + (capsuleData.radius * 2.0)) / MyAvatar.scale;
 
             _this.teleportHandCollisionPick = Picks.createPick(PickType.Collision, {
                 enabled: true,
