@@ -184,8 +184,13 @@ void DrawBounds::run(const RenderContextPointer& renderContext,
         _drawBuffer = std::make_shared<gpu::Buffer>(sizeOfItemBound);
     }
 
-    _drawBuffer->setData(numItems * sizeOfItemBound, (const gpu::Byte*) items.data());
+    if (!_paramsBuffer) {
+        _paramsBuffer = std::make_shared<gpu::Buffer>(sizeof(vec4), nullptr);
+    }
 
+    _drawBuffer->setData(numItems * sizeOfItemBound, (const gpu::Byte*) items.data());
+    glm::vec4 color(glm::vec3(0.0f), -(float) numItems);
+    _paramsBuffer->setSubData(0, color);
     gpu::doInBatch("DrawBounds::run", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
@@ -202,7 +207,7 @@ void DrawBounds::run(const RenderContextPointer& renderContext,
         batch.setPipeline(getPipeline());
 
         glm::vec4 color(glm::vec3(0.0f), -(float) numItems);
-        batch._glUniform4fv(gpu::slot::uniform::Color, 1, (const float*)(&color));
+        batch.setUniformBuffer(0, _paramsBuffer);
         batch.setResourceBuffer(0, _drawBuffer);
 
         static const int NUM_VERTICES_PER_CUBE = 24;
@@ -212,9 +217,10 @@ void DrawBounds::run(const RenderContextPointer& renderContext,
 
 gpu::Stream::FormatPointer DrawQuadVolume::_format;
 
-DrawQuadVolume::DrawQuadVolume(const glm::vec3& color) :
-    _color{ color } {
+DrawQuadVolume::DrawQuadVolume(const glm::vec3& color) {
     _meshVertices = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(glm::vec3) * 8, nullptr), gpu::Element::VEC3F_XYZ);
+    _params = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), nullptr);
+    _params->setSubData(0, vec4(color, 1.0));
     if (!_format) {
         _format = std::make_shared<gpu::Stream::Format>();
         _format->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
@@ -248,8 +254,7 @@ void DrawQuadVolume::run(const render::RenderContextPointer& renderContext, cons
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
         batch.setPipeline(getPipeline());
-
-        batch._glUniform4f(0, _color.x, _color.y, _color.z, 1.0f);
+        batch.setUniformBuffer(0, _params);
         batch.setInputFormat(_format);
         batch.setInputBuffer(gpu::Stream::POSITION, _meshVertices);
         batch.setIndexBuffer(indices);

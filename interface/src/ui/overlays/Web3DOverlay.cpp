@@ -132,7 +132,9 @@ void Web3DOverlay::destroyWebSurface() {
 
     if (rootItem && rootItem->objectName() == "tabletRoot") {
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-        tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", nullptr);
+        if (tabletScriptingInterface) {
+            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", nullptr);
+        }
     }
 
     // Fix for crash in QtWebEngineCore when rapidly switching domains

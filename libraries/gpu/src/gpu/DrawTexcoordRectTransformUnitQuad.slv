@@ -21,7 +21,13 @@
 
 <$declareStandardTransform()$>
 
-layout(location=GPU_UNIFORM_TEXCOORD_RECT) uniform vec4 texcoordRect;
+struct TexCoordRectParams {
+    vec4 texcoordRect;
+};
+
+layout(binding=0) uniform texcoordRectBuffer {
+    TexCoordRectParams params;
+};
 
 layout(location=0) out vec2 varTexCoord0;
 
@@ -39,5 +45,5 @@ void main(void) {
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, pos, gl_Position)$>
 
-    varTexCoord0 = ((pos.xy + 1.0) * 0.5) * texcoordRect.zw + texcoordRect.xy;
+    varTexCoord0 = ((pos.xy + 1.0) * 0.5) * params.texcoordRect.zw + params.texcoordRect.xy;
 }

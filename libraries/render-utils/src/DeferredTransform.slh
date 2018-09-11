@@ -38,8 +38,8 @@ struct DeferredFrameTransform {
     mat4 _projectionMono;
     mat4 _viewInverse;
     mat4 _view;
-	mat4 _projectionUnJittered[2];
-	mat4 _invProjectionUnJittered[2];
+    mat4 _projectionUnJittered[2];
+    mat4 _invProjectionUnJittered[2];
 };
 
 layout(binding=RENDER_UTILS_BUFFER_DEFERRED_FRAME_TRANSFORM) uniform deferredFrameTransformBuffer {
@@ -68,10 +68,10 @@ mat4 getProjectionMono() {
     return frameTransform._projectionMono;
 }
 mat4 getUnjitteredProjection(int side) {
-	return frameTransform._projectionUnJittered[side];
+    return frameTransform._projectionUnJittered[side];
 }
 mat4 getUnjitteredInvProjection(int side) {
-	return frameTransform._invProjectionUnJittered[side];
+    return frameTransform._invProjectionUnJittered[side];
 }
 
 // positive near distance of the projection
@@ -158,7 +158,7 @@ vec3 evalUnjitteredEyePositionFromZdb(int side, float Zdb, vec2 texcoord) {
 }
 
 vec3 evalEyePositionFromZeye(int side, float Zeye, vec2 texcoord) {
-	float Zdb = evalZdbFromZeye(Zeye);
+    float Zdb = evalZdbFromZeye(Zeye);
     return evalEyePositionFromZdb(side, Zdb, texcoord);
 }
 

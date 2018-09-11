@@ -7,7 +7,7 @@
 
 struct DebugParameters
 {
-	INT32   _shadowCascadeIndex;
+    INT32   _shadowCascadeIndex;
 };
 
     // <@if 1@>

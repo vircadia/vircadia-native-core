@@ -26,7 +26,8 @@
 layout(location=0) in vec2 varTexCoord0;
 layout(location=0) out vec4 _fragColor;
 
-layout(location=GPU_UNIFORM_EXTRA0) uniform vec2 uniformCursorTexcoord = vec2(0.5);
+// FIXME make into a uniform buffer or push constant if this shader ever comes into use
+vec2 uniformCursorTexcoord = vec2(0.5);
 
 //uniform vec3 uniformLightVector = vec3(1.0);
 
@@ -79,7 +80,7 @@ vec3 drawScatteringTableUV(vec2 cursor, vec2 texcoord) {
 
     vec3 distance = vec3(0.0);
     for (int c = 0; c < 3; c++) {
-        vec2 BRDFuv = vec2(clamp(bentNdotL[c] * 0.5 + 0.5, 0.0, 1.0), clamp(2 * curvature, 0.0, 1.0));
+        vec2 BRDFuv = vec2(clamp(bentNdotL[c] * 0.5 + 0.5, 0.0, 1.0), clamp(2.0 * curvature, 0.0, 1.0));
         vec2 delta = BRDFuv - texcoord;
         distance[c] = 1.0 - dot(delta, delta);
     }

@@ -235,6 +235,7 @@ protected:
     GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) override;
 
     GLuint getBufferID(const Buffer& buffer) override;
+    GLuint getBufferIDUnsynced(const Buffer& buffer) override;
     GLBuffer* syncGPUObject(const Buffer& buffer) override;
 
     GLTexture* syncGPUObject(const TexturePointer& texture) override;
