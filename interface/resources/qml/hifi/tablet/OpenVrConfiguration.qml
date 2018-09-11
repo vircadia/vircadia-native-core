@@ -585,7 +585,7 @@ Flickable {
                     width: 160
                     label: "Shoulder Width"
                     suffix: " cm"
-                    minimumValue: 0
+                    minimumValue: 25.0
                     maximumValue: 50.0
                     realStepSize: 1.0
                     decimals: 1
