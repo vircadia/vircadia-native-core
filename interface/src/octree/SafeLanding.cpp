@@ -148,7 +148,6 @@ bool isEntityPhysicsReady(const EntityItemPointer& entity) {
             entity->getAABox(hasAABox);
             if (hasAABox && downloadedCollisionTypes.count(modelEntity->getShapeType()) != 0) {
                 return entity->isReadyToComputeShape();
-                qCDebug(interfaceapp) << "Safe Landing: Tracking entity " << entity->getItemName();
             }
         }
     }
