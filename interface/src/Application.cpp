@@ -2294,25 +2294,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Preload Tablet sounds
     DependencyManager::get<TabletScriptingInterface>()->preloadSounds();
 
-    connect(this, &Application::interstitialModeChanged, this, [this] (bool interstitialMode) {
-        if (!interstitialMode) {
-            DependencyManager::get<AudioClient>()->negotiateAudioFormat();
-            _queryExpiry = SteadyClock::now();
-            if (_avatarOverrideUrl.isValid()) {
-                getMyAvatar()->useFullAvatarURL(_avatarOverrideUrl);
-            }
-
-            if (getMyAvatar()->getFullAvatarURLFromPreferences() != getMyAvatar()->getSkeletonModelURL()) {
-                getMyAvatar()->resetFullAvatarURL();
-            }
-            getMyAvatar()->markIdentityDataChanged();
-            getMyAvatar()->resetLastSent();
-
-            // transmit a "sendAll" packet to the AvatarMixer we just connected to.
-            getMyAvatar()->sendAvatarDataPacket(true);
-        }
-    });
-
     _pendingIdleEvent = false;
     _pendingRenderEvent = false;
 
@@ -3496,8 +3477,9 @@ void Application::setIsInterstitialMode(bool interstitialMode) {
     if (_interstitialMode != interstitialMode) {
         _interstitialMode = interstitialMode;
 
-        auto audioClient = DependencyManager::get<AudioClient>();
-        audioClient->setAudioPaused(_interstitialMode);
+        DependencyManager::get<AudioClient>()->setAudioPaused(_interstitialMode);
+        DependencyManager::get<AvatarManager>()->setMyAvatarDataPacketsPaused(_interstitialMode);
+
         emit interstitialModeChanged(_interstitialMode);
     }
 }
@@ -6477,7 +6459,7 @@ void Application::nodeActivated(SharedNodePointer node) {
         DependencyManager::get<AudioClient>()->negotiateAudioFormat();
     }
 
-    if (node->getType() == NodeType::AvatarMixer && !isInterstitialMode()) {
+    if (node->getType() == NodeType::AvatarMixer) {
         _queryExpiry = SteadyClock::now();
 
         // new avatar mixer, send off our identity packet on next update loop
@@ -6493,8 +6475,10 @@ void Application::nodeActivated(SharedNodePointer node) {
         getMyAvatar()->markIdentityDataChanged();
         getMyAvatar()->resetLastSent();
 
-        // transmit a "sendAll" packet to the AvatarMixer we just connected to.
-        getMyAvatar()->sendAvatarDataPacket(true);
+        if (!isInterstitialMode()) {
+            // transmit a "sendAll" packet to the AvatarMixer we just connected to.
+            getMyAvatar()->sendAvatarDataPacket(true);
+        }
     }
 }
 

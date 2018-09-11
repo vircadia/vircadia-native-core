@@ -162,7 +162,7 @@ public:
 
     bool startRecording(const QString& filename);
     void stopRecording();
-    void setAudioPaused(bool pause) { _audioPaused = pause; }
+    void setAudioPaused(bool pause);
 
 
 #ifdef Q_OS_WIN

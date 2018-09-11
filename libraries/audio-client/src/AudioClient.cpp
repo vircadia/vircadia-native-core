@@ -305,6 +305,16 @@ void AudioClient::audioMixerKilled() {
     emit disconnected();
 }
 
+void AudioClient::setAudioPaused(bool pause) {
+    if (_audioPaused != pause) {
+        _audioPaused = pause;
+
+        if (!_audioPaused) {
+            negotiateAudioFormat();
+        }
+    }
+}
+
 QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
     QAudioDeviceInfo result;
     foreach(QAudioDeviceInfo audioDevice, getAvailableDevices(mode)) {
