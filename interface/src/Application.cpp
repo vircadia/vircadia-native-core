@@ -3493,10 +3493,6 @@ bool Application::isServerlessMode() const {
     return false;
 }
 
-bool Application::isInterstitialMode() const {
-    return _interstitialMode;
-}
-
 void Application::setIsInterstitialMode(bool interstitialMode) {
     if (_interstitialMode != interstitialMode) {
         _interstitialMode = interstitialMode;

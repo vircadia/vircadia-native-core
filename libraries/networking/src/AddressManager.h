@@ -149,7 +149,6 @@ public:
         UserInput,
         Back,
         Forward,
-        //Retry,
         StartupFromSettings,
         DomainPathResponse,
         Internal,

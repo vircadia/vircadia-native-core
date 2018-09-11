@@ -310,7 +310,7 @@ public:
     void saveNextPhysicsStats(QString filename);
 
     bool isServerlessMode() const;
-    bool isInterstitialMode() const;
+    bool isInterstitialMode() const { return _interstitialMode; }
 
     void replaceDomainContent(const QString& url);
 

@@ -48,7 +48,6 @@ QString AddressManager::getProtocol() const {
 QUrl AddressManager::currentAddress(bool domainOnly) const {
     QUrl hifiURL = _domainURL;
 
-
     if (!domainOnly && hifiURL.scheme() == URL_SCHEME_HIFI) {
         hifiURL.setPath(currentPath());
     }
@@ -155,7 +154,8 @@ void AddressManager::goForward() {
 
 void AddressManager::goToLastAddress() {
     // this should always return something as long as the URL isn't empty.
-    handleUrl(_lastVisitedURL, LookupTrigger::AttemptedRefresh);
+    handleUrl(_lastVisitedURL,
+        LookupTrigger::AttemptedRefresh);
 }
 
 void AddressManager::storeCurrentAddress() {
