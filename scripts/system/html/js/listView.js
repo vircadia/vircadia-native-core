@@ -24,29 +24,35 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
     var elBottomBuffer = null;
 
     var visibleItemData = [];
+    var elRows = [];
     
     var rowOffset = 0;
-    var numRows = 0;
     var rowHeight = 0;
     var lastRowChangeScrollTop = 0;
+    
+    that.getRowOffset = function() {
+        return rowOffset;
+    };
+    
+    that.resetRowOffset = function() {
+        rowOffset = 0;
+        lastRowChangeScrollTop = 0;
+    };
+    
+    that.getNumRows = function() {
+        return elRows.length;
+    };
     
     that.setVisibleItemData = function(itemData) {
         visibleItemData = itemData;
     };
-    
+        
     that.clear = function() {
-        for (var i = 0; i < numRows; i++) {
+        for (var i = 0; i < that.getNumRows(); i++) {
             var elRow = elTableBody.childNodes[i + FIRST_ROW_INDEX];
             clearRowFunction(elRow);
+            elRow.style.display = "none";
         }
-    };
-    
-    that.setSortKey = function(key) {
-        
-    };
-    
-    that.setFilter = function(filter) {
-        
     };
     
     that.scrollDown = function(numScrollRows) {     
@@ -55,7 +61,7 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
         
         for (var i = 0; i < numScrollRows; i++) {
             var rowMovedTopToBottom = elTableBody.childNodes[FIRST_ROW_INDEX];
-            var rowIndex = numRows + rowOffset;
+            var rowIndex = that.getNumRows() + rowOffset;
             elTableBody.removeChild(rowMovedTopToBottom);
             elTableBody.insertBefore(rowMovedTopToBottom, elBottomBuffer);
             updateRowFunction(rowMovedTopToBottom, visibleItemData[rowIndex]);
@@ -75,7 +81,7 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
 
         for (var i = 0; i < numScrollRows; i++) {
             var topRow = elTableBody.childNodes[FIRST_ROW_INDEX];
-            var rowMovedBottomToTop = elTableBody.childNodes[FIRST_ROW_INDEX + numRows - 1];
+            var rowMovedBottomToTop = elTableBody.childNodes[FIRST_ROW_INDEX + that.getNumRows() - 1];
             var rowIndex = rowOffset - 1;
             elTableBody.removeChild(rowMovedBottomToTop);
             elTableBody.insertBefore(rowMovedBottomToTop, topRow);
@@ -95,6 +101,7 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
         var nextRowChangeScrollTop = lastRowChangeScrollTop + (rowHeight * SCROLL_ROWS);
         var scrollHeight = rowHeight * SCROLL_ROWS;
         var totalItems = visibleItemData.length;
+        var numRows = that.getNumRows();
         
         if (scrollTop >= nextRowChangeScrollTop && numRows + rowOffset < totalItems) {
             var numScrolls = Math.ceil((scrollTop - nextRowChangeScrollTop) / scrollHeight);
@@ -103,7 +110,7 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
                 numScrollRows = totalItems - rowOffset - numRows;
             }
             that.scrollDown(numScrollRows);
-        } else if (scrollTop < lastRowChangeScrollTop && rowOffset >= SCROLL_ROWS) {
+        } else if (scrollTop < lastRowChangeScrollTop) {
             var numScrolls = Math.ceil((lastRowChangeScrollTop - scrollTop) / scrollHeight);
             var numScrollRows = numScrolls * SCROLL_ROWS;
             if (rowOffset - numScrollRows < 0) {
@@ -115,9 +122,12 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
     
     that.refresh = function() {
         // block refreshing before rows are initialized
+        var numRows = that.getNumRows();
         if (numRows === 0) {
             return;
         }
+        
+        that.clear();
         
         for (var i = 0; i < numRows; i++) {
             var rowIndex = i + rowOffset;
@@ -127,8 +137,13 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
             var rowElementIndex = i + FIRST_ROW_INDEX;
             var elRow = elTableBody.childNodes[rowElementIndex];
             var itemData = visibleItemData[rowIndex];
-            updateRowFunction(elRow, itemData);          
+            updateRowFunction(elRow, itemData);
+            elRow.style.display = "";
         }
+        
+        var topHiddenRows = rowOffset;
+        var topBufferHeight = rowHeight * topHiddenRows;
+        elTopBuffer.setAttribute("height", topBufferHeight);
         
         var bottomHiddenRows = visibleItemData.length - numRows - rowOffset;
         var bottomBufferHeight = rowHeight * bottomHiddenRows;
@@ -138,42 +153,60 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
         elBottomBuffer.setAttribute("height", bottomBufferHeight);
     };
     
-    that.initialize = function(viewableHeight) {
-        if (!elTable || !elTableBody) {
-            debugPrint("ListView - no valid table/body element");
+    that.resetRows = function(viewableHeight) {
+        if (!elTableBody) {
+            debugPrint("ListView.resetRows - no valid table body element");
             return;
         }
-        
-        elTableScroll.onscroll = that.onScroll;
+
+        elTopBuffer.setAttribute("height", 0);
+        elBottomBuffer.setAttribute("height", 0);
 
         // clear out any existing rows
-        while(elTableBody.rows.length > 0) {
-            elTableBody.deleteRow(0);
+        for (var i = 0; i < that.getNumRows(); i++) {
+            var elRow = elRows[i];
+            elTableBody.removeChild(elRow);
         }
-                
-        elTopBuffer = document.createElement("tr");
-        elTopBuffer.setAttribute("height", 0);
-        elTableBody.appendChild(elTopBuffer);
+        elRows = [];
         
-        elBottomBuffer = document.createElement("tr");
-        elBottomBuffer.setAttribute("height", 0);
-        elTableBody.appendChild(elBottomBuffer);
-        
-        var maxHeight = viewableHeight;
         var usedHeight = 0;
-        while(usedHeight < maxHeight) {
-            var newRow = createRowFunction(elBottomBuffer);
+        while(usedHeight < viewableHeight) {
+            var newRow = createRowFunction();
+            elTableBody.insertBefore(newRow, elBottomBuffer);
             rowHeight = elTableBody.offsetHeight - usedHeight;
-            usedHeight = elTableBody.offsetHeight;          
-            numRows++;
+            usedHeight = elTableBody.offsetHeight;     
+            elRows.push(newRow);
         }
         
         // extra rows for scrolling purposes
         for (var i = 0; i < SCROLL_ROWS; i++) {
-            var scrollRow = createRowFunction(elBottomBuffer);
-            numRows++;
+            var scrollRow = createRowFunction();
+            elTableBody.insertBefore(scrollRow, elBottomBuffer);
+            elRows.push(scrollRow);
         }
-    }
+    };
+    
+    that.initialize = function() {
+        if (!elTableBody || !elTableScroll) {
+            debugPrint("ListView.initialize - no valid table body or table scroll element");
+            return;
+        }
+        
+        // delete initial blank row
+        elTableBody.deleteRow(0);
+        
+        elTopBuffer = document.createElement("tr");
+        elTableBody.appendChild(elTopBuffer);
+        elTopBuffer.setAttribute("height", 0);
+        
+        elBottomBuffer = document.createElement("tr");
+        elTableBody.appendChild(elBottomBuffer);
+        elBottomBuffer.setAttribute("height", 0);
+        
+        elTableScroll.onscroll = that.onScroll;
+    };
+    
+    that.initialize();
     
     return that;
 }

@@ -1,7 +1,7 @@
-//  entityListNew.js
+//  entityList.js
 //
-//  Created by David Back on 27 Aug 2018
-//  Copyright 2018 High Fidelity, Inc.
+//  Created by Ryan Huffman on 19 Nov 2014
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -10,6 +10,21 @@ const ASCENDING_SORT = 1;
 const DESCENDING_SORT = -1;
 const ASCENDING_STRING = '&#x25B4;';
 const DESCENDING_STRING = '&#x25BE;';
+const LOCKED_GLYPH = "&#xe006;";
+const VISIBLE_GLYPH = "&#xe007;";
+const TRANSPARENCY_GLYPH = "&#xe00b;";
+const BAKED_GLYPH = "&#xe01a;"
+const SCRIPT_GLYPH = "k";
+const BYTES_PER_MEGABYTE = 1024 * 1024;
+const IMAGE_MODEL_NAME = 'default-image-model.fbx';
+const COLLAPSE_EXTRA_INFO = "E";
+const EXPAND_EXTRA_INFO = "D";
+const FILTER_IN_VIEW_ATTRIBUTE = "pressed";
+const WINDOW_NONVARIABLE_HEIGHT = 206;
+const NUM_COLUMNS = 12;
+const DELETE = 46; // Key code for the delete key.
+const KEY_P = 80; // Key code for letter p used for Parenting hotkey.
+
 const COMPARE_ASCENDING = function(a, b) {
     let va = a[currentSortColumn];
     let vb = b[currentSortColumn];
@@ -24,29 +39,27 @@ const COMPARE_ASCENDING = function(a, b) {
 const COMPARE_DESCENDING = function(a, b) {
     return COMPARE_ASCENDING(b, a);
 }
-const LOCKED_GLYPH = "&#xe006;";
-const VISIBLE_GLYPH = "&#xe007;";
-const TRANSPARENCY_GLYPH = "&#xe00b;";
-const BAKED_GLYPH = "&#xe01a;"
-const SCRIPT_GLYPH = "k";
-const BYTES_PER_MEGABYTE = 1024 * 1024;
-const IMAGE_MODEL_NAME = 'default-image-model.fbx';
-const NUM_COLUMNS = 12;
 
-var entities = [];
+// List of all entities
+let entities = []
+// List of all entities, indexed by Entity ID
 var entitiesByID = {};
+// The filtered and sorted list of entities
 var visibleEntities = [];
 
+var entityList = null;
 var selectedEntities = [];
-
 var currentSortColumn = 'type';
 var currentSortOrder = 'des';
+var isFilterInView = false;
+var showExtraInfo = false;
 
-var entityList = null;
-
-const ENABLE_PROFILING = true;
+const ENABLE_PROFILING = false;
 var profileIndent = '';
-const PROFILE = !ENABLE_PROFILING ? function() { } : function(name, fn, args) {
+const PROFILE_NOOP = function(_name, fn, args) {
+    fn.apply(this, args);
+} ;
+const PROFILE = !ENABLE_PROFILING ? PROFILE_NOOP : function(name, fn, args) {
     console.log("PROFILE-Web " + profileIndent + "(" + name + ") Begin");
     var previousIndent = profileIndent;
     profileIndent += '  ';
@@ -83,6 +96,7 @@ function loaded() {
         elNoEntitiesMessage = document.getElementById("no-entities");
         elNoEntitiesInView = document.getElementById("no-entities-in-view");
         elNoEntitiesRadius = document.getElementById("no-entities-radius");
+        elNoEntitiesInView.style.display = "none";
 
         entityList = new ListView("entity-table", "entity-table-body", "entity-table-scroll", createRowFunction, updateRowFunction, clearRowFunction);
         
@@ -122,7 +136,6 @@ function loaded() {
         document.getElementById("entity-hasScript").onclick = function () {
             setSortColumn('hasScript');
         };
-        
         elRefresh.onclick = function() {
             refreshEntities();
         }
@@ -141,8 +154,270 @@ function loaded() {
         elDelete.onclick = function() {
             EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
         }
+        elFilter.onkeyup = refreshEntityList;
+        elFilter.onpaste = refreshEntityList;
+        elFilter.onchange = onFilterChange;
+        elFilter.onblur = refreshFooter;
+        elInView.onclick = toggleFilterInView;
+        elRadius.onchange = onRadiusChange;
+        elInfoToggle.onclick = toggleInfo;
+        window.onresize = resize;
+        
+        function onRowClicked(clickEvent) {
+            let entityID = this.getAttribute("id");
+            let selection = [entityID];
 
-        function createRowFunction(elBottomBuffer) {
+            if (clickEvent.ctrlKey) {
+                let selectedIndex = selectedEntities.indexOf(entityID);
+                if (selectedIndex >= 0) {
+                    selection = selectedEntities;
+                    selection.splice(selectedIndex, 1)
+                } else {
+                    selection = selection.concat(selectedEntities);
+                }
+            } else if (clickEvent.shiftKey && selectedEntities.length > 0) {
+                let previousItemFound = -1;
+                let clickedItemFound = -1;
+                for (let i = 0; i < visibleEntities.length; i++) {
+                    let entity = visibleEntities[i];
+                    if (clickedItemFound === -1 && entityID === entity.id) {
+                        clickedItemFound = i;
+                    } else if(previousItemFound === -1 && selectedEntities[0] === entity.id) {
+                        previousItemFound = i;
+                    }
+                }
+                if (previousItemFound !== -1 && clickedItemFound !== -1) {
+                    let betweenItems = [];
+                    let toItem = Math.max(previousItemFound, clickedItemFound);
+                    // skip first and last item in this loop, we add them to selection after the loop
+                    for (let i = (Math.min(previousItemFound, clickedItemFound) + 1); i < toItem; i++) {
+                        betweenItems.push(visibleEntities[i].id);
+                    }
+                    if (previousItemFound > clickedItemFound) {
+                        // always make sure that we add the items in the right order
+                        betweenItems.reverse();
+                    }
+                    selection = selection.concat(betweenItems, selectedEntities);
+                }
+            }
+            
+            updateSelectedEntities(selection);
+
+            EventBridge.emitWebEvent(JSON.stringify({
+                type: "selectionUpdate",
+                focus: false,
+                entityIds: selection,
+            }));
+
+            refreshFooter();
+        }
+
+        function onRowDoubleClicked() {
+            var entityID = this.getAttribute("id");
+            EventBridge.emitWebEvent(JSON.stringify({
+                type: "selectionUpdate",
+                focus: true,
+                entityIds: [entityID],
+            }));
+        }
+        
+        function decimalMegabytes(number) {
+            return number ? (number / BYTES_PER_MEGABYTE).toFixed(1) : "";
+        }
+
+        function displayIfNonZero(number) {
+            return number ? number : "";
+        }
+
+        function getFilename(url) {
+            let urlParts = url.split('/');
+            return urlParts[urlParts.length - 1];
+        }
+        
+        function updateEntityData(entityData) {
+            entities = [];
+            entitiesByID = {};
+            visibleEntities = [];
+            
+            PROFILE("map-data", function() {
+                entityData.forEach(function(entity) {
+                    let type = entity.type
+                    let filename = getFilename(entity.url);
+                    if (filename === IMAGE_MODEL_NAME) {
+                        type = "Image";
+                    }
+            
+                    let entityData = {
+                        id: entity.id,
+                        name: entity.name,
+                        type: type,
+                        url: filename,
+                        fullUrl: entity.url,
+                        locked: entity.locked ? LOCKED_GLYPH : null,
+                        visible: entity.visible ? VISIBLE_GLYPH : null,
+                        verticesCount: displayIfNonZero(entity.verticesCount),
+                        texturesCount: displayIfNonZero(entity.texturesCount),
+                        texturesSize: decimalMegabytes(entity.texturesSize),
+                        hasTransparent: entity.hasTransparent ? TRANSPARENCY_GLYPH : null,
+                        isBaked: entity.isBaked ? BAKED_GLYPH : null,
+                        drawCalls: displayIfNonZero(entity.drawCalls),
+                        hasScript: entity.hasScript ? SCRIPT_GLYPH : null,
+                        elRow : null
+                    }
+                    
+                    entities.push(entityData);
+                    entitiesByID[entityData.id] = entityData;
+                });
+            });
+        }
+        
+        function refreshEntityList() {
+            PROFILE("refresh-entity-list", function() {
+                PROFILE("filter", function() {
+                    let searchTerm = elFilter.value;
+                    if (searchTerm === '') {
+                        visibleEntities = entities.slice(0);
+                    } else {
+                        visibleEntities = entities.filter(function(e) {
+                            return e.name.indexOf(searchTerm) > -1
+                                || e.type.indexOf(searchTerm) > -1
+                                || e.fullUrl.indexOf(searchTerm) > -1;
+                        });
+                    }
+                });
+                
+                PROFILE("sort", function() {
+                    let cmp = currentSortOrder === ASCENDING_SORT ? COMPARE_ASCENDING : COMPARE_DESCENDING;
+                    visibleEntities.sort(cmp);
+                });
+
+                PROFILE("update-dom", function() {
+                    entityList.setVisibleItemData(visibleEntities);
+                    entityList.refresh();
+                });
+                
+                refreshFooter();
+            });
+        }
+        
+        function removeEntities(deletedIDs) {
+            // Loop from the back so we can pop items off while iterating
+            for (let j = entities.length - 1; j >= 0; --j) {
+                let id = entities[j];
+                for (let i = 0, length = deletedIDs.length; i < length; ++i) {
+                    if (id === deletedIDs[i]) {
+                        entities.splice(j, 1);
+                        entitiesByID[id].el.remove();
+                        delete entitiesByID[id];
+                        break;
+                    }
+                }
+            }
+            refreshEntities();
+        }
+        
+        function clearEntities() {
+            var firstVisibleRow = entityList.getRowOffset();
+            var lastVisibleRow = firstVisibleRow + entityList.getNumRows() - 1;
+            for (var i = firstVisibleRow; i <= lastVisibleRow && i < visibleEntities.length; i++) {
+                var entity = visibleEntities[i];
+                entity.elRow.setAttribute("id", "");
+            }
+            
+            entities = [];
+            entitiesByID = {};
+            visibleEntities = [];
+            
+            entityList.setVisibleItemData([]);
+            entityList.refresh();
+            
+            refreshFooter();
+        }
+        
+        var elSortOrder = {
+            name: document.querySelector('#entity-name .sort-order'),
+            type: document.querySelector('#entity-type .sort-order'),
+            url: document.querySelector('#entity-url .sort-order'),
+            locked: document.querySelector('#entity-locked .sort-order'),
+            visible: document.querySelector('#entity-visible .sort-order'),
+            verticesCount: document.querySelector('#entity-verticesCount .sort-order'),
+            texturesCount: document.querySelector('#entity-texturesCount .sort-order'),
+            texturesSize: document.querySelector('#entity-texturesSize .sort-order'),
+            hasTransparent: document.querySelector('#entity-hasTransparent .sort-order'),
+            isBaked: document.querySelector('#entity-isBaked .sort-order'),
+            drawCalls: document.querySelector('#entity-drawCalls .sort-order'),
+            hasScript: document.querySelector('#entity-hasScript .sort-order'),
+        }
+        function setSortColumn(column) {
+            PROFILE("set-sort-column", function() {
+                if (currentSortColumn === column) {
+                    currentSortOrder *= -1;
+                } else {
+                    elSortOrder[currentSortColumn].innerHTML = "";
+                    currentSortColumn = column;
+                    currentSortOrder = ASCENDING_SORT;
+                }
+                elSortOrder[column].innerHTML = currentSortOrder == ASCENDING_SORT ? ASCENDING_STRING : DESCENDING_STRING;
+                refreshEntityList();
+            });
+        }
+        
+        function refreshEntities(resetRowOffset) {
+            clearEntities();
+            if (resetRowOffset) {
+                entityList.resetRowOffset();
+            }
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'refresh' }));
+        }
+        
+        function refreshFooter() {
+            if (selectedEntities.length > 1) {
+                elFooter.firstChild.nodeValue = selectedEntities.length + " entities selected";
+            } else if (selectedEntities.length === 1) {
+                elFooter.firstChild.nodeValue = "1 entity selected";
+            } else if (visibleEntities.length === 1) {
+                elFooter.firstChild.nodeValue = "1 entity found";
+            } else {
+                elFooter.firstChild.nodeValue = visibleEntities.length + " entities found";
+            }
+        }
+        
+        function updateSelectedEntities(selectedIDs) {
+            let notFound = false;
+            
+            let firstVisibleRow = entityList.getRowOffset();
+            let lastVisibleRow = firstVisibleRow + entityList.getNumRows() - 1;
+            for (let i = firstVisibleRow; i <= lastVisibleRow && i < visibleEntities.length; i++) {
+                let entity = visibleEntities[i];
+                entity.elRow.className = '';
+            }
+            
+            for (let i = 0; i < selectedEntities.length; i++) {
+                let id = selectedEntities[i];
+                entitiesByID[id].selected = false;
+            }
+
+            selectedEntities = [];
+            for (let i = 0; i < selectedIDs.length; i++) {
+                let id = selectedIDs[i];
+                entitiesByID[id].selected = true;
+                selectedEntities.push(id);
+                if (id in entitiesByID) {
+                    let entity = entitiesByID[id];
+                    if (entity.elRow) {
+                        entity.elRow.className = 'selected';
+                    }
+                } else {
+                    notFound = true;
+                }
+            }
+
+            refreshFooter();
+
+            return notFound;
+        }
+        
+        function createRowFunction() {
             var row = document.createElement("tr");
             for (var i = 0; i < NUM_COLUMNS; i++) {
                 var column = document.createElement("td");
@@ -154,7 +429,6 @@ function loaded() {
             }
             row.onclick = onRowClicked;
             row.ondblclick = onRowDoubleClicked;
-            elEntityTableBody.insertBefore(row, elBottomBuffer);
             return row;
         }
         
@@ -184,12 +458,20 @@ function loaded() {
             var hasScriptCell = elRow.childNodes[11];
             hasScriptCell.innerText = itemData.hasScript;
             
+            if (itemData.selected) {
+                elRow.className = 'selected';
+            } else {
+                elRow.className = '';
+            }
+            
             var prevItemId = elRow.getAttribute("id");
             var newItemId = itemData.id;
-            if (prevItemId && prevItemId !== newItemId) {
+            var validPrevItemId = prevItemId !== null && prevItemId.length > 0;     
+            if (validPrevItemId && prevItemId !== newItemId && entitiesByID[prevItemId].elRow === elRow) {
+                elRow.setAttribute("id", "");
                 entitiesByID[prevItemId].elRow = null;
             }
-            if (!prevItemId || prevItemId !== newItemId) {
+            if (!validPrevItemId || prevItemId !== newItemId) {
                 elRow.setAttribute("id", newItemId);
                 entitiesByID[newItemId].elRow = elRow;
             }
@@ -200,236 +482,17 @@ function loaded() {
                 var cell = elRow.childNodes[i];
                 cell.innerHTML = "";
             }
-
+            
             var id = elRow.getAttribute("id");
             if (id && entitiesByID[id]) {
+                elRow.setAttribute("id", "");
                 entitiesByID[id].elRow = null;
             }
         }
 
-        function onRowClicked(clickEvent) {
-            var entityID = this.getAttribute("id");
-            var selection = [entityID];
-
-            if (clickEvent.ctrlKey) {
-                var selectedIndex = selectedEntities.indexOf(entityID);
-                if (selectedIndex >= 0) {
-                    selection = selectedEntities;
-                    selection.splice(selectedIndex, 1)
-                } else {
-                    selection = selection.concat(selectedEntities);
-                }
-            } else if (clickEvent.shiftKey && selectedEntities.length > 0) {
-                var previousItemFound = -1;
-                var clickedItemFound = -1;
-                for (var i = 0; i < visibleEntities.length; i++) {
-                    var entity = visibleEntities[i];
-                    if (clickedItemFound === -1 && entityID == entity.id) {
-                        clickedItemFound = i;
-                    } else if(previousItemFound === -1 && selectedEntities[0] == entity.id) {
-                        previousItemFound = i;
-                    }
-                }
-                if (previousItemFound !== -1 && clickedItemFound !== -1) {
-                    var betweenItems = [];
-                    var toItem = Math.max(previousItemFound, clickedItemFound);
-                    // skip first and last item in this loop, we add them to selection after the loop
-                    for (var i = (Math.min(previousItemFound, clickedItemFound) + 1); i < toItem; i++) {
-                        visibleEntities[i].elRow.className = 'selected';
-                        betweenItems.push(visibleEntities[i].id);
-                    }
-                    if (previousItemFound > clickedItemFound) {
-                        // always make sure that we add the items in the right order
-                        betweenItems.reverse();
-                    }
-                    selection = selection.concat(betweenItems, selectedEntities);
-                }
-            }
-
-            selectedEntities = selection;
-
-            this.className = 'selected';
-
-            EventBridge.emitWebEvent(JSON.stringify({
-                type: "selectionUpdate",
-                focus: false,
-                entityIds: selection,
-            }));
-
-            refreshFooter();
-        }
-
-        function onRowDoubleClicked() {
-            var entityID = this.getAttribute("id");
-            EventBridge.emitWebEvent(JSON.stringify({
-                type: "selectionUpdate",
-                focus: true,
-                entityIds: [entityID],
-            }));
-        }
-
-        var elSortOrder = {
-            name: document.querySelector('#entity-name .sort-order'),
-            type: document.querySelector('#entity-type .sort-order'),
-            url: document.querySelector('#entity-url .sort-order'),
-            locked: document.querySelector('#entity-locked .sort-order'),
-            visible: document.querySelector('#entity-visible .sort-order'),
-            verticesCount: document.querySelector('#entity-verticesCount .sort-order'),
-            texturesCount: document.querySelector('#entity-texturesCount .sort-order'),
-            texturesSize: document.querySelector('#entity-texturesSize .sort-order'),
-            hasTransparent: document.querySelector('#entity-hasTransparent .sort-order'),
-            isBaked: document.querySelector('#entity-isBaked .sort-order'),
-            drawCalls: document.querySelector('#entity-drawCalls .sort-order'),
-            hasScript: document.querySelector('#entity-hasScript .sort-order'),
-        }
-        function setSortColumn(column) {
-            PROFILE("set-sort-column", function() {
-                if (currentSortColumn === column) {
-                    currentSortOrder *= -1;
-                } else {
-                    elSortOrder[currentSortColumn].innerHTML = "";
-                    currentSortColumn = column;
-                    currentSortOrder = ASCENDING_SORT;
-                }
-                elSortOrder[column].innerHTML = currentSortOrder == ASCENDING_SORT ? ASCENDING_STRING : DESCENDING_STRING;
-                refreshEntityList();
-            });
-        }
-        
-        function clearEntities() {
-            entities = {};
-            refreshFooter();
-        }
-
-        function refreshFooter() {
-            if (selectedEntities.length > 1) {
-                elFooter.firstChild.nodeValue = selectedEntities.length + " entities selected";
-            } else if (selectedEntities.length === 1) {
-                elFooter.firstChild.nodeValue = "1 entity selected";
-            } else if (visibleEntities.length === 1) {
-                elFooter.firstChild.nodeValue = "1 entity found";
-            } else {
-                elFooter.firstChild.nodeValue = visibleEntities.length + " entities found";
-            }
-        }
-        
-        function refreshEntities() {
-            clearEntities();
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'refresh' }));
-        }
-
-        function refreshEntityList() {
-            PROFILE("refresh-entity-list", function() {
-                PROFILE("filter", function() {
-                    var searchTerm = elFilter.value;
-                    if (searchTerm === '') {
-                        visibleEntities = entities.slice(0);
-                    } else {
-                        visibleEntities = entities.filter(function(e) {
-                            return e.name.indexOf(searchTerm) > -1
-                                || e.type.indexOf(searchTerm) > -1
-                                || e.fullUrl.indexOf(searchTerm) > -1;
-                        });
-                    }
-                });
-                
-                PROFILE("sort", function() {
-                    var cmp = currentSortOrder === ASCENDING_SORT ? COMPARE_ASCENDING : COMPARE_DESCENDING;
-                    visibleEntities.sort(cmp);
-                });
-
-                PROFILE("update-dom", function() {
-                    entityList.setVisibleItemData(visibleEntities);
-                    entityList.refresh();
-                });
-                
-                refreshFooter();
-            });
-        }
-        
-        function decimalMegabytes(number) {
-            return number ? (number / BYTES_PER_MEGABYTE).toFixed(1) : "";
-        }
-
-        function displayIfNonZero(number) {
-            return number ? number : "";
-        }
-
-        function getFilename(url) {
-            var urlParts = url.split('/');
-            return urlParts[urlParts.length - 1];
-        }
-        
-        function updateEntityData(entityData) {
-            entities = [];
-            entitiesByID = {};
-            visibleEntities = [];
-            
-            PROFILE("map-data", function() {
-                entityData.forEach(function(entity) {
-                    var type = entity.type
-                    var filename = getFilename(entity.url);
-                    if (filename === IMAGE_MODEL_NAME) {
-                        type = "Image";
-                    }
-            
-                    var entityData = {
-                        id: entity.id,
-                        name: entity.name,
-                        type: type,
-                        url: filename,
-                        fullUrl: entity.url,
-                        locked: entity.locked ? LOCKED_GLYPH : null,
-                        visible: entity.visible ? VISIBLE_GLYPH : null,
-                        verticesCount: displayIfNonZero(entity.verticesCount),
-                        texturesCount: displayIfNonZero(entity.texturesCount),
-                        texturesSize: decimalMegabytes(entity.texturesSize),
-                        hasTransparent: entity.hasTransparent ? TRANSPARENCY_GLYPH : null,
-                        isBaked: entity.isBaked ? BAKED_GLYPH : null,
-                        drawCalls: displayIfNonZero(entity.drawCalls),
-                        hasScript: entity.hasScript ? SCRIPT_GLYPH : null,
-                        elRow : null
-                    }
-                    
-                    entities.push(entityData);
-                    entitiesByID[entityData.id] = entityData;
-                });
-            });
-        }
-
-        function updateSelectedEntities(selectedIDs) {
-            var notFound = false;
-            for (var id in entitiesByID) {
-                if (entitiesByID[id].elRow) {
-                    entitiesByID[id].elRow.className = '';
-                }
-            }
-
-            selectedEntities = [];
-            for (var i = 0; i < selectedIDs.length; i++) {
-                var id = selectedIDs[i];
-                selectedEntities.push(id);
-                if (id in entitiesByID) {
-                    var entity = entitiesByID[id];
-                    entity.elRow.className = 'selected';
-                } else {
-                    notFound = true;
-                }
-            }
-
-            refreshFooter();
-
-            return notFound;
-        }
-        
-        function removeEntities(deletedIDs) {
-            for (var i = 0, length = deletedIDs.length; i < length; i++) {
-                var deleteID = deletedIDs[i];
-                delete entitiesByID[deleteID];
-            }
-        }
-
         function resize() {
+            var prevScrollTop = elEntityTableScroll.scrollTop;
+            
             // Take up available window space
             elEntityTableScroll.style.height = window.innerHeight - 207;
             
@@ -464,11 +527,37 @@ function loaded() {
                     ths[4].width = 0.08 * tableWidth;
                 }
             }
+            
+            entityList.resetRows(window.innerHeight - WINDOW_NONVARIABLE_HEIGHT);
+            entityList.refresh();
+            
+            elEntityTableScroll.scrollTop = prevScrollTop;
         };
         
-        var showExtraInfo = false;
-        var COLLAPSE_EXTRA_INFO = "E";
-        var EXPAND_EXTRA_INFO = "D";
+        function toggleFilterInView() {
+            isFilterInView = !isFilterInView;
+            if (isFilterInView) {
+                elInView.setAttribute(FILTER_IN_VIEW_ATTRIBUTE, FILTER_IN_VIEW_ATTRIBUTE);
+                elNoEntitiesInView.style.display = "inline";
+            } else {
+                elInView.removeAttribute(FILTER_IN_VIEW_ATTRIBUTE);
+                elNoEntitiesInView.style.display = "none";
+            }
+            EventBridge.emitWebEvent(JSON.stringify({ type: "filterInView", filterInView: isFilterInView }));
+            refreshEntities();
+        }
+        
+        function onFilterChange() {
+            refreshEntityList();
+            resize();
+        }
+        
+        function onRadiusChange() {
+            elRadius.value = Math.max(elRadius.value, 0);
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'radius', radius: elRadius.value }));
+            refreshEntities(true);
+            elNoEntitiesRadius.firstChild.nodeValue = elRadius.value;
+        }
 
         function toggleInfo(event) {
             showExtraInfo = !showExtraInfo;
@@ -482,7 +571,6 @@ function loaded() {
             resize();
             event.stopPropagation();
         }
-        elInfoToggle.addEventListener("click", toggleInfo, true);
 
         document.addEventListener("keydown", function (keyDownEvent) {
             if (keyDownEvent.target.nodeName === "INPUT") {
@@ -501,29 +589,6 @@ function loaded() {
                 }
             }
         }, false);
-
-        var isFilterInView = false;
-        var FILTER_IN_VIEW_ATTRIBUTE = "pressed";
-        elNoEntitiesInView.style.display = "none";
-        elInView.onclick = function () {
-            isFilterInView = !isFilterInView;
-            if (isFilterInView) {
-                elInView.setAttribute(FILTER_IN_VIEW_ATTRIBUTE, FILTER_IN_VIEW_ATTRIBUTE);
-                elNoEntitiesInView.style.display = "inline";
-            } else {
-                elInView.removeAttribute(FILTER_IN_VIEW_ATTRIBUTE);
-                elNoEntitiesInView.style.display = "none";
-            }
-            EventBridge.emitWebEvent(JSON.stringify({ type: "filterInView", filterInView: isFilterInView }));
-            refreshEntities();
-        }
-
-        elRadius.onchange = function () {
-            elRadius.value = Math.max(elRadius.value, 0);
-            EventBridge.emitWebEvent(JSON.stringify({ type: 'radius', radius: elRadius.value }));
-            refreshEntities();
-            elNoEntitiesRadius.firstChild.nodeValue = elRadius.value;
-        }
         
         if (window.EventBridge !== undefined) {
             EventBridge.scriptEventReceived.connect(function(data) {
@@ -538,9 +603,10 @@ function loaded() {
                 } else if (data.type === "update" && data.selectedIDs !== undefined) {
                     PROFILE("update", function() {
                         var newEntities = data.entities;
-                        if (newEntities && newEntities.length == 0) {
+                        if (newEntities && newEntities.length === 0) {
                             elNoEntitiesMessage.style.display = "block";
                             elFooter.firstChild.nodeValue = "0 entities found";
+                            clearEntities();
                         } else if (newEntities) {
                             elNoEntitiesMessage.style.display = "none";
                             updateEntityData(newEntities);
@@ -558,11 +624,12 @@ function loaded() {
             });
         }
         
-        setSortColumn('type');
         resize();
-        entityList.initialize(572);
+        setSortColumn('type');
         refreshEntities();
     });
+    
+    augmentSpinButtons();
 
     // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked
     document.addEventListener("contextmenu", function (event) {
