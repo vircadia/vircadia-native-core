@@ -15,9 +15,6 @@
 #define hifi_LoginDialog_h
 
 #include <OffscreenQmlDialog.h>
-#include <QLoggingCategory>
-
-Q_DECLARE_LOGGING_CATEGORY(login_dialog)
 
 class QNetworkReply;
 
