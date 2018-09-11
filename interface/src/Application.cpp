@@ -6421,7 +6421,6 @@ void Application::clearDomainAvatars() {
 void Application::domainURLChanged(QUrl domainURL) {
     // disable physics until we have enough information about our new location to not cause craziness.
     resetPhysicsReadyInformation();
-    auto urlStr = domainURL.toString().toStdString();
     setIsServerlessMode(domainURL.scheme() != URL_SCHEME_HIFI);
     if (isServerlessMode()) {
         loadServerlessDomain(domainURL);
@@ -6432,7 +6431,6 @@ void Application::domainURLChanged(QUrl domainURL) {
 void Application::goToErrorDomainURL(QUrl errorDomainURL) {
     // disable physics until we have enough information about our new location to not cause craziness.
     resetPhysicsReadyInformation();
-    auto urlStr = errorDomainURL.toString().toStdString();
     setIsServerlessMode(errorDomainURL.scheme() != URL_SCHEME_HIFI);
     if (isServerlessMode()) {
         loadServerlessDomain(errorDomainURL, true);
