@@ -2308,7 +2308,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(checkLoginTimer, &QTimer::timeout, this, [this]() {
         auto accountManager = DependencyManager::get<AccountManager>();
         auto dialogsManager = DependencyManager::get<DialogsManager>();
-        if (!accountManager->isLoggedIn() && !qApp->isHMDMode()) {
+        if (!accountManager->isLoggedIn()) {
             Setting::Handle<bool>{"loginDialogPoppedUp", false}.set(true);
             dialogsManager->showLoginDialog();
             QJsonObject loginData = {};
