@@ -54,6 +54,17 @@ function AppUi(properties) {
             that.tablet.gotoWebScreen(url, that.inject);
         }
     };
+    that.openOnTop = function openOnTop(url, optionalInject) { // Opens some app on top of the current app
+        if (that.isQML(url)) {
+            that.tablet.loadQMLOnTop(url);
+        } else {
+            if (optionalInject) {
+                that.tablet.loadWebScreenOnTop(url, optionalInject);
+            } else {
+                that.tablet.loadWebScreenOnTop(url);
+            }
+        }
+    }
     that.close = function close() { // How to close the app.
         that.currentUrl = "";
         // for toolbar-mode: go back to home screen, this will close the window.
@@ -69,7 +80,11 @@ function AppUi(properties) {
             activeIcon: isWaiting ? that.activeMessagesButton : that.activeButton
         });
     };
-    that.isQML = function isQML() { // We set type property in onClick.
+    that.isQML = function isQML(optionalUrl) { // We set type property in onClick.
+        if (optionalUrl) {
+            var type = /.qml$/.test(optionalUrl) ? 'QML' : 'Web';
+            return type === 'QML';
+        }
         return that.type === 'QML';
     };
     that.eventSignal = function eventSignal() { // What signal to hook onMessage to.
