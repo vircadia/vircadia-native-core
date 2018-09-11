@@ -224,12 +224,12 @@ Script.include("/~/system/libraries/controllers.js");
             var capsuleData = MyAvatar.getCollisionCapsule();
 
             var radius = capsuleData.radius / MyAvatar.scale;
-            var height = (capsuleData.height + (capsuleData.radius * 2.0)) / MyAvatar.scale;
+            var height = (Vec3.distance(capsuleData.start, capsuleData.end) + (capsuleData.radius * 2.0)) / MyAvatar.scale;
 
             _this.teleportHandCollisionPick = Picks.createPick(PickType.Collision, {
                 enabled: true,
                 parentID: Pointers.getPointerProperties(_this.teleportParabolaHandInvisible).renderStates["invisible"].end,
-                filter: Picks.PICK_ENTITIES + Picks.PICK_AVATARS,
+                filter: Picks.PICK_ENTITIES | Picks.PICK_AVATARS,
                 shape: {
                     shapeType: "capsule-y",
                     dimensions: {
@@ -245,7 +245,7 @@ Script.include("/~/system/libraries/controllers.js");
             _this.teleportHeadCollisionPick = Picks.createPick(PickType.Collision, {
                 enabled: true,
                 parentID: Pointers.getPointerProperties(_this.teleportParabolaHeadInvisible).renderStates["invisible"].end,
-                filter: Picks.PICK_ENTITIES + Picks.PICK_AVATARS,
+                filter: Picks.PICK_ENTITIES | Picks.PICK_AVATARS,
                 shape: {
                     shapeType: "capsule-y",
                     dimensions: {
