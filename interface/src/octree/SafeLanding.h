@@ -18,6 +18,7 @@
 #include <QtCore/QSharedPointer>
 
 #include "EntityItem.h"
+#include "EntityDynamicInterface.h"
 
 class EntityTreeRenderer;
 class EntityItemID;
@@ -29,6 +30,7 @@ public:
     void setCompletionSequenceNumbers(int first, int last);  // 'last' exclusive.
     void noteReceivedsequenceNumber(int sequenceNumber);
     bool isLoadSequenceComplete();
+    float loadingProgressPercentage();
 
 private slots:
     void addTrackedEntity(const EntityItemID& entityID);
@@ -37,7 +39,7 @@ private slots:
 private:
     bool isSequenceNumbersComplete();
     void debugDumpSequenceIDs() const;
-    bool isEntityPhysicsComplete();
+    bool isEntityLoadingComplete();
 
     std::mutex _lock;
     using Locker = std::lock_guard<std::mutex>;
@@ -49,6 +51,7 @@ private:
     static constexpr int INVALID_SEQUENCE = -1;
     int _initialStart { INVALID_SEQUENCE };
     int _initialEnd { INVALID_SEQUENCE };
+    int _maxTrackedEntityCount { 0 };
 
     struct SequenceLessThan {
         bool operator()(const int& a, const int& b) const;

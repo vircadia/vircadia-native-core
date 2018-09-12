@@ -417,10 +417,7 @@ public:
             }
 
             const Data& get(uint32 offset) const {
-                if (offset >= _items.size()) {
-                    static const Data EMPTY;
-                    return EMPTY;
-                }
+                assert((offset < _items.size()));
                 return (_items.data() + offset)->_data;
             }
 

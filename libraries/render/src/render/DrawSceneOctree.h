@@ -54,6 +54,8 @@ namespace render {
         gpu::PipelinePointer _drawCellBoundsPipeline;
         gpu::PipelinePointer _drawLODReticlePipeline;
         gpu::PipelinePointer _drawItemBoundPipeline;
+        gpu::BufferPointer _cellBoundsBuffer;
+        gpu::Stream::FormatPointer _cellBoundsFormat;
 
         bool _showVisibleCells; // initialized by Config
         bool _showEmptyCells; // initialized by Config

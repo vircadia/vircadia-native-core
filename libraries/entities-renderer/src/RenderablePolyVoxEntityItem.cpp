@@ -1609,6 +1609,7 @@ PolyVoxEntityRenderer::PolyVoxEntityRenderer(const EntityItemPointer& entity) : 
         _vertexFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
         _vertexFormat->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 12);
     });
+    _params = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), nullptr);
 }
 
 ShapeKey PolyVoxEntityRenderer::getShapeKey() {
@@ -1671,9 +1672,12 @@ void PolyVoxEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& s
 
 void PolyVoxEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     _lastVoxelToWorldMatrix = entity->voxelToWorldMatrix();
+    _lastVoxelVolumeSize = entity->getVoxelVolumeSize();
+    _params->setSubData(0, vec4(_lastVoxelVolumeSize, 0.0));
     graphics::MeshPointer newMesh;
     entity->withReadLock([&] {
         newMesh = entity->_mesh;
+
     });
 
     if (newMesh && newMesh->getIndexBuffer()._buffer) {
@@ -1686,6 +1690,7 @@ void PolyVoxEntityRenderer::doRender(RenderArgs* args) {
         return;
     }
 
+
     PerformanceTimer perfTimer("RenderablePolyVoxEntityItem::render");
     gpu::Batch& batch = *args->_batch;
 
@@ -1694,6 +1699,7 @@ void PolyVoxEntityRenderer::doRender(RenderArgs* args) {
     batch.setInputFormat(_vertexFormat);
     batch.setInputBuffer(gpu::Stream::POSITION, _mesh->getVertexBuffer()._buffer, 0,
         sizeof(PolyVox::PositionMaterialNormal));
+
 
     // TODO -- should we be setting this?
     // batch.setInputBuffer(gpu::Stream::NORMAL, mesh->getVertexBuffer()._buffer,
@@ -1710,7 +1716,7 @@ void PolyVoxEntityRenderer::doRender(RenderArgs* args) {
         }
     }
 
-    batch._glUniform3f(entities_renderer::slot::uniform::PolyvoxVoxelSize, _lastVoxelVolumeSize.x, _lastVoxelVolumeSize.y, _lastVoxelVolumeSize.z);
+    batch.setUniformBuffer(0, _params);
     batch.drawIndexed(gpu::TRIANGLES, (gpu::uint32)_mesh->getNumIndices(), 0);
 }
 

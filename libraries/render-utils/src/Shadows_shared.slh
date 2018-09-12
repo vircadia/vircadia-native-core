@@ -8,8 +8,8 @@
 #define SHADOW_CASCADE_MAX_COUNT    4
 
 struct ShadowTransform {
-	MAT4 reprojection;
-	float fixedBias;
+    MAT4 reprojection;
+    float fixedBias;
     float slopeBias;
     float _padding1;
     float _padding2;

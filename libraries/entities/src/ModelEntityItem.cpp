@@ -40,6 +40,7 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID) : EntityItem(
     _type = EntityTypes::Model;
     _lastKnownCurrentFrame = -1;
     _color[0] = _color[1] = _color[2] = 0;
+    _visuallyReady = false;
 }
 
 const QString ModelEntityItem::getTextures() const {
