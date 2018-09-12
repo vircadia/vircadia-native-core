@@ -496,7 +496,7 @@ public slots:
      * @function Window.getLastDomainConnectionError
      * @returns {Window.ConnectionRefusedReason} Integer number that enumerates the last domain connection refused.
      */
-    int getLastDominConnectionError() const;
+    int getLastDomainConnectionError() const;
 
     /**jsdoc
      * Open a non-modal message box that can have a variety of button combinations. See also, 
