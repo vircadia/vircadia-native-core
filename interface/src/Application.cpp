@@ -6571,7 +6571,6 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
     _nearbyEntitiesCountAtLastPhysicsCheck = nearbyCount;
 
     const uint32_t MINIMUM_NEARBY_ENTITIES_STABILITY_COUNT = 3;
-    uint32_t readyNearbyEntities = 0;
     if (_nearbyEntitiesStabilityCount >= MINIMUM_NEARBY_ENTITIES_STABILITY_COUNT) {
         // We've seen the same number of nearby entities for several stats packets in a row.  assume we've got all
         // the local entities.
@@ -6581,8 +6580,6 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
                 HIFI_FCDEBUG(interfaceapp(), "Physics disabled until entity loads: " << entity->getID() << entity->getName());
                 // don't break here because we want all the relevant entities to start their downloads
                 result = false;
-            } else {
-                readyNearbyEntities++;
             }
         }
         return result;
