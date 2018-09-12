@@ -2083,6 +2083,7 @@ SelectionDisplay = (function() {
         var rotation = null;
         var previousPickRay = null;
         var beginMouseEvent = null;
+        var beginControllerPick = null;
 
         var onBegin = function(event, pickRay, pickResult) {     
             var proportional = directionEnum === STRETCH_DIRECTION.ALL;     
@@ -2218,6 +2219,7 @@ SelectionDisplay = (function() {
             
             previousPickRay = pickRay;
             beginMouseEvent = event;
+            beginControllerPick = pickRay.origin;
         };
 
         var onEnd = function(event, reason) {    
@@ -2286,12 +2288,21 @@ SelectionDisplay = (function() {
             var newDimensions;
             if (proportional) {
                 var viewportDimensions = Controller.getViewportDimensions();
-                var mouseXDifference = (event.x - beginMouseEvent.x) / viewportDimensions.x;
-                var mouseYDifference = (beginMouseEvent.y - event.y) / viewportDimensions.y;
-                var mouseDifference = mouseXDifference + mouseYDifference;
                 var toCameraDistance = getDistanceToCamera(position);   
                 var dimensionsMultiple = toCameraDistance * STRETCH_DIRECTION_ALL_CAMERA_DISTANCE_MULTIPLE; 
-                var dimensionChange = mouseDifference * dimensionsMultiple;
+                
+                var dimensionChange;
+                if (HMD.active) {
+                    var vecPickDifference = Vec3.subtract(pickRay.origin, beginControllerPick);
+                    var pickDifference = vecPickDifference.x + vecPickDifference.y + vecPickDifference.z;
+                    dimensionChange = pickDifference * dimensionsMultiple;
+                } else {
+                    var mouseXDifference = (event.x - beginMouseEvent.x) / viewportDimensions.x;
+                    var mouseYDifference = (beginMouseEvent.y - event.y) / viewportDimensions.y;
+                    var mouseDifference = mouseXDifference + mouseYDifference;
+                    dimensionChange = mouseDifference * dimensionsMultiple;
+                }
+ 
                 var averageInitialDimension = (initialDimensions.x + initialDimensions.y + initialDimensions.z) / 3;
                 percentChange = dimensionChange / averageInitialDimension;
                 percentChange += 1.0;
