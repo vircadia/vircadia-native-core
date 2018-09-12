@@ -152,6 +152,11 @@ void AddressManager::goForward() {
     }
 }
 
+void AddressManager::goToLastAddress() {
+    // this should always return something as long as the URL isn't empty.
+    handleUrl(_lastVisitedURL, LookupTrigger::AttemptedRefresh);
+}
+
 void AddressManager::storeCurrentAddress() {
     auto url = currentAddress();
 
