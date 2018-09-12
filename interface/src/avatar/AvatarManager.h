@@ -181,11 +181,11 @@ public:
     Q_INVOKABLE void setAvatarTransitDistanceBased(bool isDistanceBased) { _avatarTransitDistanceBased = isDistanceBased; }
     Q_INVOKABLE void setAvatarTransitMaxDistance(float maxDistance) { _avatarTransitMaxDistance = maxDistance; }
     Q_INVOKABLE void setAvatarTransitFrameCount(int frameCount) { _avatarTransitFrameCount = frameCount; }
-    Q_INVOKABLE void setAvatarTransitFramePerMeter(int frameCount) { _avatarTransitFramePerMeter = frameCount; }
+    Q_INVOKABLE void setAvatarTransitFramesPerMeter(int frameCount) { _avatarTransitFramesPerMeter = frameCount; }
     Q_INVOKABLE bool getAvatarTransitDistanceBased() { return _avatarTransitDistanceBased; }
     Q_INVOKABLE float getAvatarTransitMaxDistance() { return _avatarTransitMaxDistance; }
     Q_INVOKABLE int getAvatarTransitFrameCount() { return _avatarTransitFrameCount; }
-    Q_INVOKABLE int getAvatarTransitFramePerMeter() { return _avatarTransitFramePerMeter; }
+    Q_INVOKABLE int getAvatarTransitFramesPerMeter() { return _avatarTransitFramesPerMeter; }
 
     float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
     int getIdentityRequestsSent() const { return _identityRequestsSent; }
@@ -240,7 +240,7 @@ private:
     bool _avatarTransitDistanceBased { false };
     float _avatarTransitMaxDistance;
     int _avatarTransitFrameCount;
-    int _avatarTransitFramePerMeter;
+    int _avatarTransitFramesPerMeter;
 
 };
 
