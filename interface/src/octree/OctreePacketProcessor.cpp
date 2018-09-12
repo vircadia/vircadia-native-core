@@ -16,7 +16,6 @@
 #include "Application.h"
 #include "Menu.h"
 #include "SceneScriptingInterface.h"
-#include "SafeLanding.h"
 
 OctreePacketProcessor::OctreePacketProcessor():
     _safeLanding(new SafeLanding())
@@ -132,8 +131,4 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
 
 void OctreePacketProcessor::startEntitySequence() {
     _safeLanding->startEntitySequence(qApp->getEntities());
-}
-
-bool OctreePacketProcessor::isLoadSequenceComplete() const {
-    return _safeLanding->isLoadSequenceComplete();
 }
