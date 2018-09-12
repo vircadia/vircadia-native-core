@@ -128,7 +128,6 @@ Script.include("/~/system/libraries/controllers.js");
                     this.getOtherModule().dominantHandOverride = false;
                 }
                 if (this.parameters.handLaser.allwaysOn || isTriggerPressed) {
-                    var intersection = controllerData.rayPicks[this.hand];
                     return makeRunningValues(true, [], []);
                 }
             }
