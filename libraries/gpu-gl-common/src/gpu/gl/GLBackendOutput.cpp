@@ -25,15 +25,19 @@ using namespace gpu::gl;
 void GLBackend::syncOutputStateCache() {
     GLint currentFBO;
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &currentFBO);
+
     _output._drawFBO = currentFBO;
     reset(_output._framebuffer);
 }
 
 void GLBackend::resetOutputStage() {
-    _output._drawFBO = 0;
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    if (valid(_output._framebuffer)) {
+        reset(_output._framebuffer);
+        _output._drawFBO = 0;
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    }
+
     glEnable(GL_FRAMEBUFFER_SRGB);
-    reset(_output._framebuffer);
 }
 
 void GLBackend::do_setFramebuffer(const Batch& batch, size_t paramOffset) {

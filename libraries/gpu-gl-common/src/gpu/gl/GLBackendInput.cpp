@@ -19,8 +19,8 @@ using namespace gpu::gl;
 void GLBackend::do_setInputFormat(const Batch& batch, size_t paramOffset) {
     const auto& format = batch._streamFormats.get(batch._params[paramOffset]._uint);
     if (!compare(_input._format, format)) {
-        assign(_input._format, format);
         if (format) {
+            assign(_input._format, format);
             auto inputFormat = GLInputFormat::sync((*format));
             assert(inputFormat);
             if (_input._formatKey != inputFormat->key) {
@@ -28,6 +28,7 @@ void GLBackend::do_setInputFormat(const Batch& batch, size_t paramOffset) {
                 _input._invalidFormat = true;
             }
         } else {
+            reset(_input._format);
             _input._formatKey.clear();
             _input._invalidFormat = true;
         }

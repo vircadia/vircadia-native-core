@@ -76,11 +76,10 @@ bool GL45Backend::bindResourceBuffer(uint32_t slot, const BufferPointer& buffer)
 }
 
 void GL45Backend::releaseResourceBuffer(uint32_t slot) {
-    auto buf = acquire(_resource._buffers[slot]);
-    if (buf) {
+    auto& bufferReference = _resource._buffers[slot];
+    auto buffer = acquire(bufferReference);
+    if (buffer) {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, slot, 0);
-        reset(_resource._buffers[slot]);
+        reset(bufferReference);
     }
 }
-
-

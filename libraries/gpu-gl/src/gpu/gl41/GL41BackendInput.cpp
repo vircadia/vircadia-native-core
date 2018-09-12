@@ -74,8 +74,8 @@ void GL41Backend::updateInput() {
             bool hasColorAttribute{ false };
 
             const auto& buffers = _input._buffers;
-            const Offsets& offsets = _input._bufferOffsets;
-            const Offsets& strides = _input._bufferStrides;
+            const auto& offsets = _input._bufferOffsets;
+            const auto& strides = _input._bufferStrides;
 
             const auto& attributes = format->getAttributes();
             const auto& inputChannels = format->getChannels();

@@ -117,7 +117,11 @@ bool GL41Backend::bindResourceBuffer(uint32_t slot, const BufferPointer& buffer)
 }
 
 void GL41Backend::releaseResourceBuffer(uint32_t slot) {
-    reset(_resource._buffers[slot]);
-    glActiveTexture(GL_TEXTURE0 + GL41Backend::RESOURCE_BUFFER_SLOT0_TEX_UNIT + slot); 
-    glBindTexture(GL_TEXTURE_BUFFER, 0);
+    auto& bufferReference = _resource._buffers[slot];
+    auto buffer = acquire(bufferReference);
+    if (buffer) {
+        glActiveTexture(GL_TEXTURE0 + GL41Backend::RESOURCE_BUFFER_SLOT0_TEX_UNIT + slot); 
+        glBindTexture(GL_TEXTURE_BUFFER, 0);
+        reset(bufferReference);
+    }
 }

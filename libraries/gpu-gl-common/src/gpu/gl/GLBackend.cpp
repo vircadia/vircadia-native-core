@@ -150,7 +150,6 @@ void GLBackend::init() {
     });
 }
 
-
 GLBackend::GLBackend(bool syncCache) {
     _pipeline._cameraCorrectionBuffer._buffer->flush();
     initShaderBinaryCache();

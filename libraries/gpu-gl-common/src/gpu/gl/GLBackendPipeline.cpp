@@ -140,13 +140,9 @@ void GLBackend::resetPipelineStage() {
 
 void GLBackend::releaseUniformBuffer(uint32_t slot) {
     auto& bufferState = _uniform._buffers[slot];
-    auto buffer = acquire(bufferState.buffer);
-    if (buffer) {
-        auto* object = Backend::getGPUObject<GLBuffer>(*buffer);
-        if (object) {
-            glBindBufferBase(GL_UNIFORM_BUFFER, slot, 0);  // RELEASE
-            (void)CHECK_GL_ERROR();
-        }
+    if (valid(bufferState.buffer)) {
+        glBindBufferBase(GL_UNIFORM_BUFFER, slot, 0);  // RELEASE
+        (void)CHECK_GL_ERROR();
     }
     bufferState.reset();
 }
@@ -201,17 +197,13 @@ void GLBackend::do_setUniformBuffer(const Batch& batch, size_t paramOffset) {
 }
 
 void GLBackend::releaseResourceTexture(uint32_t slot) {
-    auto tex = acquire(_resource._textures[slot]);
-    if (tex) {
-        auto* object = Backend::getGPUObject<GLTexture>(*tex);
-        if (object) {
-            GLuint target = object->_target;
-            glActiveTexture(GL_TEXTURE0 + slot);
-            glBindTexture(target, 0);  // RELEASE
-            (void)CHECK_GL_ERROR();
-        }
+    auto& textureState = _resource._textures[slot];
+    if (valid(textureState._texture)) {
+        glActiveTexture(GL_TEXTURE0 + slot);
+        glBindTexture(textureState._target, 0);  // RELEASE
+        (void)CHECK_GL_ERROR();
+        reset(textureState._texture);
     }
-    reset(_resource._textures[slot]);
 }
 
 void GLBackend::resetResourceStage() {
@@ -299,8 +291,9 @@ void GLBackend::do_setResourceFramebufferSwapChainTexture(const Batch& batch, si
 }
 
 void GLBackend::setResourceTexture(unsigned int slot, const TexturePointer& resourceTexture) {
+    auto& textureState = _resource._textures[slot];
     // check cache before thinking
-    if (compare(_resource._textures[slot], resourceTexture)) {
+    if (compare(textureState._texture, resourceTexture)) {
         return;
     }
 
@@ -310,15 +303,12 @@ void GLBackend::setResourceTexture(unsigned int slot, const TexturePointer& reso
     // Always make sure the GLObject is in sync
     GLTexture* object = syncGPUObject(resourceTexture);
     if (object) {
+        assign(textureState._texture, resourceTexture);
         GLuint to = object->_texture;
-        GLuint target = object->_target;
+        textureState._target = object->_target;
         glActiveTexture(GL_TEXTURE0 + slot);
-        glBindTexture(target, to);
-
+        glBindTexture(textureState._target, to);
         (void)CHECK_GL_ERROR();
-
-        assign(_resource._textures[slot], resourceTexture);
-
         _stats._RSAmountTextureMemoryBounded += (int)object->size();
 
     } else {
@@ -343,7 +333,7 @@ void GLBackend::do_setResourceTextureTable(const Batch& batch, size_t paramOffse
 int GLBackend::ResourceStageState::findEmptyTextureSlot() const {
     // start from the end of the slots, try to find an empty one that can be used
     for (auto i = MAX_NUM_RESOURCE_TEXTURES - 1; i > 0; i--) {
-        if (!valid(_textures[i])) {
+        if (!valid(_textures[i]._texture)) {
             return i;
         }
     }
