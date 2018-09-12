@@ -1178,7 +1178,7 @@ SelectionDisplay = (function() {
         return controllerComputePickRay() || Camera.computePickRay(x, y);
     }
     
-    function getControllerAvatarFramePosition(pickRay) {
+    function getControllerAvatarFramePositionFromPickRay(pickRay) {
         var controllerPosition = Vec3.subtract(pickRay.origin, MyAvatar.position);
         controllerPosition = Vec3.multiplyQbyV(Quat.inverse(MyAvatar.orientation), controllerPosition);
         return controllerPosition;
@@ -2255,7 +2255,7 @@ SelectionDisplay = (function() {
             previousPickRay = pickRay;
             beginMouseEvent = event;
             if (that.triggered()) {
-                beginControllerPosition = getControllerAvatarFramePosition(pickRay);
+                beginControllerPosition = getControllerAvatarFramePositionFromPickRay(pickRay);
             }
         };
 
@@ -2332,7 +2332,7 @@ SelectionDisplay = (function() {
                 
                 var dimensionChange;
                 if (controllerTrigger) {
-                    var controllerPosition = getControllerAvatarFramePosition(pickRay);
+                    var controllerPosition = getControllerAvatarFramePositionFromPickRay(pickRay);
                     var vecControllerDifference = Vec3.subtract(controllerPosition, beginControllerPosition);
                     var controllerDifference = vecControllerDifference.x + vecControllerDifference.y + 
                                                vecControllerDifference.z;
