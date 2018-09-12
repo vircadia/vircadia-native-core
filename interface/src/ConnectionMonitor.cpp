@@ -33,16 +33,17 @@ void ConnectionMonitor::init() {
     connect(&domainHandler, &DomainHandler::connectedToDomain, this, &ConnectionMonitor::stopTimer);
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &ConnectionMonitor::stopTimer);
     connect(&domainHandler, &DomainHandler::redirectToErrorDomainURL, this, &ConnectionMonitor::stopTimer);
+    connect(this, &ConnectionMonitor::setRedirectErrorState, &domainHandler, &DomainHandler::setRedirectErrorState);
 
     _timer.setSingleShot(true);
     if (!domainHandler.isConnected()) {
         _timer.start(ON_INITIAL_LOAD_REDIRECT_AFTER_DISCONNECTED_FOR_X_MS);
     }
 
-    connect(&_timer, &QTimer::timeout, this, [domainHandler]() {
+    connect(&_timer, &QTimer::timeout, this, [this]() {
         qDebug() << "ConnectionMonitor: Redirecting to 404 error domain";
         // set in a timeout error
-        domainHandler.setErrorRedirectState(REDIRECT_HIFI_ADDRESS, 5);
+        emit setRedirectErrorState(REDIRECT_HIFI_ADDRESS, 5);
     });
 }
 
