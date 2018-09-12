@@ -1861,9 +1861,7 @@ qint64 AvatarData::packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice
 }
 
 qint64 AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID traitInstanceID,
-                                     ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion,
-                                     AvatarTraits::TraitInstanceID wireInstanceID) {
-
+                                   ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion) {
     qint64 bytesWritten = 0;
 
     bytesWritten += destination.writePrimitive(traitType);
@@ -1872,11 +1870,7 @@ qint64 AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTr
         bytesWritten += destination.writePrimitive(traitVersion);
     }
 
-    if (!wireInstanceID.isNull()) {
-        bytesWritten += destination.write(wireInstanceID.toRfc4122());
-    } else {
-        bytesWritten += destination.write(traitInstanceID.toRfc4122());
-    }
+    bytesWritten += destination.write(traitInstanceID.toRfc4122());
 
     if (traitType == AvatarTraits::AvatarEntity) {
         // grab a read lock on the avatar entities and check for entity data for the given ID
