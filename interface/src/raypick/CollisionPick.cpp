@@ -51,6 +51,7 @@ void buildObjectIntersectionsMap(IntersectionType intersectionType, const std::v
         QVariantMap collisionPointPair;
         collisionPointPair["pointOnPick"] = vec3toVariant(objectIntersection.testCollisionPoint);
         collisionPointPair["pointOnObject"] = vec3toVariant(objectIntersection.foundCollisionPoint);
+        collisionPointPair["normalOnPick"] = vec3toVariant(objectIntersection.collisionNormal);
 
         collisionPointPairs[objectIntersection.foundID].append(collisionPointPair);
     }
@@ -419,7 +420,7 @@ PickResultPointer CollisionPick::getAvatarIntersection(const CollisionRegion& pi
 }
 
 PickResultPointer CollisionPick::getHUDIntersection(const CollisionRegion& pick) {
-    return std::make_shared<CollisionPickResult>(pick.toVariantMap(), std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
+    return std::make_shared<CollisionPickResult>(pick, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
 }
 
 Transform CollisionPick::getResultTransform() const {
