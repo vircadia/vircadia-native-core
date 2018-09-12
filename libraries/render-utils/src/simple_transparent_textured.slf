@@ -17,7 +17,7 @@
 <@include render-utils/ShaderConstants.h@>
 
 // the albedo texture
-layout(location=0) uniform sampler2D originalTexture;
+layout(binding=0) uniform sampler2D originalTexture;
 
 // the interpolated normal
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;

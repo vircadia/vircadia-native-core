@@ -132,9 +132,18 @@ void GL45Backend::updateInput() {
         auto offset = _input._bufferOffsets.data();
         auto stride = _input._bufferStrides.data();
 
-        for (GLuint buffer = 0; buffer < _input._buffers.size(); buffer++, vbo++, offset++, stride++) {
+        // Profile the count of buffers to update and use it to short cut the for loop
+        int numInvalids = (int) _input._invalidBuffers.count();
+        _stats._ISNumInputBufferChanges += numInvalids;
+
+        auto numBuffers = _input._buffers.size();
+        for (GLuint buffer = 0; buffer < numBuffers; buffer++, vbo++, offset++, stride++) {
             if (_input._invalidBuffers.test(buffer)) {
                 glBindVertexBuffer(buffer, (*vbo), (*offset), (GLsizei)(*stride));
+                numInvalids--;
+                if (numInvalids <= 0) {
+                    break;
+                }
             }
         }
 

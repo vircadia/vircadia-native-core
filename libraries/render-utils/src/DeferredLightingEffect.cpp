@@ -32,7 +32,6 @@
 namespace ru {
     using render_utils::slot::texture::Texture;
     using render_utils::slot::buffer::Buffer;
-    using render_utils::slot::uniform::Uniform;
 }
 
 namespace gr {

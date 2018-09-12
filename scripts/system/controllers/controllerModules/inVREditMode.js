@@ -21,7 +21,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.disableModules = false;
         var NO_HAND_LASER = -1; // Invalid hand parameter so that default laser is not displayed.
         this.parameters = makeDispatcherModuleParameters(
-            200, // Not too high otherwise the tablet laser doesn't work.
+            240, // Not too high otherwise the tablet laser doesn't work.
             this.hand === RIGHT_HAND
                 ? ["rightHand", "rightHandEquip", "rightHandTrigger"]
                 : ["leftHand", "leftHandEquip", "leftHandTrigger"],

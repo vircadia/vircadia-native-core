@@ -305,6 +305,7 @@ public:
     void setDynamic(bool value);
 
     virtual bool shouldBePhysical() const { return false; }
+    bool isVisuallyReady() const { return _visuallyReady; }
 
     bool getLocked() const;
     void setLocked(bool value);
@@ -527,6 +528,7 @@ public:
     void removeCloneID(const QUuid& cloneID);
     const QVector<QUuid> getCloneIDs() const;
     void setCloneIDs(const QVector<QUuid>& cloneIDs);
+    void setVisuallyReady(bool visuallyReady) { _visuallyReady = visuallyReady; }
 
 signals:
     void requestRenderUpdate();
@@ -639,6 +641,7 @@ protected:
     EntityTreeElementPointer _element; // set by EntityTreeElement
     void* _physicsInfo { nullptr }; // set by EntitySimulation
     bool _simulated { false }; // set by EntitySimulation
+    bool _visuallyReady { true };
 
     bool addActionInternal(EntitySimulationPointer simulation, EntityDynamicPointer action);
     bool removeActionInternal(const QUuid& actionID, EntitySimulationPointer simulation = nullptr);

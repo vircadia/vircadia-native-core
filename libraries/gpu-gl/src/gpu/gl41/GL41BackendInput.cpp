@@ -78,8 +78,9 @@ void GL41Backend::updateInput() {
 
             const Stream::Format::AttributeMap& attributes = _input._format->getAttributes();
             auto& inputChannels = _input._format->getChannels();
-            _stats._ISNumInputBufferChanges++;
-
+            int numInvalids = (int)_input._invalidBuffers.count();
+            _stats._ISNumInputBufferChanges += numInvalids;
+            
             GLuint boundVBO = 0;
             for (auto& channelIt : inputChannels) {
                 const Stream::Format::ChannelMap::value_type::second_type& channel = (channelIt).second;

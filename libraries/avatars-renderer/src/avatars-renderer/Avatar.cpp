@@ -126,19 +126,11 @@ Avatar::Avatar(QThread* thread) :
     _leftPointerGeometryID = geometryCache->allocateID();
     _rightPointerGeometryID = geometryCache->allocateID();
     _lastRenderUpdateTime = usecTimestampNow();
+
+    indicateLoadingStatus(LoadingStatus::NoModel);
 }
 
 Avatar::~Avatar() {
-    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
-    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
-    if (entityTree) {
-        entityTree->withWriteLock([&] {
-            AvatarEntityMap avatarEntities = getAvatarEntityData();
-            for (auto entityID : avatarEntities.keys()) {
-                entityTree->deleteEntity(entityID, true, true);
-            }
-        });
-    }
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (geometryCache) {
         geometryCache->releaseID(_nameRectGeometryID);
@@ -381,6 +373,19 @@ void Avatar::updateAvatarEntities() {
     });
 
     setAvatarEntityDataChanged(false);
+}
+
+void Avatar::removeAvatarEntitiesFromTree() {
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+    if (entityTree) {
+        entityTree->withWriteLock([&] {
+            AvatarEntityMap avatarEntities = getAvatarEntityData();
+            for (auto entityID : avatarEntities.keys()) {
+                entityTree->deleteEntity(entityID, true, true);
+            }
+        });
+    }
 }
 
 void Avatar::relayJointDataToChildren() {
@@ -1370,12 +1375,15 @@ void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
 }
 
 void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
-    if (!isMyAvatar()) {
-        createOrb();
-    }
     AvatarData::setSkeletonModelURL(skeletonModelURL);
     if (QThread::currentThread() == thread()) {
+
+        if (!isMyAvatar()) {
+            createOrb();
+        }
+
         _skeletonModel->setURL(_skeletonModelURL);
+        indicateLoadingStatus(LoadingStatus::LoadModel);
     } else {
         QMetaObject::invokeMethod(_skeletonModel.get(), "setURL", Qt::QueuedConnection, Q_ARG(QUrl, _skeletonModelURL));
     }
@@ -1388,11 +1396,12 @@ void Avatar::setModelURLFinished(bool success) {
     _reconstructSoftEntitiesJointMap = true;
 
     if (!success && _skeletonModelURL != AvatarData::defaultFullAvatarModelUrl()) {
+        indicateLoadingStatus(LoadingStatus::LoadFailure);
         const int MAX_SKELETON_DOWNLOAD_ATTEMPTS = 4; // NOTE: we don't want to be as generous as ResourceCache is, we only want 4 attempts
         if (_skeletonModel->getResourceDownloadAttemptsRemaining() <= 0 ||
             _skeletonModel->getResourceDownloadAttempts() > MAX_SKELETON_DOWNLOAD_ATTEMPTS) {
             qCWarning(avatars_renderer) << "Using default after failing to load Avatar model: " << _skeletonModelURL
-                                    << "after" << _skeletonModel->getResourceDownloadAttempts() << "attempts.";
+                                        << "after" << _skeletonModel->getResourceDownloadAttempts() << "attempts.";
             // call _skeletonModel.setURL, but leave our copy of _skeletonModelURL alone.  This is so that
             // we don't redo this every time we receive an identity packet from the avatar with the bad url.
             QMetaObject::invokeMethod(_skeletonModel.get(), "setURL",
@@ -1402,6 +1411,9 @@ void Avatar::setModelURLFinished(bool success) {
                     << "failed to load... attempts:" << _skeletonModel->getResourceDownloadAttempts()
                     << "out of:" << MAX_SKELETON_DOWNLOAD_ATTEMPTS;
         }
+    }
+    if (success) {
+        indicateLoadingStatus(LoadingStatus::LoadSuccess);
     }
 }
 
