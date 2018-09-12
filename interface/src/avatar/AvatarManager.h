@@ -91,6 +91,8 @@ public:
     void updateOtherAvatars(float deltaTime);
     void sendIdentityRequest(const QUuid& avatarID) const;
 
+    void setMyAvatarDataPacketsPaused(bool puase);
+
     void postUpdate(float deltaTime, const render::ScenePointer& scene);
 
     void clearOtherAvatars() override;
@@ -219,6 +221,7 @@ private:
     int _numAvatarsNotUpdated { 0 };
     float _avatarSimulationTime { 0.0f };
     bool _shouldRender { true };
+    bool _myAvatarDataPacketsPaused { false };
     mutable int _identityRequestsSent { 0 };
 
     mutable std::mutex _spaceLock;

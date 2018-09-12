@@ -63,7 +63,7 @@ void GLBackend::do_endQuery(const Batch& batch, size_t paramOffset) {
 #endif
 
         --_queryStage._rangeQueryDepth;
-        auto duration_ns = (std::chrono::high_resolution_clock::now() - glquery->_batchElapsedTimeBegin);
+        auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - glquery->_batchElapsedTimeBegin);
         glquery->_batchElapsedTime = duration_ns.count();
 
         PROFILE_RANGE_END(render_gpu_gl_detail, glquery->_profileRangeId);

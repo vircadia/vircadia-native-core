@@ -15,12 +15,16 @@
 #include <QObject>
 #include <QTimer>
 
+class QUrl;
 class QString;
 
 class ConnectionMonitor : public QObject {
     Q_OBJECT
 public:
     void init();
+
+signals:
+    void setRedirectErrorState(QUrl errorURL, int reasonCode);
 
 private slots:
     void startTimer();
