@@ -158,7 +158,9 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
             debugPrint("ListView.resetRows - no valid table body element");
             return;
         }
-
+        
+        that.resetRowOffset();
+        
         elTopBuffer.setAttribute("height", 0);
         elBottomBuffer.setAttribute("height", 0);
 

@@ -50,7 +50,7 @@ var visibleEntities = [];
 var entityList = null;
 var selectedEntities = [];
 var currentSortColumn = 'type';
-var currentSortOrder = 'des';
+var currentSortOrder = ASCENDING_SORT;
 var isFilterInView = false;
 var showExtraInfo = false;
 
@@ -96,9 +96,6 @@ function loaded() {
         elNoEntitiesMessage = document.getElementById("no-entities");
         elNoEntitiesInView = document.getElementById("no-entities-in-view");
         elNoEntitiesRadius = document.getElementById("no-entities-radius");
-        elNoEntitiesInView.style.display = "none";
-
-        entityList = new ListView("entity-table", "entity-table-body", "entity-table-scroll", createRowFunction, updateRowFunction, clearRowFunction);
         
         document.getElementById("entity-name").onclick = function() {
             setSortColumn('name');
@@ -163,8 +160,12 @@ function loaded() {
         elInfoToggle.onclick = toggleInfo;
         window.onresize = resize;
         
+        elNoEntitiesInView.style.display = "none";
+        
+        entityList = new ListView("entity-table", "entity-table-body", "entity-table-scroll", createRowFunction, updateRowFunction, clearRowFunction);
+        
         function onRowClicked(clickEvent) {
-            let entityID = this.getAttribute("id");
+            let entityID = this.dataset.entityID;
             let selection = [entityID];
 
             if (clickEvent.ctrlKey) {
@@ -178,11 +179,11 @@ function loaded() {
             } else if (clickEvent.shiftKey && selectedEntities.length > 0) {
                 let previousItemFound = -1;
                 let clickedItemFound = -1;
-                for (let i = 0; i < visibleEntities.length; i++) {
+                for (let i = 0, len = visibleEntities.length; i < len; ++i) {
                     let entity = visibleEntities[i];
                     if (clickedItemFound === -1 && entityID === entity.id) {
                         clickedItemFound = i;
-                    } else if(previousItemFound === -1 && selectedEntities[0] === entity.id) {
+                    } else if (previousItemFound === -1 && selectedEntities[0] === entity.id) {
                         previousItemFound = i;
                     }
                 }
@@ -213,11 +214,10 @@ function loaded() {
         }
 
         function onRowDoubleClicked() {
-            var entityID = this.getAttribute("id");
             EventBridge.emitWebEvent(JSON.stringify({
                 type: "selectionUpdate",
                 focus: true,
-                entityIds: [entityID],
+                entityIds: [this.dataset.entityID],
             }));
         }
         
@@ -241,7 +241,7 @@ function loaded() {
             
             PROFILE("map-data", function() {
                 entityData.forEach(function(entity) {
-                    let type = entity.type
+                    let type = entity.type;
                     let filename = getFilename(entity.url);
                     if (filename === IMAGE_MODEL_NAME) {
                         type = "Image";
@@ -262,7 +262,8 @@ function loaded() {
                         isBaked: entity.isBaked ? BAKED_GLYPH : null,
                         drawCalls: displayIfNonZero(entity.drawCalls),
                         hasScript: entity.hasScript ? SCRIPT_GLYPH : null,
-                        elRow : null
+                        elRow: null,
+                        selected: false
                     }
                     
                     entities.push(entityData);
@@ -303,25 +304,37 @@ function loaded() {
         function removeEntities(deletedIDs) {
             // Loop from the back so we can pop items off while iterating
             for (let j = entities.length - 1; j >= 0; --j) {
-                let id = entities[j];
+                let id = entities[j].id;
                 for (let i = 0, length = deletedIDs.length; i < length; ++i) {
                     if (id === deletedIDs[i]) {
                         entities.splice(j, 1);
-                        entitiesByID[id].el.remove();
                         delete entitiesByID[id];
                         break;
                     }
                 }
             }
-            refreshEntities();
+            for (let j = visibleEntities.length - 1; j >= 0; --j) {
+                let id = visibleEntities[j].id;
+                for (let i = 0, length = deletedIDs.length; i < length; ++i) {
+                    if (id === deletedIDs[i]) {
+                        if (visibleEntities[j].elRow) {
+                            visibleEntities[j].elRow.dataset.entityID = 0;
+                        }
+                        visibleEntities.splice(j, 1);
+                        break;
+                    }
+                }
+            }
+            entityList.setVisibleItemData(visibleEntities);
+            entityList.refresh();
         }
         
         function clearEntities() {
-            var firstVisibleRow = entityList.getRowOffset();
-            var lastVisibleRow = firstVisibleRow + entityList.getNumRows() - 1;
-            for (var i = firstVisibleRow; i <= lastVisibleRow && i < visibleEntities.length; i++) {
-                var entity = visibleEntities[i];
-                entity.elRow.setAttribute("id", "");
+            let firstVisibleRow = entityList.getRowOffset();
+            let lastVisibleRow = firstVisibleRow + entityList.getNumRows() - 1;
+            for (let i = firstVisibleRow; i <= lastVisibleRow && i < visibleEntities.length; i++) {
+                let entity = visibleEntities[i];
+                entity.elRow.dataset.entityID = 0;
             }
             
             entities = [];
@@ -357,7 +370,7 @@ function loaded() {
                     currentSortColumn = column;
                     currentSortOrder = ASCENDING_SORT;
                 }
-                elSortOrder[column].innerHTML = currentSortOrder == ASCENDING_SORT ? ASCENDING_STRING : DESCENDING_STRING;
+                elSortOrder[column].innerHTML = currentSortOrder === ASCENDING_SORT ? ASCENDING_STRING : DESCENDING_STRING;
                 refreshEntityList();
             });
         }
@@ -394,16 +407,19 @@ function loaded() {
             
             for (let i = 0; i < selectedEntities.length; i++) {
                 let id = selectedEntities[i];
-                entitiesByID[id].selected = false;
+                let entity = entitiesByID[id];
+                if (entity) {
+                    entitiesByID[id].selected = false;
+                }
             }
 
             selectedEntities = [];
             for (let i = 0; i < selectedIDs.length; i++) {
                 let id = selectedIDs[i];
-                entitiesByID[id].selected = true;
                 selectedEntities.push(id);
                 if (id in entitiesByID) {
                     let entity = entitiesByID[id];
+                    entity.selected = true;
                     if (entity.elRow) {
                         entity.elRow.className = 'selected';
                     }
@@ -464,15 +480,15 @@ function loaded() {
                 elRow.className = '';
             }
             
-            var prevItemId = elRow.getAttribute("id");
+            var prevItemId = elRow.dataset.entityID;
             var newItemId = itemData.id;
-            var validPrevItemId = prevItemId !== null && prevItemId.length > 0;     
-            if (validPrevItemId && prevItemId !== newItemId && entitiesByID[prevItemId].elRow === elRow) {
-                elRow.setAttribute("id", "");
+            var validPrevItemID = prevItemId !== undefined && prevItemId > 0;
+            if (validPrevItemID && prevItemId !== newItemId && entitiesByID[prevItemId].elRow === elRow) {
+                elRow.dataset.entityID = 0;
                 entitiesByID[prevItemId].elRow = null;
             }
-            if (!validPrevItemId || prevItemId !== newItemId) {
-                elRow.setAttribute("id", newItemId);
+            if (!validPrevItemID || prevItemId !== newItemId) {
+                elRow.dataset.entityID = newItemId;
                 entitiesByID[newItemId].elRow = elRow;
             }
         }
@@ -483,14 +499,16 @@ function loaded() {
                 cell.innerHTML = "";
             }
             
-            var id = elRow.getAttribute("id");
-            if (id && entitiesByID[id]) {
-                elRow.setAttribute("id", "");
-                entitiesByID[id].elRow = null;
+            var entityID = elRow.dataset.entityID;
+            if (entityID && entitiesByID[entityID]) {
+                entitiesByID[entityID].elRow = null;
             }
+            
+            elRow.dataset.entityID = 0;
         }
 
         function resize() {
+            // Store current scroll position
             var prevScrollTop = elEntityTableScroll.scrollTop;
             
             // Take up available window space
@@ -528,9 +546,11 @@ function loaded() {
                 }
             }
             
+            // Reinitialize rows according to new table height and refresh row data
             entityList.resetRows(window.innerHeight - WINDOW_NONVARIABLE_HEIGHT);
             entityList.refresh();
             
+            // Restore scrolling to previous scroll position before resetting rows
             elEntityTableScroll.scrollTop = prevScrollTop;
         };
         
