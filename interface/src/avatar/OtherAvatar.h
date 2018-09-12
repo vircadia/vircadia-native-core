@@ -28,6 +28,7 @@ public:
 
     virtual void instantiableAvatar() override { };
     virtual void createOrb() override;
+    virtual void indicateLoadingStatus(LoadingStatus loadingStatus) override;
     void updateOrbPosition();
     void removeOrb();
 
