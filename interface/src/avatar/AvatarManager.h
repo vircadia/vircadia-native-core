@@ -95,7 +95,7 @@ public:
 
     void postUpdate(float deltaTime, const render::ScenePointer& scene);
 
-    void clearOtherAvatars();
+    void clearOtherAvatars() override;
     void deleteAllAvatars();
 
     void getObjectsToRemoveFromPhysics(VectorOfMotionStates& motionStates);

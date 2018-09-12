@@ -195,6 +195,7 @@
 #include "ui/SnapshotAnimated.h"
 #include "ui/StandAloneJSConsole.h"
 #include "ui/Stats.h"
+#include "ui/AnimStats.h"
 #include "ui/UpdateDialog.h"
 #include "ui/overlays/Overlays.h"
 #include "ui/DomainConnectionModel.h"
@@ -1192,7 +1193,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&domainHandler, SIGNAL(resetting()), SLOT(resettingDomain()));
     connect(&domainHandler, SIGNAL(connectedToDomain(QUrl)), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
-    connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &Application::clearDomainAvatars);
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, [this]() {
         getOverlays().deleteOverlay(getTabletScreenID());
         getOverlays().deleteOverlay(getTabletHomeButtonID());
@@ -2667,6 +2667,10 @@ Application::~Application() {
 void Application::initializeGL() {
     qCDebug(interfaceapp) << "Created Display Window.";
 
+#ifdef DISABLE_QML
+    setAttribute(Qt::AA_DontCheckOpenGLContextThreadAffinity);
+#endif
+
     // initialize glut for shape drawing; Qt apparently initializes it on OS X
     if (_isGLInitialized) {
         return;
@@ -3088,8 +3092,10 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
 
 void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
     Stats::show();
+    AnimStats::show();
     auto surfaceContext = DependencyManager::get<OffscreenUi>()->getSurfaceContext();
     surfaceContext->setContextProperty("Stats", Stats::getInstance());
+    surfaceContext->setContextProperty("AnimStats", AnimStats::getInstance());
 
 #if !defined(Q_OS_ANDROID)
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
@@ -4637,6 +4643,7 @@ void Application::idle() {
     checkChangeCursor();
 
     Stats::getInstance()->updateStats();
+    AnimStats::getInstance()->updateStats();
 
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
     // details if we're in ExtraDebugging mode. However, the ::update() and its subcomponents will show their timing
@@ -5876,9 +5883,7 @@ void Application::update(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::update()");
 
-#if !defined(Q_OS_ANDROID)
     updateLOD(deltaTime);
-#endif
 
     // TODO: break these out into distinct perfTimers when they prove interesting
     {
@@ -6388,10 +6393,6 @@ void Application::clearDomainOctreeDetails() {
     getMyAvatar()->setAvatarEntityDataChanged(true);
 }
 
-void Application::clearDomainAvatars() {
-    DependencyManager::get<AvatarManager>()->clearOtherAvatars();
-}
-
 void Application::domainURLChanged(QUrl domainURL) {
     // disable physics until we have enough information about our new location to not cause craziness.
     resetPhysicsReadyInformation();
@@ -6491,9 +6492,6 @@ void Application::nodeKilled(SharedNodePointer node) {
     } else if (node->getType() == NodeType::EntityServer) {
         // we lost an entity server, clear all of the domain octree details
         clearDomainOctreeDetails();
-    } else if (node->getType() == NodeType::AvatarMixer) {
-        // our avatar mixer has gone away - clear the hash of avatars
-        DependencyManager::get<AvatarManager>()->clearOtherAvatars();
     } else if (node->getType() == NodeType::AssetServer) {
         // asset server going away - check if we have the asset browser showing
 
@@ -6573,7 +6571,6 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
     _nearbyEntitiesCountAtLastPhysicsCheck = nearbyCount;
 
     const uint32_t MINIMUM_NEARBY_ENTITIES_STABILITY_COUNT = 3;
-    uint32_t readyNearbyEntities = 0;
     if (_nearbyEntitiesStabilityCount >= MINIMUM_NEARBY_ENTITIES_STABILITY_COUNT) {
         // We've seen the same number of nearby entities for several stats packets in a row.  assume we've got all
         // the local entities.
@@ -6583,8 +6580,6 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
                 HIFI_FCDEBUG(interfaceapp(), "Physics disabled until entity loads: " << entity->getID() << entity->getName());
                 // don't break here because we want all the relevant entities to start their downloads
                 result = false;
-            } else {
-                readyNearbyEntities++;
             }
         }
         return result;
@@ -6909,6 +6904,9 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
         shortName = shortName.mid(startIndex, endIndex - startIndex);
     }
 
+#ifdef DISABLE_QML
+    DependencyManager::get<ScriptEngines>()->loadScript(scriptFilenameOrURL);
+#else
     QString message = "Would you like to run this script:\n" + shortName;
     ModalDialogListener* dlg = OffscreenUi::asyncQuestion(getWindow(), "Run Script", message,
                                                            QMessageBox::Yes | QMessageBox::No);
@@ -6923,7 +6921,7 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
         }
         QObject::disconnect(dlg, &ModalDialogListener::response, this, nullptr);
     });
-
+#endif
     return true;
 }
 

@@ -18,7 +18,8 @@
 
 <$declareStandardTransform()$>
 
-uniform vec4 sphereParam;
+// FIXME make into a uniform buffer or push constant if this shader ever comes into use
+vec4 sphereParam = vec4(0.0);
 
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
 
@@ -41,7 +42,7 @@ void main(void) {
         }
 #endif
 #endif
-        _texCoord01.xy = vec4(projected.xy, 0.0, 1.0) * gl_Position.w;
+        _texCoord01 = vec4(projected.xy, 0.0, 1.0) * gl_Position.w;
     } else {
         const float depth = -1.0; //Draw at near plane
         const vec4 UNIT_QUAD[4] = vec4[4](
@@ -60,7 +61,7 @@ void main(void) {
 #endif
 #endif
 
-        _texCoord01.xy = vec4((pos.xy + 1.0) * 0.5, 0.0, 1.0);
+        _texCoord01 = vec4((pos.xy + 1.0) * 0.5, 0.0, 1.0);
 
 #ifdef GPU_TRANSFORM_IS_STEREO
 #ifdef GPU_TRANSFORM_STEREO_SPLIT_SCREEN

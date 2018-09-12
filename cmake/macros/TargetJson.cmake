@@ -8,6 +8,5 @@
 macro(TARGET_JSON)
     add_dependency_external_projects(json)
     find_package(JSON REQUIRED)
-    message("JSON_INCLUDE_DIRS ${JSON_INCLUDE_DIRS}") 
     target_include_directories(${TARGET_NAME} PUBLIC ${JSON_INCLUDE_DIRS})
 endmacro()

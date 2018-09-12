@@ -96,7 +96,6 @@ Agent::Agent(ReceivedMessage& message) :
     DependencyManager::set<recording::Recorder>();
     DependencyManager::set<recording::ClipCache>();
 
-    DependencyManager::set<ScriptCache>();
     DependencyManager::set<RecordingScriptingInterface>();
     DependencyManager::set<UsersScriptingInterface>();
 
@@ -176,6 +175,8 @@ static const QString AGENT_LOGGING_NAME = "agent";
 void Agent::run() {
     // Create ScriptEngines on threaded-assignment thread then move to main thread.
     DependencyManager::set<ScriptEngines>(ScriptEngine::AGENT_SCRIPT)->moveToThread(qApp->thread());
+
+    DependencyManager::set<ScriptCache>();
 
     // make sure we request our script once the agent connects to the domain
     auto nodeList = DependencyManager::get<NodeList>();
@@ -360,154 +361,178 @@ void Agent::scriptRequestFinished() {
 }
 
 void Agent::executeScript() {
-    _scriptEngine = scriptEngineFactory(ScriptEngine::AGENT_SCRIPT, _scriptContents, _payload);
+    // the following block is scoped so that any shared pointers we take here
+    // are cleared before we call setFinished at the end of the function
+    {
+        _scriptEngine = scriptEngineFactory(ScriptEngine::AGENT_SCRIPT, _scriptContents, _payload);
 
-    // setup an Avatar for the script to use
-    auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
+        // setup an Avatar for the script to use
+        auto scriptedAvatar = DependencyManager::get<ScriptableAvatar>();
 
-    scriptedAvatar->setID(getSessionUUID());
+        scriptedAvatar->setID(getSessionUUID());
 
-    connect(_scriptEngine.data(), SIGNAL(update(float)),
-            scriptedAvatar.data(), SLOT(update(float)), Qt::ConnectionType::QueuedConnection);
-    scriptedAvatar->setForceFaceTrackerConnected(true);
+        connect(_scriptEngine.data(), SIGNAL(update(float)),
+                scriptedAvatar.data(), SLOT(update(float)), Qt::ConnectionType::QueuedConnection);
+        scriptedAvatar->setForceFaceTrackerConnected(true);
 
-    // call model URL setters with empty URLs so our avatar, if user, will have the default models
-    scriptedAvatar->setSkeletonModelURL(QUrl());
+        // call model URL setters with empty URLs so our avatar, if user, will have the default models
+        scriptedAvatar->setSkeletonModelURL(QUrl());
 
-    // force lazy initialization of the head data for the scripted avatar
-    // since it is referenced below by computeLoudness and getAudioLoudness
-    scriptedAvatar->getHeadOrientation();
+        // force lazy initialization of the head data for the scripted avatar
+        // since it is referenced below by computeLoudness and getAudioLoudness
+        scriptedAvatar->getHeadOrientation();
 
-    // give this AvatarData object to the script engine
-    _scriptEngine->registerGlobalObject("Avatar", scriptedAvatar.data());
+        // give this AvatarData object to the script engine
+        _scriptEngine->registerGlobalObject("Avatar", scriptedAvatar.data());
 
-    // give scripts access to the Users object
-    _scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
+        // give scripts access to the Users object
+        _scriptEngine->registerGlobalObject("Users", DependencyManager::get<UsersScriptingInterface>().data());
 
-    auto player = DependencyManager::get<recording::Deck>();
-    connect(player.data(), &recording::Deck::playbackStateChanged, [=] {
-        if (player->isPlaying()) {
-            auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
-            if (recordingInterface->getPlayFromCurrentLocation()) {
-                scriptedAvatar->setRecordingBasis();
+        auto player = DependencyManager::get<recording::Deck>();
+        connect(player.data(), &recording::Deck::playbackStateChanged, [&player, &scriptedAvatar] {
+            if (player->isPlaying()) {
+                auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
+                if (recordingInterface->getPlayFromCurrentLocation()) {
+                    scriptedAvatar->setRecordingBasis();
+                }
+
+                // these procedural movements are included in the recordings
+                scriptedAvatar->setHasProceduralEyeFaceMovement(false);
+                scriptedAvatar->setHasProceduralBlinkFaceMovement(false);
+                scriptedAvatar->setHasAudioEnabledFaceMovement(false);
+            } else {
+                scriptedAvatar->clearRecordingBasis();
+
+                // restore procedural blendshape movement
+                scriptedAvatar->setHasProceduralEyeFaceMovement(true);
+                scriptedAvatar->setHasProceduralBlinkFaceMovement(true);
+                scriptedAvatar->setHasAudioEnabledFaceMovement(true);
             }
-        } else {
-            scriptedAvatar->clearRecordingBasis();
-        }
-    });
+        });
 
-    using namespace recording;
-    static const FrameType AVATAR_FRAME_TYPE = Frame::registerFrameType(AvatarData::FRAME_NAME);
-    Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [scriptedAvatar](Frame::ConstPointer frame) {
+        using namespace recording;
+        static const FrameType AVATAR_FRAME_TYPE = Frame::registerFrameType(AvatarData::FRAME_NAME);
+        Frame::registerFrameHandler(AVATAR_FRAME_TYPE, [scriptedAvatar](Frame::ConstPointer frame) {
+
+            auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
+            bool useFrameSkeleton = recordingInterface->getPlayerUseSkeletonModel();
+
+            // FIXME - the ability to switch the avatar URL is not actually supported when playing back from a recording
+            if (!useFrameSkeleton) {
+                static std::once_flag warning;
+                std::call_once(warning, [] {
+                    qWarning() << "Recording.setPlayerUseSkeletonModel(false) is not currently supported.";
+                });
+            }
+
+            AvatarData::fromFrame(frame->data, *scriptedAvatar);
+        });
+
+        using namespace recording;
+        static const FrameType AUDIO_FRAME_TYPE = Frame::registerFrameType(AudioConstants::getAudioFrameName());
+        Frame::registerFrameHandler(AUDIO_FRAME_TYPE, [this, &scriptedAvatar](Frame::ConstPointer frame) {
+            static quint16 audioSequenceNumber{ 0 };
+
+            QByteArray audio(frame->data);
+
+            if (_isNoiseGateEnabled) {
+                int16_t* samples = reinterpret_cast<int16_t*>(audio.data());
+                int numSamples = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
+                _audioGate.render(samples, samples, numSamples);
+            }
+
+            computeLoudness(&audio, scriptedAvatar);
+
+            // state machine to detect gate opening and closing
+            bool audioGateOpen = (scriptedAvatar->getAudioLoudness() != 0.0f);
+            bool openedInLastBlock = !_audioGateOpen && audioGateOpen;  // the gate just opened
+            bool closedInLastBlock = _audioGateOpen && !audioGateOpen;  // the gate just closed
+            _audioGateOpen = audioGateOpen;
+            Q_UNUSED(openedInLastBlock);
+
+            // the codec must be flushed to silence before sending silent packets,
+            // so delay the transition to silent packets by one packet after becoming silent.
+            auto packetType = PacketType::MicrophoneAudioNoEcho;
+            if (!audioGateOpen && !closedInLastBlock) {
+                packetType = PacketType::SilentAudioFrame;
+            }
+
+            Transform audioTransform;
+            auto headOrientation = scriptedAvatar->getHeadOrientation();
+            audioTransform.setTranslation(scriptedAvatar->getWorldPosition());
+            audioTransform.setRotation(headOrientation);
+
+            QByteArray encodedBuffer;
+            if (_encoder) {
+                _encoder->encode(audio, encodedBuffer);
+            } else {
+                encodedBuffer = audio;
+            }
+
+            AbstractAudioInterface::emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), audioSequenceNumber, false,
+                                                    audioTransform, scriptedAvatar->getWorldPosition(), glm::vec3(0),
+                                                    packetType, _selectedCodecName);
+        });
+
+        auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
+        _scriptEngine->registerGlobalObject("AvatarList", avatarHashMap.data());
+
+        // register ourselves to the script engine
+        _scriptEngine->registerGlobalObject("Agent", new AgentScriptingInterface(this));
+
+        _scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCacheScriptingInterface>().data());
+        _scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCacheScriptingInterface>().data());
+
+        QScriptValue webSocketServerConstructorValue = _scriptEngine->newFunction(WebSocketServerClass::constructor);
+        _scriptEngine->globalObject().setProperty("WebSocketServer", webSocketServerConstructorValue);
+
+        auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+
+        _scriptEngine->registerGlobalObject("EntityViewer", &_entityViewer);
+
+        _scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
+                                            LocationScriptingInterface::locationSetter);
 
         auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
-        bool useFrameSkeleton = recordingInterface->getPlayerUseSkeletonModel();
+        _scriptEngine->registerGlobalObject("Recording", recordingInterface.data());
 
-        // FIXME - the ability to switch the avatar URL is not actually supported when playing back from a recording
-        if (!useFrameSkeleton) {
-            static std::once_flag warning;
-            std::call_once(warning, [] {
-                qWarning() << "Recording.setPlayerUseSkeletonModel(false) is not currently supported.";
-            });
+        entityScriptingInterface->init();
+
+        _entityViewer.init();
+
+        entityScriptingInterface->setEntityTree(_entityViewer.getTree());
+
+        DependencyManager::set<AssignmentParentFinder>(_entityViewer.getTree());
+
+        _avatarAudioTimer.start();
+
+        // Agents should run at 45hz
+        static const int AVATAR_DATA_HZ = 45;
+        static const int AVATAR_DATA_IN_MSECS = MSECS_PER_SECOND / AVATAR_DATA_HZ;
+        QTimer* avatarDataTimer = new QTimer(this);
+        connect(avatarDataTimer, &QTimer::timeout, this, &Agent::processAgentAvatar);
+        avatarDataTimer->setSingleShot(false);
+        avatarDataTimer->setInterval(AVATAR_DATA_IN_MSECS);
+        avatarDataTimer->setTimerType(Qt::PreciseTimer);
+        avatarDataTimer->start();
+
+        _scriptEngine->run();
+
+        Frame::clearFrameHandler(AUDIO_FRAME_TYPE);
+        Frame::clearFrameHandler(AVATAR_FRAME_TYPE);
+
+        if (recordingInterface->isPlaying()) {
+            recordingInterface->stopPlaying();
         }
 
-        AvatarData::fromFrame(frame->data, *scriptedAvatar);
-    });
-
-    using namespace recording;
-    static const FrameType AUDIO_FRAME_TYPE = Frame::registerFrameType(AudioConstants::getAudioFrameName());
-    Frame::registerFrameHandler(AUDIO_FRAME_TYPE, [this, &scriptedAvatar](Frame::ConstPointer frame) {
-        static quint16 audioSequenceNumber{ 0 };
-
-        QByteArray audio(frame->data);
-
-        if (_isNoiseGateEnabled) {
-            int16_t* samples = reinterpret_cast<int16_t*>(audio.data());
-            int numSamples = AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL;
-            _audioGate.render(samples, samples, numSamples);
+        if (recordingInterface->isRecording()) {
+            recordingInterface->stopRecording();
         }
 
-        computeLoudness(&audio, scriptedAvatar);
+        avatarDataTimer->stop();
+        _avatarAudioTimer.stop();
+    }
 
-        // state machine to detect gate opening and closing
-        bool audioGateOpen = (scriptedAvatar->getAudioLoudness() != 0.0f);
-        bool openedInLastBlock = !_audioGateOpen && audioGateOpen;  // the gate just opened
-        bool closedInLastBlock = _audioGateOpen && !audioGateOpen;  // the gate just closed
-        _audioGateOpen = audioGateOpen;
-        Q_UNUSED(openedInLastBlock);
-
-        // the codec must be flushed to silence before sending silent packets,
-        // so delay the transition to silent packets by one packet after becoming silent.
-        auto packetType = PacketType::MicrophoneAudioNoEcho;
-        if (!audioGateOpen && !closedInLastBlock) {
-            packetType = PacketType::SilentAudioFrame;
-        }
-
-        Transform audioTransform;
-        auto headOrientation = scriptedAvatar->getHeadOrientation();
-        audioTransform.setTranslation(scriptedAvatar->getWorldPosition());
-        audioTransform.setRotation(headOrientation);
-
-        QByteArray encodedBuffer;
-        if (_encoder) {
-            _encoder->encode(audio, encodedBuffer);
-        } else {
-            encodedBuffer = audio;
-        }
-
-        AbstractAudioInterface::emitAudioPacket(encodedBuffer.data(), encodedBuffer.size(), audioSequenceNumber, false,
-            audioTransform, scriptedAvatar->getWorldPosition(), glm::vec3(0),
-            packetType, _selectedCodecName);
-    });
-
-    auto avatarHashMap = DependencyManager::set<AvatarHashMap>();
-    _scriptEngine->registerGlobalObject("AvatarList", avatarHashMap.data());
-
-    // register ourselves to the script engine
-    _scriptEngine->registerGlobalObject("Agent", new AgentScriptingInterface(this));
-
-    _scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCacheScriptingInterface>().data());
-    _scriptEngine->registerGlobalObject("SoundCache", DependencyManager::get<SoundCacheScriptingInterface>().data());
-
-    QScriptValue webSocketServerConstructorValue = _scriptEngine->newFunction(WebSocketServerClass::constructor);
-    _scriptEngine->globalObject().setProperty("WebSocketServer", webSocketServerConstructorValue);
-
-    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-
-    _scriptEngine->registerGlobalObject("EntityViewer", &_entityViewer);
-
-    _scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
-        LocationScriptingInterface::locationSetter);
-
-    auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
-    _scriptEngine->registerGlobalObject("Recording", recordingInterface.data());
-
-    entityScriptingInterface->init();
-
-    _entityViewer.init();
-
-    entityScriptingInterface->setEntityTree(_entityViewer.getTree());
-
-    DependencyManager::set<AssignmentParentFinder>(_entityViewer.getTree());
-
-    QMetaObject::invokeMethod(&_avatarAudioTimer, "start");
-
-    // Agents should run at 45hz
-    static const int AVATAR_DATA_HZ = 45;
-    static const int AVATAR_DATA_IN_MSECS = MSECS_PER_SECOND / AVATAR_DATA_HZ;
-    QTimer* avatarDataTimer = new QTimer(this);
-    connect(avatarDataTimer, &QTimer::timeout, this, &Agent::processAgentAvatar);
-    avatarDataTimer->setSingleShot(false);
-    avatarDataTimer->setInterval(AVATAR_DATA_IN_MSECS);
-    avatarDataTimer->setTimerType(Qt::PreciseTimer);
-    avatarDataTimer->start();
-
-    _scriptEngine->run();
-
-    Frame::clearFrameHandler(AUDIO_FRAME_TYPE);
-    Frame::clearFrameHandler(AVATAR_FRAME_TYPE);
-
-    DependencyManager::destroy<RecordingScriptingInterface>();
     setFinished(true);
 }
 
@@ -859,16 +884,24 @@ void Agent::aboutToFinish() {
     DependencyManager::destroy<SoundCache>();
     DependencyManager::destroy<AudioScriptingInterface>();
 
+    DependencyManager::destroy<RecordingScriptingInterface>();
     DependencyManager::destroy<recording::Deck>();
     DependencyManager::destroy<recording::Recorder>();
     DependencyManager::destroy<recording::ClipCache>();
-    DependencyManager::destroy<ScriptEngine>();
+
+    // drop our shared pointer to the script engine, then ask ScriptEngines to shutdown scripting
+    // this ensures that the ScriptEngine goes down before ScriptEngines
+    _scriptEngine.clear();
+
+    {
+        DependencyManager::get<ScriptEngines>()->shutdownScripting();
+    }
+    
+    DependencyManager::destroy<ScriptEngines>();
 
     DependencyManager::destroy<AssignmentDynamicFactory>();
 
     DependencyManager::destroy<ScriptableAvatar>();
-
-    QMetaObject::invokeMethod(&_avatarAudioTimer, "stop");
 
     // cleanup codec & encoder
     if (_codec && _encoder) {

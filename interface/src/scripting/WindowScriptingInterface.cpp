@@ -409,7 +409,7 @@ glm::vec2 WindowScriptingInterface::getDeviceSize() const {
     return qApp->getDeviceSize();
 }
 
-int WindowScriptingInterface::getLastDominConnectionError() const {
+int WindowScriptingInterface::getLastDomainConnectionError() const {
     return DependencyManager::get<NodeList>()->getDomainHandler().getLastDomainConnectionError();
 }
 

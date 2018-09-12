@@ -21,6 +21,7 @@
 #include "AvatarLogging.h"
 #include "AvatarTraits.h"
 
+#include "Profile.h"
 
 void AvatarReplicas::addReplica(const QUuid& parentID, AvatarSharedPointer replica) {
     if (parentID == QUuid()) {
@@ -112,6 +113,12 @@ AvatarHashMap::AvatarHashMap() {
     packetReceiver.registerListener(PacketType::BulkAvatarTraits, this, "processBulkAvatarTraits");
 
     connect(nodeList.data(), &NodeList::uuidChanged, this, &AvatarHashMap::sessionUUIDChanged);
+
+    connect(nodeList.data(), &NodeList::nodeKilled, this, [this](SharedNodePointer killedNode){
+        if (killedNode->getType() == NodeType::AvatarMixer) {
+            clearOtherAvatars();
+        }
+    });
 }
 
 QVector<QUuid> AvatarHashMap::getAvatarIdentifiers() {
@@ -214,6 +221,7 @@ AvatarSharedPointer AvatarHashMap::findAvatar(const QUuid& sessionUUID) const {
 }
 
 void AvatarHashMap::processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    DETAILED_PROFILE_RANGE(network, __FUNCTION__);
     PerformanceTimer perfTimer("receiveAvatar");
     // enumerate over all of the avatars in this packet
     // only add them if mixerWeakPointer points to something (meaning that mixer is still around)
@@ -427,3 +435,12 @@ void AvatarHashMap::sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& ol
     emit avatarSessionChangedEvent(sessionUUID, oldUUID);
 }
 
+void AvatarHashMap::clearOtherAvatars() {
+    QWriteLocker locker(&_hashLock);
+
+    for (auto& av : _avatarHash) {
+        handleRemovedAvatar(av);
+    }
+
+    _avatarHash.clear();
+}

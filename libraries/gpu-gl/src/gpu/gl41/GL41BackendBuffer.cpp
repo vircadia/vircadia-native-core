@@ -83,6 +83,10 @@ GLuint GL41Backend::getBufferID(const Buffer& buffer) {
     return GL41Buffer::getId<GL41Buffer>(*this, buffer);
 }
 
+GLuint GL41Backend::getBufferIDUnsynced(const Buffer& buffer) {
+    return GL41Buffer::getIdUnsynced<GL41Buffer>(*this, buffer);
+}
+
 GLuint GL41Backend::getResourceBufferID(const Buffer& buffer) {
     auto* object = GL41Buffer::sync<GL41Buffer>(*this, buffer);
     if (object) {
