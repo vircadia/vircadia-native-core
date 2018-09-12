@@ -29,7 +29,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.startSent = false;
 
         this.parameters = makeDispatcherModuleParameters(
-            480,
+            120,
             this.hand === RIGHT_HAND ? ["rightHandTrigger", "rightHand"] : ["leftHandTrigger", "leftHand"],
             [],
             100);
