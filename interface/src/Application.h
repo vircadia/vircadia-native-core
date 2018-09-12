@@ -331,6 +331,8 @@ signals:
 
     void uploadRequest(QString path);
 
+    void loginDialogPoppedUp();
+
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs, const glm::vec3* givenOffset = nullptr);

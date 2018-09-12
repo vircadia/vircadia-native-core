@@ -38,10 +38,10 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
     if (_disabled.get()) {
         return;
     }
-    
+
     auto accountManager = DependencyManager::get<AccountManager>();
     QHttpMultiPart* multipart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
-    
+
     // Adding the action name
     QHttpPart actionPart;
     actionPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"action_name\"");
@@ -53,7 +53,7 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
     elapsedPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"elapsed_ms\"");
     elapsedPart.setBody(QString::number(_timer.elapsed()).toLocal8Bit());
     multipart->append(elapsedPart);
-    
+
     // If there are action details, add them to the multipart
     if (!details.isEmpty()) {
         QHttpPart detailsPart;
@@ -62,13 +62,13 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
         detailsPart.setBody(QJsonDocument(details).toJson(QJsonDocument::Compact));
         multipart->append(detailsPart);
     }
-    
+
     // if no callbacks specified, call our owns
     if (params.isEmpty()) {
         params.callbackReceiver = this;
         params.errorCallbackMethod = "requestError";
     }
-    
+
     accountManager->sendRequest(USER_ACTIVITY_URL,
                                AccountManagerAuth::Optional,
                                QNetworkAccessManager::PostOperation,
@@ -88,7 +88,7 @@ void UserActivityLogger::launch(QString applicationVersion, bool previousSession
     actionDetails.insert(VERSION_KEY, applicationVersion);
     actionDetails.insert(CRASH_KEY, previousSessionCrashed);
     actionDetails.insert(RUNTIME_KEY, previousSessionRuntime);
-    
+
     logAction(ACTION_NAME, actionDetails);
 }
 
@@ -105,9 +105,9 @@ void UserActivityLogger::changedDisplayName(QString displayName) {
     const QString ACTION_NAME = "changed_display_name";
     QJsonObject actionDetails;
     const QString DISPLAY_NAME = "display_name";
-    
+
     actionDetails.insert(DISPLAY_NAME, displayName);
-    
+
     logAction(ACTION_NAME, actionDetails);
 }
 
@@ -116,10 +116,10 @@ void UserActivityLogger::changedModel(QString typeOfModel, QString modelURL) {
     QJsonObject actionDetails;
     const QString TYPE_OF_MODEL = "type_of_model";
     const QString MODEL_URL = "model_url";
-    
+
     actionDetails.insert(TYPE_OF_MODEL, typeOfModel);
     actionDetails.insert(MODEL_URL, modelURL);
-    
+
     logAction(ACTION_NAME, actionDetails);
 }
 
@@ -127,9 +127,9 @@ void UserActivityLogger::changedDomain(QString domainURL) {
     const QString ACTION_NAME = "changed_domain";
     QJsonObject actionDetails;
     const QString DOMAIN_URL = "domain_url";
-    
+
     actionDetails.insert(DOMAIN_URL, domainURL);
-    
+
     logAction(ACTION_NAME, actionDetails);
 }
 
@@ -151,10 +151,10 @@ void UserActivityLogger::connectedDevice(QString typeOfDevice, QString deviceNam
     QJsonObject actionDetails;
     const QString TYPE_OF_DEVICE = "type_of_device";
     const QString DEVICE_NAME = "device_name";
-    
+
     actionDetails.insert(TYPE_OF_DEVICE, typeOfDevice);
     actionDetails.insert(DEVICE_NAME, deviceName);
-    
+
     logAction(ACTION_NAME, actionDetails);
 
 }
@@ -163,9 +163,9 @@ void UserActivityLogger::loadedScript(QString scriptName) {
     const QString ACTION_NAME = "loaded_script";
     QJsonObject actionDetails;
     const QString SCRIPT_NAME = "script_name";
-    
+
     actionDetails.insert(SCRIPT_NAME, scriptName);
-    
+
     logAction(ACTION_NAME, actionDetails);
 
 }
@@ -199,10 +199,10 @@ void UserActivityLogger::wentTo(AddressManager::LookupTrigger lookupTrigger, QSt
     const QString TRIGGER_TYPE_KEY = "trigger";
     const QString DESTINATION_TYPE_KEY = "destination_type";
     const QString DESTINATION_NAME_KEY = "detination_name";
-    
+
     actionDetails.insert(TRIGGER_TYPE_KEY, trigger);
     actionDetails.insert(DESTINATION_TYPE_KEY, destinationType);
     actionDetails.insert(DESTINATION_NAME_KEY, destinationName);
-    
+
     logAction(ACTION_NAME, actionDetails);
 }
