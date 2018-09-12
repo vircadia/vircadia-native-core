@@ -113,6 +113,43 @@ void Avatar::setShowNamesAboveHeads(bool show) {
     showNamesAboveHeads = show;
 }
 
+void AvatarTransit::start(const glm::vec3& startPosition, const glm::vec3& endPosition, int totalFrames, int framesPerMeter, bool isDistanceBased) {
+    _startPosition = startPosition;
+    _endPosition = endPosition;
+    _step = 0;
+    if (!isDistanceBased) {
+        calculateSteps(totalFrames);
+    } else {
+        float distance = glm::length(_endPosition - _startPosition);
+        calculateSteps(framesPerMeter * distance);
+    }
+    
+    _isTransiting = true;
+}
+
+void AvatarTransit::calculateSteps(int stepCount) {
+    glm::vec3 startPosition = _isTransiting ? _transitSteps[_step] : _startPosition;
+    _transitSteps.clear();
+    glm::vec3 transitLine = _endPosition - _startPosition;
+    glm::vec3 direction = glm::normalize(transitLine);
+    glm::vec3 stepVector = (glm::length(transitLine) / stepCount) * direction;
+    for (auto i = 0; i < stepCount; i++) {
+        glm::vec3 localStep = _transitSteps.size() > 0 ? _transitSteps[i-1] + stepVector : _startPosition + stepVector;
+        _transitSteps.push_back(localStep);
+    }
+}
+
+bool AvatarTransit::getNextPosition(glm::vec3& nextPosition) {
+    int lastIdx = _transitSteps.size() - 1;
+    _isTransiting = _step < lastIdx;
+    if (_isTransiting) {
+        _step++;
+        nextPosition = _transitSteps[_step];
+        _currentPosition = nextPosition;
+    }
+    return _isTransiting;
+}
+
 Avatar::Avatar(QThread* thread) :
     _voiceSphereID(GeometryCache::UNKNOWN_ID)
 {
@@ -480,6 +517,7 @@ void Avatar::simulate(float deltaTime, bool inView) {
             _skeletonModel->simulate(deltaTime, false);
         }
         _skeletonModelSimulationRate.increment();
+        _lastPosition = _globalPosition;
     }
 
     // update animation for display name fade in/out

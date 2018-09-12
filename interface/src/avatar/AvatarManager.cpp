@@ -78,6 +78,12 @@ AvatarManager::AvatarManager(QObject* parent) :
             removeAvatar(nodeID, KillAvatarReason::AvatarIgnored);
         }
     });
+
+    const float AVATAR_TRANSIT_MAX_DISTANCE = 1.0f;
+    const int AVATAR_TRANSIT_FRAME_COUNT = 20;
+
+    _avatarTransitMaxDistance = AVATAR_TRANSIT_MAX_DISTANCE;
+    _avatarTransitFrameCount = AVATAR_TRANSIT_FRAME_COUNT;
 }
 
 AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
@@ -250,6 +256,20 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             if (inView && avatar->hasNewJointData()) {
                 numAvatarsUpdated++;
             }
+            // smooth other avatars positions
+            {   
+                float oneFrameDistance = glm::length(avatar->_globalPosition - avatar->_lastPosition);
+                if (oneFrameDistance > _avatarTransitMaxDistance) {
+                    avatar->_transit.start(avatar->_lastPosition, avatar->_globalPosition, _avatarTransitFrameCount, _avatarTransitFramePerMeter, _avatarTransitDistanceBased);
+                }
+                if (avatar->_transit.isTransiting()) {
+                    glm::vec3 nextPosition;
+                    if (avatar->_transit.getNextPosition(nextPosition)) {
+                        avatar->setWorldPosition(nextPosition);
+                    }
+                }
+            }
+
             avatar->simulate(deltaTime, inView);
             avatar->updateRenderItem(renderTransaction);
             avatar->updateSpaceProxy(workloadTransaction);

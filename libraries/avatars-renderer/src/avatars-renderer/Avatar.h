@@ -50,6 +50,22 @@ enum ScreenTintLayer {
 
 class Texture;
 
+class AvatarTransit {
+public:
+    AvatarTransit() {};
+    void start(const glm::vec3& startPosition, const glm::vec3& endPosition, int totalFrames, int framesPerMeter, bool isDistanceBased);
+    bool getNextPosition(glm::vec3& nextPosition);
+    bool isTransiting() { return _isTransiting; };
+private:
+    void calculateSteps(int stepCount);
+    bool _isTransiting{ false };
+    glm::vec3 _startPosition;
+    glm::vec3 _endPosition;
+    glm::vec3 _currentPosition;
+    std::vector<glm::vec3> _transitSteps;
+    int _step{ 0 };
+};
+
 class Avatar : public AvatarData, public scriptable::ModelProvider {
     Q_OBJECT
 
@@ -518,6 +534,9 @@ protected:
     bool _isFading { false };
     bool _reconstructSoftEntitiesJointMap { false };
     float _modelScale { 1.0f };
+    glm::vec3 _lastPosition;
+    AvatarTransit _transit;
+
 
     static int _jointConesID;
 
