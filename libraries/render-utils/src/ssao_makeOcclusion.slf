@@ -30,15 +30,15 @@ void main(void) {
     vec2 fragCoord = gl_FragCoord.xy; 
     ivec2 centerPixelPos = ivec2(fragCoord.xy);
 
-    // Fetch the z under the pixel (stereo or not)
-    float Zeye = getZEyeAtPixel(centerPixelPos, 0);
-
     // Stereo side info
     ivec4 side = getStereoSideInfo(centerPixelPos.x, getResolutionLevel());
 
     // From now on, centerPixelPos is the pixel pos in the side
     centerPixelPos.x -= side.y;
     vec2 fragUVPos = (vec2(centerPixelPos) + vec2(0.5))  / imageSize;
+
+    // Fetch the z under the pixel (stereo or not)
+    float Zeye = getZEyeAtUV(fragUVPos, 0);
 
     // The position  and normal of the pixel fragment in Eye space
     vec3 fragPositionES = evalEyePositionFromZeye(side.x, Zeye, fragUVPos);

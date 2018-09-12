@@ -1,1 +1,1 @@
-VERTEX gpu::vertex::DrawViewportQuadTransformTexcoord
+VERTEX ssao_blur

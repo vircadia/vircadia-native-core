@@ -32,7 +32,7 @@ public:
     gpu::TexturePointer getOcclusionBlurredTexture();
     
     // Update the source framebuffer size which will drive the allocation of all the other resources.
-    void updateLinearDepth(const gpu::TexturePointer& linearDepthBuffer);
+    bool updateLinearDepth(const gpu::TexturePointer& linearDepthBuffer);
     gpu::TexturePointer getLinearDepthTexture();
     const glm::ivec2& getSourceFrameSize() const { return _frameSize; }
         
@@ -71,7 +71,7 @@ class AmbientOcclusionEffectConfig : public render::GPUJobConfig::Persistent {
     Q_PROPERTY(int blurRadius MEMBER blurRadius WRITE setBlurRadius)
 
 public:
-    AmbientOcclusionEffectConfig() : render::GPUJobConfig::Persistent(QStringList() << "Render" << "Engine" << "Ambient Occlusion", false) {}
+    AmbientOcclusionEffectConfig();
 
     const int MAX_RESOLUTION_LEVEL = 4;
     const int MAX_BLUR_RADIUS = 6;
@@ -86,19 +86,19 @@ public:
     void setResolutionLevel(int level) { resolutionLevel = std::max(0, std::min(level, MAX_RESOLUTION_LEVEL)); emit dirty(); }
     void setBlurRadius(int radius) { blurRadius = std::max(0, std::min(MAX_BLUR_RADIUS, radius)); emit dirty(); }
 
-    float radius{ 0.5f };
-    float perspectiveScale{ 1.0f };
-    float obscuranceLevel{ 0.5f }; // intensify or dim down the obscurance effect
-    float falloffBias{ 0.01f };
-    float edgeSharpness{ 1.0f };
-    float blurDeviation{ 2.5f };
-    float numSpiralTurns{ 7.0f }; // defining an angle span to distribute the samples ray directions
-    int numSamples{ 16 };
-    int resolutionLevel{ 1 };
-    int blurRadius{ 4 }; // 0 means no blurring
-    bool ditheringEnabled{ true }; // randomize the distribution of taps per pixel, should always be true
-    bool borderingEnabled{ true }; // avoid evaluating information from non existing pixels out of the frame, should always be true
-    bool fetchMipsEnabled{ true }; // fetch taps in sub mips to otpimize cache, should always be true
+    float radius;
+    float perspectiveScale;
+    float obscuranceLevel; // intensify or dim down the obscurance effect
+    float falloffBias;
+    float edgeSharpness;
+    float blurDeviation;
+    float numSpiralTurns; // defining an angle span to distribute the samples ray directions
+    int numSamples;
+    int resolutionLevel;
+    int blurRadius; // 0 means no blurring
+    bool ditheringEnabled; // randomize the distribution of taps per pixel, should always be true
+    bool borderingEnabled; // avoid evaluating information from non existing pixels out of the frame, should always be true
+    bool fetchMipsEnabled; // fetch taps in sub mips to otpimize cache, should always be true
 
 signals:
     void dirty();
@@ -118,23 +118,23 @@ public:
     
 
     // Class describing the uniform buffer with all the parameters common to the AO shaders
-    class Parameters {
+    class AOParameters {
     public:
         // Resolution info
-        glm::vec4 resolutionInfo { -1.0f, 0.0f, 1.0f, 0.0f };
+        glm::vec4 resolutionInfo;
         // radius info is { R, R^2, 1 / R^6, ObscuranceScale}
-        glm::vec4 radiusInfo{ 0.5f, 0.5f * 0.5f, 1.0f / (0.25f * 0.25f * 0.25f), 1.0f };
+        glm::vec4 radiusInfo;
         // Dithering info 
-        glm::vec4 ditheringInfo { 0.0f, 0.0f, 0.01f, 1.0f };
+        glm::vec4 ditheringInfo;
         // Sampling info
-        glm::vec4 sampleInfo { 11.0f, 1.0f/11.0f, 7.0f, 1.0f };
+        glm::vec4 sampleInfo;
         // Blurring info
-        glm::vec4 blurInfo { 1.0f, 3.0f, 2.0f, 0.0f };
+        glm::vec4 blurInfo;
          // gaussian distribution coefficients first is the sampling radius (max is 6)
         const static int GAUSSIAN_COEFS_LENGTH = 8;
         float _gaussianCoefs[GAUSSIAN_COEFS_LENGTH];
          
-        Parameters() {}
+        AOParameters();
 
         int getResolutionLevel() const { return resolutionInfo.x; }
         float getRadius() const { return radiusInfo.x; }
@@ -152,12 +152,26 @@ public:
         bool isDitheringEnabled() const { return ditheringInfo.x; }
         bool isBorderingEnabled() const { return ditheringInfo.w; }
     };
-    using ParametersBuffer = gpu::StructBuffer<Parameters>;
+    using AOParametersBuffer = gpu::StructBuffer<AOParameters>;
 
 private:
+
+    // Class describing the uniform buffer with all the parameters common to the bilateral blur shaders
+    class BlurParameters {
+    public:
+        glm::vec4 scaleHeight{ 0.0f };
+
+        BlurParameters() {}
+    };
+    using BlurParametersBuffer = gpu::StructBuffer<BlurParameters>;
+
+
     void updateGaussianDistribution();
+    void updateBlurParameters();
    
-    ParametersBuffer _parametersBuffer;
+    AOParametersBuffer _aoParametersBuffer;
+    BlurParametersBuffer _vblurParametersBuffer;
+    BlurParametersBuffer _hblurParametersBuffer;
 
     static const gpu::PipelinePointer& getOcclusionPipeline();
 	static const gpu::PipelinePointer& getHBlurPipeline(); // first
@@ -195,7 +209,7 @@ signals:
 
 class DebugAmbientOcclusion {
 public:
-    using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, DeferredFramebufferPointer, LinearDepthFramebufferPointer, AmbientOcclusionEffect::ParametersBuffer>;
+    using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, DeferredFramebufferPointer, LinearDepthFramebufferPointer, AmbientOcclusionEffect::AOParametersBuffer>;
     using Config = DebugAmbientOcclusionConfig;
     using JobModel = render::Job::ModelI<DebugAmbientOcclusion, Inputs, Config>;
 
