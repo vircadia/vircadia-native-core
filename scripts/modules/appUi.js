@@ -1,5 +1,5 @@
 "use strict";
-/*global Tablet, Script*/
+/* global Tablet, Script */
 //
 //  libraries/appUi.js
 //
@@ -31,53 +31,49 @@ function AppUi(properties) {
     var that = this;
     function defaultButton(name, suffix) {
         var base = that[name] || (that.buttonPrefix + suffix);
-        that[name] = (base.indexOf('/') >= 0) ? base : (that.graphicsDirectory + base); //poor man's merge
+        that[name] = (base.indexOf('/') >= 0) ? base : (that.graphicsDirectory + base); // poor man's merge
     }
 
     // Defaults:
     that.tabletName = "com.highfidelity.interface.tablet.system";
     that.inject = "";
     that.graphicsDirectory = "icons/tablet-icons/"; // Where to look for button svgs. See below.
+    that.additionalAppScreens = [];
     that.checkIsOpen = function checkIsOpen(type, tabletUrl) { // Are we active? Value used to set isOpen.
-        return (type === that.type) && that.currentUrl && (tabletUrl.indexOf(that.currentUrl) >= 0); // Actual url may have prefix or suffix.
+        // Actual url may have prefix or suffix.
+        return (type === that.currentVisibleScreenType) &&
+            that.currentVisibleUrl &&
+            ((that.home.indexOf(that.currentVisibleUrl) > -1) ||
+            (that.additionalAppScreens.indexOf(that.currentVisibleUrl) > -1));
     };
-    that.setCurrentData = function setCurrentData(url) {
-        that.currentUrl = url;
-        that.type = /.qml$/.test(url) ? 'QML' : 'Web';
-    }
-    that.open = function open(optionalUrl) { // How to open the app.
+    that.setCurrentVisibleScreenMetadata = function setCurrentVisibleScreenMetadata(type, url) {
+        that.currentVisibleScreenType = type;
+        that.currentVisibleUrl = url;
+    };
+    that.open = function open(optionalUrl, optionalInject) { // How to open the app.
         var url = optionalUrl || that.home;
-        that.setCurrentData(url);
-        if (that.isQML()) {
+        var inject = that.inject;
+        if (optionalUrl && optionalInject) {
+            inject = optionalInject;
+        }
+
+        if (that.isQMLUrl(url)) {
             that.tablet.loadQMLSource(url);
         } else {
-            that.tablet.gotoWebScreen(url, that.inject);
+            that.tablet.gotoWebScreen(url, inject);
         }
     };
-    that.openNewApp = function openNewApp(url, optionalInject) { // Opens some app and replaces the current app
-        if (that.isQML(url)) {
-            that.tablet.pushOntoStack(url);
-        } else {
-            if (optionalInject) {
-                that.tablet.gotoWebScreen(url, optionalInject);
-            } else {
-                that.tablet.gotoWebScreen(url);
-            }
-        }
-    }
-    that.openNewAppOnTop = function openNewAppOnTop(url, optionalInject) { // Opens some app on top of the current app (on desktop, opens new window)
-        if (that.isQML(url)) {
+    // Opens some app on top of the current app (on desktop, opens new window)
+    that.openNewAppOnTop = function openNewAppOnTop(url, optionalInject) {
+        var inject = optionalInject || "";
+        if (that.isQMLUrl(url)) {
             that.tablet.loadQMLOnTop(url);
         } else {
-            if (optionalInject) {
-                that.tablet.loadWebScreenOnTop(url, optionalInject);
-            } else {
-                that.tablet.loadWebScreenOnTop(url);
-            }
+            that.tablet.loadWebScreenOnTop(url, inject);
         }
-    }
+    };
     that.close = function close() { // How to close the app.
-        that.currentUrl = "";
+        that.currentVisibleUrl = "";
         // for toolbar-mode: go back to home screen, this will close the window.
         that.tablet.gotoHomeScreen();
     };
@@ -91,15 +87,40 @@ function AppUi(properties) {
             activeIcon: isWaiting ? that.activeMessagesButton : that.activeButton
         });
     };
-    that.isQML = function isQML(optionalUrl) { // We set type property in onClick.
-        if (optionalUrl) {
-            var type = /.qml$/.test(optionalUrl) ? 'QML' : 'Web';
-            return type === 'QML';
-        }
-        return that.type === 'QML';
+    that.isQMLUrl = function isQMLUrl(url) {
+        var type = /.qml$/.test(url) ? 'QML' : 'Web';
+        return type === 'QML';
     };
-    that.eventSignal = function eventSignal() { // What signal to hook onMessage to.
-        return that.isQML() ? that.tablet.fromQml : that.tablet.webEventReceived;
+    that.isCurrentlyOnQMLScreen = function isCurrentlyOnQMLScreen() {
+        return that.currentVisibleScreenType === 'QML';
+    };
+
+    // Handlers
+    that.onScreenChanged = function onScreenChanged(type, url) {
+        // Set isOpen, wireEventBridge, set buttonActive as appropriate,
+        // and finally call onOpened() or onClosed() IFF defined.
+        that.setCurrentVisibleScreenMetadata(type, url);
+        if (that.checkIsOpen(type, url)) {
+            that.wireEventBridge(true);
+            if (!that.isOpen) {
+                that.buttonActive(true);
+                if (that.onOpened) {
+                    that.onOpened();
+                }
+                that.isOpen = true;
+            }
+        } else { // Not us.  Should we do something for type Home, Menu, and particularly Closed (meaning tablet hidden?
+            that.wireEventBridge(false);
+            if (that.isOpen) {
+                that.buttonActive(false);
+                if (that.onClosed) {
+                    that.onClosed();
+                }
+                that.isOpen = false;
+            }
+        }
+        console.debug(that.buttonName + " app reports: Tablet screen changed.\nNew screen type: " + type +
+            "\nNew screen URL: " + url + "\nCurrent app open status: " + that.isOpen + "\n");
     };
 
     // Overwrite with the given properties:
@@ -126,65 +147,55 @@ function AppUi(properties) {
     }
     that.button = that.tablet.addButton(buttonOptions);
     that.ignore = function ignore() { };
-
-    // Handlers
-    that.onScreenChanged = function onScreenChanged(type, url) {
-        // Set isOpen, wireEventBridge, set buttonActive as appropriate,
-        // and finally call onOpened() or onClosed() IFF defined.
-        console.debug(that.buttonName, 'onScreenChanged', type, url, that.isOpen);
-        if (that.checkIsOpen(type, url)) {
-            if (!that.isOpen) {
-                that.wireEventBridge(true);
-                that.buttonActive(true);
-                if (that.onOpened) {
-                    that.onOpened();
-                }
-                that.isOpen = true;
-            }
-
-        } else { // Not us.  Should we do something for type Home, Menu, and particularly Closed (meaning tablet hidden?
-            if (that.isOpen) {
-                that.wireEventBridge(false);
-                that.buttonActive(false);
-                if (that.onClosed) {
-                    that.onClosed();
-                }
-                that.isOpen = false;
-            }
-        }
-    };
-    that.hasEventBridge = false;
+    that.hasQmlEventBridge = false;
+    that.hasHtmlEventBridge = false;
     // HTML event bridge uses strings, not objects. Here we abstract over that.
     // (Although injected javascript still has to use JSON.stringify/JSON.parse.)
-    that.sendToHtml = function (messageObject) { that.tablet.emitScriptEvent(JSON.stringify(messageObject)); };
-    that.fromHtml = function (messageString) { that.onMessage(JSON.parse(messageString)); };
+    that.sendToHtml = function (messageObject) {
+        that.tablet.emitScriptEvent(JSON.stringify(messageObject));
+    };
+    that.fromHtml = function (messageString) {
+        var parsedMessage = JSON.parse(messageString);
+        parsedMessage.messageSrc = "HTML";
+        that.onMessage(parsedMessage);
+    };
     that.sendMessage = that.ignore;
     that.wireEventBridge = function wireEventBridge(on) {
         // Uniquivocally sets that.sendMessage(messageObject) to do the right thing.
-        // Sets hasEventBridge and wires onMessage to eventSignal as appropriate, IFF onMessage defined.
-        var handler, isQml = that.isQML();
+        // Sets has*EventBridge and wires onMessage to the proper event bridge as appropriate, IFF onMessage defined.
+        var isCurrentlyOnQMLScreen = that.isCurrentlyOnQMLScreen();
         // Outbound (always, regardless of whether there is an inbound handler).
         if (on) {
-            that.sendMessage = isQml ? that.tablet.sendToQml : that.sendToHtml;
+            that.sendMessage = isCurrentlyOnQMLScreen ? that.tablet.sendToQml : that.sendToHtml;
         } else {
             that.sendMessage = that.ignore;
         }
 
-        if (!that.onMessage) { return; }
+        if (!that.onMessage) {
+            return;
+        }
 
         // Inbound
-        handler = isQml ? that.onMessage : that.fromHtml;
         if (on) {
-            if (!that.hasEventBridge) {
-                console.debug(that.buttonName, 'connecting', that.eventSignal());
-                that.eventSignal().connect(handler);
-                that.hasEventBridge = true;
+            if (isCurrentlyOnQMLScreen && !that.hasQmlEventBridge) {
+                console.debug(that.buttonName, 'connecting', that.tablet.fromQml);
+                that.tablet.fromQml.connect(that.onMessage);
+                that.hasQmlEventBridge = true;
+            } else if (!isCurrentlyOnQMLScreen && !that.hasHtmlEventBridge) {
+                console.debug(that.buttonName, 'connecting', that.tablet.webEventReceived);
+                that.tablet.webEventReceived.connect(that.fromHtml);
+                that.hasHtmlEventBridge = true;
             }
         } else {
-            if (that.hasEventBridge) {
-                console.debug(that.buttonName, 'disconnecting', that.eventSignal());
-                that.eventSignal().disconnect(handler);
-                that.hasEventBridge = false;
+            if (that.hasQmlEventBridge) {
+                console.debug(that.buttonName, 'disconnecting', that.tablet.fromQml);
+                that.tablet.fromQml.disconnect(that.onMessage);
+                that.hasQmlEventBridge = false;
+            }
+            if (that.hasHtmlEventBridge) {
+                console.debug(that.buttonName, 'disconnecting', that.tablet.webEventReceived);
+                that.tablet.webEventReceived.disconnect(that.fromHtml);
+                that.hasHtmlEventBridge = false;
             }
         }
     };

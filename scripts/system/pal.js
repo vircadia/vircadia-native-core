@@ -713,7 +713,7 @@ function tabletVisibilityChanged() {
     if (!ui.tablet.tabletShown && ui.isOpen) {
         ui.close();
     }
-    }
+}
 
 var UPDATE_INTERVAL_MS = 100;
 var updateInterval;
