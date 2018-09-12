@@ -230,8 +230,8 @@ void ShaderTests::testShaderLoad() {
             auto glBackend = std::static_pointer_cast<gpu::gl::GLBackend>(_gpuContext->getBackend());
             auto glshader = gpu::gl::GLShader::sync(*glBackend, *program);
             if (!glshader) {
-                qDebug() << "Failed to compile or link vertex " << vertexId << " fragment " << fragmentId;
-                continue;
+                qWarning() << "Failed to compile or link vertex " << vertexId << " fragment " << fragmentId;
+                QFAIL("Program link error");
             }
 
             QVERIFY(glshader != nullptr);
@@ -301,7 +301,7 @@ void ShaderTests::testShaderLoad() {
         QFAIL(error.what());
     }
 
-    for (uint32_t i = 0; i <= maxShader; ++i) {
+    for (uint32_t i = 1; i <= maxShader; ++i) {
         auto used = usedShaders.count(i);
         if (0 != usedShaders.count(i)) {
             continue;

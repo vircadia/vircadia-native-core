@@ -104,7 +104,6 @@ bool SafeLanding::isLoadSequenceComplete() {
         _initialEnd = INVALID_SEQUENCE;
         _entityTree = nullptr;
         EntityTreeRenderer::setEntityLoadingPriorityFunction(StandardPriority);
-        qCDebug(interfaceapp) << "Safe Landing: load sequence complete";
     }
 
     return !_trackingEntities;

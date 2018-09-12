@@ -70,9 +70,8 @@ void TextRenderer3D::draw(gpu::Batch& batch, float x, float y, const QString& st
                          const glm::vec2& bounds, bool layered) {
     // The font does all the OpenGL work
     if (_font) {
-        // Cache color so that the pointer stays valid.
         _color = color;
-        _font->drawString(batch, x, y, str, &_color, _effectType, bounds, layered);
+        _font->drawString(batch, _drawInfo, str, _color, _effectType, { x, y }, bounds, layered);
     }
 }
 
