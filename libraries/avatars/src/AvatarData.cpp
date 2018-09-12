@@ -563,7 +563,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         unsigned char* validityPosition = destinationBuffer;
         unsigned char validity = 0;
         int validityBit = 0;
-        int numValidityBytes = (numJoints + BITS_IN_BYTE - 1) / BITS_IN_BYTE;
+        int numValidityBytes = calcBitVectorSize(numJoints);
 
 #ifdef WANT_DEBUG
         int rotationSentCount = 0;
@@ -690,6 +690,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             glm::quat mouseFarGrabRotation = extractRotation(mouseFarGrabMatrix);
 
             AVATAR_MEMCPY(leftFarGrabPosition);
+            // Can't do block copy as struct order is x, y, z, w.
             data->leftFarGrabRotation[0] = leftFarGrabRotation.w;
             data->leftFarGrabRotation[1] = leftFarGrabRotation.x;
             data->leftFarGrabRotation[2] = leftFarGrabRotation.y;
