@@ -87,8 +87,6 @@ public:
     void connectedToServerless(std::map<QString, QString> namedPaths);
 
     void loadedErrorDomain(std::map<QString, QString> namedPaths);
-    // sets domain handler in error state.
-    void setRedirectErrorState(QUrl errorUrl, int reasonCode);
 
     QString getViewPointFromNamedPath(QString namedPath);
 
@@ -171,6 +169,9 @@ public slots:
     void processDTLSRequirementPacket(QSharedPointer<ReceivedMessage> dtlsRequirementPacket);
     void processICEResponsePacket(QSharedPointer<ReceivedMessage> icePacket);
     void processDomainServerConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message);
+
+    // sets domain handler in error state.
+    void setRedirectErrorState(QUrl errorUrl, int reasonCode);
 
 private slots:
     void completedHostnameLookup(const QHostInfo& hostInfo);
