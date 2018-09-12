@@ -63,13 +63,7 @@ void AndroidHelper::notifyHeadsetOn(bool pluggedIn) {
 #if defined (Q_OS_ANDROID)
     auto audioClient = DependencyManager::get<AudioClient>();
     if (audioClient) {
-        QAudioDeviceInfo activeDev =  audioClient->getActiveAudioDevice(QAudio::AudioInput);
-        Setting::Handle<bool> enableAEC(QStringList() << ANDROID_SETTINGS_GROUP << SETTING_AEC_KEY, false);
-        if ((pluggedIn || !enableAEC.get()) && !activeDev.isNull() && activeDev.deviceName() != VOICE_RECOGNITION) {
-            QMetaObject::invokeMethod(audioClient.get(), "switchAudioDevice", Q_ARG(QAudio::Mode, QAudio::AudioInput), Q_ARG(QString, VOICE_RECOGNITION));
-        } else if ( (!pluggedIn && enableAEC.get()) && !activeDev.isNull() && activeDev.deviceName() != VOICE_COMMUNICATION) {
-            QMetaObject::invokeMethod(audioClient.get(), "switchAudioDevice", Q_ARG(QAudio::Mode, QAudio::AudioInput), Q_ARG(QString, VOICE_COMMUNICATION));
-        }
+        QMetaObject::invokeMethod(audioClient.data(), "setHeadsetPluggedIn", Q_ARG(bool, pluggedIn));
     }
 #endif
 }

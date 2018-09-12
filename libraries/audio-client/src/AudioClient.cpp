@@ -209,6 +209,7 @@ AudioClient::AudioClient() :
     _positionGetter(DEFAULT_POSITION_GETTER),
 #if defined(Q_OS_ANDROID)
     _checkInputTimer(this),
+    _isHeadsetPluggedIn(false),
 #endif
     _orientationGetter(DEFAULT_ORIENTATION_GETTER) {
     // avoid putting a lock in the device callback
@@ -450,12 +451,14 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
 
 #if defined (Q_OS_ANDROID)
     if (mode == QAudio::AudioInput) {
-        Setting::Handle<bool> enableAEC(QStringList() << ANDROID_SETTINGS_GROUP << SETTING_AEC_KEY, false);
+        Setting::Handle<bool> enableAEC(SETTING_AEC_KEY, false);
         bool aecEnabled = enableAEC.get();
+        auto audioClient = DependencyManager::get<AudioClient>();
+        bool headsetOn = audioClient? audioClient->isHeadsetPluggedIn() : false ;
         auto inputDevices = QAudioDeviceInfo::availableDevices(QAudio::AudioInput);
         for (auto inputDevice : inputDevices) {
-            if ((aecEnabled && inputDevice.deviceName() == VOICE_COMMUNICATION) ||
-                    (!aecEnabled && inputDevice.deviceName() == VOICE_RECOGNITION)) {
+            if (((headsetOn || !aecEnabled) && inputDevice.deviceName() == VOICE_RECOGNITION) ||
+                    ((!headsetOn && aecEnabled) && inputDevice.deviceName() == VOICE_COMMUNICATION)) {
                 return inputDevice;
             }
         }
@@ -1629,6 +1632,29 @@ void AudioClient::checkInputTimeout() {
     } else {
         _inputReadsSinceLastCheck = 0;
     }
+#endif
+}
+
+void AudioClient::setHeadsetPluggedIn(bool pluggedIn) {
+#if defined(Q_OS_ANDROID)
+    if (pluggedIn == !_isHeadsetPluggedIn && !_inputDeviceInfo.isNull()) {
+        QAndroidJniObject brand =  QAndroidJniObject::getStaticObjectField<jstring>("android/os/Build", "BRAND");
+        // some samsung phones needs more time to shutdown the previous input device
+        if (brand.toString().contains("samsung", Qt::CaseInsensitive)) {
+            switchInputToAudioDevice(QAudioDeviceInfo(), true);
+            QThread::msleep(200);
+        }
+
+        Setting::Handle<bool> enableAEC(SETTING_AEC_KEY, false);
+        bool aecEnabled = enableAEC.get();
+
+        if ((pluggedIn || !aecEnabled) && _inputDeviceInfo.deviceName() != VOICE_RECOGNITION) {
+            switchAudioDevice(QAudio::AudioInput, VOICE_RECOGNITION);
+        } else if (!pluggedIn && aecEnabled && _inputDeviceInfo.deviceName() != VOICE_COMMUNICATION) {
+            switchAudioDevice(QAudio::AudioInput, VOICE_COMMUNICATION);
+        }
+    }
+    _isHeadsetPluggedIn = pluggedIn;
 #endif
 }
 

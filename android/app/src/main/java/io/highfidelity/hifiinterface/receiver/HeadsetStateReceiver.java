@@ -13,8 +13,6 @@ public class HeadsetStateReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-
-        Log.d("[HEADSET] " , "BR - Wired headset on:" +  audioManager.isWiredHeadsetOn());
         notifyHeadsetOn(audioManager.isWiredHeadsetOn());
     }
 }
