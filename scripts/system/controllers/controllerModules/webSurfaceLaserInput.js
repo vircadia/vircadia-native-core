@@ -21,10 +21,6 @@ Script.include("/~/system/libraries/controllers.js");
         this.otherHand = this.hand === RIGHT_HAND ? LEFT_HAND : RIGHT_HAND;
         this.running = false;
 
-        // parameters for things to be working on
-        this.isObjectEntity = false;
-        this.objectID = null;
-
         this.parameters = makeDispatcherModuleParameters(
             160,
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
@@ -133,9 +129,6 @@ Script.include("/~/system/libraries/controllers.js");
                 }
                 if (this.parameters.handLaser.allwaysOn || isTriggerPressed) {
                     var intersection = controllerData.rayPicks[this.hand];
-                    // the object is either an entity or an overlay.
-                    this.isObjectEntity = (intersection.type === Picks.INTERSECTED_ENTITY);
-                    this.objectID = intersection.objectID;
                     return makeRunningValues(true, [], []);
                 }
             }
@@ -171,7 +164,6 @@ Script.include("/~/system/libraries/controllers.js");
             this.deleteContextOverlay();
             this.running = false;
             this.dominantHandOverride = false;
-            this.objectID = null;
             return makeRunningValues(false, [], []);
         };
     }
