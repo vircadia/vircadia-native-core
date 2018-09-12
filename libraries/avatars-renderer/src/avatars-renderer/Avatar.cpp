@@ -141,6 +141,7 @@ Avatar::~Avatar() {
             }
         });
     }
+
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (geometryCache) {
         geometryCache->releaseID(_nameRectGeometryID);

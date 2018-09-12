@@ -30,14 +30,12 @@ public:
 
     void markTraitUpdated(AvatarTraits::TraitType updatedTrait)
         { _traitStatuses[updatedTrait] = Updated; _hasChangedTraits = true; }
-    void markInstancedTraitUpdated(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID updatedInstanceID)
+    void markInstancedTraitUpdated(AvatarTraits::TraitType traitType, QUuid updatedInstanceID)
         { _traitStatuses.instanceInsert(traitType, updatedInstanceID, Updated); _hasChangedTraits = true; }
-    void markInstancedTraitDeleted(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID deleteInstanceID)
+    void markInstancedTraitDeleted(AvatarTraits::TraitType traitType, QUuid deleteInstanceID)
         { _traitStatuses.instanceInsert(traitType, deleteInstanceID, Deleted); _hasChangedTraits = true; }
 
     void resetForNewMixer();
-
-    AvatarTraits::TraitInstanceID xorInstanceID(AvatarTraits::TraitInstanceID localInstanceID);
 
 public slots:
     void processTraitOverride(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
@@ -55,8 +53,6 @@ private:
     AvatarTraits::TraitVersion _currentTraitVersion { AvatarTraits::DEFAULT_TRAIT_VERSION };
 
     AvatarTraits::TraitVersion _currentSkeletonVersion { AvatarTraits::NULL_TRAIT_VERSION };
-
-    QByteArray _sessionXORID { NUM_BYTES_RFC4122_UUID, 0};
     
     bool _shouldPerformInitialSend { false };
     bool _hasChangedTraits { false };
