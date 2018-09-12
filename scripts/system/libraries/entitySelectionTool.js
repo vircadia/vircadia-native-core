@@ -987,15 +987,7 @@ SelectionDisplay = (function() {
     
     that.updateHighlight = function(event) {
         // if no tool is active, then just look for handles to highlight...
-        var pickRay = generalComputePickRay(event.x, event.y);
-        
-        var interactiveOverlays = getMainTabletIDs();
-        for (var key in handleTools) {
-            if (handleTools.hasOwnProperty(key)) {
-                interactiveOverlays.push(key);
-            }
-        }
-        
+        var pickRay = generalComputePickRay(event.x, event.y);        
         var result = Overlays.findRayIntersection(pickRay);
         var pickedColor;
         var highlightNeeded = false;
@@ -2338,9 +2330,10 @@ SelectionDisplay = (function() {
                 if (controllerTrigger) {
                     var controllerPosition = that.triggeredHand === Controller.Standard.LeftHand ? 
                                              MyAvatar.getLeftHandPosition() :  MyAvatar.getRightHandPosition();
-                    var vecPickDifference = Vec3.subtract(controllerPosition, beginControllerPosition);
-                    var pickDifference = vecPickDifference.x + vecPickDifference.y + vecPickDifference.z;
-                    dimensionChange = pickDifference * dimensionsMultiple;
+                    var vecControllerDifference = Vec3.subtract(controllerPosition, beginControllerPosition);
+                    var controllerDifference = vecControllerDifference.x + vecControllerDifference.y + 
+                                               vecControllerDifference.z;
+                    dimensionChange = controllerDifference * dimensionsMultiple;
                 } else {
                     var mouseXDifference = (event.x - beginMouseEvent.x) / viewportDimensions.x;
                     var mouseYDifference = (beginMouseEvent.y - event.y) / viewportDimensions.y;
