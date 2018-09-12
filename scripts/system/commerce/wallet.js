@@ -1,5 +1,5 @@
 "use strict";
-/*jslint vars:true, plusplus:true, forin:true*/
+/* jslint vars:true, plusplus:true, forin:true */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 //
 // wallet.js

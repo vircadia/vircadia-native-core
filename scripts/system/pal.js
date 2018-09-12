@@ -1,6 +1,9 @@
 "use strict";
-/*jslint vars:true, plusplus:true, forin:true*/
-/*global Tablet, Settings, Script, AvatarList, Users, Entities, MyAvatar, Camera, Overlays, Vec3, Quat, HMD, Controller, Account, UserActivityLogger, Messages, Window, XMLHttpRequest, print, location, getControllerWorldLocation*/
+/* jslint vars:true, plusplus:true, forin:true */
+/* global Tablet, Settings, Script, AvatarList, Users, Entities,
+    MyAvatar, Camera, Overlays, Vec3, Quat, HMD, Controller, Account,
+    UserActivityLogger, Messages, Window, XMLHttpRequest, print, location, getControllerWorldLocation
+*/
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 //
 // pal.js
@@ -20,7 +23,7 @@ var AppUi = Script.require('appUi');
 var populateNearbyUserList, color, textures, removeOverlays,
     controllerComputePickRay, off,
     receiveMessage, avatarDisconnected, clearLocalQMLDataAndClosePAL,
-    CHANNEL, getConnectionData, findableByChanged,
+    CHANNEL, getConnectionData,
     avatarAdded, avatarRemoved, avatarSessionChanged; // forward references;
 
 // hardcoding these as it appears we cannot traverse the originalTextures in overlays???  Maybe I've missed
