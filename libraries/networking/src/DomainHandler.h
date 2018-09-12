@@ -87,6 +87,8 @@ public:
     void connectedToServerless(std::map<QString, QString> namedPaths);
 
     void loadedErrorDomain(std::map<QString, QString> namedPaths);
+    // sets domain handler in error state.
+    void setRedirectErrorState(QUrl errorUrl, int reasonCode);
 
     QString getViewPointFromNamedPath(QString namedPath);
 
@@ -142,6 +144,11 @@ public:
      *       <td><code>4</code></td>
      *       <td>The domain already has its maximum number of users.</td>
      *     </tr>
+     *     <tr>
+     *       <td><strong>TimedOut</strong></td>
+     *       <td><code>5</code></td>
+     *       <td>Connecting to the domain timed out.</td>
+     *     </tr>
      *   </tbody>
      * </table>
      * @typedef {number} Window.ConnectionRefusedReason
@@ -151,7 +158,8 @@ public:
         ProtocolMismatch,
         LoginError,
         NotAuthorized,
-        TooManyUsers
+        TooManyUsers,
+        TimedOut
     };
 
 public slots:
@@ -188,7 +196,7 @@ signals:
     void settingsReceiveFail();
 
     void domainConnectionRefused(QString reasonMessage, int reason, const QString& extraInfo);
-    void redirectToErrorDomainURL(QUrl errorDomaunURL);
+    void redirectToErrorDomainURL(QUrl errorDomainURL);
 
     void limitOfSilentDomainCheckInsReached();
 

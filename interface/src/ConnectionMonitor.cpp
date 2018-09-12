@@ -23,7 +23,6 @@
 // should be longer to allow the application to initialize.
 static const int ON_INITIAL_LOAD_REDIRECT_AFTER_DISCONNECTED_FOR_X_MS = 10000;
 static const int REDIRECT_AFTER_DISCONNECTED_FOR_X_MS = 5000;
-static const QString ERROR_DOMAIN_URL =  "file:///~/serverless/redirect.json";
 
 void ConnectionMonitor::init() {
     // Connect to domain disconnected message
@@ -33,15 +32,17 @@ void ConnectionMonitor::init() {
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, &ConnectionMonitor::startTimer);
     connect(&domainHandler, &DomainHandler::connectedToDomain, this, &ConnectionMonitor::stopTimer);
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &ConnectionMonitor::stopTimer);
+    connect(&domainHandler, &DomainHandler::redirectToErrorDomainURL, this, &ConnectionMonitor::stopTimer);
 
     _timer.setSingleShot(true);
     if (!domainHandler.isConnected()) {
         _timer.start(ON_INITIAL_LOAD_REDIRECT_AFTER_DISCONNECTED_FOR_X_MS);
     }
 
-    connect(&_timer, &QTimer::timeout, this, []() {
+    connect(&_timer, &QTimer::timeout, this, [domainHandler]() {
         qDebug() << "ConnectionMonitor: Redirecting to 404 error domain";
-        qApp->goToErrorDomainURL(REDIRECT_HIFI_ADDRESS);
+        // set in a timeout error
+        domainHandler.setErrorRedirectState(REDIRECT_HIFI_ADDRESS, 5);
     });
 }
 

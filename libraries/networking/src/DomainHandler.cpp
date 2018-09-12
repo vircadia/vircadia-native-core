@@ -335,6 +335,12 @@ void DomainHandler::loadedErrorDomain(std::map<QString, QString> namedPaths) {
     DependencyManager::get<AddressManager>()->goToViewpointForPath(viewpoint, QString());
 }
 
+void DomainHandler::setRedirectErrorState(QUrl errorUrl, int reasonCode) {
+    _errorDomainURL = errorUrl;
+    _lastDomainConnectionError = reasonCode;
+    emit redirectToErrorDomainURL(_errorDomainURL);
+}
+
 void DomainHandler::requestDomainSettings() {
     qCDebug(networking) << "Requesting settings from domain server";
 
