@@ -420,7 +420,7 @@ PickResultPointer CollisionPick::getAvatarIntersection(const CollisionRegion& pi
 }
 
 PickResultPointer CollisionPick::getHUDIntersection(const CollisionRegion& pick) {
-    return std::make_shared<CollisionPickResult>(pick.toVariantMap(), std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
+    return std::make_shared<CollisionPickResult>(pick, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
 }
 
 Transform CollisionPick::getResultTransform() const {
