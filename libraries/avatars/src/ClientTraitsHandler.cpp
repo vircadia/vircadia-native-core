@@ -45,7 +45,7 @@ void ClientTraitsHandler::resetForNewMixer() {
     _owningAvatar->prepareResetTraitInstances();
 
     // reset the trait XOR ID since we're resetting for a new avatar mixer
-    _owningAvatar->cycleTraitInstanceXORID();
+    _sessionXORID = QUuid::createUuid().toRfc4122();
 }
 
 void ClientTraitsHandler::sendChangedTraitsToMixer() {
@@ -100,15 +100,11 @@ void ClientTraitsHandler::sendChangedTraitsToMixer() {
                     // since this is going to the mixer, use the XORed instance ID (to anonymize trait instance IDs
                     // that would typically persist across sessions)
                     _owningAvatar->packTraitInstance(instancedIt->traitType, instanceIDValuePair.id, *traitsPacketList,
-                                                     AvatarTraits::NULL_TRAIT_VERSION,
-                                                     AvatarTraits::xoredInstanceID(instanceIDValuePair.id,
-                                                                                   _owningAvatar->getTraitInstanceXORID()));
+                                                     AvatarTraits::NULL_TRAIT_VERSION, xorInstanceID(instanceIDValuePair.id));
                 } else if (!_shouldPerformInitialSend && instanceIDValuePair.value == Deleted) {
                     // pack delete for this trait instance
                     AvatarTraits::packInstancedTraitDelete(instancedIt->traitType, instanceIDValuePair.id,
-                                                           *traitsPacketList, AvatarTraits::NULL_TRAIT_VERSION,
-                                                           AvatarTraits::xoredInstanceID(instanceIDValuePair.id,
-                                                                                         _owningAvatar->getTraitInstanceXORID()));
+                                                           *traitsPacketList);
                 }
             }
 
@@ -120,6 +116,17 @@ void ClientTraitsHandler::sendChangedTraitsToMixer() {
         // if this was an initial send of all traits, consider it completed
         _shouldPerformInitialSend = false;
     }
+}
+
+AvatarTraits::TraitInstanceID ClientTraitsHandler::xorInstanceID(AvatarTraits::TraitInstanceID localInstanceID) {
+    QByteArray xorInstanceID { NUM_BYTES_RFC4122_UUID, 0 };
+    auto localInstanceIDBytes = localInstanceID.toRfc4122();
+
+    for (auto i = 0; i < localInstanceIDBytes.size(); ++i) {
+        xorInstanceID[i] = localInstanceIDBytes[i] ^ _sessionXORID[i];
+    }
+
+    return QUuid::fromRfc4122(xorInstanceID);
 }
 
 void ClientTraitsHandler::processTraitOverride(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
