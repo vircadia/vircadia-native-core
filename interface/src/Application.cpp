@@ -214,7 +214,8 @@
 #include <raypick/LaserPointerScriptingInterface.h>
 #include <raypick/PickScriptingInterface.h>
 #include <raypick/PointerScriptingInterface.h>
-#include <raypick/MouseRayPick.h>
+#include <raypick/RayPick.h>
+#include <raypick/MouseTransformNode.h>
 
 #include <FadeEffect.h>
 
@@ -2235,8 +2236,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
 
     // Setup the mouse ray pick and related operators
-    DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickID(DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, std::make_shared<MouseRayPick>(
-        PickFilter(PickScriptingInterface::PICK_ENTITIES() | PickScriptingInterface::PICK_INCLUDE_NONCOLLIDABLE()), 0.0f, true)));
+    {
+        auto mouseRayPick = std::make_shared<RayPick>(glm::vec3(), Vectors::UP,
+            PickFilter(PickScriptingInterface::PICK_ENTITIES() | PickScriptingInterface::PICK_INCLUDE_NONCOLLIDABLE()), 0.0f, true);
+        mouseRayPick->parentTransform = std::make_shared<MouseTransformNode>();
+        auto mouseRayPickID = DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, mouseRayPick);
+        DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickID(mouseRayPickID);
+    }
     DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickResultOperator([](unsigned int rayPickID) {
         RayToEntityIntersectionResult entityResult;
         entityResult.intersects = false;

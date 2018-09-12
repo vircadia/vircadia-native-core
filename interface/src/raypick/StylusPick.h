@@ -70,6 +70,7 @@ public:
 
     bool isLeftHand() const override { return _side == Side::Left; }
     bool isRightHand() const override { return _side == Side::Right; }
+    bool isMouse() const override { return false; }
 
 private:
     const Side _side;

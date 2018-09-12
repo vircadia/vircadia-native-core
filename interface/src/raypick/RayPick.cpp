@@ -14,6 +14,17 @@
 #include "scripting/HMDScriptingInterface.h"
 #include "DependencyManager.h"
 
+PickRay RayPick::getMathematicalPick() const {
+    if (!parentTransform) {
+        return _mathPick;
+    }
+
+    Transform currentParentTransform = parentTransform->getTransform();
+    Transform relativeTransform(rotationBetween(Vectors::UP, _mathPick.direction), glm::vec3(1.0f), _mathPick.origin);
+    Transform pickTransform = currentParentTransform.worldTransform(relativeTransform);
+    return PickRay(pickTransform.getTranslation(), pickTransform.getRotation() * Vectors::UP);
+}
+
 PickResultPointer RayPick::getEntityIntersection(const PickRay& pick) {
     RayToEntityIntersectionResult entityRes =
         DependencyManager::get<EntityScriptingInterface>()->findRayIntersectionVector(pick, !getFilter().doesPickCoarse(),

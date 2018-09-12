@@ -178,7 +178,9 @@ public:
     QVariantMap toVariantMap() const override {
         QVariantMap pickRay;
         pickRay["origin"] = vec3toVariant(origin);
+        pickRay["position"] = vec3toVariant(origin);
         pickRay["direction"] = vec3toVariant(direction);
+        pickRay["orientation"] = quatToVariant(rotationBetween(Vectors::UP, direction));
         return pickRay;
     }
 };

@@ -320,6 +320,7 @@ public slots:
     static constexpr unsigned int INTERSECTED_HUD() { return IntersectionType::HUD; }
 
 protected:
+    static PickQuery::JointState getPickJointState(const QVariantMap& propMap);
     static std::shared_ptr<TransformNode> createTransformNode(const QVariantMap& propMap);
 };
 

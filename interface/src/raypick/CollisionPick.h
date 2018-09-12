@@ -67,7 +67,6 @@ protected:
     void computeShapeInfoDimensionsOnly(const CollisionRegion& pick, ShapeInfo& shapeInfo, QSharedPointer<GeometryResource> resource);
     void filterIntersections(std::vector<ContactTestResult>& intersections) const;
 
-    CollisionRegion _mathPick;
     PhysicsEnginePointer _physicsEngine;
     QSharedPointer<GeometryResource> _cachedResource;
 
