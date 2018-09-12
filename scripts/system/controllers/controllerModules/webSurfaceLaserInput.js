@@ -49,12 +49,19 @@ Script.include("/~/system/libraries/controllers.js");
                 nearGrabName = this.hand === RIGHT_HAND ? "RightNearParentingGrabEntity" : "LeftNearParentingGrabEntity";
                 nearGrabModule = getEnabledModuleByName(nearGrabName);
                 if (nearGrabModule && nearGrabModule.isReady(controllerData)) {
-                    return nearGrabModule.isReady(controllerData).active;
-                }
-                nearGrabName = this.hand === RIGHT_HAND ? "RightNearActionGrabEntity" : "LeftNearActionGrabEntity";
-                nearGrabModule = getEnabledModuleByName(nearGrabName);
-                if (nearGrabModule && nearGrabModule.isReady(controllerData)) {
-                    return nearGrabModule.isReady(controllerData).active;
+                    // check for if near parent module is active.
+                    var isNearGrabModuleActive = nearGrabModule.isReady(controllerData).active;
+                    if (isNearGrabModuleActive) {
+                        // if true, return true.
+                        return isNearGrabModuleActive;
+                    } else {
+                        // check near action grab entity as a second pass.
+                        nearGrabName = this.hand === RIGHT_HAND ? "RightNearActionGrabEntity" : "LeftNearActionGrabEntity";
+                        nearGrabModule = getEnabledModuleByName(nearGrabName);
+                        if (nearGrabModule && nearGrabModule.isReady(controllerData)) {
+                            return nearGrabModule.isReady(controllerData).active;
+                        }
+                    }
                 }
             }
             return false;
