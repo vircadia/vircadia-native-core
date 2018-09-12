@@ -317,6 +317,7 @@
                 dimensions: Vec3.multiply(scaleFactor, MINI_UI_DIMENSIONS),
                 dpi: MINI_UI_DPI / scaleFactor
             });
+            updateRotation();
         }
 
         function startExpandingTablet(hand) {
@@ -377,6 +378,51 @@
                 localPosition: Vec3.multiply(tabletScaleFactor, MINI_UI_LOCAL_POSITION),
                 dimensions: Vec3.multiply(tabletScaleFactor, MINI_UI_DIMENSIONS),
                 dpi: MINI_UI_DPI / tabletScaleFactor
+            });
+        }
+
+        function updateRotation() {
+            // Update the rotation of the tablet about its face normal so that its base is horizontal.
+            var COS_5_DEGREES = 0.996,
+                RADIANS_TO_DEGREES = DEGREES_180 / Math.PI,
+                defaultLocalRotation,
+                handOrientation,
+                defaultOrientation,
+                faceNormal,
+                desiredOrientation,
+                defaultYAxis,
+                desiredYAxis,
+                cross,
+                dot,
+                deltaAngle,
+                deltaRotation,
+                localRotation;
+
+            defaultLocalRotation = MINI_ROTATIONS[uiHand];
+            handOrientation =
+                Quat.multiply(MyAvatar.orientation, MyAvatar.getAbsoluteJointRotationInObjectFrame(handJointIndex(uiHand)));
+            defaultOrientation = Quat.multiply(handOrientation, defaultLocalRotation);
+            faceNormal = Vec3.multiplyQbyV(defaultOrientation, Vec3.UNIT_Z);
+
+            if (Math.abs(Vec3.dot(faceNormal, Vec3.UNIT_Y)) > COS_5_DEGREES) {
+                // Don't rotate mini tablet if almost flat in the x-z plane.
+                return;
+            } else {
+                // Rotate the tablet so that its base is parallel with the x-z plane.
+                desiredOrientation = Quat.lookAt(Vec3.ZERO, Vec3.multiplyQbyV(defaultOrientation, Vec3.UNIT_Z), Vec3.UNIT_Y);
+                defaultYAxis = Vec3.multiplyQbyV(defaultOrientation, Vec3.UNIT_Y);
+                desiredYAxis = Vec3.multiplyQbyV(desiredOrientation, Vec3.UNIT_Y);
+                cross = Vec3.cross(defaultYAxis, desiredYAxis);
+                dot = Vec3.dot(defaultYAxis, desiredYAxis);
+                deltaAngle = Math.atan2(Vec3.length(cross), dot) * RADIANS_TO_DEGREES;
+                if (Vec3.dot(cross, Vec3.multiplyQbyV(desiredOrientation, Vec3.UNIT_Z)) > 0) {
+                    deltaAngle = -deltaAngle;
+                }
+                deltaRotation = Quat.angleAxis(deltaAngle, Vec3.multiplyQbyV(defaultLocalRotation, Vec3.UNIT_Z));
+                localRotation = Quat.multiply(deltaRotation, defaultLocalRotation);
+            }
+            Overlays.editOverlay(miniOverlay, {
+                localRotation: localRotation
             });
         }
 
@@ -446,6 +492,7 @@
             size: size,
             startExpandingTablet: startExpandingTablet,
             sizeAboutHandles: sizeAboutHandles,
+            updateRotation: updateRotation,
             hide: hide,
             destroy: destroy
         };
@@ -478,7 +525,7 @@
             miniState = MINI_DISABLED,
             miniHand,
             updateTimer = null,
-            UPDATE_INTERVAL = 300,
+            UPDATE_INTERVAL = 25,
 
             // Mini tablet scaling.
             MINI_SCALE_DURATION = 250,
@@ -701,6 +748,11 @@
                 }
             } else {
                 setState(MINI_HIDING);
+            }
+
+            // If state hasn't changed, update mini tablet rotation.
+            if (miniState === MINI_VISIBLE) {
+                ui.updateRotation();
             }
         }
 
