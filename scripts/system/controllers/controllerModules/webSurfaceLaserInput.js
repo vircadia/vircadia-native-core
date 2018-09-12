@@ -144,12 +144,12 @@ Script.include("/~/system/libraries/controllers.js");
             var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE;
             var laserOn = isTriggerPressed || this.parameters.handLaser.allwaysOn;
             if (allowThisModule) {
-                // if trigger is down + not pointing at a web entity, keep running web surface laser
                 if (isTriggerPressed && !this.isPointingAtTriggerable(controllerData, isTriggerPressed, true)) {
+                    // if trigger is down + not pointing at a web entity, keep running web surface laser
                     this.running = true;
                     return makeRunningValues(true, [], []);
-                // if trigger is down + pointing at a web entity/overlay, keep running web surface laser
                 } else if (laserOn && this.isPointingAtTriggerable(controllerData, isTriggerPressed, false)) {
+                    // if trigger is down + pointing at a web entity/overlay, keep running web surface laser
                     this.running = true;
                     return makeRunningValues(true, [], []);
                 } else {
