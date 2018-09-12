@@ -86,8 +86,7 @@ void AvatarReplicas::processDeletedTraitInstance(const QUuid& parentID, AvatarTr
     if (_replicasMap.find(parentID) != _replicasMap.end()) {
         auto &replicas = _replicasMap[parentID];
         for (auto avatar : replicas) {
-            avatar->processDeletedTraitInstance(traitType,
-                                                AvatarTraits::xoredInstanceID(instanceID, avatar->getTraitInstanceXORID()));
+            avatar->processDeletedTraitInstance(traitType, instanceID);
         }
     }
 }
@@ -96,9 +95,7 @@ void AvatarReplicas::processTraitInstance(const QUuid& parentID, AvatarTraits::T
     if (_replicasMap.find(parentID) != _replicasMap.end()) {
         auto &replicas = _replicasMap[parentID];
         for (auto avatar : replicas) {
-            avatar->processTraitInstance(traitType,
-                                         AvatarTraits::xoredInstanceID(instanceID, avatar->getTraitInstanceXORID()),
-                                         traitBinaryData);
+            avatar->processTraitInstance(traitType, instanceID, traitBinaryData);
         }
     }
 }
@@ -364,11 +361,11 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
                     // in order to handle re-connections to the avatar mixer when the other
                     if (traitBinarySize == AvatarTraits::DELETED_TRAIT_SIZE) {
                         avatar->processDeletedTraitInstance(traitType, xoredInstanceID);
-                        _replicas.processDeletedTraitInstance(avatarID, traitType, traitInstanceID);
+                        _replicas.processDeletedTraitInstance(avatarID, traitType, xoredInstanceID);
                     } else {
                         auto traitData = message->read(traitBinarySize);
                         avatar->processTraitInstance(traitType, xoredInstanceID, traitData);
-                        _replicas.processTraitInstance(avatarID, traitType, traitInstanceID, traitData);
+                        _replicas.processTraitInstance(avatarID, traitType, xoredInstanceID, traitData);
                     }
                     processedInstanceVersion = packetTraitVersion;
                 } else {
