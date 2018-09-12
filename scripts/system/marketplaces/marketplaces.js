@@ -16,14 +16,11 @@
 var selectionDisplay = null; // for gridTool.js to ignore
 
 (function () { // BEGIN LOCAL_SCOPE
-
-    Script.include("/~/system/libraries/WebTablet.js");
+    var AppUi = Script.require('appUi');
     Script.include("/~/system/libraries/gridTool.js");
     Script.include("/~/system/libraries/connectionUtils.js");
 
     var METAVERSE_SERVER_URL = Account.metaverseServerURL;
-    var MARKETPLACE_URL = METAVERSE_SERVER_URL + "/marketplace";
-    var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?";  // Append "?" to signal injected script that it's the initial page.
     var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
     var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
     var MARKETPLACE_CHECKOUT_QML_PATH = "hifi/commerce/checkout/Checkout.qml";
@@ -31,9 +28,6 @@ var selectionDisplay = null; // for gridTool.js to ignore
     var MARKETPLACE_WALLET_QML_PATH = "hifi/commerce/wallet/Wallet.qml";
     var MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH = "commerce/inspectionCertificate/InspectionCertificate.qml";
     var REZZING_SOUND = SoundCache.getSound(Script.resolvePath("../assets/sounds/rezzing.wav"));
-
-    var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
-    // var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
 
     // Event bridge messages.
     var CLARA_IO_DOWNLOAD = "CLARA.IO DOWNLOAD";
@@ -58,45 +52,13 @@ var selectionDisplay = null; // for gridTool.js to ignore
         if (id === messageBox && button === CANCEL_BUTTON) {
             isDownloadBeingCancelled = true;
             messageBox = null;
-            tablet.emitScriptEvent(CLARA_IO_CANCEL_DOWNLOAD);
-        }
-    }
-
-    var onMarketplaceScreen = false;
-    var onCommerceScreen = false;
-
-    var debugCheckout = false;
-    var debugError = false;
-    function showMarketplace() {
-        if (!debugCheckout) {
-            UserActivityLogger.openedMarketplace();
-            tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
-        } else {
-            tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
-            sendToQml({
-                method: 'updateCheckoutQML', params: {
-                    itemId: '424611a2-73d0-4c03-9087-26a6a279257b',
-                    itemName: '2018-02-15 Finnegon',
-                    itemPrice: (debugError ? 10 : 3),
-                    itemHref: 'http://devmpassets.highfidelity.com/424611a2-73d0-4c03-9087-26a6a279257b-v1/finnigon.fst',
-                    categories: ["Miscellaneous"]
-                }
-            });
-        }
-    }
-
-    function messagesWaiting(isWaiting) {
-        if (marketplaceButton) {
-            marketplaceButton.editProperties({
-                icon: (isWaiting ? WAITING_ICON : NORMAL_ICON),
-                activeIcon: (isWaiting ? WAITING_ACTIVE : NORMAL_ACTIVE)
-            });
+            ui.sendToHtml(CLARA_IO_CANCEL_DOWNLOAD);
         }
     }
 
     function onCanWriteAssetsChanged() {
         var message = CAN_WRITE_ASSETS + " " + Entities.canWriteAssets();
-        tablet.emitScriptEvent(message);
+        ui.sendToHtml(message);
     }
 
 
@@ -119,13 +81,13 @@ var selectionDisplay = null; // for gridTool.js to ignore
     }
 
     function openWallet() {
-        tablet.pushOntoStack(MARKETPLACE_WALLET_QML_PATH);
+        ui.openNewApp(MARKETPLACE_WALLET_QML_PATH);
     }
 
     function setCertificateInfo(currentEntityWithContextOverlay, itemCertificateId) {
-        wireEventBridge(true);
+        ui.wireEventBridge(true);
         var certificateId = itemCertificateId || (Entities.getEntityProperties(currentEntityWithContextOverlay, ['certificateID']).certificateID);
-        sendToQml({
+        ui.sendMessage({
             method: 'inspectionCertificate_setCertificateId',
             entityId: currentEntityWithContextOverlay,
             certificateId: certificateId
@@ -134,13 +96,13 @@ var selectionDisplay = null; // for gridTool.js to ignore
 
     function onUsernameChanged() {
         if (onMarketplaceScreen) {
-            tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
+            ui.openNewApp(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
         }
     }
 
     var userHasUpdates = false;
     function sendCommerceSettings() {
-        tablet.emitScriptEvent(JSON.stringify({
+        ui.sendToHtml({
             type: "marketplaces",
             action: "commerceSetting",
             data: {
@@ -150,7 +112,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 metaverseServerURL: Account.metaverseServerURL,
                 messagesWaiting: userHasUpdates
             }
-        }));
+        });
     }
 
     // BEGIN AVATAR SELECTOR LOGIC
@@ -323,7 +285,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 method: 'updateSelectedRecipientUsername',
                 userName: username === "" ? "unknown username" : username
             };
-            sendToQml(message);
+            ui.sendMessage(message);
         }
     }
     function handleClick(pickRay) {
@@ -341,7 +303,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 displayName: '"' + AvatarList.getAvatar(avatarId).sessionDisplayName + '"',
                 userName: ''
             };
-            sendToQml(message);
+            ui.sendMessage(message);
 
             ExtendedOverlay.some(function (overlay) {
                 var id = overlay.key;
@@ -627,9 +589,9 @@ var selectionDisplay = null; // for gridTool.js to ignore
     var filterText; // Used for updating Purchases QML
     function onMessage(message) {
         if (message === GOTO_DIRECTORY) {
-            tablet.gotoWebScreen(MARKETPLACES_URL, MARKETPLACES_INJECT_SCRIPT_URL);
+            ui.openNewApp(MARKETPLACES_URL, MARKETPLACES_INJECT_SCRIPT_URL);
         } else if (message === QUERY_CAN_WRITE_ASSETS) {
-            tablet.emitScriptEvent(CAN_WRITE_ASSETS + " " + Entities.canWriteAssets());
+            ui.sendToHtml(CAN_WRITE_ASSETS + " " + Entities.canWriteAssets());
         } else if (message === WARN_USER_NO_PERMISSIONS) {
             Window.alert(NO_PERMISSIONS_ERROR_MESSAGE);
         } else if (message.slice(0, CLARA_IO_STATUS.length) === CLARA_IO_STATUS) {
@@ -655,9 +617,9 @@ var selectionDisplay = null; // for gridTool.js to ignore
         } else {
             var parsedJsonMessage = JSON.parse(message);
             if (parsedJsonMessage.type === "CHECKOUT") {
-                wireEventBridge(true);
-                tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
-                sendToQml({
+                ui.wireEventBridge(true);
+                ui.openNewApp(MARKETPLACE_CHECKOUT_QML_PATH);
+                ui.sendMessage({
                     method: 'updateCheckoutQML',
                     params: parsedJsonMessage
                 });
@@ -666,12 +628,12 @@ var selectionDisplay = null; // for gridTool.js to ignore
             } else if (parsedJsonMessage.type === "PURCHASES") {
                 referrerURL = parsedJsonMessage.referrerURL;
                 filterText = "";
-                tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
+                ui.openNewApp(MARKETPLACE_PURCHASES_QML_PATH);
             } else if (parsedJsonMessage.type === "LOGIN") {
                 openLoginWindow();
             } else if (parsedJsonMessage.type === "WALLET_SETUP") {
-                wireEventBridge(true);
-                sendToQml({
+                ui.wireEventBridge(true);
+                ui.sendMessage({
                     method: 'updateWalletReferrer',
                     referrer: "marketplace cta"
                 });
@@ -679,40 +641,14 @@ var selectionDisplay = null; // for gridTool.js to ignore
             } else if (parsedJsonMessage.type === "MY_ITEMS") {
                 referrerURL = MARKETPLACE_URL_INITIAL;
                 filterText = "";
-                tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
-                wireEventBridge(true);
-                sendToQml({
+                ui.openNewApp(MARKETPLACE_PURCHASES_QML_PATH);
+                ui.wireEventBridge(true);
+                ui.sendMessage({
                     method: 'purchases_showMyItems'
                 });
             }
         }
     }
-
-    function onButtonClicked() {
-        if (!tablet) {
-            print("Warning in buttonClicked(): 'tablet' undefined!");
-            return;
-        }
-        if (onMarketplaceScreen || onCommerceScreen) {
-            // for toolbar-mode: go back to home screen, this will close the window.
-            tablet.gotoHomeScreen();
-        } else {
-            if (HMD.tabletID) {
-                Entities.editEntity(HMD.tabletID, { textures: JSON.stringify({ "tex.close": HOME_BUTTON_TEXTURE }) });
-            }
-            showMarketplace();
-        }
-    }
-
-    // Function Name: sendToQml()
-    //
-    // Description:
-    //   -Use this function to send a message to the QML (i.e. to change appearances). The "message" argument is what is sent to
-    //    the QML in the format "{method, params}", like json-rpc. See also fromQml().
-    function sendToQml(message) {
-        tablet.sendToQml(message);
-    }
-
     var sendAssetRecipient;
     var sendAssetParticleEffectUpdateTimer;
     var particleEffectTimestamp;
@@ -813,44 +749,40 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 openWallet();
                 break;
             case 'purchases_walletNotSetUp':
-                wireEventBridge(true);
-                sendToQml({
+                ui.wireEventBridge(true);
+                ui.sendMessage({
                     method: 'updateWalletReferrer',
                     referrer: "purchases"
                 });
                 openWallet();
                 break;
             case 'checkout_walletNotSetUp':
-                wireEventBridge(true);
-                sendToQml({
+                ui.wireEventBridge(true);
+                ui.sendMessage({
                     method: 'updateWalletReferrer',
                     referrer: message.referrer === "itemPage" ? message.itemId : message.referrer
                 });
                 openWallet();
                 break;
             case 'checkout_cancelClicked':
-                tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.params, MARKETPLACES_INJECT_SCRIPT_URL);
-                // TODO: Make Marketplace a QML app that's a WebView wrapper so we can use the app stack.
-                // I don't think this is trivial to do since we also want to inject some JS into the DOM.
-                //tablet.popFromStack();
+                ui.openNewApp(MARKETPLACE_URL + '/items/' + message.params, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
             case 'header_goToPurchases':
             case 'checkout_goToPurchases':
                 referrerURL = MARKETPLACE_URL_INITIAL;
                 filterText = message.filterText;
-                tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
+                ui.openNewApp(MARKETPLACE_PURCHASES_QML_PATH);
                 break;
             case 'checkout_itemLinkClicked':
-                tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
+                ui.openNewApp(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
             case 'checkout_continueShopping':
-                tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
-                //tablet.popFromStack();
+                ui.openNewApp(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
             case 'purchases_itemInfoClicked':
                 var itemId = message.itemId;
                 if (itemId && itemId !== "") {
-                    tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + itemId, MARKETPLACES_INJECT_SCRIPT_URL);
+                    ui.openNewApp(MARKETPLACE_URL + '/items/' + itemId, MARKETPLACES_INJECT_SCRIPT_URL);
                 }
                 break;
             case 'checkout_rezClicked':
@@ -859,13 +791,13 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 break;
             case 'header_marketplaceImageClicked':
             case 'purchases_backClicked':
-                tablet.gotoWebScreen(message.referrerURL, MARKETPLACES_INJECT_SCRIPT_URL);
+                ui.openNewApp(message.referrerURL, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
             case 'purchases_goToMarketplaceClicked':
-                tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
+                ui.openNewApp(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
             case 'updateItemClicked':
-                tablet.gotoWebScreen(message.upgradeUrl + "?edition=" + message.itemEdition,
+                ui.openNewApp(message.upgradeUrl + "?edition=" + message.itemEdition,
                     MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
             case 'giftAsset':
@@ -873,7 +805,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 break;
             case 'passphrasePopup_cancelClicked':
             case 'needsLogIn_cancelClicked':
-                tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
+                ui.openNewApp(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
             case 'needsLogIn_loginClicked':
                 openLoginWindow();
@@ -894,26 +826,26 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 maybeEnableHMDPreview();
                 break;
             case 'purchases_openGoTo':
-                tablet.loadQMLSource("hifi/tablet/TabletAddressDialog.qml");
+                ui.openNewApp("hifi/tablet/TabletAddressDialog.qml");
                 break;
             case 'purchases_itemCertificateClicked':
                 setCertificateInfo("", message.itemCertificateId);
                 break;
             case 'inspectionCertificate_closeClicked':
-                tablet.gotoHomeScreen();
+                ui.close();
                 break;
             case 'inspectionCertificate_requestOwnershipVerification':
                 ContextOverlay.requestOwnershipVerification(message.entity);
                 break;
             case 'inspectionCertificate_showInMarketplaceClicked':
-                tablet.gotoWebScreen(message.marketplaceUrl, MARKETPLACES_INJECT_SCRIPT_URL);
+                ui.openNewApp(message.marketplaceUrl, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
             case 'header_myItemsClicked':
                 referrerURL = MARKETPLACE_URL_INITIAL;
                 filterText = "";
-                tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
-                wireEventBridge(true);
-                sendToQml({
+                ui.openNewApp(MARKETPLACE_PURCHASES_QML_PATH);
+                ui.wireEventBridge(true);
+                ui.sendMessage({
                     method: 'purchases_showMyItems'
                 });
                 break;
@@ -949,7 +881,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
             case 'wallet_availableUpdatesReceived':
             case 'purchases_availableUpdatesReceived':
                 userHasUpdates = message.numUpdates > 0;
-                messagesWaiting(userHasUpdates);
+                ui.messagesWaiting(userHasUpdates);
                 break;
             case 'purchases_updateWearables':
                 var currentlyWornWearables = [];
@@ -968,7 +900,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
                     }
                 }
 
-                sendToQml({ method: 'updateWearables', wornWearables: currentlyWornWearables });
+                ui.sendMessage({ method: 'updateWearables', wornWearables: currentlyWornWearables });
                 break;
             case 'sendAsset_sendPublicly':
                 if (message.assetName !== "") {
@@ -998,38 +930,12 @@ var selectionDisplay = null; // for gridTool.js to ignore
         }
     }
 
-    // Function Name: wireEventBridge()
-    //
-    // Description:
-    //   -Used to connect/disconnect the script's response to the tablet's "fromQml" signal. Set the "on" argument to enable or
-    //    disable to event bridge.
-    //
-    // Relevant Variables:
-    //   -hasEventBridge: true/false depending on whether we've already connected the event bridge.
-    var hasEventBridge = false;
-    function wireEventBridge(on) {
-        if (!tablet) {
-            print("Warning in wireEventBridge(): 'tablet' undefined!");
-            return;
-        }
-        if (on) {
-            if (!hasEventBridge) {
-                tablet.fromQml.connect(fromQml);
-                hasEventBridge = true;
-            }
-        } else {
-            if (hasEventBridge) {
-                tablet.fromQml.disconnect(fromQml);
-                hasEventBridge = false;
-            }
-        }
-    }
-
     // Function Name: onTabletScreenChanged()
     //
     // Description:
     //   -Called when the TabletScriptingInterface::screenChanged() signal is emitted. The "type" argument can be either the string
     //    value of "Home", "Web", "Menu", "QML", or "Closed". The "url" argument is only valid for Web and QML.
+    var onMarketplaceScreen = false;
     var onWalletScreen = false;
     var onCommerceScreen = false;
     function onTabletScreenChanged(type, url) {
@@ -1044,20 +950,18 @@ var selectionDisplay = null; // for gridTool.js to ignore
 
         onCommerceScreen = onCommerceScreenNow;
         onWalletScreen = onWalletScreenNow;
-        wireEventBridge(onMarketplaceScreen || onCommerceScreen || onWalletScreen);
+        ui.wireEventBridge(onMarketplaceScreen || onCommerceScreen || onWalletScreen);
 
         if (url === MARKETPLACE_PURCHASES_QML_PATH) {
-            sendToQml({
+            ui.sendMessage({
                 method: 'updatePurchases',
                 referrerURL: referrerURL,
                 filterText: filterText
             });
         }
 
-        // for toolbar mode: change button to active when window is first openend, false otherwise.
-        if (marketplaceButton) {
-            marketplaceButton.editProperties({ isActive: (onMarketplaceScreen || onCommerceScreen) && !onWalletScreen });
-        }
+        ui.buttonActive((onMarketplaceScreen || onCommerceScreen) && !onWalletScreen);
+
         if (type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1) {
             ContextOverlay.isInMarketplaceInspectionMode = true;
         } else {
@@ -1075,38 +979,32 @@ var selectionDisplay = null; // for gridTool.js to ignore
             isWired = true;
             Wallet.refreshWalletStatus();
         } else {
-            off();
-            sendToQml({
+            ui.sendMessage({
                 method: 'inspectionCertificate_resetCert'
             });
+            off();
         }
     }
 
     //
     // Manage the connection between the button and the window.
     //
-    var marketplaceButton;
-    var buttonName = "MARKET";
-    var tablet = null;
-    var NORMAL_ICON = "icons/tablet-icons/market-i.svg";
-    var NORMAL_ACTIVE = "icons/tablet-icons/market-a.svg";
-    var WAITING_ICON = "icons/tablet-icons/market-i-msg.svg";
-    var WAITING_ACTIVE = "icons/tablet-icons/market-a-msg.svg";
+    var BUTTON_NAME = "MARKET";
+    var MARKETPLACE_URL = METAVERSE_SERVER_URL + "/marketplace";
+    var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?";  // Append "?" to signal injected script that it's the initial page.
     function startup() {
-        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-        marketplaceButton = tablet.addButton({
-            icon: NORMAL_ICON,
-            activeIcon: NORMAL_ACTIVE,
-            text: buttonName,
-            sortOrder: 9
+        ui = new AppUi({
+            buttonName: BUTTON_NAME,
+            sortOrder: 9,
+            inject: MARKETPLACES_INJECT_SCRIPT_URL,
+            home: MARKETPLACE_URL_INITIAL,
+            onMessage: fromQml
         });
 
         ContextOverlay.contextOverlayClicked.connect(setCertificateInfo);
         Entities.canWriteAssetsChanged.connect(onCanWriteAssetsChanged);
         GlobalServices.myUsernameChanged.connect(onUsernameChanged);
         marketplaceButton.clicked.connect(onButtonClicked);
-        tablet.screenChanged.connect(onTabletScreenChanged);
-        tablet.webEventReceived.connect(onMessage);
         Wallet.walletStatusChanged.connect(sendCommerceSettings);
         Window.messageBoxClosed.connect(onMessageBoxClosed);
 
@@ -1124,6 +1022,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
 
             isWired = false;
         }
+
         if (isUpdateOverlaysWired) {
             Script.update.disconnect(updateOverlays);
             isUpdateOverlaysWired = false;
@@ -1138,18 +1037,8 @@ var selectionDisplay = null; // for gridTool.js to ignore
         Entities.canWriteAssetsChanged.disconnect(onCanWriteAssetsChanged);
         GlobalServices.myUsernameChanged.disconnect(onUsernameChanged);
         marketplaceButton.clicked.disconnect(onButtonClicked);
-        tablet.removeButton(marketplaceButton);
-        tablet.webEventReceived.disconnect(onMessage);
         Wallet.walletStatusChanged.disconnect(sendCommerceSettings);
         Window.messageBoxClosed.disconnect(onMessageBoxClosed);
-
-        if (tablet) {
-            tablet.screenChanged.disconnect(onTabletScreenChanged);
-            if (onMarketplaceScreen) {
-                tablet.gotoHomeScreen();
-            }
-        }
-
         off();
     }
 

@@ -708,6 +708,7 @@
 
     function onLoad() {
         EventBridge.scriptEventReceived.connect(function (message) {
+            message = JSON.stringify(message);
             if (message.slice(0, CAN_WRITE_ASSETS.length) === CAN_WRITE_ASSETS) {
                 canWriteAssets = message.slice(-4) === "true";
             } else if (message.slice(0, CLARA_IO_CANCEL_DOWNLOAD.length) === CLARA_IO_CANCEL_DOWNLOAD) {
