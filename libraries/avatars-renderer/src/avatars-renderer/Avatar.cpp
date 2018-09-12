@@ -130,7 +130,7 @@ void AvatarTransit::start(const glm::vec3& startPosition, const glm::vec3& endPo
 void AvatarTransit::calculateSteps(int stepCount) {
     glm::vec3 startPosition = _isTransiting ? _transitSteps[_step] : _startPosition;
     _transitSteps.clear();
-    glm::vec3 transitLine = _endPosition - _startPosition;
+    glm::vec3 transitLine = _endPosition - startPosition;
     glm::vec3 direction = glm::normalize(transitLine);
     glm::vec3 stepVector = (glm::length(transitLine) / stepCount) * direction;
     for (auto i = 0; i < stepCount; i++) {
@@ -140,7 +140,7 @@ void AvatarTransit::calculateSteps(int stepCount) {
 }
 
 bool AvatarTransit::getNextPosition(glm::vec3& nextPosition) {
-    int lastIdx = _transitSteps.size() - 1;
+    int lastIdx = (int)_transitSteps.size() - 1;
     _isTransiting = _step < lastIdx;
     if (_isTransiting) {
         _step++;
