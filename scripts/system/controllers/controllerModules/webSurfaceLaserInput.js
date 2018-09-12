@@ -33,7 +33,7 @@ Script.include("/~/system/libraries/controllers.js");
             makeLaserParams(hand, true));
 
         this.grabModuleWantsNearbyOverlay = function(controllerData) {
-            if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
+            if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE || controllerData.secondaryValues[this.hand] > BUMPER_ON_VALUE) {
                 var nearGrabName = this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay";
                 var nearGrabModule = getEnabledModuleByName(nearGrabName);
                 if (nearGrabModule) {
@@ -64,12 +64,12 @@ Script.include("/~/system/libraries/controllers.js");
             return this.hand === RIGHT_HAND ? leftOverlayLaserInput : rightOverlayLaserInput;
         };
 
-        this.isPointingAtTriggerable = function(controllerData, triggerPressed) {
+        this.isPointingAtTriggerable = function(controllerData, triggerPressed, checkEntitiesOnly) {
             // allow pointing at tablet, unlocked web entities, or web overlays automatically without pressing trigger,
             // but for pointing at locked web entities or non-web overlays user must be pressing trigger
             var intersection = controllerData.rayPicks[this.hand];
             var objectID = intersection.objectID;
-            if (intersection.type === Picks.INTERSECTED_OVERLAY) {
+            if (intersection.type === Picks.INTERSECTED_OVERLAY && !checkEntitiesOnly) {
                 if ((HMD.tabletID && objectID === HMD.tabletID) ||
                     (HMD.tabletScreenID && objectID === HMD.tabletScreenID) ||
                     (HMD.homeButtonID && objectID === HMD.homeButtonID)) {
@@ -118,7 +118,7 @@ Script.include("/~/system/libraries/controllers.js");
                                    controllerData.triggerValues[this.otherHand] <= TRIGGER_OFF_VALUE;
             var allowThisModule = !otherModuleRunning || isTriggerPressed;
 
-            if (allowThisModule && this.isPointingAtTriggerable(controllerData, isTriggerPressed)) {
+            if (allowThisModule && this.isPointingAtTriggerable(controllerData, isTriggerPressed, false)) {
                 this.updateAllwaysOn();
                 if (isTriggerPressed) {
                     this.dominantHandOverride = true; // Override dominant hand.
@@ -141,11 +141,16 @@ Script.include("/~/system/libraries/controllers.js");
             otherModuleRunning = otherModuleRunning || this.getOtherModule().dominantHandOverride; // Override dominant hand.
             var grabModuleNeedsToRun = this.grabModuleWantsNearbyOverlay(controllerData);
             // only allow for non-near grab
-            var allowThisModule = !otherModuleRunning && !(grabModuleNeedsToRun && controllerData.secondaryValues[this.hand] > BUMPER_ON_VALUE);
+            var allowThisModule = !otherModuleRunning && !grabModuleNeedsToRun;
             var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE;
             var laserOn = isTriggerPressed || this.parameters.handLaser.allwaysOn;
             if (allowThisModule) {
-                if (laserOn && this.isPointingAtTriggerable(controllerData, isTriggerPressed)) {
+                // if trigger is down + not pointing at a web entity, keep running web surface laser
+                if (isTriggerPressed && !this.isPointingAtTriggerable(controllerData, isTriggerPressed, true)) {
+                    this.running = true;
+                    return makeRunningValues(true, [], []);
+                // if trigger is down + pointing at a web entity/overlay, keep running web surface laser
+                } else if (laserOn && this.isPointingAtTriggerable(controllerData, isTriggerPressed, false)) {
                     this.running = true;
                     return makeRunningValues(true, [], []);
                 } else {
@@ -155,14 +160,11 @@ Script.include("/~/system/libraries/controllers.js");
                     return makeRunningValues(false, [], []);
                 }
             }
+            // if module needs to stop from near grabs or other modules are running, stop it.
             this.deleteContextOverlay();
             this.running = false;
             this.dominantHandOverride = false;
             this.objectID = null;
-            if (this.hand === LEFT_HAND) {
-                print("allowThisModule = " + allowThisModule);
-                print("isPointingAtTriggerable = " + (laserOn || this.isPointingAtTriggerable(controllerData, isTriggerPressed)));
-            }
             return makeRunningValues(false, [], []);
         };
     }
