@@ -548,13 +548,15 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         }
     }
 
+    QVector<JointData> jointData;
+    if (hasJointData || hasJointDefaultPoseFlags) {
+        QReadLocker readLock(&_jointDataLock);
+        jointData = _jointData;
+    }
+
     // If it is connected, pack up the data
     if (hasJointData) {
         auto startSection = destinationBuffer;
-        QReadLocker readLock(&_jointDataLock);
-
-        const QVector<JointData> jointData(_jointData);
-        readLock.unlock();  // Unlock quickly.
 
         // joint rotation data
         int numJoints = jointData.size();
@@ -736,30 +738,29 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             outboundDataRateOut->jointDataRate.increment(numBytes);
         }
 
-        // Always true, currently:
-        if (hasJointDefaultPoseFlags) {
-            auto startSection = destinationBuffer;
+    }
 
-            // write numJoints
-            int numJoints = jointData.size();
-            *destinationBuffer++ = (uint8_t)numJoints;
+    if (hasJointDefaultPoseFlags) {
+        auto startSection = destinationBuffer;
 
-            // write rotationIsDefaultPose bits
-            destinationBuffer += writeBitVector(destinationBuffer, numJoints, [&](int i) {
-                return jointData[i].rotationIsDefaultPose;
-            });
+        // write numJoints
+        int numJoints = jointData.size();
+        *destinationBuffer++ = (uint8_t)numJoints;
 
-            // write translationIsDefaultPose bits
-            destinationBuffer += writeBitVector(destinationBuffer, numJoints, [&](int i) {
-                return jointData[i].translationIsDefaultPose;
-            });
+        // write rotationIsDefaultPose bits
+        destinationBuffer += writeBitVector(destinationBuffer, numJoints, [&](int i) {
+            return jointData[i].rotationIsDefaultPose;
+        });
 
-            if (outboundDataRateOut) {
-                size_t numBytes = destinationBuffer - startSection;
-                outboundDataRateOut->jointDefaultPoseFlagsRate.increment(numBytes);
-            }
+        // write translationIsDefaultPose bits
+        destinationBuffer += writeBitVector(destinationBuffer, numJoints, [&](int i) {
+            return jointData[i].translationIsDefaultPose;
+        });
+
+        if (outboundDataRateOut) {
+            size_t numBytes = destinationBuffer - startSection;
+            outboundDataRateOut->jointDefaultPoseFlagsRate.increment(numBytes);
         }
-
     }
 
     int avatarDataSize = destinationBuffer - startPosition;
