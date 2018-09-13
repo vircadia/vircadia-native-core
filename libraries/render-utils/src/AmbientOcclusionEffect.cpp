@@ -182,6 +182,7 @@ AmbientOcclusionEffectConfig::AmbientOcclusionEffectConfig() :
     perspectiveScale{ 1.0f },
     obscuranceLevel{ 0.5f },
     falloffBias{ 0.01f },
+    silhouetteRadius{ 0.3f },
     edgeSharpness{ 1.0f },
     blurDeviation{ 2.5f },
     numSpiralTurns{ 7.0f },
@@ -296,6 +297,11 @@ void AmbientOcclusionEffect::configure(const Config& config) {
         current.w = (float)config.borderingEnabled;
     }
 
+    if (config.silhouetteRadius != _aoParametersBuffer->getSilhouetteRadius()) {
+        auto& current = _aoParametersBuffer.edit().ditheringInfo;
+        current.y = (float)config.silhouetteRadius;
+    }
+
     if (shouldUpdateGaussian) {
         updateGaussianDistribution();
     }
@@ -312,12 +318,12 @@ void AmbientOcclusionEffect::updateBlurParameters() {
     auto& hblur = _hblurParametersBuffer.edit();
     auto frameSize = _framebuffer->getSourceFrameSize();
 
-    hblur.scaleHeight.x = 1.0f / (frameSize.x * resolutionScale);
-    hblur.scaleHeight.y = 1.0f / frameSize.x;
+    hblur.scaleHeight.x = 1.0f / frameSize.x;
+    hblur.scaleHeight.y = float(resolutionScale) / frameSize.x;
     hblur.scaleHeight.z = frameSize.y / resolutionScale;
 
-    vblur.scaleHeight.x = 1.0f / (frameSize.y * resolutionScale);
-    vblur.scaleHeight.y = 1.0f / frameSize.y;
+    vblur.scaleHeight.x = 1.0f / frameSize.y;
+    vblur.scaleHeight.y = float(resolutionScale) / frameSize.y;
     vblur.scaleHeight.z = frameSize.y;
 }
 
