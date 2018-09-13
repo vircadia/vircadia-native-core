@@ -62,8 +62,8 @@ class AmbientOcclusionEffectConfig : public render::GPUJobConfig::Persistent {
     Q_PROPERTY(bool fetchMipsEnabled MEMBER fetchMipsEnabled NOTIFY dirty)
     Q_PROPERTY(float radius MEMBER radius WRITE setRadius)
     Q_PROPERTY(float obscuranceLevel MEMBER obscuranceLevel WRITE setObscuranceLevel)
-    Q_PROPERTY(float falloffBias MEMBER falloffBias WRITE setFalloffBias)
-    Q_PROPERTY(float silhouetteRadius MEMBER silhouetteRadius WRITE setSilhouetteRadius)
+    Q_PROPERTY(float falloffAngle MEMBER falloffAngle WRITE setFalloffAngle)
+    Q_PROPERTY(float falloffDistance MEMBER falloffDistance WRITE setFalloffDistance)
     Q_PROPERTY(float edgeSharpness MEMBER edgeSharpness WRITE setEdgeSharpness)
     Q_PROPERTY(float blurDeviation MEMBER blurDeviation WRITE setBlurDeviation)
     Q_PROPERTY(float numSpiralTurns MEMBER numSpiralTurns WRITE setNumSpiralTurns)
@@ -75,12 +75,12 @@ public:
     AmbientOcclusionEffectConfig();
 
     const int MAX_RESOLUTION_LEVEL = 4;
-    const int MAX_BLUR_RADIUS = 6;
+    const int MAX_BLUR_RADIUS = 15;
 
     void setRadius(float newRadius) { radius = std::max(0.01f, newRadius); emit dirty(); }
     void setObscuranceLevel(float level) { obscuranceLevel = std::max(0.01f, level); emit dirty(); }
-    void setFalloffBias(float bias) { falloffBias = std::max(0.0f, std::min(bias, 0.2f)); emit dirty(); }
-    void setSilhouetteRadius(float value) { silhouetteRadius = std::max(0.0f, value); emit dirty(); }
+    void setFalloffAngle(float bias) { falloffAngle = std::max(0.0f, std::min(bias, 0.2f)); emit dirty(); }
+    void setFalloffDistance(float value) { falloffDistance = std::max(0.0f, value); emit dirty(); }
     void setEdgeSharpness(float sharpness) { edgeSharpness = std::max(0.0f, (float)sharpness); emit dirty(); }
     void setBlurDeviation(float deviation) { blurDeviation = std::max(0.0f, deviation); emit dirty(); }
     void setNumSpiralTurns(float turns) { numSpiralTurns = std::max(0.0f, (float)turns); emit dirty(); }
@@ -91,8 +91,8 @@ public:
     float radius;
     float perspectiveScale;
     float obscuranceLevel; // intensify or dim down the obscurance effect
-    float falloffBias;
-    float silhouetteRadius;
+    float falloffAngle;
+    float falloffDistance;
     float edgeSharpness;
     float blurDeviation;
     float numSpiralTurns; // defining an angle span to distribute the samples ray directions
@@ -134,7 +134,7 @@ public:
         // Blurring info
         glm::vec4 blurInfo;
          // gaussian distribution coefficients first is the sampling radius (max is 6)
-        const static int GAUSSIAN_COEFS_LENGTH = 8;
+        const static int GAUSSIAN_COEFS_LENGTH = 16;
         float _gaussianCoefs[GAUSSIAN_COEFS_LENGTH];
          
         AOParameters();
@@ -143,10 +143,10 @@ public:
         float getRadius() const { return radiusInfo.x; }
         float getPerspectiveScale() const { return resolutionInfo.z; }
         float getObscuranceLevel() const { return radiusInfo.w; }
-        float getFalloffBias() const { return (float)ditheringInfo.z; }
+        float getFalloffAngle() const { return (float)ditheringInfo.z; }
+        float getFalloffDistance() const { return ditheringInfo.y; }
         float getEdgeSharpness() const { return (float)blurInfo.x; }
         float getBlurDeviation() const { return blurInfo.z; }
-        float getSilhouetteRadius() const { return ditheringInfo.y; }
         
         float getNumSpiralTurns() const { return sampleInfo.z; }
         int getNumSamples() const { return (int)sampleInfo.x; }

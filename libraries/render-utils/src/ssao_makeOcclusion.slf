@@ -20,6 +20,7 @@
 <$declarePackOcclusionDepth()$>
 
 #define SSAO_USE_HORIZON_BASED	1
+#define SSAO_HBAO_MAX_RADIUS    100.0
 
 layout(location=0) out vec4 outFragColor;
 
@@ -46,6 +47,9 @@ void main(void) {
 
     // Choose the screen-space sample radius
     float ssDiskRadius = evalDiskRadius(fragPositionES.z, imageSize);
+#if SSAO_USE_HORIZON_BASED
+    ssDiskRadius = min(ssDiskRadius, SSAO_HBAO_MAX_RADIUS);
+#endif
 
     // Let's make noise 
     float randomPatternRotationAngle = getAngleDithering(centerPixelPos);

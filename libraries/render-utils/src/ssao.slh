@@ -41,7 +41,7 @@ struct AmbientOcclusionParams {
     vec4 _ditheringInfo;
     vec4 _sampleInfo;
     vec4 _blurInfo;
-    float _gaussianCoefs[8];
+    float _gaussianCoefs[16];
 };
 
 layout(binding=RENDER_UTILS_BUFFER_SSAO_PARAMS) uniform ambientOcclusionParamsBuffer {
@@ -75,14 +75,14 @@ float getObscuranceScaling() {
 float isDitheringEnabled() {
     return params._ditheringInfo.x;
 }
-float getSilhouetteRadius() {
+float getFalloffDistance() {
     return params._ditheringInfo.y;
 }
 float isBorderingEnabled() {
     return params._ditheringInfo.w;
 }
 
-float getFalloffBias() {
+float getFalloffAngle() {
     return params._ditheringInfo.z;
 }
 
@@ -226,7 +226,7 @@ float getZEyeAtUV(vec2 texCoord, int level) {
     return -texture(pyramidMap, texCoord, level).x;
 }
 
-const int LOG_MAX_OFFSET = 3;
+const int LOG_MAX_OFFSET = 1;
 const int MAX_MIP_LEVEL = 5;
 int evalMipFromRadius(float radius) {
     //  mipLevel = floor(log(ssR / MAX_OFFSET));
@@ -249,7 +249,7 @@ vec3 fetchTapUnfiltered(ivec4 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
    return P;
 }
 
-vec3 fetchTap(ivec4 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
+vec4 fetchTap(ivec4 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
     int mipLevel = evalMipFromRadius(tap.z * float(doFetchMips()));
 
     vec2 ssP = tap.xy + vec2(ssC);
@@ -259,14 +259,12 @@ vec3 fetchTap(ivec4 side, ivec2 ssC, vec3 tap, vec2 imageSize) {
     vec2 tapUV = (vec2(ssP) + vec2(0.5)) / imageSize;
     vec2 fetchUV = vec2(tapUV.x + side.w * 0.5 * (side.x - tapUV.x), tapUV.y);
 
-    vec3 P;
+    vec4 P;
     P.xy = tapUV;
-    P.z = -textureLod(pyramidMap, fetchUV, float(mipLevel)).x;
-
+    P.w = float(mipLevel);
+    P.z = -textureLod(pyramidMap, fetchUV, P.w).x;
    return P;
 }
-
-
 
 <@endfunc@>
 
@@ -289,59 +287,63 @@ float evalVisibilitySSAO(in vec3 centerPosition, in vec3 centerNormal, in vec3 t
     // Fall off function as recommended in SSAO paper
     const float epsilon = 0.01;
     float f = max(getRadius2() - vv, 0.0);
-    return f * f * f * max((vn - getFalloffBias()) / (epsilon + vv), 0.0);
+    return f * f * f * max((vn - getFalloffAngle()) / (epsilon + vv), 0.0);
 }
+
+float computeHorizonFromTap(vec3 tapPositionES, vec3 fragPositionES, vec3 fragNormalES, float normalizedRadius) {
+    vec3 deltaVec = tapPositionES - fragPositionES;
+    float distance = abs(deltaVec.z);
+    float rawHorizon = dot(normalize(deltaVec), fragNormalES);
+
+    rawHorizon = (rawHorizon - getFalloffAngle()) / (1.0 - getFalloffAngle());
+    rawHorizon *= 1.0 - normalizedRadius * normalizedRadius;
+    rawHorizon *= 1.0 - smoothstep(getFalloffDistance()/2, getFalloffDistance(), distance);
+
+    return rawHorizon;
+}
+
+<@func computeHorizon()@>
+            vec3 tap = vec3(tapPixelPos, radius);
+            vec4 tapUVZ_mip = fetchTap(side, centerPixelPos, tap, imageSize);
+            vec3 tapPositionES = evalEyePositionFromZeye(side.x, tapUVZ_mip.z, tapUVZ_mip.xy);
+            float rawHorizon = computeHorizonFromTap(tapPositionES, fragPositionES, fragNormalES, radius / searchRadius);
+
+            <$horizon$> = max(<$horizon$>, rawHorizon);
+<@endfunc@>
+
+#define SSAO_LINEAR_SAMPLING 0
 
 <@func updateHorizon(horizon, deltaPixelTap)@>
     {
-        int stepIndex;
         vec2 tapPixelPos = vec2(0);
-        float radius = 0.0;
 
-        for (stepIndex=stepCount ; stepIndex>0 ; stepIndex--) {
-            tapPixelPos += deltaPixelTap;
+#if !SSAO_LINEAR_SAMPLING
+        float radius = deltaRadius;
+        float mipLevel = evalMipFromRadius(radius * float(doFetchMips()));
+
+        while (radius<searchRadius) {
+            tapPixelPos += <$deltaPixelTap$>;
+
+            <$computeHorizon()$>
+
+            if (tapUVZ_mip.w != mipLevel) {
+                mipLevel = tapUVZ_mip.w;
+                deltaRadius *= 2;
+                <$deltaPixelTap$> *= 2;
+            }
+            radius += deltaRadius;
+        }
+#else
+        float radius = 0.0;
+        int stepIndex;
+
+        for (stepIndex=0 ; stepIndex<stepCount ; stepIndex++) {
+            tapPixelPos += <$deltaPixelTap$>;
             radius += deltaRadius;
 
-            vec3 tap = vec3(tapPixelPos, radius);
-            vec3 tapUVZ = fetchTap(side, centerPixelPos, tap, imageSize);
-            vec3 tapPositionES = evalEyePositionFromZeye(side.x, tapUVZ.z, tapUVZ.xy);
-            vec3 deltaVec = tapPositionES - fragPositionES;
-            float deltaVecHeight = dot(deltaVec, fragNormalES);
-            float rawHorizon = dot(normalize(deltaVec), fragNormalES);
-            float falloff = max(0.0, 1.0 - deltaVecHeight / getSilhouetteRadius());
-
-            rawHorizon = rawHorizon <  getFalloffBias() ? 0.0f : rawHorizon;
-            rawHorizon *= falloff * falloff;
-
-            <$horizon$> = max(<$horizon$>, rawHorizon);
+            <$computeHorizon()$>
         }
-    }
-<@endfunc@>
-
-<@func searchBresenhamHorizon(deltaPixelCoord)@>
-    {
-        float epsilon = 1e-8;
-        vec2 deltaPixelTap = searchVec / absSearchVec.<$deltaPixelCoord$>;
-        vec2 absDeltaPixelTap = abs(deltaPixelTap);
-        bvec2 nullDelta = absDeltaPixelTap < epsilon;
-
-        pixelDelta1 = mix(pixelDelta1, vec2(1.0), pixelDelta1 < epsilon && nullDelta);
-        pixelDelta2 = mix(pixelDelta2, vec2(1.0), pixelDelta2 < epsilon && nullDelta);
-
-        pixelDelta1 = ceil(pixelDelta1 / absDeltaPixelTap);
-        pixelDelta2 = ceil(pixelDelta2 / absDeltaPixelTap);
-
-        int maxStepCount = max(0, int(ceil(absSearchVec.<$deltaPixelCoord$>)));
-        float deltaRadius = ssDiskRadius / maxStepCount;
-        int stepCount;
-
-        // Forward search for h1
-        stepCount = clamp(int(min(pixelDelta1.x, pixelDelta1.y)), 0, maxStepCount);
-        <$updateHorizon(horizons.x, deltaPixelTap)$>
-
-        // Backward search for h2
-        stepCount = clamp(int(min(pixelDelta2.x, pixelDelta2.y)), 0, maxStepCount);
-        <$updateHorizon(horizons.y, -deltaPixelTap)$>
+#endif
     }
 <@endfunc@>
 
@@ -379,7 +381,8 @@ vec2 searchHorizons(ivec4 side, ivec2 centerPixelPos, vec2 imageSize, vec2 delta
     int stepCount = int(max(absClampedSearchVec.x, absClampedSearchVec.y));
     if (stepCount>0) {
         vec2 deltaPixelTap = clampedSearchVec / float(stepCount);
-        float deltaRadius = length(deltaPixelTap);
+        float searchRadius = length(clampedSearchVec);
+        float deltaRadius = searchRadius / float(stepCount);
         <$updateHorizon(horizons.x, deltaPixelTap)$>
     }
     // Backward search for h2
@@ -388,31 +391,10 @@ vec2 searchHorizons(ivec4 side, ivec2 centerPixelPos, vec2 imageSize, vec2 delta
     stepCount = int(max(absClampedSearchVec.x, absClampedSearchVec.y));
     if (stepCount>0) {
         vec2 deltaPixelTap = clampedSearchVec / float(stepCount);
-        float deltaRadius = length(deltaPixelTap);
+        float searchRadius = length(clampedSearchVec);
+        float deltaRadius = searchRadius / float(stepCount);
         <$updateHorizon(horizons.y, deltaPixelTap)$>
     }
-
-//
-// <!
-//
-
-/* TEMPO OP
-    // Bresenham style walk along segment
-	if (absSearchVec.x > absSearchVec.y) {
-        <$searchBresenhamHorizon(x)$>
-	} else {
-        <$searchBresenhamHorizon(y)$>
-	}
-
-	vec3 angles = acos(vec3(horizons, fragNormalES.z)) - PI/2.0;
-	angles.x = -angles.x;
-	// Clamp to limit horizon defined by normal plane
-	horizons.xy = angles.zz + max(angles.xy - angles.zz, vec2(-PI/2.0, PI/2.0));
-    */
-
-//
-// !>
-//
 
 	return horizons;
 }
@@ -460,7 +442,7 @@ float fetchOcclusion(vec2 coords) {
 }
 
 const float BLUR_WEIGHT_OFFSET = 0.01;
-const float BLUR_EDGE_SCALE = 10.0;
+const float BLUR_EDGE_SCALE = 300.0;
 
 vec2 evalTapWeightedValue(ivec3 side, int r, ivec2 destPixelCoord, vec2 scaledTexCoord, vec2 fullTexCoord, float key) {
     ivec2 tapOffset = <$axis$> * r;
@@ -479,7 +461,9 @@ vec2 evalTapWeightedValue(ivec3 side, int r, ivec2 destPixelCoord, vec2 scaledTe
     float weight = BLUR_WEIGHT_OFFSET + getBlurCoef(abs(r));
 
     // range domain (the "bilateral" weight). As depth difference increases, decrease weight.
-    weight *= max(0.0, 1.0 - (getBlurEdgeSharpness() * BLUR_EDGE_SCALE) * abs(tapDepth - key));
+//    weight *= max(0.0, 1.0 - (getBlurEdgeSharpness() * BLUR_EDGE_SCALE) * abs(tapDepth - key));
+    float zDistance = tapDepth - key;
+    weight *= exp(-(getBlurEdgeSharpness() * BLUR_EDGE_SCALE) * zDistance * zDistance);
     
     return vec2(tapOcclusion * weight, weight);
 }

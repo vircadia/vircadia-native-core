@@ -181,8 +181,12 @@ AmbientOcclusionEffectConfig::AmbientOcclusionEffectConfig() :
 #endif
     perspectiveScale{ 1.0f },
     obscuranceLevel{ 0.5f },
-    falloffBias{ 0.01f },
-    silhouetteRadius{ 0.3f },
+#if SSAO_USE_HORIZON_BASED
+    falloffAngle{ 0.1f },
+#else
+    falloffAngle{ 0.01f },
+#endif
+    falloffDistance{ 0.3f },
     edgeSharpness{ 1.0f },
     blurDeviation{ 2.5f },
     numSpiralTurns{ 7.0f },
@@ -234,9 +238,9 @@ void AmbientOcclusionEffect::configure(const Config& config) {
         current.w = config.obscuranceLevel;
     }
 
-    if (config.falloffBias != _aoParametersBuffer->getFalloffBias()) {
+    if (config.falloffAngle != _aoParametersBuffer->getFalloffAngle()) {
         auto& current = _aoParametersBuffer.edit().ditheringInfo;
-        current.z = config.falloffBias;
+        current.z = config.falloffAngle;
     }
 
     if (config.edgeSharpness != _aoParametersBuffer->getEdgeSharpness()) {
@@ -297,9 +301,9 @@ void AmbientOcclusionEffect::configure(const Config& config) {
         current.w = (float)config.borderingEnabled;
     }
 
-    if (config.silhouetteRadius != _aoParametersBuffer->getSilhouetteRadius()) {
+    if (config.falloffDistance != _aoParametersBuffer->getFalloffDistance()) {
         auto& current = _aoParametersBuffer.edit().ditheringInfo;
-        current.y = (float)config.silhouetteRadius;
+        current.y = (float)config.falloffDistance;
     }
 
     if (shouldUpdateGaussian) {
@@ -450,6 +454,7 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 #endif
 		batch.popProfileRange();
 
+        batch.pushProfileRange("Occlusion");
         batch.setUniformBuffer(render_utils::slot::buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
         batch.setUniformBuffer(render_utils::slot::buffer::SsaoParams, _aoParametersBuffer);
         
@@ -459,10 +464,11 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
         batch.setPipeline(occlusionPipeline);
         batch.setResourceTexture(render_utils::slot::texture::SsaoPyramid, _framebuffer->getLinearDepthTexture());
         batch.draw(gpu::TRIANGLE_STRIP, 4);
+        batch.popProfileRange();
 
-        /* TEMPO OP if (_aoParametersBuffer->getBlurRadius() > 0)*/ {
-			PROFILE_RANGE_BATCH(batch, "Blur");
-			// Blur 1st pass
+        {
+            PROFILE_RANGE_BATCH(batch, "Bilateral Blur");
+            // Blur 1st pass
             model.setScale(resolutionScale);
             batch.setModelTransform(model);
             batch.setViewportTransform(firstBlurViewport);
@@ -482,8 +488,7 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
             batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, occlusionBlurredFBO->getRenderBuffer(0));
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
-        
-        
+
         batch.setResourceTexture(render_utils::slot::texture::SsaoPyramid, nullptr);
         batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, nullptr);
         

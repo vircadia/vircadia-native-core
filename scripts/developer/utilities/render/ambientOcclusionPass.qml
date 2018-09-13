@@ -37,10 +37,10 @@ Rectangle {
                 "Level:obscuranceLevel:1.0:false",
                 "Num Taps:numSamples:32:true",
                 "Taps Spiral:numSpiralTurns:10.0:false",
-                "Falloff Bias:falloffBias:0.2:false",
-                "Silhouette Radius:silhouetteRadius:1.0:false",
+                "Falloff Angle:falloffAngle:0.2:false",
+                "Falloff Distance:falloffDistance:2.0:false",
                 "Blur Edge Sharpness:edgeSharpness:1.0:false",
-                "Blur Radius:blurRadius:10.0:false",
+                "Blur Radius:blurRadius:15.0:false",
             ]
             ConfigSlider {
                 label: qsTr(modelData.split(":")[0])
