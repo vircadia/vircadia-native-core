@@ -112,7 +112,6 @@ void DomainHandler::softReset() {
     if (!_isInErrorState) {
         QMetaObject::invokeMethod(&_apiRefreshTimer, "start");
     }
-    _isInErrorState = false;
 }
 
 void DomainHandler::hardReset() {
@@ -121,6 +120,7 @@ void DomainHandler::hardReset() {
     }
 
     softReset();
+    _isInErrorState = false;
 
     qCDebug(networking) << "Hard reset in NodeList DomainHandler.";
     _pendingDomainID = QUuid();

@@ -269,7 +269,6 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
                 // save the last visited domain URL.
                 _lastVisitedURL = lookupUrl;
 
-                auto lastVisitedURLStr = lookupUrl.toString().toStdString();
                 // a network address lookup clears the previous lookup since we don't expect to re-attempt it
                 _previousAPILookup.clear();
 

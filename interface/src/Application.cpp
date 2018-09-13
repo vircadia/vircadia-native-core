@@ -6346,6 +6346,8 @@ void Application::updateWindowTitle() const {
 
     auto nodeList = DependencyManager::get<NodeList>();
     auto accountManager = DependencyManager::get<AccountManager>();
+    auto isInErrorState = nodeList->getDomainHandler().isInErrorState();
+    auto isConnected = nodeList->getDomainHandler().isConnected();
 
     QString buildVersion = " - "
         + (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? QString("Version") : QString("Build"))
@@ -6353,14 +6355,19 @@ void Application::updateWindowTitle() const {
 
     QString loginStatus = accountManager->isLoggedIn() ? "" : " (NOT LOGGED IN)";
 
-    QString connectionStatus = nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED)";
+    QString connectionStatus = isInErrorState ? " (ERROR CONNECTING)" :
+        nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED)";
     QString username = accountManager->getAccountInfo().getUsername();
 
     setCrashAnnotation("username", username.toStdString());
 
     QString currentPlaceName;
     if (isServerlessMode()) {
-        currentPlaceName = "serverless: " + DependencyManager::get<AddressManager>()->getDomainURL().toString();
+        if (isInErrorState) {
+            currentPlaceName = "serverless: " + nodeList->getDomainHandler().getErrorDomainURL().toString();
+        } else {
+            currentPlaceName = "serverless: " + DependencyManager::get<AddressManager>()->getDomainURL().toString();
+        }
     } else {
         currentPlaceName = DependencyManager::get<AddressManager>()->getDomainURL().host();
         if (currentPlaceName.isEmpty()) {
