@@ -346,12 +346,14 @@ Item {
         target: loginDialog
         onHandleLoginCompleted: {
             console.log("Login Succeeded, linking steam account")
-
-            if (Settings.getValue("loginDialogPoppedUp", false)) {
+            var poppedUp = Settings.getValue("loginDialogPoppedUp", false);
+            if (poppedUp) {
+                console.log("[ENCOURAGELOGINDIALOG]: logging in")
                 var data = {
                     "action": "user logged in"
                 };
                 UserActivityLogger.logAction("encourageLoginDialog", data);
+                Settings.setValue("loginDialogPoppedUp", false);
             }
             if (loginDialog.isSteamRunning()) {
                 loginDialog.linkSteam()
@@ -363,11 +365,14 @@ Item {
         }
         onHandleLoginFailed: {
             console.log("Login Failed")
-            if (Settings.getValue("loginDialogPoppedUp", false)) {
+            var poppedUp = Settings.getValue("loginDialogPoppedUp", false);
+            if (poppedUp) {
+                console.log("[ENCOURAGELOGINDIALOG]: failed logging in")
                 var data = {
                     "action": "user failed logging in"
                 };
                 UserActivityLogger.logAction("encourageLoginDialog", data);
+                Settings.setValue("loginDialogPoppedUp", false);
             }
             mainTextContainer.visible = true
             toggleLoading(false)
