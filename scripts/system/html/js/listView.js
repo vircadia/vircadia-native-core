@@ -30,6 +30,14 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
     var rowHeight = 0;
     var lastRowChangeScrollTop = 0;
     
+    that.getNumRows = function() {
+        return elRows.length;
+    };
+    
+    that.getScrollHeight = function() {
+        return rowHeight * SCROLL_ROWS;
+    };
+    
     that.getRowOffset = function() {
         return rowOffset;
     };
@@ -39,8 +47,17 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
         lastRowChangeScrollTop = 0;
     };
     
-    that.getNumRows = function() {
-        return elRows.length;
+    that.decrementRowOffset = function() {          
+        // increase top buffer height to account for the lost row space
+        var topHeight = parseInt(elTopBuffer.getAttribute("height"));       
+        var newTopHeight = topHeight + rowHeight;
+        elTopBuffer.setAttribute("height", newTopHeight);
+        
+        rowOffset--;
+        that.refresh();
+        lastRowChangeScrollTop = topHeight;
+        
+        return rowOffset;
     };
     
     that.setVisibleItemData = function(itemData) {
@@ -59,6 +76,8 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
         var prevTopHeight = parseInt(elTopBuffer.getAttribute("height"));
         var prevBottomHeight =  parseInt(elBottomBuffer.getAttribute("height"));
         
+        // for each row to scroll down, move the top row element to the bottom of the
+        // table before the bottom buffer and reset it's row data to the new item
         for (var i = 0; i < numScrollRows; i++) {
             var rowMovedTopToBottom = elTableBody.childNodes[FIRST_ROW_INDEX];
             var rowIndex = that.getNumRows() + rowOffset;
@@ -68,17 +87,22 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
             rowOffset++;
         }
         
-        var newTopHeight = prevTopHeight + (rowHeight * numScrollRows);
-        var newBottomHeight = prevBottomHeight - (rowHeight * numScrollRows);
+        // add the row space that was scrolled away to the top buffer height and last scroll point
+        // remove the row space that was scrolled away from the bottom buffer height 
+        var scrolledSpace = rowHeight * numScrollRows;
+        var newTopHeight = prevTopHeight + scrolledSpace;
+        var newBottomHeight = prevBottomHeight - scrolledSpace;
         elTopBuffer.setAttribute("height", newTopHeight);
         elBottomBuffer.setAttribute("height", newBottomHeight);
-        lastRowChangeScrollTop += rowHeight * numScrollRows;
+        lastRowChangeScrollTop += scrolledSpace;
     };
     
     that.scrollUp = function(numScrollRows) {
         var prevTopHeight = parseInt(elTopBuffer.getAttribute("height"));
         var prevBottomHeight =  parseInt(elBottomBuffer.getAttribute("height"));
 
+        // for each row to scroll up, move the bottom row element to the top of
+        // the table before the top row and reset it's row data to the new item
         for (var i = 0; i < numScrollRows; i++) {
             var topRow = elTableBody.childNodes[FIRST_ROW_INDEX];
             var rowMovedBottomToTop = elTableBody.childNodes[FIRST_ROW_INDEX + that.getNumRows() - 1];
@@ -89,20 +113,28 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
             rowOffset--;
         }
         
-        var newTopHeight = prevTopHeight - (rowHeight * numScrollRows);
-        var newBottomHeight = prevBottomHeight + (rowHeight * numScrollRows);
+        // remove the row space that was scrolled away from the top buffer height and last scroll point
+        // add the row space that was scrolled away to the bottom buffer height
+        var scrolledSpace = rowHeight * numScrollRows;
+        var newTopHeight = prevTopHeight - scrolledSpace;
+        var newBottomHeight = prevBottomHeight + scrolledSpace;
         elTopBuffer.setAttribute("height", newTopHeight);
         elBottomBuffer.setAttribute("height", newBottomHeight);
-        lastRowChangeScrollTop -= rowHeight * numScrollRows;
+        lastRowChangeScrollTop -= scrolledSpace;
     };
     
     that.onScroll = function()  {
         var scrollTop = elTableScroll.scrollTop;
-        var nextRowChangeScrollTop = lastRowChangeScrollTop + (rowHeight * SCROLL_ROWS);
-        var scrollHeight = rowHeight * SCROLL_ROWS;
+        var scrollHeight = that.getScrollHeight();
+        var nextRowChangeScrollTop = lastRowChangeScrollTop + scrollHeight;
         var totalItems = visibleItemData.length;
         var numRows = that.getNumRows();
         
+        // if the top of the scroll area has past the amount of scroll row space since the last point of scrolling and there
+        // are still more rows to scroll to then trigger a scroll down by the min of the scroll row space or number of
+        // remaining rows below
+        // if the top of the scroll area has gone back above the last point of scrolling then trigger a scroll up by min of
+        // the scroll row space or number of rows above
         if (scrollTop >= nextRowChangeScrollTop && numRows + rowOffset < totalItems) {
             var numScrolls = Math.ceil((scrollTop - nextRowChangeScrollTop) / scrollHeight);
             var numScrollRows = numScrolls * SCROLL_ROWS;
@@ -127,8 +159,10 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
             return;
         }
         
+        // start with all row data cleared and initially set to invisible
         that.clear();
         
+        // update all row data and set rows visible until max visible items reached
         for (var i = 0; i < numRows; i++) {
             var rowIndex = i + rowOffset;
             if (rowIndex >= visibleItemData.length) {
@@ -141,10 +175,12 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
             elRow.style.display = "";
         }
         
+        // top buffer height is the number of hidden rows above the top row
         var topHiddenRows = rowOffset;
         var topBufferHeight = rowHeight * topHiddenRows;
         elTopBuffer.setAttribute("height", topBufferHeight);
         
+        // bottom buffer height is the number of hidden rows below the bottom row (last scroll buffer row)
         var bottomHiddenRows = visibleItemData.length - numRows - rowOffset;
         var bottomBufferHeight = rowHeight * bottomHiddenRows;
         if (bottomHiddenRows < 0) {
@@ -171,6 +207,7 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
         }
         elRows = [];
         
+        // create new row elements inserted between the top and bottom buffers that can fit into viewable scroll area
         var usedHeight = 0;
         while(usedHeight < viewableHeight) {
             var newRow = createRowFunction();
@@ -180,7 +217,7 @@ ListView = function(tableId, tableBodyId, tableScrollId, createRowFunction, upda
             elRows.push(newRow);
         }
         
-        // extra rows for scrolling purposes
+        // add extras rows for scrolling buffer purposes
         for (var i = 0; i < SCROLL_ROWS; i++) {
             var scrollRow = createRowFunction();
             elTableBody.insertBefore(scrollRow, elBottomBuffer);

@@ -79,7 +79,6 @@ function loaded() {
         elEntityTable = document.getElementById("entity-table");
         elEntityTableBody = document.getElementById("entity-table-body");
         elEntityTableScroll = document.getElementById("entity-table-scroll");
-        elEntityTableHeader = document.getElementById("entity-table-header");
         elEntityTableFooter = document.getElementById("entity-table-footer");
         elRefresh = document.getElementById("refresh");
         elToggleLocked = document.getElementById("locked");
@@ -167,7 +166,7 @@ function loaded() {
         function onRowClicked(clickEvent) {
             let entityID = this.dataset.entityID;
             let selection = [entityID];
-
+            
             if (clickEvent.ctrlKey) {
                 let selectedIndex = selectedEntities.indexOf(entityID);
                 if (selectedIndex >= 0) {
@@ -280,9 +279,9 @@ function loaded() {
                         visibleEntities = entities.slice(0);
                     } else {
                         visibleEntities = entities.filter(function(e) {
-                            return e.name.indexOf(searchTerm) > -1
-                                || e.type.indexOf(searchTerm) > -1
-                                || e.fullUrl.indexOf(searchTerm) > -1;
+                            return e.name.toLowerCase().indexOf(searchTerm.toLowerCase()) > -1
+                                || e.type.toLowerCase().indexOf(searchTerm.toLowerCase()) > -1
+                                || e.fullUrl.toLowerCase().indexOf(searchTerm.toLowerCase()) > -1;
                         });
                     }
                 });
@@ -308,23 +307,29 @@ function loaded() {
                 for (let i = 0, length = deletedIDs.length; i < length; ++i) {
                     if (id === deletedIDs[i]) {
                         entities.splice(j, 1);
+                        if (entitiesByID[id].elRow) {
+                            entitiesByID[id].elRow.dataset.entityID = 0;
+                        }
                         delete entitiesByID[id];
                         break;
                     }
                 }
             }
+
+            var rowOffset = entityList.getRowOffset();
             for (let j = visibleEntities.length - 1; j >= 0; --j) {
                 let id = visibleEntities[j].id;
                 for (let i = 0, length = deletedIDs.length; i < length; ++i) {
                     if (id === deletedIDs[i]) {
-                        if (visibleEntities[j].elRow) {
-                            visibleEntities[j].elRow.dataset.entityID = 0;
+                        if (j < rowOffset) { 
+                            rowOffset = entityList.decrementRowOffset();
                         }
                         visibleEntities.splice(j, 1);
                         break;
                     }
                 }
-            }
+            }       
+            
             entityList.setVisibleItemData(visibleEntities);
             entityList.refresh();
         }
@@ -342,6 +347,7 @@ function loaded() {
             visibleEntities = [];
             
             entityList.setVisibleItemData([]);
+            entityList.resetRowOffset();
             entityList.refresh();
             
             refreshFooter();
@@ -375,11 +381,8 @@ function loaded() {
             });
         }
         
-        function refreshEntities(resetRowOffset) {
+        function refreshEntities() {
             clearEntities();
-            if (resetRowOffset) {
-                entityList.resetRowOffset();
-            }
             EventBridge.emitWebEvent(JSON.stringify({ type: 'refresh' }));
         }
         
@@ -575,7 +578,7 @@ function loaded() {
         function onRadiusChange() {
             elRadius.value = Math.max(elRadius.value, 0);
             EventBridge.emitWebEvent(JSON.stringify({ type: 'radius', radius: elRadius.value }));
-            refreshEntities(true);
+            refreshEntities();
             elNoEntitiesRadius.firstChild.nodeValue = elRadius.value;
         }
 
