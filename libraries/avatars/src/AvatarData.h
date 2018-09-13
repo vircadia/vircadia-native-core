@@ -1444,6 +1444,8 @@ protected:
     ThreadSafeValueCache<glm::mat4> _farGrabLeftMatrixCache { glm::mat4() };
     ThreadSafeValueCache<glm::mat4> _farGrabMouseMatrixCache { glm::mat4() };
 
+    ThreadSafeValueCache<QVariantMap> _capsuleShape { QVariantMap() };
+
     int getFauxJointIndex(const QString& name) const;
 
     float _audioLoudness { 0.0f };

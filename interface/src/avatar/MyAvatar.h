@@ -1021,7 +1021,7 @@ public:
     * @function MyAvatar.getCollisionCapsule
     * @returns {object}
     */
-    Q_INVOKABLE QVariantMap getCollisionCapsule();
+    Q_INVOKABLE QVariantMap getCollisionCapsule() const;
 
     /**jsdoc
      * @function MyAvatar.setCharacterControllerEnabled
@@ -1372,6 +1372,11 @@ public slots:
      * @param {number} scale
      */
     virtual void setModelScale(float scale) override;
+
+    /**jsdoc
+    * @function MyAvatar.updateCollisionCapsule
+    */
+    void updateCollisionCapsule();
 
 signals:
 

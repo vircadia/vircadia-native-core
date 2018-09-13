@@ -149,7 +149,8 @@ MyAvatar::MyAvatar(QThread* thread) :
     });
     connect(_skeletonModel.get(), &Model::rigReady, this, &Avatar::rigReady);
     connect(_skeletonModel.get(), &Model::rigReset, this, &Avatar::rigReset);
-
+    connect(&_skeletonModel->getRig(), &Rig::onLoadComplete, this, &MyAvatar::updateCollisionCapsule);
+    connect(this, &MyAvatar::sensorToWorldScaleChanged, this, &MyAvatar::updateCollisionCapsule);
     using namespace recording;
     _skeletonModel->flagAsCauterized();
 
@@ -255,6 +256,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     });
 
     connect(&(_skeletonModel->getRig()), SIGNAL(onLoadComplete()), this, SIGNAL(onLoadComplete()));
+
     _characterController.setDensity(_density);
 }
 
@@ -3307,7 +3309,7 @@ bool MyAvatar::getCollisionsEnabled() {
     return _characterController.computeCollisionGroup() != BULLET_COLLISION_GROUP_COLLISIONLESS;
 }
 
-QVariantMap MyAvatar::getCollisionCapsule() {
+void MyAvatar::updateCollisionCapsule() {
     glm::vec3 start, end;
     float radius;
     getCapsule(start, end, radius);
@@ -3315,7 +3317,12 @@ QVariantMap MyAvatar::getCollisionCapsule() {
     capsule["start"] = vec3toVariant(start);
     capsule["end"] = vec3toVariant(end);
     capsule["radius"] = QVariant(radius);
-    return capsule;
+    _capsuleShape.set(capsule);
+}
+
+// thread safe
+QVariantMap MyAvatar::getCollisionCapsule() const {
+    return _capsuleShape.get();
 }
 
 void MyAvatar::setCharacterControllerEnabled(bool enabled) {
