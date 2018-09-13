@@ -138,7 +138,7 @@
     var loadingToTheSpotID = Overlays.addOverlay("image3d", {
         name: "Loading-Destination-Card-Text",
         localPosition: { x: 0.0 , y: -1.5, z: -0.3 },
-        url: Script.resourcesPath() + "interstitialPage/goTo_button.png",
+        url: Script.resourcesPath() + "images/interstitialPage/goTo_button.png",
         alpha: 1,
         dimensions: { x: 1.5, y: 1.0 },
         visible: isVisible,
