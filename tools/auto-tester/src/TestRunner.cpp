@@ -32,6 +32,8 @@ TestRunner::TestRunner(std::vector<QCheckBox*> dayCheckboxes,
     _timeEditCheckboxes = timeEditCheckboxes;
     _timeEdits = timeEdits;
     _workingFolderLabel = workingFolderLabel;
+
+    thread = new QThread();
 }
 
 TestRunner::~TestRunner() {
@@ -103,7 +105,32 @@ void TestRunner::installerDownloadComplete() {
     killProcesses();
 
     runInstaller();
+}
 
+void TestRunner::runInstaller() {
+    // Qt cannot start an installation process using QProcess::start (Qt Bug 9761)
+    // To allow installation, the installer is run using the `system` command
+
+    QStringList arguments{ QStringList() << QString("/S") << QString("/D=") + QDir::toNativeSeparators(_installationFolder) };
+
+    QString installerFullPath = _workingFolder + "/" + INSTALLER_FILENAME;
+
+    QString commandLine =
+        QDir::toNativeSeparators(installerFullPath) + " /S /D=" + QDir::toNativeSeparators(_installationFolder);
+
+
+    worker = new Worker(commandLine);
+    worker->moveToThread(thread);
+    connect(worker, SIGNAL(error(QString)), this, SLOT(errorString(QString)));
+    connect(thread, SIGNAL(started()), worker, SLOT(process()));
+    connect(worker, SIGNAL(finished()), this, SLOT(installationComplete()));
+    connect(worker, SIGNAL(finished()), thread, SLOT(quit()));
+    connect(worker, SIGNAL(finished()), worker, SLOT(deleteLater()));
+    connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+    thread->start();
+}
+
+void TestRunner::installationComplete() {
     createSnapshotFolder();
 
     updateStatusLabel("Running tests");
@@ -115,19 +142,6 @@ void TestRunner::installerDownloadComplete() {
     evaluateResults();
 
     // The High Fidelity AppData folder will be restored after evaluation has completed
-}
-
-void TestRunner::runInstaller() {
-    // Qt cannot start an installation process using QProcess::start (Qt Bug 9761)
-    // To allow installation, the installer is run using the `system` command
-    QStringList arguments{ QStringList() << QString("/S") << QString("/D=") + QDir::toNativeSeparators(_installationFolder) };
-
-    QString installerFullPath = _workingFolder + "/" + INSTALLER_FILENAME;
-
-    QString commandLine =
-        QDir::toNativeSeparators(installerFullPath) + " /S /D=" + QDir::toNativeSeparators(_installationFolder);
-
-    system(commandLine.toStdString().c_str());
 }
 
 void TestRunner::saveExistingHighFidelityAppDataFolder() {
@@ -414,4 +428,13 @@ void TestRunner::appendLog(const QString& message) {
     _logFile.close();
 
     autoTester->appendLogWindow(message);
+}
+
+Worker::Worker(const QString commandLine) { 
+    _commandLine = commandLine;
+}
+
+void Worker::process() {
+    system(_commandLine.toStdString().c_str());
+    emit finished();
 }

@@ -15,11 +15,11 @@
 #include <QDir>
 #include <QLabel>
 #include <QObject>
-#include <QProcess>
+#include <QThread>
 #include <QTimeEdit>
 #include <QTimer>
 
-#include "Downloader.h"
+class Worker;
 
 class TestRunner : public QObject {
     Q_OBJECT
@@ -56,28 +56,26 @@ public:
 
 private slots:
     void checkTime();
+    void installationComplete();
 
 private:
     bool _automatedTestIsRunning{ false };
-
-    QDir _appDataFolder;
-    QDir _savedAppDataFolder;
-
-    QString _workingFolder;
-    QString _snapshotFolder;
-
-    QString _installationFolder;
-
-    Downloader* _downloader;
-
-    const QString UNIQUE_FOLDER_NAME{ "fgadhcUDHSFaidsfh3478JJJFSDFIUSOEIrf" };
-    const QString SNAPSHOT_FOLDER_NAME{ "snapshots" };
 
     const QString INSTALLER_URL{ "http://builds.highfidelity.com/HighFidelity-Beta-latest-dev.exe" };
     const QString INSTALLER_FILENAME{ "HighFidelity-Beta-latest-dev.exe" };
 
     const QString BUILD_XML_URL{ "https://highfidelity.com/dev-builds.xml" };
     const QString BUILD_XML_FILENAME{ "dev-builds.xml" };
+
+    QDir _appDataFolder;
+    QDir _savedAppDataFolder;
+
+    QString _workingFolder;
+    QString _installationFolder;
+    QString _snapshotFolder;
+
+    const QString UNIQUE_FOLDER_NAME{ "fgadhcUDHSFaidsfh3478JJJFSDFIUSOEIrf" };
+    const QString SNAPSHOT_FOLDER_NAME{ "snapshots" };
 
     QString _branch;
     QString _user;
@@ -92,6 +90,22 @@ private:
     QFile _logFile;
 
     QDateTime _testStartDateTime;
+
+    QThread* thread;
+    Worker* worker;
 };
 
+class Worker : public QObject {
+    Q_OBJECT
+public:
+    Worker(const QString commandLine);
+public slots:
+    void process();
+
+signals:
+    void finished();
+
+private:
+    QString _commandLine;
+};
 #endif  // hifi_testRunner_h
