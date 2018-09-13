@@ -100,7 +100,7 @@ GLBuffer* GL41Backend::syncGPUObject(const Buffer& buffer) {
     return GL41Buffer::sync<GL41Buffer>(*this, buffer);
 }
 
-bool GL41Backend::bindResourceBuffer(uint32_t slot, BufferPointer& buffer) {
+bool GL41Backend::bindResourceBuffer(uint32_t slot, const BufferPointer& buffer) {
     GLuint texBuffer = GL41Backend::getResourceBufferID((*buffer));
     if (texBuffer) {
         glActiveTexture(GL_TEXTURE0 + GL41Backend::RESOURCE_BUFFER_SLOT0_TEX_UNIT + slot); 
@@ -108,7 +108,7 @@ bool GL41Backend::bindResourceBuffer(uint32_t slot, BufferPointer& buffer) {
 
         (void)CHECK_GL_ERROR();
 
-        _resource._buffers[slot] = buffer;
+        assign(_resource._buffers[slot], buffer);
 
         return true;
     }
@@ -117,10 +117,11 @@ bool GL41Backend::bindResourceBuffer(uint32_t slot, BufferPointer& buffer) {
 }
 
 void GL41Backend::releaseResourceBuffer(uint32_t slot) {
-    auto& buf = _resource._buffers[slot];
-    if (buf) {
+    auto& bufferReference = _resource._buffers[slot];
+    auto buffer = acquire(bufferReference);
+    if (buffer) {
         glActiveTexture(GL_TEXTURE0 + GL41Backend::RESOURCE_BUFFER_SLOT0_TEX_UNIT + slot); 
         glBindTexture(GL_TEXTURE_BUFFER, 0);
-        buf.reset();
+        reset(bufferReference);
     }
 }
