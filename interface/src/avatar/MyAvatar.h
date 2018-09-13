@@ -1505,7 +1505,7 @@ signals:
 
 private slots:
     void leaveDomain();
-    void updateCollisionCapsule();
+    void updateCollisionCapsuleCache();
 
 protected:
     virtual void beParentOfChild(SpatiallyNestablePointer newChild) const override;
