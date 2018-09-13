@@ -545,8 +545,10 @@
 
             // Visibility.
             MIN_HAND_CAMERA_ANGLE = 30,
+            MAX_CAMERA_HAND_ANGLE = 30,
             DEGREES_180 = 180,
-            MIN_HAND_CAMERA_ANGLE_COS = Math.cos(Math.PI * MIN_HAND_CAMERA_ANGLE / DEGREES_180);
+            MIN_HAND_CAMERA_ANGLE_COS = Math.cos(Math.PI * MIN_HAND_CAMERA_ANGLE / DEGREES_180),
+            MAX_CAMERA_HAND_ANGLE_COS = Math.cos(Math.PI * MAX_CAMERA_HAND_ANGLE / DEGREES_180);
 
 
         function enterMiniDisabled() {
@@ -640,6 +642,7 @@
                 show = Vec3.dot(miniToCameraDirection, Quat.getForward(miniOrientation)) > MIN_HAND_CAMERA_ANGLE_COS;
                 show = show || (-Vec3.dot(miniToCameraDirection, Quat.getForward(handOrientation)) > MIN_HAND_CAMERA_ANGLE_COS);
                 cameraToHand = -Vec3.dot(miniToCameraDirection, Quat.getForward(Camera.orientation));
+                show = show && (cameraToHand > MAX_CAMERA_HAND_ANGLE_COS);
             }
 
             return {
