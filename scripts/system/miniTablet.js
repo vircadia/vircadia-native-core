@@ -638,6 +638,7 @@
                 miniOrientation = Quat.multiply(handOrientation, uiPositionAndOrientation.rotation);
                 miniToCameraDirection = Vec3.normalize(Vec3.subtract(Camera.position, miniPosition));
                 show = Vec3.dot(miniToCameraDirection, Quat.getForward(miniOrientation)) > MIN_HAND_CAMERA_ANGLE_COS;
+                show = show || (-Vec3.dot(miniToCameraDirection, Quat.getForward(handOrientation)) > MIN_HAND_CAMERA_ANGLE_COS);
                 cameraToHand = -Vec3.dot(miniToCameraDirection, Quat.getForward(Camera.orientation));
             }
 
