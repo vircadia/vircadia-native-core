@@ -11,27 +11,38 @@
 #ifndef hifi_testRunner_h
 #define hifi_testRunner_h
 
-#include <QObject>
+#include <QCheckBox>
 #include <QDir>
+#include <QLabel>
+#include <QObject>
 #include <QProcess>
+#include <QTimeEdit>
+#include <QTimer>
 
 #include "Downloader.h"
 
 class TestRunner : public QObject {
     Q_OBJECT
 public:
-    explicit TestRunner(QObject* parent = 0);
+    explicit TestRunner(std::vector<QCheckBox*> dayCheckboxes,
+                        std::vector<QCheckBox*> timeEditCheckboxes,
+                        std::vector<QTimeEdit*> timeEdits,
+                        QLabel* workingFolderLabel,
+                        QObject* parent = 0);
+    ~TestRunner();
+
+    void setWorkingFolder();
 
     void run();
+
     void installerDownloadComplete();
     void runInstaller();
 
     void saveExistingHighFidelityAppDataFolder();
     void restoreHighFidelityAppDataFolder();
-    void selectTemporaryFolder();
+
     void createSnapshotFolder();
     void killProcesses();
-    void killProcessByName(QString processName);
     void startLocalServerProcesses();
     void runInterfaceWithTestScript();
     void evaluateResults();
@@ -40,11 +51,19 @@ public:
 
     void copyFolder(const QString& source, const QString& destination);
 
+    void updateStatusLabel(const QString& message);
+    void appendLog(const QString& message);
+
+private slots:
+    void checkTime();
+
 private:
+    bool _automatedTestIsRunning{ false };
+
     QDir _appDataFolder;
     QDir _savedAppDataFolder;
 
-    QString _tempFolder;
+    QString _workingFolder;
     QString _snapshotFolder;
 
     QString _installationFolder;
@@ -62,6 +81,17 @@ private:
 
     QString _branch;
     QString _user;
+
+    std::vector<QCheckBox*> _dayCheckboxes;
+    std::vector<QCheckBox*> _timeEditCheckboxes;
+    std::vector<QTimeEdit*> _timeEdits;
+    QLabel* _workingFolderLabel;
+
+    QTimer* _timer;
+
+    QFile _logFile;
+
+    QDateTime _testStartDateTime;
 };
 
 #endif  // hifi_testRunner_h
