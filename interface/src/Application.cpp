@@ -3498,7 +3498,9 @@ bool Application::isServerlessMode() const {
 }
 
 void Application::setIsInterstitialMode(bool interstitialMode) {
-    if (_interstitialMode != interstitialMode) {
+    Settings settings;
+    bool enableInterstitial = settings.value("enableIntersitialMode", false).toBool();
+    if (_interstitialMode != interstitialMode && enableInterstitial) {
         _interstitialMode = interstitialMode;
 
         DependencyManager::get<AudioClient>()->setAudioPaused(_interstitialMode);
