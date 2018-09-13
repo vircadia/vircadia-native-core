@@ -175,7 +175,7 @@ bool SafeLanding::isEntityLoadingComplete() {
         bool enableInterstitial = settings.value("enableIntersitialMode", false).toBool();
 
         if (enableInterstitial) {
-            bool isVisuallyReady = (entity->isVisuallyReady() || !entityTree->renderableForEntityId(entityMapIter->first));
+            isVisuallyReady = (entity->isVisuallyReady() || !entityTree->renderableForEntityId(entityMapIter->first));
         }
 
         if (isEntityPhysicsReady(entity) && isVisuallyReady) {
