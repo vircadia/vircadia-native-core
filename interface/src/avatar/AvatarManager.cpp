@@ -137,7 +137,7 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     quint64 now = usecTimestampNow();
     quint64 dt = now - _lastSendAvatarDataTime;
 
-    if (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS) {
+    if (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS && !_myAvatarDataPacketsPaused) {
         // send head/hand data to the avatar mixer and voxel server
         PerformanceTimer perfTimer("send");
         _myAvatar->sendAvatarDataPacket();
@@ -155,6 +155,16 @@ float AvatarManager::getAvatarDataRate(const QUuid& sessionID, const QString& ra
     return avatar ? avatar->getDataRate(rateName) : 0.0f;
 }
 
+void AvatarManager::setMyAvatarDataPacketsPaused(bool pause) {
+    if (_myAvatarDataPacketsPaused != pause) {
+        _myAvatarDataPacketsPaused = pause;
+
+        if (!_myAvatarDataPacketsPaused) {
+            _myAvatar->sendAvatarDataPacket(true);
+        }
+    }
+}
+
 float AvatarManager::getAvatarUpdateRate(const QUuid& sessionID, const QString& rateName) const {
     auto avatar = getAvatarBySessionID(sessionID);
     return avatar ? avatar->getUpdateRate(rateName) : 0.0f;
@@ -166,29 +176,29 @@ float AvatarManager::getAvatarSimulationRate(const QUuid& sessionID, const QStri
 }
 
 void AvatarManager::updateOtherAvatars(float deltaTime) {
-    // lock the hash for read to check the size
-    QReadLocker lock(&_hashLock);
-    if (_avatarHash.size() < 2 && _avatarsToFade.isEmpty()) {
-        return;
+    {
+        // lock the hash for read to check the size
+        QReadLocker lock(&_hashLock);
+        if (_avatarHash.size() < 2 && _avatarsToFade.isEmpty()) {
+            return;
+        }
     }
-    lock.unlock();
 
     PerformanceTimer perfTimer("otherAvatars");
 
     class SortableAvatar: public PrioritySortUtil::Sortable {
     public:
         SortableAvatar() = delete;
-        SortableAvatar(const AvatarSharedPointer& avatar) : _avatar(avatar) {}
+        SortableAvatar(const std::shared_ptr<Avatar>& avatar) : _avatar(avatar) {}
         glm::vec3 getPosition() const override { return _avatar->getWorldPosition(); }
-        float getRadius() const override { return std::static_pointer_cast<Avatar>(_avatar)->getBoundingRadius(); }
-        uint64_t getTimestamp() const override { return std::static_pointer_cast<Avatar>(_avatar)->getLastRenderUpdateTime(); }
-        AvatarSharedPointer getAvatar() const { return _avatar; }
+        float getRadius() const override { return _avatar->getBoundingRadius(); }
+        uint64_t getTimestamp() const override { return _avatar->getLastRenderUpdateTime(); }
+        std::shared_ptr<Avatar> getAvatar() const { return _avatar; }
     private:
-        AvatarSharedPointer _avatar;
+        std::shared_ptr<Avatar> _avatar;
     };
 
     auto avatarMap = getHashCopy();
-    AvatarHash::iterator itr = avatarMap.begin();
 
     const auto& views = qApp->getConicalViews();
     PrioritySortUtil::PriorityQueue<SortableAvatar> sortedAvatars(views,
@@ -197,22 +207,24 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             AvatarData::_avatarSortCoefficientAge);
     sortedAvatars.reserve(avatarMap.size() - 1); // don't include MyAvatar
 
-    // sort
+    // Build vector and compute priorities
+    auto nodeList = DependencyManager::get<NodeList>();
+    AvatarHash::iterator itr = avatarMap.begin();
     while (itr != avatarMap.end()) {
         const auto& avatar = std::static_pointer_cast<Avatar>(*itr);
         // DO NOT update _myAvatar!  Its update has already been done earlier in the main loop.
         // DO NOT update or fade out uninitialized Avatars
-        if (avatar != _myAvatar && avatar->isInitialized()) {
+        if (avatar != _myAvatar && avatar->isInitialized() && !nodeList->isPersonalMutingNode(avatar->getID())) {
             sortedAvatars.push(SortableAvatar(avatar));
         }
         ++itr;
     }
+    // Sort
     const auto& sortedAvatarVector = sortedAvatars.getSortedVector();
 
     // process in sorted order
     uint64_t startTime = usecTimestampNow();
-    const uint64_t UPDATE_BUDGET = 2000; // usec
-    uint64_t updateExpiry = startTime + UPDATE_BUDGET;
+    uint64_t updateExpiry = startTime + MAX_UPDATE_AVATARS_TIME_BUDGET;
     int numAvatarsUpdated = 0;
     int numAVatarsNotUpdated = 0;
 
@@ -231,18 +243,12 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             avatar->updateOrbPosition();
         }
 
-        bool ignoring = DependencyManager::get<NodeList>()->isPersonalMutingNode(avatar->getID());
-        if (ignoring) {
-            continue;
-        }
-
         // for ALL avatars...
         if (_shouldRender) {
             avatar->ensureInScene(avatar, qApp->getMain3DScene());
         }
         avatar->animateScaleChanges(deltaTime);
 
-        const float OUT_OF_VIEW_THRESHOLD = 0.5f * AvatarData::OUT_OF_VIEW_PENALTY;
         uint64_t now = usecTimestampNow();
         if (now < updateExpiry) {
             // we're within budget
@@ -263,7 +269,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             // no time to simulate, but we take the time to count how many were tragically missed
             while (it != sortedAvatarVector.end()) {
                 const SortableAvatar& newSortData = *it;
-                const auto newAvatar = std::static_pointer_cast<Avatar>(newSortData.getAvatar());
+                const auto& newAvatar = newSortData.getAvatar();
                 bool inView = newSortData.getPriority() > OUT_OF_VIEW_THRESHOLD;
                 // Once we reach an avatar that's not in view, all avatars after it will also be out of view
                 if (!inView) {
@@ -432,6 +438,11 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
 
     avatar->die();
     queuePhysicsChange(avatar);
+
+    // remove this avatar's entities from the tree now, if we wait (as we did previously) for this Avatar's destructor
+    // it might not fire until after we create a new instance for the same remote avatar, which creates a race
+    // on the creation of entities for that avatar instance and the deletion of entities for this instance
+    avatar->removeAvatarEntitiesFromTree();
 
     if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
         emit DependencyManager::get<UsersScriptingInterface>()->enteredIgnoreRadius();
@@ -802,13 +813,13 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
         QString currentSessionUUID = avatar->getSessionUUID().toString();
         if (specificAvatarIdentifiers.isEmpty() || specificAvatarIdentifiers.contains(currentSessionUUID)) {
             QJsonObject thisAvatarPalData;
-            
+
             auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
             if (currentSessionUUID == myAvatar->getSessionUUID().toString()) {
                 currentSessionUUID = "";
             }
-            
+
             thisAvatarPalData.insert("sessionUUID", currentSessionUUID);
             thisAvatarPalData.insert("sessionDisplayName", avatar->getSessionDisplayName());
             thisAvatarPalData.insert("audioLoudness", avatar->getAudioLoudness());

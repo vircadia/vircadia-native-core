@@ -409,6 +409,10 @@ glm::vec2 WindowScriptingInterface::getDeviceSize() const {
     return qApp->getDeviceSize();
 }
 
+int WindowScriptingInterface::getLastDomainConnectionError() const {
+    return DependencyManager::get<NodeList>()->getDomainHandler().getLastDomainConnectionError();
+}
+
 int WindowScriptingInterface::getX() {
     return qApp->getWindow()->geometry().x();
 }
@@ -583,4 +587,9 @@ void WindowScriptingInterface::onMessageBoxSelected(int button) {
         messageBox->deleteLater();
         _messageBoxes.remove(id);
     }
+}
+
+
+float WindowScriptingInterface::domainLoadingProgress() {
+    return qApp->getOctreePacketProcessor().domainLoadingProgress();
 }
