@@ -73,6 +73,7 @@ public:
 
     void init();
     void updateAvatarEntities();
+    void removeAvatarEntitiesFromTree();
     void simulate(float deltaTime, bool inView);
     virtual void simulateAttachments(float deltaTime);
 
