@@ -583,6 +583,27 @@
     //
     // Manage the connection between the button and the window.
     //
+    var DEVELOPER_MENU = "Developer";
+    var MARKETPLACE_ITEM_TESTER_LABEL = "Marktplace Item Tester";
+    var MARKETPLACE_ITEM_TESTER_QML_SOURCE = "hifi/commerce/marketplaceItemTester/MarketplaceItemTester.qml";
+    function installMarketplaceItemTester() {
+        if (!Menu.menuExists(DEVELOPER_MENU)) {
+           Menu.addMenu(DEVELOPER_MENU);
+        }
+
+        if (!Menu.menuItemExists(DEVELOPER_MENU, MARKETPLACE_ITEM_TESTER_LABEL)) {
+            Menu.addMenuItem({ menuName: DEVELOPER_MENU,
+                               menuItemName: MARKETPLACE_ITEM_TESTER_LABEL,
+                               isCheckable: false })
+        }
+
+        Menu.menuItemEvent.connect(function (menuItem) {
+            if (menuItem === MARKETPLACE_ITEM_TESTER_LABEL) {
+                tablet.loadQMLSource(MARKETPLACE_ITEM_TESTER_QML_SOURCE);
+            }
+        });
+    }
+
     var button;
     var buttonName = "WALLET";
     var tablet = null;
@@ -600,7 +621,9 @@
             button.clicked.connect(onButtonClicked);
             tablet.screenChanged.connect(onTabletScreenChanged);
         }
+        installMarketplaceItemTester();
     }
+
     var isWired = false;
     var isUpdateOverlaysWired = false;
     function off() {

@@ -228,6 +228,7 @@ QString QmlCommerce::getInstalledApps(const QString& justInstalledAppID) {
         // Thus, we protect against deleting the .app.json from the user's disk (below)
         // by skipping that check for the app we just installed.
         if ((justInstalledAppID != "") && ((justInstalledAppID + ".app.json") == appFileName)) {
+            installedAppsFromMarketplace += appFileName + ",";
             continue;
         }
 
