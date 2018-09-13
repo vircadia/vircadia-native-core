@@ -21,6 +21,8 @@
 
 #include "Downloader.h"
 
+class Runner;
+
 class TestRunner : public QObject {
     Q_OBJECT
 public:
@@ -51,7 +53,6 @@ public:
 
     void copyFolder(const QString& source, const QString& destination);
 
-    void updateStatusLabel(const QString& message);
     void appendLog(const QString& message);
 
 private slots:
@@ -63,7 +64,6 @@ private:
     QDir _appDataFolder;
     QDir _savedAppDataFolder;
 
-    QString _workingFolder;
     QString _snapshotFolder;
 
     QString _installationFolder;
@@ -73,24 +73,38 @@ private:
     const QString UNIQUE_FOLDER_NAME{ "fgadhcUDHSFaidsfh3478JJJFSDFIUSOEIrf" };
     const QString SNAPSHOT_FOLDER_NAME{ "snapshots" };
 
-    const QString INSTALLER_URL{ "http://builds.highfidelity.com/HighFidelity-Beta-latest-dev.exe" };
-    const QString INSTALLER_FILENAME{ "HighFidelity-Beta-latest-dev.exe" };
-
-    const QString BUILD_XML_URL{ "https://highfidelity.com/dev-builds.xml" };
-    const QString BUILD_XML_FILENAME{ "dev-builds.xml" };
-
     QString _branch;
     QString _user;
 
     std::vector<QCheckBox*> _dayCheckboxes;
     std::vector<QCheckBox*> _timeEditCheckboxes;
     std::vector<QTimeEdit*> _timeEdits;
-    QLabel* _workingFolderLabel;
 
     QTimer* _timer;
 
     QFile _logFile;
+    Runner* runner;
+};
 
+class Runner : public QObject {
+    Q_OBJECT
+
+public:
+    friend TestRunner;
+
+    Runner();
+    ~Runner();
+
+    void updateStatusLabel(const QString& message);
+
+public slots:
+    void process();
+
+signals:
+    void finished();
+    void error(QString err);
+
+private:
     QDateTime _testStartDateTime;
 };
 

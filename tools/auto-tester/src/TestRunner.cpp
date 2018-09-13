@@ -21,6 +21,15 @@ extern AutoTester* autoTester;
 #include <tlhelp32.h>
 #endif
 
+static QLabel* _workingFolderLabel;
+static QString _workingFolder;
+
+static const QString INSTALLER_URL{ "http://builds.highfidelity.com/HighFidelity-Beta-latest-dev.exe" };
+static const QString INSTALLER_FILENAME{ "HighFidelity-Beta-latest-dev.exe" };
+
+static const QString BUILD_XML_URL{ "https://highfidelity.com/dev-builds.xml" };
+static const QString BUILD_XML_FILENAME{ "dev-builds.xml" };
+
 TestRunner::TestRunner(std::vector<QCheckBox*> dayCheckboxes,
                        std::vector<QCheckBox*> timeEditCheckboxes,
                        std::vector<QTimeEdit*> timeEdits,
@@ -68,7 +77,7 @@ void TestRunner::setWorkingFolder() {
 }
 
 void TestRunner::run() {
-    _testStartDateTime = QDateTime::currentDateTime();
+    runner->_testStartDateTime = QDateTime::currentDateTime();
     _automatedTestIsRunning = true;
 
     // Initial setup
@@ -78,26 +87,24 @@ void TestRunner::run() {
     // This will be restored at the end of the tests
     saveExistingHighFidelityAppDataFolder();
 
-    // Download the latest High Fidelity installer and build XML.
-    QStringList urls;
-    urls << INSTALLER_URL << BUILD_XML_URL;
+    QThread* thread = new QThread;
 
-    QStringList filenames;
-    filenames << INSTALLER_FILENAME << BUILD_XML_FILENAME;
-
-    updateStatusLabel("Downloading installer");
-
-    autoTester->downloadFiles(urls, _workingFolder, filenames, (void*)this);
-
-    // `installerDownloadComplete` will run after download has completed
+    Runner* runner = new Runner();
+    runner->moveToThread(thread);
+    connect(runner, SIGNAL(error(QString)), this, SLOT(errorString(QString)));
+    connect(thread, SIGNAL(started()), runner, SLOT(process()));
+    connect(runner, SIGNAL(finished()), thread, SLOT(quit()));
+    connect(runner, SIGNAL(finished()), runner, SLOT(deleteLater()));
+    connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
+    thread->start();
 }
 
 void TestRunner::installerDownloadComplete() {
-    appendLog(QString("Test started at ") + QString::number(_testStartDateTime.time().hour()) + ":" +
-              QString("%1").arg(_testStartDateTime.time().minute(), 2, 10, QChar('0')) + ", on " +
-              _testStartDateTime.date().toString("ddd, MMM d, yyyy"));
+    appendLog(QString("Test started at ") + QString::number(runner->_testStartDateTime.time().hour()) + ":" +
+              QString("%1").arg(runner->_testStartDateTime.time().minute(), 2, 10, QChar('0')) + ", on " +
+              runner->_testStartDateTime.date().toString("ddd, MMM d, yyyy"));
 
-   updateStatusLabel("Installing");
+    autoTester->updateStatusLabel("Installing");
 
     // Kill any existing processes that would interfere with installation
     killProcesses();
@@ -106,7 +113,7 @@ void TestRunner::installerDownloadComplete() {
 
     createSnapshotFolder();
 
-    updateStatusLabel("Running tests");
+    autoTester->updateStatusLabel("Running tests");
 
     startLocalServerProcesses();
     runInterfaceWithTestScript();
@@ -244,7 +251,7 @@ void TestRunner::runInterfaceWithTestScript() {
 }
 
 void TestRunner::evaluateResults() {
-    updateStatusLabel("Evaluating results");
+    autoTester->updateStatusLabel("Evaluating results");
     autoTester->startTestsEvaluation(false, true, _snapshotFolder, _branch, _user);
 }
 
@@ -252,7 +259,7 @@ void TestRunner::automaticTestRunEvaluationComplete(QString zippedFolder) {
     addBuildNumberToResults(zippedFolder);
     restoreHighFidelityAppDataFolder();
 
-    updateStatusLabel("Testing complete");
+    autoTester->updateStatusLabel("Testing complete");
     _automatedTestIsRunning = false;
 }
 
@@ -398,10 +405,6 @@ void TestRunner::checkTime() {
     }
 }
 
-void TestRunner::updateStatusLabel(const QString& message) {
-    autoTester->updateStatusLabel(message);
-}
-
 void TestRunner::appendLog(const QString& message) {
     if (!_logFile.open(QIODevice::Append | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
@@ -414,4 +417,26 @@ void TestRunner::appendLog(const QString& message) {
     _logFile.close();
 
     autoTester->appendLogWindow(message);
+}
+
+Runner::Runner() {
+}
+
+Runner::~Runner() {
+}
+
+void Runner::process() {
+    // Download the latest High Fidelity installer and build XML.
+    QStringList urls;
+    urls << INSTALLER_URL << BUILD_XML_URL;
+
+    QStringList filenames;
+    filenames << INSTALLER_FILENAME << BUILD_XML_FILENAME;
+
+    autoTester->updateStatusLabel("Downloading installer");
+
+    autoTester->downloadFiles(urls, _workingFolder, filenames, (void*)this);
+
+    // `installerDownloadComplete` will run after download has completed
+    emit finished();
 }
