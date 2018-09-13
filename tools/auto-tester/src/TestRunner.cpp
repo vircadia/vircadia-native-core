@@ -56,6 +56,7 @@ void TestRunner::setWorkingFolder() {
     }
 
     _installationFolder = _workingFolder + "/High Fidelity";
+    _logFile.setFileName(_workingFolder + "/log.txt");
 
     autoTester->enableRunTabControls();
     _workingFolderLabel->setText(QDir::toNativeSeparators(_workingFolder));
@@ -67,6 +68,7 @@ void TestRunner::setWorkingFolder() {
 }
 
 void TestRunner::run() {
+    _testStartDateTime = QDateTime::currentDateTime();
     _automatedTestIsRunning = true;
 
     // Initial setup
@@ -83,18 +85,28 @@ void TestRunner::run() {
     QStringList filenames;
     filenames << INSTALLER_FILENAME << BUILD_XML_FILENAME;
 
+    updateStatusLabel("Downloading installer");
+
     autoTester->downloadFiles(urls, _workingFolder, filenames, (void*)this);
 
     // `installerDownloadComplete` will run after download has completed
 }
 
 void TestRunner::installerDownloadComplete() {
+    appendLog(QString("Test started at ") + QString::number(_testStartDateTime.time().hour()) + ":" +
+              QString("%1").arg(_testStartDateTime.time().minute(), 2, 10, QChar('0')) + ", on " +
+              _testStartDateTime.date().toString("ddd, MMM d, yyyy"));
+
+   updateStatusLabel("Installing");
+
     // Kill any existing processes that would interfere with installation
     killProcesses();
 
     runInstaller();
 
     createSnapshotFolder();
+
+    updateStatusLabel("Running tests");
 
     startLocalServerProcesses();
     runInterfaceWithTestScript();
@@ -232,6 +244,7 @@ void TestRunner::runInterfaceWithTestScript() {
 }
 
 void TestRunner::evaluateResults() {
+    updateStatusLabel("Evaluating results");
     autoTester->startTestsEvaluation(false, true, _snapshotFolder, _branch, _user);
 }
 
@@ -239,6 +252,7 @@ void TestRunner::automaticTestRunEvaluationComplete(QString zippedFolder) {
     addBuildNumberToResults(zippedFolder);
     restoreHighFidelityAppDataFolder();
 
+    updateStatusLabel("Testing complete");
     _automatedTestIsRunning = false;
 }
 
@@ -382,4 +396,22 @@ void TestRunner::checkTime() {
     if (timeToRun) {
         run();
     }
+}
+
+void TestRunner::updateStatusLabel(const QString& message) {
+    autoTester->updateStatusLabel(message);
+}
+
+void TestRunner::appendLog(const QString& message) {
+    if (!_logFile.open(QIODevice::Append | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                              "Could not open the log file");
+        exit(-1);
+    }
+
+    _logFile.write(message.toStdString().c_str());
+    _logFile.write("\n");
+    _logFile.close();
+
+    autoTester->appendLogWindow(message);
 }

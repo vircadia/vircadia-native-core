@@ -51,6 +51,9 @@ public:
 
     void copyFolder(const QString& source, const QString& destination);
 
+    void updateStatusLabel(const QString& message);
+    void appendLog(const QString& message);
+
 private slots:
     void checkTime();
 
@@ -85,6 +88,10 @@ private:
     QLabel* _workingFolderLabel;
 
     QTimer* _timer;
+
+    QFile _logFile;
+
+    QDateTime _testStartDateTime;
 };
 
 #endif  // hifi_testRunner_h

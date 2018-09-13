@@ -49,6 +49,9 @@ public:
 
     void enableRunTabControls();
 
+    void updateStatusLabel(const QString& status);
+    void appendLogWindow(const QString& message);
+
 private slots:
     void on_tabWidget_currentChanged(int index);
 

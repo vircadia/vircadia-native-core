@@ -32,7 +32,11 @@ AutoTester::AutoTester(QWidget* parent) : QMainWindow(parent) {
 #ifndef Q_OS_WIN
     _ui.tabWidget->removeTab(1);
 #endif
-   //// Coming soon to an auto-tester near you...
+
+   _ui.statusLabel->setText("");
+   _ui.plainTextEdit->setReadOnly(true);
+
+   // Coming soon to an auto-tester near you...
    //// _helpWindow.textBrowser->setText()
 }
 
@@ -67,7 +71,8 @@ void AutoTester::startTestsEvaluation(const bool isRunningFromCommandLine,
                                       const bool isRunningInAutomaticTestRun,
                                       const QString& snapshotDirectory,
                                       const QString& branch,
-                                      const QString& user) {
+                                      const QString& user
+) {
     _test->startTestsEvaluation(isRunningFromCommandLine, isRunningInAutomaticTestRun, snapshotDirectory, branch, user);
 }
 
@@ -262,4 +267,12 @@ void AutoTester::setBranchText(const QString& branch) {
 
 QString AutoTester::getSelectedBranch() {
     return _ui.branchTextEdit->toPlainText();
+}
+
+void AutoTester::updateStatusLabel(const QString& status) {
+    _ui.statusLabel->setText(status);
+}
+
+void AutoTester::appendLogWindow(const QString& message) {
+    _ui.plainTextEdit->appendPlainText(message);
 }
