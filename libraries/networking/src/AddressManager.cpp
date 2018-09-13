@@ -269,6 +269,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
                 // save the last visited domain URL.
                 _lastVisitedURL = lookupUrl;
 
+                auto lastVisitedURLStr = lookupUrl.toString().toStdString();
                 // a network address lookup clears the previous lookup since we don't expect to re-attempt it
                 _previousAPILookup.clear();
 
@@ -816,8 +817,10 @@ bool AddressManager::setDomainInfo(const QUrl& domainURL, LookupTrigger trigger)
     const QString hostname = domainURL.host();
     quint16 port = domainURL.port();
     bool emitHostChanged { false };
+    // Check if domain handler is in error state. always emit host changed if true.
+    bool isInErrorState = DependencyManager::get<NodeList>()->getDomainHandler().isInErrorState();
 
-    if (domainURL != _domainURL) {
+    if (domainURL != _domainURL || isInErrorState) {
         addCurrentAddressToHistory(trigger);
         emitHostChanged = true;
     }

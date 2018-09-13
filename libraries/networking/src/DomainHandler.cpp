@@ -56,7 +56,7 @@ DomainHandler::DomainHandler(QObject* parent) :
     // stop the refresh timer if we connect to a domain
     connect(this, &DomainHandler::connectedToDomain, &_apiRefreshTimer, &QTimer::stop);
 
-    // stop the refresh timer if we connect to a domain
+    // stop the refresh timer if redirected to the error domain
     connect(this, &DomainHandler::redirectToErrorDomainURL, &_apiRefreshTimer, &QTimer::stop);
 }
 
@@ -109,14 +109,16 @@ void DomainHandler::softReset() {
     QMetaObject::invokeMethod(&_settingsTimer, "stop");
 
     // restart the API refresh timer in case we fail to connect and need to refresh information
-    if (!_isInErrorState)
+    if (!_isInErrorState) {
         QMetaObject::invokeMethod(&_apiRefreshTimer, "start");
+    }
     _isInErrorState = false;
 }
 
 void DomainHandler::hardReset() {
-    if (!_isInErrorState)
+    if (!_isInErrorState) {
         emit resetting();
+    }
 
     softReset();
 

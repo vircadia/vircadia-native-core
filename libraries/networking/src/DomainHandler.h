@@ -173,6 +173,8 @@ public slots:
     // sets domain handler in error state.
     void setRedirectErrorState(QUrl errorUrl, int reasonCode);
 
+    bool isInErrorState() { return _isInErrorState; }
+
 private slots:
     void completedHostnameLookup(const QHostInfo& hostInfo);
     void completedIceServerHostnameLookup();
