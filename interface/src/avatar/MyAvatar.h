@@ -1373,11 +1373,6 @@ public slots:
      */
     virtual void setModelScale(float scale) override;
 
-    /**jsdoc
-    * @function MyAvatar.updateCollisionCapsule
-    */
-    void updateCollisionCapsule();
-
 signals:
 
     /**jsdoc
@@ -1510,6 +1505,7 @@ signals:
 
 private slots:
     void leaveDomain();
+    void updateCollisionCapsule();
 
 protected:
     virtual void beParentOfChild(SpatiallyNestablePointer newChild) const override;
