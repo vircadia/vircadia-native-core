@@ -543,6 +543,11 @@
             isGoto = false,
             TABLET_ADDRESS_DIALOG = "hifi/tablet/TabletAddressDialog.qml",
 
+            // Trigger values.
+            leftTriggerOn = 0,
+            rightTriggerOn = 0,
+            MAX_TRIGGER_ON_TIME = 100,
+
             // Visibility.
             MIN_HAND_CAMERA_ANGLE = 30,
             DEGREES_180 = 180,
@@ -579,6 +584,10 @@
             // Should show mini tablet if it would be oriented toward the camera.
             var show,
                 pose,
+                isLeftTriggerOff,
+                isRightTriggerOff,
+                wasLeftTriggerOff = true,
+                wasRightTriggerOff = true,
                 jointIndex,
                 handPosition,
                 handOrientation,
@@ -593,12 +602,32 @@
             show = pose.valid;
 
             // Shouldn't show mini tablet on hand if that hand's trigger is pressed (i.e., laser is searching or grabbing
-            // something) or the other hand's trigger is pressed unless it is pointing at the mini tablet.
+            // something) or the other hand's trigger is pressed unless it is pointing at the mini tablet. Allow the triggers 
+            // to be pressed briefly to allow for the grabbing process.
             if (show) {
-                show = Controller.getValue(hand === LEFT_HAND ? Controller.Standard.LT : Controller.Standard.RT) <
-                        TRIGGER_OFF_VALUE
-                    && (Controller.getValue(hand === LEFT_HAND ? Controller.Standard.RT : Controller.Standard.LT) <
-                        TRIGGER_OFF_VALUE || ui.isLaserPointingAt());
+                isLeftTriggerOff = Controller.getValue(Controller.Standard.LT) < TRIGGER_OFF_VALUE;
+                if (!isLeftTriggerOff) {
+                    if (leftTriggerOn === 0) {
+                        leftTriggerOn = Date.now();
+                    } else {
+                        wasLeftTriggerOff = Date.now() - leftTriggerOn < MAX_TRIGGER_ON_TIME;
+                    }
+                } else {
+                    leftTriggerOn = 0;
+                }
+                isRightTriggerOff = Controller.getValue(Controller.Standard.RT) < TRIGGER_OFF_VALUE;
+                if (!isRightTriggerOff) {
+                    if (rightTriggerOn === 0) {
+                        rightTriggerOn = Date.now();
+                    } else {
+                        wasRightTriggerOff = Date.now() - rightTriggerOn < MAX_TRIGGER_ON_TIME;
+                    }
+                } else {
+                    rightTriggerOn = 0;
+                }
+
+                show = (hand === LEFT_HAND ? wasLeftTriggerOff : wasRightTriggerOff)
+                    && ((hand === LEFT_HAND ? wasRightTriggerOff : wasLeftTriggerOff) || ui.isLaserPointingAt());
             }
 
             // Should show mini tablet if it would be oriented toward the camera.
