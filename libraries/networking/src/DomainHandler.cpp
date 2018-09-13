@@ -55,9 +55,6 @@ DomainHandler::DomainHandler(QObject* parent) :
 
     // stop the refresh timer if we connect to a domain
     connect(this, &DomainHandler::connectedToDomain, &_apiRefreshTimer, &QTimer::stop);
-
-    // stop the refresh timer if we connect to a domain
-    connect(this, &DomainHandler::redirectToErrorDomainURL, &_apiRefreshTimer, &QTimer::stop);
 }
 
 void DomainHandler::disconnect() {
@@ -102,6 +99,7 @@ void DomainHandler::softReset() {
 
     clearSettings();
 
+    _isInErrorState = false;
     _connectionDenialsSinceKeypairRegen = 0;
     _checkInPacketsSinceLastReply = 0;
 
@@ -109,14 +107,11 @@ void DomainHandler::softReset() {
     QMetaObject::invokeMethod(&_settingsTimer, "stop");
 
     // restart the API refresh timer in case we fail to connect and need to refresh information
-    if (!_isInErrorState)
-        QMetaObject::invokeMethod(&_apiRefreshTimer, "start");
-    _isInErrorState = false;
+    QMetaObject::invokeMethod(&_apiRefreshTimer, "start");
 }
 
 void DomainHandler::hardReset() {
-    if (!_isInErrorState)
-        emit resetting();
+    emit resetting();
 
     softReset();
 
@@ -343,7 +338,6 @@ void DomainHandler::loadedErrorDomain(std::map<QString, QString> namedPaths) {
 void DomainHandler::setRedirectErrorState(QUrl errorUrl, int reasonCode) {
     _errorDomainURL = errorUrl;
     _lastDomainConnectionError = reasonCode;
-    _isInErrorState = true;
     emit redirectToErrorDomainURL(_errorDomainURL);
 }
 
@@ -486,8 +480,9 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
         emit domainConnectionRefused(reasonMessage, (int)reasonCode, extraInfo);
 #else
         if (reasonCode == ConnectionRefusedReason::ProtocolMismatch || reasonCode == ConnectionRefusedReason::NotAuthorized) {
+            _isInErrorState = true;
             // ingest the error - this is a "hard" connection refusal.
-            setRedirectErrorState(_errorDomainURL, (int)reasonCode);
+            emit redirectToErrorDomainURL(_errorDomainURL);
         } else {
             emit domainConnectionRefused(reasonMessage, (int)reasonCode, extraInfo);
         }
