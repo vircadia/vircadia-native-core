@@ -342,11 +342,6 @@
             miniInitialWidth = MINI_DIMENSIONS.x;
             miniTargetWidth = getTabletWidthFromSettings();
             miniTargetLocalRotation = Quat.multiply(miniExpandLocalRotation, miniExpandDeltaRotation);
-
-            // Don't let other hand grab while expanding.
-            Overlays.editOverlay(miniOverlay, {
-                grabbable: false
-            });
         }
 
         function sizeAboutHandles(scaleFactor) {
