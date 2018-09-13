@@ -2,11 +2,11 @@
 #ifdef __cplusplus
 #   define _MAT4 Mat4
 #   define _VEC4 Vec4
-#	define _MUTABLE mutable
+#    define _MUTABLE mutable
 #else
 #   define _MAT4 mat4
 #   define _VEC4 vec4
-#	define _MUTABLE 
+#    define _MUTABLE 
 #endif
 
 struct _TransformCamera {

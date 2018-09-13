@@ -35,6 +35,7 @@ var DEFAULT_SCRIPTS_COMBINED = [
 ];
 var DEFAULT_SCRIPTS_SEPARATE = [
     "system/controllers/controllerScripts.js",
+    "system/interstitialPage.js"
     //"system/chat.js"
 ];
 

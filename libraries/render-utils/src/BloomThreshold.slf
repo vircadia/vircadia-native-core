@@ -30,7 +30,7 @@ void main(void) {
         for (int x=0 ; x<parameters._sampleCount ; x++) {
             vec4 color = texture(colorMap, uv);
             float luminance = (color.r+color.g+color.b) / 3.0;
-            float mask = clamp((luminance-parameters._threshold)*0.25, 0, 1);
+            float mask = clamp((luminance-parameters._threshold)*0.25, 0.0, 1.0);
 
             color *= mask;
             maskedColor += color;
@@ -39,6 +39,6 @@ void main(void) {
 
         startUv.y += parameters._deltaUV.y;
     }
-    maskedColor /= parameters._sampleCount * parameters._sampleCount;
+    maskedColor /= float(parameters._sampleCount * parameters._sampleCount);
     outFragColor = vec4(maskedColor.rgb, 1.0);
 }

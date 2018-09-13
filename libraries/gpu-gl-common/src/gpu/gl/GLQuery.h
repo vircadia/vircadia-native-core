@@ -47,8 +47,9 @@ public:
 
     const GLuint& _endqo = { _id };
     const GLuint _beginqo = { 0 };
-    GLuint64 _result { (GLuint64)-1 };
-    GLuint64 _batchElapsedTime { (GLuint64) 0 };
+    GLuint64 _result { (GLuint64)0 };
+    GLuint64 _batchElapsedTime{ (GLuint64)0 };
+    std::chrono::high_resolution_clock::time_point _batchElapsedTimeBegin;
     uint64_t _profileRangeId { 0 };
     uint32_t _rangeQueryDepth { 0 };
 

@@ -15,7 +15,7 @@
 #include <ReceivedPacketProcessor.h>
 #include <ReceivedMessage.h>
 
-class SafeLanding;
+#include "SafeLanding.h"
 
 /// Handles processing of incoming voxel packets for the interface application. As with other ReceivedPacketProcessor classes
 /// the user is responsible for reading inbound packets and adding them to the processing queue by calling queueReceivedPacket()
@@ -26,7 +26,8 @@ public:
     ~OctreePacketProcessor();
 
     void startEntitySequence();
-    bool isLoadSequenceComplete() const;
+    bool isLoadSequenceComplete() const { return _safeLanding->isLoadSequenceComplete(); }
+    float domainLoadingProgress() const { return _safeLanding->loadingProgressPercentage(); }
 
 signals:
     void packetVersionMismatch();
@@ -40,4 +41,4 @@ private slots:
 private:
     std::unique_ptr<SafeLanding> _safeLanding;
 };
-#endif // hifi_OctreePacketProcessor_h
+#endif  // hifi_OctreePacketProcessor_h

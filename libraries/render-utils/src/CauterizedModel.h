@@ -33,7 +33,7 @@ public:
 
     void createRenderItemSet() override;
     
-    virtual void updateClusterMatrices(bool triggerBlendshapes = true) override;
+    virtual void updateClusterMatrices() override;
     void updateRenderItems() override;
 
     const Model::MeshState& getCauterizeMeshState(int index) const;
