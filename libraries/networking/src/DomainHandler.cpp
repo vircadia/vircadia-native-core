@@ -115,9 +115,7 @@ void DomainHandler::softReset() {
 }
 
 void DomainHandler::hardReset() {
-    if (!_isInErrorState) {
-        emit resetting();
-    }
+    emit resetting();
 
     softReset();
     _isInErrorState = false;
