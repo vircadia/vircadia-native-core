@@ -14,7 +14,7 @@
 //
 
 /* global SelectionManager, SelectionDisplay, grid, rayPlaneIntersection, rayPlaneIntersection2, pushCommandForSelections,
-   getMainTabletIDs, getControllerWorldLocation */
+   getMainTabletIDs, getControllerWorldLocation, TRIGGER_ON_VALUE */
 
 var SPACE_LOCAL = "local";
 var SPACE_WORLD = "world";
@@ -22,6 +22,7 @@ var HIGHLIGHT_LIST_NAME = "editHandleHighlightList";
 
 Script.include([
     "./controllers.js",
+    "./controllerDispatcherUtils.js",
     "./utils.js"
 ]);
 
@@ -448,6 +449,8 @@ SelectionDisplay = (function() {
     var CTRL_KEY_CODE = 16777249;
 
     var RAIL_AXIS_LENGTH = 10000;
+        
+    var NO_HAND = -1;
 
     var TRANSLATE_DIRECTION = {
         X: 0,
@@ -478,8 +481,6 @@ SelectionDisplay = (function() {
         YAW: 1,
         ROLL: 2
     };
-    
-    var NO_TRIGGER_HAND = -1;
 
     var spaceMode = SPACE_LOCAL;
     var overlayNames = [];
@@ -802,11 +803,21 @@ SelectionDisplay = (function() {
 
     // We get mouseMoveEvents from the handControllers, via handControllerPointer.
     // But we dont' get mousePressEvents.
-    that.triggerMapping = Controller.newMapping(Script.resolvePath('') + '-click');
-    Script.scriptEnding.connect(that.triggerMapping.disable);
-    that.triggeredHand = NO_TRIGGER_HAND;
+    that.triggerClickMapping = Controller.newMapping(Script.resolvePath('') + '-click');
+    that.triggerPressMapping = Controller.newMapping(Script.resolvePath('') + '-press');
+    that.triggeredHand = NO_HAND;
+    that.pressedHand = NO_HAND;
     that.triggered = function() {
-        return that.triggeredHand !== NO_TRIGGER_HAND;
+        return that.triggeredHand !== NO_HAND;
+    }
+    function pointingAtDesktopWindowOrTablet(hand) {
+        var pointingAtDesktopWindow = (hand === Controller.Standard.RightHand && 
+                                       SelectionManager.pointingAtDesktopWindowRight) ||
+                                      (hand === Controller.Standard.LeftHand && 
+                                       SelectionManager.pointingAtDesktopWindowLeft);
+        var pointingAtTablet = (hand === Controller.Standard.RightHand && SelectionManager.pointingAtTabletRight) ||
+                               (hand === Controller.Standard.LeftHand && SelectionManager.pointingAtTabletLeft);
+        return pointingAtDesktopWindow || pointingAtTablet;
     }
     function makeClickHandler(hand) {
         return function (clicked) {
@@ -814,26 +825,39 @@ SelectionDisplay = (function() {
             if (that.triggered() && hand !== that.triggeredHand) {
                 return;
             }
-            if (!that.triggered() && clicked) {
-                var pointingAtDesktopWindow = (hand === Controller.Standard.RightHand && 
-                                               SelectionManager.pointingAtDesktopWindowRight) ||
-                                              (hand === Controller.Standard.LeftHand && 
-                                               SelectionManager.pointingAtDesktopWindowLeft);
-                var pointingAtTablet = (hand === Controller.Standard.RightHand && SelectionManager.pointingAtTabletRight) ||
-                                       (hand === Controller.Standard.LeftHand && SelectionManager.pointingAtTabletLeft);
-                if (pointingAtDesktopWindow || pointingAtTablet) {
-                    return;
-                }
+            if (!that.triggered() && clicked && !pointingAtDesktopWindowOrTablet(hand)) {
                 that.triggeredHand = hand;
                 that.mousePressEvent({});
             } else if (that.triggered() && !clicked) {
-                that.triggeredHand = NO_TRIGGER_HAND;
+                that.triggeredHand = NO_HAND;
                 that.mouseReleaseEvent({});
             }
         };
     }
-    that.triggerMapping.from(Controller.Standard.RTClick).peek().to(makeClickHandler(Controller.Standard.RightHand));
-    that.triggerMapping.from(Controller.Standard.LTClick).peek().to(makeClickHandler(Controller.Standard.LeftHand));
+    function makePressHandler(hand) {
+        return function (value) {
+            if (value >= TRIGGER_ON_VALUE && !that.triggered() && !pointingAtDesktopWindowOrTablet(hand)) {
+                that.pressedHand = hand;
+                that.updateHighlight({});
+            } else {
+                that.pressedHand = NO_HAND;
+                that.resetPreviousHandleColor();
+            }
+        }
+    }
+    that.triggerClickMapping.from(Controller.Standard.RTClick).peek().to(makeClickHandler(Controller.Standard.RightHand));
+    that.triggerClickMapping.from(Controller.Standard.LTClick).peek().to(makeClickHandler(Controller.Standard.LeftHand));
+    that.triggerPressMapping.from(Controller.Standard.RT).peek().to(makePressHandler(Controller.Standard.RightHand));
+    that.triggerPressMapping.from(Controller.Standard.LT).peek().to(makePressHandler(Controller.Standard.LeftHand));
+    that.enableTriggerMapping = function() {
+        that.triggerClickMapping.enable();
+        that.triggerPressMapping.enable();
+    };
+    that.disableTriggerMapping = function() {
+        that.triggerClickMapping.disable();
+        that.triggerPressMapping.disable();
+    }
+    Script.scriptEnding.connect(that.disableTriggerMapping);
 
     // FUNCTION DEF(s): Intersection Check Helpers
     function testRayIntersect(queryRay, overlayIncludes, overlayExcludes) {
@@ -960,35 +984,10 @@ SelectionDisplay = (function() {
         }
         return Uuid.NULL;
     };
-
-    // FUNCTION: MOUSE MOVE EVENT
-    var lastMouseEvent = null;
-    that.mouseMoveEvent = function(event) {
-        var wantDebug = false;
-        if (wantDebug) {
-            print("=============== eST::MouseMoveEvent BEG =======================");
-        }
-        lastMouseEvent = event;
-        if (activeTool) {
-            if (wantDebug) {
-                print("    Trigger ActiveTool(" + activeTool.mode + ")'s onMove");
-            }
-            activeTool.onMove(event);
-
-            if (wantDebug) {
-                print("    Trigger SelectionManager::update");
-            }
-            SelectionManager._update();
-
-            if (wantDebug) {
-                print("=============== eST::MouseMoveEvent END =======================");
-            }
-            // EARLY EXIT--(Move handled via active tool)
-            return true;
-        }
-
+    
+    that.updateHighlight = function(event) {
         // if no tool is active, then just look for handles to highlight...
-        var pickRay = generalComputePickRay(event.x, event.y);
+        var pickRay = generalComputePickRay(event.x, event.y);        
         var result = Overlays.findRayIntersection(pickRay);
         var pickedColor;
         var highlightNeeded = false;
@@ -1039,7 +1038,36 @@ SelectionDisplay = (function() {
         } else {
             that.resetPreviousHandleColor();
         }
+    };
 
+    // FUNCTION: MOUSE MOVE EVENT
+    var lastMouseEvent = null;
+    that.mouseMoveEvent = function(event) {
+        var wantDebug = false;
+        if (wantDebug) {
+            print("=============== eST::MouseMoveEvent BEG =======================");
+        }
+        lastMouseEvent = event;
+        if (activeTool) {
+            if (wantDebug) {
+                print("    Trigger ActiveTool(" + activeTool.mode + ")'s onMove");
+            }
+            activeTool.onMove(event);
+
+            if (wantDebug) {
+                print("    Trigger SelectionManager::update");
+            }
+            SelectionManager._update();
+
+            if (wantDebug) {
+                print("=============== eST::MouseMoveEvent END =======================");
+            }
+            // EARLY EXIT--(Move handled via active tool)
+            return true;
+        }
+
+        that.updateHighlight(event);
+        
         if (wantDebug) {
             print("=============== eST::MouseMoveEvent END =======================");
         }
@@ -1135,9 +1163,10 @@ SelectionDisplay = (function() {
         }
     };
 
-    function controllerComputePickRay() {
-        var controllerPose = getControllerWorldLocation(that.triggeredHand, true);
-        if (controllerPose.valid && that.triggered()) {
+    function controllerComputePickRay(hand) {
+        var hand = that.triggered() ? that.triggeredHand : that.pressedHand;
+        var controllerPose = getControllerWorldLocation(hand, true);
+        if (controllerPose.valid) {
             var controllerPosition = controllerPose.translation;
             // This gets point direction right, but if you want general quaternion it would be more complicated:
             var controllerDirection = Quat.getUp(controllerPose.rotation);
@@ -1147,6 +1176,12 @@ SelectionDisplay = (function() {
 
     function generalComputePickRay(x, y) {
         return controllerComputePickRay() || Camera.computePickRay(x, y);
+    }
+    
+    function getControllerAvatarFramePositionFromPickRay(pickRay) {
+        var controllerPosition = Vec3.subtract(pickRay.origin, MyAvatar.position);
+        controllerPosition = Vec3.multiplyQbyV(Quat.inverse(MyAvatar.orientation), controllerPosition);
+        return controllerPosition;
     }
 
     function getDistanceToCamera(position) {
@@ -2083,6 +2118,7 @@ SelectionDisplay = (function() {
         var rotation = null;
         var previousPickRay = null;
         var beginMouseEvent = null;
+        var beginControllerPosition = null;
 
         var onBegin = function(event, pickRay, pickResult) {     
             var proportional = directionEnum === STRETCH_DIRECTION.ALL;     
@@ -2218,6 +2254,9 @@ SelectionDisplay = (function() {
             
             previousPickRay = pickRay;
             beginMouseEvent = event;
+            if (that.triggered()) {
+                beginControllerPosition = getControllerAvatarFramePositionFromPickRay(pickRay);
+            }
         };
 
         var onEnd = function(event, reason) {    
@@ -2256,13 +2295,15 @@ SelectionDisplay = (function() {
             if (usePreviousPickRay(pickRay.direction, previousPickRay.direction, planeNormal)) {
                 pickRay = previousPickRay;
             }
+            
+            var controllerPose = getControllerWorldLocation(that.triggeredHand, true);
+            var controllerTrigger = HMD.isHMDAvailable() && HMD.isHandControllerAvailable() && 
+                                    controllerPose.valid && that.triggered();
 
             // Are we using handControllers or Mouse - only relevant for 3D tools
-            var controllerPose = getControllerWorldLocation(that.triggeredHand, true);
             var vector = null;
             var newPick = null;
-            if (HMD.isHMDAvailable() && HMD.isHandControllerAvailable() && 
-                    controllerPose.valid && that.triggered() && directionFor3DStretch) {
+            if (controllerTrigger && directionFor3DStretch) {
                 localDeltaPivot = deltaPivot3D;
                 newPick = pickRay.origin;
                 vector = Vec3.subtract(newPick, lastPick3D);
@@ -2286,12 +2327,23 @@ SelectionDisplay = (function() {
             var newDimensions;
             if (proportional) {
                 var viewportDimensions = Controller.getViewportDimensions();
-                var mouseXDifference = (event.x - beginMouseEvent.x) / viewportDimensions.x;
-                var mouseYDifference = (beginMouseEvent.y - event.y) / viewportDimensions.y;
-                var mouseDifference = mouseXDifference + mouseYDifference;
                 var toCameraDistance = getDistanceToCamera(position);   
                 var dimensionsMultiple = toCameraDistance * STRETCH_DIRECTION_ALL_CAMERA_DISTANCE_MULTIPLE; 
-                var dimensionChange = mouseDifference * dimensionsMultiple;
+                
+                var dimensionChange;
+                if (controllerTrigger) {
+                    var controllerPosition = getControllerAvatarFramePositionFromPickRay(pickRay);
+                    var vecControllerDifference = Vec3.subtract(controllerPosition, beginControllerPosition);
+                    var controllerDifference = vecControllerDifference.x + vecControllerDifference.y + 
+                                               vecControllerDifference.z;
+                    dimensionChange = controllerDifference * dimensionsMultiple;
+                } else {
+                    var mouseXDifference = (event.x - beginMouseEvent.x) / viewportDimensions.x;
+                    var mouseYDifference = (beginMouseEvent.y - event.y) / viewportDimensions.y;
+                    var mouseDifference = mouseXDifference + mouseYDifference;
+                    dimensionChange = mouseDifference * dimensionsMultiple;
+                }
+ 
                 var averageInitialDimension = (initialDimensions.x + initialDimensions.y + initialDimensions.z) / 3;
                 percentChange = dimensionChange / averageInitialDimension;
                 percentChange += 1.0;
