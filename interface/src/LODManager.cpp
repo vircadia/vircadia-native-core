@@ -46,10 +46,10 @@ const float LOD_BATCH_TO_PRESENT_CUSHION_TIME = 3.0f; // msec
 
 void LODManager::setRenderTimes(float presentTime, float engineRunTime, float batchTime, float gpuTime) {
     // Make sure the sampled time are positive values
-    _presentTime = std::max(0.f, presentTime);
-    _engineRunTime = std::max(0.f, engineRunTime);
-    _batchTime = std::max(0.f, batchTime);
-    _gpuTime = std::max(0.f, gpuTime);
+    _presentTime = std::max(0.0f, presentTime);
+    _engineRunTime = std::max(0.0f, engineRunTime);
+    _batchTime = std::max(0.0f, batchTime);
+    _gpuTime = std::max(0.0f, gpuTime);
 }
 
 void LODManager::autoAdjustLOD(float realTimeDelta) {
@@ -87,7 +87,7 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
     _smoothRenderTime = std::max(0.0f, std::min(_smoothRenderTime, (float)MSECS_PER_SECOND));
 
     // Early exit if not regulating or if the simulation or render times don't matter
-    if (!_automaticLODAdjust || realTimeDelta <= 0.f || _nowRenderTime <= 0.0f || _smoothRenderTime <= 0.0f) {
+    if (!_automaticLODAdjust || realTimeDelta <= 0.0f || _nowRenderTime <= 0.0f || _smoothRenderTime <= 0.0f) {
         return;
     }
 
@@ -144,8 +144,8 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
     glm::clamp(integral, -1.0f, 1.0f);
 
     // Compute derivative
-    // if dt is never zero because realTimeDelta would have early exit above, but if it was let's zero the derivative term
-    auto derivative = (dt <= 0.f ? 0.0f : (error - previous_error) / dt);
+    // dt is never zero because realTimeDelta would have early exit above, but if it ever was let's zero the derivative term
+    auto derivative = (dt <= 0.0f ? 0.0f : (error - previous_error) / dt);
 
     // remember history
     _pidHistory.x = error;
