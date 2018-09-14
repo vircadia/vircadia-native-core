@@ -122,7 +122,6 @@ void setGlobalInstance(const char* propertyName, const QVariant& variant) {
     }
 }
 
-// Do we still need this?
 static qint64 usecTimestampNowAdjust = 0; // in usec
 void usecTimestampNowForceClockSkew(qint64 clockSkew) {
     ::usecTimestampNowAdjust = clockSkew;
