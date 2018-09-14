@@ -79,7 +79,7 @@ StackView {
             return;
         }
         location.text = targetString;
-        toggleOrGo(true, targetString);
+        toggleOrGo(targetString, true);
         clearAddressLineTimer.start();
     }
 
@@ -105,7 +105,6 @@ StackView {
             propagateComposedEvents: true
             onPressed: {
                 parent.forceActiveFocus();
-                addressBarDialog.keyboardEnabled = false;
                 mouse.accepted = false;
             }
         }
@@ -223,7 +222,6 @@ StackView {
                     updateLocationText(text.length > 0);
                 }
                 onAccepted: {
-                    addressBarDialog.keyboardEnabled = false;
                     toggleOrGo();
                 }
 
@@ -378,7 +376,7 @@ StackView {
 
         HifiControls.Keyboard {
             id: keyboard
-            raised: parent.keyboardEnabled
+            raised: parent.keyboardEnabled && parent.keyboardRaised
             numeric: parent.punctuationMode
             anchors {
                 bottom: parent.bottom
@@ -401,7 +399,7 @@ StackView {
         }
     }
 
-    function toggleOrGo(fromSuggestions, address) {
+    function toggleOrGo(address, fromSuggestions) {
         if (address !== undefined && address !== "") {
             addressBarDialog.loadAddress(address, fromSuggestions);
             clearAddressLineTimer.start();

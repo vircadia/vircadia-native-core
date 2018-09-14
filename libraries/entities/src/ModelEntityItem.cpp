@@ -39,6 +39,7 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID) : EntityItem(
     // set the last animated when interface (re)starts
     _type = EntityTypes::Model;
     _lastKnownCurrentFrame = -1;
+    _visuallyReady = false;
 }
 
 const QString ModelEntityItem::getTextures() const {

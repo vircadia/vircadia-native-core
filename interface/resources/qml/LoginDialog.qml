@@ -23,6 +23,7 @@ ModalWindow {
     objectName: "LoginDialog"
     implicitWidth: 520
     implicitHeight: 320
+    closeButtonVisible: true
     destroyOnCloseButton: true
     destroyOnHidden: true
     visible: true

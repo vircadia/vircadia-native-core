@@ -45,7 +45,7 @@ struct ShadowSampleOffsets {
 };
 
 ShadowSampleOffsets evalShadowFilterOffsets(vec4 position) {
-	float shadowScale = getShadowScale();
+    float shadowScale = getShadowScale();
     ShadowSampleOffsets offsets;
 
 #if SHADOW_SCREEN_SPACE_DITHER
@@ -67,10 +67,10 @@ ShadowSampleOffsets evalShadowFilterOffsets(vec4 position) {
     ivec2 offset = coords & ivec2(1,1);
     offset.y = (offset.x+offset.y) & 1;
 
-    offsets.points[0] = shadowScale * vec3(offset + PCFkernel[0], 0.0);
-    offsets.points[1] = shadowScale * vec3(offset + PCFkernel[1], 0.0);
-    offsets.points[2] = shadowScale * vec3(offset + PCFkernel[2], 0.0);
-    offsets.points[3] = shadowScale * vec3(offset + PCFkernel[3], 0.0);
+    offsets.points[0] = shadowScale * vec3(vec2(offset) + PCFkernel[0], 0.0);
+    offsets.points[1] = shadowScale * vec3(vec2(offset) + PCFkernel[1], 0.0);
+    offsets.points[2] = shadowScale * vec3(vec2(offset) + PCFkernel[2], 0.0);
+    offsets.points[3] = shadowScale * vec3(vec2(offset) + PCFkernel[3], 0.0);
 
     return offsets;
 }
@@ -104,7 +104,7 @@ float evalShadowAttenuation(vec3 worldLightDir, vec4 worldPosition, float viewDe
     vec3 cascadeMix;
     bvec4 isPixelOnCascade;
     int cascadeIndex;
-    float oneMinusNdotL = 1.0 - clamp(dot(worldLightDir, worldNormal), 0, 1);
+    float oneMinusNdotL = 1.0 - clamp(dot(worldLightDir, worldNormal), 0.0, 1.0);
 
     for (cascadeIndex=0 ; cascadeIndex<getShadowCascadeCount() ; cascadeIndex++) {
         cascadeShadowCoords[cascadeIndex] = evalShadowTexcoord(cascadeIndex, worldPosition);

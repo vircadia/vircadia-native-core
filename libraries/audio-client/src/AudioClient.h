@@ -162,6 +162,7 @@ public:
 
     bool startRecording(const QString& filename);
     void stopRecording();
+    void setAudioPaused(bool pause);
 
 
 #ifdef Q_OS_WIN
@@ -416,6 +417,7 @@ private:
     QVector<AudioInjectorPointer> _activeLocalAudioInjectors;
 
     bool _isPlayingBackRecording { false };
+    bool _audioPaused { false };
 
     CodecPluginPointer _codec;
     QString _selectedCodecName;

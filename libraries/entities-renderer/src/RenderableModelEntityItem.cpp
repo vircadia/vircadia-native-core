@@ -1297,9 +1297,20 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         }
     });
 
-    // Check for removal
     ModelPointer model;
     withReadLock([&] { model = _model; });
+
+    withWriteLock([&] {
+        bool visuallyReady = true;
+        if (_hasModel) {
+            if (model && _didLastVisualGeometryRequestSucceed) {
+                visuallyReady = (_prevModelLoaded && _texturesLoaded);
+            }
+        }
+        entity->setVisuallyReady(visuallyReady);
+    });
+
+    // Check for removal
     if (!_hasModel) {
         if (model) {
             model->removeFromScene(scene, transaction);
@@ -1441,11 +1452,11 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     // That is where _currentFrame and _lastAnimated were updated.
     if (_animating) {
         DETAILED_PROFILE_RANGE(simulation_physics, "Animate");
-        
+
         if (!jointsMapped()) {
             mapJoints(entity, model->getJointNames());
         //else the joint have been mapped before but we have a new animation to load
-        } else if (_animation && (_animation->getURL().toString() != entity->getAnimationURL())) {             
+        } else if (_animation && (_animation->getURL().toString() != entity->getAnimationURL())) {
             _animation = DependencyManager::get<AnimationCache>()->getAnimation(entity->getAnimationURL());
             _jointMappingCompleted = false;
             mapJoints(entity, model->getJointNames());

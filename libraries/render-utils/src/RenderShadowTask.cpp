@@ -62,8 +62,8 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
 
     const auto fetchInput = FetchSpatialTree::Inputs(shadowCasterReceiverFilter, queryResolution).asVarying();
     const auto shadowSelection = task.addJob<FetchSpatialTree>("FetchShadowTree", fetchInput);
-    const auto selectionInputs = FetchSpatialSelection::Inputs(shadowSelection, shadowCasterReceiverFilter).asVarying();
-    const auto shadowItems = task.addJob<FetchSpatialSelection>("FetchShadowSelection", selectionInputs);
+    const auto selectionInputs = FilterSpatialSelection::Inputs(shadowSelection, shadowCasterReceiverFilter).asVarying();
+    const auto shadowItems = task.addJob<FilterSpatialSelection>("FilterShadowSelection", selectionInputs);
 
     // Cull objects that are not visible in camera view. Hopefully the cull functor only performs LOD culling, not
     // frustum culling or this will make shadow casters out of the camera frustum disappear.

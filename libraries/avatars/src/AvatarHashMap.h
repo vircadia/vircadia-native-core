@@ -101,6 +101,8 @@ public:
     void setReplicaCount(int count);
     int getReplicaCount() { return _replicas.getReplicaCount(); };
 
+    virtual void clearOtherAvatars();
+
 signals:
 
     /**jsdoc

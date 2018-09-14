@@ -235,6 +235,9 @@ public:
     void animVariantMapFromScriptValue(const QScriptValue& object);
     void copyVariantsFrom(const AnimVariantMap& other);
 
+    // For stat debugging.
+    std::map<QString, QString> toDebugMap() const;
+
 #ifdef NDEBUG
     void dump() const {
         qCDebug(animation) << "AnimVariantMap =";

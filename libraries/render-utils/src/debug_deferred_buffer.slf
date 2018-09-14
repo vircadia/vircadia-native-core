@@ -16,14 +16,8 @@
 <@include gpu/Color.slh@>
 <$declareColorWheel()$>
 
-layout(binding=RENDER_UTILS_TEXTURE_DEBUG_DEPTH) uniform sampler2D linearDepthMap;
-layout(binding=RENDER_UTILS_TEXTURE_DEBUG_HALF_DEPTH) uniform sampler2D halfLinearDepthMap;
-layout(binding=RENDER_UTILS_TEXTURE_DEBUG_HALF_NORMAL) uniform sampler2D halfNormalMap;
-layout(binding=RENDER_UTILS_TEXTURE_DEBUG_OCCLUSION) uniform sampler2D occlusionMap;
-layout(binding=RENDER_UTILS_TEXTURE_DEBUG_OCCLUSION_BLURRED) uniform sampler2D occlusionBlurredMap;
-layout(binding=RENDER_UTILS_TEXTURE_DEBUG_SCATTERING) uniform sampler2D scatteringMap;
-layout(binding=RENDER_UTILS_TEXTURE_DEBUG_VELOCITY) uniform sampler2D velocityMap;
-layout(binding=RENDER_UTILS_TEXTURE_DEBUG_SHADOWS) uniform sampler2DArrayShadow shadowMaps;
+layout(binding=RENDER_UTILS_DEBUG_TEXTURE0) uniform sampler2D debugTexture0;
+layout(binding=RENDER_UTILS_TEXTURE_SHADOW) uniform sampler2DArrayShadow shadowMaps;
 
 <@include ShadowCore.slh@>
 
@@ -31,7 +25,7 @@ layout(binding=RENDER_UTILS_TEXTURE_DEBUG_SHADOWS) uniform sampler2DArrayShadow 
 
 <@include debug_deferred_buffer_shared.slh@>
 
-layout(std140) uniform parametersBuffer {
+layout(std140, binding=RENDER_UTILS_BUFFER_DEBUG_DEFERRED_PARAMS) uniform parametersBuffer {
     DebugParameters parameters;
 };
 

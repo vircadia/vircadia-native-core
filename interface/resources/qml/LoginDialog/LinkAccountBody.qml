@@ -15,7 +15,6 @@ import QtQuick.Controls.Styles 1.4 as OriginalStyles
 
 import "../controls-uit"
 import "../styles-uit"
-
 Item {
     id: linkAccountBody
     clip: true
@@ -88,6 +87,23 @@ Item {
     }
 
     ShortcutText {
+        id: flavorText
+        anchors {
+            top: parent.top
+            left: parent.left
+            margins: 0
+            topMargin: hifi.dimensions.contentSpacing.y
+        }
+
+        text: qsTr("Sign in to High Fidelity to make friends, get HFC, and buy interesting things on the Marketplace!")
+        width: parent.width
+        wrapMode: Text.WordWrap
+        lineHeight: 1
+        lineHeightMode: Text.ProportionalHeight
+        horizontalAlignment: Text.AlignHCenter
+    }
+
+    ShortcutText {
         id: mainTextContainer
         anchors {
             top: parent.top
@@ -97,7 +113,6 @@ Item {
         }
 
         visible: false
-
         text: qsTr("Username or password incorrect.")
         wrapMode: Text.WordWrap
         color: hifi.colors.redAccent
@@ -117,22 +132,21 @@ Item {
         }
         spacing: 2 * hifi.dimensions.contentSpacing.y
 
-
         TextField {
             id: usernameField
             text: Settings.getValue("wallet/savedUsername", "");
             width: parent.width
             focus: true
-            label: "Username or Email"
+            placeholderText: "Username or Email"
             activeFocusOnPress: true
 
             ShortcutText {
                 z: 10
+                y: usernameField.height
                 anchors {
-                    left: usernameField.left
-                    top: usernameField.top
-                    leftMargin: usernameField.textFieldLabel.contentWidth + 10
-                    topMargin: -19
+                    right: usernameField.right
+                    top: usernameField.bottom
+                    topMargin: 4
                 }
 
                 text: "<a href='https://highfidelity.com/users/password/new'>Forgot Username?</a>"
@@ -143,26 +157,32 @@ Item {
 
                 onLinkActivated: loginDialog.openUrl(link)
             }
+
             onFocusChanged: {
                 root.text = "";
+            }
+            Component.onCompleted: {
+                var savedUsername = Settings.getValue("wallet/savedUsername", "");
+                usernameField.text = savedUsername === "Unknown user" ? "" : savedUsername;
             }
         }
 
         TextField {
             id: passwordField
             width: parent.width
-
-            label: "Password"
-            echoMode: showPassword.checked ? TextInput.Normal : TextInput.Password
+            placeholderText: "Password"
             activeFocusOnPress: true
+            echoMode: TextInput.Password
+            onHeightChanged: d.resize(); onWidthChanged: d.resize();
 
             ShortcutText {
+                id: forgotPasswordShortcut
+                y: passwordField.height
                 z: 10
                 anchors {
-                    left: passwordField.left
-                    top: passwordField.top
-                    leftMargin: passwordField.textFieldLabel.contentWidth + 10
-                    topMargin: -19
+                    right: passwordField.right
+                    top: passwordField.bottom
+                    topMargin: 4
                 }
 
                 text: "<a href='https://highfidelity.com/users/password/new'>Forgot Password?</a>"
@@ -179,12 +199,45 @@ Item {
                 root.isPassword = true;
             }
 
-            Keys.onReturnPressed: linkAccountBody.login()
-        }
+            Rectangle {
+                id: showPasswordHitbox
+                z: 10
+                x: passwordField.width - ((passwordField.height) * 31 / 23)
+                width: parent.width - (parent.width - (parent.height * 31/16))
+                height: parent.height
+                anchors {
+                    right: parent.right
+                }
+                color: "transparent"
 
-        CheckBox {
-            id: showPassword
-            text: "Show password"
+                Image {
+                    id: showPasswordImage
+                    y: (passwordField.height - (passwordField.height * 16 / 23)) / 2
+                    width: passwordField.width - (passwordField.width - (((passwordField.height) * 31/23)))
+                    height: passwordField.height * 16 / 23
+                    anchors {
+                        right: parent.right
+                        rightMargin: 3
+                    }
+                    source: "../../images/eyeOpen.svg"
+                }
+
+                MouseArea {
+                    id: passwordFieldMouseArea
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton
+                    property bool showPassword: false
+                    onClicked: {
+                        showPassword = !showPassword;
+                        passwordField.echoMode = showPassword ? TextInput.Normal : TextInput.Password;
+                        showPasswordImage.source = showPassword ?  "../../images/eyeClosed.svg" : "../../images/eyeOpen.svg";
+                        showPasswordImage.height = showPassword ?  passwordField.height : passwordField.height * 16 / 23;
+                        showPasswordImage.y = showPassword ? 0 : (passwordField.height - showPasswordImage.height) / 2;
+                    }
+                }
+            }
+
+            Keys.onReturnPressed: linkAccountBody.login()
         }
 
         InfoItem {
@@ -206,6 +259,26 @@ Item {
             onHeightChanged: d.resize(); onWidthChanged: d.resize();
             anchors.horizontalCenter: parent.horizontalCenter
 
+            CheckBox {
+                id: autoLogoutCheckbox
+                checked: !Settings.getValue("wallet/autoLogout", true)
+                text: "Keep me signed in"
+                boxSize: 20;
+                labelFontSize: 15
+                color: hifi.colors.black
+                onCheckedChanged: {
+                    Settings.setValue("wallet/autoLogout", !checked);
+                    if (checked) {
+                        Settings.setValue("wallet/savedUsername", Account.username);
+                    } else {
+                        Settings.setValue("wallet/savedUsername", "");
+                    }
+                }
+                Component.onDestruction: {
+                    Settings.setValue("wallet/autoLogout", !checked);
+                }
+            }
+
             Button {
                 id: linkAccountButton
                 anchors.verticalCenter: parent.verticalCenter
@@ -215,12 +288,6 @@ Item {
                 color: hifi.buttons.blue
 
                 onClicked: linkAccountBody.login()
-            }
-
-            Button {
-                anchors.verticalCenter: parent.verticalCenter
-                text: qsTr("Cancel")
-                onClicked: root.tryDestroy()
             }
         }
 
@@ -234,7 +301,7 @@ Item {
             RalewaySemiBold {
                 size: hifi.fontSizes.inputLabel
                 anchors.verticalCenter: parent.verticalCenter
-                text: qsTr("Don't have an account?")
+                text: qsTr("New to High Fidelity?")
             }
 
             Button {
@@ -279,7 +346,15 @@ Item {
         target: loginDialog
         onHandleLoginCompleted: {
             console.log("Login Succeeded, linking steam account")
-
+            var poppedUp = Settings.getValue("loginDialogPoppedUp", false);
+            if (poppedUp) {
+                console.log("[ENCOURAGELOGINDIALOG]: logging in")
+                var data = {
+                    "action": "user logged in"
+                };
+                UserActivityLogger.logAction("encourageLoginDialog", data);
+                Settings.setValue("loginDialogPoppedUp", false);
+            }
             if (loginDialog.isSteamRunning()) {
                 loginDialog.linkSteam()
             } else {
@@ -290,6 +365,15 @@ Item {
         }
         onHandleLoginFailed: {
             console.log("Login Failed")
+            var poppedUp = Settings.getValue("loginDialogPoppedUp", false);
+            if (poppedUp) {
+                console.log("[ENCOURAGELOGINDIALOG]: failed logging in")
+                var data = {
+                    "action": "user failed logging in"
+                };
+                UserActivityLogger.logAction("encourageLoginDialog", data);
+                Settings.setValue("loginDialogPoppedUp", false);
+            }
             mainTextContainer.visible = true
             toggleLoading(false)
         }

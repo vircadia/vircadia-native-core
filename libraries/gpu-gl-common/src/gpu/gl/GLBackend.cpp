@@ -201,9 +201,10 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
                 {
                     Vec2u outputSize{ 1,1 };
 
-                    if (_output._framebuffer) {
-                        outputSize.x = _output._framebuffer->getWidth();
-                        outputSize.y = _output._framebuffer->getHeight();
+                    auto framebuffer = acquire(_output._framebuffer);
+                    if (framebuffer) {
+                        outputSize.x = framebuffer->getWidth();
+                        outputSize.y = framebuffer->getHeight();
                     } else if (glm::dot(_transform._projectionJitter, _transform._projectionJitter)>0.0f) {
                         qCWarning(gpugllogging) << "Jittering needs to have a frame buffer to be set";
                     }
@@ -220,6 +221,7 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
                     _stereo._contextDisable = false;
                     break;
 
+                case Batch::COMMAND_setFramebuffer:
                 case Batch::COMMAND_setViewportTransform:
                 case Batch::COMMAND_setViewTransform:
                 case Batch::COMMAND_setProjectionTransform:

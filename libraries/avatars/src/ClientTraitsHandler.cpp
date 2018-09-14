@@ -37,6 +37,12 @@ void ClientTraitsHandler::resetForNewMixer() {
 
     // mark that all traits should be sent next time
     _shouldPerformInitialSend = true;
+
+    // reset the trait statuses
+    _traitStatuses.reset();
+
+    // pre-fill the instanced statuses that we will need to send next frame
+    _owningAvatar->prepareResetTraitInstances();
 }
 
 void ClientTraitsHandler::sendChangedTraitsToMixer() {
