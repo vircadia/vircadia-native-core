@@ -397,6 +397,11 @@
                 deltaRotation,
                 localRotation;
 
+            if (Overlays.getProperty(miniOverlay, "parentJointIndex") !== handJointIndex(uiHand)) {
+                // Overlay has been grabbed by other hand but this script hasn't received notification yet.
+                return;
+            }
+
             defaultLocalRotation = MINI_ROTATIONS[uiHand];
             handOrientation =
                 Quat.multiply(MyAvatar.orientation, MyAvatar.getAbsoluteJointRotationInObjectFrame(handJointIndex(uiHand)));
