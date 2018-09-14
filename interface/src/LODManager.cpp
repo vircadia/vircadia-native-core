@@ -79,15 +79,15 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
     float nowBlend = (realTimeDelta < LOD_ADJUST_RUNNING_AVG_TIMESCALE) ? realTimeDelta / LOD_ADJUST_RUNNING_AVG_TIMESCALE : 1.0f;
     float smoothBlend = (realTimeDelta <  LOD_ADJUST_RUNNING_AVG_TIMESCALE * _smoothScale) ? realTimeDelta / (LOD_ADJUST_RUNNING_AVG_TIMESCALE * _smoothScale) : 1.0f;
 
-    _nowRenderTime = (1.0f - nowBlend) * _nowRenderTime + nowBlend * maxRenderTime; // msec
-    _smoothRenderTime = (1.0f - smoothBlend) * _smoothRenderTime + smoothBlend * maxRenderTime; // msec
-
+    //Evaluate the running averages for the render time
     // We must sanity check for the output average evaluated to be in a valid range to avoid issues 
+    _nowRenderTime = (1.0f - nowBlend) * _nowRenderTime + nowBlend * maxRenderTime; // msec
     _nowRenderTime = std::max(0.0f, std::min(_nowRenderTime, (float)MSECS_PER_SECOND));
+    _smoothRenderTime = (1.0f - smoothBlend) * _smoothRenderTime + smoothBlend * maxRenderTime; // msec
     _smoothRenderTime = std::max(0.0f, std::min(_smoothRenderTime, (float)MSECS_PER_SECOND));
 
-    // Early exit if not regulating or if the render time doesn't matter
-    if (!_automaticLODAdjust || realTimeDelta == 0.f || _nowRenderTime == 0.0f || _smoothRenderTime == 0.0f) {
+    // Early exit if not regulating or if the simulation or render times don't matter
+    if (!_automaticLODAdjust || realTimeDelta <= 0.f || _nowRenderTime <= 0.0f || _smoothRenderTime <= 0.0f) {
         return;
     }
 
@@ -144,7 +144,7 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
     glm::clamp(integral, -1.0f, 1.0f);
 
     // Compute derivative
-    // if dt is never zero becasuerrealTImeDelta would have early exit above, but if it was let's zero the derivative term
+    // if dt is never zero because realTimeDelta would have early exit above, but if it was let's zero the derivative term
     auto derivative = (dt <= 0.f ? 0.0f : (error - previous_error) / dt);
 
     // remember history
