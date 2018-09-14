@@ -415,13 +415,13 @@
     Overlays.mouseReleaseOnOverlay.connect(clickedOnOverlay);
     Overlays.hoverEnterOverlay.connect(function(overlayID, event) {
         if (overlayID === loadingToTheSpotID) {
-            Overlays.editOverlay(loadingToTheSpotID, { color: greyColor});
+            Overlays.editOverlay(loadingToTheSpotID, { color: greyColor });
         }
     });
 
     Overlays.hoverLeaveOverlay.connect(function(overlayID, event) {
         if (overlayID === loadingToTheSpotID) {
-            Overlays.editOverlay(loadingToTheSpotID, { color: whiteColor});
+            Overlays.editOverlay(loadingToTheSpotID, { color: whiteColor });
         }
     });
 
