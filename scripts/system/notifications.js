@@ -564,7 +564,7 @@
     }
 
     function walletNotSetup() {
-        createNotification("Your wallet isn't set up. Open the WALLET app.", NotificationType.WALLET);
+        createNotification("Your wallet isn't activated yet. Open the WALLET app.", NotificationType.WALLET);
     }
 
     function connectionAdded(connectionName) {
