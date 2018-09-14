@@ -860,7 +860,7 @@ var toolBar = (function () {
             propertiesTool.setVisible(false);
             selectionManager.clearSelections();
             cameraManager.disable();
-            selectionDisplay.triggerMapping.disable();
+            selectionDisplay.disableTriggerMapping();
             tablet.landscape = false;
             Controller.disableMapping(CONTROLLER_MAPPING_NAME);
         } else {
@@ -876,7 +876,7 @@ var toolBar = (function () {
             gridTool.setVisible(true);
             grid.setEnabled(true);
             propertiesTool.setVisible(true);
-            selectionDisplay.triggerMapping.enable();
+            selectionDisplay.enableTriggerMapping();
             print("starting tablet in landscape mode");
             tablet.landscape = true;
             Controller.enableMapping(CONTROLLER_MAPPING_NAME);
