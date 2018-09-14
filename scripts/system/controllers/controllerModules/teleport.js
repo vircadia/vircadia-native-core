@@ -117,6 +117,7 @@ Script.include("/~/system/libraries/controllers.js");
         NONE: 'none', // Not currently targetting anything
         INVALID: 'invalid', // The current target is invalid (wall, ceiling, etc.)
         COLLIDES: 'collides', // Insufficient space to accommodate the avatar capsule
+        DISCREPANCY: 'discrepancy', // We are not 100% sure the avatar will fit so we trigger safe landing
         SURFACE: 'surface', // The current target is a valid surface
         SEAT: 'seat' // The current target is a seat
     };
@@ -135,7 +136,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.currentTarget = TARGET.INVALID;
         this.currentResult = null;
         this.capsuleThreshold = 0.05;
-        this.pickHeightOffset = 0.05;
+        this.pickHeightOffset = 0.15;
 
         this.getOtherModule = function() {
             var otherModule = this.hand === RIGHT_HAND ? leftTeleporter : rightTeleporter;
@@ -376,7 +377,7 @@ Script.include("/~/system/libraries/controllers.js");
                 this.setTeleportState(mode, "", "cancel");
             } else if (teleportLocationType === TARGET.COLLIDES) {
                 this.setTeleportState(mode, "cancel", "collision");
-            } else if (teleportLocationType === TARGET.SURFACE) {
+            } else if (teleportLocationType === TARGET.SURFACE || teleportLocationType === TARGET.DISCREPANCY) {
                 this.setTeleportState(mode, "teleport", "collision");
             } else if (teleportLocationType === TARGET.SEAT) {
                 this.setTeleportState(mode, "collision", "seat");
@@ -394,10 +395,11 @@ Script.include("/~/system/libraries/controllers.js");
                 // Do nothing
             } else if (target === TARGET.SEAT) {
                 Entities.callEntityMethod(result.objectID, 'sit');
-            } else if (target === TARGET.SURFACE) {
+            } else if (target === TARGET.SURFACE || target === TARGET.DISCREPANCY) {
                 var offset = getAvatarFootOffset();
                 result.intersection.y += offset;
-                MyAvatar.goToLocation(result.intersection, true, HMD.orientation, false, false);
+                var shouldLandSafe = target === TARGET.DISCREPANCY;
+                MyAvatar.goToLocation(result.intersection, true, HMD.orientation, false, shouldLandSafe);
                 HMD.centerUI();
                 MyAvatar.centerBody();
             }
@@ -517,12 +519,13 @@ Script.include("/~/system/libraries/controllers.js");
                 return TARGET.INVALID;
             }
         }
-        
+        var isDiscrepancy = false;
         if (collisionResult.collisionRegion != undefined) {
             if (collisionResult.intersects) {
-                if (!checkForMeshDiscrepancy(result, collisionResult)) {
+                isDiscrepancy = checkForMeshDiscrepancy(result, collisionResult);
+                if (!isDiscrepancy) {
                     return TARGET.COLLIDES;
-                }
+                } 
             }
         }
 
@@ -531,6 +534,8 @@ Script.include("/~/system/libraries/controllers.js");
 
         if (angle > MAX_ANGLE_FROM_UP_TO_TELEPORT) {
             return TARGET.INVALID;
+        } else if (isDiscrepancy) {
+            return TARGET.DISCREPANCY;
         } else {
             return TARGET.SURFACE;
         }
