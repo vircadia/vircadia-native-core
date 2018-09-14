@@ -102,7 +102,6 @@ void DomainHandler::softReset() {
 
     clearSettings();
 
-    _isInErrorState = false;
     _connectionDenialsSinceKeypairRegen = 0;
     _checkInPacketsSinceLastReply = 0;
 
@@ -112,6 +111,7 @@ void DomainHandler::softReset() {
     // restart the API refresh timer in case we fail to connect and need to refresh information
     if (!_isInErrorState) {
         QMetaObject::invokeMethod(&_apiRefreshTimer, "start");
+    }
 }
 
 void DomainHandler::hardReset() {
@@ -343,6 +343,7 @@ void DomainHandler::loadedErrorDomain(std::map<QString, QString> namedPaths) {
 void DomainHandler::setRedirectErrorState(QUrl errorUrl, int reasonCode) {
     _errorDomainURL = errorUrl;
     _lastDomainConnectionError = reasonCode;
+    _isInErrorState = true;
     emit redirectToErrorDomainURL(_errorDomainURL);
 }
 
@@ -485,9 +486,8 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
         emit domainConnectionRefused(reasonMessage, (int)reasonCode, extraInfo);
 #else
         if (reasonCode == ConnectionRefusedReason::ProtocolMismatch || reasonCode == ConnectionRefusedReason::NotAuthorized) {
-            _isInErrorState = true;
             // ingest the error - this is a "hard" connection refusal.
-            emit redirectToErrorDomainURL(_errorDomainURL);
+            setRedirectErrorState(_errorDomainURL, (int)reasonCode);
         } else {
             emit domainConnectionRefused(reasonMessage, (int)reasonCode, extraInfo);
         }
