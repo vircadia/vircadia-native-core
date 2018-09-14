@@ -672,8 +672,8 @@
             var showLeft,
                 showRight;
 
-            // Don't show mini tablet if tablet proper is already displayed or in toolbar mode.
-            if (HMD.showTablet || tablet.toolbarMode) {
+            // Don't show mini tablet if tablet proper is already displayed, in toolbar mode, or away.
+            if (HMD.showTablet || tablet.toolbarMode || MyAvatar.isAway) {
                 return;
             }
 
@@ -1016,6 +1016,11 @@
         }
     }
 
+    function onWentAway() {
+        // Mini tablet only available when user is not away.
+        miniState.setState(miniState.MINI_HIDDEN);
+    }
+
     function onDisplayModeChanged() {
         // Mini tablet only available when HMD is active.
         if (HMD.active) {
@@ -1035,6 +1040,7 @@
         Messages.subscribe(HIFI_OBJECT_MANIPULATION_CHANNEL);
         Messages.messageReceived.connect(onMessageReceived);
 
+        MyAvatar.wentAway.connect(onWentAway);
         HMD.displayModeChanged.connect(onDisplayModeChanged);
         if (HMD.active) {
             miniState.setState(miniState.MINI_HIDDEN);
@@ -1045,6 +1051,7 @@
         miniState.setState(miniState.MINI_DISABLED);
 
         HMD.displayModeChanged.disconnect(onDisplayModeChanged);
+        MyAvatar.wentAway.disconnect(onWentAway);
 
         Messages.messageReceived.disconnect(onMessageReceived);
         Messages.unsubscribe(HIFI_OBJECT_MANIPULATION_CHANNEL);
