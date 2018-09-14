@@ -321,6 +321,10 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         break;
     case 'http.request':
         break; // Handled by request-service.
+    case 'hideNotificationDot':
+        shouldShowDot = false;
+        ui.messagesWaiting(shouldShowDot);
+        break;
     default:
         print('Unrecognized message from Pal.qml:', JSON.stringify(message));
     }
@@ -364,8 +368,8 @@ function getProfilePicture(username, callback) { // callback(url) if successfull
     });
 }
 var SAFETY_LIMIT = 400;
-function getAvailableConnections(domain, callback) { // callback([{usename, location}...]) if successfull. (Logs otherwise)
-    var url = METAVERSE_BASE + '/api/v1/users?per_page=' + SAFETY_LIMIT + '&';
+function getAvailableConnections(domain, callback, numResultsPerPage) { // callback([{usename, location}...]) if successfull. (Logs otherwise)
+    var url = METAVERSE_BASE + '/api/v1/users?per_page=' + (numResultsPerPage || SAFETY_LIMIT) + '&';
     if (domain) {
         url += 'status=' + domain.slice(1, -1); // without curly braces
     } else {
@@ -728,10 +732,14 @@ function createUpdateInterval() {
 
 var previousContextOverlay = ContextOverlay.enabled;
 var previousRequestsDomainListData = Users.requestsDomainListData;
-function on() {
+function palOpened() {
+    ui.sendMessage({
+        method: 'changeConnectionsDotStatus',
+        shouldShowDot: shouldShowDot
+    });
 
     previousContextOverlay = ContextOverlay.enabled;
-    previousRequestsDomainListData = Users.requestsDomainListData
+    previousRequestsDomainListData = Users.requestsDomainListData;
     ContextOverlay.enabled = false;
     Users.requestsDomainListData = true;
 
@@ -810,14 +818,56 @@ function avatarSessionChanged(avatarID) {
     sendToQml({ method: 'palIsStale', params: [avatarID, 'avatarSessionChanged'] });
 }
 
+function notificationDataProcessPage(data) {
+    return data.data.users;
+}
+
+var shouldShowDot = false;
+var firstBannerNotificationShown = false;
+function notificationPollCallback(onlineUsersArray) {
+    shouldShowDot = onlineUsersArray.length > 0;
+
+    if (!ui.isOpen) {
+        ui.messagesWaiting(shouldShowDot);
+        ui.sendMessage({
+            method: 'changeConnectionsDotStatus',
+            shouldShowDot: shouldShowDot
+        });
+
+        var message;
+        if (!firstBannerNotificationShown) {
+            message = onlineUsersArray.length + " of your connections are online. Open PEOPLE to join them!";
+            ui.notificationDisplayBanner(message);
+            firstBannerNotificationShown = true;
+        } else {
+            for (var i = 0; i < onlineUsersArray.length; i++) {
+                message = onlineUsersArray[i].username + " is available in " +
+                    onlineUsersArray[i].location.root.name + ". Open PEOPLE to join them!";
+                ui.notificationDisplayBanner(message);
+            }
+        }
+    }
+}
+
+function isReturnedDataEmpty(data) {
+    var usersArray = data.data.users;
+    return usersArray.length === 0;
+}
+
 function startup() {
     ui = new AppUi({
         buttonName: "PEOPLE",
         sortOrder: 7,
         home: "hifi/Pal.qml",
-        onOpened: on,
+        onOpened: palOpened,
         onClosed: off,
-        onMessage: fromQml
+        onMessage: fromQml,
+        notificationPollEndpoint: "/api/v1/users?filter=connections&status=online&per_page=10",
+        notificationPollTimeoutMs: 60000,
+        notificationDataProcessPage: notificationDataProcessPage,
+        notificationPollCallback: notificationPollCallback,
+        notificationPollStopPaginatingConditionMet: isReturnedDataEmpty,
+        notificationPollCaresAboutSince: true
     });
     Window.domainChanged.connect(clearLocalQMLDataAndClosePAL);
     Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);

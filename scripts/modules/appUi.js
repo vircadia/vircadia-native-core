@@ -11,6 +11,7 @@
 //
 
 function AppUi(properties) {
+    var request = Script.require('request').request;
     /* Example development order:
        1. var AppUi = Script.require('appUi');
        2. Put appname-i.svg, appname-a.svg in graphicsDirectory (where non-default graphicsDirectory can be added in #3).
@@ -80,13 +81,6 @@ function AppUi(properties) {
     that.buttonActive = function buttonActive(isActive) { // How to make the button active (white).
         that.button.editProperties({isActive: isActive});
     };
-    that.messagesWaiting = function messagesWaiting(isWaiting) { // How to indicate a message light on button.
-        // Note that waitingButton doesn't have to exist unless someone explicitly calls this with isWaiting true.
-        that.button.editProperties({
-            icon: isWaiting ? that.normalMessagesButton : that.normalButton,
-            activeIcon: isWaiting ? that.activeMessagesButton : that.activeButton
-        });
-    };
     that.isQMLUrl = function isQMLUrl(url) {
         var type = /.qml$/.test(url) ? 'QML' : 'Web';
         return type === 'QML';
@@ -94,6 +88,32 @@ function AppUi(properties) {
     that.isCurrentlyOnQMLScreen = function isCurrentlyOnQMLScreen() {
         return that.currentVisibleScreenType === 'QML';
     };
+
+    //
+    // START Notification Handling Defaults
+    //
+    that.messagesWaiting = function messagesWaiting(isWaiting) { // How to indicate a message light on button.
+        // Note that waitingButton doesn't have to exist unless someone explicitly calls this with isWaiting true.
+        that.button.editProperties({
+            icon: isWaiting ? that.normalMessagesButton : that.normalButton,
+            activeIcon: isWaiting ? that.activeMessagesButton : that.activeButton
+        });
+    };
+    that.notificationPollTimeout = false;
+    that.notificationPollTimeoutMs = 60000;
+    that.notificationPollEndpoint = false;
+    that.notificationPollStopPaginatingConditionMet = false;
+    that.notificationDataProcessPage = function (data) {
+        return data;
+    };
+    that.notificationPollCallback = that.ignore;
+    that.notificationPollCaresAboutSince = false;
+    that.notificationDisplayBanner = function (message) {
+        Window.displayAnnouncement(message);
+    };
+    //
+    // END Notification Handling Defaults
+    //
 
     // Handlers
     that.onScreenChanged = function onScreenChanged(type, url) {
@@ -126,6 +146,75 @@ function AppUi(properties) {
     // Overwrite with the given properties:
     Object.keys(properties).forEach(function (key) { that[key] = properties[key]; });
 
+    //
+    // START Notification Handling
+    //
+    var METAVERSE_BASE = Account.metaverseServerURL;
+    var currentDataPageToRetrieve = 1;
+    var concatenatedServerResponse = new Array();
+    that.notificationPoll = function () {
+        if (!that.notificationPollEndpoint) {
+            return;
+        }
+
+        // User is "appearing offline"
+        if (GlobalServices.findableBy === "none") {
+            that.notificationPollTimeout = Script.setTimeout(that.notificationPoll, that.notificationPollTimeoutMs);
+            return;
+        }
+
+        var url = METAVERSE_BASE + that.notificationPollEndpoint;
+
+        if (that.notificationPollCaresAboutSince) {
+            url = url + "&since=" + (new Date().getTime());
+        }
+
+        console.debug(that.buttonName, 'polling for notifications at endpoint', url);
+
+        function requestCallback(error, response) {
+            if (error || (response.status !== 'success')) {
+                print("Error: unable to get", url, error || response.status);
+                that.notificationPollTimeout = Script.setTimeout(that.notificationPoll, that.notificationPollTimeoutMs);
+                return;
+            }
+
+            if (!that.notificationPollStopPaginatingConditionMet || that.notificationPollStopPaginatingConditionMet(response)) {
+                that.notificationPollTimeout = Script.setTimeout(that.notificationPoll, that.notificationPollTimeoutMs);
+
+                var notificationData;
+                if (concatenatedServerResponse.length) {
+                    notificationData = concatenatedServerResponse;
+                } else {
+                    notificationData = that.notificationDataProcessPage(response);
+                }
+                console.debug(that.buttonName, 'notification data for processing:', JSON.stringify(notificationData));
+                that.notificationPollCallback(notificationData);
+                currentDataPageToRetrieve = 1;
+                concatenatedServerResponse = new Array();
+            } else {
+                concatenatedServerResponse = concatenatedServerResponse.concat(that.notificationDataProcessPage(response));
+                currentDataPageToRetrieve++;
+                request({ uri: (url + "&page=" + currentDataPageToRetrieve) }, requestCallback);
+            }
+        }
+
+        request({ uri: url }, requestCallback);
+    };
+
+    // This won't do anything if there isn't a notification endpoint set
+    that.notificationPoll();
+
+    function availabilityChanged() {
+        if (that.notificationPollTimeout) {
+            Script.clearTimeout(that.notificationPollTimeout);
+            that.notificationPollTimeout = false;
+        }
+        that.notificationPoll();
+    }
+    //
+    // END Notification Handling
+    //
+
     // Properties:
     that.tablet = Tablet.getTablet(that.tabletName);
     // Must be after we gather properties.
@@ -147,8 +236,9 @@ function AppUi(properties) {
     }
     that.button = that.tablet.addButton(buttonOptions);
     that.ignore = function ignore() { };
-    that.hasQmlEventBridge = false;
-    that.hasHtmlEventBridge = false;
+    that.hasOutboundEventBridge = false;
+    that.hasInboundQmlEventBridge = false;
+    that.hasInboundHtmlEventBridge = false;
     // HTML event bridge uses strings, not objects. Here we abstract over that.
     // (Although injected javascript still has to use JSON.stringify/JSON.parse.)
     that.sendToHtml = function (messageObject) {
@@ -167,8 +257,10 @@ function AppUi(properties) {
         // Outbound (always, regardless of whether there is an inbound handler).
         if (on) {
             that.sendMessage = isCurrentlyOnQMLScreen ? that.tablet.sendToQml : that.sendToHtml;
+            that.hasOutboundEventBridge = true;
         } else {
             that.sendMessage = that.ignore;
+            that.hasOutboundEventBridge = false;
         }
 
         if (!that.onMessage) {
@@ -177,25 +269,25 @@ function AppUi(properties) {
 
         // Inbound
         if (on) {
-            if (isCurrentlyOnQMLScreen && !that.hasQmlEventBridge) {
+            if (isCurrentlyOnQMLScreen && !that.hasInboundQmlEventBridge) {
                 console.debug(that.buttonName, 'connecting', that.tablet.fromQml);
                 that.tablet.fromQml.connect(that.onMessage);
-                that.hasQmlEventBridge = true;
-            } else if (!isCurrentlyOnQMLScreen && !that.hasHtmlEventBridge) {
+                that.hasInboundQmlEventBridge = true;
+            } else if (!isCurrentlyOnQMLScreen && !that.hasInboundHtmlEventBridge) {
                 console.debug(that.buttonName, 'connecting', that.tablet.webEventReceived);
                 that.tablet.webEventReceived.connect(that.fromHtml);
-                that.hasHtmlEventBridge = true;
+                that.hasInboundHtmlEventBridge = true;
             }
         } else {
-            if (that.hasQmlEventBridge) {
+            if (that.hasInboundQmlEventBridge) {
                 console.debug(that.buttonName, 'disconnecting', that.tablet.fromQml);
                 that.tablet.fromQml.disconnect(that.onMessage);
-                that.hasQmlEventBridge = false;
+                that.hasInboundQmlEventBridge = false;
             }
-            if (that.hasHtmlEventBridge) {
+            if (that.hasInboundHtmlEventBridge) {
                 console.debug(that.buttonName, 'disconnecting', that.tablet.webEventReceived);
                 that.tablet.webEventReceived.disconnect(that.fromHtml);
-                that.hasHtmlEventBridge = false;
+                that.hasInboundHtmlEventBridge = false;
             }
         }
     };
@@ -212,6 +304,7 @@ function AppUi(properties) {
         } : that.ignore;
     that.onScriptEnding = function onScriptEnding() {
         // Close if necessary, clean up any remaining handlers, and remove the button.
+        GlobalServices.findableByChanged.disconnect(availabilityChanged);
         if (that.isOpen) {
             that.close();
         }
@@ -222,10 +315,15 @@ function AppUi(properties) {
             }
             that.tablet.removeButton(that.button);
         }
+        if (that.notificationPollTimeout) {
+            Script.clearInterval(that.notificationPollTimeout);
+            that.notificationPollTimeout = false;
+        }
     };
     // Set up the handlers.
     that.tablet.screenChanged.connect(that.onScreenChanged);
     that.button.clicked.connect(that.onClicked);
     Script.scriptEnding.connect(that.onScriptEnding);
+    GlobalServices.findableByChanged.connect(availabilityChanged);
 }
 module.exports = AppUi;
