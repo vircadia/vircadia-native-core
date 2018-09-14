@@ -287,10 +287,11 @@ function loaded() {
                         visibleEntities = entities.slice(0);
                     } else {
                         visibleEntities = entities.filter(function(e) {
-                            return e.name.toLowerCase().indexOf(searchTerm.toLowerCase()) > -1
-                                || e.type.toLowerCase().indexOf(searchTerm.toLowerCase()) > -1
-                                || e.fullUrl.toLowerCase().indexOf(searchTerm.toLowerCase()) > -1
-                                || e.id.toLowerCase().indexOf(searchTerm.toLowerCase()) > -1;
+                            var searchTermLower = searchTerm.toLowerCase();
+                            return e.name.toLowerCase().indexOf(searchTermLower) > -1
+                                || e.type.toLowerCase().indexOf(searchTermLower) > -1
+                                || e.fullUrl.toLowerCase().indexOf(searchTermLower) > -1
+                                || e.id.toLowerCase().indexOf(searchTermLower) > -1;
                         });
                     }
                 });
