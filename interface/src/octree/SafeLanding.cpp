@@ -66,18 +66,13 @@ void SafeLanding::addTrackedEntity(const EntityItemID& entityID) {
         Locker lock(_lock);
         EntityItemPointer entity = _entityTree->findEntityByID(entityID);
 
-        if (entity) {
+        _trackedEntities.emplace(entityID, entity);
+        int trackedEntityCount = (int)_trackedEntities.size();
 
-            _trackedEntities.emplace(entityID, entity);
-            int trackedEntityCount = (int)_trackedEntities.size();
-
-            if (trackedEntityCount > _maxTrackedEntityCount) {
-                _maxTrackedEntityCount = trackedEntityCount;
-            }
-            qCDebug(interfaceapp) << "Safe Landing: Tracking entity " << entity->getItemName();
+        if (trackedEntityCount > _maxTrackedEntityCount) {
+            _maxTrackedEntityCount = trackedEntityCount;
         }
-    } else {
-        qCDebug(interfaceapp) << "Safe Landing: Null Entity: " << entityID;
+        qCDebug(interfaceapp) << "Safe Landing: Tracking entity " << entity->getItemName();
     }
 }
 
@@ -151,7 +146,7 @@ bool isEntityPhysicsReady(const EntityItemPointer& entity) {
             bool hasAABox;
             entity->getAABox(hasAABox);
             if (hasAABox && downloadedCollisionTypes.count(modelEntity->getShapeType()) != 0) {
-                return (!entity->shouldBePhysical() || entity->isReadyToComputeShape());
+                return entity->isReadyToComputeShape();
             }
         }
     }
@@ -161,23 +156,12 @@ bool isEntityPhysicsReady(const EntityItemPointer& entity) {
 
 bool SafeLanding::isEntityLoadingComplete() {
     Locker lock(_lock);
-
-
     auto entityTree = qApp->getEntities();
     auto entityMapIter = _trackedEntities.begin();
 
     while (entityMapIter != _trackedEntities.end()) {
         auto entity = entityMapIter->second;
-
-        bool isVisuallyReady = true;
-
-        Settings settings;
-        bool enableInterstitial = settings.value("enableIntersitialMode", false).toBool();
-
-        if (enableInterstitial) {
-            isVisuallyReady = (entity->isVisuallyReady() || !entityTree->renderableForEntityId(entityMapIter->first));
-        }
-
+        bool isVisuallyReady = (entity->isVisuallyReady() || !entityTree->renderableForEntityId(entityMapIter->first));
         if (isEntityPhysicsReady(entity) && isVisuallyReady) {
             entityMapIter = _trackedEntities.erase(entityMapIter);
         } else {

@@ -286,7 +286,6 @@ void PhysicsEngine::reinsertObject(ObjectMotionState* object) {
 void PhysicsEngine::processTransaction(PhysicsEngine::Transaction& transaction) {
     // removes
     for (auto object : transaction.objectsToRemove) {
-        bumpAndPruneContacts(object);
         btRigidBody* body = object->getRigidBody();
         if (body) {
             removeDynamicsForBody(body);

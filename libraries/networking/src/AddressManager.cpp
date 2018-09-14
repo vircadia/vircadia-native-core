@@ -816,10 +816,8 @@ bool AddressManager::setDomainInfo(const QUrl& domainURL, LookupTrigger trigger)
     const QString hostname = domainURL.host();
     quint16 port = domainURL.port();
     bool emitHostChanged { false };
-    // Check if domain handler is in error state. always emit host changed if true.
-    bool isInErrorState = DependencyManager::get<NodeList>()->getDomainHandler().isInErrorState();
 
-    if (domainURL != _domainURL || isInErrorState) {
+    if (domainURL != _domainURL) {
         addCurrentAddressToHistory(trigger);
         emitHostChanged = true;
     }

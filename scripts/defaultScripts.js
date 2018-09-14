@@ -35,12 +35,9 @@ var DEFAULT_SCRIPTS_COMBINED = [
 ];
 var DEFAULT_SCRIPTS_SEPARATE = [
     "system/controllers/controllerScripts.js",
+    "system/interstitialPage.js"
     //"system/chat.js"
 ];
-
-if (Settings.getValue("enableInterstitialMode", false)) {
-    DEFAULT_SCRIPTS_SEPARATE.push("system/interstitialPage.js");
-}
 
 // add a menu item for debugging
 var MENU_CATEGORY = "Developer";

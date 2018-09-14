@@ -11,7 +11,6 @@
 
 #include "AvatarMixerClientData.h"
 
-#include <algorithm>
 #include <udt/PacketHeaders.h>
 
 #include <DependencyManager.h>
@@ -219,10 +218,6 @@ uint16_t AvatarMixerClientData::getLastBroadcastSequenceNumber(const QUuid& node
 }
 
 void AvatarMixerClientData::ignoreOther(SharedNodePointer self, SharedNodePointer other) {
-    ignoreOther(self.data(), other.data());
-}
-
-void AvatarMixerClientData::ignoreOther(const Node* self, const Node* other) {
     if (!isRadiusIgnoring(other->getUUID())) {
         addToRadiusIgnoringSet(other->getUUID());
         auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason), true);
@@ -240,20 +235,9 @@ void AvatarMixerClientData::ignoreOther(const Node* self, const Node* other) {
     }
 }
 
-bool AvatarMixerClientData::isRadiusIgnoring(const QUuid& other) const {
-    return std::find(_radiusIgnoredOthers.cbegin(), _radiusIgnoredOthers.cend(), other) != _radiusIgnoredOthers.cend();
-}
-
-void AvatarMixerClientData::addToRadiusIgnoringSet(const QUuid& other) {
-    if (!isRadiusIgnoring(other)) {
-        _radiusIgnoredOthers.push_back(other);
-    }
-}
-
-void AvatarMixerClientData::removeFromRadiusIgnoringSet(const QUuid& other) {
-    auto ignoredOtherIter = std::find(_radiusIgnoredOthers.cbegin(), _radiusIgnoredOthers.cend(), other);
-    if (ignoredOtherIter != _radiusIgnoredOthers.cend()) {
-        _radiusIgnoredOthers.erase(ignoredOtherIter);
+void AvatarMixerClientData::removeFromRadiusIgnoringSet(SharedNodePointer self, const QUuid& other) {
+    if (isRadiusIgnoring(other)) {
+        _radiusIgnoredOthers.erase(other);
     }
 }
 
