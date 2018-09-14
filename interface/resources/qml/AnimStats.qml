@@ -48,6 +48,9 @@ Item {
                     spacing: 4; x: 4; y: 4;
 
                     StatText {
+                        text: root.positionText
+                    }
+                    StatText {
                         text: "State Machines:---------------------------------------------------------------------------"
                     }
                     ListView {
@@ -74,9 +77,11 @@ Item {
                     spacing: 4; x: 4; y: 4;
 
                     StatText {
+                        text: root.rotationText
+                    }
+                    StatText {
                         text: "Anim Vars:--------------------------------------------------------------------------------"
                     }
-
                     ListView {
                         width: secondCol.width
                         height: root.animVars.length * 15
@@ -114,9 +119,11 @@ Item {
                     spacing: 4; x: 4; y: 4;
 
                     StatText {
+                        text: root.velocityText
+                    }
+                    StatText {
                         text: "Alpha Values:--------------------------------------------------------------------------"
                     }
-
                     ListView {
                         width: thirdCol.width
                         height: root.animAlphaValues.length * 15
