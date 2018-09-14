@@ -425,9 +425,15 @@
             });
         }
 
-        function hide() {
+        function release() {
             Overlays.editOverlay(miniOverlay, {
                 parentID: Uuid.NULL, // Release hold so that hand can grab tablet proper.
+                grabbable: false
+            });
+        }
+
+        function hide() {
+            Overlays.editOverlay(miniOverlay, {
                 visible: false
             });
             Overlays.editOverlay(miniUIOverlay, {
@@ -492,6 +498,7 @@
             startExpandingTablet: startExpandingTablet,
             sizeAboutHandles: sizeAboutHandles,
             updateRotation: updateRotation,
+            release: release,
             hide: hide,
             destroy: destroy
         };
@@ -537,6 +544,7 @@
             MINI_EXPAND_TIMEOUT = 20,
             miniExpandTimer = null,
             miniExpandStart,
+            miniExpandedStartTime,
 
             // Tablet targets.
             isGoto = false,
@@ -656,6 +664,7 @@
         }
 
         function enterMiniHidden() {
+            ui.release();
             ui.hide();
         }
 
@@ -828,9 +837,7 @@
         }
 
         function enterTabletOpen() {
-            var miniTabletProperties = ui.getMiniTabletProperties();
-
-            ui.hide();
+            var miniTabletProperties;
 
             if (isGoto) {
                 tablet.loadQMLSource(TABLET_ADDRESS_DIALOG);
@@ -838,17 +845,26 @@
                 tablet.gotoHomeScreen();
             }
 
+            ui.release();
+            miniTabletProperties = ui.getMiniTabletProperties();
+
             Overlays.editOverlay(HMD.tabletID, {
                 position: miniTabletProperties.position,
                 orientation: miniTabletProperties.orientation
             });
 
             HMD.openTablet(true);
+
+            miniExpandedStartTime = Date.now();
         }
 
         function updateTabletOpen() {
-            // Immediately transition back to MINI_HIDDEN.
-            setState(MINI_HIDDEN);
+            // Give the tablet proper time to rez before hiding expanded mini tablet.
+            // The mini tablet is also hidden elsewhere if the tablet proper is grabbed.
+            var TABLET_OPENING_DELAY = 500;
+            if (Date.now() >= miniExpandedStartTime + TABLET_OPENING_DELAY) {
+                setState(MINI_HIDDEN);
+            }
         }
 
         STATE_MACHINE = {
@@ -973,12 +989,15 @@
             return;
         }
 
-        if (message.grabbedEntity !== ui.getMiniTabletID()) {
+        if (message.grabbedEntity !== HMD.tabletID && message.grabbedEntity !== ui.getMiniTabletID()) {
             return;
         }
 
-        miniHand = miniState.getHand();
-        if (message.action === "grab" && miniState.getState() === miniState.MINI_VISIBLE) {
+        if (message.action === "grab" && message.grabbedEntity === HMD.tabletID) {
+            // Tablet may have been grabbed after it replaced expanded mini tablet.
+            miniState.setState(miniState.MINI_HIDDEN);
+        } else if (message.action === "grab" && miniState.getState() === miniState.MINI_VISIBLE) {
+            miniHand = miniState.getHand();
             hand = message.joint === HAND_NAMES[miniHand] ? miniHand : otherHand(miniHand);
             if (hand === miniHand) {
                 miniState.setState(miniState.MINI_EXPANDING, { hand: hand, goto: false });
@@ -986,6 +1005,7 @@
                 miniState.setState(miniState.MINI_GRABBED);
             }
         } else if (message.action === "release" && miniState.getState() === miniState.MINI_GRABBED) {
+            miniHand = miniState.getHand();
             hand = message.joint === HAND_NAMES[miniHand] ? miniHand : otherHand(miniHand);
             miniState.setState(miniState.MINI_EXPANDING, { hand: hand, goto: false });
         }
