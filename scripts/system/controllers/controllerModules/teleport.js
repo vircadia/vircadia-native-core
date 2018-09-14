@@ -166,7 +166,7 @@ Script.include("/~/system/libraries/controllers.js");
                 joint: (_this.hand === RIGHT_HAND) ? "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" : "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
                 dirOffset: { x: 0, y: 1, z: 0.1 },
                 posOffset: { x: (_this.hand === RIGHT_HAND) ? 0.03 : -0.03, y: 0.2, z: 0.02 },
-                filter: Picks.PICK_ENTITIES + Picks.PICK_INCLUDE_INVISIBLE,
+                filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_INVISIBLE,
                 faceAvatar: true,
                 scaleWithAvatar: true,
                 centerEndY: false,
@@ -195,7 +195,7 @@ Script.include("/~/system/libraries/controllers.js");
 
             _this.teleportParabolaHeadVisuals = Pointers.createPointer(PickType.Parabola, {
                 joint: "Avatar",
-                filter: Picks.PICK_ENTITIES + Picks.PICK_INCLUDE_INVISIBLE,
+                filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_INVISIBLE,
                 faceAvatar: true,
                 scaleWithAvatar: true,
                 centerEndY: false,
@@ -485,14 +485,16 @@ Script.include("/~/system/libraries/controllers.js");
 
     function checkForMeshDiscrepancy(result, collisionResult) {
         var intersectingObjects = collisionResult.intersectingObjects;
-        if (intersectingObjects.length > 0) {
-            var intersectingObject = collisionResult.intersectingObjects[0];
-            for (var i = 0; i < intersectingObject.collisionContacts.length; i++) {
-                var normal = intersectingObject.collisionContacts[i].normalOnPick;
-                var distanceToPick = Vec3.distance(intersectingObject.collisionContacts[i].pointOnPick, result.intersection);
-                var normalSign = Vec3.dot(normal, Quat.getUp(MyAvatar.orientation));
-                if ((distanceToPick > MAX_DISCREPANCY_DISTANCE) || (normalSign > MAX_DOT_SIGN)) {
-                    return false;
+        if (intersectingObjects.length > 0 && intersectingObjects.length < 3) {
+            for (var j = 0; j < collisionResult.intersectingObjects.length; j++) {
+                var intersectingObject = collisionResult.intersectingObjects[j];
+                for (var i = 0; i < intersectingObject.collisionContacts.length; i++) {
+                    var normal = intersectingObject.collisionContacts[i].normalOnPick;
+                    var distanceToPick = Vec3.distance(intersectingObject.collisionContacts[i].pointOnPick, result.intersection);
+                    var normalSign = Vec3.dot(normal, Quat.getUp(MyAvatar.orientation));
+                    if ((distanceToPick > MAX_DISCREPANCY_DISTANCE) || (normalSign > MAX_DOT_SIGN)) {
+                        return false;
+                    }
                 }
             }
             return true;
