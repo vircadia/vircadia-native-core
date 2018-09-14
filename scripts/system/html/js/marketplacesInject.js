@@ -113,7 +113,7 @@
 
             var span = document.createElement('span');
             span.style = "margin:10px 5px;color:#1b6420;font-size:15px;";
-            span.innerHTML = "<a href='#' onclick='emitWalletSetupEvent(); return false;'>Setup your Wallet</a> to get money and shop in Marketplace.";
+            span.innerHTML = "<a href='#' onclick='emitWalletSetupEvent(); return false;'>Activate your Wallet</a> to get money and shop in Marketplace.";
 
             var xButton = document.createElement('a');
             xButton.id = "xButton";
