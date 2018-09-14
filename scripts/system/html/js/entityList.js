@@ -289,7 +289,8 @@ function loaded() {
                         visibleEntities = entities.filter(function(e) {
                             return e.name.toLowerCase().indexOf(searchTerm.toLowerCase()) > -1
                                 || e.type.toLowerCase().indexOf(searchTerm.toLowerCase()) > -1
-                                || e.fullUrl.toLowerCase().indexOf(searchTerm.toLowerCase()) > -1;
+                                || e.fullUrl.toLowerCase().indexOf(searchTerm.toLowerCase()) > -1
+                                || e.id.toLowerCase().indexOf(searchTerm.toLowerCase()) > -1;
                         });
                     }
                 });
