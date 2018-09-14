@@ -369,10 +369,14 @@
                 localRotation: localRotation,
                 dimensions: dimensions
             });
+            // FIXME: Temporary code change to try not displaying UI when mini tablet is expanding to become the tablet proper.
             Overlays.editOverlay(miniUIOverlay, {
+                /*
                 localPosition: Vec3.multiply(tabletScaleFactor, MINI_UI_LOCAL_POSITION),
                 dimensions: Vec3.multiply(tabletScaleFactor, MINI_UI_DIMENSIONS),
                 dpi: MINI_UI_DPI / tabletScaleFactor
+                */
+                visible: false
             });
         }
 
