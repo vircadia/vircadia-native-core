@@ -259,6 +259,24 @@ Process.prototype = extend(Process.prototype, {
         };
         return logs;
     },
+    isRunning: function(done) {
+        var _command = this.command;
+        if (os.type == 'Windows_NT') {
+            childProcess.exec('tasklist /FO CSV', function(err, stdout, stderr) {
+                var running = false;
+                stdout.split("\n").forEach(function(line) {
+                    var exeData = line.split(",");
+                    var executable = exeData[0].replace(/\"/g, "").toLowerCase();
+                    if(executable == _command) {
+                        running = true;
+                    }
+                });
+                done(running);
+            });
+        } else if (os.type == 'Darwin') {
+            console.log("TODO IsRunning Darwin");
+        }
+    },
 
     // Events
     onChildStartError: function(error) {
