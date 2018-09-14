@@ -24,6 +24,7 @@
 #include "SharedUtil.h"
 #include "shared/Bilateral.h"
 #include "Transform.h"
+#include "PhysicsCollisionGroups.h"
 
 class QColor;
 class QUrl;
@@ -264,6 +265,8 @@ public:
 * @property {Quat} orientation - The orientation of the collision region, relative to a parent if defined.
 * @property {float} threshold - The approximate minimum penetration depth for a test object to be considered in contact with the collision region.
 * The depth is measured in world space, but will scale with the parent if defined.
+* @property {CollisionMask} [collisionGroup=8] - The type of object this collision pick collides as. Objects whose collision masks overlap with the pick's collision group
+* will be considered colliding with the pick.
 * @property {Uuid} parentID - The ID of the parent, either an avatar, an entity, or an overlay.
 * @property {number} parentJointIndex - The joint of the parent to parent to, for example, the joints on the model of an avatar. (default = 0, no joint)
 * @property {string} joint - If "Mouse," parents the pick to the mouse. If "Avatar," parents the pick to MyAvatar's head. Otherwise, parents to the joint of the given name on MyAvatar.
@@ -277,7 +280,8 @@ public:
         modelURL(collisionRegion.modelURL),
         shapeInfo(std::make_shared<ShapeInfo>()),
         transform(collisionRegion.transform),
-        threshold(collisionRegion.threshold)
+        threshold(collisionRegion.threshold),
+        collisionGroup(collisionRegion.collisionGroup)
     {
         shapeInfo->setParams(collisionRegion.shapeInfo->getType(), collisionRegion.shapeInfo->getHalfExtents(), collisionRegion.modelURL.toString());
     }
@@ -316,6 +320,9 @@ public:
         if (pickVariant["orientation"].isValid()) {
             transform.setRotation(quatFromVariant(pickVariant["orientation"]));
         }
+        if (pickVariant["collisionGroup"].isValid()) {
+            collisionGroup = pickVariant["collisionGroup"].toUInt();
+        }
     }
 
     QVariantMap toVariantMap() const override {
@@ -330,6 +337,7 @@ public:
         collisionRegion["loaded"] = loaded;
 
         collisionRegion["threshold"] = threshold;
+        collisionRegion["collisionGroup"] = collisionGroup;
 
         collisionRegion["position"] = vec3toVariant(transform.getTranslation());
         collisionRegion["orientation"] = quatToVariant(transform.getRotation());
@@ -341,12 +349,14 @@ public:
         return !std::isnan(threshold) &&
             !(glm::any(glm::isnan(transform.getTranslation())) ||
             glm::any(glm::isnan(transform.getRotation())) ||
-            shapeInfo->getType() == SHAPE_TYPE_NONE);
+            shapeInfo->getType() == SHAPE_TYPE_NONE ||
+            collisionGroup == 0);
     }
 
     bool operator==(const CollisionRegion& other) const {
         return loaded == other.loaded &&
             threshold == other.threshold &&
+            collisionGroup == other.collisionGroup &&
             glm::all(glm::equal(transform.getTranslation(), other.transform.getTranslation())) &&
             glm::all(glm::equal(transform.getRotation(), other.transform.getRotation())) &&
             glm::all(glm::equal(transform.getScale(), other.transform.getScale())) &&
@@ -362,6 +372,10 @@ public:
             return false;
         }
 
+        if (collisionGroup == 0) {
+            return false;
+        }
+
         return !shapeInfo->getPointCollection().size();
     }
 
@@ -372,7 +386,8 @@ public:
     // We can't compute the shapeInfo here without loading the model first, so we delegate that responsibility to the owning CollisionPick
     std::shared_ptr<ShapeInfo> shapeInfo = std::make_shared<ShapeInfo>();
     Transform transform;
-    float threshold;
+    float threshold { 0.0f };
+    uint16_t collisionGroup { USER_COLLISION_GROUP_MY_AVATAR };
 };
 
 namespace std {
