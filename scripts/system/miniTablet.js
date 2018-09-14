@@ -804,6 +804,11 @@
             }
         }
 
+        function exitMiniGrabbed() {
+            // Explicitly unparent mini tablet in case controller grabbing code has reparented it.
+            ui.release();
+        }
+
         function expandMini() {
             var scaleFactor = (Date.now() - miniExpandStart) / MINI_EXPAND_DURATION;
             if (scaleFactor < 1) {
@@ -896,7 +901,7 @@
             MINI_GRABBED: { // Mini tablet is grabbed by other hand.
                 enter: null,
                 update: updateMiniGrabbed,
-                exit: null
+                exit: exitMiniGrabbed
             },
             MINI_EXPANDING: { // Mini tablet is expanding before showing tablet proper.
                 enter: enterMiniExpanding,
