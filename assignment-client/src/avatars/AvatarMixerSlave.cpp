@@ -244,6 +244,9 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     // reset the internal state for correct random number distribution
     distribution.reset();
 
+    // Base number to sort on number previously sent.
+    const int numToSendEst = std::max(nodeData->getNumAvatarsSentLastFrame() * 2, 20);
+
     // reset the number of sent avatars
     nodeData->resetNumAvatarsSentLastFrame();
 
@@ -399,7 +402,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     int remainingAvatars = (int)sortedAvatars.size();
     auto traitsPacketList = NLPacketList::create(PacketType::BulkAvatarTraits, QByteArray(), true, true);
 
-    const auto& sortedAvatarVector = sortedAvatars.getSortedVector();
+    const auto& sortedAvatarVector = sortedAvatars.getSortedVector(numToSendEst);
     for (const auto& sortedAvatar : sortedAvatarVector) {
         const Node* otherNode = sortedAvatar.getNode();
         auto lastEncodeForOther = sortedAvatar.getTimestamp();
@@ -522,6 +525,11 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         // use helper to add any changed traits to our packet list
         traitBytesSent += addChangedTraitsToBulkPacket(nodeData, otherNodeData, *traitsPacketList);
         remainingAvatars--;
+    }
+
+    if (nodeData->getNumAvatarsSentLastFrame() > numToSendEst) {
+        qCWarning(avatars) << "More avatars sent than upper estimate" << nodeData->getNumAvatarsSentLastFrame()
+            << " / " << numToSendEst;
     }
 
     quint64 startPacketSending = usecTimestampNow();
