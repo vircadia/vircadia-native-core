@@ -33,11 +33,8 @@ TestRunner::TestRunner(std::vector<QCheckBox*> dayCheckboxes,
     _timeEdits = timeEdits;
     _workingFolderLabel = workingFolderLabel;
 
-    thread = new QThread();
-}
-
-TestRunner::~TestRunner() {
-    disconnect(_timer, SIGNAL(timeout()), this, SLOT(checkTime()));
+    installerThread = new QThread();
+    interfaceThread = new QThread();
 }
 
 void TestRunner::setWorkingFolder() {
@@ -95,11 +92,11 @@ void TestRunner::run() {
 }
 
 void TestRunner::installerDownloadComplete() {
-    appendLog(QString("Test started at ") + QString::number(_testStartDateTime.time().hour()) + ":" +
+    appendLog(QString("Tests started at ") + QString::number(_testStartDateTime.time().hour()) + ":" +
               QString("%1").arg(_testStartDateTime.time().minute(), 2, 10, QChar('0')) + ", on " +
               _testStartDateTime.date().toString("ddd, MMM d, yyyy"));
 
-   updateStatusLabel("Installing");
+    updateStatusLabel("Installing");
 
     // Kill any existing processes that would interfere with installation
     killProcesses();
@@ -118,30 +115,25 @@ void TestRunner::runInstaller() {
     QString commandLine =
         QDir::toNativeSeparators(installerFullPath) + " /S /D=" + QDir::toNativeSeparators(_installationFolder);
 
-
     worker = new Worker(commandLine);
-    worker->moveToThread(thread);
-    connect(worker, SIGNAL(error(QString)), this, SLOT(errorString(QString)));
-    connect(thread, SIGNAL(started()), worker, SLOT(process()));
+
+    worker->moveToThread(installerThread);
+    connect(installerThread, SIGNAL(started()), worker, SLOT(process()));
     connect(worker, SIGNAL(finished()), this, SLOT(installationComplete()));
-    connect(worker, SIGNAL(finished()), thread, SLOT(quit()));
-    connect(worker, SIGNAL(finished()), worker, SLOT(deleteLater()));
-    connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
-    thread->start();
+    installerThread->start();
 }
 
 void TestRunner::installationComplete() {
+    disconnect(installerThread, SIGNAL(started()), worker, SLOT(process()));
+    disconnect(worker, SIGNAL(finished()), this, SLOT(installationComplete()));
+    delete worker;
+
     createSnapshotFolder();
 
     updateStatusLabel("Running tests");
 
     startLocalServerProcesses();
     runInterfaceWithTestScript();
-    killProcesses();
-
-    evaluateResults();
-
-    // The High Fidelity AppData folder will be restored after evaluation has completed
 }
 
 void TestRunner::saveExistingHighFidelityAppDataFolder() {
@@ -247,14 +239,29 @@ void TestRunner::startLocalServerProcesses() {
 }
 
 void TestRunner::runInterfaceWithTestScript() {
-#ifdef Q_OS_WIN
     QString commandLine = QString("\"") + QDir::toNativeSeparators(_installationFolder) +
                           "\\interface.exe\" --url hifi://localhost --testScript https://raw.githubusercontent.com/" + _user +
                           "/hifi_tests/" + _branch + "/tests/testRecursive.js quitWhenFinished --testResultsLocation " +
                           _snapshotFolder;
 
-    system(commandLine.toStdString().c_str());
-#endif
+    worker = new Worker(commandLine);
+
+    worker->moveToThread(interfaceThread);
+    connect(interfaceThread, SIGNAL(started()), worker, SLOT(process()));
+    connect(worker, SIGNAL(finished()), this, SLOT(interfaceExecutionComplete()));
+    interfaceThread->start();
+}
+
+void TestRunner::interfaceExecutionComplete() {
+    disconnect(interfaceThread, SIGNAL(started()), worker, SLOT(process()));
+    disconnect(worker, SIGNAL(finished()), this, SLOT(interfaceExecutionComplete()));
+    delete worker;
+
+    killProcesses();
+
+    evaluateResults();
+
+    // The High Fidelity AppData folder will be restored after evaluation has completed
 }
 
 void TestRunner::evaluateResults() {
@@ -267,6 +274,13 @@ void TestRunner::automaticTestRunEvaluationComplete(QString zippedFolder) {
     restoreHighFidelityAppDataFolder();
 
     updateStatusLabel("Testing complete");
+
+    QDateTime currentDateTime = QDateTime::currentDateTime();
+
+    appendLog(QString("Tests completed at ") + QString::number(currentDateTime.time().hour()) + ":" +
+              QString("%1").arg(currentDateTime.time().minute(), 2, 10, QChar('0')) + ", on " +
+              currentDateTime.date().toString("ddd, MMM d, yyyy"));
+
     _automatedTestIsRunning = false;
 }
 

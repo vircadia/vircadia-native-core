@@ -29,7 +29,6 @@ public:
                         std::vector<QTimeEdit*> timeEdits,
                         QLabel* workingFolderLabel,
                         QObject* parent = 0);
-    ~TestRunner();
 
     void setWorkingFolder();
 
@@ -42,9 +41,12 @@ public:
     void restoreHighFidelityAppDataFolder();
 
     void createSnapshotFolder();
+    
     void killProcesses();
     void startLocalServerProcesses();
+    
     void runInterfaceWithTestScript();
+
     void evaluateResults();
     void automaticTestRunEvaluationComplete(QString zippedFolderName);
     void addBuildNumberToResults(QString zippedFolderName);
@@ -57,6 +59,7 @@ public:
 private slots:
     void checkTime();
     void installationComplete();
+    void interfaceExecutionComplete();
 
 private:
     bool _automatedTestIsRunning{ false };
@@ -91,7 +94,8 @@ private:
 
     QDateTime _testStartDateTime;
 
-    QThread* thread;
+    QThread* installerThread;
+    QThread* interfaceThread;
     Worker* worker;
 };
 
