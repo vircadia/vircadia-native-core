@@ -131,16 +131,6 @@ Avatar::Avatar(QThread* thread) :
 }
 
 Avatar::~Avatar() {
-    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
-    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
-    if (entityTree) {
-        entityTree->withWriteLock([&] {
-            AvatarEntityMap avatarEntities = getAvatarEntityData();
-            for (auto entityID : avatarEntities.keys()) {
-                entityTree->deleteEntity(entityID, true, true);
-            }
-        });
-    }
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (geometryCache) {
         geometryCache->releaseID(_nameRectGeometryID);
@@ -383,6 +373,19 @@ void Avatar::updateAvatarEntities() {
     });
 
     setAvatarEntityDataChanged(false);
+}
+
+void Avatar::removeAvatarEntitiesFromTree() {
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+    if (entityTree) {
+        entityTree->withWriteLock([&] {
+            AvatarEntityMap avatarEntities = getAvatarEntityData();
+            for (auto entityID : avatarEntities.keys()) {
+                entityTree->deleteEntity(entityID, true, true);
+            }
+        });
+    }
 }
 
 void Avatar::relayJointDataToChildren() {

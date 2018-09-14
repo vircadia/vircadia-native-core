@@ -24,6 +24,9 @@ Script.include("/~/system/libraries/controllers.js");
     // XXX this.ignoreIK = (grabbableData.ignoreIK !== undefined) ? grabbableData.ignoreIK : true;
     // XXX this.kinematicGrab = (grabbableData.kinematic !== undefined) ? grabbableData.kinematic : NEAR_GRABBING_KINEMATIC;
 
+    // this offset needs to match the one in libraries/display-plugins/src/display-plugins/hmd/HmdDisplayPlugin.cpp:378
+    var GRAB_POINT_SPHERE_OFFSET = { x: 0.04, y: 0.13, z: 0.039 };  // x = upward, y = forward, z = lateral
+
     function getGrabOffset(handController) {
         var offset = GRAB_POINT_SPHERE_OFFSET;
         if (handController === Controller.Standard.LeftHand) {
@@ -54,7 +57,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.cloneAllowed = true;
 
         this.parameters = makeDispatcherModuleParameters(
-            500,
+            140,
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
             [],
             100);

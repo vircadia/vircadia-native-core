@@ -498,7 +498,7 @@ void Batch::setupNamedCalls(const std::string& instanceName, NamedBatchData::Fun
     captureNamedDrawCallInfo(instanceName);
 }
 
-BufferPointer Batch::getNamedBuffer(const std::string& instanceName, uint8_t index) {
+const BufferPointer& Batch::getNamedBuffer(const std::string& instanceName, uint8_t index) {
     NamedBatchData& instance = _namedData[instanceName];
     if (instance.buffers.size() <= index) {
         instance.buffers.resize(index + 1);

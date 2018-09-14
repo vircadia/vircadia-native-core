@@ -282,14 +282,15 @@ function loaded() {
         function refreshEntityList() {
             PROFILE("refresh-entity-list", function() {
                 PROFILE("filter", function() {
-                    let searchTerm = elFilter.value;
+                    let searchTerm = elFilter.value.toLowerCase();
                     if (searchTerm === '') {
                         visibleEntities = entities.slice(0);
                     } else {
                         visibleEntities = entities.filter(function(e) {
-                            return e.name.indexOf(searchTerm) > -1
-                                || e.type.indexOf(searchTerm) > -1
-                                || e.fullUrl.indexOf(searchTerm) > -1;
+                            return e.name.toLowerCase().indexOf(searchTerm) > -1
+                                || e.type.toLowerCase().indexOf(searchTerm) > -1
+                                || e.fullUrl.toLowerCase().indexOf(searchTerm) > -1
+                                || e.id.toLowerCase().indexOf(searchTerm) > -1;
                         });
                     }
                 });
