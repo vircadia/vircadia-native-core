@@ -450,7 +450,7 @@ public:
 
     virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
         AvatarDataPacket::HasFlags& hasFlagsOut, bool dropFaceTracking, bool distanceAdjust, glm::vec3 viewerPosition,
-        QVector<JointData>* sentJointDataOut, AvatarDataRate* outboundDataRateOut = nullptr) const;
+        QVector<JointData>* sentJointDataOut, int maxDataSize = 0, AvatarDataRate* outboundDataRateOut = nullptr) const;
 
     virtual void doneEncoding(bool cullSmallChanges);
 
