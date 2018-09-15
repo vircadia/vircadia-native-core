@@ -132,8 +132,8 @@ EntityItemProperties convertPropertiesToScriptSemantics(const EntityItemProperti
     EntityItemProperties scriptSideProperties = entitySideProperties;
     scriptSideProperties.setLocalPosition(entitySideProperties.getPosition());
     scriptSideProperties.setLocalRotation(entitySideProperties.getRotation());
-    scriptSideProperties.setLocalVelocity(entitySideProperties.getLocalVelocity());
-    scriptSideProperties.setLocalAngularVelocity(entitySideProperties.getLocalAngularVelocity());
+    scriptSideProperties.setLocalVelocity(entitySideProperties.getVelocity());
+    scriptSideProperties.setLocalAngularVelocity(entitySideProperties.getAngularVelocity());
     scriptSideProperties.setLocalDimensions(entitySideProperties.getDimensions());
 
     bool success;
@@ -180,8 +180,6 @@ EntityItemProperties convertPropertiesFromScriptSemantics(const EntityItemProper
     // are set.  If they are set, they overwrite position and rotation.
     EntityItemProperties entitySideProperties = scriptSideProperties;
     bool success;
-
-    // TODO -- handle velocity and angularVelocity
 
     if (scriptSideProperties.localPositionChanged()) {
         entitySideProperties.setPosition(scriptSideProperties.getLocalPosition());
