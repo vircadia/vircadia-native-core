@@ -565,7 +565,9 @@
             MAX_CAMERA_HAND_ANGLE = 30,
             DEGREES_180 = 180,
             MIN_HAND_CAMERA_ANGLE_COS = Math.cos(Math.PI * MIN_HAND_CAMERA_ANGLE / DEGREES_180),
-            MAX_CAMERA_HAND_ANGLE_COS = Math.cos(Math.PI * MAX_CAMERA_HAND_ANGLE / DEGREES_180);
+            MAX_CAMERA_HAND_ANGLE_COS = Math.cos(Math.PI * MAX_CAMERA_HAND_ANGLE / DEGREES_180),
+            HIDING_DELAY = 1000, // ms
+            lastVisible = [0, 0];
 
 
         function enterMiniDisabled() {
@@ -646,6 +648,7 @@
 
             // Should show mini tablet if it would be oriented toward the camera.
             if (show) {
+                // Calculate current visibility of mini tablet.
                 jointIndex = handJointIndex(hand);
                 handPosition = Vec3.sum(MyAvatar.position,
                     Vec3.multiplyQbyV(MyAvatar.orientation, MyAvatar.getAbsoluteJointTranslationInObjectFrame(jointIndex)));
@@ -660,6 +663,13 @@
                 show = show || (-Vec3.dot(miniToCameraDirection, Quat.getForward(handOrientation)) > MIN_HAND_CAMERA_ANGLE_COS);
                 cameraToHand = -Vec3.dot(miniToCameraDirection, Quat.getForward(Camera.orientation));
                 show = show && (cameraToHand > MAX_CAMERA_HAND_ANGLE_COS);
+
+                // Persist showing for a while after it would otherwise be hidden.
+                if (show) {
+                    lastVisible[hand] = Date.now();
+                } else {
+                    show = Date.now() - lastVisible[hand] <= HIDING_DELAY;
+                }
             }
 
             return {
