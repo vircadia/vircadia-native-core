@@ -297,7 +297,7 @@ float computeHorizonFromTap(vec3 tapPositionES, vec3 fragPositionES, vec3 fragNo
     float radiusFalloff = distanceSquared / getRadius2();
 
     rawHorizon = max(0.0, (rawHorizon - getFalloffAngle()) / (1.0 - getFalloffAngle()));
-    rawHorizon *= 1.0 - radiusFalloff;
+    rawHorizon *= max(0.0, 1.0 - radiusFalloff);
 
     return rawHorizon;
 }
@@ -315,6 +315,9 @@ float computeHorizonFromTap(vec3 tapPositionES, vec3 fragPositionES, vec3 fragNo
 
 <@func updateHorizon(horizon, deltaPixelTap)@>
     {
+        vec2 deltaPixelTap = clampedSearchVec / float(stepCount);
+        float searchRadius = length(clampedSearchVec);
+        float deltaRadius = searchRadius / float(stepCount);
         vec2 tapPixelPos = vec2(0);
 
 #if !SSAO_LINEAR_SAMPLING
@@ -380,9 +383,6 @@ vec2 searchHorizons(ivec4 side, ivec2 centerPixelPos, vec2 imageSize, vec2 delta
     vec2 absClampedSearchVec = abs(clampedSearchVec);
     int stepCount = int(max(absClampedSearchVec.x, absClampedSearchVec.y));
     if (stepCount>0) {
-        vec2 deltaPixelTap = clampedSearchVec / float(stepCount);
-        float searchRadius = length(clampedSearchVec);
-        float deltaRadius = searchRadius / float(stepCount);
         <$updateHorizon(horizons.x, deltaPixelTap)$>
     }
     // Backward search for h2
@@ -390,9 +390,6 @@ vec2 searchHorizons(ivec4 side, ivec2 centerPixelPos, vec2 imageSize, vec2 delta
     absClampedSearchVec = abs(clampedSearchVec);
     stepCount = int(max(absClampedSearchVec.x, absClampedSearchVec.y));
     if (stepCount>0) {
-        vec2 deltaPixelTap = clampedSearchVec / float(stepCount);
-        float searchRadius = length(clampedSearchVec);
-        float deltaRadius = searchRadius / float(stepCount);
         <$updateHorizon(horizons.y, deltaPixelTap)$>
     }
 

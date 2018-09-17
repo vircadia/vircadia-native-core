@@ -81,5 +81,6 @@ void main(void) {
         occlusion -= dFdy(occlusion) * ((centerPixelPos.y & 1) - 0.5);
     }*/
     
-    outFragColor = vec4(packOcclusionDepth(occlusion, CSZToDepthKey(fragPositionES.z)), 1.0);
+    //outFragColor = vec4(packOcclusionDepth(occlusion, CSZToDepthKey(fragPositionES.z)), 1.0);
+    outFragColor = vec4(vec3(occlusion), 1.0);
 }

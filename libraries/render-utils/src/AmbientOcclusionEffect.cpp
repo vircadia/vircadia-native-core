@@ -78,12 +78,13 @@ void AmbientOcclusionFramebuffer::allocate() {
     
     auto width = _frameSize.x;
     auto height = _frameSize.y;
+    auto format = gpu::Element::COLOR_RGBA_32;
 
-    _occlusionTexture = gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT));
+    _occlusionTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT));
     _occlusionFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("occlusion"));
     _occlusionFramebuffer->setRenderBuffer(0, _occlusionTexture);
 
-    _occlusionBlurredTexture = gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT));
+    _occlusionBlurredTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT));
     _occlusionBlurredFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("occlusionBlurred"));
     _occlusionBlurredFramebuffer->setRenderBuffer(0, _occlusionBlurredTexture);
 }
@@ -582,7 +583,7 @@ void DebugAmbientOcclusion::run(const render::RenderContextPointer& renderContex
 
         batch.setUniformBuffer(render_utils::slot::buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
         batch.setUniformBuffer(render_utils::slot::buffer::SsaoParams, ambientOcclusionUniforms);
-        batch.setUniformBuffer(2, _parametersBuffer);
+        batch.setUniformBuffer(render_utils::slot::buffer::SsaoDebugParams, _parametersBuffer);
         
         batch.setPipeline(debugPipeline);
         batch.setResourceTexture(render_utils::slot::texture::SsaoPyramid, linearDepthTexture);
