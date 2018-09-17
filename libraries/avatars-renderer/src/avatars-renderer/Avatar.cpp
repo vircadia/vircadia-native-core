@@ -114,14 +114,15 @@ void Avatar::setShowNamesAboveHeads(bool show) {
 }
 
 bool AvatarTransit::update(const glm::vec3& avatarPosition, int totalFrames, int framesPerMeter, bool isDistanceBased, float maxDistance) {
+    bool starting = false;
     glm::vec3 currentPosition = _isTransiting ? _currentPosition : avatarPosition;
     float oneFrameDistance = glm::length(currentPosition - _lastPosition);
     if (oneFrameDistance > maxDistance && !_isTransiting) {
         start(_lastPosition, currentPosition, totalFrames, framesPerMeter, isDistanceBased);
-        return true;
+        starting = true;
     } 
     updatePosition(avatarPosition);
-    return false;
+    return starting;
 }
 
 void AvatarTransit::start(const glm::vec3& startPosition, const glm::vec3& endPosition, int totalFrames, int framesPerMeter, bool isDistanceBased) {
