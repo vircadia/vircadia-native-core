@@ -1094,6 +1094,8 @@ public:
 
     void setIsInWalkingState(bool isWalking);
     bool getIsInWalkingState() const;
+    void setIsInSittingState(bool isSitting);
+    bool getIsInSittingState() const;
     void setWalkSpeed(float value);
     float getWalkSpeed() const;
     void setWalkBackwardSpeed(float value);
@@ -1708,9 +1710,10 @@ private:
         float getMaxTimeRemaining() const;
         void decrementTimeRemaining(float dt);
         bool shouldActivateRotation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
-        bool shouldActivateVertical(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
+        bool shouldActivateVertical(MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
         bool shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
         bool shouldActivateHorizontalCG(MyAvatar& myAvatar) const;
+        bool shouldActivateHorizontalSitting(MyAvatar& myAvatar) const;
         void prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& bodySensorMatrix, const glm::mat4& currentBodyMatrix, bool hasDriveInput);
         glm::mat4 postPhysicsUpdate(const MyAvatar& myAvatar, const glm::mat4& currentBodyMatrix);
         bool getForceActivateRotation() const;
@@ -1800,6 +1803,7 @@ private:
     ThreadSafeValueCache<float> _sprintSpeed { AVATAR_SPRINT_SPEED_SCALAR };
     float _walkSpeedScalar { AVATAR_WALK_SPEED_SCALAR };
     bool _isInWalkingState { false };
+    bool _isInSittingState{ false };
 
     // load avatar scripts once when rig is ready
     bool _shouldLoadScripts { false };

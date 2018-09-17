@@ -53,7 +53,7 @@ Item {
                     ListView {
                         width: firstCol.width
                         height: root.animStateMachines.length * 15
-                        visible: root.animStateMchines.length > 0;
+                        visible: root.animStateMachines.length > 0;
                         model: root.animStateMachines
                         delegate: StatText {
                             text: {
