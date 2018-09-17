@@ -237,7 +237,7 @@ private:
 
     // Other avatars smooth transit global configuration
 
-    bool _avatarTransitDistanceBased { false };
+    bool _avatarTransitDistanceBased { true };
     float _avatarTransitMaxDistance;
     int _avatarTransitFrameCount;
     int _avatarTransitFramesPerMeter;

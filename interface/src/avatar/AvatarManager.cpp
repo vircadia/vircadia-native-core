@@ -81,7 +81,7 @@ AvatarManager::AvatarManager(QObject* parent) :
 
     const float AVATAR_TRANSIT_MAX_DISTANCE = 1.0f;
     const int AVATAR_TRANSIT_FRAME_COUNT = 20;
-    const int AVATAR_TRANSIT_FRAMES_PER_METER = 5;
+    const int AVATAR_TRANSIT_FRAMES_PER_METER = 15;
 
     _avatarTransitMaxDistance = AVATAR_TRANSIT_MAX_DISTANCE;
     _avatarTransitFrameCount = AVATAR_TRANSIT_FRAME_COUNT;
@@ -136,7 +136,23 @@ void AvatarManager::setSpace(workload::SpacePointer& space ) {
 void AvatarManager::updateMyAvatar(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "AvatarManager::updateMyAvatar()");
-
+    /*
+    std::shared_ptr<AvatarTransit> transit = _myAvatar->getTransit();
+    bool initTransit = false;
+    if (!transit->isTransiting()) {
+        initTransit = transit->update(_myAvatar->getWorldPosition(), _avatarTransitFrameCount, _avatarTransitFramesPerMeter, _avatarTransitDistanceBased, _avatarTransitMaxDistance);
+        if (initTransit) {
+            _myAvatar->getSkeletonModel()->getRig().restoreAnimation();
+            _myAvatar->getSkeletonModel()->getRig().overrideAnimation("https://hifi-content.s3.amazonaws.com/luis/test_scripts/transit_app/animations/teleport01_warp.fbx", 30, false, 0, 49);
+        }
+    } 
+    if (transit->isTransiting()){
+        glm::vec3 nextPosition;
+        if (!transit->getNextPosition(nextPosition)) {
+            _myAvatar->getSkeletonModel()->getRig().restoreAnimation();
+        }
+    }
+    */
     _myAvatar->update(deltaTime);
     render::Transaction transaction;
     _myAvatar->updateRenderItem(transaction);
@@ -259,17 +275,8 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
                 numAvatarsUpdated++;
             }
             // smooth other avatars positions
-            {   
-                float oneFrameDistance = glm::length(avatar->_globalPosition - avatar->_lastPosition);
-                if (oneFrameDistance > _avatarTransitMaxDistance) {
-                    avatar->_transit.start(avatar->_lastPosition, avatar->_globalPosition, _avatarTransitFrameCount, _avatarTransitFramesPerMeter, _avatarTransitDistanceBased);
-                }
-                if (avatar->_transit.isTransiting()) {
-                    glm::vec3 nextPosition;
-                    if (avatar->_transit.getNextPosition(nextPosition)) {
-                        avatar->setWorldPosition(nextPosition);
-                    }
-                }
+            {
+                avatar->_transit.update(avatar->_globalPosition, _avatarTransitFrameCount, _avatarTransitFramesPerMeter, _avatarTransitDistanceBased, _avatarTransitMaxDistance);
             }
 
             avatar->simulate(deltaTime, inView);

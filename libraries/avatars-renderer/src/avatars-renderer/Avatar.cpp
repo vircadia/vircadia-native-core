@@ -113,6 +113,16 @@ void Avatar::setShowNamesAboveHeads(bool show) {
     showNamesAboveHeads = show;
 }
 
+bool AvatarTransit::update(const glm::vec3& avatarPosition, int totalFrames, int framesPerMeter, bool isDistanceBased, float maxDistance) {
+    glm::vec3 currentPosition = _isTransiting ? _currentPosition : avatarPosition;
+    float oneFrameDistance = glm::length(currentPosition - _lastPosition);
+    if (oneFrameDistance > maxDistance && !_isTransiting) {
+        start(_lastPosition, currentPosition, totalFrames, framesPerMeter, isDistanceBased);
+        return true;
+    }
+    return false;
+}
+
 void AvatarTransit::start(const glm::vec3& startPosition, const glm::vec3& endPosition, int totalFrames, int framesPerMeter, bool isDistanceBased) {
     _startPosition = startPosition;
     _endPosition = endPosition;
@@ -140,6 +150,7 @@ void AvatarTransit::calculateSteps(int stepCount) {
 }
 
 bool AvatarTransit::getNextPosition(glm::vec3& nextPosition) {
+    _lastPosition = _currentPosition;
     int lastIdx = (int)_transitSteps.size() - 1;
     _isTransiting = _step < lastIdx;
     if (_isTransiting) {
@@ -482,6 +493,18 @@ void Avatar::relayJointDataToChildren() {
 void Avatar::simulate(float deltaTime, bool inView) {
     PROFILE_RANGE(simulation, "simulate");
 
+    if (_transit.isTransiting()) {
+        glm::vec3 nextPosition;
+        if (_transit.getNextPosition(nextPosition)) {
+            // setWorldPosition(nextPosition);
+            _globalPosition = nextPosition;
+            _globalPositionChanged = usecTimestampNow();
+            if (!hasParent()) {
+                setLocalPosition(nextPosition);
+            }
+        }
+    }
+
     _simulationRate.increment();
     if (inView) {
         _simulationInViewRate.increment();
@@ -492,7 +515,7 @@ void Avatar::simulate(float deltaTime, bool inView) {
         PROFILE_RANGE(simulation, "updateJoints");
         if (inView) {
             Head* head = getHead();
-            if (_hasNewJointData) {
+            if (true) {
                 _skeletonModel->getRig().copyJointsFromJointData(_jointData);
                 glm::mat4 rootTransform = glm::scale(_skeletonModel->getScale()) * glm::translate(_skeletonModel->getOffset());
                 _skeletonModel->getRig().computeExternalPoses(rootTransform);
@@ -517,7 +540,6 @@ void Avatar::simulate(float deltaTime, bool inView) {
             _skeletonModel->simulate(deltaTime, false);
         }
         _skeletonModelSimulationRate.increment();
-        _lastPosition = _globalPosition;
     }
 
     // update animation for display name fade in/out

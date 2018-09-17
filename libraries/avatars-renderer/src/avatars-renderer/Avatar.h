@@ -53,9 +53,13 @@ class Texture;
 class AvatarTransit {
 public:
     AvatarTransit() {};
+    bool update(const glm::vec3& avatarPosition, int totalFrames, int framesPerMeter, bool isDistanceBased, float maxDistance);
     void start(const glm::vec3& startPosition, const glm::vec3& endPosition, int totalFrames, int framesPerMeter, bool isDistanceBased);
     bool getNextPosition(glm::vec3& nextPosition);
     bool isTransiting() { return _isTransiting; };
+    glm::vec3 getCurrentPosition() { return _currentPosition; };
+    int getCurrentStep() { return _step; };
+
 private:
     void calculateSteps(int stepCount);
     bool _isTransiting{ false };
@@ -63,7 +67,8 @@ private:
     glm::vec3 _endPosition;
     glm::vec3 _currentPosition;
     std::vector<glm::vec3> _transitSteps;
-    int _step{ 0 };
+    glm::vec3 _lastPosition;
+    int _step { 0 };
 };
 
 class Avatar : public AvatarData, public scriptable::ModelProvider {
@@ -377,6 +382,8 @@ public:
 
     virtual scriptable::ScriptableModelBase getScriptableModel() override;
 
+    std::shared_ptr<AvatarTransit> getTransit() { return std::make_shared<AvatarTransit>(_transit); };
+
 signals:
     void targetScaleChanged(float targetScale);
 
@@ -534,7 +541,7 @@ protected:
     bool _isFading { false };
     bool _reconstructSoftEntitiesJointMap { false };
     float _modelScale { 1.0f };
-    glm::vec3 _lastPosition;
+
     AvatarTransit _transit;
 
 
