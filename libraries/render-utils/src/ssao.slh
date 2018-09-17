@@ -293,66 +293,29 @@ float evalVisibilitySSAO(in vec3 centerPosition, in vec3 centerNormal, in vec3 t
 float computeHorizonFromTap(vec3 tapPositionES, vec3 fragPositionES, vec3 fragNormalES) {
     vec3 deltaVec = tapPositionES - fragPositionES;
     float distanceSquared = dot(deltaVec, deltaVec);
-    float rawHorizon = dot(normalize(deltaVec), fragNormalES);
-    float radiusFalloff = distanceSquared / getRadius2();
+    float horizon = dot(normalize(deltaVec), fragNormalES);
+    float radiusFalloff = max(0.0, 1.0 - (distanceSquared / getRadius2()));
 
-    rawHorizon = max(0.0, (rawHorizon - getFalloffAngle()) / (1.0 - getFalloffAngle()));
-    rawHorizon *= max(0.0, 1.0 - radiusFalloff);
+    horizon = max(0.0, (horizon - getFalloffAngle()) / (1.0 - getFalloffAngle()));
+    horizon *= radiusFalloff;
 
-    return rawHorizon;
+    return horizon;
 }
 
 <@func computeHorizon()@>
             vec3 tap = vec3(tapPixelPos, radius);
             vec4 tapUVZ_mip = fetchTap(side, centerPixelPos, tap, imageSize);
             vec3 tapPositionES = evalEyePositionFromZeye(side.x, tapUVZ_mip.z, tapUVZ_mip.xy);
-            float rawHorizon = computeHorizonFromTap(tapPositionES, fragPositionES, fragNormalES);
+            float tapCosHorizonAngle = computeHorizonFromTap(tapPositionES, fragPositionES, fragNormalES);
 
-            <$horizon$> = max(<$horizon$>, rawHorizon);
+            cosHorizonAngle = max(cosHorizonAngle, tapCosHorizonAngle);
 <@endfunc@>
 
 #define SSAO_LINEAR_SAMPLING 1
 
-<@func updateHorizon(horizon, deltaPixelTap)@>
-    {
-        vec2 deltaPixelTap = clampedSearchVec / float(stepCount);
-        float searchRadius = length(clampedSearchVec);
-        float deltaRadius = searchRadius / float(stepCount);
-        vec2 tapPixelPos = vec2(0);
-
-#if !SSAO_LINEAR_SAMPLING
-        float radius = deltaRadius;
-        float mipLevel = evalMipFromRadius(radius * float(doFetchMips()));
-
-        while (radius<searchRadius) {
-            tapPixelPos += <$deltaPixelTap$>;
-
-            <$computeHorizon()$>
-
-            if (tapUVZ_mip.w != mipLevel) {
-                mipLevel = tapUVZ_mip.w;
-                deltaRadius *= 2;
-                <$deltaPixelTap$> *= 2;
-            }
-            radius += deltaRadius;
-        }
-#else
-        float radius = 0.0;
-        int stepIndex;
-
-        for (stepIndex=0 ; stepIndex<stepCount ; stepIndex++) {
-            tapPixelPos += <$deltaPixelTap$>;
-            radius += deltaRadius;
-
-            <$computeHorizon()$>
-        }
-#endif
-    }
-<@endfunc@>
-
 vec2 clampSearchVec(vec2 imageSize, vec2 centerPixelPos, vec2 searchVec) {
     vec2 clampdSearchVec = searchVec;
-    vec2 endPixel = centerPixelPos + clampdSearchVec;
+/* TEMPO OP    vec2 endPixel = centerPixelPos + clampdSearchVec;
 
     if (endPixel.x < 0) {
         clampdSearchVec = clampdSearchVec * ((0-centerPixelPos.x) / clampdSearchVec.x);
@@ -368,9 +331,53 @@ vec2 clampSearchVec(vec2 imageSize, vec2 centerPixelPos, vec2 searchVec) {
     }
     if (endPixel.y >= imageSize.y) {
         clampdSearchVec = clampdSearchVec * ((imageSize.y-1-centerPixelPos.y) / clampdSearchVec.y);
-    }
+    }*/
 
     return clampdSearchVec;
+}
+
+float computeHorizon(ivec4 side, ivec2 centerPixelPos, vec2 imageSize, vec2 deltaTap, float ssDiskRadius, 
+                    vec3 fragPositionES, vec3 fragNormalES, vec2 clampedSearchVec) {
+    vec2 absClampedSearchVec = abs(clampedSearchVec);
+    int stepCount = int(max(absClampedSearchVec.x, absClampedSearchVec.y));
+    float cosHorizonAngle = 0.0;
+
+    if (stepCount>0) {
+        vec2 deltaPixelTap = clampedSearchVec / float(stepCount);
+        float searchRadius = length(clampedSearchVec);
+        float deltaRadius = searchRadius / float(stepCount);
+        vec2 tapPixelPos = vec2(0);
+
+#if !SSAO_LINEAR_SAMPLING
+        float radius = deltaRadius;
+        float mipLevel = evalMipFromRadius(radius * float(doFetchMips()));
+
+        while (radius<searchRadius) {
+            tapPixelPos += deltaPixelTap;
+
+            <$computeHorizon()$>
+
+            if (tapUVZ_mip.w != mipLevel) {
+                mipLevel = tapUVZ_mip.w;
+                deltaRadius *= 2;
+                deltaPixelTap *= 2;
+            }
+            radius += deltaRadius;
+        }
+#else
+        float radius = 0.0;
+        int stepIndex;
+
+        for (stepIndex=0 ; stepIndex<stepCount ; stepIndex++) {
+            tapPixelPos += deltaPixelTap;
+            radius += deltaRadius;
+
+            <$computeHorizon()$>
+        }
+#endif
+    }
+
+    return cosHorizonAngle;
 }
 
 vec2 searchHorizons(ivec4 side, ivec2 centerPixelPos, vec2 imageSize, vec2 deltaTap, float ssDiskRadius, 
@@ -380,18 +387,13 @@ vec2 searchHorizons(ivec4 side, ivec2 centerPixelPos, vec2 imageSize, vec2 delta
 
     // Forward search for h1
     vec2 clampedSearchVec = clampSearchVec(imageSize, vec2(centerPixelPos), searchVec);
-    vec2 absClampedSearchVec = abs(clampedSearchVec);
-    int stepCount = int(max(absClampedSearchVec.x, absClampedSearchVec.y));
-    if (stepCount>0) {
-        <$updateHorizon(horizons.x, deltaPixelTap)$>
-    }
+    horizons.x = computeHorizon(side, centerPixelPos, imageSize, deltaTap, ssDiskRadius, 
+                                fragPositionES, fragNormalES, clampedSearchVec);
+
     // Backward search for h2
     clampedSearchVec = clampSearchVec(imageSize, vec2(centerPixelPos), -searchVec);
-    absClampedSearchVec = abs(clampedSearchVec);
-    stepCount = int(max(absClampedSearchVec.x, absClampedSearchVec.y));
-    if (stepCount>0) {
-        <$updateHorizon(horizons.y, deltaPixelTap)$>
-    }
+    horizons.y = computeHorizon(side, centerPixelPos, imageSize, deltaTap, ssDiskRadius, 
+                                fragPositionES, fragNormalES, clampedSearchVec);
 
 	return horizons;
 }
