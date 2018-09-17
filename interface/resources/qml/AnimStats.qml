@@ -51,35 +51,6 @@ Item {
                         text: root.positionText
                     }
                     StatText {
-                        text: "State Machines:---------------------------------------------------------------------------"
-                    }
-                    ListView {
-                        width: firstCol.width
-                        height: root.animStateMachines.length * 15
-                        visible: root.animStateMchines.length > 0;
-                        model: root.animStateMachines
-                        delegate: StatText {
-                            text: {
-                                return modelData;
-                            }
-                        }
-                    }
-                }
-            }
-
-            Rectangle {
-                width: secondCol.width + 8
-                height: secondCol.height + 8
-                color: root.bgColor;
-
-                Column {
-                    id: secondCol
-                    spacing: 4; x: 4; y: 4;
-
-                    StatText {
-                        text: root.rotationText
-                    }
-                    StatText {
                         text: "Anim Vars:--------------------------------------------------------------------------------"
                     }
                     ListView {
@@ -106,6 +77,36 @@ Item {
                             }
                         }
                     }
+                }
+            }
+
+            Rectangle {
+                width: secondCol.width + 8
+                height: secondCol.height + 8
+                color: root.bgColor;
+
+                Column {
+                    id: secondCol
+                    spacing: 4; x: 4; y: 4;
+
+                    StatText {
+                        text: root.rotationText
+                    }
+                    StatText {
+                        text: "State Machines:---------------------------------------------------------------------------"
+                    }
+                    ListView {
+                        width: firstCol.width
+                        height: root.animStateMachines.length * 15
+                        visible: root.animStateMchines.length > 0;
+                        model: root.animStateMachines
+                        delegate: StatText {
+                            text: {
+                                return modelData;
+                            }
+                        }
+                    }
+
                 }
             }
 
