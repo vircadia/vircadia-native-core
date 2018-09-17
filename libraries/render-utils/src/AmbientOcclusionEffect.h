@@ -79,7 +79,7 @@ public:
 
     void setRadius(float newRadius) { radius = std::max(0.01f, newRadius); emit dirty(); }
     void setObscuranceLevel(float level) { obscuranceLevel = std::max(0.01f, level); emit dirty(); }
-    void setFalloffAngle(float bias) { falloffAngle = std::max(0.0f, std::min(bias, 0.2f)); emit dirty(); }
+    void setFalloffAngle(float bias) { falloffAngle = std::max(0.0f, std::min(bias, 1.0f)); emit dirty(); }
     void setFalloffDistance(float value) { falloffDistance = std::max(0.0f, value); emit dirty(); }
     void setEdgeSharpness(float sharpness) { edgeSharpness = std::max(0.0f, (float)sharpness); emit dirty(); }
     void setBlurDeviation(float deviation) { blurDeviation = std::max(0.0f, deviation); emit dirty(); }

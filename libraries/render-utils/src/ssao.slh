@@ -290,14 +290,14 @@ float evalVisibilitySSAO(in vec3 centerPosition, in vec3 centerNormal, in vec3 t
     return f * f * f * max((vn - getFalloffAngle()) / (epsilon + vv), 0.0);
 }
 
-float computeHorizonFromTap(vec3 tapPositionES, vec3 fragPositionES, vec3 fragNormalES, float normalizedRadius) {
+float computeHorizonFromTap(vec3 tapPositionES, vec3 fragPositionES, vec3 fragNormalES) {
     vec3 deltaVec = tapPositionES - fragPositionES;
-    float distance = abs(deltaVec.z);
+    float distanceSquared = dot(deltaVec, deltaVec);
     float rawHorizon = dot(normalize(deltaVec), fragNormalES);
+    float radiusFalloff = distanceSquared / getRadius2();
 
-    rawHorizon = (rawHorizon - getFalloffAngle()) / (1.0 - getFalloffAngle());
-    rawHorizon *= 1.0 - normalizedRadius * normalizedRadius;
-    rawHorizon *= 1.0 - smoothstep(getFalloffDistance()/2, getFalloffDistance(), distance);
+    rawHorizon = max(0.0, (rawHorizon - getFalloffAngle()) / (1.0 - getFalloffAngle()));
+    rawHorizon *= 1.0 - radiusFalloff;
 
     return rawHorizon;
 }
@@ -306,12 +306,12 @@ float computeHorizonFromTap(vec3 tapPositionES, vec3 fragPositionES, vec3 fragNo
             vec3 tap = vec3(tapPixelPos, radius);
             vec4 tapUVZ_mip = fetchTap(side, centerPixelPos, tap, imageSize);
             vec3 tapPositionES = evalEyePositionFromZeye(side.x, tapUVZ_mip.z, tapUVZ_mip.xy);
-            float rawHorizon = computeHorizonFromTap(tapPositionES, fragPositionES, fragNormalES, radius / searchRadius);
+            float rawHorizon = computeHorizonFromTap(tapPositionES, fragPositionES, fragNormalES);
 
             <$horizon$> = max(<$horizon$>, rawHorizon);
 <@endfunc@>
 
-#define SSAO_LINEAR_SAMPLING 0
+#define SSAO_LINEAR_SAMPLING 1
 
 <@func updateHorizon(horizon, deltaPixelTap)@>
     {
