@@ -976,7 +976,20 @@ QStringList RenderableModelEntityItem::getJointNames() const {
 }
 
 void RenderableModelEntityItem::setAnimationURL(const QString& url) {
+    QString oldURL = getAnimationURL();
     ModelEntityItem::setAnimationURL(url);
+    if (oldURL != getAnimationURL()) {
+        _needsAnimationReset = true;
+    }
+}
+
+bool RenderableModelEntityItem::needsAnimationReset() const {
+    return _needsAnimationReset;
+}
+
+QString RenderableModelEntityItem::getAnimationURLAndReset() {
+    _needsAnimationReset = false;
+    return getAnimationURL();
 }
 
 scriptable::ScriptableModelBase render::entities::ModelEntityRenderer::getScriptableModel() {
@@ -1477,7 +1490,8 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     if (_animating) {
         DETAILED_PROFILE_RANGE(simulation_physics, "Animate");
 
-        if (_animation && (_animation->getURL().toString() != entity->getAnimationURL())) { // bad check
+        if (_animation && entity->needsAnimationReset()) {
+            //(_animation->getURL().toString() != entity->getAnimationURL())) { // bad check
             // the joints have been mapped before but we have a new animation to load
             _animation.reset();
             _jointMappingCompleted = false;
@@ -1527,7 +1541,7 @@ void ModelEntityRenderer::mapJoints(const TypedEntityPointer& entity, const Mode
     }
 
     if (!_animation) {
-        _animation = DependencyManager::get<AnimationCache>()->getAnimation(entity->getAnimationURL());
+        _animation = DependencyManager::get<AnimationCache>()->getAnimation(entity->getAnimationURLAndReset());
     }
 
     if (_animation && _animation->isLoaded()) {

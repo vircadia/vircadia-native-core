@@ -115,6 +115,8 @@ public:
     virtual QStringList getJointNames() const override;
 
     void setAnimationURL(const QString& url) override;
+    bool needsAnimationReset() const;
+    QString getAnimationURLAndReset();
 
 private:
     bool needsUpdateModelBounds() const;
@@ -130,6 +132,7 @@ private:
     bool _originalTexturesRead { false };
     bool _dimensionsInitialized { true };
     bool _needsJointSimulation { false };
+    bool _needsAnimationReset { false };
 };
 
 namespace render { namespace entities { 
