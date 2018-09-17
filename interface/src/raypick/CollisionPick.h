@@ -70,6 +70,9 @@ protected:
     CollisionRegion _mathPick;
     PhysicsEnginePointer _physicsEngine;
     QSharedPointer<GeometryResource> _cachedResource;
+
+    // Options for what information to get from collision results
+    bool _includeNormals;
 };
 
 #endif // hifi_CollisionPick_h
