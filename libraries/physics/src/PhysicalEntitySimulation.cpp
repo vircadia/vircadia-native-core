@@ -138,7 +138,6 @@ void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
                 btRigidBody* body = motionState->getRigidBody();
                 if (body) {
                     body->forceActivationState(ISLAND_SLEEPING);
-                    motionState->updateSendVelocities(); // has side-effect of zeroing entity velocities for inactive body
                 }
 
                 // send packet to remove ownership

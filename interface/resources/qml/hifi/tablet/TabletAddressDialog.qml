@@ -79,7 +79,7 @@ StackView {
             return;
         }
         location.text = targetString;
-        toggleOrGo(true, targetString);
+        toggleOrGo(targetString, true);
         clearAddressLineTimer.start();
     }
 
@@ -399,7 +399,7 @@ StackView {
         }
     }
 
-    function toggleOrGo(fromSuggestions, address) {
+    function toggleOrGo(address, fromSuggestions) {
         if (address !== undefined && address !== "") {
             addressBarDialog.loadAddress(address, fromSuggestions);
             clearAddressLineTimer.start();

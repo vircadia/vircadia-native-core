@@ -240,7 +240,6 @@ public:
     QVector<glm::vec3> vertices;
     QVector<glm::vec3> normals;
     QVector<glm::vec3> tangents;
-    mutable QVector<NormalType> normalsAndTangents; // Populated later if needed for blendshapes
     QVector<glm::vec3> colors;
     QVector<glm::vec2> texCoords;
     QVector<glm::vec2> texCoords1;

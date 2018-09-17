@@ -17,10 +17,10 @@ using namespace gpu;
 using namespace gpu::gl;
 
 void GLBackend::do_setInputFormat(const Batch& batch, size_t paramOffset) {
-    Stream::FormatPointer format = batch._streamFormats.get(batch._params[paramOffset]._uint);
-    if (format != _input._format) {
-        _input._format = format;
+    const auto& format = batch._streamFormats.get(batch._params[paramOffset]._uint);
+    if (!compare(_input._format, format)) {
         if (format) {
+            assign(_input._format, format);
             auto inputFormat = GLInputFormat::sync((*format));
             assert(inputFormat);
             if (_input._formatKey != inputFormat->key) {
@@ -28,6 +28,7 @@ void GLBackend::do_setInputFormat(const Batch& batch, size_t paramOffset) {
                 _input._invalidFormat = true;
             }
         } else {
+            reset(_input._format);
             _input._formatKey.clear();
             _input._invalidFormat = true;
         }
@@ -37,13 +38,13 @@ void GLBackend::do_setInputFormat(const Batch& batch, size_t paramOffset) {
 void GLBackend::do_setInputBuffer(const Batch& batch, size_t paramOffset) {
     Offset stride = batch._params[paramOffset + 0]._uint;
     Offset offset = batch._params[paramOffset + 1]._uint;
-    BufferPointer buffer = batch._buffers.get(batch._params[paramOffset + 2]._uint);
+    const auto& buffer = batch._buffers.get(batch._params[paramOffset + 2]._uint);
     uint32 channel = batch._params[paramOffset + 3]._uint;
 
     if (channel < getNumInputBuffers()) {
         bool isModified = false;
-        if (_input._buffers[channel] != buffer) {
-            _input._buffers[channel] = buffer;
+        if (!compare(_input._buffers[channel], buffer)) {
+            assign(_input._buffers[channel], buffer);
             _input._bufferVBOs[channel] = getBufferIDUnsynced((*buffer));
             isModified = true;
         }
@@ -94,18 +95,18 @@ void GLBackend::resetInputStage() {
     // Reset index buffer
     _input._indexBufferType = UINT32;
     _input._indexBufferOffset = 0;
-    _input._indexBuffer.reset();
+    reset(_input._indexBuffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     (void) CHECK_GL_ERROR();
 
     // Reset vertex buffer and format
-    _input._format.reset();
+    reset(_input._format);
     _input._formatKey.clear();
     _input._invalidFormat = false;
     _input._attributeActivation.reset();
 
     for (uint32_t i = 0; i < _input._buffers.size(); i++) {
-        _input._buffers[i].reset();
+        reset(_input._buffers[i]);
         _input._bufferOffsets[i] = 0;
         _input._bufferStrides[i] = 0;
         _input._bufferVBOs[i] = 0;
@@ -119,9 +120,9 @@ void GLBackend::do_setIndexBuffer(const Batch& batch, size_t paramOffset) {
     _input._indexBufferType = (Type)batch._params[paramOffset + 2]._uint;
     _input._indexBufferOffset = batch._params[paramOffset + 0]._uint;
 
-    BufferPointer indexBuffer = batch._buffers.get(batch._params[paramOffset + 1]._uint);
-    if (indexBuffer != _input._indexBuffer) {
-        _input._indexBuffer = indexBuffer;
+    const auto& indexBuffer = batch._buffers.get(batch._params[paramOffset + 1]._uint);
+    if (!compare(_input._indexBuffer, indexBuffer)) {
+        assign(_input._indexBuffer, indexBuffer);
         if (indexBuffer) {
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, getBufferIDUnsynced(*indexBuffer));
         } else {
@@ -136,9 +137,9 @@ void GLBackend::do_setIndirectBuffer(const Batch& batch, size_t paramOffset) {
     _input._indirectBufferOffset = batch._params[paramOffset + 1]._uint;
     _input._indirectBufferStride = batch._params[paramOffset + 2]._uint;
 
-    BufferPointer buffer = batch._buffers.get(batch._params[paramOffset]._uint);
-    if (buffer != _input._indirectBuffer) {
-        _input._indirectBuffer = buffer;
+    const auto& buffer = batch._buffers.get(batch._params[paramOffset]._uint);
+    if (!compare(_input._indirectBuffer, buffer)) {
+        assign(_input._indirectBuffer, buffer);
         if (buffer) {
             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, getBufferIDUnsynced(*buffer));
         } else {
@@ -152,7 +153,7 @@ void GLBackend::do_setIndirectBuffer(const Batch& batch, size_t paramOffset) {
 
 void GLBackend::updateInput() {
     bool isStereoNow = isStereo();
-    // track stereo state change potentially happening wihtout changing the input format
+    // track stereo state change potentially happening without changing the input format
     // this is a rare case requesting to invalid the format
 #ifdef GPU_STEREO_DRAWCALL_INSTANCED
     _input._invalidFormat |= (isStereoNow != _input._lastUpdateStereoState);
@@ -163,13 +164,14 @@ void GLBackend::updateInput() {
         InputStageState::ActivationCache newActivation;
 
         // Assign the vertex format required
-        if (_input._format) {
+        auto format = acquire(_input._format);
+        if (format) {
             bool hasColorAttribute{ false };
 
             _input._attribBindingBuffers.reset();
 
-            const Stream::Format::AttributeMap& attributes = _input._format->getAttributes();
-            auto& inputChannels = _input._format->getChannels();
+            const auto& attributes = format->getAttributes();
+            const auto& inputChannels = format->getChannels();
             for (auto& channelIt : inputChannels) {
                 auto bufferChannelNum = (channelIt).first;
                 const Stream::Format::ChannelMap::value_type::second_type& channel = (channelIt).second;

@@ -86,8 +86,7 @@ void AvatarReplicas::processDeletedTraitInstance(const QUuid& parentID, AvatarTr
     if (_replicasMap.find(parentID) != _replicasMap.end()) {
         auto &replicas = _replicasMap[parentID];
         for (auto avatar : replicas) {
-            avatar->processDeletedTraitInstance(traitType,
-                                                AvatarTraits::xoredInstanceID(instanceID, avatar->getTraitInstanceXORID()));
+            avatar->processDeletedTraitInstance(traitType, instanceID);
         }
     }
 }
@@ -96,9 +95,7 @@ void AvatarReplicas::processTraitInstance(const QUuid& parentID, AvatarTraits::T
     if (_replicasMap.find(parentID) != _replicasMap.end()) {
         auto &replicas = _replicasMap[parentID];
         for (auto avatar : replicas) {
-            avatar->processTraitInstance(traitType,
-                                         AvatarTraits::xoredInstanceID(instanceID, avatar->getTraitInstanceXORID()),
-                                         traitBinaryData);
+            avatar->processTraitInstance(traitType, instanceID, traitBinaryData);
         }
     }
 }
@@ -113,6 +110,12 @@ AvatarHashMap::AvatarHashMap() {
     packetReceiver.registerListener(PacketType::BulkAvatarTraits, this, "processBulkAvatarTraits");
 
     connect(nodeList.data(), &NodeList::uuidChanged, this, &AvatarHashMap::sessionUUIDChanged);
+
+    connect(nodeList.data(), &NodeList::nodeKilled, this, [this](SharedNodePointer killedNode){
+        if (killedNode->getType() == NodeType::AvatarMixer) {
+            clearOtherAvatars();
+        }
+    });
 }
 
 QVector<QUuid> AvatarHashMap::getAvatarIdentifiers() {
@@ -340,28 +343,16 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
                 AvatarTraits::TraitInstanceID traitInstanceID =
                     QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
-                // XOR the incoming trait instance ID with this avatar object's personal XOR ID
-
-                // this ensures that we have separate entity instances in the local tree
-                // if we briefly end up with two Avatar objects for this node
-
-                // (which can occur if the shared pointer for the
-                // previous instance of an avatar hasn't yet gone out of scope before the
-                // new instance is created)
-
-                auto xoredInstanceID = AvatarTraits::xoredInstanceID(traitInstanceID, avatar->getTraitInstanceXORID());
-
                 message->readPrimitive(&traitBinarySize);
 
                 auto& processedInstanceVersion = lastProcessedVersions.getInstanceValueRef(traitType, traitInstanceID);
                 if (packetTraitVersion > processedInstanceVersion) {
-                    // in order to handle re-connections to the avatar mixer when the other
                     if (traitBinarySize == AvatarTraits::DELETED_TRAIT_SIZE) {
-                        avatar->processDeletedTraitInstance(traitType, xoredInstanceID);
+                        avatar->processDeletedTraitInstance(traitType, traitInstanceID);
                         _replicas.processDeletedTraitInstance(avatarID, traitType, traitInstanceID);
                     } else {
                         auto traitData = message->read(traitBinarySize);
-                        avatar->processTraitInstance(traitType, xoredInstanceID, traitData);
+                        avatar->processTraitInstance(traitType, traitInstanceID, traitData);
                         _replicas.processTraitInstance(avatarID, traitType, traitInstanceID, traitData);
                     }
                     processedInstanceVersion = packetTraitVersion;
@@ -429,3 +420,12 @@ void AvatarHashMap::sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& ol
     emit avatarSessionChangedEvent(sessionUUID, oldUUID);
 }
 
+void AvatarHashMap::clearOtherAvatars() {
+    QWriteLocker locker(&_hashLock);
+
+    for (auto& av : _avatarHash) {
+        handleRemovedAvatar(av);
+    }
+
+    _avatarHash.clear();
+}

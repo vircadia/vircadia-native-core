@@ -119,7 +119,7 @@ public:
     void multiDrawIndexedIndirect(uint32 numCommands, Primitive primitiveType);
 
     void setupNamedCalls(const std::string& instanceName, NamedBatchData::Function function);
-    BufferPointer getNamedBuffer(const std::string& instanceName, uint8_t index = 0);
+    const BufferPointer& getNamedBuffer(const std::string& instanceName, uint8_t index = 0);
 
     // Input Stage
     // InputFormat

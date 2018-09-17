@@ -224,6 +224,7 @@ public:
     void setHmdTabletBecomesToolbarSetting(bool value);
     bool getPreferStylusOverLaser() { return _preferStylusOverLaserSetting.get(); }
     void setPreferStylusOverLaser(bool value);
+
     // FIXME: Remove setting completely or make available through JavaScript API?
     //bool getPreferAvatarFingerOverStylus() { return _preferAvatarFingerOverStylusSetting.get(); }
     bool getPreferAvatarFingerOverStylus() { return false; }
@@ -304,6 +305,7 @@ public:
     void saveNextPhysicsStats(QString filename);
 
     bool isServerlessMode() const;
+    bool isInterstitialMode() const { return _interstitialMode; }
 
     void replaceDomainContent(const QString& url);
 
@@ -331,6 +333,8 @@ signals:
 
     void uploadRequest(QString path);
 
+    void loginDialogPoppedUp();
+
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs, const glm::vec3* givenOffset = nullptr);
@@ -338,6 +342,7 @@ public slots:
     bool importEntities(const QString& url);
     void updateThreadPoolCount() const;
     void updateSystemTabletMode();
+    void goToErrorDomainURL(QUrl errorDomainURL);
 
     Q_INVOKABLE void loadDialog();
     Q_INVOKABLE void loadScriptURLDialog() const;
@@ -426,7 +431,8 @@ public slots:
     void setPreferredCursor(const QString& cursor);
 
     void setIsServerlessMode(bool serverlessDomain);
-    void loadServerlessDomain(QUrl domainURL);
+    void loadServerlessDomain(QUrl domainURL, bool errorDomain = false);
+    void setIsInterstitialMode(bool interstialMode);
 
     void updateVerboseLogging();
 
@@ -437,7 +443,6 @@ private slots:
     void onDesktopRootContextCreated(QQmlContext* qmlContext);
     void showDesktop();
     void clearDomainOctreeDetails();
-    void clearDomainAvatars();
     void onAboutToQuit();
     void onPresent(quint32 frameCount);
 
@@ -626,6 +631,7 @@ private:
     QHash<int, QKeyEvent> _keysPressed;
 
     bool _enableProcessOctreeThread;
+    bool _interstitialMode { false };
 
     OctreePacketProcessor _octreeProcessor;
     EntityEditPacketSender _entityEditSender;

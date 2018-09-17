@@ -962,8 +962,7 @@ public:
     qint64 packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice& destination,
                      AvatarTraits::TraitVersion traitVersion = AvatarTraits::NULL_TRAIT_VERSION);
     qint64 packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID,
-                             ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion = AvatarTraits::NULL_TRAIT_VERSION,
-                             AvatarTraits::TraitInstanceID wireInstanceID = AvatarTraits::TraitInstanceID());
+                             ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion = AvatarTraits::NULL_TRAIT_VERSION);
 
     void prepareResetTraitInstances();
 
@@ -1098,7 +1097,7 @@ public:
     void fromJson(const QJsonObject& json, bool useFrameSkeleton = true);
 
     glm::vec3 getClientGlobalPosition() const { return _globalPosition; }
-    glm::vec3 getGlobalBoundingBoxCorner() const { return _globalPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions; }
+    AABox getGlobalBoundingBox() const { return AABox(_globalPosition + _globalBoundingBoxOffset - _globalBoundingBoxDimensions, _globalBoundingBoxDimensions); }
 
     /**jsdoc
      * @function MyAvatar.getAvatarEntityData
@@ -1170,8 +1169,6 @@ public:
     // A method intended to be overriden by MyAvatar for polling orientation for network transmission.
     virtual glm::quat getOrientationOutbound() const;
 
-    static const float OUT_OF_VIEW_PENALTY;
-
     // TODO: remove this HACK once we settle on optimal sort coefficients
     // These coefficients exposed for fine tuning the sort priority for transfering new _jointData to the render pipeline.
     static float _avatarSortCoefficientSize;
@@ -1192,9 +1189,6 @@ public:
     virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {}
     void setReplicaIndex(int replicaIndex) { _replicaIndex = replicaIndex; }
     int getReplicaIndex() { return _replicaIndex; }
-
-    const AvatarTraits::TraitInstanceID getTraitInstanceXORID() const { return _traitInstanceXORID; }
-    void cycleTraitInstanceXORID() { _traitInstanceXORID = QUuid::createUuid(); }
 
 signals:
 
@@ -1444,6 +1438,8 @@ protected:
     ThreadSafeValueCache<glm::mat4> _farGrabLeftMatrixCache { glm::mat4() };
     ThreadSafeValueCache<glm::mat4> _farGrabMouseMatrixCache { glm::mat4() };
 
+    ThreadSafeValueCache<QVariantMap> _collisionCapsuleCache{ QVariantMap() };
+
     int getFauxJointIndex(const QString& name) const;
 
     float _audioLoudness { 0.0f };
@@ -1502,8 +1498,6 @@ private:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);
     AvatarData& operator= (const AvatarData&);
-
-    AvatarTraits::TraitInstanceID _traitInstanceXORID { QUuid::createUuid() };
 };
 Q_DECLARE_METATYPE(AvatarData*)
 

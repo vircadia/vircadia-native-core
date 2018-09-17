@@ -86,7 +86,7 @@ void CauterizedModel::createRenderItemSet() {
             // Create the render payloads
             int numParts = (int)mesh->getNumParts();
             for (int partIndex = 0; partIndex < numParts; partIndex++) {
-                if (!fbxGeometry.meshes[i].blendshapes.empty()) {
+                if (!fbxGeometry.meshes[i].blendshapes.empty() && _blendedVertexBuffers.find(i) == _blendedVertexBuffers.end()) {
                     initializeBlendshapes(fbxGeometry.meshes[i], i);
                 }
                 auto ptr = std::make_shared<CauterizedMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
@@ -97,6 +97,7 @@ void CauterizedModel::createRenderItemSet() {
                 shapeID++;
             }
         }
+        _blendedVertexBuffersInitialized = true;
     } else {
         Model::createRenderItemSet();
     }
