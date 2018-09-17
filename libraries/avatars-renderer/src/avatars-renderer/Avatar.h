@@ -62,6 +62,7 @@ public:
 
 private:
     void calculateSteps(int stepCount);
+    void updatePosition(const glm::vec3& avatarPosition);
     bool _isTransiting{ false };
     glm::vec3 _startPosition;
     glm::vec3 _endPosition;

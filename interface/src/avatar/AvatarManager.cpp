@@ -80,8 +80,8 @@ AvatarManager::AvatarManager(QObject* parent) :
     });
 
     const float AVATAR_TRANSIT_MAX_DISTANCE = 1.0f;
-    const int AVATAR_TRANSIT_FRAME_COUNT = 20;
-    const int AVATAR_TRANSIT_FRAMES_PER_METER = 15;
+    const int AVATAR_TRANSIT_FRAME_COUNT = 11; // Based on testing
+    const int AVATAR_TRANSIT_FRAMES_PER_METER = 3; // Based on testing
 
     _avatarTransitMaxDistance = AVATAR_TRANSIT_MAX_DISTANCE;
     _avatarTransitFrameCount = AVATAR_TRANSIT_FRAME_COUNT;

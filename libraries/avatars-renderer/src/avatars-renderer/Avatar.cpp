@@ -119,7 +119,8 @@ bool AvatarTransit::update(const glm::vec3& avatarPosition, int totalFrames, int
     if (oneFrameDistance > maxDistance && !_isTransiting) {
         start(_lastPosition, currentPosition, totalFrames, framesPerMeter, isDistanceBased);
         return true;
-    }
+    } 
+    updatePosition(avatarPosition);
     return false;
 }
 
@@ -149,15 +150,20 @@ void AvatarTransit::calculateSteps(int stepCount) {
     }
 }
 
-bool AvatarTransit::getNextPosition(glm::vec3& nextPosition) {
-    _lastPosition = _currentPosition;
-    int lastIdx = (int)_transitSteps.size() - 1;
-    _isTransiting = _step < lastIdx;
+void AvatarTransit::updatePosition(const glm::vec3& avatarPosition) {
+    _lastPosition = _isTransiting ? _currentPosition : avatarPosition;
     if (_isTransiting) {
-        _step++;
-        nextPosition = _transitSteps[_step];
-        _currentPosition = nextPosition;
+        int lastIdx = (int)_transitSteps.size() - 1;
+        _isTransiting = _step < lastIdx;
+        if (_isTransiting) {
+            _step++;
+            _currentPosition = _transitSteps[_step];
+        }
     }
+}
+
+bool AvatarTransit::getNextPosition(glm::vec3& nextPosition) {
+    nextPosition = _currentPosition;
     return _isTransiting;
 }
 
