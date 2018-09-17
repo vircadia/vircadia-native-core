@@ -975,14 +975,8 @@ QStringList RenderableModelEntityItem::getJointNames() const {
     return result;
 }
 
-// FIXME: deprecated; remove >= RC67
-bool RenderableModelEntityItem::getMeshes(MeshProxyList& result) {
-    auto model = getModel();
-    if (!model || !model->isLoaded()) {
-        return false;
-    }
-    BLOCKING_INVOKE_METHOD(model.get(), "getMeshes", Q_RETURN_ARG(MeshProxyList, result));
-    return !result.isEmpty();
+void RenderableModelEntityItem::setAnimationURL(const QString& url) {
+    ModelEntityItem::setAnimationURL(url);
 }
 
 scriptable::ScriptableModelBase render::entities::ModelEntityRenderer::getScriptableModel() {

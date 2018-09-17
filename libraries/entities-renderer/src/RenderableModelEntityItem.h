@@ -114,20 +114,20 @@ public:
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
 
-    bool getMeshes(MeshProxyList& result) override; // deprecated
+    void setAnimationURL(const QString& url) override;
 
 private:
     bool needsUpdateModelBounds() const;
     void autoResizeJointArrays();
     void copyAnimationJointDataToModel();
     bool readyToAnimate() const;
-
     void getCollisionGeometryResource();
+
     GeometryResource::Pointer _compoundShapeResource;
-    bool _jointMapCompleted { false };
-    bool _originalTexturesRead { false };
     std::vector<int> _jointMap;
     QVariantMap _originalTextures;
+    bool _jointMapCompleted { false };
+    bool _originalTexturesRead { false };
     bool _dimensionsInitialized { true };
     bool _needsJointSimulation { false };
 };

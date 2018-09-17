@@ -86,7 +86,7 @@ public:
     // TODO: audit and remove unused Animation accessors
     bool hasAnimation() const;
     QString getAnimationURL() const;
-    void setAnimationURL(const QString& url);
+    virtual void setAnimationURL(const QString& url);
 
     void setAnimationCurrentFrame(float value);
     void setAnimationIsPlaying(bool value);
