@@ -120,6 +120,7 @@ private:
     bool needsUpdateModelBounds() const;
     void autoResizeJointArrays();
     void copyAnimationJointDataToModel();
+    bool readyToAnimate() const;
 
     void getCollisionGeometryResource();
     GeometryResource::Pointer _compoundShapeResource;
@@ -169,8 +170,7 @@ protected:
 
 private:
     void animate(const TypedEntityPointer& entity);
-    void mapJoints(const TypedEntityPointer& entity, const QStringList& modelJointNames);
-    bool jointsMapped() const { return _jointMappingCompleted; }
+    void mapJoints(const TypedEntityPointer& entity, const ModelPointer& model);
 
     // Transparency is handled in ModelMeshPartPayload
     virtual bool isTransparent() const override { return false; }

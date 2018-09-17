@@ -1068,6 +1068,13 @@ void RenderableModelEntityItem::copyAnimationJointDataToModel() {
     }
 }
 
+bool RenderableModelEntityItem::readyToAnimate() const {
+    return resultWithReadLock<bool>([&] {
+        float firstFrame = _animationProperties.getFirstFrame();
+        return (firstFrame <= 0.0f) || (firstFrame <= _animationProperties.getLastFrame());
+    });
+}
+
 using namespace render;
 using namespace render::entities;
 
@@ -1155,7 +1162,7 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
 
     const QVector<glm::quat>& rotations = frames[_lastKnownCurrentFrame].rotations;
     const QVector<glm::vec3>& translations = frames[_lastKnownCurrentFrame].translations;
-                
+
     jointsData.resize(_jointMapping.size());
     for (int j = 0; j < _jointMapping.size(); j++) {
         int index = _jointMapping[j];
@@ -1169,13 +1176,12 @@ void ModelEntityRenderer::animate(const TypedEntityPointer& entity) {
                 }
             } else if (index < animationJointNames.size()) {
                 QString jointName = fbxJoints[index].name; // Pushing this here so its not done on every entity, with the exceptions of those allowing for translation
-                
                 if (originalFbxIndices.contains(jointName)) {
                     // Making sure the joint names exist in the original model the animation is trying to apply onto. If they do, then remap and get it's translation.
                     int remappedIndex = originalFbxIndices[jointName] - 1; // JointIndeces seem to always start from 1 and the found index is always 1 higher than actual.
                     translationMat = glm::translate(originalFbxJoints[remappedIndex].translation);
                 }
-            } 
+            }
             glm::mat4 rotationMat;
             if (index < rotations.size()) {
                 rotationMat = glm::mat4_cast(fbxJoints[index].preRotation * rotations[index] * fbxJoints[index].postRotation);
@@ -1477,14 +1483,16 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     if (_animating) {
         DETAILED_PROFILE_RANGE(simulation_physics, "Animate");
 
-        if (!jointsMapped()) {
-            mapJoints(entity, model->getJointNames());
-        //else the joint have been mapped before but we have a new animation to load
-        } else if (_animation && (_animation->getURL().toString() != entity->getAnimationURL())) {
+        if (_animation && (_animation->getURL().toString() != entity->getAnimationURL())) { // bad check
+            // the joints have been mapped before but we have a new animation to load
+            _animation.reset();
             _jointMappingCompleted = false;
-            mapJoints(entity, model->getJointNames());
         }
-        if (!(entity->getAnimationFirstFrame() < 0) && !(entity->getAnimationFirstFrame() > entity->getAnimationLastFrame())) {
+
+        if (!_jointMappingCompleted) {
+            mapJoints(entity, model);
+        }
+        if (entity->readyToAnimate()) {
             animate(entity);
         }
         emit requestRenderUpdate();
@@ -1518,19 +1526,20 @@ void ModelEntityRenderer::doRender(RenderArgs* args) {
 #endif
 }
 
-void ModelEntityRenderer::mapJoints(const TypedEntityPointer& entity, const QStringList& modelJointNames) {
+void ModelEntityRenderer::mapJoints(const TypedEntityPointer& entity, const ModelPointer& model) {
     // if we don't have animation, or we're already joint mapped then bail early
-    if (!entity->hasAnimation() || jointsMapped()) {
+    if (!entity->hasAnimation()) {
         return;
     }
 
-    if (!_animation || _animation->getURL().toString() != entity->getAnimationURL()) {
+    if (!_animation) {
         _animation = DependencyManager::get<AnimationCache>()->getAnimation(entity->getAnimationURL());
     }
 
     if (_animation && _animation->isLoaded()) {
         QStringList animationJointNames = _animation->getJointNames();
 
+        auto modelJointNames = model->getJointNames();
         if (modelJointNames.size() > 0 && animationJointNames.size() > 0) {
             _jointMapping.resize(modelJointNames.size());
             for (int i = 0; i < modelJointNames.size(); i++) {
