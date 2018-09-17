@@ -25,62 +25,63 @@
 layout(location=0) out vec4 outFragColor;
 
 void main(void) {
-    vec2 imageSize = getSideImageSize(getResolutionLevel());
+    vec2 sideImageSize = getSideImageSize(getResolutionLevel());
 
     // Pixel being shaded
     vec2 fragCoord = gl_FragCoord.xy; 
-    ivec2 centerPixelPos = ivec2(fragCoord.xy);
+    ivec2 shadedPixelPos = ivec2(fragCoord.xy);
 
     // Stereo side info
-    ivec4 side = getStereoSideInfo(centerPixelPos.x, getResolutionLevel());
+    ivec4 side = getStereoSideInfo(shadedPixelPos.x, getResolutionLevel());
 
-    // From now on, centerPixelPos is the pixel pos in the side
-    centerPixelPos.x -= side.y;
-    vec2 fragUVPos = (vec2(centerPixelPos) + vec2(0.5))  / imageSize;
+    // From now on, shadedPixelPos is the pixel pos in the side
+    shadedPixelPos.x -= side.y;
+    vec2 shadedUVPos = (vec2(shadedPixelPos) + vec2(0.5))  / sideImageSize;
 
     // Fetch the z under the pixel (stereo or not)
-    float Zeye = getZEyeAtUV(fragUVPos, 0);
+    float Zeye = getZEyeAtUV(shadedUVPos, 0);
 
     // The position  and normal of the pixel fragment in Eye space
-    vec3 fragPositionES = evalEyePositionFromZeye(side.x, Zeye, fragUVPos);
+    vec3 fragPositionES = evalEyePositionFromZeye(side.x, Zeye, shadedUVPos);
     vec3 fragNormalES = evalEyeNormal(fragPositionES);
 
     // Choose the screen-space sample radius
-    float ssDiskRadius = evalDiskRadius(fragPositionES.z, imageSize);
+    float diskPixelRadius = evalDiskRadius(fragPositionES.z, sideImageSize);
 #if SSAO_USE_HORIZON_BASED
-    ssDiskRadius = min(ssDiskRadius, SSAO_HBAO_MAX_RADIUS);
+    diskPixelRadius = min(diskPixelRadius, SSAO_HBAO_MAX_RADIUS);
 #endif
 
     // Let's make noise 
-    float randomPatternRotationAngle = getAngleDithering(centerPixelPos);
+    float randomPatternRotationAngle = getAngleDithering(shadedPixelPos);
 
-    // Accumulate the visibility for each samples
-    float visibilitySum = 0.0;
+    // Accumulate the obscurance for each samples
+    float obscuranceSum = 0.0;
     int numSamples = int(getNumSamples());
     for (int i = 0; i < numSamples; ++i) {
 #if SSAO_USE_HORIZON_BASED
 		vec3 deltaTap = getUnitTapLocation(i, 1.0, randomPatternRotationAngle, PI);
-        visibilitySum += evalVisibilityHBAO(side, centerPixelPos, imageSize, deltaTap.xy, ssDiskRadius, fragPositionES, fragNormalES);
+        obscuranceSum += evalVisibilityHBAO(side, shadedPixelPos, sideImageSize, deltaTap.xy, diskPixelRadius, fragPositionES, fragNormalES);
 #else
-        vec3 tap = getTapLocationClampedSSAO(i, randomPatternRotationAngle, ssDiskRadius, centerPixelPos, imageSize);
-        vec3 tapUVZ = fetchTap(side, centerPixelPos, tap, imageSize);
+        vec3 tap = getTapLocationClampedSSAO(i, randomPatternRotationAngle, diskPixelRadius, shadedPixelPos, sideImageSize);
+        vec3 tapUVZ = fetchTap(side, shadedPixelPos, tap, sideImageSize);
         vec3 tapPositionES = evalEyePositionFromZeye(side.x, tapUVZ.z, tapUVZ.xy);
-        visibilitySum += float(tap.z > 0.0) * evalVisibilitySSAO(fragPositionES, fragNormalES, tapPositionES);
+        obscuranceSum += float(tap.z > 0.0) * evalVisibilitySSAO(fragPositionES, fragNormalES, tapPositionES);
 #endif
     }
 
-    float occlusion = clamp(1.0 - visibilitySum * getObscuranceScaling() * getInvNumSamples(), 0.0, 1.0);
+    float occlusion = clamp(1.0 - obscuranceSum * getObscuranceScaling() * getInvNumSamples(), 0.0, 1.0);
 
      // KEEP IT for Debugging
     // Bilateral box-filter over a quad for free, respecting depth edges
     // (the difference that this makes is subtle)
 /*    if (abs(dFdx(fragPositionES.z)) < 0.02) {
-        occlusion -= dFdx(occlusion) * ((centerPixelPos.x & 1) - 0.5);
+        occlusion -= dFdx(occlusion) * ((shadedPixelPos.x & 1) - 0.5);
     }
     if (abs(dFdy(fragPositionES.z)) < 0.02) {
-        occlusion -= dFdy(occlusion) * ((centerPixelPos.y & 1) - 0.5);
+        occlusion -= dFdy(occlusion) * ((shadedPixelPos.y & 1) - 0.5);
     }*/
     
     //outFragColor = vec4(packOcclusionDepth(occlusion, CSZToDepthKey(fragPositionES.z)), 1.0);
     outFragColor = vec4(vec3(occlusion), 1.0);
+
 }
