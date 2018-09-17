@@ -498,7 +498,7 @@
        <string>Serveless</string>
       </property>
       <property name="checked">
-       <bool>true</bool>
+       <bool>false</bool>
       </property>
      </widget>
      <widget class="QCheckBox" name="checkBoxRunLatest">
@@ -529,7 +529,7 @@
         <x>150</x>
         <y>98</y>
         <width>461</width>
-        <height>24</height>
+        <height>28</height>
        </rect>
       </property>
      </widget>

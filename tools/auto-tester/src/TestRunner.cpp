@@ -270,22 +270,20 @@ void TestRunner::startLocalServerProcesses() {
 }
 
 void TestRunner::runInterfaceWithTestScript() {
-    QString commandLine;
+    QString exeFile = QString("\"") + QDir::toNativeSeparators(_installationFolder) +
+                      "\\interface.exe\"";
 
+    QString url = QString("hifi://localhost");
     if (_runServerless->isChecked()) {
         // Move to an empty area
-        commandLine =
-            QString("\"") + QDir::toNativeSeparators(_installationFolder) +
-            "\\interface.exe\" --url hifi://localhost/9999,9999,9999/0.0,0.0,0.0,1.0 --testScript https://raw.githubusercontent.com/" + _user +
-            "/hifi_tests/" + _branch + "/tests/testRecursive.js quitWhenFinished --testResultsLocation " +
-            _snapshotFolder;
-    } else {
-        // There is no content, so no need to move
-        commandLine = QString("\"") + QDir::toNativeSeparators(_installationFolder) +
-                      "\\interface.exe\" --url hifi://localhost --testScript https://raw.githubusercontent.com/" + _user +
-                      "/hifi_tests/" + _branch +
-                      "/tests/content/entity/zone/testRecursive.js quitWhenFinished --testResultsLocation " + _snapshotFolder;
+        url = url + "/9999,9999,9999/0.0,0.0,0.0,1.0";
     }
+
+    QString testScript =
+        QString("https://raw.githubusercontent.com/") + _user + "/hifi_tests/" + _branch + "/tests/testRecursive.js";
+
+    QString commandLine = exeFile + " --url " + url + " --testScript " + testScript +
+                          " quitWhenFinished --testResultsLocation " + _snapshotFolder;
 
     interfaceWorker->setCommandLine(commandLine);
     emit startInterface();
@@ -508,10 +506,10 @@ QString TestRunner::getPRNumberFromURL(const QString& url) {
     try {
         QStringList urlParts = url.split("/");
         QStringList filenameParts = urlParts[urlParts.size() - 1].split("-");
-        if (filenameParts.size() != 5) {
+        if (filenameParts.size() <= 3) {
             throw "URL not in expected format, should look like `https://deployment.highfidelity.com/jobs/pr-build/label%3Dwindows/13023/HighFidelity-Beta-Interface-PR14006-be76c43.exe`";
         }
-        return filenameParts[3];
+        return filenameParts[filenameParts.size() - 2];
     } catch (QString errorMessage) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), errorMessage);
         exit(-1);

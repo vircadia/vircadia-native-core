@@ -190,7 +190,7 @@ void Test::startTestsEvaluation(const bool isRunningFromCommandLine,
     _isRunningInAutomaticTestRun = isRunningInAutomaticTestRun;
 
     if (snapshotDirectory.isNull()) {
-        // Get list of JPEG images in folder, sorted by name
+        // Get list of PNG images in folder, sorted by name
         QString previousSelection = _snapshotDirectory;
         QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
         if (!parent.isNull() && parent.right(1) != "/") {
