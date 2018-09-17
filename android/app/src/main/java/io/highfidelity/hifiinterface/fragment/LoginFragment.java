@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -19,7 +20,12 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import org.qtproject.qt5.android.QtNative;
+
 import io.highfidelity.hifiinterface.R;
+
+import static org.qtproject.qt5.android.QtActivityDelegate.ApplicationActive;
+import static org.qtproject.qt5.android.QtActivityDelegate.ApplicationInactive;
 
 public class LoginFragment extends Fragment {
 
@@ -32,6 +38,7 @@ public class LoginFragment extends Fragment {
     private ProgressDialog mDialog;
 
     public native void nativeLogin(String username, String password, Activity usernameChangedListener);
+    public native void nativeCancelLogin();
 
     private LoginFragment.OnLoginInteractionListener mListener;
 
@@ -126,9 +133,18 @@ public class LoginFragment extends Fragment {
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        // This hack intends to keep Qt threads running even after the app comes from background
+        QtNative.setApplicationState(ApplicationActive);
+    }
+
+    @Override
     public void onStop() {
         super.onStop();
         cancelActivityIndicator();
+        // Leave the Qt app paused
+        QtNative.setApplicationState(ApplicationInactive);
         hideKeyboard();
     }
 
@@ -164,7 +180,15 @@ public class LoginFragment extends Fragment {
             mDialog = new ProgressDialog(getContext());
         }
         mDialog.setMessage(getString(R.string.logging_in));
-        mDialog.setCancelable(false);
+        mDialog.setCancelable(true);
+        mDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialogInterface) {
+                nativeCancelLogin();
+                cancelActivityIndicator();
+                mLoginButton.setEnabled(true);
+            }
+        });
         mDialog.show();
     }
 
