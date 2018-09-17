@@ -593,6 +593,12 @@ bool Test::createMDFile(const QString& directory) {
     }
 
     mdFile.close();
+
+    foreach (auto test, testScriptLines.stepList) {
+        delete test;
+    }
+    testScriptLines.stepList.clear();
+
     return true;
 }
 

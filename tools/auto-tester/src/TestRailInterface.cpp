@@ -367,6 +367,7 @@ void TestRailInterface::createAddTestCasesPythonScript(const QString& testDirect
         QProcess* process = new QProcess();
 
         connect(process, &QProcess::started, this, [=]() { _busyWindow.exec(); });
+        connect(process, SIGNAL(finished(int)), process, SLOT(deleteLater()));
         connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
                 [=](int exitCode, QProcess::ExitStatus exitStatus) { _busyWindow.hide(); });
 
@@ -491,7 +492,7 @@ void TestRailInterface::addRun() {
     ) {
         QProcess* process = new QProcess();
         connect(process, &QProcess::started, this, [=]() { _busyWindow.exec(); });
-
+        connect(process, SIGNAL(finished(int)), process, SLOT(deleteLater()));
         connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
                 [=](int exitCode, QProcess::ExitStatus exitStatus) { _busyWindow.hide(); });
 
@@ -499,6 +500,7 @@ void TestRailInterface::addRun() {
         process->start(_pythonCommand, parameters);
     }
 }
+
 void TestRailInterface::updateRunWithResults() {
     QString filename = _outputDirectory + "/updateRunWithResults.py";
     if (QFile::exists(filename)) {
@@ -578,7 +580,7 @@ void TestRailInterface::updateRunWithResults() {
     ) {
         QProcess* process = new QProcess();
         connect(process, &QProcess::started, this, [=]() { _busyWindow.exec(); });
-
+        connect(process, SIGNAL(finished(int)), process, SLOT(deleteLater()));
         connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
                 [=](int exitCode, QProcess::ExitStatus exitStatus) { _busyWindow.hide(); });
 
@@ -753,6 +755,7 @@ void TestRailInterface::getReleasesFromTestRail() {
     QProcess* process = new QProcess();
     connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
             [=](int exitCode, QProcess::ExitStatus exitStatus) { updateReleasesComboData(exitCode, exitStatus); });
+    connect(process, SIGNAL(finished(int)), process, SLOT(deleteLater()));
 
     QStringList parameters = QStringList() << filename;
     process->start(_pythonCommand, parameters);
@@ -1076,6 +1079,7 @@ void TestRailInterface::getTestSectionsFromTestRail() {
     QProcess* process = new QProcess();
     connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
             [=](int exitCode, QProcess::ExitStatus exitStatus) { updateSectionsComboData(exitCode, exitStatus); });
+    connect(process, SIGNAL(finished(int)), process, SLOT(deleteLater()));
 
     QStringList parameters = QStringList() << filename;
     process->start(_pythonCommand, parameters);
@@ -1114,6 +1118,7 @@ void TestRailInterface::getRunsFromTestRail() {
     QProcess* process = new QProcess();
     connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
             [=](int exitCode, QProcess::ExitStatus exitStatus) { updateRunsComboData(exitCode, exitStatus); });
+    connect(process, SIGNAL(finished(int)), process, SLOT(deleteLater()));
 
     QStringList parameters = QStringList() << filename;
 

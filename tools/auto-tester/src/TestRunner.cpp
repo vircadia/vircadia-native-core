@@ -25,16 +25,44 @@ TestRunner::TestRunner(std::vector<QCheckBox*> dayCheckboxes,
                        std::vector<QCheckBox*> timeEditCheckboxes,
                        std::vector<QTimeEdit*> timeEdits,
                        QLabel* workingFolderLabel,
+                       QCheckBox* runServerless,
+                       QCheckBox* runLatest,
+                       QTextEdit* url,
                        QObject* parent) :
-    QObject(parent) 
-{
+    QObject(parent) {
     _dayCheckboxes = dayCheckboxes;
     _timeEditCheckboxes = timeEditCheckboxes;
     _timeEdits = timeEdits;
     _workingFolderLabel = workingFolderLabel;
+    _runServerless = runServerless;
+    _runLatest = runLatest;
+    _url = url;
 
     installerThread = new QThread();
+    installerWorker = new Worker();
+    installerWorker->moveToThread(installerThread);
+    installerThread->start();
+    connect(this, SIGNAL(startInstaller()), installerWorker, SLOT(runCommand()));
+    connect(installerWorker, SIGNAL(commandComplete()), this, SLOT(installationComplete()));
+
     interfaceThread = new QThread();
+    interfaceWorker = new Worker();
+    interfaceThread->start();
+    interfaceWorker->moveToThread(interfaceThread);
+    connect(this, SIGNAL(startInterface()), interfaceWorker, SLOT(runCommand()));
+    connect(interfaceWorker, SIGNAL(commandComplete()), this, SLOT(interfaceExecutionComplete()));
+}
+
+TestRunner::~TestRunner() {
+    delete installerThread;
+    delete interfaceThread;
+
+    delete interfaceThread;
+    delete interfaceWorker;
+
+    if (_timer) {
+        delete _timer;
+    }
 }
 
 void TestRunner::setWorkingFolder() {
@@ -46,7 +74,7 @@ void TestRunner::setWorkingFolder() {
     }
 
     _workingFolder = QFileDialog::getExistingDirectory(nullptr, "Please select a temporary folder for installation", parent,
-                                                    QFileDialog::ShowDirsOnly);
+                                                       QFileDialog::ShowDirsOnly);
 
     // If user canceled then restore previous selection and return
     if (_workingFolder == "") {
@@ -60,7 +88,6 @@ void TestRunner::setWorkingFolder() {
     autoTester->enableRunTabControls();
     _workingFolderLabel->setText(QDir::toNativeSeparators(_workingFolder));
 
-    // The time is checked every 30 seconds for automatic test start
     _timer = new QTimer(this);
     connect(_timer, SIGNAL(timeout()), this, SLOT(checkTime()));
     _timer->start(30 * 1000);  //time specified in ms
@@ -79,10 +106,19 @@ void TestRunner::run() {
 
     // Download the latest High Fidelity installer and build XML.
     QStringList urls;
-    urls << INSTALLER_URL << BUILD_XML_URL;
-
     QStringList filenames;
-    filenames << INSTALLER_FILENAME << BUILD_XML_FILENAME;
+    if (_runLatest->isChecked()) {
+        _installerFilename = INSTALLER_FILENAME_LATEST;
+
+        urls << INSTALLER_URL_LATEST << BUILD_XML_URL;
+        filenames << _installerFilename << BUILD_XML_FILENAME;
+    } else {
+        QString urlText = _url->toPlainText();
+        urls << urlText;
+        _installerFilename = getInstallerNameFromURL(urlText);
+        filenames << _installerFilename;
+    }
+
 
     updateStatusLabel("Downloading installer");
 
@@ -110,29 +146,24 @@ void TestRunner::runInstaller() {
 
     QStringList arguments{ QStringList() << QString("/S") << QString("/D=") + QDir::toNativeSeparators(_installationFolder) };
 
-    QString installerFullPath = _workingFolder + "/" + INSTALLER_FILENAME;
+    QString installerFullPath = _workingFolder + "/" + _installerFilename;
 
     QString commandLine =
         QDir::toNativeSeparators(installerFullPath) + " /S /D=" + QDir::toNativeSeparators(_installationFolder);
 
-    worker = new Worker(commandLine);
-
-    worker->moveToThread(installerThread);
-    connect(installerThread, SIGNAL(started()), worker, SLOT(process()));
-    connect(worker, SIGNAL(finished()), this, SLOT(installationComplete()));
-    installerThread->start();
+    installerWorker->setCommandLine(commandLine);
+    emit startInstaller();
 }
 
 void TestRunner::installationComplete() {
-    disconnect(installerThread, SIGNAL(started()), worker, SLOT(process()));
-    disconnect(worker, SIGNAL(finished()), this, SLOT(installationComplete()));
-    delete worker;
-
     createSnapshotFolder();
 
     updateStatusLabel("Running tests");
 
-    startLocalServerProcesses();
+    if (!_runServerless->isChecked()) {
+        startLocalServerProcesses();
+    }
+
     runInterfaceWithTestScript();
 }
 
@@ -239,24 +270,28 @@ void TestRunner::startLocalServerProcesses() {
 }
 
 void TestRunner::runInterfaceWithTestScript() {
-    QString commandLine = QString("\"") + QDir::toNativeSeparators(_installationFolder) +
-                          "\\interface.exe\" --url hifi://localhost --testScript https://raw.githubusercontent.com/" + _user +
-                          "/hifi_tests/" + _branch + "/tests/testRecursive.js quitWhenFinished --testResultsLocation " +
-                          _snapshotFolder;
+    QString commandLine;
 
-    worker = new Worker(commandLine);
+    if (_runServerless->isChecked()) {
+        // Move to an empty area
+        commandLine =
+            QString("\"") + QDir::toNativeSeparators(_installationFolder) +
+            "\\interface.exe\" --url hifi://localhost/9999,9999,9999/0.0,0.0,0.0,1.0 --testScript https://raw.githubusercontent.com/" + _user +
+            "/hifi_tests/" + _branch + "/tests/testRecursive.js quitWhenFinished --testResultsLocation " +
+            _snapshotFolder;
+    } else {
+        // There is no content, so no need to move
+        commandLine = QString("\"") + QDir::toNativeSeparators(_installationFolder) +
+                      "\\interface.exe\" --url hifi://localhost --testScript https://raw.githubusercontent.com/" + _user +
+                      "/hifi_tests/" + _branch +
+                      "/tests/content/entity/zone/testRecursive.js quitWhenFinished --testResultsLocation " + _snapshotFolder;
+    }
 
-    worker->moveToThread(interfaceThread);
-    connect(interfaceThread, SIGNAL(started()), worker, SLOT(process()));
-    connect(worker, SIGNAL(finished()), this, SLOT(interfaceExecutionComplete()));
-    interfaceThread->start();
+    interfaceWorker->setCommandLine(commandLine);
+    emit startInterface();
 }
 
 void TestRunner::interfaceExecutionComplete() {
-    disconnect(interfaceThread, SIGNAL(started()), worker, SLOT(process()));
-    disconnect(worker, SIGNAL(finished()), this, SLOT(interfaceExecutionComplete()));
-    delete worker;
-
     killProcesses();
 
     evaluateResults();
@@ -285,6 +320,13 @@ void TestRunner::automaticTestRunEvaluationComplete(QString zippedFolder) {
 }
 
 void TestRunner::addBuildNumberToResults(QString zippedFolderName) {
+    if (!_runLatest->isChecked()) {
+        QStringList filenameParts = zippedFolderName.split(".");
+        QString augmentedFilename = filenameParts[0] + "(" + getPRNumberFromURL(_url->toPlainText()) + ")." + filenameParts[1];
+        QFile::rename(zippedFolderName, augmentedFilename);
+
+        return;
+    }
     try {
         QDomDocument domDocument;
         QString filename{ _workingFolder + "/" + BUILD_XML_FILENAME };
@@ -444,11 +486,46 @@ void TestRunner::appendLog(const QString& message) {
     autoTester->appendLogWindow(message);
 }
 
-Worker::Worker(const QString commandLine) { 
+QString TestRunner::getInstallerNameFromURL(const QString& url) {
+    // An example URL: https://deployment.highfidelity.com/jobs/pr-build/label%3Dwindows/13023/HighFidelity-Beta-Interface-PR14006-be76c43.exe
+    try {
+        QStringList urlParts = url.split("/");
+        int rr = urlParts.size(); 
+        if (urlParts.size() != 8) {
+            throw "URL not in expected format, should look like `https://deployment.highfidelity.com/jobs/pr-build/label%3Dwindows/13023/HighFidelity-Beta-Interface-PR14006-be76c43.exe`";
+        }
+        return urlParts[urlParts.size() - 1];
+    } catch (QString errorMessage) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), errorMessage);
+        exit(-1);
+    } catch (...) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "unknown error");
+        exit(-1);
+    }
+}
+
+QString TestRunner::getPRNumberFromURL(const QString& url) {
+    try {
+        QStringList urlParts = url.split("/");
+        QStringList filenameParts = urlParts[urlParts.size() - 1].split("-");
+        if (filenameParts.size() != 5) {
+            throw "URL not in expected format, should look like `https://deployment.highfidelity.com/jobs/pr-build/label%3Dwindows/13023/HighFidelity-Beta-Interface-PR14006-be76c43.exe`";
+        }
+        return filenameParts[3];
+    } catch (QString errorMessage) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), errorMessage);
+        exit(-1);
+    } catch (...) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "unknown error");
+        exit(-1);
+    }
+}
+
+void Worker::setCommandLine(const QString& commandLine) {
     _commandLine = commandLine;
 }
 
-void Worker::process() {
+void Worker::runCommand() {
     system(_commandLine.toStdString().c_str());
-    emit finished();
+    emit commandComplete();
 }

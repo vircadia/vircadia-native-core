@@ -40,7 +40,22 @@ AutoTester::AutoTester(QWidget* parent) : QMainWindow(parent) {
    //// _helpWindow.textBrowser->setText()
 }
 
+AutoTester::~AutoTester() {
+    delete _signalMapper;
+
+    if (_test) {
+        delete _test;
+    }
+
+    if (_testRunner) {
+        delete _testRunner;
+    }
+}
+
 void AutoTester::setup() {
+    if (_test) {
+        delete _test;
+    }
     _test = new Test(_ui.progressBar, _ui.checkBoxInteractiveMode);
 
     std::vector<QCheckBox*> dayCheckboxes;
@@ -64,7 +79,10 @@ void AutoTester::setup() {
     timeEdits.emplace_back(_ui.timeEdit3);
     timeEdits.emplace_back(_ui.timeEdit4);
 
-    _testRunner = new TestRunner(dayCheckboxes, timeEditCheckboxes, timeEdits, _ui.workingFolderLabel);
+    if (_testRunner) {
+        delete _testRunner;
+    }
+    _testRunner = new TestRunner(dayCheckboxes, timeEditCheckboxes, timeEdits, _ui.workingFolderLabel, _ui.checkBoxServerless, _ui.checkBoxRunLatest, _ui.urlTextEdit);
 }
 
 void AutoTester::startTestsEvaluation(const bool isRunningFromCommandLine,
@@ -144,6 +162,10 @@ void AutoTester::on_runNowButton_clicked() {
     _testRunner->run();
 }
 
+void AutoTester::on_checkBoxRunLatest_clicked() {
+    _ui.urlTextEdit->setEnabled(!_ui.checkBoxRunLatest->isChecked());
+}
+
 void AutoTester::automaticTestRunEvaluationComplete(QString zippedFolderName) {
     _testRunner->automaticTestRunEvaluationComplete(zippedFolderName);
 }
@@ -212,6 +234,10 @@ void AutoTester::downloadFiles(const QStringList& URLs, const QString& directory
     _ui.progressBar->setMaximum(_numberOfFilesToDownload - 1);
     _ui.progressBar->setValue(0);
     _ui.progressBar->setVisible(true);
+
+    foreach (auto downloader, _downloaders) {
+        delete downloader;
+    }
 
     _downloaders.clear();
     for (int i = 0; i < _numberOfFilesToDownload; ++i) {

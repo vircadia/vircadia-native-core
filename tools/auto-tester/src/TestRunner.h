@@ -15,6 +15,7 @@
 #include <QDir>
 #include <QLabel>
 #include <QObject>
+#include <QTextEdit>
 #include <QThread>
 #include <QTimeEdit>
 #include <QTimer>
@@ -28,7 +29,12 @@ public:
                         std::vector<QCheckBox*> timeEditCheckboxes,
                         std::vector<QTimeEdit*> timeEdits,
                         QLabel* workingFolderLabel,
+                        QCheckBox* runServerless,
+                        QCheckBox* runLatest,
+                        QTextEdit* url,
                         QObject* parent = 0);
+
+    ~TestRunner();
 
     void setWorkingFolder();
 
@@ -56,17 +62,26 @@ public:
     void updateStatusLabel(const QString& message);
     void appendLog(const QString& message);
 
+    QString getInstallerNameFromURL(const QString& url);
+    QString getPRNumberFromURL(const QString& url);
+
 private slots:
     void checkTime();
     void installationComplete();
     void interfaceExecutionComplete();
 
+signals:
+    void startInstaller();
+    void startInterface();
+
 private:
     bool _automatedTestIsRunning{ false };
 
-    const QString INSTALLER_URL{ "http://builds.highfidelity.com/HighFidelity-Beta-latest-dev.exe" };
-    const QString INSTALLER_FILENAME{ "HighFidelity-Beta-latest-dev.exe" };
+    const QString INSTALLER_URL_LATEST{ "http://builds.highfidelity.com/HighFidelity-Beta-latest-dev.exe" };
+    const QString INSTALLER_FILENAME_LATEST{ "HighFidelity-Beta-latest-dev.exe" };
 
+    QString _installerURL;
+    QString _installerFilename;
     const QString BUILD_XML_URL{ "https://highfidelity.com/dev-builds.xml" };
     const QString BUILD_XML_FILENAME{ "dev-builds.xml" };
 
@@ -87,6 +102,9 @@ private:
     std::vector<QCheckBox*> _timeEditCheckboxes;
     std::vector<QTimeEdit*> _timeEdits;
     QLabel* _workingFolderLabel;
+    QCheckBox* _runServerless;
+    QCheckBox* _runLatest;
+    QTextEdit* _url;
 
     QTimer* _timer;
 
@@ -96,18 +114,22 @@ private:
 
     QThread* installerThread;
     QThread* interfaceThread;
-    Worker* worker;
+    Worker* installerWorker;
+    Worker* interfaceWorker;
 };
 
 class Worker : public QObject {
     Q_OBJECT
 public:
-    Worker(const QString commandLine);
+    void setCommandLine(const QString& commandLine);
+
 public slots:
-    void process();
+    void runCommand();
 
 signals:
-    void finished();
+    void commandComplete();
+    void startInstaller();
+    void startInterface();
 
 private:
     QString _commandLine;
