@@ -53,10 +53,7 @@ function AppUi(properties) {
     };
     that.open = function open(optionalUrl, optionalInject) { // How to open the app.
         var url = optionalUrl || that.home;
-        var inject = that.inject;
-        if (optionalUrl && optionalInject) {
-            inject = optionalInject;
-        }
+        var inject = optionalInject || that.inject;
 
         if (that.isQMLUrl(url)) {
             that.tablet.loadQMLSource(url);
@@ -108,6 +105,7 @@ function AppUi(properties) {
     };
     that.notificationPollCallback = that.ignore;
     that.notificationPollCaresAboutSince = false;
+    that.notificationInitialCallbackMade = false;
     that.notificationDisplayBanner = function (message) {
         Window.displayAnnouncement(message);
     };
@@ -189,6 +187,7 @@ function AppUi(properties) {
                 }
                 console.debug(that.buttonName, 'notification data for processing:', JSON.stringify(notificationData));
                 that.notificationPollCallback(notificationData);
+                that.notificationInitialCallbackMade = true;
                 currentDataPageToRetrieve = 1;
                 concatenatedServerResponse = new Array();
             } else {

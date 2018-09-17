@@ -823,7 +823,6 @@ function notificationDataProcessPage(data) {
 }
 
 var shouldShowDot = false;
-var firstBannerNotificationShown = false;
 function notificationPollCallback(onlineUsersArray) {
     shouldShowDot = onlineUsersArray.length > 0;
 
@@ -835,10 +834,10 @@ function notificationPollCallback(onlineUsersArray) {
         });
 
         var message;
-        if (!firstBannerNotificationShown) {
-            message = onlineUsersArray.length + " of your connections are online. Open PEOPLE to join them!";
+        if (!ui.notificationInitialCallbackMade) {
+            message = onlineUsersArray.length + " of your connections " +
+                (onlineUsersArray.length === 1 ? "is" : "are") + " online. Open PEOPLE to join them!";
             ui.notificationDisplayBanner(message);
-            firstBannerNotificationShown = true;
         } else {
             for (var i = 0; i < onlineUsersArray.length; i++) {
                 message = onlineUsersArray[i].username + " is available in " +
