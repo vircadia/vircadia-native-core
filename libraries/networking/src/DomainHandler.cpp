@@ -102,7 +102,6 @@ void DomainHandler::softReset() {
 
     clearSettings();
 
-    _isInErrorState = false;
     _connectionDenialsSinceKeypairRegen = 0;
     _checkInPacketsSinceLastReply = 0;
 
@@ -486,9 +485,8 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
         emit domainConnectionRefused(reasonMessage, (int)reasonCode, extraInfo);
 #else
         if (reasonCode == ConnectionRefusedReason::ProtocolMismatch || reasonCode == ConnectionRefusedReason::NotAuthorized) {
-            _isInErrorState = true;
             // ingest the error - this is a "hard" connection refusal.
-            emit redirectToErrorDomainURL(_errorDomainURL);
+            setRedirectErrorState(_errorDomainURL);
         } else {
             emit domainConnectionRefused(reasonMessage, (int)reasonCode, extraInfo);
         }
