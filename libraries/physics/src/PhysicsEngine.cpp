@@ -286,6 +286,7 @@ void PhysicsEngine::reinsertObject(ObjectMotionState* object) {
 void PhysicsEngine::processTransaction(PhysicsEngine::Transaction& transaction) {
     // removes
     for (auto object : transaction.objectsToRemove) {
+        bumpAndPruneContacts(object);
         btRigidBody* body = object->getRigidBody();
         if (body) {
             removeDynamicsForBody(body);
@@ -935,19 +936,22 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
         const btCollisionObject* otherBody;
         btVector3 penetrationPoint;
         btVector3 otherPenetrationPoint;
+        btVector3 normal;
         if (colObj0->m_collisionObject == &collisionObject) {
             otherBody = colObj1->m_collisionObject;
             penetrationPoint = getWorldPoint(cp.m_localPointB, colObj1->getWorldTransform());
             otherPenetrationPoint = getWorldPoint(cp.m_localPointA, colObj0->getWorldTransform());
+            normal = -cp.m_normalWorldOnB;
         } else {
             otherBody = colObj0->m_collisionObject;
             penetrationPoint = getWorldPoint(cp.m_localPointA, colObj0->getWorldTransform());
             otherPenetrationPoint = getWorldPoint(cp.m_localPointB, colObj1->getWorldTransform());
+            normal = cp.m_normalWorldOnB;
         }
 
         // TODO: Give MyAvatar a motion state so we don't have to do this
         if ((m_collisionFilterMask & BULLET_COLLISION_GROUP_MY_AVATAR) && myAvatarCollisionObject && myAvatarCollisionObject == otherBody) {
-            contacts.emplace_back(Physics::getSessionUUID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint));
+            contacts.emplace_back(Physics::getSessionUUID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint), bulletToGLM(normal));
             return 0;
         }
 
@@ -963,7 +967,7 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
         }
 
         // This is the correct object type. Add it to the list.
-        contacts.emplace_back(candidate->getObjectID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint));
+        contacts.emplace_back(candidate->getObjectID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint), bulletToGLM(normal));
 
         return 0;
     }
