@@ -165,9 +165,10 @@ function AppUi(properties) {
 
         if (that.notificationPollCaresAboutSince) {
             var settingsKey = "notifications/" + that.buttonName + "/lastSince";
-            var timestamp = Settings.getValue(settingsKey, new Date().getTime());
-            url = url + "&since=" + timestamp;
-            Settings.setValue(settingsKey, timestamp);
+            var currentTimestamp = new Date().getTime();
+            var settingsTimestamp = Settings.getValue(settingsKey, currentTimestamp);
+            url = url + "&since=" + settingsTimestamp;
+            Settings.setValue(settingsKey, currentTimestamp);
         }
 
         console.debug(that.buttonName, 'polling for notifications at endpoint', url);
