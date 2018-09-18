@@ -20,19 +20,8 @@ out vec4 outFragColor;
 
 void main(void) {
 	vec4 depths = textureGather(depthTexture, varTexCoord0);
-
-	// Order the depths from minimum to maximum
-	depths.xy = depths.x > depths.y ? depths.yx : depths.xy;
-	depths.xz = depths.x > depths.z ? depths.zx : depths.xz;
-	depths.xw = depths.x > depths.w ? depths.wx : depths.xw;
-
-	depths.yz = depths.y > depths.z ? depths.zy : depths.yz;
-	depths.yw = depths.y > depths.w ? depths.wy : depths.yw;
-
-	depths.zw = depths.z > depths.w ? depths.wz : depths.zw;
-
-	// Take the median depth
-	float outZ = (depths.y + depths.z) / 2.0;
+	// Keep the minimum depth
+	float outZ = min(depths.w, min(depths.z, min(depths.x, depths.y)));
 
     outFragColor = vec4(vec3(outZ), 1.0);
 }

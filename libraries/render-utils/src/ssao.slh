@@ -226,7 +226,7 @@ float getZEyeAtUV(vec2 texCoord, int level) {
     return -texture(pyramidMap, texCoord, level).x;
 }
 
-const int LOG_MAX_OFFSET = 2;
+const int LOG_MAX_OFFSET = 1;
 const int MAX_MIP_LEVEL = 5;
 int evalMipFromRadius(float radius) {
     return clamp(findMSB(int(radius)) - LOG_MAX_OFFSET, 0, MAX_MIP_LEVEL);
@@ -316,7 +316,7 @@ float computeHorizonFromTap(vec3 tapPositionES, vec3 fragPositionES, vec3 fragNo
         
 <@endfunc@>
 
-#define SSAO_LINEAR_SEARCH_HORIZON 0
+#define HBAO_HORIZON_SEARCH_CONSTANT_STEP 0
 
 float computeHorizon(ivec4 side, vec2 shadedPixelPos, vec2 sideImageSize, vec2 deltaTap, 
                     vec3 fragPositionES, vec3 fragNormalES, vec2 searchVec, float searchRadius) {
@@ -329,7 +329,7 @@ float computeHorizon(ivec4 side, vec2 shadedPixelPos, vec2 sideImageSize, vec2 d
         float deltaRadius = searchRadius / float(stepCount);
         vec2 tapPixelOffset = vec2(0);
 
-#if SSAO_LINEAR_SEARCH_HORIZON
+#if HBAO_HORIZON_SEARCH_CONSTANT_STEP
         float radius = 0.0;
         int stepIndex;
 
@@ -339,6 +339,7 @@ float computeHorizon(ivec4 side, vec2 shadedPixelPos, vec2 sideImageSize, vec2 d
 
             <$computeHorizon()$>
         }
+// Step is adapted to Mip level
 #else
         float radius = deltaRadius;
         float mipLevel = evalMipFromRadius(radius * float(doFetchMips()));
