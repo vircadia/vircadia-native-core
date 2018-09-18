@@ -249,14 +249,12 @@ vec3 fetchTapUnfiltered(ivec4 side, ivec2 ssC, vec3 tap, vec2 sideImageSize) {
    return P;
 }
 
-vec4 fetchTap(ivec4 side, ivec2 ssC, vec3 tap, vec2 sideImageSize) {
-    int mipLevel = evalMipFromRadius(tap.z * float(doFetchMips()));
-
-    vec2 ssP = tap.xy + vec2(ssC);
+vec4 fetchTap(ivec4 side, vec2 tapPixelPos, float tapRadius, vec2 sideImageSize) {
+    int mipLevel = evalMipFromRadius(tapRadius * float(doFetchMips()));
 
     // We need to divide by 2^mipLevel to read the appropriately scaled coordinate from a MIP-map.
     // Manually clamp to the texture size because texelFetch bypasses the texture unit
-    vec2 tapUV = (vec2(ssP) + vec2(0.5)) / sideImageSize;
+    vec2 tapUV = (tapPixelPos + vec2(0.5)) / sideImageSize;
     vec2 fetchUV = vec2(tapUV.x + side.w * 0.5 * (side.x - tapUV.x), tapUV.y);
 
     vec4 P;
@@ -293,44 +291,21 @@ float evalVisibilitySSAO(in vec3 centerPosition, in vec3 centerNormal, in vec3 t
 float computeHorizonFromTap(vec3 tapPositionES, vec3 fragPositionES, vec3 fragNormalES) {
     vec3 deltaVec = tapPositionES - fragPositionES;
     float distanceSquared = dot(deltaVec, deltaVec);
-    float horizon = dot(normalize(deltaVec), fragNormalES);
+    float cosHorizonAngle = dot(normalize(deltaVec), fragNormalES);
     float radiusFalloff = max(0.0, 1.0 - (distanceSquared / getRadius2()));
 
-    horizon = max(0.0, (horizon - getFalloffAngle()) / (1.0 - getFalloffAngle()));
-    horizon *= radiusFalloff;
+    cosHorizonAngle = max(0.0, (cosHorizonAngle - getFalloffAngle()) / (1.0 - getFalloffAngle()));
+    cosHorizonAngle *= radiusFalloff;
 
-    return horizon;
-}
-
-vec2 clampSearchVector(vec2 sideImageSize, vec2 shadedPixelPos, vec2 searchVec) {
-    vec2 clampedSearchVec = searchVec;
-    vec2 endPixel = shadedPixelPos + clampedSearchVec;
-
-    if (endPixel.x < 0) {
-        clampedSearchVec *= ((0-shadedPixelPos.x) / clampedSearchVec.x);
-        endPixel = shadedPixelPos + clampedSearchVec;
-    }
-    if (endPixel.x > (sideImageSize.x-1)) {
-        clampedSearchVec *= ((sideImageSize.x-1-shadedPixelPos.x) / clampedSearchVec.x);
-        endPixel = shadedPixelPos + clampedSearchVec;
-    }
-    if (endPixel.y < 0) {
-        clampedSearchVec *= ((0-shadedPixelPos.y) / clampedSearchVec.y);
-        endPixel = shadedPixelPos + clampedSearchVec;
-    }
-    if (endPixel.y > (sideImageSize.y-1)) {
-        clampedSearchVec *= ((sideImageSize.y-1-shadedPixelPos.y) / clampedSearchVec.y);
-    }
-
-    return clampedSearchVec;
+    return cosHorizonAngle;
 }
 
 <@func computeHorizon()@>
-        if (tapPixelPos.x>=0 && tapPixelPos.y>=0 && tapPixelPos.x<sideImageSize.x && tapPixelPos.y<sideImageSize.y) {
+        vec2 tapPixelPos = tapPixelOffset + shadedPixelPos;
+        if (tapPixelPos.x<0 && tapPixelPos.y<0 && tapPixelPos.x>=sideImageSize.x && tapPixelPos.y>=sideImageSize.y) {
             break;
         }
-        vec3 tap = vec3(tapPixelPos, radius);
-        vec4 tapUVZ_mip = fetchTap(side, shadedPixelPos, tap, sideImageSize);
+        vec4 tapUVZ_mip = fetchTap(side, tapPixelPos, radius, sideImageSize);
         vec3 tapPositionES = evalEyePositionFromZeye(side.x, tapUVZ_mip.z, tapUVZ_mip.xy);
         float tapCosHorizonAngle = computeHorizonFromTap(tapPositionES, fragPositionES, fragNormalES);
 
@@ -338,26 +313,25 @@ vec2 clampSearchVector(vec2 sideImageSize, vec2 shadedPixelPos, vec2 searchVec) 
         
 <@endfunc@>
 
-#define SSAO_LINEAR_SAMPLING 1
+#define SSAO_LINEAR_SEARCH_HORIZON 1
 
-float computeHorizon(ivec4 side, ivec2 shadedPixelPos, vec2 sideImageSize, vec2 deltaTap, 
-                    vec3 fragPositionES, vec3 fragNormalES, vec2 searchVec) {
+float computeHorizon(ivec4 side, vec2 shadedPixelPos, vec2 sideImageSize, vec2 deltaTap, 
+                    vec3 fragPositionES, vec3 fragNormalES, vec2 searchVec, float searchRadius) {
     vec2 absSearchVec = abs(searchVec);
-    int stepCount = int(max(absSearchVec.x, absSearchVec.y));
+    int stepCount = int(ceil(max(absSearchVec.x, absSearchVec.y)));
     float cosHorizonAngle = 0.0;
 
     if (stepCount>0) {
         vec2 deltaPixelTap = searchVec / float(stepCount);
-        float searchRadius = length(searchVec);
         float deltaRadius = searchRadius / float(stepCount);
-        vec2 tapPixelPos = vec2(0);
+        vec2 tapPixelOffset = vec2(0);
 
-#if SSAO_LINEAR_SAMPLING
+#if SSAO_LINEAR_SEARCH_HORIZON
         float radius = 0.0;
         int stepIndex;
 
         for (stepIndex=0 ; stepIndex<stepCount ; stepIndex++) {
-            tapPixelPos += deltaPixelTap;
+            tapPixelOffset += deltaPixelTap;
             radius += deltaRadius;
 
             <$computeHorizon()$>
@@ -366,8 +340,8 @@ float computeHorizon(ivec4 side, ivec2 shadedPixelPos, vec2 sideImageSize, vec2 
         float radius = deltaRadius;
         float mipLevel = evalMipFromRadius(radius * float(doFetchMips()));
 
-        while (radius<searchRadius) {
-            tapPixelPos += deltaPixelTap;
+        while (radius<=searchRadius) {
+            tapPixelOffset += deltaPixelTap;
 
             <$computeHorizon()$>
 
@@ -384,16 +358,16 @@ float computeHorizon(ivec4 side, ivec2 shadedPixelPos, vec2 sideImageSize, vec2 
     return cosHorizonAngle;
 }
 
-float evalVisibilityHBAO(ivec4 side, ivec2 shadedPixelPos, vec2 sideImageSize, vec2 deltaTap, float diskPixelRadius, 
+float evalVisibilityHBAO(ivec4 side, vec2 shadedPixelPos, vec2 sideImageSize, vec2 deltaTap, float diskPixelRadius, 
                          vec3 fragPositionES, vec3 fragNormalES) {
 	vec2 searchVec = deltaTap * diskPixelRadius;
 	float obscurance;
 
     // Forward search for h1
-    obscurance = computeHorizon(side, shadedPixelPos, sideImageSize, deltaTap, fragPositionES, fragNormalES, searchVec);
+    obscurance = computeHorizon(side, shadedPixelPos, sideImageSize, deltaTap, fragPositionES, fragNormalES, searchVec, diskPixelRadius);
 
     // Backward search for h2
-    obscurance += computeHorizon(side, shadedPixelPos, sideImageSize, deltaTap, fragPositionES, fragNormalES, -searchVec);
+    obscurance += computeHorizon(side, shadedPixelPos, sideImageSize, deltaTap, fragPositionES, fragNormalES, -searchVec, diskPixelRadius);
 
 	return obscurance * 0.5 / PI;
 }

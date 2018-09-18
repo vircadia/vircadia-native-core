@@ -384,7 +384,7 @@ void DebugDeferredBuffer::configure(const Config& config) {
     auto& parameters = _parameters.edit();
 
     _mode = (Mode)config.mode;
-    _size = config.size;
+    _size = glm::vec4{config.debugCursorTexcoord.x*2.0f - 1.0f, -1.0f, 1.0f, 1.0f};
     parameters._shadowCascadeIndex = glm::clamp(_mode - Mode::ShadowCascade0Mode, 0, (int)SHADOW_CASCADE_MAX_COUNT - 1);
 }
 

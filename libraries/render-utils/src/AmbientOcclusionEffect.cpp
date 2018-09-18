@@ -375,7 +375,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getVBlurPipeline() {
 
 const gpu::PipelinePointer& AmbientOcclusionEffect::getMipCreationPipeline() {
 	if (!_mipCreationPipeline) {
-		_mipCreationPipeline = gpu::Context::createMipGenerationPipeline(gpu::Shader::createPixel(shader::render_utils::fragment::mip_depth_median));
+		_mipCreationPipeline = gpu::Context::createMipGenerationPipeline(gpu::Shader::createPixel(shader::render_utils::fragment::ssao_mip_depth));
 	}
 	return _mipCreationPipeline;
 }

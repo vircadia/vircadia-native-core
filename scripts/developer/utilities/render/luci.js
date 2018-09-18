@@ -78,13 +78,11 @@
     Controller.mouseReleaseEvent.connect(function() { moveDebugCursor = false; });
     Controller.mouseMoveEvent.connect(function (e) { if (moveDebugCursor) setDebugCursor(e.x, e.y); });
 
-
-
     function setDebugCursor(x, y) {
-        nx = (x / Window.innerWidth);
-        ny = 1.0 - ((y) / (Window.innerHeight - 32));
+        nx = ((x + 0.5) / Window.innerWidth);
+        ny = 1.0 - ((y + 0.5) / (Window.innerHeight));
 
-         Render.getConfig("RenderMainView").getConfig("Antialiasing").debugCursorTexcoord = { x: nx, y: ny };
+        Render.getConfig("RenderMainView").getConfig("DebugDeferredBuffer").debugCursorTexcoord = { x: nx, y: ny };
     }
 
 
