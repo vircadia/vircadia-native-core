@@ -180,9 +180,13 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
         _appDataFolder = dataDirectory + "\\High Fidelity - " + getPRNumberFromURL(_url->toPlainText());
     }
 
+    _savedAppDataFolder = dataDirectory + "/" + UNIQUE_FOLDER_NAME;
+    if (_savedAppDataFolder.exists()) {
+        _savedAppDataFolder.removeRecursively();
+    }
+
     if (_appDataFolder.exists()) {
         // The original folder is saved in a unique name
-        _savedAppDataFolder = dataDirectory + "/" + UNIQUE_FOLDER_NAME;
         _appDataFolder.rename(_appDataFolder.path(), _savedAppDataFolder.path());
     }
 
