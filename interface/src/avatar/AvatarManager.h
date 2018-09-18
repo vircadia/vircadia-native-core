@@ -178,14 +178,8 @@ public:
      */
     Q_INVOKABLE QVariantMap getPalData(const QList<QString> specificAvatarIdentifiers = QList<QString>());
 
-    Q_INVOKABLE void setAvatarTransitDistanceBased(bool isDistanceBased) { _avatarTransitDistanceBased = isDistanceBased; }
-    Q_INVOKABLE void setAvatarTransitMaxDistance(float maxDistance) { _avatarTransitMaxDistance = maxDistance; }
-    Q_INVOKABLE void setAvatarTransitFrameCount(int frameCount) { _avatarTransitFrameCount = frameCount; }
-    Q_INVOKABLE void setAvatarTransitFramesPerMeter(int frameCount) { _avatarTransitFramesPerMeter = frameCount; }
-    Q_INVOKABLE bool getAvatarTransitDistanceBased() { return _avatarTransitDistanceBased; }
-    Q_INVOKABLE float getAvatarTransitMaxDistance() { return _avatarTransitMaxDistance; }
-    Q_INVOKABLE int getAvatarTransitFrameCount() { return _avatarTransitFrameCount; }
-    Q_INVOKABLE int getAvatarTransitFramesPerMeter() { return _avatarTransitFramesPerMeter; }
+    Q_INVOKABLE QVariantMap getAvatarTransitData();
+    Q_INVOKABLE void setAvatarTransitData(const QVariantMap& data);
 
     float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
     int getIdentityRequestsSent() const { return _identityRequestsSent; }
@@ -212,6 +206,7 @@ private:
 
     AvatarSharedPointer newSharedAvatar() override;
     void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
+    void playTransitAnimations(AvatarTransit::Status status);
 
     QVector<AvatarSharedPointer> _avatarsToFade;
     QVector<AvatarSharedPointer> _avatarsToCopy;
@@ -237,11 +232,7 @@ private:
 
     // Other avatars smooth transit global configuration
 
-    bool _avatarTransitDistanceBased { true };
-    float _avatarTransitMaxDistance;
-    int _avatarTransitFrameCount;
-    int _avatarTransitFramesPerMeter;
-
+    AvatarTransit::TransitConfig  _transitConfig;
 };
 
 #endif // hifi_AvatarManager_h

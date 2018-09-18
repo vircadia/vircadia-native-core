@@ -113,29 +113,27 @@ void Avatar::setShowNamesAboveHeads(bool show) {
     showNamesAboveHeads = show;
 }
 
-bool AvatarTransit::update(const glm::vec3& avatarPosition, int totalFrames, int framesPerMeter, bool isDistanceBased, float maxDistance) {
-    bool starting = false;
+AvatarTransit::Status AvatarTransit::update(const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config) {
     glm::vec3 currentPosition = _isTransiting ? _currentPosition : avatarPosition;
     float oneFrameDistance = glm::length(currentPosition - _lastPosition);
-    if (oneFrameDistance > maxDistance && !_isTransiting) {
-        start(_lastPosition, currentPosition, totalFrames, framesPerMeter, isDistanceBased);
-        starting = true;
-    } 
-    updatePosition(avatarPosition);
-    return starting;
+    if (oneFrameDistance > config._triggerDistance && !_isTransiting) {
+        start(_lastPosition, currentPosition, config);
+    }
+    return updatePosition(avatarPosition);
 }
 
-void AvatarTransit::start(const glm::vec3& startPosition, const glm::vec3& endPosition, int totalFrames, int framesPerMeter, bool isDistanceBased) {
+void AvatarTransit::start(const glm::vec3& startPosition, const glm::vec3& endPosition, const AvatarTransit::TransitConfig& config) {
     _startPosition = startPosition;
     _endPosition = endPosition;
+    _framesBefore = config._startTransitAnimation._frameCount;
+    _framesAfter = config._endTransitAnimation._frameCount;
     _step = 0;
-    if (!isDistanceBased) {
-        calculateSteps(totalFrames);
+    if (!config._isDistanceBased) {
+        calculateSteps(config._totalFrames);
     } else {
         float distance = glm::length(_endPosition - _startPosition);
-        calculateSteps(framesPerMeter * distance);
+        calculateSteps(config._framesPerMeter * distance);
     }
-    
     _isTransiting = true;
 }
 
@@ -145,22 +143,42 @@ void AvatarTransit::calculateSteps(int stepCount) {
     glm::vec3 transitLine = _endPosition - startPosition;
     glm::vec3 direction = glm::normalize(transitLine);
     glm::vec3 stepVector = (glm::length(transitLine) / stepCount) * direction;
-    for (auto i = 0; i < stepCount; i++) {
-        glm::vec3 localStep = _transitSteps.size() > 0 ? _transitSteps[i-1] + stepVector : _startPosition + stepVector;
-        _transitSteps.push_back(localStep);
+    int totalSteps = stepCount + _framesBefore + _framesAfter;
+    for (auto i = 0; i < totalSteps; i++) {
+        if (i < _framesBefore) {
+            _transitSteps.push_back(_startPosition);
+        } else if (i >= stepCount + _framesBefore) {
+            _transitSteps.push_back(_endPosition);
+        } else {
+            glm::vec3 localStep = _transitSteps.size() > _framesBefore ? _transitSteps[i - 1] + stepVector : _startPosition + stepVector;
+            _transitSteps.push_back(localStep);
+        }
     }
 }
 
-void AvatarTransit::updatePosition(const glm::vec3& avatarPosition) {
+AvatarTransit::Status AvatarTransit::updatePosition(const glm::vec3& avatarPosition) {
+    Status status = Status::IDLE;
     _lastPosition = _isTransiting ? _currentPosition : avatarPosition;
     if (_isTransiting) {
         int lastIdx = (int)_transitSteps.size() - 1;
         _isTransiting = _step < lastIdx;
         if (_isTransiting) {
+            if (_step == 0) {
+                status = Status::START_FRAME;
+                qDebug() << "Transit starting";
+            } else if (_step == _framesBefore - 1) {
+                status = Status::START_TRANSIT;
+            } else if (_step == (int)_transitSteps.size() - _framesAfter) {
+                status = Status::END_TRANSIT;
+            }
             _step++;
             _currentPosition = _transitSteps[_step];
+        } else {
+            status = Status::END_FRAME;
+            qDebug() << "Transit ending";
         }
     }
+    return status;
 }
 
 bool AvatarTransit::getNextPosition(glm::vec3& nextPosition) {
@@ -1934,6 +1952,11 @@ float Avatar::getUnscaledEyeHeightFromSkeleton() const {
     } else {
         return DEFAULT_AVATAR_EYE_HEIGHT;
     }
+}
+
+AvatarTransit::Status Avatar::updateTransit(const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config) {
+    std::lock_guard<std::mutex> lock(_transitLock);
+    return _transit.update(avatarPosition, config);
 }
 
 void Avatar::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {

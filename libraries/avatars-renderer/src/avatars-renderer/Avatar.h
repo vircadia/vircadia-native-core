@@ -52,21 +52,55 @@ class Texture;
 
 class AvatarTransit {
 public:
+    enum Status {
+        IDLE = 0,
+        START_FRAME,
+        START_TRANSIT,
+        TRANSITING,
+        END_TRANSIT,
+        END_FRAME
+    };
+
+    struct TransitAnimation {
+        TransitAnimation() {};
+        TransitAnimation(const QString& animationUrl, int fps, int firstFrame, int frameCount) :
+            _firstFrame(firstFrame), _frameCount(frameCount), _animationUrl(animationUrl), _fps(fps) {};
+        int _firstFrame;
+        int _frameCount;
+        QString _animationUrl;
+        int _fps;
+    };
+
+    struct TransitConfig {
+        TransitConfig() {};
+        int _totalFrames { 0 };
+        int _framesPerMeter { 0 };
+        bool _isDistanceBased { false };
+        float _triggerDistance { 0 };
+        bool _playAnimation { false };
+        TransitAnimation _startTransitAnimation;
+        TransitAnimation _middleTransitAnimation;
+        TransitAnimation _endTransitAnimation;
+    };
+
+
     AvatarTransit() {};
-    bool update(const glm::vec3& avatarPosition, int totalFrames, int framesPerMeter, bool isDistanceBased, float maxDistance);
-    void start(const glm::vec3& startPosition, const glm::vec3& endPosition, int totalFrames, int framesPerMeter, bool isDistanceBased);
-    bool getNextPosition(glm::vec3& nextPosition);
+    Status update(const glm::vec3& avatarPosition, const TransitConfig& config);
     bool isTransiting() { return _isTransiting; };
     glm::vec3 getCurrentPosition() { return _currentPosition; };
+    bool getNextPosition(glm::vec3& nextPosition);
     int getCurrentStep() { return _step; };
 
 private:
     void calculateSteps(int stepCount);
-    void updatePosition(const glm::vec3& avatarPosition);
+    Status updatePosition(const glm::vec3& avatarPosition);
+    void start(const glm::vec3& startPosition, const glm::vec3& endPosition, const TransitConfig& config);
     bool _isTransiting{ false };
     glm::vec3 _startPosition;
     glm::vec3 _endPosition;
     glm::vec3 _currentPosition;
+    int _framesBefore { 0 };
+    int _framesAfter { 0 };
     std::vector<glm::vec3> _transitSteps;
     glm::vec3 _lastPosition;
     int _step { 0 };
@@ -385,6 +419,7 @@ public:
 
     std::shared_ptr<AvatarTransit> getTransit() { return std::make_shared<AvatarTransit>(_transit); };
 
+    AvatarTransit::Status updateTransit(const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config);
 signals:
     void targetScaleChanged(float targetScale);
 
@@ -520,6 +555,7 @@ protected:
     RateCounter<> _skeletonModelSimulationRate;
     RateCounter<> _jointDataSimulationRate;
 
+
 protected:
     class AvatarEntityDataHash {
     public:
@@ -544,7 +580,7 @@ protected:
     float _modelScale { 1.0f };
 
     AvatarTransit _transit;
-
+    std::mutex _transitLock;
 
     static int _jointConesID;
 

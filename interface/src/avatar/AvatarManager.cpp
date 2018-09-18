@@ -79,13 +79,21 @@ AvatarManager::AvatarManager(QObject* parent) :
         }
     });
 
-    const float AVATAR_TRANSIT_MAX_DISTANCE = 1.0f;
+    const float AVATAR_TRANSIT_TRIGGER_DISTANCE = 1.0f;
     const int AVATAR_TRANSIT_FRAME_COUNT = 11; // Based on testing
     const int AVATAR_TRANSIT_FRAMES_PER_METER = 3; // Based on testing
 
-    _avatarTransitMaxDistance = AVATAR_TRANSIT_MAX_DISTANCE;
-    _avatarTransitFrameCount = AVATAR_TRANSIT_FRAME_COUNT;
-    _avatarTransitFramesPerMeter = AVATAR_TRANSIT_FRAMES_PER_METER;
+    const QString START_ANIMATION_URL = "https://hifi-content.s3.amazonaws.com/luis/test_scripts/transitApp/animations/teleport01_warp.fbx";
+    const QString MIDDLE_ANIMATION_URL = "https://hifi-content.s3.amazonaws.com/luis/test_scripts/transitApp/animations/teleport01_warp.fbx";
+    const QString END_ANIMATION_URL = "https://hifi-content.s3.amazonaws.com/luis/test_scripts/transitApp/animations/teleport01_warp.fbx";
+
+    _transitConfig._totalFrames = AVATAR_TRANSIT_FRAME_COUNT;
+    _transitConfig._triggerDistance = AVATAR_TRANSIT_TRIGGER_DISTANCE;
+    _transitConfig._framesPerMeter = AVATAR_TRANSIT_FRAMES_PER_METER;
+    _transitConfig._isDistanceBased = true;
+    _transitConfig._startTransitAnimation = AvatarTransit::TransitAnimation(START_ANIMATION_URL, 30, 0, 10);
+    _transitConfig._middleTransitAnimation = AvatarTransit::TransitAnimation(MIDDLE_ANIMATION_URL, 30, 11, 0);
+    _transitConfig._endTransitAnimation = AvatarTransit::TransitAnimation(END_ANIMATION_URL, 30, 12, 38);
 }
 
 AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
@@ -133,26 +141,37 @@ void AvatarManager::setSpace(workload::SpacePointer& space ) {
     _space = space;
 }
 
+void AvatarManager::playTransitAnimations(AvatarTransit::Status status) {
+    auto startAnimation = _transitConfig._startTransitAnimation;
+    auto middleAnimation = _transitConfig._middleTransitAnimation;
+    auto endAnimation = _transitConfig._endTransitAnimation;
+
+    switch (status) {
+    case AvatarTransit::Status::START_FRAME:
+        _myAvatar->overrideAnimation(startAnimation._animationUrl, startAnimation._fps, false, startAnimation._firstFrame, startAnimation._firstFrame + startAnimation._frameCount);
+        break;
+    case AvatarTransit::Status::START_TRANSIT:
+        _myAvatar->overrideAnimation(middleAnimation._animationUrl, middleAnimation._fps, false, middleAnimation._firstFrame, middleAnimation._firstFrame + middleAnimation._frameCount);
+        break;
+    case AvatarTransit::Status::END_TRANSIT:
+        _myAvatar->overrideAnimation(endAnimation._animationUrl, endAnimation._fps, false, endAnimation._firstFrame, endAnimation._firstFrame + endAnimation._frameCount);
+        break;
+    case AvatarTransit::Status::END_FRAME:
+        _myAvatar->restoreAnimation();
+        break;
+    }
+}
+
 void AvatarManager::updateMyAvatar(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "AvatarManager::updateMyAvatar()");
-    /*
-    std::shared_ptr<AvatarTransit> transit = _myAvatar->getTransit();
-    bool initTransit = false;
-    if (!transit->isTransiting()) {
-        initTransit = transit->update(_myAvatar->getWorldPosition(), _avatarTransitFrameCount, _avatarTransitFramesPerMeter, _avatarTransitDistanceBased, _avatarTransitMaxDistance);
-        if (initTransit) {
-            _myAvatar->getSkeletonModel()->getRig().restoreAnimation();
-            _myAvatar->getSkeletonModel()->getRig().overrideAnimation("https://hifi-content.s3.amazonaws.com/luis/test_scripts/transit_app/animations/teleport01_warp.fbx", 30, false, 0, 49);
-        }
-    } 
-    if (transit->isTransiting()){
-        glm::vec3 nextPosition;
-        if (!transit->getNextPosition(nextPosition)) {
-            _myAvatar->getSkeletonModel()->getRig().restoreAnimation();
-        }
+
+    AvatarTransit::Status status = _myAvatar->updateTransit(_myAvatar->getWorldPosition(), _transitConfig);
+    
+    if (_transitConfig._playAnimation) {
+        playTransitAnimations(status);
     }
-    */
+    
     _myAvatar->update(deltaTime);
     render::Transaction transaction;
     _myAvatar->updateRenderItem(transaction);
@@ -276,7 +295,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             }
             // smooth other avatars positions
             {
-                avatar->_transit.update(avatar->_globalPosition, _avatarTransitFrameCount, _avatarTransitFramesPerMeter, _avatarTransitDistanceBased, _avatarTransitMaxDistance);
+                avatar->_transit.update(avatar->_globalPosition, _transitConfig);
             }
 
             avatar->simulate(deltaTime, inView);
@@ -865,4 +884,31 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
     QJsonObject doc;
     doc.insert("data", palData);
     return doc.toVariantMap();
+}
+
+ QVariantMap AvatarManager::getAvatarTransitData() {
+     QVariantMap result;
+     result["frameCount"] = _transitConfig._totalFrames;
+     result["framesPerMeter"] = _transitConfig._framesPerMeter;
+     result["isDistanceBased"] = _transitConfig._isDistanceBased;
+     result["triggerDistance"] = _transitConfig._triggerDistance;
+     result["playAnimation"] = _transitConfig._playAnimation;
+     return result;
+}
+ void AvatarManager::setAvatarTransitData(const QVariantMap& data) {
+     if (data.contains("frameCount")) {
+         _transitConfig._totalFrames = data["frameCount"].toInt();
+     }
+     if (data.contains("framesPerMeter")) {
+         _transitConfig._framesPerMeter = data["framesPerMeter"].toInt();
+     }     
+     if (data.contains("isDistanceBased")) {
+         _transitConfig._isDistanceBased = data["isDistanceBased"].toBool();
+     }     
+     if (data.contains("triggerDistance")) {
+         _transitConfig._triggerDistance = data["triggerDistance"].toDouble();
+     }     
+     if (data.contains("playAnimation")) {
+         _transitConfig._playAnimation = data["playAnimation"].toBool();
+     }
 }
