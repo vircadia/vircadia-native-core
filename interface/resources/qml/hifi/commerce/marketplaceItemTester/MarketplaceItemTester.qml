@@ -22,39 +22,61 @@ import "../../../controls-uit" as HifiControlsUit
 
 
 Rectangle {
-    id:root
+    id: root
+    property string installedApps
     HifiStylesUit.HifiConstants { id: hifi }
+    ListModel { id: resourceListModel }
+
     color: hifi.colors.white
-    ListModel { id: listModel }
+
+    function buildResourceObj(resource) {
+        resource = resource.trim();
+        var assetType = (resource.match(/\.app\.json$/) ? "application" :
+                         resource.match(/\.(?:fbx|fst)$/) ? "avatar" :
+                         resource.match(/\.json\.gz$/) ? "content set" :
+                         resource.match(/\.json$/) ? "entity or wearable" :
+                         "unknown");
+        return { "resource": resource, "assetType": assetType };
+    }
+
+    function installResourceObj(resourceObj) {
+        if ("application" == resourceObj["assetType"]) {
+            Commerce.installApp(resourceObj["resource"]);
+        }
+        // XXX support other asset types here
+    }
+
+    function addAllInstalledAppsToList() {
+        var i, apps = Commerce.getInstalledApps().split(","), len = apps.length;
+        for(i = 0; i < len - 1; ++i) {
+            if (i in apps) {
+                resourceListModel.append(buildResourceObj(apps[i]));
+            }
+        }
+    }
+
+    Component.onCompleted: {
+        // On startup, list includes all tester-installed assets.
+        addAllInstalledAppsToList();
+        // XXX support other asset types here
+    }
+
     ListView {
         anchors.fill: parent
         anchors.leftMargin: 12
         anchors.bottomMargin: 40
-        model: listModel
+        anchors.rightMargin: 12
+        model: resourceListModel
         spacing: 5
+
         delegate: RowLayout {
             anchors.left: parent.left
             width: parent.width
             spacing: 5
-            Text {
-                text: {
-                    var match = resource.match(/\/([^/]*)$/);
-                    return match ? match[1] : resource;
-                }
-                font.pointSize: 12
-                Layout.preferredWidth: root.width * .6
-                horizontalAlignment: Text.AlignBottom
-            }
-            Text {
-                text: assetType
-                font.pointSize: 10
-                Layout.preferredWidth: root.width * .2
-                horizontalAlignment: Text.AlignBottom
-            }
+
             property var actions: {
                 "forward": function(resource, assetType){
                     if ("application" == assetType) {
-                        Commerce.installApp(resource);
                         Commerce.openApp(resource);
                     }
                     // XXX support other resource types here.
@@ -64,9 +86,27 @@ Rectangle {
                         Commerce.uninstallApp(resource);
                     }
                     // XXX support other resource types here.
-                    listModel.remove(index);
+                    resourceListModel.remove(index);
                 }
             }
+
+            Text {
+                text: {
+                    var match = resource.match(/\/([^/]*)$/);
+                    return match ? match[1] : resource;
+                }
+                font.pointSize: 12
+                Layout.preferredWidth: root.width * .6
+                horizontalAlignment: Text.AlignBottom
+            }
+
+            Text {
+                text: assetType
+                font.pointSize: 10
+                Layout.preferredWidth: root.width * .2
+                horizontalAlignment: Text.AlignBottom
+            }
+
             Repeater {
                 model: [
                     { "name": "forward", "glyph": hifi.glyphs.forward, "size": 30 },
@@ -86,6 +126,7 @@ Rectangle {
                 }
             }
         }
+
         headerPositioning: ListView.OverlayHeader
         header: HifiStylesUit.RalewayRegular {
             id: rootHeader
@@ -97,19 +138,27 @@ Rectangle {
             anchors.left: parent.left
             anchors.leftMargin: 12
         }
+
         footerPositioning: ListView.OverlayFooter
         footer: Row {
             id: rootActions
             spacing: 20
             anchors.horizontalCenter: parent.horizontalCenter
+
             property string currentAction
-            function assetType(resource) {
-                return (resource.match(/\.app\.json$/) ? "application" :
-                        resource.match(/\.(?:fbx|fst)$/) ? "avatar" :
-                        resource.match(/\.json\.gz$/) ? "content set" :
-                        resource.match(/\.json$/) ? "entity or wearable" :
-                        "unknown")
+            property var actions: {
+                "Load File": function(){
+                    rootActions.currentAction = "load file";
+                    Window.browseChanged.connect(onResourceSelected);
+                    Window.browseAsync("Please select a file", "", "Assets (*.app.json *.json *.fbx *.json.gz)");
+                },
+                "Load URL": function(){
+                    rootActions.currentAction = "load url";
+                    Window.promptTextChanged.connect(onResourceSelected);
+                    Window.promptAsync("Please enter a URL", "");
+                }
             }
+
             function onResourceSelected(resource) {
                 // It is possible that we received the present signal
                 // from something other than our browserAsync window.
@@ -124,23 +173,12 @@ Rectangle {
                     Window.promptTextChanged.disconnect(onResourceSelected);
                 }
                 if (resource) {
-                    listModel.append( {
-                        "resource": resource.trim(),
-                        "assetType": assetType(resource.trim()) } );
+                    var resourceObj = buildResourceObj(resource);
+                    installResourceObj(resourceObj);
+                    resourceListModel.append(resourceObj);
                 }
             }
-            property var actions: {
-                "Load File": function(){
-                    rootActions.currentAction = "load file";
-                    Window.browseChanged.connect(onResourceSelected);
-                    Window.browseAsync("Please select a file", "", "Assets (*.app.json *.json *.fbx *.json.gz)");
-                },
-                "Load URL": function(){
-                    rootActions.currentAction = "load url";
-                    Window.promptTextChanged.connect(onResourceSelected);
-                    Window.promptAsync("Please enter a URL", "");
-                }
-            }
+
             Repeater {
                 model: [ "Load File", "Load URL" ]
                 HifiControlsUit.Button {
