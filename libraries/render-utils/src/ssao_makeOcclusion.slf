@@ -19,7 +19,6 @@
 
 <$declarePackOcclusionDepth()$>
 
-#define SSAO_USE_HORIZON_BASED	1
 #define SSAO_HBAO_MAX_RADIUS    100.0
 
 layout(location=0) out vec4 outFragColor;

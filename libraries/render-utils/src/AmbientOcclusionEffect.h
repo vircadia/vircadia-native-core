@@ -115,42 +115,30 @@ public:
 
     void configure(const Config& config);
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
-    
+
+#include "ssao_shared.h"
 
     // Class describing the uniform buffer with all the parameters common to the AO shaders
-    class AOParameters {
+    class AOParameters : public AmbientOcclusionParams {
     public:
-        // Resolution info
-        glm::vec4 resolutionInfo;
-        // radius info is { R, R^2, 1 / R^6, ObscuranceScale}
-        glm::vec4 radiusInfo;
-        // Dithering info 
-        glm::vec4 ditheringInfo;
-        // Sampling info
-        glm::vec4 sampleInfo;
-        // Blurring info
-        glm::vec4 blurInfo;
-         // gaussian distribution coefficients first is the sampling radius (max is 6)
-        const static int GAUSSIAN_COEFS_LENGTH = 16;
-        float _gaussianCoefs[GAUSSIAN_COEFS_LENGTH];
-         
+
         AOParameters();
 
-        int getResolutionLevel() const { return resolutionInfo.x; }
-        float getRadius() const { return radiusInfo.x; }
-        float getPerspectiveScale() const { return resolutionInfo.z; }
-        float getObscuranceLevel() const { return radiusInfo.w; }
-        float getFalloffAngle() const { return (float)ditheringInfo.z; }
-        float getEdgeSharpness() const { return (float)blurInfo.x; }
-        float getBlurDeviation() const { return blurInfo.z; }
+        int getResolutionLevel() const { return _resolutionInfo.x; }
+        float getRadius() const { return _radiusInfo.x; }
+        float getPerspectiveScale() const { return _resolutionInfo.z; }
+        float getObscuranceLevel() const { return _radiusInfo.w; }
+        float getFalloffAngle() const { return (float)_ditheringInfo.z; }
+        float getEdgeSharpness() const { return (float)_blurInfo.x; }
+        float getBlurDeviation() const { return _blurInfo.z; }
         
-        float getNumSpiralTurns() const { return sampleInfo.z; }
-        int getNumSamples() const { return (int)sampleInfo.x; }
-        bool isFetchMipsEnabled() const { return sampleInfo.w; }
+        float getNumSpiralTurns() const { return _sampleInfo.z; }
+        int getNumSamples() const { return (int)_sampleInfo.x; }
+        bool isFetchMipsEnabled() const { return _sampleInfo.w; }
 
-        int getBlurRadius() const { return (int)blurInfo.y; }
-        bool isDitheringEnabled() const { return ditheringInfo.x; }
-        bool isBorderingEnabled() const { return ditheringInfo.w; }
+        int getBlurRadius() const { return (int)_blurInfo.y; }
+        bool isDitheringEnabled() const { return _ditheringInfo.x; }
+        bool isBorderingEnabled() const { return _ditheringInfo.w; }
     };
     using AOParametersBuffer = gpu::StructBuffer<AOParameters>;
 

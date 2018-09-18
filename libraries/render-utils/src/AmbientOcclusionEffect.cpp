@@ -30,9 +30,6 @@
 #include "DependencyManager.h"
 #include "ViewFrustum.h"
 
-// Should match value in ssao_makeOcclusion.slf
-#define SSAO_USE_HORIZON_BASED  1
-
 gpu::PipelinePointer AmbientOcclusionEffect::_occlusionPipeline;
 gpu::PipelinePointer AmbientOcclusionEffect::_hBlurPipeline;
 gpu::PipelinePointer AmbientOcclusionEffect::_vBlurPipeline;
@@ -203,13 +200,12 @@ AmbientOcclusionEffectConfig::AmbientOcclusionEffectConfig() :
 
 }
 
-AmbientOcclusionEffect::AOParameters::AOParameters() :
-resolutionInfo{ -1.0f, 0.0f, 1.0f, 0.0f },
-radiusInfo{ 0.5f, 0.5f * 0.5f, 1.0f / (0.25f * 0.25f * 0.25f), 1.0f },
-ditheringInfo{ 0.0f, 0.0f, 0.01f, 1.0f },
-sampleInfo{ 11.0f, 1.0f / 11.0f, 7.0f, 1.0f },
-blurInfo{ 1.0f, 3.0f, 2.0f, 0.0f } {
-
+AmbientOcclusionEffect::AOParameters::AOParameters() {
+    _resolutionInfo = { -1.0f, 0.0f, 1.0f, 0.0f };
+    _radiusInfo = { 0.5f, 0.5f * 0.5f, 1.0f / (0.25f * 0.25f * 0.25f), 1.0f };
+    _ditheringInfo = { 0.0f, 0.0f, 0.01f, 1.0f };
+    _sampleInfo = { 11.0f, 1.0f / 11.0f, 7.0f, 1.0f };
+    _blurInfo = { 1.0f, 3.0f, 2.0f, 0.0f };
 }
 
 AmbientOcclusionEffect::AmbientOcclusionEffect() {
@@ -224,7 +220,7 @@ void AmbientOcclusionEffect::configure(const Config& config) {
     const double RADIUS_POWER = 6.0;
     const auto& radius = config.radius;
     if (radius != _aoParametersBuffer->getRadius()) {
-        auto& current = _aoParametersBuffer.edit().radiusInfo;
+        auto& current = _aoParametersBuffer.edit()._radiusInfo;
         current.x = radius;
         current.y = radius * radius;
         current.z = 10.0f;
@@ -234,40 +230,40 @@ void AmbientOcclusionEffect::configure(const Config& config) {
     }
 
     if (config.obscuranceLevel != _aoParametersBuffer->getObscuranceLevel()) {
-        auto& current = _aoParametersBuffer.edit().radiusInfo;
+        auto& current = _aoParametersBuffer.edit()._radiusInfo;
         current.w = config.obscuranceLevel;
     }
 
     if (config.falloffAngle != _aoParametersBuffer->getFalloffAngle()) {
-        auto& current = _aoParametersBuffer.edit().ditheringInfo;
+        auto& current = _aoParametersBuffer.edit()._ditheringInfo;
         current.z = config.falloffAngle;
         current.y = 1.0f / (1.0f - config.falloffAngle);
     }
 
     if (config.edgeSharpness != _aoParametersBuffer->getEdgeSharpness()) {
-        auto& current = _aoParametersBuffer.edit().blurInfo;
+        auto& current = _aoParametersBuffer.edit()._blurInfo;
         current.x = config.edgeSharpness;
     }
 
     if (config.blurDeviation != _aoParametersBuffer->getBlurDeviation()) {
-        auto& current = _aoParametersBuffer.edit().blurInfo;
+        auto& current = _aoParametersBuffer.edit()._blurInfo;
         current.z = config.blurDeviation;
         shouldUpdateGaussian = true;
     }
 
     if (config.numSpiralTurns != _aoParametersBuffer->getNumSpiralTurns()) {
-        auto& current = _aoParametersBuffer.edit().sampleInfo;
+        auto& current = _aoParametersBuffer.edit()._sampleInfo;
         current.z = config.numSpiralTurns;
     }
 
     if (config.numSamples != _aoParametersBuffer->getNumSamples()) {
-        auto& current = _aoParametersBuffer.edit().sampleInfo;
+        auto& current = _aoParametersBuffer.edit()._sampleInfo;
         current.x = config.numSamples;
         current.y = 1.0f / config.numSamples;
     }
 
     if (config.fetchMipsEnabled != _aoParametersBuffer->isFetchMipsEnabled()) {
-        auto& current = _aoParametersBuffer.edit().sampleInfo;
+        auto& current = _aoParametersBuffer.edit()._sampleInfo;
         current.w = (float)config.fetchMipsEnabled;
     }
 
@@ -277,28 +273,28 @@ void AmbientOcclusionEffect::configure(const Config& config) {
     }
     
     if (config.perspectiveScale != _aoParametersBuffer->getPerspectiveScale()) {
-        _aoParametersBuffer.edit().resolutionInfo.z = config.perspectiveScale;
+        _aoParametersBuffer.edit()._resolutionInfo.z = config.perspectiveScale;
     }
 
     if (config.resolutionLevel != _aoParametersBuffer->getResolutionLevel()) {
-        auto& current = _aoParametersBuffer.edit().resolutionInfo;
+        auto& current = _aoParametersBuffer.edit()._resolutionInfo;
         current.x = (float) config.resolutionLevel;
         shouldUpdateBlurs = true;
     }
  
     if (config.blurRadius != _aoParametersBuffer->getBlurRadius()) {
-        auto& current = _aoParametersBuffer.edit().blurInfo;
+        auto& current = _aoParametersBuffer.edit()._blurInfo;
         current.y = (float)config.blurRadius;
         shouldUpdateGaussian = true;
     }
 
     if (config.ditheringEnabled != _aoParametersBuffer->isDitheringEnabled()) {
-        auto& current = _aoParametersBuffer.edit().ditheringInfo;
+        auto& current = _aoParametersBuffer.edit()._ditheringInfo;
         current.x = (float)config.ditheringEnabled;
     }
 
     if (config.borderingEnabled != _aoParametersBuffer->isBorderingEnabled()) {
-        auto& current = _aoParametersBuffer.edit().ditheringInfo;
+        auto& current = _aoParametersBuffer.edit()._ditheringInfo;
         current.w = (float)config.borderingEnabled;
     }
 
@@ -377,7 +373,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getMipCreationPipeline() {
 
 void AmbientOcclusionEffect::updateGaussianDistribution() {
     auto coefs = _aoParametersBuffer.edit()._gaussianCoefs;
-    GaussianDistribution::evalSampling(coefs, AOParameters::GAUSSIAN_COEFS_LENGTH, _aoParametersBuffer->getBlurRadius(), _aoParametersBuffer->getBlurDeviation());
+    GaussianDistribution::evalSampling(coefs, SSAO_BLUR_GAUSSIAN_COEFS_COUNT, _aoParametersBuffer->getBlurRadius(), _aoParametersBuffer->getBlurDeviation());
 }
 
 void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {

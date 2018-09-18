@@ -12,6 +12,8 @@
 //
 <@include ssao.slh@>
 
+// Hack comment
+
 const ivec2 vertical = ivec2(0,1);
 <$declareBlurPass(vertical)$>
 

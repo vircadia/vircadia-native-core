@@ -12,6 +12,7 @@
 <@def SSAO_SLH@>
 
 <@include render-utils/ShaderConstants.h@>
+<@include ssao_shared.h@>
 
 <@func declarePackOcclusionDepth()@>
 
@@ -34,15 +35,6 @@ vec2 unpackOcclusionDepth(vec3 raw) {
 <@func declareAmbientOcclusion()@>
 <@include DeferredTransform.slh@>
 <$declareDeferredFrameTransform()$>
-
-struct AmbientOcclusionParams {
-    vec4 _resolutionInfo;
-    vec4 _radiusInfo;
-    vec4 _ditheringInfo;
-    vec4 _sampleInfo;
-    vec4 _blurInfo;
-    float _gaussianCoefs[16];
-};
 
 layout(binding=RENDER_UTILS_BUFFER_SSAO_PARAMS) uniform ambientOcclusionParamsBuffer {
     AmbientOcclusionParams params;
