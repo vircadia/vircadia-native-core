@@ -204,7 +204,10 @@ private:
     void simulateAvatarFades(float deltaTime);
 
     AvatarSharedPointer newSharedAvatar() override;
-    void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
+    
+    // must not be called while holding the hash lock
+    void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar,
+                             KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
 
     QVector<AvatarSharedPointer> _avatarsToFade;
 
