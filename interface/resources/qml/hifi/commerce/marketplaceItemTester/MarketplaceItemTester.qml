@@ -76,8 +76,12 @@ Rectangle {
 
             property var actions: {
                 "forward": function(resource, assetType){
-                    if ("application" == assetType) {
-                        Commerce.openApp(resource);
+                    switch(assetType) {
+                        case "application":
+                            Commerce.openApp(resource);
+                            break
+                        case "avatar":
+                            MyAvatar.useFullAvatarURL(resource);
                     }
                     // XXX support other resource types here.
                 },
