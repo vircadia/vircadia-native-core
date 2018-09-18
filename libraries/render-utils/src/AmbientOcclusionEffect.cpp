@@ -176,18 +176,17 @@ public:
 AmbientOcclusionEffectConfig::AmbientOcclusionEffectConfig() :
     render::GPUJobConfig::Persistent(QStringList() << "Render" << "Engine" << "Ambient Occlusion", false),
 #if SSAO_USE_HORIZON_BASED
-    radius{ 0.1f },
+    radius{ 0.3f },
 #else
     radius{ 0.5f },
 #endif
     perspectiveScale{ 1.0f },
     obscuranceLevel{ 0.5f },
 #if SSAO_USE_HORIZON_BASED
-    falloffAngle{ 0.1f },
+    falloffAngle{ 0.2f },
 #else
     falloffAngle{ 0.01f },
 #endif
-    falloffDistance{ 0.3f },
     edgeSharpness{ 1.0f },
     blurDeviation{ 2.5f },
     numSpiralTurns{ 7.0f },
@@ -242,6 +241,7 @@ void AmbientOcclusionEffect::configure(const Config& config) {
     if (config.falloffAngle != _aoParametersBuffer->getFalloffAngle()) {
         auto& current = _aoParametersBuffer.edit().ditheringInfo;
         current.z = config.falloffAngle;
+        current.y = 1.0f / (1.0f - config.falloffAngle);
     }
 
     if (config.edgeSharpness != _aoParametersBuffer->getEdgeSharpness()) {
@@ -300,11 +300,6 @@ void AmbientOcclusionEffect::configure(const Config& config) {
     if (config.borderingEnabled != _aoParametersBuffer->isBorderingEnabled()) {
         auto& current = _aoParametersBuffer.edit().ditheringInfo;
         current.w = (float)config.borderingEnabled;
-    }
-
-    if (config.falloffDistance != _aoParametersBuffer->getFalloffDistance()) {
-        auto& current = _aoParametersBuffer.edit().ditheringInfo;
-        current.y = (float)config.falloffDistance;
     }
 
     if (shouldUpdateGaussian) {

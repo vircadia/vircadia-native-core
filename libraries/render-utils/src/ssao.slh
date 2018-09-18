@@ -75,15 +75,15 @@ float getObscuranceScaling() {
 float isDitheringEnabled() {
     return params._ditheringInfo.x;
 }
-float getFalloffDistance() {
-    return params._ditheringInfo.y;
-}
 float isBorderingEnabled() {
     return params._ditheringInfo.w;
 }
 
 float getFalloffAngle() {
     return params._ditheringInfo.z;
+}
+float getFalloffAngleScale() {
+    return params._ditheringInfo.y;
 }
 
 float getNumSamples() {
@@ -296,7 +296,7 @@ float computeHorizonFromTap(vec3 tapPositionES, vec3 fragPositionES, vec3 fragNo
     float cosHorizonAngle = dot(deltaVec, fragNormalES) / (distance + epsilon);
     float radiusFalloff = max(0.0, 1.0 - (distance*distance / getRadius2()));
 
-    cosHorizonAngle = max(0.0, (cosHorizonAngle - getFalloffAngle()) / (1.0 - getFalloffAngle()));
+    cosHorizonAngle = max(0.0, (cosHorizonAngle - getFalloffAngle()) * getFalloffAngleScale());
     cosHorizonAngle *= radiusFalloff;
 
     return cosHorizonAngle;

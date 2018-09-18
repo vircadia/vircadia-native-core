@@ -63,7 +63,6 @@ class AmbientOcclusionEffectConfig : public render::GPUJobConfig::Persistent {
     Q_PROPERTY(float radius MEMBER radius WRITE setRadius)
     Q_PROPERTY(float obscuranceLevel MEMBER obscuranceLevel WRITE setObscuranceLevel)
     Q_PROPERTY(float falloffAngle MEMBER falloffAngle WRITE setFalloffAngle)
-    Q_PROPERTY(float falloffDistance MEMBER falloffDistance WRITE setFalloffDistance)
     Q_PROPERTY(float edgeSharpness MEMBER edgeSharpness WRITE setEdgeSharpness)
     Q_PROPERTY(float blurDeviation MEMBER blurDeviation WRITE setBlurDeviation)
     Q_PROPERTY(float numSpiralTurns MEMBER numSpiralTurns WRITE setNumSpiralTurns)
@@ -80,7 +79,6 @@ public:
     void setRadius(float newRadius) { radius = std::max(0.01f, newRadius); emit dirty(); }
     void setObscuranceLevel(float level) { obscuranceLevel = std::max(0.01f, level); emit dirty(); }
     void setFalloffAngle(float bias) { falloffAngle = std::max(0.0f, std::min(bias, 1.0f)); emit dirty(); }
-    void setFalloffDistance(float value) { falloffDistance = std::max(0.0f, value); emit dirty(); }
     void setEdgeSharpness(float sharpness) { edgeSharpness = std::max(0.0f, (float)sharpness); emit dirty(); }
     void setBlurDeviation(float deviation) { blurDeviation = std::max(0.0f, deviation); emit dirty(); }
     void setNumSpiralTurns(float turns) { numSpiralTurns = std::max(0.0f, (float)turns); emit dirty(); }
@@ -92,7 +90,6 @@ public:
     float perspectiveScale;
     float obscuranceLevel; // intensify or dim down the obscurance effect
     float falloffAngle;
-    float falloffDistance;
     float edgeSharpness;
     float blurDeviation;
     float numSpiralTurns; // defining an angle span to distribute the samples ray directions
@@ -144,7 +141,6 @@ public:
         float getPerspectiveScale() const { return resolutionInfo.z; }
         float getObscuranceLevel() const { return radiusInfo.w; }
         float getFalloffAngle() const { return (float)ditheringInfo.z; }
-        float getFalloffDistance() const { return ditheringInfo.y; }
         float getEdgeSharpness() const { return (float)blurInfo.x; }
         float getBlurDeviation() const { return blurInfo.z; }
         
