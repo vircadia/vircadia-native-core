@@ -161,7 +161,10 @@ function loaded() {
 
             selectedEntities.forEach(function(entityID) {
                 if (selection.indexOf(entityID) === -1) {
-                    entitiesByID[entityID].el.className = '';
+                    let entity = entitiesByID[entityID];
+                    if (entity !== undefined) {
+                        entity.el.className = '';
+                    }
                 }
             });
 
@@ -385,15 +388,18 @@ function loaded() {
             let notFound = false;
 
             selectedEntities.forEach(function(id) {
-                entitiesByID[id].el.className = '';
+                let entity = entitiesByID[id];
+                if (entity !== undefined) {
+                    entity.el.className = '';
+                }
             });
 
             selectedEntities = [];
             for (let i = 0; i < selectedIDs.length; i++) {
                 let id = selectedIDs[i];
                 selectedEntities.push(id);
-                if (id in entitiesByID) {
-                    let entity = entitiesByID[id];
+                let entity = entitiesByID[id];
+                if (entity !== undefined) {
                     entity.el.className = 'selected';
                 } else {
                     notFound = true;
