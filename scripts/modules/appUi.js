@@ -163,13 +163,13 @@ function AppUi(properties) {
 
         var url = METAVERSE_BASE + that.notificationPollEndpoint;
 
+        var settingsKey = "notifications/" + that.buttonName + "/lastPoll";
+        var currentTimestamp = new Date().getTime();
+        var lastPollTimestamp = Settings.getValue(settingsKey, currentTimestamp);
         if (that.notificationPollCaresAboutSince) {
-            var settingsKey = "notifications/" + that.buttonName + "/lastSince";
-            var currentTimestamp = new Date().getTime();
-            var settingsTimestamp = Settings.getValue(settingsKey, currentTimestamp);
-            url = url + "&since=" + settingsTimestamp;
-            Settings.setValue(settingsKey, currentTimestamp);
+            url = url + "&since=" + lastPollTimestamp;
         }
+        Settings.setValue(settingsKey, currentTimestamp);
 
         console.debug(that.buttonName, 'polling for notifications at endpoint', url);
 

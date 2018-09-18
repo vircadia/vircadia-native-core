@@ -474,9 +474,6 @@ function fromQml(message) {
             Window.location = "hifi://BankOfHighFidelity";
         }
         break;
-    case 'wallet_availableUpdatesReceived':
-        // NOP
-        break;
     case 'http.request':
         // Handled elsewhere, don't log.
         break;

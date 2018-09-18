@@ -908,10 +908,9 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
             removeOverlays();
         }
         break;
-    case 'wallet_availableUpdatesReceived':
     case 'purchases_availableUpdatesReceived':
-        userHasUpdates = message.numUpdates > 0;
-        ui.messagesWaiting(userHasUpdates);
+        shouldShowDot = message.numUpdates > 0;
+        ui.messagesWaiting(shouldShowDot);
         break;
     case 'purchases_updateWearables':
         var currentlyWornWearables = [];
@@ -1030,6 +1029,39 @@ var onTabletScreenChanged = function onTabletScreenChanged(type, url) {
         "\nNew screen URL: " + url + "\nCurrent app open status: " + ui.isOpen + "\n");
 };
 
+function notificationDataProcessPage(data) {
+    return data.data.updates;
+}
+
+var shouldShowDot = false;
+function notificationPollCallback(updatesArray) {
+    shouldShowDot = shouldShowDot || updatesArray.length > 0;
+    ui.messagesWaiting(shouldShowDot);
+
+    if (updatesArray.length > 0) {
+        var message;
+        if (!ui.notificationInitialCallbackMade) {
+            message = updatesArray.length + " of your purchased items have updates available! " +
+                "Open MARKET to update.";
+            ui.notificationDisplayBanner(message);
+
+            ui.notificationPollCaresAboutSince = true;
+        } else {
+            for (var i = 0; i < updatesArray.length; i++) {
+                message = "There's an update available for your version of \"" +
+                    updatesArray[i].marketplace_item_name + "\"!" +
+                    "Open MARKET to update.";
+                ui.notificationDisplayBanner(message);
+            }
+        }
+    }
+}
+
+function isReturnedDataEmpty(data) {
+    var historyArray = data.data.updates;
+    return historyArray.length === 0;
+}
+
 //
 // Manage the connection between the button and the window.
 //
@@ -1044,7 +1076,13 @@ function startup() {
         inject: MARKETPLACES_INJECT_SCRIPT_URL,
         home: MARKETPLACE_URL_INITIAL,
         onScreenChanged: onTabletScreenChanged,
-        onMessage: onQmlMessageReceived
+        onMessage: onQmlMessageReceived,
+        notificationPollEndpoint: "/api/v1/notifications?source=commerce-available_updates&per_page=10",
+        notificationPollTimeoutMs: 60000,
+        notificationDataProcessPage: notificationDataProcessPage,
+        notificationPollCallback: notificationPollCallback,
+        notificationPollStopPaginatingConditionMet: isReturnedDataEmpty,
+        notificationPollCaresAboutSince: false // Changes to true after first poll
     });
     ContextOverlay.contextOverlayClicked.connect(openInspectionCertificateQML);
     Entities.canWriteAssetsChanged.connect(onCanWriteAssetsChanged);
