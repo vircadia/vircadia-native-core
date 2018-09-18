@@ -491,10 +491,108 @@ function walletOpened() {
     Controller.mouseMoveEvent.connect(handleMouseMoveEvent);
     triggerMapping.enable();
     triggerPressMapping.enable();
+    ui.messagesWaiting(false);
 }
 
 function walletClosed() {
     off();
+}
+
+function notificationDataProcessPage(data) {
+    return data.data.history;
+}
+
+var shouldShowDot = false;
+function notificationPollCallback(historyArray) {
+    var i;
+    var someoneElsePurchasedArray = [];
+    var proofIssuedArray = [];
+    var moneyReceivedArray = [];
+    var giftReceivedArray = [];
+    for (i = 0; i < historyArray.length; i++) {
+        var currentHistoryTxn = historyArray[i];
+
+        if (currentHistoryTxn.sent_certs <= 0 &&
+            currentHistoryTxn.received_certs <= 0) {
+            // This is an HFC transfer.
+            if (currentHistoryTxn.received_money > 0) {
+                if (currentHistoryTxn.sender_name === "marketplace") {
+                    someoneElsePurchasedArray.push(currentHistoryTxn);
+                } else {
+                    moneyReceivedArray.push(currentHistoryTxn);
+                }
+            }
+        } else if (currentHistoryTxn.sent_money <= 0 &&
+            currentHistoryTxn.received_money <= 0 &&
+            currentHistoryTxn.received_certs > 0) {
+            // This is a non-HFC asset transfer.
+            if (currentHistoryTxn.sender_name === "marketplace") {
+                proofIssuedArray.push(currentHistoryTxn);
+            } else {
+                giftReceivedArray.push(currentHistoryTxn);
+            }
+        }
+    }
+
+    if (!ui.isOpen) {
+        shouldShowDot = shouldShowDot ||
+            (someoneElsePurchasedArray.length > 0) ||
+            (proofIssuedArray.length > 0) ||
+            (moneyReceivedArray.length > 0) ||
+            (giftReceivedArray.length > 0);
+        ui.messagesWaiting(shouldShowDot);
+
+        var notificationCount = someoneElsePurchasedArray.length +
+            proofIssuedArray.length +
+            moneyReceivedArray.length +
+            giftReceivedArray.length;
+
+        if (notificationCount > 0) {
+            var message;
+            if (!ui.notificationInitialCallbackMade) {
+                message = "You have " + notificationCount + " unread wallet " +
+                    "notification" + (notificationCount === 1 ? "" : "s") + "! Open WALLET to see all activity.";
+                ui.notificationDisplayBanner(message);
+            } else {
+                var currentItemName, senderName;
+                for (i = 0; i < someoneElsePurchasedArray.length; i++) {
+                    currentItemName = (someoneElsePurchasedArray[i].message).match('<a href=".*">(.*)</a>')[1];
+                    message = "Someone purchased your item \"" + currentItemName + "\" from the Marketplace! " +
+                        "Open WALLET to see all activity.";
+                    ui.notificationDisplayBanner(message);
+                }
+                for (i = 0; i < proofIssuedArray.length; i++) {
+                    currentItemName = (proofIssuedArray[i].message).match('<a href=".*">(.*)</a>')[1];
+                    message = "You have been issued a proof for your Marketplace item \"" + currentItemName + "\"! " +
+                        "Open WALLET to see all activity.";
+                    ui.notificationDisplayBanner(message);
+                }
+                for (i = 0; i < moneyReceivedArray.length; i++) {
+                    senderName = moneyReceivedArray[i].sender_name;
+                    if (senderName === "") {
+                        senderName = "Someone";
+                    }
+                    message = senderName + " sent you " + moneyReceivedArray[i].received_money + " HFC! " +
+                        "Open WALLET to see all activity.";
+                    ui.notificationDisplayBanner(message);
+                }
+                for (i = 0; i < giftReceivedArray.length; i++) {
+                    senderName = giftReceivedArray[i].sender_name;
+                    if (senderName === "") {
+                        senderName = "Someone";
+                    }
+                    message = senderName + " sent you a gift! " +
+                        "Open WALLET to see all activity.";
+                    ui.notificationDisplayBanner(message);
+                }
+            }
+        }
+    }
+}
+
+function isReturnedDataEmpty(data) {
+    var historyArray = data.data.history;
+    return historyArray.length === 0;
 }
 
 //
@@ -510,7 +608,13 @@ function startup() {
         home: WALLET_QML_SOURCE,
         onOpened: walletOpened,
         onClosed: walletClosed,
-        onMessage: fromQml
+        onMessage: fromQml,
+        notificationPollEndpoint: "/api/v1/notifications?source=commerce-history&per_page=10",
+        notificationPollTimeoutMs: 60000,
+        notificationDataProcessPage: notificationDataProcessPage,
+        notificationPollCallback: notificationPollCallback,
+        notificationPollStopPaginatingConditionMet: isReturnedDataEmpty,
+        notificationPollCaresAboutSince: true
     });
     GlobalServices.myUsernameChanged.connect(onUsernameChanged);
 }

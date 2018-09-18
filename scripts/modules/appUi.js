@@ -155,8 +155,8 @@ function AppUi(properties) {
             return;
         }
 
-        // User is "appearing offline"
-        if (GlobalServices.findableBy === "none") {
+        // User is "appearing offline", or is offline, or the app is open
+        if (GlobalServices.findableBy === "none" || Account.username === "" || that.isOpen) {
             that.notificationPollTimeout = Script.setTimeout(that.notificationPoll, that.notificationPollTimeoutMs);
             return;
         }
@@ -164,7 +164,10 @@ function AppUi(properties) {
         var url = METAVERSE_BASE + that.notificationPollEndpoint;
 
         if (that.notificationPollCaresAboutSince) {
-            url = url + "&since=" + (new Date().getTime());
+            var settingsKey = "notifications/" + that.buttonName + "/lastSince";
+            var timestamp = Settings.getValue(settingsKey, new Date().getTime());
+            url = url + "&since=" + timestamp;
+            Settings.setValue(settingsKey, timestamp);
         }
 
         console.debug(that.buttonName, 'polling for notifications at endpoint', url);
@@ -203,7 +206,8 @@ function AppUi(properties) {
     // This won't do anything if there isn't a notification endpoint set
     that.notificationPoll();
 
-    function availabilityChanged() {
+    function restartNotificationPoll() {
+        that.notificationInitialCallbackMade = false;
         if (that.notificationPollTimeout) {
             Script.clearTimeout(that.notificationPollTimeout);
             that.notificationPollTimeout = false;
@@ -303,7 +307,8 @@ function AppUi(properties) {
         } : that.ignore;
     that.onScriptEnding = function onScriptEnding() {
         // Close if necessary, clean up any remaining handlers, and remove the button.
-        GlobalServices.findableByChanged.disconnect(availabilityChanged);
+        GlobalServices.myUsernameChanged.disconnect(restartNotificationPoll);
+        GlobalServices.findableByChanged.disconnect(restartNotificationPoll);
         if (that.isOpen) {
             that.close();
         }
@@ -323,6 +328,7 @@ function AppUi(properties) {
     that.tablet.screenChanged.connect(that.onScreenChanged);
     that.button.clicked.connect(that.onClicked);
     Script.scriptEnding.connect(that.onScriptEnding);
-    GlobalServices.findableByChanged.connect(availabilityChanged);
+    GlobalServices.findableByChanged.connect(restartNotificationPoll);
+    GlobalServices.myUsernameChanged.connect(restartNotificationPoll);
 }
 module.exports = AppUi;

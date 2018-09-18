@@ -874,16 +874,18 @@ function notificationPollCallback(connectionsArray) {
             shouldShowDot: shouldShowDot
         });
 
-        var message;
-        if (!ui.notificationInitialCallbackMade) {
-            message = newlyOnlineConnectionsArray.length + " of your connections " +
-                (newlyOnlineConnectionsArray.length === 1 ? "is" : "are") + " online. Open PEOPLE to join them!";
-            ui.notificationDisplayBanner(message);
-        } else {
-            for (i = 0; i < newlyOnlineConnectionsArray.length; i++) {
-                message = newlyOnlineConnectionsArray[i].username + " is available in " +
-                    newlyOnlineConnectionsArray[i].location.root.name + ". Open PEOPLE to join them!";
+        if (newlyOnlineConnectionsArray.length > 0) {
+            var message;
+            if (!ui.notificationInitialCallbackMade) {
+                message = newlyOnlineConnectionsArray.length + " of your connections " +
+                    (newlyOnlineConnectionsArray.length === 1 ? "is" : "are") + " online! Open PEOPLE to join them.";
                 ui.notificationDisplayBanner(message);
+            } else {
+                for (i = 0; i < newlyOnlineConnectionsArray.length; i++) {
+                    message = newlyOnlineConnectionsArray[i].username + " is available in " +
+                        newlyOnlineConnectionsArray[i].location.root.name + "! Open PEOPLE to join them.";
+                    ui.notificationDisplayBanner(message);
+                }
             }
         }
     }
@@ -902,7 +904,7 @@ function startup() {
         onOpened: palOpened,
         onClosed: off,
         onMessage: fromQml,
-        notificationPollEndpoint: "/api/v1/users?filter=connections&per_page=10",
+        notificationPollEndpoint: "/api/v1/notifications?source=users&filter=connections&per_page=10",
         notificationPollTimeoutMs: 60000,
         notificationDataProcessPage: notificationDataProcessPage,
         notificationPollCallback: notificationPollCallback,
