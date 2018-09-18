@@ -343,6 +343,7 @@ void DomainHandler::loadedErrorDomain(std::map<QString, QString> namedPaths) {
 void DomainHandler::setRedirectErrorState(QUrl errorUrl, int reasonCode) {
     _errorDomainURL = errorUrl;
     _lastDomainConnectionError = reasonCode;
+    _isInErrorState = true;
     emit redirectToErrorDomainURL(_errorDomainURL);
 }
 
