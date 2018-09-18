@@ -54,7 +54,7 @@ public:
     void runInterfaceWithTestScript();
 
     void evaluateResults();
-    void automaticTestRunEvaluationComplete(QString zippedFolderName);
+    void automaticTestRunEvaluationComplete(QString zippedFolderName, int numberOfFailures);
     void addBuildNumberToResults(QString zippedFolderName);
 
     void copyFolder(const QString& source, const QString& destination);

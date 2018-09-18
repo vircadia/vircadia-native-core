@@ -75,7 +75,7 @@ public:
     void createAllRecursiveScripts();
     void createRecursiveScript(const QString& topLevelDirectory, bool interactiveMode);
 
-    bool compareImageLists();
+    int compareImageLists();
 
     QStringList createListOfAll_imagesInDirectory(const QString& imageFormat, const QString& pathToImageDirectory);
 

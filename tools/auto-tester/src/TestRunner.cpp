@@ -119,7 +119,6 @@ void TestRunner::run() {
         filenames << _installerFilename;
     }
 
-
     updateStatusLabel("Downloading installer");
 
     autoTester->downloadFiles(urls, _workingFolder, filenames, (void*)this);
@@ -174,7 +173,12 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
     dataDirectory = qgetenv("USERPROFILE") + "\\AppData\\Roaming";
 #endif
 
-    _appDataFolder = dataDirectory + "\\High Fidelity";
+    if (!_runLatest->isChecked()) {
+        // We are running a PR build
+        _appDataFolder = dataDirectory + "\\High Fidelity - " + getPRNumberFromURL(_url->toPlainText());
+    } else {
+        _appDataFolder = dataDirectory + "\\High Fidelity";
+    }
 
     if (_appDataFolder.exists()) {
         // The original folder is saved in a unique name
@@ -270,8 +274,7 @@ void TestRunner::startLocalServerProcesses() {
 }
 
 void TestRunner::runInterfaceWithTestScript() {
-    QString exeFile = QString("\"") + QDir::toNativeSeparators(_installationFolder) +
-                      "\\interface.exe\"";
+    QString exeFile = QString("\"") + QDir::toNativeSeparators(_installationFolder) + "\\interface.exe\"";
 
     QString url = QString("hifi://localhost");
     if (_runServerless->isChecked()) {
@@ -302,7 +305,7 @@ void TestRunner::evaluateResults() {
     autoTester->startTestsEvaluation(false, true, _snapshotFolder, _branch, _user);
 }
 
-void TestRunner::automaticTestRunEvaluationComplete(QString zippedFolder) {
+void TestRunner::automaticTestRunEvaluationComplete(QString zippedFolder, int numberOfFailures) {
     addBuildNumberToResults(zippedFolder);
     restoreHighFidelityAppDataFolder();
 
@@ -310,9 +313,18 @@ void TestRunner::automaticTestRunEvaluationComplete(QString zippedFolder) {
 
     QDateTime currentDateTime = QDateTime::currentDateTime();
 
-    appendLog(QString("Tests completed at ") + QString::number(currentDateTime.time().hour()) + ":" +
-              QString("%1").arg(currentDateTime.time().minute(), 2, 10, QChar('0')) + ", on " +
-              currentDateTime.date().toString("ddd, MMM d, yyyy"));
+    QString completionText = QString("Tests completed at ") + QString::number(currentDateTime.time().hour()) + ":" +
+                             QString("%1").arg(currentDateTime.time().minute(), 2, 10, QChar('0')) + ", on " +
+                             currentDateTime.date().toString("ddd, MMM d, yyyy");
+
+    if (numberOfFailures == 0) {
+        completionText += "; no failures";
+    } else if (numberOfFailures == 1) {
+        completionText += "; 1 failure";
+    } else {
+        completionText += QString("; ") + QString::number(numberOfFailures) + " failures";
+    }
+    appendLog(completionText);
 
     _automatedTestIsRunning = false;
 }
@@ -488,7 +500,7 @@ QString TestRunner::getInstallerNameFromURL(const QString& url) {
     // An example URL: https://deployment.highfidelity.com/jobs/pr-build/label%3Dwindows/13023/HighFidelity-Beta-Interface-PR14006-be76c43.exe
     try {
         QStringList urlParts = url.split("/");
-        int rr = urlParts.size(); 
+        int rr = urlParts.size();
         if (urlParts.size() != 8) {
             throw "URL not in expected format, should look like `https://deployment.highfidelity.com/jobs/pr-build/label%3Dwindows/13023/HighFidelity-Beta-Interface-PR14006-be76c43.exe`";
         }

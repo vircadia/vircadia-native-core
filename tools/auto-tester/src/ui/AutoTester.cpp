@@ -166,8 +166,8 @@ void AutoTester::on_checkBoxRunLatest_clicked() {
     _ui.urlTextEdit->setEnabled(!_ui.checkBoxRunLatest->isChecked());
 }
 
-void AutoTester::automaticTestRunEvaluationComplete(QString zippedFolderName) {
-    _testRunner->automaticTestRunEvaluationComplete(zippedFolderName);
+void AutoTester::automaticTestRunEvaluationComplete(QString zippedFolderName, int numberOfFailures) {
+    _testRunner->automaticTestRunEvaluationComplete(zippedFolderName, numberOfFailures);
 }
 
 void AutoTester::on_updateTestRailRunResultsButton_clicked() {
