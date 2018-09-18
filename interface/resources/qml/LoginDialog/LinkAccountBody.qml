@@ -43,7 +43,7 @@ Item {
 
         function resize() {
             var targetWidth = Math.max(titleWidth, form.contentWidth);
-            var targetHeight =  hifi.dimensions.contentSpacing.y + mainTextContainer.height +
+            var targetHeight =  hifi.dimensions.contentSpacing.y + flavorText.height + mainTextContainer.height +
                     4 * hifi.dimensions.contentSpacing.y + form.height;
 
             if (additionalInformation.visible) {
@@ -106,14 +106,15 @@ Item {
     ShortcutText {
         id: mainTextContainer
         anchors {
-            top: parent.top
+            top: flavorText.bottom
             left: parent.left
             margins: 0
-            topMargin: hifi.dimensions.contentSpacing.y
+            topMargin: 1.5 * hifi.dimensions.contentSpacing.y
         }
 
         visible: false
         text: qsTr("Username or password incorrect.")
+        height: flavorText.height - 20
         wrapMode: Text.WordWrap
         color: hifi.colors.redAccent
         lineHeight: 1
@@ -128,7 +129,7 @@ Item {
 
         anchors {
             top: mainTextContainer.bottom
-            topMargin: 2 * hifi.dimensions.contentSpacing.y
+            topMargin: 1.5 * hifi.dimensions.contentSpacing.y
         }
         spacing: 2 * hifi.dimensions.contentSpacing.y
 
