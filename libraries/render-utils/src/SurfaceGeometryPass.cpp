@@ -66,7 +66,7 @@ void LinearDepthFramebuffer::allocate() {
     // For Linear Depth:
     const uint16_t LINEAR_DEPTH_MAX_MIP_LEVEL = 5;
     _linearDepthTexture = gpu::Texture::createRenderBuffer(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RED), width, height, LINEAR_DEPTH_MAX_MIP_LEVEL,
-        gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT, gpu::Sampler::WRAP_CLAMP));
+        gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_POINT, gpu::Sampler::WRAP_CLAMP));
     _linearDepthFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("linearDepth"));
     _linearDepthFramebuffer->setRenderBuffer(0, _linearDepthTexture);
     _linearDepthFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, _primaryDepthTexture->getTexelFormat());
@@ -74,7 +74,7 @@ void LinearDepthFramebuffer::allocate() {
     // For Downsampling:
     const uint16_t HALF_LINEAR_DEPTH_MAX_MIP_LEVEL = LINEAR_DEPTH_MAX_MIP_LEVEL;
     _halfLinearDepthTexture = gpu::Texture::createRenderBuffer(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RED), _halfFrameSize.x, _halfFrameSize.y, HALF_LINEAR_DEPTH_MAX_MIP_LEVEL,
-        gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT, gpu::Sampler::WRAP_CLAMP));
+        gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_POINT, gpu::Sampler::WRAP_CLAMP));
 
     _halfNormalTexture = gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, _halfFrameSize.x, _halfFrameSize.y, gpu::Texture::SINGLE_MIP,
         gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT));

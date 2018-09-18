@@ -226,7 +226,7 @@ float getZEyeAtUV(vec2 texCoord, int level) {
     return -texture(pyramidMap, texCoord, level).x;
 }
 
-const int LOG_MAX_OFFSET = 1;
+const int LOG_MAX_OFFSET = 2;
 const int MAX_MIP_LEVEL = 5;
 int evalMipFromRadius(float radius) {
     //  mipLevel = floor(log(ssR / MAX_OFFSET));
@@ -289,10 +289,12 @@ float evalVisibilitySSAO(in vec3 centerPosition, in vec3 centerNormal, in vec3 t
 }
 
 float computeHorizonFromTap(vec3 tapPositionES, vec3 fragPositionES, vec3 fragNormalES) {
+    const float epsilon = 0.01;
+
     vec3 deltaVec = tapPositionES - fragPositionES;
-    float distanceSquared = dot(deltaVec, deltaVec);
-    float cosHorizonAngle = dot(normalize(deltaVec), fragNormalES);
-    float radiusFalloff = max(0.0, 1.0 - (distanceSquared / getRadius2()));
+    float distance = length(deltaVec);
+    float cosHorizonAngle = dot(deltaVec, fragNormalES) / (distance + epsilon);
+    float radiusFalloff = max(0.0, 1.0 - (distance*distance / getRadius2()));
 
     cosHorizonAngle = max(0.0, (cosHorizonAngle - getFalloffAngle()) / (1.0 - getFalloffAngle()));
     cosHorizonAngle *= radiusFalloff;
@@ -313,7 +315,7 @@ float computeHorizonFromTap(vec3 tapPositionES, vec3 fragPositionES, vec3 fragNo
         
 <@endfunc@>
 
-#define SSAO_LINEAR_SEARCH_HORIZON 1
+#define SSAO_LINEAR_SEARCH_HORIZON 0
 
 float computeHorizon(ivec4 side, vec2 shadedPixelPos, vec2 sideImageSize, vec2 deltaTap, 
                     vec3 fragPositionES, vec3 fragNormalES, vec2 searchVec, float searchRadius) {
