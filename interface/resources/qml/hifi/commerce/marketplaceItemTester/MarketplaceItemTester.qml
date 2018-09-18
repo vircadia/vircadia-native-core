@@ -32,7 +32,7 @@ Rectangle {
     function buildResourceObj(resource) {
         resource = resource.trim();
         var assetType = (resource.match(/\.app\.json$/) ? "application" :
-                         resource.match(/\.(?:fbx|fst)$/) ? "avatar" :
+                         resource.match(/\.fst$/) ? "avatar" :
                          resource.match(/\.json\.gz$/) ? "content set" :
                          resource.match(/\.json$/) ? "entity or wearable" :
                          "unknown");
@@ -154,7 +154,7 @@ Rectangle {
                 "Load File": function(){
                     rootActions.currentAction = "load file";
                     Window.browseChanged.connect(onResourceSelected);
-                    Window.browseAsync("Please select a file", "", "Assets (*.app.json *.json *.fbx *.json.gz)");
+                    Window.browseAsync("Please select a file (*.app.json *.json *.fst *.json.gz)", "", "Assets (*.app.json *.json *.fst *.json.gz)");
                 },
                 "Load URL": function(){
                     rootActions.currentAction = "load url";
