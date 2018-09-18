@@ -226,26 +226,10 @@ float getZEyeAtUV(vec2 texCoord, int level) {
     return -texture(depthPyramidTex, texCoord, level).x;
 }
 
-const int LOG_MAX_OFFSET = 1;
-const int MAX_MIP_LEVEL = 5;
 int evalMipFromRadius(float radius) {
+    const int LOG_MAX_OFFSET = 1;
+    const int MAX_MIP_LEVEL = 5;
     return clamp(findMSB(int(radius)) - LOG_MAX_OFFSET, 0, MAX_MIP_LEVEL);
-}
-
-vec3 fetchTapUnfiltered(ivec4 side, ivec2 ssC, vec3 tap, vec2 sideImageSize) {
-    ivec2 ssP = ivec2(tap.xy) + ssC;
-    ivec2 ssPFull = ivec2(ssP.x + side.y, ssP.y);
-
-
-    vec2 tapUV = (vec2(ssP) + vec2(0.5)) / sideImageSize;
-
-    vec2 fetchUV = vec2(tapUV.x + float(side.w) * 0.5 * (float(side.x) - tapUV.x), tapUV.y);
-
-    vec3 P;
-    P.xy = tapUV;
-    P.z = -texture(depthPyramidTex, fetchUV).x;
-
-   return P;
 }
 
 vec4 fetchTap(ivec4 side, vec2 tapPixelPos, float tapRadius, vec2 sideImageSize) {
@@ -415,7 +399,7 @@ float fetchOcclusion(vec2 coords) {
 const float BLUR_WEIGHT_OFFSET = 0.01;
 const float BLUR_EDGE_DISTANCE_SCALE = 300.0;
 
-vec2 evalTapWeightedValue(ivec3 side, int r, ivec2 destPixelCoord, vec2 scaledTexCoord, vec2 fullTexCoord, float fragDepth, vec3 fragNormal) {
+vec2 evalTapWeightedValue(ivec3 side, int r, ivec2 destPixelCoord, vec2 scaledTexCoord, vec2 fullTexCoord, float fragDepth) {
     ivec2 tapOffset = <$axis$> * r;
     ivec2 tapPixelCoord = destPixelCoord + tapOffset;
 

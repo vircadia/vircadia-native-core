@@ -42,7 +42,7 @@ AmbientOcclusionFramebuffer::AmbientOcclusionFramebuffer() {
 }
 
 bool AmbientOcclusionFramebuffer::updateLinearDepth(const gpu::TexturePointer& linearDepthBuffer) {
-    //If the depth buffer or size changed, we need to delete our FBOs
+    // If the depth buffer or size changed, we need to delete our FBOs
     bool reset = false;
     if ((_linearDepthTexture != linearDepthBuffer)) {
         _linearDepthTexture = linearDepthBuffer;
