@@ -29,12 +29,14 @@ var shouldShowDot = false;
 var pingPong = false;
 var storedAnnouncements = {};
 var storedFeaturedStories = {};
+var message;
 function notificationPollCallback(userStoriesArray) {
     //
     // START logic for keeping track of new info
     //
     pingPong = !pingPong;
     var totalCountedStories = 0;
+    var shouldNotifyIndividually = !ui.isOpen && ui.notificationInitialCallbackMade;
     userStoriesArray.forEach(function (story) {
         if (story.audience !== "for_connections" &&
             story.audience !== "for_feed") {
@@ -52,8 +54,20 @@ function notificationPollCallback(userStoriesArray) {
 
         if (story.audience === "for_connections") {
             storedAnnouncements[story.id] = story;
+
+            if (shouldNotifyIndividually) {
+                message = storedAnnouncements[key].username + " says something is happening in " +
+                    storedAnnouncements[key].place_name + "! Open GOTO to join them.";
+                ui.notificationDisplayBanner(message);
+            }
         } else if (story.audience === "for_feed") {
             storedFeaturedStories[story.id] = story;
+
+            if (shouldNotifyIndividually) {
+                message = storedFeaturedStories[key].username + " has invited you to an event in " +
+                    storedFeaturedStories[key].place_name + "! Open GOTO to join them.";
+                ui.notificationDisplayBanner(message);
+            }
         }
     });
     var key;
@@ -76,24 +90,10 @@ function notificationPollCallback(userStoriesArray) {
     shouldShowDot = totalCountedStories > 0 || (notificationCount > 0 && shouldShowDot);
     ui.messagesWaiting(shouldShowDot && !ui.isOpen);
 
-    if (notificationCount > 0 && !ui.isOpen) {
-        var message;
-        if (!ui.notificationInitialCallbackMade) {
-            message = "You have " + userStoriesArray.length + "event invitations pending! " +
-                "Open GOTO to see them.";
-            ui.notificationDisplayBanner(message);
-        } else {
-            for (key in storedAnnouncements) {
-                message = storedAnnouncements[key].username + " says something is happening in " +
-                    storedAnnouncements[key].place_name + "! Open GOTO to join them.";
-                ui.notificationDisplayBanner(message);
-            }
-            for (key in storedFeaturedStories) {
-                message = storedFeaturedStories[key].username + " has invited you to an event in " +
-                    storedFeaturedStories[key].place_name + "! Open GOTO to join them.";
-                ui.notificationDisplayBanner(message);
-            }
-        }
+    if (notificationCount > 0 && !ui.isOpen && !ui.notificationInitialCallbackMade) {
+        message = "You have " + notificationCount + "event invitations pending! " +
+            "Open GOTO to see them.";
+        ui.notificationDisplayBanner(message);
     }
 }
 
