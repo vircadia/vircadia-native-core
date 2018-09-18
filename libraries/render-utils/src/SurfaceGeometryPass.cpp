@@ -28,10 +28,10 @@ namespace ru {
 LinearDepthFramebuffer::LinearDepthFramebuffer() {
 }
 
-void LinearDepthFramebuffer::updatePrimaryDepth(const gpu::TexturePointer& depthBuffer) {
+void LinearDepthFramebuffer::update(const gpu::TexturePointer& depthBuffer) {
     //If the depth buffer or size changed, we need to delete our FBOs
     bool reset = false;
-    if ((_primaryDepthTexture != depthBuffer)) {
+    if (_primaryDepthTexture != depthBuffer) {
         _primaryDepthTexture = depthBuffer;
         reset = true;
     }
@@ -144,10 +144,11 @@ void LinearDepthPass::run(const render::RenderContextPointer& renderContext, con
     if (!_linearDepthFramebuffer) {
         _linearDepthFramebuffer = std::make_shared<LinearDepthFramebuffer>();
     }
-    _linearDepthFramebuffer->updatePrimaryDepth(deferredFramebuffer->getPrimaryDepthTexture());
 
     auto depthBuffer = deferredFramebuffer->getPrimaryDepthTexture();
     auto normalTexture = deferredFramebuffer->getDeferredNormalTexture();
+
+    _linearDepthFramebuffer->update(depthBuffer);
 
     auto linearDepthFBO = _linearDepthFramebuffer->getLinearDepthFramebuffer();
     auto linearDepthTexture = _linearDepthFramebuffer->getLinearDepthTexture();
@@ -247,7 +248,7 @@ const gpu::PipelinePointer& LinearDepthPass::getDownsamplePipeline(const render:
 SurfaceGeometryFramebuffer::SurfaceGeometryFramebuffer() {
 }
 
-void SurfaceGeometryFramebuffer::updateLinearDepth(const gpu::TexturePointer& linearDepthBuffer) {
+void SurfaceGeometryFramebuffer::update(const gpu::TexturePointer& linearDepthBuffer) {
     //If the depth buffer or size changed, we need to delete our FBOs
     bool reset = false;
     if ((_linearDepthTexture != linearDepthBuffer)) {
@@ -414,7 +415,7 @@ void SurfaceGeometryPass::run(const render::RenderContextPointer& renderContext,
     if (!_surfaceGeometryFramebuffer) {
         _surfaceGeometryFramebuffer = std::make_shared<SurfaceGeometryFramebuffer>();
     }
-    _surfaceGeometryFramebuffer->updateLinearDepth(linearDepthTexture);
+    _surfaceGeometryFramebuffer->update(linearDepthTexture);
 
     auto curvatureFramebuffer = _surfaceGeometryFramebuffer->getCurvatureFramebuffer();
     auto curvatureTexture = _surfaceGeometryFramebuffer->getCurvatureTexture();

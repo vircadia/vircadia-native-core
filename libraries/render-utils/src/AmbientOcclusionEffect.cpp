@@ -183,7 +183,7 @@ AmbientOcclusionEffectConfig::AmbientOcclusionEffectConfig() :
     perspectiveScale{ 1.0f },
     obscuranceLevel{ 0.5f },
 #if SSAO_USE_HORIZON_BASED
-    falloffAngle{ 0.2f },
+    falloffAngle{ 0.3f },
 #else
     falloffAngle{ 0.01f },
 #endif
@@ -390,6 +390,7 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     const auto& linearDepthFramebuffer = inputs.get2();
     
     auto linearDepthTexture = linearDepthFramebuffer->getLinearDepthTexture();
+    auto occlusionDepthTexture = linearDepthTexture;
     auto sourceViewport = args->_viewport;
     auto occlusionViewport = sourceViewport;
     auto firstBlurViewport = sourceViewport;
@@ -406,6 +407,7 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     if (_aoParametersBuffer->getResolutionLevel() > 0) {
         occlusionViewport = occlusionViewport >> _aoParametersBuffer->getResolutionLevel();
         firstBlurViewport.w = firstBlurViewport.w >> _aoParametersBuffer->getResolutionLevel();
+        occlusionDepthTexture = linearDepthFramebuffer->getHalfLinearDepthTexture();
     }
 
     if (_framebuffer->updateLinearDepth(linearDepthTexture)) {
@@ -444,21 +446,20 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 		batch.setModelTransform(model);
 #if SSAO_USE_HORIZON_BASED
         batch.setPipeline(mipCreationPipeline);
-        batch.generateTextureMipsWithPipeline(_framebuffer->getLinearDepthTexture());
+        batch.generateTextureMipsWithPipeline(occlusionDepthTexture);
 #else
-        batch.generateTextureMips(_framebuffer->getLinearDepthTexture());
+        batch.generateTextureMips(occlusionDepthTexture);
 #endif
 		batch.popProfileRange();
 
+        // Occlusion pass
         batch.pushProfileRange("Occlusion");
         batch.setUniformBuffer(render_utils::slot::buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
-        batch.setUniformBuffer(render_utils::slot::buffer::SsaoParams, _aoParametersBuffer);
-        
-        // Occlusion pass
+        batch.setUniformBuffer(render_utils::slot::buffer::SsaoParams, _aoParametersBuffer);        
         batch.setFramebuffer(occlusionFBO);
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(1.0f));
         batch.setPipeline(occlusionPipeline);
-        batch.setResourceTexture(render_utils::slot::texture::SsaoPyramid, _framebuffer->getLinearDepthTexture());
+        batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, occlusionDepthTexture);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
         batch.popProfileRange();
 
@@ -469,6 +470,8 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
             batch.setModelTransform(model);
             batch.setViewportTransform(firstBlurViewport);
             batch.setFramebuffer(occlusionBlurredFBO);
+            // Use full resolution depth and normal for bilateral upscaling and blur
+            batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, linearDepthTexture);
             batch.setUniformBuffer(render_utils::slot::buffer::SsaoBlurParams, _hblurParametersBuffer);
             batch.setPipeline(firstHBlurPipeline);
             batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, occlusionFBO->getRenderBuffer(0));
@@ -485,7 +488,7 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
 
-        batch.setResourceTexture(render_utils::slot::texture::SsaoPyramid, nullptr);
+        batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, nullptr);
         batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, nullptr);
         
         _gpuTimer->end(batch);
@@ -581,11 +584,11 @@ void DebugAmbientOcclusion::run(const render::RenderContextPointer& renderContex
         batch.setUniformBuffer(render_utils::slot::buffer::SsaoDebugParams, _parametersBuffer);
         
         batch.setPipeline(debugPipeline);
-        batch.setResourceTexture(render_utils::slot::texture::SsaoPyramid, linearDepthTexture);
+        batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, linearDepthTexture);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         
-        batch.setResourceTexture(render_utils::slot::texture::SsaoPyramid, nullptr);
+        batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, nullptr);
     });
 
 }
