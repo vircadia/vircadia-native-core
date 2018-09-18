@@ -18,17 +18,16 @@ namespace controller {
 
     public:
         AccelerationLimiterFilter() {}
-        AccelerationLimiterFilter(float rotationLimit, float translationLimit) :
-            _rotationLimit(rotationLimit),
-            _translationLimit(translationLimit) {}
 
         float apply(float value) const override { return value; }
         Pose apply(Pose value) const override;
         bool parseParameters(const QJsonValue& parameters) override;
 
     private:
-        float _rotationLimit { FLT_MAX };
-        float _translationLimit { FLT_MAX };
+        float _rotationAccelerationLimit { FLT_MAX };
+        float _rotationDecelerationLimit { FLT_MAX };
+        float _translationAccelerationLimit { FLT_MAX };
+        float _translationDecelerationLimit { FLT_MAX };
 
         mutable glm::vec3 _prevPos[3];  // sensor space
         mutable glm::quat _prevRot[3];  // sensor space

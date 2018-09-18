@@ -52,11 +52,15 @@
         { "from": "Vive.RightApplicationMenu", "to": "Standard.RightSecondaryThumb" },
 
         { "from": "Vive.LeftHand", "to": "Standard.LeftHand",
-          "filters" : [{"type" :  "accelerationLimiter", "rotationLimit" : 4000.0, "translationLimit": 200.0}]
+          "filters" : [{"type" :  "accelerationLimiter",
+                        "rotationAccelerationLimit" : 4000.0, "rotationDecelerationLimit" : 8000.0,
+                        "translationAccelerationLimit": 200.0, "translationDecelerationLimit": 400.0}]
         },
 
         { "from": "Vive.RightHand", "to": "Standard.RightHand",
-          "filters" : [{"type" :  "accelerationLimiter", "rotationLimit" : 2000.0, "translationLimit": 100.0}]
+          "filters" : [{"type" :  "accelerationLimiter",
+                        "rotationAccelerationLimit" : 2000.0, "rotationDecelerationLimit" : 4000.0,
+                        "translationAccelerationLimit": 100.0, "translationDecelerationLimit": 200.0}]
         },
 
         {
