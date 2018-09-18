@@ -82,7 +82,7 @@ void main(void) {
     // Accumulate the Obscurance for each samples
     float sum = 0.0;
     float keepTapRadius = 1.0;
-    int keepedMip = -1;
+    int keptMip = -1;
     bool keep = false;
     int sampleCount = int(getNumSamples());
     for (int i = 0; i < sampleCount; ++i) {
@@ -92,7 +92,7 @@ void main(void) {
         vec2 fragToTap = vec2(ssC) + tap.xy - fragCoord.xy;
         if (dot(fragToTap,fragToTap) < keepTapRadius) {
             keep = true;
-            keepedMip = evalMipFromRadius(tap.z * float(doFetchMips()));
+            keptMip = evalMipFromRadius(tap.z * float(doFetchMips()));
         } 
 
         vec3 tapUVZ = fetchTap(side, ssC, tap, imageSize);
@@ -127,6 +127,6 @@ void main(void) {
    if (!keep) {
      outFragColor = vec4(0.1);
    } else {
-    outFragColor.rgb = colorWheel(float(keepedMip)/float(MAX_MIP_LEVEL));
+    outFragColor.rgb = colorWheel(float(keptMip)/float(MAX_MIP_LEVEL));
    }
 }

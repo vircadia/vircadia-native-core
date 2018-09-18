@@ -78,7 +78,7 @@ void AmbientOcclusionFramebuffer::allocate() {
     
     auto width = _frameSize.x;
     auto height = _frameSize.y;
-    auto format = gpu::Element::COLOR_RGBA_32;
+    auto format = gpu::Element::COLOR_R_8;
 
     _occlusionTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT, gpu::Sampler::WRAP_CLAMP));
     _occlusionFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("occlusion"));
