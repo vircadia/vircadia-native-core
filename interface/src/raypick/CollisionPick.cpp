@@ -51,6 +51,7 @@ void buildObjectIntersectionsMap(IntersectionType intersectionType, const std::v
         QVariantMap collisionPointPair;
         collisionPointPair["pointOnPick"] = vec3toVariant(objectIntersection.testCollisionPoint);
         collisionPointPair["pointOnObject"] = vec3toVariant(objectIntersection.foundCollisionPoint);
+        collisionPointPair["normalOnPick"] = vec3toVariant(objectIntersection.collisionNormal);
 
         collisionPointPairs[objectIntersection.foundID].append(collisionPointPair);
     }
@@ -397,7 +398,7 @@ PickResultPointer CollisionPick::getEntityIntersection(const CollisionRegion& pi
     }
     getShapeInfoReady(pick);
     
-    auto entityIntersections = _physicsEngine->contactTest(USER_COLLISION_MASK_ENTITIES, *_mathPick.shapeInfo, pick.transform, USER_COLLISION_GROUP_DYNAMIC, pick.threshold);
+    auto entityIntersections = _physicsEngine->contactTest(USER_COLLISION_MASK_ENTITIES, *_mathPick.shapeInfo, pick.transform, pick.collisionGroup, pick.threshold);
     filterIntersections(entityIntersections);
     return std::make_shared<CollisionPickResult>(pick, entityIntersections, std::vector<ContactTestResult>());
 }
@@ -413,13 +414,13 @@ PickResultPointer CollisionPick::getAvatarIntersection(const CollisionRegion& pi
     }
     getShapeInfoReady(pick);
     
-    auto avatarIntersections = _physicsEngine->contactTest(USER_COLLISION_MASK_AVATARS, *_mathPick.shapeInfo, pick.transform, USER_COLLISION_GROUP_DYNAMIC, pick.threshold);
+    auto avatarIntersections = _physicsEngine->contactTest(USER_COLLISION_MASK_AVATARS, *_mathPick.shapeInfo, pick.transform, pick.collisionGroup, pick.threshold);
     filterIntersections(avatarIntersections);
     return std::make_shared<CollisionPickResult>(pick, std::vector<ContactTestResult>(), avatarIntersections);
 }
 
 PickResultPointer CollisionPick::getHUDIntersection(const CollisionRegion& pick) {
-    return std::make_shared<CollisionPickResult>(pick.toVariantMap(), std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
+    return std::make_shared<CollisionPickResult>(pick, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
 }
 
 Transform CollisionPick::getResultTransform() const {

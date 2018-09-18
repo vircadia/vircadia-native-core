@@ -42,7 +42,11 @@ Item {
         }
 
         if (HMD.active) {
-            tablet.popFromStack();
+            if (gotoPreviousApp) {
+                tablet.returnToPreviousApp();
+            } else {
+                tablet.popFromStack();
+            }
         } else {
             closeDialog();
         }
@@ -55,7 +59,11 @@ Item {
         }
 
         if (HMD.active) {
-            tablet.popFromStack();
+            if (gotoPreviousApp) {
+                tablet.returnToPreviousApp();
+            } else {
+                tablet.popFromStack();
+            }
         } else {
             closeDialog();
         }
