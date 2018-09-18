@@ -94,21 +94,32 @@ Rectangle {
                 }
             }
 
-            Text {
-                text: {
-                    var match = resource.match(/\/([^/]*)$/);
-                    return match ? match[1] : resource;
-                }
-                font.pointSize: 12
+            Column {
                 Layout.preferredWidth: root.width * .6
-                horizontalAlignment: Text.AlignBottom
+                spacing: 5
+                Text {
+                    text: {
+                        var match = resource.match(/\/([^/]*)$/);
+                        return match ? match[1] : resource;
+                    }
+                    font.pointSize: 12
+                    horizontalAlignment: Text.AlignBottom
+                }
+                Text {
+                    text: resource
+                    font.pointSize: 8
+                    width: root.width * .6
+                    horizontalAlignment: Text.AlignBottom
+                    wrapMode: Text.WrapAnywhere
+                }
             }
 
             Text {
                 text: assetType
                 font.pointSize: 10
                 Layout.preferredWidth: root.width * .2
-                horizontalAlignment: Text.AlignBottom
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Test.AlignVCenter
             }
 
             Repeater {
