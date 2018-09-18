@@ -25,10 +25,11 @@ layout(location=0) out vec4 outFragColor;
 
 void main(void) {
     vec2 sideImageSize = getSideImageSize(getResolutionLevel());
+    ivec2 splitImageSize = ivec2(getWidthHeight(getResolutionLevel() + SSAO_USE_QUAD_SPLIT));
 
     // Pixel being shaded
     vec2 fragCoord = gl_FragCoord.xy; 
-    ivec2 fragPixelPos = ivec2(fragCoord.xy);
+    ivec2 fragPixelPos = ((ivec2(fragCoord.xy) - getPixelOffset()*splitImageSize) << SSAO_USE_QUAD_SPLIT) + getPixelOffset();
 
     // Stereo side info
     ivec4 side = getStereoSideInfo(fragPixelPos.x, getResolutionLevel());

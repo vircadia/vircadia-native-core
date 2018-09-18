@@ -260,6 +260,23 @@ void AmbientOcclusionEffect::configure(const Config& config) {
         auto& current = _aoParametersBuffer.edit()._sampleInfo;
         current.x = config.numSamples;
         current.y = 1.0f / config.numSamples;
+
+        // Regenerate halton sequence
+        const int B = config.numSamples + 1;
+        const float invB = 1.0f / (float)B;
+
+        for (int i = 0; i < _randomSamples.size(); i++) {
+            int index = i+1; // Indices start at 1, not 0
+            float f = 1.0f;
+            float r = 0.0f;
+
+            while (index > 0) {
+                f = f * invB;
+                r = r + f * (float)(index % B);
+                index = index / B;
+            }
+            _randomSamples[i] = r;
+        }
     }
 
     if (config.fetchMipsEnabled != _aoParametersBuffer->isFetchMipsEnabled()) {
@@ -280,6 +297,13 @@ void AmbientOcclusionEffect::configure(const Config& config) {
         auto& current = _aoParametersBuffer.edit()._resolutionInfo;
         current.x = (float) config.resolutionLevel;
         shouldUpdateBlurs = true;
+
+        _aoFrameParametersBuffer[0].edit()._pixelOffsets = { 0, 0, 0, 0 };
+#if SSAO_USE_QUAD_SPLIT
+        _aoFrameParametersBuffer[1].edit()._pixelOffsets = { 1, 0, 0, 0 };
+        _aoFrameParametersBuffer[2].edit()._pixelOffsets = { 1, 1, 0, 0 };
+        _aoFrameParametersBuffer[3].edit()._pixelOffsets = { 0, 1, 0, 0 };
+#endif
     }
  
     if (config.blurRadius != _aoParametersBuffer->getBlurRadius()) {
@@ -425,21 +449,29 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     auto mipCreationPipeline = getMipCreationPipeline();
 #endif
     
+    // Update sample rotation
+    const int SSAO_RANDOM_SAMPLE_COUNT = int(_randomSamples.size() / SSAO_SPLIT_COUNT);
+    for (int splitId=0 ; splitId < SSAO_SPLIT_COUNT ; splitId++) {
+        auto& sample = _aoFrameParametersBuffer[splitId].edit();
+        sample._angleInfo.x = _randomSamples[_frameId + SSAO_RANDOM_SAMPLE_COUNT * splitId] * M_PI;
+    }
+    _frameId = (_frameId + 1) % SSAO_RANDOM_SAMPLE_COUNT;
+
     gpu::doInBatch("AmbientOcclusionEffect::run", args->_context, [=](gpu::Batch& batch) {
 		PROFILE_RANGE_BATCH(batch, "AmbientOcclusion");
 		batch.enableStereo(false);
 
         _gpuTimer->begin(batch);
 
-        batch.setViewportTransform(occlusionViewport);
         batch.setProjectionTransform(glm::mat4());
         batch.resetViewTransform();
 
         Transform model;
+        batch.setProjectionTransform(glm::mat4());
+        batch.setModelTransform(model);
 
 		// We need this with the mips levels
 		batch.pushProfileRange("Depth mip creation");
-		batch.setModelTransform(model);
 #if SSAO_USE_HORIZON_BASED
         batch.setPipeline(mipCreationPipeline);
         batch.generateTextureMipsWithPipeline(occlusionDepthTexture);
@@ -450,13 +482,42 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 
         // Occlusion pass
         batch.pushProfileRange("Occlusion");
+
         batch.setUniformBuffer(render_utils::slot::buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
-        batch.setUniformBuffer(render_utils::slot::buffer::SsaoParams, _aoParametersBuffer);        
+        batch.setUniformBuffer(render_utils::slot::buffer::SsaoParams, _aoParametersBuffer);
         batch.setFramebuffer(occlusionFBO);
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(1.0f));
         batch.setPipeline(occlusionPipeline);
         batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, occlusionDepthTexture);
+
+#if SSAO_USE_QUAD_SPLIT
+        {
+            auto splitViewport = occlusionViewport >> SSAO_USE_QUAD_SPLIT;
+
+            batch.setViewportTransform(splitViewport);
+            batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[0]);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+            splitViewport.x += splitViewport.z;
+            batch.setViewportTransform(splitViewport);
+            batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[1]);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+            splitViewport.y += splitViewport.w;
+            batch.setViewportTransform(splitViewport);
+            batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[2]);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+            splitViewport.x = 0;
+            batch.setViewportTransform(splitViewport);
+            batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[3]);
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+        }
+#else
+        batch.setUniformBuffer(render_utils::slot::buffer::SsaoFrameParams, _aoFrameParametersBuffer[0]);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
+#endif
+
         batch.popProfileRange();
 
         {
@@ -552,7 +613,6 @@ void DebugAmbientOcclusion::run(const render::RenderContextPointer& renderContex
         linearDepthTexture = linearDepthFramebuffer->getHalfLinearDepthTexture();
         occlusionViewport = occlusionViewport >> ambientOcclusionUniforms->getResolutionLevel();
     }
-        
 
     auto framebufferSize = glm::ivec2(linearDepthTexture->getDimensions());
     

@@ -40,9 +40,11 @@ layout(binding=RENDER_UTILS_BUFFER_SSAO_PARAMS) uniform ambientOcclusionParamsBu
     AmbientOcclusionParams params;
 };
 
+layout(binding=RENDER_UTILS_BUFFER_SSAO_FRAME_PARAMS) uniform ambientOcclusionFrameParamsBuffer {
+    AmbientOcclusionFrameParams frameParams;
+};
 
 float getPerspectiveScale() {
-    
     return (params._resolutionInfo.z);
 }
 int getResolutionLevel() {
@@ -136,8 +138,16 @@ float getAngleDitheringWorldPos(in vec3 pixelWorldPos) {
 }
 
 float getAngleDithering(in ivec2 pixelPos) {
+#if SSAO_USE_QUAD_SPLIT
+    return isDitheringEnabled() * frameParams._angleInfo.x;
+#else
     // Hash function used in the AlchemyAO paper
-    return isDitheringEnabled() * float((3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) * 10);
+    return isDitheringEnabled() *  float((3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) * 10);
+#endif
+}
+
+ivec2 getPixelOffset() {
+    return frameParams._pixelOffsets.xy;
 }
 
 float evalDiskRadius(float Zeye, vec2 sideImageSize) {

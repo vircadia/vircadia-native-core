@@ -15,13 +15,22 @@
 #define RENDER_UTILS_SSAO_SHARED_H
 
 #define SSAO_USE_HORIZON_BASED	1
+#define SSAO_USE_QUAD_SPLIT	1
 #define SSAO_BLUR_GAUSSIAN_COEFS_COUNT  16
 
-// glsl / C++ compatible source as interface for Shadows
+#if SSAO_USE_QUAD_SPLIT
+#define SSAO_SPLIT_COUNT  4
+#else
+#define SSAO_SPLIT_COUNT  1
+#endif
+
+// glsl / C++ compatible source as interface for ambient occlusion
 #ifdef __cplusplus
 #   define SSAO_VEC4 glm::vec4
+#   define SSAO_IVEC4 glm::ivec4
 #else
 #   define SSAO_VEC4 vec4
+#   define SSAO_IVEC4 ivec4
 #endif
 
 struct AmbientOcclusionParams {
@@ -31,6 +40,11 @@ struct AmbientOcclusionParams {
     SSAO_VEC4 _sampleInfo;
     SSAO_VEC4 _blurInfo;
     float _gaussianCoefs[SSAO_BLUR_GAUSSIAN_COEFS_COUNT];
+};
+
+struct AmbientOcclusionFrameParams {
+    SSAO_VEC4 _angleInfo;
+    SSAO_IVEC4 _pixelOffsets;
 };
 
 #endif // RENDER_UTILS_SHADER_CONSTANTS_H

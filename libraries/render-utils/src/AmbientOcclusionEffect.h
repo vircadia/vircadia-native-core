@@ -153,11 +153,13 @@ private:
     };
     using BlurParametersBuffer = gpu::StructBuffer<BlurParameters>;
 
+    using FrameParametersBuffer = gpu::StructBuffer< AmbientOcclusionFrameParams>;
 
     void updateGaussianDistribution();
     void updateBlurParameters();
    
     AOParametersBuffer _aoParametersBuffer;
+    FrameParametersBuffer _aoFrameParametersBuffer[SSAO_SPLIT_COUNT];
     BlurParametersBuffer _vblurParametersBuffer;
     BlurParametersBuffer _hblurParametersBuffer;
 
@@ -172,6 +174,8 @@ private:
 	static gpu::PipelinePointer _mipCreationPipeline;
 
     AmbientOcclusionFramebufferPointer _framebuffer;
+    std::array<float, 16 * SSAO_SPLIT_COUNT> _randomSamples;
+    int _frameId{ 0 };
     
     gpu::RangeTimerPointer _gpuTimer;
 
