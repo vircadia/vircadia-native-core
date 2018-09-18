@@ -173,11 +173,11 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
     dataDirectory = qgetenv("USERPROFILE") + "\\AppData\\Roaming";
 #endif
 
-    if (!_runLatest->isChecked()) {
+    if (_runLatest->isChecked()) {
+        _appDataFolder = dataDirectory + "\\High Fidelity";
+    } else {
         // We are running a PR build
         _appDataFolder = dataDirectory + "\\High Fidelity - " + getPRNumberFromURL(_url->toPlainText());
-    } else {
-        _appDataFolder = dataDirectory + "\\High Fidelity";
     }
 
     if (_appDataFolder.exists()) {
