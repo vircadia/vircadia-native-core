@@ -532,17 +532,12 @@ function notificationPollCallback(historyArray) {
     }
 
     if (!ui.isOpen) {
-        shouldShowDot = shouldShowDot ||
-            (someoneElsePurchasedArray.length > 0) ||
-            (proofIssuedArray.length > 0) ||
-            (moneyReceivedArray.length > 0) ||
-            (giftReceivedArray.length > 0);
-        ui.messagesWaiting(shouldShowDot);
-
         var notificationCount = someoneElsePurchasedArray.length +
             proofIssuedArray.length +
             moneyReceivedArray.length +
             giftReceivedArray.length;
+        shouldShowDot = shouldShowDot || notificationCount > 0;
+        ui.messagesWaiting(shouldShowDot);
 
         if (notificationCount > 0) {
             var message;
