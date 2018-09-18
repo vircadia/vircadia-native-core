@@ -874,16 +874,18 @@ function notificationPollCallback(connectionsArray) {
             shouldShowDot: shouldShowDot
         });
 
-        var message;
-        if (!ui.notificationInitialCallbackMade) {
-            message = newlyOnlineConnectionsArray.length + " of your connections " +
-                (newlyOnlineConnectionsArray.length === 1 ? "is" : "are") + " online. Open PEOPLE to join them!";
-            ui.notificationDisplayBanner(message);
-        } else {
-            for (i = 0; i < newlyOnlineConnectionsArray.length; i++) {
-                message = newlyOnlineConnectionsArray[i].username + " is available in " +
-                    newlyOnlineConnectionsArray[i].location.root.name + ". Open PEOPLE to join them!";
+        if (newlyOnlineConnectionsArray.length > 0) {
+            var message;
+            if (!ui.notificationInitialCallbackMade) {
+                message = newlyOnlineConnectionsArray.length + " of your connections " +
+                    (newlyOnlineConnectionsArray.length === 1 ? "is" : "are") + " online. Open PEOPLE to join them!";
                 ui.notificationDisplayBanner(message);
+            } else {
+                for (i = 0; i < newlyOnlineConnectionsArray.length; i++) {
+                    message = newlyOnlineConnectionsArray[i].username + " is available in " +
+                        newlyOnlineConnectionsArray[i].location.root.name + ". Open PEOPLE to join them!";
+                    ui.notificationDisplayBanner(message);
+                }
             }
         }
     }
