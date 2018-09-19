@@ -113,7 +113,7 @@ function startup() {
         'protocol=' + encodeURIComponent(Window.protocolSignature()),
         'per_page=10'
     ];
-    var endpoint = '/api/v1/notifications?source=user_stories?' + options.join('&');
+    var endpoint = '/api/v1/user_stories?' + options.join('&');
 
     ui = new AppUi({
         buttonName: BUTTON_NAME,

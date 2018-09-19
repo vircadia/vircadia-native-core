@@ -601,7 +601,7 @@ function startup() {
         onOpened: walletOpened,
         onClosed: walletClosed,
         onMessage: fromQml,
-        notificationPollEndpoint: "/api/v1/notifications?source=commerce-history&per_page=10",
+        notificationPollEndpoint: "/api/v1/commerce/history?per_page=10",
         notificationPollTimeoutMs: 60000,
         notificationDataProcessPage: notificationDataProcessPage,
         notificationPollCallback: notificationPollCallback,

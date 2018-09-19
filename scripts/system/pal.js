@@ -891,7 +891,7 @@ function startup() {
         onOpened: palOpened,
         onClosed: off,
         onMessage: fromQml,
-        notificationPollEndpoint: "/api/v1/notifications?source=users&filter=connections&per_page=10",
+        notificationPollEndpoint: "/api/v1/users?filter=connections&per_page=10",
         notificationPollTimeoutMs: 60000,
         notificationDataProcessPage: notificationDataProcessPage,
         notificationPollCallback: notificationPollCallback,

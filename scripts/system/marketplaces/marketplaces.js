@@ -137,7 +137,6 @@ function onUsernameChanged() {
     }
 }
 
-var userHasUpdates = false;
 function sendCommerceSettings() {
     ui.sendToHtml({
         type: "marketplaces",
@@ -147,7 +146,7 @@ function sendCommerceSettings() {
             userIsLoggedIn: Account.loggedIn,
             walletNeedsSetup: Wallet.walletStatus === 1,
             metaverseServerURL: Account.metaverseServerURL,
-            messagesWaiting: userHasUpdates
+            messagesWaiting: shouldShowDot
         }
     });
 }
@@ -1077,7 +1076,7 @@ function startup() {
         home: MARKETPLACE_URL_INITIAL,
         onScreenChanged: onTabletScreenChanged,
         onMessage: onQmlMessageReceived,
-        notificationPollEndpoint: "/api/v1/notifications?source=commerce-available_updates&per_page=10",
+        notificationPollEndpoint: "/api/v1/commerce/available_updates?per_page=10",
         notificationPollTimeoutMs: 60000,
         notificationDataProcessPage: notificationDataProcessPage,
         notificationPollCallback: notificationPollCallback,
