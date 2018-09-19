@@ -197,11 +197,11 @@ function AppUi(properties) {
             } else {
                 concatenatedServerResponse = concatenatedServerResponse.concat(that.notificationDataProcessPage(response));
                 currentDataPageToRetrieve++;
-                request({ uri: (url + "&page=" + currentDataPageToRetrieve) }, requestCallback);
+                request({ json: true, uri: (url + "&page=" + currentDataPageToRetrieve) }, requestCallback);
             }
         }
 
-        request({ uri: url }, requestCallback);
+        request({ json: true, uri: url }, requestCallback);
     };
 
     // This won't do anything if there isn't a notification endpoint set
