@@ -23,7 +23,7 @@ const float OUT_OF_VIEW_THRESHOLD = 0.5f * OUT_OF_VIEW_PENALTY;
 
 namespace PrioritySortUtil {
 
-    constexpr float DEFAULT_ANGULAR_COEF { 1.0f };
+    constexpr float DEFAULT_ANGULAR_COEF { 2.5f };
     constexpr float DEFAULT_CENTER_COEF { 0.5f };
     constexpr float DEFAULT_AGE_COEF { 0.25f };
 
@@ -103,6 +103,9 @@ namespace PrioritySortUtil {
             float radius = glm::max(thing.getRadius(), MIN_RADIUS);
             // Other item's angle from view centre:
             float cosineAngle = glm::dot(offset, view.getDirection()) / distance;
+            if (cosineAngle > 0.0f) {
+                cosineAngle = std::sqrt(cosineAngle);
+            }
             float age = float((_usecCurrentTime - thing.getTimestamp()) / USECS_PER_SECOND);
 
             // the "age" term accumulates at the sum of all weights

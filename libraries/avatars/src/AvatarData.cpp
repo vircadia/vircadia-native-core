@@ -243,7 +243,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     bool sendPALMinimum = (dataDetail == PALMinimum);
 
     lazyInitHeadData();
-    ASSERT(maxDataSize == 0 || maxDataSize >= AvatarDataPacket::MIN_BULK_PACKET_SIZE);
+    ASSERT(maxDataSize == 0 || (size_t)maxDataSize >= AvatarDataPacket::MIN_BULK_PACKET_SIZE);
 
     // special case, if we were asked for no data, then just include the flags all set to nothing
     if (dataDetail == NoData) {

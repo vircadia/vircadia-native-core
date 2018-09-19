@@ -471,7 +471,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             avatarPacket->write(bytes);
             avatarSpaceAvailable -= bytes.size();
             numAvatarDataBytes += bytes.size();
-            if (includeFlags != 0 || avatarSpaceAvailable < AvatarDataPacket::MIN_BULK_PACKET_SIZE) {
+            if (includeFlags != 0 || avatarSpaceAvailable < (int)AvatarDataPacket::MIN_BULK_PACKET_SIZE) {
                 // Weren't able to fit everything.
                 nodeList->sendPacket(std::move(avatarPacket), *destinationNode);
                 ++numPacketsSent;
