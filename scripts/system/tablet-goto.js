@@ -35,14 +35,12 @@ function notificationPollCallback(userStoriesArray) {
     // START logic for keeping track of new info
     //
     pingPong = !pingPong;
-    var totalCountedStories = 0;
+    var totalNewStories = 0;
     var shouldNotifyIndividually = !ui.isOpen && ui.notificationInitialCallbackMade;
     userStoriesArray.forEach(function (story) {
         if (story.audience !== "for_connections" &&
             story.audience !== "for_feed") {
             return;
-        } else {
-            totalCountedStories++;
         }
 
         var stored = storedAnnouncements[story.id] || storedFeaturedStories[story.id];
@@ -51,6 +49,8 @@ function notificationPollCallback(userStoriesArray) {
         if (stored) {
             return;
         }
+
+        totalNewStories++;
 
         if (story.audience === "for_connections") {
             storedAnnouncements[story.id] = story;
@@ -85,13 +85,13 @@ function notificationPollCallback(userStoriesArray) {
     // END logic for keeping track of new info
     //
 
-    var notificationCount = Object.keys(storedAnnouncements).length +
+    var totalStories = Object.keys(storedAnnouncements).length +
         Object.keys(storedFeaturedStories).length;
-    shouldShowDot = totalCountedStories > 0 || (notificationCount > 0 && shouldShowDot);
+    shouldShowDot = totalNewStories > 0 || (totalStories > 0 && shouldShowDot);
     ui.messagesWaiting(shouldShowDot && !ui.isOpen);
 
-    if (notificationCount > 0 && !ui.isOpen && !ui.notificationInitialCallbackMade) {
-        message = "You have " + notificationCount + "event invitations pending! " +
+    if (totalStories > 0 && !ui.isOpen && !ui.notificationInitialCallbackMade) {
+        message = "You have " + totalStories + "event invitations pending! " +
             "Open GOTO to see them.";
         ui.notificationDisplayBanner(message);
     }
