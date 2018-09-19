@@ -16,6 +16,7 @@ const USERS_URL= '/api/v1/users';
 const ECONOMIC_ACTIVITY_URL= '/api/v1/commerce/history';
 const UPDATES_URL= '/api/v1/commerce/available_updates';
 const MAX_NOTIFICATION_ITEMS=30
+const STARTUP_MAX_NOTIFICATION_ITEMS=5
 
 
 const StartInterface=hfApp.startInterface;
@@ -41,19 +42,34 @@ HifiNotification.prototype = {
         var app = null;
         switch(this.type) {
             case NotificationType.GOTO:
-                text = this.data.username + " " + this.data.action_string + " in " + this.data.place_name;
-                message = "Click to go to " + this.data.place_name;
-                url = "hifi://" + this.data.place_name + this.data.path;
+                if(typeof(this.data) == "number") {
+                    text = this.data + " events are happening."
+                    message = "Click to open GOTO.";
+                    url="hifiapp:hifi/tablet/TabletAddressDialog.qml"
+                }
+                else {
+                    text = this.data.username + " " + this.data.action_string + " in " + this.data.place_name;
+                    message = "Click to go to " + this.data.place_name;
+                    url = "hifi://" + this.data.place_name + this.data.path;
+                }
                 break;
             case NotificationType.PEOPLE:
-                text = this.data.username + " is available in " + this.data.location.root.name + "!";
-                message = "Click to join them.";
-                url="hifi://" + this.data.location.root.name + this.data.location.path;
+                if(typeof(this.data) == "number") {
+                    text = this.data + " of your connections is online."
+                    message = "Click to open PEOPLE.";
+                    url="hifiapp:hifi/Pal.qml"
+                }
+                else {
+                    console.log(this.data);
+                    text = this.data.username + " is available in " + this.data.location.root.name + "!";
+                    message = "Click to join them.";
+                    url="hifi://" + this.data.location.root.name + this.data.location.path;
+                }
                 break;
             case NotificationType.WALLET:
                 if(typeof(this.data) == "number") {
                     text = "You have " + this.data + " unread Wallet notifications!";
-                    message = "Click to open your wallet."
+                    message = "Click to open WALLET."
                     url = "hifiapp:hifi/commerce/wallet/Wallet.qml";
                     break;
                 }
@@ -71,12 +87,17 @@ HifiNotification.prototype = {
                 else {
                     text = this.data.message.replace(/<\/?[^>]+(>|$)/g, "");
                 }
-                message = memo + "Click to open your wallet.";
+                message = memo + "Click to open WALLET.";
                 url = "hifiapp:hifi/commerce/wallet/Wallet.qml";
                 break;
             case NotificationType.MARKETPLACE:
-                text = "There's an update available for your version of " + this.data.base_item_title + "!";
-                message = "Click to open the marketplace.";
+                if(typeof(this.data) == "number") {
+                    text = this.data + " of your purchased items have updates available!";
+                }
+                else {
+                    text = "There's an update available for your version of " + this.data.base_item_title + "!";
+                }
+                message = "Click to open MARKETPLACE.";
                 url = "hifiapp:hifi/commerce/purchases/Purchases.qml";
                 break;
         }
@@ -95,6 +116,7 @@ HifiNotification.prototype = {
 function HifiNotifications(config, callback) {
     this.config = config;
     this.callback = callback;
+    this.onlineUsers = new Set([]);
     this.since = new Date(this.config.get("notifySince", "1970-01-01T00:00:00.000Z"));
     this.enable(this.enabled());
     notifier.on('click', function(notifierObject, options) {
@@ -137,8 +159,24 @@ HifiNotifications.prototype = {
             clearInterval(this.pollTimer);
         }
     },
+    _pollToDisableHighlight: function(notifyType, error, data) {
+        if (error || !data.body) {
+            console.log("Error: unable to get " + url);
+            return false;
+        }
+        console.log(data.body);
+        var content = JSON.parse(data.body);
+        if(!content || content.status != 'success') {
+            console.log("Error: unable to get " + url);
+            return false;
+        }
+        console.log(content);
+        if(!content.total_entries) {
+            this.callback(notifyType, false);
+        }
+    },
     _pollCommon: function(notifyType, error, data, since) {
-        var maxNotificationItemCount = (since.getTime() == 0) ? MAX_NOTIFICATION_ITEMS : 1;
+        var maxNotificationItemCount = since.getTime() ? MAX_NOTIFICATION_ITEMS : STARTUP_MAX_NOTIFICATION_ITEMS;
         if (error || !data.body) {
             console.log("Error: unable to get " + url);
             return false;
@@ -174,14 +212,15 @@ HifiNotifications.prototype = {
                     break;
             }
 
-            notifyData.forEach(function(data) {
-                var notification = new HifiNotification(notifyType, data);
+            notifyData.forEach(function(notifyDataEntry) {
+                var notification = new HifiNotification(notifyType, notifyDataEntry);
                 notification.show();
             });
         }
     },
     pollForStories: function(since, token) {
         var _this = this;
+        var _token = token;
         var actions = 'announcement';
         var options = [
             'now=' + new Date().toISOString(),
@@ -194,17 +233,36 @@ HifiNotifications.prototype = {
         console.log("Polling for stories");
         var url = METAVERSE_SERVER_URL + STORIES_URL + '?' + options.join('&');
         console.log(url);
-        request({
-            uri: url
-        }, function (error, data) {
+        request.get({
+            uri: url,
+            'auth': {
+                'bearer': _token
+              }
+            }, function (error, data) {
             _this._pollCommon(NotificationType.GOTO, error, data, since);
+            var options = [
+                'now=' + new Date().toISOString(),
+                'include_actions=announcement',
+                'restriction=open,hifi',
+                'require_online=true',
+                'per_page=1'
+            ];            
+            var url = METAVERSE_SERVER_URL + STORIES_URL + '?' + options.join('&');
+            request.get({
+                uri: url,
+                'auth': {
+                    'bearer': _token
+                  }
+                }, function(error, data) {
+                    _this._pollToDisableHighlight(NotificationType.GOTO, error, data);
+            });
         });
     },
     pollForConnections: function(since, token) {
         var _this = this;
+        var _since = since;
         var options = [
             'filter=connections',
-            'since=' + since.getTime() / 1000,
             'status=online',
             'page=1',
             'per_page=' + MAX_NOTIFICATION_ITEMS
@@ -218,7 +276,35 @@ HifiNotifications.prototype = {
                 'bearer': token
               }
         }, function (error, data) {
-            _this._pollCommon(NotificationType.PEOPLE, error, data, since);
+            // Users is a special case as we keep track of online users locally.
+            var maxNotificationItemCount = since.getTime() ? MAX_NOTIFICATION_ITEMS : STARTUP_MAX_NOTIFICATION_ITEMS;
+            if (error || !data.body) {
+                console.log("Error: unable to get " + url);
+                return false;
+            }
+            var content = JSON.parse(data.body);
+            if(!content || content.status != 'success') {
+                console.log("Error: unable to get " + url);
+                return false;
+            }
+            console.log(content);
+            if(!content.total_entries) {
+                _this.callback(NotificationType.PEOPLE, false);
+                _this.onlineUsers = new Set([]);
+                return;
+            }
+
+            var currentUsers = new Set([]);
+            content.data.users.forEach(function(user) {
+                currentUsers.add(user.username);
+                if(!_this.onlineUsers.has(user.username)) {
+                    _this.callback(NotificationType.PEOPLE, true);
+                    _this.onlineUsers.add(user.username);
+                    var notification = new HifiNotification(NotificationType.PEOPLE, user);
+                    notification.show();        
+                }
+            });
+            _this.onlineUsers = currentUsers;
         });
     },
     pollForEconomicActivity: function(since, token) {
