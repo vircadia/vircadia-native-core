@@ -90,8 +90,8 @@ Rectangle {
                             break;
                         case "content set":
                             resource = isHttp(resource) ? resource : "file:///" + resource;
-                            Commerce.replaceContentSet(resource, "");
                             urlHandler.handleUrl("hifi://localhost/0,0,0");
+                            Commerce.replaceContentSet(resource, "");
                             break;
                     }
                     // XXX support other resource types here.
