@@ -167,11 +167,13 @@ private:
 	static const gpu::PipelinePointer& getHBlurPipeline(); // first
 	static const gpu::PipelinePointer& getVBlurPipeline(); // second
 	static const gpu::PipelinePointer& getMipCreationPipeline();
+    static const gpu::PipelinePointer& getGatherPipeline();
 
-	static gpu::PipelinePointer _occlusionPipeline;
+    static gpu::PipelinePointer _occlusionPipeline;
 	static gpu::PipelinePointer _hBlurPipeline;
 	static gpu::PipelinePointer _vBlurPipeline;
-	static gpu::PipelinePointer _mipCreationPipeline;
+    static gpu::PipelinePointer _mipCreationPipeline;
+    static gpu::PipelinePointer _gatherPipeline;
 
     AmbientOcclusionFramebufferPointer _framebuffer;
     std::array<float, 16 * SSAO_SPLIT_COUNT> _randomSamples;

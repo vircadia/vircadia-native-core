@@ -34,6 +34,7 @@ gpu::PipelinePointer AmbientOcclusionEffect::_occlusionPipeline;
 gpu::PipelinePointer AmbientOcclusionEffect::_hBlurPipeline;
 gpu::PipelinePointer AmbientOcclusionEffect::_vBlurPipeline;
 gpu::PipelinePointer AmbientOcclusionEffect::_mipCreationPipeline;
+gpu::PipelinePointer AmbientOcclusionEffect::_gatherPipeline;
 
 AmbientOcclusionFramebuffer::AmbientOcclusionFramebuffer() {
 }
@@ -395,6 +396,19 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getMipCreationPipeline() {
 	return _mipCreationPipeline;
 }
 
+const gpu::PipelinePointer& AmbientOcclusionEffect::getGatherPipeline() {
+    if (!_gatherPipeline) {
+        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::ssao_gather);
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+
+        state->setColorWriteMask(true, true, true, false);
+
+        // Good to go add the brand new pipeline
+        _gatherPipeline = gpu::Pipeline::create(program, state);
+    }
+    return _gatherPipeline;
+}
+
 void AmbientOcclusionEffect::updateGaussianDistribution() {
     auto coefs = _aoParametersBuffer.edit()._gaussianCoefs;
     GaussianDistribution::evalSampling(coefs, SSAO_BLUR_GAUSSIAN_COEFS_COUNT, _aoParametersBuffer->getBlurRadius(), _aoParametersBuffer->getBlurDeviation());
@@ -448,7 +462,10 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 #if SSAO_USE_HORIZON_BASED
     auto mipCreationPipeline = getMipCreationPipeline();
 #endif
-    
+#if SSAO_USE_QUAD_SPLIT
+    auto gatherPipeline = getGatherPipeline();
+#endif
+
     // Update sample rotation
     const int SSAO_RANDOM_SAMPLE_COUNT = int(_randomSamples.size() / SSAO_SPLIT_COUNT);
     for (int splitId=0 ; splitId < SSAO_SPLIT_COUNT ; splitId++) {
@@ -485,7 +502,11 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 
         batch.setUniformBuffer(render_utils::slot::buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
         batch.setUniformBuffer(render_utils::slot::buffer::SsaoParams, _aoParametersBuffer);
+#if SSAO_USE_QUAD_SPLIT
+        batch.setFramebuffer(occlusionBlurredFBO);
+#else
         batch.setFramebuffer(occlusionFBO);
+#endif
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(1.0f));
         batch.setPipeline(occlusionPipeline);
         batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, occlusionDepthTexture);
@@ -519,6 +540,17 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 #endif
 
         batch.popProfileRange();
+
+#if SSAO_USE_QUAD_SPLIT
+        // Gather back the four separate renders into one interleaved one
+        batch.pushProfileRange("Gather");
+        batch.setViewportTransform(occlusionViewport);
+        batch.setFramebuffer(occlusionFBO);
+        batch.setPipeline(gatherPipeline);
+        batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, occlusionBlurredFBO->getRenderBuffer(0));
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+        batch.popProfileRange();
+#endif
 
         {
             PROFILE_RANGE_BATCH(batch, "Bilateral Blur");

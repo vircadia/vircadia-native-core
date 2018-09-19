@@ -364,6 +364,14 @@ float evalVisibilityHBAO(ivec4 side, vec2 shadedPixelPos, vec2 sideImageSize, ve
 
 <@endfunc@>
 
+<@func declareGatherPass()@>
+<$declareAmbientOcclusion()$>
+
+// the source occlusion texture
+layout(binding=RENDER_UTILS_TEXTURE_SSAO_OCCLUSION) uniform sampler2D occlusionMap;
+
+<@endfunc@>
+
 <@func declareBlurPass(axis)@>
 
 <$declarePackOcclusionDepth()$>
