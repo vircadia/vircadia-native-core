@@ -13,6 +13,8 @@ Item {
     onKeyboardRaisedChanged: {
         if(!keyboardRaised) {
             webroot.unfocus();
+        } else {
+            webroot.stopUnfocus();
         }
     }
     property bool punctuationMode: false
