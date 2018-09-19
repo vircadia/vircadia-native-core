@@ -31,7 +31,7 @@
 #if defined(Q_OS_ANDROID)
 #define FBX_PACK_NORMALS 0
 #else
-#define FBX_PACK_NORMALS 1
+#define FBX_PACK_NORMALS 0
 #endif
 
 #if FBX_PACK_NORMALS

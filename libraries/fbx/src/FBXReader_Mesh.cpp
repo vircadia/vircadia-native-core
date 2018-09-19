@@ -765,7 +765,7 @@ void FBXReader::buildModelMesh(FBXMesh& extractedMesh, const QString& url) {
     //       This work is going into rc73 release which is meant to be used for the SPot500 event and we are picking the format
     //       that works best for blendshaped and skinned  meshes aka the avatars.
     //       We will improve this technique in a hot fix to 73.
-    hasBlendShapes = true;
+    hasBlendShapes = false;
 
     // If has blend shapes allocate and assign buffers for pos and tangents now
     if (hasBlendShapes) {

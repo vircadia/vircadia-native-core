@@ -208,9 +208,11 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
 
     bool useDualQuaternionSkinning = model->getUseDualQuaternionSkinning();
 
-    if (!model->getFBXGeometry().meshes[meshIndex].blendshapes.isEmpty()) {
-        _blendedVertexBuffer = model->_blendedVertexBuffers[meshIndex];
+    auto buffer = model->_blendshapeBuffers.find(meshIndex);
+    if (buffer != model->_blendshapeBuffers.end()) {
+        _blendshapeBuffer = buffer->second;
     }
+
     auto& modelMesh = model->getGeometry()->getMeshes().at(_meshIndex);
     const Model::MeshState& state = model->getMeshState(_meshIndex);
 
@@ -389,14 +391,10 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
 void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) {
     batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
     batch.setInputFormat((_drawMesh->getVertexFormat()));
-    if (_isBlendShaped && _blendedVertexBuffer) {
-        batch.setInputBuffer(0, _blendedVertexBuffer, 0, sizeof(glm::vec3));
-        // Stride is 2*sizeof(glm::vec3) because normal and tangents are interleaved
-        batch.setInputBuffer(1, _blendedVertexBuffer, _drawMesh->getNumVertices() * sizeof(glm::vec3), 2 * sizeof(NormalType));
-        batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
-    } else {
-        batch.setInputStream(0, _drawMesh->getVertexStream());
+    if (_blendshapeBuffer) {
+        batch.setResourceBuffer(0, _blendshapeBuffer);
     }
+    batch.setInputStream(0, _drawMesh->getVertexStream());
 }
 
 void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMode renderMode) const {
