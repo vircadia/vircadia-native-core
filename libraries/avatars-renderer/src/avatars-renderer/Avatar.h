@@ -63,12 +63,11 @@ public:
 
     struct TransitAnimation {
         TransitAnimation() {};
-        TransitAnimation(const QString& animationUrl, int fps, int firstFrame, int frameCount) :
-            _firstFrame(firstFrame), _frameCount(frameCount), _animationUrl(animationUrl), _fps(fps) {};
+        TransitAnimation(const QString& animationUrl, int firstFrame, int frameCount) :
+            _firstFrame(firstFrame), _frameCount(frameCount), _animationUrl(animationUrl) {};
         int _firstFrame;
         int _frameCount;
         QString _animationUrl;
-        int _fps;
     };
 
     struct TransitConfig {
@@ -83,27 +82,30 @@ public:
         TransitAnimation _endTransitAnimation;
     };
 
-
     AvatarTransit() {};
-    Status update(const glm::vec3& avatarPosition, const TransitConfig& config);
+    Status update(float deltaTime, const glm::vec3& avatarPosition, const TransitConfig& config);
     bool isTransiting() { return _isTransiting; };
     glm::vec3 getCurrentPosition() { return _currentPosition; };
     bool getNextPosition(glm::vec3& nextPosition);
-    int getCurrentStep() { return _step; };
 
 private:
-    void calculateSteps(int stepCount);
-    Status updatePosition(const glm::vec3& avatarPosition);
-    void start(const glm::vec3& startPosition, const glm::vec3& endPosition, const TransitConfig& config);
+    Status updatePosition(float deltaTime);
+    void start(float deltaTime, const glm::vec3& startPosition, const glm::vec3& endPosition, const TransitConfig& config);
     bool _isTransiting{ false };
+
     glm::vec3 _startPosition;
     glm::vec3 _endPosition;
     glm::vec3 _currentPosition;
-    int _framesBefore { 0 };
-    int _framesAfter { 0 };
-    std::vector<glm::vec3> _transitSteps;
+
     glm::vec3 _lastPosition;
-    int _step { 0 };
+
+    glm::vec3 _transitLine;
+    float _totalDistance { 0.0f };
+    float _totalTime { 0.0f };
+    float _currentTime { 0.0f };
+    float _transitTime { 0.0f };
+    float _timeBefore { 0.0f };
+    float _timeAfter { 0.0f };
 };
 
 class Avatar : public AvatarData, public scriptable::ModelProvider {
@@ -419,7 +421,7 @@ public:
 
     std::shared_ptr<AvatarTransit> getTransit() { return std::make_shared<AvatarTransit>(_transit); };
 
-    AvatarTransit::Status updateTransit(const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config);
+    AvatarTransit::Status updateTransit(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config);
 signals:
     void targetScaleChanged(float targetScale);
 

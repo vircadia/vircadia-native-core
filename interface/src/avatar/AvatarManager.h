@@ -180,6 +180,7 @@ public:
 
     Q_INVOKABLE QVariantMap getAvatarTransitData();
     Q_INVOKABLE void setAvatarTransitData(const QVariantMap& data);
+    Q_INVOKABLE void setAvatarTransitAnimationData(const QVariantMap& data);
 
     float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
     int getIdentityRequestsSent() const { return _identityRequestsSent; }
@@ -207,6 +208,8 @@ private:
     AvatarSharedPointer newSharedAvatar() override;
     void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
     void playTransitAnimations(AvatarTransit::Status status);
+
+    AvatarTransit::TransitAnimation getAnimationFromJsonObject(const QJsonObject& object);
 
     QVector<AvatarSharedPointer> _avatarsToFade;
     QVector<AvatarSharedPointer> _avatarsToCopy;

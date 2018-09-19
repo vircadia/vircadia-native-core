@@ -113,70 +113,63 @@ void Avatar::setShowNamesAboveHeads(bool show) {
     showNamesAboveHeads = show;
 }
 
-AvatarTransit::Status AvatarTransit::update(const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config) {
+AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config) {
     glm::vec3 currentPosition = _isTransiting ? _currentPosition : avatarPosition;
     float oneFrameDistance = glm::length(currentPosition - _lastPosition);
-    if (oneFrameDistance > config._triggerDistance && !_isTransiting) {
-        start(_lastPosition, currentPosition, config);
+    const float MAX_TRANSIT_DISTANCE = 20.0f;
+    if (oneFrameDistance > config._triggerDistance && oneFrameDistance < MAX_TRANSIT_DISTANCE && !_isTransiting) {
+        start(deltaTime, _lastPosition, currentPosition, config);
     }
-    return updatePosition(avatarPosition);
+    _lastPosition = currentPosition;
+    return updatePosition(deltaTime);
 }
 
-void AvatarTransit::start(const glm::vec3& startPosition, const glm::vec3& endPosition, const AvatarTransit::TransitConfig& config) {
+void AvatarTransit::start(float deltaTime, const glm::vec3& startPosition, const glm::vec3& endPosition, const AvatarTransit::TransitConfig& config) {
     _startPosition = startPosition;
     _endPosition = endPosition;
-    _framesBefore = config._startTransitAnimation._frameCount;
-    _framesAfter = config._endTransitAnimation._frameCount;
-    _step = 0;
-    if (!config._isDistanceBased) {
-        calculateSteps(config._totalFrames);
-    } else {
-        float distance = glm::length(_endPosition - _startPosition);
-        calculateSteps(config._framesPerMeter * distance);
-    }
+
+    _transitLine = endPosition - startPosition;
+    _totalDistance = glm::length(_transitLine);
+    const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
+
+    int framesBefore = config._playAnimation ? config._startTransitAnimation._frameCount : 0;
+    int framesAfter = config._playAnimation ? config._endTransitAnimation._frameCount : 0;
+    _timeBefore = (float)framesBefore / REFERENCE_FRAMES_PER_SECOND;
+    _timeAfter = (float)framesAfter / REFERENCE_FRAMES_PER_SECOND;
+        
+    int transitFrames = (!config._isDistanceBased) ? config._totalFrames : config._framesPerMeter * _totalDistance;
+    _transitTime = (float)transitFrames / REFERENCE_FRAMES_PER_SECOND;
+    _totalTime = _transitTime + _timeBefore + _timeAfter;
+    _currentTime = 0.0f;
     _isTransiting = true;
 }
 
-void AvatarTransit::calculateSteps(int stepCount) {
-    glm::vec3 startPosition = _isTransiting ? _transitSteps[_step] : _startPosition;
-    _transitSteps.clear();
-    glm::vec3 transitLine = _endPosition - startPosition;
-    glm::vec3 direction = glm::normalize(transitLine);
-    glm::vec3 stepVector = (glm::length(transitLine) / stepCount) * direction;
-    int totalSteps = stepCount + _framesBefore + _framesAfter;
-    for (auto i = 0; i < totalSteps; i++) {
-        if (i < _framesBefore) {
-            _transitSteps.push_back(_startPosition);
-        } else if (i >= stepCount + _framesBefore) {
-            _transitSteps.push_back(_endPosition);
-        } else {
-            glm::vec3 localStep = _transitSteps.size() > _framesBefore ? _transitSteps[i - 1] + stepVector : _startPosition + stepVector;
-            _transitSteps.push_back(localStep);
-        }
-    }
-}
-
-AvatarTransit::Status AvatarTransit::updatePosition(const glm::vec3& avatarPosition) {
+AvatarTransit::Status AvatarTransit::updatePosition(float deltaTime) {
     Status status = Status::IDLE;
-    _lastPosition = _isTransiting ? _currentPosition : avatarPosition;
     if (_isTransiting) {
-        int lastIdx = (int)_transitSteps.size() - 1;
-        _isTransiting = _step < lastIdx;
-        if (_isTransiting) {
-            if (_step == 0) {
+        float nextTime = _currentTime + deltaTime;
+        glm::vec3 newPosition;
+        if (nextTime < _timeBefore) {
+            _currentPosition = _startPosition;
+            if (_currentTime == 0) {
                 status = Status::START_FRAME;
-                qDebug() << "Transit starting";
-            } else if (_step == _framesBefore - 1) {
-                status = Status::START_TRANSIT;
-            } else if (_step == (int)_transitSteps.size() - _framesAfter) {
-                status = Status::END_TRANSIT;
             }
-            _step++;
-            _currentPosition = _transitSteps[_step];
+        } else if (nextTime >= _totalTime - _timeAfter) {
+            if (_currentTime < _totalTime - _timeAfter) {
+                status = Status::END_TRANSIT;
+            } else if (nextTime >= _totalTime) {
+                status = Status::END_FRAME;
+                _isTransiting = false;
+            }
+            _currentPosition = _endPosition;
         } else {
-            status = Status::END_FRAME;
-            qDebug() << "Transit ending";
-        }
+            if (_currentTime <= _timeBefore) {
+                status = Status::START_TRANSIT;
+            }
+            float percentageIntoTransit = (nextTime - _timeBefore) / _transitTime;
+            _currentPosition = _startPosition + percentageIntoTransit * _transitLine;
+        } 
+        _currentTime = nextTime;
     }
     return status;
 }
@@ -521,7 +514,6 @@ void Avatar::simulate(float deltaTime, bool inView) {
     if (_transit.isTransiting()) {
         glm::vec3 nextPosition;
         if (_transit.getNextPosition(nextPosition)) {
-            // setWorldPosition(nextPosition);
             _globalPosition = nextPosition;
             _globalPositionChanged = usecTimestampNow();
             if (!hasParent()) {
@@ -540,7 +532,7 @@ void Avatar::simulate(float deltaTime, bool inView) {
         PROFILE_RANGE(simulation, "updateJoints");
         if (inView) {
             Head* head = getHead();
-            if (true) {
+            if (_hasNewJointData || _transit.isTransiting()) {
                 _skeletonModel->getRig().copyJointsFromJointData(_jointData);
                 glm::mat4 rootTransform = glm::scale(_skeletonModel->getScale()) * glm::translate(_skeletonModel->getOffset());
                 _skeletonModel->getRig().computeExternalPoses(rootTransform);
@@ -1954,9 +1946,9 @@ float Avatar::getUnscaledEyeHeightFromSkeleton() const {
     }
 }
 
-AvatarTransit::Status Avatar::updateTransit(const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config) {
+AvatarTransit::Status Avatar::updateTransit(float deltaTime, const glm::vec3& avatarPosition, const AvatarTransit::TransitConfig& config) {
     std::lock_guard<std::mutex> lock(_transitLock);
-    return _transit.update(avatarPosition, config);
+    return _transit.update(deltaTime, avatarPosition, config);
 }
 
 void Avatar::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
