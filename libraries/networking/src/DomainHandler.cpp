@@ -30,8 +30,6 @@
 #include "UserActivityLogger.h"
 #include "NetworkLogging.h"
 
-Setting::Handle<bool> enableInterstitialMode{ "enableInterstitialMode", false };
-
 DomainHandler::DomainHandler(QObject* parent) :
     QObject(parent),
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
@@ -488,6 +486,8 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
 #if defined(Q_OS_ANDROID)
         emit domainConnectionRefused(reasonMessage, (int)reasonCode, extraInfo);
 #else
+        Setting::Handle<bool> enableInterstitialMode{ "enableInterstitialMode", false };
+
         if (enableInterstitialMode.get()) {
             if (reasonCode == ConnectionRefusedReason::ProtocolMismatch || reasonCode == ConnectionRefusedReason::NotAuthorized) {
                 // ingest the error - this is a "hard" connection refusal.
