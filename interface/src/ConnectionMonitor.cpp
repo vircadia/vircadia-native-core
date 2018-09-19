@@ -18,7 +18,6 @@
 #include <DomainHandler.h>
 #include <AddressManager.h>
 #include <NodeList.h>
-#include <SettingHandle.h>
 
 // Because the connection monitor is created at startup, the time we wait on initial load
 // should be longer to allow the application to initialize.
@@ -40,8 +39,7 @@ void ConnectionMonitor::init() {
 
     _timer.setSingleShot(true);
     if (!domainHandler.isConnected()) {
-        Setting::Handle<bool> enableInterstitialMode{ "enableInterstitialMode", false };
-        if (enableInterstitialMode.get()) {
+        if (_enableInterstitialMode.get()) {
             _timer.start(ON_INITIAL_LOAD_REDIRECT_AFTER_DISCONNECTED_FOR_X_MS);
         } else {
             _timer.start(ON_INITIAL_LOAD_DISPLAY_AFTER_DISCONNECTED_FOR_X_MS);
@@ -50,8 +48,7 @@ void ConnectionMonitor::init() {
 
     connect(&_timer, &QTimer::timeout, this, [this]() {
         // set in a timeout error
-        Setting::Handle<bool> enableInterstitialMode{ "enableInterstitialMode", false };
-        if (enableInterstitialMode.get()) {
+        if (_enableInterstitialMode.get()) {
             qDebug() << "ConnectionMonitor: Redirecting to 404 error domain";
             emit setRedirectErrorState(REDIRECT_HIFI_ADDRESS, 5);
         } else {
@@ -62,8 +59,7 @@ void ConnectionMonitor::init() {
 }
 
 void ConnectionMonitor::startTimer() {
-    Setting::Handle<bool> enableInterstitialMode{ "enableInterstitialMode", false };
-    if (enableInterstitialMode.get()) {
+    if (_enableInterstitialMode.get()) {
         _timer.start(REDIRECT_AFTER_DISCONNECTED_FOR_X_MS);
     } else {
         _timer.start(DISPLAY_AFTER_DISCONNECTED_FOR_X_MS);
@@ -72,8 +68,7 @@ void ConnectionMonitor::startTimer() {
 
 void ConnectionMonitor::stopTimer() {
     _timer.stop();
-    Setting::Handle<bool> enableInterstitialMode{ "enableInterstitialMode", false };
-    if (!enableInterstitialMode.get()) {
+    if (!_enableInterstitialMode.get()) {
         DependencyManager::get<DialogsManager>()->setDomainConnectionFailureVisibility(false);
     }
 }

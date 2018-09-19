@@ -19,6 +19,8 @@
 #include <QtCore/QUrl>
 #include <QtNetwork/QHostInfo>
 
+#include <SettingHandle.h>
+
 #include "HifiSockAddr.h"
 #include "NetworkPeer.h"
 #include "NLPacket.h"
@@ -221,6 +223,7 @@ private:
     NetworkPeer _icePeer;
     bool _isConnected { false };
     bool _isInErrorState { false };
+    Setting::Handle<bool> _enableInterstitialMode{ "enableInterstitialMode", false };
     QJsonObject _settingsObject;
     QString _pendingPath;
     QTimer _settingsTimer;

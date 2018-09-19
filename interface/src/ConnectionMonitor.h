@@ -15,6 +15,8 @@
 #include <QObject>
 #include <QTimer>
 
+#include <SettingHandle.h>
+
 class QUrl;
 class QString;
 
@@ -32,6 +34,7 @@ private slots:
 
 private:
     QTimer _timer;
+    Setting::Handle<bool> _enableInterstitialMode{ "enableInterstitialMode", false };
 };
 
 #endif // hifi_ConnectionMonitor_h

@@ -14,7 +14,6 @@
 #include <math.h>
 
 #include <PathUtils.h>
-#include <SettingHandle.h>
 
 #include <QtCore/QJsonDocument>
 #include <QtCore/QDataStream>
@@ -486,9 +485,8 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
 #if defined(Q_OS_ANDROID)
         emit domainConnectionRefused(reasonMessage, (int)reasonCode, extraInfo);
 #else
-        Setting::Handle<bool> enableInterstitialMode{ "enableInterstitialMode", false };
 
-        if (enableInterstitialMode.get()) {
+        if (_enableInterstitialMode.get()) {
             if (reasonCode == ConnectionRefusedReason::ProtocolMismatch || reasonCode == ConnectionRefusedReason::NotAuthorized) {
                 // ingest the error - this is a "hard" connection refusal.
                 setRedirectErrorState(_errorDomainURL, (int)reasonCode);
@@ -496,8 +494,7 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
                 emit domainConnectionRefused(reasonMessage, (int)reasonCode, extraInfo);
             }
             _lastDomainConnectionError = (int)reasonCode;
-        }
-        else {
+        } else {
             emit domainConnectionRefused(reasonMessage, (int)reasonCode, extraInfo);
         }
        #endif
