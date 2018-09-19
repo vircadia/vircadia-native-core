@@ -773,6 +773,14 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
         return;
     }
     switch (message.method) {
+    case 'gotoBank':
+	ui.close();
+        if (Account.metaverseServerURL.indexOf("staging") >= 0) {
+            Window.location = "hifi://hifiqa-master-metaverse-staging"; // So that we can test in staging.
+        } else {
+            Window.location = "hifi://BankOfHighFidelity";
+        }
+	break;
     case 'purchases_openWallet':
     case 'checkout_openWallet':
     case 'checkout_setUpClicked':

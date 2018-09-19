@@ -552,6 +552,10 @@ Rectangle {
                     // Alignment
                     horizontalAlignment: Text.AlignLeft;
                     verticalAlignment: Text.AlignVCenter;
+                    onLinkActivated: {
+                        // Only case is to go to the bank.
+                        sendToScript({method: 'gotoBank'});
+                    }
                 }
             }
 
@@ -1107,25 +1111,32 @@ Rectangle {
     }
 
     function handleBuyAgainLogic() {
-        // If you can buy this item again...
-        if (canBuyAgain()) {
-            // If you can't afford another copy of the item...
-            if (root.balanceAfterPurchase < 0) {
-                // If you already own the item...
-                if (root.alreadyOwned) {
-                    buyText.text = "<b>Your Wallet does not have sufficient funds to purchase this item again.</b>";
-                // Else if you don't already own the item...
-                } else {
-                    buyText.text = "<b>Your Wallet does not have sufficient funds to purchase this item.</b>";
-                }
-                buyTextContainer.color = "#FFC3CD";
-                buyTextContainer.border.color = "#F3808F";
-                buyGlyph.text = hifi.glyphs.alert;
-                buyGlyph.size = 54;
-            // If you CAN afford another copy of the item...
+        // General rules, implemented in various scattered places in this file:
+        // 1. If you already own the item, a viewInMyPurchasesButton is visible,
+        //     and the buyButton is visible (and says "Buy it again") ONLY if it is a type you canBuyAgain.
+        // 2. Separately,
+        //   a. If you don't have enough money to buy, the buyText becomes visible and tells you, and the buyButton is disabled.
+        //   b. Otherwise, if the item is a content set and you don't have rez permission, the buyText becomes visible and tells you so.
+
+        // If you can't afford another copy of the item...
+        if (root.balanceAfterPurchase < 0) {
+            // If you already own the item...
+            if (!root.alreadyOwned) {
+                buyText.text = "<b>Your Wallet does not have sufficient funds to purchase this item.</b>";
+            // Else if you don't already own the item...
+            } else if (canBuyAgain()) {
+                buyText.text = "<b>Your Wallet does not have sufficient funds to purchase this item again.</b>";
             } else {
-                handleContentSets();
+                buyText.text = "<b>While you do not have sufficient funds to buy this, you already have this item.</b>"
             }
+            buyText.text += " Visit <a href='#'>Bank of High Fidelity</a> to get more HFC."
+            buyTextContainer.color = "#FFC3CD";
+            buyTextContainer.border.color = "#F3808F";
+            buyGlyph.text = hifi.glyphs.alert;
+            buyGlyph.size = 54;
+        // If you CAN afford another copy of the item...
+        } else {
+            handleContentSets();
         }
     }
 
