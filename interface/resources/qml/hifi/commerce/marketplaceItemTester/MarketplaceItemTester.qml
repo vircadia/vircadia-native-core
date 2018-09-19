@@ -55,6 +55,11 @@ Rectangle {
         }
     }
 
+    function isHttp(str) {
+        var httpPattern = /^http/i;
+        return httpPattern.test(str);
+    }
+
     Component.onCompleted: {
         // On startup, list includes all tester-installed assets.
         addAllInstalledAppsToList();
@@ -79,9 +84,15 @@ Rectangle {
                     switch(assetType) {
                         case "application":
                             Commerce.openApp(resource);
-                            break
+                            break;
                         case "avatar":
                             MyAvatar.useFullAvatarURL(resource);
+                            break;
+                        case "content set":
+                            resource = isHttp(resource) ? resource : "file:///" + resource;
+                            Commerce.replaceContentSet(resource, "");
+                            urlHandler.handleUrl("hifi://localhost/0,0,0");
+                            break;
                     }
                     // XXX support other resource types here.
                 },
@@ -119,7 +130,7 @@ Rectangle {
                 font.pointSize: 10
                 Layout.preferredWidth: root.width * .2
                 horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Test.AlignVCenter
+                verticalAlignment: Text.AlignVCenter
             }
 
             Repeater {
