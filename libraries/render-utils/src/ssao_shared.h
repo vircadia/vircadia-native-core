@@ -39,7 +39,7 @@ struct AmbientOcclusionParams {
     SSAO_VEC4 _ditheringInfo;
     SSAO_VEC4 _sampleInfo;
     SSAO_VEC4 _blurInfo;
-    float _gaussianCoefs[SSAO_BLUR_GAUSSIAN_COEFS_COUNT];
+    float _blurFilterTaps[SSAO_BLUR_GAUSSIAN_COEFS_COUNT];
 };
 
 struct AmbientOcclusionFrameParams {

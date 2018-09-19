@@ -46,7 +46,11 @@ void main(void) {
 
     // The position and normal of the pixel fragment in Eye space
     vec3 fragPositionES = evalEyePositionFromZeye(side.x, Zeye, fragUVPos);
+#if SSAO_USE_QUAD_SPLIT
+    vec3 fragNormalES = getNormalEyeAtUV(fragUVPos, 0);
+#else
     vec3 fragNormalES = evalEyeNormal(fragPositionES);
+#endif
 
     // Choose the screen-space sample radius
     float diskPixelRadius = evalDiskRadius(fragPositionES.z, sideImageSize);

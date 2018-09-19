@@ -28,11 +28,12 @@ namespace ru {
 LinearDepthFramebuffer::LinearDepthFramebuffer() {
 }
 
-void LinearDepthFramebuffer::update(const gpu::TexturePointer& depthBuffer) {
+void LinearDepthFramebuffer::update(const gpu::TexturePointer& depthBuffer, const gpu::TexturePointer& normalTexture) {
     //If the depth buffer or size changed, we need to delete our FBOs
     bool reset = false;
-    if (_primaryDepthTexture != depthBuffer) {
+    if (_primaryDepthTexture != depthBuffer || _normalTexture != normalTexture) {
         _primaryDepthTexture = depthBuffer;
+        _normalTexture = normalTexture;
         reset = true;
     }
     if (_primaryDepthTexture) {
@@ -100,6 +101,10 @@ gpu::TexturePointer LinearDepthFramebuffer::getLinearDepthTexture() {
     return _linearDepthTexture;
 }
 
+gpu::TexturePointer LinearDepthFramebuffer::getNormalTexture() {
+    return _normalTexture;
+}
+
 gpu::FramebufferPointer LinearDepthFramebuffer::getDownsampleFramebuffer() {
     if (!_downsampleFramebuffer) {
         allocate();
@@ -148,7 +153,7 @@ void LinearDepthPass::run(const render::RenderContextPointer& renderContext, con
     auto depthBuffer = deferredFramebuffer->getPrimaryDepthTexture();
     auto normalTexture = deferredFramebuffer->getDeferredNormalTexture();
 
-    _linearDepthFramebuffer->update(depthBuffer);
+    _linearDepthFramebuffer->update(depthBuffer, normalTexture);
 
     auto linearDepthFBO = _linearDepthFramebuffer->getLinearDepthFramebuffer();
     auto linearDepthTexture = _linearDepthFramebuffer->getLinearDepthTexture();

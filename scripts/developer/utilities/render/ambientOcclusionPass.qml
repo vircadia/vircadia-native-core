@@ -35,11 +35,12 @@ Rectangle {
             model: [
                 "Radius:radius:2.0:false",
                 "Level:obscuranceLevel:1.0:false",
-                "Num Taps:numSamples:32:true",
+                "Num Taps:numSamples:16:true",
                 "Taps Spiral:numSpiralTurns:10.0:false",
                 "Falloff Angle:falloffAngle:0.5:false",
                 "Blur Edge Sharpness:edgeSharpness:1.0:false",
-                "Blur Radius:blurRadius:15.0:false",
+                "Blur Radius:blurRadius:15.0:true",
+                "Resolution Downscale:resolutionLevel:2:true",
             ]
             ConfigSlider {
                 label: qsTr(modelData.split(":")[0])
@@ -57,7 +58,6 @@ Rectangle {
             Column {
                 Repeater {
                     model: [
-                        "resolutionLevel:resolutionLevel",
                         "ditheringEnabled:ditheringEnabled",
                         "fetchMipsEnabled:fetchMipsEnabled",
                         "borderingEnabled:borderingEnabled"

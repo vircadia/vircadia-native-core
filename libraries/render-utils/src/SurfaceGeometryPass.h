@@ -28,13 +28,14 @@ public:
 
     gpu::FramebufferPointer getLinearDepthFramebuffer();
     gpu::TexturePointer getLinearDepthTexture();
+    gpu::TexturePointer getNormalTexture();
 
     gpu::FramebufferPointer getDownsampleFramebuffer();
     gpu::TexturePointer getHalfLinearDepthTexture();
     gpu::TexturePointer getHalfNormalTexture();
 
     // Update the depth buffer which will drive the allocation of all the other resources according to its size.
-    void update(const gpu::TexturePointer& depthBuffer);
+    void update(const gpu::TexturePointer& depthBuffer, const gpu::TexturePointer& normalTexture);
     const glm::ivec2& getDepthFrameSize() const { return _frameSize; }
 
     void setResolutionLevel(int level) { _resolutionLevel = std::max(0, level); }
@@ -48,6 +49,7 @@ protected:
 
     gpu::FramebufferPointer _linearDepthFramebuffer;
     gpu::TexturePointer _linearDepthTexture;
+    gpu::TexturePointer _normalTexture;
 
     gpu::FramebufferPointer _downsampleFramebuffer;
     gpu::TexturePointer _halfLinearDepthTexture;

@@ -30,7 +30,10 @@ public:
     
     gpu::FramebufferPointer getOcclusionBlurredFramebuffer();
     gpu::TexturePointer getOcclusionBlurredTexture();
-    
+
+    gpu::FramebufferPointer getNormalFramebuffer();
+    gpu::TexturePointer getNormalTexture();
+
     // Update the source framebuffer size which will drive the allocation of all the other resources.
     bool updateLinearDepth(const gpu::TexturePointer& linearDepthBuffer);
     gpu::TexturePointer getLinearDepthTexture();
@@ -44,10 +47,13 @@ protected:
     
     gpu::FramebufferPointer _occlusionFramebuffer;
     gpu::TexturePointer _occlusionTexture;
-    
+
     gpu::FramebufferPointer _occlusionBlurredFramebuffer;
     gpu::TexturePointer _occlusionBlurredTexture;
-    
+
+    gpu::FramebufferPointer _normalFramebuffer;
+    gpu::TexturePointer _normalTexture;
+
     
     glm::ivec2 _frameSize;
 };
@@ -168,12 +174,14 @@ private:
 	static const gpu::PipelinePointer& getVBlurPipeline(); // second
 	static const gpu::PipelinePointer& getMipCreationPipeline();
     static const gpu::PipelinePointer& getGatherPipeline();
+    static const gpu::PipelinePointer& getBuildNormalsPipeline();
 
     static gpu::PipelinePointer _occlusionPipeline;
 	static gpu::PipelinePointer _hBlurPipeline;
 	static gpu::PipelinePointer _vBlurPipeline;
     static gpu::PipelinePointer _mipCreationPipeline;
     static gpu::PipelinePointer _gatherPipeline;
+    static gpu::PipelinePointer _buildNormalsPipeline;
 
     AmbientOcclusionFramebufferPointer _framebuffer;
     std::array<float, 16 * SSAO_SPLIT_COUNT> _randomSamples;
