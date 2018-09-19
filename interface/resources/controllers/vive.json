@@ -51,17 +51,8 @@
         { "from": "Vive.RSCenter", "to": "Standard.RightPrimaryThumb" },
         { "from": "Vive.RightApplicationMenu", "to": "Standard.RightSecondaryThumb" },
 
-        { "from": "Vive.LeftHand", "to": "Standard.LeftHand",
-          "filters" : [{"type" :  "accelerationLimiter",
-                        "rotationAccelerationLimit" : 4000.0, "rotationDecelerationLimit" : 8000.0,
-                        "translationAccelerationLimit": 200.0, "translationDecelerationLimit": 400.0}]
-        },
-
-        { "from": "Vive.RightHand", "to": "Standard.RightHand",
-          "filters" : [{"type" :  "accelerationLimiter",
-                        "rotationAccelerationLimit" : 2000.0, "rotationDecelerationLimit" : 4000.0,
-                        "translationAccelerationLimit": 100.0, "translationDecelerationLimit": 200.0}]
-        },
+        { "from": "Vive.LeftHand", "to": "Standard.LeftHand"},
+        { "from": "Vive.RightHand", "to": "Standard.RightHand"},
 
         {
             "from": "Vive.LeftFoot", "to" : "Standard.LeftFoot",
