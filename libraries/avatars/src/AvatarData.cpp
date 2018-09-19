@@ -65,7 +65,7 @@ size_t AvatarDataPacket::maxFaceTrackerInfoSize(size_t numBlendshapeCoefficients
 }
 
 size_t AvatarDataPacket::maxJointDataSize(size_t numJoints, bool hasGrabJoints) {
-    const size_t validityBitsSize = (size_t) calcBitVectorSize(numJoints);
+    const size_t validityBitsSize = calcBitVectorSize((int)numJoints);
 
     size_t totalSize = sizeof(uint8_t); // numJoints
 
@@ -74,9 +74,9 @@ size_t AvatarDataPacket::maxJointDataSize(size_t numJoints, bool hasGrabJoints) 
     totalSize += validityBitsSize; // Translations mask
     totalSize += numJoints * sizeof(SixByteTrans); // Translations
 
-    size_t NUM_FAUX_JOINT = 2;
-    size_t num_grab_joints = (hasGrabJoints ? 2 : 0);
-    totalSize += (NUM_FAUX_JOINT + num_grab_joints) * (sizeof(SixByteQuat) + sizeof(SixByteTrans)); // faux joints
+    static const size_t NUM_FAUX_JOINT = 2;
+    totalSize += NUM_FAUX_JOINT * (sizeof(SixByteQuat) + sizeof(SixByteTrans)); // faux joints
+    totalSize += hasGrabJoints ? sizeof(FarGrabJoints) : 0;
 
     return totalSize;
 }
@@ -222,12 +222,14 @@ float AvatarData::getDistanceBasedMinTranslationDistance(glm::vec3 viewerPositio
 
 // we want to track outbound data in this case...
 QByteArray AvatarData::toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking) {
-    AvatarDataPacket::HasFlags hasFlagsOut;
+    AvatarDataPacket::HasFlags hasFlagsOut = 0;
     auto lastSentTime = _lastToByteArray;
     _lastToByteArray = usecTimestampNow();
-    return AvatarData::toByteArray(dataDetail, lastSentTime, getLastSentJointData(),
+    auto avatarByteArray = AvatarData::toByteArray(dataDetail, lastSentTime, getLastSentJointData(),
                         hasFlagsOut, dropFaceTracking, false, glm::vec3(0), nullptr,
                         0, &_outboundDataRate);
+    // Strip UUID
+    return avatarByteArray.right(avatarByteArray.size() - NUM_BYTES_RFC4122_UUID);
 }
 
 QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime,
@@ -245,7 +247,9 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     // special case, if we were asked for no data, then just include the flags all set to nothing
     if (dataDetail == NoData) {
         AvatarDataPacket::HasFlags packetStateFlags = 0;
-        QByteArray avatarDataByteArray(reinterpret_cast<char*>(&packetStateFlags), sizeof(packetStateFlags));
+
+        QByteArray avatarDataByteArray(getSessionUUID().toRfc4122().data(), NUM_BYTES_RFC4122_UUID + sizeof(packetStateFlags));
+        avatarDataByteArray.append((char*) &packetStateFlags, sizeof packetStateFlags);
         return avatarDataByteArray;
     }
 
@@ -287,7 +291,6 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         bool hasSensorToWorldMatrix = false;
         bool hasJointData = false;
         bool hasJointDefaultPoseFlags = false;
-        bool hasGrabJoints = false;
         bool hasAdditionalFlags = false;
 
         // local position, and parent info only apply to avatars that are parented. The local position
@@ -315,26 +318,8 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
             hasFaceTrackerInfo = !dropFaceTracking && (hasFaceTracker() || getHasScriptedBlendshapes()) &&
                 (sendAll || faceTrackerInfoChangedSince(lastSentTime));
-            hasJointData = sendAll || !sendMinimum;
+            hasJointData = !sendMinimum;
             hasJointDefaultPoseFlags = hasJointData;
-            if (hasJointData) {
-                bool leftValid;
-                leftFarGrabMatrix = _farGrabLeftMatrixCache.get(leftValid);
-                if (!leftValid) {
-                    leftFarGrabMatrix = glm::mat4();
-                }
-                bool rightValid;
-                rightFarGrabMatrix = _farGrabRightMatrixCache.get(rightValid);
-                if (!rightValid) {
-                    rightFarGrabMatrix = glm::mat4();
-                }
-                bool mouseValid;
-                mouseFarGrabMatrix = _farGrabMouseMatrixCache.get(mouseValid);
-                if (!mouseValid) {
-                    mouseFarGrabMatrix = glm::mat4();
-                }
-                hasGrabJoints = (leftValid || rightValid || mouseValid);
-            }
         }
 
         packetStateFlags =
@@ -351,17 +336,45 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             | (hasFaceTrackerInfo ? AvatarDataPacket::PACKET_HAS_FACE_TRACKER_INFO : 0)
             | (hasJointData ? AvatarDataPacket::PACKET_HAS_JOINT_DATA : 0)
             | (hasJointDefaultPoseFlags ? AvatarDataPacket::PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS : 0)
-            | (hasGrabJoints ? AvatarDataPacket::PACKET_HAS_GRAB_JOINTS : 0);
+            | (hasJointData ? AvatarDataPacket::PACKET_HAS_GRAB_JOINTS : 0);
 
             itemFlags = packetStateFlags;
     } else {
         packetStateFlags = itemFlags;
+        if (packetStateFlags & AvatarDataPacket::PACKET_HAS_JOINT_DATA) {
+            // Force all joints upon continuation, as deltas aren't valid.
+            sendAll = true;
+        }
+        if (packetStateFlags & AvatarDataPacket::PACKET_HAS_GRAB_JOINTS) {
+            packetStateFlags |= AvatarDataPacket::PACKET_HAS_JOINT_DATA;
+        }
+    }
+
+    if (packetStateFlags & AvatarDataPacket::PACKET_HAS_GRAB_JOINTS) {
+        bool leftValid;
+        leftFarGrabMatrix = _farGrabLeftMatrixCache.get(leftValid);
+        if (!leftValid) {
+            leftFarGrabMatrix = glm::mat4();
+        }
+        bool rightValid;
+        rightFarGrabMatrix = _farGrabRightMatrixCache.get(rightValid);
+        if (!rightValid) {
+            rightFarGrabMatrix = glm::mat4();
+        }
+        bool mouseValid;
+        mouseFarGrabMatrix = _farGrabMouseMatrixCache.get(mouseValid);
+        if (!mouseValid) {
+            mouseFarGrabMatrix = glm::mat4();
+        }
+        if (!(leftValid || rightValid || mouseValid)) {
+            packetStateFlags &= ~AvatarDataPacket::PACKET_HAS_GRAB_JOINTS;
+        }
     }
 
     const size_t byteArraySize = AvatarDataPacket::MAX_CONSTANT_HEADER_SIZE + NUM_BYTES_RFC4122_UUID +
          AvatarDataPacket::maxFaceTrackerInfoSize(_headData->getBlendshapeCoefficients().size()) +
-        (packetStateFlags & AvatarDataPacket::PACKET_HAS_JOINT_DATA ? AvatarDataPacket::maxJointDataSize(_jointData.size(), true) : 0) +
-        (packetStateFlags & AvatarDataPacket::PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS ? AvatarDataPacket::maxJointDefaultPoseFlagsSize(_jointData.size()) : 0);
+         AvatarDataPacket::maxJointDataSize(_jointData.size(), true) +
+         AvatarDataPacket::maxJointDefaultPoseFlagsSize(_jointData.size());
 
     if (maxDataSize == 0) {
         maxDataSize = (int)byteArraySize;
@@ -381,16 +394,13 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     unsigned char * packetFlagsLocation = destinationBuffer;
     destinationBuffer += sizeof(packetStateFlags);
 
-    if (itemFlags == 0) {
-    }
-
 #define AVATAR_MEMCPY(src)                          \
     memcpy(destinationBuffer, &(src), sizeof(src)); \
     destinationBuffer += sizeof(src);
 
 // If we want an item and there's sufficient space:
 #define IF_AVATAR_SPACE(flag, space)                                                             \
-    if ((itemFlags & AvatarDataPacket::flag) && (int)(packetEnd - destinationBuffer) >= (space)  \
+    if ((packetStateFlags & AvatarDataPacket::flag) && (int)(packetEnd - destinationBuffer) >= (space)  \
     && (includedFlags |= AvatarDataPacket::flag))
 
     IF_AVATAR_SPACE(PACKET_HAS_AVATAR_GLOBAL_POSITION, sizeof _globalPosition) {
@@ -583,7 +593,9 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     const int jointBitVectorSize = calcBitVectorSize(numJoints);
 
     // Check against full size or minimum size: count + two bit-vectors + two controllers
-    const int approxJointSpace = sendAll ? AvatarDataPacket::maxJointDataSize(numJoints, true) : 1 + 2 * jointBitVectorSize + 2 * (6 + 2);
+    const int approxJointSpace = sendAll ? (int)AvatarDataPacket::maxJointDataSize(numJoints, true) :
+        1 + 2 * jointBitVectorSize + 2 * (sizeof(AvatarDataPacket::SixByteQuat) + sizeof(AvatarDataPacket::SixByteTrans));
+
     IF_AVATAR_SPACE(PACKET_HAS_JOINT_DATA, approxJointSpace) {
         auto startSection = destinationBuffer;
 

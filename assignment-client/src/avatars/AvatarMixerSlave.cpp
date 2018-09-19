@@ -261,7 +261,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     // max number of avatarBytes per frame
     int maxAvatarBytesPerFrame = int(_maxKbpsPerNode * BYTES_PER_KILOBIT / AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND);
 
-
     // keep track of the number of other avatars held back in this frame
     int numAvatarsHeldBack = 0;
 
@@ -457,23 +456,22 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         bool includeThisAvatar = true;
         QVector<JointData>& lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getUUID());
 
-        lastSentJointsForOther.resize(otherAvatar->getJointCount());
-
-        bool distanceAdjust = true;
-        glm::vec3 viewerPosition = myPosition;
+        const bool distanceAdjust = true;
+        const bool dropFaceTracking = false;
         AvatarDataPacket::HasFlags includeFlags = 0; // the result of the toByteArray
-        bool dropFaceTracking = false;
 
         do {
             auto startSerialize = chrono::high_resolution_clock::now();
             QByteArray bytes = otherAvatar->toByteArray(detail, lastEncodeForOther, lastSentJointsForOther,
-                includeFlags, dropFaceTracking, distanceAdjust, viewerPosition,
+                includeFlags, dropFaceTracking, distanceAdjust, myPosition,
                 &lastSentJointsForOther, avatarSpaceAvailable);
             auto endSerialize = chrono::high_resolution_clock::now();
             _stats.toByteArrayElapsedTime +=
                 (quint64)chrono::duration_cast<chrono::microseconds>(endSerialize - startSerialize).count();
+
             avatarPacket->write(bytes);
             avatarSpaceAvailable -= bytes.size();
+            numAvatarDataBytes += bytes.size();
             if (includeFlags != 0) {
                 // Weren't able to fit everything.
                 nodeList->sendPacket(std::move(avatarPacket), *destinationNode);
@@ -494,54 +492,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
                 otherNodeData->getLastReceivedSequenceNumber());
             nodeData->setLastOtherAvatarEncodeTime(otherNode->getUUID(), usecTimestampNow());
         }
-#if 0
-        if (bytes.size() > maxAvatarDataBytes) {
-            qCWarning(avatars) << "otherAvatar.toByteArray() for" << otherNode->getUUID()
-                << "resulted in very large buffer of" << bytes.size() << "bytes - dropping facial data";
-
-            dropFaceTracking = true; // first try dropping the facial data
-            bytes = otherAvatar->toByteArray(detail, lastEncodeForOther, lastSentJointsForOther,
-                                             hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition, &lastSentJointsForOther, maxAvatarDataBytes);
-
-            if (bytes.size() > maxAvatarDataBytes) {
-                qCWarning(avatars) << "otherAvatar.toByteArray() for" << otherNode->getUUID()
-                    << "without facial data resulted in very large buffer of" << bytes.size()
-                    << "bytes - reducing to MinimumData";
-                bytes = otherAvatar->toByteArray(AvatarData::MinimumData, lastEncodeForOther, lastSentJointsForOther,
-                                                 hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition, &lastSentJointsForOther, maxAvatarDataBytes);
-
-                if (bytes.size() > maxAvatarDataBytes, maxAvatarDataBytes) {
-                    qCWarning(avatars) << "otherAvatar.toByteArray() for" << otherNode->getUUID()
-                        << "MinimumData resulted in very large buffer of" << bytes.size()
-                        << "bytes - refusing to send avatar";
-                    includeThisAvatar = false;
-                }
-            }
-        }
-
-        if (includeThisAvatar) {
-            // start a new segment in the PacketList for this avatar
-            avatarPacketList->startSegment();
-            numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
-            numAvatarDataBytes += avatarPacketList->write(bytes);
-            avatarPacketList->endSegment();
-
-            if (detail != AvatarData::NoData) {
-                _stats.numOthersIncluded++;
-
-                // increment the number of avatars sent to this reciever
-                nodeData->incrementNumAvatarsSentLastFrame();
-
-                // set the last sent sequence number for this sender on the receiver
-                nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(),
-                                                         otherNodeData->getLastReceivedSequenceNumber());
-                nodeData->setLastOtherAvatarEncodeTime(otherNode->getUUID(), usecTimestampNow());
-            }
-        } else {
-            // TODO? this avatar is not included now, and will probably not be included next frame.
-            // It would be nice if we could tweak its future sort priority to put it at the back of the list.
-        }
-#endif
 
         auto endAvatarDataPacking = chrono::high_resolution_clock::now();
         _stats.avatarDataPackingElapsedTime +=
