@@ -1,5 +1,5 @@
 //
-//  Downloader.h
+//  TestRunner.h
 //
 //  Created by Nissim Hadar on 1 Sept 2018.
 //  Copyright 2013 High Fidelity, Inc.
@@ -21,8 +21,6 @@
 #include <QTimer>
 
 class Worker;
-
-class Runner;
 
 class TestRunner : public QObject {
     Q_OBJECT
@@ -61,6 +59,7 @@ public:
 
     void copyFolder(const QString& source, const QString& destination);
 
+    void updateStatusLabel(const QString& message);
     void appendLog(const QString& message);
 
     QString getInstallerNameFromURL(const QString& url);
@@ -89,12 +88,7 @@ private:
     QDir _appDataFolder;
     QDir _savedAppDataFolder;
 
-<<<<<<< HEAD
-    QString _snapshotFolder;
-
-=======
     QString _workingFolder;
->>>>>>> 8301b472feeaf857d4273f65eedb97957bc13755
     QString _installationFolder;
     QString _snapshotFolder;
 
@@ -107,39 +101,15 @@ private:
     std::vector<QCheckBox*> _dayCheckboxes;
     std::vector<QCheckBox*> _timeEditCheckboxes;
     std::vector<QTimeEdit*> _timeEdits;
-<<<<<<< HEAD
-=======
     QLabel* _workingFolderLabel;
     QCheckBox* _runServerless;
     QCheckBox* _runLatest;
     QTextEdit* _url;
->>>>>>> 8301b472feeaf857d4273f65eedb97957bc13755
 
     QTimer* _timer;
 
     QFile _logFile;
-    Runner* runner;
-};
 
-class Runner : public QObject {
-    Q_OBJECT
-
-public:
-    friend TestRunner;
-
-    Runner();
-    ~Runner();
-
-    void updateStatusLabel(const QString& message);
-
-public slots:
-    void process();
-
-signals:
-    void finished();
-    void error(QString err);
-
-private:
     QDateTime _testStartDateTime;
 
     QThread* installerThread;
