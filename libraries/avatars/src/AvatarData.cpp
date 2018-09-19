@@ -400,7 +400,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
 // If we want an item and there's sufficient space:
 #define IF_AVATAR_SPACE(flag, space)                                                             \
-    if ((packetStateFlags & AvatarDataPacket::flag) && (int)(packetEnd - destinationBuffer) >= (space)  \
+    if ((packetStateFlags & AvatarDataPacket::flag) && (size_t)(packetEnd - destinationBuffer) >= (size_t)(space)  \
     && (includedFlags |= AvatarDataPacket::flag))
 
     IF_AVATAR_SPACE(PACKET_HAS_AVATAR_GLOBAL_POSITION, sizeof _globalPosition) {
@@ -563,7 +563,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     const auto& blendshapeCoefficients = _headData->getBlendshapeCoefficients();
     // If it is connected, pack up the data
-    IF_AVATAR_SPACE(PACKET_HAS_FACE_TRACKER_INFO, sizeof(AvatarDataPacket::FaceTrackerInfo) + blendshapeCoefficients.size() * sizeof(float)) {
+    IF_AVATAR_SPACE(PACKET_HAS_FACE_TRACKER_INFO, sizeof(AvatarDataPacket::FaceTrackerInfo) + (size_t)blendshapeCoefficients.size() * sizeof(float)) {
         auto startSection = destinationBuffer;
         auto faceTrackerInfo = reinterpret_cast<AvatarDataPacket::FaceTrackerInfo*>(destinationBuffer);
         // note: we don't use the blink and average loudness, we just use the numBlendShapes and
@@ -593,7 +593,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     const int jointBitVectorSize = calcBitVectorSize(numJoints);
 
     // Check against full size or minimum size: count + two bit-vectors + two controllers
-    const int approxJointSpace = sendAll ? (int)AvatarDataPacket::maxJointDataSize(numJoints, true) :
+    const size_t approxJointSpace = sendAll ? AvatarDataPacket::maxJointDataSize(numJoints, true) :
         1 + 2 * jointBitVectorSize + 2 * (sizeof(AvatarDataPacket::SixByteQuat) + sizeof(AvatarDataPacket::SixByteTrans));
 
     IF_AVATAR_SPACE(PACKET_HAS_JOINT_DATA, approxJointSpace) {
@@ -753,7 +753,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             data->mouseFarGrabRotation[3] = mouseFarGrabRotation.z;
             destinationBuffer += sizeof(data->mouseFarGrabRotation);
 
-            int numGrabJointBytes = destinationBuffer - startSection;
+            numGrabJointBytes = destinationBuffer - startSection;
         }
 
 #ifdef WANT_DEBUG

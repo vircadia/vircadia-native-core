@@ -49,14 +49,14 @@ public:
     const AvatarData* getConstAvatarData() const { return _avatar.get(); }
     AvatarSharedPointer getAvatarSharedPointer() const { return _avatar; }
 
-    uint16_t getLastBroadcastSequenceNumber(const QUuid& nodeUUID) const;
-    void setLastBroadcastSequenceNumber(const QUuid& nodeUUID, uint16_t sequenceNumber)
-        { _lastBroadcastSequenceNumbers[nodeUUID] = sequenceNumber; }
-    Q_INVOKABLE void removeLastBroadcastSequenceNumber(const QUuid& nodeUUID) { _lastBroadcastSequenceNumbers.erase(nodeUUID); }
+    uint16_t getLastBroadcastSequenceNumber(NLPacket::LocalID nodeID) const;
+    void setLastBroadcastSequenceNumber(NLPacket::LocalID nodeID, uint16_t sequenceNumber)
+        { _lastBroadcastSequenceNumbers[nodeID] = sequenceNumber; }
+    Q_INVOKABLE void removeLastBroadcastSequenceNumber(NLPacket::LocalID nodeID) { _lastBroadcastSequenceNumbers.erase(nodeID); }
 
-    uint64_t getLastBroadcastTime(const QUuid& nodeUUID) const;
-    void setLastBroadcastTime(const QUuid& nodeUUID, uint64_t broadcastTime) { _lastBroadcastTimes[nodeUUID] = broadcastTime; }
-    Q_INVOKABLE void removeLastBroadcastTime(const QUuid& nodeUUID) { _lastBroadcastTimes.erase(nodeUUID); }
+    uint64_t getLastBroadcastTime(NLPacket::LocalID nodeUUID) const;
+    void setLastBroadcastTime(NLPacket::LocalID nodeUUID, uint64_t broadcastTime) { _lastBroadcastTimes[nodeUUID] = broadcastTime; }
+    Q_INVOKABLE void removeLastBroadcastTime(NLPacket::LocalID nodeUUID) { _lastBroadcastTimes.erase(nodeUUID); }
 
     Q_INVOKABLE void cleanupKilledNode(const QUuid& nodeUUID, Node::LocalID nodeLocalID);
 
@@ -147,8 +147,8 @@ private:
     AvatarSharedPointer _avatar { new AvatarData() };
 
     uint16_t _lastReceivedSequenceNumber { 0 };
-    std::unordered_map<QUuid, uint16_t> _lastBroadcastSequenceNumbers;
-    std::unordered_map<QUuid, uint64_t> _lastBroadcastTimes;
+    std::unordered_map<NLPacket::LocalID, uint16_t> _lastBroadcastSequenceNumbers;
+    std::unordered_map<NLPacket::LocalID, uint64_t> _lastBroadcastTimes;
 
     // this is a map of the last time we encoded an "other" avatar for
     // sending to "this" node

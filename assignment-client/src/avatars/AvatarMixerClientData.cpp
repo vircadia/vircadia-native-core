@@ -200,7 +200,7 @@ void AvatarMixerClientData::checkSkeletonURLAgainstWhitelist(const SlaveSharedDa
     }
 }
 
-uint64_t AvatarMixerClientData::getLastBroadcastTime(const QUuid& nodeUUID) const {
+uint64_t AvatarMixerClientData::getLastBroadcastTime(NLPacket::LocalID nodeUUID) const {
     // return the matching PacketSequenceNumber, or the default if we don't have it
     auto nodeMatch = _lastBroadcastTimes.find(nodeUUID);
     if (nodeMatch != _lastBroadcastTimes.end()) {
@@ -209,9 +209,9 @@ uint64_t AvatarMixerClientData::getLastBroadcastTime(const QUuid& nodeUUID) cons
     return 0;
 }
 
-uint16_t AvatarMixerClientData::getLastBroadcastSequenceNumber(const QUuid& nodeUUID) const {
+uint16_t AvatarMixerClientData::getLastBroadcastSequenceNumber(NLPacket::LocalID nodeID) const {
     // return the matching PacketSequenceNumber, or the default if we don't have it
-    auto nodeMatch = _lastBroadcastSequenceNumbers.find(nodeUUID);
+    auto nodeMatch = _lastBroadcastSequenceNumbers.find(nodeID);
     if (nodeMatch != _lastBroadcastSequenceNumbers.end()) {
         return nodeMatch->second;
     }
@@ -232,7 +232,7 @@ void AvatarMixerClientData::ignoreOther(const Node* self, const Node* other) {
         } else {
             killPacket->writePrimitive(KillAvatarReason::YourAvatarEnteredTheirBubble);
         }
-        setLastBroadcastTime(other->getUUID(), 0);
+        setLastBroadcastTime(other->getLocalID(), 0);
 
         resetSentTraitData(other->getLocalID());
 
@@ -311,9 +311,9 @@ AvatarMixerClientData::TraitsCheckTimestamp AvatarMixerClientData::getLastOtherA
     }
 }
 
-void AvatarMixerClientData::cleanupKilledNode(const QUuid& nodeUUID, Node::LocalID nodeLocalID) {
-    removeLastBroadcastSequenceNumber(nodeUUID);
-    removeLastBroadcastTime(nodeUUID);
+void AvatarMixerClientData::cleanupKilledNode(const QUuid&, Node::LocalID nodeLocalID) {
+    removeLastBroadcastSequenceNumber(nodeLocalID);
+    removeLastBroadcastTime(nodeLocalID);
     _lastSentTraitsTimestamps.erase(nodeLocalID);
     _sentTraitVersions.erase(nodeLocalID);
 }

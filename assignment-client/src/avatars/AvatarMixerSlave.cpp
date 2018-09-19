@@ -359,7 +359,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         }
 
         if (!shouldIgnore) {
-            AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(avatarNode->getUUID());
+            AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(avatarNode->getLocalID());
             AvatarDataSequenceNumber lastSeqFromSender = avatarClientNodeData->getLastReceivedSequenceNumber();
 
             // FIXME - This code does appear to be working. But it seems brittle.
@@ -435,11 +435,11 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         // If the time that the mixer sent AVATAR DATA about Avatar B to Avatar A is BEFORE OR EQUAL TO
         // the time that Avatar B flagged an IDENTITY DATA change, send IDENTITY DATA about Avatar B to Avatar A.
         if (otherAvatar->hasProcessedFirstIdentity()
-            && nodeData->getLastBroadcastTime(otherNode->getUUID()) <= otherNodeData->getIdentityChangeTimestamp()) {
+            && nodeData->getLastBroadcastTime(otherNode->getLocalID()) <= otherNodeData->getIdentityChangeTimestamp()) {
             identityBytesSent += sendIdentityPacket(otherNodeData, node);
 
             // remember the last time we sent identity details about this other node to the receiver
-            nodeData->setLastBroadcastTime(otherNode->getUUID(), usecTimestampNow());
+            nodeData->setLastBroadcastTime(otherNode->getLocalID(), usecTimestampNow());
         }
 
         // Typically all out-of-view avatars but such avatars' priorities will rise with time:
@@ -453,7 +453,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             nodeData->incrementAvatarInView();
         }
 
-        bool includeThisAvatar = true;
         QVector<JointData>& lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getUUID());
 
         const bool distanceAdjust = true;
@@ -484,11 +483,11 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         if (detail != AvatarData::NoData) {
             _stats.numOthersIncluded++;
 
-            // increment the number of avatars sent to this reciever
+            // increment the number of avatars sent to this receiver
             nodeData->incrementNumAvatarsSentLastFrame();
 
             // set the last sent sequence number for this sender on the receiver
-            nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(),
+            nodeData->setLastBroadcastSequenceNumber(otherNode->getLocalID(),
                 otherNodeData->getLastReceivedSequenceNumber());
             nodeData->setLastOtherAvatarEncodeTime(otherNode->getUUID(), usecTimestampNow());
         }
@@ -582,11 +581,11 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
             quint64 end = usecTimestampNow();
             _stats.toByteArrayElapsedTime += (end - start);
 
-            auto lastBroadcastTime = nodeData->getLastBroadcastTime(agentNode->getUUID());
+            auto lastBroadcastTime = nodeData->getLastBroadcastTime(agentNode->getLocalID());
             if (lastBroadcastTime <= agentNodeData->getIdentityChangeTimestamp()
                 || (start - lastBroadcastTime) >= REBROADCAST_IDENTITY_TO_DOWNSTREAM_EVERY_US) {
                 sendReplicatedIdentityPacket(*agentNode, agentNodeData, *node);
-                nodeData->setLastBroadcastTime(agentNode->getUUID(), start);
+                nodeData->setLastBroadcastTime(agentNode->getLocalID(), start);
             }
 
             // figure out how large our avatar byte array can be to fit in the packet list
@@ -620,7 +619,7 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
                 nodeData->incrementNumAvatarsSentLastFrame();
 
                 // set the last sent sequence number for this sender on the receiver
-                nodeData->setLastBroadcastSequenceNumber(agentNode->getUUID(),
+                nodeData->setLastBroadcastSequenceNumber(agentNode->getLocalID(),
                                                          agentNodeData->getLastReceivedSequenceNumber());
 
                 // increment the number of avatars sent to this reciever
