@@ -74,7 +74,6 @@ void Circle3DOverlay::render(RenderArgs* args) {
 
     const float FULL_CIRCLE = 360.0f;
     const float SLICES = 180.0f;  // The amount of segment to create the circle
-    const float SLICE_ANGLE = FULL_CIRCLE / SLICES;
     const float SLICE_ANGLE_RADIANS = glm::radians(FULL_CIRCLE / SLICES);
     const float MAX_COLOR = 255.0f;
 
