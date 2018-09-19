@@ -2,7 +2,7 @@
     "DataVersion": 0,
     "Paths":
     {
-        "/": "/4,1.4,4/0,0.49544,0,0.868645"
+        "/": "/5.77,1.4,4.96/0,0.49544,0,0.868645"
     },
     "Entities": [
         {
@@ -112,6 +112,53 @@
                 "y": 0.04553089290857315,
                 "z": 6.9401350021362305
             },
+            "id": "{33440bf8-f9ce-4d52-9b29-1b321e226982}",
+            "lastEdited": 1536107948774796,
+            "lastEditedBy": "{4eecd88f-ef9b-4a83-bb9a-7f7496209c6b}",
+            "locked": true,
+            "modelURL": "http://hifi-content.s3.amazonaws.com/alexia/LoadingScreens/floor.fbx",
+            "name": "floorModel",
+            "owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+            "position": {
+                "blue": 3.6175529956817627,
+                "green": 0,
+                "red": 4.102385997772217,
+                "x": 4.102385997772217,
+                "y": 0,
+                "z": 3.6175529956817627
+            },
+            "queryAACube": {
+                "scale": 9.860417366027832,
+                "x": -0.8278226852416992,
+                "y": -4.930208683013916,
+                "z": -1.3126556873321533
+            },
+            "rotation": {
+                "w": 0.8660253882408142,
+                "x": -1.5922749298624694e-05,
+                "y": 0.5,
+                "z": -4.572480611386709e-05
+            },
+            "shapeType": "simple-hull",
+            "type": "Model",
+            "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
+        },
+        {
+            "clientOnly": false,
+            "color": {
+                "blue": 0,
+                "green": 0,
+                "red": 0
+            },
+            "created": "2018-09-05T00:40:03Z",
+            "dimensions": {
+                "blue": 6.9401350021362305,
+                "green": 0.04553089290857315,
+                "red": 7.004304885864258,
+                "x": 7.004304885864258,
+                "y": 0.04553089290857315,
+                "z": 6.9401350021362305
+            },
             "id": "{8cd93fe5-16c0-44b7-b1e9-e7e06c4e9228}",
             "lastEdited": 1536107948774796,
             "lastEditedBy": "{4eecd88f-ef9b-4a83-bb9a-7f7496209c6b}",
@@ -140,7 +187,8 @@
             },
             "shape": "Cube",
             "type": "Box",
-            "userData": "{\"grabbableKey\":{\"grabbable\":false}}"
+            "userData": "{\"grabbableKey\":{\"grabbable\":false}}",
+            "visible": false
         },
         {
             "clientOnly": false,
