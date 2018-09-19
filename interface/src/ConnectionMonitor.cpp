@@ -26,7 +26,6 @@ static const int ON_INITIAL_LOAD_REDIRECT_AFTER_DISCONNECTED_FOR_X_MS = 10000;
 static const int REDIRECT_AFTER_DISCONNECTED_FOR_X_MS = 5000;
 static const int ON_INITIAL_LOAD_DISPLAY_AFTER_DISCONNECTED_FOR_X_MS = 10000;
 static const int DISPLAY_AFTER_DISCONNECTED_FOR_X_MS = 5000;
-Setting::Handle<bool> enableInterstitialMode{ "enableInterstitialMode", false };
 
 void ConnectionMonitor::init() {
     // Connect to domain disconnected message
@@ -41,6 +40,7 @@ void ConnectionMonitor::init() {
 
     _timer.setSingleShot(true);
     if (!domainHandler.isConnected()) {
+        Setting::Handle<bool> enableInterstitialMode{ "enableInterstitialMode", false };
         if (enableInterstitialMode.get()) {
             _timer.start(ON_INITIAL_LOAD_REDIRECT_AFTER_DISCONNECTED_FOR_X_MS);
         } else {
@@ -50,6 +50,7 @@ void ConnectionMonitor::init() {
 
     connect(&_timer, &QTimer::timeout, this, [this]() {
         // set in a timeout error
+        Setting::Handle<bool> enableInterstitialMode{ "enableInterstitialMode", false };
         if (enableInterstitialMode.get()) {
             qDebug() << "ConnectionMonitor: Redirecting to 404 error domain";
             emit setRedirectErrorState(REDIRECT_HIFI_ADDRESS, 5);
@@ -61,6 +62,7 @@ void ConnectionMonitor::init() {
 }
 
 void ConnectionMonitor::startTimer() {
+    Setting::Handle<bool> enableInterstitialMode{ "enableInterstitialMode", false };
     if (enableInterstitialMode.get()) {
         _timer.start(REDIRECT_AFTER_DISCONNECTED_FOR_X_MS);
     } else {
@@ -70,6 +72,7 @@ void ConnectionMonitor::startTimer() {
 
 void ConnectionMonitor::stopTimer() {
     _timer.stop();
+    Setting::Handle<bool> enableInterstitialMode{ "enableInterstitialMode", false };
     if (!enableInterstitialMode.get()) {
         DependencyManager::get<DialogsManager>()->setDomainConnectionFailureVisibility(false);
     }
