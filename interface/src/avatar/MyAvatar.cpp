@@ -453,6 +453,16 @@ void MyAvatar::update(float deltaTime) {
     float tau = deltaTime / HMD_FACING_TIMESCALE;
     setHipToHandController(computeHandAzimuth());
 
+    // qCDebug(interfaceapp) << "sitting state is " << getIsInSittingState();
+    // debug setting for sitting state if you start in the chair.
+    // if the head is close to the floor in sensor space
+    // and the up of the head is close to sensor up then try switching us to sitting state.
+    auto sensorHeadPoseDebug = getControllerPoseInSensorFrame(controller::Action::HEAD);
+    glm::vec3 upHead = transformVectorFast(sensorHeadPoseDebug.getMatrix(), glm::vec3(0.0f, 1.0f, 0.0f));
+    float acosHead = glm::dot(upHead, glm::vec3(0.0f, 1.0f, 0.0f));
+    if ((acosHead > 0.98f) && !getIsInSittingState() && (sensorHeadPoseDebug.getTranslation().y < -0.5f)) {
+        qCDebug(interfaceapp) << "we are going to sitting state because it looks like we should" << sensorHeadPoseDebug.getTranslation().y;
+    }
     // put the average hand azimuth into sensor space.
     // then mix it with head facing direction to determine rotation recenter
     if (getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).isValid() && getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).isValid()) {
@@ -3593,7 +3603,7 @@ glm::vec3 MyAvatar::computeCounterBalance() {
         setResetMode(true);
         _follow.activate(FollowHelper::Vertical);
         // disable cg behaviour in this case.
-        _isInSittingState = true;
+        setIsInSittingState(true);
     }
     return counterBalancedCg;
 }
@@ -4049,6 +4059,12 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontalCG(MyAvatar& myAvatar) cons
     bool stepDetected = false;
     float myScale = myAvatar.getAvatarScale();
 
+
+    // debug head hips angle
+    //glm::vec3 hipsPos = myAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar.getJointIndex("Hips"));
+    //glm::vec3 headHipsBody = currentHeadPose.getTranslation() - hipsPos;
+    //qCDebug(interfaceapp) << "head in sensor space " << withinBaseOfSupport(currentHeadPose);
+
     if (myAvatar.getIsInWalkingState()) {
         stepDetected = true;
     } else if (myAvatar.getIsInSittingState()) {
@@ -4093,6 +4109,12 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(MyAvatar& myAvatar, const gl
     const float SITTING_BOTTOM = -0.02f;
 
     glm::vec3 offset = extractTranslation(desiredBodyMatrix) - extractTranslation(currentBodyMatrix);
+
+    auto sensorHeadPose = myAvatar.getControllerPoseInSensorFrame(controller::Action::HEAD);
+    glm::vec3 headWorldSpace = myAvatar.getHead()->getPosition();
+    glm::mat4 worldToSensorMatrix = glm::inverse(myAvatar.getSensorToWorldMatrix());
+    glm::vec3 headSensorSpace = transformVectorFast(myAvatar.getSensorToWorldMatrix(), headWorldSpace);
+    //qCDebug(interfaceapp) << "sensor space position " << extractTranslation(currentBodyMatrix) << " head position sensor " << sensorHeadPose.getTranslation();
 
     if (myAvatar.getIsInSittingState()) {
         if (offset.y < SITTING_BOTTOM) {
