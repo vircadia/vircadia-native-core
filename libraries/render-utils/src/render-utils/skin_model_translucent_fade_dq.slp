@@ -1,2 +1,2 @@
-VERTEX skin_model_fade_dq
+VERTEX skin_model_dq
 FRAGMENT model_translucent_fade

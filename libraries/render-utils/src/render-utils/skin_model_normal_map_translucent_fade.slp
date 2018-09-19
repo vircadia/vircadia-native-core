@@ -1,2 +1,2 @@
-VERTEX skin_model_normal_map_fade
+VERTEX skin_model_normal_map
 FRAGMENT model_translucent_normal_map_fade
