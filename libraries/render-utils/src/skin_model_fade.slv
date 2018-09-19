@@ -3,7 +3,6 @@
 // <$_SCRIBE_FILENAME$> 
 // Generated on <$_SCRIBE_DATE$>
 //
-//  Created by Hifi Engine Team.
 //  Created by Olivier Prat on 06/045/17.
 //  Copyright 2017 High Fidelity, Inc.
 //
@@ -42,7 +41,7 @@ void main(void) {
 
     TexMapArray texMapArray = getTexMapArray();
     <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _texCoord01.xy)$>
-    <$evalTexMapArrayTexcoord1(texMapArray, inTexCoord0, _texCoord01.zw)$>
+    <$evalTexMapArrayTexcoord1(texMapArray, inTexCoord1, _texCoord01.zw)$>
 
     // standard transform
     TransformCamera cam = getTransformCamera();
