@@ -243,10 +243,12 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     bool sendPALMinimum = (dataDetail == PALMinimum);
 
     lazyInitHeadData();
+    ASSERT(maxDataSize == 0 || maxDataSize >= AvatarDataPacket::MIN_BULK_PACKET_SIZE);
 
     // special case, if we were asked for no data, then just include the flags all set to nothing
     if (dataDetail == NoData) {
         AvatarDataPacket::HasFlags packetStateFlags = 0;
+        itemFlags = packetStateFlags;
 
         QByteArray avatarDataByteArray(getSessionUUID().toRfc4122().data(), NUM_BYTES_RFC4122_UUID + sizeof(packetStateFlags));
         avatarDataByteArray.append((char*) &packetStateFlags, sizeof packetStateFlags);
