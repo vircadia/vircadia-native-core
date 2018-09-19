@@ -21,12 +21,12 @@
 #include "HelpWindow.h"
 #include "../TestRunner.h"
 
-
 class AutoTester : public QMainWindow {
     Q_OBJECT
 
 public:
-    AutoTester(QWidget *parent = Q_NULLPTR);
+    AutoTester(QWidget* parent = Q_NULLPTR);
+    ~AutoTester();
 
     void setup();
 
@@ -36,10 +36,10 @@ public:
                               const QString& branch,
                               const QString& user);
 
-    void automaticTestRunEvaluationComplete(QString zippedFolderName);
+    void automaticTestRunEvaluationComplete(QString zippedFolderName, int numberOfFailures);
 
     void downloadFile(const QUrl& url);
-    void downloadFiles(const QStringList& URLs, const QString& directoryName, const QStringList& filenames, void *caller);
+    void downloadFiles(const QStringList& URLs, const QString& directoryName, const QStringList& filenames, void* caller);
 
     void setUserText(const QString& user);
     QString getSelectedUser();
@@ -58,7 +58,7 @@ private slots:
     void on_evaluateTestsButton_clicked();
     void on_createRecursiveScriptButton_clicked();
     void on_createAllRecursiveScriptsButton_clicked();
-	void on_createTestsButton_clicked();
+    void on_createTestsButton_clicked();
 
     void on_createMDFileButton_clicked();
     void on_createAllMDFilesButton_clicked();
@@ -73,6 +73,8 @@ private slots:
 
     void on_setWorkingFolderButton_clicked();
     void on_runNowButton_clicked();
+
+    void on_checkBoxRunLatest_clicked();
 
     void on_updateTestRailRunResultsButton_clicked();
 
@@ -91,8 +93,8 @@ private slots:
 
 private:
     Ui::AutoTesterClass _ui;
-    Test* _test;
-    TestRunner* _testRunner;
+    Test* _test{ nullptr };
+    TestRunner* _testRunner{ nullptr };
 
     std::vector<Downloader*> _downloaders;
 
@@ -103,15 +105,15 @@ private:
     // Used to enable passing a parameter to slots
     QSignalMapper* _signalMapper;
 
-    int _numberOfFilesToDownload { 0 };
-    int _numberOfFilesDownloaded { 0 };
-    int _index { 0 };
+    int _numberOfFilesToDownload{ 0 };
+    int _numberOfFilesDownloaded{ 0 };
+    int _index{ 0 };
 
-    bool _isRunningFromCommandline { false };
+    bool _isRunningFromCommandline{ false };
 
     HelpWindow _helpWindow;
 
     void* _caller;
 };
 
-#endif // hifi_AutoTester_h
+#endif  // hifi_AutoTester_h

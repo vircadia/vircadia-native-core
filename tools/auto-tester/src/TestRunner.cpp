@@ -34,17 +34,44 @@ TestRunner::TestRunner(std::vector<QCheckBox*> dayCheckboxes,
                        std::vector<QCheckBox*> timeEditCheckboxes,
                        std::vector<QTimeEdit*> timeEdits,
                        QLabel* workingFolderLabel,
+                       QCheckBox* runServerless,
+                       QCheckBox* runLatest,
+                       QTextEdit* url,
                        QObject* parent) :
-    QObject(parent) 
-{
+    QObject(parent) {
     _dayCheckboxes = dayCheckboxes;
     _timeEditCheckboxes = timeEditCheckboxes;
     _timeEdits = timeEdits;
     _workingFolderLabel = workingFolderLabel;
+    _runServerless = runServerless;
+    _runLatest = runLatest;
+    _url = url;
+
+    installerThread = new QThread();
+    installerWorker = new Worker();
+    installerWorker->moveToThread(installerThread);
+    installerThread->start();
+    connect(this, SIGNAL(startInstaller()), installerWorker, SLOT(runCommand()));
+    connect(installerWorker, SIGNAL(commandComplete()), this, SLOT(installationComplete()));
+
+    interfaceThread = new QThread();
+    interfaceWorker = new Worker();
+    interfaceThread->start();
+    interfaceWorker->moveToThread(interfaceThread);
+    connect(this, SIGNAL(startInterface()), interfaceWorker, SLOT(runCommand()));
+    connect(interfaceWorker, SIGNAL(commandComplete()), this, SLOT(interfaceExecutionComplete()));
 }
 
 TestRunner::~TestRunner() {
-    disconnect(_timer, SIGNAL(timeout()), this, SLOT(checkTime()));
+    delete installerThread;
+    delete interfaceThread;
+
+    delete interfaceThread;
+    delete interfaceWorker;
+
+    if (_timer) {
+        delete _timer;
+    }
 }
 
 void TestRunner::setWorkingFolder() {
@@ -56,7 +83,7 @@ void TestRunner::setWorkingFolder() {
     }
 
     _workingFolder = QFileDialog::getExistingDirectory(nullptr, "Please select a temporary folder for installation", parent,
-                                                    QFileDialog::ShowDirsOnly);
+                                                       QFileDialog::ShowDirsOnly);
 
     // If user canceled then restore previous selection and return
     if (_workingFolder == "") {
@@ -70,7 +97,6 @@ void TestRunner::setWorkingFolder() {
     autoTester->enableRunTabControls();
     _workingFolderLabel->setText(QDir::toNativeSeparators(_workingFolder));
 
-    // The time is checked every 30 seconds for automatic test start
     _timer = new QTimer(this);
     connect(_timer, SIGNAL(timeout()), this, SLOT(checkTime()));
     _timer->start(30 * 1000);  //time specified in ms
@@ -87,7 +113,24 @@ void TestRunner::run() {
     // This will be restored at the end of the tests
     saveExistingHighFidelityAppDataFolder();
 
+<<<<<<< HEAD
     QThread* thread = new QThread;
+=======
+    // Download the latest High Fidelity installer and build XML.
+    QStringList urls;
+    QStringList filenames;
+    if (_runLatest->isChecked()) {
+        _installerFilename = INSTALLER_FILENAME_LATEST;
+
+        urls << INSTALLER_URL_LATEST << BUILD_XML_URL;
+        filenames << _installerFilename << BUILD_XML_FILENAME;
+    } else {
+        QString urlText = _url->toPlainText();
+        urls << urlText;
+        _installerFilename = getInstallerNameFromURL(urlText);
+        filenames << _installerFilename;
+    }
+>>>>>>> 8301b472feeaf857d4273f65eedb97957bc13755
 
     Runner* runner = new Runner();
     runner->moveToThread(thread);
@@ -100,16 +143,25 @@ void TestRunner::run() {
 }
 
 void TestRunner::installerDownloadComplete() {
+<<<<<<< HEAD
     appendLog(QString("Test started at ") + QString::number(runner->_testStartDateTime.time().hour()) + ":" +
               QString("%1").arg(runner->_testStartDateTime.time().minute(), 2, 10, QChar('0')) + ", on " +
               runner->_testStartDateTime.date().toString("ddd, MMM d, yyyy"));
 
     autoTester->updateStatusLabel("Installing");
+=======
+    appendLog(QString("Tests started at ") + QString::number(_testStartDateTime.time().hour()) + ":" +
+              QString("%1").arg(_testStartDateTime.time().minute(), 2, 10, QChar('0')) + ", on " +
+              _testStartDateTime.date().toString("ddd, MMM d, yyyy"));
+
+    updateStatusLabel("Installing");
+>>>>>>> 8301b472feeaf857d4273f65eedb97957bc13755
 
     // Kill any existing processes that would interfere with installation
     killProcesses();
 
     runInstaller();
+<<<<<<< HEAD
 
     createSnapshotFolder();
 
@@ -122,19 +174,35 @@ void TestRunner::installerDownloadComplete() {
     evaluateResults();
 
     // The High Fidelity AppData folder will be restored after evaluation has completed
+=======
+>>>>>>> 8301b472feeaf857d4273f65eedb97957bc13755
 }
 
 void TestRunner::runInstaller() {
     // Qt cannot start an installation process using QProcess::start (Qt Bug 9761)
     // To allow installation, the installer is run using the `system` command
+
     QStringList arguments{ QStringList() << QString("/S") << QString("/D=") + QDir::toNativeSeparators(_installationFolder) };
 
-    QString installerFullPath = _workingFolder + "/" + INSTALLER_FILENAME;
+    QString installerFullPath = _workingFolder + "/" + _installerFilename;
 
     QString commandLine =
         QDir::toNativeSeparators(installerFullPath) + " /S /D=" + QDir::toNativeSeparators(_installationFolder);
 
-    system(commandLine.toStdString().c_str());
+    installerWorker->setCommandLine(commandLine);
+    emit startInstaller();
+}
+
+void TestRunner::installationComplete() {
+    createSnapshotFolder();
+
+    updateStatusLabel("Running tests");
+
+    if (!_runServerless->isChecked()) {
+        startLocalServerProcesses();
+    }
+
+    runInterfaceWithTestScript();
 }
 
 void TestRunner::saveExistingHighFidelityAppDataFolder() {
@@ -144,11 +212,20 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
     dataDirectory = qgetenv("USERPROFILE") + "\\AppData\\Roaming";
 #endif
 
-    _appDataFolder = dataDirectory + "\\High Fidelity";
+    if (_runLatest->isChecked()) {
+        _appDataFolder = dataDirectory + "\\High Fidelity";
+    } else {
+        // We are running a PR build
+        _appDataFolder = dataDirectory + "\\High Fidelity - " + getPRNumberFromURL(_url->toPlainText());
+    }
+
+    _savedAppDataFolder = dataDirectory + "/" + UNIQUE_FOLDER_NAME;
+    if (_savedAppDataFolder.exists()) {
+        _savedAppDataFolder.removeRecursively();
+    }
 
     if (_appDataFolder.exists()) {
         // The original folder is saved in a unique name
-        _savedAppDataFolder = dataDirectory + "/" + UNIQUE_FOLDER_NAME;
         _appDataFolder.rename(_appDataFolder.path(), _savedAppDataFolder.path());
     }
 
@@ -240,14 +317,30 @@ void TestRunner::startLocalServerProcesses() {
 }
 
 void TestRunner::runInterfaceWithTestScript() {
-#ifdef Q_OS_WIN
-    QString commandLine = QString("\"") + QDir::toNativeSeparators(_installationFolder) +
-                          "\\interface.exe\" --url hifi://localhost --testScript https://raw.githubusercontent.com/" + _user +
-                          "/hifi_tests/" + _branch + "/tests/testRecursive.js quitWhenFinished --testResultsLocation " +
-                          _snapshotFolder;
+    QString exeFile = QString("\"") + QDir::toNativeSeparators(_installationFolder) + "\\interface.exe\"";
 
-    system(commandLine.toStdString().c_str());
-#endif
+    QString url = QString("hifi://localhost");
+    if (_runServerless->isChecked()) {
+        // Move to an empty area
+        url = url + "/9999,9999,9999/0.0,0.0,0.0,1.0";
+    }
+
+    QString testScript =
+        QString("https://raw.githubusercontent.com/") + _user + "/hifi_tests/" + _branch + "/tests/testRecursive.js";
+
+    QString commandLine = exeFile + " --url " + url + " --testScript " + testScript +
+                          " quitWhenFinished --testResultsLocation " + _snapshotFolder;
+
+    interfaceWorker->setCommandLine(commandLine);
+    emit startInterface();
+}
+
+void TestRunner::interfaceExecutionComplete() {
+    killProcesses();
+
+    evaluateResults();
+
+    // The High Fidelity AppData folder will be restored after evaluation has completed
 }
 
 void TestRunner::evaluateResults() {
@@ -255,15 +348,42 @@ void TestRunner::evaluateResults() {
     autoTester->startTestsEvaluation(false, true, _snapshotFolder, _branch, _user);
 }
 
-void TestRunner::automaticTestRunEvaluationComplete(QString zippedFolder) {
+void TestRunner::automaticTestRunEvaluationComplete(QString zippedFolder, int numberOfFailures) {
     addBuildNumberToResults(zippedFolder);
     restoreHighFidelityAppDataFolder();
 
+<<<<<<< HEAD
     autoTester->updateStatusLabel("Testing complete");
+=======
+    updateStatusLabel("Testing complete");
+
+    QDateTime currentDateTime = QDateTime::currentDateTime();
+
+    QString completionText = QString("Tests completed at ") + QString::number(currentDateTime.time().hour()) + ":" +
+                             QString("%1").arg(currentDateTime.time().minute(), 2, 10, QChar('0')) + ", on " +
+                             currentDateTime.date().toString("ddd, MMM d, yyyy");
+
+    if (numberOfFailures == 0) {
+        completionText += "; no failures";
+    } else if (numberOfFailures == 1) {
+        completionText += "; 1 failure";
+    } else {
+        completionText += QString("; ") + QString::number(numberOfFailures) + " failures";
+    }
+    appendLog(completionText);
+
+>>>>>>> 8301b472feeaf857d4273f65eedb97957bc13755
     _automatedTestIsRunning = false;
 }
 
 void TestRunner::addBuildNumberToResults(QString zippedFolderName) {
+    if (!_runLatest->isChecked()) {
+        QStringList filenameParts = zippedFolderName.split(".");
+        QString augmentedFilename = filenameParts[0] + "(" + getPRNumberFromURL(_url->toPlainText()) + ")." + filenameParts[1];
+        QFile::rename(zippedFolderName, augmentedFilename);
+
+        return;
+    }
     try {
         QDomDocument domDocument;
         QString filename{ _workingFolder + "/" + BUILD_XML_FILENAME };
@@ -419,6 +539,7 @@ void TestRunner::appendLog(const QString& message) {
     autoTester->appendLogWindow(message);
 }
 
+<<<<<<< HEAD
 Runner::Runner() {
 }
 
@@ -439,4 +560,48 @@ void Runner::process() {
 
     // `installerDownloadComplete` will run after download has completed
     emit finished();
+=======
+QString TestRunner::getInstallerNameFromURL(const QString& url) {
+    // An example URL: https://deployment.highfidelity.com/jobs/pr-build/label%3Dwindows/13023/HighFidelity-Beta-Interface-PR14006-be76c43.exe
+    try {
+        QStringList urlParts = url.split("/");
+        int rr = urlParts.size();
+        if (urlParts.size() != 8) {
+            throw "URL not in expected format, should look like `https://deployment.highfidelity.com/jobs/pr-build/label%3Dwindows/13023/HighFidelity-Beta-Interface-PR14006-be76c43.exe`";
+        }
+        return urlParts[urlParts.size() - 1];
+    } catch (QString errorMessage) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), errorMessage);
+        exit(-1);
+    } catch (...) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "unknown error");
+        exit(-1);
+    }
+}
+
+QString TestRunner::getPRNumberFromURL(const QString& url) {
+    try {
+        QStringList urlParts = url.split("/");
+        QStringList filenameParts = urlParts[urlParts.size() - 1].split("-");
+        if (filenameParts.size() <= 3) {
+            throw "URL not in expected format, should look like `https://deployment.highfidelity.com/jobs/pr-build/label%3Dwindows/13023/HighFidelity-Beta-Interface-PR14006-be76c43.exe`";
+        }
+        return filenameParts[filenameParts.size() - 2];
+    } catch (QString errorMessage) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), errorMessage);
+        exit(-1);
+    } catch (...) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "unknown error");
+        exit(-1);
+    }
+}
+
+void Worker::setCommandLine(const QString& commandLine) {
+    _commandLine = commandLine;
+}
+
+void Worker::runCommand() {
+    system(_commandLine.toStdString().c_str());
+    emit commandComplete();
+>>>>>>> 8301b472feeaf857d4273f65eedb97957bc13755
 }

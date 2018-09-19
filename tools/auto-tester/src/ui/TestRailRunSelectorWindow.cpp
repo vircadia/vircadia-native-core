@@ -19,7 +19,6 @@ TestRailRunSelectorWindow::TestRailRunSelectorWindow(QWidget *parent) {
     projectIDLineEdit->setValidator(new QIntValidator(1, 999, this));
 }
 
-
 void TestRailRunSelectorWindow::reset() {
     urlLineEdit->setDisabled(false);
     userLineEdit->setDisabled(false);

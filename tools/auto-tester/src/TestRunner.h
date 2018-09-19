@@ -15,11 +15,12 @@
 #include <QDir>
 #include <QLabel>
 #include <QObject>
-#include <QProcess>
+#include <QTextEdit>
+#include <QThread>
 #include <QTimeEdit>
 #include <QTimer>
 
-#include "Downloader.h"
+class Worker;
 
 class Runner;
 
@@ -30,7 +31,11 @@ public:
                         std::vector<QCheckBox*> timeEditCheckboxes,
                         std::vector<QTimeEdit*> timeEdits,
                         QLabel* workingFolderLabel,
+                        QCheckBox* runServerless,
+                        QCheckBox* runLatest,
+                        QTextEdit* url,
                         QObject* parent = 0);
+
     ~TestRunner();
 
     void setWorkingFolder();
@@ -44,31 +49,54 @@ public:
     void restoreHighFidelityAppDataFolder();
 
     void createSnapshotFolder();
+    
     void killProcesses();
     void startLocalServerProcesses();
+    
     void runInterfaceWithTestScript();
+
     void evaluateResults();
-    void automaticTestRunEvaluationComplete(QString zippedFolderName);
+    void automaticTestRunEvaluationComplete(QString zippedFolderName, int numberOfFailures);
     void addBuildNumberToResults(QString zippedFolderName);
 
     void copyFolder(const QString& source, const QString& destination);
 
     void appendLog(const QString& message);
 
+    QString getInstallerNameFromURL(const QString& url);
+    QString getPRNumberFromURL(const QString& url);
+
 private slots:
     void checkTime();
+    void installationComplete();
+    void interfaceExecutionComplete();
+
+signals:
+    void startInstaller();
+    void startInterface();
 
 private:
     bool _automatedTestIsRunning{ false };
 
+    const QString INSTALLER_URL_LATEST{ "http://builds.highfidelity.com/HighFidelity-Beta-latest-dev.exe" };
+    const QString INSTALLER_FILENAME_LATEST{ "HighFidelity-Beta-latest-dev.exe" };
+
+    QString _installerURL;
+    QString _installerFilename;
+    const QString BUILD_XML_URL{ "https://highfidelity.com/dev-builds.xml" };
+    const QString BUILD_XML_FILENAME{ "dev-builds.xml" };
+
     QDir _appDataFolder;
     QDir _savedAppDataFolder;
 
+<<<<<<< HEAD
     QString _snapshotFolder;
 
+=======
+    QString _workingFolder;
+>>>>>>> 8301b472feeaf857d4273f65eedb97957bc13755
     QString _installationFolder;
-
-    Downloader* _downloader;
+    QString _snapshotFolder;
 
     const QString UNIQUE_FOLDER_NAME{ "fgadhcUDHSFaidsfh3478JJJFSDFIUSOEIrf" };
     const QString SNAPSHOT_FOLDER_NAME{ "snapshots" };
@@ -79,6 +107,13 @@ private:
     std::vector<QCheckBox*> _dayCheckboxes;
     std::vector<QCheckBox*> _timeEditCheckboxes;
     std::vector<QTimeEdit*> _timeEdits;
+<<<<<<< HEAD
+=======
+    QLabel* _workingFolderLabel;
+    QCheckBox* _runServerless;
+    QCheckBox* _runLatest;
+    QTextEdit* _url;
+>>>>>>> 8301b472feeaf857d4273f65eedb97957bc13755
 
     QTimer* _timer;
 
@@ -106,6 +141,27 @@ signals:
 
 private:
     QDateTime _testStartDateTime;
+
+    QThread* installerThread;
+    QThread* interfaceThread;
+    Worker* installerWorker;
+    Worker* interfaceWorker;
 };
 
+class Worker : public QObject {
+    Q_OBJECT
+public:
+    void setCommandLine(const QString& commandLine);
+
+public slots:
+    void runCommand();
+
+signals:
+    void commandComplete();
+    void startInstaller();
+    void startInterface();
+
+private:
+    QString _commandLine;
+};
 #endif  // hifi_testRunner_h

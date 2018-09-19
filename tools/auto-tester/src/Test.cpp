@@ -63,7 +63,7 @@ QString Test::zipAndDeleteTestResultsFolder() {
     return zippedResultsFileName;
 }
 
-bool Test::compareImageLists() {
+int Test::compareImageLists() {
     _progressBar->setMinimum(0);
     _progressBar->setMaximum(_expectedImagesFullFilenames.length() - 1);
     _progressBar->setValue(0);
@@ -71,8 +71,8 @@ bool Test::compareImageLists() {
 
     // Loop over both lists and compare each pair of images
     // Quit loop if user has aborted due to a failed test.
-    bool success{ true };
     bool keepOn{ true };
+    int numberOfFailures{ 0 };
     for (int i = 0; keepOn && i < _expectedImagesFullFilenames.length(); ++i) {
         // First check that images are the same size
         QImage resultImage(_resultImagesFullFilenames[i]);
@@ -91,6 +91,7 @@ bool Test::compareImageLists() {
         }
 
         if (similarityIndex < THRESHOLD) {
+            ++numberOfFailures;
             TestFailure testFailure = TestFailure{
                 (float)similarityIndex,
                 _expectedImagesFullFilenames[i].left(_expectedImagesFullFilenames[i].lastIndexOf("/") + 1), // path to the test (including trailing /)
@@ -102,7 +103,6 @@ bool Test::compareImageLists() {
 
             if (!isInteractiveMode) {
                 appendTestResultsToFile(_testResultsFolderPath, testFailure, _mismatchWindow.getComparisonImage());
-                success = false;
             } else {
                 _mismatchWindow.exec();
 
@@ -111,11 +111,9 @@ bool Test::compareImageLists() {
                         break;
                     case USE_RESPONSE_FAIL:
                         appendTestResultsToFile(_testResultsFolderPath, testFailure, _mismatchWindow.getComparisonImage());
-                        success = false;
                         break;
                     case USER_RESPONSE_ABORT:
                         keepOn = false;
-                        success = false;
                         break;
                     default:
                         assert(false);
@@ -128,7 +126,7 @@ bool Test::compareImageLists() {
     }
 
     _progressBar->setVisible(false);
-    return success;
+    return numberOfFailures;
 }
 
 void Test::appendTestResultsToFile(const QString& _testResultsFolderPath, TestFailure testFailure, QPixmap comparisonImage) {
@@ -190,7 +188,7 @@ void Test::startTestsEvaluation(const bool isRunningFromCommandLine,
     _isRunningInAutomaticTestRun = isRunningInAutomaticTestRun;
 
     if (snapshotDirectory.isNull()) {
-        // Get list of JPEG images in folder, sorted by name
+        // Get list of PNG images in folder, sorted by name
         QString previousSelection = _snapshotDirectory;
         QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
         if (!parent.isNull() && parent.right(1) != "/") {
@@ -256,10 +254,10 @@ void Test::startTestsEvaluation(const bool isRunningFromCommandLine,
     autoTester->downloadFiles(expectedImagesURLs, _snapshotDirectory, _expectedImagesFilenames, (void *)this);
 }
 void Test::finishTestsEvaluation() {
-    bool success = compareImageLists();
+    int numberOfFailures = compareImageLists();
     
     if (!_isRunningFromCommandLine && !_isRunningInAutomaticTestRun) {
-        if (success) {
+        if (numberOfFailures == 0) {
             QMessageBox::information(0, "Success", "All images are as expected");
         } else {
             QMessageBox::information(0, "Failure", "One or more images are not as expected");
@@ -273,7 +271,7 @@ void Test::finishTestsEvaluation() {
     }
 
     if (_isRunningInAutomaticTestRun) {
-        autoTester->automaticTestRunEvaluationComplete(zippedFolderName);
+        autoTester->automaticTestRunEvaluationComplete(zippedFolderName, numberOfFailures);
     }
 }
 
@@ -593,6 +591,12 @@ bool Test::createMDFile(const QString& directory) {
     }
 
     mdFile.close();
+
+    foreach (auto test, testScriptLines.stepList) {
+        delete test;
+    }
+    testScriptLines.stepList.clear();
+
     return true;
 }
 
