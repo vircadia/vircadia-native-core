@@ -18,11 +18,15 @@
 #include <DomainHandler.h>
 #include <AddressManager.h>
 #include <NodeList.h>
+#include <SettingHandle.h>
 
 // Because the connection monitor is created at startup, the time we wait on initial load
 // should be longer to allow the application to initialize.
 static const int ON_INITIAL_LOAD_REDIRECT_AFTER_DISCONNECTED_FOR_X_MS = 10000;
 static const int REDIRECT_AFTER_DISCONNECTED_FOR_X_MS = 5000;
+static const int ON_INITIAL_LOAD_DISPLAY_AFTER_DISCONNECTED_FOR_X_MS = 10000;
+static const int DISPLAY_AFTER_DISCONNECTED_FOR_X_MS = 5000;
+Setting::Handle<bool> enableInterstitialMode{ "enableInterstitialMode", false };
 
 void ConnectionMonitor::init() {
     // Connect to domain disconnected message
@@ -37,20 +41,36 @@ void ConnectionMonitor::init() {
 
     _timer.setSingleShot(true);
     if (!domainHandler.isConnected()) {
-        _timer.start(ON_INITIAL_LOAD_REDIRECT_AFTER_DISCONNECTED_FOR_X_MS);
+        if (enableInterstitialMode.get()) {
+            _timer.start(ON_INITIAL_LOAD_REDIRECT_AFTER_DISCONNECTED_FOR_X_MS);
+        } else {
+            _timer.start(ON_INITIAL_LOAD_DISPLAY_AFTER_DISCONNECTED_FOR_X_MS);
+        }
     }
 
     connect(&_timer, &QTimer::timeout, this, [this]() {
-        qDebug() << "ConnectionMonitor: Redirecting to 404 error domain";
         // set in a timeout error
-        emit setRedirectErrorState(REDIRECT_HIFI_ADDRESS, 5);
+        if (enableInterstitialMode.get()) {
+            qDebug() << "ConnectionMonitor: Redirecting to 404 error domain";
+            emit setRedirectErrorState(REDIRECT_HIFI_ADDRESS, 5);
+        } else {
+            qDebug() << "ConnectionMonitor: Showing connection failure window";
+            DependencyManager::get<DialogsManager>()->setDomainConnectionFailureVisibility(true);
+        }
     });
 }
 
 void ConnectionMonitor::startTimer() {
-    _timer.start(REDIRECT_AFTER_DISCONNECTED_FOR_X_MS);
+    if (enableInterstitialMode.get()) {
+        _timer.start(REDIRECT_AFTER_DISCONNECTED_FOR_X_MS);
+    } else {
+        _timer.start(DISPLAY_AFTER_DISCONNECTED_FOR_X_MS);
+    }
 }
 
 void ConnectionMonitor::stopTimer() {
     _timer.stop();
+    if (!enableInterstitialMode.get()) {
+        DependencyManager::get<DialogsManager>()->setDomainConnectionFailureVisibility(false);
+    }
 }
