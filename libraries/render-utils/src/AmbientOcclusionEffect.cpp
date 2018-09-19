@@ -444,7 +444,7 @@ void AmbientOcclusionEffect::updateGaussianDistribution() {
     auto filterTaps = _aoParametersBuffer.edit()._blurFilterTaps;
     auto blurRadius = _aoParametersBuffer.get().getBlurRadius();
 
-    GaussianDistribution::evalSampling(filterTaps, SSAO_BLUR_GAUSSIAN_COEFS_COUNT, blurRadius, _aoParametersBuffer->getBlurDeviation() * 4.0f / blurRadius);
+    GaussianDistribution::evalSampling(filterTaps, SSAO_BLUR_GAUSSIAN_COEFS_COUNT, blurRadius, _aoParametersBuffer->getBlurDeviation());
 }
 
 void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
