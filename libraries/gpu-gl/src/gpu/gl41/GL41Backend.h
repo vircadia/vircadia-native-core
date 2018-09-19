@@ -161,7 +161,7 @@ protected:
     void updateTransform(const Batch& batch) override;
 
     // Resource Stage
-    bool bindResourceBuffer(uint32_t slot, BufferPointer& buffer) override;
+    bool bindResourceBuffer(uint32_t slot, const BufferPointer& buffer) override;
     void releaseResourceBuffer(uint32_t slot) override;
 
     // Output stage
