@@ -95,6 +95,7 @@ public:
     ~Batch();
 
     void setName(const char* name);
+    const char* getName() const { return _name; }
     void clear();
 
     // Batches may need to override the context level stereo settings
