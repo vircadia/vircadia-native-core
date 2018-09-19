@@ -41,6 +41,11 @@ const ProcessGroupStates = hfprocess.ProcessGroupStates;
 const hfApp = require('./modules/hf-app.js');
 const GetBuildInfo = hfApp.getBuildInfo;
 const StartInterface = hfApp.startInterface;
+const getRootHifiDataDirectory = hfApp.getRootHifiDataDirectory;
+const getDomainServerClientResourcesDirectory = hfApp.getDomainServerClientResourcesDirectory;
+const getAssignmentClientResourcesDirectory = hfApp.getAssignmentClientResourcesDirectory;
+const getApplicationDataDirectory = hfApp.getApplicationDataDirectory;
+
 
 const osType = os.type();
 
@@ -55,32 +60,7 @@ const HOME_CONTENT_URL = "http://cdn.highfidelity.com/content-sets/home-tutorial
 
 const buildInfo = GetBuildInfo();
 
-function getRootHifiDataDirectory(local) {
-    var organization = buildInfo.organization;
-    if (osType == 'Windows_NT') {
-        if (local) {
-            return path.resolve(osHomeDir(), 'AppData/Local', organization);
-        } else {
-            return path.resolve(osHomeDir(), 'AppData/Roaming', organization);
-        }
-    } else if (osType == 'Darwin') {
-        return path.resolve(osHomeDir(), 'Library/Application Support', organization);
-    } else {
-        return path.resolve(osHomeDir(), '.local/share/', organization);
-    }
-}
 
-function getDomainServerClientResourcesDirectory() {
-    return path.join(getRootHifiDataDirectory(), '/domain-server');
-}
-
-function getAssignmentClientResourcesDirectory() {
-    return path.join(getRootHifiDataDirectory(), '/assignment-client');
-}
-
-function getApplicationDataDirectory(local) {
-    return path.join(getRootHifiDataDirectory(local), '/Server Console');
-}
 
 // Update lock filepath
 const UPDATER_LOCK_FILENAME = ".updating";
@@ -352,8 +332,8 @@ const HifiNotifications = hfNotifications.HifiNotifications;
 const HifiNotificationType = hfNotifications.NotificationType;
 
 var pendingNotifications = {}
-function notificationCallback(notificationType) {
-    pendingNotifications[notificationType] = true;
+function notificationCallback(notificationType, pending = true) {
+    pendingNotifications[notificationType] = pending;
     updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
 }
 
@@ -424,7 +404,7 @@ var labels = {
     goto: {
         label: 'Goto',
         click: function() {
-            StartInterface("");
+            StartInterface("hifiapp:hifi/tablet/TabletAddressDialog.qml");
             pendingNotifications[HifiNotificationType.GOTO] = false;
             updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
         }
@@ -432,7 +412,7 @@ var labels = {
     people: {
         label: 'People',
         click: function() {
-            StartInterface("");
+            StartInterface("hifiapp:hifi/Pal.qml");
             pendingNotifications[HifiNotificationType.PEOPLE] = false;
             updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
         }
@@ -440,7 +420,7 @@ var labels = {
     wallet: {
         label: 'Wallet',
         click: function() {
-            StartInterface("");
+            StartInterface("hifiapp:hifi/commerce/wallet/Wallet.qml");
             pendingNotifications[HifiNotificationType.WALLET] = false;
             updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
         }
@@ -448,7 +428,7 @@ var labels = {
     marketplace: {
         label: 'Marketplace',
         click: function() {
-            StartInterface("");
+            StartInterface("hifiapp:hifi/commerce/purchases/Purchases.qml");
             pendingNotifications[HifiNotificationType.MARKETPLACE] = false;
             updateTrayMenu(homeServer ? homeServer.state : ProcessGroupStates.STOPPED);
         }

@@ -47,6 +47,16 @@ QmlCommerce::QmlCommerce() {
     _appsPath = PathUtils::getAppDataPath() + "Apps/";
 }
 
+void QmlCommerce::openSystemApp(const QString& appPath) {
+
+    QUrl appUrl = PathUtils::qmlUrl(appPath);
+
+    auto tablet = dynamic_cast<TabletProxy*>(
+        DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
+    tablet->loadQMLSource(appUrl);
+}
+
+
 void QmlCommerce::getWalletStatus() {
     auto wallet = DependencyManager::get<Wallet>();
     wallet->getWalletStatus();
@@ -353,7 +363,7 @@ bool QmlCommerce::openApp(const QString& itemHref) {
     // Read from the file to know what .html or .qml document to open
     QFile appFile(_appsPath + "/" + appHref.fileName());
     if (!appFile.open(QIODevice::ReadOnly)) {
-        qCDebug(commerce) << "Couldn't open local .app.json file.";
+        qCDebug(commerce) << "Couldn't open local .app.json file:" << _appsPath << "/" << appHref.fileName();
         return false;
     }
     QJsonDocument appFileJsonDocument = QJsonDocument::fromJson(appFile.readAll());

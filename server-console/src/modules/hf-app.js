@@ -6,6 +6,7 @@ const pathFinder = require('./path-finder');
 const path = require('path');
 const argv = require('yargs').argv;
 const hfprocess = require('./hf-process');
+const osHomeDir = require('os-homedir');
 const Process = hfprocess.Process;
 
 const binaryType = argv.binaryType;
@@ -68,4 +69,36 @@ exports.startInterface = function(url) {
 exports.isInterfaceRunning = function(done) {
     var pInterface = new Process('interface', 'interface.exe');
     return pInterface.isRunning(done);
+}
+
+
+exports.getRootHifiDataDirectory = function(local) {
+    var organization = buildInfo.organization;
+    if (osType == 'Windows_NT') {
+        if (local) {
+            return path.resolve(osHomeDir(), 'AppData/Local', organization);
+        } else {
+            return path.resolve(osHomeDir(), 'AppData/Roaming', organization);
+        }
+    } else if (osType == 'Darwin') {
+        return path.resolve(osHomeDir(), 'Library/Application Support', organization);
+    } else {
+        return path.resolve(osHomeDir(), '.local/share/', organization);
+    }
+}
+
+exports.getDomainServerClientResourcesDirectory = function() {
+    return path.join(exports.getRootHifiDataDirectory(), '/domain-server');
+}
+
+exports.getAssignmentClientResourcesDirectory = function()  {
+    return path.join(exports.getRootHifiDataDirectory(), '/assignment-client');
+}
+
+exports.getApplicationDataDirectory = function(local) {
+    return path.join(exports.getRootHifiDataDirectory(local), '/Server Console');
+}
+
+exports.getInterfaceDataDirectory = function(local) {
+    return path.join(exports.getRootHifiDataDirectory(local), '/Interface');
 }

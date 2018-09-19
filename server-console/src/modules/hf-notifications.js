@@ -4,14 +4,18 @@ const os = require('os');
 const process = require('process');
 const hfApp = require('./hf-app');
 const path = require('path');
+const AccountInfo = require('./hf-acctinfo').AccountInfo;
+const GetBuildInfo = hfApp.getBuildInfo;
+const buildInfo = GetBuildInfo();
 
 const notificationIcon = path.join(__dirname, '../../resources/console-notification.png');
 const NOTIFICATION_POLL_TIME_MS = 15 * 1000;
-const METAVERSE_SERVER_URL= process.env.HIFI_METAVERSE_URL ? process.env.HIFI_METAVERSE_URL : 'https://highfidelity.com'
+const METAVERSE_SERVER_URL= process.env.HIFI_METAVERSE_URL ? process.env.HIFI_METAVERSE_URL : 'https://metaverse.highfidelity.com'
 const STORIES_URL= '/api/v1/user_stories';
 const USERS_URL= '/api/v1/users';
 const ECONOMIC_ACTIVITY_URL= '/api/v1/commerce/history';
 const UPDATES_URL= '/api/v1/commerce/available_updates';
+const MAX_NOTIFICATION_ITEMS=30
 
 
 const StartInterface=hfApp.startInterface;
@@ -31,55 +35,60 @@ function HifiNotification(notificationType, notificationData) {
 
 HifiNotification.prototype = {
     show: function() {
+        var text = "";
+        var message = "";
+        var url = null;
+        var app = null;
         switch(this.type) {
             case NotificationType.GOTO:
-                var text = this.data.username + " " + this.data.action_string + " in " + this.data.place_name;
-                notifier.notify({
-                    notificationType: this.type,
-                    icon: notificationIcon,
-                    title: text,
-                    message: "Click to goto " + this.data.place_name,
-                    wait: true,
-                    url: "hifi://" + this.data.place_name + this.data.path
-                });
+                text = this.data.username + " " + this.data.action_string + " in " + this.data.place_name;
+                message = "Click to go to " + this.data.place_name;
+                url = "hifi://" + this.data.place_name + this.data.path;
                 break;
-
             case NotificationType.PEOPLE:
-                var text = this.data.username + " has logged in.";
-                notifier.notify({
-                    notificationType: this.type,
-                    icon: notificationIcon,
-                    title: text,
-                    message: "Click to join them in " + this.data.location.root.name,
-                    wait: true,
-                    url: "hifi://" + this.data.location.root.name + this.data.location.path
-                });
+                text = this.data.username + " is available in " + this.data.location.root.name + "!";
+                message = "Click to join them.";
+                url="hifi://" + this.data.location.root.name + this.data.location.path;
                 break;
-
             case NotificationType.WALLET:
-                var text = "Economic activity.";
-                notifier.notify({
-                    notificationType: this.type,
-                    icon: notificationIcon,
-                    title: text,
-                    message: "Click to open your wallet",
-                    wait: true,
-                    app: "Wallet"
-                });
+                if(typeof(this.data) == "number") {
+                    text = "You have " + this.data + " unread Wallet notifications!";
+                    message = "Click to open your wallet."
+                    url = "hifiapp:hifi/commerce/wallet/Wallet.qml";
+                    break;
+                }
+                text = "Economic activity.";
+                var memo = "";
+                if(this.data.sent_certs <= 0 && this.data.received_certs <= 0) {
+                    if(this.data.received_money > 0) {
+                        text = this.data.sender_name + " sent you " + this.data.received_money + " HFC!";
+                        memo = "memo: \"" + this.data.message + "\" ";
+                    }
+                    else {
+                        return;
+                    }
+                }
+                else {
+                    text = this.data.message.replace(/<\/?[^>]+(>|$)/g, "");
+                }
+                message = memo + "Click to open your wallet.";
+                url = "hifiapp:hifi/commerce/wallet/Wallet.qml";
                 break;
-
             case NotificationType.MARKETPLACE:
-                var text = "One of your marketplace items has an update.";
-                notifier.notify({
-                    notificationType: this.type,
-                    icon: notificationIcon,
-                    title: text,
-                    message: "Click to start the marketplace app",
-                    wait: true,
-                    app: "Marketplace"
-                });
+                text = "There's an update available for your version of " + this.data.base_item_title + "!";
+                message = "Click to open the marketplace.";
+                url = "hifiapp:hifi/commerce/purchases/Purchases.qml";
                 break;
         }
+        notifier.notify({
+            notificationType: this.type,
+            icon: notificationIcon,
+            title: text,
+            message: message,
+            wait: true,
+            appID: buildInfo.appUserModelId,
+            url: url
+        });
     }
 }
 
@@ -89,7 +98,6 @@ function HifiNotifications(config, callback) {
     this.since = new Date(this.config.get("notifySince", "1970-01-01T00:00:00.000Z"));
     this.enable(this.enabled());
     notifier.on('click', function(notifierObject, options) {
-        console.log(options);
         StartInterface(options.url);
     });
 }
@@ -100,16 +108,18 @@ HifiNotifications.prototype = {
         if(enabled) {
             var _this = this;
             this.pollTimer = setInterval(function() {
+                var acctInfo = new AccountInfo();
+                var token = acctInfo.accessToken(METAVERSE_SERVER_URL);
                 var _since = _this.since;
                 _this.since = new Date();
                 IsInterfaceRunning(function(running) {
                     if(running) {
                         return;
                     }
-                    _this.pollForStories(_since, _this.callback);
-                    _this.pollForConnections(_since, _this.callback);
-                    _this.pollForEconomicActivity(_since, _this.callback);
-                    _this.pollForMarketplaceUpdates(_since, _this.callback);
+                    _this.pollForStories(_since, token);
+                    _this.pollForConnections(_since, token);
+                    _this.pollForEconomicActivity(_since, token);
+                    _this.pollForMarketplaceUpdates(_since, token);
                 });
             },
             NOTIFICATION_POLL_TIME_MS);
@@ -127,134 +137,128 @@ HifiNotifications.prototype = {
             clearInterval(this.pollTimer);
         }
     },
-    pollForStories: function(since, callback) {
+    _pollCommon: function(notifyType, error, data, since) {
+        var maxNotificationItemCount = (since.getTime() == 0) ? MAX_NOTIFICATION_ITEMS : 1;
+        if (error || !data.body) {
+            console.log("Error: unable to get " + url);
+            return false;
+        }
+        var content = JSON.parse(data.body);
+        if(!content || content.status != 'success') {
+            console.log("Error: unable to get " + url);
+            return false;
+        }
+        console.log(content);
+        if(!content.total_entries) {
+            return;
+        }
+        this.callback(notifyType, true);
+        if(content.total_entries >= maxNotificationItemCount) {
+            var notification = new HifiNotification(notifyType, content.total_entries);
+            notification.show();   
+        }
+        else {
+            var notifyData = []
+            switch(notifyType) {
+                case NotificationType.GOTO:
+                    notifyData = content.user_stories;
+                    break;
+                case NotificationType.PEOPLE:
+                    notifyData = content.data.users;
+                    break;
+                case NotificationType.WALLET:
+                    notifyData = content.data.history;
+                    break;
+                case NotificationType.MARKETPLACE:
+                    notifyData = content.data.updates;
+                    break;
+            }
+
+            notifyData.forEach(function(data) {
+                var notification = new HifiNotification(notifyType, data);
+                notification.show();
+            });
+        }
+    },
+    pollForStories: function(since, token) {
         var _this = this;
         var actions = 'announcement';
         var options = [
             'now=' + new Date().toISOString(),
-            'since=' + since.toISOString(),
+            'since=' + since.getTime() / 1000,
             'include_actions=announcement',
             'restriction=open,hifi',
-            'require_online=true'
+            'require_online=true',
+            'per_page='+MAX_NOTIFICATION_ITEMS
         ];
         console.log("Polling for stories");
         var url = METAVERSE_SERVER_URL + STORIES_URL + '?' + options.join('&');
+        console.log(url);
         request({
             uri: url
         }, function (error, data) {
-            if (error || !data.body) {
-                console.log("Error: unable to get " + url);
-                return;
-            }
-            var content = JSON.parse(data.body);
-            if(!content || content.status != 'success') {
-                console.log("Error: unable to get " + url);
-                return;
-            }
-            content.user_stories.forEach(function(story) {
-                var updated_at = new Date(story.updated_at);
-                if (updated_at < since) {
-                    return;
-                }
-                callback(NotificationType.GOTO);
-                var notification = new HifiNotification(NotificationType.GOTO, story);
-                notification.show();
-            });
+            _this._pollCommon(NotificationType.GOTO, error, data, since);
         });
     },
-    pollForConnections: function(since, callback) {
+    pollForConnections: function(since, token) {
         var _this = this;
         var options = [
             'filter=connections',
-            'since=' + since.toISOString(),
-            'status=online'
+            'since=' + since.getTime() / 1000,
+            'status=online',
+            'page=1',
+            'per_page=' + MAX_NOTIFICATION_ITEMS
         ];
         console.log("Polling for connections");
         var url = METAVERSE_SERVER_URL + USERS_URL + '?' + options.join('&');
-        request({
-            uri: url
+        console.log(url);
+        request.get({
+            uri: url,
+            'auth': {
+                'bearer': token
+              }
         }, function (error, data) {
-            if (error || !data.body) {
-                console.log("Error: unable to get " + url);
-                return;
-            }
-            var content = JSON.parse(data.body);
-            if(!content || content.status != 'success') {
-                console.log("Error: unable to get " + url);
-                return;
-            }
-            console.log(content.data);
-            content.data.users.forEach(function(user) {
-                if(user.online) {
-                    callback(NotificationType.PEOPLE);
-                    var notification = new HifiNotification(NotificationType.PEOPLE, user);
-                    notification.show();
-                }
-            });
+            _this._pollCommon(NotificationType.PEOPLE, error, data, since);
         });
     },
-    pollForEconomicActivity: function(since, callback) {
+    pollForEconomicActivity: function(since, token) {
         var _this = this;
         var options = [
-            'filter=connections',
-            'since=' + since.toISOString(),
-            'status=online'
+            'since=' + since.getTime() / 1000,
+            'page=1',
+            'per_page=' + 1000 // total_entries is incorrect for wallet queries if results
+                               // aren't all on one page, so grab them all on a single page
+                               // for now.
         ];
         console.log("Polling for economic activity");
         var url = METAVERSE_SERVER_URL + ECONOMIC_ACTIVITY_URL + '?' + options.join('&');
+        console.log(url);
         request.post({
-            uri: url
+            uri: url,
+            'auth': {
+                'bearer': token
+              }
         }, function (error, data) {
-            if (error || !data.body) {
-                console.log("Error " + error + ": unable to post " + url);
-                console.log(data);
-                return;
-            }
-            var content = JSON.parse(data.body);
-            if(!content || content.status != 'success') {
-                console.log(data.body);
-                console.log("Error " + content.status + ": unable to post " + url);
-                return;
-            }
-            console.log(content.data);
-            content.data.users.forEach(function(user) {
-                if(user.online) {
-                    callback(NotificationType.PEOPLE);
-                    var notification = new HifiNotification(NotificationType.PEOPLE, user);
-                    notification.show();
-                }
-            });
+            _this._pollCommon(NotificationType.WALLET, error, data, since);
         });
     },
-    pollForMarketplaceUpdates: function(since, callback) {
+    pollForMarketplaceUpdates: function(since, token) {
         var _this = this;
         var options = [
-            'filter=connections',
-            'since=' + since.toISOString(),
-            'status=online'
+            'since=' + since.getTime() / 1000,
+            'page=1',
+            'per_page=' + MAX_NOTIFICATION_ITEMS
         ];
         console.log("Polling for marketplace update");
         var url = METAVERSE_SERVER_URL + UPDATES_URL + '?' + options.join('&');
+        console.log(url);
         request.put({
-            uri: url
+            uri: url,
+            'auth': {
+                'bearer': token
+              }
         }, function (error, data) {
-            if (error || !data.body) {
-                console.log("Error " + error + ": unable to put " + url);
-                return;
-            }
-            var content = JSON.parse(data.body);
-            if(!content || content.status != 'success') {
-                console.log(data.body);
-                console.log("Error " + content.status + ": unable to put " + url);
-                return;
-            }
-            content.data.users.forEach(function(user) {
-                if(user.online) {
-                    callback(NotificationType.PEOPLE);
-                    var notification = new HifiNotification(NotificationType.PEOPLE, user);
-                    notification.show();
-                }
-            });
+            _this._pollCommon(NotificationType.MARKETPLACE, error, data, since);
         });
     }
 };
