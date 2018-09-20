@@ -2879,7 +2879,7 @@ void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, Ra
     value.extraInfo = object.property("extraInfo").toVariant().toMap();
 }
 
-float AvatarData::_avatarSortCoefficientSize { 8.0f };
+float AvatarData::_avatarSortCoefficientSize { 20.0f };
 float AvatarData::_avatarSortCoefficientCenter { 4.0f };
 float AvatarData::_avatarSortCoefficientAge { 1.0f };
 

@@ -23,7 +23,7 @@ const float OUT_OF_VIEW_THRESHOLD = 0.5f * OUT_OF_VIEW_PENALTY;
 
 namespace PrioritySortUtil {
 
-    constexpr float DEFAULT_ANGULAR_COEF { 2.5f };
+    constexpr float DEFAULT_ANGULAR_COEF { 1.0f };
     constexpr float DEFAULT_CENTER_COEF { 0.5f };
     constexpr float DEFAULT_AGE_COEF { 0.25f };
 
