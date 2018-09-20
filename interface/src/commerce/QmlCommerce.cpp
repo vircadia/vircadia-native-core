@@ -49,11 +49,11 @@ QmlCommerce::QmlCommerce() {
 
 void QmlCommerce::openSystemApp(const QString& appPath) {
 
-    QUrl appUrl = PathUtils::qmlUrl(appPath);
-
     auto tablet = dynamic_cast<TabletProxy*>(
         DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
-    tablet->loadQMLSource(appUrl);
+    tablet->loadQMLSource(appPath);
+
+    DependencyManager::get<HMDScriptingInterface>()->openTablet();
 }
 
 

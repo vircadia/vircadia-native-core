@@ -426,7 +426,7 @@ var labels = {
         }
     },
     marketplace: {
-        label: 'Marketplace',
+        label: 'Market',
         click: function() {
             StartInterface("hifiapp:hifi/commerce/purchases/Purchases.qml");
             pendingNotifications[HifiNotificationType.MARKETPLACE] = false;

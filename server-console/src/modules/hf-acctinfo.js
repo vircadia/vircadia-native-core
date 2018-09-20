@@ -36,7 +36,10 @@ function AccountInfo() {
 AccountInfo.prototype = {
 
     accessToken: function(metaverseUrl) {
-        return this.data[metaverseUrl]["accessToken"]["token"];
+        if(this.data && this.data[metaverseUrl] && this.data[metaverseUrl]["accessToken"]) {
+            return this.data[metaverseUrl]["accessToken"]["token"];
+        }
+        return null;
     },
     _parseUInt32: function () {
         if (!this.rawData || (this.rawData.length - this.parseOffset < 4)) {
