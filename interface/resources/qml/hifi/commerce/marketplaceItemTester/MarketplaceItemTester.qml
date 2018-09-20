@@ -23,7 +23,10 @@ import "../../../controls-uit" as HifiControlsUit
 
 Rectangle {
     id: root
+
     property string installedApps
+    signal sendToScript(var message)
+
     HifiStylesUit.HifiConstants { id: hifi }
     ListModel { id: resourceListModel }
 
@@ -57,7 +60,11 @@ Rectangle {
 
     function toUrl(resource) {
         var httpPattern = /^http/i;
-        return httpPattern.test(str) ? resource : "file:///" + resource;
+        return httpPattern.test(resource) ? resource : "file:///" + resource;
+    }
+
+    function rezEntity(itemHref, itemType) {
+
     }
 
     Component.onCompleted: {
@@ -92,7 +99,12 @@ Rectangle {
                             urlHandler.handleUrl("hifi://localhost/0,0,0");
                             Commerce.replaceContentSet(toUrl(resource), "");
                             break;
-                        case "entity":
+                        case "entity or wearable":
+                            print("going to rez " + toUrl(resource));
+                            sendToScript({
+                                method: 'tester_rezClicked',
+                                itemHref: toUrl(resource),
+                                itemType: "entity"});
                             break;
                     }
                     // XXX support other resource types here.

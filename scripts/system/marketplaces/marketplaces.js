@@ -21,19 +21,19 @@ var selectionDisplay = null; // for gridTool.js to ignore
     Script.include("/~/system/libraries/gridTool.js");
     Script.include("/~/system/libraries/connectionUtils.js");
 
-    var METAVERSE_SERVER_URL = Account.metaverseServerURL;
+    // var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
+    var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
+    var MARKETPLACE_CHECKOUT_QML_PATH = "hifi/commerce/checkout/Checkout.qml";
+    var MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH = "commerce/inspectionCertificate/InspectionCertificate.qml";
+    var MARKETPLACE_ITEM_TESTER_QML_PATH = "hifi/commerce/marketplaceItemTester/MarketplaceItemTester.qml";
+    var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/purchases/Purchases.qml";
     var MARKETPLACE_URL = METAVERSE_SERVER_URL + "/marketplace";
     var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?";  // Append "?" to signal injected script that it's the initial page.
-    var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
-    var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
-    var MARKETPLACE_CHECKOUT_QML_PATH = "hifi/commerce/checkout/Checkout.qml";
-    var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/purchases/Purchases.qml";
     var MARKETPLACE_WALLET_QML_PATH = "hifi/commerce/wallet/Wallet.qml";
-    var MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH = "commerce/inspectionCertificate/InspectionCertificate.qml";
+    var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
+    var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
+    var METAVERSE_SERVER_URL = Account.metaverseServerURL;
     var REZZING_SOUND = SoundCache.getSound(Script.resolvePath("../assets/sounds/rezzing.wav"));
-
-    var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
-    // var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
 
     // Event bridge messages.
     var CLARA_IO_DOWNLOAD = "CLARA.IO DOWNLOAD";
@@ -786,7 +786,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
         }
         sendAssetRecipient = null;
     }
-    
+
     var savedDisablePreviewOptionLocked = false;
     var savedDisablePreviewOption = Menu.isOptionChecked("Disable Preview");;
     function maybeEnableHMDPreview() {
@@ -855,6 +855,8 @@ var selectionDisplay = null; // for gridTool.js to ignore
                 break;
             case 'checkout_rezClicked':
             case 'purchases_rezClicked':
+            case 'tester_rezClicked':
+                print("marketplace.js going to rez");
                 rezEntity(message.itemHref, message.itemType);
                 break;
             case 'header_marketplaceImageClicked':
@@ -1032,19 +1034,40 @@ var selectionDisplay = null; // for gridTool.js to ignore
     //    value of "Home", "Web", "Menu", "QML", or "Closed". The "url" argument is only valid for Web and QML.
     var onWalletScreen = false;
     var onCommerceScreen = false;
+    var onMarketplaceItemTesterScreen = false;
     function onTabletScreenChanged(type, url) {
         onMarketplaceScreen = type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1;
         var onWalletScreenNow = url.indexOf(MARKETPLACE_WALLET_QML_PATH) !== -1;
-        var onCommerceScreenNow = type === "QML" && (url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH) !== -1 || url === MARKETPLACE_PURCHASES_QML_PATH
-            || url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1);
+        var onCommerceScreenNow = type === "QML" && (
+            url.indexOf(MARKETPLACE_CHECKOUT_QML_PATH) !== -1 ||
+            url === MARKETPLACE_PURCHASES_QML_PATH ||
+            url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1);
+        var onMarketplaceItemTesterScreenNow = (
+            url.indexOf(MARKETPLACE_ITEM_TESTER_QML_PATH) !== -1 ||
+            url === MARKETPLACE_ITEM_TESTER_QML_PATH);
 
-        if ((!onWalletScreenNow && onWalletScreen) || (!onCommerceScreenNow && onCommerceScreen)) { // exiting wallet or commerce screen
+        if ((!onWalletScreenNow && onWalletScreen) ||
+            (!onCommerceScreenNow && onCommerceScreen) ||
+            (!onMarketplaceItemTesterScreenNow && onMarketplaceScreen)
+        ) {
+            // exiting wallet, commerce, or marketplace item tester screen
             maybeEnableHMDPreview();
         }
 
         onCommerceScreen = onCommerceScreenNow;
         onWalletScreen = onWalletScreenNow;
-        wireEventBridge(onMarketplaceScreen || onCommerceScreen || onWalletScreen);
+        onMarketplaceItemTesterScreen = onMarketplaceItemTesterScreenNow;
+
+        print("wire event bridge " + (onMarketplaceScreen ||
+            onCommerceScreen ||
+            onWalletScreen ||
+            onMarketplaceItemTesterScreen));
+
+        wireEventBridge(
+            onMarketplaceScreen ||
+            onCommerceScreen ||
+            onWalletScreen ||
+            onMarketplaceItemTesterScreen);
 
         if (url === MARKETPLACE_PURCHASES_QML_PATH) {
             sendToQml({
