@@ -125,7 +125,7 @@ function startup() {
         notificationDataProcessPage: notificationDataProcessPage,
         notificationPollCallback: notificationPollCallback,
         notificationPollStopPaginatingConditionMet: isReturnedDataEmpty,
-        notificationPollCaresAboutSince: true
+        notificationPollCaresAboutSince: false
     });
 }
 

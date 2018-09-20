@@ -841,15 +841,13 @@ function notificationPollCallback(connectionsArray) {
             return;
         }
 
-        if (user.online) {
-            newOnlineUsers++;
-            storedOnlineUsers[user.username] = user;
+        newOnlineUsers++;
+        storedOnlineUsers[user.username] = user;
 
-            if (!ui.isOpen && ui.notificationInitialCallbackMade) {
-                message = user.username + " is available in " +
-                    user.location.root.name + "! Open PEOPLE to join them.";
-                ui.notificationDisplayBanner(message);
-            }
+        if (!ui.isOpen && ui.notificationInitialCallbackMade) {
+            message = user.username + " is available in " +
+                user.location.root.name + "! Open PEOPLE to join them.";
+            ui.notificationDisplayBanner(message);
         }
     });
     var key;
@@ -891,7 +889,7 @@ function startup() {
         onOpened: palOpened,
         onClosed: off,
         onMessage: fromQml,
-        notificationPollEndpoint: "/api/v1/users?filter=connections&per_page=10",
+        notificationPollEndpoint: "/api/v1/users?filter=connections&status=online&per_page=10",
         notificationPollTimeoutMs: 60000,
         notificationDataProcessPage: notificationDataProcessPage,
         notificationPollCallback: notificationPollCallback,
