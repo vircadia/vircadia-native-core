@@ -1,0 +1,62 @@
+//
+//  Created by Sam Gondelman on 9/13/2018
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+<@if not BLENDSHAPE_SLH@>
+<@def BLENDSHAPE_SLH@>
+
+<@func declareApplyBlendshapeOffsets(USE_NORMAL, USE_TANGENT)@>
+
+struct BlendshapeOffset {
+    vec4 position;
+    vec4 normal;
+    vec4 tangent;
+};
+
+#if defined(GPU_GL410)
+layout(binding=0) uniform samplerBuffer blendshapeOffsetsBuffer;
+BlendshapeOffset getBlendshapeOffset(int i) {
+    int offset = 3 * i;
+    BlendshapeOffset blendshapeOffset;
+    blendshapeOffset.position = texelFetch(blendshapeOffsetsBuffer, offset);
+<@if USE_NORMAL@>
+    blendshapeOffset.normal = texelFetch(blendshapeOffsetsBuffer, offset + 1);
+<@endif@>
+<@if USE_TANGENT@>
+    blendshapeOffset.tangent = texelFetch(blendshapeOffsetsBuffer, offset + 2);
+<@endif@>
+    return blendshapeOffset;
+}
+#else
+layout(std140, binding=0) buffer blendshapeOffsetsBuffer {
+    BlendshapeOffset _blendshapeOffsets[];
+};
+BlendshapeOffset getBlendshapeOffset(int i) {
+    return _blendshapeOffsets[i];
+}
+#endif
+
+void applyBlendshapeOffset(int i, vec4 inPosition, out vec4 position
+<@if USE_NORMAL@>
+                           , vec3 inNormal, out vec3 normal
+<@endif@>
+<@if USE_TANGENT@>
+                           , vec3 inTangent, out vec3 tangent
+<@endif@>
+) {
+    BlendshapeOffset blendshapeOffset = getBlendshapeOffset(i);
+    position = inPosition + blendshapeOffset.position;
+<@if USE_NORMAL@>
+    normal = normalize(inNormal + blendshapeOffset.normal.xyz);
+<@endif@>
+<@if USE_TANGENT@>
+    tangent = normalize(inTangent + blendshapeOffset.tangent.xyz);
+<@endif@>
+}
+
+<@endfunc@>
+
+<@endif@>
