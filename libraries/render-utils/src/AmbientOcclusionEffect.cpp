@@ -141,6 +141,10 @@ gpu::TexturePointer AmbientOcclusionFramebuffer::getNormalTexture(int resolution
     return _normalTexture;
 }
 
+gpu::TexturePointer AmbientOcclusionFramebuffer::getNormalTexture() {
+    return _normalTexture;
+}
+
 class GaussianDistribution {
 public:
     
@@ -540,7 +544,7 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 		batch.popProfileRange();
 
 #if SSAO_USE_QUAD_SPLIT
-        // Build derivative normals pass
+        // Build face normals pass
         batch.pushProfileRange("Build Normals");
             batch.setViewportTransform(occlusionViewport);
             batch.setPipeline(buildNormalsPipeline);

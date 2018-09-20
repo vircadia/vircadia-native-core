@@ -40,7 +40,6 @@ void main(void) {
     // The position and normal of the pixel fragment in Eye space
     vec3 fragPositionES = evalEyePositionFromZeye(side.x, Zeye, fragUVPos);
     vec3 fragNormalES = buildNormal(side, fragUVPos, depthTexFragPixelPos, fragPositionES, depthTextureScale, sideImageSize);
-    vec3 absFragNormalES = abs(fragNormalES);
-    
+
     outFragColor = vec4(vec3(fragNormalES)*0.5 + vec3(0.5), 1.0);
 }

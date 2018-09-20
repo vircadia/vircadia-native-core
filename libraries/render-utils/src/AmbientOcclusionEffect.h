@@ -33,6 +33,7 @@ public:
 
     gpu::FramebufferPointer getNormalFramebuffer(int resolutionLevel);
     gpu::TexturePointer getNormalTexture(int resolutionLevel);
+    gpu::TexturePointer getNormalTexture();
 
     // Update the source framebuffer size which will drive the allocation of all the other resources.
     bool updateLinearDepth(const gpu::TexturePointer& linearDepthBuffer);

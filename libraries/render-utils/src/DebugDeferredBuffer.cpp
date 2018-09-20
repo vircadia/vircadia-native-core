@@ -321,6 +321,8 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string cust
             return DEFAULT_AMBIENT_OCCLUSION_SHADER;
         case AmbientOcclusionBlurredMode:
             return DEFAULT_AMBIENT_OCCLUSION_BLURRED_SHADER;
+        case AmbientOcclusionNormalMode:
+            return DEFAULT_HALF_NORMAL_SHADER;
         case VelocityMode:
             return DEFAULT_VELOCITY_SHADER;
         case CustomMode:
@@ -469,6 +471,8 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
                 batch.setResourceTexture(Textures::DebugTexture0, ambientOcclusionFramebuffer->getOcclusionTexture());
             } else if (_mode == AmbientOcclusionBlurredMode) {
                 batch.setResourceTexture(Textures::DebugTexture0, ambientOcclusionFramebuffer->getOcclusionBlurredTexture());
+            } else if (_mode == AmbientOcclusionNormalMode) {
+                batch.setResourceTexture(Textures::DebugTexture0, ambientOcclusionFramebuffer->getNormalTexture());
             }
         }
         const glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
