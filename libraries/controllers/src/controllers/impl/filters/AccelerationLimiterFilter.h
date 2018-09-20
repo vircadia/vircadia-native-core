@@ -31,6 +31,8 @@ namespace controller {
 
         mutable glm::vec3 _prevPos[3];  // sensor space
         mutable glm::quat _prevRot[3];  // sensor space
+        mutable glm::vec3 _unfilteredPrevPos[3];  // sensor space
+        mutable glm::quat _unfilteredPrevRot[3];  // sensor space
         mutable bool _prevValid { false };
     };
 

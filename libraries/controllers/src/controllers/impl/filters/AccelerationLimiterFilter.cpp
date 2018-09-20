@@ -38,7 +38,8 @@ static glm::quat deltaRotFromAngularVel(const glm::vec3& omega, float dt) {
     return glm::exp((dt / 2.0f) * omegaQ);
 }
 
-static glm::vec3 filterTranslation(const glm::vec3& x0, const glm::vec3& x1, const glm::vec3& x2, const glm::vec3& x3, float dt, const float accLimit, const float decLimit) {
+static glm::vec3 filterTranslation(const glm::vec3& x0, const glm::vec3& x1, const glm::vec3& x2, const glm::vec3& x3,
+                                   const glm::vec3& unfilteredVelocity, float dt, const float accLimit, const float decLimit) {
 
     // measure the linear velocities of this step and the previoius step
     glm::vec3 v1 = (x3 - x1) / (2.0f * dt);
@@ -50,8 +51,8 @@ static glm::vec3 filterTranslation(const glm::vec3& x0, const glm::vec3& x1, con
     // clamp the acceleration if it is over the limit
     float aLen = glm::length(a);
 
-    // pick limit based on if we are accelerating or decelerating.
-    float limit = glm::length(v1) > glm::length(v0) ? accLimit : decLimit;
+    // pick limit based on if we are moving faster then our target
+    float limit = glm::length(v1) > glm::length(unfilteredVelocity) ? accLimit : decLimit;
 
     if (aLen > limit) {
         // Solve for a new `v1`, such that `a` does not exceed `aLimit`
@@ -71,7 +72,8 @@ static glm::vec3 filterTranslation(const glm::vec3& x0, const glm::vec3& x1, con
     }
 }
 
-static glm::quat filterRotation(const glm::quat& q0In, const glm::quat& q1In, const glm::quat& q2In, const glm::quat& q3In, float dt, const float accLimit, const float decLimit) {
+static glm::quat filterRotation(const glm::quat& q0In, const glm::quat& q1In, const glm::quat& q2In, const glm::quat& q3In,
+                                const glm::vec3& unfilteredVelocity, float dt, const float accLimit, const float decLimit) {
 
     // ensure quaternions have the same polarity
     glm::quat q0 = q0In;
@@ -86,8 +88,8 @@ static glm::quat filterRotation(const glm::quat& q0In, const glm::quat& q1In, co
     const glm::vec3 a = (w1 - w0) / dt;
     float aLen = glm::length(a);
 
-    // pick limit based on if we are accelerating or decelerating.
-    float limit = glm::length(w1) > glm::length(w0) ? accLimit : decLimit;
+    // pick limit based on if we are moving faster then our target
+    float limit = glm::length(w1) > glm::length(unfilteredVelocity) ? accLimit : decLimit;
 
     // clamp the acceleration if it is over the limit
     if (aLen > limit) {
@@ -121,9 +123,14 @@ namespace controller {
 
                 const float DELTA_TIME = 0.01111111f;
 
-                sensorValue.translation = filterTranslation(_prevPos[0], _prevPos[1], _prevPos[2], sensorValue.translation,
+                glm::vec3 unfilteredTranslation = sensorValue.translation;
+                glm::vec3 unfilteredLinearVel = (unfilteredTranslation - _unfilteredPrevPos[1]) / (2.0f * DELTA_TIME);
+                sensorValue.translation = filterTranslation(_prevPos[0], _prevPos[1], _prevPos[2], sensorValue.translation, unfilteredLinearVel,
                                                             DELTA_TIME, _translationAccelerationLimit, _translationDecelerationLimit);
-                sensorValue.rotation = filterRotation(_prevRot[0], _prevRot[1], _prevRot[2], sensorValue.rotation,
+                glm::quat unfilteredRot = sensorValue.rotation;
+                glm::quat unfilteredPrevRot = glm::dot(unfilteredRot, _unfilteredPrevRot[1]) < 0.0f ? -_unfilteredPrevRot[1] : _unfilteredPrevRot[1];
+                glm::vec3 unfilteredAngularVel = angularVelFromDeltaRot(unfilteredRot * glm::inverse(unfilteredPrevRot), 2.0f * DELTA_TIME);
+                sensorValue.rotation = filterRotation(_prevRot[0], _prevRot[1], _prevRot[2], sensorValue.rotation, unfilteredAngularVel,
                                                       DELTA_TIME, _rotationAccelerationLimit, _rotationDecelerationLimit);
 
                 // remember previous values.
@@ -133,6 +140,13 @@ namespace controller {
                 _prevRot[0] = _prevRot[1];
                 _prevRot[1] = _prevRot[2];
                 _prevRot[2] = sensorValue.rotation;
+
+                _unfilteredPrevPos[0] = _unfilteredPrevPos[1];
+                _unfilteredPrevPos[1] = _unfilteredPrevPos[2];
+                _unfilteredPrevPos[2] = unfilteredTranslation;
+                _unfilteredPrevRot[0] = _unfilteredPrevRot[1];
+                _unfilteredPrevRot[1] = _unfilteredPrevRot[2];
+                _unfilteredPrevRot[2] = unfilteredRot;
 
                 // transform back into avatar space
                 return sensorValue.transform(sensorToAvatarMat);
@@ -144,6 +158,14 @@ namespace controller {
                 _prevRot[0] = sensorValue.rotation;
                 _prevRot[1] = sensorValue.rotation;
                 _prevRot[2] = sensorValue.rotation;
+
+                _unfilteredPrevPos[0] = sensorValue.translation;
+                _unfilteredPrevPos[1] = sensorValue.translation;
+                _unfilteredPrevPos[2] = sensorValue.translation;
+                _unfilteredPrevRot[0] = sensorValue.rotation;
+                _unfilteredPrevRot[1] = sensorValue.rotation;
+                _unfilteredPrevRot[2] = sensorValue.rotation;
+
                 _prevValid = true;
 
                 // no previous value to smooth with, so return value unchanged
