@@ -243,6 +243,32 @@ vec4 fetchTap(ivec4 side, vec2 tapSidePixelPos, float tapRadius, vec2 sideImageS
    return P;
 }
 
+vec3 buildPosition(ivec4 side, vec2 fragUVPos, ivec2 depthTexFragPixelPos, ivec2 deltaDepthTexPixel, vec2 uvScale) {
+    depthTexFragPixelPos += deltaDepthTexPixel;
+    fragUVPos += deltaDepthTexPixel * uvScale;
+    float Zeye = getZEyeAtPixel(depthTexFragPixelPos, 0);
+    return evalEyePositionFromZeye(side.x, Zeye, fragUVPos);
+}
+
+vec3 getMinDiff(vec3 centralPoint, vec3 offsetPoint0, vec3 offsetPoint1) {
+    vec3 delta0 = offsetPoint0 - centralPoint;
+    vec3 delta1 = centralPoint - offsetPoint1;
+    return dot(delta0, delta0) < dot(delta1, delta1) ? delta0 : delta1;
+}
+
+vec3 buildNormal(ivec4 side, vec2 fragUVPos, ivec2 depthTexFragPixelPos, vec3 fragPositionES, ivec2 depthTextureScale, vec2 sideImageSize) {
+    vec2 uvScale = vec2(1.0) / (sideImageSize * depthTextureScale);
+    vec3 fragPositionDxPos = buildPosition(side, fragUVPos, depthTexFragPixelPos, ivec2(1,0), uvScale);
+    vec3 fragPositionDxNeg = buildPosition(side, fragUVPos, depthTexFragPixelPos, ivec2(-1,0), uvScale);
+    vec3 fragPositionDyPos = buildPosition(side, fragUVPos, depthTexFragPixelPos, ivec2(0,1), uvScale);
+    vec3 fragPositionDyNeg = buildPosition(side, fragUVPos, depthTexFragPixelPos, ivec2(0,-1), uvScale);
+
+    vec3 fragPositionDx = getMinDiff(fragPositionES, fragPositionDxPos, fragPositionDxNeg);
+    vec3 fragPositionDy = getMinDiff(fragPositionES, fragPositionDyPos, fragPositionDyNeg);
+
+    return normalize( cross(fragPositionDx, fragPositionDy) );
+}
+
 <@endfunc@>
 
 
