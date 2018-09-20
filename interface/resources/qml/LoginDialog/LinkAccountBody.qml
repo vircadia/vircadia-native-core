@@ -173,7 +173,7 @@ Item {
             width: parent.width
             placeholderText: "Password"
             activeFocusOnPress: true
-            echoMode: TextInput.Password
+            echoMode: passwordFieldMouseArea.showPassword ? TextInput.Normal : TextInput.Password
             onHeightChanged: d.resize(); onWidthChanged: d.resize();
 
             ShortcutText {
@@ -213,29 +213,28 @@ Item {
 
                 Image {
                     id: showPasswordImage
-                    y: (passwordField.height - (passwordField.height * 16 / 23)) / 2
-                    width: passwordField.width - (passwordField.width - (((passwordField.height) * 31/23)))
+                    width: passwordField.height * 16 / 23
                     height: passwordField.height * 16 / 23
                     anchors {
                         right: parent.right
-                        rightMargin: 3
+                        rightMargin: 8
+                        top: parent.top
+                        topMargin: passwordFieldMouseArea.showPassword ? 6 : 8
+                        bottom: parent.bottom
+                        bottomMargin: passwordFieldMouseArea.showPassword ? 5 : 8
                     }
-                    source: "../../images/eyeOpen.svg"
+                    source: passwordFieldMouseArea.showPassword ?  "../../images/eyeClosed.svg" : "../../images/eyeOpen.svg"
+                    MouseArea {
+                        id: passwordFieldMouseArea
+                        anchors.fill: parent
+                        acceptedButtons: Qt.LeftButton
+                        property bool showPassword: false
+                        onClicked: {
+                            showPassword = !showPassword;
+                        }
+                    }
                 }
 
-                MouseArea {
-                    id: passwordFieldMouseArea
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    property bool showPassword: false
-                    onClicked: {
-                        showPassword = !showPassword;
-                        passwordField.echoMode = showPassword ? TextInput.Normal : TextInput.Password;
-                        showPasswordImage.source = showPassword ?  "../../images/eyeClosed.svg" : "../../images/eyeOpen.svg";
-                        showPasswordImage.height = showPassword ?  passwordField.height : passwordField.height * 16 / 23;
-                        showPasswordImage.y = showPassword ? 0 : (passwordField.height - showPasswordImage.height) / 2;
-                    }
-                }
             }
 
             Keys.onReturnPressed: linkAccountBody.login()
