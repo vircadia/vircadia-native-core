@@ -59,4 +59,4 @@ void applyBlendshapeOffset(int i, vec4 inPosition, out vec4 position
 
 <@endfunc@>
 
-<@endif@>
+<@endif@> // if not BLENDSHAPE_SLH

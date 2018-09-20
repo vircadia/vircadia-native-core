@@ -308,9 +308,7 @@ bool Model::updateGeometry() {
             state.clusterDualQuaternions.resize(mesh.clusters.size());
             state.clusterMatrices.resize(mesh.clusters.size());
             _meshStates.push_back(state);
-            if (_blendshapeBuffers.find(i) == _blendshapeBuffers.end()) {
-                initializeBlendshapes(mesh, i);
-            }
+            initializeBlendshapes(mesh, i);
             i++;
         }
         _blendshapeBuffersInitialized = true;
@@ -1585,12 +1583,22 @@ const render::ItemIDs& Model::fetchRenderItemIDs() const {
 }
 
 void Model::initializeBlendshapes(const FBXMesh& mesh, int index) {
-    _blendshapeBuffers[index] = std::make_shared<gpu::Buffer>();
-    QVector<BlendshapeOffset> blendshapeOffset;
-    blendshapeOffset.fill(BlendshapeOffset(), 3 * mesh.vertices.size());
-    const auto blendshapeOffsetsSize = blendshapeOffset.size() * sizeof(BlendshapeOffset);
-    _blendshapeBuffers[index]->setData(blendshapeOffsetsSize, (const gpu::Byte*) blendshapeOffset.constData());
-    _blendshapeOffsets[index] = blendshapeOffset;
+    if (mesh.blendshapes.empty()) {
+        // mesh doesn't have blendshape, did we allocate one though ?
+        if (_blendshapeBuffers.find(index) != _blendshapeBuffers.end()) {
+            qWarning() << "Mesh does not have Blendshape yet a blendshapeOffset buffer is allocated ?";
+        }
+        return;
+    }
+    // Mesh has blendshape, let s allocate the local buffer if not done yet
+    if (_blendshapeBuffers.find(index) == _blendshapeBuffers.end()) {
+        _blendshapeBuffers[index] = std::make_shared<gpu::Buffer>();
+        QVector<BlendshapeOffset> blendshapeOffset;
+        blendshapeOffset.fill(BlendshapeOffset(), 3 * mesh.vertices.size());
+        const auto blendshapeOffsetsSize = blendshapeOffset.size() * sizeof(BlendshapeOffset);
+        _blendshapeBuffers[index]->setData(blendshapeOffsetsSize, (const gpu::Byte*) blendshapeOffset.constData());
+        _blendshapeOffsets[index] = blendshapeOffset;
+    }
 }
 
 void Model::createRenderItemSet() {
@@ -1631,9 +1639,7 @@ void Model::createRenderItemSet() {
         // Create the render payloads
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
-            if (_blendshapeBuffers.find(i) == _blendshapeBuffers.end()) {
-                initializeBlendshapes(fbxGeometry.meshes[i], i);
-            }
+            initializeBlendshapes(fbxGeometry.meshes[i], i);
             _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
             auto material = getGeometry()->getShapeMaterial(shapeID);
             _modelMeshMaterialNames.push_back(material ? material->getName() : "");

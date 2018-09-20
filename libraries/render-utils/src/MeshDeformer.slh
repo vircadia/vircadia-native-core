@@ -1,0 +1,91 @@
+<!
+//  MeshDeformer.slh
+//  Created by Sam Gateau on 9/20/2018
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not MESH_DEFORMER_SLH@>
+<@def MESH_DEFORMER_SLH@>
+//  MeshDeformer.slh
+
+<@include Skinning.slh@>
+<@include Blendshape.slh@>
+
+
+<@func declareMeshDeformer(USE_NORMAL, USE_TANGENT, USE_SKINNING, USE_DUAL_QUATERNION, USE_BLENDSHAPE)@>
+
+
+<@if USE_SKINNING@>
+<$declareUseDualQuaternionSkinning($USE_DUAL_QUATERNION$) $>
+
+<@endif@>
+<!
+<@include ender-utils/Blendshape.slh@>
+<$declareApplyBlendshapeOffsets($USE_NORMAL$, $USE_TANGENT$)$>
+
+
+
+!>
+
+<@func evalMeshDeformer(inPosition, outPosition, inNormal, outNormal, inTangent, outTangent, inSkinClusterIndex, inSkinClusterWeight, vertexIndex)@>
+
+{
+    <@if USE_BLENDSHAPE@>
+
+            vec4 _deformedPosition = vec4(0.0, 0.0, 0.0, 0.0);
+        <@if USE_NORMAL@>
+            vec3 _deformedNormal = vec3(0.0, 0.0, 0.0);
+        <@endif@>
+        <@if USE_TANGENT@>
+            vec3 _deformedTangent = vec3(0.0, 0.0, 0.0);
+        <@endif@>
+
+        <@if USE_TANGENT@>
+            applyBlendshapeOffset(<$vertexIndex$>, <$inPosition$>, _deformedPosition, <$inNormal$>, _deformedNormal, <$inTangent$>, _deformedTangent);
+        <@else@>
+            <@if USE_NORMAL@>
+                applyBlendshapeOffset(<$vertexIndex$>, <$inPosition$>, _deformedPosition, <$inNormal$>, _deformedNormal);
+            <@else@>
+                applyBlendshapeOffset(vertexIndex, <$inPosition$>, _deformedPosition);
+            <@endif@>
+        <@endif@>
+
+    <@else@>
+
+            vec4 _deformedPosition = <$inPosition$>;
+        <@if USE_NORMAL@>
+            vec3 _deformedNormal = <$inNormal$>;
+        <@endif@>
+        <@if USE_TANGENT@>
+            vec3 _deformedTangent = <$inTangent$>;
+        <@endif@>
+
+    <@endif@>
+
+    <@if USE_SKINNING@>
+        <@if USE_TANGENT@>
+            skinPositionNormalTangent(<$inSkinClusterIndex$>, <$inSkinClusterWeight$>, _deformedPosition, _deformedNormal, _deformedTangent, _deformedPosition, _deformedNormal, _deformedTangent);
+        <@else@>
+            <@if USE_NORMAL@>
+                skinPositionNormal(<$inSkinClusterIndex$>, <$inSkinClusterWeight$>, _deformedPosition, _deformedNormal, _deformedPosition, _deformedNormal);
+            <@else@>
+                skinPosition(<$inSkinClusterIndex$>, <$inSkinClusterWeight$>, _deformedPosition, _deformedPosition);
+            <@endif@>
+        <@endif@>
+    <@endif@>
+
+        <$outPosition$> = _deformedPosition;
+    <@if USE_NORMAL@>
+        <$outNormal$> = _deformedNormal;
+    <@endif@>
+    <@if USE_TANGENT@>
+        <$outTangent$> = _deformedTangent;
+    <@endif@>
+}
+
+<@endfunc@>
+
+
+<@endif@> // if not MESH_DEFORMER_SLH

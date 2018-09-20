@@ -18,11 +18,8 @@
 <@include graphics/MaterialTextures.slh@>
 <$declareMaterialTexMapArrayBuffer()$>
 
-<@include Skinning.slh@>
-<$declareUseDualQuaternionSkinning()$>
-
-<@include Blendshape.slh@>
-<$declareApplyBlendshapeOffsets(1)$>
+<@include MeshDeformer.slh@>
+<$declareMeshDeformer(1, _SCRIBE_NULL, 1, 0, 1)$>
 
 <@include render-utils/ShaderConstants.h@>
 
@@ -35,11 +32,7 @@ layout(location=RENDER_UTILS_ATTR_COLOR) out vec4 _color;
 void main(void) {
     vec4 deformedPosition = vec4(0.0, 0.0, 0.0, 0.0);
     vec3 deformedNormal = vec3(0.0, 0.0, 0.0);
-    applyBlendshapeOffset(gl_VertexID, inPosition, deformedPosition, inNormal.xyz, deformedNormal);
-
-    vec4 skinnedPosition = vec4(0.0, 0.0, 0.0, 0.0);
-    vec3 skinnedNormal = vec3(0.0, 0.0, 0.0);
-    skinPositionNormal(inSkinClusterIndex, inSkinClusterWeight, deformedPosition, deformedNormal, skinnedPosition, skinnedNormal);
+    <$evalMeshDeformer(inPosition, deformedPosition, inNormal.xyz, deformedNormal, _SCRIBE_NULL, _SCRIBE_NULL, inSkinClusterIndex, inSkinClusterWeight, gl_VertexID);
 
     // pass along the color
     _color.rgb = color_sRGBToLinear(inColor.rgb);

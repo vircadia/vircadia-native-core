@@ -208,11 +208,6 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
 
     bool useDualQuaternionSkinning = model->getUseDualQuaternionSkinning();
 
-    auto buffer = model->_blendshapeBuffers.find(meshIndex);
-    if (buffer != model->_blendshapeBuffers.end()) {
-        _blendshapeBuffer = buffer->second;
-    }
-
     auto& modelMesh = model->getGeometry()->getMeshes().at(_meshIndex);
     const Model::MeshState& state = model->getMeshState(_meshIndex);
 
@@ -242,6 +237,17 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     updateTransformForSkinnedMesh(renderTransform, transform);
 
     initCache(model);
+
+    if (_isBlendShaped) {
+        auto buffer = model->_blendshapeBuffers.find(meshIndex);
+        if (buffer != model->_blendshapeBuffers.end()) {
+            _blendshapeBuffer = buffer->second;
+        }
+
+        if (!_isSkinned) {
+            qWarning() << "MeshPArt Payload is blendshape but not skinned";
+        }
+    }
 }
 
 void ModelMeshPartPayload::initCache(const ModelPointer& model) {
