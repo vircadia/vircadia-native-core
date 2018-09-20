@@ -42,7 +42,7 @@ const QString GRABBABLE_USER_DATA = "{\"grabbableKey\":{\"grabbable\":true}}";
 const QString NOT_GRABBABLE_USER_DATA = "{\"grabbableKey\":{\"grabbable\":false}}";
 
 EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership) :
-    _entityTree(NULL),
+    _entityTree(nullptr),
     _bidOnSimulationOwnership(bidOnSimulationOwnership)
 {
     auto nodeList = DependencyManager::get<NodeList>();
@@ -352,19 +352,19 @@ QUuid EntityScriptingInterface::cloneEntity(QUuid entityIDToClone) {
     }
 }
 
-EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identity) {
-    EntityPropertyFlags noSpecificProperties;
-    return getEntityProperties(identity, noSpecificProperties);
+EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid entityID) {
+    const EntityPropertyFlags noSpecificProperties;
+    return getEntityProperties(entityID, noSpecificProperties);
 }
 
-EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identity, EntityPropertyFlags desiredProperties) {
+EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid entityID, EntityPropertyFlags desiredProperties) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     bool scalesWithParent { false };
     EntityItemProperties results;
     if (_entityTree) {
         _entityTree->withReadLock([&] {
-            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(identity));
+            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
             if (entity) {
                 scalesWithParent = entity->getScalesWithParent();
                 if (desiredProperties.getHasProperty(PROP_POSITION) ||
@@ -397,6 +397,136 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
     }
 
     return convertPropertiesToScriptSemantics(results, scalesWithParent);
+}
+
+
+struct EntityPropertiesResult {
+    EntityPropertiesResult(const EntityItemProperties& properties, bool scalesWithParent) :
+        properties(properties),
+        scalesWithParent(scalesWithParent) {
+    }
+    EntityPropertiesResult() = default;
+    EntityItemProperties properties;
+    bool scalesWithParent{ false };
+};
+
+// Static method to make sure that we have the right script engine.
+// Using sender() or QtScriptable::engine() does not work for classes used by multiple threads (script-engines)
+QScriptValue EntityScriptingInterface::getMultipleEntityProperties(QScriptContext* context, QScriptEngine* engine) {
+    const int ARGUMENT_ENTITY_IDS = 0;
+    const int ARGUMENT_EXTENDED_DESIRED_PROPERTIES = 1;
+
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    const auto entityIDs = qScriptValueToValue<QVector<QUuid>>(context->argument(ARGUMENT_ENTITY_IDS));
+    return entityScriptingInterface->getMultipleEntityPropertiesInternal(engine, entityIDs, context->argument(ARGUMENT_EXTENDED_DESIRED_PROPERTIES));
+}
+
+QScriptValue EntityScriptingInterface::getMultipleEntityPropertiesInternal(QScriptEngine* engine, QVector<QUuid> entityIDs, const QScriptValue& extendedDesiredProperties) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
+    EntityPsuedoPropertyFlags psuedoPropertyFlags;
+    const auto readExtendedPropertyStringValue = [&](QScriptValue extendedProperty) {
+        const auto extendedPropertyString = extendedProperty.toString();
+        if (extendedPropertyString == QString("id")) {
+            psuedoPropertyFlags |= EntityPsuedoPropertyFlag::id;
+        } else if (extendedPropertyString == QString("type")) {
+            psuedoPropertyFlags |= EntityPsuedoPropertyFlag::type;
+        } else if (extendedPropertyString == QString("created")) {
+            psuedoPropertyFlags |= EntityPsuedoPropertyFlag::created;
+        } else if (extendedPropertyString == QString("age")) {
+            psuedoPropertyFlags |= EntityPsuedoPropertyFlag::age;
+        } else if (extendedPropertyString == QString("ageAsText")) {
+            psuedoPropertyFlags |= EntityPsuedoPropertyFlag::ageAsText;
+        } else if (extendedPropertyString == QString("lastEdited")) {
+            psuedoPropertyFlags |= EntityPsuedoPropertyFlag::lastEdited;
+        } else if (extendedPropertyString == QString("boundingBox")) {
+            psuedoPropertyFlags |= EntityPsuedoPropertyFlag::boundingBox;
+        } else if (extendedPropertyString == QString("originalTextures")) {
+            psuedoPropertyFlags |= EntityPsuedoPropertyFlag::originalTextures;
+        } else if (extendedPropertyString == QString("renderInfo")) {
+            psuedoPropertyFlags |= EntityPsuedoPropertyFlag::renderInfo;
+        } else if (extendedPropertyString == QString("clientOnly")) {
+            psuedoPropertyFlags |= EntityPsuedoPropertyFlag::clientOnly;
+        } else if (extendedPropertyString == QString("owningAvatarID")) {
+            psuedoPropertyFlags |= EntityPsuedoPropertyFlag::owningAvatarID;
+        }
+    };
+
+    if (extendedDesiredProperties.isString()) {
+        readExtendedPropertyStringValue(extendedDesiredProperties);
+        psuedoPropertyFlags |= EntityPsuedoPropertyFlag::flagsActive;
+    } else if (extendedDesiredProperties.isArray()) {
+        const quint32 length = extendedDesiredProperties.property("length").toInt32();
+        for (quint32 i = 0; i < length; i++) {
+            readExtendedPropertyStringValue(extendedDesiredProperties.property(i));
+        }
+        psuedoPropertyFlags |= EntityPsuedoPropertyFlag::flagsActive;
+    }
+
+    EntityPropertyFlags desiredProperties = qScriptValueToValue<EntityPropertyFlags>(extendedDesiredProperties);
+    bool needsScriptSymantics = desiredProperties.getHasProperty(PROP_POSITION) ||
+        desiredProperties.getHasProperty(PROP_ROTATION) ||
+        desiredProperties.getHasProperty(PROP_LOCAL_POSITION) ||
+        desiredProperties.getHasProperty(PROP_LOCAL_ROTATION) ||
+        desiredProperties.getHasProperty(PROP_LOCAL_VELOCITY) ||
+        desiredProperties.getHasProperty(PROP_LOCAL_ANGULAR_VELOCITY) ||
+        desiredProperties.getHasProperty(PROP_LOCAL_DIMENSIONS);
+    if (needsScriptSymantics) {
+        // if we are explicitly getting position or rotation, we need parent information to make sense of them.
+        desiredProperties.setHasProperty(PROP_PARENT_ID);
+        desiredProperties.setHasProperty(PROP_PARENT_JOINT_INDEX);
+    }
+    QVector<EntityPropertiesResult> resultProperties;
+    if (_entityTree) {
+        PROFILE_RANGE(script_entities, "EntityScriptingInterface::getMultipleEntityProperties>Obtaining Properties");
+        int i = 0;
+        const int lockAmount = 500;
+        int size = entityIDs.size();
+        while (i < size) {
+            _entityTree->withReadLock([&] {
+                for (int j = 0; j < lockAmount && i < size; ++i, ++j) {
+                    const auto& entityID = entityIDs.at(i);
+                    const EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
+                    if (entity) {
+                        if (!psuedoPropertyFlags && desiredProperties.isEmpty()) {
+                            // these are left out of EntityItem::getEntityProperties so that localPosition and localRotation
+                            // don't end up in json saves, etc.  We still want them here, though.
+                            EncodeBitstreamParams params; // unknown
+                            desiredProperties = entity->getEntityProperties(params);
+                            desiredProperties.setHasProperty(PROP_LOCAL_POSITION);
+                            desiredProperties.setHasProperty(PROP_LOCAL_ROTATION);
+                            desiredProperties.setHasProperty(PROP_LOCAL_VELOCITY);
+                            desiredProperties.setHasProperty(PROP_LOCAL_ANGULAR_VELOCITY);
+                            desiredProperties.setHasProperty(PROP_LOCAL_DIMENSIONS);
+                            psuedoPropertyFlags = EntityPsuedoPropertyFlag::all;
+                            needsScriptSymantics = true;
+                        }
+
+                        auto properties = entity->getProperties(desiredProperties, true);
+                        EntityPropertiesResult result(properties, entity->getScalesWithParent());
+                        resultProperties.append(result);
+                    }
+                }
+            });
+        }
+    }
+    QScriptValue finalResult = engine->newArray(resultProperties.size());
+    quint32 i = 0;
+    {
+        if (needsScriptSymantics) {
+            PROFILE_RANGE(script_entities, "EntityScriptingInterface::getMultipleEntityProperties>Script Semantics");
+            foreach(auto result, resultProperties) {
+                finalResult.setProperty(i++, convertPropertiesToScriptSemantics(result.properties, result.scalesWithParent)
+                    .copyToScriptValue(engine, false, false, false, psuedoPropertyFlags));
+            }
+        } else {
+            PROFILE_RANGE(script_entities, "EntityScriptingInterface::getMultipleEntityProperties>Skip Script Semantics");
+            foreach(auto result, resultProperties) {
+                finalResult.setProperty(i++, result.properties.copyToScriptValue(engine, false, false, false, psuedoPropertyFlags));
+            }
+        }
+    }
+    return finalResult;
 }
 
 QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties& scriptSideProperties) {

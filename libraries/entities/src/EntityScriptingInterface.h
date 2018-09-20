@@ -149,6 +149,8 @@ public:
         const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard,
         bool visibleOnly, bool collidableOnly);
 
+    static QScriptValue getMultipleEntityProperties(QScriptContext* context, QScriptEngine* engine);
+    QScriptValue getMultipleEntityPropertiesInternal(QScriptEngine* engine, QVector<QUuid> entityIDs, const QScriptValue& extendedDesiredProperties);
 public slots:
 
     /**jsdoc
@@ -270,7 +272,7 @@ public slots:
      * print("Entity color: " + JSON.stringify(properties.color));
      */
     Q_INVOKABLE EntityItemProperties getEntityProperties(QUuid entityID);
-    Q_INVOKABLE EntityItemProperties getEntityProperties(QUuid identity, EntityPropertyFlags desiredProperties);
+    Q_INVOKABLE EntityItemProperties getEntityProperties(QUuid entityID, EntityPropertyFlags desiredProperties);
 
     /**jsdoc
      * Update an entity with specified properties.

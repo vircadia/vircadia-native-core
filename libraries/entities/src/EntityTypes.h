@@ -13,7 +13,7 @@
 #define hifi_EntityTypes_h
 
 #include <memory>
-#include <stdint.h>
+//#include <stdint.h>
 
 #include <QHash>
 #include <QString>

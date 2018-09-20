@@ -88,7 +88,7 @@ public:
     EntityItemID getEntityItemID() const { return EntityItemID(_id); }
 
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties = EntityPropertyFlags(), bool allowEmptyDesiredProperties = false) const;
 
     /// returns true if something changed
     // This function calls setSubClass properties and detects if any property changes value.

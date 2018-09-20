@@ -35,6 +35,7 @@
 #include "EntityItemPropertiesMacros.h"
 #include "EntityTypes.h"
 #include "EntityPropertyFlags.h"
+#include "EntityPsuedoPropertyFlags.h"
 #include "LightEntityItem.h"
 #include "LineEntityItem.h"
 #include "ParticleEffectEntityItem.h"
@@ -86,7 +87,8 @@ public:
     EntityTypes::EntityType getType() const { return _type; }
     void setType(EntityTypes::EntityType type) { _type = type; }
 
-    virtual QScriptValue copyToScriptValue(QScriptEngine* engine, bool skipDefaults, bool allowUnknownCreateTime = false, bool strictSemantics = false) const;
+    virtual QScriptValue copyToScriptValue(QScriptEngine* engine, bool skipDefaults, bool allowUnknownCreateTime = false,
+        bool strictSemantics = false, EntityPsuedoPropertyFlags psueudoPropertyFlags = EntityPsuedoPropertyFlags()) const;
     virtual void copyFromScriptValue(const QScriptValue& object, bool honorReadOnly);
 
     static QScriptValue entityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags);
@@ -340,6 +342,9 @@ public:
 
     void setQueryAACubeDirty() { _queryAACubeChanged = true; }
 
+  //  void setStrictProperties(bool strictProperties) { _strictProperties = strictProperties; }
+  //  bool getStrictProperties() const { return _strictProperties; }
+
     void setCreated(QDateTime& v);
 
     bool hasTerseUpdateChanges() const;
@@ -420,6 +425,7 @@ private:
     bool _renderInfoHasTransparent { false };
 
     EntityPropertyFlags _desiredProperties; // if set will narrow scopes of copy/to/from to just these properties
+    // bool _strictProperties { false };
 };
 
 Q_DECLARE_METATYPE(EntityItemProperties);
