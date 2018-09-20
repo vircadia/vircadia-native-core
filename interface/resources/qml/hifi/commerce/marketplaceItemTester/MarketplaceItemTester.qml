@@ -55,9 +55,9 @@ Rectangle {
         }
     }
 
-    function isHttp(str) {
+    function toUrl(resource) {
         var httpPattern = /^http/i;
-        return httpPattern.test(str);
+        return httpPattern.test(str) ? resource : "file:///" + resource;
     }
 
     Component.onCompleted: {
@@ -89,9 +89,10 @@ Rectangle {
                             MyAvatar.useFullAvatarURL(resource);
                             break;
                         case "content set":
-                            resource = isHttp(resource) ? resource : "file:///" + resource;
                             urlHandler.handleUrl("hifi://localhost/0,0,0");
-                            Commerce.replaceContentSet(resource, "");
+                            Commerce.replaceContentSet(toUrl(resource), "");
+                            break;
+                        case "entity":
                             break;
                     }
                     // XXX support other resource types here.
