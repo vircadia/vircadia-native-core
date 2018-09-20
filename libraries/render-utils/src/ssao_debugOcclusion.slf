@@ -37,7 +37,7 @@ vec2 getDebugCursorTexcoord(){
 layout(location=0) out vec4 outFragColor;
 
 void main(void) {
-    vec2 imageSize = getSideImageSize(getResolutionLevel());
+    vec2 imageSize = getStereoSideSize(getResolutionLevel());
     
     // In debug adjust the correct frag pixel based on base resolution
     vec2 fragCoord = gl_FragCoord.xy; 

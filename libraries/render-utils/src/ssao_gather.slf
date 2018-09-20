@@ -25,8 +25,8 @@ void main(void) {
     // Gather the four splits of the occlusion result back into an interleaved full size
     // result (at the resolution level, of course)
     ivec2 destPixelCoord = ivec2(gl_FragCoord.xy);
-    ivec2 sourcePixelCoord = destPixelCoord >> 1;
-    ivec2 splitImageSize = ivec2(getWidthHeight(getResolutionLevel() + 1));
+    ivec2 sourcePixelCoord = destPixelCoord / 2;
+    ivec2 splitImageSize = ivec2(getWidthHeight(getResolutionLevel()+1));
 
     sourcePixelCoord += (destPixelCoord & ivec2(1)) * splitImageSize;
 

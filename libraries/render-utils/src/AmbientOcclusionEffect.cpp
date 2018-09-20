@@ -212,7 +212,7 @@ AmbientOcclusionEffectConfig::AmbientOcclusionEffectConfig() :
 #else
     numSamples{ 16 },
 #endif
-    resolutionLevel{ 2 },
+    resolutionLevel{ 0 },
     blurRadius{ 4 },
     ditheringEnabled{ true },
     borderingEnabled{ true },
@@ -509,7 +509,7 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
         auto& sample = _aoFrameParametersBuffer[splitId].edit();
         sample._angleInfo.x = _randomSamples[splitId + SSAO_RANDOM_SAMPLE_COUNT * _frameId];
     }
-    // TEMPO OP _frameId = (_frameId + 1) % SSAO_RANDOM_SAMPLE_COUNT;
+    // _frameId = (_frameId + 1) % SSAO_RANDOM_SAMPLE_COUNT;
 
     gpu::doInBatch("AmbientOcclusionEffect::run", args->_context, [=](gpu::Batch& batch) {
 		PROFILE_RANGE_BATCH(batch, "AmbientOcclusion");
@@ -605,27 +605,31 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
         {
             PROFILE_RANGE_BATCH(batch, "Bilateral Blur");
             // Blur 1st pass
-            model.setScale(resolutionScale);
-            batch.setModelTransform(model);
-            batch.setViewportTransform(firstBlurViewport);
-            batch.setFramebuffer(occlusionBlurredFBO);
-            // Use full resolution depth and normal for bilateral upscaling and blur
-            batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, linearDepthTexture);
-            batch.setResourceTexture(render_utils::slot::texture::SsaoNormal, fullNormalTexture);
-            batch.setUniformBuffer(render_utils::slot::buffer::SsaoBlurParams, _hblurParametersBuffer);
-            batch.setPipeline(firstHBlurPipeline);
-            batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, occlusionFBO->getRenderBuffer(0));
-            batch.draw(gpu::TRIANGLE_STRIP, 4);
+            batch.pushProfileRange("Horizontal");
+                model.setScale(resolutionScale);
+                batch.setModelTransform(model);
+                batch.setViewportTransform(firstBlurViewport);
+                batch.setFramebuffer(occlusionBlurredFBO);
+                // Use full resolution depth and normal for bilateral upscaling and blur
+                batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, linearDepthTexture);
+                batch.setResourceTexture(render_utils::slot::texture::SsaoNormal, fullNormalTexture);
+                batch.setUniformBuffer(render_utils::slot::buffer::SsaoBlurParams, _hblurParametersBuffer);
+                batch.setPipeline(firstHBlurPipeline);
+                batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, occlusionFBO->getRenderBuffer(0));
+                batch.draw(gpu::TRIANGLE_STRIP, 4);
+            batch.popProfileRange();
 
             // Blur 2nd pass
-            model.setScale(glm::vec3(1.0f, resolutionScale, 1.0f));
-            batch.setModelTransform(model);
-            batch.setViewportTransform(sourceViewport);
-            batch.setFramebuffer(occlusionFBO);
-            batch.setUniformBuffer(render_utils::slot::buffer::SsaoBlurParams, _vblurParametersBuffer);
-            batch.setPipeline(lastVBlurPipeline);
-            batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, occlusionBlurredFBO->getRenderBuffer(0));
-            batch.draw(gpu::TRIANGLE_STRIP, 4);
+            batch.pushProfileRange("Vertical");
+                model.setScale(glm::vec3(1.0f, resolutionScale, 1.0f));
+                batch.setModelTransform(model);
+                batch.setViewportTransform(sourceViewport);
+                batch.setFramebuffer(occlusionFBO);
+                batch.setUniformBuffer(render_utils::slot::buffer::SsaoBlurParams, _vblurParametersBuffer);
+                batch.setPipeline(lastVBlurPipeline);
+                batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, occlusionBlurredFBO->getRenderBuffer(0));
+                batch.draw(gpu::TRIANGLE_STRIP, 4);
+            batch.popProfileRange();
         }
 
         batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, nullptr);
