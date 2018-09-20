@@ -512,7 +512,11 @@ bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(QVector<EntityIt
             // be ignored because they can have events fired on them.
             // FIXME - this could be optimized further by determining if the script is loaded
             // and if it has either an enterEntity or leaveEntity method
-            if (isZone || hasScript) {
+            //
+            // also, don't flag a scripted entity as containing the avatar until the script is loaded,
+            // so that the script is awake in time to receive the "entityEntity" call (even if the entity is a zone).
+            if ((!hasScript && isZone) ||
+                (hasScript && !entity->shouldPreloadScript())) {
                 // now check to see if the point contains our entity, this can be expensive if
                 // the entity has a collision hull
                 if (entity->contains(_avatarPosition)) {
