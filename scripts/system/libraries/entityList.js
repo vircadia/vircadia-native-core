@@ -150,11 +150,11 @@ EntityListTool = function(shouldUseEditTabletApp) {
             });
 
             var cameraPosition = Camera.position;
-            PROFILE("getProperties", function() {
-                for (var i = 0; i < ids.length; i++) {
-                    var id = ids[i];
-                    var properties = Entities.getEntityProperties(id, ['name', 'type', 'locked',
-                        'visible', 'renderInfo', 'type', 'modelURL', 'materialURL', 'script']);
+            PROFILE("getMultipleProperties", function () {
+                var multipleProperties = Entities.getMultipleEntityProperties(ids, ['name', 'type', 'locked',
+                    'visible', 'renderInfo', 'modelURL', 'materialURL', 'script']);
+                for (var i = 0; i < multipleProperties.length; i++) {
+                    var properties = multipleProperties[i];
 
                     if (!filterInView || Vec3.distance(properties.position, cameraPosition) <= searchRadius) {
                         var url = "";
@@ -164,7 +164,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
                             url = properties.materialURL;
                         }
                         entities.push({
-                            id: id,
+                            id: ids[i],
                             name: properties.name,
                             type: properties.type,
                             url: url,
