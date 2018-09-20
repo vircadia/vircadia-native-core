@@ -45,8 +45,9 @@ Rectangle {
     function installResourceObj(resourceObj) {
         if ("application" == resourceObj["assetType"]) {
             Commerce.installApp(resourceObj["resource"]);
+        } else {
+            print("Cannot install resource object type " + resourceObj["assetType"]);
         }
-        // XXX support other asset types here
     }
 
     function addAllInstalledAppsToList() {
@@ -63,14 +64,16 @@ Rectangle {
         return httpPattern.test(resource) ? resource : "file:///" + resource;
     }
 
-    function rezEntity(itemHref, itemType) {
-
+    function rezEntity(resource, entityType) {
+        sendToScript({
+            method: 'tester_rezClicked',
+            itemHref: toUrl(resource),
+            itemType: entityType});
     }
 
     Component.onCompleted: {
         // On startup, list includes all tester-installed assets.
         addAllInstalledAppsToList();
-        // XXX support other asset types here
     }
 
     ListView {
@@ -99,21 +102,18 @@ Rectangle {
                             urlHandler.handleUrl("hifi://localhost/0,0,0");
                             Commerce.replaceContentSet(toUrl(resource), "");
                             break;
-                        case "entity or wearable":
-                            print("going to rez " + toUrl(resource));
-                            sendToScript({
-                                method: 'tester_rezClicked',
-                                itemHref: toUrl(resource),
-                                itemType: "entity"});
+                        case "entity":
+                        case "wearable":
+                            rezEntity(resource, assetType);
                             break;
+                        default:
+                            print("Marketplace item tester unsupported assetType " + assetType);
                     }
-                    // XXX support other resource types here.
                 },
                 "trash": function(){
                     if ("application" == assetType) {
                         Commerce.uninstallApp(resource);
                     }
-                    // XXX support other resource types here.
                     resourceListModel.remove(index);
                 }
             }
