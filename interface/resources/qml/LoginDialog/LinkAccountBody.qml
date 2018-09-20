@@ -285,7 +285,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 width: 200
 
-                text: qsTr(loginDialog.isSteamRunning() ? "Link Account" : "Login")
+                text: qsTr(loginDialog.isSteamRunning() ? "Link Account" : "Log in")
                 color: hifi.buttons.blue
 
                 onClicked: linkAccountBody.login()
