@@ -1040,15 +1040,15 @@ function notificationPollCallback(updatesArray) {
     if (updatesArray.length > 0) {
         var message;
         if (!ui.notificationInitialCallbackMade) {
-            message = updatesArray.length + " of your purchased items have updates available! " +
+            message = updatesArray.length + " of your purchased items have updates available. " +
                 "Open MARKET to update.";
             ui.notificationDisplayBanner(message);
 
             ui.notificationPollCaresAboutSince = true;
         } else {
             for (var i = 0; i < updatesArray.length; i++) {
-                message = "There's an update available for your version of \"" +
-                    updatesArray[i].marketplace_item_name + "\"!" +
+                message = "Update available for \"" +
+                    updatesArray[i].marketplace_item_name + "\"." +
                     "Open MARKET to update.";
                 ui.notificationDisplayBanner(message);
             }
@@ -1077,7 +1077,7 @@ function startup() {
         onScreenChanged: onTabletScreenChanged,
         onMessage: onQmlMessageReceived,
         notificationPollEndpoint: "/api/v1/commerce/available_updates?per_page=10",
-        notificationPollTimeoutMs: 60000,
+        notificationPollTimeoutMs: 300000,
         notificationDataProcessPage: notificationDataProcessPage,
         notificationPollCallback: notificationPollCallback,
         notificationPollStopPaginatingConditionMet: isReturnedDataEmpty,

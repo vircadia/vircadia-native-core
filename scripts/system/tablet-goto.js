@@ -57,15 +57,15 @@ function notificationPollCallback(userStoriesArray) {
 
             if (shouldNotifyIndividually) {
                 message = storedAnnouncements[key].username + " says something is happening in " +
-                    storedAnnouncements[key].place_name + "! Open GOTO to join them.";
+                    storedAnnouncements[key].place_name + ". Open GOTO to join them.";
                 ui.notificationDisplayBanner(message);
             }
         } else if (story.audience === "for_feed") {
             storedFeaturedStories[story.id] = story;
 
             if (shouldNotifyIndividually) {
-                message = storedFeaturedStories[key].username + " has invited you to an event in " +
-                    storedFeaturedStories[key].place_name + "! Open GOTO to join them.";
+                message = storedFeaturedStories[key].username + " invites you to an event in " +
+                    storedFeaturedStories[key].place_name + ". Open GOTO to join them.";
                 ui.notificationDisplayBanner(message);
             }
         }
@@ -91,8 +91,9 @@ function notificationPollCallback(userStoriesArray) {
     ui.messagesWaiting(shouldShowDot && !ui.isOpen);
 
     if (totalStories > 0 && !ui.isOpen && !ui.notificationInitialCallbackMade) {
-        message = "You have " + totalStories + "event invitations pending! " +
-            "Open GOTO to see them.";
+        message = "There " + (totalStories === 1 ? "is " : "are ") + totalStories + "event" +
+            (totalStories === 1 ? "" : "s") + " to know about. " +
+            "Open GOTO to see " + (totalStories === 1 ? "it" : "them") + ".";
         ui.notificationDisplayBanner(message);
     }
 }

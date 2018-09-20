@@ -846,7 +846,7 @@ function notificationPollCallback(connectionsArray) {
 
         if (!ui.isOpen && ui.notificationInitialCallbackMade) {
             message = user.username + " is available in " +
-                user.location.root.name + "! Open PEOPLE to join them.";
+                user.location.root.name + ". Open PEOPLE to join them.";
             ui.notificationDisplayBanner(message);
         }
     });
@@ -870,7 +870,7 @@ function notificationPollCallback(connectionsArray) {
 
         if (newOnlineUsers > 0 && !ui.notificationInitialCallbackMade) {
             message = newOnlineUsers + " of your connections " +
-                (newOnlineUsers === 1 ? "is" : "are") + " online! Open PEOPLE to join them.";
+                (newOnlineUsers === 1 ? "is" : "are") + " available online. Open PEOPLE to join them.";
             ui.notificationDisplayBanner(message);
         }
     }

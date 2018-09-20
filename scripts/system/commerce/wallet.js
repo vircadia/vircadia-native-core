@@ -543,37 +543,26 @@ function notificationPollCallback(historyArray) {
             var message;
             if (!ui.notificationInitialCallbackMade) {
                 message = "You have " + notificationCount + " unread wallet " +
-                    "notification" + (notificationCount === 1 ? "" : "s") + "! Open WALLET to see all activity.";
+                    "transaction" + (notificationCount === 1 ? "" : "s") + ". Open WALLET to see all activity.";
                 ui.notificationDisplayBanner(message);
             } else {
-                var currentItemName, senderName;
                 for (i = 0; i < someoneElsePurchasedArray.length; i++) {
-                    currentItemName = (someoneElsePurchasedArray[i].message).match('<a href=".*">(.*)</a>')[1];
-                    message = "Someone purchased your item \"" + currentItemName + "\" from the Marketplace! " +
+                    message = '"' + (someoneElsePurchasedArray[i].message) + '" ' +
                         "Open WALLET to see all activity.";
                     ui.notificationDisplayBanner(message);
                 }
                 for (i = 0; i < proofIssuedArray.length; i++) {
-                    currentItemName = (proofIssuedArray[i].message).match('<a href=".*">(.*)</a>')[1];
-                    message = "You have been issued a proof for your Marketplace item \"" + currentItemName + "\"! " +
+                    message = '"' + (proofIssuedArray[i].message) + '" ' +
                         "Open WALLET to see all activity.";
                     ui.notificationDisplayBanner(message);
                 }
                 for (i = 0; i < moneyReceivedArray.length; i++) {
-                    senderName = moneyReceivedArray[i].sender_name;
-                    if (senderName === "") {
-                        senderName = "Someone";
-                    }
-                    message = senderName + " sent you " + moneyReceivedArray[i].received_money + " HFC! " +
+                    message = '"' + (moneyReceivedArray[i].message) + '" ' +
                         "Open WALLET to see all activity.";
                     ui.notificationDisplayBanner(message);
                 }
                 for (i = 0; i < giftReceivedArray.length; i++) {
-                    senderName = giftReceivedArray[i].sender_name;
-                    if (senderName === "") {
-                        senderName = "Someone";
-                    }
-                    message = senderName + " sent you a gift! " +
+                    message = '"' + (giftReceivedArray[i].message) + '" ' +
                         "Open WALLET to see all activity.";
                     ui.notificationDisplayBanner(message);
                 }
@@ -602,7 +591,7 @@ function startup() {
         onClosed: walletClosed,
         onMessage: fromQml,
         notificationPollEndpoint: "/api/v1/commerce/history?per_page=10",
-        notificationPollTimeoutMs: 60000,
+        notificationPollTimeoutMs: 300000,
         notificationDataProcessPage: notificationDataProcessPage,
         notificationPollCallback: notificationPollCallback,
         notificationPollStopPaginatingConditionMet: isReturnedDataEmpty,
