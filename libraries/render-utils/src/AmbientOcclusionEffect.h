@@ -31,8 +31,8 @@ public:
     gpu::FramebufferPointer getOcclusionBlurredFramebuffer();
     gpu::TexturePointer getOcclusionBlurredTexture();
 
-    gpu::FramebufferPointer getNormalFramebuffer();
-    gpu::TexturePointer getNormalTexture();
+    gpu::FramebufferPointer getNormalFramebuffer(int resolutionLevel);
+    gpu::TexturePointer getNormalTexture(int resolutionLevel);
 
     // Update the source framebuffer size which will drive the allocation of all the other resources.
     bool updateLinearDepth(const gpu::TexturePointer& linearDepthBuffer);
@@ -40,8 +40,10 @@ public:
     const glm::ivec2& getSourceFrameSize() const { return _frameSize; }
         
 protected:
+
     void clear();
     void allocate();
+    void allocate(int resolutionLevel);
     
     gpu::TexturePointer _linearDepthTexture;
     
@@ -56,6 +58,7 @@ protected:
 
     
     glm::ivec2 _frameSize;
+    int _resolutionLevel{ 0 };
 };
 
 using AmbientOcclusionFramebufferPointer = std::shared_ptr<AmbientOcclusionFramebuffer>;

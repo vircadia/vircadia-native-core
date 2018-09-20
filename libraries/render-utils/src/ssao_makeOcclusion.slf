@@ -25,6 +25,7 @@ layout(location=0) out vec4 outFragColor;
 
 void main(void) {
     vec2 sideImageSize = getStereoSideSize(getResolutionLevel());
+    ivec2 renderSize = ivec2(sideImageSize) << ivec2(int(isStereo()) & 1, 0);
 
     // Pixel being shaded
     vec2 fragCoord = gl_FragCoord.xy; 
@@ -35,7 +36,8 @@ void main(void) {
 #endif
 
     // Fetch the z under the pixel (stereo or not)
-    float Zeye = getZEyeAtPixel(fragPixelPos, 0);
+    ivec2 depthTexFragPixelPos = fragPixelPos * getDepthTextureSize(0) / renderSize ;
+    float Zeye = getZEyeAtPixel(depthTexFragPixelPos, 0);
 #if SSAO_USE_QUAD_SPLIT
     vec3 fragNormalES = getNormalEyeAtPixel(fragPixelPos, 0);
 #endif

@@ -202,6 +202,10 @@ vec3 getTapLocationClampedSSAO(int sampleNumber, float spinAngle, float outerRad
 layout(binding=RENDER_UTILS_TEXTURE_SSAO_DEPTH) uniform sampler2D depthPyramidTex;
 layout(binding=RENDER_UTILS_TEXTURE_SSAO_NORMAL) uniform sampler2D normalTex;
 
+ivec2 getDepthTextureSize(int level) {
+    return textureSize(depthPyramidTex, level);
+}
+
 float getZEyeAtPixel(ivec2 pixel, int level) {
     return -texelFetch(depthPyramidTex, pixel, level).x;
 }

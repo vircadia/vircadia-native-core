@@ -87,10 +87,6 @@ void AmbientOcclusionFramebuffer::allocate() {
     _occlusionBlurredTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR, gpu::Sampler::WRAP_CLAMP));
     _occlusionBlurredFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("occlusionBlurred"));
     _occlusionBlurredFramebuffer->setRenderBuffer(0, _occlusionBlurredTexture);
-
-    _normalTexture = gpu::Texture::createRenderBuffer(gpu::Element::COLOR_R11G11B10, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT, gpu::Sampler::WRAP_CLAMP));
-    _normalFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("ssaoNormals"));
-    _normalFramebuffer->setRenderBuffer(0, _normalTexture);
 }
 
 gpu::FramebufferPointer AmbientOcclusionFramebuffer::getOcclusionFramebuffer() {
@@ -121,16 +117,26 @@ gpu::TexturePointer AmbientOcclusionFramebuffer::getOcclusionBlurredTexture() {
     return _occlusionBlurredTexture;
 }
 
-gpu::FramebufferPointer AmbientOcclusionFramebuffer::getNormalFramebuffer() {
-    if (!_normalFramebuffer) {
-        allocate();
+void AmbientOcclusionFramebuffer::allocate(int resolutionLevel) {
+    auto width = _frameSize.x >> resolutionLevel;
+    auto height = _frameSize.y >> resolutionLevel;
+
+    _normalTexture = gpu::Texture::createRenderBuffer(gpu::Element::COLOR_R11G11B10, width, height, gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT, gpu::Sampler::WRAP_CLAMP));
+    _normalFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("ssaoNormals"));
+    _normalFramebuffer->setRenderBuffer(0, _normalTexture);
+    _resolutionLevel = resolutionLevel;
+}
+
+gpu::FramebufferPointer AmbientOcclusionFramebuffer::getNormalFramebuffer(int resolutionLevel) {
+    if (!_normalFramebuffer || resolutionLevel != _resolutionLevel) {
+        allocate(resolutionLevel);
     }
     return _normalFramebuffer;
 }
 
-gpu::TexturePointer AmbientOcclusionFramebuffer::getNormalTexture() {
-    if (!_normalTexture) {
-        allocate();
+gpu::TexturePointer AmbientOcclusionFramebuffer::getNormalTexture(int resolutionLevel) {
+    if (!_normalTexture || resolutionLevel != _resolutionLevel) {
+        allocate(resolutionLevel);
     }
     return _normalTexture;
 }
@@ -208,11 +214,11 @@ AmbientOcclusionEffectConfig::AmbientOcclusionEffectConfig() :
     blurDeviation{ 2.5f },
     numSpiralTurns{ 7.0f },
 #if SSAO_USE_HORIZON_BASED
-    numSamples{ 2 },
+    numSamples{ 3 },
 #else
     numSamples{ 16 },
 #endif
-    resolutionLevel{ 0 },
+    resolutionLevel{ 2 },
     blurRadius{ 4 },
     ditheringEnabled{ true },
     borderingEnabled{ true },
@@ -470,10 +476,11 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
         _framebuffer = std::make_shared<AmbientOcclusionFramebuffer>();
     }
 
-    const auto resolutionScale = powf(0.5f, _aoParametersBuffer->getResolutionLevel());
-    if (_aoParametersBuffer->getResolutionLevel() > 0) {
-        occlusionViewport = occlusionViewport >> _aoParametersBuffer->getResolutionLevel();
-        firstBlurViewport.w = firstBlurViewport.w >> _aoParametersBuffer->getResolutionLevel();
+    const int resolutionLevel = _aoParametersBuffer->getResolutionLevel();
+    const auto resolutionScale = powf(0.5f, resolutionLevel);
+    if (resolutionLevel > 0) {
+        occlusionViewport = occlusionViewport >> resolutionLevel;
+        firstBlurViewport.w = firstBlurViewport.w >> resolutionLevel;
         occlusionDepthTexture = linearDepthFramebuffer->getHalfLinearDepthTexture();
     }
 
@@ -498,8 +505,8 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 #if SSAO_USE_QUAD_SPLIT
     auto gatherPipeline = getGatherPipeline();
     auto buildNormalsPipeline = getBuildNormalsPipeline();
-    auto occlusionNormalFramebuffer = _framebuffer->getNormalFramebuffer();
-    auto occlusionNormalTexture = _framebuffer->getNormalTexture();
+    auto occlusionNormalFramebuffer = _framebuffer->getNormalFramebuffer(resolutionLevel);
+    auto occlusionNormalTexture = _framebuffer->getNormalTexture(resolutionLevel);
 #endif
     auto fullNormalTexture = linearDepthFramebuffer->getNormalTexture();
 
@@ -536,12 +543,13 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
 #if SSAO_USE_QUAD_SPLIT
         // Build derivative normals pass
         batch.pushProfileRange("Build Normals");
-            batch.setViewportTransform(sourceViewport);
+            batch.setViewportTransform(occlusionViewport);
             batch.setPipeline(buildNormalsPipeline);
+            batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, linearDepthTexture);
+            batch.setResourceTexture(render_utils::slot::texture::SsaoNormal, nullptr);
             batch.setUniformBuffer(render_utils::slot::buffer::DeferredFrameTransform, frameTransform->getFrameTransformBuffer());
             batch.setUniformBuffer(render_utils::slot::buffer::SsaoParams, _aoParametersBuffer);
             batch.setFramebuffer(occlusionNormalFramebuffer);
-            batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, linearDepthTexture);
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         batch.popProfileRange();
 #endif
