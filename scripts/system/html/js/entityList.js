@@ -22,8 +22,24 @@ const EXPAND_EXTRA_INFO = "D";
 const FILTER_IN_VIEW_ATTRIBUTE = "pressed";
 const WINDOW_NONVARIABLE_HEIGHT = 206;
 const NUM_COLUMNS = 12;
+const EMPTY_ENTITY_ID = "0";
 const DELETE = 46; // Key code for the delete key.
 const KEY_P = 80; // Key code for letter p used for Parenting hotkey.
+
+const COLUMN_INDEX = {
+    TYPE: 0,
+    NAME: 1,
+    URL: 2,
+    LOCKED: 3,
+    VISIBLE: 4,
+    VERTICLES_COUNT: 5,
+    TEXTURES_COUNT: 6,
+    TEXTURES_SIZE: 7,
+    HAS_TRANSPARENT: 8,
+    IS_BAKED: 9,
+    DRAW_CALLS: 10,
+    HAS_SCRIPT: 11
+};
 
 const COMPARE_ASCENDING = function(a, b) {
     let va = a[currentSortColumn];
@@ -33,15 +49,18 @@ const COMPARE_ASCENDING = function(a, b) {
         return -1;
     }  else if (va > vb) {
         return 1;
+    } else if (a.id < b.id) {
+        return -1;
     }
-    return 0;
+
+    return 1;
 }
 const COMPARE_DESCENDING = function(a, b) {
     return COMPARE_ASCENDING(b, a);
 }
 
 // List of all entities
-let entities = []
+var entities = []
 // List of all entities, indexed by Entity ID
 var entitiesByID = {};
 // The filtered and sorted list of entities
@@ -61,11 +80,11 @@ const PROFILE_NOOP = function(_name, fn, args) {
 } ;
 const PROFILE = !ENABLE_PROFILING ? PROFILE_NOOP : function(name, fn, args) {
     console.log("PROFILE-Web " + profileIndent + "(" + name + ") Begin");
-    var previousIndent = profileIndent;
+    let previousIndent = profileIndent;
     profileIndent += '  ';
-    var before = Date.now();
+    let before = Date.now();
     fn.apply(this, args);
-    var delta = Date.now() - before;
+    let delta = Date.now() - before;
     profileIndent = previousIndent;
     console.log("PROFILE-Web " + profileIndent + "(" + name + ") End " + delta + "ms");
 };
@@ -161,7 +180,7 @@ function loaded() {
         
         elNoEntitiesInView.style.display = "none";
         
-        entityList = new ListView("entity-table", "entity-table-body", "entity-table-scroll", createRowFunction, updateRowFunction, clearRowFunction);
+        entityList = new ListView("entity-table", "entity-table-body", "entity-table-scroll", createRow, updateRow, clearRow);
         
         function onRowClicked(clickEvent) {
             let entityID = this.dataset.entityID;
@@ -293,7 +312,7 @@ function loaded() {
                 });
 
                 PROFILE("update-dom", function() {
-                    entityList.setVisibleItemData(visibleEntities);
+                    entityList.setItemData(visibleEntities);
                     entityList.refresh();
                 });
                 
@@ -309,7 +328,7 @@ function loaded() {
                     if (id === deletedIDs[i]) {
                         entities.splice(j, 1);
                         if (entitiesByID[id].elRow) {
-                            entitiesByID[id].elRow.dataset.entityID = 0;
+                            entitiesByID[id].elRow.dataset.entityID = EMPTY_ENTITY_ID;
                         }
                         delete entitiesByID[id];
                         break;
@@ -317,7 +336,7 @@ function loaded() {
                 }
             }
 
-            var rowOffset = entityList.getRowOffset();
+            let rowOffset = entityList.rowOffset;
             for (let j = visibleEntities.length - 1; j >= 0; --j) {
                 let id = visibleEntities[j].id;
                 for (let i = 0, length = deletedIDs.length; i < length; ++i) {
@@ -331,23 +350,21 @@ function loaded() {
                 }
             }       
             
-            entityList.setVisibleItemData(visibleEntities);
             entityList.refresh();
         }
         
         function clearEntities() {
-            let firstVisibleRow = entityList.getRowOffset();
+            let firstVisibleRow = entityList.rowOffset;
             let lastVisibleRow = firstVisibleRow + entityList.getNumRows() - 1;
             for (let i = firstVisibleRow; i <= lastVisibleRow && i < visibleEntities.length; i++) {
                 let entity = visibleEntities[i];
-                entity.elRow.dataset.entityID = 0;
+                entity.elRow.dataset.entityID = EMPTY_ENTITY_ID;
             }
             
             entities = [];
             entitiesByID = {};
             visibleEntities = [];
             
-            entityList.setVisibleItemData([]);
             entityList.resetRowOffset();
             entityList.refresh();
             
@@ -402,24 +419,17 @@ function loaded() {
         function updateSelectedEntities(selectedIDs) {
             let notFound = false;
             
-            let firstVisibleRow = entityList.getRowOffset();
-            let lastVisibleRow = firstVisibleRow + entityList.getNumRows() - 1;
-            for (let i = firstVisibleRow; i <= lastVisibleRow && i < visibleEntities.length; i++) {
-                let entity = visibleEntities[i];
-                entity.elRow.className = '';
-            }
-            
-            for (let i = 0; i < selectedEntities.length; i++) {
-                let id = selectedEntities[i];
+            selectedEntities.forEach(function(id) {
                 let entity = entitiesByID[id];
-                if (entity) {
-                    entitiesByID[id].selected = false;
+                if (entity !== undefined) {
+                    entity.selected = false;
+                    entity.elRow.className = '';
                 }
-            }
-
+            });
+            
             selectedEntities = [];
-            for (let i = 0; i < selectedIDs.length; i++) {
-                let id = selectedIDs[i];
+            
+            selectedIDs.forEach(function(id) {
                 selectedEntities.push(id);
                 if (id in entitiesByID) {
                     let entity = entitiesByID[id];
@@ -430,19 +440,19 @@ function loaded() {
                 } else {
                     notFound = true;
                 }
-            }
+            });
 
             refreshFooter();
 
             return notFound;
         }
         
-        function createRowFunction() {
-            var row = document.createElement("tr");
-            for (var i = 0; i < NUM_COLUMNS; i++) {
-                var column = document.createElement("td");
-                // locked, visible, hasTransparent, isBaked glyph columns
-                if (i === 3 || i === 4 || i === 8 || i === 9) {
+        function createRow() {
+            let row = document.createElement("tr");
+            for (let i = 0; i < NUM_COLUMNS; i++) {
+                let column = document.createElement("td");
+                if (i === COLUMN_INDEX.LOCKED || i === COLUMN_INDEX.VISIBLE || 
+                    i === COLUMN_INDEX.HAS_TRANSPARENT || i === COLUMN_INDEX.IS_BAKED) {
                     column.className = 'glyph';
                 }
                 row.appendChild(column);
@@ -452,30 +462,30 @@ function loaded() {
             return row;
         }
         
-        function updateRowFunction(elRow, itemData) {
-            var typeCell = elRow.childNodes[0];
+        function updateRow(elRow, itemData) {
+            let typeCell = elRow.childNodes[COLUMN_INDEX.TYPE];
             typeCell.innerText = itemData.type;
-            var nameCell = elRow.childNodes[1];
+            let nameCell = elRow.childNodes[COLUMN_INDEX.NAME];
             nameCell.innerText = itemData.name;
-            var urlCell = elRow.childNodes[2];
+            let urlCell = elRow.childNodes[COLUMN_INDEX.URL];
             urlCell.innerText = itemData.url;
-            var lockedCell = elRow.childNodes[3];
+            let lockedCell = elRow.childNodes[COLUMN_INDEX.LOCKED];
             lockedCell.innerHTML = itemData.locked;
-            var visibleCell = elRow.childNodes[4];
+            let visibleCell = elRow.childNodes[COLUMN_INDEX.VISIBLE];
             visibleCell.innerHTML = itemData.visible;
-            var verticesCountCell = elRow.childNodes[5];
+            let verticesCountCell = elRow.childNodes[COLUMN_INDEX.VERTICLES_COUNT];
             verticesCountCell.innerText = itemData.verticesCount;
-            var texturesCountCell = elRow.childNodes[6];
+            let texturesCountCell = elRow.childNodes[COLUMN_INDEX.TEXTURES_COUNT];
             texturesCountCell.innerText = itemData.texturesCount;
-            var texturesSizeCell = elRow.childNodes[7];
+            let texturesSizeCell = elRow.childNodes[COLUMN_INDEX.TEXTURES_SIZE];
             texturesSizeCell.innerText = itemData.texturesSize;
-            var hasTransparentCell = elRow.childNodes[8];
+            let hasTransparentCell = elRow.childNodes[COLUMN_INDEX.HAS_TRANSPARENT];
             hasTransparentCell.innerHTML = itemData.hasTransparent;
-            var isBakedCell = elRow.childNodes[9];
+            let isBakedCell = elRow.childNodes[COLUMN_INDEX.IS_BAKED];
             isBakedCell.innerHTML = itemData.isBaked;
-            var drawCallsCell = elRow.childNodes[10];
+            let drawCallsCell = elRow.childNodes[COLUMN_INDEX.DRAW_CALLS];
             drawCallsCell.innerText = itemData.drawCalls;
-            var hasScriptCell = elRow.childNodes[11];
+            let hasScriptCell = elRow.childNodes[COLUMN_INDEX.HAS_SCRIPT];
             hasScriptCell.innerText = itemData.hasScript;
             
             if (itemData.selected) {
@@ -484,51 +494,51 @@ function loaded() {
                 elRow.className = '';
             }
             
-            var prevItemId = elRow.dataset.entityID;
-            var newItemId = itemData.id;
-            var validPrevItemID = prevItemId !== undefined && prevItemId > 0;
-            if (validPrevItemID && prevItemId !== newItemId && entitiesByID[prevItemId].elRow === elRow) {
-                elRow.dataset.entityID = 0;
-                entitiesByID[prevItemId].elRow = null;
+            let prevEntityID = elRow.dataset.entityID;
+            let newEntityID = itemData.id;
+            let validPrevItemID = prevEntityID !== undefined && prevEntityID !== EMPTY_ENTITY_ID;
+            if (validPrevItemID && prevEntityID !== newEntityID && entitiesByID[prevEntityID].elRow === elRow) {
+                elRow.dataset.entityID = EMPTY_ENTITY_ID;
+                entitiesByID[prevEntityID].elRow = null;
             }
-            if (!validPrevItemID || prevItemId !== newItemId) {
-                elRow.dataset.entityID = newItemId;
-                entitiesByID[newItemId].elRow = elRow;
+            if (!validPrevItemID || prevEntityID !== newEntityID) {
+                elRow.dataset.entityID = newEntityID;
+                entitiesByID[newEntityID].elRow = elRow;
             }
         }
         
-        function clearRowFunction(elRow) {
-            for (var i = 0; i < NUM_COLUMNS; i++) {
-                var cell = elRow.childNodes[i];
+        function clearRow(elRow) {
+            for (let i = 0; i < NUM_COLUMNS; i++) {
+                let cell = elRow.childNodes[i];
                 cell.innerHTML = "";
             }
             
-            var entityID = elRow.dataset.entityID;
+            let entityID = elRow.dataset.entityID;
             if (entityID && entitiesByID[entityID]) {
                 entitiesByID[entityID].elRow = null;
             }
             
-            elRow.dataset.entityID = 0;
+            elRow.dataset.entityID = EMPTY_ENTITY_ID;
         }
 
         function resize() {
             // Store current scroll position
-            var prevScrollTop = elEntityTableScroll.scrollTop;
+            let prevScrollTop = elEntityTableScroll.scrollTop;
             
             // Take up available window space
             elEntityTableScroll.style.height = window.innerHeight - 207;
             
-            var SCROLLABAR_WIDTH = 21;
-            var tds = document.querySelectorAll("#entity-table-body tr:first-child td");
-            var ths = document.querySelectorAll("#entity-table thead th");
+            let SCROLLABAR_WIDTH = 21;
+            let tds = document.querySelectorAll("#entity-table-body tr:first-child td");
+            let ths = document.querySelectorAll("#entity-table thead th");
             if (tds.length >= ths.length) {
                 // Update the widths of the header cells to match the body
-                for (var i = 0; i < ths.length; i++) {
+                for (let i = 0; i < ths.length; i++) {
                     ths[i].width = tds[i].offsetWidth;
                 }
             } else {
                 // Reasonable widths if nothing is displayed
-                var tableWidth = document.getElementById("entity-table").offsetWidth - SCROLLABAR_WIDTH;
+                let tableWidth = document.getElementById("entity-table").offsetWidth - SCROLLABAR_WIDTH;
                 if (showExtraInfo) {
                     ths[0].width = 0.10 * tableWidth;
                     ths[1].width = 0.20 * tableWidth;
@@ -600,7 +610,7 @@ function loaded() {
             if (keyDownEvent.target.nodeName === "INPUT") {
                 return;
             }
-            var keyCode = keyDownEvent.keyCode;
+            let keyCode = keyDownEvent.keyCode;
             if (keyCode === DELETE) {
                 EventBridge.emitWebEvent(JSON.stringify({ type: 'delete' }));
                 refreshEntities();
@@ -620,13 +630,13 @@ function loaded() {
                 if (data.type === "clearEntityList") {
                     clearEntities();
                 } else if (data.type == "selectionUpdate") {
-                    var notFound = updateSelectedEntities(data.selectedIDs);
+                    let notFound = updateSelectedEntities(data.selectedIDs);
                     if (notFound) {
                         refreshEntities();
                     }
                 } else if (data.type === "update" && data.selectedIDs !== undefined) {
                     PROFILE("update", function() {
-                        var newEntities = data.entities;
+                        let newEntities = data.entities;
                         if (newEntities && newEntities.length === 0) {
                             elNoEntitiesMessage.style.display = "block";
                             elFooter.firstChild.nodeValue = "0 entities found";
