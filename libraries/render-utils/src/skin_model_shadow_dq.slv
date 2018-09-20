@@ -17,12 +17,20 @@
 <@include Skinning.slh@>
 <$declareUseDualQuaternionSkinning(1)$>
 
+<@include Blendshape.slh@>
+<$declareApplyBlendshapeOffsets()$>
+
+<@include render-utils/ShaderConstants.h@>
+
 void main(void) {
-    vec4 position = vec4(0.0, 0.0, 0.0, 0.0);
-    skinPosition(inSkinClusterIndex, inSkinClusterWeight, inPosition, position);
+    vec4 deformedPosition = vec4(0.0, 0.0, 0.0, 0.0);
+    applyBlendshapeOffset(gl_VertexID, inPosition, deformedPosition);
+
+    vec4 skinnedPosition = vec4(0.0, 0.0, 0.0, 0.0);
+    skinPosition(inSkinClusterIndex, inSkinClusterWeight, deformedPosition, skinnedPosition);
 
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToClipPos(cam, obj, position, gl_Position)$>
+    <$transformModelToClipPos(cam, obj, skinnedPosition, gl_Position)$>
 }

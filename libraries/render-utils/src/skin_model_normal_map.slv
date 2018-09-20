@@ -15,14 +15,18 @@
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
-<@include Skinning.slh@>
-<$declareUseDualQuaternionSkinning()$>
-
 <@include graphics/MaterialTextures.slh@>
 <$declareMaterialTexMapArrayBuffer()$>
 
+<@include Skinning.slh@>
+<$declareUseDualQuaternionSkinning()$>
+
+<@include Blendshape.slh@>
+<$declareApplyBlendshapeOffsets(1, 1)$>
+
 <@include render-utils/ShaderConstants.h@>
 
+layout(location=RENDER_UTILS_ATTR_POSITION_WS) out vec4 _positionWS;
 layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
@@ -30,11 +34,18 @@ layout(location=RENDER_UTILS_ATTR_TANGENT_WS) out vec3 _tangentWS;
 layout(location=RENDER_UTILS_ATTR_COLOR) out vec4 _color;
 
 void main(void) {
-    vec4 position = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 interpolatedNormal = vec4(0.0, 0.0, 0.0, 0.0);
-    vec4 interpolatedTangent = vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 deformedPosition = vec4(0.0, 0.0, 0.0, 0.0);
+    vec3 deformedNormal = vec3(0.0, 0.0, 0.0);
+    vec3 deformedTangent = vec3(0.0, 0.0, 0.0);
+    applyBlendshapeOffset(gl_VertexID, inPosition, deformedPosition, inNormal.xyz, deformedNormal, inTangent.xyz, deformedTangent);
 
-    skinPositionNormalTangent(inSkinClusterIndex, inSkinClusterWeight, inPosition, inNormal.xyz, inTangent.xyz, position, interpolatedNormal.xyz, interpolatedTangent.xyz);
+    vec4 skinnedPosition = vec4(0.0, 0.0, 0.0, 0.0);
+    vec3 skinnedNormal = vec3(0.0, 0.0, 0.0);
+    vec3 skinnedTangent = vec3(0.0, 0.0, 0.0);
+    skinPositionNormalTangent(inSkinClusterIndex, inSkinClusterWeight, deformedPosition, deformedNormal, deformedTangent, skinnedPosition, skinnedNormal, skinnedTangent);
+
+//    skinnedNormal = normalize(skinnedNormal);
+//    skinnedTangent = normalize(skinnedTangent);
 
     // pass along the color
     _color.rgb = color_sRGBToLinear(inColor.rgb);
@@ -42,18 +53,12 @@ void main(void) {
 
     TexMapArray texMapArray = getTexMapArray();
     <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _texCoord01.xy)$>
-    <$evalTexMapArrayTexcoord1(texMapArray, inTexCoord0, _texCoord01.zw)$>
-
-    interpolatedNormal = vec4(normalize(interpolatedNormal.xyz), 0.0);
-    interpolatedTangent = vec4(normalize(interpolatedTangent.xyz), 0.0);
+    <$evalTexMapArrayTexcoord1(texMapArray, inTexCoord1, _texCoord01.zw)$>
 
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToEyeAndClipPos(cam, obj, position, _positionES, gl_Position)$>
-    <$transformModelToWorldDir(cam, obj, interpolatedNormal.xyz, interpolatedNormal.xyz)$>
-    <$transformModelToWorldDir(cam, obj, interpolatedTangent.xyz, interpolatedTangent.xyz)$>
-
-    _normalWS = interpolatedNormal.xyz;
-    _tangentWS = interpolatedTangent.xyz;
+    <$transformModelToWorldAndEyeAndClipPos(cam, obj, skinnedPosition, _positionWS, _positionES, gl_Position)$>
+    <$transformModelToWorldDir(cam, obj, skinnedNormal, _normalWS.xyz)$>
+    <$transformModelToWorldDir(cam, obj, skinnedTangent, _tangentWS.xyz)$>
 }

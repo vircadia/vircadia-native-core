@@ -1641,7 +1641,7 @@ void Model::createRenderItemSet() {
             shapeID++;
         }
     }
-    _blendedVertexBuffersInitialized = true;
+    _blendshapeBuffersInitialized = true;
 }
 
 bool Model::isRenderable() const {

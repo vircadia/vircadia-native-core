@@ -15,24 +15,31 @@
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
-<@include Skinning.slh@>
-<$declareUseDualQuaternionSkinning(1)$>
-
 <@include graphics/MaterialTextures.slh@>
 <$declareMaterialTexMapArrayBuffer()$>
 
+<@include Skinning.slh@>
+<$declareUseDualQuaternionSkinning(1)$>
+
+<@include Blendshape.slh@>
+<$declareApplyBlendshapeOffsets(1)$>
+
 <@include render-utils/ShaderConstants.h@>
 
+layout(location=RENDER_UTILS_ATTR_POSITION_WS) out vec4 _positionWS;
 layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
 layout(location=RENDER_UTILS_ATTR_COLOR) out vec4 _color;
 
 void main(void) {
-    vec4 position = vec4(0.0, 0.0, 0.0, 0.0);
-    vec3 interpolatedNormal = vec3(0.0, 0.0, 0.0);
+    vec4 deformedPosition = vec4(0.0, 0.0, 0.0, 0.0);
+    vec3 deformedNormal = vec3(0.0, 0.0, 0.0);
+    applyBlendshapeOffset(gl_VertexID, inPosition, deformedPosition, inNormal.xyz, deformedNormal);
 
-    skinPositionNormal(inSkinClusterIndex, inSkinClusterWeight, inPosition, inNormal.xyz, position, interpolatedNormal);
+    vec4 skinnedPosition = vec4(0.0, 0.0, 0.0, 0.0);
+    vec3 skinnedNormal = vec3(0.0, 0.0, 0.0);
+    skinPositionNormal(inSkinClusterIndex, inSkinClusterWeight, deformedPosition, deformedNormal, skinnedPosition, skinnedNormal);
 
     // pass along the color
     _color.rgb = color_sRGBToLinear(inColor.rgb);
@@ -45,6 +52,6 @@ void main(void) {
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToEyeAndClipPos(cam, obj, position, _positionES, gl_Position)$>
-    <$transformModelToWorldDir(cam, obj, interpolatedNormal.xyz, _normalWS.xyz)$>
+    <$transformModelToWorldAndEyeAndClipPos(cam, obj, skinnedPosition, _positionWS, _positionES, gl_Position)$>
+    <$transformModelToWorldDir(cam, obj, skinnedNormal, _normalWS.xyz)$>
 }
