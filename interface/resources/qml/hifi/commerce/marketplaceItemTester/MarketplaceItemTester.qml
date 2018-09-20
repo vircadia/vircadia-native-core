@@ -12,6 +12,7 @@
 //
 
 import QtQuick 2.5
+import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
 import QtQuick.Dialogs 1.0
 import QtQuick.Layouts 1.1
@@ -83,6 +84,7 @@ Rectangle {
         anchors.rightMargin: 12
         model: resourceListModel
         spacing: 5
+        interactive: false
 
         delegate: RowLayout {
             anchors.left: parent.left
@@ -138,12 +140,25 @@ Rectangle {
                 }
             }
 
-            Text {
-                text: assetType
-                font.pointSize: 10
+            ComboBox {
+                id: comboBox
+
                 Layout.preferredWidth: root.width * .2
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
+
+                model: [
+                    "application",
+                    "avatar",
+                    "content set",
+                    "entity",
+                    "wearable",
+                    "unknown"
+                ]
+
+                currentIndex: ("entity or wearable" == assetType) ? model.indexOf("unknown") : model.indexOf(assetType)
+
+                Component.onCompleted: {
+                    onActivated.connect(function() { assetType = currentText; });
+                }
             }
 
             Repeater {
@@ -159,7 +174,7 @@ Rectangle {
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
-                            actions[modelData.name](resource, assetType);
+                            actions[modelData.name](resource, comboBox.currentText);
                         }
                     }
                 }
