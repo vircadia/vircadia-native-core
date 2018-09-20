@@ -250,9 +250,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     // reset the number of sent avatars
     nodeData->resetNumAvatarsSentLastFrame();
 
-    // keep a counter of the number of considered avatars
-    int numOtherAvatars = 0;
-
     // keep track of outbound data rate specifically for avatar data
     int numAvatarDataBytes = 0;
     int identityBytesSent = 0;
@@ -426,8 +423,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         }
 
         auto startAvatarDataPacking = chrono::high_resolution_clock::now();
-
-        ++numOtherAvatars;
 
         const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNode->getLinkedData());
         const AvatarData* otherAvatar = otherNodeData->getConstAvatarData();
