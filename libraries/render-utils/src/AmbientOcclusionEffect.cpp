@@ -508,7 +508,6 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     auto occlusionNormalFramebuffer = _framebuffer->getNormalFramebuffer(resolutionLevel);
     auto occlusionNormalTexture = _framebuffer->getNormalTexture(resolutionLevel);
 #endif
-    auto fullNormalTexture = linearDepthFramebuffer->getNormalTexture();
 
     // Update sample rotation
     const int SSAO_RANDOM_SAMPLE_COUNT = int(_randomSamples.size() / SSAO_SPLIT_COUNT);
@@ -620,7 +619,6 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
                 batch.setFramebuffer(occlusionBlurredFBO);
                 // Use full resolution depth and normal for bilateral upscaling and blur
                 batch.setResourceTexture(render_utils::slot::texture::SsaoDepth, linearDepthTexture);
-                batch.setResourceTexture(render_utils::slot::texture::SsaoNormal, fullNormalTexture);
                 batch.setUniformBuffer(render_utils::slot::buffer::SsaoBlurParams, _hblurParametersBuffer);
                 batch.setPipeline(firstHBlurPipeline);
                 batch.setResourceTexture(render_utils::slot::texture::SsaoOcclusion, occlusionFBO->getRenderBuffer(0));
